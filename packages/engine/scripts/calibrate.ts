@@ -3,13 +3,15 @@
  * part of the app and never runs in CI.
  *
  *   pnpm --filter @architect/engine exec tsx scripts/calibrate.ts <jobDir> [split] [--limit N]
- *     [--seed N] [--concurrency N]
+ *     [--seed N] [--concurrency N] [--traces <dir>]
+ *
+ * --traces writes each attempt's full trace as `<taskId>.json` into <dir>, to read why it failed.
  *
  * <jobDir> holds job.json, tasks.jsonl, data/ and the checker module. [split] is calibration
  * (the default), train or dev; the test split stays locked in the vault. The student is the job's
  * local endpoint, normally Ollama, so the model loads on this machine for the duration of the run.
  */
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createStudent } from '@architect/adapters';
 import { blankHarness } from '@architect/harness';
@@ -43,10 +45,11 @@ interface Options {
   limit?: number;
   seed: number;
   concurrency: number;
+  traces?: string;
 }
 
 const USAGE =
-  'Usage: tsx scripts/calibrate.ts <jobDir> [calibration|train|dev] [--limit N] [--seed N] [--concurrency N]';
+  'Usage: tsx scripts/calibrate.ts <jobDir> [calibration|train|dev] [--limit N] [--seed N] [--concurrency N] [--traces <dir>]';
 
 async function main(): Promise<void> {
   const options = parseArguments(process.argv.slice(2));
@@ -55,6 +58,7 @@ async function main(): Promise<void> {
   const selected = splitTasks(tasks, job.splits)[options.split].slice(0, options.limit);
 
   const student = createCalibrationStudent(job);
+  if (options.traces !== undefined) await mkdir(options.traces, { recursive: true });
   const sandbox = createSandbox();
   const checker = createChecker({ job, jobDir: options.jobDir, sandbox });
   write(
@@ -75,6 +79,14 @@ async function main(): Promise<void> {
         seed: options.seed,
         concurrency: options.concurrency,
         onAttempt: ({ task, result: attempt }) => {
+          if (options.traces !== undefined) {
+            const file = join(options.traces, `${task.id}.json`);
+            void writeFile(
+              file,
+              `${JSON.stringify({ task, ...attempt }, null, 2)}
+`,
+            );
+          }
           const mark = attempt.check.pass ? 'pass' : 'FAIL';
           write(
             `${mark}  ${task.id}  ${seconds(attempt.trace.latencyMs)}  ${attempt.check.reason}\n`,
@@ -135,10 +147,18 @@ function percentile(sorted: readonly number[], fraction: number): number {
 function parseArguments(args: readonly string[]): Options {
   const positional: string[] = [];
   const flags = new Map<string, number>();
+  let traces: string | undefined;
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index] ?? '';
     if (!arg.startsWith('--')) {
       positional.push(arg);
+      continue;
+    }
+    if (arg === '--traces') {
+      const dir = args[index + 1];
+      if (dir === undefined) throw new Error(USAGE);
+      traces = resolve(dir);
+      index += 1;
       continue;
     }
     const value = Number(args[index + 1]);
@@ -161,6 +181,7 @@ function parseArguments(args: readonly string[]): Options {
     ...(limit === undefined ? {} : { limit }),
     seed: flags.get('--seed') ?? 1,
     concurrency: flags.get('--concurrency') ?? 1,
+    ...(traces === undefined ? {} : { traces }),
   };
 }
 
