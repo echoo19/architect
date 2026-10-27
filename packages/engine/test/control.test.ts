@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { AdapterError, type Job, type Task } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
+import { LineageLog } from '../src/loop/lineage';
 import { STOPPED_ROUND } from '../src/loop/plan';
 import { TRAINING_ENDED } from '../src/loop/run-state';
 import { devSeeds, fanOutSeeds, roundSeed } from '../src/loop/seeds';
@@ -345,6 +346,30 @@ describe('dev noise', () => {
 });
 
 describe('the split guard during a run', () => {
+  it('rejects only the round when the fix would send a reply that matches the locked test', async () => {
+    const leaky = task('test', 'invoice', 1).prompt;
+    const job = await setUp({ job: { budget: { ...defaultJob().budget, maxRounds: 2 } } });
+    world.mentor.script = (_request, call) =>
+      call === 1
+        ? { ...dropThePrompt(), diagnosis: `A request like: ${leaky}` }
+        : hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice');
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    expect(world.mentor.requests).toHaveLength(2);
+    expect(JSON.stringify(world.mentor.requests)).not.toContain(leaky);
+    expect(engine.store.rounds.get(run.id, 1)).toMatchObject({
+      rejected: true,
+      round: {
+        status: 'failed',
+        error:
+          "The request to fix the reply couldn't be sent, so the round ended without a change.",
+      },
+    });
+    expect(engine.store.rounds.get(run.id, 2)?.round.decision).toBe('kept');
+    expect(engine.store.runs.get(run.id)?.run.stopReason).not.toBe('leak');
+  });
+
   it('ends training at a refused mentor payload, naming the part that matched', async () => {
     const leaky = task('test', 'invoice', 1).prompt;
     const tasks = defaultTasks().map((t) =>
@@ -443,6 +468,8 @@ describe('authoring failures', () => {
     ).toHaveLength(2);
     expect(existsSync(engine.paths.mentorFile(job.id, run.id, 1))).toBe(true);
     expect(existsSync(engine.paths.mentorFile(job.id, run.id, 1, 1))).toBe(true);
+    const [entry] = await new LineageLog(engine.paths.lineageFile(job.id, run.id)).read();
+    expect(entry?.mentor).toMatchObject({ inputTokens: 4000, outputTokens: 1000 });
     const logs = engine.events.flatMap((e) => (e.type === 'log' ? [e.message] : []));
     expect(logs).toContain(
       `Round 1: the runner couldn't use the reply, so the author gets one fix. ${REJECTION}`,

@@ -146,6 +146,17 @@ function measurementOf(pair: DevPair): Measurement {
   };
 }
 
+/** Tokens of every author call the round paid for, a fix included, like its cost. */
+function authorTokens(state: RunState, index: number) {
+  const calls = state.ctx.store.costs
+    .list(state.ctx.runId)
+    .filter((cost) => cost.role === 'mentor' && cost.round === index);
+  return {
+    inputTokens: calls.reduce((sum, cost) => sum + cost.usage.inputTokens, 0),
+    outputTokens: calls.reduce((sum, cost) => sum + cost.usage.outputTokens, 0),
+  };
+}
+
 /**
  * Logs the hypothesis in lineage with its measured effect, and keeps or reverts it. `first` is
  * the first measurement when the round measured again; `pair` then adds up both.
@@ -185,12 +196,7 @@ async function decide(
     decisionReason: decision.reason,
     versionFrom: stored.baseVersion,
     versionTo: must(round.candidateVersion, 'The candidate version'),
-    mentor: {
-      model: reply.model,
-      costUsd: round.costUsd,
-      inputTokens: reply.usage.inputTokens,
-      outputTokens: reply.usage.outputTokens,
-    },
+    mentor: { model: reply.model, costUsd: round.costUsd, ...authorTokens(state, round.index) },
     at: state.now(),
   });
   const decided: Round = {

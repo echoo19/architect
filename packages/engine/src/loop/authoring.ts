@@ -39,6 +39,9 @@ import { roundSeed } from './seeds';
  */
 const MAX_FIXES = 1;
 
+const FIX_NOT_SENT =
+  "The request to fix the reply couldn't be sent, so the round ended without a change.";
+
 /** Replies that are the author's fault: the round is rejected and training goes on. */
 function isUnusableReply(error: unknown): error is AdapterError {
   return (
@@ -217,9 +220,12 @@ async function callAuthor(
       state.closeRound(index, error.message, 'usd');
       return null;
     }
-    // The next round would build its payload from the same data and be refused again.
     if (error instanceof LeakRefusal) {
-      state.closeRound(index, error.message, 'leak');
+      // A fix adds only the author's own refused reply, which was never applied, so only its
+      // round ends, with a reason that says nothing about the locked test. Any other payload
+      // would be built again from the same data next round and refused again.
+      if (fix > 0) state.rejectRound(index, FIX_NOT_SENT);
+      else state.closeRound(index, error.message, 'leak');
       return null;
     }
     if (isUnusableReply(error)) {
