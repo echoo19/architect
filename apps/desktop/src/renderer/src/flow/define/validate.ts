@@ -69,6 +69,9 @@ export function validateJob(job: Job, taskCount: number | null): JobIssues {
   if (!wholeNumber(evaluation.maxTypeRegression) || evaluation.maxTypeRegression < 0) {
     add('evaluation.maxTypeRegression', 'Use a whole number, 0 or more.');
   }
+  if (!wholeNumber(evaluation.devRepeats) || !between(evaluation.devRepeats, 1, 3)) {
+    add('evaluation.devRepeats', 'Use a whole number from 1 to 3.');
+  }
   if (!wholeNumber(evaluation.patience) || evaluation.patience < 1) {
     add('evaluation.patience', 'Use a whole number, at least 1.');
   }

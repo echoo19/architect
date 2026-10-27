@@ -34,19 +34,19 @@ The engine and agent hosts are plain Node modules in `packages/engine`. The Elec
 2. **Attempt.** The runner samples a train batch and runs the student on each task inside the current harness version: system prompt, the skills and examples that the retrieval rules select, built-in data tools plus harness tools, decoding settings.
 3. **Check.** The checker grades each attempt deterministically: pass or fail with a reason.
 4. **Target?** If the dev pass rate meets the requirement, or a budget cap is hit, go to step 7.
-5. **Diagnose.** The mentor receives the failing train traces, the harness, per-type train results, the dev summary (pass counts overall and per task type, never dev traces) and the lineage so far. It returns one hypothesis: a diagnosis, a change set (files to add or edit), the failures it addresses, and a predicted effect on dev.
-6. **Keep or revert.** The runner applies the change set to a new harness version and evaluates it on dev with fixed decoding and seed. It is kept only if dev passes go up; otherwise it is reverted. Either way a lineage entry records cause, prediction and measured effect. Back to step 2.
-7. **Locked test.** The mentor adapter is disposed. The vault releases the test split to the runner, which evaluates the final harness once on the local student.
+5. **Diagnose.** The mentor receives the failing train traces, the harness, per-type train results, the overall dev pass count (never per-type dev counts or dev traces) and the lineage so far, rejected rounds with their reasons included. It returns one hypothesis: a diagnosis, a change set (files to add or edit), the failures it addresses, and a predicted effect on dev. A reply that isn't a usable hypothesis, or a change set the harness refuses, is rejected before dev sees it: the round ends, the mentor is told why the next round, and two rejected rounds in a row end training. Rejections don't use up patience, which counts changes dev measured and reverted.
+6. **Keep or revert.** The runner applies the change set to a new harness version and evaluates it on dev, together with the incumbent measured again, under seeds the round draws from the run's panel seed: every dev task once per repeat (`devRepeats`, 1 to 3). It is kept only if dev passes, added up over the repeats, rise by the job's margin times the repeat count and no task type loses more than its limit times the repeat count; otherwise it is reverted. Either way a lineage entry records cause, prediction and measured effect. Back to step 2.
+7. **Locked test.** The mentor is released: its gate closes, so no mentor call can start, and the run drops its mentor adapter. Only then does the vault release the test split to the runner, which evaluates the final harness once on the local student.
 8. **Graduate.** The runner writes the graduate folder (pinned model, harness, guardrails, report card, lineage). Accepting it adds it to the workspace sidebar.
 
 Baselines reuse the same runner, checker, data, budget and seed: **bare** (minimal harness), **one-shot** (the mentor writes a harness from the job setup and train examples without seeing attempts), **self-reflection** (the student edits its own harness over the same rounds).
 
 ## Isolation and guarantees
 
-- **Test split.** Only `packages/engine/src/vault` reads or writes it. Mentor payloads are built from an allowlist of fields, and every payload passes a leak check against fingerprints of the test tasks before it is sent. Tests assert both.
+- **Test split.** Only `packages/engine/src/vault` reads or writes it. Mentor payloads are built from an allowlist of fields, and every payload passes a leak check against fingerprints of the test tasks (their prompts, ids and expected results, including the long ids and amounts no other task or data file holds) before it is sent. Tests assert both.
 - **Checker.** Deterministic functions; custom checker files run in the sandbox with no clock or randomness. The mentor's change set may only touch harness files; edits outside the harness surface are rejected.
 - **Offline graduates.** The agent host installs a guard at startup that refuses any non-loopback connection, and it only constructs local student adapters. A test runs a workspace session against a local fake model server and fails on any other connection attempt.
-- **Budgets.** Rounds, mentor dollars and wall clock are checked before every mentor call and every round; a call that would cross a cap does not start.
+- **Budgets.** Rounds, mentor dollars and wall clock are checked before every mentor call and every round; a call that would cross a cap does not start. Every training attempt runs under the wall-clock deadline: one still running when the time is up is cut there, not scored, and the run goes to its locked test.
 - **Restart.** Runs persist every step to SQLite. On launch the engine host marks interrupted runs and resumes them from the last completed step.
 
 ## Data on disk

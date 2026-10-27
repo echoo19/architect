@@ -2,6 +2,8 @@ import { existsSync } from 'node:fs';
 import { AdapterError, type Job, type Task } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { STOPPED_ROUND } from '../src/loop/plan';
+import { TRAINING_ENDED } from '../src/loop/run-state';
+import { devSeeds, fanOutSeeds, roundSeed } from '../src/loop/seeds';
 import { hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
 import { FileVersions } from './fakes/harness';
@@ -9,8 +11,17 @@ import { defaultJob, defaultTasks, task } from './fakes/job';
 import { createWorld, openEngine, type Engine, type World } from './fakes/world';
 
 const MINUTE = 60_000;
+const REJECTION = 'system.md: cannot be deleted. Every harness needs a system prompt.';
 let world: World;
 let engine: Engine;
+
+/** A reply whose change set the harness refuses: it deletes the system prompt. */
+function dropThePrompt() {
+  return {
+    ...hypothesis('Drop the prompt', ''),
+    edits: [{ op: 'delete' as const, path: 'system.md', content: '' }],
+  };
+}
 
 async function setUp(options: { job?: Partial<Job>; tasks?: Task[] } = {}) {
   world = await createWorld(options);
@@ -178,7 +189,7 @@ describe('budgets during a run', () => {
     expect(engine.store.reports.get(run.id)?.cost.mentorUsd).toBe(0);
   });
 
-  it('stops training when the wall clock runs out, mid-evaluation, but runs the test', async () => {
+  it('cuts the attempt in flight when the wall clock runs out, unscored, and runs the test', async () => {
     const job = await setUp({
       job: { budget: { maxRounds: 3, maxMentorUsd: 5, maxWallMinutes: 5 } },
     });
@@ -192,16 +203,19 @@ describe('budgets during a run', () => {
       stopReason: 'wall_clock',
       devBaseline: null,
     });
-    expect(engine.store.attempts.list({ runId: run.id, split: 'dev' })).toHaveLength(3);
+    const started = engine.events.filter((e) => e.type === 'attempt.started' && e.split === 'dev');
+    expect(started).toHaveLength(3);
+    expect(engine.store.attempts.list({ runId: run.id, split: 'dev' })).toHaveLength(2);
     expect(engine.store.attempts.list({ runId: run.id, split: 'test' })).toHaveLength(6);
     expect(world.mentor.requests).toHaveLength(0);
+    expect(engine.errors).toEqual([]);
   });
 
   it('stops when rounds in a row bring no kept change', async () => {
     const job = await setUp({
       job: {
         budget: { maxRounds: 10, maxMentorUsd: 5, maxWallMinutes: 60 },
-        evaluation: { trainBatch: 6, minDevGain: 2, maxTypeRegression: 1, patience: 2 },
+        evaluation: { ...defaultJob().evaluation, patience: 2 },
       },
     });
     world.mentor.script = () => hypothesis('Reword the rules', 'Service desk, reworded.');
@@ -223,36 +237,94 @@ describe('budgets during a run', () => {
   });
 });
 
+describe('dev noise', () => {
+  it('measures the incumbent again, so a lucky score that got it kept is not the next bar', async () => {
+    const job = await setUp();
+    const lucky = roundSeed(fanOutSeeds(7).devPanel, 1);
+    world.runtime.passes = (held, harness, seed) =>
+      harness.system.includes(`fix:${held.type}`) ||
+      (held.type === 'overdue' && harness.system.includes('lucky') && seed === lucky);
+    world.mentor.script = (_request, call) =>
+      [
+        hypothesis('Add the invoice procedure', 'fix:invoice lucky'),
+        hypothesis('Add the scheduling procedure', 'fix:invoice lucky fix:scheduling'),
+      ][call - 1];
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    expect(
+      engine.store.rounds.list(run.id).map(({ round }) => [round.decision, round.decisionReason]),
+    ).toEqual([
+      ['kept', 'Dev 0/9 → 6/9, no type lost more than one'],
+      ['kept', 'Dev 3/9 → 6/9, no type lost more than one'],
+    ]);
+  });
+
+  it('runs every dev task under each repeat seed and keeps only gains past the scaled margin', async () => {
+    const job = await setUp({
+      job: { evaluation: { ...defaultJob().evaluation, devRepeats: 2 } },
+    });
+    const panel = fanOutSeeds(7).devPanel;
+    const [lucky] = devSeeds(panel, 2, 2);
+    world.runtime.passes = (held, harness, seed) =>
+      harness.system.includes(`fix:${held.type}`) && (held.type !== 'overdue' || seed === lucky);
+    world.mentor.script = (_request, call) =>
+      [
+        hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice'),
+        hypothesis('Add the overdue procedure', 'Service desk.\nfix:invoice\nfix:overdue'),
+      ][call - 1];
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    const dev = engine.store.attempts.list({ runId: run.id, split: 'dev' });
+    expect(dev).toHaveLength(90);
+    expect(new Set(dev.filter((a) => a.round === 1).map((a) => a.seed))).toEqual(
+      new Set(devSeeds(panel, 1, 2)),
+    );
+    expect(
+      engine.store.rounds.list(run.id).map(({ round }) => [round.decision, round.decisionReason]),
+    ).toEqual([
+      ['kept', 'Dev 0/18 → 6/18 over 2 runs, no type lost more than two'],
+      ['reverted', 'Dev 6/18 → 9/18 over 2 runs, short of the +4 margin'],
+    ]);
+    expect(engine.store.runs.get(run.id)?.run).toMatchObject({
+      status: 'finished',
+      devBaseline: { pass: 0, total: 18 },
+      devCurrent: { pass: 6, total: 18 },
+    });
+  });
+});
+
 describe('the split guard during a run', () => {
-  it('refuses a mentor payload that carries a test prompt, logs it, and goes on', async () => {
+  it('ends training at a refused mentor payload, naming the part that matched', async () => {
     const leaky = task('test', 'invoice', 1).prompt;
     const tasks = defaultTasks().map((t) =>
       t.id === 'train-invoice-1' ? { ...t, prompt: `${t.prompt} Same as: ${leaky}` } : t,
     );
     const job = await setUp({
       tasks,
-      job: { budget: { ...defaultJob().budget, maxRounds: 1 } },
+      job: { budget: { ...defaultJob().budget, maxRounds: 5 } },
     });
     const run = await engine.controller.start(job.id, 'architect', 7);
     await engine.controller.idle();
 
+    const refusal =
+      'Refused a mentor call: its payload matched 1 locked test task, in train task train-invoice-1.';
     expect(world.mentor.requests).toHaveLength(0);
-    expect(engine.store.rounds.get(run.id, 1)?.round).toMatchObject({
-      status: 'failed',
-      error: 'Refused a mentor call: its payload matched 1 locked test task.',
-    });
-    expect(
-      engine.events.some(
-        (e) =>
-          e.type === 'log' && e.level === 'error' && e.message.startsWith('Refused a mentor call'),
-      ),
-    ).toBe(true);
+    expect(engine.store.rounds.list(run.id).map(({ round }) => round)).toMatchObject([
+      { index: 1, status: 'failed', error: refusal },
+    ]);
     expect(engine.store.runs.get(run.id)?.run).toMatchObject({
       status: 'finished',
-      stopReason: 'rounds',
+      stopReason: 'leak',
     });
+    const logs = engine.events.flatMap((e) => (e.type === 'log' ? [e] : []));
+    expect(logs).toContainEqual(expect.objectContaining({ level: 'error', message: refusal }));
+    expect(logs.map((e) => e.message)).toContain(TRAINING_ENDED.leak);
+    expect(logs.some((e) => e.message.includes(leaky))).toBe(false);
     expect(engine.events.some((e) => e.type === 'mentor.started')).toBe(false);
     expect(existsSync(engine.paths.mentorFile(job.id, run.id, 1))).toBe(false);
+    expect(engine.store.attempts.list({ runId: run.id, split: 'test' })).toHaveLength(6);
   });
 });
 
@@ -278,38 +350,89 @@ describe('authoring failures', () => {
     expect(engine.store.costs.list(run.id).filter((cost) => cost.role === 'mentor')).toHaveLength(
       1,
     );
-    const round = engine.store.rounds.get(run.id, 1)?.round;
-    expect(round).toMatchObject({
+    const stored = engine.store.rounds.get(run.id, 1);
+    expect(stored?.rejected).toBe(true);
+    expect(stored?.round).toMatchObject({
       status: 'failed',
       error: expect.stringContaining('not valid JSON'),
     });
-    expect(round?.costUsd).toBeCloseTo(0.0101);
+    expect(stored?.round.costUsd).toBeCloseTo(0.0101);
     expect(engine.events.some((e) => e.type === 'mentor.finished' && e.costUsd === 0.0101)).toBe(
       true,
     );
   });
 
-  it('ends the round when the change set does not validate, and goes on', async () => {
+  it('rejects a change set that does not validate, shows the mentor why, and goes on', async () => {
     const job = await setUp();
     world.mentor.script = (_request, call) =>
       call === 1
-        ? {
-            ...hypothesis('Drop the prompt', ''),
-            edits: [{ op: 'delete', path: 'system.md', content: '' }],
-          }
+        ? dropThePrompt()
         : hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice');
     const run = await engine.controller.start(job.id, 'architect', 7);
     await engine.controller.idle();
 
-    expect(engine.store.rounds.get(run.id, 1)?.round).toMatchObject({
-      status: 'failed',
-      error: 'system.md: cannot be deleted. Every harness needs a system prompt.',
+    expect(engine.store.rounds.get(run.id, 1)).toMatchObject({
+      rejected: true,
+      round: {
+        status: 'failed',
+        title: 'Drop the prompt',
+        files: ['system.md'],
+        error: REJECTION,
+      },
     });
+    const second = world.mentor.requests[1]?.messages[0]?.content ?? '';
+    expect(second).toContain(
+      `- Round 1, rejected before dev saw it: Drop the prompt. Files: system.md. Why: ${REJECTION}`,
+    );
+    expect(second).not.toContain('None yet.');
     expect(engine.store.rounds.get(run.id, 2)?.round.decision).toBe('kept');
     expect(engine.store.runs.get(run.id)?.run).toMatchObject({
       status: 'finished',
       currentVersion: 2,
     });
+  });
+
+  it('ends training after two rejected rounds in a row, says why, and still tests', async () => {
+    const job = await setUp({
+      job: { budget: { maxRounds: 6, maxMentorUsd: 5, maxWallMinutes: 60 } },
+    });
+    world.mentor.script = () => dropThePrompt();
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    const rounds = engine.store.rounds.list(run.id);
+    expect(rounds.map(({ round, rejected }) => [round.index, round.status, rejected])).toEqual([
+      [1, 'failed', true],
+      [2, 'failed', true],
+    ]);
+    expect(engine.store.runs.get(run.id)?.run).toMatchObject({
+      status: 'finished',
+      stopReason: 'rejected',
+      currentVersion: 1,
+    });
+    const logs = engine.events.flatMap((e) => (e.type === 'log' ? [e.message] : []));
+    expect(logs).toContain(`Round 2 was rejected before evaluation: ${REJECTION}`);
+    expect(logs).toContain(TRAINING_ENDED.rejected);
+    expect(engine.store.attempts.list({ runId: run.id, split: 'test' })).toHaveLength(6);
+  });
+
+  it('does not count a rejected round toward patience', async () => {
+    const job = await setUp({
+      job: {
+        budget: { maxRounds: 6, maxMentorUsd: 5, maxWallMinutes: 60 },
+        evaluation: { ...defaultJob().evaluation, patience: 1 },
+      },
+    });
+    world.mentor.script = (_request, call) =>
+      call === 1 ? dropThePrompt() : hypothesis('Reword the rules', 'Service desk, reworded.');
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    expect(engine.store.rounds.list(run.id).map(({ round }) => round.decision)).toEqual([
+      undefined,
+      'reverted',
+    ]);
+    expect(engine.store.runs.get(run.id)?.run.stopReason).toBe('patience');
   });
 });
 

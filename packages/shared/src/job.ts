@@ -80,11 +80,19 @@ export type SplitConfig = z.infer<typeof SplitConfigSchema>;
 export const EvaluationConfigSchema = z.object({
   /** Train tasks the student attempts each round before the mentor diagnoses. */
   trainBatch: z.number().int().min(1),
-  /** A change is kept only if net dev passes rise by at least this many tasks. */
+  /** A change is kept only if net dev passes rise by at least this many tasks per repeat. */
   minDevGain: z.number().int().min(1),
-  /** ...and no task type loses more than this many dev passes. */
+  /** ...and no task type loses more than this many dev passes per repeat. */
   maxTypeRegression: z.number().int().min(0),
-  /** Rounds in a row without a kept change before the run stops early. */
+  /**
+   * How many seeds each dev evaluation runs every task under, 1 to 3. Passes add up across
+   * them, and the two limits above scale with the count, so a lucky draw is less likely kept.
+   */
+  devRepeats: z.number().int().min(1).max(3).default(1),
+  /**
+   * Changes in a row that dev measured and reverted before the run stops early. Rounds whose
+   * reply or change set was rejected before dev saw it don't count.
+   */
   patience: z.number().int().min(1).default(3),
 });
 export type EvaluationConfig = z.infer<typeof EvaluationConfigSchema>;

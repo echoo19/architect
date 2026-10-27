@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -122,19 +122,42 @@ describe('SecretStore', () => {
     expect(await reopened.get('meta')).toBe('sk-1');
   });
 
-  it('starts empty from a file in the wrong shape, keeping only known refs', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    await writeFile(file, '["not", "a", "record"]');
-    expect((await SecretStore.open(file, fakeCipher())).status().meta).toBe(false);
-    expect(warn).toHaveBeenCalledOnce();
-    warn.mockRestore();
-
+  it('keeps only the refs it knows from the file', async () => {
     const cipher = fakeCipher();
     const meta = (await cipher.encrypt('sk-1')).toString('base64');
     await writeFile(file, JSON.stringify({ meta, github: meta }));
     const store = await SecretStore.open(file, cipher);
     expect(await store.get('meta')).toBe('sk-1');
     expect(await store.get('github')).toBeUndefined();
+  });
+
+  for (const [name, content] of [
+    ['is not JSON', '{"meta": "c2stMQ==", '],
+    ['is in the wrong shape', '["not", "a", "record"]'],
+  ] as const) {
+    it(`leaves a keys file that ${name} untouched, and says why on every use`, async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      await writeFile(file, content);
+      const store = await SecretStore.open(file, fakeCipher());
+      expect(warn).toHaveBeenCalledOnce();
+      warn.mockRestore();
+
+      const why = `The saved keys in ${file} can't be read`;
+      await expect(store.set('meta', 'sk-new')).rejects.toThrow(why);
+      await expect(store.clear('meta')).rejects.toThrow(why);
+      await expect(store.get('meta')).rejects.toThrow(why);
+      expect(() => store.status()).toThrow(why);
+      expect(await readFile(file, 'utf8')).toBe(content);
+    });
+  }
+
+  it('leaves a keys path that fails to read for any other reason untouched', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await mkdir(file);
+    const store = await SecretStore.open(file, fakeCipher());
+    warn.mockRestore();
+    await expect(store.set('meta', 'sk-new')).rejects.toThrow("can't be read");
+    expect((await stat(file)).isDirectory()).toBe(true);
   });
 });
 

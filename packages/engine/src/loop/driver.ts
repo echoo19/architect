@@ -127,7 +127,7 @@ export class RunDriver {
       devBaseline: run.devBaseline,
       devCurrent: run.devCurrent,
       frozen: frozen !== null,
-      rounds: state.rounds().map(({ round }) => round),
+      rounds: state.rounds().map(({ round, rejected }) => ({ ...round, rejected })),
       maxRounds: state.job.budget.maxRounds,
       patience: state.job.evaluation.patience,
       passRateTarget: state.job.requirements.passRate,

@@ -8,32 +8,56 @@ import {
   type MentorAdapter,
   type MentorCompletionRequest,
 } from '@architect/shared';
-import type { GatedCompletion, MentorCharge } from '../mentor/gate';
+import {
+  LeakRefusal,
+  type GatedCompletion,
+  type MentorCharge,
+  type PayloadPart,
+} from '../mentor/gate';
 import { diagnoseRequest, oneShotRequest, type PromptSettings } from '../mentor/prompts';
 import { MentorReplyError, parseHypothesis } from '../mentor/reply';
 import { studentAsMentor } from '../mentor/student-author';
-import { buildMentorView, buildOneShotView, type TrainResult } from '../mentor/view';
+import {
+  buildMentorView,
+  buildOneShotView,
+  mentorViewParts,
+  oneShotViewParts,
+  type RejectedRound,
+  type TrainResult,
+} from '../mentor/view';
 import type { AuthorReply, StoredRound } from '../store/records';
 import { HARNESS_VALIDATION_ERROR } from './deps';
-import { errorMessage, must } from './errors';
+import { must } from './errors';
 import { readJsonFile, writeJsonFile } from './files';
 import type { RunState } from './run-state';
 import { roundSeed } from './seeds';
 
-/** Replies that are the author's fault: the round ends without a change and training goes on. */
-function isUnusableReply(error: unknown): boolean {
+/** Replies that are the author's fault: the round is rejected and training goes on. */
+function isUnusableReply(error: unknown): error is AdapterError {
   return (
     error instanceof AdapterError && (error.code === 'bad_response' || error.code === 'blocked')
   );
 }
 
-/** A change set the harness won't take. The round ends without a change. */
+/** A change set the harness won't take: the round is rejected and training goes on. */
 function isRejectedChange(error: unknown): error is Error {
   return (
-    error instanceof MentorReplyError ||
     (error instanceof GuardError && error.guard === 'harness_surface') ||
     (error instanceof Error && error.name === HARNESS_VALIDATION_ERROR)
   );
+}
+
+/** Earlier rounds the runner rejected, with their reasons, for the author to learn from. */
+function rejectedRounds(state: RunState): RejectedRound[] {
+  return state
+    .rounds()
+    .filter(({ rejected }) => rejected)
+    .map(({ round }) => ({
+      round: round.index,
+      title: round.title,
+      files: round.files,
+      reason: must(round.error, `The reason round ${round.index} was rejected`),
+    }));
 }
 
 /** The mentor writes the hypotheses, except in self-reflection, where the student does. */
@@ -61,10 +85,13 @@ async function mentorFiles(state: RunState, version: number): Promise<Record<str
   });
 }
 
-async function roundRequest(
-  state: RunState,
-  stored: StoredRound,
-): Promise<MentorCompletionRequest> {
+/** A request for the author, with its payload in parts so a leak refusal can name its source. */
+interface AuthorRequest {
+  request: MentorCompletionRequest;
+  parts: PayloadPart[];
+}
+
+async function roundRequest(state: RunState, stored: StoredRound): Promise<AuthorRequest> {
   const index = stored.round.index;
   const attempts = new Map(
     state
@@ -87,11 +114,12 @@ async function roundRequest(
     train,
     dev: must(state.run.devCurrent, 'The dev score'),
     lineage: await state.lineage.read(),
+    rejected: rejectedRounds(state),
   });
-  return diagnoseRequest(view, promptSettings(state));
+  return { request: diagnoseRequest(view, promptSettings(state)), parts: mentorViewParts(view) };
 }
 
-async function wholeHarnessRequest(state: RunState): Promise<MentorCompletionRequest> {
+async function wholeHarnessRequest(state: RunState): Promise<AuthorRequest> {
   const view = buildOneShotView({
     job: state.job,
     dataFiles: await state.resources.dataFiles(),
@@ -100,7 +128,7 @@ async function wholeHarnessRequest(state: RunState): Promise<MentorCompletionReq
     train: await state.trainTasks(),
     devTotal: (await state.devTasks()).length,
   });
-  return oneShotRequest(view, promptSettings(state));
+  return { request: oneShotRequest(view, promptSettings(state)), parts: oneShotViewParts(view) };
 }
 
 /** Train task ids the author was shown, the only ones a hypothesis may cite as its cause. */
@@ -151,7 +179,7 @@ function charge(state: RunState, index: number, charged: MentorCharge, reply?: A
 
 /** Asks the author for one hypothesis and records the reply; false when the round ended instead. */
 async function requestHypothesis(state: RunState, index: number): Promise<boolean> {
-  const request =
+  const { request, parts } =
     state.run.method === 'one_shot'
       ? await wholeHarnessRequest(state)
       : await roundRequest(state, state.round(index));
@@ -162,6 +190,7 @@ async function requestHypothesis(state: RunState, index: number): Promise<boolea
   try {
     gated = await gate.complete(author, request, {
       signal: state.signal,
+      parts,
       onSend: () => state.emit({ type: 'mentor.started', round: index }),
       onSpent: (charged) => charge(state, index, charged),
     });
@@ -170,8 +199,13 @@ async function requestHypothesis(state: RunState, index: number): Promise<boolea
       state.closeRound(index, error.message, 'usd');
       return false;
     }
-    if (error instanceof GuardError || isUnusableReply(error)) {
-      state.closeRound(index, errorMessage(error));
+    // The next round would build its payload from the same data and be refused again.
+    if (error instanceof LeakRefusal) {
+      state.closeRound(index, error.message, 'leak');
+      return false;
+    }
+    if (isUnusableReply(error)) {
+      state.rejectRound(index, error.message);
       return false;
     }
     throw error;
@@ -195,23 +229,40 @@ async function requestHypothesis(state: RunState, index: number): Promise<boolea
   return true;
 }
 
-/** Applies the recorded reply's change set to a new candidate version. */
+function changedFiles(hypothesis: Hypothesis): string[] {
+  return [...new Set(hypothesis.edits.map((edit) => edit.path))];
+}
+
+/**
+ * Applies the recorded reply's change set to a new candidate version, or rejects the round when
+ * the reply isn't a hypothesis or the harness won't take its change set.
+ */
 async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<void> {
   const index = stored.round.index;
   let hypothesis: Hypothesis;
-  let candidate: Harness;
   try {
     hypothesis = parseHypothesis(
       must(stored.reply, 'The reply'),
       await visibleTaskIds(state, index),
     );
+  } catch (error) {
+    if (!(error instanceof MentorReplyError)) throw error;
+    state.rejectRound(index, error.message);
+    return;
+  }
+  let candidate: Harness;
+  try {
     candidate = state.ctx.deps.harness.applyEdits(
       await state.resources.harness(stored.baseVersion),
       hypothesis.edits,
     );
   } catch (error) {
     if (!isRejectedChange(error)) throw error;
-    state.closeRound(index, error.message);
+    state.rejectRound(index, error.message, {
+      title: hypothesis.title,
+      diagnosis: hypothesis.diagnosis,
+      files: changedFiles(hypothesis),
+    });
     return;
   }
   const saved = await state.versions.save(candidate, stored.baseVersion);
@@ -224,7 +275,7 @@ async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<vo
       title: hypothesis.title,
       diagnosis: hypothesis.diagnosis,
       predicted: hypothesis.predicted,
-      files: [...new Set(hypothesis.edits.map((edit) => edit.path))],
+      files: changedFiles(hypothesis),
       candidateVersion: saved.meta.version,
     },
   });
@@ -232,7 +283,8 @@ async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<vo
 
 /**
  * The author's step of a round: one hypothesis as a candidate version, or a round that ends
- * without a change. A reply already recorded before a restart is used, never paid for again.
+ * without a change, rejected when the reply or its change set can't be used. A reply already
+ * recorded before a restart is used, never paid for again.
  */
 export async function author(state: RunState, index: number): Promise<void> {
   state.setPhase('diagnosing');

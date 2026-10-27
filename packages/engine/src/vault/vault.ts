@@ -26,10 +26,16 @@ export class Vault {
   constructor(private readonly rootDir: string) {}
 
   /**
-   * Seals a job's test tasks. `otherTasks` are every task outside the test split; wording they
-   * share with test prompts (templates, boilerplate) is left out of the fingerprint.
+   * Seals a job's test tasks. `otherTasks` are every task outside the test split and `data` the
+   * text of the job's data files: wording and values they share with test tasks (templates,
+   * records every attempt reads) are left out of the fingerprint.
    */
-  seal(jobId: string, testTasks: readonly Task[], otherTasks: readonly Task[]): void {
+  seal(
+    jobId: string,
+    testTasks: readonly Task[],
+    otherTasks: readonly Task[],
+    data: readonly string[],
+  ): void {
     const dir = this.dir(jobId);
     if (this.isSealed(jobId)) {
       throw new GuardError(
@@ -47,7 +53,7 @@ export class Vault {
     }
 
     const content = `${tests.map((task) => JSON.stringify(task)).join('\n')}\n`;
-    const fingerprint = fingerprintTests(jobId, tests, otherTasks, sha256(content));
+    const fingerprint = fingerprintTests(jobId, tests, otherTasks, data, sha256(content));
     mkdirSync(dir, { recursive: true });
     writeFileAtomic(join(dir, TEST_FILE), content);
     writeFileAtomic(join(dir, FINGERPRINT_FILE), `${JSON.stringify(fingerprint)}\n`);
@@ -67,7 +73,7 @@ export class Vault {
     rmSync(this.dir(jobId), { recursive: true, force: true });
   }
 
-  /** Checks text bound for the mentor against the sealed test prompts. */
+  /** Checks text bound for the mentor against the sealed test tasks' fingerprints. */
   leakDetector(jobId: string): LeakDetector {
     return createLeakDetector(this.fingerprint(jobId));
   }

@@ -1,4 +1,4 @@
-import { copyFile, mkdir } from 'node:fs/promises';
+import { copyFile, mkdir, readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 import {
   JobSchema,
@@ -188,10 +188,14 @@ export class JobLibrary {
     await writeJsonLines(this.paths.tasksFile(job.id, 'train'), splits.train);
     await writeJsonLines(this.paths.tasksFile(job.id, 'dev'), splits.dev);
     const testIds = new Set(splits.test.map((task) => task.id));
+    const data = await Promise.all(
+      job.data.files.map((file) => readFile(join(this.paths.dataDir(job.id), file.name), 'utf8')),
+    );
     await this.deps.vault.seal(
       job.id,
       splits.test,
       tasks.filter((task) => !testIds.has(task.id)),
+      data,
     );
   }
 

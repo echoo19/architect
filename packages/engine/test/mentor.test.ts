@@ -11,7 +11,7 @@ import {
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { describeDataFiles } from '../src/mentor/data-files';
-import { MentorGate, type MentorCharge } from '../src/mentor/gate';
+import { LeakRefusal, MentorGate, payloadText, type MentorCharge } from '../src/mentor/gate';
 import { diagnoseRequest, oneShotRequest } from '../src/mentor/prompts';
 import { HYPOTHESIS_JSON_SCHEMA, MentorReplyError, parseHypothesis } from '../src/mentor/reply';
 import { studentAsMentor } from '../src/mentor/student-author';
@@ -48,6 +48,18 @@ function gate(options: { maxUsd?: number; refusals?: string[] } = {}) {
       return maxUsd;
     },
     onRefusal: (message) => refusals.push(message),
+  });
+}
+
+/** A gate that lets every call through and records the most each could cost. */
+function recordingGate(asked: (number | null)[]) {
+  return new MentorGate({
+    leakDetector: { scan: () => ({ leaked: false, matchedIds: [] }) },
+    authorize: (maxUsd) => {
+      asked.push(maxUsd);
+      return maxUsd ?? 0;
+    },
+    onRefusal: () => undefined,
   });
 }
 
@@ -112,6 +124,34 @@ describe('the mentor gate', () => {
     expect(refusals).toEqual(['Refused a mentor call: its payload matched 1 locked test task.']);
   });
 
+  it('names the parts of a refused payload that matched, never their text', async () => {
+    const mentor = new FakeMentor();
+    const refusals: string[] = [];
+    const parts = [
+      { label: 'data file policy.md', text: 'Labor is billed per started 15 minutes.' },
+      { label: 'train task train-invoice-1', text: `Same as: ${testPrompt}` },
+      { label: 'harness file system.md', text: 'Finish with the ANSWER line.' },
+    ];
+    const call = gate({ refusals }).complete(
+      mentor,
+      request(parts.map((part) => part.text).join('\n')),
+      { parts },
+    );
+    await expect(call).rejects.toBeInstanceOf(LeakRefusal);
+    expect(refusals).toEqual([
+      'Refused a mentor call: its payload matched 1 locked test task, in train task train-invoice-1.',
+    ]);
+
+    const many = ['a', 'b', 'c', 'd', 'e'].map((name) => ({
+      label: `train task ${name}`,
+      text: testPrompt,
+    }));
+    await expect(gate().complete(mentor, request(testPrompt), { parts: many })).rejects.toThrow(
+      'in train task a, train task b, train task c and 2 more parts.',
+    );
+    expect(mentor.requests).toHaveLength(0);
+  });
+
   it('scans the system prompt too, not only the messages', async () => {
     const mentor = new FakeMentor();
     const leaky = { ...request('Fine.'), system: `Rules.\n${testPrompt}` };
@@ -150,6 +190,29 @@ describe('the mentor gate', () => {
     });
     expect(mentor.requests).toHaveLength(0);
     await expect(gate({ maxUsd: 0.6 }).complete(mentor, big)).resolves.toBeDefined();
+  });
+
+  it('estimates the input at 2.5 bytes per token before it knows better', async () => {
+    const mentor = new FakeMentor();
+    mentor.script = () => hypothesis('A', 'fix:invoice');
+    const asked: (number | null)[] = [];
+    const sent = request('x'.repeat(1_000));
+    await recordingGate(asked).complete(mentor, sent);
+    const inputTokens = Math.ceil(Buffer.byteLength(payloadText(sent)) / 2.5);
+    expect(asked[0]).toBe(mentor.estimateCostUsd({ inputTokens, outputTokens: 1_000 }));
+  });
+
+  it('never estimates below the tokens per byte the last call reported', async () => {
+    const mentor = new FakeMentor();
+    mentor.script = () => hypothesis('A', 'fix:invoice');
+    const asked: (number | null)[] = [];
+    const guarded = recordingGate(asked);
+    const sent = request('Fine.');
+    await guarded.complete(mentor, sent);
+    await guarded.complete(mentor, request('Fine, twice.'));
+    const ratio = 2_000 / Buffer.byteLength(payloadText(sent));
+    const inputTokens = Math.ceil(Buffer.byteLength(payloadText(request('Fine, twice.'))) * ratio);
+    expect(asked[1]).toBe(mentor.estimateCostUsd({ inputTokens, outputTokens: 1_000 }));
   });
 
   it('charges a failed call the provider billed for', async () => {
@@ -322,6 +385,7 @@ describe('the mentor view', () => {
       ],
       dev: { pass: 3, total: 9 },
       lineage: [lineage],
+      rejected: [],
     });
     expect(view.dev).toEqual({ pass: 3, total: 9 });
     expect(view.train.perType).toEqual([
@@ -343,6 +407,42 @@ describe('the mentor view', () => {
     expect(text).not.toContain('[dev]');
     expect(text).not.toContain('perType":[{"type":"invoice","before"');
     expect(text).toContain('[train] overdue request number 1');
+  });
+
+  it('shows rejected rounds in order, with the reason on one line', () => {
+    const view = buildMentorView({
+      job,
+      dataFiles: [],
+      harnessFiles: { 'system.md': 'fix:invoice' },
+      round: 4,
+      budgetLeft: { rounds: 1, usd: 4.9, minutes: 50 },
+      train: [],
+      dev: { pass: 3, total: 9 },
+      lineage: [lineage],
+      rejected: [
+        {
+          round: 3,
+          title: 'Add a table reader',
+          files: ['tools/read_table.js', 'tools/read_table.json'],
+          reason:
+            'tools/read_table.json: "read_table" is a built-in tool name. Pick a different name.\ntools/read_table.js: has no manifest.',
+        },
+        { round: 2, files: [], reason: 'The reply contained no JSON object.' },
+      ],
+    });
+    expect(view.lineage.map((item) => [item.round, item.decision])).toEqual([
+      [1, 'kept'],
+      [2, 'rejected'],
+      [3, 'rejected'],
+    ]);
+    const content = diagnoseRequest(view, { evaluation: job.evaluation }).messages[0]?.content;
+    expect(content).toContain(
+      '- Round 2, rejected before dev saw it: the reply held no usable hypothesis. Why: The reply contained no JSON object.',
+    );
+    expect(content).toContain(
+      '- Round 3, rejected before dev saw it: Add a table reader. Files: tools/read_table.js, tools/read_table.json. Why: tools/read_table.json: "read_table" is a built-in tool name. Pick a different name. tools/read_table.js: has no manifest.',
+    );
+    expect(content).not.toContain('None yet.');
   });
 
   it('gives the one-shot mentor train examples with answers and no attempts', () => {
@@ -379,7 +479,7 @@ describe('the mentor view', () => {
         dev: { pass: 0, total: 9 },
         lineage: [],
       },
-      { evaluation: { minDevGain: 3, maxTypeRegression: 1 } },
+      { evaluation: { minDevGain: 3, maxTypeRegression: 1, devRepeats: 1 } },
     );
     expect(system).toContain('rise by at least 3 and no task type loses more than 1 pass');
     expect(system).toContain('function run(args, ctx)');
@@ -387,6 +487,34 @@ describe('the mentor view', () => {
     expect(system).toContain('retrieval.yaml');
     expect(system).toContain('guardrails.yaml');
     expect(json?.schema).toBe(HYPOTHESIS_JSON_SCHEMA);
+  });
+
+  it('states the keep rule over all runs when dev is repeated', () => {
+    const view = buildOneShotView({
+      job,
+      dataFiles: [],
+      harnessFiles: {},
+      budgetLeft: { rounds: 1, usd: 5, minutes: 60 },
+      train: [],
+      devTotal: 9,
+    });
+    const evaluation = { minDevGain: 2, maxTypeRegression: 1, devRepeats: 3 };
+    const { system } = diagnoseRequest(
+      {
+        ...view,
+        round: 1,
+        train: { results: [], perType: [] },
+        dev: { pass: 0, total: 27 },
+        lineage: [],
+      },
+      { evaluation },
+    );
+    expect(system).toContain(
+      'evaluates it on dev 3 times, with the same seeds as the current version; dev scores add up all 3 runs. It is kept only if dev passes rise by at least 6 and no task type loses more than 3 passes',
+    );
+    expect(oneShotRequest(view, { evaluation }).system).toContain(
+      'out of 27 dev attempts (9 tasks, each run 3 times)',
+    );
   });
 });
 

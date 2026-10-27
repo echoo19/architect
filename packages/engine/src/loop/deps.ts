@@ -106,16 +106,18 @@ export interface RuntimeDeps {
   createSandbox(): Awaitable<ToolSandbox>;
   /** The checker runs end-state validators in the sandbox it is given. */
   createChecker(job: Job, jobDir: string, sandbox: ToolSandbox): Awaitable<TaskChecker>;
+  /** Issues the release proof. The loop calls it after closing its gate and dropping the adapter. */
   releaseMentor(session: MentorSession): Promise<MentorReleased>;
 }
 
 /** The locked test split. Only the runner holds this; the mentor side never sees it. */
 export interface VaultDeps {
   /**
-   * Seals the test tasks. `others` are every other task of the job: wording they share with test
-   * prompts (templates) is left out of the leak fingerprint.
+   * Seals the test tasks. `others` are every other task of the job and `data` the text of its
+   * data files: wording and values they share with test tasks are left out of the leak
+   * fingerprint.
    */
-  seal(jobId: string, tests: Task[], others: Task[]): Awaitable<void>;
+  seal(jobId: string, tests: Task[], others: Task[], data: string[]): Awaitable<void>;
   isSealed(jobId: string): Awaitable<boolean>;
   count(jobId: string): Awaitable<number>;
   leakDetector(jobId: string): Awaitable<LeakDetector>;
@@ -196,6 +198,11 @@ export interface EngineHostDeps extends LoopDeps {
 export interface Clock {
   /** Milliseconds since the epoch. */
   now(): number;
+  /** A signal that aborts once `ms` more milliseconds have passed on this clock. */
+  timeout(ms: number): AbortSignal;
 }
 
-export const systemClock: Clock = { now: () => Date.now() };
+export const systemClock: Clock = {
+  now: () => Date.now(),
+  timeout: (ms) => AbortSignal.timeout(Math.max(0, Math.ceil(ms))),
+};

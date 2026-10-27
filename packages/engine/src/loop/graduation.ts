@@ -158,7 +158,7 @@ export async function lockedTest(state: RunState): Promise<void> {
     split: 'test',
     round: null,
     version: frozen.harnessVersion,
-    seed: state.record.seeds.test,
+    seeds: [state.record.seeds.test],
     target: state.record.lockedTestOn,
     training: false,
     concurrency: 1,

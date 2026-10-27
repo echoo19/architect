@@ -69,12 +69,13 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
         ),
       createChecker: (job, jobDir, sandbox) =>
         createChecker({ job, jobDir, sandbox: asSandbox(sandbox) }),
-      // The loop has already closed its mentor gate and dropped the adapter when it gets here;
-      // the runtime issues the proof the vault asks for once that has happened.
+      // Nothing is disposed here, because nothing is left to dispose: before it asks, the loop
+      // has closed its mentor gate, so no mentor call can start, and dropped its reference to
+      // the adapter. All that remains is to issue the proof the vault asks for.
       releaseMentor: () => releaseMentor({ dispose: () => undefined }),
     },
     vault: {
-      seal: (jobId, tests, others) => vault.seal(jobId, tests, others),
+      seal: (jobId, tests, others, data) => vault.seal(jobId, tests, others, data),
       isSealed: (jobId) => vault.isSealed(jobId),
       count: (jobId) => vault.count(jobId),
       leakDetector: (jobId) => vault.leakDetector(jobId),

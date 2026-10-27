@@ -8,6 +8,7 @@ import { must } from './errors';
 import type { JobLibrary } from './jobs';
 import { LineageLog } from './lineage';
 import type { DataPaths } from './paths';
+import { MAX_REJECTED_IN_A_ROW } from './plan';
 import { SessionResources, type LogLevel } from './resources';
 import { roundSeed, sampleTrainBatch } from './seeds';
 import { isoNow } from './time';
@@ -43,6 +44,8 @@ export const TRAINING_ENDED: Record<RunStopReason | 'complete', string> = {
   usd: 'The mentor dollar budget is spent.',
   wall_clock: 'The wall-clock budget is spent.',
   patience: 'Too many rounds in a row brought no kept change.',
+  rejected: `${MAX_REJECTED_IN_A_ROW} rounds in a row ended with a reply or change set that couldn't be used, so training ended.`,
+  leak: 'The leak check refused a mentor call, so training ended before any later round could send the same data.',
   user: 'Stopped by you.',
   error: 'Training ended after an error.',
 };
@@ -116,10 +119,13 @@ export class RunState {
     return this.ctx.store.attempts.list({ runId: this.ctx.runId, ...filter });
   }
 
-  /** A version's dev result. Each version is evaluated on dev once, with the run's seed panel. */
-  devResult(version: number): EvaluationResult {
+  /**
+   * A version's result in one dev evaluation, every repeat added up: the baseline's (round
+   * null) or a round's, where the candidate and the incumbent are measured side by side.
+   */
+  devResult(version: number, round: number | null): EvaluationResult {
     return resultOf(
-      this.attempts({ split: 'dev', version, target: this.job.student.trainOn }),
+      this.attempts({ split: 'dev', version, round, target: this.job.student.trainOn }),
       this.job,
     );
   }
@@ -177,7 +183,7 @@ export class RunState {
     this.emit({ type: 'round.updated', round: stored.round });
   }
 
-  /** Ends a round without a change, and training too when the dollar cap is why. */
+  /** Ends a round without a change, and training too when a stop reason is given. */
   closeRound(index: number, message: string, stopReason?: RunStopReason): void {
     const stored = this.round(index);
     const round: Round = { ...stored.round, status: 'failed', error: message, endedAt: this.now() };
@@ -191,6 +197,27 @@ export class RunState {
       this.emit({ type: 'run.updated', run });
       this.log('info', TRAINING_ENDED[stopReason ?? 'complete']);
     }
+  }
+
+  /**
+   * Ends a round whose reply or change set can't be used. It is marked rejected, so the author
+   * is shown the reason next round and the planner counts it apart from changes dev measured.
+   */
+  rejectRound(
+    index: number,
+    reason: string,
+    proposal: Partial<Pick<Round, 'title' | 'diagnosis' | 'files'>> = {},
+  ): void {
+    const stored = this.round(index);
+    const round: Round = {
+      ...stored.round,
+      ...proposal,
+      status: 'failed',
+      error: reason,
+      endedAt: this.now(),
+    };
+    this.saveRound({ ...stored, round, rejected: true });
+    this.log('warn', `Round ${index} was rejected before evaluation: ${reason}`);
   }
 
   // Announcing

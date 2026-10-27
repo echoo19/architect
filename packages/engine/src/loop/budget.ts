@@ -30,6 +30,8 @@ export class BudgetGuard {
   private usd: number;
   private wallMsBefore: number;
   private activeSince: number | null = null;
+  /** A deadline fired. Timers can fire a moment before the clock reads the cap. */
+  private outOfTime = false;
 
   constructor(
     private readonly budget: Budget,
@@ -59,7 +61,21 @@ export class BudgetGuard {
   }
 
   wallClockSpent(): boolean {
-    return this.wallMs() >= this.budget.maxWallMinutes * 60_000;
+    return this.outOfTime || this.wallMs() >= this.budget.maxWallMinutes * 60_000;
+  }
+
+  /**
+   * Aborts when the wall-clock budget runs out, counting from now while the run stays active.
+   * From then on the wall clock counts as spent, so a cut attempt and the planner agree.
+   */
+  deadline(): AbortSignal {
+    const signal = this.clock.timeout(this.budget.maxWallMinutes * 60_000 - this.wallMs());
+    const expire = () => {
+      this.outOfTime = true;
+    };
+    if (signal.aborted) expire();
+    else signal.addEventListener('abort', expire, { once: true });
+    return signal;
   }
 
   roundsSpent(): boolean {

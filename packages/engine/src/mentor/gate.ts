@@ -43,8 +43,24 @@ export interface MentorCharge {
   costUsd: number;
 }
 
+/** A piece of a mentor payload with where it came from, so a refusal can say where it matched. */
+export interface PayloadPart {
+  /** The origin, such as `train task invoice-012` or `data file policy.md`. */
+  label: string;
+  text: string;
+}
+
+/** The gate refused a call because its payload matched the locked test. It holds no test content. */
+export class LeakRefusal extends GuardError {
+  constructor(message: string) {
+    super('split', message);
+  }
+}
+
 export interface GatedCallOptions {
   signal?: AbortSignal;
+  /** The payload's parts by origin, so a refused call can name the parts that matched. */
+  parts?: readonly PayloadPart[];
   /** Runs once every check has passed, just before the request leaves. */
   onSend?(): void;
   /** Runs when a call fails but reports what it spent, so the spend still counts. */
@@ -60,6 +76,19 @@ const SpentSchema = z.object({
 /** What a correction message adds when an adapter asks the mentor to repair malformed JSON. */
 const REPAIR_OVERHEAD_TOKENS = 1_000;
 
+/** Parts a refusal names before it only counts the rest. */
+const NAMED_PARTS = 3;
+
+/** `a`, `a and b`, `a, b and c`, then `a, b, c and 2 more parts`. */
+function listed(labels: readonly string[]): string {
+  const shown =
+    labels.length > NAMED_PARTS + 1
+      ? [...labels.slice(0, NAMED_PARTS), `${labels.length - NAMED_PARTS} more parts`]
+      : [...labels];
+  const last = shown.pop() ?? '';
+  return shown.length === 0 ? last : `${shown.join(', ')} and ${last}`;
+}
+
 function messageText(message: ChatMessage): string {
   if (message.role !== 'assistant' || !message.toolCalls?.length) return message.content;
   return [message.content, ...message.toolCalls.map((call) => JSON.stringify(call))].join('\n');
@@ -72,9 +101,9 @@ export function payloadText(request: MentorCompletionRequest): string {
   return parts.join('\n\n');
 }
 
-/** A deliberately high estimate: three bytes per token, where English text averages about four. */
+/** A deliberately high estimate: 2.5 bytes per token, where English text averages about four. */
 export function estimateInputTokens(text: string): number {
-  return Math.ceil(Buffer.byteLength(text, 'utf8') / 3);
+  return Math.ceil(Buffer.byteLength(text, 'utf8') / 2.5);
 }
 
 /**
@@ -103,6 +132,8 @@ export function worstCaseUsd(
  */
 export class MentorGate {
   private released = false;
+  /** Input tokens per payload byte the mentor reported for its last call; 0 before any. */
+  private tokensPerByte = 0;
 
   constructor(private readonly options: MentorGateOptions) {}
 
@@ -117,21 +148,30 @@ export class MentorGate {
     options: GatedCallOptions = {},
   ): Promise<GatedCompletion> {
     if (this.released) {
-      throw this.refuse('The mentor was released for the locked test; no mentor call can start.');
+      throw this.refuse(
+        new GuardError(
+          'split',
+          'The mentor was released for the locked test; no mentor call can start.',
+        ),
+      );
     }
     const text = payloadText(request);
     const scan = this.options.leakDetector.scan(text);
     if (scan.leaked) {
-      const tasks = scan.matchedIds.length === 1 ? 'task' : 'tasks';
       throw this.refuse(
-        `Refused a mentor call: its payload matched ${scan.matchedIds.length} locked test ${tasks}.`,
+        new LeakRefusal(this.leakMessage(scan.matchedIds.length, options.parts ?? [])),
       );
     }
-    const authorized = this.options.authorize(
-      worstCaseUsd(adapter, request, estimateInputTokens(text)),
-    );
+    // The last call's tokens per byte, when higher than the estimate, sets the floor: a payload
+    // the tokenizer splits finely can't push the call past the dollar cap.
+    const bytes = Buffer.byteLength(text, 'utf8');
+    const inputTokens = Math.max(estimateInputTokens(text), Math.ceil(bytes * this.tokensPerByte));
+    const authorized = this.options.authorize(worstCaseUsd(adapter, request, inputTokens));
     const charge = (usage: Usage, reported: number | null): number =>
       reported ?? adapter.estimateCostUsd(usage) ?? authorized;
+    const learn = (usage: Usage) => {
+      if (bytes > 0) this.tokensPerByte = usage.inputTokens / bytes;
+    };
 
     options.onSend?.();
     let completion: MentorCompletion;
@@ -141,15 +181,27 @@ export class MentorGate {
       const spent = SpentSchema.safeParse(error);
       if (spent.success) {
         const { usage, costUsd } = spent.data;
+        learn(usage);
         options.onSpent?.({ model: adapter.model, usage, costUsd: charge(usage, costUsd) });
       }
       throw error;
     }
+    learn(completion.usage);
     return { completion, costUsd: charge(completion.usage, completion.costUsd) };
   }
 
-  private refuse(message: string): GuardError {
-    this.options.onRefusal(message);
-    return new GuardError('split', message);
+  /** How many test tasks matched and in which parts of the payload, by label only. */
+  private leakMessage(matched: number, parts: readonly PayloadPart[]): string {
+    const tasks = matched === 1 ? 'task' : 'tasks';
+    const sources = parts
+      .filter((part) => this.options.leakDetector.scan(part.text).leaked)
+      .map((part) => part.label);
+    const where = sources.length > 0 ? `, in ${listed(sources)}` : '';
+    return `Refused a mentor call: its payload matched ${matched} locked test ${tasks}${where}.`;
+  }
+
+  private refuse<E extends GuardError>(error: E): E {
+    this.options.onRefusal(error.message);
+    return error;
   }
 }

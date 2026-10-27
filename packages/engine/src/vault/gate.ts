@@ -2,16 +2,19 @@ const RELEASED: unique symbol = Symbol('mentor released');
 const issued = new WeakSet<object>();
 
 /**
- * Proof that the mentor session was disposed, which the vault requires before it opens the
- * locked test. The brand key is private to this module, so the type can't be written elsewhere,
- * and proofs are also checked against the set this module issued, so a cast can't forge one.
+ * Proof that the mentor was released, which the vault requires before it opens the locked test.
+ * The brand key is private to this module, so the type can't be written elsewhere, and proofs
+ * are also checked against the set this module issued, so a cast can't forge one.
  */
 export interface MentorReleased {
   readonly [RELEASED]: true;
   readonly releasedAt: string;
 }
 
-/** Disposes the mentor session and only then issues the proof. If disposing fails, no proof. */
+/**
+ * Runs `dispose`, which ends whatever could still reach the mentor, and only then issues the
+ * proof. If it fails, no proof is issued.
+ */
 export async function releaseMentor(session: {
   dispose(): void | Promise<void>;
 }): Promise<MentorReleased> {

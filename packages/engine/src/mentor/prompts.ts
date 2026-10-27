@@ -13,7 +13,7 @@ export const DIAGNOSE_MAX_OUTPUT_TOKENS = 12_000;
 export const ONE_SHOT_MAX_OUTPUT_TOKENS = 24_000;
 
 export interface PromptSettings {
-  evaluation: Pick<EvaluationConfig, 'minDevGain' | 'maxTypeRegression'>;
+  evaluation: Pick<EvaluationConfig, 'minDevGain' | 'maxTypeRegression' | 'devRepeats'>;
   reasoningEffort?: ReasoningEffort;
 }
 
@@ -75,8 +75,13 @@ Reply with one JSON object: title (at most 80 characters), diagnosis, causeTaskI
 }
 
 function diagnoseInstructions(settings: PromptSettings): string {
-  const { minDevGain, maxTypeRegression } = settings.evaluation;
-  const passes = maxTypeRegression === 1 ? 'pass' : 'passes';
+  const { minDevGain, maxTypeRegression, devRepeats } = settings.evaluation;
+  const loss = maxTypeRegression * devRepeats;
+  const passes = loss === 1 ? 'pass' : 'passes';
+  const evaluation =
+    devRepeats === 1
+      ? 'evaluates it on dev with the same seeds as the current version'
+      : `evaluates it on dev ${devRepeats} times, with the same seeds as the current version; dev scores add up all ${devRepeats} runs`;
   return `You are the mentor for a small local model, the student. The student attempts tasks for the job below inside a harness that you write, and a deterministic checker grades each attempt pass or fail with a reason. Your job is to improve the harness until the student passes on its own.
 
 Each round you see this round's train attempts with the checker's reasons and a compact trace of each, the train results per task type, the current harness files, the student's overall dev score and your earlier hypotheses with their outcomes. Dev tasks are hidden apart from that one score, and the locked test is never shown.
@@ -85,24 +90,29 @@ This round:
 1. Read the failing traces and find the root cause shared by the most failures: a missing rule, a procedure the student gets wrong, a computation it can't do reliably by hand, a format slip. Prefer a cause you can point to in the traces over a guess.
 2. Propose exactly one hypothesis: one diagnosis and the change set that tests it. A change set may touch several files, but every edit serves that one diagnosis.
 3. Predict the effect as a range of net dev passes, devDeltaMin to devDeltaMax, and explain it.
-4. Don't repeat a reverted hypothesis unless the new change is meaningfully different, and say how.
+4. Don't repeat a reverted hypothesis unless the new change is meaningfully different, and say how. A rejected round never reached dev: fix what its reason names first.
 5. If every train attempt passed, strengthen what the traces show is still fragile.
 
-The runner applies your change set to a new harness version and evaluates it on dev with the same seeds as the current version. It is kept only if dev passes rise by at least ${minDevGain} and no task type loses more than ${maxTypeRegression} ${passes}; otherwise it is reverted and logged as a failed hypothesis. Dev and test tasks are different tasks of the same types, so write rules that generalize, never answers for particular train tasks.
+The runner applies your change set to a new harness version and ${evaluation}. It is kept only if dev passes rise by at least ${minDevGain * devRepeats} and no task type loses more than ${loss} ${passes}; otherwise it is reverted and logged as a failed hypothesis. Dev and test tasks are different tasks of the same types, so write rules that generalize, never answers for particular train tasks.
 
 The student is small: every line of system prompt and every loaded skill costs it attention and time, so keep the harness lean and specific. A round that doesn't help still spends budget.
 
 Set readyClaim to true only if you expect the harness after this change to meet the job's requirement on tasks you haven't seen. The claim is recorded and checked against the locked test.`;
 }
 
-function oneShotInstructions(view: OneShotView): string {
+function oneShotInstructions(view: OneShotView, settings: PromptSettings): string {
+  const { devRepeats } = settings.evaluation;
+  const outOf =
+    devRepeats === 1
+      ? `out of ${view.devTotal} dev tasks`
+      : `out of ${view.devTotal * devRepeats} dev attempts (${view.devTotal} tasks, each run ${devRepeats} times)`;
   return `You are the mentor for a small local model, the student. Write its whole harness in one go from the job setup and the train examples with their expected answers. You won't see the student attempt anything, and you get one reply.
 
 Write a complete harness: a system prompt with the operating rules, a skill for each task type with the exact procedure, tools for computations that are easy to get wrong by hand, worked examples where the format is subtle, and retrieval rules that load the right skill for each request. Base everything on the job description, the data and any policy text. The examples show what correct answers look like; dev and test tasks are different tasks of the same types, so don't hard-code answers.
 
 The student is small: keep the system prompt short and put procedures in skills.
 
-In your reply, title names the harness, diagnosis explains the main risks you designed for, causeTaskIds is empty, and predicted is your expected change in dev passes over the starting harness, out of ${view.devTotal} dev tasks. Set readyClaim to true only if you expect the requirement to be met on unseen tasks.`;
+In your reply, title names the harness, diagnosis explains the main risks you designed for, causeTaskIds is empty, and predicted is your expected change in dev passes over the starting harness, ${outOf}. Set readyClaim to true only if you expect the requirement to be met on unseen tasks.`;
 }
 
 /** A Markdown fence longer than any run of backticks inside the content. */
@@ -156,13 +166,20 @@ function renderBudget(budget: MentorView['budgetLeft']): string {
   return `Budget left: ${budget.rounds} rounds, $${budget.usd.toFixed(2)} of mentor spend, ${Math.floor(budget.minutes)} minutes.`;
 }
 
+function renderLineageItem(item: MentorView['lineage'][number]): string {
+  if (item.decision === 'rejected') {
+    const what =
+      item.title === undefined ? 'the reply held no usable hypothesis.' : `${item.title}.`;
+    const files = item.files.length > 0 ? ` Files: ${item.files.join(', ')}.` : '';
+    return `- Round ${item.round}, rejected before dev saw it: ${what}${files} Why: ${item.reason}`;
+  }
+  const delta = item.devDelta >= 0 ? `+${item.devDelta}` : String(item.devDelta);
+  return `- Round ${item.round}, ${item.decision} (dev ${delta}): ${item.title}. ${item.diagnosis} Files: ${item.files.join(', ')}.`;
+}
+
 function renderLineage(lineage: MentorView['lineage']): string {
   if (lineage.length === 0) return '# Earlier hypotheses\nNone yet.';
-  const items = lineage.map((item) => {
-    const delta = item.devDelta >= 0 ? `+${item.devDelta}` : String(item.devDelta);
-    return `- Round ${item.round}, ${item.decision} (dev ${delta}): ${item.title}. ${item.diagnosis} Files: ${item.files.join(', ')}.`;
-  });
-  return `# Earlier hypotheses\n${items.join('\n')}`;
+  return `# Earlier hypotheses\n${lineage.map(renderLineageItem).join('\n')}`;
 }
 
 function renderTrain(train: MentorView['train']): string {
@@ -241,7 +258,7 @@ export function oneShotRequest(
   settings: PromptSettings,
 ): MentorCompletionRequest {
   return {
-    system: systemPrompt(oneShotInstructions(view)),
+    system: systemPrompt(oneShotInstructions(view, settings)),
     messages: [{ role: 'user', content: renderOneShotView(view) }],
     json: { name: 'hypothesis', schema: HYPOTHESIS_JSON_SCHEMA },
     reasoningEffort: settings.reasoningEffort,

@@ -2,10 +2,13 @@ import {
   costUsd,
   STUDENT_PRESETS,
   type CheckOutcome,
+  type CheckResult,
   type Expected,
   type Job,
+  type JsonValue,
   type Score,
   type StudentEndpoint,
+  type Task,
   type TypeScore,
   type Usage,
 } from '@architect/shared';
@@ -37,6 +40,49 @@ export function expectedSummary(expected: Expected): string {
     case 'end_state':
       return shorten(`${expected.validator} ${JSON.stringify(expected.params)}`);
   }
+}
+
+/** Names a locked-test reason may show: letters and underscores, so an id used as a key never is. */
+const FIELD_NAME = /^[A-Za-z][A-Za-z_]*$/;
+
+function keysOf(value: JsonValue): string[] {
+  if (Array.isArray(value)) return value.flatMap(keysOf);
+  if (value === null || typeof value !== 'object') return [];
+  return Object.entries(value).flatMap(([key, inner]) => [key, ...keysOf(inner)]);
+}
+
+/** The names a task's expected result is made of: its answer's keys, fact paths or params. */
+function expectedFields(expected: Expected): string[] {
+  switch (expected.kind) {
+    case 'answer':
+      return keysOf(expected.value);
+    case 'facts':
+      return expected.facts.flatMap((fact) => fact.path.split(/[.[\]]/));
+    case 'end_state':
+      return keysOf(expected.params);
+  }
+}
+
+/** The field a reason mentions first, as a whole word, or null when it names none. */
+function namedField(reason: string, fields: readonly string[]): string | null {
+  let first: { field: string; at: number } | null = null;
+  for (const field of new Set(fields)) {
+    if (!FIELD_NAME.test(field)) continue;
+    const at = reason.search(new RegExp(`(?<![A-Za-z0-9_])${field}(?![A-Za-z0-9_])`));
+    if (at >= 0 && (first === null || at < first.at)) first = { field, at };
+  }
+  return first?.field ?? null;
+}
+
+/**
+ * What a locked-test attempt keeps of its check: pass or fail and, for a failure, the field of
+ * the task's expected result that the checker's reason names first. No expected or actual value
+ * and no details survive, so test answers stay in the vault.
+ */
+export function lockedCheck(task: Task, check: CheckResult): CheckResult {
+  if (check.pass) return { pass: true, reason: 'Passed.' };
+  const field = namedField(check.reason, expectedFields(task.expected));
+  return { pass: false, reason: field === null ? 'Failed.' : `Failed: ${field} is wrong.` };
 }
 
 /** Dollars for one student call: free on this machine, list price for a known hosted copy. */

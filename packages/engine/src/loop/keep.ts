@@ -2,13 +2,13 @@ import type { EvaluationConfig, Score, TypeScore } from '@architect/shared';
 import { compareText } from './seeds';
 
 export interface KeepInput {
-  /** Dev score of the incumbent (the last kept version). */
+  /** Dev score of the incumbent (the last kept version), measured again for this comparison. */
   before: Score;
-  /** Dev score of the candidate, on the same dev tasks and seed panel. */
+  /** Dev score of the candidate, on the same dev tasks and seeds. Both add up every repeat. */
   after: Score;
   beforePerType: TypeScore[];
   afterPerType: TypeScore[];
-  evaluation: Pick<EvaluationConfig, 'minDevGain' | 'maxTypeRegression'>;
+  evaluation: Pick<EvaluationConfig, 'minDevGain' | 'maxTypeRegression' | 'devRepeats'>;
 }
 
 export interface KeepDecision {
@@ -53,32 +53,31 @@ function worstTypeLoss(
 
 /**
  * Keep a change only if net dev passes rise by at least the margin and no task type loses more
- * than the allowed number of passes (decision 007). Anything else is reverted.
+ * than the allowed number of passes (decision 007). Scores add up every repeat, so both limits
+ * scale with the repeat count. Anything else is reverted.
  */
 export function decideKeep(input: KeepInput): KeepDecision {
   const { before, after, evaluation } = input;
-  const head = `Dev ${formatScore(before)} → ${formatScore(after)}`;
+  const repeats = evaluation.devRepeats;
+  const margin = evaluation.minDevGain * repeats;
+  const allowedLoss = evaluation.maxTypeRegression * repeats;
+  const runs = repeats === 1 ? '' : ` over ${repeats} runs`;
+  const head = `Dev ${formatScore(before)} → ${formatScore(after)}${runs}`;
   const gain = after.pass - before.pass;
 
-  if (gain < evaluation.minDevGain) {
+  if (gain < margin) {
     const shortfall =
-      gain === 0
-        ? 'no change'
-        : gain < 0
-          ? `down ${-gain}`
-          : `short of the +${evaluation.minDevGain} margin`;
+      gain === 0 ? 'no change' : gain < 0 ? `down ${-gain}` : `short of the +${margin} margin`;
     return { keep: false, reason: `${head}, ${shortfall}` };
   }
 
   const worst = worstTypeLoss(input.beforePerType, input.afterPerType);
-  if (worst !== null && worst.lost > evaluation.maxTypeRegression) {
+  if (worst !== null && worst.lost > allowedLoss) {
     const passes = worst.lost === 1 ? 'pass' : 'passes';
     return { keep: false, reason: `${head}, but ${worst.type} lost ${worst.lost} ${passes}` };
   }
 
   const guard =
-    evaluation.maxTypeRegression === 0
-      ? 'no type lost a pass'
-      : `no type lost more than ${inWords(evaluation.maxTypeRegression)}`;
+    allowedLoss === 0 ? 'no type lost a pass' : `no type lost more than ${inWords(allowedLoss)}`;
   return { keep: true, reason: `${head}, ${guard}` };
 }

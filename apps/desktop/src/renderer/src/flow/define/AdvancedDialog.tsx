@@ -649,6 +649,14 @@ function EvaluationTab({ editor }: TabProps) {
         onChange={(maxTypeRegression) => evaluation({ maxTypeRegression })}
       />
       <NumberField
+        label="Check each change"
+        meta="More runs take longer but keep fewer lucky changes"
+        unit="times"
+        value={job.evaluation.devRepeats}
+        issue={issues['evaluation.devRepeats']}
+        onChange={(devRepeats) => evaluation({ devRepeats })}
+      />
+      <NumberField
         label="Stop after"
         meta="Rounds in a row without a kept change"
         unit="rounds"

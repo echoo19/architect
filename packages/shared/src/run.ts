@@ -42,6 +42,10 @@ export const StopReasonRunSchema = z.enum([
   'usd',
   'wall_clock',
   'patience',
+  /** Rounds in a row ended with a reply or change set the runner couldn't use. */
+  'rejected',
+  /** The leak check refused a mentor payload; the next round would send the same data. */
+  'leak',
   'user',
   'error',
 ]);

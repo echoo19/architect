@@ -15,7 +15,13 @@ describe('validateJob', () => {
 
   it('keeps the practice batch within the practice split', () => {
     const job = makeJob({
-      evaluation: { trainBatch: 80, minDevGain: 2, maxTypeRegression: 1, patience: 3 },
+      evaluation: {
+        trainBatch: 80,
+        minDevGain: 2,
+        maxTypeRegression: 1,
+        devRepeats: 1,
+        patience: 3,
+      },
     });
     expect(validateJob(job, 170)['evaluation.trainBatch']).toBe(
       "A batch can't be larger than the 60 practice tasks.",
@@ -57,6 +63,16 @@ describe('validateJob', () => {
     expect(validateJob(hostedWithoutEndpoint, null)['student.hosted']).toBe(
       'Pick a hosted copy, or train on this computer.',
     );
+  });
+
+  it('keeps the dev repeats between one and three', () => {
+    const job = makeJob();
+    for (const devRepeats of [0, 4, 1.5]) {
+      const issues = validateJob({ ...job, evaluation: { ...job.evaluation, devRepeats } }, null);
+      expect(issues['evaluation.devRepeats']).toBe('Use a whole number from 1 to 3.');
+    }
+    const three = validateJob({ ...job, evaluation: { ...job.evaluation, devRepeats: 3 } }, null);
+    expect(three).toEqual({});
   });
 
   it('still reports contract problems the field checks do not cover', () => {

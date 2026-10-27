@@ -49,7 +49,7 @@ let vault: Vault;
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), 'architect-vault-'));
   vault = new Vault(root);
-  vault.seal('job_sample', tests, others);
+  vault.seal('job_sample', tests, others, []);
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
@@ -59,11 +59,11 @@ describe('sealing', () => {
   it('seals once and refuses to seal again until reset', () => {
     expect(vault.isSealed('job_sample')).toBe(true);
     expect(vault.count('job_sample')).toBe(5);
-    expect(() => vault.seal('job_sample', tests, others)).toThrow(GuardError);
+    expect(() => vault.seal('job_sample', tests, others, [])).toThrow(GuardError);
     vault.reset('job_sample');
     expect(vault.isSealed('job_sample')).toBe(false);
     expect(vault.count('job_sample')).toBe(0);
-    vault.seal('job_sample', tests.slice(0, 2), others);
+    vault.seal('job_sample', tests.slice(0, 2), others, []);
     expect(vault.count('job_sample')).toBe(2);
   });
 
@@ -76,7 +76,7 @@ describe('sealing', () => {
   });
 
   it('refuses a task that is in the test split and another split', () => {
-    expect(() => vault.seal('job_twice', tests, [...others, tests[0] as Task])).toThrow(
+    expect(() => vault.seal('job_twice', tests, [...others, tests[0] as Task], [])).toThrow(
       'Task inv-test-1 is in the test split and in another split.',
     );
   });
@@ -130,6 +130,77 @@ describe('leak detection', () => {
 
   it('needs a sealed split', () => {
     expect(() => vault.leakDetector('job_unsealed')).toThrow(GuardError);
+  });
+});
+
+describe('leak detection of ids and expected results', () => {
+  function priced(id: string, invoice: string, cents: number): Task {
+    return {
+      id,
+      type: 'invoice',
+      family: id,
+      prompt: 'Price the finished job and give its invoice id and total.',
+      expected: {
+        kind: 'answer',
+        value: { invoice_id: invoice, total_cents: cents, issue_date: '2026-11-05' },
+        compare: { mode: 'exact' },
+      },
+    };
+  }
+
+  function detector() {
+    const pricedTests = [
+      priced('total-test-1', 'INV-2367', 128450),
+      priced('total-test-2', 'INV-1713', 4120),
+    ];
+    const data = ['invoice_id,total_cents\nINV-1713,4120\nINV-1001,23614\n'];
+    vault.seal('job_priced', pricedTests, [priced('total-train-1', 'INV-1999', 99999)], data);
+    return vault.leakDetector('job_priced');
+  }
+
+  it('finds a test task id', () => {
+    expect(detector().scan('Attempt total-test-1 failed.').matchedIds).toEqual(['total-test-1']);
+  });
+
+  it('finds a long id or amount a test task expects, alone or inside a checker reason', () => {
+    const scan = detector();
+    expect(scan.scan('Expected total_cents to be 128450, but it is 0.').matchedIds).toEqual([
+      'total-test-1',
+    ]);
+    expect(scan.scan('Create INV-2367 next.').matchedIds).toEqual(['total-test-1']);
+    expect(vault.leakDetector('job_sample').scan('The booking for W-3307').matchedIds).toEqual([
+      'inv-test-2',
+    ]);
+  });
+
+  it('finds an expected result as the task states it and with its keys sorted', () => {
+    const scan = detector();
+    const stated = { invoice_id: 'INV-1713', total_cents: 4120, issue_date: '2026-11-05' };
+    const sorted = { invoice_id: 'INV-1713', issue_date: '2026-11-05', total_cents: 4120 };
+    expect(scan.scan(JSON.stringify(stated)).matchedIds).toEqual(['total-test-2']);
+    expect(scan.scan(JSON.stringify(sorted)).matchedIds).toEqual(['total-test-2']);
+  });
+
+  it('ignores values in the data, values other splits expect, and short numbers', () => {
+    const scan = detector();
+    for (const text of [
+      'INV-1713 is overdue.',
+      'Issued on 2026-11-05.',
+      'The tax is 4120 cents.',
+      'total-train-1 expects INV-1999 and 99999.',
+    ]) {
+      expect(scan.scan(text).leaked, text).toBe(false);
+    }
+  });
+
+  it('still reads a fingerprint sealed before ids and values were fingerprinted', () => {
+    const file = join(root, 'vault', 'job_sample', 'fingerprint.json');
+    const stored = JSON.parse(readFileSync(file, 'utf8')) as { tasks: Record<string, unknown>[] };
+    for (const task of stored.tasks) delete task.values;
+    writeFileSync(file, JSON.stringify(stored));
+    const scan = vault.leakDetector('job_sample');
+    expect(scan.scan(tests[0]?.prompt ?? '').matchedIds).toEqual(['inv-test-1']);
+    expect(scan.scan('inv-test-1').leaked).toBe(false);
   });
 });
 

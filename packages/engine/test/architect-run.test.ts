@@ -67,7 +67,7 @@ describe('an architect run', () => {
     });
     expect(run.totals).toMatchObject({
       rounds: 2,
-      attempts: 45,
+      attempts: 63,
       mentorInputTokens: 4000,
       mentorOutputTokens: 1000,
     });
@@ -212,13 +212,30 @@ describe('an architect run', () => {
     expect(second).toContain('Round 1, kept (dev +3): Add the invoice procedure.');
   });
 
-  it('evaluates candidate and incumbent on the same dev seeds, from recorded sub-seeds', async () => {
+  it('measures the incumbent again beside each candidate, on dev seeds the round draws', async () => {
     const { record } = await runArchitect();
     const { seeds } = record;
+    const dev = engine.store.attempts.list({ runId: record.run.id, split: 'dev' });
+    const seedsOf = (round: number | null, version: number) => [
+      ...new Set(
+        dev.filter((a) => a.round === round && a.harnessVersion === version).map((a) => a.seed),
+      ),
+    ];
+    expect(dev).toHaveLength(45);
+    expect(seedsOf(null, 1)).toEqual([seeds.devPanel]);
+    expect(seedsOf(1, 1)).toEqual([roundSeed(seeds.devPanel, 1)]);
+    expect(seedsOf(1, 2)).toEqual([roundSeed(seeds.devPanel, 1)]);
+    expect(seedsOf(2, 2)).toEqual([roundSeed(seeds.devPanel, 2)]);
+    expect(seedsOf(2, 3)).toEqual([roundSeed(seeds.devPanel, 2)]);
+    const lineage = await new LineageLog(
+      engine.paths.lineageFile(record.run.jobId, record.run.id),
+    ).read();
+    expect(lineage.map((entry) => entry.measured.devBefore)).toEqual([
+      { pass: 0, total: 9 },
+      { pass: 3, total: 9 },
+    ]);
+
     const attempts = world.runtime.attempts;
-    const dev = attempts.filter((a) => a.taskId.startsWith('dev-'));
-    expect(dev).toHaveLength(27);
-    expect(new Set(dev.map((a) => a.seed))).toEqual(new Set([seeds.devPanel]));
     const train = attempts.filter((a) => a.taskId.startsWith('train-'));
     expect(new Set(train.filter((a) => a.version === 1).map((a) => a.seed))).toEqual(
       new Set([roundSeed(seeds.trainStudent, 1)]),
@@ -229,8 +246,6 @@ describe('an architect run', () => {
     expect(
       new Set(attempts.filter((a) => a.taskId.startsWith('test-')).map((a) => a.seed)),
     ).toEqual(new Set([seeds.test]));
-    const stored = engine.store.attempts.list({ runId: record.run.id, split: 'dev' });
-    expect(new Set(stored.map((a) => a.seed))).toEqual(new Set([seeds.devPanel]));
   });
 
   it('freezes the graduate and releases the mentor before any test runs', async () => {
@@ -252,6 +267,34 @@ describe('an architect run', () => {
     const tests = engine.store.attempts.list({ runId: record.run.id, split: 'test' });
     expect(tests.map((a) => a.harnessVersion)).toEqual(Array(6).fill(2));
     expect(tests.every((a) => a.tracePath === null && a.expectedSummary === undefined)).toBe(true);
+  });
+
+  it('keeps no expected or actual value from a locked-test check, only the failing field', async () => {
+    world.runtime.failedCheck = () => ({
+      pass: false,
+      reason: 'Expected ok to be true, but it is false.',
+      details: { expected: { ok: true }, actual: { ok: false } },
+    });
+    const { record } = await runArchitect();
+    const tests = engine.store.attempts.list({ runId: record.run.id, split: 'test' });
+    expect(tests.map((attempt) => attempt.check)).toEqual(
+      tests.map((attempt) =>
+        attempt.taskType === 'invoice'
+          ? { pass: true, reason: 'Passed.' }
+          : { pass: false, reason: 'Failed: ok is wrong.' },
+      ),
+    );
+    const emitted = engine.events.flatMap((e) =>
+      e.type === 'attempt.finished' && e.attempt.split === 'test' ? [e.attempt.check] : [],
+    );
+    expect(emitted).toEqual(tests.map((attempt) => attempt.check));
+
+    const dev = engine.store.attempts.list({ runId: record.run.id, split: 'dev' });
+    expect(dev.find((attempt) => !attempt.check.pass)?.check).toEqual({
+      pass: false,
+      reason: 'Expected ok to be true, but it is false.',
+      details: { expected: { ok: true }, actual: { ok: false } },
+    });
   });
 
   it('computes the report card and writes the graduate folder', async () => {

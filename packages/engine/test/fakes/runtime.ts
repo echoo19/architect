@@ -1,5 +1,6 @@
 import {
   GuardError,
+  type CheckResult,
   type Harness,
   type Job,
   type Task,
@@ -74,6 +75,11 @@ export class FakeRuntime implements RuntimeDeps {
   beforeAttempt: AttemptHook | undefined;
   passes: (task: Task, harness: Harness, seed: number) => boolean = (task, harness) =>
     harness.system.includes(`fix:${task.type}`);
+  /** The check a failed attempt gets; a test can make it carry values and details. */
+  failedCheck: (task: Task) => CheckResult = (task) => ({
+    pass: false,
+    reason: `The ${task.type} answer is wrong.`,
+  });
 
   splitTasks(tasks: Task[]): TaskSplits {
     const of = (prefix: string) => tasks.filter((task) => task.id.startsWith(prefix));
@@ -112,10 +118,7 @@ export class FakeRuntime implements RuntimeDeps {
             toolCalls: [],
             stopReason: trace.stopReason,
           },
-          check: {
-            pass,
-            reason: pass ? 'The answer matches.' : `The ${task.type} answer is wrong.`,
-          },
+          check: pass ? { pass, reason: 'The answer matches.' } : this.failedCheck(task),
         },
       });
     }

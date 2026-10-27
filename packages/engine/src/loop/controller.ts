@@ -10,6 +10,7 @@ import type { EngineStore } from '../store/engine-store';
 import type { StoredRun, StudentTarget } from '../store/records';
 import { systemClock, type Clock, type LoopDeps } from './deps';
 import type { SessionOutcome } from './driver';
+import { errorMessage } from './errors';
 import { writeJsonFile } from './files';
 import type { JobLibrary } from './jobs';
 import type { DataPaths } from './paths';
@@ -274,12 +275,35 @@ export class RunController {
     });
     const done = session
       .run()
-      .catch(this.onError)
+      .catch((error: unknown) => this.settleCrashed(runId, error))
       .finally(() => {
         this.active.delete(runId);
         this.pump();
       });
     this.active.set(runId, { session, done });
+  }
+
+  /**
+   * A session can fail while recording its own failure, such as a database write that fails as
+   * it pauses. Its run would then look active with nothing driving it, so it is paused here
+   * with the reason, and the error is reported.
+   */
+  private settleCrashed(runId: string, error: unknown): void {
+    this.onError(error);
+    const message = errorMessage(error);
+    try {
+      if (isTerminal(this.get(runId).run.status)) return;
+      this.update(runId, { status: 'paused', error: message });
+      this.dispatch({
+        type: 'log',
+        runId,
+        at: isoNow(this.clock),
+        level: 'error',
+        message: `Paused after an error: ${message} Resume the run once it's fixed.`,
+      });
+    } catch (unrecorded) {
+      this.onError(unrecorded);
+    }
   }
 
   private publish(run: Run): void {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveSeed, fanOutSeeds, roundSeed, sampleTrainBatch } from '../src/loop/seeds';
+import { deriveSeed, devSeeds, fanOutSeeds, roundSeed, sampleTrainBatch } from '../src/loop/seeds';
 import { task } from './fakes/job';
 
 describe('run seeds', () => {
@@ -17,6 +17,17 @@ describe('run seeds', () => {
     const seeds = fanOutSeeds(7);
     expect(roundSeed(seeds.trainBatch, 1)).not.toBe(roundSeed(seeds.trainBatch, 2));
     expect(roundSeed(seeds.trainBatch, 1)).toBe(deriveSeed(seeds.trainBatch, 'round-1'));
+  });
+
+  it('gives each dev evaluation one seed per repeat, the baseline from the panel seed', () => {
+    const panel = fanOutSeeds(7).devPanel;
+    expect(devSeeds(panel, null, 1)).toEqual([panel]);
+    const first = devSeeds(panel, 1, 3);
+    expect(first[0]).toBe(roundSeed(panel, 1));
+    expect(new Set(first).size).toBe(3);
+    expect(devSeeds(panel, 1, 3)).toEqual(first);
+    expect(devSeeds(panel, 1, 2)).toEqual(first.slice(0, 2));
+    expect(devSeeds(panel, 2, 3).some((seed) => first.includes(seed))).toBe(false);
   });
 });
 
