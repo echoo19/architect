@@ -72,7 +72,7 @@ export const MENTOR_PRESETS: readonly MentorPreset[] = [
     secretRef: 'meta',
     pricing: SPARK_CONTRIBUTOR,
     structuredOutput: true,
-    note: 'About 15 times cheaper, but Meta may train on what you send. Only for data that is not sensitive or personal.',
+    note: 'A tenth of the price or less, but Meta may train on what you send. Only for data that is not sensitive or personal.',
   },
   {
     key: 'baseten-spark-open',
