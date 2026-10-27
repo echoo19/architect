@@ -4,7 +4,7 @@ import { ArrowRight, Check } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { queryKeys, useSettings } from '../../api/hooks';
 import { setQueryData } from '../../api/query';
-import { mentorName } from '../../lib/names';
+import { mentorIntro, mentorName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
 import { fileName } from '../format';
@@ -28,6 +28,7 @@ export function Clarify() {
   const settings = useSettings();
   const mentor =
     settings.status === 'success' ? mentorName(settings.data.defaultMentor) : 'The mentor';
+  const speaker = settings.status === 'success' ? mentorIntro(mentor) : mentor;
   const [reply, setReply] = useState('');
   const [saving, setSaving] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -36,6 +37,7 @@ export function Clarify() {
 
   const { entries, waiting, failure, sessionId } = conversation;
   const last = lastMentorEntry(conversation);
+  const firstReply = entries.find((entry) => entry.kind === 'mentor');
 
   useEffect(() => {
     const scroller = scrollRef.current;
@@ -89,6 +91,7 @@ export function Clarify() {
               <li key={entry.id} className="flex flex-col">
                 <MentorMessage
                   entry={entry}
+                  speaker={entry === firstReply ? speaker : undefined}
                   current={entry === last && !waiting}
                   onPick={(option) => sendToMentor(option, [], option)}
                   review={
@@ -194,11 +197,14 @@ interface ReviewAction {
 
 function MentorMessage({
   entry,
+  speaker,
   current,
   onPick,
   review,
 }: {
   entry: MentorEntry;
+  /** Who is talking, on the first reply only: "Spark, the mentor". */
+  speaker: string | undefined;
   /** The latest message, still waiting for an answer. */
   current: boolean;
   onPick: (option: string) => void;
@@ -208,6 +214,7 @@ function MentorMessage({
   const showMessage = message.length > 0 && !(entry.draft && message === DRAFTED);
   return (
     <div className={cn('flex flex-col text-md', entry.options.length > 0 ? 'gap-4' : 'gap-2.5')}>
+      {speaker && <span className="text-sm font-medium text-mentor">{speaker}</span>}
       {entry.readFiles > 0 && (
         <StepLine icon={<Check size={14} strokeWidth={1.8} aria-hidden />}>
           Read {plural(entry.readFiles, 'file')}

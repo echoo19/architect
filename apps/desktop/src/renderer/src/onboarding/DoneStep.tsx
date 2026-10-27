@@ -1,4 +1,5 @@
 import { Panel, SettingsRow, Spinner } from '@architect/ui';
+import { capitalized, mentorIntro, STUDENT_ROLE, studentIntro } from '../lib/names';
 import { StepIntro } from './SetupShell';
 import { StatusValue } from './StatusValue';
 
@@ -18,14 +19,15 @@ export function DoneStep({ mentor, student, percent }: DoneStepProps) {
   return (
     <>
       <StepIntro title="You're set up">
-        Next, describe a job and {mentor.name} teaches {student.name} to do it. The sample job is
-        there too, if you'd like to see one first.
+        Next, describe a job. {mentorIntro(mentor.name)}, coaches {studentIntro(student.name)},
+        until it can do the job alone. The sample job is on the next screen, if you'd like to see
+        one first.
       </StepIntro>
       <Panel
         aria-label="Setup"
         className="w-full max-w-[620px] px-7 py-1 [&>*:first-child]:border-t-0"
       >
-        <SettingsRow label="Local model" meta={student.model}>
+        <SettingsRow label={capitalized(STUDENT_ROLE)} meta={student.model} metaFont="code">
           {student.state === 'ready' ? (
             <StatusValue done>Ready</StatusValue>
           ) : student.state === 'downloading' ? (

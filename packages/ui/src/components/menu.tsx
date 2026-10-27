@@ -39,7 +39,9 @@ export function DropdownMenuContent({
 export interface DropdownMenuItemProps {
   onSelect: () => void;
   icon?: ReactNode;
-  /** Keyboard hint on the right, e.g. a Shortcut. */
+  /** One line under the label saying what the choice does. */
+  description?: ReactNode;
+  /** Keyboard hint or mark on the right, e.g. a Shortcut, or a check on the current choice. */
   shortcut?: ReactNode;
   tone?: 'default' | 'danger';
   disabled?: boolean;
@@ -49,6 +51,7 @@ export interface DropdownMenuItemProps {
 export function DropdownMenuItem({
   onSelect,
   icon,
+  description,
   shortcut,
   tone = 'default',
   disabled,
@@ -59,13 +62,21 @@ export function DropdownMenuItem({
       onSelect={onSelect}
       disabled={disabled}
       className={cn(
-        'flex h-[34px] select-none items-center gap-2.5 rounded-sm px-2.5 text-base outline-none',
+        'flex min-h-[34px] select-none items-center gap-2.5 rounded-sm px-2.5 text-base outline-none',
         'data-[disabled]:opacity-40 data-[highlighted]:bg-hover [&_svg]:size-4 [&_svg]:shrink-0',
         tone === 'danger' ? 'text-danger' : 'text-fg [&_svg]:text-fg-secondary',
+        description && 'items-start py-2 [&>svg]:mt-0.5',
       )}
     >
       {icon}
-      <span className="flex-1 truncate">{children}</span>
+      {description ? (
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="truncate">{children}</span>
+          <span className="text-sm text-fg-muted text-pretty">{description}</span>
+        </span>
+      ) : (
+        <span className="flex-1 truncate">{children}</span>
+      )}
       {shortcut}
     </RadixMenu.Item>
   );

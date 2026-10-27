@@ -26,7 +26,7 @@ export function WelcomeScreen() {
     return <Setup settings={settings.data} update={settings.update} />;
   }
   return (
-    <SetupShell step="Local model">
+    <SetupShell step="Agent's model">
       {settings.status === 'error' ? (
         <ErrorState
           title="Couldn't load your settings"
@@ -55,7 +55,7 @@ function Setup({
   settings: AppSettings;
   update: (patch: Partial<AppSettings>) => Promise<AppSettings>;
 }) {
-  const [step, setStep] = useState<SetupStep>('Local model');
+  const [step, setStep] = useState<SetupStep>("Agent's model");
   const [connection, setConnection] = useState<ConnectionTest | null>(null);
   const [finishing, setFinishing] = useState(false);
   const ollama = useOllamaStatus();
@@ -95,7 +95,7 @@ function Setup({
 
   const spacer = <div className="flex-1" />;
 
-  if (step === 'Local model') {
+  if (step === "Agent's model") {
     return (
       <SetupShell
         step={step}
@@ -104,7 +104,7 @@ function Setup({
             {spacer}
             {!modelReady && !downloading && (
               <Button variant="ghost" onClick={() => setStep('Mentor')}>
-                Skip for now
+                Download later
               </Button>
             )}
             <Button
@@ -118,7 +118,6 @@ function Setup({
         }
       >
         <ModelStep
-          model={model}
           label={studentLabel(student)}
           note={preset?.note}
           ollama={ollama}
@@ -136,7 +135,7 @@ function Setup({
         step={step}
         footer={
           <>
-            <Button onClick={() => setStep('Local model')}>Back</Button>
+            <Button onClick={() => setStep("Agent's model")}>Back</Button>
             {spacer}
             {!keySaved && (
               <Button variant="ghost" onClick={() => setStep('Done')}>

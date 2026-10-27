@@ -12,9 +12,11 @@ const statValue: Record<StatSize, string> = {
 export interface StatProps {
   value: ReactNode;
   label?: ReactNode;
-  /** A small mono line under the label, e.g. "Spark 94%". */
+  /** A small line under the label, e.g. "Spark 94%". */
   note?: ReactNode;
   noteTone?: 'muted' | 'mentor' | 'student';
+  /** `code` sets the note in mono, for a figure; `text` for a phrase that may wrap. */
+  noteFont?: 'text' | 'code';
   size?: StatSize;
   className?: string;
 }
@@ -27,6 +29,7 @@ export function Stat({
   label,
   note,
   noteTone = 'muted',
+  noteFont = 'code',
   size = 'md',
   className,
 }: StatProps) {
@@ -34,7 +37,17 @@ export function Stat({
     <div className={cn('flex flex-col', size === 'md' ? 'gap-1.5' : 'gap-1', className)}>
       <span className={cn('font-medium', statValue[size])}>{value}</span>
       {label && <span className="text-fg-secondary">{label}</span>}
-      {note && <span className={cn('font-mono text-sm', noteTones[noteTone])}>{note}</span>}
+      {note && (
+        <span
+          className={cn(
+            'text-sm',
+            noteFont === 'code' ? 'font-mono' : 'text-pretty',
+            noteTones[noteTone],
+          )}
+        >
+          {note}
+        </span>
+      )}
     </div>
   );
 }

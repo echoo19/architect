@@ -7,7 +7,7 @@ import { IconButton } from './icon-button';
 export const Drawer = RadixDialog.Root;
 
 export interface DrawerContentProps {
-  /** Read out when the drawer opens; shown in the header. */
+  /** Read out when the drawer opens; shown in the header, wrapped when long. */
   title: string;
   /** A short line under the title, such as the task type and split. */
   subtitle?: ReactNode;
@@ -50,12 +50,12 @@ export function DrawerContent({
           className,
         )}
       >
-        <div className="flex min-h-[60px] shrink-0 items-center gap-3 border-b border-line-card py-2.5 pl-6 pr-3">
-          <div className="flex min-w-0 flex-1 flex-col">
-            <RadixDialog.Title className="m-0 truncate text-md font-medium">
+        <div className="flex min-h-[60px] shrink-0 items-start gap-3 border-b border-line-card py-2.5 pl-6 pr-3">
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1.5">
+            <RadixDialog.Title className="m-0 break-words text-md font-medium text-pretty">
               {title}
             </RadixDialog.Title>
-            {subtitle && <span className="truncate text-sm text-fg-muted">{subtitle}</span>}
+            {subtitle && <span className="text-sm text-fg-muted text-pretty">{subtitle}</span>}
           </div>
           {actions}
           <RadixDialog.Close asChild>

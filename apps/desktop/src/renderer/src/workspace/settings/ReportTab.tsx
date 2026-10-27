@@ -1,8 +1,10 @@
 import type { GraduateSummary, ReportCard } from '@architect/shared';
 import { ErrorState, Heading, Meter, Skeleton, Stat } from '@architect/ui';
 import { useReport } from '../../api/hooks';
-import { formatPercent, formatSeconds, formatUsd, percentOf } from '../../lib/format';
+import { formatAnswerTime } from '../../flow/format';
+import { formatPercent, formatUsd, percentOf } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
+import { currentPlatform, deviceInSentence } from '../../lib/platform';
 
 /** The agent's report card in brief: how it did on the locked test, and what it refuses. */
 export function ReportTab({ agent }: { agent: GraduateSummary }) {
@@ -33,6 +35,7 @@ function ReportSummary({ report }: { report: ReportCard }) {
   const { test, cost, requirements } = report;
   const handled = test.perType.filter((type) => !type.refused);
   const cell = 'bg-modal p-[18px]';
+  const place = test.ranOffline ? `on ${deviceInSentence(currentPlatform())}` : 'on a hosted copy';
 
   return (
     <div className="flex flex-col gap-8 pt-1">
@@ -40,22 +43,25 @@ function ReportSummary({ report }: { report: ReportCard }) {
         <Stat
           className={cell}
           value={formatPercent(test.score)}
-          label="Task success"
-          note={`${test.score.pass}/${test.score.total} · target ${Math.round(
+          label="of new tasks right"
+          note={`${test.score.pass} of ${test.score.total}, target ${Math.round(
             requirements.passRate.target * 100,
           )}%`}
+          noteFont="text"
         />
         <Stat
           className={cell}
-          value={formatSeconds(test.latencyMs.p50)}
-          label="Typical answer"
-          note={`Slowest ${formatSeconds(test.latencyMs.p95)}`}
+          value={formatAnswerTime(test.latencyMs.p50, true)}
+          label={`Typical answer, ${place}`}
+          note={`95% of answers within ${formatAnswerTime(test.latencyMs.p95)}`}
+          noteFont="text"
         />
         <Stat
           className={cell}
           value={formatUsd(cost.mentorUsd)}
           label={`${shortModelName(report.mentor.label)} mentoring`}
-          note={`${cost.rounds} rounds, once`}
+          note={`${cost.rounds} rounds, paid once`}
+          noteFont="text"
         />
       </div>
 
@@ -69,17 +75,26 @@ function ReportSummary({ report }: { report: ReportCard }) {
                 {formatPercent(type)}
                 <span className="text-fg-muted">
                   {' '}
-                  · {type.pass}/{type.total}
+                  · {type.pass} of {type.total}
                 </span>
               </span>
             </div>
             <Meter label={type.label} value={percentOf(type) / 100} tone="student" thickness={4} />
+            {percentOf(type) < Math.round(requirements.passRate.target * 100) && (
+              <span className="text-sm text-fg-muted">
+                Below the {Math.round(requirements.passRate.target * 100)}% target on its own: check
+                these answers before relying on them
+              </span>
+            )}
           </div>
         ))}
       </section>
 
       <section className="flex flex-col gap-3">
-        <Heading>Doesn&apos;t handle</Heading>
+        <div className="flex flex-col gap-1">
+          <Heading>Doesn&apos;t handle</Heading>
+          <p className="m-0 text-sm text-fg-muted">Requests it turns down and leaves to you.</p>
+        </div>
         {report.refusedTypes.length === 0 ? (
           <p className="m-0 text-fg-secondary">
             Nothing. It takes on every task type it trained on.
@@ -95,7 +110,7 @@ function ReportSummary({ report }: { report: ReportCard }) {
                     {type.label}
                     {result && (
                       <span className="font-mono text-fg-muted">
-                        {result.pass}/{result.total}
+                        {result.pass} of {result.total}
                       </span>
                     )}
                   </span>

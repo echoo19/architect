@@ -1,18 +1,34 @@
 import { useState, type Ref } from 'react';
-import type { GraduateSummary } from '@architect/shared';
-import { Composer, IconButton, Skeleton, Tooltip } from '@architect/ui';
-import { ArrowDown, Lock, LockOpen, RotateCw } from 'lucide-react';
+import type { GraduateSummary, PermissionMode } from '@architect/shared';
+import {
+  Composer,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+  IconButton,
+  Skeleton,
+  Tooltip,
+} from '@architect/ui';
+import { ArrowDown, Check, ChevronDown, Lock, LockOpen, PenOff, RotateCw } from 'lucide-react';
 import { attempt } from '../lib/notify';
 import { updateGraduateSettings, useGraduateSettings } from './graduateSettings';
-import { nextWriteMode, WRITE_MODE_LABELS } from './labels';
+import { WRITE_MODE_LABELS, WRITE_MODE_MEANINGS, WRITE_MODES } from './labels';
 import { StatusBar } from './StatusBar';
 
 const modeButton =
-  'flex h-8 items-center gap-1.5 rounded-full px-2.5 text-sm text-fg-secondary transition-colors duration-150 hover:bg-hover hover:text-fg disabled:opacity-60 [&_svg]:shrink-0';
+  'flex h-8 items-center gap-1.5 rounded-full border border-line-control px-3 text-sm text-fg-secondary transition-colors duration-150 hover:bg-hover hover:text-fg disabled:opacity-60 [&_svg]:shrink-0';
 
-/** Steps through "Ask before writing", "Writes allowed" and "Read only" for this agent. */
-function WriteModeButton({ graduateId }: { graduateId: string }) {
-  const settings = useGraduateSettings(graduateId);
+const MODE_ICONS: Record<PermissionMode, typeof Lock> = {
+  ask: Lock,
+  allow: LockOpen,
+  never: PenOff,
+};
+
+/** Chooses whether this agent asks before writing, writes freely, or only reads. */
+function WriteModeMenu({ agent }: { agent: GraduateSummary }) {
+  const settings = useGraduateSettings(agent.id);
   const [saving, setSaving] = useState(false);
 
   if (settings.status === 'error') {
@@ -28,21 +44,44 @@ function WriteModeButton({ graduateId }: { graduateId: string }) {
   if (!settings.data) return <Skeleton shape="pill" className="ml-2.5 h-4 w-32" />;
 
   const mode = settings.data.writeMode;
-  const cycle = async () => {
+  const choose = async (next: PermissionMode) => {
+    if (next === mode) return;
     setSaving(true);
     await attempt("Couldn't change the write setting", () =>
-      updateGraduateSettings(graduateId, { writeMode: nextWriteMode(mode) }),
+      updateGraduateSettings(agent.id, { writeMode: next }),
     );
     setSaving(false);
   };
-  const Icon = mode === 'allow' ? LockOpen : Lock;
+  const Icon = MODE_ICONS[mode];
   return (
-    <Tooltip content="Change what this agent may write">
-      <button type="button" className={modeButton} disabled={saving} onClick={() => void cycle()}>
-        <Icon size={14} strokeWidth={1.8} aria-hidden />
-        {WRITE_MODE_LABELS[mode]}
-      </button>
-    </Tooltip>
+    <DropdownMenu>
+      <Tooltip content={`Whether ${agent.name} asks before saving changes to your files`}>
+        <DropdownMenuTrigger asChild>
+          <button type="button" className={modeButton} disabled={saving}>
+            <Icon size={14} strokeWidth={1.8} aria-hidden />
+            Saving: {WRITE_MODE_LABELS[mode]}
+            <ChevronDown size={13} strokeWidth={1.8} aria-hidden />
+          </button>
+        </DropdownMenuTrigger>
+      </Tooltip>
+      <DropdownMenuContent side="top" className="w-80">
+        <DropdownMenuLabel>Saving changes to your files</DropdownMenuLabel>
+        {WRITE_MODES.map((option) => {
+          const OptionIcon = MODE_ICONS[option];
+          return (
+            <DropdownMenuItem
+              key={option}
+              onSelect={() => void choose(option)}
+              icon={<OptionIcon strokeWidth={1.8} aria-hidden />}
+              description={WRITE_MODE_MEANINGS[option]}
+              shortcut={option === mode ? <Check strokeWidth={2} aria-label="Current" /> : null}
+            >
+              {WRITE_MODE_LABELS[option]}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -104,15 +143,10 @@ export function ChatComposer({
           onStop={onStop}
           disabled={disabled}
           autoFocus
-          leading={<WriteModeButton graduateId={agent.id} />}
-          trailing={
-            <span className="text-sm text-fg-muted">
-              {agent.name} v{agent.manifest.harness.version}
-            </span>
-          }
+          leading={<WriteModeMenu agent={agent} />}
         />
       </div>
-      <StatusBar manifest={agent.manifest} />
+      <StatusBar agent={agent} />
     </div>
   );
 }

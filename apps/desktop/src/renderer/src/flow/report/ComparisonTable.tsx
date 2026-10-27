@@ -11,11 +11,18 @@ import {
   TableRow,
 } from '@architect/ui';
 import { api, flowApi } from '../../api/client';
-import { useQuery } from '../../api/query';
+import { useQuery, type QueryState } from '../../api/query';
 import { formatUsd } from '../../lib/format';
-import { comparisonPeers, comparisonRows, formatPoints } from './comparison';
+import type { ModelNames } from '../train/phase';
+import {
+  comparisonPeers,
+  comparisonRows,
+  formatPoints,
+  methodExplanation,
+  type ComparisonRow,
+} from './comparison';
 
-async function loadComparison(report: ReportCard) {
+async function loadComparison(report: ReportCard): Promise<ComparisonRow[]> {
   const peers = comparisonPeers(await flowApi.runs(report.jobId), report.runId);
   const reports = await Promise.all(
     peers.map((run) => (run.id === report.runId ? report : api.report(run.id))),
@@ -23,13 +30,40 @@ async function loadComparison(report: ReportCard) {
   return comparisonRows(reports, report.runId);
 }
 
-/** This run beside the baselines trained on the same job and seed, when they have finished. */
-export function ComparisonTable({ report, mentor }: { report: ReportCard; mentor: string }) {
-  const rows = useQuery(`comparison:${report.runId}`, () => loadComparison(report));
+/**
+ * This run beside the baselines trained on the same job and seed. Nothing is loaded unless
+ * comparison mode is on, so the report never waits on runs it won't show.
+ */
+export function useComparison(report: ReportCard, enabled: boolean): QueryState<ComparisonRow[]> {
+  return useQuery(`comparison:${report.runId}:${enabled ? 'on' : 'off'}`, () =>
+    enabled ? loadComparison(report) : Promise.resolve([]),
+  );
+}
+
+export function ComparisonTable({
+  rows,
+  names,
+}: {
+  rows: QueryState<ComparisonRow[]>;
+  names: ModelNames;
+}) {
   if (rows.status === 'success' && rows.data.length === 0) return null;
+  // What the comparison itself spent, beyond this run's own mentoring.
+  const extra =
+    Math.round(
+      (rows.data ?? []).filter((row) => !row.current).reduce((sum, row) => sum + row.mentorUsd, 0) *
+        100,
+    ) / 100;
   return (
     <section aria-labelledby="comparison" className="flex flex-col gap-[18px]">
-      <Heading id="comparison">Compared with the baselines</Heading>
+      <div className="flex flex-col gap-1.5">
+        <Heading id="comparison">Compared with simpler ways to build it</Heading>
+        <p className="m-0 text-fg-secondary text-pretty">
+          The same job and final test, built three simpler ways. Points are the difference in final
+          test score from {names.student} with no setup.
+          {extra > 0 && ` Together they cost another ${formatUsd(extra)} of ${names.mentor}.`}
+        </p>
+      </div>
       {rows.status === 'loading' && (
         <div aria-busy="true" aria-label="Loading the comparison">
           <Skeleton className="h-[188px] w-full rounded-xl" />
@@ -50,19 +84,26 @@ export function ComparisonTable({ report, mentor }: { report: ReportCard; mentor
               <TableRow>
                 <TableHead>Method</TableHead>
                 <TableHead className="text-right">Final test</TableHead>
-                <TableHead className="text-right">Versus bare student</TableHead>
-                <TableHead className="text-right">{mentor} cost</TableHead>
+                <TableHead className="text-right">Versus no setup</TableHead>
+                <TableHead className="text-right">{names.mentor} cost</TableHead>
                 <TableHead className="text-right">Rounds</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.data.map((row) => (
                 <TableRow key={row.runId} aria-current={row.current ? 'true' : undefined}>
-                  <TableCell className={row.current ? 'font-medium' : undefined}>
-                    {row.label}
-                    {row.current && <span className="text-fg-muted"> · this run</span>}
+                  <TableCell>
+                    <span className="flex flex-col gap-0.5">
+                      <span className={row.current ? 'font-medium' : undefined}>
+                        {row.label}
+                        {row.current && <span className="text-fg-muted"> · this run</span>}
+                      </span>
+                      <span className="text-sm text-fg-muted">
+                        {methodExplanation(row.method, names)}
+                      </span>
+                    </span>
                   </TableCell>
-                  <TableCell className="text-right font-mono">
+                  <TableCell className="text-right font-mono font-medium text-fg">
                     {Math.round(row.testRate)}%
                   </TableCell>
                   <TableCell className="text-right font-mono">

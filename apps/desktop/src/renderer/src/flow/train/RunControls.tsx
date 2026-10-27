@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import type { RunStatus } from '@architect/shared';
-import { Button, Dialog, DialogClose, DialogContent, DialogFooter, Spinner } from '@architect/ui';
+import {
+  Button,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  Spinner,
+  Tooltip,
+} from '@architect/ui';
 import { ArrowRight, Pause, Play, Square } from 'lucide-react';
 import { architect } from '../../api/client';
 import { attempt } from '../../lib/notify';
@@ -71,31 +79,42 @@ export function RunControls({
           {pending === 'resume' ? 'Resuming' : 'Resume'}
         </Button>
       ) : (
-        <Button
-          size="md"
-          loading={pending === 'pause'}
-          disabled={run.status === 'queued'}
-          onClick={() => void ask('pause')}
-        >
-          {pending !== 'pause' && (
-            <Pause size={13} fill="currentColor" strokeWidth={0} aria-hidden />
-          )}
-          {pending === 'pause' ? 'Pausing' : 'Pause'}
-        </Button>
+        <Tooltip content="Holds training after the step in progress. Paused time doesn't count.">
+          <Button
+            size="md"
+            loading={pending === 'pause'}
+            disabled={run.status === 'queued'}
+            onClick={() => void ask('pause')}
+          >
+            {pending !== 'pause' && (
+              <Pause size={13} fill="currentColor" strokeWidth={0} aria-hidden />
+            )}
+            {pending === 'pause' ? 'Pausing' : 'Pause'}
+          </Button>
+        </Tooltip>
       )}
       {run.status !== 'testing' && (
-        <Button size="md" onClick={() => onStop('stop')}>
-          <Square size={12} fill="currentColor" strokeWidth={0} aria-hidden />
-          Stop
-        </Button>
+        <Tooltip
+          content={
+            hasKeptChange(live.rounds)
+              ? 'Ends training now, keeps the best version and still runs the final test.'
+              : 'Ends training now. Nothing is kept yet, so there is no final test.'
+          }
+        >
+          <Button size="md" onClick={() => onStop('stop')}>
+            <Square size={12} fill="currentColor" strokeWidth={0} aria-hidden />
+            Stop
+          </Button>
+        </Tooltip>
       )}
     </>
   );
 }
 
 /**
- * Stopping ends training after the current step. The engine then runs the locked test when a
- * change was kept, so "Skip to graduation" and "Stop" lead to the same place.
+ * Stopping ends training after the step in progress. The engine then runs the locked test on the
+ * last kept version when a change was kept, so "Finish with the best version" and "Stop" lead to the same
+ * place; with nothing kept, the run just ends.
  */
 export function StopDialog({
   intent,
@@ -121,23 +140,24 @@ export function StopDialog({
     onClose();
   };
 
+  const best = `version ${live.run.currentVersion}`;
   const copy =
     intent === 'skip'
       ? {
-          title: 'Skip to graduation?',
-          description: `Training stops after the current step. Then ${student} takes the ${test}-task final test with ${mentor} disconnected, and you get the report card.`,
-          confirm: 'Skip to the final test',
+          title: 'Finish with the best version?',
+          description: `Training ends now, after the step in progress. ${live.job.name} keeps its best version so far (${best}), then ${student} takes the ${test}-task final test with ${mentor} disconnected and you get the report card.`,
+          confirm: 'End training and test',
         }
       : kept
         ? {
             title: 'Stop training?',
-            description: `Training stops after the current step. ${student} still takes the final test with what it has learned so far, so you get a report card.`,
-            confirm: 'Stop training',
+            description: `Training ends now, after the step in progress. ${live.job.name} keeps its best version so far (${best}), and ${student} still takes the ${test}-task final test, so you get a report card.`,
+            confirm: 'Stop and run the final test',
           }
         : {
             title: 'Stop training?',
             description:
-              "Training stops after the current step. No change has been kept yet, so there's nothing to test and no report card.",
+              "Training ends now, after the step in progress. No change has been kept yet, so there's nothing to test and no report card.",
             confirm: 'Stop training',
           };
 

@@ -6,14 +6,24 @@ import {
   type MentorPreset,
   ConnectionTestSchema,
 } from '@architect/shared';
-import { Button, Input, Panel, RadioCard, RadioCardGroup, SettingsRow } from '@architect/ui';
+import {
+  Button,
+  Heading,
+  Input,
+  Panel,
+  RadioCard,
+  RadioCardGroup,
+  SettingsRow,
+} from '@architect/ui';
 import { CircleAlert, CircleCheck } from 'lucide-react';
 import { architect } from '../api/client';
 import { toError, type QueryState } from '../api/query';
+import { CopyButton } from '../components/CopyButton';
 import { errorOf } from '../components/QueryValue';
+import { aboutUsd, mentorUsdFor, TYPICAL_ROUNDS } from '../flow/define/estimates';
 import { shortModelName } from '../lib/names';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
-import { formatPricing, presetFor, providerName } from './mentor';
+import { KEY_PAGES, mentorNote, presetFor, providerName } from './mentor';
 import { StepIntro } from './SetupShell';
 
 async function testMentor(config: MentorConfig): Promise<ConnectionTest> {
@@ -46,6 +56,21 @@ function ConnectionResult({ result, mentor }: { result: ConnectionTest; mentor: 
       </div>
     </div>
   );
+}
+
+/** Mentors on Meta's own API, and the open-weight model through a host the user picks. */
+const MENTOR_GROUPS = [
+  { title: "Meta's API", presets: MENTOR_PRESETS.filter((preset) => preset.provider === 'meta') },
+  {
+    title: 'The open version of Spark, through a host you choose',
+    presets: MENTOR_PRESETS.filter((preset) => preset.provider !== 'meta'),
+  },
+];
+
+/** What a mentor usually costs per agent, and who bills it when that isn't Meta. */
+function costLine(preset: MentorPreset): string {
+  const cost = `${aboutUsd(mentorUsdFor(preset.pricing, TYPICAL_ROUNDS))} to train an agent`;
+  return preset.provider === 'meta' ? cost : `${cost}, billed by ${providerName(preset.provider)}`;
 }
 
 export interface MentorStepProps {
@@ -88,30 +113,44 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
   return (
     <>
       <StepIntro title="Choose a mentor">
-        The mentor watches a new agent practice and fixes its mistakes, only while training and
-        under a spending cap. It never sees your chats.
+        The mentor is a paid cloud model that coaches each new agent while it trains, round by round
+        improving its instructions. Once training ends, your agents never call it.
       </StepIntro>
-      <div className="flex w-full max-w-[720px] flex-col gap-4">
-        <RadioCardGroup
-          aria-label="Mentor"
-          value={preset?.key ?? ''}
-          onValueChange={(next) => {
-            const chosen = MENTOR_PRESETS.find((option) => option.key === next);
-            if (!chosen) return;
-            onResult(null);
-            onChoose(chosen);
-          }}
-        >
-          {MENTOR_PRESETS.map((option) => (
-            // Locked while a test runs, so its result can't land under another mentor.
-            <RadioCard key={option.key} value={option.key} title={option.label} disabled={testing}>
-              <span className="font-mono text-xs text-fg-muted">
-                {formatPricing(option.pricing)}
-              </span>
-              <span className="text-pretty">{option.note}</span>
-            </RadioCard>
-          ))}
-        </RadioCardGroup>
+      <div className="flex w-full max-w-[720px] flex-col gap-3.5">
+        {MENTOR_GROUPS.map((group) => (
+          <section key={group.title} className="flex flex-col gap-2">
+            <Heading as="h2" className="text-fg-secondary">
+              {group.title}
+            </Heading>
+            <RadioCardGroup
+              aria-label={group.title}
+              value={preset?.key ?? ''}
+              onValueChange={(next) => {
+                const chosen = MENTOR_PRESETS.find((option) => option.key === next);
+                if (!chosen) return;
+                onResult(null);
+                onChoose(chosen);
+              }}
+            >
+              {group.presets.map((option) => (
+                // Locked while a test runs, so its result can't land under another mentor.
+                <RadioCard
+                  key={option.key}
+                  value={option.key}
+                  title={option.label}
+                  disabled={testing}
+                >
+                  <span className="text-fg text-pretty">{mentorNote(option)}</span>
+                  <span>{costLine(option)}</span>
+                </RadioCard>
+              ))}
+            </RadioCardGroup>
+          </section>
+        ))}
+        <p className="m-0 text-sm text-fg-muted text-pretty">
+          Costs are for training one agent over up to {TYPICAL_ROUNDS} rounds. You set a cap for
+          each.
+        </p>
         {mentor.kind === 'model' && (
           <Panel aria-label="Mentor key" className="px-7 py-1 [&>*:first-child]:border-t-0">
             <form onSubmit={(event) => void test(event)}>
@@ -120,7 +159,7 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
                 meta={
                   stored
                     ? `Saved, encrypted on ${device}`
-                    : `Encrypted on ${device}, never shown again`
+                    : `Each host has its own key; this one is for ${provider}. Encrypted on ${device}, never shown again.`
                 }
                 error={errorOf(secrets)}
               >
@@ -150,7 +189,23 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
             {result && <ConnectionResult result={result} mentor={shortModelName(mentor.label)} />}
           </Panel>
         )}
+        {preset && !stored && <KeySource page={KEY_PAGES[preset.provider]} />}
       </div>
     </>
+  );
+}
+
+/**
+ * Where to make a key, and that the step can wait. Architect doesn't open web pages itself, so
+ * the address is there to copy into a browser.
+ */
+function KeySource({ page }: { page: { url: string; where: string } }) {
+  return (
+    <p className="m-0 flex flex-wrap items-center justify-center gap-x-1 text-sm text-fg-muted">
+      No key yet? Make one {page.where} at
+      <span className="font-mono text-fg-secondary">{page.url}</span>
+      <CopyButton text={page.url} label="Copy the address" className="-my-1" />
+      or skip this step and add one later in Settings.
+    </p>
   );
 }

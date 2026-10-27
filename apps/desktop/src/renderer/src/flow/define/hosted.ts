@@ -50,12 +50,12 @@ export type HostedAvailability = { available: true } | { available: false; reaso
 /** Training on a hosted copy needs an endpoint and, when it asks for one, a saved key. */
 export function hostedAvailability(student: StudentConfig, keys: KeyStatus): HostedAvailability {
   const { hosted } = student;
-  if (!hosted) return { available: false, reason: 'Choose a host under Advanced' };
+  if (!hosted) return { available: false, reason: 'Choose a host in Advanced settings' };
   if (!hosted.secretRef) return { available: true };
   if (keys === 'loading') return { available: false, reason: 'Checking for a saved key' };
   if (keys === 'error') return { available: false, reason: "Couldn't check for a saved key" };
   if (!keys[hosted.secretRef]) {
-    return { available: false, reason: `Add a ${providerName(hosted)} key under Advanced` };
+    return { available: false, reason: `Add a ${providerName(hosted)} key in Advanced settings` };
   }
   return { available: true };
 }

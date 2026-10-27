@@ -4,6 +4,7 @@ import {
   comparisonPeers,
   comparisonRows,
   formatPoints,
+  methodExplanation,
 } from '../../../src/renderer/src/flow/report/comparison';
 import { countChanges, parseUnifiedDiff } from '../../../src/renderer/src/flow/train/diff';
 import { at, makeRun } from './factories';
@@ -111,14 +112,31 @@ describe('comparison', () => {
     );
     expect(rows.map((row) => [row.label, row.testRate, row.vsBare, row.current])).toEqual([
       ['Architect', 90, 40, true],
-      ['One-shot guide', 70, 20, false],
-      ['Bare student', 50, 0, false],
+      ['One-time setup', 70, 20, false],
+      ['No setup', 50, 0, false],
     ]);
   });
 
   it('writes the difference in percentage points', () => {
-    expect(formatPoints(28.4)).toBe('+28 pts');
-    expect(formatPoints(-4)).toBe('−4 pts');
-    expect(formatPoints(0.2)).toBe('0 pts');
+    expect(formatPoints(28.4)).toBe('+28 points');
+    expect(formatPoints(-4)).toBe('\u22124 points');
+    expect(formatPoints(1)).toBe('+1 point');
+    expect(formatPoints(0.2)).toBe('0 points');
+  });
+
+  it('explains every method in one line with the job’s model names', () => {
+    const names = { mentor: 'Spark', student: 'Glimmer' };
+    expect(methodExplanation('bare', names)).toBe(
+      'Glimmer on its own, with no instructions or skills',
+    );
+    expect(methodExplanation('one_shot', names)).toBe(
+      "Spark wrote the agent's setup once, without watching it work",
+    );
+    expect(methodExplanation('self_reflection', names)).toBe(
+      'Glimmer corrected its own setup, with no mentor',
+    );
+    expect(methodExplanation('architect', names)).toBe(
+      'Spark watched Glimmer work and kept only changes that helped',
+    );
   });
 });

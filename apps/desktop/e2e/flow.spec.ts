@@ -25,6 +25,10 @@ import {
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const WIDTH = 1440;
+/** Tall enough for each screen's whole page, so a screenshot shows everything on it. */
+const DEFINE_HEIGHT = 1580;
+const TRAIN_HEIGHT = 1380;
+const REPORT_HEIGHT = 1660;
 const THEMES = ['dark', 'light'] as const;
 
 test.describe.configure({ mode: 'serial' });
@@ -97,13 +101,13 @@ for (const theme of THEMES) {
     await page.getByRole('textbox', { name: 'Describe the job' }).fill(DESCRIPTION);
     await page.getByRole('button', { name: 'Attach files' }).click();
     const chips = page.getByRole('list', { name: 'Attached files' }).getByRole('listitem');
-    await expect(chips).toHaveCount(4);
+    await expect(chips).toHaveCount(6);
     await expect(chips.first()).toHaveText('jobs.csv');
     await capture(page, `flow-describe-${theme}`);
     await page.getByRole('button', { name: 'Send' }).click();
 
     // Clarify: the mentor reads the files, asks, and drafts the job.
-    await expect(page.getByText('Read 4 files')).toBeVisible();
+    await expect(page.getByText('Read 6 files')).toBeVisible();
     await expect(page.getByText(turns.start.message)).toBeVisible();
     const reply = page.getByRole('textbox', { name: 'Reply' });
     await expect(reply).toBeFocused();
@@ -118,32 +122,48 @@ for (const theme of THEMES) {
     await capture(page, `flow-clarify-${theme}`);
     await review.click();
 
-    // Define: the drafted job, where it trains, and every field under Advanced.
+    // Define: the drafted job, where it trains, and every field in Advanced settings.
     await expect(page).toHaveURL(new RegExp(`#/jobs/${FLOW.jobId}/define$`));
-    await resize(1180);
+    await resize(DEFINE_HEIGHT);
     await expect(page.getByRole('heading', { name: 'Service desk', level: 1 })).toBeVisible();
-    await expect(page.getByRole('radio', { name: /This computer/ })).toBeChecked();
+    await expect(page.getByRole('heading', { name: 'What it does' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: "What it won't do" })).toBeVisible();
+    const local = page.getByRole('radio', { name: /This computer/ });
+    const hosted = page.getByRole('radio', { name: /Hosted on Together/ });
+    await expect(local).toBeChecked();
+    await expect(local).toContainText(
+      'No full round fits in 4 hours of training; one takes about 4 to 7 hours',
+    );
+    await expect(local).toContainText('Too slow for this time limit');
+    await expect(hosted).toContainText('About 7 hours in all, with the final test');
+    await expect(hosted).toContainText('5 to 10 of 12 rounds fit in 4 hours of training');
+    await expect(
+      page.getByText('A hosted copy fits 5 to 10 rounds in the time this computer fits none.'),
+    ).toBeHidden();
+    // The choices the run below starts with, so every later screen agrees with this one.
+    await hosted.click();
+    await expect(hosted).toBeChecked();
+    await page
+      .getByRole('checkbox', { name: 'Also train three simpler versions to compare against' })
+      .click();
     await capture(page, `flow-define-${theme}`);
 
-    await page.getByRole('button', { name: 'Advanced' }).click();
-    const advanced = page.getByRole('dialog', { name: 'Advanced' });
+    await page.getByRole('button', { name: 'Advanced settings' }).click();
+    const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
     await expect(advanced).toBeVisible();
-    await advanced.getByRole('tab', { name: 'Splits' }).click();
-    const practice = advanced.getByRole('textbox', { name: 'Practice' });
+    await advanced.getByRole('tab', { name: 'Task sets' }).click();
+    const practice = advanced.getByRole('textbox', { name: 'Practice tasks' });
     await practice.fill('200');
     await expect(
       advanced.getByText('These add up to 310 tasks, but the job has 170.'),
     ).toBeVisible();
+    await expect(advanced.getByRole('status')).toContainText('Not saved: fix the marked field');
     await practice.fill('60');
     await expect(advanced.getByRole('alert')).toHaveCount(0);
+    await expect(advanced.getByRole('status')).toContainText('Saved');
     await capture(page, `flow-advanced-${theme}`);
     await page.keyboard.press('Escape');
     await expect(advanced).toBeHidden();
-
-    await page.getByRole('radio', { name: /Hosted on Together/ }).click();
-    await page
-      .getByRole('checkbox', { name: 'Also run the three baselines for comparison' })
-      .click();
     await page.getByRole('button', { name: 'Start training' }).click();
 
     // Train: the run and its baselines start on the same seed.
@@ -156,26 +176,35 @@ for (const theme of THEMES) {
       [FLOW.jobId, { method: 'self_reflection', seed: FLOW.seed }],
     ]);
 
-    await resize(1380);
-    const success = page.getByRole('region', { name: 'Task success' });
+    await resize(TRAIN_HEIGHT);
+    const success = page.getByRole('region', { name: 'Check tasks right' });
     const rounds = page.getByRole('region', { name: 'Rounds' });
     await expect(success).toContainText('78%');
-    await expect(page.getByRole('status').filter({ hasText: 'Checking the change' })).toBeVisible();
-    await expect(rounds).toContainText('58 → 55');
+    await expect(success).toContainText('31 of 40 on average, over 2 checks');
+    await expect(page.getByRole('status').filter({ hasText: 'Scoring the change' })).toBeVisible();
+    await expect(rounds).toContainText('65% to 63%');
+    await expect(rounds).toContainText('First draft');
+    await expect(rounds).toContainText('Reverted');
     await expect(success.getByRole('img')).toHaveAttribute(
       'aria-label',
-      'Task success by round: 40% before teaching, 58% after round 1, round 2 reverted at 55%, ' +
-        '78% after round 3, round 4 in progress. Ready at 90%.',
+      'Check tasks right by round: 40% at the start, 65% after the first draft, round 2 reverted at 63%, ' +
+        '78% after round 3, round 4 in progress. Target 90%.',
+    );
+    await expect(page.getByRole('region', { name: 'Resources' })).toContainText(
+      '1 h 46 min of 4 h',
+    );
+    await expect(page.getByRole('region', { name: 'Current round' })).toContainText(
+      '+3 to +6 more of the 40 check tasks right',
     );
     await capture(page, `flow-train-${theme}`);
 
     // Live: round 4 is kept and round 5 starts.
     await emitRunEvents(app, roundFourKept());
     await expect(success).toContainText('85%');
-    await expect(rounds).toContainText('78 → 85');
+    await expect(rounds).toContainText('78% to 85%');
     await expect(page.getByRole('region', { name: 'Current round' })).toContainText('Round 5');
     await expect(
-      page.getByRole('region', { name: 'Examples' }).getByRole('button').first(),
+      page.getByRole('region', { name: 'Latest attempts' }).getByRole('button').first(),
     ).toContainText('9 Birch Ln');
 
     // An attempt's trace, then a round's changes, each in a drawer that Escape closes.
@@ -185,6 +214,11 @@ for (const theme of THEMES) {
     const traceDrawer = page.getByRole('dialog');
     await expect(traceDrawer.getByText('Failed', { exact: true })).toBeVisible();
     await expect(traceDrawer.getByText('read_table').first()).toBeVisible();
+    await expect(traceDrawer).toContainText("Version 3 of the agent's instructions");
+    await expect(traceDrawer).toContainText(
+      'Loaded the skill book-urgent-calls automatically, because the request matched it',
+    );
+    await expect(traceDrawer).toContainText('step-by-step instructions');
     await capture(page, `flow-trace-${theme}`);
     await page.keyboard.press('Escape');
     await expect(traceDrawer).toBeHidden();
@@ -195,9 +229,27 @@ for (const theme of THEMES) {
     await expect(
       roundDrawer.getByText('Work in integer cents from start to finish.'),
     ).toBeVisible();
+    await expect(roundDrawer).toContainText(
+      '6 more check tasks passed on the first check (26 to 32 of 40). Run a second time to ' +
+        'rule out luck: 10 more over both checks (52 to 62 of 80), and no task type got worse.',
+    );
+    await expect(roundDrawer).toContainText("The first check was inside Spark's predicted range.");
+    await expect(roundDrawer.getByText('Both checks together')).toBeVisible();
+    await expect(roundDrawer).not.toContainText('@@');
     await capture(page, `flow-round-${theme}`);
     await page.keyboard.press('Escape');
     await expect(roundDrawer).toBeHidden();
+
+    // A blank start's first round is Spark's whole first draft, kept without a keep check.
+    await rounds.getByRole('button', { name: /Work from the office files/ }).click();
+    const draftDrawer = page.getByRole('dialog', { name: 'Round 1: Work from the office files' });
+    await expect(draftDrawer).toContainText(
+      "Spark wrote the agent's first full setup from the job and its example tasks, before " +
+        'watching it work. It is kept as the starting point; later rounds keep only measured gains.',
+    );
+    await expect(draftDrawer).not.toContainText('Run a second time');
+    await page.keyboard.press('Escape');
+    await expect(draftDrawer).toBeHidden();
 
     // Pause waits for the engine to say it has paused.
     await page.getByRole('button', { name: 'Pause' }).click();
@@ -206,9 +258,10 @@ for (const theme of THEMES) {
     await expect(page.getByRole('button', { name: 'Resume' })).toBeEnabled();
     expect(await recordedCalls(app, 'runs:pause')).toEqual([[FLOW.runId]]);
 
-    await page.getByRole('button', { name: 'Stop' }).click();
+    await page.getByRole('button', { name: 'Stop', exact: true }).click();
     const stop = page.getByRole('dialog', { name: 'Stop training?' });
-    await expect(stop).toContainText('Glimmer still takes the final test');
+    await expect(stop).toContainText('keeps its best version so far (version 4)');
+    await expect(stop).toContainText('Glimmer still takes the 60-task final test');
     await stop.getByRole('button', { name: 'Keep training' }).click();
     await expect(stop).toBeHidden();
 
@@ -223,15 +276,28 @@ for (const theme of THEMES) {
     await expect(page).toHaveURL(new RegExp(`#/runs/${FLOW.runId}/report$`));
 
     // Report: met every requirement, with the baselines beside it.
-    await resize(1240);
+    await resize(REPORT_HEIGHT);
     await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
     await expect(page.getByText('Ready', { exact: true })).toBeVisible();
     await expect(
-      page.getByText('60 new tasks, offline, on this computer, Spark disconnected.'),
+      page.getByText(
+        "Glimmer, your agent's model, took a final test of 60 tasks it had never seen, " +
+          'offline on this computer, with Spark, the mentor, disconnected.',
+      ),
     ).toBeVisible();
     const comparison = page.getByRole('table');
     await expect(comparison.getByRole('row')).toHaveCount(5);
-    await expect(comparison.getByRole('row', { name: /Bare student/ })).toContainText('52%');
+    const bare = comparison.getByRole('row', { name: /No setup/ });
+    await expect(bare).toContainText('40%');
+    await expect(bare).toContainText('Glimmer on its own, with no instructions or skills');
+    await expect(
+      page.getByText('Up from 40% before training (Glimmer with no setup)'),
+    ).toBeVisible();
+    await expect(comparison.getByRole('row', { name: /Architect/ })).toContainText('+52 points');
+    await expect(page.getByRole('region', { name: 'What helped most' })).toContainText(
+      '+10 check tasks over 2 checks',
+    );
+    await expect(page.getByRole('heading', { name: "What it won't do" })).toBeVisible();
     await capture(page, `flow-report-${theme}`);
 
     await page.getByRole('button', { name: 'Start using Service desk' }).click();

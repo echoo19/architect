@@ -1,6 +1,15 @@
 import { useMemo, type CSSProperties } from 'react';
 import { cn, Panel } from '@architect/ui';
-import { STAGES, type Motion, type PhaseView } from './phase';
+import { ChevronRight } from 'lucide-react';
+import { capitalized, MENTOR_ROLE, STUDENT_ROLE } from '../../lib/names';
+import {
+  motionCaption,
+  ROUND_STAGES,
+  STAGE_LABELS,
+  type Motion,
+  type PhaseView,
+  type Stage,
+} from './phase';
 import type { EvalProgress } from './run-state';
 import './apprenticeship.css';
 
@@ -77,16 +86,32 @@ function stillStyle({ kind, offset }: Pill): Record<string, string> {
 interface ApprenticeshipProps {
   mentor: string;
   student: string;
+  /** Where the student runs right now: a hosted copy while practicing there, else this computer. */
+  studentPlace: string;
   view: PhaseView;
+  /** The current round writes the first full draft rather than one watched change. */
+  drafting: boolean;
   /** The current pass rate on check tasks, 0 to 1, once measured. */
   passRate: number | null;
   progress: EvalProgress | null;
 }
 
 /** The mentor teaching the student, animated by what the run is doing now. */
-export function Apprenticeship({ mentor, student, view, passRate, progress }: ApprenticeshipProps) {
+export function Apprenticeship({
+  mentor,
+  student,
+  studentPlace,
+  view,
+  drafting,
+  passRate,
+  progress,
+}: ApprenticeshipProps) {
   const cells = useMemo(() => gridCells(passRate ?? 0.35), [passRate]);
   const pills = pillsFor(view.motion, passRate);
+  const caption = motionCaption(view.motion, { mentor, student }, drafting);
+  // A draft round makes no practice attempts: Spark writes the draft, then it is checked.
+  const stages: readonly Stage[] =
+    view.stage === 'testing' ? ['testing'] : drafting ? ['diagnosing', 'evaluating'] : ROUND_STAGES;
   const label =
     view.motion === 'testing'
       ? `${student} is taking the final test`
@@ -114,16 +139,21 @@ export function Apprenticeship({ mentor, student, view, passRate, progress }: Ap
             <circle r={25} fill="none" stroke="currentColor" strokeOpacity={0.25} />
             <circle r={15} fill="currentColor" />
           </svg>
-          <span className="font-medium text-mentor">{mentor}</span>
+          <ModelName
+            name={mentor}
+            tone="text-mentor"
+            role={`${capitalized(MENTOR_ROLE)}, in the cloud`}
+          />
         </div>
 
-        <div className="arch-track" aria-hidden>
-          <span className="arch-line arch-line-mentor" />
-          <span className="arch-line arch-line-student" />
-          <span className="arch-gate" />
+        <div className="arch-track">
+          <span className="arch-line arch-line-mentor" aria-hidden />
+          <span className="arch-line arch-line-student" aria-hidden />
+          <span className="arch-gate" aria-hidden />
           {pills.map((pill, index) => (
             <span
               key={`${view.motion}-${index}`}
+              aria-hidden
               className="arch-pill"
               data-kind={pill.kind}
               style={
@@ -134,6 +164,7 @@ export function Apprenticeship({ mentor, student, view, passRate, progress }: Ap
               }
             />
           ))}
+          {caption && <p className="arch-caption text-sm text-fg-muted text-balance">{caption}</p>}
         </div>
 
         <div className="flex flex-none flex-col items-center gap-4">
@@ -144,22 +175,41 @@ export function Apprenticeship({ mentor, student, view, passRate, progress }: Ap
               ))}
             </div>
           </div>
-          <span className="font-medium text-student">{student}</span>
+          <ModelName
+            name={student}
+            tone="text-student"
+            role={`${capitalized(STUDENT_ROLE)}, ${studentPlace}`}
+          />
         </div>
       </div>
 
-      <div className="flex min-h-14 items-center gap-3.5 border-t border-line-row-strong bg-aside px-7">
-        <div className="flex gap-1" aria-hidden>
-          {STAGES.map((stage) => (
-            <span
+      <div className="flex min-h-14 flex-wrap items-center gap-x-5 gap-y-1 border-t border-line-row-strong bg-aside px-7 py-2">
+        <ol
+          aria-label={view.stage === 'testing' ? 'After training' : 'Steps of a round'}
+          className="m-0 flex list-none items-center gap-2 p-0 text-sm"
+        >
+          {stages.map((stage, index) => (
+            <li
               key={stage}
-              className={cn(
-                'h-0.5 w-[18px] rounded-[2px]',
-                stage === view.stage ? 'bg-fg' : 'bg-line-control',
+              aria-current={stage === view.stage ? 'step' : undefined}
+              className="flex items-center gap-2"
+            >
+              {index > 0 && (
+                <ChevronRight size={13} strokeWidth={1.8} aria-hidden className="text-fg-ghost" />
               )}
-            />
+              <span
+                className={cn(
+                  'border-b-2 pb-0.5',
+                  stage === view.stage
+                    ? 'border-fg font-medium text-fg'
+                    : 'border-transparent text-fg-muted',
+                )}
+              >
+                {drafting && stage === 'diagnosing' ? 'Write first draft' : STAGE_LABELS[stage]}
+              </span>
+            </li>
           ))}
-        </div>
+        </ol>
         <span role="status" className="min-w-0 flex-1 truncate text-md">
           {view.text}
         </span>
@@ -170,6 +220,16 @@ export function Apprenticeship({ mentor, student, view, passRate, progress }: Ap
         )}
       </div>
     </Panel>
+  );
+}
+
+/** A model's name in its color, and its role under it. */
+function ModelName({ name, tone, role }: { name: string; tone: string; role: string }) {
+  return (
+    <div className="flex max-w-[180px] flex-col items-center gap-0.5 text-center">
+      <span className={cn('font-medium', tone)}>{name}</span>
+      <span className="text-sm text-fg-muted text-balance">{role}</span>
+    </div>
   );
 }
 

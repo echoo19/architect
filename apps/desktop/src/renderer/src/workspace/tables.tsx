@@ -1,7 +1,10 @@
 import type { CellValue, RowDiff } from '@architect/shared';
 import { cn, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@architect/ui';
 import { diffLines, type DiffLine } from './diff';
-import { cellText } from './labels';
+import { cellText, isTotalRow } from './labels';
+
+/** A row that sums the ones above it stands out from them. */
+export const TOTAL_ROW = '[&>td]:font-medium [&>td]:text-fg';
 
 export interface DataTableProps {
   label: string;
@@ -22,7 +25,7 @@ export function DataTable({ label, columns, rows }: DataTableProps) {
       </TableHeader>
       <TableBody>
         {rows.map((row, r) => (
-          <TableRow key={r}>
+          <TableRow key={r} className={cn(isTotalRow(row) && TOTAL_ROW)}>
             {columns.map((_, column) => (
               <TableCell key={column}>{cellText(row[column] ?? null)}</TableCell>
             ))}

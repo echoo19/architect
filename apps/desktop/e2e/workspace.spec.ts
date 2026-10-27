@@ -79,7 +79,7 @@ for (const theme of THEMES) {
     await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
     await expect(page.getByText('Running · 0.12.6')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Download' }).click();
+    await page.getByRole('button', { name: 'Download', exact: true }).click();
     await expect.poll(() => callsTo(app, 'ollama:pull')).toEqual([[STUDENT_MODEL]]);
     await emitPullProgress(app, { model: STUDENT_MODEL, status: 'pulling manifest', done: false });
     await emitPullProgress(app, {
@@ -89,7 +89,7 @@ for (const theme of THEMES) {
       totalBytes: 18 * GB,
       done: false,
     });
-    const progress = page.getByRole('progressbar', { name: 'Downloading Muse Glimmer' });
+    const progress = page.getByRole('progressbar', { name: 'Downloading Glimmer' });
     await expect(progress).toHaveAttribute('aria-valuenow', '23');
     await expect(page.getByText('4.2 GB of 18 GB')).toBeVisible();
     await capture(`welcome-download-${theme}.png`);
@@ -97,13 +97,17 @@ for (const theme of THEMES) {
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByRole('heading', { name: 'Choose a mentor' })).toBeVisible();
     const contributor = page.getByRole('radio', { name: /contributor tier/ });
-    const standard = page.getByRole('radio', { name: /Meta does not train on what you send/ });
+    const standard = page.getByRole('radio', { name: /Meta doesn't train on what you send/ });
     await expect(contributor).toContainText('Meta may train on what you send');
     await contributor.click();
     await expect(contributor).toHaveAttribute('aria-checked', 'true');
     await standard.click();
     await expect(standard).toHaveAttribute('aria-checked', 'true');
     await expect(contributor).toHaveAttribute('aria-checked', 'false');
+    await expect(standard).toContainText('About $0.70 to train an agent');
+    await expect(page.getByText('https://dev.meta.ai')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Skip for now' })).toBeVisible();
+    await capture(`welcome-mentor-${theme}.png`);
     const key = page.getByLabel('Meta API key');
     await key.fill('not-a-real-key');
     await page.getByRole('button', { name: 'Test connection' }).click();
@@ -113,7 +117,6 @@ for (const theme of THEMES) {
     expect(await callsTo(app, 'connections:testMentor')).toEqual([
       [expect.objectContaining({ model: 'muse-spark-1.3', secretRef: 'meta' })],
     ]);
-    await capture(`welcome-mentor-${theme}.png`);
 
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByRole('heading', { name: "You're set up" })).toBeVisible();
@@ -138,18 +141,21 @@ for (const theme of THEMES) {
     await open(theme, chatPath(CHATS.fresh.id));
     const suggestions = page.getByRole('group', { name: 'Things to ask Service desk' });
     await expect(suggestions.getByRole('button')).toHaveText([
-      'Price a finished job',
-      'Who owes us money?',
-      'Book the next free slot',
+      'Price a finished job and add its invoice',
+      'Find who owes money after partial payments',
+      'Book the earliest technician who can do the job',
     ]);
-    await expect(page.getByText('Harness v4')).toBeVisible();
-    await expect(page.getByText('muse-glimmer:30b Q4_K_M')).toBeVisible();
-    await expect(page.getByText('Spark: off')).toBeVisible();
+    await expect(page.getByText('Version 7 of its instructions')).toBeVisible();
+    await expect(page.getByText('Glimmer, 4-bit, on this computer')).toBeVisible();
+    await expect(page.getByText('Spark, the mentor: off')).toBeVisible();
+    await expect(page.getByText('Running on this computer')).toBeVisible();
     await capture(`workspace-new-chat-${theme}.png`);
 
-    await suggestions.getByRole('button', { name: 'Price a finished job' }).click();
+    await suggestions
+      .getByRole('button', { name: 'Price a finished job and add its invoice' })
+      .click();
     const composer = page.getByRole('textbox', { name: 'Message Service desk' });
-    await expect(composer).toHaveValue('Price a finished job');
+    await expect(composer).toHaveValue('Price a finished job and add its invoice');
     const request = 'Price the two jobs Dana finished today and tell me the totals.';
     await composer.fill(request);
     await composer.press('Enter');
@@ -160,21 +166,28 @@ for (const theme of THEMES) {
     await expect(page.getByRole('status').filter({ hasText: 'Thinking' })).toBeVisible();
 
     await emitWorkspace(app, { type: 'message.updated', message: pricingReply('started') });
-    await expect(page.getByRole('button', { name: 'read_table jobs.csv' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Reading jobs\.csv/ })).toBeVisible();
     await emitWorkspace(app, { type: 'message.updated', message: pricingReply('working') });
+    // Tool steps start folded, as the setting says, and open on a click.
+    const current = page.getByRole('button', { name: /invoice_total job J-4471/ });
+    await expect(current).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByRole('list', { name: 'Steps' })).toBeHidden();
+    await current.click();
     await expect(page.getByRole('list', { name: 'Steps' }).getByRole('listitem')).toHaveCount(3);
-    await expect(page.getByRole('button', { name: 'invoice_total job 4410' })).toBeVisible();
     await capture(`workspace-streaming-${theme}.png`);
 
     await emitWorkspace(app, { type: 'message.updated', message: pricingReply('writing') });
     await emitWorkspace(app, { type: 'message.updated', message: pricingReply('done') });
     await updateChat(app, CHATS.fresh.id, { running: false });
-    await expect(page.getByRole('button', { name: 'Worked for 3s' })).toBeVisible();
+    // The steps stay as the reader left them; one more click folds them.
+    const worked = page.getByRole('button', { name: 'Worked for 2m 21s' });
+    await expect(worked).toHaveAttribute('aria-expanded', 'true');
+    await worked.click();
     await expect(page.getByRole('list', { name: 'Steps' })).toBeHidden();
-    await expect(page.locator('strong', { hasText: '$486.20' })).toBeVisible();
-    await expect(page.getByRole('table', { name: 'Price breakdown' }).getByRole('row')).toHaveCount(
-      5,
-    );
+    await expect(page.locator('strong', { hasText: '$524.03' })).toBeVisible();
+    const breakdown = page.getByRole('table', { name: 'Price breakdown' });
+    await expect(breakdown.getByRole('row')).toHaveCount(6);
+    await expect(breakdown).toContainText('2 more rows in the total: Plan discount, Tax');
     await expect(page.getByRole('button', { name: 'Copy' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Send' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
@@ -198,18 +211,28 @@ for (const theme of THEMES) {
     const invoices = page.getByRole('group', { name: 'Write to invoices.csv' });
     const booking = page.getByRole('group', { name: 'Write to bookings.csv' });
 
-    await invoices.getByRole('button', { name: /Add to invoices\.csv/ }).click();
+    // The rows show before anything can be allowed, and the reply waits for an answer.
     const preview = invoices.getByRole('table', { name: 'Rows this change writes' });
     await expect(preview.getByRole('row')).toHaveCount(3);
     await expect(preview).toContainText('Added');
-    await expect(preview).toContainText('INV-1044');
+    await expect(preview).toContainText('INV-4473');
+    await expect(booking.getByRole('table', { name: 'Rows this change writes' })).toBeVisible();
+    await expect(invoices).toContainText(
+      'Allow once saves these rows. Always allow saves them and stops asking',
+    );
+    await expect(booking).not.toContainText('Allow once saves');
+    const waiting = page
+      .getByRole('status')
+      .filter({ hasText: 'Waiting for you to allow or deny the changes above.' });
+    await expect(waiting).toBeVisible();
     await capture(`workspace-approval-${theme}.png`);
 
-    await invoices.getByRole('button', { name: 'Allow', exact: true }).click();
+    await invoices.getByRole('button', { name: 'Allow once' }).click();
     await expect(invoices).toContainText('Allowed');
     await booking.getByRole('button', { name: 'Deny' }).click();
     await expect(booking).toContainText('Denied');
-    await expect(page.getByRole('button', { name: 'Allow', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Allow once' })).toHaveCount(0);
+    await expect(waiting).toBeHidden();
     expect(await callsTo(app, 'workspace:decide')).toEqual([
       ['chg_invoices', 'approve'],
       ['chg_booking', 'deny'],
@@ -223,6 +246,10 @@ for (const theme of THEMES) {
     const refusal = page.getByRole('note');
     await expect(refusal).toContainText("Service desk doesn't handle refunds");
     await expect(refusal).toContainText('The office files have no refund policy to follow');
+    await expect(refusal).toContainText(
+      "You'll need to handle this one yourself. Service desk can help with invoices, overdue " +
+        'balances or scheduling.',
+    );
     await capture(`workspace-refusal-${theme}.png`);
   });
 }
@@ -231,37 +258,33 @@ for (const theme of THEMES) {
   test(`changes what the agent may write and opens its settings (${theme})`, async () => {
     const app = launched.app;
     await open(theme, chatPath(CHATS.closeout.id));
-    await page.getByRole('button', { name: 'Ask before writing' }).click();
-    await expect(page.getByRole('button', { name: 'Writes allowed' })).toBeVisible();
-
     const settingsButton = page.getByRole('button', { name: 'Service desk settings' });
     await settingsButton.click();
     const dialog = page.getByRole('dialog', { name: 'Service desk', exact: true });
-    await expect(dialog.getByText('Prices finished jobs, chases overdue balances')).toBeVisible();
-    await expect(dialog.getByText(/^Passed its final test on /)).toBeVisible();
+    await expect(dialog.getByText('Prices finished jobs, finds overdue balances')).toBeVisible();
+    await expect(dialog.getByText(/Passed its final test on /)).toBeVisible();
     await capture(`workspace-agent-general-${theme}.png`);
 
     await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
     const confirm = page.getByRole('dialog', { name: 'Delete Service desk?' });
     await expect(confirm).toBeVisible();
-    await page.keyboard.press('Escape');
+    await confirm.getByRole('button', { name: 'Cancel' }).click();
     await expect(confirm).toBeHidden();
     await expect(dialog).toBeVisible();
     expect(await callsTo(app, 'graduates:remove')).toEqual([]);
 
     await dialog.getByRole('tab', { name: 'Permissions' }).click();
-    await expect(dialog.getByRole('radio', { name: 'Allow' })).toHaveAttribute(
+    await expect(dialog.getByRole('radio', { name: 'Ask first' })).toHaveAttribute(
       'aria-checked',
       'true',
     );
-    await dialog.getByRole('radio', { name: 'Never' }).click();
-    await expect(dialog.getByText('Only reads your files')).toBeVisible();
-    await expect(dialog.getByRole('switch', { name: 'Network access' })).toBeDisabled();
+    await expect(dialog.getByText('Shows each change and waits for your OK')).toBeVisible();
+    await expect(dialog.getByText('Never, by design')).toBeVisible();
     await expect(dialog.getByText('invoices.csv, bookings.csv')).toBeVisible();
     await capture(`workspace-agent-permissions-${theme}.png`);
 
     await dialog.getByRole('tab', { name: 'Report' }).click();
-    await expect(dialog.getByText('86%')).toBeVisible();
+    await expect(dialog.getByText('92%')).toBeVisible();
     await expect(
       dialog.getByText('The office files have no refund policy to follow'),
     ).toBeVisible();
@@ -274,13 +297,21 @@ for (const theme of THEMES) {
       [AGENT.id, 'C:\\Users\\dana\\Exports'],
     ]);
 
+    await dialog.getByRole('tab', { name: 'Permissions' }).click();
+    await dialog.getByRole('radio', { name: 'Never' }).click();
+    await expect(dialog.getByText("Can't change your files")).toBeVisible();
     await dialog.getByRole('button', { name: 'Close' }).click();
     await expect(dialog).toBeHidden();
+    await page.getByRole('button', { name: 'Saving: Never' }).click();
+    const modes = page.getByRole('menu');
+    await expect(modes.getByRole('menuitem')).toHaveCount(3);
+    await expect(modes).toContainText('Shows each change and waits for your OK');
+    await modes.getByRole('menuitem', { name: /Allow/ }).click();
+    await expect(page.getByRole('button', { name: 'Saving: Allow' })).toBeVisible();
     expect(await callsTo(app, 'graduates:updateSettings')).toEqual([
-      [AGENT.id, { writeMode: 'allow' }],
       [AGENT.id, { writeMode: 'never' }],
+      [AGENT.id, { writeMode: 'allow' }],
     ]);
-    await expect(page.getByRole('button', { name: 'Read only' })).toBeVisible();
   });
 }
 

@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { cn, Heading, LogoMark, ProgressStepper } from '@architect/ui';
 import { isMac } from '../lib/platform';
 
-const SETUP_STEPS = ['Local model', 'Mentor', 'Done'] as const;
+const SETUP_STEPS = ["Agent's model", 'Mentor', 'Done'] as const;
 export type SetupStep = (typeof SETUP_STEPS)[number];
 
 export interface SetupShellProps {
@@ -29,7 +29,7 @@ export function SetupShell({ step, footer, children }: SetupShellProps) {
         <div className="pr-window-controls" />
       </header>
       <main className="min-h-0 flex-1 overflow-y-auto bg-dot-grid">
-        <div className="flex min-h-full flex-col items-center justify-center gap-9 px-6 pb-14 pt-12">
+        <div className="flex min-h-full flex-col items-center justify-center gap-8 px-6 pb-10 pt-10">
           {children}
         </div>
       </main>

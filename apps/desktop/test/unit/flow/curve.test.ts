@@ -24,7 +24,7 @@ describe('curveGeometry', () => {
   it('spreads rounds 0 to the current one across the plot', () => {
     const { ticks } = curveGeometry(RUN);
     expect(ticks.map((tick) => tick.round)).toEqual([0, 1, 2, 3, 4]);
-    expect(ticks.map((tick) => tick.x)).toEqual([20, 170, 320, 470, 620]);
+    expect(ticks.map((tick) => tick.x)).toEqual([52, 192, 332, 472, 612]);
     expect(ticks.every((tick) => tick.reached)).toBe(true);
   });
 
@@ -32,7 +32,7 @@ describe('curveGeometry', () => {
     const { ticks, line } = curveGeometry({ ...RUN, rounds: [decided(1, 16, 23)] });
     expect(ticks.map((tick) => tick.round)).toEqual([0, 1, 2, 3, 4]);
     expect(ticks.filter((tick) => tick.reached).map((tick) => tick.round)).toEqual([0, 1]);
-    expect(line.map((point) => point.x)).toEqual([20, 170]);
+    expect(line.map((point) => point.x)).toEqual([52, 192]);
   });
 
   it('never spans more rounds than the budget allows when the run is short', () => {
@@ -52,7 +52,7 @@ describe('curveGeometry', () => {
     const [branch] = branches;
     expect(branch?.round).toBe(2);
     expect(branch?.from).toEqual(line[1]);
-    expect(branch?.to.x).toBe(320);
+    expect(branch?.to.x).toBe(332);
     expect(branch?.to.value).toBe(55);
     expect(branch?.to.y).toBeGreaterThan(line[1]?.y ?? 0);
   });
@@ -84,7 +84,33 @@ describe('curveGeometry', () => {
     const geometry = curveGeometry({ ...RUN, baseline: null, rounds: [] });
     expect(geometry.line).toEqual([]);
     expect(geometry.head).toBeNull();
+    expect(geometry.pending).toBeNull();
     expect(geometry.ticks.map((tick) => tick.reached)).toEqual([true, false, false, false, false]);
+  });
+
+  it('marks the round in progress level with the line, at its own round', () => {
+    const { head, pending } = curveGeometry(RUN);
+    expect(pending?.round).toBe(4);
+    expect(pending?.from).toEqual(head);
+    expect(pending?.to).toEqual({ x: 612, y: head?.y, value: head?.value });
+    const settled = curveGeometry({ ...RUN, rounds: RUN.rounds.slice(0, 3) });
+    expect(settled.pending).toBeNull();
+  });
+
+  it('labels the percentage axis at round values inside the plot', () => {
+    const { valueTicks } = curveGeometry(RUN);
+    expect(valueTicks.map((tick) => tick.value)).toEqual([40, 60, 80, 100]);
+    for (const tick of valueTicks) {
+      expect(tick.y).toBeGreaterThanOrEqual(PLOT.top);
+      expect(tick.y).toBeLessThanOrEqual(PLOT.bottom);
+    }
+    const narrow = curveGeometry({
+      ...RUN,
+      baseline: { pass: 36, total: 40 },
+      rounds: [decided(1, 36, 38)],
+      target: 0.92,
+    });
+    expect(narrow.valueTicks.map((tick) => tick.value)).toEqual([60, 70, 80, 90, 100]);
   });
 
   it('labels only every few rounds on a long run, always including the last', () => {
@@ -107,14 +133,14 @@ describe('curveGeometry', () => {
 describe('describeCurve', () => {
   it('reads the chart out round by round', () => {
     expect(describeCurve(RUN)).toBe(
-      'Task success by round: 40% before teaching, 58% after round 1, round 2 reverted at 55%, ' +
-        '78% after round 3, round 4 in progress. Ready at 90%.',
+      'Check tasks right by round: 40% at the start, 58% after round 1, round 2 reverted at 55%, ' +
+        '78% after round 3, round 4 in progress. Target 90%.',
     );
   });
 
   it('says when nothing is measured yet', () => {
     expect(describeCurve({ ...RUN, baseline: null, rounds: [] })).toBe(
-      'Task success by round: nothing measured yet. Ready at 90%.',
+      'Check tasks right by round: nothing measured yet. Target 90%.',
     );
   });
 });

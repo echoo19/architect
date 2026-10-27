@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { GraduateSummary, PermissionMode } from '@architect/shared';
+import type { GraduateSummary } from '@architect/shared';
 import {
   Button,
   Dialog,
@@ -10,7 +10,6 @@ import {
   SettingsRow,
   SettingsValue,
   Skeleton,
-  Switch,
   toast,
 } from '@architect/ui';
 import { FolderInput, FolderOutput } from 'lucide-react';
@@ -19,11 +18,13 @@ import { queryKeys, useJob } from '../../api/hooks';
 import { fetchQuery } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
 import { formatBytes } from '../../lib/format';
+import { capitalized, quantizationLabel, shortModelName, STUDENT_ROLE } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { navigate, paths, type Route } from '../../lib/router';
 import { workspaceApi } from '../api';
 import { updateGraduateSettings, useGraduateSettings } from '../graduateSettings';
+import { WRITE_MODE_LABELS, WRITE_MODE_MEANINGS, WRITE_MODES } from '../labels';
 import { forgetAgent } from '../store';
 import { useAgentSettingsUi } from './agentSettingsUi';
 
@@ -61,15 +62,19 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
       </SettingsRow>
       <SettingsRow
         label="Version"
-        meta={`${
+        meta={`Of its instructions, skills and tools, as ${shortModelName(manifest.mentor.label)} left them when training ended. ${
           manifest.requirements.passRate.met ? 'Passed its final test' : 'Finished below its target'
-        } on ${formatDay(manifest.acceptedAt ?? manifest.createdAt)}`}
+        } on ${formatDay(manifest.acceptedAt ?? manifest.createdAt)}.`}
       >
-        <SettingsValue>v{manifest.harness.version}</SettingsValue>
+        <SettingsValue>{manifest.harness.version}</SettingsValue>
       </SettingsRow>
       <SettingsRow
-        label="Local model"
-        meta={[model.quantization, model.sizeBytes && formatBytes(model.sizeBytes)]
+        label={capitalized(STUDENT_ROLE)}
+        meta={[
+          shortModelName(model.label),
+          model.quantization && quantizationLabel(model.quantization),
+          model.sizeBytes && formatBytes(model.sizeBytes),
+        ]
           .filter(Boolean)
           .join(' · ')}
       >
@@ -147,36 +152,29 @@ function DeleteAgentDialog({
   );
 }
 
-const WRITE_CHOICES = [
-  { value: 'ask', label: 'Ask' },
-  { value: 'allow', label: 'Allow' },
-  { value: 'never', label: 'Never' },
-] as const satisfies readonly { value: PermissionMode; label: string }[];
-
-const WRITE_MEANING: Record<PermissionMode, string> = {
-  ask: 'Asks in the chat before every write',
-  allow: 'Writes without asking',
-  never: 'Only reads your files',
-};
+/** The same three choices, in the same words, as the menu under the message box. */
+const WRITE_CHOICES = WRITE_MODES.map((value) => ({ value, label: WRITE_MODE_LABELS[value] }));
 
 export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
   const settings = useGraduateSettings(agent.id);
   const job = useJob(agent.manifest.jobId);
-  const writable =
-    job.status === 'success'
-      ? job.data.data.files.filter((file) => file.access === 'write').map((file) => file.name)
-      : [];
+  const files = job.status === 'success' ? job.data.data.files : [];
+  const writable = files.filter((file) => file.access === 'write').map((file) => file.name);
+  const device = deviceInSentence(currentPlatform());
+  const savingNever = settings.data?.writeMode === 'never';
 
   return (
     <>
       <SettingsRow
-        label="Saving changes"
-        meta={settings.status === 'success' ? WRITE_MEANING[settings.data.writeMode] : undefined}
+        label="Saving changes to your files"
+        meta={
+          settings.status === 'success' ? WRITE_MODE_MEANINGS[settings.data.writeMode] : undefined
+        }
         error={errorOf(settings)}
       >
         {settings.status === 'success' ? (
           <Segmented
-            aria-label="Saving changes"
+            aria-label="Saving changes to your files"
             options={WRITE_CHOICES}
             value={settings.data.writeMode}
             onValueChange={(writeMode) =>
@@ -192,19 +190,42 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
         )}
       </SettingsRow>
       <SettingsRow
-        label="Network access"
-        meta={`Off. It only talks to the model on ${deviceInSentence(currentPlatform())}`}
+        label="Internet access"
+        meta={`Agents made in Architect only talk to the model on ${device}.`}
       >
-        <Switch
-          aria-label="Network access"
-          checked={false}
-          disabled
-          onCheckedChange={() => undefined}
-        />
+        <SettingsValue>Never, by design</SettingsValue>
       </SettingsRow>
       <SettingsRow
-        label="Files its job lets it change"
-        meta="Fixed when it was trained"
+        label="Opening a file it hasn't seen"
+        meta="Set by its job, for files outside the list below"
+        error={errorOf(job)}
+      >
+        {job.status === 'success' ? (
+          <SettingsValue>{WRITE_MODE_LABELS[job.data.permissions.unseenFiles]}</SettingsValue>
+        ) : job.status === 'error' ? (
+          <RetryButton onClick={job.reload} />
+        ) : (
+          pending
+        )}
+      </SettingsRow>
+      <SettingsRow label="Files it can read" meta="The files its job lists" error={errorOf(job)}>
+        {job.status === 'success' ? (
+          <span className="max-w-[340px] text-right font-mono text-sm text-fg-secondary text-pretty">
+            {files.map((file) => file.name).join(', ')}
+          </span>
+        ) : job.status === 'error' ? (
+          <RetryButton onClick={job.reload} />
+        ) : (
+          pending
+        )}
+      </SettingsRow>
+      <SettingsRow
+        label="Files it can change"
+        meta={
+          savingNever
+            ? 'Set by its job. Saving is set to Never, so it changes none of them now.'
+            : 'Set by its job, and only as Saving changes allows'
+        }
         error={errorOf(job)}
       >
         {job.status === 'success' ? (
@@ -271,7 +292,7 @@ export function ExportTab({ agent }: { agent: GraduateSummary }) {
     <>
       <SettingsRow
         label="Agent folder"
-        meta={`${folderName(agent.path)} · harness, report card and lineage`}
+        meta={`${folderName(agent.path)}: its instructions, skills, tools, report card and change history`}
       >
         <Button size="xs" loading={exporting} onClick={() => void exportFolder()}>
           {!exporting && <FolderOutput size={14} strokeWidth={1.7} aria-hidden />}

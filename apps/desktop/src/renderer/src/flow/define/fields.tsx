@@ -93,7 +93,12 @@ export function PathField({ label, path, kind, extensions, onPick, issue }: Path
     if (first) onPick(first);
   };
   return (
-    <SettingsRow label={label} meta={path || 'Nothing chosen yet'} error={issue}>
+    <SettingsRow
+      label={label}
+      meta={path || 'Nothing chosen yet'}
+      metaFont={path ? 'code' : 'text'}
+      error={issue}
+    >
       <div className="flex items-center gap-3">
         {path && <span className="max-w-40 truncate text-fg-secondary">{fileName(path)}</span>}
         <Button size="xs" onClick={() => void pick()}>

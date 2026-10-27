@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ReportCard } from '@architect/shared';
 import { missedRequirements } from '../../../src/renderer/src/flow/report/requirements';
-import { phaseView } from '../../../src/renderer/src/flow/train/phase';
+import { motionCaption, phaseView } from '../../../src/renderer/src/flow/train/phase';
 import { makeRun } from './factories';
 
 const NAMES = { mentor: 'Spark', student: 'Glimmer' };
@@ -23,14 +23,16 @@ describe('phaseView', () => {
     expect(view({ phase: 'evaluating' })).toMatchObject({
       stage: 'evaluating',
       motion: 'checking',
-      text: "Checking the change on tasks it hasn't practiced",
+      text: 'Scoring the change on the check tasks',
     });
     expect(view({ status: 'testing', phase: 'testing' })).toMatchObject({
       stage: 'testing',
       motion: 'testing',
       text: 'Final test, Spark disconnected',
     });
-    expect(view({ phase: 'baseline' }).text).toBe('Measuring Glimmer before any teaching');
+    expect(view({ phase: 'baseline' }).text).toBe(
+      'Scoring Glimmer on the check tasks before any teaching',
+    );
   });
 
   it('holds the motion while paused and stills it once the run ends', () => {
@@ -47,6 +49,22 @@ describe('phaseView', () => {
         stage: null,
       });
     }
+  });
+});
+
+describe('motionCaption', () => {
+  it('says what the animation shows happening, and nothing once the run is still', () => {
+    expect(motionCaption('practising', NAMES)).toBe(
+      "Pills are practice tasks: passes reach Glimmer's grid, misses go to Spark to study.",
+    );
+    expect(motionCaption('returning', NAMES)).toBe(
+      "Spark studies the misses and writes one change to Glimmer's instructions.",
+    );
+    expect(motionCaption('testing', NAMES)).toBe(
+      'Glimmer takes the final test alone, on tasks it has never seen.',
+    );
+    expect(motionCaption('still', NAMES)).toBeNull();
+    expect(motionCaption('idle', NAMES)).toBeNull();
   });
 });
 

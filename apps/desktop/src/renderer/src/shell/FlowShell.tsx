@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import { isMac } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 
-const FLOW_STEPS = ['Describe', 'Define', 'Train', 'Graduate'] as const;
+const FLOW_STEPS = ['Describe', 'Define', 'Train', 'Report'] as const;
 export type FlowStep = (typeof FLOW_STEPS)[number];
 
 export interface FlowShellProps {

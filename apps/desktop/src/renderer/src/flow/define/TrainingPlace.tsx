@@ -3,21 +3,26 @@ import type { Job } from '@architect/shared';
 import { Checkbox, cn, Heading, RadioCard, RadioCardGroup, Slider } from '@architect/ui';
 import { RotateCw } from 'lucide-react';
 import { formatUsd } from '../../lib/format';
-import { mentorName } from '../../lib/names';
-import { currentPlatform, deviceLabel } from '../../lib/platform';
+import { mentorIntro, studentIntro } from '../../lib/names';
+import { currentPlatform, deviceInSentence, deviceLabel } from '../../lib/platform';
+import { modelNames } from '../names';
 import {
+  aboutUsd,
+  capText,
   estimateMentorUsd,
-  estimateTime,
   formatAbout,
-  formatAboutUsd,
-  type TrainPlace,
+  estimateTime,
+  hostedAdvantage,
+  roundsLine,
+  testSeconds,
+  totalLine,
 } from './estimates';
 import { providerName, type HostedAvailability } from './hosted';
 
 interface TrainingPlaceProps {
   job: Job;
   hosted: HostedAvailability;
-  onPlaceChange: (place: TrainPlace) => void;
+  onPlaceChange: (place: Job['student']['trainOn']) => void;
   onCapChange: (usd: number) => void;
   /** Present when checking for the hosted copy's key failed. */
   onRetryKeys?: (() => void) | undefined;
@@ -34,47 +39,77 @@ export function TrainingPlace({
   baselines,
 }: TrainingPlaceProps) {
   const capId = useId();
-  const mentor = mentorName(job.mentor);
+  const names = modelNames(job);
+  const device = deviceInSentence(currentPlatform());
+  const mentor = names.mentor;
   const cap = job.budget.maxMentorUsd;
   const usual = estimateMentorUsd(job);
   const capMax = Math.max(20, Math.ceil(cap), Math.ceil((usual ?? 0) * 3));
+  const local = estimateTime(job, 'local');
+  const remote = estimateTime(job, 'hosted');
+  // Three more final tests, and self-correction's training at the chosen place.
+  const chosen = job.student.trainOn === 'hosted' ? remote : local;
+  const comparisonSeconds = 3 * testSeconds(job) + chosen.trainingSeconds.most;
+  const advantage = hosted.available ? hostedAdvantage(local, remote) : null;
+  const provider = job.student.hosted ? providerName(job.student.hosted) : null;
 
   return (
     <section
       aria-labelledby="train-where"
       className="flex flex-col gap-[18px] border-t border-line-card pt-10"
     >
-      <Heading id="train-where">Where should it train?</Heading>
+      <div className="flex flex-col gap-1.5">
+        <Heading id="train-where">Where should it train?</Heading>
+        <p className="m-0 max-w-[720px] text-fg-secondary text-pretty">
+          {studentIntro(names.student)}, practices where you choose while{' '}
+          {mentorIntro(names.mentor)}, coaches it from the cloud. Training stops after{' '}
+          {capText(job.budget.maxWallMinutes)} (set under Time and budget in Advanced settings),
+          then the final test runs on {device}. A round takes longer when its change looks
+          promising, because the change is tested twice before it stays.
+        </p>
+      </div>
       <RadioCardGroup
         aria-label="Where should it train?"
         value={job.student.trainOn}
         onValueChange={onPlaceChange}
       >
         <RadioCard value="local" title={deviceLabel(currentPlatform())}>
-          <PlaceLines job={job} place="local" data="Files stay here" />
+          <span className="text-fg">{roundsLine(job, local)}</span>
+          {local.rounds.most === 0 ? (
+            <span>Too slow for this time limit. Raise it in Advanced settings to train here.</span>
+          ) : (
+            <span>{totalLine(local)}</span>
+          )}
+          <span>Practice runs here; {mentor} sees only the attempts and file samples it needs</span>
         </RadioCard>
         <RadioCard
           value="hosted"
-          title={
-            job.student.hosted ? `Hosted on ${providerName(job.student.hosted)}` : 'A hosted copy'
-          }
+          title={provider ? `Hosted on ${provider}` : 'A hosted copy'}
           disabled={!hosted.available}
           className={cn(
             !hosted.available && 'disabled:opacity-100 [&>span:first-child]:text-fg-muted',
           )}
         >
           {hosted.available ? (
-            <PlaceLines job={job} place="hosted" data="Tasks are sent to the host while training" />
+            <>
+              <span className="text-fg">{roundsLine(job, remote)}</span>
+              <span>{totalLine(remote)}</span>
+              <span>
+                Practice runs on your {provider ?? 'host'} account, with the key in Settings, and is
+                billed there; the tasks and the data they read go there
+              </span>
+            </>
           ) : (
             <>
-              <span className="text-fg-muted">
-                {formatAbout(estimateTime(job, 'hosted').seconds)}
-              </span>
+              <span className="text-fg-muted">{roundsLine(job, remote)}</span>
               <span className="text-fg-secondary">{hosted.reason}</span>
             </>
           )}
         </RadioCard>
       </RadioCardGroup>
+      {advantage && local.rounds.most > 0 && (
+        <p className="m-0 -mt-1.5 text-fg-secondary text-pretty">{advantage}</p>
+      )}
       {onRetryKeys && (
         <button
           type="button"
@@ -103,39 +138,29 @@ export function TrainingPlace({
           aria-label={`${mentor} spending cap`}
           aria-valuetext={formatUsd(cap)}
         />
-        <span className="text-fg-secondary">
+        <span className="text-fg-secondary text-pretty">
           {usual === null
-            ? `No price on file for ${mentor}`
-            : `Usually about ${formatAboutUsd(usual)}`}
+            ? `No price on file for ${mentor}. Training stops before a call would go over the cap.`
+            : `${aboutUsd(usual)} if all ${job.budget.maxRounds} rounds run. Training stops before a call would go over the cap.`}
         </span>
       </div>
 
       {baselines && (
-        <Checkbox
-          checked={baselines.checked}
-          onCheckedChange={baselines.onCheckedChange}
-          label="Also run the three baselines for comparison"
-          className="self-start"
-        />
+        <div className="flex flex-col gap-1.5">
+          <Checkbox
+            checked={baselines.checked}
+            onCheckedChange={baselines.onCheckedChange}
+            label="Also train three simpler versions to compare against"
+            className="self-start"
+          />
+          <p className="m-0 pl-7 text-sm text-fg-muted text-pretty">
+            {names.student} on its own, instructions {names.mentor} writes in one go, and{' '}
+            {names.student} revising its own. They run after this agent and can add up to{' '}
+            {formatAbout(comparisonSeconds).toLowerCase()}: each takes its own final test, and
+            self-correction trains too. The report puts all four side by side.
+          </p>
+        </div>
       )}
     </section>
-  );
-}
-
-function PlaceLines({ job, place, data }: { job: Job; place: TrainPlace; data: string }) {
-  const estimate = estimateTime(job, place);
-  const { maxRounds } = job.budget;
-  return (
-    <>
-      <span>{formatAbout(estimate.seconds)}</span>
-      {estimate.rounds < maxRounds && (
-        <span>
-          {estimate.rounds === 0
-            ? 'The time cap ends it during the first round'
-            : `The time cap fits ${estimate.rounds} of ${maxRounds} rounds`}
-        </span>
-      )}
-      <span>{data}</span>
-    </>
   );
 }

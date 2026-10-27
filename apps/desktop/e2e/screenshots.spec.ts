@@ -5,6 +5,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { EMPTY_ENGINE, SAMPLE, SAMPLE_ENGINE, stubEngine, stubEngineFailure } from './fixtures';
 
+/** Ollama answering, with the agent's model not downloaded yet: what a new install sees. */
+const OLLAMA_READY = { running: true, version: '0.12.6', models: [] };
+
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const SIZE = { width: 1440, height: 900 };
 const THEMES = ['dark', 'light'] as const;
@@ -62,6 +65,7 @@ async function applySettings(page: Page, patch: Parameters<typeof updateSettings
 for (const theme of THEMES) {
   test(`captures every screen in the ${theme} theme`, async () => {
     const page = launched.page;
+    await stubEngine(launched.app, { ...EMPTY_ENGINE, 'ollama:status': OLLAMA_READY });
     await applySettings(page, { theme, onboarded: false });
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
     expect(await page.evaluate(() => [window.innerWidth, window.innerHeight])).toEqual([
@@ -70,6 +74,7 @@ for (const theme of THEMES) {
     ]);
 
     await goTo(page, '/welcome');
+    await expect(page.getByText('Running · 0.12.6')).toBeVisible();
     await capture(page, `welcome-${theme}.png`);
 
     await applySettings(page, { onboarded: true });
@@ -78,8 +83,14 @@ for (const theme of THEMES) {
       await capture(page, `${route.name}-${theme}.png`);
     }
 
+    // Settings and the palette over a workspace that has an agent and a saved mentor key.
+    await stubEngine(launched.app, {
+      ...SAMPLE_ENGINE,
+      'secrets:status': { meta: true, together: true },
+    });
+    await applySettings(page, { onboarded: true });
     await goTo(page, '/');
-    await page.getByRole('button', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
     await capture(page, `settings-general-${theme}.png`);
     await page.getByRole('tab', { name: 'Models' }).click();

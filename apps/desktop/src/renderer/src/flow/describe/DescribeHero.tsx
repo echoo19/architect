@@ -3,8 +3,9 @@ import { Composer, FileChip, Heading, IconButton, Spinner } from '@architect/ui'
 import { Paperclip } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { flowApi } from '../../api/client';
-import { queryKeys } from '../../api/hooks';
+import { queryKeys, useSettings } from '../../api/hooks';
 import { setQueryData } from '../../api/query';
+import { mentorIntro, mentorName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
 import { fileName } from '../format';
@@ -28,6 +29,9 @@ export function DescribeHero() {
     })),
   );
   const [creatingSample, setCreatingSample] = useState(false);
+  const settings = useSettings();
+  const name = settings.status === 'success' ? mentorName(settings.data.defaultMentor) : null;
+  const mentor = name ? `${mentorIntro(name)},` : 'The mentor';
 
   const attach = async () => {
     const picked = await attempt("Couldn't open the file picker", () =>
@@ -53,9 +57,15 @@ export function DescribeHero() {
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center gap-8 px-6 pb-[120px] pt-12">
-      <Heading as="h1" size="display-sm" className="text-center">
-        What should your agent do?
-      </Heading>
+      <div className="flex max-w-[600px] flex-col items-center gap-3 text-center">
+        <Heading as="h1" size="display-sm">
+          What should your agent do?
+        </Heading>
+        <p className="m-0 text-lg text-fg-secondary text-pretty">
+          Describe the work in your own words and attach the files it uses. {mentor} reads them,
+          asks a few questions, then drafts the job for you to review.
+        </p>
+      </div>
       <div className="flex w-full max-w-[680px] flex-col gap-3">
         <Composer
           size="hero"
@@ -71,6 +81,11 @@ export function DescribeHero() {
             </IconButton>
           }
         />
+        <p className="m-0 text-sm text-fg-secondary text-pretty">
+          Attach the files it works from (spreadsheets or text) and a file of example requests with
+          the right answers, as a spreadsheet (CSV) or JSONL. {name ?? 'The mentor'} uses them to
+          test the agent.
+        </p>
         {files.length > 0 && (
           <ul aria-label="Attached files" className="m-0 flex list-none flex-wrap gap-2 p-0">
             {files.map((path) => (
@@ -84,21 +99,24 @@ export function DescribeHero() {
           </ul>
         )}
       </div>
-      <button
-        type="button"
-        onClick={() => void startFromSample()}
-        disabled={creatingSample}
-        aria-busy={creatingSample || undefined}
-        className="-mt-2 inline-flex items-center gap-2 rounded-xs text-fg-muted transition-colors duration-150 hover:text-fg-secondary disabled:pointer-events-none"
-      >
-        {creatingSample && <Spinner size={13} />}
-        <span>
-          Or start from the sample:{' '}
-          <span className="text-fg-secondary underline decoration-line-strong underline-offset-4">
-            a service desk for a home-services office
+      {/* Only offered before anything is written or attached, as a way to start, not a detour. */}
+      {!text.trim() && files.length === 0 && (
+        <button
+          type="button"
+          onClick={() => void startFromSample()}
+          disabled={creatingSample}
+          aria-busy={creatingSample || undefined}
+          className="-mt-2 inline-flex items-center gap-2 rounded-xs text-fg-muted transition-colors duration-150 hover:text-fg-secondary disabled:pointer-events-none"
+        >
+          {creatingSample && <Spinner size={13} />}
+          <span>
+            No files handy? Open the sample job instead:{' '}
+            <span className="text-fg-secondary underline decoration-line-strong underline-offset-4">
+              a service desk for a home-services office
+            </span>
           </span>
-        </span>
-      </button>
+        </button>
+      )}
     </div>
   );
 }

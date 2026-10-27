@@ -76,12 +76,12 @@ export function validateJob(job: Job, taskCount: number | null): JobIssues {
     add('evaluation.patience', 'Use a whole number, at least 1.');
   }
 
-  if (!student.local.model.trim()) add('student.local.model', 'Name the local model.');
+  if (!student.local.model.trim()) add('student.local.model', 'Name the model your agent runs on.');
   if (
     !wholeNumber(student.local.contextLength) ||
     !between(student.local.contextLength, 2048, 262_144)
   ) {
-    add('student.local.contextLength', 'Use a context length from 2,048 to 262,144 tokens.');
+    add('student.local.contextLength', 'Use a context size from 2,048 to 262,144 tokens.');
   }
   if (student.trainOn === 'hosted' && !student.hosted) {
     add('student.hosted', 'Pick a hosted copy, or train on this computer.');
@@ -94,7 +94,7 @@ export function validateJob(job: Job, taskCount: number | null): JobIssues {
     add('startingHarness.template', 'Pick a template.');
   }
   if (startingHarness.kind === 'import' && !startingHarness.path.trim()) {
-    add('startingHarness.path', 'Choose the harness folder.');
+    add('startingHarness.path', 'Choose the agent folder.');
   }
 
   // Anything the field checks above don't cover still has to satisfy the contract.

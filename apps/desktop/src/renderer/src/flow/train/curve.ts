@@ -2,13 +2,13 @@ import type { Round, Score } from '@architect/shared';
 import { rate } from '../format';
 
 /*
- * Geometry for the task success chart, in the design's 700 by 250 viewBox: rounds run along x
- * from 20 to 620 (round 0 is the baseline), labels sit to the right of 620, and the plot's floor
- * is at y = 220.
+ * Geometry for the check-task chart, in the design's 700 by 250 viewBox: rounds run along x from
+ * 52 to 612 (round 0 is the start), percentages sit left of 52, the Target and Round labels sit
+ * right of 612, and the plot's floor is at y = 220.
  */
 
 export const CURVE_BOX = { width: 700, height: 250 } as const;
-export const PLOT = { left: 20, right: 620, top: 40, bottom: 220, gridTop: 62, labelY: 244 };
+export const PLOT = { left: 52, right: 612, top: 40, bottom: 220, gridTop: 62, labelY: 244 };
 
 /** Below this many rounds the axis still spans this many, so early runs don't look stretched. */
 const MIN_SPAN = 4;
@@ -25,6 +25,8 @@ export interface Point {
 }
 
 export interface CurveInput {
+  /** The round that wrote the first full draft, labelled as such; null when there was none. */
+  draftRound?: number | null;
   baseline: Score | null;
   rounds: readonly Round[];
   /** Target pass rate, 0 to 1. */
@@ -40,6 +42,12 @@ export interface Tick {
   reached: boolean;
 }
 
+/** A percentage on the y axis, with its gridline. */
+export interface ValueTick {
+  value: number;
+  y: number;
+}
+
 export interface Branch {
   round: number;
   from: Point;
@@ -48,11 +56,14 @@ export interface Branch {
 
 export interface CurveGeometry {
   ticks: Tick[];
+  valueTicks: ValueTick[];
   /** The kept harness's pass rate after each finished round, joined by a solid line. */
   line: Point[];
   /** Reverted rounds: a dashed branch from the line to what the change measured. */
   branches: Branch[];
   head: Point | null;
+  /** The round still running, drawn level with the head until it is measured. */
+  pending: Branch | null;
   targetY: number;
 }
 
@@ -126,16 +137,29 @@ export function curveGeometry(input: CurveInput): CurveGeometry {
     }
   });
 
+  const head = line.at(-1) ?? null;
+  const open = input.rounds.find((round) => !isSettled(round));
+  const pending =
+    head && open ? { round: open.index, from: head, to: point(open.index, head.value) } : null;
+
   const every = Math.max(1, Math.ceil(MIN_LABEL_GAP / stepX));
   const ticks: Tick[] = Array.from({ length: span + 1 }, (_, round) => round)
     .filter((round) => round === span || (round % every === 0 && span - round >= every))
     .map((round) => ({ round, x: x(round), reached: round <= lastRound }));
 
+  const valueStep = high - low <= 50 ? 10 : 20;
+  const valueTicks: ValueTick[] = [];
+  for (let value = Math.ceil(low / valueStep) * valueStep; value <= high; value += valueStep) {
+    valueTicks.push({ value, y: y(value) });
+  }
+
   return {
     ticks,
+    valueTicks,
     line,
     branches,
-    head: line.at(-1) ?? null,
+    head,
+    pending,
     targetY: y(input.target * 100),
   };
 }
@@ -144,10 +168,11 @@ export function curveGeometry(input: CurveInput): CurveGeometry {
 export function describeCurve(input: CurveInput): string {
   const parts: string[] = [];
   const start = baselineOf(input);
-  if (start) parts.push(`${Math.round(rate(start))}% before teaching`);
+  if (start) parts.push(`${Math.round(rate(start))}% at the start`);
   for (const round of input.rounds) {
     if (round.decision === 'kept' && round.devAfter) {
-      parts.push(`${Math.round(rate(round.devAfter))}% after round ${round.index}`);
+      const after = round.index === input.draftRound ? 'the first draft' : `round ${round.index}`;
+      parts.push(`${Math.round(rate(round.devAfter))}% after ${after}`);
     } else if (round.decision === 'reverted' && round.devAfter) {
       parts.push(`round ${round.index} reverted at ${Math.round(rate(round.devAfter))}%`);
     } else if (round.status === 'failed') {
@@ -156,7 +181,7 @@ export function describeCurve(input: CurveInput): string {
       parts.push(`round ${round.index} in progress`);
     }
   }
-  const target = `Ready at ${Math.round(input.target * 100)}%.`;
-  if (parts.length === 0) return `Task success by round: nothing measured yet. ${target}`;
-  return `Task success by round: ${parts.join(', ')}. ${target}`;
+  const target = `Target ${Math.round(input.target * 100)}%.`;
+  if (parts.length === 0) return `Check tasks right by round: nothing measured yet. ${target}`;
+  return `Check tasks right by round: ${parts.join(', ')}. ${target}`;
 }
