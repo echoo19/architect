@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { cn, Meter, ProgressStepper, Shortcut, shortcutLabel, Spinner } from '../src';
+import { cn, Meter, ProgressStepper, SettingsRow, Shortcut, shortcutLabel, Spinner } from '../src';
 
 describe('cn', () => {
   it('resolves conflicts between the theme’s custom tokens', () => {
@@ -37,6 +37,20 @@ describe('Meter', () => {
     expect(html).toContain('aria-valuenow="100"');
     expect(html).toContain('aria-valuetext="$7 of $5"');
     expect(html).toContain('width:100%');
+  });
+});
+
+describe('SettingsRow', () => {
+  it('sets an explanation in the body face and a model id or path in mono', () => {
+    const explained = renderToStaticMarkup(
+      createElement(SettingsRow, { label: 'Rounds', meta: 'Each round tries one change' }),
+    );
+    expect(explained).toContain('Each round tries one change');
+    expect(explained).not.toContain('font-mono');
+    const code = renderToStaticMarkup(
+      createElement(SettingsRow, { label: 'Mentor', meta: 'muse-spark-1.3', metaFont: 'code' }),
+    );
+    expect(code).toMatch(/font-mono[^>]*>muse-spark-1\.3/);
   });
 });
 
