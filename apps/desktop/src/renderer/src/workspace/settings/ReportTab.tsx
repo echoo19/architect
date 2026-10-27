@@ -4,6 +4,7 @@ import { useReport } from '../../api/hooks';
 import { formatAnswerTime } from '../../flow/format';
 import { formatPercent, formatUsd, percentOf } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
+import { currentPlatform, deviceInSentence } from '../../lib/platform';
 
 /** The agent's report card in brief: how it did on the locked test, and what it refuses. */
 export function ReportTab({ agent }: { agent: GraduateSummary }) {
@@ -34,6 +35,7 @@ function ReportSummary({ report }: { report: ReportCard }) {
   const { test, cost, requirements } = report;
   const handled = test.perType.filter((type) => !type.refused);
   const cell = 'bg-modal p-[18px]';
+  const place = test.ranOffline ? `on ${deviceInSentence(currentPlatform())}` : 'on a hosted copy';
 
   return (
     <div className="flex flex-col gap-8 pt-1">
@@ -50,8 +52,8 @@ function ReportSummary({ report }: { report: ReportCard }) {
         <Stat
           className={cell}
           value={formatAnswerTime(test.latencyMs.p50)}
-          label="Typical answer"
-          note={`95% within ${formatAnswerTime(test.latencyMs.p95)}`}
+          label={`Typical answer, ${place}`}
+          note={`95% of answers within ${formatAnswerTime(test.latencyMs.p95)}`}
           noteFont="text"
         />
         <Stat
@@ -83,7 +85,10 @@ function ReportSummary({ report }: { report: ReportCard }) {
       </section>
 
       <section className="flex flex-col gap-3">
-        <Heading>Doesn&apos;t handle</Heading>
+        <div className="flex flex-col gap-1">
+          <Heading>Doesn&apos;t handle</Heading>
+          <p className="m-0 text-sm text-fg-muted">Requests it turns down and leaves to you.</p>
+        </div>
         {report.refusedTypes.length === 0 ? (
           <p className="m-0 text-fg-secondary">
             Nothing. It takes on every task type it trained on.

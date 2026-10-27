@@ -51,6 +51,21 @@ function beforeTraining(
   return baseline ? `Up from ${formatRate(baseline)} on check tasks before training` : undefined;
 }
 
+/** How much training ran, and that it ended on reaching the target when it did. */
+function trainingNote(report: ReportCard, job: Job | null): string {
+  const { rounds, wallMs } = report.cost;
+  const count = job
+    ? `${rounds} of ${job.budget.maxRounds} rounds`
+    : `${rounds} ${rounds === 1 ? 'round' : 'rounds'}`;
+  const ran = `${count} over ${formatDuration(wallMs)}`;
+  const { final } = report.dev;
+  const { target } = report.requirements.passRate;
+  if (rounds > 0 && final && final.total > 0 && final.pass / final.total >= target) {
+    return `${ran}, ending at the ${Math.round(target * 100)}% target on check tasks`;
+  }
+  return ran;
+}
+
 export function ReportView({ report, job, graduate, comparison }: ReportViewProps) {
   const { test, cost } = report;
   const names: ModelNames = {
@@ -61,6 +76,7 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
   const handled = test.perType.filter((type) => !type.refused);
   const device = deviceInSentence(currentPlatform());
   const where = test.ranOffline ? `offline on ${device}` : 'on a hosted copy';
+  const target = Math.round(report.requirements.passRate.target * 100);
   const pinned = graduate?.manifest.student;
   const pinnedFacts = [
     pinned?.quantization && quantizationLabel(pinned.quantization),
@@ -111,8 +127,8 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
         <Stat
           className="bg-panel p-[22px]"
           value={formatAnswerTime(test.latencyMs.p50)}
-          label="Typical answer"
-          note={`95% within ${formatAnswerTime(test.latencyMs.p95)}`}
+          label={`Typical answer, ${test.ranOffline ? `on ${device}` : 'on a hosted copy'}`}
+          note={`95% of answers within ${formatAnswerTime(test.latencyMs.p95)}`}
           noteFont="text"
         />
         <Stat
@@ -131,14 +147,19 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
           className="bg-panel p-[22px]"
           value={formatUsd(Math.round(cost.mentorUsd * 100) / 100)}
           label={`${names.mentor} mentoring, paid once`}
-          note={`${cost.rounds} ${cost.rounds === 1 ? 'round' : 'rounds'} over ${formatDuration(cost.wallMs)}`}
+          note={trainingNote(report, job)}
           noteFont="text"
         />
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(360px,100%),1fr))] gap-x-14 gap-y-10">
         <section aria-labelledby="handles" className="flex flex-col gap-[18px]">
-          <Heading id="handles">Handles</Heading>
+          <div className="flex flex-col gap-1.5">
+            <Heading id="handles">Handles</Heading>
+            <p className="m-0 text-fg-secondary text-pretty">
+              Final test results by task type. The {target}% target is for all of them together.
+            </p>
+          </div>
           {handled.length === 0 ? (
             <p className="m-0 text-md text-fg-secondary">No task type passed the final test.</p>
           ) : (
@@ -161,18 +182,33 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
                   tone="student"
                   thickness={4}
                 />
+                {percent(type) < target && (
+                  <span className="text-sm text-fg-muted">
+                    Below the {target}% target on its own
+                  </span>
+                )}
               </div>
             ))
           )}
         </section>
         <div className="flex flex-col gap-10">
           <section aria-labelledby="does-not" className="flex flex-col gap-3.5">
-            <Heading id="does-not">Doesn&apos;t handle</Heading>
+            <div className="flex flex-col gap-1.5">
+              <Heading id="does-not">Doesn&apos;t handle</Heading>
+              <p className="m-0 text-fg-secondary text-pretty">
+                Requests it turns down and leaves to you.
+              </p>
+            </div>
             <Refused report={report} />
           </section>
           {job && job.doesNot.length > 0 && (
             <section aria-labelledby="wont-do" className="flex flex-col gap-3.5">
-              <Heading id="wont-do">What it won&apos;t do</Heading>
+              <div className="flex flex-col gap-1.5">
+                <Heading id="wont-do">What it won&apos;t do</Heading>
+                <p className="m-0 text-fg-secondary text-pretty">
+                  Limits from the job, which hold on every request.
+                </p>
+              </div>
               <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-md text-fg-secondary">
                 {job.doesNot.map((limit) => (
                   <Limit key={limit}>{limit}</Limit>

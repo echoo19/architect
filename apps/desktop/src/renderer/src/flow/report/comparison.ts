@@ -1,8 +1,16 @@
-import { METHOD_LABELS, type Method, type ReportCard, type Run } from '@architect/shared';
+import type { Method, ReportCard, Run } from '@architect/shared';
 import { rate } from '../format';
 import type { ModelNames } from '../train/phase';
 
 const METHOD_ORDER: readonly Method[] = ['architect', 'one_shot', 'self_reflection', 'bare'];
+
+/** Each way of building the agent, named for the person reading the report. */
+const METHOD_NAMES: Record<Method, string> = {
+  architect: 'Architect',
+  one_shot: 'One-time setup',
+  self_reflection: 'Self-correction',
+  bare: 'No setup',
+};
 
 export interface ComparisonRow {
   runId: string;
@@ -50,7 +58,7 @@ export function comparisonRows(reports: readonly ReportCard[], runId: string): C
     .map((report) => ({
       runId: report.runId,
       method: report.method,
-      label: METHOD_LABELS[report.method],
+      label: METHOD_NAMES[report.method],
       testRate: testRate(report),
       vsBare: bare ? testRate(report) - testRate(bare) : null,
       mentorUsd: report.cost.mentorUsd,
@@ -69,7 +77,7 @@ export function methodExplanation(method: Method, { mentor, student }: ModelName
     case 'self_reflection':
       return `${student} corrected its own setup, with no mentor`;
     case 'bare':
-      return `${student} with no setup`;
+      return `${student} on its own, with no instructions or skills`;
   }
 }
 

@@ -111,8 +111,8 @@ describe('comparison', () => {
     );
     expect(rows.map((row) => [row.label, row.testRate, row.vsBare, row.current])).toEqual([
       ['Architect', 90, 40, true],
-      ['One-shot guide', 70, 20, false],
-      ['Bare student', 50, 0, false],
+      ['One-time setup', 70, 20, false],
+      ['No setup', 50, 0, false],
     ]);
   });
 
@@ -125,7 +125,9 @@ describe('comparison', () => {
 
   it('explains every method in one line with the job’s model names', () => {
     const names = { mentor: 'Spark', student: 'Glimmer' };
-    expect(methodExplanation('bare', names)).toBe('Glimmer with no setup');
+    expect(methodExplanation('bare', names)).toBe(
+      'Glimmer on its own, with no instructions or skills',
+    );
     expect(methodExplanation('one_shot', names)).toBe(
       "Spark wrote the agent's setup once, without watching it work",
     );
