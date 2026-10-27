@@ -6,13 +6,17 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
   "dependencies": {
     "@architect/adapters": "workspace:*",
     "@architect/harness": "workspace:*",
     "@architect/shared": "workspace:*",
     "papaparse": "^5.7.0",
     "quickjs-emscripten": "^0.32.0",
-    "yaml": "^2.9.1"
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/papaparse": "^5.5.2"
