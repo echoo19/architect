@@ -46,18 +46,16 @@ describe('workspace labels', () => {
     }
   });
 
-  it('says each step plainly, naming the mentor for the tools it wrote', () => {
+  it('says each step plainly, tools written in training included', () => {
     const step = (name: string, kind: 'tool' | 'skill', status: 'done' | 'running') =>
       ({ id: name, kind, name, detail: 'jobs.csv', status }) as const;
-    expect(stepWords(step('read_table', 'tool', 'done'), 'Spark')).toEqual({
+    expect(stepWords(step('read_table', 'tool', 'done'))).toEqual({
       action: 'Read',
       target: 'jobs.csv',
     });
-    expect(stepWords(step('price-a-job', 'skill', 'running'), 'Spark').action).toBe(
-      'Loading the skill',
-    );
-    expect(stepWords(step('invoice_total', 'tool', 'done'), 'Spark').action).toBe(
-      "Ran Spark's tool invoice_total",
+    expect(stepWords(step('price-a-job', 'skill', 'running')).action).toBe('Loading the skill');
+    expect(stepWords(step('invoice_total', 'tool', 'done')).action).toBe(
+      'Ran the tool invoice_total',
     );
   });
 

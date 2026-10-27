@@ -3,7 +3,6 @@ import type { AgentBlock, GraduateSummary, WorkspaceMessage } from '@architect/s
 import { ErrorState, Spinner } from '@architect/ui';
 import { CirclePause } from 'lucide-react';
 import { CopyButton } from '../components/CopyButton';
-import { shortModelName } from '../lib/names';
 import { ApprovalCard, NoteBlock, RefusalCard, TableBlock } from './blocks';
 import { Markdown } from './markdown/Markdown';
 import type { PanelContent } from './SidePanel';
@@ -62,12 +61,7 @@ export const AgentMessage = memo(function AgentMessage({
   return (
     <article aria-label={agent.name} className="flex min-w-0 animate-rise flex-col gap-[18px]">
       {message.steps.length > 0 && (
-        <Steps
-          message={message}
-          startOpen={stepsStartOpen}
-          waiting={pending > 0}
-          mentor={shortModelName(agent.manifest.mentor.label)}
-        />
+        <Steps message={message} startOpen={stepsStartOpen} waiting={pending > 0} />
       )}
       {working && empty && <Thinking />}
       {message.text && <Markdown text={message.text} />}

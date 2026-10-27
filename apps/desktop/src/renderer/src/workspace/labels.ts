@@ -35,18 +35,17 @@ const TOOL_WORDS: Record<string, [string, string]> = {
 };
 
 /**
- * A step in plain words: "Read jobs.csv", "Loaded the skill price-a-job", or "Ran Spark's tool
- * invoice_total" for a tool the mentor wrote, with what it acted on.
+ * A step in plain words: "Read jobs.csv", "Loaded the skill price-a-job", or "Ran the tool
+ * invoice_total" for a tool written during training, with what it acted on.
  */
-export function stepWords(step: AgentStep, mentor: string): { action: string; target: string } {
+export function stepWords(step: AgentStep): { action: string; target: string } {
   const working = step.status === 'running';
   if (step.kind === 'skill') {
     return { action: working ? 'Loading the skill' : 'Loaded the skill', target: step.detail };
   }
   const words = TOOL_WORDS[step.name];
   if (words) return { action: working ? words[0] : words[1], target: step.detail };
-  const action = `${working ? 'Running' : 'Ran'} ${mentor}'s tool ${step.name}`;
-  return { action, target: step.detail };
+  return { action: `${working ? 'Running' : 'Ran'} the tool ${step.name}`, target: step.detail };
 }
 
 /** "1 step", "3 steps". */
