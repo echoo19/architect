@@ -131,12 +131,15 @@ describe('the engine host', () => {
       "Drafting a job with the mentor isn't available in this build.",
     );
     await expect(client.reports.get('run_missing')).rejects.toThrow(
-      'This run has no report card yet.',
+      'There is no run "run_missing".',
+    );
+    await expect(client.reports.list('run_missing')).rejects.toThrow(
+      'There is no run "run_missing".',
     );
     await expect(client.runs.get('run_missing')).rejects.toThrow('There is no run "run_missing".');
   });
 
-  it('starts a run whose locked test runs on the hosted copy, and refuses unknown options', async () => {
+  it('tests a run on the hosted copy when asked, files its card there, and refuses unknown options', async () => {
     const { client, port } = await connect();
     const job = await client.jobs.createSample();
     const graduated = next(client, (event) => event.type === 'graduate.ready');
@@ -146,7 +149,15 @@ describe('the engine host', () => {
       lockedTestOn: 'hosted',
     });
     await graduated;
-    expect((await client.reports.get(run.id)).test.ranOffline).toBe(false);
+    expect(await client.reports.list(run.id)).toEqual(['hosted']);
+    expect(await client.reports.get(run.id)).toMatchObject({
+      testedOn: 'hosted',
+      test: { ranOffline: false },
+    });
+    expect(await client.reports.get(run.id, 'hosted')).toEqual(await client.reports.get(run.id));
+    await expect(client.reports.get(run.id, 'local')).rejects.toThrow(
+      "This run's graduate hasn't been tested on the local student.",
+    );
 
     const misspelled = await raw(port, {
       kind: 'request',

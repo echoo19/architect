@@ -57,6 +57,7 @@ export function registerEngineHandlers(
   });
 
   router.registerHandlers('reports', {
-    get: (runId) => call((api) => api.reports.get(runId)),
+    get: (runId, target) => call((api) => api.reports.get(runId, target)),
+    list: (runId) => call((api) => api.reports.list(runId)),
   });
 }

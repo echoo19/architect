@@ -15,6 +15,7 @@ function setup() {
       get: vi.fn(async () => {
         throw new Error('This run has no report card yet.');
       }),
+      list: vi.fn(async () => ['hosted', 'local']),
     },
   };
   const picked = new PickedPaths();
@@ -33,6 +34,20 @@ describe('engine handlers', () => {
       error: { message: 'This run has no report card yet.' },
     });
     errors.mockRestore();
+  });
+
+  it('pass on which student endpoint a report card is asked for', async () => {
+    const { engine, call } = setup();
+    expect(await call('reports:list', 'run_1')).toEqual({ ok: true, value: ['hosted', 'local'] });
+    expect(engine.reports.list).toHaveBeenCalledWith('run_1');
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await call('reports:get', 'run_1', 'local');
+    await call('reports:get', 'run_1');
+    errors.mockRestore();
+    expect(engine.reports.get.mock.calls).toEqual([
+      ['run_1', 'local'],
+      ['run_1', undefined],
+    ]);
   });
 
   it('pass on only the files the user picked', async () => {

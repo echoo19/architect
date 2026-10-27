@@ -164,7 +164,10 @@ export interface ArchitectApi {
     onEvent(listener: (event: RunEvent) => void): Unsubscribe;
   };
   reports: {
-    get(runId: string): Promise<ReportCard>;
+    /** The run's report card from one student endpoint: by default, where its locked test ran. */
+    get(runId: string, target?: StudentTarget): Promise<ReportCard>;
+    /** The student endpoints the run has a report card from, oldest card first. */
+    list(runId: string): Promise<StudentTarget[]>;
   };
   graduates: {
     list(): Promise<GraduateSummary[]>;

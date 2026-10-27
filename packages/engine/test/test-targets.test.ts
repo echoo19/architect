@@ -35,7 +35,7 @@ describe('where the locked test runs', () => {
 
     expect(engine.store.runs.get(run.id)?.lockedTestOn).toBe('local');
     expect(models).toEqual(Array(6).fill('glimmer:test'));
-    expect(engine.store.reports.get(run.id)).toMatchObject({
+    expect(engine.store.reports.get(run.id, 'local')).toMatchObject({
       testedOn: 'local',
       student: { model: 'glimmer:test', runtime: 'ollama', quantization: 'Q4_K_M' },
       test: { ranOffline: true },
@@ -58,7 +58,8 @@ describe('where the locked test runs', () => {
       Array(6).fill('hosted'),
     );
     expect(attempts.filter((a) => a.split === 'dev').every((a) => a.target === 'local')).toBe(true);
-    const card = engine.store.reports.get(run.id);
+    expect(engine.store.reports.targets(run.id)).toEqual(['hosted']);
+    const card = engine.store.reports.get(run.id, 'hosted');
     expect(card).toMatchObject({ testedOn: 'hosted', test: { ranOffline: false } });
     expect(card?.student).toEqual({
       label: 'Glimmer',

@@ -134,7 +134,7 @@ async function graduate(state: RunState, harness: Harness, frozen: GraduateFreez
   await deps.harness.writeGraduate(dir, { harness, manifest, report, lineage });
 
   const finished = store.transaction(() => {
-    store.reports.put(runId, report);
+    store.reports.put(report);
     const existing = store.graduates.get(frozen.graduateId);
     const record = {
       id: frozen.graduateId,

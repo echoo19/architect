@@ -100,7 +100,8 @@ export function connectEngine(
       },
     },
     reports: {
-      get: (runId) => request('reports.get', [runId]),
+      get: (runId, target) => request('reports.get', [runId, target ?? null]),
+      list: (runId) => request('reports.list', [runId]),
     },
     graduates: {
       list: () => request('graduates.list', []),

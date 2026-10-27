@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import {
   ReportCardSchema,
+  StudentTargetSchema,
   WorkspaceChatSchema,
   WorkspaceMessageSchema,
   type ReportCard,
@@ -91,9 +92,13 @@ export interface EngineStore {
     insert(entry: CostEntry): void;
     list(runId: string): CostEntry[];
   };
+  /** One report card per run and student endpoint its graduate was tested on. */
   reports: {
-    put(runId: string, card: ReportCard): void;
-    get(runId: string): ReportCard | null;
+    /** Files the card under its own run and `testedOn`, replacing any card already there. */
+    put(card: ReportCard): void;
+    get(runId: string, target: StudentTarget): ReportCard | null;
+    /** The endpoints the run has a card from, oldest card first. */
+    targets(runId: string): StudentTarget[];
   };
   graduates: {
     insert(record: GraduateRecord): void;
@@ -557,16 +562,30 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
     },
 
     reports: {
-      put: (runId, card) =>
+      put: (card) =>
         sql.insert(
           'reports',
-          { run_id: runId, card: json(card), created_at: card.createdAt },
+          {
+            run_id: card.runId,
+            target: card.testedOn,
+            card: json(card),
+            created_at: card.createdAt,
+          },
           'replace',
         ),
-      get: (runId) => {
-        const row = sql.one('SELECT card FROM reports WHERE run_id = :run_id', { run_id: runId });
+      get: (runId, target) => {
+        const row = sql.one(
+          'SELECT card FROM reports WHERE run_id = :run_id AND target = :target',
+          { run_id: runId, target },
+        );
         return row ? ReportCardSchema.parse(fromJson(row.card)) : null;
       },
+      targets: (runId) =>
+        sql
+          .all('SELECT target FROM reports WHERE run_id = :run_id ORDER BY created_at, rowid', {
+            run_id: runId,
+          })
+          .map((row) => StudentTargetSchema.parse(row.target)),
     },
 
     graduates: {

@@ -90,7 +90,7 @@ describe('restart recovery', () => {
     expect(redone.some((attempt) => attempt.seed === panel)).toBe(false);
     expect(world.mentor.requests).toHaveLength(2);
     expect(record?.run.totals.attempts).toBe(63);
-    expect(second.store.reports.get(runId)?.test.score).toEqual({ pass: 2, total: 6 });
+    expect(second.store.reports.get(runId, 'local')?.test.score).toEqual({ pass: 2, total: 6 });
     expect(
       second.events.some(
         (e) => e.type === 'run.updated' && e.run.id === runId && e.run.status === 'queued',

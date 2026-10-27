@@ -12,6 +12,7 @@ import {
   RunEventSchema,
   RunSchema,
   RunStartOptionsSchema,
+  StudentTargetSchema,
   TraceSchema,
   type AdapterErrorCode,
   type ArchitectApi,
@@ -75,7 +76,14 @@ export const ENGINE_ROUTES = {
     z.array(FileDiffSchema),
     (api, [runId, round]) => api.runs.roundDiff(runId, round),
   ),
-  'reports.get': route(z.tuple([id]), ReportCardSchema, (api, [runId]) => api.reports.get(runId)),
+  'reports.get': route(
+    z.tuple([id, StudentTargetSchema.nullable()]),
+    ReportCardSchema,
+    (api, [runId, target]) => api.reports.get(runId, target ?? undefined),
+  ),
+  'reports.list': route(z.tuple([id]), z.array(StudentTargetSchema), (api, [runId]) =>
+    api.reports.list(runId),
+  ),
   'graduates.list': route(z.tuple([]), z.array(GraduateSummarySchema), (api) =>
     api.graduates.list(),
   ),
