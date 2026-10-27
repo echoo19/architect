@@ -2,7 +2,8 @@ import type { Score } from '@architect/shared';
 
 /** Whole-number pass rate of a score, 0 when nothing was scored. */
 export function percentOf(score: Score): number {
-  return score.total === 0 ? 0 : Math.round((score.pass / score.total) * 100);
+  // Multiply first: (23 / 40) * 100 is 57.49999 in floating point and would round down.
+  return score.total === 0 ? 0 : Math.round((score.pass * 100) / score.total);
 }
 
 export function formatPercent(score: Score): string {
