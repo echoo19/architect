@@ -125,7 +125,7 @@
     "path": "checker.js"
   },
   "requirements": {
-    "passRate": 0.85
+    "passRate": 0.95
   },
   "budget": {
     "maxRounds": 8,

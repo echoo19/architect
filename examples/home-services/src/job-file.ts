@@ -163,7 +163,9 @@ export function buildJob(version: JobVersion): Job {
     data: { files: dataFiles(version) },
     permissions: { writes: 'ask', unseenFiles: 'never' },
     checker: { kind: 'module', path: 'checker.js' },
-    requirements: { passRate: 0.85 },
+    // These are writes to a business's invoices and bookings: one error in twenty is the most an
+    // office would accept from an assistant, so the bar is 95%, set before any comparison ran.
+    requirements: { passRate: 0.95 },
     budget: { maxRounds: 8, maxMentorUsd: 5, maxWallMinutes: 240 },
     mentor: {
       kind: 'model',
