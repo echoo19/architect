@@ -11,18 +11,19 @@ export interface AppLocation {
   resourcesPath: string;
 }
 
-/** Files the engine process needs besides its own bundle. */
-export interface EngineResources {
+/** Files the background processes need besides the engine's own bundle. */
+export interface ProcessResources {
   /** The tool sandbox's entry, which the engine forks as a Node process. */
   sandboxEntry: string;
   sampleJobFile: string;
 }
 
-export function engineResources(location: AppLocation): EngineResources {
+export function processResources(location: AppLocation): ProcessResources {
+  const out = join(location.outDir, '..');
   return {
-    // The engine forks the sandbox with its folder as the working directory, and a folder
-    // inside the app archive isn't a real one, so packaging leaves the sandbox unpacked.
-    sandboxEntry: unpackedPath(join(location.outDir, '..', 'sandbox', 'child.mjs')),
+    // The sandbox is forked with its folder as the working directory, and a folder inside the
+    // app archive isn't a real one, so packaging leaves the sandbox unpacked.
+    sandboxEntry: unpackedPath(join(out, 'sandbox', 'child.mjs')),
     sampleJobFile: location.packaged
       ? join(location.resourcesPath, 'sample-job', 'job.json')
       : join(location.appPath, '..', '..', 'examples', 'home-services', 'job', 'job.json'),

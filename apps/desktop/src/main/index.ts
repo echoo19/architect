@@ -1,10 +1,9 @@
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { EngineClient } from '@architect/engine';
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import engineEntry from '../utility/engine?modulePath';
 import { launchEngineProcess } from './engine/process';
-import { engineResources } from './engine/resources';
-import { EngineSupervisor } from './engine/supervisor';
 import { PickedPaths } from './files/picked';
 import { registerAppHandlers } from './handlers/app';
 import { registerConnectionHandlers } from './handlers/connections';
@@ -16,6 +15,8 @@ import { registerSettingsHandlers } from './handlers/settings';
 import { IpcRouter } from './ipc/router';
 import { readLaunchOptions } from './launch';
 import { ModelPulls } from './ollama/pulls';
+import { processResources } from './processes/resources';
+import { Supervisor } from './processes/supervisor';
 import { safeStorageCipher } from './secrets/cipher';
 import { SecretStore } from './secrets/store';
 import { hardenContents, hardenSession, isAppUrl, type AppOrigin } from './security';
@@ -32,7 +33,7 @@ const origin: AppOrigin = {
   ...(launch.devServerUrl ? { devServerUrl: launch.devServerUrl } : {}),
 };
 const preload = fileURLToPath(new URL('../preload/index.cjs', import.meta.url));
-const resources = engineResources({
+const resources = processResources({
   outDir: fileURLToPath(new URL('.', import.meta.url)),
   packaged: app.isPackaged,
   appPath: app.getAppPath(),
@@ -54,15 +55,14 @@ async function openMainWindow(onClosed: () => void): Promise<BrowserWindow> {
   return window;
 }
 
-/** Closes the engine before the app exits, so a run in progress resumes on the next launch. */
-function stopEngineOnQuit(engine: EngineSupervisor): void {
+/** Closes the background processes before the app exits, so a run in progress resumes later. */
+function stopOnQuit(processes: readonly { stop(): Promise<void> }[]): void {
   let stopped = false;
   app.on('before-quit', (event) => {
     if (stopped) return;
     event.preventDefault();
-    engine
-      .stop()
-      .catch((error: unknown) => console.error('[engine] The engine did not stop cleanly.', error))
+    Promise.all(processes.map((child) => child.stop()))
+      .catch((error: unknown) => console.error('[app] A process did not stop cleanly.', error))
       .finally(() => {
         stopped = true;
         app.quit();
@@ -96,19 +96,25 @@ async function start(): Promise<void> {
   registerFilesHandlers(router, picked);
   settings.onChange((next) => router.emit('settings', 'onChange', next));
 
-  const engine = new EngineSupervisor({
+  const engine: Supervisor<EngineClient> = new Supervisor({
+    name: 'The engine',
     launch: () =>
-      launchEngineProcess(engineEntry, {
-        dataDir,
-        sandboxEntryPath: resources.sandboxEntry,
-        sampleJobFile: resources.sampleJobFile,
-      }),
-    getSecret: keys,
-    onEvent: (event) => router.emit('runs', 'onEvent', event),
+      launchEngineProcess(
+        engineEntry,
+        {
+          dataDir,
+          sandboxEntryPath: resources.sandboxEntry,
+          sampleJobFile: resources.sampleJobFile,
+        },
+        keys,
+      ),
+    onConnect: (client) => {
+      client.runs.onEvent((event) => router.emit('runs', 'onEvent', event));
+    },
   });
-  engine.start();
-  stopEngineOnQuit(engine);
   registerEngineHandlers(router, (request) => engine.call(request), picked);
+  engine.start();
+  stopOnQuit([engine]);
 
   const cancelPull = () => pulls.cancel();
   let main = await openMainWindow(cancelPull);

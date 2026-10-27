@@ -1,29 +1,29 @@
-import {
-  connectEngine,
-  type EngineApi,
-  type EngineClient,
-  type EnginePort,
-} from '@architect/engine';
-import type { RunEvent } from '@architect/shared';
-import { answerSecretLookups, type EngineStatus } from '../../utility/link';
+/** What a process reports about itself: it is serving, or it could not start and why. */
+export type ProcessStatus = { type: 'ready' } | { type: 'failed'; message: string };
 
-/** One engine process, as the supervisor sees it. */
-export interface EngineProcess {
-  /** Engine requests, answers and run events. */
-  readonly requests: EnginePort;
-  /** The engine's secret lookups, which main answers. */
-  readonly secrets: EnginePort;
-  onStatus(listener: (status: EngineStatus) => void): void;
+/** A connection that fails its waiting requests when closed. */
+export interface Closable {
+  close(): void;
+}
+
+/** One running background process and the connection to it. */
+export interface SupervisedProcess<Client extends Closable> {
+  readonly client: Client;
+  onStatus(listener: (status: ProcessStatus) => void): void;
   onExit(listener: (code: number) => void): void;
-  /** Asks the engine to close cleanly and exit. */
+  /** Asks the process to finish cleanly and exit. */
   requestStop(): void;
   kill(): void;
 }
 
-export interface EngineSupervisorOptions {
-  launch(): EngineProcess;
-  getSecret(ref: string): Promise<string | undefined>;
-  onEvent(event: RunEvent): void;
+export interface SupervisorOptions<Client extends Closable> {
+  /** The process as messages name it, e.g. "The engine". */
+  name: string;
+  launch(): SupervisedProcess<Client>;
+  /** Called with every new connection, before any request goes over it. */
+  onConnect?(client: Client): void;
+  /** Called each time a process says it is serving. */
+  onReady?(): void;
   /** The wait before each restart in a row of failures; the last one repeats. */
   restartDelaysMs?: readonly number[];
   /** A process that ran at least this long before it failed starts the waits over. */
@@ -36,59 +36,61 @@ const RESTART_DELAYS_MS = [1_000, 2_000, 5_000, 10_000, 30_000];
 const STABLE_AFTER_MS = 60_000;
 const STOP_TIMEOUT_MS = 10_000;
 
-interface Link {
-  readonly process: EngineProcess;
-  readonly client: EngineClient;
+interface Link<Client extends Closable> {
+  readonly process: SupervisedProcess<Client>;
   readonly startedAt: number;
   /** Set once the process is gone; requests it was answering failed with it. */
   lost: boolean;
 }
 
 /**
- * Keeps the engine process running: starts it, restarts it with growing waits when it exits
- * unexpectedly, and stops it when the app quits. While it is down, every call fails at once
- * with a message that says what happened, instead of waiting on a process that isn't there.
+ * Keeps a background process running: starts it, restarts it with growing waits when it exits
+ * unexpectedly, and stops it when the app quits. While it is down, every call fails at once with
+ * a message that says what happened, instead of waiting on a process that isn't there.
  */
-export class EngineSupervisor {
-  private link: Link | null = null;
+export class Supervisor<Client extends Closable> {
+  private link: Link<Client> | null = null;
+  private started = false;
   private restartTimer: NodeJS.Timeout | null = null;
   private failuresInARow = 0;
   /** Why the last process couldn't start, until one starts. */
   private startFailure: string | null = null;
-  /** Set before the engine is asked to stop, so its exit is never mistaken for a crash. */
+  /** Set before the process is asked to stop, so its exit is never mistaken for a crash. */
   private stopRequested = false;
   private stopped: Promise<void> | null = null;
   private readonly restartDelaysMs: readonly number[];
   private readonly stableAfterMs: number;
   private readonly stopTimeoutMs: number;
 
-  constructor(private readonly options: EngineSupervisorOptions) {
+  constructor(private readonly options: SupervisorOptions<Client>) {
     this.restartDelaysMs = options.restartDelaysMs ?? RESTART_DELAYS_MS;
     this.stableAfterMs = options.stableAfterMs ?? STABLE_AFTER_MS;
     this.stopTimeoutMs = options.stopTimeoutMs ?? STOP_TIMEOUT_MS;
   }
 
+  /** Starts the process. Calling it again while it runs or waits to restart does nothing. */
   start(): void {
-    if (this.link || this.restartTimer || this.stopRequested) return;
+    if (this.started || this.stopRequested) return;
+    this.started = true;
     this.launch();
   }
 
   /**
-   * Sends one request to the engine. Requests made while it starts wait for it; requests made
-   * while it is down, or that it was answering when it exited, fail with a clear reason.
+   * Sends one request. Requests made while the process starts wait for it; requests made while
+   * it is down, or that it was answering when it exited, fail with a clear reason.
    */
-  async call<T>(request: (api: EngineApi) => Promise<T>): Promise<T> {
+  async call<T>(request: (client: Client) => Promise<T>): Promise<T> {
     const link = this.link;
     if (!link || this.stopRequested) throw new Error(this.unavailable(false));
     try {
-      return await request(link.client);
+      return await request(link.process.client);
     } catch (error) {
       if (!link.lost) throw error;
       throw new Error(this.unavailable(true), { cause: error });
     }
   }
 
-  /** Closes the engine cleanly, or kills it if it takes too long. Nothing restarts after this. */
+  /** Closes the process cleanly, or kills it if it takes too long. Nothing restarts after this. */
   stop(): Promise<void> {
     if (!this.stopped) {
       this.stopRequested = true;
@@ -97,19 +99,21 @@ export class EngineSupervisor {
     return this.stopped;
   }
 
-  /** Why a request can't be answered; `lost` when the engine went away while answering it. */
+  /** Why a request can't be answered; `lost` when the process went away while answering it. */
   private unavailable(lost: boolean): string {
-    if (this.stopRequested) return 'The engine has stopped because Architect is closing.';
+    const { name } = this.options;
+    if (this.stopRequested) return `${name} has stopped because Architect is closing.`;
+    if (!this.started) return `${name} is starting. Try again in a moment.`;
     if (this.startFailure) {
-      return `The engine couldn't start: ${this.startFailure} Architect keeps trying in the background.`;
+      return `${name} couldn't start: ${this.startFailure} Architect keeps trying in the background.`;
     }
     return lost
-      ? 'The engine stopped while it was working on this. It is restarting; try again in a moment.'
-      : 'The engine stopped unexpectedly and is restarting. Try again in a moment.';
+      ? `${name} stopped while it was working on this. It is restarting; try again in a moment.`
+      : `${name} stopped unexpectedly and is restarting. Try again in a moment.`;
   }
 
   private launch(): void {
-    let child: EngineProcess;
+    let child: SupervisedProcess<Client>;
     try {
       child = this.options.launch();
     } catch (error) {
@@ -117,13 +121,11 @@ export class EngineSupervisor {
       this.scheduleRestart();
       return;
     }
-    const client = connectEngine(child.requests, (error) => console.error('[engine]', error));
-    client.runs.onEvent((event) => this.options.onEvent(event));
-    answerSecretLookups(child.secrets, this.options.getSecret);
-    const link: Link = { process: child, client, startedAt: Date.now(), lost: false };
+    const link: Link<Client> = { process: child, startedAt: Date.now(), lost: false };
     child.onStatus((status) => {
       if (status.type === 'ready') {
         this.startFailure = null;
+        this.options.onReady?.();
         return;
       }
       this.startFailure = status.message;
@@ -131,14 +133,15 @@ export class EngineSupervisor {
     });
     child.onExit((code) => this.exited(link, code));
     this.link = link;
+    this.options.onConnect?.(child.client);
   }
 
-  private exited(link: Link, code: number): void {
+  private exited(link: Link<Client>, code: number): void {
     link.lost = true;
-    link.client.close();
+    link.process.client.close();
     if (this.link === link) this.link = null;
     if (this.stopRequested) return;
-    console.error(`[engine] The engine process exited unexpectedly (code ${code}).`);
+    console.error(`${this.options.name} process exited unexpectedly (code ${code}).`);
     if (Date.now() - link.startedAt >= this.stableAfterMs) this.failuresInARow = 0;
     this.scheduleRestart();
   }

@@ -2,11 +2,10 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { IpcResult } from '../../../src/common/ipc';
 import { registerSecretsHandlers } from '../../../src/main/handlers/secrets';
-import { IpcRouter, type IpcEventLike } from '../../../src/main/ipc/router';
 import type { Cipher } from '../../../src/main/secrets/store';
 import { SecretStore } from '../../../src/main/secrets/store';
+import { routerHarness } from './router-harness';
 
 /**
  * Stands in for the OS key store: a key version byte, then the text XORed with a byte, so the
@@ -139,22 +138,10 @@ describe('SecretStore', () => {
   });
 });
 
-type Listener = (event: IpcEventLike, ...args: unknown[]) => Promise<IpcResult<unknown>>;
-
 describe('secrets handlers', () => {
   it('answer with which keys are saved, never their values', async () => {
-    const listeners = new Map<string, Listener>();
-    const router = new IpcRouter({
-      ipcMain: { handle: (channel, listener) => listeners.set(channel, listener) },
-      isTrustedSender: () => true,
-      targets: () => [],
-    });
+    const { router, call } = routerHarness();
     registerSecretsHandlers(router, await SecretStore.open(file, fakeCipher()));
-    const call = async (channel: string, ...args: unknown[]) => {
-      const listener = listeners.get(channel);
-      if (!listener) throw new Error(`no listener on ${channel}`);
-      return listener({ senderFrame: { url: 'file:///app/index.html' } }, ...args);
-    };
 
     expect(await call('secrets:set', 'meta', 'sk-secret')).toEqual({ ok: true, value: undefined });
     const status = await call('secrets:status');

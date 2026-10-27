@@ -1,13 +1,13 @@
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { engineResources, unpackedPath } from '../../../src/main/engine/resources';
+import { processResources, unpackedPath } from '../../../src/main/processes/resources';
 
 const ROOT = resolve('/work');
 
-describe('engineResources', () => {
-  it('uses the repository in development', () => {
+describe('processResources', () => {
+  it('uses the build output and the repository in development', () => {
     const app = join(ROOT, 'architect', 'apps', 'desktop');
-    const resources = engineResources({
+    const resources = processResources({
       outDir: join(app, 'out', 'main'),
       packaged: false,
       appPath: app,
@@ -22,7 +22,7 @@ describe('engineResources', () => {
   it('uses the unpacked sandbox and the shipped sample job once packaged', () => {
     const resourcesPath = join(ROOT, 'Architect', 'resources');
     const archive = join(resourcesPath, 'app.asar');
-    const resources = engineResources({
+    const resources = processResources({
       outDir: join(archive, 'out', 'main'),
       packaged: true,
       appPath: archive,
