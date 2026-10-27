@@ -1,6 +1,13 @@
 import { DEFAULT_STUDENT, JOB_FORMAT, JobSchema, mentorPreset } from '@architect/shared';
 import type { DataFile, Job } from '@architect/shared';
 import { BUSINESS_DATE } from './policy/rules';
+import type { JobVersion } from './versions';
+
+/** Each version is its own job, so both can sit side by side in the app. */
+const IDENTITY: Readonly<Record<JobVersion, Pick<Job, 'id' | 'name'>>> = {
+  1: { id: 'sample-home-services-v1', name: 'Service desk (first version)' },
+  2: { id: 'sample-home-services', name: 'Service desk' },
+};
 
 const DATA_FILES: readonly DataFile[] = [
   {
@@ -90,12 +97,11 @@ const DATA_FILES: readonly DataFile[] = [
 ];
 
 /** The sample job's settings. Model choices come from the shared presets. */
-export function buildJob(): Job {
+export function buildJob(version: JobVersion): Job {
   const mentor = mentorPreset('meta-spark');
   return JobSchema.parse({
     format: JOB_FORMAT,
-    id: 'sample-home-services',
-    name: 'Service desk',
+    ...IDENTITY[version],
     description:
       'Service desk handles the end-of-day office work at Ferncliff Home Services, a plumbing, ' +
       'heating and electrical company with twelve technicians and about 400 customers. It prices ' +

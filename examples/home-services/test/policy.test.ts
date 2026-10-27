@@ -2,11 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { daysBetween } from '../src/lib/calendar';
 import { roundHalfUp } from '../src/lib/money';
 import { billedMinutes, laborCents, partLineCents } from '../src/reference/pricing';
-import { jobFile, rowWhere, table } from './helpers';
+import { BOTH_VERSIONS } from './helpers';
 
 /** The worked examples in policy.md are what the agent learns from, so they must be right. */
-
-const policy = jobFile('data/policy.md');
 
 const job = (labor_minutes: number, after_hours: boolean) => ({
   job_id: 'W-0000',
@@ -26,7 +24,9 @@ const part = (unit_cost_cents: number, markup_pct: number, taxable: boolean) => 
   taxable,
 });
 
-describe('policy.md', () => {
+describe.each(BOTH_VERSIONS)('policy.md of version $version', (folder) => {
+  const policy = folder.file('data/policy.md');
+
   it('states the business date and the closed day', () => {
     expect(policy).toContain('**Thursday, November 5, 2026** (2026-11-05)');
     expect(policy).toContain('closed on Wednesday, November 11, 2026');
@@ -44,7 +44,7 @@ describe('policy.md', () => {
     expect(policy).toContain(
       "`invoice_id` is INV- plus the job's number: job W-1234 gets INV-1234.",
     );
-    expect(rowWhere('invoices.csv', 'job_id', 'W-1234').invoice_id).toBe('INV-1234');
+    expect(folder.rowWhere('invoices.csv', 'job_id', 'W-1234').invoice_id).toBe('INV-1234');
   });
 
   it('prices its invoice example the way the reference does', () => {
@@ -66,7 +66,8 @@ describe('policy.md', () => {
 
   it('uses travel times from travel.csv in its scheduling example', () => {
     const minutes = (from: string, to: string) =>
-      table('travel.csv').find((row) => row.from_zone === from && row.to_zone === to)?.minutes;
+      folder.table('travel.csv').find((row) => row.from_zone === from && row.to_zone === to)
+        ?.minutes;
     expect(minutes('Harbor', 'Ridge')).toBe('45');
     expect(minutes('Ridge', 'Old Town')).toBe('30');
     expect(policy).toContain('The new job is in Ridge, 45 minutes from Harbor');

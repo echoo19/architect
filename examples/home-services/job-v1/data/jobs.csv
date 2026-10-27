@@ -1,0 +1,1506 @@
+job_id,customer_id,technician_id,date,work,labor_minutes,after_hours
+W-1001,C-0196,T-07,2026-05-04,Shutoff valve replacement,77,no
+W-1002,C-0172,T-09,2026-05-04,Shutoff valve replacement,84,no
+W-1003,C-0265,T-01,2026-05-04,Kitchen faucet replacement,113,no
+W-1004,C-0124,T-07,2026-05-04,Toilet repair,45,no
+W-1005,C-0178,T-05,2026-05-04,Garbage disposal install,54,no
+W-1006,C-0044,T-12,2026-05-04,Water heater replacement,226,no
+W-1007,C-0389,T-09,2026-05-04,Boiler service,87,no
+W-1008,C-0170,T-06,2026-05-04,Breaker replacement,83,no
+W-1009,C-0039,T-01,2026-05-04,Water heater replacement,177,no
+W-1010,C-0031,T-01,2026-05-04,Backflow test,69,no
+W-1011,C-0082,T-01,2026-05-04,Furnace tune-up,87,no
+W-1012,C-0222,T-04,2026-05-04,GFCI outlet install,73,no
+W-1013,C-0238,T-01,2026-05-04,Kitchen faucet replacement,79,no
+W-1014,C-0111,T-07,2026-05-05,Furnace tune-up,51,no
+W-1015,C-0264,T-02,2026-05-05,Faucet repair,55,no
+W-1016,C-0126,T-10,2026-05-05,Light fixture install,51,no
+W-1017,C-0314,T-06,2026-05-05,Breaker replacement,99,yes
+W-1018,C-0269,T-02,2026-05-05,Toilet repair,97,no
+W-1019,C-0341,T-07,2026-05-05,Water heater replacement,310,no
+W-1020,C-0073,T-08,2026-05-05,GFCI outlet install,93,no
+W-1021,C-0307,T-03,2026-05-05,Furnace tune-up,75,no
+W-1022,C-0307,T-09,2026-05-06,Heat pump repair,122,no
+W-1023,C-0144,T-10,2026-05-06,Outlet repair,84,no
+W-1024,C-0318,T-12,2026-05-06,Toilet repair,85,no
+W-1025,C-0019,T-07,2026-05-06,Faucet repair,65,no
+W-1026,C-0014,T-09,2026-05-06,Toilet repair,47,no
+W-1027,C-0150,T-09,2026-05-06,Water heater replacement,222,yes
+W-1028,C-0234,T-05,2026-05-06,Drain clearing,138,yes
+W-1029,C-0357,T-07,2026-05-06,Faucet repair,85,no
+W-1030,C-0276,T-01,2026-05-06,Kitchen faucet replacement,68,no
+W-1031,C-0262,T-06,2026-05-07,Outlet repair,58,no
+W-1032,C-0221,T-07,2026-05-07,Drain clearing,107,no
+W-1033,C-0281,T-12,2026-05-07,Sump pump replacement,147,no
+W-1034,C-0089,T-12,2026-05-07,Faucet repair,90,no
+W-1035,C-0331,T-07,2026-05-07,No heat call,121,yes
+W-1036,C-0085,T-04,2026-05-07,Breaker replacement,76,no
+W-1037,C-0344,T-09,2026-05-07,Drain clearing,148,no
+W-1038,C-0148,T-08,2026-05-07,Light fixture install,46,no
+W-1039,C-0392,T-07,2026-05-08,Thermostat install,66,no
+W-1040,C-0153,T-01,2026-05-08,Burst pipe repair,165,no
+W-1041,C-0062,T-10,2026-05-08,EV charger circuit,198,no
+W-1042,C-0166,T-05,2026-05-08,Faucet repair,65,no
+W-1043,C-0221,T-01,2026-05-08,Water heater replacement,196,no
+W-1044,C-0168,T-05,2026-05-08,Sump pump replacement,165,no
+W-1045,C-0314,T-12,2026-05-08,Faucet repair,64,no
+W-1046,C-0345,T-07,2026-05-08,Toilet repair,76,no
+W-1047,C-0358,T-12,2026-05-08,Garbage disposal install,69,no
+W-1048,C-0097,T-11,2026-05-08,Furnace tune-up,90,no
+W-1049,C-0325,T-08,2026-05-08,Light fixture install,115,no
+W-1050,C-0194,T-08,2026-05-09,Outlet repair,42,no
+W-1051,C-0398,T-08,2026-05-09,GFCI outlet install,64,no
+W-1052,C-0214,T-10,2026-05-09,Outlet repair,77,no
+W-1053,C-0174,T-03,2026-05-09,Furnace tune-up,68,no
+W-1054,C-0079,T-04,2026-05-11,GFCI outlet install,105,no
+W-1055,C-0077,T-01,2026-05-11,Furnace tune-up,58,no
+W-1056,C-0379,T-06,2026-05-11,GFCI outlet install,51,no
+W-1057,C-0335,T-11,2026-05-11,Thermostat install,85,no
+W-1058,C-0168,T-07,2026-05-11,Faucet repair,59,no
+W-1059,C-0023,T-04,2026-05-11,GFCI outlet install,82,yes
+W-1060,C-0285,T-04,2026-05-11,GFCI outlet install,56,no
+W-1061,C-0139,T-07,2026-05-11,Furnace tune-up,86,no
+W-1062,C-0317,T-02,2026-05-11,Faucet repair,83,no
+W-1063,C-0055,T-04,2026-05-11,Ceiling fan install,134,no
+W-1064,C-0139,T-02,2026-05-11,Garbage disposal install,99,no
+W-1065,C-0278,T-12,2026-05-12,Kitchen faucet replacement,129,no
+W-1066,C-0098,T-08,2026-05-12,Ceiling fan install,147,no
+W-1067,C-0269,T-10,2026-05-12,EV charger circuit,194,no
+W-1068,C-0255,T-09,2026-05-12,Toilet repair,86,no
+W-1069,C-0241,T-02,2026-05-12,Shutoff valve replacement,93,no
+W-1070,C-0285,T-11,2026-05-12,Furnace tune-up,88,no
+W-1071,C-0033,T-10,2026-05-12,Breaker replacement,70,no
+W-1072,C-0116,T-07,2026-05-12,Drain clearing,114,no
+W-1073,C-0109,T-05,2026-05-12,Kitchen faucet replacement,85,no
+W-1074,C-0210,T-02,2026-05-12,Backflow test,67,no
+W-1075,C-0063,T-01,2026-05-12,Backflow test,67,no
+W-1076,C-0306,T-05,2026-05-13,Burst pipe repair,60,yes
+W-1077,C-0124,T-11,2026-05-13,Furnace tune-up,82,no
+W-1078,C-0003,T-12,2026-05-13,Garbage disposal install,102,no
+W-1079,C-0019,T-10,2026-05-13,GFCI outlet install,78,no
+W-1080,C-0352,T-04,2026-05-13,Breaker replacement,81,no
+W-1081,C-0372,T-07,2026-05-13,Furnace tune-up,55,no
+W-1082,C-0055,T-06,2026-05-13,GFCI outlet install,66,no
+W-1083,C-0157,T-01,2026-05-13,Drain clearing,76,no
+W-1084,C-0033,T-01,2026-05-14,Furnace tune-up,98,no
+W-1085,C-0089,T-05,2026-05-14,Kitchen faucet replacement,108,no
+W-1086,C-0076,T-01,2026-05-14,Furnace tune-up,61,no
+W-1087,C-0313,T-01,2026-05-14,Heat pump repair,206,yes
+W-1088,C-0089,T-12,2026-05-14,Kitchen faucet replacement,116,no
+W-1089,C-0186,T-09,2026-05-14,No heat call,68,no
+W-1090,C-0042,T-09,2026-05-14,Furnace tune-up,71,no
+W-1091,C-0065,T-08,2026-05-14,Ceiling fan install,131,no
+W-1092,C-0150,T-04,2026-05-14,Ceiling fan install,137,no
+W-1093,C-0109,T-07,2026-05-14,Heat pump repair,204,yes
+W-1094,C-0193,T-07,2026-05-14,Furnace tune-up,94,no
+W-1095,C-0221,T-02,2026-05-14,Garbage disposal install,119,no
+W-1096,C-0232,T-02,2026-05-14,Garbage disposal install,58,no
+W-1097,C-0357,T-02,2026-05-15,Drain clearing,124,yes
+W-1098,C-0197,T-07,2026-05-15,Burst pipe repair,105,yes
+W-1099,C-0387,T-10,2026-05-15,GFCI outlet install,119,no
+W-1100,C-0084,T-08,2026-05-15,Light fixture install,68,no
+W-1101,C-0392,T-07,2026-05-15,Water heater replacement,180,no
+W-1102,C-0363,T-02,2026-05-15,Garbage disposal install,106,no
+W-1103,C-0141,T-07,2026-05-15,Kitchen faucet replacement,122,no
+W-1104,C-0281,T-02,2026-05-15,Sump pump replacement,165,yes
+W-1105,C-0271,T-08,2026-05-15,Breaker replacement,77,no
+W-1106,C-0096,T-01,2026-05-15,Backflow test,40,no
+W-1107,C-0042,T-08,2026-05-16,Outlet repair,37,no
+W-1108,C-0297,T-03,2026-05-16,Furnace tune-up,70,no
+W-1109,C-0066,T-03,2026-05-16,No heat call,74,yes
+W-1110,C-0188,T-08,2026-05-16,GFCI outlet install,116,no
+W-1111,C-0343,T-03,2026-05-16,No heat call,143,yes
+W-1112,C-0265,T-04,2026-05-18,Outlet repair,63,no
+W-1113,C-0293,T-01,2026-05-18,Toilet repair,64,no
+W-1114,C-0280,T-02,2026-05-18,Toilet repair,57,no
+W-1115,C-0039,T-04,2026-05-18,Light fixture install,50,no
+W-1116,C-0178,T-07,2026-05-18,Kitchen faucet replacement,87,no
+W-1117,C-0177,T-02,2026-05-18,Backflow test,52,no
+W-1118,C-0171,T-07,2026-05-18,Toilet repair,72,no
+W-1119,C-0025,T-01,2026-05-18,No heat call,147,yes
+W-1120,C-0251,T-04,2026-05-18,Light fixture install,93,no
+W-1121,C-0283,T-01,2026-05-18,Garbage disposal install,75,no
+W-1122,C-0040,T-07,2026-05-18,Garbage disposal install,54,no
+W-1123,C-0278,T-05,2026-05-19,Drain clearing,83,no
+W-1124,C-0202,T-03,2026-05-19,Furnace tune-up,110,no
+W-1125,C-0098,T-08,2026-05-19,Ceiling fan install,131,no
+W-1126,C-0212,T-04,2026-05-19,Ceiling fan install,115,no
+W-1127,C-0334,T-09,2026-05-19,Furnace tune-up,82,no
+W-1128,C-0038,T-01,2026-05-19,Garbage disposal install,77,no
+W-1129,C-0032,T-07,2026-05-19,Faucet repair,67,no
+W-1130,C-0311,T-09,2026-05-19,Faucet repair,74,no
+W-1131,C-0392,T-07,2026-05-19,Faucet repair,45,no
+W-1132,C-0249,T-06,2026-05-19,GFCI outlet install,41,no
+W-1133,C-0221,T-08,2026-05-20,Breaker replacement,69,no
+W-1134,C-0171,T-10,2026-05-20,Light fixture install,81,no
+W-1135,C-0083,T-07,2026-05-20,Toilet repair,49,no
+W-1136,C-0125,T-01,2026-05-20,Toilet repair,61,no
+W-1137,C-0355,T-05,2026-05-20,Drain clearing,114,no
+W-1138,C-0384,T-01,2026-05-20,Backflow test,63,no
+W-1139,C-0032,T-12,2026-05-20,Faucet repair,85,no
+W-1140,C-0052,T-01,2026-05-20,Toilet repair,99,no
+W-1141,C-0301,T-08,2026-05-20,GFCI outlet install,108,no
+W-1142,C-0106,T-11,2026-05-20,Furnace tune-up,92,no
+W-1143,C-0024,T-09,2026-05-21,Shutoff valve replacement,84,no
+W-1144,C-0051,T-03,2026-05-21,Boiler service,139,no
+W-1145,C-0027,T-06,2026-05-21,Light fixture install,53,no
+W-1146,C-0008,T-08,2026-05-21,Ceiling fan install,124,no
+W-1147,C-0400,T-02,2026-05-21,Kitchen faucet replacement,116,no
+W-1148,C-0198,T-09,2026-05-21,Drain clearing,101,no
+W-1149,C-0125,T-12,2026-05-21,Burst pipe repair,148,yes
+W-1150,C-0269,T-01,2026-05-21,Sump pump replacement,148,no
+W-1151,C-0345,T-04,2026-05-21,GFCI outlet install,77,no
+W-1152,C-0205,T-07,2026-05-21,Toilet repair,70,no
+W-1153,C-0268,T-04,2026-05-22,Light fixture install,148,no
+W-1154,C-0010,T-04,2026-05-22,EV charger circuit,191,no
+W-1155,C-0169,T-02,2026-05-22,Garbage disposal install,99,no
+W-1156,C-0203,T-01,2026-05-22,Backflow test,72,no
+W-1157,C-0287,T-02,2026-05-22,Faucet repair,73,no
+W-1158,C-0248,T-12,2026-05-22,Shutoff valve replacement,119,no
+W-1159,C-0225,T-07,2026-05-22,Heat pump repair,208,no
+W-1160,C-0296,T-01,2026-05-22,No heat call,151,yes
+W-1161,C-0076,T-01,2026-05-22,Furnace tune-up,83,no
+W-1162,C-0083,T-03,2026-05-23,No heat call,55,no
+W-1163,C-0042,T-03,2026-05-23,Heat pump repair,170,no
+W-1164,C-0399,T-10,2026-05-23,Outlet repair,80,no
+W-1165,C-0092,T-03,2026-05-23,Thermostat install,46,no
+W-1166,C-0264,T-01,2026-05-25,Faucet repair,68,no
+W-1167,C-0168,T-01,2026-05-25,No heat call,135,no
+W-1168,C-0253,T-01,2026-05-25,No heat call,59,no
+W-1169,C-0135,T-02,2026-05-25,Garbage disposal install,70,no
+W-1170,C-0383,T-05,2026-05-25,Kitchen faucet replacement,100,no
+W-1171,C-0139,T-07,2026-05-25,Boiler service,109,no
+W-1172,C-0165,T-01,2026-05-25,Furnace tune-up,99,no
+W-1173,C-0257,T-04,2026-05-25,Breaker replacement,44,yes
+W-1174,C-0072,T-04,2026-05-25,Panel upgrade,359,no
+W-1175,C-0289,T-05,2026-05-25,Burst pipe repair,76,yes
+W-1176,C-0301,T-09,2026-05-25,Kitchen faucet replacement,119,no
+W-1177,C-0070,T-06,2026-05-26,Breaker replacement,89,no
+W-1178,C-0364,T-01,2026-05-26,Toilet repair,78,no
+W-1179,C-0085,T-09,2026-05-26,Boiler service,149,no
+W-1180,C-0014,T-07,2026-05-26,Faucet repair,53,no
+W-1181,C-0342,T-12,2026-05-26,Faucet repair,54,no
+W-1182,C-0083,T-04,2026-05-26,Ceiling fan install,72,no
+W-1183,C-0171,T-11,2026-05-26,Heat pump repair,77,no
+W-1184,C-0140,T-10,2026-05-26,Ceiling fan install,140,no
+W-1185,C-0286,T-08,2026-05-26,Outlet repair,87,no
+W-1186,C-0134,T-04,2026-05-26,GFCI outlet install,83,no
+W-1187,C-0186,T-09,2026-05-26,Heat pump repair,111,no
+W-1188,C-0154,T-09,2026-05-26,Furnace tune-up,102,no
+W-1189,C-0230,T-11,2026-05-26,Thermostat install,72,no
+W-1190,C-0342,T-06,2026-05-27,Breaker replacement,40,yes
+W-1191,C-0008,T-09,2026-05-27,No heat call,54,yes
+W-1192,C-0111,T-10,2026-05-27,EV charger circuit,209,no
+W-1193,C-0158,T-02,2026-05-27,Burst pipe repair,229,yes
+W-1194,C-0002,T-12,2026-05-27,Faucet repair,44,no
+W-1195,C-0116,T-11,2026-05-27,Furnace tune-up,76,no
+W-1196,C-0221,T-03,2026-05-27,Furnace tune-up,101,no
+W-1197,C-0071,T-02,2026-05-27,Garbage disposal install,85,no
+W-1198,C-0183,T-10,2026-05-27,Panel upgrade,417,no
+W-1199,C-0388,T-02,2026-05-27,Kitchen faucet replacement,109,no
+W-1200,C-0106,T-09,2026-05-27,Water heater replacement,257,no
+W-1201,C-0393,T-08,2026-05-27,Light fixture install,120,no
+W-1202,C-0125,T-05,2026-05-27,Kitchen faucet replacement,56,no
+W-1203,C-0326,T-07,2026-05-28,Drain clearing,98,no
+W-1204,C-0100,T-01,2026-05-28,Backflow test,49,no
+W-1205,C-0152,T-09,2026-05-28,Furnace tune-up,59,no
+W-1206,C-0160,T-02,2026-05-28,Toilet repair,42,no
+W-1207,C-0084,T-05,2026-05-28,Faucet repair,81,no
+W-1208,C-0064,T-06,2026-05-28,Light fixture install,87,no
+W-1209,C-0249,T-08,2026-05-28,Breaker replacement,72,yes
+W-1210,C-0262,T-08,2026-05-28,GFCI outlet install,76,no
+W-1211,C-0335,T-01,2026-05-28,Furnace tune-up,88,no
+W-1212,C-0226,T-07,2026-05-28,Furnace tune-up,79,no
+W-1213,C-0372,T-06,2026-05-28,Breaker replacement,72,no
+W-1214,C-0042,T-01,2026-05-28,Furnace tune-up,64,no
+W-1215,C-0159,T-02,2026-05-28,Backflow test,47,no
+W-1216,C-0167,T-03,2026-05-29,Heat pump repair,164,yes
+W-1217,C-0067,T-03,2026-05-29,Heat pump repair,96,no
+W-1218,C-0006,T-10,2026-05-29,EV charger circuit,243,no
+W-1219,C-0347,T-10,2026-05-29,Breaker replacement,94,yes
+W-1220,C-0299,T-05,2026-05-29,Garbage disposal install,72,no
+W-1221,C-0142,T-07,2026-05-29,No heat call,106,no
+W-1222,C-0033,T-07,2026-05-29,Sump pump replacement,150,no
+W-1223,C-0004,T-12,2026-05-29,Water heater replacement,217,no
+W-1224,C-0179,T-01,2026-05-29,Faucet repair,81,no
+W-1225,C-0179,T-04,2026-05-29,EV charger circuit,224,no
+W-1226,C-0221,T-05,2026-05-29,Toilet repair,61,no
+W-1227,C-0169,T-08,2026-05-29,Ceiling fan install,130,no
+W-1228,C-0326,T-12,2026-05-29,Toilet repair,61,no
+W-1229,C-0193,T-03,2026-05-30,Furnace tune-up,66,no
+W-1230,C-0121,T-03,2026-05-30,No heat call,132,no
+W-1231,C-0186,T-03,2026-05-30,No heat call,156,yes
+W-1232,C-0025,T-08,2026-05-30,GFCI outlet install,66,no
+W-1233,C-0217,T-12,2026-06-01,Toilet repair,74,no
+W-1234,C-0334,T-04,2026-06-01,Breaker replacement,67,no
+W-1235,C-0179,T-09,2026-06-01,Furnace tune-up,106,no
+W-1236,C-0018,T-04,2026-06-01,Light fixture install,99,no
+W-1237,C-0383,T-06,2026-06-01,Ceiling fan install,106,no
+W-1238,C-0080,T-01,2026-06-01,Garbage disposal install,87,no
+W-1239,C-0215,T-07,2026-06-01,Faucet repair,70,no
+W-1240,C-0348,T-09,2026-06-01,Kitchen faucet replacement,87,no
+W-1241,C-0310,T-12,2026-06-01,Toilet repair,99,no
+W-1242,C-0227,T-12,2026-06-01,Shutoff valve replacement,63,no
+W-1243,C-0129,T-02,2026-06-01,Toilet repair,71,no
+W-1244,C-0316,T-04,2026-06-01,GFCI outlet install,45,no
+W-1245,C-0042,T-12,2026-06-01,Drain clearing,120,yes
+W-1246,C-0011,T-07,2026-06-02,Kitchen faucet replacement,72,no
+W-1247,C-0140,T-05,2026-06-02,Garbage disposal install,109,no
+W-1248,C-0295,T-08,2026-06-02,Light fixture install,129,no
+W-1249,C-0365,T-07,2026-06-02,Thermostat install,93,no
+W-1250,C-0004,T-01,2026-06-02,Sump pump replacement,97,yes
+W-1251,C-0362,T-01,2026-06-02,Furnace tune-up,51,no
+W-1252,C-0120,T-01,2026-06-02,Backflow test,62,no
+W-1253,C-0291,T-09,2026-06-02,Heat pump repair,76,no
+W-1254,C-0056,T-01,2026-06-03,No heat call,84,yes
+W-1255,C-0178,T-03,2026-06-03,Thermostat install,82,no
+W-1256,C-0094,T-03,2026-06-03,No heat call,84,yes
+W-1257,C-0261,T-10,2026-06-03,Outlet repair,80,yes
+W-1258,C-0270,T-12,2026-06-03,Toilet repair,75,no
+W-1259,C-0032,T-07,2026-06-03,No heat call,136,no
+W-1260,C-0010,T-05,2026-06-03,Shutoff valve replacement,92,no
+W-1261,C-0041,T-01,2026-06-03,No heat call,82,no
+W-1262,C-0155,T-06,2026-06-03,GFCI outlet install,82,no
+W-1263,C-0350,T-04,2026-06-03,Outlet repair,36,no
+W-1264,C-0204,T-05,2026-06-04,Drain clearing,67,no
+W-1265,C-0108,T-01,2026-06-04,Kitchen faucet replacement,58,no
+W-1266,C-0217,T-03,2026-06-04,No heat call,115,no
+W-1267,C-0018,T-03,2026-06-04,Furnace tune-up,60,no
+W-1268,C-0210,T-04,2026-06-04,EV charger circuit,166,no
+W-1269,C-0148,T-09,2026-06-04,No heat call,100,no
+W-1270,C-0302,T-01,2026-06-04,Thermostat install,91,no
+W-1271,C-0296,T-01,2026-06-04,Burst pipe repair,116,no
+W-1272,C-0347,T-02,2026-06-04,Toilet repair,93,no
+W-1273,C-0054,T-01,2026-06-04,No heat call,54,no
+W-1274,C-0353,T-07,2026-06-04,Water heater replacement,233,no
+W-1275,C-0089,T-12,2026-06-05,Toilet repair,95,no
+W-1276,C-0063,T-01,2026-06-05,Water heater replacement,313,no
+W-1277,C-0194,T-05,2026-06-05,Garbage disposal install,91,no
+W-1278,C-0010,T-03,2026-06-05,No heat call,77,no
+W-1279,C-0143,T-12,2026-06-05,Kitchen faucet replacement,62,no
+W-1280,C-0141,T-05,2026-06-05,Burst pipe repair,183,no
+W-1281,C-0371,T-08,2026-06-05,Light fixture install,107,no
+W-1282,C-0345,T-10,2026-06-05,Outlet repair,36,no
+W-1283,C-0221,T-02,2026-06-05,Toilet repair,86,no
+W-1284,C-0176,T-01,2026-06-05,No heat call,120,yes
+W-1285,C-0059,T-12,2026-06-05,Garbage disposal install,67,no
+W-1286,C-0096,T-10,2026-06-06,GFCI outlet install,95,no
+W-1287,C-0116,T-03,2026-06-06,Heat pump repair,210,no
+W-1288,C-0019,T-10,2026-06-06,Breaker replacement,80,no
+W-1289,C-0353,T-02,2026-06-08,Shutoff valve replacement,57,no
+W-1290,C-0385,T-04,2026-06-08,EV charger circuit,231,no
+W-1291,C-0151,T-01,2026-06-08,Water heater replacement,208,no
+W-1292,C-0078,T-07,2026-06-08,Thermostat install,76,yes
+W-1293,C-0390,T-09,2026-06-08,Furnace tune-up,62,no
+W-1294,C-0143,T-01,2026-06-08,Shutoff valve replacement,61,no
+W-1295,C-0032,T-05,2026-06-08,Garbage disposal install,96,no
+W-1296,C-0125,T-07,2026-06-08,Garbage disposal install,85,no
+W-1297,C-0118,T-09,2026-06-08,Toilet repair,68,no
+W-1298,C-0343,T-07,2026-06-08,Furnace tune-up,86,no
+W-1299,C-0231,T-07,2026-06-08,Water heater replacement,257,no
+W-1300,C-0356,T-09,2026-06-09,Boiler service,93,yes
+W-1301,C-0078,T-06,2026-06-09,Ceiling fan install,147,no
+W-1302,C-0139,T-07,2026-06-09,Drain clearing,120,no
+W-1303,C-0066,T-05,2026-06-09,Drain clearing,65,no
+W-1304,C-0140,T-02,2026-06-09,Backflow test,74,no
+W-1305,C-0106,T-09,2026-06-09,Boiler service,104,no
+W-1306,C-0349,T-09,2026-06-09,Faucet repair,50,no
+W-1307,C-0052,T-07,2026-06-09,Toilet repair,77,no
+W-1308,C-0197,T-01,2026-06-09,Drain clearing,50,no
+W-1309,C-0112,T-07,2026-06-10,Furnace tune-up,61,no
+W-1310,C-0058,T-04,2026-06-10,Breaker replacement,71,no
+W-1311,C-0228,T-10,2026-06-10,Light fixture install,140,no
+W-1312,C-0114,T-09,2026-06-10,Furnace tune-up,87,no
+W-1313,C-0077,T-09,2026-06-10,Faucet repair,57,no
+W-1314,C-0048,T-06,2026-06-10,Outlet repair,72,no
+W-1315,C-0155,T-09,2026-06-10,No heat call,73,yes
+W-1316,C-0227,T-04,2026-06-10,GFCI outlet install,92,no
+W-1317,C-0262,T-09,2026-06-10,Water heater replacement,214,no
+W-1318,C-0091,T-12,2026-06-10,Kitchen faucet replacement,97,no
+W-1319,C-0033,T-09,2026-06-10,Furnace tune-up,52,no
+W-1320,C-0294,T-12,2026-06-10,Shutoff valve replacement,59,no
+W-1321,C-0179,T-04,2026-06-10,GFCI outlet install,104,no
+W-1322,C-0113,T-12,2026-06-11,Faucet repair,77,no
+W-1323,C-0241,T-04,2026-06-11,Panel upgrade,426,no
+W-1324,C-0254,T-02,2026-06-11,Toilet repair,62,no
+W-1325,C-0061,T-02,2026-06-11,Backflow test,45,no
+W-1326,C-0335,T-09,2026-06-11,Heat pump repair,61,no
+W-1327,C-0051,T-07,2026-06-11,No heat call,173,no
+W-1328,C-0349,T-07,2026-06-11,Heat pump repair,96,no
+W-1329,C-0171,T-05,2026-06-11,Toilet repair,46,no
+W-1330,C-0301,T-06,2026-06-11,Light fixture install,58,no
+W-1331,C-0306,T-12,2026-06-12,Sump pump replacement,166,no
+W-1332,C-0066,T-02,2026-06-12,Drain clearing,66,no
+W-1333,C-0201,T-04,2026-06-12,Ceiling fan install,108,no
+W-1334,C-0065,T-08,2026-06-12,Breaker replacement,99,no
+W-1335,C-0290,T-02,2026-06-12,Garbage disposal install,92,no
+W-1336,C-0084,T-07,2026-06-12,No heat call,134,no
+W-1337,C-0313,T-02,2026-06-12,Toilet repair,84,no
+W-1338,C-0284,T-02,2026-06-12,Kitchen faucet replacement,128,no
+W-1339,C-0197,T-03,2026-06-12,Boiler service,177,no
+W-1340,C-0263,T-03,2026-06-12,Heat pump repair,111,no
+W-1341,C-0268,T-03,2026-06-13,Furnace tune-up,52,no
+W-1342,C-0341,T-10,2026-06-13,EV charger circuit,252,no
+W-1343,C-0239,T-03,2026-06-13,Furnace tune-up,81,no
+W-1344,C-0133,T-05,2026-06-15,Toilet repair,99,no
+W-1345,C-0134,T-06,2026-06-15,GFCI outlet install,40,no
+W-1346,C-0049,T-01,2026-06-15,Toilet repair,84,no
+W-1347,C-0275,T-09,2026-06-15,No heat call,171,no
+W-1348,C-0075,T-07,2026-06-15,Faucet repair,52,no
+W-1349,C-0325,T-07,2026-06-15,Thermostat install,62,no
+W-1350,C-0009,T-09,2026-06-15,Drain clearing,57,yes
+W-1351,C-0227,T-09,2026-06-15,Furnace tune-up,56,no
+W-1352,C-0051,T-09,2026-06-15,No heat call,88,no
+W-1353,C-0227,T-11,2026-06-15,Thermostat install,46,no
+W-1354,C-0297,T-07,2026-06-15,Boiler service,175,yes
+W-1355,C-0371,T-07,2026-06-15,No heat call,128,no
+W-1356,C-0136,T-12,2026-06-15,Shutoff valve replacement,92,no
+W-1357,C-0274,T-04,2026-06-16,Outlet repair,56,no
+W-1358,C-0255,T-07,2026-06-16,Drain clearing,84,yes
+W-1359,C-0228,T-10,2026-06-16,GFCI outlet install,43,no
+W-1360,C-0183,T-11,2026-06-16,Furnace tune-up,56,no
+W-1361,C-0255,T-10,2026-06-16,GFCI outlet install,102,no
+W-1362,C-0267,T-12,2026-06-16,Faucet repair,35,no
+W-1363,C-0318,T-02,2026-06-16,Garbage disposal install,98,no
+W-1364,C-0011,T-05,2026-06-16,Garbage disposal install,106,no
+W-1365,C-0073,T-09,2026-06-16,Furnace tune-up,68,no
+W-1366,C-0106,T-07,2026-06-16,Shutoff valve replacement,112,no
+W-1367,C-0364,T-01,2026-06-17,Backflow test,49,no
+W-1368,C-0275,T-09,2026-06-17,Shutoff valve replacement,103,no
+W-1369,C-0201,T-09,2026-06-17,Water heater replacement,311,no
+W-1370,C-0202,T-09,2026-06-17,Toilet repair,64,no
+W-1371,C-0268,T-02,2026-06-17,Toilet repair,98,no
+W-1372,C-0342,T-07,2026-06-17,Water heater replacement,300,no
+W-1373,C-0052,T-02,2026-06-17,Garbage disposal install,91,no
+W-1374,C-0301,T-09,2026-06-17,Sump pump replacement,168,no
+W-1375,C-0281,T-03,2026-06-17,Furnace tune-up,62,no
+W-1376,C-0376,T-12,2026-06-17,Toilet repair,61,no
+W-1377,C-0094,T-07,2026-06-17,Thermostat install,56,no
+W-1378,C-0225,T-03,2026-06-17,No heat call,77,yes
+W-1379,C-0269,T-01,2026-06-17,Boiler service,192,no
+W-1380,C-0222,T-05,2026-06-18,Drain clearing,131,no
+W-1381,C-0058,T-04,2026-06-18,Outlet repair,87,no
+W-1382,C-0111,T-08,2026-06-18,Ceiling fan install,109,no
+W-1383,C-0135,T-04,2026-06-18,GFCI outlet install,101,no
+W-1384,C-0192,T-01,2026-06-18,Faucet repair,69,no
+W-1385,C-0033,T-02,2026-06-18,Backflow test,75,no
+W-1386,C-0146,T-07,2026-06-18,Sump pump replacement,149,no
+W-1387,C-0073,T-07,2026-06-18,Furnace tune-up,69,no
+W-1388,C-0275,T-03,2026-06-19,Furnace tune-up,100,no
+W-1389,C-0095,T-04,2026-06-19,Outlet repair,43,no
+W-1390,C-0227,T-02,2026-06-19,Backflow test,60,no
+W-1391,C-0356,T-02,2026-06-19,Backflow test,74,no
+W-1392,C-0275,T-02,2026-06-19,Drain clearing,145,no
+W-1393,C-0033,T-12,2026-06-19,Kitchen faucet replacement,110,no
+W-1394,C-0340,T-01,2026-06-19,Burst pipe repair,136,yes
+W-1395,C-0229,T-01,2026-06-19,Garbage disposal install,108,no
+W-1396,C-0136,T-05,2026-06-19,Faucet repair,64,yes
+W-1397,C-0362,T-11,2026-06-19,Furnace tune-up,88,no
+W-1398,C-0289,T-08,2026-06-19,GFCI outlet install,111,no
+W-1399,C-0358,T-05,2026-06-19,Toilet repair,78,no
+W-1400,C-0035,T-12,2026-06-19,Toilet repair,51,no
+W-1401,C-0177,T-08,2026-06-20,Ceiling fan install,132,no
+W-1402,C-0362,T-03,2026-06-20,Boiler service,176,no
+W-1403,C-0325,T-10,2026-06-20,EV charger circuit,294,no
+W-1404,C-0171,T-07,2026-06-22,Kitchen faucet replacement,57,no
+W-1405,C-0318,T-01,2026-06-22,No heat call,79,yes
+W-1406,C-0157,T-09,2026-06-22,Burst pipe repair,110,yes
+W-1407,C-0099,T-09,2026-06-22,Toilet repair,82,no
+W-1408,C-0153,T-01,2026-06-22,Furnace tune-up,99,no
+W-1409,C-0296,T-04,2026-06-22,Ceiling fan install,68,no
+W-1410,C-0178,T-09,2026-06-22,No heat call,177,yes
+W-1411,C-0063,T-11,2026-06-22,Heat pump repair,119,no
+W-1412,C-0074,T-04,2026-06-22,Ceiling fan install,147,no
+W-1413,C-0343,T-06,2026-06-22,Light fixture install,109,no
+W-1414,C-0320,T-07,2026-06-22,Thermostat install,101,no
+W-1415,C-0269,T-05,2026-06-23,Toilet repair,42,yes
+W-1416,C-0202,T-09,2026-06-23,Toilet repair,69,no
+W-1417,C-0141,T-02,2026-06-23,Burst pipe repair,203,yes
+W-1418,C-0331,T-10,2026-06-23,Ceiling fan install,149,no
+W-1419,C-0377,T-05,2026-06-23,Toilet repair,45,no
+W-1420,C-0255,T-06,2026-06-23,Outlet repair,82,yes
+W-1421,C-0041,T-01,2026-06-23,Garbage disposal install,56,no
+W-1422,C-0007,T-02,2026-06-23,Faucet repair,70,no
+W-1423,C-0004,T-07,2026-06-23,Faucet repair,48,no
+W-1424,C-0225,T-12,2026-06-23,Burst pipe repair,123,yes
+W-1425,C-0077,T-09,2026-06-23,Drain clearing,128,no
+W-1426,C-0096,T-09,2026-06-23,Faucet repair,64,no
+W-1427,C-0347,T-07,2026-06-23,Boiler service,158,yes
+W-1428,C-0033,T-07,2026-06-24,Heat pump repair,100,no
+W-1429,C-0221,T-08,2026-06-24,Light fixture install,100,no
+W-1430,C-0212,T-01,2026-06-24,Thermostat install,81,no
+W-1431,C-0224,T-07,2026-06-24,Shutoff valve replacement,108,no
+W-1432,C-0218,T-04,2026-06-24,Breaker replacement,98,no
+W-1433,C-0210,T-09,2026-06-24,Garbage disposal install,60,no
+W-1434,C-0048,T-08,2026-06-24,Breaker replacement,49,no
+W-1435,C-0301,T-09,2026-06-24,Furnace tune-up,94,no
+W-1436,C-0128,T-08,2026-06-24,Ceiling fan install,94,no
+W-1437,C-0038,T-04,2026-06-24,Light fixture install,63,no
+W-1438,C-0383,T-11,2026-06-25,Thermostat install,90,no
+W-1439,C-0260,T-09,2026-06-25,Heat pump repair,93,no
+W-1440,C-0081,T-12,2026-06-25,Faucet repair,50,no
+W-1441,C-0010,T-07,2026-06-25,Drain clearing,89,no
+W-1442,C-0033,T-10,2026-06-25,Breaker replacement,53,no
+W-1443,C-0295,T-07,2026-06-25,Heat pump repair,65,no
+W-1444,C-0111,T-10,2026-06-25,GFCI outlet install,119,no
+W-1445,C-0201,T-04,2026-06-25,Outlet repair,43,no
+W-1446,C-0166,T-07,2026-06-25,Kitchen faucet replacement,122,no
+W-1447,C-0383,T-07,2026-06-25,Faucet repair,75,no
+W-1448,C-0183,T-02,2026-06-26,Kitchen faucet replacement,74,no
+W-1449,C-0388,T-07,2026-06-26,Drain clearing,105,no
+W-1450,C-0098,T-07,2026-06-26,Kitchen faucet replacement,90,no
+W-1451,C-0303,T-02,2026-06-26,Backflow test,69,no
+W-1452,C-0035,T-07,2026-06-26,Toilet repair,70,no
+W-1453,C-0213,T-08,2026-06-26,GFCI outlet install,117,no
+W-1454,C-0204,T-03,2026-06-26,Heat pump repair,92,no
+W-1455,C-0096,T-04,2026-06-26,GFCI outlet install,81,no
+W-1456,C-0227,T-03,2026-06-26,No heat call,123,no
+W-1457,C-0338,T-07,2026-06-26,Toilet repair,82,no
+W-1458,C-0313,T-03,2026-06-26,No heat call,72,no
+W-1459,C-0088,T-10,2026-06-27,EV charger circuit,285,no
+W-1460,C-0345,T-03,2026-06-27,Boiler service,81,no
+W-1461,C-0171,T-03,2026-06-27,No heat call,155,yes
+W-1462,C-0085,T-03,2026-06-27,No heat call,143,no
+W-1463,C-0041,T-03,2026-06-27,Thermostat install,100,no
+W-1464,C-0055,T-01,2026-06-29,Furnace tune-up,70,no
+W-1465,C-0010,T-12,2026-06-29,Kitchen faucet replacement,123,no
+W-1466,C-0071,T-01,2026-06-29,Burst pipe repair,89,no
+W-1467,C-0289,T-01,2026-06-29,Water heater replacement,242,no
+W-1468,C-0098,T-12,2026-06-29,Kitchen faucet replacement,127,no
+W-1469,C-0025,T-01,2026-06-29,Heat pump repair,157,no
+W-1470,C-0202,T-09,2026-06-29,Toilet repair,43,no
+W-1471,C-0052,T-12,2026-06-29,Toilet repair,84,no
+W-1472,C-0164,T-02,2026-06-29,Backflow test,50,no
+W-1473,C-0012,T-12,2026-06-29,Shutoff valve replacement,98,yes
+W-1474,C-0232,T-09,2026-06-29,Garbage disposal install,63,no
+W-1475,C-0325,T-01,2026-06-30,Boiler service,198,no
+W-1476,C-0224,T-07,2026-06-30,Burst pipe repair,219,yes
+W-1477,C-0307,T-01,2026-06-30,No heat call,130,no
+W-1478,C-0201,T-07,2026-06-30,Garbage disposal install,111,no
+W-1479,C-0367,T-01,2026-06-30,Drain clearing,108,no
+W-1480,C-0367,T-07,2026-06-30,Boiler service,122,no
+W-1481,C-0271,T-11,2026-06-30,Furnace tune-up,78,no
+W-1482,C-0318,T-01,2026-06-30,Shutoff valve replacement,66,no
+W-1483,C-0032,T-04,2026-06-30,Outlet repair,57,no
+W-1484,C-0089,T-07,2026-06-30,Faucet repair,65,no
+W-1485,C-0297,T-01,2026-06-30,Kitchen faucet replacement,122,no
+W-1486,C-0010,T-01,2026-06-30,Thermostat install,89,no
+W-1487,C-0194,T-01,2026-06-30,No heat call,76,yes
+W-1488,C-0327,T-04,2026-07-01,EV charger circuit,203,no
+W-1489,C-0078,T-08,2026-07-01,Outlet repair,78,no
+W-1490,C-0227,T-02,2026-07-01,Toilet repair,94,no
+W-1491,C-0228,T-06,2026-07-01,Ceiling fan install,113,no
+W-1492,C-0141,T-02,2026-07-01,Toilet repair,85,no
+W-1493,C-0238,T-01,2026-07-01,No heat call,143,yes
+W-1494,C-0153,T-09,2026-07-01,Sump pump replacement,159,no
+W-1495,C-0353,T-01,2026-07-01,Boiler service,180,no
+W-1496,C-0254,T-07,2026-07-01,Furnace tune-up,72,no
+W-1497,C-0326,T-01,2026-07-01,Drain clearing,59,no
+W-1498,C-0166,T-12,2026-07-01,Toilet repair,87,no
+W-1499,C-0080,T-10,2026-07-01,Outlet repair,45,no
+W-1500,C-0258,T-01,2026-07-01,Boiler service,147,no
+W-1501,C-0293,T-11,2026-07-02,Furnace tune-up,88,no
+W-1502,C-0089,T-02,2026-07-02,Faucet repair,81,no
+W-1503,C-0018,T-01,2026-07-02,Furnace tune-up,89,no
+W-1504,C-0372,T-07,2026-07-02,Water heater replacement,187,no
+W-1505,C-0387,T-07,2026-07-02,Sump pump replacement,151,no
+W-1506,C-0045,T-07,2026-07-02,No heat call,117,yes
+W-1507,C-0203,T-08,2026-07-02,GFCI outlet install,71,no
+W-1508,C-0211,T-01,2026-07-02,Boiler service,153,no
+W-1509,C-0286,T-01,2026-07-02,Thermostat install,99,no
+W-1510,C-0378,T-09,2026-07-02,Drain clearing,101,no
+W-1511,C-0029,T-01,2026-07-02,No heat call,61,yes
+W-1512,C-0018,T-07,2026-07-02,Garbage disposal install,113,no
+W-1513,C-0049,T-11,2026-07-02,Thermostat install,110,no
+W-1514,C-0068,T-10,2026-07-03,GFCI outlet install,82,no
+W-1515,C-0268,T-01,2026-07-03,No heat call,169,yes
+W-1516,C-0146,T-07,2026-07-03,Thermostat install,84,no
+W-1517,C-0171,T-02,2026-07-03,Kitchen faucet replacement,118,no
+W-1518,C-0293,T-11,2026-07-03,Heat pump repair,129,no
+W-1519,C-0345,T-03,2026-07-03,Boiler service,115,no
+W-1520,C-0192,T-10,2026-07-03,EV charger circuit,232,no
+W-1521,C-0204,T-12,2026-07-03,Water heater replacement,183,no
+W-1522,C-0210,T-08,2026-07-04,Ceiling fan install,116,no
+W-1523,C-0286,T-10,2026-07-04,Light fixture install,71,no
+W-1524,C-0331,T-10,2026-07-04,Outlet repair,52,no
+W-1525,C-0221,T-10,2026-07-04,EV charger circuit,217,no
+W-1526,C-0170,T-10,2026-07-04,Light fixture install,108,no
+W-1527,C-0253,T-01,2026-07-06,Backflow test,58,no
+W-1528,C-0016,T-05,2026-07-06,Kitchen faucet replacement,102,no
+W-1529,C-0050,T-01,2026-07-06,No heat call,85,yes
+W-1530,C-0169,T-06,2026-07-06,Breaker replacement,52,no
+W-1531,C-0208,T-02,2026-07-06,Shutoff valve replacement,71,no
+W-1532,C-0074,T-12,2026-07-06,Kitchen faucet replacement,103,no
+W-1533,C-0376,T-04,2026-07-06,Panel upgrade,366,no
+W-1534,C-0293,T-01,2026-07-06,Drain clearing,146,no
+W-1535,C-0282,T-11,2026-07-07,Heat pump repair,167,no
+W-1536,C-0378,T-07,2026-07-07,Toilet repair,56,no
+W-1537,C-0080,T-05,2026-07-07,Burst pipe repair,193,no
+W-1538,C-0364,T-05,2026-07-07,Kitchen faucet replacement,57,no
+W-1539,C-0096,T-04,2026-07-07,Outlet repair,62,no
+W-1540,C-0233,T-11,2026-07-07,Thermostat install,67,no
+W-1541,C-0244,T-01,2026-07-07,Drain clearing,61,no
+W-1542,C-0287,T-02,2026-07-07,Toilet repair,51,no
+W-1543,C-0143,T-01,2026-07-07,Burst pipe repair,81,no
+W-1544,C-0335,T-08,2026-07-07,GFCI outlet install,95,no
+W-1545,C-0319,T-05,2026-07-08,Toilet repair,65,no
+W-1546,C-0308,T-08,2026-07-08,Breaker replacement,73,yes
+W-1547,C-0117,T-08,2026-07-08,Light fixture install,72,no
+W-1548,C-0016,T-08,2026-07-08,Ceiling fan install,104,no
+W-1549,C-0079,T-06,2026-07-08,Light fixture install,122,no
+W-1550,C-0096,T-09,2026-07-08,Toilet repair,88,no
+W-1551,C-0209,T-06,2026-07-08,Light fixture install,127,no
+W-1552,C-0236,T-12,2026-07-08,Garbage disposal install,51,no
+W-1553,C-0305,T-12,2026-07-08,Kitchen faucet replacement,84,no
+W-1554,C-0015,T-05,2026-07-08,Shutoff valve replacement,105,no
+W-1555,C-0205,T-09,2026-07-09,Toilet repair,86,no
+W-1556,C-0342,T-10,2026-07-09,Ceiling fan install,81,no
+W-1557,C-0214,T-04,2026-07-09,Outlet repair,44,no
+W-1558,C-0222,T-04,2026-07-09,Panel upgrade,379,no
+W-1559,C-0124,T-08,2026-07-09,GFCI outlet install,102,no
+W-1560,C-0115,T-06,2026-07-09,Breaker replacement,78,no
+W-1561,C-0281,T-05,2026-07-09,Kitchen faucet replacement,69,no
+W-1562,C-0364,T-07,2026-07-09,No heat call,152,no
+W-1563,C-0133,T-10,2026-07-09,Breaker replacement,92,no
+W-1564,C-0127,T-04,2026-07-10,GFCI outlet install,88,no
+W-1565,C-0267,T-08,2026-07-10,Breaker replacement,99,no
+W-1566,C-0016,T-05,2026-07-10,Toilet repair,93,no
+W-1567,C-0270,T-07,2026-07-10,Kitchen faucet replacement,125,no
+W-1568,C-0216,T-03,2026-07-10,No heat call,76,yes
+W-1569,C-0291,T-07,2026-07-10,Furnace tune-up,103,no
+W-1570,C-0078,T-02,2026-07-10,Garbage disposal install,93,no
+W-1571,C-0142,T-07,2026-07-10,Water heater replacement,166,no
+W-1572,C-0255,T-08,2026-07-10,Breaker replacement,96,no
+W-1573,C-0054,T-07,2026-07-10,Water heater replacement,168,no
+W-1574,C-0118,T-10,2026-07-10,Light fixture install,88,no
+W-1575,C-0001,T-03,2026-07-10,Furnace tune-up,84,no
+W-1576,C-0059,T-10,2026-07-11,Breaker replacement,61,no
+W-1577,C-0026,T-03,2026-07-11,Thermostat install,52,no
+W-1578,C-0233,T-08,2026-07-11,Breaker replacement,50,no
+W-1579,C-0091,T-01,2026-07-13,Faucet repair,80,no
+W-1580,C-0047,T-01,2026-07-13,Shutoff valve replacement,66,no
+W-1581,C-0028,T-07,2026-07-13,No heat call,55,no
+W-1582,C-0171,T-07,2026-07-13,Kitchen faucet replacement,126,no
+W-1583,C-0106,T-11,2026-07-13,Thermostat install,83,no
+W-1584,C-0254,T-06,2026-07-13,Outlet repair,37,no
+W-1585,C-0089,T-09,2026-07-13,Shutoff valve replacement,61,no
+W-1586,C-0038,T-05,2026-07-13,Faucet repair,83,no
+W-1587,C-0105,T-12,2026-07-13,Sump pump replacement,114,no
+W-1588,C-0224,T-01,2026-07-13,Sump pump replacement,194,yes
+W-1589,C-0160,T-05,2026-07-14,Garbage disposal install,95,no
+W-1590,C-0198,T-03,2026-07-14,No heat call,108,no
+W-1591,C-0153,T-03,2026-07-14,Heat pump repair,134,yes
+W-1592,C-0297,T-09,2026-07-14,Faucet repair,44,no
+W-1593,C-0205,T-07,2026-07-14,Shutoff valve replacement,79,no
+W-1594,C-0083,T-06,2026-07-14,GFCI outlet install,67,no
+W-1595,C-0194,T-02,2026-07-14,Shutoff valve replacement,60,no
+W-1596,C-0217,T-01,2026-07-14,Backflow test,47,no
+W-1597,C-0109,T-06,2026-07-14,GFCI outlet install,105,no
+W-1598,C-0048,T-07,2026-07-14,Shutoff valve replacement,76,no
+W-1599,C-0075,T-08,2026-07-15,Breaker replacement,92,no
+W-1600,C-0157,T-10,2026-07-15,Outlet repair,51,no
+W-1601,C-0290,T-03,2026-07-15,Thermostat install,51,no
+W-1602,C-0134,T-02,2026-07-15,Garbage disposal install,94,no
+W-1603,C-0252,T-04,2026-07-15,Light fixture install,46,no
+W-1604,C-0197,T-01,2026-07-15,Toilet repair,56,no
+W-1605,C-0335,T-09,2026-07-15,Shutoff valve replacement,74,no
+W-1606,C-0127,T-07,2026-07-15,Faucet repair,80,no
+W-1607,C-0386,T-07,2026-07-15,Heat pump repair,69,no
+W-1608,C-0318,T-06,2026-07-15,Outlet repair,50,no
+W-1609,C-0205,T-04,2026-07-15,Light fixture install,116,no
+W-1610,C-0148,T-08,2026-07-16,Breaker replacement,98,no
+W-1611,C-0096,T-04,2026-07-16,Outlet repair,78,no
+W-1612,C-0275,T-04,2026-07-16,GFCI outlet install,68,no
+W-1613,C-0390,T-09,2026-07-16,Thermostat install,81,no
+W-1614,C-0283,T-01,2026-07-16,No heat call,97,no
+W-1615,C-0078,T-05,2026-07-16,Toilet repair,45,no
+W-1616,C-0033,T-05,2026-07-16,Kitchen faucet replacement,106,no
+W-1617,C-0370,T-12,2026-07-16,Drain clearing,127,no
+W-1618,C-0189,T-01,2026-07-16,Backflow test,38,no
+W-1619,C-0035,T-07,2026-07-16,Heat pump repair,99,yes
+W-1620,C-0171,T-12,2026-07-16,Drain clearing,115,no
+W-1621,C-0073,T-01,2026-07-16,Backflow test,58,no
+W-1622,C-0293,T-12,2026-07-16,Sump pump replacement,122,no
+W-1623,C-0125,T-12,2026-07-17,Sump pump replacement,178,no
+W-1624,C-0307,T-08,2026-07-17,Outlet repair,87,no
+W-1625,C-0111,T-07,2026-07-17,Furnace tune-up,57,no
+W-1626,C-0278,T-11,2026-07-17,Furnace tune-up,101,no
+W-1627,C-0073,T-08,2026-07-17,Breaker replacement,65,no
+W-1628,C-0329,T-02,2026-07-17,Faucet repair,78,no
+W-1629,C-0266,T-01,2026-07-17,Shutoff valve replacement,116,no
+W-1630,C-0152,T-05,2026-07-17,Shutoff valve replacement,92,no
+W-1631,C-0020,T-10,2026-07-18,Panel upgrade,324,no
+W-1632,C-0197,T-03,2026-07-18,No heat call,171,no
+W-1633,C-0053,T-07,2026-07-20,Water heater replacement,278,no
+W-1634,C-0312,T-04,2026-07-20,GFCI outlet install,106,no
+W-1635,C-0260,T-01,2026-07-20,Furnace tune-up,65,no
+W-1636,C-0047,T-09,2026-07-20,Water heater replacement,280,no
+W-1637,C-0380,T-12,2026-07-20,Burst pipe repair,119,yes
+W-1638,C-0214,T-04,2026-07-20,Outlet repair,64,no
+W-1639,C-0087,T-12,2026-07-20,Shutoff valve replacement,92,no
+W-1640,C-0062,T-04,2026-07-20,Breaker replacement,99,yes
+W-1641,C-0070,T-09,2026-07-20,Furnace tune-up,59,no
+W-1642,C-0002,T-01,2026-07-20,Heat pump repair,114,no
+W-1643,C-0357,T-09,2026-07-21,Water heater replacement,171,no
+W-1644,C-0089,T-09,2026-07-21,Water heater replacement,251,no
+W-1645,C-0387,T-09,2026-07-21,Kitchen faucet replacement,112,no
+W-1646,C-0351,T-07,2026-07-21,Kitchen faucet replacement,88,no
+W-1647,C-0132,T-07,2026-07-21,Drain clearing,114,no
+W-1648,C-0025,T-09,2026-07-21,Heat pump repair,204,no
+W-1649,C-0227,T-12,2026-07-21,Sump pump replacement,114,no
+W-1650,C-0383,T-12,2026-07-21,Toilet repair,76,no
+W-1651,C-0358,T-01,2026-07-21,Boiler service,173,no
+W-1652,C-0074,T-07,2026-07-21,No heat call,112,yes
+W-1653,C-0078,T-02,2026-07-21,Drain clearing,116,yes
+W-1654,C-0371,T-02,2026-07-22,Garbage disposal install,65,no
+W-1655,C-0089,T-10,2026-07-22,Light fixture install,131,no
+W-1656,C-0296,T-11,2026-07-22,Furnace tune-up,73,no
+W-1657,C-0196,T-07,2026-07-22,Heat pump repair,88,no
+W-1658,C-0169,T-12,2026-07-22,Water heater replacement,233,no
+W-1659,C-0370,T-05,2026-07-22,Shutoff valve replacement,71,no
+W-1660,C-0201,T-12,2026-07-22,Kitchen faucet replacement,111,no
+W-1661,C-0043,T-09,2026-07-22,No heat call,79,yes
+W-1662,C-0281,T-12,2026-07-23,Water heater replacement,295,no
+W-1663,C-0170,T-09,2026-07-23,Toilet repair,75,no
+W-1664,C-0297,T-12,2026-07-23,Kitchen faucet replacement,106,no
+W-1665,C-0374,T-04,2026-07-23,GFCI outlet install,92,no
+W-1666,C-0247,T-06,2026-07-23,Light fixture install,81,no
+W-1667,C-0293,T-09,2026-07-23,Heat pump repair,73,no
+W-1668,C-0151,T-01,2026-07-23,Kitchen faucet replacement,78,no
+W-1669,C-0276,T-11,2026-07-23,Heat pump repair,122,no
+W-1670,C-0240,T-10,2026-07-23,Outlet repair,79,no
+W-1671,C-0198,T-03,2026-07-23,Furnace tune-up,66,no
+W-1672,C-0087,T-09,2026-07-23,Thermostat install,73,no
+W-1673,C-0364,T-01,2026-07-24,Burst pipe repair,220,yes
+W-1674,C-0335,T-01,2026-07-24,Kitchen faucet replacement,129,no
+W-1675,C-0217,T-12,2026-07-24,Drain clearing,49,no
+W-1676,C-0356,T-01,2026-07-24,Garbage disposal install,117,no
+W-1677,C-0344,T-07,2026-07-24,Furnace tune-up,69,no
+W-1678,C-0349,T-12,2026-07-24,Shutoff valve replacement,79,no
+W-1679,C-0195,T-07,2026-07-24,Toilet repair,90,no
+W-1680,C-0230,T-12,2026-07-24,Garbage disposal install,80,no
+W-1681,C-0096,T-10,2026-07-24,GFCI outlet install,43,no
+W-1682,C-0086,T-01,2026-07-24,Toilet repair,78,no
+W-1683,C-0364,T-08,2026-07-25,Outlet repair,51,no
+W-1684,C-0246,T-03,2026-07-25,Heat pump repair,202,no
+W-1685,C-0152,T-09,2026-07-27,Heat pump repair,144,yes
+W-1686,C-0318,T-12,2026-07-27,Drain clearing,132,no
+W-1687,C-0182,T-05,2026-07-27,Kitchen faucet replacement,119,no
+W-1688,C-0104,T-06,2026-07-27,Breaker replacement,46,no
+W-1689,C-0005,T-06,2026-07-27,Ceiling fan install,102,no
+W-1690,C-0334,T-01,2026-07-27,Water heater replacement,228,no
+W-1691,C-0240,T-04,2026-07-27,Light fixture install,128,no
+W-1692,C-0259,T-11,2026-07-27,Heat pump repair,89,no
+W-1693,C-0267,T-05,2026-07-27,Shutoff valve replacement,76,no
+W-1694,C-0235,T-05,2026-07-28,Toilet repair,70,no
+W-1695,C-0222,T-10,2026-07-28,Outlet repair,54,no
+W-1696,C-0329,T-09,2026-07-28,Water heater replacement,179,no
+W-1697,C-0265,T-12,2026-07-28,Drain clearing,67,no
+W-1698,C-0360,T-11,2026-07-28,Furnace tune-up,70,no
+W-1699,C-0076,T-04,2026-07-28,EV charger circuit,273,no
+W-1700,C-0262,T-04,2026-07-28,Panel upgrade,427,no
+W-1701,C-0174,T-07,2026-07-28,Shutoff valve replacement,61,no
+W-1702,C-0098,T-02,2026-07-28,Drain clearing,128,yes
+W-1703,C-0357,T-04,2026-07-28,GFCI outlet install,42,no
+W-1704,C-0290,T-06,2026-07-28,GFCI outlet install,77,no
+W-1705,C-0370,T-01,2026-07-28,No heat call,124,yes
+W-1706,C-0171,T-07,2026-07-29,Furnace tune-up,60,no
+W-1707,C-0353,T-11,2026-07-29,Furnace tune-up,57,no
+W-1708,C-0262,T-11,2026-07-29,Furnace tune-up,92,no
+W-1709,C-0176,T-11,2026-07-29,Furnace tune-up,83,no
+W-1710,C-0383,T-10,2026-07-29,EV charger circuit,170,no
+W-1711,C-0143,T-11,2026-07-29,Furnace tune-up,68,no
+W-1712,C-0178,T-09,2026-07-29,Thermostat install,84,no
+W-1713,C-0298,T-04,2026-07-29,Outlet repair,87,no
+W-1714,C-0398,T-02,2026-07-29,Kitchen faucet replacement,115,no
+W-1715,C-0286,T-01,2026-07-29,Furnace tune-up,100,no
+W-1716,C-0326,T-02,2026-07-29,Backflow test,52,no
+W-1717,C-0334,T-05,2026-07-29,Shutoff valve replacement,93,yes
+W-1718,C-0010,T-03,2026-07-30,Thermostat install,89,no
+W-1719,C-0111,T-11,2026-07-30,Furnace tune-up,73,no
+W-1720,C-0140,T-08,2026-07-30,Outlet repair,73,no
+W-1721,C-0091,T-01,2026-07-30,Thermostat install,50,no
+W-1722,C-0265,T-02,2026-07-30,Backflow test,69,no
+W-1723,C-0333,T-03,2026-07-30,Heat pump repair,192,no
+W-1724,C-0114,T-01,2026-07-30,No heat call,173,no
+W-1725,C-0043,T-01,2026-07-30,Garbage disposal install,55,no
+W-1726,C-0353,T-08,2026-07-30,Outlet repair,46,no
+W-1727,C-0383,T-12,2026-07-30,Toilet repair,43,no
+W-1728,C-0215,T-10,2026-07-31,Breaker replacement,90,no
+W-1729,C-0129,T-04,2026-07-31,Breaker replacement,60,no
+W-1730,C-0033,T-11,2026-07-31,Furnace tune-up,101,no
+W-1731,C-0398,T-10,2026-07-31,Light fixture install,63,no
+W-1732,C-0219,T-07,2026-07-31,Furnace tune-up,110,no
+W-1733,C-0141,T-02,2026-07-31,Backflow test,70,no
+W-1734,C-0318,T-07,2026-07-31,Boiler service,191,no
+W-1735,C-0244,T-07,2026-07-31,Shutoff valve replacement,79,no
+W-1736,C-0232,T-01,2026-07-31,Toilet repair,71,no
+W-1737,C-0147,T-07,2026-07-31,Furnace tune-up,69,no
+W-1738,C-0327,T-08,2026-07-31,Outlet repair,49,no
+W-1739,C-0145,T-03,2026-08-01,Furnace tune-up,90,no
+W-1740,C-0210,T-03,2026-08-01,No heat call,103,yes
+W-1741,C-0246,T-03,2026-08-01,No heat call,77,no
+W-1742,C-0132,T-01,2026-08-03,Toilet repair,73,no
+W-1743,C-0164,T-04,2026-08-03,EV charger circuit,193,no
+W-1744,C-0131,T-02,2026-08-03,Toilet repair,77,no
+W-1745,C-0329,T-07,2026-08-03,Boiler service,173,no
+W-1746,C-0162,T-01,2026-08-03,Burst pipe repair,228,no
+W-1747,C-0028,T-05,2026-08-03,Kitchen faucet replacement,69,no
+W-1748,C-0400,T-12,2026-08-03,Shutoff valve replacement,117,no
+W-1749,C-0052,T-04,2026-08-03,GFCI outlet install,97,no
+W-1750,C-0201,T-06,2026-08-03,GFCI outlet install,74,no
+W-1751,C-0001,T-01,2026-08-03,Toilet repair,90,no
+W-1752,C-0343,T-12,2026-08-04,Faucet repair,84,no
+W-1753,C-0226,T-06,2026-08-04,Breaker replacement,43,no
+W-1754,C-0143,T-06,2026-08-04,Outlet repair,41,no
+W-1755,C-0335,T-01,2026-08-04,Toilet repair,77,no
+W-1756,C-0021,T-05,2026-08-04,Burst pipe repair,158,no
+W-1757,C-0307,T-04,2026-08-04,Outlet repair,36,no
+W-1758,C-0153,T-12,2026-08-04,Drain clearing,123,no
+W-1759,C-0212,T-08,2026-08-04,Breaker replacement,85,no
+W-1760,C-0339,T-06,2026-08-04,Breaker replacement,61,yes
+W-1761,C-0343,T-01,2026-08-05,Toilet repair,96,no
+W-1762,C-0098,T-04,2026-08-05,Light fixture install,65,no
+W-1763,C-0086,T-01,2026-08-05,No heat call,118,no
+W-1764,C-0356,T-05,2026-08-05,Drain clearing,86,no
+W-1765,C-0268,T-07,2026-08-05,Thermostat install,92,no
+W-1766,C-0347,T-08,2026-08-05,Ceiling fan install,69,no
+W-1767,C-0379,T-07,2026-08-05,Shutoff valve replacement,54,no
+W-1768,C-0372,T-07,2026-08-05,Drain clearing,64,no
+W-1769,C-0138,T-10,2026-08-05,Breaker replacement,85,no
+W-1770,C-0021,T-04,2026-08-05,GFCI outlet install,42,no
+W-1771,C-0070,T-07,2026-08-06,No heat call,75,no
+W-1772,C-0187,T-12,2026-08-06,Toilet repair,55,no
+W-1773,C-0074,T-09,2026-08-06,Shutoff valve replacement,74,no
+W-1774,C-0269,T-03,2026-08-06,Furnace tune-up,100,no
+W-1775,C-0334,T-12,2026-08-06,Shutoff valve replacement,89,no
+W-1776,C-0369,T-01,2026-08-06,Furnace tune-up,53,no
+W-1777,C-0110,T-05,2026-08-06,Kitchen faucet replacement,100,no
+W-1778,C-0137,T-05,2026-08-06,Kitchen faucet replacement,73,no
+W-1779,C-0128,T-02,2026-08-06,Faucet repair,51,no
+W-1780,C-0233,T-09,2026-08-06,Drain clearing,64,no
+W-1781,C-0206,T-09,2026-08-06,No heat call,163,yes
+W-1782,C-0181,T-10,2026-08-07,Outlet repair,66,no
+W-1783,C-0396,T-10,2026-08-07,EV charger circuit,165,no
+W-1784,C-0345,T-04,2026-08-07,Panel upgrade,351,no
+W-1785,C-0325,T-02,2026-08-07,Garbage disposal install,94,no
+W-1786,C-0238,T-04,2026-08-07,EV charger circuit,287,no
+W-1787,C-0363,T-05,2026-08-07,Garbage disposal install,110,no
+W-1788,C-0380,T-04,2026-08-07,Ceiling fan install,62,no
+W-1789,C-0099,T-03,2026-08-07,Furnace tune-up,60,no
+W-1790,C-0058,T-04,2026-08-07,Breaker replacement,94,no
+W-1791,C-0125,T-07,2026-08-07,Heat pump repair,113,no
+W-1792,C-0065,T-04,2026-08-07,Light fixture install,145,no
+W-1793,C-0395,T-01,2026-08-07,Sump pump replacement,156,yes
+W-1794,C-0156,T-10,2026-08-08,GFCI outlet install,96,yes
+W-1795,C-0009,T-08,2026-08-08,Outlet repair,47,no
+W-1796,C-0168,T-08,2026-08-08,GFCI outlet install,92,no
+W-1797,C-0285,T-01,2026-08-10,Furnace tune-up,100,no
+W-1798,C-0047,T-01,2026-08-10,Shutoff valve replacement,56,no
+W-1799,C-0337,T-09,2026-08-10,Faucet repair,59,no
+W-1800,C-0192,T-06,2026-08-10,Ceiling fan install,105,no
+W-1801,C-0298,T-11,2026-08-10,Furnace tune-up,101,no
+W-1802,C-0269,T-06,2026-08-10,Light fixture install,124,no
+W-1803,C-0022,T-01,2026-08-10,Faucet repair,63,no
+W-1804,C-0215,T-04,2026-08-10,EV charger circuit,170,no
+W-1805,C-0111,T-06,2026-08-10,Breaker replacement,98,yes
+W-1806,C-0267,T-04,2026-08-10,Ceiling fan install,96,no
+W-1807,C-0395,T-11,2026-08-10,Furnace tune-up,85,no
+W-1808,C-0011,T-07,2026-08-10,Kitchen faucet replacement,67,no
+W-1809,C-0268,T-09,2026-08-10,Heat pump repair,68,no
+W-1810,C-0292,T-07,2026-08-11,Shutoff valve replacement,109,no
+W-1811,C-0170,T-09,2026-08-11,No heat call,84,no
+W-1812,C-0343,T-09,2026-08-11,Water heater replacement,259,no
+W-1813,C-0071,T-01,2026-08-11,Backflow test,42,no
+W-1814,C-0038,T-05,2026-08-11,Shutoff valve replacement,62,no
+W-1815,C-0290,T-09,2026-08-11,Furnace tune-up,53,no
+W-1816,C-0160,T-02,2026-08-11,Burst pipe repair,238,no
+W-1817,C-0013,T-09,2026-08-11,Toilet repair,98,no
+W-1818,C-0157,T-09,2026-08-12,Drain clearing,66,no
+W-1819,C-0031,T-02,2026-08-12,Kitchen faucet replacement,95,no
+W-1820,C-0358,T-06,2026-08-12,Outlet repair,83,no
+W-1821,C-0328,T-06,2026-08-12,Outlet repair,35,no
+W-1822,C-0325,T-02,2026-08-12,Burst pipe repair,182,no
+W-1823,C-0318,T-01,2026-08-12,Faucet repair,59,no
+W-1824,C-0325,T-07,2026-08-12,Furnace tune-up,76,no
+W-1825,C-0369,T-04,2026-08-12,GFCI outlet install,80,no
+W-1826,C-0371,T-01,2026-08-12,Water heater replacement,276,no
+W-1827,C-0037,T-04,2026-08-12,Panel upgrade,433,no
+W-1828,C-0307,T-06,2026-08-12,Breaker replacement,45,no
+W-1829,C-0195,T-01,2026-08-12,Backflow test,50,no
+W-1830,C-0054,T-12,2026-08-13,Drain clearing,99,no
+W-1831,C-0131,T-04,2026-08-13,Outlet repair,54,no
+W-1832,C-0142,T-04,2026-08-13,Outlet repair,46,no
+W-1833,C-0275,T-02,2026-08-13,Toilet repair,73,yes
+W-1834,C-0262,T-07,2026-08-13,Furnace tune-up,83,no
+W-1835,C-0248,T-10,2026-08-13,Panel upgrade,330,no
+W-1836,C-0221,T-07,2026-08-13,No heat call,130,no
+W-1837,C-0124,T-03,2026-08-13,Furnace tune-up,55,no
+W-1838,C-0010,T-09,2026-08-13,Thermostat install,91,no
+W-1839,C-0330,T-11,2026-08-13,Heat pump repair,174,no
+W-1840,C-0089,T-10,2026-08-14,EV charger circuit,174,no
+W-1841,C-0178,T-04,2026-08-14,GFCI outlet install,59,no
+W-1842,C-0068,T-10,2026-08-14,Breaker replacement,85,yes
+W-1843,C-0287,T-04,2026-08-14,Breaker replacement,46,no
+W-1844,C-0271,T-04,2026-08-14,Ceiling fan install,64,no
+W-1845,C-0334,T-11,2026-08-14,Heat pump repair,144,yes
+W-1846,C-0028,T-07,2026-08-14,Furnace tune-up,57,no
+W-1847,C-0174,T-05,2026-08-14,Drain clearing,106,yes
+W-1848,C-0265,T-12,2026-08-14,Toilet repair,96,no
+W-1849,C-0358,T-04,2026-08-14,EV charger circuit,274,no
+W-1850,C-0136,T-02,2026-08-14,Sump pump replacement,194,no
+W-1851,C-0321,T-01,2026-08-14,Thermostat install,55,no
+W-1852,C-0001,T-03,2026-08-15,Boiler service,166,no
+W-1853,C-0391,T-10,2026-08-15,Outlet repair,56,no
+W-1854,C-0121,T-03,2026-08-15,No heat call,67,yes
+W-1855,C-0049,T-03,2026-08-15,Thermostat install,57,no
+W-1856,C-0039,T-10,2026-08-15,GFCI outlet install,113,no
+W-1857,C-0377,T-06,2026-08-17,Outlet repair,78,no
+W-1858,C-0088,T-11,2026-08-17,Heat pump repair,95,no
+W-1859,C-0215,T-12,2026-08-17,Sump pump replacement,145,no
+W-1860,C-0339,T-12,2026-08-17,Kitchen faucet replacement,130,no
+W-1861,C-0224,T-06,2026-08-17,Light fixture install,115,no
+W-1862,C-0396,T-11,2026-08-17,Heat pump repair,182,no
+W-1863,C-0315,T-01,2026-08-17,No heat call,137,no
+W-1864,C-0086,T-06,2026-08-17,Light fixture install,130,no
+W-1865,C-0364,T-04,2026-08-17,Panel upgrade,389,no
+W-1866,C-0111,T-04,2026-08-17,GFCI outlet install,105,no
+W-1867,C-0005,T-09,2026-08-17,Shutoff valve replacement,110,no
+W-1868,C-0115,T-01,2026-08-17,Shutoff valve replacement,79,no
+W-1869,C-0124,T-12,2026-08-18,Faucet repair,49,no
+W-1870,C-0010,T-08,2026-08-18,Outlet repair,35,no
+W-1871,C-0339,T-12,2026-08-18,Drain clearing,83,no
+W-1872,C-0372,T-03,2026-08-18,Furnace tune-up,105,no
+W-1873,C-0107,T-07,2026-08-18,Drain clearing,107,no
+W-1874,C-0186,T-09,2026-08-18,No heat call,173,yes
+W-1875,C-0400,T-10,2026-08-18,EV charger circuit,170,no
+W-1876,C-0109,T-04,2026-08-18,Breaker replacement,89,yes
+W-1877,C-0200,T-09,2026-08-18,Thermostat install,97,no
+W-1878,C-0299,T-02,2026-08-19,Faucet repair,84,no
+W-1879,C-0392,T-01,2026-08-19,Heat pump repair,106,no
+W-1880,C-0345,T-08,2026-08-19,GFCI outlet install,71,no
+W-1881,C-0331,T-03,2026-08-19,No heat call,67,yes
+W-1882,C-0276,T-09,2026-08-19,Garbage disposal install,76,no
+W-1883,C-0266,T-04,2026-08-19,Outlet repair,51,no
+W-1884,C-0145,T-09,2026-08-19,Water heater replacement,211,no
+W-1885,C-0368,T-05,2026-08-19,Garbage disposal install,65,no
+W-1886,C-0333,T-08,2026-08-19,GFCI outlet install,70,no
+W-1887,C-0033,T-05,2026-08-19,Drain clearing,140,no
+W-1888,C-0127,T-01,2026-08-19,Drain clearing,124,no
+W-1889,C-0275,T-11,2026-08-20,Furnace tune-up,78,no
+W-1890,C-0307,T-09,2026-08-20,No heat call,169,no
+W-1891,C-0170,T-07,2026-08-20,Kitchen faucet replacement,90,no
+W-1892,C-0124,T-01,2026-08-20,Drain clearing,130,no
+W-1893,C-0170,T-10,2026-08-20,GFCI outlet install,98,no
+W-1894,C-0179,T-08,2026-08-20,Outlet repair,70,no
+W-1895,C-0094,T-01,2026-08-20,Garbage disposal install,115,no
+W-1896,C-0087,T-06,2026-08-20,GFCI outlet install,113,no
+W-1897,C-0102,T-04,2026-08-20,Light fixture install,50,no
+W-1898,C-0130,T-05,2026-08-21,Faucet repair,43,no
+W-1899,C-0016,T-07,2026-08-21,Boiler service,87,no
+W-1900,C-0083,T-11,2026-08-21,Furnace tune-up,76,no
+W-1901,C-0222,T-01,2026-08-21,No heat call,115,no
+W-1902,C-0097,T-07,2026-08-21,Furnace tune-up,69,no
+W-1903,C-0207,T-08,2026-08-21,Breaker replacement,83,no
+W-1904,C-0169,T-01,2026-08-21,Garbage disposal install,78,no
+W-1905,C-0171,T-04,2026-08-21,GFCI outlet install,117,no
+W-1906,C-0062,T-02,2026-08-21,Toilet repair,44,no
+W-1907,C-0117,T-05,2026-08-21,Faucet repair,43,no
+W-1908,C-0019,T-03,2026-08-22,Boiler service,192,no
+W-1909,C-0098,T-10,2026-08-22,Breaker replacement,99,no
+W-1910,C-0269,T-04,2026-08-24,Ceiling fan install,110,no
+W-1911,C-0010,T-01,2026-08-24,Boiler service,95,no
+W-1912,C-0059,T-01,2026-08-24,Furnace tune-up,110,no
+W-1913,C-0315,T-04,2026-08-24,Breaker replacement,44,no
+W-1914,C-0329,T-01,2026-08-24,No heat call,135,yes
+W-1915,C-0250,T-11,2026-08-24,Furnace tune-up,95,no
+W-1916,C-0022,T-09,2026-08-24,Kitchen faucet replacement,113,no
+W-1917,C-0353,T-01,2026-08-24,No heat call,54,yes
+W-1918,C-0024,T-07,2026-08-24,Heat pump repair,99,yes
+W-1919,C-0300,T-07,2026-08-24,Water heater replacement,257,no
+W-1920,C-0142,T-01,2026-08-25,Toilet repair,50,no
+W-1921,C-0184,T-11,2026-08-25,Heat pump repair,158,no
+W-1922,C-0178,T-05,2026-08-25,Toilet repair,65,no
+W-1923,C-0333,T-09,2026-08-25,Faucet repair,56,no
+W-1924,C-0304,T-01,2026-08-25,No heat call,73,yes
+W-1925,C-0286,T-09,2026-08-25,Burst pipe repair,207,yes
+W-1926,C-0204,T-07,2026-08-25,Burst pipe repair,168,yes
+W-1927,C-0165,T-05,2026-08-25,Garbage disposal install,61,no
+W-1928,C-0178,T-04,2026-08-25,Ceiling fan install,92,no
+W-1929,C-0176,T-05,2026-08-25,Faucet repair,90,no
+W-1930,C-0242,T-07,2026-08-26,Water heater replacement,195,no
+W-1931,C-0041,T-01,2026-08-26,Backflow test,71,no
+W-1932,C-0114,T-07,2026-08-26,No heat call,111,no
+W-1933,C-0012,T-01,2026-08-26,Burst pipe repair,167,no
+W-1934,C-0112,T-01,2026-08-26,No heat call,176,yes
+W-1935,C-0143,T-05,2026-08-26,Drain clearing,130,yes
+W-1936,C-0341,T-05,2026-08-26,Sump pump replacement,181,yes
+W-1937,C-0268,T-08,2026-08-26,Outlet repair,45,no
+W-1938,C-0010,T-11,2026-08-26,Furnace tune-up,106,no
+W-1939,C-0225,T-02,2026-08-26,Shutoff valve replacement,109,no
+W-1940,C-0027,T-04,2026-08-27,Outlet repair,39,no
+W-1941,C-0083,T-01,2026-08-27,Boiler service,180,yes
+W-1942,C-0054,T-09,2026-08-27,Drain clearing,102,no
+W-1943,C-0262,T-09,2026-08-27,Kitchen faucet replacement,57,no
+W-1944,C-0237,T-05,2026-08-27,Burst pipe repair,81,no
+W-1945,C-0162,T-08,2026-08-27,GFCI outlet install,98,yes
+W-1946,C-0070,T-04,2026-08-27,Ceiling fan install,148,no
+W-1947,C-0259,T-09,2026-08-27,Thermostat install,63,no
+W-1948,C-0168,T-07,2026-08-27,Faucet repair,71,no
+W-1949,C-0003,T-11,2026-08-27,Furnace tune-up,95,no
+W-1950,C-0008,T-09,2026-08-27,Water heater replacement,303,no
+W-1951,C-0040,T-06,2026-08-27,Outlet repair,43,no
+W-1952,C-0056,T-02,2026-08-27,Drain clearing,60,no
+W-1953,C-0142,T-04,2026-08-28,EV charger circuit,289,no
+W-1954,C-0032,T-10,2026-08-28,Panel upgrade,420,no
+W-1955,C-0324,T-03,2026-08-28,Furnace tune-up,108,no
+W-1956,C-0093,T-01,2026-08-28,Garbage disposal install,81,no
+W-1957,C-0178,T-01,2026-08-28,Toilet repair,93,no
+W-1958,C-0374,T-03,2026-08-28,Thermostat install,105,no
+W-1959,C-0358,T-08,2026-08-28,Breaker replacement,51,no
+W-1960,C-0359,T-03,2026-08-28,Furnace tune-up,101,no
+W-1961,C-0306,T-01,2026-08-28,Thermostat install,100,no
+W-1962,C-0366,T-10,2026-08-29,Breaker replacement,66,no
+W-1963,C-0280,T-08,2026-08-29,GFCI outlet install,55,no
+W-1964,C-0357,T-08,2026-08-29,Light fixture install,138,no
+W-1965,C-0307,T-10,2026-08-29,Light fixture install,66,no
+W-1966,C-0252,T-10,2026-08-29,EV charger circuit,162,no
+W-1967,C-0034,T-04,2026-08-31,GFCI outlet install,96,no
+W-1968,C-0251,T-07,2026-08-31,Heat pump repair,133,no
+W-1969,C-0272,T-01,2026-08-31,Furnace tune-up,90,no
+W-1970,C-0015,T-09,2026-08-31,Kitchen faucet replacement,107,no
+W-1971,C-0107,T-06,2026-08-31,Outlet repair,73,no
+W-1972,C-0053,T-01,2026-08-31,Toilet repair,58,no
+W-1973,C-0353,T-04,2026-08-31,GFCI outlet install,90,no
+W-1974,C-0121,T-09,2026-08-31,Water heater replacement,265,no
+W-1975,C-0050,T-12,2026-08-31,Drain clearing,138,no
+W-1976,C-0368,T-09,2026-08-31,Toilet repair,66,no
+W-1977,C-0221,T-06,2026-08-31,Breaker replacement,96,no
+W-1978,C-0363,T-12,2026-08-31,Garbage disposal install,84,no
+W-1979,C-0360,T-01,2026-09-01,Kitchen faucet replacement,57,no
+W-1980,C-0111,T-02,2026-09-01,Toilet repair,54,no
+W-1981,C-0307,T-01,2026-09-01,Backflow test,64,no
+W-1982,C-0327,T-05,2026-09-01,Toilet repair,94,no
+W-1983,C-0105,T-07,2026-09-01,Thermostat install,54,no
+W-1984,C-0035,T-07,2026-09-01,Shutoff valve replacement,70,no
+W-1985,C-0324,T-07,2026-09-01,Faucet repair,60,no
+W-1986,C-0275,T-04,2026-09-01,Breaker replacement,72,no
+W-1987,C-0020,T-11,2026-09-02,Thermostat install,90,no
+W-1988,C-0170,T-07,2026-09-02,Kitchen faucet replacement,124,no
+W-1989,C-0050,T-01,2026-09-02,Drain clearing,47,no
+W-1990,C-0144,T-01,2026-09-02,Drain clearing,65,no
+W-1991,C-0082,T-01,2026-09-02,Toilet repair,93,no
+W-1992,C-0332,T-06,2026-09-02,Breaker replacement,95,no
+W-1993,C-0303,T-09,2026-09-02,Faucet repair,67,no
+W-1994,C-0103,T-07,2026-09-02,Heat pump repair,197,no
+W-1995,C-0021,T-10,2026-09-02,EV charger circuit,163,no
+W-1996,C-0281,T-10,2026-09-02,GFCI outlet install,66,no
+W-1997,C-0227,T-10,2026-09-02,Light fixture install,93,no
+W-1998,C-0275,T-12,2026-09-02,Garbage disposal install,112,no
+W-1999,C-0335,T-07,2026-09-03,Thermostat install,76,no
+W-2000,C-0171,T-02,2026-09-03,Drain clearing,112,no
+W-2001,C-0197,T-07,2026-09-03,Drain clearing,68,no
+W-2002,C-0147,T-07,2026-09-03,Kitchen faucet replacement,90,no
+W-2003,C-0169,T-07,2026-09-03,Boiler service,105,no
+W-2004,C-0058,T-05,2026-09-03,Toilet repair,46,no
+W-2005,C-0165,T-08,2026-09-03,GFCI outlet install,96,no
+W-2006,C-0150,T-01,2026-09-03,Faucet repair,69,no
+W-2007,C-0085,T-08,2026-09-03,Light fixture install,130,no
+W-2008,C-0378,T-08,2026-09-03,Outlet repair,46,no
+W-2009,C-0239,T-07,2026-09-03,Water heater replacement,292,yes
+W-2010,C-0165,T-02,2026-09-04,Drain clearing,110,no
+W-2011,C-0325,T-04,2026-09-04,GFCI outlet install,47,no
+W-2012,C-0273,T-01,2026-09-04,No heat call,76,no
+W-2013,C-0078,T-01,2026-09-04,Drain clearing,149,no
+W-2014,C-0176,T-03,2026-09-04,Heat pump repair,133,no
+W-2015,C-0209,T-12,2026-09-04,Water heater replacement,300,no
+W-2016,C-0351,T-04,2026-09-04,Panel upgrade,402,no
+W-2017,C-0168,T-12,2026-09-04,Garbage disposal install,73,no
+W-2018,C-0329,T-12,2026-09-04,Drain clearing,101,no
+W-2019,C-0318,T-03,2026-09-04,No heat call,127,yes
+W-2020,C-0257,T-04,2026-09-04,Breaker replacement,46,no
+W-2021,C-0131,T-03,2026-09-05,No heat call,89,no
+W-2022,C-0297,T-10,2026-09-05,Outlet repair,48,no
+W-2023,C-0296,T-03,2026-09-05,No heat call,90,no
+W-2024,C-0208,T-03,2026-09-05,Thermostat install,97,no
+W-2025,C-0331,T-09,2026-09-07,Kitchen faucet replacement,91,no
+W-2026,C-0162,T-01,2026-09-07,Thermostat install,74,no
+W-2027,C-0249,T-01,2026-09-07,Furnace tune-up,81,no
+W-2028,C-0124,T-12,2026-09-07,Drain clearing,134,yes
+W-2029,C-0061,T-02,2026-09-07,Faucet repair,45,no
+W-2030,C-0090,T-05,2026-09-07,Sump pump replacement,145,yes
+W-2031,C-0181,T-02,2026-09-07,Kitchen faucet replacement,60,no
+W-2032,C-0212,T-04,2026-09-07,GFCI outlet install,113,no
+W-2033,C-0137,T-01,2026-09-07,Kitchen faucet replacement,87,no
+W-2034,C-0078,T-07,2026-09-08,Furnace tune-up,76,no
+W-2035,C-0115,T-03,2026-09-08,No heat call,52,no
+W-2036,C-0088,T-01,2026-09-08,Water heater replacement,196,no
+W-2037,C-0075,T-09,2026-09-08,Sump pump replacement,145,no
+W-2038,C-0227,T-03,2026-09-08,No heat call,117,yes
+W-2039,C-0074,T-08,2026-09-08,Outlet repair,39,no
+W-2040,C-0352,T-09,2026-09-08,Burst pipe repair,111,no
+W-2041,C-0301,T-01,2026-09-08,Boiler service,164,no
+W-2042,C-0218,T-07,2026-09-08,Faucet repair,79,no
+W-2043,C-0332,T-01,2026-09-08,Furnace tune-up,77,no
+W-2044,C-0391,T-07,2026-09-08,Burst pipe repair,128,yes
+W-2045,C-0367,T-01,2026-09-09,Burst pipe repair,161,no
+W-2046,C-0131,T-04,2026-09-09,GFCI outlet install,54,no
+W-2047,C-0349,T-07,2026-09-09,Kitchen faucet replacement,79,no
+W-2048,C-0229,T-01,2026-09-09,Kitchen faucet replacement,68,no
+W-2049,C-0098,T-07,2026-09-09,Toilet repair,94,no
+W-2050,C-0382,T-12,2026-09-09,Toilet repair,76,no
+W-2051,C-0371,T-12,2026-09-09,Toilet repair,82,no
+W-2052,C-0263,T-07,2026-09-09,Burst pipe repair,114,yes
+W-2053,C-0008,T-07,2026-09-10,No heat call,97,no
+W-2054,C-0201,T-06,2026-09-10,Breaker replacement,68,no
+W-2055,C-0332,T-09,2026-09-10,Thermostat install,92,no
+W-2056,C-0317,T-01,2026-09-10,Heat pump repair,98,no
+W-2057,C-0240,T-07,2026-09-10,Furnace tune-up,84,no
+W-2058,C-0285,T-07,2026-09-10,Water heater replacement,299,no
+W-2059,C-0123,T-05,2026-09-10,Drain clearing,115,no
+W-2060,C-0326,T-10,2026-09-10,Light fixture install,68,no
+W-2061,C-0230,T-07,2026-09-10,Kitchen faucet replacement,61,no
+W-2062,C-0332,T-12,2026-09-11,Toilet repair,84,no
+W-2063,C-0301,T-04,2026-09-11,Panel upgrade,459,no
+W-2064,C-0038,T-02,2026-09-11,Drain clearing,92,no
+W-2065,C-0195,T-03,2026-09-11,Thermostat install,60,no
+W-2066,C-0383,T-07,2026-09-11,No heat call,115,no
+W-2067,C-0087,T-03,2026-09-11,Boiler service,110,no
+W-2068,C-0311,T-10,2026-09-11,Panel upgrade,301,no
+W-2069,C-0366,T-12,2026-09-11,Toilet repair,80,no
+W-2070,C-0281,T-03,2026-09-12,Heat pump repair,87,no
+W-2071,C-0218,T-03,2026-09-12,Heat pump repair,178,no
+W-2072,C-0331,T-10,2026-09-12,EV charger circuit,182,no
+W-2073,C-0353,T-10,2026-09-12,Breaker replacement,56,no
+W-2074,C-0078,T-10,2026-09-12,Breaker replacement,77,no
+W-2075,C-0254,T-06,2026-09-14,Breaker replacement,89,no
+W-2076,C-0002,T-05,2026-09-14,Garbage disposal install,96,no
+W-2077,C-0129,T-04,2026-09-14,EV charger circuit,279,no
+W-2078,C-0227,T-02,2026-09-14,Shutoff valve replacement,114,no
+W-2079,C-0066,T-07,2026-09-14,Furnace tune-up,51,no
+W-2080,C-0384,T-04,2026-09-14,GFCI outlet install,71,no
+W-2081,C-0336,T-09,2026-09-14,No heat call,81,yes
+W-2082,C-0178,T-04,2026-09-14,Outlet repair,61,no
+W-2083,C-0078,T-01,2026-09-14,Thermostat install,60,no
+W-2084,C-0244,T-07,2026-09-14,Kitchen faucet replacement,67,yes
+W-2085,C-0221,T-01,2026-09-15,Garbage disposal install,81,no
+W-2086,C-0268,T-02,2026-09-15,Toilet repair,41,no
+W-2087,C-0097,T-01,2026-09-15,Faucet repair,70,no
+W-2088,C-0191,T-09,2026-09-15,Toilet repair,49,no
+W-2089,C-0066,T-04,2026-09-15,Breaker replacement,95,no
+W-2090,C-0258,T-08,2026-09-15,Outlet repair,40,no
+W-2091,C-0281,T-11,2026-09-15,Furnace tune-up,95,no
+W-2092,C-0315,T-01,2026-09-15,Garbage disposal install,108,no
+W-2093,C-0078,T-01,2026-09-15,Backflow test,67,no
+W-2094,C-0222,T-12,2026-09-15,Faucet repair,48,no
+W-2095,C-0364,T-12,2026-09-15,Garbage disposal install,84,no
+W-2096,C-0227,T-12,2026-09-15,Toilet repair,76,no
+W-2097,C-0082,T-12,2026-09-16,Sump pump replacement,124,no
+W-2098,C-0376,T-05,2026-09-16,Drain clearing,100,no
+W-2099,C-0342,T-06,2026-09-16,Breaker replacement,62,no
+W-2100,C-0083,T-01,2026-09-16,Drain clearing,147,no
+W-2101,C-0002,T-10,2026-09-16,GFCI outlet install,80,no
+W-2102,C-0217,T-09,2026-09-16,Shutoff valve replacement,83,no
+W-2103,C-0155,T-10,2026-09-16,Ceiling fan install,102,no
+W-2104,C-0011,T-09,2026-09-16,Garbage disposal install,118,no
+W-2105,C-0282,T-04,2026-09-16,Outlet repair,53,no
+W-2106,C-0129,T-07,2026-09-16,Heat pump repair,181,no
+W-2107,C-0243,T-11,2026-09-17,Furnace tune-up,86,no
+W-2108,C-0203,T-03,2026-09-17,Boiler service,172,no
+W-2109,C-0166,T-05,2026-09-17,Kitchen faucet replacement,116,no
+W-2110,C-0210,T-01,2026-09-17,Garbage disposal install,81,no
+W-2111,C-0089,T-09,2026-09-17,Thermostat install,86,no
+W-2112,C-0028,T-07,2026-09-17,Faucet repair,78,no
+W-2113,C-0353,T-02,2026-09-17,Kitchen faucet replacement,110,no
+W-2114,C-0352,T-01,2026-09-17,Boiler service,181,no
+W-2115,C-0193,T-11,2026-09-17,Thermostat install,79,no
+W-2116,C-0275,T-12,2026-09-17,Shutoff valve replacement,91,no
+W-2117,C-0154,T-07,2026-09-17,Furnace tune-up,92,no
+W-2118,C-0137,T-10,2026-09-17,EV charger circuit,170,no
+W-2119,C-0200,T-10,2026-09-17,EV charger circuit,207,no
+W-2120,C-0001,T-07,2026-09-18,Drain clearing,126,no
+W-2121,C-0117,T-01,2026-09-18,Boiler service,200,no
+W-2122,C-0209,T-10,2026-09-18,GFCI outlet install,82,no
+W-2123,C-0337,T-05,2026-09-18,Drain clearing,63,no
+W-2124,C-0224,T-07,2026-09-18,Faucet repair,44,no
+W-2125,C-0275,T-04,2026-09-18,Ceiling fan install,116,yes
+W-2126,C-0234,T-04,2026-09-18,EV charger circuit,259,no
+W-2127,C-0388,T-12,2026-09-18,Toilet repair,61,no
+W-2128,C-0196,T-10,2026-09-18,Breaker replacement,72,no
+W-2129,C-0328,T-04,2026-09-18,Light fixture install,95,no
+W-2130,C-0010,T-07,2026-09-18,Furnace tune-up,96,no
+W-2131,C-0307,T-07,2026-09-18,No heat call,148,no
+W-2132,C-0299,T-08,2026-09-19,Light fixture install,85,no
+W-2133,C-0390,T-03,2026-09-19,Heat pump repair,158,no
+W-2134,C-0128,T-03,2026-09-19,No heat call,109,yes
+W-2135,C-0166,T-08,2026-09-19,Breaker replacement,61,yes
+W-2136,C-0169,T-04,2026-09-21,Breaker replacement,64,no
+W-2137,C-0360,T-01,2026-09-21,Thermostat install,67,no
+W-2138,C-0035,T-12,2026-09-21,Burst pipe repair,192,yes
+W-2139,C-0218,T-07,2026-09-21,Burst pipe repair,91,yes
+W-2140,C-0038,T-06,2026-09-21,GFCI outlet install,41,no
+W-2141,C-0353,T-09,2026-09-21,Furnace tune-up,51,no
+W-2142,C-0319,T-04,2026-09-21,GFCI outlet install,77,no
+W-2143,C-0227,T-07,2026-09-21,Furnace tune-up,75,no
+W-2144,C-0053,T-12,2026-09-21,Faucet repair,43,no
+W-2145,C-0372,T-05,2026-09-21,Faucet repair,54,no
+W-2146,C-0016,T-12,2026-09-21,Drain clearing,52,yes
+W-2147,C-0190,T-10,2026-09-22,Panel upgrade,416,no
+W-2148,C-0284,T-05,2026-09-22,Shutoff valve replacement,71,no
+W-2149,C-0038,T-09,2026-09-22,Water heater replacement,230,no
+W-2150,C-0376,T-05,2026-09-22,Faucet repair,52,no
+W-2151,C-0206,T-07,2026-09-22,Toilet repair,96,no
+W-2152,C-0130,T-01,2026-09-22,Backflow test,59,no
+W-2153,C-0032,T-10,2026-09-22,Light fixture install,54,no
+W-2154,C-0059,T-07,2026-09-22,Thermostat install,91,no
+W-2155,C-0052,T-09,2026-09-22,Kitchen faucet replacement,81,no
+W-2156,C-0169,T-09,2026-09-22,No heat call,169,yes
+W-2157,C-0214,T-01,2026-09-22,No heat call,152,yes
+W-2158,C-0335,T-07,2026-09-22,Burst pipe repair,68,no
+W-2159,C-0385,T-07,2026-09-23,Kitchen faucet replacement,63,no
+W-2160,C-0047,T-10,2026-09-23,EV charger circuit,196,no
+W-2161,C-0358,T-01,2026-09-23,Thermostat install,50,no
+W-2162,C-0078,T-06,2026-09-23,GFCI outlet install,71,no
+W-2163,C-0010,T-02,2026-09-23,Burst pipe repair,173,yes
+W-2164,C-0356,T-01,2026-09-23,Drain clearing,88,no
+W-2165,C-0297,T-03,2026-09-23,Heat pump repair,153,yes
+W-2166,C-0369,T-04,2026-09-23,Breaker replacement,68,yes
+W-2167,C-0268,T-08,2026-09-23,Breaker replacement,46,no
+W-2168,C-0353,T-11,2026-09-23,Furnace tune-up,64,no
+W-2169,C-0197,T-08,2026-09-24,Light fixture install,111,no
+W-2170,C-0374,T-10,2026-09-24,GFCI outlet install,108,no
+W-2171,C-0251,T-08,2026-09-24,Outlet repair,43,no
+W-2172,C-0269,T-10,2026-09-24,GFCI outlet install,77,no
+W-2173,C-0038,T-04,2026-09-24,EV charger circuit,164,no
+W-2174,C-0046,T-10,2026-09-24,Outlet repair,60,no
+W-2175,C-0212,T-09,2026-09-24,Heat pump repair,94,no
+W-2176,C-0033,T-02,2026-09-24,Drain clearing,87,no
+W-2177,C-0034,T-02,2026-09-24,Burst pipe repair,228,yes
+W-2178,C-0078,T-07,2026-09-24,Drain clearing,82,no
+W-2179,C-0309,T-07,2026-09-24,Garbage disposal install,86,no
+W-2180,C-0326,T-01,2026-09-24,Drain clearing,101,no
+W-2181,C-0125,T-04,2026-09-25,GFCI outlet install,76,no
+W-2182,C-0026,T-07,2026-09-25,Faucet repair,90,no
+W-2183,C-0162,T-01,2026-09-25,Thermostat install,97,no
+W-2184,C-0290,T-01,2026-09-25,Drain clearing,45,no
+W-2185,C-0171,T-01,2026-09-25,Faucet repair,87,no
+W-2186,C-0129,T-02,2026-09-25,Kitchen faucet replacement,125,no
+W-2187,C-0263,T-02,2026-09-25,Sump pump replacement,106,no
+W-2188,C-0111,T-12,2026-09-25,Faucet repair,65,no
+W-2189,C-0043,T-03,2026-09-26,Furnace tune-up,95,no
+W-2190,C-0371,T-10,2026-09-26,Outlet repair,74,no
+W-2191,C-0147,T-10,2026-09-26,GFCI outlet install,62,no
+W-2192,C-0066,T-03,2026-09-26,No heat call,123,no
+W-2193,C-0038,T-01,2026-09-28,Water heater replacement,286,no
+W-2194,C-0074,T-05,2026-09-28,Faucet repair,86,no
+W-2195,C-0083,T-02,2026-09-28,Shutoff valve replacement,105,no
+W-2196,C-0275,T-02,2026-09-28,Faucet repair,68,no
+W-2197,C-0207,T-04,2026-09-28,Breaker replacement,52,no
+W-2198,C-0211,T-11,2026-09-28,Heat pump repair,112,no
+W-2199,C-0379,T-09,2026-09-28,Toilet repair,90,no
+W-2200,C-0142,T-04,2026-09-28,Ceiling fan install,145,no
+W-2201,C-0326,T-04,2026-09-28,Breaker replacement,45,no
+W-2202,C-0307,T-01,2026-09-28,Backflow test,48,no
+W-2203,C-0048,T-07,2026-09-29,Toilet repair,56,no
+W-2204,C-0275,T-09,2026-09-29,Drain clearing,130,no
+W-2205,C-0342,T-12,2026-09-29,Water heater replacement,167,no
+W-2206,C-0335,T-01,2026-09-29,Shutoff valve replacement,82,yes
+W-2207,C-0216,T-11,2026-09-29,Furnace tune-up,104,no
+W-2208,C-0353,T-01,2026-09-29,Furnace tune-up,103,no
+W-2209,C-0335,T-11,2026-09-29,Heat pump repair,124,no
+W-2210,C-0333,T-05,2026-09-29,Kitchen faucet replacement,60,no
+W-2211,C-0383,T-04,2026-09-29,GFCI outlet install,88,no
+W-2212,C-0051,T-09,2026-09-29,Shutoff valve replacement,96,no
+W-2213,C-0167,T-07,2026-09-29,Heat pump repair,177,no
+W-2214,C-0334,T-05,2026-09-29,Toilet repair,50,no
+W-2215,C-0369,T-09,2026-09-29,Faucet repair,51,no
+W-2216,C-0123,T-07,2026-09-30,Drain clearing,105,no
+W-2217,C-0078,T-03,2026-09-30,Heat pump repair,119,no
+W-2218,C-0180,T-03,2026-09-30,No heat call,120,yes
+W-2219,C-0031,T-01,2026-09-30,No heat call,95,no
+W-2220,C-0086,T-08,2026-09-30,Ceiling fan install,141,no
+W-2221,C-0210,T-09,2026-09-30,No heat call,139,no
+W-2222,C-0204,T-03,2026-09-30,Furnace tune-up,109,no
+W-2223,C-0159,T-02,2026-09-30,Backflow test,39,no
+W-2224,C-0381,T-12,2026-09-30,Faucet repair,59,no
+W-2225,C-0269,T-03,2026-10-01,Heat pump repair,114,no
+W-2226,C-0313,T-04,2026-10-01,Panel upgrade,469,no
+W-2227,C-0001,T-07,2026-10-01,Boiler service,95,no
+W-2228,C-0142,T-09,2026-10-01,Faucet repair,72,no
+W-2229,C-0042,T-09,2026-10-01,Furnace tune-up,58,no
+W-2230,C-0041,T-01,2026-10-01,Water heater replacement,165,no
+W-2231,C-0144,T-04,2026-10-01,Light fixture install,50,no
+W-2232,C-0097,T-04,2026-10-01,Breaker replacement,77,no
+W-2233,C-0075,T-08,2026-10-01,Outlet repair,48,no
+W-2234,C-0267,T-01,2026-10-01,Furnace tune-up,68,no
+W-2235,C-0124,T-05,2026-10-01,Shutoff valve replacement,93,no
+W-2236,C-0150,T-08,2026-10-02,Ceiling fan install,124,no
+W-2237,C-0361,T-12,2026-10-02,Faucet repair,48,no
+W-2238,C-0011,T-01,2026-10-02,No heat call,80,yes
+W-2239,C-0316,T-03,2026-10-02,No heat call,98,no
+W-2240,C-0026,T-12,2026-10-02,Water heater replacement,310,no
+W-2241,C-0074,T-07,2026-10-02,No heat call,149,yes
+W-2242,C-0178,T-08,2026-10-02,Breaker replacement,71,no
+W-2243,C-0038,T-04,2026-10-02,Outlet repair,42,no
+W-2244,C-0135,T-11,2026-10-02,Heat pump repair,111,no
+W-2245,C-0271,T-12,2026-10-02,Kitchen faucet replacement,63,no
+W-2246,C-0072,T-01,2026-10-02,Heat pump repair,112,no
+W-2247,C-0110,T-03,2026-10-02,Heat pump repair,174,yes
+W-2248,C-0045,T-03,2026-10-03,No heat call,68,yes
+W-2249,C-0289,T-03,2026-10-03,Furnace tune-up,63,no
+W-2250,C-0241,T-04,2026-10-05,Light fixture install,72,no
+W-2251,C-0228,T-07,2026-10-05,Drain clearing,122,no
+W-2252,C-0010,T-07,2026-10-05,Toilet repair,74,no
+W-2253,C-0385,T-02,2026-10-05,Drain clearing,79,no
+W-2254,C-0153,T-07,2026-10-05,Furnace tune-up,71,no
+W-2255,C-0183,T-09,2026-10-05,Water heater replacement,257,no
+W-2256,C-0114,T-07,2026-10-05,Heat pump repair,65,no
+W-2257,C-0111,T-07,2026-10-05,Heat pump repair,152,no
+W-2258,C-0054,T-06,2026-10-05,Outlet repair,42,no
+W-2259,C-0021,T-11,2026-10-05,Heat pump repair,147,no
+W-2260,C-0297,T-04,2026-10-05,Panel upgrade,495,no
+W-2261,C-0039,T-06,2026-10-06,Outlet repair,85,no
+W-2262,C-0353,T-05,2026-10-06,Garbage disposal install,66,no
+W-2263,C-0085,T-01,2026-10-06,Furnace tune-up,88,no
+W-2264,C-0355,T-06,2026-10-06,Ceiling fan install,142,no
+W-2265,C-0227,T-11,2026-10-06,Heat pump repair,175,no
+W-2266,C-0169,T-02,2026-10-06,Toilet repair,82,no
+W-2267,C-0081,T-07,2026-10-06,Garbage disposal install,82,no
+W-2268,C-0205,T-01,2026-10-06,Garbage disposal install,75,no
+W-2269,C-0253,T-02,2026-10-06,Kitchen faucet replacement,55,no
+W-2270,C-0169,T-06,2026-10-07,Outlet repair,57,no
+W-2271,C-0372,T-03,2026-10-07,No heat call,99,yes
+W-2272,C-0304,T-01,2026-10-07,No heat call,123,no
+W-2273,C-0211,T-05,2026-10-07,Toilet repair,96,no
+W-2274,C-0218,T-07,2026-10-07,Thermostat install,59,no
+W-2275,C-0371,T-05,2026-10-07,Shutoff valve replacement,79,no
+W-2276,C-0053,T-09,2026-10-07,Thermostat install,74,no
+W-2277,C-0335,T-01,2026-10-07,Toilet repair,65,no
+W-2278,C-0231,T-10,2026-10-07,GFCI outlet install,72,no
+W-2279,C-0256,T-09,2026-10-07,Drain clearing,113,no
+W-2280,C-0300,T-07,2026-10-07,No heat call,92,no
+W-2281,C-0293,T-01,2026-10-08,Furnace tune-up,79,no
+W-2282,C-0383,T-01,2026-10-08,Heat pump repair,201,no
+W-2283,C-0331,T-07,2026-10-08,No heat call,158,no
+W-2284,C-0293,T-09,2026-10-08,Furnace tune-up,91,no
+W-2285,C-0021,T-11,2026-10-08,Furnace tune-up,93,no
+W-2286,C-0187,T-01,2026-10-08,No heat call,153,no
+W-2287,C-0141,T-09,2026-10-08,Drain clearing,131,no
+W-2288,C-0249,T-01,2026-10-08,Faucet repair,89,no
+W-2289,C-0395,T-10,2026-10-08,Light fixture install,76,no
+W-2290,C-0293,T-02,2026-10-08,Toilet repair,99,no
+W-2291,C-0223,T-07,2026-10-08,Furnace tune-up,54,no
+W-2292,C-0087,T-10,2026-10-08,EV charger circuit,153,no
+W-2293,C-0142,T-02,2026-10-08,Kitchen faucet replacement,104,no
+W-2294,C-0008,T-03,2026-10-09,Heat pump repair,100,no
+W-2295,C-0066,T-01,2026-10-09,Garbage disposal install,114,no
+W-2296,C-0269,T-01,2026-10-09,No heat call,87,yes
+W-2297,C-0086,T-03,2026-10-09,No heat call,118,yes
+W-2298,C-0171,T-10,2026-10-09,Panel upgrade,497,no
+W-2299,C-0352,T-07,2026-10-09,Drain clearing,92,no
+W-2300,C-0197,T-12,2026-10-09,Toilet repair,92,yes
+W-2301,C-0001,T-01,2026-10-09,Heat pump repair,99,no
+W-2302,C-0335,T-01,2026-10-09,Kitchen faucet replacement,95,no
+W-2303,C-0094,T-01,2026-10-09,No heat call,158,no
+W-2304,C-0212,T-12,2026-10-09,Faucet repair,63,no
+W-2305,C-0211,T-03,2026-10-10,No heat call,89,yes
+W-2306,C-0132,T-03,2026-10-10,Thermostat install,54,no
+W-2307,C-0038,T-03,2026-10-10,No heat call,94,yes
+W-2308,C-0280,T-03,2026-10-10,Furnace tune-up,66,no
+W-2309,C-0279,T-09,2026-10-12,Heat pump repair,97,no
+W-2310,C-0243,T-02,2026-10-12,Toilet repair,46,no
+W-2311,C-0166,T-06,2026-10-12,GFCI outlet install,49,no
+W-2312,C-0320,T-02,2026-10-12,Faucet repair,36,no
+W-2313,C-0106,T-01,2026-10-12,No heat call,163,yes
+W-2314,C-0236,T-06,2026-10-12,Outlet repair,77,no
+W-2315,C-0261,T-09,2026-10-12,Faucet repair,55,no
+W-2316,C-0347,T-07,2026-10-12,Drain clearing,71,no
+W-2317,C-0060,T-04,2026-10-12,Light fixture install,130,no
+W-2318,C-0396,T-01,2026-10-12,Toilet repair,78,no
+W-2319,C-0286,T-11,2026-10-12,Furnace tune-up,74,no
+W-2320,C-0070,T-03,2026-10-13,Thermostat install,77,no
+W-2321,C-0199,T-01,2026-10-13,Backflow test,64,no
+W-2322,C-0181,T-10,2026-10-13,EV charger circuit,187,no
+W-2323,C-0364,T-09,2026-10-13,Thermostat install,84,no
+W-2324,C-0208,T-09,2026-10-13,Thermostat install,74,no
+W-2325,C-0095,T-10,2026-10-13,Light fixture install,59,no
+W-2326,C-0307,T-01,2026-10-13,Water heater replacement,210,no
+W-2327,C-0156,T-09,2026-10-13,Burst pipe repair,116,yes
+W-2328,C-0257,T-10,2026-10-14,Ceiling fan install,104,no
+W-2329,C-0037,T-03,2026-10-14,Furnace tune-up,81,no
+W-2330,C-0197,T-02,2026-10-14,Kitchen faucet replacement,97,no
+W-2331,C-0392,T-02,2026-10-14,Shutoff valve replacement,95,no
+W-2332,C-0285,T-09,2026-10-14,Sump pump replacement,95,no
+W-2333,C-0365,T-03,2026-10-14,Furnace tune-up,73,no
+W-2334,C-0279,T-12,2026-10-14,Sump pump replacement,147,yes
+W-2335,C-0087,T-01,2026-10-14,No heat call,159,yes
+W-2336,C-0083,T-07,2026-10-14,Kitchen faucet replacement,66,no
+W-2337,C-0371,T-07,2026-10-14,Heat pump repair,117,no
+W-2338,C-0215,T-04,2026-10-15,Outlet repair,50,no
+W-2339,C-0130,T-04,2026-10-15,Panel upgrade,357,no
+W-2340,C-0301,T-12,2026-10-15,Kitchen faucet replacement,62,no
+W-2341,C-0345,T-09,2026-10-15,Burst pipe repair,236,yes
+W-2342,C-0059,T-07,2026-10-15,Faucet repair,76,no
+W-2343,C-0232,T-09,2026-10-15,Furnace tune-up,65,no
+W-2344,C-0371,T-09,2026-10-15,Shutoff valve replacement,71,no
+W-2345,C-0103,T-07,2026-10-15,Kitchen faucet replacement,61,no
+W-2346,C-0325,T-01,2026-10-15,Shutoff valve replacement,102,no
+W-2347,C-0006,T-05,2026-10-15,Kitchen faucet replacement,67,no
+W-2348,C-0310,T-01,2026-10-15,No heat call,127,yes
+W-2349,C-0362,T-07,2026-10-16,Garbage disposal install,110,no
+W-2350,C-0087,T-08,2026-10-16,Outlet repair,89,yes
+W-2351,C-0204,T-03,2026-10-16,Thermostat install,109,no
+W-2352,C-0072,T-08,2026-10-16,Outlet repair,56,yes
+W-2353,C-0079,T-07,2026-10-16,No heat call,142,yes
+W-2354,C-0269,T-11,2026-10-16,Heat pump repair,183,no
+W-2355,C-0065,T-03,2026-10-16,Heat pump repair,210,yes
+W-2356,C-0215,T-08,2026-10-16,GFCI outlet install,101,no
+W-2357,C-0042,T-01,2026-10-16,Heat pump repair,83,no
+W-2358,C-0029,T-05,2026-10-16,Kitchen faucet replacement,68,no
+W-2359,C-0340,T-12,2026-10-16,Drain clearing,73,no
+W-2360,C-0269,T-10,2026-10-16,GFCI outlet install,60,no
+W-2361,C-0056,T-03,2026-10-17,Boiler service,187,no
+W-2362,C-0079,T-08,2026-10-17,Ceiling fan install,119,no
+W-2363,C-0119,T-03,2026-10-17,No heat call,141,no
+W-2364,C-0059,T-03,2026-10-17,Furnace tune-up,103,no
+W-2365,C-0013,T-07,2026-10-19,No heat call,62,yes
+W-2366,C-0262,T-06,2026-10-19,Breaker replacement,44,no
+W-2367,C-0383,T-04,2026-10-19,EV charger circuit,190,no
+W-2368,C-0276,T-06,2026-10-19,Outlet repair,40,no
+W-2369,C-0400,T-05,2026-10-19,Drain clearing,87,no
+W-2370,C-0258,T-02,2026-10-19,Garbage disposal install,55,no
+W-2371,C-0388,T-12,2026-10-19,Toilet repair,50,no
+W-2372,C-0316,T-07,2026-10-19,Furnace tune-up,71,no
+W-2373,C-0202,T-07,2026-10-19,Water heater replacement,273,no
+W-2374,C-0115,T-07,2026-10-19,No heat call,157,no
+W-2375,C-0286,T-07,2026-10-19,Boiler service,111,no
+W-2376,C-0277,T-04,2026-10-20,Ceiling fan install,126,no
+W-2377,C-0274,T-03,2026-10-20,Thermostat install,51,no
+W-2378,C-0307,T-03,2026-10-20,Furnace tune-up,74,no
+W-2379,C-0197,T-09,2026-10-20,Furnace tune-up,65,no
+W-2380,C-0224,T-07,2026-10-20,Furnace tune-up,79,no
+W-2381,C-0153,T-12,2026-10-20,Toilet repair,67,no
+W-2382,C-0112,T-02,2026-10-20,Garbage disposal install,115,no
+W-2383,C-0337,T-12,2026-10-20,Garbage disposal install,95,no
+W-2384,C-0163,T-10,2026-10-21,EV charger circuit,291,no
+W-2385,C-0252,T-12,2026-10-21,Shutoff valve replacement,109,no
+W-2386,C-0295,T-01,2026-10-21,Thermostat install,77,no
+W-2387,C-0306,T-05,2026-10-21,Burst pipe repair,135,no
+W-2388,C-0124,T-10,2026-10-21,Ceiling fan install,75,no
+W-2389,C-0297,T-03,2026-10-21,Thermostat install,47,no
+W-2390,C-0108,T-11,2026-10-21,Heat pump repair,118,no
+W-2391,C-0274,T-09,2026-10-21,Furnace tune-up,96,no
+W-2392,C-0043,T-01,2026-10-21,No heat call,179,no
+W-2393,C-0002,T-09,2026-10-22,No heat call,93,yes
+W-2394,C-0341,T-09,2026-10-22,Drain clearing,73,yes
+W-2395,C-0299,T-12,2026-10-22,Toilet repair,83,no
+W-2396,C-0056,T-07,2026-10-22,Toilet repair,66,no
+W-2397,C-0070,T-04,2026-10-22,GFCI outlet install,120,no
+W-2398,C-0038,T-03,2026-10-22,Heat pump repair,163,yes
+W-2399,C-0176,T-01,2026-10-22,Furnace tune-up,72,no
+W-2400,C-0076,T-01,2026-10-22,Faucet repair,59,no
+W-2401,C-0272,T-01,2026-10-22,Faucet repair,51,no
+W-2402,C-0164,T-04,2026-10-22,Outlet repair,39,no
+W-2403,C-0192,T-04,2026-10-23,Breaker replacement,74,no
+W-2404,C-0106,T-02,2026-10-23,Backflow test,38,no
+W-2405,C-0115,T-08,2026-10-23,Ceiling fan install,61,no
+W-2406,C-0383,T-07,2026-10-23,Garbage disposal install,73,no
+W-2407,C-0328,T-12,2026-10-23,Sump pump replacement,174,no
+W-2408,C-0195,T-11,2026-10-23,Furnace tune-up,51,no
+W-2409,C-0245,T-07,2026-10-23,Heat pump repair,124,no
+W-2410,C-0005,T-03,2026-10-23,No heat call,78,yes
+W-2411,C-0172,T-03,2026-10-24,No heat call,95,no
+W-2412,C-0386,T-03,2026-10-24,Heat pump repair,159,no
+W-2413,C-0148,T-10,2026-10-24,Outlet repair,79,no
+W-2414,C-0393,T-03,2026-10-24,No heat call,130,yes
+W-2415,C-0323,T-04,2026-10-26,Light fixture install,144,no
+W-2416,C-0038,T-04,2026-10-26,EV charger circuit,167,no
+W-2417,C-0302,T-12,2026-10-26,Shutoff valve replacement,56,no
+W-2418,C-0382,T-09,2026-10-26,Furnace tune-up,89,no
+W-2419,C-0066,T-06,2026-10-26,Breaker replacement,90,no
+W-2420,C-0371,T-07,2026-10-26,Furnace tune-up,58,no
+W-2421,C-0131,T-09,2026-10-26,Toilet repair,69,no
+W-2422,C-0279,T-11,2026-10-26,Furnace tune-up,65,no
+W-2423,C-0162,T-04,2026-10-27,Breaker replacement,70,no
+W-2424,C-0286,T-01,2026-10-27,Sump pump replacement,107,no
+W-2425,C-0074,T-05,2026-10-27,Toilet repair,43,no
+W-2426,C-0307,T-07,2026-10-27,Thermostat install,106,no
+W-2427,C-0141,T-10,2026-10-27,EV charger circuit,231,no
+W-2428,C-0397,T-09,2026-10-27,No heat call,66,no
+W-2429,C-0231,T-10,2026-10-27,Outlet repair,76,no
+W-2430,C-0256,T-04,2026-10-27,Breaker replacement,79,no
+W-2431,C-0194,T-09,2026-10-27,Drain clearing,137,no
+W-2432,C-0058,T-09,2026-10-27,Drain clearing,47,no
+W-2433,C-0290,T-05,2026-10-27,Faucet repair,74,yes
+W-2434,C-0213,T-04,2026-10-28,Light fixture install,146,no
+W-2435,C-0086,T-02,2026-10-28,Kitchen faucet replacement,93,yes
+W-2436,C-0073,T-03,2026-10-28,Furnace tune-up,77,no
+W-2437,C-0209,T-09,2026-10-28,Boiler service,176,no
+W-2438,C-0176,T-07,2026-10-28,Faucet repair,76,no
+W-2439,C-0052,T-09,2026-10-28,No heat call,61,no
+W-2440,C-0053,T-09,2026-10-28,No heat call,103,no
+W-2441,C-0157,T-07,2026-10-28,Furnace tune-up,102,no
+W-2442,C-0320,T-09,2026-10-28,No heat call,172,yes
+W-2443,C-0227,T-10,2026-10-28,Light fixture install,68,no
+W-2444,C-0229,T-04,2026-10-29,Outlet repair,56,no
+W-2445,C-0002,T-02,2026-10-29,Garbage disposal install,71,no
+W-2446,C-0052,T-04,2026-10-29,Outlet repair,57,no
+W-2447,C-0245,T-01,2026-10-29,Boiler service,180,no
+W-2448,C-0354,T-12,2026-10-29,Burst pipe repair,191,yes
+W-2449,C-0326,T-02,2026-10-29,Burst pipe repair,195,yes
+W-2450,C-0095,T-09,2026-10-29,Heat pump repair,160,no
+W-2451,C-0316,T-05,2026-10-29,Garbage disposal install,56,no
+W-2452,C-0212,T-01,2026-10-29,Boiler service,179,no
+W-2453,C-0262,T-01,2026-10-29,Boiler service,154,no
+W-2454,C-0054,T-06,2026-10-29,GFCI outlet install,80,no
+W-2455,C-0255,T-10,2026-10-29,Light fixture install,70,no
+W-2456,C-0062,T-06,2026-10-29,Breaker replacement,41,no
+W-2457,C-0217,T-12,2026-10-30,Faucet repair,38,no
+W-2458,C-0271,T-07,2026-10-30,Furnace tune-up,107,no
+W-2459,C-0146,T-03,2026-10-30,Boiler service,193,no
+W-2460,C-0069,T-07,2026-10-30,Heat pump repair,206,no
+W-2461,C-0297,T-08,2026-10-30,Outlet repair,87,no
+W-2462,C-0337,T-01,2026-10-30,Toilet repair,73,no
+W-2463,C-0267,T-07,2026-10-30,Faucet repair,65,no
+W-2464,C-0087,T-02,2026-10-30,Garbage disposal install,99,no
+W-2465,C-0243,T-10,2026-10-31,EV charger circuit,251,no
+W-2466,C-0010,T-03,2026-10-31,Thermostat install,83,no
+W-2467,C-0129,T-10,2026-10-31,Light fixture install,47,no
+W-2468,C-0214,T-03,2026-10-31,Heat pump repair,141,no
+W-2469,C-0007,T-08,2026-10-31,GFCI outlet install,104,no
+W-2470,C-0297,T-12,2026-11-02,Sump pump replacement,181,no
+W-2471,C-0168,T-07,2026-11-02,Heat pump repair,200,yes
+W-2472,C-0105,T-11,2026-11-02,Heat pump repair,110,no
+W-2473,C-0210,T-11,2026-11-02,Furnace tune-up,81,no
+W-2474,C-0318,T-09,2026-11-02,Faucet repair,45,no
+W-2475,C-0212,T-09,2026-11-02,No heat call,92,yes
+W-2476,C-0318,T-07,2026-11-02,Heat pump repair,143,no
+W-2477,C-0072,T-09,2026-11-02,No heat call,59,no
+W-2478,C-0323,T-04,2026-11-02,Breaker replacement,83,no
+W-2479,C-0186,T-05,2026-11-02,Toilet repair,56,yes
+W-2480,C-0202,T-09,2026-11-02,Thermostat install,92,no
+W-2481,C-0015,T-02,2026-11-02,Drain clearing,145,no
+W-2482,C-0094,T-07,2026-11-02,Kitchen faucet replacement,56,yes
+W-2483,C-0281,T-02,2026-11-03,Toilet repair,84,no
+W-2484,C-0292,T-06,2026-11-03,Breaker replacement,68,no
+W-2485,C-0316,T-12,2026-11-03,Faucet repair,73,no
+W-2486,C-0289,T-08,2026-11-03,Outlet repair,84,no
+W-2487,C-0128,T-04,2026-11-03,Outlet repair,65,no
+W-2488,C-0230,T-07,2026-11-03,Heat pump repair,105,yes
+W-2489,C-0228,T-01,2026-11-03,Drain clearing,60,no
+W-2490,C-0226,T-04,2026-11-03,Light fixture install,104,no
+W-2491,C-0142,T-07,2026-11-04,Furnace tune-up,78,no
+W-2492,C-0050,T-04,2026-11-04,Ceiling fan install,70,no
+W-2493,C-0383,T-06,2026-11-04,Outlet repair,51,no
+W-2494,C-0078,T-01,2026-11-04,Heat pump repair,186,no
+W-2495,C-0262,T-01,2026-11-04,Boiler service,120,no
+W-2496,C-0026,T-03,2026-11-04,Heat pump repair,97,no
+W-2497,C-0204,T-02,2026-11-04,Garbage disposal install,102,no
+W-2498,C-0046,T-09,2026-11-04,Shutoff valve replacement,80,no
+W-2499,C-0076,T-12,2026-11-05,Toilet repair,63,no
+W-2500,C-0260,T-10,2026-11-05,GFCI outlet install,94,no
+W-2501,C-0240,T-03,2026-11-05,Boiler service,135,no
+W-2502,C-0383,T-07,2026-11-05,Faucet repair,78,no
+W-2503,C-0070,T-09,2026-11-05,Kitchen faucet replacement,97,no
+W-2504,C-0218,T-07,2026-11-05,Boiler service,148,no
+W-2505,C-0372,T-07,2026-11-05,Furnace tune-up,57,no

@@ -1,21 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import {
-  bookingRow,
-  check,
-  expectedSlot,
-  paramsOf,
-  rowWhere,
-  rowsWhere,
-  table,
-  taskById,
-  withAppended,
-} from './helpers';
+import { expectedSlot, firstVersion, paramsOf } from './helpers';
 
 /**
- * Thirteen tasks worked out by hand. Each test first pins the input rows exactly as they are in
- * the data files, then asserts the answer that was calculated on paper, step by step in the
- * comments. If the data changes, the pins fail first and the fixture has to be audited again.
+ * Thirteen tasks of the first version (job-v1), worked out by hand. Each test first pins the input
+ * rows exactly as they are in the data files, then asserts the answer that was calculated on
+ * paper, step by step in the comments. If the data changes, the pins fail first and the fixture
+ * has to be audited again.
  */
+
+const job = firstVersion;
+const table = (name: string) => job.table(name);
+const rowWhere = (name: string, column: string, value: string) => job.rowWhere(name, column, value);
+const rowsWhere = (name: string, column: string, value: string) =>
+  job.rowsWhere(name, column, value);
+const taskById = (id: string) => job.task(id);
 
 function expectRow(
   file: string,
@@ -357,7 +355,7 @@ describe('hand-audited bookings', () => {
   function passes(id: string, technicianId: string) {
     const task = taskById(id);
     const slot = { ...expectedSlot(task), technician_id: technicianId };
-    return check(task, withAppended('bookings.csv', bookingRow(task, slot))).pass;
+    return job.check(task, job.withAppended('bookings.csv', job.bookingRow(task, slot))).pass;
   }
 
   it('schedule-001: asked for today, so it starts tomorrow; Wes is booked first thing', () => {
