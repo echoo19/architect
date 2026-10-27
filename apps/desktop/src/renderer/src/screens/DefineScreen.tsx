@@ -1,46 +1,30 @@
-import { useState } from 'react';
-import type { Job } from '@architect/shared';
-import { Badge, Button, ErrorState, Heading, Skeleton, Stat } from '@architect/ui';
-import { Check, CircleMinus, HardDrive } from 'lucide-react';
-import { architect } from '../api/client';
-import { useJob } from '../api/hooks';
+import { useEffect, useState } from 'react';
+import type { Job, Method } from '@architect/shared';
+import { Button, ErrorState, Skeleton, toast } from '@architect/ui';
+import { flowApi } from '../api/client';
+import { useJob, useJobs, useSecretsStatus, useSettings } from '../api/hooks';
+import { resetDraft, useDraftStore } from '../flow/describe/draft-store';
+import { AdvancedDialog, tabWithIssue, type AdvancedTab } from '../flow/define/AdvancedDialog';
+import { hostedAvailability, type KeyStatus } from '../flow/define/hosted';
+import { AsksFirst, Capabilities, JobHeader, ReadyWhen } from '../flow/define/JobOverview';
+import { TrainingPlace } from '../flow/define/TrainingPlace';
+import { useJobEditor } from '../flow/define/use-job-editor';
 import { attempt } from '../lib/notify';
-import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 import { FlowShell } from '../shell/FlowShell';
 
-/** Step two: the drafted job, what the agent will and won't do, and when it counts as ready. */
+const BASELINES: readonly Method[] = ['bare', 'one_shot', 'self_reflection'];
+
+/** Step two: the drafted job, what it will and won't do, when it's ready, and where it trains. */
 export function DefineScreen({ jobId }: { jobId: string }) {
   const job = useJob(jobId);
-  const [starting, setStarting] = useState(false);
-
-  const start = async () => {
-    setStarting(true);
-    const run = await attempt("Couldn't start training", () =>
-      architect().runs.start(jobId, { method: 'architect' }),
-    );
-    setStarting(false);
-    if (run) navigate(paths.train(run.id));
-  };
-
+  if (job.status === 'success') return <DefineEditor key={job.data.id} initial={job.data} />;
   return (
-    <FlowShell
-      title={job.status === 'success' ? job.data.name : 'New agent'}
-      step="Define"
-      footer={
-        job.status === 'success' && (
-          <div className="mx-auto flex max-w-[880px] justify-end gap-2">
-            <Button onClick={() => navigate(paths.newAgent())}>Back</Button>
-            <Button variant="primary" loading={starting} onClick={start}>
-              Start training
-            </Button>
-          </div>
-        )
-      }
-    >
+    <FlowShell title="New agent" step="Define">
       <div className="mx-auto box-content flex max-w-[880px] flex-col gap-12 px-8 pb-10 pt-14">
-        {job.status === 'loading' && <DefineSkeleton />}
-        {job.status === 'error' && (
+        {job.status === 'loading' ? (
+          <DefineSkeleton />
+        ) : (
           <ErrorState
             title="Couldn't open this job"
             message={job.error.message}
@@ -53,7 +37,6 @@ export function DefineScreen({ jobId }: { jobId: string }) {
             className="min-h-[60vh]"
           />
         )}
-        {job.status === 'success' && <JobOverview job={job.data} />}
       </div>
     </FlowShell>
   );
@@ -72,72 +55,142 @@ function DefineSkeleton() {
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-24 w-full" />
       </div>
+      <Skeleton className="h-[118px] w-full rounded-2xl" />
     </div>
   );
 }
 
-function JobOverview({ job }: { job: Job }) {
-  const { passRate, p95LatencyMs } = job.requirements;
+function keyStatus(query: ReturnType<typeof useSecretsStatus>): KeyStatus {
+  if (query.status === 'success') return query.data;
+  return query.status;
+}
+
+function DefineEditor({ initial }: { initial: Job }) {
+  const summaries = useJobs();
+  const taskCount = summaries.data?.find((summary) => summary.id === initial.id)?.taskCount ?? null;
+  const editor = useJobEditor(initial, taskCount);
+  const { job } = editor;
+  const settings = useSettings();
+  const secrets = useSecretsStatus();
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [tab, setTab] = useState<AdvancedTab>('tasks');
+  const [withBaselines, setWithBaselines] = useState(false);
+  const [starting, setStarting] = useState(false);
+
+  const comparisonMode = settings.data?.comparisonMode === true;
+  const hosted = hostedAvailability(job.student, keyStatus(secrets));
+
+  // Keys can be added in Settings at any time, so check again whenever a job opens.
+  const { reload: reloadKeys } = secrets;
+  useEffect(() => reloadKeys(), [reloadKeys]);
+
+  // A conversation that didn't draft this job is abandoned once another job is open.
+  useEffect(() => {
+    const { saved, entries } = useDraftStore.getState().conversation;
+    if (entries.length > 0 && saved?.jobId !== initial.id) resetDraft();
+  }, [initial.id]);
+
+  const openAdvanced = (at: AdvancedTab) => {
+    setTab(at);
+    setAdvancedOpen(true);
+  };
+
+  const start = async () => {
+    if (job.student.trainOn === 'hosted' && !hosted.available) {
+      toast({
+        tone: 'danger',
+        title: "Can't train on the hosted copy yet",
+        description: hosted.reason,
+      });
+      return;
+    }
+    setStarting(true);
+    const saved = await editor.flush();
+    if (!saved) {
+      setStarting(false);
+      const problem = tabWithIssue(editor.issues);
+      if (problem) {
+        toast({ tone: 'danger', title: 'Fix the marked fields under Advanced first' });
+        openAdvanced(problem);
+      }
+      return;
+    }
+    const run = await attempt("Couldn't start training", () =>
+      flowApi.startRun(saved.id, { method: 'architect' }),
+    );
+    if (run && comparisonMode && withBaselines) {
+      // The baselines reuse the Architect run's seed, so the four runs compare like for like.
+      await attempt("Couldn't start the comparison baselines", () =>
+        Promise.all(
+          BASELINES.map((method) => flowApi.startRun(saved.id, { method, seed: run.seed })),
+        ),
+      );
+    }
+    setStarting(false);
+    if (!run) return;
+    resetDraft();
+    navigate(paths.train(run.id));
+  };
+
   return (
-    <>
-      <div className="flex flex-col gap-3.5">
-        <Heading as="h1" size="display">
-          {job.name}
-        </Heading>
-        <p className="m-0 max-w-[620px] text-xl text-fg-secondary text-pretty">
-          {job.summary ?? job.description}
-        </p>
-        <Badge
-          tone="neutral"
-          size="lg"
-          icon={<HardDrive size={14} strokeWidth={1.6} aria-hidden />}
-          className="self-start"
-        >
-          Runs offline on {deviceInSentence(currentPlatform())}
-        </Badge>
+    <FlowShell
+      title={job.name}
+      step="Define"
+      footer={
+        <div className="mx-auto flex max-w-[880px] flex-wrap items-center justify-between gap-3">
+          <Button variant="ghost" className="-ml-3 px-3" onClick={() => openAdvanced(tab)}>
+            Advanced
+          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => navigate(paths.newAgent())}>Back</Button>
+            <Button variant="primary" loading={starting} onClick={() => void start()}>
+              Start training
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      <div className="mx-auto box-content flex max-w-[880px] flex-col gap-12 px-8 pb-10 pt-14">
+        <JobHeader job={job} />
+        <Capabilities job={job} />
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-12">
+          <ReadyWhen job={job} />
+          <AsksFirst
+            job={job}
+            onChange={(permissions) => editor.change((current) => ({ ...current, permissions }))}
+          />
+        </div>
+        <TrainingPlace
+          job={job}
+          hosted={hosted}
+          onPlaceChange={(trainOn) =>
+            editor.change((current) => ({ ...current, student: { ...current.student, trainOn } }))
+          }
+          onCapChange={(maxMentorUsd) =>
+            editor.change(
+              (current) => ({ ...current, budget: { ...current.budget, maxMentorUsd } }),
+              400,
+            )
+          }
+          onRetryKeys={secrets.status === 'error' ? reloadKeys : undefined}
+          baselines={
+            comparisonMode
+              ? { checked: withBaselines, onCheckedChange: setWithBaselines }
+              : undefined
+          }
+        />
       </div>
-
-      {(job.does.length > 0 || job.doesNot.length > 0) && (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(340px,100%),1fr))] overflow-hidden rounded-3xl border border-line-card bg-card">
-          <ul
-            aria-label="It will"
-            className="m-0 flex list-none flex-col gap-3.5 px-7 py-[26px] text-md"
-          >
-            {job.does.map((item) => (
-              <li key={item} className="flex items-start gap-3">
-                <Check size={18} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden />
-                {item}
-              </li>
-            ))}
-          </ul>
-          <ul
-            aria-label="It won't"
-            className="m-0 flex list-none flex-col gap-3.5 border-l border-line-card bg-list px-7 py-[26px] text-md text-fg-secondary"
-          >
-            {job.doesNot.map((item) => (
-              <li key={item} className="flex items-start gap-3">
-                <CircleMinus
-                  size={18}
-                  strokeWidth={1.8}
-                  className="mt-0.5 shrink-0 text-fg-muted"
-                  aria-hidden
-                />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <section className="flex flex-col gap-[18px]">
-        <Heading>Ready when</Heading>
-        <div className="flex flex-wrap gap-10">
-          <Stat size="lg" value={`${Math.round(passRate * 100)}%`} label="of new tasks right" />
-          {p95LatencyMs !== undefined && (
-            <Stat size="lg" value={`<${Math.ceil(p95LatencyMs / 1000)}s`} label="per answer" />
-          )}
-        </div>
-      </section>
-    </>
+      <AdvancedDialog
+        open={advancedOpen}
+        onOpenChange={(open) => {
+          setAdvancedOpen(open);
+          if (!open) void editor.flush();
+        }}
+        tab={tab}
+        onTabChange={setTab}
+        editor={editor}
+        summaries={summaries}
+      />
+    </FlowShell>
   );
 }

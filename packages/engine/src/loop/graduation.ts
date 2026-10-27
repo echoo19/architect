@@ -93,6 +93,10 @@ async function graduate(state: RunState, harness: Harness, frozen: GraduateFreez
       label: job.student.label,
       model: tester.model,
       runtime: studentEndpoint(job, target).runtime,
+      ...(frozen.student.quantization === undefined
+        ? {}
+        : { quantization: frozen.student.quantization }),
+      ...(frozen.student.sizeBytes === undefined ? {} : { sizeBytes: frozen.student.sizeBytes }),
     },
     mentor: authorIdentity(state),
     readyClaimed: rounds.some(({ hypothesis }) => hypothesis?.readyClaim === true),

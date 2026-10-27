@@ -90,7 +90,7 @@ rules:
 temperature: 1       # Meta's recommended sampling for Glimmer
 top_p: 0.95
 top_k: 64
-max_steps: 8
+max_steps: 16
 max_output_tokens: 2048   # includes reasoning tokens
 thinking: low        # low | medium | high reasoning strength
 ```

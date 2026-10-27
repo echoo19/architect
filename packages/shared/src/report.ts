@@ -18,7 +18,14 @@ export const ReportCardSchema = z.object({
   method: MethodSchema,
   name: z.string(),
   createdAt: z.iso.datetime(),
-  student: z.object({ label: z.string(), model: z.string(), runtime: z.string() }),
+  student: z.object({
+    label: z.string(),
+    model: z.string(),
+    runtime: z.string(),
+    /** From the runtime when it reports them, e.g. `Q4_K_M` and the model file's size. */
+    quantization: z.string().optional(),
+    sizeBytes: z.number().int().nonnegative().optional(),
+  }),
   mentor: z.object({ label: z.string(), model: z.string() }),
   test: z.object({
     score: ScoreSchema,

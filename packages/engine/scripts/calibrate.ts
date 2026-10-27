@@ -3,9 +3,10 @@
  * part of the app and never runs in CI.
  *
  *   pnpm --filter @architect/engine exec tsx scripts/calibrate.ts <jobDir> [split] [--limit N]
- *     [--seed N] [--concurrency N] [--traces <dir>]
+ *     [--seed N] [--concurrency N] [--traces <dir>] [--task <id,id,...>]
  *
  * --traces writes each attempt's full trace as `<taskId>.json` into <dir>, to read why it failed.
+ * --task keeps only the named tasks of the split.
  *
  * <jobDir> holds job.json, tasks.jsonl, data/ and the checker module. [split] is calibration
  * (the default), train or dev; the test split stays locked in the vault. The student is the job's
@@ -46,16 +47,21 @@ interface Options {
   seed: number;
   concurrency: number;
   traces?: string;
+  taskIds?: string[];
 }
 
 const USAGE =
-  'Usage: tsx scripts/calibrate.ts <jobDir> [calibration|train|dev] [--limit N] [--seed N] [--concurrency N] [--traces <dir>]';
+  'Usage: tsx scripts/calibrate.ts <jobDir> [calibration|train|dev] [--limit N] [--seed N] [--concurrency N] [--traces <dir>] [--task <id,id,...>]';
 
 async function main(): Promise<void> {
   const options = parseArguments(process.argv.slice(2));
   const job = JobSchema.parse(JSON.parse(await readFile(join(options.jobDir, 'job.json'), 'utf8')));
   const tasks = parseTasks(await readFile(join(options.jobDir, 'tasks.jsonl'), 'utf8'));
-  const selected = splitTasks(tasks, job.splits)[options.split].slice(0, options.limit);
+  const inSplit = splitTasks(tasks, job.splits)[options.split];
+  const chosen = options.taskIds;
+  const selected = (
+    chosen === undefined ? inSplit : inSplit.filter((task) => chosen.includes(task.id))
+  ).slice(0, options.limit);
 
   const student = createCalibrationStudent(job);
   if (options.traces !== undefined) await mkdir(options.traces, { recursive: true });
@@ -148,10 +154,18 @@ function parseArguments(args: readonly string[]): Options {
   const positional: string[] = [];
   const flags = new Map<string, number>();
   let traces: string | undefined;
+  let taskIds: string[] | undefined;
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index] ?? '';
     if (!arg.startsWith('--')) {
       positional.push(arg);
+      continue;
+    }
+    if (arg === '--task') {
+      const list = args[index + 1];
+      if (list === undefined) throw new Error(USAGE);
+      taskIds = list.split(',').filter((id) => id !== '');
+      index += 1;
       continue;
     }
     if (arg === '--traces') {
@@ -182,6 +196,7 @@ function parseArguments(args: readonly string[]): Options {
     seed: flags.get('--seed') ?? 1,
     concurrency: flags.get('--concurrency') ?? 1,
     ...(traces === undefined ? {} : { traces }),
+    ...(taskIds === undefined ? {} : { taskIds }),
   };
 }
 
