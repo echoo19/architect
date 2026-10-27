@@ -8,17 +8,7 @@ import { defineConfig } from 'electron-vite';
 import { build, type Plugin } from 'vite';
 
 const APP_DIR = dirname(fileURLToPath(import.meta.url));
-
-/**
- * The engine's tool sandbox entry. The engine forks it as a plain Node process, so it ships as
- * one self-contained file next to the QuickJS WebAssembly it loads.
- */
-const SANDBOX_ENTRY = join(
-  dirname(createRequire(import.meta.url).resolve('@architect/engine')),
-  'sandbox',
-  'child.ts',
-);
-const SANDBOX_OUT_DIR = join(APP_DIR, 'out', 'sandbox');
+const ENGINE_SRC = dirname(createRequire(import.meta.url).resolve('@architect/engine'));
 /** The name the QuickJS loader looks for beside itself. */
 const QUICKJS_WASM = 'emscripten-module.wasm';
 
@@ -84,39 +74,60 @@ function quickjsWasm(): Plugin {
   };
 }
 
+/** An entry in the engine package that runs as a process of its own. */
+interface ProcessEntry {
+  source: string;
+  outDir: string;
+  plugins?: Plugin[];
+}
+
+const PROCESS_ENTRIES: ProcessEntry[] = [
+  // The tool sandbox, which the engine and the agent host fork as a plain Node process from its
+  // own folder, next to the QuickJS WebAssembly it loads.
+  {
+    source: join(ENGINE_SRC, 'sandbox', 'child.ts'),
+    outDir: join(APP_DIR, 'out', 'sandbox'),
+    plugins: [quickjsWasm()],
+  },
+  // The agent host, which installs its network guard before anything else it loads.
+  { source: join(ENGINE_SRC, 'agent-host', 'main.ts'), outDir: join(APP_DIR, 'out', 'agent-host') },
+];
+
 /**
- * Builds the sandbox child after each main build: a single ES module with every dependency
- * inlined, so it runs from a plain folder outside the app archive.
+ * Builds the process entries after each main build, each one a single ES module with every
+ * dependency inlined, so it runs on its own from any folder.
  */
-function sandboxChild(): Plugin {
+function processEntries(entries: readonly ProcessEntry[]): Plugin {
   let target: string | string[] | false = false;
   return {
-    name: 'architect:sandbox-child',
+    name: 'architect:process-entries',
     apply: 'build',
     configResolved(config) {
       target = config.build.target;
     },
     async writeBundle() {
-      await build({
-        configFile: false,
-        root: APP_DIR,
-        logLevel: 'warn',
-        plugins: [quickjsWasm()],
-        ssr: { noExternal: true },
-        build: {
-          ssr: true,
-          target,
-          outDir: SANDBOX_OUT_DIR,
-          emptyOutDir: true,
-          minify: false,
-          copyPublicDir: false,
-          reportCompressedSize: false,
-          rolldownOptions: {
-            input: { child: SANDBOX_ENTRY },
-            output: { format: 'es', entryFileNames: '[name].mjs', codeSplitting: false },
+      for (const entry of entries) {
+        await build({
+          configFile: false,
+          root: APP_DIR,
+          logLevel: 'warn',
+          plugins: entry.plugins ?? [],
+          ssr: { noExternal: true },
+          build: {
+            ssr: true,
+            target,
+            outDir: entry.outDir,
+            emptyOutDir: true,
+            minify: false,
+            copyPublicDir: false,
+            reportCompressedSize: false,
+            rolldownOptions: {
+              input: { [basename(entry.source, '.ts')]: entry.source },
+              output: { format: 'es', entryFileNames: '[name].mjs', codeSplitting: false },
+            },
           },
-        },
-      });
+        });
+      }
     },
   };
 }
@@ -124,8 +135,8 @@ function sandboxChild(): Plugin {
 export default defineConfig({
   main: {
     // src/main/index.ts imports the engine's utility process with `?modulePath`, which builds it
-    // as a bundle of its own. The sandbox child that the engine forks is built by this plugin.
-    plugins: [sandboxChild()],
+    // as a bundle of its own. The sandbox and the agent host are built by this plugin.
+    plugins: [processEntries(PROCESS_ENTRIES)],
     build: {
       // Everything is bundled, so the packaged app ships no node_modules.
       externalizeDeps: false,
