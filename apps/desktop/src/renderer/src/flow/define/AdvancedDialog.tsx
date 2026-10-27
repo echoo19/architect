@@ -643,14 +643,6 @@ function SplitsTab({ editor, summaries }: TabProps & { summaries: QueryState<Job
         it stays.
       </ExperimentNote>
       <NumberField
-        label="Difficulty check"
-        meta={`Set aside to measure how hard the job is for ${student} before any teaching. Not used for training or the final test.`}
-        unit="tasks"
-        value={calibration}
-        issue={issues['splits.calibration']}
-        onChange={(value) => splits({ calibration: value })}
-      />
-      <NumberField
         label="Practice tasks"
         meta={`${student} practices on these, and ${mentor} studies its mistakes.`}
         unit="tasks"
@@ -674,18 +666,18 @@ function SplitsTab({ editor, summaries }: TabProps & { summaries: QueryState<Job
         issue={issues['splits.test']}
         onChange={(value) => splits({ test: value })}
       />
-      <NumberField
-        label="Shuffle number"
-        meta="Picks which tasks land in which set. The same number gives the same sets, so runs compare fairly."
-        value={job.splits.seed}
-        issue={issues['splits.seed']}
-        onChange={(seed) => splits({ seed })}
-      />
-      <SettingsRow label="Total">
+      <SettingsRow
+        label="Total"
+        meta={
+          calibration > 0
+            ? `Plus ${plural(calibration, 'task')} held back, never used to train or test`
+            : undefined
+        }
+      >
         <span className="font-medium text-fg">
           {total === undefined
-            ? plural(calibration + train + dev + test, 'task')
-            : `${calibration + train + dev + test} of ${plural(total, 'task')}`}
+            ? plural(train + dev + test, 'task')
+            : `${train + dev + test} of ${plural(total, 'task')}`}
         </span>
       </SettingsRow>
       {issues.splits && (
