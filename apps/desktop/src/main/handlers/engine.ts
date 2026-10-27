@@ -50,6 +50,7 @@ export function registerEngineHandlers(
     pause: (runId) => call((api) => api.runs.pause(runId)),
     resume: (runId) => call((api) => api.runs.resume(runId)),
     stop: (runId) => call((api) => api.runs.stop(runId)),
+    retest: (runId, target) => call((api) => api.runs.retest(runId, target)),
     get: (runId) => call((api) => api.runs.get(runId)),
     list: (jobId) => call((api) => api.runs.list(jobId)),
     trace: (attemptId) => call((api) => api.runs.trace(attemptId)),
@@ -57,6 +58,7 @@ export function registerEngineHandlers(
   });
 
   router.registerHandlers('reports', {
-    get: (runId) => call((api) => api.reports.get(runId)),
+    get: (runId, target) => call((api) => api.reports.get(runId, target)),
+    list: (runId) => call((api) => api.reports.list(runId)),
   });
 }

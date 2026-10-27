@@ -85,7 +85,7 @@ describe('pause and resume', () => {
     const finished = engine.store.runs.get(run.id)?.run;
     expect(finished?.status).toBe('finished');
     expect(finished?.totals.wallMs).toBe(15 * MINUTE);
-    expect(engine.store.reports.get(run.id)?.cost.wallMs).toBe(15 * MINUTE);
+    expect(engine.store.reports.get(run.id, 'local')?.cost.wallMs).toBe(15 * MINUTE);
     expect(engine.errors).toEqual([]);
   });
 
@@ -126,7 +126,7 @@ describe('stop', () => {
     });
     expect(engine.store.attempts.list({ runId: run.id, split: 'test' })).toEqual([]);
     expect(engine.store.attempts.list({ runId: run.id, split: 'train' })).toHaveLength(1);
-    expect(engine.store.reports.get(run.id)).toBeNull();
+    expect(engine.store.reports.get(run.id, 'local')).toBeNull();
     expect(engine.store.graduates.forRun(run.id)).toBeNull();
     expect(world.mentor.requests).toHaveLength(0);
     expect(world.vault.opened).toEqual([]);
@@ -147,7 +147,7 @@ describe('stop', () => {
     expect(finished).toMatchObject({ status: 'finished', stopReason: 'user', currentVersion: 2 });
     expect(engine.store.rounds.get(run.id, 2)?.round.status).toBe('failed');
     expect(world.mentor.requests).toHaveLength(1);
-    expect(engine.store.reports.get(run.id)?.test.score).toEqual({ pass: 2, total: 6 });
+    expect(engine.store.reports.get(run.id, 'local')?.test.score).toEqual({ pass: 2, total: 6 });
     expect(engine.store.runs.get(run.id)?.freeze?.harnessVersion).toBe(2);
   });
 
@@ -186,7 +186,7 @@ describe('budgets during a run', () => {
     expect(engine.store.rounds.get(run.id, 1)?.round.error).toMatch(
       /could cost up to .* left in the budget/,
     );
-    expect(engine.store.reports.get(run.id)?.cost.mentorUsd).toBe(0);
+    expect(engine.store.reports.get(run.id, 'local')?.cost.mentorUsd).toBe(0);
   });
 
   it('cuts the attempt in flight when the wall clock runs out, unscored, and runs the test', async () => {

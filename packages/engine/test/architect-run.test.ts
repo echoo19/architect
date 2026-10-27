@@ -299,7 +299,7 @@ describe('an architect run', () => {
 
   it('computes the report card and writes the graduate folder', async () => {
     const { record } = await runArchitect();
-    const report = engine.store.reports.get(record.run.id);
+    const report = engine.store.reports.get(record.run.id, 'local');
     expect(report).toMatchObject({
       method: 'architect',
       name: 'Service desk',

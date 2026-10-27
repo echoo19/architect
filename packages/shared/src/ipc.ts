@@ -1,7 +1,7 @@
 import type { ConnectionTest } from './adapters';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
-import type { Job, MentorConfig, PermissionMode, StudentEndpoint } from './job';
+import type { Job, MentorConfig, PermissionMode, StudentEndpoint, StudentTarget } from './job';
 import type { LineageEntry } from './lineage';
 import type { ReportCard } from './report';
 import type { Method, Round, Run } from './run';
@@ -54,6 +54,18 @@ export interface JobSummary {
   createdAt: string;
   taskCount: number;
   latestRun?: Pick<Run, 'id' | 'status' | 'phase' | 'method' | 'devCurrent' | 'devBaseline'>;
+}
+
+/** How a run starts. */
+export interface RunStartOptions {
+  method: Method;
+  /** The run's seed; a random one when absent. */
+  seed?: number;
+  /**
+   * Where the locked test runs: the local student unless the run asks for the job's hosted copy.
+   * A hosted test is a supplementary result, and its report card says it didn't run offline.
+   */
+  lockedTestOn?: StudentTarget;
 }
 
 export interface RunDetail {
@@ -141,10 +153,18 @@ export interface ArchitectApi {
     draftReply(sessionId: string, text: string): Promise<DraftTurn>;
   };
   runs: {
-    start(jobId: string, options: { method: Method; seed?: number }): Promise<Run>;
+    start(jobId: string, options: RunStartOptions): Promise<Run>;
     pause(runId: string): Promise<void>;
     resume(runId: string): Promise<void>;
     stop(runId: string): Promise<void>;
+    /**
+     * Tests a finished run's frozen graduate again on the other student endpoint, with the
+     * harness version and student it was frozen with and no mentor, and files a report card for
+     * that endpoint. The run itself never changes. Resolves once queued; progress comes as
+     * `eval.progress` and `eval.finished` events for split `test`, the second once the card is
+     * filed. Each endpoint is re-tested once: asking again only resumes a re-test an error paused.
+     */
+    retest(runId: string, target: StudentTarget): Promise<void>;
     get(runId: string): Promise<RunDetail>;
     list(jobId?: string): Promise<Run[]>;
     trace(attemptId: string): Promise<Trace>;
@@ -152,7 +172,10 @@ export interface ArchitectApi {
     onEvent(listener: (event: RunEvent) => void): Unsubscribe;
   };
   reports: {
-    get(runId: string): Promise<ReportCard>;
+    /** The run's report card from one student endpoint: by default, where its locked test ran. */
+    get(runId: string, target?: StudentTarget): Promise<ReportCard>;
+    /** The student endpoints the run has a report card from, oldest card first. */
+    list(runId: string): Promise<StudentTarget[]>;
   };
   graduates: {
     list(): Promise<GraduateSummary[]>;

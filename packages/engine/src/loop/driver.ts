@@ -1,6 +1,6 @@
-import { AdapterError, type Job, type Run } from '@architect/shared';
+import type { Job, Run } from '@architect/shared';
 import { author } from './authoring';
-import { errorMessage } from './errors';
+import { errorMessage, isAbort } from './errors';
 import { freeze, lockedTest } from './graduation';
 import { planNextStep, type ActionStep, type PlanInput } from './plan';
 import { RunState, type SessionContext, type SessionControl } from './run-state';
@@ -15,13 +15,6 @@ import {
 } from './training';
 
 export type SessionOutcome = 'parked' | 'ended' | 'aborted';
-
-function isAbort(error: unknown): boolean {
-  return (
-    (error instanceof AdapterError && error.code === 'aborted') ||
-    (error instanceof Error && error.name === 'AbortError')
-  );
-}
 
 /**
  * Executes one session of a run: plans the next step from the persisted state, runs it (each

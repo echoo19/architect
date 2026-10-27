@@ -38,7 +38,7 @@ describe('the bare baseline', () => {
     expect(finished.stopReason).toBeUndefined();
     expect(engine.store.rounds.list(finished.id)).toEqual([]);
     expect(world.mentorsCreated).toBe(0);
-    const report = engine.store.reports.get(finished.id);
+    const report = engine.store.reports.get(finished.id, 'local');
     expect(report).toMatchObject({
       method: 'bare',
       mentor: { label: 'No mentor', model: '' },
@@ -88,7 +88,7 @@ describe('the one-shot baseline', () => {
       measured: { delta: 6 },
     });
     expect(entry?.decisionReason).toContain('without a keep-or-revert check');
-    expect(engine.store.reports.get(finished.id)).toMatchObject({
+    expect(engine.store.reports.get(finished.id, 'local')).toMatchObject({
       method: 'one_shot',
       test: { score: { pass: 4, total: 6 } },
       cost: { rounds: 1 },
@@ -138,7 +138,7 @@ describe('the self-reflection baseline', () => {
       'kept',
       'kept',
     ]);
-    expect(engine.store.reports.get(finished.id)).toMatchObject({
+    expect(engine.store.reports.get(finished.id, 'local')).toMatchObject({
       method: 'self_reflection',
       mentor: { label: 'Glimmer (self-reflection)', model: 'glimmer:test' },
       cost: { mentorUsd: 0, mentorInputTokens: 600, mentorOutputTokens: 160, rounds: 2 },

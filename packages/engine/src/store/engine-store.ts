@@ -1,11 +1,13 @@
 import type { DatabaseSync } from 'node:sqlite';
 import {
   ReportCardSchema,
+  StudentTargetSchema,
   WorkspaceChatSchema,
   WorkspaceMessageSchema,
   type ReportCard,
   type RunStatus,
   type SplitName,
+  type StudentTarget,
   type WorkspaceChat,
   type WorkspaceMessage,
 } from '@architect/shared';
@@ -17,16 +19,18 @@ import {
   JobRecordSchema,
   LineageIndexSchema,
   StoredAttemptSchema,
+  StoredRetestSchema,
   StoredRoundSchema,
   StoredRunSchema,
   type CostEntry,
   type GraduateRecord,
   type JobRecord,
   type LineageIndex,
+  type RetestStatus,
   type StoredAttempt,
+  type StoredRetest,
   type StoredRound,
   type StoredRun,
-  type StudentTarget,
 } from './records';
 import {
   flag,
@@ -91,9 +95,21 @@ export interface EngineStore {
     insert(entry: CostEntry): void;
     list(runId: string): CostEntry[];
   };
+  /** One report card per run and student endpoint its graduate was tested on. */
   reports: {
-    put(runId: string, card: ReportCard): void;
-    get(runId: string): ReportCard | null;
+    /** Files the card under its own run and `testedOn`, replacing any card already there. */
+    put(card: ReportCard): void;
+    get(runId: string, target: StudentTarget): ReportCard | null;
+    /** The endpoints the run has a card from, oldest card first. */
+    targets(runId: string): StudentTarget[];
+  };
+  retests: {
+    /** Fails if the run already has a re-test on that target. */
+    insert(retest: StoredRetest): void;
+    update(retest: StoredRetest): void;
+    get(runId: string, target: StudentTarget): StoredRetest | null;
+    /** Oldest first, so interrupted re-tests resume in the order they started. */
+    withStatus(status: RetestStatus): StoredRetest[];
   };
   graduates: {
     insert(record: GraduateRecord): void;
@@ -348,6 +364,28 @@ function costFromRow(row: Row): CostEntry {
   });
 }
 
+function retestParams(retest: StoredRetest): Params {
+  return {
+    run_id: retest.runId,
+    target: retest.target,
+    status: retest.status,
+    error: retest.error ?? null,
+    started_at: retest.startedAt,
+    ended_at: retest.endedAt ?? null,
+  };
+}
+
+function retestFromRow(row: Row): StoredRetest {
+  return StoredRetestSchema.parse({
+    runId: row.run_id,
+    target: row.target,
+    status: row.status,
+    error: orUndefined(row.error),
+    startedAt: row.started_at,
+    endedAt: orUndefined(row.ended_at),
+  });
+}
+
 function graduateParams(record: GraduateRecord): Params {
   return {
     id: record.id,
@@ -557,16 +595,48 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
     },
 
     reports: {
-      put: (runId, card) =>
+      put: (card) =>
         sql.insert(
           'reports',
-          { run_id: runId, card: json(card), created_at: card.createdAt },
+          {
+            run_id: card.runId,
+            target: card.testedOn,
+            card: json(card),
+            created_at: card.createdAt,
+          },
           'replace',
         ),
-      get: (runId) => {
-        const row = sql.one('SELECT card FROM reports WHERE run_id = :run_id', { run_id: runId });
+      get: (runId, target) => {
+        const row = sql.one(
+          'SELECT card FROM reports WHERE run_id = :run_id AND target = :target',
+          { run_id: runId, target },
+        );
         return row ? ReportCardSchema.parse(fromJson(row.card)) : null;
       },
+      targets: (runId) =>
+        sql
+          .all('SELECT target FROM reports WHERE run_id = :run_id ORDER BY created_at, rowid', {
+            run_id: runId,
+          })
+          .map((row) => StudentTargetSchema.parse(row.target)),
+    },
+
+    retests: {
+      insert: (retest) => sql.insert('retests', retestParams(retest)),
+      update: (retest) => sql.update('retests', retestParams(retest), ['run_id', 'target']),
+      get: (runId, target) => {
+        const row = sql.one('SELECT * FROM retests WHERE run_id = :run_id AND target = :target', {
+          run_id: runId,
+          target,
+        });
+        return row ? retestFromRow(row) : null;
+      },
+      withStatus: (status) =>
+        sql
+          .all('SELECT * FROM retests WHERE status = :status ORDER BY started_at, rowid', {
+            status,
+          })
+          .map(retestFromRow),
     },
 
     graduates: {

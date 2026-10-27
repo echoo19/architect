@@ -5,6 +5,7 @@ import type {
   ReportCard,
   Round,
   Run,
+  StudentTarget,
   TypeResult,
 } from '@architect/shared';
 
@@ -21,11 +22,12 @@ export interface ReportCardInput {
   run: Run;
   rounds: Round[];
   lineage: LineageEntry[];
-  /** Locked-test results of the frozen graduate. */
+  /** Locked-test results of the frozen graduate, all from one student endpoint. */
   test: TestResult[];
   /** The frozen graduate's guardrails. */
   guardrails: Guardrails;
   student: ReportCard['student'];
+  testedOn: StudentTarget;
   mentor: ReportCard['mentor'];
   /** The author claimed "ready" in some round of training. */
   readyClaimed: boolean;
@@ -123,6 +125,7 @@ export function computeReportCard(input: ReportCardInput): ReportCard {
     name: job.name,
     createdAt: input.createdAt,
     student: input.student,
+    testedOn: input.testedOn,
     mentor: input.mentor,
     test: {
       score,

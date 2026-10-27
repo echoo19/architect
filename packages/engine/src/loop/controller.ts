@@ -5,9 +5,10 @@ import {
   type Method,
   type Run,
   type RunEvent,
+  type StudentTarget,
 } from '@architect/shared';
 import type { EngineStore } from '../store/engine-store';
-import type { StoredRun, StudentTarget } from '../store/records';
+import type { StoredRun } from '../store/records';
 import { systemClock, type Clock, type LoopDeps } from './deps';
 import type { SessionOutcome } from './driver';
 import { errorMessage } from './errors';
@@ -15,6 +16,8 @@ import { writeJsonFile } from './files';
 import type { JobLibrary } from './jobs';
 import type { DataPaths } from './paths';
 import { isTerminal } from './plan';
+import { RetestSession, retestRefusal } from './retest';
+import type { SessionContext } from './run-state';
 import { fanOutSeeds } from './seeds';
 import { RunSession } from './session';
 import { isoNow } from './time';
@@ -27,7 +30,7 @@ export interface RunControllerOptions {
   clock?: Clock;
   /** Attempts in flight at once while training (default 1). The locked test runs one at a time. */
   concurrency?: number;
-  /** Runs that may train or test at once (default 1); the others wait their turn. */
+  /** Runs and re-tests that may use the student at once (default 1); the others wait their turn. */
   maxActiveRuns?: number;
   /** Where errors from event listeners and broken sessions go. They never stop a run. */
   onError?(error: unknown): void;
@@ -46,15 +49,36 @@ interface ActiveRun {
   done: Promise<SessionOutcome | void>;
 }
 
+interface ActiveRetest {
+  session: RetestSession;
+  done: Promise<void>;
+}
+
+/** What waits its turn for the student: a run, or a re-test of a finished run's graduate. */
+type Turn =
+  { kind: 'run'; runId: string } | { kind: 'retest'; runId: string; target: StudentTarget };
+
+function sameTurn(a: Turn, b: Turn): boolean {
+  if (a.kind === 'run' || b.kind === 'run') return a.kind === b.kind && a.runId === b.runId;
+  return a.runId === b.runId && a.target === b.target;
+}
+
+function retestKey(runId: string, target: StudentTarget): string {
+  return `${runId}/${target}`;
+}
+
 /**
- * Starts, pauses, resumes and stops runs, and resumes interrupted ones after a restart. Runs
- * wait in a queue so only `maxActiveRuns` use the student at once, which also keeps latency
- * measurements honest. Each active run is driven by a session that persists every step.
+ * Starts, pauses, resumes and stops runs, re-tests finished runs' graduates, and resumes
+ * whatever was interrupted after a restart. Runs and re-tests wait in one queue so only
+ * `maxActiveRuns` use the student at once, which also keeps latency measurements honest. Each
+ * is driven by a session that persists every step.
  */
 export class RunController {
   private readonly listeners = new Set<(event: RunEvent) => void>();
-  private readonly queue: string[] = [];
+  private readonly queue: Turn[] = [];
   private readonly active = new Map<string, ActiveRun>();
+  /** Re-tests holding the student, by run and target. */
+  private readonly retesting = new Map<string, ActiveRetest>();
   private readonly clock: Clock;
   private readonly concurrency: number;
   private readonly maxActiveRuns: number;
@@ -174,34 +198,63 @@ export class RunController {
     });
   }
 
-  /** On startup: runs that were active when the app closed resume from their last saved step. */
+  /**
+   * Queues a re-test of a finished run's frozen graduate on the run's other student endpoint:
+   * the harness version and student it was frozen with, the run's test seed, and no mentor. It
+   * files its own report card and never changes the run. Each target is re-tested once; asking
+   * again only resumes a re-test that an error paused.
+   */
+  async retest(runId: string, target: StudentTarget): Promise<void> {
+    const job = await this.options.jobs.forRun(this.get(runId));
+    const refusal = retestRefusal(this.get(runId), job, target);
+    if (refusal !== null) throw new Error(refusal);
+    const { store } = this.options;
+    const turn: Turn = { kind: 'retest', runId, target };
+    const existing = store.retests.get(runId, target);
+    if (existing?.status === 'finished') {
+      throw new Error(`This run's graduate was already re-tested on the ${target} student.`);
+    }
+    if (existing?.status === 'testing' && this.isScheduled(turn)) {
+      throw new Error(`This run's graduate is already being re-tested on the ${target} student.`);
+    }
+    if (existing === null) {
+      store.retests.insert({ runId, target, status: 'testing', startedAt: isoNow(this.clock) });
+    } else if (existing.status === 'paused') {
+      store.retests.update({ ...existing, status: 'testing', error: undefined });
+    }
+    this.schedule(turn);
+  }
+
+  /** On startup: runs and re-tests that were active when the app closed resume where they were. */
   recover(): void {
-    const interrupted = this.options.store.runs.withStatus([
-      'queued',
-      'running',
-      'stopping',
-      'testing',
-    ]);
-    for (const { run } of interrupted) {
-      if (this.active.has(run.id) || this.queue.includes(run.id)) continue;
+    const { store } = this.options;
+    for (const { run } of store.runs.withStatus(['queued', 'running', 'stopping', 'testing'])) {
+      if (this.isScheduled({ kind: 'run', runId: run.id })) continue;
       if (run.status !== 'queued') this.update(run.id, { status: 'queued' });
-      this.queue.push(run.id);
+      this.queue.push({ kind: 'run', runId: run.id });
+    }
+    for (const { runId, target } of store.retests.withStatus('testing')) {
+      const turn: Turn = { kind: 'retest', runId, target };
+      if (!this.isScheduled(turn)) this.queue.push(turn);
     }
     this.pump();
   }
 
-  /** Resolves when no run is active. */
+  /** Resolves when no run or re-test is active. */
   async idle(): Promise<void> {
-    while (this.active.size > 0) {
-      await Promise.all([...this.active.values()].map((active) => active.done));
+    while (this.active.size > 0 || this.retesting.size > 0) {
+      const sessions = [...this.active.values(), ...this.retesting.values()];
+      await Promise.all(sessions.map(({ done }) => done));
     }
   }
 
-  /** Aborts active sessions for shutdown. Their runs stay resumable for `recover`. */
+  /** Aborts active sessions for shutdown. Their runs and re-tests stay resumable for `recover`. */
   async close(): Promise<void> {
     this.closed = true;
     this.queue.length = 0;
-    for (const { session } of this.active.values()) session.abort();
+    for (const { session } of [...this.active.values(), ...this.retesting.values()]) {
+      session.abort();
+    }
     await this.idle();
   }
 
@@ -243,27 +296,41 @@ export class RunController {
     this.publish(run);
   }
 
-  private enqueue(runId: string): void {
-    if (!this.active.has(runId) && !this.queue.includes(runId)) this.queue.push(runId);
+  /** Whether the turn is waiting in the queue or holding the student. */
+  private isScheduled(turn: Turn): boolean {
+    const holding =
+      turn.kind === 'run'
+        ? this.active.has(turn.runId)
+        : this.retesting.has(retestKey(turn.runId, turn.target));
+    return holding || this.queue.some((queued) => sameTurn(queued, turn));
+  }
+
+  private schedule(turn: Turn): void {
+    if (!this.isScheduled(turn)) this.queue.push(turn);
     this.pump();
   }
 
+  private enqueue(runId: string): void {
+    this.schedule({ kind: 'run', runId });
+  }
+
   private dequeue(runId: string): void {
-    const index = this.queue.indexOf(runId);
+    const index = this.queue.findIndex((turn) => sameTurn(turn, { kind: 'run', runId }));
     if (index >= 0) this.queue.splice(index, 1);
   }
 
   private pump(): void {
-    while (!this.closed && this.active.size < this.maxActiveRuns) {
-      const runId = this.queue.shift();
-      if (runId === undefined) return;
-      this.launch(runId);
+    while (!this.closed && this.active.size + this.retesting.size < this.maxActiveRuns) {
+      const turn = this.queue.shift();
+      if (turn === undefined) return;
+      if (turn.kind === 'run') this.launch(turn.runId);
+      else this.launchRetest(turn.runId, turn.target);
     }
   }
 
-  private launch(runId: string): void {
+  private sessionContext(runId: string): SessionContext {
     const { store, paths, jobs, deps } = this.options;
-    const session = new RunSession({
+    return {
       runId,
       store,
       paths,
@@ -272,7 +339,11 @@ export class RunController {
       clock: this.clock,
       concurrency: this.concurrency,
       emit: (event) => this.dispatch(event),
-    });
+    };
+  }
+
+  private launch(runId: string): void {
+    const session = new RunSession(this.sessionContext(runId));
     const done = session
       .run()
       .catch((error: unknown) => this.settleCrashed(runId, error))
@@ -281,6 +352,20 @@ export class RunController {
         this.pump();
       });
     this.active.set(runId, { session, done });
+  }
+
+  /** A re-test that fails even to record its own error stays `testing`, and asking again resumes it. */
+  private launchRetest(runId: string, target: StudentTarget): void {
+    const key = retestKey(runId, target);
+    const session = new RetestSession(this.sessionContext(runId), target);
+    const done = session
+      .run()
+      .catch((error: unknown) => this.onError(error))
+      .finally(() => {
+        this.retesting.delete(key);
+        this.pump();
+      });
+    this.retesting.set(key, { session, done });
   }
 
   /**
