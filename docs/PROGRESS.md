@@ -15,6 +15,9 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Fallback applied (spec risk table): train on a hosted copy of Glimmer during development, and run the locked tests and the demo on the local model. A 60-task locked test takes about 2.5 hours locally, so local tests run overnight or on a smaller set.
 - Bare-student pass rate on the sample job: not measured yet; needs the runtime (in progress).
 
-**In progress (parallel, one branch each):** design tokens, component library and desktop shell; the sample job; the harness package; adapters; engine runtime (data, tools, sandbox, agent loop, checkers, splits, vault); core loop (mentor, keep or revert, budgets, storage, report card, host).
+**Merged:** `packages/harness` (folders, validation, hashing, diffs, versions, graduate folders with `report.json` and `report.md`, lineage) and `packages/adapters` (Meta, Baseten and Modal mentors; Ollama and OpenAI-compatible students). 523 tests pass on main.
+**Live checks through the adapters:** Meta mentor with streaming, JSON-schema output and reasoning works on both tiers (contributor $0.00004, standard $0.0008 for a tiny call). Local Glimmer answers through the Ollama adapter (`/api/show` reports `thinking` and `tools`; Q4_K_M, 27.9B parameters) and unloads afterwards.
 
-**Mentor spend:** under $0.01 of the $150 credit.
+**In progress (parallel, one branch each):** design tokens, component library and desktop shell; the sample job; engine runtime (data, tools, sandbox, agent loop, checkers, splits, vault); core loop (mentor, keep or revert, budgets, storage, report card, host). Next to start: the workspace agent host (brief ready), once the runtime merges.
+
+**Mentor spend:** about $0.01 of the $150 credit.
