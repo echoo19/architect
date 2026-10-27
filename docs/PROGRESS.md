@@ -5,7 +5,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 ## 2026-10-27 (Mon), Phase 0 into Phase 1
 
 **Done**
-- Docs: spec, agent rules (`CLAUDE.md`), plan, architecture, decisions 001 to 023, harness format, verified model facts (`MODELS.md`), gotchas. Two second opinions from GPT-6 Astra shaped the sample job (decision 005) and the evaluation protocol (decisions 006, 007, 009).
+- Docs: spec, agent rules (`CLAUDE.md`), plan, architecture, decisions 001 to 025, harness format, verified model facts (`MODELS.md`), gotchas. Two second opinions from GPT-6 Astra shaped the sample job (decision 005) and the evaluation protocol (decisions 006, 007, 009).
 - Merged on main, 946 tests passing, CI green:
   - `packages/shared`: contracts and IPC schemas.
   - `packages/harness`: harness and graduate folders (validation, hashing, diffs, versions, `report.json` and `report.md`, lineage).
@@ -31,7 +31,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Noise pilot, starting harness, 45 dev tasks, three student seeds on hosted Glimmer: 39, 33, 36 at temperature 1 (14 tasks flipped); 37, 38, 34 at temperature 0.6 (15 flipped). Lower temperature didn't help, so decoding stays at Glimmer's recommended settings.
 - One dev run's score moves with a standard deviation of about 2.3 tasks. Simulated with the pilot's per-task pass rates, the old rule kept a do-nothing change about 28% of the time.
 - Now a change that clears the limits is measured again, both versions under new seeds, and kept only if the totals clear twice the limits: 11 to 15% for a do-nothing change in simulation, about 80% for a +4.5 change. Patience for the sample job is four reverts. GPT-6 Astra reviewed it first and agreed.
-- The first start of seed 1 showed the one-shot baseline losing its only reply to a format slip in its worked examples, so it would have measured a typo. Every author now gets one fix for a reply the runner can't use (decision 023), and the mentor's guide shows the exact example format. That start was discarded and seed 1 restarted.
+- The first start of seed 1 showed the one-shot baseline losing its only reply to a format slip in its worked examples, so it would have measured a typo. Every author now gets one fix for a reply the runner can't use (decision 023), and the mentor's guide shows the exact example format. That start was discarded and seed 1 restarted. The restart then showed the one-shot harness falling from 38/45 to 15/45 on dev: its pricing tool asked for the table `jobs` (the file is `jobs.csv`, and the guide never said names keep the extension), and its scheduling tool had a typo that no JavaScript engine parses. Tools may now name a file without its extension when that is unambiguous (decision 024), and a change set's tools must load in the sandbox before it is measured, with the one fix if they don't (decision 025). Seed 1 started a third time at commit 49c18ea; an independent review (Fable) of the second measurement and the fix step found four smaller problems, all fixed before it.
 
 **Next**
 - Main runs on version 2: four methods, seed 1 first, then seeds 2 and 3 if the cost fits. Hosted training and locked tests; local locked tests for one seed per method and the shipped graduate.
@@ -41,7 +41,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Open issues**
 - Two commits reached main red today (a filtered local check hid failures); `pnpm check` now gates commits on its exit code.
 - `docs/screenshots/` holds e2e screenshots with fixture data; the README must use screenshots of real runs.
-- OpenRouter spend is the owner's money and the key is capped at $50: $4.05 used so far (calibration, both pilots, $0.70 on the discarded start), $45.95 left. Seed 1 of the main runs comes first, to measure the real cost before seeds 2 and 3.
+- OpenRouter spend is the owner's money and the key is capped at $50: $6.11 used so far (calibration, both pilots, $2.77 on the two discarded starts), $43.89 left. Seed 1 of the main runs comes first, to measure the real cost before seeds 2 and 3.
 - Self-hosted Spark Open needs Baseten or Modal credits, and the Baseten id must be confirmed with `GET /v1/models` once a key exists.
 
 **Mentor spend:** about $0.01 of the $150 credit.
