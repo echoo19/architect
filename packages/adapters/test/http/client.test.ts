@@ -60,6 +60,23 @@ describe('JSON requests', () => {
     expect(request?.headers.accept).toBe('application/json');
   });
 
+  it('uses whatever the global fetch is at the time of each request, so a later network guard applies', async () => {
+    const server = await startServer((_req, res) => sendJson(res, 200, { pong: true }));
+    const client = clientFor(server, { fetch: undefined });
+    const original = globalThis.fetch;
+    const guarded: string[] = [];
+    globalThis.fetch = (input, init) => {
+      guarded.push(String(input));
+      return original(input, init);
+    };
+    try {
+      await client.getJson('/ping', Pong);
+    } finally {
+      globalThis.fetch = original;
+    }
+    expect(guarded).toEqual([`${server.url}/v1/ping`]);
+  });
+
   it('posts a JSON body', async () => {
     const server = await startServer((_req, res) => sendJson(res, 200, { pong: true }));
     await clientFor(server).postJson('/echo', { hello: 'world' }, Pong);

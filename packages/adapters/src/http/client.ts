@@ -75,7 +75,9 @@ type Method = 'GET' | 'POST';
 export function createHttpClient(options: HttpClientOptions): HttpClient {
   const { service } = options;
   const baseUrl = options.baseUrl.replace(/\/+$/, '');
-  const fetchImpl = options.fetch ?? fetch;
+  // Looked up on every call, so a network guard that wraps the global fetch after this client
+  // was built still applies to it.
+  const fetchImpl: typeof fetch = options.fetch ?? ((input, init) => fetch(input, init));
   const secrets = options.secrets ?? [];
   const streamTimeouts: Timeouts = { ...STREAM_TIMEOUTS, ...options.timeouts };
 
