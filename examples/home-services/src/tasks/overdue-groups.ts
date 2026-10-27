@@ -2,6 +2,7 @@ import type { AnswerCompare, JsonValue, Task } from '@architect/shared';
 import { CITIES, ZONES } from '../company/catalog';
 import { customerCells } from '../company/tables';
 import type { CompanyRecords, Invoice, Payment } from '../company/types';
+import { groupBy } from '../lib/group-by';
 import { dollars } from '../lib/money';
 import type { Random } from '../lib/random';
 import { BUSINESS_DATE } from '../policy/rules';
@@ -341,14 +342,4 @@ function summaryOf(answer: JsonValue): string {
 /** "$500", "$1,000" */
 function wholeDollars(cents: number): string {
   return dollars(cents).replace(/\.00$/, '');
-}
-
-function groupBy<T>(items: readonly T[], keyOf: (item: T) => string): Map<string, T[]> {
-  const groups = new Map<string, T[]>();
-  for (const item of items) {
-    const group = groups.get(keyOf(item));
-    if (group) group.push(item);
-    else groups.set(keyOf(item), [item]);
-  }
-  return groups;
 }

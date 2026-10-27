@@ -2,6 +2,7 @@ import type { JsonValue, Task } from '@architect/shared';
 import type { CompanyRecords, Customer, Invoice, Payment } from '../company/types';
 import { addDays, datesFrom, weekdayOf } from '../lib/calendar';
 import { compareText } from '../lib/compare';
+import { groupBy } from '../lib/group-by';
 import { dollars, sum } from '../lib/money';
 import type { Random } from '../lib/random';
 import { BUSINESS_DATE } from '../policy/rules';
@@ -103,7 +104,7 @@ export function buildOverdueTasks(
 ): Task[] {
   const quotas = QUOTAS[version];
   const cap = new AnswerCap(MAX_TASKS_PER_ANSWER);
-  const paymentsOf = paymentsByInvoice(records.payments);
+  const paymentsOf = groupBy(records.payments, (payment) => payment.invoice_id);
   const accounts = records.customers
     .map((customer) => accountOf(records, paymentsOf, customer))
     .filter((account) => account !== null);
@@ -220,16 +221,6 @@ function withBoundaries<T>(
 /** Version 2 records each task's question, for the reference solutions and the tests. */
 function questionMeta(version: JobVersion, question: OverdueQuestion): Record<string, JsonValue> {
   return version === 1 ? {} : { question };
-}
-
-function paymentsByInvoice(payments: readonly Payment[]): Map<string, Payment[]> {
-  const byInvoice = new Map<string, Payment[]>();
-  for (const payment of payments) {
-    const list = byInvoice.get(payment.invoice_id);
-    if (list) list.push(payment);
-    else byInvoice.set(payment.invoice_id, [payment]);
-  }
-  return byInvoice;
 }
 
 function coveredBy(members: readonly Account[]): Covered {
