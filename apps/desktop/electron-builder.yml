@@ -23,8 +23,9 @@ files:
 npmRebuild: false
 
 asar: true
-# The engine forks the tool sandbox as a Node process with the sandbox's folder as its working
-# directory, so the sandbox and its WebAssembly live in a real folder beside the archive.
+# The engine and the agent host fork the tool sandbox as a Node process with the sandbox's
+# folder as its working directory, so the sandbox and its WebAssembly live in a real folder
+# beside the archive. The agent host itself, like the engine, runs from inside the archive.
 asarUnpack:
   - out/sandbox/**
 
