@@ -1,34 +1,34 @@
 import type { ReactNode } from 'react';
 import type { FileDiff, Job, LineageEntry, Round } from '@architect/shared';
-import { cn, DrawerContent, ErrorState, Skeleton } from '@architect/ui';
+import { cn, DrawerContent, ErrorState, Skeleton, Spinner } from '@architect/ui';
+import { Check, Undo2 } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { useQuery } from '../../api/query';
 import { formatRange, formatRate, signed } from '../format';
 import { typeLabel } from '../names';
+import { decisionSentence, predictionCheck } from './decision';
 import { countChanges, parseUnifiedDiff, type DiffLine } from './diff';
 import type { ModelNames } from './phase';
 
 const STATUS_TEXT: Record<Round['status'], string> = {
   attempting: 'Working through practice tasks',
-  diagnosing: 'Being diagnosed',
-  evaluating: 'Being checked',
+  diagnosing: 'Waiting for the diagnosis',
+  evaluating: 'Scoring the change on the check tasks',
   decided: 'Decided',
   failed: 'Failed',
 };
 
 const FILE_STATUS: Record<FileDiff['status'], string> = {
-  added: 'New',
-  modified: 'Changed',
-  deleted: 'Removed',
+  added: 'added',
+  modified: 'changed',
+  deleted: 'removed',
 };
 
-function decisionText(round: Round): string {
-  if (round.decision === 'kept') return 'Kept';
-  if (round.decision === 'reverted') return 'Reverted';
-  return STATUS_TEXT[round.status];
+function lines(count: number): string {
+  return `${count} ${count === 1 ? 'line' : 'lines'}`;
 }
 
-/** One round in full: the diagnosis, the files it changed, and what the change did. */
+/** One round in full: the decision, the diagnosis, and the files the change touched. */
 export function RoundDrawerContent({
   runId,
   round,
@@ -46,44 +46,50 @@ export function RoundDrawerContent({
   const measured =
     round.devBefore && round.devAfter ? round.devAfter.pass - round.devBefore.pass : null;
   return (
-    <DrawerContent title={title} subtitle={decisionText(round)}>
+    <DrawerContent
+      title={title}
+      subtitle={`${names.mentor}'s change to the agent's instructions, skills and tools`}
+    >
       <div className="flex flex-col gap-7">
-        {round.decisionReason && (
-          <div
-            className={cn(
-              'rounded-xl border px-4 py-3.5 text-pretty',
-              round.decision === 'kept'
-                ? 'border-student-tile-line bg-student-tile'
-                : 'border-line-card bg-well text-fg-secondary',
-            )}
-          >
-            {round.decisionReason}
-          </div>
-        )}
+        <Decision round={round} job={job} lineage={lineage} />
         {round.error && (
           <ErrorState layout="inline" title="This round failed" message={round.error} />
         )}
 
         <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line-card bg-line-card">
-          <Effect label="Expected">
-            {round.predicted
-              ? formatRange(round.predicted.devDeltaMin, round.predicted.devDeltaMax)
-              : '–'}
+          <Effect label={`${names.mentor} expected`}>
+            {round.predicted ? (
+              <>
+                {formatRange(round.predicted.devDeltaMin, round.predicted.devDeltaMax)}
+                <Unit>check tasks</Unit>
+              </>
+            ) : (
+              '–'
+            )}
           </Effect>
           <Effect
             label="Measured"
             note={
               round.devBefore && round.devAfter
-                ? `${formatRate(round.devBefore)} → ${formatRate(round.devAfter)}`
+                ? `${formatRate(round.devBefore)} to ${formatRate(round.devAfter)} of check tasks right`
                 : undefined
             }
           >
-            {measured === null ? '–' : signed(measured)}
+            {measured === null ? (
+              '–'
+            ) : (
+              <>
+                {signed(measured)}
+                <Unit>check {Math.abs(measured) === 1 ? 'task' : 'tasks'}</Unit>
+              </>
+            )}
           </Effect>
         </dl>
-        <p className="-mt-4 text-sm text-fg-muted">
-          Change in check tasks right, out of {round.devAfter?.total ?? job.splits.dev}.
-        </p>
+        {round.predicted && measured !== null && (
+          <p className="-mt-4 text-sm text-fg-muted">
+            {predictionCheck(round.predicted, measured, names.mentor)}.
+          </p>
+        )}
 
         {round.diagnosis && (
           <Block title={`${names.mentor}'s diagnosis`} tone="mentor">
@@ -91,13 +97,15 @@ export function RoundDrawerContent({
               {round.diagnosis}
             </p>
             {round.predicted?.rationale && (
-              <p className="m-0 text-fg-secondary text-pretty">{round.predicted.rationale}</p>
+              <p className="m-0 text-fg-secondary text-pretty">
+                Why it expected that: {round.predicted.rationale}
+              </p>
             )}
           </Block>
         )}
 
         {lineage && lineage.measured.perType.length > 0 && (
-          <Block title="By task type">
+          <Block title="Check tasks right, by task type">
             <ul className="m-0 flex list-none flex-col p-0">
               {lineage.measured.perType.map((type) => (
                 <li
@@ -106,7 +114,7 @@ export function RoundDrawerContent({
                 >
                   <span>{typeLabel(job, type.type)}</span>
                   <span className="font-mono text-sm tabular-nums">
-                    {type.before} → {type.after}
+                    {type.before} to {type.after}
                   </span>
                 </li>
               ))}
@@ -114,7 +122,7 @@ export function RoundDrawerContent({
           </Block>
         )}
 
-        <Block title="Files changed">
+        <Block title={`What changed in ${job.name}'s instructions`}>
           <RoundFiles runId={runId} round={round} />
         </Block>
       </div>
@@ -122,12 +130,61 @@ export function RoundDrawerContent({
   );
 }
 
+/** The keep-or-revert decision, big and plain, with the reason in one sentence. */
+function Decision({
+  round,
+  job,
+  lineage,
+}: {
+  round: Round;
+  job: Job;
+  lineage: LineageEntry | undefined;
+}) {
+  const sentence = decisionSentence(round, lineage, job);
+  if (!round.decision || !sentence) {
+    return (
+      <div className="flex items-center gap-3 rounded-xl border border-line-card bg-well px-4 py-3.5">
+        {round.status !== 'failed' && <Spinner tone="mentor" size={16} />}
+        <span className="text-xl font-medium">{STATUS_TEXT[round.status]}</span>
+      </div>
+    );
+  }
+  const kept = round.decision === 'kept';
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-1.5 rounded-xl border px-4 py-3.5',
+        kept ? 'border-student-tile-line bg-student-tile' : 'border-line-card bg-well',
+      )}
+    >
+      <span
+        className={cn(
+          'flex items-center gap-2.5 text-2xl font-medium',
+          kept ? 'text-student' : 'text-fg-secondary',
+        )}
+      >
+        {kept ? (
+          <Check size={20} strokeWidth={2.2} aria-hidden />
+        ) : (
+          <Undo2 size={20} strokeWidth={2} aria-hidden />
+        )}
+        {kept ? 'Kept' : 'Reverted'}
+      </span>
+      <p className="m-0 text-md text-fg-soft text-pretty">{sentence}</p>
+    </div>
+  );
+}
+
+function Unit({ children }: { children: ReactNode }) {
+  return <span className="ml-2 font-sans text-md text-fg-secondary">{children}</span>;
+}
+
 function Effect({ label, note, children }: { label: string; note?: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1 bg-modal px-4 py-3.5">
       <dt className="text-fg-secondary">{label}</dt>
       <dd className="m-0 font-mono text-2xl tabular-nums">{children}</dd>
-      {note && <dd className="m-0 font-mono text-sm text-fg-muted">{note}</dd>}
+      {note && <dd className="m-0 text-sm text-fg-muted">{note}</dd>}
     </div>
   );
 }
@@ -183,31 +240,33 @@ function RoundFiles({ runId, round }: { runId: string; round: Round }) {
   );
 }
 
+/** One file's change: its name and what happened to it, then every line, with + and − marks. */
 function FilePatch({ file }: { file: FileDiff }) {
-  const lines = parseUnifiedDiff(file.patch);
-  const { added, removed } = countChanges(lines);
+  const parsed = parseUnifiedDiff(file.patch);
+  const { added, removed } = countChanges(parsed);
+  // The first hunk starts the file's excerpt; later ones mark lines left out between them.
+  const first = parsed.findIndex((line) => line.kind === 'hunk');
+  const shown = parsed.filter((_, index) => index !== first);
   return (
     <article
-      aria-label={`${FILE_STATUS[file.status]} ${file.path}`}
+      aria-label={`${file.path}, ${FILE_STATUS[file.status]}`}
       className="overflow-hidden rounded-xl border border-line-card"
     >
-      <header className="flex items-center gap-3 border-b border-line-card bg-well px-3.5 py-2.5">
-        <span className="min-w-0 flex-1 truncate font-mono text-sm">{file.path}</span>
-        <span className="shrink-0 text-xs text-fg-muted">{FILE_STATUS[file.status]}</span>
-        <span className="shrink-0 font-mono text-xs tabular-nums">
-          <span className="text-student">+{added}</span>{' '}
-          <span className="text-danger">{signed(-removed)}</span>
+      <header className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-b border-line-card bg-well px-3.5 py-2.5">
+        <span className="min-w-0 break-all font-mono text-sm">{file.path}</span>
+        <span className="text-sm text-fg-secondary">{FILE_STATUS[file.status]}</span>
+        <span className="ml-auto text-sm text-fg-muted">
+          <span className="text-student">{lines(added)} added</span>,{' '}
+          <span className="text-danger">{removed} removed</span>
         </span>
       </header>
-      <div className="max-h-80 overflow-auto">
-        <table className="w-full border-collapse font-mono text-xs leading-5">
-          <tbody>
-            {lines.map((line, index) => (
-              <DiffRow key={index} line={line} />
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <table className="w-full border-collapse font-mono text-xs leading-5">
+        <tbody>
+          {shown.map((line, index) => (
+            <DiffRow key={index} line={line} />
+          ))}
+        </tbody>
+      </table>
     </article>
   );
 }
@@ -216,7 +275,7 @@ const LINE_TONE: Record<DiffLine['kind'], string> = {
   added: 'bg-student-tint',
   removed: 'bg-danger-tint',
   context: '',
-  hunk: 'bg-well text-fg-muted',
+  hunk: '',
   note: 'text-fg-muted italic',
 };
 
@@ -229,14 +288,24 @@ const MARK: Record<DiffLine['kind'], string> = {
 };
 
 function DiffRow({ line }: { line: DiffLine }) {
-  const numbered = line.kind !== 'hunk' && line.kind !== 'note';
+  if (line.kind === 'hunk') {
+    return (
+      <tr>
+        <td
+          colSpan={3}
+          className="px-3 py-0.5 text-center text-fg-ghost"
+          aria-label="Lines skipped"
+        >
+          ⋯
+        </td>
+      </tr>
+    );
+  }
+  const number = line.kind === 'removed' ? line.oldLine : line.newLine;
   return (
     <tr className={LINE_TONE[line.kind]}>
       <td className="w-10 select-none px-2 text-right align-top text-fg-ghost">
-        {numbered ? (line.oldLine ?? '') : ''}
-      </td>
-      <td className="w-10 select-none px-2 text-right align-top text-fg-ghost">
-        {numbered ? (line.newLine ?? '') : ''}
+        {line.kind === 'note' ? '' : (number ?? '')}
       </td>
       <td
         className={cn(
@@ -247,7 +316,7 @@ function DiffRow({ line }: { line: DiffLine }) {
       >
         {MARK[line.kind]}
       </td>
-      <td className="whitespace-pre-wrap break-words pr-3 align-top">
+      <td className="whitespace-pre-wrap break-words py-px pr-3 align-top">
         {line.kind === 'added' && <span className="sr-only">Added: </span>}
         {line.kind === 'removed' && <span className="sr-only">Removed: </span>}
         {line.text}
