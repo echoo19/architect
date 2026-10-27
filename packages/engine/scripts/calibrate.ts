@@ -6,17 +6,16 @@
  *     [--seed N] [--concurrency N]
  *
  * <jobDir> holds job.json, tasks.jsonl, data/ and the checker module. [split] is calibration
- * (the default), train or dev; the test split stays locked in the vault. Return a real student
- * adapter from createCalibrationStudent before running.
+ * (the default), train or dev; the test split stays locked in the vault. The student is the job's
+ * local endpoint, normally Ollama, so the model loads on this machine for the duration of the run.
  */
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { createStudent } from '@architect/adapters';
+import { blankHarness } from '@architect/harness';
 import {
-  HARNESS_FORMAT,
-  HarnessSchema,
   JobSchema,
   TaskSchema,
-  type Harness,
   type Job,
   type StudentAdapter,
   type Task,
@@ -30,11 +29,9 @@ import {
   type EvaluationItem,
 } from '../src/runtime';
 
-/** The student being calibrated: the adapter for `job.student.local`, such as Ollama's. */
+/** The student being calibrated: the job's local endpoint, as the graduate would run it. */
 function createCalibrationStudent(job: Job): StudentAdapter {
-  throw new Error(
-    `No student adapter is connected: return one for ${job.student.local.model} from createCalibrationStudent in scripts/calibrate.ts.`,
-  );
+  return createStudent(job.student.local, { label: job.student.label });
 }
 
 const SPLITS = ['calibration', 'train', 'dev'] as const;
@@ -66,7 +63,14 @@ async function main(): Promise<void> {
   try {
     const result = await evaluateTasks(
       selected,
-      { job, jobDir: options.jobDir, harness: minimalHarness(job), student, sandbox, checker },
+      {
+        job,
+        jobDir: options.jobDir,
+        harness: blankHarness(job.name, job.description),
+        student,
+        sandbox,
+        checker,
+      },
       {
         seed: options.seed,
         concurrency: options.concurrency,
@@ -83,17 +87,6 @@ async function main(): Promise<void> {
     await sandbox.dispose();
     await student.release();
   }
-}
-
-/** The starting point every method shares: the job's name and description, nothing else. */
-function minimalHarness(job: Job): Harness {
-  return HarnessSchema.parse({
-    meta: { format: HARNESS_FORMAT, name: job.name, version: 0, hash: 'calibration' },
-    system: `You are ${job.name}.\n\n${job.description}`,
-    retrieval: {},
-    decoding: {},
-    guardrails: {},
-  });
 }
 
 function summary(items: readonly EvaluationItem[], perType: readonly TypeScore[]): string {
