@@ -37,7 +37,8 @@ const MENTOR_NOTES: Record<MentorPreset['key'], string> = {
   'meta-spark-contributor':
     'Meta may train on what you send, so use it only for data that is not sensitive or personal.',
   'baseten-spark-open': 'Served by Baseten, so what you send goes to Baseten, not to Meta.',
-  'modal-spark-open': 'Runs on your own Modal endpoint, so what you send stays with Modal.',
+  'modal-spark-open':
+    'Runs on an endpoint you set up in your Modal account; what you send stays with Modal.',
 };
 
 export function mentorNote(preset: MentorPreset): string {

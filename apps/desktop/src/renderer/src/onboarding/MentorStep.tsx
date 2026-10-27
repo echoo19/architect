@@ -140,16 +140,17 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
                   title={option.label}
                   disabled={testing}
                 >
-                  <span className="text-fg">{costLine(option)}</span>
-                  <span className="text-pretty">{mentorNote(option)}</span>
+                  <span className="text-fg text-pretty">{mentorNote(option)}</span>
+                  <span>{costLine(option)}</span>
                 </RadioCard>
               ))}
             </RadioCardGroup>
           </section>
         ))}
         <p className="m-0 text-sm text-fg-muted text-pretty">
-          Costs are for a job of up to {TYPICAL_ROUNDS} rounds. Every job also has its own spending
-          cap.
+          Costs are for training one agent over up to {TYPICAL_ROUNDS} rounds; in each, the mentor
+          studies the agent&apos;s mistakes and improves its instructions. You set a spending cap
+          for every agent you train.
         </p>
         {mentor.kind === 'model' && (
           <Panel aria-label="Mentor key" className="px-7 py-1 [&>*:first-child]:border-t-0">

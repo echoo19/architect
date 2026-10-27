@@ -97,7 +97,10 @@ export function ModelsTab({ settings, update }: TabProps) {
       {mentor.kind === 'model' && (
         <KeyRow secretRef={mentor.secretRef} provider={mentorProvider(mentor)} />
       )}
-      <SettingsRow label={capitalized(STUDENT_ROLE)} meta={`Every agent runs on it, on ${device}`}>
+      <SettingsRow
+        label={capitalized(STUDENT_ROLE)}
+        meta={`Every agent runs on it, on ${device}. A job can pick another in its Advanced settings.`}
+      >
         <SettingsValue>{shortModelName(studentLabel(student))}</SettingsValue>
       </SettingsRow>
       <SettingsRow
@@ -114,13 +117,17 @@ export function ModelsTab({ settings, update }: TabProps) {
           }
         </QueryValue>
       </SettingsRow>
+      <p className="m-0 border-t border-line pb-1 pt-5 font-medium">
+        Hosted copies, for faster practice
+      </p>
+      <p className="m-0 pb-2 text-sm text-fg-muted text-pretty">
+        Optional. A job can practice on a hosted copy of {shortModelName(studentLabel(student))}{' '}
+        from one of these services, chosen in its Advanced settings; the final test still runs on{' '}
+        {device}.
+      </p>
       {HOSTED_KEYS.map((key) => (
         <KeyRow key={key.secretRef} secretRef={key.secretRef} provider={key.provider} />
       ))}
-      <p className="m-0 border-t border-line py-3.5 text-sm text-fg-muted text-pretty">
-        Keys for hosted copies are optional. A job can practice on one to train faster; its final
-        test still runs on {device}.
-      </p>
     </>
   );
 }

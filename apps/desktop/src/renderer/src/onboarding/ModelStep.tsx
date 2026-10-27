@@ -86,9 +86,10 @@ export function ModelStep({ label, note, ollama, pull, onDownload, ready }: Mode
   return (
     <>
       <StepIntro title="Welcome to Architect">
-        Architect turns work you describe into a private agent: instructions, tested and refined,
-        for {shortModelName(label)}, an open model from Meta. Agents run through Ollama on{' '}
-        {deviceInSentence(platform)}, so nothing you ask them goes online.
+        Architect builds private agents for work you describe. Every agent runs on{' '}
+        {shortModelName(label)}, an open model from Meta, through Ollama on{' '}
+        {deviceInSentence(platform)}, so what you ask your agents stays here. Training them uses a
+        paid cloud mentor, which you choose next.
       </StepIntro>
       <Panel
         aria-label="Agent's model"
