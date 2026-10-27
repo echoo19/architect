@@ -1,5 +1,5 @@
+import { AppSettingsPatchSchema } from '@architect/shared';
 import { z } from 'zod';
-import { AppSettingsPatchSchema } from '../../common/schemas';
 import type { IpcRouter } from '../ipc/router';
 import type { SettingsStore } from '../settings/store';
 

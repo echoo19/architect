@@ -49,6 +49,7 @@ async function start(): Promise<void> {
   });
   registerAppHandlers(router);
   registerSettingsHandlers(router, settings);
+  settings.onChange((next) => router.emit('settings', 'onChange', next));
 
   let main = await openMainWindow();
 

@@ -1,12 +1,13 @@
 import {
+  AppSettingsSchema,
   DEFAULT_STUDENT,
   MentorConfigSchema,
   mentorPreset,
   StudentEndpointSchema,
+  ThemeSchema,
   type AppSettings,
 } from '@architect/shared';
 import { z } from 'zod';
-import { AppSettingsSchema, ThemeSchema } from '../../common/schemas';
 
 export function defaultSettings(): AppSettings {
   const mentor = mentorPreset('meta-spark');

@@ -1,5 +1,5 @@
-import { useCallback } from 'react';
-import type { AppSettings } from '@architect/shared';
+import { useCallback, useEffect } from 'react';
+import { AppSettingsSchema, type AppSettings } from '@architect/shared';
 import { api, architect } from './client';
 import { fetchQuery, setQueryData, useQuery } from './query';
 
@@ -19,6 +19,14 @@ export const queryKeys = {
 
 export function useSettings() {
   const query = useQuery(queryKeys.settings, api.settings);
+  useEffect(
+    () =>
+      architect().settings.onChange((next) => {
+        const parsed = AppSettingsSchema.safeParse(next);
+        if (parsed.success) setQueryData(queryKeys.settings, parsed.data);
+      }),
+    [],
+  );
   const update = useCallback(async (patch: Partial<AppSettings>): Promise<AppSettings> => {
     const next = await architect().settings.update(patch);
     setQueryData(queryKeys.settings, next);

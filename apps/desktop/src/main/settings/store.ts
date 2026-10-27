@@ -1,5 +1,4 @@
-import type { AppSettings } from '@architect/shared';
-import { AppSettingsSchema } from '../../common/schemas';
+import { AppSettingsSchema, type AppSettings } from '@architect/shared';
 import { readJsonFile, writeJsonFile } from '../storage/json-file';
 import { defaultSettings, settingsFromStored } from './schema';
 

@@ -69,6 +69,8 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     exportFolder: true,
     importFolder: true,
     remove: true,
+    settings: true,
+    updateSettings: true,
   },
   workspace: {
     listChats: true,
@@ -81,6 +83,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
 };
 
 const EVENT_METHODS: { [D in EventDomain]: Record<EventMethod<D>, true> } = {
+  settings: { onChange: true },
   ollama: { onPullProgress: true },
   runs: { onEvent: true },
   workspace: { onEvent: true },

@@ -1,24 +1,25 @@
-import {
-  AttemptSchema,
-  GraduateManifestSchema,
-  JobSchema,
-  LineageEntrySchema,
-  MentorConfigSchema,
-  RoundSchema,
-  RunSchema,
-  StudentEndpointSchema,
-  type AppInfo,
-  type AppSettings,
-  type GraduateSummary,
-  type JobSummary,
-  type OllamaStatus,
-  type RunDetail,
-} from '@architect/shared';
 import { z } from 'zod';
+import { GraduateManifestSchema } from './graduate';
+import type {
+  AppInfo,
+  AppSettings,
+  DraftTurn,
+  FileDiff,
+  GraduateSettings,
+  GraduateSummary,
+  JobSummary,
+  OllamaStatus,
+  PullProgress,
+  RunDetail,
+} from './ipc';
+import { JobSchema, MentorConfigSchema, PermissionModeSchema, StudentEndpointSchema } from './job';
+import { LineageEntrySchema } from './lineage';
+import { RoundSchema, RunSchema } from './run';
+import { AttemptSchema } from './trace';
 
 /*
- * Schemas for the IPC types that @architect/shared declares only as interfaces. Each one is
- * checked against its interface with `satisfies`, so the two can't drift apart silently.
+ * Schemas for the IPC types declared as interfaces in ipc.ts. Each one is checked against its
+ * interface with `satisfies`, so the two can't drift apart silently.
  */
 
 export const ThemeSchema = z.enum(['dark', 'light', 'system']);
@@ -49,6 +50,10 @@ export const GraduateSummarySchema = z.object({
   path: z.string(),
 }) satisfies z.ZodType<GraduateSummary>;
 
+export const GraduateSettingsSchema = z.object({
+  writeMode: PermissionModeSchema,
+}) satisfies z.ZodType<GraduateSettings>;
+
 export const JobSummarySchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -73,10 +78,32 @@ export const RunDetailSchema = z.object({
   lineage: z.array(LineageEntrySchema),
 }) satisfies z.ZodType<RunDetail>;
 
+export const FileDiffSchema = z.object({
+  path: z.string(),
+  status: z.enum(['added', 'modified', 'deleted']),
+  patch: z.string(),
+}) satisfies z.ZodType<FileDiff>;
+
+export const DraftTurnSchema = z.object({
+  sessionId: z.string(),
+  message: z.string(),
+  options: z.array(z.string()),
+  draft: JobSchema.optional(),
+}) satisfies z.ZodType<DraftTurn>;
+
 export const OllamaStatusSchema = z.object({
   running: z.boolean(),
   version: z.string().optional(),
   models: z.array(z.object({ name: z.string(), sizeBytes: z.number(), digest: z.string() })),
 }) satisfies z.ZodType<OllamaStatus>;
+
+export const PullProgressSchema = z.object({
+  model: z.string(),
+  status: z.string(),
+  completedBytes: z.number().nonnegative().optional(),
+  totalBytes: z.number().nonnegative().optional(),
+  done: z.boolean(),
+  error: z.string().optional(),
+}) satisfies z.ZodType<PullProgress>;
 
 export const SecretStatusSchema = z.record(z.string(), z.boolean());

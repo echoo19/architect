@@ -1,20 +1,18 @@
 import {
+  AppInfoSchema,
+  AppSettingsSchema,
+  GraduateSummarySchema,
   JobSchema,
+  JobSummarySchema,
+  OllamaStatusSchema,
   ReportCardSchema,
+  RunDetailSchema,
+  SecretStatusSchema,
   WorkspaceChatSchema,
   WorkspaceMessageSchema,
   type ArchitectApi,
 } from '@architect/shared';
 import { z } from 'zod';
-import {
-  AppInfoSchema,
-  AppSettingsSchema,
-  GraduateSummarySchema,
-  JobSummarySchema,
-  OllamaStatusSchema,
-  RunDetailSchema,
-  SecretStatusSchema,
-} from '../../../common/schemas';
 
 function bridge(): ArchitectApi {
   return window.architect;
