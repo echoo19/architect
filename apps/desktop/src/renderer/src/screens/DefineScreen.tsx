@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Job, Method } from '@architect/shared';
 import { Button, ErrorState, Skeleton, toast } from '@architect/ui';
+import { SlidersHorizontal } from 'lucide-react';
 import { flowApi } from '../api/client';
 import { useJob, useJobs, useSecretsStatus, useSettings } from '../api/hooks';
 import { resetDraft, useDraftStore } from '../flow/describe/draft-store';
@@ -110,7 +111,7 @@ function DefineEditor({ initial }: { initial: Job }) {
       setStarting(false);
       const problem = tabWithIssue(editor.issues);
       if (problem) {
-        toast({ tone: 'danger', title: 'Fix the marked fields under Advanced first' });
+        toast({ tone: 'danger', title: 'Fix the marked fields in Advanced settings first' });
         openAdvanced(problem);
       }
       return;
@@ -138,8 +139,9 @@ function DefineEditor({ initial }: { initial: Job }) {
       step="Define"
       footer={
         <div className="mx-auto flex max-w-[880px] flex-wrap items-center justify-between gap-3">
-          <Button variant="ghost" className="-ml-3 px-3" onClick={() => openAdvanced(tab)}>
-            Advanced
+          <Button onClick={() => openAdvanced(tab)}>
+            <SlidersHorizontal size={16} strokeWidth={1.8} aria-hidden />
+            Advanced settings
           </Button>
           <div className="flex gap-2">
             <Button onClick={() => navigate(paths.newAgent())}>Back</Button>

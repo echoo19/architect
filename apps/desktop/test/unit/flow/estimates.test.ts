@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { mentorPreset } from '@architect/shared';
 import {
+  aboutUsd,
+  capPhrase,
   estimateMentorUsd,
   estimateTime,
   formatAbout,
   formatAboutUsd,
+  hostedAdvantage,
   mentorPresetOf,
+  mentorUsdFor,
+  roundsLine,
 } from '../../../src/renderer/src/flow/define/estimates';
 import { makeJob } from './factories';
 
@@ -24,8 +29,16 @@ describe('estimateTime', () => {
         patience: 3,
       },
     });
-    expect(estimateTime(job, 'local')).toEqual({ seconds: (104 + 20) * 150, rounds: 4 });
-    expect(estimateTime(job, 'hosted')).toEqual({ seconds: 104 * 15 + 20 * 150, rounds: 4 });
+    expect(estimateTime(job, 'local')).toEqual({
+      seconds: (104 + 20) * 150,
+      rounds: 4,
+      roundSeconds: 26 * 150,
+    });
+    expect(estimateTime(job, 'hosted')).toEqual({
+      seconds: 104 * 15 + 20 * 150,
+      rounds: 4,
+      roundSeconds: 26 * 15,
+    });
   });
 
   it('runs the check tasks once per repeat', () => {
@@ -40,7 +53,11 @@ describe('estimateTime', () => {
         patience: 3,
       },
     });
-    expect(estimateTime(job, 'local')).toEqual({ seconds: (4 * 46 + 20) * 150, rounds: 4 });
+    expect(estimateTime(job, 'local')).toEqual({
+      seconds: (4 * 46 + 20) * 150,
+      rounds: 4,
+      roundSeconds: 46 * 150,
+    });
   });
 
   it('stops training at the time cap and says how many rounds fit', () => {
@@ -53,6 +70,41 @@ describe('estimateTime', () => {
     const hosted = estimateTime(job, 'hosted');
     expect(hosted.seconds).toBe(180 * 60 + 60 * 150);
     expect(hosted.rounds).toBe(7);
+  });
+});
+
+describe('what the time cap allows', () => {
+  it('names the cap the way people say it', () => {
+    expect(capPhrase(180)).toBe('3-hour');
+    expect(capPhrase(90)).toBe('90-minute');
+    expect(capPhrase(45)).toBe('45-minute');
+    expect(capPhrase(150)).toBe('2.5-hour');
+  });
+
+  it('says how many rounds fit, as a fact', () => {
+    const job = makeJob();
+    expect(roundsLine(job, estimateTime(job, 'local'))).toBe(
+      'A round takes about 4 hours, longer than the 3-hour training cap',
+    );
+    expect(roundsLine(job, estimateTime(job, 'hosted'))).toBe(
+      'The 3-hour training cap fits 7 of 12 rounds',
+    );
+    const roomy = makeJob({ budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 1200 } });
+    expect(roundsLine(roomy, estimateTime(roomy, 'local'))).toBe(
+      'All 4 rounds fit in the 20-hour training cap',
+    );
+  });
+
+  it('says plainly when a hosted copy is faster', () => {
+    const job = makeJob();
+    const local = estimateTime(job, 'local');
+    const hosted = estimateTime(job, 'hosted');
+    expect(hostedAdvantage(job, local, hosted)).toBe('A hosted copy fits 7 rounds');
+    const roomy = makeJob({ budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 1200 } });
+    expect(
+      hostedAdvantage(roomy, estimateTime(roomy, 'local'), estimateTime(roomy, 'hosted')),
+    ).toBe('A hosted copy takes about 4 hours');
+    expect(hostedAdvantage(job, hosted, hosted)).toBeNull();
   });
 });
 
@@ -89,6 +141,7 @@ describe('mentor spending', () => {
   it('prices every round of the budget at the preset rate', () => {
     // 30k input tokens at $1.25/M plus 5k output at $4.25/M is $0.05875 a round.
     expect(estimateMentorUsd(makeJob())).toBeCloseTo(12 * 0.05875, 6);
+    expect(mentorUsdFor(mentorPreset('meta-spark').pricing, 8)).toBeCloseTo(8 * 0.05875, 6);
   });
 
   it('has no estimate when the price is unknown', () => {
@@ -116,5 +169,7 @@ describe('mentor spending', () => {
     expect(formatAboutUsd(4.2)).toBe('$4');
     expect(formatAboutUsd(4.4)).toBe('$4.50');
     expect(formatAboutUsd(18.4)).toBe('$18');
+    expect(aboutUsd(0.705)).toBe('About $0.70');
+    expect(aboutUsd(0.04)).toBe('Under $0.10');
   });
 });

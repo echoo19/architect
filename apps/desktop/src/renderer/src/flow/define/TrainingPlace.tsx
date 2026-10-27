@@ -3,21 +3,23 @@ import type { Job } from '@architect/shared';
 import { Checkbox, cn, Heading, RadioCard, RadioCardGroup, Slider } from '@architect/ui';
 import { RotateCw } from 'lucide-react';
 import { formatUsd } from '../../lib/format';
-import { mentorName } from '../../lib/names';
-import { currentPlatform, deviceLabel } from '../../lib/platform';
+import { mentorIntro, studentIntro } from '../../lib/names';
+import { currentPlatform, deviceInSentence, deviceLabel } from '../../lib/platform';
+import { modelNames } from '../names';
 import {
+  aboutUsd,
   estimateMentorUsd,
   estimateTime,
   formatAbout,
-  formatAboutUsd,
-  type TrainPlace,
+  hostedAdvantage,
+  roundsLine,
 } from './estimates';
 import { providerName, type HostedAvailability } from './hosted';
 
 interface TrainingPlaceProps {
   job: Job;
   hosted: HostedAvailability;
-  onPlaceChange: (place: TrainPlace) => void;
+  onPlaceChange: (place: Job['student']['trainOn']) => void;
   onCapChange: (usd: number) => void;
   /** Present when checking for the hosted copy's key failed. */
   onRetryKeys?: (() => void) | undefined;
@@ -34,42 +36,58 @@ export function TrainingPlace({
   baselines,
 }: TrainingPlaceProps) {
   const capId = useId();
-  const mentor = mentorName(job.mentor);
+  const names = modelNames(job);
+  const device = deviceInSentence(currentPlatform());
+  const mentor = names.mentor;
   const cap = job.budget.maxMentorUsd;
   const usual = estimateMentorUsd(job);
   const capMax = Math.max(20, Math.ceil(cap), Math.ceil((usual ?? 0) * 3));
+  const local = estimateTime(job, 'local');
+  const remote = estimateTime(job, 'hosted');
+  const advantage = hosted.available ? hostedAdvantage(job, local, remote) : null;
+  const provider = job.student.hosted ? providerName(job.student.hosted) : null;
 
   return (
     <section
       aria-labelledby="train-where"
       className="flex flex-col gap-[18px] border-t border-line-card pt-10"
     >
-      <Heading id="train-where">Where should it train?</Heading>
+      <div className="flex flex-col gap-1.5">
+        <Heading id="train-where">Where should it train?</Heading>
+        <p className="m-0 max-w-[720px] text-fg-secondary text-pretty">
+          {studentIntro(names.student)}, practices where you choose while{' '}
+          {mentorIntro(names.mentor)}, coaches it from the cloud. Times include the final test,
+          which always runs on {device}.
+        </p>
+      </div>
       <RadioCardGroup
         aria-label="Where should it train?"
         value={job.student.trainOn}
         onValueChange={onPlaceChange}
       >
         <RadioCard value="local" title={deviceLabel(currentPlatform())}>
-          <PlaceLines job={job} place="local" data="Files stay here" />
+          <span>{formatAbout(local.seconds)} here</span>
+          <span>{roundsLine(job, local)}</span>
+          {advantage && <span className="text-fg">{advantage}</span>}
+          <span>Files stay on {device}</span>
         </RadioCard>
         <RadioCard
           value="hosted"
-          title={
-            job.student.hosted ? `Hosted on ${providerName(job.student.hosted)}` : 'A hosted copy'
-          }
+          title={provider ? `Hosted on ${provider}` : 'A hosted copy'}
           disabled={!hosted.available}
           className={cn(
             !hosted.available && 'disabled:opacity-100 [&>span:first-child]:text-fg-muted',
           )}
         >
           {hosted.available ? (
-            <PlaceLines job={job} place="hosted" data="Tasks are sent to the host while training" />
+            <>
+              <span>{formatAbout(remote.seconds)}</span>
+              <span>{roundsLine(job, remote)}</span>
+              <span>Tasks go to {provider ?? 'the host'} while training</span>
+            </>
           ) : (
             <>
-              <span className="text-fg-muted">
-                {formatAbout(estimateTime(job, 'hosted').seconds)}
-              </span>
+              <span className="text-fg-muted">{formatAbout(remote.seconds)}</span>
               <span className="text-fg-secondary">{hosted.reason}</span>
             </>
           )}
@@ -103,39 +121,27 @@ export function TrainingPlace({
           aria-label={`${mentor} spending cap`}
           aria-valuetext={formatUsd(cap)}
         />
-        <span className="text-fg-secondary">
+        <span className="text-fg-secondary text-pretty">
           {usual === null
-            ? `No price on file for ${mentor}`
-            : `Usually about ${formatAboutUsd(usual)}`}
+            ? `No price on file for ${mentor}. Training stops before a call would go over the cap.`
+            : `${aboutUsd(usual)} for ${job.budget.maxRounds} rounds. Training stops before a call would go over the cap.`}
         </span>
       </div>
 
       {baselines && (
-        <Checkbox
-          checked={baselines.checked}
-          onCheckedChange={baselines.onCheckedChange}
-          label="Also run the three baselines for comparison"
-          className="self-start"
-        />
+        <div className="flex flex-col gap-1.5">
+          <Checkbox
+            checked={baselines.checked}
+            onCheckedChange={baselines.onCheckedChange}
+            label="Also run the three baselines for comparison"
+            className="self-start"
+          />
+          <p className="m-0 pl-7 text-sm text-fg-muted text-pretty">
+            {names.student} with no setup, a setup {names.mentor} writes once, and {names.student}{' '}
+            correcting itself. The report puts all four side by side.
+          </p>
+        </div>
       )}
     </section>
-  );
-}
-
-function PlaceLines({ job, place, data }: { job: Job; place: TrainPlace; data: string }) {
-  const estimate = estimateTime(job, place);
-  const { maxRounds } = job.budget;
-  return (
-    <>
-      <span>{formatAbout(estimate.seconds)}</span>
-      {estimate.rounds < maxRounds && (
-        <span>
-          {estimate.rounds === 0
-            ? 'The time cap ends it during the first round'
-            : `The time cap fits ${estimate.rounds} of ${maxRounds} rounds`}
-        </span>
-      )}
-      <span>{data}</span>
-    </>
   );
 }
