@@ -93,9 +93,9 @@ export function motionCaption(
   }
   switch (motion) {
     case 'practising':
-      return `${student} answers practice tasks. Right answers light up its grid; misses go to ${mentor} to study.`;
+      return `Pills are practice tasks: passes reach ${student}'s grid, misses go to ${mentor} to study.`;
     case 'checking':
-      return `${student} answers the check tasks with the change. It stays only if more come out right.`;
+      return `Pills are check tasks: passes reach ${student}'s grid, misses drop out. The change stays only if more pass.`;
     case 'returning':
       return `${mentor} studies the misses and writes one change to ${student}'s instructions.`;
     case 'testing':

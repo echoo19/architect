@@ -32,8 +32,14 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
         <span className="text-fg-secondary">of check tasks right with the best version so far</span>
         {score && (
           <span className="font-mono text-sm text-fg-muted">
-            {score.pass} of {score.total}
-            {runs > 1 && <span className="font-sans">, over {runs} checks</span>}
+            {runs > 1 ? (
+              <>
+                {Math.round((score.pass / runs) * 10) / 10} of {job.splits.dev}
+                <span className="font-sans"> on average, over {runs} checks</span>
+              </>
+            ) : (
+              `${score.pass} of ${score.total}`
+            )}
           </span>
         )}
       </div>
@@ -41,6 +47,8 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
         {student} is scored on the check tasks but never learns from them. A change stays only if
         more come out right on two checks, and training ends at the {Math.round(input.target * 100)}
         % target.
+        {input.draftRound &&
+          ` Start is ${student} with no instructions; Draft is the first full setup.`}
       </p>
       <Legend />
       <CurveChart input={input} />

@@ -55,7 +55,7 @@ describe('phaseView', () => {
 describe('motionCaption', () => {
   it('says what the animation shows happening, and nothing once the run is still', () => {
     expect(motionCaption('practising', NAMES)).toBe(
-      'Glimmer answers practice tasks. Right answers light up its grid; misses go to Spark to study.',
+      "Pills are practice tasks: passes reach Glimmer's grid, misses go to Spark to study.",
     );
     expect(motionCaption('returning', NAMES)).toBe(
       "Spark studies the misses and writes one change to Glimmer's instructions.",
