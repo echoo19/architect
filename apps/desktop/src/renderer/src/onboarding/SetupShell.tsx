@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { cn, Heading, LogoMark, ProgressStepper } from '@architect/ui';
 import { isMac } from '../lib/platform';
 
-export const SETUP_STEPS = ['Local model', 'Mentor', 'Done'] as const;
+const SETUP_STEPS = ['Local model', 'Mentor', 'Done'] as const;
 export type SetupStep = (typeof SETUP_STEPS)[number];
 
 export interface SetupShellProps {

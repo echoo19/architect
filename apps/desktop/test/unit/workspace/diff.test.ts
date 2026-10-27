@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { diffLines, diffRowCount } from '../../../src/renderer/src/workspace/diff';
+import { diffLines } from '../../../src/renderer/src/workspace/diff';
 
 describe('diffLines', () => {
   it('shows a changed row as before and after, marking the cells that changed', () => {
@@ -20,16 +20,5 @@ describe('diffLines', () => {
   it('fits short rows to the columns', () => {
     const [line] = diffLines({ columns: ['a', 'b'], added: [['x']], removed: [], changed: [] });
     expect(line?.cells).toEqual(['x', null]);
-  });
-
-  it('counts the rows a write touches', () => {
-    expect(
-      diffRowCount({
-        columns: ['a'],
-        added: [['1'], ['2']],
-        removed: [['3']],
-        changed: [{ before: ['4'], after: ['5'] }],
-      }),
-    ).toBe(4);
   });
 });

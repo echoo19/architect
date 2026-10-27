@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { GraduateSummary } from '@architect/shared';
 import { Badge, Button, EmptyState, ErrorState, Skeleton, StatusDot } from '@architect/ui';
 import { Bot } from 'lucide-react';
@@ -140,7 +140,7 @@ function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
   const awaitingReply = chat?.running === true && list?.at(-1)?.role === 'user';
   const stepsStartOpen = settings.data?.steps === 'expanded';
 
-  let body;
+  let body: ReactNode;
   if (list === undefined) {
     body =
       messages.entry.status === 'error' ? (

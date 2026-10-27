@@ -7,7 +7,7 @@ import type {
 } from '@architect/shared';
 
 /** The order the composer's write button steps through. */
-export const WRITE_MODES = ['ask', 'allow', 'never'] as const satisfies readonly PermissionMode[];
+const WRITE_MODES = ['ask', 'allow', 'never'] as const satisfies readonly PermissionMode[];
 
 export const WRITE_MODE_LABELS: Record<PermissionMode, string> = {
   ask: 'Ask before writing',

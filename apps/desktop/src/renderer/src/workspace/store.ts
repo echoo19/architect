@@ -36,7 +36,7 @@ function loadOnce(key: string, load: () => Promise<void>): Promise<void> {
   return request;
 }
 
-export function loadChats(graduateId: string): Promise<void> {
+function loadChats(graduateId: string): Promise<void> {
   return loadOnce(`chats:${graduateId}`, async () => {
     dispatch({ type: 'chats.loading', graduateId });
     try {
@@ -47,7 +47,7 @@ export function loadChats(graduateId: string): Promise<void> {
   });
 }
 
-export function loadMessages(chatId: string): Promise<void> {
+function loadMessages(chatId: string): Promise<void> {
   return loadOnce(`messages:${chatId}`, async () => {
     dispatch({ type: 'messages.loading', chatId });
     try {

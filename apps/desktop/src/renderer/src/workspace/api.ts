@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { architect } from '../api/client';
 
 /** The contract declares WorkspaceEvent as a type only; events are checked against this. */
-export const WorkspaceEventSchema = z.discriminatedUnion('type', [
+const WorkspaceEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('message.updated'), message: WorkspaceMessageSchema }),
   z.object({ type: z.literal('chat.updated'), chat: WorkspaceChatSchema }),
 ]) satisfies z.ZodType<WorkspaceEvent>;

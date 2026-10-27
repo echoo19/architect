@@ -31,8 +31,3 @@ export function diffLines(diff: RowDiff): DiffLine[] {
     ...diff.added.map((row) => ({ kind: 'added' as const, cells: cellsOf(row), changed: whole })),
   ];
 }
-
-/** How many rows a write adds, removes or changes. */
-export function diffRowCount(diff: RowDiff): number {
-  return diff.added.length + diff.removed.length + diff.changed.length;
-}

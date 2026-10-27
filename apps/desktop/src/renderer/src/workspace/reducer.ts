@@ -42,7 +42,7 @@ function withData<T>(entry: Loadable<T>, data: T): Loadable<T> {
 }
 
 /** Replaces a message in place, or adds it at the end when it's new. */
-export function upsertMessage(
+function upsertMessage(
   messages: WorkspaceMessage[],
   message: WorkspaceMessage,
 ): WorkspaceMessage[] {
@@ -52,7 +52,7 @@ export function upsertMessage(
 }
 
 /** Replaces a chat in place, or adds it at the top when it's new. */
-export function upsertChat(chats: WorkspaceChat[], chat: WorkspaceChat): WorkspaceChat[] {
+function upsertChat(chats: WorkspaceChat[], chat: WorkspaceChat): WorkspaceChat[] {
   const index = chats.findIndex((c) => c.id === chat.id);
   if (index === -1) return [chat, ...chats];
   return chats.map((c, i) => (i === index ? chat : c));
