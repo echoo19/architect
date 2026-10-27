@@ -10,18 +10,43 @@ import type {
 /** The composer's write choices, in the order its menu lists them. */
 export const WRITE_MODES = ['ask', 'allow', 'never'] as const satisfies readonly PermissionMode[];
 
+/** The three answers to "Saving changes to your files", in the same words on every screen. */
 export const WRITE_MODE_LABELS: Record<PermissionMode, string> = {
-  ask: 'Ask before writing',
-  allow: 'Writes allowed',
-  never: 'Read only',
+  ask: 'Ask first',
+  allow: 'Allow',
+  never: 'Never',
 };
 
 /** What each write choice means, in one line. */
 export const WRITE_MODE_MEANINGS: Record<PermissionMode, string> = {
   ask: 'Shows each change and waits for your OK',
-  allow: 'Writes without asking; each change still shows in the chat',
-  never: 'Never changes your files',
+  allow: 'Saves without asking; each change still shows in the chat',
+  never: "Can't change your files",
 };
+
+/** The built-in tools, said the way a person would: while working, and once done. */
+const TOOL_WORDS: Record<string, [string, string]> = {
+  list_files: ['Listing', 'Listed'],
+  read_table: ['Reading', 'Read'],
+  read_text: ['Reading', 'Read'],
+  append_rows: ['Adding rows to', 'Added rows to'],
+  update_rows: ['Updating', 'Updated'],
+  calculate: ['Calculating', 'Calculated'],
+};
+
+/**
+ * A step in plain words: "Read jobs.csv", "Loaded the skill price-a-job", or "Ran invoice_total"
+ * for a tool written during training, with what it acted on.
+ */
+export function stepWords(step: AgentStep): { action: string; target: string } {
+  const working = step.status === 'running';
+  if (step.kind === 'skill') {
+    return { action: working ? 'Loading the skill' : 'Loaded the skill', target: step.detail };
+  }
+  const words = TOOL_WORDS[step.name];
+  if (words) return { action: working ? words[0] : words[1], target: step.detail };
+  return { action: `${working ? 'Running' : 'Ran'} ${step.name}`, target: step.detail };
+}
 
 /** "1 step", "3 steps". */
 export function stepCount(count: number): string {

@@ -206,8 +206,9 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
             )}
           >
             <span className="truncate">{chat.title}</span>
-            {chat.waiting && !current ? (
-              <StatusDot tone="student" label="Needs you" />
+            {/* A chat waiting for an answer isn't working; the open one says so in the thread. */}
+            {chat.waiting ? (
+              !current && <StatusDot tone="student" label="Needs you" />
             ) : chat.running ? (
               <Spinner tone="student" label="Working" />
             ) : null}

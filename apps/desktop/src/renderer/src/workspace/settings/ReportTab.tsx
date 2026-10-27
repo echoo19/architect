@@ -80,6 +80,11 @@ function ReportSummary({ report }: { report: ReportCard }) {
               </span>
             </div>
             <Meter label={type.label} value={percentOf(type) / 100} tone="student" thickness={4} />
+            {percentOf(type) < Math.round(requirements.passRate.target * 100) && (
+              <span className="text-sm text-fg-muted">
+                Below the {Math.round(requirements.passRate.target * 100)}% target on its own
+              </span>
+            )}
           </div>
         ))}
       </section>

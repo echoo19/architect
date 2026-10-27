@@ -161,11 +161,12 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
   const files = job.status === 'success' ? job.data.data.files : [];
   const writable = files.filter((file) => file.access === 'write').map((file) => file.name);
   const device = deviceInSentence(currentPlatform());
+  const savingNever = settings.data?.writeMode === 'never';
 
   return (
     <>
       <SettingsRow
-        label="Saving changes"
+        label="Saving changes to your files"
         meta={
           settings.status === 'success' ? WRITE_MODE_MEANINGS[settings.data.writeMode] : undefined
         }
@@ -173,7 +174,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
       >
         {settings.status === 'success' ? (
           <Segmented
-            aria-label="Saving changes"
+            aria-label="Saving changes to your files"
             options={WRITE_CHOICES}
             value={settings.data.writeMode}
             onValueChange={(writeMode) =>
@@ -195,10 +196,19 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
         <SettingsValue>Never, by design</SettingsValue>
       </SettingsRow>
       <SettingsRow
-        label="Files it can read"
-        meta={`Only the files its job lists. Nothing else on ${device} is in reach.`}
+        label="Opening a file it hasn't seen"
+        meta="Set by its job, for files outside the list below"
         error={errorOf(job)}
       >
+        {job.status === 'success' ? (
+          <SettingsValue>{WRITE_MODE_LABELS[job.data.permissions.unseenFiles]}</SettingsValue>
+        ) : job.status === 'error' ? (
+          <RetryButton onClick={job.reload} />
+        ) : (
+          pending
+        )}
+      </SettingsRow>
+      <SettingsRow label="Files it can read" meta="The files its job lists" error={errorOf(job)}>
         {job.status === 'success' ? (
           <span className="max-w-[340px] text-right font-mono text-sm text-fg-secondary text-pretty">
             {files.map((file) => file.name).join(', ')}
@@ -211,7 +221,11 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
       </SettingsRow>
       <SettingsRow
         label="Files it can change"
-        meta="Set by its job when it was trained"
+        meta={
+          savingNever
+            ? 'Set by its job. Saving is set to Never, so it changes none of them now.'
+            : 'Set by its job, and only as Saving changes allows'
+        }
         error={errorOf(job)}
       >
         {job.status === 'success' ? (

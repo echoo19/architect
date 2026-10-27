@@ -52,6 +52,10 @@ export function TableBlock({
   // When the total stays in view, say how many rows sit above it, so the sum still adds up.
   const total = hidden > 0 && isTotalRow(shown.at(-1) ?? []) ? shown.at(-1) : undefined;
   const items = total ? shown.slice(0, -1) : shown;
+  const hiddenNames = block.rows
+    .slice(items.length, block.rows.length - 1)
+    .map((row) => cellText(row[0] ?? null))
+    .join(', ');
   return (
     <div className="animate-rise">
       <TableCard
@@ -89,7 +93,7 @@ export function TableBlock({
             <>
               <TableRow>
                 <TableCell colSpan={block.columns.length} className="text-sm first:text-fg-muted">
-                  {hidden} more {hidden === 1 ? 'row' : 'rows'}, included in the total
+                  {hidden} more {hidden === 1 ? 'row' : 'rows'} in the total: {hiddenNames}
                 </TableCell>
               </TableRow>
               <TableRow className={TOTAL_ROW}>
@@ -219,7 +223,7 @@ export function ApprovalCard({
           <div className="flex gap-1.5">
             {choice('deny', 'Deny')}
             {choice('always', 'Always allow')}
-            {choice('approve', 'Allow', true)}
+            {choice('approve', 'Allow once', true)}
           </div>
         )}
       </div>
@@ -241,8 +245,8 @@ export function ApprovalCard({
       )}
       {!outcome && explain && (
         <p className="m-0 border-t border-line-card px-4 py-2.5 text-sm text-fg-muted text-pretty">
-          Allow writes these rows once. Always allow lets {agent.name} write without asking from now
-          on. You can change that in the menu under the message box.
+          Allow once saves these rows. Always allow saves them and stops asking from now on; you can
+          change that under the message box.
         </p>
       )}
     </div>

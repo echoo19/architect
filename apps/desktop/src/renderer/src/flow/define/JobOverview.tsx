@@ -3,13 +3,14 @@ import type { Job, PermissionMode } from '@architect/shared';
 import { Badge, cn, Heading, Segmented, Stat } from '@architect/ui';
 import { Check, CircleMinus, Laptop } from 'lucide-react';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
+import { WRITE_MODE_LABELS, WRITE_MODES } from '../../workspace/labels';
 import { formatTimeLimit } from '../format';
 
-const MODES = [
-  { value: 'ask', label: 'Ask' },
-  { value: 'allow', label: 'Allow' },
-  { value: 'never', label: 'Never' },
-] as const satisfies readonly { value: PermissionMode; label: string }[];
+/** The same words as the agent's own setting, under its message box. */
+const MODES: readonly { value: PermissionMode; label: string }[] = WRITE_MODES.map((value) => ({
+  value,
+  label: WRITE_MODE_LABELS[value],
+}));
 
 export function JobHeader({ job }: { job: Job }) {
   return (
@@ -118,7 +119,8 @@ export function ReadyWhen({ job }: { job: Job }) {
   return (
     <section aria-labelledby="ready-when" className="flex flex-col gap-[18px]">
       <SectionHeading id="ready-when" title="Ready when">
-        Training aims for this; a final test on tasks it has never seen confirms it.
+        Training aims for this; a final test on tasks it has never seen confirms it. You can change
+        it in Advanced settings.
       </SectionHeading>
       <div className="flex flex-wrap gap-10">
         <Stat size="lg" value={`${Math.round(passRate * 100)}%`} label="of new tasks right" />
@@ -146,7 +148,7 @@ export function AsksFirst({ job, onChange }: AsksFirstProps) {
     <section aria-labelledby="asks-first" className="flex flex-col gap-2.5">
       <div className="mb-2">
         <SectionHeading id="asks-first" title="Asks you first">
-          Ask waits for your OK each time. Allow goes ahead. Never blocks it.
+          Ask first: it waits for your OK each time. Allow: it goes ahead. Never: it can&apos;t.
         </SectionHeading>
       </div>
       {rows.map((row, index) => (

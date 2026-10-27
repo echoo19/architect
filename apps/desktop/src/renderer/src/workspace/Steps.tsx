@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import type { AgentStep, WorkspaceMessage } from '@architect/shared';
 import { cn, Spinner } from '@architect/ui';
 import { ChevronRight } from 'lucide-react';
-import { currentStep, stepCount, workedLabel } from './labels';
+import { currentStep, stepCount, stepWords, workedLabel } from './labels';
 
 const NAME_TONE: Record<AgentStep['status'], string> = {
   done: 'text-fg',
@@ -32,7 +32,10 @@ export function Steps({ message, startOpen, waiting }: StepsProps) {
   // While a write waits for an answer, the line under the reply says so; this one just counts.
   let header = workedLabel(message);
   if (working && waiting) header = `${stepCount(message.steps.length)} so far`;
-  else if (step) header = `${step.name} ${step.detail}`;
+  else if (step) {
+    const { action, target } = stepWords(step);
+    header = `${action} ${target}`;
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -56,22 +59,29 @@ export function Steps({ message, startOpen, waiting }: StepsProps) {
         <ol
           id={listId}
           aria-label="Steps"
-          className="m-0 ml-1.5 flex list-none flex-col border-l border-line-control py-0 pl-4 pr-0 font-mono text-sm leading-normal"
+          className="m-0 ml-1.5 flex list-none flex-col border-l border-line-control py-0 pl-4 pr-0 text-sm leading-normal"
         >
-          {message.steps.map((item) => (
-            <li
-              key={item.id}
-              className="flex animate-rise flex-wrap items-center gap-x-3.5 gap-y-1 py-[5px]"
-            >
-              <span className={NAME_TONE[item.status]}>{item.name}</span>
-              <span className="text-fg-secondary">{item.detail}</span>
-              {item.meta && (
-                <span className={item.status === 'error' ? 'text-danger' : 'text-fg-muted'}>
-                  {item.meta}
-                </span>
-              )}
-            </li>
-          ))}
+          {message.steps.map((item) => {
+            const { action, target } = stepWords(item);
+            return (
+              <li
+                key={item.id}
+                className="flex animate-rise flex-wrap items-baseline gap-x-2 gap-y-1 py-[5px]"
+              >
+                <span className={NAME_TONE[item.status]}>{action}</span>
+                <span className="font-mono text-fg-secondary">{target}</span>
+                {item.meta && (
+                  <span
+                    className={
+                      item.status === 'error' ? 'ml-1.5 text-danger' : 'ml-1.5 text-fg-muted'
+                    }
+                  >
+                    {item.meta}
+                  </span>
+                )}
+              </li>
+            );
+          })}
         </ol>
       )}
     </div>
