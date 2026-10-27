@@ -1,5 +1,6 @@
 import { DEFAULT_STUDENT, JOB_FORMAT, JobSchema, mentorPreset } from '@architect/shared';
 import type { DataFile, Job } from '@architect/shared';
+import { BUSINESS_DATE } from './policy/rules';
 
 const DATA_FILES: readonly DataFile[] = [
   {
@@ -117,6 +118,7 @@ export function buildJob(): Job {
       'Asks before it saves an invoice or a booking',
     ],
     createdAt: '2026-10-27T00:00:00.000Z',
+    businessDate: BUSINESS_DATE,
     taskTypes: [
       {
         id: 'invoice',

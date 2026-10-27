@@ -55,6 +55,10 @@ describe('job.json', () => {
     expect(job.data.files.map((file) => file.name).sort()).toEqual(present);
   });
 
+  it('makes the policy business date the agent today', () => {
+    expect(job.businessDate).toBe(BUSINESS_DATE);
+  });
+
   it('lets the agent write only invoices and bookings', () => {
     const writable = job.data.files.filter((file) => file.access === 'write').map((f) => f.name);
     expect(writable.sort()).toEqual(['bookings.csv', 'invoices.csv']);
