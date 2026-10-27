@@ -9,8 +9,8 @@ export type EngineCall = <T>(request: (api: EngineApi) => Promise<T>) => Promise
 const text = z.string().min(1);
 
 /**
- * The engine's domains, forwarded to the engine process, which checks every argument it gets. A
- * path from the renderer must be one the user picked in a file dialog.
+ * The jobs, runs and reports domains, forwarded to the engine process, which checks every
+ * argument it gets. A path from the renderer must be one the user picked in a file dialog.
  */
 export function registerEngineHandlers(
   router: IpcRouter,
@@ -59,28 +59,4 @@ export function registerEngineHandlers(
   router.registerHandlers('reports', {
     get: (runId) => call((api) => api.reports.get(runId)),
   });
-
-  router.registerHandlers(
-    'graduates',
-    {
-      list: () => call((api) => api.graduates.list()),
-      accept: (runId) => call((api) => api.graduates.accept(runId)),
-      exportFolder: (graduateId, folder) => {
-        const chosen = picked.check(folder);
-        return call((api) => api.graduates.exportFolder(graduateId, chosen));
-      },
-      importFolder: (folder) => {
-        const chosen = picked.check(folder);
-        return call((api) => api.graduates.importFolder(chosen));
-      },
-      remove: (graduateId) => call((api) => api.graduates.remove(graduateId)),
-      settings: (graduateId) => call((api) => api.graduates.settings(graduateId)),
-      updateSettings: (graduateId, patch) =>
-        call((api) => api.graduates.updateSettings(graduateId, patch)),
-    },
-    {
-      exportFolder: z.tuple([text, text]),
-      importFolder: z.tuple([text]),
-    },
-  );
 }

@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { EngineClient } from '@architect/engine';
+import type { AgentHostClient } from '@architect/engine/agent-host';
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import engineEntry from '../utility/engine?modulePath';
 import { launchEngineProcess } from './engine/process';
@@ -9,9 +10,11 @@ import { registerAppHandlers } from './handlers/app';
 import { registerConnectionHandlers } from './handlers/connections';
 import { registerEngineHandlers } from './handlers/engine';
 import { registerFilesHandlers } from './handlers/files';
+import { registerGraduateHandlers } from './handlers/graduates';
 import { registerOllamaHandlers } from './handlers/ollama';
 import { registerSecretsHandlers } from './handlers/secrets';
 import { registerSettingsHandlers } from './handlers/settings';
+import { registerWorkspaceHandlers } from './handlers/workspace';
 import { IpcRouter } from './ipc/router';
 import { readLaunchOptions } from './launch';
 import { ModelPulls } from './ollama/pulls';
@@ -24,6 +27,9 @@ import { SettingsStore } from './settings/store';
 import { applyTheme } from './window/chrome';
 import { createMainWindow } from './window/main-window';
 import { loadWindowState, trackWindowState } from './window/state';
+import { agentHostEnvironment } from './workspace/environment';
+import { WorkspaceGraduates } from './workspace/graduates';
+import { launchAgentHostProcess } from './workspace/process';
 
 const launch = readLaunchOptions(process.env);
 if (launch.userDataDir) app.setPath('userData', launch.userDataDir);
@@ -111,10 +117,33 @@ async function start(): Promise<void> {
     onConnect: (client) => {
       client.runs.onEvent((event) => router.emit('runs', 'onEvent', event));
     },
+    // The agent host opens the engine's database, so it starts once the engine has created it.
+    onReady: () => agentHost.start(),
+  });
+  const agentHost: Supervisor<AgentHostClient> = new Supervisor({
+    name: 'The workspace',
+    launch: () =>
+      launchAgentHostProcess({
+        entryPath: resources.agentHostEntry,
+        dataDir,
+        sandboxEntryPath: resources.sandboxEntry,
+        env: agentHostEnvironment(process.env),
+      }),
+    onConnect: (client) => {
+      client.onEvent((event) => router.emit('workspace', 'onEvent', event));
+      graduates.openAll();
+    },
+  });
+  const graduates = new WorkspaceGraduates({
+    dataDir,
+    listGraduates: () => engine.call((api) => api.graduates.list()),
+    call: (request) => agentHost.call(request),
   });
   registerEngineHandlers(router, (request) => engine.call(request), picked);
+  registerGraduateHandlers(router, (request) => engine.call(request), graduates, picked);
+  registerWorkspaceHandlers(router, (request) => agentHost.call(request), graduates);
   engine.start();
-  stopOnQuit([engine]);
+  stopOnQuit([agentHost, engine]);
 
   const cancelPull = () => pulls.cancel();
   let main = await openMainWindow(cancelPull);

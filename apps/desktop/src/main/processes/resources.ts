@@ -13,8 +13,10 @@ export interface AppLocation {
 
 /** Files the background processes need besides the engine's own bundle. */
 export interface ProcessResources {
-  /** The tool sandbox's entry, which the engine forks as a Node process. */
+  /** The tool sandbox's entry, which the engine and the agent host fork as a Node process. */
   sandboxEntry: string;
+  /** The agent host's entry, started as a utility process. */
+  agentHostEntry: string;
   sampleJobFile: string;
 }
 
@@ -24,6 +26,7 @@ export function processResources(location: AppLocation): ProcessResources {
     // The sandbox is forked with its folder as the working directory, and a folder inside the
     // app archive isn't a real one, so packaging leaves the sandbox unpacked.
     sandboxEntry: unpackedPath(join(out, 'sandbox', 'child.mjs')),
+    agentHostEntry: join(out, 'agent-host', 'main.mjs'),
     sampleJobFile: location.packaged
       ? join(location.resourcesPath, 'sample-job', 'job.json')
       : join(location.appPath, '..', '..', 'examples', 'home-services', 'job', 'job.json'),

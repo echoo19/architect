@@ -15,6 +15,7 @@ describe('processResources', () => {
     });
     expect(resources).toEqual({
       sandboxEntry: join(app, 'out', 'sandbox', 'child.mjs'),
+      agentHostEntry: join(app, 'out', 'agent-host', 'main.mjs'),
       sampleJobFile: join(ROOT, 'architect', 'examples', 'home-services', 'job', 'job.json'),
     });
   });
@@ -30,6 +31,7 @@ describe('processResources', () => {
     });
     expect(resources).toEqual({
       sandboxEntry: join(resourcesPath, 'app.asar.unpacked', 'out', 'sandbox', 'child.mjs'),
+      agentHostEntry: join(archive, 'out', 'agent-host', 'main.mjs'),
       sampleJobFile: join(resourcesPath, 'sample-job', 'job.json'),
     });
   });
