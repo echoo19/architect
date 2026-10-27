@@ -11,13 +11,15 @@ import {
   StatusDot,
   Tooltip,
 } from '@architect/ui';
-import { Pause, Plus, Settings } from 'lucide-react';
-import { createChat, useChats, useGraduates, useJobs } from '../api/hooks';
+import { Ellipsis, Pause, Plus, Settings } from 'lucide-react';
+import { useGraduates, useJobs } from '../api/hooks';
 import { formatPercent } from '../lib/format';
 import { attempt } from '../lib/notify';
 import { isMac } from '../lib/platform';
 import { navigate, paths, type Route } from '../lib/router';
 import { useUi } from '../state/ui';
+import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
+import { createChat, useAgentChats } from '../workspace/store';
 
 const navRow =
   'flex h-10 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-fg-secondary ' +
@@ -29,7 +31,6 @@ export function Sidebar({ route }: { route: Route }) {
   const graduates = useGraduates();
   const jobs = useJobs();
   const openSettings = useUi((state) => state.openSettings);
-  const failed = graduates.status === 'error' ? graduates : jobs.status === 'error' ? jobs : null;
 
   return (
     <nav
@@ -58,22 +59,34 @@ export function Sidebar({ route }: { route: Route }) {
       </button>
 
       <div className="-mx-1 flex min-h-0 flex-col gap-5 overflow-y-auto px-1">
-        {failed ? (
+        {graduates.data ? (
+          <>
+            <AgentList graduates={graduates.data} route={route} />
+            {jobs.data ? (
+              <TrainingList jobs={jobs.data} route={route} />
+            ) : (
+              jobs.status === 'error' && (
+                <ErrorState
+                  layout="inline"
+                  title="Couldn't load training"
+                  message={jobs.error.message}
+                  onRetry={jobs.reload}
+                  className="px-2.5"
+                />
+              )
+            )}
+          </>
+        ) : graduates.status === 'error' ? (
           <ErrorState
             layout="inline"
             title="Couldn't load your agents"
-            message={failed.error.message}
+            message={graduates.error.message}
             onRetry={() => {
               graduates.reload();
               jobs.reload();
             }}
             className="px-2.5"
           />
-        ) : graduates.status === 'success' ? (
-          <>
-            <AgentList graduates={graduates.data} route={route} />
-            {jobs.status === 'success' && <TrainingList jobs={jobs.data} route={route} />}
-          </>
         ) : (
           <AgentListSkeleton />
         )}
@@ -120,8 +133,10 @@ function AgentList({ graduates, route }: { graduates: GraduateSummary[]; route: 
 }
 
 function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Route }) {
-  const chats = useChats(graduate.id);
+  const chats = useAgentChats(graduate.id);
+  const showSettings = useAgentSettingsUi((state) => state.show);
   const [creating, setCreating] = useState(false);
+  const list = chats.entry.data;
 
   const startChat = async () => {
     setCreating(true);
@@ -142,55 +157,63 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
             label={`New chat with ${graduate.name}`}
             size="xs"
             disabled={creating}
-            onClick={startChat}
+            onClick={() => void startChat()}
           >
             <Plus size={14} strokeWidth={1.8} aria-hidden />
           </IconButton>
         </Tooltip>
+        <Tooltip content="Agent settings" side="right">
+          <IconButton
+            label={`${graduate.name} settings`}
+            size="xs"
+            onClick={() => showSettings(graduate.id)}
+          >
+            <Ellipsis size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </Tooltip>
       </div>
-      {chats.status === 'loading' && (
+      {!list && chats.entry.status === 'loading' && (
         <div className="flex flex-col gap-2.5 py-1.5 pl-[38px]" aria-busy="true">
           <Skeleton className="h-3 w-32" />
           <Skeleton className="h-3 w-20" />
         </div>
       )}
-      {chats.status === 'error' && (
+      {!list && chats.entry.status === 'error' && (
         <ErrorState
           layout="inline"
           title="Couldn't load chats"
-          message={chats.error.message}
+          message={chats.entry.error}
           onRetry={chats.reload}
           className="py-1.5 pl-[38px] pr-2.5"
         />
       )}
-      {chats.status === 'success' &&
-        chats.data.map((chat) => {
-          const current = route.name === 'chat' && route.chatId === chat.id;
-          return (
-            <button
-              key={chat.id}
-              type="button"
-              onClick={() => navigate(paths.chat(graduate.id, chat.id))}
-              aria-current={current ? 'page' : undefined}
-              className={cn(
-                'flex h-[34px] w-full items-center justify-between gap-2 rounded-md pl-[38px] pr-2.5 text-left',
-                'transition-colors duration-150 hover:bg-row-hover',
-                current
-                  ? 'bg-hover text-fg hover:bg-hover'
-                  : chat.running || chat.waiting
-                    ? 'text-fg-soft'
-                    : 'text-fg-secondary',
-              )}
-            >
-              <span className="truncate">{chat.title}</span>
-              {chat.running ? (
-                <Spinner tone="student" label="Working" />
-              ) : chat.waiting && !current ? (
-                <StatusDot tone="student" label="Needs you" />
-              ) : null}
-            </button>
-          );
-        })}
+      {list?.map((chat) => {
+        const current = route.name === 'chat' && route.chatId === chat.id;
+        return (
+          <button
+            key={chat.id}
+            type="button"
+            onClick={() => navigate(paths.chat(graduate.id, chat.id))}
+            aria-current={current ? 'page' : undefined}
+            className={cn(
+              'flex h-[34px] w-full shrink-0 items-center justify-between gap-2 rounded-md pl-[38px] pr-2.5 text-left',
+              'transition-colors duration-150 hover:bg-row-hover',
+              current
+                ? 'bg-hover text-fg hover:bg-hover'
+                : chat.running || chat.waiting
+                  ? 'text-fg-soft'
+                  : 'text-fg-secondary',
+            )}
+          >
+            <span className="truncate">{chat.title}</span>
+            {chat.running ? (
+              <Spinner tone="student" label="Working" />
+            ) : chat.waiting && !current ? (
+              <StatusDot tone="student" label="Needs you" />
+            ) : null}
+          </button>
+        );
+      })}
     </div>
   );
 }

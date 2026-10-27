@@ -58,6 +58,8 @@ export {
 } from './components/icon-button';
 export { Input, Textarea, type InputProps, type TextareaProps } from './components/input';
 export { Kbd, Shortcut, shortcutLabel, type ShortcutProps } from './components/kbd';
+export { Progress, type ProgressProps } from './components/progress';
+export { TableCard, type TableCardProps } from './components/table-card';
 export {
   DropdownMenu,
   DropdownMenuContent,

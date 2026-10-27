@@ -5,5 +5,11 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": []
   },
-  "include": ["src/renderer/src", "src/common", "test/unit/renderer", "test/unit/flow"]
+  "include": [
+    "src/renderer/src",
+    "src/common",
+    "test/unit/renderer",
+    "test/unit/flow",
+    "test/unit/workspace"
+  ]
 }
