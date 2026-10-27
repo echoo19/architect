@@ -15,7 +15,7 @@ import { buildSchedule, earliestSlot, firstBookableDate } from '../reference/sch
 import type { EarliestSlot, Schedule, SchedulingRules } from '../reference/scheduling';
 import type { JobVersion } from '../versions';
 import { TODAY, withAnswerLine } from './prompts';
-import { AnswerCap, difficultyOf, pickMix, taskId } from './select';
+import { AnswerCap, difficultyOf, pickMix, pickMixWith, taskId } from './select';
 import type { Candidate, Quota } from './select';
 
 const FIRST_VERSION_QUOTA: Quota = { easy: 20, medium: 24, hard: 16 };
@@ -23,12 +23,13 @@ const FIRST_VERSION_QUOTA: Quota = { easy: 20, medium: 24, hard: 16 };
 /**
  * Version 2 books a third of its requests within a customer time window. A morning window only
  * moves the answer when the morning is already full, which takes other traps too, so the morning
- * tasks it turns on are hard.
+ * tasks it turns on are hard. Open requests of medium difficulty crowd onto a few early slots, so
+ * the afternoon supplies more of the medium tasks.
  */
 const QUOTAS: Readonly<Record<TimeWindow, Quota>> = {
   morning: { easy: 2, medium: 0, hard: 6 },
-  afternoon: { easy: 0, medium: 8, hard: 4 },
-  any: { easy: 7, medium: 16, hard: 17 },
+  afternoon: { easy: 0, medium: 11, hard: 1 },
+  any: { easy: 7, medium: 13, hard: 20 },
 };
 
 /** No date and start time is the answer to more than three tasks. */
@@ -213,7 +214,8 @@ export function buildScheduleTasks(
 /**
  * Version 2 picks its morning, afternoon and open requests separately, then mixes them, so
  * requests on the same earliest date aren't numbered by window. A window that doesn't move the
- * answer only makes an easy task; every harder windowed task turns on its window.
+ * answer only makes an easy task; every harder windowed task turns on its window. The open
+ * requests always include the edges of a technician's day.
  */
 function pickRequests(
   random: Random,
@@ -230,11 +232,24 @@ function pickRequests(
           (window === 'any' || c.traps.includes('window') || c.traps.length === 0),
       )
       .map((c) => ({ ...c, answer: `${c.value.slot.date} ${c.value.slot.start_time}` }));
-  return random.shuffle(
-    (['morning', 'afternoon', 'any'] as const).flatMap((window) =>
-      pickMix(random, inWindow(window), QUOTAS[window], `${window} schedule`, cap),
+  const has = (trap: string) => (c: Candidate<ScheduleCase>) => c.traps.includes(trap);
+  return random.shuffle([
+    ...pickMix(random, inWindow('morning'), QUOTAS.morning, 'morning schedule', cap),
+    ...pickMix(random, inWindow('afternoon'), QUOTAS.afternoon, 'afternoon schedule', cap),
+    ...pickMixWith(
+      random,
+      inWindow('any'),
+      QUOTAS.any,
+      'schedule',
+      [
+        has('travel_to_next'),
+        has('travel_to_next'),
+        has('ends_at_day_end'),
+        has('ends_at_day_end'),
+      ],
+      cap,
     ),
-  );
+  ]);
 }
 
 function candidateFor(
@@ -250,7 +265,9 @@ function candidateFor(
     value: { customer, request, slot },
     traps: [
       ...scheduleTraps(schedule, records, asRequest, slot),
-      ...(version === 1 ? [] : windowTraps(schedule, asRequest, slot)),
+      ...(version === 1
+        ? []
+        : [...windowTraps(schedule, asRequest, slot), ...dayEdgeTraps(schedule, asRequest, slot)]),
     ],
     // Spreading picks across answers keeps "always book the same technician at 07:00" from
     // passing many tasks without a real slot search.
@@ -303,6 +320,20 @@ function windowTraps(schedule: Schedule, request: ServiceRequest, slot: Earliest
   const onEdge = request.window === 'morning' ? slot.end_time === NOON : slot.start_time === NOON;
   return onEdge ? [...traps, 'window_edge'] : traps;
 }
+
+/**
+ * The edges of a technician's day: an earlier gap that looks free but leaves no time to drive on
+ * to the next booking, and an answer that ends exactly when the technician's day does.
+ */
+function dayEdgeTraps(schedule: Schedule, request: ServiceRequest, slot: EarliestSlot): string[] {
+  const careless = earliestSlot(schedule, RULES, request, 'drive_to_next');
+  const looksEarlier = careless.date !== slot.date || careless.start_time !== slot.start_time;
+  const endsTheDay = schedule.technicians.some(
+    (t) => slot.technician_ids.includes(t.technician_id) && t.end_time === slot.end_time,
+  );
+  return [...(looksEarlier ? ['travel_to_next'] : []), ...(endsTheDay ? ['ends_at_day_end'] : [])];
+}
+
 function prompt(random: Random, request: ServiceRequest, customer: Customer): string {
   const id = request.request_id;
   const templates = [

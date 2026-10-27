@@ -79,6 +79,38 @@ export function pickMix<T>(
   return picked;
 }
 
+/**
+ * Like pickMix, but first takes one candidate for each requirement that some candidate meets, so
+ * rare cases (a job logged at exactly 61 minutes) are sure to be among the picks. Each counts
+ * against its difficulty's quota, and the rest of the quota is filled as pickMix fills it.
+ */
+export function pickMixWith<T>(
+  random: Random,
+  candidates: readonly Candidate<T>[],
+  quota: Quota,
+  label: string,
+  required: readonly ((candidate: Candidate<T>) => boolean)[],
+  cap?: AnswerCap,
+): Candidate<T>[] {
+  const picked: Candidate<T>[] = [];
+  const left = { ...quota };
+  for (const meets of required) {
+    const options = candidates.filter(
+      (candidate) =>
+        meets(candidate) && !picked.includes(candidate) && (!cap || cap.allows(candidate)),
+    );
+    if (options.length === 0) continue;
+    const choice = random.pick(options);
+    picked.push(choice);
+    cap?.take(choice);
+    const difficulty = difficultyOf(choice.traps);
+    const room = [difficulty, ...FALLBACK_ORDER].find((d) => left[d] > 0);
+    if (room) left[room] -= 1;
+  }
+  const rest = candidates.filter((candidate) => !picked.includes(candidate));
+  return [...picked, ...pickMix(random, rest, left, label, cap)];
+}
+
 function roundRobin<T>(
   pool: readonly Candidate<T>[],
   count: number,

@@ -7,8 +7,11 @@ import { jobDir } from '../src';
 import type { JobVersion } from '../src';
 import { parseCsv } from '../src/lib/csv';
 import type { CsvRow } from '../src/lib/csv';
+import type { Booking, ServiceRequest, Technician, TravelTime } from '../src/company/types';
 import { parseJobData } from '../src/reference/read-tools';
 import type { JobData } from '../src/reference/read-tools';
+import { buildSchedule } from '../src/reference/scheduling';
+import type { Schedule, SchedulingRules } from '../src/reference/scheduling';
 
 export const BUSINESS_DATE = '2026-11-05';
 
@@ -190,4 +193,38 @@ export interface ExpectedSlot {
 
 export function expectedSlot(task: Task): ExpectedSlot {
   return task.meta?.slot as unknown as ExpectedSlot;
+}
+
+/** The scheduling rules policy.md states, for the reference search. */
+export const SCHEDULING_RULES: SchedulingRules = {
+  businessDate: BUSINESS_DATE,
+  closedDates: ['2026-11-11'],
+  slotMinutes: 30,
+  noon: 12 * 60,
+};
+
+/** A folder's scheduling tables as typed records, for the reference search. */
+export function referenceSchedule(job: JobFolder): Schedule {
+  const list = (cell: string | null | undefined) => (cell ? cell.split(';') : []);
+  return buildSchedule(
+    job.table('technicians.csv').map(
+      (row) =>
+        ({
+          ...row,
+          skills: list(row.skills),
+          licenses: list(row.licenses),
+          work_days: list(row.work_days),
+        }) as unknown as Technician,
+    ),
+    job.table('bookings.csv') as unknown as Booking[],
+    job
+      .table('travel.csv')
+      .map((row) => ({ ...row, minutes: Number(row.minutes) }) as unknown as TravelTime),
+  );
+}
+
+/** The request a scheduling task books, as a typed record. */
+export function requestOf(job: JobFolder, task: Task): ServiceRequest {
+  const row = job.rowWhere('requests.csv', 'request_id', String(paramsOf(task).request_id));
+  return { ...row, duration_minutes: Number(row.duration_minutes) } as unknown as ServiceRequest;
 }

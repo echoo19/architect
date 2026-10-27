@@ -1,16 +1,18 @@
 import vm from 'node:vm';
 import type { Task } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
-import type { Booking, ServiceRequest, Technician, TravelTime } from '../src/company/types';
 import type { CsvRow } from '../src/lib/csv';
-import { buildSchedule, earliestSlot } from '../src/reference/scheduling';
+import { earliestSlot } from '../src/reference/scheduling';
 import {
   BOTH_VERSIONS,
   BUSINESS_DATE,
+  SCHEDULING_RULES,
   expectedInvoiceRow,
   expectedSlot,
   latestVersion,
   paramsOf,
+  referenceSchedule,
+  requestOf,
 } from './helpers';
 import type { JobFolder } from './helpers';
 import { nearestHalfUp, priceFromCsv } from './oracles';
@@ -186,31 +188,6 @@ describe.each(BOTH_VERSIONS)('invoice_created in version $version', (job) => {
     );
   });
 });
-
-/** The scheduling tables as typed records, for the reference search. */
-function referenceSchedule(job: JobFolder) {
-  const list = (cell: string | null | undefined) => (cell ? cell.split(';') : []);
-  return buildSchedule(
-    job.table('technicians.csv').map(
-      (row) =>
-        ({
-          ...row,
-          skills: list(row.skills),
-          licenses: list(row.licenses),
-          work_days: list(row.work_days),
-        }) as unknown as Technician,
-    ),
-    job.table('bookings.csv') as unknown as Booking[],
-    job
-      .table('travel.csv')
-      .map((row) => ({ ...row, minutes: Number(row.minutes) }) as unknown as TravelTime),
-  );
-}
-
-function requestOf(job: JobFolder, task: Task): ServiceRequest {
-  const row = job.rowWhere('requests.csv', 'request_id', String(paramsOf(task).request_id));
-  return { ...row, duration_minutes: Number(row.duration_minutes) } as unknown as ServiceRequest;
-}
 
 function qualified(job: JobFolder, task: Task) {
   const request = requestOf(job, task);
@@ -451,15 +428,9 @@ describe.each(BOTH_VERSIONS)('booking_created in version $version', (job) => {
 
   it('fails a feasible slot that is not the earliest', () => {
     const schedule = referenceSchedule(job);
-    const rules = {
-      businessDate: BUSINESS_DATE,
-      closedDates: ['2026-11-11'],
-      slotMinutes: 30,
-      noon: 12 * 60,
-    };
     for (const candidate of scheduleTasks.slice(0, 10)) {
       const earliest = expectedSlot(candidate);
-      const later = earliestSlot(schedule, rules, {
+      const later = earliestSlot(schedule, SCHEDULING_RULES, {
         ...requestOf(job, candidate),
         earliest_date: nextDay(earliest.date),
       });
@@ -487,12 +458,6 @@ describe.each(BOTH_VERSIONS)('booking_created in version $version', (job) => {
 describe('booking_created with time windows in version 2', () => {
   const job = latestVersion;
   const windowed = job.tasksOfType('schedule').filter((t) => requestOf(job, t).window !== 'any');
-  const rules = {
-    businessDate: BUSINESS_DATE,
-    closedDates: ['2026-11-11'],
-    slotMinutes: 30,
-    noon: 12 * 60,
-  };
   const windowReason = (window: string) =>
     window === 'morning'
       ? 'This booking does not work: the customer asked for a morning visit, which must end by 12:00.'
@@ -513,7 +478,7 @@ describe('booking_created with time windows in version 2', () => {
     expect(moved.length).toBeGreaterThanOrEqual(10);
     for (const task of moved) {
       const request = requestOf(job, task);
-      const careless = earliestSlot(schedule, rules, request, 'window');
+      const careless = earliestSlot(schedule, SCHEDULING_RULES, request, 'window');
       const row = job.bookingRow(task, {
         ...careless,
         technician_id: careless.technician_ids[0] as string,

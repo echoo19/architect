@@ -10,7 +10,7 @@ The records are current as of the business date, **Thursday, November 5, 2026** 
 
 When a job is finished, add one row for it to invoices.csv. Work out the amounts in this order.
 
-1. **Labor** (`labor_cents`). Round the job's `labor_minutes` up to the next quarter hour, and bill at least 60 minutes: 47 minutes bills 60, 61 bills 75, 95 bills 105. Multiply the billed hours by the hourly rate for the technician's tier (the tier is in technicians.csv, the rate in rates.csv). An after-hours job (`after_hours` = yes) costs 1.5 times that. Round half up.
+1. **Labor** (`labor_cents`). Round the job's `labor_minutes` up to the next quarter hour, and bill at least 60 minutes: 47 minutes bills 60, 61 bills 75, 95 bills 105. A time already on a quarter hour stays as it is: 60 bills 60 and 75 bills 75, but 76 bills 90. Multiply the billed hours by the hourly rate for the technician's tier (the tier is in technicians.csv, the rate in rates.csv). An after-hours job (`after_hours` = yes) costs 1.5 times that. Round half up.
 2. **Parts** (`parts_cents`). Each row of job_parts.csv for the job is one line: qty × `unit_cost_cents` × (100 + `markup_pct`) ÷ 100, rounded half up line by line. Add up the rounded lines. A job with no parts has 0.
 3. **Trip fee** (`fees_cents`). One per job, by the customer's zone: 3900 for Harbor and Old Town, 5500 for Millbrook and Ridge, 6900 for Lakeside.
 4. **Plan discount** (`discount_cents`). Customers with `plan_member` = yes get 10% off `labor_cents`, rounded half up. The discount never applies to parts, fees or tax. Everyone else gets 0.
@@ -36,6 +36,8 @@ Example: a journeyman (11400 an hour) spends 50 minutes on an after-hours job fo
 
 Example: an invoice for 30000 due 2026-10-20 has payments of 10000 on 2026-10-25 and 20000 on 2026-11-10. Today it is 16 days overdue, with a balance of 20000.
 
+**Today's edges.** A payment dated today has been received; one dated tomorrow has not. An invoice due yesterday is 1 day overdue; one due today is not overdue yet.
+
 **Groups of customers.** A question can be about a group named from customers.csv: the customers in a `zone` or a `city`, plan members (`plan_member` = yes), or customers on given terms (15-day terms means `terms_days` = 15).
 
 - A group's **overdue total** is the sum of its customers' overdue balances.
@@ -58,5 +60,7 @@ Book each new service request into the earliest slot that works, and add one row
 - **The row.** `booking_id` is B- plus the request's number (request R-1234 gets B-1234). Fill in `request_id`, `technician_id`, `date`, `start_time`, `end_time` (start plus the duration) and `zone` (the request's zone).
 
 Example: a technician's booking in Harbor ends at 10:00. The new job is in Ridge, 45 minutes from Harbor, so it can start at 10:45 at the earliest, which on the half-hour grid is 11:00. If it lasts 120 minutes it ends at 13:00, and with the 30-minute drive from Ridge to Old Town the technician can still make a booking in Old Town that starts at 13:30 or later.
+
+Example: a technician's next booking is in Ridge at 12:30. A 60-minute job in Harbor starting at 11:00 looks free until 12:00, but leaves 30 minutes for the 45-minute drive, so it doesn't work: 10:30 is the latest start.
 
 Example: a 120-minute `morning` request can start at 10:00 at the latest, ending exactly at 12:00. A 90-minute `afternoon` request can start at 12:00 at the earliest; with a technician who works until 16:00 it can start as late as 14:30, ending exactly at the end of their day.

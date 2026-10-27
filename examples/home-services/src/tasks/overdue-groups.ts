@@ -44,12 +44,16 @@ interface GroupCase {
   answer: JsonValue;
 }
 
-/** Kinds are picked scarcest first: a top three needs four customers who owe different amounts. */
+/**
+ * Kinds are picked scarcest first: a top three needs four customers who owe different amounts.
+ * Nearly every top three is hard (a long read and an order to get right), and few age questions
+ * are, since only old invoices matter to them.
+ */
 const QUOTAS: Readonly<Record<GroupKind, Quota>> = {
-  group_top: { easy: 0, medium: 3, hard: 4 },
+  group_top: { easy: 0, medium: 2, hard: 5 },
   group_owing: { easy: 0, medium: 3, hard: 4 },
-  group_age: { easy: 0, medium: 3, hard: 5 },
-  group_total: { easy: 1, medium: 3, hard: 4 },
+  group_age: { easy: 0, medium: 5, hard: 3 },
+  group_total: { easy: 1, medium: 4, hard: 3 },
 };
 
 const TERMS = [0, 15, 30, 45];

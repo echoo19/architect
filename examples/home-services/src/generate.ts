@@ -34,14 +34,14 @@ export interface GeneratedJob {
 /** A whole job folder in memory. The same seed and version always give the same bytes. */
 export function buildJobFiles(seed: number, version: JobVersion): GeneratedJob {
   const random = new Random(seed);
-  const records = buildCompany(random.fork('company'));
+  const records = buildCompany(random.fork('company'), version);
   const scheduling = buildScheduleTasks(random.fork('schedule tasks'), records, version);
   const company = { ...records, requests: scheduling.requests };
   const policy = policyDocument(version);
   const tables = renderTables(company, version);
   const data = parseJobData(new Map([['policy.md', policy], ...Object.entries(tables)]));
   const tasks = [
-    ...buildInvoiceTasks(random.fork('invoice tasks'), records),
+    ...buildInvoiceTasks(random.fork('invoice tasks'), records, version),
     ...buildOverdueTasks(random.fork('overdue tasks'), records, version, data),
     ...scheduling.tasks,
   ].map((task) => TaskSchema.parse(task));

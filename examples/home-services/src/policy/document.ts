@@ -18,7 +18,7 @@ import {
 export function policyDocument(version: JobVersion): string {
   const blocks = [
     ...introduction(),
-    ...invoices(),
+    ...invoices(version),
     ...overdueBalances(version),
     ...scheduling(version),
   ];
@@ -34,12 +34,16 @@ function introduction(): string[] {
   ];
 }
 
-function invoices(): string[] {
+function invoices(version: JobVersion): string[] {
+  const onTheQuarter =
+    version === 1
+      ? ''
+      : ' A time already on a quarter hour stays as it is: 60 bills 60 and 75 bills 75, but 76 bills 90.';
   return [
     '## Invoices',
     'When a job is finished, add one row for it to invoices.csv. Work out the amounts in this order.',
     [
-      `1. **Labor** (\`labor_cents\`). Round the job's \`labor_minutes\` up to the next quarter hour, and bill at least ${MINIMUM_BILLED_MINUTES} minutes: 47 minutes bills 60, 61 bills 75, 95 bills 105. Multiply the billed hours by the hourly rate for the technician's tier (the tier is in technicians.csv, the rate in rates.csv). An after-hours job (\`after_hours\` = yes) costs 1.5 times that. Round half up.`,
+      `1. **Labor** (\`labor_cents\`). Round the job's \`labor_minutes\` up to the next quarter hour, and bill at least ${MINIMUM_BILLED_MINUTES} minutes: 47 minutes bills 60, 61 bills 75, 95 bills 105.${onTheQuarter} Multiply the billed hours by the hourly rate for the technician's tier (the tier is in technicians.csv, the rate in rates.csv). An after-hours job (\`after_hours\` = yes) costs 1.5 times that. Round half up.`,
       '2. **Parts** (`parts_cents`). Each row of job_parts.csv for the job is one line: qty × `unit_cost_cents` × (100 + `markup_pct`) ÷ 100, rounded half up line by line. Add up the rounded lines. A job with no parts has 0.',
       `3. **Trip fee** (\`fees_cents\`). One per job, by the customer's zone: ${TRIP_FEE_CENTS.Harbor} for Harbor and Old Town, ${TRIP_FEE_CENTS.Millbrook} for Millbrook and Ridge, ${TRIP_FEE_CENTS.Lakeside} for Lakeside.`,
       `4. **Plan discount** (\`discount_cents\`). Customers with \`plan_member\` = yes get ${PLAN_DISCOUNT_PCT}% off \`labor_cents\`, rounded half up. The discount never applies to parts, fees or tax. Everyone else gets 0.`,
@@ -73,6 +77,7 @@ function overdueBalances(version: JobVersion): string[] {
   if (version === 1) return rules;
   return [
     ...rules,
+    "**Today's edges.** A payment dated today has been received; one dated tomorrow has not. An invoice due yesterday is 1 day overdue; one due today is not overdue yet.",
     '**Groups of customers.** A question can be about a group named from customers.csv: the customers in a `zone` or a `city`, plan members (`plan_member` = yes), or customers on given terms (15-day terms means `terms_days` = 15).',
     [
       "- A group's **overdue total** is the sum of its customers' overdue balances.",
@@ -107,6 +112,7 @@ function scheduling(version: JobVersion): string[] {
     ...(version === 1
       ? []
       : [
+          "Example: a technician's next booking is in Ridge at 12:30. A 60-minute job in Harbor starting at 11:00 looks free until 12:00, but leaves 30 minutes for the 45-minute drive, so it doesn't work: 10:30 is the latest start.",
           `Example: a 120-minute \`morning\` request can start at 10:00 at the latest, ending exactly at ${NOON}. A 90-minute \`afternoon\` request can start at ${NOON} at the earliest; with a technician who works until 16:00 it can start as late as 14:30, ending exactly at the end of their day.`,
         ]),
   ];

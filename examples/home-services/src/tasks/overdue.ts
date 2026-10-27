@@ -15,7 +15,7 @@ import { buildGroupTasks } from './overdue-groups';
 import { mistakesThatMatter } from './overdue-mistakes';
 import type { Covered } from './overdue-mistakes';
 import { TODAY, withAnswerLine } from './prompts';
-import { AnswerCap, difficultyOf, pickMix, taskId } from './select';
+import { AnswerCap, difficultyOf, pickMix, pickMixWith, taskId } from './select';
 import type { Candidate, Quota } from './select';
 
 /**
@@ -37,8 +37,8 @@ const QUOTAS: Readonly<Record<JobVersion, Readonly<Record<SingleKind, Quota>>>> 
   },
   2: {
     oldest: { easy: 1, medium: 3, hard: 3 },
-    balance: { easy: 4, medium: 3, hard: 2 },
-    callList: { easy: 2, medium: 3, hard: 2 },
+    balance: { easy: 4, medium: 2, hard: 3 },
+    callList: { easy: 2, medium: 2, hard: 3 },
     window: { easy: 1, medium: 3, hard: 3 },
   },
 };
@@ -164,20 +164,23 @@ export function buildOverdueTasks(
     cap,
   );
 
-  const windows = pickMix(
-    random,
-    windowCandidates(records, paymentsOf).map((candidate) =>
-      withBoundaries(
-        version,
-        candidate,
-        questionOf.window(candidate.value),
-        candidate.value.covered,
-      ),
-    ),
-    quotas.window,
-    'due window',
-    cap,
+  const windowChoices = windowCandidates(records, paymentsOf).map((candidate) =>
+    withBoundaries(version, candidate, questionOf.window(candidate.value), candidate.value.covered),
   );
+  // Version 2 always asks about a window holding both sides of today's boundaries.
+  const both = (a: string, b: string) => (c: Candidate<DueWindow>) =>
+    c.traps.includes(a) && c.traps.includes(b);
+  const windows =
+    version === 1
+      ? pickMix(random, windowChoices, quotas.window, 'due window', cap)
+      : pickMixWith(
+          random,
+          windowChoices,
+          quotas.window,
+          'due window',
+          [both('due_today', 'due_yesterday'), both('paid_today', 'paid_tomorrow')],
+          cap,
+        );
 
   const drafts: TaskDraft[] = [
     ...oldest.map((c) => oldestTask(random, c, version)),

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { ServiceRequest, Technician, TimeWindow } from '../src/company/types';
+import type {
+  Booking,
+  ServiceRequest,
+  Technician,
+  TimeWindow,
+  TravelTime,
+} from '../src/company/types';
 import { daysBetween } from '../src/lib/calendar';
 import { roundHalfUp } from '../src/lib/money';
 import { answerQuestion } from '../src/reference/overdue-questions';
@@ -80,6 +86,66 @@ describe.each(BOTH_VERSIONS)('policy.md of version $version', (folder) => {
 
 describe('policy.md of version 2', () => {
   const policy = latestVersion.file('data/policy.md');
+
+  it('bills labor on and just past a quarter hour the way it says', () => {
+    expect(policy).toContain(
+      'A time already on a quarter hour stays as it is: 60 bills 60 and 75 bills 75, but 76 bills 90.',
+    );
+    expect([60, 61, 75, 76].map(billedMinutes)).toEqual([60, 75, 75, 90]);
+  });
+
+  it("states today's edges for payments and due dates", () => {
+    expect(policy).toContain(
+      "**Today's edges.** A payment dated today has been received; one dated tomorrow has not. An invoice due yesterday is 1 day overdue; one due today is not overdue yet.",
+    );
+    expect(daysBetween('2026-11-04', '2026-11-05')).toBe(1);
+  });
+
+  it('shows a free-looking gap that the drive to the next booking rules out', () => {
+    expect(policy).toContain(
+      "Example: a technician's next booking is in Ridge at 12:30. A 60-minute job in Harbor starting at 11:00 looks free until 12:00, but leaves 30 minutes for the 45-minute drive, so it doesn't work: 10:30 is the latest start.",
+    );
+    const travel = latestVersion
+      .table('travel.csv')
+      .map((row) => ({ ...row, minutes: Number(row.minutes) }) as unknown as TravelTime);
+    expect(travel.find((t) => t.from_zone === 'Harbor' && t.to_zone === 'Ridge')?.minutes).toBe(45);
+    const technician: Technician = {
+      technician_id: 'T-00',
+      name: 'Example',
+      tier: 'journeyman',
+      skills: ['plumbing'],
+      licenses: [],
+      work_days: ['Thu'],
+      start_time: '08:00',
+      end_time: '16:00',
+    };
+    const nextBooking: Booking = {
+      booking_id: 'B-0000',
+      request_id: 'R-0000',
+      technician_id: 'T-00',
+      date: '2026-11-12',
+      start_time: '12:30',
+      end_time: '14:00',
+      zone: 'Ridge',
+    };
+    const schedule = buildSchedule([technician], [nextBooking], travel);
+    const rules = { businessDate: '2026-11-05', closedDates: [], slotMinutes: 30, noon: 12 * 60 };
+    const request: ServiceRequest = {
+      request_id: 'R-0001',
+      customer_id: 'C-0000',
+      zone: 'Harbor',
+      skill: 'plumbing',
+      license_needed: null,
+      duration_minutes: 60,
+      earliest_date: '2026-11-12',
+      window: 'any',
+      problem: 'Example',
+    };
+    const at = (h: number, m: number) =>
+      slotProblem(schedule, rules, technician, request, '2026-11-12', h * 60 + m);
+    expect(at(11, 0)).toBe('drive_to_next');
+    expect(at(10, 30)).toBeNull();
+  });
 
   it('works its group example out the way the reference does', () => {
     expect(policy).toContain(
