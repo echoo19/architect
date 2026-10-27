@@ -1,7 +1,14 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": ["node", "electron-vite/node"]
   },
-  "include": ["src/main", "src/preload", "src/common", "test/unit/main", "electron.vite.config.ts"]
+  "include": [
+    "src/main",
+    "src/preload",
+    "src/common",
+    "src/utility",
+    "test/unit/main",
+    "electron.vite.config.ts"
+  ]
 }
