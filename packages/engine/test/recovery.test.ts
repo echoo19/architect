@@ -126,6 +126,42 @@ describe('restart recovery', () => {
     expect(new Set(attempts.map(evaluationKey)).size).toBe(attempts.length);
   });
 
+  it('pauses with the reason even when recording the error fails, and can resume', async () => {
+    world.runtime.beforeAttempt = (task) => {
+      if (task.id.startsWith('dev-')) throw new Error('The student endpoint is not answering.');
+    };
+    const engine = open();
+    const update = engine.store.runs.update.bind(engine.store.runs);
+    let broken = true;
+    engine.store.runs.update = (record) => {
+      if (broken && record.run.status === 'paused') {
+        broken = false;
+        throw new Error('database is locked');
+      }
+      update(record);
+    };
+    const runId = await startArchitect(engine);
+    await engine.controller.idle();
+
+    expect(engine.store.runs.get(runId)?.run).toMatchObject({
+      status: 'paused',
+      error: 'database is locked',
+    });
+    expect(engine.errors).toEqual([new Error('database is locked')]);
+    expect(engine.events).toContainEqual(
+      expect.objectContaining({
+        type: 'log',
+        level: 'error',
+        message: expect.stringContaining('database is locked'),
+      }),
+    );
+
+    world.runtime.beforeAttempt = undefined;
+    await engine.controller.resume(runId);
+    await engine.controller.idle();
+    expect(engine.store.runs.get(runId)?.run.status).toBe('finished');
+  });
+
   it('pauses on an error with the reason, and finishes when resumed', async () => {
     let devSeen = 0;
     world.runtime.beforeAttempt = (task) => {
