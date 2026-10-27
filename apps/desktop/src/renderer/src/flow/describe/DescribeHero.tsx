@@ -18,6 +18,11 @@ const ATTACHABLE = [
   { name: 'Task files', extensions: ['jsonl', 'csv'] },
 ];
 
+/** Files read as example requests with their answers: task lists by name or format. */
+function isTaskFile(path: string): boolean {
+  return /\.jsonl$/i.test(path) || /(^|[\\/])tasks?\.csv$/i.test(path);
+}
+
 /** The first step of a new agent: the job in the user's own words, plus its files. */
 export function DescribeHero() {
   const { text, files, setText, setFiles } = useDraftStore(
@@ -82,10 +87,15 @@ export function DescribeHero() {
           }
         />
         <p className="m-0 text-sm text-fg-secondary text-pretty">
-          Attach the files it works from (spreadsheets or text) and a file of example requests with
-          the right answers, as a spreadsheet (CSV) or JSONL. {name ?? 'The mentor'} uses them to
-          test the agent.
+          Attach the files it works from, and a spreadsheet of example requests with the right
+          answer to each. {name ?? 'The mentor'} tests the agent on those examples; the more you
+          give, the fairer the test.
         </p>
+        {files.some(isTaskFile) && (
+          <p className="m-0 text-sm text-fg-muted text-pretty">
+            Example requests come from {files.filter(isTaskFile).map(fileName).join(' and ')}.
+          </p>
+        )}
         {files.length > 0 && (
           <ul aria-label="Attached files" className="m-0 flex list-none flex-wrap gap-2 p-0">
             {files.map((path) => (

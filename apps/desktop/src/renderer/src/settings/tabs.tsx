@@ -115,11 +115,11 @@ export function ModelsTab({ settings, update }: TabProps) {
         </QueryValue>
       </SettingsRow>
       <p className="m-0 border-t border-line pb-1 pt-5 font-medium">
-        Hosted copies, for faster practice
+        Hosted copies of {shortModelName(studentLabel(student))}, for faster practice
       </p>
       <p className="m-0 pb-2 text-sm text-fg-muted text-pretty">
-        Optional, for practicing on a hosted copy of {shortModelName(studentLabel(student))}; the
-        final test always runs on {device}.
+        Optional, and separate from the mentor: a job can practice on one of these services instead
+        of {device}, chosen where it trains. The final test always runs here.
       </p>
       {HOSTED_KEYS.map((key) => (
         <KeyRow key={key.secretRef} secretRef={key.secretRef} provider={key.provider} />

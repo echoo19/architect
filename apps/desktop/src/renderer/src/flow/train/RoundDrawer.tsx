@@ -119,6 +119,8 @@ export function RoundDrawerContent({
               names.mentor,
               first ? 'The first check' : 'The result',
             )}
+            {first &&
+              ` ${names.student}'s answers vary from run to run, so a promising change is checked twice before it stays.`}
           </p>
         )}
 
@@ -142,8 +144,8 @@ export function RoundDrawerContent({
           <Block
             title={
               first
-                ? 'Check tasks right by task type, over both checks'
-                : 'Check tasks right, by task type'
+                ? 'Change in check tasks right, by task type, over both checks'
+                : 'Change in check tasks right, by task type'
             }
           >
             <ul className="m-0 flex list-none flex-col p-0">
@@ -155,9 +157,9 @@ export function RoundDrawerContent({
                   <span>{typeLabel(job, type.type)}</span>
                   <span className="text-sm text-fg-secondary">
                     <span className="font-mono tabular-nums text-fg">
-                      {type.before} to {type.after}
+                      {signed(type.after - type.before)}
                     </span>{' '}
-                    right
+                    {Math.abs(type.after - type.before) === 1 ? 'task' : 'tasks'}
                   </span>
                 </li>
               ))}
