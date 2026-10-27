@@ -130,6 +130,7 @@ async function roundRequest(state: RunState, stored: StoredRound): Promise<Autho
 }
 
 async function wholeHarnessRequest(state: RunState): Promise<AuthorRequest> {
+  const refinedLater = state.run.method !== 'one_shot';
   const view = buildOneShotView({
     job: state.job,
     dataFiles: await state.resources.dataFiles(),
@@ -138,13 +139,15 @@ async function wholeHarnessRequest(state: RunState): Promise<AuthorRequest> {
     train: await state.trainTasks(),
     devTotal: (await state.devTasks()).length,
   });
-  return { request: oneShotRequest(view, promptSettings(state)), parts: oneShotViewParts(view) };
+  return {
+    request: oneShotRequest(view, promptSettings(state), refinedLater),
+    parts: oneShotViewParts(view),
+  };
 }
 
 /** Train task ids the author was shown, the only ones a hypothesis may cite as its cause. */
 async function visibleTaskIds(state: RunState, index: number): Promise<Set<string>> {
-  const tasks =
-    state.run.method === 'one_shot' ? await state.trainTasks() : await state.trainBatch(index);
+  const tasks = state.drafts(index) ? await state.trainTasks() : await state.trainBatch(index);
   return new Set(tasks.map((task) => task.id));
 }
 
@@ -189,9 +192,7 @@ function charge(state: RunState, index: number, charged: MentorCharge, reply?: A
 
 /** What the round's author is asked: the whole harness for one-shot, otherwise one hypothesis. */
 async function buildRequest(state: RunState, index: number): Promise<AuthorRequest> {
-  return state.run.method === 'one_shot'
-    ? wholeHarnessRequest(state)
-    : roundRequest(state, state.round(index));
+  return state.drafts(index) ? wholeHarnessRequest(state) : roundRequest(state, state.round(index));
 }
 
 /**
