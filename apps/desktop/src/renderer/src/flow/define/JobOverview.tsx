@@ -26,7 +26,7 @@ export function JobHeader({ job }: { job: Job }) {
         icon={<Laptop size={14} strokeWidth={1.6} aria-hidden />}
         className="self-start"
       >
-        Runs offline on {deviceInSentence(currentPlatform())}
+        Once trained, runs offline on {deviceInSentence(currentPlatform())}
       </Badge>
     </div>
   );
@@ -118,7 +118,7 @@ export function ReadyWhen({ job }: { job: Job }) {
   return (
     <section aria-labelledby="ready-when" className="flex flex-col gap-[18px]">
       <SectionHeading id="ready-when" title="Ready when">
-        Measured on a final test of tasks it has never seen.
+        Training aims for this; a final test on tasks it has never seen confirms it.
       </SectionHeading>
       <div className="flex flex-wrap gap-10">
         <Stat size="lg" value={`${Math.round(passRate * 100)}%`} label="of new tasks right" />

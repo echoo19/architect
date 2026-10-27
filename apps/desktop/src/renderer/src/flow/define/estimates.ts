@@ -23,6 +23,8 @@ export type TrainPlace = 'local' | 'hosted';
 export interface TimeEstimate {
   /** Training plus the final test, in seconds. */
   seconds: number;
+  /** Training alone: the whole round budget, or the time cap when that comes first. */
+  trainingSeconds: number;
   /** Rounds that fit in the time cap; equal to the round budget when the cap doesn't bind. */
   rounds: number;
   /** One round: a practice batch, then the check tasks for the change and the current version. */
@@ -42,45 +44,51 @@ export function estimateTime(job: Job, place: TrainPlace): TimeEstimate {
   const trainingSeconds = Math.min(job.budget.maxRounds * perRound, capSeconds);
   const testSeconds = job.splits.test * SECONDS_PER_TASK.local;
   const rounds = Math.min(job.budget.maxRounds, Math.floor(capSeconds / perRound));
-  return { seconds: trainingSeconds + testSeconds, rounds, roundSeconds: perRound };
+  return {
+    seconds: trainingSeconds + testSeconds,
+    trainingSeconds,
+    rounds,
+    roundSeconds: perRound,
+  };
 }
 
-/** A time cap as people say it before a noun: "3-hour", "90-minute", "2.5-hour". */
-export function capPhrase(minutes: number): string {
-  if (minutes % 60 === 0) return `${minutes / 60}-hour`;
-  if (minutes < 120) return `${minutes}-minute`;
-  return `${(minutes / 60).toFixed(1)}-hour`;
+/** A time cap as people say it: "4 hours", "90 minutes", "2.5 hours". */
+export function capText(minutes: number): string {
+  if (minutes % 60 === 0) return minutes === 60 ? '1 hour' : `${minutes / 60} hours`;
+  if (minutes < 120) return `${minutes} minutes`;
+  return `${(minutes / 60).toFixed(1)} hours`;
 }
 
 function roundCount(count: number): string {
   return `${count} ${count === 1 ? 'round' : 'rounds'}`;
 }
 
-/** How much training the time cap allows at a place: a fact, not a warning. */
+/** How much training fits at a place, as a fact: the rounds that fit in the time cap. */
 export function roundsLine(job: Job, estimate: TimeEstimate): string {
   const { maxRounds, maxWallMinutes } = job.budget;
-  const cap = `${capPhrase(maxWallMinutes)} training cap`;
-  if (estimate.rounds >= maxRounds) return `All ${roundCount(maxRounds)} fit in the ${cap}`;
-  if (estimate.rounds === 0) {
-    return `A round takes ${formatAbout(estimate.roundSeconds).toLowerCase()}, longer than the ${cap}`;
+  const cap = capText(maxWallMinutes);
+  if (estimate.rounds >= maxRounds) {
+    return `All ${roundCount(maxRounds)} fit, in ${formatAbout(estimate.trainingSeconds).toLowerCase()} of training`;
   }
-  return `The ${cap} fits ${estimate.rounds} of ${roundCount(maxRounds)}`;
+  if (estimate.rounds === 0) {
+    return `No full round fits in ${cap} of training; one takes ${formatAbout(estimate.roundSeconds).toLowerCase()}`;
+  }
+  return `${estimate.rounds} of ${roundCount(maxRounds)} fit in ${cap} of training`;
+}
+
+/** The whole wait at a place, from Start training to the report card. */
+export function totalLine(estimate: TimeEstimate): string {
+  return `${formatAbout(estimate.seconds)} in all, with the final test`;
 }
 
 /** Says plainly when a hosted copy is the faster place to train, or null when it isn't. */
-export function hostedAdvantage(
-  job: Job,
-  local: TimeEstimate,
-  hosted: TimeEstimate,
-): string | null {
-  const { maxRounds } = job.budget;
+export function hostedAdvantage(local: TimeEstimate, hosted: TimeEstimate): string | null {
   if (hosted.rounds > local.rounds) {
-    return hosted.rounds >= maxRounds
-      ? `A hosted copy fits all ${roundCount(maxRounds)}`
-      : `A hosted copy fits ${roundCount(hosted.rounds)}`;
+    const here = local.rounds === 0 ? 'none' : String(local.rounds);
+    return `A hosted copy fits ${roundCount(hosted.rounds)} in the time this computer fits ${here}.`;
   }
   if (hosted.seconds < local.seconds) {
-    return `A hosted copy takes ${formatAbout(hosted.seconds).toLowerCase()}`;
+    return `A hosted copy finishes in ${formatAbout(hosted.seconds).toLowerCase()}, against ${formatAbout(local.seconds).toLowerCase()} here.`;
   }
   return null;
 }
@@ -125,9 +133,10 @@ export function estimateMentorUsd(job: Job): number | null {
   return mentorUsdFor(preset.pricing, job.budget.maxRounds);
 }
 
-/** "$0.70", "$4.50", "$18": precise enough for an estimate, never falsely exact. */
+/** "$0.05", "$0.70", "$4.50", "$18": precise enough for an estimate, never falsely exact. */
 export function formatAboutUsd(amount: number): string {
-  if (amount < 0.1) return 'under $0.10';
+  if (amount < 0.01) return 'under $0.01';
+  if (amount < 0.1) return `$${amount.toFixed(2)}`;
   if (amount < 1) return `$${(Math.round(amount * 20) / 20).toFixed(2)}`;
   if (amount < 10) {
     const halves = Math.round(amount * 2) / 2;

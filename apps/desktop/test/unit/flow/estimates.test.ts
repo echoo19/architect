@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mentorPreset } from '@architect/shared';
 import {
   aboutUsd,
-  capPhrase,
+  capText,
   estimateMentorUsd,
   estimateTime,
   formatAbout,
@@ -11,6 +11,7 @@ import {
   mentorPresetOf,
   mentorUsdFor,
   roundsLine,
+  totalLine,
 } from '../../../src/renderer/src/flow/define/estimates';
 import { makeJob } from './factories';
 
@@ -31,11 +32,13 @@ describe('estimateTime', () => {
     });
     expect(estimateTime(job, 'local')).toEqual({
       seconds: (104 + 20) * 150,
+      trainingSeconds: 104 * 150,
       rounds: 4,
       roundSeconds: 26 * 150,
     });
     expect(estimateTime(job, 'hosted')).toEqual({
       seconds: 104 * 15 + 20 * 150,
+      trainingSeconds: 104 * 15,
       rounds: 4,
       roundSeconds: 26 * 15,
     });
@@ -55,6 +58,7 @@ describe('estimateTime', () => {
     });
     expect(estimateTime(job, 'local')).toEqual({
       seconds: (4 * 46 + 20) * 150,
+      trainingSeconds: 4 * 46 * 150,
       rounds: 4,
       roundSeconds: 46 * 150,
     });
@@ -75,23 +79,26 @@ describe('estimateTime', () => {
 
 describe('what the time cap allows', () => {
   it('names the cap the way people say it', () => {
-    expect(capPhrase(180)).toBe('3-hour');
-    expect(capPhrase(90)).toBe('90-minute');
-    expect(capPhrase(45)).toBe('45-minute');
-    expect(capPhrase(150)).toBe('2.5-hour');
+    expect(capText(180)).toBe('3 hours');
+    expect(capText(60)).toBe('1 hour');
+    expect(capText(90)).toBe('90 minutes');
+    expect(capText(150)).toBe('2.5 hours');
   });
 
   it('says how many rounds fit, as a fact', () => {
     const job = makeJob();
     expect(roundsLine(job, estimateTime(job, 'local'))).toBe(
-      'A round takes about 4 hours, longer than the 3-hour training cap',
+      'No full round fits in 3 hours of training; one takes about 4 hours',
     );
     expect(roundsLine(job, estimateTime(job, 'hosted'))).toBe(
-      'The 3-hour training cap fits 7 of 12 rounds',
+      '7 of 12 rounds fit in 3 hours of training',
+    );
+    expect(totalLine(estimateTime(job, 'hosted'))).toBe(
+      'About 6 hours in all, with the final test',
     );
     const roomy = makeJob({ budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 1200 } });
     expect(roundsLine(roomy, estimateTime(roomy, 'local'))).toBe(
-      'All 4 rounds fit in the 20-hour training cap',
+      'All 4 rounds fit, in about 15 hours of training',
     );
   });
 
@@ -99,12 +106,14 @@ describe('what the time cap allows', () => {
     const job = makeJob();
     const local = estimateTime(job, 'local');
     const hosted = estimateTime(job, 'hosted');
-    expect(hostedAdvantage(job, local, hosted)).toBe('A hosted copy fits 7 rounds');
+    expect(hostedAdvantage(local, hosted)).toBe(
+      'A hosted copy fits 7 rounds in the time this computer fits none.',
+    );
     const roomy = makeJob({ budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 1200 } });
-    expect(
-      hostedAdvantage(roomy, estimateTime(roomy, 'local'), estimateTime(roomy, 'hosted')),
-    ).toBe('A hosted copy takes about 4 hours');
-    expect(hostedAdvantage(job, hosted, hosted)).toBeNull();
+    expect(hostedAdvantage(estimateTime(roomy, 'local'), estimateTime(roomy, 'hosted'))).toBe(
+      'A hosted copy finishes in about 4 hours, against about 18 hours here.',
+    );
+    expect(hostedAdvantage(hosted, hosted)).toBeNull();
   });
 });
 
@@ -164,12 +173,14 @@ describe('mentor spending', () => {
   });
 
   it('formats an estimate without false precision', () => {
-    expect(formatAboutUsd(0.04)).toBe('under $0.10');
+    expect(formatAboutUsd(0.04)).toBe('$0.04');
+    expect(formatAboutUsd(0.004)).toBe('under $0.01');
     expect(formatAboutUsd(0.705)).toBe('$0.70');
     expect(formatAboutUsd(4.2)).toBe('$4');
     expect(formatAboutUsd(4.4)).toBe('$4.50');
     expect(formatAboutUsd(18.4)).toBe('$18');
     expect(aboutUsd(0.705)).toBe('About $0.70');
-    expect(aboutUsd(0.04)).toBe('Under $0.10');
+    expect(aboutUsd(0.048)).toBe('About $0.05');
+    expect(aboutUsd(0.004)).toBe('Under $0.01');
   });
 });
