@@ -1,4 +1,6 @@
 import { existsSync } from 'node:fs';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { AdapterError, type Job, type Task } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { LineageLog } from '../src/loop/lineage';
@@ -7,7 +9,7 @@ import { TRAINING_ENDED } from '../src/loop/run-state';
 import { devSeeds, fanOutSeeds, roundSeed } from '../src/loop/seeds';
 import { hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
-import { FileVersions } from './fakes/harness';
+import { FileVersions, templateHarness } from './fakes/harness';
 import { defaultJob, defaultTasks, task } from './fakes/job';
 import { createWorld, openEngine, type Engine, type World } from './fakes/world';
 
@@ -664,5 +666,51 @@ describe('a run that starts from a blank harness', () => {
       train: { pass: 0, total: 0 },
       devAfter: { pass: 3, total: 9 },
     });
+  });
+});
+
+describe('a job that imports its starting harness', () => {
+  it('brings the harness folder along and starts from it', async () => {
+    world = await createWorld({
+      job: {
+        startingHarness: { kind: 'import', path: 'starter' },
+        budget: { ...defaultJob().budget, maxRounds: 1 },
+      },
+    });
+    world.mentor.script = () => hypothesis('Add the invoice procedure', 'fix:invoice');
+    const starter = join(dirname(world.jobFile), 'starter');
+    await mkdir(starter, { recursive: true });
+    await writeFile(
+      join(starter, 'harness.json'),
+      JSON.stringify(templateHarness('Service desk', 'Imported.', 'the shop handbook')),
+    );
+    engine = openEngine(world);
+    const job = await engine.jobs.importFile(world.jobFile);
+    // The run reads the job's own copy, not the folder it came from.
+    await rm(starter, { recursive: true });
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    expect(existsSync(join(engine.paths.jobDir(job.id), 'starter', 'harness.json'))).toBe(true);
+    const versions = new FileVersions(engine.paths.harnessDir(job.id, run.id));
+    expect((await versions.load(1)).system).toContain('Template: the shop handbook');
+    expect(engine.store.rounds.get(run.id, 1)?.round.train.total).toBeGreaterThan(0);
+  });
+
+  it('refuses a starting harness outside the job folder, or one that is missing', async () => {
+    world = await createWorld({
+      job: { startingHarness: { kind: 'import', path: '../elsewhere' } },
+    });
+    engine = openEngine(world);
+    await expect(engine.jobs.importFile(world.jobFile)).rejects.toThrow(
+      '"../elsewhere" must be a path inside the job folder.',
+    );
+    await engine.close();
+    world.cleanup();
+    world = await createWorld({ job: { startingHarness: { kind: 'import', path: 'starter' } } });
+    engine = openEngine(world);
+    await expect(engine.jobs.importFile(world.jobFile)).rejects.toThrow(
+      'The starting harness folder "starter" is missing next to the job file.',
+    );
   });
 });
