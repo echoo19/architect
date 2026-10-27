@@ -148,9 +148,8 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
           </section>
         ))}
         <p className="m-0 text-sm text-fg-muted text-pretty">
-          Costs are for training one agent over up to {TYPICAL_ROUNDS} rounds; in each, the mentor
-          studies the agent&apos;s mistakes and improves its instructions. You set a spending cap
-          for every agent you train.
+          Costs are for training one agent over up to {TYPICAL_ROUNDS} rounds. You set a cap for
+          each.
         </p>
         {mentor.kind === 'model' && (
           <Panel aria-label="Mentor key" className="px-7 py-1 [&>*:first-child]:border-t-0">

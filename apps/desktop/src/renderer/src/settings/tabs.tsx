@@ -97,10 +97,7 @@ export function ModelsTab({ settings, update }: TabProps) {
       {mentor.kind === 'model' && (
         <KeyRow secretRef={mentor.secretRef} provider={mentorProvider(mentor)} />
       )}
-      <SettingsRow
-        label={capitalized(STUDENT_ROLE)}
-        meta={`Every agent runs on it, on ${device}. A job can pick another in its Advanced settings.`}
-      >
+      <SettingsRow label={capitalized(STUDENT_ROLE)} meta={`Every agent runs on it, on ${device}`}>
         <SettingsValue>{shortModelName(studentLabel(student))}</SettingsValue>
       </SettingsRow>
       <SettingsRow
@@ -121,9 +118,8 @@ export function ModelsTab({ settings, update }: TabProps) {
         Hosted copies, for faster practice
       </p>
       <p className="m-0 pb-2 text-sm text-fg-muted text-pretty">
-        Optional. A job can practice on a hosted copy of {shortModelName(studentLabel(student))}{' '}
-        from one of these services, chosen in its Advanced settings; the final test still runs on{' '}
-        {device}.
+        Optional, for practicing on a hosted copy of {shortModelName(studentLabel(student))}; the
+        final test always runs on {device}.
       </p>
       {HOSTED_KEYS.map((key) => (
         <KeyRow key={key.secretRef} secretRef={key.secretRef} provider={key.provider} />
