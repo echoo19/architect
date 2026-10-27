@@ -207,10 +207,12 @@ class SandboxProcess {
       return sandboxProcess;
     }
     sandboxProcess.kill();
-    if (event === 'timeout')
+    if (event === 'timeout') {
       throw new Error(`it did not start within ${START_TIMEOUT_MS / 1000} s`);
-    if (event.type === 'exit')
+    }
+    if (event.type === 'exit') {
       throw new Error(`it exited (${event.detail})${sandboxProcess.lastError()}`);
+    }
     throw new Error('it sent an unexpected first message');
   }
 
