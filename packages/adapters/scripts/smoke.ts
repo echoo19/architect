@@ -7,7 +7,8 @@
  *
  *   SMOKE_META_KEY=... pnpm exec tsx packages/adapters/scripts/smoke.ts
  *
- * Mentors (each makes one paid request):
+ * Mentors (each makes one paid request, asking for a small JSON object; a reply that doesn't
+ * parse costs a second request):
  *   SMOKE_META_KEY        Meta Model API key. SMOKE_META_PRESET picks the model: meta-spark
  *                         (default) or meta-spark-contributor.
  *   SMOKE_BASETEN_KEY     Baseten key, for Muse Spark Open.
@@ -97,10 +98,20 @@ async function mentor(
       },
       { apiKey, pricing: preset.pricing },
     );
+    // Asking for JSON exercises the path the training loop uses: structured output where the
+    // provider has it (streamed, with reasoning on), a fenced block where it doesn't.
     const completion = await adapter.complete({
-      system: 'Answer with one word.',
-      messages: [{ role: 'user', content: 'Say ready.' }],
-      maxOutputTokens: 256,
+      system: 'Answer with the JSON object only.',
+      messages: [{ role: 'user', content: 'Say that you are ready.' }],
+      json: {
+        name: 'ready',
+        schema: {
+          type: 'object',
+          properties: { ready: { type: 'boolean' } },
+          required: ['ready'],
+        },
+      },
+      maxOutputTokens: 512,
       reasoningEffort: 'low',
     });
     return { usage: completion.usage, costUsd: completion.costUsd };
