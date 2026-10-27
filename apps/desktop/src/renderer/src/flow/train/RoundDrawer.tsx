@@ -60,6 +60,7 @@ export function RoundDrawerContent({
   const first = round.firstMeasurement;
   const firstMeasured = first ? first.devAfter.pass - first.devBefore.pass : measured;
   const second = first && round.devBefore && round.devAfter ? secondCheck(first, round) : null;
+  const checkSize = first?.devAfter.total ?? job.splits.dev;
   return (
     <DrawerContent
       title={title}
@@ -90,15 +91,21 @@ export function RoundDrawerContent({
               '–'
             )}
           </Effect>
-          <Effect label={first ? 'First check' : 'Measured'} note={rateChange(first ?? round)}>
+          <Effect
+            label={first ? `First check, ${checkSize} tasks` : 'Measured'}
+            note={rateChange(first ?? round)}
+          >
             <TaskCount delta={firstMeasured} />
           </Effect>
           {second && (
             <>
-              <Effect label="Second check, the same tasks run again" note={rateChange(second)}>
+              <Effect label={`Second check, the same ${checkSize} again`} note={rateChange(second)}>
                 <TaskCount delta={second.devAfter.pass - second.devBefore.pass} />
               </Effect>
-              <Effect label="Both checks together" note={rateChange(round)}>
+              <Effect
+                label={`Both checks together, ${2 * checkSize} answers`}
+                note={rateChange(round)}
+              >
                 <TaskCount delta={measured} />
               </Effect>
             </>
