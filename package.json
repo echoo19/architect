@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "pnpm --filter @architect/desktop e2e",
+    "package": "pnpm --filter @architect/desktop package",
     "check": "pnpm typecheck && pnpm lint && pnpm test"
   },
   "devDependencies": {
