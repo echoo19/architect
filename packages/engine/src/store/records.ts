@@ -78,6 +78,8 @@ export const AuthorReplySchema = z.object({
   costUsd: z.number().nonnegative(),
   model: z.string(),
   latencyMs: z.number().nonnegative(),
+  /** 0 for the author's answer, 1 for its fix after the runner couldn't use that answer. */
+  fix: z.number().int().nonnegative().default(0),
 });
 export type AuthorReply = z.infer<typeof AuthorReplySchema>;
 

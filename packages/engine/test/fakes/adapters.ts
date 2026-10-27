@@ -45,7 +45,7 @@ export class FakeMentor implements MentorAdapter {
 
   async complete(request: MentorCompletionRequest): Promise<MentorCompletion> {
     this.requests.push(request);
-    const json = this.script(request, this.requests.length);
+    const json: unknown = await this.script(request, this.requests.length);
     const usage = { inputTokens: 2000, outputTokens: 500 };
     return {
       text: JSON.stringify(json),

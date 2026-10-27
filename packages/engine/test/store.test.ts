@@ -252,6 +252,7 @@ describe('repositories', () => {
         costUsd: 0.004,
         model: 'fake-mentor-1',
         latencyMs: 5,
+        fix: 0,
       },
       hypothesis: {
         title: 'Add the invoice procedure',

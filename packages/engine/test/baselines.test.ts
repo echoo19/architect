@@ -111,6 +111,26 @@ describe('the one-shot baseline', () => {
   });
 });
 
+describe('the one-shot baseline, when its reply cannot be used', () => {
+  it('gets the same single fix, with nothing about the student added', async () => {
+    world.mentor.script = (_request, call) =>
+      call === 1
+        ? {
+            ...hypothesis('Complete harness', ''),
+            edits: [{ op: 'delete' as const, path: 'system.md', content: '' }],
+          }
+        : hypothesis('Complete harness', 'fix:invoice\nfix:overdue');
+    const { run: finished } = await run('one_shot');
+
+    expect(world.mentor.requests).toHaveLength(2);
+    const [asked, fix] = world.mentor.requests;
+    expect(fix?.messages.slice(0, -2)).toEqual(asked?.messages);
+    expect(fix?.messages.at(-1)?.content).toContain('system.md: cannot be deleted.');
+    expect(finished).toMatchObject({ currentVersion: 2, devCurrent: { pass: 6, total: 9 } });
+    expect(engine.store.rounds.get(finished.id, 1)?.round.decision).toBe('kept');
+  });
+});
+
 describe('the self-reflection baseline', () => {
   it('runs the architect loop with the student as its own author, at no mentor cost', async () => {
     world.studentReply = (_request, call) =>

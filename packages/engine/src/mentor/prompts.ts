@@ -30,7 +30,10 @@ The student runs inside a harness: a folder of plain files. You change the stude
   ---
   The student sees each skill's name and summary and loads the full text with load_skill, unless a retrieval rule loads it up front. Slugs use lowercase letters, digits and dashes.
 - tools/<name>.json and tools/<name>.js: a helper tool. The .json file holds {"name", "description", "parameters"}, where parameters is a JSON Schema object for the arguments. The .js file defines function run(args, ctx). Names use lowercase letters, digits and underscores and start with a letter. Always write both files.
-- examples/<slug>.json: a worked example the student sees as a past conversation: {"title", "task_types", "messages"}, where messages are user, assistant (with tool_calls) and tool turns ending in the correct ANSWER line.
+- examples/<slug>.json: a worked example the student sees as a past conversation: {"title", "task_types", "messages"}. Each message has exactly one of these shapes, and the last is the assistant's correct ANSWER line:
+  {"role": "user", "content": "..."}
+  {"role": "assistant", "content": "...", "tool_calls": [{"id": "call_1", "name": "read_table", "arguments": {"file": "..."}}]} (tool_calls only on a turn that calls tools)
+  {"role": "tool", "tool_call_id": "call_1", "name": "read_table", "content": "..."} (the result of the call with that id)
 - retrieval.yaml: which skills and examples load for which request:
   list_skills: true
   max_loaded_skills: 2

@@ -411,10 +411,48 @@ describe('authoring failures', () => {
     );
   });
 
-  it('rejects a change set that does not validate, shows the mentor why, and goes on', async () => {
-    const job = await setUp();
+  it('gives the author one fix for a change set the harness refuses, and adopts a fix that works', async () => {
+    const job = await setUp({ job: { budget: { ...defaultJob().budget, maxRounds: 1 } } });
     world.mentor.script = (_request, call) =>
       call === 1
+        ? dropThePrompt()
+        : hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice');
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    expect(world.mentor.requests).toHaveLength(2);
+    const [asked, fix] = world.mentor.requests;
+    expect(fix?.system).toBe(asked?.system);
+    expect(fix?.messages.slice(0, -2)).toEqual(asked?.messages);
+    expect(fix?.messages.at(-2)).toMatchObject({
+      role: 'assistant',
+      content: expect.stringContaining('Drop the prompt'),
+    });
+    expect(fix?.messages.at(-1)).toMatchObject({
+      role: 'user',
+      content: expect.stringContaining(REJECTION),
+    });
+    const stored = engine.store.rounds.get(run.id, 1);
+    expect(stored).toMatchObject({
+      rejected: false,
+      reply: { fix: 1 },
+      round: { decision: 'kept', title: 'Add the invoice procedure' },
+    });
+    expect(
+      engine.store.costs.list(run.id).filter((cost) => cost.role === 'mentor' && cost.round === 1),
+    ).toHaveLength(2);
+    expect(existsSync(engine.paths.mentorFile(job.id, run.id, 1))).toBe(true);
+    expect(existsSync(engine.paths.mentorFile(job.id, run.id, 1, 1))).toBe(true);
+    const logs = engine.events.flatMap((e) => (e.type === 'log' ? [e.message] : []));
+    expect(logs).toContain(
+      `Round 1: the runner couldn't use the reply, so the author gets one fix. ${REJECTION}`,
+    );
+  });
+
+  it('rejects a change set whose fix does not validate either, shows the mentor why, and goes on', async () => {
+    const job = await setUp();
+    world.mentor.script = (_request, call) =>
+      call <= 2
         ? dropThePrompt()
         : hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice');
     const run = await engine.controller.start(job.id, 'architect', 7);
@@ -429,7 +467,8 @@ describe('authoring failures', () => {
         error: REJECTION,
       },
     });
-    const second = world.mentor.requests[1]?.messages[0]?.content ?? '';
+    expect(engine.store.rounds.get(run.id, 1)?.reply?.fix).toBe(1);
+    const second = world.mentor.requests[2]?.messages[0]?.content ?? '';
     expect(second).toContain(
       `- Round 1, rejected before dev saw it: Drop the prompt. Files: system.md. Why: ${REJECTION}`,
     );
@@ -473,7 +512,7 @@ describe('authoring failures', () => {
       },
     });
     world.mentor.script = (_request, call) =>
-      call === 1 ? dropThePrompt() : hypothesis('Reword the rules', 'Service desk, reworded.');
+      call <= 2 ? dropThePrompt() : hypothesis('Reword the rules', 'Service desk, reworded.');
     const run = await engine.controller.start(job.id, 'architect', 7);
     await engine.controller.idle();
 

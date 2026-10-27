@@ -194,6 +194,45 @@ describe('restart recovery', () => {
     expect(new Set(attempts.map(evaluationKey)).size).toBe(81);
   });
 
+  it('asks for the fix again when the process died during the fix call, and adopts it', async () => {
+    const crashed = deferred();
+    world.mentor.script = (_request, call) => {
+      if (call === 1) {
+        return {
+          ...hypothesis('Drop the prompt', ''),
+          edits: [{ op: 'delete' as const, path: 'system.md', content: '' }],
+        };
+      }
+      if (call === 2) {
+        crashed.resolve();
+        return new Promise(() => {});
+      }
+      return hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice');
+    };
+    const first = open();
+    const runId = await startArchitect(first);
+    await crashed.promise;
+    first.store.close();
+    engines.splice(engines.indexOf(first), 1);
+
+    const second = open();
+    expect(second.store.rounds.get(runId, 1)?.reply?.fix).toBe(0);
+    second.controller.recover();
+    await second.controller.idle();
+
+    expect(second.errors).toEqual([]);
+    expect(world.mentor.requests.map((request) => request.messages.length)).toEqual([1, 3, 3, 1]);
+    expect(second.store.rounds.get(runId, 1)).toMatchObject({
+      rejected: false,
+      reply: { fix: 1 },
+      round: { decision: 'kept' },
+    });
+    const charged = second.store.costs
+      .list(runId)
+      .filter((cost) => cost.role === 'mentor' && cost.round === 1);
+    expect(charged).toHaveLength(2);
+  });
+
   it('resumes a crash during the second measurement without redoing the first', async () => {
     const [firstSeed, secondSeed] = devSeeds(fanOutSeeds(7).devPanel, 1, 2);
     let candidateSeen = 0;
