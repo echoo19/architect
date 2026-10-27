@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildSystemPrompt } from '../src/agent/prompt';
 import { containsPhrase, matchGuardrail, selectRetrieval } from '../src/agent/retrieval';
+import { todayFor } from '../src/agent/today';
 import { makeHarness, makeJob } from './support/fixtures';
 
 const skills = [
@@ -37,6 +38,15 @@ const example = {
     { role: 'assistant' as const, content: 'ANSWER: {"total_cents": 100}' },
   ],
 };
+
+describe('todayFor', () => {
+  it("uses the job's business date, or the local calendar date when there is none", () => {
+    const evening = new Date(2026, 0, 5, 23, 30);
+    expect(todayFor({ businessDate: '2026-11-03' }, evening)).toBe('2026-11-03');
+    expect(todayFor({}, evening)).toBe('2026-01-05');
+    expect(todayFor({ businessDate: undefined }, new Date(2027, 11, 31, 0, 5))).toBe('2027-12-31');
+  });
+});
 
 describe('containsPhrase', () => {
   it('matches at word starts, ignoring case and extra spaces', () => {

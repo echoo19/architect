@@ -61,6 +61,7 @@ export function makeJob(overrides: Partial<z.input<typeof JobSchema>> = {}): Job
     name: 'Service desk',
     description: 'Handles the office work of a home-services company.',
     createdAt: '2026-10-27T09:00:00.000Z',
+    businessDate: '2026-11-03',
     taskTypes: [
       { id: 'invoice', label: 'Invoices' },
       { id: 'overdue', label: 'Overdue balances' },

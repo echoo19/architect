@@ -20,6 +20,7 @@ import type { ApproveWrite } from '../tools/builtins';
 import { createToolbox } from '../tools/toolbox';
 import { buildSystemPrompt, type AgentMode } from './prompt';
 import { matchGuardrail, selectRetrieval } from './retrieval';
+import { todayFor } from './today';
 
 export interface RunAgentOptions {
   harness: Harness;
@@ -32,8 +33,11 @@ export interface RunAgentOptions {
   /** Earlier chat messages, oldest first. */
   history?: readonly ChatMessage[];
   mode: AgentMode;
-  /** The working date, as YYYY-MM-DD. */
-  today: string;
+  /**
+   * When the run happens. The agent's date is `todayFor(job, now)`: the job's business date if
+   * it has one, otherwise this day. Defaults to the current time.
+   */
+  now?: Date;
   /** Sampler seed for every student call. The runner chooses it, never the harness. */
   seed: number;
   /** Replaces the harness's decoding settings, e.g. for a fixed evaluation setup. */
@@ -58,7 +62,8 @@ type Turn =
  * aborted model call ends the trace with that stop reason; neither throws.
  */
 export async function runAgent(options: RunAgentOptions): Promise<Trace> {
-  const { harness, job, student, store, sandbox, request, mode, today, seed, signal } = options;
+  const { harness, job, student, store, sandbox, request, mode, seed, signal } = options;
+  const today = todayFor(job, options.now ?? new Date());
   const started = performance.now();
   const history = options.history ?? [];
   const steps: TraceStep[] = [];

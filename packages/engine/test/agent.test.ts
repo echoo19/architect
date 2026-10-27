@@ -35,7 +35,6 @@ async function run(
     sandbox: noSandbox,
     request: 'Which invoices are unpaid?',
     mode: 'task',
-    today: '2026-11-03',
     seed: 42,
     onStep: (step) => steps.push(step),
     ...overrides,
@@ -90,6 +89,20 @@ describe('runAgent', () => {
     expect(JSON.parse(followUp?.role === 'tool' ? followUp.content : '{}')).toMatchObject({
       total: 2,
     });
+  });
+
+  it("works as of the job's business date, or the day it runs when the job has none", async () => {
+    const dated = await run([answer('1')], { now: new Date(2030, 0, 15, 12) });
+    expect(dated.student.requests[0]?.messages[0]?.content).toContain(
+      'Today is Tuesday, 2026-11-03.',
+    );
+    const live = await run([answer('1')], {
+      job: makeJob({ businessDate: undefined }),
+      now: new Date(2030, 0, 15, 12),
+    });
+    expect(live.student.requests[0]?.messages[0]?.content).toContain(
+      'Today is Tuesday, 2030-01-15.',
+    );
   });
 
   it('passes the runner seed and the decoding settings on every call', async () => {
