@@ -130,7 +130,7 @@ export function createOllamaStudent(
               output,
               reasoningChunks > 0 ? { reasoningTokens: Math.min(reasoningChunks, output) } : {},
             ),
-            finish: line.done_reason === 'length' ? 'length' : calls > 0 ? 'tool_calls' : 'stop',
+            finish: finishReason(line.done_reason, calls),
           };
           return;
         }
@@ -221,6 +221,14 @@ function parseLine(raw: unknown): OllamaChunkWire {
     throw badResponse(OLLAMA_SERVICE, 'a reply line in an unexpected shape', parsed.error);
   }
   return parsed.data;
+}
+
+function finishReason(
+  doneReason: string | null | undefined,
+  toolCalls: number,
+): 'stop' | 'tool_calls' | 'length' {
+  if (doneReason === 'length') return 'length';
+  return toolCalls > 0 ? 'tool_calls' : 'stop';
 }
 
 /** The model's own context window, which Ollama files under `<architecture>.context_length`. */
