@@ -81,12 +81,6 @@ export function TableBlock({
 
 type Decision = 'approve' | 'deny' | 'always';
 
-const DECISION_OUTCOME: Record<Decision, string> = {
-  approve: 'Allowed',
-  always: 'Always allowed',
-  deny: 'Denied',
-};
-
 function Outcome({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
     <span className="flex items-center gap-1.5 text-sm text-fg-secondary [&_svg]:shrink-0">
@@ -130,7 +124,7 @@ export function ApprovalCard({ block, graduateId, answerable, onOpenPanel }: App
   } else if (block.status === 'approved' || (block.status === 'pending' && answer)) {
     outcome = (
       <Outcome icon={<Check size={14} aria-hidden />}>
-        {answer ? DECISION_OUTCOME[answer] : 'Allowed'}
+        {answer === 'always' ? 'Always allowed' : 'Allowed'}
       </Outcome>
     );
   } else if (!answerable) {
