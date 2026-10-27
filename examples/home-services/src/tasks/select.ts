@@ -1,0 +1,79 @@
+import { compareText } from '../lib/compare';
+import type { Random } from '../lib/random';
+
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
+const DIFFICULTIES: readonly Difficulty[] = ['easy', 'medium', 'hard'];
+/** Where a shortfall in one difficulty is made up, in order. */
+const FALLBACK_ORDER: readonly Difficulty[] = ['medium', 'easy', 'hard'];
+
+export type Quota = Readonly<Record<Difficulty, number>>;
+
+export interface Candidate<T> {
+  value: T;
+  /** The rules a careless attempt gets wrong on this task, e.g. `after_hours`. */
+  traps: string[];
+  /** Picks are spread evenly across kinds, so one kind of task can't crowd out the rest. */
+  kind: string;
+}
+
+/** No traps is easy, one or two is medium, three or more is hard. */
+export function difficultyOf(traps: readonly string[]): Difficulty {
+  if (traps.length === 0) return 'easy';
+  return traps.length <= 2 ? 'medium' : 'hard';
+}
+
+/**
+ * Picks the quota of each difficulty. Within a difficulty, candidates are shuffled and taken
+ * round-robin across kinds. If a difficulty runs short (another seed can make a different
+ * company), the gap is filled from the other difficulties, medium first.
+ */
+export function pickMix<T>(
+  random: Random,
+  candidates: readonly Candidate<T>[],
+  quota: Quota,
+  label: string,
+): Candidate<T>[] {
+  const pools = new Map(
+    DIFFICULTIES.map((difficulty) => [
+      difficulty,
+      random.shuffle(candidates.filter((c) => difficultyOf(c.traps) === difficulty)),
+    ]),
+  );
+  const poolOf = (difficulty: Difficulty) => pools.get(difficulty) ?? [];
+  const picked = DIFFICULTIES.flatMap((difficulty) =>
+    roundRobin(poolOf(difficulty), Math.min(quota[difficulty], poolOf(difficulty).length)),
+  );
+
+  const needed = quota.easy + quota.medium + quota.hard;
+  for (const difficulty of FALLBACK_ORDER) {
+    const rest = poolOf(difficulty).filter((candidate) => !picked.includes(candidate));
+    picked.push(...roundRobin(rest, Math.min(rest.length, needed - picked.length)));
+  }
+  if (picked.length < needed) {
+    throw new Error(`${label}: ${candidates.length} candidates, ${needed} needed`);
+  }
+  return picked;
+}
+
+function roundRobin<T>(pool: readonly Candidate<T>[], count: number): Candidate<T>[] {
+  const byKind = new Map<string, Candidate<T>[]>();
+  for (const candidate of pool) {
+    byKind.set(candidate.kind, [...(byKind.get(candidate.kind) ?? []), candidate]);
+  }
+  const queues = [...byKind.entries()]
+    .sort(([a], [b]) => compareText(a, b))
+    .map(([, queue]) => queue);
+  const picked: Candidate<T>[] = [];
+  while (picked.length < count) {
+    for (const queue of queues) {
+      const next = queue.shift();
+      if (next !== undefined && picked.length < count) picked.push(next);
+    }
+  }
+  return picked;
+}
+
+export function taskId(type: string, index: number): string {
+  return `${type}-${String(index + 1).padStart(3, '0')}`;
+}

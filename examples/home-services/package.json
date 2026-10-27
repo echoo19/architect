@@ -6,6 +6,10 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "generate": "tsx src/cli/generate.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
   "dependencies": {
     "@architect/shared": "workspace:*"
   }

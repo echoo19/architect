@@ -1,0 +1,40 @@
+part_id,name,unit_cost_cents,markup_pct,taxable
+P-101,Faucet cartridge,1235,35,yes
+P-102,Kitchen faucet,14850,30,yes
+P-103,Braided supply line,895,45,yes
+P-104,Wax ring,389,50,yes
+P-105,Toilet fill valve,1465,40,yes
+P-106,Toilet flapper,645,50,yes
+P-107,40 gallon gas water heater,61875,25,yes
+P-108,Expansion tank,4875,35,yes
+P-109,Gas flex connector,2215,40,yes
+P-110,Plumbing permit,7500,0,no
+P-111,Haul-away and disposal,4500,0,no
+P-112,Copper pipe per foot,485,40,yes
+P-113,Copper fitting,315,50,yes
+P-114,Quarter-turn shutoff valve,1725,40,yes
+P-115,Sump pump,18990,30,yes
+P-116,Check valve,2645,35,yes
+P-117,Backflow test filing,3500,0,no
+P-118,Furnace filter,1450,50,yes
+P-119,Hot surface igniter,3725,40,yes
+P-120,Flame sensor,1995,45,yes
+P-121,Furnace control board,21450,30,yes
+P-122,Smart thermostat,13999,25,yes
+P-123,Pressure relief valve,3185,40,yes
+P-124,Run capacitor,2450,45,yes
+P-125,Contactor,2975,40,yes
+P-126,Refrigerant per pound,2825,35,yes
+P-127,Refrigerant recovery fee,2500,0,no
+P-128,20 amp breaker,1145,40,yes
+P-129,GFCI outlet,1875,40,yes
+P-130,Standard outlet,365,50,yes
+P-131,Wire connector pack,495,50,yes
+P-132,Electrical box,645,45,yes
+P-133,200 amp panel,32900,30,yes
+P-134,Electrical permit,9500,0,no
+P-135,50 amp breaker,3290,40,yes
+P-136,6/3 copper wire per foot,415,35,yes
+P-137,50 amp outlet,2185,40,yes
+P-138,Garbage disposal,11250,30,yes
+P-139,Ceiling fan bracket,1590,40,yes
