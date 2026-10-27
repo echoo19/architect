@@ -296,10 +296,10 @@ describe('end-state checks', () => {
     expect(new Set(results.map((result) => JSON.stringify(result))).size).toBe(1);
   });
 
-  it('fails attempts the validator cannot judge, including any use of the clock', async () => {
+  it('fails attempts when the validator throws, including on any use of the clock', async () => {
     const store = await scratch();
     expect((await checker.check(endState('throws'), outcome(), store)).reason).toMatch(
-      /^The checker could not judge the end state: TypeError: .*\(checker\.js:\d+/,
+      /^The validator throws failed on this end state: TypeError: .*\(checker\.js:\d+/,
     );
     expect((await checker.check(endState('uses_clock'), outcome(), store)).reason).toMatch(
       /no clock/,

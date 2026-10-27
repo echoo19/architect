@@ -115,7 +115,7 @@ async function checkEndState(
       `The checker module could not run the validator ${expected.validator}: ${message}`,
     );
   }
-  return fail(`The checker could not judge the end state: ${message}`);
+  return fail(`The validator ${expected.validator} failed on this end state: ${message}`);
 }
 
 async function loadCheckerSource(job: Job, jobDir: string): Promise<string> {
