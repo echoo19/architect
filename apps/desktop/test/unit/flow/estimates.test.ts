@@ -8,11 +8,11 @@ import {
   estimateTime,
   formatAbout,
   formatAboutUsd,
-  hostedAdvantage,
   mentorPresetOf,
   mentorUsdFor,
+  practiceUsd,
   roundsLine,
-  totalLine,
+  runSeconds,
 } from '../../../src/renderer/src/flow/define/estimates';
 import { makeJob } from './factories';
 
@@ -95,9 +95,9 @@ describe('what the time cap allows', () => {
     expect(roundsLine(job, estimateTime(job, 'hosted'))).toBe(
       '3 to 7 of 12 rounds fit in 3 hours of training',
     );
-    expect(totalLine(estimateTime(job, 'hosted'))).toBe(
-      'About 6 hours in all, with the final test',
-    );
+    expect(aboutSpan(runSeconds(job, estimateTime(job, 'hosted'), false))).toBe('About 6 hours');
+    // Three more final tests of 2.5 hours, and self-correction's 3 hours of training.
+    expect(aboutSpan(runSeconds(job, estimateTime(job, 'hosted'), true))).toBe('About 16 hours');
     const roomy = makeJob({ budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 2000 } });
     expect(roundsLine(roomy, estimateTime(roomy, 'local'))).toBe(
       'All 4 rounds fit, in about 17 to 30 hours of training',
@@ -107,19 +107,13 @@ describe('what the time cap allows', () => {
       'At most 1 of 12 rounds fits in 6 hours of training',
     );
   });
+});
 
-  it('says plainly when a hosted copy is faster', () => {
-    const job = makeJob();
-    const local = estimateTime(job, 'local');
-    const hosted = estimateTime(job, 'hosted');
-    expect(hostedAdvantage(local, hosted)).toBe(
-      'A hosted copy fits 3 to 7 rounds in the time this computer fits none.',
-    );
-    const roomy = makeJob({ budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 2000 } });
-    expect(hostedAdvantage(estimateTime(roomy, 'local'), estimateTime(roomy, 'hosted'))).toBe(
-      'A hosted copy finishes in about 4 to 6 hours, against about 20 to 33 hours here.',
-    );
-    expect(hostedAdvantage(hosted, hosted)).toBeNull();
+describe('practiceUsd', () => {
+  it('prices the practice tasks that fit in the training time at the host’s rate', () => {
+    // 3 hours at 15 seconds a task is 720 tasks of 9,000 tokens in and 400 out.
+    const pricing = { inputPerM: 0.35, cachedInputPerM: 0.04, outputPerM: 1.5 };
+    expect(practiceUsd(pricing, estimateTime(makeJob(), 'hosted'))).toBeCloseTo(720 * 0.00375, 6);
   });
 });
 

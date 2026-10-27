@@ -104,22 +104,27 @@ export function roundsLine(job: Job, estimate: TimeEstimate): string {
   return `${count.charAt(0).toUpperCase()}${count.slice(1)} of ${roundCount(maxRounds)} ${verb} in ${cap} of training`;
 }
 
-/** The whole wait at a place, from Start training to the report card. */
-export function totalLine(estimate: TimeEstimate): string {
-  return `${aboutSpan(estimate.seconds)} in all, with the final test`;
+/** Rough size of one task for the student: the request, its tool results and an answer. */
+export const STUDENT_TOKENS_PER_TASK = { inputTokens: 9_000, outputTokens: 400 } as const;
+
+/** What practice on a hosted copy usually costs at its price, billed by the host. */
+export function practiceUsd(pricing: TokenPricing, estimate: TimeEstimate): number {
+  const tasks = estimate.trainingSeconds.most / SECONDS_PER_TASK.hosted;
+  return tasks * costUsd(pricing, STUDENT_TOKENS_PER_TASK);
 }
 
-/** Says plainly when a hosted copy is the faster place to train, or null when it isn't. */
-export function hostedAdvantage(local: TimeEstimate, hosted: TimeEstimate): string | null {
-  if (hosted.rounds.most > local.rounds.most) {
-    const { fewest, most } = hosted.rounds;
-    const noun = fewest === most && most === 1 ? 'round' : 'rounds';
-    return `A hosted copy fits ${countRange(hosted.rounds)} ${noun} in the time this computer fits ${countRange(local.rounds)}.`;
-  }
-  if (hosted.seconds.most < local.seconds.most) {
-    return `A hosted copy finishes in ${aboutSpan(hosted.seconds).toLowerCase()}, against ${aboutSpan(local.seconds).toLowerCase()} here.`;
-  }
-  return null;
+/** The three simpler versions: a final test each, and self-correction's own training. */
+export function comparisonSeconds(job: Job, estimate: TimeEstimate): number {
+  return 3 * testSeconds(job) + estimate.trainingSeconds.most;
+}
+
+/** The whole run: training, the final test and, when asked for, the simpler versions. */
+export function runSeconds(job: Job, estimate: TimeEstimate, withComparison: boolean): Span {
+  const after = testSeconds(job) + (withComparison ? comparisonSeconds(job, estimate) : 0);
+  return {
+    least: estimate.trainingSeconds.least + after,
+    most: estimate.trainingSeconds.most + after,
+  };
 }
 
 /** "About 40 minutes", "About 3 hours", "About 2 days". */
