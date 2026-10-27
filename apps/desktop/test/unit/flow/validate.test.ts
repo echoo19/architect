@@ -65,6 +65,16 @@ describe('validateJob', () => {
     );
   });
 
+  it('keeps the dev repeats between one and three', () => {
+    const job = makeJob();
+    for (const devRepeats of [0, 4, 1.5]) {
+      const issues = validateJob({ ...job, evaluation: { ...job.evaluation, devRepeats } }, null);
+      expect(issues['evaluation.devRepeats']).toBe('Use a whole number from 1 to 3.');
+    }
+    const three = validateJob({ ...job, evaluation: { ...job.evaluation, devRepeats: 3 } }, null);
+    expect(three).toEqual({});
+  });
+
   it('still reports contract problems the field checks do not cover', () => {
     const job = makeJob();
     const issues = validateJob({ ...job, name: '' }, null);

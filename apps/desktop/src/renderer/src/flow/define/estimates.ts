@@ -22,12 +22,14 @@ export interface TimeEstimate {
 }
 
 /**
- * How long a run takes from Start to report card: every round attempts a practice batch and
- * checks the change on the dev split, up to the time cap; then the locked test runs, always on
- * this computer (decision 009), whatever trained the harness.
+ * How long a run takes from Start to report card: every round attempts a practice batch, then
+ * runs the dev split for the change and again for the current harness, once per repeat, up to
+ * the time cap; then the locked test runs, always on this computer (decision 009), whatever
+ * trained the harness.
  */
 export function estimateTime(job: Job, place: TrainPlace): TimeEstimate {
-  const perRound = (job.evaluation.trainBatch + job.splits.dev) * SECONDS_PER_TASK[place];
+  const checks = 2 * job.splits.dev * job.evaluation.devRepeats;
+  const perRound = (job.evaluation.trainBatch + checks) * SECONDS_PER_TASK[place];
   const capSeconds = job.budget.maxWallMinutes * 60;
   const trainingSeconds = Math.min(job.budget.maxRounds * perRound, capSeconds);
   const testSeconds = job.splits.test * SECONDS_PER_TASK.local;

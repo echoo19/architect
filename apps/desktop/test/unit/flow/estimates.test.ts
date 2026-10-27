@@ -11,7 +11,8 @@ import { makeJob } from './factories';
 
 describe('estimateTime', () => {
   it('times every round plus a final test that always runs on this computer', () => {
-    // 4 rounds of (6 practice + 10 check) tasks, then 20 test tasks, with a generous time cap.
+    // 4 rounds of 6 practice tasks and the 10 check tasks twice (the change and the current
+    // harness), then 20 test tasks, with a generous time cap.
     const job = makeJob({
       budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 10_000 },
       splits: { seed: 1, calibration: 0, train: 30, dev: 10, test: 20 },
@@ -23,19 +24,35 @@ describe('estimateTime', () => {
         patience: 3,
       },
     });
-    expect(estimateTime(job, 'local')).toEqual({ seconds: (64 + 20) * 150, rounds: 4 });
-    expect(estimateTime(job, 'hosted')).toEqual({ seconds: 64 * 15 + 20 * 150, rounds: 4 });
+    expect(estimateTime(job, 'local')).toEqual({ seconds: (104 + 20) * 150, rounds: 4 });
+    expect(estimateTime(job, 'hosted')).toEqual({ seconds: 104 * 15 + 20 * 150, rounds: 4 });
+  });
+
+  it('runs the check tasks once per repeat', () => {
+    const job = makeJob({
+      budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 10_000 },
+      splits: { seed: 1, calibration: 0, train: 30, dev: 10, test: 20 },
+      evaluation: {
+        trainBatch: 6,
+        minDevGain: 2,
+        maxTypeRegression: 1,
+        devRepeats: 2,
+        patience: 3,
+      },
+    });
+    expect(estimateTime(job, 'local')).toEqual({ seconds: (4 * 46 + 20) * 150, rounds: 4 });
   });
 
   it('stops training at the time cap and says how many rounds fit', () => {
-    // The sample job: 12 rounds of 52 tasks would take 26 hours locally; the cap is 3 hours.
+    // The sample job: a round is 12 practice and 80 check tasks, 3.8 hours locally against a
+    // 3-hour cap; a hosted copy fits 7 of the 12 rounds.
     const job = makeJob();
     const local = estimateTime(job, 'local');
     expect(local.seconds).toBe(180 * 60 + 60 * 150);
-    expect(local.rounds).toBe(1);
+    expect(local.rounds).toBe(0);
     const hosted = estimateTime(job, 'hosted');
-    expect(hosted.seconds).toBe(12 * 52 * 15 + 60 * 150);
-    expect(hosted.rounds).toBe(12);
+    expect(hosted.seconds).toBe(180 * 60 + 60 * 150);
+    expect(hosted.rounds).toBe(7);
   });
 });
 
