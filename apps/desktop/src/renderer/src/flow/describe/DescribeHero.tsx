@@ -64,8 +64,8 @@ export function DescribeHero() {
           What should your agent do?
         </Heading>
         <p className="m-0 text-lg text-fg-secondary text-pretty">
-          Describe the work in your own words and attach the files it uses. {mentor} will ask a few
-          questions, then draft the job for you to review.
+          Describe the work in your own words and attach the files it uses. {mentor} reads them,
+          asks a few questions, then drafts the job for you to review.
         </p>
       </div>
       <div className="flex w-full max-w-[680px] flex-col gap-3">
@@ -83,6 +83,10 @@ export function DescribeHero() {
             </IconButton>
           }
         />
+        <p className="m-0 text-sm text-fg-muted text-pretty">
+          Attach the files it works from (CSV, Excel, text) and, if you have them, example tasks
+          with their answers (CSV or JSONL).
+        </p>
         {files.length > 0 && (
           <ul aria-label="Attached files" className="m-0 flex list-none flex-wrap gap-2 p-0">
             {files.map((path) => (
@@ -105,7 +109,7 @@ export function DescribeHero() {
       >
         {creatingSample && <Spinner size={13} />}
         <span>
-          Or start from the sample:{' '}
+          No files handy? Open the sample job instead:{' '}
           <span className="text-fg-secondary underline decoration-line-strong underline-offset-4">
             a service desk for a home-services office
           </span>
