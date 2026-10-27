@@ -84,8 +84,8 @@ export function DescribeHero() {
           }
         />
         <p className="m-0 text-sm text-fg-muted text-pretty">
-          Attach the files it works from (CSV, Excel, text) and, if you have them, example tasks
-          with their answers (CSV or JSONL).
+          Attach the files it works from (CSV, Excel, text) and example tasks with their answers
+          (CSV or JSONL).
         </p>
         {files.length > 0 && (
           <ul aria-label="Attached files" className="m-0 flex list-none flex-wrap gap-2 p-0">
@@ -100,21 +100,24 @@ export function DescribeHero() {
           </ul>
         )}
       </div>
-      <button
-        type="button"
-        onClick={() => void startFromSample()}
-        disabled={creatingSample}
-        aria-busy={creatingSample || undefined}
-        className="-mt-2 inline-flex items-center gap-2 rounded-xs text-fg-muted transition-colors duration-150 hover:text-fg-secondary disabled:pointer-events-none"
-      >
-        {creatingSample && <Spinner size={13} />}
-        <span>
-          No files handy? Open the sample job instead:{' '}
-          <span className="text-fg-secondary underline decoration-line-strong underline-offset-4">
-            a service desk for a home-services office
+      {/* Only offered before anything is written or attached, as a way to start, not a detour. */}
+      {!text.trim() && files.length === 0 && (
+        <button
+          type="button"
+          onClick={() => void startFromSample()}
+          disabled={creatingSample}
+          aria-busy={creatingSample || undefined}
+          className="-mt-2 inline-flex items-center gap-2 rounded-xs text-fg-muted transition-colors duration-150 hover:text-fg-secondary disabled:pointer-events-none"
+        >
+          {creatingSample && <Spinner size={13} />}
+          <span>
+            No files handy? Open the sample job instead:{' '}
+            <span className="text-fg-secondary underline decoration-line-strong underline-offset-4">
+              a service desk for a home-services office
+            </span>
           </span>
-        </span>
-      </button>
+        </button>
+      )}
     </div>
   );
 }

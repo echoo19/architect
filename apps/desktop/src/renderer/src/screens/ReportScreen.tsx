@@ -31,7 +31,7 @@ export function ReportScreen({ runId }: { runId: string }) {
   return (
     <FlowShell
       title={report.data?.name ?? 'Report'}
-      step="Graduate"
+      step="Report"
       footer={
         report.status === 'success' && (
           <div className="mx-auto flex max-w-[860px] flex-wrap justify-end gap-2">
