@@ -6,7 +6,11 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
   "dependencies": {
-    "@architect/shared": "workspace:*"
+    "@architect/shared": "workspace:*",
+    "zod": "^4.6.7"
   }
 }
