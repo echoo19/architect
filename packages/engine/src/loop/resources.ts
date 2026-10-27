@@ -100,8 +100,9 @@ export class SessionResources {
   }
 
   /**
-   * Closes the gate and has the runtime release the mentor. The proof it returns is what the
-   * vault asks for before it opens the locked test.
+   * Releases the mentor: closes the gate, so no mentor call can start, drops the session's
+   * adapter, and asks the runtime for the proof the vault requires before it opens the locked
+   * test. Nothing is disposed; once dropped, the adapter is unreachable.
    */
   releaseMentor(): Promise<MentorReleased> {
     this.released ??= (async () => {

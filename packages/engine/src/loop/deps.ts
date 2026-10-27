@@ -106,6 +106,7 @@ export interface RuntimeDeps {
   createSandbox(): Awaitable<ToolSandbox>;
   /** The checker runs end-state validators in the sandbox it is given. */
   createChecker(job: Job, jobDir: string, sandbox: ToolSandbox): Awaitable<TaskChecker>;
+  /** Issues the release proof. The loop calls it after closing its gate and dropping the adapter. */
   releaseMentor(session: MentorSession): Promise<MentorReleased>;
 }
 

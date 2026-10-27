@@ -59,7 +59,7 @@ GPT-6 Astra reviewed the first draft (five task types) and recommended cutting t
 ## 009. Where training and the locked test run
 
 **Context.** On this machine the local student needs 2 to 3 minutes per task (measured 2026-10-27), so a full comparison (four methods, three seeds) can't be optimized locally in the time available. A hosted copy of Glimmer is much faster.
-**Decision.** Training rounds and dev evaluations may run on a hosted copy of the student. Every graduate is frozen before any test runs, and test results never trigger another round. The graduate the app ships, and one predeclared seed of every method, are locked-tested on the local student with the mentor disposed. Hosted locked tests cover every seed as supplementary results. GPT-6 Astra reviewed this and preferred local tests for every seed; that stays the goal if GPU time allows.
+**Decision.** Training rounds and dev evaluations may run on a hosted copy of the student. Every graduate is frozen before any test runs, and test results never trigger another round. The graduate the app ships, and one predeclared seed of every method, are locked-tested on the local student after the mentor is released: its gate closed, so no call can start, and its adapter dropped. Hosted locked tests cover every seed as supplementary results. GPT-6 Astra reviewed this and preferred local tests for every seed; that stays the goal if GPU time allows.
 **Consequences.** The report card of a shipped graduate describes the agent the user actually runs. The README states, for every number, the provider, precision, runtime and seed it came from, and says plainly that optimization happened on a hosted copy.
 
 ## 010. Job setup follows the design's conversation, with every field editable
