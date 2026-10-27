@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
-import { EMPTY_ENGINE, SAMPLE, SAMPLE_ENGINE, stubEngine } from './fixtures';
+import { EMPTY_ENGINE, SAMPLE, SAMPLE_ENGINE, stubEngine, stubEngineFailure } from './fixtures';
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const SIZE = { width: 1440, height: 900 };
@@ -96,13 +96,16 @@ for (const theme of THEMES) {
 test('captures the empty workspace and a failed action', async () => {
   const page = launched.page;
   await stubEngine(launched.app, EMPTY_ENGINE);
+  await stubEngineFailure(launched.app, {
+    'jobs:createSample': "The engine isn't running, so the sample job can't be created.",
+  });
   for (const theme of THEMES) {
     await applySettings(page, { theme });
     await goTo(page, '/');
     await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
     await capture(page, `workspace-empty-${theme}.png`);
 
-    // Creating the sample job needs the engine, so it fails and says why in a toast.
+    // With creating the sample job made to fail, the app says why in a toast.
     await page.getByRole('button', { name: 'Try the sample job' }).click();
     // Exact, so the toast's screen-reader announcement doesn't also match.
     await expect(page.getByText("Couldn't create the sample job", { exact: true })).toBeVisible();

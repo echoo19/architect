@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { stubEngine, stubEngineFailure } from './fixtures';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -90,14 +91,9 @@ test('reads and persists settings over the bridge', async () => {
   expect(invalid).toContain('Invalid arguments for settings.update');
 });
 
-test('rejects calls to domains the engine has not registered', async () => {
-  const message = await launched.page.evaluate(() =>
-    window.architect.graduates
-      .list()
-      .then(() => 'resolved')
-      .catch((error: Error) => error.message),
-  );
-  expect(message).toContain("The engine isn't connected yet, so graduates.list can't run.");
+test('reaches the real engine, which has no agents on a fresh profile', async () => {
+  const graduates = await launched.page.evaluate(() => window.architect.graduates.list());
+  expect(graduates).toEqual([]);
 });
 
 test('switches the theme from settings', async () => {
@@ -108,9 +104,16 @@ test('switches the theme from settings', async () => {
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
 
-test('finishes setup and shows an error state with a retry when the engine is missing', async () => {
+test('finishes setup and shows an error state with a retry when agents fail to load', async () => {
   const page = launched.page;
-  // Without an engine there is no model or mentor to set up, so both steps are skipped.
+  await stubEngineFailure(launched.app, {
+    'graduates:list': "The engine isn't connected yet, so graduates.list can't run.",
+  });
+  // The real Ollama on the machine running the tests would change the first step.
+  await stubEngine(launched.app, { 'ollama:status': { running: false, models: [] } });
+  await page.reload();
+  await settle(page);
+  // Both setup steps can be skipped; the model and the mentor can be set up later.
   await page.getByRole('button', { name: 'Skip for now' }).click();
   await expect(page.getByRole('heading', { name: 'Choose a mentor' })).toBeVisible();
   await page.getByRole('button', { name: 'Skip for now' }).click();

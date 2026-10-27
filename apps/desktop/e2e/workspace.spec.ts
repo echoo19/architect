@@ -198,7 +198,7 @@ for (const theme of THEMES) {
     const invoices = page.getByRole('group', { name: 'Write to invoices.csv' });
     const booking = page.getByRole('group', { name: 'Write to bookings.csv' });
 
-    await invoices.getByRole('button', { name: /Update invoices\.csv/ }).click();
+    await invoices.getByRole('button', { name: /Add to invoices\.csv/ }).click();
     const preview = invoices.getByRole('table', { name: 'Rows this change writes' });
     await expect(preview.getByRole('row')).toHaveCount(3);
     await expect(preview).toContainText('Added');

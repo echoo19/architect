@@ -285,6 +285,19 @@ export const SAMPLE_ENGINE: EngineReplies = {
   'reports:get': report,
 };
 
+/** Makes engine channels in the main process fail with the given message, as an outage would. */
+export async function stubEngineFailure(
+  app: ElectronApplication,
+  failures: Record<string, string>,
+): Promise<void> {
+  await app.evaluate(({ ipcMain }, entries) => {
+    for (const [channel, message] of Object.entries(entries)) {
+      ipcMain.removeHandler(channel);
+      ipcMain.handle(channel, () => ({ ok: false, error: { message } }));
+    }
+  }, failures);
+}
+
 /** Answers engine channels in the main process with fixed replies. */
 export async function stubEngine(app: ElectronApplication, replies: EngineReplies): Promise<void> {
   await app.evaluate(({ ipcMain }, entries) => {
