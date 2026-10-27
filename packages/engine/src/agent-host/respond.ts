@@ -1,0 +1,103 @@
+import type { ChatMessage, Harness, Trace, TraceStep } from '@architect/shared';
+import { runAgent } from '../agent/loop';
+import type { Sandbox } from '../sandbox/types';
+import type { ApproveWrite } from '../tools/builtins';
+import type { GraduateSession } from './graduate';
+import type { ReplyOutcome } from './messages';
+import type { LiveReply } from './reply';
+import { finishedStep, ruleSkillStep, startedStep, type NewStep } from './steps';
+
+export interface ReplyRequest {
+  graduate: GraduateSession;
+  sandbox: Sandbox;
+  reply: LiveReply;
+  /** The user's message. */
+  request: string;
+  history: ChatMessage[];
+  /** When the reply starts; the agent works as of its job's business date, or this day. */
+  now: Date;
+  /** A fresh sampler seed, so asking again can give a different answer. */
+  seed: number;
+  approveWrite: ApproveWrite;
+  signal: AbortSignal;
+}
+
+/**
+ * Runs the graduate on one message in chat mode and leaves its reply settled, whatever happens.
+ * A refusal comes back from the runtime without the student being called. An error that isn't
+ * the model's or a tool's is shown on the reply and then thrown for the host to report.
+ */
+export async function respond(input: ReplyRequest): Promise<void> {
+  const { graduate, reply } = input;
+  let trace: Trace;
+  try {
+    trace = await runAgent({
+      harness: graduate.harness,
+      job: graduate.job,
+      student: graduate.student,
+      store: graduate.data,
+      sandbox: input.sandbox,
+      request: input.request,
+      history: input.history,
+      mode: 'chat',
+      now: input.now,
+      seed: input.seed,
+      onStep: (step) => record(reply, graduate.harness, step),
+      onText: (delta) => reply.appendText(delta),
+      approveWrite: input.approveWrite,
+      signal: input.signal,
+    });
+  } catch (error) {
+    reply.finish({
+      status: 'error',
+      error: `It stopped on an unexpected problem: ${messageOf(error)}`,
+    });
+    throw error;
+  }
+  if (trace.stopReason === 'max_steps') {
+    const steps = graduate.harness.decoding.maxSteps;
+    reply.addBlock({ kind: 'note', text: `Stopped after ${steps} steps without an answer.` });
+  }
+  reply.finish(outcomeOf(trace));
+}
+
+function record(reply: LiveReply, harness: Harness, step: TraceStep): void {
+  switch (step.kind) {
+    case 'model':
+      reply.endTurn();
+      for (const call of step.toolCalls) reply.addStep(startedStep(call, harness), call.id);
+      return;
+    case 'tool': {
+      const finish = (started: NewStep) => finishedStep(started, step);
+      if (!reply.finishCall(step.callId, finish)) {
+        const call = { id: step.callId, name: step.name, arguments: step.arguments };
+        reply.addStep(finish(startedStep(call, harness)));
+      }
+      return;
+    }
+    case 'skill':
+      // A skill the model asked for already shows as its load_skill call.
+      if (step.via === 'rule') reply.addStep(ruleSkillStep(step.slug, harness));
+      return;
+    case 'refusal':
+      reply.addBlock({ kind: 'refusal', taskType: step.taskType, reason: step.reason });
+      return;
+  }
+}
+
+function outcomeOf(trace: Trace): ReplyOutcome {
+  switch (trace.stopReason) {
+    case 'answer':
+    case 'refused':
+    case 'max_steps':
+      return { status: 'done' };
+    case 'aborted':
+      return { status: 'stopped' };
+    case 'error':
+      return { status: 'error', error: trace.error ?? 'The model stopped with an error.' };
+  }
+}
+
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
