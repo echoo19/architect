@@ -39,6 +39,7 @@ import {
   openEngineStore,
   systemClock,
 } from '../src';
+import { seededRandom } from '../src/loop/seeds';
 
 const SECRET_ENV: Record<string, string> = {
   meta: 'META_API_TOKEN',
@@ -334,8 +335,87 @@ async function writeSummary(options: Options): Promise<void> {
       );
     }
   }
-  await writeFile(join(options.out, 'summary.md'), `${rows.join('\n')}\n`);
+  const paired = await pairedComparison(options);
+  await writeFile(
+    join(options.out, 'summary.md'),
+    `${[rows.join('\n'), ...paired].join('\n\n')}\n`,
+  );
   log(`Summary written to ${join(options.out, 'summary.md')}`);
+}
+
+/** A finished run's locked test, task by task, read from its data folder. */
+async function testOutcomes(options: Options, method: Method, seed: number) {
+  const file = resultFile(options, method, seed);
+  if (!existsSync(file)) return null;
+  const { detail } = JSON.parse(await readFile(file, 'utf8')) as RunResult;
+  if (detail.run.status !== 'finished') return null;
+  const store = openEngineStore(
+    new DataPaths(join(options.out, 'runs', `${method}-s${seed}`)).database,
+  );
+  try {
+    const attempts = store.attempts.list({ runId: detail.run.id, split: 'test', target: 'hosted' });
+    return new Map(attempts.map((attempt) => [attempt.taskId, attempt.check.pass]));
+  } finally {
+    store.close();
+  }
+}
+
+const BOOTSTRAP_DRAWS = 10_000;
+
+/**
+ * Architect against each other method on the same locked test tasks, seed by seed: tasks only
+ * Architect passed, tasks only the other passed, and the difference in pass rate with a 95%
+ * interval from resampling tasks (each draw keeps a task's results across seeds together).
+ */
+async function pairedComparison(options: Options): Promise<string[]> {
+  if (!options.methods.includes('architect')) return [];
+  const outcomes = new Map<string, Map<string, boolean>>();
+  for (const method of options.methods) {
+    for (const seed of options.seeds) {
+      const result = await testOutcomes(options, method, seed);
+      if (result) outcomes.set(`${method}-s${seed}`, result);
+    }
+  }
+  const rows: string[] = [
+    '| Architect vs | Seeds | Only Architect passed | Only the other passed | Difference | 95% interval |',
+    '| --- | --- | --- | --- | --- | --- |',
+  ];
+  const random = seededRandom(20261104);
+  for (const other of options.methods.filter((method) => method !== 'architect')) {
+    const seeds = options.seeds.filter(
+      (seed) => outcomes.has(`architect-s${seed}`) && outcomes.has(`${other}-s${seed}`),
+    );
+    if (seeds.length === 0) continue;
+    // Per task, Architect's passes minus the other's, summed over the seeds both finished.
+    const differences = new Map<string, number>();
+    let onlyArchitect = 0;
+    let onlyOther = 0;
+    for (const seed of seeds) {
+      const mine = outcomes.get(`architect-s${seed}`) ?? new Map<string, boolean>();
+      const theirs = outcomes.get(`${other}-s${seed}`) ?? new Map<string, boolean>();
+      for (const [task, pass] of mine) {
+        const otherPass = theirs.get(task) ?? false;
+        if (pass && !otherPass) onlyArchitect += 1;
+        if (!pass && otherPass) onlyOther += 1;
+        differences.set(task, (differences.get(task) ?? 0) + Number(pass) - Number(otherPass));
+      }
+    }
+    const values = [...differences.values()];
+    const attempts = values.length * seeds.length;
+    const mean = (sample: readonly number[]) =>
+      sample.reduce((sum, value) => sum + value, 0) / (sample.length * seeds.length);
+    const draws = Array.from({ length: BOOTSTRAP_DRAWS }, () =>
+      mean(values.map(() => values[Math.floor(random() * values.length)] ?? 0)),
+    ).sort((a, b) => a - b);
+    const points = (fraction: number) => `${(100 * fraction).toFixed(1)}`;
+    const low = draws[Math.floor(0.025 * BOOTSTRAP_DRAWS)] ?? 0;
+    const high = draws[Math.floor(0.975 * BOOTSTRAP_DRAWS)] ?? 0;
+    rows.push(
+      `| ${METHOD_LABELS[other]} | ${seeds.join(', ')} | ${onlyArchitect} | ${onlyOther} | ` +
+        `${points((onlyArchitect - onlyOther) / attempts)} points | ${points(low)} to ${points(high)} |`,
+    );
+  }
+  return ['## Paired on the locked test', rows.join('\n')];
 }
 
 /** Runs the tasks with at most `limit` in flight. */
