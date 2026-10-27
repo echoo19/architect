@@ -184,7 +184,7 @@ function TrainBoard({
   } else if ((run.status === 'running' || run.status === 'paused') && hasKeptChange(live.rounds)) {
     footer = {
       label: 'Skip to graduation',
-      note: 'Ends training now, keeps the best version and runs the final test',
+      note: 'Ends training now. Like Stop, it keeps the best version and runs the final test.',
       onClick: onSkip,
     };
   }
@@ -218,7 +218,7 @@ function TrainBoard({
       </div>
       <div className="flex flex-wrap gap-5">
         <TaskSuccess live={live} />
-        <Resources live={live} mentor={names.mentor} />
+        <Resources live={live} mentor={names.mentor} studentPlace={studentPlace(live)} />
       </div>
       <div className="flex flex-wrap gap-5">
         <Examples

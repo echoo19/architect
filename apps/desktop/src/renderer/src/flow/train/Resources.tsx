@@ -10,7 +10,16 @@ function share(used: number, max: number): number {
 }
 
 /** Time, money and rounds used against the job's caps, and how the student is doing on them. */
-export function Resources({ live, mentor }: { live: LiveRun; mentor: string }) {
+export function Resources({
+  live,
+  mentor,
+  studentPlace,
+}: {
+  live: LiveRun;
+  mentor: string;
+  /** Where the student answers right now, which sets how long a task takes. */
+  studentPlace: string;
+}) {
   const { minutes, usd, rounds } = budgetMeters(live);
   const speed = medianLatencyMs(live.attempts);
   const changes = changeCounts(live.rounds);
@@ -38,7 +47,10 @@ export function Resources({ live, mentor }: { live: LiveRun; mentor: string }) {
         max={String(rounds.max)}
         fraction={share(rounds.used, rounds.max)}
       />
-      <Fact label="Time per task" className="border-t border-line-row-strong pt-[18px]">
+      <Fact
+        label={`Time per task, ${studentPlace}`}
+        className="border-t border-line-row-strong pt-[18px]"
+      >
         {speed === null ? (
           <span className="text-fg-muted">–</span>
         ) : (

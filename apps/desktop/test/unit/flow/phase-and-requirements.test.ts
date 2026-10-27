@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ReportCard } from '@architect/shared';
 import { missedRequirements } from '../../../src/renderer/src/flow/report/requirements';
-import { phaseView } from '../../../src/renderer/src/flow/train/phase';
+import { motionCaption, phaseView } from '../../../src/renderer/src/flow/train/phase';
 import { makeRun } from './factories';
 
 const NAMES = { mentor: 'Spark', student: 'Glimmer' };
@@ -49,6 +49,22 @@ describe('phaseView', () => {
         stage: null,
       });
     }
+  });
+});
+
+describe('motionCaption', () => {
+  it('says what the moving marks stand for, and nothing once the run is still', () => {
+    expect(motionCaption('practising', NAMES)).toBe(
+      'Each mark is a task. Right answers cross the line; wrong ones drop out for Spark to study.',
+    );
+    expect(motionCaption('returning', NAMES)).toBe(
+      'The wrong answers go back to Spark, which writes one change to fix them.',
+    );
+    expect(motionCaption('testing', NAMES)).toBe(
+      'Each mark is a final-test task, one Glimmer has never seen.',
+    );
+    expect(motionCaption('still', NAMES)).toBeNull();
+    expect(motionCaption('idle', NAMES)).toBeNull();
   });
 });
 

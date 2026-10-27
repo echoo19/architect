@@ -25,7 +25,7 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
         <span className="text-hero font-medium leading-none tracking-tightest tabular-nums">
           {score ? formatRate(score) : '–'}
         </span>
-        <span className="text-fg-secondary">of check tasks right</span>
+        <span className="text-fg-secondary">of check tasks right with the best version so far</span>
         {score && (
           <span className="font-mono text-sm text-fg-muted">
             {score.pass} of {score.total}
@@ -34,7 +34,7 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
       </div>
       <p className="m-0 text-fg-secondary text-pretty">
         {student} never practices on the check tasks. A change stays only if more of them come out
-        right.
+        right, and training ends when they reach the {Math.round(input.target * 100)}% target.
       </p>
       <Legend />
       <CurveChart input={input} />
@@ -159,7 +159,7 @@ function CurveChart({ input }: { input: CurveInput }) {
         strokeDasharray="2 4"
       />
       <text x={PLOT.right + 12} y={targetY + 4.4} className="fill-fg-secondary font-mono text-sm">
-        Ready {target}%
+        Target {target}%
       </text>
       <line
         x1={PLOT.left}

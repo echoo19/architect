@@ -10,8 +10,9 @@ function endSentence(text: string): string {
 export function failureLine(failure: RecentAttempt): string {
   const request = failure.prompt ? `"${clip(failure.prompt, 90)}"` : `task ${failure.taskId}`;
   if (failure.answerSummary && failure.expectedSummary) {
-    const asked = endSentence(`Answered ${failure.answerSummary} to ${request}`);
-    return `${asked} ${endSentence(`Expected ${failure.expectedSummary}`)}`;
+    return endSentence(
+      `Missed ${request}: answered ${failure.answerSummary}, but the right answer is ${failure.expectedSummary}`,
+    );
   }
   return endSentence(`Missed ${request}: ${failure.check.reason}`);
 }

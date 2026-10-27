@@ -3,7 +3,7 @@ import { rate } from '../format';
 
 /*
  * Geometry for the check-task chart, in the design's 700 by 250 viewBox: rounds run along x from
- * 52 to 612 (round 0 is the start), percentages sit left of 52, the Ready and Round labels sit
+ * 52 to 612 (round 0 is the start), percentages sit left of 52, the Target and Round labels sit
  * right of 612, and the plot's floor is at y = 220.
  */
 
@@ -178,7 +178,7 @@ export function describeCurve(input: CurveInput): string {
       parts.push(`round ${round.index} in progress`);
     }
   }
-  const target = `Ready at ${Math.round(input.target * 100)}%.`;
+  const target = `Target ${Math.round(input.target * 100)}%.`;
   if (parts.length === 0) return `Check tasks right by round: nothing measured yet. ${target}`;
   return `Check tasks right by round: ${parts.join(', ')}. ${target}`;
 }

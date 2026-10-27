@@ -191,16 +191,13 @@ describe('failureLine', () => {
     expectedSummary: '$1,284.50',
   });
 
-  it('sets the answer against the expected one, ending each sentence once', () => {
+  it('sets the answer against the right one, ending the sentence once', () => {
     expect(failureLine({ ...failed, prompt: 'Price job J-4412.' })).toBe(
-      'Answered $1,248.50 to "Price job J-4412." Expected $1,284.50.',
-    );
-    expect(failureLine({ ...failed, prompt: 'Who owes the most?' })).toBe(
-      'Answered $1,248.50 to "Who owes the most?" Expected $1,284.50.',
+      'Missed "Price job J-4412.": answered $1,248.50, but the right answer is $1,284.50.',
     );
     expect(
       failureLine({ ...failed, expectedSummary: 'Tue 09:30, Priya N.', prompt: 'Book it' }),
-    ).toBe('Answered $1,248.50 to "Book it". Expected Tue 09:30, Priya N.');
+    ).toBe('Missed "Book it": answered $1,248.50, but the right answer is Tue 09:30, Priya N.');
   });
 
   it("falls back to the checker's reason when there is no short answer", () => {

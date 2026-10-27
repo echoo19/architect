@@ -1,7 +1,8 @@
 import { useMemo, type CSSProperties } from 'react';
 import { cn, Panel } from '@architect/ui';
+import { ChevronRight } from 'lucide-react';
 import { capitalized, MENTOR_ROLE, STUDENT_ROLE } from '../../lib/names';
-import { STAGE_LABELS, STAGES, type Motion, type PhaseView } from './phase';
+import { motionCaption, STAGE_LABELS, STAGES, type Motion, type PhaseView } from './phase';
 import type { EvalProgress } from './run-state';
 import './apprenticeship.css';
 
@@ -97,6 +98,7 @@ export function Apprenticeship({
 }: ApprenticeshipProps) {
   const cells = useMemo(() => gridCells(passRate ?? 0.35), [passRate]);
   const pills = pillsFor(view.motion, passRate);
+  const caption = motionCaption(view.motion, { mentor, student });
   const label =
     view.motion === 'testing'
       ? `${student} is taking the final test`
@@ -131,13 +133,14 @@ export function Apprenticeship({
           />
         </div>
 
-        <div className="arch-track" aria-hidden>
-          <span className="arch-line arch-line-mentor" />
-          <span className="arch-line arch-line-student" />
-          <span className="arch-gate" />
+        <div className="arch-track">
+          <span className="arch-line arch-line-mentor" aria-hidden />
+          <span className="arch-line arch-line-student" aria-hidden />
+          <span className="arch-gate" aria-hidden />
           {pills.map((pill, index) => (
             <span
               key={`${view.motion}-${index}`}
+              aria-hidden
               className="arch-pill"
               data-kind={pill.kind}
               style={
@@ -148,6 +151,7 @@ export function Apprenticeship({
               }
             />
           ))}
+          {caption && <p className="arch-caption text-sm text-fg-muted text-balance">{caption}</p>}
         </div>
 
         <div className="flex flex-none flex-col items-center gap-4">
@@ -167,19 +171,29 @@ export function Apprenticeship({
       </div>
 
       <div className="flex min-h-14 flex-wrap items-center gap-x-5 gap-y-1 border-t border-line-row-strong bg-aside px-7 py-2">
-        <ol aria-label="Steps of a round" className="m-0 flex list-none gap-3.5 p-0 text-sm">
-          {STAGES.map((stage) => (
+        <ol
+          aria-label="Steps of a round"
+          className="m-0 flex list-none items-center gap-2 p-0 text-sm"
+        >
+          {STAGES.map((stage, index) => (
             <li
               key={stage}
               aria-current={stage === view.stage ? 'step' : undefined}
-              className={cn(
-                'border-b-2 pb-0.5',
-                stage === view.stage
-                  ? 'border-fg font-medium text-fg'
-                  : 'border-transparent text-fg-muted',
-              )}
+              className="flex items-center gap-2"
             >
-              {STAGE_LABELS[stage]}
+              {index > 0 && (
+                <ChevronRight size={13} strokeWidth={1.8} aria-hidden className="text-fg-ghost" />
+              )}
+              <span
+                className={cn(
+                  'border-b-2 pb-0.5',
+                  stage === view.stage
+                    ? 'border-fg font-medium text-fg'
+                    : 'border-transparent text-fg-muted',
+                )}
+              >
+                {STAGE_LABELS[stage]}
+              </span>
             </li>
           ))}
         </ol>

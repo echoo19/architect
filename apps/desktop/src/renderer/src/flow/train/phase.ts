@@ -74,6 +74,23 @@ export function phaseView(run: Run, names: ModelNames): PhaseView {
   }
 }
 
+/** What the moving marks stand for right now, said under the animation. */
+export function motionCaption(motion: Motion, { mentor, student }: ModelNames): string | null {
+  switch (motion) {
+    case 'practising':
+      return `Each mark is a task. Right answers cross the line; wrong ones drop out for ${mentor} to study.`;
+    case 'checking':
+      return 'Each mark is a check task. The change stays if more of them cross the line than before.';
+    case 'returning':
+      return `The wrong answers go back to ${mentor}, which writes one change to fix them.`;
+    case 'testing':
+      return `Each mark is a final-test task, one ${student} has never seen.`;
+    case 'idle':
+    case 'still':
+      return null;
+  }
+}
+
 function runningText(run: Run, { mentor, student }: ModelNames): string {
   switch (run.phase) {
     case 'preparing':
