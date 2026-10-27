@@ -1,0 +1,210 @@
+import type { Job, Round, Run, RunEvent, RunStopReason, Task } from '@architect/shared';
+import type { AttemptFilter, EngineStore } from '../store/engine-store';
+import type { StoredAttempt, StoredRound, StoredRun } from '../store/records';
+import { resultOf, type EvaluationResult } from './attempts';
+import { BudgetGuard } from './budget';
+import type { Clock, HarnessVersionStore, LoopDeps } from './deps';
+import { must } from './errors';
+import type { JobLibrary } from './jobs';
+import { LineageLog } from './lineage';
+import type { DataPaths } from './paths';
+import { SessionResources, type LogLevel } from './resources';
+import { roundSeed, sampleTrainBatch } from './seeds';
+import { isoNow } from './time';
+
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+export type RunEventBody = DistributiveOmit<RunEvent, 'runId' | 'at'>;
+
+export interface SessionContext {
+  runId: string;
+  store: EngineStore;
+  paths: DataPaths;
+  jobs: JobLibrary;
+  deps: LoopDeps;
+  clock: Clock;
+  /** Attempts in flight at once while training. The locked test runs one at a time. */
+  concurrency: number;
+  emit(event: RunEvent): void;
+}
+
+/** Shared between the controller and the session it started. */
+export interface SessionControl {
+  pauseRequested: boolean;
+  readonly abort: AbortController;
+}
+
+type RunPatch = Partial<Run> | ((run: Run) => Partial<Run>);
+type RecordPatch = Partial<Omit<StoredRun, 'run'>>;
+
+export const TRAINING_ENDED: Record<RunStopReason | 'complete', string> = {
+  complete: 'Training is complete.',
+  target_met: 'Dev reached the target pass rate.',
+  rounds: 'Every round in the budget is used.',
+  usd: 'The mentor dollar budget is spent.',
+  wall_clock: 'The wall-clock budget is spent.',
+  patience: 'Too many rounds in a row brought no kept change.',
+  user: 'Stopped by you.',
+  error: 'Training ended after an error.',
+};
+
+/** The run patch that ends training and hands the run to its locked test. */
+export function trainingEnd(reason: RunStopReason | undefined): Partial<Run> {
+  return { status: 'testing', phase: 'testing', stopReason: reason };
+}
+
+/**
+ * One session's view of a run, shared by its steps: the persisted record, the session's
+ * collaborators, and the helpers that persist and announce each change. The record is read
+ * fresh on every access, so a stop the controller records mid-step is never overwritten.
+ */
+export class RunState {
+  readonly budget: BudgetGuard;
+  readonly versions: HarnessVersionStore;
+  readonly lineage: LineageLog;
+  readonly resources: SessionResources;
+  readonly jobDir: string;
+
+  constructor(
+    readonly ctx: SessionContext,
+    readonly control: SessionControl,
+    readonly job: Job,
+  ) {
+    const { run } = this.record;
+    this.jobDir = ctx.paths.jobDir(run.jobId);
+    this.versions = ctx.deps.harness.versions(ctx.paths.harnessDir(run.jobId, run.id));
+    this.lineage = new LineageLog(ctx.paths.lineageFile(run.jobId, run.id));
+    this.budget = new BudgetGuard(
+      job.budget,
+      { rounds: run.totals.rounds, usd: run.totals.mentorUsd, wallMs: run.totals.wallMs },
+      ctx.clock,
+    );
+    this.resources = new SessionResources({
+      deps: ctx.deps,
+      job,
+      jobDir: this.jobDir,
+      dataDir: ctx.paths.dataDir(run.jobId),
+      runId: run.id,
+      versions: this.versions,
+      budget: this.budget,
+      log: (level, message) => this.log(level, message),
+    });
+  }
+
+  // Reading
+
+  get record(): StoredRun {
+    return must(this.ctx.store.runs.get(this.ctx.runId), `Run ${this.ctx.runId}`);
+  }
+
+  get run(): Run {
+    return this.record.run;
+  }
+
+  get signal(): AbortSignal {
+    return this.control.abort.signal;
+  }
+
+  rounds(): StoredRound[] {
+    return this.ctx.store.rounds.list(this.ctx.runId);
+  }
+
+  round(index: number): StoredRound {
+    return must(this.ctx.store.rounds.get(this.ctx.runId, index), `Round ${index}`);
+  }
+
+  attempts(filter: Omit<AttemptFilter, 'runId'>): StoredAttempt[] {
+    return this.ctx.store.attempts.list({ runId: this.ctx.runId, ...filter });
+  }
+
+  /** A version's dev result. Each version is evaluated on dev once, with the run's seed panel. */
+  devResult(version: number): EvaluationResult {
+    return resultOf(
+      this.attempts({ split: 'dev', version, target: this.job.student.trainOn }),
+      this.job,
+    );
+  }
+
+  trainTasks(): Promise<Task[]> {
+    return this.ctx.jobs.tasks(this.run.jobId, 'train');
+  }
+
+  devTasks(): Promise<Task[]> {
+    return this.ctx.jobs.tasks(this.run.jobId, 'dev');
+  }
+
+  /** The round's train batch, the same every time it is asked for. */
+  async trainBatch(index: number): Promise<Task[]> {
+    return sampleTrainBatch(
+      await this.trainTasks(),
+      this.job.evaluation.trainBatch,
+      roundSeed(this.record.seeds.trainBatch, index),
+    );
+  }
+
+  // Writing
+
+  now(): string {
+    return isoNow(this.ctx.clock);
+  }
+
+  /** Merges a patch into the stored run; joins the caller's transaction when there is one. */
+  writeRun(patch: RunPatch = {}, extra: RecordPatch = {}): Run {
+    const record = this.record;
+    const changes = typeof patch === 'function' ? patch(record.run) : patch;
+    const run: Run = {
+      ...record.run,
+      ...changes,
+      totals: {
+        ...(changes.totals ?? record.run.totals),
+        wallMs: Math.round(this.budget.wallMs()),
+      },
+      updatedAt: this.now(),
+    };
+    this.ctx.store.runs.update({ ...record, ...extra, run });
+    return run;
+  }
+
+  saveRun(patch?: RunPatch, extra?: RecordPatch): void {
+    this.emit({ type: 'run.updated', run: this.writeRun(patch, extra) });
+  }
+
+  setPhase(phase: Run['phase']): void {
+    if (this.run.phase !== phase) this.saveRun({ phase });
+  }
+
+  saveRound(stored: StoredRound): void {
+    this.ctx.store.rounds.update(stored);
+    this.emit({ type: 'round.updated', round: stored.round });
+  }
+
+  /** Ends a round without a change, and training too when the dollar cap is why. */
+  closeRound(index: number, message: string, stopReason?: RunStopReason): void {
+    const stored = this.round(index);
+    const round: Round = { ...stored.round, status: 'failed', error: message, endedAt: this.now() };
+    const run = this.ctx.store.transaction(() => {
+      this.ctx.store.rounds.update({ ...stored, round });
+      return stopReason ? this.writeRun(trainingEnd(stopReason)) : null;
+    });
+    this.emit({ type: 'round.updated', round });
+    this.log('warn', `Round ${index} ended without a change: ${message}`);
+    if (run) {
+      this.emit({ type: 'run.updated', run });
+      this.log('info', TRAINING_ENDED[stopReason ?? 'complete']);
+    }
+  }
+
+  // Announcing
+
+  emit(body: RunEventBody): void {
+    // The spread keeps the body's own variant; TypeScript can't see that through the union.
+    this.ctx.emit({ ...body, runId: this.ctx.runId, at: this.now() } as RunEvent);
+  }
+
+  emitBudget(): void {
+    this.emit({ type: 'budget', state: this.budget.state() });
+  }
+
+  log(level: LogLevel, message: string): void {
+    this.emit({ type: 'log', level, message });
+  }
+}

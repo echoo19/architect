@@ -1,5 +1,6 @@
 import type { Job } from '@architect/shared';
-import { RunDriver, type SessionContext, type SessionControl, type SessionOutcome } from './driver';
+import { RunDriver, type SessionOutcome } from './driver';
+import type { SessionContext, SessionControl } from './run-state';
 import { isTerminal } from './plan';
 import { errorMessage } from './errors';
 import { isoNow } from './time';
