@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { CircleAlert, X } from 'lucide-react';
 import { Dialog as RadixDialog, Tabs } from 'radix-ui';
 import { cn } from '../lib/cn';
 import { Dialog, DialogContent } from './dialog';
@@ -95,17 +95,26 @@ export interface SettingsRowProps {
   label: string;
   /** A short mono line under the label: a model id, a path, a size. */
   meta?: ReactNode;
+  /** Why the row's value couldn't load. Replaces the meta line; pair it with a retry control. */
+  error?: string;
   tone?: 'default' | 'danger';
   /** The control or value on the right. */
   children?: ReactNode;
 }
 
-export function SettingsRow({ label, meta, tone = 'default', children }: SettingsRowProps) {
+export function SettingsRow({ label, meta, error, tone = 'default', children }: SettingsRowProps) {
   return (
     <div className="flex min-h-[60px] flex-wrap items-center justify-between gap-x-5 gap-y-2.5 border-t border-line py-2.5">
       <div className="flex min-w-0 flex-[1_1_180px] flex-col gap-0.5">
         <span className={tone === 'danger' ? 'text-danger' : 'text-fg'}>{label}</span>
-        {meta && <span className="break-all font-mono text-xs text-fg-muted">{meta}</span>}
+        {error ? (
+          <span role="alert" className="flex items-start gap-1.5 text-sm text-fg-muted">
+            <CircleAlert size={13} className="mt-[3px] shrink-0 text-danger" aria-hidden />
+            {error}
+          </span>
+        ) : (
+          meta && <span className="break-all font-mono text-xs text-fg-muted">{meta}</span>
+        )}
       </div>
       {children}
     </div>
