@@ -16,13 +16,15 @@ export interface StepsProps {
   startOpen: boolean;
   /** The reply is held until the user answers a write it wants to make. */
   waiting: boolean;
+  /** The mentor's short name, for the tools it wrote. */
+  mentor: string;
 }
 
 /**
  * The tools and skills an agent used. While it works, the header names the current step;
  * afterwards it says how long the work took. The list opens as the "Tool steps" setting says.
  */
-export function Steps({ message, startOpen, waiting }: StepsProps) {
+export function Steps({ message, startOpen, waiting, mentor }: StepsProps) {
   const listId = useId();
   const [choice, setChoice] = useState<boolean | null>(null);
   const working = message.status === 'streaming';
@@ -33,7 +35,7 @@ export function Steps({ message, startOpen, waiting }: StepsProps) {
   let header = workedLabel(message);
   if (working && waiting) header = `${stepCount(message.steps.length)} so far`;
   else if (step) {
-    const { action, target } = stepWords(step);
+    const { action, target } = stepWords(step, mentor);
     header = `${action} ${target}`;
   }
 
@@ -62,7 +64,7 @@ export function Steps({ message, startOpen, waiting }: StepsProps) {
           className="m-0 ml-1.5 flex list-none flex-col border-l border-line-control py-0 pl-4 pr-0 text-sm leading-normal"
         >
           {message.steps.map((item) => {
-            const { action, target } = stepWords(item);
+            const { action, target } = stepWords(item, mentor);
             return (
               <li
                 key={item.id}

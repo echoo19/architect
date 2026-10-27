@@ -51,7 +51,7 @@ function ReportSummary({ report }: { report: ReportCard }) {
         />
         <Stat
           className={cell}
-          value={formatAnswerTime(test.latencyMs.p50)}
+          value={formatAnswerTime(test.latencyMs.p50, true)}
           label={`Typical answer, ${place}`}
           note={`95% of answers within ${formatAnswerTime(test.latencyMs.p95)}`}
           noteFont="text"
@@ -82,7 +82,8 @@ function ReportSummary({ report }: { report: ReportCard }) {
             <Meter label={type.label} value={percentOf(type) / 100} tone="student" thickness={4} />
             {percentOf(type) < Math.round(requirements.passRate.target * 100) && (
               <span className="text-sm text-fg-muted">
-                Below the {Math.round(requirements.passRate.target * 100)}% target on its own
+                Below the {Math.round(requirements.passRate.target * 100)}% target on its own: check
+                these answers before relying on them
               </span>
             )}
           </div>

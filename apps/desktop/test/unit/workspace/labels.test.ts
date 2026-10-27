@@ -7,6 +7,7 @@ import {
   isTotalRow,
   listInSentence,
   previewRows,
+  stepWords,
   suggestionsFor,
   taskTypeLabel,
   workedLabel,
@@ -43,6 +44,21 @@ describe('workspace labels', () => {
       expect(WRITE_MODE_LABELS[mode]).not.toBe('');
       expect(WRITE_MODE_MEANINGS[mode]).not.toBe('');
     }
+  });
+
+  it('says each step plainly, naming the mentor for the tools it wrote', () => {
+    const step = (name: string, kind: 'tool' | 'skill', status: 'done' | 'running') =>
+      ({ id: name, kind, name, detail: 'jobs.csv', status }) as const;
+    expect(stepWords(step('read_table', 'tool', 'done'), 'Spark')).toEqual({
+      action: 'Read',
+      target: 'jobs.csv',
+    });
+    expect(stepWords(step('price-a-job', 'skill', 'running'), 'Spark').action).toBe(
+      'Loading the skill',
+    );
+    expect(stepWords(step('invoice_total', 'tool', 'done'), 'Spark').action).toBe(
+      "Ran Spark's tool invoice_total",
+    );
   });
 
   it('says how long the agent worked', () => {
