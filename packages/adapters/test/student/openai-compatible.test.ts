@@ -146,7 +146,7 @@ describe('the request to a hosted student', () => {
     ]);
   });
 
-  it('sends OpenRouter the reasoning effort in its own field and leaves the prompt alone', async () => {
+  it('sends OpenRouter the reasoning effort in its own field and in the system line', async () => {
     const { student, server } = await hostedOn('openrouter-glimmer', answer);
     await collect(
       student.chat(
@@ -161,8 +161,9 @@ describe('the request to a hosted student', () => {
     );
     const body = lastBody(server);
     expect(body['reasoning']).toEqual({ effort: 'medium' });
+    // Some of OpenRouter's providers ignore the field and read Glimmer's system line instead.
     expect(body['messages']).toEqual([
-      { role: 'system', content: 'You are the service desk.' },
+      { role: 'system', content: 'You are the service desk.\n\nReasoning strength: medium.' },
       { role: 'user', content: 'Hi' },
     ]);
     expect(body).not.toHaveProperty('chat_template_kwargs');

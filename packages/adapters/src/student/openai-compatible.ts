@@ -69,7 +69,12 @@ export function createOpenAICompatibleStudent(
     const messages = toWireMessages(request.messages, { systemRole: 'system', toolNames: true });
     const body: Record<string, unknown> = {
       model: endpoint.model,
-      messages: style === 'system_line' ? withReasoningLine(messages, level) : messages,
+      // OpenRouter passes `reasoning.effort` on to some providers but not all (DeepInfra reads the
+      // system line), so it gets both.
+      messages:
+        style === 'system_line' || style === 'openrouter'
+          ? withReasoningLine(messages, level)
+          : messages,
       stream: true,
       stream_options: { include_usage: true },
       max_tokens: decoding.maxOutputTokens,

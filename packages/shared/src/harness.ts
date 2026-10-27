@@ -64,8 +64,8 @@ export const DecodingSchema = z.object({
   topK: z.number().int().min(0).max(1000).default(64),
   /** Model turns per request. Glimmer makes one tool call per turn, and a write task reads ~10 tables. */
   maxSteps: z.number().int().min(1).max(40).default(16),
-  /** Includes reasoning tokens, which count against the cap. */
-  maxOutputTokens: z.number().int().min(64).max(32_768).default(2048),
+  /** Includes reasoning tokens, which count against the cap; hard steps can think for 1,500+. */
+  maxOutputTokens: z.number().int().min(64).max(32_768).default(4096),
   /** Reasoning strength. Glimmer always reasons; `low` keeps each step short. */
   thinking: z.enum(['low', 'medium', 'high']).default('low'),
 });

@@ -47,7 +47,7 @@ describe('schemas', () => {
       topP: 0.95,
       topK: 64,
       maxSteps: 16,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 4096,
       thinking: 'low',
     });
   });
