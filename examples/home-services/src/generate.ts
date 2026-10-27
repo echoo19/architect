@@ -34,7 +34,7 @@ export interface GeneratedJob {
 export function buildJobFiles(seed: number, version: JobVersion): GeneratedJob {
   const random = new Random(seed);
   const records = buildCompany(random.fork('company'));
-  const scheduling = buildScheduleTasks(random.fork('schedule tasks'), records);
+  const scheduling = buildScheduleTasks(random.fork('schedule tasks'), records, version);
   const company = { ...records, requests: scheduling.requests };
   const tasks = [
     ...buildInvoiceTasks(random.fork('invoice tasks'), records),
@@ -45,8 +45,10 @@ export function buildJobFiles(seed: number, version: JobVersion): GeneratedJob {
 
   const files = new Map<string, string>();
   files.set('job.json', formatJson(job));
-  files.set('data/policy.md', policyDocument());
-  for (const [name, text] of Object.entries(renderTables(company))) files.set(`data/${name}`, text);
+  files.set('data/policy.md', policyDocument(version));
+  for (const [name, text] of Object.entries(renderTables(company, version))) {
+    files.set(`data/${name}`, text);
+  }
   files.set('tasks.jsonl', tasks.map((task) => `${JSON.stringify(task)}\n`).join(''));
   files.set('checker.js', readFileSync(CHECKER_SOURCES[version], 'utf8'));
   return { job, tasks, files };

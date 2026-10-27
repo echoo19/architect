@@ -31,7 +31,7 @@
     {
       "id": "schedule",
       "label": "Scheduling",
-      "description": "Book a service request into the earliest feasible slot."
+      "description": "Book a service request into the earliest feasible slot in the customer's window."
     }
   ],
   "data": {
@@ -94,7 +94,7 @@
         "name": "requests.csv",
         "kind": "table",
         "access": "read",
-        "description": "Open service requests waiting for a booking: skill, license needed, duration, earliest date."
+        "description": "Open service requests waiting for a booking: skill, license needed, duration, earliest date and the time window the customer asked for."
       },
       {
         "name": "bookings.csv",

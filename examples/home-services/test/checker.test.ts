@@ -9,6 +9,7 @@ import {
   BUSINESS_DATE,
   expectedInvoiceRow,
   expectedSlot,
+  latestVersion,
   paramsOf,
 } from './helpers';
 import type { JobFolder } from './helpers';
@@ -450,7 +451,12 @@ describe.each(BOTH_VERSIONS)('booking_created in version $version', (job) => {
 
   it('fails a feasible slot that is not the earliest', () => {
     const schedule = referenceSchedule(job);
-    const rules = { businessDate: BUSINESS_DATE, closedDates: ['2026-11-11'], slotMinutes: 30 };
+    const rules = {
+      businessDate: BUSINESS_DATE,
+      closedDates: ['2026-11-11'],
+      slotMinutes: 30,
+      noon: 12 * 60,
+    };
     for (const candidate of scheduleTasks.slice(0, 10)) {
       const earliest = expectedSlot(candidate);
       const later = earliestSlot(schedule, rules, {
@@ -475,5 +481,71 @@ describe.each(BOTH_VERSIONS)('booking_created in version $version', (job) => {
       `An existing booking row was changed or deleted (${first.booking_id}).`,
     );
     expect(job.check(task, job.contextWith({})).reason).toBe('No new booking row was added.');
+  });
+});
+
+describe('booking_created with time windows in version 2', () => {
+  const job = latestVersion;
+  const windowed = job.tasksOfType('schedule').filter((t) => requestOf(job, t).window !== 'any');
+  const rules = {
+    businessDate: BUSINESS_DATE,
+    closedDates: ['2026-11-11'],
+    slotMinutes: 30,
+    noon: 12 * 60,
+  };
+  const windowReason = (window: string) =>
+    window === 'morning'
+      ? 'This booking does not work: the customer asked for a morning visit, which must end by 12:00.'
+      : 'This booking does not work: the customer asked for an afternoon visit, which must start at 12:00 or later.';
+
+  it('books a third of the requests in a morning or an afternoon window', () => {
+    expect(windowed).toHaveLength(20);
+    const windows = windowed.map((t) => requestOf(job, t).window);
+    expect(new Set(windows)).toEqual(new Set(['morning', 'afternoon']));
+    for (const request of job.table('requests.csv')) {
+      expect(['morning', 'afternoon', 'any']).toContain(request.window);
+    }
+  });
+
+  it('fails the earlier slot a booker who ignores the window would choose', () => {
+    const schedule = referenceSchedule(job);
+    const moved = windowed.filter((t) => hasTrap(t, 'window'));
+    expect(moved.length).toBeGreaterThanOrEqual(10);
+    for (const task of moved) {
+      const request = requestOf(job, task);
+      const careless = earliestSlot(schedule, rules, request, 'window');
+      const row = job.bookingRow(task, {
+        ...careless,
+        technician_id: careless.technician_ids[0] as string,
+      });
+      expect(job.check(task, job.withAppended('bookings.csv', row)).reason, task.id).toBe(
+        windowReason(request.window),
+      );
+    }
+  });
+
+  it('fails a morning visit that runs past noon and an afternoon visit that starts before it', () => {
+    let checked = 0;
+    for (const task of windowed) {
+      const { window, duration_minutes } = requestOf(job, task);
+      const slot = expectedSlot(task);
+      const technicianId = slot.technician_ids[0] as string;
+      const technician = job.rowWhere('technicians.csv', 'technician_id', technicianId);
+      // Half an hour across noon, inside the technician's hours.
+      const start = window === 'morning' ? 12 * 60 + 30 - duration_minutes : 11 * 60 + 30;
+      if (start < minutes(String(technician.start_time))) continue;
+      if (start + duration_minutes > minutes(String(technician.end_time))) continue;
+      const row = job.bookingRow(task, {
+        technician_id: technicianId,
+        date: slot.date,
+        start_time: clock(start),
+        end_time: clock(start + duration_minutes),
+      });
+      expect(job.check(task, job.withAppended('bookings.csv', row)).reason, task.id).toBe(
+        windowReason(window),
+      );
+      checked += 1;
+    }
+    expect(checked).toBeGreaterThanOrEqual(15);
   });
 });

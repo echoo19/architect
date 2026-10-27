@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import type { ServiceRequest, Technician, TimeWindow } from '../src/company/types';
 import { daysBetween } from '../src/lib/calendar';
 import { roundHalfUp } from '../src/lib/money';
 import { billedMinutes, laborCents, partLineCents } from '../src/reference/pricing';
-import { BOTH_VERSIONS } from './helpers';
+import { buildSchedule, slotProblem } from '../src/reference/scheduling';
+import { BOTH_VERSIONS, latestVersion } from './helpers';
 
 /** The worked examples in policy.md are what the agent learns from, so they must be right. */
 
@@ -72,5 +74,51 @@ describe.each(BOTH_VERSIONS)('policy.md of version $version', (folder) => {
     expect(minutes('Ridge', 'Old Town')).toBe('30');
     expect(policy).toContain('The new job is in Ridge, 45 minutes from Harbor');
     expect(policy).toContain('with the 30-minute drive from Ridge to Old Town');
+  });
+});
+
+describe('policy.md of version 2', () => {
+  const policy = latestVersion.file('data/policy.md');
+
+  it('states the time window rule and gives an example the reference agrees with', () => {
+    expect(policy).toContain(
+      "- **Time window.** The request's `window` says when the customer can be visited: `morning` means the booking ends by 12:00, `afternoon` means it starts at 12:00 or later, and `any` adds no limit.",
+    );
+    expect(policy).toContain(
+      'Example: a 120-minute `morning` request can start at 10:00 at the latest, ending exactly at 12:00. A 90-minute `afternoon` request can start at 12:00 at the earliest; with a technician who works until 16:00 it can start as late as 14:30, ending exactly at the end of their day.',
+    );
+    const technician: Technician = {
+      technician_id: 'T-00',
+      name: 'Example',
+      tier: 'journeyman',
+      skills: ['plumbing'],
+      licenses: [],
+      work_days: ['Thu'],
+      start_time: '08:00',
+      end_time: '16:00',
+    };
+    const schedule = buildSchedule([technician], [], []);
+    const rules = { businessDate: '2026-11-05', closedDates: [], slotMinutes: 30, noon: 12 * 60 };
+    const problemAt = (window: TimeWindow, duration_minutes: number, time: string) => {
+      const request: ServiceRequest = {
+        request_id: 'R-0000',
+        customer_id: 'C-0000',
+        zone: 'Harbor',
+        skill: 'plumbing',
+        license_needed: null,
+        duration_minutes,
+        earliest_date: '2026-11-12',
+        window,
+        problem: 'Example',
+      };
+      const [h, m] = time.split(':').map(Number) as [number, number];
+      return slotProblem(schedule, rules, technician, request, '2026-11-12', h * 60 + m);
+    };
+    expect(problemAt('morning', 120, '10:00')).toBeNull();
+    expect(problemAt('morning', 120, '10:30')).toBe('window');
+    expect(problemAt('afternoon', 90, '11:30')).toBe('window');
+    expect(problemAt('afternoon', 90, '12:00')).toBeNull();
+    expect(problemAt('afternoon', 90, '14:30')).toBeNull();
+    expect(problemAt('afternoon', 90, '15:00')).toBe('hours');
   });
 });

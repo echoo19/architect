@@ -9,7 +9,21 @@ const IDENTITY: Readonly<Record<JobVersion, Pick<Job, 'id' | 'name'>>> = {
   2: { id: 'sample-home-services', name: 'Service desk' },
 };
 
-const DATA_FILES: readonly DataFile[] = [
+/** What each version says about the parts of the job that changed between them. */
+const WORDING: Readonly<Record<JobVersion, { requests: string; scheduling: string }>> = {
+  1: {
+    requests:
+      'Open service requests waiting for a booking: skill, license needed, duration, earliest date.',
+    scheduling: 'Book a service request into the earliest feasible slot.',
+  },
+  2: {
+    requests:
+      'Open service requests waiting for a booking: skill, license needed, duration, earliest date and the time window the customer asked for.',
+    scheduling: "Book a service request into the earliest feasible slot in the customer's window.",
+  },
+};
+
+const dataFiles = (version: JobVersion): DataFile[] => [
   {
     name: 'policy.md',
     kind: 'text',
@@ -73,8 +87,7 @@ const DATA_FILES: readonly DataFile[] = [
     name: 'requests.csv',
     kind: 'table',
     access: 'read',
-    description:
-      'Open service requests waiting for a booking: skill, license needed, duration, earliest date.',
+    description: WORDING[version].requests,
   },
   {
     name: 'bookings.csv',
@@ -139,10 +152,10 @@ export function buildJob(version: JobVersion): Job {
       {
         id: 'schedule',
         label: 'Scheduling',
-        description: 'Book a service request into the earliest feasible slot.',
+        description: WORDING[version].scheduling,
       },
     ],
-    data: { files: DATA_FILES },
+    data: { files: dataFiles(version) },
     permissions: { writes: 'ask', unseenFiles: 'never' },
     checker: { kind: 'module', path: 'checker.js' },
     requirements: { passRate: 0.85 },

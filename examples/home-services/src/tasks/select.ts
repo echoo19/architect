@@ -24,15 +24,43 @@ export function difficultyOf(traps: readonly string[]): Difficulty {
 }
 
 /**
+ * Keeps any one answer from being right for more than `max` picked tasks, across every pick that
+ * shares the cap, so a harness can't pass many tasks by repeating one memorized answer.
+ */
+export class AnswerCap<T> {
+  private readonly counts = new Map<string, number>();
+
+  constructor(
+    /** The answers that would pass the task; usually one, more when several are accepted. */
+    private readonly answersOf: (value: T) => readonly string[],
+    private readonly max: number,
+  ) {}
+
+  allows(candidate: Candidate<T>): boolean {
+    return this.answersOf(candidate.value).every(
+      (answer) => (this.counts.get(answer) ?? 0) < this.max,
+    );
+  }
+
+  take(candidate: Candidate<T>): void {
+    for (const answer of this.answersOf(candidate.value)) {
+      this.counts.set(answer, (this.counts.get(answer) ?? 0) + 1);
+    }
+  }
+}
+
+/**
  * Picks the quota of each difficulty. Within a difficulty, candidates are shuffled and taken
  * round-robin across kinds. If a difficulty runs short (another seed can make a different
- * company), the gap is filled from the other difficulties, medium first.
+ * company, or a cap rules candidates out), the gap is filled from the other difficulties, medium
+ * first.
  */
 export function pickMix<T>(
   random: Random,
   candidates: readonly Candidate<T>[],
   quota: Quota,
   label: string,
+  cap?: AnswerCap<T>,
 ): Candidate<T>[] {
   const pools = new Map(
     DIFFICULTIES.map((difficulty) => [
@@ -42,13 +70,13 @@ export function pickMix<T>(
   );
   const poolOf = (difficulty: Difficulty) => pools.get(difficulty) ?? [];
   const picked = DIFFICULTIES.flatMap((difficulty) =>
-    roundRobin(poolOf(difficulty), Math.min(quota[difficulty], poolOf(difficulty).length)),
+    roundRobin(poolOf(difficulty), Math.min(quota[difficulty], poolOf(difficulty).length), cap),
   );
 
   const needed = quota.easy + quota.medium + quota.hard;
   for (const difficulty of FALLBACK_ORDER) {
     const rest = poolOf(difficulty).filter((candidate) => !picked.includes(candidate));
-    picked.push(...roundRobin(rest, Math.min(rest.length, needed - picked.length)));
+    picked.push(...roundRobin(rest, Math.min(rest.length, needed - picked.length), cap));
   }
   if (picked.length < needed) {
     throw new Error(`${label}: ${candidates.length} candidates, ${needed} needed`);
@@ -56,7 +84,11 @@ export function pickMix<T>(
   return picked;
 }
 
-function roundRobin<T>(pool: readonly Candidate<T>[], count: number): Candidate<T>[] {
+function roundRobin<T>(
+  pool: readonly Candidate<T>[],
+  count: number,
+  cap: AnswerCap<T> | undefined,
+): Candidate<T>[] {
   const byKind = new Map<string, Candidate<T>[]>();
   for (const candidate of pool) {
     byKind.set(candidate.kind, [...(byKind.get(candidate.kind) ?? []), candidate]);
@@ -65,10 +97,13 @@ function roundRobin<T>(pool: readonly Candidate<T>[], count: number): Candidate<
     .sort(([a], [b]) => compareText(a, b))
     .map(([, queue]) => queue);
   const picked: Candidate<T>[] = [];
-  while (picked.length < count) {
+  while (picked.length < count && queues.some((queue) => queue.length > 0)) {
     for (const queue of queues) {
       const next = queue.shift();
-      if (next !== undefined && picked.length < count) picked.push(next);
+      if (next === undefined || picked.length >= count) continue;
+      if (cap && !cap.allows(next)) continue;
+      picked.push(next);
+      cap?.take(next);
     }
   }
   return picked;

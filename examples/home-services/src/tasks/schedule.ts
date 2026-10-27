@@ -1,16 +1,45 @@
 import type { Task } from '@architect/shared';
-import type { CompanyRecords, Customer, License, ServiceRequest, Skill } from '../company/types';
-import { addDays, daysBetween, longDate } from '../lib/calendar';
+import type {
+  CompanyRecords,
+  Customer,
+  License,
+  ServiceRequest,
+  Skill,
+  TimeWindow,
+} from '../company/types';
+import { addDays, daysBetween, longDate, minutesOf } from '../lib/calendar';
 import { compareText } from '../lib/compare';
 import type { Random } from '../lib/random';
-import { BUSINESS_DATE, CLOSED_DATES, SLOT_MINUTES, bookingIdFor } from '../policy/rules';
+import { BUSINESS_DATE, CLOSED_DATES, NOON, SLOT_MINUTES, bookingIdFor } from '../policy/rules';
 import { buildSchedule, earliestSlot, firstBookableDate } from '../reference/scheduling';
 import type { EarliestSlot, Schedule, SchedulingRules } from '../reference/scheduling';
+import type { JobVersion } from '../versions';
 import { TODAY, withAnswerLine } from './prompts';
-import { difficultyOf, pickMix, taskId } from './select';
+import { AnswerCap, difficultyOf, pickMix, taskId } from './select';
 import type { Candidate, Quota } from './select';
 
-const QUOTA: Quota = { easy: 20, medium: 24, hard: 16 };
+const FIRST_VERSION_QUOTA: Quota = { easy: 20, medium: 24, hard: 16 };
+
+/**
+ * Version 2 books a third of its requests within a customer time window. A morning window only
+ * moves the answer when the morning is already full, which takes other traps too, so the morning
+ * tasks it turns on are hard.
+ */
+const QUOTAS: Readonly<Record<TimeWindow, Quota>> = {
+  morning: { easy: 2, medium: 0, hard: 6 },
+  afternoon: { easy: 0, medium: 8, hard: 4 },
+  any: { easy: 7, medium: 16, hard: 17 },
+};
+
+/** No date and start time is the answer to more than three tasks. */
+const MAX_TASKS_PER_SLOT = 3;
+
+/** Half the customers who call ask for a morning or an afternoon visit. */
+const WINDOW_CHOICES: readonly (readonly [TimeWindow, number])[] = [
+  ['any', 2],
+  ['morning', 1],
+  ['afternoon', 1],
+];
 
 const ANSWER_SHAPE =
   '{"booking_id": "<id>", "technician_id": "<id>", "date": "<YYYY-MM-DD>", "start_time": "<HH:MM>"}';
@@ -19,6 +48,7 @@ const RULES: SchedulingRules = {
   businessDate: BUSINESS_DATE,
   closedDates: CLOSED_DATES,
   slotMinutes: SLOT_MINUTES,
+  noon: minutesOf(NOON),
 };
 
 const FIRST_REQUEST_NUMBER = 3001;
@@ -121,8 +151,14 @@ export interface ScheduleTasks {
   tasks: Task[];
 }
 
-export function buildScheduleTasks(random: Random, records: CompanyRecords): ScheduleTasks {
+export function buildScheduleTasks(
+  random: Random,
+  records: CompanyRecords,
+  version: JobVersion,
+): ScheduleTasks {
   const schedule = buildSchedule(records.technicians, records.bookings, records.travel);
+  // Windows come from their own stream, so the rest of each request is drawn as in version 1.
+  const windows = random.fork('windows');
   // One candidate request per customer, so no customer has two open requests.
   const candidates = random.shuffle(records.customers).map((customer) => {
     const need = random.weighted(NEEDS.map((n) => [n, n.weight] as const));
@@ -133,13 +169,14 @@ export function buildScheduleTasks(random: Random, records: CompanyRecords): Sch
       license_needed: need.license,
       duration_minutes: random.pick(need.durations),
       earliest_date: random.weighted(EARLIEST_DATES),
+      window: version === 1 ? 'any' : windows.weighted(WINDOW_CHOICES),
       problem: random.pick(need.problems),
     };
-    return candidateFor(schedule, records, customer, request);
+    return candidateFor(schedule, records, customer, request, version);
   });
 
   // Requests are numbered in order of their earliest date (the sort is stable).
-  const numbered = pickMix(random, candidates, QUOTA, 'schedule')
+  const numbered = pickRequests(random, candidates, version)
     .sort((a, b) => compareText(a.value.request.earliest_date, b.value.request.earliest_date))
     .map((candidate, index) => ({
       ...candidate,
@@ -160,6 +197,7 @@ export function buildScheduleTasks(random: Random, records: CompanyRecords): Sch
         business_date: RULES.businessDate,
         closed_dates: [...RULES.closedDates],
         slot_minutes: RULES.slotMinutes,
+        ...(version === 1 ? {} : { noon: NOON }),
       },
     },
     meta: {
@@ -172,17 +210,49 @@ export function buildScheduleTasks(random: Random, records: CompanyRecords): Sch
   return { requests: numbered.map(({ request }) => request), tasks };
 }
 
+/**
+ * Version 2 picks its morning, afternoon and open requests separately, then mixes them, so
+ * requests on the same earliest date aren't numbered by window. A window that doesn't move the
+ * answer only makes an easy task; every harder windowed task turns on its window.
+ */
+function pickRequests(
+  random: Random,
+  candidates: readonly Candidate<ScheduleCase>[],
+  version: JobVersion,
+): Candidate<ScheduleCase>[] {
+  if (version === 1) return pickMix(random, candidates, FIRST_VERSION_QUOTA, 'schedule');
+  const cap = new AnswerCap<ScheduleCase>(
+    ({ slot }) => [`${slot.date} ${slot.start_time}`],
+    MAX_TASKS_PER_SLOT,
+  );
+  const inWindow = (window: TimeWindow) =>
+    candidates.filter(
+      (c) =>
+        c.value.request.window === window &&
+        (window === 'any' || c.traps.includes('window') || c.traps.length === 0),
+    );
+  return random.shuffle(
+    (['morning', 'afternoon', 'any'] as const).flatMap((window) =>
+      pickMix(random, inWindow(window), QUOTAS[window], `${window} schedule`, cap),
+    ),
+  );
+}
+
 function candidateFor(
   schedule: Schedule,
   records: CompanyRecords,
   customer: Customer,
   request: Omit<ServiceRequest, 'request_id'>,
+  version: JobVersion,
 ): Candidate<ScheduleCase> {
   const asRequest = { request_id: 'R-0000', ...request };
   const slot = earliestSlot(schedule, RULES, asRequest);
   return {
     value: { customer, request, slot },
-    traps: scheduleTraps(schedule, records, asRequest, slot),
+    traps: [
+      ...scheduleTraps(schedule, records, asRequest, slot),
+      ...(version === 1 ? [] : windowTraps(schedule, asRequest, slot)),
+    ],
     // Spreading picks across answers keeps "always book the same technician at 07:00" from
     // passing many tasks without a real slot search.
     kind: `${slot.date} ${slot.start_time} ${slot.technician_ids.join('+')}`,
@@ -220,6 +290,19 @@ function scheduleTraps(
     .map(([trap]) => trap);
   if (daysBetween(firstBookableDate(request, RULES), slot.date) >= 2) traps.push('days_later');
   return traps;
+}
+
+/**
+ * Whether the customer's window moves the answer, and whether the answer sits right on the
+ * window's edge: a morning visit ending at noon, or an afternoon visit starting at it.
+ */
+function windowTraps(schedule: Schedule, request: ServiceRequest, slot: EarliestSlot): string[] {
+  if (request.window === 'any') return [];
+  const anyTime = earliestSlot(schedule, RULES, request, 'window');
+  const traps =
+    anyTime.date !== slot.date || anyTime.start_time !== slot.start_time ? ['window'] : [];
+  const onEdge = request.window === 'morning' ? slot.end_time === NOON : slot.start_time === NOON;
+  return onEdge ? [...traps, 'window_edge'] : traps;
 }
 function prompt(random: Random, request: ServiceRequest, customer: Customer): string {
   const id = request.request_id;
