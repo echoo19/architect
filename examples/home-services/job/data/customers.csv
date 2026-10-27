@@ -1,0 +1,401 @@
+customer_id,name,city,zone,plan_member,terms_days
+C-0001,Ironwood Fitness Studio,Ferncliff,Harbor,no,45
+C-0002,Orchard Hill Marina,Westvale,Ridge,no,30
+C-0003,Nell Haverford,Marlow,Millbrook,no,15
+C-0004,Flynn Whitlock,Ferncliff,Old Town,no,15
+C-0005,Una Valdivia,Westvale,Ridge,no,15
+C-0006,Petra Iverson,Westvale,Ridge,no,15
+C-0007,Dorian Ravenscroft,Westvale,Ridge,yes,30
+C-0008,Northgate Garden Center,Kestrel Point,Harbor,yes,30
+C-0009,Tamsin Delacroix,Marlow,Millbrook,no,15
+C-0010,Cedar Row Hardware,Stonebridge,Ridge,no,30
+C-0011,Ridgeline Laundry,Marlow,Millbrook,no,45
+C-0012,Cyrus Zamora,Westvale,Ridge,no,0
+C-0013,Keira Holloway,Ferncliff,Harbor,no,15
+C-0014,Elena Northcott,Ferncliff,Old Town,yes,30
+C-0015,June Tremblay,Ferncliff,Harbor,no,15
+C-0016,Beacon Barbershop,Stonebridge,Ridge,no,30
+C-0017,Emil Ekwueme,Westvale,Ridge,no,15
+C-0018,Petra Oyelaran,Stonebridge,Millbrook,no,15
+C-0019,June Alcott,Kestrel Point,Harbor,no,15
+C-0020,Leon Gallagher,Alder Bay,Lakeside,no,15
+C-0021,Joel Fenwick,Ferncliff,Harbor,no,15
+C-0022,Gemma Esterhazy,Marlow,Millbrook,no,15
+C-0023,Flynn Dunmore,Stonebridge,Ridge,yes,30
+C-0024,Wren Tolliver,Alder Bay,Lakeside,no,15
+C-0025,Adele Tremblay,Kestrel Point,Harbor,yes,30
+C-0026,Vera Ferreira,Marlow,Millbrook,no,15
+C-0027,Gideon Prescott,Ferncliff,Harbor,no,0
+C-0028,Bianca Jovanovic,Stonebridge,Ridge,no,15
+C-0029,Nell Novak,Marlow,Millbrook,no,15
+C-0030,Vera Delacroix,Ferncliff,Harbor,yes,30
+C-0031,Quinn Jankowski,Westvale,Ridge,no,15
+C-0032,Northgate Bakery,Westvale,Ridge,no,30
+C-0033,Juniper Hardware,Marlow,Millbrook,no,45
+C-0034,Nell Prescott,Kestrel Point,Lakeside,no,15
+C-0035,Juniper Fitness Studio,Ferncliff,Old Town,no,30
+C-0036,Gideon Zielinski,Ferncliff,Harbor,no,15
+C-0037,Zane Ostrowski,Stonebridge,Ridge,yes,30
+C-0038,Granite Hill Cafe,Ferncliff,Old Town,no,30
+C-0039,Tobias Varga,Alder Bay,Lakeside,no,15
+C-0040,Joel Northcott,Alder Bay,Lakeside,no,15
+C-0041,Juniper Pizza Kitchen,Ferncliff,Harbor,no,45
+C-0042,Ironwood Cafe,Westvale,Ridge,no,30
+C-0043,Saltmarsh Motel,Kestrel Point,Lakeside,no,30
+C-0044,Xavier Cardenas,Stonebridge,Millbrook,no,15
+C-0045,Yusuf Ellery,Marlow,Millbrook,yes,30
+C-0046,Lila Dunmore,Alder Bay,Lakeside,yes,30
+C-0047,Camila Prescott,Marlow,Millbrook,no,15
+C-0048,Bianca Ferreira,Ferncliff,Old Town,no,0
+C-0049,Harlan Thackeray,Kestrel Point,Lakeside,yes,30
+C-0050,Lila Nakashima,Stonebridge,Ridge,no,15
+C-0051,Nico Vasquez,Kestrel Point,Harbor,no,15
+C-0052,Willow Bend Marina,Stonebridge,Millbrook,no,45
+C-0053,Adele Jovanovic,Ferncliff,Harbor,no,15
+C-0054,Juniper Print Shop,Ferncliff,Old Town,no,45
+C-0055,Gemma Tremblay,Ferncliff,Harbor,no,15
+C-0056,Nico Dalgaard,Alder Bay,Lakeside,yes,30
+C-0057,Tobias Vasquez,Stonebridge,Ridge,yes,30
+C-0058,Dorian Coyle,Westvale,Ridge,no,15
+C-0059,Harlan Tremblay,Westvale,Ridge,no,15
+C-0060,Tobias Delacroix,Kestrel Point,Harbor,no,15
+C-0061,Nico Uribe,Westvale,Ridge,no,0
+C-0062,Wren Gallagher,Marlow,Millbrook,no,15
+C-0063,Ulric Nakashima,Stonebridge,Millbrook,no,0
+C-0064,Jasper Lindgren,Ferncliff,Harbor,yes,30
+C-0065,Bianca Stroud,Westvale,Ridge,yes,30
+C-0066,Ridgeline Pizza Kitchen,Ferncliff,Old Town,no,45
+C-0067,Keira Jankowski,Marlow,Millbrook,no,15
+C-0068,Elise Haverford,Ferncliff,Old Town,no,15
+C-0069,Willa Holloway,Kestrel Point,Lakeside,no,15
+C-0070,Foxglove Bakery,Alder Bay,Lakeside,no,45
+C-0071,Cyrus Pemberton,Kestrel Point,Harbor,no,15
+C-0072,Leon Haverford,Kestrel Point,Harbor,no,0
+C-0073,Rafael Jankowski,Stonebridge,Millbrook,no,15
+C-0074,Foxglove Florist,Ferncliff,Harbor,no,45
+C-0075,Lila Barlowe,Ferncliff,Harbor,no,15
+C-0076,Rafael Esterhazy,Alder Bay,Lakeside,no,0
+C-0077,Lila Wexler,Marlow,Millbrook,no,15
+C-0078,Old Mill Brewing Company,Alder Bay,Lakeside,no,30
+C-0079,Willa Mbatha,Kestrel Point,Lakeside,no,15
+C-0080,Hollis Quarles,Ferncliff,Harbor,yes,30
+C-0081,Yara Nakashima,Stonebridge,Ridge,no,15
+C-0082,Yusuf Yardley,Ferncliff,Old Town,no,15
+C-0083,Sandpiper Florist,Kestrel Point,Lakeside,no,45
+C-0084,Zelda Esterhazy,Alder Bay,Lakeside,no,15
+C-0085,Emil Yilmaz,Alder Bay,Lakeside,no,15
+C-0086,Marco Brennan,Stonebridge,Ridge,no,15
+C-0087,Ironwood Marina,Westvale,Ridge,no,30
+C-0088,Ulric Pacheco,Westvale,Ridge,no,15
+C-0089,Riverstone Apartments,Ferncliff,Harbor,no,30
+C-0090,Flynn Rasmussen,Marlow,Millbrook,no,15
+C-0091,Joel Fairbanks,Ferncliff,Harbor,no,15
+C-0092,Camila Coyle,Stonebridge,Ridge,no,0
+C-0093,Wren Varga,Ferncliff,Harbor,no,15
+C-0094,Yara Coyle,Ferncliff,Old Town,yes,30
+C-0095,Dexter Pemberton,Ferncliff,Old Town,yes,30
+C-0096,Larkspur Cafe,Alder Bay,Lakeside,no,45
+C-0097,Lila Quintero,Alder Bay,Lakeside,no,15
+C-0098,Mabel Nakashima,Westvale,Ridge,no,15
+C-0099,Xavier Fenwick,Westvale,Ridge,no,0
+C-0100,Hollis Ekwueme,Marlow,Millbrook,no,0
+C-0101,Sienna Dalgaard,Alder Bay,Lakeside,no,15
+C-0102,Lila Lachance,Alder Bay,Lakeside,no,15
+C-0103,Harlan Merriweather,Ferncliff,Harbor,yes,30
+C-0104,Arlo Ferreira,Stonebridge,Ridge,yes,30
+C-0105,Felix Thackeray,Marlow,Millbrook,no,15
+C-0106,Northgate Barbershop,Kestrel Point,Harbor,no,45
+C-0107,Bram Jovanovic,Stonebridge,Ridge,no,15
+C-0108,Vera Brennan,Westvale,Ridge,no,15
+C-0109,Orla Gallagher,Kestrel Point,Harbor,no,15
+C-0110,Jasper Kettering,Westvale,Ridge,no,15
+C-0111,Bluegill Motel,Ferncliff,Harbor,no,30
+C-0112,Mabel Uribe,Westvale,Ridge,no,0
+C-0113,Imogen Kowalczyk,Westvale,Ridge,no,15
+C-0114,Marco Whitlock,Ferncliff,Old Town,no,15
+C-0115,Keira Lachance,Westvale,Ridge,no,0
+C-0116,Kenji Esterhazy,Stonebridge,Millbrook,no,15
+C-0117,Idris Okonkwo,Kestrel Point,Lakeside,no,15
+C-0118,Pierce Coyle,Ferncliff,Old Town,yes,30
+C-0119,Harlan Yilmaz,Stonebridge,Ridge,no,15
+C-0120,Harlan Delacroix,Ferncliff,Old Town,no,0
+C-0121,Nell Dunmore,Stonebridge,Ridge,no,15
+C-0122,Orla Ekwueme,Ferncliff,Old Town,yes,30
+C-0123,Ulric Holloway,Kestrel Point,Lakeside,yes,30
+C-0124,Old Mill Motel,Ferncliff,Old Town,no,45
+C-0125,Tidewater Bookshop,Alder Bay,Lakeside,no,30
+C-0126,Nell Coyle,Stonebridge,Ridge,no,0
+C-0127,Orla Thackeray,Kestrel Point,Lakeside,no,15
+C-0128,Tidewater Barbershop,Ferncliff,Harbor,no,45
+C-0129,Hollis Oyelaran,Stonebridge,Millbrook,no,15
+C-0130,Petra Ferreira,Stonebridge,Ridge,yes,30
+C-0131,Greta Ellery,Marlow,Millbrook,no,0
+C-0132,Joel Winslow,Stonebridge,Millbrook,no,15
+C-0133,Hazel Ekwueme,Ferncliff,Old Town,yes,30
+C-0134,Ridgeline Yoga Studio,Ferncliff,Old Town,no,30
+C-0135,Idris Mbatha,Ferncliff,Harbor,yes,30
+C-0136,Wren Lachance,Kestrel Point,Lakeside,yes,30
+C-0137,Tamsin Lachance,Westvale,Ridge,no,15
+C-0138,Rhea Zabinski,Marlow,Millbrook,yes,30
+C-0139,Wren Calloway,Ferncliff,Old Town,yes,30
+C-0140,Kenji Oyelaran,Westvale,Ridge,no,15
+C-0141,Willow Bend Print Shop,Marlow,Millbrook,no,30
+C-0142,Riverstone Bakery,Kestrel Point,Lakeside,no,45
+C-0143,Elena Pacheco,Stonebridge,Ridge,no,0
+C-0144,Xavier Haverford,Marlow,Millbrook,yes,30
+C-0145,Dexter Quintero,Stonebridge,Millbrook,no,15
+C-0146,Marco Quintero,Westvale,Ridge,no,0
+C-0147,Bram Hartwell,Ferncliff,Old Town,yes,30
+C-0148,Yusuf Gallagher,Kestrel Point,Harbor,no,15
+C-0149,Keira Alcott,Ferncliff,Old Town,no,0
+C-0150,Vera Jankowski,Marlow,Millbrook,no,15
+C-0151,Zane Lachance,Alder Bay,Lakeside,yes,30
+C-0152,Gemma Delacroix,Westvale,Ridge,no,15
+C-0153,Imogen Ellery,Alder Bay,Lakeside,no,15
+C-0154,Imogen Barlowe,Westvale,Ridge,no,15
+C-0155,Vera Calloway,Stonebridge,Millbrook,no,15
+C-0156,Idris Zabinski,Westvale,Ridge,no,15
+C-0157,Lila Haverford,Westvale,Ridge,yes,30
+C-0158,Jasper Quarles,Kestrel Point,Harbor,yes,30
+C-0159,Rafael Ravenscroft,Stonebridge,Millbrook,no,15
+C-0160,Camila Tolliver,Stonebridge,Ridge,no,15
+C-0161,Felix Brennan,Kestrel Point,Harbor,no,0
+C-0162,Riverstone Pizza Kitchen,Westvale,Ridge,no,45
+C-0163,Pierce Mbatha,Ferncliff,Old Town,no,15
+C-0164,Quinn Zabinski,Ferncliff,Old Town,yes,30
+C-0165,Sienna Brennan,Marlow,Millbrook,yes,30
+C-0166,Orla Vasquez,Stonebridge,Ridge,no,15
+C-0167,Harlan Galloway,Kestrel Point,Harbor,yes,30
+C-0168,Thistle Yoga Studio,Ferncliff,Old Town,no,45
+C-0169,Thistle Motel,Alder Bay,Lakeside,no,30
+C-0170,Foxglove Cafe,Marlow,Millbrook,no,30
+C-0171,Sandpiper Brewing Company,Alder Bay,Lakeside,no,30
+C-0172,Elise Kettering,Marlow,Millbrook,yes,30
+C-0173,Orla Iverson,Ferncliff,Harbor,no,15
+C-0174,Tobias Oyelaran,Alder Bay,Lakeside,no,15
+C-0175,Willa Quarles,Marlow,Millbrook,no,15
+C-0176,Cedar Row Barbershop,Ferncliff,Harbor,no,30
+C-0177,Gemma Pemberton,Ferncliff,Harbor,no,0
+C-0178,Larkspur Bakery,Alder Bay,Lakeside,no,30
+C-0179,Vaughn Zamora,Ferncliff,Harbor,yes,30
+C-0180,Imogen Uribe,Kestrel Point,Harbor,no,0
+C-0181,Quinn Szabo,Ferncliff,Harbor,no,15
+C-0182,Idris Holloway,Stonebridge,Ridge,no,15
+C-0183,Nico Moreau,Kestrel Point,Harbor,no,0
+C-0184,Quinn Ishikawa,Westvale,Ridge,no,15
+C-0185,Willa Kaplan,Ferncliff,Harbor,yes,30
+C-0186,Quinn Bergstrom,Stonebridge,Millbrook,no,15
+C-0187,Petra Whitlock,Ferncliff,Old Town,yes,30
+C-0188,Camila Ravenscroft,Stonebridge,Ridge,no,15
+C-0189,Vaughn Calloway,Alder Bay,Lakeside,no,0
+C-0190,Marco Ellery,Marlow,Millbrook,no,15
+C-0191,Elise Cardenas,Marlow,Millbrook,no,0
+C-0192,Daphne Valdivia,Ferncliff,Old Town,no,15
+C-0193,Vera Rowntree,Ferncliff,Harbor,yes,30
+C-0194,Pinecrest Yoga Studio,Alder Bay,Lakeside,no,30
+C-0195,Vaughn Gallagher,Westvale,Ridge,no,15
+C-0196,Sienna Lockhart,Ferncliff,Old Town,no,0
+C-0197,Thistle Fitness Studio,Stonebridge,Ridge,yes,30
+C-0198,Zelda Tolliver,Alder Bay,Lakeside,no,15
+C-0199,Cyrus Yilmaz,Ferncliff,Harbor,yes,30
+C-0200,Quinn Yilmaz,Ferncliff,Old Town,yes,30
+C-0201,Yusuf Ostrowski,Marlow,Millbrook,yes,30
+C-0202,Hollow Oak Fitness Studio,Ferncliff,Harbor,no,30
+C-0203,Gideon Ellery,Ferncliff,Harbor,yes,30
+C-0204,Cedar Row Laundry,Ferncliff,Harbor,no,30
+C-0205,Dexter Lindgren,Kestrel Point,Lakeside,yes,30
+C-0206,Cora Vasquez,Alder Bay,Lakeside,yes,30
+C-0207,Bram Dalgaard,Ferncliff,Old Town,no,15
+C-0208,Tamsin Pemberton,Kestrel Point,Lakeside,no,15
+C-0209,Dexter Ostrowski,Stonebridge,Millbrook,yes,30
+C-0210,Bluegill Fitness Studio,Stonebridge,Ridge,no,45
+C-0211,Zelda Haverford,Kestrel Point,Harbor,no,15
+C-0212,Pinecrest Marina,Ferncliff,Harbor,no,45
+C-0213,Leon Szabo,Ferncliff,Harbor,no,0
+C-0214,Emil Nakashima,Alder Bay,Lakeside,yes,30
+C-0215,Rhea Barlowe,Marlow,Millbrook,no,0
+C-0216,Nico Zabinski,Kestrel Point,Harbor,no,15
+C-0217,Briar Lane Bookshop,Marlow,Millbrook,yes,30
+C-0218,Nico Szabo,Ferncliff,Harbor,no,0
+C-0219,Greta Cardenas,Marlow,Millbrook,no,15
+C-0220,Greta Prescott,Alder Bay,Lakeside,no,15
+C-0221,Old Mill Bookshop,Marlow,Millbrook,no,30
+C-0222,Orchard Hill Florist,Ferncliff,Old Town,no,30
+C-0223,Arlo Zamora,Kestrel Point,Lakeside,no,15
+C-0224,Adele Bergstrom,Ferncliff,Old Town,yes,30
+C-0225,Rafael Bergstrom,Marlow,Millbrook,no,15
+C-0226,Imogen Dunmore,Kestrel Point,Harbor,no,0
+C-0227,Bluegill Property Group,Alder Bay,Lakeside,no,30
+C-0228,Zane Barlowe,Marlow,Millbrook,yes,30
+C-0229,Vaughn Vasquez,Stonebridge,Ridge,no,0
+C-0230,Freya Jessup,Ferncliff,Old Town,yes,30
+C-0231,Quinn Thackeray,Westvale,Ridge,yes,30
+C-0232,Idris Quintero,Marlow,Millbrook,no,15
+C-0233,Cyrus Ferreira,Ferncliff,Harbor,no,15
+C-0234,Arlo Thackeray,Marlow,Millbrook,no,0
+C-0235,Marco Jankowski,Ferncliff,Harbor,no,0
+C-0236,Tobias Fairbanks,Marlow,Millbrook,no,15
+C-0237,Rafael Delacroix,Stonebridge,Millbrook,yes,30
+C-0238,Cyrus Tremblay,Ferncliff,Old Town,no,15
+C-0239,Cora Northcott,Alder Bay,Lakeside,no,15
+C-0240,Arlo Coyle,Westvale,Ridge,yes,30
+C-0241,Nell Esterhazy,Ferncliff,Old Town,no,15
+C-0242,Joel Jankowski,Ferncliff,Harbor,yes,30
+C-0243,Sienna Quarles,Kestrel Point,Harbor,no,15
+C-0244,Marco Novak,Alder Bay,Lakeside,no,15
+C-0245,Orla Cardenas,Alder Bay,Lakeside,yes,30
+C-0246,Yara Zabinski,Ferncliff,Old Town,no,0
+C-0247,Mabel Jovanovic,Stonebridge,Ridge,no,15
+C-0248,Arlo Kowalczyk,Stonebridge,Ridge,no,0
+C-0249,Rhea Kettering,Ferncliff,Harbor,no,15
+C-0250,Imogen Lindgren,Westvale,Ridge,no,15
+C-0251,Joel Jessup,Marlow,Millbrook,no,15
+C-0252,Vaughn Winslow,Marlow,Millbrook,yes,30
+C-0253,Blake Jankowski,Ferncliff,Old Town,no,15
+C-0254,Nico Ueda,Marlow,Millbrook,no,0
+C-0255,Nell Rasmussen,Westvale,Ridge,no,15
+C-0256,Cyrus Jovanovic,Ferncliff,Old Town,no,15
+C-0257,Idris Nakashima,Kestrel Point,Harbor,no,15
+C-0258,Una Ferreira,Westvale,Ridge,no,15
+C-0259,Keira Okonkwo,Kestrel Point,Harbor,yes,30
+C-0260,Camila Szabo,Stonebridge,Ridge,yes,30
+C-0261,Hazel Gallagher,Stonebridge,Millbrook,no,15
+C-0262,Northgate Motel,Stonebridge,Millbrook,no,30
+C-0263,Rafael Lindgren,Stonebridge,Millbrook,yes,30
+C-0264,Elena Rasmussen,Ferncliff,Harbor,no,15
+C-0265,Adele Ashgrove,Ferncliff,Harbor,no,15
+C-0266,Keira Hartwell,Ferncliff,Old Town,no,15
+C-0267,Ridgeline Auto Body,Westvale,Ridge,no,30
+C-0268,Pinecrest Auto Body,Marlow,Millbrook,yes,45
+C-0269,Bluegill Yoga Studio,Stonebridge,Millbrook,no,45
+C-0270,Dexter Rasmussen,Alder Bay,Lakeside,yes,30
+C-0271,Yara Tremblay,Westvale,Ridge,yes,30
+C-0272,Kenji Jovanovic,Alder Bay,Lakeside,no,15
+C-0273,Una Kettering,Alder Bay,Lakeside,no,15
+C-0274,Leon Ostrowski,Ferncliff,Harbor,no,15
+C-0275,Riverstone Motel,Marlow,Millbrook,yes,30
+C-0276,Pierce Ekwueme,Ferncliff,Old Town,yes,30
+C-0277,Joel Ueda,Alder Bay,Lakeside,yes,30
+C-0278,Dexter Mbatha,Kestrel Point,Harbor,no,15
+C-0279,Mabel Ueda,Stonebridge,Millbrook,no,0
+C-0280,Blake Okonkwo,Alder Bay,Lakeside,no,15
+C-0281,Saltmarsh Apartments,Ferncliff,Old Town,no,30
+C-0282,Tobias Ashgrove,Kestrel Point,Harbor,no,15
+C-0283,Pierce Wexler,Stonebridge,Millbrook,yes,30
+C-0284,Dexter Delacroix,Westvale,Ridge,yes,30
+C-0285,Kenji Winslow,Ferncliff,Harbor,no,15
+C-0286,Juniper Property Group,Ferncliff,Harbor,no,30
+C-0287,Blake Szabo,Ferncliff,Harbor,no,0
+C-0288,Felix Dalgaard,Marlow,Millbrook,yes,30
+C-0289,Tidewater Garden Center,Marlow,Millbrook,no,30
+C-0290,Riverstone Bookshop,Marlow,Millbrook,no,45
+C-0291,Sienna Yardley,Ferncliff,Harbor,no,15
+C-0292,Idris Moreau,Alder Bay,Lakeside,yes,30
+C-0293,Copperleaf Apartments,Alder Bay,Lakeside,no,30
+C-0294,Blake Brennan,Westvale,Ridge,no,15
+C-0295,Cora Kettering,Alder Bay,Lakeside,no,15
+C-0296,Nico Ekwueme,Ferncliff,Old Town,yes,30
+C-0297,Pinecrest Motel,Stonebridge,Ridge,no,45
+C-0298,Tobias Moreau,Kestrel Point,Harbor,no,15
+C-0299,Zelda Alcott,Ferncliff,Harbor,no,15
+C-0300,Imogen Tolliver,Marlow,Millbrook,yes,30
+C-0301,Cedar Row Brewing Company,Westvale,Ridge,no,45
+C-0302,Joel Yilmaz,Westvale,Ridge,yes,30
+C-0303,Vera Varga,Ferncliff,Old Town,no,15
+C-0304,Quinn Galloway,Alder Bay,Lakeside,no,15
+C-0305,Pierce Tremblay,Westvale,Ridge,no,15
+C-0306,Adele Coyle,Ferncliff,Harbor,no,15
+C-0307,Northgate Bookshop,Ferncliff,Old Town,no,30
+C-0308,Avery Jovanovic,Kestrel Point,Lakeside,no,15
+C-0309,Avery Yardley,Ferncliff,Harbor,no,15
+C-0310,Bram Galloway,Stonebridge,Millbrook,no,0
+C-0311,Kenji Underhill,Westvale,Ridge,no,15
+C-0312,Silas Dunmore,Kestrel Point,Harbor,no,15
+C-0313,Ingrid Haverford,Ferncliff,Harbor,no,15
+C-0314,Hazel Ferreira,Alder Bay,Lakeside,no,0
+C-0315,Nico Ingram,Kestrel Point,Lakeside,no,15
+C-0316,Larkspur Property Group,Marlow,Millbrook,no,30
+C-0317,Rhea Esterhazy,Kestrel Point,Lakeside,yes,30
+C-0318,Thistle Property Group,Stonebridge,Millbrook,no,30
+C-0319,Cora Zamora,Alder Bay,Lakeside,no,15
+C-0320,Mabel Okonkwo,Alder Bay,Lakeside,no,15
+C-0321,Idris Tolliver,Kestrel Point,Harbor,yes,30
+C-0322,Adele Barlowe,Ferncliff,Old Town,no,15
+C-0323,Sienna Novak,Stonebridge,Millbrook,no,15
+C-0324,Odette Wexler,Alder Bay,Lakeside,no,15
+C-0325,Copperleaf Auto Body,Kestrel Point,Harbor,no,30
+C-0326,Sandpiper Motel,Alder Bay,Lakeside,no,30
+C-0327,Petra Ishikawa,Westvale,Ridge,no,15
+C-0328,Daphne Merriweather,Marlow,Millbrook,no,15
+C-0329,Jasper Zabinski,Ferncliff,Old Town,no,0
+C-0330,Vera Ybarra,Marlow,Millbrook,no,15
+C-0331,Willow Bend Laundry,Westvale,Ridge,no,30
+C-0332,Yusuf Nakashima,Stonebridge,Millbrook,no,15
+C-0333,Yara Barlowe,Alder Bay,Lakeside,no,15
+C-0334,Larkspur Hardware,Stonebridge,Ridge,no,45
+C-0335,Sandpiper Bakery,Alder Bay,Lakeside,no,45
+C-0336,Tamsin Alcott,Ferncliff,Old Town,no,15
+C-0337,Sienna Szabo,Marlow,Millbrook,yes,30
+C-0338,Ulric Lockhart,Alder Bay,Lakeside,no,0
+C-0339,Felix Tolliver,Ferncliff,Harbor,no,15
+C-0340,Tobias Kowalczyk,Westvale,Ridge,no,0
+C-0341,Bianca Kowalczyk,Westvale,Ridge,no,15
+C-0342,Juniper Apartments,Alder Bay,Lakeside,no,30
+C-0343,Rafael Tolliver,Ferncliff,Old Town,yes,30
+C-0344,Sienna Ellery,Kestrel Point,Harbor,no,15
+C-0345,Cedar Row Auto Body,Ferncliff,Old Town,no,45
+C-0346,Yara Esterhazy,Ferncliff,Harbor,no,0
+C-0347,Zelda Hartwell,Kestrel Point,Lakeside,no,0
+C-0348,Mabel Yilmaz,Ferncliff,Harbor,no,15
+C-0349,Harlan Ybarra,Ferncliff,Old Town,no,15
+C-0350,Zane Kowalczyk,Stonebridge,Ridge,yes,30
+C-0351,Sienna Wexler,Alder Bay,Lakeside,no,15
+C-0352,Dorian Jessup,Ferncliff,Harbor,no,15
+C-0353,Ironwood Print Shop,Stonebridge,Ridge,no,30
+C-0354,Quinn Brennan,Ferncliff,Old Town,no,15
+C-0355,Lila Lindgren,Ferncliff,Harbor,no,15
+C-0356,Kenji Ishikawa,Ferncliff,Harbor,no,15
+C-0357,Maple Court Property Group,Ferncliff,Harbor,no,30
+C-0358,Bianca Ekwueme,Ferncliff,Old Town,yes,30
+C-0359,Imogen Iverson,Westvale,Ridge,no,15
+C-0360,Bianca Vasquez,Marlow,Millbrook,yes,30
+C-0361,Zane Fenwick,Ferncliff,Harbor,no,0
+C-0362,Riverstone Property Group,Marlow,Millbrook,yes,45
+C-0363,Nico Ishikawa,Alder Bay,Lakeside,yes,30
+C-0364,Willow Bend Cafe,Ferncliff,Harbor,no,45
+C-0365,Hollis Jankowski,Alder Bay,Lakeside,no,15
+C-0366,Vera Dalgaard,Ferncliff,Harbor,yes,30
+C-0367,Bram Lindgren,Ferncliff,Old Town,yes,30
+C-0368,Bram Ellery,Westvale,Ridge,no,15
+C-0369,Freya Uribe,Ferncliff,Old Town,yes,30
+C-0370,Camila Fairbanks,Alder Bay,Lakeside,no,15
+C-0371,Maple Court Florist,Ferncliff,Harbor,yes,30
+C-0372,Tidewater Diner,Kestrel Point,Lakeside,no,45
+C-0373,Nell Ferreira,Marlow,Millbrook,no,15
+C-0374,Keira Varga,Ferncliff,Harbor,no,15
+C-0375,Emil Ingram,Ferncliff,Old Town,no,15
+C-0376,Una Bergstrom,Kestrel Point,Lakeside,no,0
+C-0377,Yara Ingram,Kestrel Point,Harbor,no,0
+C-0378,Willa Nakashima,Ferncliff,Harbor,no,15
+C-0379,Gemma Fenwick,Alder Bay,Lakeside,no,15
+C-0380,Hazel Ishikawa,Kestrel Point,Lakeside,no,0
+C-0381,Leon Thackeray,Alder Bay,Lakeside,no,15
+C-0382,Camila Dalgaard,Ferncliff,Harbor,no,15
+C-0383,Foxglove Garden Center,Stonebridge,Millbrook,no,45
+C-0384,Harlan Quintero,Marlow,Millbrook,no,0
+C-0385,Rhea Coyle,Kestrel Point,Harbor,yes,30
+C-0386,Yara Dalgaard,Alder Bay,Lakeside,no,0
+C-0387,Ingrid Merriweather,Marlow,Millbrook,no,0
+C-0388,Dexter Stroud,Alder Bay,Lakeside,no,15
+C-0389,Camila Whitlock,Ferncliff,Old Town,no,15
+C-0390,Juniper Cafe,Kestrel Point,Harbor,no,30
+C-0391,Rafael Nakashima,Marlow,Millbrook,no,15
+C-0392,Dexter Zabinski,Kestrel Point,Harbor,no,15
+C-0393,Bram Calloway,Ferncliff,Old Town,no,15
+C-0394,Nell Barlowe,Alder Bay,Lakeside,no,15
+C-0395,Yara Haverford,Stonebridge,Ridge,no,15
+C-0396,June Calloway,Ferncliff,Harbor,no,15
+C-0397,Cora Brennan,Alder Bay,Lakeside,yes,30
+C-0398,Harlan Zamora,Westvale,Ridge,no,15
+C-0399,Gideon Dunmore,Stonebridge,Millbrook,no,15
+C-0400,Nell Underhill,Stonebridge,Millbrook,yes,30

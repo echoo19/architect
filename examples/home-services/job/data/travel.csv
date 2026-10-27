@@ -1,0 +1,26 @@
+from_zone,to_zone,minutes
+Harbor,Harbor,10
+Harbor,Old Town,20
+Harbor,Millbrook,35
+Harbor,Ridge,45
+Harbor,Lakeside,25
+Old Town,Harbor,20
+Old Town,Old Town,10
+Old Town,Millbrook,20
+Old Town,Ridge,30
+Old Town,Lakeside,35
+Millbrook,Harbor,35
+Millbrook,Old Town,20
+Millbrook,Millbrook,10
+Millbrook,Ridge,20
+Millbrook,Lakeside,45
+Ridge,Harbor,45
+Ridge,Old Town,30
+Ridge,Millbrook,20
+Ridge,Ridge,10
+Ridge,Lakeside,55
+Lakeside,Harbor,25
+Lakeside,Old Town,35
+Lakeside,Millbrook,45
+Lakeside,Ridge,55
+Lakeside,Lakeside,10
