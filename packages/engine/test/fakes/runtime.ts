@@ -2,6 +2,7 @@ import {
   GuardError,
   type CheckResult,
   type Harness,
+  type HarnessTool,
   type Job,
   type Task,
   type Trace,
@@ -128,6 +129,11 @@ export class FakeRuntime implements RuntimeDeps {
 
   createSandbox() {
     return { dispose: () => void (this.sandboxesDisposed += 1) };
+  }
+
+  /** A tool doesn't load when its code says so, the way a real syntax error would. */
+  async toolLoadProblem(_sandbox: unknown, tool: HarnessTool) {
+    return tool.code.includes('does not parse') ? "SyntaxError: expecting ';'" : null;
   }
 
   createChecker() {

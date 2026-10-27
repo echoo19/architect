@@ -295,6 +295,33 @@ function changedFiles(hypothesis: Hypothesis): string[] {
   return [...new Set(hypothesis.edits.map((edit) => edit.path))];
 }
 
+function proposalOf(hypothesis: Hypothesis): Unusable['proposal'] {
+  return {
+    title: hypothesis.title,
+    diagnosis: hypothesis.diagnosis,
+    files: changedFiles(hypothesis),
+  };
+}
+
+/**
+ * Why a tool the change set added or edited doesn't load in the sandbox, such as a syntax error,
+ * or null when they all load. Only the code's top level runs; no tool is called (decision 025).
+ */
+async function toolLoadProblem(
+  state: RunState,
+  candidate: Harness,
+  hypothesis: Hypothesis,
+): Promise<string | null> {
+  const touched = new Set(hypothesis.edits.map((edit) => edit.path));
+  const sandbox = await state.resources.sandbox();
+  for (const tool of candidate.tools) {
+    if (!touched.has(`tools/${tool.name}.js`) && !touched.has(`tools/${tool.name}.json`)) continue;
+    const problem = await state.ctx.deps.runtime.toolLoadProblem(sandbox, tool);
+    if (problem !== null) return `tools/${tool.name}.js doesn't load: ${problem}`;
+  }
+  return null;
+}
+
 /** Why a recorded reply can't become a candidate, and what it proposed, for its rejection. */
 interface Unusable {
   reason: string;
@@ -325,15 +352,10 @@ async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<Un
     );
   } catch (error) {
     if (!isRejectedChange(error)) throw error;
-    return {
-      reason: error.message,
-      proposal: {
-        title: hypothesis.title,
-        diagnosis: hypothesis.diagnosis,
-        files: changedFiles(hypothesis),
-      },
-    };
+    return { reason: error.message, proposal: proposalOf(hypothesis) };
   }
+  const problem = await toolLoadProblem(state, candidate, hypothesis);
+  if (problem !== null) return { reason: problem, proposal: proposalOf(hypothesis) };
   const saved = await state.versions.save(candidate, stored.baseVersion);
   state.saveRound({
     ...stored,

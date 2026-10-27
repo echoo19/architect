@@ -120,6 +120,31 @@ describe('sandbox', () => {
     );
   });
 
+  it('checks that a tool loads without calling it', async () => {
+    expect(
+      valueOf(
+        await sandbox.checkTool(
+          tool('never_called', 'function run() { throw new Error("run was called"); }'),
+        ),
+      ),
+    ).toBeNull();
+    const typo = failureOf(
+      await sandbox.checkTool(
+        tool('find_slot', 'function run(args, ctx) {\n  var start Day = null;\n}'),
+      ),
+    );
+    expect(typo.kind).toBe('load');
+    expect(typo.message).toMatch(/^SyntaxError: /);
+    expect(typo.message).toContain('tools/find_slot.js:2');
+    expect(failureOf(await sandbox.checkTool(tool('no_run', 'var x = 1;')))).toEqual({
+      kind: 'load',
+      message: 'The tool code must define function run(args, ctx).',
+    });
+    expect(
+      failureOf(await sandbox.checkTool(tool('top_level', 'throw new Error("at load");'))).message,
+    ).toContain('Error: at load');
+  });
+
   it('runs a validator over the end state and the original data', async () => {
     const source = `var validators = {
       appended: function (params, ctx) {

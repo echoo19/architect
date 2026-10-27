@@ -53,6 +53,10 @@ export const PRELUDE = `(function (host) {
   }
 
   return {
+    checkTool: function () {
+      if (typeof run !== 'function') throw loadError('The tool code must define function run(args, ctx).');
+      return 'null';
+    },
     runTool: function (argsJson) {
       if (typeof run !== 'function') throw loadError('The tool code must define function run(args, ctx).');
       var ctx = Object.freeze({

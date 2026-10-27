@@ -96,7 +96,9 @@ function execute(
               toolCalls: job.toolCalls,
             }),
           ];
-    const result = callWithStrings(vm, kit, job.kind === 'tool' ? 'runTool' : 'runValidator', args);
+    const entry =
+      job.kind === 'validator' ? 'runValidator' : job.loadOnly ? 'checkTool' : 'runTool';
+    const result = callWithStrings(vm, kit, entry, job.kind === 'tool' && job.loadOnly ? [] : args);
     if (result.error) return fail(vm, result.error, 'run', file, limits);
 
     extracting(vm);
@@ -276,14 +278,15 @@ function isErrorLike(value: unknown): value is { name: string; message: string; 
   return typeof candidate.name === 'string' && typeof candidate.message === 'string';
 }
 
-/** The first stack frame in the job's own file, e.g. `tools/invoice_total.js:3:14`. */
+/**
+ * The first stack frame in the job's own file, e.g. `tools/invoice_total.js:3:14`. Runtime
+ * errors write it in parentheses, syntax errors as `at tools/x.js:2:13`.
+ */
 function locate(stack: unknown, file: string): string | null {
   if (typeof stack !== 'string') return null;
-  const marker = `(${file}:`;
-  const line = stack.split('\n').find((frame) => frame.includes(marker));
-  if (!line) return null;
-  const start = line.indexOf(marker) + 1;
-  return line.slice(start, line.indexOf(')', start));
+  const start = stack.indexOf(`${file}:`);
+  if (start < 0) return null;
+  return /^[^\s)]+/.exec(stack.slice(start))?.[0] ?? null;
 }
 
 function preview(value: unknown): string {

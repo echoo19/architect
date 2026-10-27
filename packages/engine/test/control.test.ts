@@ -476,6 +476,41 @@ describe('authoring failures', () => {
     );
   });
 
+  it('sends a tool that does not load back for its fix, before any task runs', async () => {
+    const job = await setUp({ job: { budget: { ...defaultJob().budget, maxRounds: 1 } } });
+    const spec = JSON.stringify({
+      name: 'price_job',
+      description: 'Prices a finished job.',
+      parameters: { type: 'object', properties: {} },
+    });
+    const withTool = (code: string) => ({
+      ...hypothesis('Add a pricing tool', 'Service desk.\nfix:invoice'),
+      edits: [
+        { op: 'write' as const, path: 'system.md', content: 'Service desk.\nfix:invoice' },
+        { op: 'write' as const, path: 'tools/price_job.json', content: spec },
+        { op: 'write' as const, path: 'tools/price_job.js', content: code },
+      ],
+    });
+    world.mentor.script = (_request, call) =>
+      withTool(call === 1 ? 'function run() { does not parse }' : 'function run() { return 1; }');
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    expect(world.mentor.requests).toHaveLength(2);
+    expect(world.mentor.requests[1]?.messages.at(-1)?.content).toContain(
+      "tools/price_job.js doesn't load: SyntaxError: expecting ';'",
+    );
+    expect(engine.store.rounds.get(run.id, 1)).toMatchObject({
+      rejected: false,
+      reply: { fix: 1 },
+      round: { decision: 'kept', title: 'Add a pricing tool' },
+    });
+    const roundOne = engine.store.attempts
+      .list({ runId: run.id, split: 'dev' })
+      .filter((attempt) => attempt.round === 1);
+    expect(new Set(roundOne.map((attempt) => attempt.harnessVersion))).toEqual(new Set([1, 2]));
+  });
+
   it('rejects a change set whose fix does not validate either, shows the mentor why, and goes on', async () => {
     const job = await setUp();
     world.mentor.script = (_request, call) =>

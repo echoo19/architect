@@ -87,6 +87,24 @@ class ProcessSandbox implements Sandbox {
     );
   }
 
+  checkTool(tool: Pick<HarnessTool, 'name' | 'code'>): Promise<SandboxOutcome> {
+    const blobs = new RequestBlobs(this.snapshots);
+    return this.enqueue(
+      `tool ${tool.name}`,
+      {
+        kind: 'tool',
+        name: tool.name,
+        code: tool.code,
+        args: {},
+        files: [],
+        tables: {},
+        texts: {},
+        loadOnly: true,
+      },
+      blobs,
+    );
+  }
+
   runValidator(
     source: string,
     validator: string,
