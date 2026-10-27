@@ -1,16 +1,22 @@
 import {
   AppInfoSchema,
   AppSettingsSchema,
+  DraftTurnSchema,
+  FileDiffSchema,
   GraduateSummarySchema,
   JobSchema,
   JobSummarySchema,
   OllamaStatusSchema,
   ReportCardSchema,
   RunDetailSchema,
+  RunSchema,
   SecretStatusSchema,
+  TraceSchema,
   WorkspaceChatSchema,
   WorkspaceMessageSchema,
   type ArchitectApi,
+  type Job,
+  type Method,
 } from '@architect/shared';
 import { z } from 'zod';
 
@@ -56,3 +62,26 @@ export const api = {
 };
 
 export { bridge as architect };
+
+/*
+ * The creation flow (Describe, Define, Train, Report). Its writes return data the screens keep
+ * using, so those replies are parsed like every read.
+ */
+export const flowApi = {
+  pickFiles: (options: Parameters<ArchitectApi['files']['pick']>[0]) =>
+    read('files.pick', z.array(z.string()), bridge().files.pick(options)),
+  draftStart: (description: string, files: string[]) =>
+    read('jobs.draftStart', DraftTurnSchema, bridge().jobs.draftStart(description, files)),
+  draftReply: (sessionId: string, text: string) =>
+    read('jobs.draftReply', DraftTurnSchema, bridge().jobs.draftReply(sessionId, text)),
+  saveJob: (job: Job) => read('jobs.save', JobSchema, bridge().jobs.save(job)),
+  createSample: () => read('jobs.createSample', JobSchema, bridge().jobs.createSample()),
+  startRun: (jobId: string, options: { method: Method; seed?: number }) =>
+    read('runs.start', RunSchema, bridge().runs.start(jobId, options)),
+  runs: (jobId: string) => read('runs.list', z.array(RunSchema), bridge().runs.list(jobId)),
+  trace: (attemptId: string) => read('runs.trace', TraceSchema, bridge().runs.trace(attemptId)),
+  roundDiff: (runId: string, round: number) =>
+    read('runs.roundDiff', z.array(FileDiffSchema), bridge().runs.roundDiff(runId, round)),
+  acceptGraduate: (runId: string) =>
+    read('graduates.accept', GraduateSummarySchema, bridge().graduates.accept(runId)),
+};
