@@ -1,1 +1,15 @@
+export { createMentor, createStudent } from './factory';
+export { createModelMentor, MentorReplyError } from './mentor/model-mentor';
+export type { ModelMentorConfig } from './mentor/providers';
+export { createOllamaStudent } from './student/ollama';
+export {
+  listOllamaModels,
+  ollamaVersion,
+  pullOllamaModel,
+  type OllamaModelEntry,
+} from './student/ollama-api';
+export { createOpenAICompatibleStudent } from './student/openai-compatible';
 export { isLoopbackUrl } from './loopback';
+export type { AdapterDeps, MentorDeps, StudentDeps } from './deps';
+export type { Timeouts } from './http/client';
+export type { RetryOptions, Sleep } from './http/retry';
