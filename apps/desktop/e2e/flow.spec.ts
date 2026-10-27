@@ -131,11 +131,13 @@ for (const theme of THEMES) {
     const local = page.getByRole('radio', { name: /This computer/ });
     const hosted = page.getByRole('radio', { name: /Hosted on Together/ });
     await expect(local).toBeChecked();
-    await expect(local).toContainText('1 of 12 rounds fit in 4 hours of training');
+    await expect(local).toContainText(
+      'No full round fits in 4 hours of training; one takes about 4 to 7 hours',
+    );
     await expect(local).toContainText('About 7 hours in all, with the final test');
-    await expect(hosted).toContainText('10 of 12 rounds fit in 4 hours of training');
+    await expect(hosted).toContainText('5 to 10 of 12 rounds fit in 4 hours of training');
     await expect(
-      page.getByText('A hosted copy fits 10 rounds in the time this computer fits 1.'),
+      page.getByText('A hosted copy fits 5 to 10 rounds in the time this computer fits none.'),
     ).toBeVisible();
     // The choices the run below starts with, so every later screen agrees with this one.
     await hosted.click();
@@ -177,7 +179,7 @@ for (const theme of THEMES) {
     const success = page.getByRole('region', { name: 'Check tasks right' });
     const rounds = page.getByRole('region', { name: 'Rounds' });
     await expect(success).toContainText('78%');
-    await expect(success).toContainText('31 of 40');
+    await expect(success).toContainText('62 of 80, over 2 checks');
     await expect(page.getByRole('status').filter({ hasText: 'Scoring the change' })).toBeVisible();
     await expect(rounds).toContainText('58% to 55%');
     await expect(rounds).toContainText('Reverted');
@@ -187,7 +189,7 @@ for (const theme of THEMES) {
         '78% after round 3, round 4 in progress. Target 90%.',
     );
     await expect(page.getByRole('region', { name: 'Resources' })).toContainText(
-      '1 h 12 min of 4 h',
+      '1 h 46 min of 4 h',
     );
     await expect(page.getByRole('region', { name: 'Current round' })).toContainText(
       '+3 to +6 check tasks right',
@@ -226,9 +228,13 @@ for (const theme of THEMES) {
       roundDrawer.getByText('Work in integer cents from start to finish.'),
     ).toBeVisible();
     await expect(roundDrawer).toContainText(
-      '8 more check tasks passed (23 to 31 of 40), and no task type got worse.',
+      '9 more check tasks passed on the first check (23 to 32 of 40). Checked again on new ' +
+        'seeds: 16 more over both checks (46 to 62 of 80), and no task type got worse.',
     );
-    await expect(roundDrawer).toContainText("The result was inside Spark's predicted range.");
+    await expect(roundDrawer).toContainText("The first check was inside Spark's predicted range.");
+    await expect(
+      roundDrawer.getByText('Checked again on new seeds, over both checks'),
+    ).toBeVisible();
     await expect(roundDrawer).not.toContainText('@@');
     await capture(page, `flow-round-${theme}`);
     await page.keyboard.press('Escape');
@@ -277,6 +283,9 @@ for (const theme of THEMES) {
       page.getByText('Up from 40% before training (Glimmer with no setup)'),
     ).toBeVisible();
     await expect(comparison.getByRole('row', { name: /Architect/ })).toContainText('+52 points');
+    await expect(page.getByRole('region', { name: 'What helped most' })).toContainText(
+      '+16 check tasks over 2 checks',
+    );
     await expect(page.getByRole('heading', { name: "What it won't do" })).toBeVisible();
     await capture(page, `flow-report-${theme}`);
 

@@ -125,10 +125,10 @@ export const FLOW_ENGINE: EngineReplies = {
 function progressed(overrides: Partial<Run>): Run {
   return makeRun({
     phase: 'attempting',
-    updatedAt: at(76),
+    updatedAt: at(130),
     currentVersion: 4,
-    devCurrent: { pass: 34, total: 40 },
-    totals: { ...makeRun({}).totals, rounds: 5, wallMs: 76 * 60_000 },
+    devCurrent: { pass: 68, total: 80 },
+    totals: { ...makeRun({}).totals, rounds: 5, wallMs: 130 * 60_000 },
     ...overrides,
   });
 }
@@ -138,14 +138,17 @@ export function roundFourKept(): RunEvent[] {
   const decided: Round = {
     ...(rounds[3] as Round),
     status: 'decided',
-    devBefore: { pass: 31, total: 40 },
-    devAfter: { pass: 34, total: 40 },
+    devBefore: { pass: 62, total: 80 },
+    devAfter: { pass: 68, total: 80 },
+    firstMeasurement: { devBefore: { pass: 31, total: 40 }, devAfter: { pass: 35, total: 40 } },
     decision: 'kept',
-    decisionReason: 'Dev 31/40 → 34/40, no type lost more than one',
-    endedAt: at(76),
+    decisionReason:
+      'Dev 31/40 → 35/40, measured again on new seeds: 62/80 → 68/80 over 2 runs, no type ' +
+      'lost more than two',
+    endedAt: at(130),
   };
-  const next = round(5, { status: 'attempting', train: { pass: 0, total: 0 }, startedAt: at(76) });
-  const base = { runId: FLOW.runId, at: at(76) };
+  const next = round(5, { status: 'attempting', train: { pass: 0, total: 0 }, startedAt: at(130) });
+  const base = { runId: FLOW.runId, at: at(130) };
   return [
     { ...base, type: 'round.updated', round: decided },
     { ...base, type: 'run.updated', run: progressed({}) },
@@ -172,7 +175,7 @@ export function roundFourKept(): RunEvent[] {
 }
 
 export function paused(): RunEvent[] {
-  const run = progressed({ status: 'paused', updatedAt: at(78) });
+  const run = progressed({ status: 'paused', updatedAt: at(132) });
   return [{ type: 'run.updated', runId: FLOW.runId, at: run.updatedAt, run }];
 }
 
@@ -180,20 +183,20 @@ export function paused(): RunEvent[] {
 function trained(overrides: Partial<Run>): Run {
   return progressed({
     currentVersion: STORY.version,
-    devCurrent: { pass: 36, total: 40 },
+    devCurrent: { pass: 72, total: 80 },
     stopReason: 'target_met',
-    totals: { ...makeRun({}).totals, rounds: 7, mentorUsd: 0.41, wallMs: 158 * 60_000 },
+    totals: { ...makeRun({}).totals, rounds: 7, mentorUsd: 0.41, wallMs: 201 * 60_000 },
     ...overrides,
   });
 }
 
 export function finalTest(done: number): RunEvent[] {
-  const base = { runId: FLOW.runId, at: at(160) };
+  const base = { runId: FLOW.runId, at: at(202) };
   return [
     {
       ...base,
       type: 'run.updated',
-      run: trained({ status: 'testing', phase: 'testing', updatedAt: at(160) }),
+      run: trained({ status: 'testing', phase: 'testing', updatedAt: at(202) }),
     },
     {
       ...base,
@@ -208,7 +211,7 @@ export function finalTest(done: number): RunEvent[] {
 }
 
 export function finished(): RunEvent[] {
-  const base = { runId: FLOW.runId, at: at(310) };
+  const base = { runId: FLOW.runId, at: at(352) };
   return [
     {
       ...base,
@@ -216,8 +219,8 @@ export function finished(): RunEvent[] {
       run: trained({
         status: 'finished',
         phase: 'done',
-        updatedAt: at(310),
-        endedAt: at(310),
+        updatedAt: at(352),
+        endedAt: at(352),
         graduateId: FLOW.graduateId,
       }),
     },

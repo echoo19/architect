@@ -18,10 +18,13 @@ import type {
  * the sample job from DECISIONS.md 005, a service desk for Ferncliff Home Services, trained on a
  * hosted copy of the student and tested on this computer.
  *
- * Check tasks: 16 of 40 at the start; round 1 kept (23), round 2 reverted (22), round 3 kept
- * (31), round 4 kept (34), rounds 5 and 6 reverted, round 7 kept (36 of 40, the 90% target).
- * Seven rounds over 2 h 38 min cost $0.41 of Spark. The final test: 55 of 60, and the bare
- * baseline gets 24 of 60, the same 40% Glimmer scored on the check tasks before any teaching.
+ * Check tasks: 16 of 40 at the start. A change that clears the first check is checked again on
+ * new seeds and kept on both checks added up (decision 022), so kept rounds score out of 80:
+ * round 1 kept (16 to 24, then 32 to 46 over both), round 2 reverted (23 to 22), round 3 kept
+ * (23 to 32, then 46 to 62), round 4 kept (31 to 35, then 62 to 68), rounds 5 and 6 reverted,
+ * round 7 kept (72 of 80, the 90% target). Seven rounds over 3 h 21 min cost $0.41 of Spark.
+ * The final test: 55 of 60, and the bare baseline gets 24 of 60, the same 40% Glimmer scored on
+ * the check tasks before any teaching.
  */
 
 export const AT = '2026-10-27T15:00:00.000Z';
@@ -112,7 +115,7 @@ export const job: Job = {
   },
   startingHarness: { kind: 'blank' },
   splits: { seed: STORY.seed, calibration: 10, train: 60, dev: 40, test: 60 },
-  evaluation: { trainBatch: 12, minDevGain: 2, maxTypeRegression: 1, devRepeats: 1, patience: 3 },
+  evaluation: { trainBatch: 12, minDevGain: 2, maxTypeRegression: 1, devRepeats: 1, patience: 4 },
 };
 
 /** The run as it was trained: on the hosted copy. */
@@ -127,10 +130,10 @@ export function makeRun(overrides: Partial<Run>): Run {
     status: 'running',
     phase: 'evaluating',
     createdAt: AT,
-    updatedAt: at(72),
+    updatedAt: at(106),
     currentVersion: 3,
     devBaseline: { pass: 16, total: 40 },
-    devCurrent: { pass: 31, total: 40 },
+    devCurrent: { pass: 62, total: 80 },
     totals: {
       mentorUsd: 0.23,
       mentorInputTokens: 112_000,
@@ -138,8 +141,8 @@ export function makeRun(overrides: Partial<Run>): Run {
       studentInputTokens: 1_900_000,
       studentOutputTokens: 210_000,
       rounds: 4,
-      attempts: 236,
-      wallMs: 72 * 60_000,
+      attempts: 492,
+      wallMs: 106 * 60_000,
     },
     ...overrides,
   };
@@ -167,10 +170,13 @@ export const rounds: Round[] = [
     predicted: { devDeltaMin: 4, devDeltaMax: 8, rationale: 'Most invoice failures share it.' },
     files: ['system.md', 'skills/price-a-job.md'],
     candidateVersion: 1,
-    devBefore: { pass: 16, total: 40 },
-    devAfter: { pass: 23, total: 40 },
+    devBefore: { pass: 32, total: 80 },
+    devAfter: { pass: 46, total: 80 },
+    firstMeasurement: { devBefore: { pass: 16, total: 40 }, devAfter: { pass: 24, total: 40 } },
     decision: 'kept',
-    decisionReason: 'Dev 16/40 → 23/40, no type lost more than one',
+    decisionReason:
+      'Dev 16/40 → 24/40, measured again on new seeds: 32/80 → 46/80 over 2 runs, no type ' +
+      'lost more than two',
   }),
   round(2, {
     title: 'Filter tables before reading them',
@@ -191,10 +197,13 @@ export const rounds: Round[] = [
     predicted: { devDeltaMin: 5, devDeltaMax: 9, rationale: 'Every invoice total depends on it.' },
     files: ['system.md', 'skills/price-a-job.md'],
     candidateVersion: 3,
-    devBefore: { pass: 23, total: 40 },
-    devAfter: { pass: 31, total: 40 },
+    devBefore: { pass: 46, total: 80 },
+    devAfter: { pass: 62, total: 80 },
+    firstMeasurement: { devBefore: { pass: 23, total: 40 }, devAfter: { pass: 32, total: 40 } },
     decision: 'kept',
-    decisionReason: 'Dev 23/40 → 31/40, no type lost more than one',
+    decisionReason:
+      'Dev 23/40 → 32/40, measured again on new seeds: 46/80 → 62/80 over 2 runs, no type ' +
+      'lost more than two',
   }),
   round(4, {
     status: 'evaluating',
@@ -310,7 +319,13 @@ function lineage(
     files: source.files,
     causeTaskIds: ['task_att_0301', 'task_att_0305'],
     predicted: source.predicted ?? { devDeltaMin: 0, devDeltaMax: 0, rationale: '' },
-    measured: { devBefore: before, devAfter: after, delta: after.pass - before.pass, perType },
+    measured: {
+      devBefore: before,
+      devAfter: after,
+      delta: after.pass - before.pass,
+      perType,
+      ...(source.firstMeasurement ? { firstMeasurement: source.firstMeasurement } : {}),
+    },
     decision: source.decision ?? 'kept',
     decisionReason: source.decisionReason ?? '',
     versionFrom,
@@ -330,9 +345,9 @@ export const detail: RunDetail = {
   recentAttempts,
   lineage: [
     lineage(round1, 0, [
-      { type: 'invoice', before: 3, after: 9 },
-      { type: 'overdue', before: 8, after: 8 },
-      { type: 'scheduling', before: 5, after: 6 },
+      { type: 'invoice', before: 6, after: 18 },
+      { type: 'overdue', before: 16, after: 16 },
+      { type: 'scheduling', before: 10, after: 12 },
     ]),
     lineage(round2, 1, [
       { type: 'invoice', before: 9, after: 9 },
@@ -340,9 +355,9 @@ export const detail: RunDetail = {
       { type: 'scheduling', before: 6, after: 6 },
     ]),
     lineage(round3, 1, [
-      { type: 'invoice', before: 9, after: 15 },
-      { type: 'overdue', before: 8, after: 10 },
-      { type: 'scheduling', before: 6, after: 6 },
+      { type: 'invoice', before: 18, after: 30 },
+      { type: 'overdue', before: 16, after: 20 },
+      { type: 'scheduling', before: 12, after: 12 },
     ]),
   ],
 };
@@ -489,16 +504,16 @@ function report(
     },
     dev: {
       baseline: { pass: 16, total: 40 },
-      final: { pass: 36, total: 40 },
+      final: { pass: 72, total: 80 },
       curve: [
         { round: 0, score: { pass: 16, total: 40 }, decision: 'baseline' },
-        { round: 1, score: { pass: 23, total: 40 }, decision: 'kept' },
+        { round: 1, score: { pass: 46, total: 80 }, decision: 'kept' },
         { round: 2, score: { pass: 22, total: 40 }, decision: 'reverted' },
-        { round: 3, score: { pass: 31, total: 40 }, decision: 'kept' },
-        { round: 4, score: { pass: 34, total: 40 }, decision: 'kept' },
+        { round: 3, score: { pass: 62, total: 80 }, decision: 'kept' },
+        { round: 4, score: { pass: 68, total: 80 }, decision: 'kept' },
         { round: 5, score: { pass: 33, total: 40 }, decision: 'reverted' },
         { round: 6, score: { pass: 35, total: 40 }, decision: 'reverted' },
-        { round: 7, score: { pass: 36, total: 40 }, decision: 'kept' },
+        { round: 7, score: { pass: 72, total: 80 }, decision: 'kept' },
       ],
     },
     cost: {
@@ -512,9 +527,9 @@ function report(
     topInterventions:
       method === 'architect'
         ? [
-            { round: 3, title: 'Cents, not dollars', delta: 8 },
-            { round: 1, title: 'Read the rate card first', delta: 7 },
-            { round: 4, title: 'Check the zone travel time', delta: 3 },
+            { round: 3, title: 'Cents, not dollars', delta: 16, runs: 2 },
+            { round: 1, title: 'Read the rate card first', delta: 14, runs: 2 },
+            { round: 4, title: 'Check the zone travel time', delta: 6, runs: 2 },
           ]
         : [],
     requirements: {
@@ -530,7 +545,7 @@ export const reports: Record<string, ReportCard> = {
   [STORY.runId]: report(STORY.runId, 'architect', 55, {
     mentorUsd: 0.41,
     rounds: 7,
-    wallMs: 158 * 60_000,
+    wallMs: 201 * 60_000,
   }),
   run_bare: report('run_bare', 'bare', 24, { mentorUsd: 0, rounds: 0, wallMs: 41 * 60_000 }),
   run_oneshot: report('run_oneshot', 'one_shot', 42, {
