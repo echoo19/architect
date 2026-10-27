@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import { registerAppHandlers } from './handlers/app';
+import { registerConnectionHandlers } from './handlers/connections';
 import { registerSecretsHandlers } from './handlers/secrets';
 import { registerSettingsHandlers } from './handlers/settings';
 import { IpcRouter } from './ipc/router';
@@ -52,9 +53,11 @@ async function start(): Promise<void> {
     isTrustedSender: (url) => isAppUrl(url, origin),
     targets: () => BrowserWindow.getAllWindows().map((window) => window.webContents),
   });
+  const keys = (ref: string) => secrets.get(ref);
   registerAppHandlers(router);
   registerSettingsHandlers(router, settings);
   registerSecretsHandlers(router, secrets);
+  registerConnectionHandlers(router, keys);
   settings.onChange((next) => router.emit('settings', 'onChange', next));
 
   let main = await openMainWindow();
