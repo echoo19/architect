@@ -60,12 +60,12 @@ describe('workspace labels', () => {
   });
 
   it('says how long the agent worked', () => {
-    expect(workedLabel(message({ workedMs: 3200 }))).toBe('Worked for 3s');
-    expect(workedLabel(message({ workedMs: 200 }))).toBe('Worked for 1s');
-    expect(workedLabel(message({ workedMs: 72_000 }))).toBe('Worked for 1m 12s');
-    expect(workedLabel(message({ workedMs: 120_000 }))).toBe('Worked for 2m');
+    expect(workedLabel(message({ workedMs: 3200 }))).toBe('Worked for 3 s');
+    expect(workedLabel(message({ workedMs: 200 }))).toBe('Worked for 1 s');
+    expect(workedLabel(message({ workedMs: 72_000 }))).toBe('Worked for 1 min 12 s');
+    expect(workedLabel(message({ workedMs: 120_000 }))).toBe('Worked for 2 min');
     expect(workedLabel(message({ steps: [step('a', 'done', 900), step('b', 'done', 1300)] }))).toBe(
-      'Worked for 2s',
+      'Worked for 2 s',
     );
     expect(workedLabel(message({ steps: [step('a', 'done'), step('b', 'done')] }))).toBe('2 steps');
   });

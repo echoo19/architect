@@ -39,7 +39,7 @@ function ReportSummary({ report }: { report: ReportCard }) {
 
   return (
     <div className="flex flex-col gap-8 pt-1">
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-px overflow-hidden rounded-2xl border border-line-card bg-line-card">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-px overflow-hidden rounded-2xl border border-line-card bg-line-card">
         <Stat
           className={cell}
           value={formatPercent(test.score)}
@@ -51,7 +51,7 @@ function ReportSummary({ report }: { report: ReportCard }) {
         />
         <Stat
           className={cell}
-          value={formatAnswerTime(test.latencyMs.p50, true)}
+          value={formatAnswerTime(test.latencyMs.p50)}
           label={`Typical answer, ${place}`}
           note={`95% of answers within ${formatAnswerTime(test.latencyMs.p95)}`}
           noteFont="text"
