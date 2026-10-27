@@ -79,7 +79,7 @@ for (const theme of THEMES) {
     await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
     await expect(page.getByText('Running · 0.12.6')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Download' }).click();
+    await page.getByRole('button', { name: 'Download', exact: true }).click();
     await expect.poll(() => callsTo(app, 'ollama:pull')).toEqual([[STUDENT_MODEL]]);
     await emitPullProgress(app, { model: STUDENT_MODEL, status: 'pulling manifest', done: false });
     await emitPullProgress(app, {
@@ -268,7 +268,7 @@ for (const theme of THEMES) {
     await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
     const confirm = page.getByRole('dialog', { name: 'Delete Service desk?' });
     await expect(confirm).toBeVisible();
-    await page.keyboard.press('Escape');
+    await confirm.getByRole('button', { name: 'Cancel' }).click();
     await expect(confirm).toBeHidden();
     await expect(dialog).toBeVisible();
     expect(await callsTo(app, 'graduates:remove')).toEqual([]);

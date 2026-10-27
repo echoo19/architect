@@ -134,7 +134,8 @@ for (const theme of THEMES) {
     await expect(local).toContainText(
       'No full round fits in 4 hours of training; one takes about 4 to 7 hours',
     );
-    await expect(local).toContainText('About 7 hours in all, with the final test');
+    await expect(local).toContainText('Too slow for this time limit');
+    await expect(hosted).toContainText('About 7 hours in all, with the final test');
     await expect(hosted).toContainText('5 to 10 of 12 rounds fit in 4 hours of training');
     await expect(
       page.getByText('A hosted copy fits 5 to 10 rounds in the time this computer fits none.'),
@@ -193,7 +194,7 @@ for (const theme of THEMES) {
       '1 h 46 min of 4 h',
     );
     await expect(page.getByRole('region', { name: 'Current round' })).toContainText(
-      '+3 to +6 check tasks right',
+      '+3 to +6 more of the 40 check tasks right',
     );
     await capture(page, `flow-train-${theme}`);
 
@@ -238,6 +239,17 @@ for (const theme of THEMES) {
     await capture(page, `flow-round-${theme}`);
     await page.keyboard.press('Escape');
     await expect(roundDrawer).toBeHidden();
+
+    // A blank start's first round is Spark's whole first draft, kept without a keep check.
+    await rounds.getByRole('button', { name: /Work from the office files/ }).click();
+    const draftDrawer = page.getByRole('dialog', { name: 'Round 1: Work from the office files' });
+    await expect(draftDrawer).toContainText(
+      "Spark wrote the agent's first full setup from the job and its example tasks, before " +
+        'watching it work. It is kept as the starting point; later rounds keep only measured gains.',
+    );
+    await expect(draftDrawer).not.toContainText('Run a second time');
+    await page.keyboard.press('Escape');
+    await expect(draftDrawer).toBeHidden();
 
     // Pause waits for the engine to say it has paused.
     await page.getByRole('button', { name: 'Pause' }).click();
