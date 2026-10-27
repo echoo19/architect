@@ -64,7 +64,10 @@ Tools run in a QuickJS sandbox with no network, no clock and no randomness. `ctx
 ```json
 { "title": "After-hours job with a plan member",
   "task_types": ["invoice"],
-  "messages": [ { "role": "user", "content": "..." }, { "role": "assistant", "content": "...", "tool_calls": [] }, { "role": "tool", "name": "read_table", "content": "..." } ] }
+  "messages": [
+    { "role": "user", "content": "..." },
+    { "role": "assistant", "content": "", "tool_calls": [ { "id": "call_1", "name": "read_table", "arguments": { "file": "jobs.csv" } } ] },
+    { "role": "tool", "tool_call_id": "call_1", "name": "read_table", "content": "..." } ] }
 ```
 
 ### retrieval.yaml
@@ -110,7 +113,8 @@ A request that matches a refusal rule gets a refusal with the reason, before the
 ```
 graduate.yaml     name, job, pinned student (runtime, model id, quantization, digest), harness version and hash,
                   requirements and whether each was met, test results summary, mentor used, created date
-report.md         the report card
+report.json       the report card as data (snake_case keys), for the app
+report.md         the same report card for people
 lineage.jsonl     one line per hypothesis: round, files changed, diagnosis, cause, predicted and measured effect, decision
 (the harness files above)
 ```

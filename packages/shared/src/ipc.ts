@@ -1,7 +1,7 @@
 import type { ConnectionTest } from './adapters';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
-import type { Job, MentorConfig, StudentEndpoint } from './job';
+import type { Job, MentorConfig, PermissionMode, StudentEndpoint } from './job';
 import type { LineageEntry } from './lineage';
 import type { ReportCard } from './report';
 import type { Method, Round, Run } from './run';
@@ -79,6 +79,12 @@ export interface GraduateSummary {
   path: string;
 }
 
+/** Per-graduate choices the user makes in the workspace. */
+export interface GraduateSettings {
+  /** Writes: ask every time, allow without asking, or never. Starts from the job's permission. */
+  writeMode: PermissionMode;
+}
+
 export interface DraftTurn {
   sessionId: string;
   /** The mentor's reply, shown in the clarify conversation. */
@@ -97,6 +103,8 @@ export interface ArchitectApi {
   settings: {
     get(): Promise<AppSettings>;
     update(patch: Partial<AppSettings>): Promise<AppSettings>;
+    /** Fires whenever settings change, from this window or anywhere else. */
+    onChange(listener: (settings: AppSettings) => void): Unsubscribe;
   };
   secrets: {
     /** Which secret refs have a stored value. Values never cross into the renderer. */
@@ -152,6 +160,8 @@ export interface ArchitectApi {
     exportFolder(graduateId: string, path: string): Promise<void>;
     importFolder(path: string): Promise<GraduateSummary>;
     remove(graduateId: string): Promise<void>;
+    settings(graduateId: string): Promise<GraduateSettings>;
+    updateSettings(graduateId: string, patch: Partial<GraduateSettings>): Promise<GraduateSettings>;
   };
   workspace: {
     listChats(graduateId: string): Promise<WorkspaceChat[]>;

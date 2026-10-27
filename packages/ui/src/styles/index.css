@@ -1,0 +1,12 @@
+/*
+ * Entry stylesheet for every Architect window. Import it once from the app's own CSS and add an
+ * `@source` for the app's files; the component sources below are scanned from here.
+ */
+@import 'tailwindcss';
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+@import './tokens.css';
+@import './theme.css';
+@import './base.css';
+
+@source '../';
