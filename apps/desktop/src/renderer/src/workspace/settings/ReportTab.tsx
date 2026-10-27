@@ -41,7 +41,9 @@ function ReportSummary({ report }: { report: ReportCard }) {
           className={cell}
           value={formatPercent(test.score)}
           label="Task success"
-          note={`Target ${Math.round(requirements.passRate.target * 100)}%`}
+          note={`${test.score.pass}/${test.score.total} · target ${Math.round(
+            requirements.passRate.target * 100,
+          )}%`}
         />
         <Stat
           className={cell}
@@ -53,7 +55,7 @@ function ReportSummary({ report }: { report: ReportCard }) {
           className={cell}
           value={formatUsd(cost.mentorUsd)}
           label={`${shortModelName(report.mentor.label)} mentoring`}
-          note={`${cost.rounds} rounds`}
+          note={`${cost.rounds} rounds, once`}
         />
       </div>
 
@@ -84,12 +86,23 @@ function ReportSummary({ report }: { report: ReportCard }) {
           </p>
         ) : (
           <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
-            {report.refusedTypes.map((type) => (
-              <li key={type.type} className="flex flex-col gap-0.5">
-                <span className="text-fg-secondary">{type.label}</span>
-                <span className="text-sm text-fg-muted text-pretty">{type.reason}</span>
-              </li>
-            ))}
+            {report.refusedTypes.map((type) => {
+              // Refused test tasks count as failures, so they show like the scores above.
+              const result = test.perType.find((item) => item.type === type.type);
+              return (
+                <li key={type.type} className="flex flex-col gap-0.5">
+                  <span className="flex items-baseline justify-between gap-3 text-fg-secondary">
+                    {type.label}
+                    {result && (
+                      <span className="font-mono text-fg-muted">
+                        {result.pass}/{result.total}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-sm text-fg-muted text-pretty">{type.reason}</span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

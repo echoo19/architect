@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { GraduateSummary } from '@architect/shared';
-import { Badge, Button, EmptyState, ErrorState, Skeleton, StatusDot } from '@architect/ui';
+import { Badge, Button, EmptyState, ErrorState, Skeleton, StatusDot, Tooltip } from '@architect/ui';
 import { Bot } from 'lucide-react';
 import { architect } from '../api/client';
 import { useGraduates, useSettings } from '../api/hooks';
 import { attempt } from '../lib/notify';
+import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 import { WorkspaceHeader } from '../shell/WorkspaceShell';
 import { ChatComposer } from '../workspace/ChatComposer';
@@ -15,7 +16,17 @@ import { SidePanel, type PanelContent } from '../workspace/SidePanel';
 import { sendMessage, useAgentChats, useChatMessages } from '../workspace/store';
 import { useBottomPin } from '../workspace/useBottomPin';
 
-const offline = <Badge icon={<StatusDot tone="neutral" size={6} />}>Offline</Badge>;
+/** The header's status pill. The header drags the window, so the pill opts out to show its tip. */
+const offline = (
+  <Tooltip
+    side="bottom"
+    content={`Runs only on ${deviceInSentence(currentPlatform())}. Nothing you ask goes online.`}
+  >
+    <span tabIndex={0} className="app-no-drag rounded-full">
+      <Badge icon={<StatusDot tone="neutral" size={6} />}>Offline</Badge>
+    </span>
+  </Tooltip>
+);
 
 /** A chat with one graduated agent, running on this computer. */
 export function ChatScreen({ graduateId, chatId }: { graduateId: string; chatId: string }) {

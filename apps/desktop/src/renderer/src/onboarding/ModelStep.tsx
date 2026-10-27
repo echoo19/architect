@@ -11,6 +11,7 @@ import {
 import { Download, RotateCw } from 'lucide-react';
 import type { QueryState } from '../api/query';
 import { errorOf, RetryButton } from '../components/QueryValue';
+import { shortModelName } from '../lib/names';
 import { currentPlatform, deviceInSentence, type Platform } from '../lib/platform';
 import { pullBytes, pullPercent, pullStage, type PullState } from './pull';
 import { StepIntro } from './SetupShell';
@@ -87,8 +88,8 @@ export function ModelStep({ model, label, note, ollama, pull, onDownload, ready 
   return (
     <>
       <StepIntro title="Welcome to Architect">
-        The agents you make run on {label}, an open model that Ollama runs on{' '}
-        {deviceInSentence(platform)}. Nothing you ask them goes online.
+        The agents you make run on {shortModelName(label)}, an open model from Meta, through Ollama
+        on {deviceInSentence(platform)}. Nothing you ask them goes online.
       </StepIntro>
       <Panel
         aria-label="Local model"

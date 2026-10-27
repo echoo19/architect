@@ -18,8 +18,8 @@ export function DoneStep({ mentor, student, percent }: DoneStepProps) {
   return (
     <>
       <StepIntro title="You're set up">
-        Describe a job and {mentor.name} teaches {student.name} to do it, or try the sample job
-        first.
+        Next, describe a job and {mentor.name} teaches {student.name} to do it. The sample job is
+        there too, if you'd like to see one first.
       </StepIntro>
       <Panel
         aria-label="Setup"

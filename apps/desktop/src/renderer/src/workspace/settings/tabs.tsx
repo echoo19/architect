@@ -61,12 +61,11 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
       </SettingsRow>
       <SettingsRow
         label="Version"
-        meta={`Graduated ${formatDay(manifest.acceptedAt ?? manifest.createdAt)}`}
+        meta={`${
+          manifest.requirements.passRate.met ? 'Passed its final test' : 'Finished below its target'
+        } on ${formatDay(manifest.acceptedAt ?? manifest.createdAt)}`}
       >
-        <SettingsValue>
-          v{manifest.harness.version} ·{' '}
-          {manifest.requirements.passRate.met ? 'Ready' : 'Below target'}
-        </SettingsValue>
+        <SettingsValue>v{manifest.harness.version}</SettingsValue>
       </SettingsRow>
       <SettingsRow
         label="Local model"
@@ -204,8 +203,8 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
         />
       </SettingsRow>
       <SettingsRow
-        label="Files it can edit"
-        meta="Set by the job it trained on"
+        label="Files its job lets it change"
+        meta="Fixed when it was trained"
         error={errorOf(job)}
       >
         {job.status === 'success' ? (

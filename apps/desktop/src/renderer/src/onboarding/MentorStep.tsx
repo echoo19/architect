@@ -87,7 +87,8 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
   return (
     <>
       <StepIntro title="Choose a mentor">
-        The mentor teaches your agents while they train, then steps away. It never sees your chats.
+        The mentor watches a new agent practice and fixes its mistakes, only while training and
+        under a spending cap. It never sees your chats.
       </StepIntro>
       <div className="flex w-full max-w-[720px] flex-col gap-4">
         <RadioCardGroup
@@ -101,7 +102,8 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
           }}
         >
           {MENTOR_PRESETS.map((option) => (
-            <RadioCard key={option.key} value={option.key} title={option.label}>
+            // Locked while a test runs, so its result can't land under another mentor.
+            <RadioCard key={option.key} value={option.key} title={option.label} disabled={testing}>
               <span className="font-mono text-xs text-fg-muted">
                 {formatPricing(option.pricing)}
               </span>
