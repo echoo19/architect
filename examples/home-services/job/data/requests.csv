@@ -1,0 +1,61 @@
+request_id,customer_id,zone,skill,license_needed,duration_minutes,earliest_date,problem
+R-3001,C-0250,Ridge,plumbing,,120,2026-11-05,Leak under the bathroom sink
+R-3002,C-0169,Lakeside,electrical,master_electrician,180,2026-11-05,Panel upgrade to 200 amps
+R-3003,C-0044,Millbrook,plumbing,backflow,60,2026-11-06,Annual backflow test
+R-3004,C-0229,Ridge,plumbing,backflow,60,2026-11-06,Backflow test for the irrigation line
+R-3005,C-0121,Ridge,plumbing,backflow,60,2026-11-06,Annual backflow test
+R-3006,C-0160,Ridge,heating,,60,2026-11-06,New thermostat
+R-3007,C-0118,Old Town,electrical,,120,2026-11-06,Ceiling fan install
+R-3008,C-0192,Old Town,heating,gas,180,2026-11-06,Gas furnace will not ignite
+R-3009,C-0001,Harbor,electrical,,120,2026-11-06,Two new outdoor outlets
+R-3010,C-0383,Millbrook,plumbing,,90,2026-11-06,Slow kitchen drain
+R-3011,C-0098,Ridge,electrical,master_electrician,180,2026-11-06,Panel upgrade to 200 amps
+R-3012,C-0329,Old Town,electrical,master_electrician,240,2026-11-06,Panel upgrade to 200 amps
+R-3013,C-0066,Old Town,electrical,,60,2026-11-07,Kitchen outlets dead
+R-3014,C-0384,Millbrook,plumbing,backflow,60,2026-11-07,Annual backflow test
+R-3015,C-0366,Harbor,electrical,,90,2026-11-07,Ceiling fan install
+R-3016,C-0071,Harbor,heating,,90,2026-11-07,New thermostat
+R-3017,C-0331,Ridge,heating,,90,2026-11-07,New thermostat
+R-3018,C-0155,Millbrook,heating,gas,180,2026-11-07,Gas furnace will not ignite
+R-3019,C-0282,Harbor,electrical,,90,2026-11-08,Kitchen outlets dead
+R-3020,C-0064,Harbor,plumbing,backflow,60,2026-11-09,Backflow test for the irrigation line
+R-3021,C-0368,Ridge,plumbing,backflow,60,2026-11-09,Annual backflow test
+R-3022,C-0142,Lakeside,plumbing,backflow,60,2026-11-09,Annual backflow test
+R-3023,C-0195,Ridge,plumbing,,120,2026-11-09,Slow kitchen drain
+R-3024,C-0086,Ridge,plumbing,,90,2026-11-09,Low water pressure upstairs
+R-3025,C-0295,Lakeside,plumbing,,90,2026-11-09,Running toilet
+R-3026,C-0197,Ridge,electrical,,60,2026-11-09,Kitchen outlets dead
+R-3027,C-0055,Harbor,electrical,,60,2026-11-09,Breaker keeps tripping
+R-3028,C-0240,Ridge,electrical,,90,2026-11-09,Kitchen outlets dead
+R-3029,C-0147,Old Town,electrical,master_electrician,180,2026-11-09,Panel upgrade to 200 amps
+R-3030,C-0116,Millbrook,electrical,,90,2026-11-10,Ceiling fan install
+R-3031,C-0360,Millbrook,plumbing,gas,120,2026-11-10,Replace the gas water heater
+R-3032,C-0106,Harbor,electrical,,120,2026-11-10,Ceiling fan install
+R-3033,C-0083,Lakeside,plumbing,,120,2026-11-10,Leak under the bathroom sink
+R-3034,C-0358,Old Town,electrical,,60,2026-11-10,Two new outdoor outlets
+R-3035,C-0022,Millbrook,plumbing,,120,2026-11-10,Dripping tub faucet
+R-3036,C-0010,Ridge,electrical,master_electrician,240,2026-11-10,EV charger circuit in the garage
+R-3037,C-0207,Old Town,heating,,60,2026-11-10,Furnace tune-up before winter
+R-3038,C-0091,Harbor,electrical,master_electrician,240,2026-11-10,EV charger circuit in the garage
+R-3039,C-0015,Harbor,heating,,90,2026-11-10,Heat pump rattling
+R-3040,C-0210,Ridge,heating,gas,180,2026-11-10,No heat on the second floor
+R-3041,C-0249,Harbor,heating,gas,180,2026-11-10,Gas furnace will not ignite
+R-3042,C-0131,Millbrook,plumbing,backflow,60,2026-11-10,Annual backflow test
+R-3043,C-0034,Lakeside,plumbing,backflow,60,2026-11-10,Backflow test for the irrigation line
+R-3044,C-0099,Ridge,electrical,,90,2026-11-11,Breaker keeps tripping
+R-3045,C-0187,Old Town,heating,gas,120,2026-11-11,Gas furnace will not ignite
+R-3046,C-0101,Lakeside,electrical,,120,2026-11-11,Breaker keeps tripping
+R-3047,C-0039,Lakeside,plumbing,,120,2026-11-11,Low water pressure upstairs
+R-3048,C-0157,Ridge,electrical,,60,2026-11-12,Kitchen outlets dead
+R-3049,C-0089,Harbor,plumbing,gas,180,2026-11-12,Gas water heater keeps shutting off
+R-3050,C-0171,Lakeside,electrical,,60,2026-11-12,Ceiling fan install
+R-3051,C-0304,Lakeside,plumbing,,120,2026-11-12,Slow kitchen drain
+R-3052,C-0297,Ridge,electrical,,120,2026-11-12,Kitchen outlets dead
+R-3053,C-0189,Lakeside,plumbing,,120,2026-11-12,Dripping tub faucet
+R-3054,C-0373,Millbrook,electrical,master_electrician,240,2026-11-12,EV charger circuit in the garage
+R-3055,C-0364,Harbor,electrical,master_electrician,240,2026-11-12,Panel upgrade to 200 amps
+R-3056,C-0042,Ridge,plumbing,,120,2026-11-13,Running toilet
+R-3057,C-0124,Old Town,plumbing,gas,180,2026-11-13,Replace the gas water heater
+R-3058,C-0292,Lakeside,electrical,,90,2026-11-13,Two new outdoor outlets
+R-3059,C-0324,Lakeside,heating,,90,2026-11-13,Heat pump rattling
+R-3060,C-0305,Ridge,heating,,90,2026-11-13,New thermostat

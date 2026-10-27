@@ -1,0 +1,13 @@
+technician_id,name,tier,skills,licenses,work_days,start_time,end_time
+T-01,Marta Quill,lead,plumbing;heating,gas;backflow,Mon;Tue;Wed;Thu;Fri,07:30,16:00
+T-02,Desmond Ruiz,journeyman,plumbing,backflow,Mon;Tue;Wed;Thu;Fri,08:00,16:30
+T-03,Priya Halvorsen,journeyman,heating,gas,Tue;Wed;Thu;Fri;Sat,08:00,16:30
+T-04,Owen Achterberg,lead,electrical,master_electrician,Mon;Tue;Wed;Thu;Fri,07:30,16:00
+T-05,Sofia Brandt,apprentice,plumbing,,Mon;Tue;Wed;Thu;Fri,08:00,16:30
+T-06,Theo Nakamura,journeyman,electrical,,Mon;Tue;Wed;Thu,07:00,17:30
+T-07,Rosa Finch,journeyman,plumbing;heating,gas,Mon;Tue;Wed;Thu;Fri,09:00,17:30
+T-08,Caleb Mortimer,apprentice,electrical,,Tue;Wed;Thu;Fri;Sat,07:30,16:00
+T-09,Nadia Petrov,lead,heating;plumbing,gas,Mon;Tue;Wed;Thu,07:00,17:30
+T-10,Hugo Lindqvist,journeyman,electrical,master_electrician,Tue;Wed;Thu;Fri;Sat,08:00,16:30
+T-11,Ines Carvalho,apprentice,heating,,Mon;Tue;Wed;Thu;Fri,08:30,17:00
+T-12,Wes Okafor,journeyman,plumbing,gas,Mon;Tue;Wed;Thu;Fri,07:00,15:30
