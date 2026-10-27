@@ -1,0 +1,94 @@
+import { describe, expect, it } from 'vitest';
+import {
+  conversationReducer,
+  emptyConversation,
+  lastMentorEntry,
+  type Conversation,
+  type ConversationAction,
+} from '../../../src/renderer/src/flow/describe/conversation';
+import { makeJob } from './factories';
+
+function run(...actions: ConversationAction[]): Conversation {
+  return actions.reduce(conversationReducer, emptyConversation);
+}
+
+const FILES = ['C:/office/invoices.csv', 'C:/office/policy.md'];
+
+describe('conversationReducer', () => {
+  it('shows the first message at once and waits for the mentor', () => {
+    const state = run({ type: 'sent', text: 'Close out the day', files: FILES, at: 1 });
+    expect(state.entries).toEqual([
+      { kind: 'user', id: 'user-0', text: 'Close out the day', files: FILES },
+    ]);
+    expect(state.waiting).toEqual({ text: 'Close out the day', files: FILES, startedAt: 1 });
+  });
+
+  it('notes how many files the mentor read before its first reply only', () => {
+    const state = run(
+      { type: 'sent', text: 'Close out the day', files: FILES, at: 1 },
+      { type: 'replied', turn: { sessionId: 's1', message: 'Which jobs?', options: [] } },
+      { type: 'sent', text: 'Invoices and bookings', files: [], at: 2 },
+      { type: 'replied', turn: { sessionId: 's1', message: 'Last one.', options: ['Yes', 'No'] } },
+    );
+    expect(state.sessionId).toBe('s1');
+    expect(state.waiting).toBeNull();
+    const mentor = state.entries.filter((entry) => entry.kind === 'mentor');
+    expect(mentor.map((entry) => entry.readFiles)).toEqual([2, 0]);
+    expect(lastMentorEntry(state)?.options).toEqual(['Yes', 'No']);
+  });
+
+  it('marks the option the user answered with', () => {
+    const state = run(
+      { type: 'sent', text: 'Close out the day', files: [], at: 1 },
+      {
+        type: 'replied',
+        turn: { sessionId: 's1', message: 'Show line items?', options: ['Yes', 'No'] },
+      },
+      { type: 'sent', text: 'No', files: [], at: 2, option: 'No' },
+    );
+    const mentor = state.entries[1];
+    expect(mentor?.kind === 'mentor' && mentor.chosen).toBe('No');
+  });
+
+  it('keeps a failed message so it can be sent again', () => {
+    let state = run(
+      { type: 'sent', text: 'Close out the day', files: FILES, at: 1 },
+      { type: 'failed', message: 'The mentor did not answer.' },
+    );
+    expect(state.waiting).toBeNull();
+    expect(state.failure?.message).toBe('The mentor did not answer.');
+    expect(state.entries).toHaveLength(1);
+
+    state = conversationReducer(state, { type: 'retried', at: 5 });
+    expect(state.failure).toBeNull();
+    expect(state.waiting).toEqual({ text: 'Close out the day', files: FILES, startedAt: 5 });
+  });
+
+  it('replaces an undelivered reply when the user writes another one', () => {
+    const state = run(
+      { type: 'sent', text: 'Close out the day', files: [], at: 1 },
+      { type: 'replied', turn: { sessionId: 's1', message: 'Which jobs?', options: [] } },
+      { type: 'sent', text: 'Invoces', files: [], at: 2 },
+      { type: 'failed', message: 'Timed out.' },
+      { type: 'sent', text: 'Invoices', files: [], at: 3 },
+    );
+    expect(state.entries.map((entry) => (entry.kind === 'user' ? entry.text : 'mentor'))).toEqual([
+      'Close out the day',
+      'mentor',
+      'Invoices',
+    ]);
+  });
+
+  it('holds the drafted job and remembers it once saved', () => {
+    const draft = makeJob();
+    const state = run(
+      { type: 'sent', text: 'Close out the day', files: [], at: 1 },
+      { type: 'replied', turn: { sessionId: 's1', message: '', options: [], draft } },
+      { type: 'saved', entryId: 'mentor-1', jobId: draft.id },
+    );
+    expect(lastMentorEntry(state)?.draft).toEqual(draft);
+    expect(lastMentorEntry(state)?.id).toBe('mentor-1');
+    expect(state.saved).toEqual({ entryId: 'mentor-1', jobId: draft.id });
+    expect(conversationReducer(state, { type: 'reset' })).toEqual(emptyConversation);
+  });
+});
