@@ -180,7 +180,7 @@ for (const theme of THEMES) {
     const success = page.getByRole('region', { name: 'Check tasks right' });
     const rounds = page.getByRole('region', { name: 'Rounds' });
     await expect(success).toContainText('78%');
-    await expect(success).toContainText('62 of 80, over 2 checks');
+    await expect(success).toContainText('31 of 40 on average, over 2 checks');
     await expect(page.getByRole('status').filter({ hasText: 'Scoring the change' })).toBeVisible();
     await expect(rounds).toContainText('65% to 63%');
     await expect(rounds).toContainText('First draft');
