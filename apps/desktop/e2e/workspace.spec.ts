@@ -218,7 +218,7 @@ for (const theme of THEMES) {
     await expect(preview).toContainText('INV-4473');
     await expect(booking.getByRole('table', { name: 'Rows this change writes' })).toBeVisible();
     await expect(invoices).toContainText(
-      'Allow once saves these rows. Always allow saves them and stops asking from now on',
+      'Allow once saves these rows. Always allow saves them and stops asking',
     );
     await expect(booking).not.toContainText('Allow once saves');
     const waiting = page
