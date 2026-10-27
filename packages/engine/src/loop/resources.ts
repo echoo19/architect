@@ -1,7 +1,6 @@
-import type { Harness, Job, MentorAdapter, StudentAdapter } from '@architect/shared';
+import type { Harness, Job, MentorAdapter, StudentAdapter, StudentTarget } from '@architect/shared';
 import { describeDataFiles, type MentorDataFile } from '../mentor/data-files';
 import { MentorGate } from '../mentor/gate';
-import type { StudentTarget } from '../store/records';
 import type { BudgetGuard } from './budget';
 import type {
   HarnessVersionStore,

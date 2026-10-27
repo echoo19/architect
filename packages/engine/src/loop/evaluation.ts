@@ -3,9 +3,10 @@ import {
   newId,
   type SplitName,
   type StudentAdapter,
+  type StudentTarget,
   type Task,
 } from '@architect/shared';
-import type { StoredAttempt, StudentTarget } from '../store/records';
+import type { StoredAttempt } from '../store/records';
 import { answerSummary, expectedSummary, lockedCheck, studentPrice } from './attempts';
 import type { EvaluatedTask, Evaluation, EvaluationContext } from './deps';
 import { writeJsonFile } from './files';

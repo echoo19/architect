@@ -136,6 +136,28 @@ describe('the engine host', () => {
     await expect(client.runs.get('run_missing')).rejects.toThrow('There is no run "run_missing".');
   });
 
+  it('starts a run whose locked test runs on the hosted copy, and refuses unknown options', async () => {
+    const { client, port } = await connect();
+    const job = await client.jobs.createSample();
+    const graduated = next(client, (event) => event.type === 'graduate.ready');
+    const run = await client.runs.start(job.id, {
+      method: 'bare',
+      seed: 1,
+      lockedTestOn: 'hosted',
+    });
+    await graduated;
+    expect((await client.reports.get(run.id)).test.ranOffline).toBe(false);
+
+    const misspelled = await raw(port, {
+      kind: 'request',
+      id: 904,
+      method: 'runs.start',
+      params: [job.id, { method: 'bare', lockedTestOnn: 'hosted' }],
+    });
+    expect(misspelled).toMatchObject({ ok: false, error: { name: 'ValidationError' } });
+    expect(await client.runs.list(job.id)).toHaveLength(1);
+  });
+
   it('keeps settings per graduate, starting from the job’s write permission', async () => {
     const { client, port } = await connect();
     const job = await client.jobs.createSample();

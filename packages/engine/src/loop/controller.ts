@@ -5,9 +5,10 @@ import {
   type Method,
   type Run,
   type RunEvent,
+  type StudentTarget,
 } from '@architect/shared';
 import type { EngineStore } from '../store/engine-store';
-import type { StoredRun, StudentTarget } from '../store/records';
+import type { StoredRun } from '../store/records';
 import { systemClock, type Clock, type LoopDeps } from './deps';
 import type { SessionOutcome } from './driver';
 import { errorMessage } from './errors';

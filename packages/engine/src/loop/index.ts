@@ -43,7 +43,6 @@ export type {
   StoredAttempt,
   StoredRound,
   StoredRun,
-  StudentTarget,
 } from '../store/records';
 
 export { connectEngine, type EngineClient } from '../host/client';

@@ -12,10 +12,17 @@ import type {
   OllamaStatus,
   PullProgress,
   RunDetail,
+  RunStartOptions,
 } from './ipc';
-import { JobSchema, MentorConfigSchema, PermissionModeSchema, StudentEndpointSchema } from './job';
+import {
+  JobSchema,
+  MentorConfigSchema,
+  PermissionModeSchema,
+  StudentEndpointSchema,
+  StudentTargetSchema,
+} from './job';
 import { LineageEntrySchema } from './lineage';
-import { RoundSchema, RunSchema } from './run';
+import { MethodSchema, RoundSchema, RunSchema } from './run';
 import { AttemptSchema } from './trace';
 
 /*
@@ -70,6 +77,15 @@ export const JobSummarySchema = z.object({
     devBaseline: true,
   }).optional(),
 }) satisfies z.ZodType<JobSummary>;
+
+/** What `runs.start` accepts, and nothing else: a misspelled option must not be dropped quietly. */
+export const RunStartOptionsSchema = z
+  .object({
+    method: MethodSchema,
+    seed: z.number().int().optional(),
+    lockedTestOn: StudentTargetSchema.optional(),
+  })
+  .strict() satisfies z.ZodType<RunStartOptions>;
 
 export const RunDetailSchema = z.object({
   run: RunSchema,

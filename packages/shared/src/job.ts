@@ -51,12 +51,16 @@ export const StudentEndpointSchema = z.object({
 });
 export type StudentEndpoint = z.infer<typeof StudentEndpointSchema>;
 
+/** One of the job's student endpoints: the local one, or its hosted copy of the same weights. */
+export const StudentTargetSchema = z.enum(['local', 'hosted']);
+export type StudentTarget = z.infer<typeof StudentTargetSchema>;
+
 export const StudentConfigSchema = z.object({
   label: z.string().min(1),
-  /** Where the graduate runs, and where the locked test always runs. */
+  /** Where the graduate runs, and where its locked test runs unless the run picks the hosted copy. */
   local: StudentEndpointSchema,
   /** Where training attempts run. `hosted` uses the same weights on a remote endpoint. */
-  trainOn: z.enum(['local', 'hosted']).default('local'),
+  trainOn: StudentTargetSchema.default('local'),
   hosted: StudentEndpointSchema.optional(),
 });
 export type StudentConfig = z.infer<typeof StudentConfigSchema>;

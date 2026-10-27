@@ -1,7 +1,7 @@
 import type { ConnectionTest } from './adapters';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
-import type { Job, MentorConfig, PermissionMode, StudentEndpoint } from './job';
+import type { Job, MentorConfig, PermissionMode, StudentEndpoint, StudentTarget } from './job';
 import type { LineageEntry } from './lineage';
 import type { ReportCard } from './report';
 import type { Method, Round, Run } from './run';
@@ -54,6 +54,18 @@ export interface JobSummary {
   createdAt: string;
   taskCount: number;
   latestRun?: Pick<Run, 'id' | 'status' | 'phase' | 'method' | 'devCurrent' | 'devBaseline'>;
+}
+
+/** How a run starts. */
+export interface RunStartOptions {
+  method: Method;
+  /** The run's seed; a random one when absent. */
+  seed?: number;
+  /**
+   * Where the locked test runs: the local student unless the run asks for the job's hosted copy.
+   * A hosted test is a supplementary result, and its report card says it didn't run offline.
+   */
+  lockedTestOn?: StudentTarget;
 }
 
 export interface RunDetail {
@@ -141,7 +153,7 @@ export interface ArchitectApi {
     draftReply(sessionId: string, text: string): Promise<DraftTurn>;
   };
   runs: {
-    start(jobId: string, options: { method: Method; seed?: number }): Promise<Run>;
+    start(jobId: string, options: RunStartOptions): Promise<Run>;
     pause(runId: string): Promise<void>;
     resume(runId: string): Promise<void>;
     stop(runId: string): Promise<void>;

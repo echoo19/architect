@@ -6,6 +6,7 @@ import {
   type ReportCard,
   type RunStatus,
   type SplitName,
+  type StudentTarget,
   type WorkspaceChat,
   type WorkspaceMessage,
 } from '@architect/shared';
@@ -26,7 +27,6 @@ import {
   type StoredAttempt,
   type StoredRound,
   type StoredRun,
-  type StudentTarget,
 } from './records';
 import {
   flag,

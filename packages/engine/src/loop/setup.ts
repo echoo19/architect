@@ -7,8 +7,8 @@ import {
   type MentorAdapter,
   type StudentAdapter,
   type StudentEndpoint,
+  type StudentTarget,
 } from '@architect/shared';
-import type { StudentTarget } from '../store/records';
 import type { HarnessDeps, LoopDeps } from './deps';
 
 export function studentEndpoint(job: Job, target: StudentTarget): StudentEndpoint {

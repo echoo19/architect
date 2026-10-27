@@ -7,6 +7,7 @@ import {
   RoundSchema,
   RunSchema,
   StopReasonSchema,
+  StudentTargetSchema,
   UsageSchema,
 } from '@architect/shared';
 import { z } from 'zod';
@@ -21,10 +22,6 @@ export const RunSeedsSchema = z.object({
   mentor: z.number().int().nonnegative(),
 });
 export type RunSeeds = z.infer<typeof RunSeedsSchema>;
-
-/** Which of the job's student endpoints ran something: the local one or its hosted copy. */
-export const StudentTargetSchema = z.enum(['local', 'hosted']);
-export type StudentTarget = z.infer<typeof StudentTargetSchema>;
 
 export const StudentPinSchema = z.object({
   model: z.string(),
