@@ -5,7 +5,8 @@ import { join, relative, sep } from 'node:path';
 import { JobSchema, TaskSchema } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SEED, JOB_VERSIONS, buildJobFiles, generateJob, jobDir } from '../src';
-import { BOTH_VERSIONS, BUSINESS_DATE, firstVersion } from './helpers';
+import { BOTH_VERSIONS, BUSINESS_DATE, firstVersion, latestVersion } from './helpers';
+import type { JobFolder } from './helpers';
 
 async function filesUnder(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { recursive: true, withFileTypes: true });
@@ -146,15 +147,24 @@ describe.each(BOTH_VERSIONS)('tasks.jsonl of version $version', (folder) => {
   });
 });
 
-describe('the difficulty mix of the first version', () => {
-  it('mixes easy, medium and hard tasks within every type', () => {
+function mixOf(folder: JobFolder, type: string) {
+  const mix = { easy: 0, medium: 0, hard: 0 };
+  for (const task of folder.tasksOfType(type)) mix[task.meta?.difficulty as keyof typeof mix] += 1;
+  return mix;
+}
+
+describe('the difficulty mix', () => {
+  it('of the first version keeps plenty of easy tasks in every type', () => {
     for (const type of ['invoice', 'overdue', 'schedule']) {
-      const mix = { easy: 0, medium: 0, hard: 0 };
-      for (const task of firstVersion.tasksOfType(type)) {
-        mix[task.meta?.difficulty as keyof typeof mix] += 1;
-      }
+      const mix = mixOf(firstVersion, type);
       expect(mix.easy, type).toBeGreaterThanOrEqual(19);
       expect(mix.hard, type).toBeGreaterThanOrEqual(13);
     }
+  });
+
+  it('of version 2 leans to medium and hard, keeping some easy tasks in every type', () => {
+    expect(mixOf(latestVersion, 'invoice')).toEqual({ easy: 9, medium: 25, hard: 26 });
+    expect(mixOf(latestVersion, 'overdue')).toEqual({ easy: 9, medium: 24, hard: 27 });
+    expect(mixOf(latestVersion, 'schedule')).toEqual({ easy: 9, medium: 24, hard: 27 });
   });
 });
