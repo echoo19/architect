@@ -1,9 +1,4 @@
-import {
-  MENTOR_PRESETS,
-  type MentorConfig,
-  type MentorPreset,
-  type TokenPricing,
-} from '@architect/shared';
+import { MENTOR_PRESETS, type MentorConfig, type MentorPreset } from '@architect/shared';
 
 /** The preset a saved mentor was made from, if it was. */
 export function presetFor(mentor: MentorConfig): MentorPreset | undefined {
@@ -36,15 +31,19 @@ export function providerName(provider: MentorPreset['provider']): string {
   return PROVIDER_NAMES[provider];
 }
 
+/** Who a mentor's key comes from: "Meta", "Baseten", or the endpoint's host for any other. */
+export function mentorProvider(mentor: Extract<MentorConfig, { kind: 'model' }>): string {
+  if (mentor.provider !== 'other') return providerName(mentor.provider);
+  try {
+    return new URL(mentor.baseUrl).hostname;
+  } catch {
+    return mentor.label;
+  }
+}
+
 /** Where a provider's keys are made, for people who don't have one yet. */
 export const KEY_PAGES: Record<MentorPreset['provider'], { url: string; where: string }> = {
   meta: { url: 'https://dev.meta.ai', where: 'under API keys' },
   baseten: { url: 'https://www.baseten.co', where: 'in your account settings' },
   modal: { url: 'https://modal.com', where: 'in your workspace settings' },
 };
-
-/** "$1.25 in · $4.25 out per million tokens" */
-export function formatPricing(pricing: TokenPricing): string {
-  const usd = (amount: number) => `$${amount.toFixed(2)}`;
-  return `${usd(pricing.inputPerM)} in · ${usd(pricing.outputPerM)} out per million tokens`;
-}

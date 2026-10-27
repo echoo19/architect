@@ -6,7 +6,15 @@ import {
   type MentorPreset,
   ConnectionTestSchema,
 } from '@architect/shared';
-import { Button, Input, Panel, RadioCard, RadioCardGroup, SettingsRow } from '@architect/ui';
+import {
+  Button,
+  Heading,
+  Input,
+  Panel,
+  RadioCard,
+  RadioCardGroup,
+  SettingsRow,
+} from '@architect/ui';
 import { CircleAlert, CircleCheck } from 'lucide-react';
 import { architect } from '../api/client';
 import { toError, type QueryState } from '../api/query';
@@ -15,7 +23,7 @@ import { errorOf } from '../components/QueryValue';
 import { aboutUsd, mentorUsdFor, TYPICAL_ROUNDS } from '../flow/define/estimates';
 import { shortModelName } from '../lib/names';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
-import { formatPricing, KEY_PAGES, presetFor, providerName } from './mentor';
+import { KEY_PAGES, presetFor, providerName } from './mentor';
 import { StepIntro } from './SetupShell';
 
 async function testMentor(config: MentorConfig): Promise<ConnectionTest> {
@@ -48,6 +56,21 @@ function ConnectionResult({ result, mentor }: { result: ConnectionTest; mentor: 
       </div>
     </div>
   );
+}
+
+/** Mentors on Meta's own API, and the open-weight model through a host the user picks. */
+const MENTOR_GROUPS = [
+  { title: "Meta's API", presets: MENTOR_PRESETS.filter((preset) => preset.provider === 'meta') },
+  {
+    title: 'Open weights, through a host you choose',
+    presets: MENTOR_PRESETS.filter((preset) => preset.provider !== 'meta'),
+  },
+];
+
+/** What a mentor usually costs per agent, and who bills it when that isn't Meta. */
+function costLine(preset: MentorPreset): string {
+  const cost = `${aboutUsd(mentorUsdFor(preset.pricing, TYPICAL_ROUNDS))} to train an agent`;
+  return preset.provider === 'meta' ? cost : `${cost}, billed by ${providerName(preset.provider)}`;
 }
 
 export interface MentorStepProps {
@@ -93,34 +116,40 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
         The mentor is a paid cloud model that coaches each new agent while it trains, then
         disconnects. Your agents never call it, and it never sees your chats.
       </StepIntro>
-      <div className="flex w-full max-w-[720px] flex-col gap-4">
-        <RadioCardGroup
-          aria-label="Mentor"
-          value={preset?.key ?? ''}
-          onValueChange={(next) => {
-            const chosen = MENTOR_PRESETS.find((option) => option.key === next);
-            if (!chosen) return;
-            onResult(null);
-            onChoose(chosen);
-          }}
-        >
-          {MENTOR_PRESETS.map((option) => (
-            // Locked while a test runs, so its result can't land under another mentor.
-            <RadioCard key={option.key} value={option.key} title={option.label} disabled={testing}>
-              <span className="text-fg">
-                {aboutUsd(mentorUsdFor(option.pricing, TYPICAL_ROUNDS))} to train an agent
-              </span>
-              <span className="text-pretty">{option.note}</span>
-              <span className="font-mono text-xs text-fg-muted">
-                {formatPricing(option.pricing)}
-              </span>
-            </RadioCard>
-          ))}
-        </RadioCardGroup>
+      <div className="flex w-full max-w-[720px] flex-col gap-3.5">
+        {MENTOR_GROUPS.map((group) => (
+          <section key={group.title} className="flex flex-col gap-2">
+            <Heading as="h2" className="text-fg-secondary">
+              {group.title}
+            </Heading>
+            <RadioCardGroup
+              aria-label={group.title}
+              value={preset?.key ?? ''}
+              onValueChange={(next) => {
+                const chosen = MENTOR_PRESETS.find((option) => option.key === next);
+                if (!chosen) return;
+                onResult(null);
+                onChoose(chosen);
+              }}
+            >
+              {group.presets.map((option) => (
+                // Locked while a test runs, so its result can't land under another mentor.
+                <RadioCard
+                  key={option.key}
+                  value={option.key}
+                  title={option.label}
+                  disabled={testing}
+                >
+                  <span className="text-fg">{costLine(option)}</span>
+                  <span className="text-pretty">{option.note}</span>
+                </RadioCard>
+              ))}
+            </RadioCardGroup>
+          </section>
+        ))}
         <p className="m-0 text-sm text-fg-muted text-pretty">
-          Costs are for a typical {TYPICAL_ROUNDS}-round job, and every job has its own spending
-          cap. The contributor tier costs less because Meta may use what you send to train its
-          models. A token is about three quarters of a word.
+          Costs are for a typical job of {TYPICAL_ROUNDS} rounds; each round, the mentor tries one
+          fix. Every job has its own spending cap.
         </p>
         {mentor.kind === 'model' && (
           <Panel aria-label="Mentor key" className="px-7 py-1 [&>*:first-child]:border-t-0">
@@ -130,7 +159,7 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
                 meta={
                   stored
                     ? `Saved, encrypted on ${device}`
-                    : `Encrypted on ${device}, never shown again`
+                    : `For the mentor you picked. Encrypted on ${device}, never shown again.`
                 }
                 error={errorOf(secrets)}
               >

@@ -88,11 +88,12 @@ export function ModelStep({ model, label, note, ollama, pull, onDownload, ready 
   return (
     <>
       <StepIntro title="Welcome to Architect">
-        Every agent you make runs on {shortModelName(label)}, an open model from Meta, through
-        Ollama on {deviceInSentence(platform)}. Nothing you ask your agents goes online.
+        Architect trains private agents for the work you describe. Each one runs on{' '}
+        {shortModelName(label)}, an open model from Meta, through Ollama on{' '}
+        {deviceInSentence(platform)}, so nothing you ask your agents goes online.
       </StepIntro>
       <Panel
-        aria-label="Local model"
+        aria-label="Agent's model"
         className="w-full max-w-[620px] px-7 py-1 [&>*:first-child]:border-t-0"
       >
         <SettingsRow
@@ -130,8 +131,10 @@ export function ModelStep({ model, label, note, ollama, pull, onDownload, ready 
         )}
       </Panel>
       {running && !ready && note && (
-        <p className="-mt-4 text-sm text-fg-muted">
-          {downloading ? 'You can carry on while it downloads.' : note}
+        <p className="-mt-4 max-w-[620px] text-center text-sm text-fg-muted text-pretty">
+          {downloading
+            ? 'You can carry on while it downloads.'
+            : `${note} You can skip this for now, but agents can't run until it's downloaded.`}
         </p>
       )}
     </>

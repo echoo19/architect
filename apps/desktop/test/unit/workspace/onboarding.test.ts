@@ -5,11 +5,7 @@ import {
   type PullProgress,
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
-import {
-  formatPricing,
-  mentorFromPreset,
-  presetFor,
-} from '../../../src/renderer/src/onboarding/mentor';
+import { mentorFromPreset, presetFor } from '../../../src/renderer/src/onboarding/mentor';
 import {
   idlePull,
   pullBytes,
@@ -86,15 +82,6 @@ describe('mentor presets', () => {
       mentorFromPreset(preset, { kind: 'coding_agent', agent: 'claude_code', label: 'x' }),
     ).map((config) => (config.kind === 'model' ? config.secretRef : ''));
     expect(refs).toEqual(['meta', 'meta', 'baseten', 'modal']);
-  });
-
-  it('writes prices per million tokens', () => {
-    expect(formatPricing(mentorPreset('meta-spark').pricing)).toBe(
-      '$1.25 in · $4.25 out per million tokens',
-    );
-    expect(formatPricing(mentorPreset('meta-spark-contributor').pricing)).toBe(
-      '$0.10 in · $0.20 out per million tokens',
-    );
   });
 
   it('reads connection test replies', () => {
