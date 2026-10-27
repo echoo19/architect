@@ -149,3 +149,9 @@ In simulation with the pilot's task pass rates, a do-nothing change is kept 11 t
 **Decision.** When the runner can't use a reply (it isn't a hypothesis, or the harness refuses its change set), the round's author gets the same request again followed by its own reply and the runner's reason, and one more answer. If that can't be used either, the round is rejected as before. The fix adds nothing but the refusal reason, so the one-shot author still never sees an attempt, and every method gets exactly the same chance. The fix call is charged to its round and saved beside the first (`mentor/round-<n>-fix-1.json`); the stored reply records whether it is a fix, so a restart never asks twice. The mentor's guide to the harness now shows the exact shape of each example message.
 **Consequences.** A round can cost two author calls. Comparison runs started before this was in place are discarded and run again.
 
+## 024. A tool may name a data file without its extension
+
+**Context.** In the restarted seed 1, Spark's one-shot harness called `ctx.readTable("jobs")` in its pricing tool, and the file is `jobs.csv`. The mentor's guide said `ctx.readTable(name, ...)` without saying the name keeps its extension, so the tool failed on every call and the student spent its steps retrying it: dev fell from 38/45 to 15/45. The student can correct a wrong file name after the error message; a tool's code can't, and one-shot never sees an attempt.
+**Decision.** In the sandbox, a name that isn't a file but is exactly one file's name without its extension refers to that file. The mentor's guide now describes `ctx` precisely: file names as listed, rows as objects keyed by column with text values and null for empty cells, every matching row unless a limit is passed, and the same filters as `read_table`. The student's own tools still take exact names.
+**Consequences.** The runs of that start were discarded and seed 1 began again with this in place.
+
