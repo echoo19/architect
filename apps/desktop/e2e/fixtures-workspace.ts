@@ -118,6 +118,7 @@ const REPORT: ReportCard = {
   name: 'Service desk',
   createdAt: AT,
   student: { label: 'Glimmer', model: STUDENT_MODEL, runtime: 'ollama' },
+  testedOn: 'local',
   mentor: { label: 'Muse Spark 1.3', model: 'muse-spark-1.3' },
   test: {
     score: { pass: 55, total: 64 },

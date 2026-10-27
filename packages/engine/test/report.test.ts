@@ -96,6 +96,7 @@ function input(overrides: Partial<ReportCardInput> = {}): ReportCardInput {
       ],
     },
     student: { label: 'Glimmer', model: 'glimmer:test', runtime: 'ollama' },
+    testedOn: 'local',
     mentor: { label: 'Spark', model: 'fake-mentor-1' },
     readyClaimed: true,
     ranOffline: true,
@@ -129,6 +130,17 @@ describe('computeReportCard', () => {
 
   it('counts refusals on supported types as failures and reports them', () => {
     expect(computeReportCard(input()).test.refusals).toBe(1);
+  });
+
+  it('says which student endpoint took the test and whether it ran offline', () => {
+    expect(computeReportCard(input())).toMatchObject({
+      testedOn: 'local',
+      test: { ranOffline: true },
+    });
+    expect(computeReportCard(input({ testedOn: 'hosted', ranOffline: false }))).toMatchObject({
+      testedOn: 'hosted',
+      test: { ranOffline: false },
+    });
   });
 
   it('reports latency, cost, rounds and wall time', () => {

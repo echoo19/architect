@@ -35,7 +35,11 @@ describe('where the locked test runs', () => {
 
     expect(engine.store.runs.get(run.id)?.lockedTestOn).toBe('local');
     expect(models).toEqual(Array(6).fill('glimmer:test'));
-    expect(engine.store.reports.get(run.id)?.test.ranOffline).toBe(true);
+    expect(engine.store.reports.get(run.id)).toMatchObject({
+      testedOn: 'local',
+      student: { model: 'glimmer:test', runtime: 'ollama', quantization: 'Q4_K_M' },
+      test: { ranOffline: true },
+    });
   });
 
   it('runs on the hosted copy when the run asks, and the card says it was not offline', async () => {
@@ -54,7 +58,13 @@ describe('where the locked test runs', () => {
       Array(6).fill('hosted'),
     );
     expect(attempts.filter((a) => a.split === 'dev').every((a) => a.target === 'local')).toBe(true);
-    expect(engine.store.reports.get(run.id)?.test.ranOffline).toBe(false);
+    const card = engine.store.reports.get(run.id);
+    expect(card).toMatchObject({ testedOn: 'hosted', test: { ranOffline: false } });
+    expect(card?.student).toEqual({
+      label: 'Glimmer',
+      model: 'glimmer-hosted',
+      runtime: 'openai_compatible',
+    });
   });
 
   it('refuses a hosted locked test when the job has no hosted endpoint', async () => {

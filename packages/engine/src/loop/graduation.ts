@@ -1,4 +1,10 @@
-import { newId, type Harness, type ReportCard, type Run } from '@architect/shared';
+import {
+  newId,
+  type Harness,
+  type ReportCard,
+  type Run,
+  type StudentTarget,
+} from '@architect/shared';
 import { buildGraduateManifest } from '../report/manifest';
 import { computeReportCard } from '../report/report-card';
 import type { GraduateFreeze } from '../store/records';
@@ -52,6 +58,26 @@ export async function freeze(state: RunState): Promise<void> {
   );
 }
 
+/**
+ * The student a test runs on, as its card names it: the local one as it was frozen, and a hosted
+ * copy as it describes itself, so a card never credits it with the local build's quantization.
+ */
+async function testedStudent(
+  state: RunState,
+  frozen: GraduateFreeze,
+  target: StudentTarget,
+): Promise<ReportCard['student']> {
+  const tester = await state.resources.student(target);
+  const build = target === 'local' ? frozen.student : await tester.describe();
+  return {
+    label: state.job.student.label,
+    model: tester.model,
+    runtime: studentEndpoint(state.job, target).runtime,
+    ...(build.quantization === undefined ? {} : { quantization: build.quantization }),
+    ...(build.sizeBytes === undefined ? {} : { sizeBytes: build.sizeBytes }),
+  };
+}
+
 /** Writes the report card and the graduate folder, and finishes the run. */
 async function graduate(state: RunState, harness: Harness, frozen: GraduateFreeze): Promise<void> {
   const { paths, store, deps, runId } = state.ctx;
@@ -89,15 +115,8 @@ async function graduate(state: RunState, harness: Harness, frozen: GraduateFreez
       refused: attempt.stopReason === 'refused',
     })),
     guardrails: harness.guardrails,
-    student: {
-      label: job.student.label,
-      model: tester.model,
-      runtime: studentEndpoint(job, target).runtime,
-      ...(frozen.student.quantization === undefined
-        ? {}
-        : { quantization: frozen.student.quantization }),
-      ...(frozen.student.sizeBytes === undefined ? {} : { sizeBytes: frozen.student.sizeBytes }),
-    },
+    student: await testedStudent(state, frozen, target),
+    testedOn: target,
     mentor: authorIdentity(state),
     readyClaimed: rounds.some(({ hypothesis }) => hypothesis?.readyClaim === true),
     ranOffline: target === 'local' && tester.isLocal,

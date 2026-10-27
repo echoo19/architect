@@ -5,6 +5,7 @@ import type {
   StudentAdapter,
   StudentChatRequest,
   StudentEndpoint,
+  StudentModelInfo,
   StudentStreamEvent,
   Usage,
 } from '@architect/shared';
@@ -90,7 +91,9 @@ export class FakeStudent implements StudentAdapter {
     yield { type: 'done', usage: { inputTokens: 300, outputTokens: 80 }, finish: 'stop' };
   }
 
-  async describe() {
+  /** A hosted copy reports only its model id, as the OpenAI-compatible adapter does. */
+  async describe(): Promise<StudentModelInfo> {
+    if (!this.isLocal) return { model: this.model };
     return {
       model: this.model,
       quantization: 'Q4_K_M',
