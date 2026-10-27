@@ -79,3 +79,9 @@ GPT-6 Astra reviewed the first draft (five task types) and recommended cutting t
 **Context.** The repository is public and should be reusable.
 **Decision.** MIT.
 **Consequences.** None beyond the licence text.
+
+## 013. SQLite through `node:sqlite`, not better-sqlite3
+
+**Context.** The brief's default is better-sqlite3, a native module that must be rebuilt for Electron's ABI, which also breaks running the same code under plain Node for tests.
+**Decision.** Use the built-in `node:sqlite` (`DatabaseSync`). Electron 45 ships Node 24.22, and a check on 2026-10-27 confirmed `node:sqlite` works inside Electron and in Node 24.
+**Consequences.** No native modules in the app, no rebuild step, and tests use the same storage code as the app. The module is still marked experimental in Node, so storage stays behind a small interface in `packages/engine/src/store`.
