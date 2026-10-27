@@ -2,9 +2,12 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import { registerAppHandlers } from './handlers/app';
+import { registerSecretsHandlers } from './handlers/secrets';
 import { registerSettingsHandlers } from './handlers/settings';
 import { IpcRouter } from './ipc/router';
 import { readLaunchOptions } from './launch';
+import { safeStorageCipher } from './secrets/cipher';
+import { SecretStore } from './secrets/store';
 import { hardenContents, hardenSession, isAppUrl, type AppOrigin } from './security';
 import { SettingsStore } from './settings/store';
 import { applyTheme } from './window/chrome';
@@ -38,7 +41,9 @@ async function start(): Promise<void> {
   await app.whenReady();
   hardenSession(session.defaultSession);
 
-  const settings = await SettingsStore.open(join(app.getPath('userData'), 'settings.json'));
+  const dataDir = app.getPath('userData');
+  const settings = await SettingsStore.open(join(dataDir, 'settings.json'));
+  const secrets = await SecretStore.open(join(dataDir, 'secrets.json'), safeStorageCipher);
   applyTheme(settings.get().theme);
   settings.onChange((next) => applyTheme(next.theme));
 
@@ -49,6 +54,7 @@ async function start(): Promise<void> {
   });
   registerAppHandlers(router);
   registerSettingsHandlers(router, settings);
+  registerSecretsHandlers(router, secrets);
   settings.onChange((next) => router.emit('settings', 'onChange', next));
 
   let main = await openMainWindow();
