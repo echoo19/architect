@@ -31,6 +31,19 @@ export function providerName(provider: MentorPreset['provider']): string {
   return PROVIDER_NAMES[provider];
 }
 
+/** What choosing a mentor means for your data, in the words this app uses everywhere. */
+const MENTOR_NOTES: Record<MentorPreset['key'], string> = {
+  'meta-spark': "Meta doesn't train on what you send.",
+  'meta-spark-contributor':
+    'Meta may train on what you send, so use it only for data that is not sensitive or personal.',
+  'baseten-spark-open': 'Served by Baseten, so what you send goes to Baseten, not to Meta.',
+  'modal-spark-open': 'Runs on your own Modal endpoint, so what you send stays with Modal.',
+};
+
+export function mentorNote(preset: MentorPreset): string {
+  return MENTOR_NOTES[preset.key];
+}
+
 /** Who a mentor's key comes from: "Meta", "Baseten", or the endpoint's host for any other. */
 export function mentorProvider(mentor: Extract<MentorConfig, { kind: 'model' }>): string {
   if (mentor.provider !== 'other') return providerName(mentor.provider);

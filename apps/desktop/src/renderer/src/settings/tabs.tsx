@@ -13,11 +13,13 @@ import {
   capitalized,
   MENTOR_ROLE_DETAIL,
   mentorName,
+  shortModelName,
   STUDENT_ROLE,
   studentLabel,
 } from '../lib/names';
 import { currentPlatform, deviceInSentence, deviceLabel } from '../lib/platform';
-import { mentorFromPreset, mentorProvider, presetFor } from '../onboarding/mentor';
+import { HOSTED_PRESETS, hostedEndpoint, providerName } from '../flow/define/hosted';
+import { mentorFromPreset, mentorNote, mentorProvider, presetFor } from '../onboarding/mentor';
 import type { TabProps } from './SettingsModal';
 
 const THEMES = [
@@ -74,7 +76,7 @@ export function ModelsTab({ settings, update }: TabProps) {
     <>
       <SettingsRow
         label="Mentor"
-        meta={`${capitalized(MENTOR_ROLE_DETAIL)}, for new agents.${preset ? ` ${preset.note}` : ''}`}
+        meta={`${capitalized(MENTOR_ROLE_DETAIL)}, for new agents.${preset ? ` ${mentorNote(preset)}` : ''}`}
       >
         {mentor.kind === 'model' ? (
           <Select<MentorPresetKey>
@@ -96,7 +98,7 @@ export function ModelsTab({ settings, update }: TabProps) {
         <KeyRow secretRef={mentor.secretRef} provider={mentorProvider(mentor)} />
       )}
       <SettingsRow label={capitalized(STUDENT_ROLE)} meta={`Every agent runs on it, on ${device}`}>
-        <SettingsValue>{studentLabel(student)}</SettingsValue>
+        <SettingsValue>{shortModelName(studentLabel(student))}</SettingsValue>
       </SettingsRow>
       <SettingsRow
         label="Local model runtime"
@@ -112,9 +114,24 @@ export function ModelsTab({ settings, update }: TabProps) {
           }
         </QueryValue>
       </SettingsRow>
+      {HOSTED_KEYS.map((key) => (
+        <KeyRow key={key.secretRef} secretRef={key.secretRef} provider={key.provider} />
+      ))}
+      <p className="m-0 border-t border-line py-3.5 text-sm text-fg-muted text-pretty">
+        Keys for hosted copies are optional. A job can practice on one to train faster; its final
+        test still runs on {device}.
+      </p>
     </>
   );
 }
+
+/** The hosted copies a job can practice on, one key each. */
+const HOSTED_KEYS = HOSTED_PRESETS.flatMap((preset) => {
+  const endpoint = hostedEndpoint(preset, 0);
+  return endpoint.secretRef
+    ? [{ secretRef: endpoint.secretRef, provider: providerName(endpoint) }]
+    : [];
+});
 
 export function TrainingTab({ settings, update }: TabProps) {
   const mentor = settings.defaultMentor;

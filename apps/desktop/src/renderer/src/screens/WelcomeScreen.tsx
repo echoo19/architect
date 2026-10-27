@@ -104,7 +104,7 @@ function Setup({
             {spacer}
             {!modelReady && !downloading && (
               <Button variant="ghost" onClick={() => setStep('Mentor')}>
-                Skip for now
+                Download later
               </Button>
             )}
             <Button
@@ -118,7 +118,6 @@ function Setup({
         }
       >
         <ModelStep
-          model={model}
           label={studentLabel(student)}
           note={preset?.note}
           ollama={ollama}

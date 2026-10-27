@@ -23,7 +23,7 @@ import { errorOf } from '../components/QueryValue';
 import { aboutUsd, mentorUsdFor, TYPICAL_ROUNDS } from '../flow/define/estimates';
 import { shortModelName } from '../lib/names';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
-import { KEY_PAGES, presetFor, providerName } from './mentor';
+import { KEY_PAGES, mentorNote, presetFor, providerName } from './mentor';
 import { StepIntro } from './SetupShell';
 
 async function testMentor(config: MentorConfig): Promise<ConnectionTest> {
@@ -62,7 +62,7 @@ function ConnectionResult({ result, mentor }: { result: ConnectionTest; mentor: 
 const MENTOR_GROUPS = [
   { title: "Meta's API", presets: MENTOR_PRESETS.filter((preset) => preset.provider === 'meta') },
   {
-    title: 'Open weights, through a host you choose',
+    title: 'The open version of Spark, through a host you choose',
     presets: MENTOR_PRESETS.filter((preset) => preset.provider !== 'meta'),
   },
 ];
@@ -113,8 +113,8 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
   return (
     <>
       <StepIntro title="Choose a mentor">
-        The mentor is a paid cloud model that coaches each new agent while it trains, then
-        disconnects. Your agents never call it, and it never sees your chats.
+        The mentor is a paid cloud model that coaches each new agent while it trains, round by round
+        improving its instructions. Once training ends, your agents never call it.
       </StepIntro>
       <div className="flex w-full max-w-[720px] flex-col gap-3.5">
         {MENTOR_GROUPS.map((group) => (
@@ -141,15 +141,15 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
                   disabled={testing}
                 >
                   <span className="text-fg">{costLine(option)}</span>
-                  <span className="text-pretty">{option.note}</span>
+                  <span className="text-pretty">{mentorNote(option)}</span>
                 </RadioCard>
               ))}
             </RadioCardGroup>
           </section>
         ))}
         <p className="m-0 text-sm text-fg-muted text-pretty">
-          Costs are for a typical job of {TYPICAL_ROUNDS} rounds; each round, the mentor tries one
-          fix. Every job has its own spending cap.
+          Costs are for a job of up to {TYPICAL_ROUNDS} rounds. Every job also has its own spending
+          cap.
         </p>
         {mentor.kind === 'model' && (
           <Panel aria-label="Mentor key" className="px-7 py-1 [&>*:first-child]:border-t-0">
@@ -159,7 +159,7 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
                 meta={
                   stored
                     ? `Saved, encrypted on ${device}`
-                    : `For the mentor you picked. Encrypted on ${device}, never shown again.`
+                    : `Each host has its own key; this one is for ${provider}. Encrypted on ${device}, never shown again.`
                 }
                 error={errorOf(secrets)}
               >

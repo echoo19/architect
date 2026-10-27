@@ -25,8 +25,6 @@ const START_OLLAMA: Record<Platform, string> = {
 };
 
 export interface ModelStepProps {
-  /** Ollama's name for the model, e.g. `muse-glimmer:30b`. */
-  model: string;
   /** The model's name for people, e.g. "Muse Glimmer". */
   label: string;
   /** What the download involves, e.g. "Runs locally through Ollama. 18 GB download." */
@@ -37,7 +35,7 @@ export interface ModelStepProps {
   ready: boolean;
 }
 
-export function ModelStep({ model, label, note, ollama, pull, onDownload, ready }: ModelStepProps) {
+export function ModelStep({ label, note, ollama, pull, onDownload, ready }: ModelStepProps) {
   const platform = currentPlatform();
   const running = ollama.data?.running === true;
   const downloading = pull.phase === 'starting' || pull.phase === 'pulling';
@@ -88,9 +86,9 @@ export function ModelStep({ model, label, note, ollama, pull, onDownload, ready 
   return (
     <>
       <StepIntro title="Welcome to Architect">
-        Architect trains private agents for the work you describe. Each one runs on{' '}
-        {shortModelName(label)}, an open model from Meta, through Ollama on{' '}
-        {deviceInSentence(platform)}, so nothing you ask your agents goes online.
+        Architect turns work you describe into a private agent: instructions, tested and refined,
+        for {shortModelName(label)}, an open model from Meta. Agents run through Ollama on{' '}
+        {deviceInSentence(platform)}, so nothing you ask them goes online.
       </StepIntro>
       <Panel
         aria-label="Agent's model"
@@ -98,7 +96,7 @@ export function ModelStep({ model, label, note, ollama, pull, onDownload, ready 
       >
         <SettingsRow
           label="Ollama"
-          meta={`Runs ${shortModelName(label)} on ${deviceInSentence(platform)}`}
+          meta={`The free app that runs ${shortModelName(label)} on ${deviceInSentence(platform)}`}
           error={errorOf(ollama)}
         >
           {runtime}
@@ -109,9 +107,8 @@ export function ModelStep({ model, label, note, ollama, pull, onDownload, ready 
           </p>
         )}
         <SettingsRow
-          label={label}
-          meta={model}
-          metaFont="code"
+          label={shortModelName(label)}
+          meta="The model every agent runs on"
           error={pull.phase === 'failed' ? pull.error : undefined}
         >
           {download}
@@ -119,7 +116,7 @@ export function ModelStep({ model, label, note, ollama, pull, onDownload, ready 
         {downloading && !ready && (
           <div className="flex flex-col gap-2.5 border-t border-line pb-4 pt-3.5">
             <Progress
-              label={`Downloading ${label}`}
+              label={`Downloading ${shortModelName(label)}`}
               value={percent === null ? undefined : percent / 100}
               valueText={bytes ?? undefined}
             />
