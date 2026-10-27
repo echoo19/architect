@@ -59,7 +59,8 @@ export function TrainingPlace({
           {studentIntro(names.student)}, practices where you choose while{' '}
           {mentorIntro(names.mentor)}, coaches it from the cloud. Training stops after{' '}
           {capText(job.budget.maxWallMinutes)} (set in Advanced settings), then the final test runs
-          on {device}.
+          on {device}. A round takes longer when its change looks promising, because the check tasks
+          are run a second time to confirm it.
         </p>
       </div>
       <RadioCardGroup

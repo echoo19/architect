@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { mentorPreset } from '@architect/shared';
 import {
+  aboutSpan,
   aboutUsd,
   capText,
   estimateMentorUsd,
@@ -16,64 +17,65 @@ import {
 import { makeJob } from './factories';
 
 describe('estimateTime', () => {
-  it('times every round plus a final test that always runs on this computer', () => {
-    // 4 rounds of 6 practice tasks and the 10 check tasks twice (the change and the current
-    // harness), then 20 test tasks, with a generous time cap.
-    const job = makeJob({
-      budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 10_000 },
-      splits: { seed: 1, calibration: 0, train: 30, dev: 10, test: 20 },
-      evaluation: {
-        trainBatch: 6,
-        minDevGain: 2,
-        maxTypeRegression: 1,
-        devRepeats: 1,
-        patience: 3,
-      },
-    });
+  // 4 rounds of 6 practice tasks with 10 check tasks, a generous time cap and a 20-task test.
+  const job = makeJob({
+    budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 10_000 },
+    splits: { seed: 1, calibration: 0, train: 30, dev: 10, test: 20 },
+    evaluation: {
+      trainBatch: 6,
+      minDevGain: 2,
+      maxTypeRegression: 1,
+      devRepeats: 1,
+      patience: 4,
+    },
+  });
+
+  it('runs the check tasks two or four times a round, after a starting check', () => {
+    // A round is 6 practice tasks and the 10 check tasks for the current version and the change,
+    // and 20 more when a promising change is checked again. The test always runs on this computer.
+    const local = { check: 10 * 150, short: (6 + 20) * 150, long: (6 + 40) * 150 };
     expect(estimateTime(job, 'local')).toEqual({
-      seconds: (104 + 20) * 150,
-      trainingSeconds: 104 * 150,
-      rounds: 4,
-      roundSeconds: 26 * 150,
+      seconds: {
+        least: local.check + 4 * local.short + 20 * 150,
+        most: local.check + 4 * local.long + 20 * 150,
+      },
+      trainingSeconds: { least: local.check + 4 * local.short, most: local.check + 4 * local.long },
+      rounds: { fewest: 4, most: 4 },
+      roundSeconds: { least: local.short, most: local.long },
     });
+    const hosted = { check: 10 * 15, short: (6 + 20) * 15, long: (6 + 40) * 15 };
     expect(estimateTime(job, 'hosted')).toEqual({
-      seconds: 104 * 15 + 20 * 150,
-      trainingSeconds: 104 * 15,
-      rounds: 4,
-      roundSeconds: 26 * 15,
+      seconds: {
+        least: hosted.check + 4 * hosted.short + 20 * 150,
+        most: hosted.check + 4 * hosted.long + 20 * 150,
+      },
+      trainingSeconds: {
+        least: hosted.check + 4 * hosted.short,
+        most: hosted.check + 4 * hosted.long,
+      },
+      rounds: { fewest: 4, most: 4 },
+      roundSeconds: { least: hosted.short, most: hosted.long },
     });
   });
 
   it('runs the check tasks once per repeat', () => {
-    const job = makeJob({
-      budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 10_000 },
-      splits: { seed: 1, calibration: 0, train: 30, dev: 10, test: 20 },
-      evaluation: {
-        trainBatch: 6,
-        minDevGain: 2,
-        maxTypeRegression: 1,
-        devRepeats: 2,
-        patience: 3,
-      },
-    });
-    expect(estimateTime(job, 'local')).toEqual({
-      seconds: (4 * 46 + 20) * 150,
-      trainingSeconds: 4 * 46 * 150,
-      rounds: 4,
-      roundSeconds: 46 * 150,
+    const repeated = makeJob({ ...job, evaluation: { ...job.evaluation, devRepeats: 2 } });
+    expect(estimateTime(repeated, 'local').roundSeconds).toEqual({
+      least: (6 + 40) * 150,
+      most: (6 + 80) * 150,
     });
   });
 
   it('stops training at the time cap and says how many rounds fit', () => {
-    // The sample job: a round is 12 practice and 80 check tasks, 3.8 hours locally against a
-    // 3-hour cap; a hosted copy fits 7 of the 12 rounds.
-    const job = makeJob();
-    const local = estimateTime(job, 'local');
-    expect(local.seconds).toBe(180 * 60 + 60 * 150);
-    expect(local.rounds).toBe(0);
-    const hosted = estimateTime(job, 'hosted');
-    expect(hosted.seconds).toBe(180 * 60 + 60 * 150);
-    expect(hosted.rounds).toBe(7);
+    // The sample job: a round is 12 practice tasks and 80 or 160 check tasks, at least 3.8 hours
+    // locally against a 3-hour cap; a hosted copy fits 3 to 7 of the 12 rounds.
+    const sample = makeJob();
+    const local = estimateTime(sample, 'local');
+    expect(local.seconds).toEqual({ least: 180 * 60 + 60 * 150, most: 180 * 60 + 60 * 150 });
+    expect(local.rounds).toEqual({ fewest: 0, most: 0 });
+    const hosted = estimateTime(sample, 'hosted');
+    expect(hosted.seconds).toEqual({ least: 180 * 60 + 60 * 150, most: 180 * 60 + 60 * 150 });
+    expect(hosted.rounds).toEqual({ fewest: 3, most: 7 });
   });
 });
 
@@ -85,20 +87,24 @@ describe('what the time cap allows', () => {
     expect(capText(150)).toBe('2.5 hours');
   });
 
-  it('says how many rounds fit, as a fact', () => {
+  it('says how many rounds fit, as a fact with its range', () => {
     const job = makeJob();
     expect(roundsLine(job, estimateTime(job, 'local'))).toBe(
-      'No full round fits in 3 hours of training; one takes about 4 hours',
+      'No full round fits in 3 hours of training; one takes about 4 to 7 hours',
     );
     expect(roundsLine(job, estimateTime(job, 'hosted'))).toBe(
-      '7 of 12 rounds fit in 3 hours of training',
+      '3 to 7 of 12 rounds fit in 3 hours of training',
     );
     expect(totalLine(estimateTime(job, 'hosted'))).toBe(
       'About 6 hours in all, with the final test',
     );
-    const roomy = makeJob({ budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 1200 } });
+    const roomy = makeJob({ budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 2000 } });
     expect(roundsLine(roomy, estimateTime(roomy, 'local'))).toBe(
-      'All 4 rounds fit, in about 15 hours of training',
+      'All 4 rounds fit, in about 17 to 30 hours of training',
+    );
+    const tight = makeJob({ budget: { maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: 360 } });
+    expect(roundsLine(tight, estimateTime(tight, 'local'))).toBe(
+      'At most 1 of 12 rounds fits in 6 hours of training',
     );
   });
 
@@ -107,13 +113,22 @@ describe('what the time cap allows', () => {
     const local = estimateTime(job, 'local');
     const hosted = estimateTime(job, 'hosted');
     expect(hostedAdvantage(local, hosted)).toBe(
-      'A hosted copy fits 7 rounds in the time this computer fits none.',
+      'A hosted copy fits 3 to 7 rounds in the time this computer fits none.',
     );
-    const roomy = makeJob({ budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 1200 } });
+    const roomy = makeJob({ budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 2000 } });
     expect(hostedAdvantage(estimateTime(roomy, 'local'), estimateTime(roomy, 'hosted'))).toBe(
-      'A hosted copy finishes in about 4 hours, against about 18 hours here.',
+      'A hosted copy finishes in about 4 to 6 hours, against about 20 to 33 hours here.',
     );
     expect(hostedAdvantage(hosted, hosted)).toBeNull();
+  });
+});
+
+describe('aboutSpan', () => {
+  it('says a span once when both ends round alike, else in the longer end’s unit', () => {
+    expect(aboutSpan({ least: 3 * 3600, most: 3 * 3600 + 600 })).toBe('About 3 hours');
+    expect(aboutSpan({ least: 20 * 60, most: 45 * 60 })).toBe('About 20 to 45 minutes');
+    expect(aboutSpan({ least: 13_800, most: 25_800 })).toBe('About 4 to 7 hours');
+    expect(aboutSpan({ least: 40 * 60, most: 2 * 3600 })).toBe('About 1 to 2 hours');
   });
 });
 
