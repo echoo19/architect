@@ -18,7 +18,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Open issues**
 - macOS is unverified. The disk images, their ad hoc signature and the macOS smoke test run only in CI.
 - The installers are unsigned.
-- The e2e screenshot specs rewrite nine files in `docs/screenshots/` since the latest changes on main; those were left as committed.
+- Each full e2e run rewrites some of the files in `docs/screenshots/` (9 on one run, 11 on the next) since the latest changes on main. They were left as committed.
 
 **Risks**
 - The macOS smoke test starts the app, which stores keys in the runner's keychain. If that fails there, the disk images are already uploaded, and only the release step is held back.
