@@ -1,0 +1,85 @@
+import { join, relative, sep } from 'node:path';
+
+const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+
+/** Ids become folder names, so only plain ones are accepted. */
+export function isSafeId(id: string): boolean {
+  return SAFE_ID.test(id);
+}
+
+function safe(id: string): string {
+  if (!isSafeId(id)) throw new Error(`"${id}" can't be used as a folder name.`);
+  return id;
+}
+
+export type VisibleSplit = 'calibration' | 'train' | 'dev';
+
+/**
+ * Where everything lives in the app's data folder (docs/ARCHITECTURE.md). The database stores
+ * paths relative to the folder, with forward slashes, so the folder can move.
+ */
+export class DataPaths {
+  constructor(readonly root: string) {}
+
+  get database(): string {
+    return join(this.root, 'architect.db');
+  }
+
+  get vault(): string {
+    return join(this.root, 'vault');
+  }
+
+  toStored(absolute: string): string {
+    return relative(this.root, absolute).split(sep).join('/');
+  }
+
+  fromStored(stored: string): string {
+    return join(this.root, ...stored.split('/'));
+  }
+
+  jobDir(jobId: string): string {
+    return join(this.root, 'jobs', safe(jobId));
+  }
+
+  jobFile(jobId: string): string {
+    return join(this.jobDir(jobId), 'job.json');
+  }
+
+  dataDir(jobId: string): string {
+    return join(this.jobDir(jobId), 'data');
+  }
+
+  tasksFile(jobId: string, split: VisibleSplit): string {
+    return join(this.jobDir(jobId), 'tasks', `${split}.jsonl`);
+  }
+
+  runDir(jobId: string, runId: string): string {
+    return join(this.jobDir(jobId), 'runs', safe(runId));
+  }
+
+  /** The job as it was when the run started; the run always uses this copy. */
+  runJobFile(jobId: string, runId: string): string {
+    return join(this.runDir(jobId, runId), 'job.json');
+  }
+
+  harnessDir(jobId: string, runId: string): string {
+    return join(this.runDir(jobId, runId), 'harness');
+  }
+
+  traceFile(jobId: string, runId: string, attemptId: string): string {
+    return join(this.runDir(jobId, runId), 'traces', `${safe(attemptId)}.json`);
+  }
+
+  /** What the mentor was sent and what it returned in a round; written only for calls that ran. */
+  mentorFile(jobId: string, runId: string, round: number): string {
+    return join(this.runDir(jobId, runId), 'mentor', `round-${round}.json`);
+  }
+
+  lineageFile(jobId: string, runId: string): string {
+    return join(this.runDir(jobId, runId), 'lineage.jsonl');
+  }
+
+  graduateDir(graduateId: string): string {
+    return join(this.root, 'graduates', safe(graduateId));
+  }
+}
