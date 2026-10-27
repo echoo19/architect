@@ -221,7 +221,8 @@ function plural(count: number, noun: string): string {
 function ExperimentNote({ children }: { children: ReactNode }) {
   return (
     <TabNote className="border-t-0 pt-0">
-      {children} The defaults suit most jobs, and changing them makes runs harder to compare.
+      {children} The defaults suit most jobs; changing them makes this job&apos;s runs harder to
+      compare with each other.
     </TabNote>
   );
 }

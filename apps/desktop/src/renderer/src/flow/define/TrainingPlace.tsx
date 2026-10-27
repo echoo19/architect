@@ -47,6 +47,9 @@ export function TrainingPlace({
   const capMax = Math.max(20, Math.ceil(cap), Math.ceil((usual ?? 0) * 3));
   const local = estimateTime(job, 'local');
   const remote = estimateTime(job, 'hosted');
+  // Three more final tests, and self-correction's training at the chosen place.
+  const chosen = job.student.trainOn === 'hosted' ? remote : local;
+  const comparisonSeconds = 3 * testSeconds(job) + chosen.trainingSeconds.most;
   const advantage = hosted.available ? hostedAdvantage(local, remote) : null;
   const provider = job.student.hosted ? providerName(job.student.hosted) : null;
 
@@ -152,9 +155,9 @@ export function TrainingPlace({
           />
           <p className="m-0 pl-7 text-sm text-fg-muted text-pretty">
             {names.student} on its own, instructions {names.mentor} writes in one go, and{' '}
-            {names.student} revising its own. They run after this agent and add several hours, since
-            each takes its own final test ({formatAbout(testSeconds(job)).toLowerCase()} apiece on{' '}
-            {device}). The report puts all four side by side.
+            {names.student} revising its own. They run after this agent and can add up to{' '}
+            {formatAbout(comparisonSeconds).toLowerCase()}: each takes its own final test, and
+            self-correction trains too. The report puts all four side by side.
           </p>
         </div>
       )}
