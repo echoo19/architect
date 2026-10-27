@@ -132,6 +132,7 @@ function TraceSteps({ trace, student }: { trace: Trace; student: string }) {
   const tokens = trace.usage.inputTokens + trace.usage.outputTokens;
   const stopped = STOP_REASONS[trace.stopReason];
   const steps = trace.steps.filter(isShown);
+  const firstSkill = steps.findIndex((step) => step.kind === 'skill');
   return (
     <>
       <Section title={`${student}'s steps`}>
@@ -141,7 +142,7 @@ function TraceSteps({ trace, student }: { trace: Trace; student: string }) {
           <ol className="m-0 flex list-none flex-col gap-2.5 p-0">
             {steps.map((step, index) => (
               <li key={index}>
-                <StepView step={step} student={student} />
+                <StepView step={step} student={student} explain={index === firstSkill} />
               </li>
             ))}
           </ol>
@@ -170,18 +171,34 @@ function TraceSteps({ trace, student }: { trace: Trace; student: string }) {
   );
 }
 
-function StepView({ step, student }: { step: TraceStep; student: string }) {
+function StepView({
+  step,
+  student,
+  explain,
+}: {
+  step: TraceStep;
+  student: string;
+  /** Say what a skill is, on the first one in the trace. */
+  explain: boolean;
+}) {
   switch (step.kind) {
     case 'skill':
       return (
         <StepRow icon={<BookOpen size={14} strokeWidth={1.7} aria-hidden />}>
-          <span>
-            Loaded the skill <span className="font-mono text-sm">{step.slug}</span>
-            <span className="text-fg-muted">
-              {step.via === 'rule'
-                ? ' automatically, because the request matched it'
-                : ` because ${student} asked for it`}
+          <span className="flex flex-col gap-0.5">
+            <span>
+              Loaded the skill <span className="font-mono text-sm">{step.slug}</span>
+              <span className="text-fg-muted">
+                {step.via === 'rule'
+                  ? ' automatically, because the request matched it'
+                  : ` because ${student} asked for it`}
+              </span>
             </span>
+            {explain && (
+              <span className="text-sm text-fg-muted text-pretty">
+                A skill is a file of step-by-step instructions for one kind of request.
+              </span>
+            )}
           </span>
         </StepRow>
       );
