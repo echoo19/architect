@@ -225,6 +225,8 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
             <Heading id="helped">What helped most</Heading>
             <p className="m-0 text-fg-secondary text-pretty">
               The changes {names.mentor} made that added the most check tasks right.
+              {report.topInterventions.some((change) => change.runs) &&
+                ' A change that was checked twice counts both checks.'}
             </p>
           </div>
           <ol className="m-0 flex list-none flex-col p-0">
@@ -239,6 +241,7 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
                   {signed(change.delta)}{' '}
                   <span className="font-sans text-fg-muted">
                     check {Math.abs(change.delta) === 1 ? 'task' : 'tasks'}
+                    {change.runs ? ` over ${change.runs} checks` : null}
                   </span>
                 </span>
               </li>
