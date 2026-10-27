@@ -1,0 +1,297 @@
+/*
+ * The mentor-to-student panel on the training screen, rebuilt from the design's artboard. The
+ * stage's data-motion follows the run's phase; data-frozen holds everything where it is.
+ */
+
+.arch-stage {
+  --arch-from: var(--ui-fg-faint);
+  --arch-glow: color-mix(in srgb, var(--ui-student) 35%, transparent);
+  --arch-ping: color-mix(in srgb, var(--ui-student) 35%, white);
+}
+
+[data-theme='light'] .arch-stage {
+  --arch-ping: var(--ui-student);
+}
+
+.arch-stage[data-motion='checking'] {
+  --arch-from: var(--ui-mentor);
+}
+
+/* The mentor: three dotted rings turning at different speeds around a solid core. */
+
+.arch-mentor {
+  transition: opacity 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.arch-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: arch-spin var(--arch-ring-time) linear infinite;
+}
+
+.arch-ring-outer {
+  --arch-ring-time: 120s;
+}
+
+.arch-ring-middle {
+  --arch-ring-time: 80s;
+  animation-direction: reverse;
+}
+
+.arch-ring-inner {
+  --arch-ring-time: 50s;
+}
+
+/* Reading failures: the mentor is the one working. */
+.arch-stage[data-motion='returning'] .arch-ring-outer {
+  --arch-ring-time: 40s;
+}
+
+.arch-stage[data-motion='returning'] .arch-ring-middle {
+  --arch-ring-time: 26s;
+}
+
+.arch-stage[data-motion='returning'] .arch-ring-inner {
+  --arch-ring-time: 16s;
+}
+
+/* The final test runs with the mentor disconnected. */
+.arch-stage[data-motion='testing'] .arch-mentor {
+  opacity: 0.32;
+}
+
+.arch-stage[data-motion='testing'] .arch-ring {
+  animation-play-state: paused;
+}
+
+/* The track: tasks travel along it and meet the checker at the gate. */
+
+.arch-track {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 100px;
+  height: 150px;
+  margin: 0 12px 38px;
+}
+
+.arch-line {
+  position: absolute;
+  top: 50%;
+  border-top: 1px solid var(--ui-line);
+}
+
+.arch-line-mentor {
+  left: 0;
+  width: 55%;
+}
+
+.arch-line-student {
+  left: 55%;
+  right: 0;
+}
+
+.arch-stage[data-motion='testing'] .arch-line-mentor {
+  border-top-style: dashed;
+  opacity: 0.6;
+}
+
+.arch-gate {
+  position: absolute;
+  left: 55%;
+  top: 36px;
+  bottom: 36px;
+  width: 1px;
+  background: var(--ui-line-strong);
+}
+
+.arch-pill {
+  position: absolute;
+  top: calc(50% - 4px);
+  left: 0;
+  width: 20px;
+  height: 8px;
+  border-radius: 4px;
+  opacity: 0;
+  color: var(--arch-from);
+  animation: arch-flow 5.6s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.arch-pill::after {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 3.5px;
+  width: 36px;
+  height: 1px;
+  background: linear-gradient(to left, currentColor, transparent);
+  opacity: 0.5;
+}
+
+.arch-pill[data-kind='reject'] {
+  animation-name: arch-reject;
+}
+
+.arch-pill[data-kind='return'] {
+  animation-name: arch-return;
+}
+
+.arch-pill[data-kind='return']::after {
+  right: auto;
+  left: 100%;
+  background: linear-gradient(to right, currentColor, transparent);
+}
+
+/* The student: a grid of points that light up as it works. */
+
+.arch-cell {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--arch-cell);
+  animation: arch-ping 5.6s ease-out infinite;
+}
+
+.arch-stage:is([data-motion='returning'], [data-motion='idle'], [data-motion='still']) .arch-cell {
+  animation: none;
+}
+
+.arch-stage[data-frozen] :is(.arch-ring, .arch-pill, .arch-cell) {
+  animation-play-state: paused;
+}
+
+@keyframes arch-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes arch-flow {
+  0% {
+    left: 0%;
+    opacity: 0;
+    color: var(--arch-from);
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1.25px var(--arch-from);
+  }
+  7% {
+    opacity: 1;
+  }
+  54% {
+    color: var(--arch-from);
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1.25px var(--arch-from);
+  }
+  57% {
+    color: var(--ui-student);
+    background-color: var(--ui-student);
+    box-shadow:
+      inset 0 0 0 1.25px var(--ui-student),
+      0 0 10px 1px var(--arch-glow);
+  }
+  68% {
+    box-shadow:
+      inset 0 0 0 1.25px var(--ui-student),
+      0 0 0 0 transparent;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    left: calc(100% - 20px);
+    opacity: 0;
+    color: var(--ui-student);
+    background-color: var(--ui-student);
+    box-shadow: inset 0 0 0 1.25px var(--ui-student);
+  }
+}
+
+@keyframes arch-reject {
+  0% {
+    left: 0%;
+    opacity: 0;
+    transform: translateY(0);
+    color: var(--arch-from);
+    box-shadow: inset 0 0 0 1.25px var(--arch-from);
+  }
+  7% {
+    opacity: 1;
+  }
+  53% {
+    left: 53%;
+    transform: translateY(0);
+    color: var(--arch-from);
+    box-shadow: inset 0 0 0 1.25px var(--arch-from);
+  }
+  57% {
+    left: 54%;
+    color: transparent;
+    box-shadow: inset 0 0 0 1.25px var(--ui-fg-faint);
+  }
+  78%,
+  100% {
+    left: 54.5%;
+    transform: translateY(36px);
+    opacity: 0;
+  }
+}
+
+@keyframes arch-return {
+  0% {
+    left: calc(100% - 20px);
+    opacity: 0;
+    color: var(--ui-fg-faint);
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1.25px var(--ui-fg-faint);
+  }
+  8% {
+    opacity: 1;
+  }
+  45% {
+    color: var(--ui-fg-faint);
+    box-shadow: inset 0 0 0 1.25px var(--ui-fg-faint);
+  }
+  80% {
+    color: var(--ui-mentor);
+    box-shadow: inset 0 0 0 1.25px var(--ui-mentor);
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    left: 0%;
+    opacity: 0;
+    color: var(--ui-mentor);
+    box-shadow: inset 0 0 0 1.25px var(--ui-mentor);
+  }
+}
+
+@keyframes arch-ping {
+  0%,
+  18%,
+  100% {
+    background-color: var(--arch-cell);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  6% {
+    background-color: var(--arch-ping);
+    box-shadow: 0 0 8px 1px var(--arch-glow);
+  }
+}
+
+/* Reduced motion: one still frame of the same scene, with tasks placed along the track. */
+@media (prefers-reduced-motion: reduce) {
+  .arch-ring,
+  .arch-cell,
+  .arch-pill {
+    animation: none;
+  }
+
+  .arch-pill {
+    opacity: 1;
+    left: var(--arch-still-left);
+    color: var(--arch-still-color);
+    background-color: var(--arch-still-fill, transparent);
+    box-shadow: inset 0 0 0 1.25px var(--arch-still-color);
+    transform: translateY(var(--arch-still-drop, 0));
+  }
+}
