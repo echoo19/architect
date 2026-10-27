@@ -53,7 +53,14 @@ export interface RunAgentOptions {
 }
 
 type Turn =
-  | { ok: true; text: string; toolCalls: ToolCall[]; usage: Usage; latencyMs: number }
+  | {
+      ok: true;
+      text: string;
+      toolCalls: ToolCall[];
+      usage: Usage;
+      latencyMs: number;
+      finish: 'stop' | 'tool_calls' | 'length';
+    }
   | { ok: false; error: string };
 
 /**
@@ -146,6 +153,9 @@ export async function runAgent(options: RunAgentOptions): Promise<Trace> {
           : { role: 'assistant', content: turn.text },
       );
       finalText = turn.text;
+      if (turn.toolCalls.length === 0 && turn.finish === 'length') {
+        return finish(messages, finalText, 'error', cutOff(decoding.maxOutputTokens, turn.text));
+      }
       if (turn.toolCalls.length === 0) return finish(messages, finalText, 'answer');
 
       for (const call of turn.toolCalls) {
@@ -196,6 +206,7 @@ async function callStudent(
   let text = '';
   const toolCalls: ToolCall[] = [];
   let usage = emptyUsage();
+  let finish: 'stop' | 'tool_calls' | 'length' = 'stop';
   let stream: AsyncIterator<StudentStreamEvent>;
   try {
     stream = student.chat(request, signal)[Symbol.asyncIterator]();
@@ -227,12 +238,26 @@ async function callStudent(
         toolCalls.push(event.call);
       } else {
         usage = event.usage;
+        finish = event.finish;
       }
     }
   } finally {
     if (!ended) await stream.return?.();
   }
-  return { ok: true, text, toolCalls, usage, latencyMs: elapsedMs(started) };
+  return { ok: true, text, toolCalls, usage, latencyMs: elapsedMs(started), finish };
+}
+
+/**
+ * Why a reply that hit the output-token limit ended the attempt. Reasoning counts against the
+ * limit, so a long think can use all of it before the model says anything; the harness can raise
+ * the limit or lower the reasoning strength.
+ */
+function cutOff(limit: number, text: string): string {
+  const what =
+    text.trim() === ''
+      ? 'while the model was still thinking, before it said anything'
+      : 'in the middle of its answer';
+  return `The reply hit the ${limit}-token output limit ${what}. Raise max_output_tokens or lower thinking in decoding.yaml.`;
 }
 
 /** True for adapter errors caused by the model runtime rather than by what the student wrote. */

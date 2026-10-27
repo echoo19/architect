@@ -16,6 +16,8 @@ export interface ScriptedTurn {
   error?: Error;
   /** Wait this long between streamed text pieces. */
   delayMs?: number;
+  /** End the turn as the runtime would when the output-token limit is reached. */
+  cutOff?: boolean;
 }
 
 type Script =
@@ -57,7 +59,7 @@ export class ScriptedStudent implements StudentAdapter {
     yield {
       type: 'done',
       usage: turn.usage ?? { inputTokens: 100, outputTokens: 20 },
-      finish: calls.length > 0 ? 'tool_calls' : 'stop',
+      finish: turn.cutOff ? 'length' : calls.length > 0 ? 'tool_calls' : 'stop',
     };
   }
 

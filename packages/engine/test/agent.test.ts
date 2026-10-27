@@ -189,6 +189,19 @@ describe('runAgent', () => {
     });
   });
 
+  it('ends with a clear error when a reply is cut off by the output-token limit', async () => {
+    const thinking = await run([{ text: '', cutOff: true }]);
+    expect(thinking.trace.stopReason).toBe('error');
+    expect(thinking.trace.error).toContain('while the model was still thinking');
+    expect(thinking.trace.error).toContain('max_output_tokens');
+    job?.remove();
+    job = undefined;
+
+    const midAnswer = await run([{ text: 'The total is 12', cutOff: true }]);
+    expect(midAnswer.trace).toMatchObject({ stopReason: 'error', finalText: 'The total is 12' });
+    expect(midAnswer.trace.error).toContain('in the middle of its answer');
+  });
+
   it('throws when the runtime fails, so an outage is never scored as a wrong answer', async () => {
     for (const code of ['network', 'server', 'not_found', 'auth', 'timeout'] as const) {
       await expect(
