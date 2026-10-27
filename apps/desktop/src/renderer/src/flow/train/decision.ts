@@ -80,9 +80,11 @@ export function decisionSentence(
   return `${measured}.`;
 }
 
-/** How the measured change compares with the mentor's predicted range. */
+/** How the measured change compares with the mentor's predicted range, as a sentence. */
 export function predictionCheck(predicted: Prediction, measured: number, mentor: string): string {
-  if (measured < predicted.devDeltaMin) return `Below ${mentor}'s prediction`;
-  if (measured > predicted.devDeltaMax) return `Better than ${mentor} predicted`;
-  return `Inside ${mentor}'s prediction`;
+  if (measured < predicted.devDeltaMin) {
+    return `The result fell short of ${mentor}'s predicted range.`;
+  }
+  if (measured > predicted.devDeltaMax) return `The result beat ${mentor}'s predicted range.`;
+  return `The result was inside ${mentor}'s predicted range.`;
 }

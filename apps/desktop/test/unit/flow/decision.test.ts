@@ -71,8 +71,14 @@ describe('predictionCheck', () => {
   const predicted = { devDeltaMin: 5, devDeltaMax: 9, rationale: 'Every invoice depends on it.' };
 
   it('compares the measured change with the predicted range', () => {
-    expect(predictionCheck(predicted, 8, 'Spark')).toBe("Inside Spark's prediction");
-    expect(predictionCheck(predicted, 3, 'Spark')).toBe("Below Spark's prediction");
-    expect(predictionCheck(predicted, 11, 'Spark')).toBe('Better than Spark predicted');
+    expect(predictionCheck(predicted, 8, 'Spark')).toBe(
+      "The result was inside Spark's predicted range.",
+    );
+    expect(predictionCheck(predicted, 3, 'Spark')).toBe(
+      "The result fell short of Spark's predicted range.",
+    );
+    expect(predictionCheck(predicted, 11, 'Spark')).toBe(
+      "The result beat Spark's predicted range.",
+    );
   });
 });

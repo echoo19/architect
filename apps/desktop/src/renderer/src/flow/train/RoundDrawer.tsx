@@ -28,6 +28,14 @@ function lines(count: number): string {
   return `${count} ${count === 1 ? 'line' : 'lines'}`;
 }
 
+/** What the drawer is about: the mentor's one change, and how many files it touched. */
+function changeSummary(mentor: string, lineage: LineageEntry | undefined): string {
+  const count = lineage?.files.length ?? 0;
+  if (count === 0) return `${mentor}'s change to the agent's instructions`;
+  const files = count === 1 ? 'one file' : `${count} files`;
+  return `${mentor} changed ${files} of the agent's instructions`;
+}
+
 /** One round in full: the decision, the diagnosis, and the files the change touched. */
 export function RoundDrawerContent({
   runId,
@@ -46,10 +54,7 @@ export function RoundDrawerContent({
   const measured =
     round.devBefore && round.devAfter ? round.devAfter.pass - round.devBefore.pass : null;
   return (
-    <DrawerContent
-      title={title}
-      subtitle={`${names.mentor}'s change to the agent's instructions, skills and tools`}
-    >
+    <DrawerContent title={title} subtitle={changeSummary(names.mentor, lineage)}>
       <div className="flex flex-col gap-7">
         <Decision round={round} job={job} lineage={lineage} />
         {round.error && (
@@ -87,7 +92,7 @@ export function RoundDrawerContent({
         </dl>
         {round.predicted && measured !== null && (
           <p className="-mt-4 text-sm text-fg-muted">
-            {predictionCheck(round.predicted, measured, names.mentor)}.
+            {predictionCheck(round.predicted, measured, names.mentor)}
           </p>
         )}
 
@@ -113,8 +118,11 @@ export function RoundDrawerContent({
                   className="flex items-baseline justify-between border-t border-line-row py-2 first:border-t-0"
                 >
                   <span>{typeLabel(job, type.type)}</span>
-                  <span className="font-mono text-sm tabular-nums">
-                    {type.before} to {type.after}
+                  <span className="text-sm text-fg-secondary">
+                    <span className="font-mono tabular-nums text-fg">
+                      {type.before} to {type.after}
+                    </span>{' '}
+                    right
                   </span>
                 </li>
               ))}
