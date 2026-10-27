@@ -8,15 +8,19 @@ import { IpcRouter, type IpcEventLike } from '../../../src/main/ipc/router';
 import type { Cipher } from '../../../src/main/secrets/store';
 import { SecretStore } from '../../../src/main/secrets/store';
 
-/** Reversible stand-in for the OS key store: XOR with a byte, so ciphertext never equals text. */
-function fakeCipher(options: { unavailable?: string; stale?: boolean } = {}): Cipher {
+/**
+ * Stands in for the OS key store: a key version byte, then the text XORed with a byte, so the
+ * ciphertext never equals the text. Data from an older key version decrypts as stale.
+ */
+function fakeCipher(options: { unavailable?: string; version?: number } = {}): Cipher {
+  const version = options.version ?? 1;
   const flip = (data: Buffer) => Buffer.from(data.map((byte) => byte ^ 0x5a));
   return {
     unavailableReason: async () => options.unavailable ?? null,
-    encrypt: async (value) => flip(Buffer.from(value, 'utf8')),
+    encrypt: async (value) => Buffer.concat([Buffer.from([version]), flip(Buffer.from(value))]),
     decrypt: async (data) => ({
-      value: flip(data).toString('utf8'),
-      stale: options.stale ?? false,
+      value: flip(data.subarray(1)).toString('utf8'),
+      stale: data[0] !== version,
     }),
   };
 }
@@ -105,14 +109,18 @@ describe('SecretStore', () => {
     );
   });
 
-  it('re-encrypts a key the key store marks as stale', async () => {
-    const store = await SecretStore.open(file, fakeCipher());
-    await store.set('meta', 'sk-1');
-    const cipher = fakeCipher({ stale: true });
-    const encrypt = vi.spyOn(cipher, 'encrypt');
-    const reopened = await SecretStore.open(file, cipher);
+  it("re-saves a key under the key store's newer key", async () => {
+    await (await SecretStore.open(file, fakeCipher({ version: 1 }))).set('meta', 'sk-1');
+    const rotated = await SecretStore.open(file, fakeCipher({ version: 2 }));
+    expect(await rotated.get('meta')).toBe('sk-1');
+
+    // The new ciphertext is saved in the background; wait for it before the folder goes away.
+    await vi.waitFor(async () => {
+      const stored = JSON.parse(await readFile(file, 'utf8')) as Record<string, string>;
+      expect(Buffer.from(stored.meta ?? '', 'base64')[0]).toBe(2);
+    });
+    const reopened = await SecretStore.open(file, fakeCipher({ version: 2 }));
     expect(await reopened.get('meta')).toBe('sk-1');
-    await vi.waitFor(() => expect(encrypt).toHaveBeenCalledWith('sk-1'));
   });
 
   it('starts empty from a file in the wrong shape, keeping only known refs', async () => {
