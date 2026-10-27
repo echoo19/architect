@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { FileDiff, Job, LineageEntry, Round } from '@architect/shared';
+import type { FileDiff, Job, LineageEntry, Round, Score } from '@architect/shared';
 import { cn, DrawerContent, ErrorState, Skeleton, Spinner } from '@architect/ui';
 import { Check, Undo2 } from 'lucide-react';
 import { flowApi } from '../../api/client';
@@ -53,6 +53,9 @@ export function RoundDrawerContent({
   const title = `Round ${round.index}${round.title ? `: ${round.title}` : ''}`;
   const measured =
     round.devBefore && round.devAfter ? round.devAfter.pass - round.devBefore.pass : null;
+  // The prediction is for one check, so a change checked twice is set beside its first check.
+  const first = round.firstMeasurement;
+  const firstMeasured = first ? first.devAfter.pass - first.devBefore.pass : measured;
   return (
     <DrawerContent title={title} subtitle={changeSummary(names.mentor, lineage)}>
       <div className="flex flex-col gap-7">
@@ -72,27 +75,27 @@ export function RoundDrawerContent({
               '–'
             )}
           </Effect>
-          <Effect
-            label="Measured"
-            note={
-              round.devBefore && round.devAfter
-                ? `${formatRate(round.devBefore)} to ${formatRate(round.devAfter)} of check tasks right`
-                : undefined
-            }
-          >
-            {measured === null ? (
-              '–'
-            ) : (
-              <>
-                {signed(measured)}
-                <Unit>check {Math.abs(measured) === 1 ? 'task' : 'tasks'}</Unit>
-              </>
-            )}
+          <Effect label={first ? 'First check' : 'Measured'} note={rateChange(first ?? round)}>
+            <TaskCount delta={firstMeasured} />
           </Effect>
+          {first && (
+            <Effect
+              label="Checked again on new seeds, over both checks"
+              note={rateChange(round)}
+              wide
+            >
+              <TaskCount delta={measured} />
+            </Effect>
+          )}
         </dl>
-        {round.predicted && measured !== null && (
+        {round.predicted && firstMeasured !== null && (
           <p className="-mt-4 text-sm text-fg-muted">
-            {predictionCheck(round.predicted, measured, names.mentor)}
+            {predictionCheck(
+              round.predicted,
+              firstMeasured,
+              names.mentor,
+              first ? 'The first check' : 'The result',
+            )}
           </p>
         )}
 
@@ -110,7 +113,13 @@ export function RoundDrawerContent({
         )}
 
         {lineage && lineage.measured.perType.length > 0 && (
-          <Block title="Check tasks right, by task type">
+          <Block
+            title={
+              first
+                ? 'Check tasks right by task type, over both checks'
+                : 'Check tasks right, by task type'
+            }
+          >
             <ul className="m-0 flex list-none flex-col p-0">
               {lineage.measured.perType.map((type) => (
                 <li
@@ -187,9 +196,37 @@ function Unit({ children }: { children: ReactNode }) {
   return <span className="ml-2 font-sans text-md text-fg-secondary">{children}</span>;
 }
 
-function Effect({ label, note, children }: { label: string; note?: string; children: ReactNode }) {
+/** "58% to 78% of check tasks right": rates, since one check and two add up to different totals. */
+function rateChange({ devBefore, devAfter }: { devBefore?: Score; devAfter?: Score }) {
+  if (!devBefore || !devAfter) return undefined;
+  return `${formatRate(devBefore)} to ${formatRate(devAfter)} of check tasks right`;
+}
+
+/** "+8 check tasks", or a dash before there is a measurement. */
+function TaskCount({ delta }: { delta: number | null }) {
+  if (delta === null) return <>–</>;
   return (
-    <div className="flex flex-col gap-1 bg-modal px-4 py-3.5">
+    <>
+      {signed(delta)}
+      <Unit>check {Math.abs(delta) === 1 ? 'task' : 'tasks'}</Unit>
+    </>
+  );
+}
+
+function Effect({
+  label,
+  note,
+  wide,
+  children,
+}: {
+  label: string;
+  note?: string | undefined;
+  /** Spans both columns. */
+  wide?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn('flex flex-col gap-1 bg-modal px-4 py-3.5', wide && 'col-span-2')}>
       <dt className="text-fg-secondary">{label}</dt>
       <dd className="m-0 font-mono text-2xl tabular-nums">{children}</dd>
       {note && <dd className="m-0 text-sm text-fg-muted">{note}</dd>}

@@ -62,6 +62,43 @@ describe('decisionSentence', () => {
     );
   });
 
+  it('says what the first check found and what both checks added up to', () => {
+    const checkedTwice = (index: number, decision: 'kept' | 'reverted', pooled: [number, number]) =>
+      ({
+        ...decided(index, pooled[0], pooled[1]),
+        devBefore: { pass: pooled[0], total: 80 },
+        devAfter: { pass: pooled[1], total: 80 },
+        firstMeasurement: { devBefore: { pass: 23, total: 40 }, devAfter: { pass: 31, total: 40 } },
+        decision,
+      }) satisfies Round;
+    expect(
+      decisionSentence(
+        checkedTwice(3, 'kept', [46, 62]),
+        lineage([{ type: 'invoice', before: 18, after: 30 }]),
+        job,
+      ),
+    ).toBe(
+      '8 more check tasks passed on the first check (23 to 31 of 40). Checked again on new ' +
+        'seeds: 16 more over both checks (46 to 62 of 80), and no task type got worse.',
+    );
+    expect(decisionSentence(checkedTwice(5, 'reverted', [46, 49]), undefined, job)).toBe(
+      '8 more check tasks passed on the first check (23 to 31 of 40). Checked again on new ' +
+        'seeds: 3 more over both checks (46 to 49 of 80). A change needs at least four more ' +
+        'over both to stay.',
+    );
+    expect(
+      decisionSentence(
+        checkedTwice(6, 'reverted', [46, 52]),
+        lineage([{ type: 'scheduling', before: 14, after: 11 }]),
+        job,
+      ),
+    ).toBe(
+      '8 more check tasks passed on the first check (23 to 31 of 40). Checked again on new ' +
+        'seeds: 6 more over both checks (46 to 52 of 80), but Scheduling lost three. No task ' +
+        'type may lose more than two.',
+    );
+  });
+
   it('has nothing to say before the round is decided', () => {
     expect(decisionSentence(makeRound(4, { status: 'evaluating' }), undefined, job)).toBeNull();
   });
@@ -79,6 +116,9 @@ describe('predictionCheck', () => {
     );
     expect(predictionCheck(predicted, 11, 'Spark')).toBe(
       "The result beat Spark's predicted range.",
+    );
+    expect(predictionCheck(predicted, 6, 'Spark', 'The first check')).toBe(
+      "The first check was inside Spark's predicted range.",
     );
   });
 });

@@ -10,6 +10,8 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
   const { run, job, rounds } = live;
   const { student } = modelNames(job);
   const score = run.devCurrent ?? run.devBaseline;
+  // A change checked twice is kept on both checks added up, so the count can span two runs.
+  const runs = score && job.splits.dev > 0 ? Math.round(score.total / job.splits.dev) : 1;
   const input: CurveInput = {
     baseline: run.devBaseline,
     rounds,
@@ -29,12 +31,14 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
         {score && (
           <span className="font-mono text-sm text-fg-muted">
             {score.pass} of {score.total}
+            {runs > 1 && <span className="font-sans">, over {runs} checks</span>}
           </span>
         )}
       </div>
       <p className="m-0 text-fg-secondary text-pretty">
         {student} never practices on the check tasks. A change stays only if more of them come out
-        right, and training ends when they reach the {Math.round(input.target * 100)}% target.
+        right on two checks, and training ends when they reach the {Math.round(input.target * 100)}%
+        target.
       </p>
       <Legend />
       <CurveChart input={input} />

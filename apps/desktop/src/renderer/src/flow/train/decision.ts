@@ -1,4 +1,4 @@
-import type { Job, LineageEntry, Prediction, Round } from '@architect/shared';
+import type { Job, LineageEntry, Prediction, Round, Score } from '@architect/shared';
 import { typeLabel } from '../names';
 
 const NUMBER_WORDS = [
@@ -36,6 +36,17 @@ function lossRule(allowed: number, tense: 'lost' | 'may lose'): string {
   return `no task type ${tense} more than ${inWords(allowed)}`;
 }
 
+/** "16 more", "3 fewer", "no more": a change in passes, after a number has been given. */
+function changePhrase(gain: number): string {
+  if (gain > 0) return `${gain} more`;
+  if (gain < 0) return `${-gain} fewer`;
+  return 'no more';
+}
+
+function capitalized(sentence: string): string {
+  return `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)}`;
+}
+
 /** The task type that lost the most check-task passes, by its label. */
 function worstLoss(lineage: LineageEntry | undefined, job: Job): { label: string; lost: number } {
   let worst = { label: '', lost: 0 };
@@ -55,8 +66,11 @@ export function decisionSentence(
   lineage: LineageEntry | undefined,
   job: Job,
 ): string | null {
-  const { devBefore: before, devAfter: after, decision } = round;
+  const { devBefore: before, devAfter: after, decision, firstMeasurement } = round;
   if (!before || !after || !decision) return null;
+  if (firstMeasurement) {
+    return checkedTwice(firstMeasurement, { before, after, decision }, lineage, job);
+  }
   const repeats = job.evaluation.devRepeats;
   const margin = job.evaluation.minDevGain * repeats;
   const allowed = job.evaluation.maxTypeRegression * repeats;
@@ -80,11 +94,58 @@ export function decisionSentence(
   return `${measured}.`;
 }
 
-/** How the measured change compares with the mentor's predicted range, as a sentence. */
-export function predictionCheck(predicted: Prediction, measured: number, mentor: string): string {
-  if (measured < predicted.devDeltaMin) {
-    return `The result fell short of ${mentor}'s predicted range.`;
+/**
+ * A change that cleared the keep limits once and was checked again on new seeds: what the first
+ * check found, then the totals over both, which decided it against limits for twice the runs
+ * (decision 022).
+ */
+function checkedTwice(
+  first: NonNullable<Round['firstMeasurement']>,
+  both: { before: Score; after: Score; decision: NonNullable<Round['decision']> },
+  lineage: LineageEntry | undefined,
+  job: Job,
+): string {
+  const runs = 2 * job.evaluation.devRepeats;
+  const margin = job.evaluation.minDevGain * runs;
+  const allowed = job.evaluation.maxTypeRegression * runs;
+  const firstGain = first.devAfter.pass - first.devBefore.pass;
+  const gain = both.after.pass - both.before.pass;
+  const opening =
+    `${gainPhrase(firstGain)} on the first check ` +
+    `(${first.devBefore.pass} to ${first.devAfter.pass} of ${first.devAfter.total})`;
+  const again =
+    `Checked again on new seeds: ${changePhrase(gain)} over both checks ` +
+    `(${both.before.pass} to ${both.after.pass} of ${both.after.total})`;
+  const worst = worstLoss(lineage, job);
+
+  if (both.decision === 'kept') {
+    const guard =
+      lineage && worst.lost === 0 ? 'no task type got worse' : lossRule(allowed, 'lost');
+    return `${opening}. ${again}, and ${guard}.`;
   }
-  if (measured > predicted.devDeltaMax) return `The result beat ${mentor}'s predicted range.`;
-  return `The result was inside ${mentor}'s predicted range.`;
+  if (gain < margin) {
+    return `${opening}. ${again}. A change needs at least ${inWords(margin)} more over both to stay.`;
+  }
+  if (worst.lost > allowed) {
+    const rule = capitalized(lossRule(allowed, 'may lose'));
+    return `${opening}. ${again}, but ${worst.label} lost ${inWords(worst.lost)}. ${rule}.`;
+  }
+  return `${opening}. ${again}.`;
+}
+
+/**
+ * How a measured change compares with the mentor's predicted range, as a sentence. The
+ * prediction is for one check, so a change checked twice is compared on its first check.
+ */
+export function predictionCheck(
+  predicted: Prediction,
+  measured: number,
+  mentor: string,
+  subject = 'The result',
+): string {
+  if (measured < predicted.devDeltaMin) {
+    return `${subject} fell short of ${mentor}'s predicted range.`;
+  }
+  if (measured > predicted.devDeltaMax) return `${subject} beat ${mentor}'s predicted range.`;
+  return `${subject} was inside ${mentor}'s predicted range.`;
 }
