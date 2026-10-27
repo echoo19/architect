@@ -1,9 +1,14 @@
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, ipcMain, session } from 'electron';
+import engineEntry from '../utility/engine?modulePath';
+import { launchEngineProcess } from './engine/process';
+import { engineResources } from './engine/resources';
+import { EngineSupervisor } from './engine/supervisor';
 import { PickedPaths } from './files/picked';
 import { registerAppHandlers } from './handlers/app';
 import { registerConnectionHandlers } from './handlers/connections';
+import { registerEngineHandlers } from './handlers/engine';
 import { registerFilesHandlers } from './handlers/files';
 import { registerOllamaHandlers } from './handlers/ollama';
 import { registerSecretsHandlers } from './handlers/secrets';
@@ -27,6 +32,12 @@ const origin: AppOrigin = {
   ...(launch.devServerUrl ? { devServerUrl: launch.devServerUrl } : {}),
 };
 const preload = fileURLToPath(new URL('../preload/index.cjs', import.meta.url));
+const resources = engineResources({
+  outDir: fileURLToPath(new URL('.', import.meta.url)),
+  packaged: app.isPackaged,
+  appPath: app.getAppPath(),
+  resourcesPath: process.resourcesPath,
+});
 
 app.on('web-contents-created', (_event, contents) => hardenContents(contents, origin));
 
@@ -41,6 +52,22 @@ async function openMainWindow(onClosed: () => void): Promise<BrowserWindow> {
   trackWindowState(window, stateFile);
   window.once('closed', onClosed);
   return window;
+}
+
+/** Closes the engine before the app exits, so a run in progress resumes on the next launch. */
+function stopEngineOnQuit(engine: EngineSupervisor): void {
+  let stopped = false;
+  app.on('before-quit', (event) => {
+    if (stopped) return;
+    event.preventDefault();
+    engine
+      .stop()
+      .catch((error: unknown) => console.error('[engine] The engine did not stop cleanly.', error))
+      .finally(() => {
+        stopped = true;
+        app.quit();
+      });
+  });
 }
 
 async function start(): Promise<void> {
@@ -68,6 +95,20 @@ async function start(): Promise<void> {
   registerOllamaHandlers(router, settings, pulls);
   registerFilesHandlers(router, picked);
   settings.onChange((next) => router.emit('settings', 'onChange', next));
+
+  const engine = new EngineSupervisor({
+    launch: () =>
+      launchEngineProcess(engineEntry, {
+        dataDir,
+        sandboxEntryPath: resources.sandboxEntry,
+        sampleJobFile: resources.sampleJobFile,
+      }),
+    getSecret: keys,
+    onEvent: (event) => router.emit('runs', 'onEvent', event),
+  });
+  engine.start();
+  stopEngineOnQuit(engine);
+  registerEngineHandlers(router, (request) => engine.call(request), picked);
 
   const cancelPull = () => pulls.cancel();
   let main = await openMainWindow(cancelPull);

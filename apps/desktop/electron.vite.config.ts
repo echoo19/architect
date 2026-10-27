@@ -132,6 +132,8 @@ function sandboxChild(): Plugin {
 
 export default defineConfig({
   main: {
+    // src/main/index.ts imports the engine's utility process with `?modulePath`, which builds it
+    // as a bundle of its own. The sandbox child that the engine forks is built by this plugin.
     plugins: [sandboxChild()],
     build: {
       externalizeDeps: { exclude: WORKSPACE_PACKAGES },
