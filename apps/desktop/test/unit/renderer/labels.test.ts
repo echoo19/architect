@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatBytes,
-  formatClock,
   formatDuration,
   formatPercent,
-  formatSeconds,
   formatUsd,
 } from '../../../src/renderer/src/lib/format';
-import { shortModelName, studentLabel, studentName } from '../../../src/renderer/src/lib/names';
+import {
+  capitalized,
+  mentorIntro,
+  quantizationLabel,
+  shortModelName,
+  studentIntro,
+  studentLabel,
+  studentName,
+} from '../../../src/renderer/src/lib/names';
 import {
   detectPlatform,
   deviceInSentence,
@@ -34,6 +40,20 @@ describe('model names', () => {
     expect(studentName(local)).toBe('Glimmer');
     expect(studentLabel({ ...local, model: 'qwen3:8b' })).toBe('qwen3:8b');
   });
+
+  it('introduces each model by its role, the same way everywhere', () => {
+    expect(mentorIntro('Spark')).toBe('Spark, the mentor');
+    expect(studentIntro('Glimmer')).toBe("Glimmer, your agent's model");
+    expect(capitalized("your agent's model")).toBe("Your agent's model");
+  });
+
+  it('writes a quantization as the number of bits people know it by', () => {
+    expect(quantizationLabel('Q4_K_M')).toBe('4-bit');
+    expect(quantizationLabel('q8_0')).toBe('8-bit');
+    expect(quantizationLabel('IQ3_XS')).toBe('3-bit');
+    expect(quantizationLabel('F16')).toBe('16-bit');
+    expect(quantizationLabel('MXFP4')).toBe('MXFP4');
+  });
 });
 
 describe('platform copy', () => {
@@ -52,14 +72,12 @@ describe('formats', () => {
   it('writes money, time and size the way the design does', () => {
     expect(formatUsd(5)).toBe('$5');
     expect(formatUsd(2.4)).toBe('$2.40');
-    expect(formatClock(72 * 60_000)).toBe('1:12');
-    expect(formatClock(180 * 60_000)).toBe('3:00');
+    expect(formatDuration(72 * 60_000)).toBe('1 h 12 min');
+    expect(formatDuration(180 * 60_000)).toBe('3 h');
     expect(formatDuration(158 * 60_000)).toBe('2 h 38 min');
     expect(formatDuration(120 * 60_000)).toBe('2 h');
     expect(formatDuration(14 * 60_000)).toBe('14 min');
     expect(formatDuration(40_000)).toBe('40 s');
-    expect(formatSeconds(1240)).toBe('1.2 s');
-    expect(formatSeconds(850)).toBe('850 ms');
     expect(formatBytes(18 * 1024 ** 3)).toBe('18 GB');
     expect(formatBytes(4.6 * 1024 ** 3)).toBe('4.6 GB');
     expect(formatBytes(236 * 1024 ** 2)).toBe('236 MB');

@@ -8,7 +8,13 @@ import { Segmented, SettingsRow, SettingsValue, Skeleton, Switch } from '@archit
 import { useAppInfo, useGraduates, useOllamaStatus, useSecretsStatus } from '../api/hooks';
 import { errorOf, QueryValue, RetryButton } from '../components/QueryValue';
 import { formatBytes } from '../lib/format';
-import { mentorName, studentLabel } from '../lib/names';
+import {
+  capitalized,
+  MENTOR_ROLE_DETAIL,
+  mentorName,
+  STUDENT_ROLE,
+  studentLabel,
+} from '../lib/names';
 import { currentPlatform, deviceInSentence, deviceLabel } from '../lib/platform';
 import type { TabProps } from './SettingsModal';
 
@@ -46,7 +52,10 @@ export function GeneralTab({ settings, update }: TabProps) {
           onValueChange={(theme) => update({ theme })}
         />
       </SettingsRow>
-      <SettingsRow label="Tool steps" meta="How an agent's steps first appear in a chat">
+      <SettingsRow
+        label="Tool steps"
+        meta="Whether the tools and skills a reply used start open or folded in a chat"
+      >
         <Segmented
           aria-label="Tool steps"
           options={STEPS}
@@ -75,7 +84,7 @@ export function ModelsTab({ settings, update }: TabProps) {
 
   return (
     <>
-      <SettingsRow label="Mentor" meta={mentor.kind === 'model' ? mentor.model : 'Claude Code'}>
+      <SettingsRow label="Mentor" meta={`${capitalized(MENTOR_ROLE_DETAIL)}, for new agents`}>
         <SettingsValue>{mentor.label}</SettingsValue>
       </SettingsRow>
       {mentor.kind === 'model' && tier && (
@@ -102,12 +111,13 @@ export function ModelsTab({ settings, update }: TabProps) {
           </QueryValue>
         </SettingsRow>
       )}
-      <SettingsRow label="Student" meta={student.model}>
+      <SettingsRow label={capitalized(STUDENT_ROLE)} meta={`Every agent runs on it, on ${device}`}>
         <SettingsValue>{studentLabel(student)}</SettingsValue>
       </SettingsRow>
       <SettingsRow
         label="Local model runtime"
         meta={`Ollama · ${student.baseUrl}`}
+        metaFont="code"
         error={errorOf(ollama)}
       >
         <QueryValue query={ollama}>
@@ -128,11 +138,11 @@ export function TrainingTab({ settings, update }: TabProps) {
     <>
       {mentor.kind === 'model' && (
         <SettingsRow
-          label={`${mentorName(mentor)} reasoning`}
-          meta="More reasoning per diagnosis costs more per round"
+          label={`How hard ${mentorName(mentor)} thinks`}
+          meta="More thinking can find subtler fixes but costs more per round"
         >
           <Segmented
-            aria-label={`${mentorName(mentor)} reasoning`}
+            aria-label={`How hard ${mentorName(mentor)} thinks`}
             options={EFFORTS}
             value={mentor.reasoningEffort}
             onValueChange={(reasoningEffort) =>
@@ -143,7 +153,7 @@ export function TrainingTab({ settings, update }: TabProps) {
       )}
       <SettingsRow
         label="Comparison mode"
-        meta="Adds the bare, one-shot and self-reflection baselines to runs and reports"
+        meta="Also trains three simpler versions of each agent, so its report can compare them"
       >
         <Switch
           aria-label="Comparison mode"
@@ -159,8 +169,8 @@ export function PrivacyTab({ settings }: TabProps) {
   const device = deviceInSentence(currentPlatform());
   return (
     <>
-      <SettingsRow label="Agents" meta={`A graduate only talks to the model on ${device}`}>
-        <SettingsValue>Offline</SettingsValue>
+      <SettingsRow label="Agents" meta={`An agent only talks to the model on ${device}`}>
+        <SettingsValue>Never online</SettingsValue>
       </SettingsRow>
       <SettingsRow
         label={mentorName(settings.defaultMentor)}
@@ -190,6 +200,7 @@ export function StorageTab() {
         meta={
           info.status === 'success' ? info.data.dataPath : <Skeleton className="mt-1 h-3 w-56" />
         }
+        metaFont="code"
       >
         {info.status === 'error' && <RetryButton onClick={info.reload} />}
       </SettingsRow>

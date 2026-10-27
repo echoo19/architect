@@ -3,8 +3,9 @@ import { Composer, FileChip, Heading, IconButton, Spinner } from '@architect/ui'
 import { Paperclip } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { flowApi } from '../../api/client';
-import { queryKeys } from '../../api/hooks';
+import { queryKeys, useSettings } from '../../api/hooks';
 import { setQueryData } from '../../api/query';
+import { mentorIntro, mentorName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
 import { fileName } from '../format';
@@ -28,6 +29,11 @@ export function DescribeHero() {
     })),
   );
   const [creatingSample, setCreatingSample] = useState(false);
+  const settings = useSettings();
+  const mentor =
+    settings.status === 'success'
+      ? `${mentorIntro(mentorName(settings.data.defaultMentor))},`
+      : 'The mentor';
 
   const attach = async () => {
     const picked = await attempt("Couldn't open the file picker", () =>
@@ -53,9 +59,15 @@ export function DescribeHero() {
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center gap-8 px-6 pb-[120px] pt-12">
-      <Heading as="h1" size="display-sm" className="text-center">
-        What should your agent do?
-      </Heading>
+      <div className="flex max-w-[600px] flex-col items-center gap-3 text-center">
+        <Heading as="h1" size="display-sm">
+          What should your agent do?
+        </Heading>
+        <p className="m-0 text-lg text-fg-secondary text-pretty">
+          Describe the work in your own words and attach the files it uses. {mentor} will ask a few
+          questions, then draft the job for you to review.
+        </p>
+      </div>
       <div className="flex w-full max-w-[680px] flex-col gap-3">
         <Composer
           size="hero"

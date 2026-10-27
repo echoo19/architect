@@ -88,14 +88,18 @@ export function ModelStep({ model, label, note, ollama, pull, onDownload, ready 
   return (
     <>
       <StepIntro title="Welcome to Architect">
-        The agents you make run on {shortModelName(label)}, an open model from Meta, through Ollama
-        on {deviceInSentence(platform)}. Nothing you ask them goes online.
+        Every agent you make runs on {shortModelName(label)}, an open model from Meta, through
+        Ollama on {deviceInSentence(platform)}. Nothing you ask your agents goes online.
       </StepIntro>
       <Panel
         aria-label="Local model"
         className="w-full max-w-[620px] px-7 py-1 [&>*:first-child]:border-t-0"
       >
-        <SettingsRow label="Ollama" meta="Runs the model locally" error={errorOf(ollama)}>
+        <SettingsRow
+          label="Ollama"
+          meta={`Runs ${shortModelName(label)} on ${deviceInSentence(platform)}`}
+          error={errorOf(ollama)}
+        >
           {runtime}
         </SettingsRow>
         {ollama.data && !running && (
@@ -106,6 +110,7 @@ export function ModelStep({ model, label, note, ollama, pull, onDownload, ready 
         <SettingsRow
           label={label}
           meta={model}
+          metaFont="code"
           error={pull.phase === 'failed' ? pull.error : undefined}
         >
           {download}
