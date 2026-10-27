@@ -3,10 +3,12 @@
  * part of the app and never runs in CI.
  *
  *   pnpm --filter @architect/engine exec tsx scripts/calibrate.ts <jobDir> [split] [--limit N]
- *     [--seed N] [--concurrency N] [--traces <dir>] [--task <id,id,...>]
+ *     [--seed N] [--concurrency N] [--traces <dir>] [--task <id,id,...>] [--student <preset>]
  *
  * --traces writes each attempt's full trace as `<taskId>.json` into <dir>, to read why it failed.
  * --task keeps only the named tasks of the split.
+ * --student runs a hosted student preset (e.g. openrouter-glimmer) instead of the job's local one;
+ * its key comes from the environment (OPENROUTER_API_KEY, TOGETHER_API_KEY or DEEPINFRA_API_KEY).
  *
  * <jobDir> holds job.json, tasks.jsonl, data/ and the checker module. [split] is calibration
  * (the default), train or dev; the test split stays locked in the vault. The student is the job's
@@ -18,6 +20,7 @@ import { createStudent } from '@architect/adapters';
 import { blankHarness } from '@architect/harness';
 import {
   JobSchema,
+  STUDENT_PRESETS,
   TaskSchema,
   type Job,
   type StudentAdapter,
@@ -32,9 +35,32 @@ import {
   type EvaluationItem,
 } from '../src/runtime';
 
-/** The student being calibrated: the job's local endpoint, as the graduate would run it. */
-function createCalibrationStudent(job: Job): StudentAdapter {
-  return createStudent(job.student.local, { label: job.student.label });
+const KEY_ENV: Record<string, string> = {
+  openrouter: 'OPENROUTER_API_KEY',
+  together: 'TOGETHER_API_KEY',
+  deepinfra: 'DEEPINFRA_API_KEY',
+};
+
+/** The student being calibrated: the job's local endpoint, or a hosted preset when one is named. */
+function createCalibrationStudent(job: Job, presetKey?: string): StudentAdapter {
+  if (presetKey === undefined)
+    return createStudent(job.student.local, { label: job.student.label });
+  const preset = STUDENT_PRESETS.find((candidate) => candidate.key === presetKey);
+  if (!preset || preset.runtime !== 'openai_compatible' || preset.secretRef === undefined) {
+    throw new Error(`"${presetKey}" is not a hosted student preset.`);
+  }
+  const apiKey = process.env[KEY_ENV[preset.secretRef] ?? ''];
+  if (!apiKey) throw new Error(`Set ${KEY_ENV[preset.secretRef]} to use ${preset.label}.`);
+  return createStudent(
+    {
+      runtime: preset.runtime,
+      baseUrl: preset.baseUrl,
+      model: preset.model,
+      secretRef: preset.secretRef,
+      contextLength: job.student.local.contextLength,
+    },
+    { apiKey, label: preset.label },
+  );
 }
 
 const SPLITS = ['calibration', 'train', 'dev'] as const;
@@ -48,10 +74,11 @@ interface Options {
   concurrency: number;
   traces?: string;
   taskIds?: string[];
+  student?: string;
 }
 
 const USAGE =
-  'Usage: tsx scripts/calibrate.ts <jobDir> [calibration|train|dev] [--limit N] [--seed N] [--concurrency N] [--traces <dir>] [--task <id,id,...>]';
+  'Usage: tsx scripts/calibrate.ts <jobDir> [calibration|train|dev] [--limit N] [--seed N] [--concurrency N] [--traces <dir>] [--task <id,id,...>] [--student <preset>]';
 
 async function main(): Promise<void> {
   const options = parseArguments(process.argv.slice(2));
@@ -63,7 +90,7 @@ async function main(): Promise<void> {
     chosen === undefined ? inSplit : inSplit.filter((task) => chosen.includes(task.id))
   ).slice(0, options.limit);
 
-  const student = createCalibrationStudent(job);
+  const student = createCalibrationStudent(job, options.student);
   if (options.traces !== undefined) await mkdir(options.traces, { recursive: true });
   const sandbox = createSandbox();
   const checker = createChecker({ job, jobDir: options.jobDir, sandbox });
@@ -155,10 +182,17 @@ function parseArguments(args: readonly string[]): Options {
   const flags = new Map<string, number>();
   let traces: string | undefined;
   let taskIds: string[] | undefined;
+  let studentPreset: string | undefined;
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index] ?? '';
     if (!arg.startsWith('--')) {
       positional.push(arg);
+      continue;
+    }
+    if (arg === '--student') {
+      studentPreset = args[index + 1];
+      if (studentPreset === undefined) throw new Error(USAGE);
+      index += 1;
       continue;
     }
     if (arg === '--task') {
@@ -197,6 +231,7 @@ function parseArguments(args: readonly string[]): Options {
     concurrency: flags.get('--concurrency') ?? 1,
     ...(traces === undefined ? {} : { traces }),
     ...(taskIds === undefined ? {} : { taskIds }),
+    ...(studentPreset === undefined ? {} : { student: studentPreset }),
   };
 }
 
