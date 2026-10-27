@@ -47,6 +47,11 @@ export function TableBlock({
 }) {
   const title = block.title ?? 'Table';
   const more = block.rows.length > TABLE_PREVIEW_ROWS;
+  const shown = previewRows(block.rows, TABLE_PREVIEW_ROWS);
+  const hidden = block.rows.length - shown.length;
+  // When the total stays in view, say how many rows sit above it, so the sum still adds up.
+  const total = hidden > 0 && isTotalRow(shown.at(-1) ?? []) ? shown.at(-1) : undefined;
+  const items = total ? shown.slice(0, -1) : shown;
   return (
     <div className="animate-rise">
       <TableCard
@@ -73,13 +78,27 @@ export function TableBlock({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {previewRows(block.rows, TABLE_PREVIEW_ROWS).map((row, r) => (
+          {items.map((row, r) => (
             <TableRow key={r} className={cn(isTotalRow(row) && TOTAL_ROW)}>
               {block.columns.map((_, column) => (
                 <TableCell key={column}>{cellText(row[column] ?? null)}</TableCell>
               ))}
             </TableRow>
           ))}
+          {total && (
+            <>
+              <TableRow>
+                <TableCell colSpan={block.columns.length} className="text-sm first:text-fg-muted">
+                  {hidden} more {hidden === 1 ? 'row' : 'rows'}, included in the total
+                </TableCell>
+              </TableRow>
+              <TableRow className={TOTAL_ROW}>
+                {block.columns.map((_, column) => (
+                  <TableCell key={column}>{cellText(total[column] ?? null)}</TableCell>
+                ))}
+              </TableRow>
+            </>
+          )}
         </TableBody>
       </TableCard>
     </div>
@@ -222,8 +241,8 @@ export function ApprovalCard({
       )}
       {!outcome && explain && (
         <p className="m-0 border-t border-line-card px-4 py-2.5 text-sm text-fg-muted text-pretty">
-          Allow writes these rows once. Always allow lets {agent.name} write without asking, until
-          you change it in its settings.
+          Allow writes these rows once. Always allow lets {agent.name} write without asking from now
+          on. You can change that in the menu under the message box.
         </p>
       )}
     </div>
@@ -250,8 +269,8 @@ export function RefusalCard({ block, agent }: { block: RefusalBlockData; agent: 
         </span>
         <span className="text-sm text-fg-secondary text-pretty">{block.reason}</span>
         <span className="text-sm text-fg-muted text-pretty">
-          You can do this one yourself
-          {handled.length > 0 ? `, or ask ${agent.name} about ${listInSentence(handled)}` : ''}.
+          You&apos;ll need to handle this one yourself.
+          {handled.length > 0 && ` ${agent.name} can help with ${listInSentence(handled)}.`}
         </span>
       </span>
     </div>

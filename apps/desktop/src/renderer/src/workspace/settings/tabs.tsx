@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { GraduateSummary, PermissionMode } from '@architect/shared';
+import type { GraduateSummary } from '@architect/shared';
 import {
   Button,
   Dialog,
@@ -10,7 +10,6 @@ import {
   SettingsRow,
   SettingsValue,
   Skeleton,
-  Switch,
   toast,
 } from '@architect/ui';
 import { FolderInput, FolderOutput } from 'lucide-react';
@@ -25,7 +24,7 @@ import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { navigate, paths, type Route } from '../../lib/router';
 import { workspaceApi } from '../api';
 import { updateGraduateSettings, useGraduateSettings } from '../graduateSettings';
-import { WRITE_MODE_MEANINGS } from '../labels';
+import { WRITE_MODE_LABELS, WRITE_MODE_MEANINGS, WRITE_MODES } from '../labels';
 import { forgetAgent } from '../store';
 import { useAgentSettingsUi } from './agentSettingsUi';
 
@@ -63,7 +62,7 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
       </SettingsRow>
       <SettingsRow
         label="Version"
-        meta={`Of the instructions, skills and tools ${shortModelName(manifest.mentor.label)} wrote. ${
+        meta={`Of its instructions, skills and tools, as ${shortModelName(manifest.mentor.label)} left them when training ended. ${
           manifest.requirements.passRate.met ? 'Passed its final test' : 'Finished below its target'
         } on ${formatDay(manifest.acceptedAt ?? manifest.createdAt)}.`}
       >
@@ -153,19 +152,15 @@ function DeleteAgentDialog({
   );
 }
 
-const WRITE_CHOICES = [
-  { value: 'ask', label: 'Ask' },
-  { value: 'allow', label: 'Allow' },
-  { value: 'never', label: 'Never' },
-] as const satisfies readonly { value: PermissionMode; label: string }[];
+/** The same three choices, in the same words, as the menu under the message box. */
+const WRITE_CHOICES = WRITE_MODES.map((value) => ({ value, label: WRITE_MODE_LABELS[value] }));
 
 export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
   const settings = useGraduateSettings(agent.id);
   const job = useJob(agent.manifest.jobId);
-  const writable =
-    job.status === 'success'
-      ? job.data.data.files.filter((file) => file.access === 'write').map((file) => file.name)
-      : [];
+  const files = job.status === 'success' ? job.data.data.files : [];
+  const writable = files.filter((file) => file.access === 'write').map((file) => file.name);
+  const device = deviceInSentence(currentPlatform());
 
   return (
     <>
@@ -194,19 +189,29 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
         )}
       </SettingsRow>
       <SettingsRow
-        label="Network access"
-        meta={`Off. It only talks to the model on ${deviceInSentence(currentPlatform())}`}
+        label="Internet access"
+        meta={`Agents made in Architect only talk to the model on ${device}.`}
       >
-        <Switch
-          aria-label="Network access"
-          checked={false}
-          disabled
-          onCheckedChange={() => undefined}
-        />
+        <SettingsValue>Never, by design</SettingsValue>
       </SettingsRow>
       <SettingsRow
-        label="Files its job lets it change"
-        meta="Fixed when it was trained"
+        label="Files it can read"
+        meta={`Only the files its job lists. Nothing else on ${device} is in reach.`}
+        error={errorOf(job)}
+      >
+        {job.status === 'success' ? (
+          <span className="max-w-[340px] text-right font-mono text-sm text-fg-secondary text-pretty">
+            {files.map((file) => file.name).join(', ')}
+          </span>
+        ) : job.status === 'error' ? (
+          <RetryButton onClick={job.reload} />
+        ) : (
+          pending
+        )}
+      </SettingsRow>
+      <SettingsRow
+        label="Files it can change"
+        meta="Set by its job when it was trained"
         error={errorOf(job)}
       >
         {job.status === 'success' ? (

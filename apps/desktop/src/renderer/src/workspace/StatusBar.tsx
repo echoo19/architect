@@ -31,7 +31,7 @@ export function StatusBar({ agent }: { agent: GraduateSummary }) {
         hint={`Version ${manifest.harness.version} of ${agent.name}'s instructions, skills and tools, written by ${mentor} during training.`}
       >
         <Layers size={12} strokeWidth={1.8} aria-hidden />
-        Version {manifest.harness.version}
+        Version {manifest.harness.version} of its instructions
       </Item>
       <Item
         hint={`${model}, through Ollama on ${device}.${

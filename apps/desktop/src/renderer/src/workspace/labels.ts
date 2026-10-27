@@ -23,15 +23,18 @@ export const WRITE_MODE_MEANINGS: Record<PermissionMode, string> = {
   never: 'Never changes your files',
 };
 
+/** "1 step", "3 steps". */
+export function stepCount(count: number): string {
+  return count === 1 ? '1 step' : `${count} steps`;
+}
+
 /** "Worked for 3s", "Worked for 1m 12s", or the step count when no time was recorded. */
 export function workedLabel(message: WorkspaceMessage): string {
   const timed = message.steps.filter((step) => step.ms !== undefined);
   const ms =
     message.workedMs ??
     (timed.length > 0 ? timed.reduce((sum, step) => sum + (step.ms ?? 0), 0) : undefined);
-  if (ms === undefined) {
-    return message.steps.length === 1 ? '1 step' : `${message.steps.length} steps`;
-  }
+  if (ms === undefined) return stepCount(message.steps.length);
   const seconds = Math.max(1, Math.round(ms / 1000));
   if (seconds < 60) return `Worked for ${seconds}s`;
   const minutes = Math.floor(seconds / 60);

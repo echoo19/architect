@@ -1,8 +1,8 @@
 import { useId, useState } from 'react';
 import type { AgentStep, WorkspaceMessage } from '@architect/shared';
 import { cn, Spinner } from '@architect/ui';
-import { ChevronRight, CirclePause } from 'lucide-react';
-import { currentStep, workedLabel } from './labels';
+import { ChevronRight } from 'lucide-react';
+import { currentStep, stepCount, workedLabel } from './labels';
 
 const NAME_TONE: Record<AgentStep['status'], string> = {
   done: 'text-fg',
@@ -29,8 +29,9 @@ export function Steps({ message, startOpen, waiting }: StepsProps) {
   const open = choice ?? startOpen;
   const step = working ? currentStep(message.steps) : undefined;
 
+  // While a write waits for an answer, the line under the reply says so; this one just counts.
   let header = workedLabel(message);
-  if (working && waiting) header = 'Waiting for your answer';
+  if (working && waiting) header = `${stepCount(message.steps.length)} so far`;
   else if (step) header = `${step.name} ${step.detail}`;
 
   return (
@@ -42,12 +43,7 @@ export function Steps({ message, startOpen, waiting }: StepsProps) {
         onClick={() => setChoice(!open)}
         className="flex h-7 max-w-full items-center gap-2 self-start rounded-xs text-base text-fg-secondary transition-colors duration-150 hover:text-fg"
       >
-        {working &&
-          (waiting ? (
-            <CirclePause size={14} strokeWidth={1.8} aria-hidden className="shrink-0" />
-          ) : (
-            <Spinner size={13} />
-          ))}
+        {working && !waiting && <Spinner size={13} />}
         <span className="truncate">{header}</span>
         <ChevronRight
           size={13}
