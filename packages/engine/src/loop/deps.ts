@@ -197,6 +197,11 @@ export interface EngineHostDeps extends LoopDeps {
 export interface Clock {
   /** Milliseconds since the epoch. */
   now(): number;
+  /** A signal that aborts once `ms` more milliseconds have passed on this clock. */
+  timeout(ms: number): AbortSignal;
 }
 
-export const systemClock: Clock = { now: () => Date.now() };
+export const systemClock: Clock = {
+  now: () => Date.now(),
+  timeout: (ms) => AbortSignal.timeout(Math.max(0, Math.ceil(ms))),
+};

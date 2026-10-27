@@ -1,7 +1,7 @@
 import { GuardError } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { BudgetGuard } from '../src/loop/budget';
-import { ManualClock } from './fakes/clock';
+import { ManualClock, START } from './fakes/clock';
 
 const budget = { maxRounds: 3, maxMentorUsd: 1, maxWallMinutes: 10 };
 const MINUTE = 60_000;
@@ -58,6 +58,26 @@ describe('BudgetGuard', () => {
     expect(g.wallClockSpent()).toBe(false);
     clock.advance(MINUTE);
     expect(g.wallMs()).toBe(10 * MINUTE);
+    expect(g.wallClockSpent()).toBe(true);
+  });
+
+  it('gives a deadline that aborts when the wall-clock budget runs out', () => {
+    const { clock, guard: g } = guard({ rounds: 0, usd: 0, wallMs: 7 * MINUTE });
+    g.resume();
+    const deadline = g.deadline();
+    clock.advance(3 * MINUTE - 1);
+    expect(deadline.aborted).toBe(false);
+    clock.advance(1);
+    expect(deadline.aborted).toBe(true);
+    expect(g.wallClockSpent()).toBe(true);
+  });
+
+  it('counts the wall clock as spent once a deadline fires, even a moment early', () => {
+    const early = { now: () => START, timeout: () => AbortSignal.abort() };
+    const g = new BudgetGuard(budget, { rounds: 0, usd: 0, wallMs: 0 }, early);
+    g.resume();
+    expect(g.wallClockSpent()).toBe(false);
+    g.deadline();
     expect(g.wallClockSpent()).toBe(true);
   });
 

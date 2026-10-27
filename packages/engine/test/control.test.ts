@@ -188,7 +188,7 @@ describe('budgets during a run', () => {
     expect(engine.store.reports.get(run.id)?.cost.mentorUsd).toBe(0);
   });
 
-  it('stops training when the wall clock runs out, mid-evaluation, but runs the test', async () => {
+  it('cuts the attempt in flight when the wall clock runs out, unscored, and runs the test', async () => {
     const job = await setUp({
       job: { budget: { maxRounds: 3, maxMentorUsd: 5, maxWallMinutes: 5 } },
     });
@@ -202,9 +202,12 @@ describe('budgets during a run', () => {
       stopReason: 'wall_clock',
       devBaseline: null,
     });
-    expect(engine.store.attempts.list({ runId: run.id, split: 'dev' })).toHaveLength(3);
+    const started = engine.events.filter((e) => e.type === 'attempt.started' && e.split === 'dev');
+    expect(started).toHaveLength(3);
+    expect(engine.store.attempts.list({ runId: run.id, split: 'dev' })).toHaveLength(2);
     expect(engine.store.attempts.list({ runId: run.id, split: 'test' })).toHaveLength(6);
     expect(world.mentor.requests).toHaveLength(0);
+    expect(engine.errors).toEqual([]);
   });
 
   it('stops when rounds in a row bring no kept change', async () => {

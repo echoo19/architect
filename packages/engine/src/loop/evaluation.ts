@@ -7,7 +7,7 @@ import {
 } from '@architect/shared';
 import type { StoredAttempt, StudentTarget } from '../store/records';
 import { answerSummary, expectedSummary, lockedCheck, studentPrice } from './attempts';
-import type { EvaluatedTask, EvaluationContext } from './deps';
+import type { EvaluatedTask, Evaluation, EvaluationContext } from './deps';
 import { writeJsonFile } from './files';
 import { runPool } from './pool';
 import type { RunState } from './run-state';
@@ -119,9 +119,40 @@ async function recordAttempt(
 }
 
 /**
+ * One attempt at a task, or null when the wall-clock deadline cut it short: an attempt the
+ * deadline cut is not scored.
+ */
+async function attemptTask(
+  state: RunState,
+  task: Task,
+  context: EvaluationContext,
+  options: { seed: number; signal: AbortSignal; deadline: AbortSignal | null },
+): Promise<EvaluatedTask | null> {
+  const { seed, signal, deadline } = options;
+  const cutByDeadline = () => deadline?.aborted === true && !state.signal.aborted;
+  let evaluation: Evaluation;
+  try {
+    evaluation = await state.ctx.deps.runtime.evaluateTasks([task], context, { seed, signal });
+  } catch (error) {
+    if (cutByDeadline()) return null;
+    throw error;
+  }
+  state.signal.throwIfAborted();
+  const item = evaluation.items.find((candidate) => candidate.task.id === task.id);
+  if (item && item.result.outcome.stopReason !== 'aborted') return item;
+  if (cutByDeadline()) return null;
+  throw new Error(
+    item
+      ? `The runtime aborted the attempt at task ${task.id}.`
+      : `The runtime returned no result for task ${task.id}.`,
+  );
+}
+
+/**
  * Attempts every task of one evaluation that has no persisted attempt yet, and persists each
  * as it finishes. Resolves true once all are done, or false when it halted early (a pause, a
- * stop or the wall clock); the next session attempts only what is left.
+ * stop or the wall clock); the next session attempts only what is left. Training attempts
+ * still running when the wall clock runs out are cut there, not left to finish.
  */
 export async function evaluate(state: RunState, spec: EvaluationSpec): Promise<boolean> {
   const filter = {
@@ -144,6 +175,8 @@ export async function evaluate(state: RunState, spec: EvaluationSpec): Promise<b
       checker: await resources.checker(),
       today: state.record.today,
     };
+    const deadline = spec.training ? state.budget.deadline() : null;
+    const signal = deadline ? AbortSignal.any([state.signal, deadline]) : state.signal;
     const mayStart = () => !shouldHalt(state, spec.training);
     await runPool(remaining, spec.concurrency, mayStart, async (task) => {
       state.emit({
@@ -152,16 +185,12 @@ export async function evaluate(state: RunState, spec: EvaluationSpec): Promise<b
         split: spec.split,
         harnessVersion: spec.version,
       });
-      const evaluation = await state.ctx.deps.runtime.evaluateTasks([task], context, {
+      const item = await attemptTask(state, task, context, {
         seed: spec.seed,
-        signal: state.signal,
+        signal,
+        deadline,
       });
-      state.signal.throwIfAborted();
-      const item = evaluation.items.find((candidate) => candidate.task.id === task.id);
-      if (!item) throw new Error(`The runtime returned no result for task ${task.id}.`);
-      if (item.result.outcome.stopReason === 'aborted') {
-        throw new Error(`The runtime aborted the attempt at task ${task.id}.`);
-      }
+      if (item === null) return;
       await recordAttempt(state, spec, item, student);
       done.add(task.id);
       reportProgress(state, spec, done);
