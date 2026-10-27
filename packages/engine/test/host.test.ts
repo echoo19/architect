@@ -1,0 +1,181 @@
+import { AdapterError, GuardError, RunEventSchema, type RunEvent } from '@architect/shared';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { connectEngine, type EngineClient } from '../src/host/client';
+import { createEngineHost, type EngineHost } from '../src/host/engine-host';
+import type { EnginePort } from '../src/host/port';
+import { fromErrorPayload, toErrorPayload } from '../src/host/protocol';
+import { openEngineStore } from '../src/store/engine-store';
+import { DataPaths } from '../src/loop/paths';
+import { portPair } from './fakes/ports';
+import { deferred } from './fakes/clock';
+import { createWorld, type World } from './fakes/world';
+
+let world: World;
+let host: EngineHost | undefined;
+let client: EngineClient | undefined;
+
+beforeEach(async () => {
+  world = await createWorld();
+});
+
+afterEach(async () => {
+  client?.close();
+  await host?.close();
+  host = undefined;
+  client = undefined;
+  world.cleanup();
+});
+
+async function connect(): Promise<{ client: EngineClient; port: EnginePort; events: RunEvent[] }> {
+  host = await createEngineHost({ dataDir: world.dataDir, deps: world.deps, clock: world.clock });
+  const [hostPort, clientPort] = portPair();
+  host.serve(hostPort);
+  client = connectEngine(clientPort);
+  const events: RunEvent[] = [];
+  client.runs.onEvent((event) => events.push(event));
+  return { client, port: clientPort, events };
+}
+
+function next(client: EngineClient, matches: (event: RunEvent) => boolean): Promise<RunEvent> {
+  return new Promise((resolve) => {
+    const stop = client.runs.onEvent((event) => {
+      if (!matches(event)) return;
+      stop();
+      resolve(event);
+    });
+  });
+}
+
+/** Sends a raw message on the port and waits for the response with that id. */
+function raw(port: EnginePort, message: { id: number } & Record<string, unknown>) {
+  return new Promise<Record<string, unknown>>((resolve) => {
+    port.onMessage((reply) => {
+      const response = reply as Record<string, unknown>;
+      if (response.kind === 'response' && response.id === message.id) resolve(response);
+    });
+    port.postMessage(message);
+  });
+}
+
+describe('the engine host', () => {
+  it('answers requests and streams validated run events over a port', async () => {
+    const { client, events } = await connect();
+    const job = await client.jobs.createSample();
+    expect(job.name).toBe('Service desk');
+    expect(await client.jobs.createSample()).toEqual(job);
+    expect(await client.jobs.list()).toMatchObject([{ id: job.id, taskCount: 21 }]);
+
+    const graduated = next(client, (event) => event.type === 'graduate.ready');
+    const run = await client.runs.start(job.id, { method: 'bare', seed: 1 });
+    expect(run).toMatchObject({ status: 'queued', method: 'bare', seed: 1 });
+    await graduated;
+
+    const detail = await client.runs.get(run.id);
+    expect(detail.run.status).toBe('finished');
+    expect(detail.job.id).toBe(job.id);
+    expect(detail.recentAttempts).toHaveLength(9);
+    expect(detail.recentAttempts.every((attempt) => attempt.split === 'dev')).toBe(true);
+    expect(detail.recentAttempts[0]?.prompt).toContain('[dev]');
+    expect((await client.runs.list(job.id)).map((listed) => listed.id)).toEqual([run.id]);
+    expect(await client.runs.list()).toHaveLength(1);
+
+    const devAttempt = detail.recentAttempts[0];
+    expect((await client.runs.trace(devAttempt?.id ?? '')).taskId).toBe(devAttempt?.taskId);
+    const testAttempt = events.find(
+      (event) => event.type === 'attempt.finished' && event.attempt.split === 'test',
+    );
+    if (testAttempt?.type !== 'attempt.finished') throw new Error('No test attempt was streamed.');
+    await expect(client.runs.trace(testAttempt.attempt.id)).rejects.toThrow(
+      'Locked-test traces are not kept',
+    );
+
+    expect(await client.reports.get(run.id)).toMatchObject({
+      method: 'bare',
+      test: { score: { total: 6 } },
+    });
+    const [graduate] = await client.graduates.list();
+    expect(graduate?.manifest.acceptedAt).toBeUndefined();
+    const accepted = await client.graduates.accept(run.id);
+    expect(accepted.manifest.acceptedAt).toBe(new Date(world.clock.now()).toISOString());
+    expect((await client.graduates.list())[0]?.manifest.acceptedAt).toBe(
+      accepted.manifest.acceptedAt,
+    );
+    await expect(client.runs.roundDiff(run.id, 1)).rejects.toThrow('This run has no round 1.');
+
+    expect(events.length).toBeGreaterThan(20);
+    expect(events.every((event) => RunEventSchema.safeParse(event).success)).toBe(true);
+    const types = events.map((event) => event.type);
+    expect(types.indexOf('eval.finished')).toBeLessThan(types.indexOf('graduate.ready'));
+  });
+
+  it('rejects malformed requests with a typed error instead of acting on them', async () => {
+    const { client, port } = await connect();
+    const invalid = await raw(port, {
+      kind: 'request',
+      id: 901,
+      method: 'runs.start',
+      params: [42],
+    });
+    expect(invalid).toMatchObject({ ok: false, error: { name: 'ValidationError' } });
+    const unknown = await raw(port, {
+      kind: 'request',
+      id: 902,
+      method: 'runs.explode',
+      params: [],
+    });
+    expect(unknown).toMatchObject({
+      ok: false,
+      error: { message: 'There is no "runs.explode" request.' },
+    });
+    await expect(client.jobs.draftStart('Invoices for a plumber', [])).rejects.toThrow(
+      "Drafting a job with the mentor isn't available in this build.",
+    );
+    await expect(client.reports.get('run_missing')).rejects.toThrow(
+      'This run has no report card yet.',
+    );
+    await expect(client.runs.get('run_missing')).rejects.toThrow('There is no run "run_missing".');
+  });
+
+  it('carries guard and adapter errors across with their meaning', () => {
+    const guard = fromErrorPayload(toErrorPayload(new GuardError('split', 'Refused.')));
+    expect(guard).toBeInstanceOf(GuardError);
+    expect(guard).toMatchObject({ guard: 'split', message: 'Refused.' });
+    const adapter = fromErrorPayload(toErrorPayload(new AdapterError('rate_limit', 'Slow down.')));
+    expect(adapter).toMatchObject({ name: 'AdapterError', code: 'rate_limit', retryable: true });
+    const plain = fromErrorPayload(toErrorPayload(new TypeError('Nope.')));
+    expect(plain).toMatchObject({ name: 'TypeError', message: 'Nope.' });
+  });
+
+  it('resumes a run that was active when the app closed', async () => {
+    const first = await connect();
+    const job = await first.client.jobs.createSample();
+    const reached = deferred();
+    let devSeen = 0;
+    world.runtime.beforeAttempt = (held, _ctx, options) => {
+      if (!held.id.startsWith('dev-') || ++devSeen !== 4) return;
+      reached.resolve();
+      return new Promise<void>((_, reject) => {
+        options.signal?.addEventListener('abort', () => reject(options.signal?.reason));
+      });
+    };
+    const run = await first.client.runs.start(job.id, { method: 'bare', seed: 1 });
+    await reached.promise;
+    first.client.close();
+    await host?.close();
+    world.runtime.beforeAttempt = undefined;
+
+    const second = await connect();
+    const graduated = next(second.client, (event) => event.type === 'graduate.ready');
+    await graduated;
+    expect((await second.client.runs.get(run.id)).run.status).toBe('finished');
+    second.client.close();
+    await host?.close();
+    host = undefined;
+
+    const store = openEngineStore(new DataPaths(world.dataDir).database);
+    const attempts = store.attempts.list({ runId: run.id });
+    store.close();
+    expect(attempts).toHaveLength(15);
+    expect(new Set(attempts.map((a) => `${a.split}|${a.taskId}`)).size).toBe(15);
+  });
+});

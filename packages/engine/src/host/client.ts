@@ -1,0 +1,121 @@
+import type { RunEvent } from '@architect/shared';
+import type { EnginePort } from './port';
+import {
+  ENGINE_ROUTES,
+  EventMessageSchema,
+  fromErrorPayload,
+  ResponseMessageSchema,
+  type EngineApi,
+  type EngineMethod,
+  type EngineParams,
+  type EngineResult,
+} from './protocol';
+
+export interface EngineClient extends EngineApi {
+  /** Stops listening and fails the requests still waiting for an answer. */
+  close(): void;
+}
+
+interface Pending {
+  method: EngineMethod;
+  resolve(result: unknown): void;
+  reject(error: unknown): void;
+}
+
+/**
+ * The main process's side of the engine host: the same methods as the API, carried over a
+ * port. Results and events are validated before anyone sees them.
+ */
+export function connectEngine(
+  port: EnginePort,
+  onError: (error: unknown) => void = (error) => console.error(error),
+): EngineClient {
+  const pending = new Map<number, Pending>();
+  const listeners = new Set<(event: RunEvent) => void>();
+  let nextId = 1;
+  let closed = false;
+
+  port.onMessage((message) => {
+    if (closed) return;
+    const event = EventMessageSchema.safeParse(message);
+    if (event.success) {
+      for (const listener of listeners) listener(event.data.event);
+      return;
+    }
+    const response = ResponseMessageSchema.safeParse(message);
+    if (!response.success) {
+      onError(new Error(`The engine sent a message that isn't a response or a run event.`));
+      return;
+    }
+    const waiting = pending.get(response.data.id);
+    if (!waiting) return;
+    pending.delete(response.data.id);
+    if (!response.data.ok) {
+      waiting.reject(fromErrorPayload(response.data.error));
+      return;
+    }
+    const result = ENGINE_ROUTES[waiting.method].result.safeParse(response.data.result);
+    if (result.success) waiting.resolve(result.data);
+    else waiting.reject(new Error(`The engine's answer to ${waiting.method} was malformed.`));
+  });
+
+  function request<M extends EngineMethod>(
+    method: M,
+    params: EngineParams<M>,
+  ): Promise<EngineResult<M>> {
+    if (closed) return Promise.reject(new Error('The connection to the engine is closed.'));
+    const id = nextId++;
+    return new Promise((resolve, reject) => {
+      // The result was parsed with this method's own schema before it gets here.
+      pending.set(id, { method, resolve: (result) => resolve(result as EngineResult<M>), reject });
+      port.postMessage({ kind: 'request', id, method, params });
+    });
+  }
+
+  return {
+    jobs: {
+      list: () => request('jobs.list', []),
+      get: (jobId) => request('jobs.get', [jobId]),
+      save: (job) => request('jobs.save', [job]),
+      createSample: () => request('jobs.createSample', []),
+      importFile: (file) => request('jobs.importFile', [file]),
+      exportFile: (jobId, file) => request('jobs.exportFile', [jobId, file]),
+      draftStart: (description, files) => request('jobs.draftStart', [description, files]),
+      draftReply: (sessionId, text) => request('jobs.draftReply', [sessionId, text]),
+    },
+    runs: {
+      start: (jobId, options) => request('runs.start', [jobId, options]),
+      pause: (runId) => request('runs.pause', [runId]),
+      resume: (runId) => request('runs.resume', [runId]),
+      stop: (runId) => request('runs.stop', [runId]),
+      get: (runId) => request('runs.get', [runId]),
+      list: (jobId) => request('runs.list', [jobId ?? null]),
+      trace: (attemptId) => request('runs.trace', [attemptId]),
+      roundDiff: (runId, round) => request('runs.roundDiff', [runId, round]),
+      onEvent(listener) {
+        listeners.add(listener);
+        return () => {
+          listeners.delete(listener);
+        };
+      },
+    },
+    reports: {
+      get: (runId) => request('reports.get', [runId]),
+    },
+    graduates: {
+      list: () => request('graduates.list', []),
+      accept: (runId) => request('graduates.accept', [runId]),
+      exportFolder: (graduateId, folder) => request('graduates.exportFolder', [graduateId, folder]),
+      importFolder: (folder) => request('graduates.importFolder', [folder]),
+      remove: (graduateId) => request('graduates.remove', [graduateId]),
+    },
+    close() {
+      closed = true;
+      for (const waiting of pending.values()) {
+        waiting.reject(new Error('The connection to the engine closed.'));
+      }
+      pending.clear();
+      listeners.clear();
+    },
+  };
+}
