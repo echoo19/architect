@@ -40,5 +40,10 @@ export interface Sandbox {
     params: Record<string, JsonValue>,
     context: ValidatorContext,
   ): Promise<SandboxOutcome>;
+  /**
+   * Loads a tool's code, which runs its top level only, and checks that it defines `run`. The
+   * tool itself isn't called and sees no data. Succeeds with null.
+   */
+  checkTool(tool: Pick<HarnessTool, 'name' | 'code'>): Promise<SandboxOutcome>;
   dispose(): Promise<void>;
 }

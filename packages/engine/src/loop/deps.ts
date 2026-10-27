@@ -6,6 +6,7 @@ import type {
   FileEdit,
   GraduateManifest,
   Harness,
+  HarnessTool,
   Job,
   LineageEntry,
   MentorAdapter,
@@ -104,6 +105,11 @@ export interface RuntimeDeps {
     options: EvaluationOptions,
   ): Promise<Evaluation>;
   createSandbox(): Awaitable<ToolSandbox>;
+  /**
+   * Why a tool's code doesn't load in the sandbox (a syntax error, no `run`, a top level that
+   * throws), or null when it loads. Only the code's top level runs, never the tool.
+   */
+  toolLoadProblem(sandbox: ToolSandbox, tool: HarnessTool): Promise<string | null>;
   /** The checker runs end-state validators in the sandbox it is given. */
   createChecker(job: Job, jobDir: string, sandbox: ToolSandbox): Awaitable<TaskChecker>;
   /** Issues the release proof. The loop calls it after closing its gate and dropping the adapter. */

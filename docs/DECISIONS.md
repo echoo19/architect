@@ -149,3 +149,15 @@ In simulation with the pilot's task pass rates, a do-nothing change is kept 11 t
 **Decision.** When the runner can't use a reply (it isn't a hypothesis, or the harness refuses its change set), the round's author gets the same request again followed by its own reply and the runner's reason, and one more answer. If that can't be used either, the round is rejected as before. The fix adds nothing but the refusal reason, so the one-shot author still never sees an attempt, and every method gets exactly the same chance. The fix call is charged to its round and saved beside the first (`mentor/round-<n>-fix-1.json`); the stored reply records whether it is a fix, so a restart never asks twice. The mentor's guide to the harness now shows the exact shape of each example message.
 **Consequences.** A round can cost two author calls. Comparison runs started before this was in place are discarded and run again.
 
+## 024. A tool may name a data file without its extension
+
+**Context.** In the restarted seed 1, Spark's one-shot harness called `ctx.readTable("jobs")` in its pricing tool, and the file is `jobs.csv`. The mentor's guide said `ctx.readTable(name, ...)` without saying the name keeps its extension, so the tool failed on every call and the student spent its steps retrying it: dev fell from 38/45 to 15/45. The student can correct a wrong file name after the error message; a tool's code can't, and one-shot never sees an attempt.
+**Decision.** In the sandbox, a name that isn't a file but is exactly one file's name without its extension refers to that file. The mentor's guide now describes `ctx` precisely: file names as listed, rows as objects keyed by column with text values and null for empty cells, every matching row unless a limit is passed, and the same filters as `read_table`. The student's own tools still take exact names.
+**Consequences.** The runs of that start were discarded and seed 1 began again with this in place.
+
+## 025. A change set's tools must load before it is measured
+
+**Context.** The same one-shot harness had a second tool, `find_slot`, with a typo (`var start Day=null;`) that no JavaScript engine parses. Every scheduling task called it, got a syntax error back, and ran out of steps. A tool that doesn't load is as detectable before any task runs as a malformed example file, and it costs Architect a whole measured round to find out from traces.
+**Decision.** When a change set adds or edits a tool, the runner loads the tool's code in the sandbox before measuring anything: only the code's top level runs, the tool isn't called and sees no data. A tool that doesn't load (a syntax error, no `run`, a top level that throws or runs too long) makes the change set unusable, with the reason and line, so the author gets its one fix (decision 023). The sandbox now reports the line of a syntax error too.
+**Consequences.** All methods get the same check. A tool that loads but computes the wrong thing is still found only by attempts, which is what the comparison is about.
+
