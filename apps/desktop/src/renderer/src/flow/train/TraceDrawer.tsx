@@ -12,11 +12,12 @@ import {
   TableHeader,
   TableRow,
 } from '@architect/ui';
-import { Ban, BookOpen, Check, CircleX, Wrench } from 'lucide-react';
+import { Ban, BookOpen, Check, CircleX, MessageSquare, Wrench } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { useQuery } from '../../api/query';
-import { clip, formatAnswerTime } from '../format';
+import { formatAnswerTime } from '../format';
 import type { RecentAttempt } from './run-state';
+import { describeArguments } from './tool-arguments';
 
 const STOP_REASONS: Record<Trace['stopReason'], string | null> = {
   answer: null,
@@ -40,16 +41,11 @@ export function TraceDrawerContent({
   const split = attempt.split === 'dev' ? 'Check task' : 'Practice task';
   return (
     <DrawerContent
-      title={clip(attempt.prompt ?? attempt.taskId, 80)}
-      subtitle={`${type} · ${split} · harness version ${attempt.harnessVersion}`}
+      title={attempt.prompt ?? `Task ${attempt.taskId}`}
+      subtitle={`${type} · ${split} · Version ${attempt.harnessVersion} of the agent's instructions`}
     >
       <div className="flex flex-col gap-7">
-        <Verdict attempt={attempt} />
-        {attempt.prompt && (
-          <Section title="Request">
-            <p className="m-0 whitespace-pre-wrap text-md text-fg-soft">{attempt.prompt}</p>
-          </Section>
-        )}
+        <Verdict attempt={attempt} student={student} />
         {trace.status === 'loading' && (
           <div aria-busy="true" aria-label="Loading the trace" className="flex flex-col gap-3">
             <Skeleton className="h-4 w-40" />
@@ -80,7 +76,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Verdict({ attempt }: { attempt: RecentAttempt }) {
+function Verdict({ attempt, student }: { attempt: RecentAttempt; student: string }) {
   const { check, answerSummary, expectedSummary } = attempt;
   return (
     <div
@@ -108,17 +104,17 @@ function Verdict({ attempt }: { attempt: RecentAttempt }) {
         </div>
       </div>
       {(answerSummary || expectedSummary) && (
-        <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 pl-[26px] font-mono text-sm">
+        <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 pl-[26px] text-sm">
           {answerSummary && (
             <>
-              <dt className="text-fg-muted">Answered</dt>
-              <dd className="m-0 truncate">{answerSummary}</dd>
+              <dt className="text-fg-muted">{student} answered</dt>
+              <dd className="m-0 break-words font-mono">{answerSummary}</dd>
             </>
           )}
           {expectedSummary && (
             <>
               <dt className="text-fg-muted">Expected</dt>
-              <dd className="m-0 truncate">{expectedSummary}</dd>
+              <dd className="m-0 break-words font-mono">{expectedSummary}</dd>
             </>
           )}
         </dl>
@@ -138,22 +134,22 @@ function TraceSteps({ trace, student }: { trace: Trace; student: string }) {
   const steps = trace.steps.filter(isShown);
   return (
     <>
-      <Section title="Steps">
+      <Section title={`${student}'s steps`}>
         {steps.length === 0 ? (
           <p className="m-0 text-fg-secondary">{student} answered without using any tools.</p>
         ) : (
           <ol className="m-0 flex list-none flex-col gap-2.5 p-0">
             {steps.map((step, index) => (
               <li key={index}>
-                <StepView step={step} />
+                <StepView step={step} student={student} />
               </li>
             ))}
           </ol>
         )}
       </Section>
-      <Section title="Final answer">
+      <Section title={`${student}'s final answer`}>
         {trace.finalText.trim() ? (
-          <pre className="m-0 max-h-60 overflow-auto whitespace-pre-wrap rounded-lg border border-line-card bg-well px-3.5 py-3 font-mono text-sm">
+          <pre className="m-0 whitespace-pre-wrap break-words rounded-lg border border-line-card bg-well px-3.5 py-3 font-mono text-sm">
             {trace.finalText}
           </pre>
         ) : (
@@ -165,30 +161,36 @@ function TraceSteps({ trace, student }: { trace: Trace; student: string }) {
           </p>
         )}
       </Section>
-      <p className="m-0 border-t border-line-card pt-4 font-mono text-xs text-fg-muted">
-        {trace.studentModel} · {formatAnswerTime(trace.latencyMs)} ·{' '}
-        {tokens.toLocaleString('en-US')} tokens
+      <p className="m-0 border-t border-line-card pt-4 text-sm text-fg-muted text-pretty">
+        Ran on <span className="font-mono text-xs">{trace.studentModel}</span> in{' '}
+        {formatAnswerTime(trace.latencyMs)}, reading and writing {tokens.toLocaleString('en-US')}{' '}
+        tokens (a token is about three quarters of a word).
       </p>
     </>
   );
 }
 
-function StepView({ step }: { step: TraceStep }) {
+function StepView({ step, student }: { step: TraceStep; student: string }) {
   switch (step.kind) {
     case 'skill':
       return (
         <StepRow icon={<BookOpen size={14} strokeWidth={1.7} aria-hidden />}>
           <span>
-            Loaded the <span className="font-mono text-sm">{step.slug}</span> skill
+            Loaded the skill <span className="font-mono text-sm">{step.slug}</span>
             <span className="text-fg-muted">
-              {step.via === 'rule' ? ', by rule' : ', when asked'}
+              {step.via === 'rule'
+                ? ' automatically, because the request matched it'
+                : ` because ${student} asked for it`}
             </span>
           </span>
         </StepRow>
       );
     case 'model':
       return (
-        <StepRow meta={formatAnswerTime(step.latencyMs)}>
+        <StepRow
+          icon={<MessageSquare size={14} strokeWidth={1.7} aria-hidden />}
+          meta={formatAnswerTime(step.latencyMs)}
+        >
           <span className="whitespace-pre-wrap text-fg-soft">{step.text}</span>
         </StepRow>
       );
@@ -201,7 +203,7 @@ function StepView({ step }: { step: TraceStep }) {
           <div className="flex min-w-0 flex-col gap-2">
             <span className="min-w-0 break-words font-mono text-sm">
               {step.name}
-              <span className="text-fg-muted">({JSON.stringify(step.arguments)})</span>
+              <span className="text-fg-muted"> {describeArguments(step.arguments)}</span>
             </span>
             {step.error ? (
               <span className="text-sm text-danger">{step.error}</span>
