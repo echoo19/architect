@@ -9,6 +9,7 @@ export * from './graduate';
 export * from './harness';
 export * from './ids';
 export * from './ipc';
+export * from './ipc-schemas';
 export * from './job';
 export * from './json';
 export * from './lineage';

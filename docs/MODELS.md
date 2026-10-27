@@ -481,11 +481,10 @@ Sources: the sections above.
 - llama.cpp: start with `--jinja`, `-a muse-glimmer`, `-ngl 99`, a `-c` that matches `-np`, and `--chat-template-kwargs '{"reasoning_strength":"low"}'`, then read `reasoning_content`. The uploaders of the 2-bit and 3-bit files (Unsloth, bartowski) document llama.cpp for them, and Meta documents its tool parser as selected automatically.
 - Hosted student endpoints are for development only. Locked tests run on the local student (decision 009).
 
-### Conflicts with current harness defaults
+### How Architect's defaults follow from this
 
-- `decoding.yaml` defaults to `temperature: 0`, `top_p: 1`, `seed: 7`, and dev evaluation runs at temperature 0 with a fixed seed (decision 007). For Glimmer, Meta advises against `temperature: 0` and recommends top_p 0.95 and top_k 64. Measure how much run-to-run spread the sample job shows at Meta's settings before relying on the keep-or-revert margin.
-- `max_output_tokens: 1024` is below the 1,811 tokens Meta measured for one decision at `high` reasoning. Raise it or run at `low`.
-- `thinking: off` has no clean Glimmer mapping (see above), and `reasoning_effort: "none"` is a 400 on Spark.
+- Harness decoding defaults to Meta's Glimmer sampling (temperature 1, top_p 0.95, top_k 64) at `thinking: low` with 2,048 max output tokens, which leaves room for low-strength reasoning. The runner, not the harness, picks the sampler seed (decisions 007 and 015 in `DECISIONS.md`).
+- Mentor reasoning effort is `low`, `medium` or `high`. Spark Open's server default is `xhigh`, the slowest, so the adapter always sends the configured level.
 
 ## Open questions
 
@@ -503,11 +502,3 @@ Sources: the sections above.
 12. Fireworks: the model page says serverless is gone for Glimmer, but a tracker listed it in August. Check `GET https://api.fireworks.ai/inference/v1/models` with a key before ruling it out.
 13. Together's Glimmer output cap: 32,768 (Meta's page) or 117,964 (OpenRouter's listing)? Use 32,768 until known. Together's docs use `api.together.ai`; Meta's page uses `api.together.xyz`.
 14. Muse Spark 1.3 audio: Meta says quality may be degraded and suggests 1.2. Architect's current page lists audio as input without that caveat.
-
-### Differences from the current `docs/MODELS.md`
-
-- Row "Mentor (self-hosted option)": the `-1026` id is unverified publicly (see question 1). Public pages show `meta-models/muse-spark-open`.
-- Spark Open is about 816B total and 42B active; Meta's own page now states it (https://dev.meta.ai/docs/muse-spark-open), so the "from the model slugs" wording can be replaced with that source.
-- Add that `reasoning_effort: "none"` is rejected on Spark, that `tool_choice` accepts only `auto`, and that the contributor tier is capped at 150 RPM.
-- Add that Spark Open on Baseten has no structured output or JSON mode.
-- Add that Glimmer cannot disable reasoning and that no Ollama tag is smaller than 17 GB.

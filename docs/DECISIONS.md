@@ -97,3 +97,15 @@ GPT-6 Astra reviewed the first draft (five task types) and recommended cutting t
 **Context.** Glimmer always reasons; Ollama's `think: false` hides the reasoning but may not stop it. Meta measured 1,811 completion tokens for one agent decision at the default `high` strength and 256 at `low`. On this machine the 30B model generates only a few tokens per second.
 **Decision.** Harnesses default to `thinking: low`, and the mentor may raise it per harness through `decoding.yaml` like any other decoding setting.
 **Consequences.** Several times fewer tokens per step. If low reasoning caps what the student can do, a kept change that raises it will show up in the lineage with its measured cost in latency.
+
+## 016. Harness files are strict
+
+**Context.** Harness folders are written by a model and read back by the runner, the workspace and other people's tools. A silently ignored typo (`max_step` instead of `max_steps`) would make a change do nothing while the lineage claims it was tested.
+**Decision.** Unknown or misspelled keys in any harness or graduate file are validation errors with a "did you mean" hint. On-disk keys are snake_case everywhere (YAML, `lineage.jsonl`, `report.json`). Skills, tools and examples are ordered by slug; a tool's file name must equal its `name`; Windows device names (`con`, `nul`, `com1`...) are refused as names; symlinks and OS clutter files are ignored when reading. A version folder only counts once its `harness.yaml`, written last, exists, and loading fails if the files no longer match the saved hash. Graduate folders carry the report card twice: `report.json` for the app and `report.md` for people.
+**Consequences.** A mentor edit with a typo is rejected and logged as a failed round instead of being kept as a no-op. Folders written on one platform read identically on another.
+
+## 017. Small departures from the design for accessibility and robustness
+
+**Context.** Matching the design exactly occasionally conflicts with readable contrast or Electron's behaviour.
+**Decision.** Muted text is `#7F7F87` instead of the design's `#7E7E86`, which reached only 4.48:1 on the composer; a test keeps every readable text color at 4.5:1 or better in both themes. The theme setting drives Electron's `nativeTheme`, and the page copies the resulting `prefers-color-scheme` onto `<html data-theme>`, so there is one source of truth and no flash on launch. IPC handlers reply with `{ ok, value }` or `{ ok: false, error }` because Electron mangles errors thrown across IPC; the preload turns a failure back into an `Error` with the original message. Settings rows from the design that have no setting behind them yet (open at login, privacy toggles) are replaced by real ones: mentor tier, mentor reasoning, comparison mode, and read-only privacy facts.
+**Consequences.** The look is unchanged to the eye; every visible control does something.
