@@ -10,3 +10,4 @@ export { HARNESS_TEMPLATES } from './templates';
 export type { HarnessTemplate } from './templates';
 export { filesToHarness, MAX_HARNESS_BYTES, validateHarnessFiles } from './validate';
 export type { ValidationResult } from './validate';
+export { HarnessVersions } from './versions';
