@@ -1,5 +1,7 @@
 # Gotchas
 
+Things that bit us, and how to avoid them. Newest first.
+
 ## Electron 45 has no postinstall download
 
 Electron 45's package no longer downloads its binary on install; it ships an `install-electron` script instead, and on this machine that script stalled at 0 bytes. Fix: download `electron-v45.0.0-win32-x64.zip` from the GitHub release, check it against `SHASUMS256.txt`, unzip it into `node_modules/electron/dist`, and write `electron.exe` (macOS: `Electron.app/Contents/MacOS/Electron`) into `node_modules/electron/path.txt`.
@@ -7,8 +9,6 @@ Electron 45's package no longer downloads its binary on install; it ships an `in
 ## pnpm 12 blocks dependency build scripts
 
 pnpm 12 runs no install scripts unless the package is listed under `allowBuilds` in `pnpm-workspace.yaml` (`pnpm approve-builds <pkg>` edits it). It also refuses very new releases unless they're listed under `minimumReleaseAgeExclude`.
-
-Things that bit us, and how to avoid them. Newest first.
 
 ## Muse Glimmer is a dense 30B model
 
