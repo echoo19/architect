@@ -1,33 +1,56 @@
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import type { Job, RunEvent } from '@architect/shared';
 import { launchApp, type LaunchedApp } from './app';
 
 test.describe.configure({ mode: 'serial' });
 
+const ENGINE = 'Architect engine';
+const WORKSPACE = 'Architect workspace';
+
 let launched: LaunchedApp;
 let jobId: string;
+let runId: string;
+let exports: string;
 
 test.beforeAll(async () => {
   launched = await launchApp();
+  exports = await mkdtemp(join(tmpdir(), 'architect-e2e-exports-'));
 });
 
 test.afterAll(async () => {
   await launched?.close();
+  await rm(exports, { recursive: true, force: true });
 });
 
-/** The engine's utility process, found by the name it is started with. */
-function enginePid(): Promise<number | null> {
+/** A utility process of the app, found by the name it is started with. */
+function processId(name: string): Promise<number | null> {
   return launched.app.evaluate(
-    ({ app }) =>
-      app
-        .getAppMetrics()
-        .find((metric) => metric.type === 'Utility' && metric.name === 'Architect engine')?.pid ??
-      null,
+    ({ app }, serviceName) =>
+      app.getAppMetrics().find((metric) => metric.type === 'Utility' && metric.name === serviceName)
+        ?.pid ?? null,
+    name,
   );
+}
+
+/** Kills a utility process and waits until it is back, with a new process id. */
+async function killAndAwaitRestart(name: string): Promise<void> {
+  const before = await processId(name);
+  expect(before).toEqual(expect.any(Number));
+  process.kill(before as number);
+  await expect
+    .poll(
+      async () => {
+        const after = await processId(name);
+        return after !== null && after !== before;
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(true);
 }
 
 /**
@@ -59,8 +82,9 @@ async function startFakeStudent(): Promise<{ baseUrl: string; server: Server }> 
   return { baseUrl: `http://127.0.0.1:${port}/v1`, server };
 }
 
-test('starts the engine in its own utility process', async () => {
-  await expect.poll(enginePid).toEqual(expect.any(Number));
+test('starts the engine and the workspace in utility processes of their own', async () => {
+  await expect.poll(() => processId(ENGINE)).toEqual(expect.any(Number));
+  await expect.poll(() => processId(WORKSPACE)).toEqual(expect.any(Number));
   const page = launched.page;
   expect(await page.evaluate(() => window.architect.jobs.list())).toEqual([]);
   expect(await page.evaluate(() => window.architect.graduates.list())).toEqual([]);
@@ -146,18 +170,19 @@ test('runs the sample job end to end and grades end states in the sandbox', asyn
       (id) => window.architect.runs.start(id, { method: 'bare', seed: 7 }),
       jobId,
     );
+    runId = run.id;
 
     await expect
-      .poll(() => page.evaluate((id) => window.architect.runs.get(id), run.id), {
+      .poll(() => page.evaluate((id) => window.architect.runs.get(id), runId), {
         timeout: 90_000,
       })
       .toMatchObject({ run: { status: 'finished' } });
 
-    const detail = await page.evaluate((id) => window.architect.runs.get(id), run.id);
-    const invoice = detail.recentAttempts.find((attempt) => attempt.taskType === 'invoice');
+    const detail = await page.evaluate((id) => window.architect.runs.get(id), runId);
+    const invoice = detail.recentAttempts.find((item) => item.taskType === 'invoice');
     expect(invoice?.check).toMatchObject({ pass: false, reason: 'No new invoice row was added.' });
 
-    const report = await page.evaluate((id) => window.architect.reports.get(id), run.id);
+    const report = await page.evaluate((id) => window.architect.reports.get(id), runId);
     expect(report.test.score).toEqual({ pass: 0, total: 60 });
     const events = await page.evaluate(
       () => (window as unknown as { runEvents: RunEvent['type'][] }).runEvents,
@@ -169,22 +194,77 @@ test('runs the sample job end to end and grades end states in the sandbox', asyn
   }
 });
 
-test('restarts the engine after it is killed', async () => {
+test('opens an accepted, exported and re-imported graduate in the workspace', async () => {
   const page = launched.page;
-  const before = await enginePid();
-  expect(before).toEqual(expect.any(Number));
-  process.kill(before as number);
+  const accepted = await page.evaluate((id) => window.architect.graduates.accept(id), runId);
+  const graduateId = accepted.id;
+  expect(await page.evaluate((id) => window.architect.workspace.listChats(id), graduateId)).toEqual(
+    [],
+  );
+  const chat = await page.evaluate((id) => window.architect.workspace.createChat(id), graduateId);
+  expect(chat.graduateId).toBe(graduateId);
 
+  // The system dialog is answered in main, so nothing appears on screen.
+  await launched.app.evaluate(({ dialog }, folder) => {
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [folder] });
+  }, exports);
+  expect(
+    await page.evaluate(() =>
+      window.architect.files.pick({ title: 'Export the agent', directory: true }),
+    ),
+  ).toEqual([exports]);
+  const folder = join(exports, 'service-desk');
+  await page.evaluate(([id, target]) => window.architect.graduates.exportFolder(id, target), [
+    graduateId,
+    folder,
+  ] as const);
+  await page.evaluate((id) => window.architect.graduates.remove(id), graduateId);
+  expect(await page.evaluate(() => window.architect.graduates.list())).toEqual([]);
+
+  const imported = await page.evaluate(
+    (path) => window.architect.graduates.importFolder(path),
+    folder,
+  );
+  expect(imported.id).toBe(graduateId);
+  expect(await page.evaluate((id) => window.architect.workspace.listChats(id), graduateId)).toEqual(
+    [],
+  );
+  const again = await page.evaluate((id) => window.architect.workspace.createChat(id), graduateId);
+  expect(await page.evaluate((id) => window.architect.workspace.listChats(id), graduateId)).toEqual(
+    [again],
+  );
+});
+
+/** Lists the jobs' task counts, or says why it couldn't. */
+function taskCounts(page: Page): Promise<number[] | string> {
+  return page.evaluate(() =>
+    window.architect.jobs.list().then(
+      (jobs) => jobs.map((job) => job.taskCount),
+      (error: Error) => error.message,
+    ),
+  );
+}
+
+/** Starts a chat with a graduate and returns whose it is, or says why it couldn't. */
+function chatWith(page: Page, graduateId: string): Promise<string> {
+  return page.evaluate(
+    (id) =>
+      window.architect.workspace.createChat(id).then(
+        (chat) => chat.graduateId,
+        (error: Error) => error.message,
+      ),
+    graduateId,
+  );
+}
+
+test('restarts the engine after it is killed, and calls work again', async () => {
+  const page = launched.page;
   const failures = new Set<string>();
+  await killAndAwaitRestart(ENGINE);
   await expect
     .poll(
       async () => {
-        const result = await page.evaluate(() =>
-          window.architect.jobs.list().then(
-            (jobs) => jobs.map((job) => job.taskCount),
-            (error: Error) => error.message,
-          ),
-        );
+        const result = await taskCounts(page);
         if (typeof result === 'string') failures.add(result);
         return result;
       },
@@ -192,6 +272,14 @@ test('restarts the engine after it is killed', async () => {
     )
     .toEqual([180]);
   for (const failure of failures) expect(failure).toMatch(/^The engine stopped/);
-  expect(await enginePid()).not.toBe(before);
   expect(await page.evaluate(() => window.architect.runs.list())).toHaveLength(1);
+});
+
+test('restarts the workspace after it is killed, and opens the graduates again', async () => {
+  const page = launched.page;
+  const [graduate] = await page.evaluate(() => window.architect.graduates.list());
+  const graduateId = graduate?.id ?? '';
+  expect(graduateId).not.toBe('');
+  await killAndAwaitRestart(WORKSPACE);
+  await expect.poll(() => chatWith(page, graduateId), { timeout: 30_000 }).toBe(graduateId);
 });
