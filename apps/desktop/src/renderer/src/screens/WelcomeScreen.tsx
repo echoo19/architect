@@ -1,63 +1,90 @@
-import { useState } from 'react';
-import type { AppSettings } from '@architect/shared';
-import { Button, ErrorState, Heading, LogoMark, Panel, SettingsRow, Skeleton } from '@architect/ui';
+import { useEffect, useState } from 'react';
+import {
+  DEFAULT_STUDENT,
+  STUDENT_PRESETS,
+  type AppSettings,
+  type ConnectionTest,
+  type MentorPreset,
+} from '@architect/shared';
+import { Button, ErrorState, Skeleton } from '@architect/ui';
 import { useOllamaStatus, useSecretsStatus, useSettings } from '../api/hooks';
-import { errorOf, QueryValue } from '../components/QueryValue';
-import { mentorName, studentLabel, studentName } from '../lib/names';
+import { mentorName, shortModelName, studentLabel } from '../lib/names';
 import { attempt } from '../lib/notify';
-import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
-import { useUi } from '../state/ui';
+import { DoneStep } from '../onboarding/DoneStep';
+import { mentorFromPreset } from '../onboarding/mentor';
+import { MentorStep } from '../onboarding/MentorStep';
+import { ModelStep } from '../onboarding/ModelStep';
+import { pullPercent } from '../onboarding/pull';
+import { SetupShell, type SetupStep } from '../onboarding/SetupShell';
+import { useModelPull } from '../onboarding/useModelPull';
 
-/** First run: what Architect does, and whether this machine is ready for it. */
+/** First run: get the local model, connect a mentor, then open the workspace. */
 export function WelcomeScreen() {
   const settings = useSettings();
+  if (settings.status === 'success') {
+    return <Setup settings={settings.data} update={settings.update} />;
+  }
   return (
-    <div className="flex h-full flex-col bg-ground-flow bg-dot-grid">
-      <div className="app-drag h-14 shrink-0" />
-      <main className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-6 pb-16">
-        <div className="my-auto flex w-full max-w-[560px] flex-col items-center gap-10 py-6">
-          {settings.status === 'loading' && <WelcomeSkeleton />}
-          {settings.status === 'error' && (
-            <ErrorState
-              title="Couldn't load your settings"
-              message={settings.error.message}
-              onRetry={settings.reload}
-            />
-          )}
-          {settings.status === 'success' && (
-            <Welcome settings={settings.data} update={settings.update} />
-          )}
+    <SetupShell step="Local model">
+      {settings.status === 'error' ? (
+        <ErrorState
+          title="Couldn't load your settings"
+          message={settings.error.message}
+          onRetry={settings.reload}
+        />
+      ) : (
+        <div
+          aria-busy="true"
+          aria-label="Loading"
+          className="flex w-full max-w-[620px] flex-col items-center gap-4"
+        >
+          <Skeleton className="h-10 w-80" />
+          <Skeleton className="h-4 w-[460px] max-w-full" />
+          <Skeleton className="mt-5 h-[124px] w-full rounded-6xl" />
         </div>
-      </main>
-    </div>
+      )}
+    </SetupShell>
   );
 }
 
-function WelcomeSkeleton() {
-  return (
-    <div aria-busy="true" aria-label="Loading" className="flex w-full flex-col items-center gap-5">
-      <Skeleton className="size-[52px] rounded-2xl" />
-      <Skeleton className="h-12 w-72" />
-      <Skeleton className="h-4 w-96" />
-      <Skeleton className="mt-6 h-56 w-full rounded-6xl" />
-    </div>
-  );
-}
-
-function Welcome({
+function Setup({
   settings,
   update,
 }: {
   settings: AppSettings;
   update: (patch: Partial<AppSettings>) => Promise<AppSettings>;
 }) {
+  const [step, setStep] = useState<SetupStep>('Local model');
+  const [connection, setConnection] = useState<ConnectionTest | null>(null);
+  const [finishing, setFinishing] = useState(false);
   const ollama = useOllamaStatus();
   const secrets = useSecretsStatus();
-  const openSettings = useUi((state) => state.openSettings);
-  const [finishing, setFinishing] = useState(false);
+
+  // Agents always run on the local copy, even when training uses a hosted one.
+  const student =
+    settings.defaultStudent.runtime === 'ollama'
+      ? settings.defaultStudent
+      : { ...settings.defaultStudent, runtime: 'ollama' as const, model: DEFAULT_STUDENT.model };
+  const model = student.model;
+  const preset = STUDENT_PRESETS.find((p) => p.runtime === 'ollama' && p.model === model);
+  const pull = useModelPull(model);
+  const downloading = pull.state.phase === 'starting' || pull.state.phase === 'pulling';
+  const modelReady =
+    pull.state.phase === 'done' || ollama.data?.models.some((m) => m.name === model) === true;
+
+  const { reload: reloadOllama } = ollama;
+  useEffect(() => {
+    if (pull.state.phase === 'done') reloadOllama();
+  }, [pull.state.phase, reloadOllama]);
+
   const mentor = settings.defaultMentor;
-  const student = settings.defaultStudent;
+  const keySaved = mentor.kind === 'model' && secrets.data?.[mentor.secretRef] === true;
+
+  const chooseMentor = (chosen: MentorPreset) =>
+    void attempt("Couldn't save that mentor", () =>
+      update({ defaultMentor: mentorFromPreset(chosen, mentor) }),
+    );
 
   const finish = async () => {
     setFinishing(true);
@@ -66,49 +93,99 @@ function Welcome({
     if (saved) navigate(paths.home(), { replace: true });
   };
 
+  const spacer = <div className="flex-1" />;
+
+  if (step === 'Local model') {
+    return (
+      <SetupShell
+        step={step}
+        footer={
+          <>
+            {spacer}
+            {!modelReady && !downloading && (
+              <Button variant="ghost" onClick={() => setStep('Mentor')}>
+                Skip for now
+              </Button>
+            )}
+            <Button
+              variant="primary"
+              disabled={!modelReady && !downloading}
+              onClick={() => setStep('Mentor')}
+            >
+              Continue
+            </Button>
+          </>
+        }
+      >
+        <ModelStep
+          model={model}
+          label={studentLabel(student)}
+          note={preset?.note}
+          ollama={ollama}
+          pull={pull.state}
+          onDownload={() => void pull.start()}
+          ready={modelReady}
+        />
+      </SetupShell>
+    );
+  }
+
+  if (step === 'Mentor') {
+    return (
+      <SetupShell
+        step={step}
+        footer={
+          <>
+            <Button onClick={() => setStep('Local model')}>Back</Button>
+            {spacer}
+            {!keySaved && (
+              <Button variant="ghost" onClick={() => setStep('Done')}>
+                Skip for now
+              </Button>
+            )}
+            <Button variant="primary" disabled={!keySaved} onClick={() => setStep('Done')}>
+              Continue
+            </Button>
+          </>
+        }
+      >
+        <MentorStep
+          mentor={mentor}
+          onChoose={chooseMentor}
+          secrets={secrets}
+          result={connection}
+          onResult={setConnection}
+        />
+      </SetupShell>
+    );
+  }
+
   return (
-    <>
-      <div className="flex flex-col items-center gap-5 text-center">
-        <LogoMark size={52} />
-        <Heading as="h1" size="hero">
-          Architect
-        </Heading>
-        <p className="m-0 max-w-[440px] text-xl text-fg-secondary text-balance">
-          Describe a job. {mentorName(mentor)} teaches {studentName(student)} to do it. The agent
-          runs on {deviceInSentence(currentPlatform())}.
-        </p>
-      </div>
-
-      <Panel aria-label="Setup" className="w-full px-7 py-1 [&>*:first-child]:border-t-0">
-        <SettingsRow label="Local model runtime" meta="Ollama" error={errorOf(ollama)}>
-          <QueryValue query={ollama}>
-            {(status) => (status.running ? 'Running' : 'Not running')}
-          </QueryValue>
-        </SettingsRow>
-        <SettingsRow label={studentLabel(student)} meta={student.model} error={errorOf(ollama)}>
-          <QueryValue query={ollama}>
-            {(status) =>
-              status.models.some((model) => model.name === student.model)
-                ? 'Downloaded'
-                : 'Not downloaded'
-            }
-          </QueryValue>
-        </SettingsRow>
-        {mentor.kind === 'model' && (
-          <SettingsRow label={`${mentor.label} key`} meta={mentor.baseUrl} error={errorOf(secrets)}>
-            <QueryValue query={secrets}>
-              {(stored) => (stored[mentor.secretRef] ? 'Saved' : 'Not set')}
-            </QueryValue>
-          </SettingsRow>
-        )}
-      </Panel>
-
-      <div className="flex gap-2">
-        <Button onClick={() => openSettings('models')}>Settings</Button>
-        <Button variant="primary" loading={finishing} onClick={finish}>
-          Get started
-        </Button>
-      </div>
-    </>
+    <SetupShell
+      step={step}
+      footer={
+        <>
+          <Button onClick={() => setStep('Mentor')}>Back</Button>
+          {spacer}
+          <Button variant="primary" loading={finishing} onClick={() => void finish()}>
+            Get started
+          </Button>
+        </>
+      }
+    >
+      <DoneStep
+        mentor={{
+          name: mentorName(mentor),
+          label: mentor.label,
+          state: connection?.ok ? 'connected' : keySaved ? 'saved' : 'missing',
+        }}
+        student={{
+          name: shortModelName(studentLabel(student)),
+          model,
+          state: modelReady ? 'ready' : downloading ? 'downloading' : 'missing',
+        }}
+        percent={pullPercent(pull.state)}
+      />
+    </SetupShell>
   );
 }
