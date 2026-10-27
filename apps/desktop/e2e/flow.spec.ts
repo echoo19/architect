@@ -26,7 +26,7 @@ import {
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const WIDTH = 1440;
 /** Tall enough for each screen's whole page, so a screenshot shows everything on it. */
-const DEFINE_HEIGHT = 1520;
+const DEFINE_HEIGHT = 1580;
 const TRAIN_HEIGHT = 1380;
 const REPORT_HEIGHT = 1660;
 const THEMES = ['dark', 'light'] as const;
@@ -139,7 +139,7 @@ for (const theme of THEMES) {
     await expect(hosted).toContainText('5 to 10 of 12 rounds fit in 4 hours of training');
     await expect(
       page.getByText('A hosted copy fits 5 to 10 rounds in the time this computer fits none.'),
-    ).toBeVisible();
+    ).toBeHidden();
     // The choices the run below starts with, so every later screen agrees with this one.
     await hosted.click();
     await expect(hosted).toBeChecked();

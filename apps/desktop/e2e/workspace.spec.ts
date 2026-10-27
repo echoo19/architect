@@ -169,7 +169,7 @@ for (const theme of THEMES) {
     await expect(page.getByRole('button', { name: /Reading jobs\.csv/ })).toBeVisible();
     await emitWorkspace(app, { type: 'message.updated', message: pricingReply('working') });
     // Tool steps start folded, as the setting says, and open on a click.
-    const current = page.getByRole('button', { name: /Running invoice_total job J-4471/ });
+    const current = page.getByRole('button', { name: /invoice_total job J-4471/ });
     await expect(current).toHaveAttribute('aria-expanded', 'false');
     await expect(page.getByRole('list', { name: 'Steps' })).toBeHidden();
     await current.click();
@@ -282,8 +282,6 @@ for (const theme of THEMES) {
     await expect(dialog.getByText('Never, by design')).toBeVisible();
     await expect(dialog.getByText('invoices.csv, bookings.csv')).toBeVisible();
     await capture(`workspace-agent-permissions-${theme}.png`);
-    await dialog.getByRole('radio', { name: 'Never' }).click();
-    await expect(dialog.getByText("Can't change your files")).toBeVisible();
 
     await dialog.getByRole('tab', { name: 'Report' }).click();
     await expect(dialog.getByText('92%')).toBeVisible();
@@ -299,6 +297,9 @@ for (const theme of THEMES) {
       [AGENT.id, 'C:\\Users\\dana\\Exports'],
     ]);
 
+    await dialog.getByRole('tab', { name: 'Permissions' }).click();
+    await dialog.getByRole('radio', { name: 'Never' }).click();
+    await expect(dialog.getByText("Can't change your files")).toBeVisible();
     await dialog.getByRole('button', { name: 'Close' }).click();
     await expect(dialog).toBeHidden();
     await page.getByRole('button', { name: 'Saving: Never' }).click();

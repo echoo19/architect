@@ -84,7 +84,10 @@ for (const theme of THEMES) {
     }
 
     // Settings and the palette over a workspace that has an agent and a saved mentor key.
-    await stubEngine(launched.app, { ...SAMPLE_ENGINE, 'secrets:status': { meta: true } });
+    await stubEngine(launched.app, {
+      ...SAMPLE_ENGINE,
+      'secrets:status': { meta: true, together: true },
+    });
     await applySettings(page, { onboarded: true });
     await goTo(page, '/');
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
