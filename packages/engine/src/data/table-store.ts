@@ -1,5 +1,3 @@
-import { randomBytes } from 'node:crypto';
-import { closeSync, fsyncSync, openSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { isAbsolute, relative, resolve } from 'node:path';
 import {
@@ -9,6 +7,7 @@ import {
   type RowDiff,
   type WhereClause,
 } from '@architect/shared';
+import { writeFileAtomic } from './atomic-write';
 import { toCell } from './cells';
 import { parseCsv, serializeCsv, type CsvFormat } from './csv';
 import { DataError } from './errors';
@@ -448,23 +447,6 @@ function diffTable(table: TableState): RowDiff | null {
     .map((row) => cells(table.columns, row));
   if (added.length + changed.length + removed.length === 0) return null;
   return { columns: [...table.columns], added, removed, changed };
-}
-
-function writeFileAtomic(path: string, content: string): void {
-  const temp = `${path}.${randomBytes(6).toString('hex')}.tmp`;
-  try {
-    const fd = openSync(temp, 'w');
-    try {
-      writeFileSync(fd, content, 'utf8');
-      fsyncSync(fd);
-    } finally {
-      closeSync(fd);
-    }
-    renameSync(temp, path);
-  } catch (error) {
-    rmSync(temp, { force: true });
-    throw error;
-  }
 }
 
 function readLimit(limit: number | undefined): number {
