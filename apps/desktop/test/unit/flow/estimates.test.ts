@@ -15,7 +15,13 @@ describe('estimateTime', () => {
     const job = makeJob({
       budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 10_000 },
       splits: { seed: 1, calibration: 0, train: 30, dev: 10, test: 20 },
-      evaluation: { trainBatch: 6, minDevGain: 2, maxTypeRegression: 1, patience: 3 },
+      evaluation: {
+        trainBatch: 6,
+        minDevGain: 2,
+        maxTypeRegression: 1,
+        devRepeats: 1,
+        patience: 3,
+      },
     });
     expect(estimateTime(job, 'local')).toEqual({ seconds: (64 + 20) * 150, rounds: 4 });
     expect(estimateTime(job, 'hosted')).toEqual({ seconds: 64 * 15 + 20 * 150, rounds: 4 });

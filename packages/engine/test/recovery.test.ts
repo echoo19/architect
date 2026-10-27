@@ -82,15 +82,14 @@ describe('restart recovery', () => {
       devCurrent: { pass: 3, total: 9 },
     });
     const attempts = second.store.attempts.list({ runId });
-    expect(attempts).toHaveLength(45);
-    expect(new Set(attempts.map(evaluationKey)).size).toBe(45);
+    expect(attempts).toHaveLength(63);
+    expect(new Set(attempts.map(evaluationKey)).size).toBe(63);
     const redone = world.runtime.attempts.slice(before);
-    expect(redone).toHaveLength(34);
-    expect(
-      redone.some((attempt) => attempt.taskId.startsWith('dev-') && attempt.version === 1),
-    ).toBe(false);
+    expect(redone).toHaveLength(52);
+    const panel = record?.seeds.devPanel;
+    expect(redone.some((attempt) => attempt.seed === panel)).toBe(false);
     expect(world.mentor.requests).toHaveLength(2);
-    expect(record?.run.totals.attempts).toBe(45);
+    expect(record?.run.totals.attempts).toBe(63);
     expect(second.store.reports.get(runId)?.test.score).toEqual({ pass: 2, total: 6 });
     expect(
       second.events.some(
@@ -189,7 +188,7 @@ describe('restart recovery', () => {
     expect(finished?.status).toBe('finished');
     expect(finished?.error).toBeUndefined();
     const attempts = engine.store.attempts.list({ runId });
-    expect(attempts).toHaveLength(45);
-    expect(new Set(attempts.map(evaluationKey)).size).toBe(45);
+    expect(attempts).toHaveLength(63);
+    expect(new Set(attempts.map(evaluationKey)).size).toBe(63);
   });
 });

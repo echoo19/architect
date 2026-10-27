@@ -18,7 +18,7 @@ describe('decideKeep', () => {
     name: string;
     before: TypeScore[];
     after: TypeScore[];
-    margin?: { minDevGain: number; maxTypeRegression: number };
+    margin?: { minDevGain: number; maxTypeRegression: number; devRepeats: number };
     keep: boolean;
     reason: string;
   }[] = [
@@ -75,7 +75,7 @@ describe('decideKeep', () => {
       name: 'allows no regression at all when the job says so',
       before: types(4, 5, 5),
       after: types(8, 4, 5),
-      margin: { minDevGain: 2, maxTypeRegression: 0 },
+      margin: { minDevGain: 2, maxTypeRegression: 0, devRepeats: 1 },
       keep: false,
       reason: 'Dev 14/30 → 17/30, but overdue lost 1 pass',
     },
@@ -83,7 +83,7 @@ describe('decideKeep', () => {
       name: 'says so when no type lost a pass and none may',
       before: types(4, 5, 5),
       after: types(7, 5, 5),
-      margin: { minDevGain: 3, maxTypeRegression: 0 },
+      margin: { minDevGain: 3, maxTypeRegression: 0, devRepeats: 1 },
       keep: true,
       reason: 'Dev 14/30 → 17/30, no type lost a pass',
     },
@@ -91,9 +91,33 @@ describe('decideKeep', () => {
       name: 'uses a larger margin',
       before: types(4, 5, 5),
       after: types(7, 5, 5),
-      margin: { minDevGain: 4, maxTypeRegression: 1 },
+      margin: { minDevGain: 4, maxTypeRegression: 1, devRepeats: 1 },
       keep: false,
       reason: 'Dev 14/30 → 17/30, short of the +4 margin',
+    },
+    {
+      name: 'scales the margin with the repeats, reverting a gain one run could make by luck',
+      before: types(4, 5, 5),
+      after: types(7, 5, 5),
+      margin: { minDevGain: 2, maxTypeRegression: 1, devRepeats: 2 },
+      keep: false,
+      reason: 'Dev 14/30 → 17/30 over 2 runs, short of the +4 margin',
+    },
+    {
+      name: 'keeps a gain that holds across the repeats, with the type-loss limit scaled too',
+      before: types(4, 5, 5),
+      after: types(9, 3, 6),
+      margin: { minDevGain: 2, maxTypeRegression: 1, devRepeats: 2 },
+      keep: true,
+      reason: 'Dev 14/30 → 18/30 over 2 runs, no type lost more than two',
+    },
+    {
+      name: 'reverts a type loss past the scaled limit',
+      before: types(4, 5, 5),
+      after: types(10, 2, 6),
+      margin: { minDevGain: 2, maxTypeRegression: 1, devRepeats: 2 },
+      keep: false,
+      reason: 'Dev 14/30 → 18/30 over 2 runs, but overdue lost 3 passes',
     },
   ];
 
@@ -104,7 +128,7 @@ describe('decideKeep', () => {
         after: sum(testCase.after),
         beforePerType: testCase.before,
         afterPerType: testCase.after,
-        evaluation: testCase.margin ?? { minDevGain: 2, maxTypeRegression: 1 },
+        evaluation: testCase.margin ?? { minDevGain: 2, maxTypeRegression: 1, devRepeats: 1 },
       });
       expect(decision).toEqual({ keep: testCase.keep, reason: testCase.reason });
     });
@@ -116,7 +140,7 @@ describe('decideKeep', () => {
       after: { pass: 9, total: 30 },
       beforePerType: [{ type: 'invoice', pass: 3, total: 10 }],
       afterPerType: [{ type: 'overdue', pass: 9, total: 10 }],
-      evaluation: { minDevGain: 2, maxTypeRegression: 1 },
+      evaluation: { minDevGain: 2, maxTypeRegression: 1, devRepeats: 1 },
     });
     expect(decision.keep).toBe(false);
     expect(decision.reason).toContain('invoice lost 3 passes');

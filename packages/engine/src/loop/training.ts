@@ -8,10 +8,10 @@ import {
 import type { StoredRound } from '../store/records';
 import { resultOf, type EvaluationResult } from './attempts';
 import { must } from './errors';
-import { evaluate } from './evaluation';
+import { evaluate, type EvaluationSpec } from './evaluation';
 import { decideKeep, formatScore, type KeepDecision } from './keep';
 import { TRAINING_ENDED, trainingEnd, type RunState } from './run-state';
-import { roundSeed } from './seeds';
+import { devSeeds, roundSeed } from './seeds';
 import { startingHarness } from './setup';
 
 function comparePerType(before: TypeScore[], after: TypeScore[]) {
@@ -43,22 +43,30 @@ export async function prepare(state: RunState): Promise<void> {
   state.saveRun({ phase: 'baseline', currentVersion: start.meta.version });
 }
 
-/** The starting version on dev, which every later candidate must beat. */
-export async function baseline(state: RunState): Promise<void> {
-  state.setPhase('baseline');
-  const version = state.run.currentVersion;
-  const complete = await evaluate(state, {
+/** One version on every dev task, under the seeds of the baseline (round null) or a round. */
+async function devEvaluation(
+  state: RunState,
+  version: number,
+  round: number | null,
+): Promise<EvaluationSpec> {
+  return {
     tasks: await state.devTasks(),
     split: 'dev',
-    round: null,
+    round,
     version,
-    seed: state.record.seeds.devPanel,
+    seeds: devSeeds(state.record.seeds.devPanel, round, state.job.evaluation.devRepeats),
     target: state.job.student.trainOn,
     training: true,
     concurrency: state.ctx.concurrency,
-  });
-  if (!complete) return;
-  const result = state.devResult(version);
+  };
+}
+
+/** The starting version on dev: where the dev curve starts and what the first round sees. */
+export async function baseline(state: RunState): Promise<void> {
+  state.setPhase('baseline');
+  const version = state.run.currentVersion;
+  if (!(await evaluate(state, await devEvaluation(state, version, null)))) return;
+  const result = state.devResult(version, null);
   state.emit({ type: 'eval.finished', split: 'dev', harnessVersion: version, ...result });
   state.saveRun({ devBaseline: result.score, devCurrent: result.score });
 }
@@ -102,7 +110,7 @@ export async function attemptTrain(state: RunState, index: number): Promise<void
     split: 'train',
     round: index,
     version: baseVersion,
-    seed: roundSeed(state.record.seeds.trainStudent, index),
+    seeds: [roundSeed(state.record.seeds.trainStudent, index)],
     target: state.job.student.trainOn,
     training: true,
     concurrency: state.ctx.concurrency,
@@ -189,25 +197,21 @@ async function decide(
   state.log('info', `Round ${round.index} ${entry.decision}: ${entry.decisionReason}.`);
 }
 
-/** The candidate on dev with the incumbent's seed panel, so the comparison is paired. */
+/**
+ * The incumbent and its candidate on dev, under the round's own seeds. The incumbent is measured
+ * again rather than judged by the score that got it kept, which was the luckier of its draws.
+ */
 export async function evaluateCandidate(state: RunState, index: number): Promise<void> {
   state.setPhase('evaluating');
   const { baseVersion, round } = state.round(index);
   const candidate = must(round.candidateVersion, 'The candidate version');
-  const complete = await evaluate(state, {
-    tasks: await state.devTasks(),
-    split: 'dev',
-    round: index,
-    version: candidate,
-    seed: state.record.seeds.devPanel,
-    target: state.job.student.trainOn,
-    training: true,
-    concurrency: state.ctx.concurrency,
-  });
-  if (!complete) return;
-  const before = state.devResult(baseVersion);
-  const after = state.devResult(candidate);
-  state.emit({ type: 'eval.finished', split: 'dev', harnessVersion: candidate, ...after });
+  for (const version of [baseVersion, candidate]) {
+    if (!(await evaluate(state, await devEvaluation(state, version, index)))) return;
+    const result = state.devResult(version, index);
+    state.emit({ type: 'eval.finished', split: 'dev', harnessVersion: version, ...result });
+  }
+  const before = state.devResult(baseVersion, index);
+  const after = state.devResult(candidate, index);
   const decision =
     state.run.method === 'one_shot'
       ? oneShotDecision(before.score, after.score)

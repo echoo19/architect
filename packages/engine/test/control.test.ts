@@ -3,6 +3,7 @@ import { AdapterError, type Job, type Task } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { STOPPED_ROUND } from '../src/loop/plan';
 import { TRAINING_ENDED } from '../src/loop/run-state';
+import { devSeeds, fanOutSeeds, roundSeed } from '../src/loop/seeds';
 import { hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
 import { FileVersions } from './fakes/harness';
@@ -214,7 +215,7 @@ describe('budgets during a run', () => {
     const job = await setUp({
       job: {
         budget: { maxRounds: 10, maxMentorUsd: 5, maxWallMinutes: 60 },
-        evaluation: { trainBatch: 6, minDevGain: 2, maxTypeRegression: 1, patience: 2 },
+        evaluation: { ...defaultJob().evaluation, patience: 2 },
       },
     });
     world.mentor.script = () => hypothesis('Reword the rules', 'Service desk, reworded.');
@@ -233,6 +234,64 @@ describe('budgets during a run', () => {
       devCurrent: { pass: 3, total: 9 },
     });
     expect(world.mentor.requests).toHaveLength(1);
+  });
+});
+
+describe('dev noise', () => {
+  it('measures the incumbent again, so a lucky score that got it kept is not the next bar', async () => {
+    const job = await setUp();
+    const lucky = roundSeed(fanOutSeeds(7).devPanel, 1);
+    world.runtime.passes = (held, harness, seed) =>
+      harness.system.includes(`fix:${held.type}`) ||
+      (held.type === 'overdue' && harness.system.includes('lucky') && seed === lucky);
+    world.mentor.script = (_request, call) =>
+      [
+        hypothesis('Add the invoice procedure', 'fix:invoice lucky'),
+        hypothesis('Add the scheduling procedure', 'fix:invoice lucky fix:scheduling'),
+      ][call - 1];
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    expect(
+      engine.store.rounds.list(run.id).map(({ round }) => [round.decision, round.decisionReason]),
+    ).toEqual([
+      ['kept', 'Dev 0/9 → 6/9, no type lost more than one'],
+      ['kept', 'Dev 3/9 → 6/9, no type lost more than one'],
+    ]);
+  });
+
+  it('runs every dev task under each repeat seed and keeps only gains past the scaled margin', async () => {
+    const job = await setUp({
+      job: { evaluation: { ...defaultJob().evaluation, devRepeats: 2 } },
+    });
+    const panel = fanOutSeeds(7).devPanel;
+    const [lucky] = devSeeds(panel, 2, 2);
+    world.runtime.passes = (held, harness, seed) =>
+      harness.system.includes(`fix:${held.type}`) && (held.type !== 'overdue' || seed === lucky);
+    world.mentor.script = (_request, call) =>
+      [
+        hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice'),
+        hypothesis('Add the overdue procedure', 'Service desk.\nfix:invoice\nfix:overdue'),
+      ][call - 1];
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    const dev = engine.store.attempts.list({ runId: run.id, split: 'dev' });
+    expect(dev).toHaveLength(90);
+    expect(new Set(dev.filter((a) => a.round === 1).map((a) => a.seed))).toEqual(
+      new Set(devSeeds(panel, 1, 2)),
+    );
+    expect(
+      engine.store.rounds.list(run.id).map(({ round }) => [round.decision, round.decisionReason]),
+    ).toEqual([
+      ['kept', 'Dev 0/18 → 6/18 over 2 runs, no type lost more than two'],
+      ['reverted', 'Dev 6/18 → 9/18 over 2 runs, short of the +4 margin'],
+    ]);
+    expect(engine.store.runs.get(run.id)?.run).toMatchObject({
+      status: 'finished',
+      devBaseline: { pass: 0, total: 18 },
+      devCurrent: { pass: 6, total: 18 },
+    });
   });
 });
 
@@ -361,7 +420,7 @@ describe('authoring failures', () => {
     const job = await setUp({
       job: {
         budget: { maxRounds: 6, maxMentorUsd: 5, maxWallMinutes: 60 },
-        evaluation: { trainBatch: 6, minDevGain: 2, maxTypeRegression: 1, patience: 1 },
+        evaluation: { ...defaultJob().evaluation, patience: 1 },
       },
     });
     world.mentor.script = (_request, call) =>

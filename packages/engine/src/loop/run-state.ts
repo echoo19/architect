@@ -119,10 +119,13 @@ export class RunState {
     return this.ctx.store.attempts.list({ runId: this.ctx.runId, ...filter });
   }
 
-  /** A version's dev result. Each version is evaluated on dev once, with the run's seed panel. */
-  devResult(version: number): EvaluationResult {
+  /**
+   * A version's result in one dev evaluation, every repeat added up: the baseline's (round
+   * null) or a round's, where the candidate and the incumbent are measured side by side.
+   */
+  devResult(version: number, round: number | null): EvaluationResult {
     return resultOf(
-      this.attempts({ split: 'dev', version, target: this.job.student.trainOn }),
+      this.attempts({ split: 'dev', version, round, target: this.job.student.trainOn }),
       this.job,
     );
   }

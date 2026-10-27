@@ -479,7 +479,7 @@ describe('the mentor view', () => {
         dev: { pass: 0, total: 9 },
         lineage: [],
       },
-      { evaluation: { minDevGain: 3, maxTypeRegression: 1 } },
+      { evaluation: { minDevGain: 3, maxTypeRegression: 1, devRepeats: 1 } },
     );
     expect(system).toContain('rise by at least 3 and no task type loses more than 1 pass');
     expect(system).toContain('function run(args, ctx)');
@@ -487,6 +487,34 @@ describe('the mentor view', () => {
     expect(system).toContain('retrieval.yaml');
     expect(system).toContain('guardrails.yaml');
     expect(json?.schema).toBe(HYPOTHESIS_JSON_SCHEMA);
+  });
+
+  it('states the keep rule over all runs when dev is repeated', () => {
+    const view = buildOneShotView({
+      job,
+      dataFiles: [],
+      harnessFiles: {},
+      budgetLeft: { rounds: 1, usd: 5, minutes: 60 },
+      train: [],
+      devTotal: 9,
+    });
+    const evaluation = { minDevGain: 2, maxTypeRegression: 1, devRepeats: 3 };
+    const { system } = diagnoseRequest(
+      {
+        ...view,
+        round: 1,
+        train: { results: [], perType: [] },
+        dev: { pass: 0, total: 27 },
+        lineage: [],
+      },
+      { evaluation },
+    );
+    expect(system).toContain(
+      'evaluates it on dev 3 times, with the same seeds as the current version; dev scores add up all 3 runs. It is kept only if dev passes rise by at least 6 and no task type loses more than 3 passes',
+    );
+    expect(oneShotRequest(view, { evaluation }).system).toContain(
+      'out of 27 dev attempts (9 tasks, each run 3 times)',
+    );
   });
 });
 

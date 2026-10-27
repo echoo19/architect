@@ -38,6 +38,18 @@ export function roundSeed(subSeed: number, round: number): number {
   return deriveSeed(subSeed, `round-${round}`);
 }
 
+/**
+ * The sampler seeds of one dev evaluation, one per repeat, from the run's dev panel seed: the
+ * baseline's (round null) start with the panel seed itself, and each round draws its own, which
+ * its candidate and the incumbent share.
+ */
+export function devSeeds(panel: number, round: number | null, repeats: number): number[] {
+  const first = round === null ? panel : roundSeed(panel, round);
+  return Array.from({ length: repeats }, (_, repeat) =>
+    repeat === 0 ? first : deriveSeed(first, `repeat-${repeat + 1}`),
+  );
+}
+
 /** mulberry32: small and fast, and plenty for shuffling task lists. */
 export function seededRandom(seed: number): () => number {
   let state = seed >>> 0;

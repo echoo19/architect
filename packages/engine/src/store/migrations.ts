@@ -171,4 +171,14 @@ export const MIGRATIONS: readonly Migration[] = [
     name: 'rejected rounds',
     sql: 'ALTER TABLE rounds ADD COLUMN rejected INTEGER NOT NULL DEFAULT 0;',
   },
+  {
+    version: 3,
+    name: 'dev repeats',
+    sql: `
+      -- A dev evaluation attempts every task under each of its seeds, once per seed.
+      DROP INDEX attempts_once;
+      CREATE UNIQUE INDEX attempts_once
+        ON attempts (run_id, split, harness_version, target, task_id, coalesce(round, 0), seed);
+    `,
+  },
 ];

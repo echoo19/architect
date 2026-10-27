@@ -18,11 +18,26 @@ export interface EvaluationSpec {
   split: SplitName;
   round: number | null;
   version: number;
-  seed: number;
+  /** Every task is attempted once under each seed; a dev evaluation has one seed per repeat. */
+  seeds: readonly number[];
   target: StudentTarget;
   /** Training evaluations halt for a stop or a spent wall clock; the locked test doesn't. */
   training: boolean;
   concurrency: number;
+}
+
+/** One task under one seed: the unit an evaluation attempts and persists. */
+interface SeededTask {
+  task: Task;
+  seed: number;
+}
+
+function keyOf(seed: number, taskId: string): string {
+  return `${seed}:${taskId}`;
+}
+
+function seededTasks(spec: EvaluationSpec): SeededTask[] {
+  return spec.seeds.flatMap((seed) => spec.tasks.map((task) => ({ task, seed })));
 }
 
 function shouldHalt(state: RunState, training: boolean): boolean {
@@ -38,12 +53,13 @@ function reportProgress(state: RunState, spec: EvaluationSpec, done: ReadonlySet
     version: spec.version,
     target: spec.target,
   };
+  const all = seededTasks(spec);
   state.emit({
     type: 'eval.progress',
     split: spec.split,
     harnessVersion: spec.version,
-    done: spec.tasks.filter((task) => done.has(task.id)).length,
-    total: spec.tasks.length,
+    done: all.filter(({ seed, task }) => done.has(keyOf(seed, task.id))).length,
+    total: all.length,
     pass: state.attempts(filter).filter((attempt) => attempt.check.pass).length,
   });
 }
@@ -56,6 +72,7 @@ function reportProgress(state: RunState, spec: EvaluationSpec, done: ReadonlySet
 async function recordAttempt(
   state: RunState,
   spec: EvaluationSpec,
+  seed: number,
   item: EvaluatedTask,
   student: StudentAdapter,
 ): Promise<void> {
@@ -79,7 +96,7 @@ async function recordAttempt(
     answerSummary: locked ? undefined : answerSummary(outcome),
     expectedSummary: locked ? undefined : expectedSummary(item.task.expected),
     target: spec.target,
-    seed: spec.seed,
+    seed,
     stopReason: outcome.stopReason,
     tracePath: traceFile && paths.toStored(traceFile),
     createdAt: state.now(),
@@ -149,10 +166,11 @@ async function attemptTask(
 }
 
 /**
- * Attempts every task of one evaluation that has no persisted attempt yet, and persists each
- * as it finishes. Resolves true once all are done, or false when it halted early (a pause, a
- * stop or the wall clock); the next session attempts only what is left. Training attempts
- * still running when the wall clock runs out are cut there, not left to finish.
+ * Attempts every task of one evaluation, under each of its seeds, that has no persisted attempt
+ * yet, and persists each as it finishes. Resolves true once all are done, or false when it
+ * halted early (a pause, a stop or the wall clock); the next session attempts only what is
+ * left. Training attempts still running when the wall clock runs out are cut there, not left
+ * to finish.
  */
 export async function evaluate(state: RunState, spec: EvaluationSpec): Promise<boolean> {
   const filter = {
@@ -161,8 +179,10 @@ export async function evaluate(state: RunState, spec: EvaluationSpec): Promise<b
     version: spec.version,
     target: spec.target,
   };
-  const done = new Set(state.attempts(filter).map((attempt) => attempt.taskId));
-  const remaining = spec.tasks.filter((task) => !done.has(task.id));
+  const done = new Set(
+    state.attempts(filter).map((attempt) => keyOf(attempt.seed, attempt.taskId)),
+  );
+  const remaining = seededTasks(spec).filter(({ seed, task }) => !done.has(keyOf(seed, task.id)));
   if (remaining.length > 0) {
     const { resources } = state;
     const student = await resources.student(spec.target);
@@ -178,23 +198,19 @@ export async function evaluate(state: RunState, spec: EvaluationSpec): Promise<b
     const deadline = spec.training ? state.budget.deadline() : null;
     const signal = deadline ? AbortSignal.any([state.signal, deadline]) : state.signal;
     const mayStart = () => !shouldHalt(state, spec.training);
-    await runPool(remaining, spec.concurrency, mayStart, async (task) => {
+    await runPool(remaining, spec.concurrency, mayStart, async ({ task, seed }) => {
       state.emit({
         type: 'attempt.started',
         taskId: task.id,
         split: spec.split,
         harnessVersion: spec.version,
       });
-      const item = await attemptTask(state, task, context, {
-        seed: spec.seed,
-        signal,
-        deadline,
-      });
+      const item = await attemptTask(state, task, context, { seed, signal, deadline });
       if (item === null) return;
-      await recordAttempt(state, spec, item, student);
-      done.add(task.id);
+      await recordAttempt(state, spec, seed, item, student);
+      done.add(keyOf(seed, task.id));
       reportProgress(state, spec, done);
     });
   }
-  return spec.tasks.every((task) => done.has(task.id));
+  return remaining.every(({ seed, task }) => done.has(keyOf(seed, task.id)));
 }

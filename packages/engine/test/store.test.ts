@@ -217,7 +217,7 @@ describe('repositories', () => {
     expect(store.rounds.get('run_1', 2)).toEqual(rejected);
   });
 
-  it('keeps one attempt per task per evaluation, rounds or not', () => {
+  it('keeps one attempt per task per seed of an evaluation, rounds or not', () => {
     store.runs.insert(storedRun());
     store.attempts.insert(attempt('att_1', null));
     store.attempts.insert(attempt('att_2', 1));
@@ -234,6 +234,8 @@ describe('repositories', () => {
       'att_2',
       'att_1',
     ]);
+    store.attempts.insert({ ...attempt('att_6', 1), seed: 12 });
+    expect(store.attempts.list({ runId: 'run_1', round: 1 }).map((a) => a.seed)).toEqual([11, 12]);
   });
 
   it('parses every row it reads, so a malformed row is an error, not bad data', () => {

@@ -15,7 +15,13 @@ describe('validateJob', () => {
 
   it('keeps the practice batch within the practice split', () => {
     const job = makeJob({
-      evaluation: { trainBatch: 80, minDevGain: 2, maxTypeRegression: 1, patience: 3 },
+      evaluation: {
+        trainBatch: 80,
+        minDevGain: 2,
+        maxTypeRegression: 1,
+        devRepeats: 1,
+        patience: 3,
+      },
     });
     expect(validateJob(job, 170)['evaluation.trainBatch']).toBe(
       "A batch can't be larger than the 60 practice tasks.",

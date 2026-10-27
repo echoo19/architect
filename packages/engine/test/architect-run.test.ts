@@ -67,7 +67,7 @@ describe('an architect run', () => {
     });
     expect(run.totals).toMatchObject({
       rounds: 2,
-      attempts: 45,
+      attempts: 63,
       mentorInputTokens: 4000,
       mentorOutputTokens: 1000,
     });
@@ -212,13 +212,30 @@ describe('an architect run', () => {
     expect(second).toContain('Round 1, kept (dev +3): Add the invoice procedure.');
   });
 
-  it('evaluates candidate and incumbent on the same dev seeds, from recorded sub-seeds', async () => {
+  it('measures the incumbent again beside each candidate, on dev seeds the round draws', async () => {
     const { record } = await runArchitect();
     const { seeds } = record;
+    const dev = engine.store.attempts.list({ runId: record.run.id, split: 'dev' });
+    const seedsOf = (round: number | null, version: number) => [
+      ...new Set(
+        dev.filter((a) => a.round === round && a.harnessVersion === version).map((a) => a.seed),
+      ),
+    ];
+    expect(dev).toHaveLength(45);
+    expect(seedsOf(null, 1)).toEqual([seeds.devPanel]);
+    expect(seedsOf(1, 1)).toEqual([roundSeed(seeds.devPanel, 1)]);
+    expect(seedsOf(1, 2)).toEqual([roundSeed(seeds.devPanel, 1)]);
+    expect(seedsOf(2, 2)).toEqual([roundSeed(seeds.devPanel, 2)]);
+    expect(seedsOf(2, 3)).toEqual([roundSeed(seeds.devPanel, 2)]);
+    const lineage = await new LineageLog(
+      engine.paths.lineageFile(record.run.jobId, record.run.id),
+    ).read();
+    expect(lineage.map((entry) => entry.measured.devBefore)).toEqual([
+      { pass: 0, total: 9 },
+      { pass: 3, total: 9 },
+    ]);
+
     const attempts = world.runtime.attempts;
-    const dev = attempts.filter((a) => a.taskId.startsWith('dev-'));
-    expect(dev).toHaveLength(27);
-    expect(new Set(dev.map((a) => a.seed))).toEqual(new Set([seeds.devPanel]));
     const train = attempts.filter((a) => a.taskId.startsWith('train-'));
     expect(new Set(train.filter((a) => a.version === 1).map((a) => a.seed))).toEqual(
       new Set([roundSeed(seeds.trainStudent, 1)]),
@@ -229,8 +246,6 @@ describe('an architect run', () => {
     expect(
       new Set(attempts.filter((a) => a.taskId.startsWith('test-')).map((a) => a.seed)),
     ).toEqual(new Set([seeds.test]));
-    const stored = engine.store.attempts.list({ runId: record.run.id, split: 'dev' });
-    expect(new Set(stored.map((a) => a.seed))).toEqual(new Set([seeds.devPanel]));
   });
 
   it('freezes the graduate and releases the mentor before any test runs', async () => {

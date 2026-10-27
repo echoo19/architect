@@ -73,7 +73,7 @@ const job: Job = {
   },
   startingHarness: { kind: 'blank' },
   splits: { seed: 7, calibration: 10, train: 60, dev: 40, test: 60 },
-  evaluation: { trainBatch: 12, minDevGain: 2, maxTypeRegression: 1, patience: 3 },
+  evaluation: { trainBatch: 12, minDevGain: 2, maxTypeRegression: 1, devRepeats: 1, patience: 3 },
 };
 
 const graduate: GraduateSummary = {

@@ -165,6 +165,7 @@
     "trainBatch": 12,
     "minDevGain": 2,
     "maxTypeRegression": 1,
+    "devRepeats": 1,
     "patience": 3
   }
 }
