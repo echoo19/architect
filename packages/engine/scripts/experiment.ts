@@ -192,41 +192,64 @@ async function runOne(jobFile: string, options: Options, method: Method, seed: n
     concurrency: options.concurrency,
   });
   try {
-    const job = await host.api.jobs.importFile(jobFile);
+    // Pauses in a row with no attempt finished between them; any progress starts the count over.
     let resumes = 0;
+    let settle: (runId: string) => void = () => {};
     const finished = new Promise<string>((done) => {
-      host.api.runs.onEvent((event) => {
-        if (event.type === 'round.updated' && event.round.decision) {
-          const { round } = event;
-          log(
-            `${name} round ${round.index} ${round.decision}: ${round.title ?? ''}. ${round.decisionReason ?? ''}`,
-          );
-        }
-        if (event.type === 'log' && event.level !== 'info')
-          log(`${name} ${event.level}: ${event.message}`);
-        if (event.type !== 'run.updated') return;
-        const { run } = event;
-        if (isTerminal(run.status)) done(run.id);
-        if (run.status !== 'paused') return;
-        if (resumes >= MAX_RESUMES) {
-          log(`${name}: paused ${resumes + 1} times, leaving it paused: ${run.error ?? ''}`);
-          done(run.id);
-          return;
-        }
-        resumes += 1;
-        log(`${name}: paused (${run.error ?? 'no reason'}); resuming in a minute`);
-        setTimeout(() => {
-          host.api.runs.resume(run.id).catch((error: unknown) => {
-            log(`${name}: resume failed: ${String(error)}`);
-            done(run.id);
-          });
-        }, RESUME_AFTER_MS);
-      });
+      settle = done;
     });
-    log(`${name}: started`);
-    await host.api.runs.start(job.id, { method, seed, lockedTestOn: 'hosted' });
-    const runId = await finished;
+    host.api.runs.onEvent((event) => {
+      if (event.type === 'attempt.finished') resumes = 0;
+      if (event.type === 'round.updated' && event.round.decision) {
+        const { round } = event;
+        log(
+          `${name} round ${round.index} ${round.decision}: ${round.title ?? ''}. ${round.decisionReason ?? ''}`,
+        );
+      }
+      if (event.type === 'log' && event.level !== 'info')
+        log(`${name} ${event.level}: ${event.message}`);
+      if (event.type !== 'run.updated') return;
+      const { run } = event;
+      if (isTerminal(run.status)) settle(run.id);
+      if (run.status !== 'paused') return;
+      if (resumes >= MAX_RESUMES) {
+        log(`${name}: paused ${resumes + 1} times in a row, leaving it paused: ${run.error ?? ''}`);
+        settle(run.id);
+        return;
+      }
+      resumes += 1;
+      log(`${name}: paused (${run.error ?? 'no reason'}); resuming in a minute`);
+      setTimeout(() => {
+        host.api.runs.resume(run.id).catch((error: unknown) => {
+          log(`${name}: resume failed: ${String(error)}`);
+          settle(run.id);
+        });
+      }, RESUME_AFTER_MS);
+    });
+
+    // A folder from an interrupted start already holds its run: the host has recovered it if it
+    // was running, and a paused one is resumed here. Starting another would pay twice.
+    const earlier = (await host.api.runs.list()).find(
+      (run) => run.method === method && run.seed === seed,
+    );
+    let runId: string;
+    if (earlier === undefined) {
+      const job = await host.api.jobs.importFile(jobFile);
+      log(`${name}: started`);
+      await host.api.runs.start(job.id, { method, seed, lockedTestOn: 'hosted' });
+      runId = await finished;
+    } else {
+      log(`${name}: continuing the run this folder holds (${earlier.status})`);
+      if (earlier.status === 'paused') await host.api.runs.resume(earlier.id);
+      // It may have ended before the listener was attached.
+      const now = (await host.api.runs.get(earlier.id)).run.status;
+      runId = isTerminal(now) ? earlier.id : await finished;
+    }
     const detail = await host.api.runs.get(runId);
+    if (detail.run.status === 'paused') {
+      log(`${name}: left paused with no result file, so running the script again continues it`);
+      return;
+    }
     const report = detail.run.status === 'finished' ? await host.api.reports.get(runId) : null;
     const result: RunResult = { method, seed, detail, report, spend: spendOf(dataDir, runId) };
     await writeFile(resultFile(options, method, seed), `${JSON.stringify(result, null, 2)}\n`);
