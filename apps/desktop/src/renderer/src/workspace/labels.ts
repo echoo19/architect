@@ -3,11 +3,12 @@ import type {
   CellValue,
   GraduateManifest,
   PermissionMode,
+  TaskTypeInfo,
   WorkspaceMessage,
 } from '@architect/shared';
 
-/** The order the composer's write button steps through. */
-const WRITE_MODES = ['ask', 'allow', 'never'] as const satisfies readonly PermissionMode[];
+/** The composer's write choices, in the order its menu lists them. */
+export const WRITE_MODES = ['ask', 'allow', 'never'] as const satisfies readonly PermissionMode[];
 
 export const WRITE_MODE_LABELS: Record<PermissionMode, string> = {
   ask: 'Ask before writing',
@@ -15,9 +16,12 @@ export const WRITE_MODE_LABELS: Record<PermissionMode, string> = {
   never: 'Read only',
 };
 
-export function nextWriteMode(mode: PermissionMode): PermissionMode {
-  return WRITE_MODES[(WRITE_MODES.indexOf(mode) + 1) % WRITE_MODES.length]!;
-}
+/** What each write choice means, in one line. */
+export const WRITE_MODE_MEANINGS: Record<PermissionMode, string> = {
+  ask: 'Shows each change and waits for your OK',
+  allow: 'Writes without asking; each change still shows in the chat',
+  never: 'Never changes your files',
+};
 
 /** "Worked for 3s", "Worked for 1m 12s", or the step count when no time was recorded. */
 export function workedLabel(message: WorkspaceMessage): string {
@@ -47,10 +51,45 @@ export function cellText(value: CellValue): string {
   return String(value);
 }
 
-/** Up to three things to ask, from the task types the agent passed its test on. */
-export function suggestionsFor(manifest: GraduateManifest, limit = 3): string[] {
-  const labels = manifest.test.perType.filter((type) => !type.refused).map((type) => type.label);
-  return [...new Set(labels)].slice(0, limit);
+/** A row that sums the others, such as "Total" or "Grand total", which tables set in bold. */
+export function isTotalRow(row: readonly CellValue[]): boolean {
+  const first = row[0];
+  return typeof first === 'string' && /^(grand\s+)?totals?$/i.test(first.trim());
+}
+
+/**
+ * The rows a chat table shows before "Show all": the first few, and a closing total row, which
+ * stays in view because it is the row people look for.
+ */
+export function previewRows<Row extends readonly CellValue[]>(
+  rows: readonly Row[],
+  limit: number,
+): Row[] {
+  const last = rows.at(-1);
+  if (rows.length <= limit || !last) return [...rows];
+  return isTotalRow(last) ? [...rows.slice(0, limit - 1), last] : rows.slice(0, limit);
+}
+
+/** "invoices, overdue balances or scheduling": labels joined the way a sentence lists them. */
+export function listInSentence(labels: readonly string[], last = 'or'): string {
+  const words = labels.map(inSentence);
+  if (words.length <= 1) return words.join('');
+  return `${words.slice(0, -1).join(', ')} ${last} ${words.at(-1)}`;
+}
+
+/**
+ * Up to three things to ask, from the task types the agent passed its test on: each type's
+ * description from the job when it has one, since it reads as a request, else its label.
+ */
+export function suggestionsFor(
+  manifest: GraduateManifest,
+  taskTypes: readonly TaskTypeInfo[] = [],
+  limit = 3,
+): string[] {
+  const asks = manifest.test.perType
+    .filter((type) => !type.refused)
+    .map((type) => taskTypes.find((info) => info.id === type.type)?.description ?? type.label);
+  return [...new Set(asks)].slice(0, limit);
 }
 
 /** A label as it reads mid-sentence: "Overdue balances" → "overdue balances", "VAT" stays. */

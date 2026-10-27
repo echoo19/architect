@@ -1,8 +1,8 @@
-import { memo, useEffect, useState } from 'react';
+import { memo } from 'react';
 import type { AgentBlock, GraduateSummary, WorkspaceMessage } from '@architect/shared';
-import { ErrorState, IconButton, Spinner, Tooltip } from '@architect/ui';
-import { Check, Copy } from 'lucide-react';
-import { attempt } from '../lib/notify';
+import { ErrorState, Spinner } from '@architect/ui';
+import { CirclePause } from 'lucide-react';
+import { CopyButton } from '../components/CopyButton';
 import { ApprovalCard, NoteBlock, RefusalCard, TableBlock } from './blocks';
 import { Markdown } from './markdown/Markdown';
 import type { PanelContent } from './SidePanel';
@@ -28,38 +28,6 @@ export function Thinking() {
   );
 }
 
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), 1400);
-    return () => clearTimeout(timer);
-  }, [copied]);
-
-  const copy = async () => {
-    const done = await attempt("Couldn't copy the reply", async () => {
-      await navigator.clipboard.writeText(text);
-      return true;
-    });
-    if (done) setCopied(true);
-  };
-
-  const label = copied ? 'Copied' : 'Copy';
-  return (
-    <div className="-ml-2 -mt-2 flex animate-fade">
-      <Tooltip content={label}>
-        <IconButton label={label} size="sm" className="text-fg-muted" onClick={() => void copy()}>
-          {copied ? (
-            <Check size={15} strokeWidth={2} aria-hidden />
-          ) : (
-            <Copy size={15} strokeWidth={1.7} aria-hidden />
-          )}
-        </IconButton>
-      </Tooltip>
-    </div>
-  );
-}
-
 function blockKey(block: AgentBlock, index: number): string {
   return block.kind === 'approval' ? block.changeId : `${block.kind}-${index}`;
 }
@@ -79,13 +47,22 @@ export const AgentMessage = memo(function AgentMessage({
   onOpenPanel,
 }: AgentMessageProps) {
   const working = message.status === 'streaming';
+  const answerable = working || message.status === 'done';
   const empty = message.steps.length === 0 && !message.text && message.blocks.length === 0;
   const stoppedQuietly =
     message.status === 'stopped' && !message.blocks.some((block) => block.kind === 'note');
+  const pendingIds = answerable
+    ? message.blocks.flatMap((block) =>
+        block.kind === 'approval' && block.status === 'pending' ? [block.changeId] : [],
+      )
+    : [];
+  const pending = pendingIds.length;
 
   return (
     <article aria-label={agent.name} className="flex min-w-0 animate-rise flex-col gap-[18px]">
-      {message.steps.length > 0 && <Steps message={message} startOpen={stepsStartOpen} />}
+      {message.steps.length > 0 && (
+        <Steps message={message} startOpen={stepsStartOpen} waiting={pending > 0} />
+      )}
       {working && empty && <Thinking />}
       {message.text && <Markdown text={message.text} />}
       {message.blocks.map((block, index) => {
@@ -98,8 +75,9 @@ export const AgentMessage = memo(function AgentMessage({
               <ApprovalCard
                 key={key}
                 block={block}
-                graduateId={agent.id}
-                answerable={message.status === 'streaming' || message.status === 'done'}
+                agent={agent}
+                answerable={answerable}
+                explain={block.changeId === pendingIds[0]}
                 onOpenPanel={onOpenPanel}
               />
             );
@@ -109,6 +87,12 @@ export const AgentMessage = memo(function AgentMessage({
             return <NoteBlock key={key} text={block.text} />;
         }
       })}
+      {pending > 0 && (
+        <p role="status" className="m-0 flex items-center gap-2 text-base text-fg-secondary">
+          <CirclePause size={15} strokeWidth={1.8} aria-hidden className="shrink-0" />
+          Waiting for you to allow or deny {pending === 1 ? 'the change' : 'the changes'} above.
+        </p>
+      )}
       {stoppedQuietly && <NoteBlock text="Stopped" />}
       {message.status === 'error' && (
         <ErrorState
@@ -117,7 +101,11 @@ export const AgentMessage = memo(function AgentMessage({
           message={message.error}
         />
       )}
-      {!working && message.text && <CopyButton text={message.text} />}
+      {!working && message.text && (
+        <div className="-ml-2 -mt-2 flex animate-fade">
+          <CopyButton text={message.text} />
+        </div>
+      )}
     </article>
   );
 });

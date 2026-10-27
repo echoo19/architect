@@ -15,9 +15,16 @@ import { architect } from '../api/client';
 import { attempt } from '../lib/notify';
 import { diffLines } from './diff';
 import { refreshGraduateSettings } from './graduateSettings';
-import { cellText, inSentence, taskTypeLabel } from './labels';
+import {
+  cellText,
+  inSentence,
+  isTotalRow,
+  listInSentence,
+  previewRows,
+  taskTypeLabel,
+} from './labels';
 import type { PanelContent } from './SidePanel';
-import { RowDiffTable } from './tables';
+import { RowDiffTable, TOTAL_ROW } from './tables';
 
 type TableBlockData = Extract<AgentBlock, { kind: 'table' }>;
 type ApprovalBlockData = Extract<AgentBlock, { kind: 'approval' }>;
@@ -53,7 +60,7 @@ export function TableBlock({
                 onOpenPanel({ kind: 'table', title, columns: block.columns, rows: block.rows })
               }
             >
-              Show all {block.rows.length}
+              Show all {block.rows.length} rows
             </button>
           )
         }
@@ -66,8 +73,8 @@ export function TableBlock({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {block.rows.slice(0, TABLE_PREVIEW_ROWS).map((row, r) => (
-            <TableRow key={r}>
+          {previewRows(block.rows, TABLE_PREVIEW_ROWS).map((row, r) => (
+            <TableRow key={r} className={cn(isTotalRow(row) && TOTAL_ROW)}>
               {block.columns.map((_, column) => (
                 <TableCell key={column}>{cellText(row[column] ?? null)}</TableCell>
               ))}
@@ -92,16 +99,27 @@ function Outcome({ icon, children }: { icon: ReactNode; children: ReactNode }) {
 
 export interface ApprovalCardProps {
   block: ApprovalBlockData;
-  graduateId: string;
+  agent: GraduateSummary;
   /** False once the reply ended without an answer, for example because it was stopped. */
   answerable: boolean;
+  /** Says what Allow and Always allow mean; one card per reply carries it. */
+  explain: boolean;
   onOpenPanel: (content: PanelContent) => void;
 }
 
-/** A write the agent wants to make: what it touches, the rows it writes, and Allow or Deny. */
-export function ApprovalCard({ block, graduateId, answerable, onOpenPanel }: ApprovalCardProps) {
+/**
+ * A write the agent wants to make: what it touches, the rows it writes, and Allow or Deny. A
+ * pending write shows its rows from the start, so nothing is allowed unseen.
+ */
+export function ApprovalCard({
+  block,
+  agent,
+  answerable,
+  explain,
+  onOpenPanel,
+}: ApprovalCardProps) {
   const previewId = useId();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(block.status === 'pending');
   const [sending, setSending] = useState<Decision | null>(null);
   const [answer, setAnswer] = useState<Decision | null>(null);
   const lines = diffLines(block.diff).length;
@@ -115,7 +133,7 @@ export function ApprovalCard({ block, graduateId, answerable, onOpenPanel }: App
     setSending(null);
     if (!sent) return;
     setAnswer(decision);
-    if (decision === 'always') void refreshGraduateSettings(graduateId);
+    if (decision === 'always') void refreshGraduateSettings(agent.id);
   };
 
   let outcome: ReactNode = null;
@@ -195,20 +213,29 @@ export function ApprovalCard({ block, graduateId, answerable, onOpenPanel }: App
             <button
               type="button"
               className={footerButton}
-              onClick={() => onOpenPanel({ kind: 'diff', title: block.file, diff: block.diff })}
+              onClick={() => onOpenPanel({ kind: 'diff', file: block.file, diff: block.diff })}
             >
               Show all {lines} rows
             </button>
           )}
         </div>
       )}
+      {!outcome && explain && (
+        <p className="m-0 border-t border-line-card px-4 py-2.5 text-sm text-fg-muted text-pretty">
+          Allow writes these rows once. Always allow lets {agent.name} write without asking, until
+          you change it in its settings.
+        </p>
+      )}
     </div>
   );
 }
 
-/** A request on the agent's refusal list, with the reason from its report card. */
+/** A request on the agent's refusal list, with the reason from its report card and a way on. */
 export function RefusalCard({ block, agent }: { block: RefusalBlockData; agent: GraduateSummary }) {
   const label = taskTypeLabel(agent.manifest, block.taskType);
+  const handled = agent.manifest.test.perType
+    .filter((type) => !type.refused)
+    .map((type) => type.label);
   return (
     <div
       role="note"
@@ -222,6 +249,10 @@ export function RefusalCard({ block, agent }: { block: RefusalBlockData; agent: 
           {agent.name} doesn&apos;t handle {inSentence(label)}
         </span>
         <span className="text-sm text-fg-secondary text-pretty">{block.reason}</span>
+        <span className="text-sm text-fg-muted text-pretty">
+          You can do this one yourself
+          {handled.length > 0 ? `, or ask ${agent.name} about ${listInSentence(handled)}` : ''}.
+        </span>
       </span>
     </div>
   );

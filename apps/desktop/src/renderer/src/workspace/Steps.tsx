@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import type { AgentStep, WorkspaceMessage } from '@architect/shared';
 import { cn, Spinner } from '@architect/ui';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, CirclePause } from 'lucide-react';
 import { currentStep, workedLabel } from './labels';
 
 const NAME_TONE: Record<AgentStep['status'], string> = {
@@ -12,20 +12,26 @@ const NAME_TONE: Record<AgentStep['status'], string> = {
 
 export interface StepsProps {
   message: WorkspaceMessage;
-  /** How finished steps first show, from the "Tool steps" setting. */
+  /** Whether the list starts open, from the "Tool steps" setting. */
   startOpen: boolean;
+  /** The reply is held until the user answers a write it wants to make. */
+  waiting: boolean;
 }
 
 /**
- * The tools and skills an agent used. While it works, the header names the current step and
- * the list stays open; afterwards the header says how long it took.
+ * The tools and skills an agent used. While it works, the header names the current step;
+ * afterwards it says how long the work took. The list opens as the "Tool steps" setting says.
  */
-export function Steps({ message, startOpen }: StepsProps) {
+export function Steps({ message, startOpen, waiting }: StepsProps) {
   const listId = useId();
   const [choice, setChoice] = useState<boolean | null>(null);
   const working = message.status === 'streaming';
-  const open = choice ?? (working || startOpen);
+  const open = choice ?? startOpen;
   const step = working ? currentStep(message.steps) : undefined;
+
+  let header = workedLabel(message);
+  if (working && waiting) header = 'Waiting for your answer';
+  else if (step) header = `${step.name} ${step.detail}`;
 
   return (
     <div className="flex flex-col gap-2">
@@ -36,10 +42,13 @@ export function Steps({ message, startOpen }: StepsProps) {
         onClick={() => setChoice(!open)}
         className="flex h-7 max-w-full items-center gap-2 self-start rounded-xs text-base text-fg-secondary transition-colors duration-150 hover:text-fg"
       >
-        {working && <Spinner size={13} />}
-        <span className="truncate">
-          {step ? `${step.name} ${step.detail}` : workedLabel(message)}
-        </span>
+        {working &&
+          (waiting ? (
+            <CirclePause size={14} strokeWidth={1.8} aria-hidden className="shrink-0" />
+          ) : (
+            <Spinner size={13} />
+          ))}
+        <span className="truncate">{header}</span>
         <ChevronRight
           size={13}
           strokeWidth={1.8}

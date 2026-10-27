@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { GraduateSummary } from '@architect/shared';
-import { Badge, Button, EmptyState, ErrorState, Skeleton, StatusDot, Tooltip } from '@architect/ui';
-import { Bot } from 'lucide-react';
+import { Badge, Button, EmptyState, ErrorState, Skeleton, Tooltip } from '@architect/ui';
+import { Bot, Laptop } from 'lucide-react';
 import { architect } from '../api/client';
 import { useGraduates, useSettings } from '../api/hooks';
 import { attempt } from '../lib/notify';
@@ -17,13 +17,15 @@ import { sendMessage, useAgentChats, useChatMessages } from '../workspace/store'
 import { useBottomPin } from '../workspace/useBottomPin';
 
 /** The header's status pill. The header drags the window, so the pill opts out to show its tip. */
-const offline = (
+const runningHere = (
   <Tooltip
     side="bottom"
-    content={`Runs only on ${deviceInSentence(currentPlatform())}. Nothing you ask goes online.`}
+    content={`This agent can't reach the internet. It only talks to the model on ${deviceInSentence(currentPlatform())}.`}
   >
     <span tabIndex={0} className="app-no-drag rounded-full">
-      <Badge icon={<StatusDot tone="neutral" size={6} />}>Offline</Badge>
+      <Badge icon={<Laptop size={14} strokeWidth={1.6} aria-hidden />}>
+        Running on {deviceInSentence(currentPlatform())}
+      </Badge>
     </span>
   </Tooltip>
 );
@@ -36,7 +38,7 @@ export function ChatScreen({ graduateId, chatId }: { graduateId: string; chatId:
   if (agent) return <Chat agent={agent} chatId={chatId} />;
   return (
     <>
-      <WorkspaceHeader actions={offline} />
+      <WorkspaceHeader actions={runningHere} />
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-8 pb-14">
         {graduates.status === 'error' ? (
           <ErrorState
@@ -194,7 +196,7 @@ function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
           chat?.title ??
           (chats.entry.status === 'loading' ? <Skeleton className="h-3.5 w-44" /> : 'Chat')
         }
-        actions={offline}
+        actions={runningHere}
       />
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">

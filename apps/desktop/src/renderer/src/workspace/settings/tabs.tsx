@@ -19,11 +19,13 @@ import { queryKeys, useJob } from '../../api/hooks';
 import { fetchQuery } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
 import { formatBytes } from '../../lib/format';
+import { capitalized, quantizationLabel, shortModelName, STUDENT_ROLE } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { navigate, paths, type Route } from '../../lib/router';
 import { workspaceApi } from '../api';
 import { updateGraduateSettings, useGraduateSettings } from '../graduateSettings';
+import { WRITE_MODE_MEANINGS } from '../labels';
 import { forgetAgent } from '../store';
 import { useAgentSettingsUi } from './agentSettingsUi';
 
@@ -61,15 +63,19 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
       </SettingsRow>
       <SettingsRow
         label="Version"
-        meta={`${
+        meta={`Of the instructions, skills and tools ${shortModelName(manifest.mentor.label)} wrote. ${
           manifest.requirements.passRate.met ? 'Passed its final test' : 'Finished below its target'
-        } on ${formatDay(manifest.acceptedAt ?? manifest.createdAt)}`}
+        } on ${formatDay(manifest.acceptedAt ?? manifest.createdAt)}.`}
       >
-        <SettingsValue>v{manifest.harness.version}</SettingsValue>
+        <SettingsValue>{manifest.harness.version}</SettingsValue>
       </SettingsRow>
       <SettingsRow
-        label="Local model"
-        meta={[model.quantization, model.sizeBytes && formatBytes(model.sizeBytes)]
+        label={capitalized(STUDENT_ROLE)}
+        meta={[
+          shortModelName(model.label),
+          model.quantization && quantizationLabel(model.quantization),
+          model.sizeBytes && formatBytes(model.sizeBytes),
+        ]
           .filter(Boolean)
           .join(' · ')}
       >
@@ -153,12 +159,6 @@ const WRITE_CHOICES = [
   { value: 'never', label: 'Never' },
 ] as const satisfies readonly { value: PermissionMode; label: string }[];
 
-const WRITE_MEANING: Record<PermissionMode, string> = {
-  ask: 'Asks in the chat before every write',
-  allow: 'Writes without asking',
-  never: 'Only reads your files',
-};
-
 export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
   const settings = useGraduateSettings(agent.id);
   const job = useJob(agent.manifest.jobId);
@@ -171,7 +171,9 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
     <>
       <SettingsRow
         label="Saving changes"
-        meta={settings.status === 'success' ? WRITE_MEANING[settings.data.writeMode] : undefined}
+        meta={
+          settings.status === 'success' ? WRITE_MODE_MEANINGS[settings.data.writeMode] : undefined
+        }
         error={errorOf(settings)}
       >
         {settings.status === 'success' ? (
@@ -271,7 +273,7 @@ export function ExportTab({ agent }: { agent: GraduateSummary }) {
     <>
       <SettingsRow
         label="Agent folder"
-        meta={`${folderName(agent.path)} · harness, report card and lineage`}
+        meta={`${folderName(agent.path)}: its instructions, skills, tools, report card and change history`}
       >
         <Button size="xs" loading={exporting} onClick={() => void exportFolder()}>
           {!exporting && <FolderOutput size={14} strokeWidth={1.7} aria-hidden />}

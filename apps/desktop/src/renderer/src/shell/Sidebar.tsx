@@ -206,10 +206,10 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
             )}
           >
             <span className="truncate">{chat.title}</span>
-            {chat.running ? (
-              <Spinner tone="student" label="Working" />
-            ) : chat.waiting && !current ? (
+            {chat.waiting && !current ? (
               <StatusDot tone="student" label="Needs you" />
+            ) : chat.running ? (
+              <Spinner tone="student" label="Working" />
             ) : null}
           </button>
         );
@@ -241,7 +241,10 @@ function TrainingList({ jobs, route }: { jobs: JobSummary[]; route: Route }) {
             )}
             <span className="flex-1 truncate">{job.name}</span>
             {run.devCurrent && (
-              <span className="text-xs text-fg-muted">{formatPercent(run.devCurrent)}</span>
+              <span className="text-xs text-fg-muted">
+                {formatPercent(run.devCurrent)}
+                <span className="sr-only"> of check tasks right so far</span>
+              </span>
             )}
           </button>
         );

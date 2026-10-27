@@ -4,10 +4,15 @@ import {
   cellText,
   currentStep,
   inSentence,
-  nextWriteMode,
+  isTotalRow,
+  listInSentence,
+  previewRows,
   suggestionsFor,
   taskTypeLabel,
   workedLabel,
+  WRITE_MODE_LABELS,
+  WRITE_MODE_MEANINGS,
+  WRITE_MODES,
 } from '../../../src/renderer/src/workspace/labels';
 
 const message = (patch: Partial<WorkspaceMessage>): WorkspaceMessage => ({
@@ -32,10 +37,12 @@ const step = (id: string, status: 'running' | 'done', ms?: number) => ({
 });
 
 describe('workspace labels', () => {
-  it('cycles the write modes in the composer order', () => {
-    expect(nextWriteMode('ask')).toBe('allow');
-    expect(nextWriteMode('allow')).toBe('never');
-    expect(nextWriteMode('never')).toBe('ask');
+  it('names and explains every write mode the composer offers', () => {
+    expect(WRITE_MODES).toEqual(['ask', 'allow', 'never']);
+    for (const mode of WRITE_MODES) {
+      expect(WRITE_MODE_LABELS[mode]).not.toBe('');
+      expect(WRITE_MODE_MEANINGS[mode]).not.toBe('');
+    }
   });
 
   it('says how long the agent worked', () => {
@@ -59,6 +66,31 @@ describe('workspace labels', () => {
     expect(inSentence('Overdue balances')).toBe('overdue balances');
     expect(inSentence('VAT returns')).toBe('VAT returns');
     expect(inSentence('Refunds')).toBe('refunds');
+  });
+
+  it('spots the row that sums a table', () => {
+    expect(isTotalRow(['Total', '$486.20'])).toBe(true);
+    expect(isTotalRow([' grand total ', 12])).toBe(true);
+    expect(isTotalRow(['Totals'])).toBe(true);
+    expect(isTotalRow(['Subtotal', '$450.00'])).toBe(false);
+    expect(isTotalRow([48620, 'Total'])).toBe(false);
+    expect(isTotalRow([])).toBe(false);
+  });
+
+  it('keeps a closing total row in a table preview', () => {
+    const rows = [['Labor'], ['Parts'], ['Trip fee'], ['Discount'], ['Tax'], ['Total']];
+    expect(previewRows(rows, 4)).toEqual([['Labor'], ['Parts'], ['Trip fee'], ['Total']]);
+    expect(previewRows(rows.slice(0, 5), 4)).toEqual(rows.slice(0, 4));
+    expect(previewRows(rows.slice(0, 3), 4)).toEqual(rows.slice(0, 3));
+  });
+
+  it('lists labels the way a sentence does', () => {
+    expect(listInSentence(['Invoices', 'Overdue balances', 'Scheduling'])).toBe(
+      'invoices, overdue balances or scheduling',
+    );
+    expect(listInSentence(['Invoices', 'VAT returns'], 'and')).toBe('invoices and VAT returns');
+    expect(listInSentence(['Invoices'])).toBe('invoices');
+    expect(listInSentence([])).toBe('');
   });
 
   it('writes table cells for people', () => {
@@ -95,5 +127,19 @@ describe('workspace labels', () => {
     ]);
     expect(taskTypeLabel(manifest, 'refunds')).toBe('Refunds');
     expect(taskTypeLabel(manifest, 'warranty_claims')).toBe('Warranty claims');
+    expect(
+      suggestionsFor(manifest, [
+        {
+          id: 'invoice',
+          label: 'Invoices',
+          description: 'Price a finished job and add its invoice',
+        },
+        { id: 'refunds', label: 'Refunds', description: 'Refund a charge' },
+      ]),
+    ).toEqual([
+      'Price a finished job and add its invoice',
+      'Who owes us money?',
+      'Book the next free slot',
+    ]);
   });
 });
