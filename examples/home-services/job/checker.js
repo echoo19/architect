@@ -53,9 +53,10 @@ validators.invoice_created = (params, ctx) => {
 };
 
 // booking_created: bookings.csv gained exactly one row, for params.request_id. A qualified
-// technician can work it (skill, license, working day and hours, the start-time grid, and the
-// drive to and from their other bookings that day), and no qualified technician could start
-// earlier. When several technicians can start at that earliest time, any of them passes.
+// technician can work it (skill, license, working day and hours, the customer's time window, the
+// start-time grid, and the drive to and from their other bookings that day), and no qualified
+// technician could start earlier. When several technicians can start at that earliest time, any
+// of them passes.
 validators.booking_created = (params, ctx) => {
   const change = compareRows(ctx.readOriginalTable('bookings.csv'), ctx.readTable('bookings.csv'));
   const problem = oneNewRow(change, 'booking', 'booking_id');
@@ -141,6 +142,17 @@ function loadWorld(ctx, params, request) {
       end: minutesOf(row.end_time),
     });
   }
+  // A morning visit ends by noon and an afternoon visit starts at it. An empty window means any time.
+  const window = text(request.window) || 'any';
+  if (!['morning', 'afternoon', 'any'].includes(window)) {
+    throw new Error(`Request ${request.request_id} has an unknown window "${window}".`);
+  }
+  const noon = window === 'any' ? null : minutesOf(params.noon);
+  if (window !== 'any' && noon === null) {
+    throw new Error(
+      `The task gives no noon time for the ${window} window of ${request.request_id}.`,
+    );
+  }
   // Nothing is booked on the business date, nor before the request's earliest_date.
   const tomorrow = nextDay(params.business_date);
   return {
@@ -154,6 +166,8 @@ function loadWorld(ctx, params, request) {
     zone: request.zone,
     duration: Number(request.duration_minutes),
     firstDate: request.earliest_date > tomorrow ? request.earliest_date : tomorrow,
+    window,
+    noon,
   };
 }
 
@@ -178,6 +192,12 @@ function slotProblem(world, technicianId, date, start) {
   if (start < technician.start || end > technician.end) {
     const hours = `${clock(technician.start)} to ${clock(technician.end)}`;
     return `it falls outside ${technicianId}'s hours, ${hours}`;
+  }
+  if (world.window === 'morning' && end > world.noon) {
+    return `the customer asked for a morning visit, which must end by ${clock(world.noon)}`;
+  }
+  if (world.window === 'afternoon' && start < world.noon) {
+    return `the customer asked for an afternoon visit, which must start at ${clock(world.noon)} or later`;
   }
   for (const other of world.bookings[`${technicianId} ${date}`] || []) {
     if (start < other.end && other.start < end) {

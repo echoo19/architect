@@ -14,6 +14,9 @@ export const CLOSED_DATES: readonly string[] = ['2026-11-11'];
 /** Bookings start on the hour or half hour. */
 export const SLOT_MINUTES = 30;
 
+/** A morning visit ends by this time, and an afternoon visit starts at it or later. */
+export const NOON = '12:00';
+
 /** Labor is billed in quarter hours, rounded up, with a one-hour minimum. */
 export const BILLING_STEP_MINUTES = 15;
 export const MINIMUM_BILLED_MINUTES = 60;

@@ -1,12 +1,19 @@
 import { describe, expect, it } from 'vitest';
+import type {
+  Booking,
+  ServiceRequest,
+  Technician,
+  TimeWindow,
+  TravelTime,
+} from '../src/company/types';
 import { daysBetween } from '../src/lib/calendar';
 import { roundHalfUp } from '../src/lib/money';
+import { answerQuestion } from '../src/reference/overdue-questions';
 import { billedMinutes, laborCents, partLineCents } from '../src/reference/pricing';
-import { jobFile, rowWhere, table } from './helpers';
+import { buildSchedule, slotProblem } from '../src/reference/scheduling';
+import { BOTH_VERSIONS, latestVersion } from './helpers';
 
 /** The worked examples in policy.md are what the agent learns from, so they must be right. */
-
-const policy = jobFile('data/policy.md');
 
 const job = (labor_minutes: number, after_hours: boolean) => ({
   job_id: 'W-0000',
@@ -26,7 +33,9 @@ const part = (unit_cost_cents: number, markup_pct: number, taxable: boolean) => 
   taxable,
 });
 
-describe('policy.md', () => {
+describe.each(BOTH_VERSIONS)('policy.md of version $version', (folder) => {
+  const policy = folder.file('data/policy.md');
+
   it('states the business date and the closed day', () => {
     expect(policy).toContain('**Thursday, November 5, 2026** (2026-11-05)');
     expect(policy).toContain('closed on Wednesday, November 11, 2026');
@@ -44,7 +53,7 @@ describe('policy.md', () => {
     expect(policy).toContain(
       "`invoice_id` is INV- plus the job's number: job W-1234 gets INV-1234.",
     );
-    expect(rowWhere('invoices.csv', 'job_id', 'W-1234').invoice_id).toBe('INV-1234');
+    expect(folder.rowWhere('invoices.csv', 'job_id', 'W-1234').invoice_id).toBe('INV-1234');
   });
 
   it('prices its invoice example the way the reference does', () => {
@@ -66,10 +75,149 @@ describe('policy.md', () => {
 
   it('uses travel times from travel.csv in its scheduling example', () => {
     const minutes = (from: string, to: string) =>
-      table('travel.csv').find((row) => row.from_zone === from && row.to_zone === to)?.minutes;
+      folder.table('travel.csv').find((row) => row.from_zone === from && row.to_zone === to)
+        ?.minutes;
     expect(minutes('Harbor', 'Ridge')).toBe('45');
     expect(minutes('Ridge', 'Old Town')).toBe('30');
     expect(policy).toContain('The new job is in Ridge, 45 minutes from Harbor');
     expect(policy).toContain('with the 30-minute drive from Ridge to Old Town');
+  });
+});
+
+describe('policy.md of version 2', () => {
+  const policy = latestVersion.file('data/policy.md');
+
+  it('bills labor on and just past a quarter hour the way it says', () => {
+    expect(policy).toContain(
+      'A time already on a quarter hour stays as it is: 60 bills 60 and 75 bills 75, but 76 bills 90.',
+    );
+    expect([60, 61, 75, 76].map(billedMinutes)).toEqual([60, 75, 75, 90]);
+  });
+
+  it("states today's edges for payments and due dates", () => {
+    expect(policy).toContain(
+      "**Today's edges.** A payment dated today has been received; one dated tomorrow has not. An invoice due yesterday is 1 day overdue; one due today is not overdue yet.",
+    );
+    expect(daysBetween('2026-11-04', '2026-11-05')).toBe(1);
+  });
+
+  it('shows a free-looking gap that the drive to the next booking rules out', () => {
+    expect(policy).toContain(
+      "Example: a technician's next booking is in Ridge at 12:30. A 60-minute job in Harbor starting at 11:00 looks free until 12:00, but leaves 30 minutes for the 45-minute drive, so it doesn't work: 10:30 is the latest start.",
+    );
+    const travel = latestVersion
+      .table('travel.csv')
+      .map((row) => ({ ...row, minutes: Number(row.minutes) }) as unknown as TravelTime);
+    expect(travel.find((t) => t.from_zone === 'Harbor' && t.to_zone === 'Ridge')?.minutes).toBe(45);
+    const technician: Technician = {
+      technician_id: 'T-00',
+      name: 'Example',
+      tier: 'journeyman',
+      skills: ['plumbing'],
+      licenses: [],
+      work_days: ['Thu'],
+      start_time: '08:00',
+      end_time: '16:00',
+    };
+    const nextBooking: Booking = {
+      booking_id: 'B-0000',
+      request_id: 'R-0000',
+      technician_id: 'T-00',
+      date: '2026-11-12',
+      start_time: '12:30',
+      end_time: '14:00',
+      zone: 'Ridge',
+    };
+    const schedule = buildSchedule([technician], [nextBooking], travel);
+    const rules = { businessDate: '2026-11-05', closedDates: [], slotMinutes: 30, noon: 12 * 60 };
+    const request: ServiceRequest = {
+      request_id: 'R-0001',
+      customer_id: 'C-0000',
+      zone: 'Harbor',
+      skill: 'plumbing',
+      license_needed: null,
+      duration_minutes: 60,
+      earliest_date: '2026-11-12',
+      window: 'any',
+      problem: 'Example',
+    };
+    const at = (h: number, m: number) =>
+      slotProblem(schedule, rules, technician, request, '2026-11-12', h * 60 + m);
+    expect(at(11, 0)).toBe('drive_to_next');
+    expect(at(10, 30)).toBeNull();
+  });
+
+  it('works its group example out the way the reference does', () => {
+    expect(policy).toContain(
+      "Example: in a group of three, A owes 12000 on one invoice that is 31 days overdue. B's only overdue invoice is for 20000 and exactly 30 days overdue, and B paid 5000 of it today, so B owes 15000. C has nothing overdue. The group's overdue total is 27000. Only A is more than 30 days overdue. Largest first, B owes 15000 and A 12000. Nobody owes more than $150 (15000).",
+    );
+    const today = '2026-11-05';
+    const invoices = [
+      { invoice_id: 'INV-1', customer_id: 'A', due_date: '2026-10-05', total_cents: 12000 },
+      { invoice_id: 'INV-2', customer_id: 'B', due_date: '2026-10-06', total_cents: 20000 },
+      { invoice_id: 'INV-3', customer_id: 'C', due_date: '2026-10-01', total_cents: 9000 },
+    ];
+    const payments = [
+      { invoice_id: 'INV-2', date: today, amount_cents: 5000 },
+      { invoice_id: 'INV-3', date: '2026-10-02', amount_cents: 9000 },
+    ];
+    expect([daysBetween('2026-10-05', today), daysBetween('2026-10-06', today)]).toEqual([31, 30]);
+    const group = { zone: 'Harbor' };
+    const answer = (question: Parameters<typeof answerQuestion>[0]) =>
+      answerQuestion(question, invoices, payments, today);
+    expect(answer({ kind: 'group_total', group })).toEqual({ overdue_cents: 27000 });
+    expect(answer({ kind: 'group_age', group, days: 30 })).toEqual({
+      count: 1,
+      customer_ids: ['A'],
+    });
+    expect(answer({ kind: 'group_top', group, count: 2 })).toEqual({
+      customers: [
+        { customer_id: 'B', overdue_cents: 15000 },
+        { customer_id: 'A', overdue_cents: 12000 },
+      ],
+    });
+    expect(answer({ kind: 'group_owing', group, over_cents: 15000 })).toEqual({ customers: [] });
+  });
+
+  it('states the time window rule and gives an example the reference agrees with', () => {
+    expect(policy).toContain(
+      "- **Time window.** The request's `window` says when the customer can be visited: `morning` means the booking ends by 12:00, `afternoon` means it starts at 12:00 or later, and `any` adds no limit.",
+    );
+    expect(policy).toContain(
+      'Example: a 120-minute `morning` request can start at 10:00 at the latest, ending exactly at 12:00. A 90-minute `afternoon` request can start at 12:00 at the earliest; with a technician who works until 16:00 it can start as late as 14:30, ending exactly at the end of their day.',
+    );
+    const technician: Technician = {
+      technician_id: 'T-00',
+      name: 'Example',
+      tier: 'journeyman',
+      skills: ['plumbing'],
+      licenses: [],
+      work_days: ['Thu'],
+      start_time: '08:00',
+      end_time: '16:00',
+    };
+    const schedule = buildSchedule([technician], [], []);
+    const rules = { businessDate: '2026-11-05', closedDates: [], slotMinutes: 30, noon: 12 * 60 };
+    const problemAt = (window: TimeWindow, duration_minutes: number, time: string) => {
+      const request: ServiceRequest = {
+        request_id: 'R-0000',
+        customer_id: 'C-0000',
+        zone: 'Harbor',
+        skill: 'plumbing',
+        license_needed: null,
+        duration_minutes,
+        earliest_date: '2026-11-12',
+        window,
+        problem: 'Example',
+      };
+      const [h, m] = time.split(':').map(Number) as [number, number];
+      return slotProblem(schedule, rules, technician, request, '2026-11-12', h * 60 + m);
+    };
+    expect(problemAt('morning', 120, '10:00')).toBeNull();
+    expect(problemAt('morning', 120, '10:30')).toBe('window');
+    expect(problemAt('afternoon', 90, '11:30')).toBe('window');
+    expect(problemAt('afternoon', 90, '12:00')).toBeNull();
+    expect(problemAt('afternoon', 90, '14:30')).toBeNull();
+    expect(problemAt('afternoon', 90, '15:00')).toBe('hours');
   });
 });

@@ -1,5 +1,6 @@
 import { toCsv } from '../lib/csv';
 import type { CsvCell } from '../lib/csv';
+import type { JobVersion } from '../versions';
 import type {
   Booking,
   Company,
@@ -30,6 +31,17 @@ const CUSTOMERS: TableLayout<Customer> = {
   columns: ['customer_id', 'name', 'city', 'zone', 'plan_member', 'terms_days'],
   cells: (c) => [c.customer_id, c.name, c.city, c.zone, yesNo(c.plan_member), c.terms_days],
 };
+
+/** A customer's cells in customers.csv by column, as the agent reads them. */
+export function customerCells(customer: Customer): Record<string, string | null> {
+  const cells = CUSTOMERS.cells(customer);
+  return Object.fromEntries(
+    CUSTOMERS.columns.map((column, i) => {
+      const cell = cells[i] ?? null;
+      return [column, cell === null ? null : String(cell)];
+    }),
+  );
+}
 
 const TECHNICIANS: TableLayout<Technician> = {
   columns: [
@@ -114,27 +126,54 @@ const PAYMENTS: TableLayout<Payment> = {
   cells: (p) => [p.payment_id, p.invoice_id, p.date, p.amount_cents],
 };
 
-const REQUESTS: TableLayout<ServiceRequest> = {
-  columns: [
-    'request_id',
-    'customer_id',
-    'zone',
-    'skill',
-    'license_needed',
-    'duration_minutes',
-    'earliest_date',
-    'problem',
-  ],
-  cells: (r) => [
-    r.request_id,
-    r.customer_id,
-    r.zone,
-    r.skill,
-    r.license_needed,
-    r.duration_minutes,
-    r.earliest_date,
-    r.problem,
-  ],
+/** Version 2 adds each request's time window; version 1 had none. */
+const REQUESTS: Readonly<Record<JobVersion, TableLayout<ServiceRequest>>> = {
+  1: {
+    columns: [
+      'request_id',
+      'customer_id',
+      'zone',
+      'skill',
+      'license_needed',
+      'duration_minutes',
+      'earliest_date',
+      'problem',
+    ],
+    cells: (r) => [
+      r.request_id,
+      r.customer_id,
+      r.zone,
+      r.skill,
+      r.license_needed,
+      r.duration_minutes,
+      r.earliest_date,
+      r.problem,
+    ],
+  },
+  2: {
+    columns: [
+      'request_id',
+      'customer_id',
+      'zone',
+      'skill',
+      'license_needed',
+      'duration_minutes',
+      'earliest_date',
+      'window',
+      'problem',
+    ],
+    cells: (r) => [
+      r.request_id,
+      r.customer_id,
+      r.zone,
+      r.skill,
+      r.license_needed,
+      r.duration_minutes,
+      r.earliest_date,
+      r.window,
+      r.problem,
+    ],
+  },
 };
 
 const BOOKING_COLUMNS = [
@@ -170,7 +209,7 @@ function csvOf<Row>(table: TableLayout<Row>, rows: readonly Row[]): string {
 }
 
 /** Every table as CSV text, keyed by file name, in the order the job lists them. */
-export function renderTables(company: Company): Record<string, string> {
+export function renderTables(company: Company, version: JobVersion): Record<string, string> {
   return {
     'customers.csv': csvOf(CUSTOMERS, company.customers),
     'technicians.csv': csvOf(TECHNICIANS, company.technicians),
@@ -180,7 +219,7 @@ export function renderTables(company: Company): Record<string, string> {
     'job_parts.csv': csvOf(JOB_PARTS, company.jobParts),
     'invoices.csv': csvOf(INVOICES, company.invoices),
     'payments.csv': csvOf(PAYMENTS, company.payments),
-    'requests.csv': csvOf(REQUESTS, company.requests),
+    'requests.csv': csvOf(REQUESTS[version], company.requests),
     'bookings.csv': csvOf(BOOKINGS, company.bookings),
     'travel.csv': csvOf(TRAVEL, company.travel),
     'tax.csv': csvOf(TAX, company.taxRates),
