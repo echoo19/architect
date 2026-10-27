@@ -5,8 +5,13 @@ import { addDays, longDate } from '../lib/calendar';
 import { compareText } from '../lib/compare';
 import { dollars, roundHalfUp, sum } from '../lib/money';
 import type { Random } from '../lib/random';
-import { BUSINESS_DATE, MINIMUM_BILLED_MINUTES, PLAN_DISCOUNT_PCT } from '../policy/rules';
-import { billedMinutes, nextInvoiceId, partLines, priceJob } from '../reference/pricing';
+import {
+  BUSINESS_DATE,
+  MINIMUM_BILLED_MINUTES,
+  PLAN_DISCOUNT_PCT,
+  invoiceIdFor,
+} from '../policy/rules';
+import { billedMinutes, partLines, priceJob } from '../reference/pricing';
 import type { InvoiceAmounts, PartLine } from '../reference/pricing';
 import { TODAY, withAnswerLine } from './prompts';
 import { difficultyOf, pickMix, taskId } from './select';
@@ -48,31 +53,33 @@ export function buildInvoiceTasks(random: Random, records: CompanyRecords): Task
   const picked = pickMix(random, candidates, QUOTA, 'invoice').sort((a, b) =>
     compareText(a.value.job.job_id, b.value.job.job_id),
   );
-  const invoice_id = nextInvoiceId(records.invoices);
 
-  return picked.map(({ value: c, traps }, index) => ({
-    id: taskId('invoice', index),
-    type: 'invoice',
-    family: `job:${c.job.job_id}`,
-    prompt: withAnswerLine(random.pick(PROMPTS)(c), ANSWER_SHAPE),
-    expected: {
-      kind: 'end_state',
-      validator: 'invoice_created',
-      params: {
-        job_id: c.job.job_id,
-        customer_id: c.customer.customer_id,
-        issue_date: BUSINESS_DATE,
-        due_date: addDays(BUSINESS_DATE, c.customer.terms_days),
-        ...c.amounts,
+  return picked.map(({ value: c, traps }, index) => {
+    const invoice_id = invoiceIdFor(c.job.job_id);
+    return {
+      id: taskId('invoice', index),
+      type: 'invoice',
+      family: `job:${c.job.job_id}`,
+      prompt: withAnswerLine(random.pick(PROMPTS)(c), ANSWER_SHAPE),
+      expected: {
+        kind: 'end_state',
+        validator: 'invoice_created',
+        params: {
+          invoice_id,
+          job_id: c.job.job_id,
+          customer_id: c.customer.customer_id,
+          issue_date: BUSINESS_DATE,
+          due_date: addDays(BUSINESS_DATE, c.customer.terms_days),
+          ...c.amounts,
+        },
       },
-    },
-    meta: {
-      summary: `${invoice_id}, total ${dollars(c.amounts.total_cents)}`,
-      invoice_id,
-      difficulty: difficultyOf(traps),
-      traps,
-    },
-  }));
+      meta: {
+        summary: `${invoice_id}, total ${dollars(c.amounts.total_cents)}`,
+        difficulty: difficultyOf(traps),
+        traps,
+      },
+    };
+  });
 }
 
 function candidateFor(records: CompanyRecords, job: Job): Candidate<InvoiceCase> {

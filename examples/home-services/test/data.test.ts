@@ -77,12 +77,14 @@ describe('invoices and payments', () => {
     }
   });
 
-  it('number invoices in issue order and never in the future', () => {
+  it('number every invoice after its job, listed in issue order and never in the future', () => {
     const invoices = table('invoices.csv');
+    for (const invoice of invoices) {
+      expect(invoice.invoice_id).toBe(String(invoice.job_id).replace(/^W-/, 'INV-'));
+    }
     for (let i = 1; i < invoices.length; i++) {
       const [before, after] = [invoices[i - 1] as CsvRow, invoices[i] as CsvRow];
       expect(String(before.issue_date) <= String(after.issue_date)).toBe(true);
-      expect(String(before.invoice_id) < String(after.invoice_id)).toBe(true);
     }
     expect(invoices.at(-1)?.issue_date).toBe(BUSINESS_DATE);
   });

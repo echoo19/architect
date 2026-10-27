@@ -1,14 +1,12 @@
 import { findOne } from '../company/lookup';
-import type { Company, Invoice, Job, Part } from '../company/types';
+import type { Company, Job, Part } from '../company/types';
 import { roundHalfUp, sum } from '../lib/money';
 import {
   AFTER_HOURS_FACTOR,
   BILLING_STEP_MINUTES,
-  INVOICE_ID_PREFIX,
   MINIMUM_BILLED_MINUTES,
   PLAN_DISCOUNT_PCT,
   TRIP_FEE_CENTS,
-  invoiceId,
 } from '../policy/rules';
 
 /**
@@ -93,12 +91,4 @@ export function priceJob(records: PricingRecords, job: Job): InvoiceAmounts {
   const total_cents = labor_cents + parts_cents + fees_cents - discount_cents + tax_cents;
 
   return { labor_cents, parts_cents, fees_cents, discount_cents, tax_cents, total_cents };
-}
-
-/** One more than the highest invoice number on file. */
-export function nextInvoiceId(invoices: readonly Invoice[]): string {
-  const numbers = invoices.map((invoice) =>
-    Number(invoice.invoice_id.slice(INVOICE_ID_PREFIX.length)),
-  );
-  return invoiceId(Math.max(0, ...numbers) + 1);
 }

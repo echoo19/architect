@@ -11,11 +11,10 @@
 
 var validators = {};
 
-// invoice_created: invoices.csv gained exactly one row, for params.job_id. Its invoice_id is one
-// past the highest id that was already there, and its dates and amounts match params.
+// invoice_created: invoices.csv gained exactly one row, for params.job_id, and its id (INV- plus
+// the job's number), dates and amounts match params.
 validators.invoice_created = (params, ctx) => {
-  const before = ctx.readOriginalTable('invoices.csv');
-  const change = compareRows(before, ctx.readTable('invoices.csv'));
+  const change = compareRows(ctx.readOriginalTable('invoices.csv'), ctx.readTable('invoices.csv'));
   const problem = oneNewRow(change, 'invoice', 'invoice_id');
   if (problem) return fail(problem);
 
@@ -25,7 +24,7 @@ validators.invoice_created = (params, ctx) => {
   }
 
   const expected = {
-    invoice_id: nextInvoiceId(before),
+    invoice_id: params.invoice_id,
     job_id: params.job_id,
     customer_id: params.customer_id,
     issue_date: params.issue_date,
@@ -263,16 +262,6 @@ function oneNewRow(change, noun, idColumn) {
     return `Expected one new ${noun} row, found ${change.added.length}.`;
   }
   return null;
-}
-
-// One past the highest INV- number in the table, as INV- plus five digits.
-function nextInvoiceId(rows) {
-  let highest = 0;
-  for (const row of rows) {
-    const match = /^INV-(\d+)$/.exec(text(row.invoice_id));
-    if (match) highest = Math.max(highest, Number(match[1]));
-  }
-  return `INV-${String(highest + 1).padStart(5, '0')}`;
 }
 
 // Money columns must hold whole cents; everything else is compared as text.

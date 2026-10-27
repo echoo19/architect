@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { daysBetween } from '../src/lib/calendar';
 import { roundHalfUp } from '../src/lib/money';
 import { billedMinutes, laborCents, partLineCents } from '../src/reference/pricing';
-import { jobFile, table } from './helpers';
+import { jobFile, rowWhere, table } from './helpers';
 
 /** The worked examples in policy.md are what the agent learns from, so they must be right. */
 
@@ -38,6 +38,13 @@ describe('policy.md', () => {
     expect(policy).toContain('1717.5 becomes 1718 and 1717.49 becomes 1717');
     expect(roundHalfUp(17175, 10)).toBe(1718);
     expect(roundHalfUp(171749, 100)).toBe(1717);
+  });
+
+  it('numbers invoices after their jobs, as the data does', () => {
+    expect(policy).toContain(
+      "`invoice_id` is INV- plus the job's number: job W-1234 gets INV-1234.",
+    );
+    expect(rowWhere('invoices.csv', 'job_id', 'W-1234').invoice_id).toBe('INV-1234');
   });
 
   it('prices its invoice example the way the reference does', () => {

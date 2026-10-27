@@ -32,11 +32,14 @@ export const TRIP_FEE_CENTS: Readonly<Record<Zone, number>> = {
   Lakeside: 6900,
 };
 
-export const INVOICE_ID_PREFIX = 'INV-';
-const INVOICE_ID_DIGITS = 5;
-
-export function invoiceId(number: number): string {
-  return `${INVOICE_ID_PREFIX}${String(number).padStart(INVOICE_ID_DIGITS, '0')}`;
+/**
+ * An invoice takes the number of the job it bills: W-2482 gets INV-2482. Each task's answer then
+ * follows from its own job, so no single id is right for every invoice task.
+ */
+export function invoiceIdFor(jobId: string): string {
+  const match = /^W-(\d+)$/.exec(jobId);
+  if (!match) throw new Error(`Not a job id: ${jobId}`);
+  return `INV-${match[1]}`;
 }
 
 /** A booking takes the number of the request it books: R-3042 gets B-3042. */

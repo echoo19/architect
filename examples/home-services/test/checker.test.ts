@@ -55,11 +55,13 @@ describe('invoice_created', () => {
     }
   });
 
-  it('expects the number after the highest existing invoice', () => {
-    const highest = Math.max(
-      ...table('invoices.csv').map((row) => Number(String(row.invoice_id).slice(4))),
-    );
-    for (const task of invoiceTasks) expect(task.meta?.invoice_id).toBe(`INV-${highest + 1}`);
+  it('expects every invoice to take its own job number, so no id is right for two tasks', () => {
+    for (const task of invoiceTasks) {
+      const { invoice_id, job_id } = paramsOf(task);
+      expect(invoice_id, task.id).toBe(String(job_id).replace(/^W-/, 'INV-'));
+    }
+    const ids = new Set(invoiceTasks.map((task) => paramsOf(task).invoice_id));
+    expect(ids.size).toBe(invoiceTasks.length);
   });
 
   const task = invoiceTasks[0] as Task;
@@ -67,13 +69,19 @@ describe('invoice_created', () => {
   const wrong = (changes: Record<string, string>) =>
     check(task, withAppended('invoices.csv', { ...right, ...changes }));
 
-  it('fails a reused invoice number', () => {
+  it('fails an invoice numbered one past the highest id, or with a reused id', () => {
+    const highest = Math.max(
+      ...table('invoices.csv').map((row) => Number(String(row.invoice_id).slice(4))),
+    );
     const last = String(table('invoices.csv').at(-1)?.invoice_id);
-    expect(wrong({ invoice_id: last })).toEqual({
-      pass: false,
-      reason: `invoice_id is "${last}" but should be ${right.invoice_id}.`,
-      details: expect.any(Object),
-    });
+    for (const id of [`INV-${highest + 1}`, last]) {
+      expect(id).not.toBe(right.invoice_id);
+      expect(wrong({ invoice_id: id })).toEqual({
+        pass: false,
+        reason: `invoice_id is "${id}" but should be ${right.invoice_id}.`,
+        details: expect.any(Object),
+      });
+    }
   });
 
   it('fails an issue date taken from the job instead of today', () => {

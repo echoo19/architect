@@ -116,7 +116,7 @@ export function expectedInvoiceRow(task: Task): CsvRow {
   const params = paramsOf(task);
   const cell = (key: string) => String(params[key]);
   return {
-    invoice_id: String(task.meta?.invoice_id),
+    invoice_id: cell('invoice_id'),
     job_id: cell('job_id'),
     customer_id: cell('customer_id'),
     issue_date: cell('issue_date'),

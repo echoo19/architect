@@ -87,7 +87,9 @@ describe('hand-audited invoices', () => {
     // Trip fee: Old Town, 3900. Discount: 10% of 17100 = 1710.
     // Tax: both lines taxable, 21901 × 8.25% = 1806.8325, rounds to 1807.
     // Total: 17100 + 21901 + 3900 − 1710 + 1807 = 42998. Due 2026-11-05 + 30 days = 2026-12-05.
+    // The invoice takes the job's number: INV-2482.
     expect(paramsOf(taskById('invoice-053'))).toEqual({
+      invoice_id: 'INV-2482',
       job_id: 'W-2482',
       customer_id: 'C-0094',
       issue_date: '2026-11-05',
@@ -140,6 +142,7 @@ describe('hand-audited invoices', () => {
     // Tax: taxable 3553 + 4165 + 15255 = 22973 × 7.75% = 1780.4075 → 1780.
     // Total: 25650 + 25473 + 6900 − 2565 + 1780 = 57238. Due 2026-12-05.
     expect(paramsOf(taskById('invoice-018'))).toEqual({
+      invoice_id: 'INV-2409',
       job_id: 'W-2409',
       customer_id: 'C-0245',
       issue_date: '2026-11-05',
@@ -176,6 +179,7 @@ describe('hand-audited invoices', () => {
     // Trip fee 3900, no discount. Tax: 3553 × 8.25% = 293.1225 → 293.
     // Total: 59850 + 6053 + 3900 + 293 = 70096. Due 2026-11-05 + 45 days = 2026-12-20.
     expect(paramsOf(taskById('invoice-047'))).toEqual({
+      invoice_id: 'INV-2471',
       job_id: 'W-2471',
       customer_id: 'C-0168',
       issue_date: '2026-11-05',
@@ -208,6 +212,7 @@ describe('hand-audited invoices', () => {
     // Labor: 154 minutes rounds up to 165 = 2.75 h × 13800 = 37950. No parts, so no tax.
     // Trip fee: Millbrook, 5500. Total 43450. Issued today, not on the job date.
     expect(paramsOf(taskById('invoice-042'))).toMatchObject({
+      invoice_id: 'INV-2453',
       issue_date: '2026-11-05',
       due_date: '2026-12-05',
       labor_cents: 37950,
@@ -224,32 +229,32 @@ describe('hand-audited overdue answers', () => {
     expect(
       rowsAs('invoices.csv', 'customer_id', 'C-0371', ['invoice_id', 'due_date', 'total_cents']),
     ).toEqual([
-      ['INV-10276', '2026-07-05', '20836'],
-      ['INV-10359', '2026-07-17', '29339'],
-      ['INV-10652', '2026-08-21', '32557'],
-      ['INV-10843', '2026-09-14', '157477'],
-      ['INV-11045', '2026-10-09', '20338'],
-      ['INV-11190', '2026-10-27', '18504'],
-      ['INV-11276', '2026-11-07', '24106'],
-      ['INV-11330', '2026-11-13', '28929'],
-      ['INV-11341', '2026-11-14', '23062'],
+      ['INV-1281', '2026-07-05', '20836'],
+      ['INV-1355', '2026-07-17', '29339'],
+      ['INV-1654', '2026-08-21', '32557'],
+      ['INV-1826', '2026-09-14', '157477'],
+      ['INV-2051', '2026-10-09', '20338'],
+      ['INV-2190', '2026-10-27', '18504'],
+      ['INV-2275', '2026-11-07', '24106'],
+      ['INV-2337', '2026-11-13', '28929'],
+      ['INV-2344', '2026-11-14', '23062'],
     ]);
-    expect(rowsAs('payments.csv', 'invoice_id', 'INV-11045', ['date', 'amount_cents'])).toEqual([
+    expect(rowsAs('payments.csv', 'invoice_id', 'INV-2051', ['date', 'amount_cents'])).toEqual([
       ['2026-10-08', '6300'],
       ['2026-11-23', '14038'],
     ]);
-    expect(rowsWhere('payments.csv', 'invoice_id', 'INV-11190')).toEqual([]);
+    expect(rowsWhere('payments.csv', 'invoice_id', 'INV-2190')).toEqual([]);
 
     // The four oldest invoices were paid in full (checked below), so the overdue ones are
-    // INV-11045 (due Oct 9) and INV-11190 (due Oct 27); the rest fall due after today.
-    // INV-11045 has received 6300; the 14038 on Nov 23 is scheduled, so 14038 is still open.
+    // INV-2051 (due Oct 9) and INV-2190 (due Oct 27); the rest fall due after today.
+    // INV-2051 has received 6300; the 14038 on Nov 23 is scheduled, so 14038 is still open.
     // Days overdue: Oct 9 to Oct 31 is 22 days, plus 5 days of November = 27.
-    for (const id of ['INV-10276', 'INV-10359', 'INV-10652', 'INV-10843']) {
+    for (const id of ['INV-1281', 'INV-1355', 'INV-1654', 'INV-1826']) {
       const paid = rowsAs('payments.csv', 'invoice_id', id, ['amount_cents']).flat();
       expect(paid).toEqual([rowWhere('invoices.csv', 'invoice_id', id).total_cents]);
     }
     expect(answerOf('overdue-014')).toEqual({
-      invoice_id: 'INV-11045',
+      invoice_id: 'INV-2051',
       balance_cents: 14038,
       days_overdue: 27,
     });
@@ -259,20 +264,24 @@ describe('hand-audited overdue answers', () => {
     expect(
       rowsAs('invoices.csv', 'customer_id', 'C-0008', ['invoice_id', 'due_date', 'total_cents']),
     ).toEqual([
-      ['INV-10149', '2026-06-21', '21712'],
-      ['INV-10206', '2026-06-28', '22530'],
-      ['INV-10950', '2026-09-27', '164637'],
-      ['INV-11056', '2026-10-11', '57444'],
-      ['INV-11292', '2026-11-08', '25974'],
+      ['INV-1146', '2026-06-21', '21712'],
+      ['INV-1191', '2026-06-28', '22530'],
+      ['INV-1950', '2026-09-27', '164637'],
+      ['INV-2053', '2026-10-11', '57444'],
+      ['INV-2294', '2026-11-08', '25974'],
     ]);
-    expect(rowsAs('payments.csv', 'invoice_id', 'INV-11056', ['date', 'amount_cents'])).toEqual([
+    expect(rowsAs('payments.csv', 'invoice_id', 'INV-2053', ['date', 'amount_cents'])).toEqual([
       ['2026-10-20', '19700'],
       ['2026-11-23', '37744'],
     ]);
+    for (const id of ['INV-1146', 'INV-1191', 'INV-1950']) {
+      const paid = rowsAs('payments.csv', 'invoice_id', id, ['amount_cents']).flat();
+      expect(paid).toEqual([rowWhere('invoices.csv', 'invoice_id', id).total_cents]);
+    }
 
-    // The first three are paid in full. INV-11056: 57444 − 19700 = 37744 open; the Nov 23
-    // payment hasn't arrived. INV-11292 falls due on Nov 8, so it isn't overdue yet.
-    expect(answerOf('overdue-033')).toEqual({ invoice_ids: ['INV-11056'], overdue_cents: 37744 });
+    // The first three are paid in full. INV-2053: 57444 − 19700 = 37744 open; the Nov 23
+    // payment hasn't arrived. INV-2294 falls due on Nov 8, so it isn't overdue yet.
+    expect(answerOf('overdue-033')).toEqual({ invoice_ids: ['INV-2053'], overdue_cents: 37744 });
   });
 
   it('overdue-032: an invoice due today is not overdue, so nothing is', () => {
@@ -280,8 +289,8 @@ describe('hand-audited overdue answers', () => {
       ([id]) => rowsWhere('payments.csv', 'invoice_id', String(id)).length === 0,
     );
     expect(open).toEqual([
-      ['INV-11140', '2026-11-05'],
-      ['INV-11274', '2026-11-22'],
+      ['INV-2145', '2026-11-05'],
+      ['INV-2271', '2026-11-22'],
     ]);
     // Every other invoice of C-0372 is paid in full; the two open ones are due today and later.
     expect(answerOf('overdue-032')).toEqual({ invoice_ids: [], overdue_cents: 0 });
@@ -292,37 +301,37 @@ describe('hand-audited overdue answers', () => {
       .filter((row) => String(row.due_date) >= '2026-11-03' && String(row.due_date) <= '2026-11-05')
       .map((row) => [row.invoice_id, row.due_date, row.total_cents]);
     expect(due).toEqual([
-      ['INV-11120', '2026-11-03', '56285'],
-      ['INV-11131', '2026-11-04', '29550'],
-      ['INV-11135', '2026-11-04', '46100'],
-      ['INV-11140', '2026-11-05', '17100'],
-      ['INV-11247', '2026-11-03', '20854'],
-      ['INV-11250', '2026-11-04', '28585'],
-      ['INV-11251', '2026-11-04', '19290'],
-      ['INV-11255', '2026-11-05', '20803'],
-      ['INV-11258', '2026-11-05', '55610'],
-      ['INV-11262', '2026-11-05', '25043'],
-      ['INV-11264', '2026-11-05', '38220'],
-      ['INV-11366', '2026-11-04', '28407'],
-      ['INV-11391', '2026-11-03', '30873'],
-      ['INV-11393', '2026-11-05', '23360'],
-      ['INV-11394', '2026-11-05', '32400'],
+      ['INV-2104', '2026-11-03', '56285'],
+      ['INV-2120', '2026-11-04', '29550'],
+      ['INV-2134', '2026-11-04', '46100'],
+      ['INV-2145', '2026-11-05', '17100'],
+      ['INV-2242', '2026-11-03', '20854'],
+      ['INV-2251', '2026-11-04', '28585'],
+      ['INV-2253', '2026-11-04', '19290'],
+      ['INV-2252', '2026-11-05', '20803'],
+      ['INV-2257', '2026-11-05', '55610'],
+      ['INV-2266', '2026-11-05', '25043'],
+      ['INV-2268', '2026-11-05', '38220'],
+      ['INV-2365', '2026-11-04', '28407'],
+      ['INV-2490', '2026-11-03', '30873'],
+      ['INV-2499', '2026-11-05', '23360'],
+      ['INV-2504', '2026-11-05', '32400'],
     ]);
-    expect(rowsAs('payments.csv', 'invoice_id', 'INV-11391', ['date', 'amount_cents'])).toEqual([
+    expect(rowsAs('payments.csv', 'invoice_id', 'INV-2490', ['date', 'amount_cents'])).toEqual([
       ['2026-11-05', '30873'],
     ]);
-    for (const id of ['INV-11135', 'INV-11247', 'INV-11250', 'INV-11251', 'INV-11366']) {
+    for (const id of ['INV-2134', 'INV-2242', 'INV-2251', 'INV-2253', 'INV-2365']) {
       const paid = rowsAs('payments.csv', 'invoice_id', id, ['amount_cents']).flat();
       expect(paid, id).toEqual([rowWhere('invoices.csv', 'invoice_id', id).total_cents]);
     }
-    expect(rowsWhere('payments.csv', 'invoice_id', 'INV-11120')).toEqual([]);
-    expect(rowsWhere('payments.csv', 'invoice_id', 'INV-11131')).toEqual([]);
+    expect(rowsWhere('payments.csv', 'invoice_id', 'INV-2104')).toEqual([]);
+    expect(rowsWhere('payments.csv', 'invoice_id', 'INV-2120')).toEqual([]);
 
-    // Due Nov 5 means not overdue yet. Of those due Nov 3 and 4, INV-11391 was paid today
+    // Due Nov 5 means not overdue yet. Of those due Nov 3 and 4, INV-2490 was paid today
     // (a payment dated on the business date counts), and five more were paid earlier. Left
-    // overdue: INV-11120 (56285) and INV-11131 (29550), 85835 in all.
+    // overdue: INV-2104 (56285) and INV-2120 (29550), 85835 in all.
     const answer = answerOf('overdue-053') as { invoice_ids: string[]; overdue_cents: number };
-    expect([...answer.invoice_ids].sort()).toEqual(['INV-11120', 'INV-11131']);
+    expect([...answer.invoice_ids].sort()).toEqual(['INV-2104', 'INV-2120']);
     expect(answer.overdue_cents).toBe(85835);
   });
 });

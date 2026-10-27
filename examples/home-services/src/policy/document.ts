@@ -31,7 +31,7 @@ When a job is finished, add one row for it to invoices.csv. Work out the amounts
 4. **Plan discount** (\`discount_cents\`). Customers with \`plan_member\` = yes get ${PLAN_DISCOUNT_PCT}% off \`labor_cents\`, rounded half up. The discount never applies to parts, fees or tax. Everyone else gets 0.
 5. **Tax** (\`tax_cents\`). Only parts lines whose part is \`taxable\` = yes are taxed. Add those lines up, multiply by the rate for the customer's city in tax.csv (\`rate_bp\` is in basis points: 825 means 8.25%), and round half up once, on that subtotal. Labor, the trip fee and the discount are never taxed.
 6. **Total** (\`total_cents\`) = labor + parts + fees − discount + tax.
-7. **Numbering and dates.** \`invoice_id\` is the next number after the highest invoice id already in invoices.csv, written INV- plus five digits (after INV-01999 comes INV-02000). Numbers are handed out in issue order, so the most recent invoices have the highest numbers. \`issue_date\` is the business date, even when the job finished earlier. \`due_date\` is the issue date plus the customer's \`terms_days\` (0 means due the same day). Fill in the job's \`job_id\` and \`customer_id\` too.
+7. **Numbering and dates.** \`invoice_id\` is INV- plus the job's number: job W-1234 gets INV-1234. \`issue_date\` is the business date, even when the job finished earlier. \`due_date\` is the issue date plus the customer's \`terms_days\` (0 means due the same day). Fill in the job's \`job_id\` and \`customer_id\` too.
 
 Example: a journeyman (11400 an hour) spends 50 minutes on an after-hours job for a plan member in Marlow (850 basis points), whose zone is Millbrook. The job used 2 of a taxable part that costs 1235 with a 35% markup, and one plumbing permit (7500, no markup, not taxable).
 
