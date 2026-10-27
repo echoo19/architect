@@ -1,3 +1,5 @@
+import type { SecretRef } from './secrets';
+
 /**
  * Model ids, endpoints and prices used as defaults. This file mirrors docs/MODELS.md and is the
  * only place in the code that names a specific model.
@@ -21,6 +23,8 @@ export interface MentorPreset {
   provider: 'meta' | 'baseten' | 'modal';
   baseUrl: string;
   model: string;
+  /** The stored key this endpoint uses. */
+  secretRef: SecretRef;
   pricing: TokenPricing;
   /** Whether the endpoint supports `response_format: json_schema`. */
   structuredOutput: boolean;
@@ -34,6 +38,8 @@ export interface StudentPreset {
   runtime: 'ollama' | 'openai_compatible';
   baseUrl: string;
   model: string;
+  /** The stored key a hosted endpoint uses; none for local runtimes. */
+  secretRef?: SecretRef;
   /** Null for local runtimes. */
   pricing: TokenPricing | null;
   note: string;
@@ -52,6 +58,7 @@ export const MENTOR_PRESETS: readonly MentorPreset[] = [
     provider: 'meta',
     baseUrl: META_API_BASE_URL,
     model: 'muse-spark-1.3',
+    secretRef: 'meta',
     pricing: SPARK_STANDARD,
     structuredOutput: true,
     note: 'Meta does not train on what you send.',
@@ -62,6 +69,7 @@ export const MENTOR_PRESETS: readonly MentorPreset[] = [
     provider: 'meta',
     baseUrl: META_API_BASE_URL,
     model: 'muse-spark-1.3-contributor',
+    secretRef: 'meta',
     pricing: SPARK_CONTRIBUTOR,
     structuredOutput: true,
     note: 'About 15 times cheaper, but Meta may train on what you send. Only for data that is not sensitive or personal.',
@@ -72,6 +80,7 @@ export const MENTOR_PRESETS: readonly MentorPreset[] = [
     provider: 'baseten',
     baseUrl: 'https://inference.baseten.co/v1',
     model: 'meta-models/muse-spark-open-1026',
+    secretRef: 'baseten',
     pricing: SPARK_STANDARD,
     structuredOutput: false,
     note: 'Open weights on a GPU host you choose; nothing goes to a closed model API.',
@@ -82,6 +91,7 @@ export const MENTOR_PRESETS: readonly MentorPreset[] = [
     provider: 'modal',
     baseUrl: 'https://inference.us-west.modal.direct/v1',
     model: 'meta-models/Muse-Spark-Open-816B-A42B',
+    secretRef: 'modal',
     pricing: SPARK_STANDARD,
     structuredOutput: false,
     note: 'Open weights on your own Modal endpoint.',
@@ -104,6 +114,7 @@ export const STUDENT_PRESETS: readonly StudentPreset[] = [
     runtime: 'openai_compatible',
     baseUrl: 'https://api.together.ai/v1',
     model: 'meta-models/Muse-Glimmer-30B',
+    secretRef: 'together',
     pricing: { inputPerM: 0.35, cachedInputPerM: 0.04, outputPerM: 1.5 },
     note: 'Hosted copy for faster training. Your tasks leave this computer while training.',
   },
@@ -113,6 +124,7 @@ export const STUDENT_PRESETS: readonly StudentPreset[] = [
     runtime: 'openai_compatible',
     baseUrl: 'https://openrouter.ai/api/v1',
     model: 'meta/muse-glimmer-30b',
+    secretRef: 'openrouter',
     pricing: { inputPerM: 0.3, cachedInputPerM: 0.04, outputPerM: 1.2 },
     note: 'Hosted copy for faster training. Your tasks leave this computer while training.',
   },
@@ -122,6 +134,7 @@ export const STUDENT_PRESETS: readonly StudentPreset[] = [
     runtime: 'openai_compatible',
     baseUrl: 'https://api.deepinfra.com/v1/openai',
     model: 'meta-models/Muse-Glimmer-30B',
+    secretRef: 'deepinfra',
     pricing: { inputPerM: 0.3, cachedInputPerM: 0.04, outputPerM: 1.2 },
     note: 'Hosted copy for faster training. Your tasks leave this computer while training.',
   },

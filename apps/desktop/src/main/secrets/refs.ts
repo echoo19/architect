@@ -1,20 +1,13 @@
+import { SECRET_REFS, SECRET_SERVICES, isSecretRef, type SecretRef } from '@architect/shared';
+
 /**
- * Every key the app can store, by ref, with the service it unlocks. Jobs and settings name a key
- * by its ref (`secretRef`), never by its value.
+ * Every key the app can store, by ref, with the service it unlocks. The list and the hosts each
+ * key may be sent to live in @architect/shared, where the engine checks them too.
  */
-export const SECRET_REFS = {
-  meta: 'Meta Model API',
-  baseten: 'Baseten',
-  modal: 'Modal',
-  together: 'Together',
-  openrouter: 'OpenRouter',
-  deepinfra: 'DeepInfra',
-} as const;
+export { isSecretRef, type SecretRef };
 
-export type SecretRef = keyof typeof SECRET_REFS;
+export const SECRET_REF_NAMES = SECRET_REFS;
 
-export const SECRET_REF_NAMES = Object.keys(SECRET_REFS) as [SecretRef, ...SecretRef[]];
-
-export function isSecretRef(ref: string): ref is SecretRef {
-  return Object.hasOwn(SECRET_REFS, ref);
+export function secretLabel(ref: SecretRef): string {
+  return SECRET_SERVICES[ref].label;
 }

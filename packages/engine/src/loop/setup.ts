@@ -1,10 +1,12 @@
 import { resolve } from 'node:path';
-import type {
-  Harness,
-  Job,
-  MentorAdapter,
-  StudentAdapter,
-  StudentEndpoint,
+import {
+  GuardError,
+  keyDestinationProblem,
+  type Harness,
+  type Job,
+  type MentorAdapter,
+  type StudentAdapter,
+  type StudentEndpoint,
 } from '@architect/shared';
 import type { StudentTarget } from '../store/records';
 import type { HarnessDeps, LoopDeps } from './deps';
@@ -27,6 +29,7 @@ export async function connectStudent(
   target: StudentTarget,
 ): Promise<StudentAdapter> {
   const endpoint = studentEndpoint(job, target);
+  if (endpoint.secretRef !== undefined) guardKeyDestination(endpoint.secretRef, endpoint.baseUrl);
   const apiKey =
     endpoint.secretRef === undefined ? undefined : await secret(deps, endpoint.secretRef);
   return deps.adapters.createStudent(endpoint, { apiKey, label: job.student.label });
@@ -39,9 +42,16 @@ export async function connectMentor(
   if (job.mentor.kind !== 'model') {
     throw new Error('Coding-agent mentors are not supported yet; pick a model mentor.');
   }
+  guardKeyDestination(job.mentor.secretRef, job.mentor.baseUrl);
   return deps.adapters.createMentor(job.mentor, {
     apiKey: await secret(deps, job.mentor.secretRef),
   });
+}
+
+/** Stops a job file from sending a stored key to a host outside the key's own service. */
+function guardKeyDestination(ref: string, baseUrl: string): void {
+  const problem = keyDestinationProblem(ref, baseUrl);
+  if (problem !== null) throw new GuardError('permission', problem);
 }
 
 /** The harness the job says to start from. */

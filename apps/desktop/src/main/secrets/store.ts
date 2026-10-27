@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { readJsonFile, writeJsonFile } from '../storage/json-file';
-import { isSecretRef, SECRET_REF_NAMES, SECRET_REFS, type SecretRef } from './refs';
+import { isSecretRef, SECRET_REF_NAMES, secretLabel, type SecretRef } from './refs';
 
 /** Encryption by the operating system's key store. */
 export interface Cipher {
@@ -62,9 +62,9 @@ export class SecretStore {
   async set(ref: string, value: string): Promise<void> {
     const known = knownRef(ref);
     const key = value.trim();
-    if (key.length === 0) throw new Error(`The ${SECRET_REFS[known]} key is empty.`);
+    if (key.length === 0) throw new Error(`The ${secretLabel(known)} key is empty.`);
     if (key.length > MAX_KEY_LENGTH) {
-      throw new Error(`That is too long to be a ${SECRET_REFS[known]} key.`);
+      throw new Error(`That is too long to be a ${secretLabel(known)} key.`);
     }
     const problem = await this.cipher.unavailableReason();
     if (problem) throw new Error(`Architect can't save keys on this computer: ${problem}.`);
@@ -91,7 +91,7 @@ export class SecretStore {
       decrypted = await this.cipher.decrypt(Buffer.from(ciphertext, 'base64'));
     } catch (error) {
       throw new Error(
-        `The saved ${SECRET_REFS[ref]} key can't be decrypted on this computer. Enter it again in Settings.`,
+        `The saved ${secretLabel(ref)} key can't be decrypted on this computer. Enter it again in Settings.`,
         { cause: error },
       );
     }
@@ -109,7 +109,7 @@ export class SecretStore {
         ),
       )
       .catch((error: unknown) => {
-        console.warn(`[secrets] The ${SECRET_REFS[ref]} key could not be re-encrypted.`, error);
+        console.warn(`[secrets] The ${secretLabel(ref)} key could not be re-encrypted.`, error);
       });
   }
 

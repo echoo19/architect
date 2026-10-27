@@ -132,7 +132,7 @@ function adjust(job: Job, options: Options): Job {
         baseUrl: preset.baseUrl,
         model: preset.model,
         reasoningEffort: 'medium',
-        secretRef: preset.provider,
+        secretRef: preset.secretRef,
       },
     };
   }
@@ -150,7 +150,7 @@ function adjust(job: Job, options: Options): Job {
           runtime: preset.runtime,
           baseUrl: preset.baseUrl,
           model: preset.model,
-          secretRef: preset.key.replace(/-glimmer$/, ''),
+          ...(preset.secretRef === undefined ? {} : { secretRef: preset.secretRef }),
           contextLength: next.student.local.contextLength,
         },
       },

@@ -17,6 +17,7 @@ export * from './mentor';
 export * from './models';
 export * from './report';
 export * from './run';
+export * from './secrets';
 export * from './task';
 export * from './trace';
 export * from './workspace';

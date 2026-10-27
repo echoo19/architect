@@ -1,5 +1,10 @@
 import { createMentor, createStudent } from '@architect/adapters';
-import type { ConnectionTest, MentorConfig, StudentEndpoint } from '@architect/shared';
+import {
+  keyDestinationProblem,
+  type ConnectionTest,
+  type MentorConfig,
+  type StudentEndpoint,
+} from '@architect/shared';
 
 /** Reads a saved key by its ref. */
 export type KeyLookup = (ref: string) => Promise<string | undefined>;
@@ -15,6 +20,8 @@ export async function testMentor(config: MentorConfig, keys: KeyLookup): Promise
       hint: 'Choose a model API instead.',
     };
   }
+  const problem = keyDestinationProblem(config.secretRef, config.baseUrl);
+  if (problem !== null) return { ok: false, error: problem };
   const apiKey = await keys(config.secretRef);
   if (!apiKey) {
     return { ok: false, error: `No key is saved for ${config.label}.`, hint: ADD_KEY_HINT };
@@ -29,6 +36,8 @@ export async function testStudent(
 ): Promise<ConnectionTest> {
   let apiKey: string | undefined;
   if (endpoint.secretRef !== undefined) {
+    const problem = keyDestinationProblem(endpoint.secretRef, endpoint.baseUrl);
+    if (problem !== null) return { ok: false, error: problem };
     apiKey = await keys(endpoint.secretRef);
     if (!apiKey) {
       const host = new URL(endpoint.baseUrl).host;

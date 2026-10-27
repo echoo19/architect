@@ -29,7 +29,7 @@ async function main(): Promise<void> {
   const store = openEngineStore(join(dataDir, 'architect.db'));
   const graduate = store.graduates.get(graduateId);
   if (!graduate) throw new Error(`There is no graduate ${graduateId} in ${dataDir}.`);
-  const job = store.jobs.get(graduate.jobId ?? '');
+  const job = store.jobs.get(graduate.manifest.jobId);
   const folder = join(dataDir, graduate.path);
   const workspaceData = join(dataDir, 'workspace', graduateId);
   if (job) {
