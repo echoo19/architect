@@ -43,8 +43,24 @@ export interface MentorCharge {
   costUsd: number;
 }
 
+/** A piece of a mentor payload with where it came from, so a refusal can say where it matched. */
+export interface PayloadPart {
+  /** The origin, such as `train task invoice-012` or `data file policy.md`. */
+  label: string;
+  text: string;
+}
+
+/** The gate refused a call because its payload matched the locked test. It holds no test content. */
+export class LeakRefusal extends GuardError {
+  constructor(message: string) {
+    super('split', message);
+  }
+}
+
 export interface GatedCallOptions {
   signal?: AbortSignal;
+  /** The payload's parts by origin, so a refused call can name the parts that matched. */
+  parts?: readonly PayloadPart[];
   /** Runs once every check has passed, just before the request leaves. */
   onSend?(): void;
   /** Runs when a call fails but reports what it spent, so the spend still counts. */
@@ -59,6 +75,19 @@ const SpentSchema = z.object({
 
 /** What a correction message adds when an adapter asks the mentor to repair malformed JSON. */
 const REPAIR_OVERHEAD_TOKENS = 1_000;
+
+/** Parts a refusal names before it only counts the rest. */
+const NAMED_PARTS = 3;
+
+/** `a`, `a and b`, `a, b and c`, then `a, b, c and 2 more parts`. */
+function listed(labels: readonly string[]): string {
+  const shown =
+    labels.length > NAMED_PARTS + 1
+      ? [...labels.slice(0, NAMED_PARTS), `${labels.length - NAMED_PARTS} more parts`]
+      : [...labels];
+  const last = shown.pop() ?? '';
+  return shown.length === 0 ? last : `${shown.join(', ')} and ${last}`;
+}
 
 function messageText(message: ChatMessage): string {
   if (message.role !== 'assistant' || !message.toolCalls?.length) return message.content;
@@ -117,14 +146,18 @@ export class MentorGate {
     options: GatedCallOptions = {},
   ): Promise<GatedCompletion> {
     if (this.released) {
-      throw this.refuse('The mentor was released for the locked test; no mentor call can start.');
+      throw this.refuse(
+        new GuardError(
+          'split',
+          'The mentor was released for the locked test; no mentor call can start.',
+        ),
+      );
     }
     const text = payloadText(request);
     const scan = this.options.leakDetector.scan(text);
     if (scan.leaked) {
-      const tasks = scan.matchedIds.length === 1 ? 'task' : 'tasks';
       throw this.refuse(
-        `Refused a mentor call: its payload matched ${scan.matchedIds.length} locked test ${tasks}.`,
+        new LeakRefusal(this.leakMessage(scan.matchedIds.length, options.parts ?? [])),
       );
     }
     const authorized = this.options.authorize(
@@ -148,8 +181,18 @@ export class MentorGate {
     return { completion, costUsd: charge(completion.usage, completion.costUsd) };
   }
 
-  private refuse(message: string): GuardError {
-    this.options.onRefusal(message);
-    return new GuardError('split', message);
+  /** How many test tasks matched and in which parts of the payload, by label only. */
+  private leakMessage(matched: number, parts: readonly PayloadPart[]): string {
+    const tasks = matched === 1 ? 'task' : 'tasks';
+    const sources = parts
+      .filter((part) => this.options.leakDetector.scan(part.text).leaked)
+      .map((part) => part.label);
+    const where = sources.length > 0 ? `, in ${listed(sources)}` : '';
+    return `Refused a mentor call: its payload matched ${matched} locked test ${tasks}${where}.`;
+  }
+
+  private refuse<E extends GuardError>(error: E): E {
+    this.options.onRefusal(error.message);
+    return error;
   }
 }

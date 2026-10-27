@@ -11,7 +11,7 @@ import {
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { describeDataFiles } from '../src/mentor/data-files';
-import { MentorGate, type MentorCharge } from '../src/mentor/gate';
+import { LeakRefusal, MentorGate, type MentorCharge } from '../src/mentor/gate';
 import { diagnoseRequest, oneShotRequest } from '../src/mentor/prompts';
 import { HYPOTHESIS_JSON_SCHEMA, MentorReplyError, parseHypothesis } from '../src/mentor/reply';
 import { studentAsMentor } from '../src/mentor/student-author';
@@ -110,6 +110,34 @@ describe('the mentor gate', () => {
     await expect(call).rejects.toMatchObject({ name: 'GuardError', guard: 'split' });
     expect(mentor.requests).toHaveLength(0);
     expect(refusals).toEqual(['Refused a mentor call: its payload matched 1 locked test task.']);
+  });
+
+  it('names the parts of a refused payload that matched, never their text', async () => {
+    const mentor = new FakeMentor();
+    const refusals: string[] = [];
+    const parts = [
+      { label: 'data file policy.md', text: 'Labor is billed per started 15 minutes.' },
+      { label: 'train task train-invoice-1', text: `Same as: ${testPrompt}` },
+      { label: 'harness file system.md', text: 'Finish with the ANSWER line.' },
+    ];
+    const call = gate({ refusals }).complete(
+      mentor,
+      request(parts.map((part) => part.text).join('\n')),
+      { parts },
+    );
+    await expect(call).rejects.toBeInstanceOf(LeakRefusal);
+    expect(refusals).toEqual([
+      'Refused a mentor call: its payload matched 1 locked test task, in train task train-invoice-1.',
+    ]);
+
+    const many = ['a', 'b', 'c', 'd', 'e'].map((name) => ({
+      label: `train task ${name}`,
+      text: testPrompt,
+    }));
+    await expect(gate().complete(mentor, request(testPrompt), { parts: many })).rejects.toThrow(
+      'in train task a, train task b, train task c and 2 more parts.',
+    );
+    expect(mentor.requests).toHaveLength(0);
   });
 
   it('scans the system prompt too, not only the messages', async () => {

@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { AdapterError, type Job, type Task } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { STOPPED_ROUND } from '../src/loop/plan';
+import { TRAINING_ENDED } from '../src/loop/run-state';
 import { hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
 import { FileVersions } from './fakes/harness';
@@ -224,35 +225,35 @@ describe('budgets during a run', () => {
 });
 
 describe('the split guard during a run', () => {
-  it('refuses a mentor payload that carries a test prompt, logs it, and goes on', async () => {
+  it('ends training at a refused mentor payload, naming the part that matched', async () => {
     const leaky = task('test', 'invoice', 1).prompt;
     const tasks = defaultTasks().map((t) =>
       t.id === 'train-invoice-1' ? { ...t, prompt: `${t.prompt} Same as: ${leaky}` } : t,
     );
     const job = await setUp({
       tasks,
-      job: { budget: { ...defaultJob().budget, maxRounds: 1 } },
+      job: { budget: { ...defaultJob().budget, maxRounds: 5 } },
     });
     const run = await engine.controller.start(job.id, 'architect', 7);
     await engine.controller.idle();
 
+    const refusal =
+      'Refused a mentor call: its payload matched 1 locked test task, in train task train-invoice-1.';
     expect(world.mentor.requests).toHaveLength(0);
-    expect(engine.store.rounds.get(run.id, 1)?.round).toMatchObject({
-      status: 'failed',
-      error: 'Refused a mentor call: its payload matched 1 locked test task.',
-    });
-    expect(
-      engine.events.some(
-        (e) =>
-          e.type === 'log' && e.level === 'error' && e.message.startsWith('Refused a mentor call'),
-      ),
-    ).toBe(true);
+    expect(engine.store.rounds.list(run.id).map(({ round }) => round)).toMatchObject([
+      { index: 1, status: 'failed', error: refusal },
+    ]);
     expect(engine.store.runs.get(run.id)?.run).toMatchObject({
       status: 'finished',
-      stopReason: 'rounds',
+      stopReason: 'leak',
     });
+    const logs = engine.events.flatMap((e) => (e.type === 'log' ? [e] : []));
+    expect(logs).toContainEqual(expect.objectContaining({ level: 'error', message: refusal }));
+    expect(logs.map((e) => e.message)).toContain(TRAINING_ENDED.leak);
+    expect(logs.some((e) => e.message.includes(leaky))).toBe(false);
     expect(engine.events.some((e) => e.type === 'mentor.started')).toBe(false);
     expect(existsSync(engine.paths.mentorFile(job.id, run.id, 1))).toBe(false);
+    expect(engine.store.attempts.list({ runId: run.id, split: 'test' })).toHaveLength(6);
   });
 });
 

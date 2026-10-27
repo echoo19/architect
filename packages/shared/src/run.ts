@@ -42,6 +42,8 @@ export const StopReasonRunSchema = z.enum([
   'usd',
   'wall_clock',
   'patience',
+  /** The leak check refused a mentor payload; the next round would send the same data. */
+  'leak',
   'user',
   'error',
 ]);

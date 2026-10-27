@@ -43,6 +43,7 @@ export const TRAINING_ENDED: Record<RunStopReason | 'complete', string> = {
   usd: 'The mentor dollar budget is spent.',
   wall_clock: 'The wall-clock budget is spent.',
   patience: 'Too many rounds in a row brought no kept change.',
+  leak: 'The leak check refused a mentor call, so training ended before any later round could send the same data.',
   user: 'Stopped by you.',
   error: 'Training ended after an error.',
 };
@@ -177,7 +178,7 @@ export class RunState {
     this.emit({ type: 'round.updated', round: stored.round });
   }
 
-  /** Ends a round without a change, and training too when the dollar cap is why. */
+  /** Ends a round without a change, and training too when a stop reason is given. */
   closeRound(index: number, message: string, stopReason?: RunStopReason): void {
     const stored = this.round(index);
     const round: Round = { ...stored.round, status: 'failed', error: message, endedAt: this.now() };

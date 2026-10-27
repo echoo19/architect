@@ -13,6 +13,7 @@ import {
 } from '@architect/shared';
 import { z } from 'zod';
 import type { MentorDataFile } from './data-files';
+import type { PayloadPart } from './gate';
 import { renderCompactTrace } from './trace';
 
 export interface TrainResult {
@@ -151,4 +152,38 @@ export function buildOneShotView(input: OneShotViewInput): OneShotView {
     })),
     devTotal: input.devTotal,
   });
+}
+
+function setupParts(view: MentorView | OneShotView): PayloadPart[] {
+  const { dataFiles, ...job } = view.job;
+  return [
+    { label: 'the job description', text: JSON.stringify(job) },
+    ...dataFiles.map((file) => ({ label: `data file ${file.name}`, text: JSON.stringify(file) })),
+    ...Object.entries(view.harnessFiles).map(([path, text]) => ({
+      label: `harness file ${path}`,
+      text,
+    })),
+  ];
+}
+
+/** A round's view in parts by origin, so the gate can say where a refused payload matched. */
+export function mentorViewParts(view: MentorView): PayloadPart[] {
+  return [
+    ...setupParts(view),
+    ...view.train.results.map((result) => ({
+      label: `train task ${result.taskId}`,
+      text: JSON.stringify(result),
+    })),
+    { label: 'the earlier hypotheses', text: JSON.stringify(view.lineage) },
+  ];
+}
+
+export function oneShotViewParts(view: OneShotView): PayloadPart[] {
+  return [
+    ...setupParts(view),
+    ...view.examples.map((example) => ({
+      label: `train task ${example.taskId}`,
+      text: JSON.stringify(example),
+    })),
+  ];
 }
