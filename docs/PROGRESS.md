@@ -32,9 +32,11 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - The sample job's bounded revision.
 
 **Next**
-- Read the calibration traces; settle the default step limit and check the sample job's difficulty (target 35 to 60% bare).
-- First real run end to end (`scripts/run.ts`, smoke profile, contributor-tier mentor).
-- Merge the screens, the agent host and the desktop integration: the full vertical slice in the app.
+- Merge the review fixes and the revised sample job; recalibrate on hosted Glimmer (aim 50 to 65% bare); freeze the job.
+- Engine: let `runs.start` choose where the locked test runs, and re-test a frozen graduate on the local student (decision 009's protocol).
+- Noise pilot on dev (3 seeds, hosted) to set the keep margin and `devRepeats` before main runs.
+- Main runs: four methods, three seeds, hosted training and tests; local locked tests for one seed per method and for the shipped graduate.
+- A real run through the app's screens, and a workspace chat with the graduate on the local model.
 
 **Open issues**
 - Two commits reached main red today (a filtered local check hid failures); `pnpm check` now gates commits on its exit code.
