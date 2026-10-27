@@ -280,7 +280,8 @@ export function formatSeconds(ms: number): string {
   return seconds === 1 ? '1 second' : `${seconds} seconds`;
 }
 
-function withDetail(summary: string, detail: string | undefined): string {
+/** Adds what the server said after a sentence of our own, making sure it ends like a sentence. */
+export function withDetail(summary: string, detail: string | undefined): string {
   if (detail === undefined || detail === '') return summary;
   return `${summary} ${/[.!?]$/.test(detail) ? detail : `${detail}.`}`;
 }
