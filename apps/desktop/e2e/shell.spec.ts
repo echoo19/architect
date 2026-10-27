@@ -110,6 +110,10 @@ test('switches the theme from settings', async () => {
 
 test('finishes setup and shows an error state with a retry when the engine is missing', async () => {
   const page = launched.page;
+  // Without an engine there is no model or mentor to set up, so both steps are skipped.
+  await page.getByRole('button', { name: 'Skip for now' }).click();
+  await expect(page.getByRole('heading', { name: 'Choose a mentor' })).toBeVisible();
+  await page.getByRole('button', { name: 'Skip for now' }).click();
   await page.getByRole('button', { name: 'Get started' }).click();
   await expect(page).toHaveURL(/#\/$/);
   await settle(page);

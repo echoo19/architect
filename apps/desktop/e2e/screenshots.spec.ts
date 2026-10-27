@@ -104,7 +104,8 @@ test('captures the empty workspace and a failed action', async () => {
 
     // Creating the sample job needs the engine, so it fails and says why in a toast.
     await page.getByRole('button', { name: 'Try the sample job' }).click();
-    await expect(page.getByText("Couldn't create the sample job")).toBeVisible();
+    // Exact, so the toast's screen-reader announcement doesn't also match.
+    await expect(page.getByText("Couldn't create the sample job", { exact: true })).toBeVisible();
     await capture(page, `toast-${theme}.png`);
     await page.getByRole('button', { name: 'Dismiss' }).click();
   }
