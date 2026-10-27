@@ -1,13 +1,17 @@
 import type { ReactNode } from 'react';
 import type { Route } from '../lib/router';
+import { AgentSettingsModal } from '../workspace/settings/AgentSettingsModal';
+import { useWorkspaceEvents } from '../workspace/store';
 import { Sidebar } from './Sidebar';
 
 /** The "Use" layout: the agents sidebar on the left, the current screen on the right. */
 export function WorkspaceShell({ route, children }: { route: Route; children: ReactNode }) {
+  useWorkspaceEvents();
   return (
     <div className="flex h-full bg-ground">
       <Sidebar route={route} />
       <main className="flex min-w-0 flex-1 flex-col">{children}</main>
+      <AgentSettingsModal route={route} />
     </div>
   );
 }
