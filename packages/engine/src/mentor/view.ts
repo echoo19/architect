@@ -90,20 +90,29 @@ function shortReason(reason: string): string {
 
 /**
  * What the mentor learns about earlier rounds, in order: for a measured change the decision and
- * the overall dev change, for a rejected one the reason, so it can put the mistake right.
+ * the overall dev change (on the first measurement, and over both when it was measured again),
+ * for a rejected one the reason, so it can put the mistake right.
  */
 export function mentorLineage(
   entries: readonly LineageEntry[],
   rejected: readonly RejectedRound[],
 ): MentorLineageItem[] {
-  const measured = entries.map((entry): MentorLineageItem => ({
-    round: entry.round,
-    title: entry.title,
-    diagnosis: entry.diagnosis,
-    files: entry.files,
-    decision: entry.decision,
-    devDelta: entry.measured.delta,
-  }));
+  const measured = entries.map((entry): MentorLineageItem => {
+    const first = entry.measured.firstMeasurement;
+    return {
+      round: entry.round,
+      title: entry.title,
+      diagnosis: entry.diagnosis,
+      files: entry.files,
+      decision: entry.decision,
+      ...(first
+        ? {
+            devDelta: first.devAfter.pass - first.devBefore.pass,
+            confirmedDelta: entry.measured.delta,
+          }
+        : { devDelta: entry.measured.delta }),
+    };
+  });
   const rejections = rejected.map((item): MentorLineageItem => ({
     round: item.round,
     ...(item.title === undefined ? {} : { title: item.title }),

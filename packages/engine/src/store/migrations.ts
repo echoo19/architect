@@ -218,4 +218,13 @@ export const MIGRATIONS: readonly Migration[] = [
       );
     `,
   },
+  {
+    version: 6,
+    name: 'first measurement',
+    sql: `
+      -- A round whose change cleared the keep limits is measured again; this keeps the first
+      -- measurement, while dev_before and dev_after add up both.
+      ALTER TABLE rounds ADD COLUMN first_measurement TEXT;
+    `,
+  },
 ];

@@ -121,11 +121,18 @@ export class RunState {
 
   /**
    * A version's result in one dev evaluation, every repeat added up: the baseline's (round
-   * null) or a round's, where the candidate and the incumbent are measured side by side.
+   * null) or a round's, where the candidate and the incumbent are measured side by side. With
+   * `seeds`, only the attempts under those seeds, such as a round's first measurement.
    */
-  devResult(version: number, round: number | null): EvaluationResult {
+  devResult(version: number, round: number | null, seeds?: readonly number[]): EvaluationResult {
+    const attempts = this.attempts({
+      split: 'dev',
+      version,
+      round,
+      target: this.job.student.trainOn,
+    });
     return resultOf(
-      this.attempts({ split: 'dev', version, round, target: this.job.student.trainOn }),
+      seeds === undefined ? attempts : attempts.filter((attempt) => seeds.includes(attempt.seed)),
       this.job,
     );
   }

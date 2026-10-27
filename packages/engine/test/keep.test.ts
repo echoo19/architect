@@ -1,6 +1,6 @@
 import type { TypeScore } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
-import { decideKeep } from '../src/loop/keep';
+import { confirmKeep, decideKeep } from '../src/loop/keep';
 
 const types = (invoice: number, overdue: number, scheduling: number): TypeScore[] => [
   { type: 'invoice', pass: invoice, total: 10 },
@@ -18,7 +18,7 @@ describe('decideKeep', () => {
     name: string;
     before: TypeScore[];
     after: TypeScore[];
-    margin?: { minDevGain: number; maxTypeRegression: number; devRepeats: number };
+    margin?: { minDevGain: number; maxTypeRegression: number; runs: number };
     keep: boolean;
     reason: string;
   }[] = [
@@ -75,7 +75,7 @@ describe('decideKeep', () => {
       name: 'allows no regression at all when the job says so',
       before: types(4, 5, 5),
       after: types(8, 4, 5),
-      margin: { minDevGain: 2, maxTypeRegression: 0, devRepeats: 1 },
+      margin: { minDevGain: 2, maxTypeRegression: 0, runs: 1 },
       keep: false,
       reason: 'Dev 14/30 → 17/30, but overdue lost 1 pass',
     },
@@ -83,7 +83,7 @@ describe('decideKeep', () => {
       name: 'says so when no type lost a pass and none may',
       before: types(4, 5, 5),
       after: types(7, 5, 5),
-      margin: { minDevGain: 3, maxTypeRegression: 0, devRepeats: 1 },
+      margin: { minDevGain: 3, maxTypeRegression: 0, runs: 1 },
       keep: true,
       reason: 'Dev 14/30 → 17/30, no type lost a pass',
     },
@@ -91,7 +91,7 @@ describe('decideKeep', () => {
       name: 'uses a larger margin',
       before: types(4, 5, 5),
       after: types(7, 5, 5),
-      margin: { minDevGain: 4, maxTypeRegression: 1, devRepeats: 1 },
+      margin: { minDevGain: 4, maxTypeRegression: 1, runs: 1 },
       keep: false,
       reason: 'Dev 14/30 → 17/30, short of the +4 margin',
     },
@@ -99,7 +99,7 @@ describe('decideKeep', () => {
       name: 'scales the margin with the repeats, reverting a gain one run could make by luck',
       before: types(4, 5, 5),
       after: types(7, 5, 5),
-      margin: { minDevGain: 2, maxTypeRegression: 1, devRepeats: 2 },
+      margin: { minDevGain: 2, maxTypeRegression: 1, runs: 2 },
       keep: false,
       reason: 'Dev 14/30 → 17/30 over 2 runs, short of the +4 margin',
     },
@@ -107,7 +107,7 @@ describe('decideKeep', () => {
       name: 'keeps a gain that holds across the repeats, with the type-loss limit scaled too',
       before: types(4, 5, 5),
       after: types(9, 3, 6),
-      margin: { minDevGain: 2, maxTypeRegression: 1, devRepeats: 2 },
+      margin: { minDevGain: 2, maxTypeRegression: 1, runs: 2 },
       keep: true,
       reason: 'Dev 14/30 → 18/30 over 2 runs, no type lost more than two',
     },
@@ -115,7 +115,7 @@ describe('decideKeep', () => {
       name: 'reverts a type loss past the scaled limit',
       before: types(4, 5, 5),
       after: types(10, 2, 6),
-      margin: { minDevGain: 2, maxTypeRegression: 1, devRepeats: 2 },
+      margin: { minDevGain: 2, maxTypeRegression: 1, runs: 2 },
       keep: false,
       reason: 'Dev 14/30 → 18/30 over 2 runs, but overdue lost 3 passes',
     },
@@ -123,12 +123,18 @@ describe('decideKeep', () => {
 
   for (const testCase of cases) {
     it(testCase.name, () => {
+      const { runs, ...evaluation } = testCase.margin ?? {
+        minDevGain: 2,
+        maxTypeRegression: 1,
+        runs: 1,
+      };
       const decision = decideKeep({
         before: sum(testCase.before),
         after: sum(testCase.after),
         beforePerType: testCase.before,
         afterPerType: testCase.after,
-        evaluation: testCase.margin ?? { minDevGain: 2, maxTypeRegression: 1, devRepeats: 1 },
+        evaluation,
+        runs,
       });
       expect(decision).toEqual({ keep: testCase.keep, reason: testCase.reason });
     });
@@ -140,9 +146,89 @@ describe('decideKeep', () => {
       after: { pass: 9, total: 30 },
       beforePerType: [{ type: 'invoice', pass: 3, total: 10 }],
       afterPerType: [{ type: 'overdue', pass: 9, total: 10 }],
-      evaluation: { minDevGain: 2, maxTypeRegression: 1, devRepeats: 1 },
+      evaluation: { minDevGain: 2, maxTypeRegression: 1 },
+      runs: 1,
     });
     expect(decision.keep).toBe(false);
     expect(decision.reason).toContain('invoice lost 3 passes');
+  });
+});
+
+describe('confirmKeep', () => {
+  const measured = (before: TypeScore[], after: TypeScore[]) => ({
+    before: sum(before),
+    after: sum(after),
+    beforePerType: before,
+    afterPerType: after,
+  });
+  const twice = (scores: TypeScore[], again: TypeScore[]) =>
+    scores.map((score, index) => ({
+      ...score,
+      pass: score.pass + (again[index]?.pass ?? 0),
+      total: score.total * 2,
+    }));
+  const total60 = (scores: TypeScore[]) => ({ ...sum(scores), total: 60 });
+  const first = measured(types(4, 5, 5), types(7, 5, 5));
+  const evaluation = { minDevGain: 2, maxTypeRegression: 1 };
+
+  it('keeps a change that still clears the doubled limits over both measurements', () => {
+    const before = twice(types(4, 5, 5), types(5, 5, 4));
+    const after = twice(types(7, 5, 5), types(7, 4, 5));
+    const decision = confirmKeep({
+      first,
+      both: { ...measured(before, after), before: total60(before), after: total60(after) },
+      evaluation,
+      runs: 1,
+    });
+    expect(decision).toEqual({
+      keep: true,
+      reason:
+        'Dev 14/30 → 17/30, measured again on new seeds: 28/60 → 33/60 over 2 runs, no type lost more than two',
+    });
+  });
+
+  it("reverts a first gain that the second measurement doesn't repeat", () => {
+    const before = twice(types(4, 5, 5), types(5, 5, 5));
+    const after = twice(types(7, 5, 5), types(5, 4, 5));
+    const decision = confirmKeep({
+      first,
+      both: { ...measured(before, after), before: total60(before), after: total60(after) },
+      evaluation,
+      runs: 1,
+    });
+    expect(decision).toEqual({
+      keep: false,
+      reason:
+        'Dev 14/30 → 17/30, measured again on new seeds: 29/60 → 31/60 over 2 runs, short of the +4 margin',
+    });
+  });
+
+  it('reverts when a type loses more than the doubled limit over both measurements', () => {
+    const before = twice(types(4, 5, 5), types(4, 6, 5));
+    const after = twice(types(7, 5, 5), types(10, 3, 5));
+    const decision = confirmKeep({
+      first,
+      both: { ...measured(before, after), before: total60(before), after: total60(after) },
+      evaluation,
+      runs: 1,
+    });
+    expect(decision.keep).toBe(false);
+    expect(decision.reason).toBe(
+      'Dev 14/30 → 17/30, measured again on new seeds: 29/60 → 35/60 over 2 runs, but overdue lost 3 passes',
+    );
+  });
+
+  it("counts runs from the job's repeats, so two repeats measure again over four", () => {
+    const decision = confirmKeep({
+      first: { ...first, before: { pass: 14, total: 60 }, after: { pass: 18, total: 60 } },
+      both: { ...first, before: { pass: 28, total: 120 }, after: { pass: 36, total: 120 } },
+      evaluation,
+      runs: 2,
+    });
+    expect(decision).toEqual({
+      keep: true,
+      reason:
+        'Dev 14/60 → 18/60 over 2 runs, measured again on new seeds: 28/120 → 36/120 over 4 runs, no type lost more than four',
+    });
   });
 });

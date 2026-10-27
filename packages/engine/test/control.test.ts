@@ -231,7 +231,7 @@ describe('budgets during a run', () => {
     await engine.controller.idle();
     expect(engine.store.runs.get(run.id)?.run).toMatchObject({
       stopReason: 'target_met',
-      devCurrent: { pass: 3, total: 9 },
+      devCurrent: { pass: 6, total: 18 },
     });
     expect(world.mentor.requests).toHaveLength(1);
   });
@@ -255,9 +255,51 @@ describe('dev noise', () => {
     expect(
       engine.store.rounds.list(run.id).map(({ round }) => [round.decision, round.decisionReason]),
     ).toEqual([
-      ['kept', 'Dev 0/9 → 6/9, no type lost more than one'],
-      ['kept', 'Dev 3/9 → 6/9, no type lost more than one'],
+      [
+        'kept',
+        'Dev 0/9 → 6/9, measured again on new seeds: 0/18 → 9/18 over 2 runs, no type lost more than two',
+      ],
+      [
+        'kept',
+        'Dev 3/9 → 6/9, measured again on new seeds: 6/18 → 12/18 over 2 runs, no type lost more than two',
+      ],
     ]);
+  });
+
+  it('measures a change that clears the limits again, and reverts a gain one draw made by luck', async () => {
+    const job = await setUp();
+    const panel = fanOutSeeds(7).devPanel;
+    const [lucky, second] = devSeeds(panel, 1, 2);
+    world.runtime.passes = (held, harness, seed) =>
+      held.type === 'overdue' && harness.system.includes('fix:overdue') && seed === lucky;
+    world.mentor.script = (_request, call) =>
+      [
+        hypothesis('Add the overdue procedure', 'Service desk.\nfix:overdue'),
+        hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice'),
+      ][call - 1];
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    const rounds = engine.store.rounds.list(run.id).map(({ round }) => round);
+    expect(rounds[0]).toMatchObject({
+      decision: 'reverted',
+      decisionReason:
+        'Dev 0/9 → 3/9, measured again on new seeds: 0/18 → 3/18 over 2 runs, short of the +4 margin',
+      devBefore: { pass: 0, total: 18 },
+      devAfter: { pass: 3, total: 18 },
+      firstMeasurement: { devBefore: { pass: 0, total: 9 }, devAfter: { pass: 3, total: 9 } },
+    });
+    const roundOne = engine.store.attempts
+      .list({ runId: run.id, split: 'dev' })
+      .filter((attempt) => attempt.round === 1);
+    expect(roundOne).toHaveLength(36);
+    expect(new Set(roundOne.map((attempt) => attempt.seed))).toEqual(new Set([lucky, second]));
+    // Round 2 had nothing to clear, so it measured once.
+    expect(rounds[1]).toMatchObject({ decision: 'reverted', devAfter: { pass: 0, total: 9 } });
+    expect(rounds[1]?.firstMeasurement).toBeUndefined();
+    expect(world.mentor.requests[1]?.messages[0]?.content).toContain(
+      'Round 1, reverted (dev +3; measured again, +3 over both): Add the overdue procedure.',
+    );
   });
 
   it('runs every dev task under each repeat seed and keeps only gains past the scaled margin', async () => {
@@ -277,20 +319,27 @@ describe('dev noise', () => {
     await engine.controller.idle();
 
     const dev = engine.store.attempts.list({ runId: run.id, split: 'dev' });
-    expect(dev).toHaveLength(90);
+    // Round 1 cleared the limits over its two runs, so it measured both versions over two more.
+    expect(dev).toHaveLength(126);
     expect(new Set(dev.filter((a) => a.round === 1).map((a) => a.seed))).toEqual(
-      new Set(devSeeds(panel, 1, 2)),
+      new Set(devSeeds(panel, 1, 4)),
+    );
+    expect(new Set(dev.filter((a) => a.round === 2).map((a) => a.seed))).toEqual(
+      new Set(devSeeds(panel, 2, 2)),
     );
     expect(
       engine.store.rounds.list(run.id).map(({ round }) => [round.decision, round.decisionReason]),
     ).toEqual([
-      ['kept', 'Dev 0/18 → 6/18 over 2 runs, no type lost more than two'],
+      [
+        'kept',
+        'Dev 0/18 → 6/18 over 2 runs, measured again on new seeds: 0/36 → 12/36 over 4 runs, no type lost more than four',
+      ],
       ['reverted', 'Dev 6/18 → 9/18 over 2 runs, short of the +4 margin'],
     ]);
     expect(engine.store.runs.get(run.id)?.run).toMatchObject({
       status: 'finished',
       devBaseline: { pass: 0, total: 18 },
-      devCurrent: { pass: 6, total: 18 },
+      devCurrent: { pass: 12, total: 36 },
     });
   });
 });

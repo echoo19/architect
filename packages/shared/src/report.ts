@@ -62,7 +62,13 @@ export const ReportCardSchema = z.object({
   }),
   refusedTypes: z.array(z.object({ type: z.string(), label: z.string(), reason: z.string() })),
   topInterventions: z.array(
-    z.object({ round: z.number().int().positive(), title: z.string(), delta: z.number().int() }),
+    z.object({
+      round: z.number().int().positive(),
+      title: z.string(),
+      /** Net dev passes over the dev runs the change was kept on: `runs` of them, else one. */
+      delta: z.number().int(),
+      runs: z.number().int().min(2).optional(),
+    }),
   ),
   requirements: z.object({
     passRate: z.object({ target: z.number(), actual: z.number(), met: z.boolean() }),

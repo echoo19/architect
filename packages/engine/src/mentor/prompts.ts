@@ -93,7 +93,7 @@ This round:
 4. Don't repeat a reverted hypothesis unless the new change is meaningfully different, and say how. A rejected round never reached dev: fix what its reason names first.
 5. If every train attempt passed, strengthen what the traces show is still fragile.
 
-The runner applies your change set to a new harness version and ${evaluation}. It is kept only if dev passes rise by at least ${minDevGain * devRepeats} and no task type loses more than ${loss} ${passes}; otherwise it is reverted and logged as a failed hypothesis. Dev and test tasks are different tasks of the same types, so write rules that generalize, never answers for particular train tasks.
+The runner applies your change set to a new harness version and ${evaluation}. If dev passes rise by at least ${minDevGain * devRepeats} and no task type loses more than ${loss} ${passes}, it measures both versions again under new seeds and keeps the change only if the totals over both measurements rise by at least ${2 * minDevGain * devRepeats} with ${loss === 0 ? 'no task type losing a pass' : `no task type losing more than ${2 * loss}`}; otherwise it is reverted and logged as a failed hypothesis. Dev and test tasks are different tasks of the same types, so write rules that generalize, never answers for particular train tasks.
 
 The student is small: every line of system prompt and every loaded skill costs it attention and time, so keep the harness lean and specific. A round that doesn't help still spends budget.
 
@@ -173,8 +173,12 @@ function renderLineageItem(item: MentorView['lineage'][number]): string {
     const files = item.files.length > 0 ? ` Files: ${item.files.join(', ')}.` : '';
     return `- Round ${item.round}, rejected before dev saw it: ${what}${files} Why: ${item.reason}`;
   }
-  const delta = item.devDelta >= 0 ? `+${item.devDelta}` : String(item.devDelta);
-  return `- Round ${item.round}, ${item.decision} (dev ${delta}): ${item.title}. ${item.diagnosis} Files: ${item.files.join(', ')}.`;
+  const signed = (n: number) => (n >= 0 ? `+${n}` : String(n));
+  const again =
+    item.confirmedDelta === undefined
+      ? ''
+      : `; measured again, ${signed(item.confirmedDelta)} over both`;
+  return `- Round ${item.round}, ${item.decision} (dev ${signed(item.devDelta)}${again}): ${item.title}. ${item.diagnosis} Files: ${item.files.join(', ')}.`;
 }
 
 function renderLineage(lineage: MentorView['lineage']): string {

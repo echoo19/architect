@@ -47,7 +47,10 @@ export const MentorLineageItemSchema = z.discriminatedUnion('decision', [
     diagnosis: z.string(),
     files: z.array(z.string()),
     decision: z.enum(['kept', 'reverted']),
+    /** Net dev passes on the first measurement, in the units of the mentor's prediction. */
     devDelta: z.number().int(),
+    /** When the change was measured again on new seeds: net dev passes over both measurements. */
+    confirmedDelta: z.number().int().optional(),
   }),
   z.object({
     round: z.number().int().positive(),

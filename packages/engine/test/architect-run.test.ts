@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import type { RunEvent } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { LineageLog } from '../src/loop/lineage';
-import { roundSeed } from '../src/loop/seeds';
+import { devSeeds, roundSeed } from '../src/loop/seeds';
 import { hypothesis } from './fakes/adapters';
 import { FileVersions } from './fakes/harness';
 import { defaultTasks } from './fakes/job';
@@ -63,11 +63,11 @@ describe('an architect run', () => {
       stopReason: 'rounds',
       currentVersion: 2,
       devBaseline: { pass: 0, total: 9 },
-      devCurrent: { pass: 3, total: 9 },
+      devCurrent: { pass: 6, total: 18 },
     });
     expect(run.totals).toMatchObject({
       rounds: 2,
-      attempts: 63,
+      attempts: 81,
       mentorInputTokens: 4000,
       mentorOutputTokens: 1000,
     });
@@ -80,7 +80,14 @@ describe('an architect run', () => {
       [1, 'decided', 'kept', 2],
       [2, 'decided', 'reverted', 3],
     ]);
-    expect(rounds[0]?.decisionReason).toBe('Dev 0/9 → 3/9, no type lost more than one');
+    expect(rounds[0]?.decisionReason).toBe(
+      'Dev 0/9 → 3/9, measured again on new seeds: 0/18 → 6/18 over 2 runs, no type lost more than two',
+    );
+    expect(rounds[0]?.firstMeasurement).toEqual({
+      devBefore: { pass: 0, total: 9 },
+      devAfter: { pass: 3, total: 9 },
+    });
+    expect(rounds[1]?.firstMeasurement).toBeUndefined();
     expect(rounds[1]?.decisionReason).toBe('Dev 3/9 → 3/9, no change');
     expect(rounds[0]?.train).toEqual({ pass: 0, total: 6 });
   });
@@ -99,14 +106,15 @@ describe('an architect run', () => {
       causeTaskIds: ['train-invoice-1', 'train-invoice-2'],
       predicted: { devDeltaMin: 2, devDeltaMax: 3, rationale: 'Three invoice dev tasks.' },
       measured: {
-        devBefore: { pass: 0, total: 9 },
-        devAfter: { pass: 3, total: 9 },
-        delta: 3,
+        devBefore: { pass: 0, total: 18 },
+        devAfter: { pass: 6, total: 18 },
+        delta: 6,
         perType: [
-          { type: 'invoice', before: 0, after: 3 },
+          { type: 'invoice', before: 0, after: 6 },
           { type: 'overdue', before: 0, after: 0 },
           { type: 'scheduling', before: 0, after: 0 },
         ],
+        firstMeasurement: { devBefore: { pass: 0, total: 9 }, devAfter: { pass: 3, total: 9 } },
       },
       decision: 'kept',
       versionFrom: 1,
@@ -120,10 +128,11 @@ describe('an architect run', () => {
       versionTo: 3,
       measured: { delta: 0 },
     });
+    expect(reverted?.measured.firstMeasurement).toBeUndefined();
     expect(
       engine.store.lineage.list(record.run.id).map((row) => [row.round, row.decision, row.delta]),
     ).toEqual([
-      [1, 'kept', 3],
+      [1, 'kept', 6],
       [2, 'reverted', 0],
     ]);
     const versions = new FileVersions(engine.paths.harnessDir(record.run.jobId, record.run.id));
@@ -208,8 +217,10 @@ describe('an architect run', () => {
       expect(text).toContain('[train] invoice request number 1');
     }
     const second = world.mentor.requests[1]?.messages[0]?.content ?? '';
-    expect(second).toContain('Dev with the current harness: 3/9 passed.');
-    expect(second).toContain('Round 1, kept (dev +3): Add the invoice procedure.');
+    expect(second).toContain('Dev with the current harness: 6/18 passed.');
+    expect(second).toContain(
+      'Round 1, kept (dev +3; measured again, +6 over both): Add the invoice procedure.',
+    );
   });
 
   it('measures the incumbent again beside each candidate, on dev seeds the round draws', async () => {
@@ -221,17 +232,18 @@ describe('an architect run', () => {
         dev.filter((a) => a.round === round && a.harnessVersion === version).map((a) => a.seed),
       ),
     ];
-    expect(dev).toHaveLength(45);
+    expect(dev).toHaveLength(63);
     expect(seedsOf(null, 1)).toEqual([seeds.devPanel]);
-    expect(seedsOf(1, 1)).toEqual([roundSeed(seeds.devPanel, 1)]);
-    expect(seedsOf(1, 2)).toEqual([roundSeed(seeds.devPanel, 1)]);
+    // Round 1's change cleared the limits, so both versions ran again under a second seed.
+    expect(seedsOf(1, 1)).toEqual(devSeeds(seeds.devPanel, 1, 2));
+    expect(seedsOf(1, 2)).toEqual(devSeeds(seeds.devPanel, 1, 2));
     expect(seedsOf(2, 2)).toEqual([roundSeed(seeds.devPanel, 2)]);
     expect(seedsOf(2, 3)).toEqual([roundSeed(seeds.devPanel, 2)]);
     const lineage = await new LineageLog(
       engine.paths.lineageFile(record.run.jobId, record.run.id),
     ).read();
     expect(lineage.map((entry) => entry.measured.devBefore)).toEqual([
-      { pass: 0, total: 9 },
+      { pass: 0, total: 18 },
       { pass: 3, total: 9 },
     ]);
 
@@ -318,16 +330,16 @@ describe('an architect run', () => {
       },
       dev: {
         baseline: { pass: 0, total: 9 },
-        final: { pass: 3, total: 9 },
+        final: { pass: 6, total: 18 },
         curve: [
           { round: 0, score: { pass: 0, total: 9 }, decision: 'baseline' },
-          { round: 1, score: { pass: 3, total: 9 }, decision: 'kept' },
+          { round: 1, score: { pass: 6, total: 18 }, decision: 'kept' },
           { round: 2, score: { pass: 3, total: 9 }, decision: 'reverted' },
         ],
       },
       cost: { mentorInputTokens: 4000, mentorOutputTokens: 1000, rounds: 2 },
       refusedTypes: [],
-      topInterventions: [{ round: 1, title: 'Add the invoice procedure', delta: 3 }],
+      topInterventions: [{ round: 1, title: 'Add the invoice procedure', delta: 6, runs: 2 }],
       requirements: { passRate: { target: 0.9, met: false } },
       overclaim: true,
     });

@@ -110,7 +110,7 @@ export function renderReportMarkdown(report: ReportCard): string {
       : report.topInterventions
           .map(
             (item, index) =>
-              `${index + 1}. Round ${item.round}, "${item.title}": ${item.delta >= 0 ? '+' : ''}${item.delta} dev ${plural(Math.abs(item.delta), 'pass', 'passes')}`,
+              `${index + 1}. Round ${item.round}, "${item.title}": ${item.delta >= 0 ? '+' : ''}${item.delta} dev ${plural(Math.abs(item.delta), 'pass', 'passes')}${item.runs === undefined ? '' : ` over ${item.runs} runs`}`,
           )
           .join('\n'),
   );
