@@ -1,0 +1,37 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+out/
+release/
+*.tsbuildinfo
+coverage/
+
+# test output
+test-results/
+playwright-report/
+.vitest/
+
+# local data and secrets
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.architect-dev/
+
+# editors and OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
