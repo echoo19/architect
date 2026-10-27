@@ -1,0 +1,12 @@
+{
+  "name": "@architect/example-home-services",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@architect/shared": "workspace:*"
+  }
+}

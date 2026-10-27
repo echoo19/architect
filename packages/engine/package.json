@@ -1,0 +1,20 @@
+{
+  "name": "@architect/engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@architect/adapters": "workspace:*",
+    "@architect/harness": "workspace:*",
+    "@architect/shared": "workspace:*",
+    "papaparse": "^5.7.0",
+    "quickjs-emscripten": "^0.32.0",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/papaparse": "^5.5.2"
+  }
+}

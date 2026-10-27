@@ -1,0 +1,30 @@
+{
+  "name": "@architect/desktop",
+  "productName": "Architect",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Turn a job you describe into an agent that runs on your own computer.",
+  "author": "Jake Kang",
+  "main": "out/main/index.js",
+  "dependencies": {
+    "@architect/engine": "workspace:*",
+    "@architect/shared": "workspace:*",
+    "@architect/ui": "workspace:*",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
+    "electron-vite": "^6.0.0",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.5"
+  }
+}
