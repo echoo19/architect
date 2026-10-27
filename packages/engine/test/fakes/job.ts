@@ -68,7 +68,8 @@ export function defaultJob(overrides: Partial<Job> = {}): Job {
       },
       trainOn: 'local',
     },
-    startingHarness: { kind: 'blank' },
+    // Rounds refine an existing harness here; a blank start drafts first (decision 026).
+    startingHarness: { kind: 'template', template: 'service desk' },
     splits: { seed: 7, calibration: 0, train: 6, dev: 9, test: 6 },
     evaluation: { trainBatch: 6, minDevGain: 2, maxTypeRegression: 1, patience: 3 },
     ...overrides,

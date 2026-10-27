@@ -614,3 +614,55 @@ describe('run setup', () => {
     expect((await versions.load(1)).system).toContain('Template: ops-analyst');
   });
 });
+
+describe('a run that starts from a blank harness', () => {
+  it('drafts a whole harness first, keeps it as the start, then refines one change at a time', async () => {
+    const job = await setUp({
+      job: { startingHarness: { kind: 'blank' }, budget: { ...defaultJob().budget, maxRounds: 2 } },
+    });
+    world.mentor.script = (_request, call) =>
+      [
+        hypothesis('First draft', 'Service desk, drafted.'),
+        hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice'),
+      ][call - 1];
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    const [draft, refinement] = world.mentor.requests;
+    expect(draft?.system).toContain('Write its whole harness in one go');
+    expect(draft?.system).toContain('In the rounds after this one you will see its attempts');
+    expect(refinement?.system).not.toContain('Write its whole harness');
+    const rounds = engine.store.rounds.list(run.id).map(({ round }) => round);
+    // The draft changed nothing dev could see and is kept anyway, as the starting point.
+    expect(rounds[0]).toMatchObject({
+      decision: 'kept',
+      train: { pass: 0, total: 0 },
+      devBefore: { pass: 0, total: 9 },
+      devAfter: { pass: 0, total: 9 },
+      decisionReason: expect.stringContaining('the first draft is kept as the starting point'),
+    });
+    expect(rounds[0]?.firstMeasurement).toBeUndefined();
+    const train = engine.store.attempts.list({ runId: run.id, split: 'train' });
+    expect(train.filter((attempt) => attempt.round === 1)).toHaveLength(0);
+    expect(train.filter((attempt) => attempt.round === 2).length).toBeGreaterThan(0);
+    expect(rounds[1]).toMatchObject({ decision: 'kept', title: 'Add the invoice procedure' });
+  });
+
+  it('has the student draft its own harness first in self-reflection', async () => {
+    const job = await setUp({
+      job: { startingHarness: { kind: 'blank' }, budget: { ...defaultJob().budget, maxRounds: 1 } },
+    });
+    world.studentReply = () => JSON.stringify(hypothesis('My first harness', 'fix:overdue'));
+    const run = await engine.controller.start(job.id, 'self_reflection', 7);
+    await engine.controller.idle();
+
+    const [author] = world.students;
+    const system = author?.chats[0]?.messages[0]?.content ?? '';
+    expect(system).toContain('In the rounds after this one you will see its attempts');
+    expect(engine.store.rounds.get(run.id, 1)?.round).toMatchObject({
+      decision: 'kept',
+      train: { pass: 0, total: 0 },
+      devAfter: { pass: 3, total: 9 },
+    });
+  });
+});

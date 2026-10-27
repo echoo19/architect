@@ -103,13 +103,20 @@ The student is small: every line of system prompt and every loaded skill costs i
 Set readyClaim to true only if you expect the harness after this change to meet the job's requirement on tasks you haven't seen. The claim is recorded and checked against the locked test.`;
 }
 
-function oneShotInstructions(view: OneShotView, settings: PromptSettings): string {
+function oneShotInstructions(
+  view: OneShotView,
+  settings: PromptSettings,
+  refinedLater: boolean,
+): string {
   const { devRepeats } = settings.evaluation;
   const outOf =
     devRepeats === 1
       ? `out of ${view.devTotal} dev tasks`
       : `out of ${view.devTotal * devRepeats} dev attempts (${view.devTotal} tasks, each run ${devRepeats} times)`;
-  return `You are the mentor for a small local model, the student. Write its whole harness in one go from the job setup and the train examples with their expected answers. You won't see the student attempt anything, and you get one reply.
+  const after = refinedLater
+    ? "You haven't seen the student attempt anything yet. In the rounds after this one you will see its attempts and refine this harness one change at a time."
+    : "You won't see the student attempt anything, and you get one reply.";
+  return `You are the mentor for a small local model, the student. Write its whole harness in one go from the job setup and the train examples with their expected answers. ${after}
 
 Write a complete harness: a system prompt with the operating rules, a skill for each task type with the exact procedure, tools for computations that are easy to get wrong by hand, worked examples where the format is subtle, and retrieval rules that load the right skill for each request. Base everything on the job description, the data and any policy text. The examples show what correct answers look like; dev and test tasks are different tasks of the same types, so don't hard-code answers.
 
@@ -260,12 +267,17 @@ export function diagnoseRequest(
 }
 
 /** The one-shot baseline's single request: a whole harness, written without seeing attempts. */
+/**
+ * A whole harness written from the job setup and train examples. `refinedLater` is true for the
+ * first round of a run that refines it afterwards, false for the one-shot method.
+ */
 export function oneShotRequest(
   view: OneShotView,
   settings: PromptSettings,
+  refinedLater = false,
 ): MentorCompletionRequest {
   return {
-    system: systemPrompt(oneShotInstructions(view, settings)),
+    system: systemPrompt(oneShotInstructions(view, settings, refinedLater)),
     messages: [{ role: 'user', content: renderOneShotView(view) }],
     json: { name: 'hypothesis', schema: HYPOTHESIS_JSON_SCHEMA },
     reasoningEffort: settings.reasoningEffort,

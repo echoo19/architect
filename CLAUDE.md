@@ -42,6 +42,8 @@ pnpm typecheck      tsc across the workspace
 pnpm lint           ESLint + Prettier check
 pnpm build          build all packages and the app
 pnpm e2e            Playwright end-to-end run against the built app (hidden windows)
+pnpm package        build the installer for this platform into apps/desktop/release
+pnpm e2e:packaged   the packaging specs against the unpacked packaged app (hidden)
 pnpm check          typecheck, lint and tests; run it before every commit and read its exit code
 ```
 

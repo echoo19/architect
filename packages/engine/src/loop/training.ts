@@ -23,10 +23,15 @@ function comparePerType(before: TypeScore[], after: TypeScore[]) {
   }));
 }
 
-function oneShotDecision(before: Score, after: Score): KeepDecision {
+/** A whole-harness draft is kept as measured: one-shot's only harness, or a refined run's start. */
+function draftDecision(state: RunState, before: Score, after: Score): KeepDecision {
+  const scores = `Dev ${formatScore(before)} → ${formatScore(after)}`;
   return {
     keep: true,
-    reason: `Dev ${formatScore(before)} → ${formatScore(after)}; the one-shot method keeps its harness without a keep-or-revert check`,
+    reason:
+      state.run.method === 'one_shot'
+        ? `${scores}; the one-shot method keeps its harness without a keep-or-revert check`
+        : `${scores}; the first draft is kept as the starting point, and later rounds keep only measured gains`,
   };
 }
 
@@ -76,11 +81,11 @@ export async function baseline(state: RunState): Promise<void> {
 }
 
 export function startRound(state: RunState, index: number): void {
-  const oneShot = state.run.method === 'one_shot';
+  const drafting = state.drafts(index);
   const round: Round = {
     runId: state.ctx.runId,
     index,
-    status: oneShot ? 'diagnosing' : 'attempting',
+    status: drafting ? 'diagnosing' : 'attempting',
     train: { pass: 0, total: 0 },
     files: [],
     costUsd: 0,
@@ -95,7 +100,7 @@ export function startRound(state: RunState, index: number): void {
       rejected: false,
     });
     return state.writeRun((current) => ({
-      phase: oneShot ? 'diagnosing' : 'attempting',
+      phase: drafting ? 'diagnosing' : 'attempting',
       totals: { ...current.totals, rounds: current.totals.rounds + 1 },
     }));
   });
@@ -272,12 +277,12 @@ export async function evaluateCandidate(state: RunState, index: number): Promise
   const runs = evaluation.devRepeats;
   const first = await measureRound(state, index, versions, runs);
   if (first === null) return;
-  if (state.run.method === 'one_shot') {
+  if (state.drafts(index)) {
     await decide(
       state,
       state.round(index),
       first,
-      oneShotDecision(first.before.score, first.after.score),
+      draftDecision(state, first.before.score, first.after.score),
     );
     return;
   }

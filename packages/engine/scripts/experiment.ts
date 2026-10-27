@@ -111,10 +111,68 @@ async function main(): Promise<void> {
     ({ method, seed }) => !existsSync(resultFile(options, method, seed)),
   );
   log(`${queue.length - pending.length} runs already done, ${pending.length} to go`);
-  await runLimited(pending, options.parallel, ({ method, seed }) =>
-    runOne(staging, options, method, seed),
+  // Each seed's one-shot draft is where the refining methods start, so they go second.
+  await runLimited(
+    pending.filter(({ method }) => !REFINERS.includes(method)),
+    options.parallel,
+    ({ method, seed }) => runOne(staging, options, method, seed),
+  );
+  await runLimited(
+    pending.filter(({ method }) => REFINERS.includes(method)),
+    options.parallel,
+    async ({ method, seed }) => {
+      const forked = await stageFork(options, prepare(source, options), seed);
+      if (forked === null) {
+        log(`${method}-s${seed}: seed ${seed} has no finished one-shot draft to refine, skipped`);
+        return;
+      }
+      await runOne(forked, options, method, seed);
+    },
   );
   await writeSummary(options);
+}
+
+/**
+ * Methods that refine each seed's shared draft (decision 026): they start from the harness the
+ * seed's one-shot run wrote, with that round and its mentor spend taken off their budget.
+ */
+const REFINERS: readonly Method[] = ['architect', 'self_reflection'];
+
+/** The seed's one-shot result, when that run finished. */
+async function draftOf(options: Options, seed: number): Promise<RunResult | null> {
+  const file = resultFile(options, 'one_shot', seed);
+  if (!existsSync(file)) return null;
+  const result = JSON.parse(await readFile(file, 'utf8')) as RunResult;
+  return result.detail.run.status === 'finished' ? result : null;
+}
+
+/** A job file whose starting harness is the seed's one-shot draft, with the draft's round spent. */
+async function stageFork(options: Options, job: Job, seed: number): Promise<string | null> {
+  const draft = await draftOf(options, seed);
+  if (draft === null) return null;
+  const { run } = draft.detail;
+  const dataDir = join(options.out, 'runs', `one_shot-s${seed}`);
+  const version = `v${String(run.currentVersion).padStart(4, '0')}`;
+  const staging = await mkdtemp(join(tmpdir(), `architect-experiment-s${seed}-`));
+  await cp(options.jobDir, staging, { recursive: true });
+  await cp(
+    join(new DataPaths(dataDir).harnessDir(run.jobId, run.id), version),
+    join(staging, 'draft'),
+    {
+      recursive: true,
+    },
+  );
+  const forked = JobSchema.parse({
+    ...job,
+    startingHarness: { kind: 'import', path: 'draft' },
+    budget: {
+      ...job.budget,
+      maxRounds: job.budget.maxRounds - 1,
+      maxMentorUsd: Math.max(0, job.budget.maxMentorUsd - draft.spend.mentorUsd),
+    },
+  });
+  await writeFile(join(staging, 'job.json'), `${JSON.stringify(forked, null, 2)}\n`);
+  return join(staging, 'job.json');
 }
 
 /** Training and the locked test on the hosted student preset, with the chosen mentor preset. */
@@ -351,10 +409,14 @@ async function writeSummary(options: Options): Promise<void> {
       if (!existsSync(file)) continue;
       const { detail, report, spend } = JSON.parse(await readFile(file, 'utf8')) as RunResult;
       const { run } = detail;
-      const kept = detail.rounds.filter((round) => round.decision === 'kept').length;
+      // A refining method's draft round and its mentor spend happened in the seed's one-shot run.
+      const draft = REFINERS.includes(method) ? await draftOf(options, seed) : null;
+      const shared = draft === null ? 0 : 1;
+      const kept = detail.rounds.filter((round) => round.decision === 'kept').length + shared;
+      const mentorUsd = spend.mentorUsd + (draft?.spend.mentorUsd ?? 0);
       const tail =
-        `${kept} / ${run.totals.rounds} | ${run.stopReason ?? '-'} | ${Math.round(run.totals.wallMs / 60_000)} | ` +
-        `${spend.studentUsd.toFixed(2)} | ${spend.mentorUsd.toFixed(3)} |`;
+        `${kept} / ${run.totals.rounds + shared} | ${run.stopReason ?? '-'} | ${Math.round(run.totals.wallMs / 60_000)} | ` +
+        `${spend.studentUsd.toFixed(2)} | ${mentorUsd.toFixed(3)} |`;
       if (!report) {
         rows.push(`| ${METHOD_LABELS[method]} | ${seed} | ${run.status} | | | | | ${tail}`);
         continue;
@@ -371,9 +433,11 @@ async function writeSummary(options: Options): Promise<void> {
     }
   }
   const paired = await pairedComparison(options);
+  const note =
+    'Architect and self-reflection start from the one-shot draft of the same seed (decision 026); their kept changes, rounds and mentor dollars include that draft.';
   await writeFile(
     join(options.out, 'summary.md'),
-    `${[rows.join('\n'), ...paired].join('\n\n')}\n`,
+    `${[rows.join('\n'), note, ...paired].join('\n\n')}\n`,
   );
   log(`Summary written to ${join(options.out, 'summary.md')}`);
 }

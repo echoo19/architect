@@ -137,6 +137,21 @@ export class RunState {
     );
   }
 
+  /**
+   * Whether the round's author writes a whole harness rather than one change: the one-shot
+   * method's only round, and the first round of a run that starts from a blank harness
+   * (decision 026). A drafting round makes no train attempts.
+   */
+  drafts(index: number): boolean {
+    const { method } = this.run;
+    if (method === 'one_shot') return true;
+    return (
+      index === 1 &&
+      this.job.startingHarness.kind === 'blank' &&
+      (method === 'architect' || method === 'self_reflection')
+    );
+  }
+
   trainTasks(): Promise<Task[]> {
     return this.ctx.jobs.tasks(this.run.jobId, 'train');
   }
