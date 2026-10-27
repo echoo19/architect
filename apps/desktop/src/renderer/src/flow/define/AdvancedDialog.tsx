@@ -651,7 +651,7 @@ function SplitsTab({ editor, summaries }: TabProps & { summaries: QueryState<Job
       />
       <NumberField
         label="Practice tasks"
-        meta={`${mentor} sees ${student}'s attempts at these and learns from the mistakes.`}
+        meta={`${student} practices on these, and ${mentor} studies its mistakes.`}
         unit="tasks"
         value={train}
         issue={issues['splits.train']}

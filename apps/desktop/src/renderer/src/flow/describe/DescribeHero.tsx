@@ -30,10 +30,8 @@ export function DescribeHero() {
   );
   const [creatingSample, setCreatingSample] = useState(false);
   const settings = useSettings();
-  const mentor =
-    settings.status === 'success'
-      ? `${mentorIntro(mentorName(settings.data.defaultMentor))},`
-      : 'The mentor';
+  const name = settings.status === 'success' ? mentorName(settings.data.defaultMentor) : null;
+  const mentor = name ? `${mentorIntro(name)},` : 'The mentor';
 
   const attach = async () => {
     const picked = await attempt("Couldn't open the file picker", () =>
@@ -83,9 +81,10 @@ export function DescribeHero() {
             </IconButton>
           }
         />
-        <p className="m-0 text-sm text-fg-muted text-pretty">
-          Attach the files it works from (CSV, Excel, text) and example tasks with their answers
-          (CSV or JSONL).
+        <p className="m-0 text-sm text-fg-secondary text-pretty">
+          Attach the files it works from (spreadsheets or text) and a file of example requests with
+          the right answers, as a spreadsheet (CSV) or JSONL. {name ?? 'The mentor'} uses them to
+          test the agent.
         </p>
         {files.length > 0 && (
           <ul aria-label="Attached files" className="m-0 flex list-none flex-wrap gap-2 p-0">

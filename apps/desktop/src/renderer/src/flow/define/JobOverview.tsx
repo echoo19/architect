@@ -140,9 +140,18 @@ interface AsksFirstProps {
 /** What the graduate must ask about before doing it in the workspace. */
 export function AsksFirst({ job, onChange }: AsksFirstProps) {
   const { permissions } = job;
+  const writable = job.data.files
+    .filter((file) => file.access === 'write')
+    .map((file) => file.name);
   const rows = [
-    { key: 'writes', label: 'Saving changes to your files' },
-    { key: 'unseenFiles', label: "Opening a file it hasn't seen" },
+    {
+      key: 'writes',
+      label:
+        writable.length > 0
+          ? `Saving changes to ${writable.join(' and ')}`
+          : 'Saving changes to your files',
+    },
+    { key: 'unseenFiles', label: "Opening a file the job doesn't list" },
   ] as const;
   return (
     <section aria-labelledby="asks-first" className="flex flex-col gap-2.5">

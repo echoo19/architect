@@ -92,8 +92,8 @@ export function TrainingPlace({
               <span className="text-fg">{roundsLine(job, remote)}</span>
               <span>{totalLine(remote)}</span>
               <span>
-                Practice runs on your {provider ?? 'host'} account, which bills for it; the tasks
-                and the data they read go there
+                Practice runs on your {provider ?? 'host'} account, with the key in Settings, and is
+                billed there; the tasks and the data they read go there
               </span>
             </>
           ) : (
@@ -104,7 +104,9 @@ export function TrainingPlace({
           )}
         </RadioCard>
       </RadioCardGroup>
-      {advantage && <p className="m-0 -mt-1.5 text-fg-secondary text-pretty">{advantage}</p>}
+      {advantage && local.rounds.most > 0 && (
+        <p className="m-0 -mt-1.5 text-fg-secondary text-pretty">{advantage}</p>
+      )}
       {onRetryKeys && (
         <button
           type="button"
@@ -149,11 +151,10 @@ export function TrainingPlace({
             className="self-start"
           />
           <p className="m-0 pl-7 text-sm text-fg-muted text-pretty">
-            No setup ({names.student} on its own), a one-time setup ({names.mentor} writes
-            instructions once, without watching) and self-correction ({names.student} revising its
-            own). Each also takes the final test, {formatAbout(testSeconds(job)).toLowerCase()}{' '}
-            apiece on {device}; only the one-time setup uses {names.mentor}. The report puts all
-            four side by side.
+            {names.student} on its own, instructions {names.mentor} writes in one go, and{' '}
+            {names.student} revising its own. They run after this agent and add several hours, since
+            each takes its own final test ({formatAbout(testSeconds(job)).toLowerCase()} apiece on{' '}
+            {device}). The report puts all four side by side.
           </p>
         </div>
       )}
