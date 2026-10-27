@@ -6,7 +6,7 @@ import {
   type Task,
 } from '@architect/shared';
 import type { StoredAttempt, StudentTarget } from '../store/records';
-import { answerSummary, expectedSummary, studentPrice } from './attempts';
+import { answerSummary, expectedSummary, lockedCheck, studentPrice } from './attempts';
 import type { EvaluatedTask, EvaluationContext } from './deps';
 import { writeJsonFile } from './files';
 import { runPool } from './pool';
@@ -50,7 +50,8 @@ function reportProgress(state: RunState, spec: EvaluationSpec, done: ReadonlySet
 
 /**
  * Persists one attempt with its student calls, in one transaction. Locked-test attempts keep
- * no trace file and no summaries, so test prompts and answers stay in the vault.
+ * no trace file, no summaries and only pass or fail with the failing field, so test prompts
+ * and answers stay in the vault.
  */
 async function recordAttempt(
   state: RunState,
@@ -72,7 +73,7 @@ async function recordAttempt(
     taskType: item.task.type,
     split: spec.split,
     harnessVersion: spec.version,
-    check,
+    check: locked ? lockedCheck(item.task, check) : check,
     latencyMs: trace.latencyMs,
     usage: trace.usage,
     answerSummary: locked ? undefined : answerSummary(outcome),

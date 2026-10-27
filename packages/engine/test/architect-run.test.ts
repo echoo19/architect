@@ -254,6 +254,34 @@ describe('an architect run', () => {
     expect(tests.every((a) => a.tracePath === null && a.expectedSummary === undefined)).toBe(true);
   });
 
+  it('keeps no expected or actual value from a locked-test check, only the failing field', async () => {
+    world.runtime.failedCheck = () => ({
+      pass: false,
+      reason: 'Expected ok to be true, but it is false.',
+      details: { expected: { ok: true }, actual: { ok: false } },
+    });
+    const { record } = await runArchitect();
+    const tests = engine.store.attempts.list({ runId: record.run.id, split: 'test' });
+    expect(tests.map((attempt) => attempt.check)).toEqual(
+      tests.map((attempt) =>
+        attempt.taskType === 'invoice'
+          ? { pass: true, reason: 'Passed.' }
+          : { pass: false, reason: 'Failed: ok is wrong.' },
+      ),
+    );
+    const emitted = engine.events.flatMap((e) =>
+      e.type === 'attempt.finished' && e.attempt.split === 'test' ? [e.attempt.check] : [],
+    );
+    expect(emitted).toEqual(tests.map((attempt) => attempt.check));
+
+    const dev = engine.store.attempts.list({ runId: record.run.id, split: 'dev' });
+    expect(dev.find((attempt) => !attempt.check.pass)?.check).toEqual({
+      pass: false,
+      reason: 'Expected ok to be true, but it is false.',
+      details: { expected: { ok: true }, actual: { ok: false } },
+    });
+  });
+
   it('computes the report card and writes the graduate folder', async () => {
     const { record } = await runArchitect();
     const report = engine.store.reports.get(record.run.id);
