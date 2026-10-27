@@ -36,6 +36,13 @@ export function providerName(provider: MentorPreset['provider']): string {
   return PROVIDER_NAMES[provider];
 }
 
+/** Where a provider's keys are made, for people who don't have one yet. */
+export const KEY_PAGES: Record<MentorPreset['provider'], { url: string; where: string }> = {
+  meta: { url: 'https://dev.meta.ai', where: 'under API keys' },
+  baseten: { url: 'https://www.baseten.co', where: 'in your account settings' },
+  modal: { url: 'https://modal.com', where: 'in your workspace settings' },
+};
+
 /** "$1.25 in · $4.25 out per million tokens" */
 export function formatPricing(pricing: TokenPricing): string {
   const usd = (amount: number) => `$${amount.toFixed(2)}`;

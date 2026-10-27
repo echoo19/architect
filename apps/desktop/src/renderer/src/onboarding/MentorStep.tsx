@@ -10,10 +10,12 @@ import { Button, Input, Panel, RadioCard, RadioCardGroup, SettingsRow } from '@a
 import { CircleAlert, CircleCheck } from 'lucide-react';
 import { architect } from '../api/client';
 import { toError, type QueryState } from '../api/query';
+import { CopyButton } from '../components/CopyButton';
 import { errorOf } from '../components/QueryValue';
+import { aboutUsd, mentorUsdFor, TYPICAL_ROUNDS } from '../flow/define/estimates';
 import { shortModelName } from '../lib/names';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
-import { formatPricing, presetFor, providerName } from './mentor';
+import { formatPricing, KEY_PAGES, presetFor, providerName } from './mentor';
 import { StepIntro } from './SetupShell';
 
 async function testMentor(config: MentorConfig): Promise<ConnectionTest> {
@@ -88,8 +90,8 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
   return (
     <>
       <StepIntro title="Choose a mentor">
-        The mentor watches a new agent practice and fixes its mistakes, only while training and
-        under a spending cap. It never sees your chats.
+        The mentor is a paid cloud model that coaches each new agent while it trains, then
+        disconnects. Your agents never call it, and it never sees your chats.
       </StepIntro>
       <div className="flex w-full max-w-[720px] flex-col gap-4">
         <RadioCardGroup
@@ -105,13 +107,21 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
           {MENTOR_PRESETS.map((option) => (
             // Locked while a test runs, so its result can't land under another mentor.
             <RadioCard key={option.key} value={option.key} title={option.label} disabled={testing}>
+              <span className="text-fg">
+                {aboutUsd(mentorUsdFor(option.pricing, TYPICAL_ROUNDS))} to train an agent
+              </span>
+              <span className="text-pretty">{option.note}</span>
               <span className="font-mono text-xs text-fg-muted">
                 {formatPricing(option.pricing)}
               </span>
-              <span className="text-pretty">{option.note}</span>
             </RadioCard>
           ))}
         </RadioCardGroup>
+        <p className="m-0 text-sm text-fg-muted text-pretty">
+          Costs are for a typical {TYPICAL_ROUNDS}-round job, and every job has its own spending
+          cap. The contributor tier costs less because Meta may use what you send to train its
+          models. A token is about three quarters of a word.
+        </p>
         {mentor.kind === 'model' && (
           <Panel aria-label="Mentor key" className="px-7 py-1 [&>*:first-child]:border-t-0">
             <form onSubmit={(event) => void test(event)}>
@@ -150,7 +160,23 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
             {result && <ConnectionResult result={result} mentor={shortModelName(mentor.label)} />}
           </Panel>
         )}
+        {preset && !stored && <KeySource page={KEY_PAGES[preset.provider]} />}
       </div>
     </>
+  );
+}
+
+/**
+ * Where to make a key, and that the step can wait. Architect doesn't open web pages itself, so
+ * the address is there to copy into a browser.
+ */
+function KeySource({ page }: { page: { url: string; where: string } }) {
+  return (
+    <p className="m-0 flex flex-wrap items-center justify-center gap-x-1 text-sm text-fg-muted">
+      No key yet? Make one {page.where} at
+      <span className="font-mono text-fg-secondary">{page.url}</span>
+      <CopyButton text={page.url} label="Copy the address" className="-my-1" />
+      or skip this step and add one later in Settings.
+    </p>
   );
 }
