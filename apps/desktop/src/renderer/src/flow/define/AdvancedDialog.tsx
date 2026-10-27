@@ -25,7 +25,7 @@ import type { QueryState } from '../../api/query';
 import { KeyRow } from '../../components/KeyRow';
 import { errorOf, QueryValue } from '../../components/QueryValue';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
-import { mentorProvider } from '../../onboarding/mentor';
+import { mentorNote, mentorProvider } from '../../onboarding/mentor';
 import { modelNames } from '../names';
 import { aboutUsd, estimateMentorUsd, mentorPresetOf } from './estimates';
 import { NumberField, PathField, TabNote, TextField } from './fields';
@@ -44,12 +44,12 @@ export type AdvancedTab =
   | 'splits'
   | 'evaluation';
 
-const EXPERIMENTS = 'For experiments';
+const EXPERIMENTS = 'Rarely changed';
 
 const TABS: readonly SettingsTab<AdvancedTab>[] = [
   { value: 'tasks', label: 'Example tasks' },
   { value: 'requirements', label: 'Ready when' },
-  { value: 'budget', label: 'Budget' },
+  { value: 'budget', label: 'Time and budget' },
   { value: 'mentor', label: 'Mentor' },
   { value: 'student', label: "Agent's model" },
   { value: 'harness', label: 'Starting instructions' },
@@ -445,7 +445,7 @@ function MentorTab({ editor }: TabProps) {
           className="w-64"
         />
       </SettingsRow>
-      {preset && <TabNote>{preset.note}</TabNote>}
+      {preset && <TabNote>{mentorNote(preset)}</TabNote>}
       <KeyRow secretRef={mentor.secretRef} provider={mentorProvider(mentor)} />
       <SettingsRow
         label="Price"
@@ -637,13 +637,13 @@ function SplitsTab({ editor, summaries }: TabProps & { summaries: QueryState<Job
   return (
     <>
       <ExperimentNote>
-        Architect divides the job&apos;s{total === undefined ? '' : ` ${total}`} example tasks into
-        these sets. Each round, {mentor} makes one change to the agent&apos;s instructions, and the
-        check tasks decide whether it stays.
+        Architect divides the{total === undefined ? '' : ` ${total}`} example tasks you attached
+        into these sets. Each round, {mentor} makes one change, and the check tasks decide whether
+        it stays.
       </ExperimentNote>
       <NumberField
         label="Difficulty check"
-        meta={`Set aside to measure how hard the job is for ${student} before any teaching. Training never uses them.`}
+        meta={`Set aside to measure how hard the job is for ${student} before any teaching. Not used for training or the final test.`}
         unit="tasks"
         value={calibration}
         issue={issues['splits.calibration']}
@@ -707,8 +707,8 @@ function EvaluationTab({ editor }: TabProps) {
     <>
       <ExperimentNote>
         When a change {mentor} makes stays, and when training gives up. A change that clears these
-        limits is checked a second time on new seeds, and stays only if it clears twice the limits
-        over both checks.
+        limits is checked a second time, and stays only if it clears twice the limits over both
+        checks.
       </ExperimentNote>
       <NumberField
         label="Practice tasks per round"

@@ -55,16 +55,18 @@ export function estimateTime(job: Job, place: TrainPlace): TimeEstimate {
     Math.max(0, Math.min(maxRounds, Math.floor((capSeconds - checkRun) / perRound)));
   const training = (perRound: number) => Math.min(checkRun + maxRounds * perRound, capSeconds);
   const trainingSeconds = { least: training(round.least), most: training(round.most) };
-  const testSeconds = job.splits.test * SECONDS_PER_TASK.local;
+  const test = testSeconds(job);
   return {
-    seconds: {
-      least: trainingSeconds.least + testSeconds,
-      most: trainingSeconds.most + testSeconds,
-    },
+    seconds: { least: trainingSeconds.least + test, most: trainingSeconds.most + test },
     trainingSeconds,
     rounds: { fewest: fit(round.most), most: fit(round.least) },
     roundSeconds: round,
   };
+}
+
+/** The locked test, which always runs on this computer, whatever trained the agent. */
+export function testSeconds(job: Job): number {
+  return job.splits.test * SECONDS_PER_TASK.local;
 }
 
 /** A time cap as people say it: "4 hours", "90 minutes", "2.5 hours". */

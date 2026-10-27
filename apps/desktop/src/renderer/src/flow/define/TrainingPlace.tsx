@@ -10,9 +10,11 @@ import {
   aboutUsd,
   capText,
   estimateMentorUsd,
+  formatAbout,
   estimateTime,
   hostedAdvantage,
   roundsLine,
+  testSeconds,
   totalLine,
 } from './estimates';
 import { providerName, type HostedAvailability } from './hosted';
@@ -58,9 +60,9 @@ export function TrainingPlace({
         <p className="m-0 max-w-[720px] text-fg-secondary text-pretty">
           {studentIntro(names.student)}, practices where you choose while{' '}
           {mentorIntro(names.mentor)}, coaches it from the cloud. Training stops after{' '}
-          {capText(job.budget.maxWallMinutes)} (set in Advanced settings), then the final test runs
-          on {device}. A round takes longer when its change looks promising, because the check tasks
-          are run a second time to confirm it.
+          {capText(job.budget.maxWallMinutes)} (set under Time and budget in Advanced settings),
+          then the final test runs on {device}. A round takes longer when its change looks
+          promising, because the change is tested twice before it stays.
         </p>
       </div>
       <RadioCardGroup
@@ -70,7 +72,11 @@ export function TrainingPlace({
       >
         <RadioCard value="local" title={deviceLabel(currentPlatform())}>
           <span className="text-fg">{roundsLine(job, local)}</span>
-          <span>{totalLine(local)}</span>
+          {local.rounds.most === 0 ? (
+            <span>Too slow for this time limit. Raise it in Advanced settings to train here.</span>
+          ) : (
+            <span>{totalLine(local)}</span>
+          )}
           <span>Practice runs here; {mentor} sees only the attempts and file samples it needs</span>
         </RadioCard>
         <RadioCard
@@ -86,8 +92,8 @@ export function TrainingPlace({
               <span className="text-fg">{roundsLine(job, remote)}</span>
               <span>{totalLine(remote)}</span>
               <span>
-                Runs on your {provider ?? 'host'} account; practice tasks and the data they read go
-                there
+                Practice runs on your {provider ?? 'host'} account, which bills for it; the tasks
+                and the data they read go there
               </span>
             </>
           ) : (
@@ -130,7 +136,7 @@ export function TrainingPlace({
         <span className="text-fg-secondary text-pretty">
           {usual === null
             ? `No price on file for ${mentor}. Training stops before a call would go over the cap.`
-            : `${aboutUsd(usual)} for ${job.budget.maxRounds} rounds. Training stops before a call would go over the cap.`}
+            : `${aboutUsd(usual)} if all ${job.budget.maxRounds} rounds run. Training stops before a call would go over the cap.`}
         </span>
       </div>
 
@@ -143,9 +149,11 @@ export function TrainingPlace({
             className="self-start"
           />
           <p className="m-0 pl-7 text-sm text-fg-muted text-pretty">
-            {names.student} with no setup, a setup {names.mentor} writes once, and {names.student}{' '}
-            correcting itself. They add training time; only the one-time setup uses {names.mentor}.
-            The report puts all four side by side.
+            No setup ({names.student} on its own), a one-time setup ({names.mentor} writes
+            instructions once, without watching) and self-correction ({names.student} revising its
+            own). Each also takes the final test, {formatAbout(testSeconds(job)).toLowerCase()}{' '}
+            apiece on {device}; only the one-time setup uses {names.mentor}. The report puts all
+            four side by side.
           </p>
         </div>
       )}
