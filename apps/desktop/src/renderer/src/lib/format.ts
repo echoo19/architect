@@ -24,11 +24,6 @@ export function formatDuration(ms: number): string {
   return minutes % 60 === 0 ? `${hours} h` : `${hours} h ${minutes % 60} min`;
 }
 
-/** "1.2 s", "850 ms". */
-export function formatSeconds(ms: number): string {
-  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
-}
-
 export function formatBytes(bytes: number): string {
   const gb = bytes / 1024 ** 3;
   if (gb >= 1) return `${gb >= 10 ? Math.round(gb) : gb.toFixed(1)} GB`;

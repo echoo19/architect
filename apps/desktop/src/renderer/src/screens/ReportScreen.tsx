@@ -5,6 +5,7 @@ import { ArrowRight } from 'lucide-react';
 import { api, flowApi } from '../api/client';
 import { createChat, queryKeys, useGraduates, useJob, useReport, useSettings } from '../api/hooks';
 import { fetchQuery } from '../api/query';
+import { useComparison } from '../flow/report/ComparisonTable';
 import { ReportView } from '../flow/report/ReportView';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
@@ -68,12 +69,13 @@ function LoadedReport({ report }: { report: ReportCard }) {
   const job = useJob(report.jobId);
   const graduates = useGraduates();
   const settings = useSettings();
+  const comparison = useComparison(report, settings.data?.comparisonMode === true);
   return (
     <ReportView
       report={report}
       job={job.status === 'success' ? job.data : null}
       graduate={graduates.data?.find((graduate) => graduate.manifest.runId === report.runId)}
-      comparisonMode={settings.data?.comparisonMode === true}
+      comparison={comparison}
     />
   );
 }

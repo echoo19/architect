@@ -1,7 +1,8 @@
 import type { GraduateSummary, ReportCard } from '@architect/shared';
 import { ErrorState, Heading, Meter, Skeleton, Stat } from '@architect/ui';
 import { useReport } from '../../api/hooks';
-import { formatPercent, formatSeconds, formatUsd, percentOf } from '../../lib/format';
+import { formatAnswerTime } from '../../flow/format';
+import { formatPercent, formatUsd, percentOf } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
 
 /** The agent's report card in brief: how it did on the locked test, and what it refuses. */
@@ -40,22 +41,25 @@ function ReportSummary({ report }: { report: ReportCard }) {
         <Stat
           className={cell}
           value={formatPercent(test.score)}
-          label="Task success"
-          note={`${test.score.pass}/${test.score.total} · target ${Math.round(
+          label="of new tasks right"
+          note={`${test.score.pass} of ${test.score.total}, target ${Math.round(
             requirements.passRate.target * 100,
           )}%`}
+          noteFont="text"
         />
         <Stat
           className={cell}
-          value={formatSeconds(test.latencyMs.p50)}
+          value={formatAnswerTime(test.latencyMs.p50)}
           label="Typical answer"
-          note={`Slowest ${formatSeconds(test.latencyMs.p95)}`}
+          note={`95% within ${formatAnswerTime(test.latencyMs.p95)}`}
+          noteFont="text"
         />
         <Stat
           className={cell}
           value={formatUsd(cost.mentorUsd)}
           label={`${shortModelName(report.mentor.label)} mentoring`}
-          note={`${cost.rounds} rounds, once`}
+          note={`${cost.rounds} rounds, paid once`}
+          noteFont="text"
         />
       </div>
 
@@ -69,7 +73,7 @@ function ReportSummary({ report }: { report: ReportCard }) {
                 {formatPercent(type)}
                 <span className="text-fg-muted">
                   {' '}
-                  · {type.pass}/{type.total}
+                  · {type.pass} of {type.total}
                 </span>
               </span>
             </div>
@@ -95,7 +99,7 @@ function ReportSummary({ report }: { report: ReportCard }) {
                     {type.label}
                     {result && (
                       <span className="font-mono text-fg-muted">
-                        {result.pass}/{result.total}
+                        {result.pass} of {result.total}
                       </span>
                     )}
                   </span>

@@ -1,5 +1,6 @@
 import { METHOD_LABELS, type Method, type ReportCard, type Run } from '@architect/shared';
 import { rate } from '../format';
+import type { ModelNames } from '../train/phase';
 
 const METHOD_ORDER: readonly Method[] = ['architect', 'one_shot', 'self_reflection', 'bare'];
 
@@ -58,10 +59,25 @@ export function comparisonRows(reports: readonly ReportCard[], runId: string): C
     }));
 }
 
-/** "+28 pts", "−4 pts", "0 pts". */
+/** What each way of building the agent did, in one line, with the job's model names. */
+export function methodExplanation(method: Method, { mentor, student }: ModelNames): string {
+  switch (method) {
+    case 'architect':
+      return `${mentor} watched ${student} work and kept only changes that helped`;
+    case 'one_shot':
+      return `${mentor} wrote the agent's setup once, without watching it work`;
+    case 'self_reflection':
+      return `${student} corrected its own setup, with no mentor`;
+    case 'bare':
+      return `${student} with no setup`;
+  }
+}
+
+/** "+28 points", "−4 points", "0 points". */
 export function formatPoints(points: number): string {
   const rounded = Math.round(points);
-  if (rounded > 0) return `+${rounded} pts`;
-  if (rounded < 0) return `−${Math.abs(rounded)} pts`;
-  return '0 pts';
+  const unit = Math.abs(rounded) === 1 ? 'point' : 'points';
+  if (rounded > 0) return `+${rounded} ${unit}`;
+  if (rounded < 0) return `−${Math.abs(rounded)} ${unit}`;
+  return '0 points';
 }
