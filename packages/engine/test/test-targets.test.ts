@@ -117,6 +117,7 @@ describe('where the locked test runs', () => {
       model: 'glimmer-hosted',
       runtime: 'openai_compatible',
     });
+    expect(engine.store.graduates.forRun(run.id)?.manifest.test.testedOn).toBe('hosted');
   });
 
   it('pauses before testing a local student that is no longer the frozen build', async () => {

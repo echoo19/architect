@@ -350,7 +350,7 @@ describe('an architect run', () => {
       id: record.run.graduateId,
       method: 'architect',
       harness: { version: 2 },
-      test: { score: { pass: 2, total: 6 } },
+      test: { score: { pass: 2, total: 6 }, testedOn: 'local' },
       student: {
         runtime: 'ollama',
         model: 'glimmer:test',
