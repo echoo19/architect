@@ -89,6 +89,11 @@ export interface MentorSession {
 export interface RuntimeDeps {
   splitTasks(tasks: Task[], config: SplitConfig): TaskSplits;
   /**
+   * The date a run's tasks are evaluated against, `YYYY-MM-DD`: the job's `businessDate` when it
+   * has one, otherwise the date at `now`. A run fixes it when it starts.
+   */
+  today(job: Job, now: Date): string;
+  /**
    * Runs the student on each task and checks the result. It should reject, not return an
    * `error` attempt, when the student can't be reached, so an outage pauses the run instead
    * of being scored as failures.
@@ -116,8 +121,9 @@ export interface VaultDeps {
 export interface HarnessVersionStore {
   /** Saves the next version, derived from `parent`; returns it with its number and hash. */
   save(harness: Harness, parent?: number): Awaitable<Harness>;
+  /** Fails if the version's files no longer match its recorded hash. */
   load(version: number): Awaitable<Harness>;
-  latest(): Awaitable<Harness | null>;
+  latest(): Awaitable<Harness | undefined>;
 }
 
 export interface GraduateContents {
@@ -127,24 +133,34 @@ export interface GraduateContents {
   lineage: LineageEntry[];
 }
 
+/** The name `applyEdits` gives the error for a change set whose files don't validate. */
+export const HARNESS_VALIDATION_ERROR = 'HarnessValidationError';
+
 export interface HarnessDeps {
   versions(dir: string): HarnessVersionStore;
-  /** Throws `GuardError('harness_surface')` for any path outside the harness surface. */
-  applyEdits(harness: Harness, edits: FileEdit[]): Harness;
+  /**
+   * Throws `GuardError('harness_surface')` for a path outside the harness surface, and an error
+   * named `HarnessValidationError` when the edited files don't validate.
+   */
+  applyEdits(harness: Harness, edits: readonly FileEdit[]): Harness;
   diffHarness(from: Harness, to: Harness): FileDiff[];
-  /** The harness as the files the mentor edits, keyed by path relative to the folder. */
-  harnessToFiles(harness: Harness): Record<string, string>;
-  blankHarness(name: string, description: string): Harness;
-  /** Reads and validates a harness folder, for jobs that start from an imported harness. */
-  readHarness(dir: string): Awaitable<Harness>;
+  /** The harness as files keyed by relative path; with `includeDefaults`, every settings file too. */
+  harnessToFiles(harness: Harness, options?: { includeDefaults?: boolean }): Record<string, string>;
+  blankHarness(name: string, jobDescription: string): Harness;
+  templateHarness(name: string, jobDescription: string, template: string): Harness;
+  /** Reads a harness folder to improve, as a fresh starting point. */
+  importHarness(dir: string): Awaitable<Harness>;
   writeGraduate(dir: string, graduate: GraduateContents): Awaitable<void>;
-  /** Reads and validates a graduate folder's manifest, for graduate import. */
-  readGraduateManifest(dir: string): Awaitable<GraduateManifest>;
+  /** Reads and validates a graduate folder, for graduate import. */
+  readGraduate(dir: string): Awaitable<{ manifest: GraduateManifest }>;
 }
 
 export interface AdapterDeps {
   createMentor(config: MentorConfig, options: { apiKey: string }): MentorAdapter;
-  createStudent(endpoint: StudentEndpoint, options: { apiKey?: string }): StudentAdapter;
+  createStudent(
+    endpoint: StudentEndpoint,
+    options: { apiKey?: string; label?: string },
+  ): StudentAdapter;
 }
 
 export interface SecretDeps {

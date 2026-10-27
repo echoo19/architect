@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  AdapterError,
   GuardError,
   type LineageEntry,
   type MentorCompletionRequest,
@@ -10,7 +11,7 @@ import {
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { describeDataFiles } from '../src/mentor/data-files';
-import { MentorGate } from '../src/mentor/gate';
+import { MentorGate, type MentorCharge } from '../src/mentor/gate';
 import { diagnoseRequest, oneShotRequest } from '../src/mentor/prompts';
 import { HYPOTHESIS_JSON_SCHEMA, MentorReplyError, parseHypothesis } from '../src/mentor/reply';
 import { studentAsMentor } from '../src/mentor/student-author';
@@ -137,6 +138,40 @@ describe('the mentor gate', () => {
       guard: 'split',
     });
     expect(mentor.requests).toHaveLength(1);
+  });
+
+  it('counts the adapter’s repair call in the worst case of a JSON request', async () => {
+    const mentor = new FakeMentor();
+    mentor.script = () => hypothesis('A', 'fix:invoice');
+    const big = { ...request('Fine.'), maxOutputTokens: 100_000 };
+    const json = { ...big, json: { name: 'hypothesis', schema: HYPOTHESIS_JSON_SCHEMA } };
+    await expect(gate({ maxUsd: 0.6 }).complete(mentor, json)).rejects.toMatchObject({
+      guard: 'budget',
+    });
+    expect(mentor.requests).toHaveLength(0);
+    await expect(gate({ maxUsd: 0.6 }).complete(mentor, big)).resolves.toBeDefined();
+  });
+
+  it('charges a failed call the provider billed for', async () => {
+    const mentor = new FakeMentor();
+    mentor.script = () => {
+      throw Object.assign(new AdapterError('bad_response', 'The reply was not JSON.'), {
+        usage: { inputTokens: 100, outputTokens: 50 },
+        costUsd: null,
+      });
+    };
+    const charges: MentorCharge[] = [];
+    const call = gate().complete(mentor, request('Fine.'), {
+      onSpent: (charge) => charges.push(charge),
+    });
+    await expect(call).rejects.toMatchObject({ code: 'bad_response' });
+    expect(charges).toEqual([
+      {
+        model: 'fake-mentor-1',
+        usage: { inputTokens: 100, outputTokens: 50 },
+        costUsd: (100 * 1.25 + 50 * 4.25) / 1_000_000,
+      },
+    ]);
   });
 
   it('passes a clean call through and charges what it cost', async () => {

@@ -1,4 +1,11 @@
-import { GuardError, type Harness, type Task, type Trace, type Usage } from '@architect/shared';
+import {
+  GuardError,
+  type Harness,
+  type Job,
+  type Task,
+  type Trace,
+  type Usage,
+} from '@architect/shared';
 import type {
   Evaluation,
   EvaluationContext,
@@ -71,6 +78,10 @@ export class FakeRuntime implements RuntimeDeps {
   splitTasks(tasks: Task[]): TaskSplits {
     const of = (prefix: string) => tasks.filter((task) => task.id.startsWith(prefix));
     return { calibration: of('cal-'), train: of('train-'), dev: of('dev-'), test: of('test-') };
+  }
+
+  today(job: Job, now: Date): string {
+    return job.businessDate ?? now.toISOString().slice(0, 10);
   }
 
   async evaluateTasks(

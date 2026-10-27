@@ -15,9 +15,17 @@ import {
 import type { HarnessVersionStore } from '../../src/loop/deps';
 
 export function blankHarness(name: string, description: string): Harness {
+  return withSystem(name, `You are ${name}. ${description}`);
+}
+
+export function templateHarness(name: string, description: string, template: string): Harness {
+  return withSystem(name, `You are ${name}. ${description}\nTemplate: ${template}`);
+}
+
+function withSystem(name: string, system: string): Harness {
   return {
     meta: { format: 1, name, version: 0, hash: '' },
-    system: `You are ${name}. ${description}`,
+    system,
     skills: [],
     tools: [],
     examples: [],
@@ -43,14 +51,24 @@ function contentHash(harness: Harness): string {
   return `sha256-${digest.slice(0, 16)}`;
 }
 
+/** Named like the harness package's error for a change set whose files don't validate. */
+class HarnessValidationError extends Error {
+  override name = 'HarnessValidationError';
+}
+
 /** Enough of the real edit rules for the loop: system.md, skills and guardrails. */
-export function applyEdits(harness: Harness, edits: FileEdit[]): Harness {
+export function applyEdits(harness: Harness, edits: readonly FileEdit[]): Harness {
   const next = structuredClone(harness);
   for (const edit of edits) {
     if (!isHarnessSurfacePath(edit.path)) {
       throw new GuardError('harness_surface', `${edit.path} is outside the harness surface.`);
     }
-    if (edit.path === 'system.md') next.system = edit.op === 'write' ? edit.content : '';
+    if (edit.path === 'system.md' && edit.op === 'delete') {
+      throw new HarnessValidationError(
+        'system.md: cannot be deleted. Every harness needs a system prompt.',
+      );
+    }
+    if (edit.path === 'system.md' && edit.op === 'write') next.system = edit.content;
     if (edit.path === 'guardrails.yaml') {
       next.guardrails = GuardrailsSchema.parse(edit.op === 'write' ? JSON.parse(edit.content) : {});
     }
@@ -77,13 +95,16 @@ export function diffHarness(from: Harness, to: Harness): FileDiff[] {
   });
 }
 
-/** Harness versions as JSON files, so they outlive one controller like the real folders do. */
+/**
+ * Harness versions as JSON files, so they outlive one controller like the real folders do.
+ * Numbered from 1, as `HarnessVersions` numbers them.
+ */
 export class FileVersions implements HarnessVersionStore {
   constructor(private readonly dir: string) {}
 
   async save(harness: Harness, parent?: number): Promise<Harness> {
     const versions = await this.versions();
-    const version = versions.length === 0 ? 0 : Math.max(...versions) + 1;
+    const version = versions.length === 0 ? 1 : Math.max(...versions) + 1;
     const saved: Harness = {
       ...harness,
       meta: { ...harness.meta, version, parent, hash: contentHash(harness) },
@@ -99,9 +120,9 @@ export class FileVersions implements HarnessVersionStore {
     );
   }
 
-  async latest(): Promise<Harness | null> {
+  async latest(): Promise<Harness | undefined> {
     const versions = await this.versions();
-    return versions.length === 0 ? null : this.load(Math.max(...versions));
+    return versions.length === 0 ? undefined : this.load(Math.max(...versions));
   }
 
   async versions(): Promise<number[]> {

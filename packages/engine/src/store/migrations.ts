@@ -139,6 +139,7 @@ export const MIGRATIONS: readonly Migration[] = [
         name TEXT NOT NULL,
         path TEXT NOT NULL,
         manifest TEXT NOT NULL,
+        settings TEXT,
         created_at TEXT NOT NULL
       );
       CREATE INDEX graduates_by_run ON graduates (run_id);

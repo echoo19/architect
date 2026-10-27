@@ -29,7 +29,7 @@ export async function connectStudent(
   const endpoint = studentEndpoint(job, target);
   const apiKey =
     endpoint.secretRef === undefined ? undefined : await secret(deps, endpoint.secretRef);
-  return deps.adapters.createStudent(endpoint, { apiKey });
+  return deps.adapters.createStudent(endpoint, { apiKey, label: job.student.label });
 }
 
 export async function connectMentor(
@@ -54,11 +54,9 @@ export async function startingHarness(
   switch (start.kind) {
     case 'blank':
       return harness.blankHarness(job.name, job.description);
-    case 'import':
-      return harness.readHarness(resolve(jobDir, start.path));
     case 'template':
-      throw new Error(
-        `Harness templates aren't available yet; start "${job.name}" from a blank or imported harness.`,
-      );
+      return harness.templateHarness(job.name, job.description, start.template);
+    case 'import':
+      return harness.importHarness(resolve(jobDir, start.path));
   }
 }

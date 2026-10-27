@@ -16,7 +16,7 @@ import type { DataPaths } from './paths';
 import { isTerminal } from './plan';
 import { fanOutSeeds } from './seeds';
 import { RunSession } from './session';
-import { isoNow, localDate } from './time';
+import { isoNow } from './time';
 
 export interface RunControllerOptions {
   store: EngineStore;
@@ -79,7 +79,7 @@ export class RunController {
     seed?: number,
     options: StartRunOptions = {},
   ): Promise<Run> {
-    const { jobs, paths, store } = this.options;
+    const { jobs, paths, store, deps } = this.options;
     const job = await jobs.get(jobId);
     await this.checkRunnable(job, method, options);
     const runSeed = seed ?? Math.floor(Math.random() * 2 ** 31);
@@ -100,7 +100,7 @@ export class RunController {
         totals: emptyTotals(),
       },
       seeds: fanOutSeeds(runSeed),
-      today: localDate(this.clock.now()),
+      today: deps.runtime.today(job, new Date(this.clock.now())),
       lockedTestOn: options.lockedTestOn ?? 'local',
       stopRequested: false,
       freeze: null,

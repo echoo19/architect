@@ -78,7 +78,7 @@ describe('restart recovery', () => {
     expect(record?.run).toMatchObject({
       status: 'finished',
       stopReason: 'rounds',
-      currentVersion: 1,
+      currentVersion: 2,
       devCurrent: { pass: 3, total: 9 },
     });
     const attempts = second.store.attempts.list({ runId });
@@ -87,7 +87,7 @@ describe('restart recovery', () => {
     const redone = world.runtime.attempts.slice(before);
     expect(redone).toHaveLength(34);
     expect(
-      redone.some((attempt) => attempt.taskId.startsWith('dev-') && attempt.version === 0),
+      redone.some((attempt) => attempt.taskId.startsWith('dev-') && attempt.version === 1),
     ).toBe(false);
     expect(world.mentor.requests).toHaveLength(2);
     expect(record?.run.totals.attempts).toBe(45);
@@ -102,7 +102,7 @@ describe('restart recovery', () => {
   it('never pays for the same mentor reply twice after a crash', async () => {
     let candidateSeen = 0;
     const crashed = crashAt(
-      (taskId, version) => taskId.startsWith('dev-') && version === 1 && ++candidateSeen === 2,
+      (taskId, version) => taskId.startsWith('dev-') && version === 2 && ++candidateSeen === 2,
     );
     const first = open();
     const runId = await startArchitect(first);

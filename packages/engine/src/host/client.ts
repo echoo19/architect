@@ -108,6 +108,9 @@ export function connectEngine(
       exportFolder: (graduateId, folder) => request('graduates.exportFolder', [graduateId, folder]),
       importFolder: (folder) => request('graduates.importFolder', [folder]),
       remove: (graduateId) => request('graduates.remove', [graduateId]),
+      settings: (graduateId) => request('graduates.settings', [graduateId]),
+      updateSettings: (graduateId, patch) =>
+        request('graduates.updateSettings', [graduateId, patch]),
     },
     close() {
       closed = true;

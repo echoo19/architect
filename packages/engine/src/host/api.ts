@@ -2,9 +2,11 @@ import { cp, rm } from 'node:fs/promises';
 import {
   AttemptSchema,
   GraduateManifestSchema,
+  GraduateSettingsSchema,
   JobSchema,
   TraceSchema,
   type FileDiff,
+  type GraduateSettings,
   type GraduateSummary,
   type RunDetail,
   type Trace,
@@ -119,10 +121,11 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
   }
 
   async function importFolder(folder: string): Promise<GraduateSummary> {
-    const manifest = GraduateManifestSchema.parse(await deps.harness.readGraduateManifest(folder));
+    const { manifest } = await deps.harness.readGraduate(folder);
     if (!isSafeId(manifest.id)) throw new Error(`"${manifest.id}" isn't a valid graduate id.`);
-    if (store.graduates.get(manifest.id))
+    if (store.graduates.get(manifest.id)) {
       throw new Error(`"${manifest.name}" is already in Architect.`);
+    }
     const dir = paths.graduateDir(manifest.id);
     await cp(folder, dir, { recursive: true, force: false, errorOnExist: true });
     const record: GraduateRecord = {
@@ -130,11 +133,22 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       runId: store.runs.get(manifest.runId) ? manifest.runId : null,
       name: manifest.name,
       path: paths.toStored(dir),
-      manifest,
+      manifest: GraduateManifestSchema.parse(manifest),
+      settings: null,
       createdAt: manifest.createdAt,
     };
     store.graduates.insert(record);
     return summary(record);
+  }
+
+  const graduate = (graduateId: string): GraduateRecord =>
+    found(store.graduates.get(graduateId), `There is no graduate "${graduateId}".`);
+
+  /** Until the user changes them, a graduate's settings follow its job's permissions. */
+  async function settingsOf(record: GraduateRecord): Promise<GraduateSettings> {
+    if (record.settings) return record.settings;
+    const origin = record.runId === null ? null : store.runs.get(record.runId);
+    return { writeMode: origin ? (await jobs.forRun(origin)).permissions.writes : 'ask' };
   }
 
   return {
@@ -170,11 +184,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       list: async () => store.graduates.list().map(summary),
       accept,
       exportFolder: async (graduateId, folder) => {
-        const graduate = found(
-          store.graduates.get(graduateId),
-          `There is no graduate "${graduateId}".`,
-        );
-        await cp(paths.fromStored(graduate.path), folder, {
+        await cp(paths.fromStored(graduate(graduateId).path), folder, {
           recursive: true,
           force: false,
           errorOnExist: true,
@@ -182,12 +192,16 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       },
       importFolder,
       remove: async (graduateId) => {
-        const graduate = found(
-          store.graduates.get(graduateId),
-          `There is no graduate "${graduateId}".`,
-        );
-        store.graduates.remove(graduate.id);
-        await rm(paths.fromStored(graduate.path), { recursive: true, force: true });
+        const record = graduate(graduateId);
+        store.graduates.remove(record.id);
+        await rm(paths.fromStored(record.path), { recursive: true, force: true });
+      },
+      settings: (graduateId) => settingsOf(graduate(graduateId)),
+      updateSettings: async (graduateId, patch) => {
+        const record = graduate(graduateId);
+        const settings = GraduateSettingsSchema.parse({ ...(await settingsOf(record)), ...patch });
+        store.graduates.update({ ...record, settings });
+        return settings;
       },
     },
   };

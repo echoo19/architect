@@ -136,6 +136,33 @@ describe('the engine host', () => {
     await expect(client.runs.get('run_missing')).rejects.toThrow('There is no run "run_missing".');
   });
 
+  it('keeps settings per graduate, starting from the job’s write permission', async () => {
+    const { client, port } = await connect();
+    const job = await client.jobs.createSample();
+    const graduated = next(client, (event) => event.type === 'graduate.ready');
+    await client.runs.start(job.id, { method: 'bare', seed: 1 });
+    const ready = await graduated;
+    if (ready.type !== 'graduate.ready') throw new Error('No graduate was announced.');
+
+    expect(await client.graduates.settings(ready.graduateId)).toEqual({ writeMode: 'ask' });
+    expect(await client.graduates.updateSettings(ready.graduateId, { writeMode: 'never' })).toEqual(
+      {
+        writeMode: 'never',
+      },
+    );
+    expect(await client.graduates.settings(ready.graduateId)).toEqual({ writeMode: 'never' });
+    const invalid = await raw(port, {
+      kind: 'request',
+      id: 903,
+      method: 'graduates.updateSettings',
+      params: [ready.graduateId, { writeMode: 'never', unknown: true }],
+    });
+    expect(invalid).toMatchObject({ ok: false, error: { name: 'ValidationError' } });
+    await expect(client.graduates.settings('grd_missing')).rejects.toThrow(
+      'There is no graduate "grd_missing".',
+    );
+  });
+
   it('carries guard and adapter errors across with their meaning', () => {
     const guard = fromErrorPayload(toErrorPayload(new GuardError('split', 'Refused.')));
     expect(guard).toBeInstanceOf(GuardError);

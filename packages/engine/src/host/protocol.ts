@@ -1,72 +1,25 @@
 import {
   AdapterError,
-  AttemptSchema,
-  GraduateManifestSchema,
+  DraftTurnSchema,
+  FileDiffSchema,
+  GraduateSettingsSchema,
+  GraduateSummarySchema,
   GuardError,
   JobSchema,
-  LineageEntrySchema,
+  JobSummarySchema,
   MethodSchema,
   ReportCardSchema,
-  RoundSchema,
+  RunDetailSchema,
   RunEventSchema,
   RunSchema,
   TraceSchema,
   type AdapterErrorCode,
   type ArchitectApi,
-  type DraftTurn,
-  type FileDiff,
-  type GraduateSummary,
-  type JobSummary,
-  type RunDetail,
 } from '@architect/shared';
 import { z } from 'zod';
 
 /** The part of the app's API the engine host serves. */
 export type EngineApi = Pick<ArchitectApi, 'jobs' | 'runs' | 'reports' | 'graduates'>;
-
-const JobSummarySchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  summary: z.string().optional(),
-  createdAt: z.string(),
-  taskCount: z.number().int().nonnegative(),
-  latestRun: RunSchema.pick({
-    id: true,
-    status: true,
-    phase: true,
-    method: true,
-    devCurrent: true,
-    devBaseline: true,
-  }).optional(),
-}) satisfies z.ZodType<JobSummary>;
-
-const RunDetailSchema = z.object({
-  run: RunSchema,
-  job: JobSchema,
-  rounds: z.array(RoundSchema),
-  recentAttempts: z.array(AttemptSchema.extend({ prompt: z.string().optional() })),
-  lineage: z.array(LineageEntrySchema),
-}) satisfies z.ZodType<RunDetail>;
-
-const FileDiffSchema = z.object({
-  path: z.string(),
-  status: z.enum(['added', 'modified', 'deleted']),
-  patch: z.string(),
-}) satisfies z.ZodType<FileDiff>;
-
-const GraduateSummarySchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  manifest: GraduateManifestSchema,
-  path: z.string(),
-}) satisfies z.ZodType<GraduateSummary>;
-
-const DraftTurnSchema = z.object({
-  sessionId: z.string(),
-  message: z.string(),
-  options: z.array(z.string()),
-  draft: JobSchema.optional(),
-}) satisfies z.ZodType<DraftTurn>;
 
 const id = z.string().min(1);
 const path = z.string().min(1);
@@ -139,6 +92,14 @@ export const ENGINE_ROUTES = {
   ),
   'graduates.remove': route(z.tuple([id]), z.void(), (api, [graduateId]) =>
     api.graduates.remove(graduateId),
+  ),
+  'graduates.settings': route(z.tuple([id]), GraduateSettingsSchema, (api, [graduateId]) =>
+    api.graduates.settings(graduateId),
+  ),
+  'graduates.updateSettings': route(
+    z.tuple([id, GraduateSettingsSchema.partial().strict()]),
+    GraduateSettingsSchema,
+    (api, [graduateId, patch]) => api.graduates.updateSettings(graduateId, patch),
   ),
 };
 

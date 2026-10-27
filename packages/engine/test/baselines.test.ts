@@ -32,7 +32,7 @@ describe('the bare baseline', () => {
     const { run: finished } = await run('bare');
     expect(finished).toMatchObject({
       status: 'finished',
-      currentVersion: 0,
+      currentVersion: 1,
       devBaseline: { pass: 0, total: 9 },
     });
     expect(finished.stopReason).toBeUndefined();
@@ -72,7 +72,7 @@ describe('the one-shot baseline', () => {
 
     expect(finished).toMatchObject({
       status: 'finished',
-      currentVersion: 1,
+      currentVersion: 2,
       devBaseline: { pass: 0, total: 9 },
       devCurrent: { pass: 6, total: 9 },
     });
@@ -83,8 +83,8 @@ describe('the one-shot baseline', () => {
     expect(entry).toMatchObject({
       round: 1,
       decision: 'kept',
-      versionFrom: 0,
-      versionTo: 1,
+      versionFrom: 1,
+      versionTo: 2,
       measured: { delta: 6 },
     });
     expect(entry?.decisionReason).toContain('without a keep-or-revert check');
@@ -104,7 +104,7 @@ describe('the one-shot baseline', () => {
     world.mentor.script = () => hypothesis('Strict harness', 'strict');
     const { run: finished } = await run('one_shot');
     expect(finished).toMatchObject({
-      currentVersion: 1,
+      currentVersion: 2,
       devBaseline: { pass: 3, total: 9 },
       devCurrent: { pass: 0, total: 9 },
     });
@@ -133,7 +133,7 @@ describe('the self-reflection baseline', () => {
     ]);
     expect(author?.chats[0]?.messages[0]?.content).toContain('Propose exactly one hypothesis');
 
-    expect(finished).toMatchObject({ status: 'finished', stopReason: 'rounds', currentVersion: 2 });
+    expect(finished).toMatchObject({ status: 'finished', stopReason: 'rounds', currentVersion: 3 });
     expect(engine.store.lineage.list(finished.id).map((row) => row.decision)).toEqual([
       'kept',
       'kept',
@@ -153,6 +153,6 @@ describe('the self-reflection baseline', () => {
     const rounds = engine.store.rounds.list(finished.id);
     expect(rounds.map(({ round }) => round.status)).toEqual(['failed', 'failed']);
     expect(rounds[0]?.round.error).toBe('The reply contained no JSON object.');
-    expect(finished).toMatchObject({ status: 'finished', currentVersion: 0 });
+    expect(finished).toMatchObject({ status: 'finished', currentVersion: 1 });
   });
 });

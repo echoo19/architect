@@ -290,6 +290,7 @@ describe('repositories', () => {
       name: 'Service desk',
       path: 'graduates/grd_1',
       manifest,
+      settings: { writeMode: 'allow' as const },
       createdAt: AT,
     };
     store.graduates.insert(graduate);

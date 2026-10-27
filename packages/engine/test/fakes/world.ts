@@ -18,7 +18,14 @@ import { DataPaths } from '../../src/loop/paths';
 import { openEngineStore, type EngineStore } from '../../src/store/engine-store';
 import { FakeMentor, FakeStudent } from './adapters';
 import { ManualClock } from './clock';
-import { applyEdits, blankHarness, diffHarness, FileVersions, harnessToFiles } from './harness';
+import {
+  applyEdits,
+  blankHarness,
+  diffHarness,
+  FileVersions,
+  harnessToFiles,
+  templateHarness,
+} from './harness';
 import { defaultJob, defaultTasks, writeJobFolder } from './job';
 import { FakeRuntime, FakeVault } from './runtime';
 
@@ -76,16 +83,18 @@ export async function createWorld(
       diffHarness,
       harnessToFiles,
       blankHarness,
-      readHarness: async (dir) =>
+      templateHarness,
+      importHarness: async (dir) =>
         HarnessSchema.parse(JSON.parse(await readFile(join(dir, 'harness.json'), 'utf8'))),
       writeGraduate: async (dir, graduate) => {
         await mkdir(dir, { recursive: true });
         await writeFile(join(dir, 'graduate.json'), JSON.stringify(graduate, null, 2));
       },
-      readGraduateManifest: async (dir) =>
-        GraduateManifestSchema.parse(
+      readGraduate: async (dir) => ({
+        manifest: GraduateManifestSchema.parse(
           JSON.parse(await readFile(join(dir, 'graduate.json'), 'utf8')).manifest,
         ),
+      }),
     },
     adapters: {
       createMentor: () => {

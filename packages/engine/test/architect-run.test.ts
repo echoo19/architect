@@ -61,7 +61,7 @@ describe('an architect run', () => {
       status: 'finished',
       phase: 'done',
       stopReason: 'rounds',
-      currentVersion: 1,
+      currentVersion: 2,
       devBaseline: { pass: 0, total: 9 },
       devCurrent: { pass: 3, total: 9 },
     });
@@ -77,8 +77,8 @@ describe('an architect run', () => {
     expect(
       rounds.map((round) => [round.index, round.status, round.decision, round.candidateVersion]),
     ).toEqual([
-      [1, 'decided', 'kept', 1],
-      [2, 'decided', 'reverted', 2],
+      [1, 'decided', 'kept', 2],
+      [2, 'decided', 'reverted', 3],
     ]);
     expect(rounds[0]?.decisionReason).toBe('Dev 0/9 → 3/9, no type lost more than one');
     expect(rounds[1]?.decisionReason).toBe('Dev 3/9 → 3/9, no change');
@@ -109,15 +109,15 @@ describe('an architect run', () => {
         ],
       },
       decision: 'kept',
-      versionFrom: 0,
-      versionTo: 1,
+      versionFrom: 1,
+      versionTo: 2,
       mentor: { model: 'fake-mentor-1', inputTokens: 2000, outputTokens: 500 },
     });
     expect(reverted).toMatchObject({
       round: 2,
       decision: 'reverted',
-      versionFrom: 1,
-      versionTo: 2,
+      versionFrom: 2,
+      versionTo: 3,
       measured: { delta: 0 },
     });
     expect(
@@ -127,8 +127,8 @@ describe('an architect run', () => {
       [2, 'reverted', 0],
     ]);
     const versions = new FileVersions(engine.paths.harnessDir(record.run.jobId, record.run.id));
-    expect((await versions.load(2)).meta.parent).toBe(1);
-    expect((await versions.load(1)).system).toContain('fix:invoice');
+    expect((await versions.load(3)).meta.parent).toBe(2);
+    expect((await versions.load(2)).system).toContain('fix:invoice');
   });
 
   it('emits events in order and never trains again once testing starts', async () => {
@@ -139,7 +139,7 @@ describe('an architect run', () => {
       ['running', (e) => e.type === 'run.updated' && e.run.status === 'running'],
       [
         'baseline',
-        (e) => e.type === 'eval.finished' && e.split === 'dev' && e.harnessVersion === 0,
+        (e) => e.type === 'eval.finished' && e.split === 'dev' && e.harnessVersion === 1,
       ],
       [
         'round 1 starts',
@@ -153,7 +153,7 @@ describe('an architect run', () => {
       ],
       [
         'candidate 1 on dev',
-        (e) => e.type === 'eval.finished' && e.split === 'dev' && e.harnessVersion === 1,
+        (e) => e.type === 'eval.finished' && e.split === 'dev' && e.harnessVersion === 2,
       ],
       [
         'round 1 kept',
@@ -171,12 +171,12 @@ describe('an architect run', () => {
       ['testing', (e) => e.type === 'run.updated' && e.run.status === 'testing'],
       [
         'frozen',
-        (e) => e.type === 'log' && e.message.startsWith('Graduate frozen at harness version 1'),
+        (e) => e.type === 'log' && e.message.startsWith('Graduate frozen at harness version 2'),
       ],
       ['test starts', (e) => e.type === 'attempt.started' && e.split === 'test'],
       [
         'test ends',
-        (e) => e.type === 'eval.finished' && e.split === 'test' && e.harnessVersion === 1,
+        (e) => e.type === 'eval.finished' && e.split === 'test' && e.harnessVersion === 2,
       ],
       ['finished', (e) => e.type === 'run.updated' && e.run.status === 'finished'],
       ['graduate', (e) => e.type === 'graduate.ready' && e.graduateId === record.run.graduateId],
@@ -220,10 +220,10 @@ describe('an architect run', () => {
     expect(dev).toHaveLength(27);
     expect(new Set(dev.map((a) => a.seed))).toEqual(new Set([seeds.devPanel]));
     const train = attempts.filter((a) => a.taskId.startsWith('train-'));
-    expect(new Set(train.filter((a) => a.version === 0).map((a) => a.seed))).toEqual(
+    expect(new Set(train.filter((a) => a.version === 1).map((a) => a.seed))).toEqual(
       new Set([roundSeed(seeds.trainStudent, 1)]),
     );
-    expect(new Set(train.filter((a) => a.version === 1).map((a) => a.seed))).toEqual(
+    expect(new Set(train.filter((a) => a.version === 2).map((a) => a.seed))).toEqual(
       new Set([roundSeed(seeds.trainStudent, 2)]),
     );
     expect(
@@ -238,8 +238,8 @@ describe('an architect run', () => {
     const versions = new FileVersions(engine.paths.harnessDir(record.run.jobId, record.run.id));
     expect(record.freeze).toMatchObject({
       graduateId: record.run.graduateId,
-      harnessVersion: 1,
-      harnessHash: (await versions.load(1)).meta.hash,
+      harnessVersion: 2,
+      harnessHash: (await versions.load(2)).meta.hash,
       student: { model: 'glimmer:test', digest: 'sha256:fake' },
     });
     const sequence = world.runtime.sequence;
@@ -250,7 +250,7 @@ describe('an architect run', () => {
     expect(world.runtime.releases[0]?.mentor).toBe(world.mentor);
     expect(world.vault.opened).toEqual([record.run.jobId]);
     const tests = engine.store.attempts.list({ runId: record.run.id, split: 'test' });
-    expect(tests.map((a) => a.harnessVersion)).toEqual(Array(6).fill(1));
+    expect(tests.map((a) => a.harnessVersion)).toEqual(Array(6).fill(2));
     expect(tests.every((a) => a.tracePath === null && a.expectedSummary === undefined)).toBe(true);
   });
 
@@ -294,7 +294,7 @@ describe('an architect run', () => {
     expect(graduate?.manifest).toMatchObject({
       id: record.run.graduateId,
       method: 'architect',
-      harness: { version: 1 },
+      harness: { version: 2 },
       test: { score: { pass: 2, total: 6 } },
       student: {
         runtime: 'ollama',

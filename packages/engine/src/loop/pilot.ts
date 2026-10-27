@@ -6,7 +6,6 @@ import type { JobLibrary } from './jobs';
 import type { DataPaths } from './paths';
 import { compareText, deriveSeed } from './seeds';
 import { connectStudent, startingHarness } from './setup';
-import { localDate } from './time';
 
 export interface DevNoisePilotOptions {
   jobId: string;
@@ -81,7 +80,8 @@ export async function devNoisePilot(
   const runs: DevNoiseReport['runs'] = [];
   try {
     const checker = await deps.runtime.createChecker(job, jobDir);
-    const today = options.today ?? localDate((context.clock ?? systemClock).now());
+    const today =
+      options.today ?? deps.runtime.today(job, new Date((context.clock ?? systemClock).now()));
     for (const seed of seeds) {
       const evaluation = await deps.runtime.evaluateTasks(
         dev,

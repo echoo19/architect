@@ -1,9 +1,10 @@
 import { existsSync } from 'node:fs';
-import type { Job, Task } from '@architect/shared';
+import { AdapterError, type Job, type Task } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { STOPPED_ROUND } from '../src/loop/plan';
 import { hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
+import { FileVersions } from './fakes/harness';
 import { defaultJob, defaultTasks, task } from './fakes/job';
 import { createWorld, openEngine, type Engine, type World } from './fakes/world';
 
@@ -124,7 +125,7 @@ describe('stop', () => {
     const job = await setUp({
       job: { budget: { maxRounds: 5, maxMentorUsd: 5, maxWallMinutes: 60 } },
     });
-    const hold = holdAt((held, version) => held.id.startsWith('train-') && version === 1);
+    const hold = holdAt((held, version) => held.id.startsWith('train-') && version === 2);
     const run = await engine.controller.start(job.id, 'architect', 7);
     await hold.reached;
     await engine.controller.stop(run.id);
@@ -132,11 +133,11 @@ describe('stop', () => {
     await engine.controller.idle();
 
     const finished = engine.store.runs.get(run.id)?.run;
-    expect(finished).toMatchObject({ status: 'finished', stopReason: 'user', currentVersion: 1 });
+    expect(finished).toMatchObject({ status: 'finished', stopReason: 'user', currentVersion: 2 });
     expect(engine.store.rounds.get(run.id, 2)?.round.status).toBe('failed');
     expect(world.mentor.requests).toHaveLength(1);
     expect(engine.store.reports.get(run.id)?.test.score).toEqual({ pass: 2, total: 6 });
-    expect(engine.store.runs.get(run.id)?.freeze?.harnessVersion).toBe(1);
+    expect(engine.store.runs.get(run.id)?.freeze?.harnessVersion).toBe(2);
   });
 
   it('ends a paused run at once when nothing was kept', async () => {
@@ -169,7 +170,7 @@ describe('budgets during a run', () => {
     expect(engine.store.runs.get(run.id)?.run).toMatchObject({
       status: 'finished',
       stopReason: 'usd',
-      currentVersion: 0,
+      currentVersion: 1,
     });
     expect(engine.store.rounds.get(run.id, 1)?.round.error).toMatch(
       /could cost up to .* left in the budget/,
@@ -252,5 +253,91 @@ describe('the split guard during a run', () => {
     });
     expect(engine.events.some((e) => e.type === 'mentor.started')).toBe(false);
     expect(existsSync(engine.paths.mentorFile(job.id, run.id, 1))).toBe(false);
+  });
+});
+
+describe('authoring failures', () => {
+  it('charges an unusable reply the provider billed for, and goes on', async () => {
+    const job = await setUp({ job: { budget: { ...defaultJob().budget, maxRounds: 1 } } });
+    world.mentor.script = () => {
+      throw Object.assign(
+        new AdapterError(
+          'bad_response',
+          "The mentor's reply was not valid JSON, even after one correction.",
+        ),
+        { usage: { inputTokens: 4000, outputTokens: 1200 }, costUsd: 0.0101 },
+      );
+    };
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    const record = engine.store.runs.get(run.id);
+    expect(record?.run).toMatchObject({ status: 'finished', currentVersion: 1 });
+    expect(record?.run.totals).toMatchObject({ mentorInputTokens: 4000, mentorOutputTokens: 1200 });
+    expect(record?.run.totals.mentorUsd).toBeCloseTo(0.0101);
+    expect(engine.store.costs.list(run.id).filter((cost) => cost.role === 'mentor')).toHaveLength(
+      1,
+    );
+    const round = engine.store.rounds.get(run.id, 1)?.round;
+    expect(round).toMatchObject({
+      status: 'failed',
+      error: expect.stringContaining('not valid JSON'),
+    });
+    expect(round?.costUsd).toBeCloseTo(0.0101);
+    expect(engine.events.some((e) => e.type === 'mentor.finished' && e.costUsd === 0.0101)).toBe(
+      true,
+    );
+  });
+
+  it('ends the round when the change set does not validate, and goes on', async () => {
+    const job = await setUp();
+    world.mentor.script = (_request, call) =>
+      call === 1
+        ? {
+            ...hypothesis('Drop the prompt', ''),
+            edits: [{ op: 'delete', path: 'system.md', content: '' }],
+          }
+        : hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice');
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    expect(engine.store.rounds.get(run.id, 1)?.round).toMatchObject({
+      status: 'failed',
+      error: 'system.md: cannot be deleted. Every harness needs a system prompt.',
+    });
+    expect(engine.store.rounds.get(run.id, 2)?.round.decision).toBe('kept');
+    expect(engine.store.runs.get(run.id)?.run).toMatchObject({
+      status: 'finished',
+      currentVersion: 2,
+    });
+  });
+});
+
+describe('run setup', () => {
+  it('evaluates against the job’s business date when it has one', async () => {
+    const job = await setUp({ job: { businessDate: '2026-03-31' } });
+    const seen = new Set<string>();
+    world.runtime.beforeAttempt = (_task, ctx) => void seen.add(ctx.today);
+    const run = await engine.controller.start(job.id, 'bare', 1);
+    await engine.controller.idle();
+    expect(engine.store.runs.get(run.id)?.today).toBe('2026-03-31');
+    expect(seen).toEqual(new Set(['2026-03-31']));
+  });
+
+  it('takes the date from the clock when the job has no business date', async () => {
+    const job = await setUp();
+    const run = await engine.controller.start(job.id, 'bare', 1);
+    await engine.controller.idle();
+    expect(engine.store.runs.get(run.id)?.today).toBe('2026-10-27');
+  });
+
+  it('starts from the template the job names', async () => {
+    const job = await setUp({
+      job: { startingHarness: { kind: 'template', template: 'ops-analyst' } },
+    });
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+    const versions = new FileVersions(engine.paths.harnessDir(job.id, run.id));
+    expect((await versions.load(1)).system).toContain('Template: ops-analyst');
   });
 });

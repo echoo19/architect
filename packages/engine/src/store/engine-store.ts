@@ -353,6 +353,7 @@ function graduateParams(record: GraduateRecord): Params {
     name: record.name,
     path: record.path,
     manifest: json(record.manifest),
+    settings: jsonOrNull(record.settings),
     created_at: record.createdAt,
   };
 }
@@ -364,6 +365,7 @@ function graduateFromRow(row: Row): GraduateRecord {
     name: row.name,
     path: row.path,
     manifest: fromJson(row.manifest),
+    settings: fromJson(row.settings),
     createdAt: row.created_at,
   });
 }

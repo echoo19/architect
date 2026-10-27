@@ -1,6 +1,7 @@
 import {
   AttemptSchema,
   GraduateManifestSchema,
+  GraduateSettingsSchema,
   HypothesisSchema,
   JsonValueSchema,
   RoundSchema,
@@ -135,6 +136,8 @@ export const GraduateRecordSchema = z.object({
   /** The graduate folder, relative to the data folder. */
   path: z.string(),
   manifest: GraduateManifestSchema,
+  /** The user's choices for this graduate; null until they change one. */
+  settings: GraduateSettingsSchema.nullable(),
   createdAt: z.iso.datetime(),
 });
 export type GraduateRecord = z.infer<typeof GraduateRecordSchema>;

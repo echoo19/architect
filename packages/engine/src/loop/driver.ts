@@ -21,7 +21,7 @@ import {
   type Task,
   type TypeScore,
 } from '@architect/shared';
-import type { GatedCompletion } from '../mentor/gate';
+import type { GatedCompletion, MentorCharge } from '../mentor/gate';
 import { diagnoseRequest, oneShotRequest, type PromptSettings } from '../mentor/prompts';
 import { MentorReplyError, parseHypothesis } from '../mentor/reply';
 import { studentAsMentor } from '../mentor/student-author';
@@ -45,12 +45,13 @@ import {
   type EvaluationResult,
 } from './attempts';
 import { BudgetGuard } from './budget';
-import type {
-  Clock,
-  EvaluatedTask,
-  EvaluationContext,
-  HarnessVersionStore,
-  LoopDeps,
+import {
+  HARNESS_VALIDATION_ERROR,
+  type Clock,
+  type EvaluatedTask,
+  type EvaluationContext,
+  type HarnessVersionStore,
+  type LoopDeps,
 } from './deps';
 import { readJsonFile, writeJsonFile } from './files';
 import type { JobLibrary } from './jobs';
@@ -354,8 +355,6 @@ export class RunDriver {
 
   /** Asks the author for one hypothesis and records the reply; false when the round ended instead. */
   private async requestHypothesis(index: number): Promise<boolean> {
-    const { jobId } = this.run;
-    const { runId, paths, store } = this.ctx;
     const request =
       this.run.method === 'one_shot'
         ? await this.oneShotRequest()
@@ -368,6 +367,7 @@ export class RunDriver {
       gated = await gate.complete(author, request, {
         signal: this.control.abort.signal,
         onSend: () => this.emit({ type: 'mentor.started', round: index }),
+        onSpent: (charge) => this.charge(index, charge),
       });
     } catch (error) {
       if (error instanceof GuardError && error.guard === 'budget') {
@@ -391,20 +391,35 @@ export class RunDriver {
       model: completion.model,
       latencyMs: completion.latencyMs,
     };
+    this.charge(index, { model: completion.model, usage: completion.usage, costUsd }, reply);
+    await writeJsonFile(this.ctx.paths.mentorFile(this.run.jobId, this.ctx.runId, index), {
+      request,
+      reply,
+    });
+    return true;
+  }
+
+  /**
+   * Charges an author call to its round, the run and the cost ledger in one transaction, with
+   * the reply when there is one. Failed calls the provider billed for are charged too.
+   */
+  private charge(index: number, charge: MentorCharge, reply?: AuthorReply): void {
+    const { store, runId } = this.ctx;
+    const { model, usage, costUsd } = charge;
     const run = store.transaction(() => {
       const current = this.round(index);
       store.rounds.update({
         ...current,
-        reply,
+        reply: reply ?? current.reply,
         round: { ...current.round, costUsd: current.round.costUsd + costUsd },
       });
       store.costs.insert({
         runId,
         role: 'mentor',
-        model: completion.model,
+        model,
         round: index,
         attemptId: null,
-        usage: completion.usage,
+        usage,
         usd: costUsd,
         at: this.now(),
       });
@@ -412,17 +427,15 @@ export class RunDriver {
         totals: {
           ...current.totals,
           mentorUsd: current.totals.mentorUsd + costUsd,
-          mentorInputTokens: current.totals.mentorInputTokens + completion.usage.inputTokens,
-          mentorOutputTokens: current.totals.mentorOutputTokens + completion.usage.outputTokens,
+          mentorInputTokens: current.totals.mentorInputTokens + usage.inputTokens,
+          mentorOutputTokens: current.totals.mentorOutputTokens + usage.outputTokens,
         },
       }));
     });
     this.budget.recordSpend(costUsd);
-    await writeJsonFile(paths.mentorFile(jobId, runId, index), { request, reply });
-    this.emit({ type: 'mentor.finished', round: index, usage: completion.usage, costUsd });
+    this.emit({ type: 'mentor.finished', round: index, usage, costUsd });
     this.emit({ type: 'run.updated', run });
     this.emitBudget();
-    return true;
   }
 
   /** Applies the recorded reply's change set to a new candidate version. */
@@ -442,7 +455,8 @@ export class RunDriver {
     } catch (error) {
       const rejected =
         error instanceof MentorReplyError ||
-        (error instanceof GuardError && error.guard === 'harness_surface');
+        (error instanceof GuardError && error.guard === 'harness_surface') ||
+        (error instanceof Error && error.name === HARNESS_VALIDATION_ERROR);
       if (!rejected) throw error;
       this.closeRound(index, error.message);
       return;
@@ -705,15 +719,17 @@ export class RunDriver {
 
     const finished = store.transaction(() => {
       store.reports.put(runId, report);
+      const existing = store.graduates.get(freeze.graduateId);
       const graduate = {
         id: freeze.graduateId,
         runId,
         name: this.job.name,
         path: paths.toStored(dir),
         manifest,
+        settings: existing?.settings ?? null,
         createdAt,
       };
-      if (store.graduates.get(graduate.id)) store.graduates.update(graduate);
+      if (existing) store.graduates.update(graduate);
       else store.graduates.insert(graduate);
       return this.writeRun({
         status: 'finished',
@@ -911,9 +927,7 @@ export class RunDriver {
     const view = buildMentorView({
       job: this.job,
       dataFiles: await this.resources.dataFiles(),
-      harnessFiles: this.ctx.deps.harness.harnessToFiles(
-        await this.resources.harness(stored.baseVersion),
-      ),
+      harnessFiles: await this.mentorFiles(stored.baseVersion),
       round: index,
       budgetLeft: this.budget.left(),
       train,
@@ -927,14 +941,19 @@ export class RunDriver {
     const view = buildOneShotView({
       job: this.job,
       dataFiles: await this.resources.dataFiles(),
-      harnessFiles: this.ctx.deps.harness.harnessToFiles(
-        await this.resources.harness(this.run.currentVersion),
-      ),
+      harnessFiles: await this.mentorFiles(this.run.currentVersion),
       budgetLeft: this.budget.left(),
       train: await this.trainTasks(),
       devTotal: (await this.devTasks()).length,
     });
     return oneShotRequest(view, this.promptSettings());
+  }
+
+  /** Every file of a version, settings left at their defaults included, so the author sees them all. */
+  private async mentorFiles(version: number): Promise<Record<string, string>> {
+    return this.ctx.deps.harness.harnessToFiles(await this.resources.harness(version), {
+      includeDefaults: true,
+    });
   }
 
   /** Train task ids the author was shown, the only ones a hypothesis may cite as its cause. */
