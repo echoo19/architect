@@ -9,7 +9,7 @@ describe('renderReportMarkdown', () => {
 
       **38 of 50 locked test tasks passed (76%).** The target was 70%, so the pass rate requirement was met.
 
-      - Student: Glimmer (muse-glimmer:30b, ollama)
+      - Student: Glimmer (muse-glimmer:30b, local through Ollama)
       - Mentor: Spark (muse-spark-1.3)
       - Method: Architect
       - Created: 2026-10-27
@@ -32,7 +32,7 @@ describe('renderReportMarkdown', () => {
       - Rounds: 7
       - Mentor cost: $0.84 (123,456 input tokens, 32,100 output tokens)
       - Training time: 1 h 12 min
-      - Dev tasks passed: 12 of 40 at the start, 31 of 40 at the end
+      - Dev tasks passed: 30% at the start (12 of 40), 77.5% at the end (31 of 40)
       - Dev pass rate 77.5%, locked test pass rate 76%: a gap of 1.5 points
 
       ## Refused task types
@@ -75,6 +75,28 @@ describe('renderReportMarkdown', () => {
     expect(text).toContain('- Pass rate: target 70%, result 40%. Not met.');
     expect(text).toContain('- 95th percentile answer time: target 10 s, result 21.4 s. Not met.');
     expect(text).toContain('The locked test disagreed.');
+  });
+
+  it('names a hosted copy and a change measured over more than one run', () => {
+    const report = sampleReport();
+    report.testedOn = 'hosted';
+    report.student = {
+      label: 'Glimmer',
+      model: 'meta/muse-glimmer-30b',
+      runtime: 'openai_compatible',
+    };
+    report.test = { ...report.test, ranOffline: false };
+    report.dev = { ...report.dev, final: { pass: 70, total: 80 } };
+    report.topInterventions = [{ round: 3, title: 'Add a pricing skill', delta: 9, runs: 2 }];
+    const text = renderReportMarkdown(report);
+    expect(text).toContain('- Student: Glimmer (meta/muse-glimmer-30b, a hosted copy)');
+    expect(text).toContain(
+      '- Dev tasks passed: 30% at the start (12 of 40), 87.5% at the end (70 of 80)',
+    );
+    expect(text).toContain('1. Round 3, "Add a pricing skill": +9 dev passes over 2 runs');
+    expect(text).toContain(
+      'The locked test was run once on a hosted copy of the student with the mentor disconnected, so it was not run offline.',
+    );
   });
 
   it('handles a run with nothing to compare', () => {
