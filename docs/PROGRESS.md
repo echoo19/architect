@@ -9,19 +9,12 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Wrote the spec, agent rules (`CLAUDE.md`), plan, architecture, decisions 001 to 012, harness format, gotchas.
 - Sample job chosen (decision 005) after a second opinion from GPT-6 Astra.
 
-**Feasibility so far**
-- Meta Model API key works. `GET /v1/models` lists `muse-spark-1.3` and `muse-spark-1.3-contributor` among others. A Chat Completions call to `muse-spark-1.3` with one tool and `reasoning_effort: "low"` returned a correct tool call: 542 prompt tokens, 243 completion tokens (173 of them reasoning).
-- Muse Glimmer is a dense 30B model (Hugging Face config: 52 layers, no experts). `muse-glimmer:30b` is already pulled in Ollama (18 GB). With 12 GB of VRAM it partly runs from system RAM; speed not yet measured because only 4 GB of RAM was free (another program held 14 GB).
+**Feasibility checks**
+- Meta Model API: key works. `GET /v1/models` lists `muse-spark-1.3` and `muse-spark-1.3-contributor` among others. A Chat Completions call to `muse-spark-1.3` with one tool and `reasoning_effort: "low"` returned a correct tool call (542 prompt tokens, 243 completion tokens, 173 of them reasoning).
+- Muse Glimmer locally: works, slowly. `muse-glimmer:30b` (dense 30B, 18 GB at 4-bit) on an RTX 4070 Ti (12 GB) with 31 GB RAM: Ollama splits it 48% CPU / 52% GPU, 11.5 GB VRAM in use, about 9 GB of RAM. First load 27.6 s. Prefill about 520 tokens/s warm. Generation 5.5 to 5.7 tokens/s. One agent step (a correct `read_table` tool call at `think: low`) took 143 tokens, about 26 s, so a 4 to 6 step task takes 2 to 3 minutes. GPU stayed at 45 C. `think: false` produced the same 147 tokens with the reasoning hidden, so it saves nothing.
+- Fallback applied (spec risk table): train on a hosted copy of Glimmer during development, and run the locked tests and the demo on the local model. A 60-task locked test takes about 2.5 hours locally, so local tests run overnight or on a smaller set.
+- Bare-student pass rate on the sample job: not measured yet; needs the runtime (in progress).
 
-**Next**
-- Scaffold the monorepo, CI, tokens and component library; push the public repo.
-- Measure Glimmer tokens per second and memory once RAM is free.
-- Contracts in `packages/shared`, then parallel work on engine, adapters, harness, sample job and UI.
-
-**Open issues**
-- No hosted Glimmer endpoint key yet (OpenRouter, Together or Fireworks), and no Baseten or Modal credits for self-hosted Spark Open.
-
-**Risks**
-- Local Glimmer speed decides how many rounds fit. Fallback from the spec: hosted student for development, local for the demo and the locked test.
+**In progress (parallel, one branch each):** design tokens, component library and desktop shell; the sample job; the harness package; adapters; engine runtime (data, tools, sandbox, agent loop, checkers, splits, vault); core loop (mentor, keep or revert, budgets, storage, report card, host).
 
 **Mentor spend:** under $0.01 of the $150 credit.
