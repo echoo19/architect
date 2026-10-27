@@ -31,35 +31,51 @@ export class SecretStore {
     private readonly file: string,
     private readonly cipher: Cipher,
     private stored: Stored,
+    /** Why the keys file can't be used; while set, nothing reads keys from it or writes to it. */
+    private readonly unreadable: string | null,
   ) {}
 
-  /** Opens the store. A file that can't be read starts empty and is replaced on the next save. */
+  /**
+   * Opens the store. Only a missing file means no keys yet. A file that can't be read or isn't
+   * in the expected shape is left exactly as it is, and every use of the store says why, so a
+   * save never replaces keys that are still in there.
+   */
   static async open(file: string, cipher: Cipher): Promise<SecretStore> {
-    let stored: Stored = {};
+    let raw: unknown;
     try {
-      const raw = await readJsonFile(file);
-      const parsed = StoredFileSchema.safeParse(raw ?? {});
-      if (parsed.success) {
-        stored = Object.fromEntries(
-          Object.entries(parsed.data).filter(([ref]) => isSecretRef(ref)),
-        ) as Stored;
-      } else {
-        console.warn(`[secrets] ${file} isn't in the expected shape; starting with no keys.`);
-      }
+      raw = await readJsonFile(file);
     } catch (error) {
-      console.warn(`[secrets] ${file} could not be read; starting with no keys.`, error);
+      return SecretStore.unusable(
+        file,
+        cipher,
+        error instanceof Error ? error.message : String(error),
+      );
     }
-    return new SecretStore(file, cipher, stored);
+    if (raw === null) return new SecretStore(file, cipher, {}, null);
+    const parsed = StoredFileSchema.safeParse(raw);
+    if (!parsed.success) return SecretStore.unusable(file, cipher, "it isn't a list of saved keys");
+    const stored = Object.fromEntries(
+      Object.entries(parsed.data).filter(([ref]) => isSecretRef(ref)),
+    ) as Stored;
+    return new SecretStore(file, cipher, stored, null);
+  }
+
+  private static unusable(file: string, cipher: Cipher, why: string): SecretStore {
+    const problem = `The saved keys in ${file} can't be read (${why}), so Architect won't change that file. Fix it, or move it away to start with no keys, then restart Architect.`;
+    console.warn(`[secrets] ${problem}`);
+    return new SecretStore(file, cipher, {}, problem);
   }
 
   /** Which keys are saved. */
   status(): Record<SecretRef, boolean> {
+    this.ensureReadable();
     return Object.fromEntries(
       SECRET_REF_NAMES.map((ref) => [ref, this.stored[ref] !== undefined]),
     ) as Record<SecretRef, boolean>;
   }
 
   async set(ref: string, value: string): Promise<void> {
+    this.ensureReadable();
     const known = knownRef(ref);
     const key = value.trim();
     if (key.length === 0) throw new Error(`The ${secretLabel(known)} key is empty.`);
@@ -73,6 +89,7 @@ export class SecretStore {
   }
 
   async clear(ref: string): Promise<void> {
+    this.ensureReadable();
     const known = knownRef(ref);
     await this.save((stored) => {
       const next = { ...stored };
@@ -83,6 +100,7 @@ export class SecretStore {
 
   /** A key's value, for connection tests and the engine only. */
   async get(ref: string): Promise<string | undefined> {
+    this.ensureReadable();
     if (!isSecretRef(ref)) return undefined;
     const ciphertext = this.stored[ref];
     if (ciphertext === undefined) return undefined;
@@ -111,6 +129,10 @@ export class SecretStore {
       .catch((error: unknown) => {
         console.warn(`[secrets] The ${secretLabel(ref)} key could not be re-encrypted.`, error);
       });
+  }
+
+  private ensureReadable(): void {
+    if (this.unreadable !== null) throw new Error(this.unreadable);
   }
 
   private save(change: (stored: Stored) => Stored): Promise<void> {
