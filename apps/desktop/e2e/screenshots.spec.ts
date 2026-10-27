@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
-import { SAMPLE, stubEngine } from './fixtures';
+import { EMPTY_ENGINE, SAMPLE, SAMPLE_ENGINE, stubEngine } from './fixtures';
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const SIZE = { width: 1440, height: 900 };
@@ -93,9 +93,26 @@ for (const theme of THEMES) {
   });
 }
 
+test('captures the empty workspace and a failed action', async () => {
+  const page = launched.page;
+  await stubEngine(launched.app, EMPTY_ENGINE);
+  for (const theme of THEMES) {
+    await applySettings(page, { theme });
+    await goTo(page, '/');
+    await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
+    await capture(page, `workspace-empty-${theme}.png`);
+
+    // Creating the sample job needs the engine, so it fails and says why in a toast.
+    await page.getByRole('button', { name: 'Try the sample job' }).click();
+    await expect(page.getByText("Couldn't create the sample job")).toBeVisible();
+    await capture(page, `toast-${theme}.png`);
+    await page.getByRole('button', { name: 'Dismiss' }).click();
+  }
+});
+
 test('captures the populated screens with sample engine replies', async () => {
   const page = launched.page;
-  await stubEngine(launched.app);
+  await stubEngine(launched.app, SAMPLE_ENGINE);
   for (const theme of THEMES) {
     await applySettings(page, { theme });
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);

@@ -267,7 +267,15 @@ const report: ReportCard = {
 };
 
 /** Channel → reply. Any channel not listed keeps the app's own behavior. */
-const REPLIES: Record<string, unknown> = {
+export type EngineReplies = Record<string, unknown>;
+
+/** A fresh install: the engine answers, and there is nothing yet. */
+export const EMPTY_ENGINE: EngineReplies = {
+  'graduates:list': [],
+  'jobs:list': [],
+};
+
+export const SAMPLE_ENGINE: EngineReplies = {
   'graduates:list': [graduate],
   'workspace:listChats': chats,
   'workspace:messages': messages,
@@ -277,12 +285,12 @@ const REPLIES: Record<string, unknown> = {
   'reports:get': report,
 };
 
-/** Answers engine channels in the main process with the sample replies above. */
-export async function stubEngine(app: ElectronApplication): Promise<void> {
-  await app.evaluate(({ ipcMain }, replies) => {
-    for (const [channel, value] of Object.entries(replies)) {
+/** Answers engine channels in the main process with fixed replies. */
+export async function stubEngine(app: ElectronApplication, replies: EngineReplies): Promise<void> {
+  await app.evaluate(({ ipcMain }, entries) => {
+    for (const [channel, value] of Object.entries(entries)) {
       ipcMain.removeHandler(channel);
       ipcMain.handle(channel, () => ({ ok: true, value }));
     }
-  }, REPLIES);
+  }, replies);
 }
