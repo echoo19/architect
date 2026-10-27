@@ -138,7 +138,7 @@ const REPORT: ReportCard = {
     {
       type: 'refunds',
       label: 'Refunds',
-      reason: 'The office files have no refund policy, so it says so instead of guessing.',
+      reason: 'The office files have no refund policy to follow, so it leaves refunds to you.',
     },
   ],
   topInterventions: [],
@@ -259,7 +259,7 @@ export const MESSAGES: WorkspaceMessage[] = [
       {
         kind: 'refusal',
         taskType: 'refunds',
-        reason: 'The office files have no refund policy, so it says so instead of guessing.',
+        reason: 'The office files have no refund policy to follow, so it leaves refunds to you.',
       },
     ],
   }),
@@ -277,7 +277,7 @@ export function pricingReply(stage: 'started' | 'working' | 'writing' | 'done'):
     'Job 4410 comes to **$486.20** and job 4412 to **$1,284.50**.\n\n' +
     '- 4412 ran after hours, so labor is billed at 1.5x.\n' +
     '- The customer on 4412 is a plan member, so 10% comes off before tax.\n\n' +
-    "Here are today's open invoices:";
+    "Here's how each total breaks down:";
   const base = { createdAt: AT, status: 'streaming' as const };
   switch (stage) {
     case 'started':
@@ -304,15 +304,15 @@ export function pricingReply(stage: 'started' | 'working' | 'writing' | 'done'):
         blocks: [
           {
             kind: 'table',
-            title: 'Open invoices',
-            columns: ['Invoice', 'Customer', 'Total', 'Due'],
+            title: 'Price breakdown',
+            columns: ['Item', 'Job 4410', 'Job 4412'],
             rows: [
-              ['INV-1037', 'Okafor', '$486.20', 'Nov 26'],
-              ['INV-1038', 'Lindqvist', '$1,284.50', 'Nov 26'],
-              ['INV-1029', 'Haddad', '$312.00', 'Nov 19'],
-              ['INV-1021', 'Moreau', '$1,980.40', 'Nov 12'],
-              ['INV-1018', 'Castillo', '$94.75', 'Nov 9'],
-              ['INV-1011', 'Brennan', '$640.00', 'Nov 2'],
+              ['Labor', '$280.00', '$810.00'],
+              ['Parts', '$142.50', '$497.98'],
+              ['Trip fee', '$35.00', '$35.00'],
+              ['Plan discount', '', '−$134.30'],
+              ['Tax', '$28.70', '$75.82'],
+              ['Total', '$486.20', '$1,284.50'],
             ],
           },
         ],
@@ -342,7 +342,7 @@ export function engineSeed(patch: Partial<EngineSeed> = {}): EngineSeed {
     job: JOB,
     report: REPORT,
     ollama: { running: true, version: '0.12.6', models: [] },
-    connection: { ok: true, latencyMs: 640, detail: 'muse-spark-1.3-contributor' },
+    connection: { ok: true, latencyMs: 640, detail: 'muse-spark-1.3' },
     folder: 'C:\\Users\\dana\\Exports',
     ...patch,
   };

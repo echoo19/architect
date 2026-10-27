@@ -97,9 +97,13 @@ for (const theme of THEMES) {
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByRole('heading', { name: 'Choose a mentor' })).toBeVisible();
     const contributor = page.getByRole('radio', { name: /contributor tier/ });
+    const standard = page.getByRole('radio', { name: /Meta does not train on what you send/ });
     await expect(contributor).toContainText('Meta may train on what you send');
     await contributor.click();
     await expect(contributor).toHaveAttribute('aria-checked', 'true');
+    await standard.click();
+    await expect(standard).toHaveAttribute('aria-checked', 'true');
+    await expect(contributor).toHaveAttribute('aria-checked', 'false');
     const key = page.getByLabel('Meta API key');
     await key.fill('not-a-real-key');
     await page.getByRole('button', { name: 'Test connection' }).click();
@@ -107,7 +111,7 @@ for (const theme of THEMES) {
     await expect(key).toHaveValue('');
     expect(await callsTo(app, 'secrets:set')).toEqual([['meta']]);
     expect(await callsTo(app, 'connections:testMentor')).toEqual([
-      [expect.objectContaining({ model: 'muse-spark-1.3-contributor', secretRef: 'meta' })],
+      [expect.objectContaining({ model: 'muse-spark-1.3', secretRef: 'meta' })],
     ]);
     await capture(`welcome-mentor-${theme}.png`);
 
@@ -168,7 +172,7 @@ for (const theme of THEMES) {
     await expect(page.getByRole('button', { name: 'Worked for 3s' })).toBeVisible();
     await expect(page.getByRole('list', { name: 'Steps' })).toBeHidden();
     await expect(page.locator('strong', { hasText: '$486.20' })).toBeVisible();
-    await expect(page.getByRole('table', { name: 'Open invoices' }).getByRole('row')).toHaveCount(
+    await expect(page.getByRole('table', { name: 'Price breakdown' }).getByRole('row')).toHaveCount(
       5,
     );
     await expect(page.getByRole('button', { name: 'Copy' })).toBeVisible();
@@ -179,7 +183,7 @@ for (const theme of THEMES) {
     await capture(`workspace-chat-${theme}.png`);
 
     await page.getByRole('button', { name: 'Show all 6' }).click();
-    const panel = page.getByRole('complementary', { name: 'Open invoices' });
+    const panel = page.getByRole('complementary', { name: 'Price breakdown' });
     await expect(panel.getByRole('row')).toHaveCount(7);
     await capture(`workspace-panel-${theme}.png`);
     await page.keyboard.press('Escape');
@@ -218,7 +222,7 @@ for (const theme of THEMES) {
     await open(theme, chatPath(CHATS.refund.id));
     const refusal = page.getByRole('note');
     await expect(refusal).toContainText("Service desk doesn't handle refunds");
-    await expect(refusal).toContainText('The office files have no refund policy');
+    await expect(refusal).toContainText('The office files have no refund policy to follow');
     await capture(`workspace-refusal-${theme}.png`);
   });
 }
@@ -234,7 +238,7 @@ for (const theme of THEMES) {
     await settingsButton.click();
     const dialog = page.getByRole('dialog', { name: 'Service desk', exact: true });
     await expect(dialog.getByText('Prices finished jobs, chases overdue balances')).toBeVisible();
-    await expect(dialog.getByText('v4 · Ready')).toBeVisible();
+    await expect(dialog.getByText(/^Passed its final test on /)).toBeVisible();
     await capture(`workspace-agent-general-${theme}.png`);
 
     await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
@@ -258,24 +262,25 @@ for (const theme of THEMES) {
 
     await dialog.getByRole('tab', { name: 'Report' }).click();
     await expect(dialog.getByText('86%')).toBeVisible();
-    await expect(dialog.getByText('The office files have no refund policy')).toBeVisible();
+    await expect(
+      dialog.getByText('The office files have no refund policy to follow'),
+    ).toBeVisible();
     await capture(`workspace-agent-report-${theme}.png`);
 
-    await page.keyboard.press('Escape');
-    await expect(dialog).toBeHidden();
-    expect(await callsTo(app, 'graduates:updateSettings')).toEqual([
-      [AGENT.id, { writeMode: 'allow' }],
-      [AGENT.id, { writeMode: 'never' }],
-    ]);
-    await expect(page.getByRole('button', { name: 'Read only' })).toBeVisible();
-
-    await settingsButton.click();
     await dialog.getByRole('tab', { name: 'Export' }).click();
     await dialog.getByRole('button', { name: 'Export' }).click();
     await expect(page.getByText('Exported Service desk')).toBeVisible();
     expect(await callsTo(app, 'graduates:exportFolder')).toEqual([
       [AGENT.id, 'C:\\Users\\dana\\Exports'],
     ]);
+
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await expect(dialog).toBeHidden();
+    expect(await callsTo(app, 'graduates:updateSettings')).toEqual([
+      [AGENT.id, { writeMode: 'allow' }],
+      [AGENT.id, { writeMode: 'never' }],
+    ]);
+    await expect(page.getByRole('button', { name: 'Read only' })).toBeVisible();
   });
 }
 
