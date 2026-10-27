@@ -1,3 +1,5 @@
+export { diffHarness } from './diff';
+export { applyEdits } from './edits';
 export { HarnessValidationError } from './errors';
 export { readHarness, writeHarness } from './folder';
 export { hashFiles, hashHarness } from './hash';
