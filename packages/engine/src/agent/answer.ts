@@ -3,7 +3,7 @@ import { ANSWER_PREFIX, type JsonValue } from '@architect/shared';
 export interface ParsedAnswer {
   /** The parsed value, or null when the line is missing or its JSON is invalid. */
   answer: JsonValue | null;
-  /** Why there is no answer, in words the report and the mentor can show. */
+  /** Why there is no answer: one sentence the checker uses as its reason. */
   error?: string;
 }
 
@@ -21,14 +21,14 @@ export function parseAnswerLine(text: string): ParsedAnswer {
     if (!line.startsWith(ANSWER_PREFIX)) continue;
     return parseJsonAfter(line.slice(ANSWER_PREFIX.length), lines.slice(index + 1));
   }
-  return { answer: null, error: `No line starts with ${ANSWER_PREFIX}` };
+  return { answer: null, error: 'The reply has no ANSWER line.' };
 }
 
 function parseJsonAfter(rest: string, following: readonly string[]): ParsedAnswer {
   const inline = stripBackticks(rest.trim().replace(/^```[\w-]*/, ''));
   const block = blockAfter(following);
   if (inline === '' && block === '') {
-    return { answer: null, error: `The ${ANSWER_PREFIX} line has no JSON after it.` };
+    return { answer: null, error: 'The ANSWER line has nothing after it.' };
   }
   const candidates = inline === '' ? [block] : [inline, `${inline}\n${block}`];
   let firstError = '';
@@ -39,7 +39,7 @@ function parseJsonAfter(rest: string, following: readonly string[]): ParsedAnswe
       firstError ||= error instanceof Error ? error.message : String(error);
     }
   }
-  return { answer: null, error: `The JSON after ${ANSWER_PREFIX} is not valid: ${firstError}` };
+  return { answer: null, error: `The ANSWER line is not valid JSON (${firstError}).` };
 }
 
 /** The lines after the ANSWER line, up to a closing code fence, without an opening fence. */

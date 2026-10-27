@@ -27,10 +27,10 @@ describe('parseAnswerLine', () => {
   });
 
   it.each([
-    ['no answer line', 'The total is 1200 cents.', 'No line starts with ANSWER:'],
-    ['a lowercase prefix', 'answer: {"a": 1}', 'No line starts with ANSWER:'],
-    ['bold markdown', '**ANSWER:** {"a": 1}', 'No line starts with ANSWER:'],
-    ['nothing after the prefix', 'ANSWER:', 'The ANSWER: line has no JSON after it.'],
+    ['no answer line', 'The total is 1200 cents.', 'The reply has no ANSWER line.'],
+    ['a lowercase prefix', 'answer: {"a": 1}', 'The reply has no ANSWER line.'],
+    ['bold markdown', '**ANSWER:** {"a": 1}', 'The reply has no ANSWER line.'],
+    ['nothing after the prefix', 'ANSWER:', 'The ANSWER line has nothing after it.'],
   ])('reports %s', (_, text, error) => {
     expect(parseAnswerLine(text)).toEqual({ answer: null, error });
   });
@@ -44,7 +44,7 @@ describe('parseAnswerLine', () => {
     ]) {
       const parsed = parseAnswerLine(text);
       expect(parsed.answer).toBeNull();
-      expect(parsed.error).toMatch(/^The JSON after ANSWER: is not valid: /);
+      expect(parsed.error).toMatch(/^The ANSWER line is not valid JSON \(.+\)\.$/);
     }
   });
 });
