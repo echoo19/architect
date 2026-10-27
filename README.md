@@ -8,6 +8,23 @@ It is meant for people with repetitive work and data they would rather not send 
 
 By default the mentor is Muse Spark 1.3 (Meta Model API) and the student is Muse Glimmer, a 30B open-weight model running locally through Ollama. Both are choices in the job setup.
 
+## How it works
+
+You describe the job and attach the files it works from. The mentor asks a few questions and drafts the job: what the agent does and doesn't do, the example tasks with expected results, how answers are checked, the pass rate it must reach, and a spending cap. The tasks are split into practice (train), check (dev) and a locked test that the mentor never sees.
+
+Training runs in rounds. The student attempts a batch of practice tasks inside its current harness. A deterministic checker grades every attempt; there is no model judging pass or fail. The mentor reads the failed attempts, names one cause, and proposes one change to the harness with a prediction of how many check tasks it will fix. Architect applies the change to a new harness version and runs the check tasks. The change stays only if the student passes a set number more of them and no task type loses more than one; otherwise it is reverted. Either way the lineage records the failure that prompted it, the prediction, and what actually happened.
+
+When the student meets the target or the budget runs out, the mentor is disconnected and the locked test runs once on your machine. The report card shows the result per task type, typical and slowest answer times, what training cost, which changes helped most, and the task types the agent refuses because nothing fixed them. Accept it, and the graduate appears in the sidebar, ready to use.
+
+In the workspace you chat with the graduate like you would with a coding agent: each step it takes is shown as it runs, every write to your files waits for your approval with a diff of the rows, and requests it was not trained for are refused with the reason from its report card. The graduate's process can only reach the local model runtime; anything else is blocked.
+
+A few guarantees hold throughout, and the tests check each of them:
+
+- The test split lives in a vault that only the test runner can open, and only after the mentor has been released. Every payload sent to the mentor is scanned for test content first.
+- The mentor can change only harness files: never the checker, the splits, the data, the permissions or the sampler seed.
+- Tools the mentor writes run in a QuickJS sandbox in a separate process, with no network, clock or randomness, and read-only access to the job's declared files.
+- Budgets for rounds, mentor dollars and wall-clock time are hard caps; a mentor call that could cross the dollar cap doesn't start.
+
 ## Status
 
 Under active development. See [docs/PLAN.md](docs/PLAN.md) for the milestones and [docs/PROGRESS.md](docs/PROGRESS.md) for where things stand.
