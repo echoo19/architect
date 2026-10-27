@@ -1,17 +1,9 @@
 import {
   MENTOR_PRESETS,
-  type ConnectionTest,
   type MentorConfig,
   type MentorPreset,
   type TokenPricing,
 } from '@architect/shared';
-import { z } from 'zod';
-
-/** The contract declares ConnectionTest as a type only; replies are checked against this. */
-export const ConnectionTestSchema = z.union([
-  z.object({ ok: z.literal(true), latencyMs: z.number().nonnegative(), detail: z.string() }),
-  z.object({ ok: z.literal(false), error: z.string(), hint: z.string().optional() }),
-]) satisfies z.ZodType<ConnectionTest>;
 
 /** The preset a saved mentor was made from, if it was. */
 export function presetFor(mentor: MentorConfig): MentorPreset | undefined {

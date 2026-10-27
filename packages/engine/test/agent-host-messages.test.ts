@@ -170,6 +170,7 @@ describe('a live reply', () => {
     reply.addBlock({
       kind: 'approval',
       changeId: 'chg_1',
+      op: 'append',
       file: 'invoices.csv',
       summary: 'Append 1 row to invoices.csv',
       diff: { columns: ['invoice_id'], added: [['INV-4']], removed: [], changed: [] },

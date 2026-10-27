@@ -163,7 +163,7 @@ export function ApprovalCard({ block, graduateId, answerable, onOpenPanel }: App
           </span>
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="flex min-w-0 items-center gap-1.5">
-              <span className="shrink-0">Update</span>
+              <span className="shrink-0">{block.op === 'append' ? 'Add to' : 'Update'}</span>
               <span className="truncate font-mono text-base">{block.file}</span>
               <ChevronRight
                 size={14}

@@ -1,7 +1,7 @@
 import {
   WorkspaceChatSchema,
+  WorkspaceEventSchema,
   WorkspaceMessageSchema,
-  type WorkspaceEvent,
 } from '@architect/shared';
 import { z } from 'zod';
 import type { EnginePort } from '../host/port';
@@ -19,11 +19,6 @@ export interface AgentHostApi extends Omit<AgentHost, 'onEvent' | 'close'> {
   /** Network calls the process's guard has blocked, oldest first. */
   blockedConnections(): Promise<BlockedConnection[]>;
 }
-
-export const WorkspaceEventSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('message.updated'), message: WorkspaceMessageSchema }),
-  z.object({ type: z.literal('chat.updated'), chat: WorkspaceChatSchema }),
-]) satisfies z.ZodType<WorkspaceEvent>;
 
 export const BlockedConnectionSchema = z.object({
   api: z.string(),

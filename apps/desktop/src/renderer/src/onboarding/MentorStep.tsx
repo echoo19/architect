@@ -4,6 +4,7 @@ import {
   type ConnectionTest,
   type MentorConfig,
   type MentorPreset,
+  ConnectionTestSchema,
 } from '@architect/shared';
 import { Button, Input, Panel, RadioCard, RadioCardGroup, SettingsRow } from '@architect/ui';
 import { CircleAlert, CircleCheck } from 'lucide-react';
@@ -12,7 +13,7 @@ import { toError, type QueryState } from '../api/query';
 import { errorOf } from '../components/QueryValue';
 import { shortModelName } from '../lib/names';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
-import { ConnectionTestSchema, formatPricing, presetFor, providerName } from './mentor';
+import { formatPricing, presetFor, providerName } from './mentor';
 import { StepIntro } from './SetupShell';
 
 async function testMentor(config: MentorConfig): Promise<ConnectionTest> {

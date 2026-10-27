@@ -204,6 +204,7 @@ const approval = (
 ): AgentBlock => ({
   kind: 'approval',
   changeId,
+  op: 'append',
   file,
   summary,
   diff: { columns, added, removed: [], changed: [] },

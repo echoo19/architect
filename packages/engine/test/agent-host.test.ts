@@ -466,6 +466,7 @@ describe('the host', () => {
         {
           kind: 'approval',
           changeId: 'chg_left',
+          op: 'append',
           file: 'invoices.csv',
           summary: 'Append 1 row to invoices.csv',
           diff: { columns: ['invoice_id'], added: [['INV-9']], removed: [], changed: [] },

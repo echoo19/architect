@@ -2,19 +2,13 @@ import {
   GraduateSettingsSchema,
   GraduateSummarySchema,
   WorkspaceChatSchema,
-  WorkspaceMessageSchema,
+  WorkspaceEventSchema,
   type GraduateSettings,
   type Unsubscribe,
   type WorkspaceEvent,
 } from '@architect/shared';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { architect } from '../api/client';
-
-/** The contract declares WorkspaceEvent as a type only; events are checked against this. */
-const WorkspaceEventSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('message.updated'), message: WorkspaceMessageSchema }),
-  z.object({ type: z.literal('chat.updated'), chat: WorkspaceChatSchema }),
-]) satisfies z.ZodType<WorkspaceEvent>;
 
 /** Checks a reply against its contract, so a mismatch becomes an error people can read. */
 async function parsed<T>(label: string, schema: z.ZodType<T>, request: Promise<unknown>) {

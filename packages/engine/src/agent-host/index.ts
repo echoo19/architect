@@ -9,7 +9,7 @@ export { installLoopbackOnlyGuard } from './guard/install';
 export type { BlockedConnection, LoopbackGuard, LoopbackGuardOptions } from './guard/install';
 export { createAgentHost } from './host';
 export type { AgentHost, AgentHostOptions, WorkspaceApi } from './host';
-export { AGENT_HOST_ROUTES, BlockedConnectionSchema, WorkspaceEventSchema } from './protocol';
+export { AGENT_HOST_ROUTES, BlockedConnectionSchema } from './protocol';
 export type { AgentHostApi, AgentHostPort } from './protocol';
 export { serveAgentHost } from './serve';
 export type { ServeOptions } from './serve';

@@ -33,6 +33,8 @@ export const AgentBlockSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('approval'),
     changeId: z.string(),
+    /** `append` adds rows; `update` changes rows that are already there. */
+    op: z.enum(['append', 'update']),
     file: z.string(),
     /** e.g. "Append 1 row to invoices.csv" */
     summary: z.string(),
@@ -71,6 +73,8 @@ export const WorkspaceChatSchema = z.object({
 export type WorkspaceChat = z.infer<typeof WorkspaceChatSchema>;
 
 /** Streamed from the agent host to the UI while a message is being worked on. */
-export type WorkspaceEvent =
-  | { type: 'message.updated'; message: WorkspaceMessage }
-  | { type: 'chat.updated'; chat: WorkspaceChat };
+export const WorkspaceEventSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('message.updated'), message: WorkspaceMessageSchema }),
+  z.object({ type: z.literal('chat.updated'), chat: WorkspaceChatSchema }),
+]);
+export type WorkspaceEvent = z.infer<typeof WorkspaceEventSchema>;

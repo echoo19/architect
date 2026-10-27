@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { ConnectionTest } from './adapters';
 import { GraduateManifestSchema } from './graduate';
 import type {
   AppInfo,
@@ -107,3 +108,8 @@ export const PullProgressSchema = z.object({
 }) satisfies z.ZodType<PullProgress>;
 
 export const SecretStatusSchema = z.record(z.string(), z.boolean());
+
+export const ConnectionTestSchema = z.union([
+  z.object({ ok: z.literal(true), latencyMs: z.number().nonnegative(), detail: z.string() }),
+  z.object({ ok: z.literal(false), error: z.string(), hint: z.string().optional() }),
+]) satisfies z.ZodType<ConnectionTest>;

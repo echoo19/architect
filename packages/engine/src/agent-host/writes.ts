@@ -66,6 +66,7 @@ export function approveWrites(policy: WritePolicy): ApproveWrite {
     const block = {
       kind: 'approval' as const,
       changeId,
+      op: change.tool === 'append_rows' ? ('append' as const) : ('update' as const),
       file: change.file,
       summary: change.summary,
       diff: change.diff,

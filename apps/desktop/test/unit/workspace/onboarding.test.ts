@@ -1,7 +1,11 @@
-import { MENTOR_PRESETS, mentorPreset, type PullProgress } from '@architect/shared';
-import { describe, expect, it } from 'vitest';
 import {
   ConnectionTestSchema,
+  MENTOR_PRESETS,
+  mentorPreset,
+  type PullProgress,
+} from '@architect/shared';
+import { describe, expect, it } from 'vitest';
+import {
   formatPricing,
   mentorFromPreset,
   presetFor,
