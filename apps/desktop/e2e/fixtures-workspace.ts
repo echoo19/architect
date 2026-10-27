@@ -8,143 +8,23 @@ import type {
   OllamaStatus,
   PullProgress,
   ReportCard,
-  TypeResult,
   WorkspaceChat,
   WorkspaceEvent,
   WorkspaceMessage,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
+import { AT, graduate, job, storyReport } from './story';
 
 /*
  * A stand-in engine for the workspace and first-run tests. It runs in the main process and
  * keeps state, so a chat read after an event already has that event in it, as with the real
- * agent host. The data follows the sample job (DECISIONS.md 005).
+ * agent host. The graduate is the one the shared story trains (story.ts).
  */
 
-const AT = '2026-10-27T15:00:00.000Z';
 export const GB = 1024 ** 3;
 export const STUDENT_MODEL = 'muse-glimmer:30b';
 
-const perType: TypeResult[] = [
-  { type: 'invoice', label: 'Price a finished job', pass: 19, total: 20, refused: false },
-  { type: 'overdue', label: 'Who owes us money?', pass: 20, total: 20, refused: false },
-  { type: 'scheduling', label: 'Book the next free slot', pass: 16, total: 20, refused: false },
-  { type: 'refunds', label: 'Refunds', pass: 0, total: 4, refused: true },
-];
-
-export const AGENT: GraduateSummary = {
-  id: 'grd_desk',
-  name: 'Service desk',
-  path: 'graduates/service-desk',
-  manifest: {
-    format: 1,
-    id: 'grd_desk',
-    name: 'Service desk',
-    jobId: 'job_desk',
-    runId: 'run_desk',
-    method: 'architect',
-    createdAt: AT,
-    acceptedAt: AT,
-    student: {
-      label: 'Glimmer',
-      runtime: 'ollama',
-      baseUrl: 'http://127.0.0.1:11434',
-      model: STUDENT_MODEL,
-      quantization: 'Q4_K_M',
-      sizeBytes: 18 * GB,
-      contextLength: 16_384,
-    },
-    harness: { version: 4, hash: 'sha256-desk-v4' },
-    requirements: { passRate: { target: 0.85, actual: 0.86, met: true } },
-    test: { score: { pass: 55, total: 64 }, perType },
-    mentor: { label: 'Muse Spark 1.3', model: 'muse-spark-1.3' },
-  },
-};
-
-const JOB: Job = {
-  format: 1,
-  id: 'job_desk',
-  name: 'Service desk',
-  description: 'Closes out the day for Ferncliff Home Services.',
-  summary: 'Prices finished jobs, chases overdue balances and books the next urgent call.',
-  does: ['Prices a finished job from the rate card'],
-  doesNot: ['Issues refunds'],
-  createdAt: AT,
-  taskTypes: [
-    { id: 'invoice', label: 'Price a finished job' },
-    { id: 'overdue', label: 'Who owes us money?' },
-    { id: 'scheduling', label: 'Book the next free slot' },
-  ],
-  data: {
-    files: [
-      { name: 'jobs.csv', kind: 'table', access: 'read' },
-      { name: 'invoices.csv', kind: 'table', access: 'write' },
-      { name: 'bookings.csv', kind: 'table', access: 'write' },
-      { name: 'policy.md', kind: 'text', access: 'read' },
-    ],
-  },
-  permissions: { writes: 'ask', unseenFiles: 'ask' },
-  checker: { kind: 'builtin' },
-  requirements: { passRate: 0.85, p95LatencyMs: 8000 },
-  budget: { maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: 180 },
-  mentor: {
-    kind: 'model',
-    provider: 'meta',
-    label: 'Muse Spark 1.3',
-    baseUrl: 'https://api.meta.ai/v1',
-    model: 'muse-spark-1.3',
-    reasoningEffort: 'medium',
-    secretRef: 'meta',
-  },
-  student: {
-    label: 'Glimmer',
-    local: {
-      runtime: 'ollama',
-      baseUrl: 'http://127.0.0.1:11434',
-      model: STUDENT_MODEL,
-      contextLength: 16_384,
-    },
-    trainOn: 'local',
-  },
-  startingHarness: { kind: 'blank' },
-  splits: { seed: 7, calibration: 10, train: 60, dev: 40, test: 64 },
-  evaluation: { trainBatch: 12, minDevGain: 2, maxTypeRegression: 1, devRepeats: 1, patience: 3 },
-};
-
-const REPORT: ReportCard = {
-  jobId: 'job_desk',
-  runId: 'run_desk',
-  method: 'architect',
-  name: 'Service desk',
-  createdAt: AT,
-  student: { label: 'Glimmer', model: STUDENT_MODEL, runtime: 'ollama' },
-  mentor: { label: 'Muse Spark 1.3', model: 'muse-spark-1.3' },
-  test: {
-    score: { pass: 55, total: 64 },
-    perType,
-    latencyMs: { p50: 4200, p95: 7600 },
-    refusals: 4,
-    ranOffline: true,
-  },
-  dev: { baseline: { pass: 16, total: 40 }, final: { pass: 36, total: 40 }, curve: [] },
-  cost: {
-    mentorUsd: 3.8,
-    mentorInputTokens: 620_000,
-    mentorOutputTokens: 81_000,
-    rounds: 6,
-    wallMs: 158 * 60_000,
-  },
-  refusedTypes: [
-    {
-      type: 'refunds',
-      label: 'Refunds',
-      reason: 'The office files have no refund policy to follow, so it leaves refunds to you.',
-    },
-  ],
-  topInterventions: [],
-  requirements: { passRate: { target: 0.85, actual: 0.86, met: true } },
-  overclaim: false,
-};
+export const AGENT = graduate;
 
 function chat(id: string, title: string, patch: Partial<WorkspaceChat> = {}): WorkspaceChat {
   return {
@@ -162,8 +42,8 @@ function chat(id: string, title: string, patch: Partial<WorkspaceChat> = {}): Wo
 export const CHATS = {
   fresh: chat('cht_new', 'New chat', { updatedAt: '2026-10-27T16:30:00.000Z' }),
   closeout: chat('cht_closeout', 'Close out Tuesday', { updatedAt: '2026-10-27T16:10:00.000Z' }),
-  approvals: chat('cht_book', 'Invoice and book Alder St', { waiting: true }),
-  refund: chat('cht_refund', 'Refund the 4412 trip fee'),
+  approvals: chat('cht_book', 'Invoice and book Alder St', { running: true, waiting: true }),
+  refund: chat('cht_refund', 'Refund the J-4412 trip fee'),
 };
 
 function message(
@@ -216,20 +96,22 @@ export const MESSAGES: WorkspaceMessage[] = [
     text: 'Who still owes us money from September?',
   }),
   message('msg_close_2', CHATS.closeout.id, 'agent', {
-    text: 'Three customers, $2,914.75 in total. The oldest is the Okafor invoice from Sep 3.',
+    text: 'Three customers, $2,915.00 in total. The oldest is the Okafor invoice from Sep 3.',
     steps: [step('s1', 'read_table', 'invoices.csv', '412 rows')],
     workedMs: 2100,
   }),
   message('msg_book_1', CHATS.approvals.id, 'user', {
-    text: 'Invoice both jobs Dana finished and book the Alder St leak for tomorrow morning.',
+    text: 'Invoice both jobs Dana finished and book the Alder St panel repair for tomorrow morning.',
   }),
   message('msg_book_2', CHATS.approvals.id, 'agent', {
-    text: 'Both invoices are ready, and Priya has the earliest plumbing slot tomorrow. I need your go-ahead before I write anything.',
+    status: 'streaming',
+    text: 'Both invoices are ready, and Priya N. has the earliest slot tomorrow, at 09:30. I need your go-ahead before I write anything.',
     steps: [
       step('s1', 'read_table', 'jobs.csv', '2 rows'),
-      step('s2', 'invoice_total', 'job 4410', '$486.20'),
-      step('s3', 'invoice_total', 'job 4412', '$1,284.50'),
-      step('s4', 'earliest_slot', 'plumbing, zone 3', 'Wed 8:00'),
+      step('s2', 'invoice_total', 'job J-4410', '$486.20'),
+      step('s3', 'invoice_total', 'job J-4412', '$1,284.50'),
+      step('s4', 'travel_minutes', 'zone A to zone C', '90 min'),
+      step('s5', 'read_table', 'bookings.csv', '1 row'),
     ],
     blocks: [
       approval(
@@ -238,8 +120,8 @@ export const MESSAGES: WorkspaceMessage[] = [
         'Append 2 rows to invoices.csv',
         ['invoice', 'job', 'customer', 'total'],
         [
-          ['INV-1043', 4410, 'Okafor', '$486.20'],
-          ['INV-1044', 4412, 'Lindqvist', '$1,284.50'],
+          ['INV-4410', 'J-4410', 'Okafor', '$486.20'],
+          ['INV-4412', 'J-4412', 'Lindqvist', '$1,284.50'],
         ],
       ),
       approval(
@@ -247,13 +129,12 @@ export const MESSAGES: WorkspaceMessage[] = [
         'bookings.csv',
         'Append 1 row to bookings.csv',
         ['booking', 'technician', 'start', 'zone'],
-        [['BK-2207', 'Priya Raman', 'Wed 8:00', 3]],
+        [['B-3042', 'Priya N.', 'Wed 09:30', 'C']],
       ),
     ],
-    workedMs: 4100,
   }),
   message('msg_refund_1', CHATS.refund.id, 'user', {
-    text: 'Refund the $120 trip fee on job 4412.',
+    text: 'Refund the $35 trip fee on job J-4412.',
   }),
   message('msg_refund_2', CHATS.refund.id, 'agent', {
     blocks: [
@@ -271,13 +152,13 @@ export function pricingReply(stage: 'started' | 'working' | 'writing' | 'done'):
   const steps = [
     step('p1', 'read_table', 'jobs.csv', '2 rows'),
     { ...step('p2', 'load_skill', 'price-a-job'), kind: 'skill' as const },
-    step('p3', 'invoice_total', 'job 4410', '$486.20'),
-    step('p4', 'invoice_total', 'job 4412', '$1,284.50'),
+    step('p3', 'invoice_total', 'job J-4410', '$486.20'),
+    step('p4', 'invoice_total', 'job J-4412', '$1,284.50'),
   ];
   const text =
-    'Job 4410 comes to **$486.20** and job 4412 to **$1,284.50**.\n\n' +
-    '- 4412 ran after hours, so labor is billed at 1.5x.\n' +
-    '- The customer on 4412 is a plan member, so 10% comes off before tax.\n\n' +
+    'Job J-4410 comes to **$486.20** and job J-4412 to **$1,284.50**.\n\n' +
+    '- J-4412 ran after hours, so labor is billed at 1.5x.\n' +
+    '- The customer on J-4412 is a plan member, so 10% comes off before tax.\n\n' +
     "Here's how each total breaks down:";
   const base = { createdAt: AT, status: 'streaming' as const };
   switch (stage) {
@@ -306,12 +187,12 @@ export function pricingReply(stage: 'started' | 'working' | 'writing' | 'done'):
           {
             kind: 'table',
             title: 'Price breakdown',
-            columns: ['Item', 'Job 4410', 'Job 4412'],
+            columns: ['Item', 'Job J-4410', 'Job J-4412'],
             rows: [
               ['Labor', '$280.00', '$810.00'],
               ['Parts', '$142.50', '$497.98'],
               ['Trip fee', '$35.00', '$35.00'],
-              ['Plan discount', '', '−$134.30'],
+              ['Plan discount', '$0.00', '−$134.30'],
               ['Tax', '$28.70', '$75.82'],
               ['Total', '$486.20', '$1,284.50'],
             ],
@@ -340,8 +221,8 @@ export function engineSeed(patch: Partial<EngineSeed> = {}): EngineSeed {
     chats: Object.values(CHATS),
     messages: MESSAGES,
     graduateSettings: { writeMode: 'ask' },
-    job: JOB,
-    report: REPORT,
+    job,
+    report: storyReport,
     ollama: { running: true, version: '0.12.6', models: [] },
     connection: { ok: true, latencyMs: 640, detail: 'muse-spark-1.3' },
     folder: 'C:\\Users\\dana\\Exports',
