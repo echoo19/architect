@@ -187,7 +187,12 @@ export class JobLibrary {
     await writeJsonLines(this.paths.tasksFile(job.id, 'calibration'), splits.calibration);
     await writeJsonLines(this.paths.tasksFile(job.id, 'train'), splits.train);
     await writeJsonLines(this.paths.tasksFile(job.id, 'dev'), splits.dev);
-    await this.deps.vault.seal(job.id, splits.test);
+    const testIds = new Set(splits.test.map((task) => task.id));
+    await this.deps.vault.seal(
+      job.id,
+      splits.test,
+      tasks.filter((task) => !testIds.has(task.id)),
+    );
   }
 
   private async freshId(candidate: string): Promise<string> {

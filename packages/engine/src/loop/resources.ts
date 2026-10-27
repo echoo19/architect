@@ -49,7 +49,9 @@ export class SessionResources {
 
   checker(): Promise<TaskChecker> {
     const { deps, job, jobDir } = this.options;
-    this.checkerCreated ??= Promise.resolve().then(() => deps.runtime.createChecker(job, jobDir));
+    this.checkerCreated ??= this.sandbox().then((sandbox) =>
+      deps.runtime.createChecker(job, jobDir, sandbox),
+    );
     return this.checkerCreated;
   }
 

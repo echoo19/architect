@@ -104,13 +104,18 @@ export interface RuntimeDeps {
     options: EvaluationOptions,
   ): Promise<Evaluation>;
   createSandbox(): Awaitable<ToolSandbox>;
-  createChecker(job: Job, jobDir: string): Awaitable<TaskChecker>;
+  /** The checker runs end-state validators in the sandbox it is given. */
+  createChecker(job: Job, jobDir: string, sandbox: ToolSandbox): Awaitable<TaskChecker>;
   releaseMentor(session: MentorSession): Promise<MentorReleased>;
 }
 
 /** The locked test split. Only the runner holds this; the mentor side never sees it. */
 export interface VaultDeps {
-  seal(jobId: string, tests: Task[]): Awaitable<void>;
+  /**
+   * Seals the test tasks. `others` are every other task of the job: wording they share with test
+   * prompts (templates) is left out of the leak fingerprint.
+   */
+  seal(jobId: string, tests: Task[], others: Task[]): Awaitable<void>;
   isSealed(jobId: string): Awaitable<boolean>;
   count(jobId: string): Awaitable<number>;
   leakDetector(jobId: string): Awaitable<LeakDetector>;

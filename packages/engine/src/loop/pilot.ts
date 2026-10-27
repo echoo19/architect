@@ -79,7 +79,7 @@ export async function devNoisePilot(
   const passes = new Map<string, boolean[]>();
   const runs: DevNoiseReport['runs'] = [];
   try {
-    const checker = await deps.runtime.createChecker(job, jobDir);
+    const checker = await deps.runtime.createChecker(job, jobDir, sandbox);
     const today =
       options.today ?? deps.runtime.today(job, new Date((context.clock ?? systemClock).now()));
     for (const seed of seeds) {
