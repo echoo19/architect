@@ -114,7 +114,7 @@ function checkedTwice(
     `${gainPhrase(firstGain)} on the first check ` +
     `(${first.devBefore.pass} to ${first.devAfter.pass} of ${first.devAfter.total})`;
   const again =
-    `Checked again on new seeds: ${changePhrase(gain)} over both checks ` +
+    `Run a second time to rule out luck: ${changePhrase(gain)} over both checks ` +
     `(${both.before.pass} to ${both.after.pass} of ${both.after.total})`;
   const worst = worstLoss(lineage, job);
 

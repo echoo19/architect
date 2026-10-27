@@ -113,7 +113,7 @@ export function RunControls({
 
 /**
  * Stopping ends training after the step in progress. The engine then runs the locked test on the
- * last kept version when a change was kept, so "Skip to graduation" and "Stop" lead to the same
+ * last kept version when a change was kept, so "Finish with the best version" and "Stop" lead to the same
  * place; with nothing kept, the run just ends.
  */
 export function StopDialog({
@@ -144,7 +144,7 @@ export function StopDialog({
   const copy =
     intent === 'skip'
       ? {
-          title: 'Skip to graduation?',
+          title: 'Finish with the best version?',
           description: `Training ends now, after the step in progress. ${live.job.name} keeps its best version so far (${best}), then ${student} takes the ${test}-task final test with ${mentor} disconnected and you get the report card.`,
           confirm: 'End training and test',
         }

@@ -78,13 +78,13 @@ describe('decisionSentence', () => {
         job,
       ),
     ).toBe(
-      '8 more check tasks passed on the first check (23 to 31 of 40). Checked again on new ' +
-        'seeds: 16 more over both checks (46 to 62 of 80), and no task type got worse.',
+      '8 more check tasks passed on the first check (23 to 31 of 40). Run a second time to ' +
+        'rule out luck: 16 more over both checks (46 to 62 of 80), and no task type got worse.',
     );
     expect(decisionSentence(checkedTwice(5, 'reverted', [46, 49]), undefined, job)).toBe(
-      '8 more check tasks passed on the first check (23 to 31 of 40). Checked again on new ' +
-        'seeds: 3 more over both checks (46 to 49 of 80). A change needs at least four more ' +
-        'over both to stay.',
+      '8 more check tasks passed on the first check (23 to 31 of 40). Run a second time to ' +
+        'rule out luck: 3 more over both checks (46 to 49 of 80). A change needs at least four ' +
+        'more over both to stay.',
     );
     expect(
       decisionSentence(
@@ -93,9 +93,9 @@ describe('decisionSentence', () => {
         job,
       ),
     ).toBe(
-      '8 more check tasks passed on the first check (23 to 31 of 40). Checked again on new ' +
-        'seeds: 6 more over both checks (46 to 52 of 80), but Scheduling lost three. No task ' +
-        'type may lose more than two.',
+      '8 more check tasks passed on the first check (23 to 31 of 40). Run a second time to ' +
+        'rule out luck: 6 more over both checks (46 to 52 of 80), but Scheduling lost three. No ' +
+        'task type may lose more than two.',
     );
   });
 

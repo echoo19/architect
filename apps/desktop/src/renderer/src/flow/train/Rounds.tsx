@@ -31,6 +31,7 @@ export function Rounds({
   rounds,
   running,
   names,
+  draftRound,
   onOpen,
   footer,
 }: {
@@ -38,6 +39,8 @@ export function Rounds({
   /** The newest unfinished round shows a spinner while the run is going. */
   running: boolean;
   names: ModelNames;
+  /** The round that wrote the first full draft, or null when the run started from a setup. */
+  draftRound: number | null;
   onOpen: (round: Round) => void;
   footer: RoundsFooter | null;
 }) {
@@ -59,7 +62,12 @@ export function Rounds({
         <ol className="m-0 max-h-[324px] list-none overflow-y-auto p-0">
           {[...rounds].reverse().map((round) => (
             <li key={round.index}>
-              <RoundRow round={round} running={running} onOpen={() => onOpen(round)} />
+              <RoundRow
+                round={round}
+                draft={round.index === draftRound}
+                running={running}
+                onOpen={() => onOpen(round)}
+              />
             </li>
           ))}
         </ol>
@@ -83,10 +91,12 @@ export function Rounds({
 
 function RoundRow({
   round,
+  draft,
   running,
   onOpen,
 }: {
   round: Round;
+  draft: boolean;
   running: boolean;
   onOpen: () => void;
 }) {
@@ -107,22 +117,30 @@ function RoundRow({
       <span className={cn('truncate', reverted && 'line-through decoration-fg-ghost')}>
         {round.title ?? untitled(round)}
       </span>
-      <RoundResult round={round} running={running} />
+      <RoundResult round={round} draft={draft} running={running} />
     </button>
   );
 }
 
 const DECISION_TONE = { kept: 'text-student', reverted: 'text-fg-muted' } as const;
 
-function RoundResult({ round, running }: { round: Round; running: boolean }) {
+function RoundResult({
+  round,
+  draft,
+  running,
+}: {
+  round: Round;
+  draft: boolean;
+  running: boolean;
+}) {
   if (round.devBefore && round.devAfter && round.decision) {
     return (
       <span className="flex items-baseline gap-3">
         <span className="font-mono text-sm tabular-nums">
           {percent(round.devBefore)}% to {percent(round.devAfter)}%
         </span>
-        <span className={cn('w-[62px] text-sm', DECISION_TONE[round.decision])}>
-          {round.decision === 'kept' ? 'Kept' : 'Reverted'}
+        <span className={cn('w-[74px] text-sm', DECISION_TONE[round.decision])}>
+          {draft ? 'First draft' : round.decision === 'kept' ? 'Kept' : 'Reverted'}
         </span>
       </span>
     );

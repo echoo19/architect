@@ -3,6 +3,7 @@ import { cn, Panel } from '@architect/ui';
 import { formatRate } from '../format';
 import { modelNames } from '../names';
 import { CURVE_BOX, curveGeometry, describeCurve, PLOT, type CurveInput } from './curve';
+import { draftRoundOf } from './draft';
 import type { LiveRun } from './run-state';
 
 /** The share of check tasks right, round by round. The student never practices on them. */
@@ -17,6 +18,7 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
     rounds,
     target: job.requirements.passRate,
     maxRounds: job.budget.maxRounds,
+    draftRound: draftRoundOf(live),
   };
   return (
     <Panel
@@ -36,9 +38,9 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
         )}
       </div>
       <p className="m-0 text-fg-secondary text-pretty">
-        {student} never practices on the check tasks. A change stays only if more of them come out
-        right on two checks, and training ends when they reach the {Math.round(input.target * 100)}%
-        target.
+        {student} is scored on the check tasks but never learns from them. A change stays only if
+        more come out right on two checks, and training ends at the {Math.round(input.target * 100)}
+        % target.
       </p>
       <Legend />
       <CurveChart input={input} />
@@ -190,7 +192,7 @@ function CurveChart({ input }: { input: CurveInput }) {
               tick.reached ? 'fill-fg-secondary' : 'fill-fg-ghost',
             )}
           >
-            {tick.round === 0 ? 'Start' : tick.round}
+            {tick.round === 0 ? 'Start' : tick.round === input.draftRound ? 'Draft' : tick.round}
           </text>
         </Fragment>
       ))}

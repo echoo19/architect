@@ -42,7 +42,7 @@ export function TraceDrawerContent({
   return (
     <DrawerContent
       title={attempt.prompt ?? `Task ${attempt.taskId}`}
-      subtitle={`${type} · ${split} · Version ${attempt.harnessVersion} of the agent's instructions`}
+      subtitle={`${type} · ${attempt.round ? `${split} in round ${attempt.round}` : split} · Version ${attempt.harnessVersion} of the agent's instructions`}
     >
       <div className="flex flex-col gap-7">
         <Verdict attempt={attempt} student={student} />
@@ -150,9 +150,14 @@ function TraceSteps({ trace, student }: { trace: Trace; student: string }) {
       </Section>
       <Section title={`${student}'s final answer`}>
         {trace.finalText.trim() ? (
-          <pre className="m-0 whitespace-pre-wrap break-words rounded-lg border border-line-card bg-well px-3.5 py-3 font-mono text-sm">
-            {trace.finalText}
-          </pre>
+          <>
+            <pre className="m-0 whitespace-pre-wrap break-words rounded-lg border border-line-card bg-well px-3.5 py-3 font-mono text-sm">
+              {trace.finalText}
+            </pre>
+            {/^ANSWER:/m.test(trace.finalText) && (
+              <p className="m-0 text-sm text-fg-muted">The ANSWER line is what gets graded.</p>
+            )}
+          </>
         ) : (
           <p className="m-0 text-fg-secondary">No answer.</p>
         )}
@@ -196,7 +201,8 @@ function StepView({
             </span>
             {explain && (
               <span className="text-sm text-fg-muted text-pretty">
-                A skill is a file of step-by-step instructions for one kind of request.
+                A skill is a file of step-by-step instructions, written during training, for one
+                kind of request.
               </span>
             )}
           </span>

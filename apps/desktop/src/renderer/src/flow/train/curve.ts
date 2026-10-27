@@ -25,6 +25,8 @@ export interface Point {
 }
 
 export interface CurveInput {
+  /** The round that wrote the first full draft, labelled as such; null when there was none. */
+  draftRound?: number | null;
   baseline: Score | null;
   rounds: readonly Round[];
   /** Target pass rate, 0 to 1. */
@@ -169,7 +171,8 @@ export function describeCurve(input: CurveInput): string {
   if (start) parts.push(`${Math.round(rate(start))}% at the start`);
   for (const round of input.rounds) {
     if (round.decision === 'kept' && round.devAfter) {
-      parts.push(`${Math.round(rate(round.devAfter))}% after round ${round.index}`);
+      const after = round.index === input.draftRound ? 'the first draft' : `round ${round.index}`;
+      parts.push(`${Math.round(rate(round.devAfter))}% after ${after}`);
     } else if (round.decision === 'reverted' && round.devAfter) {
       parts.push(`round ${round.index} reverted at ${Math.round(rate(round.devAfter))}%`);
     } else if (round.status === 'failed') {

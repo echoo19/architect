@@ -3,6 +3,7 @@ import { cn, Meter, Panel } from '@architect/ui';
 import { Lock } from 'lucide-react';
 import { formatDuration, formatUsd } from '../../lib/format';
 import { formatAnswerTime } from '../format';
+import { draftRoundOf } from './draft';
 import { budgetMeters, changeCounts, medianLatencyMs, type LiveRun } from './run-state';
 
 function share(used: number, max: number): number {
@@ -22,7 +23,9 @@ export function Resources({
 }) {
   const { minutes, usd, rounds } = budgetMeters(live);
   const speed = medianLatencyMs(live.attempts);
-  const changes = changeCounts(live.rounds);
+  // The first draft is the starting point, not a change, so it isn't counted among them.
+  const draft = draftRoundOf(live);
+  const changes = changeCounts(live.rounds.filter((round) => round.index !== draft));
   return (
     <Panel
       padded

@@ -53,15 +53,15 @@ describe('phaseView', () => {
 });
 
 describe('motionCaption', () => {
-  it('says what the moving marks stand for, and nothing once the run is still', () => {
+  it('says what the animation shows happening, and nothing once the run is still', () => {
     expect(motionCaption('practising', NAMES)).toBe(
-      'Each mark is a task. Right answers cross the line; wrong ones drop out for Spark to study.',
+      'Glimmer answers practice tasks. Right answers light up its grid; misses go to Spark to study.',
     );
     expect(motionCaption('returning', NAMES)).toBe(
-      'The wrong answers go back to Spark, which writes one change to fix them.',
+      "Spark studies the misses and writes one change to Glimmer's instructions.",
     );
     expect(motionCaption('testing', NAMES)).toBe(
-      'Each mark is a final-test task, one Glimmer has never seen.',
+      'Glimmer takes the final test alone, on tasks it has never seen.',
     );
     expect(motionCaption('still', NAMES)).toBeNull();
     expect(motionCaption('idle', NAMES)).toBeNull();

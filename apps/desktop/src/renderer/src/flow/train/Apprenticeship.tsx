@@ -2,7 +2,14 @@ import { useMemo, type CSSProperties } from 'react';
 import { cn, Panel } from '@architect/ui';
 import { ChevronRight } from 'lucide-react';
 import { capitalized, MENTOR_ROLE, STUDENT_ROLE } from '../../lib/names';
-import { motionCaption, STAGE_LABELS, STAGES, type Motion, type PhaseView } from './phase';
+import {
+  motionCaption,
+  ROUND_STAGES,
+  STAGE_LABELS,
+  type Motion,
+  type PhaseView,
+  type Stage,
+} from './phase';
 import type { EvalProgress } from './run-state';
 import './apprenticeship.css';
 
@@ -82,6 +89,8 @@ interface ApprenticeshipProps {
   /** Where the student runs right now: a hosted copy while practicing there, else this computer. */
   studentPlace: string;
   view: PhaseView;
+  /** The current round writes the first full draft rather than one watched change. */
+  drafting: boolean;
   /** The current pass rate on check tasks, 0 to 1, once measured. */
   passRate: number | null;
   progress: EvalProgress | null;
@@ -93,12 +102,16 @@ export function Apprenticeship({
   student,
   studentPlace,
   view,
+  drafting,
   passRate,
   progress,
 }: ApprenticeshipProps) {
   const cells = useMemo(() => gridCells(passRate ?? 0.35), [passRate]);
   const pills = pillsFor(view.motion, passRate);
-  const caption = motionCaption(view.motion, { mentor, student });
+  const caption = motionCaption(view.motion, { mentor, student }, drafting);
+  // A draft round makes no practice attempts: Spark writes the draft, then it is checked.
+  const stages: readonly Stage[] =
+    view.stage === 'testing' ? ['testing'] : drafting ? ['diagnosing', 'evaluating'] : ROUND_STAGES;
   const label =
     view.motion === 'testing'
       ? `${student} is taking the final test`
@@ -172,10 +185,10 @@ export function Apprenticeship({
 
       <div className="flex min-h-14 flex-wrap items-center gap-x-5 gap-y-1 border-t border-line-row-strong bg-aside px-7 py-2">
         <ol
-          aria-label="Steps of a round"
+          aria-label={view.stage === 'testing' ? 'After training' : 'Steps of a round'}
           className="m-0 flex list-none items-center gap-2 p-0 text-sm"
         >
-          {STAGES.map((stage, index) => (
+          {stages.map((stage, index) => (
             <li
               key={stage}
               aria-current={stage === view.stage ? 'step' : undefined}
@@ -192,7 +205,7 @@ export function Apprenticeship({
                     : 'border-transparent text-fg-muted',
                 )}
               >
-                {STAGE_LABELS[stage]}
+                {drafting && stage === 'diagnosing' ? 'Write first draft' : STAGE_LABELS[stage]}
               </span>
             </li>
           ))}

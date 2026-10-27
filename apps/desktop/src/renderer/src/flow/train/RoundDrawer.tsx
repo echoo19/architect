@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { FileDiff, Job, LineageEntry, Round, Score } from '@architect/shared';
 import { cn, DrawerContent, ErrorState, Skeleton, Spinner } from '@architect/ui';
-import { Check, Undo2 } from 'lucide-react';
+import { Check, FilePen, Undo2 } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { useQuery } from '../../api/query';
 import { formatRange, formatRate, signed } from '../format';
@@ -40,12 +40,15 @@ function changeSummary(mentor: string, lineage: LineageEntry | undefined): strin
 export function RoundDrawerContent({
   runId,
   round,
+  draft,
   job,
   lineage,
   names,
 }: {
   runId: string;
   round: Round;
+  /** The round wrote the first full draft rather than one watched change. */
+  draft: boolean;
   job: Job;
   lineage: LineageEntry | undefined;
   names: ModelNames;
@@ -56,10 +59,22 @@ export function RoundDrawerContent({
   // The prediction is for one check, so a change checked twice is set beside its first check.
   const first = round.firstMeasurement;
   const firstMeasured = first ? first.devAfter.pass - first.devBefore.pass : measured;
+  const second = first && round.devBefore && round.devAfter ? secondCheck(first, round) : null;
   return (
-    <DrawerContent title={title} subtitle={changeSummary(names.mentor, lineage)}>
+    <DrawerContent
+      title={title}
+      subtitle={
+        draft
+          ? `${names.mentor}'s first full draft of the agent's instructions`
+          : changeSummary(names.mentor, lineage)
+      }
+    >
       <div className="flex flex-col gap-7">
-        <Decision round={round} job={job} lineage={lineage} />
+        {draft ? (
+          <DraftDecision round={round} names={names} />
+        ) : (
+          <Decision round={round} job={job} lineage={lineage} />
+        )}
         {round.error && (
           <ErrorState layout="inline" title="This round failed" message={round.error} />
         )}
@@ -78,14 +93,15 @@ export function RoundDrawerContent({
           <Effect label={first ? 'First check' : 'Measured'} note={rateChange(first ?? round)}>
             <TaskCount delta={firstMeasured} />
           </Effect>
-          {first && (
-            <Effect
-              label="Checked again on new seeds, over both checks"
-              note={rateChange(round)}
-              wide
-            >
-              <TaskCount delta={measured} />
-            </Effect>
+          {second && (
+            <>
+              <Effect label="Second check, the same tasks run again" note={rateChange(second)}>
+                <TaskCount delta={second.devAfter.pass - second.devBefore.pass} />
+              </Effect>
+              <Effect label="Both checks together" note={rateChange(round)}>
+                <TaskCount delta={measured} />
+              </Effect>
+            </>
           )}
         </dl>
         {round.predicted && firstMeasured !== null && (
@@ -100,7 +116,10 @@ export function RoundDrawerContent({
         )}
 
         {round.diagnosis && (
-          <Block title={`${names.mentor}'s diagnosis`} tone="mentor">
+          <Block
+            title={draft ? `What ${names.mentor} set out to do` : `${names.mentor}'s diagnosis`}
+            tone="mentor"
+          >
             <p className="m-0 whitespace-pre-wrap text-md text-fg-soft text-pretty">
               {round.diagnosis}
             </p>
@@ -139,11 +158,46 @@ export function RoundDrawerContent({
           </Block>
         )}
 
-        <Block title={`What changed in ${job.name}'s instructions`}>
+        <Block
+          title={
+            draft
+              ? `The first draft of ${job.name}'s instructions`
+              : `What changed in ${job.name}'s instructions`
+          }
+        >
           <RoundFiles runId={runId} round={round} />
         </Block>
       </div>
     </DrawerContent>
+  );
+}
+
+/** A first draft is kept as the starting point, without a keep check (decision 026). */
+function DraftDecision({ round, names }: { round: Round; names: ModelNames }) {
+  if (!round.decision) {
+    return (
+      <div className="flex items-center gap-3 rounded-xl border border-line-card bg-well px-4 py-3.5">
+        {round.status !== 'failed' && <Spinner tone="mentor" size={16} />}
+        <span className="text-xl font-medium">
+          {round.status === 'evaluating'
+            ? 'Scoring the first draft on the check tasks'
+            : 'Writing the first draft'}
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1.5 rounded-xl border border-student-tile-line bg-student-tile px-4 py-3.5">
+      <span className="flex items-center gap-2.5 text-2xl font-medium text-student">
+        <FilePen size={20} strokeWidth={2} aria-hidden />
+        First draft
+      </span>
+      <p className="m-0 text-md text-fg-soft text-pretty">
+        {names.mentor} wrote the agent&apos;s first full setup from the job and its example tasks,
+        before watching it work. It is kept as the starting point; later rounds keep only measured
+        gains.
+      </p>
+    </div>
   );
 }
 
@@ -196,6 +250,22 @@ function Unit({ children }: { children: ReactNode }) {
   return <span className="ml-2 font-sans text-md text-fg-secondary">{children}</span>;
 }
 
+/** The second check alone: both checks added up, less the first. */
+function secondCheck(
+  first: NonNullable<Round['firstMeasurement']>,
+  both: { devBefore?: Score; devAfter?: Score },
+): { devBefore: Score; devAfter: Score } | null {
+  if (!both.devBefore || !both.devAfter) return null;
+  const less = (total: Score, part: Score) => ({
+    pass: total.pass - part.pass,
+    total: total.total - part.total,
+  });
+  return {
+    devBefore: less(both.devBefore, first.devBefore),
+    devAfter: less(both.devAfter, first.devAfter),
+  };
+}
+
 /** "58% to 78% of check tasks right": rates, since one check and two add up to different totals. */
 function rateChange({ devBefore, devAfter }: { devBefore?: Score; devAfter?: Score }) {
   if (!devBefore || !devAfter) return undefined;
@@ -216,17 +286,14 @@ function TaskCount({ delta }: { delta: number | null }) {
 function Effect({
   label,
   note,
-  wide,
   children,
 }: {
   label: string;
   note?: string | undefined;
-  /** Spans both columns. */
-  wide?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className={cn('flex flex-col gap-1 bg-modal px-4 py-3.5', wide && 'col-span-2')}>
+    <div className="flex flex-col gap-1 bg-modal px-4 py-3.5">
       <dt className="text-fg-secondary">{label}</dt>
       <dd className="m-0 font-mono text-2xl tabular-nums">{children}</dd>
       {note && <dd className="m-0 text-sm text-fg-muted">{note}</dd>}

@@ -5,7 +5,7 @@ import { typeLabel } from '../names';
 import type { RecentAttempt } from './run-state';
 
 /** Older rows fade, as in the design; hovering or focusing a row brings it back. */
-const FADE = [1, 0.8, 0.62, 0.46, 0.34];
+const FADE = [1, 0.88, 0.78, 0.68, 0.6];
 
 /** The student's latest attempts, newest first. A row opens its trace. */
 export function Examples({

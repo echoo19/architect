@@ -6,6 +6,7 @@ import { rate } from '../flow/format';
 import { modelNames, typeLabel } from '../flow/names';
 import { Apprenticeship } from '../flow/train/Apprenticeship';
 import { CurrentRound } from '../flow/train/CurrentRound';
+import { draftRoundOf } from '../flow/train/draft';
 import { Examples } from '../flow/train/Examples';
 import { phaseView } from '../flow/train/phase';
 import { Resources } from '../flow/train/Resources';
@@ -125,6 +126,7 @@ function RoundDrawer({
         <RoundDrawerContent
           runId={live.run.id}
           round={round}
+          draft={round.index === draftRoundOf(live)}
           job={live.job}
           lineage={live.lineage.find((entry) => entry.round === round.index)}
           names={modelNames(live.job)}
@@ -176,15 +178,17 @@ function TrainBoard({
 }) {
   const { run, job } = live;
   const names = modelNames(job);
-  const view = phaseView(run, names);
+  const draft = draftRoundOf(live);
+  const drafting = draft !== null && currentRound(live)?.index === draft;
+  const view = phaseView(run, names, drafting);
   const score = run.devCurrent ?? run.devBaseline;
   let footer: RoundsFooter | null = null;
   if (run.status === 'finished') {
     footer = { label: 'See the report card', onClick: () => navigate(paths.report(run.id)) };
   } else if ((run.status === 'running' || run.status === 'paused') && hasKeptChange(live.rounds)) {
     footer = {
-      label: 'Skip to graduation',
-      note: 'Ends training now. Like Stop, it keeps the best version and runs the final test.',
+      label: 'Finish with the best version',
+      note: 'Good enough already? Training ends now and the best version takes the final test.',
       onClick: onSkip,
     };
   }
@@ -211,6 +215,7 @@ function TrainBoard({
           student={names.student}
           studentPlace={studentPlace(live)}
           view={view}
+          drafting={drafting}
           passRate={score ? rate(score) / 100 : null}
           progress={activeProgress(live)}
         />
@@ -231,6 +236,7 @@ function TrainBoard({
           rounds={live.rounds}
           running={WORKING.has(run.status)}
           names={names}
+          draftRound={draft}
           onOpen={onOpenRound}
           footer={footer}
         />

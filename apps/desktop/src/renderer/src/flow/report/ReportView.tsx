@@ -51,6 +51,14 @@ function beforeTraining(
   return baseline ? `Up from ${formatRate(baseline)} on check tasks before training` : undefined;
 }
 
+/** Whether training began with a first full draft rather than a setup (decision 026). */
+function startedBlank(report: ReportCard, job: Job | null): boolean {
+  return (
+    job?.startingHarness.kind === 'blank' &&
+    (report.method === 'architect' || report.method === 'self_reflection')
+  );
+}
+
 /** How much training ran, and that it ended on reaching the target when it did. */
 function trainingNote(report: ReportCard, job: Job | null): string {
   const { rounds, wallMs } = report.cost;
@@ -184,7 +192,8 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
                 />
                 {percent(type) < target && (
                   <span className="text-sm text-fg-muted">
-                    Below the {target}% target on its own
+                    Below the {target}% target on its own: check these answers before relying on
+                    them
                   </span>
                 )}
               </div>
@@ -205,9 +214,7 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
             <section aria-labelledby="wont-do" className="flex flex-col gap-3.5">
               <div className="flex flex-col gap-1.5">
                 <Heading id="wont-do">What it won&apos;t do</Heading>
-                <p className="m-0 text-fg-secondary text-pretty">
-                  Limits from the job, which hold on every request.
-                </p>
+                <p className="m-0 text-fg-secondary text-pretty">Limits set in the job.</p>
               </div>
               <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-md text-fg-secondary">
                 {job.doesNot.map((limit) => (
@@ -235,7 +242,11 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
                 key={change.round}
                 className="grid min-h-12 grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-3.5 border-t border-line-card first:border-t-0"
               >
-                <span className="text-fg-secondary">Round {change.round}</span>
+                <span className="text-fg-secondary">
+                  {change.round === 1 && startedBlank(report, job)
+                    ? 'First draft'
+                    : `Round ${change.round}`}
+                </span>
                 <span className="truncate">{change.title}</span>
                 <span className="font-mono text-sm">
                   {signed(change.delta)}{' '}
