@@ -82,16 +82,16 @@ export function CurrentRound({
         </p>
       )}
       <div className="mt-auto flex items-baseline justify-between gap-3 border-t border-line-row-strong pt-[18px]">
-        <span className="text-fg-secondary">Expected</span>
+        <span className="text-fg-secondary">{names.mentor} expects</span>
         {predicted ? (
-          <span
-            className="font-mono"
-            aria-label={`Expected ${formatRange(predicted.devDeltaMin, predicted.devDeltaMax)} check tasks right`}
-          >
-            {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)}
+          <span>
+            <span className="font-mono">
+              {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)}
+            </span>{' '}
+            <span className="text-fg-secondary">check tasks right</span>
           </span>
         ) : (
-          <span className="text-fg-muted">After the diagnosis</span>
+          <span className="text-fg-muted">A prediction, once the diagnosis is in</span>
         )}
       </div>
     </Panel>

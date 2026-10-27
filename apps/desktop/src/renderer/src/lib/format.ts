@@ -24,12 +24,6 @@ export function formatDuration(ms: number): string {
   return minutes % 60 === 0 ? `${hours} h` : `${hours} h ${minutes % 60} min`;
 }
 
-/** Hours and minutes on a clock face: "1:12", "3:00". */
-export function formatClock(ms: number): string {
-  const minutes = Math.floor(ms / 60_000);
-  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
-}
-
 /** "1.2 s", "850 ms". */
 export function formatSeconds(ms: number): string {
   return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;

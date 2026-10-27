@@ -22,6 +22,7 @@ import {
 import { TaskSuccess } from '../flow/train/TaskSuccess';
 import { TraceDrawerContent } from '../flow/train/TraceDrawer';
 import { useLiveRun } from '../flow/train/use-live-run';
+import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 import { FlowShell } from '../shell/FlowShell';
 
@@ -155,6 +156,13 @@ function useReportWhenFinished(
   }, [status, runId, contentRef, reading]);
 }
 
+/** Where the student is running now: a hosted copy only practices; the final test runs here. */
+function studentPlace({ run, job }: LiveRun): string {
+  const testing = run.status === 'testing' || run.phase === 'testing';
+  if (!testing && job.student.trainOn === 'hosted') return 'on a hosted copy';
+  return `on ${deviceInSentence(currentPlatform())}`;
+}
+
 function TrainBoard({
   live,
   onOpenAttempt,
@@ -174,7 +182,11 @@ function TrainBoard({
   if (run.status === 'finished') {
     footer = { label: 'See the report card', onClick: () => navigate(paths.report(run.id)) };
   } else if ((run.status === 'running' || run.status === 'paused') && hasKeptChange(live.rounds)) {
-    footer = { label: 'Skip to graduation', onClick: onSkip };
+    footer = {
+      label: 'Skip to graduation',
+      note: 'Ends training now, keeps the best version and runs the final test',
+      onClick: onSkip,
+    };
   }
 
   return (
@@ -197,6 +209,7 @@ function TrainBoard({
         <Apprenticeship
           mentor={names.mentor}
           student={names.student}
+          studentPlace={studentPlace(live)}
           view={view}
           passRate={score ? rate(score) / 100 : null}
           progress={activeProgress(live)}

@@ -4,6 +4,14 @@ import type { Run } from '@architect/shared';
 export const STAGES = ['attempting', 'diagnosing', 'evaluating', 'testing'] as const;
 export type Stage = (typeof STAGES)[number];
 
+/** The steps as the panel names them. */
+export const STAGE_LABELS: Record<Stage, string> = {
+  attempting: 'Practice',
+  diagnosing: 'Diagnose',
+  evaluating: 'Check',
+  testing: 'Final test',
+};
+
 /**
  * What the Spark to Glimmer panel animates. `practising` and `checking` send tasks past the
  * checker; `returning` sends failures back to the mentor; `testing` runs with the mentor gone;
@@ -71,13 +79,13 @@ function runningText(run: Run, { mentor, student }: ModelNames): string {
     case 'preparing':
       return `Getting ${student} ready`;
     case 'baseline':
-      return `Measuring ${student} before any teaching`;
+      return `Scoring ${student} on the check tasks before any teaching`;
     case 'attempting':
       return `${student} is working through practice tasks`;
     case 'diagnosing':
       return `${mentor} is reading the failures`;
     case 'evaluating':
-      return "Checking the change on tasks it hasn't practiced";
+      return 'Scoring the change on the check tasks';
     case 'testing':
       return `Final test, ${mentor} disconnected`;
     case 'done':

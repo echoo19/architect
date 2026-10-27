@@ -12,7 +12,7 @@ function untitled(round: Round): string {
     case 'diagnosing':
       return 'Reading the failures';
     case 'evaluating':
-      return 'Checking the change';
+      return 'Scoring the change';
     case 'decided':
     case 'failed':
       return 'Untitled change';
@@ -21,10 +21,12 @@ function untitled(round: Round): string {
 
 export interface RoundsFooter {
   label: string;
+  /** One line saying what the footer's action does. */
+  note?: string;
   onClick: () => void;
 }
 
-/** Every round, newest first, with what its change did to the check score. */
+/** Every round, newest first, with what its change did to the check tasks and the decision. */
 export function Rounds({
   rounds,
   running,
@@ -41,7 +43,14 @@ export function Rounds({
 }) {
   return (
     <Panel aria-label="Rounds" className="min-w-0 flex-[5_1_360px]">
-      <PanelHeader title="Rounds" />
+      <PanelHeader
+        title="Rounds"
+        actions={
+          rounds.length > 0 && (
+            <span className="text-sm text-fg-muted">Check tasks right, before and after</span>
+          )
+        }
+      />
       {rounds.length === 0 ? (
         <PanelRow className="text-fg-secondary">
           The first round starts once {names.mentor} has seen how {names.student} does.
@@ -59,10 +68,13 @@ export function Rounds({
         <button
           type="button"
           onClick={footer.onClick}
-          className="mt-auto flex min-h-[54px] items-center justify-end gap-2 border-t border-line-row px-7 text-fg-secondary transition-colors duration-150 hover:text-fg"
+          className="group mt-auto flex min-h-[54px] items-center justify-between gap-3 border-t border-line-row px-7 text-left transition-colors duration-150"
         >
-          {footer.label}
-          <ArrowRight size={14} strokeWidth={2} aria-hidden />
+          <span className="text-sm text-fg-muted text-pretty">{footer.note}</span>
+          <span className="flex shrink-0 items-center gap-2 text-fg-secondary group-hover:text-fg">
+            {footer.label}
+            <ArrowRight size={14} strokeWidth={2} aria-hidden />
+          </span>
         </button>
       )}
     </Panel>
@@ -94,22 +106,35 @@ function RoundRow({
       </span>
       <span className={cn('truncate', reverted && 'line-through decoration-fg-ghost')}>
         {round.title ?? untitled(round)}
-        {reverted && <span className="sr-only">, reverted</span>}
       </span>
       <RoundResult round={round} running={running} />
     </button>
   );
 }
 
+const DECISION_TONE = { kept: 'text-student', reverted: 'text-fg-muted' } as const;
+
 function RoundResult({ round, running }: { round: Round; running: boolean }) {
-  if (round.devBefore && round.devAfter) {
+  if (round.devBefore && round.devAfter && round.decision) {
     return (
-      <span className="font-mono text-sm tabular-nums">
-        {percent(round.devBefore)} → {percent(round.devAfter)}
+      <span className="flex items-baseline gap-3">
+        <span className="font-mono text-sm tabular-nums">
+          {percent(round.devBefore)}% to {percent(round.devAfter)}%
+        </span>
+        <span className={cn('w-[62px] text-sm', DECISION_TONE[round.decision])}>
+          {round.decision === 'kept' ? 'Kept' : 'Reverted'}
+        </span>
       </span>
     );
   }
   if (round.status === 'failed') return <span className="text-sm text-danger">Failed</span>;
-  if (running) return <Spinner tone="mentor" label="In progress" />;
+  if (running) {
+    return (
+      <span className="flex items-center gap-2 text-sm text-fg-muted">
+        In progress
+        <Spinner tone="mentor" />
+      </span>
+    );
+  }
   return <span className="text-sm text-fg-muted">Not finished</span>;
 }

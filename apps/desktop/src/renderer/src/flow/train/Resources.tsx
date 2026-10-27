@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn, Meter, Panel } from '@architect/ui';
 import { Lock } from 'lucide-react';
-import { formatClock, formatUsd } from '../../lib/format';
+import { formatDuration, formatUsd } from '../../lib/format';
 import { formatAnswerTime } from '../format';
 import { budgetMeters, changeCounts, medianLatencyMs, type LiveRun } from './run-state';
 
@@ -21,13 +21,13 @@ export function Resources({ live, mentor }: { live: LiveRun; mentor: string }) {
       className="min-w-0 flex-[5_1_360px] justify-between gap-[18px]"
     >
       <BudgetMeter
-        label="Time"
-        used={formatClock(minutes.used * 60_000)}
-        max={formatClock(minutes.max * 60_000)}
+        label="Training time"
+        used={formatDuration(minutes.used * 60_000)}
+        max={formatDuration(minutes.max * 60_000)}
         fraction={share(minutes.used, minutes.max)}
       />
       <BudgetMeter
-        label={mentor}
+        label={`${mentor} spending`}
         used={formatUsd(roundCents(usd.used))}
         max={formatUsd(usd.max)}
         fraction={share(usd.used, usd.max)}
@@ -38,21 +38,29 @@ export function Resources({ live, mentor }: { live: LiveRun; mentor: string }) {
         max={String(rounds.max)}
         fraction={share(rounds.used, rounds.max)}
       />
-      <Fact label="Answer speed" className="border-t border-line-row-strong pt-[18px]">
-        {speed === null ? <span className="text-fg-muted">–</span> : formatAnswerTime(speed)}
+      <Fact label="Time per task" className="border-t border-line-row-strong pt-[18px]">
+        {speed === null ? (
+          <span className="text-fg-muted">–</span>
+        ) : (
+          <span className="font-mono">{formatAnswerTime(speed)}</span>
+        )}
       </Fact>
       <Fact label="Changes kept">
-        {changes.kept} <span className="text-fg-muted">/ {changes.tried}</span>
+        <span className="font-mono">{changes.kept}</span>{' '}
+        <span className="text-fg-muted">
+          of <span className="font-mono">{changes.tried}</span>
+        </span>
       </Fact>
       <Fact
         label={
           <span className="flex items-center gap-2">
             <Lock size={13} strokeWidth={1.8} aria-hidden />
-            Final test
+            Final test, locked until training ends
           </span>
         }
       >
-        {live.job.splits.test}
+        <span className="font-mono">{live.job.splits.test}</span>{' '}
+        <span className="text-fg-muted">tasks</span>
       </Fact>
     </Panel>
   );
@@ -75,10 +83,13 @@ function BudgetMeter({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-baseline justify-between gap-3">
         <span className="text-fg-secondary">{label}</span>
-        <span className="font-mono">
-          {used} <span className="text-fg-muted">/ {max}</span>
+        <span>
+          <span className="font-mono">{used}</span>{' '}
+          <span className="text-fg-muted">
+            of <span className="font-mono">{max}</span>
+          </span>
         </span>
       </div>
       <Meter label={label} value={fraction} valueText={`${used} of ${max}`} />
@@ -96,9 +107,9 @@ function Fact({
   className?: string;
 }) {
   return (
-    <div className={cn('flex items-baseline justify-between', className)}>
+    <div className={cn('flex items-baseline justify-between gap-3', className)}>
       <span className="text-fg-secondary">{label}</span>
-      <span className="font-mono">{children}</span>
+      <span>{children}</span>
     </div>
   );
 }

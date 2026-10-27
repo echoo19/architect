@@ -23,14 +23,16 @@ describe('phaseView', () => {
     expect(view({ phase: 'evaluating' })).toMatchObject({
       stage: 'evaluating',
       motion: 'checking',
-      text: "Checking the change on tasks it hasn't practiced",
+      text: 'Scoring the change on the check tasks',
     });
     expect(view({ status: 'testing', phase: 'testing' })).toMatchObject({
       stage: 'testing',
       motion: 'testing',
       text: 'Final test, Spark disconnected',
     });
-    expect(view({ phase: 'baseline' }).text).toBe('Measuring Glimmer before any teaching');
+    expect(view({ phase: 'baseline' }).text).toBe(
+      'Scoring Glimmer on the check tasks before any teaching',
+    );
   });
 
   it('holds the motion while paused and stills it once the run ends', () => {
