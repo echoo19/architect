@@ -188,6 +188,8 @@ export function buildJob(version: JobVersion): Job {
     },
     startingHarness: { kind: 'blank' },
     splits: { seed: 20261027, calibration: 15, train: 60, dev: 45, test: 60 },
-    evaluation: { trainBatch: 12, minDevGain: 2, maxTypeRegression: 1, patience: 3 },
+    // Four reverts in a row before giving up: with dev noise, a real gain of three tasks clears the
+    // keep check only about half the time (decision 022).
+    evaluation: { trainBatch: 12, minDevGain: 2, maxTypeRegression: 1, patience: 4 },
   });
 }

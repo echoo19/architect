@@ -166,6 +166,6 @@
     "minDevGain": 2,
     "maxTypeRegression": 1,
     "devRepeats": 1,
-    "patience": 3
+    "patience": 4
   }
 }
