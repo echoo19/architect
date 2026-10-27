@@ -14,7 +14,6 @@ import {
   estimateMentorUsd,
   estimateTime,
   formatAbout,
-  formatAboutUsd,
   practiceUsd,
   roundsLine,
   runSeconds,
@@ -55,7 +54,7 @@ export function TrainingPlace({
   const comparing = baselines?.checked === true;
   const provider = job.student.hosted ? providerName(job.student.hosted) : null;
   const pricing = job.student.hosted ? presetOf(job.student.hosted)?.pricing : null;
-  const hostedUsd = pricing ? formatAboutUsd(practiceUsd(pricing, remote)) : null;
+  const hostedUsd = pricing ? aboutUsd(practiceUsd(pricing, remote)).toLowerCase() : null;
   const parts = [
     `${aboutSpan(chosen.trainingSeconds).toLowerCase()} of training ${onHost ? `on ${provider ?? 'the hosted copy'}` : `on ${device}`}`,
     `${formatAbout(testSeconds(job)).toLowerCase()} for the final test on ${device}`,
