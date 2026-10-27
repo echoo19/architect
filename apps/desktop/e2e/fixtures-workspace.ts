@@ -141,7 +141,7 @@ export const MESSAGES: WorkspaceMessage[] = [
       {
         kind: 'refusal',
         taskType: 'refunds',
-        reason: 'The office files have no refund policy to follow, so it leaves refunds to you.',
+        reason: "Its job says it won't issue refunds or credits, so it leaves them to you.",
       },
     ],
   }),

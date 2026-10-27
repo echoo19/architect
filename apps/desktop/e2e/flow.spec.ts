@@ -135,7 +135,8 @@ for (const theme of THEMES) {
       'No full round fits in 4 hours of training; one takes about 4 to 7 hours',
     );
     await expect(local).toContainText('Too slow for this time limit');
-    await expect(hosted).toContainText('About 7 hours in all, with the final test');
+    await expect(hosted).toContainText('about $3.50 billed by Together');
+    await expect(page.getByText('About 7 hours in all')).toBeVisible();
     await expect(hosted).toContainText('5 to 10 of 12 rounds fit in 4 hours of training');
     await expect(
       page.getByText('A hosted copy fits 5 to 10 rounds in the time this computer fits none.'),
@@ -146,6 +147,7 @@ for (const theme of THEMES) {
     await page
       .getByRole('checkbox', { name: 'Also train three simpler versions to compare against' })
       .click();
+    await expect(page.getByText('About 18 hours in all')).toBeVisible();
     await capture(page, `flow-define-${theme}`);
 
     await page.getByRole('button', { name: 'Advanced settings' }).click();
@@ -261,7 +263,7 @@ for (const theme of THEMES) {
     await page.getByRole('button', { name: 'Stop', exact: true }).click();
     const stop = page.getByRole('dialog', { name: 'Stop training?' });
     await expect(stop).toContainText('keeps its best version so far (version 4)');
-    await expect(stop).toContainText('Glimmer still takes the 60-task final test');
+    await expect(stop).toContainText('Glimmer takes the 60-task final test');
     await stop.getByRole('button', { name: 'Keep training' }).click();
     await expect(stop).toBeHidden();
 
