@@ -84,12 +84,13 @@ rules:
 ### decoding.yaml
 
 ```yaml
-temperature: 0
-top_p: 1
-seed: 7
+temperature: 1       # Meta's recommended sampling for Glimmer
+top_p: 0.95
+top_k: 64
+seed: 7              # fixed, so the same harness gives the same results
 max_steps: 8
-max_output_tokens: 1024
-thinking: off        # off | low | high, when the student supports it
+max_output_tokens: 2048   # includes reasoning tokens
+thinking: low        # low | medium | high reasoning strength
 ```
 
 ### guardrails.yaml

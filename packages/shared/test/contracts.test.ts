@@ -43,12 +43,13 @@ describe('harness surface', () => {
 describe('schemas', () => {
   it('fills decoding defaults', () => {
     expect(DecodingSchema.parse({})).toEqual({
-      temperature: 0,
-      topP: 1,
+      temperature: 1,
+      topP: 0.95,
+      topK: 64,
       seed: 7,
       maxSteps: 8,
-      maxOutputTokens: 1024,
-      thinking: 'off',
+      maxOutputTokens: 2048,
+      thinking: 'low',
     });
   });
 

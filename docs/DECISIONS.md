@@ -47,7 +47,7 @@ GPT-6 Astra reviewed the first draft (five task types) and recommended cutting t
 ## 007. One hypothesis per round, kept on a margin
 
 **Context.** The spec allows "one or a few" changes per round. Measuring each change separately costs a full dev evaluation each, and a slow local student makes that expensive.
-**Decision.** Each round the mentor proposes one hypothesis: a change set that may touch several files but serves one diagnosis, with a predicted effect. Dev evaluation runs with temperature 0 and a fixed seed. The change set is kept only if net dev passes rise by at least the job's margin (default: 2 tasks, or 5% of dev if larger) and no task type loses more than one pass. Otherwise it is reverted and logged as a failed hypothesis.
+**Decision.** Each round the mentor proposes one hypothesis: a change set that may touch several files but serves one diagnosis, with a predicted effect. Dev evaluation uses Meta's recommended sampling for Glimmer (temperature 1.0, top_p 0.95, top_k 64; greedy decoding makes it repetitive) with a fixed seed, and the run-to-run spread on the sample job is measured before the margin is trusted. The change set is kept only if net dev passes rise by at least the job's margin (default: 2 tasks, or 5% of dev if larger) and no task type loses more than one pass. Otherwise it is reverted and logged as a failed hypothesis.
 **Consequences.** Clean attribution in the lineage. Kept changes are an engineering gate, not a significance test, and the README says so.
 
 ## 008. Answers end with a structured line
@@ -85,3 +85,15 @@ GPT-6 Astra reviewed the first draft (five task types) and recommended cutting t
 **Context.** The brief's default is better-sqlite3, a native module that must be rebuilt for Electron's ABI, which also breaks running the same code under plain Node for tests.
 **Decision.** Use the built-in `node:sqlite` (`DatabaseSync`). Electron 45 ships Node 24.22, and a check on 2026-10-27 confirmed `node:sqlite` works inside Electron and in Node 24.
 **Consequences.** No native modules in the app, no rebuild step, and tests use the same storage code as the app. The module is still marked experimental in Node, so storage stays behind a small interface in `packages/engine/src/store`.
+
+## 014. Mentor tier for the sample job's runs
+
+**Context.** The Meta Model API has a standard tier ($1.25 in, $4.25 out per million tokens) and a contributor tier ($0.10 in, $0.20 out) whose content Meta may use for training and which must not carry sensitive or personal data. The app defaults to the standard tier and shows the tier as a setting.
+**Decision.** Development and debugging runs on the sample job use the contributor tier: its data is generated and fictional. The comparison runs reported in the README all use one tier, the standard one, so the reported cost matches what a user with real data would pay.
+**Consequences.** Spend stays small (a mentor round costs well under a cent on the contributor tier and a few cents on the standard tier). The README says which tier produced each number.
+
+## 015. Glimmer runs with low reasoning strength
+
+**Context.** Glimmer always reasons; Ollama's `think: false` hides the reasoning but may not stop it. Meta measured 1,811 completion tokens for one agent decision at the default `high` strength and 256 at `low`. On this machine the 30B model generates only a few tokens per second.
+**Decision.** Harnesses default to `thinking: low`, and the mentor may raise it per harness through `decoding.yaml` like any other decoding setting.
+**Consequences.** Several times fewer tokens per step. If low reasoning caps what the student can do, a kept change that raises it will show up in the lineage with its measured cost in latency.
