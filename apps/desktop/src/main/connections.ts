@@ -9,10 +9,17 @@ import {
 /** Reads a saved key by its ref. */
 export type KeyLookup = (ref: string) => Promise<string | undefined>;
 
+/** Why a key may not go to a URL, or null when it may. Tests against local servers swap it. */
+export type KeyDestinationCheck = (ref: string, url: string) => string | null;
+
 const ADD_KEY_HINT = 'Add the key in Settings, then test again.';
 
 /** Checks that the mentor answers with the saved key. Nothing is sent before a key is found. */
-export async function testMentor(config: MentorConfig, keys: KeyLookup): Promise<ConnectionTest> {
+export async function testMentor(
+  config: MentorConfig,
+  keys: KeyLookup,
+  checkDestination: KeyDestinationCheck = keyDestinationProblem,
+): Promise<ConnectionTest> {
   if (config.kind !== 'model') {
     return {
       ok: false,
@@ -20,7 +27,7 @@ export async function testMentor(config: MentorConfig, keys: KeyLookup): Promise
       hint: 'Choose a model API instead.',
     };
   }
-  const problem = keyDestinationProblem(config.secretRef, config.baseUrl);
+  const problem = checkDestination(config.secretRef, config.baseUrl);
   if (problem !== null) return { ok: false, error: problem };
   const apiKey = await keys(config.secretRef);
   if (!apiKey) {
@@ -33,10 +40,11 @@ export async function testMentor(config: MentorConfig, keys: KeyLookup): Promise
 export async function testStudent(
   endpoint: StudentEndpoint,
   keys: KeyLookup,
+  checkDestination: KeyDestinationCheck = keyDestinationProblem,
 ): Promise<ConnectionTest> {
   let apiKey: string | undefined;
   if (endpoint.secretRef !== undefined) {
-    const problem = keyDestinationProblem(endpoint.secretRef, endpoint.baseUrl);
+    const problem = checkDestination(endpoint.secretRef, endpoint.baseUrl);
     if (problem !== null) return { ok: false, error: problem };
     apiKey = await keys(endpoint.secretRef);
     if (!apiKey) {

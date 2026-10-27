@@ -29,6 +29,8 @@ function mentor(baseUrl: string): MentorConfig {
 
 const keys = async (ref: string) => (ref === 'meta' ? 'sk-test' : undefined);
 const noKeys = async () => undefined;
+/** The fake hosts run on 127.0.0.1, where the real rule would (rightly) never send a key. */
+const anyHost = () => null;
 
 afterEach(async () => {
   await Promise.all(servers.splice(0).map((server) => server.close()));
@@ -37,7 +39,7 @@ afterEach(async () => {
 describe('testMentor', () => {
   it("connects with the key saved under the config's ref", async () => {
     const host = await modelHost();
-    const result = await testMentor(mentor(host.url), keys);
+    const result = await testMentor(mentor(host.url), keys, anyHost);
     expect(result).toMatchObject({ ok: true });
     expect(host.requests).toEqual([
       { method: 'GET', path: '/v1/models', authorization: 'Bearer sk-test' },
@@ -46,11 +48,19 @@ describe('testMentor', () => {
 
   it('says to add a key, without calling the mentor, when none is saved', async () => {
     const host = await modelHost();
-    expect(await testMentor(mentor(host.url), noKeys)).toEqual({
+    expect(await testMentor(mentor(host.url), noKeys, anyHost)).toEqual({
       ok: false,
       error: 'No key is saved for Test mentor.',
       hint: 'Add the key in Settings, then test again.',
     });
+    expect(host.requests).toEqual([]);
+  });
+
+  it('refuses to send a stored key to a host outside its service, before any request', async () => {
+    const host = await modelHost();
+    const result = await testMentor(mentor(host.url), keys);
+    expect(result).toMatchObject({ ok: false });
+    expect(result.ok ? '' : result.error).toContain('This would send your Meta Model API key');
     expect(host.requests).toEqual([]);
   });
 
@@ -79,6 +89,7 @@ describe('testStudent', () => {
         contextLength: 16_384,
       },
       keys,
+      anyHost,
     );
     expect(result).toMatchObject({ ok: true });
     expect(host.requests[0]?.authorization).toBe('Bearer sk-test');

@@ -52,8 +52,8 @@ export async function createWorld(
   const runtime = new FakeRuntime();
   const mentor = new FakeMentor();
   const secrets = new Map([
-    ['mentor-key', 'mentor-secret'],
-    ['student-key', 'student-secret'],
+    ['meta', 'mentor-secret'],
+    ['openrouter', 'student-secret'],
   ]);
   const jobFile = await writeJobFolder(
     join(root, 'source'),
