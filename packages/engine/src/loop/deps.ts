@@ -112,10 +112,11 @@ export interface RuntimeDeps {
 /** The locked test split. Only the runner holds this; the mentor side never sees it. */
 export interface VaultDeps {
   /**
-   * Seals the test tasks. `others` are every other task of the job: wording they share with test
-   * prompts (templates) is left out of the leak fingerprint.
+   * Seals the test tasks. `others` are every other task of the job and `data` the text of its
+   * data files: wording and values they share with test tasks are left out of the leak
+   * fingerprint.
    */
-  seal(jobId: string, tests: Task[], others: Task[]): Awaitable<void>;
+  seal(jobId: string, tests: Task[], others: Task[], data: string[]): Awaitable<void>;
   isSealed(jobId: string): Awaitable<boolean>;
   count(jobId: string): Awaitable<number>;
   leakDetector(jobId: string): Awaitable<LeakDetector>;

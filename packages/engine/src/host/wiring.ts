@@ -74,7 +74,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       releaseMentor: () => releaseMentor({ dispose: () => undefined }),
     },
     vault: {
-      seal: (jobId, tests, others) => vault.seal(jobId, tests, others),
+      seal: (jobId, tests, others, data) => vault.seal(jobId, tests, others, data),
       isSealed: (jobId) => vault.isSealed(jobId),
       count: (jobId) => vault.count(jobId),
       leakDetector: (jobId) => vault.leakDetector(jobId),

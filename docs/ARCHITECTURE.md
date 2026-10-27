@@ -43,7 +43,7 @@ Baselines reuse the same runner, checker, data, budget and seed: **bare** (minim
 
 ## Isolation and guarantees
 
-- **Test split.** Only `packages/engine/src/vault` reads or writes it. Mentor payloads are built from an allowlist of fields, and every payload passes a leak check against fingerprints of the test tasks before it is sent. Tests assert both.
+- **Test split.** Only `packages/engine/src/vault` reads or writes it. Mentor payloads are built from an allowlist of fields, and every payload passes a leak check against fingerprints of the test tasks (their prompts, ids and expected results, including the long ids and amounts no other task or data file holds) before it is sent. Tests assert both.
 - **Checker.** Deterministic functions; custom checker files run in the sandbox with no clock or randomness. The mentor's change set may only touch harness files; edits outside the harness surface are rejected.
 - **Offline graduates.** The agent host installs a guard at startup that refuses any non-loopback connection, and it only constructs local student adapters. A test runs a workspace session against a local fake model server and fails on any other connection attempt.
 - **Budgets.** Rounds, mentor dollars and wall clock are checked before every mentor call and every round; a call that would cross a cap does not start.
