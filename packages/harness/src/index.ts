@@ -3,6 +3,7 @@ export { applyEdits } from './edits';
 export { HarnessValidationError } from './errors';
 export { readHarness, writeHarness } from './folder';
 export { hashFiles, hashHarness } from './hash';
+export { appendLineage, readLineage } from './lineage';
 export { harnessToFiles } from './serialize';
 export type { HarnessFilesOptions } from './serialize';
 export { blankHarness, importHarness, templateHarness } from './starting';
