@@ -25,18 +25,22 @@ function appliedVersions(db: DatabaseSync): Set<number> {
   return new Set(rows.map((row) => Number(row.version)));
 }
 
-/** Applies every migration not yet recorded, in version order, each in its own transaction. */
+/**
+ * Applies every migration not yet recorded, in version order, each in its own transaction. The
+ * engine host and the agent host open the same database, so each migration re-checks the record
+ * after taking the write lock: whichever process gets there second skips what the first applied.
+ */
 export function migrate(db: DatabaseSync, migrations: readonly Migration[]): void {
   db.exec(
     'CREATE TABLE IF NOT EXISTS migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)',
   );
-  const applied = appliedVersions(db);
   const record = db.prepare(
     'INSERT INTO migrations (version, name, applied_at) VALUES (:version, :name, :applied_at)',
   );
   for (const migration of [...migrations].sort((a, b) => a.version - b.version)) {
-    if (applied.has(migration.version)) continue;
+    if (appliedVersions(db).has(migration.version)) continue;
     inTransaction(db, () => {
+      if (appliedVersions(db).has(migration.version)) return;
       db.exec(migration.sql);
       record.run({
         version: migration.version,

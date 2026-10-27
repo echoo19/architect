@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { emptyTotals, type ReportCard } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { openDatabase } from '../src/store/database';
+import { migrate, openDatabase } from '../src/store/database';
 import { openEngineStore, type EngineStore } from '../src/store/engine-store';
 import { MIGRATIONS } from '../src/store/migrations';
 import type { StoredAttempt, StoredRound, StoredRun } from '../src/store/records';
@@ -101,6 +101,19 @@ describe('migrations', () => {
     const fresh = openDatabase(join(dir, 'other.db'), MIGRATIONS);
     expect(fresh.prepare('PRAGMA foreign_keys').get()).toEqual({ foreign_keys: 1 });
     fresh.close();
+  });
+
+  it('lets two processes open the same fresh database without applying anything twice', () => {
+    const shared = join(dir, 'shared.db');
+    const first = new DatabaseSync(shared);
+    first.exec('PRAGMA journal_mode = WAL');
+    const second = openDatabase(shared, MIGRATIONS);
+    expect(() => migrate(first, MIGRATIONS)).not.toThrow();
+    expect(first.prepare('SELECT count(*) AS n FROM migrations').get()).toEqual({
+      n: MIGRATIONS.length,
+    });
+    first.close();
+    second.close();
   });
 
   it('applies only the migrations a database has not seen', () => {
