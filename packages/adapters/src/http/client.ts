@@ -17,7 +17,7 @@ export interface Timeouts {
  * A local model may load from disk and read a long prompt before its first byte, and a
  * reasoning model can think for minutes without sending anything, so these are generous.
  */
-export const STREAM_TIMEOUTS: Timeouts = { headersMs: 300_000, idleMs: 300_000 };
+const STREAM_TIMEOUTS: Timeouts = { headersMs: 300_000, idleMs: 300_000 };
 
 const QUICK_TIMEOUT_MS = 15_000;
 const ERROR_BODY_LIMIT = 64 * 1024;

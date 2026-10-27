@@ -46,7 +46,7 @@ export const PullLineWire = z.object({
 
 export const AnyObjectWire = z.object({});
 
-export interface OllamaMessage {
+interface OllamaMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
   tool_calls?: { function: { name: string; arguments: Record<string, JsonValue> } }[];

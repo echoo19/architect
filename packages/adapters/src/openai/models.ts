@@ -2,7 +2,7 @@ import { AdapterError } from '@architect/shared';
 import type { HttpClient } from '../http/client';
 import { ModelListWire } from './wire';
 
-export type ModelProbe =
+type ModelProbe =
   { kind: 'listed' } | { kind: 'missing'; available: string[] } | { kind: 'unavailable' };
 
 /** Errors that mean "this host has no model list" rather than "this host is unreachable". */

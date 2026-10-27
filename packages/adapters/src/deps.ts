@@ -2,10 +2,11 @@ import type { TokenPricing } from '@architect/shared';
 import type { Timeouts } from './http/client';
 import type { RetryOptions } from './http/retry';
 
-/** What every adapter accepts besides its configuration. All of it exists so tests can run offline. */
+/** Overrides for what an adapter would otherwise fix for itself. Tests use them to stay offline and fast. */
 export interface AdapterDeps {
   /** Replaces the global `fetch`; tests use it to send requests to a local server. */
   fetch?: typeof fetch;
+  /** Attempts, backoff and the sleep between them. */
   retry?: RetryOptions;
   /** Limits for streamed replies: time to the first byte and silence between chunks. */
   timeouts?: Partial<Timeouts>;

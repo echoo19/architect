@@ -13,12 +13,12 @@ export type WireMessage =
   | { role: 'assistant'; content: string; tool_calls?: WireToolCall[] }
   | { role: 'tool'; tool_call_id: string; name?: string; content: string };
 
-export interface WireTool {
+interface WireTool {
   type: 'function';
   function: { name: string; description: string; parameters: JsonSchemaObject };
 }
 
-export interface MessageStyle {
+interface MessageStyle {
   /** What to call system messages: Meta wants `developer`, everyone else `system`. */
   systemRole: SystemRole;
   /** Whether tool results carry the tool's name next to the call id. */

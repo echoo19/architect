@@ -7,7 +7,7 @@ export interface Failure {
   hint?: string;
 }
 
-export interface StatusContext {
+interface StatusContext {
   /** Who answered, as a person would name it: "Meta", "Ollama", "api.together.ai". */
   service: string;
   /** The model the request asked for, when the request names one. */
@@ -275,7 +275,7 @@ export function redact(text: string, secrets: readonly string[]): string {
   return clean;
 }
 
-export function formatSeconds(ms: number): string {
+function formatSeconds(ms: number): string {
   const seconds = Math.max(1, Math.round(ms / 1000));
   return seconds === 1 ? '1 second' : `${seconds} seconds`;
 }

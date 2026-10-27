@@ -4,7 +4,7 @@ import type { SystemRole } from '../openai/messages';
 export type ModelMentorConfig = MentorConfig & { kind: 'model' };
 
 /** How a provider wants its chat requests worded. */
-export interface ProviderTraits {
+interface ProviderTraits {
   /** Who is answering, as a person would name it. */
   service: string;
   /** Meta ranks `developer` above `system`; the others only know `system`. */

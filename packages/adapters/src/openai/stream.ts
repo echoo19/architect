@@ -12,7 +12,7 @@ export type ChatStreamEvent =
   | { type: 'text'; delta: string }
   | { type: 'end'; finish: FinishReason; toolCalls: ToolCall[]; usage?: Usage };
 
-export interface ChatStreamOptions {
+interface ChatStreamOptions {
   /** Who is answering, for error messages. */
   service: string;
   /** Position to give the first call that arrives without an id (see `callId`). Default 1. */

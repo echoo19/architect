@@ -1,7 +1,7 @@
 import { AdapterError, type ConnectionTest } from '@architect/shared';
 import type { Failure } from './failures';
 
-export const CANCELLED_MESSAGE = 'The request was cancelled.';
+const CANCELLED_MESSAGE = 'The request was cancelled.';
 
 /**
  * An `AdapterError` that remembers how it was phrased. The message is `summary` plus `hint`, and
@@ -44,7 +44,7 @@ export function cutOff(service: string): HttpError {
   });
 }
 
-export type ConnectionFailure = Extract<ConnectionTest, { ok: false }>;
+type ConnectionFailure = Extract<ConnectionTest, { ok: false }>;
 
 /**
  * Turns a failed request into the result of a connection test. Anything that isn't an

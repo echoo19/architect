@@ -12,7 +12,7 @@ export type OllamaModelEntry = OllamaStatus['models'][number];
 /** Pulls go quiet while Ollama checks a multi-gigabyte download, so the silence limit is long. */
 const PULL_TIMEOUTS = { headersMs: 60_000, idleMs: 300_000 };
 
-export function createOllamaClient(baseUrl: string): HttpClient {
+function createOllamaClient(baseUrl: string): HttpClient {
   return createHttpClient({ baseUrl, service: OLLAMA_SERVICE });
 }
 

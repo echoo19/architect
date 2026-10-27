@@ -1,6 +1,6 @@
 export type JsonObject = Record<string, unknown>;
 
-export type JsonExtraction = { ok: true; value: JsonObject } | { ok: false; error: string };
+type JsonExtraction = { ok: true; value: JsonObject } | { ok: false; error: string };
 
 const FENCE = /```([A-Za-z0-9_+-]*)[^\n]*\n([\s\S]*?)```/g;
 
