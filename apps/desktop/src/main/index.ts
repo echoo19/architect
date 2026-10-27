@@ -1,8 +1,10 @@
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, ipcMain, session } from 'electron';
+import { PickedPaths } from './files/picked';
 import { registerAppHandlers } from './handlers/app';
 import { registerConnectionHandlers } from './handlers/connections';
+import { registerFilesHandlers } from './handlers/files';
 import { registerOllamaHandlers } from './handlers/ollama';
 import { registerSecretsHandlers } from './handlers/secrets';
 import { registerSettingsHandlers } from './handlers/settings';
@@ -56,6 +58,7 @@ async function start(): Promise<void> {
     isTrustedSender: (url) => isAppUrl(url, origin),
     targets: () => BrowserWindow.getAllWindows().map((window) => window.webContents),
   });
+  const picked = new PickedPaths();
   const pulls = new ModelPulls((progress) => router.emit('ollama', 'onPullProgress', progress));
   const keys = (ref: string) => secrets.get(ref);
   registerAppHandlers(router);
@@ -63,6 +66,7 @@ async function start(): Promise<void> {
   registerSecretsHandlers(router, secrets);
   registerConnectionHandlers(router, keys);
   registerOllamaHandlers(router, settings, pulls);
+  registerFilesHandlers(router, picked);
   settings.onChange((next) => router.emit('settings', 'onChange', next));
 
   const cancelPull = () => pulls.cancel();
