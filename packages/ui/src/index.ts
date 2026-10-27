@@ -40,6 +40,7 @@ export {
   DialogTrigger,
   type DialogContentProps,
 } from './components/dialog';
+export { Drawer, DrawerContent, type DrawerContentProps } from './components/drawer';
 export {
   EmptyState,
   ErrorState,
@@ -48,6 +49,7 @@ export {
   type ErrorStateProps,
   type SkeletonProps,
 } from './components/feedback';
+export { FileChip, type FileChipProps } from './components/file-chip';
 export {
   IconButton,
   type IconButtonProps,
@@ -89,6 +91,7 @@ export {
   type RadioCardGroupProps,
   type RadioCardProps,
 } from './components/radio-card';
+export { ReplyComposer, type ReplyComposerProps } from './components/reply-composer';
 export { ScrollArea, type ScrollAreaProps } from './components/scroll-area';
 export { Segmented, type SegmentedOption, type SegmentedProps } from './components/segmented';
 export { Select, type SelectOption, type SelectProps } from './components/select';
