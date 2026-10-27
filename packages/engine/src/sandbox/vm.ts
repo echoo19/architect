@@ -163,7 +163,7 @@ function hostFunctions(
       readTable: (name = '', query = 'null') =>
         JSON.stringify(readRows(name, job.tables, blobs, query)),
       readText: (name = '') => {
-        const hash = lookup(job.texts, name, 'text file');
+        const hash = job.texts[fileName(job.texts, name, 'text file')] as string;
         return JSON.stringify(blobs.text(hash));
       },
       listFiles: () => JSON.stringify(job.files),
@@ -183,7 +183,8 @@ function readRows(
   blobs: BlobReader,
   queryJson: string,
 ): Row[] {
-  const table = blobs.table(lookup(refs, name, 'table'));
+  const file = fileName(refs, name, 'table');
+  const table = blobs.table(refs[file] as string);
   const parsed = QuerySchema.safeParse(JSON.parse(queryJson));
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
@@ -193,22 +194,27 @@ function readRows(
     );
   }
   const query = parsed.data ?? {};
-  const selected = selectRows(name, table, { where: query.where, columns: query.columns });
+  const selected = selectRows(file, table, { where: query.where, columns: query.columns });
   const offset = query.offset ?? 0;
   const end = query.limit === undefined ? undefined : offset + query.limit;
   return selected.rows.slice(offset, end);
 }
 
-function lookup(refs: Record<string, string>, name: string, kind: string): string {
-  if (!Object.hasOwn(refs, name)) {
-    const names = Object.keys(refs);
-    throw new Error(
-      names.length === 0
-        ? `There is no ${kind} called "${name}"; this job has none.`
-        : `There is no ${kind} called "${name}". The ${kind}s are: ${names.join(', ')}.`,
-    );
-  }
-  return refs[name] as string;
+/**
+ * The file a name refers to: the name itself, or the one file whose name without its extension
+ * it is, so a tool that asks for "jobs" gets jobs.csv. A tool's code can't correct itself the
+ * way the student does after an error, so an unambiguous short name is accepted.
+ */
+function fileName(refs: Record<string, string>, name: string, kind: string): string {
+  if (Object.hasOwn(refs, name)) return name;
+  const names = Object.keys(refs);
+  const stems = names.filter((file) => file.replace(/\.[^.]+$/, '') === name);
+  if (stems.length === 1) return stems[0] as string;
+  throw new Error(
+    names.length === 0
+      ? `There is no ${kind} called "${name}"; this job has none.`
+      : `There is no ${kind} called "${name}". The ${kind}s are: ${names.join(', ')}.`,
+  );
 }
 
 function fail(
