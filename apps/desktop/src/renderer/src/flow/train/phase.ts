@@ -14,9 +14,9 @@ export const STAGE_LABELS: Record<Stage, string> = {
 };
 
 /**
- * What the Spark to Glimmer panel animates. `practising` and `checking` send tasks past the
- * checker; `returning` sends failures back to the mentor; `testing` runs with the mentor gone;
- * `still` is a run that has ended.
+ * What the Spark to Glimmer panel animates: the mentor's rings turn faster while it reads
+ * failures, and the student's grid lights up while it answers; `testing` runs with the mentor
+ * gone; `still` is a run that has ended.
  */
 export type Motion = 'idle' | 'practising' | 'returning' | 'checking' | 'testing' | 'still';
 
@@ -76,33 +76,6 @@ export function phaseView(run: Run, names: ModelNames, drafting = false): PhaseV
         frozen: false,
         text: runningText(run, names, drafting),
       };
-  }
-}
-
-/** What the animation shows happening, said under it. */
-export function motionCaption(
-  motion: Motion,
-  { mentor, student }: ModelNames,
-  drafting = false,
-): string | null {
-  if (drafting && motion === 'returning') {
-    return `${mentor} writes a first full draft of ${student}'s instructions, before watching it work.`;
-  }
-  if (drafting && motion === 'checking') {
-    return `${student} answers the check tasks with the first draft.`;
-  }
-  switch (motion) {
-    case 'practising':
-      return `Pills are practice tasks: passes reach ${student}'s grid, misses go to ${mentor} to study.`;
-    case 'checking':
-      return `Pills are check tasks ${student} answers on its own; ${mentor} sees only the score. The change stays only if more pass.`;
-    case 'returning':
-      return `${mentor} studies the misses and writes one change to ${student}'s instructions.`;
-    case 'testing':
-      return `${student} takes the final test alone, on tasks it has never seen.`;
-    case 'idle':
-    case 'still':
-      return null;
   }
 }
 

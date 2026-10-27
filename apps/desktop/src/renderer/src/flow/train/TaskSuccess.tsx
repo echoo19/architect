@@ -48,7 +48,7 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
         more come out right on two checks, and training ends at the {Math.round(input.target * 100)}
         % target.
         {input.draftRound &&
-          ` Start is ${student} with no instructions; Draft is the first full setup.`}
+          ` Start is ${student} with no instructions; round 1 is its first full setup.`}
       </p>
       <Legend />
       <CurveChart input={input} />
@@ -200,7 +200,7 @@ function CurveChart({ input }: { input: CurveInput }) {
               tick.reached ? 'fill-fg-secondary' : 'fill-fg-ghost',
             )}
           >
-            {tick.round === 0 ? 'Start' : tick.round === input.draftRound ? 'Draft' : tick.round}
+            {tick.round === 0 ? 'Start' : tick.round}
           </text>
         </Fragment>
       ))}

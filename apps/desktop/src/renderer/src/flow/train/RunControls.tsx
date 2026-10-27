@@ -16,8 +16,6 @@ import { navigate, paths } from '../../lib/router';
 import { modelNames } from '../names';
 import { hasKeptChange, type LiveRun } from './run-state';
 
-export type StopIntent = 'stop' | 'skip';
-
 interface Request {
   action: 'pause' | 'resume';
   /** The status the run had when asked; the request is pending until that changes. */
@@ -25,13 +23,7 @@ interface Request {
 }
 
 /** Pause or resume and stop while training; the way forward once it has ended. */
-export function RunControls({
-  live,
-  onStop,
-}: {
-  live: LiveRun;
-  onStop: (intent: StopIntent) => void;
-}) {
+export function RunControls({ live, onStop }: { live: LiveRun; onStop: () => void }) {
   const { run } = live;
   const [request, setRequest] = useState<Request | null>(null);
   const pending = request?.from === run.status ? request.action : null;
@@ -97,11 +89,11 @@ export function RunControls({
         <Tooltip
           content={
             hasKeptChange(live.rounds)
-              ? 'Ends training now, keeps the best version and still runs the final test.'
-              : 'Ends training now. Nothing is kept yet, so there is no final test.'
+              ? 'Ends training; the best version so far takes the final test and becomes your agent.'
+              : 'Ends training. No change is kept yet, so this run makes no agent.'
           }
         >
-          <Button size="md" onClick={() => onStop('stop')}>
+          <Button size="md" onClick={onStop}>
             <Square size={12} fill="currentColor" strokeWidth={0} aria-hidden />
             Stop
           </Button>
@@ -113,17 +105,14 @@ export function RunControls({
 
 /**
  * Stopping ends training after the step in progress. The engine then runs the locked test on the
- * last kept version when a change was kept, so "Finish with the best version" and "Stop" lead to the same
- * place; with nothing kept, the run just ends.
+ * last kept version when a change was kept, and that version graduates; with nothing kept, the
+ * run just ends.
  */
 export function StopDialog({
-  intent,
   open,
   live,
   onClose,
 }: {
-  /** What the user asked for; kept while the dialog animates closed. */
-  intent: StopIntent | null;
   open: boolean;
   live: LiveRun;
   onClose: () => void;
@@ -141,25 +130,18 @@ export function StopDialog({
   };
 
   const best = `version ${live.run.currentVersion}`;
-  const copy =
-    intent === 'skip'
-      ? {
-          title: 'Finish with the best version?',
-          description: `Training ends now, after the step in progress. ${live.job.name} keeps its best version so far (${best}), then ${student} takes the ${test}-task final test with ${mentor} disconnected and you get the report card.`,
-          confirm: 'End training and test',
-        }
-      : kept
-        ? {
-            title: 'Stop training?',
-            description: `Training ends now, after the step in progress. ${live.job.name} keeps its best version so far (${best}), and ${student} still takes the ${test}-task final test, so you get a report card.`,
-            confirm: 'Stop and run the final test',
-          }
-        : {
-            title: 'Stop training?',
-            description:
-              "Training ends now, after the step in progress. No change has been kept yet, so there's nothing to test and no report card.",
-            confirm: 'Stop training',
-          };
+  const copy = kept
+    ? {
+        title: 'Stop training?',
+        description: `Training ends after the step in progress. ${live.job.name} keeps its best version so far (${best}), ${student} takes the ${test}-task final test with ${mentor} disconnected, and you get the report card and your agent.`,
+        confirm: 'Stop and run the final test',
+      }
+    : {
+        title: 'Stop training?',
+        description:
+          "Training ends after the step in progress. No change has been kept yet, so there's nothing to test and this run makes no agent.",
+        confirm: 'Stop training',
+      };
 
   return (
     <Dialog

@@ -12,11 +12,10 @@ import { phaseView } from '../flow/train/phase';
 import { Resources } from '../flow/train/Resources';
 import { RoundDrawerContent } from '../flow/train/RoundDrawer';
 import { Rounds, type RoundsFooter } from '../flow/train/Rounds';
-import { RunControls, StopDialog, type StopIntent } from '../flow/train/RunControls';
+import { RunControls, StopDialog } from '../flow/train/RunControls';
 import {
   activeProgress,
   currentRound,
-  hasKeptChange,
   type LiveRun,
   type RecentAttempt,
 } from '../flow/train/run-state';
@@ -50,7 +49,7 @@ export function TrainScreen({ runId }: { runId: string }) {
   const live = state.status === 'live' ? state.live : null;
   const trace = useOverlay<RecentAttempt>();
   const round = useOverlay<number>();
-  const stop = useOverlay<StopIntent>();
+  const stop = useOverlay<true>();
   const contentRef = useRef<HTMLDivElement>(null);
   const reading = trace.open || round.open || stop.open;
 
@@ -60,7 +59,7 @@ export function TrainScreen({ runId }: { runId: string }) {
     <FlowShell
       title={live?.job.name ?? 'Training'}
       step="Train"
-      actions={live && <RunControls live={live} onStop={stop.show} />}
+      actions={live && <RunControls live={live} onStop={() => stop.show(true)} />}
     >
       <div
         ref={contentRef}
@@ -85,7 +84,6 @@ export function TrainScreen({ runId }: { runId: string }) {
             live={live}
             onOpenAttempt={trace.show}
             onOpenRound={(opened) => round.show(opened.index)}
-            onSkip={() => stop.show('skip')}
           />
         )}
       </div>
@@ -101,7 +99,7 @@ export function TrainScreen({ runId }: { runId: string }) {
             )}
           </Drawer>
           <RoundDrawer live={live} index={round.item} open={round.open} onClose={round.hide} />
-          <StopDialog intent={stop.item} open={stop.open} live={live} onClose={stop.hide} />
+          <StopDialog open={stop.open} live={live} onClose={stop.hide} />
         </>
       )}
     </FlowShell>
@@ -169,12 +167,10 @@ function TrainBoard({
   live,
   onOpenAttempt,
   onOpenRound,
-  onSkip,
 }: {
   live: LiveRun;
   onOpenAttempt: (attempt: RecentAttempt) => void;
   onOpenRound: (round: Round) => void;
-  onSkip: () => void;
 }) {
   const { run, job } = live;
   const names = modelNames(job);
@@ -185,12 +181,6 @@ function TrainBoard({
   let footer: RoundsFooter | null = null;
   if (run.status === 'finished') {
     footer = { label: 'See the report card', onClick: () => navigate(paths.report(run.id)) };
-  } else if ((run.status === 'running' || run.status === 'paused') && hasKeptChange(live.rounds)) {
-    footer = {
-      label: 'Finish with the best version',
-      note: 'Good enough already? Training ends now and the best version takes the final test.',
-      onClick: onSkip,
-    };
   }
 
   return (
