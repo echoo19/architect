@@ -1,0 +1,83 @@
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: var(--color-ground);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--ui-selection);
+  }
+
+  ::placeholder {
+    color: var(--color-fg-muted);
+    opacity: 1;
+  }
+
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='switch']:not([data-disabled]),
+  [role='radio']:not([data-disabled]),
+  [role='checkbox']:not([data-disabled]) {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  :where(input, textarea, [contenteditable='true']):focus-visible {
+    outline-offset: -1px;
+  }
+
+  /* Controls inside a draggable title bar must still take clicks. */
+  .app-drag :is(button, a, input, textarea, select, [role='button'], [role='switch']) {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 10px;
+    background: var(--ui-scrollbar) padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--ui-scrollbar-hover) padding-box;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
