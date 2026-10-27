@@ -1,11 +1,10 @@
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
-import { createServer, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import type { Job, RunEvent } from '@architect/shared';
 import { launchApp, type LaunchedApp } from './app';
+import { startFakeStudent } from './models';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -51,35 +50,6 @@ async function killAndAwaitRestart(name: string): Promise<void> {
       { timeout: 30_000 },
     )
     .toBe(true);
-}
-
-/**
- * A student on 127.0.0.1 that streams the same empty answer to every request, so a run can go
- * end to end without a model.
- */
-async function startFakeStudent(): Promise<{ baseUrl: string; server: Server }> {
-  const chunks = [
-    { choices: [{ index: 0, delta: { content: 'ANSWER: {}' }, finish_reason: null }] },
-    {
-      choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
-      usage: { prompt_tokens: 12, completion_tokens: 3 },
-    },
-  ];
-  const server = createServer((request, response) => {
-    request.resume();
-    request.on('end', () => {
-      if (request.method !== 'POST' || request.url !== '/v1/chat/completions') {
-        response.writeHead(404).end();
-        return;
-      }
-      response.writeHead(200, { 'content-type': 'text/event-stream' });
-      for (const chunk of chunks) response.write(`data: ${JSON.stringify(chunk)}\n\n`);
-      response.end('data: [DONE]\n\n');
-    });
-  });
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const { port } = server.address() as AddressInfo;
-  return { baseUrl: `http://127.0.0.1:${port}/v1`, server };
 }
 
 test('starts the engine and the workspace in utility processes of their own', async () => {

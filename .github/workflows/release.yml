@@ -1,0 +1,146 @@
+name: Release
+
+# Builds the installers: one for Windows, and disk images for macOS on Apple silicon and Intel.
+# Run it by hand to get them as workflow artifacts. Pushing a tag that starts with v does the
+# same and then attaches them to that tag's GitHub release, creating the release if it is not
+# there yet. The installers carry the version in apps/desktop/package.json, not the tag's.
+#
+# They are not signed unless the repository has the signing secrets: WINDOWS_CERTIFICATE and
+# WINDOWS_CERTIFICATE_PASSWORD (a code signing certificate as a base64 .p12 or .pfx, and its
+# password), and MACOS_CERTIFICATE and MACOS_CERTIFICATE_PASSWORD (a Developer ID Application
+# certificate the same way) with APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID to
+# notarize it. The certificate goes to electron-builder only when its secret is set, because
+# electron-builder reads an empty CSC_LINK on macOS as a certificate to import.
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Electron 45's package downloads no binary on install; see docs/GOTCHAS.md.
+      - name: Install Electron
+        shell: bash
+        run: bash scripts/install-electron.sh win32 x64
+      - name: Build the installer
+        shell: bash
+        env:
+          SIGNING_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          SIGNING_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if [ -n "$SIGNING_CERTIFICATE" ]; then
+            export CSC_LINK="$SIGNING_CERTIFICATE" CSC_KEY_PASSWORD="$SIGNING_PASSWORD"
+          else
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+          pnpm package
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-installer
+          path: apps/desktop/release/Architect-Setup-*.exe
+          if-no-files-found: error
+      # The installer holds the files of the unpacked app in release/win-unpacked, so starting
+      # that is starting what ships.
+      - name: Start the unpacked app and run the packaging specs
+        run: pnpm e2e:packaged
+      - name: Keep the traces of a failed run
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-test-results
+          path: apps/desktop/test-results
+          if-no-files-found: ignore
+
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The runner is Apple silicon, so its Electron goes where the app is built from and the
+      # Intel one beside it, for the second build to point at.
+      - name: Install Electron
+        run: |
+          bash scripts/install-electron.sh darwin arm64
+          bash scripts/install-electron.sh darwin x64 "$RUNNER_TEMP/electron-x64"
+      # electron-builder signs nothing when it finds no certificate, and Apple silicon will not
+      # run an app that is not signed. So without a certificate the app is signed ad hoc, and
+      # without the hardened runtime, whose library validation rejects Electron's own frameworks
+      # under an ad hoc signature. macOS still asks the user to approve the first launch.
+      - name: Build the disk images
+        env:
+          SIGNING_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          SIGNING_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$SIGNING_CERTIFICATE" ]; then
+            export CSC_LINK="$SIGNING_CERTIFICATE" CSC_KEY_PASSWORD="$SIGNING_PASSWORD"
+            signing=""
+          else
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+            signing="-c.mac.identity=- -c.mac.hardenedRuntime=false"
+          fi
+          pnpm --filter @architect/desktop build
+          pnpm --filter @architect/desktop exec electron-builder --publish never --mac --arm64 $signing
+          pnpm --filter @architect/desktop exec electron-builder --publish never --mac --x64 \
+            -c.electronDist="$RUNNER_TEMP/electron-x64" $signing
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macos-installers
+          path: apps/desktop/release/Architect-*.dmg
+          if-no-files-found: error
+      # The runner can start only the Apple silicon build.
+      - name: Start the unpacked Apple silicon app and run the packaging specs
+        run: pnpm e2e:packaged
+      - name: Keep the traces of a failed run
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-test-results
+          path: apps/desktop/test-results
+          if-no-files-found: ignore
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: '*-installer*'
+          merge-multiple: true
+          path: installers
+      - name: Attach the installers to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 ||
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
+          gh release upload "$TAG" installers/* --repo "$GITHUB_REPOSITORY" --clobber

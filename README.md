@@ -8,6 +8,16 @@ It is meant for people with repetitive work and data they would rather not send 
 
 By default the mentor is Muse Spark 1.3 (Meta Model API) and the student is Muse Glimmer, a 30B open-weight model running locally through Ollama. Both are choices in the job setup.
 
+## Install
+
+Download the installer for your computer from the [latest release](https://github.com/echoo19/architect/releases/latest).
+
+**Windows.** Run `Architect-Setup-<version>.exe`. It installs for your user account and opens Architect when it finishes. The installer is not signed, so Windows may say it protected your PC. Choose More info, then Run anyway.
+
+**macOS.** Open the disk image for your Mac, `arm64` for Apple silicon or `x64` for Intel, and drag Architect into Applications. The app is not signed, so macOS blocks the first launch. Right-click Architect, choose Open, then choose Open again. On macOS 15 and later there may be no Open button; go to System Settings > Privacy & Security and choose Open Anyway instead.
+
+Architect needs Ollama running on the same computer. The first-run screens check for it and say where to get it if it is missing, then download the student model (about 18 GB for Muse Glimmer) and ask for the mentor's API key.
+
 ## How it works
 
 You describe the job and attach the files it works from. The mentor asks a few questions and drafts the job: what the agent does and doesn't do, the example tasks with expected results, how answers are checked, the pass rate it must reach, and a spending cap. The tasks are split into practice (train), check (dev) and a locked test that the mentor never sees.

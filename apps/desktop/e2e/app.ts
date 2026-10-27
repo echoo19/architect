@@ -1,6 +1,7 @@
+import { existsSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { _electron as electron, type ElectronApplication, type Page } from '@playwright/test';
 import type { AppSettings } from '@architect/shared';
@@ -8,17 +9,35 @@ import type { AppSettings } from '@architect/shared';
 /** No trailing separator: on Windows a trailing backslash would escape the closing quote. */
 const APP_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 
+/**
+ * The packaged app to run instead of the built one, such as `release/win-unpacked/Architect.exe`.
+ * Set with ARCHITECT_E2E_EXECUTABLE, which `playwright.packaged.config.ts` fills in.
+ */
+export function packagedExecutable(): string | undefined {
+  const named = process.env.ARCHITECT_E2E_EXECUTABLE;
+  if (!named) return undefined;
+  const executable = resolve(named);
+  if (!existsSync(executable)) {
+    throw new Error(`There is no packaged app at ${executable}. Run \`pnpm package\` first.`);
+  }
+  return executable;
+}
+
 export interface LaunchedApp {
   app: ElectronApplication;
   page: Page;
   close: () => Promise<void>;
 }
 
-/** Starts the built app with a hidden window and a throwaway profile. */
+/**
+ * Starts the built app, or the packaged one when ARCHITECT_E2E_EXECUTABLE names it, with a
+ * hidden window and a throwaway profile.
+ */
 export async function launchApp(): Promise<LaunchedApp> {
   const userData = await mkdtemp(join(tmpdir(), 'architect-e2e-'));
+  const executablePath = packagedExecutable();
   const app = await electron.launch({
-    args: [APP_DIR],
+    ...(executablePath ? { executablePath } : { args: [APP_DIR] }),
     env: { ...process.env, ARCHITECT_HIDDEN: '1', ARCHITECT_USER_DATA: userData },
   });
   const page = await app.firstWindow();

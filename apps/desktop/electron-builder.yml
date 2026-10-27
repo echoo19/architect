@@ -11,9 +11,16 @@ directories:
 # Package the Electron build installed for development and tests, so the shipped binary is the
 # one the end-to-end tests ran against and packaging never downloads another. The version is
 # stated because electron-builder looks for Electron only in this folder's node_modules, and the
-# workspace hoists it to the root; keep it equal to the installed electron package.
+# workspace hoists it to the root; keep it equal to the installed electron package. That folder
+# holds one architecture's Electron, so a macOS build names the architecture it is for and, when
+# it is not this machine's, points electronDist at the Electron for that one.
 electronDist: ../../node_modules/electron/dist
 electronVersion: 45.0.0
+
+# electron-builder publishes and updates nothing here: the release workflow attaches the
+# installers to a GitHub release itself. Left unset, a GH_TOKEN in the environment makes
+# electron-builder look for a GitHub repository to publish to, and the build fails without one.
+publish: null
 
 # The bundles in out/ carry every dependency, so no node_modules ship with the app.
 files:
@@ -44,12 +51,14 @@ win:
 nsis:
   oneClick: true
   perMachine: false
+  # No block map: nothing here updates the app in place.
+  differentialPackage: false
   artifactName: ${productName}-Setup-${version}.${ext}
 
 mac:
-  target:
-    - target: dmg
-      arch: [arm64, x64]
+  # No architecture is named, so --arm64 or --x64 picks it, and a build without either is for
+  # this machine's.
+  target: dmg
   category: public.app-category.productivity
   hardenedRuntime: true
   gatekeeperAssess: false
