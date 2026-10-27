@@ -101,9 +101,9 @@ export function payloadText(request: MentorCompletionRequest): string {
   return parts.join('\n\n');
 }
 
-/** A deliberately high estimate: three bytes per token, where English text averages about four. */
+/** A deliberately high estimate: 2.5 bytes per token, where English text averages about four. */
 export function estimateInputTokens(text: string): number {
-  return Math.ceil(Buffer.byteLength(text, 'utf8') / 3);
+  return Math.ceil(Buffer.byteLength(text, 'utf8') / 2.5);
 }
 
 /**
@@ -132,6 +132,8 @@ export function worstCaseUsd(
  */
 export class MentorGate {
   private released = false;
+  /** Input tokens per payload byte the mentor reported for its last call; 0 before any. */
+  private tokensPerByte = 0;
 
   constructor(private readonly options: MentorGateOptions) {}
 
@@ -160,11 +162,16 @@ export class MentorGate {
         new LeakRefusal(this.leakMessage(scan.matchedIds.length, options.parts ?? [])),
       );
     }
-    const authorized = this.options.authorize(
-      worstCaseUsd(adapter, request, estimateInputTokens(text)),
-    );
+    // The last call's tokens per byte, when higher than the estimate, sets the floor: a payload
+    // the tokenizer splits finely can't push the call past the dollar cap.
+    const bytes = Buffer.byteLength(text, 'utf8');
+    const inputTokens = Math.max(estimateInputTokens(text), Math.ceil(bytes * this.tokensPerByte));
+    const authorized = this.options.authorize(worstCaseUsd(adapter, request, inputTokens));
     const charge = (usage: Usage, reported: number | null): number =>
       reported ?? adapter.estimateCostUsd(usage) ?? authorized;
+    const learn = (usage: Usage) => {
+      if (bytes > 0) this.tokensPerByte = usage.inputTokens / bytes;
+    };
 
     options.onSend?.();
     let completion: MentorCompletion;
@@ -174,10 +181,12 @@ export class MentorGate {
       const spent = SpentSchema.safeParse(error);
       if (spent.success) {
         const { usage, costUsd } = spent.data;
+        learn(usage);
         options.onSpent?.({ model: adapter.model, usage, costUsd: charge(usage, costUsd) });
       }
       throw error;
     }
+    learn(completion.usage);
     return { completion, costUsd: charge(completion.usage, completion.costUsd) };
   }
 

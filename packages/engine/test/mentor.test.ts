@@ -11,7 +11,7 @@ import {
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { describeDataFiles } from '../src/mentor/data-files';
-import { LeakRefusal, MentorGate, type MentorCharge } from '../src/mentor/gate';
+import { LeakRefusal, MentorGate, payloadText, type MentorCharge } from '../src/mentor/gate';
 import { diagnoseRequest, oneShotRequest } from '../src/mentor/prompts';
 import { HYPOTHESIS_JSON_SCHEMA, MentorReplyError, parseHypothesis } from '../src/mentor/reply';
 import { studentAsMentor } from '../src/mentor/student-author';
@@ -48,6 +48,18 @@ function gate(options: { maxUsd?: number; refusals?: string[] } = {}) {
       return maxUsd;
     },
     onRefusal: (message) => refusals.push(message),
+  });
+}
+
+/** A gate that lets every call through and records the most each could cost. */
+function recordingGate(asked: (number | null)[]) {
+  return new MentorGate({
+    leakDetector: { scan: () => ({ leaked: false, matchedIds: [] }) },
+    authorize: (maxUsd) => {
+      asked.push(maxUsd);
+      return maxUsd ?? 0;
+    },
+    onRefusal: () => undefined,
   });
 }
 
@@ -178,6 +190,29 @@ describe('the mentor gate', () => {
     });
     expect(mentor.requests).toHaveLength(0);
     await expect(gate({ maxUsd: 0.6 }).complete(mentor, big)).resolves.toBeDefined();
+  });
+
+  it('estimates the input at 2.5 bytes per token before it knows better', async () => {
+    const mentor = new FakeMentor();
+    mentor.script = () => hypothesis('A', 'fix:invoice');
+    const asked: (number | null)[] = [];
+    const sent = request('x'.repeat(1_000));
+    await recordingGate(asked).complete(mentor, sent);
+    const inputTokens = Math.ceil(Buffer.byteLength(payloadText(sent)) / 2.5);
+    expect(asked[0]).toBe(mentor.estimateCostUsd({ inputTokens, outputTokens: 1_000 }));
+  });
+
+  it('never estimates below the tokens per byte the last call reported', async () => {
+    const mentor = new FakeMentor();
+    mentor.script = () => hypothesis('A', 'fix:invoice');
+    const asked: (number | null)[] = [];
+    const guarded = recordingGate(asked);
+    const sent = request('Fine.');
+    await guarded.complete(mentor, sent);
+    await guarded.complete(mentor, request('Fine, twice.'));
+    const ratio = 2_000 / Buffer.byteLength(payloadText(sent));
+    const inputTokens = Math.ceil(Buffer.byteLength(payloadText(request('Fine, twice.'))) * ratio);
+    expect(asked[1]).toBe(mentor.estimateCostUsd({ inputTokens, outputTokens: 1_000 }));
   });
 
   it('charges a failed call the provider billed for', async () => {
