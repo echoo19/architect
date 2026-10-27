@@ -64,7 +64,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Open issues**
 - Two commits reached main red today (a filtered local check hid failures); `pnpm check` now gates commits on its exit code.
 - `docs/screenshots/` holds e2e screenshots with fixture data; the README must use screenshots of real runs.
-- OpenRouter spend is the owner's money and the key is capped at $50: about $8.10 used by the end of seed 1 (calibration, both pilots, $2.77 on two discarded starts, $1.83 for seed 1), about $41.90 left. Seed 1 of the main runs comes first, to measure the real cost before seeds 2 and 3.
+- OpenRouter spend is the owner's money. The binding limit is the account's prepaid credit, $10 (the key's $50 cap never mattered): $9.01 was used when hosted calls started failing with HTTP 402 at 23:00 ET, a few minutes into seeds 2 to 5. Those runs are paused in their data folders and continue where they stopped once the owner adds credit; about $15 covers seeds 2 to 5. The local locked test doesn't use OpenRouter and keeps running. Seed 1 of the main runs comes first, to measure the real cost before seeds 2 and 3.
 - Self-hosted Spark Open needs Baseten or Modal credits, and the Baseten id must be confirmed with `GET /v1/models` once a key exists.
 
 **Mentor spend:** about $0.01 of the $150 credit.

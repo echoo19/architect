@@ -171,5 +171,5 @@ In simulation with the pilot's task pass rates, a do-nothing change is kept 11 t
 
 **Context.** With the shared draft (decision 026), a seed whose draft meets the bar costs about $2.50 of hosted student time: bare and one-shot, plus two refining runs that stop at once. Seed 1's draft passed 60/60 on the locked test, so the question three seeds can barely answer is how often a draft falls short, which is the only place watched refinement can show anything on this job.
 **Decision.** Seeds 1 to 5 for all four methods, decided after seed 1's one-shot result and before any later seed ran. The order is fixed: seeds 2 to 5 run in sequence, and if the $50 cap on the hosted student key comes within $8, the remaining seeds are dropped and the README says which.
-**Consequences.** Every seed is reported, including any that fail, with each draft's dev and test scores.
+**Consequences.** Every seed is reported, including any that fail, with each draft's dev and test scores. The limit that matters turned out to be the account's prepaid credit ($10), not the key's $50 cap; it ran out minutes into seeds 2 to 5, which wait for more credit.
 
