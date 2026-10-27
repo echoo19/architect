@@ -41,7 +41,7 @@ GPT-6 Astra reviewed the first draft (five task types) and recommended cutting t
 ## 006. What the mentor can see
 
 **Context.** Keep-or-revert decisions use dev, and showing the mentor dev traces would let it tune to dev the same way it tunes to train.
-**Decision.** The mentor sees train traces with checker reasons, per-type train results, the overall dev pass count, and its earlier hypotheses with their keep or revert decision and overall dev change. It never sees per-type dev counts, dev traces, dev task ids or dev checker reasons, and never anything from the test split. (Per-type dev counts were in the first version of this decision; GPT-6 Astra pointed out they are an extra channel for tuning to dev, and train results already show which types fail.)
+**Decision.** The mentor sees train traces with checker reasons, per-type train results, the overall dev pass count, and its earlier hypotheses with their keep or revert decision and overall dev change. A round rejected before dev saw it (a reply that isn't a hypothesis, or a change set the harness refuses) is listed too, with the runner's reason, which is about the mentor's own reply and files. It never sees per-type dev counts, dev traces, dev task ids or dev checker reasons, and never anything from the test split. (Per-type dev counts were in the first version of this decision; GPT-6 Astra pointed out they are an extra channel for tuning to dev, and train results already show which types fail.)
 **Consequences.** Dev still leaks a little through the overall score and the decisions (adaptive overfitting), so rounds per run are capped in advance and the report shows the dev to test gap.
 
 ## 007. One hypothesis per round, kept on a margin

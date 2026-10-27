@@ -84,7 +84,10 @@ export const EvaluationConfigSchema = z.object({
   minDevGain: z.number().int().min(1),
   /** ...and no task type loses more than this many dev passes. */
   maxTypeRegression: z.number().int().min(0),
-  /** Rounds in a row without a kept change before the run stops early. */
+  /**
+   * Changes in a row that dev measured and reverted before the run stops early. Rounds whose
+   * reply or change set was rejected before dev saw it don't count.
+   */
   patience: z.number().int().min(1).default(3),
 });
 export type EvaluationConfig = z.infer<typeof EvaluationConfigSchema>;

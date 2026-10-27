@@ -350,6 +350,7 @@ describe('the mentor view', () => {
       ],
       dev: { pass: 3, total: 9 },
       lineage: [lineage],
+      rejected: [],
     });
     expect(view.dev).toEqual({ pass: 3, total: 9 });
     expect(view.train.perType).toEqual([
@@ -371,6 +372,42 @@ describe('the mentor view', () => {
     expect(text).not.toContain('[dev]');
     expect(text).not.toContain('perType":[{"type":"invoice","before"');
     expect(text).toContain('[train] overdue request number 1');
+  });
+
+  it('shows rejected rounds in order, with the reason on one line', () => {
+    const view = buildMentorView({
+      job,
+      dataFiles: [],
+      harnessFiles: { 'system.md': 'fix:invoice' },
+      round: 4,
+      budgetLeft: { rounds: 1, usd: 4.9, minutes: 50 },
+      train: [],
+      dev: { pass: 3, total: 9 },
+      lineage: [lineage],
+      rejected: [
+        {
+          round: 3,
+          title: 'Add a table reader',
+          files: ['tools/read_table.js', 'tools/read_table.json'],
+          reason:
+            'tools/read_table.json: "read_table" is a built-in tool name. Pick a different name.\ntools/read_table.js: has no manifest.',
+        },
+        { round: 2, files: [], reason: 'The reply contained no JSON object.' },
+      ],
+    });
+    expect(view.lineage.map((item) => [item.round, item.decision])).toEqual([
+      [1, 'kept'],
+      [2, 'rejected'],
+      [3, 'rejected'],
+    ]);
+    const content = diagnoseRequest(view, { evaluation: job.evaluation }).messages[0]?.content;
+    expect(content).toContain(
+      '- Round 2, rejected before dev saw it: the reply held no usable hypothesis. Why: The reply contained no JSON object.',
+    );
+    expect(content).toContain(
+      '- Round 3, rejected before dev saw it: Add a table reader. Files: tools/read_table.js, tools/read_table.json. Why: tools/read_table.json: "read_table" is a built-in tool name. Pick a different name. tools/read_table.js: has no manifest.',
+    );
+    expect(content).not.toContain('None yet.');
   });
 
   it('gives the one-shot mentor train examples with answers and no attempts', () => {

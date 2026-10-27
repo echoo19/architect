@@ -166,4 +166,9 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX messages_by_chat ON messages (chat_id, created_at);
     `,
   },
+  {
+    version: 2,
+    name: 'rejected rounds',
+    sql: 'ALTER TABLE rounds ADD COLUMN rejected INTEGER NOT NULL DEFAULT 0;',
+  },
 ];

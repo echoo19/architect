@@ -94,9 +94,9 @@ describe('migrations', () => {
     store = openEngineStore(file());
     const db = new DatabaseSync(file());
     expect(db.prepare('PRAGMA journal_mode').get()).toEqual({ journal_mode: 'wal' });
-    expect(db.prepare('SELECT version, name FROM migrations').all()).toEqual([
-      { version: 1, name: 'core loop' },
-    ]);
+    expect(db.prepare('SELECT version, name FROM migrations ORDER BY version').all()).toEqual(
+      MIGRATIONS.map(({ version, name }) => ({ version, name })),
+    );
     db.close();
     const fresh = openDatabase(join(dir, 'other.db'), MIGRATIONS);
     expect(fresh.prepare('PRAGMA foreign_keys').get()).toEqual({ foreign_keys: 1 });
@@ -118,16 +118,16 @@ describe('migrations', () => {
 
   it('applies only the migrations a database has not seen', () => {
     store.close();
+    const next = MIGRATIONS.length + 1;
     const later = [
       ...MIGRATIONS,
-      { version: 2, name: 'notes', sql: 'CREATE TABLE notes (id TEXT PRIMARY KEY)' },
+      { version: next, name: 'notes', sql: 'CREATE TABLE notes (id TEXT PRIMARY KEY)' },
     ];
     openDatabase(file(), later).close();
     const db = openDatabase(file(), later);
-    expect(db.prepare('SELECT version FROM migrations ORDER BY version').all()).toEqual([
-      { version: 1 },
-      { version: 2 },
-    ]);
+    expect(db.prepare('SELECT version FROM migrations ORDER BY version').all()).toEqual(
+      later.map(({ version }) => ({ version })),
+    );
     expect(db.prepare('SELECT count(*) AS n FROM jobs').get()).toEqual({ n: 1 });
     db.close();
     store = openEngineStore(file());
@@ -137,7 +137,7 @@ describe('migrations', () => {
     store.close();
     const broken = [
       ...MIGRATIONS,
-      { version: 2, name: 'broken', sql: 'CREATE TABLE x (; nonsense' },
+      { version: MIGRATIONS.length + 1, name: 'broken', sql: 'CREATE TABLE x (; nonsense' },
     ];
     expect(() => openDatabase(file(), broken)).toThrow();
     store = openEngineStore(file());
@@ -197,6 +197,7 @@ describe('repositories', () => {
         predicted: { devDeltaMin: 1, devDeltaMax: 3, rationale: 'Three tasks.' },
         readyClaim: true,
       },
+      rejected: false,
     };
     store.rounds.insert(round);
     expect(store.rounds.get('run_1', 1)).toEqual(round);
@@ -206,6 +207,14 @@ describe('repositories', () => {
     };
     store.rounds.update(decided);
     expect(store.rounds.list('run_1')).toEqual([decided]);
+    const rejected: StoredRound = {
+      ...round,
+      round: { ...round.round, index: 2, status: 'failed', error: 'tools/x.json: bad name.' },
+      hypothesis: null,
+      rejected: true,
+    };
+    store.rounds.insert(rejected);
+    expect(store.rounds.get('run_1', 2)).toEqual(rejected);
   });
 
   it('keeps one attempt per task per evaluation, rounds or not', () => {

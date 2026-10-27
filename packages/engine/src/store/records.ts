@@ -74,6 +74,11 @@ export const StoredRoundSchema = z.object({
   baseVersion: z.number().int().nonnegative(),
   reply: AuthorReplySchema.nullable(),
   hypothesis: HypothesisSchema.nullable(),
+  /**
+   * The runner rejected the author's reply or change set, so the round ended before dev saw
+   * it. The round's error says why; the author is shown that reason next round.
+   */
+  rejected: z.boolean(),
 });
 export type StoredRound = z.infer<typeof StoredRoundSchema>;
 

@@ -21,6 +21,15 @@ export type Step =
 
 export type ActionStep = Exclude<Step, { kind: 'park' } | { kind: 'done' }>;
 
+/** A round as the planner sees it. */
+export type PlannedRound = Pick<Round, 'index' | 'status' | 'decision'> & {
+  /** Its reply or change set was rejected before dev saw it. */
+  rejected?: boolean;
+};
+
+/** Rejected rounds in a row that end training: the author isn't making changes the runner can use. */
+export const MAX_REJECTED_IN_A_ROW = 2;
+
 export interface PlanInput {
   method: Method;
   status: RunStatus;
@@ -32,7 +41,7 @@ export interface PlanInput {
   devCurrent: Score | null;
   /** The graduate has been frozen for its locked test. */
   frozen: boolean;
-  rounds: readonly Pick<Round, 'index' | 'status' | 'decision'>[];
+  rounds: readonly PlannedRound[];
   maxRounds: number;
   patience: number;
   passRateTarget: number;
@@ -58,10 +67,22 @@ function targetMet(input: PlanInput): boolean {
   return dev !== null && dev.total > 0 && dev.pass >= input.passRateTarget * dev.total - 1e-9;
 }
 
-/** Rounds since the last kept change, counting failed and reverted ones. */
-function roundsWithoutGain(rounds: PlanInput['rounds']): number {
+/**
+ * Changes dev measured and reverted since the last kept one. Rejected rounds never reached dev,
+ * so they neither count nor break the streak.
+ */
+function revertedSinceKept(rounds: PlanInput['rounds']): number {
   let count = 0;
-  for (let i = rounds.length - 1; i >= 0 && rounds[i]?.decision !== 'kept'; i--) count += 1;
+  for (let i = rounds.length - 1; i >= 0 && rounds[i]?.decision !== 'kept'; i--) {
+    if (rounds[i]?.decision === 'reverted') count += 1;
+  }
+  return count;
+}
+
+/** The rejected rounds the list ends with. */
+function rejectedInARow(rounds: PlanInput['rounds']): number {
+  let count = 0;
+  for (let i = rounds.length - 1; i >= 0 && rounds[i]?.rejected === true; i--) count += 1;
   return count;
 }
 
@@ -85,7 +106,8 @@ function nextTrainingStep(input: PlanInput): Step {
     case 'architect':
     case 'self_reflection':
       if (targetMet(input)) return finish('target_met');
-      if (roundsWithoutGain(input.rounds) >= input.patience) return finish('patience');
+      if (rejectedInARow(input.rounds) >= MAX_REJECTED_IN_A_ROW) return finish('rejected');
+      if (revertedSinceKept(input.rounds) >= input.patience) return finish('patience');
       if (input.rounds.length >= input.maxRounds) return finish('rounds');
       return { kind: 'start_round', round: input.rounds.length + 1 };
   }

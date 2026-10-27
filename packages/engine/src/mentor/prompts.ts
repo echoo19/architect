@@ -85,7 +85,7 @@ This round:
 1. Read the failing traces and find the root cause shared by the most failures: a missing rule, a procedure the student gets wrong, a computation it can't do reliably by hand, a format slip. Prefer a cause you can point to in the traces over a guess.
 2. Propose exactly one hypothesis: one diagnosis and the change set that tests it. A change set may touch several files, but every edit serves that one diagnosis.
 3. Predict the effect as a range of net dev passes, devDeltaMin to devDeltaMax, and explain it.
-4. Don't repeat a reverted hypothesis unless the new change is meaningfully different, and say how.
+4. Don't repeat a reverted hypothesis unless the new change is meaningfully different, and say how. A rejected round never reached dev: fix what its reason names first.
 5. If every train attempt passed, strengthen what the traces show is still fragile.
 
 The runner applies your change set to a new harness version and evaluates it on dev with the same seeds as the current version. It is kept only if dev passes rise by at least ${minDevGain} and no task type loses more than ${maxTypeRegression} ${passes}; otherwise it is reverted and logged as a failed hypothesis. Dev and test tasks are different tasks of the same types, so write rules that generalize, never answers for particular train tasks.
@@ -156,13 +156,20 @@ function renderBudget(budget: MentorView['budgetLeft']): string {
   return `Budget left: ${budget.rounds} rounds, $${budget.usd.toFixed(2)} of mentor spend, ${Math.floor(budget.minutes)} minutes.`;
 }
 
+function renderLineageItem(item: MentorView['lineage'][number]): string {
+  if (item.decision === 'rejected') {
+    const what =
+      item.title === undefined ? 'the reply held no usable hypothesis.' : `${item.title}.`;
+    const files = item.files.length > 0 ? ` Files: ${item.files.join(', ')}.` : '';
+    return `- Round ${item.round}, rejected before dev saw it: ${what}${files} Why: ${item.reason}`;
+  }
+  const delta = item.devDelta >= 0 ? `+${item.devDelta}` : String(item.devDelta);
+  return `- Round ${item.round}, ${item.decision} (dev ${delta}): ${item.title}. ${item.diagnosis} Files: ${item.files.join(', ')}.`;
+}
+
 function renderLineage(lineage: MentorView['lineage']): string {
   if (lineage.length === 0) return '# Earlier hypotheses\nNone yet.';
-  const items = lineage.map((item) => {
-    const delta = item.devDelta >= 0 ? `+${item.devDelta}` : String(item.devDelta);
-    return `- Round ${item.round}, ${item.decision} (dev ${delta}): ${item.title}. ${item.diagnosis} Files: ${item.files.join(', ')}.`;
-  });
-  return `# Earlier hypotheses\n${items.join('\n')}`;
+  return `# Earlier hypotheses\n${lineage.map(renderLineageItem).join('\n')}`;
 }
 
 function renderTrain(train: MentorView['train']): string {

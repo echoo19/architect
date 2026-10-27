@@ -25,6 +25,15 @@ export interface TrainResult {
 
 export type BudgetLeftView = MentorView['budgetLeft'];
 
+/** A round the runner rejected before dev saw its change, and why. */
+export interface RejectedRound {
+  round: number;
+  /** Absent when the reply held no usable hypothesis. */
+  title?: string;
+  files: string[];
+  reason: string;
+}
+
 export interface MentorViewInput {
   job: Job;
   dataFiles: MentorDataFile[];
@@ -35,6 +44,7 @@ export interface MentorViewInput {
   /** The incumbent's overall dev score: the only thing about dev the mentor learns. */
   dev: Score;
   lineage: LineageEntry[];
+  rejected: RejectedRound[];
 }
 
 function jobView(job: Job, dataFiles: MentorDataFile[]): MentorView['job'] {
@@ -69,9 +79,24 @@ export function scoreByType(
     .filter((score) => score.total > 0);
 }
 
-/** What the mentor learns about earlier hypotheses: the decision and the overall dev change. */
-export function mentorLineage(entries: readonly LineageEntry[]): MentorLineageItem[] {
-  return entries.map((entry) => ({
+/** A rejection reason fits on one line in the lineage; past this it is cut short. */
+const REASON_MAX = 400;
+
+/** A reason on one line, such as a harness check's one sentence per problem run together. */
+function shortReason(reason: string): string {
+  const line = reason.replace(/\s+/g, ' ').trim();
+  return line.length > REASON_MAX ? `${line.slice(0, REASON_MAX - 1)}…` : line;
+}
+
+/**
+ * What the mentor learns about earlier rounds, in order: for a measured change the decision and
+ * the overall dev change, for a rejected one the reason, so it can put the mistake right.
+ */
+export function mentorLineage(
+  entries: readonly LineageEntry[],
+  rejected: readonly RejectedRound[],
+): MentorLineageItem[] {
+  const measured = entries.map((entry): MentorLineageItem => ({
     round: entry.round,
     title: entry.title,
     diagnosis: entry.diagnosis,
@@ -79,13 +104,21 @@ export function mentorLineage(entries: readonly LineageEntry[]): MentorLineageIt
     decision: entry.decision,
     devDelta: entry.measured.delta,
   }));
+  const rejections = rejected.map((item): MentorLineageItem => ({
+    round: item.round,
+    ...(item.title === undefined ? {} : { title: item.title }),
+    files: item.files,
+    decision: 'rejected',
+    reason: shortReason(item.reason),
+  }));
+  return [...measured, ...rejections].sort((a, b) => a.round - b.round);
 }
 
 /**
  * Assembles what the mentor may see in a round from an allowlist (decision 006): the job setup,
  * the harness, this round's train attempts with checker reasons and compact traces, the overall
- * dev score, and earlier hypotheses. Dev task content, ids, traces and per-type counts never
- * appear, and nothing from the test split does.
+ * dev score, and earlier hypotheses, rejected ones with their reasons. Dev task content, ids,
+ * traces and per-type counts never appear, and nothing from the test split does.
  */
 export function buildMentorView(input: MentorViewInput): MentorView {
   return MentorViewSchema.parse({
@@ -109,7 +142,7 @@ export function buildMentorView(input: MentorViewInput): MentorView {
       ),
     },
     dev: { pass: input.dev.pass, total: input.dev.total },
-    lineage: mentorLineage(input.lineage),
+    lineage: mentorLineage(input.lineage, input.rejected),
   });
 }
 

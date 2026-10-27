@@ -213,6 +213,7 @@ function roundParams({ round, ...record }: StoredRound): Params {
     train: json(round.train),
     reply: jsonOrNull(record.reply),
     hypothesis: jsonOrNull(record.hypothesis),
+    rejected: flag(record.rejected),
     title: round.title ?? null,
     diagnosis: round.diagnosis ?? null,
     predicted: jsonOrNull(round.predicted),
@@ -253,6 +254,7 @@ function roundFromRow(row: Row): StoredRound {
     baseVersion: row.base_version,
     reply: fromJson(row.reply),
     hypothesis: fromJson(row.hypothesis),
+    rejected: row.rejected === 1,
   });
 }
 

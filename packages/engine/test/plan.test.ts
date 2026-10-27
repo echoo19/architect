@@ -53,13 +53,43 @@ describe('planNextStep', () => {
     });
   });
 
-  it('stops after patience rounds in a row without a kept change', () => {
+  it('stops after patience changes in a row are measured and reverted', () => {
     const rounds = [
       { index: 1, status: 'decided' as const, decision: 'kept' as const },
       { index: 2, status: 'decided' as const, decision: 'reverted' as const },
-      { index: 3, status: 'failed' as const },
+      { index: 3, status: 'failed' as const, rejected: true },
+      { index: 4, status: 'decided' as const, decision: 'reverted' as const },
     ];
     expect(plan({ rounds })).toEqual({ kind: 'finish_training', reason: 'patience' });
+  });
+
+  it('does not let a rejected round use up patience', () => {
+    const rounds = [
+      { index: 1, status: 'decided' as const, decision: 'reverted' as const },
+      { index: 2, status: 'failed' as const, rejected: true },
+    ];
+    expect(plan({ rounds })).toEqual({ kind: 'start_round', round: 3 });
+  });
+
+  it('ends training after two rejected rounds in a row, and only in a row', () => {
+    const rejected = { status: 'failed' as const, rejected: true };
+    expect(
+      plan({
+        rounds: [
+          { index: 1, ...rejected },
+          { index: 2, ...rejected },
+        ],
+      }),
+    ).toEqual({
+      kind: 'finish_training',
+      reason: 'rejected',
+    });
+    const apart = [
+      { index: 1, ...rejected },
+      { index: 2, status: 'decided' as const, decision: 'reverted' as const },
+      { index: 3, ...rejected },
+    ];
+    expect(plan({ rounds: apart })).toEqual({ kind: 'start_round', round: 4 });
   });
 
   it('stops when every round in the budget is used', () => {

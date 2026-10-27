@@ -80,6 +80,7 @@ export function startRound(state: RunState, index: number): void {
       baseVersion: state.run.currentVersion,
       reply: null,
       hypothesis: null,
+      rejected: false,
     });
     return state.writeRun((current) => ({
       phase: oneShot ? 'diagnosing' : 'attempting',

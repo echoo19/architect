@@ -36,15 +36,29 @@ export const TypeScoreSchema = z.object({
 });
 export type TypeScore = z.infer<typeof TypeScoreSchema>;
 
-/** What the mentor learns about earlier hypotheses: the decision and the overall dev change. */
-export const MentorLineageItemSchema = z.object({
-  round: z.number().int().positive(),
-  title: z.string(),
-  diagnosis: z.string(),
-  files: z.array(z.string()),
-  decision: z.enum(['kept', 'reverted']),
-  devDelta: z.number().int(),
-});
+/**
+ * What the mentor learns about an earlier hypothesis: for one dev measured, the decision and the
+ * overall dev change; for one rejected before dev saw it, why, so the next reply can fix it.
+ */
+export const MentorLineageItemSchema = z.discriminatedUnion('decision', [
+  z.object({
+    round: z.number().int().positive(),
+    title: z.string(),
+    diagnosis: z.string(),
+    files: z.array(z.string()),
+    decision: z.enum(['kept', 'reverted']),
+    devDelta: z.number().int(),
+  }),
+  z.object({
+    round: z.number().int().positive(),
+    /** Absent when the reply held no usable hypothesis. */
+    title: z.string().optional(),
+    files: z.array(z.string()),
+    decision: z.literal('rejected'),
+    /** One line, e.g. `tools/read_table.json: "read_table" is a built-in tool name.` */
+    reason: z.string(),
+  }),
+]);
 export type MentorLineageItem = z.infer<typeof MentorLineageItemSchema>;
 
 /**
