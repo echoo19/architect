@@ -1,0 +1,59 @@
+# Installers for Windows (NSIS) and macOS (DMG). Signing and notarization happen in CI, which
+# provides the certificates through electron-builder's environment variables.
+appId: io.github.echoo19.architect
+productName: Architect
+copyright: Copyright © 2026 Jake Kang
+
+directories:
+  output: release
+  buildResources: build
+
+# Package the Electron build installed for development and tests, so the shipped binary is the
+# one the end-to-end tests ran against and packaging never downloads another. The version is
+# stated because electron-builder looks for Electron only in this folder's node_modules, and the
+# workspace hoists it to the root; keep it equal to the installed electron package.
+electronDist: ../../node_modules/electron/dist
+electronVersion: 45.0.0
+
+# The bundles in out/ carry every dependency, so no node_modules ship with the app.
+files:
+  - out/**
+  - package.json
+  - '!node_modules/**'
+npmRebuild: false
+
+asar: true
+# The engine forks the tool sandbox as a Node process with the sandbox's folder as its working
+# directory, so the sandbox and its WebAssembly live in a real folder beside the archive.
+asarUnpack:
+  - out/sandbox/**
+
+extraResources:
+  - from: ../../examples/home-services/job
+    to: sample-job
+    filter:
+      - job.json
+      - tasks.jsonl
+      - checker.js
+      - data/**
+
+win:
+  target: nsis
+
+nsis:
+  oneClick: true
+  perMachine: false
+  artifactName: ${productName}-Setup-${version}.${ext}
+
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  category: public.app-category.productivity
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}

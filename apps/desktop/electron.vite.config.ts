@@ -9,15 +9,6 @@ import { build, type Plugin } from 'vite';
 
 const APP_DIR = dirname(fileURLToPath(import.meta.url));
 
-/** Workspace packages ship TypeScript source, so they are bundled rather than required. */
-const WORKSPACE_PACKAGES = [
-  '@architect/shared',
-  '@architect/engine',
-  '@architect/harness',
-  '@architect/adapters',
-  '@architect/ui',
-];
-
 /**
  * The engine's tool sandbox entry. The engine forks it as a plain Node process, so it ships as
  * one self-contained file next to the QuickJS WebAssembly it loads.
@@ -136,7 +127,8 @@ export default defineConfig({
     // as a bundle of its own. The sandbox child that the engine forks is built by this plugin.
     plugins: [sandboxChild()],
     build: {
-      externalizeDeps: { exclude: WORKSPACE_PACKAGES },
+      // Everything is bundled, so the packaged app ships no node_modules.
+      externalizeDeps: false,
     },
   },
   preload: {
