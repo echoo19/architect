@@ -68,6 +68,33 @@ describe('where the locked test runs', () => {
     });
   });
 
+  it('pauses before testing a local student that is no longer the frozen build', async () => {
+    const job = await setUp();
+    const swap = engine.controller.onEvent((event) => {
+      if (event.type === 'log' && event.message.startsWith('Graduate frozen')) {
+        world.localDigest = 'sha256:newer';
+      }
+    });
+    const run = await engine.controller.start(job.id, 'bare', 3);
+    await engine.controller.idle();
+    swap();
+
+    expect(engine.store.runs.get(run.id)?.run).toMatchObject({
+      status: 'paused',
+      phase: 'testing',
+      error:
+        "The local student isn't the model this graduate was frozen with: glimmer:test has digest sha256:newer instead of sha256:fake. A test on it wouldn't describe the graduate.",
+    });
+    expect(engine.store.attempts.list({ runId: run.id, split: 'test' })).toEqual([]);
+    expect(world.vault.opened).toEqual([]);
+
+    world.localDigest = 'sha256:fake';
+    await engine.controller.resume(run.id);
+    await engine.controller.idle();
+    expect(engine.store.runs.get(run.id)?.run.status).toBe('finished');
+    expect(engine.store.attempts.list({ runId: run.id, split: 'test' })).toHaveLength(6);
+  });
+
   it('refuses a hosted locked test when the job has no hosted endpoint', async () => {
     const { label, local } = defaultJob().student;
     const job = await setUp({ student: { label, local, trainOn: 'local' } });
