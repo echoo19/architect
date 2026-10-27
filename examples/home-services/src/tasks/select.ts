@@ -15,6 +15,8 @@ export interface Candidate<T> {
   traps: string[];
   /** Picks are spread evenly across kinds, so one kind of task can't crowd out the rest. */
   kind: string;
+  /** The answer that passes the task, for picks that share an AnswerCap. */
+  answer?: string;
 }
 
 /** No traps is easy, one or two is medium, three or more is hard. */
@@ -27,25 +29,18 @@ export function difficultyOf(traps: readonly string[]): Difficulty {
  * Keeps any one answer from being right for more than `max` picked tasks, across every pick that
  * shares the cap, so a harness can't pass many tasks by repeating one memorized answer.
  */
-export class AnswerCap<T> {
+export class AnswerCap {
   private readonly counts = new Map<string, number>();
 
-  constructor(
-    /** The answers that would pass the task; usually one, more when several are accepted. */
-    private readonly answersOf: (value: T) => readonly string[],
-    private readonly max: number,
-  ) {}
+  constructor(private readonly max: number) {}
 
-  allows(candidate: Candidate<T>): boolean {
-    return this.answersOf(candidate.value).every(
-      (answer) => (this.counts.get(answer) ?? 0) < this.max,
-    );
+  allows(candidate: Candidate<unknown>): boolean {
+    return candidate.answer === undefined || (this.counts.get(candidate.answer) ?? 0) < this.max;
   }
 
-  take(candidate: Candidate<T>): void {
-    for (const answer of this.answersOf(candidate.value)) {
-      this.counts.set(answer, (this.counts.get(answer) ?? 0) + 1);
-    }
+  take(candidate: Candidate<unknown>): void {
+    if (candidate.answer === undefined) return;
+    this.counts.set(candidate.answer, (this.counts.get(candidate.answer) ?? 0) + 1);
   }
 }
 
@@ -60,7 +55,7 @@ export function pickMix<T>(
   candidates: readonly Candidate<T>[],
   quota: Quota,
   label: string,
-  cap?: AnswerCap<T>,
+  cap?: AnswerCap,
 ): Candidate<T>[] {
   const pools = new Map(
     DIFFICULTIES.map((difficulty) => [
@@ -87,7 +82,7 @@ export function pickMix<T>(
 function roundRobin<T>(
   pool: readonly Candidate<T>[],
   count: number,
-  cap: AnswerCap<T> | undefined,
+  cap: AnswerCap | undefined,
 ): Candidate<T>[] {
   const byKind = new Map<string, Candidate<T>[]>();
   for (const candidate of pool) {

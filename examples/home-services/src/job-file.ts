@@ -10,15 +10,20 @@ const IDENTITY: Readonly<Record<JobVersion, Pick<Job, 'id' | 'name'>>> = {
 };
 
 /** What each version says about the parts of the job that changed between them. */
-const WORDING: Readonly<Record<JobVersion, { requests: string; scheduling: string }>> = {
+const WORDING: Readonly<
+  Record<JobVersion, { requests: string; overdue: string; scheduling: string }>
+> = {
   1: {
     requests:
       'Open service requests waiting for a booking: skill, license needed, duration, earliest date.',
+    overdue: 'Find overdue invoices and balances after partial payments.',
     scheduling: 'Book a service request into the earliest feasible slot.',
   },
   2: {
     requests:
       'Open service requests waiting for a booking: skill, license needed, duration, earliest date and the time window the customer asked for.',
+    overdue:
+      'Find overdue invoices and balances after partial payments, for one customer or a group.',
     scheduling: "Book a service request into the earliest feasible slot in the customer's window.",
   },
 };
@@ -147,7 +152,7 @@ export function buildJob(version: JobVersion): Job {
       {
         id: 'overdue',
         label: 'Overdue balances',
-        description: 'Find overdue invoices and balances after partial payments.',
+        description: WORDING[version].overdue,
       },
       {
         id: 'schedule',

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import vm from 'node:vm';
 import { CheckResultSchema, TaskSchema } from '@architect/shared';
@@ -7,6 +7,8 @@ import { jobDir } from '../src';
 import type { JobVersion } from '../src';
 import { parseCsv } from '../src/lib/csv';
 import type { CsvRow } from '../src/lib/csv';
+import { parseJobData } from '../src/reference/read-tools';
+import type { JobData } from '../src/reference/read-tools';
 
 export const BUSINESS_DATE = '2026-11-05';
 
@@ -26,6 +28,7 @@ export class JobFolder {
   private tasks: Task[] | undefined;
   private readonly tables = new Map<string, CsvRow[]>();
   private sandbox: vm.Context | undefined;
+  private parsed: JobData | undefined;
 
   constructor(readonly version: JobVersion) {
     this.dir = jobDir(version);
@@ -74,6 +77,14 @@ export class JobFolder {
 
   rowsWhere(name: string, column: string, value: string): CsvRow[] {
     return this.table(name).filter((row) => row[column] === value);
+  }
+
+  /** Every file in data/, the way the reference solutions' read tools serve them. */
+  data(): JobData {
+    this.parsed ??= parseJobData(
+      new Map(readdirSync(join(this.dir, 'data')).map((name) => [name, this.file(`data/${name}`)])),
+    );
+    return this.parsed;
   }
 
   /** A checker context whose end state is the original data with `changed` tables swapped in. */

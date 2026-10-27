@@ -221,16 +221,15 @@ function pickRequests(
   version: JobVersion,
 ): Candidate<ScheduleCase>[] {
   if (version === 1) return pickMix(random, candidates, FIRST_VERSION_QUOTA, 'schedule');
-  const cap = new AnswerCap<ScheduleCase>(
-    ({ slot }) => [`${slot.date} ${slot.start_time}`],
-    MAX_TASKS_PER_SLOT,
-  );
+  const cap = new AnswerCap(MAX_TASKS_PER_SLOT);
   const inWindow = (window: TimeWindow) =>
-    candidates.filter(
-      (c) =>
-        c.value.request.window === window &&
-        (window === 'any' || c.traps.includes('window') || c.traps.length === 0),
-    );
+    candidates
+      .filter(
+        (c) =>
+          c.value.request.window === window &&
+          (window === 'any' || c.traps.includes('window') || c.traps.length === 0),
+      )
+      .map((c) => ({ ...c, answer: `${c.value.slot.date} ${c.value.slot.start_time}` }));
   return random.shuffle(
     (['morning', 'afternoon', 'any'] as const).flatMap((window) =>
       pickMix(random, inWindow(window), QUOTAS[window], `${window} schedule`, cap),

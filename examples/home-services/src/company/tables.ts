@@ -32,6 +32,17 @@ const CUSTOMERS: TableLayout<Customer> = {
   cells: (c) => [c.customer_id, c.name, c.city, c.zone, yesNo(c.plan_member), c.terms_days],
 };
 
+/** A customer's cells in customers.csv by column, as the agent reads them. */
+export function customerCells(customer: Customer): Record<string, string | null> {
+  const cells = CUSTOMERS.cells(customer);
+  return Object.fromEntries(
+    CUSTOMERS.columns.map((column, i) => {
+      const cell = cells[i] ?? null;
+      return [column, cell === null ? null : String(cell)];
+    }),
+  );
+}
+
 const TECHNICIANS: TableLayout<Technician> = {
   columns: [
     'technician_id',

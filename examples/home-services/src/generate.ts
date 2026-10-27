@@ -9,6 +9,7 @@ import { buildJob } from './job-file';
 import { formatJson } from './lib/json-format';
 import { Random } from './lib/random';
 import { policyDocument } from './policy/document';
+import { parseJobData } from './reference/read-tools';
 import { buildInvoiceTasks } from './tasks/invoice';
 import { buildOverdueTasks } from './tasks/overdue';
 import { buildScheduleTasks } from './tasks/schedule';
@@ -36,19 +37,20 @@ export function buildJobFiles(seed: number, version: JobVersion): GeneratedJob {
   const records = buildCompany(random.fork('company'));
   const scheduling = buildScheduleTasks(random.fork('schedule tasks'), records, version);
   const company = { ...records, requests: scheduling.requests };
+  const policy = policyDocument(version);
+  const tables = renderTables(company, version);
+  const data = parseJobData(new Map([['policy.md', policy], ...Object.entries(tables)]));
   const tasks = [
     ...buildInvoiceTasks(random.fork('invoice tasks'), records),
-    ...buildOverdueTasks(random.fork('overdue tasks'), records),
+    ...buildOverdueTasks(random.fork('overdue tasks'), records, version, data),
     ...scheduling.tasks,
   ].map((task) => TaskSchema.parse(task));
   const job = buildJob(version);
 
   const files = new Map<string, string>();
   files.set('job.json', formatJson(job));
-  files.set('data/policy.md', policyDocument(version));
-  for (const [name, text] of Object.entries(renderTables(company, version))) {
-    files.set(`data/${name}`, text);
-  }
+  files.set('data/policy.md', policy);
+  for (const [name, text] of Object.entries(tables)) files.set(`data/${name}`, text);
   files.set('tasks.jsonl', tasks.map((task) => `${JSON.stringify(task)}\n`).join(''));
   files.set('checker.js', readFileSync(CHECKER_SOURCES[version], 'utf8'));
   return { job, tasks, files };

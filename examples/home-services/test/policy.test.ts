@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ServiceRequest, Technician, TimeWindow } from '../src/company/types';
 import { daysBetween } from '../src/lib/calendar';
 import { roundHalfUp } from '../src/lib/money';
+import { answerQuestion } from '../src/reference/overdue-questions';
 import { billedMinutes, laborCents, partLineCents } from '../src/reference/pricing';
 import { buildSchedule, slotProblem } from '../src/reference/scheduling';
 import { BOTH_VERSIONS, latestVersion } from './helpers';
@@ -79,6 +80,38 @@ describe.each(BOTH_VERSIONS)('policy.md of version $version', (folder) => {
 
 describe('policy.md of version 2', () => {
   const policy = latestVersion.file('data/policy.md');
+
+  it('works its group example out the way the reference does', () => {
+    expect(policy).toContain(
+      "Example: in a group of three, A owes 12000 on one invoice that is 31 days overdue. B's only overdue invoice is for 20000 and exactly 30 days overdue, and B paid 5000 of it today, so B owes 15000. C has nothing overdue. The group's overdue total is 27000. Only A is more than 30 days overdue. Largest first, B owes 15000 and A 12000. Nobody owes more than $150 (15000).",
+    );
+    const today = '2026-11-05';
+    const invoices = [
+      { invoice_id: 'INV-1', customer_id: 'A', due_date: '2026-10-05', total_cents: 12000 },
+      { invoice_id: 'INV-2', customer_id: 'B', due_date: '2026-10-06', total_cents: 20000 },
+      { invoice_id: 'INV-3', customer_id: 'C', due_date: '2026-10-01', total_cents: 9000 },
+    ];
+    const payments = [
+      { invoice_id: 'INV-2', date: today, amount_cents: 5000 },
+      { invoice_id: 'INV-3', date: '2026-10-02', amount_cents: 9000 },
+    ];
+    expect([daysBetween('2026-10-05', today), daysBetween('2026-10-06', today)]).toEqual([31, 30]);
+    const group = { zone: 'Harbor' };
+    const answer = (question: Parameters<typeof answerQuestion>[0]) =>
+      answerQuestion(question, invoices, payments, today);
+    expect(answer({ kind: 'group_total', group })).toEqual({ overdue_cents: 27000 });
+    expect(answer({ kind: 'group_age', group, days: 30 })).toEqual({
+      count: 1,
+      customer_ids: ['A'],
+    });
+    expect(answer({ kind: 'group_top', group, count: 2 })).toEqual({
+      customers: [
+        { customer_id: 'B', overdue_cents: 15000 },
+        { customer_id: 'A', overdue_cents: 12000 },
+      ],
+    });
+    expect(answer({ kind: 'group_owing', group, over_cents: 15000 })).toEqual({ customers: [] });
+  });
 
   it('states the time window rule and gives an example the reference agrees with', () => {
     expect(policy).toContain(

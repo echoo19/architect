@@ -36,6 +36,15 @@ Example: a journeyman (11400 an hour) spends 50 minutes on an after-hours job fo
 
 Example: an invoice for 30000 due 2026-10-20 has payments of 10000 on 2026-10-25 and 20000 on 2026-11-10. Today it is 16 days overdue, with a balance of 20000.
 
+**Groups of customers.** A question can be about a group named from customers.csv: the customers in a `zone` or a `city`, plan members (`plan_member` = yes), or customers on given terms (15-day terms means `terms_days` = 15).
+
+- A group's **overdue total** is the sum of its customers' overdue balances.
+- A customer is **more than N days overdue** when at least one of their overdue invoices is more than N days overdue. Exactly N days is not more than N.
+- A customer **owes more than** an amount when their overdue balance is above it. $500 is 50000 cents.
+- When you list customers with their balances, put the largest balance first.
+
+Example: in a group of three, A owes 12000 on one invoice that is 31 days overdue. B's only overdue invoice is for 20000 and exactly 30 days overdue, and B paid 5000 of it today, so B owes 15000. C has nothing overdue. The group's overdue total is 27000. Only A is more than 30 days overdue. Largest first, B owes 15000 and A 12000. Nobody owes more than $150 (15000).
+
 ## Scheduling
 
 Book each new service request into the earliest slot that works, and add one row for it to bookings.csv.

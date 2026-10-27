@@ -26,7 +26,7 @@
     {
       "id": "overdue",
       "label": "Overdue balances",
-      "description": "Find overdue invoices and balances after partial payments."
+      "description": "Find overdue invoices and balances after partial payments, for one customer or a group."
     },
     {
       "id": "schedule",

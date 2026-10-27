@@ -109,6 +109,18 @@ export function daysFromTo(from: string, to: string): number {
   return ordinal(to) - ordinal(from);
 }
 
+/** customers.csv rows whose cells hold every value the group names. */
+export function membersOf(job: JobFolder, group: Record<string, string>): CsvRow[] {
+  return job
+    .table('customers.csv')
+    .filter((row) => Object.entries(group).every(([column, value]) => row[column] === value));
+}
+
+/** A customer's overdue balance: what is still open on their overdue invoices. */
+export function overdueCentsOf(job: JobFolder, customerId: string): number {
+  return totalOpen(job, overdueOf(job, customerId));
+}
+
 export function invoicesDueBetween(job: JobFolder, from: string, to: string): CsvRow[] {
   return job
     .table('invoices.csv')
