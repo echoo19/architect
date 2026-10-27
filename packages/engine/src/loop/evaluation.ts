@@ -3,15 +3,22 @@ import {
   newId,
   type SplitName,
   type StudentAdapter,
+  type StudentTarget,
   type Task,
 } from '@architect/shared';
-import type { StoredAttempt, StudentTarget } from '../store/records';
+import type { StoredAttempt } from '../store/records';
 import { answerSummary, expectedSummary, lockedCheck, studentPrice } from './attempts';
 import type { EvaluatedTask, Evaluation, EvaluationContext } from './deps';
 import { writeJsonFile } from './files';
 import { runPool } from './pool';
 import type { RunState } from './run-state';
 import { studentEndpoint } from './setup';
+
+/**
+ * Why an evaluation runs. Training halts for a stop or a spent wall clock; a test doesn't. A
+ * re-test belongs to a run that has finished, so its attempts leave the run's record as it was.
+ */
+export type EvaluationPurpose = 'training' | 'locked_test' | 'retest';
 
 export interface EvaluationSpec {
   tasks: readonly Task[];
@@ -21,8 +28,7 @@ export interface EvaluationSpec {
   /** Every task is attempted once under each seed; a dev evaluation has one seed per repeat. */
   seeds: readonly number[];
   target: StudentTarget;
-  /** Training evaluations halt for a stop or a spent wall clock; the locked test doesn't. */
-  training: boolean;
+  purpose: EvaluationPurpose;
   concurrency: number;
 }
 
@@ -65,9 +71,9 @@ function reportProgress(state: RunState, spec: EvaluationSpec, done: ReadonlySet
 }
 
 /**
- * Persists one attempt with its student calls, in one transaction. Locked-test attempts keep
- * no trace file, no summaries and only pass or fail with the failing field, so test prompts
- * and answers stay in the vault.
+ * Persists one attempt with its student calls, in one transaction, and adds it to the run's
+ * totals unless it belongs to a re-test. Locked-test attempts keep no trace file, no summaries
+ * and only pass or fail with the failing field, so test prompts and answers stay in the vault.
  */
 async function recordAttempt(
   state: RunState,
@@ -117,6 +123,7 @@ async function recordAttempt(
         at: attempt.createdAt,
       });
     }
+    if (spec.purpose === 'retest') return null;
     return state.writeRun((current) => ({
       totals: {
         ...current.totals,
@@ -131,6 +138,7 @@ async function recordAttempt(
     attempt: AttemptSchema.parse(attempt),
     prompt: locked ? undefined : item.task.prompt,
   });
+  if (run === null) return;
   state.emit({ type: 'run.updated', run });
   state.emitBudget();
 }
@@ -195,9 +203,10 @@ export async function evaluate(state: RunState, spec: EvaluationSpec): Promise<b
       checker: await resources.checker(),
       today: state.record.today,
     };
-    const deadline = spec.training ? state.budget.deadline() : null;
+    const training = spec.purpose === 'training';
+    const deadline = training ? state.budget.deadline() : null;
     const signal = deadline ? AbortSignal.any([state.signal, deadline]) : state.signal;
-    const mayStart = () => !shouldHalt(state, spec.training);
+    const mayStart = () => !shouldHalt(state, training);
     await runPool(remaining, spec.concurrency, mayStart, async ({ task, seed }) => {
       state.emit({
         type: 'attempt.started',

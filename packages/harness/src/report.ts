@@ -31,6 +31,22 @@ function met(isMet: boolean): string {
   return isMet ? 'Met.' : 'Not met.';
 }
 
+const RUNTIME_NAMES: Record<string, string> = {
+  ollama: 'Ollama',
+  openai_compatible: 'an OpenAI-compatible server',
+};
+
+/** The student the locked test ran on: the local build, or the hosted copy. */
+function studentLine(report: ReportCard): string {
+  const { student } = report;
+  const where =
+    report.testedOn === 'hosted'
+      ? 'a hosted copy'
+      : `local through ${RUNTIME_NAMES[student.runtime] ?? student.runtime}`;
+  const build = student.quantization === undefined ? '' : `, ${student.quantization}`;
+  return `- Student: ${student.label} (${student.model}, ${where}${build})`;
+}
+
 /**
  * The report card as Markdown for people: the result first, then where it came from and what
  * it cost. Everything it says comes from the report; nothing is inferred.
@@ -50,7 +66,7 @@ export function renderReportMarkdown(report: ReportCard): string {
     `# ${report.name}: report card`,
     headline,
     [
-      `- Student: ${report.student.label} (${report.student.model}, ${report.student.runtime})`,
+      studentLine(report),
       `- Mentor: ${report.mentor.label} (${report.mentor.model})`,
       `- Method: ${METHOD_LABELS[report.method]}`,
       `- Created: ${report.createdAt.slice(0, 10)}`,
@@ -83,7 +99,7 @@ export function renderReportMarkdown(report: ReportCard): string {
   ];
   if (dev.baseline && dev.final) {
     training.push(
-      `- Dev tasks passed: ${dev.baseline.pass} of ${dev.baseline.total} at the start, ${dev.final.pass} of ${dev.final.total} at the end`,
+      `- Dev tasks passed: ${share(dev.baseline)} at the start (${dev.baseline.pass} of ${dev.baseline.total}), ${share(dev.final)} at the end (${dev.final.pass} of ${dev.final.total})`,
     );
   }
   if (dev.final && dev.final.total > 0 && test.score.total > 0) {
@@ -110,7 +126,7 @@ export function renderReportMarkdown(report: ReportCard): string {
       : report.topInterventions
           .map(
             (item, index) =>
-              `${index + 1}. Round ${item.round}, "${item.title}": ${item.delta >= 0 ? '+' : ''}${item.delta} dev ${plural(Math.abs(item.delta), 'pass', 'passes')}`,
+              `${index + 1}. Round ${item.round}, "${item.title}": ${item.delta >= 0 ? '+' : ''}${item.delta} dev ${plural(Math.abs(item.delta), 'pass', 'passes')}${item.runs === undefined ? '' : ` over ${item.runs} runs`}`,
           )
           .join('\n'),
   );
@@ -139,7 +155,9 @@ export function renderReportMarkdown(report: ReportCard): string {
     '## How the test was run',
     test.ranOffline
       ? "The locked test was run once, on the student model's own runtime, with no network access and the mentor disconnected. The mentor never saw these tasks."
-      : 'The locked test was run once with the mentor disconnected. It was not run offline.',
+      : report.testedOn === 'hosted'
+        ? 'The locked test was run once on a hosted copy of the student with the mentor disconnected, so it was not run offline. The mentor never saw these tasks.'
+        : 'The locked test was run once with the mentor disconnected. It was not run offline.',
   );
 
   return `${sections.join('\n\n')}\n`;

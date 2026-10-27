@@ -1,5 +1,6 @@
 import type { CsvRow } from '../src/lib/csv';
-import { BUSINESS_DATE, rowWhere, rowsWhere, table } from './helpers';
+import { BUSINESS_DATE } from './helpers';
+import type { JobFolder } from './helpers';
 
 /**
  * Second implementations of the policy, written from policy.md without looking at the generator's
@@ -31,23 +32,25 @@ export interface PricedJob {
   total_cents: number;
 }
 
-export function priceFromCsv(jobId: string): PricedJob {
-  const job = rowWhere('jobs.csv', 'job_id', jobId);
-  const customer = rowWhere('customers.csv', 'customer_id', String(job.customer_id));
-  const technician = rowWhere('technicians.csv', 'technician_id', String(job.technician_id));
-  const hourly = Number(rowWhere('rates.csv', 'tier', String(technician.tier)).hourly_rate_cents);
+export function priceFromCsv(job: JobFolder, jobId: string): PricedJob {
+  const work = job.rowWhere('jobs.csv', 'job_id', jobId);
+  const customer = job.rowWhere('customers.csv', 'customer_id', String(work.customer_id));
+  const technician = job.rowWhere('technicians.csv', 'technician_id', String(work.technician_id));
+  const hourly = Number(
+    job.rowWhere('rates.csv', 'tier', String(technician.tier)).hourly_rate_cents,
+  );
 
   // Quarter hours, rounded up, at least four of them; a quarter costs a quarter of the rate.
-  const quarters = Math.max(4, Math.ceil(Number(job.labor_minutes) / 15));
+  const quarters = Math.max(4, Math.ceil(Number(work.labor_minutes) / 15));
   const labor =
-    job.after_hours === 'yes'
+    work.after_hours === 'yes'
       ? nearestHalfUp(quarters * hourly * 3, 4 * 2)
       : nearestHalfUp(quarters * hourly, 4);
 
   let parts = 0;
   let taxable = 0;
-  for (const line of rowsWhere('job_parts.csv', 'job_id', jobId)) {
-    const part = rowWhere('parts.csv', 'part_id', String(line.part_id));
+  for (const line of job.rowsWhere('job_parts.csv', 'job_id', jobId)) {
+    const part = job.rowWhere('parts.csv', 'part_id', String(line.part_id));
     const amount = nearestHalfUp(
       Number(line.qty) * Number(part.unit_cost_cents) * (100 + Number(part.markup_pct)),
       100,
@@ -59,7 +62,7 @@ export function priceFromCsv(jobId: string): PricedJob {
   const fees = TRIP_FEE[String(customer.zone)];
   if (fees === undefined) throw new Error(`No trip fee for ${customer.zone}`);
   const discount = customer.plan_member === 'yes' ? nearestHalfUp(labor, 10) : 0;
-  const rate = Number(rowWhere('tax.csv', 'city', String(customer.city)).rate_bp);
+  const rate = Number(job.rowWhere('tax.csv', 'city', String(customer.city)).rate_bp);
   const tax = nearestHalfUp(taxable * rate, 10_000);
   return {
     labor_cents: labor,
@@ -72,20 +75,26 @@ export function priceFromCsv(jobId: string): PricedJob {
 }
 
 /** Received money only: payments dated after the business date haven't arrived. */
-export function openBalance(invoice: CsvRow): number {
+export function openBalance(job: JobFolder, invoice: CsvRow): number {
   let paid = 0;
-  for (const payment of rowsWhere('payments.csv', 'invoice_id', String(invoice.invoice_id))) {
+  for (const payment of job.rowsWhere('payments.csv', 'invoice_id', String(invoice.invoice_id))) {
     if (String(payment.date) <= BUSINESS_DATE) paid += Number(payment.amount_cents);
   }
   return Number(invoice.total_cents) - paid;
 }
 
-export function isOverdueToday(invoice: CsvRow): boolean {
-  return String(invoice.due_date) < BUSINESS_DATE && openBalance(invoice) > 0;
+export function isOverdueToday(job: JobFolder, invoice: CsvRow): boolean {
+  return String(invoice.due_date) < BUSINESS_DATE && openBalance(job, invoice) > 0;
 }
 
-export function overdueOf(customerId: string): CsvRow[] {
-  return rowsWhere('invoices.csv', 'customer_id', customerId).filter(isOverdueToday);
+export function overdueOf(job: JobFolder, customerId: string): CsvRow[] {
+  return job
+    .rowsWhere('invoices.csv', 'customer_id', customerId)
+    .filter((invoice) => isOverdueToday(job, invoice));
+}
+
+export function totalOpen(job: JobFolder, invoices: CsvRow[]): number {
+  return invoices.reduce((sum, invoice) => sum + openBalance(job, invoice), 0);
 }
 
 /** Whole days between two YYYY-MM-DD dates in 2000 to 2099, counted from month lengths. */
@@ -100,8 +109,20 @@ export function daysFromTo(from: string, to: string): number {
   return ordinal(to) - ordinal(from);
 }
 
-export function invoicesDueBetween(from: string, to: string): CsvRow[] {
-  return table('invoices.csv').filter(
-    (invoice) => String(invoice.due_date) >= from && String(invoice.due_date) <= to,
-  );
+/** customers.csv rows whose cells hold every value the group names. */
+export function membersOf(job: JobFolder, group: Record<string, string>): CsvRow[] {
+  return job
+    .table('customers.csv')
+    .filter((row) => Object.entries(group).every(([column, value]) => row[column] === value));
+}
+
+/** A customer's overdue balance: what is still open on their overdue invoices. */
+export function overdueCentsOf(job: JobFolder, customerId: string): number {
+  return totalOpen(job, overdueOf(job, customerId));
+}
+
+export function invoicesDueBetween(job: JobFolder, from: string, to: string): CsvRow[] {
+  return job
+    .table('invoices.csv')
+    .filter((invoice) => String(invoice.due_date) >= from && String(invoice.due_date) <= to);
 }

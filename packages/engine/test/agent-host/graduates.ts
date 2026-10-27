@@ -113,6 +113,7 @@ function reportFor(job: Job): ReportCard {
     name: job.name,
     createdAt: CREATED_AT,
     student: { label: 'Glimmer', model: 'muse-glimmer:30b', runtime: 'ollama' },
+    testedOn: 'local',
     mentor: { label: 'Spark', model: 'muse-spark-1.3' },
     test: {
       score: { pass: 17, total: 20 },

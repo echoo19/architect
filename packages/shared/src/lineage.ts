@@ -20,6 +20,7 @@ export const LineageEntrySchema = z.object({
     devDeltaMax: z.number().int(),
     rationale: z.string(),
   }),
+  /** Over every dev run the decision used; `delta` and `perType` count passes the same way. */
   measured: z.object({
     devBefore: ScoreSchema,
     devAfter: ScoreSchema,
@@ -27,6 +28,11 @@ export const LineageEntrySchema = z.object({
     perType: z.array(
       z.object({ type: z.string(), before: z.number().int(), after: z.number().int() }),
     ),
+    /**
+     * The first measurement alone, present when it cleared the keep limits and both versions
+     * were measured again under new seeds; the scores above then add up both measurements.
+     */
+    firstMeasurement: z.object({ devBefore: ScoreSchema, devAfter: ScoreSchema }).optional(),
   }),
   decision: z.enum(['kept', 'reverted']),
   decisionReason: z.string(),

@@ -38,7 +38,7 @@ describe('the bare baseline', () => {
     expect(finished.stopReason).toBeUndefined();
     expect(engine.store.rounds.list(finished.id)).toEqual([]);
     expect(world.mentorsCreated).toBe(0);
-    const report = engine.store.reports.get(finished.id);
+    const report = engine.store.reports.get(finished.id, 'local');
     expect(report).toMatchObject({
       method: 'bare',
       mentor: { label: 'No mentor', model: '' },
@@ -88,7 +88,7 @@ describe('the one-shot baseline', () => {
       measured: { delta: 6 },
     });
     expect(entry?.decisionReason).toContain('without a keep-or-revert check');
-    expect(engine.store.reports.get(finished.id)).toMatchObject({
+    expect(engine.store.reports.get(finished.id, 'local')).toMatchObject({
       method: 'one_shot',
       test: { score: { pass: 4, total: 6 } },
       cost: { rounds: 1 },
@@ -108,6 +108,26 @@ describe('the one-shot baseline', () => {
       devBaseline: { pass: 3, total: 9 },
       devCurrent: { pass: 0, total: 9 },
     });
+  });
+});
+
+describe('the one-shot baseline, when its reply cannot be used', () => {
+  it('gets the same single fix, with nothing about the student added', async () => {
+    world.mentor.script = (_request, call) =>
+      call === 1
+        ? {
+            ...hypothesis('Complete harness', ''),
+            edits: [{ op: 'delete' as const, path: 'system.md', content: '' }],
+          }
+        : hypothesis('Complete harness', 'fix:invoice\nfix:overdue');
+    const { run: finished } = await run('one_shot');
+
+    expect(world.mentor.requests).toHaveLength(2);
+    const [asked, fix] = world.mentor.requests;
+    expect(fix?.messages.slice(0, -2)).toEqual(asked?.messages);
+    expect(fix?.messages.at(-1)?.content).toContain('system.md: cannot be deleted.');
+    expect(finished).toMatchObject({ currentVersion: 2, devCurrent: { pass: 6, total: 9 } });
+    expect(engine.store.rounds.get(finished.id, 1)?.round.decision).toBe('kept');
   });
 });
 
@@ -138,7 +158,7 @@ describe('the self-reflection baseline', () => {
       'kept',
       'kept',
     ]);
-    expect(engine.store.reports.get(finished.id)).toMatchObject({
+    expect(engine.store.reports.get(finished.id, 'local')).toMatchObject({
       method: 'self_reflection',
       mentor: { label: 'Glimmer (self-reflection)', model: 'glimmer:test' },
       cost: { mentorUsd: 0, mentorInputTokens: 600, mentorOutputTokens: 160, rounds: 2 },

@@ -43,7 +43,7 @@ export function buildGraduateManifest(input: ManifestInput): GraduateManifest {
     },
     harness: { version: freeze.harnessVersion, hash: freeze.harnessHash },
     requirements: report.requirements,
-    test: { score: report.test.score, perType: report.test.perType },
+    test: { score: report.test.score, perType: report.test.perType, testedOn: report.testedOn },
     mentor: report.mentor,
   });
 }

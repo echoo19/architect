@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { AdapterError, GuardError, RunEventSchema, type RunEvent } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { connectEngine, type EngineClient } from '../src/host/client';
@@ -131,9 +133,83 @@ describe('the engine host', () => {
       "Drafting a job with the mentor isn't available in this build.",
     );
     await expect(client.reports.get('run_missing')).rejects.toThrow(
-      'This run has no report card yet.',
+      'There is no run "run_missing".',
+    );
+    await expect(client.reports.list('run_missing')).rejects.toThrow(
+      'There is no run "run_missing".',
     );
     await expect(client.runs.get('run_missing')).rejects.toThrow('There is no run "run_missing".');
+  });
+
+  it('tests a run on the hosted copy when asked, files its card there, and refuses unknown options', async () => {
+    const { client, port } = await connect();
+    const job = await client.jobs.createSample();
+    const graduated = next(client, (event) => event.type === 'graduate.ready');
+    const run = await client.runs.start(job.id, {
+      method: 'bare',
+      seed: 1,
+      lockedTestOn: 'hosted',
+    });
+    await graduated;
+    expect(await client.reports.list(run.id)).toEqual(['hosted']);
+    expect(await client.reports.get(run.id)).toMatchObject({
+      testedOn: 'hosted',
+      test: { ranOffline: false },
+    });
+    expect(await client.reports.get(run.id, 'hosted')).toEqual(await client.reports.get(run.id));
+    await expect(client.reports.get(run.id, 'local')).rejects.toThrow(
+      "This run's graduate hasn't been tested on the local student.",
+    );
+
+    const misspelled = await raw(port, {
+      kind: 'request',
+      id: 904,
+      method: 'runs.start',
+      params: [job.id, { method: 'bare', lockedTestOnn: 'hosted' }],
+    });
+    expect(misspelled).toMatchObject({ ok: false, error: { name: 'ValidationError' } });
+    expect(await client.runs.list(job.id)).toHaveLength(1);
+  });
+
+  it('re-tests a finished run’s graduate on the other student and files that card too', async () => {
+    const { client, port } = await connect();
+    const job = await client.jobs.createSample();
+    const graduated = next(client, (event) => event.type === 'graduate.ready');
+    const run = await client.runs.start(job.id, {
+      method: 'bare',
+      seed: 1,
+      lockedTestOn: 'hosted',
+    });
+    await graduated;
+
+    const retested = next(
+      client,
+      (event) => event.type === 'eval.finished' && event.split === 'test',
+    );
+    await client.runs.retest(run.id, 'local');
+    await retested;
+    expect(await client.reports.list(run.id)).toEqual(['hosted', 'local']);
+    expect(await client.reports.get(run.id)).toMatchObject({ testedOn: 'hosted' });
+    expect(await client.reports.get(run.id, 'local')).toMatchObject({
+      testedOn: 'local',
+      test: { ranOffline: true },
+    });
+    expect((await client.runs.get(run.id)).run).toMatchObject({ status: 'finished' });
+    await expect(client.runs.retest(run.id, 'local')).rejects.toThrow(
+      "This run's graduate was already re-tested on the local student.",
+    );
+
+    const accepted = await client.graduates.accept(run.id);
+    const folder = JSON.parse(await readFile(join(accepted.path, 'graduate.json'), 'utf8'));
+    expect(folder.report).toEqual(await client.reports.get(run.id, 'hosted'));
+
+    const invalid = await raw(port, {
+      kind: 'request',
+      id: 905,
+      method: 'runs.retest',
+      params: [run.id, 'cloud'],
+    });
+    expect(invalid).toMatchObject({ ok: false, error: { name: 'ValidationError' } });
   });
 
   it('keeps settings per graduate, starting from the job’s write permission', async () => {

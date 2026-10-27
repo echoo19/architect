@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ScoreSchema } from './lineage';
 import { MethodSchema } from './run';
+import { StudentTargetSchema } from './job';
 import { TypeResultSchema } from './report';
 
 /** graduate.yaml: what pins a harness to a model and records how it was made. */
@@ -28,7 +29,15 @@ export const GraduateManifestSchema = z.object({
     passRate: z.object({ target: z.number(), actual: z.number(), met: z.boolean() }),
     p95LatencyMs: z.object({ target: z.number(), actual: z.number(), met: z.boolean() }).optional(),
   }),
-  test: z.object({ score: ScoreSchema, perType: z.array(TypeResultSchema) }),
+  test: z.object({
+    score: ScoreSchema,
+    perType: z.array(TypeResultSchema),
+    /**
+     * Where the locked test ran: the pinned local build or a hosted copy of the student. Graduates
+     * from before this was recorded leave it out; theirs ran locally.
+     */
+    testedOn: StudentTargetSchema.optional(),
+  }),
   mentor: z.object({ label: z.string(), model: z.string() }),
 });
 export type GraduateManifest = z.infer<typeof GraduateManifestSchema>;

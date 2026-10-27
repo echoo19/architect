@@ -5,6 +5,7 @@ import type {
   ReportCard,
   Round,
   Run,
+  StudentTarget,
   TypeResult,
 } from '@architect/shared';
 
@@ -21,11 +22,12 @@ export interface ReportCardInput {
   run: Run;
   rounds: Round[];
   lineage: LineageEntry[];
-  /** Locked-test results of the frozen graduate. */
+  /** Locked-test results of the frozen graduate, all from one student endpoint. */
   test: TestResult[];
   /** The frozen graduate's guardrails. */
   guardrails: Guardrails;
   student: ReportCard['student'];
+  testedOn: StudentTarget;
   mentor: ReportCard['mentor'];
   /** The author claimed "ready" in some round of training. */
   readyClaimed: boolean;
@@ -64,13 +66,30 @@ function devCurve(run: Run, rounds: Round[]): ReportCard['dev']['curve'] {
   return curve;
 }
 
-/** The three kept changes that helped dev most. */
-function topInterventions(lineage: LineageEntry[]): ReportCard['topInterventions'] {
+/** How many dev runs a change's measured scores add up. */
+function devRuns(entry: LineageEntry, devTasks: number): number {
+  return devTasks > 0 ? Math.max(1, Math.round(entry.measured.devAfter.total / devTasks)) : 1;
+}
+
+/** The three kept changes that helped dev most, compared per dev run. */
+function topInterventions(
+  lineage: LineageEntry[],
+  devTasks: number,
+): ReportCard['topInterventions'] {
+  const perRun = (entry: LineageEntry) => entry.measured.delta / devRuns(entry, devTasks);
   return lineage
     .filter((entry) => entry.decision === 'kept' && entry.measured.delta > 0)
-    .sort((a, b) => b.measured.delta - a.measured.delta || a.round - b.round)
+    .sort((a, b) => perRun(b) - perRun(a) || a.round - b.round)
     .slice(0, 3)
-    .map((entry) => ({ round: entry.round, title: entry.title, delta: entry.measured.delta }));
+    .map((entry) => {
+      const runs = devRuns(entry, devTasks);
+      return {
+        round: entry.round,
+        title: entry.title,
+        delta: entry.measured.delta,
+        ...(runs > 1 ? { runs } : {}),
+      };
+    });
 }
 
 /** Slack for comparing a pass rate computed from counts with a decimal target. */
@@ -123,6 +142,7 @@ export function computeReportCard(input: ReportCardInput): ReportCard {
     name: job.name,
     createdAt: input.createdAt,
     student: input.student,
+    testedOn: input.testedOn,
     mentor: input.mentor,
     test: {
       score,
@@ -140,7 +160,7 @@ export function computeReportCard(input: ReportCardInput): ReportCard {
       wallMs: run.totals.wallMs,
     },
     refusedTypes: refused,
-    topInterventions: topInterventions(input.lineage),
+    topInterventions: topInterventions(input.lineage, job.splits.dev),
     requirements: p95LatencyMs ? { passRate, p95LatencyMs } : { passRate },
     overclaim: input.readyClaimed ? !requirementsMet : null,
   };

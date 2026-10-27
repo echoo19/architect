@@ -169,6 +169,7 @@ export function sampleReport(): ReportCard {
     name: 'Service desk',
     createdAt: '2026-10-27T18:30:00.000Z',
     student: { label: 'Glimmer', model: 'muse-glimmer:30b', runtime: 'ollama' },
+    testedOn: 'local',
     mentor: { label: 'Spark', model: 'muse-spark-1.3' },
     test: {
       score: { pass: 38, total: 50 },

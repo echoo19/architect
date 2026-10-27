@@ -1,6 +1,5 @@
-import type { Harness, Score, TypeScore } from '@architect/shared';
+import type { Harness, Score, StudentTarget, TypeScore } from '@architect/shared';
 import { scoreByType } from '../mentor/view';
-import type { StudentTarget } from '../store/records';
 import { systemClock, type Clock, type LoopDeps } from './deps';
 import type { JobLibrary } from './jobs';
 import type { DataPaths } from './paths';

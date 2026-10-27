@@ -41,6 +41,8 @@ export interface World {
   students: FakeStudent[];
   mentorsCreated: number;
   studentReply: (request: StudentChatRequest, call: number) => string;
+  /** The build the local student reports; change it to swap the model under a frozen graduate. */
+  localDigest: string;
   deps: EngineHostDeps;
   cleanup(): void;
 }
@@ -71,6 +73,7 @@ export async function createWorld(
     students: [],
     mentorsCreated: 0,
     studentReply: () => '',
+    localDigest: 'sha256:fake',
     deps: {} as EngineHostDeps,
     cleanup: () => rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }),
   };
@@ -102,8 +105,10 @@ export async function createWorld(
         return mentor;
       },
       createStudent: (endpoint) => {
-        const student = new FakeStudent(endpoint, (request, call) =>
-          world.studentReply(request, call),
+        const student = new FakeStudent(
+          endpoint,
+          (request, call) => world.studentReply(request, call),
+          () => world.localDigest,
         );
         world.students.push(student);
         return student;

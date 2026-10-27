@@ -57,6 +57,21 @@ export function buildJobs(random: Random, base: CustomerBase): JobHistory {
   return { jobs, jobParts };
 }
 
+/**
+ * Technicians stop the job timer by hand, so in version 2 many logged times land on a quarter
+ * hour or a minute past one: the cases where rounding up to the next quarter hour is easiest to
+ * get wrong.
+ */
+export function roundLoggedTimes(random: Random, jobs: readonly Job[]): Job[] {
+  return jobs.map((job) => {
+    const roll = random.next();
+    const quarterHour = Math.max(1, Math.round(job.labor_minutes / 15)) * 15;
+    if (roll < 0.25) return { ...job, labor_minutes: quarterHour };
+    if (roll < 0.4) return { ...job, labor_minutes: quarterHour + 1 };
+    return job;
+  });
+}
+
 /** A kind of work, and a technician qualified for it who works that day. */
 function pickWork(random: Random, date: string): { work: WorkType; technician: Technician } {
   const weekday = weekdayOf(date);

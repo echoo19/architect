@@ -1,28 +1,51 @@
-import type { Task } from '@architect/shared';
+import type { JsonValue, Task } from '@architect/shared';
 import type { CompanyRecords, Customer, Invoice, Payment } from '../company/types';
 import { addDays, datesFrom, weekdayOf } from '../lib/calendar';
 import { compareText } from '../lib/compare';
+import { groupBy } from '../lib/group-by';
 import { dollars, sum } from '../lib/money';
 import type { Random } from '../lib/random';
 import { BUSINESS_DATE } from '../policy/rules';
 import { balanceCents, overdueInvoices, receivedCents } from '../reference/balances';
 import type { OverdueInvoice } from '../reference/balances';
+import { answerQuestion } from '../reference/overdue-questions';
+import type { OverdueQuestion } from '../reference/overdue-questions';
+import type { JobData } from '../reference/read-tools';
+import type { JobVersion } from '../versions';
+import { buildGroupTasks } from './overdue-groups';
+import { mistakesThatMatter } from './overdue-mistakes';
+import type { Covered } from './overdue-mistakes';
 import { TODAY, withAnswerLine } from './prompts';
-import { difficultyOf, pickMix, taskId } from './select';
+import { AnswerCap, difficultyOf, pickMix, pickMixWith, taskId } from './select';
 import type { Candidate, Quota } from './select';
 
 /**
- * Overdue questions come in four kinds: one customer's overdue invoices, one customer's oldest
- * overdue invoice, a call list of four customers, and the invoices due in a three-day window.
- * Every customer appears in at most one customer question, so each task is its own family.
+ * Overdue questions come in four kinds about one customer or a few invoices: one customer's
+ * overdue invoices, one customer's oldest overdue invoice, a call list of four customers, and the
+ * invoices due in a three-day window. Every customer appears in at most one of these, so each
+ * task is its own family. Version 2 asks half as many and fills the other half with questions
+ * about groups of customers (overdue-groups.ts).
  */
 
-const QUOTAS = {
-  oldest: { easy: 3, medium: 9, hard: 3 },
-  balance: { easy: 8, medium: 8, hard: 4 },
-  callList: { easy: 4, medium: 6, hard: 3 },
-  window: { easy: 4, medium: 5, hard: 3 },
-} satisfies Record<string, Quota>;
+type SingleKind = 'oldest' | 'balance' | 'callList' | 'window';
+
+const QUOTAS: Readonly<Record<JobVersion, Readonly<Record<SingleKind, Quota>>>> = {
+  1: {
+    oldest: { easy: 3, medium: 9, hard: 3 },
+    balance: { easy: 8, medium: 8, hard: 4 },
+    callList: { easy: 4, medium: 6, hard: 3 },
+    window: { easy: 4, medium: 5, hard: 3 },
+  },
+  2: {
+    oldest: { easy: 1, medium: 3, hard: 3 },
+    balance: { easy: 4, medium: 2, hard: 3 },
+    callList: { easy: 2, medium: 2, hard: 3 },
+    window: { easy: 1, medium: 3, hard: 3 },
+  },
+};
+
+/** In version 2, no answer is right for more than three overdue tasks. */
+const MAX_TASKS_PER_ANSWER = 3;
 
 const LIST_SHAPE = '{"invoice_ids": ["<id>", ...], "overdue_cents": <integer>}';
 const OLDEST_SHAPE =
@@ -46,13 +69,44 @@ interface Account {
   overdueCents: number;
   /** Account traps, see `accountTraps`. */
   traps: string[];
+  covered: Covered;
 }
 
 type TaskDraft = Omit<Task, 'id'>;
 
-export function buildOverdueTasks(random: Random, records: CompanyRecords): Task[] {
+/** The question each kind asks, as the reference solutions and the tests read it. */
+const questionOf = {
+  balance: (account: Account): OverdueQuestion => ({
+    kind: 'customer_balance',
+    customer_id: account.customer.customer_id,
+  }),
+  oldest: (account: Account): OverdueQuestion => ({
+    kind: 'oldest_invoice',
+    customer_id: account.customer.customer_id,
+  }),
+  callList: (members: readonly Account[]): OverdueQuestion => ({
+    kind: 'call_list',
+    customer_ids: members.map((member) => member.customer.customer_id),
+  }),
+  window: (window: DueWindow): OverdueQuestion => ({
+    kind: 'due_window',
+    from: window.from,
+    to: window.to,
+  }),
+};
+
+/** `data` is the job's data files as the agent reads them; version 2 uses them for its groups. */
+export function buildOverdueTasks(
+  random: Random,
+  records: CompanyRecords,
+  version: JobVersion,
+  data: JobData,
+): Task[] {
+  const quotas = QUOTAS[version];
+  const cap = new AnswerCap(MAX_TASKS_PER_ANSWER);
+  const paymentsOf = groupBy(records.payments, (payment) => payment.invoice_id);
   const accounts = records.customers
-    .map((customer) => accountOf(records, customer))
+    .map((customer) => accountOf(records, paymentsOf, customer))
     .filter((account) => account !== null);
   const used = new Set<string>();
 
@@ -61,9 +115,17 @@ export function buildOverdueTasks(random: Random, records: CompanyRecords): Task
     random,
     accounts
       .filter(hasClearOldest)
-      .map((account) => accountCandidate(account, oldestTraps(records, account))),
-    QUOTAS.oldest,
+      .map((account) =>
+        withBoundaries(
+          version,
+          accountCandidate(account, oldestTraps(records, account)),
+          questionOf.oldest(account),
+          account.covered,
+        ),
+      ),
+    quotas.oldest,
     'oldest overdue',
+    cap,
   );
   oldest.forEach(({ value }) => used.add(value.customer.customer_id));
 
@@ -71,9 +133,17 @@ export function buildOverdueTasks(random: Random, records: CompanyRecords): Task
     random,
     accounts
       .filter((account) => !used.has(account.customer.customer_id) && isBalanceQuestion(account))
-      .map((account) => accountCandidate(account, account.traps)),
-    QUOTAS.balance,
+      .map((account) =>
+        withBoundaries(
+          version,
+          accountCandidate(account, account.traps),
+          questionOf.balance(account),
+          account.covered,
+        ),
+      ),
+    quotas.balance,
     'overdue balance',
+    cap,
   );
   balance.forEach(({ value }) => used.add(value.customer.customer_id));
 
@@ -82,23 +152,89 @@ export function buildOverdueTasks(random: Random, records: CompanyRecords): Task
     callListCandidates(
       random,
       accounts.filter((account) => !used.has(account.customer.customer_id)),
+    ).map((candidate) =>
+      withBoundaries(
+        version,
+        candidate,
+        questionOf.callList(candidate.value),
+        coveredBy(candidate.value),
+      ),
     ),
-    QUOTAS.callList,
+    quotas.callList,
     'call list',
+    cap,
   );
 
-  const windows = pickMix(random, windowCandidates(records), QUOTAS.window, 'due window');
+  const windowChoices = windowCandidates(records, paymentsOf).map((candidate) =>
+    withBoundaries(version, candidate, questionOf.window(candidate.value), candidate.value.covered),
+  );
+  // Version 2 always asks about a window holding both sides of today's boundaries.
+  const both = (a: string, b: string) => (c: Candidate<DueWindow>) =>
+    c.traps.includes(a) && c.traps.includes(b);
+  const windows =
+    version === 1
+      ? pickMix(random, windowChoices, quotas.window, 'due window', cap)
+      : pickMixWith(
+          random,
+          windowChoices,
+          quotas.window,
+          'due window',
+          [both('due_today', 'due_yesterday'), both('paid_today', 'paid_tomorrow')],
+          cap,
+        );
 
   const drafts: TaskDraft[] = [
-    ...oldest.map((c) => oldestTask(random, c)),
-    ...balance.map((c) => balanceTask(random, c)),
-    ...callLists.map((c) => callListTask(random, c)),
-    ...windows.map((c) => windowTask(random, c)),
+    ...oldest.map((c) => oldestTask(random, c, version)),
+    ...balance.map((c) => balanceTask(random, c, version)),
+    ...callLists.map((c) => callListTask(random, c, version)),
+    ...windows.map((c) => windowTask(random, c, version)),
+    ...(version === 1 ? [] : buildGroupTasks(random.fork('groups'), records, data)),
   ];
   return drafts.map((draft, index) => ({ id: taskId('overdue', index), ...draft }));
 }
 
-function accountOf(records: CompanyRecords, customer: Customer): Account | null {
+/**
+ * What version 2 adds to a question about one customer or a few invoices: whether a payment dated
+ * today or tomorrow, or an invoice due yesterday, moves the answer; and the answer itself, so no
+ * answer is right for more than three tasks. Version 1 keeps the candidate as it was.
+ */
+function withBoundaries<T>(
+  version: JobVersion,
+  candidate: Candidate<T>,
+  question: OverdueQuestion,
+  covered: Covered,
+): Candidate<T> {
+  if (version === 1) return candidate;
+  const boundaries = mistakesThatMatter(question, covered, [
+    'paid_tomorrow',
+    'paid_today',
+    'due_yesterday',
+  ]);
+  const answer = answerQuestion(question, covered.invoices, covered.payments, BUSINESS_DATE);
+  return {
+    ...candidate,
+    traps: [...candidate.traps, ...boundaries],
+    answer: JSON.stringify(answer),
+  };
+}
+
+/** Version 2 records each task's question, for the reference solutions and the tests. */
+function questionMeta(version: JobVersion, question: OverdueQuestion): Record<string, JsonValue> {
+  return version === 1 ? {} : { question };
+}
+
+function coveredBy(members: readonly Account[]): Covered {
+  return {
+    invoices: members.flatMap((member) => member.covered.invoices),
+    payments: members.flatMap((member) => member.covered.payments),
+  };
+}
+
+function accountOf(
+  records: CompanyRecords,
+  paymentsOf: ReadonlyMap<string, Payment[]>,
+  customer: Customer,
+): Account | null {
   const invoices = records.invoices.filter(
     (invoice) => invoice.customer_id === customer.customer_id,
   );
@@ -109,6 +245,10 @@ function accountOf(records: CompanyRecords, customer: Customer): Account | null 
     overdue,
     overdueCents: sum(overdue.map((invoice) => invoice.balance_cents)),
     traps: accountTraps(invoices, records.payments, overdue),
+    covered: {
+      invoices,
+      payments: invoices.flatMap((invoice) => paymentsOf.get(invoice.invoice_id) ?? []),
+    },
   };
 }
 
@@ -184,7 +324,11 @@ function accountCandidate(account: Account, traps: string[]): Candidate<Account>
   return { value: account, traps, kind: traps.join('+') };
 }
 
-function balanceTask(random: Random, { value: account, traps }: Candidate<Account>): TaskDraft {
+function balanceTask(
+  random: Random,
+  { value: account, traps }: Candidate<Account>,
+  version: JobVersion,
+): TaskDraft {
   const { customer_id, name } = account.customer;
   const prompts = [
     `Today is ${TODAY}. ${name} (${customer_id}) called about their account. Which of their ` +
@@ -214,11 +358,16 @@ function balanceTask(random: Random, { value: account, traps }: Candidate<Accoun
           : `${account.overdue.length} overdue, ${dollars(account.overdueCents)}`,
       difficulty: difficultyOf(traps),
       traps,
+      ...questionMeta(version, questionOf.balance(account)),
     },
   };
 }
 
-function oldestTask(random: Random, { value: account, traps }: Candidate<Account>): TaskDraft {
+function oldestTask(
+  random: Random,
+  { value: account, traps }: Candidate<Account>,
+  version: JobVersion,
+): TaskDraft {
   const { customer_id, name } = account.customer;
   const oldest = account.overdue[0];
   if (!oldest) throw new Error(`${customer_id} has nothing overdue`);
@@ -245,6 +394,7 @@ function oldestTask(random: Random, { value: account, traps }: Candidate<Account
       summary: `${oldest.invoice_id}, ${dollars(oldest.balance_cents)} open, ${oldest.days_overdue} days overdue`,
       difficulty: difficultyOf(traps),
       traps,
+      ...questionMeta(version, questionOf.oldest(account)),
     },
   };
 }
@@ -274,7 +424,11 @@ function callListCandidates(random: Random, accounts: readonly Account[]): Candi
   return candidates;
 }
 
-function callListTask(random: Random, { value: members, traps }: Candidate<Account[]>): TaskDraft {
+function callListTask(
+  random: Random,
+  { value: members, traps }: Candidate<Account[]>,
+  version: JobVersion,
+): TaskDraft {
   const names = members
     .map((member) => `${member.customer.customer_id} (${member.customer.name})`)
     .join(', ');
@@ -307,6 +461,7 @@ function callListTask(random: Random, { value: members, traps }: Candidate<Accou
         .join(', '),
       difficulty: difficultyOf(traps),
       traps,
+      ...questionMeta(version, questionOf.callList(members)),
     },
   };
 }
@@ -315,10 +470,14 @@ interface DueWindow {
   from: string;
   to: string;
   overdue: OverdueInvoice[];
+  covered: Covered;
 }
 
 /** Three-day spans of due dates (Tuesday to Thursday, Friday to Sunday) with something overdue. */
-function windowCandidates(records: CompanyRecords): Candidate<DueWindow>[] {
+function windowCandidates(
+  records: CompanyRecords,
+  paymentsOf: ReadonlyMap<string, Payment[]>,
+): Candidate<DueWindow>[] {
   return datesFrom(FIRST_WINDOW, LAST_WINDOW)
     .filter((date) => weekdayOf(date) === 'Tue' || weekdayOf(date) === 'Fri')
     .map((from) => {
@@ -329,12 +488,20 @@ function windowCandidates(records: CompanyRecords): Candidate<DueWindow>[] {
         ...(overdue.length >= 4 ? ['several_invoices'] : []),
         ...balanceTraps(due, records.payments, overdue),
       ];
-      return { value: { from, to, overdue }, traps, kind: traps.join('+') };
+      const covered = {
+        invoices: due,
+        payments: due.flatMap((invoice) => paymentsOf.get(invoice.invoice_id) ?? []),
+      };
+      return { value: { from, to, overdue, covered }, traps, kind: traps.join('+') };
     })
     .filter((candidate) => candidate.value.overdue.length > 0);
 }
 
-function windowTask(random: Random, { value: window, traps }: Candidate<DueWindow>): TaskDraft {
+function windowTask(
+  random: Random,
+  { value: window, traps }: Candidate<DueWindow>,
+  version: JobVersion,
+): TaskDraft {
   const total = sum(window.overdue.map((invoice) => invoice.balance_cents));
   const prompts = [
     `Today is ${TODAY}. Which invoices with a due date from ${window.from} to ${window.to} ` +
@@ -358,6 +525,7 @@ function windowTask(random: Random, { value: window, traps }: Candidate<DueWindo
       summary: `${window.overdue.length} overdue, ${dollars(total)}`,
       difficulty: difficultyOf(traps),
       traps,
+      ...questionMeta(version, questionOf.window(window)),
     },
   };
 }

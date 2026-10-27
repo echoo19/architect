@@ -181,4 +181,50 @@ export const MIGRATIONS: readonly Migration[] = [
         ON attempts (run_id, split, harness_version, target, task_id, coalesce(round, 0), seed);
     `,
   },
+  {
+    version: 4,
+    name: 'report per target',
+    sql: `
+      -- A run keeps one report card per student endpoint its graduate was tested on. Every card
+      -- so far came from the run's own locked test, so it is filed, and labelled, under that.
+      CREATE TABLE reports_by_target (
+        run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+        target TEXT NOT NULL,
+        card TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (run_id, target)
+      );
+      INSERT INTO reports_by_target (run_id, target, card, created_at)
+        SELECT reports.run_id, runs.locked_test_on,
+               json_set(reports.card, '$.testedOn', runs.locked_test_on), reports.created_at
+        FROM reports JOIN runs ON runs.id = reports.run_id;
+      DROP TABLE reports;
+      ALTER TABLE reports_by_target RENAME TO reports;
+    `,
+  },
+  {
+    version: 5,
+    name: 'retests',
+    sql: `
+      -- A finished run's locked test taken again on its other student endpoint, once per target.
+      CREATE TABLE retests (
+        run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+        target TEXT NOT NULL,
+        status TEXT NOT NULL,
+        error TEXT,
+        started_at TEXT NOT NULL,
+        ended_at TEXT,
+        PRIMARY KEY (run_id, target)
+      );
+    `,
+  },
+  {
+    version: 6,
+    name: 'first measurement',
+    sql: `
+      -- A round whose change cleared the keep limits is measured again; this keeps the first
+      -- measurement, while dev_before and dev_after add up both.
+      ALTER TABLE rounds ADD COLUMN first_measurement TEXT;
+    `,
+  },
 ];

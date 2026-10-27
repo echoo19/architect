@@ -7,6 +7,7 @@ import {
   type Hypothesis,
   type MentorAdapter,
   type MentorCompletionRequest,
+  type Round,
 } from '@architect/shared';
 import {
   LeakRefusal,
@@ -31,6 +32,15 @@ import { must } from './errors';
 import { readJsonFile, writeJsonFile } from './files';
 import type { RunState } from './run-state';
 import { roundSeed } from './seeds';
+
+/**
+ * How many times the author may fix a reply the runner couldn't use, before its round is
+ * rejected (decision 023).
+ */
+const MAX_FIXES = 1;
+
+const FIX_NOT_SENT =
+  "The request to fix the reply couldn't be sent, so the round ended without a change.";
 
 /** Replies that are the author's fault: the round is rejected and training goes on. */
 function isUnusableReply(error: unknown): error is AdapterError {
@@ -177,12 +187,23 @@ function charge(state: RunState, index: number, charged: MentorCharge, reply?: A
   state.emitBudget();
 }
 
-/** Asks the author for one hypothesis and records the reply; false when the round ended instead. */
-async function requestHypothesis(state: RunState, index: number): Promise<boolean> {
-  const { request, parts } =
-    state.run.method === 'one_shot'
-      ? await wholeHarnessRequest(state)
-      : await roundRequest(state, state.round(index));
+/** What the round's author is asked: the whole harness for one-shot, otherwise one hypothesis. */
+async function buildRequest(state: RunState, index: number): Promise<AuthorRequest> {
+  return state.run.method === 'one_shot'
+    ? wholeHarnessRequest(state)
+    : roundRequest(state, state.round(index));
+}
+
+/**
+ * Sends a request to the round's author through the gate, and records and charges the reply.
+ * Null when the round ended instead: out of budget, refused for a leak, or an unusable reply.
+ */
+async function callAuthor(
+  state: RunState,
+  index: number,
+  { request, parts }: AuthorRequest,
+  fix: number,
+): Promise<AuthorReply | null> {
   const author = await authorFor(state, index);
   const gate = await state.resources.gate();
 
@@ -197,16 +218,19 @@ async function requestHypothesis(state: RunState, index: number): Promise<boolea
   } catch (error) {
     if (error instanceof GuardError && error.guard === 'budget') {
       state.closeRound(index, error.message, 'usd');
-      return false;
+      return null;
     }
-    // The next round would build its payload from the same data and be refused again.
     if (error instanceof LeakRefusal) {
-      state.closeRound(index, error.message, 'leak');
-      return false;
+      // A fix adds only the author's own refused reply, which was never applied, so only its
+      // round ends, with a reason that says nothing about the locked test. Any other payload
+      // would be built again from the same data next round and refused again.
+      if (fix > 0) state.rejectRound(index, FIX_NOT_SENT);
+      else state.closeRound(index, error.message, 'leak');
+      return null;
     }
     if (isUnusableReply(error)) {
       state.rejectRound(index, error.message);
-      return false;
+      return null;
     }
     throw error;
   }
@@ -220,24 +244,68 @@ async function requestHypothesis(state: RunState, index: number): Promise<boolea
     costUsd,
     model: completion.model,
     latencyMs: completion.latencyMs,
+    fix,
   };
   charge(state, index, { model: completion.model, usage: completion.usage, costUsd }, reply);
-  await writeJsonFile(state.ctx.paths.mentorFile(state.run.jobId, state.ctx.runId, index), {
+  await writeJsonFile(state.ctx.paths.mentorFile(state.run.jobId, state.ctx.runId, index, fix), {
     request,
     reply,
   });
-  return true;
+  return reply;
+}
+
+/** Asks the author for one hypothesis and records the reply; false when the round ended instead. */
+async function requestHypothesis(state: RunState, index: number): Promise<boolean> {
+  return (await callAuthor(state, index, await buildRequest(state, index), 0)) !== null;
+}
+
+/**
+ * Asks the author to fix a reply the runner couldn't use: the same request, followed by that
+ * reply and the reason it was refused. Nothing else is added, so a fix can repair a format but
+ * learns nothing about how the student did (decision 023).
+ */
+async function requestFix(
+  state: RunState,
+  index: number,
+  refused: AuthorReply,
+  reason: string,
+): Promise<boolean> {
+  const original = await buildRequest(state, index);
+  const note = [
+    `The runner couldn't use that reply, so nothing was applied. ${reason}`,
+    'Reply again with the whole JSON object, changing only what these problems need.',
+  ].join('\n\n');
+  const request: MentorCompletionRequest = {
+    ...original.request,
+    messages: [
+      ...original.request.messages,
+      { role: 'assistant', content: refused.text },
+      { role: 'user', content: note },
+    ],
+  };
+  const parts: PayloadPart[] = [
+    ...original.parts,
+    { label: "the author's refused reply", text: refused.text },
+    { label: 'the reason it was refused', text: reason },
+  ];
+  return (await callAuthor(state, index, { request, parts }, refused.fix + 1)) !== null;
 }
 
 function changedFiles(hypothesis: Hypothesis): string[] {
   return [...new Set(hypothesis.edits.map((edit) => edit.path))];
 }
 
+/** Why a recorded reply can't become a candidate, and what it proposed, for its rejection. */
+interface Unusable {
+  reason: string;
+  proposal: Partial<Pick<Round, 'title' | 'diagnosis' | 'files'>>;
+}
+
 /**
- * Applies the recorded reply's change set to a new candidate version, or rejects the round when
- * the reply isn't a hypothesis or the harness won't take its change set.
+ * Applies the recorded reply's change set to a new candidate version. Returns why it couldn't
+ * when the reply isn't a hypothesis or the harness won't take its change set.
  */
-async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<void> {
+async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<Unusable | null> {
   const index = stored.round.index;
   let hypothesis: Hypothesis;
   try {
@@ -247,8 +315,7 @@ async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<vo
     );
   } catch (error) {
     if (!(error instanceof MentorReplyError)) throw error;
-    state.rejectRound(index, error.message);
-    return;
+    return { reason: error.message, proposal: {} };
   }
   let candidate: Harness;
   try {
@@ -258,12 +325,14 @@ async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<vo
     );
   } catch (error) {
     if (!isRejectedChange(error)) throw error;
-    state.rejectRound(index, error.message, {
-      title: hypothesis.title,
-      diagnosis: hypothesis.diagnosis,
-      files: changedFiles(hypothesis),
-    });
-    return;
+    return {
+      reason: error.message,
+      proposal: {
+        title: hypothesis.title,
+        diagnosis: hypothesis.diagnosis,
+        files: changedFiles(hypothesis),
+      },
+    };
   }
   const saved = await state.versions.save(candidate, stored.baseVersion);
   state.saveRound({
@@ -279,15 +348,31 @@ async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<vo
       candidateVersion: saved.meta.version,
     },
   });
+  return null;
 }
 
 /**
  * The author's step of a round: one hypothesis as a candidate version, or a round that ends
- * without a change, rejected when the reply or its change set can't be used. A reply already
- * recorded before a restart is used, never paid for again.
+ * without a change. A reply the runner can't use goes back to the author once, with the reason;
+ * if the fix can't be used either, the round is rejected. A reply already recorded before a
+ * restart is used, never paid for again.
  */
 export async function author(state: RunState, index: number): Promise<void> {
   state.setPhase('diagnosing');
   if (state.round(index).reply === null && !(await requestHypothesis(state, index))) return;
-  await adoptHypothesis(state, state.round(index));
+  for (;;) {
+    const stored = state.round(index);
+    const unusable = await adoptHypothesis(state, stored);
+    if (unusable === null) return;
+    const reply = must(stored.reply, 'The reply');
+    if (reply.fix >= MAX_FIXES) {
+      state.rejectRound(index, unusable.reason, unusable.proposal);
+      return;
+    }
+    state.log(
+      'info',
+      `Round ${index}: the runner couldn't use the reply, so the author gets one fix. ${unusable.reason}`,
+    );
+    if (!(await requestFix(state, index, reply, unusable.reason))) return;
+  }
 }

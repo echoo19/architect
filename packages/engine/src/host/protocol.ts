@@ -7,11 +7,12 @@ import {
   GuardError,
   JobSchema,
   JobSummarySchema,
-  MethodSchema,
   ReportCardSchema,
   RunDetailSchema,
   RunEventSchema,
   RunSchema,
+  RunStartOptionsSchema,
+  StudentTargetSchema,
   TraceSchema,
   type AdapterErrorCode,
   type ArchitectApi,
@@ -59,14 +60,15 @@ export const ENGINE_ROUTES = {
     DraftTurnSchema,
     (api, [sessionId, text]) => api.jobs.draftReply(sessionId, text),
   ),
-  'runs.start': route(
-    z.tuple([id, z.object({ method: MethodSchema, seed: z.number().int().optional() })]),
-    RunSchema,
-    (api, [jobId, options]) => api.runs.start(jobId, options),
+  'runs.start': route(z.tuple([id, RunStartOptionsSchema]), RunSchema, (api, [jobId, options]) =>
+    api.runs.start(jobId, options),
   ),
   'runs.pause': route(z.tuple([id]), z.void(), (api, [runId]) => api.runs.pause(runId)),
   'runs.resume': route(z.tuple([id]), z.void(), (api, [runId]) => api.runs.resume(runId)),
   'runs.stop': route(z.tuple([id]), z.void(), (api, [runId]) => api.runs.stop(runId)),
+  'runs.retest': route(z.tuple([id, StudentTargetSchema]), z.void(), (api, [runId, target]) =>
+    api.runs.retest(runId, target),
+  ),
   'runs.get': route(z.tuple([id]), RunDetailSchema, (api, [runId]) => api.runs.get(runId)),
   'runs.list': route(z.tuple([id.nullable()]), z.array(RunSchema), (api, [jobId]) =>
     api.runs.list(jobId ?? undefined),
@@ -77,7 +79,14 @@ export const ENGINE_ROUTES = {
     z.array(FileDiffSchema),
     (api, [runId, round]) => api.runs.roundDiff(runId, round),
   ),
-  'reports.get': route(z.tuple([id]), ReportCardSchema, (api, [runId]) => api.reports.get(runId)),
+  'reports.get': route(
+    z.tuple([id, StudentTargetSchema.nullable()]),
+    ReportCardSchema,
+    (api, [runId, target]) => api.reports.get(runId, target ?? undefined),
+  ),
+  'reports.list': route(z.tuple([id]), z.array(StudentTargetSchema), (api, [runId]) =>
+    api.reports.list(runId),
+  ),
   'graduates.list': route(z.tuple([]), z.array(GraduateSummarySchema), (api) =>
     api.graduates.list(),
   ),

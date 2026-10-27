@@ -81,6 +81,9 @@ export interface Payment {
   amount_cents: number;
 }
 
+/** When the customer can be visited: the whole visit before noon, from noon on, or any time. */
+export type TimeWindow = 'morning' | 'afternoon' | 'any';
+
 export interface ServiceRequest {
   request_id: string;
   customer_id: string;
@@ -89,6 +92,8 @@ export interface ServiceRequest {
   license_needed: License | null;
   duration_minutes: number;
   earliest_date: string;
+  /** Always `any` in version 1, whose requests.csv has no window column. */
+  window: TimeWindow;
   problem: string;
 }
 

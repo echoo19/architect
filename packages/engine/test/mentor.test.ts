@@ -510,7 +510,7 @@ describe('the mentor view', () => {
       { evaluation },
     );
     expect(system).toContain(
-      'evaluates it on dev 3 times, with the same seeds as the current version; dev scores add up all 3 runs. It is kept only if dev passes rise by at least 6 and no task type loses more than 3 passes',
+      'evaluates it on dev 3 times, with the same seeds as the current version; dev scores add up all 3 runs. If dev passes rise by at least 6 and no task type loses more than 3 passes, it measures both versions again under new seeds and keeps the change only if the totals over both measurements rise by at least 12 with no task type losing more than 6',
     );
     expect(oneShotRequest(view, { evaluation }).system).toContain(
       'out of 27 dev attempts (9 tasks, each run 3 times)',

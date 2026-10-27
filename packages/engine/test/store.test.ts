@@ -2,19 +2,52 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { emptyTotals, type ReportCard } from '@architect/shared';
+import { emptyTotals, type ReportCard, type StudentTarget } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { migrate, openDatabase } from '../src/store/database';
-import { openEngineStore, type EngineStore } from '../src/store/engine-store';
+import { createEngineStore, openEngineStore, type EngineStore } from '../src/store/engine-store';
 import { MIGRATIONS } from '../src/store/migrations';
-import type { StoredAttempt, StoredRound, StoredRun } from '../src/store/records';
+import type {
+  JobRecord,
+  StoredAttempt,
+  StoredRetest,
+  StoredRound,
+  StoredRun,
+} from '../src/store/records';
 
 const AT = '2026-10-27T14:00:00.000Z';
+const LATER = '2026-10-28T09:00:00.000Z';
 let dir: string;
 let store: EngineStore;
 
 function file() {
   return join(dir, 'architect.db');
+}
+
+function card(runId: string, testedOn: StudentTarget, createdAt = AT): ReportCard {
+  return {
+    jobId: 'job_1',
+    runId,
+    method: 'architect',
+    name: 'Service desk',
+    createdAt,
+    student: { label: 'Glimmer', model: 'glimmer:test', runtime: 'ollama' },
+    testedOn,
+    mentor: { label: 'Spark', model: 'fake-mentor-1' },
+    test: {
+      score: { pass: 3, total: 6 },
+      perType: [],
+      latencyMs: { p50: 1000, p95: 2000 },
+      refusals: 0,
+      ranOffline: testedOn === 'local',
+    },
+    dev: { baseline: null, final: null, curve: [] },
+    cost: { mentorUsd: 0, mentorInputTokens: 0, mentorOutputTokens: 0, rounds: 0, wallMs: 0 },
+    refusedTypes: [],
+    topInterventions: [],
+    requirements: { passRate: { target: 0.9, actual: 0.5, met: false } },
+    overclaim: null,
+  };
 }
 
 function storedRun(id = 'run_1'): StoredRun {
@@ -70,17 +103,19 @@ function attempt(id: string, round: number | null, split: 'dev' | 'test' = 'dev'
   };
 }
 
+const JOB: JobRecord = {
+  id: 'job_1',
+  name: 'Service desk',
+  path: 'jobs/job_1',
+  taskCount: 21,
+  createdAt: AT,
+  updatedAt: AT,
+};
+
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'architect-store-'));
   store = openEngineStore(file());
-  store.jobs.insert({
-    id: 'job_1',
-    name: 'Service desk',
-    path: 'jobs/job_1',
-    taskCount: 21,
-    createdAt: AT,
-    updatedAt: AT,
-  });
+  store.jobs.insert(JOB);
 });
 
 afterEach(() => {
@@ -131,6 +166,35 @@ describe('migrations', () => {
     expect(db.prepare('SELECT count(*) AS n FROM jobs').get()).toEqual({ n: 1 });
     db.close();
     store = openEngineStore(file());
+  });
+
+  it('files each earlier report card under the endpoint its run tested on', () => {
+    const earlier = join(dir, 'earlier.db');
+    const db = openDatabase(
+      earlier,
+      MIGRATIONS.filter(({ version }) => version <= 3),
+    );
+    const old = createEngineStore(db);
+    old.jobs.insert(JOB);
+    old.runs.insert(storedRun('run_1'));
+    old.runs.insert({ ...storedRun('run_2'), lockedTestOn: 'hosted' });
+    const insert = db.prepare('INSERT INTO reports (run_id, card, created_at) VALUES (?, ?, ?)');
+    for (const [runId, target] of [
+      ['run_1', 'local'],
+      ['run_2', 'hosted'],
+    ] as const) {
+      const { testedOn: _, ...written } = card(runId, target);
+      insert.run(runId, JSON.stringify(written), AT);
+    }
+    db.close();
+
+    const migrated = openEngineStore(earlier);
+    expect(migrated.reports.targets('run_1')).toEqual(['local']);
+    expect(migrated.reports.get('run_1', 'local')).toEqual(card('run_1', 'local'));
+    expect(migrated.reports.targets('run_2')).toEqual(['hosted']);
+    expect(migrated.reports.get('run_2', 'hosted')).toEqual(card('run_2', 'hosted'));
+    expect(migrated.reports.get('run_2', 'local')).toBeNull();
+    migrated.close();
   });
 
   it('rolls back a migration that fails, leaving the database as it was', () => {
@@ -188,6 +252,7 @@ describe('repositories', () => {
         costUsd: 0.004,
         model: 'fake-mentor-1',
         latencyMs: 5,
+        fix: 0,
       },
       hypothesis: {
         title: 'Add the invoice procedure',
@@ -238,10 +303,53 @@ describe('repositories', () => {
     expect(store.attempts.list({ runId: 'run_1', round: 1 }).map((a) => a.seed)).toEqual([11, 12]);
   });
 
+  it('keeps one re-test per run and target, and finds the ones still testing', () => {
+    store.runs.insert(storedRun('run_1'));
+    store.runs.insert(storedRun('run_2'));
+    const first: StoredRetest = {
+      runId: 'run_1',
+      target: 'local',
+      status: 'testing',
+      startedAt: AT,
+    };
+    store.retests.insert(first);
+    store.retests.insert({ ...first, runId: 'run_2', startedAt: LATER });
+    expect(() => store.retests.insert(first)).toThrow(/UNIQUE/);
+    expect(store.retests.get('run_1', 'local')).toEqual(first);
+    expect(store.retests.get('run_1', 'hosted')).toBeNull();
+
+    const paused: StoredRetest = { ...first, status: 'paused', error: 'Ollama is not running.' };
+    store.retests.update(paused);
+    expect(store.retests.get('run_1', 'local')).toEqual(paused);
+    expect(store.retests.withStatus('testing').map((retest) => retest.runId)).toEqual(['run_2']);
+    store.retests.update({ ...first, status: 'testing' });
+    expect(store.retests.withStatus('testing').map((retest) => retest.runId)).toEqual([
+      'run_1',
+      'run_2',
+    ]);
+    expect(store.retests.get('run_1', 'local')?.error).toBeUndefined();
+  });
+
+  it('keeps one report card per run and student endpoint', () => {
+    store.runs.insert(storedRun());
+    store.reports.put(card('run_1', 'hosted'));
+    store.reports.put(card('run_1', 'local', LATER));
+    expect(store.reports.targets('run_1')).toEqual(['hosted', 'local']);
+    expect(store.reports.get('run_1', 'hosted')).toEqual(card('run_1', 'hosted'));
+    expect(store.reports.get('run_1', 'local')).toEqual(card('run_1', 'local', LATER));
+
+    const rescored = card('run_1', 'hosted');
+    rescored.test.score = { pass: 4, total: 6 };
+    store.reports.put(rescored);
+    expect(store.reports.targets('run_1')).toEqual(['hosted', 'local']);
+    expect(store.reports.get('run_1', 'hosted')?.test.score).toEqual({ pass: 4, total: 6 });
+    expect(store.reports.targets('run_2')).toEqual([]);
+  });
+
   it('parses every row it reads, so a malformed row is an error, not bad data', () => {
     store.runs.insert(storedRun());
-    store.reports.put('run_1', { runId: 'run_1', createdAt: AT } as ReportCard);
-    expect(() => store.reports.get('run_1')).toThrow(/expected/);
+    store.reports.put({ runId: 'run_1', testedOn: 'local', createdAt: AT } as ReportCard);
+    expect(() => store.reports.get('run_1', 'local')).toThrow(/expected/);
   });
 
   it('rolls back a transaction that throws', () => {

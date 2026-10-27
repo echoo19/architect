@@ -71,8 +71,10 @@ export class DataPaths {
   }
 
   /** What the mentor was sent and what it returned in a round; written only for calls that ran. */
-  mentorFile(jobId: string, runId: string, round: number): string {
-    return join(this.runDir(jobId, runId), 'mentor', `round-${round}.json`);
+  /** A round's author request and reply; `fix` names the fix of a reply the runner refused. */
+  mentorFile(jobId: string, runId: string, round: number, fix = 0): string {
+    const name = fix === 0 ? `round-${round}.json` : `round-${round}-fix-${fix}.json`;
+    return join(this.runDir(jobId, runId), 'mentor', name);
   }
 
   lineageFile(jobId: string, runId: string): string {

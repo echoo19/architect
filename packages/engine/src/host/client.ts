@@ -88,6 +88,7 @@ export function connectEngine(
       pause: (runId) => request('runs.pause', [runId]),
       resume: (runId) => request('runs.resume', [runId]),
       stop: (runId) => request('runs.stop', [runId]),
+      retest: (runId, target) => request('runs.retest', [runId, target]),
       get: (runId) => request('runs.get', [runId]),
       list: (jobId) => request('runs.list', [jobId ?? null]),
       trace: (attemptId) => request('runs.trace', [attemptId]),
@@ -100,7 +101,8 @@ export function connectEngine(
       },
     },
     reports: {
-      get: (runId) => request('reports.get', [runId]),
+      get: (runId, target) => request('reports.get', [runId, target ?? null]),
+      list: (runId) => request('reports.list', [runId]),
     },
     graduates: {
       list: () => request('graduates.list', []),

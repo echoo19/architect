@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { StudentTargetSchema } from './job';
 import { ScoreSchema } from './lineage';
 import { MethodSchema } from './run';
 
@@ -26,6 +27,11 @@ export const ReportCardSchema = z.object({
     quantization: z.string().optional(),
     sizeBytes: z.number().int().nonnegative().optional(),
   }),
+  /**
+   * The student endpoint that took the test this card reports (decision 009). Cards written
+   * before a run could choose were all tested on the local student.
+   */
+  testedOn: StudentTargetSchema.default('local'),
   mentor: z.object({ label: z.string(), model: z.string() }),
   test: z.object({
     score: ScoreSchema,
@@ -33,6 +39,7 @@ export const ReportCardSchema = z.object({
     latencyMs: z.object({ p50: z.number().nonnegative(), p95: z.number().nonnegative() }),
     /** Supported tasks the graduate refused. They count as failures. */
     refusals: z.number().int().nonnegative(),
+    /** True only for a test on the local student at a loopback address; a hosted test never is. */
     ranOffline: z.boolean(),
   }),
   dev: z.object({
@@ -55,7 +62,13 @@ export const ReportCardSchema = z.object({
   }),
   refusedTypes: z.array(z.object({ type: z.string(), label: z.string(), reason: z.string() })),
   topInterventions: z.array(
-    z.object({ round: z.number().int().positive(), title: z.string(), delta: z.number().int() }),
+    z.object({
+      round: z.number().int().positive(),
+      title: z.string(),
+      /** Net dev passes over the dev runs the change was kept on: `runs` of them, else one. */
+      delta: z.number().int(),
+      runs: z.number().int().min(2).optional(),
+    }),
   ),
   requirements: z.object({
     passRate: z.object({ target: z.number(), actual: z.number(), met: z.boolean() }),

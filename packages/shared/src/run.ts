@@ -107,6 +107,8 @@ export const RoundSchema = z.object({
   candidateVersion: z.number().int().nonnegative().optional(),
   devBefore: ScoreSchema.optional(),
   devAfter: ScoreSchema.optional(),
+  /** When the change cleared the keep limits once and was measured again: that first measurement. */
+  firstMeasurement: z.object({ devBefore: ScoreSchema, devAfter: ScoreSchema }).optional(),
   decision: z.enum(['kept', 'reverted']).optional(),
   decisionReason: z.string().optional(),
   costUsd: z.number().nonnegative(),

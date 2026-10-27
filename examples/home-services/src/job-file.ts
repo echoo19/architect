@@ -1,8 +1,34 @@
 import { DEFAULT_STUDENT, JOB_FORMAT, JobSchema, mentorPreset } from '@architect/shared';
 import type { DataFile, Job } from '@architect/shared';
 import { BUSINESS_DATE } from './policy/rules';
+import type { JobVersion } from './versions';
 
-const DATA_FILES: readonly DataFile[] = [
+/** Each version is its own job, so both can sit side by side in the app. */
+const IDENTITY: Readonly<Record<JobVersion, Pick<Job, 'id' | 'name'>>> = {
+  1: { id: 'sample-home-services-v1', name: 'Service desk (first version)' },
+  2: { id: 'sample-home-services', name: 'Service desk' },
+};
+
+/** What each version says about the parts of the job that changed between them. */
+const WORDING: Readonly<
+  Record<JobVersion, { requests: string; overdue: string; scheduling: string }>
+> = {
+  1: {
+    requests:
+      'Open service requests waiting for a booking: skill, license needed, duration, earliest date.',
+    overdue: 'Find overdue invoices and balances after partial payments.',
+    scheduling: 'Book a service request into the earliest feasible slot.',
+  },
+  2: {
+    requests:
+      'Open service requests waiting for a booking: skill, license needed, duration, earliest date and the time window the customer asked for.',
+    overdue:
+      'Find overdue invoices and balances after partial payments, for one customer or a group.',
+    scheduling: "Book a service request into the earliest feasible slot in the customer's window.",
+  },
+};
+
+const dataFiles = (version: JobVersion): DataFile[] => [
   {
     name: 'policy.md',
     kind: 'text',
@@ -66,8 +92,7 @@ const DATA_FILES: readonly DataFile[] = [
     name: 'requests.csv',
     kind: 'table',
     access: 'read',
-    description:
-      'Open service requests waiting for a booking: skill, license needed, duration, earliest date.',
+    description: WORDING[version].requests,
   },
   {
     name: 'bookings.csv',
@@ -90,12 +115,11 @@ const DATA_FILES: readonly DataFile[] = [
 ];
 
 /** The sample job's settings. Model choices come from the shared presets. */
-export function buildJob(): Job {
+export function buildJob(version: JobVersion): Job {
   const mentor = mentorPreset('meta-spark');
   return JobSchema.parse({
     format: JOB_FORMAT,
-    id: 'sample-home-services',
-    name: 'Service desk',
+    ...IDENTITY[version],
     description:
       'Service desk handles the end-of-day office work at Ferncliff Home Services, a plumbing, ' +
       'heating and electrical company with twelve technicians and about 400 customers. It prices ' +
@@ -128,18 +152,20 @@ export function buildJob(): Job {
       {
         id: 'overdue',
         label: 'Overdue balances',
-        description: 'Find overdue invoices and balances after partial payments.',
+        description: WORDING[version].overdue,
       },
       {
         id: 'schedule',
         label: 'Scheduling',
-        description: 'Book a service request into the earliest feasible slot.',
+        description: WORDING[version].scheduling,
       },
     ],
-    data: { files: DATA_FILES },
+    data: { files: dataFiles(version) },
     permissions: { writes: 'ask', unseenFiles: 'never' },
     checker: { kind: 'module', path: 'checker.js' },
-    requirements: { passRate: 0.85 },
+    // These are writes to a business's invoices and bookings: one error in twenty is the most an
+    // office would accept from an assistant, so the bar is 95%, set before any comparison ran.
+    requirements: { passRate: 0.95 },
     budget: { maxRounds: 8, maxMentorUsd: 5, maxWallMinutes: 240 },
     mentor: {
       kind: 'model',
@@ -162,6 +188,8 @@ export function buildJob(): Job {
     },
     startingHarness: { kind: 'blank' },
     splits: { seed: 20261027, calibration: 15, train: 60, dev: 45, test: 60 },
-    evaluation: { trainBatch: 12, minDevGain: 2, maxTypeRegression: 1, patience: 3 },
+    // Four reverts in a row before giving up: with dev noise, a real gain of three tasks clears the
+    // keep check only about half the time (decision 022).
+    evaluation: { trainBatch: 12, minDevGain: 2, maxTypeRegression: 1, patience: 4 },
   });
 }

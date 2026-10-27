@@ -9,7 +9,7 @@ import type { StoredRound } from '../store/records';
 import { resultOf, type EvaluationResult } from './attempts';
 import { must } from './errors';
 import { evaluate, type EvaluationSpec } from './evaluation';
-import { decideKeep, formatScore, type KeepDecision } from './keep';
+import { confirmKeep, decideKeep, formatScore, type KeepDecision, type Measurement } from './keep';
 import { TRAINING_ENDED, trainingEnd, type RunState } from './run-state';
 import { devSeeds, roundSeed } from './seeds';
 import { startingHarness } from './setup';
@@ -43,20 +43,24 @@ export async function prepare(state: RunState): Promise<void> {
   state.saveRun({ phase: 'baseline', currentVersion: start.meta.version });
 }
 
-/** One version on every dev task, under the seeds of the baseline (round null) or a round. */
+/**
+ * One version on every dev task, under the seeds of the baseline (round null) or a round: the
+ * job's repeats, or more when a round measures again.
+ */
 async function devEvaluation(
   state: RunState,
   version: number,
   round: number | null,
+  runs = state.job.evaluation.devRepeats,
 ): Promise<EvaluationSpec> {
   return {
     tasks: await state.devTasks(),
     split: 'dev',
     round,
     version,
-    seeds: devSeeds(state.record.seeds.devPanel, round, state.job.evaluation.devRepeats),
+    seeds: devSeeds(state.record.seeds.devPanel, round, runs),
     target: state.job.student.trainOn,
-    training: true,
+    purpose: 'training',
     concurrency: state.ctx.concurrency,
   };
 }
@@ -112,7 +116,7 @@ export async function attemptTrain(state: RunState, index: number): Promise<void
     version: baseVersion,
     seeds: [roundSeed(state.record.seeds.trainStudent, index)],
     target: state.job.student.trainOn,
-    training: true,
+    purpose: 'training',
     concurrency: state.ctx.concurrency,
   });
   if (!complete) return;
@@ -127,14 +131,48 @@ export async function attemptTrain(state: RunState, index: number): Promise<void
   });
 }
 
-/** Logs the hypothesis in lineage with its measured effect, and keeps or reverts it. */
+/** A round's dev results for the incumbent and its candidate. */
+interface DevPair {
+  before: EvaluationResult;
+  after: EvaluationResult;
+}
+
+function measurementOf(pair: DevPair): Measurement {
+  return {
+    before: pair.before.score,
+    after: pair.after.score,
+    beforePerType: pair.before.perType,
+    afterPerType: pair.after.perType,
+  };
+}
+
+/** Tokens of every author call the round paid for, a fix included, like its cost. */
+function authorTokens(state: RunState, index: number) {
+  const calls = state.ctx.store.costs
+    .list(state.ctx.runId)
+    .filter((cost) => cost.role === 'mentor' && cost.round === index);
+  return {
+    inputTokens: calls.reduce((sum, cost) => sum + cost.usage.inputTokens, 0),
+    outputTokens: calls.reduce((sum, cost) => sum + cost.usage.outputTokens, 0),
+  };
+}
+
+/**
+ * Logs the hypothesis in lineage with its measured effect, and keeps or reverts it. `first` is
+ * the first measurement when the round measured again; `pair` then adds up both.
+ */
 async function decide(
   state: RunState,
   stored: StoredRound,
-  before: EvaluationResult,
-  after: EvaluationResult,
+  pair: DevPair,
   decision: KeepDecision,
+  first?: DevPair,
 ): Promise<void> {
+  const { before, after } = pair;
+  const firstMeasurement = first && {
+    devBefore: first.before.score,
+    devAfter: first.after.score,
+  };
   const { round } = stored;
   const hypothesis = must(stored.hypothesis, 'The hypothesis');
   const reply = must(stored.reply, 'The reply');
@@ -152,17 +190,13 @@ async function decide(
       devAfter: after.score,
       delta: after.score.pass - before.score.pass,
       perType: comparePerType(before.perType, after.perType),
+      ...(firstMeasurement ? { firstMeasurement } : {}),
     },
     decision: decision.keep ? 'kept' : 'reverted',
     decisionReason: decision.reason,
     versionFrom: stored.baseVersion,
     versionTo: must(round.candidateVersion, 'The candidate version'),
-    mentor: {
-      model: reply.model,
-      costUsd: round.costUsd,
-      inputTokens: reply.usage.inputTokens,
-      outputTokens: reply.usage.outputTokens,
-    },
+    mentor: { model: reply.model, costUsd: round.costUsd, ...authorTokens(state, round.index) },
     at: state.now(),
   });
   const decided: Round = {
@@ -170,6 +204,7 @@ async function decide(
     status: 'decided',
     devBefore: entry.measured.devBefore,
     devAfter: entry.measured.devAfter,
+    ...(firstMeasurement ? { firstMeasurement } : {}),
     decision: entry.decision,
     decisionReason: entry.decisionReason,
     endedAt: state.now(),
@@ -198,31 +233,69 @@ async function decide(
 }
 
 /**
+ * Both versions on dev under `runs` of the round's seeds, or null when the evaluation stopped
+ * short. Runs already measured are reused, so a second measurement only adds the new seeds.
+ */
+async function measureRound(
+  state: RunState,
+  index: number,
+  versions: { base: number; candidate: number },
+  runs: number,
+): Promise<DevPair | null> {
+  const seeds = devSeeds(state.record.seeds.devPanel, index, runs);
+  for (const version of [versions.base, versions.candidate]) {
+    if (!(await evaluate(state, await devEvaluation(state, version, index, runs)))) return null;
+    const result = state.devResult(version, index, seeds);
+    state.emit({ type: 'eval.finished', split: 'dev', harnessVersion: version, ...result });
+  }
+  return {
+    before: state.devResult(versions.base, index, seeds),
+    after: state.devResult(versions.candidate, index, seeds),
+  };
+}
+
+/**
  * The incumbent and its candidate on dev, under the round's own seeds. The incumbent is measured
- * again rather than judged by the score that got it kept, which was the luckier of its draws.
+ * again rather than judged by the score that got it kept, which was the luckier of its draws. A
+ * candidate that clears the keep limits is measured again, both versions under new seeds, and
+ * kept only if it clears them over both measurements, so one lucky draw isn't enough (decision
+ * 022).
  */
 export async function evaluateCandidate(state: RunState, index: number): Promise<void> {
   state.setPhase('evaluating');
   const { baseVersion, round } = state.round(index);
-  const candidate = must(round.candidateVersion, 'The candidate version');
-  for (const version of [baseVersion, candidate]) {
-    if (!(await evaluate(state, await devEvaluation(state, version, index)))) return;
-    const result = state.devResult(version, index);
-    state.emit({ type: 'eval.finished', split: 'dev', harnessVersion: version, ...result });
+  const versions = {
+    base: baseVersion,
+    candidate: must(round.candidateVersion, 'The candidate version'),
+  };
+  const { evaluation } = state.job;
+  const runs = evaluation.devRepeats;
+  const first = await measureRound(state, index, versions, runs);
+  if (first === null) return;
+  if (state.run.method === 'one_shot') {
+    await decide(
+      state,
+      state.round(index),
+      first,
+      oneShotDecision(first.before.score, first.after.score),
+    );
+    return;
   }
-  const before = state.devResult(baseVersion, index);
-  const after = state.devResult(candidate, index);
-  const decision =
-    state.run.method === 'one_shot'
-      ? oneShotDecision(before.score, after.score)
-      : decideKeep({
-          before: before.score,
-          after: after.score,
-          beforePerType: before.perType,
-          afterPerType: after.perType,
-          evaluation: state.job.evaluation,
-        });
-  await decide(state, state.round(index), before, after, decision);
+  const decision = decideKeep({ ...measurementOf(first), evaluation, runs });
+  if (!decision.keep) {
+    await decide(state, state.round(index), first, decision);
+    return;
+  }
+  state.log('info', `Round ${index} cleared the keep limits; measuring both versions again.`);
+  const both = await measureRound(state, index, versions, 2 * runs);
+  if (both === null) return;
+  const confirmed = confirmKeep({
+    first: measurementOf(first),
+    both: measurementOf(both),
+    evaluation,
+    runs,
+  });
+  await decide(state, state.round(index), both, confirmed, first);
 }
 
 export function abandonRound(state: RunState, index: number, reason: string): void {

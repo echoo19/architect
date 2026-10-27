@@ -5,6 +5,7 @@ import type {
   StudentAdapter,
   StudentChatRequest,
   StudentEndpoint,
+  StudentModelInfo,
   StudentStreamEvent,
   Usage,
 } from '@architect/shared';
@@ -44,7 +45,7 @@ export class FakeMentor implements MentorAdapter {
 
   async complete(request: MentorCompletionRequest): Promise<MentorCompletion> {
     this.requests.push(request);
-    const json = this.script(request, this.requests.length);
+    const json: unknown = await this.script(request, this.requests.length);
     const usage = { inputTokens: 2000, outputTokens: 500 };
     return {
       text: JSON.stringify(json),
@@ -77,6 +78,8 @@ export class FakeStudent implements StudentAdapter {
   constructor(
     endpoint: StudentEndpoint,
     private readonly reply: (request: StudentChatRequest, call: number) => string,
+    /** The build a local runtime reports, read on every `describe`, so a test can swap it. */
+    private readonly digest: () => string = () => 'sha256:fake',
   ) {
     this.label = 'Glimmer';
     this.model = endpoint.model;
@@ -90,11 +93,13 @@ export class FakeStudent implements StudentAdapter {
     yield { type: 'done', usage: { inputTokens: 300, outputTokens: 80 }, finish: 'stop' };
   }
 
-  async describe() {
+  /** A hosted copy reports only its model id, as the OpenAI-compatible adapter does. */
+  async describe(): Promise<StudentModelInfo> {
+    if (!this.isLocal) return { model: this.model };
     return {
       model: this.model,
       quantization: 'Q4_K_M',
-      digest: 'sha256:fake',
+      digest: this.digest(),
       contextLength: 16_384,
     };
   }

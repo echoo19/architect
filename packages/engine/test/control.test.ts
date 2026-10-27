@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { AdapterError, type Job, type Task } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
+import { LineageLog } from '../src/loop/lineage';
 import { STOPPED_ROUND } from '../src/loop/plan';
 import { TRAINING_ENDED } from '../src/loop/run-state';
 import { devSeeds, fanOutSeeds, roundSeed } from '../src/loop/seeds';
@@ -85,7 +86,7 @@ describe('pause and resume', () => {
     const finished = engine.store.runs.get(run.id)?.run;
     expect(finished?.status).toBe('finished');
     expect(finished?.totals.wallMs).toBe(15 * MINUTE);
-    expect(engine.store.reports.get(run.id)?.cost.wallMs).toBe(15 * MINUTE);
+    expect(engine.store.reports.get(run.id, 'local')?.cost.wallMs).toBe(15 * MINUTE);
     expect(engine.errors).toEqual([]);
   });
 
@@ -126,7 +127,7 @@ describe('stop', () => {
     });
     expect(engine.store.attempts.list({ runId: run.id, split: 'test' })).toEqual([]);
     expect(engine.store.attempts.list({ runId: run.id, split: 'train' })).toHaveLength(1);
-    expect(engine.store.reports.get(run.id)).toBeNull();
+    expect(engine.store.reports.get(run.id, 'local')).toBeNull();
     expect(engine.store.graduates.forRun(run.id)).toBeNull();
     expect(world.mentor.requests).toHaveLength(0);
     expect(world.vault.opened).toEqual([]);
@@ -147,7 +148,7 @@ describe('stop', () => {
     expect(finished).toMatchObject({ status: 'finished', stopReason: 'user', currentVersion: 2 });
     expect(engine.store.rounds.get(run.id, 2)?.round.status).toBe('failed');
     expect(world.mentor.requests).toHaveLength(1);
-    expect(engine.store.reports.get(run.id)?.test.score).toEqual({ pass: 2, total: 6 });
+    expect(engine.store.reports.get(run.id, 'local')?.test.score).toEqual({ pass: 2, total: 6 });
     expect(engine.store.runs.get(run.id)?.freeze?.harnessVersion).toBe(2);
   });
 
@@ -186,7 +187,7 @@ describe('budgets during a run', () => {
     expect(engine.store.rounds.get(run.id, 1)?.round.error).toMatch(
       /could cost up to .* left in the budget/,
     );
-    expect(engine.store.reports.get(run.id)?.cost.mentorUsd).toBe(0);
+    expect(engine.store.reports.get(run.id, 'local')?.cost.mentorUsd).toBe(0);
   });
 
   it('cuts the attempt in flight when the wall clock runs out, unscored, and runs the test', async () => {
@@ -231,7 +232,7 @@ describe('budgets during a run', () => {
     await engine.controller.idle();
     expect(engine.store.runs.get(run.id)?.run).toMatchObject({
       stopReason: 'target_met',
-      devCurrent: { pass: 3, total: 9 },
+      devCurrent: { pass: 6, total: 18 },
     });
     expect(world.mentor.requests).toHaveLength(1);
   });
@@ -255,9 +256,51 @@ describe('dev noise', () => {
     expect(
       engine.store.rounds.list(run.id).map(({ round }) => [round.decision, round.decisionReason]),
     ).toEqual([
-      ['kept', 'Dev 0/9 → 6/9, no type lost more than one'],
-      ['kept', 'Dev 3/9 → 6/9, no type lost more than one'],
+      [
+        'kept',
+        'Dev 0/9 → 6/9, measured again on new seeds: 0/18 → 9/18 over 2 runs, no type lost more than two',
+      ],
+      [
+        'kept',
+        'Dev 3/9 → 6/9, measured again on new seeds: 6/18 → 12/18 over 2 runs, no type lost more than two',
+      ],
     ]);
+  });
+
+  it('measures a change that clears the limits again, and reverts a gain one draw made by luck', async () => {
+    const job = await setUp();
+    const panel = fanOutSeeds(7).devPanel;
+    const [lucky, second] = devSeeds(panel, 1, 2);
+    world.runtime.passes = (held, harness, seed) =>
+      held.type === 'overdue' && harness.system.includes('fix:overdue') && seed === lucky;
+    world.mentor.script = (_request, call) =>
+      [
+        hypothesis('Add the overdue procedure', 'Service desk.\nfix:overdue'),
+        hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice'),
+      ][call - 1];
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    const rounds = engine.store.rounds.list(run.id).map(({ round }) => round);
+    expect(rounds[0]).toMatchObject({
+      decision: 'reverted',
+      decisionReason:
+        'Dev 0/9 → 3/9, measured again on new seeds: 0/18 → 3/18 over 2 runs, short of the +4 margin',
+      devBefore: { pass: 0, total: 18 },
+      devAfter: { pass: 3, total: 18 },
+      firstMeasurement: { devBefore: { pass: 0, total: 9 }, devAfter: { pass: 3, total: 9 } },
+    });
+    const roundOne = engine.store.attempts
+      .list({ runId: run.id, split: 'dev' })
+      .filter((attempt) => attempt.round === 1);
+    expect(roundOne).toHaveLength(36);
+    expect(new Set(roundOne.map((attempt) => attempt.seed))).toEqual(new Set([lucky, second]));
+    // Round 2 had nothing to clear, so it measured once.
+    expect(rounds[1]).toMatchObject({ decision: 'reverted', devAfter: { pass: 0, total: 9 } });
+    expect(rounds[1]?.firstMeasurement).toBeUndefined();
+    expect(world.mentor.requests[1]?.messages[0]?.content).toContain(
+      'Round 1, reverted (dev +3; measured again, +3 over both): Add the overdue procedure.',
+    );
   });
 
   it('runs every dev task under each repeat seed and keeps only gains past the scaled margin', async () => {
@@ -277,25 +320,56 @@ describe('dev noise', () => {
     await engine.controller.idle();
 
     const dev = engine.store.attempts.list({ runId: run.id, split: 'dev' });
-    expect(dev).toHaveLength(90);
+    // Round 1 cleared the limits over its two runs, so it measured both versions over two more.
+    expect(dev).toHaveLength(126);
     expect(new Set(dev.filter((a) => a.round === 1).map((a) => a.seed))).toEqual(
-      new Set(devSeeds(panel, 1, 2)),
+      new Set(devSeeds(panel, 1, 4)),
+    );
+    expect(new Set(dev.filter((a) => a.round === 2).map((a) => a.seed))).toEqual(
+      new Set(devSeeds(panel, 2, 2)),
     );
     expect(
       engine.store.rounds.list(run.id).map(({ round }) => [round.decision, round.decisionReason]),
     ).toEqual([
-      ['kept', 'Dev 0/18 → 6/18 over 2 runs, no type lost more than two'],
+      [
+        'kept',
+        'Dev 0/18 → 6/18 over 2 runs, measured again on new seeds: 0/36 → 12/36 over 4 runs, no type lost more than four',
+      ],
       ['reverted', 'Dev 6/18 → 9/18 over 2 runs, short of the +4 margin'],
     ]);
     expect(engine.store.runs.get(run.id)?.run).toMatchObject({
       status: 'finished',
       devBaseline: { pass: 0, total: 18 },
-      devCurrent: { pass: 6, total: 18 },
+      devCurrent: { pass: 12, total: 36 },
     });
   });
 });
 
 describe('the split guard during a run', () => {
+  it('rejects only the round when the fix would send a reply that matches the locked test', async () => {
+    const leaky = task('test', 'invoice', 1).prompt;
+    const job = await setUp({ job: { budget: { ...defaultJob().budget, maxRounds: 2 } } });
+    world.mentor.script = (_request, call) =>
+      call === 1
+        ? { ...dropThePrompt(), diagnosis: `A request like: ${leaky}` }
+        : hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice');
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    expect(world.mentor.requests).toHaveLength(2);
+    expect(JSON.stringify(world.mentor.requests)).not.toContain(leaky);
+    expect(engine.store.rounds.get(run.id, 1)).toMatchObject({
+      rejected: true,
+      round: {
+        status: 'failed',
+        error:
+          "The request to fix the reply couldn't be sent, so the round ended without a change.",
+      },
+    });
+    expect(engine.store.rounds.get(run.id, 2)?.round.decision).toBe('kept');
+    expect(engine.store.runs.get(run.id)?.run.stopReason).not.toBe('leak');
+  });
+
   it('ends training at a refused mentor payload, naming the part that matched', async () => {
     const leaky = task('test', 'invoice', 1).prompt;
     const tasks = defaultTasks().map((t) =>
@@ -362,10 +436,50 @@ describe('authoring failures', () => {
     );
   });
 
-  it('rejects a change set that does not validate, shows the mentor why, and goes on', async () => {
-    const job = await setUp();
+  it('gives the author one fix for a change set the harness refuses, and adopts a fix that works', async () => {
+    const job = await setUp({ job: { budget: { ...defaultJob().budget, maxRounds: 1 } } });
     world.mentor.script = (_request, call) =>
       call === 1
+        ? dropThePrompt()
+        : hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice');
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    expect(world.mentor.requests).toHaveLength(2);
+    const [asked, fix] = world.mentor.requests;
+    expect(fix?.system).toBe(asked?.system);
+    expect(fix?.messages.slice(0, -2)).toEqual(asked?.messages);
+    expect(fix?.messages.at(-2)).toMatchObject({
+      role: 'assistant',
+      content: expect.stringContaining('Drop the prompt'),
+    });
+    expect(fix?.messages.at(-1)).toMatchObject({
+      role: 'user',
+      content: expect.stringContaining(REJECTION),
+    });
+    const stored = engine.store.rounds.get(run.id, 1);
+    expect(stored).toMatchObject({
+      rejected: false,
+      reply: { fix: 1 },
+      round: { decision: 'kept', title: 'Add the invoice procedure' },
+    });
+    expect(
+      engine.store.costs.list(run.id).filter((cost) => cost.role === 'mentor' && cost.round === 1),
+    ).toHaveLength(2);
+    expect(existsSync(engine.paths.mentorFile(job.id, run.id, 1))).toBe(true);
+    expect(existsSync(engine.paths.mentorFile(job.id, run.id, 1, 1))).toBe(true);
+    const [entry] = await new LineageLog(engine.paths.lineageFile(job.id, run.id)).read();
+    expect(entry?.mentor).toMatchObject({ inputTokens: 4000, outputTokens: 1000 });
+    const logs = engine.events.flatMap((e) => (e.type === 'log' ? [e.message] : []));
+    expect(logs).toContain(
+      `Round 1: the runner couldn't use the reply, so the author gets one fix. ${REJECTION}`,
+    );
+  });
+
+  it('rejects a change set whose fix does not validate either, shows the mentor why, and goes on', async () => {
+    const job = await setUp();
+    world.mentor.script = (_request, call) =>
+      call <= 2
         ? dropThePrompt()
         : hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice');
     const run = await engine.controller.start(job.id, 'architect', 7);
@@ -380,7 +494,8 @@ describe('authoring failures', () => {
         error: REJECTION,
       },
     });
-    const second = world.mentor.requests[1]?.messages[0]?.content ?? '';
+    expect(engine.store.rounds.get(run.id, 1)?.reply?.fix).toBe(1);
+    const second = world.mentor.requests[2]?.messages[0]?.content ?? '';
     expect(second).toContain(
       `- Round 1, rejected before dev saw it: Drop the prompt. Files: system.md. Why: ${REJECTION}`,
     );
@@ -424,7 +539,7 @@ describe('authoring failures', () => {
       },
     });
     world.mentor.script = (_request, call) =>
-      call === 1 ? dropThePrompt() : hypothesis('Reword the rules', 'Service desk, reworded.');
+      call <= 2 ? dropThePrompt() : hypothesis('Reword the rules', 'Service desk, reworded.');
     const run = await engine.controller.start(job.id, 'architect', 7);
     await engine.controller.idle();
 

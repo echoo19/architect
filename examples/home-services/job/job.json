@@ -26,12 +26,12 @@
     {
       "id": "overdue",
       "label": "Overdue balances",
-      "description": "Find overdue invoices and balances after partial payments."
+      "description": "Find overdue invoices and balances after partial payments, for one customer or a group."
     },
     {
       "id": "schedule",
       "label": "Scheduling",
-      "description": "Book a service request into the earliest feasible slot."
+      "description": "Book a service request into the earliest feasible slot in the customer's window."
     }
   ],
   "data": {
@@ -94,7 +94,7 @@
         "name": "requests.csv",
         "kind": "table",
         "access": "read",
-        "description": "Open service requests waiting for a booking: skill, license needed, duration, earliest date."
+        "description": "Open service requests waiting for a booking: skill, license needed, duration, earliest date and the time window the customer asked for."
       },
       {
         "name": "bookings.csv",
@@ -125,7 +125,7 @@
     "path": "checker.js"
   },
   "requirements": {
-    "passRate": 0.85
+    "passRate": 0.95
   },
   "budget": {
     "maxRounds": 8,
@@ -166,6 +166,6 @@
     "minDevGain": 2,
     "maxTypeRegression": 1,
     "devRepeats": 1,
-    "patience": 3
+    "patience": 4
   }
 }

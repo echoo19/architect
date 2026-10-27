@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { devSeeds, fanOutSeeds } from '../src/loop/seeds';
 import type { StoredAttempt } from '../src/store/records';
 import { hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
@@ -14,10 +15,10 @@ function open(): Engine {
 }
 
 /** Freezes the engine mid-attempt, as if the process died: nothing more reaches the disk. */
-function crashAt(matches: (taskId: string, version: number) => boolean) {
+function crashAt(matches: (taskId: string, version: number, seed: number) => boolean) {
   const crashed = deferred();
-  world.runtime.beforeAttempt = (task, ctx) => {
-    if (!matches(task.id, ctx.harness.meta.version)) return;
+  world.runtime.beforeAttempt = (task, ctx, options) => {
+    if (!matches(task.id, ctx.harness.meta.version, options.seed)) return;
     world.runtime.beforeAttempt = undefined;
     crashed.resolve();
     return new Promise<void>(() => {});
@@ -32,6 +33,7 @@ function evaluationKey(attempt: StoredAttempt): string {
     attempt.harnessVersion,
     attempt.target,
     attempt.taskId,
+    attempt.seed,
   ].join('|');
 }
 
@@ -79,18 +81,18 @@ describe('restart recovery', () => {
       status: 'finished',
       stopReason: 'rounds',
       currentVersion: 2,
-      devCurrent: { pass: 3, total: 9 },
+      devCurrent: { pass: 6, total: 18 },
     });
     const attempts = second.store.attempts.list({ runId });
-    expect(attempts).toHaveLength(63);
-    expect(new Set(attempts.map(evaluationKey)).size).toBe(63);
+    expect(attempts).toHaveLength(81);
+    expect(new Set(attempts.map(evaluationKey)).size).toBe(81);
     const redone = world.runtime.attempts.slice(before);
-    expect(redone).toHaveLength(52);
+    expect(redone).toHaveLength(70);
     const panel = record?.seeds.devPanel;
     expect(redone.some((attempt) => attempt.seed === panel)).toBe(false);
     expect(world.mentor.requests).toHaveLength(2);
-    expect(record?.run.totals.attempts).toBe(63);
-    expect(second.store.reports.get(runId)?.test.score).toEqual({ pass: 2, total: 6 });
+    expect(record?.run.totals.attempts).toBe(81);
+    expect(second.store.reports.get(runId, 'local')?.test.score).toEqual({ pass: 2, total: 6 });
     expect(
       second.events.some(
         (e) => e.type === 'run.updated' && e.run.id === runId && e.run.status === 'queued',
@@ -188,7 +190,79 @@ describe('restart recovery', () => {
     expect(finished?.status).toBe('finished');
     expect(finished?.error).toBeUndefined();
     const attempts = engine.store.attempts.list({ runId });
-    expect(attempts).toHaveLength(63);
-    expect(new Set(attempts.map(evaluationKey)).size).toBe(63);
+    expect(attempts).toHaveLength(81);
+    expect(new Set(attempts.map(evaluationKey)).size).toBe(81);
+  });
+
+  it('asks for the fix again when the process died during the fix call, and adopts it', async () => {
+    const crashed = deferred();
+    world.mentor.script = (_request, call) => {
+      if (call === 1) {
+        return {
+          ...hypothesis('Drop the prompt', ''),
+          edits: [{ op: 'delete' as const, path: 'system.md', content: '' }],
+        };
+      }
+      if (call === 2) {
+        crashed.resolve();
+        return new Promise(() => {});
+      }
+      return hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice');
+    };
+    const first = open();
+    const runId = await startArchitect(first);
+    await crashed.promise;
+    first.store.close();
+    engines.splice(engines.indexOf(first), 1);
+
+    const second = open();
+    expect(second.store.rounds.get(runId, 1)?.reply?.fix).toBe(0);
+    second.controller.recover();
+    await second.controller.idle();
+
+    expect(second.errors).toEqual([]);
+    expect(world.mentor.requests.map((request) => request.messages.length)).toEqual([1, 3, 3, 1]);
+    expect(second.store.rounds.get(runId, 1)).toMatchObject({
+      rejected: false,
+      reply: { fix: 1 },
+      round: { decision: 'kept' },
+    });
+    const charged = second.store.costs
+      .list(runId)
+      .filter((cost) => cost.role === 'mentor' && cost.round === 1);
+    expect(charged).toHaveLength(2);
+  });
+
+  it('resumes a crash during the second measurement without redoing the first', async () => {
+    const [firstSeed, secondSeed] = devSeeds(fanOutSeeds(7).devPanel, 1, 2);
+    let candidateSeen = 0;
+    const crashed = crashAt(
+      (taskId, version, seed) =>
+        taskId.startsWith('dev-') && version === 2 && seed === secondSeed && ++candidateSeen === 2,
+    );
+    const first = open();
+    const runId = await startArchitect(first);
+    await crashed;
+    first.store.close();
+    engines.splice(engines.indexOf(first), 1);
+    const before = world.runtime.attempts.length;
+
+    const second = open();
+    expect(second.store.rounds.get(runId, 1)?.round.status).toBe('evaluating');
+    second.controller.recover();
+    await second.controller.idle();
+
+    expect(second.errors).toEqual([]);
+    expect(second.store.rounds.get(runId, 1)?.round).toMatchObject({
+      decision: 'kept',
+      decisionReason:
+        'Dev 0/9 → 3/9, measured again on new seeds: 0/18 → 6/18 over 2 runs, no type lost more than two',
+    });
+    const redone = world.runtime.attempts.slice(before);
+    expect(redone.some((attempt) => attempt.seed === firstSeed)).toBe(false);
+    expect(redone.filter((attempt) => attempt.seed === secondSeed)).toHaveLength(8);
+    const attempts = second.store.attempts.list({ runId });
+    expect(attempts).toHaveLength(81);
+    expect(new Set(attempts.map(evaluationKey)).size).toBe(81);
   });
 });

@@ -8,7 +8,9 @@ import {
   type FileDiff,
   type GraduateSettings,
   type GraduateSummary,
+  type ReportCard,
   type RunDetail,
+  type StudentTarget,
   type Trace,
 } from '@architect/shared';
 import type { Clock, EngineHostDeps, JobDrafter } from '../loop/deps';
@@ -47,6 +49,14 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
 
   const run = (runId: string): StoredRun =>
     found(store.runs.get(runId), `There is no run "${runId}".`);
+  /** The run's card from one student endpoint; from its own locked test when none is named. */
+  const reportOf = (record: StoredRun, target: StudentTarget = record.lockedTestOn): ReportCard =>
+    found(
+      store.reports.get(record.run.id, target),
+      target === record.lockedTestOn
+        ? 'This run has no report card yet.'
+        : `This run's graduate hasn't been tested on the ${target} student.`,
+    );
   const lineageOf = (record: StoredRun) =>
     new LineageLog(paths.lineageFile(record.run.jobId, record.run.id)).read();
   const versionsOf = (record: StoredRun) =>
@@ -99,7 +109,10 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     );
   }
 
-  /** Marks the run's graduate accepted and rewrites its folder with the new manifest. */
+  /**
+   * Marks the run's graduate accepted and rewrites its folder with the new manifest. The folder
+   * keeps the card of the run's own locked test; a later re-test's card stays in the database.
+   */
   async function accept(runId: string): Promise<GraduateSummary> {
     const record = run(runId);
     const graduate = found(store.graduates.forRun(runId), 'This run has no graduate yet.');
@@ -112,7 +125,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     await deps.harness.writeGraduate(paths.fromStored(graduate.path), {
       harness: await versionsOf(record).load(freeze.harnessVersion),
       manifest,
-      report: found(store.reports.get(runId), 'This run has no report card yet.'),
+      report: reportOf(record),
       lineage: await lineageOf(record),
     });
     const accepted = { ...graduate, manifest };
@@ -167,10 +180,12 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       draftReply: (sessionId, text) => drafter().reply(sessionId, text),
     },
     runs: {
-      start: (jobId, options) => controller.start(jobId, options.method, options.seed),
+      start: (jobId, { method, seed, lockedTestOn }) =>
+        controller.start(jobId, method, seed, { lockedTestOn }),
       pause: (runId) => controller.pause(runId),
       resume: (runId) => controller.resume(runId),
       stop: (runId) => controller.stop(runId),
+      retest: (runId, target) => controller.retest(runId, target),
       get: runDetail,
       list: async (jobId) => store.runs.list(jobId).map(({ run: listed }) => listed),
       trace,
@@ -178,7 +193,8 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       onEvent: (listener) => controller.onEvent(listener),
     },
     reports: {
-      get: async (runId) => found(store.reports.get(runId), 'This run has no report card yet.'),
+      get: async (runId, target) => reportOf(run(runId), target),
+      list: async (runId) => store.reports.targets(run(runId).run.id),
     },
     graduates: {
       list: async () => store.graduates.list().map(summary),

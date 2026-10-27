@@ -30,7 +30,10 @@ The student runs inside a harness: a folder of plain files. You change the stude
   ---
   The student sees each skill's name and summary and loads the full text with load_skill, unless a retrieval rule loads it up front. Slugs use lowercase letters, digits and dashes.
 - tools/<name>.json and tools/<name>.js: a helper tool. The .json file holds {"name", "description", "parameters"}, where parameters is a JSON Schema object for the arguments. The .js file defines function run(args, ctx). Names use lowercase letters, digits and underscores and start with a letter. Always write both files.
-- examples/<slug>.json: a worked example the student sees as a past conversation: {"title", "task_types", "messages"}, where messages are user, assistant (with tool_calls) and tool turns ending in the correct ANSWER line.
+- examples/<slug>.json: a worked example the student sees as a past conversation: {"title", "task_types", "messages"}. Each message has exactly one of these shapes, and the last is the assistant's correct ANSWER line:
+  {"role": "user", "content": "..."}
+  {"role": "assistant", "content": "...", "tool_calls": [{"id": "call_1", "name": "read_table", "arguments": {"file": "..."}}]} (tool_calls only on a turn that calls tools)
+  {"role": "tool", "tool_call_id": "call_1", "name": "read_table", "content": "..."} (the result of the call with that id)
 - retrieval.yaml: which skills and examples load for which request:
   list_skills: true
   max_loaded_skills: 2
@@ -93,7 +96,7 @@ This round:
 4. Don't repeat a reverted hypothesis unless the new change is meaningfully different, and say how. A rejected round never reached dev: fix what its reason names first.
 5. If every train attempt passed, strengthen what the traces show is still fragile.
 
-The runner applies your change set to a new harness version and ${evaluation}. It is kept only if dev passes rise by at least ${minDevGain * devRepeats} and no task type loses more than ${loss} ${passes}; otherwise it is reverted and logged as a failed hypothesis. Dev and test tasks are different tasks of the same types, so write rules that generalize, never answers for particular train tasks.
+The runner applies your change set to a new harness version and ${evaluation}. If dev passes rise by at least ${minDevGain * devRepeats} and no task type loses more than ${loss} ${passes}, it measures both versions again under new seeds and keeps the change only if the totals over both measurements rise by at least ${2 * minDevGain * devRepeats} with ${loss === 0 ? 'no task type losing a pass' : `no task type losing more than ${2 * loss}`}; otherwise it is reverted and logged as a failed hypothesis. Dev and test tasks are different tasks of the same types, so write rules that generalize, never answers for particular train tasks.
 
 The student is small: every line of system prompt and every loaded skill costs it attention and time, so keep the harness lean and specific. A round that doesn't help still spends budget.
 
@@ -173,8 +176,12 @@ function renderLineageItem(item: MentorView['lineage'][number]): string {
     const files = item.files.length > 0 ? ` Files: ${item.files.join(', ')}.` : '';
     return `- Round ${item.round}, rejected before dev saw it: ${what}${files} Why: ${item.reason}`;
   }
-  const delta = item.devDelta >= 0 ? `+${item.devDelta}` : String(item.devDelta);
-  return `- Round ${item.round}, ${item.decision} (dev ${delta}): ${item.title}. ${item.diagnosis} Files: ${item.files.join(', ')}.`;
+  const signed = (n: number) => (n >= 0 ? `+${n}` : String(n));
+  const again =
+    item.confirmedDelta === undefined
+      ? ''
+      : `; measured again, ${signed(item.confirmedDelta)} over both`;
+  return `- Round ${item.round}, ${item.decision} (dev ${signed(item.devDelta)}${again}): ${item.title}. ${item.diagnosis} Files: ${item.files.join(', ')}.`;
 }
 
 function renderLineage(lineage: MentorView['lineage']): string {
