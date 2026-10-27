@@ -68,7 +68,13 @@ interface RunResult {
   seed: number;
   detail: RunDetail;
   report: ReportCard | null;
+  /** What the run spent, from its own cost records: the hosted student and the mentor. */
+  spend: { studentUsd: number; mentorUsd: number };
 }
+
+/** A run paused by an error (a hosted endpoint down, say) is resumed this many times at most. */
+const MAX_RESUMES = 5;
+const RESUME_AFTER_MS = 60_000;
 
 const getSecret = async (ref: string) => {
   const name = SECRET_ENV[ref];
@@ -186,18 +192,34 @@ async function runOne(jobFile: string, options: Options, method: Method, seed: n
   });
   try {
     const job = await host.api.jobs.importFile(jobFile);
+    let resumes = 0;
     const finished = new Promise<string>((done) => {
       host.api.runs.onEvent((event) => {
         if (event.type === 'round.updated' && event.round.decision) {
           const { round } = event;
           log(
-            `${name} round ${round.index}: ${round.title ?? ''} ` +
-              `${round.devBefore?.pass ?? '?'} -> ${round.devAfter?.pass ?? '?'}/${round.devAfter?.total ?? '?'} ${round.decision}`,
+            `${name} round ${round.index} ${round.decision}: ${round.title ?? ''}. ${round.decisionReason ?? ''}`,
           );
         }
         if (event.type === 'log' && event.level !== 'info')
           log(`${name} ${event.level}: ${event.message}`);
-        if (event.type === 'run.updated' && isTerminal(event.run.status)) done(event.run.id);
+        if (event.type !== 'run.updated') return;
+        const { run } = event;
+        if (isTerminal(run.status)) done(run.id);
+        if (run.status !== 'paused') return;
+        if (resumes >= MAX_RESUMES) {
+          log(`${name}: paused ${resumes + 1} times, leaving it paused: ${run.error ?? ''}`);
+          done(run.id);
+          return;
+        }
+        resumes += 1;
+        log(`${name}: paused (${run.error ?? 'no reason'}); resuming in a minute`);
+        setTimeout(() => {
+          host.api.runs.resume(run.id).catch((error: unknown) => {
+            log(`${name}: resume failed: ${String(error)}`);
+            done(run.id);
+          });
+        }, RESUME_AFTER_MS);
       });
     });
     log(`${name}: started`);
@@ -205,16 +227,28 @@ async function runOne(jobFile: string, options: Options, method: Method, seed: n
     const runId = await finished;
     const detail = await host.api.runs.get(runId);
     const report = detail.run.status === 'finished' ? await host.api.reports.get(runId) : null;
-    const result: RunResult = { method, seed, detail, report };
+    const result: RunResult = { method, seed, detail, report, spend: spendOf(dataDir, runId) };
     await writeFile(resultFile(options, method, seed), `${JSON.stringify(result, null, 2)}\n`);
     log(
       `${name}: ${detail.run.status}` +
-        (report
-          ? `, test ${report.test.score.pass}/${report.test.score.total}, mentor $${report.cost.mentorUsd.toFixed(3)}`
-          : ''),
+        (report ? `, test ${report.test.score.pass}/${report.test.score.total}` : '') +
+        `, student $${result.spend.studentUsd.toFixed(2)}, mentor $${result.spend.mentorUsd.toFixed(3)}`,
     );
   } finally {
     await host.close();
+  }
+}
+
+/** A run's recorded spend by role, read from its data folder's database. */
+function spendOf(dataDir: string, runId: string): RunResult['spend'] {
+  const store = openEngineStore(new DataPaths(dataDir).database);
+  try {
+    const costs = store.costs.list(runId);
+    const total = (role: string) =>
+      costs.filter((cost) => cost.role === role).reduce((sum, cost) => sum + (cost.usd ?? 0), 0);
+    return { studentUsd: total('student'), mentorUsd: total('mentor') };
+  } finally {
+    store.close();
   }
 }
 
@@ -269,28 +303,34 @@ async function retestLocally(options: Options): Promise<void> {
 
 async function writeSummary(options: Options): Promise<void> {
   const rows: string[] = [
-    '| Method | Seed | Locked test | Invoices | Overdue | Scheduling | Dev start to end | Rounds | Mentor $ |',
-    '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+    '| Method | Seed | Locked test | Invoices | Overdue | Scheduling | Dev start to end | Kept / rounds | Stop | Minutes | Student $ | Mentor $ |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
   ];
+  // Dev totals differ when a round measured twice, so dev shows as a pass rate.
+  const rate = (score: { pass: number; total: number } | null) =>
+    score && score.total > 0 ? `${Math.round((100 * score.pass) / score.total)}%` : '-';
   for (const method of options.methods) {
     for (const seed of options.seeds) {
       const file = resultFile(options, method, seed);
       if (!existsSync(file)) continue;
-      const { detail, report } = JSON.parse(await readFile(file, 'utf8')) as RunResult;
+      const { detail, report, spend } = JSON.parse(await readFile(file, 'utf8')) as RunResult;
+      const { run } = detail;
+      const kept = detail.rounds.filter((round) => round.decision === 'kept').length;
+      const tail =
+        `${kept} / ${run.totals.rounds} | ${run.stopReason ?? '-'} | ${Math.round(run.totals.wallMs / 60_000)} | ` +
+        `${spend.studentUsd.toFixed(2)} | ${spend.mentorUsd.toFixed(3)} |`;
       if (!report) {
-        rows.push(`| ${METHOD_LABELS[method]} | ${seed} | ${detail.run.status} | | | | | | |`);
+        rows.push(`| ${METHOD_LABELS[method]} | ${seed} | ${run.status} | | | | | ${tail}`);
         continue;
       }
       const type = (id: string) => {
         const result = report.test.perType.find((entry) => entry.type === id);
         return result ? `${result.pass}/${result.total}` : '-';
       };
-      const dev = report.dev;
       rows.push(
         `| ${METHOD_LABELS[method]} | ${seed} | ${report.test.score.pass}/${report.test.score.total} | ` +
           `${type('invoice')} | ${type('overdue')} | ${type('schedule')} | ` +
-          `${dev.baseline ? `${dev.baseline.pass}` : '-'} to ${dev.final ? `${dev.final.pass}/${dev.final.total}` : '-'} | ` +
-          `${report.cost.rounds} | ${report.cost.mentorUsd.toFixed(3)} |`,
+          `${rate(report.dev.baseline)} to ${rate(report.dev.final)} | ${tail}`,
       );
     }
   }
