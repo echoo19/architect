@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import {
   MENTOR_PRESETS,
   type Job,
@@ -11,7 +11,6 @@ import {
 import {
   Button,
   DialogClose,
-  Input,
   Segmented,
   Select,
   SettingsDialog,
@@ -22,12 +21,11 @@ import {
   type SettingsTab,
 } from '@architect/ui';
 import { Check, CircleAlert } from 'lucide-react';
-import { api, architect } from '../../api/client';
-import { queryKeys, useSecretsStatus } from '../../api/hooks';
-import { fetchQuery, type QueryState } from '../../api/query';
+import type { QueryState } from '../../api/query';
+import { KeyRow } from '../../components/KeyRow';
 import { errorOf, QueryValue } from '../../components/QueryValue';
-import { attempt } from '../../lib/notify';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
+import { mentorProvider } from '../../onboarding/mentor';
 import { modelNames } from '../names';
 import { aboutUsd, estimateMentorUsd, mentorPresetOf } from './estimates';
 import { NumberField, PathField, TabNote, TextField } from './fields';
@@ -54,10 +52,10 @@ const TABS: readonly SettingsTab<AdvancedTab>[] = [
   { value: 'budget', label: 'Budget' },
   { value: 'mentor', label: 'Mentor' },
   { value: 'student', label: "Agent's model" },
-  { value: 'harness', label: 'Starting point' },
+  { value: 'harness', label: 'Starting instructions' },
   { value: 'checker', label: 'Grading', group: EXPERIMENTS },
   { value: 'splits', label: 'Task sets', group: EXPERIMENTS },
-  { value: 'evaluation', label: 'Keeping changes', group: EXPERIMENTS },
+  { value: 'evaluation', label: 'When a change stays', group: EXPERIMENTS },
 ];
 
 const TAB_OF_FIELD: readonly [string, AdvancedTab][] = [
@@ -234,7 +232,7 @@ function TasksTab({ editor, summaries }: TabProps & { summaries: QueryState<JobS
     <>
       <SettingsRow
         label="Example tasks"
-        meta="Requests with known answers. Architect divides them into the task sets."
+        meta="Requests with known answers, from the tasks you attached. Architect divides them into the task sets."
         error={errorOf(summaries)}
       >
         <QueryValue query={summaries}>
@@ -448,7 +446,15 @@ function MentorTab({ editor }: TabProps) {
         />
       </SettingsRow>
       {preset && <TabNote>{preset.note}</TabNote>}
-      <SettingsRow label="Price" meta={TOKEN_NOTE}>
+      <KeyRow secretRef={mentor.secretRef} provider={mentorProvider(mentor)} />
+      <SettingsRow
+        label="Price"
+        meta={
+          preset && preset.provider !== 'meta'
+            ? `Billed by ${mentorProvider(mentor)}. ${TOKEN_NOTE}`
+            : TOKEN_NOTE
+        }
+      >
         <SettingsValue>{preset ? priceText(preset.pricing) : 'Not on file'}</SettingsValue>
       </SettingsRow>
       {usual !== null && (
@@ -557,52 +563,6 @@ function StudentTab({ editor }: TabProps) {
   );
 }
 
-/** Saves a provider's key in the app's encrypted store. The key is never shown again. */
-function KeyRow({ secretRef, provider }: { secretRef: string; provider: string }) {
-  const secrets = useSecretsStatus();
-  const [value, setValue] = useState('');
-  const [saving, setSaving] = useState(false);
-  const save = async () => {
-    setSaving(true);
-    const saved = await attempt(`Couldn't save the ${provider} key`, async () => {
-      await architect().secrets.set(secretRef, value.trim());
-      await fetchQuery(queryKeys.secrets, api.secretsStatus);
-      return true;
-    });
-    setSaving(false);
-    if (saved) setValue('');
-  };
-  const stored = secrets.status === 'success' && secrets.data[secretRef] === true;
-  return (
-    <SettingsRow
-      label={`${provider} key`}
-      meta={`Encrypted on ${deviceInSentence(currentPlatform())}, and only ever sent to ${provider}.`}
-      error={errorOf(secrets)}
-    >
-      <form
-        className="flex items-center gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (value.trim()) void save();
-        }}
-      >
-        <Input
-          type="password"
-          aria-label={`${provider} key`}
-          placeholder={stored ? 'Saved' : 'Paste a key'}
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          autoComplete="off"
-          className="w-44"
-        />
-        <Button type="submit" size="xs" loading={saving} disabled={!value.trim()}>
-          {stored ? 'Replace' : 'Save'}
-        </Button>
-      </form>
-    </SettingsRow>
-  );
-}
-
 const STARTS = [
   { value: 'blank', label: 'Blank' },
   { value: 'template', label: 'Template' },
@@ -676,10 +636,14 @@ function SplitsTab({ editor, summaries }: TabProps & { summaries: QueryState<Job
   const total = summaries.data?.find((summary) => summary.id === job.id)?.taskCount;
   return (
     <>
-      <ExperimentNote>Architect divides the example tasks into these sets.</ExperimentNote>
+      <ExperimentNote>
+        Architect divides the job&apos;s{total === undefined ? '' : ` ${total}`} example tasks into
+        these sets. Each round, {mentor} makes one change to the agent&apos;s instructions, and the
+        check tasks decide whether it stays.
+      </ExperimentNote>
       <NumberField
         label="Difficulty check"
-        meta={`Set aside to measure ${student} before any teaching. Training never uses them.`}
+        meta={`Set aside to measure how hard the job is for ${student} before any teaching. Training never uses them.`}
         unit="tasks"
         value={calibration}
         issue={issues['splits.calibration']}
@@ -695,7 +659,7 @@ function SplitsTab({ editor, summaries }: TabProps & { summaries: QueryState<Job
       />
       <NumberField
         label="Check tasks"
-        meta={`Decide whether each change stays. ${mentor} only ever sees the score.`}
+        meta={`Decide whether each of ${mentor}'s changes stays. ${mentor} only ever sees the score.`}
         unit="tasks"
         value={dev}
         issue={issues['splits.dev']}
@@ -711,7 +675,7 @@ function SplitsTab({ editor, summaries }: TabProps & { summaries: QueryState<Job
       />
       <NumberField
         label="Shuffle number"
-        meta="The same number divides the tasks the same way, so runs compare fairly."
+        meta="Picks which tasks land in which set. The same number gives the same sets, so runs compare fairly."
         value={job.splits.seed}
         issue={issues['splits.seed']}
         onChange={(seed) => splits({ seed })}

@@ -1,11 +1,12 @@
 import {
-  mentorPreset,
-  type MentorConfig,
+  MENTOR_PRESETS,
+  type MentorPresetKey,
   type ReasoningEffort,
   type Theme,
 } from '@architect/shared';
-import { Segmented, SettingsRow, SettingsValue, Skeleton, Switch } from '@architect/ui';
-import { useAppInfo, useGraduates, useOllamaStatus, useSecretsStatus } from '../api/hooks';
+import { Segmented, Select, SettingsRow, SettingsValue, Skeleton, Switch } from '@architect/ui';
+import { useAppInfo, useGraduates, useOllamaStatus } from '../api/hooks';
+import { KeyRow } from '../components/KeyRow';
 import { errorOf, QueryValue, RetryButton } from '../components/QueryValue';
 import { formatBytes } from '../lib/format';
 import {
@@ -16,6 +17,7 @@ import {
   studentLabel,
 } from '../lib/names';
 import { currentPlatform, deviceInSentence, deviceLabel } from '../lib/platform';
+import { mentorFromPreset, mentorProvider, presetFor } from '../onboarding/mentor';
 import type { TabProps } from './SettingsModal';
 
 const THEMES = [
@@ -34,12 +36,6 @@ const EFFORTS = [
   { value: 'medium', label: 'Medium' },
   { value: 'high', label: 'High' },
 ] as const satisfies readonly { value: ReasoningEffort; label: string }[];
-
-const TIERS = [
-  { value: 'meta-spark', label: 'Standard' },
-  { value: 'meta-spark-contributor', label: 'Contributor' },
-] as const;
-type Tier = (typeof TIERS)[number]['value'];
 
 export function GeneralTab({ settings, update }: TabProps) {
   return (
@@ -67,49 +63,37 @@ export function GeneralTab({ settings, update }: TabProps) {
   );
 }
 
-function tierOf(mentor: MentorConfig): Tier | null {
-  if (mentor.kind !== 'model' || mentor.provider !== 'meta') return null;
-  return mentor.model === mentorPreset('meta-spark-contributor').model
-    ? 'meta-spark-contributor'
-    : 'meta-spark';
-}
-
 export function ModelsTab({ settings, update }: TabProps) {
-  const secrets = useSecretsStatus();
   const ollama = useOllamaStatus();
   const mentor = settings.defaultMentor;
   const student = settings.defaultStudent;
-  const tier = tierOf(mentor);
+  const preset = presetFor(mentor);
   const device = deviceInSentence(currentPlatform());
 
   return (
     <>
-      <SettingsRow label="Mentor" meta={`${capitalized(MENTOR_ROLE_DETAIL)}, for new agents`}>
-        <SettingsValue>{mentor.label}</SettingsValue>
-      </SettingsRow>
-      {mentor.kind === 'model' && tier && (
-        <SettingsRow label="Mentor tier" meta={mentorPreset(tier).note}>
-          <Segmented
-            aria-label="Mentor tier"
-            options={TIERS}
-            value={tier}
-            onValueChange={(next) => {
-              const preset = mentorPreset(next);
-              update({ defaultMentor: { ...mentor, label: preset.label, model: preset.model } });
+      <SettingsRow
+        label="Mentor"
+        meta={`${capitalized(MENTOR_ROLE_DETAIL)}, for new agents.${preset ? ` ${preset.note}` : ''}`}
+      >
+        {mentor.kind === 'model' ? (
+          <Select<MentorPresetKey>
+            aria-label="Mentor"
+            placeholder={mentor.label}
+            options={MENTOR_PRESETS.map((option) => ({ value: option.key, label: option.label }))}
+            value={preset?.key}
+            onValueChange={(key) => {
+              const next = MENTOR_PRESETS.find((option) => option.key === key);
+              if (next) update({ defaultMentor: mentorFromPreset(next, mentor) });
             }}
+            className="w-64"
           />
-        </SettingsRow>
-      )}
+        ) : (
+          <SettingsValue>{mentor.label}</SettingsValue>
+        )}
+      </SettingsRow>
       {mentor.kind === 'model' && (
-        <SettingsRow
-          label={`${mentorName(mentor)} key`}
-          meta={`Encrypted on ${device}`}
-          error={errorOf(secrets)}
-        >
-          <QueryValue query={secrets}>
-            {(stored) => (stored[mentor.secretRef] ? 'Saved' : 'Not set')}
-          </QueryValue>
-        </SettingsRow>
+        <KeyRow secretRef={mentor.secretRef} provider={mentorProvider(mentor)} />
       )}
       <SettingsRow label={capitalized(STUDENT_ROLE)} meta={`Every agent runs on it, on ${device}`}>
         <SettingsValue>{studentLabel(student)}</SettingsValue>
