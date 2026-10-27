@@ -16,6 +16,7 @@
  * simply be started again after an interruption. Keys come from the environment, as in run.ts.
  */
 import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -71,7 +72,11 @@ interface RunResult {
   report: ReportCard | null;
   /** What the run spent, from its own cost records: the hosted student and the mentor. */
   spend: { studentUsd: number; mentorUsd: number };
+  /** The commit the script ran from, so a result can be traced to its code. */
+  commit: string;
 }
+
+const COMMIT = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).trim();
 
 /** A run paused by an error (a hosted endpoint down, say) is resumed this many times at most. */
 const MAX_RESUMES = 5;
@@ -251,7 +256,14 @@ async function runOne(jobFile: string, options: Options, method: Method, seed: n
       return;
     }
     const report = detail.run.status === 'finished' ? await host.api.reports.get(runId) : null;
-    const result: RunResult = { method, seed, detail, report, spend: spendOf(dataDir, runId) };
+    const result: RunResult = {
+      method,
+      seed,
+      detail,
+      report,
+      spend: spendOf(dataDir, runId),
+      commit: COMMIT,
+    };
     await writeFile(resultFile(options, method, seed), `${JSON.stringify(result, null, 2)}\n`);
     log(
       `${name}: ${detail.run.status}` +
