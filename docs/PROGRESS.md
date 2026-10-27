@@ -26,7 +26,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 ## 2026-10-27 (Mon), Phase 0 into Phase 1
 
 **Done**
-- Docs: spec, agent rules (`CLAUDE.md`), plan, architecture, decisions 001 to 025, harness format, verified model facts (`MODELS.md`), gotchas. Two second opinions from GPT-6 Astra shaped the sample job (decision 005) and the evaluation protocol (decisions 006, 007, 009).
+- Docs: spec, agent rules (`CLAUDE.md`), plan, architecture, decisions 001 to 027, harness format, verified model facts (`MODELS.md`), gotchas. Two second opinions from GPT-6 Astra shaped the sample job (decision 005) and the evaluation protocol (decisions 006, 007, 009).
 - Merged on main, 946 tests passing, CI green:
   - `packages/shared`: contracts and IPC schemas.
   - `packages/harness`: harness and graduate folders (validation, hashing, diffs, versions, `report.json` and `report.md`, lineage).
@@ -53,6 +53,8 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - One dev run's score moves with a standard deviation of about 2.3 tasks. Simulated with the pilot's per-task pass rates, the old rule kept a do-nothing change about 28% of the time.
 - Now a change that clears the limits is measured again, both versions under new seeds, and kept only if the totals clear twice the limits: 11 to 15% for a do-nothing change in simulation, about 80% for a +4.5 change. Patience for the sample job is four reverts. GPT-6 Astra reviewed it first and agreed.
 - The first start of seed 1 showed the one-shot baseline losing its only reply to a format slip in its worked examples, so it would have measured a typo. Every author now gets one fix for a reply the runner can't use (decision 023), and the mentor's guide shows the exact example format. That start was discarded and seed 1 restarted. The restart then showed the one-shot harness falling from 38/45 to 15/45 on dev: its pricing tool asked for the table `jobs` (the file is `jobs.csv`, and the guide never said names keep the extension), and its scheduling tool had a typo that no JavaScript engine parses. Tools may now name a file without its extension when that is unambiguous (decision 024), and a change set's tools must load in the sandbox before it is measured, with the one fix if they don't (decision 025). Seed 1 started a third time at commit 49c18ea; an independent review (Fable) of the second measurement and the fix step found four smaller problems, all fixed before it.
+- Seed 1, third start: the one-shot draft took dev from 35/45 to 45/45 and passed the locked test 60/60, against 45/60 for the bare student. Architect then started from blank and wrote one change per round, so a loss to that draft would have mixed up "watching" with "writing piece by piece". After a GPT-6 Astra review, a blank start now begins with a whole draft that later rounds refine, and in the comparison each seed's draft is shared: one-shot stops there, Architect and self-reflection refine it (decision 026, reported as a change made after seeing the one-shot score). An imported starting harness now travels with its job.
+- Seed 1 results on the locked test (hosted Glimmer, 60 tasks): bare 45/60, one-shot 60/60, Architect 60/60 and self-reflection 59/60. Both refining runs met the bar on their first dev measurement and stopped, so they tested the shared draft. Paired with bare, Architect is up 25 points (95% interval 15 to 37). Seeds 2 to 5 are running (decision 027), and the shipped graduate's locked test is running again on the local student.
 
 **Next**
 - Main runs on version 2: four methods, seed 1 first, then seeds 2 and 3 if the cost fits. Hosted training and locked tests; local locked tests for one seed per method and the shipped graduate.
@@ -62,7 +64,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Open issues**
 - Two commits reached main red today (a filtered local check hid failures); `pnpm check` now gates commits on its exit code.
 - `docs/screenshots/` holds e2e screenshots with fixture data; the README must use screenshots of real runs.
-- OpenRouter spend is the owner's money and the key is capped at $50: $6.11 used so far (calibration, both pilots, $2.77 on the two discarded starts), $43.89 left. Seed 1 of the main runs comes first, to measure the real cost before seeds 2 and 3.
+- OpenRouter spend is the owner's money. The binding limit is the account's prepaid credit, $10 (the key's $50 cap never mattered): $9.01 was used when hosted calls started failing with HTTP 402 at 23:00 ET, a few minutes into seeds 2 to 5. Those runs are paused in their data folders and continue where they stopped once the owner adds credit; about $15 covers seeds 2 to 5. The local locked test doesn't use OpenRouter and keeps running. Seed 1 of the main runs comes first, to measure the real cost before seeds 2 and 3.
 - Self-hosted Spark Open needs Baseten or Modal credits, and the Baseten id must be confirmed with `GET /v1/models` once a key exists.
 
 **Mentor spend:** about $0.01 of the $150 credit.

@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, readFile, stat } from 'node:fs/promises';
 import { dirname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 import {
   JobSchema,
@@ -125,7 +125,8 @@ export class JobLibrary {
 
   /**
    * Imports a job file with `tasks.jsonl` and a `data/` folder beside it (the sample job ships
-   * this way). The tasks are split at once and the test split is sealed in the vault.
+   * this way), and the starting harness folder when the job imports one. The tasks are split at
+   * once and the test split is sealed in the vault.
    */
   async importFile(file: string): Promise<Job> {
     const source = dirname(resolve(file));
@@ -150,6 +151,16 @@ export class JobLibrary {
         join(this.paths.jobDir(job.id), checker),
         `The checker "${job.checker.path}" is missing next to the job file.`,
       );
+    }
+    if (job.startingHarness.kind === 'import') {
+      const folder = insidePath(job.startingHarness.path);
+      const from = join(source, folder);
+      if (!(await stat(from).catch(() => null))?.isDirectory()) {
+        throw new Error(
+          `The starting harness folder "${job.startingHarness.path}" is missing next to the job file.`,
+        );
+      }
+      await cp(from, join(this.paths.jobDir(job.id), folder), { recursive: true });
     }
     if (tasks.length > 0) await this.installTasks(job, tasks);
 
