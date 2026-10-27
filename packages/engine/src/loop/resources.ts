@@ -1,4 +1,11 @@
-import type { Harness, Job, MentorAdapter, StudentAdapter, StudentTarget } from '@architect/shared';
+import {
+  GuardError,
+  type Harness,
+  type Job,
+  type MentorAdapter,
+  type StudentAdapter,
+  type StudentTarget,
+} from '@architect/shared';
 import { describeDataFiles, type MentorDataFile } from '../mentor/data-files';
 import { MentorGate } from '../mentor/gate';
 import type { BudgetGuard } from './budget';
@@ -13,6 +20,13 @@ import { errorMessage } from './errors';
 import { connectMentor, connectStudent } from './setup';
 
 export type LogLevel = 'info' | 'warn' | 'error';
+
+function mentorReleased(): GuardError {
+  return new GuardError(
+    'split',
+    'The mentor was released for the locked test; nothing in this session can reach one again.',
+  );
+}
 
 export interface ResourceOptions {
   deps: LoopDeps;
@@ -63,13 +77,19 @@ export class SessionResources {
     return student;
   }
 
+  /** The session's mentor, made on first use; refused once the mentor has been released. */
   mentor(): Promise<MentorAdapter> {
+    if (this.released) return Promise.reject(mentorReleased());
     this.mentorCreated ??= connectMentor(this.options.deps, this.options.job);
     return this.mentorCreated;
   }
 
-  /** The gate every author call goes through: leak check, then the dollar cap. */
+  /**
+   * The gate every author call goes through: leak check, then the dollar cap. Refused once the
+   * mentor has been released, so a fresh gate can't reopen what the released one closed.
+   */
   gate(): Promise<MentorGate> {
+    if (this.released) return Promise.reject(mentorReleased());
     const { deps, job, budget, log } = this.options;
     this.gateCreated ??= Promise.resolve()
       .then(() => deps.vault.leakDetector(job.id))
@@ -101,7 +121,8 @@ export class SessionResources {
   /**
    * Releases the mentor: closes the gate, so no mentor call can start, drops the session's
    * adapter, and asks the runtime for the proof the vault requires before it opens the locked
-   * test. Nothing is disposed; once dropped, the adapter is unreachable.
+   * test. Nothing is disposed; once dropped, the adapter is unreachable, and the session makes
+   * no other. A session that never made one passes on none.
    */
   releaseMentor(): Promise<MentorReleased> {
     this.released ??= (async () => {
