@@ -12,7 +12,8 @@
     "build": "electron-vite build",
     "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json && tsc -p e2e/tsconfig.json",
     "e2e": "electron-vite build && playwright test",
-    "package": "electron-vite build && electron-builder --publish never"
+    "package": "electron-vite build && electron-builder --publish never",
+    "e2e:packaged": "playwright test --config playwright.packaged.config.ts"
   },
   "dependencies": {
     "@architect/engine": "workspace:*",
