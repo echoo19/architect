@@ -119,6 +119,11 @@ export const JobSchema = z.object({
   does: z.array(z.string()).default([]),
   doesNot: z.array(z.string()).default([]),
   createdAt: z.iso.datetime(),
+  /**
+   * The date the job's records are current as of (YYYY-MM-DD). When set, the agent treats it as
+   * today, in training and in the workspace, so a snapshot like the sample data stays coherent.
+   */
+  businessDate: z.iso.date().optional(),
   taskTypes: z.array(TaskTypeInfoSchema).min(1),
   data: z.object({ files: z.array(DataFileSchema) }),
   permissions: PermissionsSchema,

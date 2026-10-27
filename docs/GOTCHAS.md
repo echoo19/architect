@@ -2,6 +2,10 @@
 
 Things that bit us, and how to avoid them. Newest first.
 
+## Node's fetch gives up on a silent response after 5 minutes
+
+Node's built-in `fetch` (undici) drops a response that sends nothing for 300 seconds. Meta's Chat Completions stream doesn't send reasoning deltas, so a mentor call that reasons silently for longer would fail with a retryable timeout. Mentor calls run at `medium` effort, well under that; raising effort to `high` on very large prompts is where this would show up.
+
 ## Electron 45 has no postinstall download
 
 Electron 45's package no longer downloads its binary on install; it ships an `install-electron` script instead, and on this machine that script stalled at 0 bytes. Fix: download `electron-v45.0.0-win32-x64.zip` from the GitHub release, check it against `SHASUMS256.txt`, unzip it into `node_modules/electron/dist`, and write `electron.exe` (macOS: `Electron.app/Contents/MacOS/Electron`) into `node_modules/electron/path.txt`.
