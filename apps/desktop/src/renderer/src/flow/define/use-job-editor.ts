@@ -6,9 +6,16 @@ import { queryKeys } from '../../api/hooks';
 import { setQueryData, toError } from '../../api/query';
 import { validateJob, type JobIssues } from './validate';
 
+/**
+ * Where the last edit stands: saved, waiting for a pause in typing or for the save to finish,
+ * or refused by the engine. An edit with issues waits until they are fixed.
+ */
+export type SaveStatus = 'saved' | 'saving' | 'failed';
+
 export interface JobEditor {
   job: Job;
   issues: JobIssues;
+  saveStatus: SaveStatus;
   /** Changes the job at once on screen; saves it when valid, after `quietMs` without changes. */
   change: (recipe: (job: Job) => Job, quietMs?: number) => void;
   /** Saves anything still waiting. Resolves with the saved job, or null if it can't be saved. */
@@ -24,6 +31,7 @@ export const TYPING_PAUSE_MS = 500;
  */
 export function useJobEditor(initial: Job, taskCount: number | null): JobEditor {
   const [job, setJob] = useState(initial);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
   const latest = useRef(initial);
   const dirty = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -51,10 +59,12 @@ export function useJobEditor(initial: Job, taskCount: number | null): JobEditor 
       .then(
         (saved) => {
           setQueryData(queryKeys.job(saved.id), saved);
+          if (!dirty.current) setSaveStatus('saved');
           return saved;
         },
         (error: unknown) => {
           dirty.current = true;
+          setSaveStatus('failed');
           toast({
             tone: 'danger',
             title: "Couldn't save the job",
@@ -76,6 +86,7 @@ export function useJobEditor(initial: Job, taskCount: number | null): JobEditor 
       latest.current = next;
       dirty.current = true;
       setJob(next);
+      setSaveStatus('saving');
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => void save(), quietMs);
     },
@@ -90,5 +101,5 @@ export function useJobEditor(initial: Job, taskCount: number | null): JobEditor 
     [save],
   );
 
-  return { job, issues, change, flush: save };
+  return { job, issues, saveStatus, change, flush: save };
 }

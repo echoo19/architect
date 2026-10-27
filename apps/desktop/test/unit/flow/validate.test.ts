@@ -51,7 +51,7 @@ describe('validateJob', () => {
     };
     const issues = validateJob(job, null);
     expect(issues['checker.path']).toBe('Choose the checker file.');
-    expect(issues['startingHarness.path']).toBe('Choose the harness folder.');
+    expect(issues['startingHarness.path']).toBe('Choose the agent folder.');
   });
 
   it('needs a hosted copy before training can run on one', () => {
