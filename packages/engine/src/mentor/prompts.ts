@@ -65,7 +65,7 @@ Every student has these whatever the harness says, and harness tools are added b
 
 const TOOL_RULES = `## Writing a tool
 
-A tool is plain JavaScript that defines function run(args, ctx) and returns JSON-serializable data. There are no imports, no require and no packages. It runs in a sandbox with no network, no clock and no randomness, so take dates from the data or the arguments. ctx is read-only: ctx.readTable(name, { where, columns, limit }) returns rows, ctx.readText(name) returns a file's text, and ctx.listFiles() lists the job's files. Throw an Error with a clear message for bad input; the student sees it as a tool error. Write tools for steps the student keeps getting wrong by hand, such as exact arithmetic over many rows, date ranges or conflict checks.`;
+A tool is plain JavaScript that defines function run(args, ctx) and returns JSON-serializable data. There are no imports, no require and no packages. It runs in a sandbox with no network, no clock and no randomness, so take dates from the data or the arguments. ctx is read-only. ctx.readTable(file, { where, columns, limit, offset }) returns every matching row, all of them unless you pass limit, as objects keyed by column name with text values and null for empty cells; file is the data file's name as listed, such as "jobs.csv", and where takes the same filters as read_table. ctx.readText(file) returns a text file's content, and ctx.listFiles() lists the job's files. Throw an Error with a clear message for bad input; the student sees it as a tool error. Write tools for steps the student keeps getting wrong by hand, such as exact arithmetic over many rows, date ranges or conflict checks.`;
 
 const ANSWER_FORMAT = `## How tasks are graded
 

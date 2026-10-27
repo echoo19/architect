@@ -56,7 +56,7 @@ class HarnessValidationError extends Error {
   override name = 'HarnessValidationError';
 }
 
-/** Enough of the real edit rules for the loop: system.md, skills and guardrails. */
+/** Enough of the real edit rules for the loop: system.md, skills, tools and guardrails. */
 export function applyEdits(harness: Harness, edits: readonly FileEdit[]): Harness {
   const next = structuredClone(harness);
   for (const edit of edits) {
@@ -71,6 +71,24 @@ export function applyEdits(harness: Harness, edits: readonly FileEdit[]): Harnes
     if (edit.path === 'system.md' && edit.op === 'write') next.system = edit.content;
     if (edit.path === 'guardrails.yaml') {
       next.guardrails = GuardrailsSchema.parse(edit.op === 'write' ? JSON.parse(edit.content) : {});
+    }
+    const tool = /^tools\/([a-z][a-z0-9_]*)\.(js|json)$/.exec(edit.path);
+    if (tool) {
+      const name = tool[1] ?? '';
+      const current = next.tools.find((existing) => existing.name === name) ?? {
+        name,
+        description: name,
+        parameters: { type: 'object' as const, properties: {} },
+        code: '',
+      };
+      next.tools = next.tools.filter((existing) => existing.name !== name);
+      if (edit.op === 'write') {
+        next.tools.push(
+          tool[2] === 'js'
+            ? { ...current, code: edit.content }
+            : { ...current, ...(JSON.parse(edit.content) as object) },
+        );
+      }
     }
     if (edit.path.startsWith('skills/')) {
       const slug = edit.path.slice('skills/'.length, -'.md'.length);

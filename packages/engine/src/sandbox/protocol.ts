@@ -34,6 +34,8 @@ const ToolJobSchema = z.object({
   kind: z.literal('tool'),
   name: z.string(),
   code: z.string(),
+  /** Load the code and check it defines `run`, without calling it. */
+  loadOnly: z.boolean().optional(),
   args: z.record(z.string(), JsonValueSchema),
   files: z.array(FileInfoSchema),
   tables: RefsSchema,

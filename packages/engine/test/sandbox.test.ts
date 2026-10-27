@@ -85,6 +85,66 @@ describe('sandbox', () => {
     });
   });
 
+  it('takes a file by its name without the extension when only one file has it', async () => {
+    const outcome = await sandbox.runTool(
+      tool(
+        'short_names',
+        `function run(args, ctx) {
+          return {
+            jobs: ctx.readTable('jobs', { where: [{ column: 'status', op: '=', value: 'open' }] }),
+            policy: ctx.readText('policy').split(' ')[0],
+          };
+        }`,
+      ),
+      {},
+      data,
+    );
+    expect(valueOf(outcome)).toEqual({
+      jobs: [{ job_id: 'W-2', status: 'open', minutes: '45' }],
+      policy: 'Labor',
+    });
+    const twins: SandboxData = {
+      ...data,
+      files: [...data.files, { name: 'jobs.tsv', kind: 'table', access: 'read', rows: 3 }],
+      tables: { ...data.tables, 'jobs.tsv': jobs },
+    };
+    const ambiguous = failureOf(
+      await sandbox.runTool(
+        tool('ambiguous', `function run(args, ctx) { return ctx.readTable('jobs'); }`),
+        {},
+        twins,
+      ),
+    );
+    expect(ambiguous.message).toContain(
+      'There is no table called "jobs". The tables are: jobs.csv, jobs.tsv.',
+    );
+  });
+
+  it('checks that a tool loads without calling it', async () => {
+    expect(
+      valueOf(
+        await sandbox.checkTool(
+          tool('never_called', 'function run() { throw new Error("run was called"); }'),
+        ),
+      ),
+    ).toBeNull();
+    const typo = failureOf(
+      await sandbox.checkTool(
+        tool('find_slot', 'function run(args, ctx) {\n  var start Day = null;\n}'),
+      ),
+    );
+    expect(typo.kind).toBe('load');
+    expect(typo.message).toMatch(/^SyntaxError: /);
+    expect(typo.message).toContain('tools/find_slot.js:2');
+    expect(failureOf(await sandbox.checkTool(tool('no_run', 'var x = 1;')))).toEqual({
+      kind: 'load',
+      message: 'The tool code must define function run(args, ctx).',
+    });
+    expect(
+      failureOf(await sandbox.checkTool(tool('top_level', 'throw new Error("at load");'))).message,
+    ).toContain('Error: at load');
+  });
+
   it('runs a validator over the end state and the original data', async () => {
     const source = `var validators = {
       appended: function (params, ctx) {

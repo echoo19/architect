@@ -12,6 +12,7 @@ afterEach(() => job?.remove());
 const noSandbox: Sandbox = {
   runTool: () => Promise.reject(new Error('not expected')),
   runValidator: () => Promise.reject(new Error('not expected')),
+  checkTool: () => Promise.reject(new Error('not expected')),
   dispose: async () => undefined,
 };
 
