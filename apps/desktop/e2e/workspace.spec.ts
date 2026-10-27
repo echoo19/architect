@@ -89,7 +89,7 @@ for (const theme of THEMES) {
       totalBytes: 18 * GB,
       done: false,
     });
-    const progress = page.getByRole('progressbar', { name: 'Downloading Muse Glimmer' });
+    const progress = page.getByRole('progressbar', { name: 'Downloading Glimmer' });
     await expect(progress).toHaveAttribute('aria-valuenow', '23');
     await expect(page.getByText('4.2 GB of 18 GB')).toBeVisible();
     await capture(`welcome-download-${theme}.png`);
@@ -97,7 +97,7 @@ for (const theme of THEMES) {
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByRole('heading', { name: 'Choose a mentor' })).toBeVisible();
     const contributor = page.getByRole('radio', { name: /contributor tier/ });
-    const standard = page.getByRole('radio', { name: /Meta does not train on what you send/ });
+    const standard = page.getByRole('radio', { name: /Meta doesn't train on what you send/ });
     await expect(contributor).toContainText('Meta may train on what you send');
     await contributor.click();
     await expect(contributor).toHaveAttribute('aria-checked', 'true');
@@ -166,10 +166,10 @@ for (const theme of THEMES) {
     await expect(page.getByRole('status').filter({ hasText: 'Thinking' })).toBeVisible();
 
     await emitWorkspace(app, { type: 'message.updated', message: pricingReply('started') });
-    await expect(page.getByRole('button', { name: /read_table jobs\.csv/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Reading jobs\.csv/ })).toBeVisible();
     await emitWorkspace(app, { type: 'message.updated', message: pricingReply('working') });
     // Tool steps start folded, as the setting says, and open on a click.
-    const current = page.getByRole('button', { name: /invoice_total job J-4410/ });
+    const current = page.getByRole('button', { name: /Running invoice_total job J-4471/ });
     await expect(current).toHaveAttribute('aria-expanded', 'false');
     await expect(page.getByRole('list', { name: 'Steps' })).toBeHidden();
     await current.click();
@@ -180,14 +180,14 @@ for (const theme of THEMES) {
     await emitWorkspace(app, { type: 'message.updated', message: pricingReply('done') });
     await updateChat(app, CHATS.fresh.id, { running: false });
     // The steps stay as the reader left them; one more click folds them.
-    const worked = page.getByRole('button', { name: 'Worked for 3s' });
+    const worked = page.getByRole('button', { name: 'Worked for 2m 21s' });
     await expect(worked).toHaveAttribute('aria-expanded', 'true');
     await worked.click();
     await expect(page.getByRole('list', { name: 'Steps' })).toBeHidden();
-    await expect(page.locator('strong', { hasText: '$486.20' })).toBeVisible();
+    await expect(page.locator('strong', { hasText: '$524.03' })).toBeVisible();
     const breakdown = page.getByRole('table', { name: 'Price breakdown' });
     await expect(breakdown.getByRole('row')).toHaveCount(6);
-    await expect(breakdown).toContainText('2 more rows, included in the total');
+    await expect(breakdown).toContainText('2 more rows in the total: Plan discount, Tax');
     await expect(page.getByRole('button', { name: 'Copy' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Send' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
@@ -215,23 +215,23 @@ for (const theme of THEMES) {
     const preview = invoices.getByRole('table', { name: 'Rows this change writes' });
     await expect(preview.getByRole('row')).toHaveCount(3);
     await expect(preview).toContainText('Added');
-    await expect(preview).toContainText('INV-4412');
+    await expect(preview).toContainText('INV-4473');
     await expect(booking.getByRole('table', { name: 'Rows this change writes' })).toBeVisible();
     await expect(invoices).toContainText(
-      'Always allow lets Service desk write without asking from now on.',
+      'Allow once saves these rows. Always allow saves them and stops asking from now on',
     );
-    await expect(booking).not.toContainText('Always allow lets');
+    await expect(booking).not.toContainText('Allow once saves');
     const waiting = page
       .getByRole('status')
       .filter({ hasText: 'Waiting for you to allow or deny the changes above.' });
     await expect(waiting).toBeVisible();
     await capture(`workspace-approval-${theme}.png`);
 
-    await invoices.getByRole('button', { name: 'Allow', exact: true }).click();
+    await invoices.getByRole('button', { name: 'Allow once' }).click();
     await expect(invoices).toContainText('Allowed');
     await booking.getByRole('button', { name: 'Deny' }).click();
     await expect(booking).toContainText('Denied');
-    await expect(page.getByRole('button', { name: 'Allow', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Allow once' })).toHaveCount(0);
     await expect(waiting).toBeHidden();
     expect(await callsTo(app, 'workspace:decide')).toEqual([
       ['chg_invoices', 'approve'],
@@ -258,13 +258,6 @@ for (const theme of THEMES) {
   test(`changes what the agent may write and opens its settings (${theme})`, async () => {
     const app = launched.app;
     await open(theme, chatPath(CHATS.closeout.id));
-    await page.getByRole('button', { name: 'Ask before writing' }).click();
-    const modes = page.getByRole('menu');
-    await expect(modes.getByRole('menuitem')).toHaveCount(3);
-    await expect(modes).toContainText('Shows each change and waits for your OK');
-    await modes.getByRole('menuitem', { name: /Writes allowed/ }).click();
-    await expect(page.getByRole('button', { name: 'Writes allowed' })).toBeVisible();
-
     const settingsButton = page.getByRole('button', { name: 'Service desk settings' });
     await settingsButton.click();
     const dialog = page.getByRole('dialog', { name: 'Service desk', exact: true });
@@ -281,15 +274,16 @@ for (const theme of THEMES) {
     expect(await callsTo(app, 'graduates:remove')).toEqual([]);
 
     await dialog.getByRole('tab', { name: 'Permissions' }).click();
-    await expect(dialog.getByRole('radio', { name: 'Writes allowed' })).toHaveAttribute(
+    await expect(dialog.getByRole('radio', { name: 'Ask first' })).toHaveAttribute(
       'aria-checked',
       'true',
     );
-    await dialog.getByRole('radio', { name: 'Read only' }).click();
-    await expect(dialog.getByText('Never changes your files')).toBeVisible();
+    await expect(dialog.getByText('Shows each change and waits for your OK')).toBeVisible();
     await expect(dialog.getByText('Never, by design')).toBeVisible();
     await expect(dialog.getByText('invoices.csv, bookings.csv')).toBeVisible();
     await capture(`workspace-agent-permissions-${theme}.png`);
+    await dialog.getByRole('radio', { name: 'Never' }).click();
+    await expect(dialog.getByText("Can't change your files")).toBeVisible();
 
     await dialog.getByRole('tab', { name: 'Report' }).click();
     await expect(dialog.getByText('92%')).toBeVisible();
@@ -307,11 +301,16 @@ for (const theme of THEMES) {
 
     await dialog.getByRole('button', { name: 'Close' }).click();
     await expect(dialog).toBeHidden();
+    await page.getByRole('button', { name: 'Saving: Never' }).click();
+    const modes = page.getByRole('menu');
+    await expect(modes.getByRole('menuitem')).toHaveCount(3);
+    await expect(modes).toContainText('Shows each change and waits for your OK');
+    await modes.getByRole('menuitem', { name: /Allow/ }).click();
+    await expect(page.getByRole('button', { name: 'Saving: Allow' })).toBeVisible();
     expect(await callsTo(app, 'graduates:updateSettings')).toEqual([
-      [AGENT.id, { writeMode: 'allow' }],
       [AGENT.id, { writeMode: 'never' }],
+      [AGENT.id, { writeMode: 'allow' }],
     ]);
-    await expect(page.getByRole('button', { name: 'Read only' })).toBeVisible();
   });
 }
 

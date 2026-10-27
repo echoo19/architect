@@ -181,11 +181,12 @@ for (const theme of THEMES) {
     await expect(success).toContainText('78%');
     await expect(success).toContainText('62 of 80, over 2 checks');
     await expect(page.getByRole('status').filter({ hasText: 'Scoring the change' })).toBeVisible();
-    await expect(rounds).toContainText('58% to 55%');
+    await expect(rounds).toContainText('65% to 63%');
+    await expect(rounds).toContainText('First draft');
     await expect(rounds).toContainText('Reverted');
     await expect(success.getByRole('img')).toHaveAttribute(
       'aria-label',
-      'Check tasks right by round: 40% at the start, 58% after round 1, round 2 reverted at 55%, ' +
+      'Check tasks right by round: 40% at the start, 65% after the first draft, round 2 reverted at 63%, ' +
         '78% after round 3, round 4 in progress. Target 90%.',
     );
     await expect(page.getByRole('region', { name: 'Resources' })).toContainText(
@@ -228,13 +229,11 @@ for (const theme of THEMES) {
       roundDrawer.getByText('Work in integer cents from start to finish.'),
     ).toBeVisible();
     await expect(roundDrawer).toContainText(
-      '9 more check tasks passed on the first check (23 to 32 of 40). Checked again on new ' +
-        'seeds: 16 more over both checks (46 to 62 of 80), and no task type got worse.',
+      '6 more check tasks passed on the first check (26 to 32 of 40). Run a second time to ' +
+        'rule out luck: 10 more over both checks (52 to 62 of 80), and no task type got worse.',
     );
     await expect(roundDrawer).toContainText("The first check was inside Spark's predicted range.");
-    await expect(
-      roundDrawer.getByText('Checked again on new seeds, over both checks'),
-    ).toBeVisible();
+    await expect(roundDrawer.getByText('Both checks together')).toBeVisible();
     await expect(roundDrawer).not.toContainText('@@');
     await capture(page, `flow-round-${theme}`);
     await page.keyboard.press('Escape');
@@ -284,7 +283,7 @@ for (const theme of THEMES) {
     ).toBeVisible();
     await expect(comparison.getByRole('row', { name: /Architect/ })).toContainText('+52 points');
     await expect(page.getByRole('region', { name: 'What helped most' })).toContainText(
-      '+16 check tasks over 2 checks',
+      '+10 check tasks over 2 checks',
     );
     await expect(page.getByRole('heading', { name: "What it won't do" })).toBeVisible();
     await capture(page, `flow-report-${theme}`);

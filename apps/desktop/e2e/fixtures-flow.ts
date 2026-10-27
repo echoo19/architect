@@ -167,7 +167,7 @@ export function roundFourKept(): RunEvent[] {
         check: { pass: true, reason: 'Feasible, and the earliest start.' },
         latencyMs: 12_300,
         usage: { inputTokens: 8_900, outputTokens: 402 },
-        answerSummary: 'Wed 09:30, Priya N.',
+        answerSummary: 'Thu 10:00, Omar K.',
       },
       prompt: 'Book the earliest plumber for a burst pipe at 9 Birch Ln, zone B.',
     },

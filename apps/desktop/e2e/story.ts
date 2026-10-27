@@ -18,11 +18,12 @@ import type {
  * the sample job from DECISIONS.md 005, a service desk for Ferncliff Home Services, trained on a
  * hosted copy of the student and tested on this computer.
  *
- * Check tasks: 16 of 40 at the start. A change that clears the first check is checked again on
- * new seeds and kept on both checks added up (decision 022), so kept rounds score out of 80:
- * round 1 kept (16 to 24, then 32 to 46 over both), round 2 reverted (23 to 22), round 3 kept
- * (23 to 32, then 46 to 62), round 4 kept (31 to 35, then 62 to 68), rounds 5 and 6 reverted,
- * round 7 kept (72 of 80, the 90% target). Seven rounds over 3 h 21 min cost $0.41 of Spark.
+ * Check tasks: 16 of 40 at the start. The job starts blank, so round 1 is Spark's first full
+ * draft, kept as the starting point (26 of 40, decision 026). After it, a change that clears the
+ * first check is checked again on new seeds and kept on both checks added up (decision 022), so
+ * those rounds score out of 80: round 2 reverted (26 to 25), round 3 kept (26 to 32, then 52 to
+ * 62 over both), round 4 kept (31 to 35, then 62 to 68), rounds 5 and 6 reverted, round 7 kept
+ * (72 of 80, the 90% target). Seven rounds over 3 h 21 min cost $0.41 of Spark.
  * The final test: 55 of 60, and the bare baseline gets 24 of 60, the same 40% Glimmer scored on
  * the check tasks before any teaching.
  */
@@ -56,8 +57,8 @@ export const job: Job = {
     'Shows the line items behind every invoice',
   ],
   doesNot: [
-    'Saves an invoice or a booking without asking',
-    "Reads files the job doesn't list",
+    'Issues refunds or credits',
+    'Changes prices or the rate card',
     'Guesses when the records disagree',
   ],
   createdAt: AT,
@@ -85,7 +86,7 @@ export const job: Job = {
   },
   permissions: { writes: 'ask', unseenFiles: 'ask' },
   checker: { kind: 'builtin' },
-  requirements: { passRate: 0.9, p95LatencyMs: 45_000 },
+  requirements: { passRate: 0.9 },
   budget: { maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: 240 },
   mentor: {
     kind: 'model',
@@ -163,20 +164,24 @@ export function round(index: number, fields: Partial<Round>): Round {
 
 export const rounds: Round[] = [
   round(1, {
-    title: 'Read the rate card first',
+    title: 'Work from the office files',
+    train: { pass: 0, total: 0 },
     diagnosis:
-      'Glimmer prices labor from memory instead of the rate card in policy.md, so tier rates ' +
-      'come out wrong on 5 of 12 practice invoices.',
-    predicted: { devDeltaMin: 4, devDeltaMax: 8, rationale: 'Most invoice failures share it.' },
-    files: ['system.md', 'skills/price-a-job.md'],
+      'A first full setup from the job and its example tasks: read policy.md and the rate card ' +
+      'before answering, a skill for pricing a finished job and one for booking urgent calls.',
+    predicted: {
+      devDeltaMin: 6,
+      devDeltaMax: 12,
+      rationale: 'The blank start misses most invoices and bookings.',
+    },
+    files: ['system.md', 'skills/price-a-job.md', 'skills/book-urgent-calls.md'],
     candidateVersion: 1,
-    devBefore: { pass: 32, total: 80 },
-    devAfter: { pass: 46, total: 80 },
-    firstMeasurement: { devBefore: { pass: 16, total: 40 }, devAfter: { pass: 24, total: 40 } },
+    devBefore: { pass: 16, total: 40 },
+    devAfter: { pass: 26, total: 40 },
     decision: 'kept',
     decisionReason:
-      'Dev 16/40 → 24/40, measured again on new seeds: 32/80 → 46/80 over 2 runs, no type ' +
-      'lost more than two',
+      'Dev 16/40 → 26/40; the first draft is kept as the starting point, and later rounds keep ' +
+      'only measured gains',
   }),
   round(2, {
     title: 'Filter tables before reading them',
@@ -184,10 +189,10 @@ export const rounds: Round[] = [
     predicted: { devDeltaMin: 2, devDeltaMax: 4, rationale: 'Fewer wasted steps.' },
     files: ['system.md'],
     candidateVersion: 2,
-    devBefore: { pass: 23, total: 40 },
-    devAfter: { pass: 22, total: 40 },
+    devBefore: { pass: 26, total: 40 },
+    devAfter: { pass: 25, total: 40 },
     decision: 'reverted',
-    decisionReason: 'Dev 23/40 → 22/40, down 1',
+    decisionReason: 'Dev 26/40 → 25/40, down 1',
   }),
   round(3, {
     title: 'Cents, not dollars',
@@ -197,12 +202,12 @@ export const rounds: Round[] = [
     predicted: { devDeltaMin: 5, devDeltaMax: 9, rationale: 'Every invoice total depends on it.' },
     files: ['system.md', 'skills/price-a-job.md'],
     candidateVersion: 3,
-    devBefore: { pass: 46, total: 80 },
+    devBefore: { pass: 52, total: 80 },
     devAfter: { pass: 62, total: 80 },
-    firstMeasurement: { devBefore: { pass: 23, total: 40 }, devAfter: { pass: 32, total: 40 } },
+    firstMeasurement: { devBefore: { pass: 26, total: 40 }, devAfter: { pass: 32, total: 40 } },
     decision: 'kept',
     decisionReason:
-      'Dev 23/40 → 32/40, measured again on new seeds: 46/80 → 62/80 over 2 runs, no type ' +
+      'Dev 26/40 → 32/40, measured again on new seeds: 52/80 → 62/80 over 2 runs, no type ' +
       'lost more than two',
   }),
   round(4, {
@@ -345,18 +350,18 @@ export const detail: RunDetail = {
   recentAttempts,
   lineage: [
     lineage(round1, 0, [
-      { type: 'invoice', before: 6, after: 18 },
-      { type: 'overdue', before: 16, after: 16 },
-      { type: 'scheduling', before: 10, after: 12 },
+      { type: 'invoice', before: 3, after: 10 },
+      { type: 'overdue', before: 8, after: 10 },
+      { type: 'scheduling', before: 5, after: 6 },
     ]),
     lineage(round2, 1, [
-      { type: 'invoice', before: 9, after: 9 },
-      { type: 'overdue', before: 8, after: 7 },
+      { type: 'invoice', before: 10, after: 10 },
+      { type: 'overdue', before: 10, after: 9 },
       { type: 'scheduling', before: 6, after: 6 },
     ]),
     lineage(round3, 1, [
-      { type: 'invoice', before: 18, after: 30 },
-      { type: 'overdue', before: 16, after: 20 },
+      { type: 'invoice', before: 20, after: 28 },
+      { type: 'overdue', before: 20, after: 22 },
       { type: 'scheduling', before: 12, after: 12 },
     ]),
   ],
@@ -498,7 +503,7 @@ function report(
         ...type,
         pass: method === 'architect' ? type.pass : Math.round(type.pass * scale),
       })),
-      latencyMs: { p50: 24_000, p95: 41_000 },
+      latencyMs: { p50: 150_000, p95: 222_000 },
       refusals: 0,
       ranOffline: true,
     },
@@ -507,8 +512,8 @@ function report(
       final: { pass: 72, total: 80 },
       curve: [
         { round: 0, score: { pass: 16, total: 40 }, decision: 'baseline' },
-        { round: 1, score: { pass: 46, total: 80 }, decision: 'kept' },
-        { round: 2, score: { pass: 22, total: 40 }, decision: 'reverted' },
+        { round: 1, score: { pass: 26, total: 40 }, decision: 'kept' },
+        { round: 2, score: { pass: 25, total: 40 }, decision: 'reverted' },
         { round: 3, score: { pass: 62, total: 80 }, decision: 'kept' },
         { round: 4, score: { pass: 68, total: 80 }, decision: 'kept' },
         { round: 5, score: { pass: 33, total: 40 }, decision: 'reverted' },
@@ -527,15 +532,12 @@ function report(
     topInterventions:
       method === 'architect'
         ? [
-            { round: 3, title: 'Cents, not dollars', delta: 16, runs: 2 },
-            { round: 1, title: 'Read the rate card first', delta: 14, runs: 2 },
+            { round: 1, title: 'Work from the office files', delta: 10 },
+            { round: 3, title: 'Cents, not dollars', delta: 10, runs: 2 },
             { round: 4, title: 'Check the zone travel time', delta: 6, runs: 2 },
           ]
         : [],
-    requirements: {
-      passRate: { target: 0.9, actual, met: actual >= 0.9 },
-      p95LatencyMs: { target: 45_000, actual: 41_000, met: true },
-    },
+    requirements: { passRate: { target: 0.9, actual, met: actual >= 0.9 } },
     overclaim: false,
   };
 }
@@ -585,10 +587,7 @@ export const graduate: GraduateSummary = {
       contextLength: 16_384,
     },
     harness: { version: STORY.version, hash: 'sha256-story' },
-    requirements: {
-      passRate: { target: 0.9, actual: 55 / 60, met: true },
-      p95LatencyMs: { target: 45_000, actual: 41_000, met: true },
-    },
+    requirements: { passRate: { target: 0.9, actual: 55 / 60, met: true } },
     test: { score: { pass: 55, total: 60 }, perType: FINAL_TEST },
     mentor: { label: 'Muse Spark 1.3', model: 'muse-spark-1.3' },
   },

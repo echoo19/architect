@@ -1,6 +1,6 @@
-import type { JobSummary, WorkspaceChat, WorkspaceMessage } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
-import { AT, detail, graduate, job, STORY, storyReport } from './story';
+import { CHATS, MESSAGES } from './fixtures-workspace';
+import { detail, graduate, job, STORY, storyReport } from './story';
 
 /*
  * Sample engine replies for screenshots of populated screens. They stand in for the engine
@@ -9,82 +9,10 @@ import { AT, detail, graduate, job, STORY, storyReport } from './story';
 
 export const SAMPLE = {
   graduateId: STORY.graduateId,
-  chatId: 'cht_closeout',
+  chatId: CHATS.closeout.id,
   jobId: STORY.jobId,
   runId: STORY.runId,
-  trainingRunId: 'run_dispatch',
 };
-
-const chats: WorkspaceChat[] = [
-  {
-    id: SAMPLE.chatId,
-    graduateId: SAMPLE.graduateId,
-    title: 'Close out Tuesday',
-    createdAt: AT,
-    updatedAt: AT,
-    running: false,
-    waiting: false,
-  },
-  {
-    id: 'cht_overdue',
-    graduateId: SAMPLE.graduateId,
-    title: 'Overdue past 60 days',
-    createdAt: AT,
-    updatedAt: AT,
-    running: false,
-    waiting: true,
-  },
-  {
-    id: 'cht_booking',
-    graduateId: SAMPLE.graduateId,
-    title: 'Book the Alder St leak',
-    createdAt: AT,
-    updatedAt: AT,
-    running: true,
-    waiting: false,
-  },
-];
-
-const messages: WorkspaceMessage[] = [
-  {
-    id: 'msg_1',
-    chatId: SAMPLE.chatId,
-    role: 'user',
-    createdAt: AT,
-    text: 'Price the two jobs Dana finished today and tell me the totals.',
-    steps: [],
-    blocks: [],
-    status: 'done',
-  },
-  {
-    id: 'msg_2',
-    chatId: SAMPLE.chatId,
-    role: 'agent',
-    createdAt: AT,
-    text: 'Job J-4410 comes to $486.20 and job J-4412 to $1,284.50. The second ran after hours, so labor is billed at 1.5x, and the customer is a plan member, so 10% comes off before tax.',
-    steps: [],
-    blocks: [],
-    status: 'done',
-    workedMs: 3200,
-  },
-];
-
-const jobs: JobSummary[] = [
-  {
-    id: 'job_dispatch',
-    name: 'Dispatch board',
-    createdAt: AT,
-    taskCount: 120,
-    latestRun: {
-      id: SAMPLE.trainingRunId,
-      status: 'running',
-      phase: 'diagnosing',
-      method: 'architect',
-      devBaseline: { pass: 16, total: 40 },
-      devCurrent: { pass: 23, total: 40 },
-    },
-  },
-];
 
 /** Channel → reply. Any channel not listed keeps the app's own behavior. */
 export type EngineReplies = Record<string, unknown>;
@@ -97,9 +25,10 @@ export const EMPTY_ENGINE: EngineReplies = {
 
 export const SAMPLE_ENGINE: EngineReplies = {
   'graduates:list': [graduate],
-  'workspace:listChats': chats,
-  'workspace:messages': messages,
-  'jobs:list': jobs,
+  'graduates:settings': { writeMode: 'ask' },
+  'workspace:listChats': Object.values(CHATS),
+  'workspace:messages': MESSAGES.filter((message) => message.chatId === CHATS.closeout.id),
+  'jobs:list': [],
   'jobs:get': job,
   'runs:get': detail,
   'reports:get': storyReport,

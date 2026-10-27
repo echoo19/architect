@@ -42,8 +42,8 @@ function chat(id: string, title: string, patch: Partial<WorkspaceChat> = {}): Wo
 export const CHATS = {
   fresh: chat('cht_new', 'New chat', { updatedAt: '2026-10-27T16:30:00.000Z' }),
   closeout: chat('cht_closeout', 'Close out Tuesday', { updatedAt: '2026-10-27T16:10:00.000Z' }),
-  approvals: chat('cht_book', 'Invoice and book Alder St', { running: true, waiting: true }),
-  refund: chat('cht_refund', 'Refund the J-4412 trip fee'),
+  approvals: chat('cht_book', 'Invoice and book Cedar Ave', { running: true, waiting: true }),
+  refund: chat('cht_refund', 'Refund the J-4473 trip fee'),
 };
 
 function message(
@@ -98,19 +98,19 @@ export const MESSAGES: WorkspaceMessage[] = [
   message('msg_close_2', CHATS.closeout.id, 'agent', {
     text: 'Three customers, $2,915.00 in total. The oldest is the Okafor invoice from Sep 3.',
     steps: [step('s1', 'read_table', 'invoices.csv', '412 rows')],
-    workedMs: 2100,
+    workedMs: 96_000,
   }),
   message('msg_book_1', CHATS.approvals.id, 'user', {
-    text: 'Invoice both jobs Dana finished and book the Alder St panel repair for tomorrow morning.',
+    text: 'Invoice both jobs Dana finished and book the Cedar Ave panel repair for Thursday morning.',
   }),
   message('msg_book_2', CHATS.approvals.id, 'agent', {
     status: 'streaming',
-    text: 'Both invoices are ready, and Priya N. has the earliest slot tomorrow, at 09:30. I need your go-ahead before I write anything.',
+    text: 'Both invoices are ready, and Marcus O. has the earliest slot on Thursday, at 10:00. I need your go-ahead before I save anything.',
     steps: [
       step('s1', 'read_table', 'jobs.csv', '2 rows'),
-      step('s2', 'invoice_total', 'job J-4410', '$486.20'),
-      step('s3', 'invoice_total', 'job J-4412', '$1,284.50'),
-      step('s4', 'travel_minutes', 'zone A to zone C', '90 min'),
+      step('s2', 'invoice_total', 'job J-4471', '$524.03'),
+      step('s3', 'invoice_total', 'job J-4473', '$1,116.52'),
+      step('s4', 'travel_minutes', 'zone C to zone C', '0 min'),
       step('s5', 'read_table', 'bookings.csv', '1 row'),
     ],
     blocks: [
@@ -120,8 +120,8 @@ export const MESSAGES: WorkspaceMessage[] = [
         'Append 2 rows to invoices.csv',
         ['invoice', 'job', 'customer', 'total'],
         [
-          ['INV-4410', 'J-4410', 'Okafor', '$486.20'],
-          ['INV-4412', 'J-4412', 'Lindqvist', '$1,284.50'],
+          ['INV-4471', 'J-4471', 'Okafor', '$524.03'],
+          ['INV-4473', 'J-4473', 'Lindqvist', '$1,116.52'],
         ],
       ),
       approval(
@@ -129,12 +129,12 @@ export const MESSAGES: WorkspaceMessage[] = [
         'bookings.csv',
         'Append 1 row to bookings.csv',
         ['booking', 'technician', 'start', 'zone'],
-        [['B-3042', 'Priya N.', 'Wed 09:30', 'C']],
+        [['B-3051', 'Marcus O.', 'Thu 10:00', 'C']],
       ),
     ],
   }),
   message('msg_refund_1', CHATS.refund.id, 'user', {
-    text: 'Refund the $35 trip fee on job J-4412.',
+    text: 'Refund the $35 trip fee on job J-4473.',
   }),
   message('msg_refund_2', CHATS.refund.id, 'agent', {
     blocks: [
@@ -152,13 +152,13 @@ export function pricingReply(stage: 'started' | 'working' | 'writing' | 'done'):
   const steps = [
     step('p1', 'read_table', 'jobs.csv', '2 rows'),
     { ...step('p2', 'load_skill', 'price-a-job'), kind: 'skill' as const },
-    step('p3', 'invoice_total', 'job J-4410', '$486.20'),
-    step('p4', 'invoice_total', 'job J-4412', '$1,284.50'),
+    step('p3', 'invoice_total', 'job J-4471', '$524.03'),
+    step('p4', 'invoice_total', 'job J-4473', '$1,116.52'),
   ];
   const text =
-    'Job J-4410 comes to **$486.20** and job J-4412 to **$1,284.50**.\n\n' +
-    '- J-4412 ran after hours, so labor is billed at 1.5x.\n' +
-    '- The customer on J-4412 is a plan member, so 10% comes off before tax.\n\n' +
+    'Job J-4471 comes to **$524.03** and job J-4473 to **$1,116.52**.\n\n' +
+    '- J-4473 ran after hours, so labor is billed at 1.5x.\n' +
+    '- The customer on J-4473 is a plan member, so 10% comes off before tax.\n\n' +
     "Here's how each total breaks down:";
   const base = { createdAt: AT, status: 'streaming' as const };
   switch (stage) {
@@ -182,19 +182,19 @@ export function pricingReply(stage: 'started' | 'working' | 'writing' | 'done'):
       return message('msg_reply', CHATS.fresh.id, 'agent', {
         steps,
         text,
-        workedMs: 3200,
+        workedMs: 141_000,
         blocks: [
           {
             kind: 'table',
             title: 'Price breakdown',
-            columns: ['Item', 'Job J-4410', 'Job J-4412'],
+            columns: ['Item', 'Job J-4471', 'Job J-4473'],
             rows: [
-              ['Labor', '$280.00', '$810.00'],
-              ['Parts', '$142.50', '$497.98'],
+              ['Labor', '$300.00', '$720.00'],
+              ['Parts', '$158.20', '$412.60'],
               ['Trip fee', '$35.00', '$35.00'],
-              ['Plan discount', '$0.00', '−$134.30'],
-              ['Tax', '$28.70', '$75.82'],
-              ['Total', '$486.20', '$1,284.50'],
+              ['Plan discount', '$0.00', '−$116.76'],
+              ['Tax', '$30.83', '$65.68'],
+              ['Total', '$524.03', '$1,116.52'],
             ],
           },
         ],
