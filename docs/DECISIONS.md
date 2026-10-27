@@ -97,3 +97,9 @@ GPT-6 Astra reviewed the first draft (five task types) and recommended cutting t
 **Context.** Glimmer always reasons; Ollama's `think: false` hides the reasoning but may not stop it. Meta measured 1,811 completion tokens for one agent decision at the default `high` strength and 256 at `low`. On this machine the 30B model generates only a few tokens per second.
 **Decision.** Harnesses default to `thinking: low`, and the mentor may raise it per harness through `decoding.yaml` like any other decoding setting.
 **Consequences.** Several times fewer tokens per step. If low reasoning caps what the student can do, a kept change that raises it will show up in the lineage with its measured cost in latency.
+
+## 016. Harness files are strict
+
+**Context.** Harness folders are written by a model and read back by the runner, the workspace and other people's tools. A silently ignored typo (`max_step` instead of `max_steps`) would make a change do nothing while the lineage claims it was tested.
+**Decision.** Unknown or misspelled keys in any harness or graduate file are validation errors with a "did you mean" hint. On-disk keys are snake_case everywhere (YAML, `lineage.jsonl`, `report.json`). Skills, tools and examples are ordered by slug; a tool's file name must equal its `name`; Windows device names (`con`, `nul`, `com1`...) are refused as names; symlinks and OS clutter files are ignored when reading. A version folder only counts once its `harness.yaml`, written last, exists, and loading fails if the files no longer match the saved hash. Graduate folders carry the report card twice: `report.json` for the app and `report.md` for people.
+**Consequences.** A mentor edit with a typo is rejected and logged as a failed round instead of being kept as a no-op. Folders written on one platform read identically on another.

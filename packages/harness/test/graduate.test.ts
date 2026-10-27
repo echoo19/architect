@@ -41,7 +41,7 @@ async function expectRejection(promise: Promise<unknown>): Promise<readonly stri
 }
 
 describe('graduate folders', () => {
-  it('writes the harness files beside graduate.yaml, report.md and lineage.jsonl', async () => {
+  it('writes the harness files beside graduate.yaml, the report and lineage.jsonl', async () => {
     const dir = await tempDir();
     await writeGraduate(dir, bundle());
     expect((await readdir(dir)).sort()).toEqual([
@@ -51,6 +51,7 @@ describe('graduate folders', () => {
       'guardrails.yaml',
       'harness.yaml',
       'lineage.jsonl',
+      'report.json',
       'report.md',
       'retrieval.yaml',
       'skills',
@@ -98,6 +99,7 @@ describe('graduate folders', () => {
     expect(graduate.manifest).toEqual(input.manifest);
     expect(graduate.lineage).toEqual(input.lineage);
     expect(graduate.reportMarkdown).toBe(renderReportMarkdown(input.report));
+    expect(graduate.report).toEqual(input.report);
   });
 
   it('keeps the optional manifest fields optional', async () => {

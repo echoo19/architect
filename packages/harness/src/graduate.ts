@@ -14,6 +14,7 @@ import { normalizeText } from './text';
 
 export const MANIFEST_FILE = 'graduate.yaml';
 export const REPORT_FILE = 'report.md';
+export const REPORT_DATA_FILE = 'report.json';
 
 /** What goes into a graduate folder. */
 export interface GraduateBundle {
@@ -23,10 +24,14 @@ export interface GraduateBundle {
   lineage: LineageEntry[];
 }
 
-/** A graduate folder read back. The report card is the Markdown file as written. */
+/**
+ * A graduate folder read back. `report` is the structured report card from `report.json`;
+ * `reportMarkdown` is the human copy as written.
+ */
 export interface GraduateFolder {
   harness: Harness;
   manifest: GraduateManifest;
+  report: ReportCard;
   reportMarkdown: string;
   lineage: LineageEntry[];
 }
@@ -42,8 +47,8 @@ function hashMismatch(expected: string, actual: string): HarnessValidationError 
 }
 
 /**
- * Writes a graduate folder: the harness files, `report.md` rendered from the report card,
- * `lineage.jsonl` and `graduate.yaml`, which goes last. The manifest must describe exactly the
+ * Writes a graduate folder: the harness files, the report card as `report.json` and as
+ * `report.md`, `lineage.jsonl` and `graduate.yaml`, which goes last. The manifest must describe exactly the
  * harness given: its version and hash are checked.
  */
 export async function writeGraduate(dir: string, bundle: GraduateBundle): Promise<void> {
@@ -63,6 +68,12 @@ export async function writeGraduate(dir: string, bundle: GraduateBundle): Promis
 
   await writeHarness(dir, bundle.harness);
   await writeFile(join(dir, LINEAGE_FILE), lines.map((line) => `${line}\n`).join(''), 'utf8');
+  await writeFile(
+    join(dir, REPORT_DATA_FILE),
+    `${JSON.stringify(mapKeys(report, camelToSnake), null, 2)}
+`,
+    'utf8',
+  );
   await writeFile(join(dir, REPORT_FILE), renderReportMarkdown(report), 'utf8');
   await writeFile(join(dir, MANIFEST_FILE), stringifyYaml(mapKeys(manifest, camelToSnake)), 'utf8');
 }
@@ -90,6 +101,7 @@ export async function readGraduate(dir: string): Promise<GraduateFolder> {
   const problems: string[] = [];
   const manifestText = await readRequired(dir, MANIFEST_FILE, problems);
   const reportMarkdown = await readRequired(dir, REPORT_FILE, problems);
+  const reportText = await readRequired(dir, REPORT_DATA_FILE, problems);
   const lineageText = await readRequired(dir, LINEAGE_FILE, problems);
 
   let manifest: GraduateManifest | undefined;
@@ -111,6 +123,20 @@ export async function readGraduate(dir: string): Promise<GraduateFolder> {
     }
   }
 
+  let report: ReportCard | undefined;
+  if (reportText !== undefined) {
+    try {
+      report = check(
+        REPORT_DATA_FILE,
+        ReportCardSchema,
+        mapKeys(JSON.parse(reportText), snakeToCamel),
+        problems,
+      );
+    } catch (error) {
+      problems.push(`${REPORT_DATA_FILE}: not valid JSON (${errorMessage(error)})`);
+    }
+  }
+
   let lineage: LineageEntry[] = [];
   if (lineageText !== undefined) {
     try {
@@ -129,10 +155,10 @@ export async function readGraduate(dir: string): Promise<GraduateFolder> {
     problems.push(...error.errors);
   }
 
-  if (problems.length > 0 || !manifest || !harness || reportMarkdown === undefined) {
+  if (problems.length > 0 || !manifest || !harness || !report || reportMarkdown === undefined) {
     throw new HarnessValidationError(problems);
   }
   const actual = hashHarness(harness);
   if (manifest.harness.hash !== actual) throw hashMismatch(manifest.harness.hash, actual);
-  return { harness, manifest, reportMarkdown, lineage };
+  return { harness, manifest, report, reportMarkdown, lineage };
 }
