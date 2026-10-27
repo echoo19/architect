@@ -169,6 +169,47 @@ export function timeoutFailure(service: string, silentMs?: number): Failure {
   return { code: 'timeout', summary: `${service} stopped responding${wait}.`, hint: 'Try again.' };
 }
 
+/** An error the server reported inside a stream that had already started with a 200. */
+export function failureForStreamError(error: ErrorDescription, service: string): Failure {
+  const kind = (error.code ?? '').toLowerCase();
+  const { message } = error;
+  if (/quota|billing/.test(kind)) {
+    return {
+      code: 'quota',
+      summary: `${service} says the account has no credit or no billing set up.`,
+      hint: 'Add credit with the provider, then try again.',
+    };
+  }
+  if (/rate_limit|^429$/.test(kind)) {
+    return {
+      code: 'rate_limit',
+      summary: withDetail(`${service} is rate limiting requests.`, message),
+      hint: 'Wait a moment and try again.',
+    };
+  }
+  if (/auth|api_key|^40[13]$/.test(kind)) {
+    return {
+      code: 'auth',
+      summary: `${service} didn't accept the API key.`,
+      hint: 'Check the key in Settings.',
+    };
+  }
+  if (/content_policy/.test(kind)) {
+    return { code: 'blocked', summary: withDetail(`${service} blocked the reply.`, message) };
+  }
+  if (/context|invalid_request|^400$/.test(kind)) {
+    return {
+      code: 'bad_request',
+      summary: withDetail(`${service} rejected the request.`, message),
+    };
+  }
+  return {
+    code: 'server',
+    summary: withDetail(`${service} stopped the reply with an error.`, message),
+    hint: 'This is usually temporary. Try again.',
+  };
+}
+
 /** Seconds to wait, from `Retry-After` (seconds or an HTTP date) or `retry-after-ms`. */
 export function parseRetryAfter(headers: Headers, now: number = Date.now()): number | undefined {
   const millisHeader = headers.get('retry-after-ms');
@@ -183,8 +224,14 @@ export function parseRetryAfter(headers: Headers, now: number = Date.now()): num
   return Number.isNaN(date) ? undefined : Math.max(0, date - now);
 }
 
-/** Pulls the human message and machine code out of the error shapes providers use. */
-export function describeErrorBody(text: string): { message?: string; code?: string } {
+/** The words and the machine-readable code a server put in an error. */
+export interface ErrorDescription {
+  message?: string;
+  code?: string;
+}
+
+/** Reads an error response body, which may be JSON in any of several shapes, plain text or HTML. */
+export function describeErrorBody(text: string): ErrorDescription {
   const trimmed = text.trim();
   if (trimmed === '') return {};
 
@@ -194,7 +241,11 @@ export function describeErrorBody(text: string): { message?: string; code?: stri
   } catch {
     return trimmed.startsWith('<') ? {} : { message: clip(trimmed) };
   }
-  if (typeof body === 'string') return { message: clip(body) };
+  return typeof body === 'string' ? { message: clip(body) } : describeErrorPayload(body);
+}
+
+/** Pulls the human message and machine code out of the error shapes providers use. */
+export function describeErrorPayload(body: unknown): ErrorDescription {
   if (!isRecord(body)) return {};
 
   const error = body['error'];
@@ -205,7 +256,7 @@ export function describeErrorBody(text: string): { message?: string; code?: stri
         ? { message: error['message'], code: error['code'] ?? error['type'] }
         : { message: body['message'] ?? detailText(body['detail']), code: body['code'] };
 
-  const result: { message?: string; code?: string } = {};
+  const result: ErrorDescription = {};
   if (typeof found.message === 'string' && found.message.trim() !== '') {
     result.message = clip(found.message);
   }
