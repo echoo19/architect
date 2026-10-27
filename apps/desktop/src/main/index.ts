@@ -3,10 +3,12 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import { registerAppHandlers } from './handlers/app';
 import { registerConnectionHandlers } from './handlers/connections';
+import { registerOllamaHandlers } from './handlers/ollama';
 import { registerSecretsHandlers } from './handlers/secrets';
 import { registerSettingsHandlers } from './handlers/settings';
 import { IpcRouter } from './ipc/router';
 import { readLaunchOptions } from './launch';
+import { ModelPulls } from './ollama/pulls';
 import { safeStorageCipher } from './secrets/cipher';
 import { SecretStore } from './secrets/store';
 import { hardenContents, hardenSession, isAppUrl, type AppOrigin } from './security';
@@ -26,7 +28,7 @@ const preload = fileURLToPath(new URL('../preload/index.cjs', import.meta.url));
 
 app.on('web-contents-created', (_event, contents) => hardenContents(contents, origin));
 
-async function openMainWindow(): Promise<BrowserWindow> {
+async function openMainWindow(onClosed: () => void): Promise<BrowserWindow> {
   const stateFile = join(app.getPath('userData'), 'window-state.json');
   const window = createMainWindow({
     state: await loadWindowState(stateFile),
@@ -35,6 +37,7 @@ async function openMainWindow(): Promise<BrowserWindow> {
     hidden: launch.hidden,
   });
   trackWindowState(window, stateFile);
+  window.once('closed', onClosed);
   return window;
 }
 
@@ -53,14 +56,17 @@ async function start(): Promise<void> {
     isTrustedSender: (url) => isAppUrl(url, origin),
     targets: () => BrowserWindow.getAllWindows().map((window) => window.webContents),
   });
+  const pulls = new ModelPulls((progress) => router.emit('ollama', 'onPullProgress', progress));
   const keys = (ref: string) => secrets.get(ref);
   registerAppHandlers(router);
   registerSettingsHandlers(router, settings);
   registerSecretsHandlers(router, secrets);
   registerConnectionHandlers(router, keys);
+  registerOllamaHandlers(router, settings, pulls);
   settings.onChange((next) => router.emit('settings', 'onChange', next));
 
-  let main = await openMainWindow();
+  const cancelPull = () => pulls.cancel();
+  let main = await openMainWindow(cancelPull);
 
   app.on('second-instance', () => {
     if (main.isDestroyed()) return;
@@ -71,7 +77,7 @@ async function start(): Promise<void> {
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length > 0) return;
-    openMainWindow()
+    openMainWindow(cancelPull)
       .then((window) => {
         main = window;
       })
