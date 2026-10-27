@@ -176,13 +176,27 @@ describe('runAgent', () => {
     });
   });
 
-  it('ends the trace with an error when the adapter fails, without throwing', async () => {
-    const { trace } = await run([{ error: new AdapterError('network', 'Ollama is not running.') }]);
+  it("ends the trace with an error when the model's reply can't be read", async () => {
+    const { trace } = await run([
+      {
+        error: new AdapterError('bad_response', 'The model sent tool arguments that are not JSON.'),
+      },
+    ]);
     expect(trace).toMatchObject({
       stopReason: 'error',
-      error: 'Ollama is not running.',
+      error: 'The model sent tool arguments that are not JSON.',
       finalText: '',
     });
+  });
+
+  it('throws when the runtime fails, so an outage is never scored as a wrong answer', async () => {
+    for (const code of ['network', 'server', 'not_found', 'auth', 'timeout'] as const) {
+      await expect(
+        run([{ error: new AdapterError(code, 'Ollama is not running.') }]),
+      ).rejects.toMatchObject({ code });
+      job?.remove();
+      job = undefined;
+    }
   });
 
   it('stops when aborted before, during, or between model turns', async () => {

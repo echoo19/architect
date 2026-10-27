@@ -1,4 +1,5 @@
 import {
+  AdapterError,
   addUsage,
   emptyUsage,
   type ChatMessage,
@@ -180,8 +181,10 @@ export async function runAgent(options: RunAgentOptions): Promise<Trace> {
 }
 
 /**
- * One streamed model turn. Errors from the adapter become a failed turn; errors thrown by
- * `onText` belong to the caller and propagate.
+ * One streamed model turn. A reply the adapter couldn't read becomes a failed turn, which counts
+ * against the student. Any other adapter error means the runtime failed (server down, model
+ * missing, key rejected, network), not the student, so it propagates: an evaluation stops instead
+ * of scoring an outage as wrong answers. Errors thrown by `onText` belong to the caller.
  */
 async function callStudent(
   student: StudentAdapter,
@@ -197,6 +200,7 @@ async function callStudent(
   try {
     stream = student.chat(request, signal)[Symbol.asyncIterator]();
   } catch (error) {
+    if (isRuntimeFailure(error)) throw error;
     return { ok: false, error: errorMessage(error) };
   }
 
@@ -208,6 +212,7 @@ async function callStudent(
         next = await stream.next();
       } catch (error) {
         ended = true;
+        if (isRuntimeFailure(error)) throw error;
         return { ok: false, error: errorMessage(error) };
       }
       if (next.done) {
@@ -228,6 +233,11 @@ async function callStudent(
     if (!ended) await stream.return?.();
   }
   return { ok: true, text, toolCalls, usage, latencyMs: elapsedMs(started) };
+}
+
+/** True for adapter errors caused by the model runtime rather than by what the student wrote. */
+function isRuntimeFailure(error: unknown): boolean {
+  return error instanceof AdapterError && error.code !== 'bad_response' && error.code !== 'aborted';
 }
 
 function errorMessage(error: unknown): string {
