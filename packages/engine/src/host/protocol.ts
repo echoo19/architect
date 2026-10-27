@@ -66,6 +66,9 @@ export const ENGINE_ROUTES = {
   'runs.pause': route(z.tuple([id]), z.void(), (api, [runId]) => api.runs.pause(runId)),
   'runs.resume': route(z.tuple([id]), z.void(), (api, [runId]) => api.runs.resume(runId)),
   'runs.stop': route(z.tuple([id]), z.void(), (api, [runId]) => api.runs.stop(runId)),
+  'runs.retest': route(z.tuple([id, StudentTargetSchema]), z.void(), (api, [runId, target]) =>
+    api.runs.retest(runId, target),
+  ),
   'runs.get': route(z.tuple([id]), RunDetailSchema, (api, [runId]) => api.runs.get(runId)),
   'runs.list': route(z.tuple([id.nullable()]), z.array(RunSchema), (api, [jobId]) =>
     api.runs.list(jobId ?? undefined),

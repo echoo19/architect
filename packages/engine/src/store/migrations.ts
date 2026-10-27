@@ -202,4 +202,20 @@ export const MIGRATIONS: readonly Migration[] = [
       ALTER TABLE reports_by_target RENAME TO reports;
     `,
   },
+  {
+    version: 5,
+    name: 'retests',
+    sql: `
+      -- A finished run's locked test taken again on its other student endpoint, once per target.
+      CREATE TABLE retests (
+        run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+        target TEXT NOT NULL,
+        status TEXT NOT NULL,
+        error TEXT,
+        started_at TEXT NOT NULL,
+        ended_at TEXT,
+        PRIMARY KEY (run_id, target)
+      );
+    `,
+  },
 ];

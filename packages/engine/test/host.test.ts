@@ -169,6 +169,43 @@ describe('the engine host', () => {
     expect(await client.runs.list(job.id)).toHaveLength(1);
   });
 
+  it('re-tests a finished run’s graduate on the other student and files that card too', async () => {
+    const { client, port } = await connect();
+    const job = await client.jobs.createSample();
+    const graduated = next(client, (event) => event.type === 'graduate.ready');
+    const run = await client.runs.start(job.id, {
+      method: 'bare',
+      seed: 1,
+      lockedTestOn: 'hosted',
+    });
+    await graduated;
+
+    const retested = next(
+      client,
+      (event) => event.type === 'eval.finished' && event.split === 'test',
+    );
+    await client.runs.retest(run.id, 'local');
+    await retested;
+    expect(await client.reports.list(run.id)).toEqual(['hosted', 'local']);
+    expect(await client.reports.get(run.id)).toMatchObject({ testedOn: 'hosted' });
+    expect(await client.reports.get(run.id, 'local')).toMatchObject({
+      testedOn: 'local',
+      test: { ranOffline: true },
+    });
+    expect((await client.runs.get(run.id)).run).toMatchObject({ status: 'finished' });
+    await expect(client.runs.retest(run.id, 'local')).rejects.toThrow(
+      "This run's graduate was already re-tested on the local student.",
+    );
+
+    const invalid = await raw(port, {
+      kind: 'request',
+      id: 905,
+      method: 'runs.retest',
+      params: [run.id, 'cloud'],
+    });
+    expect(invalid).toMatchObject({ ok: false, error: { name: 'ValidationError' } });
+  });
+
   it('keeps settings per graduate, starting from the job’s write permission', async () => {
     const { client, port } = await connect();
     const job = await client.jobs.createSample();

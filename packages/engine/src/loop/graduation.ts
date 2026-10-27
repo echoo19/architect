@@ -12,7 +12,7 @@ import { computeReportCard } from '../report/report-card';
 import type { GraduateFreeze, StoredAttempt, StudentPin } from '../store/records';
 import { resultOf } from './attempts';
 import { must } from './errors';
-import { evaluate } from './evaluation';
+import { evaluate, type EvaluationPurpose } from './evaluation';
 import type { RunState } from './run-state';
 import { studentEndpoint } from './setup';
 
@@ -134,6 +134,7 @@ export function runLockedTest(
   state: RunState,
   frozen: GraduateFreeze,
   test: LockedTest,
+  purpose: Exclude<EvaluationPurpose, 'training'>,
 ): Promise<boolean> {
   return evaluate(state, {
     tasks: test.tasks,
@@ -142,7 +143,7 @@ export function runLockedTest(
     version: frozen.harnessVersion,
     seeds: [state.record.seeds.test],
     target: test.target,
-    training: false,
+    purpose,
     concurrency: 1,
   });
 }
@@ -251,5 +252,5 @@ async function graduate(state: RunState, test: LockedTest, frozen: GraduateFreez
 export async function lockedTest(state: RunState): Promise<void> {
   const frozen = must(state.record.freeze, 'The frozen graduate');
   const test = await openLockedTest(state, frozen, state.record.lockedTestOn);
-  if (await runLockedTest(state, frozen, test)) await graduate(state, test, frozen);
+  if (await runLockedTest(state, frozen, test, 'locked_test')) await graduate(state, test, frozen);
 }

@@ -185,6 +185,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       pause: (runId) => controller.pause(runId),
       resume: (runId) => controller.resume(runId),
       stop: (runId) => controller.stop(runId),
+      retest: (runId, target) => controller.retest(runId, target),
       get: runDetail,
       list: async (jobId) => store.runs.list(jobId).map(({ run: listed }) => listed),
       trace,

@@ -56,7 +56,7 @@ async function devEvaluation(
     version,
     seeds: devSeeds(state.record.seeds.devPanel, round, state.job.evaluation.devRepeats),
     target: state.job.student.trainOn,
-    training: true,
+    purpose: 'training',
     concurrency: state.ctx.concurrency,
   };
 }
@@ -112,7 +112,7 @@ export async function attemptTrain(state: RunState, index: number): Promise<void
     version: baseVersion,
     seeds: [roundSeed(state.record.seeds.trainStudent, index)],
     target: state.job.student.trainOn,
-    training: true,
+    purpose: 'training',
     concurrency: state.ctx.concurrency,
   });
   if (!complete) return;

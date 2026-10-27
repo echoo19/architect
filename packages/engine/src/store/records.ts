@@ -53,6 +53,22 @@ export const StoredRunSchema = z.object({
 });
 export type StoredRun = z.infer<typeof StoredRunSchema>;
 
+/**
+ * A finished run's locked test taken again on its other student endpoint. `testing` until its
+ * card is filed, resumed after a restart; `paused` by an error until it is asked for again.
+ */
+export const StoredRetestSchema = z.object({
+  runId: z.string(),
+  target: StudentTargetSchema,
+  status: z.enum(['testing', 'paused', 'finished']),
+  /** Why it paused. */
+  error: z.string().optional(),
+  startedAt: z.iso.datetime(),
+  endedAt: z.iso.datetime().optional(),
+});
+export type StoredRetest = z.infer<typeof StoredRetestSchema>;
+export type RetestStatus = StoredRetest['status'];
+
 /** The author's raw reply, saved before it is parsed so a restart never pays for it twice. */
 export const AuthorReplySchema = z.object({
   text: z.string(),

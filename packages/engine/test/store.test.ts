@@ -7,7 +7,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { migrate, openDatabase } from '../src/store/database';
 import { createEngineStore, openEngineStore, type EngineStore } from '../src/store/engine-store';
 import { MIGRATIONS } from '../src/store/migrations';
-import type { JobRecord, StoredAttempt, StoredRound, StoredRun } from '../src/store/records';
+import type {
+  JobRecord,
+  StoredAttempt,
+  StoredRetest,
+  StoredRound,
+  StoredRun,
+} from '../src/store/records';
 
 const AT = '2026-10-27T14:00:00.000Z';
 const LATER = '2026-10-28T09:00:00.000Z';
@@ -294,6 +300,33 @@ describe('repositories', () => {
     ]);
     store.attempts.insert({ ...attempt('att_6', 1), seed: 12 });
     expect(store.attempts.list({ runId: 'run_1', round: 1 }).map((a) => a.seed)).toEqual([11, 12]);
+  });
+
+  it('keeps one re-test per run and target, and finds the ones still testing', () => {
+    store.runs.insert(storedRun('run_1'));
+    store.runs.insert(storedRun('run_2'));
+    const first: StoredRetest = {
+      runId: 'run_1',
+      target: 'local',
+      status: 'testing',
+      startedAt: AT,
+    };
+    store.retests.insert(first);
+    store.retests.insert({ ...first, runId: 'run_2', startedAt: LATER });
+    expect(() => store.retests.insert(first)).toThrow(/UNIQUE/);
+    expect(store.retests.get('run_1', 'local')).toEqual(first);
+    expect(store.retests.get('run_1', 'hosted')).toBeNull();
+
+    const paused: StoredRetest = { ...first, status: 'paused', error: 'Ollama is not running.' };
+    store.retests.update(paused);
+    expect(store.retests.get('run_1', 'local')).toEqual(paused);
+    expect(store.retests.withStatus('testing').map((retest) => retest.runId)).toEqual(['run_2']);
+    store.retests.update({ ...first, status: 'testing' });
+    expect(store.retests.withStatus('testing').map((retest) => retest.runId)).toEqual([
+      'run_1',
+      'run_2',
+    ]);
+    expect(store.retests.get('run_1', 'local')?.error).toBeUndefined();
   });
 
   it('keeps one report card per run and student endpoint', () => {

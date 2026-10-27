@@ -11,6 +11,7 @@ function setup() {
   const { router, call } = routerHarness();
   const engine = {
     jobs: { list: vi.fn(async () => []), importFile: vi.fn(async () => ({ id: 'job_1' })) },
+    runs: { retest: vi.fn(async () => undefined) },
     reports: {
       get: vi.fn(async () => {
         throw new Error('This run has no report card yet.');
@@ -34,6 +35,12 @@ describe('engine handlers', () => {
       error: { message: 'This run has no report card yet.' },
     });
     errors.mockRestore();
+  });
+
+  it('pass on a re-test with the student endpoint it is for', async () => {
+    const { engine, call } = setup();
+    expect(await call('runs:retest', 'run_1', 'local')).toEqual({ ok: true, value: undefined });
+    expect(engine.runs.retest).toHaveBeenCalledWith('run_1', 'local');
   });
 
   it('pass on which student endpoint a report card is asked for', async () => {

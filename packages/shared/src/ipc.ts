@@ -157,6 +157,14 @@ export interface ArchitectApi {
     pause(runId: string): Promise<void>;
     resume(runId: string): Promise<void>;
     stop(runId: string): Promise<void>;
+    /**
+     * Tests a finished run's frozen graduate again on the other student endpoint, with the
+     * harness version and student it was frozen with and no mentor, and files a report card for
+     * that endpoint. The run itself never changes. Resolves once queued; progress comes as
+     * `eval.progress` and `eval.finished` events for split `test`, the second once the card is
+     * filed. Each endpoint is re-tested once: asking again only resumes a re-test an error paused.
+     */
+    retest(runId: string, target: StudentTarget): Promise<void>;
     get(runId: string): Promise<RunDetail>;
     list(jobId?: string): Promise<Run[]>;
     trace(attemptId: string): Promise<Trace>;
