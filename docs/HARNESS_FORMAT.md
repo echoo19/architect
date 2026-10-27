@@ -87,11 +87,12 @@ rules:
 temperature: 1       # Meta's recommended sampling for Glimmer
 top_p: 0.95
 top_k: 64
-seed: 7              # fixed, so the same harness gives the same results
 max_steps: 8
 max_output_tokens: 2048   # includes reasoning tokens
 thinking: low        # low | medium | high reasoning strength
 ```
+
+The sampler seed is deliberately absent: the runner chooses it for every evaluation, so a harness change can't re-roll its own results.
 
 ### guardrails.yaml
 

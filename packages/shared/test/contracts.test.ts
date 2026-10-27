@@ -46,7 +46,6 @@ describe('schemas', () => {
       temperature: 1,
       topP: 0.95,
       topK: 64,
-      seed: 7,
       maxSteps: 8,
       maxOutputTokens: 2048,
       thinking: 'low',

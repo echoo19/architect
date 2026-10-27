@@ -7,6 +7,8 @@ export interface StudentChatRequest {
   messages: ChatMessage[];
   tools: ToolSpec[];
   decoding: Decoding;
+  /** Sampler seed chosen by the runner, never by the harness, so a change can't re-roll results. */
+  seed: number;
 }
 
 export type StudentStreamEvent =

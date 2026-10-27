@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { JsonValueSchema } from './json';
 import { RequirementsSchema, TaskTypeInfoSchema } from './job';
-import { LineageEntrySchema } from './lineage';
 
 export const FileEditSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('write'), path: z.string().min(1), content: z.string() }),
@@ -36,6 +35,17 @@ export const TypeScoreSchema = z.object({
   total: z.number().int().nonnegative(),
 });
 export type TypeScore = z.infer<typeof TypeScoreSchema>;
+
+/** What the mentor learns about earlier hypotheses: the decision and the overall dev change. */
+export const MentorLineageItemSchema = z.object({
+  round: z.number().int().positive(),
+  title: z.string(),
+  diagnosis: z.string(),
+  files: z.array(z.string()),
+  decision: z.enum(['kept', 'reverted']),
+  devDelta: z.number().int(),
+});
+export type MentorLineageItem = z.infer<typeof MentorLineageItemSchema>;
 
 /**
  * Everything the mentor is allowed to see in a round. The runner builds it from an allowlist;
@@ -81,11 +91,11 @@ export const MentorViewSchema = z.object({
     ),
     perType: z.array(TypeScoreSchema),
   }),
+  /** Overall dev score only: per-type dev counts would be an extra channel for tuning to dev. */
   dev: z.object({
     pass: z.number().int().nonnegative(),
     total: z.number().int().nonnegative(),
-    perType: z.array(TypeScoreSchema),
   }),
-  lineage: z.array(LineageEntrySchema),
+  lineage: z.array(MentorLineageItemSchema),
 });
 export type MentorView = z.infer<typeof MentorViewSchema>;

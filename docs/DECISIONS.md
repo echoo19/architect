@@ -41,13 +41,13 @@ GPT-6 Astra reviewed the first draft (five task types) and recommended cutting t
 ## 006. What the mentor can see
 
 **Context.** Keep-or-revert decisions use dev, and showing the mentor dev traces would let it tune to dev the same way it tunes to train.
-**Decision.** The mentor sees train traces with checker reasons, per-type train results, dev pass counts overall and per task type, and the lineage. It never sees dev traces, dev task ids or dev checker reasons, and never anything from the test split.
-**Consequences.** Dev still leaks a little through aggregate scores (adaptive overfitting), so the number of candidate revisions per run is capped and the report shows the dev to test gap.
+**Decision.** The mentor sees train traces with checker reasons, per-type train results, the overall dev pass count, and its earlier hypotheses with their keep or revert decision and overall dev change. It never sees per-type dev counts, dev traces, dev task ids or dev checker reasons, and never anything from the test split. (Per-type dev counts were in the first version of this decision; GPT-6 Astra pointed out they are an extra channel for tuning to dev, and train results already show which types fail.)
+**Consequences.** Dev still leaks a little through the overall score and the decisions (adaptive overfitting), so rounds per run are capped in advance and the report shows the dev to test gap.
 
 ## 007. One hypothesis per round, kept on a margin
 
 **Context.** The spec allows "one or a few" changes per round. Measuring each change separately costs a full dev evaluation each, and a slow local student makes that expensive.
-**Decision.** Each round the mentor proposes one hypothesis: a change set that may touch several files but serves one diagnosis, with a predicted effect. Dev evaluation uses Meta's recommended sampling for Glimmer (temperature 1.0, top_p 0.95, top_k 64; greedy decoding makes it repetitive) with a fixed seed, and the run-to-run spread on the sample job is measured before the margin is trusted. The change set is kept only if net dev passes rise by at least the job's margin (default: 2 tasks, or 5% of dev if larger) and no task type loses more than one pass. Otherwise it is reverted and logged as a failed hypothesis.
+**Decision.** Each round the mentor proposes one hypothesis: a change set that may touch several files but serves one diagnosis, with a predicted effect. Dev evaluation uses Meta's recommended sampling for Glimmer (temperature 1.0, top_p 0.95, top_k 64; greedy decoding makes it repetitive). The runner, not the harness, owns the sampler seed: candidate and incumbent are evaluated on the same predeclared seeds, so a change can't re-roll its own results. Before the margin is trusted, a pilot runs one harness on dev three times with different student seeds and counts tasks that flip; if the paired difference moves by two or more tasks, the margin or the dev set grows. The change set is kept only if net dev passes rise by at least the job's margin (default: 2 tasks, or 5% of dev if larger) and no task type loses more than one pass. Otherwise it is reverted and logged as a failed hypothesis.
 **Consequences.** Clean attribution in the lineage. Kept changes are an engineering gate, not a significance test, and the README says so.
 
 ## 008. Answers end with a structured line
@@ -56,11 +56,11 @@ GPT-6 Astra reviewed the first draft (five task types) and recommended cutting t
 **Decision.** Task prompts ask the agent to finish with one line `ANSWER: <json>`, where the JSON shape is stated per task type. Write tasks are checked on the end state of the job's scratch data instead.
 **Consequences.** Format failures count as failures (the policy and task text state the format, so formatting is part of the job). The workspace uses the same harness without the answer line requirement.
 
-## 009. The locked test runs on the local student
+## 009. Where training and the locked test run
 
-**Context.** Training may use a hosted copy of the student for speed during development.
-**Decision.** The locked test always runs on the student runtime the graduate will use in the workspace (Ollama on this machine by default), with the mentor adapter disposed.
-**Consequences.** The report card describes the agent the user will actually run.
+**Context.** On this machine the local student needs 2 to 3 minutes per task (measured 2026-10-27), so a full comparison (four methods, three seeds) can't be optimized locally in the time available. A hosted copy of Glimmer is much faster.
+**Decision.** Training rounds and dev evaluations may run on a hosted copy of the student. Every graduate is frozen before any test runs, and test results never trigger another round. The graduate the app ships, and one predeclared seed of every method, are locked-tested on the local student with the mentor disposed. Hosted locked tests cover every seed as supplementary results. GPT-6 Astra reviewed this and preferred local tests for every seed; that stays the goal if GPU time allows.
+**Consequences.** The report card of a shipped graduate describes the agent the user actually runs. The README states, for every number, the provider, precision, runtime and seed it came from, and says plainly that optimization happened on a hosted copy.
 
 ## 010. Job setup follows the design's conversation, with every field editable
 

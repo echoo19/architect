@@ -58,11 +58,10 @@ export const RetrievalSchema = z.object({
 export type Retrieval = z.infer<typeof RetrievalSchema>;
 
 export const DecodingSchema = z.object({
-  /** Meta's recommended sampling for Glimmer; a fixed seed keeps evaluations repeatable. */
+  /** Meta's recommended sampling for Glimmer. The sampler seed is not here: the runner owns it. */
   temperature: z.number().min(0).max(2).default(1),
   topP: z.number().gt(0).max(1).default(0.95),
   topK: z.number().int().min(0).max(1000).default(64),
-  seed: z.number().int().default(7),
   maxSteps: z.number().int().min(1).max(40).default(8),
   /** Includes reasoning tokens, which count against the cap. */
   maxOutputTokens: z.number().int().min(64).max(32_768).default(2048),
