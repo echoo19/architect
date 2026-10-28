@@ -113,12 +113,52 @@ export type ModelBinding = z.infer<typeof ModelBindingSchema>;
 export const InstallStatusSchema = z.enum(['ready', 'needs_attention', 'blocked', 'unchecked']);
 export type InstallStatus = z.infer<typeof InstallStatusSchema>;
 
+/** Why a check wasn't tried: it wasn't asked for this time, or a check it needs failed first. */
+export const CheckSkipSchema = z.enum(['not_asked', 'after_failure']);
+export type CheckSkip = z.infer<typeof CheckSkipSchema>;
+
+/**
+ * What stands between a version and its base model on this computer, so a screen offers the way
+ * out that helps: download it, choose the exact build, or choose a model on the runtime that can
+ * serve it. `unavailable` is a runtime that didn't answer or couldn't serve it.
+ */
+export const ModelProblemSchema = z.enum([
+  'not_downloaded',
+  'other_build',
+  'wrong_runtime',
+  'unavailable',
+]);
+export type ModelProblem = z.infer<typeof ModelProblemSchema>;
+
+/** A folder the folders check found wanting, and what it lacks. */
+export const FolderProblemSchema = z.object({
+  name: z.string(),
+  /** No folder chosen, not allowed, chosen but gone, or missing files or columns it needs. */
+  problem: z.enum(['not_chosen', 'not_allowed', 'missing', 'files']),
+});
+export type FolderProblem = z.infer<typeof FolderProblemSchema>;
+
+/**
+ * One install check. `detail` is the engine's own sentence, which says what to do when it failed;
+ * the fields after it are what a screen needs to word the check and offer its fix without reading
+ * that sentence. Checks stored before they existed have none of them.
+ */
 export const InstallCheckSchema = z.object({
   id: z.string(),
   kind: z.string(),
   status: z.enum(['passed', 'failed', 'skipped']),
   detail: z.string(),
   ms: z.number().int().nonnegative().optional(),
+  /** For a skipped check: why it wasn't tried. */
+  skipped: CheckSkipSchema.optional(),
+  /** For the llama.cpp check: the llama-server build it found. */
+  build: z.number().int().positive().optional(),
+  /** For the base model check: whether this computer has the build the version was tested on. */
+  sameBuild: z.boolean().optional(),
+  /** What stands in the way of the base model, on the check that found it. */
+  modelProblem: ModelProblemSchema.optional(),
+  /** For the folders check: each folder that isn't ready, and why. */
+  folders: z.array(FolderProblemSchema).optional(),
 });
 export type InstallCheck = z.infer<typeof InstallCheckSchema>;
 
