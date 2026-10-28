@@ -140,7 +140,15 @@ export class RunController {
    * candidate version of that agent. The active version keeps answering and never changes. Like
    * any run it waits its turn while another holds the student, and says so.
    */
-  async improve(graduateId: string, options: ImproveOptions): Promise<ImprovementStart> {
+  improve(graduateId: string, options: ImproveOptions): Promise<ImprovementStart> {
+    // One at a time per agent, so two quick asks can't both pass the check for a running one.
+    return this.versionLock.run(graduateId, () => this.startImprovement(graduateId, options));
+  }
+
+  private async startImprovement(
+    graduateId: string,
+    options: ImproveOptions,
+  ): Promise<ImprovementStart> {
     const { jobs, store, paths } = this.options;
     const plan = improvementPlan(store, paths, graduateId);
     const job = await jobs.get(plan.jobId);

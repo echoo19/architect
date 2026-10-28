@@ -18,7 +18,13 @@ describe('the caps on teaching', () => {
     world = await createWorld({
       tasks: [...defaultTasks(), ...extra],
       job: {
-        evaluation: { trainBatch: 13, minDevGain: 2, maxTypeRegression: 1, patience: 3 },
+        evaluation: {
+          trainBatch: 13,
+          minDevGain: 2,
+          maxTypeRegression: 1,
+          devRepeats: 1,
+          patience: 3,
+        },
       },
     });
     world.mentor.script = (_request, call) =>

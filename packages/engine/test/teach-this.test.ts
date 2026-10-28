@@ -425,10 +425,14 @@ describe('Improve agent', () => {
       engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 }),
     ).rejects.toThrow('Service desk has no queued lessons. Queue one with Teach this first.');
     await queued(engine);
-    await engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 });
-    await expect(
+    const asks = await Promise.allSettled([
       engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 }),
-    ).rejects.toThrow('Service desk is already being improved. Wait for it, or stop it first.');
+      engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 }),
+    ]);
+    expect(asks.map((ask) => ask.status)).toEqual(['fulfilled', 'rejected']);
+    expect(asks[1]?.status === 'rejected' ? String(asks[1].reason) : '').toContain(
+      'Service desk is already being improved. Wait for it, or stop it first.',
+    );
     await engine.controller.idle();
   });
 });
