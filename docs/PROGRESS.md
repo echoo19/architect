@@ -9,6 +9,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Engine: rounds say when they were a whole draft, and a graduate's manifest records which round made its setup, so the app names setups by round instead of by version number; the report card carries what a hosted student cost.
 - The second sample job (below) is merged; it hasn't run yet.
 - Seed 1's graduate passed its locked test on this computer's 4-bit Glimmer, offline: 60/60.
+- The release workflow ran once by hand (no tag, nothing published): the Windows installer (111 MB) and both macOS disk images (247 MB together) built, and each job started its packaged app and passed the packaging specs. Only a launch on a real Mac is still unverified.
 
 **Next**
 - Hosted credit from the owner, then: seeds 2 to 5, calibrating and running the second job, and a real Architect run through the app for screenshots, the shipped graduate and the demo.
