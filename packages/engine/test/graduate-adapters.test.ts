@@ -108,6 +108,7 @@ describe('serving a version that carries an adapter', () => {
       baseUrl: ollama.url,
       adapter: standInAdapter(base.header),
       adapterIdentity: { scale: 0.75, baseDigest: base.digest },
+      contextLength: 32_768,
     });
     expect(made.library.summary('grd_desk').manifest.student.adapter).toEqual({ scale: 0.75 });
 
@@ -127,6 +128,8 @@ describe('serving a version that carries an adapter', () => {
     expect(flag(started?.argv, '--lora')).toBe(adapterOf(made, 1));
     expect(started?.argv).toContain('--lora-init-without-apply');
     expect(flag(started?.argv, '--host')).toBe('127.0.0.1');
+    // With the context the version was made with, which its chats' history is sized to.
+    expect(flag(started?.argv, '--ctx-size')).toBe('32768');
     // Both turns of the reply (the read, then the answer) applied the adapter at its scale.
     expect(chats(record).map((entry) => entry.body?.['lora'])).toEqual([
       [{ id: 0, scale: 0.75 }],
@@ -213,7 +216,7 @@ describe('serving a version that carries an adapter', () => {
       "Version 1 of Service desk wasn't opened. muse-glimmer:30b on this computer is another build",
     );
     expect((refused as GuardError).message).toContain(
-      `Install the build of muse-glimmer:30b whose weights are ${trainedOn.digest}`,
+      `the build whose weights are ${trainedOn.digest}: add that build to Ollama under a name of its own`,
     );
 
     // With the right build in place it opens; an adapter changed afterwards never loads.
@@ -256,13 +259,15 @@ describe('A07: a package with an adapter, installed on another computer', () => 
   const GRANTS: ImportRequest['grants'] = { writes: 'ask', resources: { data: 'read_write' } };
 
   /** The author's graduate with a stand-in adapter trained on their base, exported. */
-  async function authored(): Promise<{ archive: string; base: StoredBase }> {
+  async function authored(
+    adapter: { seed?: number; scale?: number } = {},
+  ): Promise<{ archive: string; base: StoredBase }> {
     const author = await computer();
     const base = storeBase(author.modelsDir);
     await addVersion(author, {
       graduateId: 'grd_desk',
-      adapter: standInAdapter(base.header),
-      adapterIdentity: { scale: 0.8, baseDigest: base.digest, standIn: true },
+      adapter: standInAdapter(base.header, adapter.seed ?? 1),
+      adapterIdentity: { scale: adapter.scale ?? 0.8, baseDigest: base.digest, standIn: true },
     });
     const exported = await exportPackage(
       { library: author.library, secrets: { get: async () => undefined } },
@@ -359,7 +364,7 @@ describe('A07: a package with an adapter, installed on another computer', () => 
       ),
     ]);
     expect(result.installation.reasons[0]).toContain(
-      `Install the build of muse-glimmer:30b whose weights are ${base.digest}, the exact base it was trained on, in place of this one. It is about 1 GB.`,
+      `It needs the exact base it was trained on, the build whose weights are ${base.digest}: add that build to Ollama under a name of its own, then set this agent's model to that name. That build is about 1 GB.`,
     );
     await expect(activeVersion(recipient.store, recipient.paths, 'grd_desk')).rejects.toThrow(
       "can't run on this computer",
@@ -375,6 +380,74 @@ describe('A07: a package with an adapter, installed on another computer', () => 
     expect(result.installation.reasons).toEqual([
       'llama-server is build 9000, older than 10358, the first that runs Muse Glimmer. Update llama.cpp to build 10358 or newer.',
     ]);
+    expect(result.installation.checks.slice(-2)).toMatchObject([
+      { id: 'model-available', status: 'passed' },
+      {
+        id: 'model-responds',
+        status: 'skipped',
+        detail: "Skipped: llama-server can't run it yet.",
+      },
+    ]);
     expect(starts(record)).toEqual([]);
+  });
+
+  it('serves a package imported again under the same id with its own adapter, not the one before', async () => {
+    const first = await authored({ seed: 1, scale: 1 });
+    const second = await authored({ seed: 2, scale: 0.5 });
+    const { made: recipient, record } = await withLlamaServer();
+    storeBase(recipient.modelsDir);
+    const runtime = recipient.workspaceRuntime();
+    const agent = createAgentHost({
+      store: workspaceStore(recipient.store, recipient.dataDir),
+      adapters: runtime,
+    });
+    cleanups.push(() => agent.close());
+
+    await install(recipient, first.archive);
+    await agent.openGraduate('grd_desk');
+    const chat = await agent.createChat('grd_desk');
+    expect((await reply(agent, chat.id, 'Hello?')).text).toBe(scaled(1));
+
+    // Removing it lets go of llama-server, which had its adapter loaded.
+    await agent.closeGraduate('grd_desk');
+    expect(runtime.status().state).toBe('stopped');
+    await recipient.library.remove('grd_desk');
+    const again = await install(recipient, second.archive);
+    expect(again.version).toBe(1);
+
+    // Its adapter lands where the first one was, and is served as the file it is: each import's
+    // check and each chat started a server of its own.
+    await agent.openGraduate('grd_desk');
+    const next = await agent.createChat('grd_desk');
+    expect((await reply(agent, next.id, 'Hello again?')).text).toBe(scaled(0.5));
+    expect(starts(record).map((entry) => flag(entry.argv, '--lora'))).toEqual(
+      Array.from({ length: 4 }, () => adapterOf(recipient, 1)),
+    );
+  });
+});
+
+describe('installation checks that load a model through llama-server', () => {
+  it('take turns on the one server, so two agents checked at once both pass', async () => {
+    const { made, record } = await withLlamaServer();
+    const base = storeBase(made.modelsDir);
+    for (const [graduateId, seed] of [
+      ['grd_one', 1],
+      ['grd_two', 2],
+    ] as const) {
+      await addVersion(made, {
+        graduateId,
+        adapter: standInAdapter(base.header, seed),
+        adapterIdentity: { baseDigest: base.digest },
+      });
+    }
+    const checked = await Promise.all([
+      made.library.verify('grd_one', { loadModel: true }),
+      made.library.verify('grd_two', { loadModel: true }),
+    ]);
+    expect(checked.map((installation) => [installation.status, installation.reasons])).toEqual([
+      ['ready', []],
+      ['ready', []],
+    ]);
+    expect(starts(record)).toHaveLength(2);
   });
 });

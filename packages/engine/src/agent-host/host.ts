@@ -60,7 +60,10 @@ export interface AgentHost extends WorkspaceApi {
    */
   openGraduate(graduateId: string, cpuThreads?: number): Promise<void>;
   send(chatId: string, text: string, options?: SendOptions): Promise<void>;
-  /** Stops the graduate's replies and unloads it. */
+  /**
+   * Stops the graduate's replies and unloads it: for a version with an adapter, llama-server stops
+   * once no other reply is using it.
+   */
   closeGraduate(graduateId: string): Promise<void>;
   /** Stops every reply and the tool sandbox. The store stays open: it belongs to the caller. */
   close(): Promise<void>;
@@ -264,8 +267,11 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
 
     async closeGraduate(graduateId) {
       await stopReplies((reply) => reply.graduateId === graduateId);
+      const graduate = graduates.get(graduateId);
       graduates.delete(graduateId);
       threads.delete(graduateId);
+      // Its adapter is loaded in llama-server, which holds the GPU: it goes with the graduate.
+      if (graduate?.adapter) await graduate.student.release();
     },
 
     async listChats(graduateId) {

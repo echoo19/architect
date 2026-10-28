@@ -722,7 +722,7 @@ describe('serving a graduate with its adapter', () => {
       cause: {
         code: 'base_mismatch',
         message: `muse-glimmer:30b-iq2 on this computer is another build (weights ${digest.slice(0, 19)}) than the one its adapter was trained on (sha256:b2b2b2b2b2b2).`,
-        hint: `Install the build of muse-glimmer:30b-iq2 whose weights are ${otherBuild}, the exact base it was trained on, in place of this one.`,
+        hint: `It needs the exact base it was trained on, the build whose weights are ${otherBuild}: add that build to Ollama under a name of its own, then set this agent's model to that name.`,
       },
     });
     const changed = await serve({ baseDigest: digest, sha256: 'c3'.repeat(32) })
@@ -747,6 +747,48 @@ describe('serving a graduate with its adapter', () => {
       cause: { code: 'adapter_unusable' },
     });
     expect(starts(record)).toHaveLength(1);
+  });
+
+  it('restarts for an adapter file replaced at the same path, and runs with the context asked for', async () => {
+    const { runtime, record, adapters, digest, base } = setUp();
+    const [candidate] = adapters;
+    if (!candidate) throw new Error('No candidate.');
+    const named = () =>
+      runtime.access({
+        model: 'muse-glimmer:30b-iq2',
+        adapters: [{ ...candidate, sha256: sha256Of(candidate.path) }],
+        scales: { candidate: 1 },
+        baseDigest: digest,
+        contextLength: 32_768,
+      });
+    (await named().acquire()).release();
+    // Another adapter where the first one was, as when an agent is removed and imported again:
+    // the running server loaded the old file, so it must not answer for the new one.
+    const replace = (options: { seed?: number; rank?: number }) =>
+      writeFileSync(
+        candidate.path,
+        encodeGguf(standInLoraSpec(base, { modules: ['attn_q'], effect: 'perturb', ...options })),
+      );
+    replace({ seed: 9 });
+    (await named().acquire()).release();
+    expect(starts(record)).toHaveLength(2);
+    expect(starts(record).map((entry) => flag(entry.argv ?? [], '--ctx-size'))).toEqual([
+      '32768',
+      '32768',
+    ]);
+    await expect(named().describe()).resolves.toMatchObject({ contextLength: 32_768 });
+
+    // Without a sha256, the file's size and time tell the two apart.
+    const unnamed = runtime.access({
+      model: 'muse-glimmer:30b-iq2',
+      adapters: [candidate],
+      scales: { candidate: 1 },
+    });
+    (await unnamed.acquire()).release();
+    replace({ rank: 8 });
+    (await unnamed.acquire()).release();
+    expect(starts(record)).toHaveLength(4);
+    expect(flag(starts(record).at(-1)?.argv ?? [], '--ctx-size')).toBe('16384');
   });
 
   it('finds every problem at once, and loads nothing to find them', async () => {

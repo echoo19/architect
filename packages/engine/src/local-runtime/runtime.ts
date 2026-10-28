@@ -42,6 +42,8 @@ export interface ServeRequest {
    * Ollama's store. A model of that name with other weights is refused before anything loads.
    */
   baseDigest?: string;
+  /** The context the server runs with, as the version was made with; the runtime's default when absent. */
+  contextLength?: number;
 }
 
 /** Everything serving a request needs, as a check found it. Nothing was loaded to find it. */
@@ -178,25 +180,33 @@ export class LocalAdapterRuntime implements AdapterServing {
    * and each adapter's file and fit. Throws the first problem it finds.
    */
   async prepare(
-    request: Pick<ServeRequest, 'model' | 'adapters' | 'baseDigest'>,
+    request: Pick<ServeRequest, 'model' | 'adapters' | 'baseDigest' | 'contextLength'>,
   ): Promise<{ launch: LlamaServerLaunch; model: OllamaModelFile; version: ServerVersion }> {
     const keys = request.adapters.map((adapter) => adapter.key);
     if (new Set(keys).size !== keys.length) throw new Error('Two adapters have the same key.');
     const { command, version } = await this.serverCommand();
     const { model, header } = this.resolveBase(request.model);
     this.assertBaseBuild(request, model);
-    for (const adapter of request.adapters) await this.checkAdapter(request.model, adapter, header);
+    const adapterFiles: string[] = [];
+    for (const adapter of request.adapters) {
+      adapterFiles.push(await this.checkAdapter(request.model, adapter, header));
+    }
     const threads = this.options.threads?.();
     const launch: LlamaServerLaunch = {
       command,
       modelPath: model.modelPath,
       alias: request.model,
       adapters: request.adapters.map((adapter) => adapter.path),
-      contextSize: this.options.contextSize ?? DEFAULT_STUDENT.contextLength,
+      adapterFiles,
+      contextSize: this.contextLength(request),
       gpuLayers: this.options.gpuLayers ?? ALL_LAYERS,
       ...(threads === undefined ? {} : { threads }),
     };
     return { launch, model, version };
+  }
+
+  private contextLength(request: Pick<ServeRequest, 'contextLength'>): number {
+    return request.contextLength ?? this.options.contextSize ?? DEFAULT_STUDENT.contextLength;
   }
 
   /**
@@ -292,7 +302,7 @@ export class LocalAdapterRuntime implements AdapterServing {
       model: request.model,
       digest: model.digest,
       sizeBytes: model.sizeBytes,
-      contextLength: this.options.contextSize ?? DEFAULT_STUDENT.contextLength,
+      contextLength: this.contextLength(request),
     });
   }
 
@@ -346,22 +356,24 @@ export class LocalAdapterRuntime implements AdapterServing {
     const expected = request.baseDigest;
     if (expected === undefined || model.digest === expected) return;
     const trained = request.adapters.length === 1 ? 'its adapter was' : 'its adapters were';
+    // Other versions may use the model under this name, so the fix never replaces it.
     throw new LocalRuntimeError(
       'base_mismatch',
       `${request.model} on this computer is another build (weights ${shortDigest(model.digest)}) than the one ${trained} trained on (${shortDigest(expected)}).`,
-      `Install the build of ${request.model} whose weights are ${expected}, the exact base it was trained on, in place of this one.`,
+      `It needs the exact base it was trained on, the build whose weights are ${expected}: add that build to Ollama under a name of its own, then set this agent's model to that name.`,
     );
   }
 
   /**
    * Checks one adapter before anything loads it: its file is the one its package lists, it reads
-   * as GGUF, and it fits the base (when the base could be read).
+   * as GGUF, and it fits the base (when the base could be read). Returns what the file holds: its
+   * sha256 when the request names one, else its size and time.
    */
   private async checkAdapter(
     model: string,
     adapter: AdapterFile,
     base: GgufHeader | null,
-  ): Promise<void> {
+  ): Promise<string> {
     const unreadable = () =>
       new LocalRuntimeError(
         'adapter_unusable',
@@ -381,15 +393,17 @@ export class LocalAdapterRuntime implements AdapterServing {
       }
     }
     const header = this.header(adapter.path, unreadable);
-    if (base === null) return;
-    const check = checkLoraAgainstBase(header, base);
-    if (!check.ok) {
-      throw new LocalRuntimeError(
-        'adapter_unusable',
-        `The adapter for ${adapter.key} doesn't fit ${model}: ${check.problems[0] ?? ''}`,
-        'Use the model it was trained for, or train it again for this one.',
-      );
+    if (base !== null) {
+      const check = checkLoraAgainstBase(header, base);
+      if (!check.ok) {
+        throw new LocalRuntimeError(
+          'adapter_unusable',
+          `The adapter for ${adapter.key} doesn't fit ${model}: ${check.problems[0] ?? ''}`,
+          'Use the model it was trained for, or train it again for this one.',
+        );
+      }
     }
+    return adapter.sha256 ?? stamp;
   }
 
   /** A file's sha256, worked out again only when the file changes. */

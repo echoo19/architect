@@ -36,8 +36,8 @@ export interface ActiveVersion {
 /**
  * What the adapter runtime serves for a version with an adapter, on this computer: the base by
  * the name its installation gives it in Ollama's store, held to the build the adapter was trained
- * on, and the version's own adapter file, held to its sha256, at the scale it was measured at.
- * Null for a version without an adapter.
+ * on, and the version's own adapter file, held to its sha256, at the scale it was measured at,
+ * with the version's context. Null for a version without an adapter.
  */
 export function serveRequestFor(
   name: string,
@@ -53,6 +53,7 @@ export function serveRequestFor(
     adapters: [{ key, path: join(dir, ...adapter.path.split('/')), sha256: adapter.sha256 }],
     scales: { [key]: adapter.scale },
     baseDigest: adapter.baseDigest,
+    contextLength: version.manifest.model.inference.contextLength,
   };
 }
 

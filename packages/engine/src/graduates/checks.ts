@@ -318,12 +318,11 @@ const skipped = (id: string, kind: string, detail: string): InstallCheck => ({
 });
 
 /** The model-responds check when no request is sent. */
-function respondsSkipped(options: CheckOptions): InstallCheck {
-  return skipped(
-    'model-responds',
-    'model_responds',
-    options.loadModel ? 'Skipped: the model is not available.' : 'Not asked for.',
-  );
+function respondsSkipped(
+  options: CheckOptions,
+  why = 'Skipped: the model is not available.',
+): InstallCheck {
+  return skipped('model-responds', 'model_responds', options.loadModel ? why : 'Not asked for.');
 }
 
 /**
@@ -470,7 +469,7 @@ function adapterReason(
     return `Its base, ${request.model}, isn't in Ollama's model folder on this computer. Download ${request.model}${download}, the build whose weights are ${build}: its adapter loads on no other.`;
   }
   if (problem.code === 'base_mismatch' && size !== undefined) {
-    return `${problem.message} ${problem.hint} It is about ${gb(size)}.`;
+    return `${problem.message} ${problem.hint} That build is about ${gb(size)}.`;
   }
   return `${problem.message} ${problem.hint}`;
 }
@@ -522,7 +521,11 @@ async function adapterModelChecks(
           detail: modelProblems.map(reasonOf).join(' '),
         };
   if (!options.loadModel || findings.length > 0) {
-    return { checks: [runtime, available, respondsSkipped(options)], findings };
+    const why =
+      modelProblems.length > 0
+        ? 'Skipped: the model is not available.'
+        : "Skipped: llama-server can't run it yet.";
+    return { checks: [runtime, available, respondsSkipped(options, why)], findings };
   }
   const responds = await respondsCheck(createLlamaCppStudent(deps.adapters.access(request)));
   return {

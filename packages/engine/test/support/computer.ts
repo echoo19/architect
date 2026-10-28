@@ -207,6 +207,8 @@ export interface VersionOptions {
   >;
   /** The local version it derives from. */
   parent?: number;
+  /** The context the version was made with; 16K when absent. */
+  contextLength?: number;
   /** A model endpoint on this computer for its installation. */
   baseUrl?: string;
   state?: 'candidate' | 'accepted';
@@ -274,7 +276,7 @@ export async function addVersion(
     contract,
     modelLabel: 'Glimmer',
     base: { name: 'muse-glimmer:30b', digest: 'sha256:glimmer', sizeBytes: 1024 ** 3 },
-    contextLength: 16_384,
+    contextLength: options.contextLength ?? 16_384,
     runtime: 'ollama',
     ...(adapter === undefined ? {} : { adapter }),
     harness: { meta: harness.meta, files: harnessToFiles(harness) },

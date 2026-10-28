@@ -40,6 +40,9 @@ export interface LibraryContext {
   machine?: () => Machine;
 }
 
+/** The lock key for the engine's llama-server; no agent id has a colon. */
+const SERVER_TURN = ':llama-server';
+
 /** Runs one task at a time per key, so two changes to one agent never interleave. */
 export class KeyedLock {
   private readonly tails = new Map<string, Promise<unknown>>();
@@ -373,12 +376,15 @@ export class GraduateLibrary {
         adapters: this.ctx.adapterRuntime,
         now: () => this.now(),
       };
-      const checks = await checkInstallation(
-        deps,
-        this.version(graduateId, number),
-        this.installationOf(graduateId),
-        { loadModel: options.loadModel },
-      );
+      const version = this.version(graduateId, number);
+      const check = () =>
+        checkInstallation(deps, version, this.installationOf(graduateId), {
+          loadModel: options.loadModel,
+        });
+      // The engine has one llama-server: checks that load a model through it take turns, or
+      // one would find it busy with another agent's adapter and report a problem that isn't one.
+      const serves = options.loadModel && version.manifest.model.adapter !== undefined;
+      const checks = serves ? await this.lock.run(SERVER_TURN, check) : await check();
       store.installationChecks.put(checks);
     } finally {
       await sandbox.dispose();
