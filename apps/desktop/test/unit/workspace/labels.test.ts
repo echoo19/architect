@@ -84,7 +84,7 @@ describe('workspace labels', () => {
     );
   });
 
-  it('says a reply waits for the GPU, and for whom, in one line', () => {
+  it('says a reply waits for the GPU in plain words, in one line', () => {
     const waiting = {
       id: 'step-gpu',
       kind: 'wait',
@@ -93,7 +93,7 @@ describe('workspace labels', () => {
       status: 'running',
     } as const;
     expect(stepWords(waiting)).toEqual({
-      action: 'Waiting for the GPU: Architect is checking an agent on this computer',
+      action: 'Waiting: your computer is busy with another job.',
       target: '',
     });
     expect(currentStep([step('a', 'done'), waiting])).toBe(waiting);

@@ -9,6 +9,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Tooltip,
 } from '@architect/ui';
 import {
   Ban,
@@ -189,7 +190,7 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
   } else if (block.status === 'approved' || (block.status === 'pending' && answer)) {
     outcome = (
       <Outcome icon={<Check size={14} aria-hidden />}>
-        {answer === 'always' ? 'Allowed from now on' : 'Allowed'}
+        {answer === 'always' ? 'Always allowed' : 'Allowed'}
       </Outcome>
     );
   } else if (!answerable) {
@@ -252,7 +253,12 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
           ) : (
             <div className="flex gap-1.5">
               {choice('deny', 'Deny')}
-              {choice('always', 'Allow all from now on')}
+              <Tooltip
+                content={`${agent.name} will save changes to any of its files without asking. You can change this next to the message box, under Saving.`}
+                side="top"
+              >
+                {choice('always', 'Always allow saving')}
+              </Tooltip>
               {choice('approve', 'Allow once', true)}
             </div>
           ))}

@@ -52,7 +52,15 @@ export function FlowShell<Step extends string = FlowStep>({
         <ProgressStepper steps={pills} current={pills.indexOf(step)} />
         <div className="flex min-w-0 justify-end gap-2 pr-window-controls">{actions}</div>
       </header>
-      <main className="min-h-0 flex-1 overflow-y-auto bg-dot-grid">{children}</main>
+      {/* The last lines fade out above the bar, so no line is cut off mid-text. */}
+      <main
+        className={cn(
+          'min-h-0 flex-1 overflow-y-auto bg-dot-grid',
+          footer && '[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]',
+        )}
+      >
+        {children}
+      </main>
       {footer && (
         <footer className="shrink-0 border-t border-line bg-ground-flow px-8 py-4">{footer}</footer>
       )}

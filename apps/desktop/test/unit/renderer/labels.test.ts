@@ -82,11 +82,9 @@ describe('model names', () => {
     expect(quantizationLabel('MXFP4')).toBe('MXFP4');
   });
 
-  it("names an agent's model by Glimmer's build, or by the id of any other model chosen", () => {
-    expect(agentModelName({ label: 'Glimmer', model: 'muse-glimmer:30b' })).toBe('Glimmer 4-bit');
-    expect(agentModelName({ label: 'Glimmer', model: 'muse-glimmer:30b-iq2' })).toBe(
-      'Glimmer 2-bit',
-    );
+  it("names an agent's model Glimmer for any of its builds, or by the id of any other model chosen", () => {
+    expect(agentModelName({ label: 'Glimmer', model: 'muse-glimmer:30b' })).toBe('Glimmer');
+    expect(agentModelName({ label: 'Glimmer', model: 'muse-glimmer:30b-iq2' })).toBe('Glimmer');
     expect(agentModelName({ label: 'Glimmer', model: 'qwen3:8b' })).toBe('qwen3:8b');
   });
 });

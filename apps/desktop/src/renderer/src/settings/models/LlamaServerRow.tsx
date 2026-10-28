@@ -1,6 +1,7 @@
 import { LlamaServerStatusSchema } from '@architect/shared';
 import {
   Button,
+  Disclosure,
   IconButton,
   ProviderMark,
   SettingsRow,
@@ -50,39 +51,46 @@ export function LlamaServerRow() {
   const settings = useSettings();
   const row = llamaServerRowState(query.data, settings.data?.llamaServerPath);
   return (
-    <SettingsRow
-      icon={<ProviderMark name="llama.cpp" icon={<Cpu aria-hidden />} />}
-      label="llama.cpp"
-      meta={
-        row.found
-          ? found(row.found)
-          : query.status === 'loading' && <Skeleton className="mt-1 h-3 w-40" />
-      }
-      error={errorOf(query) ?? row.problem ?? undefined}
-    >
-      <span className="flex items-center gap-1.5">
-        {row.tooOld && <SettingsValue>Too old</SettingsValue>}
-        <IconButton label="Check again" size="sm" onClick={query.reload}>
-          <RotateCw size={14} strokeWidth={1.8} aria-hidden />
-        </IconButton>
-        {row.canClear && (
-          <IconButton
-            label="Use the one on PATH"
-            size="sm"
-            onClick={() => void attempt("Couldn't change llama-server", () => select(null))}
-          >
-            <X size={15} strokeWidth={1.8} aria-hidden />
+    <>
+      <SettingsRow
+        icon={<ProviderMark name="llama.cpp" icon={<Cpu aria-hidden />} />}
+        label="llama.cpp"
+        meta={
+          row.found
+            ? found(row.found)
+            : query.status === 'loading' && <Skeleton className="mt-1 h-3 w-40" />
+        }
+        error={errorOf(query) ?? row.problem ?? undefined}
+      >
+        <span className="flex items-center gap-1.5">
+          {row.tooOld && <SettingsValue>Too old</SettingsValue>}
+          <IconButton label="Check again" size="sm" onClick={query.reload}>
+            <RotateCw size={14} strokeWidth={1.8} aria-hidden />
           </IconButton>
-        )}
-        <Button
-          size="xs"
-          variant="ghost"
-          onClick={() => void attempt("Couldn't use that program", choose)}
-        >
-          <FolderOpen size={13} aria-hidden />
-          Choose
-        </Button>
-      </span>
-    </SettingsRow>
+          {row.canClear && (
+            <IconButton
+              label="Use the one on PATH"
+              size="sm"
+              onClick={() => void attempt("Couldn't change llama-server", () => select(null))}
+            >
+              <X size={15} strokeWidth={1.8} aria-hidden />
+            </IconButton>
+          )}
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={() => void attempt("Couldn't use that program", choose)}
+          >
+            <FolderOpen size={13} aria-hidden />
+            Choose
+          </Button>
+        </span>
+      </SettingsRow>
+      {row.details && (
+        <Disclosure label="Details" className="pb-3 pl-[44px]">
+          <p className="m-0 break-words text-xs leading-5 text-fg-muted">{row.details}</p>
+        </Disclosure>
+      )}
+    </>
   );
 }

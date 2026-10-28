@@ -1,6 +1,7 @@
 import { gpuFit, mentorPricing } from '@architect/shared';
 import { SettingsRow, SettingsValue } from '@architect/ui';
 import { KeyRow } from '../../components/KeyRow';
+import { shortModelName } from '../../lib/names';
 import { mentorProvider } from '../../onboarding/mentor';
 import type { TabProps } from '../SettingsModal';
 import { localModelName, mentorFromChoice, studentFromChoice } from './connections';
@@ -11,8 +12,8 @@ import { sameOllamaModel, StudentRows } from './StudentRows';
 import { ConnectionsSection } from './ConnectionsSection';
 
 /**
- * Settings › Models: the default mentor and the model new agents start on, each picked from
- * every connection, then the connections themselves.
+ * Settings › Models: the teacher and the model new agents start on, each picked from every
+ * connection, then the connections themselves, with the local runtimes under Advanced.
  */
 export function ModelsTab({ settings, update }: TabProps) {
   const { connections, gpu, local, secrets } = useConnections();
@@ -25,21 +26,21 @@ export function ModelsTab({ settings, update }: TabProps) {
   return (
     <>
       <SettingsRow
-        label="Mentor"
+        label="Teacher"
         meta={mentor.kind === 'model' ? mentor.model : undefined}
         metaFont="code"
       >
         {mentor.kind === 'model' ? (
           <ModelPicker
             role="mentor"
-            aria-label="Mentor"
+            aria-label="Teacher"
             current={mentor}
             onChoose={(choice) =>
               update({ defaultMentor: mentorFromChoice(choice, mentor.reasoningEffort) })
             }
             className="w-72"
           >
-            <span className="truncate">{mentor.label}</span>
+            <span className="truncate">{shortModelName(mentor.label)}</span>
             <span className="shrink-0 text-fg-muted">{mentorProvider(mentor)}</span>
           </ModelPicker>
         ) : (

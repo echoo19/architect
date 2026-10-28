@@ -24,7 +24,6 @@ import { queryKeys, useGraduates, useJobs } from '../api/hooks';
 import { fetchQuery } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { chooseFromHub, chooseImport } from '../import/session';
-import { formatPercent } from '../lib/format';
 import { attempt } from '../lib/notify';
 import { isMac } from '../lib/platform';
 import { navigate, paths, type Route } from '../lib/router';
@@ -266,9 +265,7 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
             <span className="truncate">{chat.title}</span>
             {/* A chat waiting for an answer isn't working; the open one says so in the thread. */}
             {chat.waiting ? (
-              !current && (
-                <span className="shrink-0 text-xs font-medium text-student">Needs you</span>
-              )
+              !current && <span className="shrink-0 text-xs font-medium text-student">Approve</span>
             ) : chat.running ? (
               <Spinner tone="student" label="Working" />
             ) : null}
@@ -301,12 +298,9 @@ function TrainingList({ jobs, route }: { jobs: JobSummary[]; route: Route }) {
               <Spinner tone="mentor" size={16} label="Training" />
             )}
             <span className="flex-1 truncate">{job.name}</span>
-            {run.devCurrent && (
-              <span className="text-xs text-fg-muted">
-                {formatPercent(run.devCurrent)}
-                <span className="sr-only"> of check tasks right so far</span>
-              </span>
-            )}
+            <span className="text-xs text-fg-muted">
+              {run.status === 'paused' ? 'Paused' : 'Training'}
+            </span>
           </button>
         );
       })}

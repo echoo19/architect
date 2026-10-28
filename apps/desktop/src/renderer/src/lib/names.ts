@@ -80,14 +80,13 @@ export function studentIntro(name: string): string {
 }
 
 /**
- * The model an agent runs on here, as its status line names it: "Glimmer 4-bit" for one of
- * Glimmer's builds, and the model's own id for any other, so a model chosen in its settings is
- * never shown as the one it was trained on.
+ * The model an agent runs on here, as its status line names it: "Glimmer" for one of Glimmer's
+ * builds, and the model's own id for any other, so a model chosen in its settings is never shown
+ * as the one it was trained on.
  */
 export function agentModelName(student: { label: string; model: string }): string {
   const build = GLIMMER_BUILDS.find((candidate) => candidate.model === student.model);
-  if (build) return `${shortModelName(student.label)} ${build.label.split(',')[0]}`;
-  return student.model;
+  return build ? shortModelName(student.label) : student.model;
 }
 
 /** How the UI writes a quantization: "Q4_K_M" → "4-bit". Unknown schemes stay as they are. */

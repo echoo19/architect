@@ -153,13 +153,6 @@ function DefineEditor({ initial }: { initial: Job }) {
       <div className="mx-auto box-content flex max-w-[880px] flex-col gap-12 px-8 pb-10 pt-14">
         <JobHeader job={job} />
         <Capabilities job={job} />
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-12">
-          <ReadyWhen job={job} />
-          <FilePermissions
-            job={job}
-            onChange={(permissions) => editor.change((current) => ({ ...current, permissions }))}
-          />
-        </div>
         <TrainingPlace
           job={job}
           hosted={hosted}
@@ -180,6 +173,13 @@ function DefineEditor({ initial }: { initial: Job }) {
               : undefined
           }
         />
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-12 border-t border-line-card pt-10">
+          <ReadyWhen job={job} />
+          <FilePermissions
+            job={job}
+            onChange={(permissions) => editor.change((current) => ({ ...current, permissions }))}
+          />
+        </div>
       </div>
       <AdvancedDialog
         open={advancedOpen}
