@@ -41,6 +41,41 @@ export interface StudentAdapter {
   release(): Promise<void>;
 }
 
+/** One loaded adapter's weight in a llama-server request: its place in the load order, and its scale. */
+export interface LoraScale {
+  id: number;
+  scale: number;
+}
+
+/**
+ * A llama-server the app runs on this computer, as one llama.cpp student sees it: the base model,
+ * every adapter loaded once, and this student's scale for each. Students that share a base and
+ * an adapter set share one server and one copy of the weights on the GPU.
+ */
+export interface LlamaServerAccess {
+  /** The base model, by its name in Ollama's store. */
+  readonly model: string;
+  /** Loopback. The port changes each time the server starts. */
+  readonly baseUrl: string;
+  /** Starts the server if it isn't running, and keeps it from stopping until `release`. */
+  acquire(signal?: AbortSignal): Promise<LlamaServerLease>;
+  /** Checks what loading needs: the server program, the model's file and every adapter. Loads nothing. */
+  check(): Promise<ConnectionTest>;
+  describe(): Promise<StudentModelInfo>;
+  /** Stops the server, which frees the GPU. */
+  stop(): Promise<void>;
+}
+
+export interface LlamaServerLease {
+  /** `http://127.0.0.1:<port>`, without `/v1`. */
+  url: string;
+  /** The server refuses requests without it. */
+  apiKey: string;
+  /** Every loaded adapter with this student's scale for it; 0 for the ones it doesn't use. */
+  lora: LoraScale[];
+  release(): void;
+}
+
 export interface MentorCompletionRequest {
   system: string;
   messages: ChatMessage[];

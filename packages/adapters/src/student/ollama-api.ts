@@ -4,6 +4,7 @@ import { badResponse, cutOff, HttpError } from '../http/errors';
 import { withDetail } from '../http/failures';
 import { readNdjson } from '../http/ndjson';
 import {
+  AnyObjectWire,
   CreateWire,
   PsWire,
   PullLineWire,
@@ -66,6 +67,32 @@ export async function loadedOllamaModels(
     totalBytes: model.size,
     gpuBytes: model.size_vram ?? 0,
   }));
+}
+
+/** Unloading a large model can take a while when the system is under memory pressure. */
+const UNLOAD_TIMEOUT_MS = 60_000;
+
+/** Asks Ollama to unload a model now: an empty chat with keep_alive 0. */
+export async function unloadModel(
+  http: HttpClient,
+  model: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  await http.postJson(
+    '/api/chat',
+    { model, messages: [], keep_alive: 0, stream: false },
+    AnyObjectWire,
+    { signal, model, timeoutMs: UNLOAD_TIMEOUT_MS },
+  );
+}
+
+/** Frees the memory a loaded model holds, on the GPU and off it. */
+export async function unloadOllamaModel(
+  baseUrl: string,
+  model: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  await unloadModel(createOllamaClient(baseUrl), model, signal);
 }
 
 /** The digest of a model's weights: the blob its Modelfile's first FROM line names. */

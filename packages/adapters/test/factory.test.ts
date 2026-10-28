@@ -92,6 +92,7 @@ describe('the public API', () => {
       'makeTextOnlyModel',
       'ollamaVersion',
       'pullOllamaModel',
+      'unloadOllamaModel',
       'verifyKey',
     ]);
   });

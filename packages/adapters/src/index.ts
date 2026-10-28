@@ -9,6 +9,7 @@ export {
   makeTextOnlyModel,
   ollamaVersion,
   pullOllamaModel,
+  unloadOllamaModel,
   type LoadedModel,
   type OllamaModelEntry,
   type TextOnlyModel,

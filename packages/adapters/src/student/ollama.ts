@@ -16,18 +16,11 @@ import { isLoopbackUrl } from '../loopback';
 import { toWireTools } from '../openai/messages';
 import { callId, countToolCalls, parseToolArguments } from '../tool-calls';
 import { makeUsage } from '../usage';
-import { fetchModels, fetchVersion, OLLAMA_SERVICE } from './ollama-api';
-import {
-  AnyObjectWire,
-  OllamaChunkWire,
-  ShowWire,
-  sameModel,
-  toOllamaMessages,
-} from './ollama-wire';
+import { fetchModels, fetchVersion, OLLAMA_SERVICE, unloadModel } from './ollama-api';
+import { OllamaChunkWire, ShowWire, sameModel, toOllamaMessages } from './ollama-wire';
 
 /** Muse Glimmer's renderer and parser first shipped in this release. */
 const MIN_VERSION = '0.32.7';
-const UNLOAD_TIMEOUT_MS = 60_000;
 
 /** Waits `ms`, or less when the signal aborts first. */
 function rest(ms: number, signal?: AbortSignal): Promise<void> {
@@ -227,15 +220,7 @@ export function createOllamaStudent(
     chat,
     describe,
     testConnection,
-    async release() {
-      // An empty chat with keep_alive 0 is how Ollama is asked to unload a model.
-      await http.postJson(
-        '/api/chat',
-        { model: endpoint.model, messages: [], keep_alive: 0, stream: false },
-        AnyObjectWire,
-        { model: endpoint.model, timeoutMs: UNLOAD_TIMEOUT_MS },
-      );
-    },
+    release: () => unloadModel(http, endpoint.model),
   };
 }
 
