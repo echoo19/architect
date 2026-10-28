@@ -124,4 +124,16 @@ describe('the comparisons runner', () => {
       status: 'not_run',
     });
   }, 300_000);
+
+  it('keeps a confirmed plan: no arm joins it later, and planning again runs nothing', async () => {
+    const { world, request } = setUp();
+    const small = { ...request, config: { ...CONFIG, arms: ['bare' as const] } };
+    expect((await runComparison(small, world.env)).outcome).toBe('finished');
+    const before = paidFor(world);
+    expect((await runComparison({ ...small, planOnly: true }, world.env)).outcome).toBe('planned');
+    expect(paidFor(world)).toEqual(before);
+    await expect(
+      runComparison({ ...small, config: { ...CONFIG, arms: ['bare', 'draft'] } }, world.env),
+    ).rejects.toThrow("This folder's plan was confirmed for bare;");
+  }, 300_000);
 });

@@ -178,7 +178,6 @@ export async function runComparison(
             .filter((arm) => arm.funded && arm.studentUsd > 0)
             .map((arm) => [arm.arm, studentCapOf(arm.arm, arm.studentUsd, config)]),
         ),
-        jobs: plan?.jobs ?? {},
         decisions: projection.arms
           .filter((arm) => !arm.funded)
           .map((arm) => ({
@@ -195,7 +194,16 @@ export async function runComparison(
         return { outcome, report: await report(request, env, engine, files, base, plan) };
       }
     }
+    if (request.planOnly) {
+      return { outcome: 'planned', report: await report(request, env, engine, files, base, plan) };
+    }
     const confirmed = plan;
+    // A plan is fixed once confirmed, so every arm is frozen before any locked result exists.
+    if ([...config.arms].sort().join() !== [...confirmed.arms].sort().join()) {
+      throw new Error(
+        `This folder's plan was confirmed for ${confirmed.arms.join(', ')}; arms can't join or leave it once confirmed, or some would learn after others' results were read. Use a new output folder for other arms.`,
+      );
+    }
     const decide = (decision: Omit<ArmDecision, 'at'>) => {
       const current = files.readPlan() ?? confirmed;
       if (

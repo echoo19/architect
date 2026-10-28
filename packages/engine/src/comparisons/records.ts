@@ -67,8 +67,6 @@ export const PlanRecordSchema = z.object({
   projection: ProjectionSchema,
   /** Each funded arm's student cap, its locked test's share reserved inside it. */
   studentCaps: z.record(z.string(), z.number().nonnegative()),
-  /** The job copy each arm's run started from, by arm, once imported. */
-  jobs: z.record(z.string(), z.string()),
   decisions: z.array(ArmDecisionSchema),
   identities: z.record(z.string(), RuntimeIdentitySchema),
 });
