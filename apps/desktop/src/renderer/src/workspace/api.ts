@@ -1,6 +1,5 @@
 import {
   GraduateSettingsSchema,
-  GraduateSummarySchema,
   WorkspaceChatSchema,
   WorkspaceEventSchema,
   type GraduateSettings,
@@ -39,12 +38,6 @@ export const workspaceApi = {
       'graduates.updateSettings',
       GraduateSettingsSchema,
       architect().graduates.updateSettings(graduateId, patch),
-    ),
-  importGraduate: (path: string) =>
-    parsed(
-      'graduates.importFolder',
-      GraduateSummarySchema,
-      architect().graduates.importFolder(path),
     ),
 };
 

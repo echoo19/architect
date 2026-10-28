@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import type { GraduateSummary } from '@architect/shared';
+import type { GraduateSummary, GraduateVersion, Installation } from '@architect/shared';
 import {
+  Badge,
   Button,
   Dialog,
   DialogClose,
@@ -10,13 +11,16 @@ import {
   SettingsRow,
   SettingsValue,
   Skeleton,
+  StatusMark,
   toast,
 } from '@architect/ui';
-import { FolderInput, FolderOutput } from 'lucide-react';
 import { api, architect } from '../../api/client';
-import { queryKeys, useJob } from '../../api/hooks';
-import { fetchQuery } from '../../api/query';
+import { graduateKeys, useInstallation, useVersions } from '../../api/graduates';
+import { queryKeys } from '../../api/hooks';
+import { fetchQuery, setQueryData } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
+import { FixButtons } from '../../install/InstallChecks';
+import { osName, STATUS_LABELS, statusMark } from '../../install/labels';
 import { formatBytes, formatPercent } from '../../lib/format';
 import {
   capitalized,
@@ -29,23 +33,23 @@ import {
 import { attempt } from '../../lib/notify';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { navigate, paths, type Route } from '../../lib/router';
-import { workspaceApi } from '../api';
 import { updateGraduateSettings, useGraduateSettings } from '../graduateSettings';
 import { WRITE_MODE_LABELS, WRITE_MODE_MEANINGS, WRITE_MODES, WRITE_SETTING } from '../labels';
 import { forgetAgent } from '../store';
 import { useAgentSettingsUi } from './agentSettingsUi';
-
-/** "Oct 27, 2026", with non-breaking spaces so a wrapped line never splits the date. */
-function formatDay(iso: string): string {
-  return new Date(iso)
-    .toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-    .replaceAll(' ', '\u00A0');
-}
+import { versionDate } from './versions';
 
 const pending = <Skeleton shape="pill" className="h-4 w-36" />;
 
+/** The version chats run on, once the versions have loaded. */
+function useActiveVersion(graduateId: string) {
+  const versions = useVersions(graduateId);
+  const active = versions.data?.find((version) => version.active);
+  return { versions, active };
+}
+
 export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Route }) {
-  const job = useJob(agent.manifest.jobId);
+  const { versions, active } = useActiveVersion(agent.id);
   const [confirming, setConfirming] = useState(false);
   const { manifest } = agent;
   const model = manifest.student;
@@ -53,6 +57,8 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
   const { score } = manifest.test;
   const { met, target } = manifest.requirements.passRate;
   const result = `${met ? 'Passed' : 'Below its target'}: ${score.pass} of ${score.total} (${formatPercent(score)})`;
+  const contract = active?.manifest.contract;
+  const evaluatedHere = active?.origin === undefined;
   const modelDetails = [
     model.quantization && quantizationLabel(model.quantization),
     model.sizeBytes && `${formatBytes(model.sizeBytes)} on disk`,
@@ -62,13 +68,13 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
 
   return (
     <>
-      <SettingsRow label="Job" error={errorOf(job)}>
-        {job.status === 'success' ? (
+      <SettingsRow label="Job" error={errorOf(versions)}>
+        {contract ? (
           <span className="max-w-[340px] text-right text-fg-secondary text-pretty">
-            {job.data.summary ?? job.data.description}
+            {contract.summary ?? contract.description}
           </span>
-        ) : job.status === 'error' ? (
-          <RetryButton onClick={job.reload} />
+        ) : versions.status === 'error' ? (
+          <RetryButton onClick={versions.reload} />
         ) : (
           pending
         )}
@@ -81,7 +87,11 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
       </SettingsRow>
       <SettingsRow
         label="Final test"
-        meta={`Tasks it had never seen. The job asked for ${Math.round(target * 100)}%. Tested on ${formatDay(manifest.createdAt)}. The Report tab has the full results.`}
+        meta={
+          evaluatedHere
+            ? `Tasks it had never seen. The job asked for ${Math.round(target * 100)}%. Tested on ${versionDate(manifest.createdAt)}. The Report tab has the full results.`
+            : `Evaluated on the author's computer, on tasks it had never seen. The job asked for ${Math.round(target * 100)}%.`
+        }
       >
         <SettingsValue>{result}</SettingsValue>
       </SettingsRow>
@@ -96,6 +106,7 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
       >
         <SettingsValue>{shortModelName(model.label)}</SettingsValue>
       </SettingsRow>
+      <InstallRow agent={agent} active={active} />
       <SettingsRow
         label="Delete agent"
         tone="danger"
@@ -112,6 +123,53 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
         onOpenChange={setConfirming}
       />
     </>
+  );
+}
+
+/**
+ * This computer's install checks of the version chats run on: their outcome, why when it isn't
+ * ready, and the way to fix it. Never the author's result, which the Final test row shows.
+ */
+function InstallRow({
+  agent,
+  active,
+}: {
+  agent: GraduateSummary;
+  active: GraduateVersion | undefined;
+}) {
+  const installation = useInstallation(agent.id);
+  const checked = installation.data;
+  const status = checked?.status ?? agent.status;
+  const machine = checked?.machine;
+  const meta =
+    status === 'ready' && machine && checked?.checkedAt
+      ? `${osName(machine.os)} ${machine.arch} · checked ${versionDate(checked.checkedAt)}`
+      : (checked?.reasons ?? agent.reasons).join(' ');
+  const changed = (next: Installation) => setQueryData(graduateKeys.installation(agent.id), next);
+
+  return (
+    <SettingsRow label="Install checks" meta={meta || undefined} error={errorOf(installation)}>
+      {installation.status === 'error' ? (
+        <RetryButton onClick={installation.reload} />
+      ) : (
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <Badge
+            tone={status === 'ready' ? 'student' : status === 'blocked' ? 'danger' : 'outline'}
+            icon={<StatusMark state={statusMark(status)} size={14} />}
+          >
+            {STATUS_LABELS[status]}
+          </Badge>
+          {checked && active && status !== 'ready' && (
+            <FixButtons
+              graduateId={agent.id}
+              installation={checked}
+              manifest={active.manifest}
+              onChanged={changed}
+            />
+          )}
+        </div>
+      )}
+    </SettingsRow>
   );
 }
 
@@ -173,11 +231,14 @@ const WRITE_CHOICES = WRITE_MODES.map((value) => ({ value, label: WRITE_MODE_LAB
 
 export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
   const settings = useGraduateSettings(agent.id);
-  const job = useJob(agent.manifest.jobId);
-  const files = job.status === 'success' ? job.data.data.files : [];
+  const { versions, active } = useActiveVersion(agent.id);
+  const contract = active?.manifest.contract;
+  const files = contract?.inputs.files ?? [];
   const writable = files.filter((file) => file.access === 'write').map((file) => file.name);
   const device = deviceInSentence(currentPlatform());
   const savingNever = settings.data?.writeMode === 'never';
+  const unavailable =
+    versions.status === 'error' ? <RetryButton onClick={versions.reload} /> : pending;
 
   return (
     <>
@@ -214,25 +275,25 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
       <SettingsRow
         label="Opening a file the job doesn't list"
         meta="Set by its job when it was trained"
-        error={errorOf(job)}
+        error={errorOf(versions)}
       >
-        {job.status === 'success' ? (
-          <SettingsValue>{WRITE_MODE_LABELS[job.data.permissions.unseenFiles]}</SettingsValue>
-        ) : job.status === 'error' ? (
-          <RetryButton onClick={job.reload} />
+        {contract ? (
+          <SettingsValue>{WRITE_MODE_LABELS[contract.boundaries.unseenFiles]}</SettingsValue>
         ) : (
-          pending
+          unavailable
         )}
       </SettingsRow>
-      <SettingsRow label="Files it can read" meta="The files its job lists" error={errorOf(job)}>
-        {job.status === 'success' ? (
+      <SettingsRow
+        label="Files it can read"
+        meta="The files its job lists"
+        error={errorOf(versions)}
+      >
+        {contract ? (
           <span className="max-w-[340px] text-right font-mono text-sm text-fg-secondary text-pretty">
             {files.map((file) => file.name).join(', ')}
           </span>
-        ) : job.status === 'error' ? (
-          <RetryButton onClick={job.reload} />
         ) : (
-          pending
+          unavailable
         )}
       </SettingsRow>
       <SettingsRow
@@ -242,80 +303,17 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
             ? 'Set by its job. Saving is set to Never, so it changes none of them now.'
             : 'Set by its job, and only as Saving changes allows'
         }
-        error={errorOf(job)}
+        error={errorOf(versions)}
       >
-        {job.status === 'success' ? (
+        {contract ? (
           writable.length > 0 ? (
             <span className="font-mono text-sm text-fg-secondary">{writable.join(', ')}</span>
           ) : (
             <SettingsValue>None</SettingsValue>
           )
-        ) : job.status === 'error' ? (
-          <RetryButton onClick={job.reload} />
         ) : (
-          pending
+          unavailable
         )}
-      </SettingsRow>
-    </>
-  );
-}
-
-export function ExportTab({ agent }: { agent: GraduateSummary }) {
-  const [exporting, setExporting] = useState(false);
-  const [importing, setImporting] = useState(false);
-
-  const exportFolder = async () => {
-    setExporting(true);
-    const folder = await attempt(`Couldn't export ${agent.name}`, async () => {
-      const [target] = await architect().files.pick({
-        title: `Choose where to export ${agent.name}`,
-        directory: true,
-      });
-      if (!target) return null;
-      await architect().graduates.exportFolder(agent.id, target);
-      return target;
-    });
-    setExporting(false);
-    if (folder) toast({ title: `Exported ${agent.name}`, description: folder });
-  };
-
-  const importFolder = async () => {
-    setImporting(true);
-    const added = await attempt("Couldn't import that agent", async () => {
-      const [source] = await architect().files.pick({
-        title: 'Choose an agent folder to import',
-        directory: true,
-      });
-      if (!source) return null;
-      const graduate = await workspaceApi.importGraduate(source);
-      await fetchQuery(queryKeys.graduates, api.graduates);
-      return graduate;
-    });
-    setImporting(false);
-    if (added) {
-      toast({
-        title: `Added ${added.name}`,
-        description: 'It is in the sidebar with your agents.',
-      });
-    }
-  };
-
-  return (
-    <>
-      <SettingsRow
-        label="Agent folder"
-        meta={`Version ${agent.activeVersion ?? agent.versions}: its instructions, skills, tools, report card and change history`}
-      >
-        <Button size="xs" loading={exporting} onClick={() => void exportFolder()}>
-          {!exporting && <FolderOutput size={14} strokeWidth={1.7} aria-hidden />}
-          Export
-        </Button>
-      </SettingsRow>
-      <SettingsRow label="Import an agent" meta="A folder exported from Architect">
-        <Button size="xs" loading={importing} onClick={() => void importFolder()}>
-          {!importing && <FolderInput size={14} strokeWidth={1.7} aria-hidden />}
-          Import
-        </Button>
       </SettingsRow>
     </>
   );

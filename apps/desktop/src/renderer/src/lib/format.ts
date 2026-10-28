@@ -24,8 +24,10 @@ export function formatDuration(ms: number): string {
   return minutes % 60 === 0 ? `${hours} h` : `${hours} h ${minutes % 60} min`;
 }
 
+/** "18 GB", "4.6 GB", "236 MB", or "48 KB" for a small file. */
 export function formatBytes(bytes: number): string {
   const gb = bytes / 1024 ** 3;
   if (gb >= 1) return `${gb >= 10 ? Math.round(gb) : gb.toFixed(1)} GB`;
-  return `${Math.max(1, Math.round(bytes / 1024 ** 2))} MB`;
+  if (bytes >= 1024 ** 2) return `${Math.round(bytes / 1024 ** 2)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
