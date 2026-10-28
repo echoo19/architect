@@ -2,6 +2,7 @@ export * from './adapters';
 export * from './cells';
 export * from './chat';
 export * from './checker';
+export * from './cli';
 export * from './contract';
 export * from './data';
 export * from './errors';
