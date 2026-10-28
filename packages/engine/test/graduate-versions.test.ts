@@ -110,27 +110,39 @@ describe('A06: a graduate after a restart and a rollback', () => {
       graduateId: 'grd_desk',
       harness: harnessWith('Service desk', { system: 'Harness of version one.' }),
       adapter: 'LORA WEIGHTS OF VERSION ONE',
+      adapterIdentity: { scale: 1, trainingJobId: 'trn_one' },
     });
     await addVersion(made, {
       graduateId: 'grd_desk',
       parent: 1,
       harness: harnessWith('Service desk', { system: 'Harness of version two.' }),
       adapter: 'LORA WEIGHTS OF VERSION TWO',
+      adapterIdentity: { scale: 0.75, trainingJobId: 'trn_two' },
     });
     made.library.promote('grd_desk', 2);
 
+    // What the adapter runtime would be asked to serve: the base by name, and the version's own
+    // GGUF LoRA at the scale it was measured at.
     const readActive = async () => {
       const active = await activeVersion(made.store, made.paths, 'grd_desk');
+      const served = active.adapter;
+      const file = served?.adapters[0];
       return {
         version: active.version.version,
         system: await readFile(join(active.harnessDir, 'system.md'), 'utf8'),
-        adapter: await readFile(active.adapterPath ?? '', 'utf8'),
+        adapter: await readFile(file?.path ?? '', 'utf8'),
+        model: served?.model,
+        scale: file === undefined ? undefined : served?.scales[file.key],
+        trainingJobId: active.version.manifest.model.adapter?.trainingJobId,
       };
     };
     expect(await readActive()).toEqual({
       version: 2,
       system: 'Harness of version two.',
       adapter: 'LORA WEIGHTS OF VERSION TWO',
+      model: 'muse-glimmer:30b',
+      scale: 0.75,
+      trainingJobId: 'trn_two',
     });
 
     made.library.rollback('grd_desk', 1);
@@ -138,6 +150,9 @@ describe('A06: a graduate after a restart and a rollback', () => {
       version: 1,
       system: 'Harness of version one.',
       adapter: 'LORA WEIGHTS OF VERSION ONE',
+      model: 'muse-glimmer:30b',
+      scale: 1,
+      trainingJobId: 'trn_one',
     };
     expect(await readActive()).toEqual(rolledBack);
 
@@ -153,7 +168,7 @@ describe('A06: a graduate after a restart and a rollback', () => {
 
     // A version's adapter is checked with the rest of it, so one never loads with another's.
     const active = await activeVersion(made.store, made.paths, 'grd_desk');
-    await writeFile(active.adapterPath ?? '', 'LORA WEIGHTS OF VERSION TWO');
+    await writeFile(active.adapter?.adapters[0]?.path ?? '', 'LORA WEIGHTS OF VERSION TWO');
     const refused = await activeVersion(made.store, made.paths, 'grd_desk').catch(
       (error: unknown) => error,
     );

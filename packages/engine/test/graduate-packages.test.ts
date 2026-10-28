@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import {
   readPackage,
   readZipEntries,
+  sha256Bytes,
   writeGraduate,
   writePackage,
   writeZip,
@@ -30,6 +31,7 @@ import { fixtureHarness, reportFor } from './agent-host/graduates';
 import { FakeRuntime, FakeVault } from './fakes/runtime';
 import {
   addVersion,
+  GLIMMER_GGUF,
   harnessWith,
   newComputer,
   PRICE_TOOL,
@@ -412,7 +414,11 @@ describe('A07: export and import keep the graduate, and the new computer binds i
   it('exports an adapter byte for byte, and refuses it where no runtime can load it', async () => {
     const author = await computer();
     const exportsDir = join(author.dataDir, 'exports');
-    await addVersion(author, { graduateId: 'grd_desk', adapter: 'LORA WEIGHTS' });
+    await addVersion(author, {
+      graduateId: 'grd_desk',
+      adapter: 'LORA WEIGHTS',
+      adapterIdentity: { scale: 0.8, trainingJobId: 'trn_glimmer1', standIn: true },
+    });
     const exported = await exportPackage(exporter(author), 'grd_desk', { directory: exportsDir });
     const { manifest } = await readPackage(exported.folder);
     expect(manifest.model.adapter).toEqual(
@@ -420,6 +426,28 @@ describe('A07: export and import keep the graduate, and the new computer binds i
     );
     expect(await readFile(join(exported.folder, 'adapter', 'adapter.gguf'), 'utf8')).toBe(
       'LORA WEIGHTS',
+    );
+    // Named as the adapter runtime checks and loads it, and as its training job recorded it.
+    const raw = JSON.parse(await readFile(join(exported.folder, 'graduate.json'), 'utf8')) as {
+      model: { adapter: Record<string, unknown> };
+    };
+    expect(raw.model.adapter).toEqual({
+      path: 'adapter/adapter.gguf',
+      format: 'gguf_lora',
+      sha256: sha256Bytes('LORA WEIGHTS'),
+      size_bytes: 12,
+      base_digest: GLIMMER_GGUF,
+      scale: 0.8,
+      training_job_id: 'trn_glimmer1',
+      stand_in: true,
+    });
+    expect(manifest.integrity.files).toContainEqual({
+      path: 'adapter/adapter.gguf',
+      sha256: sha256Bytes('LORA WEIGHTS'),
+      size: 12,
+    });
+    expect(manifest.requirements.limitations).toContain(
+      'Its adapter came from the stand-in training backend: it was built, not trained, and changes nothing.',
     );
 
     const recipient = await computer();
@@ -628,8 +656,8 @@ describe('A08: an import refuses an unsafe or foreign package before any of its 
   });
 });
 
-describe('A13: installation checks are this computer’s, never the author’s report', () => {
-  it('reports a device it cannot run on as blocked, with the author’s results untouched', async () => {
+describe("A13: installation checks are this computer's, never the author's report", () => {
+  it("reports a device it cannot run on as blocked, with the author's results untouched", async () => {
     const { author, exportsDir } = await authored();
     const exported = await exportPackage(exporter(author), 'grd_desk', { directory: exportsDir });
     const small = await computer({ os: 'linux', arch: 'arm64', memoryBytes: 1024 ** 3 });
@@ -671,7 +699,7 @@ describe('A13: installation checks are this computer’s, never the author’s r
     expect(JSON.stringify(result.installation)).not.toContain('"score"');
   });
 
-  it('measures the model where it is installed, apart from the author’s latency', async () => {
+  it("measures the model where it is installed, apart from the author's latency", async () => {
     const { author, exportsDir } = await authored();
     const exported = await exportPackage(exporter(author), 'grd_desk', { directory: exportsDir });
     const recipient = await computer({ os: 'darwin', arch: 'arm64', memoryBytes: 16 * 1024 ** 3 });

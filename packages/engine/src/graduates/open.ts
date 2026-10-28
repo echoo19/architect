@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { readPackage } from '@architect/harness';
 import { GuardError, PackageError, type Grants, type ModelBinding } from '@architect/shared';
+import type { ServeRequest } from '../local-runtime';
 import type { DataPaths } from '../loop/paths';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredInstallation, StoredVersion } from '../store/records';
@@ -16,8 +17,13 @@ export interface ActiveVersion {
   /** The version's package folder. */
   dir: string;
   harnessDir: string;
-  /** The adapter file, when the version carries one; its checksum was verified just now. */
-  adapterPath: string | null;
+  /**
+   * What the adapter runtime (decision 035) loads for a version with an adapter: the base by the
+   * name this computer's installation serves it under, the version's GGUF LoRA (its checksum
+   * verified just now, with the harness) and the scale it was measured at. Before serving, the
+   * runtime's GGUF digest for the base must be the adapter's `baseDigest`. Null without one.
+   */
+  adapter: ServeRequest | null;
   model: ModelBinding;
   /** Logical resource name to an absolute folder on this computer. */
   bindings: Record<string, string>;
@@ -87,13 +93,21 @@ export async function activeVersion(
     ]);
   }
   const adapter = version.manifest.model.adapter;
+  const key = `${agent.name} v${version.version}`;
   return {
     graduateId,
     name: agent.name,
     version,
     dir,
     harnessDir: join(dir, HARNESS_DIR),
-    adapterPath: adapter === undefined ? null : join(dir, ...adapter.path.split('/')),
+    adapter:
+      adapter === undefined
+        ? null
+        : {
+            model: installation.model.model,
+            adapters: [{ key, path: join(dir, ...adapter.path.split('/')) }],
+            scales: { [key]: adapter.scale },
+          },
     model: installation.model,
     bindings: absoluteBindings(paths, installation.bindings),
     grants: installation.grants,

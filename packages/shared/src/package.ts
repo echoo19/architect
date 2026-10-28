@@ -4,6 +4,7 @@ import { StudentTargetSchema } from './job';
 import { ScoreSchema } from './lineage';
 import { TypeResultSchema } from './report';
 import { MethodSchema } from './run';
+import { TrainingJobRecordSchema } from './training';
 
 /**
  * A graduate package (format 2): one immutable version of an agent as a plain folder, or as a
@@ -99,14 +100,36 @@ export const BaseModelSchema = z
   .strict();
 export type BaseModel = z.infer<typeof BaseModelSchema>;
 
+/**
+ * How Ollama's store and the adapter runtime (decision 035) name a weights file: `sha256:` and
+ * the file's digest, the same on every computer.
+ */
+export const BlobDigestSchema = z.string().regex(/^sha256:[0-9a-f]{64}$/);
+
+/**
+ * A LoRA adapter, named the way the adapter runtime (decision 035) checks and loads one: the GGUF
+ * file by its sha256, the base build it was made for by that build's GGUF digest, and the scale
+ * every request applies it at.
+ */
 export const AdapterRefSchema = z
   .object({
     path: PackagePathSchema,
-    format: z.enum(['gguf_lora', 'peft']),
+    /** A GGUF LoRA, the format llama.cpp loads. */
+    format: z.literal('gguf_lora'),
+    /** The adapter file's sha256, as its integrity entry and its training job record it. */
     sha256: Sha256Schema,
     sizeBytes: z.number().int().nonnegative(),
-    /** The base build it was trained on: it loads on no other. */
-    baseDigest: z.string().min(1).optional(),
+    /**
+     * The base weights it was made for: the digest of the GGUF file that Ollama's store holds for
+     * `model.base.name`. It loads on no other build.
+     */
+    baseDigest: BlobDigestSchema,
+    /** How strongly each request applies it, as measured: 1 is the adapter as trained. */
+    scale: z.number().positive(),
+    /** The training job that made it, when one did. */
+    trainingJobId: TrainingJobRecordSchema.shape.id.optional(),
+    /** Made by the stand-in training backend: built, never trained (decision 033). */
+    standIn: z.literal(true).optional(),
   })
   .strict();
 export type AdapterRef = z.infer<typeof AdapterRefSchema>;
@@ -358,5 +381,18 @@ export const PackageManifestSchema = z
     integrity: PackageIntegritySchema,
     terms: PackageTermsSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((manifest, ctx) => {
+    const adapter = manifest.model.adapter;
+    if (adapter === undefined) return;
+    const listed = manifest.integrity.files.find((file) => file.path === adapter.path);
+    if (listed?.sha256 !== adapter.sha256 || listed.size !== adapter.sizeBytes) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['model', 'adapter'],
+        message:
+          'names a file that the integrity section lists with another checksum, or not at all',
+      });
+    }
+  });
 export type PackageManifest = z.infer<typeof PackageManifestSchema>;

@@ -8,6 +8,7 @@ import {
   readPackage,
   readZipEntries,
   scanText,
+  sha256Bytes,
   writePackage,
   writeZip,
 } from '../src';
@@ -99,6 +100,42 @@ describe('package folders', () => {
       JSON.stringify({ ...manifest, base_url: 'http://127.0.0.1:11434' }),
     );
     await expectCode(readPackage(unknown), 'invalid_manifest');
+  });
+
+  it('hold an adapter to the very file their integrity section lists', async () => {
+    const weights = 'LORA WEIGHTS';
+    const adapter = {
+      path: 'adapter/adapter.gguf',
+      format: 'gguf_lora' as const,
+      sha256: sha256Bytes(weights),
+      sizeBytes: weights.length,
+      baseDigest: `sha256:${'a1'.repeat(32)}`,
+      scale: 1,
+      trainingJobId: 'trn_glimmer1',
+    };
+    const { model } = sampleDraft();
+    const files = [
+      { path: 'harness/system.md', content: 'You are the service desk.\n' },
+      { path: adapter.path, content: weights },
+    ];
+    const dir = join(await tempDir(), 'with-adapter');
+    await writePackage(dir, sampleDraft({ model: { ...model, adapter } }), files);
+    expect((await readPackage(dir)).manifest.model.adapter).toEqual(adapter);
+
+    const other = { ...adapter, sha256: sha256Bytes('OTHER WEIGHTS') };
+    await expectCode(
+      writePackage(
+        join(await tempDir(), 'other'),
+        sampleDraft({ model: { ...model, adapter: other } }),
+        files,
+      ),
+      'invalid_manifest',
+    );
+    // Every file still matches its integrity entry; only the adapter's own record disagrees.
+    const manifest = JSON.parse(await readFile(join(dir, 'graduate.json'), 'utf8'));
+    manifest.model.adapter.sha256 = other.sha256;
+    await writeFile(join(dir, 'graduate.json'), JSON.stringify(manifest));
+    expect(await expectCode(readPackage(dir), 'invalid_manifest')).toContain('model.adapter');
   });
 
   it('refuse links inside a package folder', async () => {

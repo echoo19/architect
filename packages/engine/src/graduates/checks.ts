@@ -303,10 +303,13 @@ async function modelChecks(
   let available: InstallCheck;
   try {
     const described = await student.describe();
-    const pinned = manifest.model.base.digest;
+    // An adapter loads only on the build it was made for, which the adapter runtime describes by
+    // its GGUF digest. Without one, a different build than the author's only needs attention.
+    const { adapter } = manifest.model;
+    const pinned = adapter?.baseDigest ?? manifest.model.base.digest;
     if (pinned !== undefined && described.digest !== undefined && described.digest !== pinned) {
-      const reason = `${model.runtime} serves a different build of ${manifest.model.base.name} (digest ${described.digest.slice(0, 19)}) than the one tested (${pinned.slice(0, 19)}).`;
-      findings.push({ level: manifest.model.adapter ? 'blocked' : 'needs_attention', reason });
+      const reason = `${model.runtime} serves a different build of ${manifest.model.base.name} (digest ${described.digest.slice(0, 19)}) than the one ${adapter ? 'its adapter was made for' : 'tested'} (${pinned.slice(0, 19)}).`;
+      findings.push({ level: adapter ? 'blocked' : 'needs_attention', reason });
       available = {
         id: 'model-available',
         kind: 'model_available',

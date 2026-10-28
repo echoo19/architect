@@ -14,6 +14,7 @@ import {
 import { openTableStore, type TableStore } from '../data/table-store';
 import { grantedFiles } from '../graduates/bindings';
 import type { ActiveVersion } from '../graduates/open';
+import type { ServeRequest } from '../local-runtime';
 
 /** An open graduate: everything its chats share, all from one version. */
 export interface GraduateSession {
@@ -33,8 +34,8 @@ export interface GraduateSession {
   /** Logical resource names bound to folders on this computer. */
   readonly bindings: Readonly<Record<string, string>>;
   readonly grants: Grants;
-  /** The version's adapter file, checked with the rest of the version; null without one. */
-  readonly adapterPath: string | null;
+  /** What the adapter runtime loads for the version (`ActiveVersion.adapter`); null without one. */
+  readonly adapter: ServeRequest | null;
   /** The student's context window, which bounds how much of a chat it is shown. */
   readonly contextLength: number;
 }
@@ -163,7 +164,7 @@ export async function openGraduateSession(
     data: await openTableStore({ dataDir: dataFolder ?? active.dir, files, mode: 'live' }),
     bindings: active.bindings,
     grants: active.grants,
-    adapterPath: active.adapterPath,
+    adapter: active.adapter,
     contextLength,
   };
 }

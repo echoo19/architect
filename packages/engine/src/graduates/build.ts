@@ -244,9 +244,14 @@ function requirementsOf(facts: VersionFacts): PackageRequirements {
   if (report !== null && !facts.testedHere) {
     limitations.push("Where its locked test ran wasn't recorded.");
   }
-  if (base.digest === undefined && base.revision === undefined) {
+  if (base.digest === undefined && base.revision === undefined && facts.adapter === undefined) {
     limitations.push(
       "The base model's exact build wasn't recorded, so another copy can't be confirmed identical.",
+    );
+  }
+  if (facts.adapter?.standIn === true) {
+    limitations.push(
+      'Its adapter came from the stand-in training backend: it was built, not trained, and changes nothing.',
     );
   }
   return {
@@ -325,7 +330,7 @@ export function buildPackage(facts: VersionFacts): {
   const notices = [
     "The harness (instructions, skills, tools and examples) was written from the author's tasks and can quote them.",
   ];
-  if (adapter) {
+  if (adapter && adapter.standIn !== true) {
     notices.push(
       "Trained weights may retain information from the data they were trained on; leaving files out of a package doesn't make it anonymous.",
     );
@@ -353,7 +358,12 @@ export function buildPackage(facts: VersionFacts): {
               format: adapter.format,
               sha256: adapter.sha256,
               sizeBytes: adapter.sizeBytes,
-              ...(adapter.baseDigest === undefined ? {} : { baseDigest: adapter.baseDigest }),
+              baseDigest: adapter.baseDigest,
+              scale: adapter.scale,
+              ...(adapter.trainingJobId === undefined
+                ? {}
+                : { trainingJobId: adapter.trainingJobId }),
+              ...(adapter.standIn === undefined ? {} : { standIn: adapter.standIn }),
             },
           }),
       inference: { contextLength: facts.contextLength },

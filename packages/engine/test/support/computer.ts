@@ -45,6 +45,9 @@ export interface Computer {
   remove(): Promise<void>;
 }
 
+/** The digest Ollama's store gives the base's GGUF file, as the adapter runtime reports it. */
+export const GLIMMER_GGUF = `sha256:${'a1'.repeat(32)}`;
+
 export const THIS_MACHINE: Machine = {
   os: 'win32',
   arch: 'x64',
@@ -146,6 +149,10 @@ export interface VersionOptions {
   harness?: Harness;
   /** Bytes of a LoRA adapter file to ship with the version. */
   adapter?: string;
+  /** The adapter's identity beyond its file, when a test needs it to differ: scale, job, base. */
+  adapterIdentity?: Partial<
+    Pick<AdapterFile, 'scale' | 'trainingJobId' | 'standIn' | 'baseDigest'>
+  >;
   /** The local version it derives from. */
   parent?: number;
   /** A model endpoint on this computer for its installation. */
@@ -188,6 +195,9 @@ export async function addVersion(
       format: 'gguf_lora',
       sha256: sha256Bytes(options.adapter),
       sizeBytes: Buffer.byteLength(options.adapter),
+      baseDigest: GLIMMER_GGUF,
+      scale: 1,
+      ...options.adapterIdentity,
       source,
     };
   }

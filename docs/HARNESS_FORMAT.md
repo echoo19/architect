@@ -138,7 +138,8 @@ Nothing in a package belongs to one computer: no model endpoint, folder, chat or
                 "outputs": {...}, "boundaries": {...}, "acceptance": { "pass_rate": 0.95 } },
   "model": { "label": "Glimmer",
              "base": { "name": "muse-glimmer:30b", "digest": "sha256:...", "quantization": "Q4_K_M" },
-             "adapter": { "path": "adapter/adapter.gguf", "format": "gguf_lora", "sha256": "...", "size_bytes": 0 },
+             "adapter": { "path": "adapter/adapter.gguf", "format": "gguf_lora", "sha256": "...", "size_bytes": 0,
+                          "base_digest": "sha256:...", "scale": 1, "training_job_id": "trn_..." },
              "inference": { "context_length": 16384 },
              "runtime": { "compatible": ["ollama", "openai_compatible", "llama.cpp"] } },
   "harness": { "format": 1, "path": "harness", "hash": "sha256-...", "version": 7, "round": 3 },
@@ -160,7 +161,7 @@ Nothing in a package belongs to one computer: no model endpoint, folder, chat or
 
 - **identity**: the agent's id stays the same across versions; `parent` names the version this one was derived from.
 - **contract**: the job contract it was tested against (`JobContractSchema`). A change to a job's scope or success criteria makes a new contract version, and a result measured under one never counts for another.
-- **model**: the base weights named the way runtimes name them and pinned by digest (or a hub revision); never the weights themselves. A harness-only graduate runs on any local runtime that serves its base; one with an adapter only on a runtime that loads adapters (llama.cpp).
+- **model**: the base weights named the way runtimes name them and pinned by digest (or a hub revision); never the weights themselves. A harness-only graduate runs on any local runtime that serves its base; one with an adapter only on a runtime that loads adapters (llama.cpp). An adapter is a GGUF LoRA named as the adapter runtime loads it (decision 036): its file's sha256, which the integrity section must list the same; `base_digest`, the digest of the base's GGUF file in Ollama's store, the only build it loads on; the `scale` every request applies; and the training job that made it, with `stand_in` when the stand-in backend built it.
 - **resources**: logical folders the graduate works in. `data` holds the files the contract names; `output` is for new files. Each installation binds them to its own folders, and `access` is a request, not a grant.
 - **evidence**: the author's results, labelled as such. Its `status` is `ready` only when the locked test met the contract's bar on a local student.
 - **verification**: checks any installation can run without private data. Never the locked test.
