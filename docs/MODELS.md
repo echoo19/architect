@@ -30,7 +30,7 @@ How to read this page:
 | Student, hosted, development | OpenRouter | `meta/muse-glimmer-30b` | `https://openrouter.ai/api/v1` | 131,072 | $0.30 / $0.04 / $1.20 via DeepInfra, $0.35 / $0.04 / $1.50 via Together |
 | Student, hosted, development | DeepInfra | `meta-models/Muse-Glimmer-30B` | `https://api.deepinfra.com/v1/openai` | 131,072 | $0.30 / $0.04 / $1.20 |
 | Student with an adapter, on this computer | llama.cpp's `llama-server`, started by Architect with a GGUF from Ollama's store and the graduate's GGUF LoRA | the Ollama model's name, such as `muse-glimmer:30b-iq2` | `http://127.0.0.1:<port>/v1`, a port picked at each start | Architect asks for 16,384 | local |
-| Base the student's adapters are trained on | Hugging Face Hub, trained on Hugging Face Jobs | `meta-models/Muse-Glimmer-30B` (bf16), revision pinned per job | `https://huggingface.co` | 131,072 | compute, not tokens: one L40S at about $1.80 an hour (the owner's figure, unverified) |
+| Base the student's adapters are trained on | Hugging Face Hub, trained on Hugging Face Jobs | `meta-models/Muse-Glimmer-30B` (bf16), revision pinned per job | `https://huggingface.co` | 131,072 | compute, not tokens: one L40S at $1.80 an hour, billed by the minute (the Hub's Jobs hardware table, Oct 28) |
 
 Fireworks lists `accounts/fireworks/models/muse-glimmer-30b` but marks serverless "Not Supported", so it is not a development endpoint without a dedicated deployment (see Muse Glimmer, hosted).
 

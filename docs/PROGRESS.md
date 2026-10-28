@@ -16,11 +16,11 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 
 **Next**
 - Wire it into the app: Settings for llama-server's path and a Hugging Face key, `trainer/` as an app resource, the engine host resuming jobs at start, and graduates with an adapter served through the llama.cpp student.
-- With the owner's Hugging Face token (PRO or team plan, write access): one real job on the returns desk's verified lessons, then load its adapter on the 2-bit build (needs the owner's go-ahead for GPU time).
+- With the owner's Hugging Face token (write access, on an account with credit): one real job on the returns desk's verified lessons, then load its adapter on the 2-bit build (needs the owner's go-ahead for GPU time).
 
 **Open issues**
 - A01 stays blocked on training compute. None of the pins has run a job yet; the recipe checks its inputs before installing, so a wrong pin costs only the setup.
-- The L40S price ($1.80 an hour) is the owner's figure, not checked against the Hub's page.
+- Checked after the merge against the Hub's Jobs guide: Jobs need only a positive credit balance (no PRO plan, as first written), and the L40S is $1.80 an hour.
 
 ## 2026-10-28 (Tue), morning: any model
 
