@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   buildTrainerJob,
   buildTrainingDataset,
+  FINISH_RESERVE_SECONDS,
   loadRecipe,
   MIN_JOB_SECONDS,
   STARTUP_RESERVE_SECONDS,
@@ -98,6 +99,12 @@ describe("the trainer's job file", () => {
       max_seconds: 3 * 3600 - STARTUP_RESERVE_SECONDS,
       output: { repo: 'someone/architect-trn-test1', path_in_repo: 'outputs' },
     });
+  });
+
+  it('keeps back the time pipeline.py keeps back to convert and upload', () => {
+    const pipeline = readFileSync(join(TRAINER, 'pipeline.py'), 'utf8');
+    const minutes = /^RESERVE_SECONDS = (\d+) \* 60$/m.exec(pipeline)?.[1];
+    expect(Number(minutes) * 60).toBe(FINISH_RESERVE_SECONDS);
   });
 
   it('refuses a job too short to train in', () => {
