@@ -77,3 +77,4 @@ graduates/<graduate>/              graduate folders, format in HARNESS_FORMAT.md
 | `@architect/ui` | tokens, theme, components |
 | `@architect/desktop` | Electron main, preload and renderer |
 | `examples/home-services` | sample job: seeded data generator, task generator, checker |
+| `examples/gear-returns` | second sample job (decision 028): a returns desk whose exports are messier than their first rows |
