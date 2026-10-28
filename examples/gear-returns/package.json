@@ -1,0 +1,19 @@
+{
+  "name": "@architect/example-gear-returns",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "tsx src/cli/generate.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@architect/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@architect/engine": "workspace:*"
+  }
+}
