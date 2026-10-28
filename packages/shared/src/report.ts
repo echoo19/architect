@@ -55,6 +55,11 @@ export const ReportCardSchema = z.object({
   }),
   cost: z.object({
     mentorUsd: z.number().nonnegative(),
+    /**
+     * What a hosted copy of the student cost the run, a hosted locked test included. Absent when
+     * the student ran only on this computer.
+     */
+    studentUsd: z.number().positive().optional(),
     mentorInputTokens: z.number().int().nonnegative(),
     mentorOutputTokens: z.number().int().nonnegative(),
     rounds: z.number().int().nonnegative(),

@@ -88,12 +88,14 @@ describe('renderReportMarkdown', () => {
     report.test = { ...report.test, ranOffline: false };
     report.dev = { ...report.dev, final: { pass: 70, total: 80 } };
     report.topInterventions = [{ round: 3, title: 'Add a pricing skill', delta: 9, runs: 2 }];
+    report.cost = { ...report.cost, studentUsd: 0.81 };
     const text = renderReportMarkdown(report);
     expect(text).toContain('- Student: Glimmer (meta/muse-glimmer-30b, a hosted copy)');
     expect(text).toContain(
       '- Dev tasks passed: 30% at the start (12 of 40), 87.5% at the end (70 of 80)',
     );
     expect(text).toContain('1. Round 3, "Add a pricing skill": +9 dev passes over 2 runs');
+    expect(text).toContain("- Hosted student cost: $0.81, billed by the student's host");
     expect(text).toContain(
       'The locked test was run once on a hosted copy of the student with the mentor disconnected, so it was not run offline.',
     );

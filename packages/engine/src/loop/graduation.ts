@@ -182,6 +182,10 @@ export async function lockedTestReport(
     testedOn: test.target,
     mentor: authorIdentity(state),
     readyClaimed: rounds.some(({ hypothesis }) => hypothesis?.readyClaim === true),
+    studentUsd: state.ctx.store.costs
+      .list(state.ctx.runId)
+      .filter((cost) => cost.role === 'student')
+      .reduce((sum, cost) => sum + (cost.usd ?? 0), 0),
     ranOffline: test.target === 'local' && tester.isLocal,
     createdAt: state.now(),
   });

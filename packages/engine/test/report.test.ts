@@ -99,6 +99,7 @@ function input(overrides: Partial<ReportCardInput> = {}): ReportCardInput {
     testedOn: 'local',
     mentor: { label: 'Spark', model: 'fake-mentor-1' },
     readyClaimed: true,
+    studentUsd: 0,
     ranOffline: true,
     createdAt: AT,
     ...overrides,
@@ -153,6 +154,7 @@ describe('computeReportCard', () => {
       rounds: 4,
       wallMs: 90_000,
     });
+    expect(computeReportCard(input({ studentUsd: 0.81 })).cost.studentUsd).toBe(0.81);
   });
 
   it('draws the dev curve from the baseline and each decided round', () => {

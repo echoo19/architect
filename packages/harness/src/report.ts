@@ -95,6 +95,9 @@ export function renderReportMarkdown(report: ReportCard): string {
   const training = [
     `- Rounds: ${cost.rounds}`,
     `- Mentor cost: ${dollars(cost.mentorUsd)} (${count(cost.mentorInputTokens)} input tokens, ${count(cost.mentorOutputTokens)} output tokens)`,
+    ...(cost.studentUsd === undefined
+      ? []
+      : [`- Hosted student cost: ${dollars(cost.studentUsd)}, billed by the student's host`]),
     `- Training time: ${duration(cost.wallMs)}`,
   ];
   if (dev.baseline && dev.final) {

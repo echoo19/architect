@@ -31,6 +31,8 @@ export interface ReportCardInput {
   mentor: ReportCard['mentor'];
   /** The author claimed "ready" in some round of training. */
   readyClaimed: boolean;
+  /** What the hosted student cost the run so far; zero when it ran locally. */
+  studentUsd: number;
   ranOffline: boolean;
   createdAt: string;
 }
@@ -154,6 +156,7 @@ export function computeReportCard(input: ReportCardInput): ReportCard {
     dev: { baseline: run.devBaseline, final: run.devCurrent, curve: devCurve(run, input.rounds) },
     cost: {
       mentorUsd: run.totals.mentorUsd,
+      ...(input.studentUsd > 0 ? { studentUsd: input.studentUsd } : {}),
       mentorInputTokens: run.totals.mentorInputTokens,
       mentorOutputTokens: run.totals.mentorOutputTokens,
       rounds: run.totals.rounds,
