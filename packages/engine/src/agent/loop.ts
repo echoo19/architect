@@ -25,9 +25,19 @@ import { buildSystemPrompt, type AgentMode } from './prompt';
 import { matchGuardrail, selectRetrieval } from './retrieval';
 import { todayFor } from './today';
 
+/**
+ * What the agent loop reads of a job: the date its records are as of, and whether it has an
+ * `output/` folder. A training job is one, and so is what the workspace makes from a version's
+ * contract.
+ */
+export interface AgentJob {
+  businessDate?: Job['businessDate'];
+  data: { output?: NonNullable<Job['data']['output']> };
+}
+
 export interface RunAgentOptions {
   harness: Harness;
-  job: Job;
+  job: AgentJob;
   student: StudentAdapter;
   /** The agent's folder: the job's data, its output folder and the harness's skills. */
   files: AgentFiles;

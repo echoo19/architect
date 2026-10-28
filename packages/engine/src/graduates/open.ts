@@ -71,12 +71,17 @@ export function adapterRequest(
 ): ServeRequest | null {
   const adapter = manifest.model.adapter;
   if (adapter === undefined) return null;
+  const { base } = manifest.model;
   return {
     model,
     adapters: [{ key, path: join(dir, ...adapter.path.split('/')), sha256: adapter.sha256 }],
     scales: { [key]: adapter.scale },
     baseDigest: adapter.baseDigest,
     contextLength: manifest.model.inference.contextLength,
+    publishedBase: {
+      name: base.name,
+      ...(base.revision === undefined ? {} : { revision: base.revision }),
+    },
   };
 }
 

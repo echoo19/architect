@@ -96,6 +96,8 @@ export async function openSession(
     store: sessionStore(workspaceStore(local.store, local.paths.root), options.save),
     // This command's own llama-server, for a version with an adapter; it stops with the host.
     adapters: local.adapterRuntime,
+    // Its replies take the GPU in turns with the app's processes (decision 046).
+    gpu: local.gpu,
     ...(ctx.io.sandboxEntryPath === undefined ? {} : { sandboxEntryPath: ctx.io.sandboxEntryPath }),
     onError: (error) => failures.push(error),
   });

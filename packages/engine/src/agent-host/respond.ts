@@ -1,5 +1,14 @@
-import type { ApprovalRequest, ChatMessage, Harness, Trace, TraceStep } from '@architect/shared';
+import {
+  AdapterError,
+  type ApprovalRequest,
+  type ChatMessage,
+  type Harness,
+  type Trace,
+  type TraceStep,
+} from '@architect/shared';
 import { runAgent } from '../agent/loop';
+import { matchGuardrail } from '../agent/retrieval';
+import { LocalRuntimeError, type GpuHold } from '../local-runtime';
 import type { Sandbox } from '../sandbox/types';
 import type { ApproveWrite } from '../tools/builtins';
 import type { GraduateSession } from './graduate';
@@ -21,19 +30,27 @@ export interface ReplyRequest {
   approveWrite: ApproveWrite;
   /** The approval a non-interactive reply needed and couldn't get, once it has asked. */
   approvalRequired(): ApprovalRequest | null;
+  /**
+   * Holds the GPU for the whole reply, in its turn (decision 046); null when the version's model
+   * runs where Architect doesn't share the GPU out.
+   */
+  holdGpu(): Promise<GpuHold | null>;
   signal: AbortSignal;
 }
 
 /**
  * Runs the graduate on one message in chat mode and leaves its reply settled, whatever happens.
- * A refusal comes back from the runtime without the student being called. An error that isn't
- * the model's or a tool's is shown on the reply and then thrown for the host to report.
+ * The reply first holds the GPU, waiting its turn when another of Architect's processes has it.
+ * A refusal comes back from the runtime without the student being called, so it needs no GPU. An
+ * error that isn't the model's or a tool's is shown on the reply and then thrown for the host to
+ * report.
  */
 export async function respond(input: ReplyRequest): Promise<void> {
   const { graduate, reply } = input;
   let trace: Trace;
-  try {
-    trace = await runAgent({
+  let gpu: GpuHold | null = null;
+  const answer = () =>
+    runAgent({
       harness: graduate.harness,
       job: graduate.job,
       student: graduate.student,
@@ -49,17 +66,39 @@ export async function respond(input: ReplyRequest): Promise<void> {
       approveWrite: input.approveWrite,
       signal: input.signal,
     });
+  try {
+    if (matchGuardrail(graduate.harness, input.request) === null) gpu = await input.holdGpu();
+    // The reply's model turns run inside its hold, so each joins it rather than waiting in line.
+    trace = gpu === null ? await answer() : await gpu.run(answer);
   } catch (error) {
     const approval = input.approvalRequired();
     if (approval !== null) {
       finishApprovalRequired(reply, approval);
       return;
     }
+    // Stopped while it waited for the GPU: a stop, like one during the reply.
+    if (input.signal.aborted && error instanceof AdapterError && error.code === 'aborted') {
+      reply.finish({ status: 'stopped' });
+      return;
+    }
+    // A local runtime's problem, such as a GPU that stayed busy, says what to do in its own words,
+    // whether it came straight from the lease or through the student.
+    const local =
+      error instanceof LocalRuntimeError
+        ? error
+        : error instanceof AdapterError && error.cause instanceof LocalRuntimeError
+          ? error.cause
+          : null;
     reply.finish({
       status: 'error',
-      error: `It stopped on an unexpected problem: ${messageOf(error)}`,
+      error:
+        local === null
+          ? `It stopped on an unexpected problem: ${messageOf(error)}`
+          : `${local.message} ${local.hint}`,
     });
     throw error;
+  } finally {
+    gpu?.release();
   }
   const approval = input.approvalRequired();
   if (approval !== null) {

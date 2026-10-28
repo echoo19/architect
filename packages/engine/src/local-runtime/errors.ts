@@ -1,3 +1,5 @@
+import { AdapterError, type AdapterErrorCode } from '@architect/shared';
+
 export type LocalRuntimeErrorCode =
   /** No llama-server in Settings or on PATH. */
   | 'binary_not_found'
@@ -11,7 +13,10 @@ export type LocalRuntimeErrorCode =
   | 'base_mismatch'
   /** An adapter doesn't fit the base model, or llama-server refused it. */
   | 'adapter_unusable'
-  /** Ollama kept a model on the GPU after being asked to let it go. */
+  /**
+   * The GPU stayed in use: another Architect process kept it past the wait (decision 046), or
+   * Ollama kept a model on it after being asked to let it go.
+   */
   | 'gpu_busy'
   /** The model doesn't fit in memory. */
   | 'out_of_memory'
@@ -40,4 +45,30 @@ export class LocalRuntimeError extends Error {
     this.hint = hint;
     this.log = options.log ?? [];
   }
+}
+
+/**
+ * How a student reports a runtime that can't start: as an adapter error, which stops an
+ * evaluation instead of counting as a wrong answer. Waiting may fix a busy GPU or a failed start,
+ * so those can be tried again; a missing or unusable file can't be.
+ */
+const ADAPTER_CODES: Record<LocalRuntimeErrorCode, AdapterErrorCode> = {
+  binary_not_found: 'not_found',
+  binary_unusable: 'bad_request',
+  model_not_found: 'not_found',
+  model_unusable: 'bad_request',
+  base_mismatch: 'bad_request',
+  adapter_unusable: 'bad_request',
+  gpu_busy: 'server',
+  out_of_memory: 'server',
+  start_failed: 'server',
+  busy: 'server',
+};
+
+/** A local runtime problem as a student throws it; anything else as it is. */
+export function asAdapterError(error: unknown): unknown {
+  if (!(error instanceof LocalRuntimeError)) return error;
+  return new AdapterError(ADAPTER_CODES[error.code], `${error.message} ${error.hint}`, {
+    cause: error,
+  });
 }

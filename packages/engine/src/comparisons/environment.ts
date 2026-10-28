@@ -1,15 +1,25 @@
 import { createHash } from 'node:crypto';
 import { unloadOllamaModel } from '@architect/adapters';
 import { writeHarness } from '@architect/harness';
-import { STUDENT_PRESETS, type BackendId, type Job, type RuntimeIdentity } from '@architect/shared';
+import {
+  AdapterError,
+  OLLAMA_BASE_URL,
+  STUDENT_PRESETS,
+  type BackendId,
+  type Job,
+  type RuntimeIdentity,
+} from '@architect/shared';
 import { readGgufHeader } from '../gguf';
+import { studentsHolding } from '../host/students';
 import { createEngineDeps } from '../host/wiring';
 import { hubTokenResolver } from '../hub';
 import {
   describeLlamaServer,
+  GpuLease,
   hostAdapterRuntime,
   resolveOllamaModel,
-  type LocalAdapterRuntime,
+  type GpuLeaseOptions,
+  type GpuPurpose,
 } from '../local-runtime';
 import { systemClock } from '../loop/deps';
 import { DataPaths } from '../loop/paths';
@@ -22,9 +32,73 @@ const SECRET_ENV: Record<string, string> = {
   openrouter: 'OPENROUTER_API_KEY',
 };
 
+/** What the comparisons script does with the GPU, as the app tells whoever it keeps waiting. */
+export const COMPARISON_PURPOSE: GpuPurpose = {
+  priority: 'run',
+  doing: 'testing a model on this computer',
+  hint: 'Wait for the comparison to finish, or stop it, then try again.',
+};
+
+/**
+ * The comparisons script's share of the GPU lease on the app's data folder (decision 046). Its
+ * llama-server and its students on Ollama hold the GPU for each request, as the engine's do, and
+ * give it up when idle to any process of the app that asks. It takes the GPU only when no process
+ * of the app has any of it, and otherwise stops at once with the busy error: a measurement taken
+ * beside the app's work would be wrong, and waiting out a long local evaluation could take hours.
+ */
+export function comparisonLease(
+  appDataDir: string,
+  timing: Pick<GpuLeaseOptions, 'pollMs' | 'heartbeatMs'> = {},
+): GpuLease {
+  return new GpuLease({
+    dataDir: appDataDir,
+    owner: 'comparisons',
+    onlyWhenFree: { hint: 'Close Architect while a comparison runs, then run the command again.' },
+    ...timing,
+  });
+}
+
+/**
+ * The meter's unload before it times a cold start (decision 045), through the lease: the script
+ * holds the GPU alone while its own llama-server stops and Ollama unloads `models`, so no model of
+ * Architect's stays loaded or loads meanwhile; any process of the app would have to wait, and the
+ * script's own students on Ollama unload what they used as they give the GPU up to it. Fails at
+ * once, unloading nothing, when a process of the app has the GPU.
+ */
+export function clearBeforeColdStart(
+  gpu: GpuLease,
+  runtime: { stop(): Promise<void> },
+  ollama: { baseUrl: string; models: readonly string[] },
+): (signal?: AbortSignal) => Promise<void> {
+  return async (signal) => {
+    const hold = await gpu.hold('llama-server', COMPARISON_PURPOSE, signal);
+    try {
+      await runtime.stop();
+      for (const model of ollama.models) {
+        try {
+          await unloadOllamaModel(ollama.baseUrl, model, signal);
+        } catch (error) {
+          // An Ollama that isn't running, or that hasn't the model, has nothing of it loaded.
+          const absent =
+            error instanceof AdapterError &&
+            (error.code === 'network' || error.code === 'not_found');
+          if (!absent) throw error;
+        }
+      }
+    } finally {
+      hold.release();
+    }
+  };
+}
+
 export interface RealEnvironmentOptions {
   /** The comparison's data folder. */
   dataDir: string;
+  /**
+   * The app's data folder, where the script takes its turns at the GPU with the app's processes
+   * (decision 046).
+   */
+  appDataDir: string;
   /** The repository's `trainer/` folder, for weights arms. */
   trainerDir: string;
   /** Watch the local runtime during local locked tests: only within the owner's GPU window. */
@@ -129,44 +203,52 @@ async function identify(backend: BackendId, job: Job): Promise<RuntimeIdentity |
 
 /**
  * The real environment for a comparison: the engine's own dependencies with keys from the
- * environment, a training worker that uses Hugging Face Jobs when a token resolves, the engine's
- * llama-server for adapter students, and the system meter when the GPU window is granted.
+ * environment, a training worker that uses Hugging Face Jobs when a token resolves, a llama-server
+ * of its own for adapter students, and the system meter when the GPU window is granted. Its
+ * llama-server and its students on Ollama take the GPU lease the app's processes share, and only
+ * when the app has none of it (decision 046).
  */
 export function realEnvironment(options: RealEnvironmentOptions): {
   env: ComparisonEnvironment;
-  adapterRuntime: LocalAdapterRuntime;
+  /** Stops the llama-server and leaves the GPU lease. */
+  close(): Promise<void>;
 } {
   const paths = new DataPaths(options.dataDir);
+  const gpu = comparisonLease(options.appDataDir);
   const adapterRuntime = hostAdapterRuntime({
     runtimeDir: paths.runtimeDir('comparisons'),
     settings: () => ({}),
+    gpu,
+    purpose: COMPARISON_PURPOSE,
   });
   const token = hubTokenResolver();
-  const deps = createEngineDeps({
-    dataDir: options.dataDir,
-    getSecret: async (ref) => {
-      const name = SECRET_ENV[ref];
-      return name === undefined ? undefined : process.env[name] || undefined;
-    },
-    trainerDir: options.trainerDir,
-    huggingFaceToken: token,
-    adapterRuntime,
-  });
-  if (options.meter) {
-    deps.meter = systemMeter({
-      unload: {
-        ollama: async () => {
-          const ollama = 'http://127.0.0.1:11434';
-          for (const preset of STUDENT_PRESETS.filter((item) => item.runtime === 'ollama')) {
-            await unloadOllamaModel(ollama, preset.model).catch(() => undefined);
-          }
-        },
-        'llama.cpp': () => adapterRuntime.stop(),
+  const deps = studentsHolding(
+    createEngineDeps({
+      dataDir: options.dataDir,
+      getSecret: async (ref) => {
+        const name = SECRET_ENV[ref];
+        return name === undefined ? undefined : process.env[name] || undefined;
       },
+      trainerDir: options.trainerDir,
+      huggingFaceToken: token,
+      adapterRuntime,
+    }),
+    gpu,
+    COMPARISON_PURPOSE,
+  );
+  if (options.meter) {
+    // Either backend's cold start begins from a GPU with nothing of Architect's on it.
+    const clear = clearBeforeColdStart(gpu, adapterRuntime, {
+      baseUrl: OLLAMA_BASE_URL,
+      models: STUDENT_PRESETS.filter((item) => item.runtime === 'ollama').map((item) => item.model),
     });
+    deps.meter = systemMeter({ unload: { ollama: clear, 'llama.cpp': clear } });
   }
   return {
-    adapterRuntime,
+    close: async () => {
+      await adapterRuntime.stop();
+      await gpu.close();
+    },
     env: {
       deps,
       clock: systemClock,

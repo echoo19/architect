@@ -31,6 +31,7 @@ function host(made: Computer): AgentHost {
   const opened = createAgentHost({
     store: workspaceStore(made.store, made.dataDir),
     adapters: made.workspaceRuntime(),
+    gpu: made.workspaceGpu,
   });
   cleanups.push(() => opened.close());
   return opened;
