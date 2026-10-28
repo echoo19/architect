@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn, Meter, Panel } from '@architect/ui';
 import { Lock } from 'lucide-react';
+import type { MentoringRecords } from '../../api/mentoring';
 import { formatDuration, formatUsd } from '../../lib/format';
 import { formatAnswerTime } from '../format';
 import { draftRoundOf } from './draft';
@@ -10,13 +11,37 @@ function share(used: number, max: number): number {
   return max === 0 ? 1 : used / max;
 }
 
+/**
+ * Changes kept of those tried: from the experiment records when the run has them, rejected,
+ * invalid and stopped ones included, else from its rounds. The first draft is the starting
+ * point, not a change, so it isn't counted among them.
+ */
+function keptChanges(live: LiveRun, records: MentoringRecords | null) {
+  const changes = records?.experiments.filter((experiment) => experiment.kind !== 'draft') ?? [];
+  if (changes.length > 0) {
+    return {
+      kept: changes.filter((experiment) => experiment.disposition === 'kept').length,
+      tried: changes.length,
+    };
+  }
+  const draft = draftRoundOf(live);
+  return changeCounts(live.rounds.filter((round) => round.index !== draft));
+}
+
 /** Time, money and rounds used against the job's caps, and how the student is doing on them. */
-export function Resources({ live, mentor }: { live: LiveRun; mentor: string }) {
+export function Resources({
+  live,
+  mentor,
+  records,
+}: {
+  live: LiveRun;
+  mentor: string;
+  records: MentoringRecords | null;
+}) {
   const { minutes, usd, rounds } = budgetMeters(live);
   const speed = medianLatencyMs(live.attempts);
-  // The first draft is the starting point, not a change, so it isn't counted among them.
-  const draft = draftRoundOf(live);
-  const changes = changeCounts(live.rounds.filter((round) => round.index !== draft));
+  const changes = keptChanges(live, records);
+  const lessons = records?.progress.lessons;
   return (
     <Panel
       padded
@@ -48,6 +73,14 @@ export function Resources({ live, mentor }: { live: LiveRun; mentor: string }) {
           <span className="font-mono">{formatAnswerTime(speed)}</span>
         )}
       </Fact>
+      {lessons && lessons.verified + lessons.rejected > 0 && (
+        <Fact label="Examples kept">
+          <span className="font-mono tabular-nums">
+            {lessons.verified}{' '}
+            <span className="text-fg-muted">/ {lessons.verified + lessons.rejected}</span>
+          </span>
+        </Fact>
+      )}
       <Fact label="Changes kept">
         <span className="font-mono tabular-nums">
           {changes.kept} <span className="text-fg-muted">/ {changes.tried}</span>

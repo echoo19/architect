@@ -1,6 +1,6 @@
 import type { Job } from '@architect/shared';
-import { Panel, PanelHeader, PanelRow } from '@architect/ui';
-import { Check, ChevronRight, EyeOff, X } from 'lucide-react';
+import { EvidenceMark, Panel, PanelHeader, PanelRow } from '@architect/ui';
+import { Check, ChevronRight, X } from 'lucide-react';
 import { typeLabel } from '../names';
 import type { RecentAttempt } from './run-state';
 
@@ -8,7 +8,7 @@ import type { RecentAttempt } from './run-state';
 const SHOWN = 5;
 
 /** The student's latest attempts, newest first. A row opens its trace. */
-export function Examples({
+export function LatestAttempts({
   job,
   attempts,
   mentor,
@@ -30,7 +30,7 @@ export function Examples({
           <ul className="m-0 min-w-[680px] list-none p-0">
             {shown.map((attempt) => (
               <li key={attempt.id}>
-                <ExampleRow
+                <AttemptRow
                   attempt={attempt}
                   type={typeLabel(job, attempt.taskType)}
                   mentor={mentor}
@@ -45,7 +45,7 @@ export function Examples({
   );
 }
 
-function ExampleRow({
+function AttemptRow({
   attempt,
   type,
   mentor,
@@ -64,7 +64,7 @@ function ExampleRow({
     <button
       type="button"
       onClick={onOpen}
-      className="group grid min-h-[54px] w-full grid-cols-[20px_minmax(0,1fr)_230px_150px_14px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left font-mono text-sm transition-colors duration-150 hover:bg-row-hover"
+      className="group grid min-h-[54px] w-full grid-cols-[20px_minmax(0,1fr)_230px_170px_14px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left font-mono text-sm transition-colors duration-150 hover:bg-row-hover"
     >
       {passed ? (
         <Check
@@ -77,24 +77,22 @@ function ExampleRow({
       ) : (
         <X size={15} strokeWidth={2.2} className="text-fg-faint" role="img" aria-label="Failed" />
       )}
-      <span className={passed ? 'truncate text-fg-soft' : 'truncate text-fg-muted'}>
+      <span
+        className={
+          passed
+            ? 'line-clamp-2 break-words text-fg-soft'
+            : 'line-clamp-2 break-words text-fg-muted'
+        }
+      >
         {attempt.prompt ?? attempt.taskId}
       </span>
       <Answer attempt={attempt} />
       <span className="flex min-w-0 flex-col font-sans">
         <span className="truncate text-fg-secondary">{type}</span>
-        <span className="flex min-w-0 items-center gap-1.5 text-xs text-fg-muted">
+        <EvidenceMark kind={check ? 'check' : 'practice'} className="min-w-0 text-xs">
           <span className="truncate">{set}</span>
-          {check && (
-            <EyeOff
-              size={12}
-              strokeWidth={1.8}
-              className="shrink-0"
-              role="img"
-              aria-label={`Hidden from ${mentor}`}
-            />
-          )}
-        </span>
+          {check && <span className="sr-only">, hidden from {mentor}</span>}
+        </EvidenceMark>
       </span>
       <ChevronRight
         size={14}

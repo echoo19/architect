@@ -1,32 +1,14 @@
 import type { ReactNode } from 'react';
-import type { JsonValue, TableView, Trace, TraceStep, WriteRecord } from '@architect/shared';
-import {
-  cn,
-  DrawerContent,
-  ErrorState,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@architect/ui';
-import { Ban, BookOpen, Check, CircleX, MessageSquare, Wrench } from 'lucide-react';
+import type { ListedAttempt, Trace } from '@architect/shared';
+import { cn, Disclosure, DrawerContent, ErrorState, EvidenceMark, Skeleton } from '@architect/ui';
+import { Check, CircleX } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { useQuery } from '../../api/query';
-import { CodeView } from '../../components/CodeView';
-import { PatchLines } from '../../components/PatchLines';
-import { RowDiffTable } from '../../workspace/tables';
 import { formatAnswerTime } from '../format';
 import type { ModelNames } from './phase';
-import type { RecentAttempt } from './run-state';
-import { describeArguments, lineArguments } from './tool-arguments';
-
-type ToolTraceStep = Extract<TraceStep, { kind: 'tool' }>;
-
-/** Long results scroll; past this many rows the rest are counted, not drawn. */
-const ROW_LIMIT = 50;
+import type { StepNote } from './lesson-steps';
+import { Playback } from './Playback';
+import { playbackSteps } from './trace-steps';
 
 const STOP_REASONS: Record<Trace['stopReason'], string | null> = {
   answer: null,
@@ -36,40 +18,59 @@ const STOP_REASONS: Record<Trace['stopReason'], string | null> = {
   aborted: 'Stopped before it finished.',
 };
 
-/** One attempt in full: the request, every step and tool call, the answer and the verdict. */
+/** "Practice task, round 4" or "Check task, round 3 · hidden from Spark", with its kind's mark. */
+function AttemptKind({ attempt, mentor }: { attempt: ListedAttempt; mentor: string }) {
+  const check = attempt.split === 'dev';
+  const kind = check ? 'Check task' : 'Practice task';
+  return (
+    <>
+      <EvidenceMark kind={check ? 'check' : 'practice'} className="align-[-2px]">
+        {attempt.round ? `${kind}, round ${attempt.round}` : kind}
+      </EvidenceMark>
+      {check && ` · hidden from ${mentor}`}
+    </>
+  );
+}
+
+/**
+ * One attempt in full: the verdict, then every step with its evidence, from the keyboard as
+ * well as the mouse. Opened from a finding, it starts at the step the finding points to, with
+ * Spark's notes on the steps they name.
+ */
 export function TraceDrawerContent({
   attempt,
   type,
   names,
   setup,
+  openAt,
+  notes,
+  onBack,
 }: {
-  attempt: RecentAttempt;
+  attempt: ListedAttempt;
   type: string;
   names: ModelNames;
   /** The setup the attempt used, named by where it came from. */
   setup: string;
+  openAt?: number;
+  notes?: readonly StepNote[];
+  /** The way back, when another drawer opened this one. */
+  onBack?: (() => void) | undefined;
 }) {
   const trace = useQuery(`trace:${attempt.id}`, () => flowApi.trace(attempt.id));
-  const { student } = names;
-  const check = attempt.split === 'dev';
-  const split = check ? 'Check task' : 'Practice task';
-  const subtitle = [
-    type,
-    attempt.round ? `${split}, round ${attempt.round}` : split,
-    `using ${setup}`,
-    ...(check ? [`hidden from ${names.mentor}`] : []),
-  ].join(' · ');
   return (
-    <DrawerContent title={attempt.prompt ?? `Task ${attempt.taskId}`} subtitle={subtitle}>
+    <DrawerContent
+      title={attempt.prompt ?? `Task ${attempt.taskId}`}
+      onBack={onBack}
+      subtitle={
+        <>
+          {type} · <AttemptKind attempt={attempt} mentor={names.mentor} /> · using {setup}
+        </>
+      }
+    >
       <div className="flex flex-col gap-7">
-        <Verdict attempt={attempt} student={student} />
-        {trace.status === 'loading' && (
-          <div aria-busy="true" aria-label="Loading the trace" className="flex flex-col gap-3">
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-          </div>
-        )}
+        {attempt.prompt && <WholeRequest prompt={attempt.prompt} />}
+        <Verdict attempt={attempt} student={names.student} />
+        {trace.status === 'loading' && <StepsSkeleton />}
         {trace.status === 'error' && (
           <ErrorState
             layout="inline"
@@ -78,106 +79,64 @@ export function TraceDrawerContent({
             onRetry={trace.reload}
           />
         )}
-        {trace.status === 'success' && <TraceSteps trace={trace.data} student={student} />}
+        {trace.status === 'success' && (
+          <>
+            <Playback
+              title={`${names.student}'s steps`}
+              steps={playbackSteps(trace.data).map((step) => ({
+                step,
+                actor: 'student',
+                replayed: false,
+              }))}
+              {...(openAt === undefined ? {} : { openAt })}
+              {...(notes === undefined ? {} : { notes })}
+              mentor={names.mentor}
+              student={names.student}
+            />
+            <TraceFooter trace={trace.data} />
+          </>
+        )}
       </div>
     </DrawerContent>
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+/** About what a drawer title shows in its three lines; a longer request folds out in full. */
+const TITLE_CHARS = 180;
+
+/** A task's request too long for the drawer's title, in full under a fold. */
+export function WholeRequest({ prompt }: { prompt: string }) {
+  if (prompt.length <= TITLE_CHARS) return null;
   return (
-    <section className="flex flex-col gap-3">
-      <h3 className="m-0 text-sm font-medium text-fg-secondary">{title}</h3>
-      {children}
-    </section>
+    <Disclosure label="The whole request" className="-mt-3">
+      <p className="m-0 whitespace-pre-wrap break-words rounded-md bg-well px-3 py-2 text-sm text-fg-soft">
+        {prompt}
+      </p>
+    </Disclosure>
   );
 }
 
-function Verdict({ attempt, student }: { attempt: RecentAttempt; student: string }) {
-  const { check, answerSummary, expectedSummary } = attempt;
+export function StepsSkeleton() {
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-3 rounded-xl border px-4 py-3.5',
-        check.pass
-          ? 'border-student-tile-line bg-student-tile'
-          : 'border-danger-line bg-danger-tint',
-      )}
-    >
-      <div className="flex items-start gap-2.5">
-        {check.pass ? (
-          <Check size={16} strokeWidth={2.2} className="mt-0.5 shrink-0 text-student" aria-hidden />
-        ) : (
-          <CircleX
-            size={16}
-            strokeWidth={1.8}
-            className="mt-0.5 shrink-0 text-danger"
-            aria-hidden
-          />
-        )}
-        <div className="flex flex-col gap-0.5">
-          <span className="font-medium">{check.pass ? 'Passed' : 'Failed'}</span>
-          <span className="text-fg-secondary text-pretty">{check.reason}</span>
-        </div>
-      </div>
-      {(answerSummary || expectedSummary) && (
-        <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 pl-[26px] text-sm">
-          {answerSummary && (
-            <>
-              <dt className="text-fg-muted">{student} answered</dt>
-              <dd className="m-0 break-words font-mono">{answerSummary}</dd>
-            </>
-          )}
-          {expectedSummary && (
-            <>
-              <dt className="text-fg-muted">Expected</dt>
-              <dd className="m-0 break-words font-mono">{expectedSummary}</dd>
-            </>
-          )}
-        </dl>
-      )}
+    <div aria-busy="true" aria-label="Loading the steps" className="flex flex-col gap-3">
+      <Skeleton className="h-4 w-40" />
+      <Skeleton className="h-9 w-full" />
+      <Skeleton className="h-9 w-full" />
     </div>
   );
 }
 
-/** Model turns with no text only carried tool calls, which their tool steps already show. */
-function isShown(step: TraceStep): boolean {
-  return step.kind !== 'model' || step.text.trim().length > 0;
-}
-
-function TraceSteps({ trace, student }: { trace: Trace; student: string }) {
+/** How the attempt ended when it didn't answer, and what it took. */
+export function TraceFooter({ trace }: { trace: Trace }) {
   const tokens = trace.usage.inputTokens + trace.usage.outputTokens;
   const stopped = STOP_REASONS[trace.stopReason];
-  const steps = trace.steps.filter(isShown);
   return (
     <>
-      <Section title={`${student}'s steps`}>
-        {steps.length === 0 ? (
-          <p className="m-0 text-fg-secondary">{student} answered without using any tools.</p>
-        ) : (
-          <ol className="m-0 flex list-none flex-col gap-2.5 p-0">
-            {steps.map((step, index) => (
-              <li key={index}>
-                <StepView step={step} student={student} />
-              </li>
-            ))}
-          </ol>
-        )}
-      </Section>
-      <Section title={`${student}'s final answer`}>
-        {trace.finalText.trim() ? (
-          <pre className="m-0 whitespace-pre-wrap break-words rounded-lg border border-line-card bg-well px-3.5 py-3 font-mono text-sm">
-            {trace.finalText}
-          </pre>
-        ) : (
-          <p className="m-0 text-fg-secondary">No answer.</p>
-        )}
-        {(stopped || trace.error) && (
-          <p className="m-0 text-sm text-fg-muted">
-            {[stopped, trace.error].filter(Boolean).join(' ')}
-          </p>
-        )}
-      </Section>
+      {(stopped || trace.error) && (
+        <p className="m-0 text-sm text-fg-muted">
+          {[stopped, trace.error].filter(Boolean).join(' ')}
+        </p>
+      )}
       <p className="m-0 flex flex-wrap gap-x-2 border-t border-line-card pt-4 text-sm tabular-nums text-fg-muted">
         <span className="font-mono text-xs leading-5">{trace.studentModel}</span>
         <span aria-hidden>·</span>
@@ -189,221 +148,70 @@ function TraceSteps({ trace, student }: { trace: Trace; student: string }) {
   );
 }
 
-function StepView({ step, student }: { step: TraceStep; student: string }) {
-  switch (step.kind) {
-    case 'skill':
-      return (
-        <StepRow icon={<BookOpen size={14} strokeWidth={1.7} aria-hidden />}>
-          <span>
-            Loaded the skill <span className="font-mono text-sm">{step.slug}</span>
-            <span className="text-fg-muted">
-              {step.via === 'rule' ? ', which matches the request' : `, as ${student} asked`}
-            </span>
-          </span>
-        </StepRow>
-      );
-    case 'model':
-      return (
-        <StepRow
-          icon={<MessageSquare size={14} strokeWidth={1.7} aria-hidden />}
-          meta={formatAnswerTime(step.latencyMs)}
-        >
-          <span className="whitespace-pre-wrap text-fg-soft">{step.text}</span>
-        </StepRow>
-      );
-    case 'tool':
-      return (
-        <StepRow
-          icon={<Wrench size={14} strokeWidth={1.7} aria-hidden />}
-          meta={formatAnswerTime(step.latencyMs)}
-        >
-          <ToolStep step={step} />
-        </StepRow>
-      );
-    case 'refusal':
-      return (
-        <StepRow icon={<Ban size={14} strokeWidth={1.7} aria-hidden />}>
-          <span>
-            Refused a {step.taskType} task: <span className="text-fg-secondary">{step.reason}</span>
-          </span>
-        </StepRow>
-      );
-  }
-}
-
-/**
- * A tool call: its name and arguments, then what it gave back. Code shows folded with its
- * output, a change shows its diff, a table read shows its rows, and other text shows as it is.
- */
-function ToolStep({ step }: { step: ToolTraceStep }) {
-  const code =
-    step.name === 'run' && typeof step.arguments.code === 'string'
-      ? step.arguments.code
-      : undefined;
-  const args = describeArguments(
-    lineArguments(step.name, step.arguments, step.change !== undefined),
-  );
-  let body: ReactNode;
-  if (code !== undefined) {
-    body = (
-      <CodeView
-        code={code}
-        output={step.error ?? resultText(step.result)}
-        failed={step.error !== undefined}
-      />
-    );
-  } else if (step.error) {
-    body = <span className="whitespace-pre-wrap text-sm text-danger">{step.error}</span>;
-  } else if (step.change) {
-    body = <ChangeResult change={step.change} text={resultText(step.result)} />;
-  } else if (step.table) {
-    body = <TableResult table={step.table} />;
-  } else if (typeof step.result === 'string') {
-    body = <TextResult text={step.result} />;
-  } else {
-    body = <ToolResult result={step.result} />;
-  }
+/** Passed or failed, the checker's reason, and the answer beside the expected one. */
+export function Verdict({ attempt, student }: { attempt: ListedAttempt; student: string }) {
+  const { check, answerSummary, expectedSummary } = attempt;
   return (
-    <div className="flex min-w-0 flex-col gap-2">
-      <span className="min-w-0 break-words font-mono text-sm">
-        <span>{step.name}</span>
-        {args && <span className="text-fg-muted"> {args}</span>}
-      </span>
-      {body}
-    </div>
+    <VerdictBox
+      passed={check.pass}
+      title={check.pass ? 'Passed' : 'Failed'}
+      reason={check.reason}
+      rows={[
+        ...(answerSummary ? [{ label: `${student} answered`, value: answerSummary }] : []),
+        ...(expectedSummary ? [{ label: 'Expected', value: expectedSummary }] : []),
+      ]}
+    />
   );
 }
 
-function resultText(result: JsonValue | null): string {
-  if (result === null) return 'No result';
-  return typeof result === 'string' ? result : JSON.stringify(result, null, 2);
-}
-
-/** Text a tool gave back, such as a file's numbered lines, as it reads. */
-function TextResult({ text }: { text: string }) {
-  return (
-    <pre className="m-0 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-md bg-well px-3 py-2 font-mono text-xs text-fg-secondary">
-      {text}
-    </pre>
-  );
-}
-
-/** What a change did, in the tool's words, and the rows or lines it wrote. */
-function ChangeResult({ change, text }: { change: WriteRecord; text: string }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-2">
-      <span className="text-sm text-fg-secondary">{text}</span>
-      <div className="max-h-56 overflow-auto rounded-md bg-well px-1 py-1">
-        {change.rows ? (
-          <RowDiffTable diff={change.rows} className="text-xs" />
-        ) : (
-          <PatchLines patch={change.patch} label="Lines this change writes" />
-        )}
-      </div>
-    </div>
-  );
-}
-
-/** The rows a table read showed. */
-function TableResult({ table }: { table: TableView }) {
-  return (
-    <div className="max-h-56 overflow-auto rounded-md bg-well px-3 py-1">
-      <Table variant="plain" className="text-xs">
-        <TableHeader>
-          <TableRow>
-            {table.columns.map((column) => (
-              <TableHead key={column} className="whitespace-nowrap">
-                {column}
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {table.rows.slice(0, ROW_LIMIT).map((row, index) => (
-            <TableRow key={index}>
-              {table.columns.map((column, at) => (
-                <TableCell key={column} className="whitespace-nowrap">
-                  {row[at] ?? ''}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      {table.rows.length > ROW_LIMIT && (
-        <p className="m-0 py-2 text-xs text-fg-muted">{table.rows.length - ROW_LIMIT} more rows</p>
-      )}
-    </div>
-  );
-}
-
-type Cell = string | number | boolean | null;
-
-/** Rows of a table, when a tool returned a list of flat records; otherwise null. */
-function asRows(value: JsonValue | null): Record<string, Cell>[] | null {
-  if (!Array.isArray(value) || value.length === 0) return null;
-  const rows: Record<string, Cell>[] = [];
-  for (const item of value) {
-    if (item === null || typeof item !== 'object' || Array.isArray(item)) return null;
-    const cells = Object.values(item);
-    if (cells.some((cell) => cell !== null && typeof cell === 'object')) return null;
-    rows.push(item as Record<string, Cell>);
-  }
-  return rows;
-}
-
-/** A result from before the coding tools, or a harness tool's JSON: rows as a table, else JSON. */
-function ToolResult({ result }: { result: JsonValue | null }) {
-  const rows = asRows(result);
-  if (!rows) {
-    return (
-      <pre className="m-0 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-md bg-well px-3 py-2 font-mono text-xs text-fg-secondary">
-        {result === null ? 'No result' : JSON.stringify(result, null, 2)}
-      </pre>
-    );
-  }
-  const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
-  return (
-    <div className="max-h-56 overflow-auto rounded-md bg-well px-3 py-1">
-      <Table variant="plain" className="text-xs">
-        <TableHeader>
-          <TableRow>
-            {columns.map((column) => (
-              <TableHead key={column}>{column}</TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.slice(0, ROW_LIMIT).map((row, index) => (
-            <TableRow key={index}>
-              {columns.map((column) => (
-                <TableCell key={column}>{String(row[column] ?? '–')}</TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      {rows.length > ROW_LIMIT && (
-        <p className="m-0 py-2 text-xs text-fg-muted">{rows.length - ROW_LIMIT} more rows</p>
-      )}
-    </div>
-  );
-}
-
-function StepRow({
-  icon,
-  meta,
+/** A verdict in a tinted box: a check or a cross, a title, the reason and a few values. */
+export function VerdictBox({
+  passed,
+  title,
+  reason,
+  rows = [],
   children,
 }: {
-  icon?: ReactNode;
-  meta?: string;
-  children: ReactNode;
+  passed: boolean;
+  title: string;
+  reason?: string;
+  rows?: { label: string; value: string }[];
+  children?: ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-2.5">
-      <span className="mt-[3px] flex w-3.5 shrink-0 justify-center text-fg-muted">{icon}</span>
-      <div className="min-w-0 flex-1">{children}</div>
-      {meta && <span className="shrink-0 font-mono text-xs text-fg-muted">{meta}</span>}
+    <div
+      className={cn(
+        'flex flex-col gap-3 rounded-xl border px-4 py-3.5',
+        passed ? 'border-student-tile-line bg-student-tile' : 'border-danger-line bg-danger-tint',
+      )}
+    >
+      <div className="flex items-start gap-2.5">
+        {passed ? (
+          <Check size={16} strokeWidth={2.2} className="mt-0.5 shrink-0 text-student" aria-hidden />
+        ) : (
+          <CircleX
+            size={16}
+            strokeWidth={1.8}
+            className="mt-0.5 shrink-0 text-danger"
+            aria-hidden
+          />
+        )}
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="font-medium">{title}</span>
+          {reason && <span className="text-fg-secondary text-pretty">{reason}</span>}
+        </div>
+      </div>
+      {rows.length > 0 && (
+        <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 pl-[26px] text-sm">
+          {rows.map((row) => (
+            <div key={row.label} className="contents">
+              <dt className="text-fg-muted">{row.label}</dt>
+              <dd className="m-0 break-words font-mono">{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {children}
     </div>
   );
 }

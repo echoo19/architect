@@ -1,4 +1,4 @@
-import type { Job, LineageEntry, Prediction, Round, Score } from '@architect/shared';
+import type { Experiment, Job, LineageEntry, Prediction, Round, Score } from '@architect/shared';
 import { typeLabel } from '../names';
 
 const NUMBER_WORDS = [
@@ -129,6 +129,29 @@ function measuredTwice(
     return `${opening}. ${again}, but ${worst.label} lost ${inWords(worst.lost)}. ${rule}.`;
   }
   return `${opening}. ${again}.`;
+}
+
+/**
+ * Why a measured change was rejected rather than only reverted, from its experiment: a task
+ * type lost more check tasks than the job allows, or fewer passed in all. Null when the
+ * experiment has no measurement to say it from.
+ */
+export function harmSentence(experiment: Experiment, job: Job): string | null {
+  const { devBefore: before, devAfter: after } = experiment;
+  if (!before || !after) return null;
+  // Each dev seed is one run over the check tasks; the limit counts per run.
+  const runs = Math.max(1, experiment.seeds.dev.length);
+  const allowed = job.evaluation.maxTypeRegression * runs;
+  const measured = `${gainPhrase(after.pass - before.pass)} (${before.pass} → ${after.pass} of ${after.total})`;
+  const worst = [...experiment.regressions].sort(
+    (a, b) => b.before - b.after - (a.before - a.after),
+  )[0];
+  const lost = worst ? worst.before - worst.after : 0;
+  if (worst && lost > allowed) {
+    const rule = capitalized(lossRule(allowed, 'may lose'));
+    return `${measured}, and ${typeLabel(job, worst.type)} lost ${inWords(lost)}. ${rule}.`;
+  }
+  return `${measured}. A change that loses check tasks is rejected.`;
 }
 
 /**
