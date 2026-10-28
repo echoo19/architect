@@ -29,6 +29,23 @@ import {
 const MIN_VERSION = '0.32.7';
 const UNLOAD_TIMEOUT_MS = 60_000;
 
+/** Waits `ms`, or less when the signal aborts first. */
+function rest(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve();
+      return;
+    }
+    const done = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', done);
+      resolve();
+    };
+    const timer = setTimeout(done, ms);
+    signal?.addEventListener('abort', done, { once: true });
+  });
+}
+
 /**
  * A student served by Ollama, over its native `/api/chat`. The native API takes the context
  * size per request, has reasoning levels, and reports reasoning separately from the answer.
@@ -91,6 +108,7 @@ export function createOllamaStudent(
     request: StudentChatRequest,
     signal?: AbortSignal,
   ): AsyncGenerator<StudentStreamEvent> {
+    const started = performance.now();
     const body = chatBody(request, await canThink(signal));
     const stream = await http.withRetries(
       () => http.openStream('/api/chat', body, { signal, model: endpoint.model }),
@@ -133,6 +151,11 @@ export function createOllamaStudent(
             ),
             finish: finishReason(line.done_reason, calls),
           };
+          // In quiet mode the GPU rests for a share of the time the reply took, so the next
+          // call starts cooler.
+          if (deps.cooldown) {
+            await (deps.rest ?? rest)((performance.now() - started) * deps.cooldown, signal);
+          }
           return;
         }
       }

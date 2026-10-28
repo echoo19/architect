@@ -23,7 +23,7 @@ import { Supervisor } from './processes/supervisor';
 import { safeStorageCipher } from './secrets/cipher';
 import { SecretStore } from './secrets/store';
 import { hardenContents, hardenSession, isAppUrl, type AppOrigin } from './security';
-import { quietThreads } from './settings/quiet';
+import { quietCooldown, quietThreads } from './settings/quiet';
 import { SettingsStore } from './settings/store';
 import { applyTheme } from './window/chrome';
 import { createMainWindow } from './window/main-window';
@@ -104,8 +104,12 @@ async function start(): Promise<void> {
   settings.onChange((next) => router.emit('settings', 'onChange', next));
 
   const localThreads = () => quietThreads(settings.get());
+  const quiet = () => ({
+    localThreads: localThreads(),
+    localCooldown: quietCooldown(settings.get()),
+  });
   let engineProcess: EngineProcess | null = null;
-  settings.onChange(() => engineProcess?.applySettings({ localThreads: localThreads() }));
+  settings.onChange(() => engineProcess?.applySettings(quiet()));
   const engine: Supervisor<EngineClient> = new Supervisor({
     name: 'The engine',
     launch: () =>
@@ -115,7 +119,7 @@ async function start(): Promise<void> {
           dataDir,
           sandboxEntryPath: resources.sandboxEntry,
           sampleJobFile: resources.sampleJobFile,
-          localThreads: localThreads(),
+          ...quiet(),
         },
         keys,
       )),
