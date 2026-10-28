@@ -7,8 +7,9 @@ name: Release
 #
 # The macOS app is signed and notarized when the repository has these secrets:
 # MAC_CERT_P12_BASE64 and MAC_CERT_PASSWORD (a Developer ID Application certificate as a base64
-# .p12, and its password), and APPLE_API_KEY_P8, APPLE_API_KEY_ID and APPLE_API_ISSUER (an App
-# Store Connect API key for notarization: the .p8 file's text, its key id and its issuer id).
+# .p12, and its password), and for notarization either APPLE_API_KEY_P8, APPLE_API_KEY_ID and
+# APPLE_API_ISSUER (an App Store Connect API key: the .p8 file's text, its key id and its issuer
+# id) or APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID.
 # scripts/release-mac.sh then checks the app in each disk image with codesign, its stapled ticket
 # and Gatekeeper. The Windows installer is signed when WINDOWS_CERTIFICATE and
 # WINDOWS_CERTIFICATE_PASSWORD hold a code signing certificate the same way. A certificate goes to
@@ -96,6 +97,9 @@ jobs:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: bash scripts/release-mac.sh "$RUNNER_TEMP/electron-x64"
       - uses: actions/upload-artifact@v7
         with:

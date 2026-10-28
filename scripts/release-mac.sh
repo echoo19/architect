@@ -13,14 +13,29 @@ set -euo pipefail
 x64_electron=${1:?Expected the folder holding the Intel Electron}
 : "${RUNNER_TEMP:?RUNNER_TEMP must be set}"
 
-signed=false
-if [ -n "${MAC_CERT_P12_BASE64:-}" ]; then
-  for key in MAC_CERT_PASSWORD APPLE_API_KEY_P8 APPLE_API_KEY_ID APPLE_API_ISSUER; do
+require() {
+  for key in "$@"; do
     if [ -z "${!key:-}" ]; then
       echo "::error::Missing signing secret: $key"
       exit 1
     fi
   done
+}
+
+# Notarization takes either an App Store Connect API key or an Apple ID with an app-specific
+# password; the API key wins when both are set.
+signed=false
+notary=none
+if [ -n "${MAC_CERT_P12_BASE64:-}" ]; then
+  require MAC_CERT_PASSWORD
+  if [ -n "${APPLE_API_KEY_P8:-}" ]; then
+    require APPLE_API_KEY_ID APPLE_API_ISSUER
+    notary=api-key
+    unset APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
+  else
+    require APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
+    notary=apple-id
+  fi
   signed=true
 fi
 
@@ -35,10 +50,13 @@ trap cleanup EXIT
 
 if [ "$signed" = true ]; then
   export CSC_LINK="$MAC_CERT_P12_BASE64" CSC_KEY_PASSWORD="$MAC_CERT_PASSWORD"
-  printf '%s' "$APPLE_API_KEY_P8" >"$key_file"
-  # electron-builder notarizes with APPLE_API_KEY (the key file), APPLE_API_KEY_ID and
-  # APPLE_API_ISSUER.
-  export APPLE_API_KEY="$key_file"
+  if [ "$notary" = api-key ]; then
+    printf '%s' "$APPLE_API_KEY_P8" >"$key_file"
+    # electron-builder notarizes with APPLE_API_KEY (the key file), APPLE_API_KEY_ID and
+    # APPLE_API_ISSUER, or else with APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID.
+    export APPLE_API_KEY="$key_file"
+  fi
+  echo "Signing with the Developer ID certificate; notarizing with the $notary credentials."
   options=()
 else
   export CSC_IDENTITY_AUTO_DISCOVERY=false
