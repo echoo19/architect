@@ -3,14 +3,11 @@ import { skillFiles } from '@architect/harness';
 import {
   GuardError,
   PackageError,
-  type DataFile,
   type Grants,
   type Harness,
-  type Job,
-  type JobContract,
-  type ModelBinding,
   type StudentAdapter,
 } from '@architect/shared';
+import type { AgentJob } from '../agent/loop';
 import { openAgentFiles, type AgentFiles, type OutputFolder } from '../files/agent-files';
 import { grantedFiles } from '../graduates/bindings';
 import { readPackageHarness } from '../graduates/harness';
@@ -26,8 +23,8 @@ export interface GraduateSession {
   /** The version and installation it was opened with (`activeStamp`). */
   readonly stamp: string;
   readonly harness: Harness;
-  /** The job as the agent loop reads it: the contract's files as this computer granted them. */
-  readonly job: Job;
+  /** What the agent loop reads of the job: the contract's business date and its output folder. */
+  readonly job: AgentJob;
   readonly student: StudentAdapter;
   /**
    * The agent's folder, live: `data/` and `output/` are the folders this computer's installation
@@ -45,57 +42,17 @@ export interface GraduateSession {
 }
 
 /**
- * The job the agent loop takes, made from the contract. The loop reads only the data files, the
- * output folder and the business date; its training settings are required by the type and left
- * inert: a graduate never trains, and the agent host can't load mentor code.
+ * What the agent loop reads of the job, from the version's contract: the date its records are as
+ * of, and the `output/` folder this computer gives it, described as the contract describes it.
  */
-function runtimeJob(
-  contract: JobContract,
-  files: DataFile[],
-  output: OutputFolder | undefined,
-  grants: Grants,
-  model: ModelBinding,
-  contextLength: number,
-  label: string,
-  createdAt: string,
-): Job {
+function agentJob(active: ActiveVersion, output: OutputFolder | undefined): AgentJob {
+  const { businessDate } = active.version.manifest.contract;
   return {
-    format: 1,
-    id: contract.jobId,
-    name: contract.name,
-    description: contract.description,
-    ...(contract.summary === undefined ? {} : { summary: contract.summary }),
-    does: contract.capabilities.does,
-    doesNot: contract.capabilities.doesNot,
-    createdAt,
-    ...(contract.businessDate === undefined ? {} : { businessDate: contract.businessDate }),
-    taskTypes: contract.capabilities.taskTypes,
-    data: {
-      files,
-      ...(output === undefined
+    ...(businessDate === undefined ? {} : { businessDate }),
+    data:
+      output === undefined
         ? {}
-        : { output: output.description === undefined ? {} : { description: output.description } }),
-    },
-    permissions: { writes: grants.writes, unseenFiles: 'never' },
-    checker: { kind: 'builtin' },
-    requirements: {
-      passRate: contract.acceptance.passRate,
-      ...(contract.acceptance.p95LatencyMs === undefined
-        ? {}
-        : { p95LatencyMs: contract.acceptance.p95LatencyMs }),
-    },
-    budget: { maxRounds: 1, maxMentorUsd: 0, maxWallMinutes: 1 },
-    mentor: { kind: 'coding_agent', agent: 'claude_code', label: 'None: a graduate runs alone' },
-    student: { label, local: { ...model, contextLength }, trainOn: 'local' },
-    startingHarness: { kind: 'blank' },
-    splits: { seed: 0, calibration: 0, train: 1, dev: 1, test: 1 },
-    evaluation: {
-      trainBatch: 1,
-      minDevGain: 1,
-      maxTypeRegression: 0,
-      devRepeats: 1,
-      patience: 1,
-    },
+        : { output: output.description === undefined ? {} : { description: output.description } },
   };
 }
 
@@ -214,23 +171,13 @@ export async function openGraduateSession(
   const dataFolder = active.bindings['data'];
   const files = dataFolder === undefined ? [] : grantedFiles(manifest.contract, active.grants);
   const output = outputFolder(active);
-  const job = runtimeJob(
-    manifest.contract,
-    files,
-    output,
-    active.grants,
-    model,
-    contextLength,
-    manifest.model.label,
-    manifest.identity.createdAt,
-  );
   return {
     id: active.graduateId,
     name: active.name,
     version: active.version.version,
     stamp: active.stamp,
     harness,
-    job,
+    job: agentJob(active, output),
     student,
     files: await openAgentFiles({
       dataDir: dataFolder ?? active.dir,
