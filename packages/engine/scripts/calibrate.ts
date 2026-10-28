@@ -4,11 +4,15 @@
  *
  *   pnpm --filter @architect/engine exec tsx scripts/calibrate.ts <jobDir> [split] [--limit N]
  *     [--seed N] [--concurrency N] [--traces <dir>] [--task <id,id,...>] [--student <preset>]
+ *     [--graduate <dir>] [--model <name>] [--threads N]
  *
  * --traces writes each attempt's full trace as `<taskId>.json` into <dir>, to read why it failed.
  * --task keeps only the named tasks of the split.
  * --student runs a hosted student preset (e.g. openrouter-glimmer) instead of the job's local one;
  * its key comes from the environment (OPENROUTER_API_KEY, TOGETHER_API_KEY or DEEPINFRA_API_KEY).
+ * --graduate runs the tasks inside a graduate folder's harness instead of a blank one, to see how
+ * a trained harness does with another student; --model names another model on the job's local
+ * runtime, such as a smaller build that fits the GPU; --threads caps its CPU threads.
  *
  * <jobDir> holds job.json, tasks.jsonl, data/ and the checker module. [split] is calibration
  * (the default), train or dev; the test split stays locked in the vault. The student is the job's
@@ -17,7 +21,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createStudent } from '@architect/adapters';
-import { blankHarness } from '@architect/harness';
+import { blankHarness, readGraduate } from '@architect/harness';
 import {
   JobSchema,
   STUDENT_PRESETS,
@@ -41,10 +45,21 @@ const KEY_ENV: Record<string, string> = {
   deepinfra: 'DEEPINFRA_API_KEY',
 };
 
-/** The student being calibrated: the job's local endpoint, or a hosted preset when one is named. */
-function createCalibrationStudent(job: Job, presetKey?: string): StudentAdapter {
-  if (presetKey === undefined)
-    return createStudent(job.student.local, { label: job.student.label });
+/**
+ * The student being calibrated: the job's local endpoint (with another model on it when one is
+ * named), or a hosted preset.
+ */
+function createCalibrationStudent(job: Job, options: Options): StudentAdapter {
+  const presetKey = options.student;
+  if (presetKey === undefined) {
+    return createStudent(
+      { ...job.student.local, ...(options.model === undefined ? {} : { model: options.model }) },
+      {
+        label: job.student.label,
+        ...(options.threads === undefined ? {} : { cpuThreads: options.threads }),
+      },
+    );
+  }
   const preset = STUDENT_PRESETS.find((candidate) => candidate.key === presetKey);
   if (!preset || preset.runtime !== 'openai_compatible' || preset.secretRef === undefined) {
     throw new Error(`"${presetKey}" is not a hosted student preset.`);
@@ -75,10 +90,16 @@ interface Options {
   traces?: string;
   taskIds?: string[];
   student?: string;
+  /** A graduate folder whose harness the tasks run in; a blank harness otherwise. */
+  graduate?: string;
+  /** Another model on the job's local runtime. */
+  model?: string;
+  /** CPU threads the local model may use. */
+  threads?: number;
 }
 
 const USAGE =
-  'Usage: tsx scripts/calibrate.ts <jobDir> [calibration|train|dev] [--limit N] [--seed N] [--concurrency N] [--traces <dir>] [--task <id,id,...>] [--student <preset>]';
+  'Usage: tsx scripts/calibrate.ts <jobDir> [calibration|train|dev] [--limit N] [--seed N] [--concurrency N] [--traces <dir>] [--task <id,id,...>] [--student <preset>] [--graduate <dir>] [--model <name>] [--threads N]';
 
 async function main(): Promise<void> {
   const options = parseArguments(process.argv.slice(2));
@@ -90,7 +111,11 @@ async function main(): Promise<void> {
     chosen === undefined ? inSplit : inSplit.filter((task) => chosen.includes(task.id))
   ).slice(0, options.limit);
 
-  const student = createCalibrationStudent(job, options.student);
+  const student = createCalibrationStudent(job, options);
+  const harness =
+    options.graduate === undefined
+      ? blankHarness(job.name, job.description)
+      : (await readGraduate(options.graduate)).harness;
   if (options.traces !== undefined) await mkdir(options.traces, { recursive: true });
   const sandbox = createSandbox();
   const checker = createChecker({ job, jobDir: options.jobDir, sandbox });
@@ -103,7 +128,7 @@ async function main(): Promise<void> {
       {
         job,
         jobDir: options.jobDir,
-        harness: blankHarness(job.name, job.description),
+        harness,
         student,
         sandbox,
         checker,
@@ -180,6 +205,7 @@ function percentile(sorted: readonly number[], fraction: number): number {
 function parseArguments(args: readonly string[]): Options {
   const positional: string[] = [];
   const flags = new Map<string, number>();
+  const named = new Map<string, string>();
   let traces: string | undefined;
   let taskIds: string[] | undefined;
   let studentPreset: string | undefined;
@@ -192,6 +218,13 @@ function parseArguments(args: readonly string[]): Options {
     if (arg === '--student') {
       studentPreset = args[index + 1];
       if (studentPreset === undefined) throw new Error(USAGE);
+      index += 1;
+      continue;
+    }
+    if (arg === '--graduate' || arg === '--model') {
+      const value = args[index + 1];
+      if (value === undefined) throw new Error(USAGE);
+      named.set(arg, arg === '--graduate' ? resolve(value) : value);
       index += 1;
       continue;
     }
@@ -210,7 +243,10 @@ function parseArguments(args: readonly string[]): Options {
       continue;
     }
     const value = Number(args[index + 1]);
-    if (!['--limit', '--seed', '--concurrency'].includes(arg) || !Number.isInteger(value)) {
+    if (
+      !['--limit', '--seed', '--concurrency', '--threads'].includes(arg) ||
+      !Number.isInteger(value)
+    ) {
       throw new Error(USAGE);
     }
     flags.set(arg, value);
@@ -232,6 +268,9 @@ function parseArguments(args: readonly string[]): Options {
     ...(traces === undefined ? {} : { traces }),
     ...(taskIds === undefined ? {} : { taskIds }),
     ...(studentPreset === undefined ? {} : { student: studentPreset }),
+    ...(named.has('--graduate') ? { graduate: named.get('--graduate') } : {}),
+    ...(named.has('--model') ? { model: named.get('--model') } : {}),
+    ...(flags.has('--threads') ? { threads: flags.get('--threads') } : {}),
   };
 }
 
