@@ -8,6 +8,7 @@ import {
   type JobSummary,
   type Task,
 } from '@architect/shared';
+import { ContractBook } from '../graduates/contracts';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun } from '../store/records';
 import type { Clock, LoopDeps } from './deps';
@@ -61,6 +62,7 @@ export class JobLibrary {
     private readonly paths: DataPaths,
     private readonly deps: Pick<LoopDeps, 'runtime' | 'vault'>,
     private readonly clock: Clock,
+    private readonly contracts: ContractBook = new ContractBook(store, clock),
   ) {}
 
   summaries(): JobSummary[] {
@@ -96,30 +98,38 @@ export class JobLibrary {
     );
   }
 
+  /**
+   * Saves the editable job. When its scope or success criteria differ from every contract
+   * version it had, that makes a new version; earlier versions, and the graduation results
+   * measured against them, stay as they were.
+   */
   async save(job: Job): Promise<Job> {
     const parsed = JobSchema.parse(job);
     if (!isSafeId(parsed.id)) throw new Error(`"${parsed.id}" isn't a valid job id.`);
     const now = isoNow(this.clock);
     const existing = this.store.jobs.get(parsed.id);
     await writeJsonFile(this.paths.jobFile(parsed.id), parsed);
-    if (existing) {
-      this.store.jobs.update({
-        ...existing,
-        name: parsed.name,
-        summary: parsed.summary,
-        updatedAt: now,
-      });
-    } else {
-      this.store.jobs.insert({
-        id: parsed.id,
-        name: parsed.name,
-        summary: parsed.summary,
-        path: this.paths.toStored(this.paths.jobDir(parsed.id)),
-        taskCount: 0,
-        createdAt: parsed.createdAt,
-        updatedAt: now,
-      });
-    }
+    this.store.transaction(() => {
+      if (existing) {
+        this.store.jobs.update({
+          ...existing,
+          name: parsed.name,
+          summary: parsed.summary,
+          updatedAt: now,
+        });
+      } else {
+        this.store.jobs.insert({
+          id: parsed.id,
+          name: parsed.name,
+          summary: parsed.summary,
+          path: this.paths.toStored(this.paths.jobDir(parsed.id)),
+          taskCount: 0,
+          createdAt: parsed.createdAt,
+          updatedAt: now,
+        });
+      }
+      this.contracts.ensure(parsed);
+    });
     return parsed;
   }
 
@@ -165,14 +175,17 @@ export class JobLibrary {
     if (tasks.length > 0) await this.installTasks(job, tasks);
 
     await writeJsonFile(this.paths.jobFile(job.id), job);
-    this.store.jobs.insert({
-      id: job.id,
-      name: job.name,
-      summary: job.summary,
-      path: this.paths.toStored(this.paths.jobDir(job.id)),
-      taskCount: tasks.length,
-      createdAt: job.createdAt,
-      updatedAt: isoNow(this.clock),
+    this.store.transaction(() => {
+      this.store.jobs.insert({
+        id: job.id,
+        name: job.name,
+        summary: job.summary,
+        path: this.paths.toStored(this.paths.jobDir(job.id)),
+        taskCount: tasks.length,
+        createdAt: job.createdAt,
+        updatedAt: isoNow(this.clock),
+      });
+      this.contracts.ensure(job);
     });
     return job;
   }

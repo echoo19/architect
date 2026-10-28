@@ -1,18 +1,21 @@
-import {
-  GraduateSettingsSchema,
-  type GraduateSettings,
-  type WorkspaceChat,
-  type WorkspaceMessage,
-} from '@architect/shared';
+import type { PermissionMode, WorkspaceChat, WorkspaceMessage } from '@architect/shared';
+import { activeStamp, activeVersion, type ActiveVersion } from '../graduates/open';
+import { isoNow } from '../loop/time';
+import { DataPaths } from '../loop/paths';
+import { systemClock } from '../loop/deps';
 import type { EngineStore } from '../store/engine-store';
 
-/** Where the agent host keeps chats, their messages and each graduate's workspace settings. */
+/** Where the agent host finds graduates and keeps chats and their messages. */
 export interface WorkspaceStore {
   /** Chats belong to graduates registered in Architect. */
   hasGraduate(graduateId: string): boolean;
-  /** The user's settings for a graduate, or null while they still follow its job. */
-  graduateSettings(graduateId: string): GraduateSettings | null;
-  saveGraduateSettings(graduateId: string, settings: GraduateSettings): void;
+  /** The graduate's active version, checked on disk, with this computer's bindings and grants. */
+  activeVersion(graduateId: string): Promise<ActiveVersion>;
+  /** Which version is active and when the installation last changed; null when none is. */
+  activeStamp(graduateId: string): string | null;
+  /** The write mode this computer granted, or null when the graduate isn't installed. */
+  writeMode(graduateId: string): PermissionMode | null;
+  saveWriteMode(graduateId: string, mode: PermissionMode): void;
   upsertChat(chat: WorkspaceChat): void;
   getChat(chatId: string): WorkspaceChat | null;
   /** Most recently updated first. */
@@ -25,18 +28,25 @@ export interface WorkspaceStore {
 
 /**
  * The workspace store on the engine's SQLite store, which both hosts open (`architect.db` in WAL
- * mode). Settings are written in a transaction so a concurrent change to the same graduate row
+ * mode). Grants are written in a transaction so a concurrent change to the same installation
  * from the engine host isn't overwritten.
  */
-export function workspaceStore(engine: EngineStore): WorkspaceStore {
+export function workspaceStore(engine: EngineStore, dataDir: string): WorkspaceStore {
+  const paths = new DataPaths(dataDir);
   return {
     hasGraduate: (graduateId) => engine.graduates.get(graduateId) !== null,
-    graduateSettings: (graduateId) => engine.graduates.get(graduateId)?.settings ?? null,
-    saveGraduateSettings(graduateId, settings) {
+    activeVersion: (graduateId) => activeVersion(engine, paths, graduateId),
+    activeStamp: (graduateId) => activeStamp(engine, graduateId),
+    writeMode: (graduateId) => engine.installations.get(graduateId)?.grants.writes ?? null,
+    saveWriteMode(graduateId, mode) {
       engine.transaction(() => {
-        const record = engine.graduates.get(graduateId);
-        if (!record) throw new Error(`There is no graduate "${graduateId}".`);
-        engine.graduates.update({ ...record, settings: GraduateSettingsSchema.parse(settings) });
+        const installation = engine.installations.get(graduateId);
+        if (!installation) throw new Error(`There is no graduate "${graduateId}" installed.`);
+        engine.installations.put({
+          ...installation,
+          grants: { ...installation.grants, writes: mode },
+          updatedAt: isoNow(systemClock),
+        });
       });
     },
     upsertChat(chat) {

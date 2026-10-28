@@ -25,8 +25,7 @@ export function startAgentHostProcess(guard: LoopbackGuard): void {
   const port = parentPort();
   const engine = openEngineStore(new DataPaths(dataDir).database);
   const host = createAgentHost({
-    dataDir,
-    store: workspaceStore(engine),
+    store: workspaceStore(engine, dataDir),
     ...(sandboxEntryPath === undefined ? {} : { sandboxEntryPath }),
   });
   serveAgentHost(port, host, { guard });

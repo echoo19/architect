@@ -1,12 +1,23 @@
 import {
   AdapterError,
+  BindRequestSchema,
   DraftTurnSchema,
+  ExportRequestSchema,
+  ExportResultSchema,
+  ExportReviewSchema,
   FileDiffSchema,
   GraduateSettingsSchema,
   GraduateSummarySchema,
+  GraduateVersionSchema,
   GuardError,
+  ImportRequestSchema,
+  ImportResultSchema,
+  InstallationSchema,
   JobSchema,
   JobSummarySchema,
+  PackageError,
+  PackageInspectionSchema,
+  PackageProblemCodeSchema,
   ReportCardSchema,
   RunDetailSchema,
   RunEventSchema,
@@ -14,6 +25,7 @@ import {
   RunStartOptionsSchema,
   StudentTargetSchema,
   TraceSchema,
+  VersionEventSchema,
   type AdapterErrorCode,
   type ArchitectApi,
 } from '@architect/shared';
@@ -24,6 +36,7 @@ export type EngineApi = Pick<ArchitectApi, 'jobs' | 'runs' | 'reports' | 'gradua
 
 const id = z.string().min(1);
 const path = z.string().min(1);
+const versionNumber = z.number().int().positive();
 
 /**
  * One request type: the schema its parameters must pass on the host, the schema its result
@@ -93,8 +106,68 @@ export const ENGINE_ROUTES = {
   'graduates.accept': route(z.tuple([id]), GraduateSummarySchema, (api, [runId]) =>
     api.graduates.accept(runId),
   ),
-  'graduates.exportFolder': route(z.tuple([id, path]), z.void(), (api, [graduateId, folder]) =>
-    api.graduates.exportFolder(graduateId, folder),
+  'graduates.versions': route(z.tuple([id]), z.array(GraduateVersionSchema), (api, [graduateId]) =>
+    api.graduates.versions(graduateId),
+  ),
+  'graduates.history': route(z.tuple([id]), z.array(VersionEventSchema), (api, [graduateId]) =>
+    api.graduates.history(graduateId),
+  ),
+  'graduates.acceptVersion': route(
+    z.tuple([id, versionNumber]),
+    GraduateVersionSchema,
+    (api, [graduateId, version]) => api.graduates.acceptVersion(graduateId, version),
+  ),
+  'graduates.rejectVersion': route(
+    z.tuple([id, versionNumber]),
+    GraduateVersionSchema,
+    (api, [graduateId, version]) => api.graduates.rejectVersion(graduateId, version),
+  ),
+  'graduates.promote': route(
+    z.tuple([id, versionNumber]),
+    GraduateSummarySchema,
+    (api, [graduateId, version]) => api.graduates.promote(graduateId, version),
+  ),
+  'graduates.rollback': route(
+    z.tuple([id, versionNumber]),
+    GraduateSummarySchema,
+    (api, [graduateId, version]) => api.graduates.rollback(graduateId, version),
+  ),
+  'graduates.installation': route(z.tuple([id]), InstallationSchema, (api, [graduateId]) =>
+    api.graduates.installation(graduateId),
+  ),
+  'graduates.bind': route(
+    z.tuple([id, BindRequestSchema]),
+    InstallationSchema,
+    (api, [graduateId, request]) => api.graduates.bind(graduateId, request),
+  ),
+  'graduates.verify': route(
+    z.tuple([id, z.object({ loadModel: z.boolean().optional() }).strict()]),
+    InstallationSchema,
+    (api, [graduateId, options]) => api.graduates.verify(graduateId, options),
+  ),
+  'graduates.reviewExport': route(
+    z.tuple([id, versionNumber.nullable(), z.array(z.string().min(1))]),
+    ExportReviewSchema,
+    (api, [graduateId, version, include]) =>
+      api.graduates.reviewExport(graduateId, version ?? undefined, include),
+  ),
+  'graduates.exportPackage': route(
+    z.tuple([id, ExportRequestSchema]),
+    ExportResultSchema,
+    (api, [graduateId, request]) => api.graduates.exportPackage(graduateId, request),
+  ),
+  'graduates.exportFolder': route(
+    z.tuple([id, path]),
+    ExportResultSchema,
+    (api, [graduateId, directory]) => api.graduates.exportFolder(graduateId, directory),
+  ),
+  'graduates.inspectPackage': route(z.tuple([path]), PackageInspectionSchema, (api, [file]) =>
+    api.graduates.inspectPackage(file),
+  ),
+  'graduates.importPackage': route(
+    z.tuple([path, ImportRequestSchema]),
+    ImportResultSchema,
+    (api, [file, request]) => api.graduates.importPackage(file, request),
   ),
   'graduates.importFolder': route(z.tuple([path]), GraduateSummarySchema, (api, [folder]) =>
     api.graduates.importFolder(folder),
@@ -135,6 +208,8 @@ export const ErrorPayloadSchema = z.object({
   message: z.string(),
   guard: GuardNameSchema.optional(),
   code: z.string().optional(),
+  /** A refused package's problems, one sentence each. */
+  problems: z.array(z.string()).optional(),
 });
 export type ErrorPayload = z.infer<typeof ErrorPayloadSchema>;
 
@@ -179,6 +254,14 @@ export function toErrorPayload(error: unknown): ErrorPayload {
     return { name: error.name, message: error.message, guard: error.guard };
   if (error instanceof AdapterError)
     return { name: error.name, message: error.message, code: error.code };
+  if (error instanceof PackageError) {
+    return {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      problems: [...error.problems],
+    };
+  }
   if (error instanceof z.ZodError) {
     return {
       name: 'ValidationError',
@@ -194,6 +277,10 @@ export function fromErrorPayload(payload: ErrorPayload): Error {
     return new GuardError(payload.guard, payload.message);
   if (payload.name === 'AdapterError' && payload.code && isAdapterErrorCode(payload.code)) {
     return new AdapterError(payload.code, payload.message);
+  }
+  const packageCode = PackageProblemCodeSchema.safeParse(payload.code);
+  if (payload.name === 'PackageError' && packageCode.success) {
+    return new PackageError(packageCode.data, payload.problems ?? [payload.message]);
   }
   const error = new Error(payload.message);
   error.name = payload.name;

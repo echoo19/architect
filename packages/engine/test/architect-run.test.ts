@@ -345,19 +345,27 @@ describe('an architect run', () => {
     });
     expect(report?.requirements.passRate.actual).toBeCloseTo(1 / 3);
 
-    const graduate = engine.store.graduates.forRun(record.run.id);
+    const graduate = engine.store.versions.forRun(record.run.id);
+    expect(graduate).toMatchObject({ version: 1, state: 'candidate', evaluation: 'experimental' });
     expect(graduate?.manifest).toMatchObject({
-      id: record.run.graduateId,
-      method: 'architect',
+      identity: { agentId: record.run.graduateId, version: 1, method: 'architect' },
       harness: { version: 2, round: 1 },
-      test: { score: { pass: 2, total: 6 }, testedOn: 'local' },
-      student: {
-        runtime: 'ollama',
-        model: 'glimmer:test',
-        quantization: 'Q4_K_M',
-        contextLength: 16_384,
+      evidence: {
+        summary: { score: { pass: 2, total: 6 } },
+        provenance: { testedOn: 'local', ranOffline: true },
+      },
+      model: {
+        label: 'Glimmer',
+        base: { name: 'glimmer:test', quantization: 'Q4_K_M', digest: 'sha256:fake' },
+        inference: { contextLength: 16_384 },
+        runtime: { compatible: ['ollama', 'openai_compatible', 'llama.cpp'] },
       },
     });
+    expect(engine.store.installations.get(record.run.graduateId ?? '')?.model).toMatchObject({
+      runtime: 'ollama',
+      model: 'glimmer:test',
+    });
+    expect(engine.store.graduates.get(record.run.graduateId ?? '')?.activeVersion).toBe(1);
     expect(existsSync(join(engine.paths.fromStored(graduate?.path ?? ''), 'graduate.json'))).toBe(
       true,
     );

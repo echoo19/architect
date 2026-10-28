@@ -81,7 +81,28 @@ export class DataPaths {
     return join(this.runDir(jobId, runId), 'lineage.jsonl');
   }
 
+  /** An agent's folder: its versions, and the files of a format 1 graduate made before them. */
   graduateDir(graduateId: string): string {
     return join(this.root, 'graduates', safe(graduateId));
+  }
+
+  /** One immutable version of an agent: a package folder (decision 038). */
+  versionDir(graduateId: string, version: number): string {
+    return join(this.graduateDir(graduateId), 'versions', `v${String(version).padStart(4, '0')}`);
+  }
+
+  /** The folder a graduate's `data` resource is bound to by default, seeded from its job's data. */
+  workspaceDir(graduateId: string): string {
+    return join(this.root, 'workspace', safe(graduateId));
+  }
+
+  /** The folder a graduate's `output` resource is bound to by default. */
+  outputDir(graduateId: string): string {
+    return join(this.root, 'outputs', safe(graduateId));
+  }
+
+  /** Where imports and exports are unpacked and checked before anything else sees them. */
+  stagingDir(): string {
+    return join(this.root, 'staging');
   }
 }

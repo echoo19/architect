@@ -260,10 +260,6 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
   );
 }
 
-function folderName(path: string): string {
-  return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
-}
-
 export function ExportTab({ agent }: { agent: GraduateSummary }) {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -308,7 +304,7 @@ export function ExportTab({ agent }: { agent: GraduateSummary }) {
     <>
       <SettingsRow
         label="Agent folder"
-        meta={`${folderName(agent.path)}: its instructions, skills, tools, report card and change history`}
+        meta={`Version ${agent.activeVersion ?? agent.versions}: its instructions, skills, tools, report card and change history`}
       >
         <Button size="xs" loading={exporting} onClick={() => void exportFolder()}>
           {!exporting && <FolderOutput size={14} strokeWidth={1.7} aria-hidden />}

@@ -643,4 +643,8 @@ export const graduate: GraduateSummary = {
     test: { score: { pass: 55, total: 60 }, perType: FINAL_TEST },
     mentor: { label: 'Muse Spark 1.3', model: 'muse-spark-1.3' },
   },
+  activeVersion: 1,
+  versions: 1,
+  status: 'ready',
+  reasons: [],
 };

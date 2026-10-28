@@ -7,6 +7,18 @@ import type { GpuInfo, ProviderId, StudentBuild, TokenPricing } from './models';
 import type { ReportCard } from './report';
 import type { Method, Round, Run } from './run';
 import type { Attempt, Trace } from './trace';
+import type {
+  BindRequest,
+  ExportRequest,
+  ExportResult,
+  ExportReview,
+  GraduateVersion,
+  ImportRequest,
+  Installation,
+  InstallStatus,
+  PackageInspection,
+  VersionEvent,
+} from './versions';
 import type { WorkspaceChat, WorkspaceEvent, WorkspaceMessage } from './workspace';
 
 export type Unsubscribe = () => void;
@@ -152,8 +164,31 @@ export interface FileDiff {
 export interface GraduateSummary {
   id: string;
   name: string;
+  /**
+   * The workspace's view of the active version, in the format 1 shape the screens read: the
+   * package's facts with this computer's model endpoint.
+   */
   manifest: GraduateManifest;
+  /** The active version's folder. */
   path: string;
+  /** The version chats run on; null while the agent has none that can run. */
+  activeVersion: number | null;
+  /** How many versions of the agent this computer keeps. */
+  versions: number;
+  /** Whether the active version can run on this computer, from its installation checks. */
+  status: InstallStatus;
+  /** Why not, in words a person can act on. */
+  reasons: string[];
+}
+
+/** What importing a package did. */
+export interface ImportResult {
+  graduate: GraduateSummary;
+  /** The local version the package became. */
+  version: number;
+  installation: Installation;
+  /** True when this exact version was already installed, so nothing changed. */
+  alreadyInstalled: boolean;
 }
 
 /** Per-graduate choices the user makes in the workspace. */
@@ -263,8 +298,38 @@ export interface ArchitectApi {
   };
   graduates: {
     list(): Promise<GraduateSummary[]>;
+    /**
+     * Accepts the version a finished run made. An agent's first version is its active one from
+     * the start; accepting a later one never makes it active (that is `promote`).
+     */
     accept(runId: string): Promise<GraduateSummary>;
-    exportFolder(graduateId: string, path: string): Promise<void>;
+    /** Every version of the agent on this computer, oldest first. */
+    versions(graduateId: string): Promise<GraduateVersion[]>;
+    /** Acceptances, rejections, promotions and rollbacks, oldest first. */
+    history(graduateId: string): Promise<VersionEvent[]>;
+    acceptVersion(graduateId: string, version: number): Promise<GraduateVersion>;
+    rejectVersion(graduateId: string, version: number): Promise<GraduateVersion>;
+    /** Makes an accepted version the active one, in one step. Chats already answering finish first. */
+    promote(graduateId: string, version: number): Promise<GraduateSummary>;
+    /** Makes an earlier accepted version active again: its harness and adapter return together. */
+    rollback(graduateId: string, version: number): Promise<GraduateSummary>;
+    /** This computer's installation of the agent: bindings, grants and the last checks. */
+    installation(graduateId: string): Promise<Installation>;
+    /** Binds resources to folders, changes grants or the model endpoint, then checks again. */
+    bind(graduateId: string, request: BindRequest): Promise<Installation>;
+    /** Runs the installation checks of the active version again. */
+    verify(graduateId: string, options?: { loadModel?: boolean }): Promise<Installation>;
+    /** What an export would carry and leave out, and what the scan finds in it. */
+    reviewExport(graduateId: string, version?: number, include?: string[]): Promise<ExportReview>;
+    /** Writes `<name>/` and `<name>.architect.zip` into the request's folder. */
+    exportPackage(graduateId: string, request: ExportRequest): Promise<ExportResult>;
+    /** Exports the active version with nothing optional into `directory`. */
+    exportFolder(graduateId: string, directory: string): Promise<ExportResult>;
+    /** Validates a package folder or `.architect.zip` without installing it or loading its code. */
+    inspectPackage(path: string): Promise<PackageInspection>;
+    /** Validates and installs a package, then runs its installation checks. */
+    importPackage(path: string, request?: ImportRequest): Promise<ImportResult>;
+    /** Imports a package with the default request. */
     importFolder(path: string): Promise<GraduateSummary>;
     remove(graduateId: string): Promise<void>;
     settings(graduateId: string): Promise<GraduateSettings>;

@@ -153,7 +153,6 @@ async function start(): Promise<void> {
     },
   });
   const graduates = new WorkspaceGraduates({
-    dataDir,
     listGraduates: () => engine.call((api) => api.graduates.list()),
     call: (request) => agentHost.call(request),
     localThreads,

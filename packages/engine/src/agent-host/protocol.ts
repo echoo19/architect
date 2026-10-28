@@ -6,7 +6,7 @@ import {
 import { z } from 'zod';
 import type { EnginePort } from '../host/port';
 import type { BlockedConnection } from './guard/install';
-import type { AgentHost } from './host';
+import type { AgentHost, SendOptions } from './host';
 
 /**
  * The channel to or from the agent host: an Electron utility process port, a Node IPC channel
@@ -27,7 +27,11 @@ export const BlockedConnectionSchema = z.object({
 }) satisfies z.ZodType<BlockedConnection>;
 
 const id = z.string().min(1);
-const path = z.string().min(1);
+
+/** How a message is sent: whether a write that needs approval may wait for the user. */
+export const SendOptionsSchema = z
+  .object({ approvals: z.enum(['ask', 'fail']).optional() })
+  .strict() satisfies z.ZodType<SendOptions>;
 
 /**
  * One request type: the schema its parameters must pass in the host, the schema its result
@@ -47,12 +51,12 @@ function route<P extends z.ZodType<unknown[]>, R extends z.ZodType>(
 
 export const AGENT_HOST_ROUTES = {
   'host.openGraduate': route(
-    z.tuple([id, path, path, z.number().int().positive().optional()]),
+    z.tuple([id, z.number().int().positive().optional()]),
     z.void(),
-    (api, [graduateId, folder, workspaceDataDir, cpuThreads]) =>
+    (api, [graduateId, cpuThreads]) =>
       cpuThreads === undefined
-        ? api.openGraduate(graduateId, folder, workspaceDataDir)
-        : api.openGraduate(graduateId, folder, workspaceDataDir, cpuThreads),
+        ? api.openGraduate(graduateId)
+        : api.openGraduate(graduateId, cpuThreads),
   ),
   'host.closeGraduate': route(z.tuple([id]), z.void(), (api, [graduateId]) =>
     api.closeGraduate(graduateId),
@@ -69,8 +73,11 @@ export const AGENT_HOST_ROUTES = {
   'workspace.messages': route(z.tuple([id]), z.array(WorkspaceMessageSchema), (api, [chatId]) =>
     api.messages(chatId),
   ),
-  'workspace.send': route(z.tuple([id, z.string().min(1)]), z.void(), (api, [chatId, text]) =>
-    api.send(chatId, text),
+  'workspace.send': route(
+    z.tuple([id, z.string().min(1), SendOptionsSchema.optional()]),
+    z.void(),
+    (api, [chatId, text, options]) =>
+      options === undefined ? api.send(chatId, text) : api.send(chatId, text, options),
   ),
   'workspace.stop': route(z.tuple([id]), z.void(), (api, [chatId]) => api.stop(chatId)),
   'workspace.decide': route(

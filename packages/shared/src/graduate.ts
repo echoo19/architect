@@ -4,7 +4,12 @@ import { MethodSchema } from './run';
 import { StudentTargetSchema } from './job';
 import { TypeResultSchema } from './report';
 
-/** graduate.yaml: what pins a harness to a model and records how it was made. */
+/**
+ * `graduate.yaml` of a format 1 graduate folder: what pinned a harness to a model and recorded
+ * how it was made. Format 1 folders are read and converted to packages (`package.ts`); this shape
+ * also stays the workspace's view of a graduate's active version (`GraduateSummary.manifest`),
+ * with the student's endpoint taken from this computer's installation.
+ */
 export const GraduateManifestSchema = z.object({
   format: z.literal(1),
   id: z.string(),

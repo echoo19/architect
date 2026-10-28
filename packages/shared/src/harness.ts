@@ -19,6 +19,15 @@ export const HarnessMetaSchema = z.object({
   version: z.number().int().nonnegative(),
   parent: z.number().int().nonnegative().optional(),
   hash: z.string(),
+  /**
+   * Set on a harness read from a folder saved in an older format: that format, and the hash of
+   * the folder's files as they were saved. `hash` is the migrated harness's own; the old one is
+   * what a frozen run or a graduate recorded, kept so that what was tested stays traceable.
+   * Never written to `harness.yaml`.
+   */
+  migratedFrom: z
+    .object({ format: z.number().int().positive(), hash: z.string().min(1) })
+    .optional(),
 });
 export type HarnessMeta = z.infer<typeof HarnessMetaSchema>;
 

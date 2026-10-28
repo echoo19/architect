@@ -1,39 +1,86 @@
 import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { hashHarness, writeGraduate } from '@architect/harness';
+import { join } from 'node:path';
+import { harnessToFiles, hashHarness } from '@architect/harness';
 import {
+  contractTerms,
+  HARNESS_FORMAT,
   HarnessSchema,
-  type GraduateManifest,
+  JobContractSchema,
   type Harness,
   type Job,
+  type PermissionMode,
   type ReportCard,
 } from '@architect/shared';
 import type { z } from 'zod';
+import { sameComputerGrants, storedFolder } from '../../src/graduates/bindings';
+import { resourcesFor, type VersionFacts } from '../../src/graduates/build';
+import { registerVersion, writeVersionFolder } from '../../src/graduates/versions';
 import { DataPaths } from '../../src/loop/paths';
 import type { EngineStore } from '../../src/store/engine-store';
 import { makeJob, SAMPLE_CONTENT } from '../support/fixtures';
 
 export interface GraduateFixture {
   id: string;
+  /** The version's package folder. */
   folder: string;
+  /** The folder its `data/` resource is bound to. */
   workspaceDataDir: string;
   job: Job;
 }
 
 export interface GraduateOptions {
   id: string;
-  /** Where the graduate's student runs. */
+  /** Where the graduate's model runs on this computer. */
   baseUrl: string;
   job?: Parameters<typeof makeJob>[0];
   harness?: Partial<z.input<typeof HarnessSchema>>;
+  /** The write mode this computer granted; the job's own when absent. */
+  writes?: PermissionMode;
 }
 
 const CREATED_AT = '2026-11-05T18:00:00.000Z';
 const RUN_ID = 'run_fixture';
 
+export function fixtureHarness(name: string, overrides: GraduateOptions['harness'] = {}): Harness {
+  const harness = HarnessSchema.parse({
+    meta: { format: HARNESS_FORMAT, name, version: 4, hash: '' },
+    system: 'You are the service desk of Ferncliff Home Services.',
+    retrieval: {},
+    decoding: { maxSteps: 4 },
+    guardrails: {},
+    ...overrides,
+  });
+  return { ...harness, meta: { ...harness.meta, hash: hashHarness(harness) } };
+}
+
+/** What version 1 of a fixture graduate says. */
+export function fixtureFacts(id: string, job: Job, harness: Harness): VersionFacts {
+  return {
+    agentId: id,
+    name: job.name,
+    version: 1,
+    createdAt: CREATED_AT,
+    method: 'architect',
+    contract: JobContractSchema.parse({ ...contractTerms(job), version: 1 }),
+    modelLabel: 'Glimmer',
+    base: { name: 'muse-glimmer:30b', digest: 'sha256:glimmer', sizeBytes: 1024 },
+    contextLength: 16_384,
+    runtime: 'ollama',
+    harness: { meta: harness.meta, files: harnessToFiles(harness) },
+    report: reportFor(job),
+    lineage: [],
+    columns: {},
+    rounds: 0,
+    keptChanges: 0,
+    testedHere: true,
+  };
+}
+
 /**
- * A graduate as the app keeps one: its folder under `graduates/`, written with `writeGraduate`;
- * the job its run used; a workspace data folder with the sample tables; and its row in the store.
+ * A graduate as the app keeps one after graduation: version 1 as a package folder under
+ * `graduates/<id>/versions/`, its row and its version's row in the store, and an installation
+ * whose `data/` is bound to a folder holding the sample tables and whose model runs at
+ * `baseUrl`.
  */
 export async function addGraduate(
   dataDir: string,
@@ -42,70 +89,46 @@ export async function addGraduate(
 ): Promise<GraduateFixture> {
   const paths = new DataPaths(dataDir);
   const job = makeJob({ id: `job_${options.id}`, ...options.job });
-  await writeJson(paths.runJobFile(job.id, RUN_ID), job);
 
   const workspaceDataDir = join(dataDir, 'workspace', options.id);
   await mkdir(workspaceDataDir, { recursive: true });
   for (const [name, content] of Object.entries(SAMPLE_CONTENT)) {
     await writeFile(join(workspaceDataDir, name), content, 'utf8');
   }
+  const output = paths.outputDir(options.id);
+  await mkdir(output, { recursive: true });
 
-  const harness = withHash(
-    HarnessSchema.parse({
-      meta: { format: 2, name: job.name, version: 4, hash: '' },
-      system: 'You are the service desk of Ferncliff Home Services.',
-      retrieval: {},
-      decoding: { maxSteps: 4 },
-      guardrails: {},
-      ...options.harness,
-    }),
-  );
-  const manifest = manifestFor(options, job, harness);
-  const folder = paths.graduateDir(options.id);
-  await writeGraduate(folder, { harness, manifest, report: reportFor(job), lineage: [] });
-  store.graduates.insert({
-    id: options.id,
-    runId: null,
-    name: job.name,
-    path: paths.toStored(folder),
-    manifest,
-    settings: null,
-    createdAt: CREATED_AT,
+  const harness = fixtureHarness(job.name, options.harness);
+  const facts = fixtureFacts(options.id, job, harness);
+  const written = await writeVersionFolder(store, paths, facts);
+  store.transaction(() => {
+    registerVersion(store, paths, {
+      graduateId: options.id,
+      name: job.name,
+      version: 1,
+      written,
+      state: 'accepted',
+      installation: {
+        graduateId: options.id,
+        model: { runtime: 'ollama', baseUrl: options.baseUrl, model: 'muse-glimmer:30b' },
+        bindings: {
+          data: storedFolder(paths, workspaceDataDir),
+          output: storedFolder(paths, output),
+        },
+        grants: sameComputerGrants(
+          { contract: facts.contract, resources: resourcesFor(facts.contract, {}) },
+          options.writes ?? job.permissions.writes,
+        ),
+        createdAt: CREATED_AT,
+        updatedAt: CREATED_AT,
+      },
+      at: CREATED_AT,
+    });
   });
-  return { id: options.id, folder, workspaceDataDir, job };
+  return { id: options.id, folder: paths.versionDir(options.id, 1), workspaceDataDir, job };
 }
 
-function withHash(harness: Harness): Harness {
-  return { ...harness, meta: { ...harness.meta, hash: hashHarness(harness) } };
-}
-
-function manifestFor(options: GraduateOptions, job: Job, harness: Harness): GraduateManifest {
-  return {
-    format: 1,
-    id: options.id,
-    name: job.name,
-    jobId: job.id,
-    runId: RUN_ID,
-    method: 'architect',
-    createdAt: CREATED_AT,
-    student: {
-      label: 'Glimmer',
-      runtime: 'ollama',
-      baseUrl: options.baseUrl,
-      model: 'muse-glimmer:30b',
-      contextLength: 16_384,
-    },
-    harness: { version: harness.meta.version, hash: harness.meta.hash },
-    requirements: { passRate: { target: 0.8, actual: 0.85, met: true } },
-    test: {
-      score: { pass: 17, total: 20 },
-      perType: [{ type: 'invoice', label: 'Invoices', pass: 17, total: 20, refused: false }],
-    },
-    mentor: { label: 'Spark', model: 'muse-spark-1.3' },
-  };
-}
-
-function reportFor(job: Job): ReportCard {
+export function reportFor(job: Job): ReportCard {
   return {
     jobId: job.id,
     runId: RUN_ID,
@@ -126,12 +149,7 @@ function reportFor(job: Job): ReportCard {
     cost: { mentorUsd: 0, mentorInputTokens: 0, mentorOutputTokens: 0, rounds: 0, wallMs: 0 },
     refusedTypes: [],
     topInterventions: [],
-    requirements: { passRate: { target: 0.8, actual: 0.85, met: true } },
+    requirements: { passRate: { target: job.requirements.passRate, actual: 0.85, met: true } },
     overclaim: null,
   };
-}
-
-async function writeJson(file: string, value: unknown): Promise<void> {
-  await mkdir(dirname(file), { recursive: true });
-  await writeFile(file, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
