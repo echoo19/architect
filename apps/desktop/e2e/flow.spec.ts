@@ -236,7 +236,7 @@ for (const theme of THEMES) {
         'rule out luck: 10 more over both checks (52 to 62 of 80), and no task type got worse.',
     );
     await expect(roundDrawer).toContainText("The first check was inside Spark's predicted range.");
-    await expect(roundDrawer.getByText('Both checks together')).toBeVisible();
+    await expect(roundDrawer.getByText('Average of the two checks')).toBeVisible();
     await expect(roundDrawer).not.toContainText('@@');
     await capture(page, `flow-round-${theme}`);
     await page.keyboard.press('Escape');
@@ -297,7 +297,7 @@ for (const theme of THEMES) {
     ).toBeVisible();
     await expect(comparison.getByRole('row', { name: /Architect/ })).toContainText('+52 points');
     await expect(page.getByRole('region', { name: 'What helped most' })).toContainText(
-      '+10 check tasks over 2 checks',
+      '+5 check tasks a check, on average over 2',
     );
     await expect(page.getByRole('heading', { name: "What it won't do" })).toBeVisible();
     await capture(page, `flow-report-${theme}`);
