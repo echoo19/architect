@@ -4,13 +4,15 @@
  *
  *   pnpm --filter @architect/engine exec tsx scripts/run.ts <jobDir> [--method architect]
  *     [--seed 1] [--profile smoke|full] [--mentor <preset>] [--student local|<preset>]
- *     [--data <dir>] [--threads N] [--cooldown <share>] [--wall-minutes N]
+ *     [--data <dir>] [--threads N] [--cooldown <share>] [--wall-minutes N] [--test-on local|hosted]
  *
  * It can be stopped at any time: every finished attempt is saved, and running the same command
  * with the same `--data` folder continues the run where it stopped. `--threads` caps the CPU
  * threads a local student uses and `--cooldown` rests it after each reply for that share of the
  * reply's time (0.75, say), so a long run stays cooler and quieter, and `--wall-minutes`
- * gives a local run more training time than the job's own budget.
+ * gives a local run more training time than the job's own budget. `--test-on hosted` runs the
+ * final test on the hosted student instead of this computer's model; the graduate can be tested
+ * locally later.
  *
  * The smoke profile keeps the job's data and task pool but asks for small splits and one round, so
  * a run finishes in under an hour on a local student. `--mentor` takes a mentor preset key (for
@@ -27,9 +29,11 @@ import {
   METHOD_LABELS,
   MethodSchema,
   STUDENT_PRESETS,
+  StudentTargetSchema,
   type Job,
   type Method,
   type RunEvent,
+  type StudentTarget,
 } from '@architect/shared';
 import { createEngineDeps, createEngineHost } from '../src';
 
@@ -53,6 +57,8 @@ interface Options {
   wallMinutes?: number;
   /** How long a local student rests after each reply, as a share of the reply's time. */
   cooldown?: number;
+  /** Where the final test runs; this computer when absent. */
+  testOn?: StudentTarget;
   jobDir: string;
   method: Method;
   seed: number;
@@ -63,7 +69,7 @@ interface Options {
 }
 
 const USAGE =
-  'Usage: tsx scripts/run.ts <jobDir> [--method architect|bare|one_shot|self_reflection] [--seed N] [--profile smoke|full] [--mentor <preset>] [--student local|<preset>] [--data <dir>] [--threads N] [--cooldown <share>] [--wall-minutes N]';
+  'Usage: tsx scripts/run.ts <jobDir> [--method architect|bare|one_shot|self_reflection] [--seed N] [--profile smoke|full] [--mentor <preset>] [--student local|<preset>] [--data <dir>] [--threads N] [--cooldown <share>] [--wall-minutes N] [--test-on local|hosted]';
 
 async function main(): Promise<void> {
   const options = parseArguments(process.argv.slice(2));
@@ -133,7 +139,11 @@ async function main(): Promise<void> {
           `mentor ${imported.mentor.kind === 'model' ? imported.mentor.model : imported.mentor.agent}, ` +
           `student ${imported.student.local.model} (train on ${imported.student.trainOn}), data in ${dataDir}\n\n`,
       );
-      await host.api.runs.start(imported.id, { method: options.method, seed: options.seed });
+      await host.api.runs.start(imported.id, {
+        method: options.method,
+        seed: options.seed,
+        ...(options.testOn === undefined ? {} : { lockedTestOn: options.testOn }),
+      });
       runId = await finished;
     } else {
       write(`Continuing run ${earlier.id} (${earlier.status}), data in ${dataDir}\n\n`);
@@ -270,6 +280,10 @@ function parseArguments(args: readonly string[]): Options {
   const threads = positiveInteger(flags.get('--threads'));
   const wallMinutes = positiveInteger(flags.get('--wall-minutes'));
   const cooldown = share(flags.get('--cooldown'));
+  const testOn = flags.get('--test-on');
+  if (testOn !== undefined && !StudentTargetSchema.safeParse(testOn).success) {
+    throw new Error(USAGE);
+  }
   return {
     jobDir: resolve(jobDir),
     method: MethodSchema.parse(flags.get('--method') ?? 'architect'),
@@ -281,6 +295,7 @@ function parseArguments(args: readonly string[]): Options {
     ...(threads === undefined ? {} : { threads }),
     ...(wallMinutes === undefined ? {} : { wallMinutes }),
     ...(cooldown === undefined ? {} : { cooldown }),
+    ...(testOn === undefined ? {} : { testOn: StudentTargetSchema.parse(testOn) }),
   };
 }
 

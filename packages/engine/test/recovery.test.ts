@@ -1,3 +1,4 @@
+import { AdapterError } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { devSeeds, fanOutSeeds } from '../src/loop/seeds';
 import type { StoredAttempt } from '../src/store/records';
@@ -24,6 +25,28 @@ function crashAt(matches: (taskId: string, version: number, seed: number) => boo
     return new Promise<void>(() => {});
   };
   return crashed.promise;
+}
+
+/** A transient failure as the HTTP adapters raise it: a summary, then advice for a person. */
+function cutOff(): AdapterError {
+  return Object.assign(
+    new AdapterError(
+      'server',
+      'openrouter.ai stopped the reply with an error. This is usually temporary. Try again.',
+    ),
+    { summary: 'openrouter.ai stopped the reply with an error.' },
+  );
+}
+
+/** Resolves with the next "trying again" line the run logs. */
+function retryLogged(engine: Engine): Promise<string> {
+  return new Promise((resolve) => {
+    const stop = engine.controller.onEvent((event) => {
+      if (event.type !== 'log' || !event.message.includes('Trying again')) return;
+      stop();
+      resolve(event.message);
+    });
+  });
 }
 
 function evaluationKey(attempt: StoredAttempt): string {
@@ -192,6 +215,69 @@ describe('restart recovery', () => {
     const attempts = engine.store.attempts.list({ runId });
     expect(attempts).toHaveLength(81);
     expect(new Set(attempts.map(evaluationKey)).size).toBe(81);
+  });
+
+  it('waits and goes on by itself when a reply fails partway', async () => {
+    let devSeen = 0;
+    world.runtime.beforeAttempt = (task) => {
+      if (task.id.startsWith('dev-') && ++devSeen === 4) throw cutOff();
+    };
+    const engine = open();
+    const waiting = retryLogged(engine);
+    const runId = await startArchitect(engine);
+    expect(await waiting).toBe(
+      'openrouter.ai stopped the reply with an error. Trying again in 30 s.',
+    );
+    expect(engine.store.runs.get(runId)?.run.status).toBe('running');
+
+    world.clock.advance(30_000);
+    await engine.controller.idle();
+    const finished = engine.store.runs.get(runId)?.run;
+    expect(finished).toMatchObject({ status: 'finished' });
+    expect(finished?.error).toBeUndefined();
+    const attempts = engine.store.attempts.list({ runId });
+    expect(attempts).toHaveLength(81);
+    expect(new Set(attempts.map(evaluationKey)).size).toBe(81);
+  });
+
+  it('pauses when a reply fails a third time with no attempt finished in between', async () => {
+    let devSeen = 0;
+    world.runtime.beforeAttempt = (task) => {
+      if (task.id.startsWith('dev-') && ++devSeen >= 4) throw cutOff();
+    };
+    const engine = open();
+    const first = retryLogged(engine);
+    const runId = await startArchitect(engine);
+    await first;
+    const second = retryLogged(engine);
+    world.clock.advance(30_000);
+    expect(await second).toContain('Trying again in 90 s.');
+    world.clock.advance(90_000);
+    await engine.controller.idle();
+
+    expect(engine.store.runs.get(runId)?.run).toMatchObject({
+      status: 'paused',
+      error: 'openrouter.ai stopped the reply with an error. This is usually temporary. Try again.',
+    });
+    expect(engine.store.attempts.list({ runId })).toHaveLength(3);
+  });
+
+  it('pauses at once on an error that waiting will not fix', async () => {
+    let devSeen = 0;
+    world.runtime.beforeAttempt = (task) => {
+      if (task.id.startsWith('dev-') && ++devSeen === 4) {
+        throw new AdapterError('auth', "openrouter.ai didn't accept the API key.");
+      }
+    };
+    const engine = open();
+    const runId = await startArchitect(engine);
+    await engine.controller.idle();
+
+    expect(engine.store.runs.get(runId)?.run).toMatchObject({
+      status: 'paused',
+      error: "openrouter.ai didn't accept the API key.",
+    });
+    expect(engine.events.some((e) => e.type === 'log' && e.level === 'warn')).toBe(false);
   });
 
   it('asks for the fix again when the process died during the fix call, and adopts it', async () => {
