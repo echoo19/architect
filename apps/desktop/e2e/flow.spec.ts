@@ -26,9 +26,9 @@ import {
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const WIDTH = 1440;
 /** Tall enough for each screen's whole page, so a screenshot shows everything on it. */
-const DEFINE_HEIGHT = 1920;
-const TRAIN_HEIGHT = 1440;
-const REPORT_HEIGHT = 1660;
+const DEFINE_HEIGHT = 1580;
+const TRAIN_HEIGHT = 1270;
+const REPORT_HEIGHT = 1500;
 const THEMES = ['dark', 'light'] as const;
 
 test.describe.configure({ mode: 'serial' });
