@@ -56,10 +56,11 @@ export function RoundDrawerContent({
   const title = `Round ${round.index}${round.title ? `: ${round.title}` : ''}`;
   const measured =
     round.devBefore && round.devAfter ? round.devAfter.pass - round.devBefore.pass : null;
-  // The prediction is for one check, so a change checked twice is set beside its first check.
+  // The prediction is for one measurement, so a change measured twice is set beside its first.
   const first = round.firstMeasurement;
   const firstMeasured = first ? first.devAfter.pass - first.devBefore.pass : measured;
-  const second = first && round.devBefore && round.devAfter ? secondCheck(first, round) : null;
+  const second =
+    first && round.devBefore && round.devAfter ? secondMeasurement(first, round) : null;
   const checkSize = first?.devAfter.total ?? job.splits.dev;
   return (
     <DrawerContent
@@ -92,17 +93,20 @@ export function RoundDrawerContent({
             )}
           </Effect>
           <Effect
-            label={first ? `First check, ${checkSize} tasks` : 'Measured'}
+            label={first ? `First measurement, ${checkSize} tasks` : 'Measured'}
             note={rateChange(first ?? round)}
           >
             <TaskCount delta={firstMeasured} />
           </Effect>
           {second && (
             <>
-              <Effect label={`Second check, the same ${checkSize} again`} note={rateChange(second)}>
+              <Effect
+                label={`Second measurement, the same ${checkSize} again`}
+                note={rateChange(second)}
+              >
                 <TaskCount delta={second.devAfter.pass - second.devBefore.pass} />
               </Effect>
-              <Effect label="Average of the two checks" note={rateChange(round)}>
+              <Effect label="Average of the two measurements" note={rateChange(round)}>
                 <TaskCount delta={measured === null ? null : measured / 2} />
               </Effect>
             </>
@@ -114,10 +118,10 @@ export function RoundDrawerContent({
               round.predicted,
               firstMeasured,
               names.mentor,
-              first ? 'The first check' : 'The result',
+              first ? 'The first measurement' : 'The result',
             )}
             {first &&
-              ` ${names.student}'s answers vary from run to run, so a promising change is checked twice before it stays.`}
+              ` ${names.student}'s answers vary from run to run, so a promising change is measured twice before it stays.`}
           </p>
         )}
 
@@ -141,7 +145,7 @@ export function RoundDrawerContent({
           <Block
             title={
               first
-                ? 'Change in check tasks right, by task type, over both checks'
+                ? 'Change in check tasks right, by task type, over both measurements'
                 : 'Change in check tasks right, by task type'
             }
           >
@@ -256,8 +260,8 @@ function Unit({ children }: { children: ReactNode }) {
   return <span className="ml-2 font-sans text-md text-fg-secondary">{children}</span>;
 }
 
-/** The second check alone: both checks added up, less the first. */
-function secondCheck(
+/** The second measurement alone: both measurements added up, less the first. */
+function secondMeasurement(
   first: NonNullable<Round['firstMeasurement']>,
   both: { devBefore?: Score; devAfter?: Score },
 ): { devBefore: Score; devAfter: Score } | null {
@@ -272,7 +276,7 @@ function secondCheck(
   };
 }
 
-/** "58% to 78% of check tasks right": rates, since one check and two add up to different totals. */
+/** "58% to 78% of check tasks right": rates, since one measurement and two add up to different totals. */
 function rateChange({ devBefore, devAfter }: { devBefore?: Score; devAfter?: Score }) {
   if (!devBefore || !devAfter) return undefined;
   return `${formatRate(devBefore)} to ${formatRate(devAfter)} of check tasks right`;

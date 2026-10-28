@@ -69,7 +69,7 @@ export function decisionSentence(
   const { devBefore: before, devAfter: after, decision, firstMeasurement } = round;
   if (!before || !after || !decision) return null;
   if (firstMeasurement) {
-    return checkedTwice(firstMeasurement, { before, after, decision }, lineage, job);
+    return measuredTwice(firstMeasurement, { before, after, decision }, lineage, job);
   }
   const repeats = job.evaluation.devRepeats;
   const margin = job.evaluation.minDevGain * repeats;
@@ -95,11 +95,11 @@ export function decisionSentence(
 }
 
 /**
- * A change that cleared the keep limits once and was checked again on new seeds: what the first
- * check found, then the totals over both, which decided it against limits for twice the runs
- * (decision 022).
+ * A change that cleared the keep limits once and was measured again on new seeds: what the first
+ * measurement found, then the totals over both, which decided it against limits for twice the
+ * runs (decision 022).
  */
-function checkedTwice(
+function measuredTwice(
   first: NonNullable<Round['firstMeasurement']>,
   both: { before: Score; after: Score; decision: NonNullable<Round['decision']> },
   lineage: LineageEntry | undefined,
@@ -111,10 +111,10 @@ function checkedTwice(
   const firstGain = first.devAfter.pass - first.devBefore.pass;
   const gain = both.after.pass - both.before.pass;
   const opening =
-    `${gainPhrase(firstGain)} on the first check ` +
+    `${gainPhrase(firstGain)} on the first measurement ` +
     `(${first.devBefore.pass} to ${first.devAfter.pass} of ${first.devAfter.total})`;
   const again =
-    `Run a second time to rule out luck: ${changePhrase(gain)} over both checks ` +
+    `Run a second time to rule out luck: ${changePhrase(gain)} over both measurements ` +
     `(${both.before.pass} to ${both.after.pass} of ${both.after.total})`;
   const worst = worstLoss(lineage, job);
 
@@ -135,7 +135,7 @@ function checkedTwice(
 
 /**
  * How a measured change compares with the mentor's predicted range, as a sentence. The
- * prediction is for one check, so a change checked twice is compared on its first check.
+ * prediction is for one measurement, so a change measured twice is compared on its first.
  */
 export function predictionCheck(
   predicted: Prediction,

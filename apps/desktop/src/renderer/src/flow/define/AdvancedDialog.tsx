@@ -684,8 +684,8 @@ function EvaluationTab({ editor }: TabProps) {
     <>
       <ExperimentNote>
         When a change {mentor} makes stays, and when training gives up. A change that clears these
-        limits is checked a second time, and stays only if it clears twice the limits over both
-        checks.
+        limits is measured a second time, and stays only if it clears twice the limits over both
+        measurements.
       </ExperimentNote>
       <NumberField
         label="Practice tasks per round"
@@ -697,7 +697,7 @@ function EvaluationTab({ editor }: TabProps) {
       />
       <NumberField
         label="Keep a change that gains at least"
-        meta="More check tasks right than before, on one check. Lower keeps more changes, lucky ones too."
+        meta="More check tasks right than before, in one measurement. Lower keeps more changes, lucky ones too."
         unit="tasks"
         value={job.evaluation.minDevGain}
         issue={issues['evaluation.minDevGain']}
@@ -705,7 +705,7 @@ function EvaluationTab({ editor }: TabProps) {
       />
       <NumberField
         label="As long as no task type loses more than"
-        meta="On one check. Stops one kind of task from paying for another's gain."
+        meta="In one measurement. Stops one kind of task from paying for another's gain."
         unit="tasks"
         value={job.evaluation.maxTypeRegression}
         issue={issues['evaluation.maxTypeRegression']}
@@ -713,7 +713,7 @@ function EvaluationTab({ editor }: TabProps) {
       />
       <NumberField
         label="Run the check tasks"
-        meta="Times per check. More runs take longer but keep fewer lucky changes."
+        meta="Times per measurement. More runs take longer but keep fewer lucky changes."
         unit="times"
         value={job.evaluation.devRepeats}
         issue={issues['evaluation.devRepeats']}

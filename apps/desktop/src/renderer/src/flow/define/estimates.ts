@@ -28,23 +28,23 @@ export interface Span {
 }
 
 export interface TimeEstimate {
-  /** The starting check, which runs the check tasks once before the first round. */
+  /** The starting measurement: the check tasks, scored once before the first round. */
   startSeconds: number;
-  /** Training alone: the starting check and the round budget, or the time cap when it binds. */
+  /** Training alone: the starting measurement and the round budget, or the cap when it binds. */
   trainingSeconds: Span;
-  /** Rounds that fit in the time cap: if every round needs a second check, and if none does. */
+  /** Rounds that fit in the time cap: if every round is measured again, and if none is. */
   rounds: { fewest: number; most: number };
-  /** One round: a practice batch and two check runs, or four when its change is checked again. */
+  /** One round: a practice batch and two measurements, or four when its change is measured again. */
   roundSeconds: Span;
 }
 
 /**
- * How long training takes at a place. The starting version takes the check tasks once; then every
- * round attempts a practice batch and runs the check tasks for the current version and the
- * change, once per repeat. A change that clears the keep limits has both run again on new seeds
- * (decision 022), so a round runs the check tasks two or four times. All of it stops at the time
- * cap. The locked test is separate: it runs afterwards on this computer (decision 009), outside
- * the cap, and `testSeconds` times it.
+ * How long training takes at a place. The starting version is measured on the check tasks once;
+ * then every round attempts a practice batch and measures the current version and the change on
+ * the check tasks, once per repeat. A change that clears the keep limits has both measured again
+ * on new seeds (decision 022), so a round measures twice or four times. All of it stops at the
+ * time cap. The locked test is separate: it runs afterwards on this computer (decision 009),
+ * outside the cap, and `testSeconds` times it.
  */
 export function estimateTime(job: Job, place: TrainPlace): TimeEstimate {
   const perTask = SECONDS_PER_TASK[place];
@@ -109,7 +109,7 @@ export function roundsLine(job: Job, estimate: TimeEstimate): string {
     return `All ${roundCount(maxRounds)} fit, in ${aboutSpan(estimate.trainingSeconds).toLowerCase()} of training`;
   }
   if (most === 0) {
-    return `No full round fits in ${cap} of training: the starting check takes ${formatDuration(estimate.startSeconds * 1000)} here, then a round at least ${formatDuration(estimate.roundSeconds.least * 1000)}`;
+    return `No full round fits in ${cap} of training: the starting measurement takes ${formatDuration(estimate.startSeconds * 1000)} here, then a round at least ${formatDuration(estimate.roundSeconds.least * 1000)}`;
   }
   const verb = most === 1 ? 'fits' : 'fit';
   const count = countRange(estimate.rounds);

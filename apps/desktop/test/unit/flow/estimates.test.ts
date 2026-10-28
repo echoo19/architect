@@ -100,7 +100,7 @@ describe('what the time cap allows', () => {
   it('says how many rounds fit, as a fact with its range', () => {
     const job = makeJob();
     expect(roundsLine(job, estimateTime(job, 'local'))).toBe(
-      'No full round fits in 3 hours of training: the starting check takes 1 h 40 min here, then a round at least 3 h 50 min',
+      'No full round fits in 3 hours of training: the starting measurement takes 1 h 40 min here, then a round at least 3 h 50 min',
     );
     expect(roundsLine(job, estimateTime(job, 'hosted'))).toBe(
       '3 to 7 of 12 rounds fit in 3 hours of training',

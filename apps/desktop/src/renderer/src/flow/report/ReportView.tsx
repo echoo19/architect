@@ -263,7 +263,7 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
                   {signed(change.runs ? change.delta / change.runs : change.delta)}{' '}
                   <span className="font-sans text-fg-muted">
                     check tasks
-                    {change.runs ? ` a check, on average over ${change.runs}` : null}
+                    {change.runs ? ` per measurement, on average over ${change.runs}` : null}
                   </span>
                 </span>
               </li>

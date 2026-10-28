@@ -228,7 +228,7 @@ for (const theme of THEMES) {
     const success = page.getByRole('region', { name: 'Check tasks right' });
     const rounds = page.getByRole('region', { name: 'Rounds' });
     await expect(success).toContainText('78%');
-    await expect(success).toContainText('31 of 40 on average, over 2 checks');
+    await expect(success).toContainText('31 of 40 on average, over 2 measurements');
     await expect(success).toContainText('Round 4: being scored');
     await expect(page.getByRole('list', { name: 'Each round' })).toHaveText(
       'PracticeDiagnoseScore',
@@ -293,11 +293,13 @@ for (const theme of THEMES) {
       roundDrawer.getByText('Work in integer cents from start to finish.'),
     ).toBeVisible();
     await expect(roundDrawer).toContainText(
-      '6 more check tasks passed on the first check (26 to 32 of 40). Run a second time to ' +
-        'rule out luck: 10 more over both checks (52 to 62 of 80), and no task type got worse.',
+      '6 more check tasks passed on the first measurement (26 to 32 of 40). Run a second time to ' +
+        'rule out luck: 10 more over both measurements (52 to 62 of 80), and no task type got worse.',
     );
-    await expect(roundDrawer).toContainText("The first check was inside Spark's predicted range.");
-    await expect(roundDrawer.getByText('Average of the two checks')).toBeVisible();
+    await expect(roundDrawer).toContainText(
+      "The first measurement was inside Spark's predicted range.",
+    );
+    await expect(roundDrawer.getByText('Average of the two measurements')).toBeVisible();
     await expect(roundDrawer).not.toContainText('@@');
     await capture(page, `flow-round-${theme}`);
     await page.keyboard.press('Escape');
@@ -358,7 +360,7 @@ for (const theme of THEMES) {
     ).toBeVisible();
     await expect(comparison.getByRole('row', { name: /Architect/ })).toContainText('+52 points');
     await expect(page.getByRole('region', { name: 'What helped most' })).toContainText(
-      '+5 check tasks a check, on average over 2',
+      '+5 check tasks per measurement, on average over 2',
     );
     await expect(page.getByRole('heading', { name: "What it won't do" })).toBeVisible();
     await capture(page, `flow-report-${theme}`);
