@@ -12,6 +12,7 @@ import {
   type Machine,
   type VersionEvent,
 } from '@architect/shared';
+import type { AdapterServing } from '../local-runtime';
 import type { AdapterDeps, Clock, RuntimeDeps } from '../loop/deps';
 import type { DataPaths } from '../loop/paths';
 import { isoNow } from '../loop/time';
@@ -33,6 +34,8 @@ export interface LibraryContext {
     runtime: Pick<RuntimeDeps, 'createSandbox' | 'toolLoadProblem'>;
     adapters: Pick<AdapterDeps, 'createStudent'>;
   };
+  /** Checks and serves the versions that carry an adapter: llama-server, the base, the file. */
+  adapterRuntime: AdapterServing;
   /** This computer, for the compatibility check; tests stand in other machines. */
   machine?: () => Machine;
 }
@@ -367,6 +370,7 @@ export class GraduateLibrary {
             },
             {},
           ),
+        adapters: this.ctx.adapterRuntime,
         now: () => this.now(),
       };
       const checks = await checkInstallation(

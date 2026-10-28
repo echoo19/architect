@@ -18,6 +18,7 @@ export function workspaceView(version: StoredVersion, model: ModelBinding): Grad
   const { evidence, harness } = manifest;
   const provenance = evidence.provenance;
   const summary = evidence.summary;
+  const { adapter } = manifest.model;
   return {
     format: 1,
     id: version.graduateId,
@@ -40,6 +41,14 @@ export function workspaceView(version: StoredVersion, model: ModelBinding): Grad
         ? {}
         : { sizeBytes: manifest.model.base.sizeBytes }),
       contextLength: manifest.model.inference.contextLength,
+      ...(adapter === undefined
+        ? {}
+        : {
+            adapter: {
+              scale: adapter.scale,
+              ...(adapter.standIn === undefined ? {} : { standIn: adapter.standIn }),
+            },
+          }),
     },
     harness: {
       version: harness.version,

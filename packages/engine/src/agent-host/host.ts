@@ -8,6 +8,7 @@ import {
   type WorkspaceChat,
   type WorkspaceEvent,
 } from '@architect/shared';
+import type { AdapterServing } from '../local-runtime';
 import { createSandbox } from '../sandbox/sandbox';
 import { openGraduateSession, type GraduateSession } from './graduate';
 import { chatHistory } from './history';
@@ -30,6 +31,12 @@ export type WorkspaceApi = ArchitectApi['workspace'];
 export interface AgentHostOptions {
   /** Graduates, their installations and chats, on the app's database. */
   store: WorkspaceStore;
+  /**
+   * Serves the versions that carry an adapter: llama-server, with the base from Ollama's store
+   * (decision 041). The host stops it when it closes. Every host that runs graduates passes one,
+   * the CLI's included, so a graduate answers the same wherever it runs.
+   */
+  adapters: AdapterServing;
   /** The tool sandbox's child entry. A bundled app passes its built file. */
   sandboxEntryPath?: string;
   /** The clock for timestamps and for the date the agent works as of. */
@@ -76,7 +83,7 @@ const SEED_LIMIT = 2 ** 31;
  * on the guardrail list are refused without calling the student.
  */
 export function createAgentHost(options: AgentHostOptions): AgentHost {
-  const { store } = options;
+  const { store, adapters } = options;
   const now = options.now ?? (() => new Date());
   const onError = options.onError ?? ((error: unknown) => console.error(error));
   const sandbox = createSandbox(
@@ -143,12 +150,16 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
     const graduate = graduateOf(graduateId);
     const stamp = store.activeStamp(graduateId);
     if (stamp === null || stamp === graduate.stamp || answering(graduateId)) return graduate;
-    const reopened = await openGraduateSession(
-      await store.activeVersion(graduateId),
-      threads.get(graduateId),
-    );
+    const reopened = await openSession(graduateId, threads.get(graduateId));
     graduates.set(graduateId, reopened);
     return reopened;
+  }
+
+  async function openSession(graduateId: string, cpuThreads: number | undefined) {
+    return openGraduateSession(await store.activeVersion(graduateId), {
+      adapters,
+      ...(cpuThreads === undefined ? {} : { cpuThreads }),
+    });
   }
 
   /** A reply left running when the host last stopped can't resume, so it is closed off. */
@@ -246,7 +257,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
       threads.set(graduateId, cpuThreads);
       // A graduate that is answering is opened again before its next reply, never during one.
       if (answering(graduateId)) return;
-      const graduate = await openGraduateSession(await store.activeVersion(graduateId), cpuThreads);
+      const graduate = await openSession(graduateId, cpuThreads);
       graduates.set(graduateId, graduate);
       settleInterrupted(graduateId);
     },
@@ -326,7 +337,8 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
       graduates.clear();
       threads.clear();
       listeners.clear();
-      await sandbox.dispose();
+      // llama-server holds the GPU; it must not outlive the host that started it.
+      await Promise.all([sandbox.dispose(), adapters.stop()]);
     },
   };
 }

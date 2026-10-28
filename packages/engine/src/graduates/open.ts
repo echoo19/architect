@@ -20,8 +20,9 @@ export interface ActiveVersion {
   /**
    * What the adapter runtime (decision 035) loads for a version with an adapter: the base by the
    * name this computer's installation serves it under, the version's GGUF LoRA (its checksum
-   * verified just now, with the harness) and the scale it was measured at. Before serving, the
-   * runtime's GGUF digest for the base must be the adapter's `baseDigest`. Null without one.
+   * verified just now, with the harness) and the scale it was measured at. The runtime holds the
+   * base to the adapter's `baseDigest` and the file to its sha256 again before every start.
+   * Null without one.
    */
   adapter: ServeRequest | null;
   model: ModelBinding;
@@ -30,6 +31,29 @@ export interface ActiveVersion {
   grants: Grants;
   /** Which version and which state of the installation this is; see `activeStamp`. */
   stamp: string;
+}
+
+/**
+ * What the adapter runtime serves for a version with an adapter, on this computer: the base by
+ * the name its installation gives it in Ollama's store, held to the build the adapter was trained
+ * on, and the version's own adapter file, held to its sha256, at the scale it was measured at.
+ * Null for a version without an adapter.
+ */
+export function serveRequestFor(
+  name: string,
+  version: StoredVersion,
+  dir: string,
+  installation: Pick<StoredInstallation, 'model'>,
+): ServeRequest | null {
+  const adapter = version.manifest.model.adapter;
+  if (adapter === undefined) return null;
+  const key = `${name} v${version.version}`;
+  return {
+    model: installation.model.model,
+    adapters: [{ key, path: join(dir, ...adapter.path.split('/')), sha256: adapter.sha256 }],
+    scales: { [key]: adapter.scale },
+    baseDigest: adapter.baseDigest,
+  };
 }
 
 function stampOf(version: number, installation: StoredInstallation): string {
@@ -92,22 +116,13 @@ export async function activeVersion(
       `Version ${version.version} of ${agent.name} has a different graduate.json from the one installed, so it wasn't opened.`,
     ]);
   }
-  const adapter = version.manifest.model.adapter;
-  const key = `${agent.name} v${version.version}`;
   return {
     graduateId,
     name: agent.name,
     version,
     dir,
     harnessDir: join(dir, HARNESS_DIR),
-    adapter:
-      adapter === undefined
-        ? null
-        : {
-            model: installation.model.model,
-            adapters: [{ key, path: join(dir, ...adapter.path.split('/')) }],
-            scales: { [key]: adapter.scale },
-          },
+    adapter: serveRequestFor(agent.name, version, dir, installation),
     model: installation.model,
     bindings: absoluteBindings(paths, installation.bindings),
     grants: installation.grants,
