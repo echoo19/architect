@@ -82,6 +82,22 @@ export function cellText(value: CellValue): string {
   return String(value);
 }
 
+/** An amount, a count, a percentage or a signed change: "$1,116.52", "−$116.76", "12", "95%". */
+const FIGURE = /^[+\-−]?[$€£]?\d[\d,]*(\.\d+)?%?$/;
+
+/** Whether every filled cell in a column is a figure, so the column lines up on the right. */
+export function isFigureColumn(rows: readonly (readonly CellValue[])[], column: number): boolean {
+  const cells = rows
+    .map((row) => row[column] ?? null)
+    .filter((cell) => cell !== null && cell !== '');
+  return (
+    cells.length > 0 &&
+    cells.every(
+      (cell) => typeof cell === 'number' || (typeof cell === 'string' && FIGURE.test(cell.trim())),
+    )
+  );
+}
+
 /** A row that sums the others, such as "Total" or "Grand total", which tables set in bold. */
 export function isTotalRow(row: readonly CellValue[]): boolean {
   const first = row[0];

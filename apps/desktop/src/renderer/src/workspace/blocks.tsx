@@ -18,6 +18,7 @@ import { refreshGraduateSettings } from './graduateSettings';
 import {
   cellText,
   inSentence,
+  isFigureColumn,
   isTotalRow,
   listInSentence,
   previewRows,
@@ -56,6 +57,7 @@ export function TableBlock({
     .slice(items.length, block.rows.length - 1)
     .map((row) => cellText(row[0] ?? null))
     .join(', ');
+  const align = (column: number) => isFigureColumn(block.rows, column) && 'text-right';
   return (
     <div className="animate-rise">
       <TableCard
@@ -76,8 +78,10 @@ export function TableBlock({
       >
         <TableHeader>
           <TableRow>
-            {block.columns.map((column) => (
-              <TableHead key={column}>{column}</TableHead>
+            {block.columns.map((column, index) => (
+              <TableHead key={column} className={cn(align(index))}>
+                {column}
+              </TableHead>
             ))}
           </TableRow>
         </TableHeader>
@@ -85,7 +89,9 @@ export function TableBlock({
           {items.map((row, r) => (
             <TableRow key={r} className={cn(isTotalRow(row) && TOTAL_ROW)}>
               {block.columns.map((_, column) => (
-                <TableCell key={column}>{cellText(row[column] ?? null)}</TableCell>
+                <TableCell key={column} className={cn(align(column))}>
+                  {cellText(row[column] ?? null)}
+                </TableCell>
               ))}
             </TableRow>
           ))}
@@ -98,7 +104,9 @@ export function TableBlock({
               </TableRow>
               <TableRow className={TOTAL_ROW}>
                 {block.columns.map((_, column) => (
-                  <TableCell key={column}>{cellText(total[column] ?? null)}</TableCell>
+                  <TableCell key={column} className={cn(align(column))}>
+                    {cellText(total[column] ?? null)}
+                  </TableCell>
                 ))}
               </TableRow>
             </>

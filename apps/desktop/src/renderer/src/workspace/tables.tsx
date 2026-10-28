@@ -1,7 +1,7 @@
 import type { CellValue, RowDiff } from '@architect/shared';
 import { cn, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@architect/ui';
 import { diffLines, type DiffLine } from './diff';
-import { cellText, isTotalRow } from './labels';
+import { cellText, isFigureColumn, isTotalRow } from './labels';
 
 /** A row that sums the ones above it stands out from them. */
 export const TOTAL_ROW = '[&>td]:font-medium [&>td]:text-fg';
@@ -14,12 +14,15 @@ export interface DataTableProps {
 
 /** A full table in the side panel, in the panel's mono style. */
 export function DataTable({ label, columns, rows }: DataTableProps) {
+  const align = (column: number) => isFigureColumn(rows, column) && 'text-right';
   return (
     <Table variant="plain" aria-label={label}>
       <TableHeader>
         <TableRow>
-          {columns.map((column) => (
-            <TableHead key={column}>{column}</TableHead>
+          {columns.map((column, index) => (
+            <TableHead key={column} className={cn(align(index))}>
+              {column}
+            </TableHead>
           ))}
         </TableRow>
       </TableHeader>
@@ -27,7 +30,9 @@ export function DataTable({ label, columns, rows }: DataTableProps) {
         {rows.map((row, r) => (
           <TableRow key={r} className={cn(isTotalRow(row) && TOTAL_ROW)}>
             {columns.map((_, column) => (
-              <TableCell key={column}>{cellText(row[column] ?? null)}</TableCell>
+              <TableCell key={column} className={cn(align(column))}>
+                {cellText(row[column] ?? null)}
+              </TableCell>
             ))}
           </TableRow>
         ))}
@@ -67,6 +72,8 @@ export interface RowDiffTableProps {
 /** The rows a write would add, remove or change, with added rows marked. */
 export function RowDiffTable({ diff, limit, className }: RowDiffTableProps) {
   const lines = diffLines(diff);
+  const cells = lines.map((line) => line.cells);
+  const align = (column: number) => isFigureColumn(cells, column) && 'text-right';
   return (
     <Table variant="plain" aria-label="Rows this change writes" className={className}>
       <TableHeader>
@@ -74,8 +81,10 @@ export function RowDiffTable({ diff, limit, className }: RowDiffTableProps) {
           <TableHead className="w-5">
             <span className="sr-only">Change</span>
           </TableHead>
-          {diff.columns.map((column) => (
-            <TableHead key={column}>{column}</TableHead>
+          {diff.columns.map((column, index) => (
+            <TableHead key={column} className={cn(align(index))}>
+              {column}
+            </TableHead>
           ))}
         </TableRow>
       </TableHeader>
@@ -89,7 +98,7 @@ export function RowDiffTable({ diff, limit, className }: RowDiffTableProps) {
                 <span className="sr-only">{mark.label}</span>
               </TableCell>
               {line.cells.map((cell, column) => (
-                <TableCell key={column} className={cellTone(line, column)}>
+                <TableCell key={column} className={cn(cellTone(line, column), align(column))}>
                   {cellText(cell)}
                 </TableCell>
               ))}
