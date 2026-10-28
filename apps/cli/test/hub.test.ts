@@ -7,6 +7,7 @@ import {
   SAMPLE_CONTENT,
   startFakeHub,
   startFakeOllama,
+  THIS_MACHINE,
   type FakeHub,
 } from '@architect/engine/testing';
 import { RunResultSchema } from '@architect/shared';
@@ -225,6 +226,7 @@ describe('A12: publishing to the Hub and installing from it by commit', () => {
 
     const to = await recipient(hub, FAKE_HUB_TOKEN);
     try {
+      // On THIS_MACHINE, as the command run in this process is, whatever computer runs the tests.
       const installed = await spawnCli(
         [
           'install',
@@ -234,7 +236,7 @@ describe('A12: publishing to the Hub and installing from it by commit', () => {
           '--no-model-check',
           '--json',
         ],
-        { env: to.env },
+        { env: to.env, machine: THIS_MACHINE },
       );
       // Nothing was granted that the install didn't name, so it needs its folder first.
       expect(installed.code).toBe(3);

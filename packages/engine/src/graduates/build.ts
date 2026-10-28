@@ -1,5 +1,4 @@
 import { readFile } from 'node:fs/promises';
-import { arch, platform, totalmem } from 'node:os';
 import { join } from 'node:path';
 import {
   EVIDENCE_FILES,
@@ -23,6 +22,7 @@ import {
   type HarnessMeta,
   type JobContract,
   type LineageEntry,
+  type Machine,
   type Method,
   type PackageEvidence,
   type PackageRequirements,
@@ -79,10 +79,11 @@ export interface VersionFacts {
   rounds: number;
   keptChanges: number;
   /**
-   * Whether the locked test ran on this computer, so its platform and memory describe where it
-   * was tested. Not so for a format 1 folder from elsewhere, whose manifest never said.
+   * The computer the locked test ran on, whose platform and memory the package names as where it
+   * was tested: this one, for a version made here. Null when no locked test measured it, or when
+   * it ran elsewhere and nobody recorded where, as for a format 1 folder from another computer.
    */
-  testedHere: boolean;
+  testMachine: Machine | null;
 }
 
 const MIB = 1024 ** 2;
@@ -238,7 +239,7 @@ function evidenceOf(facts: VersionFacts): PackageEvidence {
 }
 
 function requirementsOf(facts: VersionFacts): PackageRequirements {
-  const { report, base } = facts;
+  const { report, base, testMachine } = facts;
   const limitations: string[] = [];
   if (report !== null) {
     const types = report.test.perType.map((type) => type.label).join(', ');
@@ -253,7 +254,7 @@ function requirementsOf(facts: VersionFacts): PackageRequirements {
   } else {
     limitations.push('No locked test measured this version.');
   }
-  if (report !== null && !facts.testedHere) {
+  if (report !== null && testMachine === null) {
     limitations.push("Where its locked test ran wasn't recorded.");
   }
   if (base.digest === undefined && base.revision === undefined && facts.adapter === undefined) {
@@ -276,15 +277,15 @@ function requirementsOf(facts: VersionFacts): PackageRequirements {
   }
   return {
     tested:
-      report === null || !facts.testedHere
+      report === null || testMachine === null
         ? []
         : [
             {
-              os: platform(),
-              arch: arch(),
+              os: testMachine.os,
+              arch: testMachine.arch,
               backend: report.testedOn === 'hosted' ? 'hosted' : facts.runtime,
               target: report.testedOn,
-              memoryBytes: totalmem(),
+              memoryBytes: testMachine.memoryBytes,
             },
           ],
     measured: report === null ? {} : { latencyMs: report.test.latencyMs },

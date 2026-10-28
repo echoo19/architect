@@ -1,4 +1,5 @@
 import { createStudent } from '@architect/adapters';
+import type { Machine } from '@architect/shared';
 import {
   CHECK_PURPOSE,
   GpuLease,
@@ -28,6 +29,8 @@ export interface LocalLibraryOptions {
    */
   runtime: { owner: string; settings: () => LocalRuntimeSettings; command?: ServerCommand };
   clock?: Clock;
+  /** This computer, for the compatibility check: the one it runs on unless a test names another. */
+  machine?: () => Machine;
 }
 
 export interface LocalLibrary {
@@ -83,6 +86,7 @@ export function openLocalLibrary(options: LocalLibraryOptions): LocalLibrary {
       },
     },
     adapterRuntime: adapterRuntime.serving(CHECK_PURPOSE),
+    ...(options.machine === undefined ? {} : { machine: options.machine }),
   });
   return {
     paths,

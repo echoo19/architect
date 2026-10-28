@@ -6,6 +6,7 @@ import {
   JobSchema,
   type Job,
   type JobContract,
+  type Machine,
 } from '@architect/shared';
 import type { Clock } from '../loop/deps';
 import type { DataPaths } from '../loop/paths';
@@ -14,6 +15,7 @@ import type { EngineStore } from '../store/engine-store';
 import type { GraduateRecord } from '../store/records';
 import { sameComputerGrants } from './bindings';
 import { resourcesFor, tableColumns, type VersionFacts } from './build';
+import { thisMachine } from './checks';
 import type { ContractBook } from './contracts';
 import {
   registerVersion,
@@ -27,6 +29,8 @@ export interface LegacyContext {
   paths: DataPaths;
   clock: Clock;
   contracts: ContractBook;
+  /** This computer, where a graduate whose run is here took its locked test; tests stand in others. */
+  machine?: () => Machine;
 }
 
 /** The job a format 1 graduate's run used, or the job's current file, or null when neither is here. */
@@ -72,12 +76,15 @@ export function contractFromManifest(folder: GraduateFolder): JobContract {
   });
 }
 
-/** What a format 1 folder says, as the facts of its version 1. */
+/**
+ * What a format 1 folder says, as the facts of its version 1. Its manifest never said where its
+ * locked test ran: `testMachine` is this computer when its run is here, else null.
+ */
 export function legacyFacts(
   folder: GraduateFolder,
   contract: JobContract,
   columns: Readonly<Record<string, string[]>>,
-  testedHere: boolean,
+  testMachine: Machine | null,
 ): VersionFacts {
   const { manifest, harness, report, lineage } = folder;
   const { student } = manifest;
@@ -111,7 +118,7 @@ export function legacyFacts(
     columns,
     rounds: report.cost.rounds,
     keptChanges: lineage.filter((entry) => entry.decision === 'kept').length,
-    testedHere,
+    testMachine,
   };
 }
 
@@ -134,7 +141,12 @@ async function upgradeOne(ctx: LegacyContext, record: GraduateRecord): Promise<v
         : JobContractSchema.parse({ ...contractTerms(job), version: 1 });
   const columns = job === null ? {} : await tableColumns(paths.dataDir(job.id), contract);
   const runHere = store.runs.get(manifest.runId) !== null;
-  const facts = legacyFacts(folder, contract, columns, runHere);
+  const facts = legacyFacts(
+    folder,
+    contract,
+    columns,
+    runHere ? (ctx.machine ?? thisMachine)() : null,
+  );
   const written = await writeVersionFolder(store, paths, facts);
 
   const data = paths.workspaceDir(record.id);

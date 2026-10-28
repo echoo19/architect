@@ -29,6 +29,7 @@ export class CliContext {
    */
   library(options: { create?: boolean } = {}): LocalLibrary {
     if (this.opened) return this.opened;
+    const { machine } = this.io;
     if (!options.create && !existsSync(join(this.dataDir, 'architect.db'))) {
       throw new CliError(
         'invalid_input',
@@ -49,6 +50,7 @@ export class CliContext {
           ? {}
           : { command: this.io.llamaServerCommand }),
       },
+      ...(machine === undefined ? {} : { machine: () => machine }),
     });
     return this.opened;
   }

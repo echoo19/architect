@@ -14,6 +14,7 @@ import type { EngineStore } from '../store/engine-store';
 import type { GraduateFreeze, StoredInstallation } from '../store/records';
 import { sameComputerGrants } from './bindings';
 import { resourcesFor, tableColumns, type AdapterFile, type VersionFacts } from './build';
+import { thisMachine } from './checks';
 import { sameComputerBindings, seedDataFolder, writeVersionFolder } from './versions';
 
 /** The round whose kept change made a version, and whether it was a whole draft. */
@@ -100,7 +101,8 @@ export async function graduationFacts(
     columns: await tableColumns(paths.dataDir(job.id), contract),
     rounds: report.cost.rounds,
     keptChanges: input.lineage.filter((entry) => entry.decision === 'kept').length,
-    testedHere: true,
+    // The run that just took the locked test ran here.
+    testMachine: thisMachine(),
   };
 }
 

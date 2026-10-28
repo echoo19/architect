@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
+import { arch, platform, totalmem } from 'node:os';
 import { join } from 'node:path';
 import type { Harness, Job, Task } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -91,6 +92,10 @@ describe('where the locked test runs', () => {
       student: { model: 'glimmer:test', runtime: 'ollama', quantization: 'Q4_K_M' },
       test: { ranOffline: true },
     });
+    // Its package names the computer the run is on, as the system reports it.
+    expect(engine.store.versions.forRun(run.id)?.manifest.requirements.tested).toEqual([
+      { os: platform(), arch: arch(), backend: 'ollama', target: 'local', memoryBytes: totalmem() },
+    ]);
   });
 
   it('runs on the hosted copy when the run asks, and the card says it was not offline', async () => {

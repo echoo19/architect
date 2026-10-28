@@ -190,7 +190,7 @@ async function convertLegacy(
       `This format 1 graduate folder doesn't read: ${error instanceof Error ? error.message : String(error)}`,
     ]);
   }
-  const facts = legacyFacts(folder, contractFromManifest(folder), {}, false);
+  const facts = legacyFacts(folder, contractFromManifest(folder), {}, null);
   const { draft, entries } = buildPackage(facts);
   await writePackage(converted, draft, entries);
 }

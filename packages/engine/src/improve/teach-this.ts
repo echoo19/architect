@@ -506,6 +506,6 @@ export function childFacts(
     columns,
     rounds: 0,
     keptChanges: 0,
-    testedHere: false,
+    testMachine: null,
   };
 }
