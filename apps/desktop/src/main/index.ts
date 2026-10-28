@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { EngineClient, LocalRuntimeSettings } from '@architect/engine';
+import type { EngineClient } from '@architect/engine';
 import type { AgentHostClient } from '@architect/engine/agent-host';
 import { app, BrowserWindow, ipcMain, session, shell } from 'electron';
 import engineEntry from '../utility/engine?modulePath';
@@ -22,13 +22,13 @@ import { createLinkOpener } from './links';
 import { signInWithOpenRouter } from './oauth/openrouter';
 import { SignIns } from './oauth/sign-ins';
 import { ModelPulls } from './ollama/pulls';
-import { ollamaBaseUrl } from './ollama/status';
 import { processResources } from './processes/resources';
 import { Supervisor } from './processes/supervisor';
 import { safeStorageCipher } from './secrets/cipher';
 import { SecretStore } from './secrets/store';
 import { hardenContents, hardenSession, isAppUrl, type AppOrigin } from './security';
 import { quietCooldown, quietThreads } from './settings/quiet';
+import { localRuntimeSettings } from './settings/runtime';
 import { SettingsStore } from './settings/store';
 import { applyTheme } from './window/chrome';
 import { createMainWindow } from './window/main-window';
@@ -124,18 +124,7 @@ async function start(): Promise<void> {
   settings.onChange((next) => router.emit('settings', 'onChange', next));
 
   const localThreads = () => quietThreads(settings.get());
-  /** What both hosts' llama-servers start with: the chosen program, quiet mode, which Ollama. */
-  const runtimeSettings = (): LocalRuntimeSettings => {
-    const current = settings.get();
-    const threads = localThreads();
-    return {
-      ...(current.llamaServerPath === undefined
-        ? {}
-        : { llamaServerPath: current.llamaServerPath }),
-      ...(threads === undefined ? {} : { threads }),
-      ollamaUrl: ollamaBaseUrl(current.defaultStudent),
-    };
-  };
+  const runtimeSettings = () => localRuntimeSettings(settings.get(), localThreads());
   const followed = () => {
     const runtime = runtimeSettings();
     return {

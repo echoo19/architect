@@ -1,4 +1,4 @@
-import { LlamaServerStatusSchema, type LlamaServerStatus } from '@architect/shared';
+import { LlamaServerStatusSchema } from '@architect/shared';
 import {
   Button,
   IconButton,
@@ -9,18 +9,19 @@ import {
 } from '@architect/ui';
 import { Cpu, FolderOpen, RotateCw, X } from 'lucide-react';
 import { api, architect } from '../../api/client';
-import { queryKeys } from '../../api/hooks';
+import { queryKeys, useSettings } from '../../api/hooks';
 import { setQueryData, useQuery } from '../../api/query';
 import { errorOf } from '../../components/QueryValue';
 import { attempt } from '../../lib/notify';
 import { currentPlatform } from '../../lib/platform';
+import { llamaServerRowState, type LlamaServerRowState } from './llamaServerState';
 
 /** Where it was found and its build, when it works. */
-function found(status: LlamaServerStatus) {
-  if (status.source === 'path') return `Build ${status.build ?? ''} · on PATH`;
+function found({ build, path }: NonNullable<LlamaServerRowState['found']>) {
+  if (path === null) return `Build ${build ?? ''} · on PATH`;
   return (
     <>
-      Build {status.build} · <span className="break-all font-mono text-xs">{status.path}</span>
+      Build {build} · <span className="break-all font-mono text-xs">{path}</span>
     </>
   );
 }
@@ -46,26 +47,25 @@ async function select(path: string | null): Promise<void> {
  */
 export function LlamaServerRow() {
   const query = useQuery(queryKeys.llamaServer, api.llamaServer);
-  const status = query.data;
-  const problem = status && !status.ready ? `${status.problem ?? ''} ${status.hint ?? ''}` : null;
-  const tooOld = status?.build !== undefined && status.build < status.minimumBuild;
+  const settings = useSettings();
+  const row = llamaServerRowState(query.data, settings.data?.llamaServerPath);
   return (
     <SettingsRow
       icon={<ProviderMark name="llama.cpp" icon={<Cpu aria-hidden />} />}
       label="llama.cpp"
       meta={
-        status?.ready
-          ? found(status)
+        row.found
+          ? found(row.found)
           : query.status === 'loading' && <Skeleton className="mt-1 h-3 w-40" />
       }
-      error={errorOf(query) ?? problem?.trim()}
+      error={errorOf(query) ?? row.problem ?? undefined}
     >
       <span className="flex items-center gap-1.5">
-        {tooOld && <SettingsValue>Too old</SettingsValue>}
+        {row.tooOld && <SettingsValue>Too old</SettingsValue>}
         <IconButton label="Check again" size="sm" onClick={query.reload}>
           <RotateCw size={14} strokeWidth={1.8} aria-hidden />
         </IconButton>
-        {status?.source === 'setting' && (
+        {row.canClear && (
           <IconButton
             label="Use the one on PATH"
             size="sm"
