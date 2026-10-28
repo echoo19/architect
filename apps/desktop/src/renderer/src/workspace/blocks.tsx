@@ -169,7 +169,7 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
   } else if (block.status === 'approved' || (block.status === 'pending' && answer)) {
     outcome = (
       <Outcome icon={<Check size={14} aria-hidden />}>
-        {answer === 'always' ? 'Always allowed' : 'Allowed'}
+        {answer === 'always' ? 'Allowed from now on' : 'Allowed'}
       </Outcome>
     );
   } else if (!answerable) {
@@ -226,7 +226,7 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
         {outcome ?? (
           <div className="flex gap-1.5">
             {choice('deny', 'Deny')}
-            {choice('always', 'Always allow')}
+            {choice('always', 'Allow all from now on')}
             {choice('approve', 'Allow once', true)}
           </div>
         )}

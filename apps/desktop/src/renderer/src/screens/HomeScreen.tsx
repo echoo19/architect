@@ -5,7 +5,7 @@ import { Bot, Plus } from 'lucide-react';
 import { architect } from '../api/client';
 import { useGraduates, useSettings } from '../api/hooks';
 import { toError } from '../api/query';
-import { mentorName, studentName } from '../lib/names';
+import { mentorIntro, mentorName, studentIntro, studentName } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
@@ -100,9 +100,9 @@ function NoAgentsYet() {
   const device = deviceInSentence(currentPlatform());
   const pitch =
     settings.status === 'success'
-      ? `Describe a job. ${mentorName(settings.data.defaultMentor)} teaches ${studentName(
-          settings.data.defaultStudent,
-        )} to do it. The agent runs on ${device}.`
+      ? `Describe a job, and ${mentorIntro(mentorName(settings.data.defaultMentor))}, teaches ${studentIntro(
+          studentName(settings.data.defaultStudent),
+        )}, to do it. The agent runs on ${device}.`
       : `Describe a job and Architect trains an agent that runs on ${device}.`;
 
   const trySample = async () => {

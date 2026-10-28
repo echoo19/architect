@@ -5,6 +5,7 @@ import { Bot, Laptop } from 'lucide-react';
 import { architect } from '../api/client';
 import { useGraduates, useSettings } from '../api/hooks';
 import { attempt } from '../lib/notify';
+import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 import { WorkspaceHeader } from '../shell/WorkspaceShell';
 import { ChatComposer } from '../workspace/ChatComposer';
@@ -17,7 +18,9 @@ import { useBottomPin } from '../workspace/useBottomPin';
 
 /** The header's status pill: the agent makes no network calls beyond its local model. */
 const runningHere = (
-  <Badge icon={<Laptop size={14} strokeWidth={1.6} aria-hidden />}>Offline</Badge>
+  <Badge icon={<Laptop size={14} strokeWidth={1.6} aria-hidden />}>
+    Running on {deviceInSentence(currentPlatform())}
+  </Badge>
 );
 
 /** A chat with one graduated agent, running on this computer. */

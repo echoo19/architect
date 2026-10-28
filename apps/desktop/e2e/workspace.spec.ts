@@ -154,7 +154,7 @@ for (const theme of THEMES) {
     await expect(page.getByText('The setup from round 7')).toBeVisible();
     await expect(page.getByText('Glimmer 4-bit')).toBeVisible();
     await expect(page.getByText('Spark not connected')).toBeVisible();
-    await expect(page.getByText('Offline', { exact: true })).toBeVisible();
+    await expect(page.getByText('Running on this computer')).toBeVisible();
     await capture(`workspace-new-chat-${theme}.png`);
 
     await suggestions
@@ -223,9 +223,10 @@ for (const theme of THEMES) {
     await expect(preview).toContainText('Added');
     await expect(preview).toContainText('INV-4473');
     await expect(booking.getByRole('table', { name: 'Rows this change writes' })).toBeVisible();
-    // Each card counts the rows its write touches.
+    // Each card counts the rows its write touches, and says how far "always" reaches.
     await expect(invoices).toContainText('2 new rows');
     await expect(booking).toContainText('1 new row');
+    await expect(invoices.getByRole('button', { name: 'Allow all from now on' })).toBeVisible();
     const waiting = page.getByRole('status').filter({ hasText: 'Waiting for your approval' });
     await expect(waiting).toBeVisible();
     await capture(`workspace-approval-${theme}.png`);
