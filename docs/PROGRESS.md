@@ -2,6 +2,24 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-28 (Tue), afternoon: merges, three bugs the real run found, and the comparison started
+
+**Done**
+- Merged the evidence screens (decision 049), the GPU lease (046), Teach this on screen (048), Hugging Face on screen (050) and the comparisons runner's safeguards (051). GitHub CI had failed on Linux since fe07109 while local checks passed on Windows; package tests now state the computers they depend on, and CI is green again.
+- Every run keeps the events it sent in `events.jsonl` beside its records (decision 052), so a paid run can be shown again for the demo and screenshots without running it again.
+- Three bugs found while preparing the real run, each fixed with a test: llama-server's build read as 0 from its newer version line; a command exited with code 0 in the middle of a 30-second retry wait (`AbortSignal.timeout` doesn't hold Node open; `waitOnClock` does); and a tool call Ollama couldn't parse counted as an outage instead of the model's unreadable reply (decision 053: such a turn is asked for again, twice, with seeds derived from its own).
+- The owner chose remote inference only, spent sparingly, with development as the must and one graduate to test. The comparison runs hosted with four arms (Glimmer alone, Spark's one-shot draft, targeted mentoring, Spark as a reference), capped at $15 of OpenRouter and $10 of Spark, in `C:/JakeOS/projects/architect-runs/comparison-1`. Calibration measured $0.0062 an attempt, 31.7 s p50, 11 of 15 passed. The trained-weights arm and local tests are out of this comparison.
+- A short local probe (owner-approved) measured the 2-bit build at about 90 s an attempt, 6 s a model call, 230 to 250 W; the bare student failed all 3 tasks locally while the hosted bf16 copy passes 11 of 15 on calibration.
+- The Windows installer builds (`apps/desktop/release/Architect-Setup-0.1.0.exe`) and the packaged app passes its 21 hidden e2e specs.
+
+**Next**
+- When the comparison finishes: the report, the README's results, and the targeted arm's graduate exported as the shipped sample agent.
+- Merging the running passes: a ready-made sample agent in the app, a polish pass from a blind review of all 114 screens, and a public website in `site/`.
+
+**Open issues**
+- Local inference on a 12 GB card (the 2-bit build) is much weaker than the hosted copy and unmeasured on the final test; the README must say so.
+- Trained weights are built and tested against stand-ins but have never run end to end.
+
 ## 2026-10-28 (Tue), the evidence screens
 
 **Done** (on a branch; decision 049)
