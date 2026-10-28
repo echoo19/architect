@@ -37,6 +37,7 @@ import {
   PackageProblemCodeSchema,
   PublicationReviewSchema,
   PublicationSchema,
+  PublishProgressSchema,
   PublishRequestSchema,
   PublishResultSchema,
   ReferenceOptionsSchema,
@@ -345,6 +346,12 @@ export const ResponseMessageSchema = z.discriminatedUnion('ok', [
 ]);
 
 export const EventMessageSchema = z.object({ kind: z.literal('event'), event: RunEventSchema });
+
+/** A publication on its way to Hugging Face: sent beside run events while `publish` waits. */
+export const PublishProgressMessageSchema = z.object({
+  kind: z.literal('publish.progress'),
+  progress: PublishProgressSchema,
+});
 
 const ADAPTER_ERROR_CODES: readonly AdapterErrorCode[] = [
   'auth',

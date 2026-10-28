@@ -525,3 +525,26 @@ export const PublishResultSchema = z.object({
   notes: z.array(z.string()),
 });
 export type PublishResult = z.infer<typeof PublishResultSchema>;
+
+/**
+ * Where a publication is: checking the account and the repository, sending the package,
+ * checking the Hub's copy of it, then adding the model card.
+ */
+export const PublishStageSchema = z.enum(['connecting', 'uploading', 'verifying', 'describing']);
+export type PublishStage = z.infer<typeof PublishStageSchema>;
+
+/**
+ * A publication on its way, sent as it moves. The bytes are the upload's own count of what it
+ * has sent; a package the Hub already holds is counted as sent.
+ */
+export const PublishProgressSchema = z.object({
+  graduateId: z.string(),
+  version: z.number().int().positive(),
+  repository: HubRepositorySchema,
+  stage: PublishStageSchema,
+  /** Bytes of the package sent so far. */
+  sentBytes: z.number().int().nonnegative(),
+  /** Bytes of the package in all, the model card aside. */
+  totalBytes: z.number().int().nonnegative(),
+});
+export type PublishProgress = z.infer<typeof PublishProgressSchema>;

@@ -138,6 +138,7 @@ const EVENT_METHODS: { [D in EventDomain]: Record<EventMethod<D>, true> } = {
   settings: { onChange: true },
   ollama: { onPullProgress: true },
   runs: { onEvent: true },
+  graduates: { onPublishProgress: true },
   workspace: { onEvent: true },
 };
 

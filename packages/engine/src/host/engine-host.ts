@@ -1,5 +1,5 @@
 import { mkdir } from 'node:fs/promises';
-import { RunEventSchema } from '@architect/shared';
+import { PublishProgressSchema, RunEventSchema } from '@architect/shared';
 import {
   hostAdapterRuntime,
   type LocalAdapterRuntime,
@@ -140,6 +140,17 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
 
   controller.onEvent((event) => {
     const message = { kind: 'event', event: RunEventSchema.parse(event) };
+    for (const port of ports) port.postMessage(message);
+  });
+  // A publication's progress goes to every port, like run events; a malformed one is reported,
+  // never allowed to stop the upload it describes.
+  api.graduates.onPublishProgress((progress) => {
+    const checked = PublishProgressSchema.safeParse(progress);
+    if (!checked.success) {
+      onError(new Error("A publication's progress didn't match its schema, so it wasn't sent."));
+      return;
+    }
+    const message = { kind: 'publish.progress', progress: checked.data };
     for (const port of ports) port.postMessage(message);
   });
   // Graduates from before versions become version 1 before anyone can open them.

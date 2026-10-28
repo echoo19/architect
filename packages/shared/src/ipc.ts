@@ -39,6 +39,7 @@ import type {
   PackageInspection,
   Publication,
   PublicationReview,
+  PublishProgress,
   PublishRequest,
   PublishResult,
   VersionEvent,
@@ -475,10 +476,15 @@ export interface ArchitectApi {
     installFromHub(source: string, request?: HubInstallRequest): Promise<HubInstallResult>;
     /** What publishing a version to Hugging Face would send, and what the scan finds. Sends nothing. */
     reviewPublication(graduateId: string, request: PublishRequest): Promise<PublicationReview>;
-    /** Publishes a version to a Hugging Face repository, private unless the request says public. */
+    /**
+     * Publishes a version to a Hugging Face repository, private unless the request says public.
+     * Its progress comes as `onPublishProgress` events until it resolves.
+     */
     publish(graduateId: string, request: PublishRequest): Promise<PublishResult>;
     /** Every publication of the agent's versions, oldest first. */
     publications(graduateId: string): Promise<Publication[]>;
+    /** Fires as a publication moves: each stage, and the bytes sent while it uploads. */
+    onPublishProgress(listener: (progress: PublishProgress) => void): Unsubscribe;
     remove(graduateId: string): Promise<void>;
     settings(graduateId: string): Promise<GraduateSettings>;
     updateSettings(graduateId: string, patch: Partial<GraduateSettings>): Promise<GraduateSettings>;
