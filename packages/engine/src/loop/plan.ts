@@ -48,6 +48,16 @@ export interface PlanInput {
   /** The graduate has been frozen for its locked test. */
   frozen: boolean;
   /**
+   * A comparison holds the locked test until every arm is frozen (decision 045): once frozen, the
+   * run parks until it is released.
+   */
+  held?: boolean;
+  /**
+   * The run's rounds are fixed in advance and run whatever dev says, as a one-shot adapter's are
+   * (decision 045): it starts each until `maxRounds`, then ends.
+   */
+  fixedRounds?: boolean;
+  /**
    * The run improves an agent from its queued lessons: it ends in a candidate version of that
    * agent, measured on dev, and never takes the locked test again (decision 042).
    */
@@ -132,6 +142,12 @@ function nextTrainingStep(input: PlanInput): Step {
       return input.rounds.length === 0 ? { kind: 'start_round', round: 1 } : finish();
     case 'architect':
     case 'self_reflection':
+      if (input.fixedRounds === true) {
+        if (input.rounds.length < input.maxRounds) {
+          return { kind: 'start_round', round: input.rounds.length + 1 };
+        }
+        return finish('rounds');
+      }
       if (targetMet(input)) return finish('target_met');
       if (rejectedInARow(input.rounds) >= MAX_REJECTED_IN_A_ROW) return finish('rejected');
       if (revertedSinceKept(input.rounds) >= input.patience) return finish('patience');
@@ -150,6 +166,7 @@ export function planNextStep(input: PlanInput): Step {
   if (input.phase === 'testing') {
     if (input.pauseRequested) return { kind: 'park' };
     if (!input.frozen) return { kind: 'freeze' };
+    if (input.held === true) return { kind: 'park' };
     return input.improves === true ? { kind: 'propose_version' } : { kind: 'locked_test' };
   }
 

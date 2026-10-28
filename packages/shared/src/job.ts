@@ -63,6 +63,12 @@ export const StudentEndpointSchema = z.object({
   contextLength: z.number().int().min(2048).max(262_144).default(16_384),
   /** A hosted copy's price, when no preset knows it (OpenRouter lists one). */
   pricing: TokenPricingSchema.optional(),
+  /**
+   * On OpenRouter, the providers a request may go to, in order, with no fallback to any other,
+   * so every attempt of a comparison runs on one provider's serving of the model (decision 045):
+   * providers serve Glimmer at different precisions. Any provider when absent.
+   */
+  providers: z.array(z.string().min(1)).min(1).optional(),
 });
 export type StudentEndpoint = z.infer<typeof StudentEndpointSchema>;
 
