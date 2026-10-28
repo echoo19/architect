@@ -17,11 +17,12 @@ import { api, architect } from '../../api/client';
 import { queryKeys, useJob } from '../../api/hooks';
 import { fetchQuery } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
-import { formatBytes } from '../../lib/format';
+import { formatBytes, formatPercent } from '../../lib/format';
 import {
   capitalized,
   quantizationLabel,
   setupName,
+  setupSource,
   shortModelName,
   STUDENT_ROLE,
 } from '../../lib/names';
@@ -34,12 +35,11 @@ import { WRITE_MODE_LABELS, WRITE_MODE_MEANINGS, WRITE_MODES } from '../labels';
 import { forgetAgent } from '../store';
 import { useAgentSettingsUi } from './agentSettingsUi';
 
+/** "Oct 27, 2026", with non-breaking spaces so a wrapped line never splits the date. */
 function formatDay(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  return new Date(iso)
+    .toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    .replaceAll(' ', '\u00A0');
 }
 
 const pending = <Skeleton shape="pill" className="h-4 w-36" />;
@@ -49,12 +49,19 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
   const [confirming, setConfirming] = useState(false);
   const { manifest } = agent;
   const model = manifest.student;
+  const mentor = shortModelName(manifest.mentor.label);
+  const { score } = manifest.test;
+  const { met, target } = manifest.requirements.passRate;
+  const result = `${met ? 'Passed' : 'Below its target'}: ${score.pass} of ${score.total} (${formatPercent(score)})`;
+  const modelDetails = [
+    model.quantization && quantizationLabel(model.quantization),
+    model.sizeBytes && `${formatBytes(model.sizeBytes)} on disk`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <>
-      <SettingsRow label="Name">
-        <SettingsValue>{agent.name}</SettingsValue>
-      </SettingsRow>
       <SettingsRow label="Job" error={errorOf(job)}>
         {job.status === 'success' ? (
           <span className="max-w-[340px] text-right text-fg-secondary text-pretty">
@@ -68,23 +75,26 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
       </SettingsRow>
       <SettingsRow
         label="Setup"
-        meta={`Its instructions, skills and tools, as ${shortModelName(manifest.mentor.label)} left them when training ended. ${
-          manifest.requirements.passRate.met ? 'Passed its final test' : 'Finished below its target'
-        } on ${formatDay(manifest.acceptedAt ?? manifest.createdAt)}.`}
+        meta={`Its instructions, skills and tools. ${setupSource(manifest.harness, mentor)}`}
       >
         <SettingsValue>{capitalized(setupName(manifest.harness))}</SettingsValue>
       </SettingsRow>
       <SettingsRow
-        label={capitalized(STUDENT_ROLE)}
-        meta={[
-          shortModelName(model.label),
-          model.quantization && quantizationLabel(model.quantization),
-          model.sizeBytes && formatBytes(model.sizeBytes),
-        ]
-          .filter(Boolean)
-          .join(' · ')}
+        label="Final test"
+        meta={`Tasks it had never seen. The job asked for ${Math.round(target * 100)}%. Tested on ${formatDay(manifest.createdAt)}. The Report tab has the full results.`}
       >
-        <span className="font-mono text-sm text-fg-secondary">{model.model}</span>
+        <SettingsValue>{result}</SettingsValue>
+      </SettingsRow>
+      <SettingsRow
+        label={capitalized(STUDENT_ROLE)}
+        meta={
+          <>
+            {modelDetails && `${modelDetails} · `}
+            <span className="font-mono text-xs">{model.model}</span>
+          </>
+        }
+      >
+        <SettingsValue>{shortModelName(model.label)}</SettingsValue>
       </SettingsRow>
       <SettingsRow
         label="Delete agent"
