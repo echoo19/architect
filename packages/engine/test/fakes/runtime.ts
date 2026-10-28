@@ -123,6 +123,11 @@ export class FakeRuntime implements RuntimeDeps {
   actorRequest: (task: Task) => string = (task) => task.prompt;
   /** Each attempt asks its student one turn with the task's prompt, as a real attempt would. */
   askStudent = false;
+  /**
+   * Text added to that turn's prompt, so the request is as large as the usage a test reports for
+   * it: no real prompt has fewer bytes than it has tokens.
+   */
+  promptPadding: ((task: Task, seed: number) => string) | undefined;
   /** Every attempt the runtime was asked for, across controllers. */
   readonly attempts: { taskId: string; version: number; seed: number }[] = [];
   /** Order of releases and test attempts, to check the mentor is gone before the test. */
@@ -160,15 +165,21 @@ export class FakeRuntime implements RuntimeDeps {
       await this.beforeAttempt?.(task, ctx, options);
       options.signal?.throwIfAborted();
       if (this.askStudent) {
-        const turn = ctx.student.chat({
-          messages: [
-            { role: 'system', content: ctx.harness.system },
-            { role: 'user', content: task.prompt },
-          ],
-          tools: [],
-          decoding: ctx.decoding ?? ctx.harness.decoding,
-          seed: options.seed,
-        });
+        const turn = ctx.student.chat(
+          {
+            messages: [
+              { role: 'system', content: ctx.harness.system },
+              {
+                role: 'user',
+                content: `${task.prompt}${this.promptPadding?.(task, options.seed) ?? ''}`,
+              },
+            ],
+            tools: [],
+            decoding: ctx.decoding ?? ctx.harness.decoding,
+            seed: options.seed,
+          },
+          options.signal,
+        );
         for await (const _event of turn) {
           // The reply doesn't decide the fake's verdict; the request is what a gate checks.
         }

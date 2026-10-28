@@ -4,6 +4,8 @@ import {
   type StudentAdapter,
   type StudentTarget,
   type Task,
+  type Trace,
+  type Usage,
 } from '@architect/shared';
 import { studentPrice } from '../loop/attempts';
 import type { Clock, LoopDeps, MeterReading } from '../loop/deps';
@@ -38,10 +40,44 @@ function wait(clock: Clock, ms: number): Promise<void> {
 }
 
 /**
+ * What an attempt's model calls cost: what the provider billed for each call that said, the
+ * listed price of the usage the others reported. A call that reported neither a charge nor any
+ * usage has no known cost, and neither has the attempt: it never counts as zero.
+ */
+export function attemptCost(
+  trace: Trace,
+  price: (usage: Usage) => number | null,
+  isLocal: boolean,
+): Pick<SweepAttempt, 'usd' | 'listedUsd' | 'calls' | 'billedCalls' | 'billedUsd'> {
+  let usd: number | null = 0;
+  let listedUsd: number | null = 0;
+  let calls = 0;
+  let billedCalls = 0;
+  let billedUsd = 0;
+  for (const step of trace.steps) {
+    if (step.kind !== 'model') continue;
+    calls += 1;
+    const listed = price(step.usage);
+    listedUsd = listedUsd === null || listed === null ? null : listedUsd + listed;
+    if (step.costUsd !== undefined) {
+      billedCalls += 1;
+      billedUsd += step.costUsd;
+      if (usd !== null) usd += step.costUsd;
+      continue;
+    }
+    const known = isLocal || step.usage.inputTokens > 0 ? listed : null;
+    usd = usd === null || known === null ? null : usd + known;
+  }
+  return { usd, listedUsd, calls, billedCalls, billedUsd };
+}
+
+/**
  * The bare student on a fixed set of tasks outside any run, in a blank harness: the calibration
  * tasks that price an attempt before any arm spends, the regression check on another job, or the
  * local probe that times this computer. Each attempt is written as it finishes, so a restart
- * attempts only the tasks left; a reply that fails in passing is tried again after a wait.
+ * attempts only the tasks left; a reply that fails in passing is tried again after a wait. An
+ * attempt in flight when the process stops is attempted again: its requests are in the request
+ * journal, written before each was sent, so what it may have cost still counts (decision 051).
  */
 export async function sweep(options: SweepOptions): Promise<{
   attempts: SweepAttempt[];
@@ -78,11 +114,6 @@ export async function sweep(options: SweepOptions): Promise<{
           seed: options.seed,
           concurrency: options.concurrency,
           onAttempt: (item) => {
-            const usd = item.result.trace.steps.reduce<number | null>((sum, step) => {
-              if (step.kind !== 'model') return sum;
-              const cost = price(step.usage);
-              return sum === null || cost === null ? null : sum + cost;
-            }, 0);
             const attempt: SweepAttempt = {
               taskId: item.task.id,
               taskType: item.task.type,
@@ -91,7 +122,7 @@ export async function sweep(options: SweepOptions): Promise<{
               refused: item.result.outcome.stopReason === 'refused',
               latencyMs: item.result.trace.latencyMs,
               usage: item.result.trace.usage,
-              usd,
+              ...attemptCost(item.result.trace, price, student.isLocal),
               seed: options.seed,
               at: new Date(options.clock.now()).toISOString(),
             };

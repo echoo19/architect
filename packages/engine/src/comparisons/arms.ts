@@ -132,7 +132,8 @@ function wallCap(projected: number): number {
  * where its locked test runs, and the protocol that holds its test until every arm is frozen and
  * defers its repeat. The refining arms start from the draft arm's kept harness with the draft's
  * Spark spend taken off their cap (decision 026); the weights arms adopt the targeted arm's frozen
- * harness as H1 and train with real compute only, tested on this computer.
+ * harness as H1 and train with real compute only, tested on this computer. Under the reduced
+ * protocol the one-shot adapter starts from H1 itself (decision 051).
  */
 export async function armStart(arm: ArmId, context: StagingContext): Promise<ArmStart> {
   const { base, config } = context;
@@ -200,14 +201,39 @@ export async function armStart(arm: ArmId, context: StagingContext): Promise<Arm
           "The weights arms adopt the targeted arm's frozen harness, and it has none.",
         );
       }
-      const adopted = join(context.files.dataDir, 'comparisons', 'adopted', arm);
-      await rm(adopted, { recursive: true, force: true });
-      await context.writeHarness(
-        adopted,
-        await versionOf(context, targeted, frozen.harnessVersion),
-      );
+      const h1 = await versionOf(context, targeted, frozen.harnessVersion);
       const jobUsd = (config.jobMinutes / 60) * JOB_PRICE_PER_HOUR;
       const oneShot = arm === 'weights-one-shot';
+      if (oneShot && config.adapterProtocol === 'reduced') {
+        // The reduced protocol (decision 051): it starts from the targeted arm's frozen harness,
+        // trains one adapter on it, checks it on a few train tasks, and takes its locked test
+        // with and without the adapter on one llama-server.
+        return {
+          arm,
+          job: copy({
+            startingHarness: { kind: 'import', path: 'draft' },
+            sharing: { remoteTraining: true, corrections: false },
+            budget: budget({
+              maxRounds: 1,
+              maxMentorUsd: config.sparkCaps.weights,
+              maxComputeUsd: jobUsd,
+            }),
+          }),
+          method: 'architect',
+          lockedTestOn: 'local',
+          protocol: {
+            ...protocol,
+            maxJobMinutes: config.jobMinutes,
+            fixedRounds: true,
+            oneShotAdapter: { perType: config.oneShotPerType, smokeTasks: config.smokeTasks },
+            pairedWithoutAdapter: true,
+          },
+          startingHarness: h1,
+        };
+      }
+      const adopted = join(context.files.dataDir, 'comparisons', 'adopted', arm);
+      await rm(adopted, { recursive: true, force: true });
+      await context.writeHarness(adopted, h1);
       return {
         arm,
         job: copy({
@@ -235,6 +261,7 @@ export async function armStart(arm: ArmId, context: StagingContext): Promise<Arm
       };
     }
     case 'reference':
+    case 'reference-targeted':
     case 'repeat':
       throw new Error(`The ${arm} arm measures other arms' runs; it has no run of its own.`);
   }

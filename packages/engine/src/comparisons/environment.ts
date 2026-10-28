@@ -127,6 +127,13 @@ async function identify(backend: BackendId, job: Job): Promise<RuntimeIdentity |
   }
 }
 
+/** Asks this computer's Ollama to unload every student build Architect knows, so the GPU is free. */
+async function unloadOllamaStudents(): Promise<void> {
+  for (const preset of STUDENT_PRESETS.filter((item) => item.runtime === 'ollama')) {
+    await unloadOllamaModel('http://127.0.0.1:11434', preset.model).catch(() => undefined);
+  }
+}
+
 /**
  * The real environment for a comparison: the engine's own dependencies with keys from the
  * environment, a training worker that uses Hugging Face Jobs when a token resolves, the engine's
@@ -172,6 +179,11 @@ export function realEnvironment(options: RealEnvironmentOptions): {
       clock: systemClock,
       writeHarness,
       identify,
+      // When the GPU window closes (decision 051): llama-server stops and Ollama lets go.
+      releaseGpu: async () => {
+        await adapterRuntime.stop();
+        await unloadOllamaStudents();
+      },
       log: options.log,
       commit: options.commit,
       dryRun: false,

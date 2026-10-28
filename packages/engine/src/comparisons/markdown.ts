@@ -5,6 +5,7 @@ import {
   type ComparisonReport,
   type Counted,
   type Decoding,
+  type PinnedInputs,
   type RuntimeIdentity,
   type TaskSweep,
 } from '@architect/shared';
@@ -70,10 +71,19 @@ function sampling(decoding: Decoding | null): string {
   return `temperature ${decoding.temperature}, top_p ${decoding.topP}, top_k ${decoding.topK}, reasoning ${decoding.thinking}, at most ${decoding.maxSteps} model turns and ${decoding.maxOutputTokens} output tokens a turn`;
 }
 
+/** The target as observed counts, never as proven reliability. */
+function target(row: ArmRow): string {
+  const { passTarget } = row;
+  const goal = `${percent(passTarget.passRate)} target as observed (${passTarget.needed} of ${passTarget.of} needed)`;
+  if (!row.complete) return `partial, so it meets no ${goal}`;
+  return passTarget.met ? `meets the ${goal}` : `below the ${goal}`;
+}
+
 function rowCells(row: ArmRow): string[] {
   return [
     row.label,
     `${count(row.scenarios)}${row.complete ? '' : ', partial'}`,
+    target(row),
     row.perType.map((type) => `${type.label} ${type.pass}/${type.total}`).join(', '),
     String(row.refusals),
     row.latencyMs === null ? '-' : `${seconds(row.latencyMs.p50)} / ${seconds(row.latencyMs.p95)}`,
@@ -95,6 +105,7 @@ function backendSection(backend: BackendTable): string {
       [
         'Arm',
         `Locked test, seed ${backend.rows[0]?.seed ?? '-'} (95% Wilson)`,
+        'Target',
         'By type',
         'Refused',
         'Latency p50 / p95',
@@ -119,7 +130,7 @@ function backendSection(backend: BackendTable): string {
           'By type (wins/losses)',
         ],
         backend.paired.map((pair) => [
-          `${ARM_LABELS[pair.a]} vs ${ARM_LABELS[pair.b]}`,
+          pair.label,
           String(pair.scenarios),
           String(pair.aOnly),
           String(pair.bOnly),
@@ -135,11 +146,11 @@ function backendSection(backend: BackendTable): string {
       table(
         ['Repeats', 'Each seed', 'Passed under every seed', 'Results that differed'],
         backend.repeats.map((repeat) => [
-          repeat.label,
+          `${repeat.label}${repeat.complete ? '' : ' (partial)'}`,
           repeat.seeds
             .map((seed) => `seed ${seed.seed}: ${seed.score.pass}/${seed.score.total}`)
             .join(', '),
-          count(repeat.everySeed),
+          `${count(repeat.everySeed)}${repeat.complete ? '' : ', of the scenarios every seed ran'}`,
           String(repeat.flipped),
         ]),
       ),
@@ -148,8 +159,34 @@ function backendSection(backend: BackendTable): string {
   return parts.join('\n\n');
 }
 
-function sweepLine(name: string, value: TaskSweep): string {
-  return `${name}: ${value.job}, ${count(value.scenarios)} on ${value.tasks} tasks (${value.perType.map((type) => `${type.label} ${type.pass}/${type.total}`).join(', ')}); latency p50 ${value.latencyMs === null ? '-' : seconds(value.latencyMs.p50)}, p95 ${value.latencyMs === null ? '-' : seconds(value.latencyMs.p95)}; ${value.meanUsdPerAttempt === null ? 'price unknown' : `$${value.meanUsdPerAttempt.toFixed(4)} an attempt`}, ${Math.round(value.meanInputTokens).toLocaleString('en-US')} tokens in and ${Math.round(value.meanOutputTokens).toLocaleString('en-US')} out on average.`;
+/** The files the comparison measured on, by the sha256 of their bytes. */
+function pinnedLine(inputs: NonNullable<ComparisonReport['inputs']>): string {
+  const pin = (value: PinnedInputs) =>
+    `${value.name} (${value.jobId}): job.json ${short(value.job)}, tasks ${short(value.tasks)}, data ${short(value.data)}, checker ${short(value.checker)}`;
+  return `Pinned when the plan was made, and checked on every run since: ${pin(inputs.job)}${inputs.regression === null ? '' : `; the regression check's ${pin(inputs.regression)}`}.`;
+}
+
+/** Every dollar once, the student's credit as the journal holds it, and calibration's billing. */
+function moneyLines(report: ComparisonReport): string {
+  const { totals, credit, billing } = report;
+  const lines = [
+    `Spent in all, each dollar once: Spark ${usd(totals.sparkUsd)}, student ${usd(totals.studentUsd)}, compute ${usd(totals.computeUsd)}${totals.computeSettled ? '' : ' (at most, a job still running)'}.`,
+  ];
+  if (credit !== null) {
+    lines.push(
+      `Student credit by the request journal: ${usd(credit.settledUsd)} settled and ${usd(credit.uncertainUsd)} uncertain (${credit.uncertainRequests} requests counted at their worst) of ${usd(credit.capUsd)}, over ${credit.requests} requests, ${credit.billedRequests} billed by the provider.`,
+    );
+  }
+  if (billing !== null) {
+    lines.push(
+      `Calibration against billing: ${billing.billedCalls} of ${billing.calls} calls billed, ${usd(billing.billedUsd)} billed against ${usd(billing.listedUsd)} at the listed price${billing.ratio === null ? '' : `, a ratio of ${billing.ratio.toFixed(3)}`}.`,
+    );
+  }
+  return lines.join(' ');
+}
+
+function sweepLine(value: TaskSweep): string {
+  return `${value.label}: ${value.job}, ${count(value.scenarios)} on ${value.tasks} tasks (${value.perType.map((type) => `${type.label} ${type.pass}/${type.total}`).join(', ')}); latency p50 ${value.latencyMs === null ? '-' : seconds(value.latencyMs.p50)}, p95 ${value.latencyMs === null ? '-' : seconds(value.latencyMs.p95)}; ${value.meanUsdPerAttempt === null ? 'price unknown' : `$${value.meanUsdPerAttempt.toFixed(4)} an attempt`}, ${Math.round(value.meanInputTokens).toLocaleString('en-US')} tokens in and ${Math.round(value.meanOutputTokens).toLocaleString('en-US')} out on average.`;
 }
 
 /** The whole report as Markdown. */
@@ -161,10 +198,14 @@ export function renderMarkdown(report: ComparisonReport): string {
     );
   }
   parts.push(
-    `Made ${report.generatedAt}${report.commit === null ? '' : ` at commit ${report.commit}`}, from stored records only. Splits seed ${report.job.splitsSeed}: ${report.job.counts.calibration} calibration, ${report.job.counts.train} train, ${report.job.counts.dev} dev and ${report.job.counts.test} locked-test tasks. Mentoring seed ${report.plan.mentoringSeed}; locked-test seeds ${report.plan.testSeeds.join(' and ')}.`,
+    `Made ${report.generatedAt}${report.commit === null ? '' : ` at commit ${report.commit}`}, from stored records only. Splits seed ${report.job.splitsSeed}: ${report.job.counts.calibration} calibration, ${report.job.counts.train} train, ${report.job.counts.dev} dev and ${report.job.counts.test} locked-test tasks. Mentoring seed ${report.plan.mentoringSeed}; locked-test seeds ${report.plan.testSeeds.join(' and ')}. Adapter protocol: ${report.plan.adapterProtocol}. ${report.plan.releasedAt === null ? 'Development is still open: no locked test has been released.' : `Development closed at ${report.plan.releasedAt}, when the locked tests were released; no arm developed after it.`}`,
   );
-  if (report.calibration !== null) parts.push(sweepLine('Calibration', report.calibration));
-  if (report.regression !== null) parts.push(sweepLine('Regression check', report.regression));
+  if (report.inputs !== null) parts.push(pinnedLine(report.inputs));
+  if (report.calibration !== null) parts.push(sweepLine(report.calibration));
+  if (report.regression !== null) parts.push(sweepLine(report.regression));
+
+  parts.push('## Money');
+  parts.push(moneyLines(report));
 
   parts.push('## Arms');
   parts.push(
@@ -199,6 +240,11 @@ export function renderMarkdown(report: ComparisonReport): string {
         ? []
         : [`${arm.status === 'not_run' ? 'Not run' : 'Why'}: ${arm.reason}`]),
       ...arm.notes,
+      ...(arm.cumulative === null || arm.cumulative.builtOn.length === 0
+        ? []
+        : [
+            `Its graduate's cumulative development cost, with the ${arm.cumulative.builtOn.map((other) => ARM_LABELS[other].toLowerCase()).join(' and ')} arm's: Spark ${usd(arm.cumulative.sparkUsd)}, student ${usd(arm.cumulative.studentUsd)}, compute ${usd(arm.cumulative.computeUsd)}.`,
+          ]),
       ...(arm.frozen === null
         ? []
         : [
@@ -222,7 +268,10 @@ export function renderMarkdown(report: ComparisonReport): string {
   for (const backend of report.backends) parts.push(backendSection(backend));
 
   if (report.adapters.length > 0) {
-    parts.push('## Adapter configurations on one llama-server (dev, selected by the keep rule)');
+    parts.push('## Development only: adapter configurations on one llama-server');
+    parts.push(
+      'Dev measurements the keep rule picked from, and smoke checks on train tasks. None of these is a locked result, and none is claimed.',
+    );
     parts.push(
       table(
         [
@@ -232,7 +281,8 @@ export function renderMarkdown(report: ComparisonReport): string {
           'Harness version',
           'Adapter',
           'Seeds',
-          'Dev',
+          'Tasks',
+          'Score',
           'Latency p50 / p95',
           'Where it comes from',
         ],
@@ -243,6 +293,7 @@ export function renderMarkdown(report: ComparisonReport): string {
           String(cell.harnessVersion),
           cell.adapter === null ? 'none' : `${cell.adapter.id} at ${cell.adapter.scale}`,
           cell.seeds.join(', '),
+          cell.split === 'dev' ? 'dev' : 'train (smoke check)',
           count(cell.score),
           `${seconds(cell.latencyMs.p50)} / ${seconds(cell.latencyMs.p95)}`,
           cell.provenance,

@@ -6,18 +6,26 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createLlamaCppStudent } from '@architect/adapters';
 import {
+  costUsd,
   GLIMMER_TRAINING_BASE,
   HarnessSchema,
+  STUDENT_PRESETS,
   TRAINER_OUTPUT_FORMAT,
   TrainerJobSchema,
   TrainerOutputSchema,
   type BackendId,
+  type ConnectionTest,
   type Harness,
   type Job,
   type RuntimeIdentity,
   type SplitConfig,
   type StudentAdapter,
+  type StudentChatRequest,
+  type StudentEndpoint,
+  type StudentModelInfo,
+  type StudentStreamEvent,
   type Task,
+  type TokenPricing,
 } from '@architect/shared';
 import { float32Bytes, encodeGguf } from '../../src/gguf';
 import { LocalAdapterRuntime } from '../../src/local-runtime';
@@ -39,6 +47,7 @@ import {
   trainingDeps,
   TrainingWorker,
   type BackendHandle,
+  type BackendStatus,
   type BackendSubmission,
   type FetchedArtifacts,
   type HardwareFlavor,
@@ -47,7 +56,7 @@ import {
 } from '../../src/training';
 import { JOB_FILE } from '../../src/training/recipe';
 import type { ComparisonEnvironment } from '../../src/comparisons';
-import { diagnosis, FakeActor, FakeMentor, FakeStudent, hypothesis } from '../fakes/adapters';
+import { diagnosis, FakeActor, FakeMentor, hypothesis } from '../fakes/adapters';
 import {
   applyEdits,
   blankHarness,
@@ -66,6 +75,13 @@ const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 
 export const RETURNS_DESK = join(REPO, 'examples', 'gear-returns', 'job');
 /** Home services, the regression check's job. */
 export const HOME_SERVICES = join(REPO, 'examples', 'home-services', 'job');
+
+/** The hosted student's listed price: what the dry run's provider bills against. */
+const HOSTED_PRICE: TokenPricing = (() => {
+  const pricing = STUDENT_PRESETS.find((preset) => preset.key === 'openrouter-glimmer')?.pricing;
+  if (!pricing) throw new Error('The hosted Glimmer preset has no price.');
+  return pricing;
+})();
 
 /** A number in [0, 1) fixed by its parts, so every fake outcome is the same on every run. */
 function chance(...parts: readonly (string | number)[]): number {
@@ -95,11 +111,20 @@ export class DryRunRuntime extends FakeRuntime {
   costScale = 1;
   /** The same for locked-test attempts alone, under the declared seeds 101 and 102. */
   lockedTestCostScale = 1;
+  /**
+   * What the provider bills, as a share of the listed price, reported with each call the way
+   * OpenRouter does; null when it reports no charge.
+   */
+  billing: number | null = 1;
+  /** Calls come back with no usage and no charge, so nothing can price them. */
+  unreported = false;
   private trainIds = new Set<string>();
 
   constructor() {
     super();
     this.askStudent = true;
+    // The request carries as many bytes as the tokens the attempt reports reading.
+    this.promptPadding = (_task, seed) => '.'.repeat(this.usageOf(seed).inputTokens);
     this.passes = (task, harness, seed, student) => {
       if (student.includes('spark')) return chance(task.id, seed, 'spark') < 0.96;
       let rate = BASE_RATE[task.type] ?? 0.7;
@@ -121,6 +146,30 @@ export class DryRunRuntime extends FakeRuntime {
     return splits;
   }
 
+  /**
+   * What one model call of an attempt reads and writes, from the attempt's seed: a hosted attempt
+   * of the returns desk makes two, reading about 30,000 tokens and writing 800 in all, more when
+   * a test makes the price drift.
+   */
+  callUsage(seed: number): { inputTokens: number; outputTokens: number } {
+    if (this.unreported) return { inputTokens: 0, outputTokens: 0 };
+    const locked = seed === 101 || seed === 102;
+    const scale = this.costScale * (locked ? this.lockedTestCostScale : 1);
+    return { inputTokens: Math.round(15_000 * scale), outputTokens: Math.round(400 * scale) };
+  }
+
+  /** What a whole attempt reads and writes: its two calls. */
+  usageOf(seed: number): { inputTokens: number; outputTokens: number } {
+    const call = this.callUsage(seed);
+    return { inputTokens: 2 * call.inputTokens, outputTokens: 2 * call.outputTokens };
+  }
+
+  /** What the provider bills for a call of this usage, when it reports a charge. */
+  billedFor(usage: { inputTokens: number; outputTokens: number }): number | undefined {
+    if (this.billing === null || this.unreported) return undefined;
+    return this.billing * costUsd(HOSTED_PRICE, usage);
+  }
+
   /** Each task in turn, each reported as it finishes, as the real runtime reports them. */
   override async evaluateTasks(
     tasks: Task[],
@@ -132,21 +181,15 @@ export class DryRunRuntime extends FakeRuntime {
       const [item] = (await super.evaluateTasks([task], ctx, options)).items;
       if (item === undefined) continue;
       const { trace } = item.result;
-      // A hosted attempt of the returns desk reads about 30,000 tokens and writes 800.
-      const locked = options.seed === 101 || options.seed === 102;
-      const scale = this.costScale * (locked ? this.lockedTestCostScale : 1);
+      // Its two model calls, each billed as the provider would bill it.
+      const call = this.callUsage(options.seed);
       for (const step of trace.steps) {
-        if (step.kind === 'model') {
-          step.usage = {
-            inputTokens: Math.round(15_000 * scale),
-            outputTokens: Math.round(400 * scale),
-          };
-        }
+        if (step.kind !== 'model') continue;
+        step.usage = { ...call };
+        const billed = ctx.student.isLocal ? undefined : this.billedFor(call);
+        if (billed !== undefined) step.costUsd = billed;
       }
-      trace.usage = {
-        inputTokens: Math.round(30_000 * scale),
-        outputTokens: Math.round(800 * scale),
-      };
+      trace.usage = this.usageOf(options.seed);
       if (this.trainIds.has(item.task.id) && !item.result.check.pass) {
         this.trainFailures.push(item.task.id);
       }
@@ -174,6 +217,8 @@ export class DryRunTrainer implements TrainingBackend {
   readonly kind = 'hf-jobs' as const;
   readonly real = true;
   readonly label = 'Dry-run trainer (a fake that trains nothing)';
+  /** Every job ends failed, as a job whose recipe broke on the provider would. */
+  failJobs = false;
   private readonly jobs = new Map<string, { job: ReturnType<typeof TrainerJobSchema.parse> }>();
 
   flavor(id: string): HardwareFlavor {
@@ -200,8 +245,12 @@ export class DryRunTrainer implements TrainingBackend {
     return Promise.resolve(this.jobs.has(jobId) ? { handle: { jobId }, url: null } : null);
   }
 
-  status(): Promise<{ state: 'succeeded' }> {
-    return Promise.resolve({ state: 'succeeded' });
+  status(): Promise<BackendStatus> {
+    return Promise.resolve(
+      this.failJobs
+        ? { state: 'failed', message: 'The recipe stopped: CUDA out of memory (dry run).' }
+        : { state: 'succeeded' },
+    );
   }
 
   logs(): Promise<string> {
@@ -281,6 +330,98 @@ export class DryRunTrainer implements TrainingBackend {
   }
 }
 
+/** What the world sees of this computer's GPU: when local requests started, and how slow they are. */
+export interface LocalWatch {
+  /** Milliseconds each local request takes, waiting on its signal. */
+  delayMs: number;
+  /** When each local request began, by the clock. */
+  started: number[];
+  /** Times the runner asked for the GPU to be freed. */
+  releases: number;
+}
+
+/** Waits `ms`, or rejects as an abort when the signal fires first. */
+function sleep(ms: number, signal: AbortSignal | undefined): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason as Error);
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', abort);
+      resolve();
+    }, ms);
+    const abort = () => {
+      clearTimeout(timer);
+      reject(signal?.reason as Error);
+    };
+    signal?.addEventListener('abort', abort, { once: true });
+  });
+}
+
+/**
+ * The dry run's student, hosted or on this computer. On the hosted copy each turn reports what
+ * the whole attempt uses, as the runtime then records it, and what the provider billed for it,
+ * so the request journal and the records agree. On this computer a request can take a while, so
+ * a test can watch the GPU window stop it.
+ */
+class DryRunStudent implements StudentAdapter {
+  readonly label = 'Glimmer';
+  readonly model: string;
+  readonly baseUrl: string;
+  readonly isLocal: boolean;
+
+  constructor(
+    endpoint: StudentEndpoint,
+    private readonly runtime: DryRunRuntime,
+    private readonly local: LocalWatch,
+    private readonly digest: string,
+    private readonly now: () => number,
+  ) {
+    this.model = endpoint.model;
+    this.baseUrl = endpoint.baseUrl;
+    this.isLocal = new URL(endpoint.baseUrl).hostname === '127.0.0.1';
+  }
+
+  async *chat(
+    request: StudentChatRequest,
+    signal?: AbortSignal,
+  ): AsyncGenerator<StudentStreamEvent> {
+    if (this.isLocal) {
+      this.local.started.push(this.now());
+      if (this.local.delayMs > 0) await sleep(this.local.delayMs, signal);
+    }
+    yield { type: 'text', delta: 'ANSWER: {}' };
+    const usage = this.isLocal
+      ? { inputTokens: 300, outputTokens: 80 }
+      : this.runtime.usageOf(request.seed);
+    const billed = this.isLocal ? undefined : this.runtime.billedFor(usage);
+    yield {
+      type: 'done',
+      usage,
+      finish: 'stop',
+      ...(billed === undefined ? {} : { costUsd: billed }),
+    };
+  }
+
+  /** A hosted copy reports only its model id, as the OpenAI-compatible adapter does. */
+  async describe(): Promise<StudentModelInfo> {
+    if (!this.isLocal) return { model: this.model };
+    return {
+      model: this.model,
+      quantization: 'Q4_K_M',
+      digest: this.digest,
+      contextLength: 16_384,
+    };
+  }
+
+  async testConnection(): Promise<ConnectionTest> {
+    return { ok: true, latencyMs: 1, detail: 'dry run' };
+  }
+
+  async release(): Promise<void> {}
+}
+
 /** A llama.cpp student whose model names the adapters it applies, so the pass rule can tell. */
 function labeled(student: StudentAdapter, request: AdapterServeRequest): StudentAdapter {
   const applied = Object.entries(request.scales)
@@ -309,6 +450,9 @@ export interface ComparisonWorld {
   /** Every start and chat the stand-in llama-server saw. */
   llamaRecord: string;
   worker: TrainingWorker;
+  trainer: DryRunTrainer;
+  /** This computer's GPU as the runner used it. */
+  local: LocalWatch;
   close(): Promise<void>;
 }
 
@@ -334,6 +478,7 @@ export function comparisonWorld(options: { clock: Clock; parallel?: number }): C
     command: fakeLlamaCommand(llamaRecord),
   });
   const runtime = new DryRunRuntime();
+  const local: LocalWatch = { delayMs: 0, started: [], releases: 0 };
   const mentor = new FakeMentor();
   let rounds = 0;
   mentor.script = (request) => {
@@ -379,11 +524,7 @@ export function comparisonWorld(options: { clock: Clock; parallel?: number }): C
     adapters: {
       createMentor: () => mentor,
       createStudent: (endpoint) =>
-        new FakeStudent(
-          endpoint,
-          () => 'ANSWER: {}',
-          () => digest,
-        ),
+        new DryRunStudent(endpoint, runtime, local, digest, () => options.clock.now()),
       createActor: (config) => {
         if (config.kind !== 'model') throw new Error('Only a model mentor can act.');
         return new FakeActor(
@@ -463,6 +604,10 @@ export function comparisonWorld(options: { clock: Clock; parallel?: number }): C
       await writeFile(join(dir, 'harness.json'), JSON.stringify(harness));
     },
     identify: async (backend, job) => identity(backend, job),
+    releaseGpu: async () => {
+      local.releases += 1;
+      await adapterRuntime.stop();
+    },
     log: () => undefined,
     commit: 'dry-run',
     dryRun: true,
@@ -478,6 +623,8 @@ export function comparisonWorld(options: { clock: Clock; parallel?: number }): C
     baseDigest: digest,
     llamaRecord,
     worker,
+    trainer,
+    local,
     close: async () => {
       await adapterRuntime.stop();
       rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });

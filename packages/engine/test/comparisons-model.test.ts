@@ -59,8 +59,8 @@ describe('paired counts', () => {
   });
 });
 
-/** Fifteen priced calibration attempts at exactly a cent each, 20 s apiece. */
-function calibration(usd = 0.01): SweepAttempt[] {
+/** Fifteen calibration attempts billed at exactly a cent each, 20 s apiece, two calls each. */
+function calibration(usd = 0.01, listedUsd = usd): SweepAttempt[] {
   return Array.from({ length: 15 }, (_, index) => ({
     taskId: `refund-${index}`,
     taskType: 'refund',
@@ -70,6 +70,10 @@ function calibration(usd = 0.01): SweepAttempt[] {
     latencyMs: 20_000,
     usage: { inputTokens: 30_000, outputTokens: 800 },
     usd,
+    listedUsd,
+    calls: 2,
+    billedCalls: 2,
+    billedUsd: usd,
     seed: 1,
     at: '2026-10-28T12:00:00.000Z',
   }));

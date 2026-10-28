@@ -1,12 +1,14 @@
 /**
- * The comparisons runner (decisions 037 and 045). A developer tool; it is not part of the app and
- * never runs in CI. Keys come from the environment: OPENROUTER_API_KEY for the hosted student,
- * META_API_TOKEN for Spark, and HF_TOKEN (or `hf auth login`) for training compute.
+ * The comparisons runner (decisions 037, 045 and 051). A developer tool; it is not part of the
+ * app and never runs in CI. Keys come from the environment: OPENROUTER_API_KEY for the hosted
+ * student, META_API_TOKEN for Spark, and HF_TOKEN (or `hf auth login`) for training compute.
  *
  *   pnpm --filter @architect/engine exec tsx scripts/comparisons.ts <command> <jobDir> --out <dir>
- *     [--arms bare,draft,targeted,reference,repeat,fixed,weights-one-shot,weights-targeted]
+ *     [--arms bare,draft,targeted,reference,reference-targeted,repeat,fixed,weights-one-shot,
+ *       weights-targeted]
  *     [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N]
  *     [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter]
+ *     [--adapter-protocol four-cell|reduced] [--smoke-tasks N]
  *     [--providers DeepInfra|any] [--local-model <name>] [--headroom N] [--parallel N]
  *     [--concurrency N] [--confirm] [--tasks N]
  *
@@ -16,13 +18,20 @@
  *   probe   times this computer's build on --tasks calibration tasks: uses the GPU, owner only
  *   report  rebuilds report.md and report.json from the output folder's records
  *
- * Every step stores what it paid for as it goes; running the same command again after a crash
- * picks up where it stopped. Exit codes: 0 done, 1 error, 2 bad arguments, 3 waiting for
- * --confirm, 4 incomplete (an arm paused or a test held).
+ * Money and the GPU are held at each request. Every hosted request is reserved against
+ * --student-usd at the most it could cost and written to requests.jsonl before it is sent, so
+ * what is paid and what is in flight never pass it. Work on this computer's GPU runs only within
+ * --gpu-minutes, counted from the first local request; when they are up it stops at once, and
+ * with 0 nothing runs there. The plan pins the job's files; a run on changed files is refused.
+ *
+ * Run again after a crash, it repeats no recorded attempt, Spark reply or training job. An
+ * attempt in flight when the process stopped is made again, and its cut-off requests count as
+ * spent at their worst; a Spark call in flight is paid again. Exit codes: 0 done, 1 error, 2 bad
+ * arguments, 3 waiting for --confirm, 4 incomplete (an arm paused, a test held, or a guard hit).
  */
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
-import { ArmIdSchema, type ArmId } from '@architect/shared';
+import { AdapterProtocolSchema, ArmIdSchema, type ArmId } from '@architect/shared';
 import { hubTokenResolver } from '../src/hub';
 import { describeLlamaServer } from '../src/local-runtime';
 import {
@@ -42,7 +51,7 @@ const COMMANDS = ['plan', 'run', 'probe', 'report'] as const;
 type Command = (typeof COMMANDS)[number];
 
 const USAGE =
-  'Usage: tsx scripts/comparisons.ts <plan|run|probe|report> <jobDir> --out <dir> [--arms a,b] [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N] [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter] [--providers <names>|any] [--local-model <name>] [--headroom N] [--parallel N] [--concurrency N] [--confirm] [--tasks N]';
+  'Usage: tsx scripts/comparisons.ts <plan|run|probe|report> <jobDir> --out <dir> [--arms a,b] [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N] [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter] [--adapter-protocol four-cell|reduced] [--smoke-tasks N] [--providers <names>|any] [--local-model <name>] [--headroom N] [--parallel N] [--concurrency N] [--confirm] [--tasks N]';
 
 class UsageError extends Error {}
 
@@ -96,9 +105,21 @@ function parse(args: readonly string[]): Parsed {
       return result.data;
     }) as ArmId[];
   const providers = values.get('--providers');
+  const protocol = values.get('--adapter-protocol') ?? DEFAULT_CONFIG.adapterProtocol;
+  const adapterProtocol = AdapterProtocolSchema.safeParse(protocol);
+  if (!adapterProtocol.success) {
+    throw new UsageError('--adapter-protocol takes four-cell or reduced.');
+  }
+  if (adapterProtocol.data === 'reduced' && arms.includes('weights-targeted')) {
+    throw new UsageError(
+      'The reduced adapter protocol measures only the one-shot adapter; leave weights-targeted out of --arms.',
+    );
+  }
   const config: ComparisonConfig = {
     ...DEFAULT_CONFIG,
     arms,
+    adapterProtocol: adapterProtocol.data,
+    smokeTasks: Math.max(1, Math.floor(number('--smoke-tasks', DEFAULT_CONFIG.smokeTasks))),
     caps: {
       studentUsd: number('--student-usd', 0),
       sparkUsd: number('--spark-usd', 0),

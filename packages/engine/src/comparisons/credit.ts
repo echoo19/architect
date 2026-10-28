@@ -1,5 +1,5 @@
 import type { ComparisonEngine } from './engine';
-import type { ComparisonFiles } from './records';
+import type { StudentCredit } from './spend';
 
 /** A run's hosted student spending, split at its locked test. */
 interface RunSpend {
@@ -10,15 +10,16 @@ interface RunSpend {
 }
 
 /**
- * The student's hosted credit as a comparison has used it, read from the records each time it is
- * asked: every dollar the sweeps and the arms' runs paid, and the price an attempt actually cost,
- * overall and in each run, whose harness sets how much it reads. The runner holds the plan to the
- * credit with these numbers rather than with the calibration's price alone.
+ * The student's hosted credit as a comparison has used it. What was paid comes from the request
+ * journal: every request, the sweeps' and the arms', with a charge a crash or a failure left
+ * uncertain at its worst case. What an attempt costs, overall and in each run, comes from the
+ * runs' records, where each call is what the provider billed or else its listed price. The
+ * runner holds the plan to the credit with these numbers rather than with calibration's alone.
  */
 export class Credit {
   constructor(
     private readonly engine: ComparisonEngine,
-    private readonly files: ComparisonFiles,
+    private readonly journal: StudentCredit,
     /** What calibration measured an attempt to cost, before any arm has paid for one. */
     private readonly calibrationPrice: number,
   ) {}
@@ -35,9 +36,16 @@ export class Credit {
       const attempt = attempts.get(cost.attemptId);
       // Attempts on this computer cost nothing and would only dilute the hosted price.
       if (attempt === undefined || attempt.target !== 'hosted') continue;
+      if (cost.usd === null) {
+        // The runner checks the hosted student's price before anything spends; a cost it can't
+        // know must stop the holds rather than count as nothing.
+        throw new Error(
+          `Attempt ${attempt.id} of run ${runId} has no known cost, so the student's credit can't be held.`,
+        );
+      }
       const test = attempt.split === 'test';
-      if (test) spend.test += cost.usd ?? 0;
-      else spend.development += cost.usd ?? 0;
+      if (test) spend.test += cost.usd;
+      else spend.development += cost.usd;
       if (counted.has(attempt.id)) continue;
       counted.add(attempt.id);
       if (test) spend.testAttempts += 1;
@@ -51,20 +59,12 @@ export class Credit {
     return this.engine.store.runs.list().filter((run) => run.protocol?.arm !== undefined);
   }
 
-  /** What the calibration and regression sweeps paid. */
-  private sweeps(): number {
-    return [...this.files.readSweep('calibration'), ...this.files.readSweep('regression')].reduce(
-      (sum, attempt) => sum + (attempt.usd ?? 0),
-      0,
-    );
-  }
-
-  /** Every hosted dollar paid so far: the sweeps and every arm's runs, tests and repeats. */
+  /**
+   * Every hosted dollar paid so far, by the journal: the sweeps and every arm's runs, tests and
+   * repeats, with each uncertain charge at its worst and every request in flight held at its worst.
+   */
   paid(): number {
-    return this.runs().reduce((sum, run) => {
-      const spend = this.spendOf(run.run.id);
-      return sum + spend.development + spend.test;
-    }, this.sweeps());
+    return this.journal.total();
   }
 
   /** What a hosted attempt has cost on average so far; calibration's price before any arm. */

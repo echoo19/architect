@@ -8,7 +8,7 @@ import { ScoreSchema } from './lineage';
  * from the same object.
  */
 
-export const COMPARISON_REPORT_FORMAT = 'architect.comparisons/1';
+export const COMPARISON_REPORT_FORMAT = 'architect.comparisons/2';
 
 /**
  * Decision 037's arms, in its order, which decides what is dropped when money runs short: the
@@ -19,6 +19,7 @@ export const ArmIdSchema = z.enum([
   'draft',
   'targeted',
   'reference',
+  'reference-targeted',
   'repeat',
   'fixed',
   'weights-one-shot',
@@ -30,19 +31,24 @@ export const ARM_LABELS: Record<ArmId, string> = {
   bare: 'Bare student',
   draft: 'One-shot draft',
   targeted: 'Targeted mentoring',
-  reference: 'Spark as a reference',
+  reference: 'Spark reference, blank harness',
+  'reference-targeted': 'Spark reference, targeted harness',
   repeat: 'Decoding repeat',
   fixed: 'Fixed intervention',
   'weights-one-shot': 'One-shot adapter',
   'weights-targeted': 'Failure-specific adapter',
 };
 
-/** Decision 037's place of each arm; both weights arms are its seventh. */
+/**
+ * Decision 037's place of each arm; both weights arms are its seventh. Spark with the targeted
+ * harness is a second reference beside the first, which stays the primary one (decision 051).
+ */
 export const ARM_PRIORITY: Record<ArmId, number> = {
   bare: 1,
   draft: 2,
   targeted: 3,
   reference: 4,
+  'reference-targeted': 4,
   repeat: 5,
   fixed: 6,
   'weights-one-shot': 7,
@@ -56,6 +62,67 @@ export const ARM_PRIORITY: Record<ArmId, number> = {
  */
 export const BackendIdSchema = z.enum(['hosted', 'reference', 'local-ollama', 'local-llama.cpp']);
 export type BackendId = z.infer<typeof BackendIdSchema>;
+
+/**
+ * How the one-shot adapter is measured (decision 051): `four-cell`, H0 and H1 with and without the
+ * adapter on dev, then its locked test; or `reduced`, for one GPU window, a smoke check on train
+ * tasks and then the locked test of H1 with and without the adapter, which measures only this
+ * adapter's added effect given the frozen targeted harness.
+ */
+export const AdapterProtocolSchema = z.enum(['four-cell', 'reduced']);
+export type AdapterProtocol = z.infer<typeof AdapterProtocolSchema>;
+
+const sha256Hex = z.string().regex(/^[0-9a-f]{64}$/);
+
+/** A job folder as a comparison measures on it, pinned by the bytes of its files. */
+export const PinnedInputsSchema = z.object({
+  jobId: z.string().min(1),
+  name: z.string(),
+  /** `job.json` as written. */
+  job: sha256Hex,
+  tasks: sha256Hex,
+  /** Every file under `data/`: each path with the sha256 of its bytes, in path order. */
+  data: sha256Hex,
+  /** The checker module; null for a built-in checker. */
+  checker: sha256Hex.nullable(),
+});
+export type PinnedInputs = z.infer<typeof PinnedInputsSchema>;
+
+/**
+ * Calibration's cost reconciled against the provider's billing: OpenRouter reports what it
+ * charged for each call, which is held up against the listed price of the same usage.
+ */
+export const BillingSchema = z.object({
+  /** Model calls the calibration attempts made, and how many the provider said it billed. */
+  calls: z.number().int().nonnegative(),
+  billedCalls: z.number().int().nonnegative(),
+  /** Over the attempts whose every call was billed: what the provider charged in all. */
+  billedUsd: z.number().nonnegative(),
+  /** The same attempts at the listed price. */
+  listedUsd: z.number().nonnegative(),
+  /** Billed over listed; null when nothing was billed. */
+  ratio: z.number().nonnegative().nullable(),
+});
+export type Billing = z.infer<typeof BillingSchema>;
+
+/**
+ * The hosted student's credit as the request journal holds it (decision 051): every request
+ * written down before it was sent. What is certain is paid; a request a crash or a failure cut
+ * off may have been billed, so it counts as spent at the most it could have cost.
+ */
+export const CreditSummarySchema = z.object({
+  capUsd: z.number().nonnegative(),
+  requests: z.number().int().nonnegative(),
+  /** Charges known: what the provider billed, or the listed price of the usage it reported. */
+  settledUsd: z.number().nonnegative(),
+  billedRequests: z.number().int().nonnegative(),
+  /** Charges not known for sure, each at its worst case: cut off by a crash or a failure. */
+  uncertainUsd: z.number().nonnegative(),
+  uncertainRequests: z.number().int().nonnegative(),
+  /** Requests still in flight when the summary was taken, held at their worst case too. */
+  inFlightRequests: z.number().int().nonnegative(),
+});
+export type CreditSummary = z.infer<typeof CreditSummarySchema>;
 
 const share = z.number().min(0).max(1);
 
@@ -86,14 +153,34 @@ export const RuntimeIdentitySchema = z.object({
 });
 export type RuntimeIdentity = z.infer<typeof RuntimeIdentitySchema>;
 
+/**
+ * The job's pass-rate target held up against observed counts: 57 of 60 meets a 95% target as
+ * observed, which is not proof of 95% reliability.
+ */
+export const PassTargetSchema = z.object({
+  passRate: share,
+  /** Scenarios that must pass, of the locked test's whole size. */
+  needed: z.number().int().nonnegative(),
+  of: z.number().int().nonnegative(),
+  /** Met as observed: every scenario ran and at least `needed` passed. */
+  met: z.boolean(),
+});
+export type PassTarget = z.infer<typeof PassTargetSchema>;
+
 /** One arm's locked-test result on one backend, under one decoding seed. */
 export const ArmRowSchema = z.object({
   arm: ArmIdSchema,
   label: z.string(),
   runId: z.string().nullable(),
+  /**
+   * Which of an arm's configurations the row is, when it has more than one locked result: the
+   * reduced adapter protocol's `H1/A1` and `H1/A0`. Null for an arm's one result.
+   */
+  configuration: z.string().nullable(),
   seed: z.number().int(),
   /** Scenarios: each test task once. */
   scenarios: CountedSchema,
+  passTarget: PassTargetSchema,
   perType: z.array(CountedSchema.extend({ type: z.string(), label: z.string() })),
   /** Tasks it refused; each counts as a failure, since the contract supports every type. */
   refusals: z.number().int().nonnegative(),
@@ -127,6 +214,8 @@ const pairedCounts = {
 export const PairedSchema = z.object({
   a: ArmIdSchema,
   b: ArmIdSchema,
+  /** The pair in words, naming the configurations when one arm is paired with itself. */
+  label: z.string(),
   seed: z.number().int(),
   scenarios: z.number().int().nonnegative(),
   ...pairedCounts,
@@ -143,6 +232,8 @@ export const RepeatRowSchema = z.object({
   everySeed: CountedSchema,
   /** Scenarios whose result differed between seeds. */
   flipped: z.number().int().nonnegative(),
+  /** False when a seed ran fewer scenarios than the locked test holds: a partial repeat. */
+  complete: z.boolean(),
 });
 export type RepeatRow = z.infer<typeof RepeatRowSchema>;
 
@@ -210,6 +301,19 @@ export const ArmReportSchema = z.object({
   notes: z.array(z.string()),
   caps: ArmCapsSchema,
   spent: SpendSchema,
+  /**
+   * What making this arm's graduate took, development only (no locked test): its own and that of
+   * the arms it builds on, such as the shared draft the targeted arm starts from. The experiment
+   * totals count each dollar once; this is the graduate's cumulative cost. Null without a run.
+   */
+  cumulative: z
+    .object({
+      builtOn: z.array(ArmIdSchema),
+      sparkUsd: z.number().nonnegative(),
+      studentUsd: z.number().nonnegative().nullable(),
+      computeUsd: z.number().nonnegative(),
+    })
+    .nullable(),
   dev: z.object({ baseline: ScoreSchema.nullable(), final: ScoreSchema.nullable() }),
   experiments: z.array(
     z.object({
@@ -247,10 +351,14 @@ export const ArmReportSchema = z.object({
 });
 export type ArmReport = z.infer<typeof ArmReportSchema>;
 
-/** One configuration a weights round measured on dev on one llama-server (decision 042). */
+/**
+ * One configuration a weights round measured on one llama-server (decision 042): on dev, picked by
+ * the keep rule, or on train tasks for the reduced protocol's smoke check. Never a locked result.
+ */
 export const AdapterCellSchema = z.object({
   arm: ArmIdSchema,
   round: z.number().int().positive(),
+  split: z.enum(['dev', 'train']),
   label: z.string(),
   harnessVersion: z.number().int().nonnegative(),
   adapter: z.object({ id: z.string(), scale: z.number() }).nullable(),
@@ -324,8 +432,12 @@ export const ProjectionSchema = z.object({
 });
 export type Projection = z.infer<typeof ProjectionSchema>;
 
-/** The bare student on a fixed set of tasks, outside any arm: calibration or the regression check. */
+/**
+ * The bare student on a fixed set of tasks, outside any arm: calibration, or the runtime
+ * regression check on another job, which says nothing about what mentoring did.
+ */
 export const TaskSweepSchema = z.object({
+  label: z.string(),
   job: z.string(),
   tasks: z.number().int().nonnegative(),
   backend: BackendIdSchema,
@@ -359,9 +471,25 @@ export const ComparisonReportSchema = z.object({
     mentoringSeed: z.number().int(),
     testSeeds: z.array(z.number().int()),
     order: z.array(ArmIdSchema),
+    adapterProtocol: AdapterProtocolSchema,
+    /** When development closed and the locked tests were released; no arm developed after it. */
+    releasedAt: z.iso.datetime().nullable(),
   }),
+  /** The job and the regression check's job, pinned when the plan was made. */
+  inputs: z
+    .object({ job: PinnedInputsSchema, regression: PinnedInputsSchema.nullable() })
+    .nullable(),
   calibration: TaskSweepSchema.nullable(),
+  billing: BillingSchema.nullable(),
   regression: TaskSweepSchema.nullable(),
+  credit: CreditSummarySchema.nullable(),
+  /** Every dollar the comparison spent, each counted once: the arms' own and the sweeps'. */
+  totals: z.object({
+    sparkUsd: z.number().nonnegative(),
+    studentUsd: z.number().nonnegative().nullable(),
+    computeUsd: z.number().nonnegative(),
+    computeSettled: z.boolean(),
+  }),
   projection: ProjectionSchema.nullable(),
   arms: z.array(ArmReportSchema),
   backends: z.array(BackendTableSchema),
