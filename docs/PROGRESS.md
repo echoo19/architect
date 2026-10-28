@@ -24,6 +24,23 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Open issues**
 - The agent loop still takes a whole `Job`, so the workspace builds one from the contract with inert training fields; narrowing `RunAgentOptions.job` to the data files and business date would remove them.
 
+## 2026-10-28 (Tue), before dawn: two merges, a checker gap, and the plan fixed
+
+**Done**
+- Merged the adapter runtime and training worker (134e00a) and the coding-agent runtime (abb8885). `pnpm check` passed on main after each; the runtime branch's hidden e2e run passed 45 with 1 skipped.
+- Hugging Face Jobs, checked against the Hub's own Jobs guide: they need only a positive credit balance, not a PRO plan as first written. The L40S is $1.80 an hour, billed by the minute. Docs and the forbidden error now say so (df3d64e).
+- A second opinion on the evaluation plan (GPT 6 Astra) found grading gaps before any measurement. Decision 036 closes them: answer tasks fail when they change data, and the returns desk's tasks fail when they touch a table other than their own (7b122ff, with tests).
+- Decision 037 fixes the evaluation plan on the new runtime before any run: the arms in priority order, the seeds, the backends, freezing before reveal, reporting per backend, and the exact statement to use if no Hugging Face token arrives.
+
+**Next**
+- Merge the graduate-versions work. Then start the CLI and Hugging Face work and the versions, export and import screens, and tell the lessons agent so it can build Teach this and Improve agent on top.
+- After the lessons work: the Teach this and evidence screens, and a comparisons runner for decision 037 that replaces experiment.ts, which hard-codes home services and the old methods.
+
+**Open issues**
+- A01 still waits on a Hugging Face token (write access, an account with credit).
+- Local evaluation on the 2-bit build needs a GPU window from the owner. Its length is measured first with a throughput probe.
+- Graduates made before runtime v2 can't be accepted or re-tested yet. The graduate-versions agent has the fix.
+
 ## 2026-10-28 (Tue), runtime v2: a coding agent's harness
 
 **Done**

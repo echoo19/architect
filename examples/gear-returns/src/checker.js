@@ -7,7 +7,7 @@
 //   ctx.readOriginalTable(name)  the same table before the attempt
 //   ctx.answer                   the JSON after the reply's last ANSWER: line, or null
 // A validator returns { pass, reason, details }. The reason is one sentence for a person, and it
-// starts with the field that is wrong, so a locked-test result can name that field and nothing
+// starts with the field or table that is wrong, so a locked-test result can name it and nothing
 // else. Nothing here reads a clock or draws a random number, so the same attempt always gets the
 // same verdict.
 //
@@ -33,10 +33,16 @@ const RETURN_FIELDS = [
   'pickup_from',
 ];
 
+// The tables an attempt may write to. A task changes at most one of them, so a change to any
+// other is a mistake even when the asked-for change is right.
+const WRITABLE_TABLES = ['returns.csv', 'pickups.csv'];
+
 // return_recorded: returns.csv gained exactly one row, for params.return_id, with the decision
 // and every amount in params, and no pickup_from (the item is at the desk); and the ANSWER line
 // gives the same decision, refund and refund_to.
 validators.return_recorded = (params, ctx) => {
+  const other = otherTableChanged(ctx, 'returns.csv');
+  if (other) return fail(`${other} changed, but this task only records the return in returns.csv.`);
   const change = compareRows(ctx.readOriginalTable('returns.csv'), ctx.readTable('returns.csv'));
   const problem = oneNewRow(change, 'return', 'return_id');
   if (problem) return fail(problem);
@@ -79,6 +85,8 @@ validators.return_recorded = (params, ctx) => {
 // the customer's region (or the freight carrier for a bulky product) on the earliest date that
 // passes every pickup rule. A wrong date comes back with the rule it breaks.
 validators.pickup_booked = (params, ctx) => {
+  const other = otherTableChanged(ctx, 'pickups.csv');
+  if (other) return fail(`${other} changed, but this task only books a pickup in pickups.csv.`);
   const change = compareRows(ctx.readOriginalTable('pickups.csv'), ctx.readTable('pickups.csv'));
   const problem = oneNewRow(change, 'pickup', 'pickup_id');
   if (problem) return fail(problem);
@@ -136,9 +144,12 @@ function dateProblem(params, date) {
   return `${params.carrier} can pick up earlier, on ${params.pickup_date}`;
 }
 
-// order_answer: the ANSWER line holds exactly the keys of params.answer, each with its value.
-// Keys ending in _cents are money; lists of ids compare as sets, ignoring case and order.
+// order_answer: no table changed, and the ANSWER line holds exactly the keys of params.answer,
+// each with its value. Keys ending in _cents are money; lists of ids compare as sets, ignoring
+// case and order.
 validators.order_answer = (params, ctx) => {
+  const other = otherTableChanged(ctx, null);
+  if (other) return fail(`${other} changed, but this task only asks a question.`);
   const expected = params.answer;
   const answer = ctx.answer;
   if (!isObject(answer)) return fail('The reply has no ANSWER line with a JSON object.');
@@ -184,6 +195,16 @@ function compareRows(before, after) {
   const added = after.filter((row) => !takeMatch(row));
   const removed = before.filter((row) => takeMatch(row));
   return { added, removed };
+}
+
+// The first writable table other than `allowed` whose rows the attempt changed, or null.
+function otherTableChanged(ctx, allowed) {
+  for (const table of WRITABLE_TABLES) {
+    if (table === allowed) continue;
+    const change = compareRows(ctx.readOriginalTable(table), ctx.readTable(table));
+    if (change.added.length > 0 || change.removed.length > 0) return table;
+  }
+  return null;
 }
 
 function oneNewRow(change, noun, idColumn) {

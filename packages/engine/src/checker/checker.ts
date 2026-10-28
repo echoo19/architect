@@ -8,6 +8,7 @@ import {
   type Job,
   type Task,
 } from '@architect/shared';
+import type { TableSnapshot } from '../data/types';
 import type { CheckedFiles } from '../files/agent-files';
 import type { Sandbox, SandboxOutcome, ValidatorContext } from '../sandbox/types';
 import { checkFacts, compareAnswer, TaskDefinitionError } from './compare';
@@ -37,6 +38,7 @@ type EndState = Extract<Expected, { kind: 'end_state' }>;
 /**
  * Grades attempts deterministically: answers with the built-in comparator, facts by path, and
  * end states with the job's checker module, run in the sandbox without a clock or randomness.
+ * A task that asks only for an answer or facts fails when the attempt changed any table.
  */
 export function createChecker(options: CheckerOptions): Checker {
   let source: Promise<string> | undefined;
@@ -47,6 +49,12 @@ export function createChecker(options: CheckerOptions): Checker {
       const stopped = stoppedEarly(outcome);
       if (stopped) return fail(stopped);
       const { expected } = task;
+      if (expected.kind !== 'end_state') {
+        const changed = changedTable(files);
+        if (changed !== null) {
+          return fail(`${changed} changed, but the task asks only for an answer.`);
+        }
+      }
       try {
         if (expected.kind === 'answer') {
           return graded(
@@ -140,6 +148,24 @@ function stoppedEarly(outcome: CheckOutcome): string | null {
     default:
       return null;
   }
+}
+
+/**
+ * The first data table whose rows an attempt changed, or null. An unchanged table is the same
+ * snapshot before and after; a rewrite that kept every row and column counts as unchanged.
+ */
+function changedTable(files: CheckedFiles): string | null {
+  const before = files.originalTables();
+  for (const [name, table] of Object.entries(files.tables())) {
+    const original = before[name];
+    if (table === original) continue;
+    if (original === undefined || !sameRows(table, original)) return name;
+  }
+  return null;
+}
+
+function sameRows(a: TableSnapshot, b: TableSnapshot): boolean {
+  return JSON.stringify([a.columns, a.rows]) === JSON.stringify([b.columns, b.rows]);
 }
 
 function missingAnswer(outcome: CheckOutcome): string | null {

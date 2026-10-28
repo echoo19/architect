@@ -36,7 +36,7 @@ The owner's Expanded Implementation Spec (`docs/SPEC_EXPANSION.md`, Oct 28) gove
 | P2 | Portable package and import on a supported PC | done | Manifest v2, `.architect.zip`, inclusion review and scan, import checked before code loads, rebinding, compatibility and smoke checks (decision 038). `packages/engine/test/graduate-packages.test.ts`, `packages/harness/test/package.test.ts`, hidden e2e `apps/desktop/e2e/engine.spec.ts` (export, remove, import with other folders, chat) and `agent-host.spec.ts` (an imported package runs a mentor-written tool on a local model) |
 | P2 | CLI using the same runtime | not started | |
 | P2 | Hugging Face publish and install | not started | |
-| P2 | Demonstration and comparisons | not started | |
+| P2 | Demonstration and comparisons | planned: arms, seeds, backends and reporting fixed before any run | decision 037 |
 | Owner | Classic coding-agent harness for graduates | done | Decision 030 and its as-built notes; the tools and the agent's folder in `packages/engine/src/tools`, `files` and `sandbox` (tests `files`, `toolbox`, `sandbox`, `agent`, `agent-host`); the loop alike on Ollama and llama.cpp students (`agent-runtimes`); harness format 2, with format 1 read and migrated (`packages/harness/test/legacy.test.ts`); both sample jobs' reference solutions replayed call by call through the engine's tools and passing the real checkers (`examples/*/test`); `pnpm check` and the hidden e2e suite pass; screenshots `workspace-streaming`, `workspace-approval`, `flow-trace` |
 
 ## Acceptance tests

@@ -150,6 +150,53 @@ describe('return_recorded', () => {
   });
 });
 
+describe('changes to a table the task does not ask for', () => {
+  const refund = refunds[0] as Task;
+  const pickup = pickups[0] as Task;
+  const order = orders[0] as Task;
+  const extraPickup = expectedPickupRow(pickup);
+  const extraReturn = { ...expectedReturnRow(refund), return_id: 'RT-9999' };
+
+  it('fail a return that also books a pickup, even when the return is right', () => {
+    const context = job.contextWith(
+      {
+        'returns.csv': [...job.table('returns.csv'), expectedReturnRow(refund)],
+        'pickups.csv': [...job.table('pickups.csv'), extraPickup],
+      },
+      expectedReturnAnswer(refund),
+    );
+    expect(job.check(refund, context)).toMatchObject({
+      pass: false,
+      reason: 'pickups.csv changed, but this task only records the return in returns.csv.',
+    });
+  });
+
+  it('fail a pickup that also changes returns.csv', () => {
+    const [first, ...rest] = job.table('returns.csv') as [CsvRow, ...CsvRow[]];
+    const context = job.contextWith({
+      'pickups.csv': [...job.table('pickups.csv'), expectedPickupRow(pickup)],
+      'returns.csv': [{ ...first, refund_cents: '1' }, ...rest],
+    });
+    expect(job.check(pickup, context)).toMatchObject({
+      pass: false,
+      reason: 'returns.csv changed, but this task only books a pickup in pickups.csv.',
+    });
+  });
+
+  it('fail an order question answered right after writing to either table', () => {
+    for (const [table, row] of [
+      ['returns.csv', extraReturn],
+      ['pickups.csv', extraPickup],
+    ] as const) {
+      const context = job.withAppended(table, [row], expectedOrderAnswer(order));
+      expect(job.check(order, context), table).toMatchObject({
+        pass: false,
+        reason: `${table} changed, but this task only asks a question.`,
+      });
+    }
+  });
+});
+
 describe('pickup_booked', () => {
   it('passes the ground-truth row for every pickup task', () => {
     for (const task of pickups) {
