@@ -1,13 +1,17 @@
 import { mkdir } from 'node:fs/promises';
 import { RunEventSchema } from '@architect/shared';
 import {
+  CHECK_PURPOSE,
   hostAdapterRuntime,
+  RUN_PURPOSE,
+  type GpuLease,
+  type GpuPurpose,
   type LocalAdapterRuntime,
   type LocalRuntimeSettings,
   type ServerCommand,
 } from '../local-runtime';
 import { RunController } from '../loop/controller';
-import { systemClock, type Clock, type EngineHostDeps } from '../loop/deps';
+import { systemClock, type AdapterDeps, type Clock, type EngineHostDeps } from '../loop/deps';
 import { JobLibrary } from '../loop/jobs';
 import { DataPaths } from '../loop/paths';
 import { openEngineStore } from '../store/engine-store';
@@ -41,6 +45,13 @@ export interface EngineHostOptions {
    * Either way the host stops it when it closes.
    */
   adapterRuntime?: LocalAdapterRuntime;
+  /**
+   * The process's share of the machine-wide GPU lease (decision 046), which a caller-made
+   * `adapterRuntime` holds too. Students on Ollama here then hold it for each request, a run's
+   * after a check's, and the host's own llama-server holds it as well. Without it, as in tests
+   * and scripts on a data folder of their own, nothing is coordinated. The caller closes it.
+   */
+  gpu?: GpuLease;
   /** Errors nobody asked about: a broken event listener, a message that isn't a request. */
   onError?(error: unknown): void;
   /**
@@ -57,6 +68,21 @@ export interface EngineHost {
   serve(port: EnginePort): void;
   /** Aborts active runs, which resume on the next start, and closes the database. */
   close(): Promise<void>;
+}
+
+/**
+ * The engine's dependencies with every student on Ollama here holding the GPU lease for each
+ * request, for `purpose`. Without a lease they are the same dependencies.
+ */
+function studentsHolding(
+  deps: EngineHostDeps,
+  gpu: GpuLease | undefined,
+  purpose: GpuPurpose,
+): EngineHostDeps {
+  if (gpu === undefined) return deps;
+  const createStudent: AdapterDeps['createStudent'] = (endpoint, studentOptions) =>
+    gpu.ollama.student(endpoint, deps.adapters.createStudent(endpoint, studentOptions), purpose);
+  return { ...deps, adapters: { ...deps.adapters, createStudent } };
 }
 
 function requestId(message: unknown): number | null {
@@ -91,7 +117,10 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
   const paths = new DataPaths(options.dataDir);
   const store = openEngineStore(paths.database);
   const contracts = new ContractBook(store, clock);
-  const jobs = new JobLibrary(store, paths, options.deps, clock, contracts);
+  const { gpu } = options;
+  // Runs and checks take the GPU in turns with the other processes, a check before a run.
+  const deps = studentsHolding(options.deps, gpu, RUN_PURPOSE);
+  const jobs = new JobLibrary(store, paths, deps, clock, contracts);
   // The engine's one llama-server, for its installation checks and its runs' adapter students,
   // apart from the workspace's (decision 041).
   const localRuntime = options.localRuntime ?? (() => ({}));
@@ -100,6 +129,8 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     hostAdapterRuntime({
       runtimeDir: paths.runtimeDir('engine'),
       settings: localRuntime,
+      purpose: RUN_PURPOSE,
+      ...(gpu === undefined ? {} : { gpu }),
       ...(options.llamaServerCommand === undefined ? {} : { command: options.llamaServerCommand }),
     });
   const graduates = new GraduateLibrary({
@@ -107,15 +138,15 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     paths,
     clock,
     contracts,
-    deps: options.deps,
-    adapterRuntime,
+    deps: studentsHolding(options.deps, gpu, CHECK_PURPOSE),
+    adapterRuntime: adapterRuntime.serving(CHECK_PURPOSE),
   });
   const controller = new RunController({
     libraryLock: graduates.lock,
     store,
     paths,
     jobs,
-    deps: options.deps,
+    deps,
     clock,
     concurrency: options.concurrency,
     onError,
@@ -131,7 +162,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     jobs,
     controller,
     graduates,
-    deps: options.deps,
+    deps,
     clock,
     hub,
   });

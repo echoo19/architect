@@ -8,7 +8,7 @@ import {
   type WorkspaceChat,
   type WorkspaceEvent,
 } from '@architect/shared';
-import type { AdapterServing } from '../local-runtime';
+import { replyPurpose, type AdapterServing, type GpuLease } from '../local-runtime';
 import { createSandbox } from '../sandbox/sandbox';
 import { openGraduateSession, type GraduateSession } from './graduate';
 import { chatHistory } from './history';
@@ -37,6 +37,13 @@ export interface AgentHostOptions {
    * the CLI's included, so a graduate answers the same wherever it runs.
    */
   adapters: AdapterServing;
+  /**
+   * The process's share of the machine-wide GPU lease (decision 046), which `adapters` holds too.
+   * A reply holds it from its start to its end, so no other Architect process loads a model on
+   * the GPU halfway through one; a student on Ollama holds it for each request. The host doesn't
+   * close it: it belongs to whoever made it.
+   */
+  gpu: GpuLease;
   /** The tool sandbox's child entry. A bundled app passes its built file. */
   sandboxEntryPath?: string;
   /** The clock for timestamps and for the date the agent works as of. */
@@ -86,7 +93,7 @@ const SEED_LIMIT = 2 ** 31;
  * on the guardrail list are refused without calling the student.
  */
 export function createAgentHost(options: AgentHostOptions): AgentHost {
-  const { store, adapters } = options;
+  const { store, adapters, gpu } = options;
   const now = options.now ?? (() => new Date());
   const onError = options.onError ?? ((error: unknown) => console.error(error));
   const sandbox = createSandbox(
@@ -161,6 +168,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
   async function openSession(graduateId: string, cpuThreads: number | undefined) {
     return openGraduateSession(await store.activeVersion(graduateId), {
       adapters,
+      gpu,
       ...(cpuThreads === undefined ? {} : { cpuThreads }),
     });
   }
@@ -233,6 +241,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
         );
       },
     });
+    const use = graduate.gpu;
     const done = respond({
       graduate,
       sandbox,
@@ -243,6 +252,11 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
       seed: randomInt(SEED_LIMIT),
       approveWrite,
       approvalRequired: () => required,
+      // The whole reply holds the GPU, approvals included: someone is reading it as it comes.
+      holdGpu: () =>
+        use === null
+          ? Promise.resolve(null)
+          : gpu.hold(use, replyPurpose(graduate.name), controller.signal),
       signal: controller.signal,
     })
       .catch(onError)

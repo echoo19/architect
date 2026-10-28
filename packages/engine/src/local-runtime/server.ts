@@ -16,6 +16,7 @@ import type { ServerCommand } from './binary';
 import { writeFileAtomic } from '../data/atomic-write';
 import { LocalRuntimeError } from './errors';
 import { findFreePort } from './gpu';
+import { isAlive } from './pids';
 
 /** What one llama-server process is started with. Two launches that are equal share a process. */
 export interface LlamaServerLaunch {
@@ -151,6 +152,40 @@ const samePath = (a: string, b: string) =>
     ? resolve(a).toLowerCase() === resolve(b).toLowerCase()
     : resolve(a) === resolve(b);
 
+/** The record of the process a server folder last started: where it listens, and its key. */
+const RECORD_FILE = 'server.json';
+
+/**
+ * Stops a llama-server that a process left running in `runtimeDir`, and waits until it has gone.
+ * Only a server that answers to the key its folder's record names is Architect's to stop: a port
+ * reused by another program, or a key that no longer answers, leaves everything as it is. The
+ * next start in the same folder calls this, and so does a process that takes the GPU over from a
+ * holder that died (decision 046).
+ */
+export async function stopServerLeftIn(runtimeDir: string): Promise<void> {
+  let saved: z.infer<typeof RecordSchema>;
+  try {
+    saved = RecordSchema.parse(JSON.parse(await readFile(join(runtimeDir, RECORD_FILE), 'utf8')));
+  } catch {
+    return;
+  }
+  try {
+    const response = await fetch(`http://127.0.0.1:${saved.port}/lora-adapters`, {
+      headers: { authorization: `Bearer ${saved.apiKey}` },
+      signal: AbortSignal.timeout(2000),
+    });
+    if (!response.ok) return;
+    process.kill(saved.pid);
+  } catch {
+    // Nothing answers there with that key, or it has just gone: nothing of ours is left to stop.
+    return;
+  }
+  const deadline = Date.now() + 10_000;
+  while (isAlive(saved.pid) && Date.now() < deadline) {
+    await new Promise((done) => setTimeout(done, 100));
+  }
+}
+
 /**
  * One llama-server process on 127.0.0.1, started when a student needs it and stopped when it has
  * been idle for a while. It answers only requests that carry the key it was started with, so a
@@ -191,7 +226,7 @@ export class LlamaServer {
   }
 
   private get recordFile(): string {
-    return join(this.options.runtimeDir, 'server.json');
+    return join(this.options.runtimeDir, RECORD_FILE);
   }
 
   private get keyFile(): string {
@@ -440,27 +475,7 @@ export class LlamaServer {
    * for it, it is ours: stop it and wait until it has gone.
    */
   private async reapOrphan(): Promise<void> {
-    let saved: z.infer<typeof RecordSchema>;
-    try {
-      saved = RecordSchema.parse(JSON.parse(await readFile(this.recordFile, 'utf8')));
-    } catch {
-      return;
-    }
-    try {
-      const response = await fetch(`http://127.0.0.1:${saved.port}/lora-adapters`, {
-        headers: { authorization: `Bearer ${saved.apiKey}` },
-        signal: AbortSignal.timeout(2000),
-      });
-      if (response.ok) {
-        process.kill(saved.pid);
-        const deadline = Date.now() + 10_000;
-        while (isAlive(saved.pid) && Date.now() < deadline) {
-          await new Promise((done) => setTimeout(done, 100));
-        }
-      }
-    } catch {
-      // Nothing answers there with that key, so nothing of ours is left to stop.
-    }
+    await stopServerLeftIn(this.options.runtimeDir);
     rmSync(this.recordFile, { force: true });
   }
 
@@ -720,15 +735,6 @@ async function terminate(child: ChildProcess): Promise<void> {
   if (!(await exitWithin(child, 5000))) {
     child.kill('SIGKILL');
     await exitWithin(child, 5000);
-  }
-}
-
-function isAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === 'EPERM';
   }
 }
 

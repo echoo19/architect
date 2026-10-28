@@ -16,8 +16,18 @@ export {
   type ServerCommand,
   type ServerVersion,
 } from './binary';
-export { LocalRuntimeError, type LocalRuntimeErrorCode } from './errors';
+export { asAdapterError, LocalRuntimeError, type LocalRuntimeErrorCode } from './errors';
 export { findFreePort, freeGpuFromOllama, type FreeGpuOptions } from './gpu';
+export { GpuLease, type GpuHold, type GpuLeaseOptions, type GpuRelease } from './lease';
+export {
+  CHECK_PURPOSE,
+  replyPurpose,
+  RUN_PURPOSE,
+  type GpuPriority,
+  type GpuPurpose,
+  type GpuUse,
+} from './lease-rules';
+export { OllamaUse } from './ollama-use';
 export {
   ollamaModelsDirs,
   parseOllamaName,
@@ -46,6 +56,7 @@ export {
 export {
   LlamaServer,
   serverArgs,
+  stopServerLeftIn,
   type LlamaServerLaunch,
   type LlamaServerOptions,
   type RunningServer,

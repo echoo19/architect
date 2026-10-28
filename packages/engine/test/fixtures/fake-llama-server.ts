@@ -5,7 +5,9 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
  * Plays llama-server for the process manager's tests: the same flags, log lines, health check,
  * key check, adapter list and streamed chat replies, with no model behind it. Its own flags come
  * first: `--fake-record <file>` appends what it was started with and every chat request as JSON
- * lines, `--fake-mode <mode>` picks a failure, `--fake-load-ms <ms>` how long "loading" takes.
+ * lines, `--fake-mode <mode>` picks a failure, `--fake-load-ms <ms>` how long "loading" takes,
+ * `--fake-reply-ms <ms>` how long each reply takes. Each start also records which stand-ins
+ * started earlier on the same record are still running: two servers on one GPU would show there.
  */
 
 const argv = process.argv.slice(2);
@@ -16,9 +18,31 @@ const value = (flag: string) => values(flag)[0];
 const record = value('--fake-record');
 const mode = value('--fake-mode') ?? 'ok';
 const loadMs = Number(value('--fake-load-ms') ?? '150');
+const replyMs = Number(value('--fake-reply-ms') ?? '0');
 const note = (entry: unknown) => {
   if (record) appendFileSync(record, `${JSON.stringify(entry)}\n`);
 };
+
+const running = (pid: number) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/** Stand-ins started earlier on this record that haven't exited. */
+function alongside(): number[] {
+  if (!record || !existsSync(record)) return [];
+  return readFileSync(record, 'utf8')
+    .split('\n')
+    .filter((line) => line !== '')
+    .map((line) => JSON.parse(line) as { kind: string; pid?: number })
+    .filter((entry) => entry.kind === 'start' && entry.pid !== undefined)
+    .map((entry) => entry.pid ?? 0)
+    .filter((pid) => pid !== process.pid && running(pid));
+}
 const log = (line: string) => process.stderr.write(`${line}\n`);
 
 if (argv.includes('--version')) {
@@ -40,6 +64,7 @@ note({
   pid: process.pid,
   argv,
   llamaEnv: Object.keys(process.env).filter((key) => key.toUpperCase().startsWith('LLAMA_ARG_')),
+  alongside: alongside(),
 });
 log(`load_model: loading model '${model}'`);
 
@@ -107,6 +132,7 @@ const server = createServer((request, response) => {
     if (path === '/v1/chat/completions' && request.method === 'POST') {
       const body = JSON.parse(await readBody(request)) as Record<string, unknown>;
       note({ kind: 'chat', body });
+      if (replyMs > 0) await new Promise((done) => setTimeout(done, replyMs));
       response.writeHead(200, { 'content-type': 'text/event-stream' });
       const chunk = (delta: Record<string, unknown>, finish: string | null = null) =>
         response.write(

@@ -15,7 +15,8 @@ import { DataPaths } from '../src/loop/paths';
 import { openEngineStore, type EngineStore } from '../src/store/engine-store';
 import { startFakeOllama, type FakeOllama, type ScriptedTurn } from './agent-host/fake-ollama';
 import { addGraduate, type GraduateFixture, type GraduateOptions } from './agent-host/graduates';
-import { testAdapterRuntime } from './support/computer';
+import type { GpuLease } from '../src/local-runtime';
+import { testAdapterRuntime, testGpu } from './support/computer';
 import { SAMPLE_CONTENT } from './support/fixtures';
 
 type Approval = Extract<AgentBlock, { kind: 'approval' }>;
@@ -24,6 +25,7 @@ interface World {
   dataDir: string;
   engine: EngineStore;
   host: AgentHost;
+  gpu: GpuLease;
   model: FakeOllama;
   graduate: GraduateFixture;
   events: WorkspaceEvent[];
@@ -33,9 +35,10 @@ let world: World | undefined;
 
 afterEach(async () => {
   if (!world) return;
-  const { host, engine, model, dataDir } = world;
+  const { host, gpu, engine, model, dataDir } = world;
   world = undefined;
   await host.close();
+  await gpu.close();
   engine.close();
   await model.close();
   await rm(dataDir, { recursive: true, force: true });
@@ -53,16 +56,20 @@ async function setup(
     baseUrl: model.url,
     ...options,
   });
+  const gpu = testGpu(dataDir);
   const host = createAgentHost({
     store: workspaceStore(engine, dataDir),
     adapters: testAdapterRuntime(
       new DataPaths(dataDir).runtimeDir('workspace'),
       join(dataDir, 'ollama-models'),
+      undefined,
+      gpu,
     ),
+    gpu,
   });
   const events: WorkspaceEvent[] = [];
   host.onEvent((event) => events.push(event));
-  world = { dataDir, engine, host, model, graduate, events };
+  world = { dataDir, engine, host, gpu, model, graduate, events };
   await host.openGraduate(graduate.id);
   return world;
 }

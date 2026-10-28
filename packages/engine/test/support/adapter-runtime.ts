@@ -37,6 +37,8 @@ export interface Recorded {
   pid?: number;
   argv?: string[];
   body?: Record<string, unknown>;
+  /** At a start: stand-ins started earlier on the same record that were still running. */
+  alongside?: number[];
 }
 
 /** What the stand-in recorded, in order. */

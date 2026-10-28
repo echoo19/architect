@@ -1,6 +1,8 @@
 import { isLoopbackUrl, OLLAMA_BASE_URL, type StudentEndpoint } from '@architect/shared';
 import { z } from 'zod';
 import type { ServerCommand } from './binary';
+import type { GpuLease } from './lease';
+import type { GpuPurpose } from './lease-rules';
 import { LocalAdapterRuntime } from './runtime';
 
 /** A program, and the arguments that go before llama-server's own. */
@@ -63,12 +65,20 @@ export interface HostRuntimeOptions {
   settings: () => LocalRuntimeSettings;
   /** A stand-in llama-server for tests, run instead of finding the real one. */
   command?: ServerCommand;
+  /**
+   * The process's share of the machine-wide GPU lease (decision 046). Every process of the app
+   * passes one; a test or a script without it coordinates with nothing.
+   */
+  gpu?: GpuLease;
+  /** What the host's requests are for when a student names nothing else. */
+  purpose?: GpuPurpose;
 }
 
 /**
  * The adapter runtime of one host (the workspace's agent host, the engine host, the CLI): one
- * llama-server of its own, stopped after 10 idle minutes (decision 035), following the settings
- * at every start.
+ * llama-server of its own, stopped after 10 idle minutes (decision 035) or when another of
+ * Architect's processes needs the GPU while it is idle (decision 046), following the settings at
+ * every start.
  */
 export function hostAdapterRuntime(options: HostRuntimeOptions): LocalAdapterRuntime {
   return new LocalAdapterRuntime({
@@ -77,5 +87,7 @@ export function hostAdapterRuntime(options: HostRuntimeOptions): LocalAdapterRun
     threads: () => options.settings().threads,
     ollamaUrl: () => options.settings().ollamaUrl,
     ...(options.command === undefined ? {} : { command: options.command }),
+    ...(options.gpu === undefined ? {} : { gpu: options.gpu }),
+    ...(options.purpose === undefined ? {} : { purpose: options.purpose }),
   });
 }

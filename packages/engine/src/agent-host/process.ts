@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 import {
+  GpuLease,
   hostAdapterRuntime,
   ServerCommandSchema,
   type LocalRuntimeSettings,
@@ -26,7 +27,8 @@ interface ElectronParentPort {
  * serves the parent over Electron's parent port, or over the IPC channel of a Node child process,
  * which must be forked with `serialization: 'advanced'` so messages are structured clones as they
  * are between Electron processes. Its llama-server follows the settings the parent sends with
- * `host.configure`, and stops with the host.
+ * `host.configure`, and stops with the host. It takes the GPU in turns with the engine and the
+ * architect command through the lease in the data folder (decision 046).
  */
 export function startAgentHostProcess(guard: LoopbackGuard): void {
   const { dataDir, sandboxEntryPath, llamaServerCommand } = readArguments();
@@ -34,19 +36,27 @@ export function startAgentHostProcess(guard: LoopbackGuard): void {
   const paths = new DataPaths(dataDir);
   const engine = openEngineStore(paths.database);
   let settings: LocalRuntimeSettings = {};
+  const gpu = new GpuLease({
+    dataDir,
+    owner: 'workspace',
+    onError: (error) => console.error('[workspace] The GPU lease:', error),
+  });
   const host = createAgentHost({
     store: workspaceStore(engine, dataDir),
     adapters: hostAdapterRuntime({
       runtimeDir: paths.runtimeDir('workspace'),
       settings: () => settings,
+      gpu,
       ...(llamaServerCommand === undefined ? {} : { command: llamaServerCommand }),
     }),
+    gpu,
     ...(sandboxEntryPath === undefined ? {} : { sandboxEntryPath }),
   });
   let stopping: Promise<void> | null = null;
   const stop = () => {
     stopping ??= host
       .close()
+      .then(() => gpu.close())
       .catch((error: unknown) => console.error(error))
       .finally(() => {
         engine.close();

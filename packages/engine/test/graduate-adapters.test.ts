@@ -68,6 +68,7 @@ function host(made: Computer): AgentHost {
   const opened = createAgentHost({
     store: workspaceStore(made.store, made.dataDir),
     adapters: made.workspaceRuntime(),
+    gpu: made.workspaceGpu,
   });
   cleanups.push(() => opened.close());
   return opened;
@@ -400,6 +401,7 @@ describe('A07: a package with an adapter, installed on another computer', () => 
     const agent = createAgentHost({
       store: workspaceStore(recipient.store, recipient.dataDir),
       adapters: runtime,
+      gpu: recipient.workspaceGpu,
     });
     cleanups.push(() => agent.close());
 

@@ -37,12 +37,20 @@ export interface FakeOllama {
 
 const MODEL = 'muse-glimmer:30b';
 
+export interface FakeOllamaOptions {
+  /** Called as each streamed chat request arrives, before it is answered. */
+  onChat?(): void;
+}
+
 /**
  * A stand-in for Ollama on 127.0.0.1 that plays scripted turns in order, one per streamed
  * `/api/chat` request, answers `/api/show` like a model with tools and thinking, lists that one
  * model in `/api/tags`, and answers `/api/ps` with nothing loaded.
  */
-export async function startFakeOllama(script: readonly ScriptedTurn[]): Promise<FakeOllama> {
+export async function startFakeOllama(
+  script: readonly ScriptedTurn[],
+  options: FakeOllamaOptions = {},
+): Promise<FakeOllama> {
   const requests: { path: string; body: unknown }[] = [];
   let turn = 0;
 
@@ -83,6 +91,7 @@ export async function startFakeOllama(script: readonly ScriptedTurn[]): Promise<
       sendJson(response, 200, { model: MODEL, done: true });
       return;
     }
+    options.onChat?.();
     const scripted = script[turn++];
     if (!scripted) {
       sendJson(response, 500, { error: `the script has no turn ${turn}` });
