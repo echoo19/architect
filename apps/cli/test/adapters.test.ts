@@ -12,7 +12,7 @@ import {
 import { RunResultSchema } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { appRuntimeSettings } from '../src/runtime-settings';
-import { cleanUp, cli, tempDir, testEnv } from './support';
+import { cleanUp, cli, machineWith, tempDir, testEnv } from './support';
 
 afterEach(cleanUp);
 
@@ -64,6 +64,24 @@ describe("the command's own llama-server", () => {
       }),
     );
     expect(appRuntimeSettings(dataDir, 16)).toEqual({});
+  });
+
+  it("gives a local student quiet mode's thread cap, as the app does", async () => {
+    const machine = await machineWith([{ text: 'There are 3 invoices on file.' }]);
+    const dataDir = machine.env['ARCHITECT_USER_DATA'] ?? '';
+    await writeFile(join(dataDir, 'settings.json'), JSON.stringify({ quietLocalModels: true }));
+    const request = join(dataDir, 'request.json');
+    await writeFile(
+      request,
+      JSON.stringify({ format: 'architect.run-request/1', task: 'How many invoices?' }),
+    );
+    const run = await cli(['run', 'service-desk', '--input', request], { env: machine.env });
+    expect(run.code, run.stderr).toBe(0);
+    const [chat] = machine.model.chats();
+    expect((chat?.options as Record<string, unknown> | undefined)?.['num_thread']).toBe(
+      appRuntimeSettings(dataDir).threads,
+    );
+    expect(appRuntimeSettings(dataDir).threads).toBeGreaterThanOrEqual(2);
   });
 
   it('serves a version with an adapter, and stops llama-server when the run ends', async () => {

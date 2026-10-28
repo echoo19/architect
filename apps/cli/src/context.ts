@@ -63,13 +63,23 @@ export class CliContext {
         : { sandboxEntryPath: this.io.sandboxEntryPath }),
       runtime: {
         owner: 'cli',
-        settings: () => (this.runtimeSettings ??= appRuntimeSettings(this.dataDir)),
+        settings: () => this.localRuntime(),
         ...(this.io.llamaServerCommand === undefined
           ? {}
           : { command: this.io.llamaServerCommand }),
       },
     });
     return this.opened;
+  }
+
+  /**
+   * What the app's settings say about local models, read once: the llama-server to use, quiet
+   * mode's thread cap (for llama-server and for a local student alike), and which Ollama to ask
+   * to let go of the GPU.
+   */
+  localRuntime(): LocalRuntimeSettings {
+    this.runtimeSettings ??= appRuntimeSettings(this.dataDir);
+    return this.runtimeSettings;
   }
 
   /** The Hub at HF_ENDPOINT (huggingface.co by default), with HF_TOKEN or the token file. */

@@ -100,7 +100,8 @@ export async function openSession(
     onError: (error) => failures.push(error),
   });
   try {
-    await host.openGraduate(agent.id);
+    // Quiet mode, as in the app: a local student gets the same thread cap.
+    await host.openGraduate(agent.id, ctx.localRuntime().threads);
     const chat = await host.createChat(agent.id);
     return { agent, version, installation, host, chat, failures, close: () => host.close() };
   } catch (error) {
