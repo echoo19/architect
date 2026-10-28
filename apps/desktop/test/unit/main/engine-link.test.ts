@@ -84,9 +84,18 @@ describe('messages between main and the engine process', () => {
       dataDir: '/data',
       sandboxEntryPath: '/app/out/sandbox/child.mjs',
       sampleJobFile: '/app/sample-job/job.json',
+      sampleAgentFile: '/app/sample-agent/returns-desk.architect.zip',
+      sampleAgentDataDir: '/app/sample-agent/data',
       trainerDir: '/app/trainer',
     };
     expect(ParentMessageSchema.parse(start)).toEqual(start);
+    // The ready-made agent's two paths are part of the start, as the sample job's file is.
+    expect(ParentMessageSchema.safeParse({ ...start, sampleAgentFile: undefined }).success).toBe(
+      false,
+    );
+    expect(ParentMessageSchema.safeParse({ ...start, sampleAgentDataDir: undefined }).success).toBe(
+      false,
+    );
     expect(ParentMessageSchema.parse({ type: 'stop' })).toEqual({ type: 'stop' });
     expect(ParentMessageSchema.safeParse({ type: 'start', dataDir: '/data' }).success).toBe(false);
     expect(EngineStatusSchema.parse({ type: 'failed', message: 'locked' })).toEqual({

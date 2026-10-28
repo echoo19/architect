@@ -12,6 +12,7 @@ import {
   PublicationSchema,
   PublishResultSchema,
   ReportCardSchema,
+  SampleAgentSchema,
   type BindRequest,
   type ExportPartRequest,
   type ExportRequest,
@@ -103,6 +104,14 @@ export const graduatesApi = {
       HubInstallResultSchema,
       architect().graduates.installFromHub(source, request),
     ),
+  hasSampleAgent: () =>
+    read('graduates.hasSampleAgent', z.boolean(), architect().graduates.hasSampleAgent()),
+  prepareSampleAgent: () =>
+    read(
+      'graduates.prepareSampleAgent',
+      SampleAgentSchema,
+      architect().graduates.prepareSampleAgent(),
+    ),
   rejectVersion: (graduateId: string, version: number) =>
     read(
       'graduates.rejectVersion',
@@ -134,11 +143,21 @@ export const graduateKeys = {
   installation: (graduateId: string) => `installation:${graduateId}`,
   report: (graduateId: string, version: number | null) => `version-report:${graduateId}:${version}`,
   publications: (graduateId: string) => `publications:${graduateId}`,
+  sampleAgent: 'sample-agent',
 };
 
 /** Every publication of the agent's versions, oldest first, as recorded on this computer. */
 export const usePublications = (graduateId: string) =>
   useQuery(graduateKeys.publications(graduateId), () => graduatesApi.publications(graduateId));
+
+/**
+ * Whether this build ships a ready-made agent. An engine that can't say hides the offer, since
+ * an offer that can't be taken up is worse than none.
+ */
+export function useHasSampleAgent(): boolean {
+  const query = useQuery(graduateKeys.sampleAgent, graduatesApi.hasSampleAgent);
+  return query.status === 'success' && query.data;
+}
 
 /** The report card the agent's active version carries, from its own folder. */
 export const useVersionReport = (agent: { id: string; activeVersion: number | null }) =>

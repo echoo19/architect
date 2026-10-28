@@ -17,11 +17,21 @@ describe('processResources', () => {
       sandboxEntry: join(app, 'out', 'sandbox', 'child.mjs'),
       agentHostEntry: join(app, 'out', 'agent-host', 'main.mjs'),
       sampleJobFile: join(ROOT, 'architect', 'examples', 'home-services', 'job', 'job.json'),
+      // The ready-made agent's package, where the owner puts it, and the returns desk's own data.
+      sampleAgentFile: join(
+        ROOT,
+        'architect',
+        'examples',
+        'gear-returns',
+        'graduate',
+        'returns-desk.architect.zip',
+      ),
+      sampleAgentDataDir: join(ROOT, 'architect', 'examples', 'gear-returns', 'job', 'data'),
       trainerDir: join(ROOT, 'architect', 'trainer'),
     });
   });
 
-  it('uses the unpacked sandbox and the shipped sample job once packaged', () => {
+  it('uses the unpacked sandbox and the shipped sample job and agent once packaged', () => {
     const resourcesPath = join(ROOT, 'Architect', 'resources');
     const archive = join(resourcesPath, 'app.asar');
     const resources = processResources({
@@ -34,6 +44,8 @@ describe('processResources', () => {
       sandboxEntry: join(resourcesPath, 'app.asar.unpacked', 'out', 'sandbox', 'child.mjs'),
       agentHostEntry: join(archive, 'out', 'agent-host', 'main.mjs'),
       sampleJobFile: join(resourcesPath, 'sample-job', 'job.json'),
+      sampleAgentFile: join(resourcesPath, 'sample-agent', 'returns-desk.architect.zip'),
+      sampleAgentDataDir: join(resourcesPath, 'sample-agent', 'data'),
       trainerDir: join(resourcesPath, 'trainer'),
     });
   });

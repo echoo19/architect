@@ -1,4 +1,5 @@
 import { Panel, SettingsRow, Spinner } from '@architect/ui';
+import { useHasSampleAgent } from '../api/graduates';
 import { capitalized, mentorIntro, STUDENT_ROLE, studentIntro } from '../lib/names';
 import { StepIntro } from './SetupShell';
 import { StatusValue } from './StatusValue';
@@ -12,17 +13,20 @@ export interface DoneStepProps {
 }
 
 export function DoneStep({ mentor, student, percent }: DoneStepProps) {
+  const readyMade = useHasSampleAgent();
   const gaps = [
     student.state === 'missing' && "Agents can't run until the local model is downloaded.",
     mentor.state === 'missing' && 'Training a new agent needs a mentor.',
   ].filter(Boolean);
+  // What the next screen offers to look at first; a build without the ready-made agent has no
+  // such offer, so the line doesn't name it.
+  const offered = readyMade ? 'The sample job and a ready-made agent are' : 'The sample job is';
 
   return (
     <>
       <StepIntro title="You're set up">
         Next, describe a job. {mentorIntro(mentor.name)}, coaches {studentIntro(student.name)},
-        until it can do the job alone. The sample job is on the next screen, if you'd like to see
-        one first.
+        until it can do the job alone. {offered} on the next screen, if you'd like to see one first.
       </StepIntro>
       <Panel
         aria-label="Setup"
