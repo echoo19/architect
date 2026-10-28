@@ -14,8 +14,15 @@ import {
   StatusMark,
   toast,
 } from '@architect/ui';
+import { FolderOpen } from 'lucide-react';
 import { api, architect } from '../../api/client';
-import { graduateKeys, useInstallation, useVersions } from '../../api/graduates';
+import {
+  graduateKeys,
+  graduatesApi,
+  refreshAgent,
+  useInstallation,
+  useVersions,
+} from '../../api/graduates';
 import { queryKeys } from '../../api/hooks';
 import { fetchQuery, setQueryData } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
@@ -229,6 +236,53 @@ function DeleteAgentDialog({
 /** The same three choices, in the same words, as the menu under the message box. */
 const WRITE_CHOICES = WRITE_MODES.map((value) => ({ value, label: WRITE_MODE_LABELS[value] }));
 
+/**
+ * The folder on this computer that each of the agent's folders is bound to, with a way to choose
+ * another. Changing one runs the install checks again.
+ */
+function FolderRows({ agent, active }: { agent: GraduateSummary; active: GraduateVersion }) {
+  const installation = useInstallation(agent.id);
+  const [choosing, setChoosing] = useState<string | null>(null);
+  const choose = async (name: string) => {
+    setChoosing(name);
+    const next = await attempt(`Couldn't change the folder for ${name}/`, async () => {
+      const [folder] = await architect().files.pick({
+        title: `Choose a folder for ${name}/`,
+        directory: true,
+      });
+      if (!folder) return null;
+      const bound = await graduatesApi.bind(agent.id, { bindings: { [name]: folder } });
+      await refreshAgent(agent.id);
+      return bound;
+    });
+    setChoosing(null);
+    if (next) setQueryData(graduateKeys.installation(agent.id), next);
+  };
+
+  return active.manifest.resources.map((resource) => {
+    const folder = installation.data?.bindings[resource.name];
+    return (
+      <SettingsRow
+        key={resource.name}
+        label={`${resource.name}/`}
+        meta={folder ?? 'Not chosen'}
+        metaFont={folder ? 'code' : 'text'}
+        error={errorOf(installation)}
+      >
+        <Button
+          size="xs"
+          loading={choosing === resource.name}
+          disabled={choosing !== null || installation.status !== 'success'}
+          onClick={() => void choose(resource.name)}
+        >
+          {choosing !== resource.name && <FolderOpen size={14} strokeWidth={1.7} aria-hidden />}
+          {folder ? 'Change' : 'Choose'}
+        </Button>
+      </SettingsRow>
+    );
+  });
+}
+
 export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
   const settings = useGraduateSettings(agent.id);
   const { versions, active } = useActiveVersion(agent.id);
@@ -242,6 +296,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
 
   return (
     <>
+      {active && <FolderRows agent={agent} active={active} />}
       <SettingsRow
         label={WRITE_SETTING}
         meta={

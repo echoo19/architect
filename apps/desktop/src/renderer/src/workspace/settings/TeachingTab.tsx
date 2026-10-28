@@ -221,8 +221,9 @@ function MoveDialog({
             {promote ? '.' : ' again.'}
           </Change>
           <Change icon={<RotateCcw size={15} strokeWidth={1.8} aria-hidden />}>
+            {/* Going back to an earlier version is a rollback; to a later one, a promotion. */}
             Version {active.version} stays, so you can{' '}
-            {promote ? 'roll back to it' : 'promote it again'}.
+            {active.version < number ? 'roll back to it' : 'promote it again'}.
           </Change>
           {backToAsk && (
             <Change icon={<LockKeyhole size={15} strokeWidth={1.8} aria-hidden />}>

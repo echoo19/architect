@@ -75,7 +75,7 @@ export function CheckStep({
         )}
       </div>
 
-      <SettingsSection title="On this computer">
+      <SettingsSection title="On this computer" className="pt-0">
         <SettingsRow
           icon={<StatusMark state={fit?.status === 'passed' ? 'ok' : failedMark} />}
           label="This computer"
@@ -125,7 +125,7 @@ export function AuthorResult({ manifest }: { manifest: PackageManifest }) {
   const summary = manifest.evidence.summary;
   const tested = manifest.requirements.tested[0];
   return (
-    <SettingsSection title={AUTHOR_RESULT_TITLE}>
+    <SettingsSection title={AUTHOR_RESULT_TITLE} className="pt-0">
       {summary ? (
         <SettingsRow
           label="Final test"

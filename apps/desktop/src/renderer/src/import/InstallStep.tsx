@@ -78,7 +78,7 @@ export function InstallStep({
           {titleOf(status, label)}
         </Heading>
       </header>
-      <SettingsSection title={INSTALL_CHECKS_TITLE}>
+      <SettingsSection title={INSTALL_CHECKS_TITLE} className="pt-0">
         <CheckRows installation={installation} />
       </SettingsSection>
       {!asVersion && status === 'needs_attention' && (
