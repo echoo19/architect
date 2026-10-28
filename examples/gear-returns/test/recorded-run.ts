@@ -622,7 +622,7 @@ function summarize(store: EngineStore, runId: string): RecordedRunSummary {
 export const FAKE_METER_READING = {
   peakProcessBytes: 19 * 1024 ** 3,
   peakGpuBytes: 7 * 1024 ** 3,
-  coldStartMs: 8_400,
+  coldStartMs: 24_000,
   samples: 24,
   sampler: 'a fake meter for the recorded run, with fixed readings',
 } as const;

@@ -211,7 +211,7 @@ function BeforeAndAfter({
             who={`${names.mentor}'s correction`}
             passed={null}
             answer={null}
-            note="Its answer couldn't be read, with its steps below."
+            note="Couldn't be read, like its steps below."
           />
         )}
       </dl>

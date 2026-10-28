@@ -103,7 +103,7 @@ export function ComparisonArms({
     <section aria-labelledby="comparisons" className="flex flex-col gap-[18px]">
       <div className="flex flex-wrap items-center gap-3">
         <Heading id="comparisons">Comparisons</Heading>
-        {report.dryRun && <Badge>Dry run on fakes</Badge>}
+        {report.dryRun && <Badge>Dry run on fakes, no model called</Badge>}
       </div>
       <div className="overflow-x-auto rounded-xl bg-panel">
         <Table aria-label="Comparisons" className="min-w-[760px]">
@@ -112,12 +112,12 @@ export function ComparisonArms({
               <TableHead />
               <TableHead className="whitespace-nowrap text-right">
                 <EvidenceMark kind="final" className="justify-end">
-                  Hosted copy
+                  Final test, hosted copy
                 </EvidenceMark>
               </TableHead>
               <TableHead className="whitespace-nowrap text-right">
                 <EvidenceMark kind="final" className="justify-end">
-                  This computer
+                  Final test, this computer
                 </EvidenceMark>
               </TableHead>
               <TableHead className="whitespace-nowrap text-right">Peak memory</TableHead>
@@ -149,12 +149,21 @@ export function ComparisonArms({
                   </TableCell>
                 ) : (
                   <>
-                    <TableCell className="text-right align-top">
-                      {arm.arm === 'repeat' ? null : <ScoreCell score={arm.hosted} />}
-                    </TableCell>
-                    <TableCell className="text-right align-top">
-                      {arm.arm === 'repeat' ? null : <ScoreCell score={arm.local} />}
-                    </TableCell>
+                    {arm.arm === 'repeat' ? (
+                      // Its results are each first arm's second run, shown on that arm's row.
+                      <TableCell colSpan={2} className="text-right align-top text-sm text-fg-muted">
+                        Under each of the first three, as &quot;tested again&quot;
+                      </TableCell>
+                    ) : (
+                      <>
+                        <TableCell className="text-right align-top">
+                          <ScoreCell score={arm.hosted} />
+                        </TableCell>
+                        <TableCell className="text-right align-top">
+                          <ScoreCell score={arm.local} />
+                        </TableCell>
+                      </>
+                    )}
                     <TableCell className="text-right align-top">
                       {arm.memory && (
                         <PeakMemory

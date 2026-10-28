@@ -65,7 +65,7 @@ export function PeakMemory({
     <span className="flex flex-col items-end gap-0.5 text-xs tabular-nums text-fg-muted">
       {processBytes !== null && (
         <span className="whitespace-nowrap">
-          Memory <span className="font-mono text-sm text-fg">{formatBytes(processBytes)}</span>
+          RAM <span className="font-mono text-sm text-fg">{formatBytes(processBytes)}</span>
         </span>
       )}
       {gpuBytes !== null && (

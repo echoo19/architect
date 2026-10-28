@@ -50,7 +50,7 @@ const COLUMNS: {
 
 /** A category's line under its task type: its verified examples, and whether teaching stopped. */
 function categoryLine(category: Capability['categories'][number]): string {
-  const examples = `${category.verifiedLessons} ${category.verifiedLessons === 1 ? 'example' : 'examples'}`;
+  const examples = `${category.verifiedLessons} worked ${category.verifiedLessons === 1 ? 'example' : 'examples'} written`;
   return category.stopped ? `${examples} · teaching stopped, no gain` : examples;
 }
 

@@ -27,6 +27,12 @@ export function Examples({
   const [all, setAll] = useState(false);
   const lessons = records.data?.lessons ?? [];
   const passed = lessons.filter((lesson) => lesson.status === 'verified').length;
+  // An example belongs to its round's change, so one from a change not kept isn't in the agent.
+  const notKept = new Set(
+    (records.data?.experiments ?? [])
+      .filter((experiment) => experiment.disposition !== 'kept')
+      .map((experiment) => experiment.round),
+  );
   const newest = [...lessons].reverse();
   const shown = all ? newest : newest.slice(0, SHOWN);
   return (
@@ -68,6 +74,7 @@ export function Examples({
                 <ExampleRow
                   lesson={lesson}
                   type={typeLabel(job, lesson.taskType)}
+                  kept={lesson.round === null || !notKept.has(lesson.round)}
                   onOpen={() => onOpen(lesson)}
                 />
               </li>
@@ -91,10 +98,13 @@ export function Examples({
 function ExampleRow({
   lesson,
   type,
+  kept,
   onOpen,
 }: {
   lesson: ListedLesson;
   type: string;
+  /** False when the round's change, which the example went with, wasn't kept. */
+  kept: boolean;
   onOpen: () => void;
 }) {
   const passed = lesson.status === 'verified';
@@ -142,7 +152,11 @@ function ExampleRow({
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-fg-secondary">{type}</span>
         <span className="truncate text-xs text-fg-muted">
-          {lesson.round === null ? 'Example' : `Round ${lesson.round}`}
+          {lesson.round === null
+            ? 'Example'
+            : kept
+              ? `Round ${lesson.round}`
+              : `Round ${lesson.round}, not kept`}
         </span>
       </span>
       <ChevronRight

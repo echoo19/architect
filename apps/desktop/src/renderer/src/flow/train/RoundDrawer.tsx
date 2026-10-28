@@ -227,7 +227,7 @@ export function RoundDrawerContent({
         {evidence.status === 'error' && (
           <ErrorState
             layout="inline"
-            title="Couldn't load this round's findings, examples and costs"
+            title="Couldn't load this round's findings, examples, check tasks and costs"
             message={evidence.error.message}
             onRetry={evidence.reload}
           />

@@ -295,7 +295,7 @@ test('shows the memory a meter read over the final test, and nothing where it re
   );
   expect(others).toEqual([]);
   expect(reading?.peakProcessBytes).not.toBeNull();
-  await expect(page.getByText(/^Up to [\d.]+ GB of memory in the final test$/)).toBeVisible();
+  await expect(page.getByText(/^Up to [\d.]+ GB of RAM in the final test$/)).toBeVisible();
   await expect(page.getByText(/^Up to [\d.]+ GB of GPU memory$/)).toBeVisible();
   await expect(page.getByText(/^First answer in [\d.]+ s, the model loading first$/)).toBeVisible();
   // Only the agent's own final test was metered: its row has the figure, no other row does.

@@ -64,7 +64,7 @@ function memoryLines(figures: RuntimeFigures | null, unread: boolean): string[] 
   if (figures === null) return [];
   return [
     figures.peakProcessBytes !== null &&
-      `Up to ${formatBytes(figures.peakProcessBytes)} of memory in the final test`,
+      `Up to ${formatBytes(figures.peakProcessBytes)} of RAM in the final test`,
     figures.peakGpuBytes !== null && `Up to ${formatBytes(figures.peakGpuBytes)} of GPU memory`,
   ].filter((line): line is string => typeof line === 'string');
 }
