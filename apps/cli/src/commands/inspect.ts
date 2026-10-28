@@ -1,8 +1,15 @@
 import { existsSync, statSync } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { inspectPackage, listPublications } from '@architect/engine/graduates';
+import { inspectPackage, listPublications, openLocalLibrary } from '@architect/engine/graduates';
 import { HUB_SCHEME } from '@architect/engine/hub';
-import type { CliOutcome, GraduateVersion, PackageManifest } from '@architect/shared';
+import type {
+  CliOutcome,
+  GraduateVersion,
+  PackageInspection,
+  PackageManifest,
+} from '@architect/shared';
 import { agentSlug, resolveAgent } from '../agents';
 import { flag, type Parsed } from '../args';
 import type { CliContext } from '../context';
@@ -49,10 +56,27 @@ function versionRow(version: GraduateVersion): string[] {
   ];
 }
 
+/**
+ * Checks a package as an install would, in a staging folder. Where the app has no data yet, that
+ * is a temporary folder, so looking at a package never starts the app's data folder.
+ */
+async function inspectionOf(ctx: CliContext, path: string): Promise<PackageInspection> {
+  if (existsSync(join(ctx.dataDir, 'architect.db'))) {
+    return inspectPackage({ library: ctx.library().library }, path);
+  }
+  const scratch = await mkdtemp(join(tmpdir(), 'architect-inspect-'));
+  const local = openLocalLibrary({ dataDir: scratch });
+  try {
+    return await inspectPackage({ library: local.library }, path);
+  } finally {
+    local.close();
+    await rm(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+  }
+}
+
 async function inspectFile(ctx: CliContext, path: string, json: boolean): Promise<CliOutcome> {
   const { io } = ctx;
-  const { library } = ctx.library({ create: true });
-  const inspection = await inspectPackage({ library }, path);
+  const inspection = await inspectionOf(ctx, path);
   if (json) {
     printJson(io.stdout, 'architect.inspect-package/1', { path, inspection });
     return inspection.ok ? 'succeeded' : 'invalid_input';

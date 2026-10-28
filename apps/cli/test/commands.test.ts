@@ -99,6 +99,8 @@ describe('the commands', () => {
     const inspected = await cli(['inspect', archive], { env });
     expect(inspected.code).toBe(0);
     expect(inspected.stdout).toContain('Nothing in it has run.');
+    // Looking at a package doesn't start the app's data folder.
+    expect(existsSync(join(env['ARCHITECT_USER_DATA'] ?? '', 'architect.db'))).toBe(false);
     const installed = await cli(
       [
         'install',
