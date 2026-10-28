@@ -324,7 +324,9 @@ test("reads a comparison's own report: each arm as it ended, and one not run wit
     await goTo(opened.page, `/runs/${targeted.runId}/report`);
     const table = opened.page.getByRole('table', { name: 'Comparisons' });
     await expect(table).toBeVisible();
-    await expect(opened.page.getByText('Dry run on fakes', { exact: true })).toBeVisible();
+    await expect(
+      opened.page.getByText('Dry run on fakes, no model called', { exact: true }),
+    ).toBeVisible();
     // Every arm in the report's order, this run's marked as this agent.
     await expect(table.getByRole('row')).toHaveCount(report.arms.length + 1);
     const own = table.getByRole('row', { name: /Glimmer mentored by Spark/ });
@@ -346,6 +348,19 @@ test("reads a comparison's own report: each arm as it ended, and one not run wit
     // The arm that wasn't run says so, with the runner's reason, and nothing else.
     await expect(table.getByRole('row', { name: /procedures only/ })).toContainText(
       `Not run: ${fixed.reason}`,
+    );
+    // The arm the runner stopped says so, with its reason.
+    const stopped = report.arms.find((arm) => arm.arm === 'weights-targeted');
+    expect(stopped?.status).toBe('stopped');
+    await expect(table.getByRole('row', { name: /trained on its failures/ })).toContainText(
+      `Stopped: ${stopped?.reason}`,
+    );
+    // Spark's second reference, with the mentored setup, has a row of its own.
+    const second = report.backends
+      .find((item) => item.backend === 'reference')
+      ?.rows.find((row) => row.arm === 'reference-targeted' && row.seed === seed);
+    await expect(table.getByRole('row', { name: /with the mentored setup/ })).toContainText(
+      `${second?.scenarios.pass} of ${second?.scenarios.total}`,
     );
   } finally {
     await opened.close();

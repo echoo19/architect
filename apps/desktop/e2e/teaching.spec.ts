@@ -370,6 +370,18 @@ for (const theme of THEMES) {
     await expect(taught).toContainText('Improving from version 2');
     await expect(page.getByRole('region', { name: 'Resources' })).toContainText('Not taken');
     await capture(`improve-train-${theme}.png`);
+    // The evidence views work in an improvement as in any run: its worked examples, and a
+    // round's drawer from the rounds list.
+    await expect(page.getByRole('region', { name: 'Worked examples' })).toBeVisible();
+    await page
+      .getByRole('region', { name: 'Rounds' })
+      .getByRole('button')
+      .filter({ hasText: /^01/ })
+      .click();
+    const roundDrawer = page.getByRole('dialog', { name: /^Round 1/ });
+    await expect(roundDrawer).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(roundDrawer).toBeHidden();
 
     // Meanwhile the active version answers in the workspace, and the sidebar shows it improving.
     await goTo(page, chatPath(AGENT.id, CHATS.closeout.id));

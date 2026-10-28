@@ -14,12 +14,13 @@ import { comparisonWorld, HOME_SERVICES, RETURNS_DESK } from './comparison-world
 
 /**
  * Every arm, with caps that drop the fixed arm for want of student credit and stop the
- * failure-specific adapter at its own cap, so the report has an arm of each kind.
+ * failure-specific adapter at its own cap, so the report has an arm of each kind; Spark's cap
+ * pays for both references and both weights arms, as in the dry-run test.
  */
 export const DRY_RUN_CONFIG: ComparisonConfig = {
   ...DEFAULT_CONFIG,
   arms: [...ARM_ORDER],
-  caps: { studentUsd: 15, sparkUsd: 16, computeUsd: 8.1, localMinutes: 1_500 },
+  caps: { studentUsd: 15, sparkUsd: 24, computeUsd: 8.1, localMinutes: 1_500 },
   localOllama: true,
   realCompute: true,
   llamaServer: true,
