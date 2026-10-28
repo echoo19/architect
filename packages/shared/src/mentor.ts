@@ -58,7 +58,7 @@ export const MentorLineageItemSchema = z.discriminatedUnion('decision', [
     title: z.string().optional(),
     files: z.array(z.string()),
     decision: z.literal('rejected'),
-    /** One line, e.g. `tools/read_table.json: "read_table" is a built-in tool name.` */
+    /** One line, e.g. `tools/grep.json: "grep" is a built-in tool name. Pick a different name.` */
     reason: z.string(),
   }),
 ]);

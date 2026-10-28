@@ -109,7 +109,7 @@ describe('leak detection', () => {
     const payload = JSON.stringify({
       prompts: others.map((task) => task.prompt),
       harness: {
-        'system.md': `Always finish with the ANSWER line. ${INVOICE_FORMAT} ${OVERDUE_FORMAT}`,
+        'AGENTS.md': `Always finish with the ANSWER line. ${INVOICE_FORMAT} ${OVERDUE_FORMAT}`,
       },
       note: 'Rosa Delgado and Marcus Webb worked on several after hours jobs.',
     });
