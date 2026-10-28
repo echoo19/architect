@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { EngineClient } from '@architect/engine';
+import type { EngineClient, LocalRuntimeSettings } from '@architect/engine';
 import type { AgentHostClient } from '@architect/engine/agent-host';
 import { app, BrowserWindow, ipcMain, session, shell } from 'electron';
 import engineEntry from '../utility/engine?modulePath';
@@ -22,6 +22,7 @@ import { createLinkOpener } from './links';
 import { signInWithOpenRouter } from './oauth/openrouter';
 import { SignIns } from './oauth/sign-ins';
 import { ModelPulls } from './ollama/pulls';
+import { ollamaBaseUrl } from './ollama/status';
 import { processResources } from './processes/resources';
 import { Supervisor } from './processes/supervisor';
 import { safeStorageCipher } from './secrets/cipher';
@@ -107,18 +108,55 @@ async function start(): Promise<void> {
   // The GPU doesn't change while the app is open, so it is looked for once, when first asked.
   let gpuProbe: ReturnType<typeof detectGpu> | null = null;
   const gpu = () => (gpuProbe ??= detectGpu());
-  registerConnectionHandlers(router, { keys, secrets, settings, signIns, gpu });
+  registerConnectionHandlers(router, {
+    keys,
+    secrets,
+    settings,
+    signIns,
+    gpu,
+    picked,
+    ...(launch.llamaServerCommand === undefined
+      ? {}
+      : { llamaServerCommand: launch.llamaServerCommand }),
+  });
   registerOllamaHandlers(router, settings, pulls);
   registerFilesHandlers(router, picked);
   settings.onChange((next) => router.emit('settings', 'onChange', next));
 
   const localThreads = () => quietThreads(settings.get());
-  const quiet = () => ({
-    localThreads: localThreads(),
-    localCooldown: quietCooldown(settings.get()),
-  });
+  /** What both hosts' llama-servers start with: the chosen program, quiet mode, which Ollama. */
+  const runtimeSettings = (): LocalRuntimeSettings => {
+    const current = settings.get();
+    const threads = localThreads();
+    return {
+      ...(current.llamaServerPath === undefined
+        ? {}
+        : { llamaServerPath: current.llamaServerPath }),
+      ...(threads === undefined ? {} : { threads }),
+      ollamaUrl: ollamaBaseUrl(current.defaultStudent),
+    };
+  };
+  const followed = () => {
+    const runtime = runtimeSettings();
+    return {
+      localThreads: runtime.threads,
+      localCooldown: quietCooldown(settings.get()),
+      llamaServerPath: runtime.llamaServerPath,
+      ollamaUrl: runtime.ollamaUrl,
+    };
+  };
   let engineProcess: EngineProcess | null = null;
-  settings.onChange(() => engineProcess?.applySettings(quiet()));
+  settings.onChange(() => {
+    engineProcess?.applySettings(followed());
+    agentHost
+      .call((host) => host.configure(runtimeSettings()))
+      .catch((error: unknown) =>
+        console.error(
+          '[workspace] The new llama-server settings did not reach the workspace; it takes them when it starts again.',
+          error,
+        ),
+      );
+  });
   const engine: Supervisor<EngineClient> = new Supervisor({
     name: 'The engine',
     launch: () =>
@@ -128,7 +166,10 @@ async function start(): Promise<void> {
           dataDir,
           sandboxEntryPath: resources.sandboxEntry,
           sampleJobFile: resources.sampleJobFile,
-          ...quiet(),
+          ...followed(),
+          ...(launch.llamaServerCommand === undefined
+            ? {}
+            : { llamaServerCommand: launch.llamaServerCommand }),
         },
         keys,
       )),
@@ -145,10 +186,22 @@ async function start(): Promise<void> {
         entryPath: resources.agentHostEntry,
         dataDir,
         sandboxEntryPath: resources.sandboxEntry,
+        ...(launch.llamaServerCommand === undefined
+          ? {}
+          : { llamaServerCommand: launch.llamaServerCommand }),
         env: agentHostEnvironment(process.env),
       }),
     onConnect: (client) => {
       client.onEvent((event) => router.emit('workspace', 'onEvent', event));
+      // Sent before any graduate opens: requests go to the host in the order they were made.
+      client
+        .configure(runtimeSettings())
+        .catch((error: unknown) =>
+          console.error(
+            '[workspace] The llama-server settings did not reach the workspace.',
+            error,
+          ),
+        );
       graduates.openAll();
     },
   });

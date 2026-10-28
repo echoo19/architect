@@ -1,4 +1,5 @@
 import { listModels, verifyKey } from '@architect/adapters';
+import { describeLlamaServer, type ServerCommand } from '@architect/engine';
 import {
   AddConnectionRequestSchema,
   MentorConfigSchema,
@@ -17,6 +18,7 @@ import {
   testStudent,
   type KeyLookup,
 } from '../connections';
+import type { PickedPaths } from '../files/picked';
 import type { IpcRouter } from '../ipc/router';
 import type { SignIns } from '../oauth/sign-ins';
 import { ollamaBaseUrl } from '../ollama/status';
@@ -31,11 +33,24 @@ export interface ConnectionHandlerDeps {
   signIns: SignIns;
   /** The GPU local models can run on, found once while the app runs. */
   gpu: () => Promise<GpuInfo | null>;
+  /** Files the user chose in a dialog: the only ones that may become the llama-server. */
+  picked: Pick<PickedPaths, 'checkFile'>;
+  /** A stand-in llama-server for tests, described in place of the real one. */
+  llamaServerCommand?: ServerCommand;
 }
 
-/** Connections: testing them, their model lists, adding and removing keys, and signing in. */
+/**
+ * Connections: testing them, their model lists, adding and removing keys, and signing in; and
+ * llama-server, which serves graduates that carry an adapter.
+ */
 export function registerConnectionHandlers(router: IpcRouter, deps: ConnectionHandlerDeps): void {
-  const { keys, secrets, settings, signIns, gpu } = deps;
+  const { keys, secrets, settings, signIns, gpu, picked } = deps;
+  const llamaServer = () =>
+    describeLlamaServer(
+      deps.llamaServerCommand === undefined
+        ? { configured: settings.get().llamaServerPath ?? null }
+        : { command: deps.llamaServerCommand },
+    );
   const stores = {
     verifyKey,
     listModels,
@@ -70,6 +85,14 @@ export function registerConnectionHandlers(router: IpcRouter, deps: ConnectionHa
         return { status: 'signed_in' };
       },
       cancelSignIn: async () => signIns.cancel(),
+      llamaServer,
+      // Architect runs this program, so it must be one the user picked in a file dialog.
+      chooseLlamaServer: async (path) => {
+        await settings.update({
+          llamaServerPath: path === null ? undefined : picked.checkFile(path),
+        });
+        return llamaServer();
+      },
     },
     {
       testMentor: z.tuple([MentorConfigSchema]),
@@ -78,6 +101,7 @@ export function registerConnectionHandlers(router: IpcRouter, deps: ConnectionHa
       add: z.tuple([AddConnectionRequestSchema]),
       remove: z.tuple([z.object({ provider: ProviderIdSchema, baseUrl: z.url() }).strict()]),
       signIn: z.tuple([z.literal('openrouter')]),
+      chooseLlamaServer: z.tuple([z.string().min(1).nullable()]),
     },
   );
 }

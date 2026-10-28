@@ -63,6 +63,7 @@ const StoredSettingsSchema = z.object({
   defaultStudent: StudentEndpointSchema.catch(() => defaultSettings().defaultStudent),
   customEndpoints: StoredEndpointsSchema,
   onboarded: z.boolean().catch(() => defaultSettings().onboarded),
+  llamaServerPath: z.string().min(1).optional().catch(undefined),
 }) satisfies z.ZodType<AppSettings>;
 
 export function settingsFromStored(raw: unknown): AppSettings {

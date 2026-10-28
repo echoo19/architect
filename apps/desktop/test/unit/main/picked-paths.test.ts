@@ -37,4 +37,18 @@ describe('PickedPaths', () => {
   it('refuses everything before anything is picked', () => {
     expect(() => new PickedPaths().check(join(ROOT, 'job.json'))).toThrow(REFUSED);
   });
+
+  it('takes a program only when the user picked exactly that file', () => {
+    const picked = new PickedPaths();
+    const program = join(ROOT, 'llama.cpp', 'llama-server.exe');
+    const folder = join(ROOT, 'exports');
+    picked.add([program], 'files');
+    picked.add([folder], 'folders');
+    expect(picked.checkFile(program)).toBe(program);
+    const refused = 'Architect only runs a program you choose.';
+    // A file inside a folder chosen for something else is not a program the user chose.
+    expect(() => picked.checkFile(join(folder, 'llama-server.exe'))).toThrow(refused);
+    expect(() => picked.checkFile(folder)).toThrow(refused);
+    expect(() => picked.checkFile(join(ROOT, 'llama.cpp', 'other.exe'))).toThrow(refused);
+  });
 });

@@ -3,6 +3,7 @@ import {
   asEnginePort,
   askForSecrets,
   ParentMessageSchema,
+  type EngineSettings,
   type EngineStart,
   type EngineStatus,
   type PortMain,
@@ -15,19 +16,22 @@ import {
 
 const parent = process.parentPort;
 let starting: Promise<EngineHost> | null = null;
-/** Quiet mode for local models; students made from now on use it. */
-let localThreads: number | undefined;
-let localCooldown: number | undefined;
+/** Quiet mode and llama-server's settings; students and servers started from now on use them. */
+let followed: Omit<EngineSettings, 'type'> = {};
 
 function report(status: EngineStatus): void {
   parent.postMessage(status);
 }
 
+function follow(settings: Omit<EngineSettings, 'type'>): void {
+  const { localThreads, localCooldown, llamaServerPath, ollamaUrl } = settings;
+  followed = { localThreads, localCooldown, llamaServerPath, ollamaUrl };
+}
+
 async function start(message: EngineStart, ports: readonly PortMain[]): Promise<EngineHost> {
   const [requests, secrets] = ports;
   if (!requests || !secrets) throw new Error('The engine was started without its ports.');
-  localThreads = message.localThreads;
-  localCooldown = message.localCooldown;
+  follow(message);
   const host = await createEngineHost({
     dataDir: message.dataDir,
     deps: createEngineDeps({
@@ -35,9 +39,19 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
       sandboxEntryPath: message.sandboxEntryPath,
       sampleJobFile: message.sampleJobFile,
       getSecret: askForSecrets(asEnginePort(secrets)),
-      localThreads: () => localThreads,
-      localCooldown: () => localCooldown,
+      localThreads: () => followed.localThreads,
+      localCooldown: () => followed.localCooldown,
     }),
+    localRuntime: () => ({
+      ...(followed.llamaServerPath === undefined
+        ? {}
+        : { llamaServerPath: followed.llamaServerPath }),
+      ...(followed.localThreads === undefined ? {} : { threads: followed.localThreads }),
+      ...(followed.ollamaUrl === undefined ? {} : { ollamaUrl: followed.ollamaUrl }),
+    }),
+    ...(message.llamaServerCommand === undefined
+      ? {}
+      : { llamaServerCommand: message.llamaServerCommand }),
   });
   host.serve(asEnginePort(requests));
   return host;
@@ -53,8 +67,7 @@ async function stop(): Promise<void> {
 parent.on('message', (event) => {
   const message = ParentMessageSchema.parse(event.data);
   if (message.type === 'settings') {
-    localThreads = message.localThreads;
-    localCooldown = message.localCooldown;
+    follow(message);
     return;
   }
   if (message.type === 'stop') {

@@ -3,6 +3,7 @@ import {
   LMSTUDIO_BASE_URL,
   OLLAMA_BASE_URL,
   type GpuInfo,
+  type LlamaServerStatus,
   type LocalRuntimes,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
@@ -54,15 +55,29 @@ export const LOCAL_WITH_GLIMMER: LocalRuntimes = {
   gpu: GPU_12GB,
 };
 
+/**
+ * llama-server found on PATH, new enough for Glimmer. Every spec that shows Settings › Models
+ * answers with this, so the real llama-server of the computer running the tests never runs.
+ */
+export const LLAMA_SERVER_READY: LlamaServerStatus = {
+  source: 'path',
+  path: '/usr/local/bin/llama-server',
+  build: 10472,
+  ready: true,
+  minimumBuild: 10358,
+};
+
 /** A fresh install: the engine answers, and there is nothing yet. */
 export const EMPTY_ENGINE: EngineReplies = {
   'graduates:list': [],
   'jobs:list': [],
   'connections:detectLocal': NOTHING_LOCAL,
+  'connections:llamaServer': LLAMA_SERVER_READY,
 };
 
 export const SAMPLE_ENGINE: EngineReplies = {
   'connections:detectLocal': LOCAL_WITH_GLIMMER,
+  'connections:llamaServer': LLAMA_SERVER_READY,
   'graduates:list': [graduate],
   'graduates:settings': { writeMode: 'ask' },
   'workspace:listChats': Object.values(CHATS),

@@ -266,6 +266,13 @@ export interface ArchitectApi {
     signIn(provider: 'openrouter'): Promise<SignInResult>;
     /** Stops a sign-in that is waiting for the browser. */
     cancelSignIn(): Promise<void>;
+    /** Finds llama-server, asks its build, and says whether it can serve adapters. Loads nothing. */
+    llamaServer(): Promise<LlamaServerStatus>;
+    /**
+     * Uses this llama-server from now on, which must be a file the user picked; null goes back
+     * to the one on PATH. Checks it like `llamaServer`.
+     */
+    chooseLlamaServer(path: string | null): Promise<LlamaServerStatus>;
   };
   ollama: {
     status(): Promise<OllamaStatus>;
