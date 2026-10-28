@@ -113,7 +113,7 @@ function backendSection(backend: BackendTable): string {
           'Paired, scenario by scenario',
           'Scenarios',
           'Wins',
-          'Losses',
+          'Losses (regressions)',
           'Both',
           'Neither',
           'By type (wins/losses)',
@@ -204,10 +204,15 @@ export function renderMarkdown(report: ComparisonReport): string {
         : [
             `Frozen: harness version ${arm.frozen.harnessVersion} (${short(arm.frozen.harnessHash)}) on ${arm.frozen.backend}${arm.frozen.adapter === null ? ', no adapter' : `, adapter ${arm.frozen.adapter.id} (${short(arm.frozen.adapter.sha256)}) at scale ${arm.frozen.adapter.scale} on base ${arm.frozen.adapter.baseDigest ?? 'not recorded'}${arm.frozen.adapter.standIn ? ', a stand-in' : ''}`}; locked-test seeds ${arm.frozen.testSeeds.join(', ')}.`,
           ]),
-      ...arm.experiments.map(
-        (experiment) =>
-          `Round ${experiment.round} (${experiment.kind}) ${experiment.disposition}: ${experiment.title}. ${experiment.reason}`,
-      ),
+      ...arm.experiments.map((experiment) => {
+        const regressed = experiment.regressions
+          .map((item) => `${item.type} (${item.before} to ${item.after})`)
+          .join(', ');
+        const reason = experiment.reason.endsWith('.')
+          ? experiment.reason
+          : `${experiment.reason}.`;
+        return `Round ${experiment.round} (${experiment.kind}) ${experiment.disposition}: ${experiment.title}. ${reason}${regressed === '' ? '' : ` Dev regressed on ${regressed}.`}`;
+      }),
     ];
     if (lines.length > 0) parts.push(`**${arm.label}.** ${lines.join(' ')}`);
   }

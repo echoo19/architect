@@ -618,6 +618,7 @@ function armReport(input: ReportInput, arm: ArmId, job: Job | null): ArmReport {
             disposition: experiment.disposition,
             devBefore: experiment.devBefore,
             devAfter: experiment.devAfter,
+            regressions: experiment.regressions,
             reason: experiment.reason,
           })),
     frozen:

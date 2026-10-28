@@ -219,6 +219,10 @@ export const ArmReportSchema = z.object({
       disposition: z.string(),
       devBefore: ScoreSchema.nullable(),
       devAfter: ScoreSchema.nullable(),
+      /** Task types that lost dev passes in the round, before and after. */
+      regressions: z.array(
+        z.object({ type: z.string(), before: z.number().int(), after: z.number().int() }),
+      ),
       reason: z.string(),
     }),
   ),
