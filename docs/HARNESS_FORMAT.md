@@ -136,7 +136,7 @@ The three write tools go through the job's write permissions, and in the workspa
 
 ## Graduate package (format 2)
 
-A graduate is an agent with immutable versions. Each version is a package: a plain folder, and the same files in a ZIP named `<name>-v<n>.architect.zip` for moving it. The desktop app, export, import, the `architect` command and Hugging Face all use this one artifact (decisions 038, 039, 041 and 042).
+A graduate is an agent with immutable versions. Each version is a package: a plain folder, and the same files in a ZIP named `<name>-v<n>.architect.zip` for moving it. The desktop app, export, import, the `architect` command and Hugging Face all use this one artifact (decisions 038, 039, 043 and 044).
 
 ```
 graduate.json          the manifest: everything below, and the sha256 of every other file
@@ -204,7 +204,7 @@ A computer keeps, for each agent, an installation in its own database, never in 
 
 ### On Hugging Face
 
-A published version is a model repository holding the package at its root, exactly as an export writes it, and a `README.md` model card made from its manifest beside it. The package goes up in one commit, which the card names in its install command (`architect install hf://owner/name --revision <commit>`); the card follows in a second commit. Installing fetches `graduate.json` at one commit and then only the files it lists, each checked against its sha256 and size, so the card and any other file in the repository never reach a computer that installs it (decision 042).
+A published version is a model repository holding the package at its root, exactly as an export writes it, and a `README.md` model card made from its manifest beside it. The package goes up in one commit, which the card names in its install command (`architect install hf://owner/name --revision <commit>`); the card follows in a second commit. Installing fetches `graduate.json` at one commit and then only the files it lists, each checked against its sha256 and size, so the card and any other file in the repository never reach a computer that installs it (decision 044).
 
 ## Format 1 graduate folders
 

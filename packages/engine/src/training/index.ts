@@ -39,6 +39,18 @@ export {
   JOB_TAG,
   type HfJobsBackendOptions,
 } from './hf-jobs';
+// The Hub client lives in ../hub, shared with publishing (decision 044); training's callers
+// keep importing it from here.
+export {
+  HF_ENDPOINT,
+  HubClient,
+  HubError,
+  MAX_COMMIT_FILE_BYTES,
+  type HubClientOptions,
+  type HubErrorCode,
+  type JobInfo,
+  type JobSpec,
+} from '../hub';
 export {
   buildTrainerJob,
   FINISH_RESERVE_SECONDS,

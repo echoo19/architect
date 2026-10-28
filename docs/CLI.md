@@ -1,6 +1,6 @@
 # The architect command
 
-`architect` runs, installs, checks, exports and publishes graduates from a terminal, without opening the app. It is not a second runtime: it opens the app's own data folder and runs an agent through the same agent host the workspace uses, with the same package loader, folders, permissions, approvals and event stream (decision 041). It only ever runs a graduate on a model on this computer. It never calls a mentor or a cloud model, and before a graduate loads it puts up the same network guard as the workspace, so the only connections it can make are to the local model runtime.
+`architect` runs, installs, checks, exports and publishes graduates from a terminal, without opening the app. It is not a second runtime: it opens the app's own data folder and runs an agent through the same agent host the workspace uses, with the same package loader, folders, permissions, approvals and event stream (decision 043). It only ever runs a graduate on a model on this computer. It never calls a mentor or a cloud model, and before a graduate loads it puts up the same network guard as the workspace, so the only connections it can make are to the local model runtime.
 
 ## Getting it
 

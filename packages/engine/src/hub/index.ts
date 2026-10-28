@@ -1,6 +1,6 @@
 /**
  * Hugging Face: one client for everything Architect does on the Hub, from training jobs
- * (decision 035) to publishing and installing graduates (decision 042).
+ * (decision 035) to publishing and installing graduates (decision 044).
  */
 export {
   gitBlobId,
