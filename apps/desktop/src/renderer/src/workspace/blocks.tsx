@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import type { AgentBlock, GraduateSummary } from '@architect/shared';
 import {
   Button,
@@ -10,7 +10,16 @@ import {
   TableHeader,
   TableRow,
 } from '@architect/ui';
-import { Ban, Check, ChevronRight, CircleMinus, FilePen, FilePlus, X } from 'lucide-react';
+import {
+  Ban,
+  Check,
+  ChevronRight,
+  CircleAlert,
+  CircleMinus,
+  FilePen,
+  FilePlus,
+  X,
+} from 'lucide-react';
 import { architect } from '../api/client';
 import { PatchLines } from '../components/PatchLines';
 import { attempt } from '../lib/notify';
@@ -139,7 +148,9 @@ export interface ApprovalCardProps {
 
 /**
  * A change the agent wants to make: what it touches, the rows or lines it writes, and Allow or
- * Deny. A pending change shows its preview from the start, so nothing is allowed unseen.
+ * Deny. A pending change shows its preview from the start, so nothing is allowed unseen. An
+ * allowed change that couldn't be saved says why and offers to try again; it never shows as
+ * allowed while nothing was written.
  */
 export function ApprovalCard({ block, agent, answerable, onOpenPanel }: ApprovalCardProps) {
   const previewId = useId();
@@ -148,6 +159,11 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
   const [answer, setAnswer] = useState<Decision | null>(null);
   const size = previewSize(block);
   const FileIcon = addsToFile(block) ? FilePlus : FilePen;
+  // An answer stands until the host moves the change on: a save that fails after an "allow"
+  // brings the choice back.
+  useEffect(() => setAnswer(null), [block.status, block.error]);
+  const unsaved = block.error !== undefined;
+  const retrying = block.status === 'pending' && unsaved && answerable;
 
   const decide = async (decision: Decision) => {
     setSending(decision);
@@ -162,7 +178,13 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
   };
 
   let outcome: ReactNode = null;
-  if (block.status === 'denied' || (block.status === 'pending' && answer === 'deny')) {
+  if (block.status === 'failed' || (unsaved && (!answerable || answer === 'deny'))) {
+    outcome = (
+      <Outcome icon={<CircleAlert size={14} className="text-danger" aria-hidden />}>
+        Not saved
+      </Outcome>
+    );
+  } else if (block.status === 'denied' || (block.status === 'pending' && answer === 'deny')) {
     outcome = <Outcome icon={<X size={14} aria-hidden />}>Denied</Outcome>;
   } else if (block.status === 'approved' || (block.status === 'pending' && answer)) {
     outcome = (
@@ -221,14 +243,29 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
             <span className="text-sm text-fg-muted">{changeCounts(block) || block.summary}</span>
           </span>
         </button>
-        {outcome ?? (
-          <div className="flex gap-1.5">
-            {choice('deny', 'Deny')}
-            {choice('always', 'Allow all from now on')}
-            {choice('approve', 'Allow once', true)}
-          </div>
-        )}
+        {outcome ??
+          (retrying ? (
+            <div className="flex gap-1.5">
+              {choice('deny', "Don't save")}
+              {choice('approve', 'Try again', true)}
+            </div>
+          ) : (
+            <div className="flex gap-1.5">
+              {choice('deny', 'Deny')}
+              {choice('always', 'Allow all from now on')}
+              {choice('approve', 'Allow once', true)}
+            </div>
+          ))}
       </div>
+      {unsaved && (
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 border-t border-line-card px-4 py-3 text-sm text-fg-secondary"
+        >
+          <CircleAlert size={14} className="mt-[3px] shrink-0 text-danger" aria-hidden />
+          <span className="min-w-0 text-pretty">{block.error}</span>
+        </div>
+      )}
       {expanded && (
         <div id={previewId} className="border-t border-line-card">
           {block.diff ? (
