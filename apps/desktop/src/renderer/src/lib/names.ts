@@ -1,4 +1,5 @@
 import {
+  DEFAULT_STUDENT,
   GLIMMER_BUILDS,
   STUDENT_PRESETS,
   isLoopbackUrl,
@@ -31,13 +32,6 @@ export function mentorIsLocal(mentor: MentorConfig): boolean {
   return providerInfo(mentor.provider).local || isLoopbackUrl(mentor.baseUrl);
 }
 
-/*
- * How a screen introduces the two models the first time it names them, so the roles read the
- * same everywhere: "Spark, the mentor" and "Glimmer, your agent's model".
- */
-
-export const MENTOR_ROLE = 'the mentor';
-
 /**
  * A kept setup by where it came from rather than its internal number: "the first draft", "the
  * setup from round 4", or "the starting setup" when no round made it.
@@ -64,19 +58,12 @@ export function activeVersionName(agent: {
     : `Version ${agent.activeVersion}`;
 }
 
+/** What the model an agent runs on is called where a setting names it. */
 export const STUDENT_ROLE = "your agent's model";
 
 /** A phrase as it starts a line: "the mentor" → "The mentor". */
 export function capitalized(phrase: string): string {
   return phrase.charAt(0).toUpperCase() + phrase.slice(1);
-}
-
-export function mentorIntro(name: string): string {
-  return `${name}, ${MENTOR_ROLE}`;
-}
-
-export function studentIntro(name: string): string {
-  return `${name}, ${STUDENT_ROLE}`;
 }
 
 /**
@@ -87,6 +74,11 @@ export function studentIntro(name: string): string {
 export function agentModelName(student: { label: string; model: string }): string {
   const build = GLIMMER_BUILDS.find((candidate) => candidate.model === student.model);
   return build ? shortModelName(student.label) : student.model;
+}
+
+/** An installed agent's base model: "Glimmer" for one of Glimmer's builds, its own id for any other. */
+export function baseModelName(model: string): string {
+  return GLIMMER_BUILDS.some((build) => build.model === model) ? DEFAULT_STUDENT.label : model;
 }
 
 /** How the UI writes a quantization: "Q4_K_M" → "4-bit". Unknown schemes stay as they are. */

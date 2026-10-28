@@ -1,16 +1,14 @@
-import { useState } from 'react';
-import { Button, Composer, Heading, IconButton } from '@architect/ui';
+import { Composer, Heading, IconButton, Tooltip } from '@architect/ui';
 import { Cloud, Laptop, Paperclip } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { flowApi } from '../../api/client';
-import { queryKeys, useSettings } from '../../api/hooks';
-import { setQueryData } from '../../api/query';
+import { useSettings } from '../../api/hooks';
 import { ReadyMadeAgentButton } from '../../import/ReadyMadeAgentButton';
 import { mentorIsLocal, mentorName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
-import { navigate, paths } from '../../lib/router';
-import { AttachedFile, isTaskFile } from './AttachedFile';
+import { AttachedFile } from './AttachedFile';
 import { sendToMentor, useDraftStore } from './draft-store';
+import { SampleJobButton } from './SampleJobButton';
 
 /** Data the agent works with, and example tasks with their answers. */
 const ATTACHABLE = [
@@ -29,7 +27,6 @@ export function DescribeHero() {
       setFiles: state.setFiles,
     })),
   );
-  const [creatingSample, setCreatingSample] = useState(false);
   const settings = useSettings();
   const mentor =
     settings.status === 'success'
@@ -56,15 +53,6 @@ export function DescribeHero() {
     setFiles([]);
   };
 
-  const startFromSample = async () => {
-    setCreatingSample(true);
-    const job = await attempt("Couldn't create the sample job", () => flowApi.createSample());
-    setCreatingSample(false);
-    if (!job) return;
-    setQueryData(queryKeys.job(job.id), job);
-    navigate(paths.define(job.id));
-  };
-
   const empty = !text.trim() && files.length === 0;
   return (
     <div className="flex min-h-full flex-col items-center justify-center gap-8 px-6 pb-[120px] pt-12">
@@ -81,9 +69,14 @@ export function DescribeHero() {
           onSubmit={send}
           autoFocus
           leading={
-            <IconButton label="Attach files" onClick={() => void attach()}>
-              <Paperclip size={18} strokeWidth={1.6} aria-hidden />
-            </IconButton>
+            <Tooltip
+              content="Add the job's files, and example tasks with their answers as .jsonl or tasks.csv"
+              side="bottom"
+            >
+              <IconButton label="Attach files" onClick={() => void attach()}>
+                <Paperclip size={18} strokeWidth={1.6} aria-hidden />
+              </IconButton>
+            </Tooltip>
           }
           trailing={
             mentor && (
@@ -93,7 +86,7 @@ export function DescribeHero() {
                 ) : (
                   <Cloud size={14} strokeWidth={1.6} aria-hidden />
                 )}
-                {mentor.name}
+                Teacher: {mentor.name}
                 <span className="sr-only">
                   {mentor.local
                     ? ', on this computer, reads what you send'
@@ -115,23 +108,11 @@ export function DescribeHero() {
             ))}
           </ul>
         )}
-        {!files.some(isTaskFile) && (
-          <p className="m-0 text-sm text-fg-muted">
-            Include example tasks with their answers, as .jsonl or tasks.csv
-          </p>
-        )}
       </div>
       {empty && (
         <div className="-mt-3 flex flex-wrap items-center justify-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            loading={creatingSample}
-            onClick={() => void startFromSample()}
-          >
-            Try the sample job
-          </Button>
-          <ReadyMadeAgentButton variant="ghost" size="sm" />
+          <SampleJobButton size="md" />
+          <ReadyMadeAgentButton size="md" />
         </div>
       )}
     </div>

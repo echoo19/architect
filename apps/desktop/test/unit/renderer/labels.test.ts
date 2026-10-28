@@ -9,12 +9,12 @@ import {
 import {
   activeVersionName,
   agentModelName,
+  baseModelName,
   capitalized,
-  mentorIntro,
   mentorIsLocal,
   quantizationLabel,
   shortModelName,
-  studentIntro,
+  STUDENT_ROLE,
   studentLabel,
   studentName,
   setupName,
@@ -68,10 +68,14 @@ describe('model names', () => {
     expect(studentLabel({ ...local, model: 'qwen3:8b' })).toBe('qwen3:8b');
   });
 
-  it('introduces each model by its role, the same way everywhere', () => {
-    expect(mentorIntro('Spark')).toBe('Spark, the mentor');
-    expect(studentIntro('Glimmer')).toBe("Glimmer, your agent's model");
-    expect(capitalized("your agent's model")).toBe("Your agent's model");
+  it("names an agent's base model Glimmer for any of Glimmer's builds, and by its id otherwise", () => {
+    expect(baseModelName('muse-glimmer:30b')).toBe('Glimmer');
+    expect(baseModelName('muse-glimmer:30b-iq2')).toBe('Glimmer');
+    expect(baseModelName('qwen3:8b')).toBe('qwen3:8b');
+  });
+
+  it('starts a phrase with a capital where a setting names the model an agent runs on', () => {
+    expect(capitalized(STUDENT_ROLE)).toBe("Your agent's model");
   });
 
   it('writes a quantization as the number of bits people know it by', () => {

@@ -8,6 +8,7 @@ import {
 } from '@architect/shared';
 import {
   Button,
+  Disclosure,
   Input,
   Panel,
   ProviderMark,
@@ -19,7 +20,7 @@ import { CircleAlert, CircleCheck, ExternalLink, KeyRound, Plus } from 'lucide-r
 import { architect } from '../api/client';
 import { toError, type QueryState } from '../api/query';
 import { errorOf } from '../components/QueryValue';
-import { shortModelName } from '../lib/names';
+import { mentorName, shortModelName } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { AddKeyDialog } from '../settings/models/AddKeyDialog';
 import { mentorFromChoice, type Connection } from '../settings/models/connections';
@@ -30,9 +31,9 @@ import { mentorFromPreset, mentorProvider, routeOf, type MentorRoute } from './m
 import { StepIntro } from './SetupShell';
 
 const ROUTES: readonly { value: MentorRoute; title: string; line: string }[] = [
-  { value: 'meta', title: 'Muse Spark', line: "Meta's model, with a Meta key" },
+  { value: 'meta', title: 'Spark', line: "Meta's model, with a Meta key" },
   { value: 'openrouter', title: 'OpenRouter', line: 'Sign in, then pick any of its models' },
-  { value: 'key', title: 'Another provider', line: 'OpenAI, Anthropic, Gemini or any API key' },
+  { value: 'key', title: 'Another service', line: 'OpenAI, Anthropic, Gemini or any other key' },
   { value: 'local', title: 'On this computer', line: 'A model in Ollama or LM Studio' },
 ];
 
@@ -92,8 +93,9 @@ export interface MentorStepProps {
 }
 
 /**
- * The mentor: Muse Spark with a Meta key by default, or a sign-in with OpenRouter, another
- * provider's key, or a model on this computer. Each way ends at a picker and a test.
+ * The teacher: Spark with a Meta key by default, shown first and alone, or, under "Other ways to
+ * connect a teacher", a sign-in with OpenRouter, another provider's key, or a model on this
+ * computer. Each way ends at a picker and a test.
  */
 export function MentorStep({
   mentor,
@@ -145,11 +147,11 @@ export function MentorStep({
 
   /** The way's connections in one picker, with a test of the mentor chosen from it. */
   const picker = (
-    <SettingsRow label="Mentor">
+    <SettingsRow label="Teacher">
       <span className="flex items-center gap-2">
         <ModelPicker
           role="mentor"
-          aria-label="Mentor"
+          aria-label="Teacher"
           only={(connection) => !connection.offered && ROUTE_CONNECTIONS[route](connection)}
           current={chosenHere ? model : null}
           onChoose={(choice) => {
@@ -182,7 +184,7 @@ export function MentorStep({
           meta={metaSaved ? 'Saved' : undefined}
           error={errorOf(secrets)}
         >
-          <div className="flex min-w-0 flex-[1_1_320px] gap-2">
+          <div className="flex w-full min-w-0 flex-[1_1_320px] flex-col items-end gap-2">
             <Input
               type="password"
               aria-label="Meta API key"
@@ -191,17 +193,14 @@ export function MentorStep({
               onChange={(event) => setKey(event.target.value)}
               autoComplete="off"
               spellCheck={false}
-              className="min-w-0 flex-1"
+              className="w-full"
             />
-            <Button
-              type="submit"
-              size="md"
-              className="h-[38px]"
-              loading={testing}
-              disabled={!key.trim() && !metaSaved}
-            >
-              Test connection
-            </Button>
+            {/* Offered once there is a key to test, rather than as a button that waits. */}
+            {(key.trim() !== '' || metaSaved) && (
+              <Button type="submit" size="md" loading={testing}>
+                Test connection
+              </Button>
+            )}
           </div>
         </SettingsRow>
         {!metaSaved && (
@@ -266,31 +265,40 @@ export function MentorStep({
 
   return (
     <>
-      <StepIntro title="Choose a mentor">
-        It coaches each new agent while it trains. Your agents never call it.
+      <StepIntro title="Choose a teacher">
+        {mentorName(mentor)} teaches each new agent while it trains. Your finished agents never use
+        it.
       </StepIntro>
       <div className="flex w-full max-w-[720px] flex-col gap-3.5">
-        <RadioCardGroup<MentorRoute>
-          aria-label="Mentor"
-          value={route}
-          onValueChange={chooseRoute}
-          className="grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))]"
-        >
-          {ROUTES.map((option) => (
-            <RadioCard
-              key={option.value}
-              value={option.value}
-              title={option.title}
-              disabled={testing}
-            >
-              <span>{option.line}</span>
-            </RadioCard>
-          ))}
-        </RadioCardGroup>
-        <Panel aria-label="Mentor connection" className="px-7 py-1 [&>*:first-child]:border-t-0">
+        <Panel aria-label="Teacher connection" className="px-7 py-1 [&>*:first-child]:border-t-0">
           {body}
           {result && <ConnectionResult result={result} />}
         </Panel>
+        <Disclosure
+          label="Other ways to connect a teacher"
+          defaultOpen={route !== 'meta'}
+          className="px-1"
+        >
+          <div className="pt-2">
+            <RadioCardGroup<MentorRoute>
+              aria-label="Teacher"
+              value={route}
+              onValueChange={chooseRoute}
+              className="grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))]"
+            >
+              {ROUTES.map((option) => (
+                <RadioCard
+                  key={option.value}
+                  value={option.value}
+                  title={option.title}
+                  disabled={testing}
+                >
+                  <span>{option.line}</span>
+                </RadioCard>
+              ))}
+            </RadioCardGroup>
+          </div>
+        </Disclosure>
       </div>
     </>
   );

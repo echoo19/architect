@@ -1,5 +1,6 @@
 import {
   ConnectionTestSchema,
+  GLIMMER_BUILDS,
   MENTOR_PRESETS,
   mentorPreset,
   type MentorConfig,
@@ -8,6 +9,7 @@ import {
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { mentorFromPreset, presetFor, routeOf } from '../../../src/renderer/src/onboarding/mentor';
+import { sizeWord } from '../../../src/renderer/src/onboarding/builds';
 import {
   idlePull,
   pullBytes,
@@ -124,5 +126,17 @@ describe('mentor presets', () => {
       ConnectionTestSchema.parse({ ok: false, error: 'The key was refused.', hint: 'Check it.' }),
     ).toMatchObject({ ok: false, hint: 'Check it.' });
     expect(ConnectionTestSchema.safeParse({ ok: true }).success).toBe(false);
+  });
+});
+
+describe("Glimmer's builds, named next to the one recommended", () => {
+  it('calls the recommended build Recommended, and the other Smaller or Larger', () => {
+    const [fourBit, gpu] = GLIMMER_BUILDS;
+    if (!fourBit || !gpu) throw new Error('Glimmer has two builds.');
+    expect(sizeWord(fourBit, fourBit)).toBe('Recommended');
+    expect(sizeWord(gpu, fourBit)).toBe('Smaller');
+    // On a graphics card that holds only the smaller one, the larger one is the other choice.
+    expect(sizeWord(gpu, gpu)).toBe('Recommended');
+    expect(sizeWord(fourBit, gpu)).toBe('Larger');
   });
 });

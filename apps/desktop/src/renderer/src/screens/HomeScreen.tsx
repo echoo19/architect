@@ -2,13 +2,12 @@ import { useEffect, useState } from 'react';
 import type { GraduateSummary } from '@architect/shared';
 import { Button, EmptyState, Skeleton } from '@architect/ui';
 import { Bot } from 'lucide-react';
-import { architect } from '../api/client';
 import { useGraduates, useSettings } from '../api/hooks';
 import { toError } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
+import { SampleJobButton } from '../flow/describe/SampleJobButton';
 import { ReadyMadeAgentButton } from '../import/ReadyMadeAgentButton';
-import { mentorIntro, mentorName, studentIntro, studentName } from '../lib/names';
-import { attempt } from '../lib/notify';
+import { mentorName, studentName } from '../lib/names';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 import { WorkspaceHeader } from '../shell/WorkspaceShell';
@@ -93,23 +92,13 @@ function OpenLatestChat({ graduates }: { graduates: GraduateSummary[] }) {
 
 function NoAgentsYet() {
   const settings = useSettings();
-  const [creating, setCreating] = useState(false);
   const device = deviceInSentence(currentPlatform());
   const pitch =
     settings.status === 'success'
-      ? `Describe a job, and ${mentorIntro(mentorName(settings.data.defaultMentor))}, teaches ${studentIntro(
-          studentName(settings.data.defaultStudent),
-        )}, to do it. The agent runs on ${device}.`
+      ? `Describe a job, and ${mentorName(settings.data.defaultMentor)} teaches ${studentName(
+          settings.data.defaultStudent,
+        )} to do it. The agent runs on ${device}.`
       : `Describe a job and Architect trains an agent that runs on ${device}.`;
-
-  const trySample = async () => {
-    setCreating(true);
-    const job = await attempt("Couldn't create the sample job", () =>
-      architect().jobs.createSample(),
-    );
-    setCreating(false);
-    if (job) navigate(paths.define(job.id));
-  };
 
   return (
     <EmptyState
@@ -121,9 +110,7 @@ function NoAgentsYet() {
           <Button variant="primary" size="md" onClick={() => navigate(paths.newAgent())}>
             New agent
           </Button>
-          <Button size="md" loading={creating} onClick={trySample}>
-            Try the sample job
-          </Button>
+          <SampleJobButton size="md" />
           <ReadyMadeAgentButton size="md" />
         </>
       }
