@@ -2,6 +2,28 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-28 (Tue), the expanded spec arrives
+
+**Done**
+- The owner's expanded spec (`docs/SPEC_EXPANSION.md`) now governs scope. `docs/EXPANSION.md` maps it onto the repo and tracks every requirement; decisions 030 to 033 settle the harness, the adapter backend, the teaching job and training compute.
+- Feasibility, on this PC: Ollama refuses LoRA adapters; llama.cpp's `llama-server` loads the 2-bit Glimmer GGUF from Ollama's store with a LoRA, applies it per request, and parses Glimmer's tool calls with `--jinja` (two short GPU loads, then unloaded).
+- The returns desk calibrated on hosted Glimmer with the table tools: 36 of 45 dev tasks (refunds 15/15, orders 11/15, pickups 10/15).
+- A transient model error no longer pauses a run at once (decision 029); calibration retries the same way.
+- The table-tool comparison stopped after seed 1 and part of seeds 2 to 5, to keep the OpenRouter credit (about $15) for the new runtime. Its finished attempts are kept.
+
+**In progress (agents in worktrees)**
+- Runtime v2, the coding-agent harness (decision 030).
+- The llama.cpp adapter backend and the training worker (decisions 031, 033).
+- Graduate versions, manifest v2, and `.architect.zip` export and import.
+- Model-agnostic providers (started before the spec).
+
+**Next**
+- Replay and verified lessons, the intervention menu, Teach this, the evidence screens, the CLI and Hugging Face publishing, then comparisons and the demo on the new runtime.
+
+**Open issues**
+- Training compute: the owner has been asked for a Hugging Face token with credit (or Modal); until then A01 is blocked and graduates are harness-only.
+- GPU work stays off except brief checks.
+
 ## 2026-10-28 (Tue), early morning
 
 **Done**
