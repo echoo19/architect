@@ -645,10 +645,37 @@ describe('a run that starts from a blank harness', () => {
     });
     expect(rounds[0]?.firstMeasurement).toBeUndefined();
     expect(rounds.map((round) => round.draft)).toEqual([true, undefined]);
+    // The draft is measured alone; the run's baseline stands as its score before.
+    const draftDev = engine.store.attempts
+      .list({ runId: run.id, split: 'dev' })
+      .filter((attempt) => attempt.round === 1);
+    expect(draftDev).toHaveLength(9);
+    expect(new Set(draftDev.map((attempt) => attempt.harnessVersion))).toEqual(new Set([2]));
+    expect(rounds[0]?.devBefore).toEqual(engine.store.runs.get(run.id)?.run.devBaseline);
     const train = engine.store.attempts.list({ runId: run.id, split: 'train' });
     expect(train.filter((attempt) => attempt.round === 1)).toHaveLength(0);
     expect(train.filter((attempt) => attempt.round === 2).length).toBeGreaterThan(0);
     expect(rounds[1]).toMatchObject({ decision: 'kept', title: 'Add the invoice procedure' });
+  });
+
+  it('drafts again when a draft is refused even after its fix', async () => {
+    const job = await setUp({
+      job: { startingHarness: { kind: 'blank' }, budget: { ...defaultJob().budget, maxRounds: 2 } },
+    });
+    world.mentor.script = (_request, call) =>
+      call <= 2 ? dropThePrompt() : hypothesis('Second draft', 'Service desk.\nfix:invoice');
+    const run = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    expect(world.mentor.requests).toHaveLength(3);
+    expect(world.mentor.requests[2]?.system).toContain('Write its whole harness in one go');
+    const rounds = engine.store.rounds.list(run.id);
+    expect(rounds.map(({ round, rejected }) => [round.index, rejected, round.draft])).toEqual([
+      [1, true, true],
+      [2, false, true],
+    ]);
+    expect(rounds[1]?.round).toMatchObject({ decision: 'kept', train: { pass: 0, total: 0 } });
+    expect(engine.store.attempts.list({ runId: run.id, split: 'train' })).toHaveLength(0);
   });
 
   it('has the student draft its own harness first in self-reflection', async () => {

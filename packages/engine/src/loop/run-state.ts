@@ -139,17 +139,16 @@ export class RunState {
 
   /**
    * Whether the round's author writes a whole harness rather than one change: the one-shot
-   * method's only round, and the first round of a run that starts from a blank harness
-   * (decision 026). A drafting round makes no train attempts.
+   * method's only round, and in a run that starts from a blank harness every round until a
+   * draft is kept (decision 026), so a draft refused even after its fix is followed by another
+   * draft, not by building piece by piece. A drafting round makes no train attempts.
    */
   drafts(index: number): boolean {
     const { method } = this.run;
     if (method === 'one_shot') return true;
-    return (
-      index === 1 &&
-      this.job.startingHarness.kind === 'blank' &&
-      (method === 'architect' || method === 'self_reflection')
-    );
+    if (method !== 'architect' && method !== 'self_reflection') return false;
+    if (this.job.startingHarness.kind !== 'blank') return false;
+    return !this.rounds().some(({ round }) => round.index < index && round.decision === 'kept');
   }
 
   trainTasks(): Promise<Task[]> {

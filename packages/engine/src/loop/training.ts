@@ -261,6 +261,25 @@ async function measureRound(
 }
 
 /**
+ * A draft on dev under the round's seeds. It is kept whatever it scores, so the incumbent isn't
+ * measured again: the run's baseline, the same harness, stands as the score before it.
+ */
+async function measureDraft(
+  state: RunState,
+  index: number,
+  versions: { base: number; candidate: number },
+  runs: number,
+): Promise<DevPair | null> {
+  const seeds = devSeeds(state.record.seeds.devPanel, index, runs);
+  if (!(await evaluate(state, await devEvaluation(state, versions.candidate, index, runs)))) {
+    return null;
+  }
+  const after = state.devResult(versions.candidate, index, seeds);
+  state.emit({ type: 'eval.finished', split: 'dev', harnessVersion: versions.candidate, ...after });
+  return { before: state.devResult(versions.base, null), after };
+}
+
+/**
  * The incumbent and its candidate on dev, under the round's own seeds. The incumbent is measured
  * again rather than judged by the score that got it kept, which was the luckier of its draws. A
  * candidate that clears the keep limits is measured again, both versions under new seeds, and
@@ -276,17 +295,19 @@ export async function evaluateCandidate(state: RunState, index: number): Promise
   };
   const { evaluation } = state.job;
   const runs = evaluation.devRepeats;
-  const first = await measureRound(state, index, versions, runs);
-  if (first === null) return;
   if (state.drafts(index)) {
+    const draft = await measureDraft(state, index, versions, runs);
+    if (draft === null) return;
     await decide(
       state,
       state.round(index),
-      first,
-      draftDecision(state, first.before.score, first.after.score),
+      draft,
+      draftDecision(state, draft.before.score, draft.after.score),
     );
     return;
   }
+  const first = await measureRound(state, index, versions, runs);
+  if (first === null) return;
   const decision = decideKeep({ ...measurementOf(first), evaluation, runs });
   if (!decision.keep) {
     await decide(state, state.round(index), first, decision);
