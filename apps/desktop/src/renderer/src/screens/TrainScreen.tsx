@@ -6,6 +6,7 @@ import { rate } from '../flow/format';
 import { modelNames, typeLabel } from '../flow/names';
 import { Apprenticeship } from '../flow/train/Apprenticeship';
 import { CurrentRound } from '../flow/train/CurrentRound';
+import { providerName } from '../flow/define/hosted';
 import { draftRoundOf } from '../flow/train/draft';
 import { Examples } from '../flow/train/Examples';
 import { phaseView } from '../flow/train/phase';
@@ -159,7 +160,9 @@ function useReportWhenFinished(
 /** Where the student is running now: a hosted copy only practices; the final test runs here. */
 function studentPlace({ run, job }: LiveRun): string {
   const testing = run.status === 'testing' || run.phase === 'testing';
-  if (!testing && job.student.trainOn === 'hosted') return 'on a hosted copy';
+  if (!testing && job.student.trainOn === 'hosted') {
+    return `on ${job.student.hosted ? providerName(job.student.hosted) : 'a hosted copy'}`;
+  }
   return `on ${deviceInSentence(currentPlatform())}`;
 }
 
