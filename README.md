@@ -26,7 +26,7 @@ Training starts, when you begin from a blank harness, with the mentor writing a 
 
 When the student meets the target or the budget runs out, the mentor is disconnected and the locked test runs once on your machine. The report card shows the result per task type, typical and slowest answer times, what training cost, which changes helped most, and the task types the agent refuses because nothing fixed them. Accept it, and the graduate appears in the sidebar, ready to use.
 
-In the workspace you chat with the graduate like you would with a coding agent: each step it takes is shown as it runs, every write to your files waits for your approval with a diff of the rows, and requests it was not trained for are refused with the reason from its report card. The graduate's process can only reach the local model runtime; anything else is blocked.
+In the workspace you chat with the graduate like you would with a coding agent, because it is one: it reads, searches and changes your files and runs small JavaScript programs over them in a sandbox. Each step it takes is shown as it runs, every change to your files waits for your approval with a diff, and requests it was not trained for are refused with the reason from its report card. The graduate's process can only reach the local model runtime; anything else is blocked.
 
 A few guarantees hold throughout, and the tests check each of them:
 
@@ -37,7 +37,7 @@ A few guarantees hold throughout, and the tests check each of them:
 
 ## Results
 
-Everything below was measured on the sample job, Ferncliff Home Services (version 2): a made-up back office where the agent prices finished jobs into invoices, answers questions about overdue balances, and books service visits into the schedule. Its 180 tasks, each with a deterministic check, are split into 60 practice tasks, 45 check tasks, 15 calibration tasks and a locked test of 60 that the mentor never sees. The mentor is Muse Spark 1.3 and the student is Muse Glimmer 30B. To save time, training and the comparison's locked tests ran on a hosted copy of Glimmer on OpenRouter; the agent the repo ships was then tested again on this computer, offline.
+Everything below was measured on the sample job, Ferncliff Home Services (version 2): a made-up back office where the agent prices finished jobs into invoices, answers questions about overdue balances, and books service visits into the schedule. Its 180 tasks, each with a deterministic check, are split into 60 practice tasks, 45 check tasks, 15 calibration tasks and a locked test of 60 that the mentor never sees. The mentor is Muse Spark 1.3 and the student is Muse Glimmer 30B. To save time, training and the comparison's locked tests ran on a hosted copy of Glimmer on OpenRouter; the agent the repo ships was then tested again on this computer, offline. These runs used the first version of the student's tools, which read and wrote tables row by row, before the student got a coding agent's tools (decision 030), so they describe that version.
 
 ### Seed 1
 
