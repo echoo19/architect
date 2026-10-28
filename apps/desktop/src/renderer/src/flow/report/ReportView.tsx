@@ -4,14 +4,7 @@ import { Badge, Heading, Meter, Stat } from '@architect/ui';
 import { Check, CircleMinus } from 'lucide-react';
 import type { QueryState } from '../../api/query';
 import { formatBytes, formatDuration, formatUsd } from '../../lib/format';
-import {
-  capitalized,
-  mentorIntro,
-  quantizationLabel,
-  shortModelName,
-  STUDENT_ROLE,
-  studentIntro,
-} from '../../lib/names';
+import { quantizationLabel, shortModelName } from '../../lib/names';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { providerName } from '../define/hosted';
 import { formatAnswerTime, formatRate, percent, signed } from '../format';
@@ -22,8 +15,8 @@ import { missedRequirements } from './requirements';
 
 /** How the report names the runtime the final test ran on. */
 const RUNTIMES: Record<string, string> = {
-  ollama: 'on Ollama',
-  openai_compatible: 'on a hosted endpoint',
+  ollama: 'Ollama',
+  openai_compatible: 'Hosted endpoint',
 };
 
 interface ReportViewProps {
@@ -36,20 +29,25 @@ interface ReportViewProps {
 }
 
 /**
- * Where the "before training" number comes from: the bare baseline's final test when it ran,
+ * The score before training, set against this one: the bare baseline's final test when it ran,
  * which is the same test this report scores; otherwise the check tasks before round one.
  */
 function beforeTraining(
   report: ReportCard,
   comparison: QueryState<ComparisonRow[]>,
-  student: string,
 ): string | undefined {
   const bare = comparison.data?.find((row) => row.method === 'bare');
-  if (bare && report.method !== 'bare') {
-    return `Up from ${Math.round(bare.testRate)}% before training (${student} with no setup)`;
-  }
-  const { baseline } = report.dev;
-  return baseline ? `Up from ${formatRate(baseline)} on check tasks before training` : undefined;
+  const before =
+    bare && report.method !== 'bare'
+      ? { percent: Math.round(bare.testRate), where: 'with no setup' }
+      : report.dev.baseline && {
+          percent: percent(report.dev.baseline),
+          where: 'on check tasks before training',
+        };
+  if (!before) return undefined;
+  const now = percent(report.test.score);
+  const change = now > before.percent ? 'Up from' : now < before.percent ? 'Down from' : 'Same as';
+  return `${change} ${before.percent}% ${before.where}`;
 }
 
 /** Whether training began with a first full draft rather than a setup (decision 026). */
@@ -60,27 +58,36 @@ function startedBlank(report: ReportCard, job: Job | null): boolean {
   );
 }
 
-/** "Spark $0.41, hosted copy on OpenRouter $3.20. " when a hosted copy was paid for too. */
-function costParts(report: ReportCard, mentor: string, job: Job | null): string {
-  const { mentorUsd, studentUsd } = report.cost;
-  if (!studentUsd) return '';
-  const host = job?.student.hosted ? ` on ${providerName(job.student.hosted)}` : '';
-  return `${mentor} ${formatUsd(Math.round(mentorUsd * 100) / 100)}, hosted copy${host} ${formatUsd(Math.round(studentUsd * 100) / 100)}. `;
+function cents(amount: number): string {
+  return formatUsd(Math.round(amount * 100) / 100);
 }
 
-/** How much training ran, and that it ended on reaching the target when it did. */
+/** Each bill on its own, "Spark $0.41" and "OpenRouter $3.20", when a hosted copy was paid for. */
+function costParts(report: ReportCard, mentor: string, job: Job | null): string[] {
+  const { mentorUsd, studentUsd } = report.cost;
+  if (!studentUsd) return [];
+  const host = job?.student.hosted ? providerName(job.student.hosted) : 'Hosted copy';
+  return [`${mentor} ${cents(mentorUsd)}`, `${host} ${cents(studentUsd)}`];
+}
+
+/** Short facts stacked one per line under a stat. */
+function Lines({ lines }: { lines: readonly (string | false | undefined)[] }) {
+  return (
+    <span className="flex flex-col">
+      {lines.filter(Boolean).map((line) => (
+        <span key={String(line)}>{line}</span>
+      ))}
+    </span>
+  );
+}
+
+/** How much training ran: "7 of 12 rounds · 3 h 21 min". */
 function trainingNote(report: ReportCard, job: Job | null): string {
   const { rounds, wallMs } = report.cost;
   const count = job
     ? `${rounds} of ${job.budget.maxRounds} rounds`
     : `${rounds} ${rounds === 1 ? 'round' : 'rounds'}`;
-  const ran = `${count} over ${formatDuration(wallMs)}`;
-  const { final } = report.dev;
-  const { target } = report.requirements.passRate;
-  if (rounds > 0 && final && final.total > 0 && final.pass / final.total >= target) {
-    return `${ran}, ending at the ${Math.round(target * 100)}% target on check tasks`;
-  }
-  return ran;
+  return `${count} · ${formatDuration(wallMs)}`;
 }
 
 export function ReportView({ report, job, graduate, comparison }: ReportViewProps) {
@@ -93,6 +100,8 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
   const handled = test.perType.filter((type) => !type.refused);
   const device = deviceInSentence(currentPlatform());
   const where = test.ranOffline ? `offline on ${device}` : 'on a hosted copy';
+  const spent = costParts(report, names.mentor, job);
+  const before = beforeTraining(report, comparison);
   const target = Math.round(report.requirements.passRate.target * 100);
   const pinned = graduate?.manifest.student;
   const pinnedFacts = [
@@ -101,8 +110,8 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
   ].filter(Boolean);
   const modelFacts =
     pinnedFacts.length > 0
-      ? pinnedFacts.join(', ')
-      : (RUNTIMES[report.student.runtime] ?? `on ${report.student.runtime}`);
+      ? pinnedFacts.join(' · ')
+      : (RUNTIMES[report.student.runtime] ?? report.student.runtime);
 
   return (
     <>
@@ -122,13 +131,11 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
           {report.name} graduated
         </Heading>
         <p className="m-0 max-w-[660px] text-lg text-fg-secondary text-pretty">
-          {studentIntro(names.student)}, took a final test of {test.score.total} tasks it had never
-          seen, {where}, with {mentorIntro(names.mentor)}, disconnected.
+          Final test of {test.score.total} unseen tasks, {where}, with {names.mentor} disconnected.
         </p>
         {missed.length > 0 && (
           <p className="m-0 max-w-[620px] text-fg-secondary text-pretty">
-            Missed the target on {missed.join(' and ')}. You can still use it, or train again with
-            more rounds.
+            Missed the target on {missed.join(' and ')}. You can still use it, or train again.
           </p>
         )}
       </div>
@@ -137,48 +144,36 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
         <Stat
           className="bg-panel p-[22px]"
           value={formatRate(test.score)}
-          label={`of new tasks right (${test.score.pass} of ${test.score.total})`}
-          note={beforeTraining(report, comparison, names.student)}
+          label="of new tasks right"
+          note={<Lines lines={[`${test.score.pass} of ${test.score.total}`, before]} />}
           noteFont="text"
         />
         <Stat
           className="bg-panel p-[22px]"
           value={formatAnswerTime(test.latencyMs.p50)}
-          label={`Typical answer, ${test.ranOffline ? `on ${device}` : 'on a hosted copy'}`}
-          note={`95% of answers within ${formatAnswerTime(test.latencyMs.p95)}`}
+          label="Typical answer"
+          note={`95% within ${formatAnswerTime(test.latencyMs.p95)}`}
           noteFont="text"
         />
         <Stat
           className="bg-panel p-[22px]"
           value={names.student}
-          label={capitalized(STUDENT_ROLE)}
-          note={
-            <span className="flex flex-col">
-              <span className="font-mono text-xs">{report.student.model}</span>
-              {modelFacts}
-            </span>
-          }
+          label="Model"
+          note={modelFacts}
           noteFont="text"
         />
         <Stat
           className="bg-panel p-[22px]"
-          value={formatUsd(Math.round((cost.mentorUsd + (cost.studentUsd ?? 0)) * 100) / 100)}
-          label={
-            cost.studentUsd ? 'Training cost, paid once' : `${names.mentor} mentoring, paid once`
-          }
-          note={`${costParts(report, names.mentor, job)}${trainingNote(report, job)}`}
+          value={cents(cost.mentorUsd + (cost.studentUsd ?? 0))}
+          label={cost.studentUsd ? 'Training cost' : `${names.mentor} mentoring`}
+          note={<Lines lines={[...spent, trainingNote(report, job)]} />}
           noteFont="text"
         />
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(360px,100%),1fr))] gap-x-14 gap-y-10">
         <section aria-labelledby="handles" className="flex flex-col gap-[18px]">
-          <div className="flex flex-col gap-1.5">
-            <Heading id="handles">Handles</Heading>
-            <p className="m-0 text-fg-secondary text-pretty">
-              Final test results by task type. The {target}% target is for all of them together.
-            </p>
-          </div>
+          <Heading id="handles">Handles</Heading>
           {handled.length === 0 ? (
             <p className="m-0 text-md text-fg-secondary">No task type passed the final test.</p>
           ) : (
@@ -203,8 +198,7 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
                 />
                 {percent(type) < target && (
                   <span className="text-sm text-fg-muted">
-                    Below the {target}% target on its own: check these answers before relying on
-                    them
+                    Below {target}%: check these answers
                   </span>
                 )}
               </div>
@@ -213,20 +207,12 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
         </section>
         <div className="flex flex-col gap-10">
           <section aria-labelledby="does-not" className="flex flex-col gap-3.5">
-            <div className="flex flex-col gap-1.5">
-              <Heading id="does-not">Doesn&apos;t handle</Heading>
-              <p className="m-0 text-fg-secondary text-pretty">
-                Requests it turns down and leaves to you.
-              </p>
-            </div>
+            <Heading id="does-not">Doesn&apos;t handle</Heading>
             <Refused report={report} />
           </section>
           {job && job.doesNot.length > 0 && (
             <section aria-labelledby="wont-do" className="flex flex-col gap-3.5">
-              <div className="flex flex-col gap-1.5">
-                <Heading id="wont-do">What it won&apos;t do</Heading>
-                <p className="m-0 text-fg-secondary text-pretty">Limits set in the job.</p>
-              </div>
+              <Heading id="wont-do">What it won&apos;t do</Heading>
               <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-md text-fg-secondary">
                 {job.doesNot.map((limit) => (
                   <Limit key={limit}>{limit}</Limit>
@@ -238,15 +224,8 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
       </div>
 
       {report.topInterventions.length > 0 && (
-        <section aria-labelledby="helped" className="flex flex-col gap-[18px]">
-          <div className="flex flex-col gap-1.5">
-            <Heading id="helped">What helped most</Heading>
-            <p className="m-0 text-fg-secondary text-pretty">
-              The changes {names.mentor} made that added the most check tasks right.
-              {report.topInterventions.some((change) => change.runs) &&
-                ' A change checked twice shows its average per check.'}
-            </p>
-          </div>
+        <section aria-labelledby="helped" className="flex flex-col gap-3">
+          <Heading id="helped">What helped most</Heading>
           <ol className="m-0 flex list-none flex-col p-0">
             {report.topInterventions.map((change) => (
               <li
@@ -259,11 +238,11 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
                     : `Round ${change.round}`}
                 </span>
                 <span className="truncate">{change.title}</span>
-                <span className="font-mono text-sm">
+                <span className="font-mono text-sm tabular-nums">
                   {signed(change.runs ? change.delta / change.runs : change.delta)}{' '}
                   <span className="font-sans text-fg-muted">
                     check tasks
-                    {change.runs ? ` per measurement, on average over ${change.runs}` : null}
+                    {change.runs ? `, average of ${change.runs} measurements` : null}
                   </span>
                 </span>
               </li>
@@ -282,7 +261,7 @@ function Refused({ report }: { report: ReportCard }) {
   if (report.refusedTypes.length === 0) {
     return (
       <p className="m-0 text-md text-fg-secondary">
-        Nothing. It takes on every kind of task it trained on.
+        Nothing. It takes on every task type it trained on.
       </p>
     );
   }

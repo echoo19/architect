@@ -22,18 +22,18 @@ describe('decisionSentence', () => {
         ]),
         job,
       ),
-    ).toBe('8 more check tasks passed (23 to 31 of 40), and no task type got worse.');
+    ).toBe('8 more check tasks passed (23 → 31 of 40), and no task type got worse.');
     expect(decisionSentence(round, undefined, job)).toBe(
-      '8 more check tasks passed (23 to 31 of 40), and no task type lost more than one.',
+      '8 more check tasks passed (23 → 31 of 40), and no task type lost more than one.',
     );
   });
 
   it('says why a change was reverted: too small a gain, or a task type that lost', () => {
     expect(decisionSentence(decided(2, 23, 22), undefined, job)).toBe(
-      '1 fewer check task passed (23 to 22 of 40). A change needs at least two more to stay.',
+      '1 fewer check task passed (23 → 22 of 40). A change needs at least two more to stay.',
     );
     expect(decisionSentence(decided(2, 23, 23), undefined, job)).toBe(
-      'The same number of check tasks passed (23 to 23 of 40). A change needs at least two more to stay.',
+      'The same number of check tasks passed (23 → 23 of 40). A change needs at least two more to stay.',
     );
     const traded: Round = { ...decided(5, 30, 34), decision: 'reverted' };
     expect(
@@ -46,7 +46,7 @@ describe('decisionSentence', () => {
         job,
       ),
     ).toBe(
-      '4 more check tasks passed (30 to 34 of 40), but Scheduling lost two. No task type may lose more than one.',
+      '4 more check tasks passed (30 → 34 of 40), but Scheduling lost two. No task type may lose more than one.',
     );
   });
 
@@ -58,7 +58,7 @@ describe('decisionSentence', () => {
       devAfter: { pass: 46, total: 80 },
     };
     expect(decisionSentence(round, undefined, repeated)).toBe(
-      '6 more check tasks passed (40 to 46 of 80, adding up 2 runs), and no task type lost more than two.',
+      '6 more check tasks passed (40 → 46 of 80, adding up 2 runs), and no task type lost more than two.',
     );
   });
 
@@ -82,13 +82,12 @@ describe('decisionSentence', () => {
         job,
       ),
     ).toBe(
-      '8 more check tasks passed on the first measurement (23 to 31 of 40). Run a second time to ' +
-        'rule out luck: 16 more over both measurements (46 to 62 of 80), and no task type got worse.',
+      '8 more check tasks passed (23 → 31 of 40). Measured again to rule out luck: 16 more over ' +
+        'both (46 → 62 of 80), and no task type got worse.',
     );
     expect(decisionSentence(measuredTwice(5, 'reverted', [46, 49]), undefined, job)).toBe(
-      '8 more check tasks passed on the first measurement (23 to 31 of 40). Run a second time to ' +
-        'rule out luck: 3 more over both measurements (46 to 49 of 80). A change needs at least four ' +
-        'more over both to stay.',
+      '8 more check tasks passed (23 → 31 of 40). Measured again to rule out luck: 3 more over ' +
+        'both (46 → 49 of 80). A change needs at least four more over both to stay.',
     );
     expect(
       decisionSentence(
@@ -97,9 +96,8 @@ describe('decisionSentence', () => {
         job,
       ),
     ).toBe(
-      '8 more check tasks passed on the first measurement (23 to 31 of 40). Run a second time to ' +
-        'rule out luck: 6 more over both measurements (46 to 52 of 80), but Scheduling lost three. No ' +
-        'task type may lose more than two.',
+      '8 more check tasks passed (23 → 31 of 40). Measured again to rule out luck: 6 more over ' +
+        'both (46 → 52 of 80), but Scheduling lost three. No task type may lose more than two.',
     );
   });
 
@@ -112,17 +110,9 @@ describe('predictionCheck', () => {
   const predicted = { devDeltaMin: 5, devDeltaMax: 9, rationale: 'Every invoice depends on it.' };
 
   it('compares the measured change with the predicted range', () => {
-    expect(predictionCheck(predicted, 8, 'Spark')).toBe(
-      "The result was inside Spark's predicted range.",
-    );
-    expect(predictionCheck(predicted, 3, 'Spark')).toBe(
-      "The result fell short of Spark's predicted range.",
-    );
-    expect(predictionCheck(predicted, 11, 'Spark')).toBe(
-      "The result beat Spark's predicted range.",
-    );
-    expect(predictionCheck(predicted, 6, 'Spark', 'The first measurement')).toBe(
-      "The first measurement was inside Spark's predicted range.",
-    );
+    expect(predictionCheck(predicted, 8)).toBe('Within the prediction');
+    expect(predictionCheck(predicted, 5)).toBe('Within the prediction');
+    expect(predictionCheck(predicted, 3)).toBe('Short of the prediction');
+    expect(predictionCheck(predicted, 11)).toBe('Beat the prediction');
   });
 });

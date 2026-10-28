@@ -2,7 +2,6 @@ import type { Round } from '@architect/shared';
 import { cn, Panel, PanelHeader, PanelRow, Spinner } from '@architect/ui';
 import { ArrowRight } from 'lucide-react';
 import { percent } from '../format';
-import type { ModelNames } from './phase';
 
 /** What a round is doing before the mentor has named its change. */
 function untitled(round: Round): string {
@@ -28,7 +27,6 @@ export interface RoundsFooter {
 export function Rounds({
   rounds,
   running,
-  names,
   draftRound,
   onOpen,
   footer,
@@ -36,7 +34,6 @@ export function Rounds({
   rounds: readonly Round[];
   /** The newest unfinished round shows a spinner while the run is going. */
   running: boolean;
-  names: ModelNames;
   /** The round that wrote the first full draft, or null when the run started from a setup. */
   draftRound: number | null;
   onOpen: (round: Round) => void;
@@ -44,18 +41,9 @@ export function Rounds({
 }) {
   return (
     <Panel aria-label="Rounds" className="min-w-0 flex-[5_1_360px]">
-      <PanelHeader
-        title="Rounds"
-        actions={
-          rounds.length > 0 && (
-            <span className="text-sm text-fg-muted">Check tasks right, before and after</span>
-          )
-        }
-      />
+      <PanelHeader title="Rounds" />
       {rounds.length === 0 ? (
-        <PanelRow className="text-fg-secondary">
-          The first round starts once {names.mentor} has seen how {names.student} does.
-        </PanelRow>
+        <PanelRow className="text-fg-muted">No rounds yet</PanelRow>
       ) : (
         <ol className="m-0 max-h-[324px] list-none overflow-y-auto p-0">
           {[...rounds].reverse().map((round) => (
@@ -134,7 +122,7 @@ function RoundResult({
     return (
       <span className="flex items-baseline gap-3">
         <span className="font-mono text-sm tabular-nums">
-          {percent(round.devBefore)}% to {percent(round.devAfter)}%
+          {percent(round.devBefore)}% → {percent(round.devAfter)}%
         </span>
         <span className={cn('w-[74px] text-sm', DECISION_TONE[round.decision])}>
           {draft ? 'First draft' : round.decision === 'kept' ? 'Kept' : 'Reverted'}

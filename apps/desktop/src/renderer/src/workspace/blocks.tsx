@@ -18,6 +18,7 @@ import { refreshGraduateSettings } from './graduateSettings';
 import {
   cellText,
   inSentence,
+  isFigureColumn,
   isTotalRow,
   listInSentence,
   previewRows,
@@ -56,6 +57,7 @@ export function TableBlock({
     .slice(items.length, block.rows.length - 1)
     .map((row) => cellText(row[0] ?? null))
     .join(', ');
+  const align = (column: number) => isFigureColumn(block.rows, column) && 'text-right';
   return (
     <div className="animate-rise">
       <TableCard
@@ -76,8 +78,10 @@ export function TableBlock({
       >
         <TableHeader>
           <TableRow>
-            {block.columns.map((column) => (
-              <TableHead key={column}>{column}</TableHead>
+            {block.columns.map((column, index) => (
+              <TableHead key={column} className={cn(align(index))}>
+                {column}
+              </TableHead>
             ))}
           </TableRow>
         </TableHeader>
@@ -85,7 +89,9 @@ export function TableBlock({
           {items.map((row, r) => (
             <TableRow key={r} className={cn(isTotalRow(row) && TOTAL_ROW)}>
               {block.columns.map((_, column) => (
-                <TableCell key={column}>{cellText(row[column] ?? null)}</TableCell>
+                <TableCell key={column} className={cn(align(column))}>
+                  {cellText(row[column] ?? null)}
+                </TableCell>
               ))}
             </TableRow>
           ))}
@@ -93,12 +99,14 @@ export function TableBlock({
             <>
               <TableRow>
                 <TableCell colSpan={block.columns.length} className="text-sm first:text-fg-muted">
-                  {hidden} more {hidden === 1 ? 'row' : 'rows'} in the total: {hiddenNames}
+                  {hidden} more {hidden === 1 ? 'row' : 'rows'}: {hiddenNames}
                 </TableCell>
               </TableRow>
               <TableRow className={TOTAL_ROW}>
                 {block.columns.map((_, column) => (
-                  <TableCell key={column}>{cellText(total[column] ?? null)}</TableCell>
+                  <TableCell key={column} className={cn(align(column))}>
+                    {cellText(total[column] ?? null)}
+                  </TableCell>
                 ))}
               </TableRow>
             </>
@@ -125,22 +133,26 @@ export interface ApprovalCardProps {
   agent: GraduateSummary;
   /** False once the reply ended without an answer, for example because it was stopped. */
   answerable: boolean;
-  /** Says what Allow and Always allow mean; one card per reply carries it. */
-  explain: boolean;
   onOpenPanel: (content: PanelContent) => void;
+}
+
+/** What a write does to the file's rows: "2 new rows", "1 row changed". */
+function rowCounts({ added, changed, removed }: ApprovalBlockData['diff']): string {
+  const rows = (count: number) => (count === 1 ? 'row' : 'rows');
+  return [
+    added.length > 0 && `${added.length} new ${rows(added.length)}`,
+    changed.length > 0 && `${changed.length} ${rows(changed.length)} changed`,
+    removed.length > 0 && `${removed.length} ${rows(removed.length)} removed`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 /**
  * A write the agent wants to make: what it touches, the rows it writes, and Allow or Deny. A
  * pending write shows its rows from the start, so nothing is allowed unseen.
  */
-export function ApprovalCard({
-  block,
-  agent,
-  answerable,
-  explain,
-  onOpenPanel,
-}: ApprovalCardProps) {
+export function ApprovalCard({ block, agent, answerable, onOpenPanel }: ApprovalCardProps) {
   const previewId = useId();
   const [expanded, setExpanded] = useState(block.status === 'pending');
   const [sending, setSending] = useState<Decision | null>(null);
@@ -165,7 +177,7 @@ export function ApprovalCard({
   } else if (block.status === 'approved' || (block.status === 'pending' && answer)) {
     outcome = (
       <Outcome icon={<Check size={14} aria-hidden />}>
-        {answer === 'always' ? 'Always allowed' : 'Allowed'}
+        {answer === 'always' ? 'Allowed from now on' : 'Allowed'}
       </Outcome>
     );
   } else if (!answerable) {
@@ -216,13 +228,13 @@ export function ApprovalCard({
                 )}
               />
             </span>
-            <span className="text-sm text-fg-muted">{block.summary}</span>
+            <span className="text-sm text-fg-muted">{rowCounts(block.diff) || block.summary}</span>
           </span>
         </button>
         {outcome ?? (
           <div className="flex gap-1.5">
             {choice('deny', 'Deny')}
-            {choice('always', 'Always allow')}
+            {choice('always', 'Allow all from now on')}
             {choice('approve', 'Allow once', true)}
           </div>
         )}
@@ -242,12 +254,6 @@ export function ApprovalCard({
             </button>
           )}
         </div>
-      )}
-      {!outcome && explain && (
-        <p className="m-0 border-t border-line-card px-4 py-2.5 text-sm text-fg-muted text-pretty">
-          Allow once saves these rows. Always allow saves them and stops asking for any file from
-          now on; you can change that under the message box.
-        </p>
       )}
     </div>
   );
@@ -272,10 +278,11 @@ export function RefusalCard({ block, agent }: { block: RefusalBlockData; agent: 
           {agent.name} doesn&apos;t handle {inSentence(label)}
         </span>
         <span className="text-sm text-fg-secondary text-pretty">{block.reason}</span>
-        <span className="text-sm text-fg-muted text-pretty">
-          You&apos;ll need to handle this one yourself.
-          {handled.length > 0 && ` ${agent.name} can help with ${listInSentence(handled)}.`}
-        </span>
+        {handled.length > 0 && (
+          <span className="text-sm text-fg-muted text-pretty">
+            It can help with {listInSentence(handled)}.
+          </span>
+        )}
       </span>
     </div>
   );

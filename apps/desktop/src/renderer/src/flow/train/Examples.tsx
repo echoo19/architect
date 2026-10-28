@@ -1,6 +1,6 @@
 import type { Job } from '@architect/shared';
-import { Panel, PanelFooter, PanelHeader, PanelRow } from '@architect/ui';
-import { Check, EyeOff, X } from 'lucide-react';
+import { Panel, PanelHeader, PanelRow } from '@architect/ui';
+import { Check, ChevronRight, EyeOff, X } from 'lucide-react';
 import { typeLabel } from '../names';
 import type { RecentAttempt } from './run-state';
 
@@ -12,30 +12,19 @@ export function Examples({
   job,
   attempts,
   mentor,
-  student,
   onOpen,
 }: {
   job: Job;
   attempts: readonly RecentAttempt[];
   mentor: string;
-  student: string;
   onOpen: (attempt: RecentAttempt) => void;
 }) {
   const shown = attempts.slice(0, SHOWN);
   return (
     <Panel aria-label="Latest attempts" className="min-w-0 flex-[7_1_560px]">
-      <PanelHeader
-        title="Latest attempts"
-        actions={
-          shown.length > 0 && (
-            <span className="text-sm text-fg-muted">Open one to see every step</span>
-          )
-        }
-      />
+      <PanelHeader title="Latest attempts" />
       {shown.length === 0 ? (
-        <PanelRow className="text-fg-secondary">
-          {student}&apos;s attempts show up here as it works.
-        </PanelRow>
+        <PanelRow className="text-fg-muted">No attempts yet</PanelRow>
       ) : (
         <div className="overflow-x-auto">
           <ul className="m-0 min-w-[680px] list-none p-0">
@@ -44,21 +33,13 @@ export function Examples({
                 <ExampleRow
                   attempt={attempt}
                   type={typeLabel(job, attempt.taskType)}
+                  mentor={mentor}
                   onOpen={() => onOpen(attempt)}
                 />
               </li>
             ))}
           </ul>
         </div>
-      )}
-      {shown.some((attempt) => attempt.split === 'dev') && (
-        <PanelFooter className="mt-auto gap-2.5 py-3 text-sm text-fg-secondary">
-          <EyeOff size={14} strokeWidth={1.7} className="shrink-0" aria-hidden />
-          <span className="text-pretty">
-            {mentor} never sees check tasks, only how many come out right. They&apos;re shown here
-            for you.
-          </span>
-        </PanelFooter>
       )}
     </Panel>
   );
@@ -67,20 +48,23 @@ export function Examples({
 function ExampleRow({
   attempt,
   type,
+  mentor,
   onOpen,
 }: {
   attempt: RecentAttempt;
   type: string;
+  mentor: string;
   onOpen: () => void;
 }) {
   const passed = attempt.check.pass;
-  const kind = attempt.split === 'dev' ? 'Check task' : 'Practice task';
+  const check = attempt.split === 'dev';
+  const kind = check ? 'Check task' : 'Practice task';
   const set = attempt.round ? `${kind}, round ${attempt.round}` : kind;
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="grid min-h-[54px] w-full grid-cols-[20px_minmax(0,1fr)_230px_150px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left font-mono text-sm transition-colors duration-150 hover:bg-row-hover"
+      className="group grid min-h-[54px] w-full grid-cols-[20px_minmax(0,1fr)_230px_150px_14px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left font-mono text-sm transition-colors duration-150 hover:bg-row-hover"
     >
       {passed ? (
         <Check
@@ -99,8 +83,25 @@ function ExampleRow({
       <Answer attempt={attempt} />
       <span className="flex min-w-0 flex-col font-sans">
         <span className="truncate text-fg-secondary">{type}</span>
-        <span className="truncate text-xs text-fg-muted">{set}</span>
+        <span className="flex min-w-0 items-center gap-1.5 text-xs text-fg-muted">
+          <span className="truncate">{set}</span>
+          {check && (
+            <EyeOff
+              size={12}
+              strokeWidth={1.8}
+              className="shrink-0"
+              role="img"
+              aria-label={`Hidden from ${mentor}`}
+            />
+          )}
+        </span>
       </span>
+      <ChevronRight
+        size={14}
+        strokeWidth={1.8}
+        aria-hidden
+        className="text-fg-faint opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+      />
     </button>
   );
 }

@@ -139,11 +139,12 @@ function DefineEditor({ initial }: { initial: Job }) {
       step="Define"
       footer={
         <div className="mx-auto flex max-w-[880px] flex-wrap items-center justify-between gap-3">
-          <Button onClick={() => openAdvanced(tab)}>
+          <Button variant="ghost" className="-ml-3" onClick={() => openAdvanced(tab)}>
             <SlidersHorizontal size={16} strokeWidth={1.8} aria-hidden />
             Advanced settings
           </Button>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <span className="mr-2 text-sm text-fg-muted">Keep Architect open while it trains</span>
             <Button onClick={() => navigate(paths.newAgent())}>Back</Button>
             <Button variant="primary" loading={starting} onClick={() => void start()}>
               Start training
@@ -175,6 +176,7 @@ function DefineEditor({ initial }: { initial: Job }) {
             )
           }
           onRetryKeys={secrets.status === 'error' ? reloadKeys : undefined}
+          onRaiseLimit={() => openAdvanced('budget')}
           baselines={
             comparisonMode
               ? { checked: withBaselines, onCheckedChange: setWithBaselines }

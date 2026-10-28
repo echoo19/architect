@@ -100,9 +100,9 @@ function NoAgentsYet() {
   const device = deviceInSentence(currentPlatform());
   const pitch =
     settings.status === 'success'
-      ? `Describe a job. ${mentorIntro(mentorName(settings.data.defaultMentor))}, coaches ${studentIntro(
+      ? `Describe a job, and ${mentorIntro(mentorName(settings.data.defaultMentor))}, teaches ${studentIntro(
           studentName(settings.data.defaultStudent),
-        )}, until it can do the job alone. Then the agent runs on ${device}.`
+        )}, to do it. The agent runs on ${device}.`
       : `Describe a job and Architect trains an agent that runs on ${device}.`;
 
   const trySample = async () => {

@@ -51,12 +51,10 @@ export const AgentMessage = memo(function AgentMessage({
   const empty = message.steps.length === 0 && !message.text && message.blocks.length === 0;
   const stoppedQuietly =
     message.status === 'stopped' && !message.blocks.some((block) => block.kind === 'note');
-  const pendingIds = answerable
-    ? message.blocks.flatMap((block) =>
-        block.kind === 'approval' && block.status === 'pending' ? [block.changeId] : [],
-      )
-    : [];
-  const pending = pendingIds.length;
+  const pending = answerable
+    ? message.blocks.filter((block) => block.kind === 'approval' && block.status === 'pending')
+        .length
+    : 0;
 
   return (
     <article aria-label={agent.name} className="flex min-w-0 animate-rise flex-col gap-[18px]">
@@ -77,7 +75,6 @@ export const AgentMessage = memo(function AgentMessage({
                 block={block}
                 agent={agent}
                 answerable={answerable}
-                explain={block.changeId === pendingIds[0]}
                 onOpenPanel={onOpenPanel}
               />
             );
@@ -90,7 +87,7 @@ export const AgentMessage = memo(function AgentMessage({
       {pending > 0 && (
         <p role="status" className="m-0 flex items-center gap-2 text-base text-fg-secondary">
           <CirclePause size={15} strokeWidth={1.8} aria-hidden className="shrink-0" />
-          Waiting for you to allow or deny {pending === 1 ? 'the change' : 'the changes'} above.
+          Waiting for your approval
         </p>
       )}
       {stoppedQuietly && <NoteBlock text="Stopped" />}

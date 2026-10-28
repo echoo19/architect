@@ -16,6 +16,7 @@ import { Ban, BookOpen, Check, CircleX, MessageSquare, Wrench } from 'lucide-rea
 import { flowApi } from '../../api/client';
 import { useQuery } from '../../api/query';
 import { formatAnswerTime } from '../format';
+import type { ModelNames } from './phase';
 import type { RecentAttempt } from './run-state';
 import { describeArguments } from './tool-arguments';
 
@@ -31,22 +32,27 @@ const STOP_REASONS: Record<Trace['stopReason'], string | null> = {
 export function TraceDrawerContent({
   attempt,
   type,
-  student,
+  names,
   setup,
 }: {
   attempt: RecentAttempt;
   type: string;
-  student: string;
+  names: ModelNames;
   /** The setup the attempt used, named by where it came from. */
   setup: string;
 }) {
   const trace = useQuery(`trace:${attempt.id}`, () => flowApi.trace(attempt.id));
-  const split = attempt.split === 'dev' ? 'Check task' : 'Practice task';
+  const { student } = names;
+  const check = attempt.split === 'dev';
+  const split = check ? 'Check task' : 'Practice task';
+  const subtitle = [
+    type,
+    attempt.round ? `${split}, round ${attempt.round}` : split,
+    `using ${setup}`,
+    ...(check ? [`hidden from ${names.mentor}`] : []),
+  ].join(' · ');
   return (
-    <DrawerContent
-      title={attempt.prompt ?? `Task ${attempt.taskId}`}
-      subtitle={`${type} · ${attempt.round ? `${split} in round ${attempt.round}` : split} · using ${setup}`}
-    >
+    <DrawerContent title={attempt.prompt ?? `Task ${attempt.taskId}`} subtitle={subtitle}>
       <div className="flex flex-col gap-7">
         <Verdict attempt={attempt} student={student} />
         {trace.status === 'loading' && (
@@ -135,7 +141,6 @@ function TraceSteps({ trace, student }: { trace: Trace; student: string }) {
   const tokens = trace.usage.inputTokens + trace.usage.outputTokens;
   const stopped = STOP_REASONS[trace.stopReason];
   const steps = trace.steps.filter(isShown);
-  const firstSkill = steps.findIndex((step) => step.kind === 'skill');
   return (
     <>
       <Section title={`${student}'s steps`}>
@@ -145,7 +150,7 @@ function TraceSteps({ trace, student }: { trace: Trace; student: string }) {
           <ol className="m-0 flex list-none flex-col gap-2.5 p-0">
             {steps.map((step, index) => (
               <li key={index}>
-                <StepView step={step} student={student} explain={index === firstSkill} />
+                <StepView step={step} student={student} />
               </li>
             ))}
           </ol>
@@ -153,14 +158,9 @@ function TraceSteps({ trace, student }: { trace: Trace; student: string }) {
       </Section>
       <Section title={`${student}'s final answer`}>
         {trace.finalText.trim() ? (
-          <>
-            <pre className="m-0 whitespace-pre-wrap break-words rounded-lg border border-line-card bg-well px-3.5 py-3 font-mono text-sm">
-              {trace.finalText}
-            </pre>
-            {/^ANSWER:/m.test(trace.finalText) && (
-              <p className="m-0 text-sm text-fg-muted">The ANSWER line is what gets graded.</p>
-            )}
-          </>
+          <pre className="m-0 whitespace-pre-wrap break-words rounded-lg border border-line-card bg-well px-3.5 py-3 font-mono text-sm">
+            {trace.finalText}
+          </pre>
         ) : (
           <p className="m-0 text-fg-secondary">No answer.</p>
         )}
@@ -170,44 +170,27 @@ function TraceSteps({ trace, student }: { trace: Trace; student: string }) {
           </p>
         )}
       </Section>
-      <p className="m-0 border-t border-line-card pt-4 text-sm text-fg-muted text-pretty">
-        Ran on <span className="font-mono text-xs">{trace.studentModel}</span> in{' '}
-        {formatAnswerTime(trace.latencyMs)}, reading and writing {tokens.toLocaleString('en-US')}{' '}
-        tokens (a token is about three quarters of a word).
+      <p className="m-0 flex flex-wrap gap-x-2 border-t border-line-card pt-4 text-sm tabular-nums text-fg-muted">
+        <span className="font-mono text-xs leading-5">{trace.studentModel}</span>
+        <span aria-hidden>·</span>
+        <span>{formatAnswerTime(trace.latencyMs)}</span>
+        <span aria-hidden>·</span>
+        <span>{tokens.toLocaleString('en-US')} tokens</span>
       </p>
     </>
   );
 }
 
-function StepView({
-  step,
-  student,
-  explain,
-}: {
-  step: TraceStep;
-  student: string;
-  /** Say what a skill is, on the first one in the trace. */
-  explain: boolean;
-}) {
+function StepView({ step, student }: { step: TraceStep; student: string }) {
   switch (step.kind) {
     case 'skill':
       return (
         <StepRow icon={<BookOpen size={14} strokeWidth={1.7} aria-hidden />}>
-          <span className="flex flex-col gap-0.5">
-            <span>
-              Loaded the skill <span className="font-mono text-sm">{step.slug}</span>
-              <span className="text-fg-muted">
-                {step.via === 'rule'
-                  ? ' automatically, because the request matched it'
-                  : ` because ${student} asked for it`}
-              </span>
+          <span>
+            Loaded the skill <span className="font-mono text-sm">{step.slug}</span>
+            <span className="text-fg-muted">
+              {step.via === 'rule' ? ', which matches the request' : `, as ${student} asked`}
             </span>
-            {explain && (
-              <span className="text-sm text-fg-muted text-pretty">
-                A skill is a file of step-by-step instructions, written during training, for one
-                kind of request.
-              </span>
-            )}
           </span>
         </StepRow>
       );

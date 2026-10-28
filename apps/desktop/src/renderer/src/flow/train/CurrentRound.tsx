@@ -22,7 +22,7 @@ function studentLine(
   if (draft) {
     return round?.status === 'evaluating'
       ? `Taking the ${job.splits.dev} check tasks with the first draft.`
-      : 'No practice this round. It waits for its first full set of instructions.';
+      : 'No practice this round. It waits for its first setup.';
   }
   if (failure) return failureLine(failure);
   if (!round) {
@@ -45,7 +45,7 @@ function mentorLine(live: LiveRun, round: Round | null, names: ModelNames, draft
   if (!round) return `Starts teaching once ${names.student} has taken the check tasks.`;
   if (round.diagnosis) return round.diagnosis;
   if (draft) {
-    return `Writing ${names.student}'s first full setup from the job and its example tasks, before watching it work. Later rounds keep only measured gains.`;
+    return `Writing ${names.student}'s first full setup from the job and its example tasks.`;
   }
   if (live.mentorBusy || round.status === 'diagnosing') {
     const failed = round.train.total - round.train.pass;
@@ -111,15 +111,13 @@ export function CurrentRound({
         <span className="text-fg-secondary">{names.mentor} expects</span>
         {predicted ? (
           <span>
-            <span className="font-mono">
+            <span className="font-mono tabular-nums">
               {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)}
             </span>{' '}
-            <span className="text-fg-secondary">
-              more of the {live.job.splits.dev} check tasks right
-            </span>
+            <span className="text-fg-secondary">check tasks</span>
           </span>
         ) : (
-          <span className="text-fg-muted">A prediction, once the diagnosis is in</span>
+          <span className="text-fg-muted">–</span>
         )}
       </div>
     </Panel>

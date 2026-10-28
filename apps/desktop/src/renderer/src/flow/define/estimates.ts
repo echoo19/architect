@@ -1,4 +1,4 @@
-import { formatDuration } from '../../lib/format';
+import { formatDuration, formatUsd } from '../../lib/format';
 import {
   costUsd,
   MENTOR_PRESETS,
@@ -100,6 +100,16 @@ function countRange({ fewest, most }: TimeEstimate['rounds']): string {
   return `${fewest} to ${most}`;
 }
 
+/** The rounds that fit at a place, to sit beside its time: "5 to 10 rounds", "All 12 rounds". */
+export function fittingRounds(job: Job, estimate: TimeEstimate): string {
+  const { maxRounds } = job.budget;
+  const { fewest, most } = estimate.rounds;
+  if (fewest >= maxRounds) return `All ${roundCount(maxRounds)}`;
+  const count = countRange(estimate.rounds);
+  const rounds = most === 1 ? 'round' : 'rounds';
+  return `${count.charAt(0).toUpperCase()}${count.slice(1)} ${rounds}`;
+}
+
 /** How much training fits at a place, as a fact: the rounds that fit in the time cap. */
 export function roundsLine(job: Job, estimate: TimeEstimate): string {
   const { maxRounds, maxWallMinutes } = job.budget;
@@ -127,30 +137,7 @@ export function taskTimeText(place: TrainPlace): string {
 /** Why a place can't train in the time limit, or null when at least one round fits. */
 export function tooSlow(job: Job, estimate: TimeEstimate): string | null {
   if (estimate.rounds.most > 0) return null;
-  const limit = `${limitText(job.budget.maxWallMinutes)} limit`;
-  const first = formatDuration((estimate.startSeconds + estimate.roundSeconds.least) * 1000);
-  return `Too slow: the first round would end after about ${first}, past the ${limit}. Raise the limit in Advanced settings to train here.`;
-}
-
-/**
- * What training alone takes at a place, apart from the final test and the comparison runs: its
- * time, and what the time limit does to it.
- */
-export function trainingSummary(job: Job, estimate: TimeEstimate, place: string): string {
-  const { maxRounds, maxWallMinutes } = job.budget;
-  const limit = `${limitText(maxWallMinutes)} limit`;
-  const { fewest, most } = estimate.rounds;
-  if (most === 0) {
-    return `No full round fits in the ${limit} on ${place}, so no change could be kept.`;
-  }
-  const time = `${aboutSpan(estimate.trainingSeconds)} on ${place}`;
-  if (fewest >= maxRounds) return `${time}, within the ${limit}.`;
-  return `${time}. The ${limit} ends it after ${countRange(estimate.rounds)} rounds.`;
-}
-
-/** The final test on its own: its time, where it runs and what it is made of. */
-export function finalTestSummary(job: Job, place: string): string {
-  return `${formatAbout(testSeconds(job))} on ${place}, on ${job.splits.test} tasks it has never seen.`;
+  return `Too slow for the ${limitText(job.budget.maxWallMinutes)} limit`;
 }
 
 /** Rough size of one task for the student: the request, its tool results and an answer. */
@@ -227,6 +214,17 @@ function sumKnown(amounts: readonly (number | null)[]): number | null {
 }
 
 /**
+ * The bills as they are shown, added up, so a total matches the figures listed above it; null
+ * when none has a price.
+ */
+export function shownTotalUsd(bills: Bills): number | null {
+  const shown = [bills.hostedUsd, bills.mentorUsd].map((amount) =>
+    amount === null ? null : roughUsd(amount),
+  );
+  return sumKnown(shown);
+}
+
+/**
  * The money in the plan, by who bills it: the hosted practice, and the mentor's expected spend,
  * which can't come to more than its cap. `total` adds the comparison runs when asked for;
  * `comparison` is their share alone.
@@ -253,20 +251,47 @@ export function planBills(
   };
 }
 
+/** A rough length of time, rounded the way a person would say it; null is under a minute. */
+function roughDuration(
+  seconds: number,
+): { amount: number; unit: 'minute' | 'hour' | 'day' } | null {
+  const minutes = seconds / 60;
+  if (minutes < 1) return null;
+  if (minutes < 55) return { amount: Math.max(5, Math.round(minutes / 5) * 5), unit: 'minute' };
+  const hours = minutes / 60;
+  if (hours < 1.5) return { amount: 1, unit: 'hour' };
+  // A half hour still matters: 60 tasks at 2.5 minutes are 2.5 hours, not 3, and the parts of a
+  // plan should add up to its total.
+  if (hours < 36) return { amount: Math.round(hours * 2) / 2, unit: 'hour' };
+  return { amount: Math.round(hours / 24), unit: 'day' };
+}
+
 /** "About 40 minutes", "About 2.5 hours", "About 12 hours", "About 2 days". */
 export function formatAbout(seconds: number): string {
-  const minutes = seconds / 60;
-  if (minutes < 1) return 'Under a minute';
-  if (minutes < 55) {
-    const rounded = Math.max(5, Math.round(minutes / 5) * 5);
-    return `About ${rounded} minutes`;
-  }
-  const hours = minutes / 60;
-  if (hours < 1.5) return 'About 1 hour';
-  // A half hour still matters: 60 tasks at 2.5 minutes are 2.5 hours, not 3, and the parts of
-  // the "In all" line should add up to its total.
-  if (hours < 36) return `About ${Math.round(hours * 2) / 2} hours`;
-  return `About ${Math.round(hours / 24)} days`;
+  const rough = roughDuration(seconds);
+  if (!rough) return 'Under a minute';
+  const plural = rough.amount === 1 ? '' : 's';
+  return `About ${rough.amount} ${rough.unit}${plural}`;
+}
+
+const SHORT_UNITS = { minute: 'min', hour: 'h', day: 'days' } as const;
+
+/** The same rounding in a column of figures: "40 min", "2.5 h", "2 days", "<1 min". */
+export function shortDuration(seconds: number): string {
+  const rough = roughDuration(seconds);
+  if (!rough) return '<1 min';
+  if (rough.unit === 'day' && rough.amount === 1) return '1 day';
+  return `${rough.amount} ${SHORT_UNITS[rough.unit]}`;
+}
+
+/** A span in a column of figures: "4 h", "4–7 h", "20–45 min". Ends that round alike show once. */
+export function shortSpan(span: Span): string {
+  const low = shortDuration(span.least);
+  const high = shortDuration(span.most);
+  if (low === high) return high;
+  const [lowAmount, lowUnit] = low.split(' ');
+  const [highAmount, highUnit] = high.split(' ');
+  return lowUnit === highUnit ? `${lowAmount}–${highAmount} ${highUnit}` : `${low} to ${high}`;
 }
 
 /**
@@ -326,16 +351,18 @@ export function expectedMentorUsd(job: Job, estimate: TimeEstimate): number | nu
   return usual === null ? null : (usual / job.budget.maxRounds) * mentorRounds(job, estimate);
 }
 
+/** An estimate rounded as `formatAboutUsd` shows it; under a cent counts as nothing. */
+export function roughUsd(amount: number): number {
+  if (amount < 0.01) return 0;
+  if (amount < 0.1) return Math.round(amount * 100) / 100;
+  if (amount < 1) return Math.round(amount * 20) / 20;
+  if (amount < 10) return Math.round(amount * 2) / 2;
+  return Math.round(amount);
+}
+
 /** "$0.05", "$0.70", "$4.50", "$18": precise enough for an estimate, never falsely exact. */
 export function formatAboutUsd(amount: number): string {
-  if (amount < 0.01) return 'under $0.01';
-  if (amount < 0.1) return `$${amount.toFixed(2)}`;
-  if (amount < 1) return `$${(Math.round(amount * 20) / 20).toFixed(2)}`;
-  if (amount < 10) {
-    const halves = Math.round(amount * 2) / 2;
-    return Number.isInteger(halves) ? `$${halves}` : `$${halves.toFixed(2)}`;
-  }
-  return `$${Math.round(amount)}`;
+  return amount < 0.01 ? 'under $0.01' : formatUsd(roughUsd(amount));
 }
 
 /** An estimate that starts a sentence: "About $0.70", "Under $0.10". */

@@ -1,14 +1,6 @@
 import { useState } from 'react';
 import type { RunStatus } from '@architect/shared';
-import {
-  Button,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  Spinner,
-  Tooltip,
-} from '@architect/ui';
+import { Button, Dialog, DialogClose, DialogContent, DialogFooter, Spinner } from '@architect/ui';
 import { ArrowRight, Pause, Play, Square } from 'lucide-react';
 import { architect } from '../../api/client';
 import { attempt } from '../../lib/notify';
@@ -72,33 +64,23 @@ export function RunControls({ live, onStop }: { live: LiveRun; onStop: () => voi
           {pending === 'resume' ? 'Resuming' : 'Resume'}
         </Button>
       ) : (
-        <Tooltip content="Holds training after the step in progress. Paused time doesn't count.">
-          <Button
-            size="md"
-            loading={pending === 'pause'}
-            disabled={run.status === 'queued'}
-            onClick={() => void ask('pause')}
-          >
-            {pending !== 'pause' && (
-              <Pause size={13} fill="currentColor" strokeWidth={0} aria-hidden />
-            )}
-            {pending === 'pause' ? 'Pausing' : 'Pause'}
-          </Button>
-        </Tooltip>
+        <Button
+          size="md"
+          loading={pending === 'pause'}
+          disabled={run.status === 'queued'}
+          onClick={() => void ask('pause')}
+        >
+          {pending !== 'pause' && (
+            <Pause size={13} fill="currentColor" strokeWidth={0} aria-hidden />
+          )}
+          {pending === 'pause' ? 'Pausing' : 'Pause'}
+        </Button>
       )}
       {run.status !== 'testing' && (
-        <Tooltip
-          content={
-            hasKeptChange(live.rounds)
-              ? 'Ends training; the best version so far takes the final test and becomes your agent.'
-              : 'Ends training. No change is kept yet, so this run makes no agent.'
-          }
-        >
-          <Button size="md" onClick={onStop}>
-            <Square size={12} fill="currentColor" strokeWidth={0} aria-hidden />
-            Stop
-          </Button>
-        </Tooltip>
+        <Button size="md" onClick={onStop}>
+          <Square size={12} fill="currentColor" strokeWidth={0} aria-hidden />
+          Stop
+        </Button>
       )}
     </>
   );
@@ -134,13 +116,13 @@ export function StopDialog({
   const copy = kept
     ? {
         title: 'Stop training?',
-        description: `Training ends after the step in progress. ${live.job.name} keeps its best version so far (${best}), ${student} takes the ${test}-task final test with ${mentor} disconnected, and you get the report card and your agent.`,
+        description: `Training ends after the step in progress. ${live.job.name} keeps its best version so far (${best}), and ${student} takes the ${test}-task final test without ${mentor}.`,
         confirm: 'Stop and run the final test',
       }
     : {
         title: 'Stop training?',
         description:
-          "Training ends after the step in progress. No change has been kept yet, so there's nothing to test and this run makes no agent.",
+          'Training ends after the step in progress. No change is kept yet, so this run makes no agent.',
         confirm: 'Stop training',
       };
 
