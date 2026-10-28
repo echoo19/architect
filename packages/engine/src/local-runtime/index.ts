@@ -4,10 +4,13 @@
  */
 export {
   checkServerVersion,
+  describeLlamaServer,
   findLlamaServer,
   llamaServerFileName,
   MIN_LLAMA_SERVER_BUILD,
   parseServerVersion,
+  readServerVersion,
+  type DescribeServerOptions,
   type FindServerOptions,
   type FoundServer,
   type ServerCommand,
@@ -24,10 +27,20 @@ export {
 } from './ollama-models';
 export {
   LocalAdapterRuntime,
+  shortDigest,
   type AdapterFile,
+  type AdapterServing,
   type LocalAdapterRuntimeOptions,
   type ServeRequest,
+  type ServeSurvey,
 } from './runtime';
+export {
+  hostAdapterRuntime,
+  LocalRuntimeSettingsSchema,
+  ServerCommandSchema,
+  type HostRuntimeOptions,
+  type LocalRuntimeSettings,
+} from './settings';
 export {
   LlamaServer,
   serverArgs,

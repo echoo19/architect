@@ -1,4 +1,5 @@
 import { statSync } from 'node:fs';
+import { sha256File } from '@architect/harness';
 import {
   AdapterError,
   DEFAULT_STUDENT,
@@ -25,6 +26,8 @@ export interface AdapterFile {
   key: string;
   /** A GGUF LoRA. */
   path: string;
+  /** The file's sha256 as its package lists it. A file that no longer matches never loads. */
+  sha256?: string;
 }
 
 export interface ServeRequest {
@@ -34,6 +37,29 @@ export interface ServeRequest {
   adapters: readonly AdapterFile[];
   /** This student's scale for each adapter, by key. Adapters it doesn't name get 0. */
   scales: Readonly<Record<string, number>>;
+  /**
+   * The base build the adapters were trained on: the digest (`sha256:<hex>`) of its GGUF file in
+   * Ollama's store. A model of that name with other weights is refused before anything loads.
+   */
+  baseDigest?: string;
+}
+
+/** Everything serving a request needs, as a check found it. Nothing was loaded to find it. */
+export interface ServeSurvey {
+  /** The llama-server that would run, and its build; null when there is none fit to run. */
+  server: { file: string; build: number } | null;
+  /** The base's weights in Ollama's store; null when they aren't there whole. */
+  base: OllamaModelFile | null;
+  /** What stands in the way of serving, each saying what to do about it; empty when nothing does. */
+  problems: LocalRuntimeError[];
+}
+
+/** What a host needs from the adapter runtime: to check serving a version, and to serve it. */
+export interface AdapterServing {
+  survey(request: ServeRequest): Promise<ServeSurvey>;
+  access(request: ServeRequest): LlamaServerAccess;
+  /** Stops the server now, which frees the GPU. */
+  stop(): Promise<void>;
 }
 
 export interface LocalAdapterRuntimeOptions {
@@ -45,15 +71,17 @@ export interface LocalAdapterRuntimeOptions {
   ollamaModelsDir?: () => string | null | undefined;
   /** The quiet-mode CPU thread cap, read at each start. */
   threads?: () => number | undefined;
+  /** The Ollama whose models are unloaded before a start; Ollama's own address by default. */
+  ollamaUrl?: () => string | undefined;
   /** Default: the student's usual 16K. */
   contextSize?: number;
   /** Default: every layer. */
   gpuLayers?: number;
   idleStopMs?: number;
   startupTimeoutMs?: number;
-  /** Frees the GPU before the server starts. Default: unload Ollama's models. */
+  /** Frees the GPU before the server starts. Default: unload the models of `ollamaUrl`. */
   freeGpu?: (signal?: AbortSignal) => Promise<void>;
-  /** Runs this instead of finding llama-server, with no version check. Tests use a stand-in. */
+  /** Runs this instead of finding llama-server; its build is checked all the same. Tests use a stand-in. */
   command?: ServerCommand;
   env?: NodeJS.ProcessEnv;
   platform?: NodeJS.Platform;
@@ -72,6 +100,7 @@ const ADAPTER_CODES: Record<LocalRuntimeErrorCode, AdapterErrorCode> = {
   binary_unusable: 'bad_request',
   model_not_found: 'not_found',
   model_unusable: 'bad_request',
+  base_mismatch: 'bad_request',
   adapter_unusable: 'bad_request',
   gpu_busy: 'server',
   out_of_memory: 'server',
@@ -86,21 +115,41 @@ function asAdapterError(error: unknown): unknown {
   });
 }
 
+/** `sha256:` and the first twelve digits: enough to tell two builds apart in a sentence. */
+export function shortDigest(digest: string): string {
+  return digest.slice(0, 19);
+}
+
+/** A file's size and modification time: what says it may have changed since it was last read. */
+function stampOf(path: string): string | null {
+  try {
+    const stats = statSync(path);
+    return stats.isFile() ? `${stats.size}:${stats.mtimeMs}` : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Serves a base model from Ollama's store with GGUF LoRA adapters through one llama-server
  * process: finds the program, resolves the model's file, checks every adapter against the base
  * before anything loads, frees the GPU from Ollama, and hands students what they need to call it.
  */
-export class LocalAdapterRuntime {
+export class LocalAdapterRuntime implements AdapterServing {
   private readonly server: LlamaServer;
   private readonly versions = new Map<string, ServerVersion>();
   private readonly headers = new Map<string, { stamp: string; header: GgufHeader }>();
+  private readonly hashes = new Map<string, { stamp: string; sha256: string }>();
 
   constructor(private readonly options: LocalAdapterRuntimeOptions) {
     const freeGpu =
       options.freeGpu ??
       (async (signal?: AbortSignal) => {
-        await freeGpuFromOllama(signal === undefined ? {} : { signal });
+        const baseUrl = options.ollamaUrl?.();
+        await freeGpuFromOllama({
+          ...(baseUrl === undefined ? {} : { baseUrl }),
+          ...(signal === undefined ? {} : { signal }),
+        });
       });
     this.server = new LlamaServer({
       runtimeDir: options.runtimeDir,
@@ -124,42 +173,19 @@ export class LocalAdapterRuntime {
     return this.server.stop();
   }
 
-  /** Everything a start needs, checked: the program, the model's file and each adapter. */
+  /**
+   * Everything a start needs, checked: the program and its build, the model's file and its build,
+   * and each adapter's file and fit. Throws the first problem it finds.
+   */
   async prepare(
-    request: Pick<ServeRequest, 'model' | 'adapters'>,
-  ): Promise<{ launch: LlamaServerLaunch; model: OllamaModelFile; version: ServerVersion | null }> {
+    request: Pick<ServeRequest, 'model' | 'adapters' | 'baseDigest'>,
+  ): Promise<{ launch: LlamaServerLaunch; model: OllamaModelFile; version: ServerVersion }> {
     const keys = request.adapters.map((adapter) => adapter.key);
     if (new Set(keys).size !== keys.length) throw new Error('Two adapters have the same key.');
     const { command, version } = await this.serverCommand();
-    const model = resolveOllamaModel(request.model, this.store());
-    const base = this.header(
-      model.modelPath,
-      () =>
-        new LocalRuntimeError(
-          'model_unusable',
-          `The weights of ${request.model} can't be read as GGUF.`,
-          `Reinstall ${request.model} in Settings › Models.`,
-        ),
-    );
-    for (const adapter of request.adapters) {
-      const header = this.header(
-        adapter.path,
-        () =>
-          new LocalRuntimeError(
-            'adapter_unusable',
-            `The adapter for ${adapter.key} is missing or isn't a GGUF file.`,
-            'Train it again, or restore the graduate from its export.',
-          ),
-      );
-      const check = checkLoraAgainstBase(header, base);
-      if (!check.ok) {
-        throw new LocalRuntimeError(
-          'adapter_unusable',
-          `The adapter for ${adapter.key} doesn't fit ${request.model}: ${check.problems[0] ?? ''}`,
-          'Use the model it was trained for, or train it again for this one.',
-        );
-      }
-    }
+    const { model, header } = this.resolveBase(request.model);
+    this.assertBaseBuild(request, model);
+    for (const adapter of request.adapters) await this.checkAdapter(request.model, adapter, header);
     const threads = this.options.threads?.();
     const launch: LlamaServerLaunch = {
       command,
@@ -171,6 +197,41 @@ export class LocalAdapterRuntime {
       ...(threads === undefined ? {} : { threads }),
     };
     return { launch, model, version };
+  }
+
+  /**
+   * Checks each thing serving needs on its own, so every problem shows at once rather than the
+   * first: the program and its build, the base in Ollama's store and its build, and each
+   * adapter's file and fit. Loads nothing.
+   */
+  async survey(request: ServeRequest): Promise<ServeSurvey> {
+    const problems: LocalRuntimeError[] = [];
+    const note = (error: unknown): void => {
+      if (!(error instanceof LocalRuntimeError)) throw error;
+      problems.push(error);
+    };
+    let server: ServeSurvey['server'] = null;
+    try {
+      const { command, version } = await this.serverCommand();
+      server = { file: command.file, build: version.build };
+    } catch (error) {
+      note(error);
+    }
+    let base: { model: OllamaModelFile; header: GgufHeader } | null = null;
+    try {
+      base = this.resolveBase(request.model);
+      this.assertBaseBuild(request, base.model);
+    } catch (error) {
+      note(error);
+    }
+    for (const adapter of request.adapters) {
+      try {
+        await this.checkAdapter(request.model, adapter, base?.header ?? null);
+      } catch (error) {
+        note(error);
+      }
+    }
+    return { server, base: base?.model ?? null, problems };
   }
 
   /** What one llama.cpp student needs: a server started on demand, and its scale per adapter. */
@@ -213,11 +274,10 @@ export class LocalAdapterRuntime {
     try {
       const { version } = await this.prepare(request);
       const adapters = request.adapters.length;
-      const build = version ? `llama-server build ${version.build}` : 'llama-server';
       return {
         ok: true,
         latencyMs: Math.round(performance.now() - started),
-        detail: `${build} can run ${request.model}${adapters > 0 ? ` with ${adapters === 1 ? 'its adapter' : `${adapters} adapters`}` : ''}.`,
+        detail: `llama-server build ${version.build} can run ${request.model}${adapters > 0 ? ` with ${adapters === 1 ? 'its adapter' : `${adapters} adapters`}` : ''}.`,
       };
     } catch (error) {
       if (error instanceof LocalRuntimeError)
@@ -245,33 +305,106 @@ export class LocalAdapterRuntime {
     };
   }
 
-  private async serverCommand(): Promise<{
-    command: ServerCommand;
-    version: ServerVersion | null;
-  }> {
-    if (this.options.command) return { command: this.options.command, version: null };
-    const { command } = findLlamaServer({
-      configured: this.options.serverPath?.() ?? null,
-      ...(this.options.env === undefined ? {} : { env: this.options.env }),
-      ...(this.options.platform === undefined ? {} : { platform: this.options.platform }),
-    });
-    let version = this.versions.get(command.file);
+  /** The program to run and its build, which is asked again only when the file changes. */
+  private async serverCommand(): Promise<{ command: ServerCommand; version: ServerVersion }> {
+    const command =
+      this.options.command ??
+      findLlamaServer({
+        configured: this.options.serverPath?.() ?? null,
+        ...(this.options.env === undefined ? {} : { env: this.options.env }),
+        ...(this.options.platform === undefined ? {} : { platform: this.options.platform }),
+      }).command;
+    const key = JSON.stringify([command.file, command.args, stampOf(command.file)]);
+    let version = this.versions.get(key);
     if (!version) {
       version = await checkServerVersion(command);
-      this.versions.set(command.file, version);
+      this.versions.set(key, version);
     }
     return { command, version };
   }
 
+  /** The base's GGUF file in Ollama's store, with its header. */
+  private resolveBase(name: string): { model: OllamaModelFile; header: GgufHeader } {
+    const model = resolveOllamaModel(name, this.store());
+    const header = this.header(
+      model.modelPath,
+      () =>
+        new LocalRuntimeError(
+          'model_unusable',
+          `The weights of ${name} can't be read as GGUF.`,
+          `Reinstall ${name} in Settings › Models.`,
+        ),
+    );
+    return { model, header };
+  }
+
+  /** Refuses a base whose weights aren't the build the adapters were trained on. */
+  private assertBaseBuild(
+    request: Pick<ServeRequest, 'model' | 'adapters' | 'baseDigest'>,
+    model: OllamaModelFile,
+  ): void {
+    const expected = request.baseDigest;
+    if (expected === undefined || model.digest === expected) return;
+    const trained = request.adapters.length === 1 ? 'its adapter was' : 'its adapters were';
+    throw new LocalRuntimeError(
+      'base_mismatch',
+      `${request.model} on this computer is another build (weights ${shortDigest(model.digest)}) than the one ${trained} trained on (${shortDigest(expected)}).`,
+      `Install the build of ${request.model} whose weights are ${expected}, the exact base it was trained on, in place of this one.`,
+    );
+  }
+
+  /**
+   * Checks one adapter before anything loads it: its file is the one its package lists, it reads
+   * as GGUF, and it fits the base (when the base could be read).
+   */
+  private async checkAdapter(
+    model: string,
+    adapter: AdapterFile,
+    base: GgufHeader | null,
+  ): Promise<void> {
+    const unreadable = () =>
+      new LocalRuntimeError(
+        'adapter_unusable',
+        `The adapter for ${adapter.key} is missing or isn't a GGUF file.`,
+        'Train it again, or restore the graduate from its export.',
+      );
+    const stamp = stampOf(adapter.path);
+    if (stamp === null) throw unreadable();
+    if (adapter.sha256 !== undefined) {
+      const actual = await this.sha256Of(adapter.path, stamp);
+      if (actual !== adapter.sha256) {
+        throw new LocalRuntimeError(
+          'adapter_unusable',
+          `The adapter for ${adapter.key} isn't the file it was installed with: its sha256 begins ${actual.slice(0, 12)}, not ${adapter.sha256.slice(0, 12)}.`,
+          'Import the graduate again from its export, or roll back to a version whose files are whole.',
+        );
+      }
+    }
+    const header = this.header(adapter.path, unreadable);
+    if (base === null) return;
+    const check = checkLoraAgainstBase(header, base);
+    if (!check.ok) {
+      throw new LocalRuntimeError(
+        'adapter_unusable',
+        `The adapter for ${adapter.key} doesn't fit ${model}: ${check.problems[0] ?? ''}`,
+        'Use the model it was trained for, or train it again for this one.',
+      );
+    }
+  }
+
+  /** A file's sha256, worked out again only when the file changes. */
+  private async sha256Of(path: string, stamp: string): Promise<string> {
+    const cached = this.hashes.get(path);
+    if (cached?.stamp === stamp) return cached.sha256;
+    const sha256 = await sha256File(path);
+    this.hashes.set(path, { stamp, sha256 });
+    return sha256;
+  }
+
   /** A GGUF header, read again only when the file changes. */
   private header(path: string, unreadable: () => LocalRuntimeError): GgufHeader {
-    let stamp: string;
-    try {
-      const stats = statSync(path);
-      stamp = `${stats.size}:${stats.mtimeMs}`;
-    } catch {
-      throw unreadable();
-    }
+    const stamp = stampOf(path);
+    if (stamp === null) throw unreadable();
     const cached = this.headers.get(path);
     if (cached?.stamp === stamp) return cached.header;
     try {
