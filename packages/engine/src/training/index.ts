@@ -3,6 +3,24 @@
  * `trainer/`, the worker with its durable job records and compute cap, and the backends that run
  * jobs: Hugging Face Jobs, and a labeled stand-in that never counts as training.
  */
+export { ArtifactError, checkOutputs, hashFile } from './artifacts';
+export type {
+  BackendHandle,
+  BackendState,
+  BackendStatus,
+  BackendSubmission,
+  FetchedArtifacts,
+  HardwareFlavor,
+  Submitted,
+  TrainingBackend,
+} from './backend';
+export {
+  authorizeCompute,
+  computeUsage,
+  costOf,
+  type ComputeAuthorization,
+  type ComputeUsage,
+} from './budget';
 export {
   buildTrainingDataset,
   DATASET_MANIFEST_FILE,
@@ -13,6 +31,7 @@ export {
   type BuildDatasetOptions,
   type BuiltDataset,
 } from './dataset';
+export { countsAsRealTraining, describeTrainingJob } from './describe';
 export {
   buildTrainerJob,
   FINISH_RESERVE_SECONDS,
@@ -28,3 +47,6 @@ export {
   type RecipeFile,
   type TrainerJobInput,
 } from './recipe';
+export { STAND_IN_LABEL, STAND_IN_REVISION, StandInBackend, type StandInOptions } from './stand-in';
+export { FileTrainingStore, type TrainingStore } from './store';
+export { TrainingWorker, type TrainingRequest, type TrainingWorkerOptions } from './worker';
