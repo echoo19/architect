@@ -23,10 +23,8 @@ export const useAgentSettingsUi = create<AgentSettingsUi>()((set) => ({
   open: false,
   tab: 'general',
   choosingModel: false,
-  show: (graduateId, tab = 'general') =>
-    set({ graduateId, open: true, tab, choosingModel: false }),
-  chooseModel: (graduateId) =>
-    set({ graduateId, open: true, tab: 'general', choosingModel: true }),
+  show: (graduateId, tab = 'general') => set({ graduateId, open: true, tab, choosingModel: false }),
+  chooseModel: (graduateId) => set({ graduateId, open: true, tab: 'general', choosingModel: true }),
   setChoosingModel: (choosingModel) => set({ choosingModel }),
   close: () => set({ open: false, choosingModel: false }),
   setTab: (tab) => set({ tab, choosingModel: false }),

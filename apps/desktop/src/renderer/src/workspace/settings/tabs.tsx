@@ -27,7 +27,7 @@ import { queryKeys } from '../../api/hooks';
 import { fetchQuery, setQueryData } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
 import { FixButtons } from '../../install/InstallChecks';
-import { osName, STATUS_LABELS, statusMark } from '../../install/labels';
+import { fixesFor, osName, STATUS_LABELS, statusMark } from '../../install/labels';
 import { formatPercent, shortPath } from '../../lib/format';
 import { capitalized, setupName, setupSource, shortModelName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
@@ -133,29 +133,32 @@ function InstallRow({
   const changed = (next: Installation) => setQueryData(graduateKeys.installation(agent.id), next);
 
   return (
-    <SettingsRow label="Install checks" meta={meta || undefined} error={errorOf(installation)}>
-      {installation.status === 'error' ? (
-        <RetryButton onClick={installation.reload} />
-      ) : (
-        <div className="flex flex-wrap items-center justify-end gap-3">
+    <>
+      <SettingsRow label="Install checks" meta={meta || undefined} error={errorOf(installation)}>
+        {installation.status === 'error' ? (
+          <RetryButton onClick={installation.reload} />
+        ) : (
           <Badge
             tone={status === 'ready' ? 'student' : status === 'blocked' ? 'danger' : 'outline'}
             icon={<StatusMark state={statusMark(status)} size={14} />}
           >
             {STATUS_LABELS[status]}
           </Badge>
-          {checked && active && status !== 'ready' && (
-            <FixButtons
-              graduateId={agent.id}
-              installation={checked}
-              manifest={active.manifest}
-              onChanged={changed}
-              onChooseModel={() => chooseModel(true)}
-            />
-          )}
+        )}
+      </SettingsRow>
+      {/* The ways out sit under the reason, which keeps the row's full width. */}
+      {checked && active && fixesFor(checked, active.manifest).length > 0 && (
+        <div className="-mt-1 pb-3">
+          <FixButtons
+            graduateId={agent.id}
+            installation={checked}
+            manifest={active.manifest}
+            onChanged={changed}
+            onChooseModel={() => chooseModel(true)}
+          />
         </div>
       )}
-    </SettingsRow>
+    </>
   );
 }
 

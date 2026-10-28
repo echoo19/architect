@@ -116,7 +116,11 @@ export const graduatesApi = {
       architect().graduates.reviewPublication(graduateId, request),
     ),
   publish: (graduateId: string, request: PublishRequest) =>
-    read('graduates.publish', PublishResultSchema, architect().graduates.publish(graduateId, request)),
+    read(
+      'graduates.publish',
+      PublishResultSchema,
+      architect().graduates.publish(graduateId, request),
+    ),
   publications: (graduateId: string) =>
     read(
       'graduates.publications',

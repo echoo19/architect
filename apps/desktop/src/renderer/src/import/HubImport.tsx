@@ -450,7 +450,7 @@ function SourceForm({
             autoComplete="off"
             spellCheck={false}
             autoFocus
-            className="w-72 font-mono text-sm"
+            className="w-[400px] font-mono text-sm"
           />
         </SettingsRow>
         <SettingsRow label="Commit">
@@ -461,7 +461,7 @@ function SourceForm({
             onChange={(event) => onCommit(event.target.value)}
             autoComplete="off"
             spellCheck={false}
-            className="w-72 font-mono text-sm"
+            className="w-[400px] font-mono text-sm"
           />
         </SettingsRow>
         <SettingsRow label="Token">

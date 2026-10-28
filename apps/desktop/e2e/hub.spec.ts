@@ -103,7 +103,7 @@ test('publishes to the Hub, private, through to the repository link and its comm
     dialog.getByRole('radiogroup', { name: 'Visibility' }).getByRole('radio', { name: 'Private' }),
   ).toHaveAttribute('aria-checked', 'true');
   await publishTo(dialog, REPO);
-  await expect(dialog.getByText(`Version 1 is on ${REPO}`)).toBeVisible({ timeout: 30_000 });
+  await expect(dialog.getByText('Version 1 is on Hugging Face')).toBeVisible({ timeout: 30_000 });
 
   const repository = hub.repos.get(REPO);
   expect(repository?.private).toBe(true);
@@ -144,7 +144,7 @@ test('shows a failed upload as a failure, and publishing again finishes the same
   });
   await expect(dialog.getByText(/Hugging Face answered with an error \(500\)/)).toBeVisible();
   await expect(dialog.getByText(/Try again in a few minutes/)).toBeVisible();
-  await expect(dialog.getByText(`Version 1 is on ${SECOND}`)).toHaveCount(0);
+  await expect(dialog.getByText('Version 1 is on Hugging Face')).toHaveCount(0);
   const publications = () =>
     page.evaluate((id) => window.architect.graduates.publications(id), AGENT);
   const [failed] = (await publications()).filter((entry) => entry.repository === SECOND);
@@ -157,7 +157,7 @@ test('shows a failed upload as a failure, and publishing again finishes the same
   ).toContainText("Didn't finish");
 
   await dialog.getByRole('button', { name: 'Publish again' }).click();
-  await expect(dialog.getByText(`Version 1 is on ${SECOND}`)).toBeVisible({ timeout: 30_000 });
+  await expect(dialog.getByText('Version 1 is on Hugging Face')).toBeVisible({ timeout: 30_000 });
   const finished = (await publications()).filter((entry) => entry.repository === SECOND);
   expect(finished).toEqual([
     expect.objectContaining({ id: failed?.id, status: 'complete', revision: expect.any(String) }),

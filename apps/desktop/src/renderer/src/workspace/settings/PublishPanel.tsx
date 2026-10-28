@@ -177,6 +177,11 @@ export function PublishPanel({ agent }: { agent: GraduateSummary }) {
   const current = review && review.repository === repository ? review : null;
   const findings = current?.findings.length ?? 0;
   const noToken = token.data?.source === null;
+  // This version is on that repository now: publishing it there again would send nothing.
+  const sent =
+    state.kind === 'done' &&
+    state.result.publication.repository === repository &&
+    state.result.publication.version === current?.version;
   const waiting = !valid
     ? 'Name the repository as owner/name'
     : noToken
@@ -206,7 +211,7 @@ export function PublishPanel({ agent }: { agent: GraduateSummary }) {
   };
 
   return (
-    <div className="flex flex-col" aria-busy={loading || undefined}>
+    <div className="flex flex-1 flex-col" aria-busy={loading || undefined}>
       <div ref={top} />
       {state.kind === 'publishing' && (
         <PublishingSection repository={state.repository} progress={progress} />
@@ -280,8 +285,10 @@ export function PublishPanel({ agent }: { agent: GraduateSummary }) {
 
       <PublicationsSection publications={publications.data ?? []} />
 
+      {/* Keeps the bar at the bottom when there is little above it. */}
+      <div aria-hidden className="min-h-6 flex-1" />
       {/* Pinned over the tab's bottom padding, so nothing scrolls by beneath it. */}
-      <div className="sticky -bottom-6 -mx-7 -mb-6 mt-6 flex flex-wrap items-center justify-end gap-x-5 gap-y-3 border-t border-line-card bg-modal px-7 py-4">
+      <div className="sticky -bottom-6 -mx-7 -mb-6 flex flex-wrap items-center justify-end gap-x-5 gap-y-3 border-t border-line-card bg-modal px-7 py-4">
         {waiting && !publishing && (
           <p className="m-0 mr-auto flex min-w-0 items-center gap-2 text-sm text-fg-muted">
             <CircleAlert size={15} strokeWidth={1.8} aria-hidden className="shrink-0" />
@@ -292,15 +299,17 @@ export function PublishPanel({ agent }: { agent: GraduateSummary }) {
           variant="primary"
           size="sm"
           loading={publishing}
-          disabled={publishing || loading || waiting !== null || current === null}
+          disabled={publishing || sent || loading || waiting !== null || current === null}
           onClick={() => void publish()}
         >
           {!publishing && <UploadCloud size={15} strokeWidth={1.7} aria-hidden />}
           {publishing
             ? 'Publishing'
-            : state.kind === 'failed' && state.repository === repository
-              ? 'Publish again'
-              : `Publish to ${valid ? repository : 'Hugging Face'}`}
+            : sent
+              ? 'Published'
+              : state.kind === 'failed' && state.repository === repository
+                ? 'Publish again'
+                : `Publish to ${valid ? repository : 'Hugging Face'}`}
         </Button>
       </div>
 
@@ -344,6 +353,7 @@ function PublishingSection({
 function PublishedSection({ result }: { result: PublishResult }) {
   const { publication } = result;
   const commit = publication.revision ?? '';
+  const command = installCommand(publication.repository, commit);
   return (
     <SettingsSection
       title={result.alreadyPublished ? 'Already published' : 'Published'}
@@ -351,22 +361,20 @@ function PublishedSection({ result }: { result: PublishResult }) {
     >
       <SettingsRow
         icon={<StatusMark state="ok" label="Published" />}
-        label={`Version ${publication.version} is on ${publication.repository}`}
+        label={`Version ${publication.version} is on Hugging Face`}
         meta={`Commit ${shortCommit(commit)} · ${publication.visibility === 'private' ? 'Private' : 'Public'}`}
       >
-        <div className="flex items-center gap-1">
-          <CopyButton
-            text={installCommand(publication.repository, commit)}
-            label="Copy the install command"
-          />
-          {publication.url && (
-            <Button size="xs" onClick={() => openOnHub(publication.url ?? '')}>
-              <ExternalLink size={14} strokeWidth={1.7} aria-hidden />
-              {bareUrl(publication.url)}
-            </Button>
-          )}
-        </div>
+        {publication.url && (
+          <Button size="xs" onClick={() => openOnHub(publication.url ?? '')}>
+            <ExternalLink size={14} strokeWidth={1.7} aria-hidden />
+            {bareUrl(publication.url)}
+          </Button>
+        )}
       </SettingsRow>
+      <div className="flex min-h-11 items-center justify-between gap-3 border-t border-line pl-8">
+        <code className="min-w-0 truncate font-mono text-xs text-fg-secondary">{command}</code>
+        <CopyButton text={command} label="Copy the install command" />
+      </div>
       {result.notes.map((note) => (
         <SettingsRow
           key={note}

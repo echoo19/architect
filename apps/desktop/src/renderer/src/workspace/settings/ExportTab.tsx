@@ -113,7 +113,7 @@ const DESTINATIONS: readonly { value: Destination; label: string }[] = [
 export function ExportTab({ agent }: { agent: GraduateSummary }) {
   const [destination, setDestination] = useState<Destination>('file');
   return (
-    <div className="flex flex-col">
+    <div className="flex min-h-full flex-col">
       <Segmented
         aria-label="Export to"
         options={DESTINATIONS}
