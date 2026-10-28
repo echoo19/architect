@@ -4,7 +4,7 @@
  *
  *   pnpm --filter @architect/engine exec tsx scripts/calibrate.ts <jobDir> [split] [--limit N]
  *     [--seed N] [--concurrency N] [--traces <dir>] [--task <id,id,...>] [--student <preset>]
- *     [--graduate <dir>] [--model <name>] [--threads N]
+ *     [--graduate <dir>] [--model <name>] [--threads N] [--cooldown <share>]
  *
  * --traces writes each attempt's full trace as `<taskId>.json` into <dir>, to read why it failed.
  * --task keeps only the named tasks of the split.
@@ -12,7 +12,8 @@
  * its key comes from the environment (OPENROUTER_API_KEY, TOGETHER_API_KEY or DEEPINFRA_API_KEY).
  * --graduate runs the tasks inside a graduate folder's harness instead of a blank one, to see how
  * a trained harness does with another student; --model names another model on the job's local
- * runtime, such as a smaller build that fits the GPU; --threads caps its CPU threads.
+ * runtime, such as a smaller build that fits the GPU; --threads caps its CPU threads and
+ * --cooldown rests it after each reply for that share of the reply's time, to keep it quieter.
  *
  * <jobDir> holds job.json, tasks.jsonl, data/ and the checker module. [split] is calibration
  * (the default), train or dev; the test split stays locked in the vault. The student is the job's
@@ -57,6 +58,7 @@ function createCalibrationStudent(job: Job, options: Options): StudentAdapter {
       {
         label: job.student.label,
         ...(options.threads === undefined ? {} : { cpuThreads: options.threads }),
+        ...(options.cooldown === undefined ? {} : { cooldown: options.cooldown }),
       },
     );
   }
@@ -96,10 +98,12 @@ interface Options {
   model?: string;
   /** CPU threads the local model may use. */
   threads?: number;
+  /** How long the local model rests after each reply, as a share of the reply's time. */
+  cooldown?: number;
 }
 
 const USAGE =
-  'Usage: tsx scripts/calibrate.ts <jobDir> [calibration|train|dev] [--limit N] [--seed N] [--concurrency N] [--traces <dir>] [--task <id,id,...>] [--student <preset>] [--graduate <dir>] [--model <name>] [--threads N]';
+  'Usage: tsx scripts/calibrate.ts <jobDir> [calibration|train|dev] [--limit N] [--seed N] [--concurrency N] [--traces <dir>] [--task <id,id,...>] [--student <preset>] [--graduate <dir>] [--model <name>] [--threads N] [--cooldown <share>]';
 
 async function main(): Promise<void> {
   const options = parseArguments(process.argv.slice(2));
@@ -206,6 +210,7 @@ function parseArguments(args: readonly string[]): Options {
   const positional: string[] = [];
   const flags = new Map<string, number>();
   const named = new Map<string, string>();
+  let cooldown: number | undefined;
   let traces: string | undefined;
   let taskIds: string[] | undefined;
   let studentPreset: string | undefined;
@@ -218,6 +223,12 @@ function parseArguments(args: readonly string[]): Options {
     if (arg === '--student') {
       studentPreset = args[index + 1];
       if (studentPreset === undefined) throw new Error(USAGE);
+      index += 1;
+      continue;
+    }
+    if (arg === '--cooldown') {
+      cooldown = Number(args[index + 1]);
+      if (!Number.isFinite(cooldown) || cooldown <= 0) throw new Error(USAGE);
       index += 1;
       continue;
     }
@@ -271,6 +282,7 @@ function parseArguments(args: readonly string[]): Options {
     ...(named.has('--graduate') ? { graduate: named.get('--graduate') } : {}),
     ...(named.has('--model') ? { model: named.get('--model') } : {}),
     ...(flags.has('--threads') ? { threads: flags.get('--threads') } : {}),
+    ...(cooldown === undefined ? {} : { cooldown }),
   };
 }
 
