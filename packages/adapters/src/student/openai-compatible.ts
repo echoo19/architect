@@ -90,6 +90,10 @@ export function createOpenAICompatibleStudent(
     if (decoding.topK > 0) body['top_k'] = decoding.topK;
     if (request.tools.length > 0) body['tools'] = toWireTools(request.tools);
     if (plan.field === 'openrouter') body['reasoning'] = { effort: level };
+    // A comparison pins OpenRouter to one provider's serving of the model, with no fallback.
+    if (plan.field === 'openrouter' && endpoint.providers !== undefined) {
+      body['provider'] = { order: endpoint.providers, allow_fallbacks: false };
+    }
     if (plan.field === 'template') body['chat_template_kwargs'] = { reasoning_strength: level };
     return body;
   }

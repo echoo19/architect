@@ -24,6 +24,27 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Risks**
 - A long chat still holds the GPU between its model turns, so a run's next request can wait past 5 minutes behind one; it then stops with the busy error, waits as decision 029 says, and pauses with the reason, and resuming it is the person's.
 
+## 2026-10-28 (Tue), the comparisons runner
+
+**Done** (on a branch; decision 045)
+- `packages/engine/scripts/comparisons.ts` runs decision 037's arms on the new runtime and replaces `experiment.ts` for them: plan, run, probe and report over `packages/engine/src/comparisons`. Calibration prices an attempt before any arm spends; arms are funded in 037's order and a plan the caps cut waits for `--confirm`; each arm holds its locked test until every arm is frozen; the repeat runs seed 102 later; each arm is held to its caps; a crash resumes without paying twice. The report is JSON for the app and Markdown for the README, from stored records only, one table per backend.
+- The engine gained, additively (migration 16): a run protocol (arm, held test, deferred repeats, fixed menu, adopted harness, one-shot adapter, job time limit, fixed rounds), repeats as their own resumable sessions, and runtime measurements (peak process and GPU memory, cold start) from an optional meter during local locked tests.
+- Decision 042's five weights gaps are fixed, each with a test (`weights-gaps.test.ts`).
+- A hosted student can be pinned to OpenRouter providers with no fallback; the comparisons pin DeepInfra's bf16, since Together serves FP8.
+- Tests on fakes only, no model call and the GPU off: `comparisons-model`, `comparisons-runner`, `comparisons-dry-run`, `comparison-protocol`, `weights-gaps`. The dry run takes every arm through on the returns desk, a dropped arm and a stopped one included; the weights arms run on the real adapter runtime with the stand-in llama-server and a tiny base in a fake Ollama store, and the one-shot adapter's package names the base's `base_digest`. That gap from decision 042's notes was already closed: freezing reads the digest through the llama.cpp student, and the package names it.
+- An independent review of the branch found no way for the locked test to open early, and five real bugs, all fixed with tests: the per-arm student cap stopped arms on 4% of price noise (a stopped bare run takes no test); nothing held the total credit while the comparison ran; `probe` resumed arms with nothing watching their spend; two processes on one folder would pay twice; and a hosted-only run needed Ollama for freezing, unchecked until after it paid. The credit is now held at every step at measured prices, variable arms stop only at a round's start, fixed-size arms never, `probe` resumes nothing, a lock keeps one process per folder, and the local build is checked before anything spends.
+
+**Next: the real runs, with the owner's go-ahead.** From the repository root, with `OPENROUTER_API_KEY` and `META_API_TOKEN` in the environment (and `HF_TOKEN` only for weights), and Ollama running with `muse-glimmer:30b-iq2` installed: freezing reads the local build's metadata to pin it, and loads nothing. `<out>` is a folder outside the repository, the same for every command of one comparison; the app stays closed while it runs, until one GPU lease covers both.
+- Plan, which spends only the 15 calibration attempts: `pnpm --filter @architect/engine exec tsx scripts/comparisons.ts plan ../../examples/gear-returns/job --out <out> --arms bare,draft,targeted,reference,repeat,fixed --student-usd 15 --spark-usd 15 --regression ../../examples/home-services/job`
+- Run arms 1 to 6 as planned: the same with `run` and `--confirm`. At $15 of student credit the fixed arm is dropped; `--student-usd 21` funds it. If calibration prices an attempt near $0.018, `--headroom 1` keeps the targeted arm within $15. The plan is fixed once confirmed.
+- With a GPU window: `... probe ../../examples/gear-returns/job --out <out> --tasks 3 --meter`, then the run again with `--local-ollama --meter`.
+- With a Hugging Face token and a GPU window, decided before the first run: add `weights-one-shot,weights-targeted` to `--arms`, with `--compute --llama-server --compute-usd 8.10 --gpu-minutes <from the probe> --local-ollama --meter`.
+
+**Open issues**
+- Nothing is measured on the new runtime yet; the projections assume $0.01 and 18 s an attempt until calibration prices one. The old runtime measured $0.018 an attempt on home services, and at that price arms 1 to 5 don't fit $15: the plan would stop for confirmation.
+- OpenRouter's provider pin and the system meter (tasklist or ps, and nvidia-smi) are unverified live.
+- The runner holds the student's credit at each step at measured prices, not per attempt; OpenRouter's own balance stops calls past it. Local GPU minutes are a funding check, not a hold on the running time.
+
 ## 2026-10-28 (Tue), the versions, export and import screens
 
 **Done** (decision 047)

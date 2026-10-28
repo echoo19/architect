@@ -201,6 +201,10 @@ export class RunState {
   drafts(index: number): boolean {
     const { method } = this.run;
     if (method === 'one_shot') return true;
+    const { protocol } = this.record;
+    // A comparison's adopted harness is its first round's whole draft; its other rounds never are.
+    if (protocol?.adopt !== undefined) return index === 1;
+    if (protocol?.oneShotAdapter !== undefined) return false;
     // An improvement starts from a graduate's harness and changes it one step at a time.
     if (this.record.improves !== undefined) return false;
     if (method !== 'architect' && method !== 'self_reflection') return false;

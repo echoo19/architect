@@ -1,13 +1,19 @@
 import {
   GuardError,
   TERMINAL_TRAINING_STATES,
+  type Intervention,
   type Lesson,
   type TrainedAdapter,
   type TrainingJobRecord,
   type VerifiedEpisode,
 } from '@architect/shared';
 import { hashFile } from '../training/artifacts';
-import { buildTrainingDataset, DatasetError, writeTrainingDataset } from '../training/dataset';
+import {
+  buildTrainingDataset,
+  DatasetError,
+  readTrainingDataset,
+  writeTrainingDataset,
+} from '../training/dataset';
 import { must } from './errors';
 import { interventionOfRound } from './intervene';
 import type { RunState } from './run-state';
@@ -58,6 +64,11 @@ export async function startTraining(state: RunState, index: number): Promise<voi
     );
     return;
   }
+  const earlier = sentFor(state, training.datasetDir(state.ctx.runId, index));
+  if (earlier !== null) {
+    recordJob(state, index, intervention, earlier);
+    return;
+  }
   const backend = await training.backend();
   if (backend === null) {
     state.closeRound(index, 'No training backend is set up any more.', undefined, 'invalid');
@@ -67,6 +78,7 @@ export async function startTraining(state: RunState, index: number): Promise<voi
     must(lesson.episode, `The episode of lesson ${lesson.id}`),
   );
   let dir: string;
+  let datasetSha256: string;
   try {
     const dataset = buildTrainingDataset(episodes, {
       destination: backend.real ? 'remote' : 'local',
@@ -75,6 +87,7 @@ export async function startTraining(state: RunState, index: number): Promise<voi
     });
     dir = training.datasetDir(state.ctx.runId, index);
     writeTrainingDataset(dir, dataset);
+    datasetSha256 = dataset.manifest.examples_sha256;
   } catch (error) {
     if (error instanceof DatasetError) {
       state.closeRound(
@@ -91,23 +104,77 @@ export async function startTraining(state: RunState, index: number): Promise<voi
     }
     throw error;
   }
-  let record: TrainingJobRecord;
-  try {
-    record = await training.worker.submit(
-      {
-        scope: state.ctx.runId,
-        maxComputeUsd: state.job.budget.maxComputeUsd ?? 0,
-        backend: backend.kind,
-        datasetDir: dir,
-        baseModel: training.baseModel,
-      },
-      state.signal,
+  // A job this run already sent for the same examples, on whatever backend it went to: the round
+  // was interrupted after sending it, before recording it. It is the round's job, so a backend
+  // that changed since (a token added or removed) can't make a second one (decision 045).
+  const sent = training.worker
+    .list()
+    .find(
+      (job) =>
+        job.scope === state.ctx.runId &&
+        job.dataset.sha256 === datasetSha256 &&
+        job.state !== 'failed' &&
+        job.state !== 'cancelled',
     );
-  } catch (error) {
-    if (!(error instanceof GuardError)) throw error;
-    state.closeRound(index, error.message, undefined, 'invalid');
-    return;
+  let record: TrainingJobRecord;
+  if (sent !== undefined) {
+    record = sent;
+  } else {
+    const maxMinutes = state.record.protocol?.maxJobMinutes;
+    try {
+      record = await training.worker.submit(
+        {
+          scope: state.ctx.runId,
+          maxComputeUsd: state.job.budget.maxComputeUsd ?? 0,
+          backend: backend.kind,
+          datasetDir: dir,
+          baseModel: training.baseModel,
+          ...(maxMinutes === undefined ? {} : { maxSeconds: maxMinutes * 60 }),
+        },
+        state.signal,
+      );
+    } catch (error) {
+      if (!(error instanceof GuardError)) throw error;
+      state.closeRound(index, error.message, undefined, 'invalid');
+      return;
+    }
   }
+  recordJob(state, index, intervention, record);
+}
+
+/**
+ * A job this run already sent for the examples a round's dataset folder holds, on whatever
+ * backend it went to, unless it failed or was cancelled; null when the round wrote no dataset or
+ * sent nothing yet.
+ */
+function sentFor(state: RunState, dir: string): TrainingJobRecord | null {
+  const training = must(state.ctx.deps.training, 'The training worker');
+  let sha256: string;
+  try {
+    sha256 = readTrainingDataset(dir).manifest.examples_sha256;
+  } catch {
+    return null;
+  }
+  return (
+    training.worker
+      .list()
+      .find(
+        (job) =>
+          job.scope === state.ctx.runId &&
+          job.dataset.sha256 === sha256 &&
+          job.state !== 'failed' &&
+          job.state !== 'cancelled',
+      ) ?? null
+  );
+}
+
+/** Makes a job the round's, which moves the round to training. */
+function recordJob(
+  state: RunState,
+  index: number,
+  intervention: Intervention,
+  record: TrainingJobRecord,
+): void {
   const stored = state.round(index);
   state.ctx.store.transaction(() => {
     state.ctx.store.interventions.put({ ...intervention, trainingJobId: record.id });
@@ -118,15 +185,30 @@ export async function startTraining(state: RunState, index: number): Promise<voi
   state.log('info', `Round ${index}: training job ${record.id} on ${record.label}.`);
 }
 
-/** A ready job's adapter, as the run records it. */
-function adapterOf(state: RunState, record: TrainingJobRecord): TrainedAdapter {
+/**
+ * A ready job's adapter, as the run records it, or why it can't be used: the file on disk must be
+ * the one the worker downloaded and checked, byte for byte, as the job's artifact record lists it
+ * (decision 045). A file that changed since is never measured or kept.
+ */
+function adapterOf(state: RunState, record: TrainingJobRecord): TrainedAdapter | string {
   const training = must(state.ctx.deps.training, 'The training worker');
   const artifacts = must(record.artifacts, "The job's artifacts");
+  const listed = artifacts.files.find((file) => file.kind === 'gguf_lora');
+  if (listed === undefined) return "The training job's record lists no GGUF adapter.";
   const path = training.adapterPath(record);
+  let found: { sha256: string; bytes: number };
+  try {
+    found = hashFile(path);
+  } catch {
+    return `The adapter the training job downloaded is missing from ${state.ctx.paths.toStored(path)}.`;
+  }
+  if (found.sha256 !== listed.sha256 || found.bytes !== listed.bytes) {
+    return `The adapter file isn't the one its training job downloaded and checked: its sha256 begins ${found.sha256.slice(0, 12)}, not ${listed.sha256.slice(0, 12)}.`;
+  }
   return {
     id: record.id,
     path: state.ctx.paths.toStored(path),
-    sha256: hashFile(path).sha256,
+    sha256: listed.sha256,
     standIn: artifacts.standIn || !record.real,
     label: record.label,
   };
@@ -153,6 +235,11 @@ export async function awaitTraining(state: RunState, index: number): Promise<voi
   const jobId = must(intervention.trainingJobId, "The round's training job");
   const record = await training.worker.poll(jobId, state.signal);
   if (record.state === 'ready') {
+    const adapter = adapterOf(state, record);
+    if (typeof adapter === 'string') {
+      state.closeRound(index, adapter, undefined, 'invalid');
+      return;
+    }
     const stored = state.round(index);
     state.saveRound({
       ...stored,
@@ -160,7 +247,7 @@ export async function awaitTraining(state: RunState, index: number): Promise<voi
         ...stored.round,
         status: 'evaluating',
         candidateVersion: stored.baseVersion,
-        candidateAdapter: adapterOf(state, record),
+        candidateAdapter: adapter,
       },
     });
     return;
