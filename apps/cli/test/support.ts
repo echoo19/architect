@@ -89,6 +89,8 @@ export interface InProcessOptions {
   /** Called with stdout so far whenever it grows. */
   onStdout?(text: string): void;
   onStderr?(text: string): void;
+  /** A stand-in llama-server for versions with an adapter. */
+  llamaServerCommand?: CliIo['llamaServerCommand'];
 }
 
 /** Runs the command in this process with captured streams; a counting stand-in for the guard. */
@@ -129,6 +131,9 @@ export async function cli(argv: string[], options: InProcessOptions): Promise<Ca
     installGuard() {
       guards += 1;
     },
+    ...(options.llamaServerCommand === undefined
+      ? {}
+      : { llamaServerCommand: options.llamaServerCommand }),
   };
   options.interruptWith?.(() => {
     for (const listener of listeners) listener();

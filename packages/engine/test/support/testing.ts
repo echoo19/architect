@@ -2,7 +2,8 @@ import { fileURLToPath } from 'node:url';
 
 /**
  * The engine's test fakes and fixtures, for tests in other packages (the command line's) that
- * need the same ones: one fake Hub, one fake Ollama, one way to make a graduate.
+ * need the same ones: one fake Hub, one fake Ollama, one stand-in llama-server, one way to make a
+ * graduate.
  */
 export type { ObservedConnection } from '../agent-host/connection-observer';
 export {
@@ -12,6 +13,13 @@ export {
   type ScriptedTurn,
 } from '../agent-host/fake-ollama';
 export { addGraduate, type GraduateFixture, type GraduateOptions } from '../agent-host/graduates';
+export {
+  fakeLlamaCommand,
+  recorded,
+  standInAdapter,
+  storeBase,
+  type Recorded,
+} from './adapter-runtime';
 export { FAKE_HUB_TOKEN, startFakeHub, type FakeHub, type FakeHubOptions } from './fake-hub';
 export { SAMPLE_CONTENT } from './fixtures';
 export { openEngineStore } from '../../src/store/engine-store';
