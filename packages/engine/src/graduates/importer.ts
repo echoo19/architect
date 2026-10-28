@@ -335,6 +335,10 @@ export async function importPackage(
 
     const installed = store.versions.withDigest(staged.digest);
     if (installed) {
+      // The same bytes, from a hub this time: keep where they came from when nothing was before.
+      if (provenance.source !== undefined && installed.source === undefined) {
+        store.versions.update({ ...installed, source: provenance.source });
+      }
       return {
         graduate: library.summary(installed.graduateId),
         version: installed.version,

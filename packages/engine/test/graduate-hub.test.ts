@@ -3,7 +3,9 @@ import { join } from 'node:path';
 import { readPackage } from '@architect/harness';
 import { GuardError, PackageError, type ImportRequest } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
+import { exportPackage } from '../src/graduates/exporter';
 import { downloadFromHub, installFromHub } from '../src/graduates/hub-install';
+import { importPackage } from '../src/graduates/importer';
 import { HOSTED_INFERENCE_NOTE } from '../src/graduates/card';
 import {
   listPublications,
@@ -166,6 +168,23 @@ describe('publishing a version to Hugging Face', () => {
     expect(again).toMatchObject({ alreadyPublished: true, publication: first.publication });
     expect(hub.repos.get(REPO)?.commits).toHaveLength(commits ?? 0);
     expect(listPublications(ctx, 'grd_desk')).toHaveLength(1);
+  });
+
+  it('finds a shared resource already published on a later day, rather than refusing it', async () => {
+    const { author, hub, ctx } = await authored();
+    const first = await publishVersion(ctx, 'grd_desk', {
+      repository: REPO,
+      include: ['resource:data'],
+    });
+    expect([...hub.filesAt(REPO, first.publication.revision).keys()]).toContain(
+      'resources/data/invoices.csv',
+    );
+    author.clock.advance(24 * 3600 * 1000);
+    const again = await publishVersion(ctx, 'grd_desk', {
+      repository: REPO,
+      include: ['resource:data'],
+    });
+    expect(again).toMatchObject({ alreadyPublished: true, publication: first.publication });
   });
 
   it('reports a failed upload as failed, never as a release, and finishes the same record when tried again', async () => {
@@ -357,6 +376,23 @@ describe('installing a version from Hugging Face', () => {
     await expect(
       installFromHub(anonymous, `hf://${REPO}`, { revision: publication.revision }),
     ).rejects.toMatchObject({ name: 'HubError', code: 'auth' });
+  });
+
+  it('records the commit when the same version was installed before from a file', async () => {
+    const { author, hub, ctx } = await authored();
+    const { publication } = await publishVersion(ctx, 'grd_desk', { repository: REPO });
+    const exports = join(author.dataDir, 'exports');
+    const { archive } = await exportPackage(ctx, 'grd_desk', { directory: exports });
+    const other = await computer();
+    const otherCtx = contextOf(other, hub);
+    const fromFile = await importPackage(otherCtx, archive);
+    expect(other.library.versions(fromFile.graduate.id)[0]?.source).toBeUndefined();
+
+    const fromHub = await installFromHub(otherCtx, `hf://${REPO}`, {
+      revision: publication.revision,
+    });
+    expect(fromHub).toMatchObject({ alreadyInstalled: true, version: 1 });
+    expect(other.library.versions(fromFile.graduate.id)[0]?.source).toEqual(fromHub.source);
   });
 
   it('refuses a file that does not match its checksum, and installs nothing', async () => {

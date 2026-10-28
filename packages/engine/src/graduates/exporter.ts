@@ -28,7 +28,6 @@ import {
   type PackageManifest,
 } from '@architect/shared';
 import type { SecretDeps } from '../loop/deps';
-import { isoNow } from '../loop/time';
 import { absoluteFolder } from './bindings';
 import type { GraduateLibrary } from './library';
 import { exists } from './versions';
@@ -132,7 +131,6 @@ async function planExport(
     };
   }
 
-  const shared = isoNow(library.ctx.clock).slice(0, 10);
   const added: { path: string; source: string }[] = [];
   const integrity: IntegrityEntry[] = [...read.manifest.integrity.files];
   for (const name of chosen) {
@@ -152,7 +150,8 @@ async function planExport(
             ...resource,
             bundled: {
               path: `resources/${resource.name}`,
-              provenance: `Shared by the author from their ${resource.name}/ folder on ${shared}.`,
+              // No date: the same files make the same package, whenever it is written.
+              provenance: `Shared by the author from their ${resource.name}/ folder.`,
             },
           }
         : resource,
