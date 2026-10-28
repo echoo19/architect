@@ -331,6 +331,7 @@ describe('the comparisons script under the lease', () => {
     });
     // Idle, the app keeps its llama-server: the script never takes the GPU from it.
     await app.release();
+    await until(() => leaseFile().holders[0]?.busy === false);
     expect(await refused()).toMatchObject({
       code: 'server',
       message: `The GPU is busy: Architect has it, with nothing running. ${HINT}`,
