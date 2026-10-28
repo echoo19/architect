@@ -13,6 +13,8 @@ export interface DrawerContentProps {
   subtitle?: ReactNode;
   /** Controls in the header, left of the close button. */
   actions?: ReactNode;
+  /** A bar pinned along the bottom, such as a form's buttons, so it stays in view. */
+  footer?: ReactNode;
   children: ReactNode;
   className?: string;
 }
@@ -25,6 +27,7 @@ export function DrawerContent({
   title,
   subtitle,
   actions,
+  footer,
   children,
   className,
 }: DrawerContentProps) {
@@ -65,6 +68,11 @@ export function DrawerContent({
           </RadixDialog.Close>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-5">{children}</div>
+        {footer && (
+          <div className="flex min-h-16 shrink-0 flex-wrap items-center justify-end gap-x-4 gap-y-3 border-t border-line-card px-6 py-3.5">
+            {footer}
+          </div>
+        )}
       </RadixDialog.Content>
     </RadixDialog.Portal>
   );

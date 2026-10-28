@@ -55,14 +55,26 @@ export {
   type ErrorStateProps,
   type SkeletonProps,
 } from './components/feedback';
-export { FileChip, type FileChipProps } from './components/file-chip';
+export {
+  FileChip,
+  ToggleChip,
+  type FileChipProps,
+  type ToggleChipProps,
+} from './components/file-chip';
 export {
   IconButton,
   type IconButtonProps,
   type IconButtonSize,
   type IconButtonVariant,
 } from './components/icon-button';
-export { Input, Textarea, type InputProps, type TextareaProps } from './components/input';
+export {
+  Field,
+  Input,
+  Textarea,
+  type FieldProps,
+  type InputProps,
+  type TextareaProps,
+} from './components/input';
 export { Kbd, Shortcut, shortcutLabel, type ShortcutProps } from './components/kbd';
 export { Progress, type ProgressProps } from './components/progress';
 export { ProviderMark, type ProviderMarkProps } from './components/provider-mark';
