@@ -3,6 +3,7 @@ import {
   BindRequestSchema,
   CapabilityBreakdownSchema,
   CategorySchema,
+  ComparisonReportSchema,
   CorrectionRequestSchema,
   CorrectionSchema,
   ClarificationReplySchema,
@@ -47,6 +48,7 @@ import {
   RunEventSchema,
   RunSchema,
   RunStartOptionsSchema,
+  RuntimeMeasurementSchema,
   StudentTargetSchema,
   TraceSchema,
   VersionEventSchema,
@@ -123,6 +125,11 @@ export const ENGINE_ROUTES = {
     z.array(FileDiffSchema),
     (api, [runId, round]) => api.runs.roundDiff(runId, round),
   ),
+  'runs.runtimeMeasurements': route(
+    z.tuple([id]),
+    z.array(RuntimeMeasurementSchema),
+    (api, [runId]) => api.runs.runtimeMeasurements(runId),
+  ),
   'mentoring.lessons': route(z.tuple([id]), z.array(ListedLessonSchema), (api, [runId]) =>
     api.mentoring.lessons(runId),
   ),
@@ -189,6 +196,9 @@ export const ENGINE_ROUTES = {
   ),
   'reports.list': route(z.tuple([id]), z.array(StudentTargetSchema), (api, [runId]) =>
     api.reports.list(runId),
+  ),
+  'reports.comparisons': route(z.tuple([id]), ComparisonReportSchema.nullable(), (api, [runId]) =>
+    api.reports.comparisons(runId),
   ),
   'graduates.list': route(z.tuple([]), z.array(GraduateSummarySchema), (api) =>
     api.graduates.list(),

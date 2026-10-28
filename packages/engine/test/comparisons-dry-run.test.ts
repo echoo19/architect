@@ -7,6 +7,7 @@ import {
   DEFAULT_CONFIG,
   DEFAULT_MODELS,
   probeLocal,
+  reportBeside,
   runComparison,
   type ComparisonConfig,
   type ComparisonRequest,
@@ -69,6 +70,9 @@ describe('a dry run of every arm on fakes', () => {
       cpSync(join(world.out, 'plan.json'), join(out, 'plan.json'));
     }
     expect(ComparisonReportSchema.parse(report)).toEqual(report);
+    // The app opened on the comparison's data folder reads the same report from beside it.
+    expect(await reportBeside(join(world.out, 'data'))).toEqual(report);
+    expect(await reportBeside(world.out)).toBeNull();
     expect(outcome).toBe('finished');
     const status = Object.fromEntries(report.arms.map((arm) => [arm.arm, arm.status]));
     expect(status).toEqual({
@@ -136,6 +140,11 @@ describe('a dry run of every arm on fakes', () => {
       expect(frozenAt).toHaveLength(5);
       expect(frozenAt.every((at) => firstTest !== undefined && at <= firstTest)).toBe(true);
       expect(runs.some((run) => run.protocol?.arm === 'fixed')).toBe(false);
+      // The meter's readings of a locked test on this computer are the run's own, to show.
+      const readings = store.runtimeMeasurements.list(arm('bare')?.runId ?? '');
+      expect(readings.some((item) => item.split === 'test' && item.peakProcessBytes !== null)).toBe(
+        true,
+      );
 
       // The kept adapter froze with its base's digest, and its package names it.
       const oneShot = arm('weights-one-shot');

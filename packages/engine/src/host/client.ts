@@ -94,6 +94,7 @@ export function connectEngine(
       attempt: (attemptId) => request('runs.attempt', [attemptId]),
       trace: (attemptId) => request('runs.trace', [attemptId]),
       roundDiff: (runId, round) => request('runs.roundDiff', [runId, round]),
+      runtimeMeasurements: (runId) => request('runs.runtimeMeasurements', [runId]),
       onEvent(listener) {
         listeners.add(listener);
         return () => {
@@ -126,6 +127,7 @@ export function connectEngine(
     reports: {
       get: (runId, target) => request('reports.get', [runId, target ?? null]),
       list: (runId) => request('reports.list', [runId]),
+      comparisons: (runId) => request('reports.comparisons', [runId]),
     },
     graduates: {
       list: () => request('graduates.list', []),

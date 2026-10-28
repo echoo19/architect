@@ -74,6 +74,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     attempt: true,
     trace: true,
     roundDiff: true,
+    runtimeMeasurements: true,
   },
   mentoring: {
     lessons: true,
@@ -96,7 +97,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     improve: true,
     improvements: true,
   },
-  reports: { get: true, list: true },
+  reports: { get: true, list: true, comparisons: true },
   graduates: {
     list: true,
     accept: true,

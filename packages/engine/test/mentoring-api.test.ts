@@ -1,4 +1,6 @@
-import type { Experiment, RunEvent } from '@architect/shared';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { COMPARISON_REPORT_FORMAT, type Experiment, type RunEvent } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { connectEngine, type EngineClient } from '../src/host/client';
 import { createEngineHost, type EngineHost } from '../src/host/engine-host';
@@ -220,6 +222,48 @@ describe('a correction played back beside its lesson', () => {
     engine.close();
     await expect(api.runs.attempt(tested?.id ?? '')).rejects.toThrow(
       "A final-test attempt isn't shown on its own; the report card counts it.",
+    );
+  });
+
+  it('serves the runtime meter readings a run has, and a comparisons report only beside its data', async () => {
+    const api = await connect();
+    const job = await api.jobs.createSample();
+    const run = await api.runs.start(job.id, { method: 'architect', seed: 7 });
+    await next(api, (event) => settled(event, run.id));
+
+    // No meter ran, so there is nothing to show; a reading the store has comes back as stored.
+    expect(await api.runs.runtimeMeasurements(run.id)).toEqual([]);
+    const engine = openEngineStore(new DataPaths(world.dataDir).database);
+    const reading = {
+      id: 'msr_first',
+      runId: run.id,
+      split: 'test' as const,
+      target: 'local' as const,
+      config: 'student',
+      harnessVersion: 1,
+      seeds: [101],
+      backend: 'ollama',
+      peakProcessBytes: 19_000_000_000,
+      peakGpuBytes: 7_000_000_000,
+      coldStartMs: 8_400,
+      samples: 12,
+      sampler: 'a meter in a test',
+      startedAt: '2026-10-28T10:00:00.000Z',
+      endedAt: '2026-10-28T10:20:00.000Z',
+    };
+    engine.runtimeMeasurements.insert(reading);
+    engine.close();
+    expect(await api.runs.runtimeMeasurements(run.id)).toEqual([reading]);
+
+    // The runner leaves its report beside the `data` folder it ran in. With none there, or a file
+    // in another format, there is no report; one in its format that doesn't parse says so.
+    const beside = join(world.dataDir, '..', 'report.json');
+    expect(await api.reports.comparisons(run.id)).toBeNull();
+    writeFileSync(beside, JSON.stringify({ format: 'something else', arms: [] }));
+    expect(await api.reports.comparisons(run.id)).toBeNull();
+    writeFileSync(beside, JSON.stringify({ format: COMPARISON_REPORT_FORMAT, arms: [] }));
+    await expect(api.reports.comparisons(run.id)).rejects.toThrow(
+      "doesn't match its format, so it can't be shown",
     );
   });
 });

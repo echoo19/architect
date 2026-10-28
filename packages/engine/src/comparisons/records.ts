@@ -1,13 +1,16 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { appendFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { appendFile, readFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import {
   ArmIdSchema,
+  COMPARISON_REPORT_FORMAT,
   ComparisonCapsSchema,
+  ComparisonReportSchema,
   ProjectionSchema,
   RuntimeIdentitySchema,
   StudentTargetSchema,
   UsageSchema,
+  type ComparisonReport,
 } from '@architect/shared';
 import { z } from 'zod';
 import { writeFileAtomic } from '../data/atomic-write';
@@ -166,4 +169,24 @@ export class ComparisonFiles {
     mkdirSync(this.out, { recursive: true });
     writeFileAtomic(this.probeReading, `${JSON.stringify(ProbeReadingSchema.parse(reading))}\n`);
   }
+}
+
+/**
+ * The report a comparison left beside a data folder the app opened, for the app to read: only
+ * when the folder is a comparison's `data` folder, with its `report.json` beside it. Null when
+ * there is none, or when the file there isn't in the runner's format; a file in its format that
+ * doesn't parse is an error that says where it is.
+ */
+export async function reportBeside(dataDir: string): Promise<ComparisonReport | null> {
+  const files = new ComparisonFiles(dirname(resolve(dataDir)));
+  if (files.dataDir !== resolve(dataDir) || !existsSync(files.reportJson)) return null;
+  const stored: unknown = JSON.parse(await readFile(files.reportJson, 'utf8'));
+  if ((stored as { format?: unknown } | null)?.format !== COMPARISON_REPORT_FORMAT) return null;
+  const parsed = ComparisonReportSchema.safeParse(stored);
+  if (!parsed.success) {
+    throw new Error(
+      `The comparisons report beside this data folder (${files.reportJson}) doesn't match its format, so it can't be shown.`,
+    );
+  }
+  return parsed.data;
 }

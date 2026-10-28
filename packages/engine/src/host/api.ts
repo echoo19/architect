@@ -4,6 +4,7 @@ import {
   JobSchema,
   TraceSchema,
   type ClarificationReply,
+  type ComparisonReport,
   type FileDiff,
   type ListedAttempt,
   type ListedLesson,
@@ -12,6 +13,7 @@ import {
   type StudentTarget,
   type Trace,
 } from '@architect/shared';
+import { reportBeside } from '../comparisons/records';
 import { exportPackage, exportPart, reviewExport } from '../graduates/exporter';
 import { installFromHub } from '../graduates/hub-install';
 import { importPackage, inspectPackage, previewImport } from '../graduates/importer';
@@ -159,6 +161,17 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
   }
 
   /**
+   * The comparisons runner's report the run is an arm of. The runner keeps a comparison's data
+   * in `<out>/data` and its report in `<out>/report.json` (decision 045), so the app shows one
+   * when it runs on such a `data` folder.
+   */
+  async function comparisons(runId: string): Promise<ComparisonReport | null> {
+    const id = run(runId).run.id;
+    const report = await reportBeside(paths.root);
+    return report?.arms.some((arm) => arm.runId === id) ? report : null;
+  }
+
+  /**
    * Records the person's answer to the question a paused run asked, on the round's intervention,
    * before anything else happens in the round, and resumes the run.
    */
@@ -227,6 +240,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       attempt,
       trace,
       roundDiff,
+      runtimeMeasurements: async (runId) => store.runtimeMeasurements.list(run(runId).run.id),
       onEvent: (listener) => controller.onEvent(listener),
     },
     mentoring: {
@@ -267,6 +281,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     reports: {
       get: async (runId, target) => reportOf(run(runId), target),
       list: async (runId) => store.reports.targets(run(runId).run.id),
+      comparisons,
     },
     graduates: {
       // A graduate never shows as unchecked: its active version is checked the first time it is
