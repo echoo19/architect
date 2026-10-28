@@ -1,5 +1,5 @@
-import { createInterface } from 'node:readline/promises';
-import { Writable } from 'node:stream';
+import { createInterface } from 'node:readline';
+import { Writable, type Readable } from 'node:stream';
 import type { CellValue } from '@architect/shared';
 import type { CliContext } from '../context';
 import type { Output } from '../io';
@@ -8,6 +8,11 @@ import type { ApprovalAnswer, ApprovalBlock } from './session';
 
 /** Lines of a change shown before asking; the rest is counted. */
 const SHOWN_LINES = 20;
+
+/** A terminal readline can edit lines on and read Ctrl+C from itself. */
+export function isTerminalStream(stream: Readable): boolean {
+  return 'setRawMode' in stream && typeof stream.setRawMode === 'function';
+}
 
 /** A writable stream over an output, for readline's prompts. */
 export function writableOf(out: Output): Writable {
@@ -61,23 +66,43 @@ export const APPROVAL_QUESTION = 'Allow this change? [y]es, [n]o, [a]lways for t
 
 /**
  * Asks on the terminal about each write that needs approval, one line per answer: yes, no, or
- * always (which allows this agent's writes from now on, in the app as well).
+ * always (which allows this agent's writes from now on, in the app as well). It never waits on
+ * nobody: the end of input is a no, and so is the run stopping. Ctrl+C at the question is a no
+ * that also stops the run, through `interrupt`.
  */
 export function approvalPrompter(
   ctx: CliContext,
+  stopped: AbortSignal,
+  interrupt: () => void,
 ): (block: ApprovalBlock) => Promise<ApprovalAnswer> {
   const { io } = ctx;
-  return async (block) => {
-    for (const text of describeChange(block)) line(io.stderr, text);
-    const reader = createInterface({
-      input: io.stdin,
-      output: writableOf(io.stderr),
-      terminal: io.terminal,
+  return (block) =>
+    new Promise<ApprovalAnswer>((resolve) => {
+      for (const text of describeChange(block)) line(io.stderr, text);
+      const reader = createInterface({
+        input: io.stdin,
+        output: writableOf(io.stderr),
+        terminal: io.terminal && isTerminalStream(io.stdin),
+      });
+      let answered = false;
+      const answer = (choice: ApprovalAnswer) => {
+        if (answered) return;
+        answered = true;
+        stopped.removeEventListener('abort', onStop);
+        reader.close();
+        resolve(choice);
+      };
+      const onStop = () => answer('deny');
+      if (stopped.aborted) {
+        answer('deny');
+        return;
+      }
+      stopped.addEventListener('abort', onStop, { once: true });
+      reader.on('close', () => answer('deny'));
+      reader.on('SIGINT', () => {
+        answer('deny');
+        interrupt();
+      });
+      reader.question(APPROVAL_QUESTION, (text) => answer(answerOf(text)));
     });
-    try {
-      return answerOf(await reader.question(APPROVAL_QUESTION));
-    } finally {
-      reader.close();
-    }
-  };
 }

@@ -1,20 +1,20 @@
 import { createInterface } from 'node:readline';
-import type { Readable } from 'node:stream';
 import type { CliOutcome } from '@architect/shared';
 import { flag, type Parsed } from '../args';
 import type { CliContext } from '../context';
 import { failureOf } from '../exit';
 import { line, sayFailure, stepLine } from '../render';
-import { answerOf, APPROVAL_QUESTION, describeChange, writableOf } from './approvals';
+import {
+  answerOf,
+  APPROVAL_QUESTION,
+  describeChange,
+  isTerminalStream,
+  writableOf,
+} from './approvals';
 import { outcomeOf } from './result';
 import { ask, openSession, type ApprovalAnswer, type ApprovalBlock } from './session';
 
 const END_KEY = process.platform === 'win32' ? 'Ctrl+Z then Enter' : 'Ctrl+D';
-
-/** A terminal readline can edit lines on and read Ctrl+C from itself. */
-function isTerminalStream(stream: Readable): boolean {
-  return 'setRawMode' in stream && typeof stream.setRawMode === 'function';
-}
 
 /**
  * `architect run <agent>` with no request file: a conversation, one request per line, in one

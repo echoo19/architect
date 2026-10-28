@@ -173,9 +173,13 @@ export function ask(session: AgentSession, text: string, options: AskOptions): P
         asked.add(block.changeId);
         const approve = options.approve;
         if (!approve) continue;
+        // A question that can't be answered is a no, never a wait.
         approve(block)
+          .catch((): ApprovalAnswer => 'deny')
           .then((answer) => host.decide(block.changeId, answer))
-          .catch(() => undefined);
+          .catch(() => {
+            // The reply ended meanwhile, and the change with it.
+          });
       }
       if (message.status === 'streaming') return;
       unsubscribe();

@@ -1,5 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { PassThrough } from 'node:stream';
 import { RunResultSchema, type RunResult } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanUp, cli, keyboard, machineWith, tempDir, type Machine } from './support';
@@ -218,6 +219,52 @@ describe('A11: a batch run reads a JSON request and always writes a JSON result'
     const { code, result } = await batch(machine, task('Think.'), ['--timeout', '1']);
     expect(code).toBe(1);
     expect(result).toMatchObject({ status: 'runtime_error', error: { code: 'timeout' } });
+  });
+});
+
+describe('a request file run at a terminal', () => {
+  async function atTerminal(
+    machine: Machine,
+    onQuestion: (keys: PassThrough, press: () => void) => void,
+  ) {
+    const input = await requestFile(machine, task('Add an invoice for Ruiz, Ben.'));
+    const output = join(await tempDir('out'), 'result.json');
+    const keys = keyboard();
+    let press = () => undefined as void;
+    const run = await cli(['run', 'service-desk', '--input', input, '--output', output], {
+      env: machine.env,
+      stdin: keys,
+      terminal: true,
+      interruptWith: (pressed) => (press = pressed),
+      onStderr: (text) => {
+        if (text.endsWith('[a]lways for this agent: ')) onQuestion(keys, press);
+      },
+    });
+    return { run, result: RunResultSchema.parse(JSON.parse(await readFile(output, 'utf8'))) };
+  }
+
+  it('asks there, and takes the end of input as a no instead of waiting', async () => {
+    const machine = await machineWith([ADD_INVOICE, { text: 'I left the invoices as they were.' }]);
+    const before = await invoices(machine);
+    const { run, result } = await atTerminal(machine, (keys) => keys.end());
+    expect(run.code).toBe(0);
+    expect(result).toMatchObject({
+      status: 'succeeded',
+      answer: `I'll add the invoice.\n\nI left the invoices as they were.`,
+      artifacts: [],
+      steps: [{ tool: 'append', summary: 'declined' }],
+    });
+    expect(await invoices(machine)).toBe(before);
+  });
+
+  it('stops at the question when Ctrl+C comes, with exit 130 and nothing written', async () => {
+    const machine = await machineWith([ADD_INVOICE, { text: 'never reached' }]);
+    const before = await invoices(machine);
+    const { run, result } = await atTerminal(machine, (_keys, press) => press());
+    expect(run.code).toBe(130);
+    expect(result).toMatchObject({ status: 'cancelled', answer: null });
+    expect(await invoices(machine)).toBe(before);
+    expect(machine.model.chats()).toHaveLength(1);
   });
 });
 

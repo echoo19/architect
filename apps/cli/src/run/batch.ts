@@ -156,6 +156,7 @@ export async function runBatch(
   let inputs: string[] = [];
   let outcome: Outcome;
   const stop = new AbortController();
+  const cancel = new AbortController();
   let timedOut = false;
   const timer =
     timeoutSeconds === undefined
@@ -164,7 +165,7 @@ export async function runBatch(
           timedOut = true;
           stop.abort(new Error('Timed out.'));
         }, timeoutSeconds * 1000);
-  const ended = AbortSignal.any([signal, stop.signal]);
+  const ended = AbortSignal.any([signal, stop.signal, cancel.signal]);
   try {
     const request = await readRequest(ctx, source);
     inputs = request.inputs;
@@ -181,7 +182,13 @@ export async function runBatch(
     if (ended.aborted) throw ended.reason;
     const reply = await ask(session, taskText(request.task, request.inputs), {
       approvals: interactive ? 'ask' : 'fail',
-      ...(interactive ? { approve: approvalPrompter(ctx) } : {}),
+      ...(interactive
+        ? {
+            approve: approvalPrompter(ctx, ended, () =>
+              cancel.abort(new Error('Stopped at the question.')),
+            ),
+          }
+        : {}),
       onStep: (step) => line(io.stderr, stepLine(step)),
       signal: ended,
     });
