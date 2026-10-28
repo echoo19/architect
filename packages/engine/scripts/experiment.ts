@@ -121,9 +121,21 @@ async function main(): Promise<void> {
     pending.filter(({ method }) => REFINERS.includes(method)),
     options.parallel,
     async ({ method, seed }) => {
-      const forked = await stageFork(options, prepare(source, options), seed);
+      const name = `${method}-s${seed}`;
+      const oneShot = await oneShotOf(options, seed);
+      if (oneShot === null) {
+        log(`${name}: seed ${seed} has no finished one-shot run yet, skipped`);
+        return;
+      }
+      // A draft refused even after its fix leaves nothing to share: the method drafts for itself.
+      if (!keptDraft(oneShot)) {
+        log(`${name}: the seed's one-shot draft was refused, so it starts from blank`);
+        await runOne(staging, options, method, seed);
+        return;
+      }
+      const forked = await stageFork(options, prepare(source, options), seed, oneShot);
       if (forked === null) {
-        log(`${method}-s${seed}: seed ${seed} has no finished one-shot draft to refine, skipped`);
+        log(`${name}: the seed's one-shot draft folder is missing, skipped`);
         return;
       }
       await runOne(forked, options, method, seed);
@@ -139,29 +151,39 @@ async function main(): Promise<void> {
 const REFINERS: readonly Method[] = ['architect', 'self_reflection'];
 
 /** The seed's one-shot result, when that run finished. */
-async function draftOf(options: Options, seed: number): Promise<RunResult | null> {
+async function oneShotOf(options: Options, seed: number): Promise<RunResult | null> {
   const file = resultFile(options, 'one_shot', seed);
   if (!existsSync(file)) return null;
   const result = JSON.parse(await readFile(file, 'utf8')) as RunResult;
   return result.detail.run.status === 'finished' ? result : null;
 }
 
+/** Whether a one-shot run kept its draft; one refused even after its fix tested the blank start. */
+function keptDraft(oneShot: RunResult): boolean {
+  return oneShot.detail.rounds.some((round) => round.index === 1 && round.decision === 'kept');
+}
+
+/** The seed's one-shot result when its draft was kept and so is shared with the refiners. */
+async function sharedDraftOf(options: Options, seed: number): Promise<RunResult | null> {
+  const oneShot = await oneShotOf(options, seed);
+  return oneShot !== null && keptDraft(oneShot) ? oneShot : null;
+}
+
 /** A job file whose starting harness is the seed's one-shot draft, with the draft's round spent. */
-async function stageFork(options: Options, job: Job, seed: number): Promise<string | null> {
-  const draft = await draftOf(options, seed);
-  if (draft === null) return null;
+async function stageFork(
+  options: Options,
+  job: Job,
+  seed: number,
+  draft: RunResult,
+): Promise<string | null> {
   const { run } = draft.detail;
   const dataDir = join(options.out, 'runs', `one_shot-s${seed}`);
   const version = `v${String(run.currentVersion).padStart(4, '0')}`;
+  const folder = join(new DataPaths(dataDir).harnessDir(run.jobId, run.id), version);
+  if (!existsSync(folder)) return null;
   const staging = await mkdtemp(join(tmpdir(), `architect-experiment-s${seed}-`));
   await cp(options.jobDir, staging, { recursive: true });
-  await cp(
-    join(new DataPaths(dataDir).harnessDir(run.jobId, run.id), version),
-    join(staging, 'draft'),
-    {
-      recursive: true,
-    },
-  );
+  await cp(folder, join(staging, 'draft'), { recursive: true });
   const forked = JobSchema.parse({
     ...job,
     startingHarness: { kind: 'import', path: 'draft' },
@@ -410,7 +432,7 @@ async function writeSummary(options: Options): Promise<void> {
       const { detail, report, spend } = JSON.parse(await readFile(file, 'utf8')) as RunResult;
       const { run } = detail;
       // A refining method's draft round and its mentor spend happened in the seed's one-shot run.
-      const draft = REFINERS.includes(method) ? await draftOf(options, seed) : null;
+      const draft = REFINERS.includes(method) ? await sharedDraftOf(options, seed) : null;
       const shared = draft === null ? 0 : 1;
       const kept = detail.rounds.filter((round) => round.decision === 'kept').length + shared;
       const mentorUsd = spend.mentorUsd + (draft?.spend.mentorUsd ?? 0);
