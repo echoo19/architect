@@ -268,7 +268,18 @@ for (const theme of THEMES) {
     await settingsButton.click();
     const dialog = page.getByRole('dialog', { name: 'Service desk', exact: true });
     await expect(dialog.getByText('Prices finished jobs, finds overdue balances')).toBeVisible();
-    await expect(dialog.getByText(/Passed its final test on /)).toBeVisible();
+    // The name is the dialog's title, so no row offers a rename the app can't do.
+    await expect(dialog.getByText('Name', { exact: true })).toHaveCount(0);
+    await expect(dialog.getByText('Round 7 was the last change Spark kept.')).toBeVisible();
+    await expect(dialog.getByText('Passed: 55 of 60 (92%)')).toBeVisible();
+    await expect(
+      dialog.getByText(
+        /The job asked for 90%\. Tested on .*\. The Report tab has the full results\./,
+      ),
+    ).toBeVisible();
+    // The model shows as its short name, with the technical tag as secondary text.
+    await expect(dialog.getByText('Glimmer', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('4-bit · 18 GB on disk · muse-glimmer:30b')).toBeVisible();
     await capture(`workspace-agent-general-${theme}.png`);
 
     await dialog.getByRole('button', { name: 'Delete', exact: true }).click();

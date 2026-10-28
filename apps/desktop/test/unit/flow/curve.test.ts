@@ -88,11 +88,9 @@ describe('curveGeometry', () => {
     expect(geometry.ticks.map((tick) => tick.reached)).toEqual([true, false, false, false, false]);
   });
 
-  it('marks the round in progress level with the line, at its own round', () => {
-    const { head, pending } = curveGeometry(RUN);
-    expect(pending?.round).toBe(4);
-    expect(pending?.from).toEqual(head);
-    expect(pending?.to).toEqual({ x: 612, y: head?.y, value: head?.value });
+  it('marks the round in progress on the axis, so it reads as no result', () => {
+    const { pending } = curveGeometry(RUN);
+    expect(pending).toEqual({ round: 4, x: 612 });
     const settled = curveGeometry({ ...RUN, rounds: RUN.rounds.slice(0, 3) });
     expect(settled.pending).toBeNull();
   });

@@ -14,6 +14,7 @@ import {
   studentLabel,
   studentName,
   setupName,
+  setupSource,
 } from '../../../src/renderer/src/lib/names';
 import {
   detectPlatform,
@@ -92,5 +93,17 @@ describe('setupName', () => {
     expect(setupName({})).toBe('the starting setup');
     expect(setupName({ round: 1, draft: true })).toBe('the first draft');
     expect(setupName({ round: 7 })).toBe('the setup from round 7');
+  });
+});
+
+describe('setupSource', () => {
+  it('says what a setup comes from without implying training stopped there', () => {
+    expect(setupSource({ round: 7 }, 'Spark')).toBe('Round 7 was the last change Spark kept.');
+    expect(setupSource({ round: 1, draft: true }, 'Spark')).toBe(
+      'Spark wrote them in one go and kept no later change.',
+    );
+    expect(setupSource({}, 'Spark')).toBe(
+      'They are the ones it started with, and Spark kept no change.',
+    );
   });
 });

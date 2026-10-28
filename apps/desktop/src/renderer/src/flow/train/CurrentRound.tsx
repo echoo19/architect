@@ -56,6 +56,13 @@ function mentorLine(live: LiveRun, round: Round | null, names: ModelNames, draft
   return `Waits for ${names.student} to finish the practice tasks.`;
 }
 
+/** The round's number and, once the mentor has named it, the change it is trying. */
+function roundHeading(round: Round | null, draft: boolean): string {
+  if (!round) return 'Before the first round';
+  if (draft) return `Round ${round.index}: first draft`;
+  return round.title ? `Round ${round.index}: ${round.title}` : `Round ${round.index}`;
+}
+
 /** What the student just got wrong, what the mentor makes of it, and what it expects to gain. */
 export function CurrentRound({
   live,
@@ -73,9 +80,7 @@ export function CurrentRound({
   return (
     <Panel padded aria-label="Current round" className="min-w-0 flex-[5_1_360px]">
       <div className="flex items-center justify-between gap-3">
-        <Heading>
-          {round ? `Round ${round.index}${draft ? ': first draft' : ''}` : 'Before the first round'}
-        </Heading>
+        <Heading>{roundHeading(round, draft)}</Heading>
         {working && <Spinner tone="mentor" size={16} label="Working" />}
       </div>
       <div className="flex flex-col gap-2">

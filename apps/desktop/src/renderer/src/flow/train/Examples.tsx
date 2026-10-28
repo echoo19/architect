@@ -1,6 +1,6 @@
 import type { Job } from '@architect/shared';
-import { Panel, PanelHeader, PanelRow } from '@architect/ui';
-import { Check, X } from 'lucide-react';
+import { Panel, PanelFooter, PanelHeader, PanelRow } from '@architect/ui';
+import { Check, EyeOff, X } from 'lucide-react';
 import { typeLabel } from '../names';
 import type { RecentAttempt } from './run-state';
 
@@ -11,11 +11,13 @@ const SHOWN = 5;
 export function Examples({
   job,
   attempts,
+  mentor,
   student,
   onOpen,
 }: {
   job: Job;
   attempts: readonly RecentAttempt[];
+  mentor: string;
   student: string;
   onOpen: (attempt: RecentAttempt) => void;
 }) {
@@ -49,6 +51,15 @@ export function Examples({
           </ul>
         </div>
       )}
+      {shown.some((attempt) => attempt.split === 'dev') && (
+        <PanelFooter className="mt-auto gap-2.5 py-3 text-sm text-fg-secondary">
+          <EyeOff size={14} strokeWidth={1.7} className="shrink-0" aria-hidden />
+          <span className="text-pretty">
+            {mentor} never sees check tasks, only how many come out right. They&apos;re shown here
+            for you.
+          </span>
+        </PanelFooter>
+      )}
     </Panel>
   );
 }
@@ -63,7 +74,8 @@ function ExampleRow({
   onOpen: () => void;
 }) {
   const passed = attempt.check.pass;
-  const set = attempt.split === 'dev' ? 'Check task' : 'Practice task';
+  const kind = attempt.split === 'dev' ? 'Check task' : 'Practice task';
+  const set = attempt.round ? `${kind}, round ${attempt.round}` : kind;
   return (
     <button
       type="button"

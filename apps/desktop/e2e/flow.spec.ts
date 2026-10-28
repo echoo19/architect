@@ -26,8 +26,8 @@ import {
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const WIDTH = 1440;
 /** Tall enough for each screen's whole page, so a screenshot shows everything on it. */
-const DEFINE_HEIGHT = 1580;
-const TRAIN_HEIGHT = 1380;
+const DEFINE_HEIGHT = 1800;
+const TRAIN_HEIGHT = 1440;
 const REPORT_HEIGHT = 1660;
 const THEMES = ['dark', 'light'] as const;
 
@@ -128,22 +128,72 @@ for (const theme of THEMES) {
     await expect(page.getByRole('heading', { name: 'Service desk', level: 1 })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'What it does' })).toBeVisible();
     await expect(page.getByRole('heading', { name: "What it won't do" })).toBeVisible();
+    // The write setting is named for what it controls, with the files it applies to.
+    await expect(page.getByRole('heading', { name: 'Saving changes to your files' })).toBeVisible();
+    await expect(
+      page.getByText(
+        'Once trained, it can change invoices.csv and bookings.csv. It only reads jobs.csv, technicians.csv and policy.md.',
+      ),
+    ).toBeVisible();
+    const writes = page.getByRole('radiogroup', { name: 'Saving changes to your files' });
+    await expect(writes.getByRole('radio', { name: 'Ask first' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await expect(page.getByText('Shows each change and waits for your OK')).toBeVisible();
+    await expect(
+      page.getByText('Saves without asking; each change still shows in the chat'),
+    ).toBeVisible();
+    await expect(page.getByText("Can't change your files")).toBeVisible();
+
+    // Training, the final test and the comparison are told apart, and never added together.
+    await expect(
+      page.getByText(
+        "Spark, the mentor, is a cloud model that coaches it in rounds: each round, Spark changes Glimmer's instructions, skills or tools and checks whether that helped.",
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        'Training stops at the 90% target or after 4 hours, whichever comes first, or sooner if changes stop helping. Then the final test runs on this computer.',
+      ),
+    ).toBeVisible();
     const local = page.getByRole('radio', { name: /This computer/ });
     const hosted = page.getByRole('radio', { name: /Hosted on OpenRouter/ });
     await expect(local).toBeChecked();
-    await expect(local).toContainText('Too slow for the time limit of 4 hours');
-    await expect(hosted).toContainText('billed by OpenRouter');
-    await expect(page.getByText('About 7 hours in all on this computer, plus up to')).toBeVisible();
+    await expect(local).toContainText('about 2.5 minutes a task. The practice is free.');
+    await expect(local).toContainText(
+      'Too slow: the first round would end after about 5 h 30 min, past the 4-hour limit. Raise the limit in Advanced settings to train here.',
+    );
+    await expect(hosted).toContainText(
+      'A hosted copy of Glimmer on OpenRouter, about 15 seconds a task. Your practice tasks and the files they read are sent there.',
+    );
+    await expect(hosted).toContainText(
+      'Up to about $3 for practice, billed to your OpenRouter account.',
+    );
     await expect(
-      page.getByText('A hosted copy fits 5 to 10 rounds in the time this computer fits none.'),
-    ).toBeHidden();
+      page.getByText(
+        'No full round fits in the 4-hour limit on this computer, so no change could be kept.',
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByText('About 2.5 hours on this computer, on 60 tasks it has never seen.'),
+    ).toBeVisible();
+    await expect(page.getByText('hours in all')).toHaveCount(0);
     // The choices the run below starts with, so every later screen agrees with this one.
     await hosted.click();
     await expect(hosted).toBeChecked();
+    await expect(
+      page.getByText('About 4 hours on OpenRouter. The 4-hour limit ends it after 5 to 10 rounds.'),
+    ).toBeVisible();
+    await expect(page.getByText('about $0.60 expected, never more than $5')).toBeVisible();
     await page
       .getByRole('checkbox', { name: 'Also train three simpler versions to compare against' })
       .click();
-    await expect(page.getByText("About 18 hours in all on OpenRouter's copy, about")).toBeVisible();
+    await expect(
+      page.getByText(
+        'Adds about 12 hours, about $3 billed by OpenRouter and about $0.06 of Spark.',
+      ),
+    ).toBeVisible();
     await capture(page, `flow-define-${theme}`);
 
     await page.getByRole('button', { name: 'Advanced settings' }).click();
@@ -179,6 +229,10 @@ for (const theme of THEMES) {
     const rounds = page.getByRole('region', { name: 'Rounds' });
     await expect(success).toContainText('78%');
     await expect(success).toContainText('31 of 40 on average, over 2 checks');
+    await expect(success).toContainText('Round 4: being scored');
+    await expect(page.getByRole('list', { name: 'Each round' })).toHaveText(
+      'PracticeDiagnoseScore',
+    );
     await expect(page.getByRole('status').filter({ hasText: 'Scoring the change' })).toBeVisible();
     await expect(rounds).toContainText('65% to 63%');
     await expect(rounds).toContainText('First draft');
@@ -194,6 +248,16 @@ for (const theme of THEMES) {
     await expect(page.getByRole('region', { name: 'Current round' })).toContainText(
       '+3 to +6 more of the 40 check tasks right',
     );
+    await expect(
+      page.getByRole('heading', { name: 'Round 4: Allow for zone travel time' }),
+    ).toBeVisible();
+    // A check task is listed, so the list says the mentor never sees it.
+    const attempts = page.getByRole('region', { name: 'Latest attempts' });
+    await expect(attempts).toContainText('Practice task, round 4');
+    await expect(attempts).toContainText('Check task, round 3');
+    await expect(attempts).toContainText(
+      "Spark never sees check tasks, only how many come out right. They're shown here for you.",
+    );
     await capture(page, `flow-train-${theme}`);
 
     // Live: round 4 is kept and round 5 starts.
@@ -201,9 +265,10 @@ for (const theme of THEMES) {
     await expect(success).toContainText('85%');
     await expect(rounds).toContainText('78% to 85%');
     await expect(page.getByRole('region', { name: 'Current round' })).toContainText('Round 5');
-    await expect(
-      page.getByRole('region', { name: 'Latest attempts' }).getByRole('button').first(),
-    ).toContainText('9 Birch Ln');
+    await expect(attempts.getByRole('button').first()).toContainText('9 Birch Ln');
+    // The check task has scrolled out of the five latest, and the note goes with it.
+    await expect(attempts).not.toContainText('Check task');
+    await expect(attempts).not.toContainText('never sees check tasks');
 
     // An attempt's trace, then a round's changes, each in a drawer that Escape closes.
     await resize(900);

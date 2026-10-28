@@ -37,6 +37,20 @@ export function setupName(origin: {
   if (origin.round !== undefined) return `the setup from round ${origin.round}`;
   return 'the starting setup';
 }
+
+/**
+ * What a kept setup's origin says about the training behind it, in plain words. A round number
+ * names the last change the mentor kept, which is not where training ended.
+ */
+export function setupSource(
+  origin: { round?: number | undefined; draft?: boolean | undefined },
+  mentor: string,
+): string {
+  if (origin.draft) return `${mentor} wrote them in one go and kept no later change.`;
+  if (origin.round !== undefined)
+    return `Round ${origin.round} was the last change ${mentor} kept.`;
+  return `They are the ones it started with, and ${mentor} kept no change.`;
+}
 export const MENTOR_ROLE_DETAIL = 'a cloud model that coaches during training only';
 export const STUDENT_ROLE = "your agent's model";
 

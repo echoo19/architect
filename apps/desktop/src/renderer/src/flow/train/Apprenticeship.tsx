@@ -58,6 +58,7 @@ export function Apprenticeship({
     view.motion === 'testing'
       ? `${student} is taking the final test`
       : `${mentor} is mentoring ${student}`;
+  const stepsLabel = view.stage === 'testing' ? 'After training' : 'Each round';
 
   return (
     <Panel aria-label={label} className="min-w-0 flex-[7_1_560px]">
@@ -116,10 +117,10 @@ export function Apprenticeship({
       </div>
 
       <div className="flex min-h-14 flex-wrap items-center gap-x-5 gap-y-1 border-t border-line-row-strong bg-aside px-7 py-2">
-        <ol
-          aria-label={view.stage === 'testing' ? 'After training' : 'Steps of a round'}
-          className="m-0 flex list-none items-center gap-2 p-0 text-sm"
-        >
+        <span aria-hidden className="text-sm text-fg-muted">
+          {stepsLabel}
+        </span>
+        <ol aria-label={stepsLabel} className="m-0 flex list-none items-center gap-2 p-0 text-sm">
           {stages.map((stage, index) => (
             <li
               key={stage}

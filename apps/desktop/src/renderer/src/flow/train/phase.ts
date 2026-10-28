@@ -9,7 +9,7 @@ export type Stage = (typeof ROUND_STAGES)[number] | 'testing';
 export const STAGE_LABELS: Record<Stage, string> = {
   attempting: 'Practice',
   diagnosing: 'Diagnose',
-  evaluating: 'Check',
+  evaluating: 'Score',
   testing: 'Final test',
 };
 
