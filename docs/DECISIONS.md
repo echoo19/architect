@@ -185,3 +185,27 @@ In simulation with the pilot's task pass rates, a do-nothing change is kept 11 t
 **Context.** Hosted models sometimes drop a reply partway: on 2026-10-28 OpenRouter cut three runs' replies within the same minute, and each run paused until someone resumed it. In the app that means a training run left overnight stops for good at the first hiccup, though a minute later the same call works.
 **Decision.** When a step fails with an adapter error that usually passes on its own (a busy or rate-limited server, a dropped connection, a reply cut off partway, but not a 504), the run logs it, waits 30 seconds, and plans its next step again, which redoes only the attempts that hadn't finished. A second failure waits 90 seconds. A third with no attempt finished since the one before pauses the run with the reason, as before. Errors that waiting won't fix (a refused key, no credit, a bad request) pause at once.
 **Consequences.** The run stays active while it waits, so the wall clock keeps counting and a pause or stop takes effect once the wait ends. A local runtime that isn't running gets two minutes to come back before the run pauses.
+
+## 030. Graduates run on a coding-agent harness built on Architect's own loop
+
+**Context.** The expanded spec assumed Pi was already the graduates' agent harness. It isn't: task evaluation and the workspace share Architect's own loop, and the student's tools were table tools written for one kind of job (`read_table`, `append_rows`, `calculate`). The owner (Oct 28): "Pi is a good base to start off. if you think a custom version is better thats fine but it should be a classic coding-agent-like harness since those are the most versatile."
+**Decision.** Keep the loop and make the harness a coding agent's: built-in `read`, `ls`, `glob`, `grep`, `write`, `edit`, `append` and `run`, where `run` executes JavaScript in the QuickJS sandbox in place of a shell; standing instructions in `AGENTS.md`; skills as `skills/<name>/SKILL.md`, listed by name and read on demand; helpers as typed sandboxed tools; paths are logical (`data/`, `output/`) and each installation binds them. Pi itself isn't embedded: its bash tool can't be kept offline and sandboxed on Windows, and the loop already owns replay, approvals, budgets and the network guard.
+**Consequences.** Results measured with the table tools (the first comparison, seed 1) describe the old runtime and are labeled so. The sample jobs' reference solutions move to the new tools.
+
+## 031. llama.cpp serves graduates that carry an adapter
+
+**Context.** Ollama 0.40.9 refuses adapters ("LoRA adapters are no longer supported"). On this PC, llama.cpp's `llama-server` (build 10472) loaded the 2-bit Glimmer GGUF from Ollama's model store with a probe LoRA, applied it per request (scale 0 and scale 1 gave different text), and with `--jinja` returned Glimmer's tool calls as structured calls.
+**Decision.** A graduate with an adapter runs on `llama-server`, started by the app with the base GGUF from the existing model store and the graduate's GGUF LoRA. The adapter's scale is set per request, so the same server measures a candidate with and without its adapter. Graduates without an adapter keep running on Ollama.
+**Consequences.** The app finds or installs `llama-server` and manages its process. Base weights are shared, never copied into a graduate.
+
+## 032. The returns desk is the task family for teaching
+
+**Context.** On the home-services job Spark's first draft already passes every check task, so little is left to teach. The returns desk's messy exports leave bare Glimmer at 36 of 45 dev tasks, with recurring misses on orders and pickups.
+**Decision.** Teaching, lessons and the adapter path are built and shown on the returns desk; home services stays as regression evidence and the in-app sample. Before the narrative is fixed, the train failures and the shared one-shot draft are measured: if deterministic helpers fix the failures, that is the reported result, and the job isn't made harder to favor training.
+**Consequences.** Calibration and comparisons on the new runtime run on this job first.
+
+## 033. Weight training runs on remote compute the owner configures
+
+**Context.** QLoRA on dense Glimmer 30B needs a 24 GB GPU; this PC has 12 GB, and the owner limits local GPU work to brief checks. No training-provider key existed on Oct 28.
+**Decision.** The training worker has one interface with a remote backend (Hugging Face Jobs, proposed to the owner) and a stand-in backend for tests that is labeled as such everywhere and never satisfies A01. The worker uploads verified lessons, runs a pinned QLoRA recipe, converts the adapter to GGUF in the same job, and downloads both the PEFT and GGUF files. Until compute is configured, A01 is reported as blocked and graduates are harness-only.
+**Consequences.** Compute spend becomes a budget line next to mentor dollars, with durable job ids so a restart resumes polling instead of training again.

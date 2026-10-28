@@ -2,7 +2,7 @@
 
 Build window: Mon Oct 27 to Wed Nov 4, 9:00 PM ET. Dates follow `SPEC.md`. Each milestone lists the checks that must pass before it counts as done; a fresh-eyes review runs at the end of every milestone and its findings are fixed before the next one starts.
 
-**Current phase: 0 (foundations), Oct 27.**
+**Current phase: the expansion week (from Oct 28). `docs/EXPANSION.md` holds its plan and requirement checklist; `docs/SPEC_EXPANSION.md` is the governing spec.**
 
 ## Phase 0. Foundations (Mon Oct 27)
 

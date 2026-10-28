@@ -1,6 +1,6 @@
 # Architect: rules for agents working in this repo
 
-Start every session by reading, in order: this file, `docs/PROGRESS.md`, `docs/PLAN.md`, and `git log -20`. The product spec is `SPEC.md`; design decisions are in `docs/DECISIONS.md`.
+Start every session by reading, in order: this file, `docs/PROGRESS.md`, `docs/PLAN.md`, `docs/EXPANSION.md`, and `git log -20`. The product spec is `SPEC.md`; since Oct 28 the owner's expanded spec, `docs/SPEC_EXPANSION.md`, governs scope where they differ, and `docs/EXPANSION.md` tracks its requirements with evidence. Design decisions are in `docs/DECISIONS.md`.
 
 ## What this is
 
