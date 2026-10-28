@@ -137,7 +137,7 @@ describe('publishing a version to Hugging Face', () => {
     expect(card).toContain('architect run service-desk --input request.json');
     expect(card).toContain(HOSTED_INFERENCE_NOTE);
     expect(card).toContain("Evaluated on the author's configuration");
-    expect(card).not.toMatch(/[—“”‘’]/);
+    expect(card).not.toMatch(/[\u2014\u201c\u201d\u2018\u2019]/);
 
     // The token went only to the Hub's own API, and is nowhere in what was sent or recorded.
     expect(hub.uploads.every((upload) => !upload.authorized)).toBe(true);

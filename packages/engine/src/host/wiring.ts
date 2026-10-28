@@ -21,6 +21,7 @@ import {
   type MentorReleased,
   type Sandbox,
 } from '../runtime';
+import { toolLoadProblem } from '../sandbox/tool-check';
 
 export interface EngineWiringOptions {
   /** The app's data folder; the vault keeps sealed test splits under it. */
@@ -71,17 +72,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
         ),
       createChecker: (job, jobDir, sandbox) =>
         createChecker({ job, jobDir, sandbox: asSandbox(sandbox) }),
-      toolLoadProblem: async (sandbox, tool) => {
-        const outcome = await asSandbox(sandbox).checkTool(tool);
-        if (outcome.ok) return null;
-        // A sandbox that crashed says nothing about the tool, so the run stops on it instead.
-        if (outcome.failure.kind === 'crashed') {
-          throw new Error(
-            `The tool sandbox stopped while loading a tool: ${outcome.failure.message}`,
-          );
-        }
-        return outcome.failure.message;
-      },
+      toolLoadProblem: (sandbox, tool) => toolLoadProblem(asSandbox(sandbox), tool),
       // Nothing is disposed here, because nothing is left to dispose: before it asks, the loop
       // has closed its mentor gate, so no mentor call can start, and dropped its reference to
       // the adapter. All that remains is to issue the proof the vault asks for.

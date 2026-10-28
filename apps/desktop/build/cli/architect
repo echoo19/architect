@@ -1,0 +1,13 @@
+#!/bin/sh
+# The architect command, run on the app's own Node so no separate Node install is needed. It sits
+# in Architect.app/Contents/Resources; a link to it from a folder on PATH works too.
+script="$0"
+while [ -L "$script" ]; do
+  target="$(readlink "$script")"
+  case "$target" in
+    /*) script="$target" ;;
+    *) script="$(dirname "$script")/$target" ;;
+  esac
+done
+here="$(cd "$(dirname "$script")" && pwd -P)"
+ELECTRON_RUN_AS_NODE=1 exec "$here/../MacOS/Architect" "$here/app.asar.unpacked/out/cli/architect.mjs" "$@"
