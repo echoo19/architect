@@ -24,6 +24,7 @@ export * from './package';
 export * from './report';
 export * from './run';
 export * from './secrets';
+export * from './steps';
 export * from './task';
 export * from './training';
 export * from './trace';

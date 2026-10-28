@@ -39,19 +39,6 @@ export function filePatch(path: string, before: string | null, after: string): F
   };
 }
 
-/** Lines a patch adds and removes, counted in its hunks only, so its file headers never count. */
-export function patchStats(patch: string): { added: number; removed: number } {
-  let added = 0;
-  let removed = 0;
-  let inHunk = false;
-  for (const line of patch.split('\n')) {
-    if (line.startsWith('@@')) inHunk = true;
-    else if (inHunk && line.startsWith('+')) added += 1;
-    else if (inHunk && line.startsWith('-')) removed += 1;
-  }
-  return { added, removed };
-}
-
 /**
  * The rows one version of a table adds, removes and changes from another, or undefined when the
  * change is too large to diff. Rows are matched in order; where removed rows are directly

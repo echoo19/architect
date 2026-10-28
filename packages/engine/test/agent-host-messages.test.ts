@@ -1,9 +1,8 @@
-import type { WorkspaceMessage } from '@architect/shared';
+import { describeCall, describeResult, type WorkspaceMessage } from '@architect/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { chatHistory } from '../src/agent-host/history';
 import { agentMessage, chatTitle, userMessage } from '../src/agent-host/messages';
 import { LiveReply } from '../src/agent-host/reply';
-import { describeCall, describeResult } from '../src/agent-host/steps';
 
 const AT = '2026-11-05T09:00:00.000Z';
 
@@ -16,7 +15,7 @@ describe('step descriptions', () => {
     expect(describeCall('ls', { path: 'data' })).toBe('data');
     expect(describeCall('glob', { pattern: 'data/*.csv' })).toBe('data/*.csv');
     expect(describeCall('grep', { pattern: 'INV-2', path: 'data/invoices.csv' })).toBe(
-      '/INV-2/ in data/invoices.csv',
+      'data/invoices.csv for /INV-2/',
     );
     expect(describeCall('grep', { pattern: 'refund' })).toBe('/refund/');
     expect(

@@ -1,10 +1,11 @@
-import type {
-  AgentStep,
-  CellValue,
-  GraduateManifest,
-  PermissionMode,
-  TaskTypeInfo,
-  WorkspaceMessage,
+import {
+  ALL_FOLDERS,
+  type AgentStep,
+  type CellValue,
+  type GraduateManifest,
+  type PermissionMode,
+  type TaskTypeInfo,
+  type WorkspaceMessage,
 } from '@architect/shared';
 
 /** The composer's write choices, in the order its menu lists them. */
@@ -47,9 +48,6 @@ const TOOL_WORDS: Record<string, [string, string]> = {
   update_rows: ['Updating', 'Updated'],
   calculate: ['Calculating', 'Calculated'],
 };
-
-/** What `ls` with no path acts on, as the agent host words it. */
-const ALL_FOLDERS = 'your folders';
 
 /**
  * A step in plain words: "Read data/jobs.csv", "Loaded the skill price-a-job", or "Ran the
