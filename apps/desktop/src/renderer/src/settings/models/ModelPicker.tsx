@@ -31,6 +31,8 @@ export interface ModelPickerProps {
   onChoose: (choice: ModelChoice) => void;
   /** A choice of none, offered first, such as for an optional hosted copy. */
   none?: { label: string; onChoose: () => void };
+  /** Narrows the connections listed, such as to the runtimes on this computer. */
+  only?: (connection: Connection) => boolean;
   disabled?: boolean;
   className?: string;
   /** What the closed control shows: the current choice. */
@@ -140,6 +142,7 @@ export function ModelPicker({
   current,
   onChoose,
   none,
+  only,
   disabled,
   className,
   children,
@@ -147,7 +150,7 @@ export function ModelPicker({
 }: ModelPickerProps) {
   const { connections, gpu } = useConnections();
   const [open, setOpen] = useState(false);
-  const listed = connectionsFor(role, connections);
+  const listed = connectionsFor(role, connections).filter(only ?? (() => true));
   const lists = useModelLists(listed, open);
 
   const groups: ComboboxGroup[] = [];

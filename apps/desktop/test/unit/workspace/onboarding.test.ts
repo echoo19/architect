@@ -2,10 +2,12 @@ import {
   ConnectionTestSchema,
   MENTOR_PRESETS,
   mentorPreset,
+  type MentorConfig,
+  type ProviderId,
   type PullProgress,
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
-import { mentorFromPreset, presetFor } from '../../../src/renderer/src/onboarding/mentor';
+import { mentorFromPreset, presetFor, routeOf } from '../../../src/renderer/src/onboarding/mentor';
 import {
   idlePull,
   pullBytes,
@@ -47,6 +49,12 @@ describe('pullReducer', () => {
     expect(pullReducer(done, progress({ completedBytes: 1 }))).toBe(done);
   });
 
+  it('says so while the GPU-sized build is made from its download', () => {
+    const state = pullReducer(idlePull, progress({ status: 'Preparing it for your GPU' }));
+    expect(pullStage(state)).toBe('Preparing it for your GPU');
+    expect(pullPercent(state)).toBeNull();
+  });
+
   it('starts over when tried again', () => {
     const failed = pullReducer(idlePull, { type: 'failed', error: 'Ollama stopped.' });
     expect(pullReducer(failed, { type: 'start' })).toEqual({ phase: 'starting' });
@@ -85,6 +93,27 @@ describe('mentor presets', () => {
     expect(new Set(refs)).toEqual(
       new Set(['meta', 'openai', 'anthropic', 'gemini', 'baseten', 'modal']),
     );
+  });
+
+  it('knows which way of setup a saved mentor came in', () => {
+    const model = (provider: ProviderId, baseUrl: string): MentorConfig => ({
+      kind: 'model',
+      provider,
+      label: 'Mentor',
+      baseUrl,
+      model: 'm',
+      reasoningEffort: 'medium',
+    });
+    expect(routeOf(mentorFromPreset(mentorPreset('meta-spark'), model('meta', 'x')))).toBe('meta');
+    expect(routeOf({ kind: 'coding_agent', agent: 'claude_code', label: 'Claude Code' })).toBe(
+      'meta',
+    );
+    expect(routeOf(model('openrouter', 'https://openrouter.ai/api/v1'))).toBe('openrouter');
+    expect(routeOf(model('anthropic', 'https://api.anthropic.com/v1'))).toBe('key');
+    expect(routeOf(model('other', 'https://api.example.com/v1'))).toBe('key');
+    expect(routeOf(model('ollama', 'http://127.0.0.1:11434/v1'))).toBe('local');
+    expect(routeOf(model('lmstudio', 'http://127.0.0.1:1234/v1'))).toBe('local');
+    expect(routeOf(model('other', 'http://localhost:8000/v1'))).toBe('local');
   });
 
   it('reads connection test replies', () => {

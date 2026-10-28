@@ -1,4 +1,5 @@
 import {
+  isLoopbackUrl,
   MENTOR_PRESETS,
   PROVIDERS,
   type MentorConfig,
@@ -8,6 +9,17 @@ import {
 
 /** A mentor that is a model, which is every mentor this version can run. */
 export type ModelMentor = Extract<MentorConfig, { kind: 'model' }>;
+
+/** The four ways to a mentor that first-run setup offers. */
+export type MentorRoute = 'meta' | 'openrouter' | 'key' | 'local';
+
+/** Which way a saved mentor came in: a server on this computer counts as local. */
+export function routeOf(mentor: MentorConfig): MentorRoute {
+  if (mentor.kind !== 'model' || mentor.provider === 'meta') return 'meta';
+  if (mentor.provider === 'openrouter') return 'openrouter';
+  if (PROVIDERS[mentor.provider].local || isLoopbackUrl(mentor.baseUrl)) return 'local';
+  return 'key';
+}
 
 /** The preset a saved mentor was made from, if it was. */
 export function presetFor(mentor: MentorConfig): MentorPreset | undefined {

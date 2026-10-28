@@ -51,7 +51,7 @@ export function setupSource(
     return `Round ${origin.round} was the last change ${mentor} kept.`;
   return `They are the ones it started with, and ${mentor} kept no change.`;
 }
-export const MENTOR_ROLE_DETAIL = 'a cloud model that coaches during training only';
+
 export const STUDENT_ROLE = "your agent's model";
 
 /** A phrase as it starts a line: "the mentor" → "The mentor". */

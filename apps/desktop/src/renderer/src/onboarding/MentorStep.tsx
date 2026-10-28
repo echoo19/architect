@@ -1,31 +1,49 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import {
-  MENTOR_PRESETS,
+  ConnectionTestSchema,
+  mentorPreset,
   PROVIDERS,
   type ConnectionTest,
   type MentorConfig,
-  type MentorPreset,
-  ConnectionTestSchema,
 } from '@architect/shared';
 import {
   Button,
-  Heading,
   Input,
   Panel,
+  ProviderMark,
   RadioCard,
   RadioCardGroup,
   SettingsRow,
 } from '@architect/ui';
-import { CircleAlert, CircleCheck } from 'lucide-react';
+import { CircleAlert, CircleCheck, ExternalLink, KeyRound, Plus } from 'lucide-react';
 import { architect } from '../api/client';
 import { toError, type QueryState } from '../api/query';
-import { CopyButton } from '../components/CopyButton';
 import { errorOf } from '../components/QueryValue';
-import { aboutUsd, mentorUsdFor, TYPICAL_ROUNDS } from '../flow/define/estimates';
 import { shortModelName } from '../lib/names';
-import { currentPlatform, deviceInSentence } from '../lib/platform';
-import { mentorNote, presetFor, providerName } from './mentor';
+import { attempt } from '../lib/notify';
+import { AddKeyDialog } from '../settings/models/AddKeyDialog';
+import { mentorFromChoice, type Connection } from '../settings/models/connections';
+import { useConnections } from '../settings/models/hooks';
+import { ModelPicker } from '../settings/models/ModelPicker';
+import { useOpenRouterSignIn } from '../settings/models/useSignIn';
+import { mentorFromPreset, mentorProvider, routeOf, type MentorRoute } from './mentor';
 import { StepIntro } from './SetupShell';
+
+const ROUTES: readonly { value: MentorRoute; title: string; line: string }[] = [
+  { value: 'meta', title: 'Muse Spark', line: "Meta's model, with a Meta key" },
+  { value: 'openrouter', title: 'OpenRouter', line: 'Sign in, then pick any of its models' },
+  { value: 'key', title: 'Another provider', line: 'OpenAI, Anthropic, Gemini or any API key' },
+  { value: 'local', title: 'On this computer', line: 'A model in Ollama or LM Studio' },
+];
+
+/** Which connections each way's picker lists. */
+const ROUTE_CONNECTIONS: Record<MentorRoute, (connection: Connection) => boolean> = {
+  meta: (connection) => connection.provider === 'meta',
+  openrouter: (connection) => connection.provider === 'openrouter',
+  key: (connection) =>
+    !connection.local && connection.provider !== 'meta' && connection.provider !== 'openrouter',
+  local: (connection) => connection.local,
+};
 
 async function testMentor(config: MentorConfig): Promise<ConnectionTest> {
   const reply = ConnectionTestSchema.safeParse(await architect().connections.testMentor(config));
@@ -34,79 +52,90 @@ async function testMentor(config: MentorConfig): Promise<ConnectionTest> {
   return { ok: false, error: "Architect received a reply it couldn't read." };
 }
 
-function ConnectionResult({ result, mentor }: { result: ConnectionTest; mentor: string }) {
-  if (result.ok) {
-    return (
-      <div role="status" className="flex items-start gap-2.5 border-t border-line py-3.5">
-        <CircleCheck size={16} className="mt-0.5 shrink-0 text-student" aria-hidden />
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <span>Connected to {mentor}</span>
-          <span className="font-mono text-xs text-fg-muted">
-            {result.detail} · {result.latencyMs} ms
-          </span>
-        </div>
-      </div>
-    );
-  }
+function ConnectionResult({ result }: { result: ConnectionTest }) {
+  const Icon = result.ok ? CircleCheck : CircleAlert;
   return (
-    <div role="alert" className="flex items-start gap-2.5 border-t border-line py-3.5">
-      <CircleAlert size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
+    <div
+      role={result.ok ? 'status' : 'alert'}
+      className="flex items-start gap-2.5 border-t border-line py-3.5"
+    >
+      <Icon
+        size={16}
+        className={result.ok ? 'mt-0.5 shrink-0 text-student' : 'mt-0.5 shrink-0 text-danger'}
+        aria-hidden
+      />
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="text-fg-soft">{result.error}</span>
-        {result.hint && <span className="text-sm text-fg-muted text-pretty">{result.hint}</span>}
+        <span className={result.ok ? undefined : 'text-fg-soft'}>
+          {result.ok ? `Connected · ${result.latencyMs} ms` : result.error}
+        </span>
+        {!result.ok && result.hint && (
+          <span className="text-sm text-fg-muted text-pretty">{result.hint}</span>
+        )}
       </div>
     </div>
   );
 }
 
-/** Mentors on Meta's own API, and the open-weight model through a host the user picks. */
-const MENTOR_GROUPS = [
-  { title: "Meta's API", presets: MENTOR_PRESETS.filter((preset) => preset.provider === 'meta') },
-  {
-    title: "Spark's open version, to keep your data away from Meta",
-    presets: MENTOR_PRESETS.filter((preset) => preset.provider !== 'meta'),
-  },
-];
-
-/** What a mentor usually costs per agent, and who bills it when that isn't Meta. */
-function costLine(preset: MentorPreset): string {
-  const cost = `${aboutUsd(mentorUsdFor(preset.pricing, TYPICAL_ROUNDS))} to train an agent`;
-  return preset.provider === 'meta' ? cost : `${cost}, billed by ${providerName(preset.provider)}`;
+function openPage(provider: 'meta' | 'ollama'): void {
+  void attempt("Couldn't open the page", () => architect().app.openProviderPage(provider));
 }
 
 export interface MentorStepProps {
   mentor: MentorConfig;
-  onChoose: (preset: MentorPreset) => void;
+  route: MentorRoute;
+  onRoute: (route: MentorRoute) => void;
+  onMentor: (mentor: MentorConfig) => void;
   /** Which secret refs have a stored key. */
   secrets: QueryState<Record<string, boolean>>;
   result: ConnectionTest | null;
   onResult: (result: ConnectionTest | null) => void;
 }
 
-export function MentorStep({ mentor, onChoose, secrets, result, onResult }: MentorStepProps) {
-  const [key, setKey] = useState('');
+/**
+ * The mentor: Muse Spark with a Meta key by default, or a sign-in with OpenRouter, another
+ * provider's key, or a model on this computer. Each way ends at a picker and a test.
+ */
+export function MentorStep({
+  mentor,
+  route,
+  onRoute,
+  onMentor,
+  secrets,
+  result,
+  onResult,
+}: MentorStepProps) {
+  const { connections } = useConnections();
   const [testing, setTesting] = useState(false);
-  const preset = presetFor(mentor);
-  const provider = preset ? providerName(preset.provider) : 'Mentor';
-  const stored =
-    mentor.kind === 'model' &&
-    mentor.secretRef !== undefined &&
-    secrets.data?.[mentor.secretRef] === true;
-  const device = deviceInSentence(currentPlatform());
+  const [adding, setAdding] = useState(false);
+  const [key, setKey] = useState('');
+  const signIn = useOpenRouterSignIn();
+  const available = connections.filter(ROUTE_CONNECTIONS[route]);
+  const model = mentor.kind === 'model' ? mentor : null;
+  const chosenHere = model !== null && route === routeOf(model);
+  const metaSaved = secrets.data?.['meta'] === true;
+  const waiting = signIn.state.phase === 'waiting';
 
-  const test = async (event: FormEvent) => {
-    event.preventDefault();
-    if (mentor.kind !== 'model') return;
+  const chooseRoute = (next: MentorRoute) => {
+    onResult(null);
+    onRoute(next);
+    if (next === 'meta' && model?.provider !== 'meta') {
+      onMentor(mentorFromPreset(mentorPreset('meta-spark'), mentor));
+    }
+  };
+
+  const test = async (event?: FormEvent) => {
+    event?.preventDefault();
+    if (!model) return;
     setTesting(true);
     onResult(null);
     try {
       const value = key.trim();
-      if (value && mentor.secretRef !== undefined) {
-        await architect().secrets.set(mentor.secretRef, value);
+      if (value && model.secretRef !== undefined) {
+        await architect().secrets.set(model.secretRef, value);
         setKey('');
         secrets.reload();
       }
-      onResult(await testMentor(mentor));
+      onResult(await testMentor(model));
     } catch (error) {
       onResult({ ok: false, error: toError(error).message });
     } finally {
@@ -114,106 +143,155 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
     }
   };
 
+  /** The way's connections in one picker, with a test of the mentor chosen from it. */
+  const picker = (
+    <SettingsRow label="Mentor">
+      <span className="flex items-center gap-2">
+        <ModelPicker
+          role="mentor"
+          aria-label="Mentor"
+          only={ROUTE_CONNECTIONS[route]}
+          current={chosenHere ? model : null}
+          onChoose={(choice) => {
+            onResult(null);
+            onMentor(mentorFromChoice(choice, model?.reasoningEffort ?? 'medium'));
+          }}
+          className="w-64"
+        >
+          <span className="truncate">
+            {chosenHere ? shortModelName(model.label) : 'Choose a model'}
+          </span>
+          {chosenHere && <span className="shrink-0 text-fg-muted">{mentorProvider(model)}</span>}
+        </ModelPicker>
+        {chosenHere && (
+          <Button size="xs" loading={testing} onClick={() => void test()}>
+            Test
+          </Button>
+        )}
+      </span>
+    </SettingsRow>
+  );
+
+  let body: ReactNode;
+  if (route === 'meta') {
+    body = (
+      <form onSubmit={(event) => void test(event)}>
+        <SettingsRow
+          icon={<ProviderMark name="Meta" />}
+          label="Meta API key"
+          meta={metaSaved ? 'Saved' : undefined}
+          error={errorOf(secrets)}
+        >
+          <div className="flex min-w-0 flex-[1_1_320px] gap-2">
+            <Input
+              type="password"
+              aria-label="Meta API key"
+              placeholder={metaSaved ? 'Paste a new key to replace it' : 'Paste your key'}
+              value={key}
+              onChange={(event) => setKey(event.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+              className="min-w-0 flex-1"
+            />
+            <Button
+              type="submit"
+              size="md"
+              className="h-[38px]"
+              loading={testing}
+              disabled={!key.trim() && !metaSaved}
+            >
+              Test connection
+            </Button>
+          </div>
+        </SettingsRow>
+        {!metaSaved && (
+          <SettingsRow label="No key yet?">
+            <Button type="button" size="xs" variant="ghost" onClick={() => openPage('meta')}>
+              <ExternalLink size={13} aria-hidden />
+              Get one from Meta
+            </Button>
+          </SettingsRow>
+        )}
+      </form>
+    );
+  } else if (route === 'openrouter') {
+    body =
+      available.length > 0 ? (
+        picker
+      ) : (
+        <SettingsRow
+          icon={<ProviderMark name="OpenRouter" />}
+          label={PROVIDERS.openrouter.label}
+          error={signIn.state.phase === 'failed' ? signIn.state.message : undefined}
+        >
+          <span className="flex items-center gap-2">
+            {waiting && (
+              <Button size="xs" variant="ghost" onClick={signIn.cancel}>
+                Cancel
+              </Button>
+            )}
+            <Button size="xs" loading={waiting} onClick={() => void signIn.start()}>
+              {!waiting && <KeyRound size={13} aria-hidden />}
+              {waiting ? 'Waiting for your browser' : 'Sign in'}
+            </Button>
+          </span>
+        </SettingsRow>
+      );
+  } else if (route === 'key') {
+    body = (
+      <>
+        {available.length > 0 && picker}
+        <SettingsRow label={available.length > 0 ? 'Another key' : 'API key'}>
+          <Button size="xs" onClick={() => setAdding(true)}>
+            <Plus size={13} aria-hidden />
+            Add
+          </Button>
+        </SettingsRow>
+        <AddKeyDialog open={adding} onOpenChange={setAdding} />
+      </>
+    );
+  } else {
+    body =
+      available.length > 0 ? (
+        picker
+      ) : (
+        <SettingsRow label="No model runtime found">
+          <Button size="xs" variant="ghost" onClick={() => openPage('ollama')}>
+            <ExternalLink size={13} aria-hidden />
+            Get Ollama
+          </Button>
+        </SettingsRow>
+      );
+  }
+
   return (
     <>
       <StepIntro title="Choose a mentor">
-        The mentor is a paid cloud model that coaches each new agent while it trains, round by round
-        improving its instructions. Once training ends, your agents never call it.
+        It coaches each new agent while it trains. Your agents never call it.
       </StepIntro>
       <div className="flex w-full max-w-[720px] flex-col gap-3.5">
-        {MENTOR_GROUPS.map((group) => (
-          <section key={group.title} className="flex flex-col gap-2">
-            <Heading as="h2" className="text-fg-secondary">
-              {group.title}
-            </Heading>
-            <RadioCardGroup
-              aria-label={group.title}
-              value={preset?.key ?? ''}
-              onValueChange={(next) => {
-                const chosen = MENTOR_PRESETS.find((option) => option.key === next);
-                if (!chosen) return;
-                onResult(null);
-                onChoose(chosen);
-              }}
+        <RadioCardGroup<MentorRoute>
+          aria-label="Mentor"
+          value={route}
+          onValueChange={chooseRoute}
+          className="grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))]"
+        >
+          {ROUTES.map((option) => (
+            <RadioCard
+              key={option.value}
+              value={option.value}
+              title={option.title}
+              disabled={testing}
             >
-              {group.presets.map((option) => (
-                // Locked while a test runs, so its result can't land under another mentor.
-                <RadioCard
-                  key={option.key}
-                  value={option.key}
-                  title={option.label}
-                  disabled={testing}
-                >
-                  <span className="text-fg text-pretty">{mentorNote(option)}</span>
-                  <span>{costLine(option)}</span>
-                </RadioCard>
-              ))}
-            </RadioCardGroup>
-          </section>
-        ))}
-        <p className="m-0 text-sm text-fg-muted text-pretty">
-          Costs are for training one agent over up to {TYPICAL_ROUNDS} rounds. You set a spending
-          cap for every agent.
-        </p>
-        {mentor.kind === 'model' && (
-          <Panel aria-label="Mentor key" className="px-7 py-1 [&>*:first-child]:border-t-0">
-            <form onSubmit={(event) => void test(event)}>
-              <SettingsRow
-                label={`${provider} API key`}
-                meta={
-                  stored
-                    ? `Saved, encrypted on ${device}`
-                    : `Each host has its own key; this one is for ${provider}. Encrypted on ${device}, never shown again.`
-                }
-                error={errorOf(secrets)}
-              >
-                <div className="flex min-w-0 flex-[1_1_340px] gap-2">
-                  <Input
-                    type="password"
-                    aria-label={`${provider} API key`}
-                    placeholder={stored ? 'Paste a new key to replace it' : 'Paste your key'}
-                    value={key}
-                    onChange={(event) => setKey(event.target.value)}
-                    autoComplete="off"
-                    spellCheck={false}
-                    className="min-w-0 flex-1"
-                  />
-                  <Button
-                    type="submit"
-                    size="md"
-                    className="h-[38px]"
-                    loading={testing}
-                    disabled={!key.trim() && !stored}
-                  >
-                    Test connection
-                  </Button>
-                </div>
-              </SettingsRow>
-            </form>
-            {result && <ConnectionResult result={result} mentor={shortModelName(mentor.label)} />}
-          </Panel>
-        )}
-        {preset && !stored && (
-          <KeySource
-            page={{ url: PROVIDERS[preset.provider].page ?? '', where: 'in your account' }}
-          />
-        )}
+              <span>{option.line}</span>
+            </RadioCard>
+          ))}
+        </RadioCardGroup>
+        <Panel aria-label="Mentor connection" className="px-7 py-1 [&>*:first-child]:border-t-0">
+          {body}
+          {result && <ConnectionResult result={result} />}
+        </Panel>
       </div>
     </>
-  );
-}
-
-/**
- * Where to make a key, and that the step can wait. Architect doesn't open web pages itself, so
- * the address is there to copy into a browser.
- */
-function KeySource({ page }: { page: { url: string; where: string } }) {
-  return (
-    <p className="m-0 flex flex-wrap items-center justify-center gap-x-1 text-sm text-fg-muted">
-      No key yet? Make one {page.where} at
-      <span className="font-mono text-fg-secondary">{page.url}</span>
-      <CopyButton text={page.url} label="Copy the address" className="-my-1" />
-      or skip this step and add one later in Settings.
-    </p>
   );
 }

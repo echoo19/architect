@@ -13,7 +13,7 @@ import { api } from '../../api/client';
 import { queryKeys } from '../../api/hooks';
 import { fetchQuery } from '../../api/query';
 import { formatBytes } from '../../lib/format';
-import { pullPercent } from '../../onboarding/pull';
+import { pullPercent, pullStage, type PullState } from '../../onboarding/pull';
 import { useModelPull } from '../../onboarding/useModelPull';
 import { localModelName } from './connections';
 
@@ -27,6 +27,43 @@ export function isInstalled(ollama: LocalRuntime | undefined, model: string): bo
   return ollama?.models.some((entry) => sameOllamaModel(entry.id, model)) === true;
 }
 
+export interface PullControlProps {
+  state: PullState;
+  onStart: () => void;
+  /** What the button says before the download starts. */
+  label?: string;
+}
+
+/** A download's control: a button, then the percent as it goes, and a retry if it fails. */
+export function PullControl({ state, onStart, label = 'Download' }: PullControlProps) {
+  if (state.phase === 'starting' || state.phase === 'pulling') {
+    const percent = pullPercent(state);
+    return (
+      <span role="status" className="flex items-center gap-2 font-mono text-fg-secondary">
+        <Spinner tone="student" size={13} />
+        {percent === null ? pullStage(state) : `${percent}%`}
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-3">
+      {state.phase === 'failed' && (
+        <span role="alert" className="max-w-64 text-sm text-danger text-pretty">
+          {state.error}
+        </span>
+      )}
+      <Button size="xs" onClick={onStart}>
+        {state.phase === 'failed' ? (
+          <RotateCw size={13} aria-hidden />
+        ) : (
+          <Download size={14} strokeWidth={1.8} aria-hidden />
+        )}
+        {state.phase === 'failed' ? 'Try again' : label}
+      </Button>
+    </span>
+  );
+}
+
 export interface DownloadButtonProps {
   model: string;
   /** What the button says before the download starts. */
@@ -35,41 +72,15 @@ export interface DownloadButtonProps {
   onReady?: () => void;
 }
 
-/** Downloads a model through Ollama, showing the percent as it goes and a retry if it fails. */
-export function DownloadButton({ model, label = 'Download', onReady }: DownloadButtonProps) {
+/** Downloads a model through Ollama, as its own control. */
+export function DownloadButton({ model, label, onReady }: DownloadButtonProps) {
   const pull = useModelPull(model);
-  const { phase } = pull.state;
-  if (phase === 'starting' || phase === 'pulling') {
-    const percent = pullPercent(pull.state);
-    return (
-      <span role="status" className="flex items-center gap-2 font-mono text-fg-secondary">
-        <Spinner tone="student" size={13} />
-        {percent === null ? '' : `${percent}%`}
-      </span>
-    );
-  }
   const start = async () => {
     if (!(await pull.start())) return;
     await fetchQuery(queryKeys.local, api.localRuntimes);
     onReady?.();
   };
-  return (
-    <span className="flex items-center gap-3">
-      {phase === 'failed' && (
-        <span role="alert" className="max-w-64 text-sm text-danger text-pretty">
-          {pull.state.error}
-        </span>
-      )}
-      <Button size="xs" onClick={() => void start()}>
-        {phase === 'failed' ? (
-          <RotateCw size={13} aria-hidden />
-        ) : (
-          <Download size={14} strokeWidth={1.8} aria-hidden />
-        )}
-        {phase === 'failed' ? 'Try again' : label}
-      </Button>
-    </span>
-  );
+  return <PullControl state={pull.state} onStart={() => void start()} label={label} />;
 }
 
 export interface StudentRowsProps {
