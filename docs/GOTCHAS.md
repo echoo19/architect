@@ -2,6 +2,10 @@
 
 Things that bit us, and how to avoid them. Newest first.
 
+## The digest Ollama's API reports isn't the digest of the weights
+
+`/api/tags` lists each model with a `digest` that Ollama derives from the model's manifest, so it says nothing about which GGUF weights are underneath. An adapter is tied to the weights, so its `base_digest` is the digest of the GGUF blob the manifest's model layer names (`resolveOllamaModel(...).digest`, which only the adapter runtime reads). Comparing it with the Ollama student's `describe()` would call every base another build. The installation checks of a version with an adapter ask the adapter runtime instead.
+
 ## Ollama 0.40 keeps the models it makes in a second manifest folder
 
 `muse-glimmer:30b-iq2`, which Architect makes with `/api/create`, has no manifest under `manifests/registry.ollama.ai/`: Ollama 0.40.9 writes it to `manifests-v2/ollama.com/library/muse-glimmer/30b-iq2`, while models pulled by older versions stay in the first folder. Anything that finds a model's GGUF through the manifests has to look in both (`packages/engine/src/local-runtime/ollama-models.ts` does).
