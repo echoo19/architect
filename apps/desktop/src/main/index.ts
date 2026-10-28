@@ -165,6 +165,9 @@ async function start(): Promise<void> {
       )),
     onConnect: (client) => {
       client.runs.onEvent((event) => router.emit('runs', 'onEvent', event));
+      client.graduates.onPublishProgress((progress) =>
+        router.emit('graduates', 'onPublishProgress', progress),
+      );
     },
     // The agent host opens the engine's database, so it starts once the engine has created it.
     onReady: () => agentHost.start(),

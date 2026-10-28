@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { GraduateSummary } from '@architect/shared';
+import type { GraduateSummary, InstallStatus } from '@architect/shared';
 import { Badge, Button, EmptyState, ErrorState, Skeleton } from '@architect/ui';
-import { Bot, Laptop } from 'lucide-react';
+import { Bot, CircleX, Laptop } from 'lucide-react';
 import { architect } from '../api/client';
 import { useGraduates, useSettings } from '../api/hooks';
 import { attempt } from '../lib/notify';
@@ -16,12 +16,20 @@ import { SidePanel, type PanelContent } from '../workspace/SidePanel';
 import { sendMessage, useAgentChats, useChatMessages } from '../workspace/store';
 import { useBottomPin } from '../workspace/useBottomPin';
 
-/** The header's status pill: the agent makes no network calls beyond its local model. */
-const runningHere = (
-  <Badge icon={<Laptop size={14} strokeWidth={1.6} aria-hidden />}>
-    Running on {deviceInSentence(currentPlatform())}
-  </Badge>
-);
+/**
+ * The header's status pill: the agent makes no network calls beyond its local model. When this
+ * computer's install checks say it can't run here, the pill says that instead.
+ */
+function hereBadge(status?: InstallStatus) {
+  const device = deviceInSentence(currentPlatform());
+  return status === 'blocked' ? (
+    <Badge tone="danger" icon={<CircleX size={14} strokeWidth={1.6} aria-hidden />}>
+      Can&apos;t run on {device}
+    </Badge>
+  ) : (
+    <Badge icon={<Laptop size={14} strokeWidth={1.6} aria-hidden />}>Running on {device}</Badge>
+  );
+}
 
 /** A chat with one graduated agent, running on this computer. */
 export function ChatScreen({ graduateId, chatId }: { graduateId: string; chatId: string }) {
@@ -31,7 +39,7 @@ export function ChatScreen({ graduateId, chatId }: { graduateId: string; chatId:
   if (agent) return <Chat agent={agent} chatId={chatId} />;
   return (
     <>
-      <WorkspaceHeader actions={runningHere} />
+      <WorkspaceHeader actions={hereBadge()} />
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-8 pb-14">
         {graduates.status === 'error' ? (
           <ErrorState
@@ -189,7 +197,7 @@ function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
           chat?.title ??
           (chats.entry.status === 'loading' ? <Skeleton className="h-3.5 w-44" /> : 'Chat')
         }
-        actions={runningHere}
+        actions={hereBadge(agent.status)}
       />
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">

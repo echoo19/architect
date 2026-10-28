@@ -30,11 +30,11 @@ import { at, graduate, job, STORY } from './story';
  * the screens read next, as the real engine would.
  */
 
-const hex = (digit: string) => digit.repeat(64);
+export const hex = (digit: string) => digit.repeat(64);
 
-const MACHINE = { os: 'win32', arch: 'x64', memoryBytes: 32 * 1024 ** 3 };
+export const MACHINE = { os: 'win32', arch: 'x64', memoryBytes: 32 * 1024 ** 3 };
 
-interface ManifestOptions {
+export interface ManifestOptions {
   job: Job;
   agentId: string;
   version: number;
@@ -47,7 +47,7 @@ interface ManifestOptions {
 }
 
 /** A package manifest the way the engine writes one, checked against the real schema. */
-function manifestFor(options: ManifestOptions): PackageManifest {
+export function manifestFor(options: ManifestOptions): PackageManifest {
   const { job: madeFor, score } = options;
   const contract = JobContractSchema.parse({ ...contractTerms(madeFor), version: 1 });
   const harnessFiles = [
@@ -274,7 +274,7 @@ export const VERSIONS: GraduateVersion[] = [
 /** The agent as the sidebar lists it, on version 2 of 4. */
 export const AGENT_WITH_VERSIONS: GraduateSummary = { ...graduate, activeVersion: 2, versions: 4 };
 
-const passed = (id: string, kind: string, detail: string, ms?: number): InstallCheck => ({
+export const passed = (id: string, kind: string, detail: string, ms?: number): InstallCheck => ({
   id,
   kind,
   status: 'passed',
@@ -282,7 +282,7 @@ const passed = (id: string, kind: string, detail: string, ms?: number): InstallC
   ...(ms === undefined ? {} : { ms }),
 });
 
-const READY_CHECKS: InstallCheck[] = [
+export const READY_CHECKS: InstallCheck[] = [
   passed(
     'compatibility',
     'compatibility',
@@ -295,11 +295,14 @@ const READY_CHECKS: InstallCheck[] = [
     'resources_bound',
     'Every folder is chosen and holds the files it should.',
   ),
-  passed(
-    'model-available',
-    'model_available',
-    'muse-glimmer:30b on ollama, the same build that was tested.',
-  ),
+  {
+    ...passed(
+      'model-available',
+      'model_available',
+      'muse-glimmer:30b on ollama, the same build that was tested.',
+    ),
+    sameBuild: true,
+  },
   passed('model-responds', 'model_responds', 'Answered in 2.8 s, loading included.', 2_800),
 ];
 
@@ -391,7 +394,7 @@ export function exportReview(include: readonly string[]): ExportReview {
 }
 
 /** The returns desk: another person's agent, packaged on their computer. */
-const returnsJob: Job = {
+export const returnsJob: Job = {
   ...job,
   id: 'job_returns',
   name: 'Returns desk',
@@ -448,16 +451,20 @@ const WEIGHTS_CHECKS = {
     status: 'failed',
     detail: NO_LLAMA_SERVER,
   } satisfies InstallCheck,
-  base: passed(
-    'model-available',
-    'model_available',
-    `muse-glimmer:30b in Ollama's store, the build its adapter was trained on (sha256:${'a'.repeat(12)}), and its adapter as installed.`,
-  ),
+  base: {
+    ...passed(
+      'model-available',
+      'model_available',
+      `muse-glimmer:30b in Ollama's store, the build its adapter was trained on (sha256:${'a'.repeat(12)}), and its adapter as installed.`,
+    ),
+    sameBuild: true,
+  },
   responds: {
     id: 'model-responds',
     kind: 'model_responds',
     status: 'skipped',
     detail: "Skipped: llama-server can't run it yet.",
+    skipped: 'after_failure',
   } satisfies InstallCheck,
 };
 
@@ -488,11 +495,14 @@ function preview(madeFor: Job, agentId: string, tools: string[], weights = false
             'compatibility',
             'win32/x64, 32 GB of memory, ollama at 127.0.0.1:11434.',
           ),
-          passed(
-            'model-available',
-            'model_available',
-            'muse-glimmer:30b on ollama, the same build that was tested.',
-          ),
+          {
+            ...passed(
+              'model-available',
+              'model_available',
+              'muse-glimmer:30b on ollama, the same build that was tested.',
+            ),
+            sameBuild: true,
+          },
         ],
     status: weights ? 'needs_attention' : 'ready',
     reasons: weights ? [NO_LLAMA_SERVER] : [],
@@ -552,6 +562,7 @@ function importResultFor(
           ...check,
           status: 'skipped',
           detail: 'Skipped: this computer cannot run it as it is.',
+          skipped: 'after_failure',
         };
       }
       return check;
@@ -575,9 +586,15 @@ function importResultFor(
   const reason = !data
     ? 'Choose a folder for data/: it should hold orders.csv, returns.csv, pickups.csv, policy.md.'
     : "data/ has a folder, but the agent isn't allowed to open it.";
+  const problem = data ? ('not_allowed' as const) : ('not_chosen' as const);
   const folders = READY_CHECKS.map((check) =>
     check.kind === 'resources_bound' && !bound
-      ? { ...check, status: 'failed' as const, detail: reason }
+      ? {
+          ...check,
+          status: 'failed' as const,
+          detail: reason,
+          folders: [{ name: 'data', problem }],
+        }
       : check,
   );
   // With trained weights, llama.cpp serves it, and this computer has no llama-server yet.

@@ -14,6 +14,7 @@ import type {
   GraduateSettings,
   GraduateSummary,
   HubInstallResult,
+  HubTokenStatus,
   ImportResult,
   JobSummary,
   ListedAttempt,
@@ -262,3 +263,7 @@ export const SignInResultSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('signed_in') }),
   z.object({ status: z.literal('cancelled') }),
 ]) satisfies z.ZodType<SignInResult>;
+
+export const HubTokenStatusSchema = z.object({
+  source: z.enum(['saved', 'HF_TOKEN', 'HUGGING_FACE_HUB_TOKEN', 'token_file']).nullable(),
+}) satisfies z.ZodType<HubTokenStatus>;

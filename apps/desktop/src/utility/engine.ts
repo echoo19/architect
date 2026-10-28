@@ -6,6 +6,7 @@ import {
   hubTokenResolver,
   type EngineHost,
 } from '@architect/engine';
+import { hubClient } from './hub';
 import {
   asEnginePort,
   askForSecrets,
@@ -52,8 +53,11 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
     ...(message.llamaServerCommand === undefined ? {} : { command: message.llamaServerCommand }),
   });
   const getSecret = askForSecrets(asEnginePort(secrets));
+  const savedHubKey = () => getSecret('huggingface');
   const host = await createEngineHost({
     dataDir: message.dataDir,
+    // Publishing and installing go to the Hub HF_ENDPOINT names, huggingface.co by default.
+    hub: hubClient(savedHubKey),
     deps: createEngineDeps({
       dataDir: message.dataDir,
       sandboxEntryPath: message.sandboxEntryPath,
@@ -62,7 +66,7 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
       getSecret,
       // Training finds the Hugging Face token the way publishing does: the saved key, then
       // HF_TOKEN, then Hugging Face's token file.
-      huggingFaceToken: hubTokenResolver({ saved: () => getSecret('huggingface') }),
+      huggingFaceToken: hubTokenResolver({ saved: savedHubKey }),
       localThreads: () => followed.localThreads,
       localCooldown: () => followed.localCooldown,
       adapterRuntime,

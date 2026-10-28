@@ -12,8 +12,10 @@ import {
   type Publication,
   type PublicationReview,
   type PublishedFile,
+  type PublishProgress,
   type PublishRequest,
   type PublishResult,
+  type PublishStage,
 } from '@architect/shared';
 import {
   gitBlobId,
@@ -53,7 +55,10 @@ export interface PublishContext extends ExportContext {
 
 export interface PublishOptions {
   signal?: AbortSignal;
+  /** Each file's bytes as the upload sends them. */
   onProgress?(progress: UploadProgress): void;
+  /** The publication as it moves: each stage, and the package's bytes sent so far. */
+  onUpdate?(progress: PublishProgress): void;
 }
 
 const byPath = (a: { path: string }, b: { path: string }): number =>
@@ -120,6 +125,11 @@ export async function reviewPublication(
   input: PublishRequest,
 ): Promise<PublicationReview> {
   return (await prepare(ctx, graduateId, PublishRequestSchema.parse(input))).review;
+}
+
+/** How many bytes a file to upload holds. */
+function uploadSize(file: UploadFile): number {
+  return 'content' in file ? file.content.length : file.size;
 }
 
 /** The git id of a file on disk, read in chunks: what the Hub's tree lists for a regular file. */
@@ -194,6 +204,17 @@ export async function publishVersion(
       );
     }
 
+    let totalBytes = listing.files.reduce((sum, file) => sum + file.bytes, 0);
+    const update = (stage: PublishStage, sentBytes: number) =>
+      options.onUpdate?.({
+        graduateId,
+        version,
+        repository,
+        stage,
+        sentBytes: Math.min(sentBytes, totalBytes),
+        totalBytes,
+      });
+    update('connecting', 0);
     await hub.whoami(signal);
     let info = await hub.repoInfo(repository, signal);
     if (info === null) {
@@ -284,6 +305,8 @@ export async function publishVersion(
         })),
       ];
 
+      totalBytes = files.reduce((sum, file) => sum + uploadSize(file), 0);
+
       const head = info.sha ?? null;
       const before = head === null ? [] : await hub.listFiles(repository, head, signal);
       const sending = new Set(files.map((file) => file.path));
@@ -297,17 +320,27 @@ export async function publishVersion(
         // An earlier attempt sent it all already: that commit holds the package.
         revision = head;
       } else {
+        update('uploading', 0);
+        const sentSoFar = new Map<string, number>();
         const sent = await hub.uploadFiles(repository, files, {
           summary: `Publish ${listing.name}, version ${version}`,
           description: `Architect package. graduate.json sha256 ${read.digest}.`,
           ...(head === null ? {} : { parentCommit: head }),
           deletions: leftovers,
           ...(signal ? { signal } : {}),
-          ...(options.onProgress ? { onProgress: options.onProgress } : {}),
+          onProgress: (progress) => {
+            options.onProgress?.(progress);
+            sentSoFar.set(progress.path, progress.sent);
+            update(
+              'uploading',
+              [...sentSoFar.values()].reduce((sum, bytes) => sum + bytes, 0),
+            );
+          },
         });
         revision = sent.commit;
         viaLfs = new Map(sent.files.map((file) => [file.path, file.lfs]));
       }
+      update('verifying', totalBytes);
       const held = await hub.listFiles(repository, revision, signal);
       if (!(await holds(held, files))) {
         throw new HubError(
@@ -319,6 +352,7 @@ export async function publishVersion(
 
       const card = Buffer.from(renderModelCard(read.manifest, { repository, revision }));
       const cardFile: UploadFile = { path: CARD_FILE, content: card };
+      update('describing', totalBytes);
       if (!(await holds(held, [cardFile]))) {
         await hub.uploadFiles(repository, [cardFile], {
           summary: `Describe ${listing.name}, version ${version}`,

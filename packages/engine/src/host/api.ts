@@ -8,6 +8,7 @@ import {
   type FileDiff,
   type ListedAttempt,
   type ListedLesson,
+  type PublishProgress,
   type ReportCard,
   type RunDetail,
   type StudentTarget,
@@ -77,6 +78,11 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
   const drafter = (): JobDrafter =>
     found(deps.drafts, "Drafting a job with the mentor isn't available in this build.");
   const packages = { library: graduates, secrets: deps.secrets, hub: ctx.hub };
+  /** Who hears a publication move. Listeners only pass it on, so none of them throws. */
+  const publishListeners = new Set<(progress: PublishProgress) => void>();
+  const publishUpdate = (progress: PublishProgress) => {
+    for (const listener of publishListeners) listener(progress);
+  };
   /** The agent's summary once its active version has install checks. */
   const checked = async (graduateId: string) => {
     await graduates.ensureChecked(graduateId);
@@ -309,8 +315,15 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       importFolder: async (path) => (await importPackage(packages, path)).graduate,
       installFromHub: (source, request) => installFromHub(packages, source, request),
       reviewPublication: (graduateId, request) => reviewPublication(packages, graduateId, request),
-      publish: (graduateId, request) => publishVersion(packages, graduateId, request),
+      publish: (graduateId, request) =>
+        publishVersion(packages, graduateId, request, { onUpdate: publishUpdate }),
       publications: async (graduateId) => listPublications(packages, graduateId),
+      onPublishProgress(listener) {
+        publishListeners.add(listener);
+        return () => {
+          publishListeners.delete(listener);
+        };
+      },
       remove: (graduateId) => graduates.remove(graduateId),
       settings: async (graduateId) => graduates.settings(graduateId),
       updateSettings: async (graduateId, patch) =>

@@ -9,6 +9,7 @@ import { attempt } from '../../lib/notify';
 import { AddKeyDialog } from './AddKeyDialog';
 import type { Connection } from './connections';
 import { forgetModelList } from './hooks';
+import { HuggingFaceRow } from './HuggingFaceRow';
 import { LlamaServerRow } from './LlamaServerRow';
 import { useOpenRouterSignIn } from './useSignIn';
 
@@ -55,51 +56,16 @@ export function ConnectionsSection({ connections, detecting }: ConnectionsSectio
   const signedIn = connections.some((connection) => connection.provider === 'openrouter');
   const waiting = signIn.state.phase === 'waiting';
 
+  // Hugging Face's token sits with the keys, before the runtimes on this computer.
+  const keyed = connections.filter((connection) => !connection.local);
+  const here = connections.filter((connection) => connection.local);
+
   return (
     <section aria-label="Connections" className="flex flex-col">
       <h3 className="m-0 border-t border-line pb-2 pt-6 text-md font-medium">Connections</h3>
-      {connections.map((connection) => (
-        <SettingsRow
-          key={connection.id}
-          icon={
-            <ProviderMark
-              name={connection.label}
-              icon={connection.local ? <Cpu aria-hidden /> : undefined}
-            />
-          }
-          label={connection.label}
-          meta={statusOf(connection)}
-          metaFont={connection.provider === 'other' ? 'code' : 'text'}
-        >
-          {connection.runtime ? (
-            !connection.runtime.running &&
-            connection.provider === 'ollama' && (
-              <Button
-                size="xs"
-                variant="ghost"
-                onClick={() =>
-                  void attempt("Couldn't open the page", () =>
-                    architect().app.openProviderPage('ollama'),
-                  )
-                }
-              >
-                <ExternalLink size={13} aria-hidden />
-                Get Ollama
-              </Button>
-            )
-          ) : (
-            <IconButton
-              label={`Remove ${connection.label}`}
-              size="sm"
-              onClick={() =>
-                void attempt(`Couldn't remove ${connection.label}`, () => forget(connection))
-              }
-            >
-              <Trash2 size={15} strokeWidth={1.7} aria-hidden />
-            </IconButton>
-          )}
-        </SettingsRow>
-      ))}
+      {keyed.map(row)}
+      <HuggingFaceRow />
+      {here.map(row)}
       <LlamaServerRow />
       {detecting && (
         <div className="flex min-h-[60px] items-center gap-2.5 border-t border-line text-fg-muted">
@@ -131,5 +97,51 @@ export function ConnectionsSection({ connections, detecting }: ConnectionsSectio
       )}
       <AddKeyDialog open={adding} onOpenChange={setAdding} />
     </section>
+  );
+}
+
+/** One connection's row: what it is, how it stands, and a way to remove or get it. */
+function row(connection: Connection) {
+  return (
+    <SettingsRow
+      key={connection.id}
+      icon={
+        <ProviderMark
+          name={connection.label}
+          icon={connection.local ? <Cpu aria-hidden /> : undefined}
+        />
+      }
+      label={connection.label}
+      meta={statusOf(connection)}
+      metaFont={connection.provider === 'other' ? 'code' : 'text'}
+    >
+      {connection.runtime ? (
+        !connection.runtime.running &&
+        connection.provider === 'ollama' && (
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={() =>
+              void attempt("Couldn't open the page", () =>
+                architect().app.openProviderPage('ollama'),
+              )
+            }
+          >
+            <ExternalLink size={13} aria-hidden />
+            Get Ollama
+          </Button>
+        )
+      ) : (
+        <IconButton
+          label={`Remove ${connection.label}`}
+          size="sm"
+          onClick={() =>
+            void attempt(`Couldn't remove ${connection.label}`, () => forget(connection))
+          }
+        >
+          <Trash2 size={15} strokeWidth={1.7} aria-hidden />
+        </IconButton>
+      )}
+    </SettingsRow>
   );
 }

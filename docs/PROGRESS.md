@@ -22,6 +22,28 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Open issues**
 - The recorder points `performance.now` at its clock while it records, since the agent loop times turns with `performance.now`; a clock passed to the loop would remove that.
 
+## 2026-10-28 (Tue), Hugging Face on screen, an agent's model, and clearer checks
+
+**Done** (on a branch; decision 050)
+- Publishing to Hugging Face is the Export tab's second destination: the repository (the last one the agent went to), Private unless chosen, where the token comes from, every file that will go with the model card to preview, and the scan; then the upload's stage and bytes; then "Version N is on Hugging Face" with the commit, the link and the install command, or "Couldn't publish ..." with the Hub's message and what to do, and Finish publishing completes the same record. A publication on its way survives closing the agent's settings. The agent's publications are listed with repository, version, commit and date.
+- The engine sends a publication's progress (`graduates.onPublishProgress`: connecting, uploading with the bytes the upload counted, verifying, describing), checked with its schema over the port and forwarded by main. Install checks carry the fields the screens need (why a check was skipped, llama.cpp's build, whether the base is the tested build, what stands in the way of the base, each folder's problem); the renderer words checks and offers fixes from those alone.
+- Settings › Models lists Hugging Face with the keys: the token saved here, from `HF_TOKEN`, or from `hf auth login`'s file, never its value, with Add token and remove. The app follows `HF_ENDPOINT` as the command does; the saved key goes only to huggingface.co. `app.openLink` opens HTTPS pages on known hosts, now huggingface.co.
+- Install from Hugging Face is a source in Import and in the sidebar's agent menu: `owner/name` and a commit. It downloads that commit and installs it with nothing granted and no model loaded, recording the commit, then goes through a package file's steps; Cancel and the close button take it back.
+- An agent's model is a picker in General of this computer's models (Ollama's alone for trained weights); choosing one binds it and the checks run again. A base of another build offers Choose its model, which opens that picker, even though it blocks.
+- The status line names the version ("Version 2") and the model this computer runs, and says "Private from Spark" where "Spark not connected" contradicted Settings; General's Setup row names the version too; a chat waiting for the person says "Needs you" in the sidebar where a dot read as unread; the chat's header says "Can't run on this computer" when the checks block the agent; Settings' default model is "Model for new agents". Imports read the agent afresh when they finish, so an agent removed and installed again under its id shows its new installation.
+- Tests: engine (`graduate-hub` progress, `host` progress over the port, `graduate-check-fields`), desktop unit (`hub`, `links`, `graduate-handlers`, `versions`, `labels`), hidden e2e on the real engine against the fake Hub (`e2e/hub.spec.ts`: publish to the link and commit, a failed upload then Finish publishing, install by commit, change the model with the checks run again) and captures of every new screen and state in both themes (`e2e/hub-screens.spec.ts`). `launchApp` keeps every test off the real Hub and the computer's token.
+- Merged main (the comparisons runner, decision 045). After the merge `pnpm check` exits 0 (177 test files, 2128 tests) and the hidden end-to-end suite passes (89, one skipped), regenerating every capture.
+- Every regenerated screenshot was looked at, then a fresh subagent given only 22 of them said what each screen is for and what it would do next. Its findings and what changed are in decision 050: the version in General, "Model for new agents", the header of a blocked agent, the publish button naming its version, Finish publishing, "Optional" beside Commit, "Model responds", the token dialog's line, and stand-in data that agrees across captures.
+
+**Next**
+- One real private publish and install by commit, once a Hugging Face token with write access exists (A12).
+- A preview of a Hub package before it installs, which needs the engine to keep a download in staging between two calls.
+
+**Open issues**
+- A pasted Hugging Face token isn't checked until it is used; a refused one shows when publishing, with what to do.
+- If the app quits during a Hub install, after the download and before Install, the version stays installed with nothing granted, needing attention.
+- A publication can't be stopped once it starts: the engine has no way to, so the screen offers none.
+
 ## 2026-10-28 (Tue), the comparisons runner
 
 **Done** (on a branch; decision 045)

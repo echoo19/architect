@@ -30,7 +30,7 @@ export interface LaunchedApp {
 }
 
 export interface LaunchOptions {
-  /** More environment for the app, such as a stand-in llama-server. */
+  /** More environment for the app, such as a stand-in llama-server or the fake Hub. */
   env?: Record<string, string>;
   /** Settings the profile starts with; defaults for the rest. */
   settings?: Partial<AppSettings>;
@@ -44,6 +44,22 @@ export interface LaunchOptions {
    * of its `data` folder, with its `report.json` beside it. The folder itself is never changed.
    */
   comparison?: string;
+  /** Fills the throwaway profile before the app starts, such as with a graduate. */
+  prepare?: (userData: string) => Promise<void>;
+}
+
+/**
+ * No test reaches Hugging Face or reads a token of the computer it runs on: no token from the
+ * environment or Hugging Face's token file, and a Hub address where nothing answers, unless a
+ * test names the fake Hub.
+ */
+function noHub(userData: string): Record<string, string> {
+  return {
+    HF_TOKEN: '',
+    HUGGING_FACE_HUB_TOKEN: '',
+    HF_TOKEN_PATH: join(userData, 'no-hugging-face-token'),
+    HF_ENDPOINT: 'http://127.0.0.1:9',
+  };
 }
 
 /**
@@ -62,11 +78,13 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
   if (options.settings) {
     await writeFile(join(userData, 'settings.json'), JSON.stringify(options.settings));
   }
+  await options.prepare?.(userData);
   const executablePath = packagedExecutable();
   const app = await electron.launch({
     ...(executablePath ? { executablePath } : { args: [APP_DIR] }),
     env: {
       ...process.env,
+      ...noHub(userData),
       ...options.env,
       ARCHITECT_HIDDEN: '1',
       ARCHITECT_USER_DATA: userData,
