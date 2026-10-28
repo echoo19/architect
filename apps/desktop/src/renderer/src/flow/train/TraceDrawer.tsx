@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
 import type { ListedAttempt, Trace } from '@architect/shared';
-import { cn, Disclosure, DrawerContent, ErrorState, EvidenceMark, Skeleton } from '@architect/ui';
+import { cn, Disclosure, DrawerContent, EvidenceMark, Skeleton } from '@architect/ui';
 import { Check, CircleX } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { useQuery } from '../../api/query';
+import { ProblemState } from '../../components/ProblemState';
 import { formatAnswerTime } from '../format';
 import type { ModelNames } from './phase';
 import type { StepNote } from './lesson-steps';
@@ -72,10 +73,10 @@ export function TraceDrawerContent({
         <Verdict attempt={attempt} student={names.student} />
         {trace.status === 'loading' && <StepsSkeleton />}
         {trace.status === 'error' && (
-          <ErrorState
+          <ProblemState
             layout="inline"
+            error={trace.error}
             title="Couldn't load this attempt's steps"
-            message={trace.error.message}
             onRetry={trace.reload}
           />
         )}

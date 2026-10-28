@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ReportCard } from '@architect/shared';
-import { Button, ErrorState, Skeleton } from '@architect/ui';
+import { Button, Skeleton } from '@architect/ui';
 import { ArrowRight } from 'lucide-react';
 import { api, flowApi } from '../api/client';
 import { graduateKeys, graduatesApi } from '../api/graduates';
@@ -14,6 +14,7 @@ import {
   useSettings,
 } from '../api/hooks';
 import { fetchQuery, useQuery } from '../api/query';
+import { ProblemState } from '../components/ProblemState';
 import { useComparison } from '../flow/report/ComparisonTable';
 import {
   useBareReport,
@@ -62,15 +63,11 @@ export function ReportScreen({ runId }: { runId: string }) {
       <div className="mx-auto box-content flex max-w-[860px] flex-col gap-11 px-8 pb-8 pt-14">
         {report.status === 'loading' && <ReportSkeleton />}
         {report.status === 'error' && (
-          <ErrorState
-            title="Couldn't load the report card"
-            message={report.error.message}
+          <ProblemState
+            error={report.error}
+            title="Couldn't load the results"
             onRetry={report.reload}
-            secondaryAction={
-              <Button size="md" onClick={() => navigate(paths.train(runId))}>
-                Back to training
-              </Button>
-            }
+            exit={{ label: 'Back to agents', onClick: () => navigate(paths.home()) }}
             className="min-h-[60vh]"
           />
         )}

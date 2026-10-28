@@ -16,6 +16,7 @@ import { cn, DrawerContent, DrawerSection, ErrorState, Skeleton, Spinner } from 
 import { FilePen } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { useQuery } from '../../api/query';
+import { ProblemState } from '../../components/ProblemState';
 import { formatRange, formatRate, signed } from '../format';
 import { typeLabel } from '../names';
 import { decisionSentence, harmSentence, predictionCheck } from './decision';
@@ -232,10 +233,10 @@ export function RoundDrawerContent({
           </div>
         )}
         {evidence.status === 'error' && (
-          <ErrorState
+          <ProblemState
             layout="inline"
+            error={evidence.error}
             title="Couldn't load this round's findings, examples, check tasks and costs"
-            message={evidence.error.message}
             onRetry={evidence.reload}
           />
         )}
@@ -509,10 +510,10 @@ function RoundFiles({
   }
   if (diff.status === 'error') {
     return (
-      <ErrorState
+      <ProblemState
         layout="inline"
+        error={diff.error}
         title="Couldn't load the changes"
-        message={diff.error.message}
         onRetry={diff.reload}
       />
     );

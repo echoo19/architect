@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { GraduateSummary } from '@architect/shared';
-import { Button, EmptyState, ErrorState, Skeleton } from '@architect/ui';
-import { Bot, Plus } from 'lucide-react';
+import { Button, EmptyState, Skeleton } from '@architect/ui';
+import { Bot } from 'lucide-react';
 import { architect } from '../api/client';
 import { useGraduates, useSettings } from '../api/hooks';
 import { toError } from '../api/query';
+import { ProblemState } from '../components/ProblemState';
 import { mentorIntro, mentorName, studentIntro, studentName } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
@@ -21,16 +22,11 @@ export function HomeScreen() {
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto pb-14">
         {graduates.status === 'loading' && <HomeSkeleton />}
         {graduates.status === 'error' && (
-          <ErrorState
+          <ProblemState
+            error={graduates.error}
             title="Couldn't load your agents"
-            message={graduates.error.message}
             onRetry={graduates.reload}
-            secondaryAction={
-              <Button size="md" onClick={() => navigate(paths.newAgent())}>
-                <Plus size={16} aria-hidden />
-                New agent
-              </Button>
-            }
+            exit={{ label: 'New agent', onClick: () => navigate(paths.newAgent()) }}
           />
         )}
         {graduates.status === 'success' &&
@@ -80,9 +76,9 @@ function OpenLatestChat({ graduates }: { graduates: GraduateSummary[] }) {
   const problem = failure ?? (settings.status === 'error' ? settings.error : null);
   if (problem) {
     return (
-      <ErrorState
+      <ProblemState
+        error={problem}
         title="Couldn't open your chats"
-        message={problem.message}
         onRetry={() => {
           setFailure(null);
           settings.reload();

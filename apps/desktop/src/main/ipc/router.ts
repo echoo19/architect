@@ -1,4 +1,4 @@
-import type { ArchitectApi } from '@architect/shared';
+import { CodedError, type ArchitectApi } from '@architect/shared';
 import { z } from 'zod';
 import {
   channel,
@@ -54,8 +54,8 @@ export interface IpcRouterOptions {
   targets: () => EventSink[];
 }
 
-function failure(message: string): IpcResult<never> {
-  return { ok: false, error: { message } };
+function failure(message: string, code?: string): IpcResult<never> {
+  return { ok: false, error: code === undefined ? { message } : { message, code } };
 }
 
 function messageOf(error: unknown): string {
@@ -116,13 +116,13 @@ export class IpcRouter {
     const handler = this.handlers.get(name);
     if (!handler) {
       const label = name.replace(':', '.');
-      return failure(`The engine isn't connected yet, so ${label} can't run.`);
+      return failure(`The engine isn't connected yet, so ${label} can't run.`, 'process_starting');
     }
     try {
       return { ok: true, value: await handler(...args) };
     } catch (error) {
       if (!(error instanceof ArgumentError)) console.error(`[ipc] ${name} failed:`, error);
-      return failure(messageOf(error));
+      return failure(messageOf(error), error instanceof CodedError ? error.code : undefined);
     }
   }
 }

@@ -3,6 +3,7 @@ import type { RunDetail, RunImprovement } from '@architect/shared';
 import { Button, EmptyState, ErrorState, Skeleton } from '@architect/ui';
 import { ArrowUpRight, TrendingUp } from 'lucide-react';
 import { useVersions } from '../api/graduates';
+import { ProblemState } from '../components/ProblemState';
 import { useGraduates, useRunDetail } from '../api/hooks';
 import {
   refreshTeaching,
@@ -58,10 +59,11 @@ export function ImprovementScreen({ runId }: { runId: string }) {
           className="min-h-[60vh]"
         />
       ) : detail.status === 'error' ? (
-        <ErrorState
+        <ProblemState
+          error={detail.error}
           title="Couldn't load what it changed"
-          message={detail.error.message}
           onRetry={detail.reload}
+          exit={{ label: 'Back to agents', onClick: () => navigate(paths.home()) }}
           className="min-h-[60vh]"
         />
       ) : (
@@ -108,10 +110,11 @@ function Loaded({
     return (
       <Page title={name}>
         {improvements.status === 'error' ? (
-          <ErrorState
+          <ProblemState
+            error={improvements.error}
             title="Couldn't load what it changed"
-            message={improvements.error.message}
             onRetry={improvements.reload}
+            exit={{ label: 'Back to agents', onClick: () => navigate(paths.home()) }}
             className="min-h-[60vh]"
           />
         ) : (

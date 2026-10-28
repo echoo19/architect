@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { Job, Method } from '@architect/shared';
-import { Button, ErrorState, Skeleton, toast } from '@architect/ui';
+import { Button, Skeleton, toast } from '@architect/ui';
 import { SlidersHorizontal } from 'lucide-react';
 import { flowApi } from '../api/client';
 import { useJob, useJobs, useSecretsStatus, useSettings } from '../api/hooks';
+import { ProblemState } from '../components/ProblemState';
 import { resetDraft, useDraftStore } from '../flow/describe/draft-store';
 import { AdvancedDialog, tabWithIssue, type AdvancedTab } from '../flow/define/AdvancedDialog';
 import { hostedAvailability, type KeyStatus } from '../flow/define/hosted';
@@ -26,15 +27,11 @@ export function DefineScreen({ jobId }: { jobId: string }) {
         {job.status === 'loading' ? (
           <DefineSkeleton />
         ) : (
-          <ErrorState
+          <ProblemState
+            error={job.error}
             title="Couldn't open this job"
-            message={job.error.message}
             onRetry={job.reload}
-            secondaryAction={
-              <Button size="md" onClick={() => navigate(paths.home())}>
-                Back to agents
-              </Button>
-            }
+            exit={{ label: 'Back to agents', onClick: () => navigate(paths.home()) }}
             className="min-h-[60vh]"
           />
         )}

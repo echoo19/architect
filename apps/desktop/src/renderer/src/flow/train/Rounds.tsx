@@ -1,6 +1,7 @@
 import type { Experiment, Intervention, Job, Round, RunStopReason } from '@architect/shared';
-import { cn, ErrorState, Panel, PanelHeader, PanelRow, Spinner } from '@architect/ui';
+import { cn, Panel, PanelHeader, PanelRow, Spinner } from '@architect/ui';
 import { ArrowRight } from 'lucide-react';
+import { ProblemState } from '../../components/ProblemState';
 import { percent } from '../format';
 import { outcomeNote } from './decision';
 import {
@@ -68,7 +69,7 @@ export function Rounds({
   draftRound: number | null;
   records: RoundRecords | null;
   /** The mentoring records couldn't be read: the rounds can't say how they ended. */
-  failure: { message: string; reload: () => void } | null;
+  failure: { error: Error; reload: () => void } | null;
   /** Why training ended, once it has. */
   stopReason: RunStopReason | undefined;
   onOpen: (round: Round) => void;
@@ -80,10 +81,10 @@ export function Rounds({
       <PanelHeader title="Rounds" />
       {failure ? (
         <PanelRow className="py-3">
-          <ErrorState
+          <ProblemState
             layout="inline"
+            error={failure.error}
             title="Couldn't load how the rounds ended"
-            message={failure.message}
             onRetry={failure.reload}
           />
         </PanelRow>

@@ -1,11 +1,13 @@
 import type { GraduateSummary, ReportCard } from '@architect/shared';
-import { ErrorState, Heading, Meter, Skeleton, Stat } from '@architect/ui';
+import { Heading, Meter, Skeleton, Stat } from '@architect/ui';
 import { useVersionReport, useVersions } from '../../api/graduates';
+import { ProblemState } from '../../components/ProblemState';
 import { formatAnswerTime } from '../../flow/format';
 import { AUTHOR_RESULT_TITLE } from '../../install/labels';
 import { formatPercent, formatUsd, percentOf } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
+import { useAgentSettingsUi } from './agentSettingsUi';
 
 /**
  * The report card of the version chats run on, in brief: how it did on its locked test, and
@@ -17,10 +19,14 @@ export function ReportTab({ agent }: { agent: GraduateSummary }) {
   const imported = versions.data?.find((version) => version.active)?.origin !== undefined;
   if (report.status === 'error') {
     return (
-      <ErrorState
-        title="Couldn't load the report card"
-        message={report.error.message}
+      <ProblemState
+        error={report.error}
+        title="Couldn't load the results"
         onRetry={report.reload}
+        exit={{
+          label: 'See earlier versions',
+          onClick: () => useAgentSettingsUi.getState().setTab('teaching'),
+        }}
         className="py-12"
       />
     );

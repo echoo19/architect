@@ -6,7 +6,6 @@ import {
   DialogClose,
   DialogContent,
   DialogFooter,
-  ErrorState,
   SettingsRow,
   SettingsSection,
   Skeleton,
@@ -34,6 +33,7 @@ import {
   useTeachingOverview,
   useTeachingUpdates,
 } from '../../api/teaching';
+import { ProblemState } from '../../components/ProblemState';
 import { errorOf } from '../../components/QueryValue';
 import { formatPercent } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
@@ -88,10 +88,10 @@ export function LessonsSection({ agent }: { agent: GraduateSummary }) {
     rows = <TeachingRows agent={agent} overview={overview.data} />;
   } else if (overview.status === 'error') {
     rows = (
-      <ErrorState
+      <ProblemState
         layout="inline"
+        error={overview.error}
         title="Couldn't load its lessons"
-        message={overview.error.message}
         onRetry={overview.reload}
         className="border-t border-line py-4"
       />

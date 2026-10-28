@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { Finding, ListedAttempt, ListedLesson, Round, RunStatus } from '@architect/shared';
-import { Button, cn, Drawer, DrawerContent, ErrorState, Skeleton } from '@architect/ui';
+import { cn, Drawer, DrawerContent, Skeleton } from '@architect/ui';
 import { CircleAlert } from 'lucide-react';
 import {
   mentoringApi,
@@ -9,6 +9,7 @@ import {
   type MentoringRecords,
 } from '../api/mentoring';
 import { useQuery, type QueryState } from '../api/query';
+import { ProblemState } from '../components/ProblemState';
 import { rate } from '../flow/format';
 import { modelNames, typeLabel } from '../flow/names';
 import { Apprenticeship } from '../flow/train/Apprenticeship';
@@ -94,15 +95,11 @@ export function TrainScreen({ runId }: { runId: string }) {
       >
         {state.status === 'loading' && <TrainSkeleton />}
         {state.status === 'error' && (
-          <ErrorState
+          <ProblemState
+            error={state.error}
             title="Couldn't load this training run"
-            message={state.error.message}
             onRetry={retry}
-            secondaryAction={
-              <Button size="md" onClick={() => navigate(paths.home())}>
-                Back to agents
-              </Button>
-            }
+            exit={{ label: 'Back to agents', onClick: () => navigate(paths.home()) }}
             className="min-h-[60vh]"
           />
         )}
@@ -265,10 +262,10 @@ function FindingAttempt({
         {attempt.status === 'loading' ? (
           <StepsSkeleton />
         ) : (
-          <ErrorState
+          <ProblemState
             layout="inline"
+            error={attempt.error}
             title="Couldn't open this attempt"
-            message={attempt.error.message}
             onRetry={attempt.reload}
           />
         )}
@@ -348,7 +345,7 @@ function TrainBoard({
   const evidence = records.data ?? null;
   const failure =
     records.status === 'error' && evidence === null
-      ? { message: records.error.message, reload: records.reload }
+      ? { error: records.error, reload: records.reload }
       : null;
   const round = currentRound(live);
   return (

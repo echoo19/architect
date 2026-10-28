@@ -63,18 +63,20 @@ describe('workspaceReducer', () => {
     const loaded = run([{ type: 'messages.loaded', chatId: 'cht_1', messages: [message('m')] }]);
     const reloading = workspaceReducer(loaded, { type: 'messages.loading', chatId: 'cht_1' });
     expect(reloading.messages.cht_1).toEqual({ status: 'loading', data: [message('m')] });
+    const stopped = new Error('Architect stopped.');
     const failed = workspaceReducer(reloading, {
       type: 'messages.failed',
       chatId: 'cht_1',
-      error: 'The engine stopped.',
+      error: stopped,
     });
     expect(failed.messages.cht_1).toEqual({
       status: 'error',
-      error: 'The engine stopped.',
+      error: stopped,
       data: [message('m')],
     });
-    const firstFailure = run([{ type: 'chats.failed', graduateId: 'grd_1', error: 'Nope.' }]);
-    expect(firstFailure.chats.grd_1).toEqual({ status: 'error', error: 'Nope.' });
+    const nope = new Error('Nope.');
+    const firstFailure = run([{ type: 'chats.failed', graduateId: 'grd_1', error: nope }]);
+    expect(firstFailure.chats.grd_1).toEqual({ status: 'error', error: nope });
   });
 
   it('streams a reply: new messages are added, updates replace them in place', () => {

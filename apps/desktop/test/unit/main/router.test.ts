@@ -1,3 +1,4 @@
+import { CodedError } from '@architect/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import type { IpcResult } from '../../../src/common/ipc';
@@ -47,7 +48,10 @@ describe('IpcRouter', () => {
     const { call } = setup();
     expect(await call('graduates:list')).toEqual({
       ok: false,
-      error: { message: "The engine isn't connected yet, so graduates.list can't run." },
+      error: {
+        message: "The engine isn't connected yet, so graduates.list can't run.",
+        code: 'process_starting',
+      },
     });
   });
 
@@ -79,6 +83,29 @@ describe('IpcRouter', () => {
       error: { message: 'That run has no report yet.' },
     });
     expect(errors).toHaveBeenCalledOnce();
+    errors.mockRestore();
+  });
+
+  it('passes a failure with a code on, and none that has no code', async () => {
+    const { router, call } = setup();
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    router.registerHandlers('reports', {
+      get: () => {
+        throw new CodedError('run_not_found', 'There is no run "run_1".');
+      },
+      list: () => {
+        throw new Error('Plain.');
+      },
+      comparisons: () => null,
+    });
+    expect(await call('reports:get', ['run_1'])).toEqual({
+      ok: false,
+      error: { message: 'There is no run "run_1".', code: 'run_not_found' },
+    });
+    expect(await call('reports:list', ['run_1'])).toEqual({
+      ok: false,
+      error: { message: 'Plain.' },
+    });
     errors.mockRestore();
   });
 

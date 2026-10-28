@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Button, SettingsValue, Skeleton } from '@architect/ui';
 import { RotateCw } from 'lucide-react';
 import type { QueryState } from '../api/query';
+import { problemOf } from '../lib/problems';
 
 export function RetryButton({ onClick }: { onClick: () => void }) {
   return (
@@ -28,7 +29,11 @@ export function QueryValue<T>({
   return <SettingsValue>{children(query.data)}</SettingsValue>;
 }
 
-/** The message to show under a row's label when its value failed to load. */
+/**
+ * What to show under a row's label when its value failed to load: the plain cause when the
+ * failure has one, else its own message.
+ */
 export function errorOf(query: QueryState<unknown>): string | undefined {
-  return query.status === 'error' ? query.error.message : undefined;
+  if (query.status !== 'error') return undefined;
+  return problemOf(query.error)?.cause ?? query.error.message;
 }

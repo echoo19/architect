@@ -6,7 +6,6 @@ import {
   Disclosure,
   DrawerContent,
   DrawerSection,
-  ErrorState,
   EvidenceMark,
   Segmented,
 } from '@architect/ui';
@@ -14,6 +13,7 @@ import { ArrowRight, Check, CircleHelp, CircleX } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { mentoringApi, mentoringKeys } from '../../api/mentoring';
 import { useQuery, type QueryState } from '../../api/query';
+import { ProblemState } from '../../components/ProblemState';
 import { formatCost } from '../format';
 import { typeLabel } from '../names';
 import { lessonOrigin, lessonStatus } from './evidence-words';
@@ -298,12 +298,12 @@ function LessonSteps({
     return <StepsSkeleton />;
   }
   const failed = trace.status === 'error' ? trace : original.status === 'error' ? original : null;
-  if (failed) {
+  if (failed?.error) {
     return (
-      <ErrorState
+      <ProblemState
         layout="inline"
+        error={failed.error}
         title="Couldn't load the steps"
-        message={failed.error?.message}
         onRetry={failed.reload}
       />
     );

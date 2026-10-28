@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import type { Job, ListedLesson } from '@architect/shared';
-import { ErrorState, Panel, PanelHeader, PanelRow, Skeleton } from '@architect/ui';
+import { Panel, PanelHeader, PanelRow, Skeleton } from '@architect/ui';
 import { Check, ChevronRight, X } from 'lucide-react';
 import type { QueryState } from '../../api/query';
 import type { MentoringRecords } from '../../api/mentoring';
+import { ProblemState } from '../../components/ProblemState';
 import { typeLabel } from '../names';
 import { lessonOrigin, lessonVerdict } from './evidence-words';
 
@@ -49,10 +50,10 @@ export function Examples({
       />
       {records.status === 'error' && lessons.length === 0 ? (
         <PanelRow className="py-3">
-          <ErrorState
+          <ProblemState
             layout="inline"
+            error={records.error}
             title="Couldn't load the worked examples"
-            message={records.error.message}
             onRetry={records.reload}
           />
         </PanelRow>

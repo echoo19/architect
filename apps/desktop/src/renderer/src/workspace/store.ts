@@ -42,7 +42,7 @@ function loadChats(graduateId: string): Promise<void> {
     try {
       dispatch({ type: 'chats.loaded', graduateId, chats: await api.chats(graduateId) });
     } catch (error) {
-      dispatch({ type: 'chats.failed', graduateId, error: toError(error).message });
+      dispatch({ type: 'chats.failed', graduateId, error: toError(error) });
     }
   });
 }
@@ -53,7 +53,7 @@ function loadMessages(chatId: string): Promise<void> {
     try {
       dispatch({ type: 'messages.loaded', chatId, messages: await api.messages(chatId) });
     } catch (error) {
-      dispatch({ type: 'messages.failed', chatId, error: toError(error).message });
+      dispatch({ type: 'messages.failed', chatId, error: toError(error) });
     }
   });
 }
@@ -113,7 +113,7 @@ async function findLatestChat(graduateIds: string[]): Promise<WorkspaceChat> {
   await Promise.all(graduateIds.map((id) => loadChats(id)));
   const entries = graduateIds.map((id) => useWorkspace.getState().chats[id]);
   for (const entry of entries) {
-    if (entry?.status === 'error') throw new Error(entry.error);
+    if (entry?.status === 'error') throw entry.error;
   }
   const chats = entries.flatMap((entry) => entry?.data ?? []);
   const latest = chats.reduce<WorkspaceChat | undefined>(

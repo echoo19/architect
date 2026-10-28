@@ -12,7 +12,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  ErrorState,
   IconButton,
   LogoMark,
   Skeleton,
@@ -23,6 +22,7 @@ import { Cloud, Ellipsis, PackageOpen, Pause, Plus, Settings } from 'lucide-reac
 import { api, architect } from '../api/client';
 import { queryKeys, useGraduates, useJobs } from '../api/hooks';
 import { fetchQuery } from '../api/query';
+import { ProblemState } from '../components/ProblemState';
 import { chooseFromHub, chooseImport } from '../import/session';
 import { formatPercent } from '../lib/format';
 import { attempt } from '../lib/notify';
@@ -100,10 +100,10 @@ export function Sidebar({ route }: { route: Route }) {
               <TrainingList jobs={jobs.data} route={route} />
             ) : (
               jobs.status === 'error' && (
-                <ErrorState
+                <ProblemState
                   layout="inline"
+                  error={jobs.error}
                   title="Couldn't load training"
-                  message={jobs.error.message}
                   onRetry={jobs.reload}
                   className="px-2.5"
                 />
@@ -111,10 +111,10 @@ export function Sidebar({ route }: { route: Route }) {
             )}
           </>
         ) : graduates.status === 'error' ? (
-          <ErrorState
+          <ProblemState
             layout="inline"
+            error={graduates.error}
             title="Couldn't load your agents"
-            message={graduates.error.message}
             onRetry={() => {
               graduates.reload();
               jobs.reload();
@@ -237,10 +237,10 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
         </div>
       )}
       {!list && chats.entry.status === 'error' && (
-        <ErrorState
+        <ProblemState
           layout="inline"
+          error={chats.entry.error}
           title="Couldn't load chats"
-          message={chats.entry.error}
           onRetry={chats.reload}
           className="py-1.5 pl-[38px] pr-2.5"
         />

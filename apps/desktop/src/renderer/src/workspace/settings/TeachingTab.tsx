@@ -1,15 +1,9 @@
 import { useState } from 'react';
 import type { GraduateSummary, GraduateVersion } from '@architect/shared';
-import {
-  Button,
-  ErrorState,
-  SettingsRow,
-  SettingsSection,
-  Skeleton,
-  VersionTag,
-} from '@architect/ui';
+import { Button, SettingsRow, SettingsSection, Skeleton, VersionTag } from '@architect/ui';
 import { ArrowUpRight, Undo2 } from 'lucide-react';
 import { useVersions } from '../../api/graduates';
+import { ProblemState } from '../../components/ProblemState';
 import { formatPercent } from '../../lib/format';
 import { LessonsSection } from '../teach/LessonsSection';
 import { MoveDialog } from './MoveDialog';
@@ -58,10 +52,10 @@ export function TeachingTab({ agent }: { agent: GraduateSummary }) {
             ))}
           </ul>
         ) : versions.status === 'error' ? (
-          <ErrorState
+          <ProblemState
             layout="inline"
+            error={versions.error}
             title="Couldn't load the versions"
-            message={versions.error.message}
             onRetry={versions.reload}
             className="border-t border-line py-4"
           />

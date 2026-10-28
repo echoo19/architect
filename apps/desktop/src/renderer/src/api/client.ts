@@ -24,9 +24,15 @@ import {
   type ModelSource,
 } from '@architect/shared';
 import { z } from 'zod';
+import { withTypedFailures } from '../../../common/bridge';
 
+let typed: { source: ArchitectApi; api: ArchitectApi } | undefined;
+
+/** The preload's bridge, with each failure read back into the error it was (a coded one too). */
 function bridge(): ArchitectApi {
-  return window.architect;
+  const source = window.architect;
+  if (typed?.source !== source) typed = { source, api: withTypedFailures(source) };
+  return typed.api;
 }
 
 /**
