@@ -38,6 +38,8 @@ interface TrainingPlaceProps {
   onCapChange: (usd: number) => void;
   /** Present when checking for the hosted copy's key failed. */
   onRetryKeys?: (() => void) | undefined;
+  /** Opens the time limit, for a place too slow to fit a round in it. */
+  onRaiseLimit: () => void;
   /** Present when comparison mode is on. */
   baselines?: { checked: boolean; onCheckedChange: (checked: boolean) => void } | undefined;
 }
@@ -55,6 +57,7 @@ export function TrainingPlace({
   onPlaceChange,
   onCapChange,
   onRetryKeys,
+  onRaiseLimit,
   baselines,
 }: TrainingPlaceProps) {
   const capId = useId();
@@ -140,7 +143,7 @@ export function TrainingPlace({
           unavailable={localSlow !== null}
         >
           <span>{capitalized(taskTimeText('local'))} a task</span>
-          <span>Free · files stay here</span>
+          <span>Free · {student} practices here</span>
           {localSlow && <span>{localSlow}</span>}
         </RadioCard>
         <RadioCard
@@ -163,6 +166,16 @@ export function TrainingPlace({
           )}
         </RadioCard>
       </RadioCardGroup>
+      {(localSlow || remoteSlow) && (
+        <button
+          type="button"
+          onClick={onRaiseLimit}
+          className="-mt-1.5 inline-flex items-center gap-1 self-start rounded-xs text-sm text-fg-secondary transition-colors duration-150 hover:text-fg"
+        >
+          Raise the time limit
+          <ChevronRight size={13} strokeWidth={1.8} aria-hidden />
+        </button>
+      )}
       {onRetryKeys && (
         <button
           type="button"
@@ -252,7 +265,8 @@ export function TrainingPlace({
           )}
           <li>A promising change is measured twice, so its round takes longer.</li>
           <li>
-            Training runs only while Architect is open. The final test always runs on {device}.
+            {mentor} works in the cloud and sees the practice attempts and the file samples it
+            needs.
           </li>
           {baselines && (
             <li>

@@ -136,7 +136,7 @@ for (const theme of THEMES) {
     // The write setting names the files it covers, in the same words as the agent's own setting.
     const permissions = page.getByRole('region', { name: 'Permissions' });
     await expect(permissions).toContainText('invoices.csv, bookings.csv');
-    for (const setting of ['Saving changes to your files', 'Opening other files']) {
+    for (const setting of ['Saving changes to your files', 'Opening files outside the job']) {
       await expect(
         permissions
           .getByRole('radiogroup', { name: setting })
@@ -150,8 +150,15 @@ for (const theme of THEMES) {
     await expect(local).toBeChecked();
     await expect(local).toBeDisabled();
     await expect(local).toContainText('About 2.5 minutes a task');
-    await expect(local).toContainText('Free · files stay here');
+    await expect(local).toContainText('Free · Glimmer practices here');
     await expect(local).toContainText('Too slow for the 4-hour limit');
+    // A place too slow for the limit offers the setting that would let it train.
+    await page.getByRole('button', { name: 'Raise the time limit' }).click();
+    const limits = page.getByRole('dialog', { name: 'Advanced settings' });
+    await expect(limits.getByRole('heading', { name: 'Time and budget' })).toBeVisible();
+    await expect(limits.getByRole('textbox', { name: 'Training time' })).toHaveValue('240');
+    await page.keyboard.press('Escape');
+    await expect(limits).toBeHidden();
     await expect(hosted).toBeEnabled();
     await expect(hosted).toContainText('About 15 seconds a task');
     await expect(hosted).toContainText('About $3 · tasks and files go to OpenRouter');
@@ -174,6 +181,7 @@ for (const theme of THEMES) {
     // The total is the figures above it added up.
     await expect(cost).toContainText(/In all\s*\$3\.60/);
     await expect(page.getByText('About $0.60 expected', { exact: true })).toBeVisible();
+    await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
     // Comparison mode is off, so nothing on the screen offers or mentions a comparison.
     await expect(page.getByText(/comparison|simpler versions/i)).toHaveCount(0);
     await capture(page, `flow-define-${theme}`);

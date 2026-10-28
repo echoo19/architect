@@ -27,13 +27,13 @@ export function JobHeader({ job }: { job: Job }) {
         icon={<Laptop size={14} strokeWidth={1.6} aria-hidden />}
         className="self-start"
       >
-        Runs offline on {deviceInSentence(currentPlatform())}
+        Once trained, runs offline on {deviceInSentence(currentPlatform())}
       </Badge>
     </div>
   );
 }
 
-/** What the agent will and won't do, side by side; the marks tell the two lists apart. */
+/** What the agent will and won't do, side by side under quiet headings. */
 export function Capabilities({ job }: { job: Job }) {
   if (job.does.length === 0 && job.doesNot.length === 0) return null;
   return (
@@ -76,8 +76,8 @@ function CapabilityList({
   className?: string;
 }) {
   return (
-    <section aria-labelledby={id} className={cn('px-7 py-[26px]', className)}>
-      <Heading id={id} className="sr-only">
+    <section aria-labelledby={id} className={cn('flex flex-col gap-4 px-7 py-[26px]', className)}>
+      <Heading id={id} className="text-sm font-normal text-fg-muted">
         {title}
       </Heading>
       {items.length === 0 ? (
@@ -139,8 +139,8 @@ export function FilePermissions({ job, onChange }: FilePermissionsProps) {
         onValueChange={(writes) => onChange({ ...permissions, writes })}
       />
       <PermissionRow
-        label="Opening other files"
-        setting="Opening other files"
+        label="Opening files outside the job"
+        setting="Opening files outside the job"
         value={permissions.unseenFiles}
         onValueChange={(unseenFiles) => onChange({ ...permissions, unseenFiles })}
       />
