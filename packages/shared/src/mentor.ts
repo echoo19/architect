@@ -46,13 +46,17 @@ export const CostEstimateSchema = z.object({
 });
 export type CostEstimate = z.infer<typeof CostEstimateSchema>;
 
-/** One failed train attempt as the mentor wrote it up, before the runner checks it. */
+/**
+ * One failed train attempt as the mentor wrote it up. The runner checks each against the attempt
+ * and sets aside the ones that don't hold, with the reason, so one bad finding doesn't cost the
+ * round.
+ */
 export const FindingDraftSchema = z.object({
-  taskId: z.string().min(1),
+  taskId: z.string(),
   /** The model turn the mentor suspects went wrong, counting from 1. */
-  failureTurn: z.number().int().positive(),
-  evidence: z.array(EvidenceSchema).min(1),
-  cause: z.string().min(1),
+  failureTurn: z.number().int(),
+  evidence: z.array(z.object({ turn: z.number().int(), note: z.string() })),
+  cause: z.string(),
   /** An existing category's id, or a new slug and label when none fits. */
   category: z.object({ id: z.string(), slug: z.string(), label: z.string() }),
   taskType: z.string(),
@@ -103,7 +107,7 @@ export const HypothesisSchema = z
     predicted: PredictionSchema,
     /** The mentor's own claim that the student is ready. Logged to measure overclaiming. */
     readyClaim: z.boolean().default(false),
-    findings: z.array(FindingDraftSchema).max(3).optional(),
+    findings: z.array(FindingDraftSchema).optional(),
     intervention: InterventionPlanSchema.optional(),
   })
   .superRefine((hypothesis, context) => {
@@ -216,5 +220,27 @@ export const MentorViewSchema = z.object({
     total: z.number().int().nonnegative(),
   }),
   lineage: z.array(MentorLineageItemSchema),
+  /**
+   * For a mentor choosing from the intervention menu: what it may choose this round and why the
+   * rest are off it, the job's failure vocabulary with what each category has been taught, and
+   * the person's answers to earlier questions. Train-only; nothing here comes from dev or test.
+   */
+  mentoring: z
+    .object({
+      allowed: z.array(InterventionTypeSchema),
+      refused: z.record(z.string(), z.string()),
+      categories: z.array(
+        z.object({
+          id: z.string(),
+          slug: z.string(),
+          label: z.string(),
+          taskType: z.string(),
+          verifiedLessons: z.number().int().nonnegative(),
+          stopped: z.boolean(),
+        }),
+      ),
+      answers: z.array(z.object({ question: z.string(), answer: z.string() })),
+    })
+    .optional(),
 });
 export type MentorView = z.infer<typeof MentorViewSchema>;

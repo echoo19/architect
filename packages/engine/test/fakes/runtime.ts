@@ -117,6 +117,10 @@ export class FakeRuntime implements RuntimeDeps {
   correction: (task: Task, start: CorrectionStart) => ScriptedCorrection = () => ({
     verified: true,
   });
+  /** Runs before each correction; a test can make it hang, as a crash would. */
+  beforeCorrection: ((task: Task, start: CorrectionStart) => Promise<void> | void) | undefined;
+  /** What the actor's request holds beside the harness: the task's own prompt by default. */
+  actorRequest: (task: Task) => string = (task) => task.prompt;
   /** Every attempt the runtime was asked for, across controllers. */
   readonly attempts: { taskId: string; version: number; seed: number }[] = [];
   /** Order of releases and test attempts, to check the mentor is gone before the test. */
@@ -201,6 +205,7 @@ export class FakeRuntime implements RuntimeDeps {
     start: CorrectionStart,
     options: CorrectionOptions,
   ): Promise<CorrectionResult> {
+    await this.beforeCorrection?.(task, start);
     this.corrections.push({
       taskId: task.id,
       start: start.kind === 'checkpoint' ? `turn ${start.turn}` : 'full task',
@@ -210,7 +215,7 @@ export class FakeRuntime implements RuntimeDeps {
       {
         messages: [
           { role: 'system', content: ctx.harness.system },
-          { role: 'user', content: task.prompt },
+          { role: 'user', content: this.actorRequest(task) },
         ],
         tools: [],
         decoding: ctx.harness.decoding,

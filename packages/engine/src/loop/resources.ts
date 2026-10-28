@@ -1,5 +1,6 @@
 import {
   GuardError,
+  type ActorAdapter,
   type Harness,
   type Job,
   type MentorAdapter,
@@ -18,7 +19,7 @@ import type {
   ToolSandbox,
 } from './deps';
 import { errorMessage } from './errors';
-import { connectMentor, connectStudent } from './setup';
+import { connectActor, connectMentor, connectStudent } from './setup';
 
 export type LogLevel = 'info' | 'warn' | 'error';
 
@@ -52,6 +53,7 @@ export class SessionResources {
   /** By target and configuration, so each configuration keeps its own student. */
   private readonly students = new Map<string, Promise<StudentAdapter>>();
   private mentorCreated?: Promise<MentorAdapter>;
+  private actorCreated?: Promise<ActorAdapter>;
   private gateCreated?: Promise<MentorGate>;
   private dataFilesRead?: Promise<MentorDataFile[]>;
   private readonly harnesses = new Map<number, Promise<Harness>>();
@@ -124,6 +126,16 @@ export class SessionResources {
   }
 
   /**
+   * The mentor's model as an agent, for verified corrections; made on first use, and refused
+   * once the mentor has been released, like the mentor itself. Its calls go through `gate()`.
+   */
+  actor(): Promise<ActorAdapter> {
+    if (this.released) return Promise.reject(mentorReleased());
+    this.actorCreated ??= connectActor(this.options.deps, this.options.job);
+    return this.actorCreated;
+  }
+
+  /**
    * The gate every author call goes through: leak check, then the dollar cap. Refused once the
    * mentor has been released, so a fresh gate can't reopen what the released one closed.
    */
@@ -171,6 +183,7 @@ export class SessionResources {
       );
       const mentor = this.mentorCreated ? await this.mentorCreated.catch(() => null) : null;
       this.mentorCreated = undefined;
+      this.actorCreated = undefined;
       return this.options.deps.runtime.releaseMentor({
         jobId: this.options.job.id,
         runId: this.options.runId,

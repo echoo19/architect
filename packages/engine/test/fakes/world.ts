@@ -15,7 +15,7 @@ import type { EngineHostDeps } from '../../src/loop/deps';
 import { JobLibrary } from '../../src/loop/jobs';
 import { DataPaths } from '../../src/loop/paths';
 import { openEngineStore, type EngineStore } from '../../src/store/engine-store';
-import { FakeMentor, FakeStudent } from './adapters';
+import { FakeActor, FakeMentor, FakeStudent } from './adapters';
 import { ManualClock } from './clock';
 import {
   applyEdits,
@@ -38,6 +38,10 @@ export interface World {
   vault: FakeVault;
   mentor: FakeMentor;
   students: FakeStudent[];
+  /** The mentor's model each time a session made it the agent, for corrections. */
+  actors: FakeActor[];
+  /** How many times the mentor's price the actor charges. */
+  actorPriceScale: number;
   mentorsCreated: number;
   studentReply: (request: StudentChatRequest, call: number) => string;
   /** The build the local student reports; change it to swap the model under a frozen graduate. */
@@ -70,6 +74,8 @@ export async function createWorld(
     vault: new FakeVault(runtime),
     mentor,
     students: [],
+    actors: [],
+    actorPriceScale: 1,
     mentorsCreated: 0,
     studentReply: () => '',
     localDigest: 'sha256:fake',
@@ -102,6 +108,21 @@ export async function createWorld(
         );
         world.students.push(student);
         return student;
+      },
+      createActor: (config) => {
+        if (config.kind !== 'model') throw new Error('Only a model mentor can act.');
+        const actor = new FakeActor(
+          {
+            runtime: 'openai_compatible',
+            baseUrl: config.baseUrl,
+            model: config.model,
+            contextLength: 16_384,
+          },
+          () => 'ANSWER: {"ok":true}',
+        );
+        actor.priceScale = world.actorPriceScale;
+        world.actors.push(actor);
+        return actor;
       },
     },
     secrets: { get: async (ref) => secrets.get(ref) },

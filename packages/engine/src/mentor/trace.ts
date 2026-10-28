@@ -24,7 +24,11 @@ function describeValue(value: JsonValue | null, max: number): string {
   return count + clip(JSON.stringify(value), max);
 }
 
-function stepLines(step: TraceStep, limits: TraceLimits): string[] {
+/**
+ * One step's lines. A model step is one turn, numbered from 1, so a diagnosis can point at the
+ * turn that went wrong; its tool results follow it, indented.
+ */
+function stepLines(step: TraceStep, turn: number, limits: TraceLimits): string[] {
   switch (step.kind) {
     case 'skill':
       return [
@@ -33,17 +37,19 @@ function stepLines(step: TraceStep, limits: TraceLimits): string[] {
     case 'model': {
       const text = step.text.trim();
       return [
-        ...(text ? [`model: ${clip(text, limits.text)}`] : []),
+        ...(text ? [`[turn ${turn}] model: ${clip(text, limits.text)}`] : []),
         ...step.toolCalls.map(
-          (call) => `call ${call.name} ${clip(JSON.stringify(call.arguments), limits.args)}`,
+          (call) =>
+            `[turn ${turn}] call ${call.name} ${clip(JSON.stringify(call.arguments), limits.args)}`,
         ),
+        ...(text === '' && step.toolCalls.length === 0 ? [`[turn ${turn}] model: (nothing)`] : []),
       ];
     }
     case 'tool':
       return [
         step.error === undefined
-          ? `${step.name} → ${describeValue(step.result, limits.result)}`
-          : `${step.name} failed: ${clip(step.error, limits.result)}`,
+          ? `  ${step.name} → ${describeValue(step.result, limits.result)}`
+          : `  ${step.name} failed: ${clip(step.error, limits.result)}`,
       ];
     case 'refusal':
       return [`refused as ${step.taskType}: ${step.reason}`];
@@ -79,7 +85,11 @@ function bound(body: string[], closing: string[], max: number): string {
  * call with its arguments, truncated results, the final answer and why it stopped.
  */
 export function renderCompactTrace(trace: Trace, limits: TraceLimits = TRACE_LIMITS): string {
-  const body = trace.steps.flatMap((step) => stepLines(step, limits));
+  let turn = 0;
+  const body = trace.steps.flatMap((step) => {
+    if (step.kind === 'model') turn += 1;
+    return stepLines(step, turn, limits);
+  });
   const modelSteps = trace.steps.filter((step) => step.kind === 'model').length;
   const tokens = `${trace.usage.inputTokens} in / ${trace.usage.outputTokens} out tokens`;
   const seconds = (trace.latencyMs / 1000).toFixed(1);

@@ -118,8 +118,8 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       draftReply: (sessionId, text) => drafter().reply(sessionId, text),
     },
     runs: {
-      start: (jobId, { method, seed, lockedTestOn }) =>
-        controller.start(jobId, method, seed, { lockedTestOn }),
+      start: (jobId, { method, seed, lockedTestOn, interactive }) =>
+        controller.start(jobId, method, seed, { lockedTestOn, interactive }),
       pause: (runId) => controller.pause(runId),
       resume: (runId) => controller.resume(runId),
       stop: (runId) => controller.stop(runId),

@@ -1,5 +1,10 @@
 import type { Job, Run } from '@architect/shared';
 import { author } from './authoring';
+import { saveHarnessCandidate } from './candidate';
+import { clarify } from './clarify';
+import { interventionOfRound } from './intervene';
+import { teach } from './teach';
+import { awaitTraining, cancelTraining, startTraining } from './weights';
 import { errorMessage, isAbort, passesOnItsOwn, summaryOf } from './errors';
 import { freeze, lockedTest } from './graduation';
 import { planNextStep, type ActionStep, type PlanInput } from './plan';
@@ -84,10 +89,16 @@ export class RunDriver {
         return attemptTrain(state, step.round);
       case 'author':
         return author(state, step.round);
+      case 'teach':
+        return this.teachRound(step.round);
+      case 'await_training':
+        return awaitTraining(state, step.round);
+      case 'clarify':
+        return clarify(state, step.round);
       case 'evaluate_candidate':
         return evaluateCandidate(state, step.round);
       case 'abandon_round':
-        return abandonRound(state, step.round, step.reason);
+        return this.abandon(step.round, step.reason);
       case 'finish_training':
         return finishTraining(state, step.reason);
       case 'freeze':
@@ -95,6 +106,21 @@ export class RunDriver {
       case 'locked_test':
         return lockedTest(state);
     }
+  }
+
+  /** A round's teaching, then its candidate: a harness version, or a training job for weights. */
+  private async teachRound(index: number): Promise<void> {
+    const { state } = this;
+    if (!(await teach(state, index))) return;
+    if (interventionOfRound(state, index).type === 'weights') await startTraining(state, index);
+    else await saveHarnessCandidate(state, index);
+  }
+
+  /** Ends an open round for a stop or the wall clock; a training job it started is stopped too. */
+  private async abandon(index: number, reason: string): Promise<void> {
+    const { state } = this;
+    if (state.round(index).round.status === 'training') await cancelTraining(state, index);
+    abandonRound(state, index, reason);
   }
 
   private handleError(error: unknown): SessionOutcome {
@@ -149,7 +175,17 @@ export class RunDriver {
       devBaseline: run.devBaseline,
       devCurrent: run.devCurrent,
       frozen: frozen !== null,
-      rounds: state.rounds().map(({ round, rejected }) => ({ ...round, rejected })),
+      rounds: state.rounds().map(({ round, rejected }) => ({
+        ...round,
+        rejected,
+        ...(round.status === 'clarifying'
+          ? {
+              awaitingAnswer:
+                state.ctx.store.interventions.get(state.ctx.runId, round.index)?.answer ===
+                undefined,
+            }
+          : {}),
+      })),
       maxRounds: state.job.budget.maxRounds,
       patience: state.job.evaluation.patience,
       passRateTarget: state.job.requirements.passRate,

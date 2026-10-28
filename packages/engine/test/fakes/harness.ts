@@ -3,6 +3,7 @@ import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   DecodingSchema,
+  ExampleSchema,
   GuardError,
   GuardrailsSchema,
   HarnessSchema,
@@ -35,11 +36,20 @@ function withSystem(name: string, system: string): Harness {
   };
 }
 
-export function harnessToFiles(harness: Harness): Record<string, string> {
+export function harnessToFiles(
+  harness: Harness,
+  options: { includeDefaults?: boolean } = {},
+): Record<string, string> {
   const files: Record<string, string> = { 'AGENTS.md': harness.system };
   for (const skill of harness.skills) files[`skills/${skill.name}/SKILL.md`] = skill.body;
   if (harness.guardrails.refuse.length > 0) {
     files['guardrails.yaml'] = JSON.stringify(harness.guardrails);
+  }
+  for (const example of harness.examples) {
+    files[`examples/${example.slug}.json`] = JSON.stringify(example);
+  }
+  if (harness.retrieval.rules.length > 0 || options.includeDefaults === true) {
+    files['retrieval.yaml'] = JSON.stringify(harness.retrieval);
   }
   return files;
 }
@@ -95,8 +105,40 @@ export function applyEdits(harness: Harness, edits: readonly FileEdit[]): Harnes
       next.skills = next.skills.filter((skill) => skill.name !== name);
       if (edit.op === 'write') next.skills.push({ name, description: name, body: edit.content });
     }
+    const example = /^examples\/([a-z0-9-]+)\.json$/.exec(edit.path);
+    if (example) {
+      const slug = example[1] ?? '';
+      next.examples = next.examples.filter((existing) => existing.slug !== slug);
+      if (edit.op === 'write') next.examples.push(exampleFromFile(slug, edit.content));
+    }
+    if (edit.path === 'retrieval.yaml') {
+      next.retrieval = RetrievalSchema.parse(edit.op === 'write' ? JSON.parse(edit.content) : {});
+    }
   }
   return next;
+}
+
+/** An example file as the real harness reads one: snake_case keys, checked message shapes. */
+function exampleFromFile(slug: string, content: string): Harness['examples'][number] {
+  const file = JSON.parse(content) as {
+    title: string;
+    task_types?: string[];
+    messages: Record<string, unknown>[];
+  };
+  const messages = file.messages.map((message) => {
+    const { tool_calls: toolCalls, tool_call_id: toolCallId, ...rest } = message;
+    return {
+      ...rest,
+      ...(toolCalls === undefined ? {} : { toolCalls }),
+      ...(toolCallId === undefined ? {} : { toolCallId }),
+    };
+  });
+  return ExampleSchema.parse({
+    slug,
+    title: file.title,
+    taskTypes: file.task_types ?? [],
+    messages,
+  });
 }
 
 export function diffHarness(from: Harness, to: Harness): FileDiff[] {

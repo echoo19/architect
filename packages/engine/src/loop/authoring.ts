@@ -1,12 +1,15 @@
 import {
   AdapterError,
   GuardError,
+  HARNESS_INTERVENTIONS,
+  interventionOf,
   JsonValueSchema,
   TraceSchema,
   type Harness,
   type Hypothesis,
   type MentorAdapter,
   type MentorCompletionRequest,
+  type MentorView,
   type Round,
 } from '@architect/shared';
 import {
@@ -30,8 +33,12 @@ import type { AuthorReply, StoredRound } from '../store/records';
 import { HARNESS_VALIDATION_ERROR } from './deps';
 import { must } from './errors';
 import { readJsonFile, writeJsonFile } from './files';
+import { interventionRecord, resolveFindings } from './intervene';
+import { answerTableProblem } from './lookup';
+import { interventionRefusal, menuOf, type Menu } from './menu';
 import type { RunState } from './run-state';
 import { roundSeed } from './seeds';
+import { stoppedTeaching } from './teach';
 
 /**
  * How many times the author may fix a reply the runner couldn't use, before its round is
@@ -125,8 +132,40 @@ async function roundRequest(state: RunState, stored: StoredRound): Promise<Autho
     dev: must(state.run.devCurrent, 'The dev score'),
     lineage: await state.lineage.read(),
     rejected: rejectedRounds(state),
+    ...(state.run.method === 'architect' ? { mentoring: await mentoringView(state) } : {}),
   });
   return { request: diagnoseRequest(view, promptSettings(state)), parts: mentorViewParts(view) };
+}
+
+/**
+ * What a mentor choosing from the menu sees beside the round's evidence: the menu, the job's
+ * failure vocabulary with each category's verified lessons in this run and whether its teaching
+ * stopped, and the person's answers to earlier questions. All of it from train and the person.
+ */
+async function mentoringView(state: RunState): Promise<NonNullable<MentorView['mentoring']>> {
+  const { store, runId } = state.ctx;
+  const menu = await menuOf(state);
+  const stopped = stoppedTeaching(state);
+  const verified = store.lessons.list({ runId, status: 'verified' });
+  return {
+    allowed: menu.allowed,
+    refused: menu.refused,
+    categories: store.categories.list(state.run.jobId).map((category) => ({
+      id: category.id,
+      slug: category.slug,
+      label: category.label,
+      taskType: category.taskType,
+      verifiedLessons: verified.filter((lesson) => lesson.categoryId === category.id).length,
+      stopped: stopped.categories.has(category.id) || stopped.types.has(category.taskType),
+    })),
+    answers: store.interventions
+      .list(runId)
+      .flatMap((intervention) =>
+        intervention.question !== undefined && intervention.answer !== undefined
+          ? [{ question: intervention.question, answer: intervention.answer.text }]
+          : [],
+      ),
+  };
 }
 
 async function wholeHarnessRequest(state: RunState): Promise<AuthorRequest> {
@@ -330,8 +369,55 @@ interface Unusable {
 }
 
 /**
- * Applies the recorded reply's change set to a new candidate version. Returns why it couldn't
- * when the reply isn't a hypothesis or the harness won't take its change set.
+ * The candidate harness a change set makes, or why it can't: the harness refuses its files, a
+ * tool it touches doesn't load, or it writes answers into the harness.
+ */
+async function candidateOf(
+  state: RunState,
+  stored: StoredRound,
+  hypothesis: Hypothesis,
+): Promise<{ harness: Harness } | { reason: string }> {
+  let candidate: Harness;
+  try {
+    candidate = state.ctx.deps.harness.applyEdits(
+      await state.resources.harness(stored.baseVersion),
+      hypothesis.edits,
+    );
+  } catch (error) {
+    if (!isRejectedChange(error)) throw error;
+    return { reason: error.message };
+  }
+  const problem = await toolLoadProblem(state, candidate, hypothesis);
+  if (problem !== null) return { reason: problem };
+  if (!state.drafts(stored.round.index)) {
+    const table = answerTableProblem(
+      hypothesis.edits,
+      await state.trainTasks(),
+      (await state.resources.dataFiles()).map((file) => JSON.stringify(file)),
+    );
+    if (table !== null) return { reason: table };
+  }
+  return { harness: candidate };
+}
+
+/** The menu a round's author chose from: Architect's full one, or harness changes alone. */
+async function roundMenu(state: RunState): Promise<Menu> {
+  if (state.run.method === 'architect') return menuOf(state);
+  return {
+    allowed: [...HARNESS_INTERVENTIONS],
+    refused: {},
+    canTeach: false,
+    computeLeftUsd: 0,
+  };
+}
+
+/**
+ * Takes the recorded reply as the round's intervention (decision 041). Its findings are checked
+ * against this round's failed attempts and its intervention against the menu and the budgets,
+ * and the intervention is recorded, accepted or refused. A harness change with nothing to teach
+ * becomes a candidate version at once; one that asks for worked examples or practice, and a
+ * weights intervention, go to teaching first; a clarification waits for the person. Returns why
+ * the reply can't be used, which gives the author its one fix.
  */
 async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<Unusable | null> {
   const index = stored.round.index;
@@ -345,32 +431,60 @@ async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<Un
     if (!(error instanceof MentorReplyError)) throw error;
     return { reason: error.message, proposal: {} };
   }
-  let candidate: Harness;
-  try {
-    candidate = state.ctx.deps.harness.applyEdits(
-      await state.resources.harness(stored.baseVersion),
-      hypothesis.edits,
-    );
-  } catch (error) {
-    if (!isRejectedChange(error)) throw error;
-    return { reason: error.message, proposal: proposalOf(hypothesis) };
+  const drafting = state.drafts(index);
+  const plan = interventionOf(hypothesis);
+  const menu = drafting ? null : await roundMenu(state);
+  const resolved =
+    drafting || hypothesis.findings === undefined
+      ? { findings: [], setAside: [] }
+      : await resolveFindings(state, index, hypothesis.findings);
+  let refusal =
+    menu === null ? null : interventionRefusal(plan, resolved.findings.length, state, menu);
+  let candidate: Harness | null = null;
+  if (refusal === null && HARNESS_INTERVENTIONS.includes(plan.type)) {
+    const built = await candidateOf(state, stored, hypothesis);
+    if ('reason' in built) refusal = built.reason;
+    else candidate = built.harness;
   }
-  const problem = await toolLoadProblem(state, candidate, hypothesis);
-  if (problem !== null) return { reason: problem, proposal: proposalOf(hypothesis) };
-  const saved = await state.versions.save(candidate, stored.baseVersion);
-  state.saveRound({
-    ...stored,
-    hypothesis,
-    round: {
-      ...stored.round,
-      status: 'evaluating',
-      title: hypothesis.title,
-      diagnosis: hypothesis.diagnosis,
-      predicted: hypothesis.predicted,
-      files: changedFiles(hypothesis),
-      candidateVersion: saved.meta.version,
-    },
+  const intervention = drafting
+    ? null
+    : interventionRecord(state, index, hypothesis, plan, resolved, refusal);
+  if (refusal !== null) {
+    if (intervention) {
+      state.ctx.store.interventions.put(intervention);
+      state.announce('intervention', intervention.id, index);
+    }
+    return { reason: refusal, proposal: proposalOf(hypothesis) };
+  }
+
+  const teaches =
+    plan.type === 'weights' ||
+    (resolved.findings.length > 0 &&
+      (plan.workedExamples.length > 0 || plan.practicePerFinding > 0));
+  const saved =
+    candidate !== null && !teaches
+      ? await state.versions.save(candidate, stored.baseVersion)
+      : null;
+  const status: Round['status'] =
+    plan.type === 'clarification' ? 'clarifying' : teaches ? 'teaching' : 'evaluating';
+  const round: Round = {
+    ...stored.round,
+    status,
+    title: hypothesis.title,
+    diagnosis: hypothesis.diagnosis,
+    predicted: hypothesis.predicted,
+    files: changedFiles(hypothesis),
+    ...(saved === null ? {} : { candidateVersion: saved.meta.version }),
+  };
+  state.ctx.store.transaction(() => {
+    if (intervention) state.ctx.store.interventions.put(intervention);
+    state.ctx.store.rounds.update({ ...stored, hypothesis, round });
   });
+  state.emit({ type: 'round.updated', round });
+  if (intervention) state.announce('intervention', intervention.id, index);
+  if (status === 'clarifying') {
+    state.log('info', `Round ${index}: the mentor has a question for you. ${plan.question}`);
+  }
   return null;
 }
 

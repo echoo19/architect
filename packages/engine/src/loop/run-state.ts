@@ -1,16 +1,32 @@
-import type { Job, Round, Run, RunEvent, RunStopReason, Task } from '@architect/shared';
+import type {
+  Job,
+  Round,
+  Run,
+  RunEvent,
+  RunStopReason,
+  StudentTarget,
+  Task,
+} from '@architect/shared';
 import type { AttemptFilter, EngineStore } from '../store/engine-store';
 import type { StoredAttempt, StoredRound, StoredRun } from '../store/records';
 import { resultOf, type EvaluationResult } from './attempts';
 import { BudgetGuard } from './budget';
-import { configurationKey, STUDENT_CONFIG, type AttemptConfig } from './configuration';
+import {
+  configurationKey,
+  LLAMA_CPP,
+  llamaCppConfig,
+  STUDENT_CONFIG,
+  type AttemptConfig,
+} from './configuration';
 import type { Clock, HarnessVersionStore, LoopDeps } from './deps';
+import { recordExperiment } from './experiments';
 import { must } from './errors';
 import type { JobLibrary } from './jobs';
 import { LineageLog } from './lineage';
 import type { DataPaths } from './paths';
 import { MAX_REJECTED_IN_A_ROW } from './plan';
 import { SessionResources, type LogLevel } from './resources';
+import { studentEndpoint } from './setup';
 import { roundSeed, sampleTrainBatch } from './seeds';
 import { isoNow } from './time';
 
@@ -139,13 +155,35 @@ export class RunState {
       split: 'dev',
       version,
       round,
-      target: this.job.student.trainOn,
+      target: this.targetOf(config),
       config: configurationKey(config),
     });
     return resultOf(
       seeds === undefined ? attempts : attempts.filter((attempt) => seeds.includes(attempt.seed)),
       this.job,
     );
+  }
+
+  /**
+   * Where a configuration's training and dev attempts run: an adapter is served on this computer
+   * with the local base; anything else on the endpoint the job trains on.
+   */
+  targetOf(config: AttemptConfig): StudentTarget {
+    return config.backend === LLAMA_CPP ? 'local' : this.job.student.trainOn;
+  }
+
+  /** The runtime of the student endpoint the job trains on, as an experiment names its backend. */
+  studentBackend(): string {
+    return studentEndpoint(this.job, this.job.student.trainOn).runtime;
+  }
+
+  /**
+   * The configuration the incumbent runs as: the job's student, or once the run kept an adapter,
+   * llama.cpp serving it with that adapter, so every later measurement keeps it on.
+   */
+  incumbentConfig(): AttemptConfig {
+    const adapter = this.run.currentAdapter;
+    return adapter === undefined ? STUDENT_CONFIG : llamaCppConfig([adapter], adapter);
   }
 
   /**
@@ -215,15 +253,27 @@ export class RunState {
     this.emit({ type: 'round.updated', round: stored.round });
   }
 
-  /** Ends a round without a change, and training too when a stop reason is given. */
-  closeRound(index: number, message: string, stopReason?: RunStopReason): void {
+  /**
+   * Ends a round without a change, and training too when a stop reason is given. Its experiment
+   * is recorded as stopped, or as invalid when the change couldn't be built at all.
+   */
+  closeRound(
+    index: number,
+    message: string,
+    stopReason?: RunStopReason,
+    disposition: 'stopped' | 'invalid' = 'stopped',
+  ): void {
     const stored = this.round(index);
     const round: Round = { ...stored.round, status: 'failed', error: message, endedAt: this.now() };
-    const run = this.ctx.store.transaction(() => {
+    const { run, experiment } = this.ctx.store.transaction(() => {
       this.ctx.store.rounds.update({ ...stored, round });
-      return stopReason ? this.writeRun(trainingEnd(stopReason)) : null;
+      return {
+        experiment: recordExperiment(this, index, { disposition, reason: message }),
+        run: stopReason ? this.writeRun(trainingEnd(stopReason)) : null,
+      };
     });
     this.emit({ type: 'round.updated', round });
+    this.announce('experiment', experiment.id, index);
     this.log('warn', `Round ${index} ended without a change: ${message}`);
     if (run) {
       this.emit({ type: 'run.updated', run });
@@ -233,7 +283,8 @@ export class RunState {
 
   /**
    * Ends a round whose reply or change set can't be used. It is marked rejected, so the author
-   * is shown the reason next round and the planner counts it apart from changes dev measured.
+   * is shown the reason next round and the planner counts it apart from changes dev measured,
+   * and its experiment is recorded as invalid.
    */
   rejectRound(
     index: number,
@@ -248,8 +299,22 @@ export class RunState {
       error: reason,
       endedAt: this.now(),
     };
-    this.saveRound({ ...stored, round, rejected: true });
+    const experiment = this.ctx.store.transaction(() => {
+      this.ctx.store.rounds.update({ ...stored, round, rejected: true });
+      return recordExperiment(this, index, { disposition: 'invalid', reason });
+    });
+    this.emit({ type: 'round.updated', round });
+    this.announce('experiment', experiment.id, index);
     this.log('warn', `Round ${index} was rejected before evaluation: ${reason}`);
+  }
+
+  /** Tells listeners a mentoring record changed, so they read it back. */
+  announce(
+    record: 'lesson' | 'intervention' | 'experiment' | 'reference',
+    id: string,
+    round: number | null,
+  ): void {
+    this.emit({ type: 'mentoring.updated', record, id, round });
   }
 
   // Announcing

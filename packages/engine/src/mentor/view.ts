@@ -45,6 +45,8 @@ export interface MentorViewInput {
   dev: Score;
   lineage: LineageEntry[];
   rejected: RejectedRound[];
+  /** For a mentor choosing from the intervention menu: the menu, the vocabulary, the answers. */
+  mentoring?: MentorView['mentoring'];
 }
 
 function jobView(job: Job, dataFiles: MentorDataFile[]): MentorView['job'] {
@@ -152,6 +154,7 @@ export function buildMentorView(input: MentorViewInput): MentorView {
     },
     dev: { pass: input.dev.pass, total: input.dev.total },
     lineage: mentorLineage(input.lineage, input.rejected),
+    ...(input.mentoring === undefined ? {} : { mentoring: input.mentoring }),
   });
 }
 
@@ -217,6 +220,12 @@ export function mentorViewParts(view: MentorView): PayloadPart[] {
       text: JSON.stringify(result),
     })),
     { label: 'the earlier hypotheses', text: JSON.stringify(view.lineage) },
+    ...(view.mentoring === undefined
+      ? []
+      : [
+          { label: 'the failure vocabulary', text: JSON.stringify(view.mentoring.categories) },
+          { label: "the person's answers", text: JSON.stringify(view.mentoring.answers) },
+        ]),
   ];
 }
 

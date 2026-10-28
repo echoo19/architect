@@ -42,6 +42,8 @@ export interface StartRunOptions {
    * (decision 009), and the report card says it didn't run offline.
    */
   lockedTestOn?: StudentTarget;
+  /** Someone is there to answer a clarifying question; runs from scripts aren't. */
+  interactive?: boolean;
 }
 
 interface ActiveRun {
@@ -129,6 +131,7 @@ export class RunController {
       lockedTestOn: options.lockedTestOn ?? 'local',
       stopRequested: false,
       freeze: null,
+      ...(options.interactive === true ? { interactive: true } : {}),
     };
     await writeJsonFile(paths.runJobFile(jobId, record.run.id), job);
     store.runs.insert(record);

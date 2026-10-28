@@ -18,6 +18,7 @@ import type {
   Task,
   Trace,
   TrainingBackendKind,
+  TrainingJobRecord,
   TypeScore,
 } from '@architect/shared';
 import type { LeakDetector } from '../mentor/gate';
@@ -236,6 +237,10 @@ export interface TrainingDeps {
   baseModel: { repo: string; revision?: string };
   /** Where a round's dataset is written before it is sent. */
   datasetDir(runId: string, round: number): string;
+  /** A ready job's GGUF adapter on disk. */
+  adapterPath(record: TrainingJobRecord): string;
+  /** The tokens a ready job trained on, from its output manifest; 0 before it is ready. */
+  trainedTokens(record: TrainingJobRecord): number;
 }
 
 export interface LoopDeps {
