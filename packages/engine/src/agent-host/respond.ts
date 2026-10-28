@@ -1,4 +1,4 @@
-import type { ChatMessage, Harness, Trace, TraceStep } from '@architect/shared';
+import type { ApprovalRequest, ChatMessage, Harness, Trace, TraceStep } from '@architect/shared';
 import { runAgent } from '../agent/loop';
 import type { Sandbox } from '../sandbox/types';
 import type { ApproveWrite } from '../tools/builtins';
@@ -19,6 +19,8 @@ export interface ReplyRequest {
   /** A fresh sampler seed, so asking again can give a different answer. */
   seed: number;
   approveWrite: ApproveWrite;
+  /** The approval a non-interactive reply needed and couldn't get, once it has asked. */
+  approvalRequired(): ApprovalRequest | null;
   signal: AbortSignal;
 }
 
@@ -48,17 +50,36 @@ export async function respond(input: ReplyRequest): Promise<void> {
       signal: input.signal,
     });
   } catch (error) {
+    const approval = input.approvalRequired();
+    if (approval !== null) {
+      finishApprovalRequired(reply, approval);
+      return;
+    }
     reply.finish({
       status: 'error',
       error: `It stopped on an unexpected problem: ${messageOf(error)}`,
     });
     throw error;
   }
+  const approval = input.approvalRequired();
+  if (approval !== null) {
+    finishApprovalRequired(reply, approval);
+    return;
+  }
   if (trace.stopReason === 'max_steps') {
     const steps = graduate.harness.decoding.maxSteps;
     reply.addBlock({ kind: 'note', text: `Stopped after ${steps} steps without an answer.` });
   }
   reply.finish(outcomeOf(trace));
+}
+
+/** Ends a reply that needed an approval no one could give, with the change it wanted as data. */
+function finishApprovalRequired(reply: LiveReply, approval: ApprovalRequest): void {
+  reply.finish({
+    status: 'error',
+    error: `Stopped: ${approval.summary} needs your approval, and this run can't ask for it.`,
+    failure: { kind: 'approval_required', approval },
+  });
 }
 
 function record(reply: LiveReply, harness: Harness, step: TraceStep): void {

@@ -1,7 +1,7 @@
 import type { WorkspaceEvent } from '@architect/shared';
 import { fromErrorPayload, ResponseMessageSchema } from '../host/protocol';
 import type { BlockedConnection } from './guard/install';
-import type { WorkspaceApi } from './host';
+import type { SendOptions, WorkspaceApi } from './host';
 import {
   AGENT_HOST_ROUTES,
   HostEventMessageSchema,
@@ -14,6 +14,7 @@ import {
 
 export interface AgentHostClient extends WorkspaceApi {
   openGraduate(graduateId: string, cpuThreads?: number): Promise<void>;
+  send(chatId: string, text: string, options?: SendOptions): Promise<void>;
   closeGraduate(graduateId: string): Promise<void>;
   /** Network calls the agent host's guard has blocked, oldest first. */
   blockedConnections(): Promise<BlockedConnection[]>;
@@ -111,7 +112,8 @@ export function connectAgentHost(
     listChats: (graduateId) => request('workspace.listChats', [graduateId]),
     createChat: (graduateId) => request('workspace.createChat', [graduateId]),
     messages: (chatId) => request('workspace.messages', [chatId]),
-    send: (chatId, text) => request('workspace.send', [chatId, text]),
+    send: (chatId, text, options) =>
+      request('workspace.send', options === undefined ? [chatId, text] : [chatId, text, options]),
     stop: (chatId) => request('workspace.stop', [chatId]),
     decide: (changeId, decision) => request('workspace.decide', [changeId, decision]),
     onEvent(listener) {

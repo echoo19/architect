@@ -99,12 +99,14 @@ describe('the agent host protocol', () => {
     expect(await client.createChat('grd_1')).toEqual(CHAT);
     expect(await client.messages('cht_1')).toEqual([MESSAGE]);
     await client.send('cht_1', 'Which invoices are unpaid?');
+    await client.send('cht_1', 'Add the invoice.', { approvals: 'fail' });
     await client.decide('chg_1', 'always');
     await client.stop('cht_1');
     await client.closeGraduate('grd_1');
     expect(calls).toEqual([
       ['openGraduate', 'grd_1'],
       ['send', 'cht_1', 'Which invoices are unpaid?'],
+      ['send', 'cht_1', 'Add the invoice.', { approvals: 'fail' }],
       ['decide', 'chg_1', 'always'],
       ['stop', 'cht_1'],
       ['closeGraduate', 'grd_1'],
@@ -136,6 +138,13 @@ describe('the agent host protocol', () => {
   it('checks requests before they reach the host', async () => {
     const { client, calls, clientPort } = connect();
     await expect(client.send('cht_1', '')).rejects.toThrow('The request was invalid');
+    const sloppy = await raw(clientPort, {
+      kind: 'request',
+      id: 98,
+      method: 'workspace.send',
+      params: ['cht_1', 'Add it.', { approvals: 'never' }],
+    });
+    expect(sloppy).toMatchObject({ ok: false, error: { name: 'ValidationError' } });
     const unknown = await raw(clientPort, {
       kind: 'request',
       id: 99,

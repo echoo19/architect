@@ -9,8 +9,13 @@ import {
 export const NEW_CHAT_TITLE = 'New chat';
 const TITLE_CHARS = 40;
 
-/** How a reply ended. Stopped means the user stopped it; an error says what went wrong. */
-export type ReplyOutcome = { status: 'done' | 'stopped' } | { status: 'error'; error: string };
+/**
+ * How a reply ended. Stopped means the user stopped it; an error says what went wrong, and
+ * `failure` says it as data when a caller can act on it.
+ */
+export type ReplyOutcome =
+  | { status: 'done' | 'stopped' }
+  | { status: 'error'; error: string; failure?: WorkspaceMessage['failure'] };
 
 export const INTERRUPTED: ReplyOutcome = {
   status: 'error',

@@ -1,4 +1,10 @@
-import { GuardError, newId, type PermissionMode } from '@architect/shared';
+import {
+  ApprovalRequiredError,
+  GuardError,
+  newId,
+  type ApprovalRequest,
+  type PermissionMode,
+} from '@architect/shared';
 import type { ApproveWrite } from '../tools/builtins';
 import type { LiveReply } from './reply';
 
@@ -46,12 +52,19 @@ export interface WritePolicy {
   pending: PendingWrites;
   /** Marks the chat as waiting for the user, or not. */
   setWaiting(waiting: boolean): void;
+  /**
+   * Whether someone can answer an approval. When no one can (a run from a script), a write that
+   * would ask fails at once with the change it wanted, through `approvalRequired`.
+   */
+  interactive: boolean;
+  approvalRequired(approval: ApprovalRequest): void;
 }
 
 /**
  * Write tools call this before a change touches the file. `ask` shows the change as an approval
- * block and waits for the user; `allow` shows it as approved and goes ahead; `never` fails the
- * call with a reason the agent can pass on, so nothing is written.
+ * block and waits for the user, or, when nobody can answer, fails with an
+ * `ApprovalRequiredError` that carries the change; `allow` shows it as approved and goes ahead;
+ * `never` fails the call with a reason the agent can pass on. Nothing is written unless approved.
  */
 export function approveWrites(policy: WritePolicy): ApproveWrite {
   return async (change, signal) => {
@@ -74,6 +87,21 @@ export function approveWrites(policy: WritePolicy): ApproveWrite {
     if (mode === 'allow') {
       policy.reply.addBlock({ ...block, status: 'approved' });
       return 'approve';
+    }
+    if (!policy.interactive) {
+      policy.reply.addBlock({ ...block, status: 'denied' });
+      const approval: ApprovalRequest = {
+        changeId,
+        tool: change.tool,
+        file: change.file,
+        summary: change.summary,
+        diff: change.diff,
+      };
+      policy.approvalRequired(approval);
+      throw new ApprovalRequiredError(
+        approval,
+        `${change.summary} needs the user's approval, and no one can give it here, so nothing was written.`,
+      );
     }
     policy.reply.addBlock({ ...block, status: 'pending' });
     policy.setWaiting(true);

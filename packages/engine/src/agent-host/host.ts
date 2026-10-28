@@ -1,10 +1,12 @@
 import { randomInt } from 'node:crypto';
-import type {
-  ArchitectApi,
-  ChatMessage,
-  PermissionMode,
-  WorkspaceChat,
-  WorkspaceEvent,
+import {
+  ApprovalRequiredError,
+  type ApprovalRequest,
+  type ArchitectApi,
+  type ChatMessage,
+  type PermissionMode,
+  type WorkspaceChat,
+  type WorkspaceEvent,
 } from '@architect/shared';
 import { createSandbox } from '../sandbox/sandbox';
 import { openGraduateSession, type GraduateSession } from './graduate';
@@ -36,12 +38,21 @@ export interface AgentHostOptions {
   onError?(error: unknown): void;
 }
 
+export interface SendOptions {
+  /**
+   * `ask` (the default) shows a write that needs approval and waits for the user; `fail` ends
+   * the reply at once with an approval-required failure, for runs where nobody can answer.
+   */
+  approvals?: 'ask' | 'fail';
+}
+
 export interface AgentHost extends WorkspaceApi {
   /**
    * Loads a graduate's active version so its chats can run, from its own folder and this
    * computer's installation. One whose model isn't on this computer is refused.
    */
   openGraduate(graduateId: string, cpuThreads?: number): Promise<void>;
+  send(chatId: string, text: string, options?: SendOptions): Promise<void>;
   /** Stops the graduate's replies and unloads it. */
   closeGraduate(graduateId: string): Promise<void>;
   /** Stops every reply and the tool sandbox. The store stays open: it belongs to the caller. */
@@ -165,6 +176,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
     graduate: GraduateSession,
     request: string,
     history: ChatMessage[],
+    options: SendOptions,
   ): void {
     const startedAt = now();
     const message = agentMessage(chat.id, graduate.version, startedAt.toISOString());
@@ -189,6 +201,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
       emit({ type: 'message.updated', message: current });
     });
     const controller = new AbortController();
+    let required: ApprovalRequest | null = null;
     const approveWrite = approveWrites({
       agentName: graduate.name,
       mode: () => writeMode(graduate),
@@ -196,6 +209,15 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
       reply,
       pending,
       setWaiting: (waiting) => updateChat(chat.id, { waiting }),
+      interactive: (options.approvals ?? 'ask') === 'ask',
+      approvalRequired: (approval) => {
+        required ??= approval;
+        // The write that asked fails first, with the reason; the reply stops right after, so
+        // the model gets no further turn.
+        queueMicrotask(() =>
+          controller.abort(new ApprovalRequiredError(approval, 'An approval was required.')),
+        );
+      },
     });
     const done = respond({
       graduate,
@@ -206,6 +228,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
       now: startedAt,
       seed: randomInt(SEED_LIMIT),
       approveWrite,
+      approvalRequired: () => required,
       signal: controller.signal,
     })
       .catch(onError)
@@ -249,7 +272,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
       return store.listMessages(chatId);
     },
 
-    async send(chatId, text) {
+    async send(chatId, text, sendOptions = {}) {
       assertOpen();
       const request = text.trim();
       if (request === '') throw new Error('Write a message to send.');
@@ -270,7 +293,13 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
         waiting: false,
         updatedAt: at,
       });
-      startReply(running, graduate, request, chatHistory(earlier, graduate.contextLength));
+      startReply(
+        running,
+        graduate,
+        request,
+        chatHistory(earlier, graduate.contextLength),
+        sendOptions,
+      );
     },
 
     async stop(chatId) {

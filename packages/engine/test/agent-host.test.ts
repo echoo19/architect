@@ -408,6 +408,54 @@ describe('stopping', () => {
   });
 });
 
+describe('when no one can answer an approval', () => {
+  it('ends the reply at once with an approval-required failure, and writes nothing', async () => {
+    const world = await setup([addInvoice(), { text: 'Added INV-4.' }]);
+    const chat = await world.host.createChat(world.graduate.id);
+    const done = settled(world, chat.id);
+    await world.host.send(chat.id, 'Add an invoice for Ruiz, Ben.', { approvals: 'fail' });
+    const reply = await done;
+
+    expect(reply).toMatchObject({
+      status: 'error',
+      error: expect.stringContaining('needs your approval'),
+      graduateVersion: 1,
+      failure: {
+        kind: 'approval_required',
+        approval: {
+          tool: 'append_rows',
+          file: 'invoices.csv',
+          summary: 'Append 1 row to invoices.csv',
+          diff: { added: [['INV-4', 'C-2', '5000', '2026-12-05', 'false']] },
+        },
+      },
+    });
+    expect(approvalOf(reply)?.status).toBe('denied');
+    expect(reply.text).not.toContain('Added INV-4.');
+    expect(await invoicesFile(world)).toBe(SAMPLE_CONTENT['invoices.csv']);
+    expect(world.events.some((event) => event.type === 'chat.updated' && event.chat.waiting)).toBe(
+      false,
+    );
+    expect((await world.host.listChats(world.graduate.id))[0]).toMatchObject({
+      running: false,
+      waiting: false,
+    });
+    const saved = (await world.host.messages(chat.id)).at(-1);
+    expect(saved?.failure?.approval.changeId).toBe(reply.failure?.approval.changeId);
+  });
+
+  it('still writes without asking when this computer allows writes', async () => {
+    const world = await setup([addInvoice(), { text: 'Added INV-4.' }], { writes: 'allow' });
+    const chat = await world.host.createChat(world.graduate.id);
+    const done = settled(world, chat.id);
+    await world.host.send(chat.id, 'Add an invoice for Ruiz, Ben.', { approvals: 'fail' });
+    const reply = await done;
+    expect(reply).toMatchObject({ status: 'done', text: expect.stringContaining('Added INV-4.') });
+    expect(approvalOf(reply)?.status).toBe('approved');
+    expect(await invoicesFile(world)).toContain('INV-4,C-2,5000,2026-12-05,false');
+  });
+});
+
 describe('the host', () => {
   it('sends a fast stream as about 30 updates a second, not one per piece', async () => {
     const text = 'x'.repeat(600);
