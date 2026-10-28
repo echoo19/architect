@@ -58,11 +58,14 @@ interface ReportViewProps {
 }
 
 /** The meter's memory figures for the model's stat, where a meter read the final test here. */
-function memoryLines(figures: RuntimeFigures | null): string[] {
+function memoryLines(figures: RuntimeFigures | null, unread: boolean): string[] {
+  // Readings that couldn't be read say so, rather than vanish as if none were taken.
+  if (unread) return ["Its memory readings couldn't be read"];
   if (figures === null) return [];
   return [
-    figures.peakProcessBytes !== null && `Peak memory ${formatBytes(figures.peakProcessBytes)}`,
-    figures.peakGpuBytes !== null && `Peak GPU memory ${formatBytes(figures.peakGpuBytes)}`,
+    figures.peakProcessBytes !== null &&
+      `Up to ${formatBytes(figures.peakProcessBytes)} of memory in the final test`,
+    figures.peakGpuBytes !== null && `Up to ${formatBytes(figures.peakGpuBytes)} of GPU memory`,
   ].filter((line): line is string => typeof line === 'string');
 }
 
@@ -204,7 +207,7 @@ export function ReportView({
                 `95% within ${formatAnswerTime(test.latencyMs.p95)}`,
                 figures !== null &&
                   figures.coldStartMs !== null &&
-                  `First answer ${formatAnswerTime(figures.coldStartMs)} from cold`,
+                  `First answer in ${formatAnswerTime(figures.coldStartMs)}, the model loading first`,
               ]}
             />
           }
@@ -214,7 +217,14 @@ export function ReportView({
           className="bg-panel p-[22px]"
           value={names.student}
           label="Model"
-          note={<Lines lines={[modelFacts, ...memoryLines(figures)]} />}
+          note={
+            <Lines
+              lines={[
+                modelFacts,
+                ...memoryLines(figures, evidence.status === 'error' && evidence.data === undefined),
+              ]}
+            />
+          }
           noteFont="text"
         />
         <Stat
@@ -258,7 +268,12 @@ export function ReportView({
         </section>
       )}
       {comparisonReport.data && (
-        <ComparisonArms report={comparisonReport.data} runId={report.runId} names={names} />
+        <ComparisonArms
+          report={comparisonReport.data}
+          runId={report.runId}
+          names={names}
+          host={job?.student.hosted ? providerName(job.student.hosted) : 'Hosted copy'}
+        />
       )}
       {comparisonReport.data === null &&
         evidence.status === 'error' &&

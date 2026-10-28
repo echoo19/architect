@@ -81,7 +81,10 @@ export function Findings({
             <ul className="m-0 flex list-none flex-col gap-1 p-0 text-sm text-fg-secondary">
               {finding.evidence.map((item) => (
                 <li key={`${item.turn}-${item.note}`} className="text-pretty">
-                  <span className="tabular-nums text-fg-muted">Step {item.turn}</span> {item.note}
+                  <span className="tabular-nums text-fg-muted">
+                    {names.student}&apos;s step {item.turn}
+                  </span>{' '}
+                  {item.note}
                 </li>
               ))}
             </ul>
@@ -110,12 +113,15 @@ export function Findings({
 
 /** The intervention Spark chose, by type with its icon, and its hypothesis in one sentence. */
 export function InterventionLine({ intervention }: { intervention: Intervention }) {
-  const { label, icon: Icon } = INTERVENTIONS[intervention.type];
+  const { label, icon: Icon, meaning } = INTERVENTIONS[intervention.type];
   return (
     <div className="flex items-start gap-3 rounded-xl border border-line-card px-4 py-3">
       <Icon size={18} strokeWidth={1.7} aria-hidden className="mt-0.5 shrink-0 text-mentor" />
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="font-medium">{label}</span>
+        <span>
+          <span className="font-medium">{label}</span>
+          <span className="text-fg-muted">: {meaning}</span>
+        </span>
         {intervention.hypothesis && (
           <span className="text-fg-secondary text-pretty">{intervention.hypothesis}</span>
         )}
@@ -150,7 +156,7 @@ export function RoundExamples({
   const skipped = intervention?.teaching?.skipped ?? [];
   if (lessons.length === 0 && skipped.length === 0) return null;
   return (
-    <DrawerSection title="Examples">
+    <DrawerSection title="Worked examples">
       <ul className="m-0 flex list-none flex-col p-0">
         {lessons.map((lesson) => (
           <li key={lesson.id}>
@@ -252,7 +258,9 @@ export function CheckTasks({
       title="Check tasks"
       actions={
         <EvidenceMark kind="check">
-          {runs > 1 ? `${runs} runs, hidden from ${names.mentor}` : `Hidden from ${names.mentor}`}
+          {runs > 1
+            ? `${runs} runs, never shown to ${names.mentor}`
+            : `Never shown to ${names.mentor}`}
         </EvidenceMark>
       }
     >
@@ -323,7 +331,7 @@ export function CheckTasks({
 export function Gates({ experiment }: { experiment: Experiment }) {
   if (experiment.gates.length === 0) return null;
   return (
-    <DrawerSection title="Gates">
+    <DrawerSection title="Rules every change must pass">
       <ul className="m-0 flex list-none flex-col gap-2 p-0 text-sm">
         {experiment.gates.map((gate) => (
           <li key={gate.gate} className="flex items-start gap-2.5">
@@ -366,7 +374,7 @@ function Figure({ label, children }: { label: string; children: ReactNode }) {
 export function RoundCost({ experiment, names }: { experiment: Experiment; names: ModelNames }) {
   const { budget } = experiment;
   return (
-    <DrawerSection title="Cost">
+    <DrawerSection title="What this round spent">
       <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line-card bg-line-card sm:grid-cols-4">
         <Figure label={names.mentor}>{formatCost(budget.mentorUsd)}</Figure>
         <Figure label="Compute">
@@ -379,7 +387,7 @@ export function RoundCost({ experiment, names }: { experiment: Experiment; names
           )}
         </Figure>
         <Figure label="Time">{formatDuration(budget.minutes * 60_000)}</Figure>
-        <Figure label="Attempts">{budget.attempts}</Figure>
+        <Figure label="Task attempts">{budget.attempts}</Figure>
       </dl>
     </DrawerSection>
   );

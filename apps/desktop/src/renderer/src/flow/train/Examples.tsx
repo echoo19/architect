@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Job, ListedLesson } from '@architect/shared';
 import { ErrorState, Panel, PanelHeader, PanelRow, Skeleton } from '@architect/ui';
 import { Check, ChevronRight, X } from 'lucide-react';
@@ -6,10 +7,13 @@ import type { MentoringRecords } from '../../api/mentoring';
 import { typeLabel } from '../names';
 import { lessonOrigin, lessonVerdict } from './evidence-words';
 
+/** Up to this many examples show at once, the newest; the rest unfold. */
+const SHOWN = 8;
+
 /**
- * The worked examples Spark wrote, newest first, each verified by the checker or rejected by it:
- * what the checker said, the task it came from and how its right answer was obtained. A row
- * opens it, step by step. The header counts how many were verified.
+ * The worked examples Spark wrote for the agent to learn from, newest first: what the checker
+ * said of each, whether it passed, the task it came from and how its answer was obtained. A row
+ * opens it, step by step. The header counts the ones that passed, over every example listed.
  */
 export function Examples({
   job,
@@ -20,16 +24,19 @@ export function Examples({
   records: QueryState<MentoringRecords>;
   onOpen: (lesson: ListedLesson) => void;
 }) {
+  const [all, setAll] = useState(false);
   const lessons = records.data?.lessons ?? [];
-  const verified = lessons.filter((lesson) => lesson.status === 'verified').length;
+  const passed = lessons.filter((lesson) => lesson.status === 'verified').length;
+  const newest = [...lessons].reverse();
+  const shown = all ? newest : newest.slice(0, SHOWN);
   return (
-    <Panel aria-label="Examples" className="min-w-0 flex-[7_1_560px]">
+    <Panel aria-label="Worked examples" className="min-w-0 flex-[7_1_560px]">
       <PanelHeader
-        title="Examples"
+        title="Worked examples"
         actions={
           lessons.length > 0 && (
             <span className="text-sm tabular-nums text-fg-muted">
-              {verified} of {lessons.length} verified
+              {passed} of {lessons.length} passed the checker
             </span>
           )
         }
@@ -38,13 +45,13 @@ export function Examples({
         <PanelRow className="py-3">
           <ErrorState
             layout="inline"
-            title="Couldn't load the examples"
+            title="Couldn't load the worked examples"
             message={records.error.message}
             onRetry={records.reload}
           />
         </PanelRow>
       ) : records.status === 'loading' && records.data === undefined ? (
-        <div aria-busy="true" aria-label="Loading the examples" className="flex flex-col">
+        <div aria-busy="true" aria-label="Loading the worked examples" className="flex flex-col">
           {[0, 1, 2].map((row) => (
             <PanelRow key={row}>
               <Skeleton className="h-4 w-full" />
@@ -52,11 +59,11 @@ export function Examples({
           ))}
         </div>
       ) : lessons.length === 0 ? (
-        <PanelRow className="text-fg-muted">No examples yet</PanelRow>
+        <PanelRow className="text-fg-muted">No worked examples yet</PanelRow>
       ) : (
-        <div className="max-h-[372px] overflow-auto">
+        <div className="overflow-x-auto">
           <ul className="m-0 min-w-[620px] list-none p-0">
-            {[...lessons].reverse().map((lesson) => (
+            {shown.map((lesson) => (
               <li key={lesson.id}>
                 <ExampleRow
                   lesson={lesson}
@@ -67,6 +74,15 @@ export function Examples({
             ))}
           </ul>
         </div>
+      )}
+      {lessons.length > SHOWN && (
+        <button
+          type="button"
+          onClick={() => setAll((open) => !open)}
+          className="mt-auto flex min-h-[54px] items-center justify-end border-t border-line-row px-7 text-fg-secondary transition-colors duration-150 hover:text-fg"
+        >
+          {all ? `Show the newest ${SHOWN}` : `Show all ${lessons.length}`}
+        </button>
       )}
     </Panel>
   );
@@ -81,34 +97,47 @@ function ExampleRow({
   type: string;
   onOpen: () => void;
 }) {
-  const verified = lesson.status === 'verified';
+  const passed = lesson.status === 'verified';
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="group grid min-h-[62px] w-full grid-cols-[20px_minmax(0,1fr)_180px_130px_14px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left transition-colors duration-150 hover:bg-row-hover"
+      className="group grid min-h-[62px] w-full grid-cols-[20px_minmax(0,1fr)_190px_120px_14px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left transition-colors duration-150 hover:bg-row-hover"
     >
-      {verified ? (
+      {passed ? (
         <Check
           size={15}
           strokeWidth={2.2}
           className="text-student"
           role="img"
-          aria-label="Verified"
+          aria-label="Passed the checker"
         />
       ) : (
-        <X size={15} strokeWidth={2.2} className="text-fg-faint" role="img" aria-label="Rejected" />
+        <X
+          size={15}
+          strokeWidth={2.2}
+          className="text-fg-faint"
+          role="img"
+          aria-label="Failed the checker"
+        />
       )}
       <span className="flex min-w-0 flex-col gap-1">
-        <span className={verified ? 'truncate text-fg-soft' : 'truncate text-fg-muted'}>
+        <span className={passed ? 'truncate text-fg-soft' : 'truncate text-fg-muted'}>
           {lessonVerdict(lesson)}
         </span>
         <span className="truncate font-mono text-xs text-fg-muted">
           {lesson.prompt ?? lesson.taskType}
         </span>
       </span>
-      <span className={verified ? 'truncate text-fg-secondary' : 'truncate text-fg-muted'}>
-        {lessonOrigin(lesson)}
+      <span className="flex min-w-0 flex-col">
+        <span className={passed ? 'truncate text-fg-secondary' : 'truncate text-fg-muted'}>
+          {lessonOrigin(lesson)}
+        </span>
+        <span
+          className={passed ? 'truncate text-xs text-student' : 'truncate text-xs text-fg-muted'}
+        >
+          {passed ? 'Checker passed it' : 'Checker failed it'}
+        </span>
       </span>
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-fg-secondary">{type}</span>

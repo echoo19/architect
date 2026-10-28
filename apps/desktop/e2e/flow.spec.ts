@@ -239,7 +239,7 @@ for (const theme of THEMES) {
     ).toBeVisible();
     // A check task is listed, marked as one the mentor never sees.
     const attempts = page.getByRole('region', { name: 'Latest attempts' });
-    const hidden = attempts.getByText(', hidden from Spark');
+    const hidden = attempts.getByText(', never shown to Spark');
     await expect(attempts).toContainText('Practice task, round 4');
     await expect(attempts).toContainText('Check task, round 3');
     await expect(hidden).toHaveCount(1);
@@ -298,7 +298,7 @@ for (const theme of THEMES) {
       '6 more check tasks passed (26 → 32 of 40). Measured again to rule out luck: 10 more over ' +
         'both (52 → 62 of 80), and no task type got worse.',
     );
-    await expect(roundDrawer).toContainText('Within the prediction');
+    await expect(roundDrawer).toContainText('Measured within this range');
     await expect(roundDrawer.getByText('Measured again', { exact: true })).toBeVisible();
     await expect(roundDrawer).not.toContainText('@@');
     await capture(page, `flow-round-${theme}`);

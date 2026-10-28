@@ -365,7 +365,7 @@ function TrainBoard({
         />
       </div>
       <div className="flex flex-wrap gap-5">
-        <TaskSuccess live={live} />
+        <TaskSuccess live={live} names={names} />
         <Resources
           live={live}
           mentor={names.mentor}

@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { cn, Panel } from '@architect/ui';
+import { cn, EvidenceMark, Panel } from '@architect/ui';
 import { formatRate } from '../format';
 import {
   CURVE_BOX,
@@ -10,10 +10,11 @@ import {
   type CurveInput,
 } from './curve';
 import { draftRoundOf } from './draft';
+import type { ModelNames } from './phase';
 import type { LiveRun } from './run-state';
 
 /** The share of check tasks right, round by round. The student never practices on them. */
-export function TaskSuccess({ live }: { live: LiveRun }) {
+export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames }) {
   const { run, job, rounds } = live;
   const score = run.devCurrent ?? run.devBaseline;
   // A change measured twice is kept on both measurements added up, so the count can span two.
@@ -45,6 +46,10 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
         )}
         {geometry.branches.length > 0 && <Legend />}
       </div>
+      {/* What check tasks are, once, where their score first shows. */}
+      <EvidenceMark kind="check" className="-mt-1 text-fg-muted">
+        Tasks set aside to score each change, never shown to {names.mentor}
+      </EvidenceMark>
       <CurveChart input={input} geometry={geometry} />
     </Panel>
   );
@@ -61,10 +66,19 @@ function Legend() {
         Score now
       </span>
       <span className="flex items-center gap-1.5">
-        <svg width={10} height={10} viewBox="0 0 10 10">
-          <circle cx={5} cy={5} r={3.5} className="fill-panel stroke-fg-faint" strokeWidth={1.5} />
+        <svg width={26} height={10} viewBox="0 0 26 10">
+          <line
+            x1={1}
+            x2={17}
+            y1={5}
+            y2={5}
+            className="stroke-fg-ghost"
+            strokeWidth={1.5}
+            strokeDasharray="3 3"
+          />
+          <circle cx={21} cy={5} r={3.5} className="fill-panel stroke-fg-faint" strokeWidth={1.5} />
         </svg>
-        A change not kept
+        A change tried and not kept
       </span>
     </span>
   );

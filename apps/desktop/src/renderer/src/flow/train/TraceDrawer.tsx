@@ -18,7 +18,7 @@ const STOP_REASONS: Record<Trace['stopReason'], string | null> = {
   aborted: 'Stopped before it finished.',
 };
 
-/** "Practice task, round 4" or "Check task, round 3 · hidden from Spark", with its kind's mark. */
+/** "Practice task, round 4" or "Check task, round 3 · never shown to Spark", with its mark. */
 function AttemptKind({ attempt, mentor }: { attempt: ListedAttempt; mentor: string }) {
   const check = attempt.split === 'dev';
   const kind = check ? 'Check task' : 'Practice task';
@@ -27,7 +27,7 @@ function AttemptKind({ attempt, mentor }: { attempt: ListedAttempt; mentor: stri
       <EvidenceMark kind={check ? 'check' : 'practice'} className="align-[-2px]">
         {attempt.round ? `${kind}, round ${attempt.round}` : kind}
       </EvidenceMark>
-      {check && ` · hidden from ${mentor}`}
+      {check && ` · never shown to ${mentor}`}
     </>
   );
 }
@@ -138,11 +138,13 @@ export function TraceFooter({ trace }: { trace: Trace }) {
         </p>
       )}
       <p className="m-0 flex flex-wrap gap-x-2 border-t border-line-card pt-4 text-sm tabular-nums text-fg-muted">
-        <span className="font-mono text-xs leading-5">{trace.studentModel}</span>
+        <span>
+          Ran on <span className="font-mono text-xs leading-5">{trace.studentModel}</span>
+        </span>
         <span aria-hidden>·</span>
-        <span>{formatAnswerTime(trace.latencyMs)}</span>
+        <span>{formatAnswerTime(trace.latencyMs)} in all</span>
         <span aria-hidden>·</span>
-        <span>{tokens.toLocaleString('en-US')} tokens</span>
+        <span>{tokens.toLocaleString('en-US')} tokens of text read and written</span>
       </p>
     </>
   );

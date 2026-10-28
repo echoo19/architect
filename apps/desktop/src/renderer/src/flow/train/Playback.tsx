@@ -338,7 +338,7 @@ function StepDetail({
         <CallEvidence key={call.step.callId} step={call.step} />
       ))}
       <span className="text-xs text-fg-muted">
-        Took{' '}
+        {who} took{' '}
         <span className="font-mono">
           {formatAnswerTime(
             step.latencyMs + step.calls.reduce((sum, call) => sum + call.step.latencyMs, 0),

@@ -60,12 +60,19 @@ export function PeakMemory({
   gpuBytes: number | null;
 }) {
   if (processBytes === null && gpuBytes === null) return null;
+  // Two different memories, each named: the model server's own, and the graphics card's.
   return (
-    <span className="flex flex-col items-end text-xs tabular-nums text-fg-muted">
+    <span className="flex flex-col items-end gap-0.5 text-xs tabular-nums text-fg-muted">
       {processBytes !== null && (
-        <span className="font-mono text-sm text-fg">{formatBytes(processBytes)}</span>
+        <span className="whitespace-nowrap">
+          Memory <span className="font-mono text-sm text-fg">{formatBytes(processBytes)}</span>
+        </span>
       )}
-      {gpuBytes !== null && <span>GPU {formatBytes(gpuBytes)}</span>}
+      {gpuBytes !== null && (
+        <span className="whitespace-nowrap">
+          GPU <span className="font-mono text-sm text-fg">{formatBytes(gpuBytes)}</span>
+        </span>
+      )}
     </span>
   );
 }
@@ -157,7 +164,7 @@ export function Comparisons({
                       </TableCell>
                     </>
                   ) : (
-                    <TableCell colSpan={metered ? 5 : 4} className="text-right text-fg-faint">
+                    <TableCell colSpan={metered ? 5 : 4} className="text-fg-faint">
                       Not run
                     </TableCell>
                   )}

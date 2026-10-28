@@ -20,6 +20,8 @@ export interface ArmScore {
   total: number;
   /** False when fewer scenarios ran than the test holds: a paused or capped evaluation. */
   complete: boolean;
+  /** The 95% Wilson interval the report gives, so two close rows read as close. */
+  range: { low: number; high: number } | null;
   repeat: { seed: number; pass: number; total: number } | null;
 }
 
@@ -44,19 +46,19 @@ export function armLabel(arm: ArmId, { mentor, student }: ModelNames): string {
     case 'bare':
       return `${student}, untouched`;
     case 'draft':
-      return `${student} with ${mentor}'s one-shot setup`;
+      return `${student} with a setup ${mentor} wrote in one go`;
     case 'targeted':
       return `${student} mentored by ${mentor}`;
     case 'reference':
       return `${mentor} doing the tasks itself`;
     case 'repeat':
-      return 'The first three again, on a second seed';
+      return 'The first three, tested a second time';
     case 'fixed':
       return `${student} mentored with procedures only`;
     case 'weights-one-shot':
-      return `${student} with one-shot trained weights`;
+      return `${student} with weights trained once on sample tasks`;
     case 'weights-targeted':
-      return `${student} with trained weights for its failures`;
+      return `${student} with weights trained on its failures`;
   }
 }
 
@@ -83,6 +85,7 @@ function scoreOf(
     pass: row.scenarios.pass,
     total: row.scenarios.total,
     complete: row.complete,
+    range: row.scenarios.wilson95,
     repeat: other && { seed: other.seed, pass: other.score.pass, total: other.score.total },
   };
 }

@@ -173,9 +173,9 @@ describe('predictionCheck', () => {
   const predicted = { devDeltaMin: 5, devDeltaMax: 9, rationale: 'Every invoice depends on it.' };
 
   it('compares the measured change with the predicted range', () => {
-    expect(predictionCheck(predicted, 8)).toBe('Within the prediction');
-    expect(predictionCheck(predicted, 5)).toBe('Within the prediction');
-    expect(predictionCheck(predicted, 3)).toBe('Short of the prediction');
-    expect(predictionCheck(predicted, 11)).toBe('Beat the prediction');
+    expect(predictionCheck(predicted, 8)).toBe('Measured within this range');
+    expect(predictionCheck(predicted, 5)).toBe('Measured within this range');
+    expect(predictionCheck(predicted, 3)).toBe('Measured below this range');
+    expect(predictionCheck(predicted, 11)).toBe('Measured above this range');
   });
 });

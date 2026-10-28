@@ -42,13 +42,29 @@ export interface Named {
   icon: LucideIcon;
 }
 
-/** The bounded menu of interventions (spec section 7), each with its icon. */
-export const INTERVENTIONS: Record<InterventionType, Named> = {
-  procedure: { label: 'Procedure', icon: ListChecks },
-  retrieval: { label: 'Retrieval', icon: BookOpenText },
-  helper: { label: 'Helper', icon: Wrench },
-  weights: { label: 'Trained weights', icon: BrainCircuit },
-  clarification: { label: 'Question', icon: MessageCircleQuestion },
+/** The bounded menu of interventions (spec section 7), each with its icon and what it is. */
+export const INTERVENTIONS: Record<InterventionType, Named & { meaning: string }> = {
+  procedure: {
+    label: 'Procedure',
+    icon: ListChecks,
+    meaning: 'a written rule the agent follows',
+  },
+  retrieval: {
+    label: 'Retrieval',
+    icon: BookOpenText,
+    meaning: 'a reference the agent loads when a request needs it',
+  },
+  helper: { label: 'Helper', icon: Wrench, meaning: 'a small tool written for the agent' },
+  weights: {
+    label: 'Trained weights',
+    icon: BrainCircuit,
+    meaning: 'the model itself trained on worked examples',
+  },
+  clarification: {
+    label: 'Question',
+    icon: MessageCircleQuestion,
+    meaning: 'a question put to you',
+  },
 };
 
 /** A blank start's first round: the mentor's whole first setup. */
@@ -99,15 +115,15 @@ export function lessonOrigin(lesson: Lesson): string {
     case 'full_task_demonstration':
       return 'Full-task demonstration';
     case 'practice':
-      return 'Related practice';
+      return 'Practice on a similar task';
     case 'user_correction':
       return 'Your correction';
   }
 }
 
-/** "Verified" or "Rejected". */
+/** Whether the checker passed an example: what makes it one the agent can learn from. */
 export function lessonStatus(lesson: Lesson): string {
-  return lesson.status === 'verified' ? 'Verified' : 'Rejected';
+  return lesson.status === 'verified' ? 'Passed the checker' : 'Failed the checker';
 }
 
 /**

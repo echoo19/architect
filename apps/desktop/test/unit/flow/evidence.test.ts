@@ -223,7 +223,7 @@ describe('evidence words', () => {
     expect(lessonOrigin(lesson({ kind: 'full_task_demonstration' }))).toBe(
       'Full-task demonstration',
     );
-    expect(lessonOrigin(lesson({ kind: 'practice' }))).toBe('Related practice');
+    expect(lessonOrigin(lesson({ kind: 'practice' }))).toBe('Practice on a similar task');
   });
 
   it('say why training ended, as it happened', () => {

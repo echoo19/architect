@@ -22,7 +22,12 @@ const STATUS_WORDS: Record<Exclude<ReportArm['status'], 'complete'>, string> = {
   not_run: 'Not run',
 };
 
-/** "45%" over "27 of 60", a partial test said as such, and the other seed's result under it. */
+const percentOf = (share: number) => Math.round(share * 100);
+
+/**
+ * "45%" over "27 of 60", the range the true rate likely sits in, a partial test said as such,
+ * and the result when the same test ran a second time.
+ */
 function ScoreCell({ score }: { score: ArmScore | null }) {
   if (score === null) return <span className="text-fg-faint">Not run</span>;
   return (
@@ -32,9 +37,17 @@ function ScoreCell({ score }: { score: ArmScore | null }) {
         {score.pass} of {score.total}
         {!score.complete && ', partial'}
       </span>
+      {score.range && (
+        <span
+          title="95% interval: the rate the test points to, allowing for chance"
+          className="whitespace-nowrap text-xs tabular-nums text-fg-muted"
+        >
+          likely {percentOf(score.range.low)} to {percentOf(score.range.high)}%
+        </span>
+      )}
       {score.repeat && (
         <span className="whitespace-nowrap text-xs tabular-nums text-fg-muted">
-          seed {score.repeat.seed}: {score.repeat.pass} of {score.repeat.total}
+          tested again: {score.repeat.pass} of {score.repeat.total}
         </span>
       )}
     </span>
@@ -45,7 +58,7 @@ function ScoreCell({ score }: { score: ArmScore | null }) {
  * What an arm spent, one bill a line: Spark, the student's hosted copy, and compute, which is
  * the most it may cost while a training job can still run.
  */
-function Costs({ spent, names }: { spent: Spend; names: ModelNames }) {
+function Costs({ spent, names, host }: { spent: Spend; names: ModelNames; host: string }) {
   const line = (label: string, amount: string) => (
     <span className="whitespace-nowrap">
       <span className="text-xs text-fg-muted">{label}</span>{' '}
@@ -62,7 +75,7 @@ function Costs({ spent, names }: { spent: Spend; names: ModelNames }) {
   return (
     <span className="flex flex-col items-end gap-0.5 text-sm">
       {line(names.mentor, formatCost(spent.sparkUsd))}
-      {line(names.student, spent.studentUsd === null ? '–' : formatCost(spent.studentUsd))}
+      {line(host, spent.studentUsd === null ? '–' : formatCost(spent.studentUsd))}
       {line('Compute', `${compute}${minutes}`)}
     </span>
   );
@@ -77,10 +90,13 @@ export function ComparisonArms({
   report,
   runId,
   names,
+  host,
 }: {
   report: ComparisonReport;
   runId: string;
   names: ModelNames;
+  /** Who serves the hosted copy of the student, as its bill names it, such as "OpenRouter". */
+  host: string;
 }) {
   const arms = reportArms(report, runId, names);
   return (
@@ -128,7 +144,7 @@ export function ComparisonArms({
                   </span>
                 </TableCell>
                 {arm.status === 'not_run' ? (
-                  <TableCell colSpan={4} className="text-right align-top text-fg-faint text-pretty">
+                  <TableCell colSpan={4} className="align-top text-fg-faint text-pretty">
                     Not run{arm.reason && `: ${arm.reason}`}
                   </TableCell>
                 ) : (
@@ -148,7 +164,7 @@ export function ComparisonArms({
                       )}
                     </TableCell>
                     <TableCell className="text-right align-top">
-                      <Costs spent={arm.spent} names={names} />
+                      <Costs spent={arm.spent} names={names} host={host} />
                     </TableCell>
                   </>
                 )}

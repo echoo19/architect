@@ -175,7 +175,10 @@ function RoundRow({
           {round.title ?? untitled(round)}
         </span>
         {kind && line !== '' && (
-          <span className="flex min-w-0 items-center gap-1.5 text-sm text-fg-muted">
+          <span
+            title={intervention && `${kind.label}: ${INTERVENTIONS[intervention.type].meaning}`}
+            className="flex min-w-0 items-center gap-1.5 text-sm text-fg-muted"
+          >
             <kind.icon
               size={13}
               strokeWidth={1.8}

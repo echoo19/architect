@@ -95,7 +95,7 @@ export function Resources({
         }
       >
         <span className="font-mono">{live.job.splits.test}</span>{' '}
-        <span className="text-fg-muted">tasks</span>
+        <span className="text-fg-muted">unseen tasks</span>
       </Fact>
     </Panel>
   );

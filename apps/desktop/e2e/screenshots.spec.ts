@@ -170,6 +170,9 @@ test('captures the populated screens with sample engine replies', async () => {
  * shows the same screens empty.
  */
 test.describe('the evidence screens of a recorded run', () => {
+  /** What every call says while the engine process restarts after stopping mid-call. */
+  const ENGINE_RESTARTING =
+    'The engine stopped while it was working on this. It is restarting; try again in a moment.';
   /** Tall enough for the whole training board and the whole report. */
   const BOARD_HEIGHT = 1840;
   const REPORT_HEIGHT = 1700;
@@ -239,7 +242,7 @@ test.describe('the evidence screens of a recorded run', () => {
       await resize(BOARD_HEIGHT);
       await goTo(page, `/runs/${summary.runId}/train`);
       await expect(
-        page.getByRole('region', { name: 'Examples' }).getByRole('listitem'),
+        page.getByRole('region', { name: 'Worked examples' }).getByRole('listitem'),
       ).toHaveCount(lessonCount(summary));
       await shoot(`evidence-train-${theme}.png`);
 
@@ -255,7 +258,7 @@ test.describe('the evidence screens of a recorded run', () => {
       // opened at the step the finding points to.
       const kept = await openRound(roundWith(summary, 'kept'));
       await kept
-        .getByRole('region', { name: 'Examples' })
+        .getByRole('region', { name: 'Worked examples' })
         .getByRole('button')
         .filter({ hasText: 'Replayed from step' })
         .first()
@@ -288,7 +291,7 @@ test.describe('the evidence screens of a recorded run', () => {
       // Round 2's repair had to start over: a full-task demonstration, labelled as one.
       const rejected = await openRound(roundWith(summary, 'rejected'));
       await rejected
-        .getByRole('region', { name: 'Examples' })
+        .getByRole('region', { name: 'Worked examples' })
         .getByRole('button')
         .filter({ hasText: 'Full-task demonstration' })
         .click();
@@ -306,12 +309,16 @@ test.describe('the evidence screens of a recorded run', () => {
 
       // An example whose steps can't be read says so, with a way to try again.
       await stubEngineFailure(recorded.app, {
-        'mentoring:lessonTrace': "The engine stopped, so the correction's steps couldn't be read.",
+        'mentoring:lessonTrace': ENGINE_RESTARTING,
       });
       await resize(SIZE.height);
       await goTo(page, `/runs/${summary.runId}/train`);
       const reverted = await openRound(roundWith(summary, 'reverted'));
-      await reverted.getByRole('region', { name: 'Examples' }).getByRole('button').first().click();
+      await reverted
+        .getByRole('region', { name: 'Worked examples' })
+        .getByRole('button')
+        .first()
+        .click();
       await expect(page.getByRole('dialog')).toContainText("Couldn't load the steps");
       await shoot(`evidence-lesson-error-${theme}.png`);
       await closeDrawer();
@@ -321,12 +328,12 @@ test.describe('the evidence screens of a recorded run', () => {
       recorded = await open(theme);
       const { app, page } = recorded;
       await stubEngineFailure(app, {
-        'mentoring:lessons': "The engine stopped, so the run's records couldn't be read.",
-        'mentoring:capabilities': "The engine stopped, so the capabilities couldn't be read.",
+        'mentoring:lessons': ENGINE_RESTARTING,
+        'mentoring:capabilities': ENGINE_RESTARTING,
       });
       await resize(BOARD_HEIGHT);
       await goTo(page, `/runs/${summary.runId}/train`);
-      await expect(page.getByText("Couldn't load the examples")).toBeVisible();
+      await expect(page.getByText("Couldn't load the worked examples")).toBeVisible();
       await expect(page.getByText("Couldn't load how the rounds ended")).toBeVisible();
       await shoot(`evidence-train-error-${theme}.png`);
       // A round opened while the records still load, and then the load fails.
@@ -339,16 +346,16 @@ test.describe('the evidence screens of a recorded run', () => {
               setTimeout(() => resolve({ ok: false, error: { message } }), 3_000);
             }),
         );
-      }, "The engine stopped, so the run's records couldn't be read.");
+      }, ENGINE_RESTARTING);
       await resize(DRAWER_HEIGHT);
       await page.reload();
       const opened = await openRound(roundWith(summary, 'kept'));
-      await expect(opened).toContainText("Couldn't load the rest of this round");
+      await expect(opened).toContainText("Couldn't load this round's findings, examples and costs");
       await shoot(`evidence-round-error-${theme}.png`);
       await closeDrawer();
 
       await stubEngineFailure(app, {
-        'mentoring:experiments': "The engine stopped, so the experiments couldn't be read.",
+        'mentoring:experiments': ENGINE_RESTARTING,
       });
       await resize(SHORT_REPORT_HEIGHT);
       await goTo(page, `/runs/${summary.runId}/report`);

@@ -23,12 +23,29 @@ import type { CapabilityEvidence } from './evidence';
 const COLUMNS: {
   kind: Exclude<EvidenceKind, 'install'>;
   label: string;
+  /** What the column's tasks are, under its name, so each kind of bar says what it counts. */
+  what: (mentor: string) => string;
   pick: (c: Capability) => Score | null;
 }[] = [
   // The engine counts the latest round that practiced each type.
-  { kind: 'practice', label: 'Practice, latest round', pick: (capability) => capability.practice },
-  { kind: 'check', label: 'Check tasks', pick: (capability) => capability.check },
-  { kind: 'final', label: 'Final test', pick: (capability) => capability.finalTest },
+  {
+    kind: 'practice',
+    label: 'Practice, latest round',
+    what: () => 'Tasks it trained on',
+    pick: (capability) => capability.practice,
+  },
+  {
+    kind: 'check',
+    label: 'Check tasks',
+    what: (mentor) => `Never shown to ${mentor}`,
+    pick: (capability) => capability.check,
+  },
+  {
+    kind: 'final',
+    label: 'Final test',
+    what: () => 'Unseen until the end',
+    pick: (capability) => capability.finalTest,
+  },
 ];
 
 /** A category's line under its task type: its verified examples, and whether teaching stopped. */
@@ -113,7 +130,10 @@ export function Capabilities({
                 <th className="w-[28%] pb-3 font-normal" />
                 {columns.map((column) => (
                   <th key={column.kind} scope="col" className="pb-3 pl-6 font-normal">
-                    <EvidenceMark kind={column.kind}>{column.label}</EvidenceMark>
+                    <span className="flex flex-col gap-0.5">
+                      <EvidenceMark kind={column.kind}>{column.label}</EvidenceMark>
+                      <span className="text-xs text-fg-muted">{column.what(names.mentor)}</span>
+                    </span>
                   </th>
                 ))}
               </tr>

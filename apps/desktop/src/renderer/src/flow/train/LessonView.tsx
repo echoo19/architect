@@ -10,7 +10,7 @@ import {
   EvidenceMark,
   Segmented,
 } from '@architect/ui';
-import { ArrowRight, Check, CircleX } from 'lucide-react';
+import { ArrowRight, Check, CircleHelp, CircleX } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { mentoringApi, mentoringKeys } from '../../api/mentoring';
 import { useQuery, type QueryState } from '../../api/query';
@@ -56,14 +56,15 @@ export function LessonDrawerContent({
     sourceId === null ? Promise.resolve(null) : mentoringApi.attempt(sourceId),
   );
   const taskId = lesson.source.kind === 'correction' ? null : lesson.source.taskId;
-  const round = lesson.round === null ? 'Example' : `Example from round ${lesson.round}`;
+  // Examples are made from practice tasks, so they carry practice's mark.
+  const round = lesson.round === null ? 'Practice task' : `Practice task, round ${lesson.round}`;
   return (
     <DrawerContent
-      title={lesson.prompt ?? (taskId ? `Task ${taskId}` : 'Example')}
+      title={lesson.prompt ?? (taskId ? `Task ${taskId}` : 'Worked example')}
       onBack={onBack}
       subtitle={
         <>
-          {typeLabel(job, lesson.taskType)} ·{' '}
+          Worked example · {typeLabel(job, lesson.taskType)} ·{' '}
           <EvidenceMark kind="practice" className="align-[-2px]">
             {round}
           </EvidenceMark>
@@ -90,7 +91,10 @@ export function LessonDrawerContent({
             <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-fg-secondary">
               {lesson.diagnosis.evidence.map((item) => (
                 <li key={`${item.turn}-${item.note}`} className="text-pretty">
-                  <span className="tabular-nums text-fg-muted">Step {item.turn}</span> {item.note}
+                  <span className="tabular-nums text-fg-muted">
+                    {names.student}&apos;s step {item.turn}
+                  </span>{' '}
+                  {item.note}
                 </li>
               ))}
             </ul>
@@ -112,7 +116,7 @@ export function LessonDrawerContent({
           hasOriginal={sourceId !== null}
         />
         <Checked lesson={lesson} />
-        <DrawerSection title="Cost">
+        <DrawerSection title="What this example cost">
           <p className="m-0 flex flex-wrap gap-x-2 text-sm text-fg-secondary tabular-nums">
             <span>
               {names.mentor} {formatCost(lesson.cost.usd)}
@@ -186,7 +190,8 @@ function BeforeAndAfter({
   if (correction.status === 'success' && correction.data === null) return null;
   const before = answerOf(original.finalText) || attempt.answerSummary || '';
   return (
-    <DrawerSection title="Before and after">
+    // Whose answer each is, in the title: the second is Spark's, for Glimmer to learn from.
+    <DrawerSection title={`${names.student}'s answer, and ${names.mentor}'s correction`}>
       <dl className="m-0 grid grid-cols-[auto_auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2.5 text-sm">
         <AnswerRow
           who={names.student}
@@ -204,9 +209,9 @@ function BeforeAndAfter({
         {correction.status === 'error' && (
           <AnswerRow
             who={`${names.mentor}'s correction`}
-            passed={lesson.status === 'verified'}
+            passed={null}
             answer={null}
-            note="Couldn't be read."
+            note="Its answer couldn't be read, with its steps below."
           />
         )}
       </dl>
@@ -221,14 +226,23 @@ function AnswerRow({
   note,
 }: {
   who: string;
-  passed: boolean;
+  /** Null when there is no answer to mark. */
+  passed: boolean | null;
   /** Null when the answer couldn't be read. */
   answer: string | null;
   note?: string | undefined;
 }) {
   return (
     <>
-      {passed ? (
+      {passed === null ? (
+        <CircleHelp
+          size={15}
+          strokeWidth={1.8}
+          role="img"
+          aria-label="Not read"
+          className="mt-0.5 text-fg-faint"
+        />
+      ) : passed ? (
         <Check
           size={15}
           strokeWidth={2.2}
@@ -345,7 +359,9 @@ function LessonSteps({
         takeover={
           from > 1
             ? `${names.mentor} takes over at step ${from}`
-            : `${names.mentor} does the whole task`
+            : lesson.checkpoint?.fallback === 'full_task'
+              ? `${names.mentor} does the whole task, since taking over later didn't pass`
+              : `${names.mentor} does the whole task`
         }
         mentor={names.mentor}
         student={names.student}
