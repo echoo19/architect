@@ -2,6 +2,14 @@
 
 Things that bit us, and how to avoid them. Newest first.
 
+## A busy computer makes a server slow to say who it is
+
+Before a llama-server starts in a folder, the one that folder's record names is stopped, but only once it answers to the record's key, since the record's process id may belong to another program by now. That check once gave the server 2 seconds. In a full test run, with many processes starting at once, the stand-in took longer, was taken for another program and left running, and the new server started beside it: on a real GPU, two models at once. The check now waits 10 seconds; nothing listening, or another program, answers at once anyway. `local-runtime.test.ts` keeps an orphan that takes 2.5 seconds to answer (`--fake-list-ms`).
+
+## Vitest run from a package's folder misses the root config
+
+The only Vitest config is the repository root's `vitest.config.ts`, which sets a 20-second test timeout. `npx vitest run` from inside `apps/cli` or a package finds no config there and falls back to Vitest's 5 seconds, so a slower test, such as the command's run against a stopped model runtime (about 9 seconds while the client retries), fails there and passes in `pnpm test`. Run a subset from the root instead: `npx vitest run apps/cli` or `npx vitest run packages/engine/test/gpu-lease.test.ts`.
+
 ## A loading llama-server answers "Loading model" before it checks any key
 
 While llama-server loads its model, it answers API requests with 503 and "Loading model" before it checks the API key. So a server can't prove it is the one a record names until it has loaded. Code that stops a server a dead process left behind (`stopServerLeftIn`) takes a 503 "Loading model" on the recorded port, from the recorded process, as that server, or a holder that died mid-start would leave a 10 GB load running beside the next one. The stand-in llama-server answers the same way.

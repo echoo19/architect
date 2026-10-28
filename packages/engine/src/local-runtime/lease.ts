@@ -32,10 +32,11 @@ export interface GpuLeaseOptions {
   /** How long a request waits its turn before it fails as busy. Default 5 minutes. */
   waitMs?: number;
   /**
-   * Take the GPU only when no other process has it or waits for it first, and otherwise fail at
-   * once with the busy error and this hint instead of waiting a turn: for a tool that measures
-   * the GPU, such as the comparisons script, which neither waits out the app's work nor takes the
-   * GPU from it. What it holds idle it still gives up to whoever asks.
+   * Take the GPU only when no other process has any of it, Ollama's users too, or waits for it
+   * first, and otherwise fail at once with the busy error and this hint instead of waiting a turn:
+   * for a tool that measures the GPU, such as the comparisons script, which neither waits out the
+   * app's work, shares the GPU with it, nor takes the GPU from it. What it holds idle it still
+   * gives up to whoever asks.
    */
   onlyWhenFree?: { hint: string };
   /** How often a process holding or waiting for the GPU looks at the lease. Default 250 ms. */
