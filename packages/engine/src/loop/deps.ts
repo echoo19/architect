@@ -213,6 +213,8 @@ export interface AdapterDeps {
    * references. Absent where a build can't run one; the runner then refuses what needs it.
    */
   createActor?(config: MentorConfig, options: { apiKey?: string }): ActorAdapter;
+  /** Whether `createActor` can make this mentor an agent; assumed so when absent. */
+  canAct?(config: MentorConfig): boolean;
   /**
    * A student on llama.cpp with adapters, to measure a candidate adapter on and off on one
    * server. Absent where no adapter runtime is set up; weights interventions are then refused.
@@ -247,6 +249,11 @@ export interface TrainingDeps {
   adapterPath(record: TrainingJobRecord): string;
   /** The tokens a ready job trained on, from its output manifest; 0 before it is ready. */
   trainedTokens(record: TrainingJobRecord): number;
+  /**
+   * Offer weights when only the stand-in backend is set up. Tests do, to run the plumbing; the
+   * app doesn't, since a stand-in adapter is never kept and the round would be spent for nothing.
+   */
+  offersStandIn?: boolean;
 }
 
 export interface LoopDeps {

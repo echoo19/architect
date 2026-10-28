@@ -20,6 +20,11 @@ import { chatTraits, type ModelMentorConfig } from './providers';
 
 const CHAT_PATH = '/chat/completions';
 
+/** Whether `createMentorActor` can make this mentor an agent: a model on a Chat Completions API. */
+export function mentorCanAct(config: MentorConfig): config is ModelMentorConfig {
+  return config.kind === 'model' && config.provider !== 'anthropic';
+}
+
 /**
  * The mentor's model as an agent with the student's tools (decision 042): the same provider, key,
  * price, token field, reasoning control and price cap as the mentor, with the tools offered and
@@ -28,7 +33,7 @@ const CHAT_PATH = '/chat/completions';
  * them. Anthropic's Messages API isn't spoken here yet.
  */
 export function createMentorActor(config: MentorConfig, deps: MentorDeps = {}): ActorAdapter {
-  if (config.kind !== 'model' || config.provider === 'anthropic') {
+  if (!mentorCanAct(config)) {
     throw new AdapterError(
       'bad_request',
       `${config.label} can't act as the agent yet. Choose a mentor on a Chat Completions API.`,

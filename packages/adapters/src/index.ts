@@ -1,5 +1,5 @@
 export { createMentor, createStudent } from './factory';
-export { createMentorActor } from './mentor/actor';
+export { createMentorActor, mentorCanAct } from './mentor/actor';
 export { createModelMentor, MentorReplyError } from './mentor/model-mentor';
 export type { ModelMentorConfig } from './mentor/providers';
 export { listModels, verifyKey, type ListModelsOptions } from './models/list';

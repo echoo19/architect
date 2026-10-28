@@ -374,8 +374,11 @@ describe('when teaching stops', () => {
       categories: new Set(['cat_dates']),
       types: new Set(),
     });
+    // A round refused before it taught or measured anything doesn't count.
     taughtRound(3, 'invalid');
     taughtRound(4, 'reverted');
+    expect(stoppedFromRecords(store, 'run_1').types.size).toBe(0);
+    taughtRound(5, 'reverted');
     expect(stoppedFromRecords(store, 'run_1').types).toEqual(new Set(['refund']));
   });
 

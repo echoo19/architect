@@ -118,7 +118,15 @@ export const EvaluationConfigSchema = z.object({
    * under each, and each repeat is recorded apart. Repeats are never counted as more scenarios.
    * Absent: one repeat, under the seed the run derives from its own.
    */
-  lockedTestSeeds: z.array(z.number().int().nonnegative()).min(1).max(4).optional(),
+  lockedTestSeeds: z
+    .array(z.number().int().nonnegative())
+    .min(1)
+    .max(4)
+    .refine(
+      (seeds) => new Set(seeds).size === seeds.length,
+      'Each locked-test seed may appear once.',
+    )
+    .optional(),
 });
 export type EvaluationConfig = z.infer<typeof EvaluationConfigSchema>;
 

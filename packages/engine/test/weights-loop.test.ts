@@ -16,10 +16,10 @@ function open(): Engine {
 }
 
 /** What an adapter does to the student, when one is applied. */
-let adapterEffect: 'harms' | 'helps' = 'harms';
+let adapterEffect: 'harms' | 'helps' | 'nothing' = 'harms';
 
 function passes(subject: Task, harness: Harness, _seed: number, student: string): boolean {
-  if (student.includes('@1')) return adapterEffect === 'helps';
+  if (student.includes('@1') && adapterEffect !== 'nothing') return adapterEffect === 'helps';
   return harness.system.includes(`fix:${subject.type}`);
 }
 
@@ -125,6 +125,38 @@ describe('a weights round', () => {
     });
     expect(weightsRound?.reason).toMatch(/but Its adapter came from the stand-in backend/);
     expect(engine.store.runs.get(runId)?.run.currentAdapter).toBeUndefined();
+  });
+
+  it('rejects a stand-in adapter that changes nothing, since a hard gate failed', async () => {
+    adapterEffect = 'nothing';
+    const engine = open();
+    const runId = await startArchitect(engine);
+    await engine.controller.idle();
+    const weightsRound = engine.store.experiments.list(runId)[1];
+    expect(weightsRound?.disposition).toBe('rejected');
+    expect(weightsRound?.gates.find((gate) => gate.gate === 'stand_in')?.passed).toBe(false);
+  });
+
+  it('is off the menu when the locked test runs on the hosted copy, which loads no adapter', async () => {
+    const engine = open();
+    const job = await engine.jobs.importFile(world.jobFile);
+    const runId = (
+      await engine.controller.start(job.id, 'architect', 7, { lockedTestOn: 'hosted' })
+    ).id;
+    await engine.controller.idle();
+    expect(engine.store.interventions.get(runId, 2)?.invalidReason).toBe(
+      "A weights intervention isn't possible in this run: This run's locked test runs on the hosted copy of the student, which can't load an adapter.",
+    );
+  });
+
+  it('is off the menu in the app when only the stand-in backend is set up', async () => {
+    training = withStandInTraining(world, { offersStandIn: false });
+    const engine = open();
+    const runId = await startArchitect(engine);
+    await engine.controller.idle();
+    expect(engine.store.interventions.get(runId, 2)?.invalidReason).toBe(
+      "A weights intervention isn't possible in this run: Only the stand-in backend is set up here, and it trains nothing. Add a Hugging Face token to train an adapter.",
+    );
   });
 
   it('records a training job that failed as an invalid round', async () => {

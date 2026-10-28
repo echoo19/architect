@@ -63,10 +63,15 @@ export function gatedActor(
         yield event;
       }
     } finally {
-      // A call that ran is charged, whether or not its reply could be used.
-      if (usage !== null) {
-        options.onCharge({ model: actor.model, usage, costUsd: admission.charge(usage) });
-      }
+      // A call that ran is charged, whether or not its reply could be used. One that ended without
+      // saying what it used (a broken stream, a filtered reply, no usage reported) is charged the
+      // most it was allowed to cost, so the dollar cap still holds.
+      const known = usage !== null && usage.inputTokens + usage.outputTokens > 0;
+      options.onCharge({
+        model: actor.model,
+        usage: usage ?? { inputTokens: 0, outputTokens: 0 },
+        costUsd: known && usage !== null ? admission.charge(usage) : admission.authorizedUsd,
+      });
     }
   }
 

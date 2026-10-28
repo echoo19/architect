@@ -1,4 +1,4 @@
-import type { Harness, Task } from '@architect/shared';
+import { AdapterError, type Harness, type Task } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { lessonId } from '../src/loop/teach';
 import { diagnosis, hypothesis } from './fakes/adapters';
@@ -332,5 +332,101 @@ describe('the guards on a correction', () => {
     expect(engine.store.experiments.list(runId).map((item) => item.disposition)).toEqual([
       'stopped',
     ]);
+  });
+});
+
+describe('teaching that has to stop or step around', () => {
+  const teachingRound = () =>
+    diagnosis('Show an invoice done right', {
+      system: 'Service desk. Read the policy before pricing.',
+      findings: [{ taskId: 'train-invoice-1' }],
+      intervention: { workedExamples: ['invoice'], practicePerFinding: 1 },
+    });
+
+  it('parks between corrections when a pause is asked for, and resumes at the next try', async () => {
+    world.mentor.script = (_request, call) =>
+      [teachingRound(), hypothesis('Nothing more', 'Service desk.\nAgain.')][call - 1];
+    const engine = open();
+    const job = await engine.jobs.importFile(world.jobFile);
+    let runId = '';
+    let paused: Promise<void> | undefined;
+    world.runtime.beforeCorrection = () => {
+      paused ??= engine.controller.pause(runId);
+    };
+    runId = (await engine.controller.start(job.id, 'architect', 7)).id;
+    await engine.controller.idle();
+    await paused;
+    expect(engine.store.runs.get(runId)?.run.status).toBe('paused');
+    expect(engine.store.lessons.list({ runId })).toHaveLength(1);
+
+    world.runtime.beforeCorrection = undefined;
+    await engine.controller.resume(runId);
+    await engine.controller.idle();
+    expect(engine.store.lessons.list({ runId, round: 1 })).toHaveLength(2);
+    expect(engine.store.runs.get(runId)?.run.status).toBe('finished');
+  });
+
+  it('keeps worked examples and practice off the menu when the mentor cannot act', async () => {
+    world.deps.adapters.canAct = () => false;
+    world.mentor.script = () => teachingRound();
+    const engine = open();
+    const runId = await run(engine);
+    expect(engine.store.interventions.get(runId, 1)?.invalidReason).toContain(
+      "Worked examples and practice need the mentor as the agent, which this build or mentor can't run.",
+    );
+    expect(world.runtime.corrections).toEqual([]);
+  });
+
+  it('rejects a try the mentor cannot act on and goes on teaching, instead of stalling', async () => {
+    world.mentor.script = (_request, call) =>
+      [teachingRound(), hypothesis('Nothing more', 'Service desk.\nAgain.')][call - 1];
+    world.runtime.beforeCorrection = (task) => {
+      if (task.id === 'train-invoice-1') {
+        throw new AdapterError('bad_request', 'The provider refused the tools.');
+      }
+    };
+    const engine = open();
+    const runId = await run(engine);
+    expect(engine.errors).toEqual([]);
+    expect(engine.store.runs.get(runId)?.run.status).toBe('finished');
+    const lessons = engine.store.lessons.list({ runId, round: 1 });
+    const repairs = lessons.filter((lesson) => lesson.kind !== 'practice');
+    expect(repairs.length).toBeGreaterThan(0);
+    for (const repair of repairs) {
+      expect(repair).toMatchObject({
+        status: 'rejected',
+        reason: "The mentor couldn't act as the agent: The provider refused the tools.",
+      });
+    }
+    expect(lessons.find((lesson) => lesson.kind === 'practice')?.status).toBe('verified');
+  });
+
+  it('measures a draft as a whole harness, whatever intervention its reply names', async () => {
+    world.cleanup();
+    world = await createWorld({ job: { startingHarness: { kind: 'blank' } } });
+    world.mentor.script = (_request, call) =>
+      [
+        {
+          ...hypothesis('A first harness', 'Service desk.\nfix:invoice'),
+          intervention: {
+            type: 'clarification',
+            hypothesis: 'Ask first.',
+            workedExamples: [],
+            practicePerFinding: 0,
+            question: 'Which invoices count?',
+            estimatedCost: { mentorUsd: 0.1, computeUsd: 0, minutes: 1 },
+            verificationPlan: 'Ask.',
+          },
+        },
+        hypothesis('Nothing more', 'Service desk.\nfix:invoice\nAgain.'),
+      ][Math.min(call, 2) - 1];
+    const engine = open();
+    const runId = await run(engine);
+    expect(engine.store.runs.get(runId)?.run.error).toBeUndefined();
+    expect(engine.store.runs.get(runId)?.run.status).toBe('finished');
+    expect(engine.store.rounds.get(runId, 1)?.round).toMatchObject({
+      draft: true,
+      decision: 'kept',
+    });
   });
 });

@@ -99,7 +99,7 @@ export async function baseline(state: RunState): Promise<void> {
   state.setPhase('baseline');
   const version = state.run.currentVersion;
   if (!(await evaluate(state, await devEvaluation(state, version, null)))) return;
-  const result = state.devResult(version, null);
+  const result = state.devResult(version, null, undefined, state.incumbentConfig());
   state.emit({ type: 'eval.finished', split: 'dev', harnessVersion: version, ...result });
   state.saveRun({ devBaseline: result.score, devCurrent: result.score });
 }
@@ -482,13 +482,16 @@ function verdictOf(
   gates: GateResult[],
 ): Pick<Verdict, 'decision' | 'disposition'> {
   const failed = gates.find((gate) => !gate.passed);
-  if (decision.keep && failed === undefined) return { decision, disposition: 'kept' };
-  if (decision.keep && failed !== undefined) {
+  if (failed !== undefined) {
     return {
-      decision: { keep: false, reason: `${decision.reason}, but ${failed.detail}` },
+      decision: {
+        keep: false,
+        reason: decision.keep ? `${decision.reason}, but ${failed.detail}` : decision.reason,
+      },
       disposition: 'rejected',
     };
   }
+  if (decision.keep) return { decision, disposition: 'kept' };
   return { decision, disposition: harmful ? 'rejected' : 'reverted' };
 }
 

@@ -36,7 +36,7 @@ export interface TrainingWorld {
  */
 export function withStandInTraining(
   world: World,
-  options: { runMs?: number; failWith?: string } = {},
+  options: { runMs?: number; failWith?: string; offersStandIn?: boolean } = {},
 ): TrainingWorld {
   const store = new FileTrainingStore(world.dataDir);
   const backend = new StandInBackend({
@@ -61,6 +61,8 @@ export function withStandInTraining(
     baseModel: { repo: GLIMMER_TRAINING_BASE.repo },
     flavor: loadRecipe(TRAINER_DIR).recipe.hardware.flavor,
     datasetsDir: join(world.dataDir, 'training', 'datasets'),
+    // The plumbing is what these tests run; the app offers weights only with a real backend.
+    offersStandIn: options.offersStandIn ?? true,
   });
   return { worker, store };
 }

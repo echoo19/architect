@@ -32,8 +32,14 @@ async function weightsRefusal(state: RunState, canTeach: boolean): Promise<strin
   }
   if (!canTeach)
     return 'Verified corrections, which an adapter trains on, need the mentor as the agent.';
+  if (state.record.lockedTestOn === 'hosted') {
+    return "This run's locked test runs on the hosted copy of the student, which can't load an adapter.";
+  }
   const backend = await deps.training.backend();
   if (backend === null) return 'No training backend is set up.';
+  if (!backend.real && deps.training.offersStandIn !== true) {
+    return 'Only the stand-in backend is set up here, and it trains nothing. Add a Hugging Face token to train an adapter.';
+  }
   if (backend.pricePerHourUsd > 0) {
     const least = (MIN_JOB_SECONDS / 3600) * backend.pricePerHourUsd;
     const left = computeLeft(state);
@@ -50,8 +56,11 @@ async function weightsRefusal(state: RunState, canTeach: boolean): Promise<strin
  * one job; a clarification needs someone there to answer.
  */
 export async function menuOf(state: RunState): Promise<Menu> {
+  const { adapters } = state.ctx.deps;
   const canTeach =
-    state.ctx.deps.adapters.createActor !== undefined && state.job.mentor.kind === 'model';
+    adapters.createActor !== undefined &&
+    state.job.mentor.kind === 'model' &&
+    (adapters.canAct?.(state.job.mentor) ?? true);
   const refused: Menu['refused'] = {};
   const weights = await weightsRefusal(state, canTeach);
   if (weights !== null) refused.weights = weights;

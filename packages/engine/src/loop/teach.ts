@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
 import {
+  AdapterError,
   VerifiedEpisodeSchema,
+  type Experiment,
   type Finding,
   type GuardError,
   type Intervention,
@@ -14,7 +16,7 @@ import { LeakRefusal } from '../mentor/gate';
 import type { EngineStore } from '../store/engine-store';
 import { gatedActor, refusalOf, type ActorCharge } from '../teaching/actor';
 import type { CorrectionResult, CorrectionStart } from '../teaching/correction';
-import { must } from './errors';
+import { isAbort, must, passesOnItsOwn, summaryOf } from './errors';
 import { failedAttempts, interventionOfRound } from './intervene';
 import type { RunState } from './run-state';
 import { deriveSeed } from './seeds';
@@ -25,6 +27,35 @@ export const MAX_LESSONS_PER_TYPE = 12;
 /** Rounds without a dev gain after which a category's teaching stops; a task type's backstop. */
 export const STOP_CATEGORY_AFTER = 2;
 export const STOP_TYPE_AFTER = 4;
+const MEASURED: ReadonlySet<Experiment['disposition']> = new Set(['kept', 'reverted', 'rejected']);
+
+/** What a try that never produced a correction leaves: no checkpoint, check, audit or turns. */
+const UNUSED: Omit<CorrectionResult, 'reason'> = {
+  verified: false,
+  checkpoint: null,
+  check: null,
+  audit: null,
+  messages: [],
+  actorTurns: [],
+  tools: [],
+  trace: null,
+};
+
+/** A pause, a stop or a spent wall clock: what ends teaching before its next correction. */
+function teachingHalts(state: RunState): boolean {
+  return (
+    state.control.pauseRequested || state.record.stopRequested || state.budget.wallClockSpent()
+  );
+}
+
+/**
+ * An error from the mentor acting as the agent that waiting won't fix and that isn't shutdown:
+ * a bad request, a content filter, a missing model. Errors that pass on their own still pause.
+ */
+function actorCantAct(state: RunState, error: unknown): error is AdapterError {
+  if (state.signal.aborted || isAbort(error)) return false;
+  return error instanceof AdapterError && !passesOnItsOwn(error);
+}
 
 /** A lesson's id: the same for the same try of the same item, so a retry can't add a second. */
 export function lessonId(runId: string, round: number, item: number, attempt: number): string {
@@ -54,7 +85,8 @@ export function stoppedFromRecords(
     const gained =
       experiment.disposition === 'kept' &&
       (experiment.devAfter?.pass ?? 0) > (experiment.devBefore?.pass ?? 0);
-    const counts = experiment.disposition !== 'stopped';
+    // Only a measured round counts: one refused before it taught or measured anything doesn't.
+    const counts = MEASURED.has(experiment.disposition);
     for (const [map, keys] of [
       [sinceGain.categories, intervention.findings.map((finding) => finding.categoryId)],
       [sinceGain.types, intervention.findings.map((finding) => finding.taskType)],
@@ -419,6 +451,9 @@ export async function teach(state: RunState, index: number): Promise<boolean> {
       const prior = store.lessons.get(id);
       if (prior?.status === 'verified') break;
       if (prior) continue;
+      // A pause, a stop or the wall clock ends teaching between corrections; the next session
+      // resumes at this try, by its id.
+      if (teachingHalts(state)) return false;
       const start: CorrectionStart =
         step.start === 'checkpoint'
           ? { kind: 'checkpoint', trace: must(source, 'The failed attempt').trace, turn: step.turn }
@@ -464,18 +499,26 @@ export async function teach(state: RunState, index: number): Promise<boolean> {
         );
       } catch (error) {
         const refusal = refusalOf(error);
-        if (refusal === null) throw error;
+        if (refusal === null) {
+          if (!actorCantAct(state, error)) throw error;
+          // The mentor can't act on this try (a bad request, a content filter, a missing
+          // model): the try is kept as rejected with the reason, and teaching goes on.
+          const failed = lessonOf(state, context, {
+            ...UNUSED,
+            reason: `The mentor couldn't act as the agent: ${summaryOf(error)}`,
+          });
+          store.lessons.put(failed);
+          state.announce('lesson', failed.id, index);
+          state.log(
+            'warn',
+            `Round ${index}: rejected a correction of ${task.id}. ${failed.reason}`,
+          );
+          continue;
+        }
         const guard = refusal.guard === 'budget' ? 'mentor budget' : 'leak check';
         const refused = lessonOf(state, context, {
-          verified: false,
+          ...UNUSED,
           reason: `The ${guard} refused the correction's request: ${refusal.message}`,
-          checkpoint: null,
-          check: null,
-          audit: null,
-          messages: [],
-          actorTurns: [],
-          tools: [],
-          trace: null,
         });
         store.lessons.put(refused);
         state.announce('lesson', refused.id, index);

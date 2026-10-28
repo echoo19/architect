@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   contractTerms,
   DecodingSchema,
+  EvaluationConfigSchema,
   HypothesisSchema,
   isHarnessSurfacePath,
   JobContractSchema,
@@ -109,6 +110,22 @@ describe('schemas', () => {
     expect(ReportCardSchema.parse(card).testedOn).toBe('local');
     expect(ReportCardSchema.parse({ ...card, testedOn: 'hosted' }).testedOn).toBe('hosted');
     expect(ReportCardSchema.safeParse({ ...card, testedOn: 'cloud' }).success).toBe(false);
+  });
+
+  it('takes each locked-test seed once', () => {
+    const evaluation = {
+      trainBatch: 12,
+      minDevGain: 2,
+      maxTypeRegression: 1,
+      devRepeats: 1,
+      patience: 4,
+    };
+    expect(
+      EvaluationConfigSchema.safeParse({ ...evaluation, lockedTestSeeds: [101, 102] }).success,
+    ).toBe(true);
+    expect(
+      EvaluationConfigSchema.safeParse({ ...evaluation, lockedTestSeeds: [101, 101] }).success,
+    ).toBe(false);
   });
 
   it("keeps a reply's work with it, and still reads replies saved without it", () => {

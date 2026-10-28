@@ -4,6 +4,7 @@ import {
   createMentor,
   createMentorActor,
   createStudent,
+  mentorCanAct,
 } from '@architect/adapters';
 import { DEFAULT_STUDENT, GLIMMER_TRAINING_BASE } from '@architect/shared';
 import { readGgufHeader } from '../gguf';
@@ -199,6 +200,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
         });
       },
       createActor: (config, actorOptions) => createMentorActor(config, actorOptions),
+      canAct: (config) => mentorCanAct(config),
       ...(adapterRuntime === undefined
         ? {}
         : {

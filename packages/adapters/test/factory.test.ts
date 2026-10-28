@@ -92,6 +92,7 @@ describe('the public API', () => {
       'listOllamaModels',
       'loadedOllamaModels',
       'makeTextOnlyModel',
+      'mentorCanAct',
       'ollamaVersion',
       'pullOllamaModel',
       'unloadOllamaModel',

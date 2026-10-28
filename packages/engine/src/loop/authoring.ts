@@ -4,6 +4,7 @@ import {
   HARNESS_INTERVENTIONS,
   interventionOf,
   JsonValueSchema,
+  LEGACY_INTERVENTION,
   TraceSchema,
   type Harness,
   type Hypothesis,
@@ -445,7 +446,8 @@ async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<Un
     return { reason: error.message, proposal: {} };
   }
   const drafting = state.drafts(index);
-  const plan = interventionOf(hypothesis);
+  // A draft is a whole harness: whatever intervention its reply names, it is measured as one.
+  const plan = drafting ? LEGACY_INTERVENTION : interventionOf(hypothesis);
   const menu = drafting ? null : await roundMenu(state);
   const resolved =
     drafting || hypothesis.findings === undefined

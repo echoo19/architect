@@ -17,6 +17,8 @@ export interface TrainingDepsOptions {
   flavor: string;
   /** Where each run's round datasets are written: `<dir>/<runId>/round-<n>`. */
   datasetsDir: string;
+  /** Offer weights with only the stand-in backend set up, as tests do (`TrainingDeps`). */
+  offersStandIn?: boolean;
 }
 
 /**
@@ -49,5 +51,6 @@ export function trainingDeps(options: TrainingDepsOptions): TrainingDeps {
       return join(store.jobDir(record.id), ...record.artifacts.ggufLora.split('/'));
     },
     trainedTokens: (record) => manifestOf(record)?.dataset.trained_tokens ?? 0,
+    ...(options.offersStandIn === true ? { offersStandIn: true } : {}),
   };
 }
