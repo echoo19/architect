@@ -235,4 +235,13 @@ export const MIGRATIONS: readonly Migration[] = [
       ALTER TABLE rounds ADD COLUMN draft INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    version: 8,
+    name: 'earlier one-shot drafts',
+    sql: `
+      -- One-shot's only round was always a whole draft, including those made before migration 7.
+      UPDATE rounds SET draft = 1
+        WHERE idx = 1 AND run_id IN (SELECT id FROM runs WHERE method = 'one_shot');
+    `,
+  },
 ];

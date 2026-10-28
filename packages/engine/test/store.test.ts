@@ -197,6 +197,42 @@ describe('migrations', () => {
     migrated.close();
   });
 
+  it('marks the only round of earlier one-shot runs as a draft', () => {
+    const earlier = join(dir, 'drafts.db');
+    const db = openDatabase(
+      earlier,
+      MIGRATIONS.filter(({ version }) => version <= 7),
+    );
+    const old = createEngineStore(db);
+    old.jobs.insert(JOB);
+    const oneShot = storedRun('run_one_shot');
+    old.runs.insert({ ...oneShot, run: { ...oneShot.run, method: 'one_shot' } });
+    old.runs.insert(storedRun('run_architect'));
+    const roundOf = (runId: string): StoredRound => ({
+      round: {
+        runId,
+        index: 1,
+        status: 'decided',
+        train: { pass: 0, total: 0 },
+        files: [],
+        costUsd: 0,
+        startedAt: AT,
+      },
+      baseVersion: 1,
+      reply: null,
+      hypothesis: null,
+      rejected: false,
+    });
+    old.rounds.insert(roundOf('run_one_shot'));
+    old.rounds.insert(roundOf('run_architect'));
+    db.close();
+
+    const migrated = openEngineStore(earlier);
+    expect(migrated.rounds.get('run_one_shot', 1)?.round.draft).toBe(true);
+    expect(migrated.rounds.get('run_architect', 1)?.round.draft).toBeUndefined();
+    migrated.close();
+  });
+
   it('rolls back a migration that fails, leaving the database as it was', () => {
     store.close();
     const broken = [
