@@ -2,6 +2,10 @@
 
 Things that bit us, and how to avoid them. Newest first.
 
+## llama-server reports its build inside parentheses now
+
+Build 10472 prints `version: 0.1.1-dev (build 10472, commit 60eeeb608)`. Older builds, and the test stand-in, print `version: 10472 (60eeeb6)`. Reading the first number after `version:` took the real build for build 0, so Settings would have called a current llama.cpp too old and every agent with trained weights would have been blocked. The parser now reads `(build N, commit C)` first. A stand-in proves only the format it prints; check a parser against the real program's output.
+
 ## A stubbed engine channel stays stubbed for the rest of the spec
 
 `stubEngine` replaces a channel's handler in the main process, and nothing puts the engine's own back, so a later test in the same app gets the earlier stub. In `apps/desktop/e2e/screenshots.spec.ts` the dark theme's run routes ask the engine itself and show "There is no run", while the light theme's run after the sample replies were installed and show the sample run (`train-light`, `report-light`, `improvement-light`). A spec that needs the engine's own answer again stubs that answer itself, or launches a new app.

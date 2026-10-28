@@ -97,8 +97,14 @@ export interface ServerVersion {
   commit: string | null;
 }
 
-/** Reads `version: 10472 (60eeeb6)` from what `--version` prints. */
+/**
+ * Reads the build from what `--version` prints. Builds say it two ways: `version: 10472
+ * (60eeeb6)`, and from late 2026 `version: 0.1.1-dev (build 10472, commit 60eeeb608)`, where the
+ * leading number is a release version, not the build.
+ */
 export function parseServerVersion(output: string): ServerVersion | null {
+  const named = /\(build\s+(\d+)(?:,\s*commit\s+([0-9a-f]+))?\)/i.exec(output);
+  if (named?.[1]) return { build: Number(named[1]), commit: named[2] ?? null };
   const match = /version:\s*b?(\d+)(?:\s*\(([0-9a-f]+)\))?/i.exec(output);
   if (!match?.[1]) return null;
   return { build: Number(match[1]), commit: match[2] ?? null };

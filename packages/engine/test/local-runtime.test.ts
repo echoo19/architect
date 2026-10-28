@@ -223,6 +223,12 @@ describe('finding llama-server', () => {
       build: 10472,
       commit: '60eeeb6',
     });
+    // How build 10472 itself prints it, checked on this project's computer on Oct 28.
+    expect(
+      parseServerVersion(
+        'version: 0.1.1-dev (build 10472, commit 60eeeb608)\nbuilt with Clang 20.1.8 for Windows x86_64',
+      ),
+    ).toEqual({ build: 10472, commit: '60eeeb608' });
     expect(parseServerVersion('nothing here')).toBeNull();
     const record = join(dir, 'version.jsonl');
     await expect(checkServerVersion(fakeCommand(record))).resolves.toEqual({
