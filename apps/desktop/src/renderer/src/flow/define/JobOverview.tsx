@@ -126,7 +126,7 @@ export function FilePermissions({ job, onChange }: FilePermissionsProps) {
         Permissions
       </Heading>
       <PermissionRow
-        label="Saving changes"
+        label={WRITE_SETTING}
         detail={
           changeable.length > 0 ? (
             <span className="font-mono">{changeable.map((file) => file.name).join(', ')}</span>

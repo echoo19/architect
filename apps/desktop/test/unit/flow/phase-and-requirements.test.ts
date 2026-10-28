@@ -88,6 +88,15 @@ describe('missedRequirements', () => {
       ...requirements({ passRate: { target: 0.95, actual: 5 / 6, met: false } }),
       test: { score: { pass: 5, total: 6 } },
     } as ReportCard;
-    expect(missedRequirements(short)).toEqual(['5 of 6 right, and the job needs 6 of 6 (95%)']);
+    expect(missedRequirements(short)).toEqual([
+      '5 of 6 right, and the job needs 95%, which is all 6',
+    ]);
+    const long = {
+      ...requirements({ passRate: { target: 0.95, actual: 55 / 60, met: false } }),
+      test: { score: { pass: 55, total: 60 } },
+    } as ReportCard;
+    expect(missedRequirements(long)).toEqual([
+      '55 of 60 right, and the job needs 95%, which is 57 of 60',
+    ]);
   });
 });

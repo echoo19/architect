@@ -92,7 +92,7 @@ function AttemptRow({
         <span className="truncate text-fg-secondary">{type}</span>
         <EvidenceMark kind={check ? 'check' : 'practice'} className="min-w-0 text-xs">
           <span className="truncate">{set}</span>
-          {check && <span className="sr-only">, never shown to {mentor}</span>}
+          {check && <span className="sr-only">, {mentor} sees only the score</span>}
         </EvidenceMark>
       </span>
       <ChevronRight

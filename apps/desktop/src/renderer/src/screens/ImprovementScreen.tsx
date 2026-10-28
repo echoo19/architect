@@ -29,7 +29,7 @@ function Page({
   children: ReactNode;
 }) {
   return (
-    <FlowShell<string> title={title} step="Report" steps={IMPROVE_STEPS} footer={footer}>
+    <FlowShell<string> title={title} step="Results" steps={IMPROVE_STEPS} footer={footer}>
       <div className="mx-auto box-content flex max-w-[860px] flex-col gap-11 px-8 pb-8 pt-14">
         {children}
       </div>
@@ -50,10 +50,10 @@ export function ImprovementScreen({ runId }: { runId: string }) {
       {loaded ? (
         <ErrorState
           title="This run didn't improve an agent"
-          message="It trained a new one, and its report card says how that went."
+          message="It trained a new one, and its results say how that went."
           secondaryAction={
             <Button size="md" onClick={() => navigate(paths.report(runId))}>
-              See the report card
+              See the results
             </Button>
           }
           className="min-h-[60vh]"

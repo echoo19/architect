@@ -43,15 +43,23 @@ function counts(score: ArmScore): string {
 
 /**
  * What an arm's row leaves out of the table, said once under Details: how sure the score is, the
- * same test run again, the same setup without its trained weights, and the memory a meter saw.
+ * same test run again, the other copy's result, the same setup without its trained weights, and
+ * the memory a meter saw.
  */
 function extras(arm: ReportArm, testedOn: StudentTarget): string[] {
-  const shown = scoreOn(arm, testedOn)?.score;
+  const shown = scoreOn(arm, testedOn);
+  const other = testedOn === 'hosted' ? arm.local : arm.hosted;
   const facts = [
-    shown?.range && `likely ${percentOf(shown.range.low)} to ${percentOf(shown.range.high)}%`,
-    shown?.repeat &&
-      `tested again: ${shown.repeat.pass} of ${shown.repeat.total}${shown.repeat.complete ? '' : ', partial'}`,
-    shown?.without && `without the weights: ${shown.without.pass} of ${shown.without.total}`,
+    shown?.score.range &&
+      `likely ${percentOf(shown.score.range.low)} to ${percentOf(shown.score.range.high)}%`,
+    shown &&
+      other &&
+      shown.where === '' &&
+      `${testedOn === 'hosted' ? 'on this computer' : 'online'}: ${counts(other)}`,
+    shown?.score.repeat &&
+      `tested again: ${shown.score.repeat.pass} of ${shown.score.repeat.total}${shown.score.repeat.complete ? '' : ', partial'}`,
+    shown?.score.without &&
+      `without the weights: ${shown.score.without.pass} of ${shown.score.without.total}`,
     arm.memory &&
       [
         arm.memory.processBytes !== null && `${formatBytes(arm.memory.processBytes)} of RAM`,

@@ -5,7 +5,7 @@ import { CircleAlert, Layers, LockKeyhole, RotateCcw } from 'lucide-react';
 import { graduatesApi, refreshAgent } from '../../api/graduates';
 import { attempt } from '../../lib/notify';
 import { useGraduateSettings } from '../graduateSettings';
-import { WRITE_MODE_LABELS } from '../labels';
+import { WRITE_MODE_LABELS, WRITE_SETTING } from '../labels';
 import { MOVE_WORDS, promoteCaution, type VersionMove } from './versions';
 
 /** One consequence in a confirmation, after an icon that says what kind it is. */
@@ -84,7 +84,7 @@ export function MoveDialog({
           </Change>
           {backToAsk && (
             <Change icon={<LockKeyhole size={15} strokeWidth={1.8} aria-hidden />}>
-              Saving changes goes back to {WRITE_MODE_LABELS.ask}, since version {number} came from
+              {WRITE_SETTING} goes back to {WRITE_MODE_LABELS.ask}, since version {number} came from
               another computer.
             </Change>
           )}

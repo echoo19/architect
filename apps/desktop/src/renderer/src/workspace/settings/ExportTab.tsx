@@ -82,7 +82,7 @@ function partFile(review: ExportReview, part: ExportPartName): string {
 const PARTS: Record<ExportPartName, { label: string; icon: typeof FolderTree; noun: string }> = {
   harness: { label: 'Setup', icon: FolderTree, noun: 'setup' },
   adapter: { label: 'Trained weights', icon: Puzzle, noun: 'trained weights' },
-  report: { label: 'Evaluation report', icon: FileText, noun: 'evaluation report' },
+  report: { label: 'Results', icon: FileText, noun: 'results' },
 };
 
 /** What stays here, named the way the rest of the app names it. */

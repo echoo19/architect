@@ -58,7 +58,7 @@ function WriteModeMenu({ agent }: { agent: GraduateSummary }) {
       <DropdownMenuTrigger asChild>
         <button type="button" className={modeButton} disabled={saving}>
           <Icon size={14} strokeWidth={1.8} aria-hidden />
-          Saving: {WRITE_MODE_LABELS[mode]}
+          {WRITE_SETTING}: {WRITE_MODE_LABELS[mode]}
           <ChevronDown size={13} strokeWidth={1.8} aria-hidden />
         </button>
       </DropdownMenuTrigger>

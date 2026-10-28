@@ -50,7 +50,7 @@ export function ReportScreen({ runId }: { runId: string }) {
   return (
     <FlowShell
       title={report.data?.name ?? 'Results'}
-      step="Report"
+      step="Results"
       footer={
         report.status === 'success' && (
           <ReportFooter

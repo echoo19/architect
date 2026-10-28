@@ -55,7 +55,7 @@ export function ProposalView({
             </span>
           )}
         </Fact>
-        <Fact label="Needs practice">{TRAINING_NEED[proposal.kind]}</Fact>
+        <Fact label="Practice needed">{TRAINING_NEED[proposal.kind]}</Fact>
         <Fact label="Why">{proposal.reason}</Fact>
         <Fact label="Cost">
           <span className="font-mono tabular-nums">{costLabel(correction.costUsd)}</span>

@@ -337,7 +337,7 @@ function TrainBoard({
   if (run.status === 'finished') {
     footer = improves
       ? { label: 'See what changed', onClick: () => navigate(paths.improvement(run.id)) }
-      : { label: 'See the report card', onClick: () => navigate(paths.report(run.id)) };
+      : { label: 'See the results', onClick: () => navigate(paths.report(run.id)) };
   }
   const evidence = records.data ?? null;
   const failure =

@@ -531,7 +531,7 @@ describe('a comparisons report', () => {
       memory: null,
     });
     expect(targeted).toMatchObject({
-      label: 'Glimmer mentored by Spark',
+      label: 'Glimmer taught by Spark',
       current: true,
       hosted: { pass: 51, repeat: { seed: 102, pass: 50, total: 60, complete: true } },
       local: { pass: 47 },
@@ -551,7 +551,7 @@ describe('a comparisons report', () => {
       names,
     )[0];
     expect(second).toMatchObject({
-      label: 'Spark doing the tasks itself, with the mentored setup',
+      label: "Spark doing the tasks itself, with Glimmer's final setup",
       hosted: { pass: 58 },
       local: null,
     });

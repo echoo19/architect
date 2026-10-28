@@ -56,7 +56,7 @@ const TABS: readonly SettingsTab<AdvancedTab>[] = [
   { value: 'tasks', label: 'Example tasks' },
   { value: 'requirements', label: 'Ready when' },
   { value: 'budget', label: 'Time and budget' },
-  { value: 'mentor', label: 'Mentor' },
+  { value: 'mentor', label: 'Teacher' },
   { value: 'student', label: "Agent's model" },
   { value: 'harness', label: 'Starting instructions' },
   { value: 'checker', label: 'Grading', group: EXPERIMENTS },
@@ -400,7 +400,7 @@ function MentorTab({ editor }: TabProps) {
   const name = modelNames(job).mentor;
   if (mentor.kind !== 'model') {
     return (
-      <SettingsRow label="Mentor" meta="Edits the agent's instructions, skills and tools directly">
+      <SettingsRow label="Teacher" meta="Edits the agent's instructions, skills and tools directly">
         <SettingsValue>{mentor.label}</SettingsValue>
       </SettingsRow>
     );
@@ -411,10 +411,10 @@ function MentorTab({ editor }: TabProps) {
   const billed = pricing !== null && pricing.inputPerM + pricing.outputPerM > 0;
   return (
     <>
-      <SettingsRow label="Mentor" meta={mentor.model} metaFont="code">
+      <SettingsRow label="Teacher" meta={mentor.model} metaFont="code">
         <ModelPicker
           role="mentor"
-          aria-label="Mentor"
+          aria-label="Teacher"
           current={mentor}
           onChoose={(choice) =>
             change((current) => ({
@@ -522,14 +522,14 @@ function StudentTab({ editor }: TabProps) {
         }
       />
       <SettingsRow
-        label="Hosted copy for practice"
+        label="Online copy for practice"
         meta={hosted ? hosted.model : 'Optional, for faster practice'}
         metaFont={hosted ? 'code' : 'text'}
         error={issues['student.hosted']}
       >
         <ModelPicker
           role="hosted"
-          aria-label="Hosted copy for practice"
+          aria-label="Online copy for practice"
           current={hosted ?? null}
           none={{
             label: 'None',
@@ -638,7 +638,7 @@ function SplitsTab({ editor }: TabProps) {
     <>
       <NumberField
         label="Practice tasks"
-        meta={`${mentor} studies ${student}'s mistakes on these`}
+        meta={`${mentor} teaches ${student} from these`}
         unit="tasks"
         value={train}
         issue={issues['splits.train']}
@@ -646,7 +646,7 @@ function SplitsTab({ editor }: TabProps) {
       />
       <NumberField
         label="Check tasks"
-        meta={`Decide which changes stay. ${mentor} sees only the score.`}
+        meta={`${mentor} sees only the score. It decides which changes stay.`}
         unit="tasks"
         value={dev}
         issue={issues['splits.dev']}
@@ -654,7 +654,7 @@ function SplitsTab({ editor }: TabProps) {
       />
       <NumberField
         label="Final test"
-        meta="Locked until training ends"
+        meta="Opened once, at the end"
         unit="tasks"
         value={test}
         issue={issues['splits.test']}
@@ -711,7 +711,7 @@ function EvaluationTab({ editor }: TabProps) {
       />
       <NumberField
         label="Give up after"
-        meta="Rejected changes in a row"
+        meta="Rounds in a row without a gain"
         unit="rounds"
         value={job.evaluation.patience}
         issue={issues['evaluation.patience']}

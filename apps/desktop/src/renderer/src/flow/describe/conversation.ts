@@ -35,7 +35,7 @@ export interface Conversation {
   sessionId: string | null;
   entries: Entry[];
   waiting: Request | null;
-  failure: { request: Request; message: string } | null;
+  failure: { request: Request; error: Error } | null;
   /** The draft that was saved and its job id, so reviewing it again keeps any edits made since. */
   saved: { entryId: string; jobId: string } | null;
 }
@@ -44,7 +44,7 @@ export type ConversationAction =
   | { type: 'sent'; text: string; files: string[]; at: number; option?: string }
   | { type: 'retried'; at: number }
   | { type: 'replied'; turn: DraftTurn }
-  | { type: 'failed'; message: string }
+  | { type: 'failed'; error: Error }
   | { type: 'saved'; entryId: string; jobId: string }
   | { type: 'reset' };
 
@@ -104,7 +104,7 @@ export function conversationReducer(state: Conversation, action: ConversationAct
     }
     case 'failed':
       return state.waiting
-        ? { ...state, waiting: null, failure: { request: state.waiting, message: action.message } }
+        ? { ...state, waiting: null, failure: { request: state.waiting, error: action.error } }
         : state;
     case 'saved':
       return { ...state, saved: { entryId: action.entryId, jobId: action.jobId } };

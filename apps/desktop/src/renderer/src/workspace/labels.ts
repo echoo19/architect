@@ -12,7 +12,7 @@ import {
 export const WRITE_MODES = ['ask', 'allow', 'never'] as const satisfies readonly PermissionMode[];
 
 /** What the write choices control, named the same way on every screen. */
-export const WRITE_SETTING = 'Saving changes to your files';
+export const WRITE_SETTING = 'Saving files';
 
 /** The three answers to the write setting, in the same words on every screen. */
 export const WRITE_MODE_LABELS: Record<PermissionMode, string> = {

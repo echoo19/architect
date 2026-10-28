@@ -102,9 +102,7 @@ export function Findings({
         {intervention.setAside.map((item) => (
           <li key={`${item.taskId}-${item.reason}`} className="flex items-start gap-2.5 text-sm">
             <CircleMinus size={14} aria-hidden className="mt-[3px] shrink-0 text-fg-faint" />
-            <span className="text-fg-muted text-pretty">
-              Set aside a finding on {item.taskId}: {item.reason}
-            </span>
+            <span className="text-fg-muted text-pretty">Set aside a finding: {item.reason}</span>
           </li>
         ))}
       </ul>
@@ -260,8 +258,8 @@ export function CheckTasks({
       actions={
         <EvidenceMark kind="check">
           {runs > 1
-            ? `${runs} runs, never shown to ${names.mentor}`
-            : `Never shown to ${names.mentor}`}
+            ? `${runs} runs. ${names.mentor} sees only the score`
+            : `${names.mentor} sees only the score`}
         </EvidenceMark>
       }
     >

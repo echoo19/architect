@@ -12,10 +12,11 @@ export function missedRequirements(report: ReportCard): string[] {
     const target = Math.round(passRate.target * 100);
     const total = report.test?.score.total;
     const needed = total ? Math.ceil(passRate.target * total - 1e-9) : null;
+    const count = needed === total ? `all ${total}` : `${needed} of ${total}`;
     missed.push(
       needed === null
         ? `${Math.round(passRate.actual * 100)}% right, and the job needs ${target}%`
-        : `${report.test.score.pass} of ${total} right, and the job needs ${needed} of ${total} (${target}%)`,
+        : `${report.test.score.pass} of ${total} right, and the job needs ${target}%, which is ${count}`,
     );
   }
   if (p95LatencyMs && !p95LatencyMs.met) {

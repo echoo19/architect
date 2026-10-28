@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Job, ListedLesson } from '@architect/shared';
-import { Panel, PanelHeader, PanelRow, Skeleton } from '@architect/ui';
+import { cn, Panel, PanelHeader, PanelRow, Skeleton } from '@architect/ui';
 import { Check, ChevronRight, X } from 'lucide-react';
 import type { QueryState } from '../../api/query';
 import type { MentoringRecords } from '../../api/mentoring';
@@ -38,7 +38,11 @@ export function Examples({
   const newest = [...lessons].reverse();
   const shown = all ? newest : newest.slice(0, SHOWN);
   return (
-    <Panel aria-label="Worked examples" className="min-w-0 flex-[7_1_560px]">
+    // With no example to list it is only as tall as its one line, not as tall as the rounds beside it.
+    <Panel
+      aria-label="Worked examples"
+      className={cn('min-w-0 flex-[7_1_560px]', lessons.length === 0 && 'self-start')}
+    >
       <PanelHeader
         title="Worked examples"
         actions={

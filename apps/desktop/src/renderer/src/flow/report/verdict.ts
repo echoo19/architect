@@ -63,9 +63,9 @@ export function reportVerdict(
       pill: 'Not ready',
       title: `${name} finished training`,
       because: [
-        `Not ready: ${missed.join(', and ')}.`,
+        `It missed the job's target: ${missed.join(', and ')}.`,
         ...(problem ? [problem.cause] : []),
-        'You can still use it, or train again.',
+        'You can still use it.',
       ],
       usable: installation?.status !== 'needs_attention',
     };

@@ -23,6 +23,7 @@ import {
   useFreshTeaching,
   useTeachingOverview,
 } from '../../api/teaching';
+import { ProblemState } from '../../components/ProblemState';
 import { formatUsd } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
 import { useAgentSettingsUi } from '../settings/agentSettingsUi';
@@ -115,10 +116,10 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
   let footer: ReactNode;
   if (overview.status === 'error' && !ready) {
     body = (
-      <ErrorState
+      <ProblemState
         layout="inline"
+        error={overview.error}
         title="Couldn't check whether it can be taught here"
-        message={overview.error.message}
         onRetry={overview.reload}
       />
     );
@@ -172,7 +173,8 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
       ) : (
         <Settled title="Saved for the next improve">
           <span>
-            {lessonCount(Math.max(queued, 1))} waiting. They are taught when you improve it.
+            {lessonCount(Math.max(queued, 1))} saved. {queued > 1 ? 'They are' : 'It is'} taught
+            when you improve it.
           </span>
         </Settled>
       );

@@ -19,7 +19,7 @@ const STOP_REASONS: Record<Trace['stopReason'], string | null> = {
   aborted: 'Stopped before it finished.',
 };
 
-/** "Practice task, round 4" or "Check task, round 3 · never shown to Spark", with its mark. */
+/** "Practice task, round 4" or "Check task, round 3 · Spark sees only the score", with its mark. */
 function AttemptKind({ attempt, mentor }: { attempt: ListedAttempt; mentor: string }) {
   const check = attempt.split === 'dev';
   const kind = check ? 'Check task' : 'Practice task';
@@ -28,7 +28,7 @@ function AttemptKind({ attempt, mentor }: { attempt: ListedAttempt; mentor: stri
       <EvidenceMark kind={check ? 'check' : 'practice'} className="align-[-2px]">
         {attempt.round ? `${kind}, round ${attempt.round}` : kind}
       </EvidenceMark>
-      {check && ` · never shown to ${mentor}`}
+      {check && ` · ${mentor} sees only the score`}
     </>
   );
 }

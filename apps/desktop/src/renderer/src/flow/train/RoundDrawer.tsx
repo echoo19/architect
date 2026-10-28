@@ -26,7 +26,7 @@ import { flowApi } from '../../api/client';
 import { useQuery } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
 import { formatRange, formatRate, signed } from '../format';
-import { typeLabel } from '../names';
+import { modelNames, typeLabel } from '../names';
 import { decisionSentence, harmSentence, predictionCheck } from './decision';
 import { PatchLines } from '../../components/PatchLines';
 import { changeSummary, countChanges, parseUnifiedDiff } from './diff';
@@ -364,8 +364,13 @@ function dispositionReason(
       return scores ? `${scores} But ${gate.charAt(0).toLowerCase()}${gate.slice(1)}` : gate;
     }
     // Neither kind was measured: an invalid change was never made, a stopped one never taken.
-    case 'invalid':
-      return `${sentence(experiment.reason)} Nothing changed.`;
+    case 'invalid': {
+      // Retraining the model is the one change a run can ask for that this computer can't make.
+      const { mentor, student } = modelNames(job);
+      return experiment.kind === 'weights'
+        ? `${mentor} wanted to retrain ${student}'s model, which this computer can't do. Nothing changed.`
+        : `${sentence(experiment.reason)} Nothing changed.`;
+    }
     case 'stopped':
       return `${sentence(experiment.reason)} It isn't in the agent.`;
   }

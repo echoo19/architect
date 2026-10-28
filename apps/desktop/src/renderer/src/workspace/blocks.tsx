@@ -254,10 +254,10 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
             <div className="flex gap-1.5">
               {choice('deny', 'Deny')}
               <Tooltip
-                content={`${agent.name} will save changes to any of its files without asking. You can change this next to the message box, under Saving.`}
+                content={`${agent.name} will save changes to any of its files without asking. You can change this next to the message box, under Saving files.`}
                 side="top"
               >
-                {choice('always', 'Always allow saving')}
+                {choice('always', 'Allow saving from now on')}
               </Tooltip>
               {choice('approve', 'Allow once', true)}
             </div>

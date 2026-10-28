@@ -4,11 +4,11 @@ import { X } from 'lucide-react';
 import { isMac } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 
-const FLOW_STEPS = ['Describe', 'Define', 'Train', 'Report'] as const;
+const FLOW_STEPS = ['Describe', 'Define', 'Train', 'Results'] as const;
 export type FlowStep = (typeof FLOW_STEPS)[number];
 
 /** Improve agent's steps: the lessons it was taught, the improvement, and what it changed. */
-export const IMPROVE_STEPS = ['Lessons', 'Improve', 'Report'] as const;
+export const IMPROVE_STEPS = ['Lessons', 'Improve', 'Results'] as const;
 
 export interface FlowShellProps<Step extends string = FlowStep> {
   /** The job's name once it has one; "New agent" before. */

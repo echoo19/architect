@@ -333,7 +333,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
         <SettingsValue>Never, by design</SettingsValue>
       </SettingsRow>
       <SettingsRow
-        label="Opening a file the job doesn't list"
+        label="Opening files outside the job"
         meta="Set by its job when it was trained"
         error={errorOf(versions)}
       >
@@ -360,8 +360,8 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
         label="Files it can change"
         meta={
           savingNever
-            ? 'Set by its job. Saving is set to Never, so it changes none of them now.'
-            : 'Set by its job, and only as Saving changes allows'
+            ? `Set by its job. ${WRITE_SETTING} is set to Never, so it changes none of them now.`
+            : `Set by its job, and only as ${WRITE_SETTING} allows`
         }
         error={errorOf(versions)}
       >

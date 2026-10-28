@@ -144,14 +144,14 @@ describe('curveGeometry', () => {
 describe('describeCurve', () => {
   it('reads the chart out round by round', () => {
     expect(describeCurve(RUN)).toBe(
-      'Check tasks right by round: 40% at the start, 58% after round 1, round 2 reverted at 55%, ' +
+      'Score on the check tasks by round: 40% at the start, 58% after round 1, round 2 undone at 55%, ' +
         '78% after round 3, round 4 in progress. Target 90%.',
     );
   });
 
   it('says when nothing is measured yet', () => {
     expect(describeCurve({ ...RUN, baseline: null, rounds: [] })).toBe(
-      'Check tasks right by round: nothing measured yet. Target 90%.',
+      'Score on the check tasks by round: nothing measured yet. Target 90%.',
     );
   });
 });

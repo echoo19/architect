@@ -220,7 +220,7 @@ export function ReportView({
           <Stat
             className="bg-panel p-[22px]"
             value={cents(bill.total)}
-            label={bill.parts.length > 0 ? 'Training cost' : `${names.mentor} mentoring`}
+            label="Training cost"
             note={<Lines lines={[...bill.parts, trainingNote(report, job)]} />}
             noteFont="text"
           />
@@ -231,7 +231,7 @@ export function ReportView({
           <ProblemState
             layout="inline"
             error={evidence.error}
-            title="Its memory readings couldn't be read"
+            title="Some of these figures couldn't be loaded"
             onRetry={evidence.reload}
           />
         ) : (

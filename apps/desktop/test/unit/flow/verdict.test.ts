@@ -66,7 +66,7 @@ describe('the one verdict of a report', () => {
     );
     expect(verdict.state).toBe('blocked');
     expect(verdict.because[1]).toMatch(
-      /^It also fell short: 58 of 60 right, and the job needs 57 of 60/,
+      /^It also fell short: 58 of 60 right, and the job needs 95%, which is 57 of 60/,
     );
   });
 
@@ -82,8 +82,8 @@ describe('the one verdict of a report', () => {
       title: 'Returns desk finished training',
       usable: true,
     });
-    expect(verdict.because[0]).toMatch(/^Not ready: /);
-    expect(verdict.because.at(-1)).toBe('You can still use it, or train again.');
+    expect(verdict.because[0]).toMatch(/^It missed the job's target: /);
+    expect(verdict.because.at(-1)).toBe('You can still use it.');
   });
 
   it('asks for the one step that is missing when an agent that met its targets needs attention', () => {

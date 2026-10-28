@@ -177,9 +177,8 @@ function AgentListSkeleton() {
 }
 
 function AgentList({ graduates, route }: { graduates: GraduateSummary[]; route: Route }) {
-  if (graduates.length === 0) {
-    return <p className="m-0 px-2.5 text-sm text-fg-muted">No agents yet</p>;
-  }
+  // With none, the screen beside it says so, and New agent above is the way to make one.
+  if (graduates.length === 0) return null;
   return (
     <div className="flex flex-col gap-3">
       {graduates.map((graduate) => (

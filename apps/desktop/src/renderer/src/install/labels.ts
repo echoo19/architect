@@ -27,7 +27,7 @@ export const CHECK_LABELS: Record<string, string> = {
 };
 
 export const STATUS_LABELS: Record<InstallStatus, string> = {
-  ready: 'Ready to run',
+  ready: 'All checks passed',
   needs_attention: 'Needs attention',
   blocked: "Can't run",
   unchecked: 'Not checked yet',

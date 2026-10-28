@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import type { Job, ListedAttempt, ListedLesson, Trace } from '@architect/shared';
 import {
   Button,
@@ -69,7 +69,8 @@ export function LessonDrawerContent({
           Worked example · {typeLabel(job, lesson.taskType)} ·{' '}
           <EvidenceMark kind="practice" className="align-[-2px]">
             {round}
-          </EvidenceMark>
+          </EvidenceMark>{' '}
+          · {lessonOrigin(lesson)}
         </>
       }
     >
@@ -77,7 +78,7 @@ export function LessonDrawerContent({
         {lesson.prompt && <WholeRequest prompt={lesson.prompt} />}
         <VerdictBox
           passed={lesson.status === 'verified'}
-          title={`${lessonStatus(lesson)} · ${lessonOrigin(lesson)}`}
+          title={`${names.mentor}'s example ${lessonStatus(lesson).toLowerCase()}`}
           reason={lesson.reason}
         />
         <BeforeAndAfter
@@ -191,32 +192,47 @@ function BeforeAndAfter({
   // A correction that never ran has no answer; its steps say so below.
   if (correction.status === 'success' && correction.data === null) return null;
   const before = answerOf(original.finalText) || attempt.answerSummary || '';
+  const after =
+    correction.status === 'success' && correction.data !== null
+      ? answerOf(correction.data.finalText)
+      : '';
+  const answers = [
+    { who: names.student, text: before },
+    { who: `${names.mentor}'s correction`, text: after },
+  ].filter((answer) => answer.text !== '');
   return (
     // Whose answer each is, in the title: the second is Spark's, for Glimmer to learn from.
     <DrawerSection title={`${names.student}'s answer, and ${names.mentor}'s correction`}>
       <dl className="m-0 grid grid-cols-[auto_auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2.5 text-sm">
-        <AnswerRow
-          who={names.student}
-          passed={attempt.check.pass}
-          answer={before}
-          note={attempt.check.reason}
-        />
+        <AnswerRow who={names.student} passed={attempt.check.pass} note={attempt.check.reason} />
         {correction.status === 'success' && correction.data !== null && (
           <AnswerRow
             who={`${names.mentor}'s correction`}
             passed={lesson.status === 'verified'}
-            answer={answerOf(correction.data.finalText)}
+            note={lesson.status === 'verified' ? 'Got it right.' : 'Got it wrong.'}
           />
         )}
         {correction.status === 'error' && (
           <AnswerRow
             who={`${names.mentor}'s correction`}
             passed={null}
-            answer={null}
             note="Couldn't be read, like its steps below."
           />
         )}
       </dl>
+      {/* The answers as the task's format writes them, for whoever wants to compare them. */}
+      {answers.length > 0 && (
+        <Disclosure label="Details">
+          <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+            {answers.map((answer) => (
+              <Fragment key={answer.who}>
+                <dt className="text-fg-secondary">{answer.who}</dt>
+                <dd className="m-0 break-words font-mono text-fg">{answer.text}</dd>
+              </Fragment>
+            ))}
+          </dl>
+        </Disclosure>
+      )}
     </DrawerSection>
   );
 }
@@ -224,14 +240,11 @@ function BeforeAndAfter({
 function AnswerRow({
   who,
   passed,
-  answer,
   note,
 }: {
   who: string;
   /** Null when there is no answer to mark. */
   passed: boolean | null;
-  /** Null when the answer couldn't be read. */
-  answer: string | null;
   note?: string | undefined;
 }) {
   return (
@@ -263,7 +276,6 @@ function AnswerRow({
       )}
       <dt className="text-fg-secondary">{who}</dt>
       <dd className="m-0 flex min-w-0 flex-col gap-0.5">
-        {answer !== null && <span className="break-words font-mono text-fg">{answer}</span>}
         {note && <span className="text-fg-muted text-pretty">{note}</span>}
       </dd>
     </>

@@ -20,7 +20,7 @@ const TABS: readonly (SettingsTab<AgentSettingsTab> & { Panel: ComponentType<Tab
   { value: 'general', label: 'General', Panel: GeneralTab },
   { value: 'permissions', label: 'Permissions', Panel: PermissionsTab },
   { value: 'teaching', label: 'Teaching', Panel: TeachingTab },
-  { value: 'report', label: 'Report', Panel: ReportTab },
+  { value: 'report', label: 'Results', Panel: ReportTab },
   { value: 'export', label: 'Export', Panel: ExportTab },
 ];
 

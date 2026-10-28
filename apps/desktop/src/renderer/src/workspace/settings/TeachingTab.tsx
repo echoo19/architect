@@ -126,9 +126,9 @@ function VersionRow({
       >
         <div className="flex items-center gap-4">
           {score && (
-            <span className="flex items-baseline gap-2 tabular-nums">
+            <span className="flex flex-col items-end tabular-nums">
               <span className="font-mono">{formatPercent(score)}</span>
-              <span className="text-sm text-fg-muted">
+              <span className="text-xs text-fg-muted">
                 {score.pass} of {score.total} passed
               </span>
             </span>

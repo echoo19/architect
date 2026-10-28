@@ -33,7 +33,7 @@ export function ReportTab({ agent }: { agent: GraduateSummary }) {
   }
   if (report.status === 'loading') {
     return (
-      <div aria-busy="true" aria-label="Loading the report card" className="flex flex-col gap-7">
+      <div aria-busy="true" aria-label="Loading the results" className="flex flex-col gap-7">
         <Skeleton className="h-[116px] w-full rounded-2xl" />
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-4/5" />
