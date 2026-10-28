@@ -83,6 +83,7 @@ export const job: Job = {
       { name: 'bookings.csv', kind: 'table', access: 'write' },
       { name: 'policy.md', kind: 'text', access: 'read' },
     ],
+    output: { description: 'Notes for the technicians.' },
   },
   permissions: { writes: 'ask', unseenFiles: 'ask' },
   checker: { kind: 'builtin' },
@@ -175,7 +176,7 @@ export const rounds: Round[] = [
       devDeltaMax: 12,
       rationale: 'The blank start misses most invoices and bookings.',
     },
-    files: ['system.md', 'skills/price-a-job.md', 'skills/book-urgent-calls.md'],
+    files: ['AGENTS.md', 'skills/book-urgent-calls/SKILL.md', 'skills/price-a-job/SKILL.md'],
     candidateVersion: 2,
     devBefore: { pass: 16, total: 40 },
     devAfter: { pass: 26, total: 40 },
@@ -186,9 +187,9 @@ export const rounds: Round[] = [
   }),
   round(2, {
     title: 'Filter tables before reading them',
-    diagnosis: 'It calls read_table without filters and runs out of steps on the larger files.',
+    diagnosis: 'It reads whole tables a page at a time and runs out of steps on the larger files.',
     predicted: { devDeltaMin: 2, devDeltaMax: 4, rationale: 'Fewer wasted steps.' },
-    files: ['system.md'],
+    files: ['AGENTS.md'],
     candidateVersion: 3,
     devBefore: { pass: 26, total: 40 },
     devAfter: { pass: 25, total: 40 },
@@ -201,7 +202,7 @@ export const rounds: Round[] = [
       'Totals drift by a cent or more because it rounds each line item as it goes. The ' +
       'policy says to work in integer cents and round once, at the end.',
     predicted: { devDeltaMin: 5, devDeltaMax: 9, rationale: 'Every invoice total depends on it.' },
-    files: ['system.md', 'skills/price-a-job.md'],
+    files: ['AGENTS.md', 'skills/price-a-job/SKILL.md'],
     candidateVersion: 4,
     devBefore: { pass: 52, total: 80 },
     devAfter: { pass: 62, total: 80 },
@@ -219,7 +220,11 @@ export const rounds: Round[] = [
       'Bookings start too early: it ignores the drive between zones, so 3 of 4 scheduling ' +
       "failures pick a slot the technician can't reach in time.",
     predicted: { devDeltaMin: 3, devDeltaMax: 6, rationale: 'Scheduling is the weakest type.' },
-    files: ['skills/book-urgent-calls.md', 'tools/travel_minutes.js', 'tools/travel_minutes.json'],
+    files: [
+      'skills/book-urgent-calls/SKILL.md',
+      'tools/travel_minutes.js',
+      'tools/travel_minutes.json',
+    ],
     candidateVersion: 5,
   }),
 ];
@@ -378,43 +383,85 @@ export const trace: Trace = {
     {
       kind: 'model',
       text: 'I need licensed electricians who can reach zone C, and their bookings for Wednesday.',
-      toolCalls: [
-        {
-          id: 'call_1',
-          name: 'read_table',
-          arguments: {
-            file: 'technicians.csv',
-            where: [{ column: 'license', op: '=', value: 'electrical' }],
-          },
-        },
-      ],
+      toolCalls: [{ id: 'call_1', name: 'read', arguments: { path: 'data/technicians.csv' } }],
       usage: { inputTokens: 3_100, outputTokens: 96 },
       latencyMs: 2_400,
     },
     {
       kind: 'tool',
       callId: 'call_1',
-      name: 'read_table',
-      arguments: {
-        file: 'technicians.csv',
-        where: [{ column: 'license', op: '=', value: 'electrical' }],
-      },
+      name: 'read',
+      arguments: { path: 'data/technicians.csv' },
       result: [
-        { id: 'T-07', name: 'Priya N.', zone: 'A', hours: '08:00-16:30' },
-        { id: 'T-11', name: 'Marcus O.', zone: 'C', hours: '10:00-18:30' },
-      ],
+        '1\tid,name,zone,license,hours',
+        '2\tT-07,Priya N.,A,electrical,08:00-16:30',
+        '3\tT-09,Ade O.,B,plumbing,07:30-16:00',
+        '4\tT-11,Marcus O.,C,electrical,10:00-18:30',
+      ].join('\n'),
+      table: {
+        columns: ['id', 'name', 'zone', 'license', 'hours'],
+        rows: [
+          ['T-07', 'Priya N.', 'A', 'electrical', '08:00-16:30'],
+          ['T-09', 'Ade O.', 'B', 'plumbing', '07:30-16:00'],
+          ['T-11', 'Marcus O.', 'C', 'electrical', '10:00-18:30'],
+        ],
+        total: 3,
+      },
       latencyMs: 31,
+    },
+    {
+      kind: 'model',
+      text: '',
+      toolCalls: [
+        {
+          id: 'call_2',
+          name: 'grep',
+          arguments: { pattern: ',T-(07|11),2026-10-28,', path: 'data/bookings.csv' },
+        },
+      ],
+      usage: { inputTokens: 3_500, outputTokens: 64 },
+      latencyMs: 1_800,
     },
     {
       kind: 'tool',
       callId: 'call_2',
-      name: 'read_table',
-      arguments: {
-        file: 'bookings.csv',
-        where: [{ column: 'date', op: '=', value: '2026-10-28' }],
-      },
-      result: [{ technician: 'T-07', start: '13:00', end: '14:30', zone: 'B' }],
+      name: 'grep',
+      arguments: { pattern: ',T-(07|11),2026-10-28,', path: 'data/bookings.csv' },
+      result: 'data/bookings.csv:88: B-3040,T-07,2026-10-28,13:00,14:30,B',
       latencyMs: 28,
+    },
+    {
+      kind: 'model',
+      text: '',
+      toolCalls: [
+        {
+          id: 'call_3',
+          name: 'run',
+          arguments: {
+            code: [
+              "const hours = { start: '08:00', end: '16:30' };",
+              "const booked = { start: '13:00', end: '14:30' };",
+              'hours.start < booked.start ? hours.start : booked.end',
+            ].join('\n'),
+          },
+        },
+      ],
+      usage: { inputTokens: 3_700, outputTokens: 88 },
+      latencyMs: 2_100,
+    },
+    {
+      kind: 'tool',
+      callId: 'call_3',
+      name: 'run',
+      arguments: {
+        code: [
+          "const hours = { start: '08:00', end: '16:30' };",
+          "const booked = { start: '13:00', end: '14:30' };",
+          'hours.start < booked.start ? hours.start : booked.end',
+        ].join('\n'),
+      },
+      result: '=> "08:00"',
+      latencyMs: 40,
     },
     {
       kind: 'model',
@@ -433,14 +480,14 @@ export const trace: Trace = {
 
 export const roundDiff: FileDiff[] = [
   {
-    path: 'system.md',
+    path: 'AGENTS.md',
     status: 'modified',
     patch: [
-      '--- a/system.md',
-      '+++ b/system.md',
+      '--- a/AGENTS.md',
+      '+++ b/AGENTS.md',
       '@@ -4,4 +4,6 @@ You are the service desk for Ferncliff Home Services.',
-      ' Read policy.md before you price a job, chase a balance or book a visit.',
-      ' Use the data tools for every number; never estimate from memory.',
+      ' Read data/policy.md before you price a job, chase a balance or book a visit.',
+      ' Work out every number with run; never estimate from memory.',
       '-Round each line item to the nearest cent as you go.',
       '+Work in integer cents from start to finish.',
       '+Add the lines, take off the plan-member discount, add the city tax,',
@@ -449,13 +496,13 @@ export const roundDiff: FileDiff[] = [
     ].join('\n'),
   },
   {
-    path: 'skills/price-a-job.md',
+    path: 'skills/price-a-job/SKILL.md',
     status: 'modified',
     patch: [
-      '--- a/skills/price-a-job.md',
-      '+++ b/skills/price-a-job.md',
-      '@@ -6,5 +6,6 @@ task_types: [invoice]',
-      ' 1. Read the job row from jobs.csv and the tier from technicians.csv.',
+      '--- a/skills/price-a-job/SKILL.md',
+      '+++ b/skills/price-a-job/SKILL.md',
+      '@@ -5,5 +5,6 @@ description: Price a finished job from the rate card.',
+      ' 1. Read the job row from data/jobs.csv and the tier from data/technicians.csv.',
       '-2. Labor: hours times the tier rate, in dollars.',
       '+2. Labor: hours times the tier rate from policy.md, in cents.',
       ' 3. After hours (before 08:00, after 18:00, weekends): labor times 1.5.',

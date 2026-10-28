@@ -1,141 +1,254 @@
-import type { BuiltinToolName, Harness, JsonValue, RowDiff } from '@architect/shared';
-import type { PlannedWrite, TableStore } from '../data/table-store';
-import type { FileInfo } from '../data/types';
+import type {
+  BuiltinToolName,
+  JsonValue,
+  RowDiff,
+  TableView,
+  WriteRecord,
+  WriteToolName,
+} from '@architect/shared';
+import type { AgentFiles, PlannedChange } from '../files/agent-files';
+import { globMatcher } from '../files/glob';
+import { agentPath, isWithin } from '../files/paths';
+import { linesOf } from '../files/text';
+import type { Sandbox } from '../sandbox/types';
 import { parseArguments } from './arguments';
-import { calculate } from './calculator';
 import { ToolError } from './errors';
-import { fitTable, fitText } from './results';
+import { globList, GREP_LINE_CHARS, grepList, listing, readPage, runOutput } from './format';
+import { DEFAULT_GREP_MATCHES, DEFAULT_READ_LINES } from './specs';
 
-/** A write waiting for the user's decision in the workspace. */
+/** A change waiting for the user's decision in the workspace. */
 export interface PendingWrite {
-  tool: 'append_rows' | 'update_rows';
-  file: string;
-  /** e.g. "Append 1 row to invoices.csv" */
+  tool: WriteToolName;
+  /** The file it changes, e.g. `data/invoices.csv`. */
+  path: string;
+  /** e.g. "Add 1 row to data/invoices.csv" */
   summary: string;
-  diff: RowDiff;
+  patch: string;
+  /** For a table, the rows the change adds, removes and changes. */
+  rows?: RowDiff;
 }
 
 export type WriteDecision = 'approve' | 'deny';
 
 /**
- * Asks the user to approve a write. Absent in task mode, where writes go straight to the
- * attempt's scratch data.
+ * Asks the user to approve a change. Absent in task mode, where changes go straight to the
+ * attempt's scratch copy of the files.
  */
 export type ApproveWrite = (change: PendingWrite, signal?: AbortSignal) => Promise<WriteDecision>;
 
 export interface ExecutorResult {
   value: JsonValue;
-  /** Set when the call loaded a skill. */
+  /** Set when the call read one of the agent's skills. */
   loadedSkill?: string;
+  /** The change a write tool made or asked for. */
+  change?: WriteRecord;
+  /** The rows a read of a table showed. */
+  table?: TableView;
 }
 
 export type Executor = (args: unknown, signal?: AbortSignal) => Promise<ExecutorResult>;
 
 interface BuiltinDeps {
-  harness: Harness;
-  store: TableStore;
+  files: AgentFiles;
+  sandbox: Sandbox;
+  /** The working date, which `run` code sees as `today`. */
+  today: string;
   approveWrite?: ApproveWrite;
   budget: number;
 }
 
-export function builtinExecutors(deps: BuiltinDeps): Record<BuiltinToolName, Executor> {
-  const { harness, store, budget } = deps;
+const SKILL_FILE = /^skills\/([^/]+)\/SKILL\.md$/;
+/** Rows a read of a table keeps for people to see; the agent sees what fits its budget. */
+const TABLE_VIEW_ROWS = 200;
 
-  async function write(tool: PendingWrite['tool'], plan: PlannedWrite, signal?: AbortSignal) {
-    if (plan.changed > 0) {
-      if (deps.approveWrite) {
-        const change = { tool, file: plan.file, summary: plan.summary, diff: plan.diff };
-        const decision = await untilAborted(deps.approveWrite(change, signal), signal);
-        if (decision !== 'approve') {
-          return {
-            file: plan.file,
-            declined: true,
-            message: `The user declined this change, so nothing was written: ${plan.summary}.`,
-          };
-        }
+export function builtinExecutors(deps: BuiltinDeps): Record<BuiltinToolName, Executor> {
+  const { files, sandbox, budget } = deps;
+
+  async function change(plan: PlannedChange, signal?: AbortSignal): Promise<ExecutorResult> {
+    if (!plan.changes) return { value: plan.done };
+    const record = (applied: boolean): WriteRecord => ({
+      path: plan.path,
+      op: plan.op,
+      patch: plan.patch,
+      ...(plan.rows === undefined ? {} : { rows: plan.rows }),
+      applied,
+    });
+    if (deps.approveWrite) {
+      const pending: PendingWrite = {
+        tool: plan.op,
+        path: plan.path,
+        summary: plan.summary,
+        patch: plan.patch,
+        ...(plan.rows === undefined ? {} : { rows: plan.rows }),
+      };
+      const decision = await untilAborted(deps.approveWrite(pending, signal), signal);
+      if (decision !== 'approve') {
+        return {
+          value: `The user declined this change, so nothing was written: ${plan.summary}.`,
+          change: record(false),
+        };
       }
-      store.apply(plan);
-      if (store.mode === 'live') save(store);
     }
-    if (plan.kind === 'append') return { file: plan.file, appended: plan.changed };
-    const result: Record<string, JsonValue> = {
-      file: plan.file,
-      matched: plan.matched,
-      changed: plan.changed,
-    };
-    if (plan.changed === 0) result.note = `${plan.summary}.`;
-    return result;
+    await files.apply(plan);
+    return { value: plan.done, change: record(true) };
   }
 
   return {
-    async list_files(args) {
-      parseArguments('list_files', args);
-      return { value: { files: store.listFiles().map(fileInfoJson) } };
-    },
-    async read_table(args) {
-      const { file, where, columns, limit, offset = 0 } = parseArguments('read_table', args);
-      const result = store.read(file, { where, columns, limit, offset });
-      return { value: fitTable(file, result, offset, budget) };
-    },
-    async read_text(args) {
-      const { file, offset = 0 } = parseArguments('read_text', args);
-      return { value: fitText(file, store.readText(file), offset, budget) };
-    },
-    async calculate(args) {
-      const { expression } = parseArguments('calculate', args);
-      return { value: { result: calculate(expression) } };
-    },
-    async append_rows(args, signal) {
-      const { file, rows } = parseArguments('append_rows', args);
-      return { value: await write('append_rows', store.planAppend(file, rows), signal) };
-    },
-    async update_rows(args, signal) {
-      const { file, where, set } = parseArguments('update_rows', args);
-      return { value: await write('update_rows', store.planUpdate(file, where, set), signal) };
-    },
-    async load_skill(args) {
-      const { name } = parseArguments('load_skill', args);
-      const wanted = name.trim().toLowerCase();
-      const skill =
-        harness.skills.find((candidate) => candidate.slug === wanted) ??
-        harness.skills.find((candidate) => candidate.name.trim().toLowerCase() === wanted);
-      if (!skill) {
-        const names = harness.skills.map((candidate) => `${candidate.slug} (${candidate.name})`);
-        throw new ToolError(
-          names.length === 0
-            ? 'There are no skills to load.'
-            : `There is no skill called "${name}". The skills are: ${names.join(', ')}.`,
-        );
-      }
+    async read(args) {
+      const { path, offset = 1, limit = DEFAULT_READ_LINES } = parseArguments('read', args);
+      const clean = agentPath(path);
+      const text = files.read(clean);
+      const page = readPage(clean, text, offset, limit, budget);
+      const skill = SKILL_FILE.exec(clean)?.[1];
+      const table = tableView(files, clean, text, page.from, page.to);
       return {
-        value: { slug: skill.slug, name: skill.name, body: skill.body },
-        loadedSkill: skill.slug,
+        value: page.content,
+        ...(skill === undefined ? {} : { loadedSkill: skill }),
+        ...(table === undefined ? {} : { table }),
       };
     },
+    async ls(args) {
+      const { path = '' } = parseArguments('ls', args);
+      return { value: listing(files, agentPath(path), budget) };
+    },
+    async glob(args) {
+      const { pattern } = parseArguments('glob', args);
+      const matches = globMatcher(pattern);
+      const paths = files
+        .list()
+        .map((file) => file.path)
+        .filter(matches);
+      return { value: globList(pattern, paths) };
+    },
+    async grep(args) {
+      const {
+        pattern,
+        path = '',
+        glob,
+        ignore_case: ignoreCase = false,
+        limit,
+      } = parseArguments('grep', args);
+      const invalid = patternProblem(pattern, ignoreCase ? 'i' : '');
+      if (invalid !== null) {
+        throw new ToolError(`The pattern isn't a regular expression: ${invalid}`);
+      }
+      const scope = agentPath(path);
+      if (scope !== '' && !files.file(scope) && !files.isFolder(scope)) files.read(scope);
+      const inScope = (file: string) => file === scope || isWithin(file, scope);
+      const matchesGlob = glob === undefined ? () => true : globMatcher(glob);
+      const texts = files.texts();
+      const searched = Object.fromEntries(
+        files
+          .list()
+          .map((file) => file.path)
+          .filter((file) => inScope(file) && matchesGlob(file))
+          .map((file) => [file, texts[file] ?? '']),
+      );
+      const outcome = await sandbox.grep({
+        pattern,
+        ignoreCase,
+        files: searched,
+        limit: limit ?? DEFAULT_GREP_MATCHES,
+        lineChars: GREP_LINE_CHARS,
+      });
+      if (!outcome.ok) {
+        throw new ToolError(
+          outcome.failure.kind === 'timeout'
+            ? 'The search ran too long and was stopped. Try a simpler pattern, or search fewer files.'
+            : `The search failed: ${outcome.failure.message}`,
+        );
+      }
+      const where = scope === '' ? 'any file' : scope;
+      return { value: grepList(outcome.matches, outcome.total, where, budget) };
+    },
+    async write(args, signal) {
+      const { path, content } = parseArguments('write', args);
+      return change(files.plan('write', path, content), signal);
+    },
+    async edit(args, signal) {
+      const {
+        path,
+        old_string: before,
+        new_string: after,
+        replace_all: all = false,
+      } = parseArguments('edit', args);
+      const clean = agentPath(path);
+      const text = files.read(clean);
+      if (before === '') {
+        throw new ToolError(
+          'old_string is empty. To add text, use append, or give the text around where it goes.',
+        );
+      }
+      if (before === after) {
+        throw new ToolError('old_string and new_string are the same, so nothing would change.');
+      }
+      const target = before.replace(/\r\n?/g, '\n');
+      const found = text.split(target).length - 1;
+      if (found === 0) {
+        throw new ToolError(
+          `old_string isn't in ${clean}. Read the file and copy the text exactly, with its spaces and line breaks.`,
+        );
+      }
+      if (found > 1 && !all) {
+        throw new ToolError(
+          `old_string is in ${clean} ${found} times. Give more of the text around it so it matches once, or set replace_all to change all ${found}.`,
+        );
+      }
+      const replacement = after.replace(/\r\n?/g, '\n');
+      const next = all
+        ? text.split(target).join(replacement)
+        : text.replace(target, () => replacement);
+      return change(files.plan('edit', clean, next), signal);
+    },
+    async append(args, signal) {
+      const { path, text: added } = parseArguments('append', args);
+      if (added.trim() === '') throw new ToolError('text is empty, so there is nothing to add.');
+      const clean = agentPath(path);
+      const exists = files.file(clean) !== undefined;
+      const text = exists ? files.read(clean) : '';
+      const joined = text === '' || text.endsWith('\n') ? text : `${text}\n`;
+      const tail = added.replace(/\r\n?/g, '\n');
+      return change(
+        files.plan('append', clean, `${joined}${tail}${tail.endsWith('\n') ? '' : '\n'}`),
+        signal,
+      );
+    },
+    async run(args) {
+      const { code } = parseArguments('run', args);
+      if (code.trim() === '') throw new ToolError('code is empty, so there is nothing to run.');
+      const outcome = await sandbox.runCode({ code, files: files.texts(), today: deps.today });
+      if (!outcome.ok) throw new ToolError(`The code couldn't run: ${outcome.failure.message}`);
+      if (outcome.error) {
+        const printed = outcome.printed.trimEnd();
+        throw new ToolError(
+          printed === ''
+            ? outcome.error.message
+            : `${outcome.error.message}\nIt printed this before it stopped:\n${printed}`,
+        );
+      }
+      return { value: runOutput(outcome.printed, outcome.cut, outcome.value, budget) };
+    },
   };
 }
 
-/** Saves an approved write right away; if that fails, the change is dropped and reported. */
-function save(store: TableStore): void {
-  try {
-    store.commit();
-  } catch (error) {
-    store.discard();
-    const reason = error instanceof Error ? error.message : String(error);
-    throw new ToolError(`The change couldn't be saved, so nothing was written: ${reason}`);
-  }
-}
-
-function fileInfoJson(info: FileInfo): JsonValue {
-  const value: Record<string, JsonValue> = {
-    name: info.name,
-    kind: info.kind,
-    access: info.access,
-  };
-  if (info.description !== undefined) value.description = info.description;
-  if (info.rows !== undefined) value.rows = info.rows;
-  if (info.columns !== undefined) value.columns = info.columns;
-  return value;
+/**
+ * The rows a read of a table showed, when each of its lines holds one row: the data lines
+ * between `from` and `to`, line 1 being the header.
+ */
+function tableView(
+  files: AgentFiles,
+  path: string,
+  text: string,
+  from: number,
+  to: number,
+): TableView | undefined {
+  const table = files.tableAt(path);
+  if (!table || to < 2 || table.rows.length !== linesOf(text).length - 1) return undefined;
+  const rows = table.rows
+    .slice(Math.max(0, from - 2), to - 1)
+    .slice(0, TABLE_VIEW_ROWS)
+    .map((row) => table.columns.map((column) => row[column] ?? null));
+  return { columns: [...table.columns], rows, total: table.rows.length };
 }
 
 /** Waits for a promise, but gives up as soon as the signal aborts (e.g. the user stops the chat). */
@@ -156,4 +269,14 @@ function untilAborted<T>(promise: Promise<T>, signal: AbortSignal | undefined): 
       },
     );
   });
+}
+
+/** Why a pattern isn't a regular expression, or null when it is. Compiling one is quick and safe. */
+function patternProblem(pattern: string, flags: string): string | null {
+  try {
+    RegExp(pattern, flags);
+    return null;
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
 }

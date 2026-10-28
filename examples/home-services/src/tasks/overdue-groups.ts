@@ -2,16 +2,16 @@ import type { AnswerCompare, JsonValue, Task } from '@architect/shared';
 import { CITIES, ZONES } from '../company/catalog';
 import { customerCells } from '../company/tables';
 import type { CompanyRecords, Invoice, Payment } from '../company/types';
+import { addDays } from '../lib/calendar';
+import type { CsvRow } from '../lib/csv';
 import { groupBy } from '../lib/group-by';
 import { dollars } from '../lib/money';
 import type { Random } from '../lib/random';
 import { BUSINESS_DATE } from '../policy/rules';
 import { overdueBalances } from '../reference/balances';
-import { answerByReading } from '../reference/overdue-reads';
 import { answerQuestion, inGroup } from '../reference/overdue-questions';
 import type { GroupColumns, OverdueQuestion } from '../reference/overdue-questions';
-import { ReadTools } from '../reference/read-tools';
-import type { JobData } from '../reference/read-tools';
+import type { JobFiles } from '../reference/tools';
 import { mistakesThatMatter } from './overdue-mistakes';
 import type { Covered } from './overdue-mistakes';
 import { TODAY, withAnswerLine } from './prompts';
@@ -126,7 +126,7 @@ const PROMPTS: Prompts = {
 export function buildGroupTasks(
   random: Random,
   records: CompanyRecords,
-  data: JobData,
+  data: JobFiles,
 ): Omit<Task, 'id'>[] {
   const groups = customerGroups(records);
   const cap = new AnswerCap(1);
@@ -199,7 +199,7 @@ function candidatesFor(
   random: Random,
   group: CustomerGroup,
   kind: GroupKind,
-  data: JobData,
+  data: JobFiles,
 ): Candidate<GroupCase>[] {
   const question = questionFor(random, group, kind);
   if (!question) return [];
@@ -263,9 +263,9 @@ function groupTraps(
   group: CustomerGroup,
   question: GroupQuestion,
   answer: JsonValue,
-  data: JobData,
+  data: JobFiles,
 ): string[] {
-  const lazy = answerByReading(new ReadTools(data), question, BUSINESS_DATE, 'lazy');
+  const lazy = firstPageAnswer(question, data);
   const listed = (answer as { customers?: unknown[] }).customers ?? [];
   const age = question.kind === 'group_age';
   return [
@@ -282,6 +282,48 @@ function groupTraps(
     ...(age && dayBoundaryMatters(question, group.covered) ? ['day_boundary'] : []),
     ...(listed.length >= 2 ? ['largest_first'] : []),
   ];
+}
+
+/** Rows of a table a single read showed before paging: the most the first runtime gave unasked. */
+const FIRST_PAGE_ROWS = 50;
+
+/**
+ * The answer from the first page of each table a question needs, read the way a careless agent
+ * reads: the first 50 of the group's customers, of their past-due invoices, and of the payments on
+ * those. The job was built around this mistake when its agent read tables a page at a time, and a
+ * question whose answer it changes is marked `paging`. The same mistake now looks like taking a
+ * long result for all of it.
+ */
+function firstPageAnswer(question: GroupQuestion, data: JobFiles): JsonValue {
+  const firstPage = (rows: readonly CsvRow[]) => rows.slice(0, FIRST_PAGE_ROWS);
+  const members = new Set(
+    firstPage(data.rows('customers.csv').filter((row) => inGroup(row, question.group))).map((row) =>
+      String(row.customer_id),
+    ),
+  );
+  const before =
+    question.kind === 'group_age' ? addDays(BUSINESS_DATE, -question.days) : BUSINESS_DATE;
+  const invoices = firstPage(
+    data
+      .rows('invoices.csv')
+      .filter((row) => members.has(String(row.customer_id)) && String(row.due_date) < before),
+  ).map((row) => ({
+    invoice_id: String(row.invoice_id),
+    customer_id: String(row.customer_id),
+    due_date: String(row.due_date),
+    total_cents: Number(row.total_cents),
+  }));
+  const ids = new Set(invoices.map((invoice) => invoice.invoice_id));
+  const payments = firstPage(
+    data
+      .rows('payments.csv')
+      .filter((row) => ids.has(String(row.invoice_id)) && String(row.date) <= BUSINESS_DATE),
+  ).map((row) => ({
+    invoice_id: String(row.invoice_id),
+    date: String(row.date),
+    amount_cents: Number(row.amount_cents),
+  }));
+  return answerQuestion(question, invoices, payments, BUSINESS_DATE);
 }
 
 /** Whether counting an invoice exactly N days overdue as more than N would change the answer. */

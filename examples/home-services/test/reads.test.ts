@@ -1,113 +1,78 @@
-import type { JsonValue, Task } from '@architect/shared';
-import { describe, expect, it } from 'vitest';
+import { join } from 'node:path';
+import { createChecker, createSandbox, createToolbox, openAgentFiles } from '@architect/engine';
+import type { Sandbox } from '@architect/engine';
+import { HarnessSchema } from '@architect/shared';
+import type { CheckOutcome, JsonValue, Task } from '@architect/shared';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { CsvRow } from '../src/lib/csv';
 import { answerByReading } from '../src/reference/overdue-reads';
 import type { OverdueQuestion } from '../src/reference/overdue-questions';
-import { ReadTools } from '../src/reference/read-tools';
+import { AgentTools } from '../src/reference/tools';
+import type { ToolCall } from '../src/reference/tools';
 import { BOTH_VERSIONS, BUSINESS_DATE, answerOf, latestVersion, trapsOf } from './helpers';
 import type { JobFolder } from './helpers';
 import { daysFromTo, invoicesDueBetween, membersOf, openBalance, totalOpen } from './oracles';
 
 /**
- * The overdue reference solutions use only the agent's read tools, so their tool calls show what
- * each task costs in turns and context. These tests check the tools behave like the runner's,
- * that the solutions answer every task within ten calls, and that the mistakes the new questions
- * are built around (missing a page, counting an invoice due today) really fail.
+ * The overdue reference solutions use only the agent's tools, so their tool calls show what each
+ * task costs in turns and context. These tests replay every call through the runner's own tools
+ * and compare the text the agent gets back, grade every answer with the runner's checker, check
+ * that each task fits the agent's turns and a third of its context, and check that the mistakes
+ * the new questions are built around (missing part of a long result, counting an invoice due
+ * today) really fail.
  */
 
-describe('the read tools of the reference solutions', () => {
-  const day = (n: number) => `2026-10-${String((n % 28) + 1).padStart(2, '0')}`;
-  const rows = Array.from({ length: 450 }, (_, i) => ({
-    id: `R-${String(i + 1).padStart(3, '0')}`,
-    n: String(i + 1),
-    date: day(i),
-    note: 'x'.repeat(100),
-  }));
-  const longText = 'A line of the office policy.\n'.repeat(700);
-  const tools = () =>
-    new ReadTools({
-      tables: new Map([['t.csv', { columns: ['id', 'n', 'date', 'note'], rows }]]),
-      texts: new Map([
-        ['short.md', 'One line.\n'],
-        ['long.md', longText],
-      ]),
+/** Model turns the agent gets: one tool call each, and one more for the reply with ANSWER. */
+const MAX_STEPS = 16;
+/** A third of the agent's 16k-token context. */
+const MAX_CHARACTERS = 24_000;
+
+let sandbox: Sandbox;
+beforeAll(() => {
+  sandbox = createSandbox();
+});
+afterAll(() => sandbox.dispose());
+
+const harness = HarnessSchema.parse({
+  meta: { format: 2, name: 'Service desk', version: 0, hash: '' },
+  system: 'You are the Service desk agent.',
+  retrieval: {},
+  decoding: {},
+  guardrails: {},
+});
+
+/** The text the runner's tools give back for each call, on a fresh scratch copy of the files. */
+async function replay(job: JobFolder, calls: readonly ToolCall[]) {
+  const files = await openAgentFiles({
+    dataDir: join(job.dir, 'data'),
+    files: job.job().data.files,
+    mode: 'scratch',
+  });
+  const toolbox = createToolbox({ harness, files, sandbox, today: BUSINESS_DATE });
+  const contents: string[] = [];
+  for (const [index, call] of calls.entries()) {
+    const outcome = await toolbox.run({
+      id: `call_${index}`,
+      name: call.name,
+      arguments: call.arguments,
     });
+    contents.push(outcome.content);
+  }
+  return contents;
+}
 
-  it('return 50 rows unless asked for more, and never more than 200', () => {
-    const read = tools();
-    expect(read.readTable({ file: 't.csv', columns: ['id'] }).rows).toHaveLength(50);
-    const most = read.readTable({ file: 't.csv', columns: ['id'], limit: 500 });
-    expect(most.rows).toHaveLength(200);
-    expect([most.total, most.truncated]).toEqual([450, true]);
-    expect(read.calls).toBe(2);
-  });
-
-  it('page with offset until the last matching row', () => {
-    const read = tools();
-    const seen: string[] = [];
-    for (let page = { truncated: true }; page.truncated;) {
-      const next = read.readTable({
-        file: 't.csv',
-        columns: ['id'],
-        limit: 200,
-        offset: seen.length,
-      });
-      seen.push(...next.rows.map((row) => String(row.id)));
-      page = next;
-    }
-    expect(seen).toEqual(rows.map((row) => row.id));
-    expect(read.calls).toBe(3);
-  });
-
-  it('cut a result to 8,000 characters, written the way the runner writes it', () => {
-    const resultText = (count: number) =>
-      JSON.stringify({
-        file: 't.csv',
-        columns: ['id', 'note'],
-        rows: rows.slice(0, count).map((row) => [row.id, row.note]),
-        total: 450,
-        truncated: true,
-        note: `Rows 1 to ${count} of 450 are shown to stay within the size limit. Read again with offset ${count} for more, or ask for fewer columns.`,
-      });
-    let fits = 0;
-    while (resultText(fits + 1).length <= 8000) fits += 1;
-
-    const read = tools();
-    const page = read.readTable({ file: 't.csv', columns: ['id', 'note'], limit: 200 });
-    expect(page.rows).toHaveLength(fits);
-    expect(fits).toBeLessThan(200);
-    expect(read.characters).toBe(resultText(fits).length);
-  });
-
-  it('compare numbers as numbers and everything else as text', () => {
-    const read = tools();
-    const count = (where: Parameters<ReadTools['readTable']>[0]['where']) =>
-      read.readTable({ file: 't.csv', where, limit: 0 }).total;
-    expect(count([{ column: 'n', op: '=', value: 45 }])).toBe(1);
-    expect(count([{ column: 'n', op: '=', value: '45.0' }])).toBe(1);
-    expect(count([{ column: 'n', op: '<', value: '100' }])).toBe(99);
-    expect(count([{ column: 'n', op: 'in', value: [1, '2', 'R-003'] }])).toBe(2);
-    expect(count([{ column: 'id', op: 'in', value: ['R-001', 'R-450', 'R-999'] }])).toBe(2);
-    expect(count([{ column: 'date', op: '<', value: '2026-10-03' }])).toBe(
-      rows.filter((row) => row.date < '2026-10-03').length,
+describe('the tools of the reference solutions', () => {
+  it('read a long file in parts, numbered and noted the way the runner does', async () => {
+    const tools = new AgentTools(latestVersion.data());
+    tools.readAll('invoices.csv');
+    expect(tools.calls.length).toBeGreaterThan(10);
+    expect(tools.calls[1]?.content).toMatch(/^\d+\tINV-/);
+    expect(tools.calls[0]?.content).toMatch(
+      /\n\[Lines 1-\d+ of 1395\. 1,\d{3} more lines: read on with offset \d+\.\]$/,
     );
-    expect(() => count([{ column: 'missing', op: '=', value: 1 }])).toThrow(
-      't.csv has no column missing',
+    expect(await replay(latestVersion, tools.calls)).toEqual(
+      tools.calls.map((call) => call.content),
     );
-  });
-
-  it('hand a long text over in parts that end at a line break, and a short one whole', () => {
-    const read = tools();
-    expect(read.readText('short.md')).toEqual({ text: 'One line.\n', nextOffset: null });
-    let text = '';
-    for (let offset: number | null = 0; offset !== null;) {
-      const part = read.readText('long.md', offset);
-      expect(part.text.endsWith('\n')).toBe(true);
-      text += part.text;
-      offset = part.nextOffset;
-    }
-    expect(text).toBe(longText);
-    expect(read.calls).toBeGreaterThanOrEqual(3);
   });
 });
 
@@ -147,32 +112,59 @@ function grades(task: Task, answer: JsonValue): boolean {
   return canonical(answer) === canonical(task.expected.value);
 }
 
-describe.each(BOTH_VERSIONS)('reference solutions with read tools in version $version', (job) => {
-  const solved = job.tasksOfType('overdue').map((task) => {
-    const tools = new ReadTools(job.data());
-    const answer = answerByReading(tools, questionOf(task), BUSINESS_DATE);
-    return { task, answer, calls: tools.calls, characters: tools.characters };
-  });
+describe.each(BOTH_VERSIONS)(
+  "reference solutions with the agent's tools in version $version",
+  (job) => {
+    const solved = job.tasksOfType('overdue').map((task) => {
+      const tools = new AgentTools(job.data());
+      const answer = answerByReading(tools, questionOf(task), BUSINESS_DATE);
+      return { task, answer, tools };
+    });
 
-  it('answer every overdue task the way it is graded', () => {
-    for (const { task, answer } of solved) expect(grades(task, answer), task.id).toBe(true);
-  });
+    it('answer every overdue task the way it is graded', () => {
+      for (const { task, answer } of solved) expect(grades(task, answer), task.id).toBe(true);
+    });
 
-  it('need at most 10 tool calls for any overdue task, reading the policy included', () => {
-    for (const { task, calls } of solved) expect(calls, task.id).toBeLessThanOrEqual(10);
-  });
+    it(`fit every overdue task in ${MAX_STEPS} turns, the answer and reading the policy included`, () => {
+      for (const { task, tools } of solved) {
+        expect(tools.calls.length + 1, task.id).toBeLessThanOrEqual(MAX_STEPS);
+      }
+    });
 
-  it("read at most 24,000 characters, a third of the agent's 16k-token context", () => {
-    for (const { task, characters } of solved) {
-      expect(characters, task.id).toBeLessThanOrEqual(24_000);
-    }
-  });
-});
+    it(`read at most ${MAX_CHARACTERS.toLocaleString('en-US')} characters, a third of the agent's 16k-token context`, () => {
+      for (const { task, tools } of solved) {
+        expect(tools.characters, task.id).toBeLessThanOrEqual(MAX_CHARACTERS);
+      }
+    });
+
+    it("get back exactly the text the model of the tools gives, and pass the runner's checker", async () => {
+      const checker = createChecker({ job: job.job(), jobDir: job.dir, sandbox });
+      const files = await openAgentFiles({
+        dataDir: join(job.dir, 'data'),
+        files: job.job().data.files,
+        mode: 'scratch',
+      });
+      for (const { task, answer, tools } of solved) {
+        expect(await replay(job, tools.calls), task.id).toEqual(
+          tools.calls.map((call) => call.content),
+        );
+        const outcome: CheckOutcome = {
+          finalText: `ANSWER: ${JSON.stringify(answer)}`,
+          answer,
+          toolCalls: tools.calls.map((call) => ({ name: call.name, arguments: call.arguments })),
+          stopReason: 'answer',
+        };
+        expect(await checker.check(task, outcome, files), task.id).toMatchObject({ pass: true });
+      }
+    }, 300_000);
+  },
+);
 
 describe('the policy of version 2', () => {
-  it('fits in a single read_text result', () => {
-    const tools = new ReadTools(latestVersion.data());
-    expect(tools.readText('policy.md').nextOffset).toBeNull();
+  it('fits in a single read', () => {
+    const tools = new AgentTools(latestVersion.data());
+    tools.readAll('policy.md');
+    expect(tools.calls).toHaveLength(1);
   });
 });
 
@@ -247,10 +239,10 @@ function oracleAnswer(
 }
 
 /**
- * What an agent gets when it reads a group the lazy way: one read of each table with the default
- * limit, so it sees only the first 50 matching rows of each, in file order.
+ * What an agent gets when it takes part of a long result for all of it: the first 50 matching
+ * rows of each table, in file order.
  */
-function lazyGroupAnswer(job: JobFolder, question: OverdueQuestion): JsonValue {
+function partialGroupAnswer(job: JobFolder, question: OverdueQuestion): JsonValue {
   if (!('group' in question)) throw new Error(`${question.kind} is not about a group`);
   const firstPage = <T>(rows: T[]) => rows.slice(0, 50);
   const members = new Set(
@@ -309,11 +301,13 @@ describe('the mistakes version 2 is built around', () => {
     }
   });
 
-  it('fail a group answer that read only the first page of a long result', () => {
+  it('fail a group answer that took part of a long result for all of it', () => {
     const paged = tasks.filter((task) => trapsOf(task).includes('paging'));
     expect(paged.length).toBeGreaterThanOrEqual(8);
     for (const task of paged) {
-      expect(grades(task, lazyGroupAnswer(latestVersion, questionOf(task))), task.id).toBe(false);
+      expect(grades(task, partialGroupAnswer(latestVersion, questionOf(task))), task.id).toBe(
+        false,
+      );
     }
   });
 

@@ -137,7 +137,14 @@ export const JobSchema = z.object({
    */
   businessDate: z.iso.date().optional(),
   taskTypes: z.array(TaskTypeInfoSchema).min(1),
-  data: z.object({ files: z.array(DataFileSchema) }),
+  data: z.object({
+    files: z.array(DataFileSchema),
+    /**
+     * An `output/` folder the agent may create and change files in, such as reports, through the
+     * same write permissions as the data. Absent when the job allows none.
+     */
+    output: z.object({ description: z.string().optional() }).optional(),
+  }),
   permissions: PermissionsSchema,
   checker: CheckerConfigSchema,
   requirements: RequirementsSchema,

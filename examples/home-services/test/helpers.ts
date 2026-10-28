@@ -1,15 +1,14 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import vm from 'node:vm';
-import { CheckResultSchema, TaskSchema } from '@architect/shared';
-import type { CheckResult, Task } from '@architect/shared';
+import { CheckResultSchema, JobSchema, TaskSchema } from '@architect/shared';
+import type { CheckResult, Job, Task } from '@architect/shared';
 import { jobDir } from '../src';
 import type { JobVersion } from '../src';
 import { parseCsv } from '../src/lib/csv';
 import type { CsvRow } from '../src/lib/csv';
 import type { Booking, ServiceRequest, Technician, TravelTime } from '../src/company/types';
-import { parseJobData } from '../src/reference/read-tools';
-import type { JobData } from '../src/reference/read-tools';
+import { JobFiles } from '../src/reference/tools';
 import { buildSchedule } from '../src/reference/scheduling';
 import type { Schedule, SchedulingRules } from '../src/reference/scheduling';
 
@@ -31,7 +30,7 @@ export class JobFolder {
   private tasks: Task[] | undefined;
   private readonly tables = new Map<string, CsvRow[]>();
   private sandbox: vm.Context | undefined;
-  private parsed: JobData | undefined;
+  private parsed: JobFiles | undefined;
 
   constructor(readonly version: JobVersion) {
     this.dir = jobDir(version);
@@ -39,6 +38,10 @@ export class JobFolder {
 
   file(path: string): string {
     return readFileSync(join(this.dir, ...path.split('/')), 'utf8');
+  }
+
+  job(): Job {
+    return JobSchema.parse(JSON.parse(this.file('job.json')));
   }
 
   allTasks(): Task[] {
@@ -82,9 +85,9 @@ export class JobFolder {
     return this.table(name).filter((row) => row[column] === value);
   }
 
-  /** Every file in data/, the way the reference solutions' read tools serve them. */
-  data(): JobData {
-    this.parsed ??= parseJobData(
+  /** Every file in data/, the way the reference solutions' tools serve them. */
+  data(): JobFiles {
+    this.parsed ??= new JobFiles(
       new Map(readdirSync(join(this.dir, 'data')).map((name) => [name, this.file(`data/${name}`)])),
     );
     return this.parsed;

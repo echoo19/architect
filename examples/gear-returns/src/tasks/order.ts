@@ -6,8 +6,8 @@ import type { Random } from '../lib/random';
 import { answerOrderQuestion } from '../reference/orders';
 import type { OrderKind, OrderQuestion } from '../reference/orders';
 import { answerOrder } from '../reference/solver';
-import { DeskTools } from '../reference/tools';
-import type { JobData } from '../reference/tools';
+import { AgentTools } from '../reference/tools';
+import type { JobFiles } from '../reference/tools';
 import { CATEGORIES, REGIONS } from '../shop/catalog';
 import type { ShopIndex } from '../shop/records';
 import type { Order } from '../shop/types';
@@ -18,8 +18,9 @@ import type { Candidate, Quota } from './select';
 /**
  * Questions about orders, fifteen of each kind: what a customer spent in a category since a
  * date, what a product sold in a month, which orders from a region are still waiting to ship,
- * and a customer's orders in a month with their total. Each needs filtered reads over two or
- * three tables. Customers asked about by email are asked about once, and so is each product.
+ * and a customer's orders in a month with their total. Each needs rows from two or three
+ * tables, filtered and joined. Customers asked about by email are asked about once, and so is
+ * each product.
  */
 
 const KINDS: readonly OrderKind[] = ['spend', 'sku_sales', 'unshipped', 'month_orders'];
@@ -49,7 +50,7 @@ interface OrderCase {
   family: string;
 }
 
-export function buildOrderTasks(random: Random, index: ShopIndex, data: JobData): Task[] {
+export function buildOrderTasks(random: Random, index: ShopIndex, data: JobFiles): Task[] {
   const usedCustomers = new Set<string>();
   const drafts = KINDS.flatMap((kind) => {
     const candidates = candidatesOf(random, index, data, kind).filter(
@@ -87,7 +88,7 @@ export function buildOrderTasks(random: Random, index: ShopIndex, data: JobData)
 function candidatesOf(
   random: Random,
   index: ShopIndex,
-  data: JobData,
+  data: JobFiles,
   kind: OrderKind,
 ): Candidate<OrderCase>[] {
   const ordersOf = groupBy(index.shop.orders, (order) => order.customer_id);
@@ -160,13 +161,13 @@ function candidatesOf(
 /** The question as a candidate, after the reference solution agrees with the records. */
 function candidate(
   index: ShopIndex,
-  data: JobData,
+  data: JobFiles,
   question: OrderQuestion,
   group: string,
   family: string,
 ): Candidate<OrderCase>[] {
   const answer = answerOrderQuestion(question, index.ledger());
-  const solved = answerOrder(new DeskTools(data), question);
+  const solved = answerOrder(new AgentTools(data), question);
   if (JSON.stringify(solved.result) !== JSON.stringify(answer)) {
     throw new Error(`The reference answers ${JSON.stringify(question)} differently`);
   }

@@ -75,6 +75,8 @@ function execute(
   limits: Limits,
   blobs: BlobReader,
 ): ChildOutcome {
+  if (job.kind === 'code') return executeCode(vm, job, limits, blobs);
+  if (job.kind === 'grep') return executeGrep(vm, job, limits, blobs);
   const file = job.kind === 'tool' ? `tools/${job.name}.js` : 'checker.js';
   const kit = installKit(vm, job, blobs);
   try {
@@ -101,22 +103,103 @@ function execute(
     const result = callWithStrings(vm, kit, entry, job.kind === 'tool' && job.loadOnly ? [] : args);
     if (result.error) return fail(vm, result.error, 'run', file, limits);
 
-    extracting(vm);
-    const json = vm.getString(result.value);
-    release(result.value);
-    if (json.length > MAX_RESULT_CHARS) {
-      return {
-        ok: false,
-        failure: {
-          kind: 'invalid_result',
-          message: `The result is ${json.length} characters of JSON; the limit is ${MAX_RESULT_CHARS}.`,
-        },
-      };
-    }
-    return { ok: true, json };
+    return jsonOutcome(vm, result.value);
   } finally {
     release(kit);
   }
+}
+
+type CodeJob = Extract<SandboxJob, { kind: 'code' }>;
+type GrepJob = Extract<SandboxJob, { kind: 'grep' }>;
+
+/** The file name code from `run` has in error messages and stack frames. */
+const CODE_FILE = 'run.js';
+
+/**
+ * Runs the agent's code with `today`, `files`, `csv` and `print` installed, and hands back what
+ * it printed and the value of its last expression. An error in the code is part of the result,
+ * with what it printed before it stopped, so the agent can see both.
+ */
+function executeCode(
+  vm: QuickJSContext,
+  job: CodeJob,
+  limits: Limits,
+  blobs: BlobReader,
+): ChildOutcome {
+  const kit = installKit(vm, job, blobs);
+  try {
+    release(vm.unwrapResult(callWithStrings(vm, kit, 'startCode', [job.today])));
+    const result = vm.evalCode(job.code, CODE_FILE, { type: 'global' });
+    if (result.error) return stoppedCode(vm, kit, result.error, limits);
+    extracting(vm);
+    const finished = vm.callMethod(kit, 'finishCode', [result.value]);
+    release(result.value);
+    if (finished.error) return stoppedCode(vm, kit, finished.error, limits);
+    return jsonOutcome(vm, finished.value);
+  } finally {
+    release(kit);
+  }
+}
+
+/** The result of code that threw or was stopped: the error, and what it printed until then. */
+function stoppedCode(
+  vm: QuickJSContext,
+  kit: QuickJSHandle,
+  thrown: QuickJSHandle,
+  limits: Limits,
+): ChildOutcome {
+  extracting(vm);
+  const error = describeThrown(vm, thrown, 'run', CODE_FILE, limits);
+  release(thrown);
+  let output = { printed: '', cut: false };
+  const read = vm.callMethod(kit, 'output', []);
+  if (read.error) {
+    release(read.error);
+  } else {
+    output = JSON.parse(vm.getString(read.value)) as typeof output;
+    release(read.value);
+  }
+  return { ok: true, json: JSON.stringify({ ...output, value: null, error }) };
+}
+
+/** Searches the job's files line by line; a pattern that runs too long is stopped like code. */
+function executeGrep(
+  vm: QuickJSContext,
+  job: GrepJob,
+  limits: Limits,
+  blobs: BlobReader,
+): ChildOutcome {
+  const kit = installKit(vm, job, blobs);
+  try {
+    const result = callWithStrings(vm, kit, 'grep', [
+      job.pattern,
+      job.ignoreCase ? 'i' : '',
+      JSON.stringify(Object.keys(job.files)),
+      String(job.limit),
+      String(job.lineChars),
+    ]);
+    if (result.error) return fail(vm, result.error, 'run', 'grep', limits);
+    return jsonOutcome(vm, result.value);
+  } finally {
+    release(kit);
+  }
+}
+
+/** Reads a JSON string the job's code returned, refusing one too long to hand back. */
+function jsonOutcome(vm: QuickJSContext, handle: QuickJSHandle): ChildOutcome {
+  extracting(vm);
+  const json = vm.getString(handle);
+  release(handle);
+  if (json.length > MAX_RESULT_CHARS) {
+    return {
+      ok: false,
+      failure: {
+        kind: 'invalid_result',
+        message: `The result is ${json.length} characters of JSON; the limit is ${MAX_RESULT_CHARS}.`,
+      },
+    };
+  }
+  return { ok: true, json };
 }
 
 function callWithStrings(
@@ -160,6 +243,15 @@ function hostFunctions(
   job: SandboxJob,
   blobs: BlobReader,
 ): Record<string, (...args: string[]) => string> {
+  if (job.kind === 'code' || job.kind === 'grep') {
+    return {
+      readFile: (path = '') => {
+        const hash = job.files[filePath(job.files, path)] as string;
+        return JSON.stringify(blobs.text(hash));
+      },
+      listFiles: (folder = '') => JSON.stringify(listPaths(job.files, folder)),
+    };
+  }
   if (job.kind === 'tool') {
     return {
       readTable: (name = '', query = 'null') =>
@@ -205,9 +297,11 @@ function readRows(
 /**
  * The file a name refers to: the name itself, or the one file whose name without its extension
  * it is, so a tool that asks for "jobs" gets jobs.csv. A tool's code can't correct itself the
- * way the student does after an error, so an unambiguous short name is accepted.
+ * way the student does after an error, so an unambiguous short name is accepted, and so is the
+ * file's path in the agent's folder, "data/jobs.csv".
  */
-function fileName(refs: Record<string, string>, name: string, kind: string): string {
+function fileName(refs: Record<string, string>, raw: string, kind: string): string {
+  const name = raw.startsWith('data/') ? raw.slice('data/'.length) : raw;
   if (Object.hasOwn(refs, name)) return name;
   const names = Object.keys(refs);
   const stems = names.filter((file) => file.replace(/\.[^.]+$/, '') === name);
@@ -301,4 +395,40 @@ function extracting(vm: QuickJSContext): void {
 
 function release(handle: QuickJSHandle): void {
   if (handle.alive) handle.dispose();
+}
+
+/** A path the code gave, as a path in the agent's folder; one that climbs out is refused. */
+function cleanPath(raw: string): string {
+  const parts = raw
+    .trim()
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter((part) => part !== '' && part !== '.');
+  if (parts.includes('..')) {
+    throw new Error(`"${raw}" climbs out of the folder with "..". Paths are like data/orders.csv.`);
+  }
+  return parts.join('/');
+}
+
+function filePath(refs: Record<string, string>, raw: string): string {
+  const path = cleanPath(raw);
+  if (Object.hasOwn(refs, path)) return path;
+  const folder = path.slice(0, path.lastIndexOf('/') + 1);
+  const near = Object.keys(refs)
+    .filter((file) => file.startsWith(folder))
+    .slice(0, 20);
+  const hint = near.length > 0 ? ` Files there: ${near.join(', ')}.` : '';
+  throw new Error(`files.read: there is no file "${raw}".${hint}`);
+}
+
+/** The paths of the files in a folder and the folders inside it, in path order. */
+function listPaths(refs: Record<string, string>, raw: string): string[] {
+  const folder = cleanPath(raw);
+  const paths = Object.keys(refs)
+    .filter((path) => folder === '' || path.startsWith(`${folder}/`))
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  if (paths.length === 0 && folder !== '') {
+    throw new Error(`files.list: there is no folder "${raw}".`);
+  }
+  return paths;
 }

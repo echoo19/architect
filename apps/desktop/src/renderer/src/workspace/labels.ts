@@ -27,8 +27,19 @@ export const WRITE_MODE_MEANINGS: Record<PermissionMode, string> = {
   never: "Can't change your files",
 };
 
-/** The built-in tools, said the way a person would: while working, and once done. */
+/**
+ * The built-in tools, said the way a person would: while working, and once done. The table
+ * tools of earlier chats keep their words, so stored chats still read well.
+ */
 const TOOL_WORDS: Record<string, [string, string]> = {
+  read: ['Reading', 'Read'],
+  ls: ['Listing', 'Listed'],
+  glob: ['Finding', 'Found'],
+  grep: ['Searching', 'Searched'],
+  write: ['Writing', 'Wrote'],
+  edit: ['Editing', 'Edited'],
+  append: ['Adding to', 'Added to'],
+  run: ['Running code', 'Ran code'],
   list_files: ['Listing', 'Listed'],
   read_table: ['Reading', 'Read'],
   read_text: ['Reading', 'Read'],
@@ -37,9 +48,12 @@ const TOOL_WORDS: Record<string, [string, string]> = {
   calculate: ['Calculating', 'Calculated'],
 };
 
+/** What `ls` with no path acts on, as the agent host words it. */
+const ALL_FOLDERS = 'your folders';
+
 /**
- * A step in plain words: "Read jobs.csv", "Loaded the skill price-a-job", or "Ran the tool
- * invoice_total" for a tool written during training, with what it acted on.
+ * A step in plain words: "Read data/jobs.csv", "Loaded the skill price-a-job", or "Ran the
+ * tool invoice_total" for a tool written during training, with what it acted on.
  */
 export function stepWords(step: AgentStep): { action: string; target: string } {
   const working = step.status === 'running';
@@ -47,6 +61,9 @@ export function stepWords(step: AgentStep): { action: string; target: string } {
     return { action: working ? 'Loading the skill' : 'Loaded the skill', target: step.detail };
   }
   const words = TOOL_WORDS[step.name];
+  if (step.name === 'ls' && step.detail === ALL_FOLDERS && words) {
+    return { action: `${working ? words[0] : words[1]} ${ALL_FOLDERS}`, target: '' };
+  }
   if (words) return { action: working ? words[0] : words[1], target: step.detail };
   return { action: `${working ? 'Running' : 'Ran'} the tool ${step.name}`, target: step.detail };
 }

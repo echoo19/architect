@@ -169,7 +169,7 @@ describe('sandbox', () => {
         originalTables: { 'jobs.csv': jobs },
         answer: { job_id: 'W-4' },
         finalText: 'ANSWER: {"job_id": "W-4"}',
-        toolCalls: [{ name: 'append_rows', arguments: { file: 'jobs.csv' } }],
+        toolCalls: [{ name: 'append', arguments: { path: 'data/jobs.csv' } }],
       },
     );
     expect(valueOf(outcome)).toEqual({
@@ -178,7 +178,7 @@ describe('sandbox', () => {
       details: {
         answer: { job_id: 'W-4' },
         finalText: 'ANSWER: {"job_id": "W-4"}',
-        tools: ['append_rows'],
+        tools: ['append'],
       },
     });
   });
@@ -292,6 +292,158 @@ describe('sandbox', () => {
       ),
     );
     expect(outcomes.map(valueOf)).toEqual([1, 4, 9, 16, 25]);
+  });
+});
+
+describe("the agent's code and searches", () => {
+  let sandbox: Sandbox;
+  beforeAll(() => {
+    sandbox = createSandbox({ codeTimeoutMs: 1000, memoryLimitBytes: 32 * 1024 * 1024 });
+  });
+  afterAll(() => sandbox.dispose());
+
+  const files = {
+    'data/orders.csv':
+      'order_id,customer,total,note\nO-1,Ada,12.50,\nO-2,"Ruiz, Ben",7.25,"said ""thanks"""\nO-3,Cho,20.00,late\n',
+    'data/policy.md': 'Refunds within 30 days.\nNo refunds on final sale.\n',
+    'skills/refund/SKILL.md': '---\nname: refund\ndescription: Refunds.\n---\nSteps.\n',
+  };
+
+  async function run(code: string) {
+    const outcome = await sandbox.runCode({ code, files, today: '2026-11-24' });
+    if (!outcome.ok) throw new Error(`${outcome.failure.kind}: ${outcome.failure.message}`);
+    return outcome;
+  }
+
+  it('returns what the code printed and the JSON of its last value', async () => {
+    expect(await run('print("a", 1, { b: 2 }); console.log([3]); 6 * 7')).toEqual({
+      ok: true,
+      printed: 'a 1 {"b":2}\n[3]\n',
+      cut: false,
+      value: '42',
+    });
+    expect((await run('const x = 5;')).value).toBeNull();
+    expect((await run('({ total: 1.5 })')).value).toBe('{"total":1.5}');
+    expect((await run('[1, 2].map((n) => n * 2)')).value).toBe('[2,4]');
+  });
+
+  it('reads the files and parses CSV into rows of strings', async () => {
+    const outcome = await run(`
+      const rows = csv.parse(files.read('data/orders.csv'));
+      rows.filter((row) => row.note !== '').map((row) => [row.customer, row.note])
+    `);
+    expect(JSON.parse(outcome.value ?? 'null')).toEqual([
+      ['Ruiz, Ben', 'said "thanks"'],
+      ['Cho', 'late'],
+    ]);
+    expect((await run('files.list("data")')).value).toBe('["data/orders.csv","data/policy.md"]');
+    expect((await run('files.list().length')).value).toBe('3');
+    expect((await run('files.read("./data//policy.md").split("\\n")[0]')).value).toBe(
+      '"Refunds within 30 days."',
+    );
+  });
+
+  it('writes rows back as CSV, quoting what needs it', async () => {
+    const outcome = await run(`
+      csv.stringify([{ id: 'O-4', who: 'Lee, Ann', note: 'a "b"' }, { id: 'O-5', who: null }])
+    `);
+    expect(JSON.parse(outcome.value ?? '""')).toBe(
+      'id,who,note\nO-4,"Lee, Ann","a ""b"""\nO-5,,\n',
+    );
+    const lines = await run(
+      `csv.stringify([['O-6', 3, true]], { header: false }) + csv.stringify([{ a: 1 }], { columns: ['b', 'a'] })`,
+    );
+    expect(JSON.parse(lines.value ?? '""')).toBe('O-6,3,true\nb,a\n,1\n');
+  });
+
+  it('works as of today, with no clock, no randomness and no way to change a file', async () => {
+    expect((await run('today')).value).toBe('"2026-11-24"');
+    expect((await run('new Date(today).getUTCDay()')).value).toBe('2');
+    const clock = await run('new Date()');
+    expect(clock.error?.message).toMatch(/no clock: use today, the working date \(2026-11-24\)/);
+    expect((await run('Math.random()')).error?.message).toMatch(/no randomness/);
+    expect((await run('typeof files.write + typeof require + typeof fetch')).value).toBe(
+      '"undefinedundefinedundefined"',
+    );
+    expect((await run('const csv = 1; csv')).value).toBe('1');
+  });
+
+  it('keeps what the code printed before it threw, with the line it threw on', async () => {
+    const outcome = await run('print("starting");\nconst rows = null;\nrows.length');
+    expect(outcome.printed).toBe('starting\n');
+    expect(outcome.value).toBeNull();
+    expect(outcome.error?.kind).toBe('error');
+    expect(outcome.error?.message).toMatch(/^TypeError: .+ \(run\.js:3/);
+    expect((await run('files.read("data/nope.csv")')).error?.message).toContain(
+      'files.read: there is no file "data/nope.csv". Files there: data/orders.csv, data/policy.md.',
+    );
+    expect((await run('files.read("../secret")')).error?.message).toContain('climbs out');
+    expect((await run('csv.parse("a,b\\n1")')).error?.message).toContain(
+      'csv.parse: row 1 has 1 values, but the header has 2 columns.',
+    );
+    expect((await run('let x = ;')).error?.message).toMatch(/^SyntaxError/);
+  });
+
+  it('stops code that runs too long, keeping what it printed', async () => {
+    const outcome = await run('print("before"); while (true) {}');
+    expect(outcome.printed).toBe('before\n');
+    expect(outcome.error?.kind).toBe('timeout');
+    expect((await run('1 + 1')).value).toBe('2');
+  });
+
+  it('caps what the code prints', async () => {
+    const outcome = await run('for (let i = 0; i < 30000; i++) print("0123456789")');
+    expect(outcome.cut).toBe(true);
+    expect(outcome.printed).toHaveLength(100_000);
+  });
+
+  it('hands its result back whatever the code does to the built-in prototypes', async () => {
+    const poisoned = await run(
+      'print("kept"); Object.prototype.toJSON = () => undefined; Array.prototype.join = () => 7; 1',
+    );
+    expect(poisoned).toEqual({ ok: true, printed: 'kept\n', cut: false, value: '1' });
+    const thrown = await run(
+      'Object.prototype.toJSON = () => { throw new Error("no"); }; ({ a: 1 })',
+    );
+    expect(thrown.error?.message).toMatch(/could not be turned into JSON: no/);
+  });
+
+  it('says when the last value is a promise or cannot be JSON', async () => {
+    expect((await run('Promise.resolve(1)')).error?.message).toMatch(/promise/);
+    expect((await run('const a = {}; a.self = a; a')).error?.message).toMatch(
+      /could not be turned into JSON/,
+    );
+  });
+
+  it('searches lines with a regular expression, counting past the limit', async () => {
+    const outcome = await sandbox.grep({
+      pattern: 'refund|O-\\d',
+      ignoreCase: true,
+      files,
+      limit: 3,
+      lineChars: 12,
+    });
+    expect(outcome).toEqual({
+      ok: true,
+      matches: [
+        { path: 'data/orders.csv', line: 2, text: 'O-1,Ada,12.5…' },
+        { path: 'data/orders.csv', line: 3, text: 'O-2,"Ruiz, B…' },
+        { path: 'data/orders.csv', line: 4, text: 'O-3,Cho,20.0…' },
+      ],
+      total: 7,
+    });
+  });
+
+  it('stops a search whose pattern runs away', async () => {
+    const outcome = await sandbox.grep({
+      pattern: '(a+)+$',
+      ignoreCase: false,
+      files: { 'data/long.txt': `${'a'.repeat(40)}b\n` },
+      limit: 10,
+      lineChars: 100,
+    });
+    expect(outcome.ok).toBe(false);
+    expect(outcome.ok === false && outcome.failure.kind).toBe('timeout');
   });
 });
 

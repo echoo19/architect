@@ -14,21 +14,21 @@ describe('diffHarness', () => {
     const after = applyEdits(before, [
       {
         op: 'write',
-        path: 'skills/new-skill.md',
-        content: '---\nname: New\nsummary: A new skill.\n---\nStep one.\n',
+        path: 'skills/new-skill/SKILL.md',
+        content: '---\nname: new-skill\ndescription: A new skill.\n---\nStep one.\n',
       },
     ]);
     expect(diffHarness(before, after)).toEqual([
       {
-        path: 'skills/new-skill.md',
+        path: 'skills/new-skill/SKILL.md',
         status: 'added',
         patch: [
           '--- /dev/null',
-          '+++ b/skills/new-skill.md',
+          '+++ b/skills/new-skill/SKILL.md',
           '@@ -0,0 +1,5 @@',
           '+---',
-          '+name: New',
-          '+summary: A new skill.',
+          '+name: new-skill',
+          '+description: A new skill.',
           '+---',
           '+Step one.',
           '',
@@ -45,11 +45,11 @@ describe('diffHarness', () => {
     const after = { ...before, system: `${changed.join('\n')}\n` };
     const [diff] = diffHarness(before, after);
     expect(diff).toEqual({
-      path: 'system.md',
+      path: 'AGENTS.md',
       status: 'modified',
       patch: [
-        '--- a/system.md',
-        '+++ b/system.md',
+        '--- a/AGENTS.md',
+        '+++ b/AGENTS.md',
         '@@ -3,7 +3,7 @@',
         ' Line 3',
         ' Line 4',
@@ -84,14 +84,18 @@ describe('diffHarness', () => {
   it('sorts by path and covers every kind of change at once', () => {
     const before = sampleHarness();
     const after = applyEdits(before, [
-      { op: 'write', path: 'system.md', content: 'New prompt\n' },
-      { op: 'write', path: 'skills/aaa.md', content: '---\nname: A\nsummary: A\n---\n' },
+      { op: 'write', path: 'AGENTS.md', content: 'New prompt\n' },
+      {
+        op: 'write',
+        path: 'skills/aaa/SKILL.md',
+        content: '---\nname: aaa\ndescription: A\n---\n',
+      },
       { op: 'delete', path: 'tools/invoice_total.js' },
       { op: 'delete', path: 'tools/invoice_total.json' },
     ]);
     expect(diffHarness(before, after).map(({ path, status }) => [path, status])).toEqual([
-      ['skills/aaa.md', 'added'],
-      ['system.md', 'modified'],
+      ['AGENTS.md', 'modified'],
+      ['skills/aaa/SKILL.md', 'added'],
       ['tools/invoice_total.js', 'deleted'],
       ['tools/invoice_total.json', 'deleted'],
     ]);

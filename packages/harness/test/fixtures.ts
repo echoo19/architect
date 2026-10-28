@@ -24,25 +24,21 @@ export function withHash(harness: Harness): Harness {
   return { ...harness, meta: { ...harness.meta, hash: hashHarness(harness) } };
 }
 
-/** A harness that uses every part of the format, in canonical (slug) order. */
+/** A harness that uses every part of the format, in canonical (name) order. */
 export function sampleHarness(): Harness {
   return withHash({
-    meta: { format: 1, name: 'Service desk', version: 3, parent: 2, hash: '' },
+    meta: { format: 2, name: 'Service desk', version: 3, parent: 2, hash: '' },
     system: 'You are the Service desk agent.\n\nUse the records. Never guess a price.\n',
     skills: [
       {
-        slug: 'overdue-balances',
-        name: 'Find overdue balances',
-        summary: 'List invoices past terms after partial payments.',
-        taskTypes: ['overdue'],
+        name: 'overdue-balances',
+        description: 'List invoices past terms after partial payments.',
         body: '1. Read the invoices.\n2. Subtract payments.\n',
       },
       {
-        slug: 'price-a-job',
-        name: 'Price a completed job',
-        summary: 'Turn a job into invoice lines: labor, parts, tax, in cents.',
-        taskTypes: ['invoice', 'quote'],
-        body: '1. Read the job with read_table.\n2. Call invoice_total.\n\n```\ntotal = sum(lines)\n```\n',
+        name: 'price-a-job',
+        description: 'Turn a job into invoice lines: labor, parts, tax, in cents.',
+        body: '1. Read the job in data/jobs.csv.\n2. Call invoice_total.\n\n```\ntotal = sum(lines)\n```\n',
       },
     ],
     tools: [
@@ -71,12 +67,12 @@ export function sampleHarness(): Harness {
             toolCalls: [
               {
                 id: 'call_1',
-                name: 'read_table',
-                arguments: { name: 'jobs', where: { id: 'J-100' } },
+                name: 'grep',
+                arguments: { pattern: '^J-100,', path: 'data/jobs.csv' },
               },
             ],
           },
-          { role: 'tool', toolCallId: 'call_1', name: 'read_table', content: '{"rows":[]}' },
+          { role: 'tool', toolCallId: 'call_1', name: 'grep', content: 'No matches.' },
           { role: 'assistant', content: 'ANSWER: {"total_cents": 12345}' },
         ],
       },
@@ -121,7 +117,7 @@ export function sampleLineage(): LineageEntry[] {
     round: 1,
     title: 'Add a pricing skill',
     diagnosis: 'The student skipped the after-hours multiplier.',
-    files: ['skills/price-a-job.md'],
+    files: ['skills/price-a-job/SKILL.md'],
     causeTaskIds: ['t1', 't2'],
     predicted: { devDeltaMin: 2, devDeltaMax: 5, rationale: 'The skill states the rule.' },
     measured: {

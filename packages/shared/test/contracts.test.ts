@@ -12,8 +12,8 @@ import {
 describe('harness surface', () => {
   it('accepts the files the mentor may change', () => {
     for (const path of [
-      'system.md',
-      'skills/price-a-job.md',
+      'AGENTS.md',
+      'skills/price-a-job/SKILL.md',
       'tools/invoice_total.js',
       'tools/invoice_total.json',
       'examples/after-hours.json',
@@ -33,7 +33,10 @@ describe('harness surface', () => {
       'skills/../../job.json',
       'tools/Invoice.js',
       'skills/a/b.md',
-      '/system.md',
+      'skills/a/b/SKILL.md',
+      'skills/price-a-job.md',
+      'system.md',
+      '/AGENTS.md',
       'data/invoices.csv',
     ]) {
       expect(isHarnessSurfacePath(path), path).toBe(false);

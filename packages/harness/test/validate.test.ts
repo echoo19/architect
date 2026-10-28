@@ -4,6 +4,9 @@ import { sampleHarness } from './fixtures';
 
 const base = (): Record<string, string> => harnessToFiles(sampleHarness());
 
+const skillFile = (name: string, body = '') =>
+  `---\nname: ${name}\ndescription: Does ${name}.\n---\n${body}`;
+
 function errorsFor(files: Record<string, string>): string[] {
   const result = validateHarnessFiles(files);
   if (result.ok) throw new Error('expected the files to be rejected');
@@ -17,10 +20,10 @@ describe('validateHarnessFiles', () => {
     expect(bare.ok).toBe(true);
     const withMeta = validateHarnessFiles({
       ...base(),
-      'harness.yaml': 'format: 1\nname: Service desk\nversion: 3\nparent: 2\nhash: sha256-x\n',
+      'harness.yaml': 'format: 2\nname: Service desk\nversion: 3\nparent: 2\nhash: sha256-x\n',
     });
     expect(withMeta.ok && withMeta.harness.meta).toEqual({
-      format: 1,
+      format: 2,
       name: 'Service desk',
       version: 3,
       parent: 2,
@@ -29,8 +32,8 @@ describe('validateHarnessFiles', () => {
     expect(bare.ok && bare.harness.meta.hash).toBe(harness.meta.hash);
   });
 
-  it('accepts a harness that is only a system prompt', () => {
-    expect(validateHarnessFiles({ 'system.md': 'Hello.\n' }).ok).toBe(true);
+  it('accepts a harness that is only its instructions', () => {
+    expect(validateHarnessFiles({ 'AGENTS.md': 'Hello.\n' }).ok).toBe(true);
   });
 
   it('ignores files that are not part of a harness', () => {
@@ -39,12 +42,22 @@ describe('validateHarnessFiles', () => {
     ).toBe(true);
   });
 
-  it('asks for a system prompt', () => {
+  it('asks for the instructions', () => {
     const files = base();
-    delete files['system.md'];
-    expect(errorsFor(files)).toEqual(['system.md: missing. Every harness needs a system prompt.']);
-    expect(errorsFor({ ...base(), 'system.md': ' \n' })).toEqual([
-      "system.md: is empty. Write the agent's system prompt.",
+    delete files['AGENTS.md'];
+    expect(errorsFor(files)).toEqual([
+      'AGENTS.md: missing. Every harness needs its standing instructions.',
+    ]);
+    expect(errorsFor({ ...base(), 'AGENTS.md': ' \n' })).toEqual([
+      "AGENTS.md: is empty. Write the agent's standing instructions.",
+    ]);
+  });
+
+  it('says where the files of format 1 belong now', () => {
+    const files = { ...base(), 'system.md': 'Old.\n', 'skills/old-way.md': 'Old.\n' };
+    expect(errorsFor(files)).toEqual([
+      'skills/old-way.md: format 2 keeps each skill in a folder. Move it to skills/old-way/SKILL.md, with name and description in its front matter.',
+      'system.md: format 2 keeps the instructions in AGENTS.md. Move them there.',
     ]);
   });
 
@@ -101,31 +114,35 @@ describe('validateHarnessFiles', () => {
   });
 
   it('checks skill front matter', () => {
-    expect(errorsFor({ ...base(), 'skills/price-a-job.md': 'No front matter\n' })).toEqual([
-      'skills/price-a-job.md: has no front matter. Start the file with a block between "---" lines that sets name and summary.',
+    const path = 'skills/price-a-job/SKILL.md';
+    expect(errorsFor({ ...base(), [path]: 'No front matter\n' })).toEqual([
+      `${path}: has no front matter. Start the file with a block between "---" lines that sets name and description.`,
     ]);
-    expect(
-      errorsFor({ ...base(), 'skills/price-a-job.md': '---\nname: Only a name\n---\nbody\n' }),
-    ).toEqual(['skills/price-a-job.md: "summary" is required']);
-    expect(errorsFor({ ...base(), 'skills/price-a-job.md': '---\n---\nbody\n' })).toEqual([
-      'skills/price-a-job.md: "name" is required',
-      'skills/price-a-job.md: "summary" is required',
+    expect(errorsFor({ ...base(), [path]: '---\nname: price-a-job\n---\nbody\n' })).toEqual([
+      `${path}: "description" is required`,
+    ]);
+    expect(errorsFor({ ...base(), [path]: '---\n---\nbody\n' })).toEqual([
+      `${path}: "name" is required`,
+      `${path}: "description" is required`,
     ]);
     expect(
       errorsFor({
         ...base(),
-        'skills/price-a-job.md': '---\nname: A\nsummary: B\ntaskTypes: [x]\n---\n',
+        [path]: '---\nname: price-a-job\ndescription: B\ntaskTypes: [x]\n---\n',
       })[0],
-    ).toContain('Did you mean "task_types"?');
+    ).toBe(`${path}: unknown key "taskTypes". Allowed keys here: name, description.`);
+    expect(errorsFor({ ...base(), [path]: skillFile('pricing') })).toEqual([
+      `${path}: name must match the folder, so it should be "price-a-job" (it is "pricing").`,
+    ]);
   });
 
   it('requires every skill and example named by a retrieval rule to exist', () => {
     const files = base();
-    delete files['skills/overdue-balances.md'];
+    delete files['skills/overdue-balances/SKILL.md'];
     delete files['examples/after-hours-plan-member.json'];
     expect(errorsFor(files)).toEqual([
       'retrieval.yaml: rule 1 loads example "after-hours-plan-member", but examples/after-hours-plan-member.json does not exist.',
-      'retrieval.yaml: rule 2 loads skill "overdue-balances", but skills/overdue-balances.md does not exist.',
+      'retrieval.yaml: rule 2 loads skill "overdue-balances", but skills/overdue-balances/SKILL.md does not exist.',
     ]);
   });
 
@@ -167,7 +184,7 @@ describe('validateHarnessFiles', () => {
     });
 
     it('refuses the names of built-in tools', () => {
-      for (const name of ['read_table', 'list_files', 'calculate', 'load_skill', 'append_rows']) {
+      for (const name of ['read', 'ls', 'glob', 'grep', 'write', 'edit', 'append', 'run']) {
         expect(
           errorsFor({
             ...base(),
@@ -237,7 +254,7 @@ describe('validateHarnessFiles', () => {
     it('wants the id of the call a tool message answers', () => {
       const example = JSON.stringify({
         title: 'T',
-        messages: [{ role: 'tool', name: 'read_table', content: '{}' }],
+        messages: [{ role: 'tool', name: 'read', content: '1\tx' }],
       });
       expect(errorsFor({ ...base(), 'examples/after-hours-plan-member.json': example })).toEqual([
         'examples/after-hours-plan-member.json: "messages[0].tool_call_id" is required',
@@ -246,10 +263,16 @@ describe('validateHarnessFiles', () => {
   });
 
   it('rejects file names outside the allowed pattern and says what is allowed', () => {
-    expect(
-      errorsFor({ ...base(), 'skills/Price A Job.md': '---\nname: a\nsummary: b\n---\n' }),
-    ).toEqual([
-      'skills/Price A Job.md: not a valid file name; skill files are named with lowercase letters, digits and dashes, like skills/price-a-job.md.',
+    const allowed =
+      'not a valid file name; a skill is a folder holding one SKILL.md, named with lowercase letters, digits and dashes, like skills/price-a-job/SKILL.md.';
+    expect(errorsFor({ ...base(), 'skills/Price A Job/SKILL.md': skillFile('a') })).toEqual([
+      `skills/Price A Job/SKILL.md: ${allowed}`,
+    ]);
+    expect(errorsFor({ ...base(), 'skills/price-a-job/notes.md': 'x' })).toEqual([
+      `skills/price-a-job/notes.md: ${allowed}`,
+    ]);
+    expect(errorsFor({ ...base(), 'skills/README.txt': 'x' })).toEqual([
+      `skills/README.txt: ${allowed}`,
     ]);
     expect(errorsFor({ ...base(), 'tools/helper.py': 'x' })[0]).toMatch(
       /^tools\/helper\.py: not a valid file name; tool files/,
@@ -257,8 +280,8 @@ describe('validateHarnessFiles', () => {
     expect(errorsFor({ ...base(), 'examples/sub/x.json': '{}' })[0]).toMatch(
       /^examples\/sub\/x\.json: not a valid file name/,
     );
-    expect(errorsFor({ ...base(), 'skills/con.md': '---\nname: a\nsummary: b\n---\n' })[0]).toMatch(
-      /^skills\/con\.md: "con" is a name Windows reserves/,
+    expect(errorsFor({ ...base(), 'skills/con/SKILL.md': skillFile('con') })[0]).toMatch(
+      /^skills\/con\/SKILL\.md: "con" is a name Windows reserves/,
     );
   });
 
@@ -266,44 +289,41 @@ describe('validateHarnessFiles', () => {
     const filler = 'x'.repeat(100 * 1024);
     const files = {
       ...base(),
-      'skills/big-one.md': `---\nname: Big\nsummary: Big\n---\n${filler}`,
-      'skills/big-two.md': `---\nname: Big\nsummary: Big\n---\n${filler}`,
+      'skills/big-one/SKILL.md': skillFile('big-one', filler),
+      'skills/big-two/SKILL.md': skillFile('big-two', filler),
     };
     expect(validateHarnessFiles(files).ok).toBe(true);
-    const over = {
-      ...files,
-      'skills/big-three.md': `---\nname: Big\nsummary: Big\n---\n${filler}`,
-    };
+    const over = { ...files, 'skills/big-three/SKILL.md': skillFile('big-three', filler) };
     expect(errorsFor(over)).toEqual([
       expect.stringMatching(/^harness: \d+ KB in total is over the 256 KB limit\./),
     ]);
   });
 
   it('counts bytes, not characters', () => {
-    const files = { 'system.md': 'é'.repeat(129 * 1024) };
+    const files = { 'AGENTS.md': 'é'.repeat(129 * 1024) };
     expect(errorsFor(files)[0]).toMatch(/over the 256 KB limit/);
   });
 
   it('reports every problem at once', () => {
     const errors = errorsFor({
-      'system.md': '',
+      'AGENTS.md': '',
       'decoding.yaml': 'top_p: 5\nmax_step: 3\n',
       'retrieval.yaml': 'rules:\n  - when_any: [a]\n    load_skills: [nope]\n',
-      'skills/a.md': 'plain',
+      'skills/a/SKILL.md': 'plain',
       'tools/x.json': '{}',
     });
     expect(errors).toHaveLength(6);
   });
 
   it('checks harness.yaml when it is given', () => {
-    expect(errorsFor({ ...base(), 'harness.yaml': 'format: 2\nname: x\n' })).toEqual([
-      'harness.yaml: format 2 is not supported; this version reads format 1',
+    expect(errorsFor({ ...base(), 'harness.yaml': 'format: 3\nname: x\n' })).toEqual([
+      'harness.yaml: format 3 is not supported; this version reads formats 1 and 2',
     ]);
-    expect(errorsFor({ ...base(), 'harness.yaml': 'format: 1\n' })).toEqual([
+    expect(errorsFor({ ...base(), 'harness.yaml': 'format: 2\n' })).toEqual([
       'harness.yaml: "name" is required',
     ]);
     expect(
-      errorsFor({ ...base(), 'harness.yaml': 'format: 1\nname: x\nowner: me\n' })[0],
+      errorsFor({ ...base(), 'harness.yaml': 'format: 2\nname: x\nowner: me\n' })[0],
     ).toContain('unknown key "owner"');
   });
 });

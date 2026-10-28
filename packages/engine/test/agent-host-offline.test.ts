@@ -101,7 +101,7 @@ describe('a graduate in the workspace', () => {
     const dataDir = await mkdtemp(join(tmpdir(), 'architect-offline-'));
     const connectionLog = join(dataDir, 'connections.jsonl');
     const model: FakeOllama = await startFakeOllama([
-      { toolCalls: [{ name: 'read_table', arguments: { file: 'invoices.csv' } }] },
+      { toolCalls: [{ name: 'read', arguments: { path: 'data/invoices.csv' } }] },
       { text: 'There are 3 invoices on file.' },
     ]);
     const store = openEngineStore(new DataPaths(dataDir).database);
@@ -127,7 +127,7 @@ describe('a graduate in the workspace', () => {
     expect(reply).toMatchObject({
       status: 'done',
       text: 'There are 3 invoices on file.',
-      steps: [{ name: 'read_table', detail: 'invoices.csv', meta: '3 rows', status: 'done' }],
+      steps: [{ name: 'read', detail: 'data/invoices.csv', meta: '4 lines', status: 'done' }],
     });
     expect(model.chats()).toHaveLength(2);
 

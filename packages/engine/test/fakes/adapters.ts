@@ -19,13 +19,13 @@ export interface HypothesisReply {
   readyClaim: boolean;
 }
 
-/** A reply in the mentor's JSON format whose one edit rewrites system.md. */
+/** A reply in the mentor's JSON format whose one edit rewrites AGENTS.md. */
 export function hypothesis(title: string, system: string, extra: Partial<HypothesisReply> = {}) {
   return {
     title,
     diagnosis: `${title}: the traces show the rule is missing.`,
     causeTaskIds: [],
-    edits: [{ op: 'write' as const, path: 'system.md', content: system }],
+    edits: [{ op: 'write' as const, path: 'AGENTS.md', content: system }],
     predicted: { devDeltaMin: 1, devDeltaMax: 3, rationale: 'Three dev tasks of the type.' },
     readyClaim: false,
     ...extra,

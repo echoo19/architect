@@ -2,25 +2,23 @@ import { describe, expect, it } from 'vitest';
 import { buildSystemPrompt } from '../src/agent/prompt';
 import { containsPhrase, matchGuardrail, selectRetrieval } from '../src/agent/retrieval';
 import { todayFor } from '../src/agent/today';
-import { makeHarness, makeJob } from './support/fixtures';
+import type { FolderSummary } from '../src/agent/prompt';
+import { makeHarness } from './support/fixtures';
 
 const skills = [
   {
-    slug: 'price-a-job',
-    name: 'Price a completed job',
-    summary: 'Turn a job into invoice lines.',
+    name: 'price-a-job',
+    description: 'Turn a job into invoice lines.',
     body: '1. Read the job.\n2. Price it.\n',
   },
   {
-    slug: 'find-overdue',
-    name: 'Find overdue balances',
-    summary: 'Subtract payments, then compare due dates.',
+    name: 'find-overdue',
+    description: 'Subtract payments, then compare due dates.',
     body: 'Use the business date.',
   },
   {
-    slug: 'book-a-slot',
-    name: 'Book a slot',
-    summary: 'Find the earliest feasible start.',
+    name: 'book-a-slot',
+    description: 'Find the earliest feasible start.',
     body: 'Check travel.',
   },
 ];
@@ -32,9 +30,9 @@ const example = {
     {
       role: 'assistant' as const,
       content: '',
-      toolCalls: [{ id: 'c1', name: 'read_table', arguments: { file: 'jobs.csv' } }],
+      toolCalls: [{ id: 'c1', name: 'read', arguments: { path: 'data/jobs.csv' } }],
     },
-    { role: 'tool' as const, toolCallId: 'c1', name: 'read_table', content: 'x'.repeat(500) },
+    { role: 'tool' as const, toolCallId: 'c1', name: 'read', content: 'x'.repeat(500) },
     { role: 'assistant' as const, content: 'ANSWER: {"total_cents": 100}' },
   ],
 };
@@ -78,7 +76,7 @@ describe('selectRetrieval', () => {
       },
     });
     const retrieved = selectRetrieval(harness, 'Bill the overdue customer, then book a visit');
-    expect(retrieved.skills.map((skill) => skill.slug)).toEqual(['find-overdue', 'price-a-job']);
+    expect(retrieved.skills.map((skill) => skill.name)).toEqual(['find-overdue', 'price-a-job']);
     expect(retrieved.examples.map((item) => item.slug)).toEqual(['after-hours']);
     expect(selectRetrieval(harness, 'What is the weather?')).toEqual({ skills: [], examples: [] });
   });
@@ -117,12 +115,39 @@ describe('buildSystemPrompt', () => {
       ],
     },
   });
-  const job = makeJob();
+  const folder: FolderSummary = {
+    files: [
+      {
+        path: 'data/customers.csv',
+        area: 'data',
+        kind: 'table',
+        writable: false,
+        description: 'Customers and their payment terms.',
+        lines: 4,
+      },
+      {
+        path: 'data/invoices.csv',
+        area: 'data',
+        kind: 'table',
+        writable: true,
+        description: 'Issued invoices, one row each.',
+        lines: 1,
+      },
+      { path: 'data/policy.md', area: 'data', kind: 'text', writable: false, lines: 12 },
+      {
+        path: 'skills/price-a-job/SKILL.md',
+        area: 'skills',
+        kind: 'text',
+        writable: false,
+        lines: 6,
+      },
+    ],
+  };
 
-  it('assembles the harness, date, data, skills, examples and refusals', () => {
+  it('assembles the instructions, date, files, skills, examples and refusals', () => {
     const prompt = buildSystemPrompt({
       harness,
-      job,
+      folder,
       mode: 'task',
       today: '2026-11-03',
       loadedSkills: harness.skills.slice(0, 1),
@@ -133,23 +158,23 @@ describe('buildSystemPrompt', () => {
         'You are the service desk of Ferncliff Home Services.',
         'Today is Tuesday, 2026-11-03.',
         [
-          'Data files:',
-          '- customers.csv (table, read only): Customers and their payment terms.',
-          '- invoices.csv (table, writable): Issued invoices, one row each.',
-          '- policy.md (text, read only): Pricing and payment rules.',
+          'Your files:',
+          '- data/customers.csv: table, 4 lines, read-only. Customers and their payment terms.',
+          '- data/invoices.csv: table, 1 line, writable. Issued invoices, one row each.',
+          '- data/policy.md: text, 12 lines, read-only.',
         ].join('\n'),
         [
-          'Skills (load the full steps with load_skill):',
-          '- price-a-job (Price a completed job): Turn a job into invoice lines.',
-          '- find-overdue (Find overdue balances): Subtract payments, then compare due dates.',
-          '- book-a-slot (Book a slot): Find the earliest feasible start.',
+          'Skills (read skills/<name>/SKILL.md for the steps before you follow one):',
+          '- price-a-job: Turn a job into invoice lines.',
+          '- find-overdue: Subtract payments, then compare due dates.',
+          '- book-a-slot: Find the earliest feasible start.',
         ].join('\n'),
-        'Skill price-a-job (Price a completed job), loaded for this request:\n1. Read the job.\n2. Price it.',
+        'Skill price-a-job, loaded for this request:\n1. Read the job.\n2. Price it.',
         [
           'Example: After-hours job',
           'User: Invoice job W-1.',
-          'Assistant calls read_table {"file":"jobs.csv"}',
-          `read_table returned: ${'x'.repeat(400)}…`,
+          'Assistant calls read {"path":"data/jobs.csv"}',
+          `read returned: ${'x'.repeat(400)}…`,
           'Assistant: ANSWER: {"total_cents": 100}',
         ].join('\n'),
         [
@@ -160,18 +185,32 @@ describe('buildSystemPrompt', () => {
     );
   });
 
+  it('names the output folder when the job has one', () => {
+    const prompt = buildSystemPrompt({
+      harness: makeHarness(),
+      folder: { files: [], output: { description: 'Reports for the office.' } },
+      mode: 'task',
+      today: '2026-11-03',
+      loadedSkills: [],
+      examples: [],
+    });
+    expect(prompt).toContain(
+      'Your files:\n- output/: a folder for files you write. Reports for the office.',
+    );
+  });
+
   it('adds one line in chat mode, leaves the skill index out when asked, and is deterministic', () => {
     const quiet = makeHarness({ skills, retrieval: { listSkills: false } });
     const input = {
       harness: quiet,
-      job,
+      folder,
       mode: 'chat' as const,
       today: '2026-11-03',
       loadedSkills: [],
       examples: [],
     };
     const prompt = buildSystemPrompt(input);
-    expect(prompt).not.toContain('Skills (load');
+    expect(prompt).not.toContain('Skills (read');
     expect(
       prompt.endsWith(
         'You are talking with the user directly. Reply in plain language; no ANSWER line is needed.',
@@ -183,7 +222,7 @@ describe('buildSystemPrompt', () => {
   it('rejects a date that is not a real YYYY-MM-DD day', () => {
     for (const today of ['2026-02-30', '11/03/2026', '']) {
       expect(() =>
-        buildSystemPrompt({ harness, job, mode: 'task', today, loadedSkills: [], examples: [] }),
+        buildSystemPrompt({ harness, folder, mode: 'task', today, loadedSkills: [], examples: [] }),
       ).toThrow(/today must be a date like 2026-11-03/);
     }
   });

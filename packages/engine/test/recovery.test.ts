@@ -286,7 +286,7 @@ describe('restart recovery', () => {
       if (call === 1) {
         return {
           ...hypothesis('Drop the prompt', ''),
-          edits: [{ op: 'delete' as const, path: 'system.md', content: '' }],
+          edits: [{ op: 'delete' as const, path: 'AGENTS.md', content: '' }],
         };
       }
       if (call === 2) {

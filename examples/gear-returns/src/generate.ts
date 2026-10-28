@@ -7,7 +7,7 @@ import { buildJob } from './job-file';
 import { formatJson } from './lib/json-format';
 import { Random } from './lib/random';
 import { policyDocument } from './policy/document';
-import { parseJobData } from './reference/tools';
+import { JobFiles } from './reference/tools';
 import { buildShop } from './shop/build';
 import { exportTables } from './shop/exports';
 import { ShopIndex } from './shop/records';
@@ -36,7 +36,7 @@ export function buildJobFiles(seed: number): GeneratedJob {
   const { shop, awaitingPickup } = buildShop(random.fork('shop'));
   const tables = exportTables(shop, random.fork('exports'));
   const policy = policyDocument();
-  const data = parseJobData(new Map([['policy.md', policy], ...Object.entries(tables)]));
+  const data = new JobFiles(new Map([['policy.md', policy], ...Object.entries(tables)]));
   const index = new ShopIndex(shop);
   // Returns waiting for a pickup belong to the pickup tasks, so refund requests stay off their orders.
   const pickupOrders = new Set(

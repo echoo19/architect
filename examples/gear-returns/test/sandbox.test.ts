@@ -1,7 +1,7 @@
 import { cpSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createChecker, createSandbox, openTableStore } from '@architect/engine';
+import { createChecker, createSandbox, openAgentFiles } from '@architect/engine';
 import type { Checker, Sandbox } from '@architect/engine';
 import type { CheckOutcome, JsonValue, Task } from '@architect/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -16,7 +16,7 @@ import {
 
 /**
  * The checker module run the way the runner runs it: in QuickJS inside the sandbox's child
- * process, on the table store's end state, through the engine's own checker.
+ * process, on the end state of the agent's files, through the engine's own checker.
  */
 
 let dir: string;
@@ -47,13 +47,21 @@ async function check(
   append: { file: string; row: CsvRow } | null,
   answer: JsonValue | null,
 ) {
-  const store = await openTableStore({
+  const files = await openAgentFiles({
     dataDir: join(dir, 'data'),
     files: job.job().data.files,
     mode: 'scratch',
   });
-  if (append) store.append(append.file, [append.row]);
-  return checker.check(task, outcome(answer), store);
+  if (append) {
+    const path = `data/${append.file}`;
+    const line = job
+      .data()
+      .columns(append.file)
+      .map((column) => append.row[column] ?? '')
+      .join(',');
+    await files.apply(files.plan('append', path, `${files.read(path)}${line}\n`));
+  }
+  return checker.check(task, outcome(answer), files);
 }
 
 const firstOf = (type: string, count: number) => job.tasksOfType(type).slice(0, count);

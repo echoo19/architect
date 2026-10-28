@@ -34,10 +34,10 @@ export function selectRetrieval(harness: Harness, request: string): Retrieved {
   const examples: Example[] = [];
   for (const rule of retrieval.rules) {
     if (!rule.whenAny.some((phrase) => containsPhrase(request, phrase))) continue;
-    for (const slug of rule.loadSkills) {
+    for (const name of rule.loadSkills) {
       addUpTo(
         skills,
-        harness.skills.find((skill) => skill.slug === slug),
+        harness.skills.find((skill) => skill.name === name),
         retrieval.maxLoadedSkills,
       );
     }

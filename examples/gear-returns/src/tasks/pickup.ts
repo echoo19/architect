@@ -14,8 +14,9 @@ import { carrierFor, earliestPickup, firstPickupDate } from '../reference/pickup
 import type { PickupRequest as PickupRules } from '../reference/pickups';
 import { solvePickup } from '../reference/solver';
 import type { PickupRequest } from '../reference/solver';
-import { DeskTools } from '../reference/tools';
-import type { JobData, Row } from '../reference/tools';
+import type { CsvRow } from '../lib/csv';
+import { AgentTools } from '../reference/tools';
+import type { JobFiles } from '../reference/tools';
 import type { ShopIndex } from '../shop/records';
 import type { Carrier, ReturnRecord } from '../shop/types';
 import { TODAY, withAnswerLine } from './prompts';
@@ -59,7 +60,7 @@ interface PickupCase {
 export function buildPickupTasks(
   random: Random,
   index: ShopIndex,
-  data: JobData,
+  data: JobFiles,
   awaiting: readonly string[],
 ): Task[] {
   const booked = new Map<string, number>();
@@ -68,12 +69,11 @@ export function buildPickupTasks(
     booked.set(key, (booked.get(key) ?? 0) + 1);
   }
   const carelessCounts = isoOnlyCounts(data);
-  const exported = new Map(
-    (data.tables.get('returns.csv')?.rows ?? []).map((row) => [row.return_id, row]),
-  );
+  const exported = new Map(data.rows('returns.csv').map((row) => [row.return_id, row]));
   // Products whose SKU an export wrote another way, so an exact lookup misses them.
   const oddSkus = new Set(
-    (data.tables.get('products.csv')?.rows ?? [])
+    data
+      .rows('products.csv')
       .filter((row) => !/^[A-Z]{2}-\d{4}$/.test(row.sku ?? ''))
       .map((row) => String(row.sku).trim().toUpperCase()),
   );
@@ -99,7 +99,7 @@ export function buildPickupTasks(
     ...Array.from({ length: 5 }, () => has('messy_sku')),
   ]).sort((a, b) => compareText(a.value.record.return_id, b.value.record.return_id));
   for (const { value: c } of picked) {
-    const solved = solvePickup(new DeskTools(data), c.request, BUSINESS_DATE);
+    const solved = solvePickup(new AgentTools(data), c.request, BUSINESS_DATE);
     if (solved.result.carrier !== c.carrier || solved.result.pickup_date !== c.pickupDate) {
       throw new Error(`The reference books ${c.record.return_id} differently from the records`);
     }
@@ -143,7 +143,7 @@ function candidatesFor(
   random: Random,
   index: ShopIndex,
   record: ReturnRecord,
-  row: Row,
+  row: CsvRow,
   booked: ReadonlyMap<string, number>,
   carelessCounts: ReadonlyMap<string, number>,
   messySku: boolean,
@@ -202,9 +202,9 @@ function candidatesFor(
  * Pickups per carrier and day as a careless reader counts them: only the rows whose date is
  * written YYYY-MM-DD, as a filter on the date column would find them.
  */
-function isoOnlyCounts(data: JobData): Map<string, number> {
+function isoOnlyCounts(data: JobFiles): Map<string, number> {
   const counts = new Map<string, number>();
-  for (const row of data.tables.get('pickups.csv')?.rows ?? []) {
+  for (const row of data.rows('pickups.csv')) {
     const cell = row.pickup_date ?? '';
     if (!/^\d{4}-\d{2}-\d{2}$/.test(cell)) continue;
     const key = `${row.carrier} ${cell}`;

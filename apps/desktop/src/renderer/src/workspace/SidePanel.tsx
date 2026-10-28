@@ -2,17 +2,27 @@ import { useEffect, useRef } from 'react';
 import type { CellValue, RowDiff } from '@architect/shared';
 import { IconButton } from '@architect/ui';
 import { X } from 'lucide-react';
+import { PatchLines } from '../components/PatchLines';
 import { DataTable, RowDiffTable } from './tables';
 
-/** What the side panel shows: a whole table from a reply, or the full preview of a write. */
+/**
+ * What the side panel shows: a whole table from a reply or a step, or the full preview of a
+ * change: its rows for a table, its lines for any other file.
+ */
 export type PanelContent =
   | { kind: 'table'; title: string; columns: string[]; rows: CellValue[][] }
-  | { kind: 'diff'; file: string; diff: RowDiff };
+  | { kind: 'diff'; file: string; diff: RowDiff }
+  | { kind: 'patch'; file: string; patch: string };
 
 export interface SidePanelProps {
   content: PanelContent;
   onClose: () => void;
 }
+
+const CHANGE_TITLE: Record<Exclude<PanelContent['kind'], 'table'>, string> = {
+  diff: 'Rows to write to',
+  patch: 'Lines to write to',
+};
 
 /** The aside next to a chat. It takes focus when it opens; Escape closes it. */
 export function SidePanel({ content, onClose }: SidePanelProps) {
@@ -21,7 +31,8 @@ export function SidePanel({ content, onClose }: SidePanelProps) {
     panel.current?.focus();
   }, [content]);
 
-  const label = content.kind === 'table' ? content.title : `Rows to write to ${content.file}`;
+  const label =
+    content.kind === 'table' ? content.title : `${CHANGE_TITLE[content.kind]} ${content.file}`;
   return (
     <aside
       ref={panel}
@@ -35,7 +46,8 @@ export function SidePanel({ content, onClose }: SidePanelProps) {
             content.title
           ) : (
             <>
-              Rows to write to <span className="font-mono text-base">{content.file}</span>
+              {CHANGE_TITLE[content.kind]}{' '}
+              <span className="font-mono text-base">{content.file}</span>
             </>
           )}
         </span>
@@ -44,10 +56,12 @@ export function SidePanel({ content, onClose }: SidePanelProps) {
         </IconButton>
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-5">
-        {content.kind === 'table' ? (
+        {content.kind === 'table' && (
           <DataTable label={label} columns={content.columns} rows={content.rows} />
-        ) : (
-          <RowDiffTable diff={content.diff} />
+        )}
+        {content.kind === 'diff' && <RowDiffTable diff={content.diff} />}
+        {content.kind === 'patch' && (
+          <PatchLines patch={content.patch} label="Lines this change writes" />
         )}
       </div>
     </aside>

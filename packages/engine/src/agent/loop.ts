@@ -6,6 +6,7 @@ import {
   type Decoding,
   type Harness,
   type Job,
+  type ReplaySetup,
   type StopReason,
   type StudentAdapter,
   type StudentChatRequest,
@@ -15,9 +16,10 @@ import {
   type TraceStep,
   type Usage,
 } from '@architect/shared';
-import type { TableStore } from '../data/table-store';
+import type { AgentFiles } from '../files/agent-files';
 import type { Sandbox } from '../sandbox/types';
 import type { ApproveWrite } from '../tools/builtins';
+import { TOOL_RUNTIME } from '../tools/specs';
 import { createToolbox } from '../tools/toolbox';
 import { buildSystemPrompt, type AgentMode } from './prompt';
 import { matchGuardrail, selectRetrieval } from './retrieval';
@@ -27,7 +29,8 @@ export interface RunAgentOptions {
   harness: Harness;
   job: Job;
   student: StudentAdapter;
-  store: TableStore;
+  /** The agent's folder: the job's data, its output folder and the harness's skills. */
+  files: AgentFiles;
   sandbox: Sandbox;
   /** The task prompt, or the user's latest chat message. */
   request: string;
@@ -47,7 +50,7 @@ export interface RunAgentOptions {
   onStep?: (step: TraceStep) => void;
   /** Called with the model's text as it streams. */
   onText?: (delta: string) => void;
-  /** Chat mode: asks the user before each write. */
+  /** Chat mode: asks the user before each change to a file. */
   approveWrite?: ApproveWrite;
   signal?: AbortSignal;
 }
@@ -67,12 +70,23 @@ type Turn =
  * Runs the student on one request inside a harness: refuses guarded requests without calling the
  * model, then alternates model turns and tool calls until a turn makes no tool calls or the step
  * limit is reached. Model mistakes become tool errors the model can read, and a failing or
- * aborted model call ends the trace with that stop reason; neither throws.
+ * aborted model call ends the trace with that stop reason; neither throws. The trace records
+ * what the attempt started from and every file it changed, so it can be replayed.
  */
 export async function runAgent(options: RunAgentOptions): Promise<Trace> {
-  const { harness, job, student, store, sandbox, request, mode, seed, signal } = options;
+  const { harness, job, student, files, sandbox, request, mode, seed, signal } = options;
   const today = todayFor(job, options.now ?? new Date());
+  const decoding = options.decoding ?? harness.decoding;
   const started = performance.now();
+  const startTexts = files.texts();
+  const replay: ReplaySetup = {
+    data: files.dataHashes(),
+    harnessHash: harness.meta.hash,
+    toolRuntime: TOOL_RUNTIME,
+    seed,
+    decoding,
+    today,
+  };
   const history = options.history ?? [];
   const steps: TraceStep[] = [];
   let usage = emptyUsage();
@@ -96,6 +110,8 @@ export async function runAgent(options: RunAgentOptions): Promise<Trace> {
     ...(error === undefined ? {} : { error }),
     usage,
     latencyMs: elapsedMs(started),
+    replay,
+    changes: files.changesSince(startTexts),
   });
 
   const refusal = matchGuardrail(harness, request);
@@ -111,10 +127,13 @@ export async function runAgent(options: RunAgentOptions): Promise<Trace> {
   }
 
   const retrieved = selectRetrieval(harness, request);
-  for (const skill of retrieved.skills) record({ kind: 'skill', slug: skill.slug, via: 'rule' });
+  for (const skill of retrieved.skills) record({ kind: 'skill', slug: skill.name, via: 'rule' });
   const system = buildSystemPrompt({
     harness,
-    job,
+    folder: {
+      files: files.list(),
+      ...(job.data.output === undefined ? {} : { output: job.data.output }),
+    },
     mode,
     today,
     loadedSkills: retrieved.skills,
@@ -125,8 +144,13 @@ export async function runAgent(options: RunAgentOptions): Promise<Trace> {
     ...history,
     { role: 'user', content: request },
   ];
-  const toolbox = createToolbox({ harness, store, sandbox, approveWrite: options.approveWrite });
-  const decoding = options.decoding ?? harness.decoding;
+  const toolbox = createToolbox({
+    harness,
+    files,
+    sandbox,
+    today,
+    approveWrite: options.approveWrite,
+  });
   let finalText = '';
 
   try {
@@ -169,6 +193,8 @@ export async function runAgent(options: RunAgentOptions): Promise<Trace> {
           result: outcome.result,
           ...(outcome.error === undefined ? {} : { error: outcome.error }),
           latencyMs: elapsedMs(toolStarted),
+          ...(outcome.change === undefined ? {} : { change: outcome.change }),
+          ...(outcome.table === undefined ? {} : { table: outcome.table }),
         });
         if (outcome.loadedSkill !== undefined) {
           record({ kind: 'skill', slug: outcome.loadedSkill, via: 'tool' });

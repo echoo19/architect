@@ -30,8 +30,8 @@ describe('parseInline', () => {
   });
 
   it('leaves underscores inside words and unmatched markers alone', () => {
-    expect(parseInline('read_table on invoice_lines.csv')).toEqual([
-      text('read_table on invoice_lines.csv'),
+    expect(parseInline('invoice_total on invoice_lines.csv')).toEqual([
+      text('invoice_total on invoice_lines.csv'),
     ]);
     expect(parseInline('2 * 3 * 4 and **open')).toEqual([text('2 * 3 * 4 and **open')]);
     expect(parseInline('\\*not italic\\*')).toEqual([text('*not italic*')]);

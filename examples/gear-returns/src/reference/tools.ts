@@ -1,275 +1,205 @@
 /**
- * The runner's built-in tools as the agent meets them, for reference solutions that must show a
- * task fits the agent's turns and context. read_table keeps the rows that match every where
- * condition (=, !=, <, <=, >, >=, contains and in), returns the chosen columns, gives 50 rows
- * unless asked for up to 200, pages with offset, and cuts its result to 8,000 characters;
- * read_text hands a long file over in parts; calculate and append_rows are calls like any other.
- * Every call and every character of every result is counted. The runner's own implementation is
- * in packages/engine (data/query.ts, tools/results.ts and tools/builtins.ts); this one follows it
- * rule for rule, and the tests compare the two on this job's files.
+ * The agent's built-in tools as the runner serves them, for reference solutions that must show a
+ * task fits the agent's turns and context. read gives a file's lines numbered, as many as fit
+ * 8,000 characters, and says where to read on; run gives back "=> " and the JSON of its code's
+ * last value, which must fit 8,000 characters too; append adds rows to a table. Each call keeps
+ * what the agent would send, the code for run included, and the text it gets back, and every
+ * character of that text counts. The runner's own tools are in packages/engine (tools/format.ts
+ * and tools/builtins.ts); the tests replay every call through them and compare the text.
  */
-import { csvColumns, parseCsv } from '../lib/csv';
+import type { JsonValue } from '@architect/shared';
+import { csvColumns, parseCsv, toCsv } from '../lib/csv';
+import type { CsvRow } from '../lib/csv';
 
-const DEFAULT_ROWS = 50;
-export const MAX_ROWS = 200;
-const RESULT_CHARACTERS = 8000;
+/** Characters a tool result may take. */
+export const RESULT_CHARACTERS = 8000;
+const READ_LINES = 200;
+/** Room a read keeps for the line that says how to read on. */
+const NOTE_ROOM = 120;
 
-export type Cell = string | null;
-export type Row = Readonly<Record<string, Cell>>;
+/** A row the way csv.parse hands it to the agent's code: every value text, "" when empty. */
+export type CodeRow = Readonly<Record<string, string>>;
 
-export interface Table {
-  columns: readonly string[];
-  rows: readonly Row[];
+/** A value of a row the code fetched. A column the row lacks is a mistake in the reference. */
+export function cell(row: CodeRow, column: string): string {
+  const value = row[column];
+  if (value === undefined) throw new Error(`A row has no column ${column}`);
+  return value;
 }
 
-export type Operator = '=' | '!=' | '>' | '>=' | '<' | '<=' | 'contains' | 'in';
-
-export interface Condition {
-  column: string;
-  op: Operator;
-  value: string | number | null | readonly (string | number)[];
+export interface ToolCall {
+  name: 'read' | 'run' | 'append';
+  arguments: Record<string, JsonValue>;
+  /** The text the agent gets back. */
+  content: string;
 }
 
-export interface TableRead {
-  file: string;
-  where?: readonly Condition[];
-  columns?: readonly string[];
-  limit?: number;
-  offset?: number;
+interface Table {
+  columns: string[];
+  rows: CsvRow[];
+  code: CodeRow[];
 }
 
-export interface TablePage {
-  rows: Row[];
-  /** Rows matching the conditions, before offset and limit. */
-  total: number;
-  /** True when more matching rows come after the returned ones. */
-  truncated: boolean;
-}
+/** A job's data files by name (`orders.csv`, `policy.md`), each table parsed once. */
+export class JobFiles {
+  private readonly tables = new Map<string, Table>();
 
-/** A job's data files as the tools serve them: tables by file name, and text files. */
-export interface JobData {
-  tables: ReadonlyMap<string, Table>;
-  texts: ReadonlyMap<string, string>;
-}
+  constructor(private readonly texts: ReadonlyMap<string, string>) {}
 
-/** Parses data files given by name (`orders.csv`, `policy.md`) to their text. */
-export function parseJobData(files: ReadonlyMap<string, string>): JobData {
-  const tables = new Map<string, Table>();
-  const texts = new Map<string, string>();
-  for (const [name, text] of files) {
-    if (name.endsWith('.csv'))
-      tables.set(name, { columns: csvColumns(text), rows: parseCsv(text) });
-    else texts.set(name, text);
+  text(name: string): string {
+    const text = this.texts.get(name);
+    if (text === undefined) throw new Error(`No file ${name}`);
+    return text;
   }
-  return { tables, texts };
+
+  /** A table's columns, in order. */
+  columns(name: string): string[] {
+    return this.table(name).columns;
+  }
+
+  /** A table's rows as an export wrote them, empty cells null. */
+  rows(name: string): readonly CsvRow[] {
+    return this.table(name).rows;
+  }
+
+  /** The same rows the way the agent's code sees them. */
+  codeRows(name: string): readonly CodeRow[] {
+    return this.table(name).code;
+  }
+
+  private table(name: string): Table {
+    let table = this.tables.get(name);
+    if (!table) {
+      const text = this.text(name);
+      const rows = parseCsv(text);
+      const code = rows.map((row) =>
+        Object.fromEntries(Object.entries(row).map(([column, cell]) => [column, cell ?? ''])),
+      );
+      table = { columns: csvColumns(text), rows, code };
+      this.tables.set(name, table);
+    }
+    return table;
+  }
 }
 
-/** One agent's use of the tools: each new instance starts counting from zero. */
-export class DeskTools {
-  private callCount = 0;
-  private characterCount = 0;
-  private readonly appended = new Map<string, Row[]>();
+/** What a run's code reads, as the reference works it out: rows of a table, noted as seen. */
+export interface Tables {
+  /** The rows of a table that pass the test, in file order. */
+  where(name: string, test: (row: CodeRow) => boolean): CodeRow[];
+  /** The one row that passes the test; any other count is a mistake in the reference. */
+  one(name: string, test: (row: CodeRow) => boolean): CodeRow;
+}
+
+/** One agent attempt's tool calls. Each new instance starts from nothing. */
+export class AgentTools {
+  readonly calls: ToolCall[] = [];
+  private readonly appended = new Map<string, CsvRow[]>();
   private readonly seen = new Map<string, Set<number>>();
 
-  constructor(private readonly data: JobData) {}
-
-  /** Tool calls made so far. */
-  get calls(): number {
-    return this.callCount;
-  }
+  constructor(private readonly files: JobFiles) {}
 
   /** Characters of tool results so far, the way the agent's conversation holds them. */
   get characters(): number {
-    return this.characterCount;
+    return this.calls.reduce((total, call) => total + call.content.length, 0);
   }
 
   /** Rows appended to a table during this attempt. */
-  appendedTo(file: string): readonly Row[] {
-    return this.appended.get(file) ?? [];
+  appendedTo(name: string): readonly CsvRow[] {
+    return this.appended.get(name) ?? [];
   }
 
-  /** Positions in a table's file of the rows its reads have returned so far. */
-  rowsSeen(file: string): ReadonlySet<number> {
-    return this.seen.get(file) ?? new Set();
+  /** Positions in a table's file of the rows the code of this attempt read. */
+  rowsSeen(name: string): ReadonlySet<number> {
+    return this.seen.get(name) ?? new Set();
   }
 
-  readTable(read: TableRead): TablePage {
-    const table = this.data.tables.get(read.file);
-    if (!table) throw new Error(`No table ${read.file}`);
-    const columns = read.columns ?? table.columns;
-    const named = [...(read.where ?? []).map((condition) => condition.column), ...columns];
-    const unknown = named.find((column) => !table.columns.includes(column));
-    if (unknown !== undefined) throw new Error(`${read.file} has no column ${unknown}`);
-    const tests = (read.where ?? []).map(compile);
-    const matching = table.rows.filter((row) => tests.every((test) => test(row)));
-    const offset = read.offset ?? 0;
-    const limit = Math.min(read.limit ?? DEFAULT_ROWS, MAX_ROWS);
-    const page = matching.slice(offset, offset + limit);
-    const cells = page.map((row) => columns.map((column) => row[column] ?? null));
-
-    const result = (count: number) => {
-      const end = offset + count;
-      const value: Record<string, unknown> = {
-        file: read.file,
-        columns,
-        rows: cells.slice(0, count),
-        total: matching.length,
-        truncated: end < matching.length,
-      };
-      if (end < matching.length) {
-        value.note = pageNote(offset, count, matching.length, count < page.length);
-      }
-      return JSON.stringify(value).length;
-    };
-    const count = largestCount(page.length, (n) => result(n) <= RESULT_CHARACTERS);
-    this.count(result(count));
-    const seen = this.seen.get(read.file) ?? new Set<number>();
-    for (const row of page.slice(0, count)) seen.add(table.rows.indexOf(row));
-    this.seen.set(read.file, seen);
-    return {
-      rows: cells
-        .slice(0, count)
-        .map((row) => Object.fromEntries(columns.map((column, i) => [column, row[i] ?? null]))),
-      total: matching.length,
-      truncated: offset + count < matching.length,
-    };
-  }
-
-  /** The whole text file, read in as many parts as it takes. */
-  readText(file: string): string {
-    const text = this.data.texts.get(file);
-    if (text === undefined) throw new Error(`No text file ${file}`);
-    let offset = 0;
-    for (;;) {
-      const whole = JSON.stringify({ file, text: text.slice(offset) }).length;
-      if (whole <= RESULT_CHARACTERS) {
-        this.count(whole);
-        return text;
-      }
-      const part = (length: number) =>
-        JSON.stringify({
-          file,
-          text: text.slice(offset, offset + length),
-          total_chars: text.length,
-          next_offset: offset + length,
-          note: `This is part of ${file}. Call read_text again with offset ${offset + length} for the rest.`,
-        }).length;
-      const fits = largestCount(text.length - offset, (n) => part(n) <= RESULT_CHARACTERS);
-      const throughLineBreak = text.lastIndexOf('\n', offset + fits - 1) + 1 - offset;
-      const length = throughLineBreak > fits / 2 ? throughLineBreak : fits;
-      this.count(part(length));
-      offset += length;
-    }
+  /** Reads a whole file, in as many reads as it takes. */
+  readAll(name: string): void {
+    const lines = this.files.text(name).replace(/\n$/, '').split('\n');
+    for (let offset = 1; offset <= lines.length;) offset = this.read(name, lines, offset);
   }
 
   /**
-   * One calculate call. The reference solutions work out `value` themselves; the call is what an
-   * agent spends to get it, written out as the expression it would send.
+   * Runs code and returns its last value as the agent reads it back. `compute` works the value
+   * out the way the code does, from the same rows; the tests run the code itself through the
+   * runner and compare. A result too long for the agent to see whole is a mistake here.
    */
-  calculate(expression: string, value: number): number {
-    if (expression.trim() === '') throw new Error('An empty expression');
-    this.count(JSON.stringify({ result: value }).length);
-    return value;
-  }
-
-  appendRows(file: string, rows: readonly Row[]): void {
-    if (!this.data.tables.has(file)) throw new Error(`No table ${file}`);
-    this.appended.set(file, [...this.appendedTo(file), ...rows]);
-    this.count(JSON.stringify({ file, appended: rows.length }).length);
-  }
-
-  private count(characters: number): void {
-    this.callCount += 1;
-    this.characterCount += characters;
-  }
-}
-
-/** One where condition as a row test, compared the way the runner compares cells. */
-function compile(condition: Condition): (row: Row) => boolean {
-  const { column, op, value } = condition;
-  const cellOf = (row: Row): Cell => row[column] ?? null;
-  if (op === 'in') {
-    if (!Array.isArray(value)) throw new Error(`in needs a list (column ${column})`);
-    const options = (value as readonly (string | number)[]).map(asText);
-    return (row) => options.some((option) => equals(cellOf(row), option));
-  }
-  if (Array.isArray(value)) throw new Error(`Only in takes a list (column ${column})`);
-  const expected = asText(value as string | number | null);
-  switch (op) {
-    case '=':
-      return (row) => equals(cellOf(row), expected);
-    case '!=':
-      return (row) => !equals(cellOf(row), expected);
-    case 'contains': {
-      const needle = expected?.toLowerCase();
-      return (row) => {
-        const cell = cellOf(row);
-        return needle !== undefined && cell !== null && cell.toLowerCase().includes(needle);
-      };
+  run<T extends JsonValue>(code: string, compute: (tables: Tables) => T): T {
+    const where = (name: string, test: (row: CodeRow) => boolean) => this.select(name, test);
+    const value = compute({
+      where,
+      one: (name, test) => {
+        const rows = where(name, test);
+        if (rows.length !== 1 || !rows[0]) throw new Error(`${rows.length} rows of ${name} match`);
+        return rows[0];
+      },
+    });
+    const json = JSON.stringify(value);
+    const content = `=> ${json}`;
+    if (content.length > RESULT_CHARACTERS) {
+      throw new Error(`A result of ${content.length} characters would reach the agent cut`);
     }
-    default:
-      return (row) => {
-        const order = compareCells(cellOf(row), expected);
-        if (order === null) return false;
-        if (op === '>') return order > 0;
-        if (op === '>=') return order >= 0;
-        if (op === '<') return order < 0;
-        return order <= 0;
-      };
+    this.calls.push({ name: 'run', arguments: { code }, content });
+    return JSON.parse(json) as T;
+  }
+
+  /** Appends rows to a table, written as CSV in its column order. */
+  append(name: string, rows: readonly CsvRow[]): void {
+    const columns = this.files.columns(name);
+    const csv = toCsv(
+      columns,
+      rows.map((row) => columns.map((column) => row[column] ?? null)),
+    );
+    this.appended.set(name, [...this.appendedTo(name), ...rows]);
+    this.calls.push({
+      name: 'append',
+      arguments: { path: `data/${name}`, text: csv.slice(csv.indexOf('\n') + 1) },
+      content: `Added ${plural(rows.length, 'row')} to data/${name}.`,
+    });
+  }
+
+  /** One read, its lines numbered the way the runner numbers them; returns where the next starts. */
+  private read(name: string, lines: readonly string[], offset: number): number {
+    const last = Math.min(lines.length, offset + READ_LINES - 1);
+    const width = String(last).length;
+    const room = RESULT_CHARACTERS - NOTE_ROOM;
+    const shown: string[] = [];
+    let size = 0;
+    for (let number = offset; number <= last; number += 1) {
+      const line = `${String(number).padStart(width)}\t${lines[number - 1] ?? ''}`;
+      if (line.length > room)
+        throw new Error(`Line ${number} of ${name} is too long to read whole`);
+      if (shown.length > 0 && size + line.length + 1 > room) break;
+      shown.push(line);
+      size += line.length + 1;
+    }
+    const to = offset + shown.length - 1;
+    const note =
+      to < lines.length
+        ? `\n[Lines ${offset}-${to} of ${lines.length}. ${plural(lines.length - to, 'more line')}: read on with offset ${to + 1}.]`
+        : '';
+    this.calls.push({
+      name: 'read',
+      arguments: offset === 1 ? { path: `data/${name}` } : { path: `data/${name}`, offset },
+      content: `${shown.join('\n')}${note}`,
+    });
+    return to + 1;
+  }
+
+  private select(name: string, test: (row: CodeRow) => boolean): CodeRow[] {
+    const seen = this.seen.get(name) ?? new Set<number>();
+    this.seen.set(name, seen);
+    const matching: CodeRow[] = [];
+    this.files.codeRows(name).forEach((row, index) => {
+      if (!test(row)) return;
+      seen.add(index);
+      matching.push(row);
+    });
+    return matching;
   }
 }
 
-/** A value as cell text. An empty string means an empty cell, as it does on load. */
-function asText(value: string | number | null): string | null {
-  if (value === null || value === '') return null;
-  return String(value);
-}
-
-function equals(cell: Cell, expected: string | null): boolean {
-  if (cell === null || expected === null) return cell === expected;
-  const a = parseNumber(cell);
-  const b = parseNumber(expected);
-  return a !== null && b !== null ? a === b : cell === expected;
-}
-
-/** Sign of cell minus expected: as numbers when both read as numbers, else by code unit. */
-function compareCells(cell: Cell, expected: string | null): number | null {
-  if (cell === null || expected === null) return null;
-  const a = parseNumber(cell);
-  const b = parseNumber(expected);
-  if (a !== null && b !== null) return Math.sign(a - b);
-  return cell < expected ? -1 : cell > expected ? 1 : 0;
-}
-
-const DECIMAL = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
-
-function parseNumber(text: string): number | null {
-  const trimmed = text.trim();
-  if (!DECIMAL.test(trimmed)) return null;
-  const value = Number(trimmed);
-  return Number.isFinite(value) ? value : null;
-}
-
-function pageNote(offset: number, count: number, total: number, cutForSize: boolean): string {
-  const end = offset + count;
-  const shown =
-    count > 0
-      ? `Rows ${offset + 1} to ${end} of ${total} are shown`
-      : `${total} rows match and none are shown`;
-  const reason = cutForSize ? ' to stay within the size limit' : '';
-  const fewer = cutForSize ? ', or ask for fewer columns' : '';
-  return `${shown}${reason}. Read again with offset ${end} for more${fewer}.`;
-}
-
-/** The largest count from 0 to max that fits, by binary search (fit shrinks as count grows). */
-function largestCount(max: number, fits: (count: number) => boolean): number {
-  if (fits(max)) return max;
-  let low = 0;
-  let high = max;
-  while (low < high) {
-    const middle = Math.ceil((low + high) / 2);
-    if (fits(middle)) low = middle;
-    else high = middle - 1;
-  }
-  return low;
+/** "1 row", "1,038 more lines": a count the way the runner writes it. */
+function plural(count: number, noun: string): string {
+  return `${count.toLocaleString('en-US')} ${noun}${count === 1 ? '' : 's'}`;
 }

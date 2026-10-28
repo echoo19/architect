@@ -74,25 +74,33 @@ function sampleTrace(overrides: Partial<Trace> = {}): Trace {
       {
         kind: 'model',
         text: 'I will read the job.',
-        toolCalls: [{ id: 'c1', name: 'read_table', arguments: { name: 'jobs.csv' } }],
+        toolCalls: [{ id: 'c1', name: 'read', arguments: { path: 'data/jobs.csv' } }],
         usage: { inputTokens: 40, outputTokens: 12 },
         latencyMs: 900,
       },
       {
         kind: 'tool',
         callId: 'c1',
-        name: 'read_table',
-        arguments: { name: 'jobs.csv' },
-        result: Array.from({ length: 200 }, (_, i) => ({ id: `J-${i}`, minutes: i * 15 })),
+        name: 'read',
+        arguments: { path: 'data/jobs.csv' },
+        result: Array.from({ length: 200 }, (_, i) => `${i + 1}\tJ-${i},${i * 15}`).join('\n'),
         latencyMs: 4,
       },
       {
         kind: 'tool',
         callId: 'c2',
-        name: 'calculate',
-        arguments: { expression: '1/0' },
+        name: 'run',
+        arguments: { code: 'rows.length' },
         result: null,
-        error: 'Division by zero.',
+        error: 'ReferenceError: rows is not defined (run.js:1:1)',
+        latencyMs: 1,
+      },
+      {
+        kind: 'tool',
+        callId: 'c3',
+        name: 'lookup',
+        arguments: { id: 'J-1' },
+        result: Array.from({ length: 3 }, (_, i) => ({ id: `J-${i}` })),
         latencyMs: 1,
       },
       {
@@ -130,7 +138,7 @@ describe('the mentor gate', () => {
     const parts = [
       { label: 'data file policy.md', text: 'Labor is billed per started 15 minutes.' },
       { label: 'train task train-invoice-1', text: `Same as: ${testPrompt}` },
-      { label: 'harness file system.md', text: 'Finish with the ANSWER line.' },
+      { label: 'harness file AGENTS.md', text: 'Finish with the ANSWER line.' },
     ];
     const call = gate({ refusals }).complete(
       mentor,
@@ -286,7 +294,7 @@ describe('the hypothesis reply', () => {
           edits: [
             { op: 'write', path: './tools/price_job.js', content: 'function run() {}' },
             { op: 'write', path: 'tools//price_job.json', content: '{}' },
-            { op: 'delete', path: 'tools/../system.md', content: '' },
+            { op: 'delete', path: 'tools/../AGENTS.md', content: '' },
           ],
         },
       },
@@ -295,7 +303,7 @@ describe('the hypothesis reply', () => {
     expect(parsed.edits.map((edit) => edit.path)).toEqual([
       'tools/price_job.js',
       'tools/price_job.json',
-      'tools/../system.md',
+      'tools/../AGENTS.md',
     ]);
   });
 
@@ -309,8 +317,8 @@ describe('the hypothesis reply', () => {
             predicted: { devDeltaMin: 4, devDeltaMax: 1, rationale: 'Reversed on purpose.' },
           }),
           edits: [
-            { op: 'write', path: 'system.md', content: 'fix:invoice' },
-            { op: 'delete', path: 'skills/old.md', content: '' },
+            { op: 'write', path: 'AGENTS.md', content: 'fix:invoice' },
+            { op: 'delete', path: 'skills/old/SKILL.md', content: '' },
           ],
         },
       },
@@ -318,8 +326,8 @@ describe('the hypothesis reply', () => {
     );
     expect(parsed.title).toHaveLength(80);
     expect(parsed.edits).toEqual([
-      { op: 'write', path: 'system.md', content: 'fix:invoice' },
-      { op: 'delete', path: 'skills/old.md' },
+      { op: 'write', path: 'AGENTS.md', content: 'fix:invoice' },
+      { op: 'delete', path: 'skills/old/SKILL.md' },
     ]);
     expect(parsed.causeTaskIds).toEqual(['train-invoice-1']);
     expect(parsed.predicted).toMatchObject({ devDeltaMin: 1, devDeltaMax: 4 });
@@ -345,9 +353,11 @@ describe('renderCompactTrace', () => {
     const text = renderCompactTrace(sampleTrace());
     expect(text).toContain('skill price-a-job loaded by a retrieval rule');
     expect(text).toContain('model: I will read the job.');
-    expect(text).toContain('call read_table {"name":"jobs.csv"}');
-    expect(text).toMatch(/read_table → 200 items \[.*… \[\d+ more chars\]/);
-    expect(text).toContain('calculate failed: Division by zero.');
+    expect(text).toContain('call read {"path":"data/jobs.csv"}');
+    expect(text).toContain('read → 1\tJ-0,0\n    2\tJ-1,15\n    3\tJ-2,30');
+    expect(text).toMatch(/… \[\d+ more chars\]/);
+    expect(text).toContain('run failed: ReferenceError: rows is not defined (run.js:1:1)');
+    expect(text).toContain('lookup → 3 items [{"id":"J-0"}');
     expect(text).toContain('final answer: ANSWER: {"total_cents": 1250}');
     expect(text).toContain('stopped: answer after 2 model steps, 120 in / 21 out tokens, 1.6 s');
   });
@@ -377,7 +387,7 @@ describe('the mentor view', () => {
     round: 1,
     title: 'Add the invoice procedure',
     diagnosis: 'Invoices had no pricing rule.',
-    files: ['system.md'],
+    files: ['AGENTS.md'],
     causeTaskIds: ['train-invoice-1'],
     predicted: { devDeltaMin: 1, devDeltaMax: 3, rationale: 'Three tasks.' },
     measured: {
@@ -398,7 +408,7 @@ describe('the mentor view', () => {
     const view = buildMentorView({
       job,
       dataFiles: [],
-      harnessFiles: { 'system.md': 'fix:invoice' },
+      harnessFiles: { 'AGENTS.md': 'fix:invoice' },
       round: 2,
       budgetLeft: { rounds: 1, usd: 4.9, minutes: 50 },
       train: [
@@ -419,7 +429,7 @@ describe('the mentor view', () => {
         round: 1,
         title: 'Add the invoice procedure',
         diagnosis: 'Invoices had no pricing rule.',
-        files: ['system.md'],
+        files: ['AGENTS.md'],
         decision: 'kept',
         devDelta: 3,
       },
@@ -435,7 +445,7 @@ describe('the mentor view', () => {
     const view = buildMentorView({
       job,
       dataFiles: [],
-      harnessFiles: { 'system.md': 'fix:invoice' },
+      harnessFiles: { 'AGENTS.md': 'fix:invoice' },
       round: 4,
       budgetLeft: { rounds: 1, usd: 4.9, minutes: 50 },
       train: [],
@@ -471,7 +481,7 @@ describe('the mentor view', () => {
     const view = buildOneShotView({
       job,
       dataFiles: [],
-      harnessFiles: { 'system.md': 'Blank.' },
+      harnessFiles: { 'AGENTS.md': 'Blank.' },
       budgetLeft: { rounds: 1, usd: 5, minutes: 60 },
       train: [task('train', 'invoice', 1)],
       devTotal: 9,
@@ -504,6 +514,13 @@ describe('the mentor view', () => {
       { evaluation: { minDevGain: 3, maxTypeRegression: 1, devRepeats: 1 } },
     );
     expect(system).toContain('rise by at least 3 and no task type loses more than 1 pass');
+    expect(system).toContain('- AGENTS.md: the standing instructions');
+    expect(system).toContain('- skills/<name>/SKILL.md: a step-by-step procedure');
+    expect(system).toContain("data/ holds the job's files");
+    for (const tool of ['read', 'ls', 'glob', 'grep', 'write, edit and append', 'run']) {
+      expect(system).toContain(`\n- ${tool}: `);
+    }
+    expect(system).not.toMatch(/read_table|\bload_skill\b|calculate|system\.md/);
     expect(system).toContain('function run(args, ctx)');
     expect(system).toContain('no clock and no randomness');
     expect(system).toContain('retrieval.yaml');

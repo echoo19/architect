@@ -6,8 +6,9 @@ import {
   HARNESS_FORMAT,
   RetrievalSchema,
 } from '@architect/shared';
-import { readHarnessFiles } from './folder';
+import { currentFormatFiles, layoutFormat, readHarnessFiles } from './folder';
 import { hashHarness } from './hash';
+import { parseMeta } from './parse';
 import { META_PATH } from './paths';
 import { HarnessValidationError } from './errors';
 import { HARNESS_TEMPLATES } from './templates';
@@ -33,7 +34,7 @@ function withSystem(name: string, system: string): Harness {
   return { ...harness, meta: { ...harness.meta, hash: hashHarness(harness) } };
 }
 
-/** The smallest harness: a system prompt from the job's name and description, and default settings. */
+/** The smallest harness: instructions from the job's name and description, and default settings. */
 export function blankHarness(name: string, jobDescription: string): Harness {
   return withSystem(name, systemFor(name, jobDescription));
 }
@@ -51,14 +52,21 @@ export function templateHarness(name: string, jobDescription: string, template: 
 
 /**
  * Reads a folder to improve, as a new starting point: version 0 with no parent and a fresh hash.
- * The folder must validate. A folder without harness.yaml is accepted and named after itself.
+ * The folder must validate. A folder without harness.yaml is accepted and named after itself. A
+ * format 1 folder (`system.md`, skills in single files) is read in the current format.
  */
 export async function importHarness(dir: string): Promise<Harness> {
-  const files = await readHarnessFiles(dir);
+  const stored = await readHarnessFiles(dir);
+  const metaText = stored[META_PATH];
+  const problems: string[] = [];
+  const format =
+    metaText === undefined ? layoutFormat(stored) : parseMeta(metaText, problems)?.format;
+  if (format === undefined) throw new HarnessValidationError(problems);
+  const files = currentFormatFiles(stored, format);
   const result = validateHarnessFiles(files);
   if (!result.ok) throw new HarnessValidationError(result.errors);
   const { harness } = result;
-  const name = files[META_PATH] === undefined ? basename(resolve(dir)) : harness.meta.name;
+  const name = metaText === undefined ? basename(resolve(dir)) : harness.meta.name;
   const fresh: Harness = {
     ...harness,
     meta: { format: HARNESS_FORMAT, name, version: 0, hash: '' },

@@ -54,3 +54,31 @@ export function countChanges(lines: readonly DiffLine[]): { added: number; remov
     removed: lines.filter((line) => line.kind === 'removed').length,
   };
 }
+
+/**
+ * The lines of a unified diff as a person reads them: file headers left out, the first hunk's
+ * header dropped since it only starts the excerpt, and later ones kept as gaps between lines.
+ */
+export function patchRows(patch: string): DiffLine[] {
+  const parsed = parseUnifiedDiff(patch);
+  const first = parsed.findIndex((line) => line.kind === 'hunk');
+  return parsed.filter((_, index) => index !== first);
+}
+
+/** True for a patch that makes a new file from nothing. */
+export function createsFile(patch: string): boolean {
+  return /^--- \/dev\/null$/m.test(patch);
+}
+
+/** What a change does to a file's lines: "4 lines" for a new file, else "2 new lines · 1 line removed". */
+export function lineCounts(patch: string): string {
+  const { added, removed } = countChanges(parseUnifiedDiff(patch));
+  const lines = (count: number) => (count === 1 ? 'line' : 'lines');
+  if (createsFile(patch)) return `${added} ${lines(added)}`;
+  return [
+    added > 0 && `${added} new ${lines(added)}`,
+    removed > 0 && `${removed} ${lines(removed)} removed`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}

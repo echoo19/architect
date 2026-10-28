@@ -172,15 +172,31 @@ for (const theme of THEMES) {
     await expect(page.getByRole('status').filter({ hasText: 'Thinking' })).toBeVisible();
 
     await emitWorkspace(app, { type: 'message.updated', message: pricingReply('started') });
-    await expect(page.getByRole('button', { name: /Reading jobs\.csv/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Reading data\/jobs\.csv/ })).toBeVisible();
     await emitWorkspace(app, { type: 'message.updated', message: pricingReply('working') });
     // Tool steps start folded, as the setting says, and open on a click.
     const current = page.getByRole('button', { name: /invoice_total job J-4471/ });
     await expect(current).toHaveAttribute('aria-expanded', 'false');
     await expect(page.getByRole('list', { name: 'Steps' })).toBeHidden();
     await current.click();
-    await expect(page.getByRole('list', { name: 'Steps' }).getByRole('listitem')).toHaveCount(3);
+    const steps = page.getByRole('list', { name: 'Steps' });
+    await expect(steps.getByRole('listitem')).toHaveCount(4);
+    // The table read shows its first rows, and code shows folded with what it gave back.
+    const jobs = steps.getByRole('table', { name: 'data/jobs.csv' });
+    await expect(jobs.getByRole('row')).toHaveCount(5);
+    await expect(jobs).toContainText('J-4471');
+    const code = steps.getByRole('button', { name: 'Code' });
+    await expect(code).toHaveAttribute('aria-expanded', 'false');
+    await expect(steps).toContainText('"name":"Dana R."');
     await capture(`workspace-streaming-${theme}.png`);
+    await code.click();
+    await expect(code).toHaveAttribute('aria-expanded', 'true');
+    await expect(steps).toContainText("technicians.find((tech) => tech.technician_id === 'T-04')");
+    await steps.getByRole('button', { name: 'Show all 5 rows' }).click();
+    const read = page.getByRole('complementary', { name: 'data/jobs.csv' });
+    await expect(read.getByRole('row')).toHaveCount(6);
+    await page.keyboard.press('Escape');
+    await expect(read).toBeHidden();
 
     await emitWorkspace(app, { type: 'message.updated', message: pricingReply('writing') });
     await emitWorkspace(app, { type: 'message.updated', message: pricingReply('done') });
@@ -214,8 +230,9 @@ for (const theme of THEMES) {
   test(`asks before writing, and records an allow and a deny (${theme})`, async () => {
     const app = launched.app;
     await open(theme, chatPath(CHATS.approvals.id));
-    const invoices = page.getByRole('group', { name: 'Write to invoices.csv' });
-    const booking = page.getByRole('group', { name: 'Write to bookings.csv' });
+    const invoices = page.getByRole('group', { name: 'Write to data/invoices.csv' });
+    const booking = page.getByRole('group', { name: 'Write to data/bookings.csv' });
+    const note = page.getByRole('group', { name: 'Write to output/visit-notes/B-3051.md' });
 
     // The rows show before anything can be allowed, and the reply waits for an answer.
     const preview = invoices.getByRole('table', { name: 'Rows this change writes' });
@@ -224,8 +241,15 @@ for (const theme of THEMES) {
     await expect(preview).toContainText('INV-4473');
     await expect(booking.getByRole('table', { name: 'Rows this change writes' })).toBeVisible();
     // Each card counts the rows its write touches, and says how far "always" reaches.
+    await expect(invoices).toContainText('Add to');
     await expect(invoices).toContainText('2 new rows');
     await expect(booking).toContainText('1 new row');
+    // A new text file shows its lines, marked as added.
+    await expect(note).toContainText('Create');
+    await expect(note).toContainText('6 lines');
+    const lines = note.getByRole('table', { name: 'Lines this change writes' });
+    await expect(lines.getByRole('row')).toHaveCount(6);
+    await expect(lines).toContainText('Call ahead: the side gate is locked.');
     await expect(invoices.getByRole('button', { name: 'Allow all from now on' })).toBeVisible();
     const waiting = page.getByRole('status').filter({ hasText: 'Waiting for your approval' });
     await expect(waiting).toBeVisible();
@@ -235,11 +259,14 @@ for (const theme of THEMES) {
     await expect(invoices).toContainText('Allowed');
     await booking.getByRole('button', { name: 'Deny' }).click();
     await expect(booking).toContainText('Denied');
+    await note.getByRole('button', { name: 'Allow once' }).click();
+    await expect(note).toContainText('Allowed');
     await expect(page.getByRole('button', { name: 'Allow once' })).toHaveCount(0);
     await expect(waiting).toBeHidden();
     expect(await callsTo(app, 'workspace:decide')).toEqual([
       ['chg_invoices', 'approve'],
       ['chg_booking', 'deny'],
+      ['chg_note', 'approve'],
     ]);
   });
 }
