@@ -41,6 +41,7 @@ describe('default settings', () => {
         model: 'muse-glimmer:30b',
         contextLength: 16_384,
       },
+      customEndpoints: [],
     });
   });
 });
@@ -83,6 +84,24 @@ describe('SettingsStore', () => {
       ...defaultSettings(),
       steps: 'expanded',
     });
+  });
+
+  it('reads a file from before endpoints could be added, and keeps the good ones of a damaged list', async () => {
+    const old = { ...defaultSettings(), theme: 'dark', onboarded: true } as Record<string, unknown>;
+    delete old['customEndpoints'];
+    await writeFile(file, JSON.stringify(old));
+    expect((await SettingsStore.open(file)).get()).toEqual({
+      ...defaultSettings(),
+      theme: 'dark',
+      onboarded: true,
+    });
+
+    const good = { baseUrl: 'https://llm.example.com/v1', label: 'llm.example.com' };
+    await writeFile(
+      file,
+      JSON.stringify({ customEndpoints: [good, { baseUrl: 'not a url', label: 'x' }, 7] }),
+    );
+    expect((await SettingsStore.open(file)).get().customEndpoints).toEqual([good]);
   });
 
   it('starts from defaults when the file is not JSON', async () => {

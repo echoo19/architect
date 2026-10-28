@@ -1,3 +1,4 @@
+import { isNamedSecretRef, MAX_KEY_LENGTH } from '@architect/shared';
 import { z } from 'zod';
 import { readJsonFile, writeJsonFile } from '../storage/json-file';
 import { isSecretRef, SECRET_REF_NAMES, secretLabel, type SecretRef } from './refs';
@@ -10,9 +11,6 @@ export interface Cipher {
   /** `stale` means the key store has a newer key, so the value should be encrypted again. */
   decrypt(data: Buffer): Promise<{ value: string; stale: boolean }>;
 }
-
-/** Longer than any real API key, short enough to catch a paste of the wrong thing. */
-const MAX_KEY_LENGTH = 4096;
 
 const StoredFileSchema = z.record(z.string(), z.string());
 
@@ -66,12 +64,14 @@ export class SecretStore {
     return new SecretStore(file, cipher, {}, problem);
   }
 
-  /** Which keys are saved. */
-  status(): Record<SecretRef, boolean> {
+  /** Which keys are saved: every named service, saved or not, and each added endpoint's. */
+  status(): Record<string, boolean> {
     this.ensureReadable();
-    return Object.fromEntries(
-      SECRET_REF_NAMES.map((ref) => [ref, this.stored[ref] !== undefined]),
-    ) as Record<SecretRef, boolean>;
+    const added = Object.keys(this.stored).filter((ref) => !isNamedSecretRef(ref));
+    return Object.fromEntries([
+      ...SECRET_REF_NAMES.map((ref) => [ref, this.stored[ref] !== undefined] as const),
+      ...added.map((ref) => [ref, true] as const),
+    ]);
   }
 
   async set(ref: string, value: string): Promise<void> {

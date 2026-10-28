@@ -2,25 +2,35 @@ import { z } from 'zod';
 import type { ConnectionTest } from './adapters';
 import { GraduateManifestSchema } from './graduate';
 import type {
+  AddConnectionRequest,
+  AddConnectionResult,
   AppInfo,
   AppSettings,
+  CustomEndpoint,
   DraftTurn,
   FileDiff,
   GraduateSettings,
   GraduateSummary,
   JobSummary,
+  LocalRuntime,
+  LocalRuntimes,
+  ModelEntry,
+  ModelSource,
   OllamaStatus,
   PullProgress,
   RunDetail,
   RunStartOptions,
+  SignInResult,
 } from './ipc';
 import {
   JobSchema,
   MentorConfigSchema,
   PermissionModeSchema,
+  ProviderIdSchema,
   StudentEndpointSchema,
   StudentTargetSchema,
 } from './job';
+import { TokenPricingSchema } from './models';
 import { LineageEntrySchema } from './lineage';
 import { MethodSchema, RoundSchema, RunSchema } from './run';
 import { AttemptSchema } from './trace';
@@ -32,6 +42,11 @@ import { AttemptSchema } from './trace';
 
 export const ThemeSchema = z.enum(['dark', 'light', 'system']);
 
+export const CustomEndpointSchema = z.object({
+  baseUrl: z.url(),
+  label: z.string().min(1).max(200),
+}) satisfies z.ZodType<CustomEndpoint>;
+
 export const AppSettingsSchema = z.object({
   theme: ThemeSchema,
   steps: z.enum(['collapsed', 'expanded']),
@@ -39,6 +54,7 @@ export const AppSettingsSchema = z.object({
   quietLocalModels: z.boolean(),
   defaultMentor: MentorConfigSchema,
   defaultStudent: StudentEndpointSchema,
+  customEndpoints: z.array(CustomEndpointSchema).max(50),
   onboarded: z.boolean(),
 }) satisfies z.ZodType<AppSettings>;
 
@@ -130,3 +146,52 @@ export const ConnectionTestSchema = z.union([
   z.object({ ok: z.literal(true), latencyMs: z.number().nonnegative(), detail: z.string() }),
   z.object({ ok: z.literal(false), error: z.string(), hint: z.string().optional() }),
 ]) satisfies z.ZodType<ConnectionTest>;
+
+export const ModelEntrySchema = z.object({
+  id: z.string().min(1),
+  label: z.string().optional(),
+  pricing: TokenPricingSchema.optional(),
+  contextLength: z.number().int().positive().optional(),
+  sizeBytes: z.number().nonnegative().optional(),
+}) satisfies z.ZodType<ModelEntry>;
+
+export const ModelSourceSchema = z
+  .object({
+    provider: ProviderIdSchema,
+    baseUrl: z.url(),
+    secretRef: z.string().min(1).optional(),
+  })
+  .strict() satisfies z.ZodType<ModelSource>;
+
+const LocalRuntimeSchema = z.object({
+  running: z.boolean(),
+  version: z.string().optional(),
+  baseUrl: z.string(),
+  models: z.array(ModelEntrySchema),
+}) satisfies z.ZodType<LocalRuntime>;
+
+export const LocalRuntimesSchema = z.object({
+  ollama: LocalRuntimeSchema,
+  lmstudio: LocalRuntimeSchema,
+}) satisfies z.ZodType<LocalRuntimes>;
+
+/** Longer than any real API key, short enough to catch a paste of the wrong thing. */
+export const MAX_KEY_LENGTH = 4096;
+
+export const AddConnectionRequestSchema = z
+  .object({
+    provider: ProviderIdSchema,
+    baseUrl: z.url().optional(),
+    key: z.string().max(MAX_KEY_LENGTH).optional(),
+  })
+  .strict() satisfies z.ZodType<AddConnectionRequest>;
+
+export const AddConnectionResultSchema = z.object({
+  secretRef: z.string().optional(),
+  models: z.number().int().nonnegative().optional(),
+}) satisfies z.ZodType<AddConnectionResult>;
+
+export const SignInResultSchema = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('signed_in') }),
+  z.object({ status: z.literal('cancelled') }),
+]) satisfies z.ZodType<SignInResult>;

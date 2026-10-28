@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import {
   MENTOR_PRESETS,
+  PROVIDERS,
   type ConnectionTest,
   type MentorConfig,
   type MentorPreset,
@@ -23,7 +24,7 @@ import { errorOf } from '../components/QueryValue';
 import { aboutUsd, mentorUsdFor, TYPICAL_ROUNDS } from '../flow/define/estimates';
 import { shortModelName } from '../lib/names';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
-import { KEY_PAGES, mentorNote, presetFor, providerName } from './mentor';
+import { mentorNote, presetFor, providerName } from './mentor';
 import { StepIntro } from './SetupShell';
 
 async function testMentor(config: MentorConfig): Promise<ConnectionTest> {
@@ -87,7 +88,10 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
   const [testing, setTesting] = useState(false);
   const preset = presetFor(mentor);
   const provider = preset ? providerName(preset.provider) : 'Mentor';
-  const stored = mentor.kind === 'model' && secrets.data?.[mentor.secretRef] === true;
+  const stored =
+    mentor.kind === 'model' &&
+    mentor.secretRef !== undefined &&
+    secrets.data?.[mentor.secretRef] === true;
   const device = deviceInSentence(currentPlatform());
 
   const test = async (event: FormEvent) => {
@@ -97,7 +101,7 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
     onResult(null);
     try {
       const value = key.trim();
-      if (value) {
+      if (value && mentor.secretRef !== undefined) {
         await architect().secrets.set(mentor.secretRef, value);
         setKey('');
         secrets.reload();
@@ -189,7 +193,11 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
             {result && <ConnectionResult result={result} mentor={shortModelName(mentor.label)} />}
           </Panel>
         )}
-        {preset && !stored && <KeySource page={KEY_PAGES[preset.provider]} />}
+        {preset && !stored && (
+          <KeySource
+            page={{ url: PROVIDERS[preset.provider].page ?? '', where: 'in your account' }}
+          />
+        )}
       </div>
     </>
   );

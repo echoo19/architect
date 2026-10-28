@@ -106,7 +106,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       readGraduate,
     },
     adapters: {
-      createMentor: (config, { apiKey }) => createMentor(config, { apiKey }),
+      createMentor: (config, mentorOptions) => createMentor(config, mentorOptions),
       createStudent: (endpoint, adapterOptions) => {
         const cpuThreads = endpoint.runtime === 'ollama' ? options.localThreads?.() : undefined;
         return createStudent(

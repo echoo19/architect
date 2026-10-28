@@ -1,11 +1,13 @@
 import {
   AppSettingsSchema,
+  CustomEndpointSchema,
   DEFAULT_STUDENT,
   MentorConfigSchema,
   mentorPreset,
   StudentEndpointSchema,
   ThemeSchema,
   type AppSettings,
+  type CustomEndpoint,
 } from '@architect/shared';
 import { z } from 'zod';
 
@@ -23,7 +25,7 @@ export function defaultSettings(): AppSettings {
       baseUrl: mentor.baseUrl,
       model: mentor.model,
       reasoningEffort: 'medium',
-      secretRef: 'meta',
+      secretRef: mentor.secretRef,
     },
     defaultStudent: {
       runtime: DEFAULT_STUDENT.runtime,
@@ -31,13 +33,26 @@ export function defaultSettings(): AppSettings {
       model: DEFAULT_STUDENT.model,
       contextLength: DEFAULT_STUDENT.contextLength,
     },
+    customEndpoints: [],
     onboarded: false,
   };
 }
 
+/** Added endpoints one by one, so a broken entry costs only itself. */
+const StoredEndpointsSchema = z
+  .array(z.unknown())
+  .transform((entries) =>
+    entries.flatMap((entry): CustomEndpoint[] => {
+      const parsed = CustomEndpointSchema.safeParse(entry);
+      return parsed.success ? [parsed.data] : [];
+    }),
+  )
+  .catch(() => []);
+
 /**
  * Reads a settings file leniently: a field that is missing or no longer valid falls back to its
- * default instead of discarding the rest of the user's choices.
+ * default instead of discarding the rest of the user's choices. Files from before endpoints could
+ * be added simply have none.
  */
 const StoredSettingsSchema = z.object({
   theme: ThemeSchema.catch(() => defaultSettings().theme),
@@ -46,9 +61,26 @@ const StoredSettingsSchema = z.object({
   quietLocalModels: z.boolean().catch(() => defaultSettings().quietLocalModels),
   defaultMentor: MentorConfigSchema.catch(() => defaultSettings().defaultMentor),
   defaultStudent: StudentEndpointSchema.catch(() => defaultSettings().defaultStudent),
+  customEndpoints: StoredEndpointsSchema,
   onboarded: z.boolean().catch(() => defaultSettings().onboarded),
 }) satisfies z.ZodType<AppSettings>;
 
 export function settingsFromStored(raw: unknown): AppSettings {
   return StoredSettingsSchema.parse(typeof raw === 'object' && raw !== null ? raw : {});
+}
+
+/** The list with this endpoint added, or put in place of one at the same address. */
+export function withEndpoint(
+  list: readonly CustomEndpoint[],
+  endpoint: CustomEndpoint,
+): CustomEndpoint[] {
+  return [...list.filter((entry) => entry.baseUrl !== endpoint.baseUrl), endpoint];
+}
+
+/** The list without the endpoint at this address. */
+export function withoutEndpoint(
+  list: readonly CustomEndpoint[],
+  baseUrl: string,
+): CustomEndpoint[] {
+  return list.filter((entry) => entry.baseUrl !== baseUrl);
 }

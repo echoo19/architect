@@ -169,7 +169,8 @@ export interface HarnessDeps {
 }
 
 export interface AdapterDeps {
-  createMentor(config: MentorConfig, options: { apiKey: string }): MentorAdapter;
+  /** `apiKey` is absent for a mentor that takes none, such as a model on this computer. */
+  createMentor(config: MentorConfig, options: { apiKey?: string }): MentorAdapter;
   createStudent(
     endpoint: StudentEndpoint,
     options: { apiKey?: string; label?: string },

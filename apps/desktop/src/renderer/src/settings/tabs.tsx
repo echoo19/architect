@@ -94,7 +94,7 @@ export function ModelsTab({ settings, update }: TabProps) {
           <SettingsValue>{mentor.label}</SettingsValue>
         )}
       </SettingsRow>
-      {mentor.kind === 'model' && (
+      {mentor.kind === 'model' && mentor.secretRef !== undefined && (
         <KeyRow secretRef={mentor.secretRef} provider={mentorProvider(mentor)} />
       )}
       <SettingsRow label={capitalized(STUDENT_ROLE)} meta={`Every agent runs on it, on ${device}`}>
@@ -141,7 +141,7 @@ export function TrainingTab({ settings, update }: TabProps) {
   const mentor = settings.defaultMentor;
   return (
     <>
-      {mentor.kind === 'model' && (
+      {mentor.kind === 'model' && mentor.secretRef !== undefined && (
         <SettingsRow
           label={`How hard ${mentorName(mentor)} thinks`}
           meta="More thinking can find subtler fixes but costs more per round"

@@ -80,7 +80,10 @@ function Setup({
   }, [pull.state.phase, reloadOllama]);
 
   const mentor = settings.defaultMentor;
-  const keySaved = mentor.kind === 'model' && secrets.data?.[mentor.secretRef] === true;
+  const keySaved =
+    mentor.kind === 'model' &&
+    mentor.secretRef !== undefined &&
+    secrets.data?.[mentor.secretRef] === true;
 
   const chooseMentor = (chosen: MentorPreset) =>
     void attempt("Couldn't save that mentor", () =>

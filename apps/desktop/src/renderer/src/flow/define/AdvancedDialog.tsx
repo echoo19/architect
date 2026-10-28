@@ -447,7 +447,9 @@ function MentorTab({ editor }: TabProps) {
         />
       </SettingsRow>
       {preset && <TabNote>{mentorNote(preset)}</TabNote>}
-      <KeyRow secretRef={mentor.secretRef} provider={mentorProvider(mentor)} />
+      {mentor.secretRef !== undefined && (
+        <KeyRow secretRef={mentor.secretRef} provider={mentorProvider(mentor)} />
+      )}
       <SettingsRow
         label="Price"
         meta={

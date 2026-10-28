@@ -81,7 +81,10 @@ describe('mentor presets', () => {
     const refs = MENTOR_PRESETS.map((preset) =>
       mentorFromPreset(preset, { kind: 'coding_agent', agent: 'claude_code', label: 'x' }),
     ).map((config) => (config.kind === 'model' ? config.secretRef : ''));
-    expect(refs).toEqual(['meta', 'meta', 'baseten', 'modal']);
+    expect(refs).toEqual(MENTOR_PRESETS.map((preset) => preset.provider));
+    expect(new Set(refs)).toEqual(
+      new Set(['meta', 'openai', 'anthropic', 'gemini', 'baseten', 'modal']),
+    );
   });
 
   it('reads connection test replies', () => {

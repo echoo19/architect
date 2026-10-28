@@ -1,6 +1,6 @@
 import {
   costUsd,
-  STUDENT_PRESETS,
+  studentPricing,
   type CheckOutcome,
   type CheckResult,
   type Expected,
@@ -85,15 +85,16 @@ export function lockedCheck(task: Task, check: CheckResult): CheckResult {
   return { pass: false, reason: field === null ? 'Failed.' : `Failed: ${field} is wrong.` };
 }
 
-/** Dollars for one student call: free on this machine, list price for a known hosted copy. */
+/**
+ * Dollars for one student call: free on this machine, else the hosted copy's saved price or its
+ * preset's list price, and unknown without either.
+ */
 export function studentPrice(
   endpoint: StudentEndpoint,
   isLocal: boolean,
 ): (usage: Usage) => number | null {
   if (isLocal) return () => 0;
-  const pricing = STUDENT_PRESETS.find(
-    (preset) => preset.baseUrl === endpoint.baseUrl && preset.model === endpoint.model,
-  )?.pricing;
+  const pricing = studentPricing(endpoint);
   return pricing ? (usage) => costUsd(pricing, usage) : () => null;
 }
 

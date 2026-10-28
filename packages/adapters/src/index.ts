@@ -1,6 +1,7 @@
 export { createMentor, createStudent } from './factory';
 export { createModelMentor, MentorReplyError } from './mentor/model-mentor';
 export type { ModelMentorConfig } from './mentor/providers';
+export { listModels, verifyKey, type ListModelsOptions } from './models/list';
 export { createOllamaStudent } from './student/ollama';
 export {
   listOllamaModels,

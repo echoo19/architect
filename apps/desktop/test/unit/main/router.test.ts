@@ -55,6 +55,7 @@ describe('IpcRouter', () => {
     const { router, call } = setup();
     router.registerHandlers('app', {
       info: () => ({ version: '1.0.0', platform: 'linux', dataPath: '/data', totalMemoryBytes: 1 }),
+      openProviderPage: vi.fn(),
     });
     expect(await call('app:info')).toEqual({
       ok: true,
@@ -101,7 +102,7 @@ describe('IpcRouter', () => {
   it('refuses calls from pages that are not the app', async () => {
     const { router, call } = setup();
     const info = vi.fn();
-    router.registerHandlers('app', { info });
+    router.registerHandlers('app', { info, openProviderPage: vi.fn() });
     const result = await call('app:info', [], 'https://example.com/');
     expect(result.ok).toBe(false);
     expect(info).not.toHaveBeenCalled();
