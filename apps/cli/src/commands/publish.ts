@@ -1,4 +1,5 @@
 import {
+  listPublications,
   publishVersion,
   reviewPublication,
   type PublishContext,
@@ -77,6 +78,19 @@ export async function publish(
   line(io.stderr, table(review.files.map((file) => [`  ${file.path}`, bytes(file.bytes)])));
   line(io.stderr, `${review.files.length} files, ${bytes(review.bytes)}.`);
   for (const notice of review.notices) line(io.stderr, notice);
+  // Trying again finishes the version that didn't go; a newer active version is another one.
+  for (const unfinished of listPublications({ library }, agent.id)) {
+    if (
+      unfinished.repository === repository &&
+      unfinished.status !== 'complete' &&
+      unfinished.version !== review.version
+    ) {
+      line(
+        io.stderr,
+        `Version ${unfinished.version}'s publication to ${repository} didn't finish. To finish it instead of sending version ${review.version}, run this again with --version ${unfinished.version}.`,
+      );
+    }
+  }
   stopOnFindings(ctx, review.findings, review.findingsDigest, accepted, 'published');
 
   if (flag(values, 'dry-run')) {

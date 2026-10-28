@@ -1,7 +1,9 @@
+import { cpSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   FAKE_HUB_TOKEN,
+  openEngineStore,
   SAMPLE_CONTENT,
   startFakeHub,
   startFakeOllama,
@@ -142,12 +144,41 @@ describe('A12: publishing to the Hub and installing from it by commit', () => {
 
     const retried = await cli(['publish', 'service-desk', '--repo', REPO], { env: from.env });
     expect(retried.code, retried.stderr).toBe(0);
+    expect(retried.stderr).not.toContain("didn't finish");
     const afterRetry = JSON.parse(
       (await cli(['inspect', 'service-desk', '--json'], { env: from.env })).stdout,
     ) as { publications: { id: string; status: string }[] };
     expect(afterRetry.publications).toEqual([
       expect.objectContaining({ id: afterFailure.publications[0]?.id, status: 'complete' }),
     ]);
+  });
+
+  it('says which version an unfinished publication was for, so trying again sends that one', async () => {
+    const hub = await fakeHub();
+    const from = await author(hub);
+    hub.failNext(`/api/models/${REPO}/commit/`, 503, 'Service unavailable');
+    expect((await cli(['publish', 'service-desk', '--repo', REPO], { env: from.env })).code).toBe(
+      1,
+    );
+    // A newer version (here a copy of the first) became the active one meanwhile.
+    const store = openEngineStore(join(from.dataDir, 'architect.db'));
+    const first = store.versions.get('grd_desk', 1);
+    if (!first) throw new Error('no version 1');
+    const second = first.path.replace(/v0001$/, 'v0002');
+    cpSync(join(from.dataDir, ...first.path.split('/')), join(from.dataDir, ...second.split('/')), {
+      recursive: true,
+    });
+    store.versions.insert({ ...first, version: 2, path: second });
+    const agent = store.graduates.get('grd_desk');
+    if (!agent) throw new Error('no agent');
+    store.graduates.update({ ...agent, activeVersion: 2 });
+    store.close();
+    const dry = await cli(['publish', 'service-desk', '--repo', REPO, '--dry-run'], {
+      env: from.env,
+    });
+    expect(dry.stderr).toContain(
+      `Version 1's publication to ${REPO} didn't finish. To finish it instead of sending version 2, run this again with --version 1.`,
+    );
   });
 
   it('needs a token, and says where it looks, with exit 3', async () => {
