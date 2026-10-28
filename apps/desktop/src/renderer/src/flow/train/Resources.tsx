@@ -25,9 +25,8 @@ export function Resources({ live, mentor }: { live: LiveRun; mentor: string }) {
     >
       <BudgetMeter
         label="Time"
-        used={clock(minutes.used)}
-        max={clock(minutes.max)}
-        spoken={`${formatDuration(minutes.used * 60_000)} of ${formatDuration(minutes.max * 60_000)}`}
+        used={formatDuration(minutes.used * 60_000)}
+        max={formatDuration(minutes.max * 60_000)}
         fraction={share(minutes.used, minutes.max)}
       />
       <BudgetMeter
@@ -73,24 +72,15 @@ function roundCents(amount: number): number {
   return Math.round(amount * 100) / 100;
 }
 
-/** Hours and minutes the way a clock shows them: 106 minutes is "1:46", 240 is "4:00". */
-function clock(minutes: number): string {
-  const whole = Math.floor(minutes);
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
-}
-
 function BudgetMeter({
   label,
   used,
   max,
-  spoken,
   fraction,
 }: {
   label: string;
   used: string;
   max: string;
-  /** Read out in place of the figures, when they don't read well aloud. */
-  spoken?: string;
   fraction: number;
 }) {
   return (
@@ -101,7 +91,7 @@ function BudgetMeter({
           {used} <span className="text-fg-muted">/ {max}</span>
         </span>
       </div>
-      <Meter label={label} value={fraction} valueText={spoken ?? `${used} of ${max}`} />
+      <Meter label={label} value={fraction} valueText={`${used} of ${max}`} />
     </div>
   );
 }

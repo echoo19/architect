@@ -225,9 +225,8 @@ for (const theme of THEMES) {
       'Check tasks right by round: 40% at the start, 65% after the first draft, round 2 reverted at 63%, ' +
         '78% after round 3, round 4 in progress. Target 90%.',
     );
-    // The time meter reads like a clock, and says the same in words to a screen reader.
     const resources = page.getByRole('region', { name: 'Resources' });
-    await expect(resources).toContainText('1:46 / 4:00');
+    await expect(resources).toContainText('1 h 46 min / 4 h');
     await expect(resources.getByRole('meter', { name: 'Time' })).toHaveAttribute(
       'aria-valuetext',
       '1 h 46 min of 4 h',
