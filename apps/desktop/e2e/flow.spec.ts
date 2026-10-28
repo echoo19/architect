@@ -26,7 +26,7 @@ import {
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const WIDTH = 1440;
 /** Tall enough for each screen's whole page, so a screenshot shows everything on it. */
-const DEFINE_HEIGHT = 1580;
+const DEFINE_HEIGHT = 1800;
 const TRAIN_HEIGHT = 1440;
 const REPORT_HEIGHT = 1660;
 const THEMES = ['dark', 'light'] as const;
@@ -146,22 +146,54 @@ for (const theme of THEMES) {
     ).toBeVisible();
     await expect(page.getByText("Can't change your files")).toBeVisible();
 
+    // Training, the final test and the comparison are told apart, and never added together.
+    await expect(
+      page.getByText(
+        "Spark, the mentor, is a cloud model that coaches it in rounds: each round, Spark changes Glimmer's instructions, skills or tools and checks whether that helped.",
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        'Training stops at the 90% target or after 4 hours, whichever comes first, or sooner if changes stop helping. Then the final test runs on this computer.',
+      ),
+    ).toBeVisible();
     const local = page.getByRole('radio', { name: /This computer/ });
     const hosted = page.getByRole('radio', { name: /Hosted on OpenRouter/ });
     await expect(local).toBeChecked();
-    await expect(local).toContainText('Too slow for the time limit of 4 hours');
-    await expect(hosted).toContainText('billed by OpenRouter');
-    await expect(page.getByText('About 7 hours in all on this computer, plus up to')).toBeVisible();
+    await expect(local).toContainText('about 2.5 minutes a task. The practice is free.');
+    await expect(local).toContainText(
+      'Too slow: the first round would end after about 5 h 30 min, past the 4-hour limit. Raise the limit in Advanced settings to train here.',
+    );
+    await expect(hosted).toContainText(
+      'A hosted copy of Glimmer on OpenRouter, about 15 seconds a task. Your practice tasks and the files they read are sent there.',
+    );
+    await expect(hosted).toContainText(
+      'Up to about $3 for practice, billed to your OpenRouter account.',
+    );
     await expect(
-      page.getByText('A hosted copy fits 5 to 10 rounds in the time this computer fits none.'),
-    ).toBeHidden();
+      page.getByText(
+        'No full round fits in the 4-hour limit on this computer, so no change could be kept.',
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByText('About 2.5 hours on this computer, on 60 tasks it has never seen.'),
+    ).toBeVisible();
+    await expect(page.getByText('hours in all')).toHaveCount(0);
     // The choices the run below starts with, so every later screen agrees with this one.
     await hosted.click();
     await expect(hosted).toBeChecked();
+    await expect(
+      page.getByText('About 4 hours on OpenRouter. The 4-hour limit ends it after 5 to 10 rounds.'),
+    ).toBeVisible();
+    await expect(page.getByText('about $0.60 expected, never more than $5')).toBeVisible();
     await page
       .getByRole('checkbox', { name: 'Also train three simpler versions to compare against' })
       .click();
-    await expect(page.getByText("About 18 hours in all on OpenRouter's copy, about")).toBeVisible();
+    await expect(
+      page.getByText(
+        'Adds about 12 hours, about $3 billed by OpenRouter and about $0.06 of Spark.',
+      ),
+    ).toBeVisible();
     await capture(page, `flow-define-${theme}`);
 
     await page.getByRole('button', { name: 'Advanced settings' }).click();
