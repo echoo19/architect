@@ -13,3 +13,18 @@ export {
   type BuildDatasetOptions,
   type BuiltDataset,
 } from './dataset';
+export {
+  buildTrainerJob,
+  FINISH_RESERVE_SECONDS,
+  JOB_FILE,
+  loadRecipe,
+  MIN_JOB_SECONDS,
+  MIN_TRAINING_SECONDS,
+  RECIPE_FILE,
+  STARTUP_RESERVE_SECONDS,
+  writeTrainerInputs,
+  type InputFile,
+  type LoadedRecipe,
+  type RecipeFile,
+  type TrainerJobInput,
+} from './recipe';
