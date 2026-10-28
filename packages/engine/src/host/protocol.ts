@@ -1,7 +1,16 @@
 import {
   AdapterError,
   BindRequestSchema,
+  CapabilityBreakdownSchema,
+  CategorySchema,
+  CorrectionRequestSchema,
+  CorrectionSchema,
+  ClarificationReplySchema,
   DraftTurnSchema,
+  ExperimentSchema,
+  ImprovementSchema,
+  ImprovementStartSchema,
+  ImproveOptionsSchema,
   ExportRequestSchema,
   ExportResultSchema,
   ExportReviewSchema,
@@ -13,11 +22,16 @@ import {
   ImportRequestSchema,
   ImportResultSchema,
   InstallationSchema,
+  InterventionSchema,
   JobSchema,
   JobSummarySchema,
+  LessonSchema,
+  MentoringProgressSchema,
   PackageError,
   PackageInspectionSchema,
   PackageProblemCodeSchema,
+  ReferenceOptionsSchema,
+  ReferenceRecordSchema,
   ReportCardSchema,
   RunDetailSchema,
   RunEventSchema,
@@ -32,7 +46,10 @@ import {
 import { z } from 'zod';
 
 /** The part of the app's API the engine host serves. */
-export type EngineApi = Pick<ArchitectApi, 'jobs' | 'runs' | 'reports' | 'graduates'>;
+export type EngineApi = Pick<
+  ArchitectApi,
+  'jobs' | 'runs' | 'mentoring' | 'teach' | 'reports' | 'graduates'
+>;
 
 const id = z.string().min(1);
 const path = z.string().min(1);
@@ -91,6 +108,62 @@ export const ENGINE_ROUTES = {
     z.tuple([id, z.number().int().positive()]),
     z.array(FileDiffSchema),
     (api, [runId, round]) => api.runs.roundDiff(runId, round),
+  ),
+  'mentoring.lessons': route(z.tuple([id]), z.array(LessonSchema), (api, [runId]) =>
+    api.mentoring.lessons(runId),
+  ),
+  'mentoring.interventions': route(z.tuple([id]), z.array(InterventionSchema), (api, [runId]) =>
+    api.mentoring.interventions(runId),
+  ),
+  'mentoring.experiments': route(z.tuple([id]), z.array(ExperimentSchema), (api, [runId]) =>
+    api.mentoring.experiments(runId),
+  ),
+  'mentoring.progress': route(z.tuple([id]), MentoringProgressSchema, (api, [runId]) =>
+    api.mentoring.progress(runId),
+  ),
+  'mentoring.capabilities': route(z.tuple([id]), CapabilityBreakdownSchema, (api, [runId]) =>
+    api.mentoring.capabilities(runId),
+  ),
+  'mentoring.categories': route(z.tuple([id]), z.array(CategorySchema), (api, [jobId]) =>
+    api.mentoring.categories(jobId),
+  ),
+  'mentoring.answer': route(
+    z.tuple([id, z.number().int().positive(), ClarificationReplySchema]),
+    z.void(),
+    (api, [runId, round, reply]) => api.mentoring.answer(runId, round, reply),
+  ),
+  'mentoring.reference': route(
+    z.tuple([id, ReferenceOptionsSchema]),
+    z.void(),
+    (api, [runId, options]) => api.mentoring.reference(runId, options),
+  ),
+  'mentoring.references': route(z.tuple([id]), z.array(ReferenceRecordSchema), (api, [runId]) =>
+    api.mentoring.references(runId),
+  ),
+  'teach.propose': route(
+    z.tuple([id, id, CorrectionRequestSchema]),
+    CorrectionSchema,
+    (api, [chatId, messageId, request]) => api.teach.propose(chatId, messageId, request),
+  ),
+  'teach.queue': route(z.tuple([id]), CorrectionSchema, (api, [correctionId]) =>
+    api.teach.queue(correctionId),
+  ),
+  'teach.discard': route(z.tuple([id]), CorrectionSchema, (api, [correctionId]) =>
+    api.teach.discard(correctionId),
+  ),
+  'teach.apply': route(z.tuple([id]), CorrectionSchema, (api, [correctionId]) =>
+    api.teach.apply(correctionId),
+  ),
+  'teach.list': route(z.tuple([id]), z.array(CorrectionSchema), (api, [graduateId]) =>
+    api.teach.list(graduateId),
+  ),
+  'teach.improve': route(
+    z.tuple([id, ImproveOptionsSchema]),
+    ImprovementStartSchema,
+    (api, [graduateId, options]) => api.teach.improve(graduateId, options),
+  ),
+  'teach.improvements': route(z.tuple([id]), z.array(ImprovementSchema), (api, [graduateId]) =>
+    api.teach.improvements(graduateId),
   ),
   'reports.get': route(
     z.tuple([id, StudentTargetSchema.nullable()]),

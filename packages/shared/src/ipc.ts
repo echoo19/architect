@@ -1,8 +1,24 @@
 import type { ConnectionTest } from './adapters';
+import type {
+  Correction,
+  CorrectionRequest,
+  Improvement,
+  ImprovementStart,
+  ImproveOptions,
+} from './corrections';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
 import type { Job, MentorConfig, PermissionMode, StudentEndpoint, StudentTarget } from './job';
 import type { LineageEntry } from './lineage';
+import type {
+  CapabilityBreakdown,
+  Category,
+  Experiment,
+  Intervention,
+  Lesson,
+  MentoringProgress,
+  ReferenceRecord,
+} from './mentoring';
 import type { GpuInfo, ProviderId, StudentBuild, TokenPricing } from './models';
 import type { ReportCard } from './report';
 import type { Method, Round, Run } from './run';
@@ -168,6 +184,24 @@ export interface RunStartOptions {
    * A hosted test is a supplementary result, and its report card says it didn't run offline.
    */
   lockedTestOn?: StudentTarget;
+  /**
+   * Someone is there to answer: the mentor may pause the run with one clarifying question.
+   * Runs started by scripts aren't.
+   */
+  interactive?: boolean;
+}
+
+/** The person's answer to a run's clarifying question. */
+export interface ClarificationReply {
+  text: string;
+  /** The answer changes what counts as success; the run then stops for a new job contract. */
+  changesCriteria: boolean;
+}
+
+/** How a reference run starts: on which split, and the most it may spend. */
+export interface ReferenceOptions {
+  split: 'dev' | 'test';
+  maxUsd: number;
 }
 
 export interface RunDetail {
@@ -321,6 +355,51 @@ export interface ArchitectApi {
     trace(attemptId: string): Promise<Trace>;
     roundDiff(runId: string, round: number): Promise<FileDiff[]>;
     onEvent(listener: (event: RunEvent) => void): Unsubscribe;
+  };
+  /**
+   * The records of failure-specific mentoring. Every number an evidence screen shows comes from
+   * these, never from anything worked out on the screen.
+   */
+  mentoring: {
+    /** Verified and rejected, oldest first. */
+    lessons(runId: string): Promise<Lesson[]>;
+    /** One per round that reached a diagnosis, accepted or refused. */
+    interventions(runId: string): Promise<Intervention[]>;
+    /** One per round that ended, rejected, invalid and stopped ones included, by round. */
+    experiments(runId: string): Promise<Experiment[]>;
+    progress(runId: string): Promise<MentoringProgress>;
+    capabilities(runId: string): Promise<CapabilityBreakdown>;
+    /** The job's failure vocabulary. */
+    categories(jobId: string): Promise<Category[]>;
+    /** Answers the question a paused run asked, and resumes it. */
+    answer(runId: string, round: number, reply: ClarificationReply): Promise<void>;
+    /**
+     * Queues the mentor's model as a reference agent on a finished run's tasks, with its own
+     * disclosed cap. Isolated from mentoring: its results never reach a mentor request.
+     */
+    reference(runId: string, options: ReferenceOptions): Promise<void>;
+    references(runId: string): Promise<ReferenceRecord[]>;
+  };
+  /**
+   * Teach this and Improve agent (spec section 8): corrections of workspace replies become
+   * lessons, and lessons become candidate versions. The active version never changes here.
+   */
+  teach: {
+    /**
+     * The mentor reads one reply's exchange and the person's correction, and proposes a lesson.
+     * Needs the job to allow sharing corrections and `consent` on this one; costs at most the
+     * cap shown beside the consent. Nothing is queued yet.
+     */
+    propose(chatId: string, messageId: string, request: CorrectionRequest): Promise<Correction>;
+    queue(correctionId: string): Promise<Correction>;
+    discard(correctionId: string): Promise<Correction>;
+    /** A procedure or source lesson as an instruction-only candidate version, not yet evaluated. */
+    apply(correctionId: string): Promise<Correction>;
+    list(graduateId: string): Promise<Correction[]>;
+    /** Improve agent on every queued lesson, within the budget shown. */
+    improve(graduateId: string, options: ImproveOptions): Promise<ImprovementStart>;
+    /** Newest first: what each improvement changed and whether its candidate may be promoted. */
+    improvements(graduateId: string): Promise<Improvement[]>;
   };
   reports: {
     /** The run's report card from one student endpoint: by default, where its locked test ran. */

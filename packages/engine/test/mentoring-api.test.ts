@@ -1,0 +1,247 @@
+import type { Experiment, RunEvent } from '@architect/shared';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { connectEngine, type EngineClient } from '../src/host/client';
+import { createEngineHost, type EngineHost } from '../src/host/engine-host';
+import { STOPPED_ROUND } from '../src/loop/plan';
+import { diagnosis, hypothesis } from './fakes/adapters';
+import { deferred } from './fakes/clock';
+import { portPair } from './fakes/ports';
+import { createWorld, type World } from './fakes/world';
+
+let world: World;
+let host: EngineHost | undefined;
+let client: EngineClient | undefined;
+
+async function connect(): Promise<EngineClient> {
+  host = await createEngineHost({ dataDir: world.dataDir, deps: world.deps, clock: world.clock });
+  const [hostPort, clientPort] = portPair();
+  host.serve(hostPort);
+  client = connectEngine(clientPort);
+  return client;
+}
+
+async function disconnect(): Promise<void> {
+  client?.close();
+  await host?.close();
+  host = undefined;
+  client = undefined;
+}
+
+function next(engine: EngineClient, matches: (event: RunEvent) => boolean): Promise<RunEvent> {
+  return new Promise((resolve) => {
+    const stop = engine.runs.onEvent((event) => {
+      if (!matches(event)) return;
+      stop();
+      resolve(event);
+    });
+  });
+}
+
+const settled = (event: RunEvent, runId: string) =>
+  event.type === 'run.updated' &&
+  event.run.id === runId &&
+  ['finished', 'stopped', 'paused', 'failed'].includes(event.run.status);
+
+afterEach(async () => {
+  await disconnect();
+  world.cleanup();
+});
+
+describe('the progress and capability numbers', () => {
+  beforeEach(async () => {
+    world = await createWorld({
+      job: {
+        budget: { maxRounds: 5, maxMentorUsd: 5, maxWallMinutes: 600 },
+        evaluation: {
+          trainBatch: 6,
+          minDevGain: 2,
+          maxTypeRegression: 1,
+          patience: 5,
+          devRepeats: 1,
+        },
+      },
+    });
+    world.mentor.script = (_request, call) => {
+      if (call === 1) return hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice');
+      if (call === 2) return hypothesis('Reword it', 'Service desk.\nfix:invoice\nPlease.');
+      if (call === 3) return hypothesis('Drop the procedure', 'Service desk. Be brief.');
+      if (call <= 5) {
+        return diagnosis('Train the reading', {
+          findings: [{ taskId: 'train-overdue-1' }],
+          intervention: { type: 'weights' },
+        });
+      }
+      return hypothesis('One more', 'Service desk.\nfix:invoice\nOne more.');
+    };
+  });
+
+  it('reconcile with the stored experiments, rejected, invalid and stopped ones included', async () => {
+    const api = await connect();
+    const job = await api.jobs.createSample();
+    // Round 5 is stopped while its train batch is under way.
+    const reached = deferred();
+    world.runtime.beforeAttempt = (task, ctx) => {
+      if (!task.id.startsWith('train-') || ctx.harness.meta.version !== 2) return;
+      const rounds = world.runtime.attempts.filter((item) => item.taskId.startsWith('train-'));
+      if (rounds.length < 4 * 6) return;
+      world.runtime.beforeAttempt = undefined;
+      reached.resolve();
+      return new Promise<void>((resolve) => setTimeout(resolve, 20));
+    };
+    const run = await api.runs.start(job.id, { method: 'architect', seed: 7 });
+    await reached.promise;
+    await api.runs.stop(run.id);
+    await next(
+      api,
+      (event) =>
+        settled(event, run.id) && event.type === 'run.updated' && event.run.status === 'finished',
+    );
+
+    const experiments = await api.mentoring.experiments(run.id);
+    const dispositions = experiments.map((experiment) => experiment.disposition);
+    expect(dispositions).toEqual(['kept', 'reverted', 'rejected', 'invalid', 'stopped']);
+    expect(experiments[4]?.reason).toBe(STOPPED_ROUND);
+
+    const progress = await api.mentoring.progress(run.id);
+    const count = (disposition: Experiment['disposition']) =>
+      experiments.filter((experiment) => experiment.disposition === disposition).length;
+    expect(progress.experiments).toEqual({
+      total: experiments.length,
+      kept: count('kept'),
+      reverted: count('reverted'),
+      rejected: count('rejected'),
+      invalid: count('invalid'),
+      stopped: count('stopped'),
+    });
+    expect(progress.dev.current).toEqual(
+      experiments.filter((experiment) => experiment.disposition === 'kept').at(-1)?.devAfter,
+    );
+    const sum = (pick: (experiment: Experiment) => number) =>
+      experiments.reduce((total, experiment) => total + pick(experiment), 0);
+    expect(progress.spent.mentorUsd).toBeCloseTo(sum((item) => item.budget.mentorUsd));
+    expect(progress.spent.attempts).toBe(sum((item) => item.budget.attempts));
+    const detail = await api.runs.get(run.id);
+    expect(progress.spent.mentorUsd).toBeCloseTo(detail.run.totals.mentorUsd);
+    expect(progress.budget).toEqual({
+      maxRounds: 5,
+      maxMentorUsd: 5,
+      maxComputeUsd: 0,
+      maxWallMinutes: 600,
+    });
+
+    const capabilities = await api.mentoring.capabilities(run.id);
+    const invoices = capabilities.capabilities.find((item) => item.type === 'invoice');
+    const latest = experiments.filter((item) => item.measurements.length > 0).at(-1);
+    const incumbent = latest?.measurements.find((item) => item.label === 'incumbent');
+    expect(invoices?.check).toEqual({
+      pass: incumbent?.perType.find((item) => item.type === 'invoice')?.pass,
+      total: incumbent?.perType.find((item) => item.type === 'invoice')?.total,
+    });
+    const card = await api.reports.get(run.id);
+    expect(invoices?.finalTest).toEqual({
+      pass: card.test.perType.find((item) => item.type === 'invoice')?.pass,
+      total: card.test.perType.find((item) => item.type === 'invoice')?.total,
+    });
+    expect(invoices?.installCheck).toBeNull();
+    const interventions = await api.mentoring.interventions(run.id);
+    expect(interventions.map((item) => [item.round, item.status])).toEqual([
+      [1, 'accepted'],
+      [2, 'accepted'],
+      [3, 'accepted'],
+      [4, 'invalid'],
+    ]);
+  });
+});
+
+describe('a clarifying question', () => {
+  beforeEach(async () => {
+    world = await createWorld();
+    world.mentor.script = (_request, call) =>
+      call === 1
+        ? diagnosis('Ask about overdue', {
+            intervention: {
+              type: 'clarification',
+              question: 'Should an invoice due today count as overdue?',
+            },
+          })
+        : hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice');
+  });
+
+  it('pauses the run, keeps it waiting across a restart, and goes on once answered', async () => {
+    let api = await connect();
+    const job = await api.jobs.createSample();
+    const run = await api.runs.start(job.id, { method: 'architect', seed: 7, interactive: true });
+    await next(api, (event) => settled(event, run.id));
+    expect((await api.runs.get(run.id)).run.status).toBe('paused');
+    expect((await api.runs.get(run.id)).rounds[0]?.status).toBe('clarifying');
+    const [asked] = await api.mentoring.interventions(run.id);
+    expect(asked).toMatchObject({ type: 'clarification', status: 'accepted' });
+    expect(asked?.answer).toBeUndefined();
+
+    await disconnect();
+    api = await connect();
+    expect((await api.runs.get(run.id)).run.status).toBe('paused');
+    const done = next(
+      api,
+      (event) => event.type === 'run.updated' && event.run.status === 'finished',
+    );
+    await api.mentoring.answer(run.id, 1, {
+      text: 'No, only from tomorrow.',
+      changesCriteria: false,
+    });
+    await done;
+
+    const detail = await api.runs.get(run.id);
+    expect(detail.rounds[0]).toMatchObject({
+      status: 'decided',
+      decisionReason: 'Answered: No, only from tomorrow.',
+    });
+    const [answered] = await api.mentoring.interventions(run.id);
+    expect(answered?.answer).toMatchObject({
+      text: 'No, only from tomorrow.',
+      changesCriteria: false,
+    });
+    // The next round's mentor sees the answer, as a confirmed interpretation.
+    const second = world.mentor.requests[1]?.messages[0]?.content ?? '';
+    expect(second).toContain(
+      "# The person's answers\n- Q: Should an invoice due today count as overdue?\n  A: No, only from tomorrow.",
+    );
+    await expect(
+      api.mentoring.answer(run.id, 1, { text: 'Again.', changesCriteria: false }),
+    ).rejects.toThrow("Round 1 isn't waiting for an answer.");
+  });
+
+  it('stops the run when the answer changes what counts as success', async () => {
+    const api = await connect();
+    const job = await api.jobs.createSample();
+    const run = await api.runs.start(job.id, { method: 'architect', seed: 7, interactive: true });
+    await next(api, (event) => settled(event, run.id));
+    const stopped = next(
+      api,
+      (event) => event.type === 'run.updated' && event.run.status === 'stopped',
+    );
+    await api.mentoring.answer(run.id, 1, { text: 'It should count.', changesCriteria: true });
+    await stopped;
+    expect((await api.runs.get(run.id)).run).toMatchObject({
+      status: 'stopped',
+      stopReason: 'contract',
+    });
+  });
+
+  it('is off the menu for a run nobody can answer', async () => {
+    const question = diagnosis('Ask about overdue', {
+      intervention: { type: 'clarification', question: 'Due today?' },
+    });
+    world.mentor.script = (_request, call) =>
+      call <= 2 ? question : hypothesis('Add the invoice procedure', 'Service desk.\nfix:invoice');
+    const api = await connect();
+    const job = await api.jobs.createSample();
+    const run = await api.runs.start(job.id, { method: 'architect', seed: 7 });
+    await next(api, (event) => event.type === 'run.updated' && event.run.status === 'finished');
+    const [refused] = await api.mentoring.interventions(run.id);
+    expect(refused?.status).toBe('invalid');
+    expect(refused?.invalidReason).toBe(
+      "A clarification intervention isn't possible in this run: Nobody is there to answer: this run wasn't started from the app.",
+    );
+  });
+});

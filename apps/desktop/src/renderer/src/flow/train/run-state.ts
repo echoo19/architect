@@ -136,6 +136,7 @@ function applyRunEvent(live: LiveRun, event: RunEvent): LiveRun {
     case 'graduate.ready':
       return { ...live, graduateId: event.graduateId };
     case 'attempt.started':
+    case 'mentoring.updated':
       return live;
   }
 }
@@ -156,9 +157,12 @@ function isOlder(candidate: Run, current: Run): boolean {
 const ROUND_PROGRESS: Record<Round['status'], number> = {
   attempting: 0,
   diagnosing: 1,
-  evaluating: 2,
-  decided: 3,
-  failed: 3,
+  clarifying: 2,
+  teaching: 2,
+  training: 3,
+  evaluating: 4,
+  decided: 5,
+  failed: 5,
 };
 
 /** A round only moves forward: a late copy from an earlier step never replaces a later one. */

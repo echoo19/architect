@@ -1,4 +1,5 @@
 import type { Migration } from './database';
+import { MENTORING_MIGRATION } from './mentoring-migration';
 
 /**
  * Schema history. Never edit an applied migration; add a new one. Traces are JSON files under
@@ -367,4 +368,5 @@ export const MIGRATIONS: readonly Migration[] = [
       UPDATE messages SET graduate_version = 1 WHERE role = 'agent';
     `,
   },
+  MENTORING_MIGRATION,
 ];

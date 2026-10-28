@@ -25,6 +25,7 @@ function session(): SessionResources {
     runId: 'run_1',
     versions: new FileVersions(join(world.root, 'harness')),
     budget: new BudgetGuard(job.budget, { rounds: 0, usd: 0, wallMs: 0 }, world.clock),
+    fromStored: (path) => join(world.dataDir, path),
     log: () => undefined,
   });
 }

@@ -59,6 +59,14 @@ export const RunEventSchema = z.discriminatedUnion('type', [
     message: z.string(),
   }),
   z.object({ ...base, type: z.literal('graduate.ready'), graduateId: z.string() }),
+  /** A lesson, intervention, experiment or reference was recorded or changed; read it back. */
+  z.object({
+    ...base,
+    type: z.literal('mentoring.updated'),
+    record: z.enum(['lesson', 'intervention', 'experiment', 'reference']),
+    id: z.string(),
+    round: z.number().int().positive().nullable(),
+  }),
 ]);
 export type RunEvent = z.infer<typeof RunEventSchema>;
 export type RunEventType = RunEvent['type'];

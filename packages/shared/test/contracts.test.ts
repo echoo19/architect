@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   contractTerms,
   DecodingSchema,
+  EvaluationConfigSchema,
   HypothesisSchema,
   isHarnessSurfacePath,
   JobContractSchema,
@@ -12,6 +13,7 @@ import {
   sameContractTerms,
   slugify,
   TaskSchema,
+  WorkspaceMessageSchema,
 } from '../src';
 
 describe('harness surface', () => {
@@ -108,6 +110,55 @@ describe('schemas', () => {
     expect(ReportCardSchema.parse(card).testedOn).toBe('local');
     expect(ReportCardSchema.parse({ ...card, testedOn: 'hosted' }).testedOn).toBe('hosted');
     expect(ReportCardSchema.safeParse({ ...card, testedOn: 'cloud' }).success).toBe(false);
+  });
+
+  it('takes each locked-test seed once', () => {
+    const evaluation = {
+      trainBatch: 12,
+      minDevGain: 2,
+      maxTypeRegression: 1,
+      devRepeats: 1,
+      patience: 4,
+    };
+    expect(
+      EvaluationConfigSchema.safeParse({ ...evaluation, lockedTestSeeds: [101, 102] }).success,
+    ).toBe(true);
+    expect(
+      EvaluationConfigSchema.safeParse({ ...evaluation, lockedTestSeeds: [101, 101] }).success,
+    ).toBe(false);
+  });
+
+  it("keeps a reply's work with it, and still reads replies saved without it", () => {
+    const earlier = {
+      id: 'msg_2',
+      chatId: 'chat_1',
+      role: 'agent',
+      createdAt: '2026-10-28T09:00:00.000Z',
+      text: 'Two invoices are unpaid.',
+      status: 'done',
+    };
+    expect(WorkspaceMessageSchema.parse(earlier).trace).toBeUndefined();
+    const trace = [
+      {
+        kind: 'model',
+        text: 'Let me check.',
+        calls: [{ id: 'c1', name: 'read', arguments: '{"path":"data/invoices.csv"}' }],
+      },
+      {
+        kind: 'tool',
+        callId: 'c1',
+        name: 'read',
+        arguments: '{"path":"data/invoices.csv"}',
+        result: '1\tinvoice_id,paid\n2\tINV-2,false',
+      },
+      { kind: 'skill', slug: 'overdue-balances', via: 'rule' },
+      { kind: 'model', text: 'Two invoices are unpaid.', calls: [] },
+    ];
+    expect(WorkspaceMessageSchema.parse({ ...earlier, trace }).trace).toEqual(trace);
+    expect(
+      WorkspaceMessageSchema.safeParse({ ...earlier, trace: [{ kind: 'tool', name: 'read' }] })
+        .success,
+    ).toBe(false);
   });
 });
 

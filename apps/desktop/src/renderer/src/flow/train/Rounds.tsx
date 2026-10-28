@@ -10,6 +10,12 @@ function untitled(round: Round): string {
       return 'Practice tasks';
     case 'diagnosing':
       return 'Reading the failures';
+    case 'teaching':
+      return 'Checking corrections';
+    case 'training':
+      return 'Training an adapter';
+    case 'clarifying':
+      return 'Waiting for your answer';
     case 'evaluating':
       return 'Scoring the change';
     case 'decided':

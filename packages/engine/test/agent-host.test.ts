@@ -155,6 +155,24 @@ describe('chatting with a graduate', () => {
       blocks: [],
     });
     expect(reply.workedMs).toBeGreaterThanOrEqual(0);
+    // The whole exchange is kept with the reply: each call's arguments and full result.
+    expect(reply.trace).toEqual([
+      {
+        kind: 'model',
+        text: 'Let me check the invoices.',
+        calls: [
+          { id: expect.any(String), name: 'read', arguments: '{"path":"data/invoices.csv"}' },
+        ],
+      },
+      {
+        kind: 'tool',
+        callId: expect.any(String),
+        name: 'read',
+        arguments: '{"path":"data/invoices.csv"}',
+        result: expect.stringContaining('INV-3,C-1,990,2026-11-02,false'),
+      },
+      { kind: 'model', text: 'Two invoices are unpaid: INV-2 and INV-3.', calls: [] },
+    ]);
     const streamed = world.events.flatMap((event) =>
       event.type === 'message.updated' && event.message.id === reply.id ? [event.message] : [],
     );

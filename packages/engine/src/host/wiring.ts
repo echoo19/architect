@@ -1,4 +1,24 @@
-import { createMentor, createStudent } from '@architect/adapters';
+import { join } from 'node:path';
+import {
+  createLlamaCppStudent,
+  createMentor,
+  createMentorActor,
+  createStudent,
+  mentorCanAct,
+} from '@architect/adapters';
+import { DEFAULT_STUDENT, GLIMMER_TRAINING_BASE } from '@architect/shared';
+import { readGgufHeader } from '../gguf';
+import { readPackageHarness } from '../graduates/harness';
+import { resolveOllamaModel, type AdapterServing } from '../local-runtime';
+import {
+  FileTrainingStore,
+  HfJobsBackend,
+  HubClient,
+  loadRecipe,
+  StandInBackend,
+  trainingDeps,
+  TrainingWorker,
+} from '../training';
 import {
   applyEdits,
   blankHarness,
@@ -8,7 +28,14 @@ import {
   importHarness,
   templateHarness,
 } from '@architect/harness';
-import type { EngineHostDeps, JobDrafter, TaskChecker, ToolSandbox } from '../loop/deps';
+import type {
+  EngineHostDeps,
+  JobDrafter,
+  TaskChecker,
+  ToolSandbox,
+  TrainingDeps,
+} from '../loop/deps';
+import { runCorrection } from '../teaching/correction';
 import {
   createChecker,
   createSandbox,
@@ -39,15 +66,63 @@ export interface EngineWiringOptions {
   localThreads?: () => number | undefined;
   /** How long a local student rests after each reply, as a share of its time; none if absent. */
   localCooldown?: () => number | undefined;
+  /**
+   * The trainer folder: `trainer/` of the repository in development, the app's `trainer`
+   * resource when packaged. Without it no training worker is set up.
+   */
+  trainerDir?: string;
+  /**
+   * The Hugging Face token, read when a job needs it. Hugging Face Jobs is offered for new jobs
+   * only while this resolves to a token; otherwise the stand-in, which trains nothing.
+   */
+  huggingFaceToken?: () => Promise<string | undefined>;
+  /**
+   * The process's one adapter runtime, the one the engine host's installation checks use, so
+   * runs and checks share one llama-server. Without it no adapter is served: weights are off the
+   * mentor's menu.
+   */
+  adapterRuntime?: AdapterServing;
+}
+
+/** The training worker over `<data>/training`, its backends, and what the loop needs of it. */
+function trainingWiring(options: EngineWiringOptions, trainerDir: string): TrainingDeps {
+  const store = new FileTrainingStore(options.dataDir);
+  const recipe = loadRecipe(trainerDir);
+  const token = options.huggingFaceToken ?? (async () => undefined);
+  const hub = new HfJobsBackend({ hub: new HubClient({ token }), recipe, token });
+  const standIn = new StandInBackend({
+    stateDir: join(options.dataDir, 'training', 'stand-in'),
+    // The stand-in shapes its adapter for the default student's base, from Ollama's store.
+    baseHeader: () => readGgufHeader(resolveOllamaModel(DEFAULT_STUDENT.model).modelPath),
+  });
+  const worker = new TrainingWorker({
+    store,
+    backends: { 'hf-jobs': hub, 'stand-in': standIn },
+    trainerDir,
+    onPollError: (id, error) => console.error(`[training] Checking job ${id} failed:`, error),
+  });
+  return trainingDeps({
+    worker,
+    store,
+    backend: async () => ((await token()) ? hub : standIn),
+    baseModel: { repo: GLIMMER_TRAINING_BASE.repo },
+    flavor: recipe.recipe.hardware.flavor,
+    datasetsDir: join(options.dataDir, 'training', 'datasets'),
+  });
 }
 
 /**
- * The real dependencies of the core loop: the runtime, the vault, the harness folders and the
- * model adapters. Tests build the loop with fakes instead; this is the one place they meet.
+ * The real dependencies of the core loop: the runtime, the vault, the harness folders, the
+ * model adapters and the training worker. Tests build the loop with fakes instead; this is the
+ * one place they meet.
  */
 export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
   const vault = new Vault(options.dataDir);
+  const { adapterRuntime } = options;
   return {
+    ...(options.trainerDir === undefined
+      ? {}
+      : { training: trainingWiring(options, options.trainerDir) }),
     runtime: {
       splitTasks: (tasks, config) => splitTasks(tasks, config),
       today: (job, now) => todayFor(job, now),
@@ -62,6 +137,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
             sandbox: asSandbox(ctx.sandbox),
             checker: asChecker(ctx.checker),
             now: middayOf(ctx.today),
+            ...(ctx.decoding === undefined ? {} : { decoding: ctx.decoding }),
           },
           evaluation,
         ),
@@ -71,6 +147,13 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
         ),
       createChecker: (job, jobDir, sandbox) =>
         createChecker({ job, jobDir, sandbox: asSandbox(sandbox) }),
+      correct: (task, ctx, start, correction) =>
+        runCorrection(
+          task,
+          { ...ctx, sandbox: asSandbox(ctx.sandbox), checker: asChecker(ctx.checker) },
+          start,
+          correction,
+        ),
       toolLoadProblem: async (sandbox, tool) => {
         const outcome = await asSandbox(sandbox).checkTool(tool);
         if (outcome.ok) return null;
@@ -102,6 +185,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       blankHarness,
       templateHarness,
       importHarness,
+      readPackaged: readPackageHarness,
     },
     adapters: {
       createMentor: (config, mentorOptions) => createMentor(config, mentorOptions),
@@ -115,6 +199,16 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
           ...(cooldown === undefined ? {} : { cooldown }),
         });
       },
+      createActor: (config, actorOptions) => createMentorActor(config, actorOptions),
+      canAct: (config) => mentorCanAct(config),
+      ...(adapterRuntime === undefined
+        ? {}
+        : {
+            createAdapterStudent: (request, studentOptions) =>
+              createLlamaCppStudent(adapterRuntime.access(request), {
+                ...(studentOptions.label === undefined ? {} : { label: studentOptions.label }),
+              }),
+          }),
     },
     secrets: { get: options.getSecret },
     ...(options.sampleJobFile === undefined ? {} : { sampleJobFile: options.sampleJobFile }),

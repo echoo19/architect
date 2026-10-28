@@ -1,4 +1,10 @@
-import { createEngineDeps, createEngineHost, type EngineHost } from '@architect/engine';
+import {
+  createEngineDeps,
+  createEngineHost,
+  DataPaths,
+  hostAdapterRuntime,
+  type EngineHost,
+} from '@architect/engine';
 import {
   asEnginePort,
   askForSecrets,
@@ -32,26 +38,31 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
   const [requests, secrets] = ports;
   if (!requests || !secrets) throw new Error('The engine was started without its ports.');
   follow(message);
-  const host = await createEngineHost({
-    dataDir: message.dataDir,
-    deps: createEngineDeps({
-      dataDir: message.dataDir,
-      sandboxEntryPath: message.sandboxEntryPath,
-      sampleJobFile: message.sampleJobFile,
-      getSecret: askForSecrets(asEnginePort(secrets)),
-      localThreads: () => followed.localThreads,
-      localCooldown: () => followed.localCooldown,
-    }),
-    localRuntime: () => ({
+  // One llama-server for the whole engine: its runs' adapter students and its install checks.
+  const adapterRuntime = hostAdapterRuntime({
+    runtimeDir: new DataPaths(message.dataDir).runtimeDir('engine'),
+    settings: () => ({
       ...(followed.llamaServerPath === undefined
         ? {}
         : { llamaServerPath: followed.llamaServerPath }),
       ...(followed.localThreads === undefined ? {} : { threads: followed.localThreads }),
       ...(followed.ollamaUrl === undefined ? {} : { ollamaUrl: followed.ollamaUrl }),
     }),
-    ...(message.llamaServerCommand === undefined
-      ? {}
-      : { llamaServerCommand: message.llamaServerCommand }),
+    ...(message.llamaServerCommand === undefined ? {} : { command: message.llamaServerCommand }),
+  });
+  const host = await createEngineHost({
+    dataDir: message.dataDir,
+    deps: createEngineDeps({
+      dataDir: message.dataDir,
+      sandboxEntryPath: message.sandboxEntryPath,
+      sampleJobFile: message.sampleJobFile,
+      trainerDir: message.trainerDir,
+      getSecret: askForSecrets(asEnginePort(secrets)),
+      localThreads: () => followed.localThreads,
+      localCooldown: () => followed.localCooldown,
+      adapterRuntime,
+    }),
+    adapterRuntime,
   });
   host.serve(asEnginePort(requests));
   return host;

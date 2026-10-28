@@ -100,6 +100,27 @@ export function connectEngine(
         };
       },
     },
+    mentoring: {
+      lessons: (runId) => request('mentoring.lessons', [runId]),
+      interventions: (runId) => request('mentoring.interventions', [runId]),
+      experiments: (runId) => request('mentoring.experiments', [runId]),
+      progress: (runId) => request('mentoring.progress', [runId]),
+      capabilities: (runId) => request('mentoring.capabilities', [runId]),
+      categories: (jobId) => request('mentoring.categories', [jobId]),
+      answer: (runId, round, reply) => request('mentoring.answer', [runId, round, reply]),
+      reference: (runId, options) => request('mentoring.reference', [runId, options]),
+      references: (runId) => request('mentoring.references', [runId]),
+    },
+    teach: {
+      propose: (chatId, messageId, correction) =>
+        request('teach.propose', [chatId, messageId, correction]),
+      queue: (correctionId) => request('teach.queue', [correctionId]),
+      discard: (correctionId) => request('teach.discard', [correctionId]),
+      apply: (correctionId) => request('teach.apply', [correctionId]),
+      list: (graduateId) => request('teach.list', [graduateId]),
+      improve: (graduateId, options) => request('teach.improve', [graduateId, options]),
+      improvements: (graduateId) => request('teach.improvements', [graduateId]),
+    },
     reports: {
       get: (runId, target) => request('reports.get', [runId, target ?? null]),
       list: (runId) => request('reports.list', [runId]),

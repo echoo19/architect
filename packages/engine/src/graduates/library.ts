@@ -40,8 +40,8 @@ export interface LibraryContext {
   machine?: () => Machine;
 }
 
-/** The lock key for the engine's llama-server; no agent id has a colon. */
-const SERVER_TURN = ':llama-server';
+/** The lock key for the engine's llama-server; no agent id has a colon. Runs take it too. */
+export const SERVER_TURN = ':llama-server';
 
 /** Runs one task at a time per key, so two changes to one agent never interleave. */
 export class KeyedLock {

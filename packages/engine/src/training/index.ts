@@ -64,6 +64,7 @@ export {
   type RecipeFile,
   type TrainerJobInput,
 } from './recipe';
+export { trainingDeps, type TrainingDepsOptions } from './loop-deps';
 export { STAND_IN_LABEL, STAND_IN_REVISION, StandInBackend, type StandInOptions } from './stand-in';
 export { FileTrainingStore, type TrainingStore } from './store';
 export { TrainingWorker, type TrainingRequest, type TrainingWorkerOptions } from './worker';

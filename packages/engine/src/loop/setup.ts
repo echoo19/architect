@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import {
   GuardError,
   keyDestinationProblem,
+  type ActorAdapter,
   type Harness,
   type Job,
   type MentorAdapter,
@@ -47,6 +48,24 @@ export async function connectMentor(
   if (mentor.secretRef === undefined) return deps.adapters.createMentor(mentor, {});
   guardKeyDestination(mentor.secretRef, mentor.baseUrl);
   return deps.adapters.createMentor(mentor, { apiKey: await secret(deps, mentor.secretRef) });
+}
+
+/**
+ * The mentor's model as an agent with the student's tools, through the same key and the same
+ * host checks as the mentor itself.
+ */
+export async function connectActor(
+  deps: Pick<LoopDeps, 'adapters' | 'secrets'>,
+  job: Job,
+): Promise<ActorAdapter> {
+  const { mentor } = job;
+  const create = deps.adapters.createActor;
+  if (mentor.kind !== 'model' || create === undefined) {
+    throw new Error(`${mentor.label} can't act as the agent in this build.`);
+  }
+  if (mentor.secretRef === undefined) return create(mentor, {});
+  guardKeyDestination(mentor.secretRef, mentor.baseUrl);
+  return create(mentor, { apiKey: await secret(deps, mentor.secretRef) });
 }
 
 /** Stops a job file from sending a stored key to a host outside the key's own service. */

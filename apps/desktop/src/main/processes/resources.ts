@@ -18,6 +18,8 @@ export interface ProcessResources {
   /** The agent host's entry, started as a utility process. */
   agentHostEntry: string;
   sampleJobFile: string;
+  /** The pinned training recipe and its scripts, which the engine's training worker sends. */
+  trainerDir: string;
 }
 
 export function processResources(location: AppLocation): ProcessResources {
@@ -30,6 +32,9 @@ export function processResources(location: AppLocation): ProcessResources {
     sampleJobFile: location.packaged
       ? join(location.resourcesPath, 'sample-job', 'job.json')
       : join(location.appPath, '..', '..', 'examples', 'home-services', 'job', 'job.json'),
+    trainerDir: location.packaged
+      ? join(location.resourcesPath, 'trainer')
+      : join(location.appPath, '..', '..', 'trainer'),
   };
 }
 

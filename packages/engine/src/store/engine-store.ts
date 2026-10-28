@@ -1,9 +1,23 @@
 import type { DatabaseSync } from 'node:sqlite';
 import {
+  CategorySchema,
+  CorrectionSchema,
+  DEFAULT_CONFIG_KEY,
+  ExperimentSchema,
+  InterventionSchema,
+  LessonSchema,
+  ReferenceRecordSchema,
   ReportCardSchema,
   StudentTargetSchema,
   WorkspaceChatSchema,
   WorkspaceMessageSchema,
+  type Category,
+  type Correction,
+  type CorrectionStatus,
+  type Experiment,
+  type Intervention,
+  type Lesson,
+  type ReferenceRecord,
   type ReportCard,
   type RunStatus,
   type SplitName,
@@ -63,6 +77,15 @@ export interface AttemptFilter {
   /** A round number, or null for attempts outside rounds (baseline dev, locked test). */
   round?: number | null;
   target?: StudentTarget;
+  /** Who attempted and how; see `StoredAttempt.config`. */
+  config?: string;
+}
+
+export interface LessonFilter {
+  runId?: string;
+  jobId?: string;
+  round?: number;
+  status?: Lesson['status'];
 }
 
 /** Everything the engine persists. SQLite sits behind this so it can be swapped (decision 013). */
@@ -187,6 +210,48 @@ export interface EngineStore {
     /** Oldest first. */
     list(chatId: string): WorkspaceMessage[];
   };
+  /** A job's failure vocabulary. */
+  categories: {
+    /** Fails if the job already has the slug. */
+    insert(category: Category): void;
+    get(id: string): Category | null;
+    /** Oldest first. */
+    list(jobId: string): Category[];
+  };
+  interventions: {
+    /** Writes the round's intervention, replacing the one recorded before. */
+    put(intervention: Intervention): void;
+    get(runId: string, round: number): Intervention | null;
+    /** By round. */
+    list(runId: string): Intervention[];
+  };
+  lessons: {
+    /** Writes a lesson by its id, replacing one with the same id. */
+    put(lesson: Lesson): void;
+    get(id: string): Lesson | null;
+    /** Oldest first. */
+    list(filter: LessonFilter): Lesson[];
+  };
+  experiments: {
+    /** Writes the round's experiment, replacing the one recorded before. */
+    put(experiment: Experiment): void;
+    get(runId: string, round: number): Experiment | null;
+    /** By round. */
+    list(runId: string): Experiment[];
+  };
+  references: {
+    put(record: ReferenceRecord): void;
+    get(runId: string, split: ReferenceRecord['split']): ReferenceRecord | null;
+    list(runId: string): ReferenceRecord[];
+    /** Oldest first, so interrupted references resume in the order they started. */
+    withStatus(status: ReferenceRecord['status']): ReferenceRecord[];
+  };
+  /** Teach this: corrections of workspace replies, by agent, oldest first. */
+  corrections: {
+    put(correction: Correction): void;
+    get(id: string): Correction | null;
+    list(graduateId: string, statuses?: readonly CorrectionStatus[]): Correction[];
+  };
 }
 
 export function openEngineStore(
@@ -243,6 +308,9 @@ function runParams({ run, ...record }: StoredRun): Params {
     created_at: run.createdAt,
     updated_at: run.updatedAt,
     ended_at: run.endedAt ?? null,
+    interactive: flag(record.interactive === true),
+    current_adapter: jsonOrNull(run.currentAdapter),
+    improves: jsonOrNull(record.improves),
   };
 }
 
@@ -265,12 +333,17 @@ function runFromRow(row: Row): StoredRun {
       stopReason: orUndefined(row.stop_reason),
       error: orUndefined(row.error),
       graduateId: orUndefined(row.graduate_id),
+      currentAdapter: orUndefined(fromJson(row.current_adapter)),
     },
     seeds: fromJson(row.seeds),
     today: row.today,
     lockedTestOn: row.locked_test_on,
     stopRequested: row.stop_requested === 1,
     freeze: fromJson(row.freeze),
+    ...(row.interactive === 1 ? { interactive: true } : {}),
+    ...(row.improves === null || row.improves === undefined
+      ? {}
+      : { improves: fromJson(row.improves) }),
   });
 }
 
@@ -290,6 +363,7 @@ function roundParams({ round, ...record }: StoredRound): Params {
     predicted: jsonOrNull(round.predicted),
     files: json(round.files),
     candidate_version: round.candidateVersion ?? null,
+    candidate_adapter: jsonOrNull(round.candidateAdapter),
     dev_before: jsonOrNull(round.devBefore),
     dev_after: jsonOrNull(round.devAfter),
     first_measurement: jsonOrNull(round.firstMeasurement),
@@ -315,6 +389,7 @@ function roundFromRow(row: Row): StoredRound {
       predicted: orUndefined(fromJson(row.predicted)),
       files: fromJson(row.files),
       candidateVersion: orUndefined(row.candidate_version),
+      candidateAdapter: orUndefined(fromJson(row.candidate_adapter)),
       devBefore: orUndefined(fromJson(row.dev_before)),
       devAfter: orUndefined(fromJson(row.dev_after)),
       firstMeasurement: orUndefined(fromJson(row.first_measurement)),
@@ -342,6 +417,7 @@ function attemptParams(attempt: StoredAttempt): Params {
     task_id: attempt.taskId,
     task_type: attempt.taskType,
     target: attempt.target,
+    config: attempt.config ?? DEFAULT_CONFIG_KEY,
     seed: attempt.seed,
     pass: flag(attempt.check.pass),
     reason: attempt.check.reason,
@@ -383,6 +459,7 @@ function attemptFromRow(row: Row): StoredAttempt {
     answerSummary: orUndefined(row.answer_summary),
     expectedSummary: orUndefined(row.expected_summary),
     target: row.target,
+    ...(row.config === DEFAULT_CONFIG_KEY ? {} : { config: row.config }),
     seed: row.seed,
     stopReason: row.stop_reason,
     tracePath: row.trace_path,
@@ -651,7 +728,67 @@ function attemptQuery(filter: AttemptFilter): { where: string; params: Params } 
     clauses.push('target = :target');
     params.target = filter.target;
   }
+  if (filter.config !== undefined) {
+    clauses.push('config = :config');
+    params.config = filter.config;
+  }
   return { where: clauses.join(' AND '), params };
+}
+
+function lessonQuery(filter: LessonFilter): { where: string; params: Params } {
+  const clauses = ['1 = 1'];
+  const params: Params = {};
+  if (filter.runId !== undefined) {
+    clauses.push('run_id = :run_id');
+    params.run_id = filter.runId;
+  }
+  if (filter.jobId !== undefined) {
+    clauses.push('job_id = :job_id');
+    params.job_id = filter.jobId;
+  }
+  if (filter.round !== undefined) {
+    clauses.push('round = :round');
+    params.round = filter.round;
+  }
+  if (filter.status !== undefined) {
+    clauses.push('status = :status');
+    params.status = filter.status;
+  }
+  return { where: clauses.join(' AND '), params };
+}
+
+function lessonParams(lesson: Lesson): Params {
+  const parsed = LessonSchema.parse(lesson);
+  const taskId = parsed.source.kind === 'correction' ? null : parsed.source.taskId;
+  return {
+    id: parsed.id,
+    job_id: parsed.jobId,
+    run_id: parsed.runId,
+    round: parsed.round,
+    category_id: parsed.categoryId,
+    task_type: parsed.taskType,
+    task_id: taskId,
+    kind: parsed.kind,
+    status: parsed.status,
+    body: json(parsed),
+    created_at: parsed.createdAt,
+  };
+}
+
+/** A row's JSON body, checked against its record's schema. */
+function bodyOf<T>(schema: { parse(value: unknown): T }, row: Row): T {
+  return schema.parse(fromJson(row.body));
+}
+
+function categoryFromRow(row: Row): Category {
+  return CategorySchema.parse({
+    id: row.id,
+    jobId: row.job_id,
+    slug: row.slug,
+    label: row.label,
+    taskType: row.task_type,
+    createdAt: row.created_at,
+  });
 }
 
 export function createEngineStore(db: DatabaseSync): EngineStore {
@@ -1013,6 +1150,178 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
             { chat_id: chatId },
           )
           .map(messageFromRow),
+    },
+
+    categories: {
+      insert: (category) => {
+        const parsed = CategorySchema.parse(category);
+        sql.insert('categories', {
+          id: parsed.id,
+          job_id: parsed.jobId,
+          slug: parsed.slug,
+          label: parsed.label,
+          task_type: parsed.taskType,
+          created_at: parsed.createdAt,
+        });
+      },
+      get: (id) => {
+        const row = sql.one('SELECT * FROM categories WHERE id = :id', { id });
+        return row ? categoryFromRow(row) : null;
+      },
+      list: (jobId) =>
+        sql
+          .all('SELECT * FROM categories WHERE job_id = :job_id ORDER BY created_at, rowid', {
+            job_id: jobId,
+          })
+          .map(categoryFromRow),
+    },
+
+    interventions: {
+      put: (intervention) => {
+        const parsed = InterventionSchema.parse(intervention);
+        sql.insert(
+          'interventions',
+          {
+            id: parsed.id,
+            run_id: parsed.runId,
+            round: parsed.round,
+            type: parsed.type,
+            status: parsed.status,
+            body: json(parsed),
+            created_at: parsed.createdAt,
+          },
+          'replace',
+        );
+      },
+      get: (runId, round) => {
+        const row = sql.one(
+          'SELECT body FROM interventions WHERE run_id = :run_id AND round = :round',
+          { run_id: runId, round },
+        );
+        return row ? bodyOf(InterventionSchema, row) : null;
+      },
+      list: (runId) =>
+        sql
+          .all('SELECT body FROM interventions WHERE run_id = :run_id ORDER BY round', {
+            run_id: runId,
+          })
+          .map((row) => bodyOf(InterventionSchema, row)),
+    },
+
+    lessons: {
+      put: (lesson) => sql.insert('lessons', lessonParams(lesson), 'replace'),
+      get: (id) => {
+        const row = sql.one('SELECT body FROM lessons WHERE id = :id', { id });
+        return row ? bodyOf(LessonSchema, row) : null;
+      },
+      list: (filter) => {
+        const { where, params } = lessonQuery(filter);
+        return sql
+          .all(`SELECT body FROM lessons WHERE ${where} ORDER BY created_at, rowid`, params)
+          .map((row) => bodyOf(LessonSchema, row));
+      },
+    },
+
+    experiments: {
+      put: (experiment) => {
+        const parsed = ExperimentSchema.parse(experiment);
+        sql.insert(
+          'experiments',
+          {
+            id: parsed.id,
+            run_id: parsed.runId,
+            round: parsed.round,
+            kind: parsed.kind,
+            disposition: parsed.disposition,
+            body: json(parsed),
+            created_at: parsed.endedAt,
+          },
+          'replace',
+        );
+      },
+      get: (runId, round) => {
+        const row = sql.one(
+          'SELECT body FROM experiments WHERE run_id = :run_id AND round = :round',
+          { run_id: runId, round },
+        );
+        return row ? bodyOf(ExperimentSchema, row) : null;
+      },
+      list: (runId) =>
+        sql
+          .all('SELECT body FROM experiments WHERE run_id = :run_id ORDER BY round', {
+            run_id: runId,
+          })
+          .map((row) => bodyOf(ExperimentSchema, row)),
+    },
+
+    references: {
+      put: (record) => {
+        const parsed = ReferenceRecordSchema.parse(record);
+        sql.insert(
+          'reference_runs',
+          {
+            run_id: parsed.runId,
+            split: parsed.split,
+            status: parsed.status,
+            body: json(parsed),
+            started_at: parsed.startedAt,
+          },
+          'replace',
+        );
+      },
+      get: (runId, split) => {
+        const row = sql.one(
+          'SELECT body FROM reference_runs WHERE run_id = :run_id AND split = :split',
+          { run_id: runId, split },
+        );
+        return row ? bodyOf(ReferenceRecordSchema, row) : null;
+      },
+      list: (runId) =>
+        sql
+          .all(
+            'SELECT body FROM reference_runs WHERE run_id = :run_id ORDER BY started_at, rowid',
+            { run_id: runId },
+          )
+          .map((row) => bodyOf(ReferenceRecordSchema, row)),
+      withStatus: (status) =>
+        sql
+          .all(
+            'SELECT body FROM reference_runs WHERE status = :status ORDER BY started_at, rowid',
+            { status },
+          )
+          .map((row) => bodyOf(ReferenceRecordSchema, row)),
+    },
+
+    corrections: {
+      put: (correction) => {
+        const parsed = CorrectionSchema.parse(correction);
+        sql.insert(
+          'corrections',
+          {
+            id: parsed.id,
+            graduate_id: parsed.graduateId,
+            status: parsed.status,
+            run_id: parsed.runId ?? null,
+            body: json(parsed),
+            created_at: parsed.createdAt,
+          },
+          'replace',
+        );
+      },
+      get: (id) => {
+        const row = sql.one('SELECT body FROM corrections WHERE id = :id', { id });
+        return row ? bodyOf(CorrectionSchema, row) : null;
+      },
+      list: (graduateId, statuses) =>
+        sql
+          .all(
+            'SELECT body, status FROM corrections WHERE graduate_id = :graduate_id ORDER BY created_at, rowid',
+            { graduate_id: graduateId },
+          )
+          .filter(
+            (row) => statuses === undefined || statuses.includes(row.status as CorrectionStatus),
+          )
+          .map((row) => bodyOf(CorrectionSchema, row)),
     },
   };
 }

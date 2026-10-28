@@ -1,18 +1,34 @@
 import {
   newId,
   type Harness,
+  type Job,
   type ReportCard,
   type Run,
   type StudentModelInfo,
   type StudentTarget,
   type Task,
 } from '@architect/shared';
+import { SERVER_TURN } from '../graduates/library';
 import { ContractBook } from '../graduates/contracts';
 import { prepareGraduate } from '../graduates/graduation';
 import { registerVersion } from '../graduates/versions';
-import { computeReportCard } from '../report/report-card';
-import type { GraduateFreeze, StoredAttempt, StudentPin } from '../store/records';
-import { resultOf } from './attempts';
+import { computeReportCard, type TestResult } from '../report/report-card';
+import type {
+  FrozenConfiguration,
+  GraduateFreeze,
+  StoredAttempt,
+  StudentPin,
+} from '../store/records';
+import { scoreByType } from '../mentor/view';
+import { hashFile } from '../training/artifacts';
+import type { EvaluationResult } from './attempts';
+import {
+  configurationKey,
+  LLAMA_CPP,
+  llamaCppConfig,
+  STUDENT_CONFIG,
+  type AttemptConfig,
+} from './configuration';
 import { must } from './errors';
 import { evaluate, type EvaluationPurpose } from './evaluation';
 import type { RunState } from './run-state';
@@ -60,21 +76,72 @@ function pinDrift(pinned: StudentPin, now: StudentPin): string | null {
   return null;
 }
 
-/** Fixes what will ship before any test runs: the harness version, its hash and the student. */
+/** The configuration a frozen graduate runs as: its adapter on llama.cpp, or the job's student. */
+export function frozenConfig(frozen: GraduateFreeze): AttemptConfig {
+  const adapter = frozen.configuration?.adapter ?? null;
+  if (adapter === null) return STUDENT_CONFIG;
+  return {
+    actor: 'student',
+    backend: LLAMA_CPP,
+    adapter: { id: adapter.id, scale: adapter.scale },
+    loaded: [adapter],
+  };
+}
+
+/** The locked test's decoding seeds: fixed at freezing, or the run's test seed for older runs. */
+export function testSeedsOf(state: RunState, frozen: GraduateFreeze): number[] {
+  return frozen.testSeeds ?? [state.record.seeds.test];
+}
+
+/**
+ * Fixes what will ship before any test runs: the harness version and its hash, the student, and
+ * how it runs: the backend, the adapter with its GGUF's sha256 and its scale, and the decoding.
+ * The locked test's decoding seeds are fixed here too, from the job's declared ones (decision
+ * 037), so no result can choose them. An adapter that changed since it was measured isn't frozen.
+ */
 export async function freeze(state: RunState): Promise<void> {
   await state.resources.releaseMentor();
   const harness = await state.resources.harness(state.run.currentVersion);
+  const kept = state.run.currentAdapter ?? null;
+  let adapter: FrozenConfiguration['adapter'] = null;
+  if (kept !== null) {
+    const { sha256 } = hashFile(state.ctx.paths.fromStored(kept.path));
+    if (sha256 !== kept.sha256) {
+      throw new Error(
+        `The adapter ${kept.id} changed after it was measured, so the graduate can't be frozen with it.`,
+      );
+    }
+    // Describing it may start the engine's llama-server, so it takes the server's turn.
+    const served = await state.ctx.libraryLock.run(SERVER_TURN, async () =>
+      (await state.resources.student('local', llamaCppConfig([kept], kept))).describe(),
+    );
+    adapter = {
+      ...kept,
+      scale: 1,
+      ...(served.digest === undefined ? {} : { baseDigest: served.digest }),
+    };
+  }
   const frozen: GraduateFreeze = {
-    graduateId: newId('grd'),
+    // An improvement makes a version of the agent it improves, never a new agent.
+    graduateId: state.record.improves?.graduateId ?? newId('grd'),
     harnessVersion: harness.meta.version,
     harnessHash: harness.meta.hash,
     student: pinOf(state, await (await state.resources.student('local')).describe()),
     frozenAt: state.now(),
+    configuration: {
+      backend: adapter === null ? state.job.student.local.runtime : LLAMA_CPP,
+      adapter,
+      decoding: harness.decoding,
+    },
+    testSeeds: state.job.evaluation.lockedTestSeeds ?? [state.record.seeds.test],
   };
   state.saveRun({}, { freeze: frozen });
+  const using = adapter === null ? '' : ` with adapter ${adapter.id}`;
   state.log(
     'info',
-    `Graduate frozen at harness version ${frozen.harnessVersion} before its locked test.`,
+    state.record.improves === undefined
+      ? `Graduate frozen at harness version ${frozen.harnessVersion}${using} before its locked test.`
+      : `Candidate frozen at harness version ${frozen.harnessVersion}${using}. An improvement is measured on dev and takes no locked test.`,
   );
 }
 
@@ -109,8 +176,23 @@ export async function openLockedTest(
       `Harness version ${frozen.harnessVersion} changed after the graduate was frozen, so it won't be tested.`,
     );
   }
-  const tester = await state.resources.student(target);
-  const described = await tester.describe();
+  const adapter = frozen.configuration?.adapter ?? null;
+  if (adapter !== null) {
+    if (target !== 'local') {
+      throw new Error(
+        "This graduate carries an adapter, which runs only on this computer's base model; the hosted copy can't take its test.",
+      );
+    }
+    const { sha256 } = hashFile(state.ctx.paths.fromStored(adapter.path));
+    if (sha256 !== adapter.sha256) {
+      throw new Error(
+        `The adapter ${adapter.id} changed after the graduate was frozen, so it won't be tested.`,
+      );
+    }
+  }
+  const pinned = await state.resources.student('local');
+  const tester = await state.resources.student(target, frozenConfig(frozen));
+  const described = await (target === 'local' ? pinned : tester).describe();
   const drift = target === 'local' ? pinDrift(frozen.student, pinOf(state, described)) : null;
   if (drift !== null) {
     throw new Error(
@@ -133,8 +215,10 @@ export async function openLockedTest(
 }
 
 /**
- * Attempts every locked test task once, one at a time, under the run's test seed. Resolves
- * true once all are done; tasks attempted in an earlier session aren't attempted again.
+ * Attempts every locked test task once under each of the frozen decoding seeds, one at a time,
+ * in exactly the frozen configuration: its harness version, adapter and scale, backend and
+ * decoding. Resolves true once all are done; attempts made in an earlier session aren't made
+ * again.
  */
 export function runLockedTest(
   state: RunState,
@@ -147,23 +231,81 @@ export function runLockedTest(
     split: 'test',
     round: null,
     version: frozen.harnessVersion,
-    seeds: [state.record.seeds.test],
+    seeds: testSeedsOf(state, frozen),
     target: test.target,
     purpose,
     concurrency: 1,
+    config: frozenConfig(frozen),
+    ...(frozen.configuration === undefined ? {} : { decoding: frozen.configuration.decoding }),
   });
 }
 
-/** The frozen graduate's locked-test attempts on one target. */
+/** The frozen graduate's locked-test attempts on one target, under its frozen configuration. */
 export function lockedTestAttempts(
   state: RunState,
   frozen: GraduateFreeze,
   target: StudentTarget,
 ): StoredAttempt[] {
-  return state.attempts({ split: 'test', round: null, version: frozen.harnessVersion, target });
+  const seeds = testSeedsOf(state, frozen);
+  return state
+    .attempts({
+      split: 'test',
+      round: null,
+      version: frozen.harnessVersion,
+      target,
+      config: configurationKey(frozenConfig(frozen)),
+    })
+    .filter((attempt) => seeds.includes(attempt.seed));
 }
 
-/** The card of a locked test, from its attempts and the run's record. */
+/**
+ * The locked test's results per scenario: a task passes only when it passed under every
+ * repeat, so repeats never count as more scenarios. Its time is its slowest repeat's, and it
+ * was refused when any repeat was.
+ */
+function scenarios(attempts: readonly StoredAttempt[]): TestResult[] {
+  const byTask = new Map<string, StoredAttempt[]>();
+  for (const attempt of attempts) {
+    byTask.set(attempt.taskId, [...(byTask.get(attempt.taskId) ?? []), attempt]);
+  }
+  return [...byTask.values()].map((repeats) => ({
+    taskType: must(repeats[0], 'A repeat').taskType,
+    pass: repeats.every((attempt) => attempt.check.pass),
+    latencyMs: Math.max(...repeats.map((attempt) => attempt.latencyMs)),
+    refused: repeats.some((attempt) => attempt.stopReason === 'refused'),
+  }));
+}
+
+/** The locked test's score and per-type results, counting scenarios rather than repeats. */
+export function lockedResult(attempts: readonly StoredAttempt[], job: Job): EvaluationResult {
+  const results = scenarios(attempts);
+  return {
+    score: { pass: results.filter((result) => result.pass).length, total: results.length },
+    perType: scoreByType(
+      results.map((result) => ({ type: result.taskType, pass: result.pass })),
+      job,
+    ),
+  };
+}
+
+/** Each repeat's own result, by its seed, in the order the seeds were declared. */
+function repeatsOf(
+  seeds: readonly number[],
+  attempts: readonly StoredAttempt[],
+): NonNullable<ReportCard['test']['repeats']> {
+  return seeds.map((seed) => {
+    const repeat = attempts.filter((attempt) => attempt.seed === seed);
+    return {
+      seed,
+      score: { pass: repeat.filter((attempt) => attempt.check.pass).length, total: repeat.length },
+    };
+  });
+}
+
+/**
+ * The card of a locked test, from its attempts and the run's record. With more than one
+ * decoding seed, the score counts scenarios and each repeat's own score is kept beside it.
+ */
 export async function lockedTestReport(
   state: RunState,
   run: Run,
@@ -172,17 +314,14 @@ export async function lockedTestReport(
 ): Promise<ReportCard> {
   const rounds = state.rounds();
   const tester = await state.resources.student(test.target);
-  return computeReportCard({
+  const frozen = must(state.record.freeze, 'The frozen graduate');
+  const seeds = testSeedsOf(state, frozen);
+  const card = computeReportCard({
     job: state.job,
     run,
     rounds: rounds.map(({ round }) => round),
     lineage: await state.lineage.read(),
-    test: attempts.map((attempt) => ({
-      taskType: attempt.taskType,
-      pass: attempt.check.pass,
-      latencyMs: attempt.latencyMs,
-      refused: attempt.stopReason === 'refused',
-    })),
+    test: scenarios(attempts),
     guardrails: test.harness.guardrails,
     student: test.student,
     testedOn: test.target,
@@ -195,6 +334,9 @@ export async function lockedTestReport(
     ranOffline: test.target === 'local' && tester.isLocal,
     createdAt: state.now(),
   });
+  return seeds.length < 2
+    ? card
+    : { ...card, test: { ...card.test, repeats: repeatsOf(seeds, attempts) } };
 }
 
 /**
@@ -209,7 +351,7 @@ async function graduate(state: RunState, test: LockedTest, frozen: GraduateFreez
     type: 'eval.finished',
     split: 'test',
     harnessVersion: frozen.harnessVersion,
-    ...resultOf(attempts, job),
+    ...lockedResult(attempts, job),
   });
   const run: Run = {
     ...state.run,

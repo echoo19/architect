@@ -14,6 +14,9 @@ import type { ModelNames } from './phase';
 const STATUS_TEXT: Record<Round['status'], string> = {
   attempting: 'Working through practice tasks',
   diagnosing: 'Waiting for the diagnosis',
+  teaching: 'Checking corrections of the failures',
+  training: 'Training an adapter on the corrections',
+  clarifying: 'Waiting for your answer',
   evaluating: 'Scoring the change on the check tasks',
   decided: 'Decided',
   failed: 'Failed',

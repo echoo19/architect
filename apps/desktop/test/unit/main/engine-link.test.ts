@@ -84,6 +84,7 @@ describe('messages between main and the engine process', () => {
       dataDir: '/data',
       sandboxEntryPath: '/app/out/sandbox/child.mjs',
       sampleJobFile: '/app/sample-job/job.json',
+      trainerDir: '/app/trainer',
     };
     expect(ParentMessageSchema.parse(start)).toEqual(start);
     expect(ParentMessageSchema.parse({ type: 'stop' })).toEqual({ type: 'stop' });

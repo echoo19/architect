@@ -93,6 +93,12 @@ function runningText(run: Run, { mentor, student }: ModelNames, drafting: boolea
       return `${student} is working through practice tasks`;
     case 'diagnosing':
       return `${mentor} is reading the failures`;
+    case 'teaching':
+      return `${mentor} is working through corrections, each checked before it counts`;
+    case 'training':
+      return `An adapter is training on the checked corrections`;
+    case 'clarifying':
+      return `${mentor} has a question for you`;
     case 'evaluating':
       return 'Scoring the change on the check tasks';
     case 'testing':
@@ -109,6 +115,10 @@ function stageOf(run: Run): Stage | null {
     case 'evaluating':
     case 'testing':
       return run.phase;
+    case 'teaching':
+    case 'training':
+    case 'clarifying':
+      return 'diagnosing';
     case 'baseline':
       return 'evaluating';
     case 'preparing':
@@ -123,11 +133,14 @@ function motionOf(run: Run): Motion {
     case 'attempting':
       return 'practising';
     case 'diagnosing':
+    case 'teaching':
+    case 'training':
       return 'returning';
     case 'evaluating':
       return 'checking';
     case 'testing':
       return 'testing';
+    case 'clarifying':
     case 'preparing':
     case 'done':
       return 'idle';

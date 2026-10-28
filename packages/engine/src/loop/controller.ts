@@ -1,21 +1,31 @@
 import {
   emptyTotals,
+  GuardError,
   newId,
+  type ImprovementStart,
+  type ImproveOptions,
   type Job,
   type Method,
+  type ReferenceRecord,
   type Run,
   type RunEvent,
+  type RunImprovement,
   type StudentTarget,
+  type TrainedAdapter,
 } from '@architect/shared';
+import { KeyedLock } from '../graduates/library';
+import { improvementNote, improvementPlan } from '../improve/improvement';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun } from '../store/records';
+import { configurationKey } from './configuration';
 import { systemClock, type Clock, type LoopDeps } from './deps';
 import type { SessionOutcome } from './driver';
-import { errorMessage } from './errors';
+import { errorMessage, must } from './errors';
 import { writeJsonFile } from './files';
 import type { JobLibrary } from './jobs';
 import type { DataPaths } from './paths';
 import { isTerminal } from './plan';
+import { ReferenceSession, referenceConfig, referenceRefusal, referenceSeed } from './reference';
 import { RetestSession, retestRefusal } from './retest';
 import type { SessionContext } from './run-state';
 import { fanOutSeeds } from './seeds';
@@ -34,6 +44,11 @@ export interface RunControllerOptions {
   maxActiveRuns?: number;
   /** Where errors from event listeners and broken sessions go. They never stop a run. */
   onError?(error: unknown): void;
+  /**
+   * The graduate library's lock, so a run writing an agent's version waits for its other
+   * writers, and a run using llama-server waits for checks using it.
+   */
+  libraryLock?: KeyedLock;
 }
 
 export interface StartRunOptions {
@@ -42,6 +57,8 @@ export interface StartRunOptions {
    * (decision 009), and the report card says it didn't run offline.
    */
   lockedTestOn?: StudentTarget;
+  /** Someone is there to answer a clarifying question; runs from scripts aren't. */
+  interactive?: boolean;
 }
 
 interface ActiveRun {
@@ -50,21 +67,29 @@ interface ActiveRun {
 }
 
 interface ActiveRetest {
-  session: RetestSession;
+  session: { abort(): void };
   done: Promise<void>;
 }
 
-/** What waits its turn for the student: a run, or a re-test of a finished run's graduate. */
+/**
+ * What waits its turn: a run, a re-test of a finished run's graduate, or Spark run as a
+ * reference on a finished run's tasks.
+ */
 type Turn =
-  { kind: 'run'; runId: string } | { kind: 'retest'; runId: string; target: StudentTarget };
+  | { kind: 'run'; runId: string }
+  | { kind: 'retest'; runId: string; target: StudentTarget }
+  | { kind: 'reference'; runId: string; split: ReferenceRecord['split'] };
+
+/** A re-test's or a reference's key among the sessions holding a turn. */
+function sideKey(turn: Exclude<Turn, { kind: 'run' }>): string {
+  return turn.kind === 'retest'
+    ? `${turn.runId}/${turn.target}`
+    : `${turn.runId}/reference/${turn.split}`;
+}
 
 function sameTurn(a: Turn, b: Turn): boolean {
   if (a.kind === 'run' || b.kind === 'run') return a.kind === b.kind && a.runId === b.runId;
-  return a.runId === b.runId && a.target === b.target;
-}
-
-function retestKey(runId: string, target: StudentTarget): string {
-  return `${runId}/${target}`;
+  return sideKey(a) === sideKey(b);
 }
 
 /**
@@ -83,6 +108,7 @@ export class RunController {
   private readonly concurrency: number;
   private readonly maxActiveRuns: number;
   private readonly onError: (error: unknown) => void;
+  private readonly libraryLock: KeyedLock;
   private closed = false;
 
   constructor(private readonly options: RunControllerOptions) {
@@ -90,6 +116,7 @@ export class RunController {
     this.concurrency = Math.max(1, options.concurrency ?? 1);
     this.maxActiveRuns = Math.max(1, options.maxActiveRuns ?? 1);
     this.onError = options.onError ?? ((error) => console.error(error));
+    this.libraryLock = options.libraryLock ?? new KeyedLock();
   }
 
   onEvent(listener: (event: RunEvent) => void): () => void {
@@ -104,15 +131,82 @@ export class RunController {
     seed?: number,
     options: StartRunOptions = {},
   ): Promise<Run> {
-    const { jobs, paths, store, deps } = this.options;
-    const job = await jobs.get(jobId);
+    const job = await this.options.jobs.get(jobId);
     await this.checkRunnable(job, method, options);
+    const record = await this.create(job, method, seed, options);
+    this.enqueue(record.run.id);
+    return record.run;
+  }
+
+  /**
+   * Improve agent (spec section 8): a run on an agent's job that starts from its active version
+   * with every lesson in its queue, within the budget the person was shown, and ends in a
+   * candidate version of that agent. The active version keeps answering and never changes. Like
+   * any run it waits its turn while another holds the student, and says so.
+   */
+  improve(graduateId: string, options: ImproveOptions): Promise<ImprovementStart> {
+    // One at a time per agent, so two quick asks can't both pass the check for a running one.
+    return this.libraryLock.run(graduateId, () => this.startImprovement(graduateId, options));
+  }
+
+  private async startImprovement(
+    graduateId: string,
+    options: ImproveOptions,
+  ): Promise<ImprovementStart> {
+    const { jobs, store, paths } = this.options;
+    const plan = improvementPlan(store, paths, graduateId);
+    const job = await jobs.get(plan.jobId);
+    if (job.sharing?.corrections !== true) {
+      throw new GuardError(
+        'permission',
+        `${job.name} no longer shares corrections with the mentor, so Improve agent can't send it the lessons. Allow sharing corrections in the job's data settings.`,
+      );
+    }
+    await this.checkRunnable(job, 'architect', {});
+    const budgeted: Job = {
+      ...job,
+      budget: { ...job.budget, maxRounds: options.maxRounds, maxMentorUsd: options.maxMentorUsd },
+    };
+    const { adapter, name: _name, jobId: _jobId, ...improves } = plan;
+    // The lessons are taken in the transaction that writes the run, and only those still queued.
+    const record = await this.create(
+      budgeted,
+      'architect',
+      undefined,
+      {},
+      improves,
+      adapter,
+      (runId) => {
+        const at = isoNow(this.clock);
+        for (const id of improves.corrections) {
+          const correction = store.corrections.get(id);
+          if (correction?.status !== 'queued') continue;
+          store.corrections.put({ ...correction, runId, updatedAt: at });
+        }
+      },
+    );
+    this.enqueue(record.run.id);
+    const started = this.active.has(record.run.id);
+    return { runId: record.run.id, started, note: improvementNote(plan, options, started) };
+  }
+
+  /** Writes a new run, with the copy of its job it reads from then on. */
+  private async create(
+    job: Job,
+    method: Method,
+    seed: number | undefined,
+    options: StartRunOptions,
+    improves?: RunImprovement,
+    adapter?: TrainedAdapter,
+    alongside?: (runId: string) => void,
+  ): Promise<StoredRun> {
+    const { paths, store, deps } = this.options;
     const runSeed = seed ?? Math.floor(Math.random() * 2 ** 31);
     const now = isoNow(this.clock);
     const record: StoredRun = {
       run: {
         id: newId('run'),
-        jobId,
+        jobId: job.id,
         method,
         seed: runSeed,
         status: 'queued',
@@ -123,18 +217,23 @@ export class RunController {
         devBaseline: null,
         devCurrent: null,
         totals: emptyTotals(),
+        ...(adapter === undefined ? {} : { currentAdapter: adapter }),
       },
       seeds: fanOutSeeds(runSeed),
       today: deps.runtime.today(job, new Date(this.clock.now())),
       lockedTestOn: options.lockedTestOn ?? 'local',
       stopRequested: false,
       freeze: null,
+      ...(options.interactive === true ? { interactive: true } : {}),
+      ...(improves === undefined ? {} : { improves }),
     };
-    await writeJsonFile(paths.runJobFile(jobId, record.run.id), job);
-    store.runs.insert(record);
+    await writeJsonFile(paths.runJobFile(job.id, record.run.id), job);
+    store.transaction(() => {
+      store.runs.insert(record);
+      alongside?.(record.run.id);
+    });
     this.publish(record.run);
-    this.enqueue(record.run.id);
-    return record.run;
+    return record;
   }
 
   /** Resolves once the attempt in flight has finished and the run is parked. */
@@ -237,7 +336,56 @@ export class RunController {
       const turn: Turn = { kind: 'retest', runId, target };
       if (!this.isScheduled(turn)) this.queue.push(turn);
     }
+    for (const { runId, split } of store.references.withStatus('running')) {
+      const turn: Turn = { kind: 'reference', runId, split };
+      if (!this.isScheduled(turn)) this.queue.push(turn);
+    }
     this.pump();
+  }
+
+  /**
+   * Queues Spark as a reference on a finished run's dev or locked test tasks, with a dollar cap
+   * disclosed up front. Each split is measured once; asking again only resumes one an error
+   * paused.
+   */
+  async reference(runId: string, split: ReferenceRecord['split'], maxUsd: number): Promise<void> {
+    const record = this.get(runId);
+    const job = await this.options.jobs.forRun(record);
+    const refusal = referenceRefusal(record, job, split);
+    if (refusal !== null) throw new Error(refusal);
+    const { store } = this.options;
+    const turn: Turn = { kind: 'reference', runId, split };
+    const existing = store.references.get(runId, split);
+    if (existing?.status === 'finished') {
+      throw new Error(`Spark was already measured on this run's ${split} tasks.`);
+    }
+    if (existing?.status === 'running' && this.isScheduled(turn)) {
+      throw new Error(`Spark is already being measured on this run's ${split} tasks.`);
+    }
+    const frozen = must(record.freeze, 'The frozen graduate');
+    const started = isoNow(this.clock);
+    store.references.put(
+      existing === null
+        ? {
+            runId,
+            split,
+            harnessVersion: frozen.harnessVersion,
+            model: job.mentor.kind === 'model' ? job.mentor.model : job.mentor.label,
+            configKey: configurationKey(referenceConfig(job)),
+            status: 'running',
+            maxUsd,
+            spentUsd: 0,
+            inputTokens: 0,
+            outputTokens: 0,
+            seed: referenceSeed(record, split),
+            score: null,
+            perType: [],
+            latencyMs: null,
+            startedAt: started,
+          }
+        : { ...existing, status: 'running', maxUsd, error: undefined },
+    );
+    this.schedule(turn);
   }
 
   /** Resolves when no run or re-test is active. */
@@ -299,9 +447,7 @@ export class RunController {
   /** Whether the turn is waiting in the queue or holding the student. */
   private isScheduled(turn: Turn): boolean {
     const holding =
-      turn.kind === 'run'
-        ? this.active.has(turn.runId)
-        : this.retesting.has(retestKey(turn.runId, turn.target));
+      turn.kind === 'run' ? this.active.has(turn.runId) : this.retesting.has(sideKey(turn));
     return holding || this.queue.some((queued) => sameTurn(queued, turn));
   }
 
@@ -324,7 +470,7 @@ export class RunController {
       const turn = this.queue.shift();
       if (turn === undefined) return;
       if (turn.kind === 'run') this.launch(turn.runId);
-      else this.launchRetest(turn.runId, turn.target);
+      else this.launchSide(turn);
     }
   }
 
@@ -338,6 +484,7 @@ export class RunController {
       deps,
       clock: this.clock,
       concurrency: this.concurrency,
+      libraryLock: this.libraryLock,
       emit: (event) => this.dispatch(event),
     };
   }
@@ -354,10 +501,17 @@ export class RunController {
     this.active.set(runId, { session, done });
   }
 
-  /** A re-test that fails even to record its own error stays `testing`, and asking again resumes it. */
-  private launchRetest(runId: string, target: StudentTarget): void {
-    const key = retestKey(runId, target);
-    const session = new RetestSession(this.sessionContext(runId), target);
+  /**
+   * A re-test or a reference. One that fails even to record its own error stays active, and
+   * asking again resumes it.
+   */
+  private launchSide(turn: Exclude<Turn, { kind: 'run' }>): void {
+    const key = sideKey(turn);
+    const context = this.sessionContext(turn.runId);
+    const session =
+      turn.kind === 'retest'
+        ? new RetestSession(context, turn.target)
+        : new ReferenceSession(context, turn.split);
     const done = session
       .run()
       .catch((error: unknown) => this.onError(error))

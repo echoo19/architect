@@ -2,6 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { RunEventSchema } from '@architect/shared';
 import {
   hostAdapterRuntime,
+  type LocalAdapterRuntime,
   type LocalRuntimeSettings,
   type ServerCommand,
 } from '../local-runtime';
@@ -33,6 +34,12 @@ export interface EngineHostOptions {
   localRuntime?: () => LocalRuntimeSettings;
   /** A stand-in llama-server for tests, run instead of finding the real one. */
   llamaServerCommand?: ServerCommand;
+  /**
+   * The process's adapter runtime when the caller made it, for its deps' students as well, so
+   * runs and installation checks share one llama-server. The host makes its own otherwise.
+   * Either way the host stops it when it closes.
+   */
+  adapterRuntime?: LocalAdapterRuntime;
   /** Errors nobody asked about: a broken event listener, a message that isn't a request. */
   onError?(error: unknown): void;
 }
@@ -79,13 +86,16 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
   const store = openEngineStore(paths.database);
   const contracts = new ContractBook(store, clock);
   const jobs = new JobLibrary(store, paths, options.deps, clock, contracts);
-  // The installation checks' own llama-server, apart from the workspace's (decision 041).
+  // The engine's one llama-server, for its installation checks and its runs' adapter students,
+  // apart from the workspace's (decision 041).
   const localRuntime = options.localRuntime ?? (() => ({}));
-  const adapterRuntime = hostAdapterRuntime({
-    runtimeDir: paths.runtimeDir('engine'),
-    settings: localRuntime,
-    ...(options.llamaServerCommand === undefined ? {} : { command: options.llamaServerCommand }),
-  });
+  const adapterRuntime =
+    options.adapterRuntime ??
+    hostAdapterRuntime({
+      runtimeDir: paths.runtimeDir('engine'),
+      settings: localRuntime,
+      ...(options.llamaServerCommand === undefined ? {} : { command: options.llamaServerCommand }),
+    });
   const graduates = new GraduateLibrary({
     store,
     paths,
@@ -95,6 +105,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     adapterRuntime,
   });
   const controller = new RunController({
+    libraryLock: graduates.lock,
     store,
     paths,
     jobs,
@@ -121,6 +132,8 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
   });
   // Graduates from before versions become version 1 before anyone can open them.
   await graduates.upgrade();
+  // Training jobs left unfinished when the app closed are checked again, never sent again.
+  options.deps.training?.worker.resume();
   controller.recover();
 
   return {
@@ -135,6 +148,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
       closed = true;
       ports.clear();
       await Promise.all([controller.close(), adapterRuntime.stop()]);
+      options.deps.training?.worker.close();
       store.close();
     },
   };

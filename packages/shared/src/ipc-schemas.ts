@@ -7,6 +7,7 @@ import type {
   AppInfo,
   AppSettings,
   AppSettingsPatch,
+  ClarificationReply,
   CustomEndpoint,
   DraftTurn,
   FileDiff,
@@ -21,6 +22,7 @@ import type {
   ModelSource,
   OllamaStatus,
   PullProgress,
+  ReferenceOptions,
   RunDetail,
   RunStartOptions,
   SignInResult,
@@ -133,8 +135,17 @@ export const RunStartOptionsSchema = z
     method: MethodSchema,
     seed: z.number().int().optional(),
     lockedTestOn: StudentTargetSchema.optional(),
+    interactive: z.boolean().optional(),
   })
   .strict() satisfies z.ZodType<RunStartOptions>;
+
+export const ClarificationReplySchema = z
+  .object({ text: z.string().trim().min(1).max(4000), changesCriteria: z.boolean() })
+  .strict() satisfies z.ZodType<ClarificationReply>;
+
+export const ReferenceOptionsSchema = z
+  .object({ split: z.enum(['dev', 'test']), maxUsd: z.number().positive().max(1000) })
+  .strict() satisfies z.ZodType<ReferenceOptions>;
 
 export const RunDetailSchema = z.object({
   run: RunSchema,

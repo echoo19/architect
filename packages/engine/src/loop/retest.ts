@@ -1,12 +1,21 @@
 import type { Job, StudentTarget } from '@architect/shared';
 import type { StoredRun } from '../store/records';
-import { resultOf } from './attempts';
 import { errorMessage, isAbort, must } from './errors';
-import { lockedTestAttempts, lockedTestReport, openLockedTest, runLockedTest } from './graduation';
+import {
+  lockedResult,
+  lockedTestAttempts,
+  lockedTestReport,
+  openLockedTest,
+  runLockedTest,
+} from './graduation';
 import { RunState, type SessionContext, type SessionControl } from './run-state';
 import { isoNow } from './time';
 
 /** Why a run's graduate can't be re-tested on `target`, or null when it can. */
+/** Why an improvement's candidate is never measured on the locked test (decision 042). */
+export const NO_LOCKED_TEST =
+  'An improvement is measured on dev, and its candidate never takes the locked test.';
+
 export function retestRefusal(record: StoredRun, job: Job, target: StudentTarget): string | null {
   const { status } = record.run;
   if (status === 'stopped' || status === 'failed') {
@@ -15,6 +24,7 @@ export function retestRefusal(record: StoredRun, job: Job, target: StudentTarget
   if (status !== 'finished' || record.freeze === null) {
     return "This run hasn't finished yet; only a finished run's frozen graduate can be re-tested.";
   }
+  if (record.improves !== undefined) return NO_LOCKED_TEST;
   if (target === record.lockedTestOn) {
     return `This run's locked test already ran on the ${target} student; a re-test runs on the other one.`;
   }
@@ -48,7 +58,7 @@ async function retestGraduate(state: RunState, target: StudentTarget): Promise<v
     type: 'eval.finished',
     split: 'test',
     harnessVersion: frozen.harnessVersion,
-    ...resultOf(attempts, state.job),
+    ...lockedResult(attempts, state.job),
   });
 }
 
