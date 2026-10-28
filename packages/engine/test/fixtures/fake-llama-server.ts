@@ -113,8 +113,25 @@ const server = createServer((request, response) => {
           `data: ${JSON.stringify({ choices: [{ index: 0, delta, finish_reason: finish }] })}\n\n`,
         );
       chunk({ reasoning_content: 'Thinking it over.' });
-      chunk({ content: `lora=${JSON.stringify(body['lora'] ?? null)}` });
-      chunk({}, 'stop');
+      const tools = (body['tools'] as { function: { name: string } }[] | undefined) ?? [];
+      const messages = (body['messages'] as { role: string }[] | undefined) ?? [];
+      // Asked with tools after a user turn, it calls the first tool, as Glimmer reads first.
+      if (tools.length > 0 && messages.at(-1)?.role === 'user') {
+        chunk({
+          tool_calls: [
+            {
+              index: 0,
+              id: 'call_fake_1',
+              type: 'function',
+              function: { name: tools[0]?.function.name, arguments: '{"path":"data/orders.csv"}' },
+            },
+          ],
+        });
+        chunk({}, 'tool_calls');
+      } else {
+        chunk({ content: `lora=${JSON.stringify(body['lora'] ?? null)}` });
+        chunk({}, 'stop');
+      }
       response.write(
         `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: 12, completion_tokens: 7 } })}\n\n`,
       );

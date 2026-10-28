@@ -80,6 +80,7 @@ describe('the public API', () => {
   it('exports what the app and the engine use, and nothing internal', () => {
     expect(Object.keys(api).sort()).toEqual([
       'MentorReplyError',
+      'createLlamaCppStudent',
       'createMentor',
       'createModelMentor',
       'createOllamaStudent',

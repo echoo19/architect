@@ -12,6 +12,8 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createLlamaCppStudent } from '@architect/adapters';
+import { AdapterError, DecodingSchema, type StudentStreamEvent } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { encodeGguf, parseGgufHeader, bufferSource, standInLoraSpec } from '../src/gguf';
 import {
@@ -29,6 +31,7 @@ import {
   type LlamaServerLaunch,
   type ServerCommand,
 } from '../src/local-runtime';
+import { READ_TOOL } from './support/episodes';
 import { tinyBaseSpec } from './support/gguf';
 import { writeOllamaStore } from './support/ollama-store';
 
@@ -624,6 +627,60 @@ describe('serving a graduate with its adapter', () => {
     });
   });
 
+  it('lets a llama.cpp student run a turn through the server it starts, adapter and all', async () => {
+    const { runtime, record, adapters } = setUp();
+    const access = runtime.access({
+      model: 'muse-glimmer:30b-iq2',
+      adapters,
+      scales: { candidate: 1 },
+    });
+    const student = createLlamaCppStudent(access);
+    expect(student.isLocal).toBe(true);
+    const events: StudentStreamEvent[] = [];
+    const turn = student.chat({
+      messages: [
+        { role: 'system', content: 'You are the returns desk.' },
+        { role: 'user', content: 'Was order 1182 late?' },
+      ],
+      tools: [READ_TOOL],
+      decoding: DecodingSchema.parse({}),
+      seed: 7,
+    });
+    for await (const event of turn) events.push(event);
+
+    expect(events).toEqual([
+      {
+        type: 'tool_call',
+        call: { id: 'call_fake_1', name: 'read', arguments: { path: 'data/orders.csv' } },
+      },
+      {
+        type: 'done',
+        usage: expect.objectContaining({
+          inputTokens: 12,
+          outputTokens: 7,
+          reasoningTokens: 1,
+        }) as unknown,
+        finish: 'tool_calls',
+      },
+    ]);
+    const [chat] = recorded(record).filter((entry) => entry.kind === 'chat');
+    expect(chat?.body).toMatchObject({
+      lora: [
+        { id: 0, scale: 1 },
+        { id: 1, scale: 0 },
+      ],
+      chat_template_kwargs: { reasoning_strength: 'low' },
+      temperature: 1,
+      top_p: 0.95,
+      top_k: 64,
+      seed: 7,
+      stream: true,
+    });
+    expect(runtime.status().state).toBe('ready');
+    await student.release();
+    expect(runtime.status().state).toBe('stopped');
+  });
+
   it('checks every adapter against the base before anything starts', async () => {
     const { runtime, record } = setUp();
     const otherBase = parseGgufHeader(bufferSource(encodeGguf(tinyBaseSpec({ blocks: 3 }))));
@@ -637,10 +694,15 @@ describe('serving a graduate with its adapter', () => {
       adapters: [{ key: 'v2', path: wrong }],
       scales: { v2: 1 },
     });
-    await expect(access.acquire()).rejects.toMatchObject({
-      code: 'adapter_unusable',
-      message:
-        "The adapter for v2 doesn't fit muse-glimmer:30b-iq2: The base model has no blk.2.attn_q.weight.",
+    // A student sees an adapter error, which stops an evaluation instead of failing a task.
+    const failure = await access.acquire().catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(AdapterError);
+    expect(failure).toMatchObject({
+      code: 'bad_request',
+      message: expect.stringMatching(
+        /^The adapter for v2 doesn't fit muse-glimmer:30b-iq2: The base model has no blk\.2\.attn_q\.weight\. /,
+      ) as unknown,
+      cause: { code: 'adapter_unusable' },
     });
     await expect(access.check()).resolves.toMatchObject({ ok: false });
     expect(starts(record)).toEqual([]);

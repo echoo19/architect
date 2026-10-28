@@ -18,26 +18,10 @@ import { callId, countToolCalls, parseToolArguments } from '../tool-calls';
 import { makeUsage } from '../usage';
 import { fetchModels, fetchVersion, OLLAMA_SERVICE, unloadModel } from './ollama-api';
 import { OllamaChunkWire, ShowWire, sameModel, toOllamaMessages } from './ollama-wire';
+import { rest } from './rest';
 
 /** Muse Glimmer's renderer and parser first shipped in this release. */
 const MIN_VERSION = '0.32.7';
-
-/** Waits `ms`, or less when the signal aborts first. */
-function rest(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve) => {
-    if (signal?.aborted) {
-      resolve();
-      return;
-    }
-    const done = () => {
-      clearTimeout(timer);
-      signal?.removeEventListener('abort', done);
-      resolve();
-    };
-    const timer = setTimeout(done, ms);
-    signal?.addEventListener('abort', done, { once: true });
-  });
-}
 
 /**
  * A student served by Ollama, over its native `/api/chat`. The native API takes the context

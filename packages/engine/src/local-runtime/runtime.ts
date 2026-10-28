@@ -1,6 +1,8 @@
 import { statSync } from 'node:fs';
 import {
+  AdapterError,
   DEFAULT_STUDENT,
+  type AdapterErrorCode,
   type ConnectionTest,
   type LlamaServerAccess,
   type LoraScale,
@@ -13,7 +15,7 @@ import {
   type ServerCommand,
   type ServerVersion,
 } from './binary';
-import { LocalRuntimeError } from './errors';
+import { LocalRuntimeError, type LocalRuntimeErrorCode } from './errors';
 import { freeGpuFromOllama } from './gpu';
 import { resolveOllamaModel, type OllamaModelFile, type OllamaStoreOptions } from './ollama-models';
 import { LlamaServer, type LlamaServerLaunch, type ServerStatus } from './server';
@@ -59,6 +61,30 @@ export interface LocalAdapterRuntimeOptions {
 }
 
 const ALL_LAYERS = 999;
+
+/**
+ * How a student reports a runtime that can't start: as an adapter error, which stops an
+ * evaluation instead of counting as a wrong answer. Waiting may fix a busy GPU or a failed start,
+ * so those can be tried again; a missing or unusable file can't be.
+ */
+const ADAPTER_CODES: Record<LocalRuntimeErrorCode, AdapterErrorCode> = {
+  binary_not_found: 'not_found',
+  binary_unusable: 'bad_request',
+  model_not_found: 'not_found',
+  model_unusable: 'bad_request',
+  adapter_unusable: 'bad_request',
+  gpu_busy: 'server',
+  out_of_memory: 'server',
+  start_failed: 'server',
+  busy: 'server',
+};
+
+function asAdapterError(error: unknown): unknown {
+  if (!(error instanceof LocalRuntimeError)) return error;
+  return new AdapterError(ADAPTER_CODES[error.code], `${error.message} ${error.hint}`, {
+    cause: error,
+  });
+}
 
 /**
  * Serves a base model from Ollama's store with GGUF LoRA adapters through one llama-server
@@ -162,15 +188,19 @@ export class LocalAdapterRuntime {
       model: request.model,
       baseUrl: 'http://127.0.0.1',
       acquire: async (signal) => {
-        const { launch } = await this.prepare(request);
-        const running = await this.server.ensure(launch, signal);
-        const release = this.server.hold();
-        return {
-          url: running.url,
-          apiKey: running.apiKey,
-          lora: lora.map((entry) => ({ ...entry })),
-          release,
-        };
+        try {
+          const { launch } = await this.prepare(request);
+          const running = await this.server.ensure(launch, signal);
+          const release = this.server.hold();
+          return {
+            url: running.url,
+            apiKey: running.apiKey,
+            lora: lora.map((entry) => ({ ...entry })),
+            release,
+          };
+        } catch (error) {
+          throw asAdapterError(error);
+        }
       },
       check: () => this.check(request),
       describe: () => this.describe(request),
