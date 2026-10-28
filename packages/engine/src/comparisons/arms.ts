@@ -27,12 +27,19 @@ export interface ComparisonModels {
    * attempt runs on one provider's serving of the model; any provider when absent.
    */
   providers?: readonly string[];
+  /**
+   * The student on this computer, by its name in Ollama's store: the build every graduate is
+   * pinned to when it freezes, the one local tests run on, and the base adapters are served on.
+   */
+  localModel: string;
 }
 
 export const DEFAULT_MODELS: ComparisonModels = {
   mentor: 'meta-spark',
   student: 'openrouter-glimmer',
   providers: ['DeepInfra'],
+  // The 2-bit build that fits this computer's 12 GB GPU (decision 034).
+  localModel: 'muse-glimmer:30b-iq2',
 };
 
 /**
@@ -63,6 +70,7 @@ export function comparisonJob(
     },
     student: {
       ...source.student,
+      local: { ...source.student.local, model: models.localModel },
       trainOn: 'hosted',
       hosted: {
         runtime: student.runtime,

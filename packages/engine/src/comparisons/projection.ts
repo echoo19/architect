@@ -224,6 +224,8 @@ export function modelInputs(
 /** What an arm needs, in attempts and dollars, at the most its caps allow. */
 interface Need {
   hosted: number;
+  /** Of the hosted attempts, those the engine runs one at a time: locked tests and repeats. */
+  oneAtATime: number;
   local: number;
   sparkAttempts: number;
   sparkCalls: number;
@@ -238,17 +240,32 @@ function needOf(arm: ArmId, job: Job, config: ComparisonConfig, funded: Readonly
   const trainBatch = job.evaluation.trainBatch;
   // A refinement round at its most: the train batch, then both versions twice for a confirmation.
   const round = trainBatch + 4 * dev;
-  const none: Need = { hosted: 0, local: 0, sparkAttempts: 0, sparkCalls: 0, jobs: 0, sparkCap: 0 };
+  const none: Need = {
+    hosted: 0,
+    oneAtATime: 0,
+    local: 0,
+    sparkAttempts: 0,
+    sparkCalls: 0,
+    jobs: 0,
+    sparkCap: 0,
+  };
   const localTest = config.localOllama ? test : 0;
   switch (arm) {
     case 'bare':
-      return { ...none, hosted: dev + test, local: localTest };
+      return { ...none, hosted: dev + test, oneAtATime: test, local: localTest };
     case 'draft':
-      return { ...none, hosted: 2 * dev + test, sparkCalls: 2, sparkCap: config.sparkCaps.draft };
+      return {
+        ...none,
+        hosted: 2 * dev + test,
+        oneAtATime: test,
+        sparkCalls: 2,
+        sparkCap: config.sparkCaps.draft,
+      };
     case 'targeted':
       return {
         ...none,
         hosted: dev + config.rounds * round + test,
+        oneAtATime: test,
         local: localTest,
         sparkCalls: 2 * config.rounds,
         sparkAttempts: CORRECTIONS_PER_ROUND * config.rounds,
@@ -258,6 +275,7 @@ function needOf(arm: ArmId, job: Job, config: ComparisonConfig, funded: Readonly
       return {
         ...none,
         hosted: dev + config.rounds * round + test,
+        oneAtATime: test,
         sparkCalls: 2 * config.rounds,
         sparkAttempts: CORRECTIONS_PER_ROUND * config.rounds,
         sparkCap: config.sparkCaps.fixed,
@@ -268,7 +286,7 @@ function needOf(arm: ArmId, job: Job, config: ComparisonConfig, funded: Readonly
       const repeated = (['bare', 'draft', 'targeted'] as const).filter((other) =>
         funded.has(other),
       );
-      return { ...none, hosted: test * repeated.length };
+      return { ...none, hosted: test * repeated.length, oneAtATime: test * repeated.length };
     }
     case 'weights-one-shot':
       return {
@@ -357,8 +375,14 @@ export function project(job: Job, config: ComparisonConfig, inputs: ModelInputs)
     const sparkUsd = need.sparkCap > 0 ? Math.min(need.sparkCap, sparkEstimate) : 0;
     const computeUsd = need.jobs * inputs.jobUsd.value;
     const localMinutes = (need.local * inputs.localSeconds.value) / 60;
+    // Training and dev attempts run `concurrency` at once; locked tests, repeats, Spark's tasks
+    // and everything on this computer run one at a time. Spark's time per task is taken to be
+    // the student's, which nothing has measured yet.
+    const together = need.hosted - need.oneAtATime;
     const wallMinutes =
-      (need.hosted * inputs.studentSeconds.value) / Math.max(1, config.concurrency) / 60 +
+      ((together / Math.max(1, config.concurrency) + need.oneAtATime + need.sparkAttempts) *
+        inputs.studentSeconds.value) /
+        60 +
       localMinutes +
       need.jobs * config.jobMinutes;
     total.studentUsd += studentUsd;

@@ -7,7 +7,8 @@
  *     [--arms bare,draft,targeted,reference,repeat,fixed,weights-one-shot,weights-targeted]
  *     [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N]
  *     [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter]
- *     [--providers DeepInfra|any] [--parallel N] [--concurrency N] [--confirm] [--tasks N]
+ *     [--providers DeepInfra|any] [--local-model <name>] [--headroom N] [--parallel N]
+ *     [--concurrency N] [--confirm] [--tasks N]
  *
  * Commands:
  *   plan    prices an attempt on the calibration tasks (the only spending) and projects every arm
@@ -22,6 +23,8 @@
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { ArmIdSchema, type ArmId } from '@architect/shared';
+import { hubTokenResolver } from '../src/hub';
+import { describeLlamaServer } from '../src/local-runtime';
 import {
   ARM_ORDER,
   DEFAULT_CONFIG,
@@ -39,7 +42,7 @@ const COMMANDS = ['plan', 'run', 'probe', 'report'] as const;
 type Command = (typeof COMMANDS)[number];
 
 const USAGE =
-  'Usage: tsx scripts/comparisons.ts <plan|run|probe|report> <jobDir> --out <dir> [--arms a,b] [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N] [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter] [--providers <names>|any] [--parallel N] [--concurrency N] [--confirm] [--tasks N]';
+  'Usage: tsx scripts/comparisons.ts <plan|run|probe|report> <jobDir> --out <dir> [--arms a,b] [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N] [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter] [--providers <names>|any] [--local-model <name>] [--headroom N] [--parallel N] [--concurrency N] [--confirm] [--tasks N]';
 
 class UsageError extends Error {}
 
@@ -106,8 +109,11 @@ function parse(args: readonly string[]): Parsed {
     realCompute: flags.has('--compute'),
     llamaServer: flags.has('--llama-server'),
     concurrency: Math.max(1, Math.floor(number('--concurrency', DEFAULT_CONFIG.concurrency))),
+    // Each arm's student cap is its worst-case projection times this.
+    headroom: Math.max(1, number('--headroom', DEFAULT_CONFIG.headroom)),
   };
   const regression = values.get('--regression');
+  const localModel = values.get('--local-model');
   return {
     command: command as Command,
     request: {
@@ -117,6 +123,7 @@ function parse(args: readonly string[]): Parsed {
       config,
       models: {
         ...DEFAULT_MODELS,
+        ...(localModel === undefined ? {} : { localModel }),
         ...(providers === undefined
           ? {}
           : providers === 'any'
@@ -154,6 +161,20 @@ async function main(): Promise<number> {
     return 2;
   }
   const { request } = parsed;
+  // What the weights arms need is checked before anything spends; reading them calls no model.
+  if (request.config.realCompute && (await hubTokenResolver()()) === undefined) {
+    process.stderr.write(
+      '--compute needs a Hugging Face token with Jobs access: set HF_TOKEN or run `hf auth login`.\n',
+    );
+    return 2;
+  }
+  if (request.config.llamaServer) {
+    const server = await describeLlamaServer();
+    if (!server.ready) {
+      process.stderr.write(`--llama-server needs llama-server: ${server.problem} ${server.hint}\n`);
+      return 2;
+    }
+  }
   const { env, adapterRuntime } = realEnvironment({
     dataDir: resolve(request.out, 'data'),
     trainerDir: TRAINER_DIR,

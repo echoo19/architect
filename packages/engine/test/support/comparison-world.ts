@@ -309,7 +309,7 @@ export function comparisonWorld(options: { clock: Clock; parallel?: number }): C
   const root = mkdtempSync(join(tmpdir(), 'architect-comparisons-'));
   const out = join(root, 'out');
   const modelsDir = join(root, 'ollama-models');
-  const { digest } = storeBase(modelsDir, 'muse-glimmer:30b');
+  const { digest } = storeBase(modelsDir, 'muse-glimmer:30b-iq2');
   const llamaRecord = join(root, 'llama-record.jsonl');
   mkdirSync(join(root, 'runtime'), { recursive: true });
   const adapterRuntime = new LocalAdapterRuntime({

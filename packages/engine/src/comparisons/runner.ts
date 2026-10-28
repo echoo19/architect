@@ -161,8 +161,20 @@ export async function runComparison(
         }),
       );
       const fits = !needsConfirmation(projection);
+      // Only the backends this plan uses are read: a local one only when something runs there.
+      const weights = projection.arms.some(
+        (arm) => arm.funded && (arm.arm === 'weights-one-shot' || arm.arm === 'weights-targeted'),
+      );
+      const backends: BackendId[] = [
+        'hosted',
+        ...(projection.arms.some((arm) => arm.funded && arm.arm === 'reference')
+          ? (['reference'] as const)
+          : []),
+        ...(config.localOllama || weights ? (['local-ollama'] as const) : []),
+        ...(weights ? (['local-llama.cpp'] as const) : []),
+      ];
       const identities: PlanRecord['identities'] = {};
-      for (const backend of ['hosted', 'reference', 'local-ollama', 'local-llama.cpp'] as const) {
+      for (const backend of backends) {
         const found = await env.identify(backend, base);
         if (found !== null) identities[backend] = found;
       }

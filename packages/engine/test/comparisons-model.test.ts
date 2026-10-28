@@ -118,6 +118,10 @@ describe('the projection', () => {
     expect(arms['targeted']?.studentUsd).toBeCloseTo(4.89, 9);
     // Each training job counts at its whole authorization: 90 minutes at $1.80 an hour.
     expect(arms['weights-targeted']?.computeUsd).toBeCloseTo(5.4, 9);
+    // 45 dev attempts six at a time and 60 locked-test attempts one at a time, 20 s apiece.
+    expect(arms['bare']?.wallMinutes).toBeCloseTo(((45 / 6 + 60) * 20) / 60, 9);
+    // Spark's 60 tasks, one at a time, at the student's measured time.
+    expect(arms['reference']?.wallMinutes).toBeCloseTo((60 * 20) / 60, 9);
   });
 
   it("funds arms in decision 037's order and drops the latest that no longer fits", () => {
@@ -181,6 +185,8 @@ describe('the comparison job', () => {
       secretRef: 'openrouter',
     });
     expect(job.mentor).toMatchObject({ model: 'muse-spark-1.3', secretRef: 'meta' });
+    // Graduates pin, and local tests run on, the 2-bit build that fits a 12 GB GPU.
+    expect(job.student.local).toMatchObject({ runtime: 'ollama', model: 'muse-glimmer:30b-iq2' });
     expect(job.evaluation.lockedTestSeeds).toEqual([101, 102]);
   });
 });
