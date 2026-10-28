@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GuardError, type TrainingJobRecord } from '@architect/shared';
+import { GLIMMER_TRAINING_BASE, GuardError, type TrainingJobRecord } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   bufferSource,
@@ -28,7 +28,7 @@ import { orderEpisode } from './support/episodes';
 import { tinyBaseSpec } from './support/gguf';
 
 const TRAINER = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'trainer');
-const BASE_REPO = 'meta-models/Muse-Glimmer-30B';
+const BASE_REPO = GLIMMER_TRAINING_BASE.repo;
 const MINUTE = 60_000;
 
 let dataDir: string;

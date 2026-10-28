@@ -3,7 +3,12 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GuardError, type TrainerOutput, type TrainingJobRecord } from '@architect/shared';
+import {
+  GLIMMER_TRAINING_BASE,
+  GuardError,
+  type TrainerOutput,
+  type TrainingJobRecord,
+} from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { encodeGguf, float32Bytes } from '../src/gguf';
 import {
@@ -25,7 +30,7 @@ import { orderEpisode } from './support/episodes';
 import { FAKE_HUB_TOKEN, startFakeHub, type FakeHub } from './support/fake-hub';
 
 const TRAINER = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'trainer');
-const BASE_REPO = 'meta-models/Muse-Glimmer-30B';
+const BASE_REPO = GLIMMER_TRAINING_BASE.repo;
 
 let dataDir: string;
 let hub: FakeHub;
@@ -273,7 +278,7 @@ describe('Hugging Face Jobs', () => {
     expect(countsAsRealTraining(failed)).toBe(false);
   });
 
-  it('records a failure in the provider’s own words', async () => {
+  it("records a failure in the provider's own words", async () => {
     const { worker } = setUp();
     const record = await worker.submit(request(datasetDir('a')));
     hub.setStage([...hub.jobs.keys()][0] ?? '', 'ERROR', 'CUDA out of memory');

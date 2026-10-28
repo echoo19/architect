@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GuardError, TrainerJobSchema } from '@architect/shared';
+import { GLIMMER_TRAINING_BASE, GuardError, TrainerJobSchema } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   buildTrainerJob,
@@ -16,7 +16,7 @@ import {
 import { orderEpisode } from './support/episodes';
 
 const TRAINER = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'trainer');
-const BASE = { repo: 'meta-models/Muse-Glimmer-30B', revision: 'a'.repeat(40) };
+const BASE = { repo: GLIMMER_TRAINING_BASE.repo, revision: 'a'.repeat(40) };
 
 let dir: string;
 beforeEach(() => {

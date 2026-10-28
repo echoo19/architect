@@ -558,6 +558,16 @@ export const DEFAULT_STUDENT = {
 /** Meta's recommended sampling for Muse Glimmer; greedy decoding makes it repetitive. */
 export const GLIMMER_SAMPLING = { temperature: 1, topP: 0.95, topK: 64 } as const;
 
+/**
+ * What Glimmer's adapters are trained on: Meta's bf16 checkpoint on the Hugging Face Hub. Its
+ * revision is looked up and pinned when a training job is made. The adapters then load onto any
+ * GGUF of the same architecture, such as the builds above.
+ */
+export const GLIMMER_TRAINING_BASE = {
+  repo: 'meta-models/Muse-Glimmer-30B',
+  architecture: 'muse-glimmer',
+} as const;
+
 /** Words in a listed model id that mark it as something other than a chat model. */
 const NOT_CHAT =
   /embed|tts|transcri|whisper|dall-e|image|realtime|audio|moderation|search-preview|sora|veo|imagen|lyria|aqa|robotics|speech|voice|rerank|guard|computer-use|deep-research|-live/i;
