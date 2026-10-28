@@ -6,8 +6,9 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
  * key check, adapter list and streamed chat replies, with no model behind it. Its own flags come
  * first: `--fake-record <file>` appends what it was started with and every chat request as JSON
  * lines, `--fake-mode <mode>` picks a failure, `--fake-load-ms <ms>` how long "loading" takes,
- * `--fake-reply-ms <ms>` how long each reply takes. Each start also records which stand-ins
- * started earlier on the same record are still running: two servers on one GPU would show there.
+ * `--fake-reply-ms <ms>` how long each reply takes, `--fake-list-ms <ms>` how long the adapter
+ * list takes, as on a busy computer. Each start also records which stand-ins started earlier on
+ * the same record are still running: two servers on one GPU would show there.
  */
 
 const argv = process.argv.slice(2);
@@ -19,6 +20,7 @@ const record = value('--fake-record');
 const mode = value('--fake-mode') ?? 'ok';
 const loadMs = Number(value('--fake-load-ms') ?? '150');
 const replyMs = Number(value('--fake-reply-ms') ?? '0');
+const listMs = Number(value('--fake-list-ms') ?? '0');
 const note = (entry: unknown) => {
   if (record) appendFileSync(record, `${JSON.stringify(entry)}\n`);
 };
@@ -124,6 +126,7 @@ const server = createServer((request, response) => {
       return;
     }
     if (path === '/lora-adapters' && request.method === 'GET') {
+      if (listMs > 0) await new Promise((done) => setTimeout(done, listMs));
       const list = mode === 'drop-lora' ? [] : adapters;
       send(
         response,

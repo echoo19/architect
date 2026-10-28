@@ -156,6 +156,13 @@ const samePath = (a: string, b: string) =>
 const RECORD_FILE = 'server.json';
 
 /**
+ * How long the server a record names has to say it is that server. Nothing listening, or another
+ * program, answers at once; a server on a busy computer can take seconds, and one taken for
+ * another program would be left running beside the next.
+ */
+const IDENTIFY_TIMEOUT_MS = 10_000;
+
+/**
  * Whether what answers on a recorded port is the llama-server the record names: it answers to the
  * record's key, or it is still loading, when llama-server answers every request with "Loading
  * model" before it checks any key.
@@ -164,7 +171,7 @@ async function isRecordedServer(saved: z.infer<typeof RecordSchema>): Promise<bo
   try {
     const response = await fetch(`http://127.0.0.1:${saved.port}/lora-adapters`, {
       headers: { authorization: `Bearer ${saved.apiKey}` },
-      signal: AbortSignal.timeout(2000),
+      signal: AbortSignal.timeout(IDENTIFY_TIMEOUT_MS),
     });
     if (response.ok) return true;
     return response.status === 503 && (await response.text()).includes('Loading model');

@@ -63,6 +63,8 @@ interface Recorded {
   pid?: number;
   argv?: string[];
   llamaEnv?: string[];
+  /** The stand-ins started earlier on the same record that were still running at this start. */
+  alongside?: number[];
   body?: Record<string, unknown>;
 }
 
@@ -478,20 +480,23 @@ describe('the llama-server process', () => {
     expect(running.url).toBe(`http://127.0.0.1:${ports[1]}`);
   });
 
-  it('stops a server a crashed app left running before starting its own', async () => {
+  it('stops a server a crashed app left running before starting its own, however slow it is to answer', async () => {
     const record = join(dir, 'record.jsonl');
-    const crashed = new LlamaServer({ runtimeDir: join(dir, 'runtime') });
-    await crashed.ensure(launchFor(record));
+    // The crashed app's manager, stopped after the test only so a failure leaves nothing running.
+    const crashed = server();
+    // A busy computer: the server takes longer to say who it is than one quick look allows.
+    await crashed.ensure(launchFor(record, {}, '--fake-list-ms', '2500'));
     const orphan = starts(record)[0]?.pid ?? 0;
     expect(alive(orphan)).toBe(true);
 
     // The app restarts: a new manager over the same folder, which knows nothing of the process.
     const restarted = server();
     await restarted.ensure(launchFor(record));
-    await until(() => !alive(orphan));
-    expect(starts(record)).toHaveLength(2);
+    // It waited until the old server had gone before it started its own.
+    expect(alive(orphan)).toBe(false);
+    expect(starts(record).map((start) => start.alongside)).toEqual([[], []]);
     expect(restarted.status().state).toBe('ready');
-  });
+  }, 60_000);
 
   it('notices when the server dies on its own, and starts it again on the next request', async () => {
     const record = join(dir, 'record.jsonl');
