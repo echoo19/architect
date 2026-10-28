@@ -122,16 +122,18 @@ const WRITE_CHOICES = WRITE_MODES.map((value) => ({ value, label: WRITE_MODE_LAB
 
 /**
  * Step three: what the package asks to do, and what this computer grants. Nothing it asks for is
- * granted until it is chosen here.
+ * granted until it is chosen here, and a folder left unchosen has nothing to grant.
  */
 export function PermissionsStep({
   manifest,
+  bindings,
   grants,
   writes,
   onGrant,
   onWrites,
 }: {
   manifest: PackageManifest;
+  bindings: Record<string, string>;
   grants: Record<string, ResourceGrant>;
   writes: PermissionMode;
   onGrant: (name: string, grant: ResourceGrant) => void;
@@ -141,7 +143,7 @@ export function PermissionsStep({
   return (
     <>
       <Heading as="h1" size="display-sm">
-        Allow what it asks for
+        Choose what it may do
       </Heading>
       <div className="flex flex-col">
         {manifest.resources.map((resource) => (
@@ -150,12 +152,16 @@ export function PermissionsStep({
             label={`${resource.name}/`}
             meta={resource.access === 'read' ? 'Asks to read it' : 'Asks to read and change it'}
           >
-            <Segmented
-              aria-label={`Access to ${resource.name}/`}
-              options={levelsUpTo(resource.access)}
-              value={grants[resource.name] ?? 'none'}
-              onValueChange={(grant) => onGrant(resource.name, grant)}
-            />
+            {bindings[resource.name] === undefined && !resource.bundled ? (
+              <SettingsValue>No folder chosen</SettingsValue>
+            ) : (
+              <Segmented
+                aria-label={`Access to ${resource.name}/`}
+                options={levelsUpTo(resource.access)}
+                value={grants[resource.name] ?? 'none'}
+                onValueChange={(grant) => onGrant(resource.name, grant)}
+              />
+            )}
           </SettingsRow>
         ))}
         <SettingsRow label={WRITE_SETTING} meta={WRITE_MODE_MEANINGS[writes]}>

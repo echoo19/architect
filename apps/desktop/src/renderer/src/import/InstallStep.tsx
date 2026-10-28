@@ -6,7 +6,7 @@ import { INSTALL_CHECKS_TITLE, statusMark } from '../install/labels';
 
 function titleOf(status: InstallStatus, name: string): string {
   if (status === 'ready') return `${name} is ready`;
-  if (status === 'blocked') return `${name} can't run on this computer`;
+  if (status === 'blocked') return `${name} can't run`;
   return `${name} needs attention`;
 }
 

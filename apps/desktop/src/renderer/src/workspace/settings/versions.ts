@@ -1,4 +1,5 @@
 import type { EvaluationStatus, GraduateVersion } from '@architect/shared';
+import { formatPercent } from '../../lib/format';
 
 /** How a version's own locked test came out, in the words every screen uses. */
 export const EVALUATION_LABELS: Record<EvaluationStatus, string> = {
@@ -41,4 +42,21 @@ export function versionOrigin(version: GraduateVersion): string | null {
 /** The score from the version's own report, when a locked test measured it. */
 export function versionScore(version: GraduateVersion): { pass: number; total: number } | null {
   return version.manifest.evidence.summary?.score ?? null;
+}
+
+/**
+ * What to know before promoting a version its own locked test didn't vouch for: that nothing
+ * measured it, that it fell short of the job's bar, or that it was measured on a hosted copy.
+ * Null for a version that met its bar here.
+ */
+export function promoteCaution(version: GraduateVersion): string | null {
+  const { summary } = version.manifest.evidence;
+  const number = version.version;
+  if (version.evaluation === 'unevaluated') return `No locked test has measured version ${number}.`;
+  if (version.evaluation !== 'experimental') return null;
+  if (!summary) return `Version ${number} is experimental.`;
+  if (!summary.passRate.met) {
+    return `Version ${number} fell short of its bar: ${formatPercent(summary.score)} passed, ${Math.round(summary.passRate.target * 100)}% needed.`;
+  }
+  return `Version ${number} was measured on a hosted copy, not on a computer like this one.`;
 }

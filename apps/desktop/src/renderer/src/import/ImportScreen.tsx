@@ -16,11 +16,11 @@ import { InstallStep } from './InstallStep';
 import { FoldersStep, PermissionsStep } from './SetupSteps';
 import { chooseImport, useImportSession } from './session';
 
-type Stage = 'Check' | 'Folders' | 'Permissions' | 'Install';
+type Stage = 'Package' | 'Folders' | 'Permissions' | 'Install';
 
 /** A new agent is set up in four steps; a new version of one already here keeps its setup. */
-const NEW_AGENT: readonly Stage[] = ['Check', 'Folders', 'Permissions', 'Install'];
-const NEW_VERSION: readonly Stage[] = ['Check', 'Install'];
+const NEW_AGENT: readonly Stage[] = ['Package', 'Folders', 'Permissions', 'Install'];
+const NEW_VERSION: readonly Stage[] = ['Package', 'Install'];
 
 interface PreviewState {
   preview?: ImportPreview;
@@ -69,7 +69,7 @@ function Footer({ children }: { children: ReactNode }) {
 function ImportFlow({ path }: { path: string | null }) {
   const { preview, error, loading, reload } = usePreview(path);
   const showSettings = useAgentSettingsUi((state) => state.show);
-  const [stage, setStage] = useState<Stage>('Check');
+  const [stage, setStage] = useState<Stage>('Package');
   const [bindings, setBindings] = useState<Record<string, string>>({});
   const [grants, setGrants] = useState<Record<string, ResourceGrant>>({});
   const [writes, setWrites] = useState<PermissionMode>('ask');
@@ -81,7 +81,7 @@ function ImportFlow({ path }: { path: string | null }) {
   const ok = preview?.ok ? preview : null;
   const steps = ok && ok.place.kind !== 'new' ? NEW_VERSION : NEW_AGENT;
   const next = (from: Stage): Stage => steps[steps.indexOf(from) + 1] ?? 'Install';
-  const back = (from: Stage): Stage => steps[steps.indexOf(from) - 1] ?? 'Check';
+  const back = (from: Stage): Stage => steps[steps.indexOf(from) - 1] ?? 'Package';
   const close = () => navigate(paths.home());
   const name = ok ? ok.manifest.identity.name : 'Import agent';
 
@@ -180,7 +180,7 @@ function ImportFlow({ path }: { path: string | null }) {
         </Button>
       </Footer>
     );
-  } else if (stage === 'Check') {
+  } else if (stage === 'Package') {
     body = <CheckStep preview={preview} file={baseName(path)} onRecheck={reload} />;
     footer = (
       <Footer>
@@ -200,7 +200,7 @@ function ImportFlow({ path }: { path: string | null }) {
             Install version {preview.place.version}
           </Button>
         ) : (
-          <Button variant="primary" size="lg" onClick={() => setStage(next('Check'))}>
+          <Button variant="primary" size="lg" onClick={() => setStage(next('Package'))}>
             Continue
           </Button>
         )}
@@ -230,6 +230,7 @@ function ImportFlow({ path }: { path: string | null }) {
     body = (
       <PermissionsStep
         manifest={preview.manifest}
+        bindings={bindings}
         grants={grants}
         writes={writes}
         onGrant={(resource, grant) => setGrants((current) => ({ ...current, [resource]: grant }))}

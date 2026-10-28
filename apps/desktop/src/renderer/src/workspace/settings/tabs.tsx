@@ -261,11 +261,16 @@ function FolderRows({ agent, active }: { agent: GraduateSummary; active: Graduat
 
   return active.manifest.resources.map((resource) => {
     const folder = installation.data?.bindings[resource.name];
+    const unbound = resource.bundled
+      ? "The package's copy"
+      : resource.required
+        ? 'Not chosen'
+        : 'Optional';
     return (
       <SettingsRow
         key={resource.name}
         label={`${resource.name}/`}
-        meta={folder === undefined ? 'Not chosen' : shortPath(folder)}
+        meta={folder === undefined ? unbound : shortPath(folder)}
         metaFont={folder ? 'code' : 'text'}
         error={errorOf(installation)}
       >

@@ -19,7 +19,16 @@ import {
   Switch,
   toast,
 } from '@architect/ui';
-import { Download, FileText, FolderTree, Package, Puzzle } from 'lucide-react';
+import {
+  CircleAlert,
+  Download,
+  FileText,
+  FolderTree,
+  Info,
+  LockKeyhole,
+  Package,
+  Puzzle,
+} from 'lucide-react';
 import { architect } from '../../api/client';
 import { graduatesApi } from '../../api/graduates';
 import { toError } from '../../api/query';
@@ -67,10 +76,23 @@ function partFile(review: ExportReview, part: ExportPartName): string {
 }
 
 const PARTS: Record<ExportPartName, { label: string; icon: typeof FolderTree; noun: string }> = {
-  harness: { label: 'Harness', icon: FolderTree, noun: 'harness' },
-  adapter: { label: 'Adapter', icon: Puzzle, noun: 'adapter' },
+  harness: { label: 'Setup', icon: FolderTree, noun: 'setup' },
+  adapter: { label: 'Trained weights', icon: Puzzle, noun: 'trained weights' },
   report: { label: 'Evaluation report', icon: FileText, noun: 'evaluation report' },
 };
+
+/** What stays here, named the way the rest of the app names it. */
+const KEPT_LABELS: Record<string, string> = {
+  bindings: 'Your folder choices and model settings',
+  credentials: 'API keys',
+  training_traces: 'Attempts and notes from training',
+};
+
+/** "Files in data/" for a folder that can be shared; the engine's own words for the rest. */
+function itemLabel(item: ExportItem): string {
+  if (item.id.startsWith('resource:')) return `Files in ${item.id.slice('resource:'.length)}/`;
+  return KEPT_LABELS[item.id] ?? item.label;
+}
 
 /** Asks for a folder to write into; null when the user closes the dialog. */
 async function chooseFolder(title: string): Promise<string | null> {
@@ -80,8 +102,8 @@ async function chooseFolder(title: string): Promise<string | null> {
 
 /**
  * Export: the package (`name.architect.zip`) after a review of what goes in and what stays here,
- * with the scan's findings and what no scan can promise; then the harness, the adapter and the
- * report, each on its own.
+ * with the scan's findings and what no scan can promise; then the setup, the trained weights and
+ * the report, each on its own.
  */
 export function ExportTab({ agent }: { agent: GraduateSummary }) {
   const [include, setInclude] = useState<string[]>([]);
@@ -107,6 +129,8 @@ export function ExportTab({ agent }: { agent: GraduateSummary }) {
   const archive = `${slugify(review.name)}-v${review.version}.architect.zip`;
   const findings = review.findings.length > 0;
   const blocked = findings && !acknowledged;
+  const weights = review.parts.some((part) => part.part === 'adapter');
+  const flaggedLines = review.findings.length;
 
   const share = (item: ExportItem, on: boolean) => {
     setAcknowledged(false);
@@ -154,7 +178,7 @@ export function ExportTab({ agent }: { agent: GraduateSummary }) {
             <SettingsRow
               key={item.id}
               icon={<StatusMark state={item.included ? 'ok' : 'off'} />}
-              label={item.label}
+              label={itemLabel(item)}
               meta={item.files.join(', ')}
               metaFont="code"
             >
@@ -163,7 +187,7 @@ export function ExportTab({ agent }: { agent: GraduateSummary }) {
                 <Switch
                   checked={item.included}
                   onCheckedChange={(on) => share(item, on)}
-                  aria-label={`Share ${item.label.replace(/^Your /, 'your ')}`}
+                  aria-label={`Share the ${itemLabel(item).toLowerCase()}`}
                 />
               </div>
             </SettingsRow>
@@ -172,7 +196,11 @@ export function ExportTab({ agent }: { agent: GraduateSummary }) {
               key={item.id}
               icon={<StatusMark state="ok" />}
               label={item.label}
-              meta="Harness, model reference, contract, report and checks"
+              meta={
+                weights
+                  ? 'Setup, trained weights, job and test results'
+                  : 'Setup, model name, job and test results'
+              }
             >
               <SettingsValue>{formatBytes(item.bytes)}</SettingsValue>
             </SettingsRow>
@@ -215,6 +243,14 @@ export function ExportTab({ agent }: { agent: GraduateSummary }) {
             label="Nothing that looks like a key or a private path"
           />
         )}
+        <SettingsRow
+          icon={<Info size={16} strokeWidth={1.8} aria-hidden className="text-fg-faint" />}
+          label={
+            weights
+              ? 'Trained weights may retain information from their training data'
+              : 'Its setup is written from your tasks and may quote them'
+          }
+        />
       </SettingsSection>
 
       <SettingsSection title="Stays on this computer">
@@ -222,13 +258,13 @@ export function ExportTab({ agent }: { agent: GraduateSummary }) {
           <SettingsRow
             key={item.id}
             density="compact"
-            icon={<StatusMark state="off" />}
-            label={item.label}
+            icon={<LockKeyhole size={16} strokeWidth={1.7} aria-hidden className="text-fg-faint" />}
+            label={itemLabel(item)}
           />
         ))}
       </SettingsSection>
 
-      <SettingsSection title="On its own">
+      <SettingsSection title="Export one part">
         {review.parts.map((part) => {
           const { label, icon: Icon } = PARTS[part.part];
           const flagged = review.findings.some((finding) => part.files.includes(finding.path));
@@ -260,10 +296,13 @@ export function ExportTab({ agent }: { agent: GraduateSummary }) {
       </SettingsSection>
 
       {/* Pinned over the tab's bottom padding, so nothing scrolls by beneath it. */}
-      <div className="sticky -bottom-6 -mx-7 -mb-6 mt-6 flex flex-wrap items-center justify-between gap-x-5 gap-y-3 border-t border-line-card bg-modal px-7 py-4">
-        <p className="m-0 min-w-0 flex-[1_1_220px] text-sm text-fg-muted text-pretty">
-          Trained weights may retain information from their training data.
-        </p>
+      <div className="sticky -bottom-6 -mx-7 -mb-6 mt-6 flex flex-wrap items-center justify-end gap-x-5 gap-y-3 border-t border-line-card bg-modal px-7 py-4">
+        {blocked && (
+          <p className="m-0 mr-auto flex min-w-0 items-center gap-2 text-sm text-fg-muted">
+            <CircleAlert size={15} strokeWidth={1.8} aria-hidden className="shrink-0" />
+            {flaggedLines} flagged {flaggedLines === 1 ? 'line needs' : 'lines need'} your OK
+          </p>
+        )}
         <Button
           variant="primary"
           size="sm"

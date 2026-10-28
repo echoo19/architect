@@ -12,7 +12,7 @@ import {
   Skeleton,
   VersionTag,
 } from '@architect/ui';
-import { ArrowUpRight, Layers, LockKeyhole, RotateCcw, Undo2 } from 'lucide-react';
+import { ArrowUpRight, CircleAlert, Layers, LockKeyhole, RotateCcw, Undo2 } from 'lucide-react';
 import { graduatesApi, refreshAgent, useVersions } from '../../api/graduates';
 import { formatPercent } from '../../lib/format';
 import { attempt } from '../../lib/notify';
@@ -21,6 +21,7 @@ import { WRITE_MODE_LABELS } from '../labels';
 import {
   EVALUATION_LABELS,
   moveFor,
+  promoteCaution,
   versionDate,
   versionOrigin,
   versionScore,
@@ -132,7 +133,7 @@ function VersionRow({
             <span className="flex items-baseline gap-2 tabular-nums">
               <span className="font-mono">{formatPercent(score)}</span>
               <span className="text-sm text-fg-muted">
-                {score.pass}/{score.total}
+                {score.pass} of {score.total} passed
               </span>
             </span>
           )}
@@ -187,7 +188,9 @@ function MoveDialog({
   const [moving, setMoving] = useState(false);
   const promote = kind === 'promote';
   const number = version.version;
-  const carries = version.manifest.model.adapter === undefined ? 'setup' : 'setup and adapter';
+  const carries =
+    version.manifest.model.adapter === undefined ? 'setup' : 'setup and trained weights';
+  const caution = promote ? promoteCaution(version) : null;
   // Promotion never lets a version from another computer write without asking (decision 039).
   const backToAsk = promote && version.origin !== undefined && settings.data?.writeMode === 'allow';
 
@@ -216,6 +219,11 @@ function MoveDialog({
         title={promote ? `Promote version ${number}?` : `Roll back to version ${number}?`}
       >
         <ul className="m-0 flex list-none flex-col gap-3 px-7 pt-4">
+          {caution && (
+            <Change icon={<CircleAlert size={15} strokeWidth={1.8} aria-hidden />}>
+              {caution}
+            </Change>
+          )}
           <Change icon={<Layers size={15} strokeWidth={1.8} aria-hidden />}>
             New replies use version {number}&apos;s {carries}
             {promote ? '.' : ' again.'}

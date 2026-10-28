@@ -38,7 +38,6 @@ export function CheckStep({
   const fit = checks.find((check) => check.kind === 'compatibility');
   const served = checks.find((check) => check.kind === 'model_available');
   const failedMark: MarkState = preview.status === 'blocked' ? 'blocked' : 'attention';
-  const host = new URL(model.baseUrl).host;
 
   return (
     <>
@@ -79,7 +78,9 @@ export function CheckStep({
         <SettingsRow
           icon={<StatusMark state={fit?.status === 'passed' ? 'ok' : failedMark} />}
           label="This computer"
-          meta={fit?.status === 'passed' ? `${runtimeName(model.runtime)} at ${host}` : fit?.detail}
+          meta={
+            fit?.status === 'passed' ? `Runs it with ${runtimeName(model.runtime)}` : fit?.detail
+          }
         >
           <SettingsValue>
             {osName(machine.os)} {machine.arch} · {formatBytes(machine.memoryBytes)}

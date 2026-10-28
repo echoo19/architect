@@ -17,7 +17,7 @@ export const AUTHOR_RESULT_TITLE = "Evaluated on the author's computer";
 /** What each install check looks at, named for people. */
 export const CHECK_LABELS: Record<string, string> = {
   compatibility: 'This computer',
-  harness_valid: 'Harness',
+  harness_valid: 'Setup',
   tools_load: 'Tools',
   resources_bound: 'Folders',
   model_available: 'Base model',
@@ -25,9 +25,9 @@ export const CHECK_LABELS: Record<string, string> = {
 };
 
 export const STATUS_LABELS: Record<InstallStatus, string> = {
-  ready: 'Ready',
+  ready: 'Ready to run',
   needs_attention: 'Needs attention',
-  blocked: 'Blocked',
+  blocked: "Can't run",
   unchecked: 'Not checked yet',
 };
 
@@ -63,20 +63,34 @@ export function runtimeName(runtime: string): string {
 
 /**
  * What a check found, said the way the rest of the app says it: a passed fit check names this
- * computer and its runtime, a passed model check the model and where it runs. Anything else is
- * the check's own words, which say what to do.
+ * computer and its runtime, a passed model check the model and where it runs, and a skipped one
+ * why it wasn't tried. A failed check keeps its own words, which say what to do.
  */
 export function checkDetail(check: InstallCheck, installation: Installation): string {
+  if (check.status === 'skipped') {
+    // The engine skips a model check when a check before it failed, or when it wasn't asked to
+    // load the model this time.
+    if (check.detail.startsWith('Skipped:')) return 'Not tried, since a check above failed';
+    return check.detail === 'Not asked for.' ? 'Not tried yet' : check.detail;
+  }
   if (check.status !== 'passed') return check.detail;
   const { model, machine } = installation;
-  if (check.kind === 'compatibility' && machine) {
-    return `${osName(machine.os)} ${machine.arch} · ${formatBytes(machine.memoryBytes)} · ${runtimeName(model.runtime)} at ${new URL(model.baseUrl).host}`;
+  switch (check.kind) {
+    case 'compatibility':
+      return machine
+        ? `${osName(machine.os)} ${machine.arch} · ${formatBytes(machine.memoryBytes)} · ${runtimeName(model.runtime)}`
+        : check.detail;
+    case 'harness_valid':
+      return 'The same setup that was tested';
+    case 'resources_bound':
+      return 'Every folder is chosen and has its files';
+    case 'model_available': {
+      const same = check.detail.includes('same build') ? ', the build that was tested' : '';
+      return `${model.model} on ${runtimeName(model.runtime)}${same}`;
+    }
+    default:
+      return check.detail;
   }
-  if (check.kind === 'model_available') {
-    const same = check.detail.includes('same build') ? ', the build that was tested' : '';
-    return `${model.model} on ${runtimeName(model.runtime)}${same}`;
-  }
-  return check.detail;
 }
 
 /** What granting access lets the agent do with a folder, in a few words. */
