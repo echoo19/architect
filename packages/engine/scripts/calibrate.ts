@@ -24,6 +24,7 @@ import { join, resolve } from 'node:path';
 import { createStudent } from '@architect/adapters';
 import { blankHarness, readGraduate } from '@architect/harness';
 import {
+  AdapterError,
   JobSchema,
   STUDENT_PRESETS,
   TaskSchema,
@@ -81,6 +82,10 @@ function createCalibrationStudent(job: Job, options: Options): StudentAdapter {
 }
 
 const SPLITS = ['calibration', 'train', 'dev'] as const;
+
+/** A reply that failed in passing: the tasks left are tried again this long after, this often. */
+const RETRY_WAIT_MS = 30_000;
+const RETRIES = 3;
 type CalibrationSplit = (typeof SPLITS)[number];
 
 interface Options {
@@ -126,41 +131,58 @@ async function main(): Promise<void> {
   write(
     `${job.name}: ${selected.length} ${options.split} tasks on ${student.label} (${student.model})\n`,
   );
+  const items: EvaluationItem[] = [];
+  // Failures in a row that usually pass on their own; an attempt that finishes starts it over.
+  let failures = 0;
   try {
-    const result = await evaluateTasks(
-      selected,
-      {
-        job,
-        jobDir: options.jobDir,
-        harness,
-        student,
-        sandbox,
-        checker,
-      },
-      {
-        seed: options.seed,
-        concurrency: options.concurrency,
-        onAttempt: ({ task, result: attempt }) => {
-          if (options.traces !== undefined) {
-            const file = join(options.traces, `${task.id}.json`);
-            void writeFile(
-              file,
-              `${JSON.stringify({ task, ...attempt }, null, 2)}
-`,
-            );
-          }
-          const mark = attempt.check.pass ? 'pass' : 'FAIL';
-          write(
-            `${mark}  ${task.id}  ${seconds(attempt.trace.latencyMs)}  ${attempt.check.reason}\n`,
-          );
-        },
-      },
-    );
-    write(`\n${summary(result.items, result.perType)}`);
+    for (;;) {
+      const left = selected.filter((task) => !items.some((item) => item.task.id === task.id));
+      if (left.length === 0) break;
+      const before = items.length;
+      try {
+        await evaluateTasks(
+          left,
+          { job, jobDir: options.jobDir, harness, student, sandbox, checker },
+          {
+            seed: options.seed,
+            concurrency: options.concurrency,
+            onAttempt: (item) => {
+              items.push(item);
+              const { task, result: attempt } = item;
+              if (options.traces !== undefined) {
+                const file = join(options.traces, `${task.id}.json`);
+                void writeFile(file, `${JSON.stringify({ task, ...attempt }, null, 2)}\n`);
+              }
+              const mark = attempt.check.pass ? 'pass' : 'FAIL';
+              write(
+                `${mark}  ${task.id}  ${seconds(attempt.trace.latencyMs)}  ${attempt.check.reason}\n`,
+              );
+            },
+          },
+        );
+      } catch (error) {
+        failures = items.length > before ? 1 : failures + 1;
+        const passing = error instanceof AdapterError && error.retryable && error.status !== 504;
+        if (!passing || failures > RETRIES) throw error;
+        write(`${error.message} Trying the tasks left again in ${RETRY_WAIT_MS / 1000} s.\n`);
+        await new Promise((done) => setTimeout(done, RETRY_WAIT_MS));
+      }
+    }
+    write(`\n${summary(items, perTypeOf(items, job))}`);
   } finally {
     await sandbox.dispose();
     await student.release();
   }
+}
+
+/** Pass counts per task type, in the job's order. */
+function perTypeOf(items: readonly EvaluationItem[], job: Job): TypeScore[] {
+  return job.taskTypes.flatMap(({ id }) => {
+    const ofType = items.filter((item) => item.task.type === id);
+    if (ofType.length === 0) return [];
+    const pass = ofType.filter((item) => item.result.check.pass).length;
+    return [{ type: id, pass, total: ofType.length }];
+  });
 }
 
 function summary(items: readonly EvaluationItem[], perType: readonly TypeScore[]): string {
