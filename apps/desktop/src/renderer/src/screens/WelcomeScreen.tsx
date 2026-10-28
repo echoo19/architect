@@ -12,6 +12,7 @@ import { mentorName, shortModelName, studentLabel } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { DoneStep } from '../onboarding/DoneStep';
+import { HostedStep } from '../onboarding/HostedStep';
 import { mentorFromPreset } from '../onboarding/mentor';
 import { MentorStep } from '../onboarding/MentorStep';
 import { ModelStep } from '../onboarding/ModelStep';
@@ -138,11 +139,15 @@ function Setup({
             <Button onClick={() => setStep("Agent's model")}>Back</Button>
             {spacer}
             {!keySaved && (
-              <Button variant="ghost" onClick={() => setStep('Done')}>
+              <Button variant="ghost" onClick={() => setStep('Faster training')}>
                 Skip for now
               </Button>
             )}
-            <Button variant="primary" disabled={!keySaved} onClick={() => setStep('Done')}>
+            <Button
+              variant="primary"
+              disabled={!keySaved}
+              onClick={() => setStep('Faster training')}
+            >
               Continue
             </Button>
           </>
@@ -159,12 +164,34 @@ function Setup({
     );
   }
 
+  if (step === 'Faster training') {
+    return (
+      <SetupShell
+        step={step}
+        footer={
+          <>
+            <Button onClick={() => setStep('Mentor')}>Back</Button>
+            {spacer}
+            <Button variant="ghost" onClick={() => setStep('Done')}>
+              Skip
+            </Button>
+            <Button variant="primary" onClick={() => setStep('Done')}>
+              Continue
+            </Button>
+          </>
+        }
+      >
+        <HostedStep student={shortModelName(studentLabel(student))} />
+      </SetupShell>
+    );
+  }
+
   return (
     <SetupShell
       step={step}
       footer={
         <>
-          <Button onClick={() => setStep('Mentor')}>Back</Button>
+          <Button onClick={() => setStep('Faster training')}>Back</Button>
           {spacer}
           <Button variant="primary" loading={finishing} onClick={() => void finish()}>
             Get started

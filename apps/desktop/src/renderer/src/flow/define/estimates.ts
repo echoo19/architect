@@ -114,6 +114,15 @@ export function practiceUsd(pricing: TokenPricing, estimate: TimeEstimate): numb
   return tasks * costUsd(pricing, STUDENT_TOKENS_PER_TASK);
 }
 
+/** Training time a typical job uses up: its four-hour time limit. */
+const TYPICAL_TRAINING_SECONDS = 4 * 3600;
+
+/** What practice on a hosted copy usually costs for one agent, before there is a job to price. */
+export function typicalPracticeUsd(pricing: TokenPricing): number {
+  const tasks = TYPICAL_TRAINING_SECONDS / SECONDS_PER_TASK.hosted;
+  return tasks * costUsd(pricing, STUDENT_TOKENS_PER_TASK);
+}
+
 /** The three simpler versions: a final test each, and self-correction's own training. */
 export function comparisonSeconds(job: Job, estimate: TimeEstimate): number {
   return 3 * testSeconds(job) + estimate.trainingSeconds.most;

@@ -11,6 +11,7 @@ import {
   mentorPresetOf,
   mentorUsdFor,
   practiceUsd,
+  typicalPracticeUsd,
   roundsLine,
   runSeconds,
 } from '../../../src/renderer/src/flow/define/estimates';
@@ -106,6 +107,13 @@ describe('what the time cap allows', () => {
     expect(roundsLine(tight, estimateTime(tight, 'local'))).toBe(
       'At most 1 of 12 rounds fits in 6 hours of training',
     );
+  });
+});
+
+describe('typicalPracticeUsd', () => {
+  it('prices four hours of hosted practice before there is a job', () => {
+    const pricing = { inputPerM: 0.3, cachedInputPerM: 0.04, outputPerM: 1.2 };
+    expect(typicalPracticeUsd(pricing)).toBeCloseTo(960 * 0.00318, 6);
   });
 });
 
