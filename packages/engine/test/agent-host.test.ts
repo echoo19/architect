@@ -10,6 +10,7 @@ import type {
 import { afterEach, describe, expect, it } from 'vitest';
 import { createAgentHost, type AgentHost } from '../src/agent-host/host';
 import { workspaceStore } from '../src/agent-host/store';
+import { saveProblem } from '../src/files/agent-files';
 import { DataPaths } from '../src/loop/paths';
 import { openEngineStore, type EngineStore } from '../src/store/engine-store';
 import { startFakeOllama, type FakeOllama, type ScriptedTurn } from './agent-host/fake-ollama';
@@ -428,6 +429,18 @@ describe('writes', () => {
     expect(reply.steps).toMatchObject([{ name: 'append', meta: '1 row added', status: 'done' }]);
     expect(await invoicesFile(world)).toContain(NEW_INVOICE);
     expect((await world.host.listChats(world.graduate.id))[0]?.waiting).toBe(false);
+  });
+
+  it('says why a save failed in plain words when the cause is a common one', () => {
+    const coded = (code: string) => Object.assign(new Error(`${code}: raw`), { code });
+    expect(saveProblem(coded('EBUSY'), 'data/invoices.csv')).toBe(
+      'invoices.csv is open in another program.',
+    );
+    expect(saveProblem(coded('EPERM'), 'data/invoices.csv')).toBe(
+      'invoices.csv is read-only, or another program has it open.',
+    );
+    expect(saveProblem(coded('ENOSPC'), 'output/notes.md')).toBe('the disk is full.');
+    expect(saveProblem(coded('EIO'), 'data/invoices.csv')).toBe('EIO: raw');
   });
 
   it('shows a change as failed when the user stops trying to save it, and tells the agent', async () => {
