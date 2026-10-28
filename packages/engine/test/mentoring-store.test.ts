@@ -11,6 +11,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { openDatabase } from '../src/store/database';
 import { createEngineStore, openEngineStore, type EngineStore } from '../src/store/engine-store';
+import { stoppedFromRecords } from '../src/loop/teach';
 import { MENTORING_MIGRATION } from '../src/store/mentoring-migration';
 import { MIGRATIONS } from '../src/store/migrations';
 import type { StoredAttempt, StoredRun } from '../src/store/records';
@@ -351,5 +352,40 @@ describe('the mentoring records', () => {
     expect(store.references.withStatus('running').map((item) => item.split)).toEqual(['test']);
     expect(store.references.list('run_1')).toHaveLength(2);
     expect(store.references.get('run_1', 'dev')?.status).toBe('finished');
+  });
+});
+
+describe('when teaching stops', () => {
+  /** A round that taught the category `cat_dates` of refunds and ended as `disposition`. */
+  function taughtRound(round: number, disposition: Experiment['disposition'], gain = 0) {
+    store.interventions.put({ ...intervention(round), id: `itv_${round}` });
+    store.experiments.put({
+      ...experiment(round, disposition),
+      devBefore: { pass: 30, total: 45 },
+      devAfter: { pass: 30 + gain, total: 45 },
+    });
+  }
+
+  it('stops a category after two rounds without a dev gain, and a type after four', () => {
+    taughtRound(1, 'reverted');
+    expect(stoppedFromRecords(store, 'run_1').categories.size).toBe(0);
+    taughtRound(2, 'rejected');
+    expect(stoppedFromRecords(store, 'run_1')).toEqual({
+      categories: new Set(['cat_dates']),
+      types: new Set(),
+    });
+    taughtRound(3, 'invalid');
+    taughtRound(4, 'reverted');
+    expect(stoppedFromRecords(store, 'run_1').types).toEqual(new Set(['refund']));
+  });
+
+  it('starts the count again after a kept gain, and a stopped round never counts', () => {
+    taughtRound(1, 'reverted');
+    taughtRound(2, 'kept', 3);
+    taughtRound(3, 'stopped');
+    taughtRound(4, 'reverted');
+    expect(stoppedFromRecords(store, 'run_1').categories.size).toBe(0);
+    taughtRound(5, 'reverted');
+    expect(stoppedFromRecords(store, 'run_1').categories).toEqual(new Set(['cat_dates']));
   });
 });
