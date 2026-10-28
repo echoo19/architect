@@ -17,7 +17,7 @@ import { EpisodeKindSchema, VerifiedEpisodeSchema } from './training';
 /*
  * Failure-specific mentoring (decision 042): what the mentor finds in failed train attempts, the
  * one intervention it picks from the bounded menu, the lessons a verified correction becomes, and
- * the experiment every round ends in. The engine stores these records and every number the
+ * the experiment every round that tries a change ends in. The engine stores these records and every number the
  * evidence screens show is computed from them.
  */
 
@@ -166,7 +166,11 @@ export const CheckpointRecordSchema = z.object({
   turn: z.number().int().positive(),
   /** Recorded tool calls replayed to rebuild the state. */
   replayedCalls: z.number().int().nonnegative(),
-  /** `earlier`: the suspected turn's checkpoint failed and one before it was used. */
+  /**
+   * `earlier`: the try from the suspected turn didn't verify (its replay didn't hold, or the
+   * continuation failed the checker or the audit) and one turn before it was used; `full_task`:
+   * the task was demonstrated from the start.
+   */
   fallback: z.enum(['none', 'earlier', 'full_task']),
 });
 export type CheckpointRecord = z.infer<typeof CheckpointRecordSchema>;
@@ -309,7 +313,7 @@ export const ExperimentBudgetSchema = z.object({
 });
 export type ExperimentBudget = z.infer<typeof ExperimentBudgetSchema>;
 
-/** The record every round ends in, whatever happened to it. */
+/** The record every round that tries a change ends in, whatever happened to it. */
 export const ExperimentSchema = z.object({
   id: z.string().regex(/^exp_[a-z0-9]+$/),
   runId: z.string().min(1),
