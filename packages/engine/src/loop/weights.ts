@@ -18,6 +18,7 @@ import { must } from './errors';
 import { interventionOfRound } from './intervene';
 import type { RunState } from './run-state';
 import { deriveSeed, seededRandom, shuffle } from './seeds';
+import { waitOnClock } from './time';
 
 /** How long the run waits between checks of a training job. */
 export const TRAINING_POLL_MS = 30_000;
@@ -215,12 +216,8 @@ function adapterOf(state: RunState, record: TrainingJobRecord): TrainedAdapter |
 }
 
 /** Waits on the run's clock, or until the session is aborted. */
-async function pause(state: RunState, ms: number): Promise<void> {
-  const signal = AbortSignal.any([state.signal, state.ctx.clock.timeout(ms)]);
-  if (signal.aborted) return;
-  await new Promise<void>((resolve) => {
-    signal.addEventListener('abort', () => resolve(), { once: true });
-  });
+function pause(state: RunState, ms: number): Promise<void> {
+  return waitOnClock(state.ctx.clock, ms, state.signal);
 }
 
 /**

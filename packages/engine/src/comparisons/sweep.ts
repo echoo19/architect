@@ -10,6 +10,7 @@ import {
 import { studentPrice } from '../loop/attempts';
 import type { Clock, LoopDeps, MeterReading } from '../loop/deps';
 import { connectStudent, studentEndpoint } from '../loop/setup';
+import { waitOnClock } from '../loop/time';
 import type { ComparisonFiles, SweepAttempt } from './records';
 
 /** A reply that failed in passing is tried again this long after, at most this often in a row. */
@@ -34,9 +35,7 @@ export interface SweepOptions {
 
 /** Waits on the clock the comparison runs on. */
 function wait(clock: Clock, ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    clock.timeout(ms).addEventListener('abort', () => resolve(), { once: true });
-  });
+  return waitOnClock(clock, ms);
 }
 
 /**

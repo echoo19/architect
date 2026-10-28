@@ -21,6 +21,7 @@ import { isTerminal } from '../loop/plan';
 import { isHeld } from '../loop/protocol';
 import { deriveSeed, sampleTrainBatch } from '../loop/seeds';
 import { connectStudent } from '../loop/setup';
+import { waitOnClock } from '../loop/time';
 import type { StoredRun } from '../store/records';
 import { armStart, comparisonJob, stageFolder, type ComparisonModels } from './arms';
 import { Credit } from './credit';
@@ -122,9 +123,7 @@ const REFERENCES: readonly { arm: ArmId; on: ArmId }[] = [
 type Decide = (decision: Omit<ArmDecision, 'at'>) => void;
 
 function waitOn(clock: Clock, ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    clock.timeout(ms).addEventListener('abort', () => resolve(), { once: true });
-  });
+  return waitOnClock(clock, ms);
 }
 
 /** Whether a process with this id is running. */

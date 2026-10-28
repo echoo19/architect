@@ -2,6 +2,10 @@
 
 Things that bit us, and how to avoid them. Newest first.
 
+## A wait on `AbortSignal.timeout` doesn't keep a command running
+
+Node's `AbortSignal.timeout` doesn't hold the process open, and the clock's `timeout` is built on it. In the app something else always keeps the process alive, so waits there were fine. In a command, a wait was sometimes the only work left: the comparisons runner, retrying after OpenRouter dropped a connection, said it would try again in 30 s and then exited with code 0. Waits that stand for pending work (retries, a training job checked again later) go through `waitOnClock`, which holds the process until the wait ends. Deadlines (the GPU window, the time budget) stay on the bare timeout, so they never keep a finished command alive.
+
 ## llama-server reports its build inside parentheses now
 
 Build 10472 prints `version: 0.1.1-dev (build 10472, commit 60eeeb608)`. Older builds, and the test stand-in, print `version: 10472 (60eeeb6)`. Reading the first number after `version:` took the real build for build 0, so Settings would have called a current llama.cpp too old and every agent with trained weights would have been blocked. The parser now reads `(build N, commit C)` first. A stand-in proves only the format it prints; check a parser against the real program's output.

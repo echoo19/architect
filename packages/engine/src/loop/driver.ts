@@ -11,6 +11,7 @@ import { isHeld } from './protocol';
 import { freeze, lockedTest } from './graduation';
 import { planNextStep, type ActionStep, type PlanInput } from './plan';
 import { RunState, type SessionContext, type SessionControl } from './run-state';
+import { waitOnClock } from './time';
 import {
   abandonRound,
   attemptTrain,
@@ -153,12 +154,8 @@ export class RunDriver {
   }
 
   /** Waits `ms` on the run's clock, or until the session is aborted. */
-  private async wait(ms: number): Promise<void> {
-    const signal = AbortSignal.any([this.state.signal, this.state.ctx.clock.timeout(ms)]);
-    if (signal.aborted) return;
-    await new Promise<void>((resolve) => {
-      signal.addEventListener('abort', () => resolve(), { once: true });
-    });
+  private wait(ms: number): Promise<void> {
+    return waitOnClock(this.state.ctx.clock, ms, this.state.signal);
   }
 
   private activeStatus(): Run['status'] {
