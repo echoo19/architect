@@ -81,6 +81,14 @@ export class DataPaths {
     return join(this.runDir(jobId, runId), 'lineage.jsonl');
   }
 
+  /**
+   * Every event the run sent, one JSON line each in the order sent, with the time it was sent:
+   * what a screen saw while the run was live, kept so the run can be shown again later.
+   */
+  eventsFile(jobId: string, runId: string): string {
+    return join(this.runDir(jobId, runId), 'events.jsonl');
+  }
+
   /** An agent's folder: its versions, and the files of a format 1 graduate made before them. */
   graduateDir(graduateId: string): string {
     return join(this.root, 'graduates', safe(graduateId));

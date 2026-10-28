@@ -128,6 +128,34 @@ describe('the engine host', () => {
     expect(types.indexOf('eval.finished')).toBeLessThan(types.indexOf('graduate.ready'));
   });
 
+  it('keeps every event a run sent, in the order sent, beside its records', async () => {
+    const { client, events } = await connect();
+    const job = await client.jobs.createSample();
+    const graduated = next(client, (event) => event.type === 'graduate.ready');
+    const run = await client.runs.start(job.id, { method: 'bare', seed: 1 });
+    await graduated;
+
+    const file = new DataPaths(world.dataDir).eventsFile(job.id, run.id);
+    const kept = (await readFile(file, 'utf8'))
+      .trim()
+      .split('\n')
+      .map((line) => RunEventSchema.parse(JSON.parse(line)));
+    const seen = events.filter((event) => event.runId === run.id);
+    expect(seen.length).toBeGreaterThan(20);
+    // Events still on their way to the client when the run graduated are kept too.
+    expect(kept.length).toBeGreaterThanOrEqual(seen.length);
+    expect(kept.slice(0, seen.length)).toEqual(seen);
+    expect(kept.every((event) => event.runId === run.id)).toBe(true);
+    // A locked-test attempt's request text is never streamed, so it is never kept either.
+    const test = kept.filter(
+      (event) => event.type === 'attempt.finished' && event.attempt.split === 'test',
+    );
+    expect(test.length).toBeGreaterThan(0);
+    expect(
+      test.every((event) => event.type === 'attempt.finished' && event.prompt === undefined),
+    ).toBe(true);
+  });
+
   it('rejects malformed requests with a typed error instead of acting on them', async () => {
     const { client, port } = await connect();
     const invalid = await raw(port, {

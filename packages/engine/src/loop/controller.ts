@@ -1,3 +1,5 @@
+import { appendFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import {
   emptyTotals,
   GuardError,
@@ -109,6 +111,8 @@ function sameTurn(a: Turn, b: Turn): boolean {
  */
 export class RunController {
   private readonly listeners = new Set<(event: RunEvent) => void>();
+  /** Each run's job, so its events go to its folder without a lookup per event. */
+  private readonly jobOfRun = new Map<string, string>();
   private readonly queue: Turn[] = [];
   private readonly active = new Map<string, ActiveRun>();
   /** Re-tests holding the student, by run and target. */
@@ -677,12 +681,38 @@ export class RunController {
   }
 
   private dispatch(event: RunEvent): void {
+    this.keep(event);
     for (const listener of this.listeners) {
       try {
         listener(event);
       } catch (error) {
         this.onError(error);
       }
+    }
+  }
+
+  /**
+   * Appends the event to its run's `events.jsonl`, so what the screens saw live can be shown
+   * again from the records. A failure to write it is reported and never stops the run.
+   */
+  private keep(event: RunEvent): void {
+    try {
+      let jobId = this.jobOfRun.get(event.runId);
+      if (jobId === undefined) {
+        const record = this.options.store.runs.get(event.runId);
+        if (record === null) return;
+        jobId = record.run.jobId;
+        this.jobOfRun.set(event.runId, jobId);
+      }
+      const file = this.options.paths.eventsFile(jobId, event.runId);
+      mkdirSync(dirname(file), { recursive: true });
+      appendFileSync(
+        file,
+        `${JSON.stringify(event)}
+`,
+      );
+    } catch (error) {
+      this.onError(error);
     }
   }
 }
