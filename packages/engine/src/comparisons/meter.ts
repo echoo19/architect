@@ -64,7 +64,7 @@ export const SERVER_PROCESSES: Record<string, readonly string[]> = {
 
 export interface SystemMeterOptions {
   /** Unloads a backend's model before its cold start is timed, by backend. */
-  unload: Partial<Record<string, () => Promise<void>>>;
+  unload: Partial<Record<string, (signal: AbortSignal) => Promise<void>>>;
   intervalMs?: number;
   platform?: NodeJS.Platform;
   run?: RunProgram;
@@ -124,7 +124,7 @@ export function systemMeter(options: SystemMeterOptions): RuntimeMeter {
       let coldStartMs: number | null = null;
       const unload = options.unload[backend];
       if (unload !== undefined) {
-        await unload();
+        await unload(signal);
         const started = now();
         await firstReply(student, signal);
         coldStartMs = Math.round(now() - started);

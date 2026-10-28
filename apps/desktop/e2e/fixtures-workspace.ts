@@ -234,8 +234,13 @@ const DANA: Extract<StepView, { kind: 'code' }> = {
   output: '=> {"technician_id":"T-04","name":"Dana R.","tier":"lead","zone":"B"}',
 };
 
-/** The reply to "Price the two jobs Dana finished today", as it streams in. */
-export function pricingReply(stage: 'started' | 'working' | 'writing' | 'done'): WorkspaceMessage {
+/**
+ * The reply to "Price the two jobs Dana finished today", as it streams in. It may first wait its
+ * turn for the GPU while Architect checks an agent.
+ */
+export function pricingReply(
+  stage: 'waiting' | 'started' | 'working' | 'writing' | 'done',
+): WorkspaceMessage {
   const steps = [
     step('p1', 'read', 'data/jobs.csv', 'rows 1,501-1,505 of 1,505', 'done', TODAYS_JOBS),
     step('p2', 'run', 'data/technicians.csv', DANA.output.slice(0, 59) + '…', 'done', DANA),
@@ -250,6 +255,19 @@ export function pricingReply(stage: 'started' | 'working' | 'writing' | 'done'):
     "Here's how each total breaks down:";
   const base = { createdAt: AT, status: 'streaming' as const };
   switch (stage) {
+    case 'waiting':
+      return message('msg_reply', CHATS.fresh.id, 'agent', {
+        ...base,
+        steps: [
+          {
+            id: 'step-gpu',
+            kind: 'wait',
+            name: 'gpu',
+            detail: 'Waiting for the GPU: Architect is checking an agent on this computer',
+            status: 'running',
+          },
+        ],
+      });
     case 'started':
       return message('msg_reply', CHATS.fresh.id, 'agent', {
         ...base,

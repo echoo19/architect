@@ -19,7 +19,12 @@ import { resourcesFor, type AdapterFile, type VersionFacts } from '../../src/gra
 import { ContractBook } from '../../src/graduates/contracts';
 import { GraduateLibrary } from '../../src/graduates/library';
 import { registerVersion, writeVersionFolder } from '../../src/graduates/versions';
-import { LocalAdapterRuntime, type ServerCommand } from '../../src/local-runtime';
+import {
+  GpuLease,
+  LocalAdapterRuntime,
+  type GpuLeaseOptions,
+  type ServerCommand,
+} from '../../src/local-runtime';
 import { DataPaths } from '../../src/loop/paths';
 import { openEngineStore, type EngineStore } from '../../src/store/engine-store';
 import type { StoredVersion } from '../../src/store/records';
@@ -44,6 +49,8 @@ export interface Computer {
   modelsDir: string;
   /** The engine's adapter runtime, with the stand-in llama-server when the computer has one. */
   adapterRuntime: LocalAdapterRuntime;
+  /** The workspace's share of the GPU lease here, which its adapter runtimes hold. */
+  workspaceGpu: GpuLease;
   /** A new adapter runtime for an agent host here: its own folder, the same server and models. */
   workspaceRuntime(): LocalAdapterRuntime;
   /** Closes the database, as quitting the app would. */
@@ -76,6 +83,7 @@ export function testAdapterRuntime(
   runtimeDir: string,
   modelsDir: string,
   llamaServer?: ServerCommand,
+  gpu?: GpuLease,
 ): LocalAdapterRuntime {
   return new LocalAdapterRuntime({
     runtimeDir,
@@ -83,7 +91,17 @@ export function testAdapterRuntime(
     env: {},
     freeGpu: async () => undefined,
     ...(llamaServer === undefined ? {} : { command: llamaServer }),
+    ...(gpu === undefined ? {} : { gpu }),
   });
+}
+
+/** A process's share of the GPU lease on a test's data folder, quick to look and to give up. */
+export function testGpu(
+  dataDir: string,
+  owner = 'workspace',
+  options: Partial<GpuLeaseOptions> = {},
+): GpuLease {
+  return new GpuLease({ dataDir, owner, pollMs: 25, heartbeatMs: 500, ...options });
 }
 
 /** Architect started on an existing data folder. */
@@ -104,6 +122,7 @@ export function attach(
     modelsDir,
     options.llamaServer,
   );
+  const workspaceGpu = testGpu(dataDir);
   const library = new GraduateLibrary({
     store,
     paths,
@@ -145,15 +164,23 @@ export function attach(
     machine,
     modelsDir,
     adapterRuntime,
+    workspaceGpu,
     workspaceRuntime: () =>
-      testAdapterRuntime(paths.runtimeDir('workspace'), modelsDir, options.llamaServer),
+      testAdapterRuntime(
+        paths.runtimeDir('workspace'),
+        modelsDir,
+        options.llamaServer,
+        workspaceGpu,
+      ),
     close: () => store.close(),
     restart: () => {
       store.close();
+      void workspaceGpu.close();
       return attach(dataDir, computer.machine, clock, options);
     },
     remove: async () => {
       await adapterRuntime.stop();
+      await workspaceGpu.close();
       try {
         store.close();
       } catch {

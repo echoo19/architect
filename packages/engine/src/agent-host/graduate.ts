@@ -3,19 +3,22 @@ import { skillFiles } from '@architect/harness';
 import {
   GuardError,
   PackageError,
-  type DataFile,
   type Grants,
   type Harness,
-  type Job,
-  type JobContract,
-  type ModelBinding,
   type StudentAdapter,
 } from '@architect/shared';
+import type { AgentJob } from '../agent/loop';
 import { openAgentFiles, type AgentFiles, type OutputFolder } from '../files/agent-files';
 import { grantedFiles } from '../graduates/bindings';
 import { readPackageHarness } from '../graduates/harness';
 import type { ActiveVersion } from '../graduates/open';
-import type { AdapterServing, ServeRequest } from '../local-runtime';
+import {
+  replyPurpose,
+  type AdapterServing,
+  type GpuLease,
+  type GpuUse,
+  type ServeRequest,
+} from '../local-runtime';
 
 /** An open graduate: everything its chats share, all from one version. */
 export interface GraduateSession {
@@ -26,9 +29,15 @@ export interface GraduateSession {
   /** The version and installation it was opened with (`activeStamp`). */
   readonly stamp: string;
   readonly harness: Harness;
-  /** The job as the agent loop reads it: the contract's files as this computer granted them. */
-  readonly job: Job;
+  /** What the agent loop reads of the job: the contract's business date and its output folder. */
+  readonly job: AgentJob;
   readonly student: StudentAdapter;
+  /**
+   * What its replies hold of the GPU lease (decision 046), each for the whole reply: llama-server
+   * for a version with an adapter, Ollama for one on Ollama. Null for a model on another runtime
+   * here, whose memory Architect can't free for anyone else.
+   */
+  readonly gpu: GpuUse | null;
   /**
    * The agent's folder, live: `data/` and `output/` are the folders this computer's installation
    * bound, and an approved change goes straight to its file.
@@ -45,57 +54,17 @@ export interface GraduateSession {
 }
 
 /**
- * The job the agent loop takes, made from the contract. The loop reads only the data files, the
- * output folder and the business date; its training settings are required by the type and left
- * inert: a graduate never trains, and the agent host can't load mentor code.
+ * What the agent loop reads of the job, from the version's contract: the date its records are as
+ * of, and the `output/` folder this computer gives it, described as the contract describes it.
  */
-function runtimeJob(
-  contract: JobContract,
-  files: DataFile[],
-  output: OutputFolder | undefined,
-  grants: Grants,
-  model: ModelBinding,
-  contextLength: number,
-  label: string,
-  createdAt: string,
-): Job {
+function agentJob(active: ActiveVersion, output: OutputFolder | undefined): AgentJob {
+  const { businessDate } = active.version.manifest.contract;
   return {
-    format: 1,
-    id: contract.jobId,
-    name: contract.name,
-    description: contract.description,
-    ...(contract.summary === undefined ? {} : { summary: contract.summary }),
-    does: contract.capabilities.does,
-    doesNot: contract.capabilities.doesNot,
-    createdAt,
-    ...(contract.businessDate === undefined ? {} : { businessDate: contract.businessDate }),
-    taskTypes: contract.capabilities.taskTypes,
-    data: {
-      files,
-      ...(output === undefined
+    ...(businessDate === undefined ? {} : { businessDate }),
+    data:
+      output === undefined
         ? {}
-        : { output: output.description === undefined ? {} : { description: output.description } }),
-    },
-    permissions: { writes: grants.writes, unseenFiles: 'never' },
-    checker: { kind: 'builtin' },
-    requirements: {
-      passRate: contract.acceptance.passRate,
-      ...(contract.acceptance.p95LatencyMs === undefined
-        ? {}
-        : { p95LatencyMs: contract.acceptance.p95LatencyMs }),
-    },
-    budget: { maxRounds: 1, maxMentorUsd: 0, maxWallMinutes: 1 },
-    mentor: { kind: 'coding_agent', agent: 'claude_code', label: 'None: a graduate runs alone' },
-    student: { label, local: { ...model, contextLength }, trainOn: 'local' },
-    startingHarness: { kind: 'blank' },
-    splits: { seed: 0, calibration: 0, train: 1, dev: 1, test: 1 },
-    evaluation: {
-      trainBatch: 1,
-      minDevGain: 1,
-      maxTypeRegression: 0,
-      devRepeats: 1,
-      patience: 1,
-    },
+        : { output: output.description === undefined ? {} : { description: output.description } },
   };
 }
 
@@ -120,6 +89,11 @@ export interface SessionOptions {
   cpuThreads?: number;
   /** Serves a version that carries an adapter. Without it, such a version isn't opened. */
   adapters?: AdapterServing;
+  /**
+   * The process's share of the GPU lease (decision 046): a student on Ollama here holds it for
+   * each request, as llama.cpp's does through `adapters`. Without it, nothing is coordinated.
+   */
+  gpu?: GpuLease;
 }
 
 /**
@@ -127,7 +101,8 @@ export interface SessionOptions {
  * installation names, as it always has. One with an adapter runs on llama.cpp, on the base from
  * Ollama's store with the adapter applied to every request (decision 041), and only once the base
  * is the build the adapter was trained on and the adapter is the file installed: a version with
- * an adapter never runs without it, nor with another's.
+ * an adapter never runs without it, nor with another's. Either way its requests go to the GPU as
+ * a reply's, ahead of checks and runs.
  */
 async function studentFor(
   active: ActiveVersion,
@@ -135,11 +110,19 @@ async function studentFor(
   options: SessionOptions,
 ): Promise<StudentAdapter> {
   const { model } = active;
+  const purpose = replyPurpose(active.name);
   if (active.adapter === null) {
-    return createStudent(
-      { runtime: model.runtime, baseUrl: model.baseUrl, model: model.model, contextLength },
+    const endpoint = {
+      runtime: model.runtime,
+      baseUrl: model.baseUrl,
+      model: model.model,
+      contextLength,
+    };
+    const student = createStudent(
+      endpoint,
       options.cpuThreads === undefined ? {} : { cpuThreads: options.cpuThreads },
     );
+    return options.gpu ? options.gpu.ollama.student(endpoint, student, purpose) : student;
   }
   const version = `Version ${active.version.version} of ${active.name}`;
   if (model.runtime !== 'ollama') {
@@ -161,7 +144,13 @@ async function studentFor(
   if (wrong) {
     throw new GuardError('permission', `${version} wasn't opened. ${wrong.message} ${wrong.hint}`);
   }
-  return createLlamaCppStudent(options.adapters.access(active.adapter));
+  return createLlamaCppStudent(options.adapters.access(active.adapter, purpose));
+}
+
+/** What a version's replies hold of the GPU: the runtime that loads its model here, if Architect's. */
+function gpuUseOf(active: ActiveVersion): GpuUse | null {
+  if (active.adapter !== null) return 'llama-server';
+  return active.model.runtime === 'ollama' ? 'ollama' : null;
 }
 
 /**
@@ -214,24 +203,15 @@ export async function openGraduateSession(
   const dataFolder = active.bindings['data'];
   const files = dataFolder === undefined ? [] : grantedFiles(manifest.contract, active.grants);
   const output = outputFolder(active);
-  const job = runtimeJob(
-    manifest.contract,
-    files,
-    output,
-    active.grants,
-    model,
-    contextLength,
-    manifest.model.label,
-    manifest.identity.createdAt,
-  );
   return {
     id: active.graduateId,
     name: active.name,
     version: active.version.version,
     stamp: active.stamp,
     harness,
-    job,
+    job: agentJob(active, output),
     student,
+    gpu: gpuUseOf(active),
     files: await openAgentFiles({
       dataDir: dataFolder ?? active.dir,
       files,

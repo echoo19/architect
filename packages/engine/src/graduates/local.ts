@@ -1,5 +1,7 @@
 import { createStudent } from '@architect/adapters';
 import {
+  CHECK_PURPOSE,
+  GpuLease,
   hostAdapterRuntime,
   type AdapterServing,
   type LocalRuntimeSettings,
@@ -21,8 +23,8 @@ export interface LocalLibraryOptions {
   sandboxEntryPath?: string;
   /**
    * This process's own llama-server, for versions that carry an adapter: the name of its folder
-   * under `local-runtime/`, the settings it follows (read at every start), and a stand-in
-   * program for tests.
+   * under `local-runtime/`, which also names the process to others waiting for the GPU, the
+   * settings it follows (read at every start), and a stand-in program for tests.
    */
   runtime: { owner: string; settings: () => LocalRuntimeSettings; command?: ServerCommand };
   clock?: Clock;
@@ -34,7 +36,12 @@ export interface LocalLibrary {
   library: GraduateLibrary;
   /** The llama-server this process checks and serves versions with an adapter on. */
   adapterRuntime: AdapterServing;
-  /** Stops the llama-server, if it started, and closes the database. */
+  /**
+   * This process's share of the GPU lease (decision 046), which its checks, its llama-server and
+   * an agent host it runs all hold.
+   */
+  gpu: GpuLease;
+  /** Stops the llama-server, if it started, leaves the GPU lease and closes the database. */
   close(): Promise<void>;
 }
 
@@ -42,15 +49,18 @@ export interface LocalLibrary {
  * The graduate library for a process other than the engine host, such as the command line: the
  * app's own database, versions, installations and checks, with a tool sandbox, a local student
  * and a llama-server of its own for the installation checks, and nothing else. It converts and
- * clears nothing when it opens; the engine host does that when the app starts.
+ * clears nothing when it opens; the engine host does that when the app starts. Its model checks
+ * take the GPU in turns with the app's processes, as checks: after a reply someone is reading.
  */
 export function openLocalLibrary(options: LocalLibraryOptions): LocalLibrary {
   const paths = new DataPaths(options.dataDir);
   const store = openEngineStore(paths.database);
   const clock = options.clock ?? systemClock;
+  const gpu = new GpuLease({ dataDir: options.dataDir, owner: options.runtime.owner });
   const adapterRuntime = hostAdapterRuntime({
     runtimeDir: paths.runtimeDir(options.runtime.owner),
     settings: options.runtime.settings,
+    gpu,
     ...(options.runtime.command === undefined ? {} : { command: options.runtime.command }),
   });
   const library = new GraduateLibrary({
@@ -68,21 +78,27 @@ export function openLocalLibrary(options: LocalLibraryOptions): LocalLibrary {
         toolLoadProblem: (sandbox, tool) => toolLoadProblem(sandbox as Sandbox, tool),
       },
       adapters: {
-        createStudent: (endpoint, adapterOptions) => createStudent(endpoint, adapterOptions),
+        createStudent: (endpoint, adapterOptions) =>
+          gpu.ollama.student(endpoint, createStudent(endpoint, adapterOptions), CHECK_PURPOSE),
       },
     },
-    adapterRuntime,
+    adapterRuntime: adapterRuntime.serving(CHECK_PURPOSE),
   });
   return {
     paths,
     store,
     library,
     adapterRuntime,
+    gpu,
     close: async () => {
       try {
         await adapterRuntime.stop();
       } finally {
-        store.close();
+        try {
+          await gpu.close();
+        } finally {
+          store.close();
+        }
       }
     },
   };

@@ -2,6 +2,7 @@
  * The local adapter runtime: llama-server on this computer, serving a base model from Ollama's
  * store with GGUF LoRA adapters for graduates that carry one (decision 031).
  */
+export { appDataDir } from './app-data';
 export {
   checkServerVersion,
   describeLlamaServer,
@@ -16,8 +17,24 @@ export {
   type ServerCommand,
   type ServerVersion,
 } from './binary';
-export { LocalRuntimeError, type LocalRuntimeErrorCode } from './errors';
+export { asAdapterError, LocalRuntimeError, type LocalRuntimeErrorCode } from './errors';
 export { findFreePort, freeGpuFromOllama, type FreeGpuOptions } from './gpu';
+export {
+  GpuLease,
+  type GpuHold,
+  type GpuLeaseOptions,
+  type GpuRelease,
+  type GpuWatch,
+} from './lease';
+export {
+  CHECK_PURPOSE,
+  replyPurpose,
+  RUN_PURPOSE,
+  type GpuPriority,
+  type GpuPurpose,
+  type GpuUse,
+} from './lease-rules';
+export { OllamaUse } from './ollama-use';
 export {
   ollamaModelsDirs,
   parseOllamaName,
@@ -46,6 +63,7 @@ export {
 export {
   LlamaServer,
   serverArgs,
+  stopServerLeftIn,
   type LlamaServerLaunch,
   type LlamaServerOptions,
   type RunningServer,

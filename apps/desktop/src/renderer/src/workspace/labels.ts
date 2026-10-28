@@ -57,6 +57,8 @@ const ALL_FOLDERS = 'your folders';
  */
 export function stepWords(step: AgentStep): { action: string; target: string } {
   const working = step.status === 'running';
+  // A reply waiting its turn for the GPU says so, and for whom, in one line.
+  if (step.kind === 'wait') return { action: step.detail, target: '' };
   if (step.kind === 'skill') {
     return { action: working ? 'Loading the skill' : 'Loaded the skill', target: step.detail };
   }

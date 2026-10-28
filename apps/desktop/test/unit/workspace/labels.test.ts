@@ -84,6 +84,21 @@ describe('workspace labels', () => {
     );
   });
 
+  it('says a reply waits for the GPU, and for whom, in one line', () => {
+    const waiting = {
+      id: 'step-gpu',
+      kind: 'wait',
+      name: 'gpu',
+      detail: 'Waiting for the GPU: Architect is checking an agent on this computer',
+      status: 'running',
+    } as const;
+    expect(stepWords(waiting)).toEqual({
+      action: 'Waiting for the GPU: Architect is checking an agent on this computer',
+      target: '',
+    });
+    expect(currentStep([step('a', 'done'), waiting])).toBe(waiting);
+  });
+
   it('keeps the words of the table tools that stored chats name', () => {
     const old = (name: string) =>
       stepWords({ id: name, kind: 'tool', name, detail: 'jobs.csv', status: 'done' }).action;

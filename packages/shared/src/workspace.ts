@@ -20,7 +20,11 @@ export type StepView = z.infer<typeof StepViewSchema>;
 
 export const AgentStepSchema = z.object({
   id: z.string(),
-  kind: z.enum(['skill', 'tool']),
+  /**
+   * `wait`: the reply waits its turn for the GPU while another of Architect's processes has it;
+   * `detail` says for whom, and the step goes once the reply has the GPU.
+   */
+  kind: z.enum(['skill', 'tool', 'wait']),
   /** Tool or skill name, e.g. `read`. */
   name: z.string(),
   /** What it acted on, e.g. `data/invoices.csv`. */

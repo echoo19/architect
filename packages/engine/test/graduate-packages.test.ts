@@ -266,6 +266,7 @@ describe('A07: export and import keep the graduate, and the new computer binds i
     const strangerHost = createAgentHost({
       store: workspaceStore(stranger.store, stranger.dataDir),
       adapters: stranger.workspaceRuntime(),
+      gpu: stranger.workspaceGpu,
     });
     cleanups.push(() => strangerHost.close());
     await expect(strangerHost.openGraduate('grd_desk')).rejects.toThrow('needs a folder for data/');
@@ -346,6 +347,7 @@ describe('A07: export and import keep the graduate, and the new computer binds i
     const host = createAgentHost({
       store: workspaceStore(recipient.store, recipient.dataDir),
       adapters: recipient.workspaceRuntime(),
+      gpu: recipient.workspaceGpu,
     });
     cleanups.push(() => host.close());
     await host.openGraduate('grd_desk');

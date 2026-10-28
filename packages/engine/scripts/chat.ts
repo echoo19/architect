@@ -4,7 +4,7 @@ import { processGuard } from '../src/agent-host/guard/process-guard';
 import { join, resolve } from 'node:path';
 import type { WorkspaceEvent, WorkspaceMessage } from '@architect/shared';
 import { createAgentHost, workspaceStore } from '../src/agent-host';
-import { hostAdapterRuntime } from '../src/local-runtime';
+import { GpuLease, hostAdapterRuntime } from '../src/local-runtime';
 import { DataPaths } from '../src/loop/paths';
 import { openEngineStore } from '../src/store/engine-store';
 
@@ -32,13 +32,17 @@ async function main(): Promise<void> {
     throw new Error(`There is no graduate ${graduateId} in ${dataDir}.`);
   }
 
-  // A version with an adapter runs on the llama-server on PATH, in this script's own folder.
+  // A version with an adapter runs on the llama-server on PATH, in this script's own folder, and
+  // takes the GPU in turns with the app if it has the same data folder open.
+  const gpu = new GpuLease({ dataDir, owner: 'script' });
   const host = createAgentHost({
     store: workspaceStore(store, dataDir),
     adapters: hostAdapterRuntime({
       runtimeDir: new DataPaths(dataDir).runtimeDir('script'),
       settings: () => ({}),
+      gpu,
     }),
+    gpu,
   });
   try {
     await host.openGraduate(graduateId);
@@ -72,6 +76,7 @@ async function main(): Promise<void> {
     process.stdout.write(`Network attempts blocked: ${blocked.length}\n`);
   } finally {
     await host.close();
+    await gpu.close();
     store.close();
   }
 }

@@ -168,8 +168,17 @@ for (const theme of THEMES) {
     await expect(page.getByRole('button', { name: 'Stop' })).toBeVisible();
     await expect(page.getByRole('status').filter({ hasText: 'Thinking' })).toBeVisible();
 
+    // While Architect checks an agent on the GPU, the reply waits its turn and says so in one
+    // quiet step, which goes once the reply starts.
+    await emitWorkspace(app, { type: 'message.updated', message: pricingReply('waiting') });
+    const waiting = page.getByRole('button', {
+      name: 'Waiting for the GPU: Architect is checking an agent on this computer',
+    });
+    await expect(waiting).toBeVisible();
+    await capture(`workspace-gpu-wait-${theme}.png`);
     await emitWorkspace(app, { type: 'message.updated', message: pricingReply('started') });
     await expect(page.getByRole('button', { name: /Reading data\/jobs\.csv/ })).toBeVisible();
+    await expect(waiting).toBeHidden();
     await emitWorkspace(app, { type: 'message.updated', message: pricingReply('working') });
     // Tool steps start folded, as the setting says, and open on a click.
     const current = page.getByRole('button', { name: /invoice_total job J-4471/ });

@@ -12,6 +12,8 @@ type ApprovalStatus = Extract<AgentBlock, { kind: 'approval' }>['status'];
 
 /** A streaming reply goes out at most this often: about 30 updates a second. */
 const PUBLISH_EVERY_MS = 33;
+/** The one step that says a reply waits for the GPU. */
+const WAIT_STEP = 'step-gpu';
 /** New text alone is saved at most this often. Steps, blocks and the end are saved at once. */
 const SAVE_TEXT_EVERY_MS = 1_000;
 
@@ -91,6 +93,32 @@ export class LiveReply {
 
   addBlock(block: AgentBlock): void {
     this.change({ blocks: [...this.message.blocks, block] }, true);
+  }
+
+  /**
+   * Shows that the reply waits its turn for the GPU, and for whom, as one quiet step after its
+   * others: "Waiting for the GPU: Architect is checking an agent on this computer".
+   */
+  waitForGpu(who: string): void {
+    const step: AgentStep = {
+      id: WAIT_STEP,
+      kind: 'wait',
+      name: 'gpu',
+      detail: `Waiting for the GPU: ${who}`,
+      status: 'running',
+    };
+    this.change({ steps: [...this.withoutWait(), step] }, true);
+  }
+
+  /** Takes the waiting step away: the reply has the GPU, or stopped waiting for it. */
+  endWait(): void {
+    if (this.message.steps.some((step) => step.id === WAIT_STEP)) {
+      this.change({ steps: this.withoutWait() }, true);
+    }
+  }
+
+  private withoutWait(): AgentStep[] {
+    return this.message.steps.filter((step) => step.id !== WAIT_STEP);
   }
 
   /** Sets an approval's status, with why its save failed when it did; the error goes otherwise. */
