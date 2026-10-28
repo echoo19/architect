@@ -222,7 +222,7 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
       <>
         <p className="m-0 mr-auto flex flex-col text-sm">
           <span className="text-fg-secondary">
-            {mentor} reads this exchange, its steps and what you add here.
+            Only this exchange, its steps and what you add go to {mentor}.
           </span>
           <span className="font-mono text-fg-muted">Up to {formatUsd(ready.correctionCapUsd)}</span>
         </p>
@@ -234,7 +234,7 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
           onClick={() => void send()}
         >
           {!sending && <Send size={14} strokeWidth={1.8} aria-hidden />}
-          Send to {mentor}
+          Share with {mentor}
         </Button>
       </>
     );

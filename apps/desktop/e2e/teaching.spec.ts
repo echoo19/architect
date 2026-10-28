@@ -128,10 +128,10 @@ for (const theme of THEMES) {
     await expect(sheet).toContainText('Reply to "Who still owes us money from September?"');
     await expect(sheet).toContainText('Three customers, $2,915.00 in total.');
     await expect(
-      sheet.getByText('Spark reads this exchange, its steps and what you add here.'),
+      sheet.getByText('Only this exchange, its steps and what you add go to Spark.'),
     ).toBeVisible();
     await expect(sheet.getByText('Up to $0.25')).toBeVisible();
-    const send = sheet.getByRole('button', { name: 'Send to Spark' });
+    const send = sheet.getByRole('button', { name: 'Share with Spark' });
     await expect(send).toBeDisabled();
     await capture(`teach-sheet-${theme}.png`);
 
@@ -185,7 +185,7 @@ for (const theme of THEMES) {
     await second
       .getByLabel('What was wrong')
       .fill('It added the Brennan payment to the wrong invoice.');
-    await second.getByRole('button', { name: 'Send to Spark' }).click();
+    await second.getByRole('button', { name: 'Share with Spark' }).click();
     await expect(second.getByText('A weakness to train')).toBeVisible();
     await expect(second).toContainText('Yes, through Improve agent');
     await expect(second.getByRole('button', { name: /Save as/ })).toHaveCount(0);
@@ -214,7 +214,7 @@ for (const theme of THEMES) {
     await page.keyboard.press('Escape');
     const third = await flagReply();
     await third.getByLabel('What was wrong').fill('The total is wrong.');
-    await third.getByRole('button', { name: 'Send to Spark' }).click();
+    await third.getByRole('button', { name: 'Share with Spark' }).click();
     await expect(third.getByText("Something it can't verify")).toBeVisible();
     await expect(third.getByRole('button', { name: 'Queue for Improve agent' })).toHaveCount(0);
     await third.getByRole('button', { name: 'Discard' }).click();
@@ -232,26 +232,26 @@ for (const theme of THEMES) {
     });
     const sheet = await flagReply();
     await sheet.getByLabel('What was wrong').fill(WRONG);
-    await sheet.getByRole('button', { name: 'Send to Spark' }).click();
+    await sheet.getByRole('button', { name: 'Share with Spark' }).click();
     await expect(sheet.getByText("Couldn't propose a lesson")).toBeVisible();
     await expect(sheet).toContainText('Shorten what you wrote, or correct a shorter reply.');
     // What was written stays, to say again more briefly.
     await expect(sheet.getByLabel('What was wrong')).toHaveValue(WRONG);
-    await expect(sheet.getByRole('button', { name: 'Send to Spark' })).toBeEnabled();
+    await expect(sheet.getByRole('button', { name: 'Share with Spark' })).toBeEnabled();
     await capture(`teach-error-${theme}.png`);
 
     await stubEngineFailure(launched.app, {
       'teach:propose':
         "Refused a mentor call: its payload matched 1 locked test task, in the person's request.",
     });
-    await sheet.getByRole('button', { name: 'Send to Spark' }).click();
+    await sheet.getByRole('button', { name: 'Share with Spark' }).click();
     // The engine's words for the leak check, in the app's: it calls the locked test the final test.
     await expect(sheet.getByText("Spark can't read this exchange")).toBeVisible();
     await expect(sheet).toContainText(
       'It quotes a task from its final test, which Spark must never see. Nothing was sent.',
     );
     // The same exchange would be refused again, so it isn't offered again.
-    await expect(sheet.getByRole('button', { name: 'Send to Spark' })).toHaveCount(0);
+    await expect(sheet.getByRole('button', { name: 'Share with Spark' })).toHaveCount(0);
     await capture(`teach-refused-${theme}.png`);
   });
 }
@@ -329,7 +329,7 @@ for (const theme of THEMES) {
     await expect(sheet).toContainText(
       'Returns desk was made on another computer. It can be taught there, where its practice and check tasks are.',
     );
-    await expect(sheet.getByRole('button', { name: /Send/ })).toHaveCount(0);
+    await expect(sheet.getByRole('button', { name: /Share/ })).toHaveCount(0);
     await capture(`teach-imported-${theme}.png`);
     await sheet.getByRole('button', { name: 'Close' }).last().click();
     await expect(sheet).toBeHidden();
