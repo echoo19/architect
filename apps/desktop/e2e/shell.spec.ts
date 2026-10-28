@@ -117,6 +117,7 @@ test('finishes setup and shows an error state with a retry when agents fail to l
   await page.getByRole('button', { name: 'Download later' }).click();
   await expect(page.getByRole('heading', { name: 'Choose a mentor' })).toBeVisible();
   await page.getByRole('button', { name: 'Skip for now' }).click();
+  await page.getByRole('button', { name: 'Skip', exact: true }).click();
   await page.getByRole('button', { name: 'Get started' }).click();
   await expect(page).toHaveURL(/#\/$/);
   await settle(page);

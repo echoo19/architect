@@ -86,7 +86,7 @@ for (const theme of THEMES) {
     // Settings and the palette over a workspace that has an agent and a saved mentor key.
     await stubEngine(launched.app, {
       ...SAMPLE_ENGINE,
-      'secrets:status': { meta: true, together: true },
+      'secrets:status': { meta: true, openrouter: true },
     });
     await applySettings(page, { onboarded: true });
     await goTo(page, `/agents/${SAMPLE.graduateId}/chats/${SAMPLE.chatId}`);

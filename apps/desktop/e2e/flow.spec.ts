@@ -129,13 +129,13 @@ for (const theme of THEMES) {
     await expect(page.getByRole('heading', { name: 'What it does' })).toBeVisible();
     await expect(page.getByRole('heading', { name: "What it won't do" })).toBeVisible();
     const local = page.getByRole('radio', { name: /This computer/ });
-    const hosted = page.getByRole('radio', { name: /Hosted on Together/ });
+    const hosted = page.getByRole('radio', { name: /Hosted on OpenRouter/ });
     await expect(local).toBeChecked();
     await expect(local).toContainText(
       'No full round fits in 4 hours of training: one takes at least 3 h 50 min here',
     );
     await expect(local).toContainText('Too slow for this time limit');
-    await expect(hosted).toContainText('about $3.50 billed by Together');
+    await expect(hosted).toContainText('billed by OpenRouter');
     await expect(page.getByText('About 7 hours in all')).toBeVisible();
     await expect(hosted).toContainText('5 to 10 of 12 rounds fit in 4 hours of training');
     await expect(
@@ -216,7 +216,7 @@ for (const theme of THEMES) {
     const traceDrawer = page.getByRole('dialog');
     await expect(traceDrawer.getByText('Failed', { exact: true })).toBeVisible();
     await expect(traceDrawer.getByText('read_table').first()).toBeVisible();
-    await expect(traceDrawer).toContainText("Version 3 of the agent's instructions");
+    await expect(traceDrawer).toContainText('using the setup from round 3');
     await expect(traceDrawer).toContainText(
       'Loaded the skill book-urgent-calls automatically, because the request matched it',
     );
@@ -262,7 +262,7 @@ for (const theme of THEMES) {
 
     await page.getByRole('button', { name: 'Stop', exact: true }).click();
     const stop = page.getByRole('dialog', { name: 'Stop training?' });
-    await expect(stop).toContainText('keeps its best version so far (version 4)');
+    await expect(stop).toContainText('keeps its best version so far (the setup from round 4)');
     await expect(stop).toContainText('Glimmer takes the 60-task final test');
     await stop.getByRole('button', { name: 'Keep training' }).click();
     await expect(stop).toBeHidden();
