@@ -132,10 +132,11 @@ for (const theme of THEMES) {
     const hosted = page.getByRole('radio', { name: /Hosted on Together/ });
     await expect(local).toBeChecked();
     await expect(local).toContainText(
-      'No full round fits in 4 hours of training; one takes about 4 to 7 hours',
+      'No full round fits in 4 hours of training: one takes at least 3 h 50 min here',
     );
     await expect(local).toContainText('Too slow for this time limit');
-    await expect(hosted).toContainText('About 7 hours in all, with the final test');
+    await expect(hosted).toContainText('about $3.50 billed by Together');
+    await expect(page.getByText('About 7 hours in all')).toBeVisible();
     await expect(hosted).toContainText('5 to 10 of 12 rounds fit in 4 hours of training');
     await expect(
       page.getByText('A hosted copy fits 5 to 10 rounds in the time this computer fits none.'),
@@ -146,6 +147,7 @@ for (const theme of THEMES) {
     await page
       .getByRole('checkbox', { name: 'Also train three simpler versions to compare against' })
       .click();
+    await expect(page.getByText('About 18 hours in all')).toBeVisible();
     await capture(page, `flow-define-${theme}`);
 
     await page.getByRole('button', { name: 'Advanced settings' }).click();
@@ -234,7 +236,7 @@ for (const theme of THEMES) {
         'rule out luck: 10 more over both checks (52 to 62 of 80), and no task type got worse.',
     );
     await expect(roundDrawer).toContainText("The first check was inside Spark's predicted range.");
-    await expect(roundDrawer.getByText('Both checks together')).toBeVisible();
+    await expect(roundDrawer.getByText('Average of the two checks')).toBeVisible();
     await expect(roundDrawer).not.toContainText('@@');
     await capture(page, `flow-round-${theme}`);
     await page.keyboard.press('Escape');
@@ -261,7 +263,7 @@ for (const theme of THEMES) {
     await page.getByRole('button', { name: 'Stop', exact: true }).click();
     const stop = page.getByRole('dialog', { name: 'Stop training?' });
     await expect(stop).toContainText('keeps its best version so far (version 4)');
-    await expect(stop).toContainText('Glimmer still takes the 60-task final test');
+    await expect(stop).toContainText('Glimmer takes the 60-task final test');
     await stop.getByRole('button', { name: 'Keep training' }).click();
     await expect(stop).toBeHidden();
 
@@ -295,7 +297,7 @@ for (const theme of THEMES) {
     ).toBeVisible();
     await expect(comparison.getByRole('row', { name: /Architect/ })).toContainText('+52 points');
     await expect(page.getByRole('region', { name: 'What helped most' })).toContainText(
-      '+10 check tasks over 2 checks',
+      '+5 check tasks a check, on average over 2',
     );
     await expect(page.getByRole('heading', { name: "What it won't do" })).toBeVisible();
     await capture(page, `flow-report-${theme}`);

@@ -4,8 +4,8 @@ import { Check, X } from 'lucide-react';
 import { typeLabel } from '../names';
 import type { RecentAttempt } from './run-state';
 
-/** Older rows fade, as in the design; hovering or focusing a row brings it back. */
-const FADE = [1, 0.88, 0.78, 0.68, 0.6];
+/** How many of the latest attempts show. */
+const SHOWN = 5;
 
 /** The student's latest attempts, newest first. A row opens its trace. */
 export function Examples({
@@ -19,7 +19,7 @@ export function Examples({
   student: string;
   onOpen: (attempt: RecentAttempt) => void;
 }) {
-  const shown = attempts.slice(0, FADE.length);
+  const shown = attempts.slice(0, SHOWN);
   return (
     <Panel aria-label="Latest attempts" className="min-w-0 flex-[7_1_560px]">
       <PanelHeader
@@ -37,12 +37,11 @@ export function Examples({
       ) : (
         <div className="overflow-x-auto">
           <ul className="m-0 min-w-[680px] list-none p-0">
-            {shown.map((attempt, index) => (
+            {shown.map((attempt) => (
               <li key={attempt.id}>
                 <ExampleRow
                   attempt={attempt}
                   type={typeLabel(job, attempt.taskType)}
-                  opacity={FADE[index] ?? 1}
                   onOpen={() => onOpen(attempt)}
                 />
               </li>
@@ -57,12 +56,10 @@ export function Examples({
 function ExampleRow({
   attempt,
   type,
-  opacity,
   onOpen,
 }: {
   attempt: RecentAttempt;
   type: string;
-  opacity: number;
   onOpen: () => void;
 }) {
   const passed = attempt.check.pass;
@@ -71,8 +68,7 @@ function ExampleRow({
     <button
       type="button"
       onClick={onOpen}
-      style={{ opacity }}
-      className="grid min-h-[54px] w-full grid-cols-[20px_minmax(0,1fr)_230px_150px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left font-mono text-sm transition-[opacity,background-color] duration-150 hover:bg-row-hover hover:opacity-100! focus-visible:opacity-100!"
+      className="grid min-h-[54px] w-full grid-cols-[20px_minmax(0,1fr)_230px_150px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left font-mono text-sm transition-colors duration-150 hover:bg-row-hover"
     >
       {passed ? (
         <Check

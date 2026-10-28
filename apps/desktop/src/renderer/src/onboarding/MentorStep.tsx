@@ -62,7 +62,7 @@ function ConnectionResult({ result, mentor }: { result: ConnectionTest; mentor: 
 const MENTOR_GROUPS = [
   { title: "Meta's API", presets: MENTOR_PRESETS.filter((preset) => preset.provider === 'meta') },
   {
-    title: 'The open version of Spark, through a host you choose',
+    title: "Spark's open version, to keep your data away from Meta",
     presets: MENTOR_PRESETS.filter((preset) => preset.provider !== 'meta'),
   },
 ];
@@ -148,8 +148,8 @@ export function MentorStep({ mentor, onChoose, secrets, result, onResult }: Ment
           </section>
         ))}
         <p className="m-0 text-sm text-fg-muted text-pretty">
-          Costs are for training one agent over up to {TYPICAL_ROUNDS} rounds. You set a cap for
-          each.
+          Costs are for training one agent over up to {TYPICAL_ROUNDS} rounds. You set a spending
+          cap for every agent.
         </p>
         {mentor.kind === 'model' && (
           <Panel aria-label="Mentor key" className="px-7 py-1 [&>*:first-child]:border-t-0">

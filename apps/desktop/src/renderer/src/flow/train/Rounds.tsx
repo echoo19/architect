@@ -21,8 +21,6 @@ function untitled(round: Round): string {
 
 export interface RoundsFooter {
   label: string;
-  /** One line saying what the footer's action does. */
-  note?: string;
   onClick: () => void;
 }
 
@@ -76,9 +74,8 @@ export function Rounds({
         <button
           type="button"
           onClick={footer.onClick}
-          className="group mt-auto flex min-h-[54px] items-center justify-between gap-3 border-t border-line-row px-7 text-left transition-colors duration-150"
+          className="group mt-auto flex min-h-[54px] items-center justify-end gap-3 border-t border-line-row px-7 text-left transition-colors duration-150"
         >
-          <span className="text-sm text-fg-muted text-pretty">{footer.note}</span>
           <span className="flex shrink-0 items-center gap-2 text-fg-secondary group-hover:text-fg">
             {footer.label}
             <ArrowRight size={14} strokeWidth={2} aria-hidden />

@@ -7,17 +7,19 @@ import { mentorIntro, studentIntro } from '../../lib/names';
 import { currentPlatform, deviceInSentence, deviceLabel } from '../../lib/platform';
 import { modelNames } from '../names';
 import {
+  aboutSpan,
   aboutUsd,
   capText,
+  comparisonSeconds,
   estimateMentorUsd,
-  formatAbout,
   estimateTime,
-  hostedAdvantage,
+  formatAbout,
+  practiceUsd,
   roundsLine,
+  runSeconds,
   testSeconds,
-  totalLine,
 } from './estimates';
-import { providerName, type HostedAvailability } from './hosted';
+import { presetOf, providerName, type HostedAvailability } from './hosted';
 
 interface TrainingPlaceProps {
   job: Job;
@@ -47,11 +49,22 @@ export function TrainingPlace({
   const capMax = Math.max(20, Math.ceil(cap), Math.ceil((usual ?? 0) * 3));
   const local = estimateTime(job, 'local');
   const remote = estimateTime(job, 'hosted');
-  // Three more final tests, and self-correction's training at the chosen place.
-  const chosen = job.student.trainOn === 'hosted' ? remote : local;
-  const comparisonSeconds = 3 * testSeconds(job) + chosen.trainingSeconds.most;
-  const advantage = hosted.available ? hostedAdvantage(local, remote) : null;
+  const onHost = job.student.trainOn === 'hosted';
+  const chosen = onHost ? remote : local;
+  const comparing = baselines?.checked === true;
   const provider = job.student.hosted ? providerName(job.student.hosted) : null;
+  const pricing = job.student.hosted ? presetOf(job.student.hosted)?.pricing : null;
+  const hostedUsd = pricing ? aboutUsd(practiceUsd(pricing, remote)).toLowerCase() : null;
+  const parts = [
+    `${aboutSpan(chosen.trainingSeconds).toLowerCase()} of training ${onHost ? `on ${provider ?? 'the hosted copy'}` : `on ${device}`}`,
+    `${formatAbout(testSeconds(job)).toLowerCase()} for the final test on ${device}`,
+    ...(comparing
+      ? [
+          `up to ${formatAbout(comparisonSeconds(job, chosen)).toLowerCase()} for the three simpler versions`,
+        ]
+      : []),
+  ];
+  const breakdown = `${parts.join(', then ')}.`;
 
   return (
     <section
@@ -78,7 +91,7 @@ export function TrainingPlace({
           {local.rounds.most === 0 ? (
             <span>Too slow for this time limit. Raise it in Advanced settings to train here.</span>
           ) : (
-            <span>{totalLine(local)}</span>
+            <span>{aboutSpan(local.trainingSeconds)} of training, at no cost</span>
           )}
           <span>Practice runs here; {mentor} sees only the attempts and file samples it needs</span>
         </RadioCard>
@@ -93,10 +106,13 @@ export function TrainingPlace({
           {hosted.available ? (
             <>
               <span className="text-fg">{roundsLine(job, remote)}</span>
-              <span>{totalLine(remote)}</span>
               <span>
-                Practice runs on your {provider ?? 'host'} account, with the key in Settings, and is
-                billed there; the tasks and the data they read go there
+                {aboutSpan(remote.trainingSeconds)} of training
+                {hostedUsd && `, ${hostedUsd} billed by ${provider ?? 'the host'}`}
+              </span>
+              <span>
+                Uses your {provider ?? 'host'} key from Settings; the practice tasks and the data
+                they read go to {provider ?? 'the host'}
               </span>
             </>
           ) : (
@@ -107,9 +123,15 @@ export function TrainingPlace({
           )}
         </RadioCard>
       </RadioCardGroup>
-      {advantage && local.rounds.most > 0 && (
-        <p className="m-0 -mt-1.5 text-fg-secondary text-pretty">{advantage}</p>
-      )}
+      <div className="flex flex-col gap-1">
+        <p className="m-0 text-lg font-medium">
+          {aboutSpan(runSeconds(job, chosen, comparing))} in all
+        </p>
+        <p className="m-0 text-sm text-fg-muted text-pretty">
+          {breakdown.charAt(0).toUpperCase()}
+          {breakdown.slice(1)}
+        </p>
+      </div>
       {onRetryKeys && (
         <button
           type="button"
@@ -141,7 +163,9 @@ export function TrainingPlace({
         <span className="text-fg-secondary text-pretty">
           {usual === null
             ? `No price on file for ${mentor}. Training stops before a call would go over the cap.`
-            : `${aboutUsd(usual)} if all ${job.budget.maxRounds} rounds run. Training stops before a call would go over the cap.`}
+            : chosen.rounds.most > 0 && chosen.rounds.most < job.budget.maxRounds
+              ? `${aboutUsd((usual / job.budget.maxRounds) * chosen.rounds.most)} for up to ${chosen.rounds.most} rounds, as many as fit. Training stops before a call would go over the cap.`
+              : `${aboutUsd(usual)} if all ${job.budget.maxRounds} rounds run. Training stops before a call would go over the cap.`}
         </span>
       </div>
 
@@ -155,9 +179,8 @@ export function TrainingPlace({
           />
           <p className="m-0 pl-7 text-sm text-fg-muted text-pretty">
             {names.student} on its own, instructions {names.mentor} writes in one go, and{' '}
-            {names.student} revising its own. They run after this agent and can add up to{' '}
-            {formatAbout(comparisonSeconds).toLowerCase()}: each takes its own final test, and
-            self-correction trains too. The report puts all four side by side.
+            {names.student} revising its own. They run after this agent, and the report puts all
+            four side by side.
           </p>
         </div>
       )}

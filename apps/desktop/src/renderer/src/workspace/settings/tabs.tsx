@@ -196,8 +196,8 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
         <SettingsValue>Never, by design</SettingsValue>
       </SettingsRow>
       <SettingsRow
-        label="Opening a file it hasn't seen"
-        meta="Set by its job, for files outside the list below"
+        label="Opening a file the job doesn't list"
+        meta="Set by its job when it was trained"
         error={errorOf(job)}
       >
         {job.status === 'success' ? (

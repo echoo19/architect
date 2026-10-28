@@ -89,7 +89,7 @@ for (const theme of THEMES) {
       'secrets:status': { meta: true, together: true },
     });
     await applySettings(page, { onboarded: true });
-    await goTo(page, '/');
+    await goTo(page, `/agents/${SAMPLE.graduateId}/chats/${SAMPLE.chatId}`);
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
     await capture(page, `settings-general-${theme}.png`);

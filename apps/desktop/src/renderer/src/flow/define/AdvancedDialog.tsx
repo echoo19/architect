@@ -202,7 +202,7 @@ function TabContent({
     case 'harness':
       return <HarnessTab editor={editor} />;
     case 'splits':
-      return <SplitsTab editor={editor} summaries={summaries} />;
+      return <SplitsTab editor={editor} />;
     case 'evaluation':
       return <EvaluationTab editor={editor} />;
   }
@@ -221,8 +221,8 @@ function plural(count: number, noun: string): string {
 function ExperimentNote({ children }: { children: ReactNode }) {
   return (
     <TabNote className="border-t-0 pt-0">
-      {children} The defaults suit most jobs; changing them makes this job&apos;s runs harder to
-      compare with each other.
+      {children} The defaults suit most jobs. Change them and this job&apos;s later runs can&apos;t
+      be compared fairly with earlier ones.
     </TabNote>
   );
 }
@@ -627,29 +627,19 @@ function HarnessTab({ editor }: TabProps) {
   );
 }
 
-function SplitsTab({ editor, summaries }: TabProps & { summaries: QueryState<JobSummary[]> }) {
+function SplitsTab({ editor }: TabProps) {
   const { job, issues } = editor;
   const set = typed(editor);
   const { mentor, student } = modelNames(job);
   const splits = (patch: Partial<Job['splits']>) =>
     set((current) => ({ ...current, splits: { ...current.splits, ...patch } }));
-  const { calibration, train, dev, test } = job.splits;
-  const total = summaries.data?.find((summary) => summary.id === job.id)?.taskCount;
+  const { train, dev, test } = job.splits;
   return (
     <>
       <ExperimentNote>
-        Architect divides the{total === undefined ? '' : ` ${total}`} example tasks you attached
-        into these sets. Each round, {mentor} makes one change, and the check tasks decide whether
-        it stays.
+        Architect divides the example tasks you attached into these sets. Each round, {mentor} makes
+        one change, and the check tasks decide whether it stays.
       </ExperimentNote>
-      <NumberField
-        label="Difficulty check"
-        meta={`Set aside to measure how hard the job is for ${student} before any teaching. Not used for training or the final test.`}
-        unit="tasks"
-        value={calibration}
-        issue={issues['splits.calibration']}
-        onChange={(value) => splits({ calibration: value })}
-      />
       <NumberField
         label="Practice tasks"
         meta={`${student} practices on these, and ${mentor} studies its mistakes.`}
@@ -674,20 +664,6 @@ function SplitsTab({ editor, summaries }: TabProps & { summaries: QueryState<Job
         issue={issues['splits.test']}
         onChange={(value) => splits({ test: value })}
       />
-      <NumberField
-        label="Shuffle number"
-        meta="Picks which tasks land in which set. The same number gives the same sets, so runs compare fairly."
-        value={job.splits.seed}
-        issue={issues['splits.seed']}
-        onChange={(seed) => splits({ seed })}
-      />
-      <SettingsRow label="Total">
-        <span className="font-medium text-fg">
-          {total === undefined
-            ? plural(calibration + train + dev + test, 'task')
-            : `${calibration + train + dev + test} of ${plural(total, 'task')}`}
-        </span>
-      </SettingsRow>
       {issues.splits && (
         <p role="alert" className="m-0 flex items-start gap-1.5 pb-2 text-sm text-fg-muted">
           <CircleAlert size={13} className="mt-[3px] shrink-0 text-danger" aria-hidden />

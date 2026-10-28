@@ -233,7 +233,7 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
             <p className="m-0 text-fg-secondary text-pretty">
               The changes {names.mentor} made that added the most check tasks right.
               {report.topInterventions.some((change) => change.runs) &&
-                ' A change that was checked twice counts both checks.'}
+                ' A change checked twice shows its average per check.'}
             </p>
           </div>
           <ol className="m-0 flex list-none flex-col p-0">
@@ -249,10 +249,10 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
                 </span>
                 <span className="truncate">{change.title}</span>
                 <span className="font-mono text-sm">
-                  {signed(change.delta)}{' '}
+                  {signed(change.runs ? change.delta / change.runs : change.delta)}{' '}
                   <span className="font-sans text-fg-muted">
-                    check {Math.abs(change.delta) === 1 ? 'task' : 'tasks'}
-                    {change.runs ? ` over ${change.runs} checks` : null}
+                    check tasks
+                    {change.runs ? ` a check, on average over ${change.runs}` : null}
                   </span>
                 </span>
               </li>

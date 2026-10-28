@@ -180,7 +180,7 @@ for (const theme of THEMES) {
     await emitWorkspace(app, { type: 'message.updated', message: pricingReply('done') });
     await updateChat(app, CHATS.fresh.id, { running: false });
     // The steps stay as the reader left them; one more click folds them.
-    const worked = page.getByRole('button', { name: 'Worked for 2m 21s' });
+    const worked = page.getByRole('button', { name: 'Worked for 2 min 21 s' });
     await expect(worked).toHaveAttribute('aria-expanded', 'true');
     await worked.click();
     await expect(page.getByRole('list', { name: 'Steps' })).toBeHidden();
@@ -245,7 +245,7 @@ for (const theme of THEMES) {
     await open(theme, chatPath(CHATS.refund.id));
     const refusal = page.getByRole('note');
     await expect(refusal).toContainText("Service desk doesn't handle refunds");
-    await expect(refusal).toContainText('The office files have no refund policy to follow');
+    await expect(refusal).toContainText("Its job says it won't issue refunds or credits");
     await expect(refusal).toContainText(
       "You'll need to handle this one yourself. Service desk can help with invoices, overdue " +
         'balances or scheduling.',
@@ -285,9 +285,7 @@ for (const theme of THEMES) {
 
     await dialog.getByRole('tab', { name: 'Report' }).click();
     await expect(dialog.getByText('92%')).toBeVisible();
-    await expect(
-      dialog.getByText('The office files have no refund policy to follow'),
-    ).toBeVisible();
+    await expect(dialog.getByText("Its job says it won't issue refunds or credits")).toBeVisible();
     await capture(`workspace-agent-report-${theme}.png`);
 
     await dialog.getByRole('tab', { name: 'Export' }).click();

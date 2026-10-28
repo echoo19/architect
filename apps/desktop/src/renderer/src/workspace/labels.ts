@@ -61,10 +61,10 @@ export function workedLabel(message: WorkspaceMessage): string {
     (timed.length > 0 ? timed.reduce((sum, step) => sum + (step.ms ?? 0), 0) : undefined);
   if (ms === undefined) return stepCount(message.steps.length);
   const seconds = Math.max(1, Math.round(ms / 1000));
-  if (seconds < 60) return `Worked for ${seconds}s`;
+  if (seconds < 60) return `Worked for ${seconds} s`;
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
-  return rest === 0 ? `Worked for ${minutes}m` : `Worked for ${minutes}m ${rest}s`;
+  return rest === 0 ? `Worked for ${minutes} min` : `Worked for ${minutes} min ${rest} s`;
 }
 
 /** The step to name while the agent works: the one running, else the latest. */

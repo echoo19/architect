@@ -6,17 +6,17 @@ import { rate } from '../flow/format';
 import { modelNames, typeLabel } from '../flow/names';
 import { Apprenticeship } from '../flow/train/Apprenticeship';
 import { CurrentRound } from '../flow/train/CurrentRound';
+import { providerName } from '../flow/define/hosted';
 import { draftRoundOf } from '../flow/train/draft';
 import { Examples } from '../flow/train/Examples';
 import { phaseView } from '../flow/train/phase';
 import { Resources } from '../flow/train/Resources';
 import { RoundDrawerContent } from '../flow/train/RoundDrawer';
 import { Rounds, type RoundsFooter } from '../flow/train/Rounds';
-import { RunControls, StopDialog, type StopIntent } from '../flow/train/RunControls';
+import { RunControls, StopDialog } from '../flow/train/RunControls';
 import {
   activeProgress,
   currentRound,
-  hasKeptChange,
   type LiveRun,
   type RecentAttempt,
 } from '../flow/train/run-state';
@@ -50,7 +50,7 @@ export function TrainScreen({ runId }: { runId: string }) {
   const live = state.status === 'live' ? state.live : null;
   const trace = useOverlay<RecentAttempt>();
   const round = useOverlay<number>();
-  const stop = useOverlay<StopIntent>();
+  const stop = useOverlay<true>();
   const contentRef = useRef<HTMLDivElement>(null);
   const reading = trace.open || round.open || stop.open;
 
@@ -60,7 +60,7 @@ export function TrainScreen({ runId }: { runId: string }) {
     <FlowShell
       title={live?.job.name ?? 'Training'}
       step="Train"
-      actions={live && <RunControls live={live} onStop={stop.show} />}
+      actions={live && <RunControls live={live} onStop={() => stop.show(true)} />}
     >
       <div
         ref={contentRef}
@@ -85,7 +85,6 @@ export function TrainScreen({ runId }: { runId: string }) {
             live={live}
             onOpenAttempt={trace.show}
             onOpenRound={(opened) => round.show(opened.index)}
-            onSkip={() => stop.show('skip')}
           />
         )}
       </div>
@@ -101,7 +100,7 @@ export function TrainScreen({ runId }: { runId: string }) {
             )}
           </Drawer>
           <RoundDrawer live={live} index={round.item} open={round.open} onClose={round.hide} />
-          <StopDialog intent={stop.item} open={stop.open} live={live} onClose={stop.hide} />
+          <StopDialog open={stop.open} live={live} onClose={stop.hide} />
         </>
       )}
     </FlowShell>
@@ -161,7 +160,9 @@ function useReportWhenFinished(
 /** Where the student is running now: a hosted copy only practices; the final test runs here. */
 function studentPlace({ run, job }: LiveRun): string {
   const testing = run.status === 'testing' || run.phase === 'testing';
-  if (!testing && job.student.trainOn === 'hosted') return 'on a hosted copy';
+  if (!testing && job.student.trainOn === 'hosted') {
+    return `on ${job.student.hosted ? providerName(job.student.hosted) : 'a hosted copy'}`;
+  }
   return `on ${deviceInSentence(currentPlatform())}`;
 }
 
@@ -169,12 +170,10 @@ function TrainBoard({
   live,
   onOpenAttempt,
   onOpenRound,
-  onSkip,
 }: {
   live: LiveRun;
   onOpenAttempt: (attempt: RecentAttempt) => void;
   onOpenRound: (round: Round) => void;
-  onSkip: () => void;
 }) {
   const { run, job } = live;
   const names = modelNames(job);
@@ -185,12 +184,6 @@ function TrainBoard({
   let footer: RoundsFooter | null = null;
   if (run.status === 'finished') {
     footer = { label: 'See the report card', onClick: () => navigate(paths.report(run.id)) };
-  } else if ((run.status === 'running' || run.status === 'paused') && hasKeptChange(live.rounds)) {
-    footer = {
-      label: 'Finish with the best version',
-      note: 'Good enough already? Training ends now and the best version takes the final test.',
-      onClick: onSkip,
-    };
   }
 
   return (

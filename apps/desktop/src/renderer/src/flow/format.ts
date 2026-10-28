@@ -27,8 +27,7 @@ export function formatRange(min: number, max: number): string {
 }
 
 /** "850 ms", "4.2 s", "24 s", "2 min 11 s": exact when short, readable when long. */
-export function formatAnswerTime(ms: number, short = false): string {
-  if (short && ms >= 60_000) return `${Math.round(ms / 6_000) / 10} min`;
+export function formatAnswerTime(ms: number): string {
   if (ms < 1000) return `${Math.round(ms)} ms`;
   if (ms < 10_000) return `${(ms / 1000).toFixed(1)} s`;
   const total = Math.round(ms / 1000);

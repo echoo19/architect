@@ -4,17 +4,12 @@
  */
 
 .arch-stage {
-  --arch-from: var(--ui-fg-faint);
   --arch-glow: color-mix(in srgb, var(--ui-student) 35%, transparent);
   --arch-ping: color-mix(in srgb, var(--ui-student) 35%, white);
 }
 
 [data-theme='light'] .arch-stage {
   --arch-ping: var(--ui-student);
-}
-
-.arch-stage[data-motion='checking'] {
-  --arch-from: var(--ui-mentor);
 }
 
 /* The mentor: three dotted rings turning at different speeds around a solid core. */
@@ -64,93 +59,6 @@
   animation-play-state: paused;
 }
 
-/* The track: tasks travel along it and meet the checker at the gate. */
-
-.arch-track {
-  position: relative;
-  flex: 1 1 auto;
-  min-width: 100px;
-  height: 150px;
-  margin: 0 12px 38px;
-}
-
-/* What the marks mean, under the line and clear of the tasks that drop out. */
-.arch-caption {
-  position: absolute;
-  top: 124px;
-  left: 0;
-  right: 0;
-  margin: 0;
-  text-align: center;
-}
-
-.arch-line {
-  position: absolute;
-  top: 50%;
-  border-top: 1px solid var(--ui-line);
-}
-
-.arch-line-mentor {
-  left: 0;
-  width: 55%;
-}
-
-.arch-line-student {
-  left: 55%;
-  right: 0;
-}
-
-.arch-stage[data-motion='testing'] .arch-line-mentor {
-  border-top-style: dashed;
-  opacity: 0.6;
-}
-
-.arch-gate {
-  position: absolute;
-  left: 55%;
-  top: 36px;
-  bottom: 36px;
-  width: 1px;
-  background: var(--ui-line-strong);
-}
-
-.arch-pill {
-  position: absolute;
-  top: calc(50% - 4px);
-  left: 0;
-  width: 20px;
-  height: 8px;
-  border-radius: 4px;
-  opacity: 0;
-  color: var(--arch-from);
-  animation: arch-flow 5.6s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-}
-
-.arch-pill::after {
-  content: '';
-  position: absolute;
-  right: 100%;
-  top: 3.5px;
-  width: 36px;
-  height: 1px;
-  background: linear-gradient(to left, currentColor, transparent);
-  opacity: 0.5;
-}
-
-.arch-pill[data-kind='reject'] {
-  animation-name: arch-reject;
-}
-
-.arch-pill[data-kind='return'] {
-  animation-name: arch-return;
-}
-
-.arch-pill[data-kind='return']::after {
-  right: auto;
-  left: 100%;
-  background: linear-gradient(to right, currentColor, transparent);
-}
-
 /* The student: a grid of points that light up as it works. */
 
 .arch-cell {
@@ -165,113 +73,13 @@
   animation: none;
 }
 
-.arch-stage[data-frozen] :is(.arch-ring, .arch-pill, .arch-cell) {
+.arch-stage[data-frozen] :is(.arch-ring, .arch-cell) {
   animation-play-state: paused;
 }
 
 @keyframes arch-spin {
   to {
     transform: rotate(360deg);
-  }
-}
-
-@keyframes arch-flow {
-  0% {
-    left: 0%;
-    opacity: 0;
-    color: var(--arch-from);
-    background-color: transparent;
-    box-shadow: inset 0 0 0 1.25px var(--arch-from);
-  }
-  7% {
-    opacity: 1;
-  }
-  54% {
-    color: var(--arch-from);
-    background-color: transparent;
-    box-shadow: inset 0 0 0 1.25px var(--arch-from);
-  }
-  57% {
-    color: var(--ui-student);
-    background-color: var(--ui-student);
-    box-shadow:
-      inset 0 0 0 1.25px var(--ui-student),
-      0 0 10px 1px var(--arch-glow);
-  }
-  68% {
-    box-shadow:
-      inset 0 0 0 1.25px var(--ui-student),
-      0 0 0 0 transparent;
-  }
-  92% {
-    opacity: 1;
-  }
-  100% {
-    left: calc(100% - 20px);
-    opacity: 0;
-    color: var(--ui-student);
-    background-color: var(--ui-student);
-    box-shadow: inset 0 0 0 1.25px var(--ui-student);
-  }
-}
-
-@keyframes arch-reject {
-  0% {
-    left: 0%;
-    opacity: 0;
-    transform: translateY(0);
-    color: var(--arch-from);
-    box-shadow: inset 0 0 0 1.25px var(--arch-from);
-  }
-  7% {
-    opacity: 1;
-  }
-  53% {
-    left: 53%;
-    transform: translateY(0);
-    color: var(--arch-from);
-    box-shadow: inset 0 0 0 1.25px var(--arch-from);
-  }
-  57% {
-    left: 54%;
-    color: transparent;
-    box-shadow: inset 0 0 0 1.25px var(--ui-fg-faint);
-  }
-  78%,
-  100% {
-    left: 54.5%;
-    transform: translateY(36px);
-    opacity: 0;
-  }
-}
-
-@keyframes arch-return {
-  0% {
-    left: calc(100% - 20px);
-    opacity: 0;
-    color: var(--ui-fg-faint);
-    background-color: transparent;
-    box-shadow: inset 0 0 0 1.25px var(--ui-fg-faint);
-  }
-  8% {
-    opacity: 1;
-  }
-  45% {
-    color: var(--ui-fg-faint);
-    box-shadow: inset 0 0 0 1.25px var(--ui-fg-faint);
-  }
-  80% {
-    color: var(--ui-mentor);
-    box-shadow: inset 0 0 0 1.25px var(--ui-mentor);
-  }
-  92% {
-    opacity: 1;
-  }
-  100% {
-    left: 0%;
-    opacity: 0;
-    color: var(--ui-mentor);
-    box-shadow: inset 0 0 0 1.25px var(--ui-mentor);
   }
 }
 
@@ -288,20 +96,10 @@
   }
 }
 
-/* Reduced motion: one still frame of the same scene, with tasks placed along the track. */
+/* Reduced motion: a still frame of the same scene. */
 @media (prefers-reduced-motion: reduce) {
   .arch-ring,
-  .arch-cell,
-  .arch-pill {
+  .arch-cell {
     animation: none;
-  }
-
-  .arch-pill {
-    opacity: 1;
-    left: var(--arch-still-left);
-    color: var(--arch-still-color);
-    background-color: var(--arch-still-fill, transparent);
-    box-shadow: inset 0 0 0 1.25px var(--arch-still-color);
-    transform: translateY(var(--arch-still-drop, 0));
   }
 }

@@ -60,7 +60,7 @@ export function Resources({
           <span className="font-mono">{formatAnswerTime(speed)}</span>
         )}
       </Fact>
-      <Fact label={draft === null ? 'Changes kept' : 'Changes kept after the first draft'}>
+      <Fact label={draft === null ? 'Changes kept' : 'Changes kept, not counting the first draft'}>
         <span className="font-mono">{changes.kept}</span>{' '}
         <span className="text-fg-muted">
           of <span className="font-mono">{changes.tried}</span>

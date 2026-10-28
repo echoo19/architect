@@ -2,30 +2,12 @@ import { useMemo, type CSSProperties } from 'react';
 import { cn, Panel } from '@architect/ui';
 import { ChevronRight } from 'lucide-react';
 import { capitalized, MENTOR_ROLE, STUDENT_ROLE } from '../../lib/names';
-import {
-  motionCaption,
-  ROUND_STAGES,
-  STAGE_LABELS,
-  type Motion,
-  type PhaseView,
-  type Stage,
-} from './phase';
+import { ROUND_STAGES, STAGE_LABELS, type PhaseView, type Stage } from './phase';
 import type { EvalProgress } from './run-state';
 import './apprenticeship.css';
 
 const CYCLE_S = 5.6;
 const GRID = 9;
-
-/** Which flow pills drop at the gate, in the order they're chosen as more tasks fail. */
-const REJECT_ORDER = [3, 0, 4, 1, 5, 2];
-
-type PillKind = 'pass' | 'reject' | 'return';
-
-interface Pill {
-  kind: PillKind;
-  /** Where in the cycle the pill is at time zero, 0 to 1. */
-  offset: number;
-}
 
 const frac = (x: number) => x - Math.floor(x);
 
@@ -43,44 +25,6 @@ function gridCells(litShare: number): CSSProperties[] {
       animationDelay: `${(-order * CYCLE_S).toFixed(2)}s`,
     } as CSSProperties;
   });
-}
-
-function pillsFor(motion: Motion, passRate: number | null): Pill[] {
-  if (motion === 'returning') {
-    return [0, 1, 2].map((slot) => ({ kind: 'return', offset: (slot + 0.5) / 3 }));
-  }
-  if (motion !== 'practising' && motion !== 'checking') return [];
-  const failing = Math.min(5, Math.max(1, Math.round((1 - (passRate ?? 0.8)) * 6)));
-  const rejects = new Set(REJECT_ORDER.slice(0, failing));
-  return Array.from({ length: 6 }, (_, slot) => ({
-    kind: rejects.has(slot) ? 'reject' : 'pass',
-    offset: (slot + 0.5) / 6,
-  }));
-}
-
-/** The pill's place in a still frame, for people who prefer reduced motion. */
-function stillStyle({ kind, offset }: Pill): Record<string, string> {
-  const along = (share: number) =>
-    `calc(${(share * 100).toFixed(1)}% - ${(share * 20).toFixed(1)}px)`;
-  if (kind === 'return') {
-    return {
-      '--arch-still-left': along(1 - offset),
-      '--arch-still-color': offset > 0.6 ? 'var(--ui-mentor)' : 'var(--ui-fg-faint)',
-    };
-  }
-  const crossed = offset >= 0.56;
-  if (kind === 'reject' && crossed) {
-    return {
-      '--arch-still-left': '54.5%',
-      '--arch-still-color': 'var(--ui-fg-faint)',
-      '--arch-still-drop': '16px',
-    };
-  }
-  return {
-    '--arch-still-left': along(offset),
-    '--arch-still-color': crossed ? 'var(--ui-student)' : 'var(--arch-from)',
-    '--arch-still-fill': crossed ? 'var(--ui-student)' : 'transparent',
-  };
 }
 
 interface ApprenticeshipProps {
@@ -107,8 +51,6 @@ export function Apprenticeship({
   progress,
 }: ApprenticeshipProps) {
   const cells = useMemo(() => gridCells(passRate ?? 0.35), [passRate]);
-  const pills = pillsFor(view.motion, passRate);
-  const caption = motionCaption(view.motion, { mentor, student }, drafting);
   // A draft round makes no practice attempts: Spark writes the draft, then it is checked.
   const stages: readonly Stage[] =
     view.stage === 'testing' ? ['testing'] : drafting ? ['diagnosing', 'evaluating'] : ROUND_STAGES;
@@ -146,25 +88,15 @@ export function Apprenticeship({
           />
         </div>
 
-        <div className="arch-track">
-          <span className="arch-line arch-line-mentor" aria-hidden />
-          <span className="arch-line arch-line-student" aria-hidden />
-          <span className="arch-gate" aria-hidden />
-          {pills.map((pill, index) => (
-            <span
-              key={`${view.motion}-${index}`}
-              aria-hidden
-              className="arch-pill"
-              data-kind={pill.kind}
-              style={
-                {
-                  animationDelay: `${(-pill.offset * CYCLE_S).toFixed(2)}s`,
-                  ...stillStyle(pill),
-                } as CSSProperties
-              }
-            />
-          ))}
-          {caption && <p className="arch-caption text-sm text-fg-muted text-balance">{caption}</p>}
+        <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 px-6 text-center">
+          <span role="status" className="text-xl text-fg text-balance">
+            {view.text}
+          </span>
+          {progress && (
+            <span className="font-mono text-sm tabular-nums text-fg-muted">
+              {progress.done} of {progress.total} done
+            </span>
+          )}
         </div>
 
         <div className="flex flex-none flex-col items-center gap-4">
@@ -210,14 +142,6 @@ export function Apprenticeship({
             </li>
           ))}
         </ol>
-        <span role="status" className="min-w-0 flex-1 truncate text-md">
-          {view.text}
-        </span>
-        {progress && (
-          <span className="shrink-0 font-mono text-sm tabular-nums text-fg-muted">
-            {progress.done} of {progress.total}
-          </span>
-        )}
       </div>
     </Panel>
   );

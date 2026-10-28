@@ -32,17 +32,17 @@ export function providerName(provider: MentorPreset['provider']): string {
 }
 
 /** What choosing a mentor means for your data, in the words this app uses everywhere. */
-const MENTOR_NOTES: Record<MentorPreset['key'], string> = {
+const MENTOR_NOTES: Partial<Record<MentorPreset['key'], string>> = {
   'meta-spark': "Meta doesn't train on what you send.",
-  'meta-spark-contributor':
-    'Meta may train on what you send, so use it only for data that is not sensitive or personal.',
-  'baseten-spark-open': 'Served by Baseten, so what you send goes to Baseten, not to Meta.',
+  'baseten-spark-open':
+    'Baseten runs it for you, so what you send goes to Baseten and never to Meta.',
   'modal-spark-open':
-    'Runs on an endpoint you set up in your Modal account; what you send stays with Modal.',
+    'You create the endpoint in your own Modal account first; what you send stays with Modal.',
 };
 
+/** The preset's own note unless this app says it more plainly. */
 export function mentorNote(preset: MentorPreset): string {
-  return MENTOR_NOTES[preset.key];
+  return MENTOR_NOTES[preset.key] ?? preset.note;
 }
 
 /** Who a mentor's key comes from: "Meta", "Baseten", or the endpoint's host for any other. */
