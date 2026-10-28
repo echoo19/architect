@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Toaster, TooltipProvider } from '@architect/ui';
 import { useSettings } from '../api/hooks';
+import { ImportScreen } from '../import/ImportScreen';
 import { navigate, paths, useRoute, type Route } from '../lib/router';
 import { ChatScreen } from '../screens/ChatScreen';
 import { DefineScreen } from '../screens/DefineScreen';
@@ -35,6 +36,8 @@ function Screen({ route }: { route: Route }) {
       return <WelcomeScreen />;
     case 'new':
       return <DescribeScreen />;
+    case 'import':
+      return <ImportScreen />;
     case 'define':
       return <DefineScreen key={route.jobId} jobId={route.jobId} />;
     case 'train':
