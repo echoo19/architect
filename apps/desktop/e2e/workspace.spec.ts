@@ -78,9 +78,12 @@ for (const theme of THEMES) {
     });
     await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
     await expect(page.getByText('Running · 0.12.6')).toBeVisible();
+    const fourBit = page.getByRole('radio', { name: /Muse Glimmer 4-bit/ });
+    const twoBit = page.getByRole('radio', { name: /Muse Glimmer 2-bit/ });
+    await expect(fourBit).toHaveAttribute('aria-checked', 'true');
 
-    await page.getByRole('button', { name: 'Download', exact: true }).click();
-    await expect.poll(() => callsTo(app, 'ollama:pull')).toEqual([[STUDENT_MODEL]]);
+    await page.getByRole('button', { name: /^Download ·/ }).click();
+    await expect.poll(() => callsTo(app, 'ollama:install')).toEqual([['glimmer-4bit']]);
     await emitPullProgress(app, { model: STUDENT_MODEL, status: 'pulling manifest', done: false });
     await emitPullProgress(app, {
       model: STUDENT_MODEL,
@@ -89,29 +92,25 @@ for (const theme of THEMES) {
       totalBytes: 18 * GB,
       done: false,
     });
-    const progress = page.getByRole('progressbar', { name: 'Downloading Glimmer' });
+    const progress = page.getByRole('progressbar', { name: 'Downloading Muse Glimmer · 4-bit' });
     await expect(progress).toHaveAttribute('aria-valuenow', '23');
     await expect(page.getByText('4.2 GB of 18 GB')).toBeVisible();
+    // The other build waits until this download is done.
+    await expect(twoBit).toBeDisabled();
     await capture(`welcome-download-${theme}.png`);
 
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByRole('heading', { name: 'Choose a mentor' })).toBeVisible();
-    const contributor = page.getByRole('radio', { name: /contributor tier/ });
-    const standard = page.getByRole('radio', { name: /Meta doesn't train on what you send/ });
-    await expect(contributor).toContainText('Meta may train on what you send');
-    await contributor.click();
-    await expect(contributor).toHaveAttribute('aria-checked', 'true');
-    await standard.click();
-    await expect(standard).toHaveAttribute('aria-checked', 'true');
-    await expect(contributor).toHaveAttribute('aria-checked', 'false');
-    await expect(standard).toContainText('About $0.70 to train an agent');
-    await expect(page.getByText('https://dev.meta.ai')).toBeVisible();
+    await expect(page.getByRole('radio', { name: /Muse Spark/ })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
     await expect(page.getByRole('button', { name: 'Skip for now' })).toBeVisible();
     await capture(`welcome-mentor-${theme}.png`);
     const key = page.getByLabel('Meta API key');
     await key.fill('not-a-real-key');
     await page.getByRole('button', { name: 'Test connection' }).click();
-    await expect(page.getByText('Connected to Spark')).toBeVisible();
+    await expect(page.getByText('Connected · 640 ms')).toBeVisible();
     await expect(key).toHaveValue('');
     expect(await callsTo(app, 'secrets:set')).toEqual([['meta']]);
     expect(await callsTo(app, 'connections:testMentor')).toEqual([
@@ -119,10 +118,8 @@ for (const theme of THEMES) {
     ]);
 
     await page.getByRole('button', { name: 'Continue' }).click();
-    await expect(
-      page.getByRole('heading', { name: 'Faster training: a hosted copy of Glimmer' }),
-    ).toBeVisible();
-    await expect(page.getByLabel('OpenRouter API key')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Faster training' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
     await capture(`welcome-hosted-${theme}.png`);
     await page.getByRole('button', { name: 'Skip', exact: true }).click();
     await expect(page.getByRole('heading', { name: "You're set up" })).toBeVisible();

@@ -1,10 +1,11 @@
+import { glimmerBuild, StudentBuildKeySchema } from '@architect/shared';
 import { z } from 'zod';
 import type { IpcRouter } from '../ipc/router';
 import type { ModelPulls } from '../ollama/pulls';
 import { ollamaBaseUrl, ollamaStatus } from '../ollama/status';
 import type { SettingsStore } from '../settings/store';
 
-/** Ollama on this computer: whether it runs, and model downloads. */
+/** Ollama on this computer: whether it runs, model downloads, and Glimmer's builds. */
 export function registerOllamaHandlers(
   router: IpcRouter,
   settings: SettingsStore,
@@ -16,7 +17,11 @@ export function registerOllamaHandlers(
     {
       status: () => ollamaStatus(baseUrl()),
       pull: (model) => pulls.pull(baseUrl(), model),
+      install: (build) => pulls.install(baseUrl(), glimmerBuild(build)),
     },
-    { pull: z.tuple([z.string().min(1).max(200)]) },
+    {
+      pull: z.tuple([z.string().min(1).max(200)]),
+      install: z.tuple([StudentBuildKeySchema]),
+    },
   );
 }

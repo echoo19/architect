@@ -67,10 +67,12 @@ export interface FakeOllama {
   pull?: Handler;
 }
 
+/** What Ollama 0.40 says about Muse Glimmer, which names its reasoning levels. */
 export const GLIMMER_SHOW = {
   details: { quantization_level: 'Q4_K_M', parameter_size: '29.6B' },
   model_info: { 'general.architecture': 'glimmer', 'glimmer.context_length': 131072 },
   capabilities: ['completion', 'vision', 'tools', 'thinking'],
+  thinking: { values: [false, 'low', 'medium', 'high', 'max'], default: 'high' },
 };
 
 /** A small Ollama: the endpoints the adapter uses, answering what the options say. */

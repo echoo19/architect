@@ -93,13 +93,13 @@ export class BudgetGuard {
   /**
    * Throws `GuardError('budget')` unless a mentor call that could cost up to `maxUsd` fits under
    * the dollar cap, and returns the authorized amount. A call whose price is unknown can't be
-   * checked, so it never starts.
+   * checked, so it never starts (decision 034).
    */
   authorizeMentorCall(maxUsd: number | null): number {
     if (maxUsd === null) {
       throw new GuardError(
         'budget',
-        "The mentor's price per token isn't known, so the dollar cap can't be enforced. Pick a mentor with a known price.",
+        "Architect doesn't know what the mentor costs, so it can't hold training to the spending cap. Enter the model's price per million tokens beside the mentor in the job's settings, or pick a model with a known price.",
       );
     }
     const left = this.budget.maxMentorUsd - this.usd;

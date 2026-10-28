@@ -1,14 +1,11 @@
 import {
+  PROVIDER_IDS,
+  PROVIDERS,
   STUDENT_PRESETS,
   type StudentConfig,
   type StudentEndpoint,
   type StudentPreset,
 } from '@architect/shared';
-
-/** Presets that run the student on someone else's servers during training. */
-export const HOSTED_PRESETS: readonly StudentPreset[] = STUDENT_PRESETS.filter(
-  (preset) => preset.runtime === 'openai_compatible',
-);
 
 export function presetOf(endpoint: StudentEndpoint): StudentPreset | undefined {
   return STUDENT_PRESETS.find(
@@ -16,30 +13,20 @@ export function presetOf(endpoint: StudentEndpoint): StudentPreset | undefined {
   );
 }
 
-/** "Together" for "Muse Glimmer on Together"; the host name for an endpoint with no preset. */
+/**
+ * "Together" for "Muse Glimmer on Together", the provider for another of its models, and the
+ * host name for an endpoint the user added.
+ */
 export function providerName(endpoint: StudentEndpoint): string {
   const named = presetOf(endpoint)?.label.match(/\son\s(.+)$/)?.[1];
   if (named) return named;
+  const provider = PROVIDER_IDS.find((id) => PROVIDERS[id].baseUrl === endpoint.baseUrl);
+  if (provider) return PROVIDERS[provider].label;
   try {
     return new URL(endpoint.baseUrl).hostname;
   } catch {
     return endpoint.baseUrl;
   }
-}
-
-/** The secret store's name for a provider's key: `together` for the Together preset. */
-function presetSecretRef(preset: StudentPreset): string {
-  return preset.key.split('-')[0] ?? preset.key;
-}
-
-export function hostedEndpoint(preset: StudentPreset, contextLength: number): StudentEndpoint {
-  return {
-    runtime: preset.runtime,
-    baseUrl: preset.baseUrl,
-    model: preset.model,
-    secretRef: presetSecretRef(preset),
-    contextLength,
-  };
 }
 
 /** Which keys are saved, as far as the app knows yet. */

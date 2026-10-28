@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Composer, Heading, IconButton, Spinner } from '@architect/ui';
-import { Cloud, Paperclip } from 'lucide-react';
+import { Cloud, Laptop, Paperclip } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { flowApi } from '../../api/client';
 import { queryKeys, useSettings } from '../../api/hooks';
 import { setQueryData } from '../../api/query';
-import { mentorName } from '../../lib/names';
+import { mentorIsLocal, mentorName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
 import { AttachedFile, isTaskFile } from './AttachedFile';
@@ -30,7 +30,13 @@ export function DescribeHero() {
   );
   const [creatingSample, setCreatingSample] = useState(false);
   const settings = useSettings();
-  const mentor = settings.status === 'success' ? mentorName(settings.data.defaultMentor) : null;
+  const mentor =
+    settings.status === 'success'
+      ? {
+          name: mentorName(settings.data.defaultMentor),
+          local: mentorIsLocal(settings.data.defaultMentor),
+        }
+      : null;
 
   const attach = async () => {
     const picked = await attempt("Couldn't open the file picker", () =>
@@ -81,9 +87,17 @@ export function DescribeHero() {
           trailing={
             mentor && (
               <span className="flex items-center gap-1.5 text-sm text-fg-muted">
-                <Cloud size={14} strokeWidth={1.6} aria-hidden />
-                {mentor}
-                <span className="sr-only">, in the cloud, reads what you send</span>
+                {mentor.local ? (
+                  <Laptop size={14} strokeWidth={1.6} aria-hidden />
+                ) : (
+                  <Cloud size={14} strokeWidth={1.6} aria-hidden />
+                )}
+                {mentor.name}
+                <span className="sr-only">
+                  {mentor.local
+                    ? ', on this computer, reads what you send'
+                    : ', in the cloud, reads what you send'}
+                </span>
               </span>
             )
           }

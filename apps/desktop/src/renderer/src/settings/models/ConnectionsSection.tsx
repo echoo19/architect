@@ -1,0 +1,132 @@
+import { useState } from 'react';
+import { PROVIDERS } from '@architect/shared';
+import { Button, IconButton, ProviderMark, SettingsRow, Spinner } from '@architect/ui';
+import { Cpu, ExternalLink, KeyRound, Plus, Trash2 } from 'lucide-react';
+import { api, architect } from '../../api/client';
+import { queryKeys } from '../../api/hooks';
+import { fetchQuery } from '../../api/query';
+import { attempt } from '../../lib/notify';
+import { AddKeyDialog } from './AddKeyDialog';
+import type { Connection } from './connections';
+import { forgetModelList } from './hooks';
+import { useOpenRouterSignIn } from './useSignIn';
+
+function statusOf(connection: Connection): string {
+  const { runtime } = connection;
+  if (runtime) {
+    if (!runtime.running) return connection.provider === 'ollama' ? 'Not running' : 'Not found';
+    const count = runtime.models.length;
+    const models = `${count} ${count === 1 ? 'model' : 'models'}`;
+    return runtime.version ? `Running · ${runtime.version} · ${models}` : `Running · ${models}`;
+  }
+  if (connection.provider === 'other') {
+    return connection.secretRef ? `${connection.baseUrl} · key saved` : connection.baseUrl;
+  }
+  return 'Connected';
+}
+
+async function forget(connection: Connection): Promise<void> {
+  await architect().connections.remove({
+    provider: connection.provider,
+    baseUrl: connection.baseUrl,
+  });
+  forgetModelList(connection.id);
+  await Promise.all([
+    fetchQuery(queryKeys.secrets, api.secretsStatus),
+    fetchQuery(queryKeys.settings, api.settings),
+  ]);
+}
+
+export interface ConnectionsSectionProps {
+  connections: readonly Connection[];
+  /** Whether the runtimes here are still being looked for. */
+  detecting: boolean;
+}
+
+/**
+ * Where models come from: keys and sign-ins for hosted providers, endpoints added by address,
+ * and the runtimes on this computer. Adding is two buttons; each row can be removed.
+ */
+export function ConnectionsSection({ connections, detecting }: ConnectionsSectionProps) {
+  const [adding, setAdding] = useState(false);
+  const signIn = useOpenRouterSignIn();
+  const signedIn = connections.some((connection) => connection.provider === 'openrouter');
+  const waiting = signIn.state.phase === 'waiting';
+
+  return (
+    <section aria-label="Connections" className="flex flex-col">
+      <h3 className="m-0 border-t border-line pb-2 pt-6 text-md font-medium">Connections</h3>
+      {connections.map((connection) => (
+        <SettingsRow
+          key={connection.id}
+          icon={
+            <ProviderMark
+              name={connection.label}
+              icon={connection.local ? <Cpu aria-hidden /> : undefined}
+            />
+          }
+          label={connection.label}
+          meta={statusOf(connection)}
+          metaFont={connection.provider === 'other' ? 'code' : 'text'}
+        >
+          {connection.runtime ? (
+            !connection.runtime.running &&
+            connection.provider === 'ollama' && (
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() =>
+                  void attempt("Couldn't open the page", () =>
+                    architect().app.openProviderPage('ollama'),
+                  )
+                }
+              >
+                <ExternalLink size={13} aria-hidden />
+                Get Ollama
+              </Button>
+            )
+          ) : (
+            <IconButton
+              label={`Remove ${connection.label}`}
+              size="sm"
+              onClick={() =>
+                void attempt(`Couldn't remove ${connection.label}`, () => forget(connection))
+              }
+            >
+              <Trash2 size={15} strokeWidth={1.7} aria-hidden />
+            </IconButton>
+          )}
+        </SettingsRow>
+      ))}
+      {detecting && (
+        <div className="flex min-h-[60px] items-center gap-2.5 border-t border-line text-fg-muted">
+          <Spinner size={13} />
+          Looking for models on this computer
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
+        {!signedIn && (
+          <Button size="sm" loading={waiting} onClick={() => void signIn.start()}>
+            {!waiting && <KeyRound size={14} aria-hidden />}
+            {waiting ? 'Waiting for your browser' : `Sign in with ${PROVIDERS.openrouter.label}`}
+          </Button>
+        )}
+        {waiting && (
+          <Button size="sm" variant="ghost" onClick={signIn.cancel}>
+            Cancel
+          </Button>
+        )}
+        <Button size="sm" onClick={() => setAdding(true)}>
+          <Plus size={14} aria-hidden />
+          Add API key
+        </Button>
+      </div>
+      {signIn.state.phase === 'failed' && (
+        <p role="alert" className="m-0 pt-3 text-sm text-danger text-pretty">
+          {signIn.state.message}
+        </p>
+      )}
+      <AddKeyDialog open={adding} onOpenChange={setAdding} />
+    </section>
+  );
+}

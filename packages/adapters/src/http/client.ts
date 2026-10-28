@@ -64,13 +64,15 @@ export interface HttpClient {
     schema: S,
     request?: RequestOptions,
   ): Promise<z.output<S>>;
+  /** Sends a DELETE with a JSON body and resolves on a success status; any reply body is ignored. */
+  delete(path: string, body: unknown, request?: RequestOptions): Promise<void>;
   /** POSTs and resolves once the server has started answering with a success status. */
   openStream(path: string, body: unknown, request?: RequestOptions): Promise<StreamHandle>;
   /** Runs `operation` again after backoff while it fails with a retryable error. */
   withRetries<T>(operation: () => Promise<T>, signal?: AbortSignal): Promise<T>;
 }
 
-type Method = 'GET' | 'POST';
+type Method = 'GET' | 'POST' | 'DELETE';
 
 export function createHttpClient(options: HttpClientOptions): HttpClient {
   const { service } = options;
@@ -175,6 +177,18 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
     getJson: (path, schema, request = {}) => requestJson('GET', path, undefined, schema, request),
     postJson: (path, body, schema, request = {}) =>
       requestJson('POST', path, body, schema, request),
+    async delete(path, body, request = {}) {
+      const limit = request.timeoutMs ?? QUICK_TIMEOUT_MS;
+      const { response, guard } = await send('DELETE', path, body, request, {
+        headersMs: limit,
+        idleMs: limit,
+      });
+      try {
+        await readText(response, guard, limit);
+      } finally {
+        guard.close();
+      }
+    },
     async openStream(path, body, request = {}) {
       const { response, guard } = await send('POST', path, body, request, streamTimeouts);
       return {

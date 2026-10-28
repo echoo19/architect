@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { CheckerConfigSchema } from './checker';
 import { DataFileSchema } from './data';
+import { PROVIDER_IDS, TokenPricingSchema } from './models';
 
 export const JOB_FORMAT = 1;
 
@@ -22,16 +23,23 @@ export type Requirements = z.infer<typeof RequirementsSchema>;
 export const ReasoningEffortSchema = z.enum(['low', 'medium', 'high']);
 export type ReasoningEffort = z.infer<typeof ReasoningEffortSchema>;
 
+export const ProviderIdSchema = z.enum(PROVIDER_IDS);
+
 export const MentorConfigSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('model'),
-    provider: z.enum(['meta', 'baseten', 'modal', 'other']),
+    provider: ProviderIdSchema,
     label: z.string().min(1),
     baseUrl: z.url(),
     model: z.string().min(1),
     reasoningEffort: ReasoningEffortSchema.default('medium'),
-    /** Name of the key in the app's secret store. Never the key itself. */
-    secretRef: z.string().min(1),
+    /** Name of the key in the app's secret store. Never the key itself. None for a local model. */
+    secretRef: z.string().min(1).optional(),
+    /**
+     * The price the cap is kept with, when no preset knows it: OpenRouter's listed price when the
+     * model was chosen, or what the user entered for an endpoint they added.
+     */
+    pricing: TokenPricingSchema.optional(),
   }),
   z.object({
     kind: z.literal('coding_agent'),
@@ -48,6 +56,8 @@ export const StudentEndpointSchema = z.object({
   secretRef: z.string().min(1).optional(),
   /** Context window to request from the runtime (Ollama `num_ctx`). */
   contextLength: z.number().int().min(2048).max(262_144).default(16_384),
+  /** A hosted copy's price, when no preset knows it (OpenRouter lists one). */
+  pricing: TokenPricingSchema.optional(),
 });
 export type StudentEndpoint = z.infer<typeof StudentEndpointSchema>;
 

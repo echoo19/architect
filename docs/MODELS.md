@@ -1,6 +1,6 @@
 # Models
 
-Verified facts about the models Architect uses, with sources. Model ids appear in code only in `packages/shared/src/models.ts`, which mirrors this page. Last checked: 2026-10-27.
+Verified facts about the models Architect uses, with sources. Model ids appear in code only in `packages/shared/src/models.ts`, which mirrors this page. Last checked: 2026-10-28 for the mentors beyond Meta, the connections and the GPU-sized Glimmer build; 2026-10-27 for the rest.
 
 How to read this page:
 
@@ -18,11 +18,19 @@ How to read this page:
 | Mentor, cheaper (Meta may train on the content) | Meta Model API | `muse-spark-1.3-contributor` | `https://api.meta.ai/v1` | 1,048,576 | $0.10 / $0.002 / $0.20 |
 | Mentor, open weights, hosted | Baseten Model APIs | `meta-models/muse-spark-open-1026` (dated snapshot from Baseten's partner notes; public pages show `meta-models/muse-spark-open`) | `https://inference.baseten.co/v1` | 1,048,576 for the model; Baseten's served limit unverified | $1.25 / $0.15 / $4.25 |
 | Mentor, open weights, hosted | Modal Shared Endpoint | endpoint created from `meta-models/Muse-Spark-Open-816B-A42B`; request `model` comes from the dashboard | `https://inference.us-west.modal.direct/v1` (confirm in the dashboard) | 1,000,000 | $1.25 / $0.15 / $4.25 |
+| Mentor, other providers | OpenAI | `gpt-6.1-sol`, `gpt-6-luna` | `https://api.openai.com/v1` | not recorded | $2 / $0.10 / $10 and $0.10 / $0.01 / $0.50, more above 272K input tokens |
+| Mentor, other providers | Anthropic | `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5` | `https://api.anthropic.com/v1` | read from `GET /v1/models` | $4 / $0.20 / $20, $2 / $0.10 / $10, $0.10 / $0.01 / $0.50 (Haiku more above 100K) |
+| Mentor, other providers | Google Gemini, OpenAI-compatible endpoint | `gemini-3.1-pro-preview`, `gemini-3.5-flash-lite` | `https://generativelanguage.googleapis.com/v1beta/openai` | not recorded | $2 / $0.20 / $12 (more above 200K) and $0.30 / $0.03 / $2.50 |
+| Mentor, any of its models | OpenRouter | any id from `GET /models` | `https://openrouter.ai/api/v1` | listed per model | listed per model, saved with the mentor |
+| Mentor, on this computer | Ollama or LM Studio | any installed model | `http://127.0.0.1:11434` (`/v1` added) or `http://127.0.0.1:1234/v1` | per model | free |
 | Student, default | Ollama on this computer | `muse-glimmer:30b` | `http://127.0.0.1:11434` | tags say 128K; Ollama loads 4k by default under 24 GiB VRAM | local |
-| Student, fits a 12 GB GPU | llama.cpp with a 2-bit GGUF | `unsloth/Muse-Glimmer-30B-GGUF`, file `Muse-Glimmer-30B-UD-IQ2_XXS.gguf` (10.7 GB) | `http://127.0.0.1:8080/v1` | 131,072 | local |
+| Student, fits a 12 GB GPU | Ollama, a text-only model Architect makes from a 2-bit GGUF | `muse-glimmer:30b-iq2`, from `unsloth/Muse-Glimmer-30B-GGUF` file `Muse-Glimmer-30B-UD-IQ2_XXS.gguf` (10.7 GB) | `http://127.0.0.1:11434` | 131,072; Architect asks for 16,384 | local |
+| Student, fits a 12 GB GPU, by hand | llama.cpp with the same GGUF | `unsloth/Muse-Glimmer-30B-GGUF`, file `Muse-Glimmer-30B-UD-IQ2_XXS.gguf` (10.7 GB) | `http://127.0.0.1:8080/v1` | 131,072 | local |
 | Student, hosted, development | Together | `meta-models/Muse-Glimmer-30B` | `https://api.together.ai/v1` | 131,072 | $0.35 / $0.04 / $1.50 |
 | Student, hosted, development | OpenRouter | `meta/muse-glimmer-30b` | `https://openrouter.ai/api/v1` | 131,072 | $0.30 / $0.04 / $1.20 via DeepInfra, $0.35 / $0.04 / $1.50 via Together |
 | Student, hosted, development | DeepInfra | `meta-models/Muse-Glimmer-30B` | `https://api.deepinfra.com/v1/openai` | 131,072 | $0.30 / $0.04 / $1.20 |
+| Student with an adapter, on this computer | llama.cpp's `llama-server`, started by Architect with a GGUF from Ollama's store and the graduate's GGUF LoRA | the Ollama model's name, such as `muse-glimmer:30b-iq2` | `http://127.0.0.1:<port>/v1`, a port picked at each start | Architect asks for 16,384 | local |
+| Base the student's adapters are trained on | Hugging Face Hub, trained on Hugging Face Jobs | `meta-models/Muse-Glimmer-30B` (bf16), revision pinned per job | `https://huggingface.co` | 131,072 | compute, not tokens: one L40S at about $1.80 an hour (the owner's figure, unverified) |
 
 Fireworks lists `accounts/fireworks/models/muse-glimmer-30b` but marks serverless "Not Supported", so it is not a development endpoint without a dedicated deployment (see Muse Glimmer, hosted).
 
@@ -37,6 +45,7 @@ Sources for the table:
 - OpenRouter row: https://openrouter.ai/api/v1/models/meta/muse-glimmer-30b/endpoints, https://openrouter.ai/docs/quickstart.
 - DeepInfra row: https://deepinfra.com/meta-models/Muse-Glimmer-30B, https://docs.deepinfra.com/chat/overview.
 - Fireworks: https://fireworks.ai/models/fireworks/muse-glimmer-30b.
+- Other mentors and the GPU-sized build: the sections "Other mentors and connections" and "The GPU-sized build in Ollama" below.
 
 ## Meta Model API
 
@@ -366,6 +375,18 @@ POST http://127.0.0.1:11434/api/chat
 - Reasoning goes to `reasoning_content`; `--reasoning-format none` keeps it inline; `--reasoning-budget N` caps thinking tokens (named on the page, not demonstrated). Image input needs the `mmproj` file (downloaded automatically with `-hf`); `--no-mmproj` runs text only. Source: same.
 - Memory in Meta's example: Q4_K_M 17GB with the vision projector at 131,072 context uses 19.0 GiB (text model 15.6, projector 1.3, KV cache and compute buffers 2.1). Source: https://dev.meta.ai/docs/muse-glimmer/quantization
 
+### Adapters on llama.cpp, and the weights they are trained on
+
+Checked on this PC on 2026-10-28 without loading a model: the flags in build 10472's own help text (`llama-common.dll` and `llama-server-impl.dll`), the 2-bit build's GGUF header read with Architect's reader, and the uv cache's copies of the Python packages. Decisions 031 and 035 say how Architect uses them.
+
+- Build 10472 is commit `60eeeb6082c1126bb8bc72902c83123cd056811b` (tag `b10472` on GitHub). Its help text has `--lora FNAME` ("use comma-separated values to load multiple adapters"), `--lora-init-without-apply` ("load LoRA adapters without applying them (apply later via POST /lora-adapters)"), `--api-key-file` ("one per line"), `--sleep-idle-seconds` ("number of seconds of idleness after which the server will sleep"), `--no-webui`, `--offline`, `--threads`, `--threads-batch`, `--n-gpu-layers`, `--ctx-size`, `--parallel` and `--jinja`. Of a request's `lora` field it says "Each entry must have `id` and `scale` fields. Adapters not listed default to scale 0.0", and a change of adapters between requests is logged as "clearing cache for lora change".
+- `/health` answers without a key; a server started with a key refuses other requests without it ("Invalid API Key"). `GET /lora-adapters` lists the loaded adapters with their ids, paths and scales.
+- The 2-bit build's GGUF (`muse-glimmer:30b-iq2`, 10,746,373,152 bytes): version 3, 731 tensors, architecture `muse-glimmer`, 52 blocks, data from byte 13,113,888. Per block, in ggml order: `attn_q` and `attn_gate` [6656, 4096], `attn_k` and `attn_v` [6656, 256], `attn_output` [4096, 6656], `ffn_gate` and `ffn_up` [6656, 19968], `ffn_down` [19968, 6656]; `token_embd` and `output` [6656, 202048] in Q6_K. Its tensor types are F32, Q6_K, IQ2_XXS, IQ2_S, IQ3_XXS, IQ3_S, IQ4_XS and Q5_K.
+- A GGUF LoRA for it has `general.type` "adapter", `adapter.type` "lora" and `adapter.lora.alpha`, and for each adapted weight `<name>.lora_a` [n_in, r] and `<name>.lora_b` [r, n_out]. llama.cpp scales each pair by alpha / r.
+- Ollama 0.40.9 keeps models it makes under `manifests-v2/ollama.com/library/<model>/<tag>` and older pulls under `manifests/registry.ollama.ai/...`; each manifest's `application/vnd.ollama.image.model` layer names the GGUF blob `blobs/sha256-<hex>`.
+- Training base: `meta-models/Muse-Glimmer-30B`, Meta's bf16 checkpoint. transformers 5.15.0, 5.15.1 and 5.19.0 (the versions in this PC's cache) have it as model type `muse_glimmer`, loaded with `AutoModelForImageTextToText` as `MuseGlimmerForConditionalGeneration`. The text decoder's layers are `model.language_model.layers.<n>`, each with `self_attn.q_proj`, `k_proj`, `v_proj`, `o_proj` and `gate_proj` (the attention output gate) and `mlp.gate_proj`, `up_proj` and `down_proj`; the vision tower (`model.vision_tower`) has its own `q_proj`, `k_proj` and `v_proj`, which an adapter for the GGUF must leave alone. llama.cpp's converter maps the attention gate to `attn_gate`.
+- llama.cpp's `convert_lora_to_gguf.py` at that commit reads `lora_alpha` from `adapter_config.json`, needs only the base model's config (`--base`), writes f32, f16, bf16 or q8_0, and imports the `conversion` package and `gguf-py` from its own checkout. Its requirements pin transformers 4.57.6, numpy 1.26 and torch 2.11.0 (CPU), so it runs in an environment of its own. Source: https://github.com/ggml-org/llama.cpp/blob/60eeeb6082c1126bb8bc72902c83123cd056811b/convert_lora_to_gguf.py
+
 ### vLLM and SGLang
 
 These need far more than 12 GB. They are for a rented GPU.
@@ -417,6 +438,30 @@ Quality, as stated by each source:
 - AtomicChat (uploader-reported, measured against its own BF16 GGUF, not replicated; its files are sized differently from the others: 9.31, 11.16, 12.22, 14.92 and 19.06 GB). Mean KL divergence on agentic dialogue with tool calls, lower is better: Q4_K_M 0.065 (96.4% top-1 agreement), IQ3_M 0.121 (94.7%), IQ3_XXS 0.168 (92.9%), IQ2_M 0.236 (92.0%), IQ2_XXS 0.333 (87.9%). Source: https://huggingface.co/AtomicChat/Muse-Glimmer-30B-GGUF
 - No source measures tool-calling pass rate at 2- or 3-bit. The sample job is the real test.
 
+### The GPU-sized build in Ollama
+
+Architect offers two builds of Glimmer and recommends the largest that runs entirely on the GPU it finds.
+
+| Build | Ollama name | Comes from | Download | On disk | GPU memory at a 16K context |
+| --- | --- | --- | --- | --- | --- |
+| 4-bit (default) | `muse-glimmer:30b` | the Ollama library | 18,157,010,252 bytes | the same | about 19.5 GB (estimated from the file; 7 GB spill on a 12 GB card, `docs/GOTCHAS.md`) |
+| 2-bit, for a 12 GB card | `muse-glimmer:30b-iq2` | `hf.co/unsloth/Muse-Glimmer-30B-GGUF:UD-IQ2_XXS` | 14,595,546,880 bytes | 10,746,373,364 bytes | 9,928,945,171 bytes, all of it on the GPU (`/api/ps`, measured on the 12 GB card) |
+
+How Architect installs the 2-bit build, with Ollama 0.40.x:
+
+1. `POST /api/pull` of `hf.co/unsloth/Muse-Glimmer-30B-GGUF:UD-IQ2_XXS`. A GGUF pulled this way runs on the chat template inside the file, not on the `glimmer` renderer and parser that split out tool calls and thinking for the library build (open question 5).
+2. `POST /api/show` on the pulled model, and the weights' digest from the first `FROM` line of its Modelfile.
+3. `POST /api/create` with `{"model": "muse-glimmer:30b-iq2", "files": {"model.gguf": "sha256:<digest>"}, "renderer": "glimmer", "parser": "glimmer", "parameters": {"temperature": 1, "top_k": 64, "top_p": 0.95}, "stream": false}`. This makes a text-only model from the weights alone, with the same renderer and parser as the library build and Meta's sampling.
+4. `DELETE /api/delete` of the pulled model, which leaves the 10.7 GB of weights under the new name.
+
+Checked live on 2026-10-28 with Ollama 0.40.9: `/api/create` with only `files`, `renderer` and `parser` returned success in 0.34 s, and `/api/show` on the result listed renderer and parser `glimmer`, capabilities `completion`, `tools` and `thinking` (no `vision`), and a Modelfile that starts from the weights only. That check made and deleted a temporary model; the install as a whole is covered by fakes, not run end to end, because GPU work was paused that day. `files` and `parameters` are documented at https://github.com/ollama/ollama/blob/main/docs/api.md#create-a-model; `renderer` and `parser` are confirmed only by that check.
+
+How Architect decides what fits:
+
+- The GPU comes from `nvidia-smi --query-gpu=name,memory.total --format=csv,noheader,nounits` (the card with the most memory), or on Apple silicon from 70 percent of the computer's memory, a little under the two thirds to three quarters macOS is said to let the GPU use (unverified). Nothing else is detected; without a reading Architect shows no fit and recommends the 4-bit build.
+- 0.9 GB stays back for the driver and the display. A model fits when its GPU memory is at most the card's memory less that.
+- A loaded model's fit comes from Ollama's own `size` and `size_vram` in `GET /api/ps`. A model that isn't loaded is estimated from its file size plus 0.7 GB for a 16K context and working memory, or from the table above for Glimmer's builds.
+
 ### Hosted, for development
 
 | Provider | Id | Context | Price in / cached / out | Notes |
@@ -432,6 +477,85 @@ Sources: https://docs.together.ai/docs/serverless-models, https://dev.meta.ai/do
 - Together returns reasoning in `reasoning` or `reasoning_content` depending on the model. Source: https://docs.together.ai/docs/openai-api-compatibility
 - A hosted Glimmer is a stand-in for the local one during development. Its quantization differs from the local Q4_K_M (Together serves FP8, DeepInfra bf16), so pass rates will not match exactly.
 
+## Other mentors and connections
+
+Meta stays the default. Every mentor below goes through the same loop, budget gate and lineage; only the request wording differs. Ids and prices live in `packages/shared/src/models.ts`.
+
+### Connections and keys
+
+- A hosted provider's key is stored encrypted under the provider's name and sent only to that provider's hosts, over HTTPS. A key for an endpoint the user adds by address is stored as `custom:<host[:port]>` and sent only to that exact host and port; plain HTTP is allowed only to this computer.
+- Main checks a key before storing it: OpenRouter's `GET /key`, then the provider's model list. A refused key (401 or 403) is not stored. A list that is missing or unreadable doesn't block the key, since some OpenAI-compatible servers have no `/models`.
+- Model lists: Anthropic's paged `GET /v1/models`, OpenRouter's public `GET /api/v1/models` (no key sent), Ollama's `GET /api/tags`, and `GET /models` for every other connection. Ids that are plainly not chat models (embeddings, speech, images and the like) are dropped; Gemini's `models/` prefix is removed. Presets come first and any typed id is allowed.
+- On this computer, Ollama (`http://127.0.0.1:11434`) and LM Studio (`http://127.0.0.1:1234/v1`) are looked for with a short timeout, and Ollama's `GET /api/ps` says which models are loaded and how much of each is on the GPU.
+
+### OpenAI
+
+| Id | Price in / cached / out | Above 272K input tokens |
+| --- | --- | --- |
+| `gpt-6.1-sol` | $2 / $0.10 / $10 | $4 / $0.20 / $15 |
+| `gpt-6-luna` | $0.10 / $0.01 / $0.50 | $0.20 / $0.02 / $0.75 |
+
+Chat Completions on `https://api.openai.com/v1`, with the `developer` role, `max_completion_tokens`, `prompt_cache_key`, and `reasoning_effort` for reasoning models. Replies are held to the loop's schema with `response_format` `json_schema`, `strict: true` when the schema fits OpenAI's strict subset. Sources: https://developers.openai.com/api/docs/pricing, https://platform.openai.com/docs/pricing.
+
+### Anthropic
+
+| Id | Price in / cache read / out | Above 100K input tokens |
+| --- | --- | --- |
+| `claude-opus-5-5` | $4 / $0.20 / $20 | |
+| `claude-sonnet-5-5` | $2 / $0.10 / $10 | |
+| `claude-haiku-5-5` | $0.10 / $0.01 / $0.50 | $0.50 / $0.05 / $2.50 |
+
+Its own adapter on the Messages API, `https://api.anthropic.com/v1/messages`, with `x-api-key` and `anthropic-version: 2026-10-21`, streamed. The model's entry in `GET /v1/models/{id}`, read once, says what it takes: `capabilities.structured_outputs` and `capabilities.effort`. With structured outputs the reply is held to the schema by `output_config.format` (`json_schema`); a model without them gets a forced tool call (`tool_choice` of type `tool`), and a schema structured outputs can't express goes in the prompt with one repair call. `output_config.effort` is sent only to models whose entry lists it. A refusal (`stop_reason: "refusal"`) ends the call as blocked, with what it cost counted. Sources: https://platform.claude.com/docs/en/about-claude/pricing, https://platform.claude.com/docs/en/models/overview, https://platform.claude.com/docs/en/api/versioning, https://platform.claude.com/docs/en/api/migration-2026-10-21, https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback.
+
+### Google Gemini
+
+| Id | Price in / cached / out | Above 200K input tokens |
+| --- | --- | --- |
+| `gemini-3.1-pro-preview` | $2 / $0.20 / $12 | $4 / $0.40 / $18 |
+| `gemini-3.5-flash-lite` | $0.30 / $0.03 / $2.50 | |
+
+Through Google's OpenAI-compatible endpoint, `https://generativelanguage.googleapis.com/v1beta/openai`, with the `system` role, `max_tokens`, `reasoning_effort`, and `response_format` `json_schema`. Sources: https://ai.google.dev/gemini-api/docs/openai, https://ai.google.dev/gemini-api/docs/pricing.
+
+### OpenRouter
+
+- Any model in its catalogue. `GET /api/v1/models` is public and gives prices per token; Architect converts them to per million, takes the highest of a model's time-of-day prices, and treats a `min_prompt_tokens` price as the long-prompt rate.
+- The listed price is saved with the mentor and sent with every call as `provider.max_price`, so OpenRouter can't route to a provider that charges more than the spending cap was computed at. When a reply reports `usage.cost`, that is the amount charged against the cap. Sources: https://openrouter.ai/docs/guides/routing/provider-selection, https://openrouter.ai/docs/guides/guides/usage-accounting.
+- Reasoning is set with `reasoning: {"effort": ...}`. The schema goes in `response_format` and in the prompt too, because OpenRouter passes `response_format` only to providers that support it.
+- Requests carry `HTTP-Referer` and `X-Title` so OpenRouter can credit the app.
+- Sign in with OpenRouter uses its PKCE flow for apps with no server. Main opens `https://openrouter.ai/auth?callback_url=http://127.0.0.1:<port>/callback&code_challenge=<S256 of a random verifier>&code_challenge_method=S256&state=<random>&key_label=Architect` in the system browser and listens once on 127.0.0.1 for the callback. OpenRouter documents `callback_url` as taking "localhost/127.0.0.1 URLs on any port", and returns `state` unchanged when the user approves (not when they decline), so a callback with another `state` is ignored and one with no `code` counts as declined. The code is exchanged with `POST https://openrouter.ai/api/v1/auth/keys` (`code`, `code_verifier`, `code_challenge_method`), and the key that comes back is stored like a pasted one. Codes expire after 10 minutes, which is also how long Architect waits. Sources: https://openrouter.ai/docs/use-cases/oauth-pkce, https://openrouter.ai/docs/guides/overview/auth/oauth.md, https://www.openrouter.ai/docs/api/api-reference/oauth/create-authorization-code.md, https://openrouter.ai/docs/api/api-reference/o-auth/exchange-auth-code-for-api-key.md.
+
+### Other OpenAI-compatible services
+
+Groq, Together, DeepInfra and Fireworks have named connections; anything else (a vLLM server, another host) is added by its address. These get the `system` role, `max_tokens` (Groq: `max_completion_tokens`), no reasoning control, and the schema in the prompt with one repair call. None has preset mentor prices, so a model from one needs a price entered before training (decision 034). Groq keeps the schema in the prompt because its Chat Completions can't stream a reply held to a schema (unverified; not checked live, no key).
+
+### Models on this computer
+
+Ollama's OpenAI-compatible endpoint (`/v1` under its usual address) and LM Studio's both take `response_format` `json_schema`. They need no key, cost nothing, and count as free against the spending cap. A mentor on this computer runs only while training; a graduate never calls any mentor (invariant 3).
+
+### Students beyond Glimmer
+
+- Any Ollama model, listed with its size and whether it fits the GPU, or pulled by name. `think` is sent as a level only where `POST /api/show` lists that level under `thinking`, as `true` for models that think but list no levels, and not at all for models without the `thinking` capability.
+- Any OpenAI-compatible server on this computer (LM Studio, llama.cpp, vLLM). A graduate runs only on loopback addresses.
+- A hosted copy for faster practice from OpenRouter, Together, DeepInfra, Groq, Fireworks or an added endpoint. OpenRouter's listed price is saved with it for the estimates. Groq is sent tool messages without a `name` field, which it is said to reject (unverified). The locked test and every chat still run on this computer.
+
+### Live checks, 2026-10-28
+
+One small call per adapter with a real key (keys from the owner's store, never printed), each asked for a short JSON object and checked against the schema.
+
+| Mentor | Model | Result | Time | Tokens in / out | Cost |
+| --- | --- | --- | --- | --- | --- |
+| Meta, contributor tier | `muse-spark-1.3-contributor` | JSON matched | 1,820 ms | 65 / 183 (169 reasoning) | $0.000043 |
+| OpenAI | `gpt-6-luna` | JSON matched | 7,813 ms | 47 / 11 | $0.000010 |
+| Anthropic, structured outputs | `claude-haiku-5-5` | JSON matched | 930 ms | 217 / 9 | $0.000026 |
+| Anthropic, forced tool call (capabilities overridden to force that path) | `claude-haiku-5-5` | JSON matched | | 524 / 33 | $0.000069 |
+| Google Gemini | `gemini-3.5-flash-lite` | JSON matched | 748 ms | 15 / 9 | $0.000027 |
+| OpenRouter, a free model (the account has no credit) | `nvidia/nemotron-3.5-super-vl:free` | JSON matched | 1,387 ms | 113 / 96 | $0 reported |
+| Ollama on this computer, through `/v1` | `granite4.2:8b` | JSON matched | 21.6 s, including loading the model | | free |
+
+A student chat on `granite4.2:8b` through Ollama with `think: true` answered in 670 ms with 40 reasoning tokens; the model was unloaded at once (`keep_alive: 0`) and `GET /api/ps` was empty afterwards. Model lists read the same day: Meta 7, OpenAI 83, Anthropic 14, Gemini 26, OpenRouter 448 (441 with prices), Ollama 9.
+
+Not checked live: the OpenRouter sign-in in a real browser (unit tests cover the PKCE values, the callback, the exchange, cancel and timeout), LM Studio (not installed here), Groq, Together, DeepInfra and Fireworks as mentors (no keys), OpenRouter's paid models (no credit), and the GPU-sized build's full install (fakes only, while GPU work is paused).
+
 ## Adapter configuration notes
 
 ### What each adapter needs
@@ -446,6 +570,13 @@ Sources: https://docs.together.ai/docs/serverless-models, https://dev.meta.ai/do
 | Together (student, development) | `https://api.together.ai/v1` | `meta-models/Muse-Glimmer-30B` | `Authorization: Bearer <key>` | Chat Completions |
 | OpenRouter (student, development) | `https://openrouter.ai/api/v1` | `meta/muse-glimmer-30b` | `Authorization: Bearer <key>`; optional `HTTP-Referer` and `X-OpenRouter-Title` | Chat Completions |
 | DeepInfra (student, development) | `https://api.deepinfra.com/v1/openai` | `meta-models/Muse-Glimmer-30B` | `Authorization: Bearer <key>` | Chat Completions |
+| OpenAI (mentor) | `https://api.openai.com/v1` | `gpt-6.1-sol`, `gpt-6-luna`, or any listed id | `Authorization: Bearer <key>` | Chat Completions |
+| Anthropic (mentor) | `https://api.anthropic.com/v1` | `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`, or any listed id | `x-api-key: <key>` and `anthropic-version: 2026-10-21` | Messages, streamed |
+| Google Gemini (mentor) | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-3.1-pro-preview`, `gemini-3.5-flash-lite`, or any listed id | `Authorization: Bearer <key>` | Chat Completions |
+| OpenRouter (mentor, or hosted student) | `https://openrouter.ai/api/v1` | any id from `GET /models` | `Authorization: Bearer <key>`, with `HTTP-Referer` and `X-Title` | Chat Completions |
+| Added endpoint (mentor, or hosted student) | the address entered | any id | `Authorization: Bearer <key>` when it has a key | Chat Completions |
+| Ollama (mentor) | `http://127.0.0.1:11434`, with `/v1` added | any installed model | none | Chat Completions |
+| LM Studio (mentor or student) | `http://127.0.0.1:1234/v1` | any loaded model | none | Chat Completions |
 
 Sources: the sections above.
 
@@ -492,7 +623,7 @@ Sources: the sections above.
 2. Does `reasoning_effort: "max"` work on `muse-spark-1.3` Chat Completions? Meta's guide and schema disagree.
 3. Does Ollama `think: false` reduce Glimmer's generated tokens, or only hide them? One local run comparing `eval_count` with `think: false` and `think: "low"` answers it. Not done; this research was web-only.
 4. What does `think: "max"` do on Ollama, and does Glimmer treat "max" as `xhigh`? Until measured, `high` is the top level to use.
-5. Does tool calling and thinking separation work for a 2-bit GGUF imported into Ollama from Hugging Face, without the official `glimmer` renderer and parser? llama.cpp with `--jinja` is the route the uploaders and Meta document.
+5. Does tool calling and thinking separation work for a 2-bit GGUF imported into Ollama from Hugging Face, without the official `glimmer` renderer and parser? llama.cpp with `--jinja` is the route the uploaders and Meta document. Architect sidesteps it: its GPU-sized build is made with the `glimmer` renderer and parser (see "The GPU-sized build in Ollama"), and Ollama reports `tools` and `thinking` for it.
 6. Tool-calling quality below 4-bit has no published number except one uploader's KL divergence table. Run the sample job on the 10 to 11 GB files before adopting one, and measure real VRAM and speed on the 12 GB card.
 7. Parallel tool calls on Glimmer: Meta's prompting page says unsupported; the template and cookbook render several. Which does the harness need?
 8. Spark Open license: read the gated `LICENSE.md`. Does choosing Spark Open as mentor in Architect trigger the "Built with Muse Spark Open" display requirement?
@@ -502,3 +633,7 @@ Sources: the sections above.
 12. Fireworks: the model page says serverless is gone for Glimmer, but a tracker listed it in August. Check `GET https://api.fireworks.ai/inference/v1/models` with a key before ruling it out.
 13. Together's Glimmer output cap: 32,768 (Meta's page) or 117,964 (OpenRouter's listing)? Use 32,768 until known. Together's docs use `api.together.ai`; Meta's page uses `api.together.xyz`.
 14. Muse Spark 1.3 audio: Meta says quality may be degraded and suggests 1.2. Architect's current page lists audio as input without that caveat.
+15. Groq, Together, DeepInfra and Fireworks as mentors have had no live call (no keys). Do any of them hold replies to a schema well enough to move them off the prompt-and-repair path?
+16. LM Studio has had no live call (not installed on the development machine).
+17. The OpenRouter sign-in has been tested against a fake OpenRouter only. Click through it once with a real account.
+18. The GPU-sized build has been installed end to end only with fakes. Run the real install once GPU work is back on, then the sample job on it (open question 6).

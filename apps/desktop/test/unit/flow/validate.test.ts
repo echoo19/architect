@@ -65,6 +65,27 @@ describe('validateJob', () => {
     );
   });
 
+  it('needs a price for a mentor the app has none for', () => {
+    const job = makeJob();
+    const mentor = {
+      kind: 'model' as const,
+      provider: 'other' as const,
+      label: 'My model',
+      baseUrl: 'https://models.example.com/v1',
+      model: 'my-model',
+      reasoningEffort: 'medium' as const,
+      secretRef: 'custom:models.example.com',
+    };
+    expect(validateJob({ ...job, mentor }, null)['mentor.pricing']).toBe(
+      'Enter what this model costs, so training can keep to the spending cap.',
+    );
+    const pricing = { inputPerM: 1, cachedInputPerM: 1, outputPerM: 4 };
+    expect(validateJob({ ...job, mentor: { ...mentor, pricing } }, null)).toEqual({});
+    const here = { ...mentor, provider: 'ollama' as const, baseUrl: 'http://127.0.0.1:11434' };
+    const { secretRef: _none, ...keyless } = here;
+    expect(validateJob({ ...job, mentor: keyless }, null)).toEqual({});
+  });
+
   it('keeps the dev repeats between one and three', () => {
     const job = makeJob();
     for (const devRepeats of [0, 4, 1.5]) {

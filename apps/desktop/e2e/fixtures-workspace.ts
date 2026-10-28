@@ -1,17 +1,19 @@
-import type {
-  AgentBlock,
-  AgentStep,
-  ConnectionTest,
-  StepView,
-  GraduateSettings,
-  GraduateSummary,
-  Job,
-  OllamaStatus,
-  PullProgress,
-  ReportCard,
-  WorkspaceChat,
-  WorkspaceEvent,
-  WorkspaceMessage,
+import {
+  GLIMMER_BUILDS,
+  type AgentBlock,
+  type AgentStep,
+  type ConnectionTest,
+  type GpuInfo,
+  type GraduateSettings,
+  type GraduateSummary,
+  type Job,
+  type OllamaStatus,
+  type PullProgress,
+  type ReportCard,
+  type StepView,
+  type WorkspaceChat,
+  type WorkspaceEvent,
+  type WorkspaceMessage,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
 import { AT, graduate, job, storyReport } from './story';
@@ -298,6 +300,10 @@ export interface EngineSeed {
   job: Job;
   report: ReportCard;
   ollama: OllamaStatus;
+  /** This computer's GPU, as `connections.detectLocal` reports it. */
+  gpu: GpuInfo | null;
+  /** The model each of Glimmer's builds installs as. */
+  builds: Record<string, string>;
   connection: ConnectionTest;
   /** What the folder picker returns. */
   folder: string;
@@ -312,6 +318,8 @@ export function engineSeed(patch: Partial<EngineSeed> = {}): EngineSeed {
     job,
     report: storyReport,
     ollama: { running: true, version: '0.12.6', models: [] },
+    gpu: null,
+    builds: Object.fromEntries(GLIMMER_BUILDS.map((build) => [build.key, build.model])),
     connection: { ok: true, latencyMs: 640, detail: 'muse-spark-1.3' },
     folder: 'C:\\Users\\dana\\Exports',
     ...patch,
@@ -433,20 +441,33 @@ export async function installFakeEngine(app: ElectronApplication, seed: EngineSe
       if (decision === 'always') settings = { ...settings, writeMode: 'allow' };
     });
     handle('ollama:status', () => ollama);
-    handle(
-      'ollama:pull',
-      (model: string) =>
-        new Promise<void>((resolve) => {
-          finishPull = () => {
-            ollama.models.push({
-              name: model,
-              sizeBytes: 18 * 1024 ** 3,
-              digest: 'sha256-glimmer',
-            });
-            resolve();
-          };
-        }),
-    );
+    const download = (model: string) =>
+      new Promise<void>((resolve) => {
+        finishPull = () => {
+          ollama.models.push({
+            name: model,
+            sizeBytes: 18 * 1024 ** 3,
+            digest: 'sha256-glimmer',
+          });
+          resolve();
+        };
+      });
+    handle('ollama:pull', (model: string) => download(model));
+    handle('ollama:install', (build: string) => {
+      const model = seed.builds[build];
+      if (!model) throw new Error(`No build ${build}.`);
+      return download(model);
+    });
+    handle('connections:detectLocal', () => ({
+      ollama: {
+        running: ollama.running,
+        ...(ollama.version === undefined ? {} : { version: ollama.version }),
+        baseUrl: 'http://127.0.0.1:11434',
+        models: ollama.models.map((model) => ({ id: model.name, sizeBytes: model.sizeBytes })),
+      },
+      lmstudio: { running: false, baseUrl: 'http://127.0.0.1:1234/v1', models: [] },
+      gpu: seed.gpu,
+    }));
     handle('secrets:status', () => ({ ...secrets }));
     handle('secrets:set', (ref: string) => {
       secrets[ref] = true;

@@ -39,13 +39,14 @@ export async function connectMentor(
   deps: Pick<LoopDeps, 'adapters' | 'secrets'>,
   job: Job,
 ): Promise<MentorAdapter> {
-  if (job.mentor.kind !== 'model') {
+  const { mentor } = job;
+  if (mentor.kind !== 'model') {
     throw new Error('Coding-agent mentors are not supported yet; pick a model mentor.');
   }
-  guardKeyDestination(job.mentor.secretRef, job.mentor.baseUrl);
-  return deps.adapters.createMentor(job.mentor, {
-    apiKey: await secret(deps, job.mentor.secretRef),
-  });
+  // A model on this computer, or an endpoint that takes no key, is reached without one.
+  if (mentor.secretRef === undefined) return deps.adapters.createMentor(mentor, {});
+  guardKeyDestination(mentor.secretRef, mentor.baseUrl);
+  return deps.adapters.createMentor(mentor, { apiKey: await secret(deps, mentor.secretRef) });
 }
 
 /** Stops a job file from sending a stored key to a host outside the key's own service. */

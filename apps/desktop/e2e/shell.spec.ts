@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
-import { stubEngine, stubEngineFailure } from './fixtures';
+import { NOTHING_LOCAL, stubEngine, stubEngineFailure } from './fixtures';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -110,7 +110,7 @@ test('finishes setup and shows an error state with a retry when agents fail to l
     'graduates:list': "The engine isn't connected yet, so graduates.list can't run.",
   });
   // The real Ollama on the machine running the tests would change the first step.
-  await stubEngine(launched.app, { 'ollama:status': { running: false, models: [] } });
+  await stubEngine(launched.app, { 'connections:detectLocal': NOTHING_LOCAL });
   await page.reload();
   await settle(page);
   // Both setup steps can wait; the model and the mentor can be set up later.

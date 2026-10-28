@@ -8,6 +8,7 @@ import {
 import {
   capitalized,
   mentorIntro,
+  mentorIsLocal,
   quantizationLabel,
   shortModelName,
   studentIntro,
@@ -23,6 +24,28 @@ import {
 } from '../../../src/renderer/src/lib/platform';
 
 describe('model names', () => {
+  it('knows a mentor on this computer from one in the cloud', () => {
+    const mentor = {
+      kind: 'model' as const,
+      provider: 'meta' as const,
+      label: 'Muse Spark 1.3',
+      baseUrl: 'https://api.meta.ai/v1',
+      model: 'muse-spark-1.3',
+      reasoningEffort: 'medium' as const,
+      secretRef: 'meta',
+    };
+    expect(mentorIsLocal(mentor)).toBe(false);
+    expect(
+      mentorIsLocal({ ...mentor, provider: 'ollama', baseUrl: 'http://127.0.0.1:11434/v1' }),
+    ).toBe(true);
+    expect(
+      mentorIsLocal({ ...mentor, provider: 'other', baseUrl: 'http://localhost:8080/v1' }),
+    ).toBe(true);
+    expect(
+      mentorIsLocal({ ...mentor, provider: 'other', baseUrl: 'https://llm.example.com/v1' }),
+    ).toBe(false);
+  });
+
   it('shortens preset labels to the names the UI uses', () => {
     expect(shortModelName('Muse Spark 1.3')).toBe('Spark');
     expect(shortModelName('Muse Spark 1.3, contributor tier')).toBe('Spark');

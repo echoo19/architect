@@ -15,7 +15,7 @@ The owner's Expanded Implementation Spec (`docs/SPEC_EXPANSION.md`, Oct 28) gove
 
 1. **Runtime v2, a coding-agent harness** (decision 030). Built-in tools `read`, `ls`, `glob`, `grep`, `write`, `edit`, `append` and `run` (JavaScript in the QuickJS sandbox, no network). `AGENTS.md` instructions, `skills/<name>/SKILL.md` read on demand, helpers as typed sandboxed tools, logical paths (`data/`, `output/`) bound per installation. One loop for evaluation, the workspace and the CLI.
 2. **Versions and records.** Graduate versions with parents, candidate apart from active, atomic promotion and rollback (adapter and harness together), versioned job contracts, sessions that record their version; lessons, interventions and experiments; installations and publications.
-3. **Local adapter backend and training worker** (decisions 031, 033). `llama-server` process management, an adapter-aware student, a dataset builder from verified lessons (assistant turns only), a pinned QLoRA recipe, a remote backend once configured, durable job ids, compute accounting. A labeled stand-in backend serves tests and never counts toward A01.
+3. **Local adapter backend and training worker** (decisions 031, 033, 035). `llama-server` process management, an adapter-aware student, a dataset builder from verified lessons (assistant turns only), a pinned QLoRA recipe, a remote backend once configured, durable job ids, compute accounting. A labeled stand-in backend serves tests and never counts toward A01. Built and tested against fakes on Oct 28 (decision 035); the desktop wiring and a real job are still to do.
 4. **Failure-specific mentoring.** Replay checkpoints after whole tool batches, with the original inputs and starting tables kept; Spark names the failure point, the evidence and one intervention from the menu; a correction runs from the checkpoint through the same tools without expected values, and the checker verifies the outcome and that nothing else was written; verified lessons; related practice from other train tasks of the same category; per-category caps.
 5. **Intervention menu.** Structured proposals (hypothesis, category, capability, change, expected effect, estimated cost, verification plan) that the runner validates; harness and adapter candidates measured apart, and a combined candidate measured again.
 6. **Teach this and Improve agent.** A correction becomes a proposed lesson (classified), then joins the queue; an improvement run makes a candidate version; the user promotes it.
@@ -28,7 +28,7 @@ The owner's Expanded Implementation Spec (`docs/SPEC_EXPANSION.md`, Oct 28) gove
 
 | Priority | Requirement | Status | Evidence |
 | --- | --- | --- | --- |
-| P0 | Working local student, real adapter training and loading, independent evaluation | blocked on training compute; local loading verified with a probe adapter | Day-1 findings |
+| P0 | Working local student, real adapter training and loading, independent evaluation | built: the adapter runtime, a llama.cpp student, the dataset builder, the pinned recipe, the training worker and its Hugging Face Jobs backend; blocked on training compute for a real adapter; local loading verified with a probe adapter | Day-1 findings; decision 035; `packages/engine/test/{gguf,local-runtime,training-dataset,trainer-recipe,training-worker,hf-jobs}.test.ts`, `packages/adapters/test/student/llamacpp.test.ts`; the GGUF reader read the real 2-bit blob (731 tensors, sizes ending at the file's last byte) and passed the probe adapter llama-server had loaded |
 | P1 | Failure-specific teaching with replay and verified corrections | not started; traces now capture what replay needs | Decision 030, as built |
 | P1 | Bounded selection between retrieval, procedure, helper and weight interventions | not started | |
 | P1 | Evidence-based apprenticeship UI | not started | |
@@ -43,7 +43,7 @@ The owner's Expanded Implementation Spec (`docs/SPEC_EXPANSION.md`, Oct 28) gove
 
 | ID | Requirement (short) | Status | Evidence |
 | --- | --- | --- | --- |
-| A01 | Real LoRA trained, loaded and used on the local configuration | blocked: no training compute | |
+| A01 | Real LoRA trained, loaded and used on the local configuration | blocked: no training compute (needs a Hugging Face token with Jobs access); every step up to a job is built and tested against fakes, and the stand-in backend is kept out of this gate (`countsAsRealTraining`) | decision 035; `packages/engine/test/hf-jobs.test.ts`, `training-worker.test.ts`, `local-runtime.test.ts` |
 | A02 | A failure yields a replayable or full-task correction that passes the checker | not started | |
 | A03 | Harness and weight changes evaluated apart; a harmful one rejected, the prior version still usable | not started | |
 | A04 | A user correction enters the queue, respects data sharing, makes a candidate without touching the active model | not started | |
