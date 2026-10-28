@@ -104,7 +104,7 @@ export function Meter({
         <div
           aria-hidden
           className="absolute -top-1 h-3 w-0.5 rounded-sm bg-mentor"
-          style={{ left: `calc(${clamp(marker) * 100}% - 1px)` }}
+          style={{ left: `clamp(0px, calc(${clamp(marker) * 100}% - 1px), calc(100% - 2px))` }}
         />
       )}
     </div>
