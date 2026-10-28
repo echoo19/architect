@@ -2,6 +2,14 @@
 
 Things that bit us, and how to avoid them. Newest first.
 
+## A loading llama-server answers "Loading model" before it checks any key
+
+While llama-server loads its model, it answers API requests with 503 and "Loading model" before it checks the API key. So a server can't prove it is the one a record names until it has loaded. Code that stops a server a dead process left behind (`stopServerLeftIn`) takes a 503 "Loading model" on the recorded port, from the recorded process, as that server, or a holder that died mid-start would leave a 10 GB load running beside the next one. The stand-in llama-server answers the same way.
+
+## On Windows a child process dies with its parent; elsewhere it doesn't
+
+Node (libuv) puts every child it spawns on Windows into a job object that closes with the parent, unless the child is detached, so a llama-server goes when the app or the command that started it is killed. On macOS and Linux it outlives its parent and keeps the GPU until something stops it. The GPU lease stops a server that a dead holder left running before anyone else takes the GPU (decision 046), and a test that kills a holder can't expect its server to still be running afterwards on every platform: `gpu-lease.test.ts` leaves a server running on purpose to test that path.
+
 ## The digest Ollama's API reports isn't the digest of the weights
 
 `/api/tags` lists each model with a `digest` that Ollama derives from the model's manifest, so it says nothing about which GGUF weights are underneath. An adapter is tied to the weights, so its `base_digest` is the digest of the GGUF blob the manifest's model layer names (`resolveOllamaModel(...).digest`, which only the adapter runtime reads). Comparing it with the Ollama student's `describe()` would call every base another build. The installation checks of a version with an adapter ask the adapter runtime instead.

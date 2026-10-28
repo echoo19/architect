@@ -255,6 +255,8 @@ Every command ends on its own: a run that needs an approval nobody can give fail
 
 The command reads the app's own settings file for local models, as the app does: quiet mode's thread cap for a local student and for llama-server, the llama-server chosen in Settings (else the one on `PATH`), and the default student's Ollama when it is on this computer. A version with an adapter runs on llama.cpp (decision 041), with a llama-server of the command's own (`local-runtime/cli` in the data folder) that stops when the command ends.
 
+The command takes the GPU in turns with the open app (decision 046). A run holds it from the start of its reply to the end: the app's idle llama-server stops first, and a check or a training step waits for the reply. When the app is answering a chat, or checking an agent, the run waits its turn for up to 5 minutes, then exits 1 with an error that says what holds the GPU.
+
 ## What it doesn't do yet
 
 - An import from the command and one from the app at the same moment, for the same agent, aren't coordinated with each other.
