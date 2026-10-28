@@ -374,6 +374,11 @@ export interface ArchitectApi {
   mentoring: {
     /** Verified and rejected, oldest first. */
     lessons(runId: string): Promise<Lesson[]>;
+    /**
+     * What the mentor did as the agent in one lesson's correction, step by step. Null when the
+     * correction never ran (its replay didn't hold, or a guard refused it).
+     */
+    lessonTrace(lessonId: string): Promise<Trace | null>;
     /** One per round that reached a diagnosis, accepted or refused. */
     interventions(runId: string): Promise<Intervention[]>;
     /** One per round that ended, rejected, invalid and stopped ones included, by round. */

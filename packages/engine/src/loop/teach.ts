@@ -17,6 +17,7 @@ import type { EngineStore } from '../store/engine-store';
 import { gatedActor, refusalOf, type ActorCharge } from '../teaching/actor';
 import type { CorrectionResult, CorrectionStart } from '../teaching/correction';
 import { isAbort, must, passesOnItsOwn, summaryOf } from './errors';
+import { writeJsonFile } from './files';
 import { failedAttempts, interventionOfRound } from './intervene';
 import type { RunState } from './run-state';
 import { deriveSeed } from './seeds';
@@ -528,6 +529,14 @@ export async function teach(state: RunState, index: number): Promise<boolean> {
       // A correction cut short by shutdown isn't a verdict; the try runs again on the next start.
       state.signal.throwIfAborted();
       const lesson = lessonOf(state, context, result);
+      // What the mentor did as the agent, step by step, for playback beside the lesson: written
+      // first, so a lesson on record always has the trace it was judged on.
+      if (result.trace !== null) {
+        await writeJsonFile(
+          state.ctx.paths.traceFile(state.run.jobId, runId, lesson.id),
+          result.trace,
+        );
+      }
       store.lessons.put(lesson);
       state.announce('lesson', lesson.id, index);
       state.log(

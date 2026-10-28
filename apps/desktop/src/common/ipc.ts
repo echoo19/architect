@@ -76,6 +76,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
   },
   mentoring: {
     lessons: true,
+    lessonTrace: true,
     interventions: true,
     experiments: true,
     progress: true,

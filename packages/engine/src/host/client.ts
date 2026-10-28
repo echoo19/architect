@@ -102,6 +102,7 @@ export function connectEngine(
     },
     mentoring: {
       lessons: (runId) => request('mentoring.lessons', [runId]),
+      lessonTrace: (lessonId) => request('mentoring.lessonTrace', [lessonId]),
       interventions: (runId) => request('mentoring.interventions', [runId]),
       experiments: (runId) => request('mentoring.experiments', [runId]),
       progress: (runId) => request('mentoring.progress', [runId]),

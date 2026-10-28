@@ -119,6 +119,9 @@ export const ENGINE_ROUTES = {
   'mentoring.lessons': route(z.tuple([id]), z.array(LessonSchema), (api, [runId]) =>
     api.mentoring.lessons(runId),
   ),
+  'mentoring.lessonTrace': route(z.tuple([id]), TraceSchema.nullable(), (api, [lessonId]) =>
+    api.mentoring.lessonTrace(lessonId),
+  ),
   'mentoring.interventions': route(z.tuple([id]), z.array(InterventionSchema), (api, [runId]) =>
     api.mentoring.interventions(runId),
   ),

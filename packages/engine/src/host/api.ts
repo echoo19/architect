@@ -111,6 +111,23 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
   }
 
   /**
+   * What the mentor did as the agent in one correction, step by step. Null when the try never
+   * ran (its replay didn't hold, or a guard refused it) or was made before traces were kept.
+   */
+  async function lessonTrace(lessonId: string): Promise<Trace | null> {
+    const lesson = found(store.lessons.get(lessonId), `There is no lesson "${lessonId}".`);
+    if (lesson.runId === null) return null;
+    let stored: unknown;
+    try {
+      stored = await readJsonFile(paths.traceFile(lesson.jobId, lesson.runId, lesson.id));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw error;
+    }
+    return TraceSchema.parse(stored);
+  }
+
+  /**
    * Records the person's answer to the question a paused run asked, on the round's intervention,
    * before anything else happens in the round, and resumes the run.
    */
@@ -182,6 +199,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     },
     mentoring: {
       lessons: async (runId) => store.lessons.list({ runId: run(runId).run.id }),
+      lessonTrace,
       interventions: async (runId) => store.interventions.list(run(runId).run.id),
       experiments: async (runId) => store.experiments.list(run(runId).run.id),
       progress: async (runId) => {

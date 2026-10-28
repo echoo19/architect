@@ -153,6 +153,45 @@ describe('the progress and capability numbers', () => {
   });
 });
 
+describe('a correction played back beside its lesson', () => {
+  beforeEach(async () => {
+    world = await createWorld();
+    world.mentor.script = (_request, call) =>
+      call === 1
+        ? diagnosis('Show an invoice done right', {
+            system: 'Service desk.\nfix:invoice',
+            findings: [{ taskId: 'train-invoice-1' }],
+            intervention: { workedExamples: ['invoice'] },
+          })
+        : hypothesis('Nothing more', 'Service desk.\nfix:invoice\nAgain.');
+    // The try from the suspected turn can't be replayed; the whole task then verifies.
+    world.runtime.correction = (_task, start) =>
+      start.kind === 'checkpoint'
+        ? { verified: false, replayed: null, reason: "The replay didn't hold." }
+        : { verified: true };
+  });
+
+  it('keeps the trace of each correction that ran, and none for a try that never did', async () => {
+    const api = await connect();
+    const job = await api.jobs.createSample();
+    const run = await api.runs.start(job.id, { method: 'architect', seed: 7 });
+    await next(api, (event) => settled(event, run.id));
+
+    const lessons = await api.mentoring.lessons(run.id);
+    const tried = lessons.find((lesson) => lesson.kind === 'replay_correction');
+    const whole = lessons.find((lesson) => lesson.kind === 'full_task_demonstration');
+    expect(tried?.status).toBe('rejected');
+    expect(whole?.status).toBe('verified');
+    expect(await api.mentoring.lessonTrace(tried?.id ?? '')).toBeNull();
+    const played = await api.mentoring.lessonTrace(whole?.id ?? '');
+    expect(played).toMatchObject({ taskId: 'train-invoice-1', stopReason: 'answer' });
+    expect(played?.finalText).toBe(whole?.turns.at(-1)?.content);
+    await expect(api.mentoring.lessonTrace('lsn_unknown')).rejects.toThrow(
+      'There is no lesson "lsn_unknown".',
+    );
+  });
+});
+
 describe('a clarifying question', () => {
   beforeEach(async () => {
     world = await createWorld();

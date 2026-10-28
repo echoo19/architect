@@ -85,16 +85,19 @@ function correctionResult(
   start: CorrectionStart,
   scripted: ScriptedCorrection,
 ): CorrectionResult {
+  const answer = `ANSWER: {"ok":true,"task":"${task.id}"}`;
   const messages: CorrectionResult['messages'] = [
     { role: 'system', content: ctx.harness.system },
     { role: 'user', content: task.prompt },
-    { role: 'assistant', content: `ANSWER: {"ok":true,"task":"${task.id}"}` },
+    { role: 'assistant', content: answer },
   ];
+  const replayFailed = start.kind === 'checkpoint' && scripted.replayed === null;
   const checkpoint =
-    start.kind === 'checkpoint' && scripted.replayed !== null
+    start.kind === 'checkpoint' && !replayFailed
       ? (scripted.replayed ?? { turn: start.turn, calls: 1 })
       : null;
   const reason = scripted.reason ?? (scripted.verified ? 'The answer matches.' : 'Wrong again.');
+  const usage: Usage = { inputTokens: 300, outputTokens: 20 };
   return {
     verified: scripted.verified,
     reason,
@@ -105,7 +108,20 @@ function correctionResult(
     messages,
     actorTurns: [2],
     tools: [],
-    trace: null,
+    // A try whose replay didn't hold never ran, so it has no trace, as in the real runtime.
+    trace: replayFailed
+      ? null
+      : {
+          taskId: task.id,
+          harnessVersion: ctx.harness.meta.version,
+          studentModel: ctx.actor.model,
+          messages,
+          steps: [{ kind: 'model', text: answer, toolCalls: [], usage, latencyMs: 10 }],
+          finalText: answer,
+          stopReason: 'answer',
+          usage,
+          latencyMs: 10,
+        },
   };
 }
 

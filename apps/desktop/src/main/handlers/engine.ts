@@ -75,6 +75,7 @@ export function registerEngineHandlers(
 
   router.registerHandlers('mentoring', {
     lessons: (runId) => call((api) => api.mentoring.lessons(runId)),
+    lessonTrace: (lessonId) => call((api) => api.mentoring.lessonTrace(lessonId)),
     interventions: (runId) => call((api) => api.mentoring.interventions(runId)),
     experiments: (runId) => call((api) => api.mentoring.experiments(runId)),
     progress: (runId) => call((api) => api.mentoring.progress(runId)),
