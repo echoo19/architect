@@ -2,6 +2,8 @@ import {
   AdapterError,
   BindRequestSchema,
   DraftTurnSchema,
+  ExportPartRequestSchema,
+  ExportPartResultSchema,
   ExportRequestSchema,
   ExportResultSchema,
   ExportReviewSchema,
@@ -10,6 +12,7 @@ import {
   GraduateSummarySchema,
   GraduateVersionSchema,
   GuardError,
+  ImportPreviewSchema,
   ImportRequestSchema,
   ImportResultSchema,
   InstallationSchema,
@@ -161,8 +164,16 @@ export const ENGINE_ROUTES = {
     ExportResultSchema,
     (api, [graduateId, directory]) => api.graduates.exportFolder(graduateId, directory),
   ),
+  'graduates.exportPart': route(
+    z.tuple([id, ExportPartRequestSchema]),
+    ExportPartResultSchema,
+    (api, [graduateId, request]) => api.graduates.exportPart(graduateId, request),
+  ),
   'graduates.inspectPackage': route(z.tuple([path]), PackageInspectionSchema, (api, [file]) =>
     api.graduates.inspectPackage(file),
+  ),
+  'graduates.previewImport': route(z.tuple([path]), ImportPreviewSchema, (api, [file]) =>
+    api.graduates.previewImport(file),
   ),
   'graduates.importPackage': route(
     z.tuple([path, ImportRequestSchema]),

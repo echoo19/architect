@@ -1,5 +1,6 @@
 import {
   BindRequestSchema,
+  ExportPartRequestSchema,
   ExportRequestSchema,
   ImportRequestSchema,
   type BindRequest,
@@ -102,9 +103,17 @@ export function registerGraduateHandlers(
         const chosen = picked.check(directory);
         return call((api) => api.graduates.exportFolder(graduateId, chosen));
       },
+      exportPart: (graduateId, request) => {
+        const directory = picked.check(request.directory);
+        return call((api) => api.graduates.exportPart(graduateId, { ...request, directory }));
+      },
       inspectPackage: (path) => {
         const chosen = picked.check(path);
         return call((api) => api.graduates.inspectPackage(chosen));
+      },
+      previewImport: (path) => {
+        const chosen = picked.check(path);
+        return call((api) => api.graduates.previewImport(chosen));
       },
       importPackage: async (path, request) => {
         const chosen = picked.check(path);
@@ -135,7 +144,9 @@ export function registerGraduateHandlers(
       bind: z.tuple([text, BindRequestSchema]),
       exportPackage: z.tuple([text, ExportRequestSchema]),
       exportFolder: z.tuple([text, text]),
+      exportPart: z.tuple([text, ExportPartRequestSchema]),
       inspectPackage: z.tuple([text]),
+      previewImport: z.tuple([text]),
       importPackage: z.union([z.tuple([text]), z.tuple([text, ImportRequestSchema])]),
       importFolder: z.tuple([text]),
     },

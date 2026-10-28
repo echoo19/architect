@@ -9,10 +9,13 @@ import type { Method, Round, Run } from './run';
 import type { Attempt, Trace } from './trace';
 import type {
   BindRequest,
+  ExportPartRequest,
+  ExportPartResult,
   ExportRequest,
   ExportResult,
   ExportReview,
   GraduateVersion,
+  ImportPreview,
   ImportRequest,
   Installation,
   InstallStatus,
@@ -325,8 +328,15 @@ export interface ArchitectApi {
     exportPackage(graduateId: string, request: ExportRequest): Promise<ExportResult>;
     /** Exports the active version with nothing optional into `directory`. */
     exportFolder(graduateId: string, directory: string): Promise<ExportResult>;
+    /** Writes one part of a version on its own: its harness folder, adapter file or report. */
+    exportPart(graduateId: string, request: ExportPartRequest): Promise<ExportPartResult>;
     /** Validates a package folder or `.architect.zip` without installing it or loading its code. */
     inspectPackage(path: string): Promise<PackageInspection>;
+    /**
+     * Validates a package as `inspectPackage` does, and says where it would go and whether this
+     * computer can run it and has its base model, without installing anything.
+     */
+    previewImport(path: string): Promise<ImportPreview>;
     /** Validates and installs a package, then runs its installation checks. */
     importPackage(path: string, request?: ImportRequest): Promise<ImportResult>;
     /** Imports a package with the default request. */

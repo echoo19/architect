@@ -173,6 +173,23 @@ export const ExportFindingSchema = z.object({
 });
 export type ExportFinding = z.infer<typeof ExportFindingSchema>;
 
+/** A part of a version that can leave on its own: its harness, its adapter, or its report. */
+export const ExportPartNameSchema = z.enum(['harness', 'adapter', 'report']);
+export type ExportPartName = z.infer<typeof ExportPartNameSchema>;
+
+export const ExportPartSchema = z.object({
+  part: ExportPartNameSchema,
+  /** Package paths it covers. */
+  files: z.array(z.string()),
+  bytes: z.number().int().nonnegative(),
+  /**
+   * Names the review's findings in these files. An export of the part goes ahead despite them
+   * only when it names the same.
+   */
+  findingsDigest: z.string(),
+});
+export type ExportPart = z.infer<typeof ExportPartSchema>;
+
 export const ExportReviewSchema = z.object({
   graduateId: z.string(),
   version: z.number().int().positive(),
@@ -184,8 +201,33 @@ export const ExportReviewSchema = z.object({
   findingsDigest: z.string(),
   /** Shown before anything leaves: excluding files doesn't make trained weights anonymous. */
   notice: z.string(),
+  /** The parts this version has that can be exported alone, each with its own findings. */
+  parts: z.array(ExportPartSchema),
 });
 export type ExportReview = z.infer<typeof ExportReviewSchema>;
+
+export const ExportPartRequestSchema = z
+  .object({
+    part: ExportPartNameSchema,
+    /** The folder to write the part into. */
+    directory: z.string().min(1),
+    /** The active version unless named. */
+    version: z.number().int().positive().optional(),
+    /** The part's `findingsDigest` from the review the user saw, when the scan found anything. */
+    acknowledgedFindings: z.string().optional(),
+  })
+  .strict();
+export type ExportPartRequest = z.input<typeof ExportPartRequestSchema>;
+
+export const ExportPartResultSchema = z.object({
+  /** The folder (a harness) or file (an adapter, a report) written. */
+  path: z.string(),
+  /** What it holds, relative to `path` for a folder. */
+  files: z.array(z.string()),
+  bytes: z.number().int().nonnegative(),
+  findings: z.array(ExportFindingSchema),
+});
+export type ExportPartResult = z.infer<typeof ExportPartResultSchema>;
 
 export const ExportRequestSchema = z
   .object({
@@ -251,6 +293,63 @@ export const PackageInspectionSchema = z.discriminatedUnion('ok', [
   }),
 ]);
 export type PackageInspection = z.infer<typeof PackageInspectionSchema>;
+
+/** Where an import would go on this computer. */
+export const ImportPlaceSchema = z.discriminatedUnion('kind', [
+  /** A new agent, set up with the folders and grants the import names. */
+  z.object({ kind: z.literal('new') }),
+  /**
+   * The next version of an agent this computer has, waiting as a candidate. The agent keeps its
+   * own folders and grants.
+   */
+  z.object({
+    kind: z.literal('version'),
+    graduateId: z.string(),
+    name: z.string(),
+    version: z.number().int().positive(),
+    parent: z.number().int().positive(),
+  }),
+  /** The same package is already installed here. */
+  z.object({
+    kind: z.literal('installed'),
+    graduateId: z.string(),
+    name: z.string(),
+    version: z.number().int().positive(),
+  }),
+]);
+export type ImportPlace = z.infer<typeof ImportPlaceSchema>;
+
+/**
+ * What installing a package would do, found without installing anything or loading its code:
+ * the package checked as an import checks it, where it would go, and whether this computer can
+ * run it and serves its base model. Its install checks come only after it is installed.
+ */
+export const ImportPreviewSchema = z.discriminatedUnion('ok', [
+  z.object({
+    ok: z.literal(true),
+    manifest: PackageManifestSchema,
+    digest: z.string(),
+    /** 1 when the package is a format 1 graduate folder, read and converted. */
+    migratedFrom: z.literal(1).optional(),
+    files: z.number().int().nonnegative(),
+    bytes: z.number().int().nonnegative(),
+    place: ImportPlaceSchema,
+    machine: MachineSchema,
+    /** Where this computer would serve its model. */
+    model: ModelBindingSchema,
+    /** This computer's fit and its base model, checked here and labelled as this computer's. */
+    checks: z.array(InstallCheckSchema),
+    status: InstallStatusSchema,
+    /** Why it can't run, or what needs doing first, in words a person can act on. */
+    reasons: z.array(z.string()),
+  }),
+  z.object({
+    ok: z.literal(false),
+    code: PackageProblemCodeSchema,
+    problems: z.array(z.string()).min(1),
+  }),
+]);
+export type ImportPreview = z.infer<typeof ImportPreviewSchema>;
 
 export const ImportRequestSchema = z
   .object({

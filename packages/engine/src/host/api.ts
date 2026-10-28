@@ -9,8 +9,8 @@ import {
   type StudentTarget,
   type Trace,
 } from '@architect/shared';
-import { exportPackage, reviewExport } from '../graduates/exporter';
-import { importPackage, inspectPackage } from '../graduates/importer';
+import { exportPackage, exportPart, reviewExport } from '../graduates/exporter';
+import { importPackage, inspectPackage, previewImport } from '../graduates/importer';
 import type { GraduateLibrary } from '../graduates/library';
 import type { Clock, EngineHostDeps, JobDrafter } from '../loop/deps';
 import { readJsonFile } from '../loop/files';
@@ -62,6 +62,11 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
   const drafter = (): JobDrafter =>
     found(deps.drafts, "Drafting a job with the mentor isn't available in this build.");
   const packages = { library: graduates, secrets: deps.secrets };
+  /** The agent's summary once its active version has install checks. */
+  const checked = async (graduateId: string) => {
+    await graduates.ensureChecked(graduateId);
+    return graduates.summary(graduateId);
+  };
 
   async function runDetail(runId: string): Promise<RunDetail> {
     const record = run(runId);
@@ -135,14 +140,16 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       list: async (runId) => store.reports.targets(run(runId).run.id),
     },
     graduates: {
-      list: async () => graduates.list(),
-      accept: async (runId) => graduates.acceptRun(runId),
+      // A graduate never shows as unchecked: its active version is checked the first time it is
+      // listed, accepted, promoted or rolled back to.
+      list: () => graduates.listChecked(),
+      accept: async (runId) => checked(graduates.acceptRun(runId).id),
       versions: async (graduateId) => graduates.versions(graduateId),
       history: async (graduateId) => graduates.history(graduateId),
       acceptVersion: async (graduateId, version) => graduates.acceptVersion(graduateId, version),
       rejectVersion: async (graduateId, version) => graduates.rejectVersion(graduateId, version),
-      promote: async (graduateId, version) => graduates.promote(graduateId, version),
-      rollback: async (graduateId, version) => graduates.rollback(graduateId, version),
+      promote: async (graduateId, version) => checked(graduates.promote(graduateId, version).id),
+      rollback: async (graduateId, version) => checked(graduates.rollback(graduateId, version).id),
       installation: async (graduateId) => graduates.installation(graduateId),
       bind: (graduateId, request) => graduates.bind(graduateId, request),
       verify: (graduateId, options) => graduates.verify(graduateId, options),
@@ -150,7 +157,9 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
         reviewExport(packages, graduateId, version, include),
       exportPackage: (graduateId, request) => exportPackage(packages, graduateId, request),
       exportFolder: (graduateId, directory) => exportPackage(packages, graduateId, { directory }),
+      exportPart: (graduateId, request) => exportPart(packages, graduateId, request),
       inspectPackage: (path) => inspectPackage(packages, path),
+      previewImport: (path) => previewImport(packages, path),
       importPackage: (path, request) => importPackage(packages, path, request),
       importFolder: async (path) => (await importPackage(packages, path)).graduate,
       remove: (graduateId) => graduates.remove(graduateId),

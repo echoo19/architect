@@ -284,13 +284,12 @@ async function resourcesCheck(
 }
 
 async function modelChecks(
-  deps: CheckDeps,
+  deps: Pick<CheckDeps, 'createStudent'>,
   manifest: PackageManifest,
-  installation: StoredInstallation,
+  model: ModelBinding,
   options: CheckOptions,
   blockedAlready: boolean,
 ): Promise<{ checks: InstallCheck[]; findings: Finding[]; firstReplyMs?: number }> {
-  const { model } = installation;
   if (blockedAlready || !isLoopbackUrl(model.baseUrl)) {
     const detail = 'Skipped: this computer cannot run it as it is.';
     return {
@@ -403,6 +402,44 @@ async function modelChecks(
   };
 }
 
+function statusOf(findings: readonly Finding[]): InstallStatus {
+  if (findings.some((finding) => finding.level === 'blocked')) return 'blocked';
+  return findings.length > 0 ? 'needs_attention' : 'ready';
+}
+
+/** What an import can know about this computer before it installs anything. */
+export interface FitResult {
+  machine: Machine;
+  /** The compatibility check and the base model's availability, as installation checks run them. */
+  checks: InstallCheck[];
+  status: InstallStatus;
+  reasons: string[];
+}
+
+/**
+ * Whether this computer can run a package, and whether its local runtime serves the base model,
+ * found before it is installed: the compatibility check and the model's availability, exactly as
+ * the installation checks run them. Nothing loads; the runtime is only asked to describe the model.
+ */
+export async function fitChecks(
+  deps: Pick<CheckDeps, 'machine' | 'createStudent'>,
+  manifest: PackageManifest,
+  model: ModelBinding,
+): Promise<FitResult> {
+  const machine = deps.machine();
+  const fit = compatibility(manifest, model, machine);
+  const blocked = fit.findings.some((finding) => finding.level === 'blocked');
+  const served = await modelChecks(deps, manifest, model, { loadModel: false }, blocked);
+  const available = served.checks.filter((check) => check.kind === 'model_available');
+  const findings = [...fit.findings, ...served.findings];
+  return {
+    machine,
+    checks: [fit.check, ...available],
+    status: statusOf(findings),
+    reasons: findings.map((finding) => finding.reason),
+  };
+}
+
 /**
  * Checks one version where it is installed: whether this computer can run it at all, then the
  * package's smoke checks. The result is this computer's, labelled so, and is never mixed with
@@ -425,7 +462,7 @@ export async function checkInstallation(
   const blocking = [...fit.findings, ...harness.findings, ...tools.findings].some(
     (finding) => finding.level === 'blocked',
   );
-  const model = await modelChecks(deps, manifest, installation, options, blocking);
+  const model = await modelChecks(deps, manifest, installation.model, options, blocking);
   const findings = [
     ...fit.findings,
     ...harness.findings,
@@ -433,11 +470,7 @@ export async function checkInstallation(
     ...resources.findings,
     ...model.findings,
   ];
-  const status: InstallStatus = findings.some((finding) => finding.level === 'blocked')
-    ? 'blocked'
-    : findings.length > 0
-      ? 'needs_attention'
-      : 'ready';
+  const status = statusOf(findings);
   return {
     graduateId: version.graduateId,
     version: version.version,

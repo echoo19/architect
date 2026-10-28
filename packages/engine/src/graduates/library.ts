@@ -10,6 +10,9 @@ import {
   type GraduateVersion,
   type Installation,
   type Machine,
+  type ModelBinding,
+  type PackageManifest,
+  type StudentAdapter,
   type VersionEvent,
 } from '@architect/shared';
 import type { AdapterDeps, Clock, RuntimeDeps } from '../loop/deps';
@@ -18,7 +21,13 @@ import { isoNow } from '../loop/time';
 import type { EngineStore } from '../store/engine-store';
 import type { GraduateRecord, StoredInstallation, StoredVersion } from '../store/records';
 import { lesserGrant, storedFolder } from './bindings';
-import { checkInstallation, thisMachine, type CheckDeps } from './checks';
+import {
+  checkInstallation,
+  fitChecks,
+  thisMachine,
+  type CheckDeps,
+  type FitResult,
+} from './checks';
 import type { ContractBook } from './contracts';
 import { upgradeLegacyGraduates } from './legacy';
 import { installationView, versionInfo, workspaceView } from './view';
@@ -62,6 +71,8 @@ export class KeyedLock {
 export class GraduateLibrary {
   readonly lock = new KeyedLock();
   private failures = new Map<string, string>();
+  /** Why a graduate's install checks couldn't run when they were last tried, by id. */
+  private readonly checkFailures = new Map<string, string>();
 
   constructor(readonly ctx: LibraryContext) {}
 
@@ -121,6 +132,7 @@ export class GraduateLibrary {
       };
     }
     const checks = active ? store.installationChecks.get(record.id, active.version) : null;
+    const couldNotCheck = this.checkFailures.get(record.id);
     return {
       id: record.id,
       name: record.name,
@@ -129,8 +141,67 @@ export class GraduateLibrary {
       activeVersion: active?.version ?? null,
       versions: versions.length,
       status: active === null ? 'blocked' : (checks?.status ?? 'unchecked'),
-      reasons: active === null ? ['It has no version that can run yet.'] : (checks?.reasons ?? []),
+      reasons:
+        active === null
+          ? ['It has no version that can run yet.']
+          : (checks?.reasons ?? (couldNotCheck === undefined ? [] : [couldNotCheck])),
     };
+  }
+
+  /**
+   * Runs the active version's installation checks when none are stored, so a graduate made,
+   * converted, promoted or rolled back here never shows as unchecked. The model isn't loaded:
+   * that it answers is checked on request (`verify`). When the checks can't run at all, why
+   * becomes the reason it shows, and the next call tries again.
+   */
+  ensureChecked(graduateId: string): Promise<void> {
+    return this.lock.run(graduateId, async () => {
+      const { store } = this.ctx;
+      const agent = store.graduates.get(graduateId);
+      if (!agent || agent.activeVersion === null || !store.installations.get(graduateId)) return;
+      if (store.installationChecks.get(graduateId, agent.activeVersion)) return;
+      try {
+        await this.checkNow(graduateId, { loadModel: false });
+        this.checkFailures.delete(graduateId);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        this.checkFailures.set(graduateId, `Its install checks couldn't run: ${reason}`);
+      }
+    });
+  }
+
+  /** Every agent, each one's active version checked first if it never was. */
+  async listChecked(): Promise<GraduateSummary[]> {
+    for (const record of this.ctx.store.graduates.list()) await this.ensureChecked(record.id);
+    return this.list();
+  }
+
+  /**
+   * Whether this computer can run a package and serves its base model, before anything is
+   * installed: the compatibility and model checks an installation would run, nothing loaded.
+   */
+  fit(manifest: PackageManifest, model: ModelBinding): Promise<FitResult> {
+    return fitChecks(
+      {
+        machine: this.ctx.machine ?? thisMachine,
+        createStudent: (binding, contextLength) => this.checkStudent(binding, contextLength),
+      },
+      manifest,
+      model,
+    );
+  }
+
+  /** A student on this computer's runtime, for the model checks. */
+  private checkStudent(binding: ModelBinding, contextLength: number): StudentAdapter {
+    return this.ctx.deps.adapters.createStudent(
+      {
+        runtime: binding.runtime,
+        baseUrl: binding.baseUrl,
+        model: binding.model,
+        contextLength,
+      },
+      {},
+    );
   }
 
   summary(graduateId: string): GraduateSummary {
@@ -357,16 +428,7 @@ export class GraduateLibrary {
         paths: this.ctx.paths,
         machine: this.ctx.machine ?? thisMachine,
         toolLoadProblem: (tool) => this.ctx.deps.runtime.toolLoadProblem(sandbox, tool),
-        createStudent: (binding, contextLength) =>
-          this.ctx.deps.adapters.createStudent(
-            {
-              runtime: binding.runtime,
-              baseUrl: binding.baseUrl,
-              model: binding.model,
-              contextLength,
-            },
-            {},
-          ),
+        createStudent: (binding, contextLength) => this.checkStudent(binding, contextLength),
         now: () => this.now(),
       };
       const checks = await checkInstallation(
@@ -407,6 +469,7 @@ export class GraduateLibrary {
     const record = this.agent(graduateId);
     this.ctx.store.graduates.remove(record.id);
     this.failures.delete(record.id);
+    this.checkFailures.delete(record.id);
     await rm(this.ctx.paths.fromStored(record.path), { recursive: true, force: true });
   }
 }
