@@ -41,7 +41,7 @@ export const STORY = {
 };
 
 export const DESCRIPTION =
-  'Close out the day for our home-services office: price the jobs the technicians finished, ' +
+  'Close out the day for our home-services office: price the visits the technicians finished, ' +
   'find customers with overdue balances, and book the earliest technician for urgent calls.';
 
 export const job: Job = {
@@ -108,9 +108,9 @@ export const job: Job = {
     trainOn: 'local',
     hosted: {
       runtime: 'openai_compatible',
-      baseUrl: 'https://api.together.ai/v1',
-      model: 'meta-models/Muse-Glimmer-30B',
-      secretRef: 'together',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'meta/muse-glimmer-30b',
+      secretRef: 'openrouter',
       contextLength: 16_384,
     },
   },
@@ -370,7 +370,7 @@ export const detail: RunDetail = {
 export const trace: Trace = {
   taskId: failedBooking.taskId,
   harnessVersion: 3,
-  studentModel: 'meta-models/Muse-Glimmer-30B',
+  studentModel: 'meta/muse-glimmer-30b',
   messages: [{ role: 'user', content: failedBooking.prompt }],
   steps: [
     { kind: 'skill', slug: 'book-urgent-calls', via: 'rule' },
@@ -484,7 +484,7 @@ function report(
   runId: string,
   method: Method,
   pass: number,
-  cost: { mentorUsd: number; rounds: number; wallMs: number },
+  cost: { mentorUsd: number; studentUsd?: number; rounds: number; wallMs: number },
 ): ReportCard {
   const scale = pass / 55;
   const actual = pass / 60;
@@ -527,6 +527,7 @@ function report(
       mentorOutputTokens: 36_400,
       rounds: cost.rounds,
       wallMs: cost.wallMs,
+      ...(cost.studentUsd === undefined ? {} : { studentUsd: cost.studentUsd }),
     },
     refusedTypes: method === 'architect' ? REFUSED : [],
     topInterventions:
@@ -546,16 +547,19 @@ function report(
 export const reports: Record<string, ReportCard> = {
   [STORY.runId]: report(STORY.runId, 'architect', 55, {
     mentorUsd: 0.41,
+    studentUsd: 3.2,
     rounds: 7,
     wallMs: 201 * 60_000,
   }),
   run_bare: report('run_bare', 'bare', 24, { mentorUsd: 0, rounds: 0, wallMs: 41 * 60_000 }),
   run_oneshot: report('run_oneshot', 'one_shot', 42, {
+    studentUsd: 0.4,
     mentorUsd: 0.04,
     rounds: 1,
     wallMs: 52 * 60_000,
   }),
   run_reflect: report('run_reflect', 'self_reflection', 38, {
+    studentUsd: 2.9,
     mentorUsd: 0,
     rounds: 7,
     wallMs: 149 * 60_000,

@@ -119,6 +119,12 @@ for (const theme of THEMES) {
     ]);
 
     await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Faster training: a hosted copy of Glimmer' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('OpenRouter API key')).toBeVisible();
+    await capture(`welcome-hosted-${theme}.png`);
+    await page.getByRole('button', { name: 'Skip', exact: true }).click();
     await expect(page.getByRole('heading', { name: "You're set up" })).toBeVisible();
     await expect(page.getByText('Downloading · 23%')).toBeVisible();
     await emitPullProgress(app, { model: STUDENT_MODEL, status: 'success', done: true });
@@ -145,7 +151,7 @@ for (const theme of THEMES) {
       'Find who owes money after partial payments',
       'Book the earliest technician who can do the job',
     ]);
-    await expect(page.getByText('Version 7 of its instructions')).toBeVisible();
+    await expect(page.getByText('The setup from round 7')).toBeVisible();
     await expect(page.getByText('Glimmer, 4-bit, on this computer')).toBeVisible();
     await expect(page.getByText('Spark, the mentor: off')).toBeVisible();
     await expect(page.getByText('Running on this computer')).toBeVisible();

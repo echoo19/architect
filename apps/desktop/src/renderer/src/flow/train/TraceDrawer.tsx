@@ -15,6 +15,7 @@ import {
 import { Ban, BookOpen, Check, CircleX, MessageSquare, Wrench } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { useQuery } from '../../api/query';
+import { setupName } from '../../lib/names';
 import { formatAnswerTime } from '../format';
 import type { RecentAttempt } from './run-state';
 import { describeArguments } from './tool-arguments';
@@ -32,17 +33,20 @@ export function TraceDrawerContent({
   attempt,
   type,
   student,
+  firstDraft,
 }: {
   attempt: RecentAttempt;
   type: string;
   student: string;
+  /** Round 1 of this run wrote the first draft, so setup 1 is named that way. */
+  firstDraft: boolean;
 }) {
   const trace = useQuery(`trace:${attempt.id}`, () => flowApi.trace(attempt.id));
   const split = attempt.split === 'dev' ? 'Check task' : 'Practice task';
   return (
     <DrawerContent
       title={attempt.prompt ?? `Task ${attempt.taskId}`}
-      subtitle={`${type} · ${attempt.round ? `${split} in round ${attempt.round}` : split} · Version ${attempt.harnessVersion} of the agent's instructions`}
+      subtitle={`${type} · ${attempt.round ? `${split} in round ${attempt.round}` : split} · using ${setupName(attempt.harnessVersion, firstDraft)}`}
     >
       <div className="flex flex-col gap-7">
         <Verdict attempt={attempt} student={student} />

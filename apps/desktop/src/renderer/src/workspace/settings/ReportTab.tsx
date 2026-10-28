@@ -58,9 +58,15 @@ function ReportSummary({ report }: { report: ReportCard }) {
         />
         <Stat
           className={`${cell} col-span-2`}
-          value={formatUsd(cost.mentorUsd)}
-          label={`${shortModelName(report.mentor.label)} mentoring`}
-          note={`${cost.rounds} rounds, paid once`}
+          value={formatUsd(Math.round((cost.mentorUsd + (cost.studentUsd ?? 0)) * 100) / 100)}
+          label={
+            cost.studentUsd ? 'Training cost' : `${shortModelName(report.mentor.label)} mentoring`
+          }
+          note={
+            cost.studentUsd
+              ? `${shortModelName(report.mentor.label)} ${formatUsd(Math.round(cost.mentorUsd * 100) / 100)}, hosted copy ${formatUsd(Math.round(cost.studentUsd * 100) / 100)}; ${cost.rounds} rounds, paid once`
+              : `${cost.rounds} rounds, paid once`
+          }
           noteFont="text"
         />
       </div>

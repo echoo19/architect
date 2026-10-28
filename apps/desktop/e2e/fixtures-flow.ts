@@ -39,7 +39,7 @@ export const FLOW = {
 };
 
 export const REPLY =
-  'Pricing finished jobs, the overdue list and urgent bookings. Ask me before it books anything.';
+  'Pricing finished visits, the overdue list and urgent bookings. Ask me before it books anything.';
 
 export const ATTACHED = [
   'D:/Ferncliff/office/jobs.csv',
@@ -54,14 +54,15 @@ export const turns: { start: DraftTurn; replies: DraftTurn[] } = {
   start: {
     sessionId: FLOW.sessionId,
     message:
-      "Got it. I'll build an agent that works from the office files and closes out the day. " +
-      'Which of those jobs should it take on by itself?',
+      "Got it. I'll set up an agent that works from the office files and closes out the day. " +
+      'Which of those three tasks should it take on by itself?',
     options: [],
   },
   replies: [
     {
       sessionId: FLOW.sessionId,
-      message: 'Last one. When it prices a job, should it show the line items or just the total?',
+      message:
+        'Last one. When it prices a finished visit, should it show the line items or just the total?',
       options: ['Show the line items', 'Just the total'],
     },
     { sessionId: FLOW.sessionId, message: '', options: [], draft: job },
@@ -109,7 +110,7 @@ export const FLOW_ENGINE: EngineReplies = {
   'jobs:save': job,
   'jobs:get': job,
   'jobs:list': summaries,
-  'secrets:status': { meta: true, together: true },
+  'secrets:status': { meta: true, openrouter: true },
   'runs:get': detail,
   'runs:trace': trace,
   'runs:roundDiff': roundDiff,
