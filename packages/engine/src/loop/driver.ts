@@ -1,6 +1,6 @@
 import type { Job, Run } from '@architect/shared';
 import { author } from './authoring';
-import { errorMessage, isAbort } from './errors';
+import { errorMessage, isAbort, passesOnItsOwn, summaryOf } from './errors';
 import { freeze, lockedTest } from './graduation';
 import { planNextStep, type ActionStep, type PlanInput } from './plan';
 import { RunState, type SessionContext, type SessionControl } from './run-state';
@@ -15,6 +15,13 @@ import {
 } from './training';
 
 export type SessionOutcome = 'parked' | 'ended' | 'aborted';
+
+/**
+ * How long the run waits before going on after a model call failed in a way that usually passes
+ * on its own, such as a reply cut off partway or a busy server: 30 s, then 90 s. A third such
+ * failure with no attempt finished since the last one pauses the run.
+ */
+const RETRY_WAITS_MS = [30_000, 90_000];
 
 /**
  * Executes one session of a run: plans the next step from the persisted state, runs it (each
@@ -33,6 +40,8 @@ export class RunDriver {
     try {
       state.saveRun({ status: this.activeStatus(), error: undefined });
       state.emitBudget();
+      let retries = 0;
+      let finished = state.run.totals.attempts;
       for (;;) {
         const step = planNextStep(this.planInput());
         if (step.kind === 'done') return 'ended';
@@ -41,7 +50,18 @@ export class RunDriver {
           state.saveRun({ status: 'paused' });
           return 'parked';
         }
-        await this.execute(step);
+        try {
+          await this.execute(step);
+        } catch (error) {
+          if (state.run.totals.attempts !== finished) retries = 0;
+          finished = state.run.totals.attempts;
+          const wait = RETRY_WAITS_MS[retries];
+          if (wait === undefined || !passesOnItsOwn(error) || state.signal.aborted) throw error;
+          retries += 1;
+          state.log('warn', `${summaryOf(error)} Trying again in ${wait / 1000} s.`);
+          await this.wait(wait);
+          state.signal.throwIfAborted();
+        }
       }
     } catch (error) {
       return this.handleError(error);
@@ -100,6 +120,15 @@ export class RunDriver {
     state.saveRun({ status: 'paused', error: message });
     state.log('error', `Paused after an error: ${message} Resume the run once it's fixed.`);
     return 'parked';
+  }
+
+  /** Waits `ms` on the run's clock, or until the session is aborted. */
+  private async wait(ms: number): Promise<void> {
+    const signal = AbortSignal.any([this.state.signal, this.state.ctx.clock.timeout(ms)]);
+    if (signal.aborted) return;
+    await new Promise<void>((resolve) => {
+      signal.addEventListener('abort', () => resolve(), { once: true });
+    });
   }
 
   private activeStatus(): Run['status'] {
