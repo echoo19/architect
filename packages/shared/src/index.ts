@@ -20,5 +20,6 @@ export * from './report';
 export * from './run';
 export * from './secrets';
 export * from './task';
+export * from './training';
 export * from './trace';
 export * from './workspace';
