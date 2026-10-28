@@ -102,11 +102,8 @@ export function RoundDrawerContent({
               <Effect label={`Second check, the same ${checkSize} again`} note={rateChange(second)}>
                 <TaskCount delta={second.devAfter.pass - second.devBefore.pass} />
               </Effect>
-              <Effect
-                label={`Both checks together, ${2 * checkSize} answers`}
-                note={rateChange(round)}
-              >
-                <TaskCount delta={measured} />
+              <Effect label="Average of the two checks" note={rateChange(round)}>
+                <TaskCount delta={measured === null ? null : measured / 2} />
               </Effect>
             </>
           )}
