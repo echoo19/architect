@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react';
 import {
-  MENTOR_PRESETS,
+  studentPricing,
   type Job,
   type JobSummary,
-  type MentorPresetKey,
   type ReasoningEffort,
   type StartingHarness,
   type TokenPricing,
@@ -25,10 +24,18 @@ import type { QueryState } from '../../api/query';
 import { KeyRow } from '../../components/KeyRow';
 import { errorOf, QueryValue } from '../../components/QueryValue';
 import { mentorNote, mentorProvider } from '../../onboarding/mentor';
+import {
+  hostedFromChoice,
+  localModelName,
+  mentorFromChoice,
+  studentFromChoice,
+} from '../../settings/models/connections';
+import { ModelPicker } from '../../settings/models/ModelPicker';
+import { PriceRow } from '../../settings/models/PriceRow';
 import { modelNames } from '../names';
-import { aboutUsd, estimateMentorUsd, mentorPresetOf } from './estimates';
-import { NumberField, PathField, TabNote, TextField } from './fields';
-import { HOSTED_PRESETS, hostedEndpoint, presetOf, providerName } from './hosted';
+import { aboutUsd, estimateMentorUsd, mentorPresetOf, mentorPriceOf } from './estimates';
+import { NumberField, PathField, TabNote } from './fields';
+import { presetOf, providerName } from './hosted';
 import { TYPING_PAUSE_MS, type JobEditor } from './use-job-editor';
 import type { JobIssues } from './validate';
 
@@ -381,13 +388,14 @@ const EFFORTS = [
   { value: 'high', label: 'High' },
 ] as const satisfies readonly { value: ReasoningEffort; label: string }[];
 
-/** "$1.25 to read, $4.25 to write, per million tokens". */
+/** "$1.25 to read, $4.25 to write, per million tokens", or "Free" for a model on this computer. */
 function priceText(pricing: TokenPricing): string {
+  if (pricing.inputPerM === 0 && pricing.outputPerM === 0) return 'Free';
   return `$${pricing.inputPerM} to read, $${pricing.outputPerM} to write, per million tokens`;
 }
 
 function MentorTab({ editor }: TabProps) {
-  const { job, change } = editor;
+  const { job, issues, change } = editor;
   const { mentor } = job;
   const name = modelNames(job).mentor;
   if (mentor.kind !== 'model') {
@@ -398,46 +406,53 @@ function MentorTab({ editor }: TabProps) {
     );
   }
   const preset = mentorPresetOf(job);
+  const pricing = mentorPriceOf(job);
   const usual = estimateMentorUsd(job);
+  const billed = pricing !== null && pricing.inputPerM + pricing.outputPerM > 0;
   return (
     <>
       <SettingsRow label="Mentor" meta={mentor.model} metaFont="code">
-        <Select<MentorPresetKey>
+        <ModelPicker
+          role="mentor"
           aria-label="Mentor"
-          placeholder={mentor.label}
-          options={MENTOR_PRESETS.map((option) => ({ value: option.key, label: option.label }))}
-          value={preset?.key}
-          onValueChange={(key) => {
-            const next = MENTOR_PRESETS.find((option) => option.key === key);
-            if (!next) return;
+          current={mentor}
+          onChoose={(choice) =>
             change((current) => ({
               ...current,
-              mentor: {
-                kind: 'model',
-                provider: next.provider,
-                label: next.label,
-                baseUrl: next.baseUrl,
-                model: next.model,
-                reasoningEffort: mentor.reasoningEffort,
-                secretRef: next.provider,
-              },
-            }));
-          }}
+              mentor: mentorFromChoice(choice, mentor.reasoningEffort),
+            }))
+          }
           className="w-64"
-        />
+        >
+          <span className="truncate">{mentor.label}</span>
+          <span className="shrink-0 text-fg-muted">{mentorProvider(mentor)}</span>
+        </ModelPicker>
       </SettingsRow>
       {preset && <TabNote>{mentorNote(preset)}</TabNote>}
       {mentor.secretRef !== undefined && (
         <KeyRow secretRef={mentor.secretRef} provider={mentorProvider(mentor)} />
       )}
-      <SettingsRow
-        label="Price"
-        meta={
-          preset && preset.provider !== 'meta' ? `Billed by ${mentorProvider(mentor)}` : undefined
-        }
-      >
-        <SettingsValue>{preset ? priceText(preset.pricing) : 'Not on file'}</SettingsValue>
-      </SettingsRow>
+      {pricing ? (
+        <SettingsRow
+          label="Price"
+          meta={
+            billed && mentor.provider !== 'meta' ? `Billed by ${mentorProvider(mentor)}` : undefined
+          }
+        >
+          <SettingsValue>{priceText(pricing)}</SettingsValue>
+        </SettingsRow>
+      ) : (
+        <PriceRow
+          error={issues['mentor.pricing']}
+          onSave={(saved) =>
+            change((current) =>
+              current.mentor.kind === 'model'
+                ? { ...current, mentor: { ...current.mentor, pricing: saved } }
+                : current,
+            )
+          }
+        />
+      )}
       {usual !== null && (
         <SettingsRow label="Usual cost" meta={`For ${job.budget.maxRounds} rounds`}>
           <SettingsValue>{aboutUsd(usual)}</SettingsValue>
@@ -461,27 +476,38 @@ function MentorTab({ editor }: TabProps) {
   );
 }
 
-const NO_HOST = 'none';
-
 function StudentTab({ editor }: TabProps) {
   const { job, issues, change } = editor;
   const set = typed(editor);
   const { local, hosted } = job.student;
   const hostedPreset = hosted ? presetOf(hosted) : undefined;
+  const hostedPrice = hosted ? studentPricing(hosted) : undefined;
   return (
     <>
-      <TextField
+      <SettingsRow
         label="Model"
-        meta="Through Ollama"
-        value={local.model}
-        issue={issues['student.local.model']}
-        onChange={(model) =>
-          set((current) => ({
-            ...current,
-            student: { ...current.student, local: { ...current.student.local, model } },
-          }))
-        }
-      />
+        meta={local.model}
+        metaFont="code"
+        error={issues['student.local.model']}
+      >
+        <ModelPicker
+          role="student"
+          aria-label="Model"
+          current={local}
+          onChoose={(choice) =>
+            change((current) => ({
+              ...current,
+              student: {
+                ...current.student,
+                local: studentFromChoice(choice, current.student.local.contextLength),
+              },
+            }))
+          }
+          className="w-64"
+        >
+          <span className="truncate">{localModelName(local.model)}</span>
+        </ModelPicker>
+      </SettingsRow>
       <NumberField
         label="Context size"
         meta="Tokens it reads at once"
@@ -501,33 +527,40 @@ function StudentTab({ editor }: TabProps) {
         metaFont={hosted ? 'code' : 'text'}
         error={issues['student.hosted']}
       >
-        <Select<string>
+        <ModelPicker
+          role="hosted"
           aria-label="Hosted copy for practice"
-          options={[
-            { value: NO_HOST, label: 'None' },
-            ...HOSTED_PRESETS.map((preset) => ({ value: preset.key, label: preset.label })),
-          ]}
-          value={hosted ? hostedPreset?.key : NO_HOST}
-          placeholder={hosted ? providerName(hosted) : undefined}
-          onValueChange={(key) => {
-            const preset = HOSTED_PRESETS.find((option) => option.key === key);
-            change((current) => {
-              const { hosted: _previous, ...student } = current.student;
-              return preset
-                ? {
-                    ...current,
-                    student: { ...student, hosted: hostedEndpoint(preset, local.contextLength) },
-                  }
-                : { ...current, student: { ...student, trainOn: 'local' } };
-            });
+          current={hosted ?? null}
+          none={{
+            label: 'None',
+            onChoose: () =>
+              change((current) => {
+                const { hosted: _previous, ...student } = current.student;
+                return { ...current, student: { ...student, trainOn: 'local' } };
+              }),
           }}
+          onChoose={(choice) =>
+            change((current) => ({
+              ...current,
+              student: {
+                ...current.student,
+                hosted: hostedFromChoice(choice, current.student.local.contextLength),
+              },
+            }))
+          }
           className="w-64"
-        />
+        >
+          <span className="truncate">
+            {hosted
+              ? (hostedPreset?.label ?? `${hosted.model} on ${providerName(hosted)}`)
+              : 'None'}
+          </span>
+        </ModelPicker>
       </SettingsRow>
       {hostedPreset && <TabNote>{hostedPreset.note}</TabNote>}
-      {hosted && hostedPreset?.pricing && (
+      {hostedPrice && (
         <SettingsRow label="Price">
-          <SettingsValue>{priceText(hostedPreset.pricing)}</SettingsValue>
+          <SettingsValue>{priceText(hostedPrice)}</SettingsValue>
         </SettingsRow>
       )}
       {hosted?.secretRef && <KeyRow secretRef={hosted.secretRef} provider={providerName(hosted)} />}

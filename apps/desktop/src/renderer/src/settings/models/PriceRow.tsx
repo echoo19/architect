@@ -3,9 +3,9 @@ import type { TokenPricing } from '@architect/shared';
 import { Button, Input, SettingsRow } from '@architect/ui';
 
 export interface PriceRowProps {
-  /** The model whose price is asked for, as people name it. */
-  model: string;
   onSave: (pricing: TokenPricing) => void;
+  /** Why the price is needed now, such as before training can start. */
+  error?: string | undefined;
 }
 
 function dollars(text: string): number | null {
@@ -17,7 +17,7 @@ function dollars(text: string): number | null {
  * Asks what a model without a known price costs, in dollars per million tokens in and out. The
  * spending cap needs it: a mentor with no price can't be trained with (decision 029).
  */
-export function PriceRow({ model, onSave }: PriceRowProps) {
+export function PriceRow({ onSave, error }: PriceRowProps) {
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const inputPerM = dollars(input);
@@ -31,7 +31,7 @@ export function PriceRow({ model, onSave }: PriceRowProps) {
   };
 
   return (
-    <SettingsRow label="Price" meta={`What ${model} costs per million tokens, in and out`}>
+    <SettingsRow label="Price" meta="Dollars per million tokens" error={error}>
       <form className="flex items-center gap-2" onSubmit={save}>
         <Input
           aria-label="Dollars per million input tokens"

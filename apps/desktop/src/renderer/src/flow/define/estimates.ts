@@ -2,6 +2,7 @@ import { formatDuration, formatUsd } from '../../lib/format';
 import {
   costUsd,
   MENTOR_PRESETS,
+  mentorPricing,
   type Job,
   type MentorPreset,
   type TokenPricing,
@@ -191,10 +192,10 @@ export function comparisonCost(
   estimate: TimeEstimate,
   hostedPricing: TokenPricing | null | undefined,
 ): Bills {
-  const preset = mentorPresetOf(job);
+  const pricing = mentorPriceOf(job);
   return {
     hostedUsd: hostedPracticeUsd(job, estimate, hostedPricing),
-    mentorUsd: preset ? mentorUsdFor(preset.pricing, 1) : null,
+    mentorUsd: pricing ? mentorUsdFor(pricing, 1) : null,
   };
 }
 
@@ -334,9 +335,16 @@ export function mentorUsdFor(pricing: TokenPricing, rounds: number): number {
 
 /** What the mentor usually costs over the whole round budget, or null if its price is unknown. */
 export function estimateMentorUsd(job: Job): number | null {
-  const preset = mentorPresetOf(job);
-  if (!preset) return null;
-  return mentorUsdFor(preset.pricing, job.budget.maxRounds);
+  const pricing = mentorPriceOf(job);
+  return pricing ? mentorUsdFor(pricing, job.budget.maxRounds) : null;
+}
+
+/**
+ * What the job's mentor costs per token: the price saved with it, its preset's, or nothing for a
+ * model on this computer. Null when the price is unknown (decision 029).
+ */
+export function mentorPriceOf(job: Job): TokenPricing | null {
+  return job.mentor.kind === 'model' ? (mentorPricing(job.mentor) ?? null) : null;
 }
 
 /** The rounds the mentor is paid for: those that fit in the time limit, else the whole budget. */

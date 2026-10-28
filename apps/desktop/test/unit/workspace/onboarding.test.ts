@@ -111,7 +111,7 @@ describe('mentor presets', () => {
     expect(routeOf(model('openrouter', 'https://openrouter.ai/api/v1'))).toBe('openrouter');
     expect(routeOf(model('anthropic', 'https://api.anthropic.com/v1'))).toBe('key');
     expect(routeOf(model('other', 'https://api.example.com/v1'))).toBe('key');
-    expect(routeOf(model('ollama', 'http://127.0.0.1:11434/v1'))).toBe('local');
+    expect(routeOf(model('ollama', 'http://127.0.0.1:11434'))).toBe('local');
     expect(routeOf(model('lmstudio', 'http://127.0.0.1:1234/v1'))).toBe('local');
     expect(routeOf(model('other', 'http://localhost:8000/v1'))).toBe('local');
   });

@@ -10,6 +10,7 @@ import {
   studentFromChoice,
   type Connection,
 } from '../../../src/renderer/src/settings/models/connections';
+import { providerName } from '../../../src/renderer/src/flow/define/hosted';
 import { priceText } from '../../../src/renderer/src/settings/models/ModelPicker';
 import { sameOllamaModel } from '../../../src/renderer/src/settings/models/StudentRows';
 
@@ -69,7 +70,7 @@ describe('connectionsFor', () => {
   const ids = (role: Parameters<typeof connectionsFor>[0]) =>
     connectionsFor(role, all).map((connection) => connection.id);
 
-  it('offers a mentor from anywhere that answers', () => {
+  it('offers a mentor from anywhere that answers, then the presets of providers not connected', () => {
     expect(ids('mentor')).toEqual([
       'meta',
       'openrouter',
@@ -77,7 +78,22 @@ describe('connectionsFor', () => {
       'other:https://llm.example.com/v1',
       'other:http://127.0.0.1:8080/v1',
       'ollama',
+      'openai',
+      'anthropic',
+      'gemini',
+      'baseten',
+      'modal',
     ]);
+    const offered = connectionsFor('mentor', all).filter((connection) => connection.offered);
+    expect(offered.map((connection) => connection.id)).toEqual([
+      'openai',
+      'anthropic',
+      'gemini',
+      'baseten',
+      'modal',
+    ]);
+    // Choosing one of them saves its key's name with the mentor, so the key is asked for next.
+    expect(byId(offered, 'anthropic')).toMatchObject({ secretRef: 'anthropic', local: false });
   });
 
   it('offers the agent only models on this computer', () => {
@@ -85,7 +101,16 @@ describe('connectionsFor', () => {
   });
 
   it('offers hosted copies only from hosts of open models', () => {
-    expect(ids('hosted')).toEqual(['openrouter', 'together', 'other:https://llm.example.com/v1']);
+    expect(ids('hosted')).toEqual([
+      'openrouter',
+      'together',
+      'other:https://llm.example.com/v1',
+      'deepinfra',
+    ]);
+    expect(byId(connectionsFor('hosted', all), 'deepinfra')).toMatchObject({
+      offered: true,
+      secretRef: 'deepinfra',
+    });
   });
 });
 
@@ -175,6 +200,22 @@ describe('names and figures', () => {
       '$1.25 · $4.25',
     );
     expect(priceText({ inputPerM: 0, cachedInputPerM: 0, outputPerM: 0 })).toBe('Free');
+  });
+
+  it('names the host of a hosted copy by its preset, its provider, or its address', () => {
+    const endpoint = (baseUrl: string, model: string) => ({
+      runtime: 'openai_compatible' as const,
+      baseUrl,
+      model,
+      contextLength: 16_384,
+    });
+    expect(providerName(endpoint('https://api.together.ai/v1', 'meta/Muse-Glimmer-30B'))).toBe(
+      'Together',
+    );
+    expect(providerName(endpoint('https://openrouter.ai/api/v1', 'maker/other'))).toBe(
+      'OpenRouter',
+    );
+    expect(providerName(endpoint('https://llm.example.com/v1', 'm'))).toBe('llm.example.com');
   });
 
   it('treats an Ollama name without a tag as its latest one', () => {

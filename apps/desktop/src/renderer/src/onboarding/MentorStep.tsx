@@ -150,7 +150,7 @@ export function MentorStep({
         <ModelPicker
           role="mentor"
           aria-label="Mentor"
-          only={ROUTE_CONNECTIONS[route]}
+          only={(connection) => !connection.offered && ROUTE_CONNECTIONS[route](connection)}
           current={chosenHere ? model : null}
           onChoose={(choice) => {
             onResult(null);

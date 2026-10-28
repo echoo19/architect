@@ -70,6 +70,7 @@ function listedModels(connection: Connection, lists: Record<string, ListState>):
 }
 
 function noteOf(connection: Connection, lists: Record<string, ListState>): ReactNode {
+  if (connection.offered) return 'Needs a key';
   if (connection.runtime) return connection.runtime.running ? null : 'Not running';
   const state = lists[connection.id];
   if (!state || state.status === 'loading') return 'Loading models';
@@ -151,7 +152,8 @@ export function ModelPicker({
   const { connections, gpu } = useConnections();
   const [open, setOpen] = useState(false);
   const listed = connectionsFor(role, connections).filter(only ?? (() => true));
-  const lists = useModelLists(listed, open);
+  const connected = listed.filter((connection) => !connection.offered);
+  const lists = useModelLists(connected, open);
 
   const groups: ComboboxGroup[] = [];
   if (none) groups.push({ heading: 'None', options: [{ value: NONE, label: none.label }] });
@@ -203,13 +205,13 @@ export function ModelPicker({
       disabled={disabled}
       className={className}
       searchPlaceholder={role === 'student' ? 'Search models on this computer' : 'Search models'}
-      emptyText={listed.length === 0 ? 'Nothing connected yet.' : 'No model matches that.'}
+      emptyText={connected.length === 0 ? 'Nothing connected yet.' : 'No model matches that.'}
       fromSearch={(text) =>
-        listed.length === 0
+        connected.length === 0
           ? null
           : {
               heading: 'Use this model id',
-              options: listed.map((connection) => ({
+              options: connected.map((connection) => ({
                 value: valueOf(connection.id, text),
                 label: text,
                 detail: connection.label,

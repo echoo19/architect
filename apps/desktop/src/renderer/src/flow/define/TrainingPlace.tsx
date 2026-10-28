@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from 'react';
-import type { Job } from '@architect/shared';
+import { studentPricing, type Job } from '@architect/shared';
 import { Checkbox, cn, Heading, RadioCard, RadioCardGroup, Slider } from '@architect/ui';
 import { ChevronRight, RotateCw } from 'lucide-react';
 import { formatUsd } from '../../lib/format';
@@ -29,7 +29,7 @@ import {
   testSeconds,
   tooSlow,
 } from './estimates';
-import { presetOf, providerName, type HostedAvailability } from './hosted';
+import { providerName, type HostedAvailability } from './hosted';
 
 interface TrainingPlaceProps {
   job: Job;
@@ -74,7 +74,7 @@ export function TrainingPlace({
   const onHost = job.student.trainOn === 'hosted';
   const chosen = onHost ? remote : local;
   const provider = job.student.hosted ? providerName(job.student.hosted) : null;
-  const pricing = job.student.hosted ? presetOf(job.student.hosted)?.pricing : null;
+  const pricing = job.student.hosted ? (studentPricing(job.student.hosted) ?? null) : null;
   const hostedPrice = pricing ? aboutUsd(practiceUsd(pricing, remote)) : null;
   const biller = provider ?? 'Host';
   const mentorBiller = job.mentor.kind === 'model' ? mentorProvider(job.mentor) : mentor;

@@ -29,6 +29,8 @@ export interface Connection {
   local: boolean;
   /** For a runtime here: whether it answers, its version, and the models it has. */
   runtime?: { running: boolean; version?: string; models: ModelEntry[] };
+  /** A provider offered by its presets before its key is saved: choosing one asks for the key. */
+  offered?: boolean;
 }
 
 /** Hosted providers people connect with a key, in the order the app lists them. */
@@ -95,17 +97,55 @@ const HOSTED_COPY_PROVIDERS: ReadonlySet<ProviderId> = new Set([
   'other',
 ]);
 
-/** The connections a picker lists for its role. */
+/** The hosted providers the app has presets for in a role, in the order the presets list them. */
+function presetProviders(role: 'mentor' | 'hosted'): ProviderId[] {
+  const ids =
+    role === 'mentor'
+      ? MENTOR_PRESETS.map((preset) => preset.provider)
+      : STUDENT_PRESETS.filter((preset) => preset.runtime === 'openai_compatible').flatMap(
+          (preset) => PROVIDER_IDS.filter((id) => PROVIDERS[id].baseUrl === preset.baseUrl),
+        );
+  return [...new Set(ids)];
+}
+
+/** Those providers whose key isn't saved yet, offered by their presets. */
+function notConnected(role: 'mentor' | 'hosted', connections: readonly Connection[]) {
+  return presetProviders(role)
+    .filter((id) => !connections.some((connection) => connection.provider === id))
+    .map((id): Connection => {
+      const { label, baseUrl, secretRef } = PROVIDERS[id];
+      return {
+        id,
+        provider: id,
+        label,
+        baseUrl,
+        ...(secretRef ? { secretRef } : {}),
+        local: false,
+        offered: true,
+      };
+    });
+}
+
+/**
+ * The connections a picker lists for its role. The mentor and hosted pickers also offer the
+ * presets of providers that aren't connected yet, after the connected ones.
+ */
 export function connectionsFor(role: PickerRole, connections: readonly Connection[]): Connection[] {
   switch (role) {
     case 'mentor':
-      return connections.filter((connection) => !connection.runtime || connection.runtime.running);
+      return [
+        ...connections.filter((connection) => !connection.runtime || connection.runtime.running),
+        ...notConnected(role, connections),
+      ];
     case 'student':
       return connections.filter((connection) => connection.local);
     case 'hosted':
-      return connections.filter(
-        (connection) => !connection.local && HOSTED_COPY_PROVIDERS.has(connection.provider),
-      );
+      return [
+        ...connections.filter(
+          (connection) => !connection.local && HOSTED_COPY_PROVIDERS.has(connection.provider),
+        ),
+        ...notConnected(role, connections),
+      ];
   }
 }
 
