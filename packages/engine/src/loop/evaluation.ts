@@ -145,7 +145,8 @@ async function recordAttempt(
         round: spec.round,
         attemptId: id,
         usage: step.usage,
-        usd: price(step.usage),
+        // What the provider billed when it said, as for a mentor (decision 034); else the price.
+        usd: step.costUsd ?? price(step.usage),
         at: attempt.createdAt,
       });
     }

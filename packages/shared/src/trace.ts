@@ -40,6 +40,8 @@ export const TraceStepSchema = z.discriminatedUnion('kind', [
     text: z.string(),
     toolCalls: z.array(ToolCallSchema),
     usage: UsageSchema,
+    /** What the provider billed for the call, in US dollars, when it reported it. */
+    costUsd: z.number().nonnegative().optional(),
     latencyMs: z.number().int().nonnegative(),
   }),
   z.object({

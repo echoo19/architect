@@ -5,6 +5,8 @@ export interface UsageBody {
   completion_tokens: number;
   prompt_tokens_details?: { cached_tokens?: number | null } | null;
   completion_tokens_details?: { reasoning_tokens?: number | null } | null;
+  /** What the call was charged, in US dollars, as OpenRouter reports it. */
+  cost?: number;
 }
 
 /** One streamed chunk carrying a delta and, optionally, the finish reason. */
