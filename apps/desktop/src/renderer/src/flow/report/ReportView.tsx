@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import type { GraduateSummary, Job, ReportCard } from '@architect/shared';
-import { Badge, Heading, Meter, Stat } from '@architect/ui';
+import type { GraduateSummary, Installation, Job, ReportCard, Run } from '@architect/shared';
+import { Badge, Heading, Stat } from '@architect/ui';
 import { Check, CircleMinus } from 'lucide-react';
 import type { QueryState } from '../../api/query';
 import { formatBytes, formatDuration, formatUsd } from '../../lib/format';
@@ -9,8 +9,12 @@ import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { providerName } from '../define/hosted';
 import { formatAnswerTime, formatRate, percent, signed } from '../format';
 import type { ModelNames } from '../train/phase';
+import { comparisonArms } from './arms';
+import { Capabilities } from './Capabilities';
 import type { ComparisonRow } from './comparison';
+import { Comparisons } from './Comparisons';
 import { ComparisonTable } from './ComparisonTable';
+import type { ReportEvidence } from './evidence';
 import { missedRequirements } from './requirements';
 
 /** How the report names the runtime the final test ran on. */
@@ -26,6 +30,12 @@ interface ReportViewProps {
   graduate: GraduateSummary | undefined;
   /** The other methods on the same job and seed; empty unless comparison mode is on. */
   comparison: QueryState<ComparisonRow[]>;
+  /** The run's records beside the card: capabilities, references, experiments and progress. */
+  evidence: QueryState<ReportEvidence>;
+  /** The run itself, for the baseline and any trained weights it kept; null while it loads. */
+  run: Run | null;
+  /** This computer's install checks of the agent, once it is one. */
+  installation: Installation | null;
 }
 
 /**
@@ -90,19 +100,25 @@ function trainingNote(report: ReportCard, job: Job | null): string {
   return `${count} · ${formatDuration(wallMs)}`;
 }
 
-export function ReportView({ report, job, graduate, comparison }: ReportViewProps) {
+export function ReportView({
+  report,
+  job,
+  graduate,
+  comparison,
+  evidence,
+  run,
+  installation,
+}: ReportViewProps) {
   const { test, cost } = report;
   const names: ModelNames = {
     mentor: shortModelName(report.mentor.label),
     student: shortModelName(report.student.label),
   };
   const missed = missedRequirements(report);
-  const handled = test.perType.filter((type) => !type.refused);
   const device = deviceInSentence(currentPlatform());
   const where = test.ranOffline ? `offline on ${device}` : 'on a hosted copy';
   const spent = costParts(report, names.mentor, job);
   const before = beforeTraining(report, comparison);
-  const target = Math.round(report.requirements.passRate.target * 100);
   const pinned = graduate?.manifest.student;
   const pinnedFacts = [
     pinned?.quantization && quantizationLabel(pinned.quantization),
@@ -171,57 +187,38 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
         />
       </div>
 
+      <Capabilities evidence={evidence} installation={installation} names={names} />
+
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(360px,100%),1fr))] gap-x-14 gap-y-10">
-        <section aria-labelledby="handles" className="flex flex-col gap-[18px]">
-          <Heading id="handles">Handles</Heading>
-          {handled.length === 0 ? (
-            <p className="m-0 text-md text-fg-secondary">No task type passed the final test.</p>
-          ) : (
-            handled.map((type) => (
-              <div key={type.type} className="flex flex-col gap-2">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span>{type.label}</span>
-                  <span className="font-mono text-fg-secondary">
-                    {formatRate(type)}
-                    <span className="text-fg-muted">
-                      {' '}
-                      · {type.pass} of {type.total}
-                    </span>
-                  </span>
-                </div>
-                <Meter
-                  label={type.label}
-                  value={percent(type) / 100}
-                  valueText={`${type.pass} of ${type.total} right`}
-                  tone="student"
-                  thickness={4}
-                />
-                {percent(type) < target && (
-                  <span className="text-sm text-fg-muted">
-                    Below {target}%: check these answers
-                  </span>
-                )}
-              </div>
-            ))
-          )}
+        <section aria-labelledby="does-not" className="flex flex-col gap-3.5">
+          <Heading id="does-not">Doesn&apos;t handle</Heading>
+          <Refused report={report} />
         </section>
-        <div className="flex flex-col gap-10">
-          <section aria-labelledby="does-not" className="flex flex-col gap-3.5">
-            <Heading id="does-not">Doesn&apos;t handle</Heading>
-            <Refused report={report} />
+        {job && job.doesNot.length > 0 && (
+          <section aria-labelledby="wont-do" className="flex flex-col gap-3.5">
+            <Heading id="wont-do">What it won&apos;t do</Heading>
+            <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-md text-fg-secondary">
+              {job.doesNot.map((limit) => (
+                <Limit key={limit}>{limit}</Limit>
+              ))}
+            </ul>
           </section>
-          {job && job.doesNot.length > 0 && (
-            <section aria-labelledby="wont-do" className="flex flex-col gap-3.5">
-              <Heading id="wont-do">What it won&apos;t do</Heading>
-              <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-md text-fg-secondary">
-                {job.doesNot.map((limit) => (
-                  <Limit key={limit}>{limit}</Limit>
-                ))}
-              </ul>
-            </section>
-          )}
-        </div>
+        )}
       </div>
+
+      {run && evidence.data && (
+        <Comparisons
+          arms={comparisonArms({
+            run,
+            report,
+            progress: evidence.data.progress,
+            experiments: evidence.data.experiments,
+            references: evidence.data.references,
+            bare: evidence.data.bare,
+          })}
+          names={names}
+        />
+      )}
 
       {report.topInterventions.length > 0 && (
         <section aria-labelledby="helped" className="flex flex-col gap-3">
