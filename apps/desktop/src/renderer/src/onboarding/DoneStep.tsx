@@ -4,7 +4,8 @@ import { StepIntro } from './SetupShell';
 import { StatusValue } from './StatusValue';
 
 export interface DoneStepProps {
-  mentor: { name: string; label: string; state: 'connected' | 'saved' | 'missing' };
+  /** `saved` is a key on file that hasn't been tested; `ready` is a mentor that needs no key. */
+  mentor: { name: string; label: string; state: 'connected' | 'saved' | 'ready' | 'missing' };
   student: { name: string; model: string; state: 'ready' | 'downloading' | 'missing' };
   /** Download progress while the model is still coming in. */
   percent: number | null;
@@ -13,7 +14,7 @@ export interface DoneStepProps {
 export function DoneStep({ mentor, student, percent }: DoneStepProps) {
   const gaps = [
     student.state === 'missing' && "Agents can't run until the local model is downloaded.",
-    mentor.state === 'missing' && 'Training a new agent needs a mentor key.',
+    mentor.state === 'missing' && 'Training a new agent needs a mentor.',
   ].filter(Boolean);
 
   return (
@@ -42,6 +43,8 @@ export function DoneStep({ mentor, student, percent }: DoneStepProps) {
         <SettingsRow label="Mentor" meta={mentor.label}>
           {mentor.state === 'connected' ? (
             <StatusValue done>Connected</StatusValue>
+          ) : mentor.state === 'ready' ? (
+            <StatusValue done>Ready</StatusValue>
           ) : mentor.state === 'saved' ? (
             <StatusValue done>Key saved</StatusValue>
           ) : (

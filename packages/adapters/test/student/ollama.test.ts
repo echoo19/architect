@@ -221,6 +221,23 @@ describe('the chat request', () => {
     await collect(student.chat(studentRequest()));
     expect(chatRequests(server)[0]?.json()['think']).toBe('low');
   });
+
+  it('turns thinking on with true for a model that names no levels', async () => {
+    const { student, server } = await studentOn({
+      show: { details: {}, capabilities: ['tools', 'thinking', 'completion'] },
+    });
+    await collect(student.chat(studentRequest()));
+    expect(chatRequests(server)[0]?.json()['think']).toBe(true);
+  });
+
+  it('sends true when the harness asks for a level the model does not name', async () => {
+    const { student, server } = await studentOn({
+      show: { ...GLIMMER_SHOW, thinking: { values: [false, 'low', 'high'] } },
+    });
+    const decoding = DecodingSchema.parse({ thinking: 'medium' });
+    await collect(student.chat(studentRequest({ decoding })));
+    expect(chatRequests(server)[0]?.json()['think']).toBe(true);
+  });
 });
 
 describe('the chat reply', () => {

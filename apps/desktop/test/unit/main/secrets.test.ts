@@ -41,11 +41,16 @@ describe('SecretStore', () => {
     const store = await SecretStore.open(file, fakeCipher());
     expect(store.status()).toEqual({
       meta: false,
+      openai: false,
+      anthropic: false,
+      gemini: false,
+      openrouter: false,
+      groq: false,
+      together: false,
+      deepinfra: false,
+      fireworks: false,
       baseten: false,
       modal: false,
-      together: false,
-      openrouter: false,
-      deepinfra: false,
     });
     expect(await store.get('meta')).toBeUndefined();
   });
@@ -120,6 +125,21 @@ describe('SecretStore', () => {
     });
     const reopened = await SecretStore.open(file, fakeCipher({ version: 2 }));
     expect(await reopened.get('meta')).toBe('sk-1');
+  });
+
+  it("keeps an added endpoint's key under its host, lists it, and clears it", async () => {
+    const store = await SecretStore.open(file, fakeCipher());
+    await store.set('custom:llm.example.com', 'sk-house-1');
+    expect(store.status()).toMatchObject({ 'custom:llm.example.com': true, meta: false });
+    expect(await store.get('custom:llm.example.com')).toBe('sk-house-1');
+
+    const reopened = await SecretStore.open(file, fakeCipher());
+    expect(await reopened.get('custom:llm.example.com')).toBe('sk-house-1');
+    await reopened.clear('custom:llm.example.com');
+    expect(reopened.status()).not.toHaveProperty('custom:llm.example.com');
+    await expect(reopened.set('custom:https://x.example', 'k')).rejects.toThrow(
+      'Architect has no key called',
+    );
   });
 
   it('keeps only the refs it knows from the file', async () => {

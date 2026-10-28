@@ -3,10 +3,15 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
-import { EMPTY_ENGINE, SAMPLE, SAMPLE_ENGINE, stubEngine, stubEngineFailure } from './fixtures';
-
-/** Ollama answering, with the agent's model not downloaded yet: what a new install sees. */
-const OLLAMA_READY = { running: true, version: '0.12.6', models: [] };
+import { glimmerBuild } from '@architect/shared';
+import {
+  EMPTY_ENGINE,
+  OLLAMA_READY,
+  SAMPLE,
+  SAMPLE_ENGINE,
+  stubEngine,
+  stubEngineFailure,
+} from './fixtures';
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const SIZE = { width: 1440, height: 900 };
@@ -65,7 +70,7 @@ async function applySettings(page: Page, patch: Parameters<typeof updateSettings
 for (const theme of THEMES) {
   test(`captures every screen in the ${theme} theme`, async () => {
     const page = launched.page;
-    await stubEngine(launched.app, { ...EMPTY_ENGINE, 'ollama:status': OLLAMA_READY });
+    await stubEngine(launched.app, { ...EMPTY_ENGINE, 'connections:detectLocal': OLLAMA_READY });
     await applySettings(page, { theme, onboarded: false });
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
     expect(await page.evaluate(() => [window.innerWidth, window.innerHeight])).toEqual([
@@ -83,17 +88,26 @@ for (const theme of THEMES) {
       await capture(page, `${route.name}-${theme}.png`);
     }
 
-    // Settings and the palette over a workspace that has an agent and a saved mentor key.
+    // Settings and the palette over a workspace that has an agent, a saved mentor key, and
+    // Glimmer's GPU-sized build as the agent's model.
     await stubEngine(launched.app, {
       ...SAMPLE_ENGINE,
       'secrets:status': { meta: true, openrouter: true },
     });
-    await applySettings(page, { onboarded: true });
+    const gpuBuild = glimmerBuild('glimmer-gpu');
+    const defaultStudent = await page.evaluate(() =>
+      window.architect.settings.get().then((current) => current.defaultStudent),
+    );
+    await applySettings(page, {
+      onboarded: true,
+      defaultStudent: { ...defaultStudent, model: gpuBuild.model },
+    });
     await goTo(page, `/agents/${SAMPLE.graduateId}/chats/${SAMPLE.chatId}`);
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
     await capture(page, `settings-general-${theme}.png`);
     await page.getByRole('tab', { name: 'Models' }).click();
+    await expect(page.getByText('Running · 0.12.6 · 1 model')).toBeVisible();
     await capture(page, `settings-models-${theme}.png`);
     await page.keyboard.press('Escape');
 
@@ -101,6 +115,7 @@ for (const theme of THEMES) {
     await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible();
     await capture(page, `palette-${theme}.png`);
     await page.keyboard.press('Escape');
+    await updateSettings(page, { defaultStudent });
   });
 }
 

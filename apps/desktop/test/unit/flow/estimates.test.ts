@@ -14,6 +14,7 @@ import {
   formatAboutUsd,
   limitText,
   mentorPresetOf,
+  mentorPriceOf,
   mentorRounds,
   mentorUsdFor,
   planBills,
@@ -363,6 +364,35 @@ describe('mentor spending', () => {
       },
     });
     expect(estimateMentorUsd(custom)).toBeNull();
+  });
+
+  it('prices a mentor at the price saved with it, and one on this computer at nothing', () => {
+    const listed = { inputPerM: 2, cachedInputPerM: 0.2, outputPerM: 8 };
+    const openRouter = makeJob({
+      mentor: {
+        kind: 'model',
+        provider: 'openrouter',
+        label: 'Some model',
+        baseUrl: 'https://openrouter.ai/api/v1',
+        model: 'maker/some-model',
+        reasoningEffort: 'medium',
+        secretRef: 'openrouter',
+        pricing: listed,
+      },
+    });
+    expect(mentorPriceOf(openRouter)).toEqual(listed);
+    expect(estimateMentorUsd(openRouter)).toBeCloseTo(12 * mentorUsdFor(listed, 1), 6);
+    const here = makeJob({
+      mentor: {
+        kind: 'model',
+        provider: 'ollama',
+        label: 'granite4.2:8b',
+        baseUrl: 'http://127.0.0.1:11434',
+        model: 'granite4.2:8b',
+        reasoningEffort: 'medium',
+      },
+    });
+    expect(estimateMentorUsd(here)).toBe(0);
   });
 
   it('formats an estimate without false precision', () => {

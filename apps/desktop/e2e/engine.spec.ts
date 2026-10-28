@@ -77,20 +77,32 @@ test('creates the sample job with all of its tasks', async () => {
 test('keeps keys in the main process, encrypted', async () => {
   const page = launched.page;
   await page.evaluate(() => window.architect.secrets.set('meta', 'test-value'));
+  await page.evaluate(() =>
+    window.architect.secrets.set('custom:llm.example.com', 'another-test-value'),
+  );
   const status = await page.evaluate(() => window.architect.secrets.status());
   expect(status).toEqual({
     meta: true,
+    openai: false,
+    anthropic: false,
+    gemini: false,
+    openrouter: false,
+    groq: false,
+    together: false,
+    deepinfra: false,
+    fireworks: false,
     baseten: false,
     modal: false,
-    together: false,
-    openrouter: false,
-    deepinfra: false,
+    'custom:llm.example.com': true,
   });
 
   const { dataPath } = await page.evaluate(() => window.architect.app.info());
   const saved = await readFile(join(dataPath, 'secrets.json'), 'utf8');
   expect(saved).not.toContain('test-value');
-  expect(Object.keys(JSON.parse(saved) as object)).toEqual(['meta']);
+  expect(Object.keys(JSON.parse(saved) as object).sort()).toEqual([
+    'custom:llm.example.com',
+    'meta',
+  ]);
 
   const refused = await page.evaluate(() =>
     window.architect.secrets.set('github', 'x').then(

@@ -10,6 +10,12 @@ export {
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './components/button';
 export { Checkbox, type CheckboxProps } from './components/checkbox';
 export {
+  Combobox,
+  type ComboboxGroup,
+  type ComboboxOption,
+  type ComboboxProps,
+} from './components/combobox';
+export {
   CommandGroup,
   CommandItem,
   CommandPalette,
@@ -59,6 +65,7 @@ export {
 export { Input, Textarea, type InputProps, type TextareaProps } from './components/input';
 export { Kbd, Shortcut, shortcutLabel, type ShortcutProps } from './components/kbd';
 export { Progress, type ProgressProps } from './components/progress';
+export { ProviderMark, type ProviderMarkProps } from './components/provider-mark';
 export { TableCard, type TableCardProps } from './components/table-card';
 export {
   DropdownMenu,

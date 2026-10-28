@@ -8,6 +8,9 @@ export const queryKeys = {
   appInfo: 'app.info',
   secrets: 'secrets.status',
   ollama: 'ollama.status',
+  local: 'connections.local',
+  models: (source: { provider: string; baseUrl: string }) =>
+    `models:${source.provider}:${source.baseUrl}`,
   graduates: 'graduates',
   jobs: 'jobs',
   job: (jobId: string) => `job:${jobId}`,
@@ -38,6 +41,7 @@ export function useSettings() {
 export const useAppInfo = () => useQuery(queryKeys.appInfo, api.appInfo);
 export const useSecretsStatus = () => useQuery(queryKeys.secrets, api.secretsStatus);
 export const useOllamaStatus = () => useQuery(queryKeys.ollama, api.ollamaStatus);
+export const useLocalRuntimes = () => useQuery(queryKeys.local, api.localRuntimes);
 export const useGraduates = () => useQuery(queryKeys.graduates, api.graduates);
 export const useJobs = () => useQuery(queryKeys.jobs, api.jobs);
 

@@ -33,6 +33,8 @@ export const ShowWire = z.object({
   details: z.object({ quantization_level: z.string().nullish() }).nullish(),
   model_info: z.record(z.string(), z.unknown()).nullish(),
   capabilities: z.array(z.string()).nullish(),
+  /** The `think` values a model's renderer takes, as Glimmer's lists them; absent for most. */
+  thinking: z.object({ values: z.array(z.union([z.boolean(), z.string()])).nullish() }).nullish(),
 });
 export type ShowWire = z.output<typeof ShowWire>;
 
@@ -43,6 +45,17 @@ export const PullLineWire = z.object({
   completed: count.nullish(),
   error: z.string().nullish(),
 });
+
+/** `/api/ps`: what is loaded, with `size_vram` the part of it on the GPU. */
+export const PsWire = z.object({
+  models: z.array(z.object({ name: z.string(), size: count, size_vram: count.nullish() })),
+});
+
+/** `/api/show`, for the Modelfile that names a model's weights. */
+export const ShowModelfileWire = z.object({ modelfile: z.string().nullish() });
+
+/** `/api/create` without streaming answers once, with the outcome. */
+export const CreateWire = z.object({ status: z.string().nullish() });
 
 export const AnyObjectWire = z.object({});
 

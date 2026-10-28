@@ -20,6 +20,21 @@ describe('createMentor', () => {
     });
   });
 
+  it('builds an Anthropic mentor on the Messages API and a key-less one for a local model', () => {
+    const anthropic = createMentor(mentorConfig('anthropic-haiku'), { apiKey: 'key-123456' });
+    expect(anthropic).toMatchObject({ kind: 'model', provider: 'anthropic' });
+    const local = createMentor(
+      mentorConfig('meta-spark', {
+        provider: 'ollama',
+        baseUrl: 'http://127.0.0.1:11434',
+        model: 'granite4.2:8b',
+        secretRef: undefined,
+      }),
+    );
+    expect(local).toMatchObject({ provider: 'ollama', model: 'granite4.2:8b' });
+    expect(local.estimateCostUsd({ inputTokens: 1_000_000, outputTokens: 1_000_000 })).toBe(0);
+  });
+
   it('says so, in plain words, for a coding agent', () => {
     const config: MentorConfig = {
       kind: 'coding_agent',
@@ -71,9 +86,13 @@ describe('the public API', () => {
       'createOpenAICompatibleStudent',
       'createStudent',
       'isLoopbackUrl',
+      'listModels',
       'listOllamaModels',
+      'loadedOllamaModels',
+      'makeTextOnlyModel',
       'ollamaVersion',
       'pullOllamaModel',
+      'verifyKey',
     ]);
   });
 });

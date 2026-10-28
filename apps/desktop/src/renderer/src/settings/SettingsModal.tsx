@@ -4,7 +4,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { useSettings } from '../api/hooks';
 import { attempt } from '../lib/notify';
 import { useUi, type SettingsTabId } from '../state/ui';
-import { AboutTab, GeneralTab, ModelsTab, PrivacyTab, StorageTab, TrainingTab } from './tabs';
+import { ModelsTab } from './models/ModelsTab';
+import { AboutTab, GeneralTab, PrivacyTab, StorageTab, TrainingTab } from './tabs';
 
 const TABS: readonly SettingsTab<SettingsTabId>[] = [
   { value: 'general', label: 'General' },

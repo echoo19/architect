@@ -46,29 +46,6 @@ export function NumberField({ label, meta, value, onChange, issue, unit }: Numbe
   );
 }
 
-interface TextFieldProps {
-  label: string;
-  meta?: ReactNode;
-  value: string;
-  onChange: (value: string) => void;
-  issue?: string;
-}
-
-export function TextField({ label, meta, value, onChange, issue }: TextFieldProps) {
-  return (
-    <SettingsRow label={label} meta={meta} error={issue}>
-      <Input
-        aria-label={label}
-        aria-invalid={issue ? true : undefined}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        spellCheck={false}
-        className="w-60 font-mono text-sm"
-      />
-    </SettingsRow>
-  );
-}
-
 interface PathFieldProps {
   label: string;
   path: string;
