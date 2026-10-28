@@ -14,6 +14,8 @@ import {
 } from './fixtures';
 import {
   lessonCount,
+  recordedComparison,
+  recordedComparisonReport,
   recordedData,
   recordedSummary,
   roundWith,
@@ -175,12 +177,17 @@ test.describe('the evidence screens of a recorded run', () => {
   const DRAWER_HEIGHT = 2400;
   /** The report without its capabilities and comparisons, when they fail to load. */
   const SHORT_REPORT_HEIGHT = 1300;
+  /** A comparison arm's report, with every arm of the comparison in its table. */
+  const COMPARISON_REPORT_HEIGHT = 2100;
 
   let recorded: LaunchedApp;
   let summary: RecordedSummary;
 
-  async function open(theme: (typeof THEMES)[number]): Promise<LaunchedApp> {
-    const app = await launchApp({ data: recordedData(), settings: { onboarded: true, theme } });
+  async function open(
+    theme: (typeof THEMES)[number],
+    from: { data: string } | { comparison: string } = { data: recordedData() },
+  ): Promise<LaunchedApp> {
+    const app = await launchApp({ ...from, settings: { onboarded: true, theme } });
     await expect(app.page.locator('html')).toHaveAttribute('data-theme', theme);
     return app;
   }
@@ -293,6 +300,8 @@ test.describe('the evidence screens of a recorded run', () => {
       await goTo(page, `/runs/${summary.runId}/report`);
       await expect(page.getByRole('table', { name: 'Capabilities by task type' })).toBeVisible();
       await expect(page.getByRole('table', { name: 'Comparisons' })).toBeVisible();
+      // The agent's install checks and its model's facts arrive with the agent, a moment later.
+      await expect(page.getByText('Install checks on this computer')).toBeVisible();
       await shoot(`evidence-report-${theme}.png`);
 
       // An example whose steps can't be read says so, with a way to try again.
@@ -337,12 +346,23 @@ test.describe('the evidence screens of a recorded run', () => {
       await expect(opened).toContainText("Couldn't load the rest of this round");
       await shoot(`evidence-round-error-${theme}.png`);
       await closeDrawer();
-      await closeDrawer();
 
       await resize(SHORT_REPORT_HEIGHT);
       await goTo(page, `/runs/${summary.runId}/report`);
       await expect(page.getByText("Couldn't load the capabilities")).toBeVisible();
       await shoot(`evidence-report-error-${theme}.png`);
+    });
+
+    test(`captures a comparison's own report on one of its arms (${theme})`, async () => {
+      const report = await recordedComparisonReport();
+      const targeted = report.arms.find((arm) => arm.arm === 'targeted');
+      if (!targeted?.runId) throw new Error('The recorded comparison has no targeted run.');
+      recorded = await open(theme, { comparison: recordedComparison() });
+      await resize(COMPARISON_REPORT_HEIGHT);
+      await goTo(recorded.page, `/runs/${targeted.runId}/report`);
+      await expect(recorded.page.getByRole('table', { name: 'Comparisons' })).toBeVisible();
+      await expect(recorded.page.getByText('Install checks on this computer')).toBeVisible();
+      await shoot(`evidence-report-comparison-${theme}.png`);
     });
   }
 });

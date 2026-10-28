@@ -18,6 +18,7 @@ import {
   type Clock,
   type EngineHostDeps,
   type EngineStore,
+  type RuntimeMeter,
 } from '@architect/engine';
 import {
   EpisodeKindSchema,
@@ -615,6 +616,22 @@ function summarize(store: EngineStore, runId: string): RecordedRunSummary {
 }
 
 /**
+ * The meter on the final test (decision 045), with fixed readings it names as a fake's: nothing
+ * here serves a model, so there is no memory to read.
+ */
+export const FAKE_METER_READING = {
+  peakProcessBytes: 19 * 1024 ** 3,
+  peakGpuBytes: 7 * 1024 ** 3,
+  coldStartMs: 8_400,
+  samples: 24,
+  sampler: 'a fake meter for the recorded run, with fixed readings',
+} as const;
+
+const FAKE_METER: RuntimeMeter = {
+  start: async () => ({ stop: async () => ({ ...FAKE_METER_READING }) }),
+};
+
+/**
  * Records the run into `dataDir`, which must be empty or not exist yet: the job imported with
  * `JobLibrary.importFile`, `architect.db` at the root, the run to its end, then Spark on dev as a
  * reference. The controller and the store are closed before it returns, so the folder can be
@@ -639,6 +656,7 @@ export async function recordRun(dataDir: string): Promise<RecordedRunSummary> {
       createStudent: () => glimmer,
       createActor: () => agent,
     },
+    meter: FAKE_METER,
   };
   const source = mkdtempSync(join(tmpdir(), 'gear-returns-recording-'));
   const paths = new DataPaths(dataDir);

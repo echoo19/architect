@@ -1,7 +1,14 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Experiment, Measurement, TypeScore } from '@architect/shared';
 import { goTo, launchApp, type LaunchedApp } from './app';
-import { recordedData, recordedSummary, roundWith, type RecordedSummary } from './recorded';
+import {
+  recordedComparison,
+  recordedComparisonReport,
+  recordedData,
+  recordedSummary,
+  roundWith,
+  type RecordedSummary,
+} from './recorded';
 
 /*
  * The evidence screens on a run recorded with the engine's fakes on the returns desk (the
@@ -85,7 +92,7 @@ test('shows each round as its experiment ended, rejected and stopped ones includ
   const [worst] = rejected.regressions;
   if (!worst) throw new Error('The rejected experiment recorded no loss.');
   const loss = `went from ${worst.before} to ${worst.after}`;
-  await expect(roundRow(page, rejected.round)).toContainText(loss);
+  await expect(roundRow(page, rejected.round)).toContainText(`${worst.before} → ${worst.after}`);
   const drawer = await openRound(page, rejected.round);
   await expect(drawer.getByText('Rejected', { exact: true })).toBeVisible();
   await expect(drawer).toContainText(loss);
@@ -275,4 +282,66 @@ test('keeps practice, check tasks, the final test and install checks apart', asy
   await expect(
     comparisons.getByRole('row', { name: /Glimmer with the starting setup/ }),
   ).toBeVisible();
+});
+
+test('shows the memory a meter read over the final test, and nothing where it read none', async () => {
+  const { page } = launched;
+  await goTo(page, `/runs/${summary.runId}/report`);
+  const [reading, ...others] = await page.evaluate(
+    (id) => window.architect.runs.runtimeMeasurements(id),
+    summary.runId,
+  );
+  expect(others).toEqual([]);
+  expect(reading?.peakProcessBytes).not.toBeNull();
+  await expect(page.getByText(/^Peak memory \d/)).toBeVisible();
+  await expect(page.getByText(/^Peak GPU memory \d/)).toBeVisible();
+  await expect(page.getByText(/^First answer [\d.]+ s from cold$/)).toBeVisible();
+  // Only the agent's own final test was metered: its row has the figure, no other row does.
+  const comparisons = page.getByRole('table', { name: 'Comparisons' });
+  await expect(comparisons.getByRole('columnheader', { name: 'Peak memory' })).toBeVisible();
+  await expect(comparisons.getByRole('row', { name: /this agent/ })).toContainText('GPU');
+  await expect(comparisons.getByRole('row', { name: /starting setup/ })).not.toContainText('GPU');
+});
+
+test("reads a comparison's own report: each arm as it ended, and one not run with its reason", async () => {
+  const report = await recordedComparisonReport();
+  const targeted = report.arms.find((arm) => arm.arm === 'targeted');
+  const fixed = report.arms.find((arm) => arm.arm === 'fixed');
+  if (!targeted?.runId || fixed?.status !== 'not_run') {
+    throw new Error('The recorded comparison has no targeted run, or its fixed arm ran.');
+  }
+  const opened = await launchApp({
+    comparison: recordedComparison(),
+    settings: { onboarded: true, theme: 'dark' },
+  });
+  try {
+    await goTo(opened.page, `/runs/${targeted.runId}/report`);
+    const table = opened.page.getByRole('table', { name: 'Comparisons' });
+    await expect(table).toBeVisible();
+    await expect(opened.page.getByText('Dry run on fakes', { exact: true })).toBeVisible();
+    // Every arm in the report's order, this run's marked as this agent.
+    await expect(table.getByRole('row')).toHaveCount(report.arms.length + 1);
+    const own = table.getByRole('row', { name: /Glimmer mentored by Spark/ });
+    await expect(own).toContainText('this agent');
+    // Its final test as the report holds it: the hosted copy under the first seed, the second
+    // seed's beside it, and this computer's test with the memory the meter read there.
+    const seed = report.plan.testSeeds[0];
+    const rowOf = (backend: string) =>
+      report.backends
+        .find((item) => item.backend === backend)
+        ?.rows.find((row) => row.arm === 'targeted' && row.seed === seed);
+    const hosted = rowOf('hosted');
+    const local = rowOf('local-ollama');
+    await expect(own).toContainText(`${hosted?.scenarios.pass} of ${hosted?.scenarios.total}`);
+    await expect(own).toContainText(`${local?.scenarios.pass} of ${local?.scenarios.total}`);
+    await expect(own).toContainText('GPU');
+    // An arm tested on the hosted copy alone has no memory to show.
+    await expect(table.getByRole('row', { name: /one-shot setup/ })).not.toContainText('GPU');
+    // The arm that wasn't run says so, with the runner's reason, and nothing else.
+    await expect(table.getByRole('row', { name: /procedures only/ })).toContainText(
+      `Not run: ${fixed.reason}`,
+    );
+  } finally {
+    await opened.close();
+  }
 });

@@ -96,6 +96,8 @@ export const STORY_EVIDENCE: EngineReplies = {
   'mentoring:categories': [],
   'mentoring:capabilities': storyCapabilities,
   'mentoring:references': [],
+  'runs:runtimeMeasurements': [],
+  'reports:comparisons': null,
   'graduates:installation': installation(STORY.graduateId),
 };
 

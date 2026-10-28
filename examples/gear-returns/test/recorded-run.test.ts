@@ -12,6 +12,7 @@ import {
 import type { Experiment, ListedLesson } from '@architect/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  FAKE_METER_READING,
   RecordedRunSummarySchema,
   recordRun,
   REFERENCE_CAP_USD,
@@ -339,6 +340,16 @@ describe('the recorded run on the returns desk', () => {
     ]);
     expect(references[0]?.spentUsd).toBeGreaterThan(0);
     expect(references[0]?.spentUsd).toBeLessThanOrEqual(REFERENCE_CAP_USD);
+    // The meter read the locked test on this computer, and only it: Spark's run isn't metered.
+    expect(await engine().runs.runtimeMeasurements(summary.runId)).toEqual([
+      expect.objectContaining({
+        split: 'test',
+        target: 'local',
+        config: 'student',
+        harnessVersion: detail.run.currentVersion,
+        ...FAKE_METER_READING,
+      }),
+    ]);
   });
 
   it('reconciles progress and the capability breakdown with the stored experiments', async () => {
