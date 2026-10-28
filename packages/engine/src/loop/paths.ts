@@ -86,7 +86,7 @@ export class DataPaths {
     return join(this.root, 'graduates', safe(graduateId));
   }
 
-  /** One immutable version of an agent: a package folder (decision 036). */
+  /** One immutable version of an agent: a package folder (decision 038). */
   versionDir(graduateId: string, version: number): string {
     return join(this.graduateDir(graduateId), 'versions', `v${String(version).padStart(4, '0')}`);
   }

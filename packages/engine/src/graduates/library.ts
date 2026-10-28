@@ -54,7 +54,7 @@ export class KeyedLock {
 }
 
 /**
- * Agents and their versions on this computer (decision 037). A version never changes once it is
+ * Agents and their versions on this computer (decision 039). A version never changes once it is
  * written; what changes is which one is active, which ones the user accepted, and how this
  * computer is set up to run them. Promotion and rollback move the active version in one
  * transaction, so a chat never sees half of either.

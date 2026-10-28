@@ -10,7 +10,7 @@ import { TrainingJobRecordSchema } from './training';
  * A graduate package (format 2): one immutable version of an agent as a plain folder, or as a
  * `name.architect.zip` of the same files. `graduate.json` describes it; every other file is
  * listed in its integrity section. Nothing in it belongs to one computer: no endpoints, folders,
- * chats or keys. Those live in the local installation (docs/DECISIONS.md, decision 036).
+ * chats or keys. Those live in the local installation (docs/DECISIONS.md, decision 038).
  */
 export const PACKAGE_SCHEMA = 2;
 export const PACKAGE_KIND = 'architect.graduate';

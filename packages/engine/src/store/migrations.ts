@@ -248,7 +248,7 @@ export const MIGRATIONS: readonly Migration[] = [
     version: 9,
     name: 'graduate versions',
     sql: `
-      -- A graduate is an agent with immutable versions (decision 037). Its graduates row is the
+      -- A graduate is an agent with immutable versions (decision 039). Its graduates row is the
       -- agent; each version is a package folder under graduates/<id>/versions/. Rows made before
       -- this keep their format 1 manifest until the engine converts their folder to version 1.
       CREATE TABLE graduate_versions (
