@@ -1,8 +1,13 @@
 import type { Job, StudentTarget } from '@architect/shared';
 import type { StoredRun } from '../store/records';
-import { resultOf } from './attempts';
 import { errorMessage, isAbort, must } from './errors';
-import { lockedTestAttempts, lockedTestReport, openLockedTest, runLockedTest } from './graduation';
+import {
+  lockedResult,
+  lockedTestAttempts,
+  lockedTestReport,
+  openLockedTest,
+  runLockedTest,
+} from './graduation';
 import { RunState, type SessionContext, type SessionControl } from './run-state';
 import { isoNow } from './time';
 
@@ -48,7 +53,7 @@ async function retestGraduate(state: RunState, target: StudentTarget): Promise<v
     type: 'eval.finished',
     split: 'test',
     harnessVersion: frozen.harnessVersion,
-    ...resultOf(attempts, state.job),
+    ...lockedResult(attempts, state.job),
   });
 }
 

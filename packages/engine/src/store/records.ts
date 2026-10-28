@@ -53,7 +53,11 @@ export type StudentPin = z.infer<typeof StudentPinSchema>;
 export const FrozenConfigurationSchema = z.object({
   /** `ollama` or `openai_compatible` for the job's student, `llama.cpp` with an adapter. */
   backend: z.string().min(1),
-  adapter: TrainedAdapterSchema.extend({ scale: z.number() }).nullable(),
+  adapter: TrainedAdapterSchema.extend({
+    scale: z.number(),
+    /** The base's GGUF digest as the runtime serving the adapter reported it at freezing. */
+    baseDigest: z.string().optional(),
+  }).nullable(),
   decoding: DecodingSchema,
 });
 export type FrozenConfiguration = z.infer<typeof FrozenConfigurationSchema>;
