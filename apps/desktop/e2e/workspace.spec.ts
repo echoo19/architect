@@ -148,9 +148,9 @@ for (const theme of THEMES) {
       'Find who owes money after partial payments',
       'Book the earliest technician who can do the job',
     ]);
-    await expect(page.getByText('The setup from round 7')).toBeVisible();
+    await expect(page.getByText('Version 1', { exact: true })).toBeVisible();
     await expect(page.getByText('Glimmer 4-bit')).toBeVisible();
-    await expect(page.getByText('Spark not connected')).toBeVisible();
+    await expect(page.getByText('Private from Spark')).toBeVisible();
     await expect(page.getByText('Running on this computer')).toBeVisible();
     await capture(`workspace-new-chat-${theme}.png`);
 

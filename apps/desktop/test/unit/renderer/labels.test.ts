@@ -7,6 +7,7 @@ import {
   shortPath,
 } from '../../../src/renderer/src/lib/format';
 import {
+  agentModelName,
   capitalized,
   mentorIntro,
   mentorIsLocal,
@@ -79,6 +80,14 @@ describe('model names', () => {
     expect(quantizationLabel('IQ3_XS')).toBe('3-bit');
     expect(quantizationLabel('F16')).toBe('16-bit');
     expect(quantizationLabel('MXFP4')).toBe('MXFP4');
+  });
+
+  it("names an agent's model by Glimmer's build, or by the id of any other model chosen", () => {
+    expect(agentModelName({ label: 'Glimmer', model: 'muse-glimmer:30b' })).toBe('Glimmer 4-bit');
+    expect(agentModelName({ label: 'Glimmer', model: 'muse-glimmer:30b-iq2' })).toBe(
+      'Glimmer 2-bit',
+    );
+    expect(agentModelName({ label: 'Glimmer', model: 'qwen3:8b' })).toBe('qwen3:8b');
   });
 });
 

@@ -12,7 +12,6 @@ import {
   LogoMark,
   Skeleton,
   Spinner,
-  StatusDot,
   Tooltip,
 } from '@architect/ui';
 import { Cloud, Ellipsis, PackageOpen, Pause, Plus, Settings } from 'lucide-react';
@@ -240,7 +239,9 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
             <span className="truncate">{chat.title}</span>
             {/* A chat waiting for an answer isn't working; the open one says so in the thread. */}
             {chat.waiting ? (
-              !current && <StatusDot tone="student" label="Needs you" />
+              !current && (
+                <span className="shrink-0 text-xs font-medium text-student">Needs you</span>
+              )
             ) : chat.running ? (
               <Spinner tone="student" label="Working" />
             ) : null}
