@@ -8,12 +8,16 @@ import {
   comparisonSeconds,
   estimateMentorUsd,
   estimateTime,
+  expectedMentorUsd,
   finalTestSummary,
   formatAbout,
   formatAboutUsd,
   limitText,
   mentorPresetOf,
+  mentorRounds,
   mentorUsdFor,
+  planSeconds,
+  planUsd,
   practiceUsd,
   typicalPracticeUsd,
   roundsLine,
@@ -22,6 +26,27 @@ import {
   trainingSummary,
 } from '../../../src/renderer/src/flow/define/estimates';
 import { makeJob } from './factories';
+
+const pricing = { inputPerM: 0.3, cachedInputPerM: 0.04, outputPerM: 1.2 };
+const hosted = makeJob({
+  student: {
+    label: 'Glimmer',
+    local: {
+      runtime: 'ollama',
+      baseUrl: 'http://127.0.0.1:11434',
+      model: 'muse-glimmer:30b',
+      contextLength: 16_384,
+    },
+    trainOn: 'hosted',
+    hosted: {
+      runtime: 'openai_compatible',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'meta/muse-glimmer-30b',
+      secretRef: 'openrouter',
+      contextLength: 16_384,
+    },
+  },
+});
 
 describe('estimateTime', () => {
   // 4 rounds of 6 practice tasks with 10 check tasks, a generous time cap and a 20-task test.
@@ -152,32 +177,11 @@ describe('what each part of a run takes', () => {
 });
 
 describe('what the three simpler versions add', () => {
-  const pricing = { inputPerM: 0.3, cachedInputPerM: 0.04, outputPerM: 1.2 };
-  const hosted = makeJob({
-    student: {
-      label: 'Glimmer',
-      local: {
-        runtime: 'ollama',
-        baseUrl: 'http://127.0.0.1:11434',
-        model: 'muse-glimmer:30b',
-        contextLength: 16_384,
-      },
-      trainOn: 'hosted',
-      hosted: {
-        runtime: 'openai_compatible',
-        baseUrl: 'https://openrouter.ai/api/v1',
-        model: 'meta/muse-glimmer-30b',
-        secretRef: 'openrouter',
-        contextLength: 16_384,
-      },
-    },
-  });
-
   it('adds three final tests and the time of one more training', () => {
     const estimate = estimateTime(hosted, 'hosted');
     // Three tests of 60 tasks at 2.5 minutes, and 3 hours of training that revises itself.
     expect(comparisonSeconds(hosted, estimate)).toBe(3 * 60 * 150 + 180 * 60);
-    expect(formatAbout(comparisonSeconds(hosted, estimate))).toBe('About 11 hours');
+    expect(formatAbout(comparisonSeconds(hosted, estimate))).toBe('About 10.5 hours');
   });
 
   it('bills the hosted practice to its host and one call to the mentor', () => {
@@ -197,6 +201,58 @@ describe('what the three simpler versions add', () => {
     expect(
       comparisonCost(codingAgent, estimateTime(codingAgent, 'local'), null).mentorUsd,
     ).toBeNull();
+  });
+});
+
+describe('the plan in all', () => {
+  const local = makeJob();
+  const codingAgent = makeJob({
+    mentor: { kind: 'coding_agent', agent: 'claude_code', label: 'Claude Code' },
+  });
+  const spark = mentorPreset('meta-spark').pricing;
+
+  it('counts the mentor for the rounds that fit in the limit', () => {
+    // 3 to 7 of 12 rounds fit on a hosted copy; none fits here, which counts them all.
+    expect(mentorRounds(hosted, estimateTime(hosted, 'hosted'))).toBe(7);
+    expect(mentorRounds(local, estimateTime(local, 'local'))).toBe(12);
+    expect(expectedMentorUsd(hosted, estimateTime(hosted, 'hosted'))).toBeCloseTo(
+      mentorUsdFor(spark, 7),
+      6,
+    );
+    expect(expectedMentorUsd(local, estimateTime(local, 'local'))).toBeCloseTo(
+      mentorUsdFor(spark, 12),
+      6,
+    );
+    expect(expectedMentorUsd(codingAgent, estimateTime(codingAgent, 'local'))).toBeNull();
+  });
+
+  it('adds training and the final test, and the comparison when asked for', () => {
+    const estimate = estimateTime(hosted, 'hosted');
+    // 3 hours of training and a 2.5-hour final test; the comparison adds 10.5 hours.
+    expect(planSeconds(hosted, estimate, false)).toEqual({ least: 19_800, most: 19_800 });
+    expect(planSeconds(hosted, estimate, true)).toEqual({ least: 57_600, most: 57_600 });
+    expect(aboutSpan(planSeconds(hosted, estimate, true))).toBe('About 16 hours');
+  });
+
+  it('adds the host’s bill and the mentor’s expected cost, the comparison’s share apart', () => {
+    const estimate = estimateTime(hosted, 'hosted');
+    const money = planUsd(hosted, estimate, pricing);
+    expect(money.own).toBeCloseTo(practiceUsd(pricing, estimate) + mentorUsdFor(spark, 7), 6);
+    expect(money.comparison).toBeCloseTo(
+      practiceUsd(pricing, estimate) + mentorUsdFor(spark, 1),
+      6,
+    );
+  });
+
+  it('leaves out what has no price', () => {
+    // Training here costs the host nothing, so only the mentor is left.
+    const here = planUsd(local, estimateTime(local, 'local'), pricing);
+    expect(here.own).toBeCloseTo(mentorUsdFor(spark, 12), 6);
+    expect(here.comparison).toBeCloseTo(mentorUsdFor(spark, 1), 6);
+    expect(planUsd(codingAgent, estimateTime(codingAgent, 'local'), null)).toEqual({
+      own: null,
+      comparison: null,
+    });
   });
 });
 
@@ -233,7 +289,9 @@ describe('formatAbout', () => {
     expect(formatAbout(3 * 3600 - 500)).toBe('About 3 hours');
     expect(formatAbout(2.5 * 3600)).toBe('About 2.5 hours');
     expect(formatAbout(1.6 * 3600)).toBe('About 1.5 hours');
-    expect(formatAbout(10.4 * 3600)).toBe('About 10 hours');
+    expect(formatAbout(10.4 * 3600)).toBe('About 10.5 hours');
+    expect(formatAbout(11.5 * 3600)).toBe('About 11.5 hours');
+    expect(formatAbout(36 * 3600)).toBe('About 2 days');
     expect(formatAbout(5.1 * 3600)).toBe('About 5 hours');
     expect(formatAbout(60 * 3600)).toBe('About 3 days');
   });

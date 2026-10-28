@@ -142,6 +142,10 @@ interface FilePermissionsProps {
   onChange: (permissions: Job['permissions']) => void;
 }
 
+/** What the three choices mean for a file the job doesn't list, in one line. */
+const UNSEEN_FILES_MEANING =
+  "Ask first waits for your OK before opening one. Allow opens it without asking. Never can't open one.";
+
 /** File names in a sentence, in mono: "a.csv", "a.csv and b.csv", "a.csv, b.csv and c.md". */
 function FileNames({ files }: { files: readonly { name: string }[] }) {
   return files.map((file, index) => (
@@ -203,16 +207,17 @@ export function FilePermissions({ job, onChange }: FilePermissionsProps) {
           </div>
         ))}
       </dl>
-      <div className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line-card pt-3">
-        <div className="flex flex-col gap-0.5">
-          <span>Opening a file the job doesn&apos;t list</span>
-          <span className="text-sm text-fg-muted">Any file besides the ones above</span>
-        </div>
+      <div className="flex flex-col gap-2 border-t border-line-card pt-4">
+        <span>Opening a file the job doesn&apos;t list</span>
+        <p className="m-0 text-sm text-fg-muted text-pretty">
+          Any file besides the ones above. {UNSEEN_FILES_MEANING}
+        </p>
         <Segmented
           aria-label="Opening a file the job doesn't list"
           options={MODES}
           value={permissions.unseenFiles}
           onValueChange={(unseenFiles) => onChange({ ...permissions, unseenFiles })}
+          className="self-start"
         />
       </div>
     </section>
