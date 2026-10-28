@@ -16,6 +16,8 @@ export interface FlowShellProps<Step extends string = FlowStep> {
   step: Step;
   /** The steps the pills show: the new-agent flow's unless another flow names its own. */
   steps?: readonly Step[];
+  /** Steps already passed that still need something from the person, marked in the pills. */
+  attention?: readonly Step[];
   /** Header buttons on the right, such as Pause and Stop. */
   actions?: ReactNode;
   /** A bar pinned under the content, such as Back and Start training. */
@@ -30,6 +32,7 @@ export function FlowShell<Step extends string = FlowStep>({
   title,
   step,
   steps,
+  attention,
   actions,
   footer,
   onClose,
@@ -49,7 +52,7 @@ export function FlowShell<Step extends string = FlowStep>({
           </IconButton>
           <span className="min-w-0 truncate font-medium">{title}</span>
         </div>
-        <ProgressStepper steps={pills} current={pills.indexOf(step)} />
+        <ProgressStepper steps={pills} current={pills.indexOf(step)} attention={attention ?? []} />
         <div className="flex min-w-0 justify-end gap-2 pr-window-controls">{actions}</div>
       </header>
       {/* The last lines fade out above the bar, so no line is cut off mid-text. */}

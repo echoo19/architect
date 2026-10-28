@@ -138,12 +138,20 @@ export interface ProgressStepperProps {
   steps: readonly string[];
   /** Index of the current step. Earlier steps show as done. */
   current: number;
+  /** Earlier steps that still need something from the person: marked as that, not as done. */
+  attention?: readonly string[];
   'aria-label'?: string;
   className?: string;
 }
 
 /** The header pills of the new-agent flow: Describe, Define, Train, Graduate. */
-export function ProgressStepper({ steps, current, className, ...props }: ProgressStepperProps) {
+export function ProgressStepper({
+  steps,
+  current,
+  attention = [],
+  className,
+  ...props
+}: ProgressStepperProps) {
   return (
     <ol
       aria-label={props['aria-label'] ?? 'Progress'}
@@ -151,6 +159,7 @@ export function ProgressStepper({ steps, current, className, ...props }: Progres
     >
       {steps.map((step, index) => {
         const state = index < current ? 'done' : index === current ? 'current' : 'next';
+        const needs = state === 'done' && attention.includes(step);
         return (
           <li
             key={step}
@@ -162,9 +171,16 @@ export function ProgressStepper({ steps, current, className, ...props }: Progres
               state === 'next' && 'text-fg-muted',
             )}
           >
-            {state === 'done' && <Check size={12} strokeWidth={2.2} aria-hidden />}
+            {state === 'done' &&
+              (needs ? (
+                <CircleAlert size={12} strokeWidth={2.2} aria-hidden />
+              ) : (
+                <Check size={12} strokeWidth={2.2} aria-hidden />
+              ))}
             {step}
-            {state === 'done' && <span className="sr-only">, done</span>}
+            {state === 'done' && (
+              <span className="sr-only">{needs ? ', needs attention' : ', done'}</span>
+            )}
           </li>
         );
       })}

@@ -71,6 +71,21 @@ describe('ProgressStepper', () => {
     expect(html).toMatch(/aria-current="step"[^>]*>Define/);
     expect(html).toContain('Describe<span class="sr-only">, done</span>');
   });
+
+  it('says a passed step still needs something, and only a passed one', () => {
+    const html = renderToStaticMarkup(
+      createElement(ProgressStepper, {
+        steps: ['Package', 'Folders', 'Permissions', 'Install'],
+        current: 3,
+        attention: ['Folders', 'Install'],
+      }),
+    );
+    expect(html).toContain('Folders<span class="sr-only">, needs attention</span>');
+    expect(html).toContain('Package<span class="sr-only">, done</span>');
+    expect(html).toContain('Permissions<span class="sr-only">, done</span>');
+    // The step being worked on isn't passed yet, so it says nothing of the sort.
+    expect(html).not.toContain('Install<span');
+  });
 });
 
 describe('Meter', () => {
