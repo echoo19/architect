@@ -2,6 +2,8 @@ import { join } from 'node:path';
 import {
   CorrectionKindSchema,
   GuardError,
+  IMPROVE_MAX_MENTOR_USD,
+  IMPROVE_MAX_ROUNDS,
   INSTRUCTION_KINDS,
   newId,
   TEACHABLE_KINDS,
@@ -219,21 +221,21 @@ export class TeachThis {
       };
     }
     const training = await trainingApplies(job, this.ctx.deps);
-    const { maxComputeUsd, ...caps } = job.budget;
+    const { maxComputeUsd, maxWallMinutes } = job.budget;
+    // The job's caps, within what one improvement may be given (`ImproveOptionsSchema`).
+    const budget = {
+      maxRounds: Math.min(job.budget.maxRounds, IMPROVE_MAX_ROUNDS),
+      maxMentorUsd: Math.min(job.budget.maxMentorUsd, IMPROVE_MAX_MENTOR_USD),
+      maxWallMinutes,
+      ...(training && maxComputeUsd ? { maxComputeUsd } : {}),
+    };
     return {
       ...base,
       sharesCorrections,
       mentor: job.mentor.label,
-      ...(agent.activeVersion === null
+      ...(agent.activeVersion === null || budget.maxMentorUsd <= 0
         ? {}
-        : {
-            improve: {
-              fromVersion: agent.activeVersion,
-              budget: { ...caps, ...(training && maxComputeUsd ? { maxComputeUsd } : {}) },
-              training,
-              waits: studentBusy,
-            },
-          }),
+        : { improve: { fromVersion: agent.activeVersion, budget, training, waits: studentBusy } }),
     };
   }
 

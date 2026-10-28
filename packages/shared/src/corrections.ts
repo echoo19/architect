@@ -105,11 +105,15 @@ export const CorrectionSchema = z.object({
 });
 export type Correction = z.infer<typeof CorrectionSchema>;
 
+/** The most rounds and mentor dollars one improvement may be given. */
+export const IMPROVE_MAX_ROUNDS = 10;
+export const IMPROVE_MAX_MENTOR_USD = 100;
+
 /** The budget Improve agent shows before it starts, and keeps to. */
 export const ImproveOptionsSchema = z
   .object({
-    maxRounds: z.number().int().min(1).max(10),
-    maxMentorUsd: z.number().positive().max(100),
+    maxRounds: z.number().int().min(1).max(IMPROVE_MAX_ROUNDS),
+    maxMentorUsd: z.number().positive().max(IMPROVE_MAX_MENTOR_USD),
   })
   .strict();
 export type ImproveOptions = z.infer<typeof ImproveOptionsSchema>;
@@ -181,8 +185,8 @@ export const TeachingOverviewSchema = z.object({
     .object({
       fromVersion: z.number().int().positive(),
       /**
-       * The job's own caps: rounds, mentor dollars and wall clock, and compute dollars when an
-       * improvement may train weights.
+       * The job's own caps, within what one improvement may be given: rounds, mentor dollars
+       * and wall clock, and compute dollars when an improvement may train weights.
        */
       budget: BudgetSchema,
       /** An improvement may train weights here, within `budget.maxComputeUsd`. */

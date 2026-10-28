@@ -272,6 +272,16 @@ describe('Teach this', () => {
       improve,
     });
     expect((await teach.overview(graduateId, true)).improve).toEqual({ ...improve, waits: true });
+    // A job's caps beyond what one improvement may be given are cut to its limits.
+    await engine.jobs.save({
+      ...(await engine.jobs.get('service-desk')),
+      budget: { maxRounds: 40, maxMentorUsd: 250, maxWallMinutes: 600 },
+    });
+    expect((await teach.overview(graduateId, false)).improve?.budget).toEqual({
+      maxRounds: 10,
+      maxMentorUsd: 100,
+      maxWallMinutes: 600,
+    });
   });
 
   it('lets the job share flagged answers, and keep them here again, with no new contract', async () => {
