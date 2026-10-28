@@ -25,6 +25,8 @@ import {
   PackageError,
   PackageInspectionSchema,
   PackageProblemCodeSchema,
+  ReferenceOptionsSchema,
+  ReferenceRecordSchema,
   ReportCardSchema,
   RunDetailSchema,
   RunEventSchema,
@@ -121,6 +123,14 @@ export const ENGINE_ROUTES = {
     z.tuple([id, z.number().int().positive(), ClarificationReplySchema]),
     z.void(),
     (api, [runId, round, reply]) => api.mentoring.answer(runId, round, reply),
+  ),
+  'mentoring.reference': route(
+    z.tuple([id, ReferenceOptionsSchema]),
+    z.void(),
+    (api, [runId, options]) => api.mentoring.reference(runId, options),
+  ),
+  'mentoring.references': route(z.tuple([id]), z.array(ReferenceRecordSchema), (api, [runId]) =>
+    api.mentoring.references(runId),
   ),
   'reports.get': route(
     z.tuple([id, StudentTargetSchema.nullable()]),

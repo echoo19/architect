@@ -121,6 +121,8 @@ export class FakeRuntime implements RuntimeDeps {
   beforeCorrection: ((task: Task, start: CorrectionStart) => Promise<void> | void) | undefined;
   /** What the actor's request holds beside the harness: the task's own prompt by default. */
   actorRequest: (task: Task) => string = (task) => task.prompt;
+  /** Each attempt asks its student one turn with the task's prompt, as a real attempt would. */
+  askStudent = false;
   /** Every attempt the runtime was asked for, across controllers. */
   readonly attempts: { taskId: string; version: number; seed: number }[] = [];
   /** Order of releases and test attempts, to check the mentor is gone before the test. */
@@ -157,6 +159,20 @@ export class FakeRuntime implements RuntimeDeps {
     for (const task of tasks) {
       await this.beforeAttempt?.(task, ctx, options);
       options.signal?.throwIfAborted();
+      if (this.askStudent) {
+        const turn = ctx.student.chat({
+          messages: [
+            { role: 'system', content: ctx.harness.system },
+            { role: 'user', content: task.prompt },
+          ],
+          tools: [],
+          decoding: ctx.decoding ?? ctx.harness.decoding,
+          seed: options.seed,
+        });
+        for await (const _event of turn) {
+          // The reply doesn't decide the fake's verdict; the request is what a gate checks.
+        }
+      }
       this.attempts.push({
         taskId: task.id,
         version: ctx.harness.meta.version,

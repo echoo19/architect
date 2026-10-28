@@ -108,6 +108,8 @@ export function connectEngine(
       capabilities: (runId) => request('mentoring.capabilities', [runId]),
       categories: (jobId) => request('mentoring.categories', [jobId]),
       answer: (runId, round, reply) => request('mentoring.answer', [runId, round, reply]),
+      reference: (runId, options) => request('mentoring.reference', [runId, options]),
+      references: (runId) => request('mentoring.references', [runId]),
     },
     reports: {
       get: (runId, target) => request('reports.get', [runId, target ?? null]),

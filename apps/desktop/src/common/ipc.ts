@@ -80,6 +80,8 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     capabilities: true,
     categories: true,
     answer: true,
+    reference: true,
+    references: true,
   },
   reports: { get: true, list: true },
   graduates: {

@@ -54,6 +54,7 @@ export class SessionResources {
   private readonly students = new Map<string, Promise<StudentAdapter>>();
   private mentorCreated?: Promise<MentorAdapter>;
   private actorCreated?: Promise<ActorAdapter>;
+  private reference?: StudentAdapter;
   private gateCreated?: Promise<MentorGate>;
   private dataFilesRead?: Promise<MentorDataFile[]>;
   private readonly harnesses = new Map<number, Promise<Harness>>();
@@ -79,6 +80,11 @@ export class SessionResources {
    * or llama.cpp serving the local base with the configuration's adapters.
    */
   student(target: StudentTarget, config: AttemptConfig = STUDENT_CONFIG): Promise<StudentAdapter> {
+    if (config.actor === 'reference') {
+      return this.reference
+        ? Promise.resolve(this.reference)
+        : Promise.reject(new Error('This session runs no reference.'));
+    }
     const loaded = (config.loaded ?? []).map((adapter) => adapter.id).join(',');
     const key = `${target}|${configurationKey(config)}|${loaded}`;
     let student = this.students.get(key);
@@ -123,6 +129,11 @@ export class SessionResources {
     if (this.released) return Promise.reject(mentorReleased());
     this.mentorCreated ??= connectMentor(this.options.deps, this.options.job);
     return this.mentorCreated;
+  }
+
+  /** The reference's actor, which only a reference session sets, for its own evaluation. */
+  useReference(actor: StudentAdapter): void {
+    this.reference = actor;
   }
 
   /**

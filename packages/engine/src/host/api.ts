@@ -185,6 +185,8 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
         return store.categories.list(jobId);
       },
       answer: (runId, round, reply) => answerClarification(runId, round, reply),
+      reference: (runId, { split, maxUsd }) => controller.reference(runId, split, maxUsd),
+      references: async (runId) => store.references.list(run(runId).run.id),
     },
     reports: {
       get: async (runId, target) => reportOf(run(runId), target),

@@ -10,6 +10,7 @@ import type {
   Intervention,
   Lesson,
   MentoringProgress,
+  ReferenceRecord,
 } from './mentoring';
 import type { GpuInfo, ProviderId, StudentBuild, TokenPricing } from './models';
 import type { ReportCard } from './report';
@@ -333,6 +334,12 @@ export interface ArchitectApi {
     categories(jobId: string): Promise<Category[]>;
     /** Answers the question a paused run asked, and resumes it. */
     answer(runId: string, round: number, reply: ClarificationReply): Promise<void>;
+    /**
+     * Queues the mentor's model as a reference agent on a finished run's tasks, with its own
+     * disclosed cap. Isolated from mentoring: its results never reach a mentor request.
+     */
+    reference(runId: string, options: ReferenceOptions): Promise<void>;
+    references(runId: string): Promise<ReferenceRecord[]>;
   };
   reports: {
     /** The run's report card from one student endpoint: by default, where its locked test ran. */

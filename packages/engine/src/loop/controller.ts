@@ -3,19 +3,22 @@ import {
   newId,
   type Job,
   type Method,
+  type ReferenceRecord,
   type Run,
   type RunEvent,
   type StudentTarget,
 } from '@architect/shared';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun } from '../store/records';
+import { configurationKey } from './configuration';
 import { systemClock, type Clock, type LoopDeps } from './deps';
 import type { SessionOutcome } from './driver';
-import { errorMessage } from './errors';
+import { errorMessage, must } from './errors';
 import { writeJsonFile } from './files';
 import type { JobLibrary } from './jobs';
 import type { DataPaths } from './paths';
 import { isTerminal } from './plan';
+import { ReferenceSession, referenceConfig, referenceRefusal, referenceSeed } from './reference';
 import { RetestSession, retestRefusal } from './retest';
 import type { SessionContext } from './run-state';
 import { fanOutSeeds } from './seeds';
@@ -52,21 +55,29 @@ interface ActiveRun {
 }
 
 interface ActiveRetest {
-  session: RetestSession;
+  session: { abort(): void };
   done: Promise<void>;
 }
 
-/** What waits its turn for the student: a run, or a re-test of a finished run's graduate. */
+/**
+ * What waits its turn: a run, a re-test of a finished run's graduate, or Spark run as a
+ * reference on a finished run's tasks.
+ */
 type Turn =
-  { kind: 'run'; runId: string } | { kind: 'retest'; runId: string; target: StudentTarget };
+  | { kind: 'run'; runId: string }
+  | { kind: 'retest'; runId: string; target: StudentTarget }
+  | { kind: 'reference'; runId: string; split: ReferenceRecord['split'] };
+
+/** A re-test's or a reference's key among the sessions holding a turn. */
+function sideKey(turn: Exclude<Turn, { kind: 'run' }>): string {
+  return turn.kind === 'retest'
+    ? `${turn.runId}/${turn.target}`
+    : `${turn.runId}/reference/${turn.split}`;
+}
 
 function sameTurn(a: Turn, b: Turn): boolean {
   if (a.kind === 'run' || b.kind === 'run') return a.kind === b.kind && a.runId === b.runId;
-  return a.runId === b.runId && a.target === b.target;
-}
-
-function retestKey(runId: string, target: StudentTarget): string {
-  return `${runId}/${target}`;
+  return sideKey(a) === sideKey(b);
 }
 
 /**
@@ -240,7 +251,56 @@ export class RunController {
       const turn: Turn = { kind: 'retest', runId, target };
       if (!this.isScheduled(turn)) this.queue.push(turn);
     }
+    for (const { runId, split } of store.references.withStatus('running')) {
+      const turn: Turn = { kind: 'reference', runId, split };
+      if (!this.isScheduled(turn)) this.queue.push(turn);
+    }
     this.pump();
+  }
+
+  /**
+   * Queues Spark as a reference on a finished run's dev or locked test tasks, with a dollar cap
+   * disclosed up front. Each split is measured once; asking again only resumes one an error
+   * paused.
+   */
+  async reference(runId: string, split: ReferenceRecord['split'], maxUsd: number): Promise<void> {
+    const record = this.get(runId);
+    const job = await this.options.jobs.forRun(record);
+    const refusal = referenceRefusal(record, job);
+    if (refusal !== null) throw new Error(refusal);
+    const { store } = this.options;
+    const turn: Turn = { kind: 'reference', runId, split };
+    const existing = store.references.get(runId, split);
+    if (existing?.status === 'finished') {
+      throw new Error(`Spark was already measured on this run's ${split} tasks.`);
+    }
+    if (existing?.status === 'running' && this.isScheduled(turn)) {
+      throw new Error(`Spark is already being measured on this run's ${split} tasks.`);
+    }
+    const frozen = must(record.freeze, 'The frozen graduate');
+    const started = isoNow(this.clock);
+    store.references.put(
+      existing === null
+        ? {
+            runId,
+            split,
+            harnessVersion: frozen.harnessVersion,
+            model: job.mentor.kind === 'model' ? job.mentor.model : job.mentor.label,
+            configKey: configurationKey(referenceConfig(job)),
+            status: 'running',
+            maxUsd,
+            spentUsd: 0,
+            inputTokens: 0,
+            outputTokens: 0,
+            seed: referenceSeed(record, split),
+            score: null,
+            perType: [],
+            latencyMs: null,
+            startedAt: started,
+          }
+        : { ...existing, status: 'running', maxUsd, error: undefined },
+    );
+    this.schedule(turn);
   }
 
   /** Resolves when no run or re-test is active. */
@@ -302,9 +362,7 @@ export class RunController {
   /** Whether the turn is waiting in the queue or holding the student. */
   private isScheduled(turn: Turn): boolean {
     const holding =
-      turn.kind === 'run'
-        ? this.active.has(turn.runId)
-        : this.retesting.has(retestKey(turn.runId, turn.target));
+      turn.kind === 'run' ? this.active.has(turn.runId) : this.retesting.has(sideKey(turn));
     return holding || this.queue.some((queued) => sameTurn(queued, turn));
   }
 
@@ -327,7 +385,7 @@ export class RunController {
       const turn = this.queue.shift();
       if (turn === undefined) return;
       if (turn.kind === 'run') this.launch(turn.runId);
-      else this.launchRetest(turn.runId, turn.target);
+      else this.launchSide(turn);
     }
   }
 
@@ -357,10 +415,17 @@ export class RunController {
     this.active.set(runId, { session, done });
   }
 
-  /** A re-test that fails even to record its own error stays `testing`, and asking again resumes it. */
-  private launchRetest(runId: string, target: StudentTarget): void {
-    const key = retestKey(runId, target);
-    const session = new RetestSession(this.sessionContext(runId), target);
+  /**
+   * A re-test or a reference. One that fails even to record its own error stays active, and
+   * asking again resumes it.
+   */
+  private launchSide(turn: Exclude<Turn, { kind: 'run' }>): void {
+    const key = sideKey(turn);
+    const context = this.sessionContext(turn.runId);
+    const session =
+      turn.kind === 'retest'
+        ? new RetestSession(context, turn.target)
+        : new ReferenceSession(context, turn.split);
     const done = session
       .run()
       .catch((error: unknown) => this.onError(error))
