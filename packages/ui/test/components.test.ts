@@ -4,6 +4,10 @@ import { describe, expect, it } from 'vitest';
 import {
   cn,
   Combobox,
+  Disclosure,
+  EvidenceMark,
+  EvidenceMeter,
+  evidenceLabel,
   Meter,
   ProgressStepper,
   ProviderMark,
@@ -11,6 +15,8 @@ import {
   Shortcut,
   shortcutLabel,
   Spinner,
+  StepList,
+  StepListItem,
 } from '../src';
 
 describe('Combobox', () => {
@@ -119,5 +125,82 @@ describe('shortcuts', () => {
     const other = renderToStaticMarkup(createElement(Shortcut, { keys: ['Mod', ','], mac: false }));
     expect(other).toContain('aria-label="Ctrl+,"');
     expect(other).toContain('>Ctrl</kbd>');
+  });
+});
+
+describe('EvidenceMeter', () => {
+  it("draws each kind of result its own way, with the mentor's tick only when given", () => {
+    const final = renderToStaticMarkup(
+      createElement(EvidenceMeter, {
+        kind: 'final',
+        value: 0.5,
+        label: 'Refunds, final test',
+        valueText: '1 of 2 passed',
+      }),
+    );
+    expect(final).toContain('data-kind="final"');
+    expect(final).toContain('bg-student');
+    expect(final).toContain('aria-valuetext="1 of 2 passed"');
+    expect(final).not.toContain('data-marker');
+    const practice = renderToStaticMarkup(
+      createElement(EvidenceMeter, { kind: 'practice', value: 1, label: 'Refunds, practice' }),
+    );
+    expect(practice).toContain('repeating-linear-gradient');
+    const check = renderToStaticMarkup(
+      createElement(EvidenceMeter, { kind: 'check', value: 1, label: 'Refunds', marker: 0.9 }),
+    );
+    expect(check).toContain('data-marker');
+    expect(check).toContain('left:calc(90% - 1px)');
+  });
+
+  it('names each kind with its own mark', () => {
+    const html = renderToStaticMarkup(createElement(EvidenceMark, { kind: 'check' }));
+    expect(html).toContain('Check</span>');
+    expect(evidenceLabel('install')).toBe('Install check');
+  });
+});
+
+describe('StepList', () => {
+  it('opens the current step and lets only it take focus from Tab', () => {
+    const html = renderToStaticMarkup(
+      createElement(StepList, {
+        'aria-label': 'Steps',
+        count: 2,
+        current: 1,
+        onCurrentChange: () => undefined,
+        children: [
+          createElement(StepListItem, {
+            key: 0,
+            index: 0,
+            line: 'Read data/orders.csv',
+            children: 'first detail',
+          }),
+          createElement(StepListItem, {
+            key: 1,
+            index: 1,
+            line: 'Answered',
+            children: 'second detail',
+          }),
+        ],
+      }),
+    );
+    expect(html.match(/aria-current="step"/g)).toHaveLength(1);
+    expect(html).toMatch(/tabindex="0"[^>]*aria-current="step"/);
+    expect(html).toContain('second detail');
+    expect(html).not.toContain('first detail');
+  });
+});
+
+describe('Disclosure', () => {
+  it('keeps its content folded until opened', () => {
+    const closed = renderToStaticMarkup(
+      createElement(Disclosure, { label: 'Details', children: 'exp_1' }),
+    );
+    expect(closed).toContain('aria-expanded="false"');
+    expect(closed).not.toContain('exp_1');
+    const open = renderToStaticMarkup(
+      createElement(Disclosure, { label: 'Details', defaultOpen: true, children: 'exp_1' }),
+    );
+    expect(open).toContain('exp_1');
   });
 });
