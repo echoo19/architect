@@ -9,10 +9,9 @@ import { Button } from '@architect/ui';
 import { api } from '../api/client';
 import { queryKeys, useLocalRuntimes, useSecretsStatus } from '../api/hooks';
 import { fetchQuery } from '../api/query';
-import { mentorName, shortModelName } from '../lib/names';
+import { mentorName, studentName } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
-import { localModelName } from '../settings/models/connections';
 import { isInstalled } from '../settings/models/StudentRows';
 import { DoneStep } from './DoneStep';
 import { HostedStep } from './HostedStep';
@@ -176,7 +175,7 @@ export function Setup({ settings, update }: SetupProps) {
           </>
         }
       >
-        <HostedStep student={shortModelName(localModelName(student.model))} />
+        <HostedStep student={studentName(student)} />
       </SetupShell>
     );
   }
@@ -207,7 +206,7 @@ export function Setup({ settings, update }: SetupProps) {
                 : 'saved',
         }}
         student={{
-          name: shortModelName(localModelName(student.model)),
+          name: studentName(student),
           model: student.model,
           state: modelReady ? 'ready' : downloading ? 'downloading' : 'missing',
         }}

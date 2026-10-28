@@ -11,6 +11,7 @@ import {
   Badge,
   Button,
   Panel,
+  Progress,
   ProviderMark,
   RadioCard,
   RadioCardGroup,
@@ -27,7 +28,7 @@ import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { localModelName, studentFromChoice } from '../settings/models/connections';
 import { ModelPicker } from '../settings/models/ModelPicker';
 import { isInstalled, PullControl } from '../settings/models/StudentRows';
-import type { PullState } from './pull';
+import { pullBytes, pullPercent, pullStage, type PullState } from './pull';
 import { StepIntro } from './SetupShell';
 import { StatusValue } from './StatusValue';
 
@@ -65,6 +66,9 @@ export function ModelStep({ student, local, onChoose, pull, onDownload }: ModelS
   const build = GLIMMER_BUILDS.find((candidate) => candidate.model === student.model);
   const ready = isInstalled(ollama, student.model);
   const name = localModelName(student.model);
+  const downloading = pull.phase === 'starting' || pull.phase === 'pulling';
+  const percent = pullPercent(pull);
+  const bytes = pullBytes(pull);
 
   const chooseBuild = (model: string) =>
     onChoose({
@@ -123,7 +127,12 @@ export function ModelStep({ student, local, onChoose, pull, onDownload }: ModelS
           onValueChange={chooseBuild}
         >
           {GLIMMER_BUILDS.map((option) => (
-            <RadioCard key={option.key} value={option.model} title={`Muse Glimmer ${bits(option)}`}>
+            <RadioCard
+              key={option.key}
+              value={option.model}
+              title={`Muse Glimmer ${bits(option)}`}
+              disabled={downloading && option.model !== student.model}
+            >
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 {[formatBytes(option.diskBytes), fitLine(option, gpu)].filter(Boolean).join(' · ')}
                 {gpu && option.key === recommended.key && (
@@ -153,12 +162,26 @@ export function ModelStep({ student, local, onChoose, pull, onDownload }: ModelS
               />
             )}
           </SettingsRow>
+          {downloading && (
+            <div className="flex flex-col gap-2.5 border-t border-line pb-4 pt-3.5">
+              <Progress
+                label={`Downloading ${name}`}
+                value={percent === null ? undefined : percent / 100}
+                valueText={bytes ?? undefined}
+              />
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="text-fg-secondary">{pullStage(pull)}</span>
+                {bytes && <span className="font-mono text-fg-muted">{bytes}</span>}
+              </div>
+            </div>
+          )}
           <SettingsRow label="Another model">
             <ModelPicker
               role="student"
               aria-label="Another model on this computer"
               current={build ? null : student}
               onChoose={(choice) => onChoose(studentFromChoice(choice, student.contextLength))}
+              disabled={downloading}
               className="w-64"
             >
               <span className="truncate text-fg-muted">{build ? 'Choose a model' : name}</span>

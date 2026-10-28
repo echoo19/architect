@@ -175,7 +175,7 @@ export function MentorStep({
   let body: ReactNode;
   if (route === 'meta') {
     body = (
-      <form onSubmit={(event) => void test(event)}>
+      <form onSubmit={(event) => void test(event)} className="[&>*:first-child]:border-t-0">
         <SettingsRow
           icon={<ProviderMark name="Meta" />}
           label="Meta API key"

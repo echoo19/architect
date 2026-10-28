@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer, useState } from 'react';
 import { GLIMMER_BUILDS, PullProgressSchema } from '@architect/shared';
 import { architect } from '../api/client';
 import { toError } from '../api/query';
@@ -11,6 +11,8 @@ import { idlePull, pullReducer } from './pull';
  */
 export function useModelPull(model: string) {
   const [state, dispatch] = useReducer(pullReducer, idlePull);
+  // A download belongs to the model it was started for; another model starts idle.
+  const [target, setTarget] = useState<string | null>(null);
 
   useEffect(
     () =>
@@ -25,6 +27,7 @@ export function useModelPull(model: string) {
 
   /** Resolves true once the model is ready; a failure shows in the state and resolves false. */
   const start = useCallback(async (): Promise<boolean> => {
+    setTarget(model);
     dispatch({ type: 'start' });
     try {
       const build = GLIMMER_BUILDS.find((candidate) => candidate.model === model);
@@ -38,5 +41,5 @@ export function useModelPull(model: string) {
     }
   }, [model]);
 
-  return { state, start };
+  return { state: target === model ? state : idlePull, start };
 }

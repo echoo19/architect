@@ -1,22 +1,14 @@
 import { gpuFit, mentorPricing } from '@architect/shared';
 import { SettingsRow, SettingsValue } from '@architect/ui';
 import { KeyRow } from '../../components/KeyRow';
-import { formatBytes } from '../../lib/format';
 import { mentorProvider } from '../../onboarding/mentor';
 import type { TabProps } from '../SettingsModal';
 import { localModelName, mentorFromChoice, studentFromChoice } from './connections';
 import { useConnections } from './hooks';
-import { ModelPicker, priceText } from './ModelPicker';
+import { GpuMark, ModelPicker } from './ModelPicker';
 import { PriceRow } from './PriceRow';
 import { sameOllamaModel, StudentRows } from './StudentRows';
 import { ConnectionsSection } from './ConnectionsSection';
-
-/** "runs on the GPU", "part on the CPU", or nothing when the GPU is unknown. */
-function fitText(fit: ReturnType<typeof gpuFit>): string | null {
-  if (fit === 'full') return 'runs on the GPU';
-  if (fit === 'partial') return 'part on the CPU';
-  return null;
-}
 
 /**
  * Settings › Models: the default mentor and agent's model, each picked from every connection,
@@ -29,23 +21,12 @@ export function ModelsTab({ settings, update }: TabProps) {
   const ollama = local.data?.ollama;
   const installed = ollama?.models.find((entry) => sameOllamaModel(entry.id, student.model));
   const pricing = mentor.kind === 'model' ? mentorPricing(mentor) : undefined;
-  const studentMeta = [
-    student.model,
-    installed?.sizeBytes === undefined ? null : formatBytes(installed.sizeBytes),
-    installed ? fitText(gpuFit(installed, gpu)) : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
 
   return (
     <>
       <SettingsRow
         label="Mentor"
-        meta={
-          mentor.kind === 'model'
-            ? [mentor.model, pricing ? priceText(pricing) : null].filter(Boolean).join(' · ')
-            : undefined
-        }
+        meta={mentor.kind === 'model' ? mentor.model : undefined}
         metaFont="code"
       >
         {mentor.kind === 'model' ? (
@@ -74,7 +55,7 @@ export function ModelsTab({ settings, update }: TabProps) {
       {mentor.kind === 'model' && pricing === undefined && (
         <PriceRow onSave={(saved) => update({ defaultMentor: { ...mentor, pricing: saved } })} />
       )}
-      <SettingsRow label="Agent's model" meta={studentMeta} metaFont="code">
+      <SettingsRow label="Agent's model" meta={student.model} metaFont="code">
         <ModelPicker
           role="student"
           aria-label="Agent's model"
@@ -85,6 +66,11 @@ export function ModelsTab({ settings, update }: TabProps) {
           className="w-72"
         >
           <span className="truncate">{localModelName(student.model)}</span>
+          {installed && (
+            <span className="shrink-0 text-sm text-fg-muted">
+              <GpuMark fit={gpuFit(installed, gpu)} />
+            </span>
+          )}
         </ModelPicker>
       </SettingsRow>
       <StudentRows
