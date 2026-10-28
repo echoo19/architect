@@ -1,6 +1,8 @@
 # The architect command
 
-`architect` runs, installs, checks, exports and publishes graduates from a terminal, without opening the app. It is not a second runtime: it opens the app's own data folder and runs an agent through the same agent host the workspace uses, with the same package loader, folders, permissions, approvals and event stream (decision 043). It only ever runs a graduate on a model on this computer. It never calls a mentor or a cloud model, and before a graduate loads it puts up the same network guard as the workspace, so the only connections it can make are to the local model runtime.
+`architect` lets you list, install, run, check, export and publish your agents from a terminal, without opening the app. It works on the same agents as the app, in the same folder, with the same rules: an agent sees only the folders you gave it, asks before it changes a file unless you allow it, and runs only on a model on your computer. While an agent runs, it can reach nothing but the model on your computer, and the teacher model is never contacted. Only `publish`, and `install` from Hugging Face, go online, to Hugging Face itself.
+
+Scripts can use it too: give it a request as a JSON file and it writes the result as JSON, with exit codes that say what happened.
 
 ## Getting it
 
