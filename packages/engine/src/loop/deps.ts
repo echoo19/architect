@@ -16,6 +16,7 @@ import type {
   SplitConfig,
   StudentAdapter,
   StudentEndpoint,
+  StudentTarget,
   Task,
   Trace,
   TrainingBackendKind,
@@ -256,6 +257,39 @@ export interface TrainingDeps {
   offersStandIn?: boolean;
 }
 
+/** What a meter read from the runtime serving a model during one stretch of an evaluation. */
+export interface MeterReading {
+  /** The most memory the server's processes held at any sample; null when none was read. */
+  peakProcessBytes: number | null;
+  /** The most GPU memory in use at any sample; null without a GPU reading. */
+  peakGpuBytes: number | null;
+  /** A first reply's time with the model unloaded before it; null when not measured. */
+  coldStartMs: number | null;
+  samples: number;
+  /** How it read them, for the record. */
+  sampler: string;
+}
+
+export interface MeterSession {
+  /** Stops watching and returns what it saw. */
+  stop(): Promise<MeterReading>;
+}
+
+/**
+ * Watches the runtime that serves a student on this computer while a locked-test evaluation runs
+ * (decision 045): peak memory, and a cold first reply. Absent where nobody measures; the
+ * evaluation runs the same either way.
+ */
+export interface RuntimeMeter {
+  /** Starts watching `backend` for one evaluation; null when it can't watch it (a hosted copy). */
+  start(context: {
+    backend: string;
+    target: StudentTarget;
+    student: StudentAdapter;
+    signal: AbortSignal;
+  }): Promise<MeterSession | null>;
+}
+
 export interface LoopDeps {
   runtime: RuntimeDeps;
   vault: VaultDeps;
@@ -264,6 +298,8 @@ export interface LoopDeps {
   secrets: SecretDeps;
   /** Absent where no training worker is set up; weights interventions are then refused. */
   training?: TrainingDeps;
+  /** Absent where nothing measures the local runtime; no runtime measurements are recorded. */
+  meter?: RuntimeMeter;
 }
 
 /** The Describe and Clarify conversation that drafts a job (decision 010). */
