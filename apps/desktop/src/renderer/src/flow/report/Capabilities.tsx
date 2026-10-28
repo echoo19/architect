@@ -9,7 +9,12 @@ import {
   type EvidenceKind,
 } from '@architect/ui';
 import type { QueryState } from '../../api/query';
-import { INSTALL_CHECKS_TITLE, STATUS_LABELS, statusMark } from '../../install/labels';
+import {
+  CHECK_LABELS,
+  INSTALL_CHECKS_TITLE,
+  STATUS_LABELS,
+  statusMark,
+} from '../../install/labels';
 import { rate } from '../format';
 import type { ModelNames } from '../train/phase';
 import type { ReportEvidence } from './evidence';
@@ -20,10 +25,17 @@ const COLUMNS: {
   label: string;
   pick: (c: Capability) => Score | null;
 }[] = [
-  { kind: 'practice', label: 'Practice', pick: (capability) => capability.practice },
+  // The engine counts the latest round that practiced each type.
+  { kind: 'practice', label: 'Practice, latest round', pick: (capability) => capability.practice },
   { kind: 'check', label: 'Check tasks', pick: (capability) => capability.check },
   { kind: 'final', label: 'Final test', pick: (capability) => capability.finalTest },
 ];
+
+/** A category's line under its task type: its verified examples, and whether teaching stopped. */
+function categoryLine(category: Capability['categories'][number]): string {
+  const examples = `${category.verifiedLessons} ${category.verifiedLessons === 1 ? 'example' : 'examples'}`;
+  return category.stopped ? `${examples} · teaching stopped, no gain` : examples;
+}
 
 /** Spark's own score on a type, only from a reference measured on that same split. */
 function sparkScore(
@@ -55,9 +67,13 @@ export function Capabilities({
 }) {
   const breakdown = evidence.data?.capabilities;
   const references = evidence.data?.references ?? [];
+  // A kind of result no task type has is left out, rather than a column of blanks.
+  const columns = COLUMNS.filter((column) =>
+    breakdown?.capabilities.some((capability) => column.pick(capability) !== null),
+  );
   const marked =
     breakdown?.capabilities.some((capability) =>
-      COLUMNS.some((column) => sparkScore(references, column.kind, capability.type) !== null),
+      columns.some((column) => sparkScore(references, column.kind, capability.type) !== null),
     ) ?? false;
   return (
     <section aria-labelledby="capabilities" className="flex flex-col gap-[18px]">
@@ -65,8 +81,8 @@ export function Capabilities({
         <Heading id="capabilities">Capabilities</Heading>
         {marked && (
           <span className="flex items-center gap-2 text-sm text-mentor">
-            <span aria-hidden className="h-3 w-0.5 rounded-sm bg-mentor" />
-            {names.mentor}
+            <span aria-hidden className="h-4 w-[3px] rounded-full bg-mentor" />
+            {names.mentor} doing the tasks itself
           </span>
         )}
       </div>
@@ -83,7 +99,10 @@ export function Capabilities({
           onRetry={evidence.reload}
         />
       )}
-      {breakdown && (
+      {breakdown && columns.length === 0 && (
+        <p className="m-0 text-fg-secondary">No task type has a result yet.</p>
+      )}
+      {breakdown && columns.length > 0 && (
         <div className="overflow-x-auto">
           <table
             aria-label="Capabilities by task type"
@@ -92,7 +111,7 @@ export function Capabilities({
             <thead>
               <tr>
                 <th className="w-[28%] pb-3 font-normal" />
-                {COLUMNS.map((column) => (
+                {columns.map((column) => (
                   <th key={column.kind} scope="col" className="pb-3 pl-6 font-normal">
                     <EvidenceMark kind={column.kind}>{column.label}</EvidenceMark>
                   </th>
@@ -111,16 +130,14 @@ export function Capabilities({
                             <span key={category.id}>
                               {category.label}
                               <span aria-hidden> · </span>
-                              {category.stopped
-                                ? 'teaching stopped'
-                                : `${category.verifiedLessons} ${category.verifiedLessons === 1 ? 'example' : 'examples'}`}
+                              {categoryLine(category)}
                             </span>
                           ))}
                         </span>
                       )}
                     </span>
                   </th>
-                  {COLUMNS.map((column) => (
+                  {columns.map((column) => (
                     <td key={column.kind} className="py-3.5 pl-6">
                       <ScoreBar
                         kind={column.kind}
@@ -153,15 +170,18 @@ export function Capabilities({
   );
 }
 
-/** "6 passed", "5 passed, 1 skipped", "4 passed, 1 failed": the checks' outcomes by kind. */
+/**
+ * "6 passed", "5 passed, 1 skipped (llama.cpp)", "4 passed, 1 failed (Tools)": the checks'
+ * outcomes by kind, naming the ones that didn't pass.
+ */
 function checkCounts(installation: Installation): string {
-  const count = (status: string) =>
-    installation.checks.filter((check) => check.status === status).length;
-  return [
-    `${count('passed')} passed`,
-    count('failed') > 0 && `${count('failed')} failed`,
-    count('skipped') > 0 && `${count('skipped')} skipped`,
-  ]
+  const of = (status: string) => installation.checks.filter((check) => check.status === status);
+  const named = (status: string) => {
+    const checks = of(status);
+    const which = checks.map((check) => CHECK_LABELS[check.kind] ?? check.kind).join(', ');
+    return checks.length > 0 && `${checks.length} ${status} (${which})`;
+  };
+  return [`${of('passed').length} passed`, named('failed'), named('skipped')]
     .filter(Boolean)
     .join(', ');
 }

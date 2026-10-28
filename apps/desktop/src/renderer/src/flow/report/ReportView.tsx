@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { GraduateSummary, Installation, Job, ReportCard, Run } from '@architect/shared';
-import { Badge, Heading, Stat } from '@architect/ui';
+import { Badge, ErrorState, Heading, Stat } from '@architect/ui';
 import { Check, CircleMinus } from 'lucide-react';
 import type { QueryState } from '../../api/query';
 import { formatBytes, formatDuration, formatUsd } from '../../lib/format';
@@ -41,25 +41,21 @@ interface ReportViewProps {
 }
 
 /**
- * The score before training, set against this one: the bare baseline's final test when it ran,
- * which is the same test this report scores; otherwise the check tasks before round one.
+ * The final test before training, set against this one: a run with no setup took the same test.
+ * Check tasks are other tasks, so they are never set against it; the comparisons show them.
  */
 function beforeTraining(
   report: ReportCard,
   comparison: QueryState<ComparisonRow[]>,
+  bare: ReportCard | null,
 ): string | undefined {
-  const bare = comparison.data?.find((row) => row.method === 'bare');
-  const before =
-    bare && report.method !== 'bare'
-      ? { percent: Math.round(bare.testRate), where: 'with no setup' }
-      : report.dev.baseline && {
-          percent: percent(report.dev.baseline),
-          where: 'on check tasks before training',
-        };
-  if (!before) return undefined;
+  if (report.method === 'bare') return undefined;
+  const row = comparison.data?.find((item) => item.method === 'bare');
+  const before = row ? Math.round(row.testRate) : bare ? percent(bare.test.score) : null;
+  if (before === null) return undefined;
   const now = percent(report.test.score);
-  const change = now > before.percent ? 'Up from' : now < before.percent ? 'Down from' : 'Same as';
-  return `${change} ${before.percent}% ${before.where}`;
+  const change = now > before ? 'Up from' : now < before ? 'Down from' : 'Same as';
+  return `${change} ${before}% with no setup`;
 }
 
 /** Whether training began with a first full draft rather than a setup (decision 026). */
@@ -121,7 +117,7 @@ export function ReportView({
   const device = deviceInSentence(currentPlatform());
   const where = test.ranOffline ? `offline on ${device}` : 'on a hosted copy';
   const spent = costParts(report, names.mentor, job);
-  const before = beforeTraining(report, comparison);
+  const before = beforeTraining(report, comparison, bare);
   const pinned = graduate?.manifest.student;
   const pinnedFacts = [
     pinned?.quantization && quantizationLabel(pinned.quantization),
@@ -147,7 +143,9 @@ export function ReportView({
           <Badge className="self-start">Below target</Badge>
         )}
         <Heading as="h1" size="display">
-          {report.name} graduated
+          {/* It graduates by meeting the job's targets on the final test; short of them it's
+              finished training, and still there to use. */}
+          {missed.length === 0 ? `${report.name} graduated` : `${report.name} finished training`}
         </Heading>
         <p className="m-0 max-w-[660px] text-lg text-fg-secondary text-pretty">
           Final test of {test.score.total} unseen tasks, {where}, with {names.mentor} disconnected.
@@ -194,7 +192,7 @@ export function ReportView({
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(360px,100%),1fr))] gap-x-14 gap-y-10">
         <section aria-labelledby="does-not" className="flex flex-col gap-3.5">
-          <Heading id="does-not">Doesn&apos;t handle</Heading>
+          <Heading id="does-not">Task types it turns down</Heading>
           <Refused report={report} />
         </section>
         {job && job.doesNot.length > 0 && (
@@ -209,6 +207,17 @@ export function ReportView({
         )}
       </div>
 
+      {evidence.status === 'error' && evidence.data === undefined && (
+        <section aria-labelledby="comparisons" className="flex flex-col gap-3.5">
+          <Heading id="comparisons">Comparisons</Heading>
+          <ErrorState
+            layout="inline"
+            title="Couldn't load the comparisons"
+            message={evidence.error.message}
+            onRetry={evidence.reload}
+          />
+        </section>
+      )}
       {run && evidence.data && (
         <Comparisons
           arms={comparisonArms({
@@ -220,6 +229,8 @@ export function ReportView({
             bare,
           })}
           names={names}
+          blankStart={job?.startingHarness.kind === 'blank'}
+          checkTasks={job?.splits.dev}
         />
       )}
 
@@ -261,7 +272,7 @@ function Refused({ report }: { report: ReportCard }) {
   if (report.refusedTypes.length === 0) {
     return (
       <p className="m-0 text-md text-fg-secondary">
-        Nothing. It takes on every task type it trained on.
+        None. It takes on every task type it trained on.
       </p>
     );
   }

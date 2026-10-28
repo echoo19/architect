@@ -13,30 +13,38 @@ import { formatCost, formatRate } from '../format';
 import type { ModelNames } from '../train/phase';
 import { wasRun, type Arm, type ArmKey } from './arms';
 
-/** Each comparison named for what the student ran with, in the job's own model names. */
-function armLabel(key: ArmKey, { mentor, student }: ModelNames): string {
+/**
+ * Each comparison named for what the student ran with, in the job's own model names. Without a
+ * blank start, the student before any change still had the setup the run started from.
+ */
+function armLabel(key: ArmKey, { mentor, student }: ModelNames, blankStart: boolean): string {
   switch (key) {
     case 'untouched':
-      return `${student}, untouched`;
+      return blankStart ? `${student}, untouched` : `${student} with the starting setup`;
     case 'setup':
-      return `${student} with the setup`;
+      return `${student} with ${mentor}'s setup`;
     case 'weights':
       return `${student} with trained weights`;
     case 'both':
       return `${student} with both`;
     case 'mentor':
-      return `${mentor} itself`;
+      return `${mentor} doing the tasks itself`;
   }
 }
 
-/** "78%" over "14 of 18": rates compare across rows, the counts say what each rests on. */
-function ScoreCell({ score }: { score: Score | null }) {
+/**
+ * "78%" over "14 of 18, 2 runs": rates compare across rows, the counts say what each rests on.
+ * A score over more than one run of the check tasks says how many.
+ */
+function ScoreCell({ score, perRun }: { score: Score | null; perRun?: number | undefined }) {
   if (score === null) return <span className="text-fg-faint">Not run</span>;
+  const runs = perRun && score.total > perRun ? Math.round(score.total / perRun) : 1;
   return (
     <span className="flex flex-col items-end">
       <span className="font-mono tabular-nums text-fg">{formatRate(score)}</span>
       <span className="text-xs tabular-nums text-fg-muted">
         {score.pass} of {score.total}
+        {runs > 1 && `, ${runs} runs`}
       </span>
     </span>
   );
@@ -46,7 +54,19 @@ function ScoreCell({ score }: { score: Score | null }) {
  * The student with and without the setup and trained weights, and Spark on the same tasks,
  * where their records exist. A comparison that wasn't run says so and shows nothing else.
  */
-export function Comparisons({ arms, names }: { arms: readonly Arm[]; names: ModelNames }) {
+export function Comparisons({
+  arms,
+  names,
+  blankStart,
+  checkTasks,
+}: {
+  arms: readonly Arm[];
+  names: ModelNames;
+  /** The run began with no setup, so the student before any change was untouched. */
+  blankStart: boolean;
+  /** How many check tasks one run has, to say when a score adds up more than one. */
+  checkTasks: number | undefined;
+}) {
   return (
     <section aria-labelledby="comparisons" className="flex flex-col gap-[18px]">
       <Heading id="comparisons">Comparisons</Heading>
@@ -65,8 +85,8 @@ export function Comparisons({ arms, names }: { arms: readonly Arm[]; names: Mode
                   Final test
                 </EvidenceMark>
               </TableHead>
-              <TableHead className="text-right">{names.mentor}</TableHead>
-              <TableHead className="text-right">Compute</TableHead>
+              <TableHead className="text-right">{names.mentor}&apos;s cost</TableHead>
+              <TableHead className="text-right">Compute cost</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -76,14 +96,14 @@ export function Comparisons({ arms, names }: { arms: readonly Arm[]; names: Mode
                 <TableRow key={arm.key} aria-current={arm.current ? 'true' : undefined}>
                   <TableCell>
                     <span className={arm.current ? 'font-medium' : undefined}>
-                      {armLabel(arm.key, names)}
+                      {armLabel(arm.key, names, blankStart)}
                     </span>
                     {arm.current && <span className="text-fg-muted"> · this agent</span>}
                   </TableCell>
                   {run ? (
                     <>
                       <TableCell className="text-right">
-                        <ScoreCell score={arm.check} />
+                        <ScoreCell score={arm.check} perRun={checkTasks} />
                       </TableCell>
                       <TableCell className="text-right">
                         <ScoreCell score={arm.final} />
