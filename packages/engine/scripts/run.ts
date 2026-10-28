@@ -37,6 +37,10 @@ const SECRET_ENV: Record<string, string> = {
 };
 
 interface Options {
+  /** CPU threads a local student may use, to keep the computer quieter; its default otherwise. */
+  threads?: number;
+  /** Overrides the job's wall-clock budget for training, in minutes. */
+  wallMinutes?: number;
   jobDir: string;
   method: Method;
   seed: number;
@@ -47,7 +51,7 @@ interface Options {
 }
 
 const USAGE =
-  'Usage: tsx scripts/run.ts <jobDir> [--method architect|bare|one_shot|self_reflection] [--seed N] [--profile smoke|full] [--mentor <preset>] [--student local|<preset>] [--data <dir>]';
+  'Usage: tsx scripts/run.ts <jobDir> [--method architect|bare|one_shot|self_reflection] [--seed N] [--profile smoke|full] [--mentor <preset>] [--student local|<preset>] [--data <dir>] [--threads N] [--wall-minutes N]';
 
 async function main(): Promise<void> {
   const options = parseArguments(process.argv.slice(2));
@@ -69,6 +73,7 @@ async function main(): Promise<void> {
         const name = SECRET_ENV[ref];
         return name === undefined ? undefined : process.env[name] || undefined;
       },
+      ...(options.threads === undefined ? {} : { localThreads: () => options.threads }),
     }),
   });
 
@@ -119,6 +124,9 @@ function adjust(job: Job, options: Options): Job {
       evaluation: { ...next.evaluation, trainBatch: 3, minDevGain: 1, patience: 1 },
       budget: { maxRounds: 1, maxMentorUsd: 1, maxWallMinutes: 120 },
     };
+  }
+  if (options.wallMinutes !== undefined) {
+    next = { ...next, budget: { ...next.budget, maxWallMinutes: options.wallMinutes } };
   }
   if (options.mentor !== undefined) {
     const preset = MENTOR_PRESETS.find((candidate) => candidate.key === options.mentor);
@@ -214,6 +222,8 @@ function parseArguments(args: readonly string[]): Options {
   if (!Number.isInteger(seed)) throw new Error(USAGE);
   const mentor = flags.get('--mentor');
   const dataDir = flags.get('--data');
+  const threads = positiveInteger(flags.get('--threads'));
+  const wallMinutes = positiveInteger(flags.get('--wall-minutes'));
   return {
     jobDir: resolve(jobDir),
     method: MethodSchema.parse(flags.get('--method') ?? 'architect'),
@@ -222,7 +232,17 @@ function parseArguments(args: readonly string[]): Options {
     student: flags.get('--student') ?? 'local',
     ...(mentor === undefined ? {} : { mentor }),
     ...(dataDir === undefined ? {} : { dataDir: resolve(dataDir) }),
+    ...(threads === undefined ? {} : { threads }),
+    ...(wallMinutes === undefined ? {} : { wallMinutes }),
   };
+}
+
+/** A flag that must be a whole number above zero when it is given. */
+function positiveInteger(text: string | undefined): number | undefined {
+  if (text === undefined) return undefined;
+  const value = Number(text);
+  if (!Number.isInteger(value) || value < 1) throw new Error(USAGE);
+  return value;
 }
 
 function clock(): string {

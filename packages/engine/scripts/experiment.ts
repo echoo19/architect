@@ -63,6 +63,8 @@ interface Options {
   pilot: boolean;
   pilotOnly: boolean;
   retestLocal: number[];
+  /** CPU threads a local student may use, to keep the computer quieter; its default otherwise. */
+  threads?: number;
 }
 
 interface RunResult {
@@ -246,7 +248,7 @@ async function runPilot(jobFile: string, options: Options): Promise<void> {
   }
   const dataDir = join(options.out, 'pilot');
   await mkdir(dataDir, { recursive: true });
-  const deps = createEngineDeps({ dataDir, getSecret });
+  const deps = engineDeps(options, dataDir);
   const paths = new DataPaths(dataDir);
   const store = openEngineStore(paths.database);
   try {
@@ -273,7 +275,7 @@ async function runOne(jobFile: string, options: Options, method: Method, seed: n
   await mkdir(dataDir, { recursive: true });
   const host = await createEngineHost({
     dataDir,
-    deps: createEngineDeps({ dataDir, getSecret }),
+    deps: engineDeps(options, dataDir),
     concurrency: options.concurrency,
   });
   try {
@@ -385,7 +387,7 @@ async function retestLocally(options: Options): Promise<void> {
       const dataDir = join(options.out, 'runs', name);
       const host = await createEngineHost({
         dataDir,
-        deps: createEngineDeps({ dataDir, getSecret }),
+        deps: engineDeps(options, dataDir),
         concurrency: 1,
       });
       try {
@@ -565,7 +567,7 @@ function isTerminal(status: string): boolean {
 }
 
 const USAGE =
-  'Usage: tsx scripts/experiment.ts <jobDir> --out <dir> [--seeds 1,2,3] [--methods ...] [--student <preset>] [--mentor <preset>] [--parallel N] [--concurrency N] [--pilot] [--pilot-only] [--retest-local <seeds>]';
+  'Usage: tsx scripts/experiment.ts <jobDir> --out <dir> [--seeds 1,2,3] [--methods ...] [--student <preset>] [--mentor <preset>] [--parallel N] [--concurrency N] [--threads N] [--pilot] [--pilot-only] [--retest-local <seeds>]';
 
 function parseArguments(args: readonly string[]): Options {
   const positional: string[] = [];
@@ -604,6 +606,8 @@ function parseArguments(args: readonly string[]): Options {
   const numbers = (text: string) => text.split(',').map((part) => Number(part));
   const seeds = numbers(flags.get('--seeds') ?? '1,2,3');
   if (seeds.some((seed) => !Number.isInteger(seed))) throw new Error(USAGE);
+  const threads = flags.has('--threads') ? Number(flags.get('--threads')) : undefined;
+  if (threads !== undefined && (!Number.isInteger(threads) || threads < 1)) throw new Error(USAGE);
   return {
     jobDir: resolve(jobDir),
     out: resolve(out),
@@ -618,7 +622,17 @@ function parseArguments(args: readonly string[]): Options {
     pilot,
     pilotOnly,
     retestLocal,
+    ...(threads === undefined ? {} : { threads }),
   };
+}
+
+/** The engine's real dependencies for a data folder, with the student thread cap if one was set. */
+function engineDeps(options: Options, dataDir: string) {
+  return createEngineDeps({
+    dataDir,
+    getSecret,
+    ...(options.threads === undefined ? {} : { localThreads: () => options.threads }),
+  });
 }
 
 function log(message: string): void {
