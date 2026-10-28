@@ -1,16 +1,21 @@
+import type { ReactNode } from 'react';
 import { File, X } from 'lucide-react';
 import { cn } from '../lib/cn';
 
 export interface FileChipProps {
   /** The file's name, without its folder. */
   name: string;
+  /** A 14px icon in place of the plain file mark, for a file with a role of its own. */
+  icon?: ReactNode;
+  /** What the file is, read out after its name when the icon marks it: "example tasks". */
+  kind?: string | undefined;
   /** Shows a remove button when set. */
   onRemove?: () => void;
   className?: string;
 }
 
 /** An attached file, as under a message or in a composer. */
-export function FileChip({ name, onRemove, className }: FileChipProps) {
+export function FileChip({ name, icon, kind, onRemove, className }: FileChipProps) {
   return (
     <span
       className={cn(
@@ -20,8 +25,13 @@ export function FileChip({ name, onRemove, className }: FileChipProps) {
         className,
       )}
     >
-      <File size={14} strokeWidth={1.6} className="shrink-0" aria-hidden />
-      <span className="min-w-0 truncate">{name}</span>
+      <span className="flex shrink-0" aria-hidden>
+        {icon ?? <File size={14} strokeWidth={1.6} />}
+      </span>
+      <span className="min-w-0 truncate">
+        {name}
+        {kind && <span className="sr-only">, {kind}</span>}
+      </span>
       {onRemove && (
         <button
           type="button"
