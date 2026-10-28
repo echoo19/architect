@@ -58,16 +58,21 @@ export function agentMessage(chatId: string, version: number, at: string): Works
 
 /**
  * A reply in its final state: nothing left running and no write left waiting for a decision. A
- * change still waiting is denied, or failed when it was allowed and couldn't be saved.
+ * change still waiting is denied, or failed when it was allowed and couldn't be saved. A wait for
+ * the GPU leaves no step behind.
  */
 export function settleMessage(reply: WorkspaceMessage, outcome: ReplyOutcome): WorkspaceMessage {
   return {
     ...reply,
     ...outcome,
     text: reply.text.trim(),
-    steps: reply.steps.map((step): AgentStep =>
-      step.status === 'running' ? { ...step, status: 'done', meta: step.meta ?? 'stopped' } : step,
-    ),
+    steps: reply.steps
+      .filter((step) => step.kind !== 'wait')
+      .map((step): AgentStep =>
+        step.status === 'running'
+          ? { ...step, status: 'done', meta: step.meta ?? 'stopped' }
+          : step,
+      ),
     blocks: reply.blocks.map((block): AgentBlock =>
       block.kind === 'approval' && block.status === 'pending'
         ? { ...block, status: block.error === undefined ? 'denied' : 'failed' }

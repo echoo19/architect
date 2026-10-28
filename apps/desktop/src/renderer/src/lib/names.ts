@@ -1,4 +1,5 @@
 import {
+  GLIMMER_BUILDS,
   STUDENT_PRESETS,
   isLoopbackUrl,
   providerInfo,
@@ -51,17 +52,16 @@ export function setupName(origin: {
 }
 
 /**
- * What a kept setup's origin says about the training behind it, in plain words. A round number
- * names the last change the mentor kept, which is not where training ended.
+ * The version an agent answers with, as the Teaching tab names it: "Version 2". A graduate from
+ * before versions has none, so its setup is named by where it came from.
  */
-export function setupSource(
-  origin: { round?: number | undefined; draft?: boolean | undefined },
-  mentor: string,
-): string {
-  if (origin.draft) return `${mentor} wrote them in one go and kept no later change.`;
-  if (origin.round !== undefined)
-    return `Round ${origin.round} was the last change ${mentor} kept.`;
-  return `They are the ones it started with, and ${mentor} kept no change.`;
+export function activeVersionName(agent: {
+  activeVersion: number | null;
+  manifest: { harness: { round?: number | undefined; draft?: boolean | undefined } };
+}): string {
+  return agent.activeVersion === null
+    ? capitalized(setupName(agent.manifest.harness))
+    : `Version ${agent.activeVersion}`;
 }
 
 export const STUDENT_ROLE = "your agent's model";
@@ -77,6 +77,17 @@ export function mentorIntro(name: string): string {
 
 export function studentIntro(name: string): string {
   return `${name}, ${STUDENT_ROLE}`;
+}
+
+/**
+ * The model an agent runs on here, as its status line names it: "Glimmer 4-bit" for one of
+ * Glimmer's builds, and the model's own id for any other, so a model chosen in its settings is
+ * never shown as the one it was trained on.
+ */
+export function agentModelName(student: { label: string; model: string }): string {
+  const build = GLIMMER_BUILDS.find((candidate) => candidate.model === student.model);
+  if (build) return `${shortModelName(student.label)} ${build.label.split(',')[0]}`;
+  return student.model;
 }
 
 /** How the UI writes a quantization: "Q4_K_M" → "4-bit". Unknown schemes stay as they are. */

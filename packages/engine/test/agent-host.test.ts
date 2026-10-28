@@ -15,7 +15,13 @@ import { DataPaths } from '../src/loop/paths';
 import { openEngineStore, type EngineStore } from '../src/store/engine-store';
 import { startFakeOllama, type FakeOllama, type ScriptedTurn } from './agent-host/fake-ollama';
 import { addGraduate, type GraduateFixture, type GraduateOptions } from './agent-host/graduates';
-import { testAdapterRuntime } from './support/computer';
+import {
+  CHECK_PURPOSE,
+  GpuLease,
+  LocalRuntimeError,
+  type GpuLeaseOptions,
+} from '../src/local-runtime';
+import { testAdapterRuntime, testGpu } from './support/computer';
 import { SAMPLE_CONTENT } from './support/fixtures';
 
 type Approval = Extract<AgentBlock, { kind: 'approval' }>;
@@ -24,18 +30,22 @@ interface World {
   dataDir: string;
   engine: EngineStore;
   host: AgentHost;
+  gpu: GpuLease;
   model: FakeOllama;
   graduate: GraduateFixture;
   events: WorkspaceEvent[];
+  /** What the host reported that nobody was waiting on. */
+  errors: unknown[];
 }
 
 let world: World | undefined;
 
 afterEach(async () => {
   if (!world) return;
-  const { host, engine, model, dataDir } = world;
+  const { host, gpu, engine, model, dataDir } = world;
   world = undefined;
   await host.close();
+  await gpu.close();
   engine.close();
   await model.close();
   await rm(dataDir, { recursive: true, force: true });
@@ -44,6 +54,7 @@ afterEach(async () => {
 async function setup(
   script: ScriptedTurn[],
   options: Partial<Omit<GraduateOptions, 'id'>> = {},
+  gpuOptions: Partial<GpuLeaseOptions> = {},
 ): Promise<World> {
   const dataDir = await mkdtemp(join(tmpdir(), 'architect-agent-host-'));
   const engine = openEngineStore(new DataPaths(dataDir).database);
@@ -53,16 +64,22 @@ async function setup(
     baseUrl: model.url,
     ...options,
   });
+  const gpu = testGpu(dataDir, 'workspace', gpuOptions);
+  const errors: unknown[] = [];
   const host = createAgentHost({
     store: workspaceStore(engine, dataDir),
     adapters: testAdapterRuntime(
       new DataPaths(dataDir).runtimeDir('workspace'),
       join(dataDir, 'ollama-models'),
+      undefined,
+      gpu,
     ),
+    gpu,
+    onError: (error) => errors.push(error),
   });
   const events: WorkspaceEvent[] = [];
   host.onEvent((event) => events.push(event));
-  world = { dataDir, engine, host, model, graduate, events };
+  world = { dataDir, engine, host, gpu, model, graduate, events, errors };
   await host.openGraduate(graduate.id);
   return world;
 }
@@ -703,5 +720,162 @@ describe('the host', () => {
     await done;
     await expect(world.host.send(chat.id, '   ')).rejects.toThrow('Write a message');
     await expect(world.host.messages('cht_missing')).rejects.toThrow('There is no chat');
+  });
+});
+
+describe('taking turns at the GPU', () => {
+  /** Another of Architect's processes on the same data folder, with a llama-server running. */
+  function otherProcess(world: World): GpuLease {
+    return new GpuLease({ dataDir: world.dataDir, owner: 'engine', pollMs: 25 });
+  }
+
+  it('waits for the GPU while another process holds it, then answers', async () => {
+    const world = await setup([{ text: 'There are 3 invoices on file.' }]);
+    const engine = otherProcess(world);
+    try {
+      const check = await engine.hold('llama-server', CHECK_PURPOSE);
+      const chat = await world.host.createChat(world.graduate.id);
+      const answered = settled(world, chat.id);
+      await world.host.send(chat.id, 'How many invoices are there?');
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      // Nothing reached the model while the other process had the GPU.
+      expect(world.model.chats()).toEqual([]);
+      check.release();
+      expect(await answered).toMatchObject({
+        status: 'done',
+        text: 'There are 3 invoices on file.',
+      });
+    } finally {
+      await engine.close();
+    }
+  });
+
+  it('refuses a request on its guardrail list at once, without waiting for the GPU', async () => {
+    const reason = 'Bookings chose a valid slot only 60% of the time in testing.';
+    const world = await setup([], {
+      harness: {
+        guardrails: { refuse: [{ taskType: 'schedule', whenAny: ['book'], reason }] },
+      },
+    });
+    const engine = otherProcess(world);
+    try {
+      const check = await engine.hold('llama-server', CHECK_PURPOSE);
+      const { reply } = await ask(world, 'Book a plumber for tomorrow morning.');
+      expect(reply).toMatchObject({ status: 'done', blocks: [{ kind: 'refusal', reason }] });
+      check.release();
+    } finally {
+      await engine.close();
+    }
+  });
+
+  it('says who has the GPU when its turn never comes, and reports it', async () => {
+    const world = await setup([], {}, { waitMs: 300 });
+    const engine = otherProcess(world);
+    try {
+      const check = await engine.hold('llama-server', CHECK_PURPOSE);
+      const { reply } = await ask(world, 'How many invoices are there?');
+      expect(reply).toMatchObject({
+        status: 'error',
+        error:
+          'The GPU is busy: Architect is checking an agent on this computer. Wait for the check to finish, then try again.',
+      });
+      expect(world.errors).toEqual([expect.any(LocalRuntimeError)]);
+      check.release();
+    } finally {
+      await engine.close();
+    }
+  });
+
+  it('says, as one step, that a reply waits for the GPU and for whom, until it has it', async () => {
+    const world = await setup([{ text: 'There are 3 invoices on file.' }]);
+    const engine = otherProcess(world);
+    try {
+      const check = await engine.hold('llama-server', CHECK_PURPOSE);
+      const chat = await world.host.createChat(world.graduate.id);
+      const waiting = nextReply(world, chat.id, (message) =>
+        message.steps.some((step) => step.kind === 'wait'),
+      );
+      const answered = settled(world, chat.id);
+      await world.host.send(chat.id, 'How many invoices are there?');
+      expect((await waiting).steps).toEqual([
+        {
+          id: 'step-gpu',
+          kind: 'wait',
+          name: 'gpu',
+          detail: 'Waiting for the GPU: Architect is checking an agent on this computer',
+          status: 'running',
+        },
+      ]);
+      check.release();
+      const reply = await answered;
+      expect(reply).toMatchObject({ status: 'done', text: 'There are 3 invoices on file.' });
+      expect(reply.steps).toEqual([]);
+      // The step went as soon as the reply had the GPU, before the model said anything.
+      const updates = world.events.flatMap((event) =>
+        event.type === 'message.updated' && event.message.id === reply.id ? [event.message] : [],
+      );
+      const firstText = updates.findIndex((message) => message.text !== '');
+      expect(updates.slice(firstText).every((message) => message.steps.length === 0)).toBe(true);
+      expect(updates.slice(0, firstText).at(-1)?.steps).toEqual([]);
+    } finally {
+      await engine.close();
+    }
+  });
+
+  it('gives the GPU up while a reply waits for an approval, and takes it back to finish', async () => {
+    const world = await setup([addInvoice(), { text: 'Added INV-4.' }]);
+    const engine = otherProcess(world);
+    try {
+      const chat = await world.host.createChat(world.graduate.id);
+      const asked = pendingApproval(world, chat.id);
+      const done = settled(world, chat.id);
+      await world.host.send(chat.id, 'Add an invoice for Ruiz, Ben.');
+      const approval = await asked;
+
+      // Nobody has answered yet, so an engine check gets the GPU; the reply's model is unloaded.
+      const check = await engine.hold('llama-server', CHECK_PURPOSE);
+      const unloads = world.model.requests.filter(
+        (request) =>
+          request.path === '/api/chat' &&
+          (request.body as { keep_alive?: number }).keep_alive === 0,
+      );
+      expect(unloads).toMatchObject([{ body: { model: 'muse-glimmer:30b' } }]);
+
+      // Once approved, the reply's next turn waits its turn behind the check, then finishes.
+      const waitingAgain = nextReply(world, chat.id, (message) =>
+        message.steps.some((step) => step.kind === 'wait'),
+      );
+      await world.host.decide(approval.changeId, 'approve');
+      expect((await waitingAgain).steps.at(-1)?.detail).toBe(
+        'Waiting for the GPU: Architect is checking an agent on this computer',
+      );
+      expect(world.model.chats()).toHaveLength(1);
+      check.release();
+      expect(await done).toMatchObject({
+        status: 'done',
+        text: "I'll add the invoice.\n\nAdded INV-4.",
+      });
+      expect(world.model.chats()).toHaveLength(2);
+      expect(await invoicesFile(world)).toContain(NEW_INVOICE);
+    } finally {
+      await engine.close();
+    }
+  });
+
+  it('stops a reply that is still waiting for the GPU', async () => {
+    const world = await setup([]);
+    const engine = otherProcess(world);
+    try {
+      const check = await engine.hold('llama-server', CHECK_PURPOSE);
+      const chat = await world.host.createChat(world.graduate.id);
+      const stopped = settled(world, chat.id);
+      await world.host.send(chat.id, 'How many invoices are there?');
+      await world.host.stop(chat.id);
+      expect(await stopped).toMatchObject({ status: 'stopped' });
+      expect(world.errors).toEqual([]);
+      check.release();
+    } finally {
+      await engine.close();
+    }
   });
 });

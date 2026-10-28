@@ -1,9 +1,7 @@
 import { statSync } from 'node:fs';
 import { sha256File } from '@architect/harness';
 import {
-  AdapterError,
   DEFAULT_STUDENT,
-  type AdapterErrorCode,
   type ConnectionTest,
   type LlamaServerAccess,
   type LoraScale,
@@ -16,8 +14,10 @@ import {
   type ServerCommand,
   type ServerVersion,
 } from './binary';
-import { LocalRuntimeError, type LocalRuntimeErrorCode } from './errors';
+import { asAdapterError, LocalRuntimeError } from './errors';
 import { freeGpuFromOllama } from './gpu';
+import type { GpuHold, GpuLease } from './lease';
+import { RUN_PURPOSE, type GpuPurpose } from './lease-rules';
 import { resolveOllamaModel, type OllamaModelFile, type OllamaStoreOptions } from './ollama-models';
 import { LlamaServer, type LlamaServerLaunch, type ServerStatus } from './server';
 
@@ -44,6 +44,11 @@ export interface ServeRequest {
   baseDigest?: string;
   /** The context the server runs with, as the version was made with; the runtime's default when absent. */
   contextLength?: number;
+  /**
+   * The base as the version's package records it: the name its author ran it under and, when the
+   * weights came from a hub, their revision. A base of another build is refused with these.
+   */
+  publishedBase?: { name: string; revision?: string };
 }
 
 /** Everything serving a request needs, as a check found it. Nothing was loaded to find it. */
@@ -59,7 +64,11 @@ export interface ServeSurvey {
 /** What a host needs from the adapter runtime: to check serving a version, and to serve it. */
 export interface AdapterServing {
   survey(request: ServeRequest): Promise<ServeSurvey>;
-  access(request: ServeRequest): LlamaServerAccess;
+  /**
+   * A student's way to the server. Each of its requests holds the GPU lease for `purpose`, or for
+   * what the runtime serves when it names none.
+   */
+  access(request: ServeRequest, purpose?: GpuPurpose): LlamaServerAccess;
   /** Stops the server now, which frees the GPU. */
   stop(): Promise<void>;
 }
@@ -88,34 +97,17 @@ export interface LocalAdapterRuntimeOptions {
   env?: NodeJS.ProcessEnv;
   platform?: NodeJS.Platform;
   home?: string;
+  /**
+   * The machine-wide GPU lease (decision 046): every request holds it while it runs, and the
+   * server stops when another Architect process asks for the GPU while nothing runs on it.
+   * Without it, nothing is coordinated with other processes.
+   */
+  gpu?: GpuLease;
+  /** What requests are for when a student names nothing else. Default: a run's. */
+  purpose?: GpuPurpose;
 }
 
 const ALL_LAYERS = 999;
-
-/**
- * How a student reports a runtime that can't start: as an adapter error, which stops an
- * evaluation instead of counting as a wrong answer. Waiting may fix a busy GPU or a failed start,
- * so those can be tried again; a missing or unusable file can't be.
- */
-const ADAPTER_CODES: Record<LocalRuntimeErrorCode, AdapterErrorCode> = {
-  binary_not_found: 'not_found',
-  binary_unusable: 'bad_request',
-  model_not_found: 'not_found',
-  model_unusable: 'bad_request',
-  base_mismatch: 'bad_request',
-  adapter_unusable: 'bad_request',
-  gpu_busy: 'server',
-  out_of_memory: 'server',
-  start_failed: 'server',
-  busy: 'server',
-};
-
-function asAdapterError(error: unknown): unknown {
-  if (!(error instanceof LocalRuntimeError)) return error;
-  return new AdapterError(ADAPTER_CODES[error.code], `${error.message} ${error.hint}`, {
-    cause: error,
-  });
-}
 
 /** `sha256:` and the first twelve digits: enough to tell two builds apart in a sentence. */
 export function shortDigest(digest: string): string {
@@ -161,6 +153,22 @@ export class LocalAdapterRuntime implements AdapterServing {
         ? {}
         : { startupTimeoutMs: options.startupTimeoutMs }),
     });
+    // Asked for the GPU while no request runs, the server stops; a server already stopped, by
+    // its idle stop or on its own, lets go without being asked.
+    options.gpu?.serve('llama-server', {
+      release: () => this.server.stop(),
+      resident: () => this.server.status().state !== 'stopped',
+      serverDir: options.runtimeDir,
+    });
+  }
+
+  /** The same runtime, with requests that name no purpose of their own held for `purpose`. */
+  serving(purpose: GpuPurpose): AdapterServing {
+    return {
+      survey: (request) => this.survey(request),
+      access: (request, named) => this.access(request, named ?? purpose),
+      stop: () => this.stop(),
+    };
   }
 
   status(): ServerStatus {
@@ -180,7 +188,10 @@ export class LocalAdapterRuntime implements AdapterServing {
    * and each adapter's file and fit. Throws the first problem it finds.
    */
   async prepare(
-    request: Pick<ServeRequest, 'model' | 'adapters' | 'baseDigest' | 'contextLength'>,
+    request: Pick<
+      ServeRequest,
+      'model' | 'adapters' | 'baseDigest' | 'contextLength' | 'publishedBase'
+    >,
   ): Promise<{ launch: LlamaServerLaunch; model: OllamaModelFile; version: ServerVersion }> {
     const keys = request.adapters.map((adapter) => adapter.key);
     if (new Set(keys).size !== keys.length) throw new Error('Two adapters have the same key.');
@@ -244,8 +255,15 @@ export class LocalAdapterRuntime implements AdapterServing {
     return { server, base: base?.model ?? null, problems };
   }
 
-  /** What one llama.cpp student needs: a server started on demand, and its scale per adapter. */
-  access(request: ServeRequest): LlamaServerAccess {
+  /**
+   * What one llama.cpp student needs: a server started on demand, and its scale per adapter. Each
+   * request first holds the GPU lease for `purpose`, waiting its turn when another Architect
+   * process has the GPU, and lets it go when the request ends.
+   */
+  access(
+    request: ServeRequest,
+    purpose: GpuPurpose = this.options.purpose ?? RUN_PURPOSE,
+  ): LlamaServerAccess {
     const known = new Set(request.adapters.map((adapter) => adapter.key));
     for (const [key, scale] of Object.entries(request.scales)) {
       if (!known.has(key)) throw new Error(`No adapter is loaded as ${key}.`);
@@ -259,16 +277,24 @@ export class LocalAdapterRuntime implements AdapterServing {
       model: request.model,
       baseUrl: 'http://127.0.0.1',
       acquire: async (signal) => {
+        let gpu: GpuHold | null = null;
         try {
+          // A problem with the files shows at once, without waiting for the GPU.
           const { launch } = await this.prepare(request);
+          gpu = (await this.options.gpu?.hold('llama-server', purpose, signal)) ?? null;
           const { server, release } = await this.server.acquire(launch, signal);
+          const held = gpu;
           return {
             url: server.url,
             apiKey: server.apiKey,
             lora: lora.map((entry) => ({ ...entry })),
-            release,
+            release: () => {
+              release();
+              held?.release();
+            },
           };
         } catch (error) {
+          gpu?.release();
           throw asAdapterError(error);
         }
       },
@@ -348,19 +374,29 @@ export class LocalAdapterRuntime implements AdapterServing {
     return { model, header };
   }
 
-  /** Refuses a base whose weights aren't the build the adapters were trained on. */
+  /**
+   * Refuses a base whose weights aren't the build the adapters were trained on. Ollama can't
+   * download a build by its weights, so the fix is that exact file, from whoever published the
+   * agent, added under a name of its own: other versions may use the model under this name, so
+   * the fix never replaces it.
+   */
   private assertBaseBuild(
-    request: Pick<ServeRequest, 'model' | 'adapters' | 'baseDigest'>,
+    request: Pick<ServeRequest, 'model' | 'adapters' | 'baseDigest' | 'publishedBase'>,
     model: OllamaModelFile,
   ): void {
     const expected = request.baseDigest;
     if (expected === undefined || model.digest === expected) return;
     const trained = request.adapters.length === 1 ? 'its adapter was' : 'its adapters were';
-    // Other versions may use the model under this name, so the fix never replaces it.
+    const published = request.publishedBase;
+    const named =
+      published === undefined ||
+      (published.name === request.model && published.revision === undefined)
+        ? ''
+        : ` (its package names it ${published.name}${published.revision === undefined ? '' : ` at revision ${published.revision}`})`;
     throw new LocalRuntimeError(
       'base_mismatch',
       `${request.model} on this computer is another build (weights ${shortDigest(model.digest)}) than the one ${trained} trained on (${shortDigest(expected)}).`,
-      `It needs the exact base it was trained on, the build whose weights are ${expected}: add that build to Ollama under a name of its own, then set this agent's model to that name.`,
+      `It needs the exact GGUF ${trained} trained on, whose weights are ${expected}. Ollama can't download a build by its weights, so get that file from whoever published this agent${named}, add it to Ollama under a name of its own, then set this agent's model to that name.`,
     );
   }
 

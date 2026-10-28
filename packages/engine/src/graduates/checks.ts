@@ -4,13 +4,16 @@ import { join } from 'node:path';
 import { createLlamaCppStudent, isLoopbackUrl } from '@architect/adapters';
 import {
   ADAPTER_RUNTIMES,
+  AdapterError,
   PackageError,
+  type FolderProblem,
   type Harness,
   type HarnessTool,
   type InstallCheck,
   type InstallStatus,
   type Machine,
   type ModelBinding,
+  type ModelProblem,
   type PackageManifest,
   type StudentAdapter,
 } from '@architect/shared';
@@ -72,6 +75,7 @@ function compatibility(
   machine: Machine,
 ): { check: InstallCheck; findings: Finding[] } {
   const findings: Finding[] = [];
+  let modelProblem: ModelProblem | undefined;
   const here = `${machine.os}/${machine.arch}`;
   const supported = SUPPORTED_PLATFORMS.some(
     (platform) => platform.os === machine.os && platform.arch === machine.arch,
@@ -112,6 +116,7 @@ function compatibility(
       });
     }
     if (model.runtime !== 'ollama') {
+      modelProblem = 'wrong_runtime';
       findings.push({
         level: 'needs_attention',
         reason: `It carries a LoRA adapter, which llama.cpp applies to its base from Ollama's model store, and its model here is set to ${model.runtime}. Set its model to ${manifest.model.base.name} on Ollama.`,
@@ -141,6 +146,7 @@ function compatibility(
         findings.length === 0
           ? `${here}, ${gb(machine.memoryBytes)} of memory, ${serving}.`
           : findings.map((finding) => finding.reason).join(' '),
+      ...(modelProblem === undefined ? {} : { modelProblem }),
     },
     findings,
   };
@@ -194,6 +200,7 @@ async function toolsCheck(
         kind: 'tools_load',
         status: 'skipped',
         detail: 'The harness did not load.',
+        skipped: 'after_failure',
       },
       findings: [],
     };
@@ -234,40 +241,45 @@ async function resourcesCheck(
   installation: StoredInstallation,
 ): Promise<{ check: InstallCheck; findings: Finding[] }> {
   const findings: Finding[] = [];
+  const folders: FolderProblem[] = [];
+  /** A folder that isn't ready: why, in words and as the screens need it. */
+  const wanting = (name: string, problem: FolderProblem['problem'], reason: string) => {
+    findings.push({ level: 'needs_attention', reason });
+    if (!folders.some((entry) => entry.name === name && entry.problem === problem)) {
+      folders.push({ name, problem });
+    }
+  };
   for (const resource of manifest.resources) {
-    const stored = installation.bindings[resource.name];
-    const grant = installation.grants.resources[resource.name] ?? 'none';
+    const { name } = resource;
+    const stored = installation.bindings[name];
+    const grant = installation.grants.resources[name] ?? 'none';
     const files = resource.files.map((file) => file.name).join(', ');
     if (stored === undefined) {
       if (resource.required) {
-        findings.push({
-          level: 'needs_attention',
-          reason: `Choose a folder for ${resource.name}/${files ? `: it should hold ${files}` : ''}.`,
-        });
+        wanting(
+          name,
+          'not_chosen',
+          `Choose a folder for ${name}/${files ? `: it should hold ${files}` : ''}.`,
+        );
       }
       continue;
     }
     if (resource.required && grant === 'none') {
-      findings.push({
-        level: 'needs_attention',
-        reason: `${resource.name}/ has a folder, but the agent isn't allowed to open it.`,
-      });
+      wanting(
+        name,
+        'not_allowed',
+        `${name}/ has a folder, but the agent isn't allowed to open it.`,
+      );
     }
     const folder = absoluteFolder(paths, stored);
     if (!(await exists(folder))) {
-      findings.push({
-        level: 'needs_attention',
-        reason: `The folder chosen for ${resource.name}/ (${folder}) isn't there.`,
-      });
+      wanting(name, 'missing', `The folder chosen for ${name}/ (${folder}) isn't there.`);
       continue;
     }
     for (const file of resource.files) {
       const path = join(folder, file.name);
       if (!(await exists(path))) {
-        findings.push({
-          level: 'needs_attention',
-          reason: `${resource.name}/ has no ${file.name}.`,
-        });
+        wanting(name, 'files', `${name}/ has no ${file.name}.`);
         continue;
       }
       if (file.kind !== 'table' || file.columns === undefined) continue;
@@ -275,18 +287,20 @@ async function resourcesCheck(
       try {
         columns = parseCsv(file.name, await readFile(path, 'utf8')).columns;
       } catch (error) {
-        findings.push({
-          level: 'needs_attention',
-          reason: `${resource.name}/${file.name} can't be read as a table: ${error instanceof Error ? error.message : String(error)}`,
-        });
+        wanting(
+          name,
+          'files',
+          `${name}/${file.name} can't be read as a table: ${error instanceof Error ? error.message : String(error)}`,
+        );
         continue;
       }
       const missing = file.columns.filter((column) => !columns.includes(column));
       if (missing.length > 0) {
-        findings.push({
-          level: 'needs_attention',
-          reason: `${resource.name}/${file.name} has no ${missing.join(', ')} column${missing.length === 1 ? '' : 's'}, which the graduate was trained with.`,
-        });
+        wanting(
+          name,
+          'files',
+          `${name}/${file.name} has no ${missing.join(', ')} column${missing.length === 1 ? '' : 's'}, which the graduate was trained with.`,
+        );
       }
     }
   }
@@ -299,6 +313,7 @@ async function resourcesCheck(
         findings.length === 0
           ? 'Every folder is chosen and holds the files it should.'
           : findings.map((finding) => finding.reason).join(' '),
+      ...(folders.length === 0 ? {} : { folders }),
     },
     findings,
   };
@@ -310,19 +325,29 @@ interface ModelResult {
   firstReplyMs?: number;
 }
 
+/** A check not tried because one it needs failed first. */
 const skipped = (id: string, kind: string, detail: string): InstallCheck => ({
   id,
   kind,
   status: 'skipped',
   detail,
+  skipped: 'after_failure',
 });
 
-/** The model-responds check when no request is sent. */
+/** The model-responds check when no request is sent: not asked to, or the model isn't there. */
 function respondsSkipped(
   options: CheckOptions,
   why = 'Skipped: the model is not available.',
 ): InstallCheck {
-  return skipped('model-responds', 'model_responds', options.loadModel ? why : 'Not asked for.');
+  return options.loadModel
+    ? skipped('model-responds', 'model_responds', why)
+    : {
+        id: 'model-responds',
+        kind: 'model_responds',
+        status: 'skipped',
+        detail: 'Not asked for.',
+        skipped: 'not_asked',
+      };
 }
 
 /**
@@ -398,16 +423,20 @@ async function runtimeModelChecks(
         kind: 'model_available',
         status: 'failed',
         detail: reason,
+        sameBuild: false,
+        modelProblem: 'other_build',
       };
     } else {
+      const same = pinned !== undefined && described.digest === pinned;
       available = {
         id: 'model-available',
         kind: 'model_available',
         status: 'passed',
-        detail:
-          pinned !== undefined && described.digest === pinned
-            ? `${model.model} on ${model.runtime}, the same build that was tested.`
-            : `${model.model} on ${model.runtime}.`,
+        detail: same
+          ? `${model.model} on ${model.runtime}, the same build that was tested.`
+          : `${model.model} on ${model.runtime}.`,
+        // Unknown unless both the package and the runtime name a build.
+        ...(same ? { sameBuild: true } : {}),
       };
     }
   } catch (error) {
@@ -419,6 +448,10 @@ async function runtimeModelChecks(
       kind: 'model_available',
       status: 'failed',
       detail: reason,
+      modelProblem:
+        error instanceof AdapterError && error.code === 'not_found'
+          ? 'not_downloaded'
+          : 'unavailable',
     };
   }
   if (!options.loadModel || available.status === 'failed') {
@@ -454,6 +487,21 @@ const SERVER_PROBLEMS: ReadonlySet<LocalRuntimeErrorCode> = new Set([
   'binary_not_found',
   'binary_unusable',
 ]);
+
+/**
+ * What a base the adapter runtime turned down needs, worst first: the exact build under a name of
+ * its own, a download, or a model that reads as weights at all. A changed adapter file, or a GPU
+ * that is busy, is no problem with the base.
+ */
+const BASE_PROBLEMS: readonly [LocalRuntimeErrorCode, ModelProblem][] = [
+  ['base_mismatch', 'other_build'],
+  ['model_not_found', 'not_downloaded'],
+  ['model_unusable', 'unavailable'],
+];
+
+function baseProblem(problems: readonly LocalRuntimeError[]): ModelProblem | undefined {
+  return BASE_PROBLEMS.find(([code]) => problems.some((problem) => problem.code === code))?.[1];
+}
 
 /** A problem of the adapter runtime in words that say what to do, with the download a base needs. */
 function adapterReason(
@@ -498,6 +546,7 @@ async function adapterModelChecks(
         kind: 'adapter_runtime',
         status: 'passed',
         detail: `llama-server build ${survey.server.build}, at ${survey.server.file}.`,
+        build: survey.server.build,
       }
     : {
         id: 'adapter-runtime',
@@ -505,6 +554,7 @@ async function adapterModelChecks(
         status: 'failed',
         detail: serverProblems.map(reasonOf).join(' '),
       };
+  const problem = baseProblem(modelProblems);
   const available: InstallCheck =
     survey.base && modelProblems.length === 0
       ? {
@@ -512,12 +562,15 @@ async function adapterModelChecks(
           kind: 'model_available',
           status: 'passed',
           detail: `${request.model} in Ollama's store, the build its adapter was trained on (${shortDigest(survey.base.digest)}), and its adapter as installed.`,
+          sameBuild: true,
         }
       : {
           id: 'model-available',
           kind: 'model_available',
           status: 'failed',
           detail: modelProblems.map(reasonOf).join(' '),
+          ...(problem === 'other_build' ? { sameBuild: false } : {}),
+          ...(problem === undefined ? {} : { modelProblem: problem }),
         };
   if (!options.loadModel || findings.length > 0) {
     const why =

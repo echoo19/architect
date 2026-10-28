@@ -10,6 +10,7 @@ export const queryKeys = {
   ollama: 'ollama.status',
   local: 'connections.local',
   llamaServer: 'connections.llamaServer',
+  hubToken: 'connections.huggingFace',
   models: (source: { provider: string; baseUrl: string }) =>
     `models:${source.provider}:${source.baseUrl}`,
   graduates: 'graduates',
@@ -43,6 +44,8 @@ export const useAppInfo = () => useQuery(queryKeys.appInfo, api.appInfo);
 export const useSecretsStatus = () => useQuery(queryKeys.secrets, api.secretsStatus);
 export const useOllamaStatus = () => useQuery(queryKeys.ollama, api.ollamaStatus);
 export const useLocalRuntimes = () => useQuery(queryKeys.local, api.localRuntimes);
+/** Where the Hugging Face token comes from: the saved key, the environment, its file, or none. */
+export const useHubToken = () => useQuery(queryKeys.hubToken, api.hubToken);
 export const useGraduates = () => useQuery(queryKeys.graduates, api.graduates);
 export const useJobs = () => useQuery(queryKeys.jobs, api.jobs);
 

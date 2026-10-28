@@ -36,7 +36,7 @@ export type EventPayload<
  * contract fails to compile here until it is listed, and a typo can't slip in.
  */
 const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
-  app: { info: true, openProviderPage: true },
+  app: { info: true, openProviderPage: true, openLink: true },
   settings: { get: true, update: true },
   secrets: { status: true, set: true, clear: true },
   connections: {
@@ -50,6 +50,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     cancelSignIn: true,
     llamaServer: true,
     chooseLlamaServer: true,
+    huggingFace: true,
   },
   ollama: { status: true, pull: true, install: true },
   files: { pick: true },
@@ -138,6 +139,7 @@ const EVENT_METHODS: { [D in EventDomain]: Record<EventMethod<D>, true> } = {
   settings: { onChange: true },
   ollama: { onPullProgress: true },
   runs: { onEvent: true },
+  graduates: { onPublishProgress: true },
   workspace: { onEvent: true },
 };
 

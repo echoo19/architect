@@ -241,7 +241,7 @@ Every command ends on its own: a run that needs an approval nobody can give fail
 
 ## Hugging Face
 
-**The token** comes from the standard places, nearest first: `HF_TOKEN` (or the older `HUGGING_FACE_HUB_TOKEN`), then the token file that `hf auth login` writes (`HF_TOKEN_PATH`, else `token` in `HF_HOME`, which defaults to `~/.cache/huggingface`). The app also uses a key saved in its Settings, first. The token goes only to the Hub's own API, never to its upload or download hosts, and never into a package, model card, record or message; the command says only where it found it. `HF_ENDPOINT` points the command at another Hub address.
+**The token** comes from the standard places, nearest first: `HF_TOKEN` (or the older `HUGGING_FACE_HUB_TOKEN`), then the token file that `hf auth login` writes (`HF_TOKEN_PATH`, else `token` in `HF_HOME`, which defaults to `~/.cache/huggingface`). The app also uses a key saved in its Settings, first, and Settings says where the token comes from without showing it. The token goes only to the Hub's own API, never to its upload or download hosts, and never into a package, model card, record or message; the command says only where it found it. `HF_ENDPOINT` points the command, and the app, at another Hub address; a key saved in the app still goes only to huggingface.co.
 
 **Publishing** sends the version's package exactly as `export` would write it, after the same review and scan, which covers the model card too. A new repository is made private unless `--public`. An existing repository keeps its visibility: a private one stays private even with `--public`, and a public one is refused for a private publication rather than made to hold it. The package goes up in one commit, large files (an adapter) through LFS, and is checked against the Hub's own listing; then a second commit adds the model card, made only from the package's manifest, with the exact command to install that commit. The publication is recorded on this computer with the repository and the package's commit, and only once all of that is done is it complete. A failure leaves it failed, never a release; publishing again finishes the same record, without sending what the Hub already has. Files an earlier version left in the package's folders (`harness/`, `evidence/`, `adapter/`, `resources/`) are removed; nothing else in the repository is touched, and the earlier version keeps its own commit.
 
@@ -254,6 +254,8 @@ Every command ends on its own: a run that needs an approval nobody can give fail
 ## Local models
 
 The command reads the app's own settings file for local models, as the app does: quiet mode's thread cap for a local student and for llama-server, the llama-server chosen in Settings (else the one on `PATH`), and the default student's Ollama when it is on this computer. A version with an adapter runs on llama.cpp (decision 041), with a llama-server of the command's own (`local-runtime/cli` in the data folder) that stops when the command ends.
+
+The command takes the GPU in turns with the open app (decision 046). A run holds it from the start of its reply to the end, except while it waits for an approval: the app's idle llama-server stops first, and a check or a training step waits for the reply. When the app is answering a chat, or checking an agent, the run waits its turn for up to 5 minutes, then exits 1 with an error that says what holds the GPU.
 
 ## What it doesn't do yet
 

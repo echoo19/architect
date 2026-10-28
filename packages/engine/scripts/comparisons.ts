@@ -24,6 +24,10 @@
  * --gpu-minutes, counted from the first local request; when they are up it stops at once, and
  * with 0 nothing runs there. The plan pins the job's files; a run on changed files is refused.
  *
+ * Keep the app closed while a comparison uses this computer's GPU. The runner shares the app's
+ * GPU lease (decision 046): it takes the GPU only when no process of the app has it, and its local
+ * work otherwise stops at once with the busy error, which names who has it.
+ *
  * Run again after a crash, it repeats no recorded attempt, Spark reply or training job. An
  * attempt in flight when the process stopped is made again, and its cut-off requests count as
  * spent at their worst; a Spark call in flight is paid again. Exit codes: 0 done, 1 error, 2 bad
@@ -33,7 +37,7 @@ import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { AdapterProtocolSchema, ArmIdSchema, type ArmId } from '@architect/shared';
 import { hubTokenResolver } from '../src/hub';
-import { describeLlamaServer } from '../src/local-runtime';
+import { appDataDir, describeLlamaServer, LocalRuntimeError } from '../src/local-runtime';
 import {
   ARM_ORDER,
   DEFAULT_CONFIG,
@@ -196,8 +200,9 @@ async function main(): Promise<number> {
       return 2;
     }
   }
-  const { env, adapterRuntime } = realEnvironment({
+  const { env, close } = realEnvironment({
     dataDir: resolve(request.out, 'data'),
+    appDataDir: appDataDir(process.env),
     trainerDir: TRAINER_DIR,
     meter: parsed.meter,
     parallel: parsed.parallel,
@@ -244,7 +249,7 @@ async function main(): Promise<number> {
       }
     }
   } finally {
-    await adapterRuntime.stop();
+    await close();
   }
 }
 
@@ -253,8 +258,15 @@ main().then(
     process.exitCode = code;
   },
   (error: unknown) => {
+    // A local runtime's problem, such as the GPU in use, is said with what to do about it.
     process.stderr.write(
-      `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
+      `${
+        error instanceof LocalRuntimeError
+          ? `${error.message} ${error.hint}`
+          : error instanceof Error
+            ? (error.stack ?? error.message)
+            : String(error)
+      }\n`,
     );
     process.exitCode = 1;
   },
