@@ -260,6 +260,10 @@ importers:
       '@architect/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+    devDependencies:
+      '@architect/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
 
   examples/home-services:
     dependencies:
