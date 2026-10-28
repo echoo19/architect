@@ -10,7 +10,10 @@ import {
   type Trace,
 } from '@architect/shared';
 import { exportPackage, reviewExport } from '../graduates/exporter';
+import { installFromHub } from '../graduates/hub-install';
 import { importPackage, inspectPackage } from '../graduates/importer';
+import { listPublications, publishVersion, reviewPublication } from '../graduates/publish';
+import type { HubClient } from '../hub';
 import type { GraduateLibrary } from '../graduates/library';
 import type { Clock, EngineHostDeps, JobDrafter } from '../loop/deps';
 import { readJsonFile } from '../loop/files';
@@ -39,6 +42,8 @@ export interface EngineApiContext {
   graduates: GraduateLibrary;
   deps: EngineHostDeps;
   clock: Clock;
+  /** Hugging Face, for publishing and installing versions. */
+  hub: HubClient;
 }
 
 /** The engine API for callers in the host's own process; `serve` exposes it over a port. */
@@ -61,7 +66,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     deps.harness.versions(paths.harnessDir(record.run.jobId, record.run.id));
   const drafter = (): JobDrafter =>
     found(deps.drafts, "Drafting a job with the mentor isn't available in this build.");
-  const packages = { library: graduates, secrets: deps.secrets };
+  const packages = { library: graduates, secrets: deps.secrets, hub: ctx.hub };
 
   async function runDetail(runId: string): Promise<RunDetail> {
     const record = run(runId);
@@ -153,6 +158,10 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       inspectPackage: (path) => inspectPackage(packages, path),
       importPackage: (path, request) => importPackage(packages, path, request),
       importFolder: async (path) => (await importPackage(packages, path)).graduate,
+      installFromHub: (source, request) => installFromHub(packages, source, request),
+      reviewPublication: (graduateId, request) => reviewPublication(packages, graduateId, request),
+      publish: (graduateId, request) => publishVersion(packages, graduateId, request),
+      publications: async (graduateId) => listPublications(packages, graduateId),
       remove: (graduateId) => graduates.remove(graduateId),
       settings: async (graduateId) => graduates.settings(graduateId),
       updateSettings: async (graduateId, patch) =>

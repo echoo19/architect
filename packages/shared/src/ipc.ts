@@ -13,11 +13,17 @@ import type {
   ExportResult,
   ExportReview,
   GraduateVersion,
+  HubInstallRequest,
   ImportRequest,
   Installation,
   InstallStatus,
   PackageInspection,
+  Publication,
+  PublicationReview,
+  PublishRequest,
+  PublishResult,
   VersionEvent,
+  VersionSource,
 } from './versions';
 import type { WorkspaceChat, WorkspaceEvent, WorkspaceMessage } from './workspace';
 
@@ -191,6 +197,11 @@ export interface ImportResult {
   alreadyInstalled: boolean;
 }
 
+/** What installing a version from a Hugging Face repository did, and the commit it came from. */
+export interface HubInstallResult extends ImportResult {
+  source: VersionSource;
+}
+
 /** Per-graduate choices the user makes in the workspace. */
 export interface GraduateSettings {
   /** Writes: ask every time, allow without asking, or never. Starts from the job's permission. */
@@ -331,6 +342,17 @@ export interface ArchitectApi {
     importPackage(path: string, request?: ImportRequest): Promise<ImportResult>;
     /** Imports a package with the default request. */
     importFolder(path: string): Promise<GraduateSummary>;
+    /**
+     * Installs a version from a Hugging Face repository (`hf://owner/name` or `owner/name`), at
+     * the commit named or the one its main branch points at now, with an import's checks.
+     */
+    installFromHub(source: string, request?: HubInstallRequest): Promise<HubInstallResult>;
+    /** What publishing a version to Hugging Face would send, and what the scan finds. Sends nothing. */
+    reviewPublication(graduateId: string, request: PublishRequest): Promise<PublicationReview>;
+    /** Publishes a version to a Hugging Face repository, private unless the request says public. */
+    publish(graduateId: string, request: PublishRequest): Promise<PublishResult>;
+    /** Every publication of the agent's versions, oldest first. */
+    publications(graduateId: string): Promise<Publication[]>;
     remove(graduateId: string): Promise<void>;
     settings(graduateId: string): Promise<GraduateSettings>;
     updateSettings(graduateId: string, patch: Partial<GraduateSettings>): Promise<GraduateSettings>;

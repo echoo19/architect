@@ -2,7 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { cp, mkdir, rename, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { writePackage, type WrittenPackage } from '@architect/harness';
-import type { DataFile, JobContract, VersionRef, VersionState } from '@architect/shared';
+import type {
+  DataFile,
+  JobContract,
+  VersionRef,
+  VersionSource,
+  VersionState,
+} from '@architect/shared';
 import type { DataPaths } from '../loop/paths';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredInstallation, StoredVersion } from '../store/records';
@@ -41,6 +47,8 @@ export interface NewVersion {
   parent?: number;
   /** Where an imported version came from. */
   origin?: VersionRef;
+  /** The hub repository and commit an imported version was downloaded from. */
+  source?: VersionSource;
   /** The local run that made it. */
   runId?: string;
   state: VersionState;
@@ -82,6 +90,7 @@ export function registerVersion(
     version,
     ...(input.parent === undefined ? {} : { parent: input.parent }),
     ...(input.origin === undefined ? {} : { origin: input.origin }),
+    ...(input.source === undefined ? {} : { source: input.source }),
     path: paths.toStored(paths.versionDir(graduateId, version)),
     manifest,
     digest,

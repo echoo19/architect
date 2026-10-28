@@ -163,6 +163,8 @@ export interface EngineStore {
   publications: {
     insert(publication: StoredPublication): void;
     update(publication: StoredPublication): void;
+    /** A version's publication to a Hugging Face repository, if it has one. */
+    find(graduateId: string, version: number, repository: string): StoredPublication | null;
     /** Oldest first. */
     list(graduateId: string): StoredPublication[];
   };
@@ -484,6 +486,7 @@ function versionParams(version: StoredVersion): Params {
     state: version.state,
     evaluation: version.evaluation,
     run_id: version.runId ?? null,
+    source: jsonOrNull(version.source),
     created_at: version.createdAt,
     accepted_at: version.acceptedAt ?? null,
   };
@@ -502,6 +505,7 @@ function versionFromRow(row: Row): StoredVersion {
     state: row.state,
     evaluation: row.evaluation,
     runId: orUndefined(row.run_id),
+    source: orUndefined(fromJson(row.source)),
     createdAt: row.created_at,
     acceptedAt: orUndefined(row.accepted_at),
   });
@@ -551,6 +555,7 @@ function publicationParams(publication: StoredPublication): Params {
     visibility: publication.visibility,
     revision: publication.revision ?? null,
     url: publication.url ?? null,
+    digest: publication.digest ?? null,
     status: publication.status,
     error: publication.error ?? null,
     created_at: publication.createdAt,
@@ -568,6 +573,7 @@ function publicationFromRow(row: Row): StoredPublication {
     visibility: row.visibility,
     revision: orUndefined(row.revision),
     url: orUndefined(row.url),
+    digest: orUndefined(row.digest),
     status: row.status,
     error: orUndefined(row.error),
     createdAt: row.created_at,
@@ -948,6 +954,14 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
     publications: {
       insert: (publication) => sql.insert('publications', publicationParams(publication)),
       update: (publication) => sql.update('publications', publicationParams(publication), ['id']),
+      find: (graduateId, version, repository) => {
+        const row = sql.one(
+          `SELECT * FROM publications WHERE graduate_id = :graduate_id AND version = :version
+           AND destination = 'huggingface' AND repository = :repository`,
+          { graduate_id: graduateId, version, repository },
+        );
+        return row ? publicationFromRow(row) : null;
+      },
       list: (graduateId) =>
         sql
           .all(

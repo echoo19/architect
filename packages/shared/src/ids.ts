@@ -1,5 +1,5 @@
 export type IdPrefix =
-  'job' | 'run' | 'rnd' | 'att' | 'grd' | 'cht' | 'msg' | 'chg' | 'req' | 'trn';
+  'job' | 'run' | 'rnd' | 'att' | 'grd' | 'cht' | 'msg' | 'chg' | 'req' | 'trn' | 'pub';
 
 /** A short, sortable-enough unique id: `<prefix>_<time36><random>`. */
 export function newId(prefix: IdPrefix): string {

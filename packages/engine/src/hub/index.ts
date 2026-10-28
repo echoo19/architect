@@ -3,6 +3,7 @@
  * (decision 035) to publishing and installing graduates.
  */
 export {
+  gitBlobId,
   HF_ENDPOINT,
   HubClient,
   HubError,
@@ -17,6 +18,7 @@ export {
   type UploadProgress,
   type UploadResult,
 } from './client';
+export { HUB_SCHEME, hubSource, repositoryProblem, repositoryUrl } from './names';
 export {
   findHubToken,
   HUB_TOKEN_SOURCES,

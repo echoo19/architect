@@ -31,6 +31,7 @@ import {
   type ModelBinding,
   type PackageInspection,
   type PackageManifest,
+  type VersionSource,
 } from '@architect/shared';
 import { isoNow } from '../loop/time';
 import { grantsFor, storedFolder } from './bindings';
@@ -43,6 +44,12 @@ import { exists, nextVersion, registerVersion } from './versions';
 export interface ImportContext {
   library: GraduateLibrary;
   limits?: PackageLimits;
+}
+
+/** What only the engine says about an import, never its caller: where the package came from. */
+export interface ImportProvenance {
+  /** The hub repository and commit it was downloaded from. */
+  source?: VersionSource;
 }
 
 /** A package unpacked and checked in a staging folder of its own. Nothing in it has run. */
@@ -297,6 +304,7 @@ export async function importPackage(
   ctx: ImportContext,
   path: string,
   input: ImportRequest = {},
+  provenance: ImportProvenance = {},
 ): Promise<ImportResult> {
   const request = ImportRequestSchema.parse(input);
   if (request.model && !isLoopbackUrl(request.model.baseUrl)) {
@@ -384,6 +392,7 @@ export async function importPackage(
             version: manifest.identity.version,
             digest: staged.digest,
           },
+          ...(provenance.source === undefined ? {} : { source: provenance.source }),
           state: isNew ? 'accepted' : 'candidate',
           installation: {
             graduateId,
