@@ -171,10 +171,10 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
           )}
         </Settled>
       ) : (
-        <Settled title="Saved for the next improve">
+        <Settled title="Saved for Improve">
           <span>
-            {lessonCount(Math.max(queued, 1))} saved. {queued > 1 ? 'They are' : 'It is'} taught
-            when you improve it.
+            {lessonCount(Math.max(queued, 1))} saved. Improve teaches {queued > 1 ? 'them' : 'it'}{' '}
+            when you run it.
           </span>
         </Settled>
       );

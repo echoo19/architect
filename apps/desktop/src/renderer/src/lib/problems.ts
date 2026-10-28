@@ -38,7 +38,7 @@ const PROBLEMS: Record<ErrorCode, Problem> = {
     next: 'Try again in a moment.',
   },
   process_restarting: {
-    cause: 'Architect hit a problem and is catching up.',
+    cause: 'Architect had a problem and is starting again.',
     next: 'Try again in a moment.',
   },
   process_failed: {

@@ -63,9 +63,7 @@ export function correctionStatus(correction: Correction, improving: boolean): st
     case 'proposed':
       return 'To review';
     case 'queued':
-      return improving && correction.runId !== undefined
-        ? 'Being taught'
-        : 'Saved for next improve';
+      return improving && correction.runId !== undefined ? 'Being taught' : 'Saved for Improve';
     case 'applied':
       return `In version ${correction.candidateVersion ?? '?'}`;
     case 'used':
@@ -168,7 +166,7 @@ export function proposeFailure(error: Error, mentor: string, capUsd: number): Pr
   if (code === 'guard_split') {
     return {
       title: 'Not shared',
-      text: `It matches a question from the final test, which ${mentor} must never see.`,
+      text: `It matches a question from the final test, which ${mentor} must never see. Flag a different answer.`,
       details: error.message,
       retry: false,
     };

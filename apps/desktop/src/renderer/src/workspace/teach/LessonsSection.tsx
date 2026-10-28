@@ -237,14 +237,14 @@ function ImproveRow({
     meta = 'Flag an answer to teach it first';
   } else if (overview.improve) {
     const waits = overview.improve.waits ? ' · waits for the run using it' : '';
-    meta = `${lessonCount(queued)} · ${budgetLine(overview.improve.budget)}${waits}`;
+    meta = `${lessonCount(queued)} saved · ${budgetLine(overview.improve.budget)}${waits}`;
     action = (
       <Button size="xs" onClick={() => setConfirming(true)}>
         Improve
       </Button>
     );
   } else {
-    meta = `${lessonCount(queued)} · no version of it can run here to improve`;
+    meta = `${lessonCount(queued)} saved · no version of it can run here to improve`;
   }
 
   return (

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import type { Correction } from '@architect/shared';
-import { Button } from '@architect/ui';
+import { Button, Tooltip } from '@architect/ui';
 import { Layers, ListPlus, PencilLine, Trash2 } from 'lucide-react';
 import { refreshAgent } from '../../api/graduates';
 import { refreshTeaching, teachApi } from '../../api/teaching';
@@ -74,15 +74,15 @@ export function ProposalView({
 type Action = 'queue' | 'apply' | 'discard';
 
 const FAILED: Record<Action, string> = {
-  queue: "Couldn't save it for the next improve",
+  queue: "Couldn't save it for Improve",
   apply: "Couldn't save the new version",
   discard: "Couldn't discard it",
 };
 
 /**
- * The choices for a lesson that waits for the person: discard it, save it for the next improve,
- * or, for an instruction, save it at once as a new version that hasn't taken a final test. The
- * version chats run on never changes here: only using a version does that.
+ * The choices for a lesson that waits for the person: discard it, save it for Improve, or, for
+ * an instruction, save it at once as a new version that hasn't taken a final test. The version
+ * chats run on never changes here: only using a version does that.
  */
 export function ProposalActions({
   graduateId,
@@ -146,28 +146,38 @@ export function ProposalActions({
         </Button>
       )}
       {queueable && (
-        <Button
-          size="md"
-          variant={applicable ? 'secondary' : 'primary'}
-          loading={busy === 'queue'}
-          disabled={busy !== null}
-          onClick={() => void act('queue')}
+        <Tooltip
+          content="Keeps it with your other flagged answers. Improve teaches them together, and makes a new version only if it scores better."
+          side="top"
         >
-          {busy !== 'queue' && <ListPlus size={15} strokeWidth={1.7} aria-hidden />}
-          Save for the next improve
-        </Button>
+          <Button
+            size="md"
+            variant={applicable ? 'secondary' : 'primary'}
+            loading={busy === 'queue'}
+            disabled={busy !== null}
+            onClick={() => void act('queue')}
+          >
+            {busy !== 'queue' && <ListPlus size={15} strokeWidth={1.7} aria-hidden />}
+            Save for Improve
+          </Button>
+        </Tooltip>
       )}
       {applicable && (
-        <Button
-          size="md"
-          variant="primary"
-          loading={busy === 'apply'}
-          disabled={busy !== null}
-          onClick={() => void act('apply')}
+        <Tooltip
+          content="Adds it to the agent now as a new version. It isn't used until you choose it, and it hasn't taken a final test."
+          side="top"
         >
-          {busy !== 'apply' && <Layers size={15} strokeWidth={1.7} aria-hidden />}
-          {nextVersion === null ? 'Save as a new version' : `Save as version ${nextVersion}`}
-        </Button>
+          <Button
+            size="md"
+            variant="primary"
+            loading={busy === 'apply'}
+            disabled={busy !== null}
+            onClick={() => void act('apply')}
+          >
+            {busy !== 'apply' && <Layers size={15} strokeWidth={1.7} aria-hidden />}
+            {nextVersion === null ? 'Save as a new version' : `Save as version ${nextVersion}`}
+          </Button>
+        </Tooltip>
       )}
     </>
   );

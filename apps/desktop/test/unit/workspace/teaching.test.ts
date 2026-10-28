@@ -108,7 +108,7 @@ describe('a proposed lesson', () => {
       // A refusal, not a fault: the same exchange is refused however it is described, so it
       // isn't offered again.
       title: 'Not shared',
-      text: 'It matches a question from the final test, which Spark must never see.',
+      text: 'It matches a question from the final test, which Spark must never see. Flag a different answer.',
       details: leak.message,
       retry: false,
     });
@@ -152,7 +152,7 @@ describe('the flagged answers', () => {
     expect(flaggedSummary([])).toBeNull();
     expect(list.map((item) => correctionStatus(item, true))).toEqual([
       'To review',
-      'Saved for next improve',
+      'Saved for Improve',
       'Being taught',
       'Taught in version 3',
       'Discarded',
