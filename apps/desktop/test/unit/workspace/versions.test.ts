@@ -7,6 +7,7 @@ import type {
 import { describe, expect, it } from 'vitest';
 import { checkDetail, checkMark, fixesFor } from '../../../src/renderer/src/install/labels';
 import {
+  evaluationNote,
   moveFor,
   promoteCaution,
   versionOrigin,
@@ -62,10 +63,10 @@ describe('version moves', () => {
   });
 });
 
-describe('promoting a version its locked test did not vouch for', () => {
+describe('promoting a version its final test did not vouch for', () => {
   it('says nothing measured it', () => {
     expect(promoteCaution(version({ version: 4, evaluation: 'unevaluated' }))).toBe(
-      'No locked test has measured version 4.',
+      "Version 4 hasn't taken a final test.",
     );
   });
 
@@ -75,7 +76,9 @@ describe('promoting a version its locked test did not vouch for', () => {
       evaluation: 'experimental',
       score: { pass: 51, total: 60, target: 0.9 },
     });
-    expect(promoteCaution(short)).toBe('Version 1 fell short of its bar: 85% passed, 90% needed.');
+    expect(promoteCaution(short)).toBe(
+      'Version 1 fell short on its final test: 85% passed, 90% needed.',
+    );
   });
 
   it('says when it met the bar only on a hosted copy', () => {
@@ -85,7 +88,26 @@ describe('promoting a version its locked test did not vouch for', () => {
       score: { pass: 57, total: 60, target: 0.9 },
     });
     expect(promoteCaution(hosted)).toBe(
-      'Version 2 was measured on a hosted copy, not on a computer like this one.',
+      'Version 2 took its final test on a hosted copy, not on a computer like this one.',
+    );
+  });
+
+  it('says why a version is experimental where its standing is listed', () => {
+    const short = version({
+      version: 1,
+      evaluation: 'experimental',
+      score: { pass: 51, total: 60, target: 0.9 },
+    });
+    const hosted = version({
+      version: 2,
+      evaluation: 'experimental',
+      score: { pass: 57, total: 60, target: 0.9 },
+    });
+    expect(evaluationNote(short)).toBe('Below its 90% target');
+    expect(evaluationNote(hosted)).toBe('Tested on a hosted copy');
+    expect(evaluationNote(version({ version: 3 }))).toBe('Ready');
+    expect(evaluationNote(version({ version: 4, evaluation: 'unevaluated' }))).toBe(
+      'Not evaluated',
     );
   });
 
@@ -110,13 +132,13 @@ describe('install check details', () => {
     ...patch,
   });
 
-  it('names this computer and its runtime without an address', () => {
+  it('names this computer alone, since what runs the model has rows of its own', () => {
     expect(
       checkDetail(
         check({ detail: 'win32/x64, 32 GB of memory, ollama at 127.0.0.1:11434.' }),
         installation,
       ),
-    ).toBe('Windows x64 · 32 GB · Ollama');
+    ).toBe('Windows x64 · 32 GB');
   });
 
   it('says a passed setup and folders check in plain words', () => {
@@ -178,9 +200,9 @@ describe('install check details', () => {
     });
     const served = { ...installation, checks: [server] } as Installation;
 
-    it('names llama.cpp as what runs it, its build, and the base its weights need', () => {
+    it("names llama.cpp's build and the base its weights need, never in the computer's row", () => {
       expect(checkDetail(check({ detail: 'win32/x64, 32 GB of memory, llama.cpp.' }), served)).toBe(
-        'Windows x64 · 32 GB · llama.cpp',
+        'Windows x64 · 32 GB',
       );
       expect(checkDetail(server, served)).toBe('Build 10472');
       expect(
@@ -191,7 +213,9 @@ describe('install check details', () => {
           }),
           served,
         ),
-      ).toBe('muse-glimmer:30b, the exact build its trained weights need');
+      ).toBe(
+        'muse-glimmer:30b, downloaded through Ollama, the exact build its trained weights need',
+      );
     });
 
     it('offers to set up llama.cpp when it is missing, and never reads that as blocking', () => {

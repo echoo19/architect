@@ -21,9 +21,10 @@ import {
   checkMark,
   osName,
   runtimeName,
-  servedBy,
+  WEIGHTS_BASE,
 } from '../install/labels';
 import { formatBytes, formatPercent } from '../lib/format';
+import { capitalized } from '../lib/names';
 import { useUi } from '../state/ui';
 
 type Previewed = Extract<ImportPreview, { ok: true }>;
@@ -109,7 +110,13 @@ export function CheckStep({
         <SettingsRow
           icon={<StatusMark state={mark(fit)} />}
           label="This computer"
-          meta={fit?.status === 'passed' ? `Runs it with ${servedBy(preview)}` : fit?.detail}
+          meta={
+            fit?.status !== 'passed'
+              ? fit?.detail
+              : server
+                ? 'Needs llama.cpp for its trained weights'
+                : `Runs it with ${runtimeName(model.runtime)}`
+          }
         >
           <SettingsValue>
             {osName(machine.os)} {machine.arch} · {formatBytes(machine.memoryBytes)}
@@ -130,7 +137,7 @@ export function CheckStep({
           meta={
             served?.status === 'passed'
               ? server
-                ? "In Ollama's store, the exact build its trained weights need"
+                ? capitalized(WEIGHTS_BASE)
                 : `On this computer, served by ${runtimeName(model.runtime)}`
               : served?.status === 'skipped'
                 ? notChecked

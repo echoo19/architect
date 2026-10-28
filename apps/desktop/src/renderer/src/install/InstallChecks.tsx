@@ -58,7 +58,7 @@ export function SetUpLlamaButton({ disabled = false }: { disabled?: boolean }) {
       }}
     >
       <Cpu size={14} strokeWidth={1.7} aria-hidden />
-      Set up llama.cpp
+      Set up llama.cpp in Settings
     </Button>
   );
 }

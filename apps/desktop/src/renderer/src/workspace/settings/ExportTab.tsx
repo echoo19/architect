@@ -230,7 +230,8 @@ export function ExportTab({ agent }: { agent: GraduateSummary }) {
                   className="flex min-w-0 gap-3 font-mono text-xs"
                 >
                   <span className="shrink-0 text-fg-secondary">
-                    {finding.path}:{finding.line}
+                    {/* A shared folder's file, as its row names it: data/policy.md. */}
+                    {finding.path.replace(/^resources\//, '')}:{finding.line}
                   </span>
                   <span className="truncate text-fg-muted">{finding.excerpt}</span>
                 </li>
@@ -240,7 +241,7 @@ export function ExportTab({ agent }: { agent: GraduateSummary }) {
         ) : (
           <SettingsRow
             icon={<StatusMark state="ok" />}
-            label="Nothing that looks like a key or a private path"
+            label="Nothing in the package looks like a key or a private path"
           />
         )}
         <SettingsRow

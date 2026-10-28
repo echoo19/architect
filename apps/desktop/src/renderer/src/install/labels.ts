@@ -77,15 +77,14 @@ export function servedWithWeights(context: Pick<CheckContext, 'checks'>): boolea
   return context.checks.some((check) => check.kind === 'adapter_runtime');
 }
 
-/** "llama.cpp" for a version with trained weights, else the runtime its binding names. */
-export function servedBy(context: CheckContext): string {
-  return servedWithWeights(context) ? 'llama.cpp' : runtimeName(context.model.runtime);
-}
+/** Where the base model of a version with trained weights comes from, and why that build. */
+export const WEIGHTS_BASE = 'downloaded through Ollama, the exact build its trained weights need';
 
 /**
  * What a check found, said the way the rest of the app says it: a passed fit check names this
- * computer and what runs the model, a passed model check the model, and a skipped one why it
- * wasn't tried. A failed check keeps its own words, which say what to do.
+ * computer (what runs the model has rows of its own, so a row never vouches for another), a
+ * passed model check the model, and a skipped one why it wasn't tried. A failed check keeps its
+ * own words, which say what to do.
  */
 export function checkDetail(check: InstallCheck, context: CheckContext): string {
   if (check.status === 'skipped') {
@@ -99,7 +98,7 @@ export function checkDetail(check: InstallCheck, context: CheckContext): string 
   switch (check.kind) {
     case 'compatibility':
       return machine
-        ? `${osName(machine.os)} ${machine.arch} · ${formatBytes(machine.memoryBytes)} · ${servedBy(context)}`
+        ? `${osName(machine.os)} ${machine.arch} · ${formatBytes(machine.memoryBytes)}`
         : check.detail;
     case 'harness_valid':
       return 'The same setup that was tested';
@@ -110,9 +109,7 @@ export function checkDetail(check: InstallCheck, context: CheckContext): string 
       return build === undefined ? check.detail : `Build ${build}`;
     }
     case 'model_available': {
-      if (servedWithWeights(context)) {
-        return `${model.model}, the exact build its trained weights need`;
-      }
+      if (servedWithWeights(context)) return `${model.model}, ${WEIGHTS_BASE}`;
       const same = check.detail.includes('same build') ? ', the build that was tested' : '';
       return `${model.model} on ${runtimeName(model.runtime)}${same}`;
     }

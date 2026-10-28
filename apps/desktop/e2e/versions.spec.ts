@@ -195,6 +195,8 @@ for (const theme of THEMES) {
     await expect(row(3)).toContainText('Ready · from v2');
     await expect(row(4)).toContainText('Not evaluated · from v2, imported');
     await expect(row(1)).toContainText('Experimental');
+    await expect(row(1)).toContainText('Below its 90% target');
+    await expect(dialog.getByRole('region', { name: 'Versions' })).toContainText('Final test');
     await expect(row(1).getByRole('button', { name: 'Roll back' })).toBeVisible();
     await expect(row(2).getByRole('button')).toHaveCount(0);
     await capture(`agent-teaching-${theme}.png`);
@@ -202,7 +204,7 @@ for (const theme of THEMES) {
     // A version no locked test measured can be promoted, after saying so.
     await row(4).getByRole('button', { name: 'Promote' }).click();
     const unmeasured = page.getByRole('dialog', { name: 'Promote version 4?' });
-    await expect(unmeasured).toContainText('No locked test has measured version 4.');
+    await expect(unmeasured).toContainText("Version 4 hasn't taken a final test.");
     await capture(`agent-promote-unevaluated-${theme}.png`);
     await unmeasured.getByRole('button', { name: 'Cancel' }).click();
     await expect(unmeasured).toBeHidden();
@@ -259,7 +261,9 @@ for (const theme of THEMES) {
     const stays = dialog.getByRole('region', { name: 'Stays on this computer' });
     await expect(stays).toContainText('4 chats');
     await expect(stays).toContainText('API keys');
-    await expect(dialog.getByText('Nothing that looks like a key or a private path')).toBeVisible();
+    await expect(
+      dialog.getByText('Nothing in the package looks like a key or a private path'),
+    ).toBeVisible();
     await expect(
       dialog.getByText('Trained weights may retain information from their training data'),
     ).toBeVisible();
@@ -279,9 +283,7 @@ for (const theme of THEMES) {
     // Sharing the data folder is opt-in, and the scan's finding in it holds the export back.
     await share.click();
     await expect(dialog.getByText('1 line looks like a key or a private path')).toBeVisible();
-    await expect(dialog.getByRole('list', { name: 'Findings' })).toContainText(
-      'resources/data/policy.md:14',
-    );
+    await expect(dialog.getByRole('list', { name: 'Findings' })).toContainText('data/policy.md:14');
     await expect(exportPackage).toBeDisabled();
     await expect(dialog.getByText('1 flagged line needs your OK')).toBeVisible();
     await dialog.getByRole('region', { name: 'Scan' }).scrollIntoViewIfNeeded();
@@ -400,15 +402,15 @@ for (const theme of THEMES) {
     await startImport([PACKAGES.weights, FOLDERS.records]);
 
     await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
-    await expect(page.getByText('Runs it with llama.cpp')).toBeVisible();
+    await expect(page.getByText('Needs llama.cpp for its trained weights')).toBeVisible();
     await expect(page.getByText("llama-server isn't installed, or isn't on PATH.")).toBeVisible();
     await expect(
-      page.getByText("In Ollama's store, the exact build its trained weights need"),
+      page.getByText('Downloaded through Ollama, the exact build its trained weights need'),
     ).toBeVisible();
     await capture(`import-check-weights-${theme}.png`);
 
     // Settings opens on Models, where llama.cpp is set up; closing it checks the package again.
-    await page.getByRole('button', { name: 'Set up llama.cpp' }).click();
+    await page.getByRole('button', { name: 'Set up llama.cpp in Settings' }).click();
     const settings = page.getByRole('dialog', { name: 'Settings' });
     await expect(settings.getByRole('tab', { name: 'Models' })).toHaveAttribute(
       'aria-selected',
@@ -438,9 +440,9 @@ for (const theme of THEMES) {
     await expect(checks).toContainText('llama.cpp');
     await expect(checks).toContainText("llama-server isn't installed");
     await expect(checks).toContainText(
-      'muse-glimmer:30b, the exact build its trained weights need',
+      'muse-glimmer:30b, downloaded through Ollama, the exact build its trained weights need',
     );
-    await expect(page.getByRole('button', { name: 'Set up llama.cpp' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Set up llama.cpp in Settings' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Check again' })).toBeVisible();
     await capture(`import-weights-attention-${theme}.png`);
   });

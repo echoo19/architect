@@ -45,18 +45,32 @@ export function versionScore(version: GraduateVersion): { pass: number; total: n
 }
 
 /**
- * What to know before promoting a version its own locked test didn't vouch for: that nothing
- * measured it, that it fell short of the job's bar, or that it was measured on a hosted copy.
- * Null for a version that met its bar here.
+ * Why a version is experimental, in a few words: below the job's target on its final test, or
+ * tested on a hosted copy. Every other evaluation is its own label.
+ */
+export function evaluationNote(version: GraduateVersion): string {
+  const { summary } = version.manifest.evidence;
+  if (version.evaluation !== 'experimental' || !summary) {
+    return EVALUATION_LABELS[version.evaluation];
+  }
+  return summary.passRate.met
+    ? 'Tested on a hosted copy'
+    : `Below its ${Math.round(summary.passRate.target * 100)}% target`;
+}
+
+/**
+ * What to know before promoting a version its own final test didn't vouch for: that it hasn't
+ * taken one, that it fell short of the job's target, or that it took it on a hosted copy. Null
+ * for a version that met its target here.
  */
 export function promoteCaution(version: GraduateVersion): string | null {
   const { summary } = version.manifest.evidence;
   const number = version.version;
-  if (version.evaluation === 'unevaluated') return `No locked test has measured version ${number}.`;
+  if (version.evaluation === 'unevaluated') return `Version ${number} hasn't taken a final test.`;
   if (version.evaluation !== 'experimental') return null;
   if (!summary) return `Version ${number} is experimental.`;
   if (!summary.passRate.met) {
-    return `Version ${number} fell short of its bar: ${formatPercent(summary.score)} passed, ${Math.round(summary.passRate.target * 100)}% needed.`;
+    return `Version ${number} fell short on its final test: ${formatPercent(summary.score)} passed, ${Math.round(summary.passRate.target * 100)}% needed.`;
   }
-  return `Version ${number} was measured on a hosted copy, not on a computer like this one.`;
+  return `Version ${number} took its final test on a hosted copy, not on a computer like this one.`;
 }

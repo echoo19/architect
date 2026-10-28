@@ -20,6 +20,7 @@ import { useGraduateSettings } from '../graduateSettings';
 import { WRITE_MODE_LABELS } from '../labels';
 import {
   EVALUATION_LABELS,
+  evaluationNote,
   moveFor,
   promoteCaution,
   versionDate,
@@ -30,7 +31,7 @@ import {
 
 /**
  * Teaching: the agent's versions, newest first. Each says whether it is the one chats run on,
- * how its own locked test came out, what it was made from and when, and can be promoted or
+ * how its own final test came out, what it was made from and when, and can be promoted or
  * rolled back to after a confirmation that says what changes.
  */
 export function TeachingTab({ agent }: { agent: GraduateSummary }) {
@@ -38,9 +39,16 @@ export function TeachingTab({ agent }: { agent: GraduateSummary }) {
   const [move, setMove] = useState<{ version: GraduateVersion; kind: VersionMove } | null>(null);
   const list = versions.data;
   const active = list?.find((version) => version.active) ?? null;
+  const scored = list?.some((version) => versionScore(version) !== null) ?? false;
 
   return (
-    <SettingsSection title="Versions">
+    <SettingsSection
+      title="Versions"
+      actions={
+        // Names the score column: it ends where the scores do, left of the buttons' slot.
+        scored && <span className="mr-[124px] text-sm text-fg-muted">Final test</span>
+      }
+    >
       {list ? (
         <ul aria-label="Versions" className="m-0 flex list-none flex-col p-0">
           {[...list].reverse().map((version) => (
@@ -111,10 +119,10 @@ function VersionRow({
   const score = versionScore(version);
   const status = statusOf(version);
   // The label says the version's standing; its own test result leads the line under it unless
-  // the label already is that result.
-  const evaluation = EVALUATION_LABELS[version.evaluation];
+  // the label already is that result, and an experimental one says why it is.
+  const note = evaluationNote(version);
   const meta = [
-    status === evaluation ? null : evaluation,
+    status === note ? null : note,
     versionOrigin(version),
     versionDate(version.createdAt),
   ]

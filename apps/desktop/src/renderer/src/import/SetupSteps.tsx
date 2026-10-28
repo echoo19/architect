@@ -150,10 +150,16 @@ export function PermissionsStep({
           <SettingsRow
             key={resource.name}
             label={`${resource.name}/`}
-            meta={resource.access === 'read' ? 'Asks to read it' : 'Asks to read and change it'}
+            meta={
+              resource.access === 'read'
+                ? 'The package asks to read it'
+                : 'The package asks to read and change it'
+            }
           >
             {bindings[resource.name] === undefined && !resource.bundled ? (
-              <SettingsValue>No folder chosen</SettingsValue>
+              <SettingsValue>
+                {resource.required ? 'No folder chosen' : 'Optional, none chosen'}
+              </SettingsValue>
             ) : (
               <Segmented
                 aria-label={`Access to ${resource.name}/`}
