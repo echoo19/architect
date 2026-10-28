@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { harnessToFiles, hashHarness, sha256Bytes } from '@architect/harness';
 import {
   contractTerms,
+  HARNESS_FORMAT,
   HarnessSchema,
   JobContractSchema,
   type Harness,
@@ -133,7 +134,7 @@ export function harnessWith(
   overrides: Partial<z.input<typeof HarnessSchema>> = {},
 ): Harness {
   const harness = HarnessSchema.parse({
-    meta: { format: 1, name, version: 3, hash: '' },
+    meta: { format: HARNESS_FORMAT, name, version: 3, hash: '' },
     system: 'You are the service desk of Ferncliff Home Services.',
     retrieval: {},
     decoding: { maxSteps: 4 },

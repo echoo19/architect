@@ -110,7 +110,10 @@ const SMOKE_CHECKS: readonly SmokeCheck[] = [
   },
 ];
 
-/** The logical folders a contract's files live in: `data` for the job's files, `output` for new ones. */
+/**
+ * The logical folders a contract's files live in: `data` for the job's files, and `output` for
+ * files the agent creates, when the contract allows an output folder.
+ */
 export function resourcesFor(
   contract: JobContract,
   columns: Readonly<Record<string, string[]>>,
@@ -120,23 +123,26 @@ export function resourcesFor(
   const accepts = [
     ...new Set(files.map((file) => (file.kind === 'table' ? 'text/csv' : 'text/plain'))),
   ];
+  const data: PackageResource = {
+    name: 'data',
+    kind: 'folder',
+    required: files.length > 0,
+    description: `The job's own files: ${files.map((file) => file.name).join(', ') || 'none'}.`,
+    accepts: accepts.length > 0 ? accepts : ['text/plain'],
+    access: writes ? 'read_write' : 'read',
+    files: files.map((file) =>
+      columns[file.name] === undefined ? file : { ...file, columns: columns[file.name] },
+    ),
+  };
+  const output = contract.outputs.folder;
+  if (output === undefined) return [data];
   return [
-    {
-      name: 'data',
-      kind: 'folder',
-      required: files.length > 0,
-      description: `The job's own files: ${files.map((file) => file.name).join(', ') || 'none'}.`,
-      accepts: accepts.length > 0 ? accepts : ['text/plain'],
-      access: writes ? 'read_write' : 'read',
-      files: files.map((file) =>
-        columns[file.name] === undefined ? file : { ...file, columns: columns[file.name] },
-      ),
-    },
+    data,
     {
       name: 'output',
       kind: 'folder',
       required: false,
-      description: 'Where files the agent creates are saved.',
+      description: output.description ?? 'Where files the agent creates are saved.',
       accepts: ['text/plain', 'text/csv', 'text/markdown'],
       access: 'read_write',
       files: [],

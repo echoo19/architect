@@ -4,14 +4,12 @@ import { dirname, join, resolve } from 'node:path';
 import { isLoopbackUrl } from '@architect/adapters';
 import {
   extractZip,
-  hashHarness,
   LEGACY_MANIFEST_FILE,
   listPackageFiles,
   MAX_HARNESS_BYTES,
   PACKAGE_LIMITS,
   PACKAGE_MANIFEST_FILE,
   readGraduate,
-  readHarness,
   readPackage,
   readZipEntries,
   writePackage,
@@ -37,6 +35,7 @@ import {
 import { isoNow } from '../loop/time';
 import { grantsFor, storedFolder } from './bindings';
 import { buildPackage, HARNESS_DIR } from './build';
+import { readPackageHarness } from './harness';
 import { contractFromManifest, legacyFacts } from './legacy';
 import type { GraduateLibrary } from './library';
 import { exists, nextVersion, registerVersion } from './versions';
@@ -313,17 +312,12 @@ export async function importPackage(
     const staged = await stage(ctx, path, staging);
     const { manifest } = staged;
     assertHarnessSize(staged.files, `${HARNESS_DIR}/`);
-    let harnessHash: string;
     try {
-      harnessHash = hashHarness(await readHarness(join(staged.dir, HARNESS_DIR)));
+      await readPackageHarness(staged.dir, manifest);
     } catch (error) {
+      if (error instanceof PackageError) throw error;
       throw new PackageError('invalid_harness', [
         `Its harness doesn't read: ${error instanceof Error ? error.message : String(error)}`,
-      ]);
-    }
-    if (harnessHash !== manifest.harness.hash) {
-      throw new PackageError('invalid_harness', [
-        "Its harness isn't the one its manifest names: the hashes differ.",
       ]);
     }
 

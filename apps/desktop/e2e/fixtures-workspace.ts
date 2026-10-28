@@ -10,6 +10,7 @@ import {
   type OllamaStatus,
   type PullProgress,
   type ReportCard,
+  type StepView,
   type WorkspaceChat,
   type WorkspaceEvent,
   type WorkspaceMessage,
@@ -73,10 +74,20 @@ function step(
   detail: string,
   meta?: string,
   status: AgentStep['status'] = 'done',
+  view?: StepView,
 ): AgentStep {
-  return { id, kind: 'tool', name, detail, status, ...(meta === undefined ? {} : { meta }) };
+  return {
+    id,
+    kind: 'tool',
+    name,
+    detail,
+    status,
+    ...(meta === undefined ? {} : { meta }),
+    ...(view === undefined ? {} : { view }),
+  };
 }
 
+/** Rows the agent asks to add to a table, waiting for an answer. */
 const approval = (
   changeId: string,
   file: string,
@@ -93,33 +104,71 @@ const approval = (
   status: 'pending',
 });
 
+/** The code the agent ran over the invoices to find September's open balances. */
+const SEPTEMBER_CODE = [
+  "const invoices = csv.parse(files.read('data/invoices.csv'));",
+  'invoices',
+  "  .filter((row) => row.due_date.startsWith('2026-09') && row.paid_cents !== row.total_cents)",
+  '  .map((row) => ({',
+  '    invoice: row.invoice_id,',
+  '    customer: row.customer,',
+  '    open_cents: Number(row.total_cents) - Number(row.paid_cents),',
+  '  }))',
+].join('\n');
+
+const SEPTEMBER_OUTPUT =
+  '=> [{"invoice":"INV-3018","customer":"Okafor","open_cents":118000},' +
+  '{"invoice":"INV-3024","customer":"Brennan","open_cents":96500},' +
+  '{"invoice":"INV-3051","customer":"Achebe","open_cents":77000}]';
+
+/** A visit note the agent drafted for the technician: a new file in its output folder. */
+const VISIT_NOTE = [
+  '--- /dev/null',
+  '+++ b/output/visit-notes/B-3051.md',
+  '@@ -0,0 +1,6 @@',
+  '+# B-3051: panel repair, 8 Cedar Ave',
+  '+Thursday 10:00, Marcus O.',
+  '+',
+  '+- The main breaker trips under load.',
+  '+- Bring a 200 A panel kit; the 2019 permit is on file.',
+  '+- Call ahead: the side gate is locked.',
+  '',
+].join('\n');
+
 export const MESSAGES: WorkspaceMessage[] = [
   message('msg_close_1', CHATS.closeout.id, 'user', {
     text: 'Who still owes us money from September?',
   }),
   message('msg_close_2', CHATS.closeout.id, 'agent', {
     text: 'Three customers, $2,915.00 in total. The oldest is the Okafor invoice from Sep 3.',
-    steps: [step('s1', 'read_table', 'invoices.csv', '412 rows')],
+    steps: [
+      step('s1', 'read', 'data/policy.md', '66 lines'),
+      step('s2', 'run', 'data/invoices.csv', SEPTEMBER_OUTPUT.slice(0, 59) + '…', 'done', {
+        kind: 'code',
+        code: SEPTEMBER_CODE,
+        output: SEPTEMBER_OUTPUT,
+      }),
+    ],
     workedMs: 96_000,
   }),
   message('msg_book_1', CHATS.approvals.id, 'user', {
-    text: 'Invoice both jobs Dana finished and book the Cedar Ave panel repair for Thursday morning.',
+    text: 'Invoice both jobs Dana finished, book the Cedar Ave panel repair for Thursday morning, and leave Marcus a note for the visit.',
   }),
   message('msg_book_2', CHATS.approvals.id, 'agent', {
     status: 'streaming',
-    text: 'Both invoices are ready, and Marcus O. has the earliest slot on Thursday, at 10:00. I need your go-ahead before I save anything.',
+    text: 'Both invoices are ready, Marcus O. has the earliest slot on Thursday at 10:00, and his visit note is drafted. I need your go-ahead before I save anything.',
     steps: [
-      step('s1', 'read_table', 'jobs.csv', '2 rows'),
+      step('s1', 'grep', '/J-447[13]/ in data/jobs.csv', '2 matches'),
       step('s2', 'invoice_total', 'job J-4471', '$524.03'),
       step('s3', 'invoice_total', 'job J-4473', '$1,116.52'),
       step('s4', 'travel_minutes', 'zone C to zone C', '0 min'),
-      step('s5', 'read_table', 'bookings.csv', '1 row'),
+      step('s5', 'grep', '/2026-10-29/ in data/bookings.csv', '1 match'),
     ],
     blocks: [
       approval(
         'chg_invoices',
-        'invoices.csv',
-        'Append 2 rows to invoices.csv',
+        'data/invoices.csv',
+        'Add 2 rows to data/invoices.csv',
         ['invoice', 'job', 'customer', 'total'],
         [
           ['INV-4471', 'J-4471', 'Okafor', '$524.03'],
@@ -128,11 +177,20 @@ export const MESSAGES: WorkspaceMessage[] = [
       ),
       approval(
         'chg_booking',
-        'bookings.csv',
-        'Append 1 row to bookings.csv',
+        'data/bookings.csv',
+        'Add 1 row to data/bookings.csv',
         ['booking', 'request', 'technician', 'start'],
         [['B-3051', 'Panel repair, 8 Cedar Ave', 'Marcus O.', 'Thu 10:00']],
       ),
+      {
+        kind: 'approval',
+        changeId: 'chg_note',
+        op: 'write',
+        file: 'output/visit-notes/B-3051.md',
+        summary: 'Create output/visit-notes/B-3051.md (6 lines)',
+        patch: VISIT_NOTE,
+        status: 'pending',
+      },
     ],
   }),
   message('msg_refund_1', CHATS.refund.id, 'user', {
@@ -149,13 +207,38 @@ export const MESSAGES: WorkspaceMessage[] = [
   }),
 ];
 
+/** The last lines of jobs.csv, where today's finished jobs are, as the agent read them. */
+const TODAYS_JOBS: StepView = {
+  kind: 'table',
+  columns: ['job_id', 'customer', 'technician', 'finished_on', 'labor_minutes', 'after_hours'],
+  rows: [
+    ['J-4469', 'Brennan', 'T-02', '2026-10-27', '95', 'no'],
+    ['J-4470', 'Achebe', 'T-09', '2026-10-27', '60', 'no'],
+    ['J-4471', 'Okafor', 'T-04', '2026-10-27', '120', 'no'],
+    ['J-4472', 'Varga', 'T-11', '2026-10-27', '45', 'no'],
+    ['J-4473', 'Lindqvist', 'T-04', '2026-10-27', '240', 'yes'],
+  ],
+  total: 1505,
+};
+
+/** Dana's row of technicians.csv, which sets her labor rate. */
+const DANA: Extract<StepView, { kind: 'code' }> = {
+  kind: 'code',
+  code: [
+    "const technicians = csv.parse(files.read('data/technicians.csv'));",
+    "technicians.find((tech) => tech.technician_id === 'T-04')",
+  ].join('\n'),
+  output: '=> {"technician_id":"T-04","name":"Dana R.","tier":"lead","zone":"B"}',
+};
+
 /** The reply to "Price the two jobs Dana finished today", as it streams in. */
 export function pricingReply(stage: 'started' | 'working' | 'writing' | 'done'): WorkspaceMessage {
   const steps = [
-    step('p1', 'read_table', 'jobs.csv', '2 rows'),
-    { ...step('p2', 'load_skill', 'price-a-job'), kind: 'skill' as const },
-    step('p3', 'invoice_total', 'job J-4471', '$524.03'),
-    step('p4', 'invoice_total', 'job J-4473', '$1,116.52'),
+    step('p1', 'read', 'data/jobs.csv', '6 lines', 'done', TODAYS_JOBS),
+    step('p2', 'run', 'data/technicians.csv', DANA.output.slice(0, 59) + '…', 'done', DANA),
+    { ...step('p3', 'price-a-job', 'price-a-job', '18 lines'), kind: 'skill' as const },
+    step('p4', 'invoice_total', 'job J-4471', '$524.03'),
+    step('p5', 'invoice_total', 'job J-4473', '$1,116.52'),
   ];
   const text =
     'Job J-4471 comes to **$524.03** and job J-4473 to **$1,116.52**.\n\n' +
@@ -167,12 +250,17 @@ export function pricingReply(stage: 'started' | 'working' | 'writing' | 'done'):
     case 'started':
       return message('msg_reply', CHATS.fresh.id, 'agent', {
         ...base,
-        steps: [{ ...steps[0]!, status: 'running', meta: undefined }],
+        steps: [{ ...steps[0]!, status: 'running', meta: undefined, view: undefined }],
       });
     case 'working':
       return message('msg_reply', CHATS.fresh.id, 'agent', {
         ...base,
-        steps: [steps[0]!, steps[1]!, { ...steps[2]!, status: 'running', meta: undefined }],
+        steps: [
+          steps[0]!,
+          steps[1]!,
+          steps[2]!,
+          { ...steps[3]!, status: 'running', meta: undefined },
+        ],
       });
     case 'writing':
       return message('msg_reply', CHATS.fresh.id, 'agent', {

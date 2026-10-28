@@ -14,6 +14,7 @@ import { cleanTempDirsAfterEach, sampleHarness, tempDir } from './fixtures';
 cleanTempDirsAfterEach();
 
 const BYTE_ORDER_MARK = String.fromCharCode(0xfeff);
+const SECRET_SKILL = '---\nname: secret\ndescription: s\n---\nsecret\n';
 
 describe('harness object and files', () => {
   it('survives a round trip through the file map', () => {
@@ -31,13 +32,13 @@ describe('harness object and files', () => {
   it('writes the documented file names with snake_case keys', () => {
     const files = harnessToFiles(sampleHarness());
     expect(Object.keys(files)).toEqual([
+      'AGENTS.md',
       'decoding.yaml',
       'examples/after-hours-plan-member.json',
       'guardrails.yaml',
       'retrieval.yaml',
-      'skills/overdue-balances.md',
-      'skills/price-a-job.md',
-      'system.md',
+      'skills/overdue-balances/SKILL.md',
+      'skills/price-a-job/SKILL.md',
       'tools/invoice_total.js',
       'tools/invoice_total.json',
     ]);
@@ -49,8 +50,8 @@ describe('harness object and files', () => {
     expect(files['retrieval.yaml']).toContain('- when_any: [invoice, bill, price the job]');
     expect(files['retrieval.yaml']).toContain('load_skills: [price-a-job]');
     expect(files['guardrails.yaml']).toContain('task_type: scheduling');
-    expect(files['skills/price-a-job.md']).toMatch(
-      /^---\nname: Price a completed job\nsummary: .+\ntask_types: \[invoice, quote\]\n---\n1\. Read the job/,
+    expect(files['skills/price-a-job/SKILL.md']).toMatch(
+      /^---\nname: price-a-job\ndescription: .+\n---\n1\. Read the job/,
     );
     expect(files['examples/after-hours-plan-member.json']).toContain('"tool_call_id": "call_1"');
     expect(files['examples/after-hours-plan-member.json']).toContain('"tool_calls"');
@@ -58,12 +59,12 @@ describe('harness object and files', () => {
 
   it('leaves out optional files that hold defaults', () => {
     const blank = blankHarness('Desk', 'Answers office requests.');
-    expect(Object.keys(harnessToFiles(blank))).toEqual(['system.md']);
+    expect(Object.keys(harnessToFiles(blank))).toEqual(['AGENTS.md']);
     expect(Object.keys(harnessToFiles(blank, { includeDefaults: true }))).toEqual([
+      'AGENTS.md',
       'decoding.yaml',
       'guardrails.yaml',
       'retrieval.yaml',
-      'system.md',
     ]);
   });
 
@@ -82,8 +83,7 @@ describe('harness object and files', () => {
       skills: [
         {
           ...first,
-          name: 'Colons: "quotes" and # hashes',
-          summary: '- starts with a dash, ends with a space ',
+          description: '- starts with a dash: "quotes" and # hashes, ends with a space ',
           body: '---\nnot front matter\n---\n\ntrailing blank lines\n\n\n',
         },
         ...harness.skills.slice(1),
@@ -101,11 +101,11 @@ describe('harness object and files', () => {
     expect(filesToHarness(harnessToFiles(tricky), tricky.meta)).toEqual(tricky);
   });
 
-  it('sorts skills, tools and examples by slug', () => {
+  it('sorts skills, tools and examples by name', () => {
     const harness = sampleHarness();
     const shuffled = { ...harness, skills: [...harness.skills].reverse() };
     const back = filesToHarness(harnessToFiles(shuffled), harness.meta);
-    expect(back.skills.map((skill) => skill.slug)).toEqual(['overdue-balances', 'price-a-job']);
+    expect(back.skills.map((skill) => skill.name)).toEqual(['overdue-balances', 'price-a-job']);
   });
 
   it('reads CRLF files and a byte-order mark as plain LF text', () => {
@@ -122,7 +122,7 @@ describe('harness object and files', () => {
   it('applies defaults to an empty optional file and to missing keys', () => {
     const blank = blankHarness('Desk', 'About the desk.');
     const files = {
-      'system.md': blank.system,
+      'AGENTS.md': blank.system,
       'decoding.yaml': '',
       'retrieval.yaml': 'max_examples: 0\n',
     };
@@ -133,7 +133,7 @@ describe('harness object and files', () => {
 
   it('drops a seed left over from an older decoding.yaml', () => {
     const blank = blankHarness('Desk', 'About the desk.');
-    const files = { 'system.md': blank.system, 'decoding.yaml': 'temperature: 0.5\nseed: 7\n' };
+    const files = { 'AGENTS.md': blank.system, 'decoding.yaml': 'temperature: 0.5\nseed: 7\n' };
     const harness = filesToHarness(files, blank.meta);
     expect(harness.decoding.temperature).toBe(0.5);
     expect(harness.decoding).not.toHaveProperty('seed');
@@ -143,7 +143,7 @@ describe('harness object and files', () => {
     const blank = blankHarness('Desk', 'About the desk.');
     try {
       filesToHarness(
-        { 'system.md': blank.system, 'decoding.yaml': 'top_p: 4\n', 'retrieval.yaml': '[' },
+        { 'AGENTS.md': blank.system, 'decoding.yaml': 'top_p: 4\n', 'retrieval.yaml': '[' },
         blank.meta,
       );
       expect.unreachable();
@@ -167,7 +167,7 @@ describe('harness folder', () => {
     const harness = sampleHarness();
     await writeHarness(dir, harness);
     expect(await readFile(join(dir, 'harness.yaml'), 'utf8')).toBe(
-      `format: 1\nname: Service desk\nversion: 3\nparent: 2\nhash: ${harness.meta.hash}\n`,
+      `format: 2\nname: Service desk\nversion: 3\nparent: 2\nhash: ${harness.meta.hash}\n`,
     );
   });
 
@@ -176,7 +176,12 @@ describe('harness folder', () => {
     const harness = sampleHarness();
     const crlf = { ...harness, system: 'Line one\r\nLine two\r\n' };
     await writeHarness(dir, crlf);
-    for (const path of ['system.md', 'harness.yaml', 'retrieval.yaml', 'skills/price-a-job.md']) {
+    for (const path of [
+      'AGENTS.md',
+      'harness.yaml',
+      'retrieval.yaml',
+      'skills/price-a-job/SKILL.md',
+    ]) {
       expect(await readFile(join(dir, path), 'utf8'), path).not.toContain('\r');
     }
     expect((await readHarness(dir)).system).toBe('Line one\nLine two\n');
@@ -185,7 +190,7 @@ describe('harness folder', () => {
   it('writes a blank harness as two files', async () => {
     const dir = await tempDir();
     await writeHarness(dir, blankHarness('Desk', 'Answers office requests.'));
-    expect((await readdir(dir)).sort()).toEqual(['harness.yaml', 'system.md']);
+    expect((await readdir(dir)).sort()).toEqual(['AGENTS.md', 'harness.yaml']);
   });
 
   it('removes files the harness no longer has and keeps files that are not part of a harness', async () => {
@@ -196,9 +201,7 @@ describe('harness folder', () => {
     const smaller = { ...sampleHarness(), skills: [], tools: [], examples: [] };
     await writeHarness(dir, { ...smaller, retrieval: { ...smaller.retrieval, rules: [] } });
 
-    expect(
-      await stat(join(dir, 'skills', 'price-a-job.md')).catch(() => undefined),
-    ).toBeUndefined();
+    expect(await stat(join(dir, 'skills', 'price-a-job')).catch(() => undefined)).toBeUndefined();
     expect(
       await stat(join(dir, 'tools', 'invoice_total.js')).catch(() => undefined),
     ).toBeUndefined();
@@ -226,7 +229,7 @@ describe('harness folder', () => {
             parameters: { type: 'object' as const },
             code: '',
           }),
-          name: 'read_table',
+          name: 'grep',
         },
       ],
     };
@@ -236,12 +239,12 @@ describe('harness folder', () => {
     expect(await readdir(dir)).toEqual([]);
   });
 
-  it('refuses a skill whose slug would climb out of the folder', async () => {
+  it('refuses a skill whose name would climb out of the folder', async () => {
     const dir = await tempDir();
     const harness = sampleHarness();
     const first = harness.skills[0];
     if (!first) throw new Error('fixture has skills');
-    const bad = { ...harness, skills: [{ ...first, slug: '../../escape' }] };
+    const bad = { ...harness, skills: [{ ...first, name: '../../escape' }] };
     await expect(writeHarness(join(dir, 'out'), bad)).rejects.toBeInstanceOf(
       HarnessValidationError,
     );
@@ -252,7 +255,7 @@ describe('harness folder', () => {
     const dir = await tempDir();
     await expect(readHarness(join(dir, 'nope'))).rejects.toThrow(/does not exist/);
     await mkdir(join(dir, 'empty'));
-    await writeFile(join(dir, 'empty', 'system.md'), 'Hello.\n');
+    await writeFile(join(dir, 'empty', 'AGENTS.md'), 'Hello.\n');
     await expect(readHarness(join(dir, 'empty'))).rejects.toThrow(/harness\.yaml: missing/);
   });
 
@@ -262,9 +265,9 @@ describe('harness folder', () => {
     await writeHarness(dir, harness);
     for (const noise of [
       'skills/.DS_Store',
+      'skills/price-a-job/.SKILL.md.swp',
       'tools/Thumbs.db',
       'examples/desktop.ini',
-      'skills/.price-a-job.md.swp',
     ]) {
       await writeFile(join(dir, noise), 'noise');
     }
@@ -275,8 +278,19 @@ describe('harness folder', () => {
     const dir = await tempDir();
     const outside = await tempDir();
     await writeHarness(dir, blankHarness('Desk', 'About the desk.'));
-    await writeFile(join(outside, 'secret.md'), '---\nname: s\nsummary: s\n---\nsecret\n');
+    await mkdir(join(outside, 'secret'));
+    await writeFile(join(outside, 'secret', 'SKILL.md'), SECRET_SKILL);
     await symlink(outside, join(dir, 'skills'), 'junction');
+    expect((await readHarness(dir)).skills).toEqual([]);
+  });
+
+  it("ignores a skill's folder that is a link to somewhere else", async () => {
+    const dir = await tempDir();
+    const outside = await tempDir();
+    await writeHarness(dir, blankHarness('Desk', 'About the desk.'));
+    await writeFile(join(outside, 'SKILL.md'), SECRET_SKILL);
+    await mkdir(join(dir, 'skills'));
+    await symlink(outside, join(dir, 'skills', 'secret'), 'junction');
     expect((await readHarness(dir)).skills).toEqual([]);
   });
 
@@ -284,10 +298,10 @@ describe('harness folder', () => {
     const dir = await tempDir();
     const outside = await tempDir();
     await writeHarness(dir, blankHarness('Desk', 'About the desk.'));
-    await writeFile(join(outside, 'secret.md'), '---\nname: s\nsummary: s\n---\nsecret\n');
-    await mkdir(join(dir, 'skills'));
+    await writeFile(join(outside, 'SKILL.md'), SECRET_SKILL);
+    await mkdir(join(dir, 'skills', 'secret'), { recursive: true });
     try {
-      await symlink(join(outside, 'secret.md'), join(dir, 'skills', 'secret.md'));
+      await symlink(join(outside, 'SKILL.md'), join(dir, 'skills', 'secret', 'SKILL.md'));
     } catch {
       context.skip('this system does not allow creating symbolic links');
     }

@@ -15,8 +15,8 @@ import { decideReturn, daysSinceDelivery, denialReason, hasPerks } from '../refe
 import type { ReturnFacts } from '../reference/refunds';
 import { solveReturn } from '../reference/solver';
 import type { ReturnRequest } from '../reference/solver';
-import { DeskTools } from '../reference/tools';
-import type { JobData } from '../reference/tools';
+import { AgentTools } from '../reference/tools';
+import type { JobFiles } from '../reference/tools';
 import type { ShopIndex } from '../shop/records';
 import type { Condition, OrderLine, ReturnAmounts } from '../shop/types';
 import { TODAY, withAnswerLine } from './prompts';
@@ -51,7 +51,7 @@ interface RefundCase {
 export function buildRefundTasks(
   random: Random,
   index: ShopIndex,
-  data: JobData,
+  data: JobFiles,
   excludedOrders: ReadonlySet<string>,
 ): Task[] {
   const candidates = index.shop.lines
@@ -133,7 +133,7 @@ export function buildRefundTasks(
 function candidateFor(
   random: Random,
   index: ShopIndex,
-  data: JobData,
+  data: JobFiles,
   line: OrderLine,
   condition: Condition,
 ): Candidate<RefundCase> {
@@ -147,7 +147,7 @@ function candidateFor(
   const amounts = decideReturn(facts);
   const request = { order_id: line.order_id, sku: line.sku, qty, condition };
   const solved = solveReturn(
-    new DeskTools(data),
+    new AgentTools(data),
     { request_id: 'RQ-0000', ...request },
     BUSINESS_DATE,
   );

@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promis
 import { DatabaseSync } from 'node:sqlite';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { writeGraduate } from '@architect/harness';
+import { hashFiles, writeGraduate } from '@architect/harness';
 import type { GraduateManifest, Job, LineageEntry } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { activeVersion } from '../src/graduates/open';
@@ -46,6 +46,34 @@ const LINEAGE: LineageEntry = {
   at: AT,
 };
 
+/** A harness as format 1 wrote it, `harness.yaml` aside: system.md, and a skill in one file. */
+const FORMAT_1_HARNESS: Record<string, string> = {
+  'system.md': 'You are the service desk of Ferncliff Home Services.\n',
+  'skills/price-a-job.md':
+    '---\nname: Price a completed job\nsummary: Turn a finished visit into invoice lines.\ntask_types: [invoice]\n---\n1. Read the visit.\n2. Add the trip fee.\n',
+};
+const FORMAT_1_HASH = hashFiles(FORMAT_1_HARNESS);
+
+/**
+ * Turns a graduate folder's harness into the one format 1 wrote, and points graduate.yaml at it:
+ * a graduate exactly as the app saved one before harness format 2.
+ */
+async function asFormat1(folder: string, written: string): Promise<void> {
+  for (const file of ['AGENTS.md', 'decoding.yaml']) await rm(join(folder, file), { force: true });
+  await rm(join(folder, 'skills'), { recursive: true, force: true });
+  await mkdir(join(folder, 'skills'), { recursive: true });
+  for (const [path, text] of Object.entries(FORMAT_1_HARNESS)) {
+    await writeFile(join(folder, ...path.split('/')), text, 'utf8');
+  }
+  await writeFile(
+    join(folder, 'harness.yaml'),
+    `format: 1\nname: Service desk\nversion: 4\nhash: ${FORMAT_1_HASH}\n`,
+    'utf8',
+  );
+  const manifest = join(folder, 'graduate.yaml');
+  await writeFile(manifest, (await readFile(manifest, 'utf8')).replace(written, FORMAT_1_HASH));
+}
+
 function manifestOf(id: string, job: Job, hash: string, version: number): GraduateManifest {
   return {
     format: 1,
@@ -55,7 +83,7 @@ function manifestOf(id: string, job: Job, hash: string, version: number): Gradua
     runId: 'run_old',
     method: 'architect',
     createdAt: AT,
-    acceptedAt: '2026-11-05T18:05:00.000Z',
+    ...(id.endsWith('_new') ? {} : { acceptedAt: '2026-11-05T18:05:00.000Z' }),
     student: {
       label: 'Glimmer',
       runtime: 'ollama',
@@ -73,8 +101,9 @@ function manifestOf(id: string, job: Job, hash: string, version: number): Gradua
 }
 
 /**
- * A data folder as the app left it before versions: format 1 graduate folders, the run's copy of
- * the job and its data, and a database at migration 8 with the graduates, a chat and replies.
+ * A data folder as the app left it before versions: graduate folders in format 1, harness
+ * included (one whose id ends in `_new` was never accepted), the run's copy of the job and its
+ * data, and a database at migration 8 with the graduates, a chat and replies.
  */
 async function before(ids: readonly string[]): Promise<{ dataDir: string; job: Job }> {
   const dataDir = await mkdtemp(join(tmpdir(), 'architect-before-versions-'));
@@ -98,13 +127,14 @@ async function before(ids: readonly string[]): Promise<{ dataDir: string; job: J
   ).run(job.id, job.name, `jobs/${job.id}`, AT, AT);
   for (const id of ids) {
     const harness = fixtureHarness(job.name);
-    const manifest = manifestOf(id, job, harness.meta.hash, harness.meta.version);
+    const manifest = manifestOf(id, job, FORMAT_1_HASH, harness.meta.version);
     await writeGraduate(paths.graduateDir(id), {
       harness,
-      manifest,
+      manifest: { ...manifest, harness: { ...manifest.harness, hash: harness.meta.hash } },
       report: reportFor(job),
       lineage: [LINEAGE],
     });
+    await asFormat1(paths.graduateDir(id), harness.meta.hash);
     db.prepare(
       'INSERT INTO graduates (id, run_id, name, path, manifest, settings, created_at) VALUES (?, NULL, ?, ?, ?, ?, ?)',
     ).run(id, job.name, `graduates/${id}`, JSON.stringify(manifest), '{"writeMode":"allow"}', AT);
@@ -158,8 +188,8 @@ describe('graduates from before versions', () => {
       });
       expect(made.store.installations.get('grd_old')).toMatchObject({
         model: { runtime: 'ollama', baseUrl: 'http://127.0.0.1:11500', model: 'muse-glimmer:30b' },
-        bindings: { data: 'workspace/grd_old', output: 'outputs/grd_old' },
-        grants: { writes: 'allow', resources: { data: 'read_write', output: 'read_write' } },
+        bindings: { data: 'workspace/grd_old' },
+        grants: { writes: 'allow', resources: { data: 'read_write' } },
       });
       expect(made.store.contracts.list(job.id).map(({ version }) => version)).toEqual([1]);
       expect((await readdir(made.paths.workspaceDir('grd_old'))).sort()).toEqual(

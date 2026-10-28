@@ -10,7 +10,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import { CheckerError, createChecker, type Checker } from '../src/checker/checker';
-import { openTableStore, type TableStore } from '../src/data/table-store';
+import { openAgentFiles, type AgentFiles } from '../src/files/agent-files';
 import { createSandbox } from '../src/sandbox/sandbox';
 import type { Sandbox } from '../src/sandbox/types';
 import { makeJob, makeJobDir, SAMPLE_FILES, type TempJob } from './support/fixtures';
@@ -70,8 +70,8 @@ afterAll(async () => {
   job.remove();
 });
 
-async function scratch(): Promise<TableStore> {
-  return openTableStore({ dataDir: job.dataDir, files: SAMPLE_FILES, mode: 'scratch' });
+async function scratch(): Promise<AgentFiles> {
+  return openAgentFiles({ dataDir: job.dataDir, files: SAMPLE_FILES, mode: 'scratch' });
 }
 
 async function check(expected: z.input<typeof ExpectedSchema>, attempt: CheckOutcome) {
@@ -245,10 +245,14 @@ describe('end-state checks', () => {
   const moduleJob = makeJob({ checker: { kind: 'module', path: 'checker.js' } });
   const endState = (validator: string, params: Record<string, JsonValue> = {}) =>
     task({ kind: 'end_state', validator, params });
-  const appended = async (row: Record<string, string>) => {
-    const store = await scratch();
-    store.append('invoices.csv', [row]);
-    return store;
+  /** The sample data with one invoice added, as a change through the agent's files. */
+  const appended = async (invoice: string, total: string) => {
+    const files = await scratch();
+    const text = files.read('data/invoices.csv');
+    await files.apply(
+      files.plan('append', 'data/invoices.csv', `${text}${invoice},C-1,${total},,\n`),
+    );
+    return files;
   };
   let checker: Checker;
   beforeAll(() => {
@@ -256,10 +260,10 @@ describe('end-state checks', () => {
   });
 
   it('runs the job checker module on the end state and the original data', async () => {
-    const store = await appended({ invoice_id: 'INV-4', total_cents: '2500' });
+    const store = await appended('INV-4', '2500');
     const attempt = outcome({
       answer: { invoice_id: 'INV-4' },
-      toolCalls: [{ name: 'append_rows', arguments: { file: 'invoices.csv' } }],
+      toolCalls: [{ name: 'append', arguments: { path: 'data/invoices.csv' } }],
     });
     expect(
       await checker.check(endState('invoice_created', { total_cents: 2500 }), attempt, store),
@@ -268,7 +272,7 @@ describe('end-state checks', () => {
       reason: 'The invoice is right.',
       details: { invoice_id: 'INV-4', answer: { invoice_id: 'INV-4' }, calls: 1 },
     });
-    const wrong = await appended({ invoice_id: 'INV-4', total_cents: '2400' });
+    const wrong = await appended('INV-4', '2400');
     expect(
       await checker.check(endState('invoice_created', { total_cents: 2500 }), outcome(), wrong),
     ).toEqual({
@@ -287,7 +291,7 @@ describe('end-state checks', () => {
   });
 
   it('gives the same result for the same inputs, every time', async () => {
-    const store = await appended({ invoice_id: 'INV-4', total_cents: '2400' });
+    const store = await appended('INV-4', '2400');
     const results = await Promise.all(
       [1, 2, 3].map(() =>
         checker.check(endState('invoice_created', { total_cents: 2500 }), outcome(), store),
@@ -331,7 +335,7 @@ describe('end-state checks', () => {
     const copy = makeJobDir();
     writeFileSync(join(copy.dir, 'checker.js'), CHECKER_SOURCE);
     const once = createChecker({ job: moduleJob, jobDir: copy.dir, sandbox });
-    const store = await openTableStore({
+    const store = await openAgentFiles({
       dataDir: copy.dataDir,
       files: SAMPLE_FILES,
       mode: 'scratch',

@@ -2,24 +2,16 @@ import Papa from 'papaparse';
 import { DataError } from './errors';
 import type { Row } from './types';
 
-/** How a CSV file was written, so saving it keeps its line endings and byte-order mark. */
-export interface CsvFormat {
-  linebreak: '\n' | '\r\n';
-  bom: boolean;
-}
-
 export interface ParsedCsv {
   columns: string[];
   rows: Row[];
-  format: CsvFormat;
 }
 
 const BOM = '﻿';
 
 /** Parses a CSV with a header row. Every cell stays text; an empty cell becomes null. */
 export function parseCsv(name: string, content: string): ParsedCsv {
-  const bom = content.startsWith(BOM);
-  const result = Papa.parse<string[]>(bom ? content.slice(1) : content, {
+  const result = Papa.parse<string[]>(content.startsWith(BOM) ? content.slice(1) : content, {
     header: false,
     delimiter: ',',
     skipEmptyLines: true,
@@ -49,18 +41,5 @@ export function parseCsv(name: string, content: string): ParsedCsv {
       ),
     );
   });
-  const linebreak = result.meta.linebreak === '\r\n' ? '\r\n' : '\n';
-  return { columns: header, rows, format: { linebreak, bom } };
-}
-
-export function serializeCsv(
-  columns: readonly string[],
-  rows: readonly Row[],
-  format: CsvFormat,
-): string {
-  const body = Papa.unparse(
-    { fields: [...columns], data: rows.map((row) => columns.map((column) => row[column] ?? '')) },
-    { newline: format.linebreak },
-  );
-  return `${format.bom ? BOM : ''}${body}${format.linebreak}`;
+  return { columns: header, rows };
 }

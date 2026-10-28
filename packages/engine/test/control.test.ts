@@ -14,7 +14,7 @@ import { defaultJob, defaultTasks, task } from './fakes/job';
 import { createWorld, openEngine, type Engine, type World } from './fakes/world';
 
 const MINUTE = 60_000;
-const REJECTION = 'system.md: cannot be deleted. Every harness needs a system prompt.';
+const REJECTION = 'AGENTS.md: cannot be deleted. Every harness needs its instructions.';
 let world: World;
 let engine: Engine;
 
@@ -22,7 +22,7 @@ let engine: Engine;
 function dropThePrompt() {
   return {
     ...hypothesis('Drop the prompt', ''),
-    edits: [{ op: 'delete' as const, path: 'system.md', content: '' }],
+    edits: [{ op: 'delete' as const, path: 'AGENTS.md', content: '' }],
   };
 }
 
@@ -488,7 +488,7 @@ describe('authoring failures', () => {
     const withTool = (code: string) => ({
       ...hypothesis('Add a pricing tool', 'Service desk.\nfix:invoice'),
       edits: [
-        { op: 'write' as const, path: 'system.md', content: 'Service desk.\nfix:invoice' },
+        { op: 'write' as const, path: 'AGENTS.md', content: 'Service desk.\nfix:invoice' },
         { op: 'write' as const, path: 'tools/price_job.json', content: spec },
         { op: 'write' as const, path: 'tools/price_job.js', content: code },
       ],
@@ -527,14 +527,14 @@ describe('authoring failures', () => {
       round: {
         status: 'failed',
         title: 'Drop the prompt',
-        files: ['system.md'],
+        files: ['AGENTS.md'],
         error: REJECTION,
       },
     });
     expect(engine.store.rounds.get(run.id, 1)?.reply?.fix).toBe(1);
     const second = world.mentor.requests[2]?.messages[0]?.content ?? '';
     expect(second).toContain(
-      `- Round 1, rejected before dev saw it: Drop the prompt. Files: system.md. Why: ${REJECTION}`,
+      `- Round 1, rejected before dev saw it: Drop the prompt. Files: AGENTS.md. Why: ${REJECTION}`,
     );
     expect(second).not.toContain('None yet.');
     expect(engine.store.rounds.get(run.id, 2)?.round.decision).toBe('kept');

@@ -1,46 +1,52 @@
-import { AdapterError, type TraceStep } from '@architect/shared';
-import { afterEach, describe, expect, it } from 'vitest';
+import { AdapterError, type Harness, type TraceStep } from '@architect/shared';
+import { skillFiles } from '@architect/harness';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { runAgent, type RunAgentOptions } from '../src/agent/loop';
-import { openTableStore } from '../src/data/table-store';
+import { openAgentFiles, type AgentFiles } from '../src/files/agent-files';
+import { createSandbox } from '../src/sandbox/sandbox';
 import type { Sandbox } from '../src/sandbox/types';
+import { TOOL_RUNTIME } from '../src/tools/specs';
 import { makeHarness, makeJob, makeJobDir, SAMPLE_FILES, type TempJob } from './support/fixtures';
 import { ScriptedStudent, type ScriptedTurn } from './support/scripted-student';
 
 let job: TempJob | undefined;
 afterEach(() => job?.remove());
 
-const noSandbox: Sandbox = {
-  runTool: () => Promise.reject(new Error('not expected')),
-  runValidator: () => Promise.reject(new Error('not expected')),
-  checkTool: () => Promise.reject(new Error('not expected')),
-  dispose: async () => undefined,
-};
+let sandbox: Sandbox;
+beforeAll(() => {
+  sandbox = createSandbox();
+});
+afterAll(() => sandbox.dispose());
 
 async function run(
   script: ConstructorParameters<typeof ScriptedStudent>[0],
   overrides: Partial<RunAgentOptions> = {},
 ) {
   job = makeJobDir();
-  const store = await openTableStore({
-    dataDir: job.dataDir,
-    files: SAMPLE_FILES,
-    mode: 'scratch',
-  });
+  const harness: Harness = overrides.harness ?? makeHarness();
+  const files: AgentFiles =
+    overrides.files ??
+    (await openAgentFiles({
+      dataDir: job.dataDir,
+      files: SAMPLE_FILES,
+      skills: skillFiles(harness),
+      mode: 'scratch',
+    }));
   const student = new ScriptedStudent(script);
   const steps: TraceStep[] = [];
   const trace = await runAgent({
-    harness: makeHarness(),
     job: makeJob(),
     student,
-    store,
-    sandbox: noSandbox,
+    sandbox,
     request: 'Which invoices are unpaid?',
     mode: 'task',
     seed: 42,
     onStep: (step) => steps.push(step),
     ...overrides,
+    harness,
+    files,
   });
-  return { trace, student, store, steps };
+  return { trace, student, files, steps };
 }
 
 const answer = (json: string): ScriptedTurn => ({ text: `ANSWER: ${json}` });
@@ -51,14 +57,7 @@ describe('runAgent', () => {
       {
         text: 'Let me look.',
         toolCalls: [
-          {
-            name: 'read_table',
-            arguments: {
-              file: 'invoices.csv',
-              where: [{ column: 'paid', op: '!=', value: 'true' }],
-              columns: ['invoice_id'],
-            },
-          },
+          { name: 'grep', arguments: { pattern: ',(false)?$', path: 'data/invoices.csv' } },
         ],
       },
       answer('["INV-2", "INV-3"]'),
@@ -71,11 +70,13 @@ describe('runAgent', () => {
       usage: { inputTokens: 200, outputTokens: 40 },
     });
     expect(trace.steps.map((step) => step.kind)).toEqual(['model', 'tool', 'model']);
+    const found =
+      'data/invoices.csv:3: INV-2,C-2,4550,2026-11-15,\ndata/invoices.csv:4: INV-3,C-1,990,2026-11-02,false';
     expect(trace.steps[1]).toMatchObject({
       kind: 'tool',
       callId: 'call_0_0',
-      name: 'read_table',
-      result: { rows: [['INV-2'], ['INV-3']], total: 2 },
+      name: 'grep',
+      result: found,
     });
     expect(steps).toEqual(trace.steps);
     expect(trace.messages.map((message) => message.role)).toEqual([
@@ -86,9 +87,11 @@ describe('runAgent', () => {
       'assistant',
     ]);
     const followUp = student.requests[1]?.messages.at(-1);
-    expect(followUp).toMatchObject({ role: 'tool', toolCallId: 'call_0_0', name: 'read_table' });
-    expect(JSON.parse(followUp?.role === 'tool' ? followUp.content : '{}')).toMatchObject({
-      total: 2,
+    expect(followUp).toEqual({
+      role: 'tool',
+      toolCallId: 'call_0_0',
+      name: 'grep',
+      content: found,
     });
   });
 
@@ -108,7 +111,7 @@ describe('runAgent', () => {
 
   it('passes the runner seed and the decoding settings on every call', async () => {
     const decoding = makeHarness().decoding;
-    const { student } = await run([{ toolCalls: [{ name: 'list_files' }] }, answer('1')]);
+    const { student } = await run([{ toolCalls: [{ name: 'ls' }] }, answer('1')]);
     expect(student.requests.map((request) => request.seed)).toEqual([42, 42]);
     expect(student.requests.map((request) => request.decoding)).toEqual([decoding, decoding]);
     const fixed = { ...decoding, temperature: 0.2 };
@@ -116,12 +119,81 @@ describe('runAgent', () => {
     expect(overridden.student.requests[0]).toMatchObject({ seed: 9, decoding: fixed });
   });
 
+  it('records what the attempt started from, so it can be replayed', async () => {
+    const decoding = { ...makeHarness().decoding, temperature: 0.3 };
+    const { trace, files } = await run([answer('1')], { decoding, seed: 7 });
+    expect(trace.replay).toEqual({
+      data: files.dataHashes(),
+      harnessHash: 'sha256-test',
+      toolRuntime: TOOL_RUNTIME,
+      seed: 7,
+      decoding,
+      today: '2026-11-03',
+    });
+    expect(Object.keys(trace.replay?.data ?? {})).toEqual([
+      'data/customers.csv',
+      'data/invoices.csv',
+      'data/policy.md',
+    ]);
+    expect(trace.changes).toEqual([]);
+  });
+
+  it('keeps the diff of every write with the trace', async () => {
+    const { trace } = await run([
+      {
+        toolCalls: [
+          {
+            name: 'append',
+            arguments: { path: 'data/invoices.csv', text: 'INV-4,C-3,700,2026-12-01,' },
+          },
+        ],
+      },
+      {
+        toolCalls: [
+          {
+            name: 'edit',
+            arguments: {
+              path: 'data/invoices.csv',
+              old_string: 'INV-1,C-1,12000,2026-10-01,true',
+              new_string: 'INV-1,C-1,12500,2026-10-01,true',
+            },
+          },
+        ],
+      },
+      answer('"done"'),
+    ]);
+    const writes = trace.steps.flatMap((step) =>
+      step.kind === 'tool' && step.change ? [step.change] : [],
+    );
+    expect(writes.map((change) => [change.op, change.applied])).toEqual([
+      ['append', true],
+      ['edit', true],
+    ]);
+    expect(writes[0]?.rows?.added).toEqual([['INV-4', 'C-3', '700', '2026-12-01', null]]);
+    expect(writes[1]?.patch).toContain(
+      '-INV-1,C-1,12000,2026-10-01,true\n+INV-1,C-1,12500,2026-10-01,true',
+    );
+    expect(trace.changes).toHaveLength(1);
+    expect(trace.changes?.[0]).toMatchObject({
+      path: 'data/invoices.csv',
+      rows: {
+        added: [['INV-4', 'C-3', '700', '2026-12-01', null]],
+        changed: [
+          {
+            before: ['INV-1', 'C-1', '12000', '2026-10-01', 'true'],
+            after: ['INV-1', 'C-1', '12500', '2026-10-01', 'true'],
+          },
+        ],
+      },
+    });
+  });
+
   it('returns unknown tools and bad arguments to the model as errors, then carries on', async () => {
     const { trace, student } = await run([
       {
         toolCalls: [
-          { name: 'read_tables', arguments: { file: 'invoices.csv' } },
-          { name: 'read_table', arguments: { file: 'invoices.csv', limit: 'all' } },
+          { name: 'read_files', arguments: { path: 'data/invoices.csv' } },
+          { name: 'read', arguments: { path: 'data/invoices.csv', limit: 'all' } },
         ],
       },
       answer('[]'),
@@ -134,15 +206,15 @@ describe('runAgent', () => {
     }
     const replies =
       student.requests[1]?.messages.filter((message) => message.role === 'tool') ?? [];
-    expect(replies.map((message) => JSON.parse(message.content).error)).toEqual([
-      expect.stringMatching(/^There is no tool called "read_tables"/),
-      expect.stringMatching(/^Invalid arguments for read_table\. limit: /),
+    expect(replies.map((message) => message.content)).toEqual([
+      expect.stringMatching(/^Error: There is no tool called "read_files"/),
+      expect.stringMatching(/^Error: Invalid arguments for read\. limit: /),
     ]);
   });
 
   it('stops at the step limit', async () => {
     const harness = makeHarness({ decoding: { maxSteps: 3 } });
-    const { trace, student } = await run(() => ({ toolCalls: [{ name: 'list_files' }] }), {
+    const { trace, student } = await run(() => ({ toolCalls: [{ name: 'ls' }] }), {
       harness,
     });
     expect(trace.stopReason).toBe('max_steps');
@@ -229,15 +301,15 @@ describe('runAgent', () => {
     expect(streaming.trace.error).toBeUndefined();
   });
 
-  it('stops when aborted while a write waits for approval', async () => {
+  it('stops when aborted while a change waits for approval', async () => {
     const controller = new AbortController();
-    const { trace, store } = await run(
+    const { trace, files } = await run(
       [
         {
           toolCalls: [
             {
-              name: 'append_rows',
-              arguments: { file: 'invoices.csv', rows: [{ invoice_id: 'INV-4' }] },
+              name: 'append',
+              arguments: { path: 'data/invoices.csv', text: 'INV-4,C-1,1,2026-12-01,' },
             },
           ],
         },
@@ -252,33 +324,37 @@ describe('runAgent', () => {
       },
     );
     expect(trace.stopReason).toBe('aborted');
-    expect(store.pendingChanges()).toEqual([]);
+    expect(files.tables()['invoices.csv']?.rows).toHaveLength(3);
+    expect(trace.changes).toEqual([]);
   });
 
-  it('records skills loaded by retrieval rules and by load_skill', async () => {
+  it('records skills loaded by retrieval rules and read by the agent, and lists them', async () => {
     const harness = makeHarness({
       skills: [
         {
-          slug: 'find-unpaid',
-          name: 'Find unpaid invoices',
-          summary: 'Check the paid column.',
+          name: 'find-unpaid',
+          description: 'Check the paid column.',
           body: 'Unpaid means paid is not true.',
         },
-        { slug: 'price-a-job', name: 'Price a job', summary: 'Price it.', body: 'Labor first.' },
+        { name: 'price-a-job', description: 'Price it.', body: 'Labor first.' },
       ],
       retrieval: { rules: [{ whenAny: ['unpaid'], loadSkills: ['find-unpaid'] }] },
     });
     const { trace, student } = await run(
-      [{ toolCalls: [{ name: 'load_skill', arguments: { name: 'price-a-job' } }] }, answer('[]')],
+      [
+        { toolCalls: [{ name: 'read', arguments: { path: 'skills/price-a-job/SKILL.md' } }] },
+        answer('[]'),
+      ],
       { harness },
     );
     expect(trace.steps.filter((step) => step.kind === 'skill')).toEqual([
       { kind: 'skill', slug: 'find-unpaid', via: 'rule' },
       { kind: 'skill', slug: 'price-a-job', via: 'tool' },
     ]);
-    expect(trace.steps[0]).toEqual({ kind: 'skill', slug: 'find-unpaid', via: 'rule' });
-    expect(student.requests[0]?.messages[0]?.content).toContain('Unpaid means paid is not true.');
-    expect(student.requests[0]?.tools.map((tool) => tool.name)).toContain('load_skill');
+    const system = student.requests[0]?.messages[0]?.content ?? '';
+    expect(system).toContain('Unpaid means paid is not true.');
+    expect(system).toContain('- price-a-job: Price it.');
+    expect(student.requests[1]?.messages.at(-1)?.content).toContain('Labor first.');
   });
 
   it('continues a chat with its history and streams text to the caller', async () => {

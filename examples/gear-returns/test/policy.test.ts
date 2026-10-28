@@ -4,7 +4,7 @@ import { answerOrderQuestion } from '../src/reference/orders';
 import { earliestPickup } from '../src/reference/pickups';
 import { decideReturn } from '../src/reference/refunds';
 import type { ReturnFacts } from '../src/reference/refunds';
-import { DeskTools } from '../src/reference/tools';
+import { AgentTools } from '../src/reference/tools';
 import type { Category } from '../src/shop/types';
 import { job } from './helpers';
 import { dayCount } from './oracles';
@@ -37,10 +37,10 @@ describe('policy.md', () => {
     expect(policy).toContain('Thursday, November 26, 2026 (Thanksgiving)');
   });
 
-  it('fits in a single read_text result', () => {
-    const tools = new DeskTools(job.data());
-    tools.readText('policy.md');
-    expect(tools.calls).toBe(1);
+  it('fits in a single read', () => {
+    const tools = new AgentTools(job.data());
+    tools.readAll('policy.md');
+    expect(tools.calls).toHaveLength(1);
   });
 
   it('says the files came from different systems, and nothing about how any of them wrote a value', () => {

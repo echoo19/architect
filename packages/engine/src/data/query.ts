@@ -43,7 +43,7 @@ export function selectRows(
   return { columns, rows: matching.map((row) => pick(row, columns)) };
 }
 
-export function assertColumns(file: string, table: TableSnapshot, names: readonly string[]): void {
+function assertColumns(file: string, table: TableSnapshot, names: readonly string[]): void {
   const unknown = names.find((name) => !table.columns.includes(name));
   if (unknown !== undefined) {
     throw new DataError(
@@ -52,8 +52,8 @@ export function assertColumns(file: string, table: TableSnapshot, names: readonl
   }
 }
 
-/** Matches cells the same way `selectRows` does, for callers that update rows in place. */
-export function rowMatcher(where: readonly WhereClause[]): (row: Row) => boolean {
+/** A test that a row meets every condition. */
+function rowMatcher(where: readonly WhereClause[]): (row: Row) => boolean {
   const tests = where.map(compileClause);
   return (row) => tests.every((test) => test(row));
 }

@@ -1,15 +1,13 @@
-import { cpSync, mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { openTableStore } from '@architect/engine';
-import type { TableStore } from '@architect/engine';
-import type { JsonValue, Task, WhereClause } from '@architect/shared';
+import { createChecker, createSandbox, createToolbox, openAgentFiles } from '@architect/engine';
+import type { Checker, Sandbox } from '@architect/engine';
+import { HarnessSchema } from '@architect/shared';
+import type { CheckOutcome, JsonValue, Task } from '@architect/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { OrderQuestion } from '../src/reference/orders';
 import { answerOrder, solvePickup, solveReturn } from '../src/reference/solver';
 import type { PickupRequest, ReturnRequest } from '../src/reference/solver';
-import { DeskTools } from '../src/reference/tools';
-import type { Condition } from '../src/reference/tools';
+import { AgentTools } from '../src/reference/tools';
 import {
   BUSINESS_DATE,
   expectedOrderAnswer,
@@ -23,9 +21,9 @@ import type { OrderQuestionFacts } from './oracles';
 
 /**
  * The reference solutions use only the agent's built-in tools, so their calls show what each
- * task costs in turns and context. These tests check those tools behave like the runner's on this
- * job's files, that the solutions reach every expected answer, and that every task fits in the
- * agent's 16 turns.
+ * task costs in turns and context. These tests replay every call through the runner's own tools
+ * on this job's files and compare the text the agent gets back, grade each end state and answer
+ * with the runner's checker, and check that every task fits in the agent's 16 turns.
  */
 
 /** Model turns the agent gets: one tool call each, and one more for the reply with ANSWER. */
@@ -33,112 +31,24 @@ const MAX_STEPS = 16;
 /** A third of Glimmer's 16k-token context, as for the first sample job. */
 const MAX_CHARACTERS = 24_000;
 
-let dataDir: string;
-let store: TableStore;
-
-beforeAll(async () => {
-  dataDir = mkdtempSync(join(tmpdir(), 'gear-returns-data-'));
-  // The runner loads the job's data files from its own folder; a copy keeps the job untouched.
-  cpSync(join(job.dir, 'data'), dataDir, { recursive: true });
-  store = await openTableStore({ dataDir, files: job.job().data.files, mode: 'scratch' });
-});
-
-afterAll(() => {
-  rmSync(dataDir, { recursive: true, force: true });
-});
-
-describe("the reference tools against the runner's", () => {
-  it("read every table cell for cell the way the runner's CSV parser does", () => {
-    for (const [name, table] of job.data().tables) {
-      const runner = store.read(name, { limit: 200 });
-      expect([...runner.columns], name).toEqual([...table.columns]);
-      const all: unknown[] = [];
-      for (let offset = 0; offset < runner.total; offset += 200) {
-        all.push(...store.read(name, { limit: 200, offset }).rows);
-      }
-      expect(all, name).toEqual(table.rows);
-    }
-  });
-
-  it('filter rows the same way, for every operator and the values that are written another way', () => {
-    const product = job
-      .table('products.csv')
-      .find((row) => row.sku !== row.sku?.trim().toUpperCase());
-    const customer = job
-      .table('customers.csv')
-      .find((row) => row.email !== row.email?.trim().toLowerCase());
-    const reads: { file: string; where: WhereClause[] }[] = [
-      { file: 'orders.csv', where: [{ column: 'order_date', op: '>=', value: '2026-10-01' }] },
-      { file: 'orders.csv', where: [{ column: 'order_date', op: '<', value: 'May' }] },
-      { file: 'orders.csv', where: [{ column: 'shipped_on', op: '=', value: null }] },
-      { file: 'orders.csv', where: [{ column: 'shipping', op: '>', value: 5 }] },
-      { file: 'orders.csv', where: [{ column: 'payment', op: '!=', value: 'card' }] },
-      { file: 'order_lines.csv', where: [{ column: 'unit_price', op: '<=', value: '29.95' }] },
-      { file: 'order_lines.csv', where: [{ column: 'qty', op: 'in', value: [2, '3'] }] },
-      {
-        file: 'products.csv',
-        where: [{ column: 'sku', op: '=', value: product?.sku?.trim().toUpperCase() ?? '' }],
-      },
-      {
-        file: 'products.csv',
-        where: [{ column: 'sku', op: 'contains', value: product?.sku?.trim() ?? '' }],
-      },
-      {
-        file: 'customers.csv',
-        where: [
-          { column: 'email', op: 'contains', value: customer?.email?.trim().toLowerCase() ?? '' },
-        ],
-      },
-      {
-        file: 'customers.csv',
-        where: [{ column: 'email', op: '=', value: customer?.email?.trim().toLowerCase() ?? '' }],
-      },
-      { file: 'pickups.csv', where: [{ column: 'pickup_date', op: 'contains', value: '/' }] },
-    ];
-    for (const read of reads) {
-      const runner = store.read(read.file, { where: read.where, limit: 200 });
-      const tools = new DeskTools(job.data());
-      const ours = tools.readTable({
-        file: read.file,
-        where: read.where.map((clause) => ({ ...clause }) as Condition),
-        limit: 200,
-      });
-      expect(ours.total, JSON.stringify(read)).toBe(runner.total);
-      expect(ours.rows, JSON.stringify(read)).toEqual(runner.rows.slice(0, ours.rows.length));
-    }
-  });
-
-  it('miss a SKU or an email written another way when matched exactly, and find it with contains', () => {
-    const tools = new DeskTools(job.data());
-    const odd = job.table('products.csv').find((row) => row.sku !== row.sku?.trim().toUpperCase());
-    const sku = String(odd?.sku).trim().toUpperCase();
-    expect(
-      tools.readTable({ file: 'products.csv', where: [{ column: 'sku', op: '=', value: sku }] })
-        .total,
-    ).toBe(0);
-    expect(
-      tools.readTable({
-        file: 'products.csv',
-        where: [{ column: 'sku', op: 'contains', value: sku }],
-      }).total,
-    ).toBe(1);
-  });
-});
-
 interface Attempt {
   task: Task;
-  tools: DeskTools;
+  tools: AgentTools;
   answer: JsonValue;
 }
 
 /** Every task solved once with a fresh set of tools, the way one agent attempt would. */
 const attempts: Attempt[] = job.allTasks().map((task) => {
-  const tools = new DeskTools(job.data());
-  let answer: JsonValue = null;
+  const tools = new AgentTools(job.data());
+  let answer: JsonValue;
   if (task.type === 'refund') {
-    solveReturn(tools, task.meta?.request as unknown as ReturnRequest, BUSINESS_DATE);
+    const request = task.meta?.request as unknown as ReturnRequest;
+    const { decision, refund_cents, refund_to } = solveReturn(tools, request, BUSINESS_DATE).result;
+    answer = { decision, refund_cents, refund_to };
   } else if (task.type === 'pickup') {
-    solvePickup(tools, task.meta?.request as unknown as PickupRequest, BUSINESS_DATE);
+    const request = task.meta?.request as unknown as PickupRequest;
+    const { carrier, pickup_date } = solvePickup(tools, request, BUSINESS_DATE).result;
+    answer = { pickup_id: String(paramsOf(task).pickup_id), carrier, pickup_date };
   } else {
     answer = answerOrder(tools, task.meta?.question as unknown as OrderQuestion).result;
   }
@@ -168,7 +78,7 @@ describe('the reference solutions', () => {
   it(`fit every task in ${MAX_STEPS} turns, the answer included`, () => {
     expect(attempts).toHaveLength(180);
     for (const { task, tools } of attempts) {
-      expect(tools.calls + 1, task.id).toBeLessThanOrEqual(MAX_STEPS);
+      expect(tools.calls.length + 1, task.id).toBeLessThanOrEqual(MAX_STEPS);
     }
   });
 
@@ -177,6 +87,86 @@ describe('the reference solutions', () => {
       expect(tools.characters, task.id).toBeLessThanOrEqual(MAX_CHARACTERS);
     }
   });
+});
+
+describe("the reference solutions through the runner's tools", () => {
+  let sandbox: Sandbox;
+  let checker: Checker;
+  beforeAll(() => {
+    sandbox = createSandbox();
+    checker = createChecker({ job: job.job(), jobDir: job.dir, sandbox });
+  });
+  afterAll(() => sandbox.dispose());
+
+  const harness = HarnessSchema.parse({
+    meta: { format: 2, name: 'Returns desk', version: 0, hash: '' },
+    system: 'You are the Returns desk agent.',
+    retrieval: {},
+    decoding: {},
+    guardrails: {},
+  });
+
+  /** Replays an attempt's calls on a fresh scratch copy of the files and grades what it left. */
+  async function replay({ task, tools, answer }: Attempt) {
+    const files = await openAgentFiles({
+      dataDir: join(job.dir, 'data'),
+      files: job.job().data.files,
+      mode: 'scratch',
+    });
+    const toolbox = createToolbox({ harness, files, sandbox, today: BUSINESS_DATE });
+    for (const [index, call] of tools.calls.entries()) {
+      const outcome = await toolbox.run({
+        id: `call_${index}`,
+        name: call.name,
+        arguments: call.arguments,
+      });
+      expect(outcome.content, `${task.id}, call ${index + 1} (${call.name})`).toBe(call.content);
+    }
+    const outcome: CheckOutcome = {
+      finalText: `ANSWER: ${JSON.stringify(answer)}`,
+      answer,
+      toolCalls: tools.calls.map((call) => ({ name: call.name, arguments: call.arguments })),
+      stopReason: 'answer',
+    };
+    return checker.check(task, outcome, files);
+  }
+
+  it('read long files in parts, numbered and noted the way the runner does', async () => {
+    const tools = new AgentTools(job.data());
+    // 200 short lines at a time, then lines long enough that 8,000 characters come first.
+    tools.readAll('order_lines.csv');
+    tools.readAll('orders.csv');
+    expect(tools.calls[0]?.content).toMatch(
+      /\n\[Lines 1-200 of 1038\. 838 more lines: read on with offset 201\.\]$/,
+    );
+    expect(tools.calls.find((call) => call.content.includes('ORD-10001,C-1107'))?.content).toMatch(
+      /\n\[Lines 1-1\d\d of 596\. \d+ more lines: read on with offset 1\d\d\.\]$/,
+    );
+    const files = await openAgentFiles({
+      dataDir: join(job.dir, 'data'),
+      files: job.job().data.files,
+      mode: 'scratch',
+    });
+    const toolbox = createToolbox({ harness, files, sandbox, today: BUSINESS_DATE });
+    for (const [index, call] of tools.calls.entries()) {
+      const outcome = await toolbox.run({
+        id: `read_${index}`,
+        name: 'read',
+        arguments: call.arguments,
+      });
+      expect(outcome.content, `read ${index + 1}`).toBe(call.content);
+    }
+  });
+
+  it.each(['refund', 'order', 'pickup'])(
+    'get back exactly the text the model of the tools gives, and pass every %s task',
+    async (type) => {
+      for (const attempt of ofType(type)) {
+        expect(await replay(attempt), attempt.task.id).toMatchObject({ pass: true });
+      }
+    },
+    300_000,
+  );
 });
 
 describe('a second implementation of the policy', () => {

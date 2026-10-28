@@ -129,7 +129,7 @@ describe('A06: a graduate after a restart and a rollback', () => {
       const file = served?.adapters[0];
       return {
         version: active.version.version,
-        system: await readFile(join(active.harnessDir, 'system.md'), 'utf8'),
+        system: await readFile(join(active.harnessDir, 'AGENTS.md'), 'utf8'),
         adapter: await readFile(file?.path ?? '', 'utf8'),
         model: served?.model,
         scale: file === undefined ? undefined : served?.scales[file.key],
@@ -242,7 +242,7 @@ describe('A06: a graduate after a restart and a rollback', () => {
 
   it('works in a newly bound folder from its next reply, and opening it again mid-reply waits', async () => {
     const made = await computer();
-    const read = { toolCalls: [{ name: 'read_table', arguments: { file: 'invoices.csv' } }] };
+    const read = { toolCalls: [{ name: 'read', arguments: { path: 'data/invoices.csv' } }] };
     const ollama = await model([
       read,
       { text: 'Read the first folder.', delayMs: 40 },

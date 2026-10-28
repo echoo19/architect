@@ -1,4 +1,4 @@
-import { mkdir, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { harnessToFiles, readGraduate, type GraduateFolder } from '@architect/harness';
 import {
   contractTerms,
@@ -12,10 +12,15 @@ import type { DataPaths } from '../loop/paths';
 import { isoNow } from '../loop/time';
 import type { EngineStore } from '../store/engine-store';
 import type { GraduateRecord } from '../store/records';
-import { sameComputerGrants, storedFolder } from './bindings';
+import { sameComputerGrants } from './bindings';
 import { resourcesFor, tableColumns, type VersionFacts } from './build';
 import type { ContractBook } from './contracts';
-import { exists, registerVersion, seedDataFolder, writeVersionFolder } from './versions';
+import {
+  registerVersion,
+  sameComputerBindings,
+  seedDataFolder,
+  writeVersionFolder,
+} from './versions';
 
 export interface LegacyContext {
   store: EngineStore;
@@ -131,10 +136,7 @@ async function upgradeOne(ctx: LegacyContext, record: GraduateRecord): Promise<v
 
   const data = paths.workspaceDir(record.id);
   if (job !== null) await seedDataFolder(data, paths.dataDir(job.id), contract.inputs.files);
-  const output = paths.outputDir(record.id);
-  await mkdir(output, { recursive: true });
-  const bindings: Record<string, string> = { output: storedFolder(paths, output) };
-  if (await exists(data)) bindings['data'] = storedFolder(paths, data);
+  const bindings = await sameComputerBindings(paths, record.id, contract, data);
   const at = isoNow(ctx.clock);
   store.transaction(() => {
     registerVersion(store, paths, {

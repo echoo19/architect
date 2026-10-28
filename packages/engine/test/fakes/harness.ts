@@ -24,7 +24,7 @@ export function templateHarness(name: string, description: string, template: str
 
 function withSystem(name: string, system: string): Harness {
   return {
-    meta: { format: 1, name, version: 0, hash: '' },
+    meta: { format: 2, name, version: 0, hash: '' },
     system,
     skills: [],
     tools: [],
@@ -36,8 +36,8 @@ function withSystem(name: string, system: string): Harness {
 }
 
 export function harnessToFiles(harness: Harness): Record<string, string> {
-  const files: Record<string, string> = { 'system.md': harness.system };
-  for (const skill of harness.skills) files[`skills/${skill.slug}.md`] = skill.body;
+  const files: Record<string, string> = { 'AGENTS.md': harness.system };
+  for (const skill of harness.skills) files[`skills/${skill.name}/SKILL.md`] = skill.body;
   if (harness.guardrails.refuse.length > 0) {
     files['guardrails.yaml'] = JSON.stringify(harness.guardrails);
   }
@@ -56,19 +56,19 @@ class HarnessValidationError extends Error {
   override name = 'HarnessValidationError';
 }
 
-/** Enough of the real edit rules for the loop: system.md, skills, tools and guardrails. */
+/** Enough of the real edit rules for the loop: AGENTS.md, skills, tools and guardrails. */
 export function applyEdits(harness: Harness, edits: readonly FileEdit[]): Harness {
   const next = structuredClone(harness);
   for (const edit of edits) {
     if (!isHarnessSurfacePath(edit.path)) {
       throw new GuardError('harness_surface', `${edit.path} is outside the harness surface.`);
     }
-    if (edit.path === 'system.md' && edit.op === 'delete') {
+    if (edit.path === 'AGENTS.md' && edit.op === 'delete') {
       throw new HarnessValidationError(
-        'system.md: cannot be deleted. Every harness needs a system prompt.',
+        'AGENTS.md: cannot be deleted. Every harness needs its instructions.',
       );
     }
-    if (edit.path === 'system.md' && edit.op === 'write') next.system = edit.content;
+    if (edit.path === 'AGENTS.md' && edit.op === 'write') next.system = edit.content;
     if (edit.path === 'guardrails.yaml') {
       next.guardrails = GuardrailsSchema.parse(edit.op === 'write' ? JSON.parse(edit.content) : {});
     }
@@ -91,11 +91,9 @@ export function applyEdits(harness: Harness, edits: readonly FileEdit[]): Harnes
       }
     }
     if (edit.path.startsWith('skills/')) {
-      const slug = edit.path.slice('skills/'.length, -'.md'.length);
-      next.skills = next.skills.filter((skill) => skill.slug !== slug);
-      if (edit.op === 'write') {
-        next.skills.push({ slug, name: slug, summary: slug, taskTypes: [], body: edit.content });
-      }
+      const name = edit.path.slice('skills/'.length, -'/SKILL.md'.length);
+      next.skills = next.skills.filter((skill) => skill.name !== name);
+      if (edit.op === 'write') next.skills.push({ name, description: name, body: edit.content });
     }
   }
   return next;

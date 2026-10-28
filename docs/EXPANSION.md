@@ -29,7 +29,7 @@ The owner's Expanded Implementation Spec (`docs/SPEC_EXPANSION.md`, Oct 28) gove
 | Priority | Requirement | Status | Evidence |
 | --- | --- | --- | --- |
 | P0 | Working local student, real adapter training and loading, independent evaluation | built: the adapter runtime, a llama.cpp student, the dataset builder, the pinned recipe, the training worker and its Hugging Face Jobs backend; blocked on training compute for a real adapter; local loading verified with a probe adapter | Day-1 findings; decision 035; `packages/engine/test/{gguf,local-runtime,training-dataset,trainer-recipe,training-worker,hf-jobs}.test.ts`, `packages/adapters/test/student/llamacpp.test.ts`; the GGUF reader read the real 2-bit blob (731 tensors, sizes ending at the file's last byte) and passed the probe adapter llama-server had loaded |
-| P1 | Failure-specific teaching with replay and verified corrections | not started | |
+| P1 | Failure-specific teaching with replay and verified corrections | not started; traces now capture what replay needs | Decision 030, as built |
 | P1 | Bounded selection between retrieval, procedure, helper and weight interventions | not started | |
 | P1 | Evidence-based apprenticeship UI | not started | |
 | P1 | Teach this and versioned improvement | in progress: versions built, the teaching queue not started | Immutable versions with candidates, acceptance, promotion and rollback, chats and replies that record their version, versioned job contracts (decision 037; `packages/engine/test/graduate-versions.test.ts`, `graduate-contracts.test.ts`) |
@@ -37,7 +37,7 @@ The owner's Expanded Implementation Spec (`docs/SPEC_EXPANSION.md`, Oct 28) gove
 | P2 | CLI using the same runtime | not started | |
 | P2 | Hugging Face publish and install | not started | |
 | P2 | Demonstration and comparisons | not started | |
-| Owner | Classic coding-agent harness for graduates | in progress | decision 030 |
+| Owner | Classic coding-agent harness for graduates | done | Decision 030 and its as-built notes; the tools and the agent's folder in `packages/engine/src/tools`, `files` and `sandbox` (tests `files`, `toolbox`, `sandbox`, `agent`, `agent-host`); the loop alike on Ollama and llama.cpp students (`agent-runtimes`); harness format 2, with format 1 read and migrated (`packages/harness/test/legacy.test.ts`); both sample jobs' reference solutions replayed call by call through the engine's tools and passing the real checkers (`examples/*/test`); `pnpm check` and the hidden e2e suite pass; screenshots `workspace-streaming`, `workspace-approval`, `flow-trace` |
 
 ## Acceptance tests
 

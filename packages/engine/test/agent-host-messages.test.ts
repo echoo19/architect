@@ -9,50 +9,84 @@ const AT = '2026-11-05T09:00:00.000Z';
 
 describe('step descriptions', () => {
   it('say what a call acts on', () => {
-    expect(describeCall('list_files', {})).toBe('the data files');
-    expect(
-      describeCall('read_table', {
-        file: 'invoices.csv',
-        where: [
-          { column: 'paid', op: '!=', value: 'true' },
-          { column: 'customer_id', op: 'in', value: ['C-1', 'C-2'] },
-        ],
-      }),
-    ).toBe('invoices.csv, paid != true, customer_id in [C-1, C-2]');
-    expect(
-      describeCall('update_rows', {
-        file: 'invoices.csv',
-        where: { column: 'invoice_id', op: '=', value: 'INV-2' },
-        set: { paid: true },
-      }),
-    ).toBe('invoices.csv, invoice_id = INV-2');
-    expect(describeCall('append_rows', { file: 'invoices.csv', rows: [] })).toBe('invoices.csv');
-    expect(describeCall('calculate', { expression: 'round(4550 * 1.0825)' })).toBe(
-      'round(4550 * 1.0825)',
+    expect(describeCall('read', { path: 'data/invoices.csv', offset: 40 })).toBe(
+      'data/invoices.csv',
     );
+    expect(describeCall('ls', {})).toBe('your folders');
+    expect(describeCall('ls', { path: 'data' })).toBe('data');
+    expect(describeCall('glob', { pattern: 'data/*.csv' })).toBe('data/*.csv');
+    expect(describeCall('grep', { pattern: 'INV-2', path: 'data/invoices.csv' })).toBe(
+      '/INV-2/ in data/invoices.csv',
+    );
+    expect(describeCall('grep', { pattern: 'refund' })).toBe('/refund/');
+    expect(
+      describeCall('edit', { path: 'data/invoices.csv', old_string: 'a', new_string: 'b' }),
+    ).toBe('data/invoices.csv');
+    expect(
+      describeCall('run', {
+        code: 'const rows = csv.parse(files.read(\'data/invoices.csv\'));\nconst more = files.read("data/customers.csv");',
+      }),
+    ).toBe('data/invoices.csv, data/customers.csv');
+    expect(describeCall('run', { code: '\n  12 * 1.0825\nprint(1)' })).toBe('12 * 1.0825');
     expect(describeCall('invoice_total', { job_id: 'W-2482', after_hours: true })).toBe(
       'job_id: W-2482, after_hours: true',
     );
-    expect(describeCall('calculate', { expression: '1 + '.repeat(40) })).toHaveLength(80);
+    expect(describeCall('run', { code: '1 + '.repeat(40) })).toHaveLength(80);
   });
 
   it('sum up a result in a few words', () => {
-    expect(describeResult('read_table', { file: 'jobs.csv', total: 1284, rows: [] })).toBe(
-      '1,284 rows',
+    expect(describeResult('read', '1\ta\n2\tb\n3\tc')).toBe('3 lines');
+    expect(
+      describeResult(
+        'read',
+        '1\ta\n2\tb\n[Lines 1-2 of 596. 594 more lines: read on with offset 3.]',
+      ),
+    ).toBe('lines 1-2 of 596');
+    expect(describeResult('read', 'data/empty.csv is empty.')).toBe('empty');
+    expect(
+      describeResult('ls', 'data/     3 files, 1 writable\nskills/   1 skill, read-only'),
+    ).toBe('2 entries');
+    expect(describeResult('glob', 'data/a.csv\ndata/b.csv')).toBe('2 files');
+    expect(describeResult('glob', 'No files match *.xlsx.')).toBe('none');
+    expect(describeResult('grep', 'data/a.csv:2: x')).toBe('1 match');
+    expect(
+      describeResult(
+        'grep',
+        'data/a.csv:2: x\n[132 matching lines; showing 1. Narrow the pattern.]',
+      ),
+    ).toBe('132 matches');
+    expect(describeResult('grep', 'No lines match in data.')).toBe('no matches');
+    expect(describeResult('run', '=> 4925')).toBe('=> 4925');
+    expect(describeResult('run', 'Two unpaid\n=> 5540')).toBe('Two unpaid');
+    const rows = { columns: ['id'], added: [['A'], ['B']], removed: [], changed: [] };
+    const change = { path: 'data/x.csv', op: 'append' as const, patch: '', rows, applied: true };
+    expect(describeResult('append', 'Added 2 rows to data/x.csv.', change)).toBe('2 rows added');
+    expect(describeResult('append', 'The user declined', { ...change, applied: false })).toBe(
+      'declined',
     );
-    expect(describeResult('read_table', { total: 1, rows: [] })).toBe('1 row');
-    expect(describeResult('read_table', '{"file":"jobs.csv","rows":[[… [cut]')).toBe('cut to fit');
-    expect(describeResult('list_files', { files: [{}, {}, {}] })).toBe('3 files');
-    expect(describeResult('read_text', { file: 'policy.md', text: 'a\nb' })).toBe('2 lines');
-    expect(describeResult('read_text', { text: 'a', next_offset: 1 })).toBe('1 line, more to read');
-    expect(describeResult('calculate', { result: '4925.38' })).toBe('= 4925.38');
-    expect(describeResult('append_rows', { file: 'invoices.csv', appended: 2 })).toBe(
-      '2 rows added',
-    );
-    expect(describeResult('append_rows', { declined: true, message: 'No.' })).toBe('declined');
-    expect(describeResult('update_rows', { matched: 3, changed: 1 })).toBe('1 row changed');
-    expect(describeResult('update_rows', { matched: 3, changed: 0 })).toBe('no change');
-    expect(describeResult('load_skill', { slug: 'price-a-job' })).toBe('loaded');
+    expect(
+      describeResult('edit', 'Changed', {
+        ...change,
+        op: 'edit',
+        rows: { ...rows, added: [], changed: [{ before: ['A'], after: ['C'] }] },
+      }),
+    ).toBe('1 row changed');
+    expect(
+      describeResult('write', 'Created', {
+        path: 'output/a.md',
+        op: 'write',
+        patch: '--- /dev/null\n+++ b/output/a.md\n@@ -0,0 +1,2 @@\n+A\n+B\n',
+        applied: true,
+      }),
+    ).toBe('created, 2 lines');
+    expect(
+      describeResult('edit', 'Changed', {
+        path: 'output/a.md',
+        op: 'edit',
+        patch: '--- a/output/a.md\n+++ b/output/a.md\n@@ -1,2 +1,2 @@\n-A\n+C\n B\n',
+        applied: true,
+      }),
+    ).toBe('1 line added, 1 removed');
     expect(describeResult('invoice_total', { total_cents: 128450 })).toBe('total_cents: 128450');
     expect(describeResult('busy_slots', [1, 2, 3])).toBe('3 items');
     expect(describeResult('lookup', { a: 1, b: 2, c: 3, d: 4 })).toBe('4 fields');
@@ -142,12 +176,7 @@ describe('a live reply', () => {
     ]);
     expect(published.every(({ save }) => !save)).toBe(true);
 
-    reply.addStep({
-      kind: 'tool',
-      name: 'list_files',
-      detail: 'the data files',
-      status: 'running',
-    });
+    reply.addStep({ kind: 'tool', name: 'ls', detail: 'your folders', status: 'running' });
     vi.advanceTimersByTime(33);
     expect(published.at(-1)).toMatchObject({ save: true, message: { steps: [{ id: 'step-1' }] } });
   });
@@ -164,15 +193,15 @@ describe('a live reply', () => {
   it('finishes once: settled, saved and published at once, with later changes ignored', () => {
     const { reply, published } = live();
     reply.addStep(
-      { kind: 'tool', name: 'append_rows', detail: 'invoices.csv', status: 'running' },
+      { kind: 'tool', name: 'append', detail: 'data/invoices.csv', status: 'running' },
       'call_1',
     );
     reply.addBlock({
       kind: 'approval',
       changeId: 'chg_1',
       op: 'append',
-      file: 'invoices.csv',
-      summary: 'Append 1 row to invoices.csv',
+      file: 'data/invoices.csv',
+      summary: 'Add 1 row to data/invoices.csv',
       diff: { columns: ['invoice_id'], added: [['INV-4']], removed: [], changed: [] },
       status: 'pending',
     });

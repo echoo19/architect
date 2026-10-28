@@ -46,6 +46,11 @@ export const JobContractSchema = z
         answer: z.literal('text'),
         /** The files it may change, by name. Each is also an input with write access. */
         files: z.array(z.string()),
+        /**
+         * An `output/` folder it may create and change files in, such as reports, when the job
+         * allows one. It is the `output` resource, which each installation binds.
+         */
+        folder: z.object({ description: z.string().optional() }).strict().optional(),
       })
       .strict(),
     boundaries: z
@@ -85,6 +90,7 @@ export function contractTerms(job: Job): ContractTerms {
     outputs: {
       answer: 'text',
       files: job.data.files.filter((file) => file.access === 'write').map((file) => file.name),
+      ...(job.data.output === undefined ? {} : { folder: outputFolderTerms(job.data.output) }),
     },
     boundaries: {
       writes: job.permissions.writes,
@@ -98,6 +104,12 @@ export function contractTerms(job: Job): ContractTerms {
         : { p95LatencyMs: job.requirements.p95LatencyMs }),
     },
   };
+}
+
+function outputFolderTerms(output: { description?: string | undefined }): {
+  description?: string;
+} {
+  return output.description === undefined ? {} : { description: output.description };
 }
 
 /**

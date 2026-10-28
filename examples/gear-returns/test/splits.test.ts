@@ -6,7 +6,7 @@ import { parseCsv } from '../src/lib/csv';
 import type { OrderQuestion } from '../src/reference/orders';
 import { answerOrder, solvePickup, solveReturn } from '../src/reference/solver';
 import type { PickupRequest, ReturnRequest } from '../src/reference/solver';
-import { DeskTools } from '../src/reference/tools';
+import { AgentTools } from '../src/reference/tools';
 import { plainTables } from '../src/shop/exports';
 import { BUSINESS_DATE, MESSY_TABLES, job } from './helpers';
 
@@ -44,22 +44,22 @@ describe("the runner's split of this job", () => {
 
 describe('the rows train attempts read', () => {
   const tools = splits.train.map((task) => {
-    const desk = new DeskTools(job.data());
+    const agent = new AgentTools(job.data());
     if (task.type === 'refund') {
-      solveReturn(desk, task.meta?.request as unknown as ReturnRequest, BUSINESS_DATE);
+      solveReturn(agent, task.meta?.request as unknown as ReturnRequest, BUSINESS_DATE);
     } else if (task.type === 'pickup') {
-      solvePickup(desk, task.meta?.request as unknown as PickupRequest, BUSINESS_DATE);
+      solvePickup(agent, task.meta?.request as unknown as PickupRequest, BUSINESS_DATE);
     } else {
-      answerOrder(desk, task.meta?.question as unknown as OrderQuestion);
+      answerOrder(agent, task.meta?.question as unknown as OrderQuestion);
     }
-    return desk;
+    return agent;
   });
   const plain = plainTables(buildJobFiles(DEFAULT_SEED).shop);
 
   it.each(MESSY_TABLES)('include rows of %s written another way', (name) => {
     const truth = parseCsv(plain[name] as string);
     const written = job.table(name);
-    const seen = new Set(tools.flatMap((desk) => [...desk.rowsSeen(name)]));
+    const seen = new Set(tools.flatMap((agent) => [...agent.rowsSeen(name)]));
     const varied = [...seen].filter((index) =>
       Object.keys(written[index] ?? {}).some(
         (column) => written[index]?.[column] !== truth[index]?.[column],

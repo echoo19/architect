@@ -1,34 +1,50 @@
-import { WhereClauseSchema, type BuiltinToolName } from '@architect/shared';
+import type { BuiltinToolName } from '@architect/shared';
 import { z } from 'zod';
+import { MAX_GREP_MATCHES, MAX_READ_LINES } from './specs';
 import { ToolError } from './errors';
 
-/** Models often send a single condition where a list is expected; accept it as a list of one. */
-const WhereList = z.preprocess(
-  (value) =>
-    value !== null && typeof value === 'object' && !Array.isArray(value) ? [value] : value,
-  z.array(WhereClauseSchema),
-);
-const Cell = z.union([z.string(), z.number(), z.boolean(), z.null()]);
-const FileName = z.string().min(1);
+/** Models often send a number as text, like "10"; it is read as the number. */
+const count = (max?: number) =>
+  z.preprocess(
+    (value) => (typeof value === 'string' && /^\d+$/.test(value.trim()) ? Number(value) : value),
+    max === undefined ? z.number().int().min(1) : z.number().int().min(1).max(max),
+  );
+
+/** Models used to other agents name a file `file_path` or `file`; both are read as `path`. */
+function withPath<Shape extends z.ZodRawShape>(shape: Shape) {
+  return z.preprocess((value) => {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return value;
+    const { file_path: filePath, file, ...rest } = value as Record<string, unknown>;
+    if ('path' in rest) return value;
+    const alias = filePath ?? file;
+    return alias === undefined ? rest : { ...rest, path: alias };
+  }, z.strictObject(shape));
+}
 
 const ARGUMENTS = {
-  list_files: z.strictObject({}),
-  read_table: z.strictObject({
-    file: FileName,
-    where: WhereList.optional(),
-    columns: z.array(z.string().min(1)).optional(),
-    limit: z.number().int().min(0).optional(),
-    offset: z.number().int().min(0).optional(),
+  read: withPath({
+    path: z.string(),
+    offset: count().optional(),
+    limit: count(MAX_READ_LINES).optional(),
   }),
-  read_text: z.strictObject({ file: FileName, offset: z.number().int().min(0).optional() }),
-  calculate: z.strictObject({ expression: z.string() }),
-  append_rows: z.strictObject({ file: FileName, rows: z.array(z.record(z.string(), Cell)).min(1) }),
-  update_rows: z.strictObject({
-    file: FileName,
-    where: WhereList,
-    set: z.record(z.string(), Cell),
+  ls: withPath({ path: z.string().optional() }),
+  glob: z.strictObject({ pattern: z.string().min(1) }),
+  grep: withPath({
+    pattern: z.string().min(1),
+    path: z.string().optional(),
+    glob: z.string().min(1).optional(),
+    ignore_case: z.boolean().optional(),
+    limit: count(MAX_GREP_MATCHES).optional(),
   }),
-  load_skill: z.strictObject({ name: z.string().min(1) }),
+  write: withPath({ path: z.string(), content: z.string() }),
+  edit: withPath({
+    path: z.string(),
+    old_string: z.string(),
+    new_string: z.string(),
+    replace_all: z.boolean().optional(),
+  }),
+  append: withPath({ path: z.string(), text: z.string() }),
+  run: z.strictObject({ code: z.string() }),
 } satisfies Record<BuiltinToolName, z.ZodType>;
 
 export type BuiltinArguments = { [Name in BuiltinToolName]: z.infer<(typeof ARGUMENTS)[Name]> };

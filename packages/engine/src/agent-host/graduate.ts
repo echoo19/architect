@@ -1,8 +1,9 @@
 import { createStudent, isLoopbackUrl } from '@architect/adapters';
-import { hashHarness, readHarness } from '@architect/harness';
+import { skillFiles } from '@architect/harness';
 import {
   ADAPTER_RUNTIMES,
   GuardError,
+  PackageError,
   type DataFile,
   type Grants,
   type Harness,
@@ -11,8 +12,9 @@ import {
   type ModelBinding,
   type StudentAdapter,
 } from '@architect/shared';
-import { openTableStore, type TableStore } from '../data/table-store';
+import { openAgentFiles, type AgentFiles, type OutputFolder } from '../files/agent-files';
 import { grantedFiles } from '../graduates/bindings';
+import { readPackageHarness } from '../graduates/harness';
 import type { ActiveVersion } from '../graduates/open';
 import type { ServeRequest } from '../local-runtime';
 
@@ -25,14 +27,14 @@ export interface GraduateSession {
   /** The version and installation it was opened with (`activeStamp`). */
   readonly stamp: string;
   readonly harness: Harness;
-  readonly contract: JobContract;
   /** The job as the agent loop reads it: the contract's files as this computer granted them. */
   readonly job: Job;
   readonly student: StudentAdapter;
-  /** The data the `data/` resource is bound to, live: an approved write goes to its file. */
-  readonly data: TableStore;
-  /** Logical resource names bound to folders on this computer. */
-  readonly bindings: Readonly<Record<string, string>>;
+  /**
+   * The agent's folder, live: `data/` and `output/` are the folders this computer's installation
+   * bound, and an approved change goes straight to its file.
+   */
+  readonly files: AgentFiles;
   readonly grants: Grants;
   /** What the adapter runtime loads for the version (`ActiveVersion.adapter`); null without one. */
   readonly adapter: ServeRequest | null;
@@ -41,13 +43,14 @@ export interface GraduateSession {
 }
 
 /**
- * The job the agent loop takes, made from the contract. The loop reads only the data files and
- * the business date (`buildSystemPrompt`, `todayFor`); its training settings are required by the
- * type and left inert: a graduate never trains, and the agent host can't load mentor code.
+ * The job the agent loop takes, made from the contract. The loop reads only the data files, the
+ * output folder and the business date; its training settings are required by the type and left
+ * inert: a graduate never trains, and the agent host can't load mentor code.
  */
 function runtimeJob(
   contract: JobContract,
   files: DataFile[],
+  output: OutputFolder | undefined,
   grants: Grants,
   model: ModelBinding,
   contextLength: number,
@@ -65,7 +68,12 @@ function runtimeJob(
     createdAt,
     ...(contract.businessDate === undefined ? {} : { businessDate: contract.businessDate }),
     taskTypes: contract.capabilities.taskTypes,
-    data: { files },
+    data: {
+      files,
+      ...(output === undefined
+        ? {}
+        : { output: output.description === undefined ? {} : { description: output.description } }),
+    },
     permissions: { writes: grants.writes, unseenFiles: 'never' },
     checker: { kind: 'builtin' },
     requirements: {
@@ -86,6 +94,22 @@ function runtimeJob(
       devRepeats: 1,
       patience: 1,
     },
+  };
+}
+
+/**
+ * The `output/` folder this computer gives the version: the folder its installation bound to
+ * `output`, when the contract allows one and the user granted changing it. Without a binding
+ * and that grant, the agent has no output folder at all.
+ */
+function outputFolder(active: ActiveVersion): OutputFolder | undefined {
+  const allowed = active.version.manifest.contract.outputs.folder;
+  const dir = active.bindings['output'];
+  if (allowed === undefined || dir === undefined) return undefined;
+  if (active.grants.resources['output'] !== 'read_write') return undefined;
+  return {
+    ...(allowed.description === undefined ? {} : { description: allowed.description }),
+    dir,
   };
 }
 
@@ -116,11 +140,15 @@ export async function openGraduateSession(
       `Version ${active.version.version} of ${active.name} carries a LoRA adapter, which ${model.runtime} can't load; it needs ${ADAPTER_RUNTIMES.join(' or ')}. It wasn't opened, so it never runs without its adapter.`,
     );
   }
-  const harness = await readHarness(active.harnessDir);
-  if (hashHarness(harness) !== manifest.harness.hash) {
-    throw new Error(
+  let harness: Harness;
+  try {
+    harness = await readPackageHarness(active.dir, manifest);
+  } catch (error) {
+    if (!(error instanceof PackageError)) throw error;
+    throw new PackageError(error.code, [
       `Version ${active.version.version} of ${active.name} has a harness that doesn't match the one it was made with, so it wasn't opened.`,
-    );
+      ...error.problems,
+    ]);
   }
   for (const resource of manifest.resources) {
     if (!resource.required) continue;
@@ -137,12 +165,14 @@ export async function openGraduateSession(
     }
   }
   const contextLength = manifest.model.inference.contextLength;
-  // With no folder bound to data/, nothing is open: never the version's own folder.
+  // With no folder bound to data/, no data file is open: never the version's own folder.
   const dataFolder = active.bindings['data'];
   const files = dataFolder === undefined ? [] : grantedFiles(manifest.contract, active.grants);
+  const output = outputFolder(active);
   const job = runtimeJob(
     manifest.contract,
     files,
+    output,
     active.grants,
     model,
     contextLength,
@@ -155,14 +185,18 @@ export async function openGraduateSession(
     version: active.version.version,
     stamp: active.stamp,
     harness,
-    contract: manifest.contract,
     job,
     student: createStudent(
       { runtime: model.runtime, baseUrl: model.baseUrl, model: model.model, contextLength },
       cpuThreads === undefined ? {} : { cpuThreads },
     ),
-    data: await openTableStore({ dataDir: dataFolder ?? active.dir, files, mode: 'live' }),
-    bindings: active.bindings,
+    files: await openAgentFiles({
+      dataDir: dataFolder ?? active.dir,
+      files,
+      ...(output === undefined ? {} : { output }),
+      skills: skillFiles(harness),
+      mode: 'live',
+    }),
     grants: active.grants,
     adapter: active.adapter,
     contextLength,

@@ -1,4 +1,3 @@
-import { mkdir } from 'node:fs/promises';
 import type { WrittenPackage } from '@architect/harness';
 import type {
   Harness,
@@ -12,9 +11,9 @@ import type {
 import type { DataPaths } from '../loop/paths';
 import type { EngineStore } from '../store/engine-store';
 import type { GraduateFreeze, StoredInstallation } from '../store/records';
-import { sameComputerGrants, storedFolder } from './bindings';
+import { sameComputerGrants } from './bindings';
 import { resourcesFor, tableColumns, type VersionFacts } from './build';
-import { seedDataFolder, writeVersionFolder } from './versions';
+import { sameComputerBindings, seedDataFolder, writeVersionFolder } from './versions';
 
 /** The round whose kept change made a version, and whether it was a whole draft. */
 function origin(rounds: readonly Round[], version: number): { round?: number; draft?: true } {
@@ -93,7 +92,6 @@ export async function prepareGraduate(
   const { job, freeze, contract, report } = input;
   const data = paths.workspaceDir(freeze.graduateId);
   await seedDataFolder(data, paths.dataDir(job.id), contract.inputs.files);
-  await mkdir(paths.outputDir(freeze.graduateId), { recursive: true });
   const installation: StoredInstallation = {
     graduateId: freeze.graduateId,
     model: {
@@ -101,10 +99,7 @@ export async function prepareGraduate(
       baseUrl: job.student.local.baseUrl,
       model: freeze.student.model,
     },
-    bindings: {
-      data: storedFolder(paths, data),
-      output: storedFolder(paths, paths.outputDir(freeze.graduateId)),
-    },
+    bindings: await sameComputerBindings(paths, freeze.graduateId, contract, data),
     grants: sameComputerGrants(
       { contract, resources: resourcesFor(contract, facts.columns) },
       job.permissions.writes,

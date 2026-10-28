@@ -49,8 +49,14 @@ export interface Ledger {
   categoryOf(sku: string): Category;
 }
 
-/** Lists of order ids come sorted, so answers that grade the same are equal as JSON. */
-export function answerOrderQuestion(question: OrderQuestion, ledger: Ledger): JsonValue {
+/** What an answer adds up: the order lines it counts, and the shipping charges it adds to them. */
+export interface AnswerTerms {
+  lines: LedgerLine[];
+  shipping: number[];
+}
+
+/** The terms of a question's sums. A question that adds nothing up has none. */
+export function answerTerms(question: OrderQuestion, ledger: Ledger): AnswerTerms {
   switch (question.kind) {
     case 'spend': {
       const orders = ordersOf(ledger, customerByEmail(ledger, question.email)).filter(
@@ -59,7 +65,7 @@ export function answerOrderQuestion(question: OrderQuestion, ledger: Ledger): Js
       const lines = linesOf(ledger, orders).filter(
         (line) => ledger.categoryOf(line.sku) === question.category,
       );
-      return { spent_cents: amountOf(lines) };
+      return { lines, shipping: [] };
     }
     case 'sku_sales': {
       const { first, last } = monthSpan(question.month);
@@ -71,6 +77,27 @@ export function answerOrderQuestion(question: OrderQuestion, ledger: Ledger): Js
       const lines = ledger.lines.filter(
         (line) => line.sku === question.sku && inMonth.has(line.order_id),
       );
+      return { lines, shipping: [] };
+    }
+    case 'unshipped':
+      return { lines: [], shipping: [] };
+    case 'month_orders': {
+      const orders = monthOrders(ledger, question);
+      return {
+        lines: linesOf(ledger, orders),
+        shipping: orders.map((order) => order.shipping_cents),
+      };
+    }
+  }
+}
+
+/** Lists of order ids come sorted, so answers that grade the same are equal as JSON. */
+export function answerOrderQuestion(question: OrderQuestion, ledger: Ledger): JsonValue {
+  switch (question.kind) {
+    case 'spend':
+      return { spent_cents: amountOf(answerTerms(question, ledger).lines) };
+    case 'sku_sales': {
+      const { lines } = answerTerms(question, ledger);
       return { units: sum(lines.map((line) => line.qty)), sales_cents: amountOf(lines) };
     }
     case 'unshipped': {
@@ -88,17 +115,24 @@ export function answerOrderQuestion(question: OrderQuestion, ledger: Ledger): Js
       return { order_ids: idsOf(waiting) };
     }
     case 'month_orders': {
-      const { first, last } = monthSpan(question.month);
-      const orders = ordersOf(ledger, customerByEmail(ledger, question.email)).filter(
-        (order) => order.order_date >= first && order.order_date <= last,
-      );
-      const shipping = sum(orders.map((order) => order.shipping_cents));
+      const { lines, shipping } = answerTerms(question, ledger);
       return {
-        order_ids: idsOf(orders),
-        total_cents: amountOf(linesOf(ledger, orders)) + shipping,
+        order_ids: idsOf(monthOrders(ledger, question)),
+        total_cents: amountOf(lines) + sum(shipping),
       };
     }
   }
+}
+
+/** A customer's orders placed in the question's month. */
+function monthOrders(
+  ledger: Ledger,
+  question: Extract<OrderQuestion, { kind: 'month_orders' }>,
+): LedgerOrder[] {
+  const { first, last } = monthSpan(question.month);
+  return ordersOf(ledger, customerByEmail(ledger, question.email)).filter(
+    (order) => order.order_date >= first && order.order_date <= last,
+  );
 }
 
 function customerByEmail(ledger: Ledger, email: string): LedgerCustomer {

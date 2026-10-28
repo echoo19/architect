@@ -3,7 +3,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type {
   AgentBlock,
-  JsonValue,
   WorkspaceChat,
   WorkspaceEvent,
   WorkspaceMessage,
@@ -105,17 +104,11 @@ async function ask(
 const invoicesFile = (world: World) =>
   readFile(join(world.graduate.workspaceDataDir, 'invoices.csv'), 'utf8');
 
-const NEW_INVOICE: Record<string, JsonValue> = {
-  invoice_id: 'INV-4',
-  customer_id: 'C-2',
-  total_cents: 5000,
-  due_date: '2026-12-05',
-  paid: false,
-};
+const NEW_INVOICE = 'INV-4,C-2,5000,2026-12-05,false';
 
 const addInvoice = (invoice = NEW_INVOICE): ScriptedTurn => ({
   text: "I'll add the invoice.",
-  toolCalls: [{ name: 'append_rows', arguments: { file: 'invoices.csv', rows: [invoice] } }],
+  toolCalls: [{ name: 'append', arguments: { path: 'data/invoices.csv', text: invoice } }],
 });
 
 describe('chatting with a graduate', () => {
@@ -123,15 +116,7 @@ describe('chatting with a graduate', () => {
     const world = await setup([
       {
         text: 'Let me check the invoices.',
-        toolCalls: [
-          {
-            name: 'read_table',
-            arguments: {
-              file: 'invoices.csv',
-              where: [{ column: 'paid', op: '!=', value: 'true' }],
-            },
-          },
-        ],
+        toolCalls: [{ name: 'read', arguments: { path: 'data/invoices.csv' } }],
       },
       { text: 'Two invoices are unpaid: INV-2 and INV-3.' },
     ]);
@@ -144,10 +129,20 @@ describe('chatting with a graduate', () => {
       steps: [
         {
           kind: 'tool',
-          name: 'read_table',
-          detail: 'invoices.csv, paid != true',
-          meta: '2 rows',
+          name: 'read',
+          detail: 'data/invoices.csv',
+          meta: '4 lines',
           status: 'done',
+          view: {
+            kind: 'table',
+            columns: ['invoice_id', 'customer_id', 'total_cents', 'due_date', 'paid'],
+            rows: [
+              ['INV-1', 'C-1', '12000', '2026-10-01', 'true'],
+              ['INV-2', 'C-2', '4550', '2026-11-15', null],
+              ['INV-3', 'C-1', '990', '2026-11-02', 'false'],
+            ],
+            total: 3,
+          },
         },
       ],
       blocks: [],
@@ -179,25 +174,23 @@ describe('chatting with a graduate', () => {
     expect(request?.messages[0]?.content).toContain('no ANSWER line is needed');
   });
 
-  it('shows the skills it loads, by retrieval rule or on request', async () => {
+  it('shows the skills it loads, by retrieval rule or by reading one', async () => {
     const world = await setup(
       [
-        { toolCalls: [{ name: 'load_skill', arguments: { name: 'overdue-balances' } }] },
+        { toolCalls: [{ name: 'read', arguments: { path: 'skills/overdue-balances/SKILL.md' } }] },
         { text: 'Done.' },
       ],
       {
         harness: {
           skills: [
             {
-              slug: 'overdue-balances',
-              name: 'Find overdue balances',
-              summary: 'List invoices past their terms.',
+              name: 'overdue-balances',
+              description: 'List invoices past their terms.',
               body: '1. Read the invoices.',
             },
             {
-              slug: 'price-a-job',
-              name: 'Price a completed job',
-              summary: 'Turn a job into invoice lines.',
+              name: 'price-a-job',
+              description: 'Turn a job into invoice lines.',
               body: '1. Read the job.',
             },
           ],
@@ -207,13 +200,33 @@ describe('chatting with a graduate', () => {
     );
     const { reply } = await ask(world, 'Invoice job W-12, then check overdue balances.');
     expect(reply.steps).toMatchObject([
-      { kind: 'skill', name: 'price-a-job', detail: 'Price a completed job', meta: 'loaded' },
+      { kind: 'skill', name: 'price-a-job', detail: 'price-a-job', meta: 'loaded' },
       {
         kind: 'skill',
         name: 'overdue-balances',
-        detail: 'Find overdue balances',
-        meta: 'loaded',
+        detail: 'overdue-balances',
+        meta: '5 lines',
         status: 'done',
+      },
+    ]);
+  });
+
+  it('shows the code a run step ran, with its output', async () => {
+    const code =
+      "csv.parse(files.read('data/invoices.csv')).filter((row) => row.paid !== 'true').length";
+    const world = await setup([
+      { toolCalls: [{ name: 'run', arguments: { code } }] },
+      { text: 'Two.' },
+    ]);
+    const { reply } = await ask(world, 'How many invoices are unpaid?');
+    expect(reply.steps).toMatchObject([
+      {
+        kind: 'tool',
+        name: 'run',
+        detail: 'data/invoices.csv',
+        meta: '=> 2',
+        status: 'done',
+        view: { kind: 'code', code, output: '=> 2' },
       },
     ]);
   });
@@ -290,10 +303,12 @@ describe('writes', () => {
 
     const approval = await waiting;
     expect(approval).toMatchObject({
-      file: 'invoices.csv',
-      summary: 'Append 1 row to invoices.csv',
+      op: 'append',
+      file: 'data/invoices.csv',
+      summary: 'Add 1 row to data/invoices.csv',
       diff: { added: [['INV-4', 'C-2', '5000', '2026-12-05', 'false']], removed: [], changed: [] },
     });
+    expect(approval).not.toHaveProperty('patch');
     expect((await world.host.listChats(world.graduate.id))[0]?.waiting).toBe(true);
     expect(await invoicesFile(world)).toBe(SAMPLE_CONTENT['invoices.csv']);
 
@@ -301,7 +316,7 @@ describe('writes', () => {
     const reply = await done;
     expect(approvalOf(reply)?.status).toBe('approved');
     expect(reply.steps).toMatchObject([
-      { name: 'append_rows', detail: 'invoices.csv', meta: '1 row added', status: 'done' },
+      { name: 'append', detail: 'data/invoices.csv', meta: '1 row added', status: 'done' },
     ]);
     expect(await invoicesFile(world)).toContain('INV-4,C-2,5000,2026-12-05,false');
     expect((await world.host.listChats(world.graduate.id))[0]?.waiting).toBe(false);
@@ -317,15 +332,15 @@ describe('writes', () => {
 
     const reply = await done;
     expect(approvalOf(reply)?.status).toBe('denied');
-    expect(reply.steps).toMatchObject([{ name: 'append_rows', meta: 'declined' }]);
+    expect(reply.steps).toMatchObject([{ name: 'append', meta: 'declined' }]);
     expect(await invoicesFile(world)).toBe(SAMPLE_CONTENT['invoices.csv']);
     const toolMessage = world.model.chats()[1]?.messages.at(-1);
-    expect(toolMessage).toMatchObject({ role: 'tool', tool_name: 'append_rows' });
+    expect(toolMessage).toMatchObject({ role: 'tool', tool_name: 'append' });
     expect(toolMessage?.content).toContain('The user declined this change');
   });
 
   it('switches the graduate to allowing writes when the user says always', async () => {
-    const second = { ...NEW_INVOICE, invoice_id: 'INV-5' };
+    const second = NEW_INVOICE.replace('INV-4', 'INV-5');
     const world = await setup([
       addInvoice(),
       { text: 'Added INV-4.' },
@@ -341,7 +356,7 @@ describe('writes', () => {
     expect(workspaceStore(world.engine, world.dataDir).writeMode(world.graduate.id)).toBe('allow');
 
     const { reply } = await ask(world, 'And another one for INV-5.', chat);
-    expect(approvalOf(reply)).toMatchObject({ status: 'approved', file: 'invoices.csv' });
+    expect(approvalOf(reply)).toMatchObject({ status: 'approved', file: 'data/invoices.csv' });
     const updates = world.events.filter(
       (event) => event.type === 'chat.updated' && event.chat.waiting,
     );
@@ -357,7 +372,7 @@ describe('writes', () => {
     });
     const { reply } = await ask(world, 'Add an invoice for Ruiz, Ben.');
     expect(reply.blocks).toEqual([]);
-    expect(reply.steps).toMatchObject([{ name: 'append_rows', status: 'error' }]);
+    expect(reply.steps).toMatchObject([{ name: 'append', status: 'error' }]);
     expect(reply.steps[0]?.meta).toContain('Writing is turned off for Service desk');
     const toolMessage = world.model.chats()[1]?.messages.at(-1);
     expect(toolMessage?.content).toContain('nothing was written');
@@ -396,7 +411,7 @@ describe('stopping', () => {
     const reply = await done;
     expect(reply.status).toBe('stopped');
     expect(approvalOf(reply)?.status).toBe('denied');
-    expect(reply.steps).toMatchObject([{ name: 'append_rows', status: 'done', meta: 'stopped' }]);
+    expect(reply.steps).toMatchObject([{ name: 'append', status: 'done', meta: 'stopped' }]);
     expect(await invoicesFile(world)).toBe(SAMPLE_CONTENT['invoices.csv']);
     await expect(world.host.decide(approval.changeId, 'approve')).rejects.toThrow(
       'no longer waiting',
@@ -423,9 +438,9 @@ describe('when no one can answer an approval', () => {
       failure: {
         kind: 'approval_required',
         approval: {
-          tool: 'append_rows',
-          file: 'invoices.csv',
-          summary: 'Append 1 row to invoices.csv',
+          tool: 'append',
+          file: 'data/invoices.csv',
+          summary: 'Add 1 row to data/invoices.csv',
           diff: { added: [['INV-4', 'C-2', '5000', '2026-12-05', 'false']] },
         },
       },

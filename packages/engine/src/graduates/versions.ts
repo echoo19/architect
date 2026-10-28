@@ -2,10 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { cp, mkdir, rename, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { writePackage, type WrittenPackage } from '@architect/harness';
-import type { DataFile, VersionRef, VersionState } from '@architect/shared';
+import type { DataFile, JobContract, VersionRef, VersionState } from '@architect/shared';
 import type { DataPaths } from '../loop/paths';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredInstallation, StoredVersion } from '../store/records';
+import { storedFolder } from './bindings';
 import { buildPackage, type VersionFacts } from './build';
 
 /** The next version number of an agent on this computer. */
@@ -133,6 +134,26 @@ export async function seedDataFolder(
   } finally {
     await rm(staging, { recursive: true, force: true });
   }
+}
+
+/**
+ * The bindings a graduate made on this computer starts with: `data/` to its own copy of the
+ * job's data, and `output/` to a folder of its own when its contract allows one.
+ */
+export async function sameComputerBindings(
+  paths: DataPaths,
+  graduateId: string,
+  contract: JobContract,
+  data: string,
+): Promise<Record<string, string>> {
+  const bindings: Record<string, string> = {};
+  if (await exists(data)) bindings['data'] = storedFolder(paths, data);
+  if (contract.outputs.folder !== undefined) {
+    const output = paths.outputDir(graduateId);
+    await mkdir(output, { recursive: true });
+    bindings['output'] = storedFolder(paths, output);
+  }
+  return bindings;
 }
 
 export async function exists(path: string): Promise<boolean> {

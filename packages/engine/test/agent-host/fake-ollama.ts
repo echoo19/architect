@@ -4,9 +4,12 @@ import type { JsonValue } from '@architect/shared';
 
 /** One scripted model turn, streamed the way Ollama's `/api/chat` streams. */
 export interface ScriptedTurn {
+  /** Reasoning, streamed in pieces before the text, as `thinking`. */
+  thinking?: string;
   text?: string;
-  toolCalls?: { name: string; arguments: Record<string, JsonValue> }[];
-  /** Characters per streamed piece of text. Default 8. */
+  /** Arguments given as a string are sent as that string, as a model that garbled them wrote it. */
+  toolCalls?: { name: string; arguments: Record<string, JsonValue> | string }[];
+  /** Characters per streamed piece of reasoning or text. Default 8. */
   chunk?: number;
   /** A pause before each piece, so a reply can be stopped mid-stream. */
   delayMs?: number;
@@ -107,6 +110,9 @@ async function stream(response: ServerResponse, turn: ScriptedTurn): Promise<voi
   const line = (value: object) => response.write(`${JSON.stringify({ model: MODEL, ...value })}\n`);
   const text = turn.text ?? '';
   const size = turn.chunk ?? 8;
+  for (const piece of pieces(turn.thinking ?? '', size)) {
+    line({ message: { role: 'assistant', content: '', thinking: piece }, done: false });
+  }
   for (let at = 0; at < text.length; at += size) {
     if (turn.delayMs) await new Promise((resolve) => setTimeout(resolve, turn.delayMs));
     if (!open) return;
@@ -132,6 +138,13 @@ async function stream(response: ServerResponse, turn: ScriptedTurn): Promise<voi
     eval_count: 30,
   });
   response.end();
+}
+
+/** `text` cut into pieces of `size` characters. */
+export function pieces(text: string, size: number): string[] {
+  const out: string[] = [];
+  for (let at = 0; at < text.length; at += size) out.push(text.slice(at, at + size));
+  return out;
 }
 
 function isStreamed(body: unknown): boolean {

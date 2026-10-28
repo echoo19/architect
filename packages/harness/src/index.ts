@@ -1,10 +1,12 @@
 export { applyEdits } from './edits';
 export { diffHarness } from './diff';
 export { HarnessValidationError } from './errors';
-export { readHarness, writeHarness } from './folder';
+export { readHarness, readStoredHarness, writeHarness } from './folder';
+export type { StoredHarness } from './folder';
 export { MANIFEST_FILE as LEGACY_MANIFEST_FILE, readGraduate, writeGraduate } from './graduate';
 export type { GraduateBundle, GraduateFolder } from './graduate';
 export { hashFiles, hashHarness } from './hash';
+export { migrateFormat1 } from './legacy';
 export { appendLineage, readLineage } from './lineage';
 export { renderReportMarkdown } from './report';
 export {
@@ -32,7 +34,7 @@ export { looksLikeText, scanText } from './package/scan';
 export type { ScanOptions } from './package/scan';
 export { extractZip, readZipEntries, writeZip } from './package/zip';
 export type { ZipEntry } from './package/zip';
-export { harnessToFiles, metaToFile } from './serialize';
+export { harnessToFiles, metaToFile, skillFiles } from './serialize';
 export type { HarnessFilesOptions } from './serialize';
 export { blankHarness, importHarness, templateHarness } from './starting';
 export { HARNESS_TEMPLATES } from './templates';

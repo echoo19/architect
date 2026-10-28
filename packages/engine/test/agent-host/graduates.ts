@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { harnessToFiles, hashHarness } from '@architect/harness';
 import {
   contractTerms,
+  HARNESS_FORMAT,
   HarnessSchema,
   JobContractSchema,
   type Harness,
@@ -42,7 +43,7 @@ const RUN_ID = 'run_fixture';
 
 export function fixtureHarness(name: string, overrides: GraduateOptions['harness'] = {}): Harness {
   const harness = HarnessSchema.parse({
-    meta: { format: 1, name, version: 4, hash: '' },
+    meta: { format: HARNESS_FORMAT, name, version: 4, hash: '' },
     system: 'You are the service desk of Ferncliff Home Services.',
     retrieval: {},
     decoding: { maxSteps: 4 },

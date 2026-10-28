@@ -12,5 +12,8 @@
   },
   "dependencies": {
     "@architect/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@architect/engine": "workspace:*"
   }
 }

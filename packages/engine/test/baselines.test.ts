@@ -117,7 +117,7 @@ describe('the one-shot baseline, when its reply cannot be used', () => {
       call === 1
         ? {
             ...hypothesis('Complete harness', ''),
-            edits: [{ op: 'delete' as const, path: 'system.md', content: '' }],
+            edits: [{ op: 'delete' as const, path: 'AGENTS.md', content: '' }],
           }
         : hypothesis('Complete harness', 'fix:invoice\nfix:overdue');
     const { run: finished } = await run('one_shot');
@@ -125,7 +125,7 @@ describe('the one-shot baseline, when its reply cannot be used', () => {
     expect(world.mentor.requests).toHaveLength(2);
     const [asked, fix] = world.mentor.requests;
     expect(fix?.messages.slice(0, -2)).toEqual(asked?.messages);
-    expect(fix?.messages.at(-1)?.content).toContain('system.md: cannot be deleted.');
+    expect(fix?.messages.at(-1)?.content).toContain('AGENTS.md: cannot be deleted.');
     expect(finished).toMatchObject({ currentVersion: 2, devCurrent: { pass: 6, total: 9 } });
     expect(engine.store.rounds.get(finished.id, 1)?.round).toMatchObject({
       decision: 'kept',

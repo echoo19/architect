@@ -2,45 +2,48 @@
 
 A harness is a plain folder, so it can be read, diffed, imported, improved and exported without Architect. A graduate version is a package: a harness folder plus the files that pin it to a model and record how it was made.
 
-Harness format: **1**. Graduate package format: **2**. `@architect/harness` reads, writes, validates, diffs and versions these folders; the zod schemas in `@architect/shared` are the source of truth, and this page describes them.
+Harness format: **2**. Graduate package format: **2**. `@architect/harness` reads, writes, validates, diffs and versions these folders; the zod schemas in `@architect/shared` are the source of truth, and this page describes them. Harness format 1 folders still load (see the end of this page).
 
 ## Harness folder
 
 ```
-harness.yaml          format version, name, version number, parent version, content hash
-system.md             the system prompt: role, scope, operating rules
-skills/<slug>.md      step-by-step procedures, one per task type or sub-procedure
-tools/<name>.json     a tool's manifest: name, description, JSON Schema for its arguments
-tools/<name>.js       the tool's code: defines `function run(args, ctx)`
-examples/<slug>.json  corrected traces used as few-shot examples
-retrieval.yaml        which skills and examples load for which request
-decoding.yaml         temperature, top_p, seed, max steps, max output tokens, thinking
-guardrails.yaml       task types the agent refuses, each with the reason
+harness.yaml               format version, name, version number, parent version, content hash
+AGENTS.md                  the standing instructions: role, scope, operating rules
+skills/<name>/SKILL.md     a procedure the agent reads when a request calls for it
+tools/<name>.json          a helper tool's manifest: name, description, JSON Schema for its arguments
+tools/<name>.js            the helper's code: defines `function run(args, ctx)`
+examples/<slug>.json       corrected traces used as few-shot examples
+retrieval.yaml             which skills and examples load for which request
+decoding.yaml              temperature, top_p, top_k, max steps, max output tokens, thinking
+guardrails.yaml            task types the agent refuses, each with the reason
 ```
 
-Everything except `harness.yaml` and `system.md` is optional. A blank harness is just those two files.
+Everything except `harness.yaml` and `AGENTS.md` is optional. A blank harness is just those two files.
 
 ### harness.yaml
 
 ```yaml
-format: 1
+format: 2
 name: Service desk
 version: 7          # increases by one for every kept or candidate change
 parent: 6           # the version this one was derived from; absent for the first
 hash: sha256-...    # over the normalized contents of every other file
 ```
 
-### skills/<slug>.md
+### AGENTS.md
 
-Markdown with a small front matter block. The agent sees each skill's name and summary in its system prompt and loads the full text with the built-in `load_skill` tool, unless a retrieval rule loads it automatically.
+The standing instructions. They open the agent's system prompt, followed by the date, the agent's files, its skills by name and description, and whatever the retrieval rules load.
+
+### skills/<name>/SKILL.md
+
+Markdown with a small front matter block. `name` is the folder's name (lowercase letters, digits and dashes); `description` says what the skill is for. The agent sees every skill's name and description in its system prompt and reads the whole file with `read` when it needs the steps, unless a retrieval rule puts the steps in the prompt up front. A skill folder holds only `SKILL.md`.
 
 ```markdown
 ---
-name: Price a completed job
-summary: Turn a completed job into invoice lines and a total in cents.
-task_types: [invoice]
+name: price-a-job
+description: Turn a completed job into invoice lines and a total in cents.
 ---
-1. Read the job with read_table ...
+1. Find the job's line with grep in data/jobs.csv ...
 ```
 
 ### tools/<name>.json and tools/<name>.js
@@ -57,7 +60,7 @@ function run(args, ctx) {
 }
 ```
 
-Tools run in a QuickJS sandbox with no network, no clock and no randomness. `ctx` exposes only the job's declared files, read-only. A tool returns JSON-serializable data; a thrown error comes back to the agent as a tool error.
+Helpers run in a QuickJS sandbox with no network, no clock and no randomness. `ctx` exposes only the job's declared data files, read-only, by name (`jobs.csv`, or `data/jobs.csv`). A helper returns JSON-serializable data; a thrown error comes back to the agent as a tool error. A helper can't have the name of a built-in tool.
 
 ### examples/<slug>.json
 
@@ -66,14 +69,14 @@ Tools run in a QuickJS sandbox with no network, no clock and no randomness. `ctx
   "task_types": ["invoice"],
   "messages": [
     { "role": "user", "content": "..." },
-    { "role": "assistant", "content": "", "tool_calls": [ { "id": "call_1", "name": "read_table", "arguments": { "file": "jobs.csv" } } ] },
-    { "role": "tool", "tool_call_id": "call_1", "name": "read_table", "content": "..." } ] }
+    { "role": "assistant", "content": "", "tool_calls": [ { "id": "call_1", "name": "grep", "arguments": { "pattern": "^W-2482,", "path": "data/jobs.csv" } } ] },
+    { "role": "tool", "tool_call_id": "call_1", "name": "grep", "content": "..." } ] }
 ```
 
 ### retrieval.yaml
 
 ```yaml
-list_skills: true            # put each skill's name and summary in the system prompt
+list_skills: true            # put each skill's name and description in the system prompt
 max_loaded_skills: 2
 max_examples: 2
 rules:
@@ -82,7 +85,7 @@ rules:
     load_examples: [after-hours-plan-member]
 ```
 
-`when_any` matches case-insensitive words or phrases in the request. Rules apply in order until the caps are reached.
+`when_any` matches case-insensitive words or phrases in the request. `load_skills` names skills by their folder. Rules apply in order until the caps are reached.
 
 ### decoding.yaml
 
@@ -107,6 +110,29 @@ refuse:
 ```
 
 A request that matches a refusal rule gets a refusal with the reason, before the student is called.
+
+## The agent's folder and tools
+
+The harness runs on a coding agent's tools over a folder of logical paths; the agent never sees a path on the computer.
+
+```
+data/<file>           the job's declared data files; the job says which ones may change
+output/               a folder for new files, when the job allows one (data.output in job.json)
+skills/<name>/SKILL.md  the harness's skills, read-only
+```
+
+| Tool | What it does |
+| --- | --- |
+| `read(path, offset?, limit?)` | A file's lines, numbered (line number, tab, text), up to 200 lines or 8,000 characters at a time; the last line says how many lines are left and the offset to read on from. |
+| `ls(path?)` | A folder's files with their kind (table or text), size in lines and whether the agent may change them; the top folders when no path is given. |
+| `glob(pattern)` | Paths that match a pattern; a pattern without `/` matches file names in any folder. |
+| `grep(pattern, path?, glob?, ignore_case?, limit?)` | Lines that match a regular expression, as `path:line: text`, 50 by default and 200 at most, with a count of the rest. The search runs in the sandbox, so a runaway pattern is stopped. |
+| `write(path, content)` | Replaces a file the agent may change, or creates one in `output/`. |
+| `edit(path, old_string, new_string, replace_all?)` | Replaces exact text, which must match once unless `replace_all` is set. |
+| `append(path, text)` | Adds lines at the end of a file. |
+| `run(code)` | JavaScript in the QuickJS sandbox, with `files.read`, `files.list`, `csv.parse`, `csv.stringify`, `print`, `console.log` and `today` (the job's business date). No network, no clock, no randomness, a time and memory limit, and no way to change a file. It returns what the code printed and `=> ` the JSON of its last value, both capped. |
+
+The three write tools go through the job's write permissions, and in the workspace through the user's approval (ask, allow or never); every change is diffed by line, and a change to a table also by row. A table must stay valid CSV with its header line. During training each attempt works on its own scratch copy; in the workspace `data/` and `output/` are the folders the graduate's installation on this computer binds (below).
 
 ## Graduate package (format 2)
 
@@ -184,3 +210,7 @@ Graduates made before versions were one folder: the harness files, `graduate.yam
 - Every candidate change to a harness during training produces a new harness version folder; reverted ones are kept for the lineage but are never a parent of a kept one.
 - `hash` changes whenever any harness file changes, so a package's harness can be checked against its manifest.
 - Export writes `<name>-v<n>/` and `<name>-v<n>.architect.zip`: the version's folder byte for byte, plus a resource's files only when chosen. Import accepts either, checks all of it before anything runs, and installs it as a new local version; the same version twice is found, never installed again. A package joins an agent already here only when that agent has the version it names as parent, by digest; otherwise it becomes an agent of its own.
+
+## Format 1
+
+Format 1 kept the instructions in `system.md` and each skill in one file, `skills/<slug>.md`, with front matter `name` (a title), `summary` and `task_types`. Architect reads it and migrates it in memory: `system.md` becomes `AGENTS.md`, and each skill becomes `skills/<slug>/SKILL.md` with `name: <slug>`, `description: <summary>` and the old title as the first heading of its steps; `task_types` did nothing and is dropped. A helper named like one of today's built-in tools (format 1 allowed `grep` or `run`) becomes `<name>_helper`. A format 1 folder is checked against its hash as stored, then gets a new hash over its files in format 2. It is only ever written in format 2. An older graduate still opens in the workspace and runs on the new tools. A run frozen before the change keeps its old hash on record, so its locked test can't run (or run again) and its graduate can't be rewritten on acceptance: its results belong to the table tools it ran with.

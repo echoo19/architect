@@ -6,8 +6,7 @@ import type { CheckResult, Job, JsonValue, Task } from '@architect/shared';
 import { jobDir } from '../src';
 import { parseCsv } from '../src/lib/csv';
 import type { CsvRow } from '../src/lib/csv';
-import { parseJobData } from '../src/reference/tools';
-import type { JobData } from '../src/reference/tools';
+import { JobFiles } from '../src/reference/tools';
 
 export const BUSINESS_DATE = '2026-11-24';
 
@@ -37,7 +36,7 @@ export class JobFolder {
   private tasks: Task[] | undefined;
   private readonly tables = new Map<string, CsvRow[]>();
   private sandbox: vm.Context | undefined;
-  private parsed: JobData | undefined;
+  private parsed: JobFiles | undefined;
 
   file(path: string): string {
     return readFileSync(join(this.dir, ...path.split('/')), 'utf8');
@@ -70,8 +69,8 @@ export class JobFolder {
   }
 
   /** Every file in data/, the way the reference solutions' tools serve them. */
-  data(): JobData {
-    this.parsed ??= parseJobData(
+  data(): JobFiles {
+    this.parsed ??= new JobFiles(
       new Map(readdirSync(join(this.dir, 'data')).map((name) => [name, this.file(`data/${name}`)])),
     );
     return this.parsed;

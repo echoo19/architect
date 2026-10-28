@@ -2,9 +2,15 @@ import { z } from 'zod';
 import { ChatMessageSchema } from './chat';
 import { JsonSchemaObjectSchema } from './json';
 
-export const HARNESS_FORMAT = 1;
+/**
+ * The harness folder format this version writes. Format 1 (instructions in `system.md`, skills
+ * as `skills/<slug>.md`) is still read, and migrated to this one in memory.
+ */
+export const HARNESS_FORMAT = 2;
 
-const slug = z.string().regex(/^[a-z0-9][a-z0-9-]{0,59}$/);
+/** A skill's name: its folder under `skills/`, in lowercase letters, digits and dashes. */
+export const SkillNameSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,59}$/);
+const slug = SkillNameSchema;
 const toolName = z.string().regex(/^[a-z][a-z0-9_]{0,63}$/);
 
 export const HarnessMetaSchema = z.object({
@@ -16,11 +22,12 @@ export const HarnessMetaSchema = z.object({
 });
 export type HarnessMeta = z.infer<typeof HarnessMetaSchema>;
 
+/** `skills/<name>/SKILL.md`: a procedure the agent reads when a request calls for it. */
 export const SkillSchema = z.object({
-  slug,
-  name: z.string().min(1),
-  summary: z.string().min(1),
-  taskTypes: z.array(z.string()).default([]),
+  name: SkillNameSchema,
+  /** What the skill is for and when to use it: one line in the agent's list of skills. */
+  description: z.string().min(1),
+  /** The steps, in Markdown, after the front matter. */
   body: z.string(),
 });
 export type Skill = z.infer<typeof SkillSchema>;
@@ -44,6 +51,7 @@ export type Example = z.infer<typeof ExampleSchema>;
 
 export const RetrievalRuleSchema = z.object({
   whenAny: z.array(z.string().min(1)).min(1),
+  /** Skills, by name, whose whole text goes in the system prompt for a matching request. */
   loadSkills: z.array(slug).default([]),
   loadExamples: z.array(slug).default([]),
 });
@@ -85,6 +93,7 @@ export type Guardrails = z.infer<typeof GuardrailsSchema>;
 
 export const HarnessSchema = z.object({
   meta: HarnessMetaSchema,
+  /** `AGENTS.md`: the standing instructions that open the agent's system prompt. */
   system: z.string(),
   skills: z.array(SkillSchema).default([]),
   tools: z.array(HarnessToolSchema).default([]),
@@ -95,14 +104,24 @@ export const HarnessSchema = z.object({
 });
 export type Harness = z.infer<typeof HarnessSchema>;
 
+/** Where the standing instructions live in a harness folder. */
+export const INSTRUCTIONS_FILE = 'AGENTS.md';
+/** The file every skill folder holds. */
+export const SKILL_FILE = 'SKILL.md';
+
+/** A skill's file, relative to the harness folder: `skills/<name>/SKILL.md`. */
+export function skillFilePath(name: string): string {
+  return `skills/${name}/${SKILL_FILE}`;
+}
+
 /**
  * Files the mentor may write or delete, relative to the harness folder. `harness.yaml` is
  * managed by the runner, and nothing outside this surface (checker, splits, data, permissions)
  * can be touched by a change.
  */
 export const HARNESS_SURFACE: readonly RegExp[] = [
-  /^system\.md$/,
-  /^skills\/[a-z0-9][a-z0-9-]{0,59}\.md$/,
+  /^AGENTS\.md$/,
+  /^skills\/[a-z0-9][a-z0-9-]{0,59}\/SKILL\.md$/,
   /^tools\/[a-z][a-z0-9_]{0,63}\.(json|js)$/,
   /^examples\/[a-z0-9][a-z0-9-]{0,59}\.json$/,
   /^retrieval\.yaml$/,

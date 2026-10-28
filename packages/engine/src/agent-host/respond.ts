@@ -37,7 +37,7 @@ export async function respond(input: ReplyRequest): Promise<void> {
       harness: graduate.harness,
       job: graduate.job,
       student: graduate.student,
-      store: graduate.data,
+      files: graduate.files,
       sandbox: input.sandbox,
       request: input.request,
       history: input.history,
@@ -97,8 +97,8 @@ function record(reply: LiveReply, harness: Harness, step: TraceStep): void {
       return;
     }
     case 'skill':
-      // A skill the model asked for already shows as its load_skill call.
-      if (step.via === 'rule') reply.addStep(ruleSkillStep(step.slug, harness));
+      // A skill the model read already shows as the step of its read call.
+      if (step.via === 'rule') reply.addStep(ruleSkillStep(step.slug));
       return;
     case 'refusal':
       reply.addBlock({ kind: 'refusal', taskType: step.taskType, reason: step.reason });

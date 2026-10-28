@@ -1,28 +1,36 @@
 /**
- * The engine runtime: the job's data, the built-in tools, the tool sandbox, the student agent
+ * The engine runtime: the agent's files, the built-in tools, the tool sandbox, the student agent
  * loop, the checker, the splitter, the locked-test vault and evaluation.
  */
 
 export { DataError } from './data/errors';
 export type { RowSelection } from './data/query';
-export { openTableStore } from './data/table-store';
-export type {
-  PlannedWrite,
-  ReadOptions,
-  ReadResult,
-  StoreMode,
-  TableChange,
-  TableStore,
-  TableStoreOptions,
-} from './data/table-store';
 export type { FileInfo, Row, TableSnapshot } from './data/types';
 
+export { openAgentFiles } from './files/agent-files';
+export type {
+  AgentFile,
+  AgentFiles,
+  AgentFilesOptions,
+  CheckedFiles,
+  FileArea,
+  FilesMode,
+  OutputFolder,
+  PlannedChange,
+} from './files/agent-files';
+
 export type { ApproveWrite, PendingWrite, WriteDecision } from './tools/builtins';
-export { BUILTIN_TOOL_SPECS } from './tools/specs';
+export { BUILTIN_TOOL_SPECS, TOOL_RUNTIME } from './tools/specs';
+export { createToolbox } from './tools/toolbox';
+export type { Toolbox, ToolboxOptions, ToolOutcome } from './tools/toolbox';
 
 export { createSandbox } from './sandbox/sandbox';
 export type { SandboxOptions } from './sandbox/sandbox';
 export type {
+  CodeOutcome,
+  CodeRequest,
+  GrepOutcome,
+  GrepRequest,
   Sandbox,
   SandboxData,
   SandboxFailure,
@@ -35,7 +43,7 @@ export type { ParsedAnswer } from './agent/answer';
 export { runAgent } from './agent/loop';
 export type { RunAgentOptions } from './agent/loop';
 export { buildSystemPrompt } from './agent/prompt';
-export type { AgentMode, SystemPromptInput } from './agent/prompt';
+export type { AgentMode, FolderSummary, SystemPromptInput } from './agent/prompt';
 export { matchGuardrail, selectRetrieval } from './agent/retrieval';
 export type { GuardrailMatch, Retrieved } from './agent/retrieval';
 export { todayFor } from './agent/today';

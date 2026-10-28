@@ -1,6 +1,6 @@
 import type { JsonValue } from '@architect/shared';
+import type { CsvRow } from '../lib/csv';
 import { monthSpan } from '../lib/calendar';
-import { plainDollars } from '../lib/money';
 import { RESTOCKING_PCT, pickupIdFor, returnIdFor } from '../policy/rules';
 import { CATEGORIES } from '../shop/catalog';
 import type {
@@ -13,20 +13,22 @@ import type {
   ReturnAmounts,
 } from '../shop/types';
 import { Reader, readCategory, readDate, readEmail, readMoney, readSku } from './normalize';
-import { answerOrderQuestion } from './orders';
-import type { Ledger, LedgerLine, LedgerOrder, OrderQuestion } from './orders';
+import { answerOrderQuestion, answerTerms } from './orders';
+import type { AnswerTerms, Ledger, LedgerLine, LedgerOrder, OrderQuestion } from './orders';
 import { carrierFor, earliestPickup } from './pickups';
 import { decideReturn } from './refunds';
-import { MAX_ROWS } from './tools';
-import type { DeskTools, Row, TableRead } from './tools';
+import { cell } from './tools';
+import type { AgentTools, CodeRow } from './tools';
 
 /**
  * Reference solutions that use only the agent's built-in tools, so the calls they make show what
- * each task costs in turns and context. Each reads the policy first, then exactly the rows the
- * task needs, through where conditions a careful agent would write: equality on clean ids,
- * `contains` for a SKU or an email (which finds a value whatever its capitals or stray spaces),
- * and whole pages wherever a date or an amount has to be read before it can be compared. Values
- * are read back with `Reader`, which notes every kind of value it found written another way.
+ * each task costs in turns and context. Each reads the policy first, then sends code to run that
+ * fetches exactly the rows the task needs, the way a careful agent writes it: equality on clean
+ * ids, a case-blind search for a SKU or an email (which finds a value whatever its capitals or
+ * stray spaces), and joins from one table to the next. The policy's rules are applied here, to
+ * what the code fetched, and values are read back with `Reader`, which notes every kind of value
+ * it found written another way. Arithmetic goes through run as well, and a write task ends by
+ * appending its row.
  */
 
 export interface ReturnRequest {
@@ -49,29 +51,53 @@ export interface Solved<T> {
   variants: ReadonlySet<string>;
 }
 
+/** The first line of every fetch: a table's rows by its file name. */
+const READ = `const read = (name) => csv.parse(files.read('data/' + name));`;
+
+/** A value written into the code. */
+const text = (value: string): string => JSON.stringify(value);
+
 /** Decides a return request at the desk and appends its row to returns.csv. */
 export function solveReturn(
-  tools: DeskTools,
+  tools: AgentTools,
   request: ReturnRequest,
   today: string,
 ): Solved<ReturnAmounts> {
   const reader = new Reader();
-  tools.readText('policy.md');
-  const order = onlyRow(tools, 'orders.csv', 'order_id', request.order_id);
-  const customer = onlyRow(tools, 'customers.csv', 'customer_id', String(order.customer_id));
-  const lines = rowsOf(tools, {
-    file: 'order_lines.csv',
-    where: [{ column: 'order_id', op: '=', value: request.order_id }],
-  });
-  const line = lines.find((candidate) => readSku(candidate.sku) === request.sku);
+  tools.readAll('policy.md');
+  const sku = request.sku.toLowerCase();
+  const found = tools.run(
+    [
+      READ,
+      `const order = read('orders.csv').find((row) => row.order_id === ${text(request.order_id)});`,
+      '({',
+      '  order,',
+      "  customer: read('customers.csv').find((row) => row.customer_id === order.customer_id),",
+      "  lines: read('order_lines.csv').filter((row) => row.order_id === order.order_id),",
+      `  products: read('products.csv').filter((row) => row.sku.toLowerCase().includes(${text(sku)})),`,
+      "  returns: read('returns.csv').filter((row) => row.order_id === order.order_id),",
+      '})',
+    ].join('\n'),
+    (t) => {
+      const order = t.one('orders.csv', (row) => row.order_id === request.order_id);
+      return {
+        order,
+        customer: t.one('customers.csv', (row) => row.customer_id === order.customer_id),
+        lines: t.where('order_lines.csv', (row) => row.order_id === order.order_id),
+        products: t.where('products.csv', (row) => cell(row, 'sku').toLowerCase().includes(sku)),
+        returns: t.where('returns.csv', (row) => row.order_id === order.order_id),
+      };
+    },
+  );
+  const order = asRow(found.order);
+  const customer = asRow(found.customer);
+  const line = found.lines.map(asRow).find((candidate) => readSku(candidate.sku) === request.sku);
   if (!line) throw new Error(`Order ${request.order_id} has no line for ${request.sku}`);
   reader.sku(line.sku);
-  const product = productRow(tools, reader, request.sku);
+  const product = onlyOne(found.products, 'products.csv');
+  reader.sku(product.sku);
   const codes = isCategoryName(product.category) ? [] : legacyCodes(tools);
-  const earlier = rowsOf(tools, {
-    file: 'returns.csv',
-    where: [{ column: 'order_id', op: '=', value: request.order_id }],
-  }).filter((row) => row.decision === 'approved');
+  const earlier = found.returns.map(asRow).filter((row) => row.decision === 'approved');
   const sameSku = earlier.filter((row) => readSku(row.sku) === request.sku);
   sameSku.forEach((row) => reader.sku(row.sku));
 
@@ -95,20 +121,8 @@ export function solveReturn(
   // The shipping charge only counts when it is refunded.
   if (amounts.shipping_refund_cents > 0) reader.money(order.shipping);
 
-  tools.calculate(`round(${request.qty} * ${plainDollars(unitPrice)} * 100)`, amounts.item_cents);
-  if (amounts.restocking_fee_cents > 0) {
-    tools.calculate(
-      `round(${amounts.item_cents} * ${RESTOCKING_PCT} / 100)`,
-      amounts.restocking_fee_cents,
-    );
-  }
-  if (amounts.decision === 'approved') {
-    tools.calculate(
-      `${amounts.item_cents} - ${amounts.restocking_fee_cents} - ${amounts.return_shipping_cents} + ${amounts.shipping_refund_cents}`,
-      amounts.refund_cents,
-    );
-  }
-  tools.appendRows('returns.csv', [
+  addUpRefund(tools, request.qty, unitPrice, amounts);
+  tools.append('returns.csv', [
     {
       return_id: returnIdFor(request.request_id),
       order_id: request.order_id,
@@ -129,6 +143,31 @@ export function solveReturn(
   return { result: amounts, variants: reader.variants };
 }
 
+/**
+ * Works a return's amounts out in code, in cents: the item, the restocking fee when there is one
+ * and the refund when the return is approved. The fee rounds half up, as the policy says.
+ */
+function addUpRefund(
+  tools: AgentTools,
+  qty: number,
+  unitCents: number,
+  amounts: ReturnAmounts,
+): void {
+  const fee = amounts.restocking_fee_cents > 0;
+  const approved = amounts.decision === 'approved';
+  const refund = `item${fee ? ' - fee' : ''} - ${amounts.return_shipping_cents} + ${amounts.shipping_refund_cents}`;
+  const code = [
+    `const item = ${qty} * ${unitCents};`,
+    ...(fee ? [`const fee = Math.round((item * ${RESTOCKING_PCT}) / 100);`] : []),
+    `({ item_cents: item${fee ? ', restocking_fee_cents: fee' : ''}${approved ? `, refund_cents: ${refund}` : ''} })`,
+  ];
+  tools.run(code.join('\n'), () => ({
+    item_cents: amounts.item_cents,
+    ...(fee ? { restocking_fee_cents: amounts.restocking_fee_cents } : {}),
+    ...(approved ? { refund_cents: amounts.refund_cents } : {}),
+  }));
+}
+
 export interface BookedPickup {
   carrier: Carrier;
   pickup_date: string;
@@ -136,25 +175,54 @@ export interface BookedPickup {
 
 /** Books the earliest pickup for an approved return and appends it to pickups.csv. */
 export function solvePickup(
-  tools: DeskTools,
+  tools: AgentTools,
   request: PickupRequest,
   today: string,
 ): Solved<BookedPickup> {
   const reader = new Reader();
-  tools.readText('policy.md');
-  const record = onlyRow(tools, 'returns.csv', 'return_id', request.return_id);
+  tools.readAll('policy.md');
+  const found = tools.run(
+    [
+      READ,
+      `const record = read('returns.csv').find((row) => row.return_id === ${text(request.return_id)});`,
+      "const order = read('orders.csv').find((row) => row.order_id === record.order_id);",
+      'const sku = record.sku.trim().toLowerCase();',
+      '({',
+      '  record,',
+      '  order,',
+      "  customer: read('customers.csv').find((row) => row.customer_id === order.customer_id),",
+      "  products: read('products.csv').filter((row) => row.sku.toLowerCase().includes(sku)),",
+      '})',
+    ].join('\n'),
+    (t) => {
+      const record = t.one('returns.csv', (row) => row.return_id === request.return_id);
+      const order = t.one('orders.csv', (row) => row.order_id === record.order_id);
+      const sku = cell(record, 'sku').trim().toLowerCase();
+      return {
+        record,
+        order,
+        customer: t.one('customers.csv', (row) => row.customer_id === order.customer_id),
+        products: t.where('products.csv', (row) => cell(row, 'sku').toLowerCase().includes(sku)),
+      };
+    },
+  );
+  const record = asRow(found.record);
   if (record.decision !== 'approved') throw new Error(`${request.return_id} is not approved`);
-  const order = onlyRow(tools, 'orders.csv', 'order_id', String(record.order_id));
-  const customer = onlyRow(tools, 'customers.csv', 'customer_id', String(order.customer_id));
-  const product = productRow(tools, reader, reader.sku(record.sku));
+  const customer = asRow(found.customer);
+  reader.sku(record.sku);
+  const product = onlyOne(found.products, 'products.csv');
+  reader.sku(product.sku);
   const carrier = carrierFor(String(customer.region) as Region, product.bulky === 'yes');
+  const dates = tools.run(
+    `csv.parse(files.read('data/pickups.csv')).filter((row) => row.carrier === ${text(carrier)}).map((row) => row.pickup_date)`,
+    (t) =>
+      t
+        .where('pickups.csv', (row) => row.carrier === carrier)
+        .map((row) => cell(row, 'pickup_date')),
+  );
   const booked = new Map<string, number>();
-  for (const row of rowsOf(tools, {
-    file: 'pickups.csv',
-    where: [{ column: 'carrier', op: '=', value: carrier }],
-    columns: ['pickup_date'],
-  })) {
-    const date = reader.date(row.pickup_date);
+  for (const cell of dates) {
+    const date = reader.date(cell);
     booked.set(date, (booked.get(date) ?? 0) + 1);
   }
   const pickup_date = earliestPickup({
@@ -164,7 +232,7 @@ export function solvePickup(
     readyFrom: reader.optionalDate(record.pickup_from),
     bookedOn: (date) => booked.get(date) ?? 0,
   });
-  tools.appendRows('pickups.csv', [
+  tools.append('pickups.csv', [
     {
       pickup_id: pickupIdFor(request.return_id),
       return_id: request.return_id,
@@ -178,14 +246,13 @@ export function solvePickup(
 
 /**
  * Answers an order question from the rows it covers. Every amount and every count of units is
- * added up with one calculate call, the way the tool's description asks. Of the values written
- * another way, only those the answer depends on are noted: every date that decides whether an
- * order counts, but only the prices, shipping charges and categories that are added up or
- * matched.
+ * added up in code from the lines and charges the answer counts. Of the values written another
+ * way, only those the answer depends on are noted: every date that decides whether an order
+ * counts, but only the prices, shipping charges and categories that are added up or matched.
  */
-export function answerOrder(tools: DeskTools, question: OrderQuestion): Solved<JsonValue> {
+export function answerOrder(tools: AgentTools, question: OrderQuestion): Solved<JsonValue> {
   const reader = new Reader();
-  tools.readText('policy.md');
+  tools.readAll('policy.md');
   const ledger = (() => {
     switch (question.kind) {
       case 'spend':
@@ -199,21 +266,93 @@ export function answerOrder(tools: DeskTools, question: OrderQuestion): Solved<J
     }
   })();
   const answer = answerOrderQuestion(question, ledger);
-  for (const [key, value] of Object.entries(answer as Record<string, JsonValue>)) {
-    if (typeof value === 'number') tools.calculate(`the ${key} sum`, value);
-  }
+  addUpAnswer(tools, question, answerTerms(question, ledger), answer);
   return { result: answer, variants: reader.variants };
+}
+
+/** The numbers in an answer, added up in code from the terms it counts. */
+function addUpAnswer(
+  tools: AgentTools,
+  question: OrderQuestion,
+  terms: AnswerTerms,
+  answer: JsonValue,
+): void {
+  if (question.kind === 'unshipped') return;
+  const lines = `const lines = ${JSON.stringify(terms.lines.map((line) => [line.qty, line.unit_price_cents]))};`;
+  const amount = 'lines.reduce((sum, [qty, cents]) => sum + qty * cents, 0)';
+  const code = (() => {
+    switch (question.kind) {
+      case 'spend':
+        return [lines, `({ spent_cents: ${amount} })`];
+      case 'sku_sales':
+        return [
+          lines,
+          `({ units: lines.reduce((sum, [qty]) => sum + qty, 0), sales_cents: ${amount} })`,
+        ];
+      case 'month_orders':
+        return [
+          lines,
+          `const shipping = ${JSON.stringify(terms.shipping)};`,
+          `({ total_cents: ${amount} + shipping.reduce((sum, cents) => sum + cents, 0) })`,
+        ];
+    }
+  })();
+  const numbers = Object.fromEntries(
+    Object.entries(answer as Record<string, JsonValue>).filter(
+      ([, value]) => typeof value === 'number',
+    ),
+  );
+  tools.run(code.join('\n'), () => numbers);
 }
 
 type Question<K extends OrderQuestion['kind']> = Extract<OrderQuestion, { kind: K }>;
 
-function spendLedger(tools: DeskTools, reader: Reader, question: Question<'spend'>): Ledger {
-  const customer = customerByEmail(tools, reader, question.email);
-  const orders = ordersOf(tools, reader, customer.customer_id, ['order_date'])
-    .map(({ order }) => order)
+/** A customer found by email, and their orders with these columns besides the ids. */
+interface CustomerOrders {
+  customer: CodeRow;
+  orders: CodeRow[];
+}
+
+function customerOrders(
+  tools: AgentTools,
+  email: string,
+  columns: readonly string[],
+): CustomerOrders {
+  const needle = email.toLowerCase();
+  const fields = ['order_id', 'customer_id', ...columns];
+  return tools.run(
+    [
+      READ,
+      `const customer = read('customers.csv').find((row) => row.email.toLowerCase().includes(${text(needle)}));`,
+      '({',
+      '  customer: { customer_id: customer.customer_id, email: customer.email, region: customer.region },',
+      `  orders: read('orders.csv').filter((row) => row.customer_id === customer.customer_id).map((row) => (${fieldsOf(fields)})),`,
+      '})',
+    ].join('\n'),
+    (t) => {
+      const customer = t.one('customers.csv', (row) =>
+        cell(row, 'email').toLowerCase().includes(needle),
+      );
+      return {
+        customer: pick(customer, ['customer_id', 'email', 'region']),
+        orders: t
+          .where('orders.csv', (row) => row.customer_id === customer.customer_id)
+          .map((row) => pick(row, fields)),
+      };
+    },
+  );
+}
+
+function spendLedger(tools: AgentTools, reader: Reader, question: Question<'spend'>): Ledger {
+  const found = customerOrders(tools, question.email, ['order_date']);
+  const customer = customerOf(reader, asRow(found.customer));
+  const orders = found.orders
+    .map((row) => orderOf(reader, asRow(row)))
     .filter((order) => order.order_date >= question.since);
-  const rows = lineRows(tools, orders);
-  const categories = categoriesOf(tools, reader, rows, question.category);
+  const fetched =
+    orders.length === 0 ? { lines: [], products: [] } : linesAndProducts(tools, orders);
+  const rows = fetched.lines.map(asRow);
+  const categories = categoriesOf(tools, reader, rows, fetched.products, question.category);
   for (const row of rows) {
     reader.sku(row.sku);
     if (categories.get(readSku(row.sku)) === question.category) reader.money(row.unit_price);
@@ -226,17 +365,58 @@ function spendLedger(tools: DeskTools, reader: Reader, question: Question<'spend
   };
 }
 
-function salesLedger(tools: DeskTools, reader: Reader, question: Question<'sku_sales'>): Ledger {
-  const rows = rowsOf(tools, {
-    file: 'order_lines.csv',
-    where: [{ column: 'sku', op: 'contains', value: question.sku }],
-    columns: ['order_id', 'sku', 'qty', 'unit_price'],
-  });
-  const orders = rowsOf(tools, {
-    file: 'orders.csv',
-    where: [{ column: 'order_id', op: 'in', value: rows.map((row) => String(row.order_id)) }],
-    columns: ['order_id', 'customer_id', 'order_date'],
-  }).map((row) => orderOf(reader, row));
+/** The lines of some orders, and every product's SKU and category to match them against. */
+function linesAndProducts(
+  tools: AgentTools,
+  orders: readonly LedgerOrder[],
+): { lines: CodeRow[]; products: CodeRow[] } {
+  const ids = orders.map((order) => order.order_id);
+  return tools.run(
+    [
+      READ,
+      `const ids = ${JSON.stringify(ids)};`,
+      '({',
+      `  lines: read('order_lines.csv').filter((row) => ids.includes(row.order_id)).map((row) => (${fieldsOf(LINE_FIELDS)})),`,
+      "  products: read('products.csv').map((row) => ({ sku: row.sku, category: row.category })),",
+      '})',
+    ].join('\n'),
+    (t) => ({
+      lines: t
+        .where('order_lines.csv', (row) => ids.includes(cell(row, 'order_id')))
+        .map((row) => pick(row, LINE_FIELDS)),
+      products: t.where('products.csv', () => true).map((row) => pick(row, ['sku', 'category'])),
+    }),
+  );
+}
+
+function salesLedger(tools: AgentTools, reader: Reader, question: Question<'sku_sales'>): Ledger {
+  const needle = question.sku.toLowerCase();
+  const orderFields = ['order_id', 'customer_id', 'order_date'];
+  const found = tools.run(
+    [
+      READ,
+      `const lines = read('order_lines.csv').filter((row) => row.sku.toLowerCase().includes(${text(needle)})).map((row) => (${fieldsOf(LINE_FIELDS)}));`,
+      'const ids = lines.map((line) => line.order_id);',
+      '({',
+      '  lines,',
+      `  orders: read('orders.csv').filter((row) => ids.includes(row.order_id)).map((row) => (${fieldsOf(orderFields)})),`,
+      '})',
+    ].join('\n'),
+    (t) => {
+      const lines = t
+        .where('order_lines.csv', (row) => cell(row, 'sku').toLowerCase().includes(needle))
+        .map((row) => pick(row, LINE_FIELDS));
+      const ids = lines.map((line) => cell(line, 'order_id'));
+      return {
+        lines,
+        orders: t
+          .where('orders.csv', (row) => ids.includes(cell(row, 'order_id')))
+          .map((row) => pick(row, orderFields)),
+      };
+    },
+  );
+  const rows = found.lines.map(asRow);
+  const orders = found.orders.map((row) => orderOf(reader, asRow(row)));
   const { first, last } = monthSpan(question.month);
   const sold = new Set(
     orders
@@ -256,39 +436,64 @@ function salesLedger(tools: DeskTools, reader: Reader, question: Question<'sku_s
 }
 
 function unshippedLedger(
-  tools: DeskTools,
+  tools: AgentTools,
   reader: Reader,
   question: Question<'unshipped'>,
 ): Ledger {
-  const customers = rowsOf(tools, {
-    file: 'customers.csv',
-    where: [{ column: 'region', op: '=', value: question.region }],
-    columns: ['customer_id', 'email', 'region'],
-  }).map((row) => ({
-    customer_id: String(row.customer_id),
-    email: readEmail(row.email),
-    region: question.region,
-  }));
-  const orders = rowsOf(tools, {
-    file: 'orders.csv',
-    where: [
-      { column: 'customer_id', op: 'in', value: customers.map((c) => c.customer_id) },
-      { column: 'shipped_on', op: '=', value: null },
-    ],
-    columns: ['order_id', 'customer_id', 'order_date', 'shipped_on'],
-  }).map((row) => orderOf(reader, row));
-  return { customers, orders, lines: [], categoryOf: () => missing('a category') };
+  const orderFields = ['order_id', 'customer_id', 'order_date', 'shipped_on'];
+  const found = tools.run(
+    [
+      READ,
+      `const customers = read('customers.csv').filter((row) => row.region === ${text(question.region)}).map((row) => ({ customer_id: row.customer_id, email: row.email, region: row.region }));`,
+      'const ids = customers.map((customer) => customer.customer_id);',
+      '({',
+      '  customers,',
+      `  orders: read('orders.csv').filter((row) => ids.includes(row.customer_id) && row.shipped_on === '').map((row) => (${fieldsOf(orderFields)})),`,
+      '})',
+    ].join('\n'),
+    (t) => {
+      const customers = t
+        .where('customers.csv', (row) => row.region === question.region)
+        .map((row) => pick(row, ['customer_id', 'email', 'region']));
+      const ids = customers.map((customer) => cell(customer, 'customer_id'));
+      return {
+        customers,
+        orders: t
+          .where(
+            'orders.csv',
+            (row) => ids.includes(cell(row, 'customer_id')) && row.shipped_on === '',
+          )
+          .map((row) => pick(row, orderFields)),
+      };
+    },
+  );
+  return {
+    customers: found.customers.map((row) => ({
+      customer_id: String(row.customer_id),
+      email: readEmail(row.email),
+      region: question.region,
+    })),
+    orders: found.orders.map((row) => orderOf(reader, asRow(row))),
+    lines: [],
+    categoryOf: () => missing('a category'),
+  };
 }
 
-function monthLedger(tools: DeskTools, reader: Reader, question: Question<'month_orders'>): Ledger {
-  const customer = customerByEmail(tools, reader, question.email);
+function monthLedger(
+  tools: AgentTools,
+  reader: Reader,
+  question: Question<'month_orders'>,
+): Ledger {
+  const found = customerOrders(tools, question.email, ['order_date', 'shipping']);
+  const customer = customerOf(reader, asRow(found.customer));
   const { first, last } = monthSpan(question.month);
-  const placed = ordersOf(tools, reader, customer.customer_id, ['order_date', 'shipping']).filter(
-    ({ order }) => order.order_date >= first && order.order_date <= last,
-  );
+  const placed = found.orders
+    .map(asRow)
+    .map((row) => ({ row, order: orderOf(reader, row) }))
+    .filter(({ order }) => order.order_date >= first && order.order_date <= last);
   for (const { row } of placed) reader.money(row.shipping);
   const orders = placed.map(({ order }) => order);
-  const rows = lineRows(tools, orders);
+  const rows = orders.length === 0 ? [] : linesOf(tools, orders).map(asRow);
   for (const row of rows) reader.money(row.unit_price);
   return {
     customers: [customer],
@@ -298,12 +503,25 @@ function monthLedger(tools: DeskTools, reader: Reader, question: Question<'month
   };
 }
 
-function customerByEmail(tools: DeskTools, reader: Reader, email: string) {
-  const row = onlyMatch(tools, {
-    file: 'customers.csv',
-    where: [{ column: 'email', op: 'contains', value: email }],
-    columns: ['customer_id', 'email', 'region'],
-  });
+/** The lines of some orders, with the columns an answer reads. */
+function linesOf(tools: AgentTools, orders: readonly LedgerOrder[]): CodeRow[] {
+  const ids = orders.map((order) => order.order_id);
+  return tools.run(
+    [
+      `const ids = ${JSON.stringify(ids)};`,
+      `csv.parse(files.read('data/order_lines.csv')).filter((row) => ids.includes(row.order_id)).map((row) => (${fieldsOf(LINE_FIELDS)}))`,
+    ].join('\n'),
+    (t) =>
+      t
+        .where('order_lines.csv', (row) => ids.includes(cell(row, 'order_id')))
+        .map((row) => pick(row, LINE_FIELDS)),
+  );
+}
+
+const LINE_FIELDS = ['order_id', 'sku', 'qty', 'unit_price'];
+
+/** A customer found by email, with the email read back from however the export wrote it. */
+function customerOf(reader: Reader, row: CsvRow) {
   return {
     customer_id: String(row.customer_id),
     email: reader.email(row.email),
@@ -311,44 +529,20 @@ function customerByEmail(tools: DeskTools, reader: Reader, email: string) {
   };
 }
 
-/** A customer's orders as rows and as the answer reads them, with these columns besides the ids. */
-function ordersOf(
-  tools: DeskTools,
-  reader: Reader,
-  customerId: string,
-  columns: readonly string[],
-): { row: Row; order: LedgerOrder }[] {
-  return rowsOf(tools, {
-    file: 'orders.csv',
-    where: [{ column: 'customer_id', op: '=', value: customerId }],
-    columns: ['order_id', 'customer_id', ...columns],
-  }).map((row) => ({ row, order: orderOf(reader, row) }));
-}
-
-function lineRows(tools: DeskTools, orders: readonly LedgerOrder[]): Row[] {
-  if (orders.length === 0) return [];
-  return rowsOf(tools, {
-    file: 'order_lines.csv',
-    where: [{ column: 'order_id', op: 'in', value: orders.map((order) => order.order_id) }],
-    columns: ['order_id', 'sku', 'qty', 'unit_price'],
-  });
-}
-
 /**
- * The categories of the lines' products: the whole product list, and the old codes when one of
- * them is used. A code is noted only when it hides a product of the category asked about.
+ * The categories of the lines' products, from every product's row, and the old codes when one
+ * of them uses one. A code is noted only when it hides a product of the category asked about.
  */
 function categoriesOf(
-  tools: DeskTools,
+  tools: AgentTools,
   reader: Reader,
-  rows: readonly Row[],
+  rows: readonly CsvRow[],
+  everyProduct: readonly CodeRow[],
   asked: Category,
 ): Map<string, Category> {
   if (rows.length === 0) return new Map();
   const wanted = new Set(rows.map((row) => readSku(row.sku)));
-  const products = rowsOf(tools, { file: 'products.csv', columns: ['sku', 'category'] }).filter(
-    (row) => wanted.has(readSku(row.sku)),
-  );
+  const products = everyProduct.map(asRow).filter((row) => wanted.has(readSku(row.sku)));
   const codes = products.every((row) => isCategoryName(row.category)) ? [] : legacyCodes(tools);
   return new Map(
     products.map((row) => {
@@ -360,7 +554,7 @@ function categoriesOf(
 }
 
 /** An order as the answer needs it. Its date is noted when written another way; it decides. */
-function orderOf(reader: Reader, row: Row): LedgerOrder {
+function orderOf(reader: Reader, row: CsvRow): LedgerOrder {
   return {
     order_id: String(row.order_id),
     customer_id: String(row.customer_id),
@@ -372,7 +566,7 @@ function orderOf(reader: Reader, row: Row): LedgerOrder {
 }
 
 /** A line as the answer needs it, read back without noting anything: callers note what counts. */
-function lineOf(row: Row): LedgerLine {
+function lineOf(row: CsvRow): LedgerLine {
   return {
     order_id: String(row.order_id),
     sku: readSku(row.sku),
@@ -381,49 +575,39 @@ function lineOf(row: Row): LedgerLine {
   };
 }
 
-/** The product with this SKU, found whatever capitals or stray spaces its row has. */
-function productRow(tools: DeskTools, reader: Reader, sku: string): Row {
-  const product = onlyMatch(tools, {
-    file: 'products.csv',
-    where: [{ column: 'sku', op: 'contains', value: sku }],
-  });
-  reader.sku(product.sku);
-  return product;
-}
-
-function legacyCodes(tools: DeskTools): LegacyCode[] {
-  return rowsOf(tools, { file: 'category_map.csv' }).map((row) => ({
-    legacy_code: String(row.legacy_code),
-    category: String(row.category) as Category,
-  }));
+/** Every old category code and its category, fetched when a product carries one. */
+function legacyCodes(tools: AgentTools): LegacyCode[] {
+  return tools
+    .run("csv.parse(files.read('data/category_map.csv'))", (t) =>
+      t.where('category_map.csv', () => true),
+    )
+    .map((row) => ({ legacy_code: String(row.legacy_code), category: row.category as Category }));
 }
 
 function isCategoryName(cell: string | null | undefined): boolean {
   return CATEGORIES.some((category) => category === cell);
 }
 
-/** The row whose clean id column holds `value`. */
-function onlyRow(tools: DeskTools, file: string, column: string, value: string): Row {
-  return onlyMatch(tools, { file, where: [{ column, op: '=', value }] });
+/** A row the agent's code fetched, with its empty cells null as the export reads them. */
+function asRow(row: CodeRow): CsvRow {
+  return Object.fromEntries(
+    Object.entries(row).map(([column, cell]) => [column, cell === '' ? null : cell]),
+  );
 }
 
-function onlyMatch(tools: DeskTools, read: TableRead): Row {
-  const { rows, total } = tools.readTable(read);
-  if (total !== 1 || !rows[0]) throw new Error(`${total} rows of ${read.file} match`);
-  return rows[0];
+function onlyOne(rows: readonly CodeRow[], file: string): CsvRow {
+  if (rows.length !== 1 || !rows[0]) throw new Error(`${rows.length} rows of ${file} match`);
+  return asRow(rows[0]);
 }
 
-/** Every matching row, page by page. */
-function rowsOf(tools: DeskTools, read: TableRead): Row[] {
-  const rows: Row[] = [];
-  for (;;) {
-    const page = tools.readTable({ ...read, limit: MAX_ROWS, offset: rows.length });
-    if (page.rows.length === 0 && page.truncated) {
-      throw new Error(`A single row of ${read.file} is longer than a tool result can hold`);
-    }
-    rows.push(...page.rows);
-    if (!page.truncated) return rows;
-  }
+/** Some of a row's columns, in the order given. */
+function pick(row: CodeRow, columns: readonly string[]): CodeRow {
+  return Object.fromEntries(columns.map((column) => [column, row[column] ?? '']));
+}
+
+/** The object the code builds from a row: these columns, in this order. */
+function fieldsOf(columns: readonly string[]): string {
+  return `{ ${columns.map((column) => `${column}: row.${column}`).join(', ')} }`;
 }
 
 function missing(what: string): never {

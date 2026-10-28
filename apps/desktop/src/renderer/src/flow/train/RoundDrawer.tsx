@@ -7,7 +7,8 @@ import { useQuery } from '../../api/query';
 import { formatRange, formatRate, signed } from '../format';
 import { typeLabel } from '../names';
 import { decisionSentence, predictionCheck } from './decision';
-import { countChanges, parseUnifiedDiff, type DiffLine } from './diff';
+import { PatchLines } from '../../components/PatchLines';
+import { countChanges, parseUnifiedDiff } from './diff';
 import type { ModelNames } from './phase';
 
 const STATUS_TEXT: Record<Round['status'], string> = {
@@ -337,11 +338,7 @@ function RoundFiles({ runId, round }: { runId: string; round: Round }) {
 
 /** One file's change: its name and what happened to it, then every line, with + and − marks. */
 function FilePatch({ file }: { file: FileDiff }) {
-  const parsed = parseUnifiedDiff(file.patch);
-  const { added, removed } = countChanges(parsed);
-  // The first hunk starts the file's excerpt; later ones mark lines left out between them.
-  const first = parsed.findIndex((line) => line.kind === 'hunk');
-  const shown = parsed.filter((_, index) => index !== first);
+  const { added, removed } = countChanges(parseUnifiedDiff(file.patch));
   return (
     <article
       aria-label={`${file.path}, ${FILE_STATUS[file.status]}`}
@@ -355,67 +352,7 @@ function FilePatch({ file }: { file: FileDiff }) {
           <span className="text-danger">{removed} removed</span>
         </span>
       </header>
-      <table className="w-full border-collapse font-mono text-xs leading-5">
-        <tbody>
-          {shown.map((line, index) => (
-            <DiffRow key={index} line={line} />
-          ))}
-        </tbody>
-      </table>
+      <PatchLines patch={file.patch} />
     </article>
-  );
-}
-
-const LINE_TONE: Record<DiffLine['kind'], string> = {
-  added: 'bg-student-tint',
-  removed: 'bg-danger-tint',
-  context: '',
-  hunk: '',
-  note: 'text-fg-muted italic',
-};
-
-const MARK: Record<DiffLine['kind'], string> = {
-  added: '+',
-  removed: '−',
-  context: '',
-  hunk: '',
-  note: '',
-};
-
-function DiffRow({ line }: { line: DiffLine }) {
-  if (line.kind === 'hunk') {
-    return (
-      <tr>
-        <td
-          colSpan={3}
-          className="px-3 py-0.5 text-center text-fg-ghost"
-          aria-label="Lines skipped"
-        >
-          ⋯
-        </td>
-      </tr>
-    );
-  }
-  const number = line.kind === 'removed' ? line.oldLine : line.newLine;
-  return (
-    <tr className={LINE_TONE[line.kind]}>
-      <td className="w-10 select-none px-2 text-right align-top text-fg-ghost">
-        {line.kind === 'note' ? '' : (number ?? '')}
-      </td>
-      <td
-        className={cn(
-          'w-4 select-none text-center align-top',
-          line.kind === 'added' ? 'text-student' : 'text-danger',
-        )}
-        aria-hidden
-      >
-        {MARK[line.kind]}
-      </td>
-      <td className="whitespace-pre-wrap break-words py-px pr-3 align-top">
-        {line.kind === 'added' && <span className="sr-only">Added: </span>}
-        {line.kind === 'removed' && <span className="sr-only">Removed: </span>}
-        {line.text}
-      </td>
-    </tr>
   );
 }

@@ -261,7 +261,14 @@ for (const theme of THEMES) {
     await failed.click();
     const traceDrawer = page.getByRole('dialog');
     await expect(traceDrawer.getByText('Failed', { exact: true })).toBeVisible();
-    await expect(traceDrawer.getByText('read_table').first()).toBeVisible();
+    await expect(traceDrawer.getByText('read', { exact: true })).toBeVisible();
+    // A table read shows its rows, and code shows folded, with what it gave back under it.
+    await expect(traceDrawer.getByRole('row', { name: /T-11 Marcus O\./ })).toBeVisible();
+    await expect(traceDrawer.getByRole('button', { name: 'Code' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    await expect(traceDrawer.getByText('=> "08:00"')).toBeVisible();
     await expect(traceDrawer).toContainText(
       'Scheduling · Practice task, round 4 · using the setup from round 3',
     );

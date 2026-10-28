@@ -13,7 +13,10 @@ const TEXT_MAX = 60_000;
 
 const JsonRowSchema = z.record(z.string(), JsonValueSchema);
 
-/** What the mentor sees of the job's data: each table's shape and a few rows, and every text file. */
+/**
+ * What the mentor sees of the job's data: each table's shape and a few rows, and every text file,
+ * each by its name in the job (the student sees it as `data/<name>`).
+ */
 export async function describeDataFiles(
   files: readonly DataFile[],
   dataDir: string,

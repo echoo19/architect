@@ -2,9 +2,9 @@ import { readFile } from 'node:fs/promises';
 import { arch, platform, totalmem } from 'node:os';
 import { join } from 'node:path';
 import { isLoopbackUrl } from '@architect/adapters';
-import { hashHarness, readHarness } from '@architect/harness';
 import {
   ADAPTER_RUNTIMES,
+  PackageError,
   type Harness,
   type HarnessTool,
   type InstallCheck,
@@ -18,7 +18,7 @@ import { parseCsv } from '../data/csv';
 import type { DataPaths } from '../loop/paths';
 import type { StoredChecks, StoredInstallation, StoredVersion } from '../store/records';
 import { absoluteFolder } from './bindings';
-import { HARNESS_DIR } from './build';
+import { readPackageHarness } from './harness';
 import { exists } from './versions';
 
 /** Where Architect runs graduates. Anything else, a Raspberry Pi included, is reported as such. */
@@ -130,9 +130,12 @@ async function harnessCheck(
   manifest: PackageManifest,
 ): Promise<{ check: InstallCheck; harness: Harness | null; findings: Finding[] }> {
   try {
-    const harness = await readHarness(join(dir, HARNESS_DIR));
-    if (hashHarness(harness) !== manifest.harness.hash) {
-      const reason = "Its harness isn't the one the graduate was tested with: the hashes differ.";
+    let harness: Harness;
+    try {
+      harness = await readPackageHarness(dir, manifest);
+    } catch (error) {
+      if (!(error instanceof PackageError)) throw error;
+      const reason = `Its harness isn't the one the graduate was tested with. ${error.problems.join(' ')}`;
       return {
         check: { id: 'harness-valid', kind: 'harness_valid', status: 'failed', detail: reason },
         harness: null,
