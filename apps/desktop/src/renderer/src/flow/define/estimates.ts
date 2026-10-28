@@ -187,19 +187,23 @@ export function comparisonSeconds(job: Job, estimate: TimeEstimate): number {
   return 3 * testSeconds(job) + estimate.trainingSeconds.most;
 }
 
-/** What the three simpler versions add to the bills, each in the dollars of whoever bills it. */
-export interface ComparisonCost {
-  /** Practice on the hosted copy for the version that revises itself; null when it trains here. */
+/** Dollars by whoever bills them; each is null when that bill has no price. */
+export interface Bills {
+  /** Practice on the hosted copy; null when it trains here. */
   hostedUsd: number | null;
-  /** One call to the mentor for the instructions it writes in one go; null without a price. */
+  /** The mentor's calls. */
   mentorUsd: number | null;
 }
 
+/**
+ * What the three simpler versions add to the bills: the hosted practice for the version that
+ * revises itself, and one call to the mentor for the instructions it writes in one go.
+ */
 export function comparisonCost(
   job: Job,
   estimate: TimeEstimate,
   hostedPricing: TokenPricing | null | undefined,
-): ComparisonCost {
+): Bills {
   const preset = mentorPresetOf(job);
   return {
     hostedUsd: hostedPracticeUsd(job, estimate, hostedPricing),
@@ -223,21 +227,42 @@ function sumKnown(amounts: readonly (number | null)[]): number | null {
 }
 
 /**
- * The money in the plan: what the agent's own training costs (hosted practice and the mentor's
- * expected spend, not its cap) and what the comparison runs add. Each is null without a price.
+ * The money in the plan, by who bills it: the hosted practice, and the mentor's expected spend,
+ * which can't come to more than its cap. `total` adds the comparison runs when asked for;
+ * `comparison` is their share alone.
  */
+export function planBills(
+  job: Job,
+  estimate: TimeEstimate,
+  hostedPricing: TokenPricing | null | undefined,
+  withComparison: boolean,
+): { total: Bills; comparison: Bills } {
+  const comparison = comparisonCost(job, estimate, hostedPricing);
+  const expected = expectedMentorUsd(job, estimate);
+  const own: Bills = {
+    hostedUsd: hostedPracticeUsd(job, estimate, hostedPricing),
+    mentorUsd: expected === null ? null : Math.min(expected, job.budget.maxMentorUsd),
+  };
+  if (!withComparison) return { total: own, comparison };
+  return {
+    total: {
+      hostedUsd: sumKnown([own.hostedUsd, comparison.hostedUsd]),
+      mentorUsd: sumKnown([own.mentorUsd, comparison.mentorUsd]),
+    },
+    comparison,
+  };
+}
+
+/** The same money as two sums: what the agent's own training costs, and what the comparison adds. */
 export function planUsd(
   job: Job,
   estimate: TimeEstimate,
   hostedPricing: TokenPricing | null | undefined,
 ): { own: number | null; comparison: number | null } {
-  const extra = comparisonCost(job, estimate, hostedPricing);
+  const { total, comparison } = planBills(job, estimate, hostedPricing, false);
   return {
-    own: sumKnown([
-      hostedPracticeUsd(job, estimate, hostedPricing),
-      expectedMentorUsd(job, estimate),
-    ]),
-    comparison: sumKnown([extra.hostedUsd, extra.mentorUsd]),
+    own: sumKnown([total.hostedUsd, total.mentorUsd]),
+    comparison: sumKnown([comparison.hostedUsd, comparison.mentorUsd]),
   };
 }
 

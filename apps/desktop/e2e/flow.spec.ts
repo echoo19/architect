@@ -91,7 +91,8 @@ for (const theme of THEMES) {
   test(`walks from a description to a graduate (${theme})`, async () => {
     const { app, page } = launched;
     await stubFlow();
-    await applySettings(page, { theme, onboarded: true, comparisonMode: true });
+    // Comparison mode is a researcher's setting, so the screens that get captured leave it off.
+    await applySettings(page, { theme, onboarded: true, comparisonMode: false });
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
 
     // Describe: the job in plain words, with its files.
@@ -151,7 +152,7 @@ for (const theme of THEMES) {
       ),
     ).toBeVisible();
 
-    // Training, the final test and the comparison are told apart, and never added together.
+    // Training and the final test are told apart, and each dollar figure says who bills it.
     await expect(
       page.getByText(
         "Spark, the mentor, is a cloud model that coaches it in rounds: each round, Spark changes Glimmer's instructions, skills or tools and checks whether that helped.",
@@ -160,6 +161,11 @@ for (const theme of THEMES) {
     await expect(
       page.getByText(
         'Training stops at the 90% target or after 4 hours, whichever comes first, or sooner if changes stop helping. Then the final test runs on this computer.',
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        'Training runs only while Architect is open on this computer, even on a hosted copy.',
       ),
     ).toBeVisible();
     const local = page.getByRole('radio', { name: /This computer/ });
@@ -187,7 +193,7 @@ for (const theme of THEMES) {
     await expect(hosted).toBeEnabled();
     await expect(
       page.getByText(
-        'In all: about 6.5 hours and about $0.70. Training alone stays within the 4-hour limit.',
+        'In all: about 6.5 hours and about $0.70 billed by Meta (never more than $5). Training alone stays within the 4-hour limit.',
       ),
     ).toBeVisible();
     // The choices the run below starts with, so every later screen agrees with this one.
@@ -196,27 +202,17 @@ for (const theme of THEMES) {
     await expect(
       page.getByText('About 4 hours on OpenRouter. The 4-hour limit ends it after 5 to 10 rounds.'),
     ).toBeVisible();
-    await expect(page.getByText('about $0.60 expected, never more than $5')).toBeVisible();
-    // Without the comparison, the plan is training, the final test and Spark's expected cost.
+    await expect(
+      page.getByText('about $0.60 expected, never more than $5, billed by Meta'),
+    ).toBeVisible();
+    // The plan is training, the final test and both bills, each with who sends it.
     await expect(
       page.getByText(
-        'In all: about 6.5 hours and about $3.50. Training alone stays within the 4-hour limit.',
+        'In all: about 6.5 hours, about $3 billed by OpenRouter and about $0.60 billed by Meta (never more than $5). Training alone stays within the 4-hour limit.',
       ),
     ).toBeVisible();
-    await page
-      .getByRole('checkbox', { name: 'Also train three simpler versions to compare against' })
-      .click();
-    await expect(
-      page.getByText(
-        'Adds about 11.5 hours, about $3 billed by OpenRouter and about $0.06 of Spark.',
-      ),
-    ).toBeVisible();
-    // Ticked, the plan adds the comparison and says how much of it that is.
-    await expect(
-      page.getByText(
-        'In all: about 18 hours and about $7, of which the optional comparison is about 11.5 hours and about $3. Training alone stays within the 4-hour limit.',
-      ),
-    ).toBeVisible();
+    // Comparison mode is off, so nothing on the screen offers or mentions a comparison.
+    await expect(page.getByText(/comparison|simpler versions/i)).toHaveCount(0);
     await capture(page, `flow-define-${theme}`);
 
     await page.getByRole('button', { name: 'Advanced settings' }).click();
@@ -237,15 +233,9 @@ for (const theme of THEMES) {
     await expect(advanced).toBeHidden();
     await page.getByRole('button', { name: 'Start training' }).click();
 
-    // Train: the run and its baselines start on the same seed.
+    // Train: only the agent's own run starts.
     await expect(page).toHaveURL(new RegExp(`#/runs/${FLOW.runId}/train$`));
-    const starts = await recordedCalls(app, 'runs:start');
-    expect(starts).toEqual([
-      [FLOW.jobId, { method: 'architect' }],
-      [FLOW.jobId, { method: 'bare', seed: FLOW.seed }],
-      [FLOW.jobId, { method: 'one_shot', seed: FLOW.seed }],
-      [FLOW.jobId, { method: 'self_reflection', seed: FLOW.seed }],
-    ]);
+    expect(await recordedCalls(app, 'runs:start')).toEqual([[FLOW.jobId, { method: 'architect' }]]);
 
     await resize(TRAIN_HEIGHT);
     const success = page.getByRole('region', { name: 'Check tasks right' });
@@ -363,7 +353,9 @@ for (const theme of THEMES) {
     await emitRunEvents(app, finished());
     await expect(page).toHaveURL(new RegExp(`#/runs/${FLOW.runId}/report$`));
 
-    // Report: met every requirement, with the baselines beside it.
+    // Report: met every requirement, with the baselines beside it. The side-by-side table is part
+    // of comparison mode, so the setting goes on for this screen.
+    await updateSettings(page, { comparisonMode: true });
     await resize(REPORT_HEIGHT);
     await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
     await expect(page.getByText('Ready', { exact: true })).toBeVisible();
@@ -392,6 +384,52 @@ for (const theme of THEMES) {
     await expect(page).toHaveURL(new RegExp(`#/agents/${FLOW.graduateId}/chats/${FLOW.chatId}$`));
   });
 }
+
+test('trains three simpler versions beside the agent when comparison mode is on', async () => {
+  const { app, page } = launched;
+  await stubFlow();
+  await applySettings(page, { theme: 'dark', onboarded: true, comparisonMode: true });
+  await resize(DEFINE_HEIGHT);
+  await goTo(page, `/jobs/${FLOW.jobId}/define`);
+  await expect(page.getByRole('heading', { name: 'Service desk', level: 1 })).toBeVisible();
+  const hosted = page.getByRole('radio', { name: /Hosted on OpenRouter/ });
+  await hosted.click();
+  await expect(hosted).toBeChecked();
+
+  // Unticked, the plan is the agent's own training and the final test.
+  const compare = page.getByRole('checkbox', {
+    name: 'Also train three simpler versions to compare against',
+  });
+  await expect(compare).not.toBeChecked();
+  await expect(
+    page.getByText(
+      'Adds about 11.5 hours, about $3 billed by OpenRouter and about $0.06 billed by Meta (never more than $5).',
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      'In all: about 6.5 hours, about $3 billed by OpenRouter and about $0.60 billed by Meta (never more than $5). Training alone stays within the 4-hour limit.',
+    ),
+  ).toBeVisible();
+
+  // Ticked, the plan adds the comparison and says how much of it that is.
+  await compare.click();
+  await expect(
+    page.getByText(
+      'In all: about 18 hours, about $6 billed by OpenRouter and about $0.65 billed by Meta (never more than $5 for each version), of which the optional comparison is about 11.5 hours, about $3 billed by OpenRouter and about $0.06 billed by Meta (never more than $5). Training alone stays within the 4-hour limit.',
+    ),
+  ).toBeVisible();
+
+  // The baselines reuse the agent's seed, so the four runs compare like for like.
+  await page.getByRole('button', { name: 'Start training' }).click();
+  await expect(page).toHaveURL(new RegExp(`#/runs/${FLOW.runId}/train$`));
+  expect(await recordedCalls(app, 'runs:start')).toEqual([
+    [FLOW.jobId, { method: 'architect' }],
+    [FLOW.jobId, { method: 'bare', seed: FLOW.seed }],
+    [FLOW.jobId, { method: 'one_shot', seed: FLOW.seed }],
+    [FLOW.jobId, { method: 'self_reflection', seed: FLOW.seed }],
+  ]);
+});
 
 test('recovers when the mentor fails, and says so when it is slow', async () => {
   const { app, page } = launched;
