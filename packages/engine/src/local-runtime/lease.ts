@@ -171,6 +171,22 @@ function joinWithAnd(parts: readonly string[]): string {
 }
 
 /**
+ * In plain words, what `holders` are doing with the GPU, or, when there are none, that `asks`
+ * wait for it first. Null when both are empty.
+ */
+function say(holders: readonly LeaseHolder[], asks: readonly LeaseAsk[]): string | null {
+  const parts = holders.map((holder) => {
+    const name = nameOf(holder.owner);
+    if (holder.leaving) return `${name} is letting go of it`;
+    return holder.busy ? `${name} is ${holder.doing}` : `${name} has it, with nothing running`;
+  });
+  if (parts.length === 0) {
+    for (const ask of asks) parts.push(`${nameOf(ask.owner)} is waiting for it first`);
+  }
+  return parts.length === 0 ? null : joinWithAnd(parts);
+}
+
+/**
  * This process's part in the machine-wide GPU lease (decision 046): every Architect process on
  * one data folder takes it before a model loads on the GPU and holds it while a request runs. A
  * llama-server holds the GPU alone; Ollama's users share it. A holder with nothing running gives
@@ -286,7 +302,7 @@ export class GpuLease {
       since: Date.now(),
     };
     const view = this.freshView();
-    if (slot.holding && !slot.leaving && mayTake(view, use, place)) {
+    if (slot.holding && !slot.leaving && mayTake(view, use, place) && !this.refuses(view, place)) {
       this.activate(use, running);
       this.kick();
       return Promise.resolve();
@@ -597,6 +613,8 @@ export class GpuLease {
     for (const waiter of ordered) {
       const slot = this.slots[waiter.use];
       if (slot.leaving || !mayTake(state, waiter.use, waiter.place)) continue;
+      // One that takes only a free GPU doesn't share it either: it fails below instead.
+      if (this.refuses(state, waiter.place)) continue;
       this.waiters.delete(waiter);
       const wasHolding = slot.holding;
       this.activate(waiter.use, waiter.running);
@@ -614,7 +632,7 @@ export class GpuLease {
       write = true;
     }
     for (const waiter of this.waiters) {
-      const refused = this.refuses(state, waiter);
+      const refused = this.refuses(state, waiter.place);
       if (!refused && now < waiter.deadline) continue;
       this.waiters.delete(waiter);
       result.expired.push([waiter, this.busyError(state, waiter, refused)]);
@@ -776,43 +794,36 @@ export class GpuLease {
   }
 
   /**
-   * Who keeps a request from the GPU, in plain words: who holds it and what they are doing, or,
-   * when nobody holds it, who waits ahead; other processes alone when `othersOnly`. Null when
-   * nobody does.
+   * Who keeps a request from the GPU, in plain words: who holds it in a way it can't share and
+   * what they are doing, or, when nobody does, who waits ahead. Null when nobody does.
    */
-  private whoBlocks(
-    state: LeaseState,
-    use: GpuUse,
-    place: Place,
-    othersOnly = false,
-  ): string | null {
+  private whoBlocks(state: LeaseState, use: GpuUse, place: Place): string | null {
     const live = this.live(state);
-    const counts = (entry: { user: string }) => !othersOnly || !this.isOwn(entry);
-    const parts = blockingHolders(live, place.user, use)
-      .filter(counts)
-      .map((holder) => {
-        const name = nameOf(holder.owner);
-        if (holder.leaving) return `${name} is letting go of it`;
-        return holder.busy ? `${name} is ${holder.doing}` : `${name} has it, with nothing running`;
-      });
-    if (parts.length === 0) {
-      for (const ask of asksAhead(live, use, place).filter(counts)) {
-        parts.push(`${nameOf(ask.owner)} is waiting for it first`);
-      }
-    }
-    return parts.length === 0 ? null : joinWithAnd(parts);
+    return say(blockingHolders(live, place.user, use), asksAhead(live, use, place));
   }
 
   /**
-   * Whether a request fails at once rather than wait: this process takes only a free GPU, and
-   * another process has it or waits for it first. Its own other use gives way as usual.
+   * Who keeps a request that takes only a free GPU from it: every other process that has the GPU,
+   * Ollama's users too, or, when none has, every other one that waits ahead.
    */
-  private refuses(state: LeaseState, waiter: Waiter): boolean {
+  private whoElse(state: LeaseState, place: Place): string | null {
+    const live = this.live(state);
+    return say(
+      live.holders.filter((holder) => !this.isOwn(holder)),
+      live.asks.filter((ask) => !this.isOwn(ask) && ranksAhead(ask, place)),
+    );
+  }
+
+  /**
+   * Whether a request fails at once rather than wait or share: this process takes only a free
+   * GPU, and another process has any of it or waits for it first. Its own other use gives way as
+   * usual.
+   */
+  private refuses(state: LeaseState, place: Place): boolean {
     if (this.options.onlyWhenFree === undefined) return false;
-    const other = (entry: { user: string }) => !this.isOwn(entry);
     return (
-      blockingHolders(state, waiter.place.user, waiter.use).some(other) ||
-      asksAhead(state, waiter.use, waiter.place).some(other)
+      state.holders.some((holder) => !this.isOwn(holder)) ||
+      state.asks.some((ask) => !this.isOwn(ask) && ranksAhead(ask, place))
     );
   }
 
@@ -821,7 +832,9 @@ export class GpuLease {
    * or who is ahead, and what to do about it.
    */
   private busyError(state: LeaseState, waiter: Waiter, refused: boolean): LocalRuntimeError {
-    const who = this.whoBlocks(state, waiter.use, waiter.place, refused);
+    const who = refused
+      ? this.whoElse(state, waiter.place)
+      : this.whoBlocks(state, waiter.use, waiter.place);
     const working = blockingHolders(this.live(state), waiter.place.user, waiter.use).find(
       (holder) => holder.busy && !holder.leaving,
     );

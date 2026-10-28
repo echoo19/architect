@@ -349,14 +349,17 @@ describe('the GPU lease between processes', () => {
     const workspace = lease('workspace');
     const theirs = served(workspace, 'ollama', events, 'the workspace');
 
-    // Busy: no waiting its turn, though a turn could come within the default 5 minutes.
+    // Busy: no waiting its turn, though a turn could come within the default 5 minutes, and no
+    // sharing Ollama with it either.
     const reply = await workspace.hold('ollama', replyPurpose('Returns desk'));
     const started = Date.now();
-    await expect(tool.hold('llama-server', RUN_PURPOSE)).rejects.toMatchObject({
-      code: 'gpu_busy',
-      message: 'The GPU is busy: the workspace is answering a chat with Returns desk.',
-      hint,
-    });
+    for (const use of ['llama-server', 'ollama'] as const) {
+      await expect(tool.hold(use, RUN_PURPOSE)).rejects.toMatchObject({
+        code: 'gpu_busy',
+        message: 'The GPU is busy: the workspace is answering a chat with Returns desk.',
+        hint,
+      });
+    }
     expect(Date.now() - started).toBeLessThan(2_000);
     // Idle: it doesn't take the GPU from the holder either.
     reply.release();
