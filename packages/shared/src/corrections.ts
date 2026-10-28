@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BudgetSchema } from './job';
 import { ScoreSchema } from './lineage';
 import { TypeScoreSchema } from './mentor';
 import { RunStatusSchema } from './run';
@@ -148,3 +149,47 @@ export const ImprovementSchema = z.object({
   promotion: z.object({ allowed: z.boolean(), reason: z.string() }),
 });
 export type Improvement = z.infer<typeof ImprovementSchema>;
+
+/** Why an agent can't be taught on this computer. */
+export const TeachingUnavailableSchema = z.object({
+  /**
+   * `imported`: it came from another computer, so the job it learned from isn't here.
+   * `mentor`: the job's mentor can't read a correction in this build.
+   */
+  reason: z.enum(['imported', 'mentor']),
+  /** The reason in a sentence the person reads. */
+  message: z.string(),
+});
+export type TeachingUnavailable = z.infer<typeof TeachingUnavailableSchema>;
+
+/**
+ * What Teach this and the Teaching tab need before they offer anything: whether the agent can be
+ * taught here, who reads a flagged answer and the most that may cost, and the budget Improve
+ * agent would keep to.
+ */
+export const TeachingOverviewSchema = z.object({
+  graduateId: z.string(),
+  unavailable: TeachingUnavailableSchema.optional(),
+  /** The job lets a flagged answer go to the mentor, each one only once the person agrees. */
+  sharesCorrections: z.boolean(),
+  /** The mentor that reads a flagged answer, as the job names it. */
+  mentor: z.string().optional(),
+  /** The most one reading may cost, shown where the person agrees. */
+  correctionCapUsd: z.number().positive(),
+  /** What Improve agent would start from and keep to; absent when it can't run here. */
+  improve: z
+    .object({
+      fromVersion: z.number().int().positive(),
+      /**
+       * The job's own caps: rounds, mentor dollars and wall clock, and compute dollars when an
+       * improvement may train weights.
+       */
+      budget: BudgetSchema,
+      /** An improvement may train weights here, within `budget.maxComputeUsd`. */
+      training: z.boolean(),
+      /** Another run holds the student, so an improvement would wait for it. */
+      waits: z.boolean(),
+    })
+    .optional(),
+});
+export type TeachingOverview = z.infer<typeof TeachingOverviewSchema>;

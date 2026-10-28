@@ -66,6 +66,9 @@ export function registerEngineHandlers(
     list: (graduateId) => call((api) => api.teach.list(graduateId)),
     improve: (graduateId, options) => call((api) => api.teach.improve(graduateId, options)),
     improvements: (graduateId) => call((api) => api.teach.improvements(graduateId)),
+    overview: (graduateId) => call((api) => api.teach.overview(graduateId)),
+    shareCorrections: (graduateId, allowed) =>
+      call((api) => api.teach.shareCorrections(graduateId, allowed)),
   });
 
   router.registerHandlers('reports', {

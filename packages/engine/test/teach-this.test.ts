@@ -255,6 +255,74 @@ describe('Teach this', () => {
     );
   });
 
+  it('says who reads a flagged answer, at what cap, and the budget Improve agent keeps to', async () => {
+    const { engine, graduateId } = await graduateWithChat({ sharing: false });
+    const teach = teachThis(engine);
+    const improve = {
+      fromVersion: 1,
+      budget: { maxRounds: 1, maxMentorUsd: 5, maxWallMinutes: 60 },
+      training: false,
+      waits: false,
+    };
+    expect(await teach.overview(graduateId, false)).toEqual({
+      graduateId,
+      correctionCapUsd: 0.25,
+      sharesCorrections: false,
+      mentor: 'Spark',
+      improve,
+    });
+    expect((await teach.overview(graduateId, true)).improve).toEqual({ ...improve, waits: true });
+  });
+
+  it('lets the job share flagged answers, and keep them here again, with no new contract', async () => {
+    const { engine, graduateId } = await graduateWithChat({ sharing: false });
+    const teach = teachThis(engine);
+    const contracts = engine.store.contracts.list('service-desk').length;
+    await teach.shareCorrections(graduateId, true);
+    expect((await engine.jobs.get('service-desk')).sharing).toEqual({
+      remoteTraining: false,
+      corrections: true,
+    });
+    expect((await teach.overview(graduateId, false)).sharesCorrections).toBe(true);
+    expect(engine.store.contracts.list('service-desk')).toHaveLength(contracts);
+    expect((await teach.propose('cht_1', 'msg_2', correction)).status).toBe('proposed');
+
+    await teach.shareCorrections(graduateId, false);
+    const before = world.mentor.requests.length;
+    await expect(teach.propose('cht_1', 'msg_2', correction)).rejects.toThrow(
+      'Service desk keeps corrections on this computer.',
+    );
+    expect(world.mentor.requests).toHaveLength(before);
+  });
+
+  it("says why an agent from another computer can't be taught here", async () => {
+    const { engine } = await graduateWithChat();
+    engine.store.graduates.insert({
+      id: 'grd_imported',
+      runId: null,
+      name: 'Returns desk',
+      path: 'graduates/grd_imported',
+      manifest: null,
+      settings: null,
+      activeVersion: null,
+      createdAt: AT,
+    });
+    const teach = teachThis(engine);
+    expect(await teach.overview('grd_imported', false)).toEqual({
+      graduateId: 'grd_imported',
+      correctionCapUsd: 0.25,
+      sharesCorrections: false,
+      unavailable: {
+        reason: 'imported',
+        message:
+          "Returns desk came from another computer, so the job it learned from isn't here to teach it with.",
+      },
+    });
+    await expect(teach.shareCorrections('grd_imported', true)).rejects.toThrow(
+      'Returns desk came from a package, so this computer has no job to teach it with.',
+    );
+  });
+
   it('writes one version at a time when two lessons are applied at once', async () => {
     const { engine, graduateId } = await graduateWithChat();
     const teach = teachThis(engine);

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ConnectionTest } from './adapters';
+import { RunImprovementSchema } from './corrections';
 import { GraduateManifestSchema } from './graduate';
 import type {
   AddConnectionRequest,
@@ -158,6 +159,7 @@ export const RunDetailSchema = z.object({
   rounds: z.array(RoundSchema),
   recentAttempts: z.array(AttemptSchema.extend({ prompt: z.string().optional() })),
   lineage: z.array(LineageEntrySchema),
+  improves: RunImprovementSchema.optional(),
 }) satisfies z.ZodType<RunDetail>;
 
 export const FileDiffSchema = z.object({

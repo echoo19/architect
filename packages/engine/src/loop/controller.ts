@@ -432,6 +432,14 @@ export class RunController {
     this.schedule(turn);
   }
 
+  /**
+   * Whether a run, a re-test or a reference holds the student or waits its turn for it, so a
+   * run started now would wait.
+   */
+  studentBusy(): boolean {
+    return this.active.size + this.retesting.size >= this.maxActiveRuns || this.queue.length > 0;
+  }
+
   /** Resolves when no run or re-test is active. */
   async idle(): Promise<void> {
     while (this.active.size > 0 || this.retesting.size > 0) {

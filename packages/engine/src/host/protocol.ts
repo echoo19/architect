@@ -47,6 +47,7 @@ import {
   RunSchema,
   RunStartOptionsSchema,
   StudentTargetSchema,
+  TeachingOverviewSchema,
   TraceSchema,
   VersionEventSchema,
   type AdapterErrorCode,
@@ -174,6 +175,14 @@ export const ENGINE_ROUTES = {
   ),
   'teach.improvements': route(z.tuple([id]), z.array(ImprovementSchema), (api, [graduateId]) =>
     api.teach.improvements(graduateId),
+  ),
+  'teach.overview': route(z.tuple([id]), TeachingOverviewSchema, (api, [graduateId]) =>
+    api.teach.overview(graduateId),
+  ),
+  'teach.shareCorrections': route(
+    z.tuple([id, z.boolean()]),
+    TeachingOverviewSchema,
+    (api, [graduateId, allowed]) => api.teach.shareCorrections(graduateId, allowed),
   ),
   'reports.get': route(
     z.tuple([id, StudentTargetSchema.nullable()]),

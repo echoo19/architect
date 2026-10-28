@@ -9,8 +9,9 @@ import type { EnginePort } from '../src/host/port';
 import { fromErrorPayload, toErrorPayload } from '../src/host/protocol';
 import { openEngineStore } from '../src/store/engine-store';
 import { DataPaths } from '../src/loop/paths';
-import { portPair } from './fakes/ports';
+import { hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
+import { portPair } from './fakes/ports';
 import { createWorld, type World } from './fakes/world';
 
 let world: World;
@@ -238,6 +239,95 @@ describe('the engine host', () => {
     await expect(client.graduates.settings('grd_missing')).rejects.toThrow(
       'There is no graduate "grd_missing".',
     );
+  });
+
+  it('serves Teach this over the port: the overview, sharing, and an improvement in its run', async () => {
+    const { client } = await connect();
+    const job = await client.jobs.createSample();
+    const graduated = next(client, (event) => event.type === 'graduate.ready');
+    await client.runs.start(job.id, { method: 'bare', seed: 1 });
+    const ready = await graduated;
+    if (ready.type !== 'graduate.ready') throw new Error('No graduate was announced.');
+    const { graduateId } = ready;
+
+    expect(await client.teach.overview(graduateId)).toEqual({
+      graduateId,
+      correctionCapUsd: 0.25,
+      sharesCorrections: false,
+      mentor: 'Spark',
+      improve: {
+        fromVersion: 1,
+        budget: { maxRounds: 2, maxMentorUsd: 5, maxWallMinutes: 60 },
+        training: false,
+        waits: false,
+      },
+    });
+    expect(await client.teach.shareCorrections(graduateId, true)).toMatchObject({
+      sharesCorrections: true,
+    });
+
+    // A reply in the workspace, flagged and queued, then Improve agent on it.
+    const store = openEngineStore(new DataPaths(world.dataDir).database);
+    const at = '2026-10-28T09:00:00.000Z';
+    store.chats.insert({
+      id: 'cht_1',
+      graduateId,
+      title: 'Overdue invoices',
+      createdAt: at,
+      updatedAt: at,
+      running: false,
+      waiting: false,
+      graduateVersion: 1,
+    });
+    for (const [id, role, text] of [
+      ['msg_1', 'user', 'Which invoices are overdue?'],
+      ['msg_2', 'agent', 'INV-1 and INV-2 are overdue.'],
+    ] as const) {
+      store.messages.insert({
+        id,
+        chatId: 'cht_1',
+        role,
+        createdAt: at,
+        text,
+        steps: [],
+        blocks: [],
+        status: 'done',
+        ...(role === 'agent' ? { graduateVersion: 1, trace: [] } : {}),
+      });
+    }
+    store.close();
+    world.mentor.script = (request) =>
+      request.json?.name === 'correction'
+        ? {
+            kind: 'weakness',
+            lesson: 'Overdue means unpaid and past its due date.',
+            reason: 'The rule is in the policy and it still went wrong.',
+            instruction: '',
+            question: '',
+            taskType: 'overdue',
+          }
+        : hypothesis('Teach the overdue rule', 'Service desk.\nfix:overdue');
+    const proposed = await client.teach.propose('cht_1', 'msg_2', {
+      wrong: 'INV-1 was paid, so it is not overdue.',
+      consent: true,
+    });
+    await client.teach.queue(proposed.id);
+    const candidate = next(client, (event) => event.type === 'graduate.ready');
+    const start = await client.teach.improve(graduateId, { maxRounds: 1, maxMentorUsd: 1 });
+    expect((await client.runs.get(start.runId)).improves).toEqual({
+      graduateId,
+      version: 1,
+      corrections: [proposed.id],
+    });
+    await candidate;
+    expect((await client.runs.get(start.runId)).run.status).toBe('finished');
+    // The version it improved still answers; the new one waits as a candidate.
+    expect(
+      (await client.graduates.versions(graduateId)).map(({ version, active }) => [version, active]),
+    ).toEqual([
+      [1, true],
+      [2, false],
+    ]);
   });
 
   it('carries guard and adapter errors across with their meaning', () => {
