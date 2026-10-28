@@ -86,7 +86,7 @@ Allow this change? [y]es, [n]o, [a]lways for this agent: y
 Added INV-4 for Cho Lin, $77.00.
 ```
 
-On a terminal, a change that needs approval is asked about there; `always` allows this agent's writes from now on, in the app as well. When stdin isn't a terminal, or with `--non-interactive`, nobody can answer, so such a change ends its reply as `approval_required` and nothing is written. Ctrl+C stops the reply in progress; at the prompt it ends the session. The exit code is the last reply's, or 0 if there was none.
+On a terminal, a change that needs approval is asked about there; `always` allows this agent's writes from now on, in the app as well. The end of input is a no, and Ctrl+C at the question is a no that stops the run. When stdin isn't a terminal, or with `--non-interactive`, nobody can answer, so such a change ends its reply as `approval_required` and nothing is written. Ctrl+C stops the reply in progress; at the prompt it ends the session. The exit code is the last reply's, or 0 if there was none.
 
 **With `--input`** (`-` reads stdin), `run` does one task from a JSON request and writes a JSON result to `--output`, or to stdout when there is none. The request is checked before anything runs. A write that needs approval it can't ask about ends the run with a structured `approval_required` result: it never waits and never approves by itself. Without `--non-interactive`, and with the request in a file, a terminal can still be asked.
 
@@ -96,7 +96,7 @@ On a terminal, a change that needs approval is asked about there; `always` allow
 | `--output <file>` | Where the result goes, written whole or not at all; stdout when absent. |
 | `--non-interactive` | Never asks: a change that needs approval fails the run. |
 | `--save` | Keeps the conversation in the app, as a chat. Without it nothing is saved. |
-| `--timeout <seconds>` | Stops a run that takes longer, as a runtime error. |
+| `--timeout <seconds>` | Stops a run that takes longer, as a runtime error. At most 2147483 (about 24 days). |
 
 The agent runs on its active version, with this computer's folders and permissions, exactly as a chat in the app would.
 
@@ -247,12 +247,14 @@ Every command ends on its own: a run that needs an approval nobody can give fail
 
 **The scan is a best effort.** It looks for key shapes, the Hugging Face token the command would use, and paths that name this computer's user or the app's data. The command can't see keys saved in the desktop app (the system encrypts them for the app alone); the app's own publishing checks for those too. Trained weights may keep traces of the data they learned from, whatever the scan finds.
 
-**Installing** from `hf://owner/name` downloads `graduate.json` and only the files it lists, at one commit, checking each against its sha256 and size as it arrives, then installs the folder exactly as a local package. The repository's other files (the model card, `.gitattributes`) are never fetched.
+**Installing** from `hf://owner/name` downloads `graduate.json` and only the files it lists, at one commit, checking each against its sha256 and size as it arrives, then installs the folder exactly as a local package. The repository's other files (the model card, `.gitattributes`) are never fetched. A public repository needs no token; a private one does. Installing a version again from the Hub that came from a file before records the commit with it.
 
 **The Hub copy doesn't run anywhere by itself.** Uploading doesn't make the agent runnable through hosted inference; it runs with Architect on the computer that installs it.
 
+## Local models
+
+The command reads the app's own settings file for local models, as the app does: quiet mode's thread cap for a local student and for llama-server, the llama-server chosen in Settings (else the one on `PATH`), and the default student's Ollama when it is on this computer. A version with an adapter runs on llama.cpp (decision 041), with a llama-server of the command's own (`local-runtime/cli` in the data folder) that stops when the command ends.
+
 ## What it doesn't do yet
 
-- It doesn't read the app's quiet mode for local models, so a local model runs at full speed.
-- An agent with an adapter runs only once the agent host serves adapters through llama.cpp; until then such a version is refused at install, as in the app.
 - An import from the command and one from the app at the same moment, for the same agent, aren't coordinated with each other.
