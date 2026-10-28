@@ -95,7 +95,7 @@ export function TrainScreen({ runId }: { runId: string }) {
               <TraceDrawerContent
                 attempt={trace.item}
                 type={typeLabel(live.job, trace.item.taskType)}
-                student={modelNames(live.job).student}
+                names={modelNames(live.job)}
                 setup={setupOf(live, trace.item.harnessVersion)}
               />
             )}
@@ -217,20 +217,13 @@ function TrainBoard({
       </div>
       <div className="flex flex-wrap gap-5">
         <TaskSuccess live={live} />
-        <Resources live={live} mentor={names.mentor} studentPlace={studentPlace(live)} />
+        <Resources live={live} mentor={names.mentor} />
       </div>
       <div className="flex flex-wrap gap-5">
-        <Examples
-          job={job}
-          attempts={live.attempts}
-          mentor={names.mentor}
-          student={names.student}
-          onOpen={onOpenAttempt}
-        />
+        <Examples job={job} attempts={live.attempts} mentor={names.mentor} onOpen={onOpenAttempt} />
         <Rounds
           rounds={live.rounds}
           running={WORKING.has(run.status)}
-          names={names}
           draftRound={draft}
           onOpen={onOpenRound}
           footer={footer}

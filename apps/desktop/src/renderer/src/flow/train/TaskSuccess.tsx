@@ -1,7 +1,6 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment } from 'react';
 import { cn, Panel } from '@architect/ui';
 import { formatRate } from '../format';
-import { modelNames } from '../names';
 import { CURVE_BOX, curveGeometry, describeCurve, PLOT, type CurveInput } from './curve';
 import { draftRoundOf } from './draft';
 import type { LiveRun } from './run-state';
@@ -9,7 +8,6 @@ import type { LiveRun } from './run-state';
 /** The share of check tasks right, round by round. The student never practices on them. */
 export function TaskSuccess({ live }: { live: LiveRun }) {
   const { run, job, rounds } = live;
-  const { student } = modelNames(job);
   const score = run.devCurrent ?? run.devBaseline;
   // A change measured twice is kept on both measurements added up, so the count can span two.
   const runs = score && job.splits.dev > 0 ? Math.round(score.total / job.splits.dev) : 1;
@@ -29,103 +27,17 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
         <span className="text-hero font-medium leading-none tracking-tightest tabular-nums">
           {score ? formatRate(score) : '–'}
         </span>
-        <span className="text-fg-secondary">of check tasks right with the best version so far</span>
+        <span className="text-fg-secondary">check tasks right</span>
         {score && (
-          <span className="font-mono text-sm text-fg-muted">
-            {runs > 1 ? (
-              <>
-                {Math.round((score.pass / runs) * 10) / 10} of {job.splits.dev}
-                <span className="font-sans"> on average, over {runs} measurements</span>
-              </>
-            ) : (
-              `${score.pass} of ${score.total}`
-            )}
+          <span className="text-sm tabular-nums text-fg-muted">
+            {runs > 1
+              ? `${Math.round((score.pass / runs) * 10) / 10} of ${job.splits.dev}, average of ${runs} measurements`
+              : `${score.pass} of ${score.total}`}
           </span>
         )}
       </div>
-      <p className="m-0 text-fg-secondary text-pretty">
-        {student} learns from practice tasks and is scored on separate check tasks, which it never
-        learns from. A change stays only if more of them come out right when measured twice, and
-        training ends at the {Math.round(input.target * 100)}% target.
-        {input.draftRound &&
-          ` Start is ${student} with no instructions; round 1 is its first draft.`}
-      </p>
-      <Legend />
       <CurveChart input={input} />
     </Panel>
-  );
-}
-
-function LegendItem({ swatch, children }: { swatch: ReactNode; children: ReactNode }) {
-  return (
-    <li className="flex items-center gap-2">
-      <svg width={26} height={12} viewBox="0 0 26 12" aria-hidden className="shrink-0">
-        {swatch}
-      </svg>
-      {children}
-    </li>
-  );
-}
-
-/** What the chart's marks mean: kept changes, reverted ones, and the round still running. */
-function Legend() {
-  return (
-    <ul
-      aria-label="Legend"
-      className="m-0 flex list-none flex-wrap gap-x-5 gap-y-1 p-0 text-sm text-fg-secondary"
-    >
-      <LegendItem
-        swatch={
-          <>
-            <line x1={1} x2={20} y1={6} y2={6} className="stroke-student" strokeWidth={2.25} />
-            <circle cx={20} cy={6} r={3.5} className="fill-student" />
-          </>
-        }
-      >
-        Kept change
-      </LegendItem>
-      <LegendItem
-        swatch={
-          <>
-            <line
-              x1={1}
-              x2={18}
-              y1={6}
-              y2={6}
-              className="stroke-fg-ghost"
-              strokeWidth={1.5}
-              strokeDasharray="3 3"
-            />
-            <circle
-              cx={20}
-              cy={6}
-              r={3.5}
-              className="fill-panel stroke-fg-faint"
-              strokeWidth={1.5}
-            />
-          </>
-        }
-      >
-        Reverted change
-      </LegendItem>
-      <LegendItem
-        swatch={
-          <>
-            <line
-              x1={13}
-              x2={13}
-              y1={0}
-              y2={12}
-              className="stroke-mentor"
-              strokeWidth={1.5}
-              strokeDasharray="2 2"
-            />
-          </>
-        }
-      >
-        Round in progress
-      </LegendItem>
-    </ul>
   );
 }
 
@@ -141,9 +53,6 @@ function CurveChart({ input }: { input: CurveInput }) {
       aria-label={describeCurve(input)}
       className="block overflow-visible"
     >
-      <text x={0} y={PLOT.top - 18} className="fill-fg-muted text-sm">
-        Check tasks right
-      </text>
       {valueTicks.map((tick) => (
         <Fragment key={tick.value}>
           <line
@@ -205,9 +114,6 @@ function CurveChart({ input }: { input: CurveInput }) {
           </text>
         </Fragment>
       ))}
-      <text x={PLOT.right + 12} y={PLOT.labelY} className="fill-fg-muted text-sm">
-        Round
-      </text>
       {branches.map((branch) => (
         <Fragment key={branch.round}>
           <polyline
@@ -241,14 +147,6 @@ function CurveChart({ input }: { input: CurveInput }) {
           >
             <title>{`Round ${pending.round} in progress`}</title>
           </line>
-          <text
-            x={pending.x - 10}
-            y={PLOT.bottom - 12}
-            textAnchor="end"
-            className="fill-mentor text-sm"
-          >
-            Round {pending.round}: being scored
-          </text>
         </>
       )}
       {line.length > 1 && (

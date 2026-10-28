@@ -204,13 +204,12 @@ for (const theme of THEMES) {
     const success = page.getByRole('region', { name: 'Check tasks right' });
     const rounds = page.getByRole('region', { name: 'Rounds' });
     await expect(success).toContainText('78%');
-    await expect(success).toContainText('31 of 40 on average, over 2 measurements');
-    await expect(success).toContainText('Round 4: being scored');
+    await expect(success).toContainText('31 of 40, average of 2 measurements');
     await expect(page.getByRole('list', { name: 'Each round' })).toHaveText(
       'PracticeDiagnoseScore',
     );
     await expect(page.getByRole('status').filter({ hasText: 'Scoring the change' })).toBeVisible();
-    await expect(rounds).toContainText('65% to 63%');
+    await expect(rounds).toContainText('65% → 63%');
     await expect(rounds).toContainText('First draft');
     await expect(rounds).toContainText('Reverted');
     await expect(success.getByRole('img')).toHaveAttribute(
@@ -218,33 +217,36 @@ for (const theme of THEMES) {
       'Check tasks right by round: 40% at the start, 65% after the first draft, round 2 reverted at 63%, ' +
         '78% after round 3, round 4 in progress. Target 90%.',
     );
-    await expect(page.getByRole('region', { name: 'Resources' })).toContainText(
+    // The time meter reads like a clock, and says the same in words to a screen reader.
+    const resources = page.getByRole('region', { name: 'Resources' });
+    await expect(resources).toContainText('1:46 / 4:00');
+    await expect(resources.getByRole('meter', { name: 'Time' })).toHaveAttribute(
+      'aria-valuetext',
       '1 h 46 min of 4 h',
     );
     await expect(page.getByRole('region', { name: 'Current round' })).toContainText(
-      '+3 to +6 more of the 40 check tasks right',
+      /Spark expects\s*\+3 to \+6 check tasks/,
     );
     await expect(
       page.getByRole('heading', { name: 'Round 4: Allow for zone travel time' }),
     ).toBeVisible();
-    // A check task is listed, so the list says the mentor never sees it.
+    // A check task is listed, marked as one the mentor never sees.
     const attempts = page.getByRole('region', { name: 'Latest attempts' });
+    const hidden = attempts.getByRole('img', { name: 'Hidden from Spark' });
     await expect(attempts).toContainText('Practice task, round 4');
     await expect(attempts).toContainText('Check task, round 3');
-    await expect(attempts).toContainText(
-      "Spark never sees check tasks, only how many come out right. They're shown here for you.",
-    );
+    await expect(hidden).toHaveCount(1);
     await capture(page, `flow-train-${theme}`);
 
     // Live: round 4 is kept and round 5 starts.
     await emitRunEvents(app, roundFourKept());
     await expect(success).toContainText('85%');
-    await expect(rounds).toContainText('78% to 85%');
+    await expect(rounds).toContainText('78% → 85%');
     await expect(page.getByRole('region', { name: 'Current round' })).toContainText('Round 5');
     await expect(attempts.getByRole('button').first()).toContainText('9 Birch Ln');
-    // The check task has scrolled out of the five latest, and the note goes with it.
+    // The check task has scrolled out of the five latest, and its mark goes with it.
     await expect(attempts).not.toContainText('Check task');
-    await expect(attempts).not.toContainText('never sees check tasks');
+    await expect(hidden).toHaveCount(0);
 
     // An attempt's trace, then a round's changes, each in a drawer that Escape closes.
     await resize(900);
@@ -253,11 +255,12 @@ for (const theme of THEMES) {
     const traceDrawer = page.getByRole('dialog');
     await expect(traceDrawer.getByText('Failed', { exact: true })).toBeVisible();
     await expect(traceDrawer.getByText('read_table').first()).toBeVisible();
-    await expect(traceDrawer).toContainText('using the setup from round 3');
     await expect(traceDrawer).toContainText(
-      'Loaded the skill book-urgent-calls automatically, because the request matched it',
+      'Scheduling · Practice task, round 4 · using the setup from round 3',
     );
-    await expect(traceDrawer).toContainText('step-by-step instructions');
+    await expect(traceDrawer).toContainText(
+      'Loaded the skill book-urgent-calls, which matches the request',
+    );
     await capture(page, `flow-trace-${theme}`);
     await page.keyboard.press('Escape');
     await expect(traceDrawer).toBeHidden();
@@ -269,13 +272,11 @@ for (const theme of THEMES) {
       roundDrawer.getByText('Work in integer cents from start to finish.'),
     ).toBeVisible();
     await expect(roundDrawer).toContainText(
-      '6 more check tasks passed on the first measurement (26 to 32 of 40). Run a second time to ' +
-        'rule out luck: 10 more over both measurements (52 to 62 of 80), and no task type got worse.',
+      '6 more check tasks passed (26 → 32 of 40). Measured again to rule out luck: 10 more over ' +
+        'both (52 → 62 of 80), and no task type got worse.',
     );
-    await expect(roundDrawer).toContainText(
-      "The first measurement was inside Spark's predicted range.",
-    );
-    await expect(roundDrawer.getByText('Average of the two measurements')).toBeVisible();
+    await expect(roundDrawer).toContainText('Within the prediction');
+    await expect(roundDrawer.getByText('Average', { exact: true })).toBeVisible();
     await expect(roundDrawer).not.toContainText('@@');
     await capture(page, `flow-round-${theme}`);
     await page.keyboard.press('Escape');
@@ -285,8 +286,8 @@ for (const theme of THEMES) {
     await rounds.getByRole('button', { name: /Work from the office files/ }).click();
     const draftDrawer = page.getByRole('dialog', { name: 'Round 1: Work from the office files' });
     await expect(draftDrawer).toContainText(
-      "Spark wrote the agent's first full setup from the job and its example tasks, before " +
-        'watching it work. It is kept as the starting point; later rounds keep only measured gains.',
+      'Spark wrote it from the job and its example tasks, before watching Glimmer work. It is the ' +
+        'starting point; later rounds keep only measured gains.',
     );
     await expect(draftDrawer).not.toContainText('Run a second time');
     await page.keyboard.press('Escape');

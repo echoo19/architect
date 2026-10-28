@@ -1,7 +1,6 @@
 import { useMemo, type CSSProperties } from 'react';
 import { cn, Panel } from '@architect/ui';
 import { ChevronRight } from 'lucide-react';
-import { capitalized, MENTOR_ROLE, STUDENT_ROLE } from '../../lib/names';
 import { ROUND_STAGES, STAGE_LABELS, type PhaseView, type Stage } from './phase';
 import type { EvalProgress } from './run-state';
 import './apprenticeship.css';
@@ -82,11 +81,7 @@ export function Apprenticeship({
             <circle r={25} fill="none" stroke="currentColor" strokeOpacity={0.25} />
             <circle r={15} fill="currentColor" />
           </svg>
-          <ModelName
-            name={mentor}
-            tone="text-mentor"
-            role={`${capitalized(MENTOR_ROLE)}, in the cloud`}
-          />
+          <ModelName name={mentor} tone="text-mentor" place="in the cloud" />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 px-6 text-center">
@@ -108,18 +103,11 @@ export function Apprenticeship({
               ))}
             </div>
           </div>
-          <ModelName
-            name={student}
-            tone="text-student"
-            role={`${capitalized(STUDENT_ROLE)}, ${studentPlace}`}
-          />
+          <ModelName name={student} tone="text-student" place={studentPlace} />
         </div>
       </div>
 
       <div className="flex min-h-14 flex-wrap items-center gap-x-5 gap-y-1 border-t border-line-row-strong bg-aside px-7 py-2">
-        <span aria-hidden className="text-sm text-fg-muted">
-          {stepsLabel}
-        </span>
         <ol aria-label={stepsLabel} className="m-0 flex list-none items-center gap-2 p-0 text-sm">
           {stages.map((stage, index) => (
             <li
@@ -148,12 +136,12 @@ export function Apprenticeship({
   );
 }
 
-/** A model's name in its color, and its role under it. */
-function ModelName({ name, tone, role }: { name: string; tone: string; role: string }) {
+/** A model's name in its color, and where it runs under it. */
+function ModelName({ name, tone, place }: { name: string; tone: string; place: string }) {
   return (
     <div className="flex max-w-[180px] flex-col items-center gap-0.5 text-center">
       <span className={cn('font-medium', tone)}>{name}</span>
-      <span className="text-sm text-fg-muted text-balance">{role}</span>
+      <span className="text-sm text-fg-muted">{place}</span>
     </div>
   );
 }
