@@ -25,8 +25,9 @@ flowchart LR
 | Engine host (utility process) | Jobs, runs, rounds, the core loop, baselines, evaluation, the vault, SQLite, the run event stream | Serve the workspace |
 | Agent host (utility process) | Workspace sessions with graduates: opening a graduate's active version from its own folder and this computer's installation, student calls, harness loading, tool calls, pending writes awaiting approval | Load a mentor adapter or reach a non-loopback host |
 | Tool sandbox (child process) | One QuickJS VM per call: a mentor-written helper, a checker validator, the agent's `run` code or a `grep` search, each with only the files it is handed, read-only, plus time and memory limits | Network, process spawning, changing a file, or any file the job didn't declare |
+| `architect` command (its own process, `apps/cli`) | The app's data folder and store, opened from a terminal: an agent host in its own process (with the same loopback-only guard) for `run` and `verify`, and the graduate library for install, inspect, export and publish (decision 041) | Load a mentor adapter, or reach a non-loopback host once a graduate has loaded |
 
-The engine and agent hosts are plain Node modules in `packages/engine`. The Electron entry points in `apps/desktop` are thin wrappers, so the whole loop runs under Vitest without Electron.
+The engine and agent hosts are plain Node modules in `packages/engine`. The Electron entry points in `apps/desktop` are thin wrappers, so the whole loop runs under Vitest without Electron. The `architect` command is the same modules in a terminal; the installed app runs it on its own binary as Node (`docs/CLI.md`).
 
 ## The core loop (Architect method)
 
@@ -47,6 +48,7 @@ Baselines reuse the same runner, checker, data, budget and seed: **bare** (minim
 - **Checker.** Deterministic functions; custom checker files run in the sandbox with no clock or randomness. The mentor's change set may only touch harness files; edits outside the harness surface are rejected.
 - **Offline graduates.** The agent host installs a guard at startup that refuses any non-loopback connection, and it only constructs local student adapters. A test runs a workspace session against a local fake model server and fails on any other connection attempt.
 - **Budgets.** Rounds, mentor dollars and wall clock are checked before every mentor call and every round; a call that would cross a cap does not start. Every training attempt runs under the wall-clock deadline: one still running when the time is up is cut there, not scored, and the run goes to its locked test.
+- **Hugging Face.** Publishing sends a version's package, reviewed and scanned like an export, to a repository that is private unless asked otherwise and never made more visible; installing downloads one commit, file by file against the manifest, and imports it like any package. The token goes only to the Hub's API, never to its upload or download hosts (decision 042).
 - **Packages.** An import is unpacked and checked in a staging folder (entry names and types, sizes, the manifest's format, every checksum, the runtimes it needs) before anything in it runs, and its harness is parsed against its hash before its tools first load in the sandbox. A version opens only while its manifest and every file still match what was installed, so its harness and adapter can't drift apart. A package asks for access; only the user grants it.
 - **Restart.** Runs persist every step to SQLite. On launch the engine host marks interrupted runs and resumes them from the last completed step.
 
@@ -82,9 +84,10 @@ local-runtime/                     llama-server's key, process record and logs
 | `@architect/shared` | zod schemas and types for every contract below, model registry defaults, run events |
 | `@architect/harness` | harness folders (read, write, validate, diff, version) and graduate packages (write, read, check, ZIP, export scan) |
 | `@architect/adapters` | `MentorAdapter` and `StudentAdapter` implementations: a Chat Completions mentor tuned per provider (Meta, OpenAI, Gemini, OpenRouter, Spark Open hosts, any OpenAI-compatible endpoint, local runtimes), Anthropic's Messages API, Ollama, OpenAI-compatible and llama.cpp students (the last sets each adapter's scale per request), and model lists |
-| `@architect/engine` | splitter and vault, checkers, the agent's folder and tools, agent loop, sandbox, core loop, baselines, budgets, lineage, storage, engine and agent hosts; graduate versions, installations, export and import; GGUF headers and LoRA checks, the local adapter runtime (llama-server), training datasets, the training worker and its backends (decision 035) |
+| `@architect/engine` | splitter and vault, checkers, the agent's folder and tools, agent loop, sandbox, core loop, baselines, budgets, lineage, storage, engine and agent hosts; graduate versions, installations, export and import, Hugging Face publishing and installs; the Hub client; GGUF headers and LoRA checks, the local adapter runtime (llama-server), training datasets, the training worker and its backends (decision 035) |
 | `@architect/ui` | tokens, theme, components |
 | `@architect/desktop` | Electron main, preload and renderer |
+| `@architect/cli` | the `architect` command (`docs/CLI.md`) |
 | `examples/home-services` | sample job: seeded data generator, task generator, checker |
 | `examples/gear-returns` | second sample job (decision 028): a returns desk whose exports are messier than their first rows |
 | `trainer/` | the pinned QLoRA recipe a training job runs: `recipe.json`, `pipeline.py`, `train_qlora.py`, `chat_spans.py`, and `selftest.py` for the span logic |
