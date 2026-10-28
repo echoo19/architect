@@ -5,13 +5,14 @@ import { RotateCw } from 'lucide-react';
 import { formatUsd } from '../../lib/format';
 import { mentorIntro, studentIntro } from '../../lib/names';
 import { currentPlatform, deviceInSentence, deviceLabel } from '../../lib/platform';
+import { mentorProvider } from '../../onboarding/mentor';
 import { inSentence, listInSentence } from '../../workspace/labels';
 import { modelNames } from '../names';
 import {
   aboutSpan,
   aboutUsd,
+  type Bills,
   capText,
-  comparisonCost,
   comparisonSeconds,
   estimateMentorUsd,
   estimateTime,
@@ -20,8 +21,8 @@ import {
   formatAbout,
   limitText,
   mentorRounds,
+  planBills,
   planSeconds,
-  planUsd,
   practiceUsd,
   roundsLine,
   taskTimeText,
@@ -67,6 +68,8 @@ export function TrainingPlace({
   const pricing = job.student.hosted ? presetOf(job.student.hosted)?.pricing : null;
   const hostedBill = pricing ? inSentence(aboutUsd(practiceUsd(pricing, remote))) : null;
   const biller = provider ?? 'the host';
+  const billedByMentor =
+    job.mentor.kind === 'model' ? `billed by ${mentorProvider(job.mentor)}` : '';
 
   // The mentor's expected cost counts the rounds that fit in the time limit.
   const countedRounds = mentorRounds(job, chosen);
@@ -76,31 +79,26 @@ export function TrainingPlace({
       ? `${countedRounds} rounds, the most that fit in the ${limit} limit`
       : `all ${maxRounds} rounds`;
 
-  const extra = comparisonCost(job, chosen, pricing);
+  // Every dollar figure says who bills it, and the mentor's also the cap it can't go past.
+  const comparing = baselines?.checked === true;
+  const bills = planBills(job, chosen, pricing, comparing);
+  const spendLimit = `never more than ${formatUsd(cap)}`;
+  const billList = (shares: Bills, limit: string) => [
+    ...(shares.hostedUsd === null ? [] : [`${aboutUsd(shares.hostedUsd)} billed by ${biller}`]),
+    ...(shares.mentorUsd === null
+      ? []
+      : [[aboutUsd(shares.mentorUsd), billedByMentor, `(${limit})`].filter(Boolean).join(' ')]),
+  ];
   const adds = listInSentence(
-    [
-      formatAbout(comparisonSeconds(job, chosen)),
-      ...(extra.hostedUsd === null ? [] : [`${aboutUsd(extra.hostedUsd)} billed by ${biller}`]),
-      ...(extra.mentorUsd === null ? [] : [`${aboutUsd(extra.mentorUsd)} of ${mentor}`]),
-    ],
+    [formatAbout(comparisonSeconds(job, chosen)), ...billList(bills.comparison, spendLimit)],
     'and',
   );
 
   // The plan in one line, with the comparison's share named so it can be left out of the sum.
-  const comparing = baselines?.checked === true;
-  const money = planUsd(job, chosen, pricing);
-  const allUsd = money.own === null ? null : money.own + (comparing ? (money.comparison ?? 0) : 0);
   const inAll = listInSentence(
     [
       aboutSpan(planSeconds(job, chosen, comparing)),
-      ...(allUsd === null ? [] : [aboutUsd(allUsd)]),
-    ],
-    'and',
-  );
-  const comparisonShare = listInSentence(
-    [
-      formatAbout(comparisonSeconds(job, chosen)),
-      ...(money.comparison === null ? [] : [aboutUsd(money.comparison)]),
+      ...billList(bills.total, comparing ? `${spendLimit} for each version` : spendLimit),
     ],
     'and',
   );
@@ -122,6 +120,9 @@ export function TrainingPlace({
           {chosen.rounds.most >= maxRounds && `, after ${maxRounds} rounds,`} or after{' '}
           {capText(maxWallMinutes)}, whichever comes first, or sooner if changes stop helping. Then
           the final test runs on {device}.
+        </p>
+        <p className="m-0 max-w-[720px] text-fg-secondary text-pretty">
+          Training runs only while Architect is open on {device}, even on a hosted copy.
         </p>
       </div>
       <RadioCardGroup
@@ -173,8 +174,8 @@ export function TrainingPlace({
       </dl>
       <p className="m-0 text-md text-pretty">
         <span className="font-medium">In all:</span> {inAll}
-        {comparing && `, of which the optional comparison is ${comparisonShare}`}. Training alone
-        stays within the {limit} limit.
+        {comparing && `, of which the optional comparison is ${adds}`}. Training alone stays within
+        the {limit} limit.
       </p>
       <details className="text-sm text-fg-secondary">
         <summary className="cursor-pointer select-none text-fg-muted transition-colors duration-150 hover:text-fg-secondary">
@@ -207,8 +208,9 @@ export function TrainingPlace({
             </li>
           )}
           <li>
-            In all adds the lines above, and the comparison when it is ticked. Its dollars add the
-            hosted practice and {mentor}&apos;s expected cost, not its cap.
+            In all adds the lines above{baselines && ', and the comparison when it is ticked'}. Its
+            dollars are what each bill is expected to come to. Only {mentor}&apos;s bill has a hard
+            cap, {formatUsd(cap)}.
           </li>
         </ul>
       </details>
@@ -231,6 +233,7 @@ export function TrainingPlace({
           <span className="text-md text-fg-secondary">
             {expected !== null && expected < cap && `${inSentence(aboutUsd(expected))} expected, `}
             never more than <span className="font-mono text-fg">{formatUsd(cap)}</span>
+            {billedByMentor && `, ${billedByMentor}`}
           </span>
         </div>
         <Slider
