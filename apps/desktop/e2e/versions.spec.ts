@@ -394,6 +394,59 @@ for (const theme of THEMES) {
 }
 
 for (const theme of THEMES) {
+  test(`imports a package with trained weights, and offers to set up llama.cpp (${theme})`, async () => {
+    const app = launched.app;
+    await open(theme, chatPath(CHATS.closeout.id));
+    await startImport([PACKAGES.weights, FOLDERS.records]);
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
+    await expect(page.getByText('Runs it with llama.cpp')).toBeVisible();
+    await expect(page.getByText("llama-server isn't installed, or isn't on PATH.")).toBeVisible();
+    await expect(
+      page.getByText("In Ollama's store, the exact build its trained weights need"),
+    ).toBeVisible();
+    await capture(`import-check-weights-${theme}.png`);
+
+    // Settings opens on Models, where llama.cpp is set up; closing it checks the package again.
+    await page.getByRole('button', { name: 'Set up llama.cpp' }).click();
+    const settings = page.getByRole('dialog', { name: 'Settings' });
+    await expect(settings.getByRole('tab', { name: 'Models' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await page.keyboard.press('Escape');
+    await expect(settings).toBeHidden();
+    await expect.poll(async () => (await callsTo(app, 'graduates:previewImport')).length).toBe(2);
+
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await page
+      .getByRole('list', { name: 'Folders' })
+      .getByRole('listitem', { name: 'data/' })
+      .getByRole('button', { name: 'Choose' })
+      .click();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await page
+      .getByRole('radiogroup', { name: 'Access to data/' })
+      .getByRole('radio', { name: 'Read and change' })
+      .click();
+    await page.getByRole('button', { name: 'Install', exact: true }).click();
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Returns desk needs attention' }),
+    ).toBeVisible();
+    const checks = page.getByRole('list', { name: 'Install checks' });
+    await expect(checks).toContainText('llama.cpp');
+    await expect(checks).toContainText("llama-server isn't installed");
+    await expect(checks).toContainText(
+      'muse-glimmer:30b, the exact build its trained weights need',
+    );
+    await expect(page.getByRole('button', { name: 'Set up llama.cpp' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Check again' })).toBeVisible();
+    await capture(`import-weights-attention-${theme}.png`);
+  });
+}
+
+for (const theme of THEMES) {
   test(`imports a package through its folders to a blocked install, with a way out (${theme})`, async () => {
     const app = launched.app;
     await open(theme, chatPath(CHATS.closeout.id));

@@ -15,6 +15,7 @@ import {
   type InstallCheck,
   type Installation,
   type Job,
+  type LlamaServerStatus,
   type PackageManifest,
   type ResourceGrant,
   type Score,
@@ -127,7 +128,14 @@ function manifestFor(options: ManifestOptions): PackageManifest {
     harness: { format: 2, path: 'harness', hash: hex('b'), version: 8, round: 7 },
     resources,
     requirements: {
-      tested: [{ os: 'win32', arch: 'x64', backend: 'ollama', target: 'local' }],
+      tested: [
+        {
+          os: 'win32',
+          arch: 'x64',
+          backend: options.adapter ? 'llama.cpp' : 'ollama',
+          target: 'local',
+        },
+      ],
       measured: score ? { latencyMs: { p50: 150_000, p95: 222_000 } } : {},
       minimum: { memoryBytes: 20 * 1024 ** 3, diskBytes: 18 * 1024 ** 3 },
       limitations: [],
@@ -404,6 +412,8 @@ const frontDeskJob: Job = { ...returnsJob, id: 'job_front', name: 'Front desk' }
 
 export const PACKAGES = {
   ready: 'C:\\Users\\dana\\Downloads\\returns-desk-v1.architect.zip',
+  /** The returns desk's next version, with trained weights that llama.cpp serves. */
+  weights: 'C:\\Users\\dana\\Downloads\\returns-desk-v2.architect.zip',
   blocked: 'C:\\Users\\dana\\Downloads\\front-desk-v1.architect.zip',
   broken: 'C:\\Users\\dana\\Downloads\\service-desk-v2.architect.zip',
 };
@@ -412,43 +422,86 @@ export const FOLDERS = {
   records: 'C:\\Users\\dana\\Documents\\Larchwood\\Records',
 };
 
-function preview(madeFor: Job, agentId: string, tools: string[]): ImportPreview {
+/** What the engine says when this computer has no llama-server (decision 041). */
+const NO_LLAMA_SERVER =
+  "llama-server isn't installed, or isn't on PATH. Install llama.cpp (build 10358 or newer), then choose its llama-server in Settings or add its folder to PATH.";
+
+/** Settings › Models on this computer: no llama-server, as the checks found. */
+export const LLAMA_SERVER_MISSING: LlamaServerStatus = {
+  source: null,
+  ready: false,
+  problem: "llama-server isn't installed, or isn't on PATH.",
+  hint: 'Install llama.cpp (build 10358 or newer), then choose its llama-server in Settings or add its folder to PATH.',
+  minimumBuild: 10358,
+};
+
+/** The checks a version with trained weights gets where llama.cpp isn't installed. */
+const WEIGHTS_CHECKS = {
+  compatibility: passed(
+    'compatibility',
+    'compatibility',
+    "win32/x64, 32 GB of memory, llama.cpp with its adapter, on its base from Ollama's store.",
+  ),
+  server: {
+    id: 'adapter-runtime',
+    kind: 'adapter_runtime',
+    status: 'failed',
+    detail: NO_LLAMA_SERVER,
+  } satisfies InstallCheck,
+  base: passed(
+    'model-available',
+    'model_available',
+    `muse-glimmer:30b in Ollama's store, the build its adapter was trained on (sha256:${'a'.repeat(12)}), and its adapter as installed.`,
+  ),
+  responds: {
+    id: 'model-responds',
+    kind: 'model_responds',
+    status: 'skipped',
+    detail: "Skipped: llama-server can't run it yet.",
+  } satisfies InstallCheck,
+};
+
+function preview(madeFor: Job, agentId: string, tools: string[], weights = false): ImportPreview {
   return ImportPreviewSchema.parse({
     ok: true,
     manifest: manifestFor({
       job: madeFor,
       agentId,
-      version: 1,
+      version: weights ? 2 : 1,
       createdAt: at(-3 * 24 * 60),
       status: 'ready',
-      score: { pass: 56, total: 60 },
+      score: weights ? { pass: 58, total: 60 } : { pass: 56, total: 60 },
       tools,
+      adapter: weights,
     }),
     digest: hex('7'),
-    files: 14,
-    bytes: 61_440,
+    files: weights ? 15 : 14,
+    bytes: weights ? 123_793_408 : 61_440,
     place: { kind: 'new' },
     machine: MACHINE,
     model: { runtime: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'muse-glimmer:30b' },
-    checks: [
-      passed(
-        'compatibility',
-        'compatibility',
-        'win32/x64, 32 GB of memory, ollama at 127.0.0.1:11434.',
-      ),
-      passed(
-        'model-available',
-        'model_available',
-        'muse-glimmer:30b on ollama, the same build that was tested.',
-      ),
-    ],
-    status: 'ready',
-    reasons: [],
+    checks: weights
+      ? [WEIGHTS_CHECKS.compatibility, WEIGHTS_CHECKS.server, WEIGHTS_CHECKS.base]
+      : [
+          passed(
+            'compatibility',
+            'compatibility',
+            'win32/x64, 32 GB of memory, ollama at 127.0.0.1:11434.',
+          ),
+          passed(
+            'model-available',
+            'model_available',
+            'muse-glimmer:30b on ollama, the same build that was tested.',
+          ),
+        ],
+    status: weights ? 'needs_attention' : 'ready',
+    reasons: weights ? [NO_LLAMA_SERVER] : [],
   });
 }
 
 const PREVIEWS: Record<string, ImportPreview> = {
   [PACKAGES.ready]: preview(returnsJob, 'grd_returns', ['label_for']),
+  [PACKAGES.weights]: preview(returnsJob, 'grd_returns', ['label_for'], true),
   [PACKAGES.blocked]: preview(frontDeskJob, 'grd_front', ['lookup_order']),
   [PACKAGES.broken]: {
     ok: false,
@@ -518,10 +571,30 @@ function importResultFor(
   }
   const data = request.bindings?.['data'];
   const granted = request.grants?.resources?.['data'] ?? 'none';
-  const ready = data !== undefined && granted !== 'none';
+  const bound = data !== undefined && granted !== 'none';
   const reason = !data
     ? 'Choose a folder for data/: it should hold orders.csv, returns.csv, pickups.csv, policy.md.'
     : "data/ has a folder, but the agent isn't allowed to open it.";
+  const folders = READY_CHECKS.map((check) =>
+    check.kind === 'resources_bound' && !bound
+      ? { ...check, status: 'failed' as const, detail: reason }
+      : check,
+  );
+  // With trained weights, llama.cpp serves it, and this computer has no llama-server yet.
+  const weights = path === PACKAGES.weights;
+  const checks = weights
+    ? [
+        WEIGHTS_CHECKS.compatibility,
+        ...folders.filter((check) =>
+          ['harness_valid', 'tools_load', 'resources_bound'].includes(check.kind),
+        ),
+        WEIGHTS_CHECKS.server,
+        WEIGHTS_CHECKS.base,
+        WEIGHTS_CHECKS.responds,
+      ]
+    : folders;
+  const reasons = [...(bound ? [] : [reason]), ...(weights ? [NO_LLAMA_SERVER] : [])];
+  const ready = reasons.length === 0;
   return {
     graduate: importedAgent(returnsJob, 'grd_returns', ready ? 'ready' : 'needs_attention'),
     version: 1,
@@ -533,14 +606,8 @@ function importResultFor(
         resources: { data: 'none', output: 'none', ...request.grants?.resources },
       },
       status: ready ? 'ready' : 'needs_attention',
-      reasons: ready ? [] : [reason],
-      checks: ready
-        ? READY_CHECKS
-        : READY_CHECKS.map((check) =>
-            check.kind === 'resources_bound'
-              ? { ...check, status: 'failed', detail: reason }
-              : check,
-          ),
+      reasons,
+      checks,
     }),
     alreadyInstalled: false,
   };
@@ -565,8 +632,9 @@ export async function installPackagesFake(
     agent: AGENT_WITH_VERSIONS,
     previews: PREVIEWS,
     packages: PACKAGES,
+    llamaServer: LLAMA_SERVER_MISSING,
     results: Object.fromEntries(
-      [PACKAGES.ready, PACKAGES.blocked].flatMap((path) => [
+      [PACKAGES.ready, PACKAGES.weights, PACKAGES.blocked].flatMap((path) => [
         [
           `${path}|ready`,
           importResultFor(path, {
@@ -615,6 +683,8 @@ export async function installPackagesFake(
       const next = fake.picks?.shift();
       return next === undefined ? [] : [next];
     });
+    // Settings › Models asks about llama-server; the real one on this computer never runs.
+    handle('connections:llamaServer', () => data.llamaServer);
     handle('graduates:list', () => agents);
     handle('graduates:versions', () => versions);
     handle('graduates:history', () => []);
@@ -635,7 +705,7 @@ export async function installPackagesFake(
       folder: `${request.directory}\\service-desk-v2`,
       archive: `${request.directory}\\service-desk-v2.architect.zip`,
       files: ['graduate.json'],
-      bytes: 48_213,
+      bytes: 123_781_481,
       digest: '1'.repeat(64),
       findings: [],
     }));

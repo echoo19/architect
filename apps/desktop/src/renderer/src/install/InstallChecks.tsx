@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import type { Installation, PackageManifest } from '@architect/shared';
 import { Button, SettingsRow, StatusMark } from '@architect/ui';
-import { Download, FolderOpen, RotateCw, ShieldCheck } from 'lucide-react';
+import { Cpu, Download, FolderOpen, RotateCw, ShieldCheck } from 'lucide-react';
 import { architect } from '../api/client';
 import { graduatesApi, refreshAgent } from '../api/graduates';
 import { attempt } from '../lib/notify';
 import { pullPercent } from '../onboarding/pull';
 import { useModelPull } from '../onboarding/useModelPull';
+import { useUi } from '../state/ui';
+import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { CHECK_LABELS, checkDetail, checkMark, fixesFor, type Fix } from './labels';
 
 const CHECK_OUTCOMES = { passed: 'Passed', failed: 'Failed', skipped: 'Skipped' } as const;
@@ -42,8 +44,29 @@ export interface FixButtonsProps {
 }
 
 /**
- * A button for each way out of what the checks found: choose a folder, allow one, download the
- * model, or check again. Each one runs the checks again and hands back what they found.
+ * Opens Settings at Models, where llama.cpp is chosen or its build shown. The agent's settings
+ * close first, so the two never stack.
+ */
+export function SetUpLlamaButton({ disabled = false }: { disabled?: boolean }) {
+  return (
+    <Button
+      size="xs"
+      disabled={disabled}
+      onClick={() => {
+        useAgentSettingsUi.getState().close();
+        useUi.getState().openSettings('models');
+      }}
+    >
+      <Cpu size={14} strokeWidth={1.7} aria-hidden />
+      Set up llama.cpp
+    </Button>
+  );
+}
+
+/**
+ * A button for each way out of what the checks found: choose a folder, allow one, set up
+ * llama.cpp, download the model, or check again. Each one but llama.cpp's runs the checks again
+ * and hands back what they found; after Settings, Check again does.
  */
 export function FixButtons({ graduateId, installation, manifest, onChanged }: FixButtonsProps) {
   const fixes = fixesFor(installation, manifest);
@@ -60,7 +83,7 @@ export function FixButtons({ graduateId, installation, manifest, onChanged }: Fi
     if (changed) onChanged(changed);
   };
 
-  const apply = (fix: Fix): Promise<Installation | null> => {
+  const apply = (fix: Exclude<Fix, { kind: 'llama' }>): Promise<Installation | null> => {
     switch (fix.kind) {
       case 'choose':
         return (async () => {
@@ -87,6 +110,7 @@ export function FixButtons({ graduateId, installation, manifest, onChanged }: Fi
       {fixes.map((fix) => {
         const key =
           fix.kind === 'choose' || fix.kind === 'allow' ? `${fix.kind}:${fix.resource}` : fix.kind;
+        if (fix.kind === 'llama') return <SetUpLlamaButton key={key} disabled={running !== null} />;
         if (fix.kind === 'download') {
           return (
             <DownloadModelButton
@@ -117,7 +141,7 @@ export function FixButtons({ graduateId, installation, manifest, onChanged }: Fi
   );
 }
 
-function fixLabel(fix: Exclude<Fix, { kind: 'download' }>): string {
+function fixLabel(fix: Exclude<Fix, { kind: 'download' | 'llama' }>): string {
   switch (fix.kind) {
     case 'choose':
       return fix.again

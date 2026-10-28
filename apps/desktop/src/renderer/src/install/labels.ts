@@ -20,6 +20,7 @@ export const CHECK_LABELS: Record<string, string> = {
   harness_valid: 'Setup',
   tools_load: 'Tools',
   resources_bound: 'Folders',
+  adapter_runtime: 'llama.cpp',
   model_available: 'Base model',
   model_responds: 'Model answers',
 };
@@ -37,13 +38,18 @@ export function statusMark(status: InstallStatus): MarkState {
   return 'attention';
 }
 
+/** Checks whose failure the user can always fix here, so it never reads as blocking. */
+const FIXABLE_HERE: ReadonlySet<string> = new Set([
+  'resources_bound',
+  'adapter_runtime',
+  'model_responds',
+]);
+
 /** A check's outcome as a row mark: a failed check blocks or needs attention, as its status says. */
 export function checkMark(check: InstallCheck, status: InstallStatus): MarkState {
   if (check.status === 'passed') return 'ok';
   if (check.status === 'skipped') return 'off';
-  return status === 'blocked' && check.kind !== 'resources_bound' && check.kind !== 'model_responds'
-    ? 'blocked'
-    : 'attention';
+  return status === 'blocked' && !FIXABLE_HERE.has(check.kind) ? 'blocked' : 'attention';
 }
 
 /** "Windows", "macOS", or the platform's own name. */
@@ -61,12 +67,27 @@ export function runtimeName(runtime: string): string {
   return runtime;
 }
 
+/** What a check's words depend on: the model binding, this computer, and the checks beside it. */
+export type CheckContext = Pick<Installation, 'model' | 'checks'> & {
+  machine?: Installation['machine'];
+};
+
+/** True when llama.cpp serves the version, with trained weights on its base (decision 041). */
+export function servedWithWeights(context: Pick<CheckContext, 'checks'>): boolean {
+  return context.checks.some((check) => check.kind === 'adapter_runtime');
+}
+
+/** "llama.cpp" for a version with trained weights, else the runtime its binding names. */
+export function servedBy(context: CheckContext): string {
+  return servedWithWeights(context) ? 'llama.cpp' : runtimeName(context.model.runtime);
+}
+
 /**
  * What a check found, said the way the rest of the app says it: a passed fit check names this
- * computer and its runtime, a passed model check the model and where it runs, and a skipped one
- * why it wasn't tried. A failed check keeps its own words, which say what to do.
+ * computer and what runs the model, a passed model check the model, and a skipped one why it
+ * wasn't tried. A failed check keeps its own words, which say what to do.
  */
-export function checkDetail(check: InstallCheck, installation: Installation): string {
+export function checkDetail(check: InstallCheck, context: CheckContext): string {
   if (check.status === 'skipped') {
     // The engine skips a model check when a check before it failed, or when it wasn't asked to
     // load the model this time.
@@ -74,17 +95,24 @@ export function checkDetail(check: InstallCheck, installation: Installation): st
     return check.detail === 'Not asked for.' ? 'Not tried yet' : check.detail;
   }
   if (check.status !== 'passed') return check.detail;
-  const { model, machine } = installation;
+  const { model, machine } = context;
   switch (check.kind) {
     case 'compatibility':
       return machine
-        ? `${osName(machine.os)} ${machine.arch} · ${formatBytes(machine.memoryBytes)} · ${runtimeName(model.runtime)}`
+        ? `${osName(machine.os)} ${machine.arch} · ${formatBytes(machine.memoryBytes)} · ${servedBy(context)}`
         : check.detail;
     case 'harness_valid':
       return 'The same setup that was tested';
     case 'resources_bound':
       return 'Every folder is chosen and has its files';
+    case 'adapter_runtime': {
+      const build = /build (\d+)/.exec(check.detail)?.[1];
+      return build === undefined ? check.detail : `Build ${build}`;
+    }
     case 'model_available': {
+      if (servedWithWeights(context)) {
+        return `${model.model}, the exact build its trained weights need`;
+      }
       const same = check.detail.includes('same build') ? ', the build that was tested' : '';
       return `${model.model} on ${runtimeName(model.runtime)}${same}`;
     }
@@ -104,13 +132,15 @@ export const GRANT_LABELS: Record<ResourceGrant, string> = {
 export type Fix =
   | { kind: 'choose'; resource: string; again: boolean }
   | { kind: 'allow'; resource: string; grant: ResourceGrant }
+  | { kind: 'llama' }
   | { kind: 'download'; model: string }
   | { kind: 'check' };
 
 /**
  * The ways out of what the checks found, each tied to a check: a folder to choose (again), a
- * folder to allow, a model to download, or checking again once something outside Architect is
- * fixed. A blocked installation has no fix on this computer, so it gets none.
+ * folder to allow, llama.cpp to set up in Settings, a model to download, or checking again once
+ * something outside Architect is fixed. A blocked installation has no fix on this computer, so it
+ * gets none.
  */
 export function fixesFor(installation: Installation, manifest: PackageManifest): Fix[] {
   if (installation.status === 'ready' || installation.status === 'blocked') return [];
@@ -131,6 +161,7 @@ export function fixesFor(installation: Installation, manifest: PackageManifest):
       }
     }
   }
+  if (failed('adapter_runtime')) fixes.push({ kind: 'llama' });
   if (failed('model_available') && installation.model.runtime === 'ollama') {
     fixes.push({ kind: 'download', model: installation.model.model });
   }

@@ -1,6 +1,11 @@
-import type { GraduateVersion, InstallCheck, Installation } from '@architect/shared';
+import type {
+  GraduateVersion,
+  InstallCheck,
+  Installation,
+  PackageManifest,
+} from '@architect/shared';
 import { describe, expect, it } from 'vitest';
-import { checkDetail } from '../../../src/renderer/src/install/labels';
+import { checkDetail, checkMark, fixesFor } from '../../../src/renderer/src/install/labels';
 import {
   moveFor,
   promoteCaution,
@@ -95,6 +100,7 @@ describe('install check details', () => {
   const installation = {
     model: { runtime: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'muse-glimmer:30b' },
     machine: { os: 'win32', arch: 'x64', memoryBytes: 32 * 1024 ** 3 },
+    checks: [],
   } as unknown as Installation;
   const check = (patch: Partial<InstallCheck>): InstallCheck => ({
     id: 'check',
@@ -148,5 +154,50 @@ describe('install check details', () => {
     expect(
       checkDetail(check({ kind: 'tools_load', status: 'failed', detail: reason }), installation),
     ).toBe(reason);
+  });
+
+  describe('for a version with trained weights, which llama.cpp serves', () => {
+    const missing =
+      "llama-server isn't installed, or isn't on PATH. Install llama.cpp (build 10358 or newer), then choose its llama-server in Settings or add its folder to PATH.";
+    const server = check({
+      id: 'adapter-runtime',
+      kind: 'adapter_runtime',
+      detail: 'llama-server build 10472, at C:\\llama.cpp\\llama-server.exe.',
+    });
+    const served = { ...installation, checks: [server] } as Installation;
+
+    it('names llama.cpp as what runs it, its build, and the base its weights need', () => {
+      expect(checkDetail(check({ detail: 'win32/x64, 32 GB of memory, llama.cpp.' }), served)).toBe(
+        'Windows x64 · 32 GB · llama.cpp',
+      );
+      expect(checkDetail(server, served)).toBe('Build 10472');
+      expect(
+        checkDetail(
+          check({
+            kind: 'model_available',
+            detail: "muse-glimmer:30b in Ollama's store, the build its adapter was trained on.",
+          }),
+          served,
+        ),
+      ).toBe('muse-glimmer:30b, the exact build its trained weights need');
+    });
+
+    it('offers to set up llama.cpp when it is missing, and never reads that as blocking', () => {
+      const failed = { ...server, status: 'failed' as const, detail: missing };
+      const needing = {
+        ...served,
+        status: 'needs_attention',
+        bindings: {},
+        grants: { writes: 'ask', resources: {} },
+        checks: [failed],
+      } as unknown as Installation;
+      const manifest = { resources: [] } as unknown as PackageManifest;
+      expect(fixesFor(needing, manifest)).toEqual([{ kind: 'llama' }, { kind: 'check' }]);
+      expect(checkDetail(failed, needing)).toBe(missing);
+      expect(checkMark(failed, 'blocked')).toBe('attention');
+      expect(
+        checkMark({ ...failed, kind: 'model_available', id: 'model-available' }, 'blocked'),
+      ).toBe('blocked');
+    });
   });
 });

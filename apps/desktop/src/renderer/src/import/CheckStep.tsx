@@ -1,4 +1,10 @@
-import type { ImportPreview, PackageManifest, TestedConfiguration } from '@architect/shared';
+import { useEffect, useRef } from 'react';
+import type {
+  ImportPreview,
+  InstallCheck,
+  PackageManifest,
+  TestedConfiguration,
+} from '@architect/shared';
 import {
   Heading,
   SettingsRow,
@@ -8,11 +14,32 @@ import {
   VersionTag,
   type MarkState,
 } from '@architect/ui';
-import { DownloadModelButton } from '../install/InstallChecks';
-import { AUTHOR_RESULT_TITLE, osName, runtimeName } from '../install/labels';
+import { DownloadModelButton, SetUpLlamaButton } from '../install/InstallChecks';
+import {
+  AUTHOR_RESULT_TITLE,
+  checkDetail,
+  checkMark,
+  osName,
+  runtimeName,
+  servedBy,
+} from '../install/labels';
 import { formatBytes, formatPercent } from '../lib/format';
+import { useUi } from '../state/ui';
 
 type Previewed = Extract<ImportPreview, { ok: true }>;
+
+/**
+ * Checks the package again once Settings closes, since llama.cpp may have been set up there.
+ * Nothing happens while `recheck` is null.
+ */
+function useRecheckAfterSettings(recheck: (() => void) | null): void {
+  const open = useUi((state) => state.settingsOpen);
+  const wasOpen = useRef(open);
+  useEffect(() => {
+    if (wasOpen.current && !open) recheck?.();
+    wasOpen.current = open;
+  }, [open, recheck]);
+}
 
 /** "Windows x64 with Ollama", or "with a hosted copy" for a test that didn't run locally. */
 export function testedOn(config: TestedConfiguration): string {
@@ -22,8 +49,8 @@ export function testedOn(config: TestedConfiguration): string {
 
 /**
  * The package as checked before anything is installed: that it is whole and safe to install,
- * whether this computer can run it and has its model, where it would go, and how it did on the
- * author's computer.
+ * whether this computer can run it and has its model (and llama.cpp, for trained weights), where
+ * it would go, and how it did on the author's computer.
  */
 export function CheckStep({
   preview,
@@ -34,10 +61,14 @@ export function CheckStep({
   file: string;
   onRecheck: () => void;
 }) {
-  const { manifest, machine, model, checks, place } = preview;
+  const { manifest, machine, model, checks, place, status } = preview;
   const fit = checks.find((check) => check.kind === 'compatibility');
+  const server = checks.find((check) => check.kind === 'adapter_runtime');
   const served = checks.find((check) => check.kind === 'model_available');
-  const failedMark: MarkState = preview.status === 'blocked' ? 'blocked' : 'attention';
+  const mark = (check: InstallCheck | undefined): MarkState =>
+    check ? checkMark(check, status) : 'off';
+  const notChecked = "Not checked, since this computer can't run it";
+  useRecheckAfterSettings(server?.status === 'failed' ? onRecheck : null);
 
   return (
     <>
@@ -76,34 +107,33 @@ export function CheckStep({
 
       <SettingsSection title="On this computer" className="pt-0">
         <SettingsRow
-          icon={<StatusMark state={fit?.status === 'passed' ? 'ok' : failedMark} />}
+          icon={<StatusMark state={mark(fit)} />}
           label="This computer"
-          meta={
-            fit?.status === 'passed' ? `Runs it with ${runtimeName(model.runtime)}` : fit?.detail
-          }
+          meta={fit?.status === 'passed' ? `Runs it with ${servedBy(preview)}` : fit?.detail}
         >
           <SettingsValue>
             {osName(machine.os)} {machine.arch} · {formatBytes(machine.memoryBytes)}
           </SettingsValue>
         </SettingsRow>
+        {server && (
+          <SettingsRow
+            icon={<StatusMark state={mark(server)} />}
+            label="llama.cpp"
+            meta={server.status === 'skipped' ? notChecked : checkDetail(server, preview)}
+          >
+            {server.status === 'failed' && <SetUpLlamaButton />}
+          </SettingsRow>
+        )}
         <SettingsRow
-          icon={
-            <StatusMark
-              state={
-                served?.status === 'passed'
-                  ? 'ok'
-                  : served?.status === 'skipped'
-                    ? 'off'
-                    : 'attention'
-              }
-            />
-          }
+          icon={<StatusMark state={mark(served)} />}
           label="Base model"
           meta={
             served?.status === 'passed'
-              ? `On this computer, served by ${runtimeName(model.runtime)}`
+              ? server
+                ? "In Ollama's store, the exact build its trained weights need"
+                : `On this computer, served by ${runtimeName(model.runtime)}`
               : served?.status === 'skipped'
-                ? "Not checked, since this computer can't run it"
+                ? notChecked
                 : served?.detail
           }
         >
