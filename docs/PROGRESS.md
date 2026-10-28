@@ -58,14 +58,15 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Seed 1's Architect graduate, tested again on this computer's 4-bit Glimmer through Ollama with no network: 60/60, median answer 1 min 57 s, slowest 5% 3 min 17 s or more (hosted: 6.9 s and 14.9 s). The model was unloaded afterwards.
 
 **Next**
-- Main runs on version 2: four methods, seed 1 first, then seeds 2 and 3 if the cost fits. Hosted training and locked tests; local locked tests for one seed per method and the shipped graduate.
-- Merge the screen clarity pass (in progress on its own branch); then show the second measurement in the round drawer, plot dev as pass rates, and count the possible second measurement in Define's time estimate.
-- A real run through the app's screens, and a workspace chat with the graduate on the local model; real screenshots for the README.
+- Seeds 2 to 5 of the comparison, once the owner adds OpenRouter credit (about $10; seeds 2 to 4 are paused partway and continue where they stopped).
+- The second task family (decision 028) is being built on its own branch; it needs hosted credit to calibrate and run (about $25 for three seeds).
+- A real Architect run through the app's screens on the sample job: it gives the README's screenshots, the shipped graduate (from the product's own draft-first flow, not the experiment's fork) and the demo recording.
+- The last clarity fixes on Define, the agent's General tab and Train are on their own branch.
 
 **Open issues**
 - Two commits reached main red today (a filtered local check hid failures); `pnpm check` now gates commits on its exit code.
 - `docs/screenshots/` holds e2e screenshots with fixture data; the README must use screenshots of real runs.
-- OpenRouter spend is the owner's money. The binding limit is the account's prepaid credit, $10 (the key's $50 cap never mattered): $9.01 was used when hosted calls started failing with HTTP 402 at 23:00 ET, a few minutes into seeds 2 to 5. Those runs are paused in their data folders and continue where they stopped once the owner adds credit; about $15 covers seeds 2 to 5. The local locked test doesn't use OpenRouter and keeps running. Seed 1 of the main runs comes first, to measure the real cost before seeds 2 and 3.
+- OpenRouter spend is the owner's money. The binding limit is the account's prepaid credit, $10 (the key's $50 cap never mattered): $9.01 was used when hosted calls started failing with HTTP 402 at 23:00 ET, a few minutes into seeds 2 to 5. Those runs are paused in their data folders and continue where they stopped once the owner adds credit; about $15 covers seeds 2 to 5. The local locked test didn't need OpenRouter and finished (60/60).
 - Self-hosted Spark Open needs Baseten or Modal credits, and the Baseten id must be confirmed with `GET /v1/models` once a key exists.
 
 **Mentor spend:** about $0.01 of the $150 credit.
