@@ -514,6 +514,53 @@ export async function installTeachingFake(
       if (!detail) throw new Error(`There is no run "${runId}".`);
       return detail;
     });
+    // An improvement's Train screen reads the run's mentoring records, as any run's does: this
+    // improvement has no lessons, interventions or experiments yet, and its job no categories.
+    const noRun = (runId: string) => {
+      if (!details[runId]) throw new Error(`There is no run "${runId}".`);
+    };
+    for (const channel of [
+      'mentoring:lessons',
+      'mentoring:interventions',
+      'mentoring:experiments',
+    ]) {
+      handle(channel, (runId: string) => {
+        noRun(runId);
+        return [];
+      });
+    }
+    handle('mentoring:categories', () => []);
+    handle('mentoring:progress', (runId: string) => {
+      noRun(runId);
+      const detail = details[runId];
+      return {
+        runId,
+        experiments: { total: 0, kept: 0, reverted: 0, rejected: 0, invalid: 0, stopped: 0 },
+        dev: { baseline: detail?.run.devBaseline ?? null, current: detail?.run.devCurrent ?? null },
+        lessons: { verified: 0, rejected: 0, byKind: {} },
+        clarifications: 0,
+        spent: {
+          mentorUsd: 0,
+          mentorInputTokens: 0,
+          mentorOutputTokens: 0,
+          studentUsd: 0,
+          studentInputTokens: 0,
+          studentOutputTokens: 0,
+          computeUsd: 0,
+          computeMinutes: 0,
+          examples: 0,
+          trainedTokens: 0,
+          attempts: 0,
+          minutes: 0,
+        },
+        budget: {
+          maxRounds: detail?.job.budget.maxRounds ?? 1,
+          maxMentorUsd: detail?.job.budget.maxMentorUsd ?? 0,
+          maxComputeUsd: 0,
+          maxWallMinutes: detail?.job.budget.maxWallMinutes ?? 1,
+        },
+      };
+    });
     handle('runs:stop', (runId: string) => {
       const detail = details[runId];
       const improvement = improvements.find((item) => item.runId === runId);

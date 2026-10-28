@@ -351,7 +351,9 @@ test.describe('the evidence screens of a recorded run', () => {
       await resize(DRAWER_HEIGHT);
       await page.reload();
       const opened = await openRound(roundWith(summary, 'kept'));
-      await expect(opened).toContainText("Couldn't load this round's findings, examples and costs");
+      await expect(opened).toContainText(
+        "Couldn't load this round's findings, examples, check tasks and costs",
+      );
       await shoot(`evidence-round-error-${theme}.png`);
       await closeDrawer();
 
