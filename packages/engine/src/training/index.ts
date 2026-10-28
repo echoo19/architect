@@ -40,16 +40,6 @@ export {
   type HfJobsBackendOptions,
 } from './hf-jobs';
 export {
-  HF_ENDPOINT,
-  HubClient,
-  HubError,
-  MAX_COMMIT_FILE_BYTES,
-  type HubClientOptions,
-  type HubErrorCode,
-  type JobInfo,
-  type JobSpec,
-} from './hub';
-export {
   buildTrainerJob,
   FINISH_RESERVE_SECONDS,
   JOB_FILE,
