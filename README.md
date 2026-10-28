@@ -35,9 +35,46 @@ A few guarantees hold throughout, and the tests check each of them:
 - Tools the mentor writes run in a QuickJS sandbox in a separate process, with no network, clock or randomness, and read-only access to the job's declared files.
 - Budgets for rounds, mentor dollars and wall-clock time are hard caps; a mentor call that could cross the dollar cap doesn't start.
 
+## Results
+
+Everything below was measured on the sample job, Ferncliff Home Services (version 2): a made-up back office where the agent prices finished jobs into invoices, answers questions about overdue balances, and books service visits into the schedule. Its 180 tasks, each with a deterministic check, are split into 60 practice tasks, 45 check tasks, 15 calibration tasks and a locked test of 60 that the mentor never sees. The mentor is Muse Spark 1.3 and the student is Muse Glimmer 30B. To save time, training and the comparison's locked tests ran on a hosted copy of Glimmer on OpenRouter; the agent the repo ships was then tested again on this computer, offline.
+
+### Seed 1
+
+Locked test, 60 tasks:
+
+| Method | Passed | Invoices | Overdue balances | Scheduling | Spark | Hosted Glimmer |
+| --- | --- | --- | --- | --- | --- | --- |
+| Glimmer alone | 45 (75%) | 11/20 | 17/20 | 17/20 | none | $0.81 |
+| One-shot: Spark writes the setup once, without seeing an attempt | 60 (100%) | 20/20 | 20/20 | 20/20 | $0.07 | $0.77 |
+| Architect: that same draft, then watched refinement | 60 (100%) | 20/20 | 20/20 | 20/20 | $0.07 | $0.13 more |
+| Self-reflection: Glimmer refines that same draft itself | 59 (98%) | 20/20 | 19/20 | 20/20 | $0.07 | $0.13 more |
+
+On the same 60 tasks, Architect's agent passes 15 that Glimmer alone failed and fails none that it passed: 25 points better, with a 95% interval of 15 to 37 points from resampling tasks.
+
+### On this computer, offline
+
+The shipped agent, tested again on the 4-bit Glimmer running through Ollama on an RTX 4070 Ti (12 GB, so about half the model runs on the CPU), with no network access: 60 of 60. A typical answer took 1 min 57 s, against 6.9 s on the hosted copy, and the slowest 5% took more than 3 min 17 s.
+
+### What this shows, and what it doesn't
+
+A setup that Spark wrote for about seven cents turns a 30B model that gets three in four of these tasks right into one that got all 60 right on tasks it had never seen, running offline.
+
+It doesn't show that watching the student adds anything on this job. Spark's first draft, written before it saw a single attempt, already passed all 45 check tasks, so Architect's refinement had nothing left to fix and stopped at once: Architect and one-shot tested the same setup. That is a property of this job, whose policy spells out every rule with an example. A job whose rules aren't all written down is where watching should matter, and that hasn't been tested yet.
+
+One seed is initial evidence. Seeds 2 to 5 were declared before they ran (decision 027) and are waiting on hosted credit.
+
+### How the comparison changed while it ran
+
+Each change, with its reason, is in [docs/DECISIONS.md](docs/DECISIONS.md).
+
+- A noise pilot showed the check score moving by up to 6 of 45 tasks between identical runs, so a change now has to clear the keep bar on a second, fresh measurement too (decision 022).
+- The first two starts of seed 1 were thrown away after they exposed problems that affected every method: a one-shot reply lost to a format slip, a tool API whose docs never said file names keep their extension, and a tool with a syntax error that nothing caught before measuring. Every author now gets one fix for a reply the runner can't use, tools may use a file's short name, and a tool must load before it is measured (decisions 023 to 025).
+- After seeing the one-shot score on seed 1, Architect was changed to start from a whole first draft instead of building its setup one change at a time, and the comparison now shares each seed's draft between one-shot, Architect and self-reflection (decision 026). This was settled before any Architect run and reviewed by GPT-6 Astra, but it is still a change made after seeing a result, and it is reported as one.
+
 ## Status
 
-Under active development. See [docs/PLAN.md](docs/PLAN.md) for the milestones and [docs/PROGRESS.md](docs/PROGRESS.md) for where things stand.
+Built from an empty repository between Oct 27 and Nov 4, 2026. [docs/PROGRESS.md](docs/PROGRESS.md) says where things stand.
 
 ## Docs
 
