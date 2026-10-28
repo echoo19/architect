@@ -37,16 +37,32 @@ export function startedStep(call: ToolCall, harness: Harness): NewStep {
 /** The same step once its call has returned, with what it showed when there is more to see. */
 export function finishedStep(step: NewStep, result: ToolTrace): NewStep {
   const view = stepView(result);
+  let meta: string;
+  if (result.error !== undefined) meta = clip(result.error.split('\n')[0] ?? '', META_CHARS);
+  else if (view?.kind === 'table') meta = rowsRead(view, result.result);
+  else meta = describeResult(result.name, result.result, result.change);
   return {
     ...step,
     status: result.error === undefined ? 'done' : 'error',
-    meta:
-      result.error === undefined
-        ? describeResult(result.name, result.result, result.change)
-        : clip(result.error.split('\n')[0] ?? '', META_CHARS),
+    meta,
     ms: result.latencyMs,
     ...(view === undefined ? {} : { view }),
   };
+}
+
+/**
+ * A table read counted the way its table shows it, in rows: `5 rows`, or `rows 201-400 of 1,505`
+ * for a page of a longer table. Line 1 of the file is its header, so line n holds row n - 1.
+ */
+function rowsRead(view: Extract<StepView, { kind: 'table' }>, result: JsonValue | null): string {
+  const numbered = (typeof result === 'string' ? result.split('\n') : [])
+    .map((line) => /^\s*(\d+)\t/.exec(line)?.[1])
+    .filter((number): number is string => number !== undefined)
+    .map(Number);
+  const first = Math.max(2, numbered[0] ?? 2) - 1;
+  const last = (numbered.at(-1) ?? view.total + 1) - 1;
+  if (first <= 1 && last >= view.total) return count(view.total, 'row');
+  return `rows ${first.toLocaleString('en-US')}-${last.toLocaleString('en-US')} of ${view.total.toLocaleString('en-US')}`;
 }
 
 /** A skill a retrieval rule loaded for the request before the model ran. */

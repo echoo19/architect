@@ -119,6 +119,8 @@ export interface SettingsRowProps {
   /** Why the row's value couldn't load. Replaces the meta line; pair it with a retry control. */
   error?: string;
   tone?: 'default' | 'danger';
+  /** `compact` for a list of short entries with no meta, such as what an export leaves out. */
+  density?: 'default' | 'compact';
   /** The control or value on the right. */
   children?: ReactNode;
 }
@@ -130,10 +132,16 @@ export function SettingsRow({
   metaFont = 'text',
   error,
   tone = 'default',
+  density = 'default',
   children,
 }: SettingsRowProps) {
   return (
-    <div className="flex min-h-[60px] flex-wrap items-center justify-between gap-x-5 gap-y-2.5 border-t border-line py-2.5">
+    <div
+      className={cn(
+        'flex flex-wrap items-center justify-between gap-x-5 gap-y-2.5 border-t border-line',
+        density === 'compact' ? 'min-h-11 py-2' : 'min-h-[60px] py-2.5',
+      )}
+    >
       {icon && <div className="-mr-2 flex shrink-0 items-center">{icon}</div>}
       <div className="flex min-w-0 flex-[1_1_180px] flex-col gap-0.5">
         <span className={tone === 'danger' ? 'text-danger' : 'text-fg'}>{label}</span>
@@ -163,4 +171,26 @@ export function SettingsRow({
 /** A read-only value on the right of a settings row. */
 export function SettingsValue({ children }: { children: ReactNode }) {
   return <span className="text-fg-secondary">{children}</span>;
+}
+
+export interface SettingsSectionProps {
+  /** A short name over the rows, such as "Versions" or "Left out". */
+  title: string;
+  /** Controls at the right of the title. */
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}
+
+/** Rows grouped under a quiet title, for a tab that holds more than one list. */
+export function SettingsSection({ title, actions, children, className }: SettingsSectionProps) {
+  return (
+    <section aria-label={title} className={cn('flex flex-col pt-6 first:pt-1', className)}>
+      <div className="flex min-h-8 items-center justify-between gap-3 pb-2">
+        <h3 className="m-0 text-sm font-normal text-fg-muted">{title}</h3>
+        {actions}
+      </div>
+      {children}
+    </section>
+  );
 }

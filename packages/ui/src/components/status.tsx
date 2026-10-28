@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { Check } from 'lucide-react';
+import { Check, CircleAlert, CircleCheck, CircleMinus, CircleX } from 'lucide-react';
 import { cn } from '../lib/cn';
+import { Spinner } from './spinner';
 
 export type StatusTone = 'student' | 'mentor' | 'neutral' | 'faint';
 
@@ -29,13 +30,79 @@ export function StatusDot({ tone = 'student', label, size = 7, className }: Stat
   );
 }
 
-export type BadgeTone = 'outline' | 'neutral' | 'student';
+export type BadgeTone = 'outline' | 'neutral' | 'student' | 'danger';
 
 const badgeTone: Record<BadgeTone, string> = {
   outline: 'border border-line-control text-fg-secondary',
   neutral: 'border border-line-control bg-card text-fg-soft',
   student: 'bg-student-tint font-medium text-student',
+  danger: 'border border-danger-line text-danger',
 };
+
+export type MarkState = 'ok' | 'attention' | 'blocked' | 'off' | 'working';
+
+const markIcon = {
+  ok: CircleCheck,
+  attention: CircleAlert,
+  blocked: CircleX,
+  off: CircleMinus,
+} as const;
+
+const markTone: Record<Exclude<MarkState, 'working'>, string> = {
+  ok: 'text-student',
+  attention: 'text-fg-soft',
+  blocked: 'text-danger',
+  off: 'text-fg-faint',
+};
+
+export interface StatusMarkProps {
+  state: MarkState;
+  /** Read out in place of the icon, e.g. "Passed". Without it the mark is decorative. */
+  label?: string;
+  /** 16 in a row; 24 beside a page title. */
+  size?: 14 | 16 | 18 | 24;
+  className?: string;
+}
+
+/**
+ * A check's outcome at the start of a row: passed, needs attention, blocked, left out or skipped,
+ * or still running.
+ */
+export function StatusMark({ state, label, size = 16, className }: StatusMarkProps) {
+  if (state === 'working') return <Spinner size={size} label={label} className={className} />;
+  const Icon = markIcon[state];
+  return (
+    <Icon
+      size={size}
+      strokeWidth={1.8}
+      {...(label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true })}
+      className={cn('shrink-0', markTone[state], className)}
+    />
+  );
+}
+
+export interface VersionTagProps {
+  version: number;
+  /** The version chats run on, set in the student's tint. */
+  active?: boolean;
+  className?: string;
+}
+
+/** "v2" in a small tile, the way a list of an agent's versions marks each one. Decorative. */
+export function VersionTag({ version, active = false, className }: VersionTagProps) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'inline-flex h-7 min-w-9 shrink-0 items-center justify-center rounded-md px-1.5 font-mono text-sm',
+        active ? 'bg-student-tint text-student' : 'bg-hover text-fg-secondary',
+        className,
+      )}
+    >
+      v{version}
+    </span>
+  );
+}
 
 export interface BadgeProps {
   tone?: BadgeTone;

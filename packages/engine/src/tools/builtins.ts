@@ -6,6 +6,7 @@ import type {
   WriteRecord,
   WriteToolName,
 } from '@architect/shared';
+import { SaveError } from '../data/errors';
 import type { AgentFiles, PlannedChange } from '../files/agent-files';
 import { globMatcher } from '../files/glob';
 import { agentPath, isWithin } from '../files/paths';
@@ -34,7 +35,14 @@ export type WriteDecision = 'approve' | 'deny';
  * Asks the user to approve a change. Absent in task mode, where changes go straight to the
  * attempt's scratch copy of the files.
  */
-export type ApproveWrite = (change: PendingWrite, signal?: AbortSignal) => Promise<WriteDecision>;
+export interface ApproveWrite {
+  (change: PendingWrite, signal?: AbortSignal): Promise<WriteDecision>;
+  /**
+   * An approved change couldn't be saved. Shows why, and resolves true when the user asks to try
+   * again; false gives up, and the call fails with the reason. Without it, the call fails at once.
+   */
+  saveFailed?(change: PendingWrite, reason: string, signal?: AbortSignal): Promise<boolean>;
+}
 
 export interface ExecutorResult {
   value: JsonValue;
@@ -73,24 +81,40 @@ export function builtinExecutors(deps: BuiltinDeps): Record<BuiltinToolName, Exe
       ...(plan.rows === undefined ? {} : { rows: plan.rows }),
       applied,
     });
-    if (deps.approveWrite) {
-      const pending: PendingWrite = {
-        tool: plan.op,
-        path: plan.path,
-        summary: plan.summary,
-        patch: plan.patch,
-        ...(plan.rows === undefined ? {} : { rows: plan.rows }),
+    const approver = deps.approveWrite;
+    if (!approver) {
+      await files.apply(plan);
+      return { value: plan.done, change: record(true) };
+    }
+    const pending: PendingWrite = {
+      tool: plan.op,
+      path: plan.path,
+      summary: plan.summary,
+      patch: plan.patch,
+      ...(plan.rows === undefined ? {} : { rows: plan.rows }),
+    };
+    const decision = await untilAborted(approver(pending, signal), signal);
+    if (decision !== 'approve') {
+      return {
+        value: `The user declined this change, so nothing was written: ${plan.summary}.`,
+        change: record(false),
       };
-      const decision = await untilAborted(deps.approveWrite(pending, signal), signal);
-      if (decision !== 'approve') {
-        return {
-          value: `The user declined this change, so nothing was written: ${plan.summary}.`,
-          change: record(false),
-        };
+    }
+    // Saving can fail after the user said yes (another program holds the file, say). Nothing was
+    // written then, so the approver may show why and let the user try again.
+    for (;;) {
+      try {
+        await files.apply(plan);
+        return { value: plan.done, change: record(true) };
+      } catch (error) {
+        if (!(error instanceof SaveError) || !approver.saveFailed) throw error;
+        const again = await untilAborted(
+          approver.saveFailed(pending, error.message, signal),
+          signal,
+        );
+        if (!again) throw error;
       }
     }
-    await files.apply(plan);
-    return { value: plan.done, change: record(true) };
   }
 
   return {

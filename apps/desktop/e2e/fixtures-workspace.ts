@@ -6,6 +6,8 @@ import {
   type GpuInfo,
   type GraduateSettings,
   type GraduateSummary,
+  type GraduateVersion,
+  type Installation,
   type Job,
   type OllamaStatus,
   type PullProgress,
@@ -16,6 +18,7 @@ import {
   type WorkspaceMessage,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
+import { installation, STORY_VERSION } from './fixtures-versions';
 import { AT, graduate, job, storyReport } from './story';
 
 /*
@@ -234,7 +237,7 @@ const DANA: Extract<StepView, { kind: 'code' }> = {
 /** The reply to "Price the two jobs Dana finished today", as it streams in. */
 export function pricingReply(stage: 'started' | 'working' | 'writing' | 'done'): WorkspaceMessage {
   const steps = [
-    step('p1', 'read', 'data/jobs.csv', '6 lines', 'done', TODAYS_JOBS),
+    step('p1', 'read', 'data/jobs.csv', 'rows 1,501-1,505 of 1,505', 'done', TODAYS_JOBS),
     step('p2', 'run', 'data/technicians.csv', DANA.output.slice(0, 59) + '…', 'done', DANA),
     { ...step('p3', 'price-a-job', 'price-a-job', '18 lines'), kind: 'skill' as const },
     step('p4', 'invoice_total', 'job J-4471', '$524.03'),
@@ -294,6 +297,10 @@ export function pricingReply(stage: 'started' | 'working' | 'writing' | 'done'):
 
 export interface EngineSeed {
   graduates: GraduateSummary[];
+  /** The agent's versions, for its settings. */
+  versions: GraduateVersion[];
+  /** This computer's installation of the agent, with its install checks. */
+  installation: Installation;
   chats: WorkspaceChat[];
   messages: WorkspaceMessage[];
   graduateSettings: GraduateSettings;
@@ -312,6 +319,8 @@ export interface EngineSeed {
 export function engineSeed(patch: Partial<EngineSeed> = {}): EngineSeed {
   return {
     graduates: [AGENT],
+    versions: [STORY_VERSION],
+    installation: installation(AGENT.id, { version: 1 }),
     chats: Object.values(CHATS),
     messages: MESSAGES,
     graduateSettings: { writeMode: 'ask' },
@@ -382,12 +391,14 @@ export async function installFakeEngine(app: ElectronApplication, seed: EngineSe
     };
 
     handle('graduates:list', () => seed.graduates);
+    handle('graduates:versions', () => seed.versions);
+    handle('graduates:installation', () => seed.installation);
+    handle('graduates:report', () => seed.report);
     handle('graduates:settings', () => settings);
     handle('graduates:updateSettings', (_id: string, patch: Partial<typeof settings>) => {
       settings = { ...settings, ...patch };
       return settings;
     });
-    handle('graduates:exportFolder', () => undefined);
     handle('graduates:remove', () => undefined);
     handle('jobs:list', () => []);
     handle('jobs:get', () => seed.job);

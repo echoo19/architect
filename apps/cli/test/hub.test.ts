@@ -119,7 +119,7 @@ describe('A12: publishing to the Hub and installing from it by commit', () => {
       expect(RunResultSchema.parse(JSON.parse(run.stdout))).toMatchObject({
         status: 'succeeded',
         answer: 'There are 3 invoices on file.',
-        steps: [{ tool: 'read', detail: 'data/invoices.csv', summary: '4 lines' }],
+        steps: [{ tool: 'read', detail: 'data/invoices.csv', summary: '3 rows' }],
       });
     } finally {
       await to.model.close();

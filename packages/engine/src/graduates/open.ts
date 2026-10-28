@@ -1,7 +1,13 @@
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { readPackage } from '@architect/harness';
-import { GuardError, PackageError, type Grants, type ModelBinding } from '@architect/shared';
+import {
+  GuardError,
+  PackageError,
+  type Grants,
+  type ModelBinding,
+  type PackageManifest,
+} from '@architect/shared';
 import type { ServeRequest } from '../local-runtime';
 import type { DataPaths } from '../loop/paths';
 import type { EngineStore } from '../store/engine-store';
@@ -45,15 +51,32 @@ export function serveRequestFor(
   dir: string,
   installation: Pick<StoredInstallation, 'model'>,
 ): ServeRequest | null {
-  const adapter = version.manifest.model.adapter;
+  return adapterRequest(
+    `${name} v${version.version}`,
+    version.manifest,
+    dir,
+    installation.model.model,
+  );
+}
+
+/**
+ * The same request for a package's files in `dir`, installed or not (an import's preview looks at
+ * a staged package with it): the adapter loaded as `key` on `model`, the base's name here.
+ */
+export function adapterRequest(
+  key: string,
+  manifest: PackageManifest,
+  dir: string,
+  model: string,
+): ServeRequest | null {
+  const adapter = manifest.model.adapter;
   if (adapter === undefined) return null;
-  const key = `${name} v${version.version}`;
   return {
-    model: installation.model.model,
+    model,
     adapters: [{ key, path: join(dir, ...adapter.path.split('/')), sha256: adapter.sha256 }],
     scales: { [key]: adapter.scale },
     baseDigest: adapter.baseDigest,
-    contextLength: version.manifest.model.inference.contextLength,
+    contextLength: manifest.model.inference.contextLength,
   };
 }
 

@@ -51,10 +51,12 @@ export const AgentMessage = memo(function AgentMessage({
   const empty = message.steps.length === 0 && !message.text && message.blocks.length === 0;
   const stoppedQuietly =
     message.status === 'stopped' && !message.blocks.some((block) => block.kind === 'note');
-  const pending = answerable
+  const waiting = answerable
     ? message.blocks.filter((block) => block.kind === 'approval' && block.status === 'pending')
-        .length
-    : 0;
+    : [];
+  const pending = waiting.length;
+  // A change that couldn't be saved waits for "Try again" rather than for an approval.
+  const retrying = waiting.some((block) => block.kind === 'approval' && block.error !== undefined);
 
   return (
     <article aria-label={agent.name} className="flex min-w-0 animate-rise flex-col gap-[18px]">
@@ -92,7 +94,7 @@ export const AgentMessage = memo(function AgentMessage({
       {pending > 0 && (
         <p role="status" className="m-0 flex items-center gap-2 text-base text-fg-secondary">
           <CirclePause size={15} strokeWidth={1.8} aria-hidden className="shrink-0" />
-          Waiting for your approval
+          {retrying ? 'Waiting for you' : 'Waiting for your approval'}
         </p>
       )}
       {stoppedQuietly && <NoteBlock text="Stopped" />}

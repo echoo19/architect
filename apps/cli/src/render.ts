@@ -38,7 +38,7 @@ export function sayFailure(out: Output, failure: Failure): void {
   if (failure.hint) line(out, failure.hint);
 }
 
-/** A tool step as one line: `read data/invoices.csv (4 lines)`. */
+/** A tool step as one line: `read data/invoices.csv (3 rows)`. */
 export function stepLine(step: Pick<AgentStep, 'name' | 'detail' | 'meta' | 'status'>): string {
   const about = step.detail && step.detail !== step.name ? ` ${step.detail}` : '';
   const result = step.meta ? ` (${step.meta})` : '';

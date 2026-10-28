@@ -130,6 +130,7 @@ export function connectEngine(
       accept: (runId) => request('graduates.accept', [runId]),
       versions: (graduateId) => request('graduates.versions', [graduateId]),
       history: (graduateId) => request('graduates.history', [graduateId]),
+      report: (graduateId, version) => request('graduates.report', [graduateId, version ?? null]),
       acceptVersion: (graduateId, version) =>
         request('graduates.acceptVersion', [graduateId, version]),
       rejectVersion: (graduateId, version) =>
@@ -145,7 +146,10 @@ export function connectEngine(
         request('graduates.exportPackage', [graduateId, exportRequest]),
       exportFolder: (graduateId, directory) =>
         request('graduates.exportFolder', [graduateId, directory]),
+      exportPart: (graduateId, partRequest) =>
+        request('graduates.exportPart', [graduateId, partRequest]),
       inspectPackage: (path) => request('graduates.inspectPackage', [path]),
+      previewImport: (path) => request('graduates.previewImport', [path]),
       importPackage: (path, importRequest) =>
         request('graduates.importPackage', [path, importRequest ?? {}]),
       importFolder: (folder) => request('graduates.importFolder', [folder]),

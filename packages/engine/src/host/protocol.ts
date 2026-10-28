@@ -11,6 +11,8 @@ import {
   ImprovementSchema,
   ImprovementStartSchema,
   ImproveOptionsSchema,
+  ExportPartRequestSchema,
+  ExportPartResultSchema,
   ExportRequestSchema,
   ExportResultSchema,
   ExportReviewSchema,
@@ -21,6 +23,7 @@ import {
   GuardError,
   HubInstallRequestSchema,
   HubInstallResultSchema,
+  ImportPreviewSchema,
   ImportRequestSchema,
   ImportResultSchema,
   InstallationSchema,
@@ -192,6 +195,11 @@ export const ENGINE_ROUTES = {
   'graduates.history': route(z.tuple([id]), z.array(VersionEventSchema), (api, [graduateId]) =>
     api.graduates.history(graduateId),
   ),
+  'graduates.report': route(
+    z.tuple([id, versionNumber.nullable()]),
+    ReportCardSchema,
+    (api, [graduateId, version]) => api.graduates.report(graduateId, version ?? undefined),
+  ),
   'graduates.acceptVersion': route(
     z.tuple([id, versionNumber]),
     GraduateVersionSchema,
@@ -241,8 +249,16 @@ export const ENGINE_ROUTES = {
     ExportResultSchema,
     (api, [graduateId, directory]) => api.graduates.exportFolder(graduateId, directory),
   ),
+  'graduates.exportPart': route(
+    z.tuple([id, ExportPartRequestSchema]),
+    ExportPartResultSchema,
+    (api, [graduateId, request]) => api.graduates.exportPart(graduateId, request),
+  ),
   'graduates.inspectPackage': route(z.tuple([path]), PackageInspectionSchema, (api, [file]) =>
     api.graduates.inspectPackage(file),
+  ),
+  'graduates.previewImport': route(z.tuple([path]), ImportPreviewSchema, (api, [file]) =>
+    api.graduates.previewImport(file),
   ),
   'graduates.importPackage': route(
     z.tuple([path, ImportRequestSchema]),

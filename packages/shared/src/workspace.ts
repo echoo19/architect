@@ -65,7 +65,13 @@ export const AgentBlockSchema = z.discriminatedUnion('kind', [
     diff: RowDiffSchema.optional(),
     /** For any other file: the change as a unified diff. */
     patch: z.string().optional(),
-    status: z.enum(['pending', 'approved', 'denied']),
+    /**
+     * `failed`: it was allowed but couldn't be saved, and nothing was written. A pending change
+     * with an `error` was allowed, couldn't be saved, and waits for the user to try again.
+     */
+    status: z.enum(['pending', 'approved', 'denied', 'failed']),
+    /** Why the allowed change couldn't be saved. */
+    error: z.string().optional(),
   }),
   z.object({ kind: z.literal('refusal'), taskType: z.string(), reason: z.string() }),
   z.object({ kind: z.literal('note'), text: z.string() }),

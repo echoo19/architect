@@ -26,7 +26,7 @@ import type { DataPaths } from '../loop/paths';
 import type { StoredChecks, StoredInstallation, StoredVersion } from '../store/records';
 import { absoluteFolder } from './bindings';
 import { readPackageHarness } from './harness';
-import { serveRequestFor } from './open';
+import { adapterRequest, serveRequestFor } from './open';
 import { exists } from './versions';
 
 /** Where Architect runs graduates. Anything else, a Raspberry Pi included, is reported as such. */
@@ -250,14 +250,14 @@ async function resourcesCheck(
     if (resource.required && grant === 'none') {
       findings.push({
         level: 'needs_attention',
-        reason: `${resource.name}/ is bound but not granted, so the agent can't open it.`,
+        reason: `${resource.name}/ has a folder, but the agent isn't allowed to open it.`,
       });
     }
     const folder = absoluteFolder(paths, stored);
     if (!(await exists(folder))) {
       findings.push({
         level: 'needs_attention',
-        reason: `The folder bound to ${resource.name}/ (${folder}) isn't there.`,
+        reason: `The folder chosen for ${resource.name}/ (${folder}) isn't there.`,
       });
       continue;
     }
@@ -297,7 +297,7 @@ async function resourcesCheck(
       status: findings.length === 0 ? 'passed' : 'failed',
       detail:
         findings.length === 0
-          ? 'Every folder is bound and holds the files it should.'
+          ? 'Every folder is chosen and holds the files it should.'
           : findings.map((finding) => finding.reason).join(' '),
     },
     findings,
@@ -378,12 +378,11 @@ async function respondsCheck(
 
 /** A version without an adapter, on the runtime its installation names. */
 async function runtimeModelChecks(
-  deps: CheckDeps,
+  deps: Pick<CheckDeps, 'createStudent'>,
   manifest: PackageManifest,
-  installation: StoredInstallation,
+  model: ModelBinding,
   options: CheckOptions,
 ): Promise<ModelResult> {
-  const { model } = installation;
   const student = deps.createStudent(model, manifest.model.inference.contextLength);
   const findings: Finding[] = [];
   let available: InstallCheck;
@@ -480,7 +479,7 @@ function adapterReason(
  * anything; then, when asked, one short request through llama.cpp with the adapter applied.
  */
 async function adapterModelChecks(
-  deps: CheckDeps,
+  deps: Pick<CheckDeps, 'adapters'>,
   manifest: PackageManifest,
   request: ServeRequest,
   options: CheckOptions,
@@ -535,21 +534,19 @@ async function adapterModelChecks(
   };
 }
 
-async function modelChecks(
-  deps: CheckDeps,
-  version: StoredVersion,
-  installation: StoredInstallation,
+/**
+ * The model checks for a version's files wherever they are, installed or staged for import:
+ * skipped once a check before them has blocked it, else through llama.cpp for a version with an
+ * adapter (`request`) and on the runtime its model binding names for one without.
+ */
+async function servedChecks(
+  deps: Pick<CheckDeps, 'createStudent' | 'adapters'>,
+  manifest: PackageManifest,
+  model: ModelBinding,
+  request: ServeRequest | null,
   options: CheckOptions,
   blockedAlready: boolean,
 ): Promise<ModelResult> {
-  const { manifest } = version;
-  const { model } = installation;
-  const request = serveRequestFor(
-    manifest.identity.name,
-    version,
-    deps.paths.fromStored(version.path),
-    installation,
-  );
   // An adapter is served on its base from Ollama's store; compatibility named any other binding.
   const servable = request === null || model.runtime === 'ollama';
   if (blockedAlready || !isLoopbackUrl(model.baseUrl) || !servable) {
@@ -564,8 +561,74 @@ async function modelChecks(
     };
   }
   return request === null
-    ? runtimeModelChecks(deps, manifest, installation, options)
+    ? runtimeModelChecks(deps, manifest, model, options)
     : adapterModelChecks(deps, manifest, request, options);
+}
+
+async function modelChecks(
+  deps: CheckDeps,
+  version: StoredVersion,
+  installation: StoredInstallation,
+  options: CheckOptions,
+  blockedAlready: boolean,
+): Promise<ModelResult> {
+  const request = serveRequestFor(
+    version.manifest.identity.name,
+    version,
+    deps.paths.fromStored(version.path),
+    installation,
+  );
+  return servedChecks(deps, version.manifest, installation.model, request, options, blockedAlready);
+}
+
+function statusOf(findings: readonly Finding[]): InstallStatus {
+  if (findings.some((finding) => finding.level === 'blocked')) return 'blocked';
+  return findings.length > 0 ? 'needs_attention' : 'ready';
+}
+
+/** What an import can know about this computer before it installs anything. */
+export interface FitResult {
+  machine: Machine;
+  /**
+   * The compatibility check, llama.cpp's for a package with an adapter, and the base model's
+   * availability, as installation checks run them.
+   */
+  checks: InstallCheck[];
+  status: InstallStatus;
+  reasons: string[];
+}
+
+/**
+ * Whether this computer can run a package, and whether it has what serves its model, found before
+ * it is installed: the compatibility check, then the model checks exactly as the installation
+ * checks run them, short of a request. Nothing loads: the runtime only describes the model, and
+ * for an adapter, llama-server, the base in Ollama's store and the adapter file in `dir` (where
+ * the package is staged) are looked at.
+ */
+export async function fitChecks(
+  deps: Pick<CheckDeps, 'machine' | 'createStudent' | 'adapters'>,
+  manifest: PackageManifest,
+  model: ModelBinding,
+  dir: string,
+): Promise<FitResult> {
+  const machine = deps.machine();
+  const fit = compatibility(manifest, model, machine);
+  const blocked = fit.findings.some((finding) => finding.level === 'blocked');
+  const request = adapterRequest(
+    `${manifest.identity.name} v${manifest.identity.version}`,
+    manifest,
+    dir,
+    model.model,
+  );
+  const served = await servedChecks(deps, manifest, model, request, { loadModel: false }, blocked);
+  const looked = served.checks.filter((check) => check.kind !== 'model_responds');
+  const findings = [...fit.findings, ...served.findings];
+  return {
+    machine,
+    checks: [fit.check, ...looked],
+    status: statusOf(findings),
+    reasons: findings.map((finding) => finding.reason),
+  };
 }
 
 /**
@@ -598,11 +661,7 @@ export async function checkInstallation(
     ...resources.findings,
     ...model.findings,
   ];
-  const status: InstallStatus = findings.some((finding) => finding.level === 'blocked')
-    ? 'blocked'
-    : findings.length > 0
-      ? 'needs_attention'
-      : 'ready';
+  const status = statusOf(findings);
   return {
     graduateId: version.graduateId,
     version: version.version,
