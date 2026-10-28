@@ -32,6 +32,9 @@ import { reportFor } from '../agent-host/graduates';
 import { FakeStudent } from '../fakes/adapters';
 import { ManualClock } from '../fakes/clock';
 import { makeJob, SAMPLE_CONTENT } from './fixtures';
+import { THIS_MACHINE } from './machine';
+
+export { THIS_MACHINE };
 
 /** A computer with Architect on it: a data folder, its database, and a graduate library. */
 export interface Computer {
@@ -67,12 +70,6 @@ export interface ComputerOptions {
 
 /** The digest Ollama's store gives the base's GGUF file, as the adapter runtime reports it. */
 export const GLIMMER_GGUF = `sha256:${'a1'.repeat(32)}`;
-
-export const THIS_MACHINE: Machine = {
-  os: 'win32',
-  arch: 'x64',
-  memoryBytes: 32 * 1024 ** 3,
-};
 
 /**
  * An adapter runtime that finds only what a test gives it: the stand-in llama-server or none (no
@@ -312,7 +309,8 @@ export async function addVersion(
     columns: { 'customers.csv': ['customer_id', 'name', 'city', 'terms_days'] },
     rounds: 0,
     keptChanges: 0,
-    testedHere: true,
+    // Made on this computer: its locked test ran here.
+    testMachine: computer.machine,
   };
   const written = await writeVersionFolder(store, paths, facts);
   const data = paths.workspaceDir(options.graduateId);

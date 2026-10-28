@@ -8,6 +8,8 @@ import {
   addGraduate,
   openEngineStore,
   startFakeOllama,
+  STATED_MACHINE,
+  THIS_MACHINE,
   type FakeOllama,
   type GraduateFixture,
   type GraduateOptions,
@@ -91,9 +93,14 @@ export interface InProcessOptions {
   onStderr?(text: string): void;
   /** A stand-in llama-server for versions with an adapter. */
   llamaServerCommand?: CliIo['llamaServerCommand'];
+  /** The computer the installation checks see: THIS_MACHINE unless a test names another. */
+  machine?: CliIo['machine'];
 }
 
-/** Runs the command in this process with captured streams; a counting stand-in for the guard. */
+/**
+ * Runs the command in this process with captured streams and a counting stand-in for the guard,
+ * on THIS_MACHINE (or the computer a test names) rather than the one running the tests.
+ */
 export async function cli(argv: string[], options: InProcessOptions): Promise<Captured> {
   let stdout = '';
   let stderr = '';
@@ -134,6 +141,7 @@ export async function cli(argv: string[], options: InProcessOptions): Promise<Ca
     ...(options.llamaServerCommand === undefined
       ? {}
       : { llamaServerCommand: options.llamaServerCommand }),
+    machine: options.machine ?? THIS_MACHINE,
   };
   options.interruptWith?.(() => {
     for (const listener of listeners) listener();
@@ -153,15 +161,34 @@ export interface Spawned {
   stderr: string;
 }
 
-/** Runs the real `architect` process, as `pnpm architect` does, with only the given environment. */
+/**
+ * Runs the real `architect` process, as `pnpm architect` does, with only the given environment.
+ * It is on the computer running the tests unless `machine` names another for its installation
+ * checks, which a test that depends on them does.
+ */
 export function spawnCli(
   argv: string[],
-  options: { env: NodeJS.ProcessEnv; cwd?: string; stdin?: string; execArgv?: string[] },
+  options: {
+    env: NodeJS.ProcessEnv;
+    cwd?: string;
+    stdin?: string;
+    execArgv?: string[];
+    machine?: CliIo['machine'];
+  },
 ): Promise<Spawned> {
+  const { machine } = options;
+  const execArgv = [
+    ...(machine === undefined ? [] : ['--import', 'tsx', '--import', STATED_MACHINE]),
+    ...(options.execArgv ?? []),
+  ];
+  const env =
+    machine === undefined
+      ? options.env
+      : { ...options.env, ARCHITECT_TEST_MACHINE: JSON.stringify(machine) };
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [...(options.execArgv ?? []), CLI_BIN, ...argv], {
+    const child = spawn(process.execPath, [...execArgv, CLI_BIN, ...argv], {
       cwd: options.cwd ?? process.cwd(),
-      env: options.env,
+      env,
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
     });

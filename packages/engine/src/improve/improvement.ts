@@ -213,7 +213,7 @@ async function writeCandidate(state: RunState, kept: number): Promise<void> {
     columns: await tableColumns(paths.dataDir(state.job.id), contract),
     rounds: state.rounds().length,
     keptChanges: kept,
-    testedHere: false,
+    testMachine: null,
   };
   const written = await writeVersionFolder(store, paths, facts);
   const finished = store.transaction(() => {

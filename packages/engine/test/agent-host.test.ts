@@ -787,7 +787,10 @@ describe('taking turns at the GPU', () => {
   });
 
   it('says, as one step, that a reply waits for the GPU and for whom, until it has it', async () => {
-    const world = await setup([{ text: 'There are 3 invoices on file.' }]);
+    // A model's first words come long after a reply's 33 ms between updates. The stand-in's would
+    // come at once, and on a fast computer, which takes the GPU over within those 33 ms, go out in
+    // the same update that takes the step away.
+    const world = await setup([{ text: 'There are 3 invoices on file.', chunk: 64, delayMs: 100 }]);
     const engine = otherProcess(world);
     try {
       const check = await engine.hold('llama-server', CHECK_PURPOSE);

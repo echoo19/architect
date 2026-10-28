@@ -724,7 +724,7 @@ describe("A13: installation checks are this computer's, never the author's repor
     });
     expect(result.installation.status).toBe('needs_attention');
     expect(result.installation.reasons).toEqual([
-      expect.stringContaining("this computer is darwin/arm64. The author's results don't cover"),
+      "It was tested on win32/x64 with ollama; this computer is darwin/arm64. The author's results don't cover this computer.",
     ]);
     expect(result.installation.measurements.firstReplyMs).toEqual(expect.any(Number));
     expect(result.installation.machine).toEqual(recipient.machine);

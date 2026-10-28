@@ -12,7 +12,9 @@ import {
   recorded,
   standInAdapter,
   startFakeOllama,
+  STATED_MACHINE,
   storeBase,
+  THIS_MACHINE,
   type FakeOllama,
 } from '@architect/engine/testing';
 import { RunResultSchema, type WorkspaceMessage } from '@architect/shared';
@@ -83,7 +85,10 @@ async function computer(): Promise<Computer> {
   };
 }
 
-/** Forks one of the desktop's hosts, the way the app gives it a channel to talk over. */
+/**
+ * Forks one of the desktop's hosts, the way the app gives it a channel to talk over, on
+ * THIS_MACHINE as far as its installation checks can tell, as the command run in this process is.
+ */
 function forkHost(
   entry: string,
   args: string[],
@@ -94,8 +99,8 @@ function forkHost(
 } {
   const child = fork(entry, args, {
     cwd: dirname(entry),
-    execArgv: ['--import', 'tsx'],
-    env,
+    execArgv: ['--import', 'tsx', '--import', STATED_MACHINE],
+    env: { ...env, ARCHITECT_TEST_MACHINE: JSON.stringify(THIS_MACHINE) },
     stdio: ['ignore', 'ignore', 'inherit', 'ipc'],
     serialization: 'advanced',
     windowsHide: true,

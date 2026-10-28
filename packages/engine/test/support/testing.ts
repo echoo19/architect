@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 /**
  * The engine's test fakes and fixtures, for tests in other packages (the command line's) that
  * need the same ones: one fake Hub, one fake Ollama, one stand-in llama-server, one way to make a
- * graduate.
+ * graduate, and one computer to run on.
  */
 export type { ObservedConnection } from '../agent-host/connection-observer';
 export {
@@ -22,6 +22,7 @@ export {
 } from './adapter-runtime';
 export { FAKE_HUB_TOKEN, startFakeHub, type FakeHub, type FakeHubOptions } from './fake-hub';
 export { SAMPLE_CONTENT } from './fixtures';
+export { THIS_MACHINE } from './machine';
 export { openEngineStore } from '../../src/store/engine-store';
 
 /** The agent host's process entry, as the desktop app starts it. */
@@ -43,3 +44,10 @@ export const ENGINE_HOST_FIXTURE = fileURLToPath(
  */
 export const CONNECTION_OBSERVER = new URL('../agent-host/connection-observer.ts', import.meta.url)
   .href;
+
+/**
+ * A module to load with `--import`, after tsx, ahead of a process's entry: as far as its
+ * installation checks can tell, the process is on the computer in ARCHITECT_TEST_MACHINE (a
+ * `Machine` as JSON), as an in-process test names THIS_MACHINE.
+ */
+export const STATED_MACHINE = new URL('../fixtures/stated-machine.ts', import.meta.url).href;

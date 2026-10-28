@@ -1,5 +1,6 @@
 import type { Readable } from 'node:stream';
 import type { ServerCommand } from '@architect/engine/local-runtime';
+import type { Machine } from '@architect/shared';
 
 /** Where text goes. `write` returns once the text is handed over. */
 export interface Output {
@@ -32,6 +33,11 @@ export interface CliIo {
   sandboxEntryPath?: string;
   /** A stand-in llama-server, run instead of finding the real one. Only tests set it. */
   llamaServerCommand?: ServerCommand;
+  /**
+   * The computer the installation checks see, instead of the one the command runs on. Only tests
+   * set it.
+   */
+  machine?: Machine;
 }
 
 /** Sets up interrupts for one command: a controller that aborts on the first Ctrl+C. */

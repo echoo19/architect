@@ -18,6 +18,7 @@ import { registerVersion, writeVersionFolder } from '../../src/graduates/version
 import { DataPaths } from '../../src/loop/paths';
 import type { EngineStore } from '../../src/store/engine-store';
 import { makeJob, SAMPLE_CONTENT } from '../support/fixtures';
+import { THIS_MACHINE } from '../support/machine';
 
 export interface GraduateFixture {
   id: string;
@@ -60,7 +61,7 @@ export function fixtureHarness(name: string, overrides: GraduateOptions['harness
   return { ...harness, meta: { ...harness.meta, hash: hashHarness(harness) } };
 }
 
-/** What version 1 of a fixture graduate says. */
+/** What version 1 of a fixture graduate says: made, and tested, on THIS_MACHINE. */
 export function fixtureFacts(id: string, job: Job, harness: Harness): VersionFacts {
   return {
     agentId: id,
@@ -79,7 +80,7 @@ export function fixtureFacts(id: string, job: Job, harness: Harness): VersionFac
     columns: {},
     rounds: 0,
     keptChanges: 0,
-    testedHere: true,
+    testMachine: THIS_MACHINE,
   };
 }
 

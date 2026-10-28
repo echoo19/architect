@@ -5,7 +5,7 @@ import { buildPackage, type VersionFacts } from '../src/graduates/build';
 import { JobLibrary } from '../src/loop/jobs';
 import { reportFor } from './agent-host/graduates';
 import { FakeRuntime, FakeVault } from './fakes/runtime';
-import { harnessWith, newComputer, type Computer } from './support/computer';
+import { harnessWith, newComputer, THIS_MACHINE, type Computer } from './support/computer';
 import { makeJob } from './support/fixtures';
 
 const made: Computer[] = [];
@@ -47,7 +47,7 @@ function facts(job: Job, version: number, report: VersionFacts['report']): Versi
     columns: {},
     rounds: 0,
     keptChanges: 0,
-    testedHere: true,
+    testMachine: THIS_MACHINE,
   };
 }
 
