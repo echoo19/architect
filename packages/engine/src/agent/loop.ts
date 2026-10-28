@@ -231,7 +231,7 @@ async function takeTurns(
     for (let step = at.turnsTaken; step < decoding.maxSteps; step += 1) {
       if (signal?.aborted) return trace.finish(messages, finalText, 'aborted');
       const chatRequest = { messages: [...messages], tools: [...toolbox.specs], decoding, seed };
-      const turn = await callStudent(student, chatRequest, signal, options.onText);
+      const turn = await askStudent(student, chatRequest, signal, options.onText);
       if (!turn.ok) {
         return signal?.aborted
           ? trace.finish(messages, finalText, 'aborted')
@@ -294,6 +294,39 @@ async function takeTurns(
     throw error;
   }
   return trace.finish(messages, finalText, 'max_steps');
+}
+
+/** How often a turn is asked for again after a reply that couldn't be read. */
+const UNREADABLE_RETRIES = 2;
+/** How far apart the seeds of a turn and its retries are. */
+const RETRY_SEED_STEP = 1_000_003;
+const MAX_SEED = 2_147_483_647;
+
+/**
+ * One model turn, asked for again when the reply couldn't be read and none of it was shown: a
+ * small model sometimes writes a tool call its runtime can't parse, and another sample usually
+ * doesn't. Each retry's seed follows from the turn's own, so a repeated run asks the same
+ * questions. After the retries, the unreadable reply ends the attempt, as before.
+ */
+async function askStudent(
+  student: StudentAdapter,
+  request: StudentChatRequest,
+  signal: AbortSignal | undefined,
+  onText: ((delta: string) => void) | undefined,
+): Promise<Turn> {
+  let shown = false;
+  const show =
+    onText === undefined
+      ? undefined
+      : (delta: string) => {
+          shown = true;
+          onText(delta);
+        };
+  for (let retry = 0; ; retry += 1) {
+    const seed = retry === 0 ? request.seed : (request.seed + retry * RETRY_SEED_STEP) % MAX_SEED;
+    const turn = await callStudent(student, { ...request, seed }, signal, show);
+    if (turn.ok || shown || signal?.aborted || retry >= UNREADABLE_RETRIES) return turn;
+  }
 }
 
 /**

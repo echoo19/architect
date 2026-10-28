@@ -186,10 +186,21 @@ describe.each(RIGS)('the agent loop on a student served by %s', (_runtime, rig) 
     });
   });
 
-  it('ends only the attempt when the model garbles a tool call', async () => {
+  it('asks again when the model garbles a tool call, and carries on with a call it can read', async () => {
     const { student } = await rig([
       { toolCalls: [{ name: 'read', arguments: '{"path": "data/invoi' }] },
+      ...READ_THEN_ANSWER,
     ]);
+    const trace = await attempt(student);
+    expect(trace).toMatchObject({ stopReason: 'answer', finalText: 'INV-2 and INV-3 are unpaid.' });
+    expect(trace.steps.map((step) => step.kind)).toEqual(['model', 'tool', 'model']);
+  });
+
+  it('ends only the attempt when the model garbles a tool call three times', async () => {
+    const garbled: ScriptedTurn = {
+      toolCalls: [{ name: 'read', arguments: '{"path": "data/invoi' }],
+    };
+    const { student } = await rig([garbled, garbled, garbled]);
     const trace = await attempt(student);
     expect(trace).toMatchObject({
       stopReason: 'error',

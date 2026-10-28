@@ -20,6 +20,29 @@ import { fetchModels, fetchVersion, OLLAMA_SERVICE, unloadModel } from './ollama
 import { OllamaChunkWire, ShowWire, sameModel, toOllamaMessages } from './ollama-wire';
 import { rest } from './rest';
 
+/**
+ * What Ollama says when the model writes a tool call its parser can't read, such as "parse
+ * Glimmer call to run: missing ATEM function_calls wrapper". It answers HTTP 500, or ends the
+ * stream with it, but the fault is in what the model wrote, not in the server.
+ */
+const UNREADABLE_CALL = /\bparse\b[^.]*\bcall\b[^.]*/i;
+
+/**
+ * Ollama's error for a tool call it couldn't read, as one the model wrote badly: the turn can be
+ * asked for again, or count against the student, instead of stopping an evaluation as an outage.
+ * Asking again with the same seed gets the same call, so it is never retried as it stands.
+ */
+function asUnreadableCall(error: unknown): unknown {
+  if (!(error instanceof AdapterError) || error.code !== 'server') return error;
+  const said = UNREADABLE_CALL.exec(error.message);
+  if (!said) return error;
+  return new AdapterError(
+    'bad_response',
+    `The model wrote a tool call ${OLLAMA_SERVICE} couldn't read (${said[0].trim()}).`,
+    { cause: error, ...(error.status === undefined ? {} : { status: error.status }) },
+  );
+}
+
 /** Muse Glimmer's renderer and parser first shipped in this release. */
 const MIN_VERSION = '0.32.7';
 
@@ -91,7 +114,10 @@ export function createOllamaStudent(
     const started = performance.now();
     const body = chatBody(request, await thinkStyle(signal));
     const stream = await http.withRetries(
-      () => http.openStream('/api/chat', body, { signal, model: endpoint.model }),
+      () =>
+        http.openStream('/api/chat', body, { signal, model: endpoint.model }).catch((error) => {
+          throw asUnreadableCall(error);
+        }),
       signal,
     );
     try {
@@ -240,7 +266,9 @@ function thinkField(style: ThinkStyle, level: string): { think?: string | boolea
 
 function parseLine(raw: unknown): OllamaChunkWire {
   if (typeof raw === 'object' && raw !== null && 'error' in raw && raw.error) {
-    throw new HttpError(failureForStreamError(describeErrorPayload(raw), OLLAMA_SERVICE));
+    throw asUnreadableCall(
+      new HttpError(failureForStreamError(describeErrorPayload(raw), OLLAMA_SERVICE)),
+    );
   }
   const parsed = OllamaChunkWire.safeParse(raw);
   if (!parsed.success) {

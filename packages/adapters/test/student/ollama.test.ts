@@ -448,6 +448,32 @@ describe('chat failures', () => {
     expect(error.message).toContain('llama runner process has terminated');
   });
 
+  it("reports a tool call Ollama couldn't parse as the model's unreadable reply, asked once", async () => {
+    // What Ollama 0.40.9 answered for a 2-bit Glimmer's call to `run` on Oct 28.
+    const said = 'parse Glimmer call to run: missing ATEM function_calls wrapper';
+    const { student, server } = await studentOn({
+      chat: (_request, res) => sendJson(res, 500, { error: said }),
+    });
+    const error = await failure(collect(student.chat(studentRequest())));
+    expect(error.code).toBe('bad_response');
+    expect(error.retryable).toBe(false);
+    expect(error.message).toBe(`The model wrote a tool call Ollama couldn't read (${said}).`);
+    // The same seed would write the same call, so it isn't sent again as it stands.
+    expect(chatRequests(server)).toHaveLength(1);
+  });
+
+  it("reports the same parse error mid-stream as the model's unreadable reply", async () => {
+    const { student } = await studentOn({
+      chat: (_request, res) =>
+        sendNdjson(res, chatLine({ content: 'Let me add it up.' }), {
+          error: 'parse Glimmer call to run: missing ATEM function_calls wrapper',
+        }),
+    });
+    const error = await failure(collect(student.chat(studentRequest())));
+    expect(error.code).toBe('bad_response');
+    expect(error.message).toContain('missing ATEM function_calls wrapper');
+  });
+
   it('reports a stream that stops before the final line as a dropped connection', async () => {
     const { student } = await studentOn({
       chat: (_request, res) => sendNdjson(res, chatLine({ content: 'half' })),

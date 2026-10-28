@@ -258,17 +258,54 @@ describe('runAgent', () => {
     });
   });
 
-  it("ends the trace with an error when the model's reply can't be read", async () => {
-    const { trace } = await run([
-      {
-        error: new AdapterError('bad_response', 'The model sent tool arguments that are not JSON.'),
-      },
-    ]);
+  it("asks again with another seed when a reply can't be read, and carries on", async () => {
+    const unreadable = new AdapterError(
+      'bad_response',
+      "The model wrote a tool call Ollama couldn't read (parse Glimmer call to run).",
+    );
+    const { trace, student } = await run([{ error: unreadable }, answer('1')]);
+    expect(trace).toMatchObject({ stopReason: 'answer', finalText: 'ANSWER: 1' });
+    // The retry's seed follows from the turn's own, so a repeated run asks the same again.
+    expect(student.requests.map((request) => request.seed)).toEqual([42, 42 + 1_000_003]);
+    expect(trace.steps.map((step) => step.kind)).toEqual(['model']);
+  });
+
+  it("ends the trace with an error when the model's reply can't be read three times", async () => {
+    const unreadable = (n: number) => ({
+      error: new AdapterError(
+        'bad_response',
+        `The model sent tool arguments that are not JSON (${n}).`,
+      ),
+    });
+    const { trace, student } = await run([unreadable(1), unreadable(2), unreadable(3)]);
     expect(trace).toMatchObject({
       stopReason: 'error',
-      error: 'The model sent tool arguments that are not JSON.',
+      error: 'The model sent tool arguments that are not JSON (3).',
       finalText: '',
     });
+    expect(student.requests).toHaveLength(3);
+  });
+
+  it('never asks again once part of the reply was shown', async () => {
+    const shown: string[] = [];
+    const { trace, student } = await run(
+      [
+        {
+          text: 'Let me add it up.',
+          failAfterText: new AdapterError(
+            'bad_response',
+            'The model sent a call that is not JSON.',
+          ),
+        },
+      ],
+      { onText: (delta) => shown.push(delta) },
+    );
+    expect(shown.join('')).toBe('Let me add it up.');
+    expect(trace).toMatchObject({
+      stopReason: 'error',
+      error: 'The model sent a call that is not JSON.',
+    });
+    expect(student.requests).toHaveLength(1);
   });
 
   it('ends with a clear error when a reply is cut off by the output-token limit', async () => {

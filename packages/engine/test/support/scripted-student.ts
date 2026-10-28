@@ -16,6 +16,8 @@ export interface ScriptedTurn {
   costUsd?: number;
   /** Throw this instead of answering, as a failing adapter would. */
   error?: Error;
+  /** Throw this after streaming the text, as a reply that breaks off partway would. */
+  failAfterText?: Error;
   /** Wait this long between streamed text pieces. */
   delayMs?: number;
   /** End the turn as the runtime would when the output-token limit is reached. */
@@ -51,6 +53,7 @@ export class ScriptedStudent implements StudentAdapter {
       signal?.throwIfAborted();
       yield { type: 'text', delta: piece };
     }
+    if (turn.failAfterText) throw turn.failAfterText;
     const calls = turn.toolCalls ?? [];
     for (const [position, call] of calls.entries()) {
       yield {
