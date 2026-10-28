@@ -11,6 +11,9 @@ import {
   type TypeScore,
 } from '@architect/shared';
 import { percentile } from '../report/report-card';
+import type { EngineStore } from '../store/engine-store';
+import { computeEnded, computeSoFar } from '../training/budget';
+import type { TrainingDeps } from './deps';
 import type { RunState } from './run-state';
 import { roundSeed } from './seeds';
 
@@ -58,6 +61,9 @@ function budgetOf(state: RunState, round: number, trainingJobId: string | null):
   const job = trainingJobId === null ? null : state.ctx.deps.training?.worker.get(trainingJobId);
   const stored = state.round(round);
   const ended = Date.parse(stored.round.endedAt ?? state.now());
+  // A job that hasn't stopped running, as after a stop during training, counts at the most it
+  // can cost until it ends; `settleExperimentCompute` puts its own cost in then.
+  const compute = job ? computeSoFar(job) : { usd: 0, seconds: 0, settled: true };
   return {
     mentorUsd: sum(mentor.map((cost) => cost.usd ?? 0)),
     mentorInputTokens: sum(mentor.map((cost) => cost.usage.inputTokens)),
@@ -67,8 +73,9 @@ function budgetOf(state: RunState, round: number, trainingJobId: string | null):
       : sum(student.map((cost) => cost.usd ?? 0)),
     studentInputTokens: sum(student.map((cost) => cost.usage.inputTokens)),
     studentOutputTokens: sum(student.map((cost) => cost.usage.outputTokens)),
-    computeUsd: job?.compute.usd ?? 0,
-    computeMinutes: (job?.compute.seconds ?? 0) / 60,
+    computeUsd: compute.usd,
+    computeMinutes: compute.seconds / 60,
+    ...(compute.settled ? {} : { computeSettled: false as const }),
     examples: job?.dataset.exampleCount ?? 0,
     trainedTokens: job ? (state.ctx.deps.training?.trainedTokens(job) ?? 0) : 0,
     attempts: attempts.length,
@@ -141,6 +148,38 @@ export function recordExperiment(
   };
   store.experiments.put(experiment);
   return experiment;
+}
+
+/**
+ * Puts each training job's own compute into the experiments that recorded it at its whole
+ * authorization because the job was still running when their round ended (decision 045), once
+ * the job has stopped. Returns the experiments it rewrote. Nothing else in them changes.
+ */
+export function settleExperimentCompute(
+  store: EngineStore,
+  training: TrainingDeps | undefined,
+  runId: string,
+): Experiment[] {
+  if (training === undefined) return [];
+  const settled: Experiment[] = [];
+  for (const experiment of store.experiments.list(runId)) {
+    const jobId = experiment.inputs.trainingJobId;
+    if (experiment.budget.computeSettled !== false || jobId === null) continue;
+    const job = training.worker.get(jobId);
+    if (!computeEnded(job)) continue;
+    const { computeSettled: _unsettled, ...budget } = experiment.budget;
+    const next: Experiment = {
+      ...experiment,
+      budget: {
+        ...budget,
+        computeUsd: job.compute.usd,
+        computeMinutes: job.compute.seconds / 60,
+      },
+    };
+    store.experiments.put(next);
+    settled.push(next);
+  }
+  return settled;
 }
 
 /** A measurement as an experiment records it. */

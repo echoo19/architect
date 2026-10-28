@@ -7,6 +7,30 @@ import { formatUsd } from '../loop/budget';
  */
 const ENDED: ReadonlySet<TrainingJobState> = new Set(['succeeded', 'ready', 'failed', 'cancelled']);
 
+/** Whether a job has stopped running, so its compute is what it cost rather than what it may. */
+export function computeEnded(record: TrainingJobRecord): boolean {
+  return ENDED.has(record.state);
+}
+
+/**
+ * What a job's compute counts as now: its own time and cost once it has stopped running, its
+ * whole authorization before then, since the provider may run it until that limit (decision 045).
+ */
+export function computeSoFar(record: TrainingJobRecord): {
+  usd: number;
+  seconds: number;
+  settled: boolean;
+} {
+  if (computeEnded(record)) {
+    return { usd: record.compute.usd, seconds: record.compute.seconds, settled: true };
+  }
+  return {
+    usd: Math.max(record.compute.authorizedUsd, record.compute.usd),
+    seconds: Math.max(record.compute.authorizedSeconds, record.compute.seconds),
+    settled: false,
+  };
+}
+
 /** One scope's compute spending: the line next to mentor dollars. */
 export interface ComputeUsage {
   maxUsd: number;

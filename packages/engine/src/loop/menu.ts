@@ -1,4 +1,9 @@
-import type { CostEstimate, InterventionPlan, InterventionType } from '@architect/shared';
+import {
+  InterventionTypeSchema,
+  type CostEstimate,
+  type InterventionPlan,
+  type InterventionType,
+} from '@architect/shared';
 import { formatUsd } from './budget';
 import type { RunState } from './run-state';
 import { MIN_JOB_SECONDS } from '../training/recipe';
@@ -67,10 +72,20 @@ export async function menuOf(state: RunState): Promise<Menu> {
   if (state.record.interactive !== true) {
     refused.clarification = "Nobody is there to answer: this run wasn't started from the app.";
   }
+  // A comparison that fixes the intervention offers that one alone (decision 045).
+  const fixed = state.record.protocol?.interventions;
+  if (fixed !== undefined) {
+    for (const type of InterventionTypeSchema.options) {
+      if (!fixed.includes(type) && refused[type] === undefined) {
+        refused[type] =
+          `This run's comparison fixes the intervention to ${fixed.join(' or ')}, so the mentor doesn't choose it.`;
+      }
+    }
+  }
   const allowed: InterventionType[] = [
     ...HARNESS_TYPES,
-    ...(['weights', 'clarification'] as const).filter((type) => refused[type] === undefined),
-  ];
+    ...(['weights', 'clarification'] as const),
+  ].filter((type) => refused[type] === undefined);
   return { allowed, refused, canTeach, computeLeftUsd: computeLeft(state) };
 }
 

@@ -8,6 +8,7 @@ import {
   LessonSchema,
   ReferenceRecordSchema,
   ReportCardSchema,
+  RuntimeMeasurementSchema,
   StudentTargetSchema,
   WorkspaceChatSchema,
   WorkspaceMessageSchema,
@@ -20,6 +21,7 @@ import {
   type ReferenceRecord,
   type ReportCard,
   type RunStatus,
+  type RuntimeMeasurement,
   type SplitName,
   type StudentTarget,
   type WorkspaceChat,
@@ -37,6 +39,7 @@ import {
   StoredContractSchema,
   StoredInstallationSchema,
   StoredPublicationSchema,
+  StoredRepeatSchema,
   StoredRetestSchema,
   StoredRoundSchema,
   StoredRunSchema,
@@ -52,6 +55,7 @@ import {
   type StoredContract,
   type StoredInstallation,
   type StoredPublication,
+  type StoredRepeat,
   type StoredRetest,
   type StoredRound,
   type StoredRun,
@@ -145,6 +149,21 @@ export interface EngineStore {
     get(runId: string, target: StudentTarget): StoredRetest | null;
     /** Oldest first, so interrupted re-tests resume in the order they started. */
     withStatus(status: RetestStatus): StoredRetest[];
+  };
+  /** Locked tests taken again under the declared seeds a run deferred (decision 045). */
+  repeats: {
+    /** Fails if the run already has a repeat on that target. */
+    insert(repeat: StoredRepeat): void;
+    update(repeat: StoredRepeat): void;
+    get(runId: string, target: StudentTarget): StoredRepeat | null;
+    /** Oldest first, so interrupted repeats resume in the order they started. */
+    withStatus(status: StoredRepeat['status']): StoredRepeat[];
+  };
+  /** What the runtime held during each stretch of an evaluation a meter watched. */
+  runtimeMeasurements: {
+    insert(measurement: RuntimeMeasurement): void;
+    /** Oldest first. */
+    list(runId: string): RuntimeMeasurement[];
   };
   graduates: {
     insert(record: GraduateRecord): void;
@@ -313,6 +332,7 @@ function runParams({ run, ...record }: StoredRun): Params {
     interactive: flag(record.interactive === true),
     current_adapter: jsonOrNull(run.currentAdapter),
     improves: jsonOrNull(record.improves),
+    protocol: jsonOrNull(record.protocol),
   };
 }
 
@@ -346,6 +366,9 @@ function runFromRow(row: Row): StoredRun {
     ...(row.improves === null || row.improves === undefined
       ? {}
       : { improves: fromJson(row.improves) }),
+    ...(row.protocol === null || row.protocol === undefined
+      ? {}
+      : { protocol: fromJson(row.protocol) }),
   });
 }
 
@@ -520,6 +543,68 @@ function retestFromRow(row: Row): StoredRetest {
     error: orUndefined(row.error),
     startedAt: row.started_at,
     endedAt: orUndefined(row.ended_at),
+  });
+}
+
+function repeatParams(repeat: StoredRepeat): Params {
+  return {
+    run_id: repeat.runId,
+    target: repeat.target,
+    status: repeat.status,
+    error: repeat.error ?? null,
+    started_at: repeat.startedAt,
+    ended_at: repeat.endedAt ?? null,
+  };
+}
+
+function repeatFromRow(row: Row): StoredRepeat {
+  return StoredRepeatSchema.parse({
+    runId: row.run_id,
+    target: row.target,
+    status: row.status,
+    error: orUndefined(row.error),
+    startedAt: row.started_at,
+    endedAt: orUndefined(row.ended_at),
+  });
+}
+
+function measurementParams(measurement: RuntimeMeasurement): Params {
+  return {
+    id: measurement.id,
+    run_id: measurement.runId,
+    split: measurement.split,
+    target: measurement.target,
+    config: measurement.config,
+    harness_version: measurement.harnessVersion,
+    seeds: json(measurement.seeds),
+    backend: measurement.backend,
+    peak_process_bytes: measurement.peakProcessBytes,
+    peak_gpu_bytes: measurement.peakGpuBytes,
+    cold_start_ms: measurement.coldStartMs,
+    samples: measurement.samples,
+    sampler: measurement.sampler,
+    started_at: measurement.startedAt,
+    ended_at: measurement.endedAt,
+  };
+}
+
+function measurementFromRow(row: Row): RuntimeMeasurement {
+  return RuntimeMeasurementSchema.parse({
+    id: row.id,
+    runId: row.run_id,
+    split: row.split,
+    target: row.target,
+    config: row.config,
+    harnessVersion: row.harness_version,
+    seeds: fromJson(row.seeds),
+    backend: row.backend,
+    peakProcessBytes: row.peak_process_bytes,
+    peakGpuBytes: row.peak_gpu_bytes,
+    coldStartMs: row.cold_start_ms,
+    samples: row.samples,
+    sampler: row.sampler,
+    startedAt: row.started_at,
+    endedAt: row.ended_at,
   });
 }
 
@@ -966,6 +1051,35 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
             status,
           })
           .map(retestFromRow),
+    },
+
+    repeats: {
+      insert: (repeat) => sql.insert('repeats', repeatParams(repeat)),
+      update: (repeat) => sql.update('repeats', repeatParams(repeat), ['run_id', 'target']),
+      get: (runId, target) => {
+        const row = sql.one('SELECT * FROM repeats WHERE run_id = :run_id AND target = :target', {
+          run_id: runId,
+          target,
+        });
+        return row ? repeatFromRow(row) : null;
+      },
+      withStatus: (status) =>
+        sql
+          .all('SELECT * FROM repeats WHERE status = :status ORDER BY started_at, rowid', {
+            status,
+          })
+          .map(repeatFromRow),
+    },
+
+    runtimeMeasurements: {
+      insert: (measurement) => sql.insert('runtime_measurements', measurementParams(measurement)),
+      list: (runId) =>
+        sql
+          .all(
+            'SELECT * FROM runtime_measurements WHERE run_id = :run_id ORDER BY started_at, rowid',
+            { run_id: runId },
+          )
+          .map(measurementFromRow),
     },
 
     graduates: {

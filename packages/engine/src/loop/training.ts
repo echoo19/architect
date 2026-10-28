@@ -3,6 +3,7 @@ import {
   TraceSchema,
   type GateResult,
   type Harness,
+  type Intervention,
   type Measurement as RecordedMeasurement,
   type Round,
   type RunStopReason,
@@ -16,7 +17,7 @@ import { resultOf, type EvaluationResult } from './attempts';
 import { configurationKey, llamaCppConfig, type AttemptConfig } from './configuration';
 import { must } from './errors';
 import { evaluate, type EvaluationSpec } from './evaluation';
-import { measurement, recordExperiment } from './experiments';
+import { measurement, recordExperiment, settleExperimentCompute } from './experiments';
 import { readJsonFile } from './files';
 import {
   confirmKeep,
@@ -27,8 +28,9 @@ import {
   type Measurement,
 } from './keep';
 import { percentile } from '../report/report-card';
+import { menuOf } from './menu';
 import { TRAINING_ENDED, trainingEnd, type RunState } from './run-state';
-import { devSeeds, roundSeed } from './seeds';
+import { deriveSeed, devSeeds, roundSeed, sampleTrainBatch } from './seeds';
 import { startingHarness } from './setup';
 
 function comparePerType(before: TypeScore[], after: TypeScore[]) {
@@ -41,8 +43,19 @@ function comparePerType(before: TypeScore[], after: TypeScore[]) {
 }
 
 /** A whole-harness draft is kept as measured: one-shot's only harness, or a refined run's start. */
-function draftDecision(state: RunState, before: Score, after: Score): KeepDecision {
+function draftDecision(
+  state: RunState,
+  before: Score,
+  after: Score,
+  adopted: boolean,
+): KeepDecision {
   const scores = `Dev ${formatScore(before)} → ${formatScore(after)}`;
+  if (adopted) {
+    return {
+      keep: true,
+      reason: `${scores}; the comparison's harness is adopted whatever it scores, as a shared draft is`,
+    };
+  }
   return {
     keep: true,
     reason:
@@ -104,7 +117,195 @@ export async function baseline(state: RunState): Promise<void> {
   state.saveRun({ devBaseline: result.score, devCurrent: result.score });
 }
 
-export function startRound(state: RunState, index: number): void {
+/** The title an adopted harness's round carries, so the decision and reports can name it. */
+export const ADOPTED_TITLE = 'Adopt the comparison harness';
+
+/** The round adopts the protocol's harness: the first round of a run whose protocol names one. */
+function adopts(state: RunState, index: number): boolean {
+  return state.record.protocol?.adopt !== undefined && index === 1;
+}
+
+/**
+ * The first round of a run whose protocol names a harness to adopt (decision 045): that harness,
+ * saved as the round's candidate and measured on dev like a draft, which is kept whatever it
+ * scores. Nobody wrote it this round, so it costs no mentor call; its record says where it came
+ * from.
+ */
+async function adoptRound(state: RunState, index: number): Promise<void> {
+  const { deps } = state.ctx;
+  const folder = must(state.record.protocol?.adopt, 'The harness to adopt');
+  const base = state.run.currentVersion;
+  const from = await state.resources.harness(base);
+  const adopted = await state.versions.save(
+    await deps.harness.importHarness(state.ctx.paths.fromStored(folder)),
+    base,
+  );
+  const changed = deps.harness.diffHarness(from, adopted).map((diff) => diff.path);
+  const files = deps.harness.harnessToFiles(adopted);
+  const edits = changed
+    .filter((path) => files[path] !== undefined)
+    .slice(0, 16)
+    .map((path) => ({ op: 'write' as const, path, content: files[path] ?? '' }));
+  const diagnosis = `The harness in ${folder}, frozen by another arm of this comparison, adopted whole as this run's H1, so its adapters are measured on both harnesses.`;
+  const round: Round = {
+    runId: state.ctx.runId,
+    index,
+    draft: true,
+    status: 'evaluating',
+    train: { pass: 0, total: 0 },
+    title: ADOPTED_TITLE,
+    diagnosis,
+    files: changed,
+    candidateVersion: adopted.meta.version,
+    costUsd: 0,
+    startedAt: state.now(),
+  };
+  const run = state.ctx.store.transaction(() => {
+    state.ctx.store.rounds.insert({
+      round,
+      baseVersion: base,
+      reply: {
+        text: diagnosis,
+        usage: { inputTokens: 0, outputTokens: 0 },
+        costUsd: 0,
+        model: 'adopted',
+        latencyMs: 0,
+        fix: 0,
+      },
+      hypothesis: {
+        title: ADOPTED_TITLE,
+        diagnosis,
+        edits:
+          edits.length > 0 ? edits : [{ op: 'write', path: 'AGENTS.md', content: adopted.system }],
+        causeTaskIds: [],
+        predicted: { devDeltaMin: 0, devDeltaMax: 0, rationale: 'Adopted, not predicted.' },
+        readyClaim: false,
+      },
+      rejected: false,
+    });
+    return state.writeRun((current) => ({
+      phase: 'evaluating',
+      totals: { ...current.totals, rounds: current.totals.rounds + 1 },
+    }));
+  });
+  state.budget.recordRound();
+  state.emit({ type: 'round.updated', round });
+  state.emit({ type: 'run.updated', run });
+  state.emitBudget();
+}
+
+/**
+ * A one-shot adapter's round (decision 045): verified demonstrations of a seeded sample of train
+ * tasks, chosen before any attempt and never from a failure, then one training job. Its
+ * intervention is the runner's, not an author's: no mentor call decides it. A run that can't
+ * train weights here ends the round as invalid with the menu's reason.
+ */
+async function oneShotRound(state: RunState, index: number): Promise<void> {
+  const { store, runId } = state.ctx;
+  const perType = must(state.record.protocol?.oneShotAdapter, 'The one-shot adapter').perType;
+  const types = new Set((await state.trainTasks()).map((task) => task.type)).size;
+  const sample = sampleTrainBatch(
+    await state.trainTasks(),
+    perType * types,
+    deriveSeed(state.record.seeds.trainBatch, 'one-shot-adapter'),
+  );
+  const round: Round = {
+    runId,
+    index,
+    status: 'teaching',
+    train: { pass: 0, total: 0 },
+    title: 'One-shot adapter from verified demonstrations',
+    files: [],
+    costUsd: 0,
+    startedAt: state.now(),
+  };
+  const intervention: Intervention = {
+    id: newId('itv'),
+    runId,
+    round: index,
+    type: 'weights',
+    title: round.title ?? 'One-shot adapter',
+    hypothesis: `Verified demonstrations of ${sample.length} train tasks, ${perType} of each type, chosen by seed before any attempt, teach the student through one adapter.`,
+    findings: [],
+    setAside: [],
+    edits: [],
+    workedExamples: [],
+    practicePerFinding: 0,
+    predicted: { devDeltaMin: 0, devDeltaMax: 0, rationale: 'One-shot: measured, not predicted.' },
+    estimatedCost: { mentorUsd: 0, computeUsd: 0, minutes: 0 },
+    verificationPlan:
+      'Each demonstration passes the checker and the mutation audit; the adapter is measured in four configurations on one llama-server.',
+    parent: { harnessVersion: state.run.currentVersion, adapter: state.run.currentAdapter ?? null },
+    status: 'accepted',
+    teaching: {
+      items: sample.map((task) => ({ kind: 'demonstration' as const, taskId: task.id })),
+      skipped: [],
+    },
+    createdAt: state.now(),
+  };
+  const run = store.transaction(() => {
+    store.rounds.insert({
+      round,
+      baseVersion: state.run.currentVersion,
+      // The runner's own plan, recorded as the round's reply so its lineage entry says who chose it.
+      reply: {
+        text: intervention.hypothesis,
+        usage: { inputTokens: 0, outputTokens: 0 },
+        costUsd: 0,
+        model: 'one-shot',
+        latencyMs: 0,
+        fix: 0,
+      },
+      hypothesis: {
+        title: intervention.title,
+        diagnosis: intervention.hypothesis,
+        edits: [],
+        causeTaskIds: [],
+        predicted: intervention.predicted,
+        readyClaim: false,
+        intervention: {
+          type: 'weights',
+          hypothesis: intervention.hypothesis,
+          workedExamples: [],
+          practicePerFinding: 0,
+          question: '',
+          estimatedCost: intervention.estimatedCost,
+          verificationPlan: intervention.verificationPlan,
+        },
+      },
+      rejected: false,
+    });
+    store.interventions.put(intervention);
+    return state.writeRun((current) => ({
+      phase: 'teaching',
+      totals: { ...current.totals, rounds: current.totals.rounds + 1 },
+    }));
+  });
+  state.budget.recordRound();
+  state.emit({ type: 'round.updated', round });
+  state.emit({ type: 'run.updated', run });
+  state.emitBudget();
+  state.announce('intervention', intervention.id, index);
+  const menu = await menuOf(state);
+  if (!menu.allowed.includes('weights')) {
+    state.closeRound(
+      index,
+      `A one-shot adapter can't be trained in this run: ${menu.refused.weights ?? 'weights are off the menu.'}`,
+      undefined,
+      'invalid',
+    );
+  }
+}
+
+export async function startRound(state: RunState, index: number): Promise<void> {
+  if (adopts(state, index)) {
+    await adoptRound(state, index);
+    return;
+  }
+  if (state.record.protocol?.oneShotAdapter !== undefined) {
+    await oneShotRound(state, index);
+    return;
+  }
   const drafting = state.drafts(index);
   const round: Round = {
     runId: state.ctx.runId,
@@ -500,50 +701,85 @@ function referenceVersion(state: RunState, fallback: number): number {
   return state.attempts({ split: 'dev', round: null })[0]?.harnessVersion ?? fallback;
 }
 
+/** One configuration a weights round measures: a harness version with an adapter, or none. */
+interface Cell {
+  version: number;
+  config: AttemptConfig;
+}
+
+/** The cells in measuring order, each once, grouped by the adapter applied. */
+function distinctCells(cells: readonly Cell[]): Cell[] {
+  const seen = new Set<string>();
+  return cells.filter((cell) => {
+    const key = `${cell.version}|${configurationKey(cell.config)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 /**
  * A weights round's candidate: the adapter it trained, on the incumbent harness. Every
  * configuration runs on one llama-server, with the same base and decoding, grouped by adapter so
- * a scale change doesn't clear the server's prompt cache between requests. The keep rule compares
- * the candidate (H1/A1) with the incumbent (H1/A0), measuring both again when the first
- * measurement clears it; the reference harness with each adapter (H0/A0, H0/A1) is measured once
- * on the first seeds, so the experiment records the four configurations apart. When the run kept
- * no harness change, H0 is H1, and each of those measurements stands for both, so labelled.
+ * a scale change doesn't clear the server's prompt cache between requests. The four
+ * configurations are the reference harness H0 and the round's harness H1, each with the base
+ * alone (A0, no adapter applied, whatever the run kept before) and with the candidate (A1). The
+ * keep rule compares the candidate (H1/A1) with the incumbent as it runs: H1/A0, or H1 with the
+ * adapter the run kept, measured as its own configuration. When the first measurement clears the
+ * limits, every configuration is measured again on the new seeds, so all of them cover the same
+ * seeds and their paired counts hold. When the run kept no harness change, H0 is H1, and each of
+ * those measurements stands for both, so labelled. A one-shot adapter is kept as measured, as a
+ * one-shot harness is, unless a hard gate fails.
  */
 async function evaluateAdapter(state: RunState, index: number): Promise<void> {
   const stored = state.round(index);
   const candidate = must(stored.round.candidateAdapter, 'The candidate adapter');
   const incumbent = state.run.currentAdapter ?? null;
   const loaded = incumbent === null ? [candidate] : [incumbent, candidate];
-  const off = llamaCppConfig(loaded, incumbent);
-  const on = llamaCppConfig(loaded, candidate);
+  const a0 = llamaCppConfig(loaded, null);
+  const a1 = llamaCppConfig(loaded, candidate);
+  const kept = incumbent === null ? a0 : llamaCppConfig(loaded, incumbent);
   const h1 = stored.baseVersion;
   const h0 = referenceVersion(state, h1);
   const { evaluation } = state.job;
   const runs = evaluation.devRepeats;
+  const oneShot = state.record.protocol?.oneShotAdapter !== undefined;
+  const cells = distinctCells([
+    { version: h1, config: kept },
+    { version: h1, config: a0 },
+    { version: h0, config: a0 },
+    { version: h1, config: a1 },
+    { version: h0, config: a1 },
+  ]);
+  const measureAll = async (count: number): Promise<boolean> => {
+    for (const cell of cells) {
+      const spec = await devEvaluation(state, cell.version, index, count, cell.config);
+      if (!(await evaluate(state, spec))) return false;
+    }
+    return true;
+  };
+  if (!(await measureAll(runs))) return;
   const seeds = devSeeds(state.record.seeds.devPanel, index, runs);
-  const plan: [number, AttemptConfig][] = [
-    [h1, off],
-    ...(h0 === h1 ? [] : ([[h0, off]] as [number, AttemptConfig][])),
-    [h1, on],
-    ...(h0 === h1 ? [] : ([[h0, on]] as [number, AttemptConfig][])),
-  ];
-  for (const [version, config] of plan) {
-    if (!(await evaluate(state, await devEvaluation(state, version, index, runs, config)))) return;
-  }
   const pairOf = (measured: readonly number[]): DevPair => ({
-    before: state.devResult(h1, index, measured, off),
-    after: state.devResult(h1, index, measured, on),
+    before: state.devResult(h1, index, measured, kept),
+    after: state.devResult(h1, index, measured, a1),
   });
   const first = pairOf(seeds);
-  let decision = decideKeep({ ...measurementOf(first), evaluation, runs });
+  let decision: KeepDecision = oneShot
+    ? {
+        keep: true,
+        reason: `Dev ${formatScore(first.before.score)} → ${formatScore(first.after.score)}; a one-shot adapter is kept as measured, as a one-shot harness is`,
+      }
+    : decideKeep({ ...measurementOf(first), evaluation, runs });
   let pair = first;
   let usedSeeds: readonly number[] = seeds;
   let confirmed = false;
-  if (decision.keep) {
-    state.log('info', `Round ${index} cleared the keep limits; measuring both again.`);
-    for (const config of [off, on]) {
-      if (!(await evaluate(state, await devEvaluation(state, h1, index, 2 * runs, config)))) return;
-    }
+  if (decision.keep && !oneShot) {
+    state.log(
+      'info',
+      `Round ${index} cleared the keep limits; measuring every configuration again.`,
+    );
+    if (!(await measureAll(2 * runs))) return;
     usedSeeds = devSeeds(state.record.seeds.devPanel, index, 2 * runs);
     pair = pairOf(usedSeeds);
     decision = confirmKeep({
@@ -554,40 +790,29 @@ async function evaluateAdapter(state: RunState, index: number): Promise<void> {
     });
     confirmed = true;
   }
-  const again = confirmed ? ', and again on new seeds when it cleared the keep limits' : '';
+  const measured = `Measured in this round${confirmed ? ', and again on new seeds when it cleared the keep limits' : ''}.`;
   const same = 'The same configuration: the run had kept no harness change, so H0 is H1.';
+  const cell = (label: string, version: number, config: AttemptConfig, provenance = measured) =>
+    recorded(state, label, version, index, usedSeeds, config, provenance);
   const measurements = [
-    recorded(state, 'H1/A0', h1, index, usedSeeds, off, `Measured in this round${again}.`),
-    recorded(state, 'H1/A1', h1, index, usedSeeds, on, `Measured in this round${again}.`),
-    h0 === h1
-      ? recorded(state, 'H0/A0', h1, index, usedSeeds, off, same)
-      : recorded(
-          state,
-          'H0/A0',
-          h0,
-          index,
-          seeds,
-          off,
-          'Measured in this round, on its first seeds.',
-        ),
-    h0 === h1
-      ? recorded(state, 'H0/A1', h1, index, usedSeeds, on, same)
-      : recorded(
-          state,
-          'H0/A1',
-          h0,
-          index,
-          seeds,
-          on,
-          'Measured in this round, on its first seeds.',
-        ),
+    ...(kept === a0
+      ? []
+      : [
+          cell('incumbent', h1, kept, `${measured} The incumbent as it runs, its kept adapter on.`),
+        ]),
+    cell('H1/A0', h1, a0),
+    cell('H1/A1', h1, a1),
+    h0 === h1 ? cell('H0/A0', h1, a0, same) : cell('H0/A0', h0, a0),
+    h0 === h1 ? cell('H0/A1', h1, a1, same) : cell('H0/A1', h0, a1),
   ];
-  const gates = await hardGates(state, index, h1, usedSeeds, on, candidate);
-  const harmful = isHarmful({
-    ...measurementOf(pair),
-    evaluation,
-    runs: confirmed ? 2 * runs : runs,
-  });
+  const gates = await hardGates(state, index, h1, usedSeeds, a1, candidate);
+  const harmful =
+    !oneShot &&
+    isHarmful({
+      ...measurementOf(pair),
+      evaluation,
+      runs: confirmed ? 2 * runs : runs,
+    });
   await decide(
     state,
     state.round(index),
@@ -630,7 +855,7 @@ export async function evaluateCandidate(state: RunState, index: number): Promise
     const draft = await measureDraft(state, index, versions, runs);
     if (draft === null) return;
     await decide(state, state.round(index), draft, {
-      decision: draftDecision(state, draft.before.score, draft.after.score),
+      decision: draftDecision(state, draft.before.score, draft.after.score, adopts(state, index)),
       disposition: 'kept',
       gates: [],
       measurements: [
@@ -720,6 +945,13 @@ export function abandonRound(state: RunState, index: number, reason: string): vo
 
 /** Hands the run to its locked test, or ends it when a stop came before anything was kept. */
 export function finishTraining(state: RunState, reason: RunStopReason | undefined): void {
+  for (const settled of settleExperimentCompute(
+    state.ctx.store,
+    state.ctx.deps.training,
+    state.ctx.runId,
+  )) {
+    state.announce('experiment', settled.id, settled.round);
+  }
   const kept = state.rounds().some(({ round }) => round.decision === 'kept');
   if (reason === 'user' && !kept) {
     state.saveRun({ status: 'stopped', phase: 'done', stopReason: 'user', endedAt: state.now() });
