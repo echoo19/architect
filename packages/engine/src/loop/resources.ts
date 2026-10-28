@@ -9,6 +9,7 @@ import {
 import { describeDataFiles, type MentorDataFile } from '../mentor/data-files';
 import { MentorGate } from '../mentor/gate';
 import type { BudgetGuard } from './budget';
+import { configurationKey, LLAMA_CPP, STUDENT_CONFIG, type AttemptConfig } from './configuration';
 import type {
   HarnessVersionStore,
   LoopDeps,
@@ -36,6 +37,8 @@ export interface ResourceOptions {
   runId: string;
   versions: HarnessVersionStore;
   budget: BudgetGuard;
+  /** A path the database stores, relative to the app's data folder, made absolute. */
+  fromStored(path: string): string;
   log(level: LogLevel, message: string): void;
 }
 
@@ -46,7 +49,8 @@ export interface ResourceOptions {
 export class SessionResources {
   private sandboxCreated?: Promise<ToolSandbox>;
   private checkerCreated?: Promise<TaskChecker>;
-  private readonly students = new Map<StudentTarget, Promise<StudentAdapter>>();
+  /** By target and configuration, so each configuration keeps its own student. */
+  private readonly students = new Map<string, Promise<StudentAdapter>>();
   private mentorCreated?: Promise<MentorAdapter>;
   private gateCreated?: Promise<MentorGate>;
   private dataFilesRead?: Promise<MentorDataFile[]>;
@@ -68,13 +72,48 @@ export class SessionResources {
     return this.checkerCreated;
   }
 
-  student(target: StudentTarget): Promise<StudentAdapter> {
-    let student = this.students.get(target);
+  /**
+   * The student on one of the job's endpoints, as a configuration asks: the job's own endpoint,
+   * or llama.cpp serving the local base with the configuration's adapters.
+   */
+  student(target: StudentTarget, config: AttemptConfig = STUDENT_CONFIG): Promise<StudentAdapter> {
+    const loaded = (config.loaded ?? []).map((adapter) => adapter.id).join(',');
+    const key = `${target}|${configurationKey(config)}|${loaded}`;
+    let student = this.students.get(key);
     if (!student) {
-      student = connectStudent(this.options.deps, this.options.job, target);
-      this.students.set(target, student);
+      student = this.connect(target, config);
+      this.students.set(key, student);
     }
     return student;
+  }
+
+  private async connect(target: StudentTarget, config: AttemptConfig): Promise<StudentAdapter> {
+    const { deps, job, fromStored } = this.options;
+    if (config.actor !== 'student') {
+      throw new Error(`A ${config.actor} attempt has no student to connect.`);
+    }
+    if (config.backend === 'job') return connectStudent(deps, job, target);
+    if (config.backend !== LLAMA_CPP) {
+      throw new Error(`Architect has no ${config.backend} backend for the student.`);
+    }
+    if (target !== 'local') {
+      throw new Error("An adapter runs on the local base model; the hosted copy can't carry one.");
+    }
+    const create = deps.adapters.createAdapterStudent;
+    if (!create) {
+      throw new Error(
+        "This build can't serve an adapter, so adapter candidates can't be measured.",
+      );
+    }
+    const adapters = (config.loaded ?? []).map((adapter) => ({
+      key: adapter.id,
+      path: fromStored(adapter.path),
+    }));
+    const scales = config.adapter === null ? {} : { [config.adapter.id]: config.adapter.scale };
+    return create(
+      { model: job.student.local.model, adapters, scales },
+      { label: job.student.label },
+    );
   }
 
   /** The session's mentor, made on first use; refused once the mentor has been released. */

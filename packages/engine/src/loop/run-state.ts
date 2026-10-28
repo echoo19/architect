@@ -3,6 +3,7 @@ import type { AttemptFilter, EngineStore } from '../store/engine-store';
 import type { StoredAttempt, StoredRound, StoredRun } from '../store/records';
 import { resultOf, type EvaluationResult } from './attempts';
 import { BudgetGuard } from './budget';
+import { configurationKey, STUDENT_CONFIG, type AttemptConfig } from './configuration';
 import type { Clock, HarnessVersionStore, LoopDeps } from './deps';
 import { must } from './errors';
 import type { JobLibrary } from './jobs';
@@ -91,6 +92,7 @@ export class RunState {
       runId: run.id,
       versions: this.versions,
       budget: this.budget,
+      fromStored: (path) => ctx.paths.fromStored(path),
       log: (level, message) => this.log(level, message),
     });
   }
@@ -124,14 +126,21 @@ export class RunState {
   /**
    * A version's result in one dev evaluation, every repeat added up: the baseline's (round
    * null) or a round's, where the candidate and the incumbent are measured side by side. With
-   * `seeds`, only the attempts under those seeds, such as a round's first measurement.
+   * `seeds`, only the attempts under those seeds, such as a round's first measurement. Only the
+   * attempts made under `config` count: the job's student with no adapter unless it says.
    */
-  devResult(version: number, round: number | null, seeds?: readonly number[]): EvaluationResult {
+  devResult(
+    version: number,
+    round: number | null,
+    seeds?: readonly number[],
+    config: AttemptConfig = STUDENT_CONFIG,
+  ): EvaluationResult {
     const attempts = this.attempts({
       split: 'dev',
       version,
       round,
       target: this.job.student.trainOn,
+      config: configurationKey(config),
     });
     return resultOf(
       seeds === undefined ? attempts : attempts.filter((attempt) => seeds.includes(attempt.seed)),

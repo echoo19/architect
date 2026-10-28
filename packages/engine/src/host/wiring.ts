@@ -11,6 +11,7 @@ import {
   writeGraduate,
 } from '@architect/harness';
 import type { EngineHostDeps, JobDrafter, TaskChecker, ToolSandbox } from '../loop/deps';
+import { runCorrection } from '../teaching/correction';
 import {
   createChecker,
   createSandbox,
@@ -64,6 +65,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
             sandbox: asSandbox(ctx.sandbox),
             checker: asChecker(ctx.checker),
             now: middayOf(ctx.today),
+            ...(ctx.decoding === undefined ? {} : { decoding: ctx.decoding }),
           },
           evaluation,
         ),
@@ -73,6 +75,13 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
         ),
       createChecker: (job, jobDir, sandbox) =>
         createChecker({ job, jobDir, sandbox: asSandbox(sandbox) }),
+      correct: (task, ctx, start, correction) =>
+        runCorrection(
+          task,
+          { ...ctx, sandbox: asSandbox(ctx.sandbox), checker: asChecker(ctx.checker) },
+          start,
+          correction,
+        ),
       toolLoadProblem: async (sandbox, tool) => {
         const outcome = await asSandbox(sandbox).checkTool(tool);
         if (outcome.ok) return null;

@@ -55,6 +55,23 @@ export interface RunAgentOptions {
   signal?: AbortSignal;
 }
 
+/**
+ * Continues an attempt from a saved point: the conversation up to a model turn and the agent's
+ * files as they stood there. The model takes the turns left under the same step limit, through
+ * the same tools. The trace holds only the new steps, the whole conversation, and every file's
+ * change since the attempt began.
+ */
+export interface ContinueAgentOptions extends Omit<RunAgentOptions, 'request' | 'history'> {
+  /** The conversation so far: the system prompt, the request and the turns already taken. */
+  messages: readonly ChatMessage[];
+  /** Model turns already taken; they count against the step limit. */
+  turnsTaken: number;
+  /** What the attempt started from, as its own trace recorded it. */
+  replay: ReplaySetup;
+  /** Every file's text when the attempt began, so the trace's changes run from there. */
+  startTexts: Readonly<Record<string, string>>;
+}
+
 type Turn =
   | {
       ok: true;
@@ -66,6 +83,46 @@ type Turn =
     }
   | { ok: false; error: string };
 
+/** One attempt's trace as it grows: its steps, usage and clock, and how it ends. */
+class TraceBuilder {
+  readonly steps: TraceStep[] = [];
+  usage = emptyUsage();
+  private readonly started = performance.now();
+
+  constructor(
+    private readonly options: Pick<RunAgentOptions, 'harness' | 'student' | 'files' | 'onStep'>,
+    private readonly replay: ReplaySetup,
+    private readonly startTexts: Readonly<Record<string, string>>,
+  ) {}
+
+  record(step: TraceStep): void {
+    this.steps.push(step);
+    this.options.onStep?.(step);
+  }
+
+  finish(
+    messages: ChatMessage[],
+    finalText: string,
+    stopReason: StopReason,
+    error?: string,
+  ): Trace {
+    const { harness, student, files } = this.options;
+    return {
+      harnessVersion: harness.meta.version,
+      studentModel: student.model,
+      messages,
+      steps: this.steps,
+      finalText,
+      stopReason,
+      ...(error === undefined ? {} : { error }),
+      usage: this.usage,
+      latencyMs: elapsedMs(this.started),
+      replay: this.replay,
+      changes: files.changesSince(this.startTexts),
+    };
+  }
+}
+
 /**
  * Runs the student on one request inside a harness: refuses guarded requests without calling the
  * model, then alternates model turns and tool calls until a turn makes no tool calls or the step
@@ -74,10 +131,9 @@ type Turn =
  * what the attempt started from and every file it changed, so it can be replayed.
  */
 export async function runAgent(options: RunAgentOptions): Promise<Trace> {
-  const { harness, job, student, files, sandbox, request, mode, seed, signal } = options;
+  const { harness, job, files, request, mode, seed } = options;
   const today = todayFor(job, options.now ?? new Date());
   const decoding = options.decoding ?? harness.decoding;
-  const started = performance.now();
   const startTexts = files.texts();
   const replay: ReplaySetup = {
     data: files.dataHashes(),
@@ -88,46 +144,24 @@ export async function runAgent(options: RunAgentOptions): Promise<Trace> {
     today,
   };
   const history = options.history ?? [];
-  const steps: TraceStep[] = [];
-  let usage = emptyUsage();
-
-  const record = (step: TraceStep) => {
-    steps.push(step);
-    options.onStep?.(step);
-  };
-  const finish = (
-    messages: ChatMessage[],
-    finalText: string,
-    stopReason: StopReason,
-    error?: string,
-  ): Trace => ({
-    harnessVersion: harness.meta.version,
-    studentModel: student.model,
-    messages,
-    steps,
-    finalText,
-    stopReason,
-    ...(error === undefined ? {} : { error }),
-    usage,
-    latencyMs: elapsedMs(started),
-    replay,
-    changes: files.changesSince(startTexts),
-  });
+  const trace = new TraceBuilder(options, replay, startTexts);
 
   const refusal = matchGuardrail(harness, request);
   if (refusal) {
-    record({ kind: 'refusal', taskType: refusal.taskType, reason: refusal.reason });
+    trace.record({ kind: 'refusal', taskType: refusal.taskType, reason: refusal.reason });
     const text = `I can't help with ${refusal.taskType} requests. ${refusal.reason}`;
     const messages: ChatMessage[] = [
       ...history,
       { role: 'user', content: request },
       { role: 'assistant', content: text },
     ];
-    return finish(messages, text, 'refused');
+    return trace.finish(messages, text, 'refused');
   }
 
   const retrieved = selectRetrieval(harness, request);
-  for (const skill of retrieved.skills) record({ kind: 'skill', slug: skill.name, via: 'rule' });
+  for (const skill of retrieved.skills) {
+    trace.record({ kind: 'skill', slug: skill.name, via: 'rule' });
+  }
   const system = buildSystemPrompt({
     harness,
     folder: {
@@ -144,6 +178,34 @@ export async function runAgent(options: RunAgentOptions): Promise<Trace> {
     ...history,
     { role: 'user', content: request },
   ];
+  return takeTurns(options, trace, messages, { today, decoding, turnsTaken: 0 });
+}
+
+/**
+ * Continues an attempt from a message prefix and the files as they stand, with the turns its
+ * step limit has left. Nothing is refused or retrieved again: the prefix already holds the
+ * system prompt the attempt began with.
+ */
+export async function continueAgent(options: ContinueAgentOptions): Promise<Trace> {
+  const today = todayFor(options.job, options.now ?? new Date());
+  const decoding = options.decoding ?? options.harness.decoding;
+  const trace = new TraceBuilder(options, options.replay, options.startTexts);
+  return takeTurns(options, trace, [...options.messages], {
+    today,
+    decoding,
+    turnsTaken: options.turnsTaken,
+  });
+}
+
+/** Alternates model turns and tool calls until a turn calls no tool or the step limit is reached. */
+async function takeTurns(
+  options: Omit<RunAgentOptions, 'request' | 'history'>,
+  trace: TraceBuilder,
+  messages: ChatMessage[],
+  at: { today: string; decoding: Decoding; turnsTaken: number },
+): Promise<Trace> {
+  const { harness, student, files, sandbox, seed, signal } = options;
+  const { today, decoding } = at;
   const toolbox = createToolbox({
     harness,
     files,
@@ -154,17 +216,17 @@ export async function runAgent(options: RunAgentOptions): Promise<Trace> {
   let finalText = '';
 
   try {
-    for (let step = 0; step < decoding.maxSteps; step += 1) {
-      if (signal?.aborted) return finish(messages, finalText, 'aborted');
+    for (let step = at.turnsTaken; step < decoding.maxSteps; step += 1) {
+      if (signal?.aborted) return trace.finish(messages, finalText, 'aborted');
       const chatRequest = { messages: [...messages], tools: [...toolbox.specs], decoding, seed };
       const turn = await callStudent(student, chatRequest, signal, options.onText);
       if (!turn.ok) {
         return signal?.aborted
-          ? finish(messages, finalText, 'aborted')
-          : finish(messages, finalText, 'error', turn.error);
+          ? trace.finish(messages, finalText, 'aborted')
+          : trace.finish(messages, finalText, 'error', turn.error);
       }
-      usage = addUsage(usage, turn.usage);
-      record({
+      trace.usage = addUsage(trace.usage, turn.usage);
+      trace.record({
         kind: 'model',
         text: turn.text,
         toolCalls: turn.toolCalls,
@@ -178,14 +240,19 @@ export async function runAgent(options: RunAgentOptions): Promise<Trace> {
       );
       finalText = turn.text;
       if (turn.toolCalls.length === 0 && turn.finish === 'length') {
-        return finish(messages, finalText, 'error', cutOff(decoding.maxOutputTokens, turn.text));
+        return trace.finish(
+          messages,
+          finalText,
+          'error',
+          cutOff(decoding.maxOutputTokens, turn.text),
+        );
       }
-      if (turn.toolCalls.length === 0) return finish(messages, finalText, 'answer');
+      if (turn.toolCalls.length === 0) return trace.finish(messages, finalText, 'answer');
 
       for (const call of turn.toolCalls) {
         const toolStarted = performance.now();
         const outcome = await toolbox.run(call, signal);
-        record({
+        trace.record({
           kind: 'tool',
           callId: call.id,
           name: call.name,
@@ -197,7 +264,7 @@ export async function runAgent(options: RunAgentOptions): Promise<Trace> {
           ...(outcome.table === undefined ? {} : { table: outcome.table }),
         });
         if (outcome.loadedSkill !== undefined) {
-          record({ kind: 'skill', slug: outcome.loadedSkill, via: 'tool' });
+          trace.record({ kind: 'skill', slug: outcome.loadedSkill, via: 'tool' });
         }
         messages.push({
           role: 'tool',
@@ -205,15 +272,15 @@ export async function runAgent(options: RunAgentOptions): Promise<Trace> {
           name: call.name,
           content: outcome.content,
         });
-        if (signal?.aborted) return finish(messages, finalText, 'aborted');
+        if (signal?.aborted) return trace.finish(messages, finalText, 'aborted');
       }
     }
   } catch (error) {
     // Waiting on a tool (such as a write approval) ends by throwing when the run is aborted.
-    if (signal?.aborted) return finish(messages, finalText, 'aborted');
+    if (signal?.aborted) return trace.finish(messages, finalText, 'aborted');
     throw error;
   }
-  return finish(messages, finalText, 'max_steps');
+  return trace.finish(messages, finalText, 'max_steps');
 }
 
 /**

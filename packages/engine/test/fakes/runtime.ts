@@ -12,11 +12,17 @@ import type {
   Evaluation,
   EvaluationContext,
   EvaluationOptions,
+  LoopCorrectionContext,
   MentorSession,
   RuntimeDeps,
   TaskSplits,
   VaultDeps,
 } from '../../src/loop/deps';
+import type {
+  CorrectionOptions,
+  CorrectionResult,
+  CorrectionStart,
+} from '../../src/teaching/correction';
 
 export type AttemptHook = (
   task: Task,
@@ -64,8 +70,53 @@ function fakeTrace(task: Task, ctx: EvaluationContext, pass: boolean, refused: b
   };
 }
 
+/** A correction's verdict and what it did, as a test scripts it. */
+export interface ScriptedCorrection {
+  verified: boolean;
+  reason?: string;
+  /** For a checkpoint start: where it resumed; null when the replay didn't hold. */
+  replayed?: { turn: number; calls: number } | null;
+}
+
+/** A verified episode: the request, then the actor's one answer, the only target. */
+function correctionResult(
+  task: Task,
+  ctx: LoopCorrectionContext,
+  start: CorrectionStart,
+  scripted: ScriptedCorrection,
+): CorrectionResult {
+  const messages: CorrectionResult['messages'] = [
+    { role: 'system', content: ctx.harness.system },
+    { role: 'user', content: task.prompt },
+    { role: 'assistant', content: `ANSWER: {"ok":true,"task":"${task.id}"}` },
+  ];
+  const checkpoint =
+    start.kind === 'checkpoint' && scripted.replayed !== null
+      ? (scripted.replayed ?? { turn: start.turn, calls: 1 })
+      : null;
+  const reason = scripted.reason ?? (scripted.verified ? 'The answer matches.' : 'Wrong again.');
+  return {
+    verified: scripted.verified,
+    reason,
+    checkpoint:
+      checkpoint === null ? null : { turn: checkpoint.turn, replayedCalls: checkpoint.calls },
+    check: { pass: scripted.verified, reason },
+    audit: { ok: true, problems: [], changed: [] },
+    messages,
+    actorTurns: [2],
+    tools: [],
+    trace: null,
+  };
+}
+
 /** A runtime whose student passes a task when the harness system prompt says `fix:<type>`. */
 export class FakeRuntime implements RuntimeDeps {
+  /** Every correction the runtime was asked for, with where it started. */
+  readonly corrections: { taskId: string; start: string; actor: string }[] = [];
+  /** How a correction of a task from a start turns out; verified by default. */
+  correction: (task: Task, start: CorrectionStart) => ScriptedCorrection = () => ({
+    verified: true,
+  });
   /** Every attempt the runtime was asked for, across controllers. */
   readonly attempts: { taskId: string; version: number; seed: number }[] = [];
   /** Order of releases and test attempts, to check the mentor is gone before the test. */
@@ -138,6 +189,39 @@ export class FakeRuntime implements RuntimeDeps {
 
   createChecker() {
     return { kind: 'fake checker' };
+  }
+
+  /**
+   * A correction as the test scripts it. The actor is asked for one turn first, so its gate's
+   * checks and charges happen as they would for a real correction.
+   */
+  async correct(
+    task: Task,
+    ctx: LoopCorrectionContext,
+    start: CorrectionStart,
+    options: CorrectionOptions,
+  ): Promise<CorrectionResult> {
+    this.corrections.push({
+      taskId: task.id,
+      start: start.kind === 'checkpoint' ? `turn ${start.turn}` : 'full task',
+      actor: ctx.actor.model,
+    });
+    const stream = ctx.actor.chat(
+      {
+        messages: [
+          { role: 'system', content: ctx.harness.system },
+          { role: 'user', content: task.prompt },
+        ],
+        tools: [],
+        decoding: ctx.harness.decoding,
+        seed: options.seed,
+      },
+      options.signal,
+    );
+    for await (const _event of stream) {
+      // The turn's content doesn't matter here; asking for it is what the gate sees.
+    }
+    return correctionResult(task, ctx, start, this.correction(task, start));
   }
 
   async releaseMentor(session: MentorSession) {

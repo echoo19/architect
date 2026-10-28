@@ -1,6 +1,8 @@
 import type {
+  ActorAdapter,
   CheckOutcome,
   CheckResult,
+  Decoding,
   DraftTurn,
   FileDiff,
   FileEdit,
@@ -18,9 +20,17 @@ import type {
   StudentEndpoint,
   Task,
   Trace,
+  TrainingBackendKind,
   TypeScore,
 } from '@architect/shared';
 import type { LeakDetector } from '../mentor/gate';
+import type {
+  CorrectionContext,
+  CorrectionOptions,
+  CorrectionResult,
+  CorrectionStart,
+} from '../teaching/correction';
+import type { TrainingWorker } from '../training/worker';
 
 /**
  * What the core loop needs from the runtime, harness and adapter packages. The real
@@ -55,7 +65,15 @@ export interface EvaluationContext {
   checker: TaskChecker;
   /** The date the job's tasks are written against, `YYYY-MM-DD`. */
   today: string;
+  /** Replaces the harness's decoding, as a frozen graduate's recorded decoding does. */
+  decoding?: Decoding;
 }
+
+/** A correction's context as the loop holds it: the sandbox and checker it made. */
+export type LoopCorrectionContext = Omit<CorrectionContext, 'sandbox' | 'checker'> & {
+  sandbox: ToolSandbox;
+  checker: TaskChecker;
+};
 
 export interface EvaluatedTask {
   task: Task;
@@ -112,6 +130,17 @@ export interface RuntimeDeps {
   toolLoadProblem(sandbox: ToolSandbox, tool: HarnessTool): Promise<string | null>;
   /** The checker runs end-state validators in the sandbox it is given. */
   createChecker(job: Job, jobDir: string, sandbox: ToolSandbox): Awaitable<TaskChecker>;
+  /**
+   * One verified correction of a task (decision 038): from a checkpoint rebuilt by replaying a
+   * recorded attempt, or the whole task from the start, by the given actor, graded by the
+   * checker and the mutation audit. A guard's refusal of the actor's call propagates.
+   */
+  correct(
+    task: Task,
+    ctx: LoopCorrectionContext,
+    start: CorrectionStart,
+    options: CorrectionOptions,
+  ): Promise<CorrectionResult>;
   /** Issues the release proof. The loop calls it after closing its gate and dropping the adapter. */
   releaseMentor(session: MentorSession): Promise<MentorReleased>;
 }
@@ -168,6 +197,16 @@ export interface HarnessDeps {
   readGraduate(dir: string): Awaitable<{ manifest: GraduateManifest }>;
 }
 
+/** What a llama.cpp student serves: the base, every adapter loaded once, and its own scales. */
+export interface AdapterServeRequest {
+  /** The base model, by its name in Ollama's store. */
+  model: string;
+  /** Every adapter the server loads, in load order, each a GGUF LoRA on disk. */
+  adapters: readonly { key: string; path: string }[];
+  /** This student's scale for each adapter, by key; adapters it doesn't name get 0. */
+  scales: Readonly<Record<string, number>>;
+}
+
 export interface AdapterDeps {
   /** `apiKey` is absent for a mentor that takes none, such as a model on this computer. */
   createMentor(config: MentorConfig, options: { apiKey?: string }): MentorAdapter;
@@ -175,11 +214,41 @@ export interface AdapterDeps {
     endpoint: StudentEndpoint,
     options: { apiKey?: string; label?: string },
   ): StudentAdapter;
+  /**
+   * The mentor's model as an agent with the student's tools, for verified corrections and
+   * references. Absent where a build can't run one; the runner then refuses what needs it.
+   */
+  createActor?(config: MentorConfig, options: { apiKey?: string }): ActorAdapter;
+  /**
+   * A student on llama.cpp with adapters, to measure a candidate adapter on and off on one
+   * server. Absent where no adapter runtime is set up; weights interventions are then refused.
+   */
+  createAdapterStudent?(request: AdapterServeRequest, options: { label?: string }): StudentAdapter;
 }
 
 export interface SecretDeps {
   /** The stored value for a secret ref, or undefined when none is saved. */
   get(ref: string): Promise<string | undefined>;
+}
+
+/** The training worker as the loop uses it (decision 035). */
+export type TrainingWorkerApi = Pick<
+  TrainingWorker,
+  'submit' | 'poll' | 'get' | 'cancel' | 'usage'
+>;
+
+/** Weight training for weights interventions: the worker, its backends and the base model. */
+export interface TrainingDeps {
+  worker: TrainingWorkerApi;
+  /**
+   * The backend a new job goes to now: Hugging Face Jobs when a token resolves, otherwise the
+   * stand-in, which trains nothing; null when neither is set up.
+   */
+  backend(): Promise<{ kind: TrainingBackendKind; real: boolean; pricePerHourUsd: number } | null>;
+  /** The base model adapters are trained on, by its Hub repository. */
+  baseModel: { repo: string; revision?: string };
+  /** Where a round's dataset is written before it is sent. */
+  datasetDir(runId: string, round: number): string;
 }
 
 export interface LoopDeps {
@@ -188,6 +257,8 @@ export interface LoopDeps {
   harness: HarnessDeps;
   adapters: AdapterDeps;
   secrets: SecretDeps;
+  /** Absent where no training worker is set up; weights interventions are then refused. */
+  training?: TrainingDeps;
 }
 
 /** The Describe and Clarify conversation that drafts a job (decision 010). */
