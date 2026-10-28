@@ -31,6 +31,7 @@ import {
 } from './configuration';
 import { must } from './errors';
 import { evaluate, type EvaluationPurpose } from './evaluation';
+import { settleExperimentCompute } from './experiments';
 import type { RunState } from './run-state';
 import { studentEndpoint } from './setup';
 
@@ -94,6 +95,20 @@ export function testSeedsOf(state: RunState, frozen: GraduateFreeze): number[] {
 }
 
 /**
+ * The declared seeds a locked-test evaluation runs now: all of them, or only the first when the
+ * run's protocol defers its repeats, which a repeat runs later (decision 045).
+ */
+export function firstSeedsOf(state: RunState, frozen: GraduateFreeze): number[] {
+  const seeds = testSeedsOf(state, frozen);
+  return state.record.protocol?.deferRepeats === true ? seeds.slice(0, 1) : seeds;
+}
+
+/** The declared seeds a repeat runs: the ones a deferring protocol held back. */
+export function deferredSeedsOf(state: RunState, frozen: GraduateFreeze): number[] {
+  return state.record.protocol?.deferRepeats === true ? testSeedsOf(state, frozen).slice(1) : [];
+}
+
+/**
  * Fixes what will ship before any test runs: the harness version and its hash, the student, and
  * how it runs: the backend, the adapter with its GGUF's sha256 and its scale, and the decoding.
  * The locked test's decoding seeds are fixed here too, from the job's declared ones (decision
@@ -101,6 +116,13 @@ export function testSeedsOf(state: RunState, frozen: GraduateFreeze): number[] {
  */
 export async function freeze(state: RunState): Promise<void> {
   await state.resources.releaseMentor();
+  for (const settled of settleExperimentCompute(
+    state.ctx.store,
+    state.ctx.deps.training,
+    state.ctx.runId,
+  )) {
+    state.announce('experiment', settled.id, settled.round);
+  }
   const harness = await state.resources.harness(state.run.currentVersion);
   const kept = state.run.currentAdapter ?? null;
   let adapter: FrozenConfiguration['adapter'] = null;
@@ -225,13 +247,14 @@ export function runLockedTest(
   frozen: GraduateFreeze,
   test: LockedTest,
   purpose: Exclude<EvaluationPurpose, 'training'>,
+  seeds: readonly number[] = firstSeedsOf(state, frozen),
 ): Promise<boolean> {
   return evaluate(state, {
     tasks: test.tasks,
     split: 'test',
     round: null,
     version: frozen.harnessVersion,
-    seeds: testSeedsOf(state, frozen),
+    seeds,
     target: test.target,
     purpose,
     concurrency: 1,
@@ -245,8 +268,8 @@ export function lockedTestAttempts(
   state: RunState,
   frozen: GraduateFreeze,
   target: StudentTarget,
+  seeds: readonly number[] = firstSeedsOf(state, frozen),
 ): StoredAttempt[] {
-  const seeds = testSeedsOf(state, frozen);
   return state
     .attempts({
       split: 'test',
@@ -315,7 +338,7 @@ export async function lockedTestReport(
   const rounds = state.rounds();
   const tester = await state.resources.student(test.target);
   const frozen = must(state.record.freeze, 'The frozen graduate');
-  const seeds = testSeedsOf(state, frozen);
+  const seeds = firstSeedsOf(state, frozen);
   const card = computeReportCard({
     job: state.job,
     run,

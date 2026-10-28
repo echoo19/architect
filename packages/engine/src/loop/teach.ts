@@ -273,7 +273,8 @@ interface Try {
   position: number;
   attempt: number;
   task: Task;
-  finding: Finding;
+  /** The finding a repair or practice item teaches; none for a one-shot demonstration. */
+  finding: Finding | null;
   start: CorrectionStart;
   fallback: 'none' | 'earlier' | 'full_task';
 }
@@ -298,20 +299,21 @@ function lessonOf(state: RunState, context: LessonContext, result: CorrectionRes
   const { intervention, attempt, cost, actorModel, studentModel, inputHashes } = context;
   const { item, task, finding, start } = attempt;
   const id = lessonId(runId, intervention.round, attempt.position, attempt.attempt);
+  // A one-shot demonstration is taught like practice: a whole train task, verified, never a repair.
   const kind =
-    item.kind === 'practice'
+    item.kind !== 'repair'
       ? 'practice'
       : start.kind === 'checkpoint'
         ? 'replay_correction'
         : 'full_task_demonstration';
-  const category = state.ctx.store.categories.get(finding.categoryId);
+  const category = finding === null ? null : state.ctx.store.categories.get(finding.categoryId);
   const firstActorTurn = result.actorTurns[0] ?? result.messages.length;
   const episode = result.verified
     ? VerifiedEpisodeSchema.parse({
         id,
         lessonId: id,
         kind,
-        category: category?.slug ?? finding.categoryId,
+        category: category?.slug ?? finding?.categoryId ?? task.type,
         origin: { kind: 'task', taskId: task.id, split: 'train' },
         messages: result.messages,
         tools: result.tools,
@@ -324,7 +326,7 @@ function lessonOf(state: RunState, context: LessonContext, result: CorrectionRes
         provenance: {
           jobId: state.run.jobId,
           runId,
-          ...(item.kind === 'repair' ? { attemptId: finding.attemptId } : {}),
+          ...(item.kind === 'repair' && finding !== null ? { attemptId: finding.attemptId } : {}),
           harnessVersion: intervention.parent.harnessVersion,
           studentModel,
           mentorModel: actorModel,
@@ -346,13 +348,13 @@ function lessonOf(state: RunState, context: LessonContext, result: CorrectionRes
     status: result.verified ? 'verified' : 'rejected',
     reason: result.reason,
     kind,
-    categoryId: finding.categoryId,
+    categoryId: finding?.categoryId ?? null,
     taskType: task.type,
     source:
-      item.kind === 'practice'
-        ? { kind: 'practice', taskId: task.id }
-        : { kind: 'attempt', attemptId: finding.attemptId, taskId: task.id },
-    ...(item.kind === 'repair'
+      item.kind === 'repair' && finding !== null
+        ? { kind: 'attempt', attemptId: finding.attemptId, taskId: task.id }
+        : { kind: 'practice', taskId: task.id },
+    ...(item.kind === 'repair' && finding !== null
       ? {
           diagnosis: {
             failureTurn: finding.failureTurn,
@@ -379,9 +381,11 @@ function lessonOf(state: RunState, context: LessonContext, result: CorrectionRes
 /** Where each try of an item starts, and how far down the fallback ladder it is. */
 function triesOf(
   item: TeachingItem,
-  finding: Finding,
+  finding: Finding | null,
 ): { start: 'checkpoint' | 'full_task'; turn: number; fallback: Try['fallback'] }[] {
-  if (item.kind === 'practice') return [{ start: 'full_task', turn: 1, fallback: 'none' }];
+  if (item.kind !== 'repair' || finding === null) {
+    return [{ start: 'full_task', turn: 1, fallback: 'none' }];
+  }
   return ladder(finding).map((step, position) => ({
     ...step,
     fallback: position === 0 ? 'none' : step.start === 'full_task' ? 'full_task' : 'earlier',
@@ -442,10 +446,13 @@ export async function teach(state: RunState, index: number): Promise<boolean> {
   const checker = await state.resources.checker();
 
   for (const [position, item] of plan.items.entries()) {
-    const finding = must(intervention.findings[item.finding], 'The finding');
-    const taskId = item.kind === 'practice' ? item.taskId : finding.taskId;
+    const finding =
+      item.kind === 'demonstration'
+        ? null
+        : must(intervention.findings[item.finding], 'The finding');
+    const taskId = item.kind === 'repair' ? must(finding, 'The finding').taskId : item.taskId;
     const task = must(tasks.get(taskId), `Train task ${taskId}`);
-    const source = item.kind === 'repair' ? failed.get(finding.taskId) : undefined;
+    const source = item.kind === 'repair' ? failed.get(taskId) : undefined;
     for (const [attempt, step] of triesOf(item, finding).entries()) {
       const id = lessonId(runId, index, position, attempt);
       const prior = store.lessons.get(id);

@@ -3,6 +3,7 @@ import {
   DEFAULT_CONFIG_KEY,
   newId,
   type Decoding,
+  type RuntimeMeasurement,
   type SplitName,
   type StudentAdapter,
   type StudentTarget,
@@ -12,7 +13,14 @@ import { SERVER_TURN } from '../graduates/library';
 import type { StoredAttempt } from '../store/records';
 import { answerSummary, expectedSummary, lockedCheck, studentPrice } from './attempts';
 import { configurationKey, LLAMA_CPP, STUDENT_CONFIG, type AttemptConfig } from './configuration';
-import type { EvaluatedTask, Evaluation, EvaluationContext } from './deps';
+import type {
+  EvaluatedTask,
+  Evaluation,
+  EvaluationContext,
+  MeterReading,
+  MeterSession,
+} from './deps';
+import { errorMessage } from './errors';
 import { writeJsonFile } from './files';
 import { runPool } from './pool';
 import type { RunState } from './run-state';
@@ -161,6 +169,71 @@ async function recordAttempt(
   state.emitBudget();
 }
 
+/** A meter watching one stretch of an evaluation, with what it watches. */
+interface Metered {
+  session: MeterSession;
+  backend: string;
+  startedAt: string;
+}
+
+/**
+ * Starts the meter on a locked-test evaluation by the student on this computer (the locked test,
+ * a re-test or a repeat), when one is set up: memory and a cold start are the graduate's to
+ * report, never a hosted copy's or Spark's.
+ */
+async function startMeter(
+  state: RunState,
+  spec: EvaluationSpec,
+  student: StudentAdapter,
+): Promise<Metered | null> {
+  const meter = state.ctx.deps.meter;
+  const config = spec.config ?? STUDENT_CONFIG;
+  if (meter === undefined || spec.split !== 'test' || config.actor !== 'student') return null;
+  const backend =
+    config.backend === 'job' ? studentEndpoint(state.job, spec.target).runtime : config.backend;
+  const startedAt = state.now();
+  const session = await meter.start({
+    backend,
+    target: spec.target,
+    student,
+    signal: state.signal,
+  });
+  return session === null ? null : { session, backend, startedAt };
+}
+
+/** Files what the meter saw over the stretch; a meter that fails to report loses only its record. */
+async function recordMeasurement(
+  state: RunState,
+  spec: EvaluationSpec,
+  metered: Metered,
+): Promise<void> {
+  let reading: MeterReading;
+  try {
+    reading = await metered.session.stop();
+  } catch (error) {
+    state.log('warn', `The runtime meter couldn't report: ${errorMessage(error)}`);
+    return;
+  }
+  const measurement: RuntimeMeasurement = {
+    id: newId('msr'),
+    runId: state.ctx.runId,
+    split: spec.split,
+    target: spec.target,
+    config: configurationKey(spec.config ?? STUDENT_CONFIG),
+    harnessVersion: spec.version,
+    seeds: [...spec.seeds],
+    backend: metered.backend,
+    peakProcessBytes: reading.peakProcessBytes,
+    peakGpuBytes: reading.peakGpuBytes,
+    coldStartMs: reading.coldStartMs,
+    samples: reading.samples,
+    sampler: reading.sampler,
+    startedAt: metered.startedAt,
+    endedAt: state.now(),
+  };
+  state.ctx.store.runtimeMeasurements.insert(measurement);
+}
+
 /**
  * One attempt at a task, or null when the wall-clock deadline cut it short: an attempt the
  * deadline cut is not scored.
@@ -228,19 +301,24 @@ async function evaluateNow(state: RunState, spec: EvaluationSpec): Promise<boole
     const deadline = training ? state.budget.deadline() : null;
     const signal = deadline ? AbortSignal.any([state.signal, deadline]) : state.signal;
     const mayStart = () => !shouldHalt(state, training);
-    await runPool(remaining, spec.concurrency, mayStart, async ({ task, seed }) => {
-      state.emit({
-        type: 'attempt.started',
-        taskId: task.id,
-        split: spec.split,
-        harnessVersion: spec.version,
+    const meter = await startMeter(state, spec, student);
+    try {
+      await runPool(remaining, spec.concurrency, mayStart, async ({ task, seed }) => {
+        state.emit({
+          type: 'attempt.started',
+          taskId: task.id,
+          split: spec.split,
+          harnessVersion: spec.version,
+        });
+        const item = await attemptTask(state, task, context, { seed, signal, deadline });
+        if (item === null) return;
+        await recordAttempt(state, spec, seed, item, student);
+        done.add(keyOf(seed, task.id));
+        reportProgress(state, spec, done);
       });
-      const item = await attemptTask(state, task, context, { seed, signal, deadline });
-      if (item === null) return;
-      await recordAttempt(state, spec, seed, item, student);
-      done.add(keyOf(seed, task.id));
-      reportProgress(state, spec, done);
-    });
+    } finally {
+      if (meter !== null) await recordMeasurement(state, spec, meter);
+    }
   }
   return remaining.every(({ seed, task }) => done.has(keyOf(seed, task.id)));
 }

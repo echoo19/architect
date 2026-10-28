@@ -8,6 +8,7 @@ import {
   GraduateSettingsSchema,
   HypothesisSchema,
   InstallCheckSchema,
+  InterventionTypeSchema,
   InstallStatusSchema,
   JobContractSchema,
   JsonValueSchema,
@@ -81,6 +82,45 @@ export const GraduateFreezeSchema = z.object({
 });
 export type GraduateFreeze = z.infer<typeof GraduateFreezeSchema>;
 
+/**
+ * What a comparison holds a run to beyond its job (decision 045). Absent for runs started from
+ * the app, which keep every default.
+ */
+export const RunProtocolSchema = z.object({
+  /** The comparison arm the run measures, by its id in the plan; the runner finds it again by it. */
+  arm: z.string().min(1).optional(),
+  /**
+   * Once frozen, the run parks until it is released, so every arm of a comparison is frozen
+   * before any arm's locked result exists to be read.
+   */
+  holdTest: z.literal(true).optional(),
+  /** The hold was lifted: the locked test may run. */
+  released: z.literal(true).optional(),
+  /**
+   * Every locked-test evaluation runs only the first declared seed; the others run when a repeat
+   * is asked for, so a repeat can be dropped when money runs short. They are declared at freezing
+   * all the same, so no result chooses them.
+   */
+  deferRepeats: z.literal(true).optional(),
+  /** The intervention types the mentor may choose from; the whole menu when absent. */
+  interventions: z.array(InterventionTypeSchema).min(1).optional(),
+  /**
+   * A harness folder, relative to the data folder (another run's frozen version, say), that the
+   * run's first round adopts as its kept draft, so later rounds measure their adapters on both
+   * the run's starting harness (H0) and this one (H1).
+   */
+  adopt: z.string().min(1).optional(),
+  /**
+   * One adapter trained once on verified demonstrations of this many train tasks of each type,
+   * chosen by seed and never from the student's failures, and kept as measured unless a hard
+   * gate fails: decision 037's one-shot verified-data adapter.
+   */
+  oneShotAdapter: z.object({ perType: z.number().int().min(1).max(20) }).optional(),
+  /** The longest one training job may run; the compute cap alone limits it when absent. */
+  maxJobMinutes: z.number().int().min(35).max(600).optional(),
+});
+export type RunProtocol = z.infer<typeof RunProtocolSchema>;
+
 export const StoredRunSchema = z.object({
   run: RunSchema,
   seeds: RunSeedsSchema,
@@ -96,8 +136,24 @@ export const StoredRunSchema = z.object({
    * version and ends in a candidate version of the same agent, never in a new one.
    */
   improves: RunImprovementSchema.optional(),
+  protocol: RunProtocolSchema.optional(),
 });
 export type StoredRun = z.infer<typeof StoredRunSchema>;
+
+/**
+ * A frozen graduate's locked test taken again under the declared seeds it hasn't run yet, on a
+ * target that already has its first seed (a protocol with `deferRepeats`). One per run and
+ * target; `testing` until done, resumed after a restart; `paused` by an error until asked again.
+ */
+export const StoredRepeatSchema = z.object({
+  runId: z.string(),
+  target: StudentTargetSchema,
+  status: z.enum(['testing', 'paused', 'finished']),
+  error: z.string().optional(),
+  startedAt: z.iso.datetime(),
+  endedAt: z.iso.datetime().optional(),
+});
+export type StoredRepeat = z.infer<typeof StoredRepeatSchema>;
 
 /**
  * A finished run's locked test taken again on its other student endpoint. `testing` until its

@@ -16,7 +16,7 @@ import {
 import { KeyedLock } from '../graduates/library';
 import { improvementNote, improvementPlan } from '../improve/improvement';
 import type { EngineStore } from '../store/engine-store';
-import type { StoredRun } from '../store/records';
+import type { RunProtocol, StoredRun } from '../store/records';
 import { configurationKey } from './configuration';
 import { systemClock, type Clock, type LoopDeps } from './deps';
 import type { SessionOutcome } from './driver';
@@ -26,6 +26,7 @@ import type { JobLibrary } from './jobs';
 import type { DataPaths } from './paths';
 import { isTerminal } from './plan';
 import { ReferenceSession, referenceConfig, referenceRefusal, referenceSeed } from './reference';
+import { RepeatSession, repeatRefusal } from './repeat';
 import { RetestSession, retestRefusal } from './retest';
 import type { SessionContext } from './run-state';
 import { fanOutSeeds } from './seeds';
@@ -59,6 +60,8 @@ export interface StartRunOptions {
   lockedTestOn?: StudentTarget;
   /** Someone is there to answer a clarifying question; runs from scripts aren't. */
   interactive?: boolean;
+  /** What a comparison holds the run to beyond its job (decision 045); none from the app. */
+  protocol?: RunProtocol;
 }
 
 interface ActiveRun {
@@ -78,13 +81,19 @@ interface ActiveRetest {
 type Turn =
   | { kind: 'run'; runId: string }
   | { kind: 'retest'; runId: string; target: StudentTarget }
+  | { kind: 'repeat'; runId: string; target: StudentTarget }
   | { kind: 'reference'; runId: string; split: ReferenceRecord['split'] };
 
-/** A re-test's or a reference's key among the sessions holding a turn. */
+/** A re-test's, a repeat's or a reference's key among the sessions holding a turn. */
 function sideKey(turn: Exclude<Turn, { kind: 'run' }>): string {
-  return turn.kind === 'retest'
-    ? `${turn.runId}/${turn.target}`
-    : `${turn.runId}/reference/${turn.split}`;
+  switch (turn.kind) {
+    case 'retest':
+      return `${turn.runId}/${turn.target}`;
+    case 'repeat':
+      return `${turn.runId}/repeat/${turn.target}`;
+    case 'reference':
+      return `${turn.runId}/reference/${turn.split}`;
+  }
 }
 
 function sameTurn(a: Turn, b: Turn): boolean {
@@ -226,6 +235,7 @@ export class RunController {
       freeze: null,
       ...(options.interactive === true ? { interactive: true } : {}),
       ...(improves === undefined ? {} : { improves }),
+      ...(options.protocol === undefined ? {} : { protocol: options.protocol }),
     };
     await writeJsonFile(paths.runJobFile(job.id, record.run.id), job);
     store.transaction(() => {
@@ -324,6 +334,60 @@ export class RunController {
     this.schedule(turn);
   }
 
+  /**
+   * Lifts a run's hold on its locked test (decision 045). A comparison releases its arms only
+   * once every one of them is frozen, so no locked result exists while any arm still learns.
+   * A run held and parked is queued again; one not frozen yet takes its test once it is.
+   */
+  release(runId: string): void {
+    const record = this.get(runId);
+    if (record.protocol?.holdTest !== true || record.protocol.released === true) return;
+    this.options.store.runs.update({
+      ...record,
+      protocol: { ...record.protocol, released: true },
+    });
+    // A run still training reads the release when it reaches its test; a parked one goes again.
+    const active = this.active.get(runId);
+    if (active) void active.done.then(() => this.requeueReleased(runId));
+    else this.requeueReleased(runId);
+  }
+
+  /** Queues a released run that parked frozen, waiting for the release. */
+  private requeueReleased(runId: string): void {
+    const { run, freeze: frozen } = this.get(runId);
+    if (run.status !== 'paused' || frozen === null || this.closed) return;
+    if (this.isScheduled({ kind: 'run', runId })) return;
+    this.update(runId, { status: 'queued', error: undefined });
+    this.enqueue(runId);
+  }
+
+  /**
+   * Queues the frozen graduate's locked test under the declared seeds its protocol deferred, on
+   * `target` (decision 045). Each target is repeated once; asking again only resumes a repeat
+   * that an error paused.
+   */
+  async repeat(runId: string, target: StudentTarget): Promise<void> {
+    const record = this.get(runId);
+    const job = await this.options.jobs.forRun(record);
+    const { store } = this.options;
+    const refusal = repeatRefusal(store, record, job, target);
+    if (refusal !== null) throw new Error(refusal);
+    const turn: Turn = { kind: 'repeat', runId, target };
+    const existing = store.repeats.get(runId, target);
+    if (existing?.status === 'finished') {
+      throw new Error(`This run's locked test was already repeated on the ${target} student.`);
+    }
+    if (existing?.status === 'testing' && this.isScheduled(turn)) {
+      throw new Error(`This run's locked test is already being repeated on the ${target} student.`);
+    }
+    if (existing === null) {
+      store.repeats.insert({ runId, target, status: 'testing', startedAt: isoNow(this.clock) });
+    } else if (existing.status === 'paused') {
+      store.repeats.update({ ...existing, status: 'testing', error: undefined });
+    }
+    this.schedule(turn);
+  }
+
   /** On startup: runs and re-tests that were active when the app closed resume where they were. */
   recover(): void {
     const { store } = this.options;
@@ -334,6 +398,10 @@ export class RunController {
     }
     for (const { runId, target } of store.retests.withStatus('testing')) {
       const turn: Turn = { kind: 'retest', runId, target };
+      if (!this.isScheduled(turn)) this.queue.push(turn);
+    }
+    for (const { runId, target } of store.repeats.withStatus('testing')) {
+      const turn: Turn = { kind: 'repeat', runId, target };
       if (!this.isScheduled(turn)) this.queue.push(turn);
     }
     for (const { runId, split } of store.references.withStatus('running')) {
@@ -511,7 +579,9 @@ export class RunController {
     const session =
       turn.kind === 'retest'
         ? new RetestSession(context, turn.target)
-        : new ReferenceSession(context, turn.split);
+        : turn.kind === 'repeat'
+          ? new RepeatSession(context, turn.target)
+          : new ReferenceSession(context, turn.split);
     const done = session
       .run()
       .catch((error: unknown) => this.onError(error))

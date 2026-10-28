@@ -7,6 +7,7 @@ import { teach } from './teach';
 import { awaitTraining, cancelTraining, startTraining } from './weights';
 import { errorMessage, isAbort, passesOnItsOwn, summaryOf } from './errors';
 import { proposeVersion } from '../improve/improvement';
+import { isHeld } from './protocol';
 import { freeze, lockedTest } from './graduation';
 import { planNextStep, type ActionStep, type PlanInput } from './plan';
 import { RunState, type SessionContext, type SessionControl } from './run-state';
@@ -178,6 +179,8 @@ export class RunDriver {
       devBaseline: run.devBaseline,
       devCurrent: run.devCurrent,
       frozen: frozen !== null,
+      ...(isHeld(state.record) ? { held: true } : {}),
+      ...(state.record.protocol?.oneShotAdapter === undefined ? {} : { fixedRounds: true }),
       ...(state.record.improves === undefined ? {} : { improves: true }),
       rounds: state.rounds().map(({ round, rejected }) => ({
         ...round,

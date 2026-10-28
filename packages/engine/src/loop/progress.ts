@@ -39,6 +39,10 @@ function addBudgets(a: ExperimentBudget, b: ExperimentBudget): ExperimentBudget 
     studentOutputTokens: a.studentOutputTokens + b.studentOutputTokens,
     computeUsd: a.computeUsd + b.computeUsd,
     computeMinutes: a.computeMinutes + b.computeMinutes,
+    // A sum that holds a job's whole authorization is an upper bound too.
+    ...(a.computeSettled === false || b.computeSettled === false
+      ? { computeSettled: false as const }
+      : {}),
     examples: a.examples + b.examples,
     trainedTokens: a.trainedTokens + b.trainedTokens,
     attempts: a.attempts + b.attempts,

@@ -16,6 +16,7 @@ export * from './ipc-schemas';
 export * from './job';
 export * from './json';
 export * from './lineage';
+export * from './measurements';
 export * from './mentor';
 export * from './mentoring';
 export * from './models';
