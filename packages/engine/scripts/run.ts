@@ -4,11 +4,12 @@
  *
  *   pnpm --filter @architect/engine exec tsx scripts/run.ts <jobDir> [--method architect]
  *     [--seed 1] [--profile smoke|full] [--mentor <preset>] [--student local|<preset>]
- *     [--data <dir>] [--threads N] [--wall-minutes N]
+ *     [--data <dir>] [--threads N] [--cooldown <share>] [--wall-minutes N]
  *
  * It can be stopped at any time: every finished attempt is saved, and running the same command
  * with the same `--data` folder continues the run where it stopped. `--threads` caps the CPU
- * threads a local student uses, so a long run stays cooler and quieter, and `--wall-minutes`
+ * threads a local student uses and `--cooldown` rests it after each reply for that share of the
+ * reply's time (0.75, say), so a long run stays cooler and quieter, and `--wall-minutes`
  * gives a local run more training time than the job's own budget.
  *
  * The smoke profile keeps the job's data and task pool but asks for small splits and one round, so
@@ -50,6 +51,8 @@ interface Options {
   threads?: number;
   /** Overrides the job's wall-clock budget for training, in minutes. */
   wallMinutes?: number;
+  /** How long a local student rests after each reply, as a share of the reply's time. */
+  cooldown?: number;
   jobDir: string;
   method: Method;
   seed: number;
@@ -60,7 +63,7 @@ interface Options {
 }
 
 const USAGE =
-  'Usage: tsx scripts/run.ts <jobDir> [--method architect|bare|one_shot|self_reflection] [--seed N] [--profile smoke|full] [--mentor <preset>] [--student local|<preset>] [--data <dir>] [--threads N] [--wall-minutes N]';
+  'Usage: tsx scripts/run.ts <jobDir> [--method architect|bare|one_shot|self_reflection] [--seed N] [--profile smoke|full] [--mentor <preset>] [--student local|<preset>] [--data <dir>] [--threads N] [--cooldown <share>] [--wall-minutes N]';
 
 async function main(): Promise<void> {
   const options = parseArguments(process.argv.slice(2));
@@ -83,6 +86,7 @@ async function main(): Promise<void> {
         return name === undefined ? undefined : process.env[name] || undefined;
       },
       ...(options.threads === undefined ? {} : { localThreads: () => options.threads }),
+      ...(options.cooldown === undefined ? {} : { localCooldown: () => options.cooldown }),
     }),
   });
 
@@ -265,6 +269,7 @@ function parseArguments(args: readonly string[]): Options {
   const dataDir = flags.get('--data');
   const threads = positiveInteger(flags.get('--threads'));
   const wallMinutes = positiveInteger(flags.get('--wall-minutes'));
+  const cooldown = share(flags.get('--cooldown'));
   return {
     jobDir: resolve(jobDir),
     method: MethodSchema.parse(flags.get('--method') ?? 'architect'),
@@ -275,7 +280,16 @@ function parseArguments(args: readonly string[]): Options {
     ...(dataDir === undefined ? {} : { dataDir: resolve(dataDir) }),
     ...(threads === undefined ? {} : { threads }),
     ...(wallMinutes === undefined ? {} : { wallMinutes }),
+    ...(cooldown === undefined ? {} : { cooldown }),
   };
+}
+
+/** A flag that must be a number above zero when it is given. */
+function share(text: string | undefined): number | undefined {
+  if (text === undefined) return undefined;
+  const value = Number(text);
+  if (!Number.isFinite(value) || value <= 0) throw new Error(USAGE);
+  return value;
 }
 
 /** A flag that must be a whole number above zero when it is given. */

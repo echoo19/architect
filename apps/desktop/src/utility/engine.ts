@@ -15,8 +15,9 @@ import {
 
 const parent = process.parentPort;
 let starting: Promise<EngineHost> | null = null;
-/** The CPU-thread cap for local models; students made from now on use it. */
+/** Quiet mode for local models; students made from now on use it. */
 let localThreads: number | undefined;
+let localCooldown: number | undefined;
 
 function report(status: EngineStatus): void {
   parent.postMessage(status);
@@ -26,6 +27,7 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
   const [requests, secrets] = ports;
   if (!requests || !secrets) throw new Error('The engine was started without its ports.');
   localThreads = message.localThreads;
+  localCooldown = message.localCooldown;
   const host = await createEngineHost({
     dataDir: message.dataDir,
     deps: createEngineDeps({
@@ -34,6 +36,7 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
       sampleJobFile: message.sampleJobFile,
       getSecret: askForSecrets(asEnginePort(secrets)),
       localThreads: () => localThreads,
+      localCooldown: () => localCooldown,
     }),
   });
   host.serve(asEnginePort(requests));
@@ -51,6 +54,7 @@ parent.on('message', (event) => {
   const message = ParentMessageSchema.parse(event.data);
   if (message.type === 'settings') {
     localThreads = message.localThreads;
+    localCooldown = message.localCooldown;
     return;
   }
   if (message.type === 'stop') {

@@ -31,9 +31,8 @@ function lines(count: number): string {
 /** What the drawer is about: the mentor's one change, and how many files it touched. */
 function changeSummary(mentor: string, lineage: LineageEntry | undefined): string {
   const count = lineage?.files.length ?? 0;
-  if (count === 0) return `${mentor}'s change to the agent's instructions`;
-  const files = count === 1 ? 'one file' : `${count} files`;
-  return `${mentor} changed ${files} of the agent's instructions`;
+  if (count === 0) return `${mentor}'s change`;
+  return `${mentor} changed ${count === 1 ? 'one file' : `${count} files`}`;
 }
 
 /** One round in full: the decision, the diagnosis, and the files the change touched. */
@@ -61,15 +60,10 @@ export function RoundDrawerContent({
   const firstMeasured = first ? first.devAfter.pass - first.devBefore.pass : measured;
   const second =
     first && round.devBefore && round.devAfter ? secondMeasurement(first, round) : null;
-  const checkSize = first?.devAfter.total ?? job.splits.dev;
   return (
     <DrawerContent
       title={title}
-      subtitle={
-        draft
-          ? `${names.mentor}'s first full draft of the agent's instructions`
-          : changeSummary(names.mentor, lineage)
-      }
+      subtitle={draft ? `${names.mentor}'s first full draft` : changeSummary(names.mentor, lineage)}
     >
       <div className="flex flex-col gap-7">
         {draft ? (
@@ -82,7 +76,14 @@ export function RoundDrawerContent({
         )}
 
         <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line-card bg-line-card">
-          <Effect label={`${names.mentor} expected`}>
+          <Effect
+            label={`${names.mentor} expected`}
+            note={
+              round.predicted && firstMeasured !== null
+                ? predictionCheck(round.predicted, firstMeasured)
+                : undefined
+            }
+          >
             {round.predicted ? (
               <>
                 {formatRange(round.predicted.devDeltaMin, round.predicted.devDeltaMax)}
@@ -93,37 +94,22 @@ export function RoundDrawerContent({
             )}
           </Effect>
           <Effect
-            label={first ? `First measurement, ${checkSize} tasks` : 'Measured'}
+            label={first ? 'First measurement' : 'Measured'}
             note={rateChange(first ?? round)}
           >
             <TaskCount delta={firstMeasured} />
           </Effect>
           {second && (
             <>
-              <Effect
-                label={`Second measurement, the same ${checkSize} again`}
-                note={rateChange(second)}
-              >
+              <Effect label="Measured again" note={rateChange(second)}>
                 <TaskCount delta={second.devAfter.pass - second.devBefore.pass} />
               </Effect>
-              <Effect label="Average of the two measurements" note={rateChange(round)}>
+              <Effect label="Average" note={rateChange(round)}>
                 <TaskCount delta={measured === null ? null : measured / 2} />
               </Effect>
             </>
           )}
         </dl>
-        {round.predicted && firstMeasured !== null && (
-          <p className="-mt-4 text-sm text-fg-muted">
-            {predictionCheck(
-              round.predicted,
-              firstMeasured,
-              names.mentor,
-              first ? 'The first measurement' : 'The result',
-            )}
-            {first &&
-              ` ${names.student}'s answers vary from run to run, so a promising change is measured twice before it stays.`}
-          </p>
-        )}
 
         {round.diagnosis && (
           <Block
@@ -142,13 +128,7 @@ export function RoundDrawerContent({
         )}
 
         {lineage && lineage.measured.perType.length > 0 && (
-          <Block
-            title={
-              first
-                ? 'Change in check tasks right, by task type, over both measurements'
-                : 'Change in check tasks right, by task type'
-            }
-          >
+          <Block title={first ? 'By task type, over both measurements' : 'By task type'}>
             <ul className="m-0 flex list-none flex-col p-0">
               {lineage.measured.perType.map((type) => (
                 <li
@@ -168,13 +148,7 @@ export function RoundDrawerContent({
           </Block>
         )}
 
-        <Block
-          title={
-            draft
-              ? `The first draft of ${job.name}'s instructions`
-              : `What changed in ${job.name}'s instructions`
-          }
-        >
+        <Block title={draft ? 'Files written' : 'Files changed'}>
           <RoundFiles runId={runId} round={round} />
         </Block>
       </div>
@@ -203,9 +177,8 @@ function DraftDecision({ round, names }: { round: Round; names: ModelNames }) {
         First draft
       </span>
       <p className="m-0 text-md text-fg-soft text-pretty">
-        {names.mentor} wrote the agent&apos;s first full setup from the job and its example tasks,
-        before watching it work. It is kept as the starting point; later rounds keep only measured
-        gains.
+        {names.mentor} wrote it from the job and its example tasks, before watching {names.student}{' '}
+        work. It is the starting point; later rounds keep only measured gains.
       </p>
     </div>
   );
@@ -276,10 +249,10 @@ function secondMeasurement(
   };
 }
 
-/** "58% to 78% of check tasks right": rates, since one measurement and two add up to different totals. */
+/** "58% → 78%": rates, since one measurement and two add up to different totals. */
 function rateChange({ devBefore, devAfter }: { devBefore?: Score; devAfter?: Score }) {
   if (!devBefore || !devAfter) return undefined;
-  return `${formatRate(devBefore)} to ${formatRate(devAfter)} of check tasks right`;
+  return `${formatRate(devBefore)} → ${formatRate(devAfter)}`;
 }
 
 /** "+8 check tasks", or a dash before there is a measurement. */

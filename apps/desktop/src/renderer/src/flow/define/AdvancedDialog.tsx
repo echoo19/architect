@@ -24,7 +24,6 @@ import { Check, CircleAlert } from 'lucide-react';
 import type { QueryState } from '../../api/query';
 import { KeyRow } from '../../components/KeyRow';
 import { errorOf, QueryValue } from '../../components/QueryValue';
-import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { mentorNote, mentorProvider } from '../../onboarding/mentor';
 import { modelNames } from '../names';
 import { aboutUsd, estimateMentorUsd, mentorPresetOf } from './estimates';
@@ -124,7 +123,7 @@ export function AdvancedDialog({
   );
 }
 
-/** Says that edits save on their own, and whether the latest one has. */
+/** Whether the latest edit has saved; edits save on their own. */
 function SaveIndicator({ editor }: { editor: JobEditor }) {
   const { issues, saveStatus, flush } = editor;
   const problem = tabWithIssue(issues);
@@ -166,9 +165,11 @@ function SaveIndicator({ editor }: { editor: JobEditor }) {
     );
   }
   return (
-    <p role="status" className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-      <span className="text-fg-muted">Changes save as you edit.</span>
-      <span className="flex items-center gap-1.5 text-fg-secondary">{state}</span>
+    <p
+      role="status"
+      className="m-0 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-fg-secondary"
+    >
+      {state}
     </p>
   );
 }
@@ -217,23 +218,13 @@ function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
 
-/** The opening line of a tab for experiments: what it changes and that the defaults are safe. */
-function ExperimentNote({ children }: { children: ReactNode }) {
-  return (
-    <TabNote className="border-t-0 pt-0">
-      {children} The defaults suit most jobs. Change them and this job&apos;s later runs can&apos;t
-      be compared fairly with earlier ones.
-    </TabNote>
-  );
-}
-
 function TasksTab({ editor, summaries }: TabProps & { summaries: QueryState<JobSummary[]> }) {
   const { job } = editor;
   return (
     <>
       <SettingsRow
         label="Example tasks"
-        meta="Requests with known answers, from the tasks you attached. Architect divides them into the task sets."
+        meta="From the tasks you attached"
         error={errorOf(summaries)}
       >
         <QueryValue query={summaries}>
@@ -261,13 +252,12 @@ function CheckerTab({ editor }: TabProps) {
   const { mentor } = modelNames(job);
   return (
     <>
-      <ExperimentNote>How each answer is marked right or wrong.</ExperimentNote>
       <SettingsRow
         label="How answers are graded"
         meta={
           checker.kind === 'builtin'
-            ? "Compares the agent's final answer line with each task's expected answer."
-            : `A JavaScript file you provide checks the end result. ${mentor} can never change it.`
+            ? 'Compares the final answer line with the expected answer'
+            : `A JavaScript file checks the end result. ${mentor} can't change it.`
         }
       >
         <Segmented
@@ -306,7 +296,7 @@ function RequirementsTab({ editor }: TabProps) {
     <>
       <NumberField
         label="Share of new tasks right"
-        meta="Training ends early once the check tasks reach it. The report says whether the final test did."
+        meta="Training stops early once check tasks reach it"
         unit="%"
         value={Math.round(job.requirements.passRate * 100)}
         issue={issues['requirements.passRate']}
@@ -317,10 +307,7 @@ function RequirementsTab({ editor }: TabProps) {
           }))
         }
       />
-      <SettingsRow
-        label="Answer time limit"
-        meta="Optional. The report checks it against the slowest 5% of answers."
-      >
+      <SettingsRow label="Answer time limit" meta="Optional, for the slowest 5% of answers">
         <Switch
           aria-label="Answer time limit"
           checked={p95LatencyMs !== undefined}
@@ -337,7 +324,6 @@ function RequirementsTab({ editor }: TabProps) {
       {p95LatencyMs !== undefined && (
         <NumberField
           label="Slowest answer"
-          meta={`Timed on ${deviceInSentence(currentPlatform())} during the final test.`}
           unit="seconds"
           value={p95LatencyMs / 1000}
           issue={issues['requirements.p95LatencyMs']}
@@ -363,7 +349,7 @@ function BudgetTab({ editor }: TabProps) {
     <>
       <NumberField
         label="Rounds"
-        meta={`Each round, ${mentor} tries one change. More rounds can help, and take longer.`}
+        meta="One change per round"
         unit="rounds"
         value={job.budget.maxRounds}
         issue={issues['budget.maxRounds']}
@@ -371,7 +357,7 @@ function BudgetTab({ editor }: TabProps) {
       />
       <NumberField
         label={`${mentor} spending cap`}
-        meta={`A call to ${mentor} that could go over it never starts.`}
+        meta="Training stops before going over"
         unit="dollars"
         value={job.budget.maxMentorUsd}
         issue={issues['budget.maxMentorUsd']}
@@ -379,7 +365,7 @@ function BudgetTab({ editor }: TabProps) {
       />
       <NumberField
         label="Training time"
-        meta="Training stops here and the final test runs. Paused time doesn't count."
+        meta="Paused time doesn't count"
         unit="minutes"
         value={job.budget.maxWallMinutes}
         issue={issues['budget.maxWallMinutes']}
@@ -400,8 +386,6 @@ function priceText(pricing: TokenPricing): string {
   return `$${pricing.inputPerM} to read, $${pricing.outputPerM} to write, per million tokens`;
 }
 
-const TOKEN_NOTE = 'A token is about three quarters of a word.';
-
 function MentorTab({ editor }: TabProps) {
   const { job, change } = editor;
   const { mentor } = job;
@@ -417,10 +401,6 @@ function MentorTab({ editor }: TabProps) {
   const usual = estimateMentorUsd(job);
   return (
     <>
-      <TabNote className="border-t-0 pt-0">
-        {name}, the mentor, is a cloud model that coaches during training only. Your agent never
-        calls it once it&apos;s trained.
-      </TabNote>
       <SettingsRow label="Mentor" meta={mentor.model} metaFont="code">
         <Select<MentorPresetKey>
           aria-label="Mentor"
@@ -453,22 +433,17 @@ function MentorTab({ editor }: TabProps) {
       <SettingsRow
         label="Price"
         meta={
-          preset && preset.provider !== 'meta'
-            ? `Billed by ${mentorProvider(mentor)}. ${TOKEN_NOTE}`
-            : TOKEN_NOTE
+          preset && preset.provider !== 'meta' ? `Billed by ${mentorProvider(mentor)}` : undefined
         }
       >
         <SettingsValue>{preset ? priceText(preset.pricing) : 'Not on file'}</SettingsValue>
       </SettingsRow>
       {usual !== null && (
-        <SettingsRow label="Usual cost" meta={`For this job's ${job.budget.maxRounds} rounds`}>
+        <SettingsRow label="Usual cost" meta={`For ${job.budget.maxRounds} rounds`}>
           <SettingsValue>{aboutUsd(usual)}</SettingsValue>
         </SettingsRow>
       )}
-      <SettingsRow
-        label={`How hard ${name} thinks`}
-        meta="More thinking can find subtler fixes but costs more per round. Medium suits most jobs."
-      >
+      <SettingsRow label={`How hard ${name} thinks`} meta="Higher costs more per round">
         <Segmented
           aria-label={`How hard ${name} thinks`}
           options={EFFORTS}
@@ -493,13 +468,11 @@ function StudentTab({ editor }: TabProps) {
   const set = typed(editor);
   const { local, hosted } = job.student;
   const hostedPreset = hosted ? presetOf(hosted) : undefined;
-  const device = deviceInSentence(currentPlatform());
-  const { student } = modelNames(job);
   return (
     <>
       <TextField
         label="Model"
-        meta={`Your agent runs on this model, through Ollama on ${device}.`}
+        meta="Through Ollama"
         value={local.model}
         issue={issues['student.local.model']}
         onChange={(model) =>
@@ -511,7 +484,7 @@ function StudentTab({ editor }: TabProps) {
       />
       <NumberField
         label="Context size"
-        meta={`How much text it reads at once, in tokens. ${TOKEN_NOTE} The default suits ${student}.`}
+        meta="Tokens it reads at once"
         unit="tokens"
         value={local.contextLength}
         issue={issues['student.local.contextLength']}
@@ -524,11 +497,7 @@ function StudentTab({ editor }: TabProps) {
       />
       <SettingsRow
         label="Hosted copy for practice"
-        meta={
-          hosted
-            ? hosted.model
-            : `Optional. Practice rounds run faster there; the final test always runs on ${device}.`
-        }
+        meta={hosted ? hosted.model : 'Optional, for faster practice'}
         metaFont={hosted ? 'code' : 'text'}
         error={issues['student.hosted']}
       >
@@ -557,7 +526,7 @@ function StudentTab({ editor }: TabProps) {
       </SettingsRow>
       {hostedPreset && <TabNote>{hostedPreset.note}</TabNote>}
       {hosted && hostedPreset?.pricing && (
-        <SettingsRow label="Price" meta={TOKEN_NOTE}>
+        <SettingsRow label="Price">
           <SettingsValue>{priceText(hostedPreset.pricing)}</SettingsValue>
         </SettingsRow>
       )}
@@ -577,15 +546,11 @@ const TEMPLATES = [{ value: 'ops-analyst', label: 'Ops analyst' }] as const;
 function HarnessTab({ editor }: TabProps) {
   const { job, issues, change } = editor;
   const { startingHarness } = job;
-  const { mentor } = modelNames(job);
   const setHarness = (next: StartingHarness) =>
     change((current) => ({ ...current, startingHarness: next }));
   return (
     <>
-      <SettingsRow
-        label="Start from"
-        meta={`What ${mentor} builds the agent's instructions, skills and tools on. Blank suits most jobs.`}
-      >
+      <SettingsRow label="Start from" meta="Blank suits most jobs">
         <Segmented
           aria-label="Start from"
           options={STARTS}
@@ -604,7 +569,7 @@ function HarnessTab({ editor }: TabProps) {
       {startingHarness.kind === 'template' && (
         <SettingsRow
           label="Template"
-          meta="A general setup to improve on"
+          meta="A general setup to start from"
           error={issues['startingHarness.template']}
         >
           <Select<string>
@@ -638,13 +603,9 @@ function SplitsTab({ editor }: TabProps) {
   const { train, dev, test } = job.splits;
   return (
     <>
-      <ExperimentNote>
-        Architect divides the example tasks you attached into these sets. Each round, {mentor} makes
-        one change, and the check tasks decide whether it stays.
-      </ExperimentNote>
       <NumberField
         label="Practice tasks"
-        meta={`${student} practices on these, and ${mentor} studies its mistakes.`}
+        meta={`${mentor} studies ${student}'s mistakes on these`}
         unit="tasks"
         value={train}
         issue={issues['splits.train']}
@@ -652,7 +613,7 @@ function SplitsTab({ editor }: TabProps) {
       />
       <NumberField
         label="Check tasks"
-        meta={`Decide whether each of ${mentor}'s changes stays. ${mentor} only ever sees the score.`}
+        meta={`Decide which changes stay. ${mentor} sees only the score.`}
         unit="tasks"
         value={dev}
         issue={issues['splits.dev']}
@@ -660,7 +621,7 @@ function SplitsTab({ editor }: TabProps) {
       />
       <NumberField
         label="Final test"
-        meta="Locked away until training ends, then run once."
+        meta="Locked until training ends"
         unit="tasks"
         value={test}
         issue={issues['splits.test']}
@@ -679,19 +640,13 @@ function SplitsTab({ editor }: TabProps) {
 function EvaluationTab({ editor }: TabProps) {
   const { job, issues } = editor;
   const set = typed(editor);
-  const { mentor, student } = modelNames(job);
   const evaluation = (patch: Partial<Job['evaluation']>) =>
     set((current) => ({ ...current, evaluation: { ...current.evaluation, ...patch } }));
   return (
     <>
-      <ExperimentNote>
-        When a change {mentor} makes stays, and when training gives up. A change that clears these
-        limits is measured a second time, and stays only if it clears twice the limits over both
-        measurements.
-      </ExperimentNote>
       <NumberField
         label="Practice tasks per round"
-        meta={`${student} tries these before ${mentor} looks for mistakes.`}
+        meta="Tried before each diagnosis"
         unit="tasks"
         value={job.evaluation.trainBatch}
         issue={issues['evaluation.trainBatch']}
@@ -699,7 +654,7 @@ function EvaluationTab({ editor }: TabProps) {
       />
       <NumberField
         label="Keep a change that gains at least"
-        meta="More check tasks right than before, in one measurement. Lower keeps more changes, lucky ones too."
+        meta="Check tasks, in one measurement"
         unit="tasks"
         value={job.evaluation.minDevGain}
         issue={issues['evaluation.minDevGain']}
@@ -707,7 +662,7 @@ function EvaluationTab({ editor }: TabProps) {
       />
       <NumberField
         label="As long as no task type loses more than"
-        meta="In one measurement. Stops one kind of task from paying for another's gain."
+        meta="Check tasks, in one measurement"
         unit="tasks"
         value={job.evaluation.maxTypeRegression}
         issue={issues['evaluation.maxTypeRegression']}
@@ -715,7 +670,7 @@ function EvaluationTab({ editor }: TabProps) {
       />
       <NumberField
         label="Run the check tasks"
-        meta="Times per measurement. More runs take longer but keep fewer lucky changes."
+        meta="Times per measurement"
         unit="times"
         value={job.evaluation.devRepeats}
         issue={issues['evaluation.devRepeats']}
@@ -723,7 +678,7 @@ function EvaluationTab({ editor }: TabProps) {
       />
       <NumberField
         label="Give up after"
-        meta="This many rejected changes in a row ends training early."
+        meta="Rejected changes in a row"
         unit="rounds"
         value={job.evaluation.patience}
         issue={issues['evaluation.patience']}

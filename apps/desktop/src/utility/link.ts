@@ -16,6 +16,8 @@ export const EngineStartSchema = z.object({
   sampleJobFile: z.string().min(1),
   /** The CPU-thread cap for local models, when quiet mode is on. */
   localThreads: z.number().int().positive().optional(),
+  /** How long local models rest after each reply, as a share of its time, in quiet mode. */
+  localCooldown: z.number().positive().optional(),
 });
 export type EngineStart = z.infer<typeof EngineStartSchema>;
 
@@ -23,6 +25,7 @@ export type EngineStart = z.infer<typeof EngineStartSchema>;
 export const EngineSettingsSchema = z.object({
   type: z.literal('settings'),
   localThreads: z.number().int().positive().optional(),
+  localCooldown: z.number().positive().optional(),
 });
 export type EngineSettings = z.infer<typeof EngineSettingsSchema>;
 

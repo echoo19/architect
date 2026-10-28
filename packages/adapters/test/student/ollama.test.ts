@@ -102,6 +102,31 @@ describe('the chat request', () => {
     expect(chatRequests(server)[0]?.json()['options']).not.toHaveProperty('num_thread');
   });
 
+  it('rests for a share of the reply time after each reply, only in quiet mode', async () => {
+    const rests: number[] = [];
+    const rest = async (ms: number) => {
+      rests.push(ms);
+    };
+    const server = await startServer(fakeOllama({}));
+    const quiet = createOllamaStudent(studentEndpoint('ollama-glimmer', { baseUrl: server.url }), {
+      retry,
+      cooldown: 0.75,
+      rest,
+    });
+    const started = performance.now();
+    await collect(quiet.chat(studentRequest()));
+    const elapsed = performance.now() - started;
+    expect(rests).toHaveLength(1);
+    expect(rests[0]).toBeGreaterThan(0);
+    expect(rests[0]).toBeLessThanOrEqual(elapsed * 0.75);
+    const loud = createOllamaStudent(studentEndpoint('ollama-glimmer', { baseUrl: server.url }), {
+      retry,
+      rest,
+    });
+    await collect(loud.chat(studentRequest()));
+    expect(rests).toHaveLength(1);
+  });
+
   it('asks for the context size the job configured on every request', async () => {
     const { student, server } = await studentOn({}, { contextLength: 32_768 });
     await collect(student.chat(studentRequest()));

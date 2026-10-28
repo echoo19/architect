@@ -4,6 +4,7 @@ import {
   cellText,
   currentStep,
   inSentence,
+  isFigureColumn,
   isTotalRow,
   listInSentence,
   previewRows,
@@ -70,6 +71,22 @@ describe('workspace labels', () => {
       'Worked for 2 s',
     );
     expect(workedLabel(message({ steps: [step('a', 'done'), step('b', 'done')] }))).toBe('2 steps');
+  });
+
+  it('lines up a column on the right only when every filled cell is a figure', () => {
+    const rows = [
+      ['Labor', '$300.00', 12, '95%', 'J-4471'],
+      ['Plan discount', '−$116.76', null, '+3', 'Thu 10:00'],
+      ['Total', '$1,116.52', 4, '', 'INV-4473'],
+    ];
+    expect([0, 1, 2, 3, 4].map((column) => isFigureColumn(rows, column))).toEqual([
+      false,
+      true,
+      true,
+      true,
+      false,
+    ]);
+    expect(isFigureColumn([[null], ['']], 0)).toBe(false);
   });
 
   it('names the running step, else the latest', () => {

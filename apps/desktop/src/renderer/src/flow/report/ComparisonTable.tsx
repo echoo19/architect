@@ -48,22 +48,9 @@ export function ComparisonTable({
   names: ModelNames;
 }) {
   if (rows.status === 'success' && rows.data.length === 0) return null;
-  // What the comparison itself spent, beyond this run's own mentoring.
-  const extra =
-    Math.round(
-      (rows.data ?? []).filter((row) => !row.current).reduce((sum, row) => sum + row.mentorUsd, 0) *
-        100,
-    ) / 100;
   return (
     <section aria-labelledby="comparison" className="flex flex-col gap-[18px]">
-      <div className="flex flex-col gap-1.5">
-        <Heading id="comparison">Compared with simpler ways to build it</Heading>
-        <p className="m-0 text-fg-secondary text-pretty">
-          The same job and final test, built three simpler ways. Points are the difference in final
-          test score from {names.student} with no setup.
-          {extra > 0 && ` Together they cost another ${formatUsd(extra)} of ${names.mentor}.`}
-        </p>
-      </div>
+      <Heading id="comparison">Compared with simpler methods</Heading>
       {rows.status === 'loading' && (
         <div aria-busy="true" aria-label="Loading the comparison">
           <Skeleton className="h-[188px] w-full rounded-xl" />
@@ -84,7 +71,7 @@ export function ComparisonTable({
               <TableRow>
                 <TableHead>Method</TableHead>
                 <TableHead className="text-right">Final test</TableHead>
-                <TableHead className="text-right">Versus no setup</TableHead>
+                <TableHead className="text-right">vs. no setup</TableHead>
                 <TableHead className="text-right">{names.mentor} cost</TableHead>
                 <TableHead className="text-right">Rounds</TableHead>
               </TableRow>

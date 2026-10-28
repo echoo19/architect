@@ -76,7 +76,7 @@ export function decisionSentence(
   const allowed = job.evaluation.maxTypeRegression * repeats;
   const gain = after.pass - before.pass;
   const runs = repeats > 1 ? `, adding up ${repeats} runs` : '';
-  const measured = `${gainPhrase(gain)} (${before.pass} to ${after.pass} of ${after.total}${runs})`;
+  const measured = `${gainPhrase(gain)} (${before.pass} → ${after.pass} of ${after.total}${runs})`;
   const worst = worstLoss(lineage, job);
 
   if (decision === 'kept') {
@@ -110,12 +110,10 @@ function measuredTwice(
   const allowed = job.evaluation.maxTypeRegression * runs;
   const firstGain = first.devAfter.pass - first.devBefore.pass;
   const gain = both.after.pass - both.before.pass;
-  const opening =
-    `${gainPhrase(firstGain)} on the first measurement ` +
-    `(${first.devBefore.pass} to ${first.devAfter.pass} of ${first.devAfter.total})`;
+  const opening = `${gainPhrase(firstGain)} (${first.devBefore.pass} → ${first.devAfter.pass} of ${first.devAfter.total})`;
   const again =
-    `Run a second time to rule out luck: ${changePhrase(gain)} over both measurements ` +
-    `(${both.before.pass} to ${both.after.pass} of ${both.after.total})`;
+    `Measured again to rule out luck: ${changePhrase(gain)} over both ` +
+    `(${both.before.pass} → ${both.after.pass} of ${both.after.total})`;
   const worst = worstLoss(lineage, job);
 
   if (both.decision === 'kept') {
@@ -134,18 +132,11 @@ function measuredTwice(
 }
 
 /**
- * How a measured change compares with the mentor's predicted range, as a sentence. The
+ * How a measured change compares with the mentor's predicted range, in a few words. The
  * prediction is for one measurement, so a change measured twice is compared on its first.
  */
-export function predictionCheck(
-  predicted: Prediction,
-  measured: number,
-  mentor: string,
-  subject = 'The result',
-): string {
-  if (measured < predicted.devDeltaMin) {
-    return `${subject} fell short of ${mentor}'s predicted range.`;
-  }
-  if (measured > predicted.devDeltaMax) return `${subject} beat ${mentor}'s predicted range.`;
-  return `${subject} was inside ${mentor}'s predicted range.`;
+export function predictionCheck(predicted: Prediction, measured: number): string {
+  if (measured < predicted.devDeltaMin) return 'Short of the prediction';
+  if (measured > predicted.devDeltaMax) return 'Beat the prediction';
+  return 'Within the prediction';
 }

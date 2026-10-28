@@ -9,7 +9,7 @@ import {
   estimateMentorUsd,
   estimateTime,
   expectedMentorUsd,
-  finalTestSummary,
+  fittingRounds,
   formatAbout,
   formatAboutUsd,
   limitText,
@@ -19,11 +19,14 @@ import {
   planBills,
   planSeconds,
   practiceUsd,
+  roughUsd,
+  shownTotalUsd,
   typicalPracticeUsd,
   roundsLine,
+  shortDuration,
+  shortSpan,
   taskTimeText,
   tooSlow,
-  trainingSummary,
 } from '../../../src/renderer/src/flow/define/estimates';
 import { makeJob } from './factories';
 
@@ -157,28 +160,17 @@ describe('what each part of a run takes', () => {
 
   it('says why a place is too slow, and only then', () => {
     // The starting check is 40 tasks and a round at least 92, at 2.5 minutes each.
-    expect(tooSlow(job, estimateTime(job, 'local'))).toBe(
-      'Too slow: the first round would end after about 5 h 30 min, past the 3-hour limit. Raise the limit in Advanced settings to train here.',
-    );
+    expect(tooSlow(job, estimateTime(job, 'local'))).toBe('Too slow for the 3-hour limit');
     expect(tooSlow(job, estimateTime(job, 'hosted'))).toBeNull();
   });
 
-  it('keeps training apart from the final test', () => {
-    expect(trainingSummary(job, estimateTime(job, 'local'), 'this computer')).toBe(
-      'No full round fits in the 3-hour limit on this computer, so no change could be kept.',
-    );
+  it('counts the rounds that fit beside the training time', () => {
     // The limit binds: 3 to 7 of the 12 rounds fit, so the clock ends training.
-    expect(trainingSummary(job, estimateTime(job, 'hosted'), 'OpenRouter')).toBe(
-      'About 3 hours on OpenRouter. The 3-hour limit ends it after 3 to 7 rounds.',
-    );
+    expect(fittingRounds(job, estimateTime(job, 'hosted'))).toBe('3 to 7 rounds');
     const roomy = makeJob({ budget: { maxRounds: 2, maxMentorUsd: 5, maxWallMinutes: 600 } });
-    expect(trainingSummary(roomy, estimateTime(roomy, 'hosted'), 'OpenRouter')).toBe(
-      'About 1 to 2 hours on OpenRouter, within the 10-hour limit.',
-    );
-    // 60 tasks at 2.5 minutes each, on this computer whatever trained the agent.
-    expect(finalTestSummary(job, 'this computer')).toBe(
-      'About 2.5 hours on this computer, on 60 tasks it has never seen.',
-    );
+    expect(fittingRounds(roomy, estimateTime(roomy, 'hosted'))).toBe('All 2 rounds');
+    const tight = makeJob({ budget: { maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: 360 } });
+    expect(fittingRounds(tight, estimateTime(tight, 'local'))).toBe('At most 1 round');
   });
 });
 
@@ -260,6 +252,15 @@ describe('the plan in all', () => {
     expect(sumOf(unpriced.total)).toBeNull();
     expect(sumOf(unpriced.comparison)).toBeNull();
   });
+
+  it('totals the bills as they are shown, so the figures add up', () => {
+    // $3.04 shows as $3 and $0.5875 as $0.60, so the total shows $3.60, not $3.50.
+    expect(roughUsd(3.04)).toBe(3);
+    expect(roughUsd(0.5875)).toBeCloseTo(0.6, 6);
+    expect(shownTotalUsd({ hostedUsd: 3.04, mentorUsd: 0.5875 })).toBeCloseTo(3.6, 6);
+    expect(shownTotalUsd({ hostedUsd: null, mentorUsd: 0.004 })).toBe(0);
+    expect(shownTotalUsd({ hostedUsd: null, mentorUsd: null })).toBeNull();
+  });
 });
 
 describe('typicalPracticeUsd', () => {
@@ -300,6 +301,24 @@ describe('formatAbout', () => {
     expect(formatAbout(36 * 3600)).toBe('About 2 days');
     expect(formatAbout(5.1 * 3600)).toBe('About 5 hours');
     expect(formatAbout(60 * 3600)).toBe('About 3 days');
+  });
+});
+
+describe('shortDuration and shortSpan', () => {
+  it('round the same way in a column of figures', () => {
+    expect(shortDuration(20)).toBe('<1 min');
+    expect(shortDuration(41 * 60)).toBe('40 min');
+    expect(shortDuration(70 * 60)).toBe('1 h');
+    expect(shortDuration(2.5 * 3600)).toBe('2.5 h');
+    expect(shortDuration(11.5 * 3600)).toBe('11.5 h');
+    expect(shortDuration(36 * 3600)).toBe('2 days');
+  });
+
+  it('say a span once when both ends round alike, else as a range', () => {
+    expect(shortSpan({ least: 3 * 3600, most: 3 * 3600 + 600 })).toBe('3 h');
+    expect(shortSpan({ least: 20 * 60, most: 45 * 60 })).toBe('20–45 min');
+    expect(shortSpan({ least: 4 * 3600, most: 7 * 3600 })).toBe('4–7 h');
+    expect(shortSpan({ least: 40 * 60, most: 2 * 3600 })).toBe('40 min to 2 h');
   });
 });
 

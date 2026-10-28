@@ -39,6 +39,8 @@ export interface EngineWiringOptions {
   drafts?: JobDrafter;
   /** The CPU-thread cap for students on a local runtime right now, if there is one. */
   localThreads?: () => number | undefined;
+  /** How long a local student rests after each reply, as a share of its time; none if absent. */
+  localCooldown?: () => number | undefined;
 }
 
 /**
@@ -108,11 +110,14 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
     adapters: {
       createMentor: (config, mentorOptions) => createMentor(config, mentorOptions),
       createStudent: (endpoint, adapterOptions) => {
-        const cpuThreads = endpoint.runtime === 'ollama' ? options.localThreads?.() : undefined;
-        return createStudent(
-          endpoint,
-          cpuThreads === undefined ? adapterOptions : { ...adapterOptions, cpuThreads },
-        );
+        const local = endpoint.runtime === 'ollama';
+        const cpuThreads = local ? options.localThreads?.() : undefined;
+        const cooldown = local ? options.localCooldown?.() : undefined;
+        return createStudent(endpoint, {
+          ...adapterOptions,
+          ...(cpuThreads === undefined ? {} : { cpuThreads }),
+          ...(cooldown === undefined ? {} : { cooldown }),
+        });
       },
     },
     secrets: { get: options.getSecret },

@@ -55,15 +55,13 @@ function WriteModeMenu({ agent }: { agent: GraduateSummary }) {
   const Icon = MODE_ICONS[mode];
   return (
     <DropdownMenu>
-      <Tooltip content={`Whether ${agent.name} asks before saving changes to your files`}>
-        <DropdownMenuTrigger asChild>
-          <button type="button" className={modeButton} disabled={saving}>
-            <Icon size={14} strokeWidth={1.8} aria-hidden />
-            Saving: {WRITE_MODE_LABELS[mode]}
-            <ChevronDown size={13} strokeWidth={1.8} aria-hidden />
-          </button>
-        </DropdownMenuTrigger>
-      </Tooltip>
+      <DropdownMenuTrigger asChild>
+        <button type="button" className={modeButton} disabled={saving}>
+          <Icon size={14} strokeWidth={1.8} aria-hidden />
+          Saving: {WRITE_MODE_LABELS[mode]}
+          <ChevronDown size={13} strokeWidth={1.8} aria-hidden />
+        </button>
+      </DropdownMenuTrigger>
       <DropdownMenuContent side="top" className="w-80">
         <DropdownMenuLabel>{WRITE_SETTING}</DropdownMenuLabel>
         {WRITE_MODES.map((option) => {

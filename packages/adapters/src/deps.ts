@@ -35,6 +35,14 @@ export interface StudentDeps extends AdapterDeps {
    * Fewer threads keep the computer cooler and quieter at the cost of speed.
    */
   cpuThreads?: number;
+  /**
+   * How long a local runtime rests after each reply, as a share of the time the reply took: 0.75
+   * rests three quarters as long. The GPU then draws less on average, so it runs cooler and
+   * quieter. No rest when absent.
+   */
+  cooldown?: number;
+  /** Waits out a rest, or until the signal aborts. Tests replace it to stay fast. */
+  rest?: (ms: number, signal?: AbortSignal) => Promise<void>;
   /** What the app calls this endpoint. Default: the runtime or host name. */
   label?: string;
 }

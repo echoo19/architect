@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
-import { Button, cn, ErrorState, FileChip, ReplyComposer, Spinner } from '@architect/ui';
+import { Button, cn, ErrorState, ReplyComposer, Spinner } from '@architect/ui';
 import { ArrowRight, Check } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { queryKeys, useSettings } from '../../api/hooks';
 import { setQueryData } from '../../api/query';
-import { mentorIntro, mentorName } from '../../lib/names';
+import { mentorName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
-import { fileName } from '../format';
+import { AttachedFile } from './AttachedFile';
 import { lastMentorEntry, type MentorEntry, type UserEntry } from './conversation';
 import {
   markDraftSaved,
@@ -28,7 +28,6 @@ export function Clarify() {
   const settings = useSettings();
   const mentor =
     settings.status === 'success' ? mentorName(settings.data.defaultMentor) : 'The mentor';
-  const speaker = settings.status === 'success' ? mentorIntro(mentor) : mentor;
   const [reply, setReply] = useState('');
   const [saving, setSaving] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -91,7 +90,7 @@ export function Clarify() {
               <li key={entry.id} className="flex flex-col">
                 <MentorMessage
                   entry={entry}
-                  speaker={entry === firstReply ? speaker : undefined}
+                  speaker={entry === firstReply ? mentor : undefined}
                   current={entry === last && !waiting}
                   onPick={(option) => sendToMentor(option, [], option)}
                   review={
@@ -114,7 +113,7 @@ export function Clarify() {
                       ? `${mentor} is reading your description and ${plural(waiting.files.length, 'file')}`
                       : `${mentor} is reading your description`
                 }
-                slowText={`Still working. ${mentor} can take a minute on a longer job.`}
+                slowText="Still working. This can take a minute."
               />
             </li>
           )}
@@ -171,7 +170,7 @@ function UserMessage({ entry }: { entry: UserEntry }) {
         <ul aria-label="Files sent" className="m-0 flex list-none flex-wrap justify-end gap-2 p-0">
           {entry.files.map((path) => (
             <li key={path} className="min-w-0">
-              <FileChip name={fileName(path)} />
+              <AttachedFile path={path} />
             </li>
           ))}
         </ul>
@@ -203,7 +202,7 @@ function MentorMessage({
   review,
 }: {
   entry: MentorEntry;
-  /** Who is talking, on the first reply only: "Spark, the mentor". */
+  /** Who is talking, on the first reply only: "Spark". */
   speaker: string | undefined;
   /** The latest message, still waiting for an answer. */
   current: boolean;

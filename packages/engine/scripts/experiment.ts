@@ -65,6 +65,8 @@ interface Options {
   retestLocal: number[];
   /** CPU threads a local student may use, to keep the computer quieter; its default otherwise. */
   threads?: number;
+  /** How long a local student rests after each reply, as a share of the reply's time. */
+  cooldown?: number;
 }
 
 interface RunResult {
@@ -567,7 +569,7 @@ function isTerminal(status: string): boolean {
 }
 
 const USAGE =
-  'Usage: tsx scripts/experiment.ts <jobDir> --out <dir> [--seeds 1,2,3] [--methods ...] [--student <preset>] [--mentor <preset>] [--parallel N] [--concurrency N] [--threads N] [--pilot] [--pilot-only] [--retest-local <seeds>]';
+  'Usage: tsx scripts/experiment.ts <jobDir> --out <dir> [--seeds 1,2,3] [--methods ...] [--student <preset>] [--mentor <preset>] [--parallel N] [--concurrency N] [--threads N] [--cooldown <share>] [--pilot] [--pilot-only] [--retest-local <seeds>]';
 
 function parseArguments(args: readonly string[]): Options {
   const positional: string[] = [];
@@ -608,6 +610,9 @@ function parseArguments(args: readonly string[]): Options {
   if (seeds.some((seed) => !Number.isInteger(seed))) throw new Error(USAGE);
   const threads = flags.has('--threads') ? Number(flags.get('--threads')) : undefined;
   if (threads !== undefined && (!Number.isInteger(threads) || threads < 1)) throw new Error(USAGE);
+  const cooldown = flags.has('--cooldown') ? Number(flags.get('--cooldown')) : undefined;
+  if (cooldown !== undefined && (!Number.isFinite(cooldown) || cooldown <= 0))
+    throw new Error(USAGE);
   return {
     jobDir: resolve(jobDir),
     out: resolve(out),
@@ -623,6 +628,7 @@ function parseArguments(args: readonly string[]): Options {
     pilotOnly,
     retestLocal,
     ...(threads === undefined ? {} : { threads }),
+    ...(cooldown === undefined ? {} : { cooldown }),
   };
 }
 
@@ -632,6 +638,7 @@ function engineDeps(options: Options, dataDir: string) {
     dataDir,
     getSecret,
     ...(options.threads === undefined ? {} : { localThreads: () => options.threads }),
+    ...(options.cooldown === undefined ? {} : { localCooldown: () => options.cooldown }),
   });
 }
 
