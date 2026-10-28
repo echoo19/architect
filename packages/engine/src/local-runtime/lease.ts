@@ -147,6 +147,8 @@ export class GpuLease {
   private lastWrite = 0;
   private lastTick = 0;
   private graceUntil = 0;
+  /** This process has written to the lease, so it may have entries to take away. */
+  private entered = false;
   private closed = false;
 
   constructor(private readonly options: GpuLeaseOptions) {
@@ -236,6 +238,7 @@ export class GpuLease {
       this.slots[use].holding = false;
       this.slots[use].leaving = false;
     }
+    if (!this.entered) return;
     try {
       await this.store.update((state) => ({ result: undefined, write: this.removeOwn(state) }));
     } catch (error) {
@@ -245,6 +248,7 @@ export class GpuLease {
 
   /** Takes this process's entries away at once, as it exits. */
   leaveNow(): void {
+    if (!this.entered) return;
     try {
       this.store.updateNow((state) => this.removeOwn(state));
     } catch {
@@ -430,6 +434,7 @@ export class GpuLease {
         if (entry.user.startsWith(`${this.token}:`)) entry.beat = now;
       }
       this.lastWrite = now;
+      this.entered = true;
       write = true;
     }
     this.view = state;
