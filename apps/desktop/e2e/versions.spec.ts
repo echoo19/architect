@@ -292,7 +292,7 @@ for (const theme of THEMES) {
     await expect(dialog.getByText('1 flagged line needs your OK')).toBeHidden();
     await queuePicks(app, ['C:\\Users\\dana\\Exports']);
     await exportPackage.click();
-    await expect(page.getByText('Exported Service desk')).toBeVisible();
+    await expect(page.getByText('Exported Service desk', { exact: true })).toBeVisible();
     expect(await callsTo(app, 'graduates:exportPackage')).toEqual([
       [
         AGENT.id,
@@ -306,7 +306,7 @@ for (const theme of THEMES) {
 
     await queuePicks(app, ['C:\\Users\\dana\\Exports']);
     await dialog.getByRole('button', { name: 'Export the setup' }).click();
-    await expect(page.getByText('Exported the setup')).toBeVisible();
+    await expect(page.getByText('Exported the setup', { exact: true })).toBeVisible();
     expect(await callsTo(app, 'graduates:exportPart')).toEqual([
       [
         AGENT.id,
