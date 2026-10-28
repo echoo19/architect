@@ -4,6 +4,7 @@ import {
   formatDuration,
   formatPercent,
   formatUsd,
+  shortPath,
 } from '../../../src/renderer/src/lib/format';
 import {
   capitalized,
@@ -106,6 +107,13 @@ describe('formats', () => {
     expect(formatBytes(18 * 1024 ** 3)).toBe('18 GB');
     expect(formatBytes(4.6 * 1024 ** 3)).toBe('4.6 GB');
     expect(formatBytes(236 * 1024 ** 2)).toBe('236 MB');
+    expect(formatBytes(48_900)).toBe('48 KB');
+    expect(formatBytes(12)).toBe('1 KB');
+    expect(shortPath('C:\\Users\\dana\\Documents\\Larchwood\\Records')).toBe(
+      '…\\Larchwood\\Records',
+    );
+    expect(shortPath('/Users/dana/Records')).toBe('…/dana/Records');
+    expect(shortPath('D:\\Records')).toBe('D:\\Records');
     expect(formatPercent({ pass: 31, total: 40 })).toBe('78%');
     expect(formatPercent({ pass: 0, total: 0 })).toBe('0%');
   });

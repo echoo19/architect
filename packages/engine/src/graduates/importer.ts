@@ -26,6 +26,8 @@ import {
   OLLAMA_BASE_URL,
   PackageError,
   SafeIdSchema,
+  type ImportPlace,
+  type ImportPreview,
   type ImportRequest,
   type ImportResult,
   type ModelBinding,
@@ -241,6 +243,25 @@ function stagingFolder(ctx: ImportContext): string {
   return join(ctx.library.ctx.paths.stagingDir(), `import-${randomUUID()}`);
 }
 
+/** Stages a package, then parses (never runs) its harness against its hash. */
+async function stageWithHarness(
+  ctx: ImportContext,
+  path: string,
+  staging: string,
+): Promise<Staged> {
+  const staged = await stage(ctx, path, staging);
+  assertHarnessSize(staged.files, `${HARNESS_DIR}/`);
+  try {
+    await readPackageHarness(staged.dir, staged.manifest);
+  } catch (error) {
+    if (error instanceof PackageError) throw error;
+    throw new PackageError('invalid_harness', [
+      `Its harness doesn't read: ${error instanceof Error ? error.message : String(error)}`,
+    ]);
+  }
+  return staged;
+}
+
 /** Checks a package as an import would, and installs nothing. */
 export async function inspectPackage(ctx: ImportContext, path: string): Promise<PackageInspection> {
   const staging = stagingFolder(ctx);
@@ -297,6 +318,66 @@ function placeOf(
 }
 
 /**
+ * What installing a package would do on this computer, found without installing anything or
+ * loading its code: the package checked exactly as an import checks it (its harness parsed, never
+ * run), where it would go, and whether this computer can run it and serves its base model.
+ */
+export async function previewImport(ctx: ImportContext, path: string): Promise<ImportPreview> {
+  const { library } = ctx;
+  const { store } = library.ctx;
+  const staging = stagingFolder(ctx);
+  try {
+    const staged = await stageWithHarness(ctx, path, staging);
+    const { manifest } = staged;
+    const installed = store.versions.withDigest(staged.digest);
+    let place: ImportPlace;
+    if (installed) {
+      place = {
+        kind: 'installed',
+        graduateId: installed.graduateId,
+        name: library.agent(installed.graduateId).name,
+        version: installed.version,
+      };
+    } else {
+      const found = placeOf(ctx, manifest);
+      place =
+        found.isNew || found.parent === undefined
+          ? { kind: 'new' }
+          : {
+              kind: 'version',
+              graduateId: found.graduateId,
+              name: library.agent(found.graduateId).name,
+              version: nextVersion(store, found.graduateId),
+              parent: found.parent,
+            };
+    }
+    // An agent already here serves its model where its installation says; a new one where the
+    // import would put it.
+    const model =
+      place.kind === 'new'
+        ? defaultModel(manifest)
+        : (store.installations.get(place.graduateId)?.model ?? defaultModel(manifest));
+    const fit = await library.fit(manifest, model, staged.dir);
+    return {
+      ok: true,
+      manifest,
+      digest: staged.digest,
+      ...(staged.migratedFrom === undefined ? {} : { migratedFrom: staged.migratedFrom }),
+      files: staged.files.length + 1,
+      bytes: staged.bytes,
+      place,
+      model,
+      ...fit,
+    };
+  } catch (error) {
+    if (!(error instanceof PackageError)) throw error;
+    return { ok: false, code: error.code, problems: [...error.problems] };
+  } finally {
+    await rm(staging, { recursive: true, force: true });
+  }
+}
+
+/**
  * Installs a package as a new local version. Everything about the package is checked first, and
  * its harness parsed (never run) against its hash; then the version gets its own folder and
  * record. A package never replaces anything: one installed before is found by its digest, and
@@ -321,17 +402,8 @@ export async function importPackage(
   const { store, paths } = library.ctx;
   const staging = stagingFolder(ctx);
   try {
-    const staged = await stage(ctx, path, staging);
+    const staged = await stageWithHarness(ctx, path, staging);
     const { manifest } = staged;
-    assertHarnessSize(staged.files, `${HARNESS_DIR}/`);
-    try {
-      await readPackageHarness(staged.dir, manifest);
-    } catch (error) {
-      if (error instanceof PackageError) throw error;
-      throw new PackageError('invalid_harness', [
-        `Its harness doesn't read: ${error instanceof Error ? error.message : String(error)}`,
-      ]);
-    }
 
     const installed = store.versions.withDigest(staged.digest);
     if (installed) {

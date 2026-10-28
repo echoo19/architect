@@ -1,16 +1,27 @@
+import type { ComponentType } from 'react';
+import type { GraduateSummary } from '@architect/shared';
 import { AgentAvatar, SettingsDialog, type SettingsTab } from '@architect/ui';
 import { useShallow } from 'zustand/react/shallow';
 import { useGraduates } from '../../api/hooks';
 import type { Route } from '../../lib/router';
 import { useAgentSettingsUi, type AgentSettingsTab } from './agentSettingsUi';
+import { ExportTab } from './ExportTab';
 import { ReportTab } from './ReportTab';
-import { ExportTab, GeneralTab, PermissionsTab } from './tabs';
+import { GeneralTab, PermissionsTab } from './tabs';
+import { TeachingTab } from './TeachingTab';
 
-const TABS: readonly SettingsTab<AgentSettingsTab>[] = [
-  { value: 'general', label: 'General' },
-  { value: 'permissions', label: 'Permissions' },
-  { value: 'report', label: 'Report' },
-  { value: 'export', label: 'Export' },
+interface TabPanelProps {
+  agent: GraduateSummary;
+  route: Route;
+}
+
+/** The tabs in order, each with what it shows. A new tab is one more entry here. */
+const TABS: readonly (SettingsTab<AgentSettingsTab> & { Panel: ComponentType<TabPanelProps> })[] = [
+  { value: 'general', label: 'General', Panel: GeneralTab },
+  { value: 'permissions', label: 'Permissions', Panel: PermissionsTab },
+  { value: 'teaching', label: 'Teaching', Panel: TeachingTab },
+  { value: 'report', label: 'Report', Panel: ReportTab },
+  { value: 'export', label: 'Export', Panel: ExportTab },
 ];
 
 /** One agent's settings, opened from its row in the sidebar. */
@@ -26,6 +37,7 @@ export function AgentSettingsModal({ route }: { route: Route }) {
   );
   const graduates = useGraduates();
   const agent = graduates.data?.find((graduate) => graduate.id === graduateId);
+  const Panel = (TABS.find((entry) => entry.value === tab) ?? TABS[0])?.Panel;
 
   return (
     <SettingsDialog
@@ -39,10 +51,7 @@ export function AgentSettingsModal({ route }: { route: Route }) {
       tab={tab}
       onTabChange={setTab}
     >
-      {agent && tab === 'general' && <GeneralTab agent={agent} route={route} />}
-      {agent && tab === 'permissions' && <PermissionsTab agent={agent} />}
-      {agent && tab === 'report' && <ReportTab agent={agent} />}
-      {agent && tab === 'export' && <ExportTab agent={agent} />}
+      {agent && Panel && <Panel key={agent.id} agent={agent} route={route} />}
     </SettingsDialog>
   );
 }

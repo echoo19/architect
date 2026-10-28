@@ -107,9 +107,11 @@ export { Select, type SelectOption, type SelectProps } from './components/select
 export {
   SettingsDialog,
   SettingsRow,
+  SettingsSection,
   SettingsValue,
   type SettingsDialogProps,
   type SettingsRowProps,
+  type SettingsSectionProps,
   type SettingsTab,
 } from './components/settings';
 export { Slider, type SliderProps } from './components/slider';
@@ -118,11 +120,16 @@ export {
   Badge,
   ProgressStepper,
   StatusDot,
+  StatusMark,
+  VersionTag,
   type BadgeProps,
   type BadgeTone,
+  type MarkState,
   type ProgressStepperProps,
   type StatusDotProps,
+  type StatusMarkProps,
   type StatusTone,
+  type VersionTagProps,
 } from './components/status';
 export { Switch, type SwitchProps } from './components/switch';
 export { Toaster, toast, type ToastOptions } from './components/toast';

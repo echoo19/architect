@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@architect/ui';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Layers } from 'lucide-react';
 import { CodeView } from '../components/CodeView';
 import { cellText, currentStep, isFigureColumn, stepCount, stepWords, workedLabel } from './labels';
 import type { PanelContent } from './SidePanel';
@@ -110,6 +110,12 @@ export function Steps({ message, startOpen, waiting, onOpenPanel }: StepsProps) 
               </li>
             );
           })}
+          {message.graduateVersion !== undefined && (
+            <li className="flex items-center gap-2 py-[5px] text-fg-muted">
+              <Layers size={13} strokeWidth={1.8} aria-hidden className="shrink-0" />
+              Answered by version {message.graduateVersion}
+            </li>
+          )}
         </ol>
       )}
     </div>

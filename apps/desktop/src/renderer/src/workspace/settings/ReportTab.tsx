@@ -1,14 +1,20 @@
 import type { GraduateSummary, ReportCard } from '@architect/shared';
 import { ErrorState, Heading, Meter, Skeleton, Stat } from '@architect/ui';
-import { useReport } from '../../api/hooks';
+import { useVersionReport, useVersions } from '../../api/graduates';
 import { formatAnswerTime } from '../../flow/format';
+import { AUTHOR_RESULT_TITLE } from '../../install/labels';
 import { formatPercent, formatUsd, percentOf } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
 
-/** The agent's report card in brief: how it did on the locked test, and what it refuses. */
+/**
+ * The report card of the version chats run on, in brief: how it did on its locked test, and
+ * what it refuses. A version from another computer says the result is its author's.
+ */
 export function ReportTab({ agent }: { agent: GraduateSummary }) {
-  const report = useReport(agent.manifest.runId);
+  const report = useVersionReport(agent);
+  const versions = useVersions(agent.id);
+  const imported = versions.data?.find((version) => version.active)?.origin !== undefined;
   if (report.status === 'error') {
     return (
       <ErrorState
@@ -28,17 +34,22 @@ export function ReportTab({ agent }: { agent: GraduateSummary }) {
       </div>
     );
   }
-  return <ReportSummary report={report.data} />;
+  return <ReportSummary report={report.data} imported={imported} />;
 }
 
-function ReportSummary({ report }: { report: ReportCard }) {
+function ReportSummary({ report, imported }: { report: ReportCard; imported: boolean }) {
   const { test, cost, requirements } = report;
   const handled = test.perType.filter((type) => !type.refused);
   const cell = 'bg-modal p-[18px]';
-  const place = test.ranOffline ? `on ${deviceInSentence(currentPlatform())}` : 'on a hosted copy';
+  const place = imported
+    ? "on the author's computer"
+    : test.ranOffline
+      ? `on ${deviceInSentence(currentPlatform())}`
+      : 'on a hosted copy';
 
   return (
     <div className="flex flex-col gap-8 pt-1">
+      {imported && <span className="-mb-5 text-sm text-fg-muted">{AUTHOR_RESULT_TITLE}</span>}
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line-card bg-line-card">
         <Stat
           className={cell}

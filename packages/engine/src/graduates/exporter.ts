@@ -15,12 +15,16 @@ import {
   type ScanOptions,
 } from '@architect/harness';
 import {
+  ExportPartRequestSchema,
   ExportRequestSchema,
   GuardError,
   SECRET_REFS,
   slugify,
   type ExportFinding,
   type ExportItem,
+  type ExportPartName,
+  type ExportPartRequest,
+  type ExportPartResult,
   type ExportRequest,
   type ExportResult,
   type ExportReview,
@@ -216,6 +220,40 @@ export function findingsDigest(findings: readonly ExportFinding[]): string {
   return sha256Bytes(JSON.stringify(findings));
 }
 
+/** A part of a version that can leave alone, and the version's files it is made of. */
+interface PartPlan {
+  part: ExportPartName;
+  /** Package paths, in order. */
+  files: string[];
+  bytes: number;
+}
+
+/**
+ * The parts a version has that can be exported on their own: its harness folder always, its
+ * adapter when it carries one, and its report when a locked test measured it.
+ */
+function partsOf(manifest: PackageManifest): PartPlan[] {
+  const sizes = new Map(manifest.integrity.files.map((entry) => [entry.path, entry.size]));
+  const plan = (part: ExportPartName, files: string[]): PartPlan => ({
+    part,
+    files,
+    bytes: files.reduce((sum, path) => sum + (sizes.get(path) ?? 0), 0),
+  });
+  const harness = manifest.integrity.files
+    .map((entry) => entry.path)
+    .filter((path) => path.startsWith(`${manifest.harness.path}/`));
+  const parts = [plan('harness', harness)];
+  if (manifest.model.adapter) parts.push(plan('adapter', [manifest.model.adapter.path]));
+  const report = manifest.evidence.files?.reportMarkdown;
+  if (report !== undefined) parts.push(plan('report', [report]));
+  return parts;
+}
+
+function partFindings(part: PartPlan, findings: readonly ExportFinding[]): ExportFinding[] {
+  const files = new Set(part.files);
+  return findings.filter((finding) => files.has(finding.path));
+}
+
 /** Refuses to go on when the scan found something the request doesn't name as reviewed. */
 export function assertReviewed(
   findings: readonly ExportFinding[],
@@ -391,7 +429,85 @@ export async function reviewExport(
     findings,
     findingsDigest: findingsDigest(findings),
     notice: EXPORT_NOTICE,
+    parts: partsOf(plan.manifest).map((part) => ({
+      ...part,
+      findingsDigest: findingsDigest(partFindings(part, findings)),
+    })),
   };
+}
+
+/** What a part is called once it leaves: `<name>-v<n>-harness/`, `-adapter.gguf`, `-report.md`. */
+function partTarget(base: string, part: ExportPartName): string {
+  switch (part) {
+    case 'harness':
+      return `${base}-harness`;
+    case 'adapter':
+      return `${base}-adapter.gguf`;
+    case 'report':
+      return `${base}-report.md`;
+  }
+}
+
+/**
+ * Writes one part of a version on its own into the request's folder: the harness as a folder of
+ * its files, the adapter file, or the report as Markdown. Each is copied byte for byte from the
+ * version's verified folder. When the scan finds anything in the part, nothing is written unless
+ * the request names the findings the user reviewed. It is written in staging and moved into place
+ * whole, so a failure leaves nothing behind.
+ */
+export async function exportPart(
+  ctx: ExportContext,
+  graduateId: string,
+  input: ExportPartRequest,
+): Promise<ExportPartResult> {
+  const request = ExportPartRequestSchema.parse(input);
+  const plan = await planExport(ctx, graduateId, request.version, []);
+  const part = partsOf(plan.manifest).find((candidate) => candidate.part === request.part);
+  if (part === undefined) {
+    throw new Error(
+      request.part === 'adapter'
+        ? `Version ${plan.version} of ${plan.name} has no adapter.`
+        : `Version ${plan.version} of ${plan.name} has no report: no locked test measured it.`,
+    );
+  }
+  const findings = partFindings(part, await scanPlan(ctx, plan));
+  assertReviewed(findings, request.acknowledgedFindings, 'exported');
+
+  const directory = resolve(request.directory);
+  const base = `${slugify(plan.name)}-v${plan.manifest.identity.version}`;
+  const target = join(directory, partTarget(base, part.part));
+  if (await exists(target)) throw new Error(`${target} already exists. Choose another folder.`);
+  const sources = new Map(plan.entries.map((entry) => [entry.path, entry.source]));
+  const sourceOf = (path: string): string => {
+    const source = sources.get(path);
+    if (source === undefined) throw new Error(`${path} isn't in version ${plan.version}.`);
+    return source;
+  };
+
+  const staging = join(ctx.library.ctx.paths.stagingDir(), `export-${randomUUID()}`);
+  const staged = join(staging, partTarget(base, part.part));
+  try {
+    let files: string[];
+    if (part.part === 'harness') {
+      const prefix = `${plan.manifest.harness.path}/`;
+      files = part.files.map((path) => path.slice(prefix.length));
+      for (const [index, path] of part.files.entries()) {
+        const to = join(staged, ...(files[index] ?? '').split('/'));
+        await mkdir(dirname(to), { recursive: true });
+        await copyFile(sourceOf(path), to);
+      }
+    } else {
+      const [path = ''] = part.files;
+      await mkdir(staging, { recursive: true });
+      await copyFile(sourceOf(path), staged);
+      files = [partTarget(base, part.part)];
+    }
+    await mkdir(directory, { recursive: true });
+    await moveFolder(staged, target);
+    return { path: target, files, bytes: part.bytes, findings };
+  } finally {
+    await rm(staging, { recursive: true, force: true });
+  }
 }
 
 /** Moves a folder, copying it when the target is on another drive. */
