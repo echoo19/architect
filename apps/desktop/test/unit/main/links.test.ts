@@ -12,6 +12,13 @@ describe('the route to the browser', () => {
     ).toBe(true);
   });
 
+  it("knows Hugging Face's token page and its repositories, never a Hub on this computer", () => {
+    expect(isKnownPage('https://huggingface.co/settings/tokens')).toBe(true);
+    expect(isKnownPage('https://huggingface.co/jake/service-desk/tree/3f1c9e2')).toBe(true);
+    expect(isKnownPage('http://127.0.0.1:5173/jake/service-desk')).toBe(false);
+    expect(isKnownPage('https://huggingface.co.attacker.example/jake/service-desk')).toBe(false);
+  });
+
   it('refuses anything else: other hosts, plain HTTP, look-alikes and odd schemes', () => {
     for (const url of [
       'https://attacker.example',
@@ -31,7 +38,7 @@ describe('the route to the browser', () => {
     await createLinkOpener(open, false)(providerPage('openai'));
     expect(open).toHaveBeenCalledWith('https://platform.openai.com/api-keys');
     await expect(createLinkOpener(open, false)('https://attacker.example')).rejects.toThrow(
-      'Architect only opens the provider pages it knows.',
+      'Architect only opens pages on the sites it knows, over HTTPS.',
     );
 
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);

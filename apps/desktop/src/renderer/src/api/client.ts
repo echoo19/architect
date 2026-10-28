@@ -4,6 +4,7 @@ import {
   DraftTurnSchema,
   FileDiffSchema,
   GraduateSummarySchema,
+  HubTokenStatusSchema,
   JobSchema,
   JobSummarySchema,
   LlamaServerStatusSchema,
@@ -53,6 +54,8 @@ export const api = {
     read('connections.detectLocal', LocalRuntimesSchema, bridge().connections.detectLocal()),
   llamaServer: () =>
     read('connections.llamaServer', LlamaServerStatusSchema, bridge().connections.llamaServer()),
+  hubToken: () =>
+    read('connections.huggingFace', HubTokenStatusSchema, bridge().connections.huggingFace()),
   models: (source: ModelSource) =>
     read(
       'connections.listModels',

@@ -20,6 +20,8 @@ export interface FlowShellProps<Step extends string = FlowStep> {
   actions?: ReactNode;
   /** A bar pinned under the content, such as Back and Start training. */
   footer?: ReactNode;
+  /** What the close button does; going home when absent. */
+  onClose?: () => void;
   children: ReactNode;
 }
 
@@ -30,6 +32,7 @@ export function FlowShell<Step extends string = FlowStep>({
   steps,
   actions,
   footer,
+  onClose,
   children,
 }: FlowShellProps<Step>) {
   const pills: readonly string[] = steps ?? FLOW_STEPS;
@@ -41,7 +44,7 @@ export function FlowShell<Step extends string = FlowStep>({
       */}
       <header className="app-drag grid min-h-[60px] shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-ground-flow px-4 py-2.5">
         <div className={cn('flex min-w-0 items-center gap-2', isMac() && 'pl-17')}>
-          <IconButton label="Close" onClick={() => navigate(paths.home())}>
+          <IconButton label="Close" onClick={onClose ?? (() => navigate(paths.home()))}>
             <X size={18} strokeWidth={1.8} aria-hidden />
           </IconButton>
           <span className="min-w-0 truncate font-medium">{title}</span>

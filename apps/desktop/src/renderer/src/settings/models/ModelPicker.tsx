@@ -33,6 +33,9 @@ export interface ModelPickerProps {
   none?: { label: string; onChoose: () => void };
   /** Narrows the connections listed, such as to the runtimes on this computer. */
   only?: (connection: Connection) => boolean;
+  /** Whether the menu is open, when something other than the control opens it. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   disabled?: boolean;
   className?: string;
   /** What the closed control shows: the current choice. */
@@ -144,13 +147,16 @@ export function ModelPicker({
   onChoose,
   none,
   only,
+  open: controlled,
+  onOpenChange,
   disabled,
   className,
   children,
   ...props
 }: ModelPickerProps) {
   const { connections, gpu } = useConnections();
-  const [open, setOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  const open = controlled ?? ownOpen;
   const listed = connectionsFor(role, connections).filter(only ?? (() => true));
   const connected = listed.filter((connection) => !connection.offered);
   const lists = useModelLists(connected, open);
@@ -201,7 +207,11 @@ export function ModelPicker({
       value={value}
       onValueChange={choose}
       groups={groups}
-      onOpenChange={setOpen}
+      open={open}
+      onOpenChange={(next) => {
+        setOwnOpen(next);
+        onOpenChange?.(next);
+      }}
       disabled={disabled}
       className={className}
       searchPlaceholder={role === 'student' ? 'Search models on this computer' : 'Search models'}

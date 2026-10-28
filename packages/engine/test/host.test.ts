@@ -1,10 +1,19 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseReportJson } from '@architect/harness';
-import { AdapterError, GuardError, RunEventSchema, type RunEvent } from '@architect/shared';
+import {
+  AdapterError,
+  GuardError,
+  PublishProgressSchema,
+  RunEventSchema,
+  type PublishProgress,
+  type RunEvent,
+} from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { connectEngine, type EngineClient } from '../src/host/client';
-import { createEngineHost, type EngineHost } from '../src/host/engine-host';
+import { createEngineHost, type EngineHost, type EngineHostOptions } from '../src/host/engine-host';
+import { HubClient } from '../src/hub';
+import { FAKE_HUB_TOKEN, startFakeHub } from './support/fake-hub';
 import type { EnginePort } from '../src/host/port';
 import { fromErrorPayload, toErrorPayload } from '../src/host/protocol';
 import { openEngineStore } from '../src/store/engine-store';
@@ -30,8 +39,15 @@ afterEach(async () => {
   world.cleanup();
 });
 
-async function connect(): Promise<{ client: EngineClient; port: EnginePort; events: RunEvent[] }> {
-  host = await createEngineHost({ dataDir: world.dataDir, deps: world.deps, clock: world.clock });
+async function connect(
+  options: Pick<EngineHostOptions, 'hub'> = {},
+): Promise<{ client: EngineClient; port: EnginePort; events: RunEvent[] }> {
+  host = await createEngineHost({
+    dataDir: world.dataDir,
+    deps: world.deps,
+    clock: world.clock,
+    ...options,
+  });
   const [hostPort, clientPort] = portPair();
   host.serve(hostPort);
   client = connectEngine(clientPort);
@@ -328,6 +344,50 @@ describe('the engine host', () => {
       [1, true],
       [2, false],
     ]);
+  });
+
+  it("streams a publication's progress to the client while publish waits, and then stops", async () => {
+    const hub = await startFakeHub();
+    try {
+      const { client } = await connect({
+        hub: new HubClient({ endpoint: hub.url, token: async () => FAKE_HUB_TOKEN }),
+      });
+      const job = await client.jobs.createSample();
+      const graduated = next(client, (event) => event.type === 'graduate.ready');
+      await client.runs.start(job.id, { method: 'bare', seed: 1 });
+      const ready = await graduated;
+      if (ready.type !== 'graduate.ready') throw new Error('No graduate was announced.');
+
+      const heard: PublishProgress[] = [];
+      const stop = client.graduates.onPublishProgress((progress) => heard.push(progress));
+      const result = await client.graduates.publish(ready.graduateId, {
+        repository: 'jake/service-desk',
+      });
+      expect(result.publication.status).toBe('complete');
+      // Every update was sent before the answer, and each one matches its schema.
+      expect([...new Set(heard.map((progress) => progress.stage))]).toEqual([
+        'connecting',
+        'uploading',
+        'verifying',
+        'describing',
+      ]);
+      expect(heard.every((progress) => PublishProgressSchema.safeParse(progress).success)).toBe(
+        true,
+      );
+      expect(heard.at(-1)).toMatchObject({
+        graduateId: ready.graduateId,
+        version: 1,
+        repository: 'jake/service-desk',
+        stage: 'describing',
+      });
+
+      stop();
+      const count = heard.length;
+      await client.graduates.publish(ready.graduateId, { repository: 'jake/desk-two' });
+      expect(heard).toHaveLength(count);
+    } finally {
+      await hub.close();
+    }
   });
 
   it('carries guard and adapter errors across with their meaning', () => {

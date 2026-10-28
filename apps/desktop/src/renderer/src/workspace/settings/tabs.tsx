@@ -27,22 +27,16 @@ import { queryKeys } from '../../api/hooks';
 import { fetchQuery, setQueryData } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
 import { FixButtons } from '../../install/InstallChecks';
-import { osName, STATUS_LABELS, statusMark } from '../../install/labels';
-import { formatBytes, formatPercent, shortPath } from '../../lib/format';
-import {
-  capitalized,
-  quantizationLabel,
-  setupName,
-  setupSource,
-  shortModelName,
-  STUDENT_ROLE,
-} from '../../lib/names';
+import { fixesFor, osName, STATUS_LABELS, statusMark } from '../../install/labels';
+import { formatPercent, shortPath } from '../../lib/format';
+import { activeVersionName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { navigate, paths, type Route } from '../../lib/router';
 import { updateGraduateSettings, useGraduateSettings } from '../graduateSettings';
 import { WRITE_MODE_LABELS, WRITE_MODE_MEANINGS, WRITE_MODES, WRITE_SETTING } from '../labels';
 import { forgetAgent } from '../store';
+import { AgentModelRow } from './AgentModel';
 import { useAgentSettingsUi } from './agentSettingsUi';
 import { versionDate } from './versions';
 
@@ -59,19 +53,11 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
   const { versions, active } = useActiveVersion(agent.id);
   const [confirming, setConfirming] = useState(false);
   const { manifest } = agent;
-  const model = manifest.student;
-  const mentor = shortModelName(manifest.mentor.label);
   const { score } = manifest.test;
   const { met, target } = manifest.requirements.passRate;
   const result = `${met ? 'Passed' : 'Below its target'}: ${score.pass} of ${score.total} (${formatPercent(score)})`;
   const contract = active?.manifest.contract;
   const evaluatedHere = active?.origin === undefined;
-  const modelDetails = [
-    model.quantization && quantizationLabel(model.quantization),
-    model.sizeBytes && `${formatBytes(model.sizeBytes)} on disk`,
-  ]
-    .filter(Boolean)
-    .join(' · ');
 
   return (
     <>
@@ -86,11 +72,8 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
           pending
         )}
       </SettingsRow>
-      <SettingsRow
-        label="Setup"
-        meta={`Its instructions, skills and tools. ${setupSource(manifest.harness, mentor)}`}
-      >
-        <SettingsValue>{capitalized(setupName(manifest.harness))}</SettingsValue>
+      <SettingsRow label="Setup" meta="Its instructions, skills and tools">
+        <SettingsValue>{activeVersionName(agent)}</SettingsValue>
       </SettingsRow>
       <SettingsRow
         label="Final test"
@@ -102,17 +85,7 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
       >
         <SettingsValue>{result}</SettingsValue>
       </SettingsRow>
-      <SettingsRow
-        label={capitalized(STUDENT_ROLE)}
-        meta={
-          <>
-            {modelDetails && `${modelDetails} · `}
-            <span className="font-mono text-xs">{model.model}</span>
-          </>
-        }
-      >
-        <SettingsValue>{shortModelName(model.label)}</SettingsValue>
-      </SettingsRow>
+      <AgentModelRow agent={agent} active={active} />
       <InstallRow agent={agent} active={active} />
       <SettingsRow
         label="Delete agent"
@@ -145,6 +118,7 @@ function InstallRow({
   active: GraduateVersion | undefined;
 }) {
   const installation = useInstallation(agent.id);
+  const chooseModel = useAgentSettingsUi((state) => state.setChoosingModel);
   const checked = installation.data;
   const status = checked?.status ?? agent.status;
   const machine = checked?.machine;
@@ -155,28 +129,32 @@ function InstallRow({
   const changed = (next: Installation) => setQueryData(graduateKeys.installation(agent.id), next);
 
   return (
-    <SettingsRow label="Install checks" meta={meta || undefined} error={errorOf(installation)}>
-      {installation.status === 'error' ? (
-        <RetryButton onClick={installation.reload} />
-      ) : (
-        <div className="flex flex-wrap items-center justify-end gap-3">
+    <>
+      <SettingsRow label="Install checks" meta={meta || undefined} error={errorOf(installation)}>
+        {installation.status === 'error' ? (
+          <RetryButton onClick={installation.reload} />
+        ) : (
           <Badge
             tone={status === 'ready' ? 'student' : status === 'blocked' ? 'danger' : 'outline'}
             icon={<StatusMark state={statusMark(status)} size={14} />}
           >
             {STATUS_LABELS[status]}
           </Badge>
-          {checked && active && status !== 'ready' && (
-            <FixButtons
-              graduateId={agent.id}
-              installation={checked}
-              manifest={active.manifest}
-              onChanged={changed}
-            />
-          )}
+        )}
+      </SettingsRow>
+      {/* The ways out sit under the reason, which keeps the row's full width. */}
+      {checked && active && fixesFor(checked, active.manifest).length > 0 && (
+        <div className="-mt-1 pb-3">
+          <FixButtons
+            graduateId={agent.id}
+            installation={checked}
+            manifest={active.manifest}
+            onChanged={changed}
+            onChooseModel={() => chooseModel(true)}
+          />
         </div>
       )}
-    </SettingsRow>
+    </>
   );
 }
 

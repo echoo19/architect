@@ -17,14 +17,13 @@ import {
   LogoMark,
   Skeleton,
   Spinner,
-  StatusDot,
   Tooltip,
 } from '@architect/ui';
-import { Ellipsis, PackageOpen, Pause, Plus, Settings } from 'lucide-react';
+import { Cloud, Ellipsis, PackageOpen, Pause, Plus, Settings } from 'lucide-react';
 import { api, architect } from '../api/client';
 import { queryKeys, useGraduates, useJobs } from '../api/hooks';
 import { fetchQuery } from '../api/query';
-import { chooseImport } from '../import/session';
+import { chooseFromHub, chooseImport } from '../import/session';
 import { formatPercent } from '../lib/format';
 import { attempt } from '../lib/notify';
 import { isMac } from '../lib/platform';
@@ -153,6 +152,9 @@ function AgentMenu() {
         >
           Import agent
         </DropdownMenuItem>
+        <DropdownMenuItem icon={<Cloud aria-hidden />} onSelect={chooseFromHub}>
+          Install from Hugging Face
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -264,7 +266,9 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
             <span className="truncate">{chat.title}</span>
             {/* A chat waiting for an answer isn't working; the open one says so in the thread. */}
             {chat.waiting ? (
-              !current && <StatusDot tone="student" label="Needs you" />
+              !current && (
+                <span className="shrink-0 text-xs font-medium text-student">Needs you</span>
+              )
             ) : chat.running ? (
               <Spinner tone="student" label="Working" />
             ) : null}

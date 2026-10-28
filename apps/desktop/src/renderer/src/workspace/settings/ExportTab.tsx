@@ -11,6 +11,7 @@ import {
   Button,
   Checkbox,
   ErrorState,
+  Segmented,
   SettingsRow,
   SettingsSection,
   SettingsValue,
@@ -34,6 +35,8 @@ import { graduatesApi } from '../../api/graduates';
 import { toError } from '../../api/query';
 import { formatBytes } from '../../lib/format';
 import { attempt } from '../../lib/notify';
+import { PublishPanel } from './PublishPanel';
+import { usePublishing } from './publishing';
 
 interface ReviewState {
   review?: ExportReview;
@@ -100,12 +103,41 @@ async function chooseFolder(title: string): Promise<string | null> {
   return folder ?? null;
 }
 
+type Destination = 'file' | 'hub';
+
+const DESTINATIONS: readonly { value: Destination; label: string }[] = [
+  { value: 'file', label: 'Package file' },
+  { value: 'hub', label: 'Hugging Face' },
+];
+
 /**
- * Export: the package (`name.architect.zip`) after a review of what goes in and what stays here,
- * with the scan's findings and what no scan can promise; then the setup, the trained weights and
- * the report, each on its own.
+ * Export: as a package file on this computer, or published to Hugging Face, where it opens while
+ * a publication is on its way.
  */
 export function ExportTab({ agent }: { agent: GraduateSummary }) {
+  const [destination, setDestination] = useState<Destination>(() =>
+    usePublishing.getState().states[agent.id]?.kind === 'publishing' ? 'hub' : 'file',
+  );
+  return (
+    <div className="flex min-h-full flex-col">
+      <Segmented
+        aria-label="Export to"
+        options={DESTINATIONS}
+        value={destination}
+        onValueChange={setDestination}
+        className="mb-3 self-start"
+      />
+      {destination === 'file' ? <PackageExport agent={agent} /> : <PublishPanel agent={agent} />}
+    </div>
+  );
+}
+
+/**
+ * The package (`name.architect.zip`) after a review of what goes in and what stays here, with
+ * the scan's findings and what no scan can promise; then the setup, the trained weights and the
+ * report, each on its own.
+ */
+function PackageExport({ agent }: { agent: GraduateSummary }) {
   const [include, setInclude] = useState<string[]>([]);
   const [acknowledged, setAcknowledged] = useState(false);
   const { review, error, loading, reload } = useExportReview(agent.id, include);

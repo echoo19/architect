@@ -148,9 +148,9 @@ for (const theme of THEMES) {
       'Find who owes money after partial payments',
       'Book the earliest technician who can do the job',
     ]);
-    await expect(page.getByText('The setup from round 7')).toBeVisible();
+    await expect(page.getByText('Version 1', { exact: true })).toBeVisible();
     await expect(page.getByText('Glimmer 4-bit')).toBeVisible();
-    await expect(page.getByText('Spark not connected')).toBeVisible();
+    await expect(page.getByText('Private from Spark')).toBeVisible();
     await expect(page.getByText('Running on this computer')).toBeVisible();
     await capture(`workspace-new-chat-${theme}.png`);
 
@@ -291,15 +291,19 @@ for (const theme of THEMES) {
     await expect(dialog.getByText('Prices finished jobs, finds overdue balances')).toBeVisible();
     // The name is the dialog's title, so no row offers a rename the app can't do.
     await expect(dialog.getByText('Name', { exact: true })).toHaveCount(0);
-    await expect(dialog.getByText('Round 7 was the last change Spark kept.')).toBeVisible();
+    // The setup is named by its version, as the Teaching tab and the status line name it.
+    await expect(dialog.getByText('Its instructions, skills and tools')).toBeVisible();
+    await expect(dialog.getByText('Version 1', { exact: true })).toBeVisible();
     await expect(dialog.getByText('Passed: 55 of 60 (92%)')).toBeVisible();
     await expect(
       dialog.getByText(
         /The job asked for 90%\. Tested on .*\. The Report tab has the full results\./,
       ),
     ).toBeVisible();
-    // The model shows as its short name, with the technical tag as secondary text.
-    await expect(dialog.getByText('Glimmer', { exact: true })).toBeVisible();
+    // The model this computer runs it on, in a picker of the models here, with its tag beside.
+    await expect(dialog.getByRole('button', { name: "Your agent's model" })).toHaveText(
+      'Muse Glimmer · 4-bit',
+    );
     await expect(dialog.getByText('4-bit · 18 GB on disk · muse-glimmer:30b')).toBeVisible();
     // This computer's install checks sit apart from the author's final test.
     await expect(dialog.getByText('Install checks', { exact: true })).toBeVisible();

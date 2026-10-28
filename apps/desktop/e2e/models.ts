@@ -81,11 +81,22 @@ export interface FakeOllama {
   close(): Promise<void>;
 }
 
+/** A model a fake Ollama lists as downloaded. */
+export interface FakeOllamaModel {
+  name: string;
+  sizeBytes: number;
+  digest: string;
+}
+
 /**
  * An Ollama that answers its chat requests with the given turns, one each, in order. The last
- * turn answers every request after it, as a server stuck on one answer would.
+ * turn answers every request after it, as a server stuck on one answer would. Given `models`,
+ * it lists them as downloaded, so a model check can describe one.
  */
-export async function startFakeOllama(script: readonly OllamaTurn[]): Promise<FakeOllama> {
+export async function startFakeOllama(
+  script: readonly OllamaTurn[],
+  options: { models?: readonly FakeOllamaModel[] } = {},
+): Promise<FakeOllama> {
   const chats: ChatRequestMessage[][] = [];
   const hosts: string[] = [];
   let port = 0;
@@ -96,6 +107,20 @@ export async function startFakeOllama(script: readonly OllamaTurn[]): Promise<Fa
     if (request.url === '/api/ps') {
       loadedAsked += 1;
       sendJson(response, { models: [] });
+      return;
+    }
+    if (options.models && request.url === '/api/tags') {
+      sendJson(response, {
+        models: options.models.map((model) => ({
+          name: model.name,
+          size: model.sizeBytes,
+          digest: model.digest,
+        })),
+      });
+      return;
+    }
+    if (options.models && request.url === '/api/version') {
+      sendJson(response, { version: '0.40.9' });
       return;
     }
     if (request.url === '/api/show') {

@@ -1,9 +1,10 @@
-import type { RunEvent } from '@architect/shared';
+import type { PublishProgress, RunEvent } from '@architect/shared';
 import type { EnginePort } from './port';
 import {
   ENGINE_ROUTES,
   EventMessageSchema,
   fromErrorPayload,
+  PublishProgressMessageSchema,
   ResponseMessageSchema,
   type EngineApi,
   type EngineMethod,
@@ -32,6 +33,7 @@ export function connectEngine(
 ): EngineClient {
   const pending = new Map<number, Pending>();
   const listeners = new Set<(event: RunEvent) => void>();
+  const publishListeners = new Set<(progress: PublishProgress) => void>();
   let nextId = 1;
   let closed = false;
 
@@ -42,9 +44,16 @@ export function connectEngine(
       for (const listener of listeners) listener(event.data.event);
       return;
     }
+    const progress = PublishProgressMessageSchema.safeParse(message);
+    if (progress.success) {
+      for (const listener of publishListeners) listener(progress.data.progress);
+      return;
+    }
     const response = ResponseMessageSchema.safeParse(message);
     if (!response.success) {
-      onError(new Error(`The engine sent a message that isn't a response or a run event.`));
+      onError(
+        new Error(`The engine sent a message that isn't a response, a run event or progress.`),
+      );
       return;
     }
     const waiting = pending.get(response.data.id);
@@ -163,6 +172,12 @@ export function connectEngine(
       publish: (graduateId, publishRequest) =>
         request('graduates.publish', [graduateId, publishRequest]),
       publications: (graduateId) => request('graduates.publications', [graduateId]),
+      onPublishProgress(listener) {
+        publishListeners.add(listener);
+        return () => {
+          publishListeners.delete(listener);
+        };
+      },
       remove: (graduateId) => request('graduates.remove', [graduateId]),
       settings: (graduateId) => request('graduates.settings', [graduateId]),
       updateSettings: (graduateId, patch) =>
@@ -175,6 +190,7 @@ export function connectEngine(
       }
       pending.clear();
       listeners.clear();
+      publishListeners.clear();
     },
   };
 }

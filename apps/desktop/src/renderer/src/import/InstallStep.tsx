@@ -2,7 +2,9 @@ import type { ImportResult, InstallStatus, Installation, PackageManifest } from 
 import { Button, ErrorState, Heading, SettingsSection, Spinner, StatusMark } from '@architect/ui';
 import { Trash2 } from 'lucide-react';
 import { CheckRows, FixButtons } from '../install/InstallChecks';
-import { INSTALL_CHECKS_TITLE, statusMark } from '../install/labels';
+import { INSTALL_CHECKS_TITLE, needsAnotherModel, statusMark } from '../install/labels';
+import { navigate, paths } from '../lib/router';
+import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 
 function titleOf(status: InstallStatus, name: string): string {
   if (status === 'ready') return `${name} is ready`;
@@ -28,7 +30,8 @@ export interface InstallStepProps {
 
 /**
  * Step four: installing, then this computer's install checks, labelled as this computer's, with
- * the outcome (ready, needs attention or blocked), why, and a way out of each.
+ * the outcome (ready, needs attention or blocked), why, and a way out of each. A fix that needs
+ * another model opens the agent's settings on General, with its model picker open.
  */
 export function InstallStep({
   name,
@@ -70,6 +73,7 @@ export function InstallStep({
   const { installation, graduate } = result;
   const { status } = installation;
   const label = asVersion ? `Version ${result.version} of ${name}` : name;
+  const fixable = status === 'needs_attention' || needsAnotherModel(installation);
   return (
     <>
       <header className="flex items-center gap-3">
@@ -81,12 +85,16 @@ export function InstallStep({
       <SettingsSection title={INSTALL_CHECKS_TITLE} className="pt-0">
         <CheckRows installation={installation} />
       </SettingsSection>
-      {!asVersion && status === 'needs_attention' && (
+      {!asVersion && fixable && (
         <FixButtons
           graduateId={graduate.id}
           installation={installation}
           manifest={manifest}
           onChanged={onChanged}
+          onChooseModel={() => {
+            navigate(paths.home());
+            useAgentSettingsUi.getState().chooseModel(graduate.id);
+          }}
         />
       )}
       {!asVersion && status === 'blocked' && (
