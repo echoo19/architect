@@ -49,9 +49,8 @@ export async function respond(input: ReplyRequest): Promise<void> {
   const { graduate, reply } = input;
   let trace: Trace;
   let gpu: GpuHold | null = null;
-  try {
-    if (matchGuardrail(graduate.harness, input.request) === null) gpu = await input.holdGpu();
-    trace = await runAgent({
+  const answer = () =>
+    runAgent({
       harness: graduate.harness,
       job: graduate.job,
       student: graduate.student,
@@ -67,6 +66,10 @@ export async function respond(input: ReplyRequest): Promise<void> {
       approveWrite: input.approveWrite,
       signal: input.signal,
     });
+  try {
+    if (matchGuardrail(graduate.harness, input.request) === null) gpu = await input.holdGpu();
+    // The reply's model turns run inside its hold, so each joins it rather than waiting in line.
+    trace = gpu === null ? await answer() : await gpu.run(answer);
   } catch (error) {
     const approval = input.approvalRequired();
     if (approval !== null) {

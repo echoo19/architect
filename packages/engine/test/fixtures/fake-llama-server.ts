@@ -106,12 +106,15 @@ async function readBody(request: IncomingMessage): Promise<string> {
 const server = createServer((request, response) => {
   void (async () => {
     const path = request.url ?? '/';
+    // While it loads, llama-server answers everything this way, before it checks any key.
+    if (!loaded()) {
+      send(response, 503, {
+        error: { code: 503, message: 'Loading model', type: 'unavailable_error' },
+      });
+      return;
+    }
     if (path === '/health') {
-      if (loaded()) send(response, 200, { status: 'ok' });
-      else
-        send(response, 503, {
-          error: { code: 503, message: 'Loading model', type: 'unavailable_error' },
-        });
+      send(response, 200, { status: 'ok' });
       return;
     }
     if (apiKey !== null && request.headers.authorization !== `Bearer ${apiKey}`) {

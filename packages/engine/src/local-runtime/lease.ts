@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 import { AdapterError } from '@architect/shared';
@@ -7,7 +8,6 @@ import {
   blockingHolders,
   emptyLease,
   GPU_USES,
-  mayJoinBusy,
   mayTake,
   rankOf,
   ranksAhead,
@@ -59,6 +59,11 @@ export interface GpuRelease {
 /** One request's, or one reply's, hold of the GPU. */
 export interface GpuHold {
   release(): void;
+  /**
+   * Runs `work` inside this hold: what it asks of the same use, such as a reply's model turns,
+   * joins this hold at once instead of waiting in line behind it.
+   */
+  run<T>(work: () => Promise<T>): Promise<T>;
 }
 
 /** How Architect's processes are named to someone kept waiting. */
@@ -71,6 +76,11 @@ const OWNER_NAMES: Readonly<Record<string, string>> = {
 
 const nameOf = (owner: string) => OWNER_NAMES[owner] ?? owner;
 
+/** One hold running on a use of the GPU. */
+interface Running {
+  purpose: GpuPurpose;
+}
+
 interface Slot {
   registration: GpuRelease | null;
   /** This process has the GPU for this use: its entry is in the lease. */
@@ -78,7 +88,7 @@ interface Slot {
   /** It is giving the GPU up now: nothing joins until that is done. */
   leaving: boolean;
   /** Holds running now. */
-  active: Set<{ purpose: GpuPurpose }>;
+  active: Set<Running>;
   /** What it last did, which its entry says while nothing runs. */
   last: GpuPurpose | null;
 }
@@ -92,11 +102,21 @@ interface Waiter {
   reject(error: unknown): void;
 }
 
+interface Grant {
+  waiter: Waiter;
+  hold: GpuHold;
+  /** Takes the grant back and puts the waiter in line again, when the lease couldn't be saved. */
+  undo(): void;
+}
+
 interface Step {
-  granted: [Waiter, GpuHold][];
+  granted: Grant[];
   expired: [Waiter, LocalRuntimeError][];
   leaving: GpuUse[];
 }
+
+/** The hold the current work runs inside, if any: its requests for the same use join it. */
+const inside = new AsyncLocalStorage<{ lease: GpuLease; use: GpuUse; running: Running }>();
 
 /** Leases still open in this process, so an exit takes their entries away with it. */
 const open = new Set<GpuLease>();
@@ -124,8 +144,8 @@ function joinWithAnd(parts: readonly string[]): string {
  * llama-server holds the GPU alone; Ollama's users share it. A holder with nothing running gives
  * the GPU up when someone else asks; a busy one keeps it, and the one asking waits its turn, up
  * to `waitMs`, then fails with an error that says who holds it and what to do. A reply goes
- * before a check, and a check before a run's next request. A holder that died stops blocking at
- * once, and the next process to take over stops the llama-server it left behind.
+ * before a check, and a check before a run's next request. A holder that died stops blocking as
+ * soon as the llama-server it left running is gone.
  */
 export class GpuLease {
   /** Ollama on this computer, as this process uses it under the lease. */
@@ -134,8 +154,10 @@ export class GpuLease {
   private readonly token = randomBytes(6).toString('hex');
   private readonly slots: Record<GpuUse, Slot>;
   private readonly waiters = new Set<Waiter>();
-  /** Holders that died, whose llama-server has been looked for and stopped. */
+  /** Holders that died, whose llama-server has been looked for and is gone. */
   private readonly reaped = new Set<string>();
+  /** Holders that died whose llama-server wouldn't stop, already reported. */
+  private readonly stuck = new Set<string>();
   private readonly waitMs: number;
   private readonly pollMs: number;
   private readonly heartbeatMs: number;
@@ -181,20 +203,23 @@ export class GpuLease {
 
   /**
    * Holds the GPU for `use` for one request, or one reply: at once when this process has it and
-   * nobody who goes first is waiting, otherwise in its turn. Fails with a busy error after
-   * `waitMs`, and as aborted when `signal` aborts first.
+   * nobody who goes first is waiting, or when the work asking runs inside a hold of the same use;
+   * otherwise in its turn. Fails with a busy error after `waitMs`, and as aborted when `signal`
+   * aborts first.
    */
   hold(use: GpuUse, purpose: GpuPurpose, signal?: AbortSignal): Promise<GpuHold> {
     if (this.closed) return Promise.reject(aborted());
     if (signal?.aborted) return Promise.reject(aborted());
     const slot = this.slots[use];
+    const outer = inside.getStore();
+    const nested = outer?.lease === this && outer.use === use && slot.active.has(outer.running);
     const place: Place = {
       user: this.user(use),
       rank: rankOf(purpose.priority),
       since: Date.now(),
     };
-    if (slot.holding && !slot.leaving && this.mayJoin(use, place, this.freshView())) {
-      const hold = this.grant(use, purpose);
+    if (nested || (slot.holding && !slot.leaving && mayTake(this.freshView(), use, place))) {
+      const { hold } = this.grant(use, purpose);
       this.kick();
       return Promise.resolve(hold);
     }
@@ -246,11 +271,17 @@ export class GpuLease {
     }
   }
 
-  /** Takes this process's entries away at once, as it exits. */
+  /**
+   * Takes this process's entries away at once, as it exits without closing. A llama-server's
+   * entry stays: its server may still be stopping, and whoever takes the GPU next stops it, or
+   * finds it gone, before it loads anything.
+   */
   leaveNow(): void {
     if (!this.entered) return;
     try {
-      this.store.updateNow((state) => this.removeOwn(state));
+      this.store.updateNow((state) =>
+        this.removeOwn(state, (entry) => !('busy' in entry) || entry.use !== 'llama-server'),
+      );
     } catch {
       // The process is exiting: whoever comes next finds its entries stale.
     }
@@ -287,28 +318,24 @@ export class GpuLease {
     }
   }
 
-  /** Whether one more request may join this process's hold of `use`. */
-  private mayJoin(use: GpuUse, place: Place, state: LeaseState): boolean {
-    return this.slots[use].active.size > 0
-      ? mayJoinBusy(state, place.user, use, place.rank)
-      : mayTake(state, use, place);
-  }
-
-  private grant(use: GpuUse, purpose: GpuPurpose): GpuHold {
+  /** Starts one hold on a use: the hold, and what it took in this process, for taking it back. */
+  private grant(use: GpuUse, purpose: GpuPurpose): { hold: GpuHold; running: Running } {
     const slot = this.slots[use];
-    const entry = { purpose };
-    slot.active.add(entry);
+    const running: Running = { purpose };
+    slot.active.add(running);
     slot.holding = true;
     slot.last = purpose;
     let released = false;
-    return {
+    const hold: GpuHold = {
       release: () => {
         if (released) return;
         released = true;
-        slot.active.delete(entry);
+        slot.active.delete(running);
         this.kick();
       },
+      run: (work) => inside.run({ lease: this, use, running }, work),
     };
+    return { hold, running };
   }
 
   private kick(): void {
@@ -350,62 +377,122 @@ export class GpuLease {
 
   private async tick(): Promise<void> {
     const started = Date.now();
-    // After the computer slept, every process's beat is old at once: give them time to beat again.
-    if (this.lastTick !== 0 && started - this.lastTick > this.staleMs) {
-      this.graceUntil = started + this.staleMs;
-    }
+    // A process that didn't look for a long while slept, or was stopped: the others may have
+    // taken its entries for gone, and found every beat old themselves on waking. Give them time to
+    // beat again, and give up what it held idle, which may have been taken.
+    const woke = this.lastTick !== 0 && started - this.lastTick > this.staleMs;
+    if (woke) this.graceUntil = started + this.staleMs;
     this.lastTick = started;
-    // What was decided under the lock stands even if writing it failed: the next look writes it.
-    const decided: { step?: Step } = {};
+    const decided: { step?: Step; saved: boolean } = { saved: false };
     try {
-      await this.reapGone(this.store.peek());
+      const seen = this.store.peek();
+      await this.reapGone(seen);
+      // Most looks change nothing; only those that do take the lock.
+      if (!woke && !this.needsChange(seen, started)) {
+        this.view = seen;
+        return;
+      }
       await this.store.update((state) => {
-        const { result, write } = this.step(state);
+        const { result, write } = this.step(state, woke);
         decided.step = result;
         return { result: undefined, write };
       });
+      decided.saved = true;
     } catch (error) {
       this.report(error);
       this.expireOnFailure(error);
     }
-    const step = decided.step;
+    const { step } = decided;
     if (step === undefined) return;
-    for (const [waiter, hold] of step.granted) waiter.resolve(hold);
+    // A grant that wasn't saved never happened for the others: take it back, and try again.
+    if (decided.saved) for (const { waiter, hold } of step.granted) waiter.resolve(hold);
+    else for (const grant of [...step.granted].reverse()) grant.undo();
     for (const [waiter, error] of step.expired) waiter.reject(error);
     for (const use of step.leaving) void this.giveUp(use);
   }
 
-  /** Stops the llama-servers that holders who died left running, before anyone takes their place. */
+  /**
+   * Stops the llama-servers that holders who died left running, before anyone takes their place.
+   * A holder whose server is still running stays in the lease, so nobody loads a model beside it.
+   */
   private async reapGone(state: LeaseState): Promise<void> {
     const now = Date.now();
     for (const holder of state.holders) {
       if (holder.use !== 'llama-server' || holder.serverDir === undefined) continue;
       if (this.reaped.has(holder.user) || this.isLive(holder, now)) continue;
+      let gone = false;
       try {
-        await stopServerLeftIn(holder.serverDir);
+        gone = await stopServerLeftIn(holder.serverDir);
       } catch (error) {
         this.report(error);
       }
-      this.reaped.add(holder.user);
+      if (gone) {
+        this.reaped.add(holder.user);
+      } else if (!this.stuck.has(holder.user)) {
+        this.stuck.add(holder.user);
+        this.report(
+          new Error(
+            `A llama-server that ${nameOf(holder.owner)} left running in ${holder.serverDir} did not stop; the GPU waits until it does.`,
+          ),
+        );
+      }
     }
   }
 
+  /** Whether a look at the lease as it stands would change anything, so it needs the lock. */
+  private needsChange(seen: LeaseState, now: number): boolean {
+    if (this.waiters.size > 0) return true;
+    const own = (entry: { user: string }) => entry.user.startsWith(`${this.token}:`);
+    const entries = [...seen.holders, ...seen.asks];
+    if (entries.some((entry) => !own(entry) && !this.isLive(entry, now))) return true;
+    if (seen.asks.some(own)) return true;
+    const holding = GPU_USES.some((use) => this.slots[use].holding);
+    if (holding && now - this.lastWrite >= this.heartbeatMs) return true;
+    for (const use of GPU_USES) {
+      const slot = this.slots[use];
+      const entry = seen.holders.find((holder) => holder.user === this.user(use));
+      if (slot.holding !== (entry !== undefined)) return true;
+      if (entry === undefined) continue;
+      if (entry.busy !== slot.active.size > 0 || entry.leaving !== slot.leaving) return true;
+      if (slot.leaving || slot.active.size > 0) continue;
+      if (shouldYield(this.live(seen, now), { user: this.user(use), use }, null)) return true;
+      if (!(slot.registration?.resident() ?? false)) return true;
+    }
+    return false;
+  }
+
   /** One look at the lease under its lock: who goes, who gives up, who waited too long. */
-  private step(state: LeaseState): { result: Step; write: boolean } {
+  private step(state: LeaseState, woke: boolean): { result: Step; write: boolean } {
     const now = Date.now();
     let write = this.prune(state, now);
     const result: Step = { granted: [], expired: [], leaving: [] };
+    if (woke) {
+      // An idle hold whose entry others took for gone may have been taken over: let it go.
+      for (const use of GPU_USES) {
+        const slot = this.slots[use];
+        const listed = state.holders.some((holder) => holder.user === this.user(use));
+        if (slot.holding && !listed && !slot.leaving && slot.active.size === 0) {
+          slot.holding = false;
+        }
+      }
+    }
     write = this.syncAsks(state) || write;
     const ordered = [...this.waiters].sort((a, b) => (ranksAhead(a.place, b.place) ? -1 : 1));
     for (const waiter of ordered) {
       const slot = this.slots[waiter.use];
-      if (slot.leaving) continue;
-      const allowed = slot.holding
-        ? this.mayJoin(waiter.use, waiter.place, state)
-        : mayTake(state, waiter.use, waiter.place);
-      if (!allowed) continue;
+      if (slot.leaving || !mayTake(state, waiter.use, waiter.place)) continue;
       this.waiters.delete(waiter);
-      result.granted.push([waiter, this.grant(waiter.use, waiter.purpose)]);
+      const wasHolding = slot.holding;
+      const { hold, running } = this.grant(waiter.use, waiter.purpose);
+      result.granted.push({
+        waiter,
+        hold,
+        undo: () => {
+          slot.active.delete(running);
+          slot.holding = wasHolding;
+          this.waiters.add(waiter);
+        },
+      });
       // Written at once, so this process's other use sees it holds the GPU now.
       this.syncHolders(state);
       this.syncAsks(state);
@@ -443,7 +530,7 @@ export class GpuLease {
 
   /**
    * Takes out the entries of processes that are gone. A llama-server holder stays until its server
-   * has been looked for and stopped, which happens outside the lock.
+   * has been found gone, which is looked for outside the lock.
    */
   private prune(state: LeaseState, now: number): boolean {
     const before = state.holders.length + state.asks.length;
@@ -541,11 +628,16 @@ export class GpuLease {
     return changed;
   }
 
-  private removeOwn(state: LeaseState): boolean {
-    const own = (entry: { user: string }) => entry.user.startsWith(`${this.token}:`);
+  /** Takes away this process's entries that `which` picks, every one by default. */
+  private removeOwn(
+    state: LeaseState,
+    which: (entry: LeaseHolder | LeaseAsk) => boolean = () => true,
+  ): boolean {
+    const goes = (entry: LeaseHolder | LeaseAsk) =>
+      entry.user.startsWith(`${this.token}:`) && which(entry);
     const before = state.holders.length + state.asks.length;
-    state.holders = state.holders.filter((holder) => !own(holder));
-    state.asks = state.asks.filter((ask) => !own(ask));
+    state.holders = state.holders.filter((holder) => !goes(holder));
+    state.asks = state.asks.filter((ask) => !goes(ask));
     return state.holders.length + state.asks.length !== before;
   }
 
@@ -572,10 +664,11 @@ export class GpuLease {
   private busyError(state: LeaseState, waiter: Waiter): LocalRuntimeError {
     const live = this.live(state);
     const holders = blockingHolders(live, waiter.place.user, waiter.use);
-    const parts = holders.map(
-      (holder) =>
-        `${nameOf(holder.owner)} is ${holder.busy && !holder.leaving ? holder.doing : 'letting go of it'}`,
-    );
+    const parts = holders.map((holder) => {
+      const name = nameOf(holder.owner);
+      if (holder.leaving) return `${name} is letting go of it`;
+      return holder.busy ? `${name} is ${holder.doing}` : `${name} has it, with nothing running`;
+    });
     const working = holders.find((holder) => holder.busy && !holder.leaving);
     if (parts.length === 0) {
       for (const ask of asksAhead(live, waiter.use, waiter.place)) {

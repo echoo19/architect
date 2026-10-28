@@ -1,7 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import {
   closeSync,
-  linkSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -207,50 +206,62 @@ export class LeaseStore {
   }
 
   /**
-   * Takes away a lock whose process died while holding it, or that has been held far longer than
-   * a change takes. It is moved aside before it is deleted, so two processes that both found it
-   * stale can't delete a lock one of them has just taken: what was moved is checked, and a lock
-   * taken since is put back.
+   * A lock as it stands: its content, and whether it is stale, held by a process that has exited
+   * or for far longer than a change takes. Null when there is none to read.
    */
-  private breakIfStale(): void {
+  private lockState(file: string): { text: string; stale: boolean } | null {
     let text: string;
-    let identity: bigint;
     let modified: number;
     try {
-      const stats = statSync(this.lockFile, { bigint: true });
-      identity = stats.ino;
-      modified = Number(stats.mtimeMs);
-      text = readFileSync(this.lockFile, 'utf8');
+      modified = statSync(file).mtimeMs;
+      text = readFileSync(file, 'utf8');
     } catch {
-      return;
+      return null;
     }
-    const held = (() => {
-      try {
-        return LockSchema.safeParse(JSON.parse(text));
-      } catch {
-        return null;
-      }
-    })();
+    let held: z.infer<typeof LockSchema> | null = null;
+    try {
+      const parsed = LockSchema.safeParse(JSON.parse(text));
+      if (parsed.success) held = parsed.data;
+    } catch {
+      // Half written: its age decides.
+    }
     const now = Date.now();
-    const stale = held?.success
-      ? !isAlive(held.data.pid) || now - held.data.at > this.lockStaleMs
-      : now - modified > this.lockStaleMs;
-    if (!stale) return;
-    const aside = `${this.lockFile}.${randomBytes(6).toString('hex')}.stale`;
+    const stale =
+      held === null
+        ? now - modified > this.lockStaleMs
+        : !isAlive(held.pid) || now - held.at > this.lockStaleMs;
+    return { text, stale };
+  }
+
+  /**
+   * Takes away a stale lock. Only one process at a time may: it first creates a breaker lock, then
+   * reads the lock again and removes it only if it is still the stale one it saw, so a lock someone
+   * took meanwhile is never removed. A breaker left by a process that died in that step is stale
+   * by the same rules, and taken away the same way.
+   */
+  private breakIfStale(): void {
+    const seen = this.lockState(this.lockFile);
+    if (seen === null || !seen.stale) return;
+    const breaker = `${this.lockFile}.break`;
+    let fd: number;
     try {
-      renameSync(this.lockFile, aside);
+      fd = openSync(breaker, 'wx');
     } catch {
+      if (this.lockState(breaker)?.stale) rmSync(breaker, { force: true });
       return;
     }
     try {
-      const moved = statSync(aside, { bigint: true });
-      const same =
-        readFileSync(aside, 'utf8') === text && (identity === 0n || moved.ino === identity);
-      if (!same) linkSync(aside, this.lockFile);
-    } catch {
-      // A newer lock is in its place: the one moved aside has no claim left.
+      try {
+        writeSync(fd, JSON.stringify({ pid: process.pid, token: 'break', at: Date.now() }));
+      } finally {
+        closeSync(fd);
+      }
+      const now = this.lockState(this.lockFile);
+      if (now !== null && now.stale && now.text === seen.text) {
+        rmSync(this.lockFile, { force: true });
+      }
     } finally {
-      rmSync(aside, { force: true });
+      rmSync(breaker, { force: true });
     }
   }
 }

@@ -156,34 +156,50 @@ const samePath = (a: string, b: string) =>
 const RECORD_FILE = 'server.json';
 
 /**
- * Stops a llama-server that a process left running in `runtimeDir`, and waits until it has gone.
- * Only a server that answers to the key its folder's record names is Architect's to stop: a port
- * reused by another program, or a key that no longer answers, leaves everything as it is. The
- * next start in the same folder calls this, and so does a process that takes the GPU over from a
- * holder that died (decision 046).
+ * Whether what answers on a recorded port is the llama-server the record names: it answers to the
+ * record's key, or it is still loading, when llama-server answers every request with "Loading
+ * model" before it checks any key.
  */
-export async function stopServerLeftIn(runtimeDir: string): Promise<void> {
-  let saved: z.infer<typeof RecordSchema>;
-  try {
-    saved = RecordSchema.parse(JSON.parse(await readFile(join(runtimeDir, RECORD_FILE), 'utf8')));
-  } catch {
-    return;
-  }
+async function isRecordedServer(saved: z.infer<typeof RecordSchema>): Promise<boolean> {
   try {
     const response = await fetch(`http://127.0.0.1:${saved.port}/lora-adapters`, {
       headers: { authorization: `Bearer ${saved.apiKey}` },
       signal: AbortSignal.timeout(2000),
     });
-    if (!response.ok) return;
+    if (response.ok) return true;
+    return response.status === 503 && (await response.text()).includes('Loading model');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Stops a llama-server that a process left running in `runtimeDir`, and waits until it has gone.
+ * Only the server its folder's record names is Architect's to stop: one that answers to the
+ * record's key, or is still loading its model on the recorded port. A port another program uses
+ * now, or nothing listening, leaves everything as it is. True once nothing it started there is
+ * left; false when the server is still running after being stopped. The next start in the same
+ * folder calls this, and so does a process that takes the GPU over from a holder that died
+ * (decision 046).
+ */
+export async function stopServerLeftIn(runtimeDir: string): Promise<boolean> {
+  let saved: z.infer<typeof RecordSchema>;
+  try {
+    saved = RecordSchema.parse(JSON.parse(await readFile(join(runtimeDir, RECORD_FILE), 'utf8')));
+  } catch {
+    return true;
+  }
+  if (!isAlive(saved.pid) || !(await isRecordedServer(saved))) return true;
+  try {
     process.kill(saved.pid);
   } catch {
-    // Nothing answers there with that key, or it has just gone: nothing of ours is left to stop.
-    return;
+    // It has just gone.
   }
   const deadline = Date.now() + 10_000;
   while (isAlive(saved.pid) && Date.now() < deadline) {
     await new Promise((done) => setTimeout(done, 100));
   }
+  return !isAlive(saved.pid);
 }
 
 /**
@@ -475,7 +491,14 @@ export class LlamaServer {
    * for it, it is ours: stop it and wait until it has gone.
    */
   private async reapOrphan(): Promise<void> {
-    await stopServerLeftIn(this.options.runtimeDir);
+    if (!(await stopServerLeftIn(this.options.runtimeDir))) {
+      // Starting another beside it would run out of memory; its record stays for the next try.
+      throw new LocalRuntimeError(
+        'gpu_busy',
+        'A llama-server Architect started before is still running and did not stop when asked.',
+        'End the llama-server process in your system monitor, then try again.',
+      );
+    }
     rmSync(this.recordFile, { force: true });
   }
 
@@ -499,8 +522,8 @@ export class LlamaServer {
       }
       mkdirSync(join(this.options.runtimeDir, 'logs'), { recursive: true });
       if (!this.reaped) {
-        this.reaped = true;
         await this.reapOrphan();
+        this.reaped = true;
       }
       await this.options.beforeStart?.(signal);
       if (signal.aborted) throw aborted();

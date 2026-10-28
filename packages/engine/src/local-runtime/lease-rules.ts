@@ -141,15 +141,6 @@ export function mayTake(state: LeaseState, use: GpuUse, place: Place): boolean {
 }
 
 /**
- * Whether one more request may join a user that is busy on the GPU already. It may unless someone
- * who can't share it waits with a higher rank: a run's next request waits behind a reply, while a
- * reply's own requests go on until the reply is done.
- */
-export function mayJoinBusy(state: LeaseState, user: string, use: GpuUse, rank: number): boolean {
-  return !state.asks.some((ask) => ask.user !== user && conflicts(ask.use, use) && ask.rank > rank);
-}
-
-/**
  * Whether a user holding the GPU with nothing running on it should give it up: someone who can't
  * share it waits, ahead of the user's own next request when it has one waiting.
  */

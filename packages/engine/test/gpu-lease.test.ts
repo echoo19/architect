@@ -1,5 +1,13 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import fs, {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createStudent } from '@architect/adapters';
@@ -19,7 +27,6 @@ import {
 import {
   conflicts,
   emptyLease,
-  mayJoinBusy,
   mayTake,
   ranksAhead,
   shouldYield,
@@ -155,9 +162,9 @@ describe('the rules of the lease', () => {
     expect(mayTake({ ...state, holders: [] }, 'llama-server', place('c:llama-server', 2, 9))).toBe(
       true,
     );
-    // A busy user's own requests join unless someone of a higher rank waits.
-    expect(mayJoinBusy(state, 'w:llama-server', 'llama-server', 2)).toBe(true);
-    expect(mayJoinBusy(state, 'w:llama-server', 'llama-server', 0)).toBe(false);
+    // A holder's next request goes on unless someone waits ahead of it, at an equal rank too.
+    expect(mayTake(state, 'llama-server', place('w:llama-server', 2, 9))).toBe(true);
+    expect(mayTake(state, 'llama-server', place('w:llama-server', 1, 9))).toBe(false);
     // An idle holder gives up for a conflicting ask, unless its own next request goes first.
     const holder = { user: 'w:llama-server', use: 'llama-server' as const };
     expect(shouldYield(state, holder, null)).toBe(true);
@@ -247,14 +254,28 @@ describe('the GPU lease between processes', () => {
   it("lets a reply's own requests go on while it holds the GPU, whoever waits", async () => {
     const workspace = lease('workspace');
     const wholeReply = await workspace.hold('llama-server', replyPurpose('Returns desk'));
-    const check = lease('engine').hold('llama-server', CHECK_PURPOSE);
+    // Another process's reply waits: it goes before any new reply here, but never between this
+    // reply's own turns.
+    const order: string[] = [];
+    const theirs = lease('cli')
+      .hold('llama-server', replyPurpose('Returns desk'))
+      .then((hold) => (order.push('their reply'), hold));
     await until(() => leaseFile().asks.length === 1);
-    for (let turn = 0; turn < 3; turn++) {
-      (await workspace.hold('llama-server', replyPurpose('Returns desk'))).release();
-    }
-    expect(await settled(check)).toBe(false);
+    await wholeReply.run(async () => {
+      for (let turn = 0; turn < 3; turn++) {
+        (await workspace.hold('llama-server', replyPurpose('Returns desk'))).release();
+      }
+    });
+    const nextReply = workspace
+      .hold('llama-server', replyPurpose('Returns desk'))
+      .then((hold) => (order.push('our next reply'), hold));
+    await pause(50);
+    expect(await settled(theirs)).toBe(false);
+    expect(await settled(nextReply)).toBe(false);
     wholeReply.release();
-    (await check).release();
+    (await theirs).release();
+    (await nextReply).release();
+    expect(order).toEqual(['their reply', 'our next reply']);
   });
 
   it("keeps a run's next request behind a check that waits, even while the run is busy", async () => {
@@ -386,6 +407,103 @@ describe('the GPU lease between processes', () => {
     expect(alive(orphanPid)).toBe(false);
     expect(recorded(record).filter((entry) => entry.kind === 'start')).toHaveLength(1);
     hold.release();
+  });
+
+  it("stops a dead holder's llama-server while it is still loading, before anyone else loads", async () => {
+    const record = join(dir, 'record.jsonl');
+    const serverDir = join(dir, 'local-runtime', 'cli');
+    const orphan = new LlamaServer({ runtimeDir: serverDir, startupTimeoutMs: 60_000 });
+    servers.push(orphan);
+    const loading = orphan
+      .ensure({
+        command: fakeLlamaCommand(record, '--fake-load-ms', '60000'),
+        modelPath: join(dir, 'base.gguf'),
+        alias: 'muse-glimmer:30b',
+        adapters: [],
+        contextSize: 16_384,
+        gpuLayers: 999,
+      })
+      .catch(() => undefined);
+    // It listens, and answers everything with "Loading model", before it checks any key.
+    await until(() => orphan.status().port !== null);
+    const health = `http://127.0.0.1:${orphan.status().port}/health`;
+    let answering = false;
+    const deadline = Date.now() + 10_000;
+    while (!answering && Date.now() < deadline) {
+      answering = await fetch(health).then(
+        (response) => response.status === 503,
+        () => false,
+      );
+      if (!answering) await pause(25);
+    }
+    expect(answering).toBe(true);
+    const orphanPid = orphan.status().pid ?? 0;
+    const state: LeaseState = {
+      holders: [
+        {
+          user: 'gone:llama-server',
+          pid: deadPid(),
+          owner: 'cli',
+          use: 'llama-server',
+          beat: Date.now(),
+          busy: true,
+          leaving: false,
+          doing: 'answering a chat with Returns desk',
+          hint: '',
+          serverDir,
+        },
+      ],
+      asks: [],
+    };
+    writeFileSync(join(dir, 'local-runtime', 'gpu-lease.json'), JSON.stringify(state));
+    const hold = await lease('workspace').hold('llama-server', replyPurpose('Returns desk'));
+    expect(alive(orphanPid)).toBe(false);
+    hold.release();
+    await loading;
+  });
+
+  it('takes back a grant it could not save, so two processes never both hold the GPU', async () => {
+    const quiet = { onError: () => undefined };
+    const workspace = lease('workspace', quiet);
+    const engine = lease('engine', quiet);
+    const realRename = fs.renameSync;
+    fs.renameSync = ((from: fs.PathLike, to: fs.PathLike) => {
+      if (String(to).endsWith('gpu-lease.json')) {
+        throw Object.assign(new Error('EPERM: simulated'), { code: 'EPERM' });
+      }
+      realRename(from, to);
+    }) as typeof fs.renameSync;
+    syncBuiltinESMExports();
+    const first = workspace.hold('llama-server', replyPurpose('Returns desk'));
+    const second = engine.hold('llama-server', CHECK_PURPOSE);
+    try {
+      await pause(400);
+      // Neither could say it holds the GPU, so neither does.
+      expect(await settled(first)).toBe(false);
+      expect(await settled(second)).toBe(false);
+    } finally {
+      fs.renameSync = realRename;
+      syncBuiltinESMExports();
+    }
+    // Saved now: one has it, and the other waits until it lets go.
+    const winner = await Promise.race([
+      first.then((hold) => ({ hold, other: second })),
+      second.then((hold) => ({ hold, other: first })),
+    ]);
+    await pause(50);
+    expect(await settled(winner.other)).toBe(false);
+    winner.hold.release();
+    (await winner.other).release();
+  });
+
+  it("leaves a llama-server's entry when it exits, for the next process to stop the server", async () => {
+    const serverDir = join(dir, 'local-runtime', 'cli');
+    const cli = lease('cli');
+    cli.serve('llama-server', { release: async () => undefined, resident: () => true, serverDir });
+    (await cli.hold('llama-server', replyPurpose('Returns desk'))).release();
+    await until(() => leaseFile().holders[0]?.busy === false);
+    cli.leaveNow();
+    expect(leaseFile().holders).toMatchObject([{ owner: 'cli', use: 'llama-server', serverDir }]);
   });
 
   it("keeps quiet mode's thread cap, and lets go of the GPU when the idle stop stops the server", async () => {
