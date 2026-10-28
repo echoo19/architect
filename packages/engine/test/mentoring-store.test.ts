@@ -189,11 +189,6 @@ afterEach(() => {
 });
 
 describe('the mentoring migration', () => {
-  it('is the last migration, so another branch can renumber it in one place', () => {
-    expect(MIGRATIONS.at(-1)).toBe(MENTORING_MIGRATION);
-    expect(MENTORING_MIGRATION.version).toBe(MIGRATIONS.length);
-  });
-
   it('keeps runs and attempts from before it readable, as the student with no adapter', () => {
     const earlier = join(dir, 'earlier.db');
     const db = openDatabase(

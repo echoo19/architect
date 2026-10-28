@@ -6,6 +6,7 @@ export default defineConfig({
       'packages/*/test/**/*.test.ts',
       'examples/*/test/**/*.test.ts',
       'apps/desktop/test/unit/**/*.test.ts',
+      'apps/cli/test/**/*.test.ts',
     ],
     environment: 'node',
     testTimeout: 20_000,

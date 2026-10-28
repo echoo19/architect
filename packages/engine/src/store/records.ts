@@ -23,6 +23,7 @@ import {
   UsageSchema,
   VersionEventSchema,
   VersionRefSchema,
+  VersionSourceSchema,
   VersionStateSchema,
 } from '@architect/shared';
 import { z } from 'zod';
@@ -235,6 +236,8 @@ export const StoredVersionSchema = z.object({
   state: VersionStateSchema,
   evaluation: EvaluationStatusSchema,
   runId: z.string().optional(),
+  /** The hub repository and commit it was installed from, when it came from one. */
+  source: VersionSourceSchema.optional(),
   createdAt: z.iso.datetime(),
   acceptedAt: z.iso.datetime().optional(),
 });

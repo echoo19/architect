@@ -369,4 +369,17 @@ export const MIGRATIONS: readonly Migration[] = [
     `,
   },
   MENTORING_MIGRATION,
+  {
+    version: 15,
+    name: 'hub sources and publications',
+    sql: `
+      -- The hub repository and commit a version was installed from, when it came from one.
+      ALTER TABLE graduate_versions ADD COLUMN source TEXT;
+      -- The digest of the package a publication sent, and one record per version and repository,
+      -- so trying a publication again updates its record instead of adding another.
+      ALTER TABLE publications ADD COLUMN digest TEXT;
+      CREATE UNIQUE INDEX publications_once
+        ON publications (graduate_id, version, destination, repository);
+    `,
+  },
 ];

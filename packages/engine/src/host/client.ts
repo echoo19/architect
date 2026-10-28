@@ -149,6 +149,13 @@ export function connectEngine(
       importPackage: (path, importRequest) =>
         request('graduates.importPackage', [path, importRequest ?? {}]),
       importFolder: (folder) => request('graduates.importFolder', [folder]),
+      installFromHub: (source, installRequest) =>
+        request('graduates.installFromHub', [source, installRequest ?? {}]),
+      reviewPublication: (graduateId, publishRequest) =>
+        request('graduates.reviewPublication', [graduateId, publishRequest]),
+      publish: (graduateId, publishRequest) =>
+        request('graduates.publish', [graduateId, publishRequest]),
+      publications: (graduateId) => request('graduates.publications', [graduateId]),
       remove: (graduateId) => request('graduates.remove', [graduateId]),
       settings: (graduateId) => request('graduates.settings', [graduateId]),
       updateSettings: (graduateId, patch) =>

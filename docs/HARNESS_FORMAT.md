@@ -136,7 +136,7 @@ The three write tools go through the job's write permissions, and in the workspa
 
 ## Graduate package (format 2)
 
-A graduate is an agent with immutable versions. Each version is a package: a plain folder, and the same files in a ZIP named `<name>-v<n>.architect.zip` for moving it. The desktop app, export, import and (later) the CLI and the Hub all use this one artifact (decisions 038 and 039).
+A graduate is an agent with immutable versions. Each version is a package: a plain folder, and the same files in a ZIP named `<name>-v<n>.architect.zip` for moving it. The desktop app, export, import, the `architect` command and Hugging Face all use this one artifact (decisions 038, 039, 043 and 044).
 
 ```
 graduate.json          the manifest: everything below, and the sha256 of every other file
@@ -201,6 +201,10 @@ Paths are relative with forward slashes. Every segment starts with a letter or d
 ### Installation
 
 A computer keeps, for each agent, an installation in its own database, never in a package: the local model endpoint (runtime, address, the name it serves the base under), a folder for each logical resource, and the grants (write mode, and `none`, `read` or `read_write` for each resource). A graduate made on the computer gets its job's endpoint, a copy of the job's data for `data/` and the job's write mode. An imported one gets only what the import names. Each version's last installation checks (platform, memory, runtime and adapter fit, harness hash, tools load, folders and their columns, model served and the same build, a short request) are stored with it under the label "Installation checks on this computer", apart from the author's evidence: ready, needs attention, or blocked.
+
+### On Hugging Face
+
+A published version is a model repository holding the package at its root, exactly as an export writes it, and a `README.md` model card made from its manifest beside it. The package goes up in one commit, which the card names in its install command (`architect install hf://owner/name --revision <commit>`); the card follows in a second commit. Installing fetches `graduate.json` at one commit and then only the files it lists, each checked against its sha256 and size, so the card and any other file in the repository never reach a computer that installs it (decision 044).
 
 ## Format 1 graduate folders
 

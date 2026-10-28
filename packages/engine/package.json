@@ -5,7 +5,11 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./agent-host": "./src/agent-host/index.ts"
+    "./agent-host": "./src/agent-host/index.ts",
+    "./graduates": "./src/graduates/index.ts",
+    "./hub": "./src/hub/index.ts",
+    "./local-runtime": "./src/local-runtime/index.ts",
+    "./testing": "./test/support/testing.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

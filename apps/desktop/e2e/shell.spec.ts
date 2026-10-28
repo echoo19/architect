@@ -43,11 +43,13 @@ test('opens a hidden, sandboxed window', async () => {
       'files',
       'graduates',
       'jobs',
+      'mentoring',
       'ollama',
       'reports',
       'runs',
       'secrets',
       'settings',
+      'teach',
       'workspace',
     ],
   });

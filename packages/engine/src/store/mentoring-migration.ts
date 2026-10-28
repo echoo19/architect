@@ -1,9 +1,9 @@
 import type { Migration } from './database';
 
 /**
- * Everything failure-specific mentoring adds to the database, in one migration so it is renumbered
- * in one place if another branch takes its number first. Runs, rounds and attempts made before it
- * read as they did: the job's student with no adapter, in a run nobody was asked to answer.
+ * Everything failure-specific mentoring adds to the database, in one migration. Runs, rounds and
+ * attempts made before it read as they did: the job's student with no adapter, in a run nobody
+ * was asked to answer.
  */
 export const MENTORING_MIGRATION: Migration = {
   version: 14,

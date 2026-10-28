@@ -89,6 +89,7 @@ export function versionInfo(
     contractVersion: version.contractVersion,
     digest: version.digest,
     ...(version.runId === undefined ? {} : { runId: version.runId }),
+    ...(version.source === undefined ? {} : { source: version.source }),
     path: paths.fromStored(version.path),
     manifest: version.manifest,
     createdAt: version.createdAt,

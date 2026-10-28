@@ -18,14 +18,13 @@ import {
   describeTrainingJob,
   FileTrainingStore,
   HfJobsBackend,
-  HubClient,
-  HubError,
   loadRecipe,
   MIN_JOB_SECONDS,
   TrainingWorker,
   writeTrainingDataset,
   type TrainingStore,
 } from '../src/training';
+import { HubClient, HubError } from '../src/hub';
 import { orderEpisode } from './support/episodes';
 import { FAKE_HUB_TOKEN, startFakeHub, type FakeHub } from './support/fake-hub';
 

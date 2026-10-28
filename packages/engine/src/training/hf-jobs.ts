@@ -12,7 +12,7 @@ import type {
   Submitted,
   TrainingBackend,
 } from './backend';
-import { HubError, type HubClient, type JobInfo } from './hub';
+import { HubError, type HubClient, type JobInfo } from '../hub';
 import type { LoadedRecipe } from './recipe';
 
 /**

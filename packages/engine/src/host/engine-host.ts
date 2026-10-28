@@ -13,6 +13,7 @@ import { DataPaths } from '../loop/paths';
 import { openEngineStore } from '../store/engine-store';
 import { ContractBook } from '../graduates/contracts';
 import { GraduateLibrary } from '../graduates/library';
+import { HubClient, hubTokenResolver } from '../hub';
 import { createEngineApi } from './api';
 import type { EnginePort } from './port';
 import {
@@ -42,6 +43,11 @@ export interface EngineHostOptions {
   adapterRuntime?: LocalAdapterRuntime;
   /** Errors nobody asked about: a broken event listener, a message that isn't a request. */
   onError?(error: unknown): void;
+  /**
+   * Hugging Face, for publishing and installing versions. By default the Hub itself, with the
+   * key saved in the app, else HF_TOKEN, else Hugging Face's token file.
+   */
+  hub?: HubClient;
 }
 
 export interface EngineHost {
@@ -114,6 +120,11 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     concurrency: options.concurrency,
     onError,
   });
+  const hub =
+    options.hub ??
+    new HubClient({
+      token: hubTokenResolver({ saved: () => options.deps.secrets.get('huggingface') }),
+    });
   const api = createEngineApi({
     store,
     paths,
@@ -122,6 +133,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     graduates,
     deps: options.deps,
     clock,
+    hub,
   });
   const ports = new Set<EnginePort>();
   let closed = false;

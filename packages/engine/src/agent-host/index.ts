@@ -5,7 +5,7 @@
 
 export { connectAgentHost } from './client';
 export type { AgentHostClient } from './client';
-export { installLoopbackOnlyGuard } from './guard/install';
+export { describeBlocked, installLoopbackOnlyGuard } from './guard/install';
 export type { BlockedConnection, LoopbackGuard, LoopbackGuardOptions } from './guard/install';
 export { createAgentHost } from './host';
 export type { AgentHost, AgentHostOptions, SendOptions, WorkspaceApi } from './host';

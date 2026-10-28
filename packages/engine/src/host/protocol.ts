@@ -19,6 +19,8 @@ import {
   GraduateSummarySchema,
   GraduateVersionSchema,
   GuardError,
+  HubInstallRequestSchema,
+  HubInstallResultSchema,
   ImportRequestSchema,
   ImportResultSchema,
   InstallationSchema,
@@ -30,6 +32,10 @@ import {
   PackageError,
   PackageInspectionSchema,
   PackageProblemCodeSchema,
+  PublicationReviewSchema,
+  PublicationSchema,
+  PublishRequestSchema,
+  PublishResultSchema,
   ReferenceOptionsSchema,
   ReferenceRecordSchema,
   ReportCardSchema,
@@ -44,6 +50,7 @@ import {
   type ArchitectApi,
 } from '@architect/shared';
 import { z } from 'zod';
+import { HubError, type HubErrorCode } from '../hub';
 
 /** The part of the app's API the engine host serves. */
 export type EngineApi = Pick<
@@ -245,6 +252,24 @@ export const ENGINE_ROUTES = {
   'graduates.importFolder': route(z.tuple([path]), GraduateSummarySchema, (api, [folder]) =>
     api.graduates.importFolder(folder),
   ),
+  'graduates.installFromHub': route(
+    z.tuple([z.string().min(1).max(300), HubInstallRequestSchema]),
+    HubInstallResultSchema,
+    (api, [source, request]) => api.graduates.installFromHub(source, request),
+  ),
+  'graduates.reviewPublication': route(
+    z.tuple([id, PublishRequestSchema]),
+    PublicationReviewSchema,
+    (api, [graduateId, request]) => api.graduates.reviewPublication(graduateId, request),
+  ),
+  'graduates.publish': route(
+    z.tuple([id, PublishRequestSchema]),
+    PublishResultSchema,
+    (api, [graduateId, request]) => api.graduates.publish(graduateId, request),
+  ),
+  'graduates.publications': route(z.tuple([id]), z.array(PublicationSchema), (api, [graduateId]) =>
+    api.graduates.publications(graduateId),
+  ),
   'graduates.remove': route(z.tuple([id]), z.void(), (api, [graduateId]) =>
     api.graduates.remove(graduateId),
   ),
@@ -283,6 +308,8 @@ export const ErrorPayloadSchema = z.object({
   code: z.string().optional(),
   /** A refused package's problems, one sentence each. */
   problems: z.array(z.string()).optional(),
+  /** What to do about a Hugging Face failure. */
+  hint: z.string().optional(),
 });
 export type ErrorPayload = z.infer<typeof ErrorPayloadSchema>;
 
@@ -317,6 +344,24 @@ const ADAPTER_ERROR_CODES: readonly AdapterErrorCode[] = [
   'blocked',
 ];
 
+const HUB_ERROR_CODES: readonly HubErrorCode[] = [
+  'auth',
+  'forbidden',
+  'billing',
+  'not_found',
+  'conflict',
+  'too_large',
+  'rate_limit',
+  'server',
+  'network',
+  'bad_response',
+  'mismatch',
+];
+
+function isHubErrorCode(code: string): code is HubErrorCode {
+  return (HUB_ERROR_CODES as readonly string[]).includes(code);
+}
+
 function isAdapterErrorCode(code: string): code is AdapterErrorCode {
   return (ADAPTER_ERROR_CODES as readonly string[]).includes(code);
 }
@@ -327,6 +372,9 @@ export function toErrorPayload(error: unknown): ErrorPayload {
     return { name: error.name, message: error.message, guard: error.guard };
   if (error instanceof AdapterError)
     return { name: error.name, message: error.message, code: error.code };
+  if (error instanceof HubError) {
+    return { name: error.name, message: error.message, code: error.code, hint: error.hint };
+  }
   if (error instanceof PackageError) {
     return {
       name: error.name,
@@ -350,6 +398,9 @@ export function fromErrorPayload(payload: ErrorPayload): Error {
     return new GuardError(payload.guard, payload.message);
   if (payload.name === 'AdapterError' && payload.code && isAdapterErrorCode(payload.code)) {
     return new AdapterError(payload.code, payload.message);
+  }
+  if (payload.name === 'HubError' && payload.code && isHubErrorCode(payload.code)) {
+    return new HubError(payload.code, payload.message, payload.hint ?? '');
   }
   const packageCode = PackageProblemCodeSchema.safeParse(payload.code);
   if (payload.name === 'PackageError' && packageCode.success) {

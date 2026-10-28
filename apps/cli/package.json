@@ -1,0 +1,23 @@
+{
+  "name": "@architect/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The architect command: run, install, inspect, verify, export and publish graduates from a terminal.",
+  "bin": {
+    "architect": "./bin/architect.mjs"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    "./main": "./src/main.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@architect/engine": "workspace:*",
+    "@architect/shared": "workspace:*",
+    "tsx": "^4.23.15",
+    "zod": "^4.6.7"
+  }
+}

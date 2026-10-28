@@ -55,8 +55,9 @@ export default tseslint.config(
     },
   },
   {
-    // Workspace sessions run graduates offline: no mentor code in the agent host.
-    files: ['packages/engine/src/agent-host/**/*.ts'],
+    // Workspace sessions run graduates offline: no mentor code in the agent host, and none in
+    // the architect command, which runs graduates the same way.
+    files: ['packages/engine/src/agent-host/**/*.ts', 'apps/cli/src/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',

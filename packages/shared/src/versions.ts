@@ -15,6 +15,33 @@ import {
 export const VersionStateSchema = z.enum(['candidate', 'accepted', 'rejected']);
 export type VersionState = z.infer<typeof VersionStateSchema>;
 
+/** A Hugging Face model repository, `owner/name`, as the Hub's own tools accept one. */
+export const HubRepositorySchema = z
+  .string()
+  .regex(
+    /^[A-Za-z0-9](?:[A-Za-z0-9._-]{0,94}[A-Za-z0-9])?\/[A-Za-z0-9](?:[A-Za-z0-9._-]{0,94}[A-Za-z0-9])?$/,
+    'is not a repository name of the form owner/name',
+  )
+  .refine(
+    (id) => !/--|\.\./.test(id) && !id.endsWith('.git'),
+    'is not a repository name the Hub allows',
+  );
+
+/** A git commit: the only kind of revision a publication or an installation records. */
+export const CommitIdSchema = z.string().regex(/^[0-9a-f]{40}$/);
+
+/** Where an installed version came from, when it came from a hub: the commit, never a branch. */
+export const VersionSourceSchema = z
+  .object({
+    kind: z.literal('huggingface'),
+    repository: HubRepositorySchema,
+    revision: CommitIdSchema,
+    /** The repository's page at that commit. */
+    url: z.string(),
+  })
+  .strict();
+export type VersionSource = z.infer<typeof VersionSourceSchema>;
+
 /** One immutable version of an agent on this computer. */
 export const GraduateVersionSchema = z.object({
   graduateId: z.string(),
@@ -31,6 +58,8 @@ export const GraduateVersionSchema = z.object({
   digest: z.string(),
   /** The run that made it, on this computer. */
   runId: z.string().optional(),
+  /** The hub repository and commit it was installed from, when it came from one. */
+  source: VersionSourceSchema.optional(),
   /** The version's folder. */
   path: z.string(),
   manifest: PackageManifestSchema,
@@ -130,17 +159,26 @@ export const InstallationSchema = z.object({
 });
 export type Installation = z.infer<typeof InstallationSchema>;
 
-/** A Hugging Face (or other) publication of a version. Recorded only; publishing comes later. */
+export const HubVisibilitySchema = z.enum(['private', 'public']);
+export type HubVisibility = z.infer<typeof HubVisibilitySchema>;
+
+/**
+ * A version published to a hub. One record per version and repository: trying again updates
+ * it. Only `complete` is a release anyone can install, and only then is `revision` set.
+ */
 export const PublicationSchema = z.object({
   id: z.string(),
   graduateId: z.string(),
   version: z.number().int().positive(),
   destination: z.literal('huggingface'),
   repository: z.string().min(1),
-  visibility: z.enum(['private', 'public']),
-  /** The immutable commit, once the upload completed. */
+  /** The repository's visibility as it was when the version was sent. */
+  visibility: HubVisibilitySchema,
+  /** The commit that holds the package, once the upload completed. */
   revision: z.string().optional(),
   url: z.string().optional(),
+  /** sha256 of the published `graduate.json`: the version's own unless resources were shared. */
+  digest: z.string().optional(),
   status: z.enum(['staged', 'uploading', 'complete', 'failed']),
   error: z.string().optional(),
   createdAt: z.iso.datetime(),
@@ -266,6 +304,22 @@ export const ImportRequestSchema = z
   .strict();
 export type ImportRequest = z.input<typeof ImportRequestSchema>;
 
+/**
+ * Installing a version from a Hugging Face repository: which revision to take, resolved once to
+ * its commit, and the same choices as any import.
+ */
+export const HubInstallRequestSchema = z
+  .object({
+    /** A commit, or a branch or tag resolved once to the commit it points at; `main` when absent. */
+    revision: z.string().min(1).max(256).optional(),
+    bindings: ImportRequestSchema.shape.bindings,
+    grants: ImportRequestSchema.shape.grants,
+    model: ImportRequestSchema.shape.model,
+    loadModel: ImportRequestSchema.shape.loadModel,
+  })
+  .strict();
+export type HubInstallRequest = z.input<typeof HubInstallRequestSchema>;
+
 export const BindRequestSchema = z
   .object({
     bindings: z.record(z.string(), z.string().min(1)).optional(),
@@ -274,3 +328,61 @@ export const BindRequestSchema = z
   })
   .strict();
 export type BindRequest = z.infer<typeof BindRequestSchema>;
+
+/** What publishing a version asks for. New repositories are private unless this says public. */
+export const PublishRequestSchema = z
+  .object({
+    /** `owner/name`. */
+    repository: HubRepositorySchema,
+    visibility: HubVisibilitySchema.default('private'),
+    /** The active version unless named. */
+    version: z.number().int().positive().optional(),
+    /** Optional items to share, by id, as in an export review: `resource:data`. */
+    include: z.array(z.string()).default([]),
+    /** The `findingsDigest` of the review the user saw, when the scan found something. */
+    acknowledgedFindings: z.string().optional(),
+  })
+  .strict();
+export type PublishRequest = z.input<typeof PublishRequestSchema>;
+
+/** One file a publication sends. */
+export const PublishedFileSchema = z.object({
+  path: z.string(),
+  bytes: z.number().int().nonnegative(),
+  /** Whether it went through LFS; known once it was sent. */
+  lfs: z.boolean().optional(),
+});
+export type PublishedFile = z.infer<typeof PublishedFileSchema>;
+
+/**
+ * Everything a publication would send, before it sends anything: the package's files and the
+ * model card, and what the best-effort scan found in all of them.
+ */
+export const PublicationReviewSchema = z.object({
+  graduateId: z.string(),
+  version: z.number().int().positive(),
+  name: z.string(),
+  repository: z.string(),
+  visibility: HubVisibilitySchema,
+  /** Every file that would go, `README.md` (the model card) included, in path order. */
+  files: z.array(PublishedFileSchema),
+  bytes: z.number().int().nonnegative(),
+  /** The model card. Its install command names the package's commit once that exists. */
+  card: z.string(),
+  findings: z.array(ExportFindingSchema),
+  /** Names these findings: publishing goes ahead despite them only when it names the same. */
+  findingsDigest: z.string(),
+  /** Shown before anything leaves this computer. */
+  notices: z.array(z.string()),
+});
+export type PublicationReview = z.infer<typeof PublicationReviewSchema>;
+
+export const PublishResultSchema = z.object({
+  publication: PublicationSchema,
+  files: z.array(PublishedFileSchema),
+  /** True when this version was already published there, so nothing was sent. */
+  alreadyPublished: z.boolean(),
+  /** Things the user should know, such as a repository that stayed private. */
+  notes: z.array(z.string()),
+});
+export type PublishResult = z.infer<typeof PublishResultSchema>;
