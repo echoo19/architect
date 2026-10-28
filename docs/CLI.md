@@ -140,7 +140,7 @@ https://huggingface.co/jake/service-desk
 Install it with: architect install hf://jake/service-desk --revision 3f1c9e2a...
 ```
 
-`--dry-run` shows what would go and sends nothing. `--version`, `--include` and `--accept-findings` work as for `export`. See "Hugging Face" below.
+`--dry-run` shows what would go and sends nothing. `--version`, `--include` and `--accept-findings` work as for `export`. Publishing the same version to the same repository again finishes a publication that failed; when one of another version didn't finish, the command says so, and `--version` finishes that one. See "Hugging Face" below.
 
 ## Run requests and results
 
