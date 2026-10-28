@@ -9,6 +9,7 @@ import { attempt } from '../../lib/notify';
 import { AddKeyDialog } from './AddKeyDialog';
 import type { Connection } from './connections';
 import { forgetModelList } from './hooks';
+import { LlamaServerRow } from './LlamaServerRow';
 import { useOpenRouterSignIn } from './useSignIn';
 
 function statusOf(connection: Connection): string {
@@ -45,7 +46,8 @@ export interface ConnectionsSectionProps {
 
 /**
  * Where models come from: keys and sign-ins for hosted providers, endpoints added by address,
- * and the runtimes on this computer. Adding is two buttons; each row can be removed.
+ * and the runtimes on this computer, llama.cpp's among them. Adding is two buttons; each row can
+ * be removed.
  */
 export function ConnectionsSection({ connections, detecting }: ConnectionsSectionProps) {
   const [adding, setAdding] = useState(false);
@@ -98,6 +100,7 @@ export function ConnectionsSection({ connections, detecting }: ConnectionsSectio
           )}
         </SettingsRow>
       ))}
+      <LlamaServerRow />
       {detecting && (
         <div className="flex min-h-[60px] items-center gap-2.5 border-t border-line text-fg-muted">
           <Spinner size={13} />

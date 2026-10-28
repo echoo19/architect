@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { harnessToFiles, hashHarness } from '@architect/harness';
+import { harnessToFiles, hashHarness, sha256Bytes } from '@architect/harness';
 import {
   contractTerms,
   HARNESS_FORMAT,
@@ -36,6 +36,8 @@ export interface GraduateOptions {
   harness?: Partial<z.input<typeof HarnessSchema>>;
   /** The write mode this computer granted; the job's own when absent. */
   writes?: PermissionMode;
+  /** A GGUF LoRA for the version to carry, trained on the base whose GGUF has `baseDigest`. */
+  adapter?: { bytes: Uint8Array; baseDigest: string; scale: number };
 }
 
 const CREATED_AT = '2026-11-05T18:00:00.000Z';
@@ -100,6 +102,19 @@ export async function addGraduate(
 
   const harness = fixtureHarness(job.name, options.harness);
   const facts = fixtureFacts(options.id, job, harness);
+  if (options.adapter) {
+    const source = join(dataDir, `adapter-${options.id}.gguf`);
+    await writeFile(source, options.adapter.bytes);
+    facts.adapter = {
+      path: 'adapter/adapter.gguf',
+      format: 'gguf_lora',
+      sha256: sha256Bytes(options.adapter.bytes),
+      sizeBytes: options.adapter.bytes.byteLength,
+      baseDigest: options.adapter.baseDigest,
+      scale: options.adapter.scale,
+      source,
+    };
+  }
   const written = await writeVersionFolder(store, paths, facts);
   store.transaction(() => {
     registerVersion(store, paths, {

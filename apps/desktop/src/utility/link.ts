@@ -1,4 +1,4 @@
-import type { EnginePort } from '@architect/engine';
+import { ServerCommandSchema, type EnginePort } from '@architect/engine';
 import { z } from 'zod';
 
 /*
@@ -7,25 +7,32 @@ import { z } from 'zod';
  * secret lookups, which only main can answer. Messages are checked on arrival in both processes.
  */
 
-export const EngineStartSchema = z.object({
+/** Settings the engine follows while it runs, sent at the start and again whenever they change. */
+const FollowedSettingsSchema = z.object({
+  /** The CPU-thread cap for local models, when quiet mode is on. */
+  localThreads: z.number().int().positive().optional(),
+  /** How long local models rest after each reply, as a share of its time, in quiet mode. */
+  localCooldown: z.number().positive().optional(),
+  /** The llama-server chosen in Settings; the one on PATH when absent. */
+  llamaServerPath: z.string().min(1).optional(),
+  /** The Ollama whose models are unloaded before llama-server starts. */
+  ollamaUrl: z.url().optional(),
+});
+
+export const EngineStartSchema = FollowedSettingsSchema.extend({
   type: z.literal('start'),
   /** The app's data folder. */
   dataDir: z.string().min(1),
   /** The built sandbox child, in a real folder the engine can fork it from. */
   sandboxEntryPath: z.string().min(1),
   sampleJobFile: z.string().min(1),
-  /** The CPU-thread cap for local models, when quiet mode is on. */
-  localThreads: z.number().int().positive().optional(),
-  /** How long local models rest after each reply, as a share of its time, in quiet mode. */
-  localCooldown: z.number().positive().optional(),
+  /** A stand-in llama-server for tests (ARCHITECT_LLAMA_SERVER_COMMAND). */
+  llamaServerCommand: ServerCommandSchema.optional(),
 });
 export type EngineStart = z.infer<typeof EngineStartSchema>;
 
-/** Settings the engine follows while it runs. */
-export const EngineSettingsSchema = z.object({
+export const EngineSettingsSchema = FollowedSettingsSchema.extend({
   type: z.literal('settings'),
-  localThreads: z.number().int().positive().optional(),
-  localCooldown: z.number().positive().optional(),
 });
 export type EngineSettings = z.infer<typeof EngineSettingsSchema>;
 

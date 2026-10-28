@@ -1,7 +1,13 @@
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { readPackage } from '@architect/harness';
-import { GuardError, PackageError, type Grants, type ModelBinding } from '@architect/shared';
+import {
+  GuardError,
+  PackageError,
+  type Grants,
+  type ModelBinding,
+  type PackageManifest,
+} from '@architect/shared';
 import type { ServeRequest } from '../local-runtime';
 import type { DataPaths } from '../loop/paths';
 import type { EngineStore } from '../store/engine-store';
@@ -20,8 +26,9 @@ export interface ActiveVersion {
   /**
    * What the adapter runtime (decision 035) loads for a version with an adapter: the base by the
    * name this computer's installation serves it under, the version's GGUF LoRA (its checksum
-   * verified just now, with the harness) and the scale it was measured at. Before serving, the
-   * runtime's GGUF digest for the base must be the adapter's `baseDigest`. Null without one.
+   * verified just now, with the harness) and the scale it was measured at. The runtime holds the
+   * base to the adapter's `baseDigest` and the file to its sha256 again before every start.
+   * Null without one.
    */
   adapter: ServeRequest | null;
   model: ModelBinding;
@@ -30,6 +37,47 @@ export interface ActiveVersion {
   grants: Grants;
   /** Which version and which state of the installation this is; see `activeStamp`. */
   stamp: string;
+}
+
+/**
+ * What the adapter runtime serves for a version with an adapter, on this computer: the base by
+ * the name its installation gives it in Ollama's store, held to the build the adapter was trained
+ * on, and the version's own adapter file, held to its sha256, at the scale it was measured at,
+ * with the version's context. Null for a version without an adapter.
+ */
+export function serveRequestFor(
+  name: string,
+  version: StoredVersion,
+  dir: string,
+  installation: Pick<StoredInstallation, 'model'>,
+): ServeRequest | null {
+  return adapterRequest(
+    `${name} v${version.version}`,
+    version.manifest,
+    dir,
+    installation.model.model,
+  );
+}
+
+/**
+ * The same request for a package's files in `dir`, installed or not (an import's preview looks at
+ * a staged package with it): the adapter loaded as `key` on `model`, the base's name here.
+ */
+export function adapterRequest(
+  key: string,
+  manifest: PackageManifest,
+  dir: string,
+  model: string,
+): ServeRequest | null {
+  const adapter = manifest.model.adapter;
+  if (adapter === undefined) return null;
+  return {
+    model,
+    adapters: [{ key, path: join(dir, ...adapter.path.split('/')), sha256: adapter.sha256 }],
+    scales: { [key]: adapter.scale },
+    baseDigest: adapter.baseDigest,
+    contextLength: manifest.model.inference.contextLength,
+  };
 }
 
 function stampOf(version: number, installation: StoredInstallation): string {
@@ -92,22 +140,13 @@ export async function activeVersion(
       `Version ${version.version} of ${agent.name} has a different graduate.json from the one installed, so it wasn't opened.`,
     ]);
   }
-  const adapter = version.manifest.model.adapter;
-  const key = `${agent.name} v${version.version}`;
   return {
     graduateId,
     name: agent.name,
     version,
     dir,
     harnessDir: join(dir, HARNESS_DIR),
-    adapter:
-      adapter === undefined
-        ? null
-        : {
-            model: installation.model.model,
-            adapters: [{ key, path: join(dir, ...adapter.path.split('/')) }],
-            scales: { [key]: adapter.scale },
-          },
+    adapter: serveRequestFor(agent.name, version, dir, installation),
     model: installation.model,
     bindings: absoluteBindings(paths, installation.bindings),
     grants: installation.grants,

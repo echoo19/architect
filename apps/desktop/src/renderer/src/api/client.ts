@@ -6,6 +6,7 @@ import {
   GraduateSummarySchema,
   JobSchema,
   JobSummarySchema,
+  LlamaServerStatusSchema,
   LocalRuntimesSchema,
   ModelEntrySchema,
   OllamaStatusSchema,
@@ -46,6 +47,8 @@ export const api = {
   ollamaStatus: () => read('ollama.status', OllamaStatusSchema, bridge().ollama.status()),
   localRuntimes: () =>
     read('connections.detectLocal', LocalRuntimesSchema, bridge().connections.detectLocal()),
+  llamaServer: () =>
+    read('connections.llamaServer', LlamaServerStatusSchema, bridge().connections.llamaServer()),
   models: (source: ModelSource) =>
     read(
       'connections.listModels',

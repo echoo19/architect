@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { arch, platform, totalmem } from 'node:os';
 import { join } from 'node:path';
-import { isLoopbackUrl } from '@architect/adapters';
+import { createLlamaCppStudent, isLoopbackUrl } from '@architect/adapters';
 import {
   ADAPTER_RUNTIMES,
   PackageError,
@@ -15,10 +15,18 @@ import {
   type StudentAdapter,
 } from '@architect/shared';
 import { parseCsv } from '../data/csv';
+import {
+  shortDigest,
+  type AdapterServing,
+  type LocalRuntimeError,
+  type LocalRuntimeErrorCode,
+  type ServeRequest,
+} from '../local-runtime';
 import type { DataPaths } from '../loop/paths';
 import type { StoredChecks, StoredInstallation, StoredVersion } from '../store/records';
 import { absoluteFolder } from './bindings';
 import { readPackageHarness } from './harness';
+import { adapterRequest, serveRequestFor } from './open';
 import { exists } from './versions';
 
 /** Where Architect runs graduates. Anything else, a Raspberry Pi included, is reported as such. */
@@ -40,6 +48,8 @@ export interface CheckDeps {
   toolLoadProblem(tool: HarnessTool): Promise<string | null>;
   /** A student on this computer's runtime, for the model checks. Never a hosted endpoint. */
   createStudent(binding: ModelBinding, contextLength: number): StudentAdapter;
+  /** The adapter runtime, which checks and serves a version that carries an adapter. */
+  adapters: AdapterServing;
   now(): string;
 }
 
@@ -93,16 +103,24 @@ function compatibility(
     });
   }
   const { compatible } = manifest.model.runtime;
-  if (!compatible.includes(model.runtime)) {
+  if (manifest.model.adapter) {
+    // llama.cpp serves the adapter on the base from Ollama's store (decision 041).
+    if (!compatible.some((runtime) => (ADAPTER_RUNTIMES as readonly string[]).includes(runtime))) {
+      findings.push({
+        level: 'blocked',
+        reason: `It carries a LoRA adapter for ${compatible.join(' or ')}, and this version of Architect serves adapters only with ${ADAPTER_RUNTIMES.join(' or ')}.`,
+      });
+    }
+    if (model.runtime !== 'ollama') {
+      findings.push({
+        level: 'needs_attention',
+        reason: `It carries a LoRA adapter, which llama.cpp applies to its base from Ollama's model store, and its model here is set to ${model.runtime}. Set its model to ${manifest.model.base.name} on Ollama.`,
+      });
+    }
+  } else if (!compatible.includes(model.runtime)) {
     findings.push({
       level: 'blocked',
       reason: `It runs on ${compatible.join(' or ')}, and this computer serves its model with ${model.runtime}.`,
-    });
-  }
-  if (manifest.model.adapter && !ADAPTER_RUNTIMES.some((runtime) => runtime === model.runtime)) {
-    findings.push({
-      level: 'blocked',
-      reason: `It carries a LoRA adapter, which ${model.runtime} can't load; it needs ${ADAPTER_RUNTIMES.join(' or ')}.`,
     });
   }
   if (!isLoopbackUrl(model.baseUrl)) {
@@ -111,6 +129,9 @@ function compatibility(
       reason: `Its model is set to run at ${new URL(model.baseUrl).host}, which isn't this computer. A graduate only runs on a local model.`,
     });
   }
+  const serving = manifest.model.adapter
+    ? "llama.cpp with its adapter, on its base from Ollama's store"
+    : `${model.runtime} at ${new URL(model.baseUrl).host}`;
   return {
     check: {
       id: 'compatibility',
@@ -118,7 +139,7 @@ function compatibility(
       status: findings.length === 0 ? 'passed' : 'failed',
       detail:
         findings.length === 0
-          ? `${here}, ${gb(machine.memoryBytes)} of memory, ${model.runtime} at ${new URL(model.baseUrl).host}.`
+          ? `${here}, ${gb(machine.memoryBytes)} of memory, ${serving}.`
           : findings.map((finding) => finding.reason).join(' '),
     },
     findings,
@@ -283,35 +304,95 @@ async function resourcesCheck(
   };
 }
 
-async function modelChecks(
+interface ModelResult {
+  checks: InstallCheck[];
+  findings: Finding[];
+  firstReplyMs?: number;
+}
+
+const skipped = (id: string, kind: string, detail: string): InstallCheck => ({
+  id,
+  kind,
+  status: 'skipped',
+  detail,
+});
+
+/** The model-responds check when no request is sent. */
+function respondsSkipped(
+  options: CheckOptions,
+  why = 'Skipped: the model is not available.',
+): InstallCheck {
+  return skipped('model-responds', 'model_responds', options.loadModel ? why : 'Not asked for.');
+}
+
+/**
+ * One short request, timed from the first byte sent to the end of the reply, loading included.
+ * The model is unloaded again afterwards whether or not it answered.
+ */
+async function respondsCheck(
+  student: StudentAdapter,
+): Promise<{ check: InstallCheck; findings: Finding[]; firstReplyMs?: number }> {
+  const findings: Finding[] = [];
+  const started = Date.now();
+  let check: InstallCheck;
+  let firstReplyMs: number | undefined;
+  try {
+    for await (const event of student.chat({
+      messages: [{ role: 'user', content: 'Reply with the word ready.' }],
+      tools: [],
+      decoding: {
+        temperature: 1,
+        topP: 0.95,
+        topK: 64,
+        maxSteps: 1,
+        maxOutputTokens: 256,
+        thinking: 'low',
+      },
+      seed: 1,
+    })) {
+      if (event.type === 'done') break;
+    }
+    firstReplyMs = Date.now() - started;
+    check = {
+      id: 'model-responds',
+      kind: 'model_responds',
+      status: 'passed',
+      detail: `Answered in ${(firstReplyMs / 1000).toFixed(1)} s, loading included.`,
+      ms: firstReplyMs,
+    };
+  } catch (error) {
+    const reason = `The model didn't answer a short request: ${error instanceof Error ? error.message : String(error)}`;
+    findings.push({ level: 'needs_attention', reason });
+    check = { id: 'model-responds', kind: 'model_responds', status: 'failed', detail: reason };
+  }
+  try {
+    await student.release();
+  } catch (error) {
+    findings.push({
+      level: 'needs_attention',
+      reason: `The model stayed loaded after the check: ${error instanceof Error ? error.message : String(error)}`,
+    });
+  }
+  return { check, findings, ...(firstReplyMs === undefined ? {} : { firstReplyMs }) };
+}
+
+/** A version without an adapter, on the runtime its installation names. */
+async function runtimeModelChecks(
   deps: Pick<CheckDeps, 'createStudent'>,
   manifest: PackageManifest,
   model: ModelBinding,
   options: CheckOptions,
-  blockedAlready: boolean,
-): Promise<{ checks: InstallCheck[]; findings: Finding[]; firstReplyMs?: number }> {
-  if (blockedAlready || !isLoopbackUrl(model.baseUrl)) {
-    const detail = 'Skipped: this computer cannot run it as it is.';
-    return {
-      checks: [
-        { id: 'model-available', kind: 'model_available', status: 'skipped', detail },
-        { id: 'model-responds', kind: 'model_responds', status: 'skipped', detail },
-      ],
-      findings: [],
-    };
-  }
+): Promise<ModelResult> {
   const student = deps.createStudent(model, manifest.model.inference.contextLength);
   const findings: Finding[] = [];
   let available: InstallCheck;
   try {
     const described = await student.describe();
-    // An adapter loads only on the build it was made for, which the adapter runtime describes by
-    // its GGUF digest. Without one, a different build than the author's only needs attention.
-    const { adapter } = manifest.model;
-    const pinned = adapter?.baseDigest ?? manifest.model.base.digest;
+    // A different build than the author's only needs attention: it may answer differently.
+    const pinned = manifest.model.base.digest;
     if (pinned !== undefined && described.digest !== undefined && described.digest !== pinned) {
-      const reason = `${model.runtime} serves a different build of ${manifest.model.base.name} (digest ${described.digest.slice(0, 19)}) than the one ${adapter ? 'its adapter was made for' : 'tested'} (${pinned.slice(0, 19)}).`;
-      findings.push({ level: adapter ? 'blocked' : 'needs_attention', reason });
+      const reason = `${model.runtime} serves a different build of ${manifest.model.base.name} (digest ${shortDigest(described.digest)}) than the one tested (${shortDigest(pinned)}).`;
+      findings.push({ level: 'needs_attention', reason });
       available = {
         id: 'model-available',
         kind: 'model_available',
@@ -341,65 +422,163 @@ async function modelChecks(
     };
   }
   if (!options.loadModel || available.status === 'failed') {
+    return { checks: [available, respondsSkipped(options)], findings };
+  }
+  const responds = await respondsCheck(student);
+  return {
+    checks: [available, responds.check],
+    findings: [...findings, ...responds.findings],
+    ...(responds.firstReplyMs === undefined ? {} : { firstReplyMs: responds.firstReplyMs }),
+  };
+}
+
+/**
+ * How much each problem the adapter runtime finds stands in the way. What the user can fix here
+ * (install or update llama.cpp, download the base) needs attention; a base of another build, or an
+ * adapter file that isn't the one installed, blocks the version until it is put right.
+ */
+const ADAPTER_PROBLEM_LEVELS: Record<LocalRuntimeErrorCode, Finding['level']> = {
+  binary_not_found: 'needs_attention',
+  binary_unusable: 'needs_attention',
+  model_not_found: 'needs_attention',
+  model_unusable: 'needs_attention',
+  base_mismatch: 'blocked',
+  adapter_unusable: 'blocked',
+  gpu_busy: 'needs_attention',
+  out_of_memory: 'needs_attention',
+  start_failed: 'needs_attention',
+  busy: 'needs_attention',
+};
+
+const SERVER_PROBLEMS: ReadonlySet<LocalRuntimeErrorCode> = new Set([
+  'binary_not_found',
+  'binary_unusable',
+]);
+
+/** A problem of the adapter runtime in words that say what to do, with the download a base needs. */
+function adapterReason(
+  problem: LocalRuntimeError,
+  manifest: PackageManifest,
+  request: ServeRequest,
+): string {
+  const size = manifest.model.base.sizeBytes;
+  if (problem.code === 'model_not_found') {
+    const download = size === undefined ? '' : ` (about ${gb(size)})`;
+    const build = request.baseDigest ?? 'its adapter was trained on';
+    return `Its base, ${request.model}, isn't in Ollama's model folder on this computer. Download ${request.model}${download}, the build whose weights are ${build}: its adapter loads on no other.`;
+  }
+  if (problem.code === 'base_mismatch' && size !== undefined) {
+    return `${problem.message} ${problem.hint} That build is about ${gb(size)}.`;
+  }
+  return `${problem.message} ${problem.hint}`;
+}
+
+/**
+ * A version with an adapter: llama-server and its build, the base in Ollama's store and its
+ * build, and the adapter file as installed, each found by the adapter runtime without loading
+ * anything; then, when asked, one short request through llama.cpp with the adapter applied.
+ */
+async function adapterModelChecks(
+  deps: Pick<CheckDeps, 'adapters'>,
+  manifest: PackageManifest,
+  request: ServeRequest,
+  options: CheckOptions,
+): Promise<ModelResult> {
+  const survey = await deps.adapters.survey(request);
+  const reasonOf = (problem: LocalRuntimeError) => adapterReason(problem, manifest, request);
+  const findings = survey.problems.map((problem): Finding => ({
+    level: ADAPTER_PROBLEM_LEVELS[problem.code],
+    reason: reasonOf(problem),
+  }));
+  const serverProblems = survey.problems.filter((problem) => SERVER_PROBLEMS.has(problem.code));
+  const modelProblems = survey.problems.filter((problem) => !SERVER_PROBLEMS.has(problem.code));
+  const runtime: InstallCheck = survey.server
+    ? {
+        id: 'adapter-runtime',
+        kind: 'adapter_runtime',
+        status: 'passed',
+        detail: `llama-server build ${survey.server.build}, at ${survey.server.file}.`,
+      }
+    : {
+        id: 'adapter-runtime',
+        kind: 'adapter_runtime',
+        status: 'failed',
+        detail: serverProblems.map(reasonOf).join(' '),
+      };
+  const available: InstallCheck =
+    survey.base && modelProblems.length === 0
+      ? {
+          id: 'model-available',
+          kind: 'model_available',
+          status: 'passed',
+          detail: `${request.model} in Ollama's store, the build its adapter was trained on (${shortDigest(survey.base.digest)}), and its adapter as installed.`,
+        }
+      : {
+          id: 'model-available',
+          kind: 'model_available',
+          status: 'failed',
+          detail: modelProblems.map(reasonOf).join(' '),
+        };
+  if (!options.loadModel || findings.length > 0) {
+    const why =
+      modelProblems.length > 0
+        ? 'Skipped: the model is not available.'
+        : "Skipped: llama-server can't run it yet.";
+    return { checks: [runtime, available, respondsSkipped(options, why)], findings };
+  }
+  const responds = await respondsCheck(createLlamaCppStudent(deps.adapters.access(request)));
+  return {
+    checks: [runtime, available, responds.check],
+    findings: responds.findings,
+    ...(responds.firstReplyMs === undefined ? {} : { firstReplyMs: responds.firstReplyMs }),
+  };
+}
+
+/**
+ * The model checks for a version's files wherever they are, installed or staged for import:
+ * skipped once a check before them has blocked it, else through llama.cpp for a version with an
+ * adapter (`request`) and on the runtime its model binding names for one without.
+ */
+async function servedChecks(
+  deps: Pick<CheckDeps, 'createStudent' | 'adapters'>,
+  manifest: PackageManifest,
+  model: ModelBinding,
+  request: ServeRequest | null,
+  options: CheckOptions,
+  blockedAlready: boolean,
+): Promise<ModelResult> {
+  // An adapter is served on its base from Ollama's store; compatibility named any other binding.
+  const servable = request === null || model.runtime === 'ollama';
+  if (blockedAlready || !isLoopbackUrl(model.baseUrl) || !servable) {
+    const detail = 'Skipped: this computer cannot run it as it is.';
     return {
       checks: [
-        available,
-        {
-          id: 'model-responds',
-          kind: 'model_responds',
-          status: 'skipped',
-          detail: options.loadModel ? 'Skipped: the model is not available.' : 'Not asked for.',
-        },
+        ...(request === null ? [] : [skipped('adapter-runtime', 'adapter_runtime', detail)]),
+        skipped('model-available', 'model_available', detail),
+        skipped('model-responds', 'model_responds', detail),
       ],
-      findings,
+      findings: [],
     };
   }
-  const started = Date.now();
-  let responds: InstallCheck;
-  let firstReplyMs: number | undefined;
-  try {
-    for await (const event of student.chat({
-      messages: [{ role: 'user', content: 'Reply with the word ready.' }],
-      tools: [],
-      decoding: {
-        temperature: 1,
-        topP: 0.95,
-        topK: 64,
-        maxSteps: 1,
-        maxOutputTokens: 256,
-        thinking: 'low',
-      },
-      seed: 1,
-    })) {
-      if (event.type === 'done') break;
-    }
-    firstReplyMs = Date.now() - started;
-    responds = {
-      id: 'model-responds',
-      kind: 'model_responds',
-      status: 'passed',
-      detail: `Answered in ${(firstReplyMs / 1000).toFixed(1)} s, loading included.`,
-      ms: firstReplyMs,
-    };
-  } catch (error) {
-    const reason = `The model didn't answer a short request: ${error instanceof Error ? error.message : String(error)}`;
-    findings.push({ level: 'needs_attention', reason });
-    responds = { id: 'model-responds', kind: 'model_responds', status: 'failed', detail: reason };
-  }
-  // The check loads the model once; it is unloaded again whether or not it answered.
-  try {
-    await student.release();
-  } catch (error) {
-    findings.push({
-      level: 'needs_attention',
-      reason: `The model stayed loaded after the check: ${error instanceof Error ? error.message : String(error)}`,
-    });
-  }
-  return {
-    checks: [available, responds],
-    findings,
-    ...(firstReplyMs === undefined ? {} : { firstReplyMs }),
-  };
+  return request === null
+    ? runtimeModelChecks(deps, manifest, model, options)
+    : adapterModelChecks(deps, manifest, request, options);
+}
+
+async function modelChecks(
+  deps: CheckDeps,
+  version: StoredVersion,
+  installation: StoredInstallation,
+  options: CheckOptions,
+  blockedAlready: boolean,
+): Promise<ModelResult> {
+  const request = serveRequestFor(
+    version.manifest.identity.name,
+    version,
+    deps.paths.fromStored(version.path),
+    installation,
+  );
+  return servedChecks(deps, version.manifest, installation.model, request, options, blockedAlready);
 }
 
 function statusOf(findings: readonly Finding[]): InstallStatus {
@@ -410,31 +589,43 @@ function statusOf(findings: readonly Finding[]): InstallStatus {
 /** What an import can know about this computer before it installs anything. */
 export interface FitResult {
   machine: Machine;
-  /** The compatibility check and the base model's availability, as installation checks run them. */
+  /**
+   * The compatibility check, llama.cpp's for a package with an adapter, and the base model's
+   * availability, as installation checks run them.
+   */
   checks: InstallCheck[];
   status: InstallStatus;
   reasons: string[];
 }
 
 /**
- * Whether this computer can run a package, and whether its local runtime serves the base model,
- * found before it is installed: the compatibility check and the model's availability, exactly as
- * the installation checks run them. Nothing loads; the runtime is only asked to describe the model.
+ * Whether this computer can run a package, and whether it has what serves its model, found before
+ * it is installed: the compatibility check, then the model checks exactly as the installation
+ * checks run them, short of a request. Nothing loads: the runtime only describes the model, and
+ * for an adapter, llama-server, the base in Ollama's store and the adapter file in `dir` (where
+ * the package is staged) are looked at.
  */
 export async function fitChecks(
-  deps: Pick<CheckDeps, 'machine' | 'createStudent'>,
+  deps: Pick<CheckDeps, 'machine' | 'createStudent' | 'adapters'>,
   manifest: PackageManifest,
   model: ModelBinding,
+  dir: string,
 ): Promise<FitResult> {
   const machine = deps.machine();
   const fit = compatibility(manifest, model, machine);
   const blocked = fit.findings.some((finding) => finding.level === 'blocked');
-  const served = await modelChecks(deps, manifest, model, { loadModel: false }, blocked);
-  const available = served.checks.filter((check) => check.kind === 'model_available');
+  const request = adapterRequest(
+    `${manifest.identity.name} v${manifest.identity.version}`,
+    manifest,
+    dir,
+    model.model,
+  );
+  const served = await servedChecks(deps, manifest, model, request, { loadModel: false }, blocked);
+  const looked = served.checks.filter((check) => check.kind !== 'model_responds');
   const findings = [...fit.findings, ...served.findings];
   return {
     machine,
-    checks: [fit.check, ...available],
+    checks: [fit.check, ...looked],
     status: statusOf(findings),
     reasons: findings.map((finding) => finding.reason),
   };
@@ -462,7 +653,7 @@ export async function checkInstallation(
   const blocking = [...fit.findings, ...harness.findings, ...tools.findings].some(
     (finding) => finding.level === 'blocked',
   );
-  const model = await modelChecks(deps, manifest, installation.model, options, blocking);
+  const model = await modelChecks(deps, version, installation, options, blocking);
   const findings = [
     ...fit.findings,
     ...harness.findings,

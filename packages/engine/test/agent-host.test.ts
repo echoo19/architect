@@ -15,6 +15,7 @@ import { DataPaths } from '../src/loop/paths';
 import { openEngineStore, type EngineStore } from '../src/store/engine-store';
 import { startFakeOllama, type FakeOllama, type ScriptedTurn } from './agent-host/fake-ollama';
 import { addGraduate, type GraduateFixture, type GraduateOptions } from './agent-host/graduates';
+import { testAdapterRuntime } from './support/computer';
 import { SAMPLE_CONTENT } from './support/fixtures';
 
 type Approval = Extract<AgentBlock, { kind: 'approval' }>;
@@ -52,7 +53,13 @@ async function setup(
     baseUrl: model.url,
     ...options,
   });
-  const host = createAgentHost({ store: workspaceStore(engine, dataDir) });
+  const host = createAgentHost({
+    store: workspaceStore(engine, dataDir),
+    adapters: testAdapterRuntime(
+      new DataPaths(dataDir).runtimeDir('workspace'),
+      join(dataDir, 'ollama-models'),
+    ),
+  });
   const events: WorkspaceEvent[] = [];
   host.onEvent((event) => events.push(event));
   world = { dataDir, engine, host, model, graduate, events };
