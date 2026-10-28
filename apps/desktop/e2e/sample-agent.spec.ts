@@ -5,14 +5,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { stubEngineFailure } from './fixtures';
 import { FOLDERS, installation, installPackagesFake, PACKAGES } from './fixtures-versions';
-import {
-  AGENT,
-  callsTo,
-  engineSeed,
-  GB,
-  installFakeEngine,
-  STUDENT_MODEL,
-} from './fixtures-workspace';
+import { AGENT, callsTo, engineSeed, installFakeEngine, STUDENT_MODEL } from './fixtures-workspace';
+import { GLIMMER_BYTES } from './story';
 
 /*
  * The ready-made agent that comes with Architect, opened from the screens that offer the sample
@@ -73,7 +67,7 @@ async function open(
       ollama: {
         running: true,
         version: '0.12.6',
-        models: [{ name: STUDENT_MODEL, sizeBytes: 18 * GB, digest: 'sha256-glimmer' }],
+        models: [{ name: STUDENT_MODEL, sizeBytes: GLIMMER_BYTES, digest: 'sha256-glimmer' }],
       },
     }),
   );
@@ -94,7 +88,7 @@ async function open(
 async function walkToTheEndOfSetup(): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page.getByRole('heading', { name: 'Choose a mentor' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Choose a teacher' })).toBeVisible();
   await page.getByLabel('Meta API key').fill('not-a-real-key');
   await page.getByRole('button', { name: 'Test connection' }).click();
   await expect(page.getByText('Connected · 640 ms')).toBeVisible();
@@ -120,7 +114,7 @@ for (const theme of THEMES) {
     await expect(page).toHaveURL(/#\/import$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
     await expect(page.getByText('returns-desk.architect.zip')).toBeVisible();
-    await expect(page.getByText("Evaluated on the author's computer")).toBeVisible();
+    await expect(page.getByText('Tested by its author')).toBeVisible();
     await expect(page.getByText('On this computer', { exact: true })).toBeVisible();
     await capture(`sample-agent-import-${theme}.png`);
     // Its data was made this computer's own once, and no dialog asked for a package or a folder.
@@ -128,18 +122,18 @@ for (const theme of THEMES) {
     expect(await callsTo(app, 'graduates:previewImport')).toEqual([[PACKAGES.sample]]);
     expect(await callsTo(app, 'files:pick')).toEqual([]);
 
-    // The folders are still shown, with data/ already chosen and still the person's to change.
+    // The folders are still shown, with the records already chosen and still the person's to change.
     await page.getByRole('button', { name: 'Continue' }).click();
-    const data = page
+    const records = page
       .getByRole('list', { name: 'Folders' })
-      .getByRole('listitem', { name: 'data/' });
-    await expect(data).toContainText('…\\returns-desk\\data');
-    await expect(data.getByRole('button', { name: 'Change' })).toBeVisible();
+      .getByRole('listitem', { name: 'Records folder' });
+    await expect(records).toContainText('…\\returns-desk\\data');
+    await expect(records.getByRole('button', { name: 'Change' })).toBeVisible();
     await capture(`sample-agent-folders-${theme}.png`);
 
     // Nothing it asks for is granted until it is chosen here.
     await page.getByRole('button', { name: 'Continue' }).click();
-    const access = page.getByRole('radiogroup', { name: 'Access to data/' });
+    const access = page.getByRole('radiogroup', { name: 'Access to the records folder' });
     await expect(access.getByRole('radio', { name: 'Not allowed' })).toHaveAttribute(
       'aria-checked',
       'true',
@@ -150,7 +144,7 @@ for (const theme of THEMES) {
     await expect(
       page.getByRole('heading', { level: 1, name: 'Returns desk is ready' }),
     ).toBeVisible();
-    await expect(page.getByText('Install checks on this computer')).toBeVisible();
+    await expect(page.getByText('Works on this computer', { exact: true })).toBeVisible();
     expect(await callsTo(app, 'graduates:importPackage')).toEqual([
       [
         PACKAGES.sample,
@@ -175,7 +169,7 @@ for (const theme of THEMES) {
     await walkToTheEndOfSetup();
     await expect(
       page.getByText(
-        "The sample job and a ready-made agent are on the next screen, if you'd like to see one first.",
+        'On the next screen you can try the sample job or a ready-made agent first, if you like.',
       ),
     ).toBeVisible();
     await capture(`sample-agent-welcome-${theme}.png`);
@@ -187,14 +181,14 @@ for (const theme of THEMES) {
     await expect(readyMade()).toBeVisible();
     await capture(`sample-agent-empty-${theme}.png`);
 
-    // From here it opens the same import, with data/ chosen.
+    // From here it opens the same import, with the records folder chosen.
     await readyMade().click();
     await expect(page).toHaveURL(/#\/import$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
     expect(await callsTo(app, 'graduates:prepareSampleAgent')).toEqual([[]]);
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(
-      page.getByRole('list', { name: 'Folders' }).getByRole('listitem', { name: 'data/' }),
+      page.getByRole('list', { name: 'Folders' }).getByRole('listitem', { name: 'Records folder' }),
     ).toContainText('…\\returns-desk\\data');
   });
 }
@@ -203,7 +197,7 @@ test('offers nothing, and says nothing of it, in a build that does not ship the 
   await open('dark', '/welcome', { onboarded: false, sampleAgent: false });
   await walkToTheEndOfSetup();
   await expect(
-    page.getByText("The sample job is on the next screen, if you'd like to see one first."),
+    page.getByText('On the next screen you can try the sample job first, if you like.'),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Get started' }).click();
   await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();

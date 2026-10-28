@@ -182,7 +182,10 @@ test('installs from the Hub by commit, through the same steps as a package file'
   await page.getByRole('button', { name: 'Agent menu' }).click();
   await page.getByRole('menuitem', { name: 'Install from Hugging Face' }).click();
   await expect(page).toHaveURL(/#\/import$/);
-  await page.getByRole('textbox', { name: 'Repository' }).fill(`hf://${REPO}`);
+  await page.getByRole('textbox', { name: 'Hugging Face address' }).fill(`hf://${REPO}`);
+  // A particular commit is rarely wanted, so its field waits under Advanced.
+  await expect(page.getByRole('textbox', { name: 'Commit' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Advanced' }).click();
   await page.getByRole('textbox', { name: 'Commit' }).fill(packageCommit);
   await page.getByRole('button', { name: 'Download' }).click();
 
@@ -190,19 +193,24 @@ test('installs from the Hub by commit, through the same steps as a package file'
     timeout: 30_000,
   });
   await expect(page.getByText(`${REPO} · commit ${packageCommit.slice(0, 7)}`)).toBeVisible();
-  await expect(page.getByText("Evaluated on the author's computer")).toBeVisible();
+  await expect(page.getByText('Tested by its author')).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
-  const data = page.getByRole('list', { name: 'Folders' }).getByRole('listitem', { name: 'data/' });
-  await data.getByRole('button', { name: 'Choose' }).click();
-  await expect(data).toContainText('records');
+  const recordsRow = page
+    .getByRole('list', { name: 'Folders' })
+    .getByRole('listitem', { name: 'Records folder' });
+  await recordsRow.getByRole('button', { name: 'Choose' }).click();
+  await expect(recordsRow).toContainText('records');
   await page.getByRole('button', { name: 'Continue' }).click();
   await page
-    .getByRole('radiogroup', { name: 'Access to data/' })
+    .getByRole('radiogroup', { name: 'Access to the records folder' })
     .getByRole('radio', { name: 'Read and change' })
     .click();
   await page.getByRole('button', { name: 'Install', exact: true }).click();
-  await expect(page.getByText('Install checks on this computer')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByRole('list', { name: 'Install checks' })).toContainText(
+  await expect(page.getByText('Works on this computer', { exact: true })).toBeVisible({
+    timeout: 30_000,
+  });
+  await page.getByRole('button', { name: 'Details' }).click();
+  await expect(page.getByRole('list', { name: 'Checks on this computer' })).toContainText(
     'Every folder is chosen and has its files',
   );
 
@@ -225,7 +233,10 @@ test('installs from the Hub by commit, through the same steps as a package file'
       (request) => request.path.includes('/resolve/') && request.path.endsWith('README.md'),
     ),
   ).toBe(false);
-  await page.getByRole('button', { name: 'Done' }).click();
+  // The base it names isn't on this computer, so the result says so and leaving is "Not now".
+  await expect(page.getByText("architect-e2e-absent:1b isn't downloaded yet")).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Done' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Not now' }).click();
 });
 
 test("changes the agent's model to one on this computer, and its checks run again", async () => {

@@ -13,6 +13,7 @@ import {
   installPackagesFake,
   PACKAGES,
   queuePicks,
+  setUpLlama,
   VERSIONS,
 } from './fixtures-versions';
 import {
@@ -348,31 +349,34 @@ for (const theme of THEMES) {
 
     await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
     await expect(page.getByText('returns-desk-v1.architect.zip')).toBeVisible();
-    await expect(page.getByText("Evaluated on the author's computer")).toBeVisible();
-    await expect(page.getByText('Passed: 56 of 60 (93%)')).toBeVisible();
+    await expect(page.getByText('Tested by its author')).toBeVisible();
+    await expect(page.getByText('Passed: 55 of 60 (92%)')).toBeVisible();
     await expect(page.getByText('On this computer', { exact: true })).toBeVisible();
     await capture(`import-check-${theme}.png`);
 
     await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Where are its files?' }),
+    ).toBeVisible();
     const folders = page.getByRole('list', { name: 'Folders' });
-    const data = folders.getByRole('listitem', { name: 'data/' });
-    await expect(data).toContainText('Not chosen');
-    await expect(data).toContainText('orders.csv, returns.csv, pickups.csv, policy.md');
-    await data.getByRole('button', { name: 'Choose' }).click();
-    await expect(data).toContainText('…\\Larchwood\\Records');
+    const records = folders.getByRole('listitem', { name: 'Records folder' });
+    await expect(records).toContainText('Not chosen');
+    await expect(records).toContainText('orders.csv, returns.csv, pickups.csv, policy.md');
+    await records.getByRole('button', { name: 'Choose' }).click();
+    await expect(records).toContainText('…\\Larchwood\\Records');
     await capture(`import-folders-${theme}.png`);
 
     await page.getByRole('button', { name: 'Continue' }).click();
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Choose what it may do' }),
-    ).toBeVisible();
-    const access = page.getByRole('radiogroup', { name: 'Access to data/' });
-    // Nothing it asks for is granted until it is chosen here.
+    await expect(page.getByRole('heading', { level: 1, name: 'What may it do?' })).toBeVisible();
+    const access = page.getByRole('radiogroup', { name: 'Access to the records folder' });
+    // Nothing it asks for is granted until it is chosen here, and saving comes up once it may change one.
     await expect(access.getByRole('radio', { name: 'Not allowed' })).toHaveAttribute(
       'aria-checked',
       'true',
     );
+    await expect(page.getByRole('radiogroup', { name: 'Saving files' })).toHaveCount(0);
     await access.getByRole('radio', { name: 'Read and change' }).click();
+    await expect(page.getByRole('radiogroup', { name: 'Saving files' })).toBeVisible();
     await expect(page.getByText('label_for')).toBeVisible();
     await capture(`import-permissions-${theme}.png`);
 
@@ -380,11 +384,14 @@ for (const theme of THEMES) {
     await expect(
       page.getByRole('heading', { level: 1, name: 'Returns desk is ready' }),
     ).toBeVisible();
-    await expect(page.getByText('Install checks on this computer')).toBeVisible();
-    await expect(
-      page.getByRole('list', { name: 'Install checks' }).getByRole('listitem'),
-    ).toHaveCount(6);
+    await expect(page.getByText('Works on this computer', { exact: true })).toBeVisible();
+    await expect(page.getByText('All checks passed')).toBeVisible();
     await capture(`import-ready-${theme}.png`);
+    // The checks behind that one sentence wait under Details.
+    await page.getByRole('button', { name: 'Details' }).click();
+    await expect(
+      page.getByRole('list', { name: 'Checks on this computer' }).getByRole('listitem'),
+    ).toHaveCount(6);
     expect(await callsTo(app, 'graduates:importPackage')).toEqual([
       [
         PACKAGES.ready,
@@ -403,55 +410,58 @@ for (const theme of THEMES) {
 }
 
 for (const theme of THEMES) {
-  test(`imports a package with trained weights, and offers to set up llama.cpp (${theme})`, async () => {
+  test(`imports a package with trained weights once llama.cpp is set up (${theme})`, async () => {
     const app = launched.app;
     await open(theme, chatPath(CHATS.closeout.id));
     await startImport([PACKAGES.weights, FOLDERS.records]);
 
     await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
-    await expect(page.getByText('Needs llama.cpp for its trained weights')).toBeVisible();
-    await expect(page.getByText("llama-server isn't installed, or isn't on PATH.")).toBeVisible();
     await expect(
-      page.getByText('Downloaded through Ollama, the exact build its trained weights need'),
+      page.getByText('A free program that runs its trained weights. One more download.'),
     ).toBeVisible();
+    await expect(page.getByText('The exact copy its trained weights need')).toBeVisible();
+    // Trained weights run on llama.cpp, so the way on waits until it is set up, and says so.
+    await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    await expect(page.getByText('Set up llama.cpp to go on')).toBeVisible();
     await capture(`import-check-weights-${theme}.png`);
+    // The first of the two: what this computer lacks, before how the author's test went.
+    await page.getByRole('button', { name: 'Details' }).first().click();
+    await expect(page.getByText("llama-server isn't installed, or isn't on PATH.")).toBeVisible();
 
     // Settings opens on Models, where llama.cpp is set up; closing it checks the package again.
-    await page.getByRole('button', { name: 'Set up llama.cpp in Settings' }).click();
+    await page.getByRole('button', { name: 'Set up llama.cpp' }).click();
     const settings = page.getByRole('dialog', { name: 'Settings' });
     await expect(settings.getByRole('tab', { name: 'Models' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
+    await setUpLlama(app);
     await page.keyboard.press('Escape');
     await expect(settings).toBeHidden();
     await expect.poll(async () => (await callsTo(app, 'graduates:previewImport')).length).toBe(2);
+    await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled();
 
     await page.getByRole('button', { name: 'Continue' }).click();
     await page
       .getByRole('list', { name: 'Folders' })
-      .getByRole('listitem', { name: 'data/' })
+      .getByRole('listitem', { name: 'Records folder' })
       .getByRole('button', { name: 'Choose' })
       .click();
     await page.getByRole('button', { name: 'Continue' }).click();
     await page
-      .getByRole('radiogroup', { name: 'Access to data/' })
+      .getByRole('radiogroup', { name: 'Access to the records folder' })
       .getByRole('radio', { name: 'Read and change' })
       .click();
     await page.getByRole('button', { name: 'Install', exact: true }).click();
 
     await expect(
-      page.getByRole('heading', { level: 1, name: 'Returns desk needs attention' }),
+      page.getByRole('heading', { level: 1, name: 'Returns desk is ready' }),
     ).toBeVisible();
-    const checks = page.getByRole('list', { name: 'Install checks' });
+    await page.getByRole('button', { name: 'Details' }).click();
+    const checks = page.getByRole('list', { name: 'Checks on this computer' });
     await expect(checks).toContainText('llama.cpp');
-    await expect(checks).toContainText("llama-server isn't installed");
-    await expect(checks).toContainText(
-      'muse-glimmer:30b, downloaded through Ollama, the exact build its trained weights need',
-    );
-    await expect(page.getByRole('button', { name: 'Set up llama.cpp in Settings' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Check again' })).toBeVisible();
-    await capture(`import-weights-attention-${theme}.png`);
+    await expect(checks).toContainText('muse-glimmer:30b, the exact copy its trained weights need');
+    await capture(`import-weights-ready-${theme}.png`);
   });
 }
 
@@ -464,12 +474,12 @@ for (const theme of THEMES) {
     await page.getByRole('button', { name: 'Continue' }).click();
     await page
       .getByRole('list', { name: 'Folders' })
-      .getByRole('listitem', { name: 'data/' })
+      .getByRole('listitem', { name: 'Records folder' })
       .getByRole('button', { name: 'Choose' })
       .click();
     await page.getByRole('button', { name: 'Continue' }).click();
     await page
-      .getByRole('radiogroup', { name: 'Access to data/' })
+      .getByRole('radiogroup', { name: 'Access to the records folder' })
       .getByRole('radio', { name: 'Read and change' })
       .click();
     await page.getByRole('button', { name: 'Install', exact: true }).click();
@@ -477,11 +487,15 @@ for (const theme of THEMES) {
     await expect(
       page.getByRole('heading', { level: 1, name: "Front desk can't run" }),
     ).toBeVisible();
-    const checks = page.getByRole('list', { name: 'Install checks' });
-    await expect(checks).toContainText("Its tool lookup_order doesn't load");
-    await expect(checks).toContainText('Not tried, since a check above failed');
+    // One sentence on why, and whose to mend; the check behind it waits under Details.
+    await expect(page.getByText("One of its tools doesn't load.")).toBeVisible();
+    await expect(page.getByText('Ask whoever sent it for a fixed copy.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Start a chat' })).toHaveCount(0);
     await capture(`import-blocked-${theme}.png`);
+    await page.getByRole('button', { name: 'Details' }).click();
+    const checks = page.getByRole('list', { name: 'Checks on this computer' });
+    await expect(checks).toContainText("Its tool lookup_order doesn't load");
+    await expect(checks).toContainText('Not tried, since a check above failed');
 
     await page.getByRole('button', { name: 'Remove it from this computer' }).click();
     await expect(page).not.toHaveURL(/#\/import$/);
@@ -497,19 +511,23 @@ for (const theme of THEMES) {
     await page.getByRole('button', { name: 'Continue' }).click();
     await page.getByRole('button', { name: 'Continue' }).click();
     // A folder that wasn't chosen has nothing to allow yet.
-    await expect(page.getByRole('radiogroup', { name: 'Access to data/' })).toHaveCount(0);
+    await expect(
+      page.getByRole('radiogroup', { name: 'Access to the records folder' }),
+    ).toHaveCount(0);
     await expect(page.getByText('No folder chosen').first()).toBeVisible();
     await page.getByRole('button', { name: 'Install', exact: true }).click();
     await expect(
       page.getByRole('heading', { level: 1, name: 'Returns desk needs attention' }),
     ).toBeVisible();
-    await expect(page.getByRole('list', { name: 'Install checks' })).toContainText(
-      'Choose a folder for data/',
-    );
+    // The step that left it undone is marked, and the result leads with the one thing to do.
+    await expect(page.getByText('Folders, needs attention')).toBeVisible();
+    await expect(page.getByText("Its records folder isn't chosen yet.")).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Done' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Not now' })).toBeVisible();
     await capture(`import-attention-${theme}.png`);
 
     await queuePicks(app, [FOLDERS.records]);
-    await page.getByRole('button', { name: 'Choose a folder for data/' }).click();
+    await page.getByRole('button', { name: 'Choose the records folder' }).click();
     await expect(
       page.getByRole('heading', { level: 1, name: 'Returns desk is ready' }),
     ).toBeVisible();
@@ -526,14 +544,24 @@ for (const theme of THEMES) {
     await page.getByRole('button', { name: 'Continue' }).click();
     await page.getByRole('button', { name: 'Continue' }).click();
     await stubEngineFailure(launched.app, {
-      'graduates:importPackage':
-        'There is not enough free disk space to install it (it needs 61 KB).',
+      'graduates:importPackage': {
+        message: 'There is not enough free disk space to install it (it needs 61 KB).',
+        code: 'disk_full',
+      },
     });
     await page.getByRole('button', { name: 'Install', exact: true }).click();
     await expect(page.getByText("Couldn't install Returns desk")).toBeVisible();
+    await expect(
+      page.getByText(
+        "There isn't enough free space on this computer. Free some space, then try again.",
+      ),
+    ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Back' })).toBeVisible();
     await capture(`import-error-${theme}.png`);
+    // The engine's own sentence, with the sizes, is under Details.
+    await page.getByRole('button', { name: 'Details' }).click();
+    await expect(page.getByText('it needs 61 KB')).toBeVisible();
   });
 }
 
@@ -544,11 +572,18 @@ for (const theme of THEMES) {
     await expect(
       page.getByRole('heading', { level: 1, name: "This package can't be imported" }),
     ).toBeVisible();
+    await expect(
+      page.getByText(
+        'This package was edited after it was made. Ask whoever sent it for a new copy.',
+      ),
+    ).toBeVisible();
+    await expect(page.getByText('Nothing in it was installed or run.')).toBeVisible();
+    await capture(`import-refused-${theme}.png`);
+    // What was found, file by file, waits under Details.
+    await page.getByRole('button', { name: 'Details' }).click();
     await expect(page.getByRole('list', { name: 'Problems' })).toContainText(
       'harness/AGENTS.md has a different checksum',
     );
-    await expect(page.getByText('Nothing in it was installed or run')).toBeVisible();
-    await capture(`import-refused-${theme}.png`);
   });
 
   test(`asks for a package when Import opens without one (${theme})`, async () => {

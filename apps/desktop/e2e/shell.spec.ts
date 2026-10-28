@@ -118,9 +118,10 @@ test('finishes setup and shows an error state with a retry when agents fail to l
   await stubEngine(launched.app, { 'connections:detectLocal': NOTHING_LOCAL });
   await page.reload();
   await settle(page);
-  // Both setup steps can wait; the model and the mentor can be set up later.
+  // Both setup steps can wait; the model and the teacher can be set up later.
+  await expect(page.getByText("Ollama isn't running")).toBeVisible();
   await page.getByRole('button', { name: 'Download later' }).click();
-  await expect(page.getByRole('heading', { name: 'Choose a mentor' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Choose a teacher' })).toBeVisible();
   await page.getByRole('button', { name: 'Skip for now' }).click();
   await page.getByRole('button', { name: 'Skip', exact: true }).click();
   await page.getByRole('button', { name: 'Get started' }).click();

@@ -18,6 +18,7 @@ import {
   updateChat,
   type EngineSeed,
 } from './fixtures-workspace';
+import { GLIMMER_BYTES } from './story';
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const SIZE = { width: 1440, height: 900 };
@@ -77,36 +78,48 @@ for (const theme of THEMES) {
       seed: engineSeed({ graduates: [], chats: [], messages: [] }),
     });
     await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
-    await expect(page.getByText('Running · 0.12.6')).toBeVisible();
-    const fourBit = page.getByRole('radio', { name: /Muse Glimmer 4-bit/ });
-    const twoBit = page.getByRole('radio', { name: /Muse Glimmer 2-bit/ });
-    await expect(fourBit).toHaveAttribute('aria-checked', 'true');
+    // Ollama is running, so it isn't mentioned; the sizes are named by how they differ here.
+    await expect(page.getByText(/Ollama/)).toHaveCount(0);
+    const recommended = page.getByRole('radio', { name: /Recommended/ });
+    const smaller = page.getByRole('radio', { name: /Smaller/ });
+    await expect(recommended).toHaveAttribute('aria-checked', 'true');
+    await expect(recommended).toContainText('17 GB download');
+    await expect(smaller).toContainText('14 GB download');
+    await capture(`welcome-model-${theme}.png`);
 
-    await page.getByRole('button', { name: /^Download ·/ }).click();
+    await page.getByRole('button', { name: /^Download Glimmer ·/ }).click();
     await expect.poll(() => callsTo(app, 'ollama:install')).toEqual([['glimmer-4bit']]);
     await emitPullProgress(app, { model: STUDENT_MODEL, status: 'pulling manifest', done: false });
     await emitPullProgress(app, {
       model: STUDENT_MODEL,
       status: 'pulling 3f2ad1c8e7b1',
       completedBytes: 4.2 * GB,
-      totalBytes: 18 * GB,
+      totalBytes: GLIMMER_BYTES,
       done: false,
     });
-    const progress = page.getByRole('progressbar', { name: 'Downloading Muse Glimmer · 4-bit' });
-    await expect(progress).toHaveAttribute('aria-valuenow', '23');
-    await expect(page.getByText('4.2 GB of 18 GB')).toBeVisible();
-    // The other build waits until this download is done.
-    await expect(twoBit).toBeDisabled();
+    const progress = page.getByRole('progressbar', { name: 'Downloading Glimmer' });
+    await expect(progress).toHaveAttribute('aria-valuenow', '24');
+    await expect(page.getByText('4.2 GB of 17 GB')).toBeVisible();
+    // The other size waits until this download is done.
+    await expect(smaller).toBeDisabled();
     await capture(`welcome-download-${theme}.png`);
 
     await page.getByRole('button', { name: 'Continue' }).click();
-    await expect(page.getByRole('heading', { name: 'Choose a mentor' })).toBeVisible();
-    await expect(page.getByRole('radio', { name: /Muse Spark/ })).toHaveAttribute(
+    await expect(page.getByRole('heading', { name: 'Choose a teacher' })).toBeVisible();
+    // Spark with a Meta key is the way shown; the others wait behind one line.
+    await expect(page.getByLabel('Meta API key')).toBeVisible();
+    await expect(page.getByRole('radio', { name: /OpenRouter/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Skip for now' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0);
+    await capture(`welcome-mentor-${theme}.png`);
+    await page.getByRole('button', { name: 'Other ways to connect a teacher' }).click();
+    const ways = page.getByRole('radiogroup', { name: 'Teacher' });
+    await expect(ways.getByRole('radio')).toHaveCount(4);
+    await expect(ways.getByRole('radio', { name: /^Spark/ })).toHaveAttribute(
       'aria-checked',
       'true',
     );
-    await expect(page.getByRole('button', { name: 'Skip for now' })).toBeVisible();
-    await capture(`welcome-mentor-${theme}.png`);
+    await capture(`welcome-mentor-ways-${theme}.png`);
     const key = page.getByLabel('Meta API key');
     await key.fill('not-a-real-key');
     await page.getByRole('button', { name: 'Test connection' }).click();
@@ -123,7 +136,7 @@ for (const theme of THEMES) {
     await capture(`welcome-hosted-${theme}.png`);
     await page.getByRole('button', { name: 'Skip', exact: true }).click();
     await expect(page.getByRole('heading', { name: "You're set up" })).toBeVisible();
-    await expect(page.getByText('Downloading · 23%')).toBeVisible();
+    await expect(page.getByText('Downloading · 24%')).toBeVisible();
     await emitPullProgress(app, { model: STUDENT_MODEL, status: 'success', done: true });
     await finishPull(app);
     await expect(page.getByText('Ready', { exact: true })).toBeVisible();
@@ -309,7 +322,7 @@ for (const theme of THEMES) {
     await expect(dialog.getByRole('button', { name: "Your agent's model" })).toHaveText(
       'Muse Glimmer · 4-bit',
     );
-    await expect(dialog.getByText('4-bit · 18 GB on disk · muse-glimmer:30b')).toBeVisible();
+    await expect(dialog.getByText('4-bit · 17 GB on disk · muse-glimmer:30b')).toBeVisible();
     // This computer's checks sit apart from the author's final test.
     await expect(dialog.getByText('Works on this computer', { exact: true })).toBeVisible();
     await expect(dialog.getByText('All checks passed', { exact: true })).toBeVisible();
@@ -332,7 +345,7 @@ for (const theme of THEMES) {
     await expect(dialog.getByText('Never, by design')).toBeVisible();
     await expect(dialog.getByText('invoices.csv, bookings.csv')).toBeVisible();
     // Each folder it works in, with the one this computer bound and a way to choose another.
-    await expect(dialog.getByText('data/', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('Records folder', { exact: true })).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Change' })).toBeVisible();
     await capture(`workspace-agent-permissions-${theme}.png`);
 

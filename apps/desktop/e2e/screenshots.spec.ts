@@ -92,7 +92,8 @@ for (const theme of THEMES) {
     ]);
 
     await goTo(page, '/welcome');
-    await expect(page.getByText('Running · 0.12.6')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
+    await expect(page.getByRole('radio', { name: /Recommended/ })).toBeVisible();
     await capture(page, `welcome-${theme}.png`);
 
     await applySettings(page, { onboarded: true });

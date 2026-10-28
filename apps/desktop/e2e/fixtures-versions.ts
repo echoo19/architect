@@ -21,7 +21,7 @@ import {
   type Score,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
-import { at, FINAL_TEST, graduate, job, STORY } from './story';
+import { at, FINAL_TEST, GLIMMER_BYTES, graduate, job, STORY } from './story';
 
 /*
  * An agent with four versions, its installation on this computer, an export review, and
@@ -108,7 +108,7 @@ export function manifestFor(options: ManifestOptions): PackageManifest {
         name: 'muse-glimmer:30b',
         digest: hex('a'),
         quantization: 'Q4_K_M',
-        sizeBytes: 18 * 1024 ** 3,
+        sizeBytes: GLIMMER_BYTES,
       },
       ...(options.adapter
         ? {
@@ -137,7 +137,7 @@ export function manifestFor(options: ManifestOptions): PackageManifest {
         },
       ],
       measured: score ? { latencyMs: { p50: 150_000, p95: 222_000 } } : {},
-      minimum: { memoryBytes: 20 * 1024 ** 3, diskBytes: 18 * 1024 ** 3 },
+      minimum: { memoryBytes: 20 * 1024 ** 3, diskBytes: GLIMMER_BYTES },
       limitations: [],
     },
     evidence: {
@@ -460,7 +460,16 @@ export const LLAMA_SERVER_MISSING: LlamaServerStatus = {
   minimumBuild: 10358,
 };
 
-/** The checks a version with trained weights gets where llama.cpp isn't installed. */
+/** Settings › Models once llama-server is set up: found on PATH, new enough for Glimmer. */
+const LLAMA_SERVER_SET_UP: LlamaServerStatus = {
+  source: 'path',
+  path: '/usr/local/bin/llama-server',
+  build: 10472,
+  ready: true,
+  minimumBuild: 10358,
+};
+
+/** The checks a version with trained weights gets: where llama.cpp isn't installed, and once it is. */
 const WEIGHTS_CHECKS = {
   compatibility: passed(
     'compatibility',
@@ -488,9 +497,27 @@ const WEIGHTS_CHECKS = {
     detail: "Skipped: llama-server can't run it yet.",
     skipped: 'after_failure',
   } satisfies InstallCheck,
+  serverSetUp: passed(
+    'adapter-runtime',
+    'adapter_runtime',
+    'llama-server build 10472 on PATH, new enough to serve its adapter.',
+  ),
+  respondsSetUp: passed(
+    'model-responds',
+    'model_responds',
+    'Answered in 3.4 s, loading included.',
+    3_400,
+  ),
 };
 
-function preview(madeFor: Job, agentId: string, tools: string[], weights = false): ImportPreview {
+/** The package as checked; `llama` is whether llama.cpp is set up, which only trained weights need. */
+function preview(
+  madeFor: Job,
+  agentId: string,
+  tools: string[],
+  weights = false,
+  llama = false,
+): ImportPreview {
   return ImportPreviewSchema.parse({
     ok: true,
     manifest: manifestFor({
@@ -499,7 +526,7 @@ function preview(madeFor: Job, agentId: string, tools: string[], weights = false
       version: weights ? 2 : 1,
       createdAt: at(-3 * 24 * 60),
       status: 'ready',
-      score: weights ? { pass: 58, total: 60 } : { pass: 56, total: 60 },
+      score: weights ? { pass: 58, total: 60 } : { pass: 55, total: 60 },
       tools,
       adapter: weights,
     }),
@@ -510,7 +537,11 @@ function preview(madeFor: Job, agentId: string, tools: string[], weights = false
     machine: MACHINE,
     model: { runtime: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'muse-glimmer:30b' },
     checks: weights
-      ? [WEIGHTS_CHECKS.compatibility, WEIGHTS_CHECKS.server, WEIGHTS_CHECKS.base]
+      ? [
+          WEIGHTS_CHECKS.compatibility,
+          llama ? WEIGHTS_CHECKS.serverSetUp : WEIGHTS_CHECKS.server,
+          WEIGHTS_CHECKS.base,
+        ]
       : [
           passed(
             'compatibility',
@@ -526,8 +557,8 @@ function preview(madeFor: Job, agentId: string, tools: string[], weights = false
             sameBuild: true,
           },
         ],
-    status: weights ? 'needs_attention' : 'ready',
-    reasons: weights ? [NO_LLAMA_SERVER] : [],
+    status: weights && !llama ? 'needs_attention' : 'ready',
+    reasons: weights && !llama ? [NO_LLAMA_SERVER] : [],
   });
 }
 
@@ -574,6 +605,7 @@ function importResultFor(
     bindings?: Record<string, string>;
     grants?: { resources?: Record<string, ResourceGrant> };
   },
+  llama = false,
 ): ImportResult {
   if (path === PACKAGES.blocked) {
     const blockedReason =
@@ -620,7 +652,7 @@ function importResultFor(
         }
       : check,
   );
-  // With trained weights, llama.cpp serves it, and this computer has no llama-server yet.
+  // With trained weights, llama.cpp serves it: this computer has no llama-server until it is set up.
   const weights = path === PACKAGES.weights;
   const checks = weights
     ? [
@@ -628,12 +660,12 @@ function importResultFor(
         ...folders.filter((check) =>
           ['harness_valid', 'tools_load', 'resources_bound'].includes(check.kind),
         ),
-        WEIGHTS_CHECKS.server,
+        llama ? WEIGHTS_CHECKS.serverSetUp : WEIGHTS_CHECKS.server,
         WEIGHTS_CHECKS.base,
-        WEIGHTS_CHECKS.responds,
+        llama ? WEIGHTS_CHECKS.respondsSetUp : WEIGHTS_CHECKS.responds,
       ]
     : folders;
-  const reasons = [...(bound ? [] : [reason]), ...(weights ? [NO_LLAMA_SERVER] : [])];
+  const reasons = [...(bound ? [] : [reason]), ...(weights && !llama ? [NO_LLAMA_SERVER] : [])];
   const ready = reasons.length === 0;
   return {
     graduate: importedAgent(returnsJob, 'grd_returns', ready ? 'ready' : 'needs_attention'),
@@ -679,22 +711,34 @@ export async function installPackagesFake(
     folders: FOLDERS,
     sampleAgent: seed.sampleAgent ?? false,
     llamaServer: LLAMA_SERVER_MISSING,
+    llamaServerSetUp: LLAMA_SERVER_SET_UP,
+    weightsPreviewSetUp: preview(returnsJob, 'grd_returns', ['label_for'], true, true),
     results: Object.fromEntries(
-      [PACKAGES.ready, PACKAGES.sample, PACKAGES.weights, PACKAGES.blocked].flatMap((path) => [
-        [
-          `${path}|ready`,
-          importResultFor(path, {
-            bindings: { data: FOLDERS.records },
-            grants: { resources: { data: 'read_write' } },
-          }),
-        ],
-        [`${path}|unbound`, importResultFor(path, {})],
-      ]),
+      [PACKAGES.ready, PACKAGES.sample, PACKAGES.weights, PACKAGES.blocked].flatMap((path) =>
+        [false, true].flatMap((llama) => [
+          [
+            `${path}|ready|${llama}`,
+            importResultFor(
+              path,
+              {
+                bindings: { data: FOLDERS.records },
+                grants: { resources: { data: 'read_write' } },
+              },
+              llama,
+            ),
+          ],
+          [`${path}|unbound|${llama}`, importResultFor(path, {}, llama)],
+        ]),
+      ),
     ),
     reviews: { plain: exportReview([]), sharing: exportReview(['resource:data']) },
   };
   await app.evaluate(({ ipcMain }, data) => {
-    type Fake = { calls: { channel: string; args: unknown[] }[]; picks?: string[] };
+    type Fake = {
+      calls: { channel: string; args: unknown[] }[];
+      picks?: string[];
+      llamaSetUp?: boolean;
+    };
     const fake = (globalThis as unknown as { fakeEngine: Fake }).fakeEngine;
     const versions = data.seed.versions.map((item) => ({ ...item }));
     let installed = { ...data.seed.installation };
@@ -730,7 +774,9 @@ export async function installPackagesFake(
       return next === undefined ? [] : [next];
     });
     // Settings › Models asks about llama-server; the real one on this computer never runs.
-    handle('connections:llamaServer', () => data.llamaServer);
+    handle('connections:llamaServer', () =>
+      fake.llamaSetUp ? data.llamaServerSetUp : data.llamaServer,
+    );
     handle('graduates:list', () => agents);
     handle('graduates:versions', () => versions);
     handle('graduates:history', () => []);
@@ -762,6 +808,7 @@ export async function installPackagesFake(
       findings: [],
     }));
     handle('graduates:previewImport', (path: string) => {
+      if (path === data.packages.weights && fake.llamaSetUp) return data.weightsPreviewSetUp;
       const found = data.previews[path];
       if (!found) throw new Error(`${path} isn't a file or a folder.`);
       return found;
@@ -783,7 +830,7 @@ export async function installPackagesFake(
       ) => {
         const bound = request.bindings?.['data'] !== undefined;
         const granted = (request.grants?.resources?.['data'] ?? 'none') !== 'none';
-        const key = `${path}|${bound && granted ? 'ready' : 'unbound'}`;
+        const key = `${path}|${bound && granted ? 'ready' : 'unbound'}|${fake.llamaSetUp === true}`;
         const result = data.results[key];
         if (!result) throw new Error(`No package at ${path}.`);
         agents = [...agents.filter((agent) => agent.id !== result.graduate.id), result.graduate];
@@ -794,7 +841,10 @@ export async function installPackagesFake(
       agents = agents.filter((agent) => agent.id !== graduateId);
     });
     // Binding the returns desk's records folder from its result makes it ready.
-    handle('graduates:bind', () => data.results[`${data.packages.ready}|ready`]?.installation);
+    handle(
+      'graduates:bind',
+      () => data.results[`${data.packages.ready}|ready|false`]?.installation,
+    );
     handle('workspace:createChat', (graduateId: string) => {
       chats += 1;
       const at = new Date().toISOString();
@@ -810,6 +860,14 @@ export async function installPackagesFake(
       };
     });
   }, data);
+}
+
+/** Sets llama.cpp up on this test computer, as choosing it in Settings would: the checks find it. */
+export async function setUpLlama(app: ElectronApplication): Promise<void> {
+  await app.evaluate(() => {
+    const fake = (globalThis as unknown as { fakeEngine: { llamaSetUp?: boolean } }).fakeEngine;
+    fake.llamaSetUp = true;
+  });
 }
 
 /** The files and folders the next pickers return, in order. */

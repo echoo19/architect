@@ -19,7 +19,7 @@ import {
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
 import { installation, STORY_VERSION } from './fixtures-versions';
-import { AT, graduate, job, storyReport } from './story';
+import { AT, GLIMMER_BYTES, graduate, job, storyReport } from './story';
 
 /*
  * A stand-in engine for the workspace and first-run tests. It runs in the main process and
@@ -329,6 +329,8 @@ export interface EngineSeed {
   gpu: GpuInfo | null;
   /** The model each of Glimmer's builds installs as. */
   builds: Record<string, string>;
+  /** What a finished download of the default build weighs on disk. */
+  glimmerBytes: number;
   connection: ConnectionTest;
   /** What the folder picker returns. */
   folder: string;
@@ -347,6 +349,7 @@ export function engineSeed(patch: Partial<EngineSeed> = {}): EngineSeed {
     ollama: { running: true, version: '0.12.6', models: [] },
     gpu: null,
     builds: Object.fromEntries(GLIMMER_BUILDS.map((build) => [build.key, build.model])),
+    glimmerBytes: GLIMMER_BYTES,
     connection: { ok: true, latencyMs: 640, detail: 'muse-spark-1.3' },
     folder: 'C:\\Users\\dana\\Exports',
     ...patch,
@@ -493,7 +496,7 @@ export async function installFakeEngine(app: ElectronApplication, seed: EngineSe
         finishPull = () => {
           ollama.models.push({
             name: model,
-            sizeBytes: 18 * 1024 ** 3,
+            sizeBytes: seed.glimmerBytes,
             digest: 'sha256-glimmer',
           });
           resolve();

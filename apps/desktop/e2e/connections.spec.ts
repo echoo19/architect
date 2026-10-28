@@ -328,20 +328,26 @@ test('signs in with OpenRouter through main, without a browser here', async () =
   await page.keyboard.press('Escape');
 });
 
-test('offers four ways to a mentor in setup, and a model here needs no key', async () => {
+test('offers Spark first and three other ways to a teacher in setup, and a model here needs no key', async () => {
   await open('/welcome', { secrets: {}, local: LOCAL }, false);
   await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page.getByRole('heading', { name: 'Choose a mentor' })).toBeVisible();
-  for (const name of [/Muse Spark/, /OpenRouter/, /Another provider/, /On this computer/]) {
+  await expect(page.getByRole('heading', { name: 'Choose a teacher' })).toBeVisible();
+  // Spark with a Meta key comes first; the other ways wait behind one line.
+  await expect(page.getByLabel('Meta API key')).toBeVisible();
+  await expect(page.getByRole('radio')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Other ways to connect a teacher' }).click();
+  for (const name of [/^Spark/, /OpenRouter/, /Another service/, /On this computer/]) {
     await expect(page.getByRole('radio', { name })).toBeVisible();
   }
+  // Nothing to continue with yet: skipping says what that costs.
   const next = page.getByRole('button', { name: 'Continue' });
-  await expect(next).toBeDisabled();
+  await expect(next).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Skip for now' })).toBeVisible();
+  await expect(page.getByText('You can add a teacher later in Settings.')).toBeVisible();
 
   await page.getByRole('radio', { name: /On this computer/ }).click();
-  await page.getByRole('button', { name: 'Mentor', exact: true }).click();
+  await page.getByRole('button', { name: 'Teacher', exact: true }).click();
   await page.getByRole('option', { name: new RegExp(GRANITE) }).click();
   await expect(next).toBeEnabled();
   await page.getByRole('button', { name: 'Test', exact: true }).click();
@@ -352,25 +358,26 @@ test('offers four ways to a mentor in setup, and a model here needs no key', asy
 
   // OpenRouter's way signs in first, then offers its models.
   await page.getByRole('radio', { name: /OpenRouter/ }).click();
-  await expect(next).toBeDisabled();
+  await expect(next).toHaveCount(0);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await page.getByRole('button', { name: 'Mentor', exact: true }).click();
+  await page.getByRole('button', { name: 'Teacher', exact: true }).click();
   await page.getByRole('option', { name: /Some Model/ }).click();
   await expect(next).toBeEnabled();
 });
 
 test('sizes Glimmer for the GPU in setup and installs the GPU-sized build', async () => {
   await open('/welcome', { secrets: {}, local: { ...OLLAMA_READY, gpu: GPU_12GB } }, false);
-  const twoBit = page.getByRole('radio', { name: /Muse Glimmer 2-bit/ });
-  const fourBit = page.getByRole('radio', { name: /Muse Glimmer 4-bit/ });
+  const recommended = page.getByRole('radio', { name: /Recommended/ });
+  const larger = page.getByRole('radio', { name: /Larger/ });
   // The build that fits this card is chosen while the default isn't downloaded.
-  await expect(twoBit).toHaveAttribute('aria-checked', 'true');
-  await expect(twoBit).toContainText('Runs on your GPU');
-  await expect(twoBit).toContainText('Recommended');
-  await expect(fourBit).toContainText('Part on the CPU');
+  await expect(recommended).toHaveAttribute('aria-checked', 'true');
+  await expect(recommended).toContainText('Runs on your graphics card');
+  await expect(recommended).toContainText('14 GB download');
+  await expect(larger).toContainText('Part runs on the processor');
+  await expect(larger).toContainText('17 GB download');
   await expect.poll(async () => (await settings(page)).defaultStudent.model).toBe(GPU_BUILD.model);
 
-  await page.getByRole('button', { name: /^Download ·/ }).click();
+  await page.getByRole('button', { name: /^Download Glimmer ·/ }).click();
   await expect.poll(() => callsTo(launched.app, 'ollama:install')).toEqual([['glimmer-gpu']]);
   await emitPullProgress(launched.app, {
     model: GPU_BUILD.model,
@@ -378,5 +385,5 @@ test('sizes Glimmer for the GPU in setup and installs the GPU-sized build', asyn
     done: false,
   });
   await expect(page.getByText('Preparing it for your GPU').first()).toBeVisible();
-  await expect(fourBit).toBeDisabled();
+  await expect(larger).toBeDisabled();
 });
