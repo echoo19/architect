@@ -1,4 +1,10 @@
-import type { AgentBlock, AgentStep, WorkspaceMessage } from '@architect/shared';
+import type {
+  AgentBlock,
+  AgentStep,
+  ReplyStep,
+  TraceStep,
+  WorkspaceMessage,
+} from '@architect/shared';
 import { settleMessage, type ReplyOutcome } from './messages';
 import type { NewStep } from './steps';
 
@@ -17,6 +23,8 @@ export type PublishReply = (message: WorkspaceMessage, save: boolean) => void;
  */
 export class LiveReply {
   private message: WorkspaceMessage;
+  /** The reply's work as the model took it, saved with the reply when it settles. */
+  private readonly work: ReplyStep[] = [];
   private readonly started = performance.now();
   /** The step each running tool call shows as, by call id. */
   private readonly calls = new Map<string, string>();
@@ -44,6 +52,12 @@ export class LiveReply {
     const before = text !== '' && this.turnEnded ? `${text.trimEnd()}\n\n` : text;
     this.turnEnded = false;
     this.change({ text: before + piece }, false);
+  }
+
+  /** Keeps one step of the agent's work: the model's turn, a tool's result, a skill, a refusal. */
+  recordStep(step: TraceStep): void {
+    if (this.finished) return;
+    this.work.push(replyStep(step));
   }
 
   /** The model finished a turn; text from its next turn starts a new paragraph. */
@@ -95,6 +109,7 @@ export class LiveReply {
     clearTimeout(this.timer);
     this.message = {
       ...settleMessage(this.message, outcome),
+      trace: [...this.work],
       workedMs: Math.round(performance.now() - this.started),
     };
     this.publish(this.message, true);
@@ -121,5 +136,26 @@ export class LiveReply {
     }
     this.lastPublished = now;
     this.publish(this.message, save);
+  }
+}
+
+/** A trace step as a reply keeps it: what was said, called and returned, without timings. */
+function replyStep(step: TraceStep): ReplyStep {
+  switch (step.kind) {
+    case 'model':
+      return { kind: 'model', text: step.text, toolCalls: step.toolCalls };
+    case 'tool':
+      return {
+        kind: 'tool',
+        callId: step.callId,
+        name: step.name,
+        arguments: step.arguments,
+        result: step.result,
+        ...(step.error === undefined ? {} : { error: step.error }),
+      };
+    case 'skill':
+      return { kind: 'skill', slug: step.slug, via: step.via };
+    case 'refusal':
+      return { kind: 'refusal', taskType: step.taskType, reason: step.reason };
   }
 }
