@@ -19,15 +19,6 @@ export const KIND_LABELS: Record<CorrectionKind, string> = {
   invalid: "Something it can't verify",
 };
 
-/** The same kinds in a word or two, for a list. */
-export const KIND_SHORT: Record<CorrectionKind, string> = {
-  procedure: 'Procedure',
-  source: 'Fact or source',
-  weakness: 'Weakness',
-  ambiguous: 'Ambiguous',
-  invalid: "Can't verify",
-};
-
 /** A lesson that can join the teaching queue. */
 export function canQueue(kind: CorrectionKind): boolean {
   return TEACHABLE_KINDS.includes(kind);
@@ -45,7 +36,7 @@ export function lessonChange(proposal: CorrectionProposal): { title: string; det
     case 'source':
       return { title: 'Adds to its instructions', detail: proposal.instruction };
     case 'weakness':
-      return { title: 'Practice on requests like this one' };
+      return { title: 'Practice on tasks like this one' };
     case 'ambiguous':
       return {
         title: 'None until you say which you meant',
@@ -58,10 +49,10 @@ export function lessonChange(proposal: CorrectionProposal): { title: string; det
 
 /** Whether a lesson needs training, in a few words. */
 export const TRAINING_NEED: Record<CorrectionKind, string> = {
-  procedure: 'Not needed',
-  source: 'Not needed',
+  procedure: 'No',
+  source: 'No',
   weakness: 'Yes, through Improve agent',
-  ambiguous: 'Not yet',
+  ambiguous: 'Not until you say which you meant',
   invalid: 'No',
 };
 
@@ -113,11 +104,15 @@ export function runningImprovement(improvements: readonly Improvement[]): Improv
   return newest !== undefined && ACTIVE.has(newest.status) ? newest : null;
 }
 
-/** "$5 of Spark and 4 h", with compute when an improvement may train weights. */
+/**
+ * "10 rounds, $5 of Spark and 4 h", with compute when an improvement may train weights: every
+ * cap it keeps to.
+ */
 export function budgetLine(budget: Budget, mentor: string): string {
   const compute =
     budget.maxComputeUsd === undefined ? '' : `, ${formatUsd(budget.maxComputeUsd)} of compute`;
-  return `${formatUsd(budget.maxMentorUsd)} of ${mentor}${compute} and ${formatDuration(budget.maxWallMinutes * 60_000)}`;
+  const rounds = budget.maxRounds === 1 ? '1 round' : `${budget.maxRounds} rounds`;
+  return `${rounds}, ${formatUsd(budget.maxMentorUsd)} of ${mentor}${compute} and ${formatDuration(budget.maxWallMinutes * 60_000)}`;
 }
 
 /** "1 lesson", "3 lessons". */
@@ -139,14 +134,19 @@ export function evidenceText(files: readonly string[], rows: string): string | u
 }
 
 /**
- * Why a lesson couldn't be proposed, in the app's words. The engine's leak check names the
- * locked test, which every screen calls the final test; its other reasons read as they are.
+ * Why a lesson couldn't be proposed, in the app's words, and whether sending it again could
+ * help. The engine's leak check names the locked test, which every screen calls the final
+ * test, and refuses the same exchange however it is described; its other reasons read as
+ * they are.
  */
-export function proposeFailure(message: string, mentor: string): string {
+export function proposeFailure(message: string, mentor: string): { text: string; retry: boolean } {
   if (/payload matched \d+ locked test tasks?/.test(message)) {
-    return `Nothing was sent: the exchange quotes a task from its final test, which ${mentor} may never see.`;
+    return {
+      text: `Nothing was sent: this exchange quotes a task from its final test, which ${mentor} must never see.`,
+      retry: false,
+    };
   }
-  return message;
+  return { text: message, retry: true };
 }
 
 /** A request shortened to fit one line of a subtitle. */

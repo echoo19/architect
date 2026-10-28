@@ -325,7 +325,7 @@ describe('Teach this', () => {
       unavailable: {
         reason: 'imported',
         message:
-          "Returns desk came from another computer, so the job it learned from isn't here to teach it with.",
+          'Returns desk was made on another computer. It can be taught there, where its training tasks are.',
       },
     });
     await expect(teach.shareCorrections('grd_imported', true)).rejects.toThrow(

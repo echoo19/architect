@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react';
 import type { Correction, Improvement, Job, Run, Score } from '@architect/shared';
 import { Badge, Heading, Meter, Stat, StatusMark } from '@architect/ui';
-import { Check } from 'lucide-react';
 import { formatDuration, formatUsd } from '../../lib/format';
 import { KindTile } from '../../workspace/teach/kinds';
-import { KIND_SHORT, lessonCount } from '../../workspace/teach/lessons';
+import { KIND_LABELS, lessonCount } from '../../workspace/teach/lessons';
 import { formatRate, percent, rate } from '../format';
 import { typeLabel } from '../names';
 
@@ -77,17 +76,8 @@ export function ImprovementView({
   return (
     <>
       <div className="flex flex-col gap-3">
-        {made ? (
-          <Badge
-            tone="student"
-            icon={<Check size={14} strokeWidth={2} aria-hidden />}
-            className="self-start"
-          >
-            Candidate
-          </Badge>
-        ) : (
-          <Badge className="self-start">No new version</Badge>
-        )}
+        {/* A candidate hasn't passed anything yet, so its badge is plain. */}
+        <Badge className="self-start">{made ? 'Candidate' : 'No new version'}</Badge>
         <Heading as="h1" size="display">
           {heading}
         </Heading>
@@ -108,7 +98,7 @@ export function ImprovementView({
           </span>
           <span className="text-fg-secondary text-pretty">
             {promotion.allowed
-              ? `Version ${improvement.fromVersion} keeps answering until you do.`
+              ? `Version ${improvement.fromVersion} answers until you do, and stays so you can roll back.`
               : promotion.reason}
           </span>
         </div>
@@ -148,18 +138,22 @@ export function ImprovementView({
           className="bg-panel p-[22px]"
           value={String(improvement.corrections.length)}
           label={improvement.corrections.length === 1 ? 'lesson taught' : 'lessons taught'}
-          note={`from version ${improvement.fromVersion}`}
-          noteFont="text"
         />
       </div>
 
       {made && (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(360px,100%),1fr))] gap-x-14 gap-y-10">
-          <TypeSection title="What improved" changes={better} empty="No task type scored better." />
           <TypeSection
-            title="What didn't"
+            title="What improved"
+            changes={better}
+            empty="No task type scored better."
+            tone="student"
+          />
+          <TypeSection
+            title="What didn't improve"
             changes={notBetter}
             empty="Every task type scored better."
+            tone="fg"
           />
         </div>
       )}
@@ -175,7 +169,7 @@ export function ImprovementView({
               >
                 <KindTile kind={lesson.proposal.kind} />
                 <span className="min-w-0 flex-1 text-pretty">{lesson.proposal.lesson}</span>
-                <span className="text-sm text-fg-muted">{KIND_SHORT[lesson.proposal.kind]}</span>
+                <span className="text-sm text-fg-muted">{KIND_LABELS[lesson.proposal.kind]}</span>
               </li>
             ))}
           </ul>
@@ -189,10 +183,13 @@ function TypeSection({
   title,
   changes,
   empty,
+  tone,
 }: {
   title: string;
   changes: TypeChange[];
   empty: string;
+  /** Gains in the student's color; what didn't improve in a plain one, so it never reads as a win. */
+  tone: 'student' | 'fg';
 }) {
   return (
     <section aria-label={title} className="flex flex-col gap-[18px]">
@@ -216,7 +213,7 @@ function TypeSection({
               label={change.label}
               value={percent(change.after) / 100}
               valueText={`${change.after.pass} of ${change.after.total} right`}
-              tone="student"
+              tone={tone}
               thickness={4}
             />
           </div>

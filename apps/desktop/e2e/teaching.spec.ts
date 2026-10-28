@@ -127,7 +127,9 @@ for (const theme of THEMES) {
     const sheet = await flagReply();
     await expect(sheet).toContainText('Reply to "Who still owes us money from September?"');
     await expect(sheet).toContainText('Three customers, $2,915.00 in total.');
-    await expect(sheet.getByText('Spark reads this exchange to propose a lesson.')).toBeVisible();
+    await expect(
+      sheet.getByText('Spark reads this exchange and your note to propose a lesson.'),
+    ).toBeVisible();
     await expect(sheet.getByText('Up to $0.25')).toBeVisible();
     const send = sheet.getByRole('button', { name: 'Send to Spark' });
     await expect(send).toBeDisabled();
@@ -152,7 +154,8 @@ for (const theme of THEMES) {
       'Count an invoice as overdue only when it is unpaid and past its due date.',
     );
     await expect(sheet).toContainText('Adds to its instructions');
-    await expect(sheet).toContainText('Not needed');
+    await expect(sheet).toContainText('Needs training');
+    await expect(sheet).toContainText(WRONG);
     expect(await callsTo(app, 'teach:shareCorrections')).toEqual([[AGENT.id, true]]);
     expect(await callsTo(app, 'teach:propose')).toEqual([
       [
@@ -169,8 +172,8 @@ for (const theme of THEMES) {
     await capture(`teach-proposal-${theme}.png`);
 
     // An instruction applies at once as version 3; version 2 keeps answering.
-    await sheet.getByRole('button', { name: 'Apply as version 3' }).click();
-    await expect(sheet.getByText('Made version 3')).toBeVisible();
+    await sheet.getByRole('button', { name: 'Save as version 3' }).click();
+    await expect(sheet.getByText('Saved as version 3')).toBeVisible();
     await expect(sheet).toContainText('Version 2 keeps answering until you promote version 3.');
     await capture(`teach-applied-${theme}.png`);
     expect(await callsTo(app, 'teach:apply')).toEqual([['cor_new1']]);
@@ -185,11 +188,11 @@ for (const theme of THEMES) {
     await second.getByRole('button', { name: 'Send to Spark' }).click();
     await expect(second.getByText('A weakness to train')).toBeVisible();
     await expect(second).toContainText('Yes, through Improve agent');
-    await expect(second.getByRole('button', { name: /Apply/ })).toHaveCount(0);
+    await expect(second.getByRole('button', { name: /Save as/ })).toHaveCount(0);
     await capture(`teach-proposal-weakness-${theme}.png`);
-    await second.getByRole('button', { name: 'Add to the queue' }).click();
+    await second.getByRole('button', { name: 'Queue for Improve agent' }).click();
     await expect(second.getByText('Added to the teaching queue')).toBeVisible();
-    await expect(second).toContainText('1 lesson waits for Improve agent.');
+    await expect(second).toContainText('1 lesson waits until you start Improve agent.');
     await capture(`teach-queued-${theme}.png`);
     expect(await callsTo(app, 'teach:queue')).toEqual([['cor_new2']]);
     // The job already shares flagged answers, so it isn't asked again.
@@ -205,7 +208,7 @@ for (const theme of THEMES) {
     const versions = teaching.getByRole('list', { name: 'Versions' });
     await expect(versions.getByRole('listitem', { name: 'Version 3' })).toContainText('Candidate');
     await expect(versions.getByRole('listitem', { name: 'Version 3' })).toContainText(
-      'Not evaluated',
+      'No final test yet',
     );
     await expect(versions.getByRole('listitem', { name: 'Version 2' })).toContainText('Active');
     await page.keyboard.press('Escape');
@@ -213,7 +216,7 @@ for (const theme of THEMES) {
     await third.getByLabel('What was wrong').fill('The total is wrong.');
     await third.getByRole('button', { name: 'Send to Spark' }).click();
     await expect(third.getByText("Something it can't verify")).toBeVisible();
-    await expect(third.getByRole('button', { name: 'Add to the queue' })).toHaveCount(0);
+    await expect(third.getByRole('button', { name: 'Queue for Improve agent' })).toHaveCount(0);
     await third.getByRole('button', { name: 'Discard' }).click();
     await expect(third).toBeHidden();
     expect(await callsTo(app, 'teach:discard')).toEqual([['cor_new3']]);
@@ -233,8 +236,10 @@ for (const theme of THEMES) {
     await expect(sheet.getByText("Couldn't propose a lesson")).toBeVisible();
     // The engine's words for the leak check, in the app's: it calls the locked test the final test.
     await expect(sheet).toContainText(
-      'Nothing was sent: the exchange quotes a task from its final test, which Spark may never see.',
+      'Nothing was sent: this exchange quotes a task from its final test, which Spark must never see.',
     );
+    // The same exchange would be refused again, so it isn't offered again.
+    await expect(sheet.getByRole('button', { name: 'Send to Spark' })).toHaveCount(0);
     await expect(sheet.getByLabel('What was wrong')).toHaveValue(WRONG);
     await capture(`teach-error-${theme}.png`);
   });
@@ -248,7 +253,7 @@ for (const theme of THEMES) {
     await expect(lessons).toContainText('Flagged answers');
     await expect(lessons).toContainText('1 waiting for you · 2 in the queue');
     await expect(lessons).toContainText('Teach it something new');
-    await expect(lessons).toContainText('2 lessons · up to $5 of Spark and 4 h');
+    await expect(lessons).toContainText('2 lessons · at most 10 rounds, $5 of Spark and 4 h');
     await expect(dialog.getByRole('list', { name: 'Versions' }).getByRole('listitem')).toHaveCount(
       2,
     );
@@ -264,9 +269,9 @@ for (const theme of THEMES) {
     await list.getByRole('button', { name: /Ask which day before booking/ }).click();
     const lesson = page.getByRole('dialog', { name: 'Flagged answer' });
     await expect(lesson).toContainText('Adds to its instructions');
-    await expect(lesson.getByRole('button', { name: 'Apply as version 3' })).toBeVisible();
+    await expect(lesson.getByRole('button', { name: 'Save as version 3' })).toBeVisible();
     await capture(`teach-review-lesson-${theme}.png`);
-    await lesson.getByRole('button', { name: 'Add to the queue' }).click();
+    await lesson.getByRole('button', { name: 'Queue for Improve agent' }).click();
     await expect(page.getByRole('dialog', { name: 'Flagged answers' })).toBeVisible();
     await expect(list.getByRole('listitem').first()).toContainText('In the queue');
     expect(await callsTo(launched.app, 'teach:queue')).toEqual([['cor_booking']]);
@@ -293,13 +298,13 @@ for (const theme of THEMES) {
     await page.keyboard.press('Escape');
 
     await stubEngineFailure(launched.app, {
-      'teach:overview': "The engine stopped, so what it is taught couldn't be read.",
+      'teach:overview': "The engine isn't running, so its lessons couldn't be read.",
     });
     await page.reload();
     await page.waitForLoadState('domcontentloaded');
     await goTo(page, chatPath(AGENT.id, CHATS.closeout.id));
     const failed = await openTeaching();
-    await expect(failed.getByText("Couldn't check what it can be taught")).toBeVisible();
+    await expect(failed.getByText("Couldn't load its lessons")).toBeVisible();
     await expect(failed.getByRole('button', { name: 'Try again' }).first()).toBeVisible();
     await capture(`agent-teaching-lessons-error-${theme}.png`);
   });
@@ -311,7 +316,7 @@ for (const theme of THEMES) {
     const sheet = await flagReply();
     await expect(sheet.getByText("Returns desk can't be taught here")).toBeVisible();
     await expect(sheet).toContainText(
-      "Returns desk came from another computer, so the job it learned from isn't here to teach it with.",
+      'Returns desk was made on another computer. It can be taught there, where its training tasks are.',
     );
     await expect(sheet.getByRole('button', { name: /Send/ })).toHaveCount(0);
     await capture(`teach-imported-${theme}.png`);
@@ -338,7 +343,7 @@ for (const theme of THEMES) {
       .click();
     const confirm = page.getByRole('dialog', { name: 'Improve Service desk?' });
     await expect(confirm).toContainText('Version 2 keeps answering meanwhile.');
-    await expect(confirm).toContainText('At most $5 of Spark and 4 h.');
+    await expect(confirm).toContainText('At most 10 rounds, $5 of Spark and 4 h.');
     await capture(`improve-dialog-${theme}.png`);
     await confirm.getByRole('button', { name: 'Start improving' }).click();
     expect(await callsTo(app, 'teach:improve')).toEqual([
@@ -397,7 +402,9 @@ for (const theme of THEMES) {
     await goTo(page, `/runs/${IMPROVE_RUN_ID}/train`);
     await page.getByRole('button', { name: 'Stop', exact: true }).click();
     const stop = page.getByRole('dialog', { name: 'Stop improving?' });
-    await expect(stop).toContainText('It has kept no change yet, so it makes no version');
+    await expect(stop).toContainText(
+      "It hasn't found a change that helps yet, so it makes no version",
+    );
     await capture(`improve-stop-${theme}.png`);
     await stop.getByRole('button', { name: 'Stop improving' }).click();
     await expect(page.getByText('Improving stopped')).toBeVisible();
@@ -408,7 +415,7 @@ for (const theme of THEMES) {
     await page.getByRole('button', { name: 'Back to Teaching' }).click();
     const again = page.getByRole('dialog', { name: 'Service desk', exact: true });
     const lessons = again.getByRole('region', { name: 'Lessons' });
-    await expect(lessons).toContainText('2 lessons · up to $5 of Spark and 4 h');
+    await expect(lessons).toContainText('2 lessons · at most 10 rounds, $5 of Spark and 4 h');
     await lessons.getByRole('button', { name: 'Improve' }).click();
     await page
       .getByRole('dialog', { name: 'Improve Service desk?' })
@@ -443,7 +450,9 @@ for (const theme of THEMES) {
     await expect(page.getByRole('region', { name: 'What improved' })).toContainText(
       'Overdue balances',
     );
-    await expect(page.getByRole('region', { name: "What didn't" })).toContainText('Invoices');
+    await expect(page.getByRole('region', { name: "What didn't improve" })).toContainText(
+      'Invoices',
+    );
     await capture(`improve-report-${theme}.png`);
 
     await page.getByRole('button', { name: 'Promote version 3' }).click();

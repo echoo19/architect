@@ -4,13 +4,12 @@ import { Button, Drawer, DrawerContent, ErrorState, Skeleton } from '@architect/
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useVersions } from '../../api/graduates';
 import { useCorrections, useImprovements, useTeachingOverview } from '../../api/teaching';
-import { shortModelName } from '../../lib/names';
 import { versionDate } from '../settings/versions';
 import { KindTile } from './kinds';
 import {
   correctionStatus,
   flaggedSummary,
-  KIND_SHORT,
+  KIND_LABELS,
   openCorrections,
   runningImprovement,
 } from './lessons';
@@ -46,7 +45,6 @@ export function FlaggedAnswers({
   const list = ordered(corrections.data ?? []);
   const selected = list.find((correction) => correction.id === selectedId) ?? null;
   const improving = runningImprovement(improvements.data ?? []) !== null;
-  const mentor = shortModelName(overview.data?.mentor ?? 'Spark');
   const nextVersion = versions.data
     ? Math.max(0, ...versions.data.map((version) => version.version)) + 1
     : null;
@@ -91,11 +89,7 @@ export function FlaggedAnswers({
         }
       >
         {selected ? (
-          <ProposalView
-            correction={selected}
-            mentor={mentor}
-            capUsd={overview.data?.correctionCapUsd ?? 0.25}
-          />
+          <ProposalView correction={selected} capUsd={overview.data?.correctionCapUsd ?? 0.25} />
         ) : corrections.status === 'error' && !corrections.data ? (
           <ErrorState
             layout="inline"
@@ -118,7 +112,7 @@ export function FlaggedAnswers({
                       {correction.proposal.lesson}
                     </span>
                     <span className="text-sm text-fg-muted">
-                      {KIND_SHORT[correction.proposal.kind]} ·{' '}
+                      {KIND_LABELS[correction.proposal.kind]} ·{' '}
                       {correctionStatus(correction, improving)}
                     </span>
                   </span>

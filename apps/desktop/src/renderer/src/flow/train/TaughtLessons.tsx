@@ -2,7 +2,7 @@ import type { RunImprovement } from '@architect/shared';
 import { ErrorState, Panel, PanelHeader, PanelRow, Skeleton } from '@architect/ui';
 import { useCorrections } from '../../api/teaching';
 import { KindTile } from '../../workspace/teach/kinds';
-import { KIND_SHORT } from '../../workspace/teach/lessons';
+import { KIND_LABELS } from '../../workspace/teach/lessons';
 
 /**
  * At the top of an improvement's training view: the lessons from the person's flagged answers
@@ -29,7 +29,7 @@ export function TaughtLessons({ improves }: { improves: RunImprovement }) {
               <PanelRow className="grid-cols-[28px_minmax(0,1fr)_auto] py-2.5">
                 <KindTile kind={lesson.proposal.kind} />
                 <span className="text-pretty">{lesson.proposal.lesson}</span>
-                <span className="text-sm text-fg-muted">{KIND_SHORT[lesson.proposal.kind]}</span>
+                <span className="text-sm text-fg-muted">{KIND_LABELS[lesson.proposal.kind]}</span>
               </PanelRow>
             </li>
           ))}

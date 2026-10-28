@@ -203,7 +203,7 @@ export class TeachThis {
         sharesCorrections: false,
         unavailable: {
           reason: 'imported',
-          message: `${agent.name} came from another computer, so the job it learned from isn't here to teach it with.`,
+          message: `${agent.name} was made on another computer. It can be taught there, where its training tasks are.`,
         },
       };
     }

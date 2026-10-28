@@ -193,7 +193,7 @@ for (const theme of THEMES) {
     await expect(row(2)).toContainText('55 of 60 passed');
     await expect(row(3)).toContainText('Candidate');
     await expect(row(3)).toContainText('Ready · from v2');
-    await expect(row(4)).toContainText('Not evaluated · from v2, imported');
+    await expect(row(4)).toContainText('No final test yet · from v2, imported');
     await expect(row(1)).toContainText('Experimental');
     await expect(row(1)).toContainText('Below its 90% target');
     await expect(dialog.getByRole('region', { name: 'Versions' })).toContainText('Final test');

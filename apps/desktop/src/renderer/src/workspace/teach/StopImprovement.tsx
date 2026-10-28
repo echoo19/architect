@@ -12,7 +12,7 @@ function stopOutcome(writing: boolean, kept: boolean | null): string {
     return 'It stops after the step in progress, and the changes it kept become a new version for you to review.';
   }
   if (kept === false) {
-    return 'It stops after the step in progress. It has kept no change yet, so it makes no version, and its lessons stay in the queue.';
+    return "It stops after the step in progress. It hasn't found a change that helps yet, so it makes no version, and its lessons stay in the queue.";
   }
   return 'It stops after the step in progress. A change it already kept becomes a new version for you to review.';
 }

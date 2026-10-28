@@ -15,6 +15,7 @@ import {
 import {
   Coins,
   Flag,
+  GraduationCap,
   Hourglass,
   Layers,
   LockKeyhole,
@@ -89,7 +90,7 @@ export function LessonsSection({ agent }: { agent: GraduateSummary }) {
     rows = (
       <ErrorState
         layout="inline"
-        title="Couldn't check what it can be taught"
+        title="Couldn't load its lessons"
         message={overview.error.message}
         onRetry={overview.reload}
         className="border-t border-line py-4"
@@ -236,7 +237,7 @@ function ImproveRow({
     meta = 'Nothing in the queue yet';
   } else if (overview.improve) {
     const waits = overview.improve.waits ? ' · waits for a run using the student' : '';
-    meta = `${lessonCount(queued)} · up to ${budgetLine(overview.improve.budget, mentor)}${waits}`;
+    meta = `${lessonCount(queued)} · at most ${budgetLine(overview.improve.budget, mentor)}${waits}`;
     action = (
       <Button size="xs" onClick={() => setConfirming(true)}>
         Improve
@@ -329,9 +330,11 @@ function ImproveDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent title={`Improve ${agent.name}?`}>
         <ul className="m-0 flex list-none flex-col gap-3 px-7 pt-4">
+          <Change icon={<GraduationCap size={15} strokeWidth={1.8} aria-hidden />}>
+            Teaches {lessonCount(queued)} to a copy of version {from}.
+          </Change>
           <Change icon={<Layers size={15} strokeWidth={1.8} aria-hidden />}>
-            Works on a copy of version {from} with {lessonCount(queued)}, and keeps only what scores
-            better on the check tasks, as version {next ?? from + 1}.
+            Saves version {next ?? from + 1} only if it scores better on the check tasks.
           </Change>
           <Change icon={<MessageSquare size={15} strokeWidth={1.8} aria-hidden />}>
             Version {from} keeps answering meanwhile.

@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import type { Correction } from '@architect/shared';
-import { Button, cn } from '@architect/ui';
-import { ArrowUpRight, ListPlus, PencilLine, Trash2 } from 'lucide-react';
+import { Button } from '@architect/ui';
+import { Layers, ListPlus, PencilLine, Trash2 } from 'lucide-react';
 import { refreshAgent } from '../../api/graduates';
 import { refreshTeaching, teachApi } from '../../api/teaching';
 import { formatUsd } from '../../lib/format';
@@ -15,36 +15,29 @@ function costLabel(usd: number): string {
   return usd < 0.01 ? 'under $0.01' : formatUsd(Math.round(usd * 100) / 100);
 }
 
-function Fact({
-  label,
-  tone = 'default',
-  children,
-}: {
-  label: string;
-  tone?: 'default' | 'mentor';
-  children: ReactNode;
-}) {
+function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-4 border-t border-line py-3.5">
-      <dt className={cn('text-fg-muted', tone === 'mentor' && 'text-mentor')}>{label}</dt>
+    <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-4 border-t border-line py-3.5">
+      <dt className="text-fg-muted">{label}</dt>
       <dd className="m-0 flex flex-col gap-2 text-fg-soft text-pretty">{children}</dd>
     </div>
   );
 }
 
 /**
- * A lesson the mentor proposed from a flagged answer: its kind, the lesson, the change it would
- * make, whether it needs training, the mentor's reason, and what reading it cost.
+ * A lesson the mentor proposed from a flagged answer: its kind and the lesson, what the person
+ * said, the change it would make, whether it needs training, the mentor's reason, and what
+ * reading it cost. With `onEdit`, the person can say more and send it again.
  */
 export function ProposalView({
   correction,
-  mentor,
   capUsd,
+  onEdit,
 }: {
   correction: Correction;
-  /** The mentor's short name, as the rest of the app calls it. */
-  mentor: string;
   capUsd: number;
+  /** Goes back to the form, with what was written kept, to say more and send it again. */
+  onEdit?: () => void;
 }) {
   const { proposal } = correction;
   const change = lessonChange(proposal);
@@ -55,6 +48,7 @@ export function ProposalView({
         <p className="m-0 text-2xl text-fg text-pretty">{proposal.lesson}</p>
       </div>
       <dl aria-label="Proposed lesson" className="m-0 flex flex-col">
+        <Fact label="You said">{correction.wrong}</Fact>
         <Fact label="Change">
           <span className="text-fg">{change.title}</span>
           {change.detail && (
@@ -63,10 +57,8 @@ export function ProposalView({
             </span>
           )}
         </Fact>
-        <Fact label="Training">{TRAINING_NEED[proposal.kind]}</Fact>
-        <Fact label={mentor} tone="mentor">
-          {proposal.reason}
-        </Fact>
+        <Fact label="Needs training">{TRAINING_NEED[proposal.kind]}</Fact>
+        <Fact label="Why">{proposal.reason}</Fact>
         <Fact label="Cost">
           <span className="font-mono tabular-nums">
             {costLabel(correction.costUsd)}
@@ -74,6 +66,12 @@ export function ProposalView({
           </span>
         </Fact>
       </dl>
+      {onEdit && (
+        <Button size="sm" variant="ghost" className="-ml-3 self-start" onClick={onEdit}>
+          <PencilLine size={14} strokeWidth={1.7} aria-hidden />
+          Say more and send again
+        </Button>
+      )}
     </div>
   );
 }
@@ -82,14 +80,14 @@ type Action = 'queue' | 'apply' | 'discard';
 
 const FAILED: Record<Action, string> = {
   queue: "Couldn't add it to the queue",
-  apply: "Couldn't make the new version",
+  apply: "Couldn't save the new version",
   discard: "Couldn't discard it",
 };
 
 /**
- * The choices for a lesson that waits for the person: discard it, add it to the teaching queue,
- * or, for an instruction, apply it at once as a new version that isn't evaluated yet. The
- * version chats run on never changes here.
+ * The choices for a lesson that waits for the person: discard it, queue it for Improve agent,
+ * or, for an instruction, save it at once as a new version that hasn't taken a final test. The
+ * version chats run on never changes here: only Promote does that.
  */
 export function ProposalActions({
   graduateId,
@@ -100,11 +98,11 @@ export function ProposalActions({
 }: {
   graduateId: string;
   correction: Correction;
-  /** The number a version applied now would get, once the versions are known. */
+  /** The number a version saved now would get, once the versions are known. */
   nextVersion: number | null;
-  /** The lesson after the choice: queued, applied or discarded. */
+  /** The lesson after the choice: queued, saved as a version, or discarded. */
   onSettled: (correction: Correction) => void;
-  /** Goes back to the form to say more and send it again. */
+  /** Goes back to the form to say more and send it again, for a lesson that can't be taught. */
   onEdit?: () => void;
 }) {
   const [busy, setBusy] = useState<Action | null>(null);
@@ -131,14 +129,14 @@ export function ProposalActions({
     if (settled) onSettled(settled);
   };
 
-  const primary = applicable ? 'apply' : queueable ? 'queue' : null;
-  // A lesson that can't be taught is only discarded, unless the person can say more.
-  const discardFirst = correction.status === 'proposed' && primary === null && !onEdit;
+  const teachable = applicable || queueable;
+  // A lesson that can't be taught is said again, or discarded.
+  const sayMore = onEdit !== undefined && !teachable && correction.status === 'proposed';
   return (
     <>
       <Button
         size="md"
-        variant={discardFirst ? 'primary' : 'ghost'}
+        variant={teachable || sayMore ? 'ghost' : 'primary'}
         loading={busy === 'discard'}
         disabled={busy !== null}
         onClick={() => void act('discard')}
@@ -146,7 +144,7 @@ export function ProposalActions({
         {busy !== 'discard' && <Trash2 size={14} strokeWidth={1.7} aria-hidden />}
         Discard
       </Button>
-      {onEdit && !queueable && (
+      {sayMore && (
         <Button size="md" variant="primary" disabled={busy !== null} onClick={onEdit}>
           <PencilLine size={14} strokeWidth={1.7} aria-hidden />
           Say more and send again
@@ -155,13 +153,13 @@ export function ProposalActions({
       {queueable && (
         <Button
           size="md"
-          variant={primary === 'queue' ? 'primary' : 'secondary'}
+          variant={applicable ? 'secondary' : 'primary'}
           loading={busy === 'queue'}
           disabled={busy !== null}
           onClick={() => void act('queue')}
         >
           {busy !== 'queue' && <ListPlus size={15} strokeWidth={1.7} aria-hidden />}
-          Add to the queue
+          Queue for Improve agent
         </Button>
       )}
       {applicable && (
@@ -172,8 +170,8 @@ export function ProposalActions({
           disabled={busy !== null}
           onClick={() => void act('apply')}
         >
-          {busy !== 'apply' && <ArrowUpRight size={15} strokeWidth={1.8} aria-hidden />}
-          {nextVersion === null ? 'Apply as a new version' : `Apply as version ${nextVersion}`}
+          {busy !== 'apply' && <Layers size={15} strokeWidth={1.7} aria-hidden />}
+          {nextVersion === null ? 'Save as a new version' : `Save as version ${nextVersion}`}
         </Button>
       )}
     </>

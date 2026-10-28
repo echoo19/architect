@@ -68,7 +68,7 @@ describe('a proposed lesson', () => {
     expect(canQueue('procedure')).toBe(true);
 
     const weakness = proposal({ kind: 'weakness' });
-    expect(lessonChange(weakness)).toEqual({ title: 'Practice on requests like this one' });
+    expect(lessonChange(weakness)).toEqual({ title: 'Practice on tasks like this one' });
     expect(canApply(weakness)).toBe(false);
     expect(canQueue('weakness')).toBe(true);
 
@@ -99,12 +99,14 @@ describe('a proposed lesson', () => {
         "Refused a mentor call: its payload matched 2 locked test tasks, in the person's request.",
         'Spark',
       ),
-    ).toBe(
-      'Nothing was sent: the exchange quotes a task from its final test, which Spark may never see.',
-    );
+    ).toEqual({
+      text: 'Nothing was sent: this exchange quotes a task from its final test, which Spark must never see.',
+      // The same exchange is refused however it is described, so it isn't offered again.
+      retry: false,
+    });
     const budget =
       'Reading this exchange could cost up to $0.31, more than the $0.25 a correction may.';
-    expect(proposeFailure(budget, 'Spark')).toBe(budget);
+    expect(proposeFailure(budget, 'Spark')).toEqual({ text: budget, retry: true });
   });
 
   it('shortens the request it answered to one line', () => {
@@ -139,15 +141,15 @@ describe('the flagged answers', () => {
 
 describe('Improve agent', () => {
   it('states its budget from the job, with compute only when it may train', () => {
-    expect(budgetLine({ maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: 240 }, 'Spark')).toBe(
-      '$5 of Spark and 4 h',
+    expect(budgetLine({ maxRounds: 10, maxMentorUsd: 5, maxWallMinutes: 240 }, 'Spark')).toBe(
+      '10 rounds, $5 of Spark and 4 h',
     );
     expect(
       budgetLine(
         { maxRounds: 4, maxMentorUsd: 2.5, maxWallMinutes: 90, maxComputeUsd: 2.7 },
         'Spark',
       ),
-    ).toBe('$2.50 of Spark, $2.70 of compute and 1 h 30 min');
+    ).toBe('4 rounds, $2.50 of Spark, $2.70 of compute and 1 h 30 min');
   });
 
   it('finds the improvement still going', () => {

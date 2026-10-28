@@ -8,7 +8,6 @@ import {
   Field,
   Heading,
   Skeleton,
-  StatusDot,
   StatusMark,
   Textarea,
   ToggleChip,
@@ -27,7 +26,7 @@ import {
 import { formatUsd } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
 import { useAgentSettingsUi } from '../settings/agentSettingsUi';
-import { evidenceText, lessonCount, proposeFailure, shortRequest } from './lessons';
+import { canQueue, evidenceText, lessonCount, proposeFailure, shortRequest } from './lessons';
 import { ProposalActions, ProposalView } from './Proposal';
 
 export interface TeachSheetProps {
@@ -60,7 +59,7 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
   const [wanted, setWanted] = useState('');
   const [files, setFiles] = useState<string[]>([]);
   const [rows, setRows] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ text: string; retry: boolean } | null>(null);
   const versions = useVersions(agent.id);
   const corrections = useCorrections(agent.id);
   const showSettings = useAgentSettingsUi((state) => state.show);
@@ -130,8 +129,14 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
     );
     footer = <CloseButton onClose={onClose} />;
   } else if (stage.kind === 'proposed') {
+    const editWrite = () => setStage({ kind: 'write' });
     body = (
-      <ProposalView correction={stage.correction} mentor={mentor} capUsd={ready.correctionCapUsd} />
+      <ProposalView
+        correction={stage.correction}
+        capUsd={ready.correctionCapUsd}
+        // A lesson that can be taught can still be said better; the footer offers it otherwise.
+        {...(canQueue(stage.correction.proposal.kind) ? { onEdit: editWrite } : {})}
+      />
     );
     footer = (
       <ProposalActions
@@ -142,15 +147,15 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
           if (settled.status === 'discarded') onClose();
           else setStage({ kind: 'done', correction: settled });
         }}
-        onEdit={() => setStage({ kind: 'write' })}
+        onEdit={editWrite}
       />
     );
   } else if (stage.kind === 'done') {
     const queued = (corrections.data ?? []).filter((item) => item.status === 'queued').length;
     body =
       stage.correction.status === 'applied' ? (
-        <Settled title={`Made version ${stage.correction.candidateVersion ?? ''}`.trim()}>
-          <span>Not evaluated yet.</span>
+        <Settled title={`Saved as version ${stage.correction.candidateVersion ?? ''}`.trim()}>
+          <span>It hasn&apos;t taken a final test.</span>
           {active !== null && (
             <span>
               Version {active} keeps answering until you promote version{' '}
@@ -161,7 +166,8 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
       ) : (
         <Settled title="Added to the teaching queue">
           <span>
-            {lessonCount(Math.max(queued, 1))} {queued === 1 ? 'waits' : 'wait'} for Improve agent.
+            {lessonCount(Math.max(queued, 1))} {queued === 1 ? 'waits' : 'wait'} until you start
+            Improve agent.
           </span>
         </Settled>
       );
@@ -177,6 +183,8 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
     );
   } else {
     const sending = stage.kind === 'sending';
+    // The leak check refuses this exchange however it is described, so it isn't offered again.
+    const refused = error !== null && !error.retry;
     body = (
       <CorrectionForm
         reply={reply.text}
@@ -185,8 +193,8 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
         files={files}
         rows={rows}
         jobFiles={jobFiles}
-        disabled={sending}
-        error={error}
+        disabled={sending || refused}
+        error={error?.text ?? null}
         onWrong={setWrong}
         onWanted={setWanted}
         onFiles={setFiles}
@@ -194,19 +202,16 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
       />
     );
     // What leaves this computer, beside the one button that sends it.
-    footer = (
+    footer = refused ? (
+      <CloseButton onClose={onClose} />
+    ) : (
       <>
-        <div className="mr-auto flex items-start gap-2.5 text-sm">
-          <StatusDot tone="mentor" className="mt-[7px]" />
-          <p className="m-0 flex flex-col">
-            <span className="text-fg-secondary">
-              {mentor} reads this exchange to propose a lesson.
-            </span>
-            <span className="font-mono text-fg-muted">
-              Up to {formatUsd(ready.correctionCapUsd)}
-            </span>
-          </p>
-        </div>
+        <p className="m-0 mr-auto flex flex-col text-sm">
+          <span className="text-fg-secondary">
+            {mentor} reads this exchange and your note to propose a lesson.
+          </span>
+          <span className="font-mono text-fg-muted">Up to {formatUsd(ready.correctionCapUsd)}</span>
+        </p>
         <Button
           size="md"
           variant="primary"
@@ -300,7 +305,7 @@ function CorrectionForm({
           onChange={(event) => onWrong(event.target.value)}
         />
       </Field>
-      <Field label="What it should have done" htmlFor={`${id}-wanted`}>
+      <Field label="What it should have done" hint="Optional" htmlFor={`${id}-wanted`}>
         <Textarea
           id={`${id}-wanted`}
           value={wanted}

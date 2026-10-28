@@ -69,7 +69,7 @@ const IMPORTED_TEACHING: TeachingOverview = {
   unavailable: {
     reason: 'imported',
     message:
-      "Returns desk came from another computer, so the job it learned from isn't here to teach it with.",
+      'Returns desk was made on another computer. It can be taught there, where its training tasks are.',
   },
 };
 
@@ -161,7 +161,7 @@ export const FLAGGED: Correction[] = [
     {
       kind: 'procedure',
       lesson: 'Ask which day before booking when a request names none.',
-      reason: 'You want a question when the day is missing, and its instructions say to guess.',
+      reason: "Its instructions don't say what to do when a request names no day.",
       instruction: 'When a booking request names no day, ask which day before booking anything.',
       taskType: 'scheduling',
     },
@@ -180,10 +180,10 @@ export const FLAGGED: Correction[] = [
     'cor_sources',
     {
       kind: 'source',
-      lesson: 'Payment dates come from payments.csv, not the paid column of invoices.csv.',
-      reason: 'You name the file that holds the right dates.',
+      lesson: 'What a customer owes is total_cents minus paid_cents in invoices.csv.',
+      reason: 'You name the columns that hold the right amounts.',
       instruction:
-        'Read payment dates from data/payments.csv; the paid column of invoices.csv is only a total.',
+        'Work out what a customer owes from data/invoices.csv as total_cents minus paid_cents, never from its status column.',
       taskType: 'overdue',
     },
     { status: 'queued', wrong: 'It used the wrong payment date for Okafor.', createdAt: at(430) },

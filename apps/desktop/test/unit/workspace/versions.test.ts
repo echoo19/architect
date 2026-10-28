@@ -107,7 +107,7 @@ describe('promoting a version its final test did not vouch for', () => {
     expect(evaluationNote(hosted)).toBe('Tested on a hosted copy');
     expect(evaluationNote(version({ version: 3 }))).toBe('Ready');
     expect(evaluationNote(version({ version: 4, evaluation: 'unevaluated' }))).toBe(
-      'Not evaluated',
+      'No final test yet',
     );
   });
 
