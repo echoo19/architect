@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { LineageEntry, Round } from '@architect/shared';
-import { decisionSentence, predictionCheck } from '../../../src/renderer/src/flow/train/decision';
+import type { Experiment, LineageEntry, Round } from '@architect/shared';
+import {
+  decisionSentence,
+  harmSentence,
+  predictionCheck,
+} from '../../../src/renderer/src/flow/train/decision';
 import { decided, makeJob, makeRound } from './factories';
 
 const job = makeJob();
@@ -103,6 +107,28 @@ describe('decisionSentence', () => {
 
   it('has nothing to say before the round is decided', () => {
     expect(decisionSentence(makeRound(4, { status: 'evaluating' }), undefined, job)).toBeNull();
+  });
+});
+
+describe('harmSentence', () => {
+  const rejected = (regressions: Experiment['regressions'], before: number, after: number) =>
+    ({
+      devBefore: { pass: before, total: 9 },
+      devAfter: { pass: after, total: 9 },
+      regressions,
+      seeds: { dev: [101], train: 7 },
+    }) as Experiment;
+
+  it('names the task type that lost more than the job allows', () => {
+    expect(harmSentence(rejected([{ type: 'scheduling', before: 3, after: 0 }], 7, 6), job)).toBe(
+      '1 fewer check task passed (7 → 6 of 9), and Scheduling lost three. No task type may lose more than one.',
+    );
+  });
+
+  it('says a change that loses check tasks in all is rejected', () => {
+    expect(harmSentence(rejected([{ type: 'invoice', before: 3, after: 2 }], 7, 6), job)).toBe(
+      '1 fewer check task passed (7 → 6 of 9). A change that loses check tasks is rejected.',
+    );
   });
 });
 
