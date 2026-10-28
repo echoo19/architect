@@ -2,15 +2,20 @@ import { create } from 'zustand';
 import { architect } from '../api/client';
 import { navigate, paths } from '../lib/router';
 
+/** Where an import comes from: a package the user chose, or a repository on Hugging Face. */
+export type ImportSource = { kind: 'file'; path: string } | { kind: 'hub'; started: number };
+
 interface ImportSession {
-  /** The package file or folder the user chose, which the import screen checks. */
-  path: string | null;
+  source: ImportSource | null;
   choose: (path: string) => void;
+  /** Starts an install from Hugging Face afresh. */
+  fromHub: () => void;
 }
 
 export const useImportSession = create<ImportSession>()((set) => ({
-  path: null,
-  choose: (path) => set({ path }),
+  source: null,
+  choose: (path) => set({ source: { kind: 'file', path } }),
+  fromHub: () => set({ source: { kind: 'hub', started: Date.now() } }),
 }));
 
 /** The file dialog's filter for packages, which are ZIP files named `.architect.zip`. */
@@ -28,5 +33,11 @@ export async function chooseImport(folder = false): Promise<void> {
   );
   if (!path) return;
   useImportSession.getState().choose(path);
+  navigate(paths.importAgent());
+}
+
+/** Opens the import screen on a repository to install from Hugging Face. */
+export function chooseFromHub(): void {
+  useImportSession.getState().fromHub();
   navigate(paths.importAgent());
 }
