@@ -1,3 +1,10 @@
+import {
+  glimmerBuild,
+  LMSTUDIO_BASE_URL,
+  OLLAMA_BASE_URL,
+  type GpuInfo,
+  type LocalRuntimes,
+} from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
 import { CHATS, MESSAGES } from './fixtures-workspace';
 import { detail, graduate, job, STORY, storyReport } from './story';
@@ -17,13 +24,45 @@ export const SAMPLE = {
 /** Channel → reply. Any channel not listed keeps the app's own behavior. */
 export type EngineReplies = Record<string, unknown>;
 
+/** No model runtime on this computer and no GPU found. */
+export const NOTHING_LOCAL: LocalRuntimes = {
+  ollama: { running: false, baseUrl: OLLAMA_BASE_URL, models: [] },
+  lmstudio: { running: false, baseUrl: LMSTUDIO_BASE_URL, models: [] },
+  gpu: null,
+};
+
+/** Ollama answering with nothing downloaded yet: what a new install sees. */
+export const OLLAMA_READY: LocalRuntimes = {
+  ...NOTHING_LOCAL,
+  ollama: { running: true, version: '0.12.6', baseUrl: OLLAMA_BASE_URL, models: [] },
+};
+
+/** A 12 GB card, which holds Glimmer's 2-bit build but not its 4-bit one. */
+export const GPU_12GB: GpuInfo = {
+  name: 'NVIDIA GeForce RTX 4070',
+  memoryBytes: 12 * 1024 ** 3,
+  shared: false,
+};
+
+/** Ollama with Glimmer's GPU-sized build downloaded, on that card. */
+export const LOCAL_WITH_GLIMMER: LocalRuntimes = {
+  ...OLLAMA_READY,
+  ollama: {
+    ...OLLAMA_READY.ollama,
+    models: [{ id: glimmerBuild('glimmer-gpu').model, sizeBytes: 10_746_373_364 }],
+  },
+  gpu: GPU_12GB,
+};
+
 /** A fresh install: the engine answers, and there is nothing yet. */
 export const EMPTY_ENGINE: EngineReplies = {
   'graduates:list': [],
   'jobs:list': [],
+  'connections:detectLocal': NOTHING_LOCAL,
 };
 
 export const SAMPLE_ENGINE: EngineReplies = {
+  'connections:detectLocal': LOCAL_WITH_GLIMMER,
   'graduates:list': [graduate],
   'graduates:settings': { writeMode: 'ask' },
   'workspace:listChats': Object.values(CHATS),
