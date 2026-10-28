@@ -118,6 +118,12 @@ export const RunProtocolSchema = z.object({
   oneShotAdapter: z.object({ perType: z.number().int().min(1).max(20) }).optional(),
   /** The longest one training job may run; the compute cap alone limits it when absent. */
   maxJobMinutes: z.number().int().min(35).max(600).optional(),
+  /**
+   * The run starts every round its budget allows whatever dev says, as an experiment arm must:
+   * meeting the target or a run of reverts doesn't end training early. A one-shot adapter's
+   * rounds are fixed this way too.
+   */
+  fixedRounds: z.literal(true).optional(),
 });
 export type RunProtocol = z.infer<typeof RunProtocolSchema>;
 

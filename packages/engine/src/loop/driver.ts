@@ -180,7 +180,10 @@ export class RunDriver {
       devCurrent: run.devCurrent,
       frozen: frozen !== null,
       ...(isHeld(state.record) ? { held: true } : {}),
-      ...(state.record.protocol?.oneShotAdapter === undefined ? {} : { fixedRounds: true }),
+      ...(state.record.protocol?.fixedRounds === true ||
+      state.record.protocol?.oneShotAdapter !== undefined
+        ? { fixedRounds: true }
+        : {}),
       ...(state.record.improves === undefined ? {} : { improves: true }),
       rounds: state.rounds().map(({ round, rejected }) => ({
         ...round,
