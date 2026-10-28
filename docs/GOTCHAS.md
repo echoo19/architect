@@ -2,9 +2,13 @@
 
 Things that bit us, and how to avoid them. Newest first.
 
+## A toast's text is on the page twice for a moment
+
+Radix's toast also announces its message for screen readers, in a hidden `role="status"` element ("Notification Exported Service desk ..."), for about a second after it opens. An e2e check like `page.getByText('Exported Service desk')` then matches two elements, and Playwright stops on a strict mode violation, so it passes or fails by timing. Match the toast's own text exactly (`getByText('Exported Service desk', { exact: true })`). It failed `versions.spec.ts` once in a full hidden run.
+
 ## A busy computer makes a server slow to say who it is
 
-Before a llama-server starts in a folder, the one that folder's record names is stopped, but only once it answers to the record's key, since the record's process id may belong to another program by now. That check once gave the server 2 seconds. In a full test run, with many processes starting at once, the stand-in took longer, was taken for another program and left running, and the new server started beside it: on a real GPU, two models at once. The check now waits 10 seconds; nothing listening, or another program, answers at once anyway. `local-runtime.test.ts` keeps an orphan that takes 2.5 seconds to answer (`--fake-list-ms`).
+Before a llama-server starts in a folder, the one that folder's record names is stopped, but only once it answers to the record's key, since the record's process id may belong to another program by now. That check once gave the server 2 seconds. A server slower than that, as the stand-in can be in a full test run with many processes starting at once, was taken for another program and left running, and the new server started beside it: on a real GPU, two models at once. A test of it failed once that way under load. The check now waits 10 seconds; nothing listening, or another program, answers at once anyway. `local-runtime.test.ts` keeps an orphan that takes 2.5 seconds to answer (`--fake-list-ms`).
 
 ## Vitest run from a package's folder misses the root config
 

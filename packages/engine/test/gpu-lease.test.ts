@@ -387,7 +387,8 @@ describe('the GPU lease between processes', () => {
     const request = await tool.hold('llama-server', RUN_PURPOSE);
     const reply = lease('workspace').hold('llama-server', replyPurpose('Returns desk'));
     await until(() => leaseFile().asks.length === 1);
-    // Its next request would have gone before a run's, but not before the app's reply.
+    // Its next request would join its own hold if nobody waited; with the app's reply waiting, it
+    // fails rather than go ahead of it.
     await expect(tool.hold('llama-server', RUN_PURPOSE)).rejects.toMatchObject({
       code: 'gpu_busy',
       message: 'The GPU is busy: the workspace is waiting for it first.',
