@@ -88,6 +88,8 @@ describe('the public API', () => {
       'isLoopbackUrl',
       'listModels',
       'listOllamaModels',
+      'loadedOllamaModels',
+      'makeTextOnlyModel',
       'ollamaVersion',
       'pullOllamaModel',
       'verifyKey',

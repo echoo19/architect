@@ -177,33 +177,64 @@ describe('listConnectionModels', () => {
 });
 
 describe('detectLocalRuntimes', () => {
-  it('finds Ollama and LM Studio with their chat models', async () => {
+  const card = { name: 'NVIDIA GeForce RTX 4070 Ti', memoryBytes: 12_878_610_432, shared: false };
+
+  it('finds Ollama and LM Studio with their chat models, what is loaded, and the GPU', async () => {
     const ollama = await fakeServer((request, response) => {
       if (request.url === '/api/version') return sendJson(response, { version: '0.40.9' });
+      if (request.url === '/api/ps') {
+        return sendJson(response, {
+          models: [{ name: 'muse-glimmer:30b-iq2', size: 9_928_945_171, size_vram: 9_928_945_171 }],
+        });
+      }
       sendJson(response, {
-        models: [{ name: 'granite4.2:8b', size: 5_300_000_000, digest: 'sha256:a' }],
+        models: [
+          { name: 'muse-glimmer:30b-iq2', size: 10_746_373_364, digest: 'sha256:a' },
+          { name: 'granite4.2:8b', size: 5_300_000_000, digest: 'sha256:b' },
+        ],
       });
     });
     const lmStudio = await fakeServer((_request, response) =>
       sendJson(response, { data: [{ id: 'qwen3-8b' }, { id: 'text-embedding-nomic' }] }),
     );
     servers.push(ollama, lmStudio);
-    expect(await detectLocalRuntimes(ollama.url, `${lmStudio.url}/v1`)).toEqual({
+    const runtimes = await detectLocalRuntimes({
+      ollamaBaseUrl: ollama.url,
+      lmStudioBaseUrl: `${lmStudio.url}/v1`,
+      gpu: async () => card,
+    });
+    expect(runtimes).toEqual({
       ollama: {
         running: true,
         version: '0.40.9',
         baseUrl: ollama.url,
-        models: [{ id: 'granite4.2:8b', sizeBytes: 5_300_000_000 }],
+        models: [
+          {
+            id: 'muse-glimmer:30b-iq2',
+            sizeBytes: 10_746_373_364,
+            inMemory: { totalBytes: 9_928_945_171, gpuBytes: 9_928_945_171 },
+          },
+          { id: 'granite4.2:8b', sizeBytes: 5_300_000_000 },
+        ],
       },
       lmstudio: { running: true, baseUrl: `${lmStudio.url}/v1`, models: [{ id: 'qwen3-8b' }] },
+      gpu: card,
     });
+    expect(ollama.requests.map((request) => request.path)).not.toContain('/api/chat');
   });
 
-  it('says plainly when neither is running', async () => {
+  it('says plainly when neither is running, and when the GPU is unknown', async () => {
     const nothing = await closedUrl();
-    expect(await detectLocalRuntimes(nothing, `${nothing}/v1`)).toEqual({
+    expect(
+      await detectLocalRuntimes({
+        ollamaBaseUrl: nothing,
+        lmStudioBaseUrl: `${nothing}/v1`,
+        gpu: async () => null,
+      }),
+    ).toEqual({
       ollama: { running: false, baseUrl: nothing, models: [] },
       lmstudio: { running: false, baseUrl: `${nothing}/v1`, models: [] },
+      gpu: null,
     });
   });
 });

@@ -3,7 +3,14 @@ import { createHttpClient, type HttpClient } from '../http/client';
 import { badResponse, cutOff, HttpError } from '../http/errors';
 import { withDetail } from '../http/failures';
 import { readNdjson } from '../http/ndjson';
-import { PullLineWire, TagsWire, VersionWire } from './ollama-wire';
+import {
+  CreateWire,
+  PsWire,
+  PullLineWire,
+  ShowModelfileWire,
+  TagsWire,
+  VersionWire,
+} from './ollama-wire';
 
 export const OLLAMA_SERVICE = 'Ollama';
 
@@ -39,6 +46,81 @@ export async function fetchModels(
 ): Promise<OllamaModelEntry[]> {
   const { models } = await http.getJson('/api/tags', TagsWire, { signal });
   return models.map((model) => ({ name: model.name, sizeBytes: model.size, digest: model.digest }));
+}
+
+/** A model Ollama has loaded: its size in memory, and how much of it sits on the GPU. */
+export interface LoadedModel {
+  name: string;
+  totalBytes: number;
+  gpuBytes: number;
+}
+
+/** The models Ollama has loaded right now. Asking loads nothing. */
+export async function loadedOllamaModels(
+  baseUrl: string,
+  signal?: AbortSignal,
+): Promise<LoadedModel[]> {
+  const { models } = await createOllamaClient(baseUrl).getJson('/api/ps', PsWire, { signal });
+  return models.map((model) => ({
+    name: model.name,
+    totalBytes: model.size,
+    gpuBytes: model.size_vram ?? 0,
+  }));
+}
+
+/** The digest of a model's weights: the blob its Modelfile's first FROM line names. */
+export function weightsDigest(modelfile: string): string | null {
+  const from = /^FROM\s+(.+)$/m.exec(modelfile)?.[1] ?? '';
+  return /sha256[-:]([0-9a-f]{64})/.exec(from)?.[1] ?? null;
+}
+
+/** A model made from another's weights alone, with its own renderer, parser and sampling. */
+export interface TextOnlyModel {
+  /** The pulled model whose weights to use, such as a Hugging Face GGUF. */
+  from: string;
+  /** The name of the model to make. */
+  model: string;
+  renderer: string;
+  parser: string;
+  parameters: Record<string, number>;
+}
+
+/** Making a model from weights already on disk reads their header, not the whole file. */
+const CREATE_TIMEOUT_MS = 10 * 60_000;
+
+/**
+ * Makes a text-only model from a pulled one's weights, leaving out the vision projector the pull
+ * brought, then removes the pulled original so the projector's disk space comes back. The weights
+ * stay, since the new model uses them. Nothing is downloaded or loaded.
+ */
+export async function makeTextOnlyModel(
+  baseUrl: string,
+  spec: TextOnlyModel,
+  signal?: AbortSignal,
+): Promise<void> {
+  const http = createOllamaClient(baseUrl);
+  const shown = await http.postJson('/api/show', { model: spec.from }, ShowModelfileWire, {
+    signal,
+    model: spec.from,
+  });
+  const digest = weightsDigest(shown.modelfile ?? '');
+  if (digest === null) {
+    throw badResponse(OLLAMA_SERVICE, `a description of ${spec.from} that names no weights file`);
+  }
+  await http.postJson(
+    '/api/create',
+    {
+      model: spec.model,
+      files: { 'model.gguf': `sha256:${digest}` },
+      renderer: spec.renderer,
+      parser: spec.parser,
+      parameters: spec.parameters,
+      stream: false,
+    },
+    CreateWire,
+    { signal, timeoutMs: CREATE_TIMEOUT_MS },
+  );
+  await http.delete('/api/delete', { model: spec.from }, { signal });
 }
 
 /**

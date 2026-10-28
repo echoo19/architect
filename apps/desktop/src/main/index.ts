@@ -17,6 +17,7 @@ import { registerSettingsHandlers } from './handlers/settings';
 import { registerWorkspaceHandlers } from './handlers/workspace';
 import { IpcRouter } from './ipc/router';
 import { readLaunchOptions } from './launch';
+import { detectGpu } from './gpu';
 import { createLinkOpener } from './links';
 import { signInWithOpenRouter } from './oauth/openrouter';
 import { SignIns } from './oauth/sign-ins';
@@ -103,7 +104,10 @@ async function start(): Promise<void> {
   registerAppHandlers(router, openLink);
   registerSettingsHandlers(router, settings);
   registerSecretsHandlers(router, secrets);
-  registerConnectionHandlers(router, { keys, secrets, settings, signIns });
+  // The GPU doesn't change while the app is open, so it is looked for once, when first asked.
+  let gpuProbe: ReturnType<typeof detectGpu> | null = null;
+  const gpu = () => (gpuProbe ??= detectGpu());
+  registerConnectionHandlers(router, { keys, secrets, settings, signIns, gpu });
   registerOllamaHandlers(router, settings, pulls);
   registerFilesHandlers(router, picked);
   settings.onChange((next) => router.emit('settings', 'onChange', next));

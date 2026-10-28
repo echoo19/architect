@@ -30,7 +30,7 @@ import {
   StudentEndpointSchema,
   StudentTargetSchema,
 } from './job';
-import { TokenPricingSchema } from './models';
+import { TokenPricingSchema, type GpuInfo, type StudentBuild } from './models';
 import { LineageEntrySchema } from './lineage';
 import { MethodSchema, RoundSchema, RunSchema } from './run';
 import { AttemptSchema } from './trace';
@@ -153,7 +153,20 @@ export const ModelEntrySchema = z.object({
   pricing: TokenPricingSchema.optional(),
   contextLength: z.number().int().positive().optional(),
   sizeBytes: z.number().nonnegative().optional(),
+  inMemory: z
+    .object({ totalBytes: z.number().nonnegative(), gpuBytes: z.number().nonnegative() })
+    .optional(),
 }) satisfies z.ZodType<ModelEntry>;
+
+export const GpuInfoSchema = z.object({
+  name: z.string(),
+  memoryBytes: z.number().nonnegative(),
+  shared: z.boolean(),
+}) satisfies z.ZodType<GpuInfo>;
+
+export const StudentBuildKeySchema = z.enum(['glimmer-4bit', 'glimmer-gpu']) satisfies z.ZodType<
+  StudentBuild['key']
+>;
 
 export const ModelSourceSchema = z
   .object({
@@ -173,6 +186,7 @@ const LocalRuntimeSchema = z.object({
 export const LocalRuntimesSchema = z.object({
   ollama: LocalRuntimeSchema,
   lmstudio: LocalRuntimeSchema,
+  gpu: GpuInfoSchema.nullable(),
 }) satisfies z.ZodType<LocalRuntimes>;
 
 /** Longer than any real API key, short enough to catch a paste of the wrong thing. */

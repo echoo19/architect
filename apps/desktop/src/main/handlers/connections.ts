@@ -5,6 +5,7 @@ import {
   ModelSourceSchema,
   ProviderIdSchema,
   StudentEndpointSchema,
+  type GpuInfo,
 } from '@architect/shared';
 import { z } from 'zod';
 import {
@@ -28,11 +29,13 @@ export interface ConnectionHandlerDeps {
   secrets: Pick<SecretStore, 'set' | 'clear'>;
   settings: SettingsStore;
   signIns: SignIns;
+  /** The GPU local models can run on, found once while the app runs. */
+  gpu: () => Promise<GpuInfo | null>;
 }
 
 /** Connections: testing them, their model lists, adding and removing keys, and signing in. */
 export function registerConnectionHandlers(router: IpcRouter, deps: ConnectionHandlerDeps): void {
-  const { keys, secrets, settings, signIns } = deps;
+  const { keys, secrets, settings, signIns, gpu } = deps;
   const stores = {
     verifyKey,
     listModels,
@@ -56,7 +59,8 @@ export function registerConnectionHandlers(router: IpcRouter, deps: ConnectionHa
       testMentor: (config) => testMentor(config, keys),
       testStudent: (endpoint) => testStudent(endpoint, keys),
       listModels: (source) => listConnectionModels(source, keys),
-      detectLocal: () => detectLocalRuntimes(ollamaBaseUrl(settings.get().defaultStudent)),
+      detectLocal: () =>
+        detectLocalRuntimes({ ollamaBaseUrl: ollamaBaseUrl(settings.get().defaultStudent), gpu }),
       add: (request) => addConnection(request, stores),
       remove: (source) => removeConnection(source, stores),
       signIn: async () => {

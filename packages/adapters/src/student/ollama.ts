@@ -52,28 +52,31 @@ export function createOllamaStudent(
       model: endpoint.model,
     });
 
-  let thinking: boolean | undefined;
-  /** Models without the `thinking` capability reject a `think` field, so only send it where it works. */
-  async function canThink(signal?: AbortSignal): Promise<boolean> {
-    if (thinking !== undefined) return thinking;
+  let known: ThinkStyle | undefined;
+  /**
+   * How the model takes `think`: models without the `thinking` capability reject the field, and
+   * a model that lists no levels, unlike Glimmer, takes only true or false.
+   */
+  async function thinkStyle(signal?: AbortSignal): Promise<ThinkStyle> {
+    if (known !== undefined) return known;
     try {
-      const { capabilities } = await show(signal);
-      thinking = !capabilities?.length || capabilities.includes('thinking');
-      return thinking;
+      const shown = await show(signal);
+      known = thinkStyleOf(shown);
+      return known;
     } catch (error) {
       if (error instanceof AdapterError && error.code === 'aborted') throw error;
       // The chat request will report a missing model or a stopped server far better than this lookup.
-      return true;
+      return { kind: 'levels', levels: null };
     }
   }
 
-  function chatBody(request: StudentChatRequest, think: boolean): Record<string, unknown> {
+  function chatBody(request: StudentChatRequest, style: ThinkStyle): Record<string, unknown> {
     const { decoding } = request;
     return {
       model: endpoint.model,
       messages: toOllamaMessages(request.messages),
       ...(request.tools.length > 0 ? { tools: toWireTools(request.tools) } : {}),
-      ...(think ? { think: decoding.thinking } : {}),
+      ...thinkField(style, decoding.thinking),
       stream: true,
       options: {
         num_ctx: endpoint.contextLength,
@@ -91,7 +94,7 @@ export function createOllamaStudent(
     request: StudentChatRequest,
     signal?: AbortSignal,
   ): AsyncGenerator<StudentStreamEvent> {
-    const body = chatBody(request, await canThink(signal));
+    const body = chatBody(request, await thinkStyle(signal));
     const stream = await http.withRetries(
       () => http.openStream('/api/chat', body, { signal, model: endpoint.model }),
       signal,
@@ -211,6 +214,36 @@ export function createOllamaStudent(
       );
     },
   };
+}
+
+/**
+ * How a model takes Ollama's `think`: not at all, as levels it names (Glimmer's are low to max;
+ * null when Ollama is too old to list them), or as true or false only.
+ */
+type ThinkStyle =
+  { kind: 'none' } | { kind: 'levels'; levels: readonly string[] | null } | { kind: 'boolean' };
+
+/** Reads `/api/show`. An Ollama that reports no capabilities at all is assumed to take levels. */
+function thinkStyleOf(shown: ShowWire): ThinkStyle {
+  const { capabilities } = shown;
+  if (capabilities?.length && !capabilities.includes('thinking')) return { kind: 'none' };
+  const levels = (shown.thinking?.values ?? []).filter(
+    (value): value is string => typeof value === 'string',
+  );
+  if (levels.length > 0) return { kind: 'levels', levels };
+  return capabilities?.length ? { kind: 'boolean' } : { kind: 'levels', levels: null };
+}
+
+/** The `think` field for the harness's reasoning level, in the form the model takes. */
+function thinkField(style: ThinkStyle, level: string): { think?: string | boolean } {
+  switch (style.kind) {
+    case 'none':
+      return {};
+    case 'boolean':
+      return { think: true };
+    case 'levels':
+      return { think: style.levels === null || style.levels.includes(level) ? level : true };
+  }
 }
 
 function parseLine(raw: unknown): OllamaChunkWire {

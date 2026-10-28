@@ -5,9 +5,13 @@ export { listModels, verifyKey, type ListModelsOptions } from './models/list';
 export { createOllamaStudent } from './student/ollama';
 export {
   listOllamaModels,
+  loadedOllamaModels,
+  makeTextOnlyModel,
   ollamaVersion,
   pullOllamaModel,
+  type LoadedModel,
   type OllamaModelEntry,
+  type TextOnlyModel,
 } from './student/ollama-api';
 export { createOpenAICompatibleStudent } from './student/openai-compatible';
 export { isLoopbackUrl } from './loopback';

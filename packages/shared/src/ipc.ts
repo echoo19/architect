@@ -3,7 +3,7 @@ import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
 import type { Job, MentorConfig, PermissionMode, StudentEndpoint, StudentTarget } from './job';
 import type { LineageEntry } from './lineage';
-import type { ProviderId, TokenPricing } from './models';
+import type { GpuInfo, ProviderId, StudentBuild, TokenPricing } from './models';
 import type { ReportCard } from './report';
 import type { Method, Round, Run } from './run';
 import type { Attempt, Trace } from './trace';
@@ -47,6 +47,8 @@ export interface ModelEntry {
   contextLength?: number;
   /** Size on disk, for a model on this computer. */
   sizeBytes?: number;
+  /** For a model loaded on this computer right now: its size in memory, and how much is on the GPU. */
+  inMemory?: { totalBytes: number; gpuBytes: number };
 }
 
 /** Where a model list comes from: a provider at an address, with the key it needs. */
@@ -67,6 +69,8 @@ export interface LocalRuntime {
 export interface LocalRuntimes {
   ollama: LocalRuntime;
   lmstudio: LocalRuntime;
+  /** The GPU local models can run on, when Architect can tell. */
+  gpu: GpuInfo | null;
 }
 
 export interface AddConnectionRequest {
@@ -206,6 +210,11 @@ export interface ArchitectApi {
   ollama: {
     status(): Promise<OllamaStatus>;
     pull(model: string): Promise<void>;
+    /**
+     * Installs one of Glimmer's builds: a plain pull, or for the GPU-sized one a pull, then a
+     * text-only model made from its weights. Progress comes under the build's model name.
+     */
+    install(build: StudentBuild['key']): Promise<void>;
     onPullProgress(listener: (progress: PullProgress) => void): Unsubscribe;
   };
   files: {

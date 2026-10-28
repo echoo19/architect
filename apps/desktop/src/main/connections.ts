@@ -1,4 +1,10 @@
-import { createMentor, createStudent, listModels, type verifyKey } from '@architect/adapters';
+import {
+  createMentor,
+  createStudent,
+  listModels,
+  loadedOllamaModels,
+  type verifyKey,
+} from '@architect/adapters';
 import {
   AdapterError,
   customSecretRef,
@@ -12,6 +18,7 @@ import {
   type AdapterErrorCode,
   type ConnectionTest,
   type CustomEndpoint,
+  type GpuInfo,
   type LocalRuntime,
   type LocalRuntimes,
   type MentorConfig,
@@ -123,23 +130,49 @@ async function localRuntime(
   }
 }
 
-/** Ollama and LM Studio on this computer: whether each answers, and the models it has. */
-export async function detectLocalRuntimes(
-  ollamaBaseUrl: string,
-  lmStudioBaseUrl: string = LMSTUDIO_BASE_URL,
-): Promise<LocalRuntimes> {
-  const [ollama, lmstudio] = await Promise.all([
-    ollamaStatus(ollamaBaseUrl).then((status): LocalRuntime => ({
-      running: status.running,
-      baseUrl: ollamaBaseUrl,
-      ...(status.version === undefined ? {} : { version: status.version }),
-      models: status.models.map((model) => ({ id: model.name, sizeBytes: model.sizeBytes })),
-    })),
+/** Ollama's models, each with how it sits in memory when it is loaded right now. */
+async function ollamaRuntime(baseUrl: string): Promise<LocalRuntime> {
+  const status = await ollamaStatus(baseUrl);
+  if (!status.running) return { running: false, baseUrl, models: [] };
+  const loaded = await loadedOllamaModels(baseUrl, AbortSignal.timeout(LOCAL_TIMEOUT_MS));
+  return {
+    running: true,
+    baseUrl,
+    ...(status.version === undefined ? {} : { version: status.version }),
+    models: status.models.map((model): ModelEntry => {
+      const inMemory = loaded.find((entry) => entry.name === model.name);
+      return {
+        id: model.name,
+        sizeBytes: model.sizeBytes,
+        ...(inMemory
+          ? { inMemory: { totalBytes: inMemory.totalBytes, gpuBytes: inMemory.gpuBytes } }
+          : {}),
+      };
+    }),
+  };
+}
+
+export interface LocalRuntimeOptions {
+  ollamaBaseUrl: string;
+  lmStudioBaseUrl?: string;
+  /** The GPU, found once per run of the app: it doesn't change while the app is open. */
+  gpu: () => Promise<GpuInfo | null>;
+}
+
+/**
+ * Ollama and LM Studio on this computer, whether each answers and the models it has, and the GPU
+ * they can use. Asking loads no model.
+ */
+export async function detectLocalRuntimes(options: LocalRuntimeOptions): Promise<LocalRuntimes> {
+  const lmStudioBaseUrl = options.lmStudioBaseUrl ?? LMSTUDIO_BASE_URL;
+  const [ollama, lmstudio, gpu] = await Promise.all([
+    ollamaRuntime(options.ollamaBaseUrl),
     localRuntime(lmStudioBaseUrl, async (signal) => ({
       models: await listModels({ provider: 'lmstudio', baseUrl: lmStudioBaseUrl, signal }),
     })),
+    options.gpu(),
   ]);
-  return { ollama, lmstudio };
+  return { ollama, lmstudio, gpu };
 }
 
 /** What adding a connection needs from the app: a model check, and places to keep what it saves. */

@@ -198,7 +198,12 @@ export interface MentorPreset {
 }
 
 export interface StudentPreset {
-  key: 'ollama-glimmer' | 'together-glimmer' | 'openrouter-glimmer' | 'deepinfra-glimmer';
+  key:
+    | 'ollama-glimmer'
+    | 'ollama-glimmer-gpu'
+    | 'together-glimmer'
+    | 'openrouter-glimmer'
+    | 'deepinfra-glimmer';
   label: string;
   runtime: 'ollama' | 'openai_compatible';
   baseUrl: string;
@@ -370,6 +375,15 @@ export const STUDENT_PRESETS: readonly StudentPreset[] = [
     note: 'Runs locally through Ollama. 18 GB download.',
   },
   {
+    key: 'ollama-glimmer-gpu',
+    label: 'Muse Glimmer on this computer',
+    runtime: 'ollama',
+    baseUrl: OLLAMA_BASE_URL,
+    model: 'muse-glimmer:30b-iq2',
+    pricing: null,
+    note: 'Runs locally through Ollama, entirely on a 12 GB GPU. 11 GB on disk.',
+  },
+  {
     key: 'together-glimmer',
     label: 'Muse Glimmer on Together',
     runtime: 'openai_compatible',
@@ -400,6 +414,134 @@ export const STUDENT_PRESETS: readonly StudentPreset[] = [
     note: 'Hosted copy for faster training. Your tasks leave this computer while training.',
   },
 ];
+
+/** A graphics processor a local model can run on, and the memory it can use there. */
+export interface GpuInfo {
+  /** "NVIDIA GeForce RTX 4070 Ti", or "Apple silicon". */
+  name: string;
+  /** The card's own memory, or the share of an Apple chip's memory its GPU may use. */
+  memoryBytes: number;
+  /** True when the GPU shares the computer's memory, as on Apple silicon. */
+  shared: boolean;
+}
+
+/** How a local build of the student model is installed. */
+export type BuildSource =
+  /** `ollama pull` of the model's own name. */
+  | { kind: 'library' }
+  /**
+   * A GGUF from Hugging Face, pulled through Ollama, then made text-only: a new model from the
+   * weights alone, without the vision projector the pull also brings, with Glimmer's renderer
+   * and parser and Meta's sampling. The pulled original is removed afterwards.
+   */
+  | {
+      kind: 'gguf';
+      pull: string;
+      renderer: string;
+      parser: string;
+      parameters: Record<string, number>;
+    };
+
+export interface StudentBuild {
+  key: 'glimmer-4bit' | 'glimmer-gpu';
+  /** The Ollama model name once it is installed. */
+  model: string;
+  /** How the build differs, said plainly. */
+  label: string;
+  /** What the download brings. */
+  downloadBytes: number;
+  /** What stays on disk once it is installed. */
+  diskBytes: number;
+  /**
+   * GPU memory it takes when it runs entirely there, at the default 16K context: measured with
+   * `/api/ps` for the 2-bit build, estimated from the file size for the 4-bit one.
+   */
+  gpuBytes: number;
+  source: BuildSource;
+}
+
+/** Muse Glimmer's builds, largest first: the 4-bit one by default, the 2-bit one for a 12 GB GPU. */
+export const GLIMMER_BUILDS: readonly StudentBuild[] = [
+  {
+    key: 'glimmer-4bit',
+    model: 'muse-glimmer:30b',
+    label: '4-bit',
+    downloadBytes: 18_157_010_252,
+    diskBytes: 18_157_010_252,
+    gpuBytes: 19_500_000_000,
+    source: { kind: 'library' },
+  },
+  {
+    key: 'glimmer-gpu',
+    model: 'muse-glimmer:30b-iq2',
+    label: '2-bit, sized for a 12 GB GPU',
+    downloadBytes: 14_595_546_880,
+    diskBytes: 10_746_373_364,
+    gpuBytes: 9_928_945_171,
+    source: {
+      kind: 'gguf',
+      pull: 'hf.co/unsloth/Muse-Glimmer-30B-GGUF:UD-IQ2_XXS',
+      renderer: 'glimmer',
+      parser: 'glimmer',
+      parameters: { temperature: 1, top_k: 64, top_p: 0.95 },
+    },
+  },
+];
+
+export function glimmerBuild(key: StudentBuild['key']): StudentBuild {
+  const build = GLIMMER_BUILDS.find((candidate) => candidate.key === key);
+  if (!build) throw new Error(`Unknown build: ${key}`);
+  return build;
+}
+
+/** What the driver and the display keep for themselves on a graphics card. */
+export const GPU_RESERVED_BYTES = 900_000_000;
+
+/** What a model's context and working memory add to its weights at the default 16K context. */
+const RUN_OVERHEAD_BYTES = 700_000_000;
+
+/** GPU memory a local model takes to run entirely there: measured for Glimmer's builds, estimated for others. */
+export function gpuBytesFor(model: string, sizeBytes: number): number {
+  return (
+    GLIMMER_BUILDS.find((build) => build.model === model)?.gpuBytes ??
+    sizeBytes + RUN_OVERHEAD_BYTES
+  );
+}
+
+/** Whether something of this size fits in the GPU's memory, with room left for the system. */
+export function fitsOnGpu(bytes: number, gpu: GpuInfo): boolean {
+  return bytes <= gpu.memoryBytes - GPU_RESERVED_BYTES;
+}
+
+export type GpuFit = 'full' | 'partial' | 'unknown';
+
+/**
+ * Whether a local model runs entirely on the GPU: what Ollama reports while it is loaded, or an
+ * estimate from its size and the GPU's memory. Unknown without either.
+ */
+export function gpuFit(
+  model: {
+    id: string;
+    sizeBytes?: number | undefined;
+    inMemory?: { totalBytes: number; gpuBytes: number } | undefined;
+  },
+  gpu: GpuInfo | null,
+): GpuFit {
+  if (model.inMemory) {
+    return model.inMemory.gpuBytes >= model.inMemory.totalBytes ? 'full' : 'partial';
+  }
+  if (!gpu || model.sizeBytes === undefined) return 'unknown';
+  return fitsOnGpu(gpuBytesFor(model.id, model.sizeBytes), gpu) ? 'full' : 'partial';
+}
+
+/**
+ * The Glimmer build to recommend: the largest that runs entirely on the GPU, and the 4-bit one
+ * when the GPU is unknown or neither fits.
+ */
+export function recommendedBuild(gpu: GpuInfo | null): StudentBuild {
+  const fits = gpu ? GLIMMER_BUILDS.find((build) => fitsOnGpu(build.gpuBytes, gpu)) : undefined;
+  return fits ?? glimmerBuild('glimmer-4bit');
+}
 
 export const DEFAULT_MENTOR_PRESET: MentorPresetKey = 'meta-spark';
 

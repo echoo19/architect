@@ -4,6 +4,10 @@ import { describe, expect, it } from 'vitest';
 import {
   costUsd,
   FREE_PRICING,
+  fitsOnGpu,
+  GLIMMER_BUILDS,
+  glimmerBuild,
+  gpuFit,
   JobSchema,
   looksLikeChatModel,
   MentorConfigSchema,
@@ -13,8 +17,10 @@ import {
   PROVIDERS,
   ratesFor,
   readsReasoningStrengthLine,
+  recommendedBuild,
   studentPricing,
   TokenPricingSchema,
+  type GpuInfo,
   type TokenPricing,
 } from '../src';
 
@@ -134,6 +140,66 @@ describe('model families', () => {
       expect(provider.label, id).not.toBe('');
       if (provider.secretRef) expect(provider.page, id).toMatch(/^https:\/\//);
     }
+  });
+});
+
+describe('running on the GPU', () => {
+  const MiB = 1024 * 1024;
+  const card = (gib: number): GpuInfo => ({
+    name: 'card',
+    memoryBytes: gib * 1024 * MiB,
+    shared: false,
+  });
+  const rtx4070ti: GpuInfo = {
+    name: 'NVIDIA GeForce RTX 4070 Ti',
+    memoryBytes: 12_282 * MiB,
+    shared: false,
+  };
+
+  it("recommends the 2-bit build for a 12 GB card, where the 4-bit one doesn't fit", () => {
+    expect(recommendedBuild(rtx4070ti).key).toBe('glimmer-gpu');
+    expect(gpuFit({ id: 'muse-glimmer:30b-iq2', sizeBytes: 10_746_373_364 }, rtx4070ti)).toBe(
+      'full',
+    );
+    expect(gpuFit({ id: 'muse-glimmer:30b', sizeBytes: 18_157_010_252 }, rtx4070ti)).toBe(
+      'partial',
+    );
+  });
+
+  it('recommends the 4-bit build where it fits, and where the GPU is unknown or too small', () => {
+    expect(recommendedBuild(card(24)).key).toBe('glimmer-4bit');
+    expect(recommendedBuild(null).key).toBe('glimmer-4bit');
+    expect(recommendedBuild(card(8)).key).toBe('glimmer-4bit');
+    expect(recommendedBuild(card(16)).key).toBe('glimmer-gpu');
+  });
+
+  it("estimates other models from their size, and trusts Ollama's own figures for a loaded one", () => {
+    expect(gpuFit({ id: 'granite4.2:8b', sizeBytes: 5_300_000_000 }, rtx4070ti)).toBe('full');
+    expect(gpuFit({ id: 'big:70b', sizeBytes: 40e9 }, rtx4070ti)).toBe('partial');
+    expect(gpuFit({ id: 'granite4.2:8b', sizeBytes: 5_300_000_000 }, null)).toBe('unknown');
+    expect(
+      gpuFit({ id: 'muse-glimmer:30b', inMemory: { totalBytes: 21e9, gpuBytes: 11e9 } }, null),
+    ).toBe('partial');
+    expect(gpuFit({ id: 'x', inMemory: { totalBytes: 9e9, gpuBytes: 9e9 } }, rtx4070ti)).toBe(
+      'full',
+    );
+  });
+
+  it('keeps room for the display and driver on the card', () => {
+    expect(fitsOnGpu(card(12).memoryBytes, card(12))).toBe(false);
+    expect(fitsOnGpu(card(12).memoryBytes - 1e9, card(12))).toBe(true);
+  });
+
+  it('lists the 4-bit build first, then the one sized for a 12 GB GPU', () => {
+    expect(GLIMMER_BUILDS.map((build) => build.model)).toEqual([
+      'muse-glimmer:30b',
+      'muse-glimmer:30b-iq2',
+    ]);
+    expect(glimmerBuild('glimmer-gpu').source).toMatchObject({
+      kind: 'gguf',
+      renderer: 'glimmer',
+      parser: 'glimmer',
+    });
   });
 });
 

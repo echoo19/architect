@@ -49,7 +49,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     signIn: true,
     cancelSignIn: true,
   },
-  ollama: { status: true, pull: true },
+  ollama: { status: true, pull: true, install: true },
   files: { pick: true },
   jobs: {
     list: true,

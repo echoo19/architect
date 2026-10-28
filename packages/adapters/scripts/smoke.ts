@@ -45,6 +45,7 @@ import {
   DEFAULT_STUDENT,
   DecodingSchema,
   emptyUsage,
+  FREE_PRICING,
   mentorPreset,
   OLLAMA_BASE_URL,
   OPENROUTER_BASE_URL,
@@ -301,7 +302,7 @@ if (env['SMOKE_OLLAMA'] === '1') {
   await student(
     `Ollama ${model} as student`,
     { runtime: local.runtime, baseUrl: ollamaUrl, model, contextLength: 4096 },
-    { unload: true },
+    { pricing: FREE_PRICING, unload: true },
   );
 } else {
   skip(local.label, 'SMOKE_OLLAMA=1');
