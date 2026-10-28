@@ -2,6 +2,24 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-28 (Tue), early morning
+
+**Done**
+- A clean pass on Describe, Clarify, Define, Advanced settings, Train and its drawers, Report and the workspace: standing paragraphs, captions and tooltips cut, numbers and short labels kept. A blind reviewer preferred the new screens on all 15 pairs; the facts it found missing came back as labels, not paragraphs.
+- Quiet local models (a setting, off by default): a local student uses a quarter of the CPU threads and rests after each reply for three quarters of the reply's time. The run scripts take `--threads` and `--cooldown`, and `run.ts` continues a run where it stopped.
+- The release workflow signs and notarizes the macOS app with either Apple credential set (an App Store Connect API key, as Conductor does, or an Apple ID, as Hearth does) and checks the result with codesign, stapler and spctl. Without the secrets it signs ad hoc, as before. Run by hand: both platforms built and passed the packaging specs.
+- Hosted credit is back, and seeds 2 to 5 of the comparison are running on it.
+
+**Next**
+- Merge the model-agnostic work (any provider by key or sign-in, or a local runtime) when it lands.
+- Seeds 2 to 5, then calibrate the second job and decide whether its comparison fits the credit.
+- A real Architect run through the app for the screenshots, the shipped graduate and the demo.
+
+**Open issues**
+- Notarization waits on the owner adding the Apple secrets to the repository.
+- GPU work is off for now at the owner's request: even with rests between replies, each reply drew about 240 W and the fans swung between 31 and 42 percent. Hosted credit covers runs; the local GPU gets brief checks only. A graduate's local test (offline, on the GPU) waits until GPU work is back on.
+- The Windows installer is unsigned, so SmartScreen warns on first launch.
+
 ## 2026-10-28 (Tue), overnight
 
 **Done**
