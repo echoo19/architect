@@ -235,7 +235,7 @@ for (const theme of THEMES) {
     const dialog = await openPublishing();
     await expect(dialog.getByRole('textbox', { name: 'Repository' })).toHaveValue('');
     await expect(
-      dialog.getByText('Name the repository as owner/name, and add a token'),
+      dialog.getByText('Name the repository and add a token', { exact: true }),
     ).toBeVisible();
     await expect(dialog.getByText('No token', { exact: true })).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Publish to Hugging Face' })).toBeDisabled();

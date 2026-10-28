@@ -164,7 +164,7 @@ export function PublishPanel({ agent }: { agent: GraduateSummary }) {
   const unfinished = state.kind === 'failed' && state.repository === repository;
   const waiting = !valid
     ? noToken
-      ? 'Name the repository as owner/name, and add a token'
+      ? 'Name the repository and add a token'
       : 'Name the repository as owner/name'
     : noToken
       ? 'Add a Hugging Face token in Settings'
