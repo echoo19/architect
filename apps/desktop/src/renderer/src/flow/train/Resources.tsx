@@ -46,6 +46,10 @@ export function Resources({
   const { minutes, usd, rounds } = budgetMeters(live);
   const speed = medianLatencyMs(live.attempts);
   const changes = recordsFailed ? null : keptChanges(live, records);
+  // Training stops at the time limit, and the final test still runs: its time counts here too.
+  const testedPast =
+    minutes.used > minutes.max &&
+    (live.run.phase === 'testing' || live.run.graduateId !== undefined);
   return (
     <Panel
       padded
@@ -57,6 +61,7 @@ export function Resources({
         used={formatDuration(minutes.used * 60_000)}
         max={formatDuration(minutes.max * 60_000)}
         fraction={share(minutes.used, minutes.max)}
+        reached={testedPast ? 'limit reached, then the final test' : undefined}
       />
       <BudgetMeter
         label={`${mentor}'s cost`}
@@ -110,11 +115,14 @@ function BudgetMeter({
   used,
   max,
   fraction,
+  reached = 'limit reached',
 }: {
   label: string;
   used: string;
   max: string;
   fraction: number;
+  /** What the count says once it reaches the cap. */
+  reached?: string | undefined;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -122,7 +130,7 @@ function BudgetMeter({
         <span className="text-fg-secondary">
           {label}
           {/* A cap is checked between steps, so the last step can carry the count past it. */}
-          {fraction >= 1 && <span className="text-fg-muted"> · limit reached</span>}
+          {fraction >= 1 && <span className="text-fg-muted"> · {reached}</span>}
         </span>
         <span className="font-mono tabular-nums">
           {used} <span className="text-fg-muted">/ {max}</span>

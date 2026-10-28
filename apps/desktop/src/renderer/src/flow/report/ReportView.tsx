@@ -58,9 +58,7 @@ interface ReportViewProps {
 }
 
 /** The meter's memory figures for the model's stat, where a meter read the final test here. */
-function memoryLines(figures: RuntimeFigures | null, unread: boolean): string[] {
-  // Readings that couldn't be read say so, rather than vanish as if none were taken.
-  if (unread) return ["Its memory readings couldn't be read"];
+function memoryLines(figures: RuntimeFigures | null): string[] {
   if (figures === null) return [];
   return [
     figures.peakProcessBytes !== null &&
@@ -218,12 +216,20 @@ export function ReportView({
           value={names.student}
           label="Model"
           note={
-            <Lines
-              lines={[
-                modelFacts,
-                ...memoryLines(figures, evidence.status === 'error' && evidence.data === undefined),
-              ]}
-            />
+            evidence.status === 'error' && evidence.data === undefined ? (
+              // Readings that couldn't be read say so, with a way to read them again, rather
+              // than vanish as if none were taken.
+              <span className="flex flex-col gap-1.5">
+                <span>{modelFacts}</span>
+                <ErrorState
+                  layout="inline"
+                  title="Its memory readings couldn't be read"
+                  onRetry={evidence.reload}
+                />
+              </span>
+            ) : (
+              <Lines lines={[modelFacts, ...memoryLines(figures)]} />
+            )
           }
           noteFont="text"
         />

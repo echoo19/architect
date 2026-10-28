@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type {
   Category,
   Experiment,
+  ExperimentDisposition,
   FileDiff,
   Finding,
   Intervention,
@@ -263,8 +264,13 @@ export function RoundDrawerContent({
         {experiment && <Gates experiment={experiment} />}
         {experiment && <RoundCost experiment={experiment} names={names} />}
 
-        <DrawerSection title={draft ? 'Files written' : 'Files changed'}>
-          <RoundFiles runId={runId} round={round} />
+        <DrawerSection title={filesTitle(draft, experiment?.disposition)}>
+          <RoundFiles
+            runId={runId}
+            round={round}
+            // Trained weights change no files, so only a change to the setup says why it has none.
+            disposition={intervention?.type === 'weights' ? undefined : experiment?.disposition}
+          />
         </DrawerSection>
         {experiment && <ExperimentDetails experiment={experiment} intervention={intervention} />}
       </div>
@@ -460,7 +466,29 @@ function Effect({
   );
 }
 
-function RoundFiles({ runId, round }: { runId: string; round: Round }) {
+/** A change that was undone took its files with it, so their heading says so. */
+function filesTitle(draft: boolean, disposition: ExperimentDisposition | undefined): string {
+  if (draft) return 'Files written';
+  return disposition === 'reverted' || disposition === 'rejected'
+    ? 'Files changed, then undone'
+    : 'Files changed';
+}
+
+/** Why a round that ended before its change was made has no files to show. */
+const NO_FILES: Partial<Record<ExperimentDisposition, string>> = {
+  invalid: 'No files changed: the change was refused before it was made.',
+  stopped: 'No files changed: training stopped before the change was written.',
+};
+
+function RoundFiles({
+  runId,
+  round,
+  disposition,
+}: {
+  runId: string;
+  round: Round;
+  disposition: ExperimentDisposition | undefined;
+}) {
   // A round's change can still be written while it runs, so its status is part of the key.
   const diff = useQuery(`round-diff:${runId}:${round.index}:${round.status}`, () =>
     flowApi.roundDiff(runId, round.index),
@@ -484,7 +512,11 @@ function RoundFiles({ runId, round }: { runId: string; round: Round }) {
     );
   }
   if (diff.data.length === 0) {
-    return <p className="m-0 text-fg-secondary">No files changed in this round.</p>;
+    return (
+      <p className="m-0 text-fg-secondary">
+        {(disposition && NO_FILES[disposition]) ?? 'No files changed in this round.'}
+      </p>
+    );
   }
   return (
     <div className="flex flex-col gap-3">

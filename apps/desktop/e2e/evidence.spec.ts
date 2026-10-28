@@ -274,9 +274,13 @@ test('keeps practice, check tasks, the final test and install checks apart', asy
   await expect(table.locator('[data-kind="practice"] [data-marker]')).toHaveCount(0);
   // Install checks stand apart, named as this computer's.
   await expect(page.getByText('Install checks on this computer')).toBeVisible();
-  // A comparison with no record says so.
+  // A comparison with no record says so, and why, from what the records lack.
   const comparisons = page.getByRole('table', { name: 'Comparisons' });
-  await expect(comparisons.getByRole('row', { name: /trained weights/ })).toContainText('Not run');
+  for (const arm of ['Glimmer with trained weights', 'Glimmer with both']) {
+    await expect(comparisons.getByRole('row', { name: new RegExp(`^${arm}`) })).toContainText(
+      'Not run: no round measured trained weights',
+    );
+  }
   await expect(
     comparisons.getByRole('row', { name: /Spark doing the tasks itself/ }),
   ).toContainText('Not run');

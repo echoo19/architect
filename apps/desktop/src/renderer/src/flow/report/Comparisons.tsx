@@ -12,7 +12,7 @@ import {
 import { formatBytes } from '../../lib/format';
 import { formatCost, formatRate } from '../format';
 import type { ModelNames } from '../train/phase';
-import { wasRun, type Arm, type ArmKey } from './arms';
+import { notRunReason, wasRun, type Arm, type ArmKey } from './arms';
 
 /**
  * Each comparison named for what the student ran with, in the job's own model names. Without a
@@ -164,8 +164,10 @@ export function Comparisons({
                       </TableCell>
                     </>
                   ) : (
-                    <TableCell colSpan={metered ? 5 : 4} className="text-fg-faint">
+                    <TableCell colSpan={metered ? 5 : 4} className="text-fg-faint text-pretty">
                       Not run
+                      {notRunReason(arm.key, names.mentor) &&
+                        `: ${notRunReason(arm.key, names.mentor)}`}
                     </TableCell>
                   )}
                 </TableRow>

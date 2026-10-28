@@ -362,6 +362,7 @@ function TrainBoard({
           round={round}
           names={names}
           experiment={evidence?.experiments.find((item) => item.round === round?.index)}
+          recordsFailed={failure !== null}
         />
       </div>
       <div className="flex flex-wrap gap-5">

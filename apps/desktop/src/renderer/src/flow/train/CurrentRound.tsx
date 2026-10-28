@@ -74,18 +74,22 @@ export function CurrentRound({
   round,
   names,
   experiment,
+  recordsFailed,
 }: {
   live: LiveRun;
   round: Round | null;
   names: ModelNames;
   /** The round's experiment record, once it has one. */
   experiment: Experiment | undefined;
+  /** The mentoring records couldn't be read, so an ended round's result is unknown here. */
+  recordsFailed: boolean;
 }) {
   const draft = round !== null && round.index === draftRoundOf(live);
   const failure = round && !draft ? latestFailure(live, round.index) : null;
   const working = ACTIVE.has(live.run.status);
   const predicted = round?.predicted;
   const ended = experiment && !draft ? experiment : undefined;
+  const over = round !== null && (round.status === 'decided' || round.status === 'failed');
   return (
     <Panel padded aria-label="Current round" className="min-w-0 flex-[5_1_360px]">
       <div className="flex items-center justify-between gap-3">
@@ -119,7 +123,7 @@ export function CurrentRound({
       <div className="mt-auto flex flex-col gap-3 border-t border-line-row-strong pt-[18px]">
         <div className="flex items-baseline justify-between gap-3">
           <span className="text-fg-secondary">
-            {names.mentor} {ended ? 'expected' : 'expects'}
+            {names.mentor} {ended || over ? 'expected' : 'expects'}
           </span>
           {predicted ? (
             <span>
@@ -132,7 +136,18 @@ export function CurrentRound({
             <span className="text-fg-muted">–</span>
           )}
         </div>
-        {ended && <Outcome experiment={ended} live={live} />}
+        {ended ? (
+          <Outcome experiment={ended} live={live} />
+        ) : (
+          over &&
+          !draft &&
+          recordsFailed && (
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-fg-secondary">Result</span>
+              <span className="text-fg-muted">–</span>
+            </div>
+          )
+        )}
       </div>
     </Panel>
   );

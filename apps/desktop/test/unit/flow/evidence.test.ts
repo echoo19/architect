@@ -12,7 +12,12 @@ import type {
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { formatCost, passedOf } from '../../../src/renderer/src/flow/format';
-import { comparisonArms, wasRun } from '../../../src/renderer/src/flow/report/arms';
+import {
+  ARM_ORDER,
+  comparisonArms,
+  notRunReason,
+  wasRun,
+} from '../../../src/renderer/src/flow/report/arms';
 import { reportArms } from '../../../src/renderer/src/flow/report/comparison-report';
 import { runtimeFigures } from '../../../src/renderer/src/flow/report/evidence';
 import {
@@ -314,6 +319,16 @@ describe('comparisons', () => {
     expect(setup).toMatchObject({ check: { pass: 14, total: 18 }, final: { pass: 5, total: 6 } });
     // Spark took the check tasks only: nothing is shown for a final test it never took.
     expect(mentor).toMatchObject({ check: { pass: 9, total: 9 }, final: null });
+  });
+
+  it('say why a comparison with no record was not run', () => {
+    expect(ARM_ORDER.map((key) => [key, notRunReason(key, 'Spark')])).toEqual([
+      ['untouched', 'nothing was measured before training'],
+      ['setup', null],
+      ['weights', 'no round measured trained weights'],
+      ['both', 'no round measured trained weights'],
+      ['mentor', "Spark wasn't measured on these tasks"],
+    ]);
   });
 
   it('take all four configurations from a round that measured trained weights', () => {
