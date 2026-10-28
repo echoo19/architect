@@ -16,7 +16,7 @@ import { cleanTempDirsAfterEach, sampleHarness, tempDir } from './fixtures';
 cleanTempDirsAfterEach();
 
 describe('blankHarness', () => {
-  it('is harness.yaml and a short system.md, with default settings', async () => {
+  it('is harness.yaml and a short AGENTS.md, with default settings', async () => {
     const harness = blankHarness(
       'Service desk',
       'Handles the closing routine of a home-services office.',
@@ -24,12 +24,12 @@ describe('blankHarness', () => {
     expect(harness.system).toBe(
       'You are the Service desk agent.\n\nHandles the closing routine of a home-services office.\n',
     );
-    expect(Object.keys(harnessToFiles(harness))).toEqual(['system.md']);
+    expect(Object.keys(harnessToFiles(harness))).toEqual(['AGENTS.md']);
     expect(harness.skills).toEqual([]);
     expect(harness.tools).toEqual([]);
     expect(harness.examples).toEqual([]);
     expect(harness.meta).toEqual({
-      format: 1,
+      format: 2,
       name: 'Service desk',
       version: 0,
       hash: hashHarness(harness),
@@ -52,7 +52,7 @@ describe('blankHarness', () => {
 
     const dir = await tempDir();
     await writeHarness(dir, harness);
-    expect((await readdir(dir)).sort()).toEqual(['harness.yaml', 'system.md']);
+    expect((await readdir(dir)).sort()).toEqual(['AGENTS.md', 'harness.yaml']);
   });
 
   it('copes with a missing description', () => {
@@ -73,9 +73,9 @@ describe('templateHarness', () => {
       ),
     ).toBe(true);
     expect(harness.system).toContain('How to work');
-    expect(harness.system).toContain('calculate');
+    expect(harness.system).toContain('csv.parse');
     expect(harness.meta.hash).toBe(hashHarness(harness));
-    expect(Object.keys(harnessToFiles(harness))).toEqual(['system.md']);
+    expect(Object.keys(harnessToFiles(harness))).toEqual(['AGENTS.md']);
   });
 
   it('has no task-specific content', () => {
@@ -106,16 +106,16 @@ describe('importHarness', () => {
     const imported = await importHarness(dir);
     expect(imported).toEqual({
       ...original,
-      meta: { format: 1, name: 'Service desk', version: 0, hash: original.meta.hash },
+      meta: { format: 2, name: 'Service desk', version: 0, hash: original.meta.hash },
     });
     expect('parent' in imported.meta).toBe(false);
   });
 
-  it('accepts a folder that is only a system prompt, named after the folder', async () => {
+  it('accepts a folder that is only its instructions, named after the folder', async () => {
     const root = await tempDir();
     const dir = join(root, 'my-agent');
     await mkdir(dir);
-    await writeFile(join(dir, 'system.md'), 'You help.\r\n');
+    await writeFile(join(dir, 'AGENTS.md'), 'You help.\r\n');
     const imported = await importHarness(dir);
     expect(imported.meta.name).toBe('my-agent');
     expect(imported.system).toBe('You help.\n');
@@ -124,19 +124,41 @@ describe('importHarness', () => {
 
   it('accepts a harness.yaml with only a format and a name', async () => {
     const dir = await tempDir();
-    await writeFile(join(dir, 'harness.yaml'), 'format: 1\nname: Hand made\n');
-    await writeFile(join(dir, 'system.md'), 'You help.\n');
+    await writeFile(join(dir, 'harness.yaml'), 'format: 2\nname: Hand made\n');
+    await writeFile(join(dir, 'AGENTS.md'), 'You help.\n');
     expect((await importHarness(dir)).meta).toMatchObject({ name: 'Hand made', version: 0 });
+  });
+
+  it('reads a format 1 folder, with or without harness.yaml, in the current format', async () => {
+    const root = await tempDir();
+    const dir = join(root, 'old-agent');
+    await mkdir(join(dir, 'skills'), { recursive: true });
+    await writeFile(join(dir, 'system.md'), 'You help.\n');
+    await writeFile(
+      join(dir, 'skills', 'price-a-job.md'),
+      '---\nname: Price a job\nsummary: Prices a job.\ntask_types: [invoice]\n---\n1. Read it.\n',
+    );
+    const bare = await importHarness(dir);
+    expect(bare.meta).toMatchObject({ format: 2, name: 'old-agent', version: 0 });
+    expect(bare.system).toBe('You help.\n');
+    expect(bare.skills).toEqual([
+      { name: 'price-a-job', description: 'Prices a job.', body: '# Price a job\n\n1. Read it.\n' },
+    ]);
+    await writeFile(join(dir, 'harness.yaml'), 'format: 1\nname: Hand made\n');
+    expect(await importHarness(dir)).toEqual({
+      ...bare,
+      meta: { ...bare.meta, name: 'Hand made' },
+    });
   });
 
   it('lists every problem in a folder that does not validate', async () => {
     const dir = await tempDir();
-    await mkdir(join(dir, 'skills'));
-    await writeFile(join(dir, 'system.md'), 'You help.\n');
-    await writeFile(join(dir, 'skills', 'broken.md'), 'no front matter\n');
+    await mkdir(join(dir, 'skills', 'broken'), { recursive: true });
+    await writeFile(join(dir, 'AGENTS.md'), 'You help.\n');
+    await writeFile(join(dir, 'skills', 'broken', 'SKILL.md'), 'no front matter\n');
     await writeFile(join(dir, 'decoding.yaml'), 'top_p: 3\n');
     await expect(importHarness(dir)).rejects.toThrow(
-      /skills\/broken\.md: has no front matter[\s\S]*decoding\.yaml: top_p/,
+      /skills\/broken\/SKILL\.md: has no front matter[\s\S]*decoding\.yaml: top_p/,
     );
   });
 

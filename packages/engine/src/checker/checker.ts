@@ -8,8 +8,7 @@ import {
   type Job,
   type Task,
 } from '@architect/shared';
-import type { TableStore } from '../data/table-store';
-import type { TableSnapshot } from '../data/types';
+import type { CheckedFiles } from '../files/agent-files';
 import type { Sandbox, SandboxOutcome, ValidatorContext } from '../sandbox/types';
 import { checkFacts, compareAnswer, TaskDefinitionError } from './compare';
 
@@ -23,7 +22,7 @@ export class CheckerError extends Error {
 
 export interface Checker {
   /** Grades one attempt. The same task, outcome and end state always give the same result. */
-  check(task: Task, outcome: CheckOutcome, store: TableStore): Promise<CheckResult>;
+  check(task: Task, outcome: CheckOutcome, files: CheckedFiles): Promise<CheckResult>;
 }
 
 export interface CheckerOptions {
@@ -44,7 +43,7 @@ export function createChecker(options: CheckerOptions): Checker {
   const checkerSource = () => (source ??= loadCheckerSource(options.job, options.jobDir));
 
   return {
-    async check(task, outcome, store) {
+    async check(task, outcome, files) {
       const stopped = stoppedEarly(outcome);
       if (stopped) return fail(stopped);
       const { expected } = task;
@@ -71,7 +70,7 @@ export function createChecker(options: CheckerOptions): Checker {
           throw new CheckerError(`Task ${task.id}: ${error.message}`);
         throw error;
       }
-      return checkEndState(expected, outcome, store, await checkerSource(), options.sandbox);
+      return checkEndState(expected, outcome, files, await checkerSource(), options.sandbox);
     },
   };
 }
@@ -79,20 +78,13 @@ export function createChecker(options: CheckerOptions): Checker {
 async function checkEndState(
   expected: EndState,
   outcome: CheckOutcome,
-  store: TableStore,
+  files: CheckedFiles,
   source: string,
   sandbox: Sandbox,
 ): Promise<CheckResult> {
-  const tables = store.snapshot();
-  const originalTables: Record<string, TableSnapshot> = Object.fromEntries(
-    Object.entries(tables).map(([name, table]) => [
-      name,
-      { columns: table.columns, rows: store.original(name) },
-    ]),
-  );
   const context: ValidatorContext = {
-    tables,
-    originalTables,
+    tables: files.tables(),
+    originalTables: files.originalTables(),
     answer: outcome.answer,
     finalText: outcome.finalText,
     toolCalls: outcome.toolCalls,

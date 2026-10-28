@@ -7,6 +7,28 @@ export function describeArguments(args: Record<string, JsonValue>): string {
     .join(' · ');
 }
 
+/** Arguments a trace step shows in full under its line: the code `run` ran, the text a change wrote. */
+const SHOWN_APART: Record<string, { always: boolean; names: readonly string[] }> = {
+  run: { always: true, names: ['code'] },
+  write: { always: false, names: ['content'] },
+  edit: { always: false, names: ['old_string', 'new_string'] },
+  append: { always: false, names: ['text'] },
+};
+
+/**
+ * A tool call's arguments for its line in a trace, leaving out what the step shows in full under
+ * it: the code `run` ran, and the text a change wrote when the change itself is shown.
+ */
+export function lineArguments(
+  name: string,
+  args: Record<string, JsonValue>,
+  changeShown: boolean,
+): Record<string, JsonValue> {
+  const apart = SHOWN_APART[name];
+  if (!apart || (!apart.always && !changeShown)) return args;
+  return Object.fromEntries(Object.entries(args).filter(([key]) => !apart.names.includes(key)));
+}
+
 function describeValue(value: JsonValue): string {
   if (Array.isArray(value)) return value.map(describeValue).join(', ');
   if (value === null) return 'none';

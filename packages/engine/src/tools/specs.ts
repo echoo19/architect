@@ -1,122 +1,138 @@
 import type { BuiltinToolName, ToolSpec } from '@architect/shared';
-import { DEFAULT_READ_LIMIT, MAX_READ_LIMIT } from '../data/table-store';
 
-const file = { type: 'string', description: 'Data file name, e.g. invoices.csv.' };
-const cellValue = { type: ['string', 'number', 'boolean', 'null'] };
-const where = {
-  type: 'array',
-  description: 'Conditions that must all hold.',
-  items: {
-    type: 'object',
-    properties: {
-      column: { type: 'string' },
-      op: { type: 'string', enum: ['=', '!=', '>', '>=', '<', '<=', 'contains', 'in'] },
-      value: {
-        type: ['string', 'number', 'boolean', 'null', 'array'],
-        items: { type: ['string', 'number'] },
-        description: 'One value, or a list for in. Numbers compare as numbers.',
-      },
-    },
-    required: ['column', 'op', 'value'],
-    additionalProperties: false,
-  },
-};
+/**
+ * The version of the built-in tools: what they do and the text of their results. Traces record
+ * it, so an attempt can be replayed on the tools it ran with. Change it whenever either changes.
+ */
+export const TOOL_RUNTIME = 'architect-tools/2';
 
-/** The runner's own tools. Their behavior is fixed by the job's data and permissions. */
+export const DEFAULT_READ_LINES = 200;
+export const MAX_READ_LINES = 2000;
+export const DEFAULT_GREP_MATCHES = 50;
+export const MAX_GREP_MATCHES = 200;
+
+const path = (example: string) => ({ type: 'string', description: `Like ${example}.` });
+
+/** The runner's own tools. What they may reach is fixed by the job's data and permissions. */
 export const BUILTIN_TOOL_SPECS: Readonly<Record<BuiltinToolName, ToolSpec>> = {
-  list_files: {
-    name: 'list_files',
+  read: {
+    name: 'read',
     description:
-      "List the job's data files with their kind (table or text), access (read or write), description, and each table's columns and row count.",
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
-  },
-  read_table: {
-    name: 'read_table',
-    description: `Read rows from a table. Cells are text and empty cells are null. Filter with where, pick columns, and page with limit (default ${DEFAULT_READ_LIMIT}, max ${MAX_READ_LIMIT}) and offset. Returns the columns, rows as arrays in column order, the total number of matching rows, and whether more remain.`,
+      'Read a file. Returns its lines numbered: the line number, a tab, then the text. A long file comes back in parts, and the last line says how many lines are left and the offset to read on from.',
     parameters: {
       type: 'object',
       properties: {
-        file,
-        where,
-        columns: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Columns to return. All columns when left out.',
-        },
-        limit: { type: 'integer', minimum: 0, maximum: MAX_READ_LIMIT },
-        offset: { type: 'integer', minimum: 0 },
-      },
-      required: ['file'],
-      additionalProperties: false,
-    },
-  },
-  read_text: {
-    name: 'read_text',
-    description:
-      'Read a text file, such as a policy document. A long file comes back in parts: pass the returned next_offset to read the rest.',
-    parameters: {
-      type: 'object',
-      properties: { file, offset: { type: 'integer', minimum: 0 } },
-      required: ['file'],
-      additionalProperties: false,
-    },
-  },
-  calculate: {
-    name: 'calculate',
-    description:
-      'Evaluate arithmetic exactly: numbers, + - * / %, parentheses, round(x, digits) (halves round away from zero), floor, ceil, min, max and abs. Use it for every sum, product and rounding.',
-    parameters: {
-      type: 'object',
-      properties: {
-        expression: { type: 'string', description: 'For example round(12345 * 0.0825).' },
-      },
-      required: ['expression'],
-      additionalProperties: false,
-    },
-  },
-  append_rows: {
-    name: 'append_rows',
-    description:
-      'Add rows to a writable table. Each row maps column names to values; columns left out stay empty.',
-    parameters: {
-      type: 'object',
-      properties: {
-        file,
-        rows: {
-          type: 'array',
-          minItems: 1,
-          items: { type: 'object', additionalProperties: cellValue },
+        path: path('data/orders.csv'),
+        offset: { type: 'integer', minimum: 1, description: 'The line to start at. Default 1.' },
+        limit: {
+          type: 'integer',
+          minimum: 1,
+          maximum: MAX_READ_LINES,
+          description: `How many lines to read. Default ${DEFAULT_READ_LINES}.`,
         },
       },
-      required: ['file', 'rows'],
+      required: ['path'],
       additionalProperties: false,
     },
   },
-  update_rows: {
-    name: 'update_rows',
-    description: 'Change cells in the rows of a writable table that match every where condition.',
+  ls: {
+    name: 'ls',
+    description:
+      'List a folder: each file with its kind (table or text), its size in lines, and whether you can change it. With no path, lists your folders.',
+    parameters: {
+      type: 'object',
+      properties: { path: path('data') },
+      additionalProperties: false,
+    },
+  },
+  glob: {
+    name: 'glob',
+    description:
+      'Find files whose path matches a pattern, like data/*.csv or **/*.md. A pattern without a / matches file names in any folder.',
+    parameters: {
+      type: 'object',
+      properties: { pattern: { type: 'string' } },
+      required: ['pattern'],
+      additionalProperties: false,
+    },
+  },
+  grep: {
+    name: 'grep',
+    description:
+      'Search files for lines that match a regular expression. Returns path:line: text for each matching line.',
     parameters: {
       type: 'object',
       properties: {
-        file,
-        where,
-        set: {
-          type: 'object',
-          additionalProperties: cellValue,
-          description: 'Column names and their new values.',
+        pattern: {
+          type: 'string',
+          description: 'A JavaScript regular expression, like ORD-10042 or ^C-11\\d\\d,',
+        },
+        path: {
+          type: 'string',
+          description: 'A file or folder to search. Every file when left out.',
+        },
+        glob: {
+          type: 'string',
+          description: 'Only search files whose path matches this, like *.csv.',
+        },
+        ignore_case: { type: 'boolean' },
+        limit: {
+          type: 'integer',
+          minimum: 1,
+          maximum: MAX_GREP_MATCHES,
+          description: `How many matching lines to show. Default ${DEFAULT_GREP_MATCHES}.`,
         },
       },
-      required: ['file', 'where', 'set'],
+      required: ['pattern'],
       additionalProperties: false,
     },
   },
-  load_skill: {
-    name: 'load_skill',
-    description: 'Load the full steps of one of your skills, by its slug or name.',
+  write: {
+    name: 'write',
+    description:
+      'Create a file, or replace a file you can change, with the whole text given. A table must keep its header line.',
     parameters: {
       type: 'object',
-      properties: { name: { type: 'string' } },
-      required: ['name'],
+      properties: { path: path('output/summary.md'), content: { type: 'string' } },
+      required: ['path', 'content'],
+      additionalProperties: false,
+    },
+  },
+  edit: {
+    name: 'edit',
+    description:
+      'Replace exact text in a file you can change. old_string must match exactly once, spaces and line breaks included; set replace_all to change every match.',
+    parameters: {
+      type: 'object',
+      properties: {
+        path: path('data/invoices.csv'),
+        old_string: { type: 'string' },
+        new_string: { type: 'string' },
+        replace_all: { type: 'boolean' },
+      },
+      required: ['path', 'old_string', 'new_string'],
+      additionalProperties: false,
+    },
+  },
+  append: {
+    name: 'append',
+    description:
+      'Add text to the end of a file you can change, starting on a new line. For a table, give whole CSV rows with the values in its column order.',
+    parameters: {
+      type: 'object',
+      properties: { path: path('data/returns.csv'), text: { type: 'string' } },
+      required: ['path', 'text'],
+      additionalProperties: false,
+    },
+  },
+  run: {
+    name: 'run',
+    description:
+      'Run JavaScript and get what it prints and the value of its last line. Read files with files.read(path) and files.list(folder). Turn CSV text into rows with csv.parse(text), objects of strings with "" for an empty cell, and rows back into CSV with csv.stringify(rows). today is the working date. There is no network and no clock, and run cannot change files: use write, edit or append for that.',
+    parameters: {
+      type: 'object',
+      properties: { code: { type: 'string' } },
+      required: ['code'],
       additionalProperties: false,
     },
   },

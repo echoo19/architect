@@ -105,11 +105,8 @@ describe('runTaskAttempt', () => {
         return {
           toolCalls: [
             {
-              name: 'append_rows',
-              arguments: {
-                file: 'invoices.csv',
-                rows: [{ invoice_id: 'INV-9', customer_id: 'C-1', total_cents }],
-              },
+              name: 'append',
+              arguments: { path: 'data/invoices.csv', text: `INV-9,C-1,${total_cents},,` },
             },
           ],
         };
@@ -125,13 +122,15 @@ describe('runTaskAttempt', () => {
     expect(result.check).toEqual({ pass: true, reason: 'The new invoice has the right total.' });
     expect(result.trace).toMatchObject({ taskId: 'bill-1', stopReason: 'answer' });
     expect(result.outcome).toMatchObject({ answer: { invoice_id: 'INV-9' }, stopReason: 'answer' });
-    expect(result.outcome.toolCalls.map((call) => call.name)).toEqual(['sum_cents', 'append_rows']);
+    expect(result.outcome.toolCalls.map((call) => call.name)).toEqual(['sum_cents', 'append']);
     expect(result.changes).toEqual([
       expect.objectContaining({
-        file: 'invoices.csv',
-        diff: expect.objectContaining({ added: [['INV-9', 'C-1', '12990', null, null]] }),
+        path: 'data/invoices.csv',
+        rows: expect.objectContaining({ added: [['INV-9', 'C-1', '12990', null, null]] }),
       }),
     ]);
+    expect(result.trace.changes).toEqual(result.changes);
+    expect(result.trace.replay).toMatchObject({ seed: 11, today: '2026-11-03' });
     expect(student.requests.every((request) => request.seed === 11)).toBe(true);
     expect(readFileSync(join(job.dataDir, 'invoices.csv'), 'utf8')).toBe(before);
   });

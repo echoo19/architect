@@ -10,7 +10,7 @@ describe('hashHarness', () => {
   it('gives the same value on every platform', () => {
     // Pinned so a change in file layout, newline handling or path order shows up here.
     expect(hashHarness(sampleHarness())).toBe(
-      'sha256-3773884bda9cc42bbd8401ddbf96fc893069a8651b0c62c13d5a7f6167ae4bb5',
+      'sha256-d5e3a735bdeb854d41b6f1e6cc5f848cda626baf90d1434c4018c0a6eee4bef9',
     );
   });
 
@@ -52,7 +52,7 @@ describe('hashHarness', () => {
                   ...message,
                   toolCalls: message.toolCalls.map((call) => ({
                     ...call,
-                    arguments: { where: { id: 'J-100' }, name: 'jobs' },
+                    arguments: { path: 'data/jobs.csv', pattern: '^J-100,' },
                   })),
                 }
               : message,
@@ -74,7 +74,7 @@ describe('hashHarness', () => {
     const harness = sampleHarness();
     const crlf = { ...harness, system: harness.system.replace(/\n/g, '\r\n') };
     expect(hashHarness(crlf)).toBe(hashHarness(harness));
-    expect(hashFiles({ 'system.md': 'a\r\nb\r\n' })).toBe(hashFiles({ 'system.md': 'a\nb\n' }));
+    expect(hashFiles({ 'AGENTS.md': 'a\r\nb\r\n' })).toBe(hashFiles({ 'AGENTS.md': 'a\nb\n' }));
   });
 
   it('treats default settings the same whether or not their files exist', () => {

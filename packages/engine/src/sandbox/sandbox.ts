@@ -6,7 +6,9 @@ import { JsonValueSchema, type HarnessTool, type JsonValue } from '@architect/sh
 import type { Row, TableSnapshot } from '../data/types';
 import {
   ChildMessageSchema,
+  CodeResultSchema,
   contentHash,
+  GrepResultSchema,
   type ChildMessage,
   type ChildOutcome,
   type Limits,
@@ -14,9 +16,20 @@ import {
   type SandboxFailure,
   type SandboxJob,
 } from './protocol';
-import type { Sandbox, SandboxData, SandboxOutcome, ValidatorContext } from './types';
+import type {
+  CodeOutcome,
+  CodeRequest,
+  GrepOutcome,
+  GrepRequest,
+  Sandbox,
+  SandboxData,
+  SandboxOutcome,
+  ValidatorContext,
+} from './types';
 
 export const DEFAULT_TIMEOUT_MS = 2_000;
+/** The agent's own code and searches go through whole tables, so they get longer. */
+export const DEFAULT_CODE_TIMEOUT_MS = 5_000;
 export const DEFAULT_MEMORY_LIMIT_BYTES = 64 * 1024 * 1024;
 /** How long past a job's own time limit the engine waits before it treats the child as hung. */
 const WATCHDOG_GRACE_MS = 2_000;
@@ -33,6 +46,8 @@ export interface SandboxOptions {
   entryPath?: string;
   /** Time limit for each tool call or validator run. */
   timeoutMs?: number;
+  /** Time limit for each run of the agent's code and each search. */
+  codeTimeoutMs?: number;
   /** Memory limit for each run's QuickJS heap. */
   memoryLimitBytes?: number;
 }
@@ -42,13 +57,16 @@ export function createSandbox(options: SandboxOptions = {}): Sandbox {
     timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     memoryLimitBytes: options.memoryLimitBytes ?? DEFAULT_MEMORY_LIMIT_BYTES,
   };
-  if (!Number.isSafeInteger(limits.timeoutMs) || limits.timeoutMs <= 0) {
-    throw new Error('timeoutMs must be a positive whole number.');
+  const codeTimeoutMs = options.codeTimeoutMs ?? DEFAULT_CODE_TIMEOUT_MS;
+  for (const [name, value] of Object.entries({ ...limits, codeTimeoutMs })) {
+    if (!Number.isSafeInteger(value) || value <= 0) {
+      throw new Error(`${name} must be a positive whole number.`);
+    }
   }
-  if (!Number.isSafeInteger(limits.memoryLimitBytes) || limits.memoryLimitBytes <= 0) {
-    throw new Error('memoryLimitBytes must be a positive whole number.');
-  }
-  return new ProcessSandbox(options.entryPath ?? defaultEntryPath(), limits);
+  return new ProcessSandbox(options.entryPath ?? defaultEntryPath(), limits, {
+    ...limits,
+    timeoutMs: codeTimeoutMs,
+  });
 }
 
 /**
@@ -64,6 +82,7 @@ class ProcessSandbox implements Sandbox {
   constructor(
     private readonly entryPath: string,
     private readonly limits: Limits,
+    private readonly codeLimits: Limits,
   ) {}
 
   runTool(
@@ -132,6 +151,46 @@ class ProcessSandbox implements Sandbox {
     );
   }
 
+  async runCode(request: CodeRequest): Promise<CodeOutcome> {
+    const blobs = new RequestBlobs(this.snapshots);
+    const job: SandboxJob = {
+      kind: 'code',
+      code: request.code,
+      files: blobs.texts(request.files),
+      today: request.today,
+    };
+    const outcome = await this.enqueue('code', job, blobs, this.codeLimits);
+    if (!outcome.ok) return outcome;
+    const parsed = CodeResultSchema.safeParse(outcome.value);
+    return parsed.success
+      ? {
+          ok: true,
+          printed: parsed.data.printed,
+          cut: parsed.data.cut,
+          value: parsed.data.value,
+          ...(parsed.data.error === undefined ? {} : { error: parsed.data.error }),
+        }
+      : failed('invalid_result', 'The code ran, but its output could not be read back.');
+  }
+
+  async grep(request: GrepRequest): Promise<GrepOutcome> {
+    const blobs = new RequestBlobs(this.snapshots);
+    const job: SandboxJob = {
+      kind: 'grep',
+      pattern: request.pattern,
+      ignoreCase: request.ignoreCase,
+      files: blobs.texts(request.files),
+      limit: request.limit,
+      lineChars: request.lineChars,
+    };
+    const outcome = await this.enqueue('search', job, blobs, this.codeLimits);
+    if (!outcome.ok) return outcome;
+    const parsed = GrepResultSchema.safeParse(outcome.value);
+    return parsed.success
+      ? { ok: true, matches: parsed.data.matches, total: parsed.data.total }
+      : failed('invalid_result', 'The search ran, but its matches could not be read back.');
+  }
+
   async dispose(): Promise<void> {
     this.disposed = true;
     const child = this.child;
@@ -139,9 +198,14 @@ class ProcessSandbox implements Sandbox {
     await child?.stop();
   }
 
-  private enqueue(label: string, job: SandboxJob, blobs: RequestBlobs): Promise<SandboxOutcome> {
+  private enqueue(
+    label: string,
+    job: SandboxJob,
+    blobs: RequestBlobs,
+    limits: Limits = this.limits,
+  ): Promise<SandboxOutcome> {
     if (this.disposed) return Promise.reject(new Error('This sandbox has been disposed.'));
-    const result = this.queue.then(() => this.execute(label, job, blobs));
+    const result = this.queue.then(() => this.execute(label, job, blobs, limits));
     this.queue = result.catch(() => undefined);
     return result;
   }
@@ -150,6 +214,7 @@ class ProcessSandbox implements Sandbox {
     label: string,
     job: SandboxJob,
     blobs: RequestBlobs,
+    limits: Limits,
   ): Promise<SandboxOutcome> {
     if (this.disposed) throw new Error('This sandbox has been disposed.');
     if (!this.child?.alive) {
@@ -165,7 +230,7 @@ class ProcessSandbox implements Sandbox {
       }
       this.child = started;
     }
-    return this.child.run(label, job, this.limits, blobs);
+    return this.child.run(label, job, limits, blobs);
   }
 }
 
@@ -390,15 +455,25 @@ class RequestBlobs {
   }
 }
 
+/** A child's outcome as data. Whatever the job's code left behind, a bad result is a failure. */
 function toOutcome(outcome: ChildOutcome): SandboxOutcome {
   if (!outcome.ok) return { ok: false, failure: outcome.failure };
-  const parsed = JsonValueSchema.safeParse(JSON.parse(outcome.json));
+  let raw: unknown;
+  try {
+    raw = JSON.parse(outcome.json);
+  } catch {
+    return failed('invalid_result', 'The result was not plain JSON data.');
+  }
+  const parsed = JsonValueSchema.safeParse(raw);
   return parsed.success
     ? { ok: true, value: parsed.data }
     : failed('invalid_result', 'The result was not plain JSON data.');
 }
 
-function failed(kind: SandboxFailure['kind'], message: string): SandboxOutcome {
+function failed(
+  kind: SandboxFailure['kind'],
+  message: string,
+): { ok: false; failure: SandboxFailure } {
   return { ok: false, failure: { kind, message } };
 }
 

@@ -59,7 +59,12 @@ export const AgentMessage = memo(function AgentMessage({
   return (
     <article aria-label={agent.name} className="flex min-w-0 animate-rise flex-col gap-[18px]">
       {message.steps.length > 0 && (
-        <Steps message={message} startOpen={stepsStartOpen} waiting={pending > 0} />
+        <Steps
+          message={message}
+          startOpen={stepsStartOpen}
+          waiting={pending > 0}
+          onOpenPanel={onOpenPanel}
+        />
       )}
       {working && empty && <Thinking />}
       {message.text && <Markdown text={message.text} />}

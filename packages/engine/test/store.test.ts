@@ -275,7 +275,7 @@ describe('repositories', () => {
         title: 'Add the invoice procedure',
         diagnosis: 'No pricing rule.',
         predicted: { devDeltaMin: 1, devDeltaMax: 3, rationale: 'Three tasks.' },
-        files: ['system.md'],
+        files: ['AGENTS.md'],
         candidateVersion: 1,
         costUsd: 0.004,
         startedAt: AT,
@@ -293,7 +293,7 @@ describe('repositories', () => {
       hypothesis: {
         title: 'Add the invoice procedure',
         diagnosis: 'No pricing rule.',
-        edits: [{ op: 'write', path: 'system.md', content: 'fix:invoice' }],
+        edits: [{ op: 'write', path: 'AGENTS.md', content: 'fix:invoice' }],
         causeTaskIds: ['train-invoice-1'],
         predicted: { devDeltaMin: 1, devDeltaMax: 3, rationale: 'Three tasks.' },
         readyClaim: true,

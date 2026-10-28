@@ -1,6 +1,5 @@
 import { GuardError } from '@architect/shared';
 import { DataError } from '../data/errors';
-import { CalculationError } from './calculator';
 
 /** A tool call the model got wrong, or a tool that failed: reported back for the model to read. */
 export class ToolError extends Error {
@@ -15,7 +14,6 @@ export function isToolFailure(error: unknown): error is Error {
   return (
     error instanceof ToolError ||
     error instanceof DataError ||
-    error instanceof CalculationError ||
     (error instanceof GuardError && error.guard === 'permission')
   );
 }

@@ -270,6 +270,10 @@ importers:
       '@architect/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+    devDependencies:
+      '@architect/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
 
   packages/adapters:
     dependencies:
@@ -291,6 +295,9 @@ importers:
       '@architect/shared':
         specifier: workspace:*
         version: link:../shared
+      diff:
+        specifier: ^9.0.0
+        version: 9.0.0
       papaparse:
         specifier: ^5.7.0
         version: 5.7.0

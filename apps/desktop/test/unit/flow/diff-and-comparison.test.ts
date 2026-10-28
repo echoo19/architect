@@ -6,14 +6,20 @@ import {
   formatPoints,
   methodExplanation,
 } from '../../../src/renderer/src/flow/report/comparison';
-import { countChanges, parseUnifiedDiff } from '../../../src/renderer/src/flow/train/diff';
+import {
+  countChanges,
+  createsFile,
+  lineCounts,
+  parseUnifiedDiff,
+  patchRows,
+} from '../../../src/renderer/src/flow/train/diff';
 import { at, makeRun } from './factories';
 
 describe('parseUnifiedDiff', () => {
   const patch = [
-    'diff --git a/system.md b/system.md',
-    '--- a/system.md',
-    '+++ b/system.md',
+    'diff --git a/AGENTS.md b/AGENTS.md',
+    '--- a/AGENTS.md',
+    '+++ b/AGENTS.md',
     '@@ -3,3 +3,4 @@ Operating rules',
     ' Read policy.md before pricing a job.',
     '-Round each line to the nearest dollar.',
@@ -41,6 +47,38 @@ describe('parseUnifiedDiff', () => {
       added: 2,
       removed: 1,
     });
+  });
+
+  it('starts a preview at the first line, keeping later hunks as gaps', () => {
+    const twoHunks = [
+      '--- a/output/notes.md',
+      '+++ b/output/notes.md',
+      '@@ -1,2 +1,2 @@',
+      '-Old title',
+      '+New title',
+      ' Kept',
+      '@@ -40,1 +40,2 @@',
+      ' Near the end',
+      '+Added at the end',
+      '',
+    ].join('\n');
+    expect(patchRows(twoHunks).map((line) => line.kind)).toEqual([
+      'removed',
+      'added',
+      'context',
+      'hunk',
+      'context',
+      'added',
+    ]);
+  });
+
+  it('tells a new file apart, and counts its lines plainly', () => {
+    const created =
+      '--- /dev/null\n+++ b/output/visit.md\n@@ -0,0 +1,2 @@\n+# Visit\n+Bring a ladder.\n';
+    expect(createsFile(created)).toBe(true);
+    expect(lineCounts(created)).toBe('2 lines');
+    expect(createsFile(patch)).toBe(false);
+    expect(lineCounts(patch)).toBe('2 new lines · 1 line removed');
   });
 });
 

@@ -1,7 +1,9 @@
 import { join } from 'node:path';
+import { skillFiles } from '@architect/harness';
 import type {
   CheckOutcome,
   CheckResult,
+  FileChange,
   Harness,
   Job,
   Score,
@@ -14,7 +16,7 @@ import type {
 import { parseAnswerLine } from '../agent/answer';
 import { runAgent } from '../agent/loop';
 import type { Checker } from '../checker/checker';
-import { openTableStore, type TableChange } from '../data/table-store';
+import { openAgentFiles } from '../files/agent-files';
 import type { Sandbox } from '../sandbox/types';
 import { taskSeed } from './seed';
 
@@ -35,8 +37,8 @@ export interface TaskAttemptResult {
   trace: Trace;
   outcome: CheckOutcome;
   check: CheckResult;
-  /** What the attempt wrote to its scratch copy of the data. */
-  changes: TableChange[];
+  /** What the attempt wrote to its scratch copy of the files. */
+  changes: FileChange[];
 }
 
 export interface AttemptOptions {
@@ -67,7 +69,8 @@ export interface EvaluationResult {
 }
 
 /**
- * One attempt at a task: a fresh scratch copy of the job's data, the agent in task mode with the
+ * One attempt at a task: a fresh scratch copy of the agent's files (the job's data, an empty
+ * output folder when the job has one, the harness's skills), the agent in task mode with the
  * given sampler seed, the ANSWER line parsed, and the attempt checked.
  */
 export async function runTaskAttempt(
@@ -75,16 +78,18 @@ export async function runTaskAttempt(
   ctx: EvalContext & { seed: number },
   options: AttemptOptions = {},
 ): Promise<TaskAttemptResult> {
-  const store = await openTableStore({
+  const files = await openAgentFiles({
     dataDir: join(ctx.jobDir, 'data'),
     files: ctx.job.data.files,
+    ...(ctx.job.data.output === undefined ? {} : { output: ctx.job.data.output }),
+    skills: skillFiles(ctx.harness),
     mode: 'scratch',
   });
   const run = await runAgent({
     harness: ctx.harness,
     job: ctx.job,
     student: ctx.student,
-    store,
+    files,
     sandbox: ctx.sandbox,
     request: task.prompt,
     mode: 'task',
@@ -104,8 +109,8 @@ export async function runTaskAttempt(
     ),
     stopReason: trace.stopReason,
   };
-  const check = await ctx.checker.check(task, outcome, store);
-  return { trace, outcome, check, changes: store.pendingChanges() };
+  const check = await ctx.checker.check(task, outcome, files);
+  return { trace, outcome, check, changes: trace.changes ?? [] };
 }
 
 /**

@@ -45,7 +45,7 @@ export function makeJobDir(content: Readonly<Record<string, string>> = SAMPLE_CO
 
 export function makeHarness(overrides: Partial<z.input<typeof HarnessSchema>> = {}): Harness {
   return HarnessSchema.parse({
-    meta: { format: 1, name: 'Service desk', version: 3, hash: 'sha256-test' },
+    meta: { format: 2, name: 'Service desk', version: 3, hash: 'sha256-test' },
     system: 'You are the service desk of Ferncliff Home Services.',
     retrieval: {},
     decoding: {},

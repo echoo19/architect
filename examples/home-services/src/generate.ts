@@ -9,7 +9,7 @@ import { buildJob } from './job-file';
 import { formatJson } from './lib/json-format';
 import { Random } from './lib/random';
 import { policyDocument } from './policy/document';
-import { parseJobData } from './reference/read-tools';
+import { JobFiles } from './reference/tools';
 import { buildInvoiceTasks } from './tasks/invoice';
 import { buildOverdueTasks } from './tasks/overdue';
 import { buildScheduleTasks } from './tasks/schedule';
@@ -39,7 +39,7 @@ export function buildJobFiles(seed: number, version: JobVersion): GeneratedJob {
   const company = { ...records, requests: scheduling.requests };
   const policy = policyDocument(version);
   const tables = renderTables(company, version);
-  const data = parseJobData(new Map([['policy.md', policy], ...Object.entries(tables)]));
+  const data = new JobFiles(new Map([['policy.md', policy], ...Object.entries(tables)]));
   const tasks = [
     ...buildInvoiceTasks(random.fork('invoice tasks'), records, version),
     ...buildOverdueTasks(random.fork('overdue tasks'), records, version, data),

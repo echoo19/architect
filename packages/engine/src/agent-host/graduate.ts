@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { createStudent, isLoopbackUrl } from '@architect/adapters';
-import { readGraduate } from '@architect/harness';
+import { readGraduate, skillFiles } from '@architect/harness';
 import {
   GuardError,
   JobSchema,
@@ -9,7 +10,7 @@ import {
   type Job,
   type StudentAdapter,
 } from '@architect/shared';
-import { openTableStore, type TableStore } from '../data/table-store';
+import { openAgentFiles, type AgentFiles } from '../files/agent-files';
 import { DataPaths } from '../loop/paths';
 
 /** An open graduate: everything its chats share. */
@@ -19,8 +20,8 @@ export interface GraduateSession {
   readonly harness: Harness;
   readonly job: Job;
   readonly student: StudentAdapter;
-  /** The workspace data, live: an approved write goes straight to its file. */
-  readonly data: TableStore;
+  /** The agent's folder, live: an approved change goes straight to its file. */
+  readonly files: AgentFiles;
   /** The student's context window, which bounds how much of a chat it is shown. */
   readonly contextLength: number;
 }
@@ -29,7 +30,7 @@ export interface GraduateLocation {
   graduateId: string;
   /** The graduate folder. */
   folder: string;
-  /** The folder holding the data files the graduate works on. */
+  /** The folder holding the data files the graduate works on; its output/ folder goes inside it. */
   workspaceDataDir: string;
   /** The app's data folder, where the job the graduate was trained for is kept. */
   appDataDir: string;
@@ -61,9 +62,13 @@ export async function openGraduateSession(location: GraduateLocation): Promise<G
       { runtime, baseUrl, model, contextLength },
       location.cpuThreads === undefined ? {} : { cpuThreads: location.cpuThreads },
     ),
-    data: await openTableStore({
+    files: await openAgentFiles({
       dataDir: location.workspaceDataDir,
       files: job.data.files,
+      ...(job.data.output === undefined
+        ? {}
+        : { output: { ...job.data.output, dir: join(location.workspaceDataDir, 'output') } }),
+      skills: skillFiles(harness),
       mode: 'live',
     }),
     contextLength,

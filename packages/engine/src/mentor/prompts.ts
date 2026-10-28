@@ -21,19 +21,18 @@ const HARNESS_SURFACE = `## The harness
 
 The student runs inside a harness: a folder of plain files. You change the student's behaviour only by editing these files. Each edit either writes a whole file (op "write" with the complete new content) or deletes one (op "delete" with empty content). Paths are relative to the harness folder. Any other path is rejected and the round is lost.
 
-- system.md: the system prompt. Role, scope and operating rules, most important first.
-- skills/<slug>.md: a step-by-step procedure, starting with front matter:
+- AGENTS.md: the standing instructions that open the student's system prompt. Role, scope and operating rules, most important first.
+- skills/<name>/SKILL.md: a step-by-step procedure, starting with front matter:
   ---
-  name: Price a completed job
-  summary: One line the student sees in its list of skills.
-  task_types: [invoice]
+  name: price-a-job
+  description: One line the student sees in its list of skills, saying what the skill is for.
   ---
-  The student sees each skill's name and summary and loads the full text with load_skill, unless a retrieval rule loads it up front. Slugs use lowercase letters, digits and dashes.
+  The steps follow in Markdown. name is the folder's name, in lowercase letters, digits and dashes. The student sees each skill's name and description, and reads the whole file with read when it needs the steps, unless a retrieval rule puts the steps in its system prompt up front.
 - tools/<name>.json and tools/<name>.js: a helper tool. The .json file holds {"name", "description", "parameters"}, where parameters is a JSON Schema object for the arguments. The .js file defines function run(args, ctx). Names use lowercase letters, digits and underscores and start with a letter. Always write both files.
 - examples/<slug>.json: a worked example the student sees as a past conversation: {"title", "task_types", "messages"}. Each message has exactly one of these shapes, and the last is the assistant's correct ANSWER line:
   {"role": "user", "content": "..."}
-  {"role": "assistant", "content": "...", "tool_calls": [{"id": "call_1", "name": "read_table", "arguments": {"file": "..."}}]} (tool_calls only on a turn that calls tools)
-  {"role": "tool", "tool_call_id": "call_1", "name": "read_table", "content": "..."} (the result of the call with that id)
+  {"role": "assistant", "content": "...", "tool_calls": [{"id": "call_1", "name": "grep", "arguments": {"pattern": "...", "path": "data/..."}}]} (tool_calls only on a turn that calls tools)
+  {"role": "tool", "tool_call_id": "call_1", "name": "grep", "content": "..."} (the result of the call with that id)
 - retrieval.yaml: which skills and examples load for which request:
   list_skills: true
   max_loaded_skills: 2
@@ -42,7 +41,7 @@ The student runs inside a harness: a folder of plain files. You change the stude
     - when_any: [invoice, bill]
       load_skills: [price-a-job]
       load_examples: [after-hours-plan-member]
-  when_any matches case-insensitive words or phrases in the request. Rules apply in order until the caps are reached.
+  load_skills names skills by their folder. when_any matches case-insensitive words or phrases in the request. Rules apply in order until the caps are reached.
 - decoding.yaml: temperature, top_p, top_k, max_steps (1 to 40), max_output_tokens (64 to 32768, reasoning included) and thinking (low, medium or high). More thinking or steps can fix reasoning failures but makes every task slower. The runner chooses the sampling seed; it isn't yours to set.
 - guardrails.yaml: task types the student must refuse:
   refuse:
@@ -53,19 +52,19 @@ The student runs inside a harness: a folder of plain files. You change the stude
 
 harness.yaml belongs to the runner. The checker, the data, the task splits, the tool permissions and the student's weights are fixed.`;
 
-const BUILT_IN_TOOLS = `## Built-in tools
+const BUILT_IN_TOOLS = `## The student's folder and tools
 
-Every student has these whatever the harness says, and harness tools are added beside them:
-- list_files: the job's data files and what each holds.
-- read_table: rows from a table, filtered by where clauses ({column, op, value}, where op is one of = != > >= < <= contains in), with optional columns and limit.
-- read_text: the full text of a text file, such as a policy.
-- calculate: evaluates an arithmetic expression exactly.
-- append_rows and update_rows: change a table the job lets the agent write. During training, writes go to a scratch copy.
-- load_skill: loads a skill's full text by slug.`;
+The student works like a coding agent in a folder of its own. data/ holds the job's files, so the data file orders.csv is data/orders.csv; output/ is there when the job lets the student create files; skills/ holds the harness's skills, read-only. Every student has these tools whatever the harness says, and harness tools are added beside them:
+- read: a file's lines, numbered, about 8,000 characters at a time, with the offset to read on from.
+- ls: a folder's files, each with its kind (table or text), size in lines and whether the student can change it.
+- glob: the files whose path matches a pattern, like data/*.csv.
+- grep: the lines that match a regular expression, as path:line: text, in a file or a folder.
+- write, edit and append: change a file the job lets the student change. write replaces the whole text, edit replaces exact text that must match once, and append adds lines at the end. A table must stay valid CSV with its header. During training, changes go to a scratch copy.
+- run: JavaScript in a sandbox, with files.read(path) and files.list(folder) (read-only), csv.parse(text) (rows as objects of strings, "" for an empty cell), csv.stringify(rows), today (the working date) and print. It returns what the code printed and the value of its last line. Filtering, joining and adding up rows in run is far more reliable than doing it by eye.`;
 
 const TOOL_RULES = `## Writing a tool
 
-A tool is plain JavaScript that defines function run(args, ctx) and returns JSON-serializable data. There are no imports, no require and no packages. It runs in a sandbox with no network, no clock and no randomness, so take dates from the data or the arguments. ctx is read-only. ctx.readTable(file, { where, columns, limit, offset }) returns every matching row, all of them unless you pass limit, as objects keyed by column name with text values and null for empty cells; file is the data file's name as listed, such as "jobs.csv", and where takes the same filters as read_table. ctx.readText(file) returns a text file's content, and ctx.listFiles() lists the job's files. Throw an Error with a clear message for bad input; the student sees it as a tool error. Write tools for steps the student keeps getting wrong by hand, such as exact arithmetic over many rows, date ranges or conflict checks.`;
+A tool is plain JavaScript that defines function run(args, ctx) and returns JSON-serializable data. There are no imports, no require and no packages. It runs in a sandbox with no network, no clock and no randomness, so take dates from the data or the arguments. ctx is read-only. ctx.readTable(file, { where, columns, limit, offset }) returns every matching row, all of them unless you pass limit, as objects keyed by column name with text values and null for empty cells; file is the data file's name as listed, such as "jobs.csv", and where is a list of filters {column, op, value}, where op is one of = != > >= < <= contains in. ctx.readText(file) returns a text file's content, and ctx.listFiles() lists the job's files. Throw an Error with a clear message for bad input; the student sees it as a tool error. Write tools for steps the student keeps getting wrong by hand, such as exact arithmetic over many rows, date ranges or conflict checks.`;
 
 const ANSWER_FORMAT = `## How tasks are graded
 
@@ -98,7 +97,7 @@ This round:
 
 The runner applies your change set to a new harness version and ${evaluation}. If dev passes rise by at least ${minDevGain * devRepeats} and no task type loses more than ${loss} ${passes}, it measures both versions again under new seeds and keeps the change only if the totals over both measurements rise by at least ${2 * minDevGain * devRepeats} with ${loss === 0 ? 'no task type losing a pass' : `no task type losing more than ${2 * loss}`}; otherwise it is reverted and logged as a failed hypothesis. Dev and test tasks are different tasks of the same types, so write rules that generalize, never answers for particular train tasks.
 
-The student is small: every line of system prompt and every loaded skill costs it attention and time, so keep the harness lean and specific. A round that doesn't help still spends budget.
+The student is small: every line of AGENTS.md and every loaded skill costs it attention and time, so keep the harness lean and specific. A round that doesn't help still spends budget.
 
 Set readyClaim to true only if you expect the harness after this change to meet the job's requirement on tasks you haven't seen. The claim is recorded and checked against the locked test.`;
 }
@@ -118,9 +117,9 @@ function oneShotInstructions(
     : "You won't see the student attempt anything, and you get one reply.";
   return `You are the mentor for a small local model, the student. Write its whole harness in one go from the job setup and the train examples with their expected answers. ${after}
 
-Write a complete harness: a system prompt with the operating rules, a skill for each task type with the exact procedure, tools for computations that are easy to get wrong by hand, worked examples where the format is subtle, and retrieval rules that load the right skill for each request. Base everything on the job description, the data and any policy text. The examples show what correct answers look like; dev and test tasks are different tasks of the same types, so don't hard-code answers.
+Write a complete harness: AGENTS.md with the operating rules, a skill for each task type with the exact procedure, tools for computations that are easy to get wrong by hand, worked examples where the format is subtle, and retrieval rules that load the right skill for each request. Base everything on the job description, the data and any policy text. The examples show what correct answers look like; dev and test tasks are different tasks of the same types, so don't hard-code answers.
 
-The student is small: keep the system prompt short and put procedures in skills.
+The student is small: keep AGENTS.md short and put procedures in skills.
 
 In your reply, title names the harness, diagnosis explains the main risks you designed for, causeTaskIds is empty, and predicted is your expected change in dev passes over the starting harness, ${outOf}. Set readyClaim to true only if you expect the requirement to be met on unseen tasks.`;
 }
@@ -146,10 +145,10 @@ function renderJob(job: MentorView['job']): string {
   const files = job.dataFiles.map((file) => {
     const access = file.access === 'write' ? 'writable' : 'read-only';
     if (file.kind === 'text')
-      return `## ${file.name} (text, ${access})\n${fenced(file.text ?? '')}`;
+      return `## data/${file.name} (text, ${access})\n${fenced(file.text ?? '')}`;
     const rows = (file.sampleRows ?? []).map((row) => JSON.stringify(row)).join('\n');
     return [
-      `## ${file.name} (table, ${access}, ${file.rowCount ?? 0} rows)`,
+      `## data/${file.name} (table, ${access}, ${file.rowCount ?? 0} rows)`,
       `Columns: ${(file.columns ?? []).join(', ')}`,
       `First rows:\n${fenced(rows)}`,
     ].join('\n');

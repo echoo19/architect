@@ -14,7 +14,7 @@ import {
 } from '@architect/shared';
 import { errorMessage, parseJson, parseYaml } from './codec';
 import { camelToSnake, isRecord, mapKeys, snakeToCamel } from './keys';
-import { fileStem } from './paths';
+import { fileStem, itemName } from './paths';
 
 interface Issue {
   path: readonly PropertyKey[];
@@ -31,7 +31,7 @@ interface Schema<T> {
 const snakeKeysOf = (shape: object): string[] => Object.keys(shape).map(camelToSnake);
 
 const META_KEYS = ['format', 'name', 'version', 'parent', 'hash'];
-const SKILL_KEYS = ['name', 'summary', 'task_types'];
+const SKILL_KEYS = ['name', 'description'];
 const TOOL_KEYS = ['name', 'description', 'parameters'];
 const EXAMPLE_KEYS = ['title', 'task_types', 'messages'];
 const RETRIEVAL_KEYS = snakeKeysOf(RetrievalSchema.shape);
@@ -135,42 +135,71 @@ function readJsonRecord(
   return raw;
 }
 
+/** The folder formats this version reads: the current one, and format 1, which it migrates. */
+export type StoredFormat = 1 | typeof HARNESS_FORMAT;
+
+export interface ParsedMeta {
+  /** The meta of the harness as it is read, in the current format. */
+  meta: HarnessMeta;
+  /** The format the folder was saved in. */
+  format: StoredFormat;
+}
+
 /** harness.yaml. `version` and `hash` are derived values, so a hand-made file may leave them out. */
-export function parseMeta(text: string, problems: string[]): HarnessMeta | undefined {
+export function parseMeta(text: string, problems: string[]): ParsedMeta | undefined {
   const file = 'harness.yaml';
   const raw = readYamlRecord(file, text, problems);
   if (!raw) return undefined;
   checkKeys(file, raw, META_KEYS, problems);
-  if (raw['format'] !== HARNESS_FORMAT) {
+  const format = raw['format'];
+  if (format !== HARNESS_FORMAT && format !== 1) {
     problems.push(
-      `${file}: format ${JSON.stringify(raw['format'] ?? null)} is not supported; this version reads format ${HARNESS_FORMAT}`,
+      `${file}: format ${JSON.stringify(format ?? null)} is not supported; this version reads formats 1 and ${HARNESS_FORMAT}`,
     );
     return undefined;
   }
-  return check(file, HarnessMetaSchema, { version: 0, hash: '', ...raw }, problems);
-}
-
-export function parseSkill(path: string, text: string, problems: string[]): Skill | undefined {
-  const match = FRONT_MATTER.exec(text);
-  if (!match) {
-    problems.push(
-      `${path}: has no front matter. Start the file with a block between "---" lines that sets name and summary.`,
-    );
-    return undefined;
-  }
-  const front = readYamlRecord(`${path} front matter`, match[1] ?? '', problems);
-  if (!front) return undefined;
-  checkKeys(path, front, SKILL_KEYS, problems);
-  return check(
-    path,
-    SkillSchema,
-    {
-      ...(mapKeys(front, snakeToCamel) as Record<string, unknown>),
-      slug: fileStem(path),
-      body: match[2] ?? '',
-    },
+  const meta = check(
+    file,
+    HarnessMetaSchema,
+    { version: 0, hash: '', ...raw, format: HARNESS_FORMAT },
     problems,
   );
+  return meta ? { meta, format } : undefined;
+}
+
+/** Splits a Markdown file into its front matter (between "---" lines) and the text after it. */
+export function splitFrontMatter(text: string): { front: string; body: string } | undefined {
+  const match = FRONT_MATTER.exec(text);
+  return match ? { front: match[1] ?? '', body: match[2] ?? '' } : undefined;
+}
+
+/** `skills/<name>/SKILL.md`: front matter with the skill's name and description, then its steps. */
+export function parseSkill(path: string, text: string, problems: string[]): Skill | undefined {
+  const parts = splitFrontMatter(text);
+  if (!parts) {
+    problems.push(
+      `${path}: has no front matter. Start the file with a block between "---" lines that sets name and description.`,
+    );
+    return undefined;
+  }
+  const front = readYamlRecord(`${path} front matter`, parts.front, problems);
+  if (!front) return undefined;
+  const before = problems.length;
+  checkKeys(path, front, SKILL_KEYS, problems);
+  // The folder is the skill's name, which also keeps names unique.
+  const folder = itemName(path);
+  if (front['name'] !== undefined && front['name'] !== folder) {
+    problems.push(
+      `${path}: name must match the folder, so it should be "${folder}" (it is ${JSON.stringify(front['name'])}).`,
+    );
+  }
+  const skill = check(
+    path,
+    SkillSchema,
+    { name: front['name'], description: front['description'], body: parts.body },
+    problems,
+  );
+  return problems.length === before ? skill : undefined;
 }
 
 export function parseTool(

@@ -1,7 +1,7 @@
 import type { FileEdit, Harness } from '@architect/shared';
 import { HarnessValidationError } from './errors';
 import { hashFiles } from './hash';
-import { normalizeEditPath, SYSTEM_PATH } from './paths';
+import { INSTRUCTIONS_PATH, normalizeEditPath } from './paths';
 import { harnessToFiles } from './serialize';
 import { validateHarnessFiles } from './validate';
 
@@ -21,8 +21,10 @@ export function applyEdits(harness: Harness, edits: readonly FileEdit[]): Harnes
   for (const { edit, path } of targets) {
     if (edit.op === 'write') {
       files[path] = edit.content;
-    } else if (path === SYSTEM_PATH) {
-      problems.push('system.md: cannot be deleted. Every harness needs a system prompt.');
+    } else if (path === INSTRUCTIONS_PATH) {
+      problems.push(
+        `${INSTRUCTIONS_PATH}: cannot be deleted. Every harness needs its instructions.`,
+      );
     } else if (Object.hasOwn(files, path)) {
       delete files[path];
     } else {

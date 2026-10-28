@@ -51,7 +51,8 @@ export interface WritePolicy {
 /**
  * Write tools call this before a change touches the file. `ask` shows the change as an approval
  * block and waits for the user; `allow` shows it as approved and goes ahead; `never` fails the
- * call with a reason the agent can pass on, so nothing is written.
+ * call with a reason the agent can pass on, so nothing is written. A change to a table shows
+ * its rows; a change to any other file shows its diff.
  */
 export function approveWrites(policy: WritePolicy): ApproveWrite {
   return async (change, signal) => {
@@ -66,10 +67,10 @@ export function approveWrites(policy: WritePolicy): ApproveWrite {
     const block = {
       kind: 'approval' as const,
       changeId,
-      op: change.tool === 'append_rows' ? ('append' as const) : ('update' as const),
-      file: change.file,
+      op: change.tool,
+      file: change.path,
       summary: change.summary,
-      diff: change.diff,
+      ...(change.rows === undefined ? { patch: change.patch } : { diff: change.rows }),
     };
     if (mode === 'allow') {
       policy.reply.addBlock({ ...block, status: 'approved' });

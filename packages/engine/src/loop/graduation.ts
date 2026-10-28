@@ -100,7 +100,7 @@ export async function openLockedTest(
   const harness = await state.resources.harness(frozen.harnessVersion);
   if (harness.meta.hash !== frozen.harnessHash) {
     throw new Error(
-      `Harness version ${frozen.harnessVersion} changed after the graduate was frozen, so it won't be tested.`,
+      `Harness version ${frozen.harnessVersion} no longer has the hash it was frozen with, so it won't be tested: it changed after the graduate was frozen, or it was frozen in harness format 1, and its results belong to the tools it ran with.`,
     );
   }
   const tester = await state.resources.student(target);

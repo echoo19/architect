@@ -10,7 +10,7 @@ import { balanceCents, overdueInvoices, receivedCents } from '../reference/balan
 import type { OverdueInvoice } from '../reference/balances';
 import { answerQuestion } from '../reference/overdue-questions';
 import type { OverdueQuestion } from '../reference/overdue-questions';
-import type { JobData } from '../reference/read-tools';
+import type { JobFiles } from '../reference/tools';
 import type { JobVersion } from '../versions';
 import { buildGroupTasks } from './overdue-groups';
 import { mistakesThatMatter } from './overdue-mistakes';
@@ -100,7 +100,7 @@ export function buildOverdueTasks(
   random: Random,
   records: CompanyRecords,
   version: JobVersion,
-  data: JobData,
+  data: JobFiles,
 ): Task[] {
   const quotas = QUOTAS[version];
   const cap = new AnswerCap(MAX_TASKS_PER_ANSWER);

@@ -102,7 +102,7 @@ describe('an architect run', () => {
     expect(kept).toMatchObject({
       round: 1,
       title: 'Add the invoice procedure',
-      files: ['system.md'],
+      files: ['AGENTS.md'],
       causeTaskIds: ['train-invoice-1', 'train-invoice-2'],
       predicted: { devDeltaMin: 2, devDeltaMax: 3, rationale: 'Three invoice dev tasks.' },
       measured: {

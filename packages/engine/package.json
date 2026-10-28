@@ -14,6 +14,7 @@
     "@architect/adapters": "workspace:*",
     "@architect/harness": "workspace:*",
     "@architect/shared": "workspace:*",
+    "diff": "^9.0.0",
     "papaparse": "^5.7.0",
     "quickjs-emscripten": "^0.32.0",
     "yaml": "^2.9.1",

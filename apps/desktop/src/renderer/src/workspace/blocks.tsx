@@ -10,10 +10,11 @@ import {
   TableHeader,
   TableRow,
 } from '@architect/ui';
-import { Ban, Check, ChevronRight, CircleMinus, FileText, X } from 'lucide-react';
+import { Ban, Check, ChevronRight, CircleMinus, FilePen, FilePlus, X } from 'lucide-react';
 import { architect } from '../api/client';
+import { PatchLines } from '../components/PatchLines';
 import { attempt } from '../lib/notify';
-import { diffLines } from './diff';
+import { addsToFile, changeCounts, changeVerb, previewSize } from './changes';
 import { refreshGraduateSettings } from './graduateSettings';
 import {
   cellText,
@@ -33,7 +34,7 @@ type RefusalBlockData = Extract<AgentBlock, { kind: 'refusal' }>;
 
 /** Rows a table shows in the chat before "Show all". */
 const TABLE_PREVIEW_ROWS = 4;
-/** Lines a write preview shows in the chat before "Show all". */
+/** Rows or lines a change's preview shows in the chat before "Show all". */
 const DIFF_PREVIEW_LINES = 6;
 
 const footerButton =
@@ -136,28 +137,17 @@ export interface ApprovalCardProps {
   onOpenPanel: (content: PanelContent) => void;
 }
 
-/** What a write does to the file's rows: "2 new rows", "1 row changed". */
-function rowCounts({ added, changed, removed }: ApprovalBlockData['diff']): string {
-  const rows = (count: number) => (count === 1 ? 'row' : 'rows');
-  return [
-    added.length > 0 && `${added.length} new ${rows(added.length)}`,
-    changed.length > 0 && `${changed.length} ${rows(changed.length)} changed`,
-    removed.length > 0 && `${removed.length} ${rows(removed.length)} removed`,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-}
-
 /**
- * A write the agent wants to make: what it touches, the rows it writes, and Allow or Deny. A
- * pending write shows its rows from the start, so nothing is allowed unseen.
+ * A change the agent wants to make: what it touches, the rows or lines it writes, and Allow or
+ * Deny. A pending change shows its preview from the start, so nothing is allowed unseen.
  */
 export function ApprovalCard({ block, agent, answerable, onOpenPanel }: ApprovalCardProps) {
   const previewId = useId();
   const [expanded, setExpanded] = useState(block.status === 'pending');
   const [sending, setSending] = useState<Decision | null>(null);
   const [answer, setAnswer] = useState<Decision | null>(null);
-  const lines = diffLines(block.diff).length;
+  const size = previewSize(block);
+  const FileIcon = addsToFile(block) ? FilePlus : FilePen;
 
   const decide = async (decision: Decision) => {
     setSending(decision);
@@ -212,11 +202,11 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
           className="flex min-w-0 flex-[1_1_200px] items-center gap-3.5 rounded-md text-left"
         >
           <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-hover text-fg-secondary">
-            <FileText size={17} strokeWidth={1.6} aria-hidden />
+            <FileIcon size={17} strokeWidth={1.6} aria-hidden />
           </span>
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="flex min-w-0 items-center gap-1.5">
-              <span className="shrink-0">{block.op === 'append' ? 'Add to' : 'Update'}</span>
+              <span className="shrink-0">{changeVerb(block)}</span>
               <span className="truncate font-mono text-base">{block.file}</span>
               <ChevronRight
                 size={14}
@@ -228,7 +218,7 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
                 )}
               />
             </span>
-            <span className="text-sm text-fg-muted">{rowCounts(block.diff) || block.summary}</span>
+            <span className="text-sm text-fg-muted">{changeCounts(block) || block.summary}</span>
           </span>
         </button>
         {outcome ?? (
@@ -241,22 +231,41 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
       </div>
       {expanded && (
         <div id={previewId} className="border-t border-line-card">
-          <div className="overflow-x-auto px-4 pb-2.5 pt-1">
-            <RowDiffTable diff={block.diff} limit={DIFF_PREVIEW_LINES} />
-          </div>
-          {lines > DIFF_PREVIEW_LINES && (
+          {block.diff ? (
+            <div className="overflow-x-auto px-4 pb-2.5 pt-1">
+              <RowDiffTable diff={block.diff} limit={DIFF_PREVIEW_LINES} />
+            </div>
+          ) : (
+            block.patch !== undefined && (
+              <div className="overflow-x-auto py-2">
+                <PatchLines
+                  patch={block.patch}
+                  limit={DIFF_PREVIEW_LINES}
+                  label="Lines this change writes"
+                />
+              </div>
+            )
+          )}
+          {size.count > DIFF_PREVIEW_LINES && (
             <button
               type="button"
               className={footerButton}
-              onClick={() => onOpenPanel({ kind: 'diff', file: block.file, diff: block.diff })}
+              onClick={() => onOpenPanel(panelOf(block))}
             >
-              Show all {lines} rows
+              Show all {size.count} {size.unit}
             </button>
           )}
         </div>
       )}
     </div>
   );
+}
+
+/** The whole of a change, for the side panel: its rows for a table, its lines otherwise. */
+function panelOf(block: ApprovalBlockData): PanelContent {
+  return block.diff
+    ? { kind: 'diff', file: block.file, diff: block.diff }
+    : { kind: 'patch', file: block.file, patch: block.patch ?? '' };
 }
 
 /** A request on the agent's refusal list, with the reason from its report card and a way on. */

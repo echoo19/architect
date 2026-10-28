@@ -17,7 +17,9 @@ export function clip(text: string, max: number): string {
   return text.length <= max ? text : `${text.slice(0, max)}… [${text.length - max} more chars]`;
 }
 
+/** A tool result in a few lines: text as it reads, indented under its call, other values as JSON. */
 function describeValue(value: JsonValue | null, max: number): string {
+  if (typeof value === 'string') return clip(value, max).split('\n').join('\n    ');
   const count = Array.isArray(value) ? `${value.length} items ` : '';
   return count + clip(JSON.stringify(value), max);
 }
@@ -26,7 +28,7 @@ function stepLines(step: TraceStep, limits: TraceLimits): string[] {
   switch (step.kind) {
     case 'skill':
       return [
-        `skill ${step.slug} loaded ${step.via === 'rule' ? 'by a retrieval rule' : 'by load_skill'}`,
+        `skill ${step.slug} ${step.via === 'rule' ? 'loaded by a retrieval rule' : 'read by the student'}`,
       ];
     case 'model': {
       const text = step.text.trim();

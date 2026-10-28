@@ -12,7 +12,7 @@ function entry(round: number, decision: 'kept' | 'reverted', delta: number): Lin
     round,
     title: `Change ${round}`,
     diagnosis: 'A cause.',
-    files: ['system.md'],
+    files: ['AGENTS.md'],
     causeTaskIds: [],
     predicted: { devDeltaMin: 1, devDeltaMax: 2, rationale: 'A guess.' },
     measured: {

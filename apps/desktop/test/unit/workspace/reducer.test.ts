@@ -86,7 +86,7 @@ describe('workspaceReducer', () => {
         message: message('msg_2', {
           status: 'streaming',
           steps: [
-            { id: 's1', kind: 'tool', name: 'read_table', detail: 'jobs.csv', status: 'running' },
+            { id: 's1', kind: 'tool', name: 'read', detail: 'data/jobs.csv', status: 'running' },
           ],
         }),
       },

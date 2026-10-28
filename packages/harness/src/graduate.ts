@@ -4,7 +4,7 @@ import type { GraduateManifest, Harness, LineageEntry, ReportCard } from '@archi
 import { GraduateManifestSchema, ReportCardSchema } from '@architect/shared';
 import { errorMessage, parseYaml, stringifyYaml } from './codec';
 import { HarnessValidationError } from './errors';
-import { readHarness, writeHarness } from './folder';
+import { readStoredHarness, writeHarness, type StoredHarness } from './folder';
 import { hashHarness } from './hash';
 import { camelToSnake, isRecord, mapKeys, snakeToCamel } from './keys';
 import { lineageToLine, parseLineage, LINEAGE_FILE } from './lineage';
@@ -95,7 +95,8 @@ async function readRequired(
 /**
  * Reads a graduate folder and checks all of it: the manifest, the lineage, the harness, and that
  * the harness still has the hash recorded in `graduate.yaml`. Throws a HarnessValidationError
- * otherwise, so a graduate whose files were changed after it was saved never loads.
+ * otherwise, so a graduate whose files were changed after it was saved never loads. A graduate
+ * saved in format 1 is checked against its files as stored, then read in the current format.
  */
 export async function readGraduate(dir: string): Promise<GraduateFolder> {
   const problems: string[] = [];
@@ -147,18 +148,19 @@ export async function readGraduate(dir: string): Promise<GraduateFolder> {
     }
   }
 
-  let harness: Harness | undefined;
+  let stored: StoredHarness | undefined;
   try {
-    harness = await readHarness(dir);
+    stored = await readStoredHarness(dir);
   } catch (error) {
     if (!(error instanceof HarnessValidationError)) throw error;
     problems.push(...error.errors);
   }
 
-  if (problems.length > 0 || !manifest || !harness || !report || reportMarkdown === undefined) {
+  if (problems.length > 0 || !manifest || !stored || !report || reportMarkdown === undefined) {
     throw new HarnessValidationError(problems);
   }
-  const actual = hashHarness(harness);
-  if (manifest.harness.hash !== actual) throw hashMismatch(manifest.harness.hash, actual);
-  return { harness, manifest, report, reportMarkdown, lineage };
+  if (stored.filesHash !== manifest.harness.hash) {
+    throw hashMismatch(manifest.harness.hash, stored.filesHash);
+  }
+  return { harness: stored.harness, manifest, report, reportMarkdown, lineage };
 }

@@ -33,8 +33,8 @@ const message = (patch: Partial<WorkspaceMessage>): WorkspaceMessage => ({
 const step = (id: string, status: 'running' | 'done', ms?: number) => ({
   id,
   kind: 'tool' as const,
-  name: 'read_table',
-  detail: `${id}.csv`,
+  name: 'read',
+  detail: `data/${id}.csv`,
   status,
   ...(ms === undefined ? {} : { ms }),
 });
@@ -50,16 +50,46 @@ describe('workspace labels', () => {
   });
 
   it('says each step plainly, tools written in training included', () => {
-    const step = (name: string, kind: 'tool' | 'skill', status: 'done' | 'running') =>
-      ({ id: name, kind, name, detail: 'jobs.csv', status }) as const;
-    expect(stepWords(step('read_table', 'tool', 'done'))).toEqual({
+    const step = (
+      name: string,
+      kind: 'tool' | 'skill',
+      status: 'done' | 'running',
+      detail = 'data/jobs.csv',
+    ) => ({ id: name, kind, name, detail, status }) as const;
+    expect(stepWords(step('read', 'tool', 'done'))).toEqual({
       action: 'Read',
-      target: 'jobs.csv',
+      target: 'data/jobs.csv',
+    });
+    expect(
+      ['ls', 'glob', 'grep', 'write', 'edit', 'append', 'run'].map((name) => [
+        stepWords(step(name, 'tool', 'running')).action,
+        stepWords(step(name, 'tool', 'done')).action,
+      ]),
+    ).toEqual([
+      ['Listing', 'Listed'],
+      ['Finding', 'Found'],
+      ['Searching', 'Searched'],
+      ['Writing', 'Wrote'],
+      ['Editing', 'Edited'],
+      ['Adding to', 'Added to'],
+      ['Running code', 'Ran code'],
+    ]);
+    expect(stepWords(step('ls', 'tool', 'done', 'your folders'))).toEqual({
+      action: 'Listed your folders',
+      target: '',
     });
     expect(stepWords(step('price-a-job', 'skill', 'running')).action).toBe('Loading the skill');
     expect(stepWords(step('invoice_total', 'tool', 'done')).action).toBe(
       'Ran the tool invoice_total',
     );
+  });
+
+  it('keeps the words of the table tools that stored chats name', () => {
+    const old = (name: string) =>
+      stepWords({ id: name, kind: 'tool', name, detail: 'jobs.csv', status: 'done' }).action;
+    expect(
+      ['read_table', 'read_text', 'list_files', 'append_rows', 'update_rows', 'calculate'].map(old),
+    ).toEqual(['Read', 'Read', 'Listed', 'Added rows to', 'Updated', 'Calculated']);
   });
 
   it('says how long the agent worked', () => {

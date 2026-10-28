@@ -13,9 +13,9 @@ import {
   DECODING_PATH,
   examplePath,
   GUARDRAILS_PATH,
+  INSTRUCTIONS_PATH,
   RETRIEVAL_PATH,
   skillPath,
-  SYSTEM_PATH,
   toolCodePath,
   toolManifestPath,
 } from './paths';
@@ -37,15 +37,15 @@ const DEFAULT_GUARDRAILS = GuardrailsSchema.parse({});
  * The files of a harness folder, keyed by relative path with forward slashes, in path order.
  * `harness.yaml` is not included: it is managed by the runner and excluded from the hash.
  * Optional files that would be empty or default are left out, so a blank harness is one file.
- * Skills, tools and examples are written in slug order; reading them back gives the same order.
+ * Skills, tools and examples are written in name order; reading them back gives the same order.
  */
 export function harnessToFiles(
   harness: Harness,
   options: HarnessFilesOptions = {},
 ): Record<string, string> {
-  const files: Record<string, string> = { [SYSTEM_PATH]: normalizeText(harness.system) };
+  const files: Record<string, string> = { [INSTRUCTIONS_PATH]: normalizeText(harness.system) };
 
-  for (const skill of harness.skills) files[skillPath(skill.slug)] = skillToFile(skill);
+  for (const skill of harness.skills) files[skillPath(skill.name)] = skillToFile(skill);
   for (const tool of harness.tools) {
     files[toolManifestPath(tool.name)] = toolManifestToFile(tool);
     files[toolCodePath(tool.name)] = normalizeText(tool.code);
@@ -60,6 +60,15 @@ export function harnessToFiles(
   emit(GUARDRAILS_PATH, harness.guardrails, DEFAULT_GUARDRAILS, () => guardrailsToFile(harness));
 
   return Object.fromEntries(Object.entries(files).sort(([a], [b]) => compareText(a, b)));
+}
+
+/** Each skill's SKILL.md as the harness folder holds it, by its path, in name order. */
+export function skillFiles(harness: Harness): Record<string, string> {
+  return Object.fromEntries(
+    [...harness.skills]
+      .sort((a, b) => compareText(a.name, b.name))
+      .map((skill) => [skillPath(skill.name), skillToFile(skill)]),
+  );
 }
 
 export function metaToFile(meta: HarnessMeta): string {
@@ -77,11 +86,7 @@ function sameJson(a: unknown, b: unknown): boolean {
 }
 
 function skillToFile(skill: Skill): string {
-  const front = stringifyYaml({
-    name: skill.name,
-    summary: skill.summary,
-    ...(skill.taskTypes.length > 0 ? { task_types: skill.taskTypes } : {}),
-  });
+  const front = stringifyYaml({ name: skill.name, description: skill.description });
   return `---\n${front}---\n${normalizeText(skill.body)}`;
 }
 

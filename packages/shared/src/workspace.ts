@@ -1,17 +1,35 @@
 import { z } from 'zod';
 import { CellValueSchema } from './cells';
 
+/** Rows that a read of a table showed, with the table's column names. */
+export const TableViewSchema = z.object({
+  columns: z.array(z.string()),
+  rows: z.array(z.array(z.string().nullable())),
+  /** The table's data rows in all, of which these are some. */
+  total: z.number().int().nonnegative(),
+});
+export type TableView = z.infer<typeof TableViewSchema>;
+
+/** How a step shows what it did: the rows a table read showed, or the code `run` ran and its output. */
+export const StepViewSchema = z.discriminatedUnion('kind', [
+  TableViewSchema.extend({ kind: z.literal('table') }),
+  z.object({ kind: z.literal('code'), code: z.string(), output: z.string() }),
+]);
+export type StepView = z.infer<typeof StepViewSchema>;
+
 export const AgentStepSchema = z.object({
   id: z.string(),
   kind: z.enum(['skill', 'tool']),
-  /** Tool or skill name, e.g. `read_table`. */
+  /** Tool or skill name, e.g. `read`. */
   name: z.string(),
-  /** What it acted on, e.g. `invoices.csv`. */
+  /** What it acted on, e.g. `data/invoices.csv`. */
   detail: z.string(),
-  /** Result summary once done, e.g. `412 rows`. */
+  /** Result summary once done, e.g. `412 lines`. */
   meta: z.string().optional(),
   status: z.enum(['running', 'done', 'error']),
   ms: z.number().int().nonnegative().optional(),
+  /** What the step showed, for steps that have more than a summary. */
+  view: StepViewSchema.optional(),
 });
 export type AgentStep = z.infer<typeof AgentStepSchema>;
 
@@ -33,12 +51,19 @@ export const AgentBlockSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('approval'),
     changeId: z.string(),
-    /** `append` adds rows; `update` changes rows that are already there. */
-    op: z.enum(['append', 'update']),
+    /**
+     * The tool that asks: `write`, `edit` or `append`. Chats from before the coding tools hold
+     * `update` (rows changed) and `append` (rows added).
+     */
+    op: z.enum(['write', 'edit', 'append', 'update']),
+    /** The file it changes, e.g. `data/invoices.csv`. */
     file: z.string(),
-    /** e.g. "Append 1 row to invoices.csv" */
+    /** e.g. "Add 1 row to data/invoices.csv" */
     summary: z.string(),
-    diff: RowDiffSchema,
+    /** For a table: the rows the change adds, removes and changes. */
+    diff: RowDiffSchema.optional(),
+    /** For any other file: the change as a unified diff. */
+    patch: z.string().optional(),
     status: z.enum(['pending', 'approved', 'denied']),
   }),
   z.object({ kind: z.literal('refusal'), taskType: z.string(), reason: z.string() }),

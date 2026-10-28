@@ -52,7 +52,7 @@ export async function addGraduate(
 
   const harness = withHash(
     HarnessSchema.parse({
-      meta: { format: 1, name: job.name, version: 4, hash: '' },
+      meta: { format: 2, name: job.name, version: 4, hash: '' },
       system: 'You are the service desk of Ferncliff Home Services.',
       retrieval: {},
       decoding: { maxSteps: 4 },
