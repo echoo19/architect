@@ -1,6 +1,7 @@
 import {
   describeCall,
   describeResult,
+  describeRowsRead,
   type AgentStep,
   type Harness,
   type StepView,
@@ -32,13 +33,14 @@ export function startedStep(call: ToolCall, harness: Harness): NewStep {
 /** The same step once its call has returned, with what it showed when there is more to see. */
 export function finishedStep(step: NewStep, result: ToolTrace): NewStep {
   const view = stepView(result);
+  let meta: string;
+  if (result.error !== undefined) meta = clip(result.error.split('\n')[0] ?? '', META_CHARS);
+  else if (view?.kind === 'table') meta = describeRowsRead(view.total, result.result);
+  else meta = describeResult(result.name, result.result, result.change);
   return {
     ...step,
     status: result.error === undefined ? 'done' : 'error',
-    meta:
-      result.error === undefined
-        ? describeResult(result.name, result.result, result.change)
-        : clip(result.error.split('\n')[0] ?? '', META_CHARS),
+    meta,
     ms: result.latencyMs,
     ...(view === undefined ? {} : { view }),
   };

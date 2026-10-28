@@ -80,7 +80,7 @@ describe('A11: a batch run reads a JSON request and always writes a JSON result'
           base_url: machine.model.url,
         },
       },
-      steps: [{ tool: 'read', detail: 'data/invoices.csv', status: 'done', summary: '4 lines' }],
+      steps: [{ tool: 'read', detail: 'data/invoices.csv', status: 'done', summary: '3 rows' }],
       artifacts: [],
       approval: null,
       error: null,
@@ -97,7 +97,7 @@ describe('A11: a batch run reads a JSON request and always writes a JSON result'
     const run = await cli(['run', 'service-desk', '--input', input], { env: machine.env });
     expect(run.code).toBe(0);
     expect(RunResultSchema.parse(JSON.parse(run.stdout))).toMatchObject({ status: 'succeeded' });
-    expect(run.stderr).toContain('read data/invoices.csv (4 lines)');
+    expect(run.stderr).toContain('read data/invoices.csv (3 rows)');
   });
 
   it.each([
@@ -280,7 +280,7 @@ describe('a conversation in the terminal', () => {
     });
     expect(run.code).toBe(0);
     expect(run.stdout).toBe('There are 3 invoices on file.\nINV-2 belongs to Ruiz, Ben.\n');
-    expect(run.stderr).toContain('read data/invoices.csv (4 lines)');
+    expect(run.stderr).toContain('read data/invoices.csv (3 rows)');
     // The second request went with the first as history.
     const [, , second] = machine.model.chats();
     expect(second?.messages.map((message) => message.role)).toEqual([

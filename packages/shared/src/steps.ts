@@ -92,6 +92,22 @@ export function describeResult(
   }
 }
 
+/**
+ * A table read counted the way its table shows it, in rows: `5 rows`, or `rows 201-400 of 1,505`
+ * for a page of a longer table of `total` data rows. Line 1 of the file is its header, so line n
+ * holds row n - 1.
+ */
+export function describeRowsRead(total: number, result: JsonValue | null): string {
+  const numbered = (typeof result === 'string' ? result.split('\n') : [])
+    .map((line) => /^\s*(\d+)\t/.exec(line)?.[1])
+    .filter((number): number is string => number !== undefined)
+    .map(Number);
+  const first = Math.max(2, numbered[0] ?? 2) - 1;
+  const last = (numbered.at(-1) ?? total + 1) - 1;
+  if (first <= 1 && last >= total) return count(total, 'row');
+  return `rows ${first.toLocaleString('en-US')}-${last.toLocaleString('en-US')} of ${total.toLocaleString('en-US')}`;
+}
+
 /** Lines a patch adds and removes, counted in its hunks only, so its file headers never count. */
 export function patchStats(patch: string): { added: number; removed: number } {
   let added = 0;

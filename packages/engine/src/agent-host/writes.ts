@@ -5,7 +5,7 @@ import {
   type ApprovalRequest,
   type PermissionMode,
 } from '@architect/shared';
-import type { ApproveWrite } from '../tools/builtins';
+import type { ApproveWrite, PendingWrite, WriteDecision } from '../tools/builtins';
 import type { LiveReply } from './reply';
 
 export type ApprovalDecision = 'approve' | 'deny' | 'always';
@@ -66,9 +66,42 @@ export interface WritePolicy {
  * `ApprovalRequiredError` that carries the change; `allow` shows it as approved and goes ahead;
  * `never` fails the call with a reason the agent can pass on. Nothing is written unless approved.
  * A change to a table shows its rows; a change to any other file shows its diff.
+ *
+ * An approved change that then can't be saved goes back to waiting, with the reason, so the user
+ * can try again or give up; given up, or with nobody to ask, it shows as failed. It never shows
+ * as approved while nothing was written.
  */
 export function approveWrites(policy: WritePolicy): ApproveWrite {
-  return async (change, signal) => {
+  /** Each change's approval block, by the change the tool asked about. */
+  const blocks = new WeakMap<PendingWrite, string>();
+
+  const saveFailed = async (
+    change: PendingWrite,
+    reason: string,
+    signal?: AbortSignal,
+  ): Promise<boolean> => {
+    const changeId = blocks.get(change);
+    if (changeId === undefined) return false;
+    if (!policy.interactive) {
+      policy.reply.updateApproval(changeId, 'failed', reason);
+      return false;
+    }
+    policy.reply.updateApproval(changeId, 'pending', reason);
+    policy.setWaiting(true);
+    try {
+      const decision = await policy.pending.wait(changeId, signal);
+      if (decision === 'deny') {
+        policy.reply.updateApproval(changeId, 'failed', reason);
+        return false;
+      }
+      policy.reply.updateApproval(changeId, 'approved');
+      return true;
+    } finally {
+      policy.setWaiting(false);
+    }
+  };
+
+  const approve = async (change: PendingWrite, signal?: AbortSignal): Promise<WriteDecision> => {
     const mode = policy.mode();
     if (mode === 'never') {
       throw new GuardError(
@@ -77,6 +110,7 @@ export function approveWrites(policy: WritePolicy): ApproveWrite {
       );
     }
     const changeId = newId('chg');
+    blocks.set(change, changeId);
     const block = {
       kind: 'approval' as const,
       changeId,
@@ -109,10 +143,12 @@ export function approveWrites(policy: WritePolicy): ApproveWrite {
     try {
       const decision = await policy.pending.wait(changeId, signal);
       if (decision === 'always') policy.allowFromNowOn();
-      policy.reply.decideApproval(changeId, decision === 'deny' ? 'denied' : 'approved');
+      policy.reply.updateApproval(changeId, decision === 'deny' ? 'denied' : 'approved');
       return decision === 'deny' ? 'deny' : 'approve';
     } finally {
       policy.setWaiting(false);
     }
   };
+
+  return Object.assign(approve, { saveFailed });
 }

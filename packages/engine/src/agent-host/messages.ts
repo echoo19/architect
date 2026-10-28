@@ -56,7 +56,10 @@ export function agentMessage(chatId: string, version: number, at: string): Works
   return { ...message(chatId, 'agent', at), status: 'streaming', graduateVersion: version };
 }
 
-/** A reply in its final state: nothing left running and no write left waiting for a decision. */
+/**
+ * A reply in its final state: nothing left running and no write left waiting for a decision. A
+ * change still waiting is denied, or failed when it was allowed and couldn't be saved.
+ */
 export function settleMessage(reply: WorkspaceMessage, outcome: ReplyOutcome): WorkspaceMessage {
   return {
     ...reply,
@@ -67,7 +70,7 @@ export function settleMessage(reply: WorkspaceMessage, outcome: ReplyOutcome): W
     ),
     blocks: reply.blocks.map((block): AgentBlock =>
       block.kind === 'approval' && block.status === 'pending'
-        ? { ...block, status: 'denied' }
+        ? { ...block, status: block.error === undefined ? 'denied' : 'failed' }
         : block,
     ),
   };

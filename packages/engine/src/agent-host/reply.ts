@@ -8,6 +8,8 @@ import type {
 import { settleMessage, type ReplyOutcome } from './messages';
 import type { NewStep } from './steps';
 
+type ApprovalStatus = Extract<AgentBlock, { kind: 'approval' }>['status'];
+
 /** A streaming reply goes out at most this often: about 30 updates a second. */
 const PUBLISH_EVERY_MS = 33;
 /** New text alone is saved at most this often. Steps, blocks and the end are saved at once. */
@@ -91,12 +93,15 @@ export class LiveReply {
     this.change({ blocks: [...this.message.blocks, block] }, true);
   }
 
-  decideApproval(changeId: string, status: 'approved' | 'denied'): void {
+  /** Sets an approval's status, with why its save failed when it did; the error goes otherwise. */
+  updateApproval(changeId: string, status: ApprovalStatus, error?: string): void {
     this.change(
       {
-        blocks: this.message.blocks.map((block): AgentBlock =>
-          block.kind === 'approval' && block.changeId === changeId ? { ...block, status } : block,
-        ),
+        blocks: this.message.blocks.map((block): AgentBlock => {
+          if (block.kind !== 'approval' || block.changeId !== changeId) return block;
+          const { error: _previous, ...rest } = block;
+          return { ...rest, status, ...(error === undefined ? {} : { error }) };
+        }),
       },
       true,
     );

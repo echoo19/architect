@@ -3,6 +3,10 @@ import type { GraduateSummary, JobSummary } from '@architect/shared';
 import {
   AgentAvatar,
   cn,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   ErrorState,
   IconButton,
   LogoMark,
@@ -11,8 +15,9 @@ import {
   StatusDot,
   Tooltip,
 } from '@architect/ui';
-import { Ellipsis, Pause, Plus, Settings } from 'lucide-react';
+import { Ellipsis, PackageOpen, Pause, Plus, Settings } from 'lucide-react';
 import { useGraduates, useJobs } from '../api/hooks';
+import { chooseImport } from '../import/session';
 import { formatPercent } from '../lib/format';
 import { attempt } from '../lib/notify';
 import { isMac } from '../lib/platform';
@@ -48,15 +53,18 @@ export function Sidebar({ route }: { route: Route }) {
         <span className="text-md font-semibold tracking-tight">Architect</span>
       </div>
 
-      <button
-        type="button"
-        onClick={() => navigate(paths.newAgent())}
-        aria-current={route.name === 'new' ? 'page' : undefined}
-        className={cn(navRow, route.name === 'new' && 'bg-hover text-fg')}
-      >
-        <Plus size={16} strokeWidth={1.8} aria-hidden />
-        New agent
-      </button>
+      <div className="flex items-center gap-0.5">
+        <button
+          type="button"
+          onClick={() => navigate(paths.newAgent())}
+          aria-current={route.name === 'new' ? 'page' : undefined}
+          className={cn(navRow, 'min-w-0 flex-1', route.name === 'new' && 'bg-hover text-fg')}
+        >
+          <Plus size={16} strokeWidth={1.8} aria-hidden />
+          New agent
+        </button>
+        <AgentMenu />
+      </div>
 
       <div className="-mx-1 flex min-h-0 flex-col gap-5 overflow-y-auto px-1">
         {graduates.data ? (
@@ -99,6 +107,27 @@ export function Sidebar({ route }: { route: Route }) {
         Settings
       </button>
     </nav>
+  );
+}
+
+/** More ways to add an agent: importing one someone exported. */
+function AgentMenu() {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <IconButton label="Agent menu" size="md">
+          <Ellipsis size={16} strokeWidth={1.8} aria-hidden />
+        </IconButton>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" side="bottom">
+        <DropdownMenuItem
+          icon={<PackageOpen aria-hidden />}
+          onSelect={() => void attempt("Couldn't open that package", () => chooseImport())}
+        >
+          Import agent
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

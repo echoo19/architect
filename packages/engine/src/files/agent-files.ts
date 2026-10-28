@@ -16,7 +16,7 @@ import {
 } from '@architect/shared';
 import { writeFileAtomic } from '../data/atomic-write';
 import { parseCsv } from '../data/csv';
-import { DataError } from '../data/errors';
+import { DataError, SaveError } from '../data/errors';
 import type { FileInfo, TableSnapshot } from '../data/types';
 import type { SandboxData } from '../sandbox/types';
 import { filePatch, rowDiff, type FilePatch } from './diff';
@@ -372,8 +372,9 @@ class FolderFiles implements AgentFiles {
       state.text = previous.text;
       state.version = previous.version;
       if (!current) this.files.delete(state.path);
-      const reason = error instanceof Error ? error.message : String(error);
-      throw new DataError(`The change couldn't be saved, so nothing was written: ${reason}`);
+      throw new SaveError(
+        `The change couldn't be saved, so nothing was written: ${saveProblem(error, state.path)}`,
+      );
     }
   }
 
@@ -606,6 +607,21 @@ class FolderFiles implements AgentFiles {
     if (this.isFolder(SKILLS_FOLDER)) tops.push(SKILLS_FOLDER);
     return `There is no ${path}. Your folders are ${tops.map((top) => `${top}/`).join(', ')}.`;
   }
+}
+
+/**
+ * Why a file couldn't be written, in words a person can act on: the usual causes by name (another
+ * program holding the file, a read-only file, a full disk), anything else as the system said it.
+ */
+export function saveProblem(error: unknown, path: string): string {
+  const name = path.split('/').at(-1) ?? path;
+  const code = (error as NodeJS.ErrnoException | null)?.code;
+  if (code === 'EBUSY') return `${name} is open in another program.`;
+  if (code === 'EPERM' || code === 'EACCES') {
+    return `${name} is read-only, or another program has it open.`;
+  }
+  if (code === 'ENOSPC') return 'the disk is full.';
+  return error instanceof Error ? error.message : String(error);
 }
 
 /** One line for people and one for the agent, saying what a change does to its file. */

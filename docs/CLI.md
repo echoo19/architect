@@ -75,10 +75,10 @@ $ architect run service-desk
 Service desk, version 2, on muse-glimmer:30b (ollama).
 Changes to files are asked about here. Ctrl+C stops a reply; Ctrl+D ends.
 > Who owes us money?
-  read data/invoices.csv (4 lines)
+  read data/invoices.csv (3 rows)
 Ruiz, Ben owes $45.50 on INV-2, due November 15.
 > Add an invoice for Cho Lin, $77.
-  read data/customers.csv (4 lines)
+  read data/customers.csv (3 rows)
 Add 1 row to data/invoices.csv:
   + INV-4, C-3, 7700, 2026-12-03, false
 Allow this change? [y]es, [n]o, [a]lways for this agent: y
@@ -183,7 +183,7 @@ Anything else in the request is refused. A request that isn't valid JSON or does
     "model": { "label": "Glimmer", "runtime": "ollama", "name": "muse-glimmer:30b", "base_url": "http://127.0.0.1:11434" }
   },
   "inputs": ["data/invoices.csv"],
-  "steps": [{ "tool": "read", "detail": "data/invoices.csv", "status": "done", "summary": "4 lines", "ms": 2 }],
+  "steps": [{ "tool": "read", "detail": "data/invoices.csv", "status": "done", "summary": "3 rows", "ms": 2 }],
   "artifacts": [],
   "approval": null,
   "refusal": null,

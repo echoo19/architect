@@ -7,10 +7,12 @@ import { navigate, paths } from '../lib/router';
 const FLOW_STEPS = ['Describe', 'Define', 'Train', 'Report'] as const;
 export type FlowStep = (typeof FLOW_STEPS)[number];
 
-export interface FlowShellProps {
+export interface FlowShellProps<Step extends string = FlowStep> {
   /** The job's name once it has one; "New agent" before. */
   title: ReactNode;
-  step: FlowStep;
+  step: Step;
+  /** The steps the pills show: the new-agent flow's unless another flow names its own. */
+  steps?: readonly Step[];
   /** Header buttons on the right, such as Pause and Stop. */
   actions?: ReactNode;
   /** A bar pinned under the content, such as Back and Start training. */
@@ -19,7 +21,15 @@ export interface FlowShellProps {
 }
 
 /** The "Make" layout: a header with the step pills over a dot-grid ground. */
-export function FlowShell({ title, step, actions, footer, children }: FlowShellProps) {
+export function FlowShell<Step extends string = FlowStep>({
+  title,
+  step,
+  steps,
+  actions,
+  footer,
+  children,
+}: FlowShellProps<Step>) {
+  const pills: readonly string[] = steps ?? FLOW_STEPS;
   return (
     <div className="flex h-full flex-col bg-ground-flow">
       {/*
@@ -33,7 +43,7 @@ export function FlowShell({ title, step, actions, footer, children }: FlowShellP
           </IconButton>
           <span className="min-w-0 truncate font-medium">{title}</span>
         </div>
-        <ProgressStepper steps={FLOW_STEPS} current={FLOW_STEPS.indexOf(step)} />
+        <ProgressStepper steps={pills} current={pills.indexOf(step)} />
         <div className="flex min-w-0 justify-end gap-2 pr-window-controls">{actions}</div>
       </header>
       <main className="min-h-0 flex-1 overflow-y-auto bg-dot-grid">{children}</main>

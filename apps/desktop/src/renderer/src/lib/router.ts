@@ -6,6 +6,7 @@ export type Route =
   | { name: 'welcome' }
   | { name: 'chat'; graduateId: string; chatId: string }
   | { name: 'new' }
+  | { name: 'import' }
   | { name: 'define'; jobId: string }
   | { name: 'train'; runId: string }
   | { name: 'report'; runId: string }
@@ -19,6 +20,7 @@ export const paths = {
   chat: (graduateId: string, chatId: string) =>
     `/agents/${segment(graduateId)}/chats/${segment(chatId)}`,
   newAgent: () => '/new',
+  importAgent: () => '/import',
   define: (jobId: string) => `/jobs/${segment(jobId)}/define`,
   train: (runId: string) => `/runs/${segment(runId)}/train`,
   report: (runId: string) => `/runs/${segment(runId)}/report`,
@@ -42,6 +44,7 @@ export function parsePath(path: string): Route {
   if (decoded.length === 0) return { name: 'home' };
   if (first === 'welcome' && exactly(1)) return { name: 'welcome' };
   if (first === 'new' && exactly(1)) return { name: 'new' };
+  if (first === 'import' && exactly(1)) return { name: 'import' };
   if (first === 'agents' && third === 'chats' && id && fourth && exactly(4)) {
     return { name: 'chat', graduateId: id, chatId: fourth };
   }
