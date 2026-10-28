@@ -28,7 +28,7 @@ import { fetchQuery, setQueryData } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
 import { FixButtons } from '../../install/InstallChecks';
 import { osName, STATUS_LABELS, statusMark } from '../../install/labels';
-import { formatBytes, formatPercent } from '../../lib/format';
+import { formatBytes, formatPercent, shortPath } from '../../lib/format';
 import {
   capitalized,
   quantizationLabel,
@@ -265,7 +265,7 @@ function FolderRows({ agent, active }: { agent: GraduateSummary; active: Graduat
       <SettingsRow
         key={resource.name}
         label={`${resource.name}/`}
-        meta={folder ?? 'Not chosen'}
+        meta={folder === undefined ? 'Not chosen' : shortPath(folder)}
         metaFont={folder ? 'code' : 'text'}
         error={errorOf(installation)}
       >

@@ -16,6 +16,7 @@ import {
 import { FolderOpen } from 'lucide-react';
 import { architect } from '../api/client';
 import { GRANT_LABELS } from '../install/labels';
+import { shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
 import {
@@ -24,14 +25,6 @@ import {
   WRITE_MODES,
   WRITE_SETTING,
 } from '../workspace/labels';
-
-/** The end of a long path, so the folder's own name always shows: "…\dana\Records". */
-export function shortPath(path: string): string {
-  const separator = path.includes('\\') ? '\\' : '/';
-  const parts = path.split(/[\\/]/).filter(Boolean);
-  if (parts.length <= 2) return path;
-  return `…${separator}${parts.slice(-2).join(separator)}`;
-}
 
 /** What a folder is for: the files it should hold, or what the job keeps in it. */
 function folderMeta(resource: PackageResource, manifest: PackageManifest): string {

@@ -24,6 +24,14 @@ export function formatDuration(ms: number): string {
   return minutes % 60 === 0 ? `${hours} h` : `${hours} h ${minutes % 60} min`;
 }
 
+/** The end of a long path, so the folder's own name always shows: "…\dana\Records". */
+export function shortPath(path: string): string {
+  const separator = path.includes('\\') ? '\\' : '/';
+  const parts = path.split(/[\\/]/).filter(Boolean);
+  if (parts.length <= 2) return path;
+  return `…${separator}${parts.slice(-2).join(separator)}`;
+}
+
 /** "18 GB", "4.6 GB", "236 MB", or "48 KB" for a small file. */
 export function formatBytes(bytes: number): string {
   const gb = bytes / 1024 ** 3;
