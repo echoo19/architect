@@ -3,7 +3,7 @@ import type { ImportPreview, ImportResult, PermissionMode, ResourceGrant } from 
 import { Button, EmptyState, ErrorState, Skeleton } from '@architect/ui';
 import { Cloud, FolderOpen, MessageSquarePlus, PackageOpen } from 'lucide-react';
 import { api, architect } from '../api/client';
-import { graduatesApi } from '../api/graduates';
+import { graduatesApi, refreshAgent } from '../api/graduates';
 import { queryKeys } from '../api/hooks';
 import { fetchQuery, toError } from '../api/query';
 import { attempt } from '../lib/notify';
@@ -104,7 +104,8 @@ function ImportFlow({ path }: { path: string | null }) {
           ? { bindings, grants: { writes, resources: grants }, loadModel: true }
           : {},
       );
-      await fetchQuery(queryKeys.graduates, api.graduates);
+      // Everything read about this id before, as for an agent removed and imported again.
+      await refreshAgent(installed.graduate.id);
       setResult(installed);
     } catch (failure) {
       setInstallError(toError(failure));

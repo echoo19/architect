@@ -22,7 +22,7 @@ import {
 } from '@architect/ui';
 import { Cloud, KeyRound, MessageSquarePlus } from 'lucide-react';
 import { api, architect } from '../api/client';
-import { graduatesApi } from '../api/graduates';
+import { graduatesApi, refreshAgent } from '../api/graduates';
 import { queryKeys, useHubToken } from '../api/hooks';
 import { fetchQuery, toError } from '../api/query';
 import { shortCommit, tokenSourceText } from '../hub/labels';
@@ -195,7 +195,8 @@ export function HubImportFlow() {
         });
         installation = await graduatesApi.verify(graduateId);
       }
-      await fetchQuery(queryKeys.graduates, api.graduates);
+      // Everything read about this id before, as for an agent removed and installed again.
+      await refreshAgent(graduateId);
       setResult({ ...downloaded.result, installation });
     } catch (failure) {
       setInstallError(toError(failure));
