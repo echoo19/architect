@@ -298,8 +298,10 @@ for (const theme of THEMES) {
         /The job asked for 90%\. Tested on .*\. The Report tab has the full results\./,
       ),
     ).toBeVisible();
-    // The model shows as its short name, with the technical tag as secondary text.
-    await expect(dialog.getByText('Glimmer', { exact: true })).toBeVisible();
+    // The model this computer runs it on, in a picker of the models here, with its tag beside.
+    await expect(dialog.getByRole('button', { name: "Your agent's model" })).toHaveText(
+      'Muse Glimmer · 4-bit',
+    );
     await expect(dialog.getByText('4-bit · 18 GB on disk · muse-glimmer:30b')).toBeVisible();
     // This computer's install checks sit apart from the author's final test.
     await expect(dialog.getByText('Install checks', { exact: true })).toBeVisible();
