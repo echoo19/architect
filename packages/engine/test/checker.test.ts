@@ -189,6 +189,32 @@ describe('answer checks', () => {
     ).toEqual({ pass: false, reason: 'The agent ran out of steps before giving an ANSWER line.' });
   });
 
+  it('fails a right answer when the attempt also changed a table, but not a rewrite that kept every row', async () => {
+    const value = { overdue: ['INV-1'] };
+    const changed = await scratch();
+    const text = changed.read('data/invoices.csv');
+    await changed.apply(changed.plan('append', 'data/invoices.csv', `${text}INV-9,C-1,100,,\n`));
+    expect(await builtin.check(task({ kind: 'answer', value }), answered(value), changed)).toEqual({
+      pass: false,
+      reason: 'invoices.csv changed, but the task asks only for an answer.',
+    });
+    expect(
+      await builtin.check(
+        task({ kind: 'facts', facts: [{ path: 'overdue[0]', value: 'INV-1' }] }),
+        answered(value),
+        changed,
+      ),
+    ).toMatchObject({ pass: false });
+
+    const rewritten = await scratch();
+    const quoted = rewritten.read('data/invoices.csv').replace('\nINV-2,', '\n"INV-2",');
+    await rewritten.apply(rewritten.plan('write', 'data/invoices.csv', quoted));
+    expect(rewritten.read('data/invoices.csv')).toContain('"INV-2"');
+    expect(
+      await builtin.check(task({ kind: 'answer', value }), answered(value), rewritten),
+    ).toMatchObject({ pass: true });
+  });
+
   it('fails attempts that were refused, aborted or ended in an error, whatever they answered', async () => {
     const expected = { kind: 'answer' as const, value: 1 };
     expect((await check(expected, outcome({ answer: 1, stopReason: 'refused' }))).reason).toBe(
