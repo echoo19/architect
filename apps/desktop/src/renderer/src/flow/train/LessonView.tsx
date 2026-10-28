@@ -81,7 +81,7 @@ export function LessonDrawerContent({
           lesson={lesson}
           attempt={attempt.status === 'success' ? attempt.data : null}
           original={original.status === 'success' ? original.data : null}
-          correction={trace.status === 'success' ? trace.data : null}
+          correction={trace}
           names={names}
         />
         {lesson.diagnosis && sourceId !== null && (
@@ -119,11 +119,7 @@ export function LessonDrawerContent({
             </span>
             <span aria-hidden>·</span>
             <span>
-              {lesson.cost.calls} {lesson.cost.calls === 1 ? 'call' : 'calls'}
-            </span>
-            <span aria-hidden>·</span>
-            <span>
-              {(lesson.cost.inputTokens + lesson.cost.outputTokens).toLocaleString('en-US')} tokens
+              {lesson.cost.calls} {lesson.cost.calls === 1 ? 'call' : 'calls'} to {names.mentor}
             </span>
           </p>
         </DrawerSection>
@@ -131,6 +127,10 @@ export function LessonDrawerContent({
           <DetailList
             items={[
               { label: 'Example', value: lesson.id },
+              {
+                label: 'Tokens',
+                value: `${lesson.cost.inputTokens.toLocaleString('en-US')} in, ${lesson.cost.outputTokens.toLocaleString('en-US')} out`,
+              },
               ...(lesson.interventionId
                 ? [{ label: 'Intervention', value: lesson.interventionId }]
                 : []),
@@ -163,7 +163,11 @@ export function LessonDrawerContent({
   );
 }
 
-/** The student's answer beside the correction's, when the lesson repaired a failed attempt. */
+/**
+ * The student's answer, with what the checker found wrong in it, beside the correction's answer,
+ * when the lesson repaired a failed attempt. Answers to the same task have the same fields, so
+ * the two read side by side; an expected record needn't.
+ */
 function BeforeAndAfter({
   lesson,
   attempt,
@@ -174,12 +178,13 @@ function BeforeAndAfter({
   lesson: ListedLesson;
   attempt: ListedAttempt | null;
   original: Trace | null;
-  correction: Trace | null;
+  correction: QueryState<Trace | null>;
   names: ModelNames;
 }) {
-  if (attempt === null || original === null || correction === null) return null;
-  const before = attempt.answerSummary ?? answerOf(original.finalText);
-  const after = answerOf(correction.finalText);
+  if (attempt === null || original === null) return null;
+  // A correction that never ran has no answer; its steps say so below.
+  if (correction.status === 'success' && correction.data === null) return null;
+  const before = answerOf(original.finalText) || attempt.answerSummary || '';
   return (
     <DrawerSection title="Before and after">
       <dl className="m-0 grid grid-cols-[auto_auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2.5 text-sm">
@@ -187,13 +192,23 @@ function BeforeAndAfter({
           who={names.student}
           passed={attempt.check.pass}
           answer={before}
-          note={attempt.expectedSummary ? `Expected ${attempt.expectedSummary}` : undefined}
+          note={attempt.check.reason}
         />
-        <AnswerRow
-          who={`${names.mentor}'s correction`}
-          passed={lesson.status === 'verified'}
-          answer={after}
-        />
+        {correction.status === 'success' && correction.data !== null && (
+          <AnswerRow
+            who={`${names.mentor}'s correction`}
+            passed={lesson.status === 'verified'}
+            answer={answerOf(correction.data.finalText)}
+          />
+        )}
+        {correction.status === 'error' && (
+          <AnswerRow
+            who={`${names.mentor}'s correction`}
+            passed={lesson.status === 'verified'}
+            answer={null}
+            note="Couldn't be read."
+          />
+        )}
       </dl>
     </DrawerSection>
   );
@@ -207,7 +222,8 @@ function AnswerRow({
 }: {
   who: string;
   passed: boolean;
-  answer: string;
+  /** Null when the answer couldn't be read. */
+  answer: string | null;
   note?: string | undefined;
 }) {
   return (
@@ -231,8 +247,8 @@ function AnswerRow({
       )}
       <dt className="text-fg-secondary">{who}</dt>
       <dd className="m-0 flex min-w-0 flex-col gap-0.5">
-        <span className="break-words font-mono text-fg">{answer}</span>
-        {note && <span className="text-fg-muted">{note}</span>}
+        {answer !== null && <span className="break-words font-mono text-fg">{answer}</span>}
+        {note && <span className="text-fg-muted text-pretty">{note}</span>}
       </dd>
     </>
   );
@@ -321,6 +337,11 @@ function LessonSteps({
         openAt={from}
         /* The verdict and the before and after stay in view; the correction waits below. */
         revealOnOpen={false}
+        replayed={
+          from > 2
+            ? `${names.student}'s steps 1 to ${from - 1}, replayed`
+            : `${names.student}'s step 1, replayed`
+        }
         takeover={
           from > 1
             ? `${names.mentor} takes over at step ${from}`
@@ -345,10 +366,10 @@ function Checked({ lesson }: { lesson: ListedLesson }) {
           </CheckLine>
         )}
         {lesson.audit && (
-          <CheckLine passed={lesson.audit.ok} label="Every write">
+          <CheckLine passed={lesson.audit.ok} label="Writes">
             {lesson.audit.ok
               ? lesson.audit.changed.length > 0
-                ? `Changed ${lesson.audit.changed.join(', ')}, and nothing else`
+                ? `Changed ${lesson.audit.changed.join(', ')} and nothing else`
                 : 'Changed no file'
               : lesson.audit.problems.join(' ')}
           </CheckLine>
@@ -380,7 +401,7 @@ function CheckLine({
         />
       )}
       <span className="min-w-0 text-pretty">
-        <span className="text-fg">{label}</span>{' '}
+        <span className="text-fg">{label}:</span>{' '}
         <span className="text-fg-secondary">{children}</span>
       </span>
     </li>

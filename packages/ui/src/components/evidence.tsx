@@ -116,8 +116,8 @@ export function EvidenceMeter({
         <div
           aria-hidden
           data-marker
-          className="absolute -top-[3px] h-3 w-0.5 rounded-sm bg-mentor"
-          style={{ left: `calc(${clamp(marker) * 100}% - 1px)` }}
+          className="absolute -top-[5px] h-4 w-[3px] rounded-full bg-mentor"
+          style={{ left: `calc(${clamp(marker) * 100}% - 1.5px)` }}
         />
       )}
     </div>

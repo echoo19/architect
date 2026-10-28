@@ -230,11 +230,12 @@ export interface StepListNavProps {
 export function StepListNav({ count, current, onCurrentChange, className }: StepListNavProps) {
   return (
     <div className={cn('flex items-center gap-0.5', className)}>
-      <span className="mr-1.5 font-mono text-sm tabular-nums text-fg-muted">
-        {count === 0 ? 0 : current + 1} of {count}
+      <span className="mr-1.5 text-sm tabular-nums text-fg-muted">
+        Step {count === 0 ? 0 : current + 1} of {count}
       </span>
       <IconButton
         label="Step before"
+        title="Step before (Up or K in the list)"
         size="xs"
         disabled={current <= 0}
         onClick={() => onCurrentChange(current - 1)}
@@ -243,6 +244,7 @@ export function StepListNav({ count, current, onCurrentChange, className }: Step
       </IconButton>
       <IconButton
         label="Step after"
+        title="Step after (Down or J in the list)"
         size="xs"
         disabled={current >= count - 1}
         onClick={() => onCurrentChange(current + 1)}

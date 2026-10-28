@@ -43,6 +43,8 @@ export interface PlaybackProps {
   /** The step number the playback opens at; the first step when absent. */
   openAt?: number;
   notes?: readonly StepNote[];
+  /** A line before the first step replayed from the student's attempt, naming whose they are. */
+  replayed?: ReactNode;
   /** A line before the first step the mentor took, where a correction began. */
   takeover?: ReactNode;
   /** Scroll the step it opens at into view, as when a finding names it. On by default. */
@@ -61,6 +63,7 @@ export function Playback({
   steps,
   openAt,
   notes = [],
+  replayed,
   takeover,
   revealOnOpen = true,
   mentor,
@@ -71,7 +74,13 @@ export function Playback({
     steps.findIndex((shown) => shown.step.number === openAt),
   );
   const [current, setCurrent] = useState(start);
+  const firstReplayed = steps.findIndex((shown) => shown.replayed);
   const firstMentor = steps.findIndex((shown) => shown.actor === 'mentor');
+  const divider = (index: number) => {
+    if (index === firstReplayed && replayed) return <Divider>{replayed}</Divider>;
+    if (index === firstMentor && takeover) return <Divider tone="mentor">{takeover}</Divider>;
+    return null;
+  };
   if (steps.length === 0) {
     return (
       <DrawerSection title={title}>
@@ -99,8 +108,15 @@ export function Playback({
               index={index}
               tone={shown.actor === 'mentor' ? 'mentor' : shown.replayed ? 'muted' : 'default'}
               lead={<StepNumber shown={shown} />}
-              line={<StepLine shown={shown} noted={stepNotes.length > 0} mentor={mentor} />}
-              before={index === firstMentor && takeover ? <Takeover>{takeover}</Takeover> : null}
+              line={
+                <StepLine
+                  shown={shown}
+                  noted={stepNotes.length > 0}
+                  open={index === current}
+                  mentor={mentor}
+                />
+              }
+              before={divider(index)}
             >
               <StepDetail
                 shown={shown}
@@ -129,19 +145,44 @@ function StepNumber({ shown }: { shown: ShownStep }) {
   );
 }
 
-/** A divider across the list: where the mentor took over from the replayed steps. */
-function Takeover({ children }: { children: ReactNode }) {
+/**
+ * A divider across the list, naming whose steps follow: the student's replayed ones, or the
+ * mentor's from where it took over, in the mentor's color.
+ */
+function Divider({ tone = 'muted', children }: { tone?: 'muted' | 'mentor'; children: ReactNode }) {
   return (
-    <div className="flex items-center gap-3 px-3 py-2 text-sm text-mentor">
-      <span className="h-px flex-1 bg-mentor/40" aria-hidden />
+    <div
+      className={cn(
+        'flex items-center gap-3 px-3 py-2 text-sm',
+        tone === 'mentor' ? 'text-mentor' : 'text-fg-muted',
+      )}
+    >
+      <span
+        className={cn('h-px flex-1', tone === 'mentor' ? 'bg-mentor/40' : 'bg-line-row-strong')}
+        aria-hidden
+      />
       <span className="shrink-0">{children}</span>
-      <span className="h-px flex-1 bg-mentor/40" aria-hidden />
+      <span
+        className={cn('h-px flex-1', tone === 'mentor' ? 'bg-mentor/40' : 'bg-line-row-strong')}
+        aria-hidden
+      />
     </div>
   );
 }
 
 /** A step's line: each call it made, or what it said when it made none. */
-function StepLine({ shown, noted, mentor }: { shown: ShownStep; noted: boolean; mentor: string }) {
+function StepLine({
+  shown,
+  noted,
+  open,
+  mentor,
+}: {
+  shown: ShownStep;
+  noted: boolean;
+  /** The step is the current one, with its evidence under the line. */
+  open: boolean;
+  mentor: string;
+}) {
   const { step } = shown;
   const flag = noted ? (
     <Flag
@@ -177,6 +218,8 @@ function StepLine({ shown, noted, mentor }: { shown: ShownStep; noted: boolean; 
     <>
       {step.calls.map((call, index) => {
         const line = callLine(call);
+        // Open, code shows its own output under the line, so the line's summary would repeat it.
+        const meta = open && call.step.name === 'run' && !line.failed ? '' : line.meta;
         return (
           <LineRow
             key={call.step.callId}
@@ -195,10 +238,10 @@ function StepLine({ shown, noted, mentor }: { shown: ShownStep; noted: boolean; 
                   </span>
                 </>
               )}
-              {line.meta !== '' && (
+              {meta !== '' && (
                 <>
                   {' '}
-                  <span className="text-fg-muted">{line.meta}</span>
+                  <span className="text-fg-muted">{meta}</span>
                 </>
               )}
             </span>
@@ -249,21 +292,24 @@ function StepDetail({
   const { step } = shown;
   return (
     <>
-      {notes.map((note) => (
-        <p
-          key={`${note.suspected}-${note.text}`}
-          className="m-0 flex items-start gap-2 text-sm text-mentor text-pretty"
-        >
+      {notes.length > 0 && (
+        // One flag for the step: what Spark suspects of it first, then its evidence.
+        <div className="flex items-start gap-2 text-sm text-mentor">
           <Flag size={13} strokeWidth={2} aria-hidden className="mt-[3px] shrink-0" />
-          <span>
+          <div className="flex min-w-0 flex-col gap-0.5">
             <span className="font-medium">
-              {note.suspected ? `${mentor} suspects this step` : `${mentor}'s note`}
+              {notes.some((note) => note.suspected)
+                ? `${mentor} suspects this step`
+                : `${mentor}'s note`}
             </span>
-            {': '}
-            {note.text}
-          </span>
-        </p>
-      ))}
+            {notes.map((note) => (
+              <span key={`${note.suspected}-${note.text}`} className="text-pretty">
+                {note.text}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       {step.skills.map((skill) => (
         <p key={skill} className="m-0 flex items-center gap-2 text-sm text-fg-secondary">
           <BookOpen size={13} strokeWidth={1.7} aria-hidden className="shrink-0" />
@@ -291,10 +337,13 @@ function StepDetail({
       {step.calls.map((call) => (
         <CallEvidence key={call.step.callId} step={call.step} />
       ))}
-      <span className="font-mono text-xs text-fg-muted">
-        {formatAnswerTime(
-          step.latencyMs + step.calls.reduce((sum, call) => sum + call.step.latencyMs, 0),
-        )}
+      <span className="text-xs text-fg-muted">
+        Took{' '}
+        <span className="font-mono">
+          {formatAnswerTime(
+            step.latencyMs + step.calls.reduce((sum, call) => sum + call.step.latencyMs, 0),
+          )}
+        </span>
       </span>
     </>
   );

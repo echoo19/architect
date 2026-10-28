@@ -150,7 +150,7 @@ describe('EvidenceMeter', () => {
       createElement(EvidenceMeter, { kind: 'check', value: 1, label: 'Refunds', marker: 0.9 }),
     );
     expect(check).toContain('data-marker');
-    expect(check).toContain('left:calc(90% - 1px)');
+    expect(check).toContain('left:calc(90% - 1.5px)');
   });
 
   it('names each kind with its own mark', () => {

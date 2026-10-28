@@ -1,4 +1,4 @@
-import type { JsonValue, TableView, WriteRecord } from '@architect/shared';
+import type { CellValue, JsonValue, RowDiff, TableView, WriteRecord } from '@architect/shared';
 import {
   Disclosure,
   Table,
@@ -10,11 +10,15 @@ import {
 } from '@architect/ui';
 import { CodeView } from '../../components/CodeView';
 import { PatchLines } from '../../components/PatchLines';
+import { cellText } from '../../workspace/labels';
 import { RowDiffTable } from '../../workspace/tables';
 import type { ToolTraceStep } from './trace-steps';
 
 /** Long results scroll; past this many rows the rest are counted, not drawn. */
 const ROW_LIMIT = 50;
+
+/** Past this many columns, one row written reads as its fields, top to bottom, not a wide table. */
+const WIDE_ROW = 4;
 
 /**
  * What one tool call gave back, as evidence: code with its output, a change with its rows or
@@ -49,7 +53,7 @@ export function CallEvidence({ step }: { step: ToolTraceStep }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       {body}
-      <Disclosure label="The call">
+      <Disclosure label="Raw call">
         <pre className="m-0 overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-well px-3 py-2 font-mono text-xs text-fg-secondary">
           {`${step.name} ${JSON.stringify(step.arguments, null, 2)}`}
         </pre>
@@ -74,17 +78,66 @@ function TextResult({ text }: { text: string }) {
 
 /** What a change did, in the tool's words, and the rows or lines it wrote. */
 function ChangeResult({ change, text }: { change: WriteRecord; text: string }) {
+  const single = change.rows ? singleRow(change.rows) : null;
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <span className="text-sm text-fg-secondary">{text}</span>
       <div className="max-h-56 overflow-auto rounded-md bg-well px-1 py-1">
-        {change.rows ? (
+        {single && change.rows ? (
+          <RowFields columns={change.rows.columns} {...single} />
+        ) : change.rows ? (
           <RowDiffTable diff={change.rows} className="text-xs" />
         ) : (
           <PatchLines patch={change.patch} label="Lines this change writes" />
         )}
       </div>
     </div>
+  );
+}
+
+/** The one row a change added or changed, when it is too wide for a table; else null. */
+function singleRow(diff: RowDiff): { after: CellValue[]; before: CellValue[] | null } | null {
+  if (diff.columns.length <= WIDE_ROW) return null;
+  if (diff.added.length + diff.removed.length + diff.changed.length !== 1) return null;
+  const [added] = diff.added;
+  if (added) return { after: added, before: null };
+  const [changed] = diff.changed;
+  return changed ? { after: changed.after, before: changed.before } : null;
+}
+
+/** One row as its fields, every column in view, with a changed field's old value struck out. */
+function RowFields({
+  columns,
+  after,
+  before,
+}: {
+  columns: readonly string[];
+  after: CellValue[];
+  before: CellValue[] | null;
+}) {
+  return (
+    <dl
+      aria-label={before ? 'The row this change edits' : 'The row this change adds'}
+      className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-0.5 px-2.5 py-1.5 font-mono text-xs"
+    >
+      {columns.map((column, at) => {
+        const now = cellText(after[at] ?? null);
+        const was = before ? cellText(before[at] ?? null) : now;
+        return (
+          <div key={column} className="contents">
+            <dt className="text-fg-muted">{column}</dt>
+            <dd className="m-0 break-words text-fg">
+              {was !== now && (
+                <>
+                  <span className="text-fg-muted line-through decoration-fg-faint">{was}</span>{' '}
+                </>
+              )}
+              {now}
+            </dd>
+          </div>
+        );
+      })}
+    </dl>
   );
 }
 
