@@ -277,6 +277,28 @@ describe('the hypothesis reply', () => {
     }
   });
 
+  it('reads edit paths the way the harness will, leaving ".." for it to refuse', () => {
+    const parsed = parseHypothesis(
+      {
+        text: '',
+        json: {
+          ...hypothesis('Paths', ''),
+          edits: [
+            { op: 'write', path: './tools/price_job.js', content: 'function run() {}' },
+            { op: 'write', path: 'tools//price_job.json', content: '{}' },
+            { op: 'delete', path: 'tools/../system.md', content: '' },
+          ],
+        },
+      },
+      new Set(),
+    );
+    expect(parsed.edits.map((edit) => edit.path)).toEqual([
+      'tools/price_job.js',
+      'tools/price_job.json',
+      'tools/../system.md',
+    ]);
+  });
+
   it('maps the flat edits onto the shared hypothesis', () => {
     const parsed = parseHypothesis(
       {

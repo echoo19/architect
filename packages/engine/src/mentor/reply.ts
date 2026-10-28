@@ -1,5 +1,15 @@
+import { posix } from 'node:path';
 import { HypothesisSchema, type Hypothesis, type JsonSchemaObject } from '@architect/shared';
 import { z } from 'zod';
+
+/**
+ * A path the way the harness will read it, so "./tools/x.js" and "tools//x.js" are
+ * "tools/x.js" everywhere after this. A path with ".." is kept as written for the harness to
+ * refuse.
+ */
+function editPath(path: string): string {
+  return path.split('/').includes('..') ? path : posix.normalize(path);
+}
 
 /**
  * The reply format the author is asked for. It suits constrained decoding: the root is an
@@ -120,8 +130,8 @@ export function parseHypothesis(
     diagnosis: rest.diagnosis,
     edits: rest.edits.map((edit) =>
       edit.op === 'delete'
-        ? { op: 'delete', path: edit.path }
-        : { op: 'write', path: edit.path, content: edit.content },
+        ? { op: 'delete', path: editPath(edit.path) }
+        : { op: 'write', path: editPath(edit.path), content: edit.content },
     ),
     causeTaskIds: rest.causeTaskIds.filter((id) => visibleTaskIds.has(id)),
     predicted: {
