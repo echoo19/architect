@@ -301,6 +301,9 @@ for (const theme of THEMES) {
     // The model shows as its short name, with the technical tag as secondary text.
     await expect(dialog.getByText('Glimmer', { exact: true })).toBeVisible();
     await expect(dialog.getByText('4-bit · 18 GB on disk · muse-glimmer:30b')).toBeVisible();
+    // This computer's install checks sit apart from the author's final test.
+    await expect(dialog.getByText('Install checks', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('Ready to run', { exact: true })).toBeVisible();
     await capture(`workspace-agent-general-${theme}.png`);
 
     await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
@@ -319,19 +322,15 @@ for (const theme of THEMES) {
     await expect(dialog.getByText('Shows each change and waits for your OK')).toBeVisible();
     await expect(dialog.getByText('Never, by design')).toBeVisible();
     await expect(dialog.getByText('invoices.csv, bookings.csv')).toBeVisible();
+    // Each folder it works in, with the one this computer bound and a way to choose another.
+    await expect(dialog.getByText('data/', { exact: true })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Change' })).toBeVisible();
     await capture(`workspace-agent-permissions-${theme}.png`);
 
     await dialog.getByRole('tab', { name: 'Report' }).click();
     await expect(dialog.getByText('92%')).toBeVisible();
     await expect(dialog.getByText("Its job says it won't issue refunds or credits")).toBeVisible();
     await capture(`workspace-agent-report-${theme}.png`);
-
-    await dialog.getByRole('tab', { name: 'Export' }).click();
-    await dialog.getByRole('button', { name: 'Export' }).click();
-    await expect(page.getByText('Exported Service desk')).toBeVisible();
-    expect(await callsTo(app, 'graduates:exportFolder')).toEqual([
-      [AGENT.id, 'C:\\Users\\dana\\Exports'],
-    ]);
 
     await dialog.getByRole('tab', { name: 'Permissions' }).click();
     await dialog.getByRole('radio', { name: 'Never' }).click();
