@@ -2,6 +2,21 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-28 (Tue), overnight
+
+**Done**
+- Screens: three clarity passes plus a last one on Define, Train and agent settings, each checked by a fresh blind tester who sees only screenshots. Most screens now score 8 or more out of 10; Define sits at 6 and Train at 7, and a last fix adds the total time and cost that every tester asked for on Define. The sample story trains on OpenRouter's hosted copy of Glimmer, which first-run setup now introduces as an optional step, and the report shows what training cost in all.
+- Engine: rounds say when they were a whole draft, and a graduate's manifest records which round made its setup, so the app names setups by round instead of by version number; the report card carries what a hosted student cost.
+- The second sample job (below) is merged; it hasn't run yet.
+- Seed 1's graduate passed its locked test on this computer's 4-bit Glimmer, offline: 60/60.
+
+**Next**
+- Hosted credit from the owner, then: seeds 2 to 5, calibrating and running the second job, and a real Architect run through the app for screenshots, the shipped graduate and the demo.
+- An independent review of the draft-first and related engine changes is running.
+
+**Open issues**
+- The OpenRouter account's $10 prepaid credit is spent; every hosted step waits on it.
+
 ## 2026-10-27 (Mon), a second sample job
 
 **Done**
