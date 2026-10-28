@@ -149,6 +149,18 @@ describe('install check details', () => {
     expect(skipped('Not asked for.')).toBe('Not tried yet');
   });
 
+  it('says any other passed check in its own words, like the rows around it', () => {
+    expect(checkDetail(check({ kind: 'tools_load', detail: '1 tool loaded.' }), installation)).toBe(
+      '1 tool loaded',
+    );
+    expect(
+      checkDetail(
+        check({ kind: 'model_responds', detail: 'Answered in 2.8 s, loading included.' }),
+        installation,
+      ),
+    ).toBe('Answered in 2.8 s, loading included');
+  });
+
   it("keeps a failed check's own words, which say what to do", () => {
     const reason = "Its tool lookup_order doesn't load: SyntaxError: unexpected token on line 3";
     expect(

@@ -117,7 +117,8 @@ export function checkDetail(check: InstallCheck, context: CheckContext): string 
       return `${model.model} on ${runtimeName(model.runtime)}${same}`;
     }
     default:
-      return check.detail;
+      // One finding, said like the rows around it: without a closing full stop.
+      return check.detail.replace(/\.$/, '');
   }
 }
 
