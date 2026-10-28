@@ -17,6 +17,7 @@ import {
   describeLlamaServer,
   GpuLease,
   hostAdapterRuntime,
+  LocalRuntimeError,
   resolveOllamaModel,
   type GpuLeaseOptions,
   type GpuPurpose,
@@ -201,11 +202,9 @@ async function identify(backend: BackendId, job: Job): Promise<RuntimeIdentity |
   }
 }
 
-/** Asks this computer's Ollama to unload every student build Architect knows, so the GPU is free. */
-async function unloadOllamaStudents(): Promise<void> {
-  for (const preset of STUDENT_PRESETS.filter((item) => item.runtime === 'ollama')) {
-    await unloadOllamaModel('http://127.0.0.1:11434', preset.model).catch(() => undefined);
-  }
+/** Whether an error is the lease's busy error: another process of the app has the GPU. */
+function gpuBusy(error: unknown): boolean {
+  return error instanceof LocalRuntimeError && error.code === 'gpu_busy';
 }
 
 /**
@@ -243,12 +242,12 @@ export function realEnvironment(options: RealEnvironmentOptions): {
     gpu,
     COMPARISON_PURPOSE,
   );
+  const clear = clearBeforeColdStart(gpu, adapterRuntime, {
+    baseUrl: OLLAMA_BASE_URL,
+    models: STUDENT_PRESETS.filter((item) => item.runtime === 'ollama').map((item) => item.model),
+  });
   if (options.meter) {
     // Either backend's cold start begins from a GPU with nothing of Architect's on it.
-    const clear = clearBeforeColdStart(gpu, adapterRuntime, {
-      baseUrl: OLLAMA_BASE_URL,
-      models: STUDENT_PRESETS.filter((item) => item.runtime === 'ollama').map((item) => item.model),
-    });
     deps.meter = systemMeter({ unload: { ollama: clear, 'llama.cpp': clear } });
   }
   return {
@@ -261,10 +260,20 @@ export function realEnvironment(options: RealEnvironmentOptions): {
       clock: systemClock,
       writeHarness,
       identify,
-      // When the GPU window closes (decision 051): llama-server stops and Ollama lets go.
+      // A free GPU, through the lease: the busy error at once when the app has any of it. With no
+      // server running, the hold leaves the lease as soon as it is released.
+      checkGpu: async () => {
+        const hold = await gpu.hold('llama-server', COMPARISON_PURPOSE);
+        hold.release();
+      },
+      // When the GPU window closes (decision 051), through the lease, so nothing of the app's is
+      // touched: when the app has the GPU, the script gave up what it had loaded before it could.
       releaseGpu: async () => {
-        await adapterRuntime.stop();
-        await unloadOllamaStudents();
+        try {
+          await clear();
+        } catch (error) {
+          if (!gpuBusy(error)) throw error;
+        }
       },
       log: options.log,
       commit: options.commit,

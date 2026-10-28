@@ -25,8 +25,9 @@
  * with 0 nothing runs there. The plan pins the job's files; a run on changed files is refused.
  *
  * Keep the app closed while a comparison uses this computer's GPU. The runner shares the app's
- * GPU lease (decision 046): it takes the GPU only when no process of the app has it, and its local
- * work otherwise stops at once with the busy error, which names who has it.
+ * GPU lease (decision 046): it takes the GPU only when no process of the app has it. When its
+ * plan works on this computer and a window is granted, it checks before anything is paid that the
+ * GPU is free, and otherwise stops at once with the busy error, which names who has it.
  *
  * Run again after a crash, it repeats no recorded attempt, Spark reply or training job. An
  * attempt in flight when the process stopped is made again, and its cut-off requests count as

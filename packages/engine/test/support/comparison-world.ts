@@ -28,7 +28,7 @@ import {
   type TokenPricing,
 } from '@architect/shared';
 import { float32Bytes, encodeGguf } from '../../src/gguf';
-import { LocalAdapterRuntime } from '../../src/local-runtime';
+import { LocalAdapterRuntime, LocalRuntimeError } from '../../src/local-runtime';
 import type {
   AdapterServeRequest,
   Clock,
@@ -338,6 +338,10 @@ export interface LocalWatch {
   started: number[];
   /** Times the runner asked for the GPU to be freed. */
   releases: number;
+  /** Who of the app has the GPU, as the lease would say; null when it is free. */
+  busy: string | null;
+  /** Times the runner checked the GPU was free. */
+  checks: number;
 }
 
 /** Waits `ms`, or rejects as an abort when the signal fires first. */
@@ -478,7 +482,7 @@ export function comparisonWorld(options: { clock: Clock; parallel?: number }): C
     command: fakeLlamaCommand(llamaRecord),
   });
   const runtime = new DryRunRuntime();
-  const local: LocalWatch = { delayMs: 0, started: [], releases: 0 };
+  const local: LocalWatch = { delayMs: 0, started: [], releases: 0, busy: null, checks: 0 };
   const mentor = new FakeMentor();
   let rounds = 0;
   mentor.script = (request) => {
@@ -604,6 +608,16 @@ export function comparisonWorld(options: { clock: Clock; parallel?: number }): C
       await writeFile(join(dir, 'harness.json'), JSON.stringify(harness));
     },
     identify: async (backend, job) => identity(backend, job),
+    checkGpu: async () => {
+      local.checks += 1;
+      if (local.busy !== null) {
+        throw new LocalRuntimeError(
+          'gpu_busy',
+          `The GPU is busy: ${local.busy}.`,
+          'Close Architect while a comparison runs, then run the command again.',
+        );
+      }
+    },
     releaseGpu: async () => {
       local.releases += 1;
       await adapterRuntime.stop();

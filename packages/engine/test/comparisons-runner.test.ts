@@ -339,6 +339,30 @@ describe('before anything resumes (decision 051)', () => {
     expect((await runComparison(pinned, world.env)).outcome).toBe('planned');
   }, 300_000);
 
+  it('stops at once, before anything is paid, when the app has the GPU this run needs', async () => {
+    const { world, request } = setUp();
+    world.local.busy = 'the workspace is answering a chat with Returns desk';
+    const local = asking(request, {
+      arms: ['bare'],
+      localOllama: true,
+      caps: { ...CONFIG.caps, localMinutes: 1_500 },
+    });
+    await expect(runComparison(local, world.env)).rejects.toThrow(
+      'The GPU is busy: the workspace is answering a chat with Returns desk.',
+    );
+    expect(world.runtime.attempts).toHaveLength(0);
+    expect(existsSync(join(world.out, 'requests.jsonl'))).toBe(false);
+    // Planning works on the hosted copy alone, and so does a run with no local work.
+    expect((await runComparison({ ...local, planOnly: true }, world.env)).outcome).toBe('planned');
+    const checks = world.local.checks;
+    const hosted = setUp();
+    hosted.world.local.busy = world.local.busy;
+    const plain = asking(hosted.request, { arms: ['bare'] });
+    expect((await runComparison(plain, hosted.world.env)).outcome).toBe('finished');
+    expect(hosted.world.local.checks).toBe(0);
+    expect(world.local.checks).toBe(checks);
+  }, 300_000);
+
   it("pins the job's files at the folder's first command, before calibration is done", async () => {
     const { world, request } = setUp();
     const job = copyJob(world, RETURNS_DESK, 'job');

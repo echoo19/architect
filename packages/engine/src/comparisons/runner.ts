@@ -58,6 +58,11 @@ export interface ComparisonEnvironment {
   writeHarness(dir: string, harness: Harness): Promise<void>;
   /** What a backend is, read without loading a model or calling one; null when it can't be. */
   identify(backend: BackendId, job: Job): Promise<RuntimeIdentity | null>;
+  /**
+   * Checks through the app's GPU lease that no process of the app has any of the GPU, and fails
+   * at once with the busy error, which says who has it and what to do, when one has (decision 046).
+   */
+  checkGpu(): Promise<void>;
   /** Frees this computer's GPU: stops llama-server and unloads Ollama's models. */
   releaseGpu(): Promise<void>;
   log(line: string): void;
@@ -361,6 +366,14 @@ function usesGpu(plan: PlanRecord): boolean {
   );
 }
 
+/** Whether a request asks for work on this computer's GPU, before its plan exists. */
+function asksForGpu(config: ComparisonConfig): boolean {
+  return (
+    config.localOllama ||
+    (config.llamaServer && config.arms.some((arm) => arm.startsWith('weights-')))
+  );
+}
+
 /**
  * Runs decision 037's comparison: prices an attempt on the calibration tasks before any arm
  * spends, projects every arm and funds them in 037's order, and stops for the owner when the caps
@@ -399,6 +412,10 @@ export async function runComparison(
       const problem = regressionProblem(plan, inputs.regression);
       if (problem !== null) throw new Error(problem);
     }
+    // Work on this computer's GPU runs only when the app has none of it (decision 046): when this
+    // command may do some, it checks before anything is paid, and stops at once if not.
+    const local = asksForGpu(config) || (plan !== null && usesGpu(plan));
+    if (!request.planOnly && local && config.caps.localMinutes > 0) await env.checkGpu();
     // Until a plan is confirmed the request's cap holds calibration; then the plan's.
     const cap =
       plan !== null && plan.confirmedAt !== null ? plan.caps.studentUsd : config.caps.studentUsd;
@@ -1168,6 +1185,8 @@ export async function probeLocal(
       noHarness,
     );
     const tasks = (await engine.jobs.tasks(base.id, 'calibration')).slice(0, options.tasks);
+    // The probe loads the model only on a GPU the app has none of (decision 046).
+    if (request.config.caps.localMinutes > 0) await env.checkGpu();
     const meter = options.meter;
     const onStudent =
       meter === null
