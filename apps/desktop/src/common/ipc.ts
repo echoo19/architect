@@ -123,6 +123,8 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     importPackage: true,
     importFolder: true,
     installFromHub: true,
+    hasSampleAgent: true,
+    prepareSampleAgent: true,
     reviewPublication: true,
     publish: true,
     publications: true,

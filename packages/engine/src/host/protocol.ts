@@ -50,6 +50,7 @@ import {
   RunSchema,
   RunStartOptionsSchema,
   RuntimeMeasurementSchema,
+  SampleAgentSchema,
   StudentTargetSchema,
   TeachingOverviewSchema,
   TraceSchema,
@@ -299,6 +300,12 @@ export const ENGINE_ROUTES = {
     z.tuple([z.string().min(1).max(300), HubInstallRequestSchema]),
     HubInstallResultSchema,
     (api, [source, request]) => api.graduates.installFromHub(source, request),
+  ),
+  'graduates.hasSampleAgent': route(z.tuple([]), z.boolean(), (api) =>
+    api.graduates.hasSampleAgent(),
+  ),
+  'graduates.prepareSampleAgent': route(z.tuple([]), SampleAgentSchema, (api) =>
+    api.graduates.prepareSampleAgent(),
   ),
   'graduates.reviewPublication': route(
     z.tuple([id, PublishRequestSchema]),

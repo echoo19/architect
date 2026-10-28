@@ -73,6 +73,8 @@ vault/<job>/test.jsonl             locked test split (runner only)
 graduates/<graduate>/versions/v<n>/   one version of a graduate: a package (HARNESS_FORMAT.md)
 workspace/<graduate>/              the graduate's own copy of its job's data, bound to data/
 outputs/<graduate>/                bound to output/
+samples/returns-desk/data/         the ready-made agent's own copy of the data it works on, made the
+                                   first time it is opened and kept after (decision 054)
 staging/                           where imports and exports are unpacked and checked
 training/jobs/<job>/record.json    a training job's durable record (decision 035)
 training/jobs/<job>/inputs/        what the job was sent: job.json, the dataset, the recipe
@@ -95,5 +97,5 @@ local-runtime/gpu-lease.lock       under this lock
 | `@architect/desktop` | Electron main, preload and renderer |
 | `@architect/cli` | the `architect` command (`docs/CLI.md`) |
 | `examples/home-services` | sample job: seeded data generator, task generator, checker |
-| `examples/gear-returns` | second sample job (decision 028): a returns desk whose exports are messier than their first rows |
+| `examples/gear-returns` | second sample job (decision 028): a returns desk whose exports are messier than their first rows; its data and a graduate's package ship as the ready-made agent (decision 054) |
 | `trainer/` | the pinned QLoRA recipe a training job runs: `recipe.json`, `pipeline.py`, `train_qlora.py`, `chat_spans.py`, and `selftest.py` for the span logic |

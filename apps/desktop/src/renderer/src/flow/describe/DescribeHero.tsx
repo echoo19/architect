@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Composer, Heading, IconButton, Spinner } from '@architect/ui';
+import { Button, Composer, Heading, IconButton } from '@architect/ui';
 import { Cloud, Laptop, Paperclip } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { flowApi } from '../../api/client';
 import { queryKeys, useSettings } from '../../api/hooks';
 import { setQueryData } from '../../api/query';
+import { ReadyMadeAgentButton } from '../../import/ReadyMadeAgentButton';
 import { mentorIsLocal, mentorName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
@@ -121,16 +122,17 @@ export function DescribeHero() {
         )}
       </div>
       {empty && (
-        <button
-          type="button"
-          onClick={() => void startFromSample()}
-          disabled={creatingSample}
-          aria-busy={creatingSample || undefined}
-          className="-mt-3 inline-flex h-8 items-center gap-2 rounded-md px-2 text-fg-muted transition-colors duration-150 hover:text-fg-secondary disabled:pointer-events-none"
-        >
-          {creatingSample && <Spinner size={13} />}
-          Try the sample job
-        </button>
+        <div className="-mt-3 flex flex-wrap items-center justify-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            loading={creatingSample}
+            onClick={() => void startFromSample()}
+          >
+            Try the sample job
+          </Button>
+          <ReadyMadeAgentButton variant="ghost" size="sm" />
+        </div>
       )}
     </div>
   );

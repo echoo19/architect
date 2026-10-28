@@ -286,6 +286,14 @@ export interface HubInstallResult extends ImportResult {
   source: VersionSource;
 }
 
+/** The ready-made agent that ships with the app, set up to be imported like any package. */
+export interface SampleAgent {
+  /** The agent's package, inside the app: a `.architect.zip`. */
+  package: string;
+  /** This computer's copy of the data it works on: the folder to choose for its `data/`. */
+  data: string;
+}
+
 /** Per-graduate choices the user makes in the workspace. */
 export interface GraduateSettings {
   /** Writes: ask every time, allow without asking, or never. Starts from the job's permission. */
@@ -533,6 +541,18 @@ export interface ArchitectApi {
      * the commit named or the one its main branch points at now, with an import's checks.
      */
     installFromHub(source: string, request?: HubInstallRequest): Promise<HubInstallResult>;
+    /**
+     * Whether this build ships a ready-made agent: its package and the data it works on are both
+     * here. Changes nothing.
+     */
+    hasSampleAgent(): Promise<boolean>;
+    /**
+     * Where the ready-made agent's package is, and its data on this computer. The data is copied
+     * into the app's data folder the first time; a copy already there is kept as it is, so what
+     * the agent changed in it stays. Installing the agent is an import like any other, from
+     * these two paths. Fails in a build that doesn't ship it.
+     */
+    prepareSampleAgent(): Promise<SampleAgent>;
     /** What publishing a version to Hugging Face would send, and what the scan finds. Sends nothing. */
     reviewPublication(graduateId: string, request: PublishRequest): Promise<PublicationReview>;
     /**

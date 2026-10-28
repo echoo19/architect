@@ -60,7 +60,7 @@ export function ImportScreen() {
   const source = useImportSession((state) => state.source);
   if (source?.kind === 'hub') return <HubImportFlow key={source.started} />;
   const path = source?.path ?? null;
-  return <ImportFlow key={path ?? 'none'} path={path} />;
+  return <ImportFlow key={path ?? 'none'} path={path} folders={source?.bindings} />;
 }
 
 /** The name a chosen file or folder goes by. */
@@ -72,11 +72,21 @@ function Footer({ children }: { children: ReactNode }) {
   return <div className="mx-auto flex max-w-[680px] justify-between gap-3">{children}</div>;
 }
 
-function ImportFlow({ path }: { path: string | null }) {
+/**
+ * `folders` are the folders a package that comes with Architect is already set to use, by
+ * resource name. The Folders step still shows them, and each can be changed there.
+ */
+function ImportFlow({
+  path,
+  folders,
+}: {
+  path: string | null;
+  folders: Readonly<Record<string, string>> | undefined;
+}) {
   const { preview, error, loading, reload } = usePreview(path);
   const showSettings = useAgentSettingsUi((state) => state.show);
   const [stage, setStage] = useState<Stage>('Package');
-  const [bindings, setBindings] = useState<Record<string, string>>({});
+  const [bindings, setBindings] = useState<Record<string, string>>({ ...folders });
   const [grants, setGrants] = useState<Record<string, ResourceGrant>>({});
   const [writes, setWrites] = useState<PermissionMode>('ask');
   const [installing, setInstalling] = useState(false);
