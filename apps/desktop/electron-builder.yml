@@ -44,6 +44,13 @@ extraResources:
       - tasks.jsonl
       - checker.js
       - data/**
+  # The pinned training recipe and the scripts a training job runs; the engine sends them with
+  # each job and reads the recipe to price it.
+  - from: ../../trainer
+    to: trainer
+    filter:
+      - recipe.json
+      - '*.py'
 
 win:
   target: nsis

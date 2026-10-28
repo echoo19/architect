@@ -14,6 +14,8 @@ export const EngineStartSchema = z.object({
   /** The built sandbox child, in a real folder the engine can fork it from. */
   sandboxEntryPath: z.string().min(1),
   sampleJobFile: z.string().min(1),
+  /** The training recipe and its scripts: the repository's trainer/, or the app's resource. */
+  trainerDir: z.string().min(1),
   /** The CPU-thread cap for local models, when quiet mode is on. */
   localThreads: z.number().int().positive().optional(),
   /** How long local models rest after each reply, as a share of its time, in quiet mode. */

@@ -82,6 +82,7 @@ describe('the public API', () => {
       'MentorReplyError',
       'createLlamaCppStudent',
       'createMentor',
+      'createMentorActor',
       'createModelMentor',
       'createOllamaStudent',
       'createOpenAICompatibleStudent',

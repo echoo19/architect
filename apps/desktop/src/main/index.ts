@@ -128,6 +128,7 @@ async function start(): Promise<void> {
           dataDir,
           sandboxEntryPath: resources.sandboxEntry,
           sampleJobFile: resources.sampleJobFile,
+          trainerDir: resources.trainerDir,
           ...quiet(),
         },
         keys,

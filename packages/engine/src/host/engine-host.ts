@@ -98,6 +98,8 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
   });
   // Graduates from before versions become version 1 before anyone can open them.
   await graduates.upgrade();
+  // Training jobs left unfinished when the app closed are checked again, never sent again.
+  options.deps.training?.worker.resume();
   controller.recover();
 
   return {
@@ -112,6 +114,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
       closed = true;
       ports.clear();
       await controller.close();
+      options.deps.training?.worker.close();
       store.close();
     },
   };

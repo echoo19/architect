@@ -34,6 +34,7 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
       dataDir: message.dataDir,
       sandboxEntryPath: message.sandboxEntryPath,
       sampleJobFile: message.sampleJobFile,
+      trainerDir: message.trainerDir,
       getSecret: askForSecrets(asEnginePort(secrets)),
       localThreads: () => localThreads,
       localCooldown: () => localCooldown,

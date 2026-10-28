@@ -222,7 +222,7 @@ export interface SecretDeps {
 /** The training worker as the loop uses it (decision 035). */
 export type TrainingWorkerApi = Pick<
   TrainingWorker,
-  'submit' | 'poll' | 'get' | 'cancel' | 'usage'
+  'submit' | 'poll' | 'get' | 'cancel' | 'usage' | 'list' | 'resume' | 'close'
 >;
 
 /** Weight training for weights interventions: the worker, its backends and the base model. */
