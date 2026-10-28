@@ -55,6 +55,17 @@ describe('where a stored key may be sent', () => {
     expect(keyMayGoTo('fireworks', 'https://fireworks.ai.attacker.example/v1')).toBe(false);
   });
 
+  it("sends a Hugging Face key to the Hub's API host and nowhere else", () => {
+    expect(keyMayGoTo('huggingface', 'https://huggingface.co/api/whoami-v2')).toBe(true);
+    expect(keyMayGoTo('huggingface', 'http://huggingface.co/api/whoami-v2')).toBe(false);
+    expect(keyMayGoTo('huggingface', 'https://cdn-lfs.huggingface.co/repos/x')).toBe(false);
+    expect(keyMayGoTo('huggingface', 'https://cas-bridge.xethub.hf.co/xet-bridge-us/x')).toBe(
+      false,
+    );
+    expect(keyMayGoTo('huggingface', 'https://huggingface.co.attacker.example')).toBe(false);
+    expect(keyMayGoTo('huggingface', 'http://127.0.0.1:8080/api/whoami-v2')).toBe(false);
+  });
+
   it('says plainly what would have happened', () => {
     expect(keyDestinationProblem('meta', 'https://attacker.example/v1')).toBe(
       "This would send your Meta Model API key to attacker.example. Architect only sends it to api.meta.ai over HTTPS. Check the job's mentor and student settings.",

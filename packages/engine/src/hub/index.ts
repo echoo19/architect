@@ -11,4 +11,18 @@ export {
   type HubErrorCode,
   type JobInfo,
   type JobSpec,
+  type RemoteFile,
+  type UploadFile,
+  type UploadOptions,
+  type UploadProgress,
+  type UploadResult,
 } from './client';
+export {
+  findHubToken,
+  HUB_TOKEN_SOURCES,
+  hubTokenFile,
+  hubTokenResolver,
+  type HubToken,
+  type HubTokenOptions,
+  type HubTokenSource,
+} from './token';

@@ -51,6 +51,7 @@ describe('SecretStore', () => {
       fireworks: false,
       baseten: false,
       modal: false,
+      huggingface: false,
     });
     expect(await store.get('meta')).toBeUndefined();
   });

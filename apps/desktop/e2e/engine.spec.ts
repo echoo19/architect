@@ -98,6 +98,7 @@ test('keeps keys in the main process, encrypted', async () => {
     fireworks: false,
     baseten: false,
     modal: false,
+    huggingface: false,
     'custom:llm.example.com': true,
   });
 
