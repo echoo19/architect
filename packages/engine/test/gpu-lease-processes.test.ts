@@ -7,7 +7,11 @@ import { fileURLToPath } from 'node:url';
 import { createStudent } from '@architect/adapters';
 import { AdapterError, DecodingSchema, type StudentAdapter } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { clearBeforeColdStart, COMPARISON_PURPOSE, comparisonLease } from '../src/comparisons';
+import {
+  clearBeforeColdStart,
+  COMPARISON_PURPOSE,
+  comparisonLease,
+} from '../src/comparisons/environment';
 import {
   CHECK_PURPOSE,
   GpuLease,

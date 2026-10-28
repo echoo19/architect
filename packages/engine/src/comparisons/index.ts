@@ -5,7 +5,6 @@
  */
 export { comparisonJob, DEFAULT_MODELS, type ComparisonModels } from './arms';
 export { realEnvironment, type RealEnvironmentOptions } from './environment';
-export { clearBeforeColdStart, COMPARISON_PURPOSE, comparisonLease } from './gpu';
 export { renderMarkdown } from './markdown';
 export { parseGpuMemory, parseProcessMemory, systemMeter, type SystemMeterOptions } from './meter';
 export {
