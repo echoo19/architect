@@ -16,8 +16,8 @@ import {
   mentorPresetOf,
   mentorRounds,
   mentorUsdFor,
+  planBills,
   planSeconds,
-  planUsd,
   practiceUsd,
   typicalPracticeUsd,
   roundsLine,
@@ -26,6 +26,12 @@ import {
   trainingSummary,
 } from '../../../src/renderer/src/flow/define/estimates';
 import { makeJob } from './factories';
+
+/** Both bills added up, or null when neither has a price. */
+function sumOf(bills: { hostedUsd: number | null; mentorUsd: number | null }): number | null {
+  if (bills.hostedUsd === null && bills.mentorUsd === null) return null;
+  return (bills.hostedUsd ?? 0) + (bills.mentorUsd ?? 0);
+}
 
 const pricing = { inputPerM: 0.3, cachedInputPerM: 0.04, outputPerM: 1.2 };
 const hosted = makeJob({
@@ -236,9 +242,9 @@ describe('the plan in all', () => {
 
   it('adds the host’s bill and the mentor’s expected cost, the comparison’s share apart', () => {
     const estimate = estimateTime(hosted, 'hosted');
-    const money = planUsd(hosted, estimate, pricing);
-    expect(money.own).toBeCloseTo(practiceUsd(pricing, estimate) + mentorUsdFor(spark, 7), 6);
-    expect(money.comparison).toBeCloseTo(
+    const { total, comparison } = planBills(hosted, estimate, pricing, false);
+    expect(sumOf(total)).toBeCloseTo(practiceUsd(pricing, estimate) + mentorUsdFor(spark, 7), 6);
+    expect(sumOf(comparison)).toBeCloseTo(
       practiceUsd(pricing, estimate) + mentorUsdFor(spark, 1),
       6,
     );
@@ -246,13 +252,13 @@ describe('the plan in all', () => {
 
   it('leaves out what has no price', () => {
     // Training here costs the host nothing, so only the mentor is left.
-    const here = planUsd(local, estimateTime(local, 'local'), pricing);
-    expect(here.own).toBeCloseTo(mentorUsdFor(spark, 12), 6);
-    expect(here.comparison).toBeCloseTo(mentorUsdFor(spark, 1), 6);
-    expect(planUsd(codingAgent, estimateTime(codingAgent, 'local'), null)).toEqual({
-      own: null,
-      comparison: null,
-    });
+    const here = planBills(local, estimateTime(local, 'local'), pricing, false);
+    expect(here.total.hostedUsd).toBeNull();
+    expect(sumOf(here.total)).toBeCloseTo(mentorUsdFor(spark, 12), 6);
+    expect(sumOf(here.comparison)).toBeCloseTo(mentorUsdFor(spark, 1), 6);
+    const unpriced = planBills(codingAgent, estimateTime(codingAgent, 'local'), null, false);
+    expect(sumOf(unpriced.total)).toBeNull();
+    expect(sumOf(unpriced.comparison)).toBeNull();
   });
 });
 

@@ -253,19 +253,6 @@ export function planBills(
   };
 }
 
-/** The same money as two sums: what the agent's own training costs, and what the comparison adds. */
-export function planUsd(
-  job: Job,
-  estimate: TimeEstimate,
-  hostedPricing: TokenPricing | null | undefined,
-): { own: number | null; comparison: number | null } {
-  const { total, comparison } = planBills(job, estimate, hostedPricing, false);
-  return {
-    own: sumKnown([total.hostedUsd, total.mentorUsd]),
-    comparison: sumKnown([comparison.hostedUsd, comparison.mentorUsd]),
-  };
-}
-
 /** "About 40 minutes", "About 2.5 hours", "About 12 hours", "About 2 days". */
 export function formatAbout(seconds: number): string {
   const minutes = seconds / 60;
