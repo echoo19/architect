@@ -82,15 +82,20 @@ function ChangeResult({ change, text }: { change: WriteRecord; text: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <span className="text-sm text-fg-secondary">{text}</span>
-      <div className="max-h-56 overflow-auto rounded-md bg-well px-1 py-1">
-        {single && change.rows ? (
+      {single && change.rows ? (
+        // One row's fields are as many as its columns, so all of them stay in view.
+        <div className="rounded-md bg-well px-1 py-1">
           <RowFields columns={change.rows.columns} {...single} />
-        ) : change.rows ? (
-          <RowDiffTable diff={change.rows} className="text-xs" />
-        ) : (
-          <PatchLines patch={change.patch} label="Lines this change writes" />
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="max-h-56 overflow-auto rounded-md bg-well px-1 py-1">
+          {change.rows ? (
+            <RowDiffTable diff={change.rows} className="text-xs" />
+          ) : (
+            <PatchLines patch={change.patch} label="Lines this change writes" />
+          )}
+        </div>
+      )}
     </div>
   );
 }

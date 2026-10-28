@@ -193,7 +193,10 @@ export function outcomeNote(experiment: Experiment, job: Job): string | null {
       if (failed) return `Failed the ${GATES[failed.gate].toLowerCase()} check`;
       const runs = Math.max(1, experiment.seeds.dev.length);
       const worst = worstOf(experiment.regressions, job);
-      if (worst.lost > job.evaluation.maxTypeRegression * runs) return lossPhrase(worst);
+      // Short enough for a list's line, beside the round's own before and after.
+      if (worst.lost > job.evaluation.maxTypeRegression * runs) {
+        return `${worst.label} ${worst.before} → ${worst.after}`;
+      }
       const { devBefore: before, devAfter: after } = experiment;
       if (before && after && after.pass < before.pass) return gainPhrase(after.pass - before.pass);
       return null;

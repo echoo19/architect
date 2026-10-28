@@ -153,7 +153,7 @@ describe('outcomeNote', () => {
 
   it('names what a rejected change harmed, or the check it failed', () => {
     expect(outcomeNote(rejected([{ type: 'scheduling', before: 3, after: 0 }], 7, 6), job)).toBe(
-      'Scheduling went from 3 to 0',
+      'Scheduling 3 → 0',
     );
     expect(outcomeNote(rejected([{ type: 'invoice', before: 3, after: 2 }], 7, 6), job)).toBe(
       '1 fewer check task passed',

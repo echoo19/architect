@@ -148,7 +148,10 @@ export function TraceFooter({ trace }: { trace: Trace }) {
   );
 }
 
-/** Passed or failed, the checker's reason, and the answer beside the expected one. */
+/**
+ * Passed or failed, the checker's reason, and the answer beside what the checker expected,
+ * which can be a record it looks for rather than an answer.
+ */
 export function Verdict({ attempt, student }: { attempt: ListedAttempt; student: string }) {
   const { check, answerSummary, expectedSummary } = attempt;
   return (
@@ -158,7 +161,7 @@ export function Verdict({ attempt, student }: { attempt: ListedAttempt; student:
       reason={check.reason}
       rows={[
         ...(answerSummary ? [{ label: `${student} answered`, value: answerSummary }] : []),
-        ...(expectedSummary ? [{ label: 'Expected', value: expectedSummary }] : []),
+        ...(expectedSummary ? [{ label: 'Checker expected', value: expectedSummary }] : []),
       ]}
     />
   );
