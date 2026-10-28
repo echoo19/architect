@@ -43,7 +43,7 @@ describe('Hugging Face, in the words the screens use', () => {
       'Checking jake/service-desk on Hugging Face',
     );
     expect(stageText(progress({}))).toBe('Sending the package');
-    expect(stageText(progress({ stage: 'verifying' }))).toBe("Checking the Hub's copy");
+    expect(stageText(progress({ stage: 'verifying' }))).toBe('Checking the copy on Hugging Face');
     expect(stageText(progress({ stage: 'describing' }))).toBe('Adding the model card');
     expect(sentText(progress({}))).toBe('64 MB of 118 MB');
     expect(sentText(progress({ sentBytes: 0 }))).toBe('0 KB of 118 MB');

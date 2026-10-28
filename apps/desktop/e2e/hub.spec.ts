@@ -82,11 +82,11 @@ async function openSettingsTab(tab: string): Promise<Locator> {
   return dialog;
 }
 
-/** Publishing in the Export tab, with the repository typed in. */
+/** Publishing the agent's version 1 from the Export tab, with the repository typed in. */
 async function publishTo(dialog: Locator, repository: string): Promise<void> {
   await dialog.getByRole('textbox', { name: 'Repository' }).fill(repository);
   await expect(dialog.getByRole('list', { name: 'Files' })).toContainText('graduate.json');
-  await dialog.getByRole('button', { name: `Publish to ${repository}` }).click();
+  await dialog.getByRole('button', { name: 'Publish version 1' }).click();
 }
 
 test('publishes to the Hub, private, through to the repository link and its commit', async () => {
@@ -156,7 +156,7 @@ test('shows a failed upload as a failure, and publishing again finishes the same
       .getByRole('listitem', { name: `${SECOND}, version 1` }),
   ).toContainText("Didn't finish");
 
-  await dialog.getByRole('button', { name: 'Publish again' }).click();
+  await dialog.getByRole('button', { name: 'Finish publishing' }).click();
   await expect(dialog.getByText('Version 1 is on Hugging Face')).toBeVisible({ timeout: 30_000 });
   const finished = (await publications()).filter((entry) => entry.repository === SECOND);
   expect(finished).toEqual([

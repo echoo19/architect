@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import type { HubTokenStatus } from '@architect/shared';
 import {
   Button,
   Dialog,
@@ -69,18 +70,31 @@ export function HuggingFaceRow() {
           </Button>
         )}
       </SettingsRow>
-      <HubTokenDialog open={adding} onOpenChange={setAdding} />
+      <HubTokenDialog open={adding} onOpenChange={setAdding} source={source ?? null} />
     </>
   );
+}
+
+/** What the dialog says of a token saved here: what it needs, where it's kept, what it replaces. */
+function tokenNote(source: HubTokenStatus['source']): string {
+  const kept = 'Publishing needs write access. It is kept encrypted on this computer';
+  if (source === 'HF_TOKEN' || source === 'HUGGING_FACE_HUB_TOKEN') {
+    return `${kept}, and used instead of ${source}.`;
+  }
+  if (source === 'token_file') return `${kept}, and used instead of the token from hf auth login.`;
+  return `${kept}.`;
 }
 
 /** Saves a Hugging Face token in the app's encrypted store. It is never shown again. */
 function HubTokenDialog({
   open,
   onOpenChange,
+  source,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Where the token comes from now. */
+  source: HubTokenStatus['source'];
 }) {
   const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
@@ -111,13 +125,13 @@ function HubTokenDialog({
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent title="Add a Hugging Face token">
+      <DialogContent title="Add a Hugging Face token" description={tokenNote(source)}>
         <form onSubmit={(event) => void save(event)}>
           <div className="flex flex-col gap-3 px-7 pt-5">
             <Input
               type="password"
               aria-label="Hugging Face token"
-              placeholder="A token with write access"
+              placeholder="hf_..."
               value={value}
               onChange={(event) => setValue(event.target.value)}
               autoComplete="off"

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   HubRepositorySchema,
-  PublishProgressSchema,
   type GraduateSummary,
   type HubVisibility,
   type Publication,
@@ -37,9 +36,9 @@ import {
   UploadCloud,
 } from 'lucide-react';
 import { architect } from '../../api/client';
-import { graduateKeys, graduatesApi, usePublications } from '../../api/graduates';
+import { graduatesApi, usePublications } from '../../api/graduates';
 import { useHubToken } from '../../api/hooks';
-import { fetchQuery, toError } from '../../api/query';
+import { toError } from '../../api/query';
 import { CopyButton } from '../../components/CopyButton';
 import { errorOf, RetryButton } from '../../components/QueryValue';
 import {
@@ -57,17 +56,11 @@ import { attempt } from '../../lib/notify';
 import { useUi } from '../../state/ui';
 import { Markdown } from '../markdown/Markdown';
 import { useAgentSettingsUi } from './agentSettingsUi';
+import { IDLE, lastTarget, startPublishing, usePublishing } from './publishing';
 import { versionDate } from './versions';
 
 /** The model card's name in the repository. */
 const CARD = 'README.md';
-
-/** Where a publication stands on this screen. */
-type PublishState =
-  | { kind: 'idle' }
-  | { kind: 'publishing'; repository: string; version: number }
-  | { kind: 'done'; result: PublishResult }
-  | { kind: 'failed'; repository: string; version: number; message: string };
 
 /** A value that settles once it stops changing for `ms`, so typing doesn't review every key. */
 function useSettled<T>(value: T, ms: number): T {
@@ -118,22 +111,6 @@ function usePublicationReview(
   return { ...state, reload: () => setRound((value) => value + 1) };
 }
 
-/** The agent's publication as it moves, while one is on its way. */
-function usePublishProgress(graduateId: string, publishing: boolean): PublishProgress | null {
-  const [progress, setProgress] = useState<PublishProgress | null>(null);
-  useEffect(() => {
-    if (!publishing) {
-      setProgress(null);
-      return;
-    }
-    return architect().graduates.onPublishProgress((raw) => {
-      const parsed = PublishProgressSchema.safeParse(raw);
-      if (parsed.success && parsed.data.graduateId === graduateId) setProgress(parsed.data);
-    });
-  }, [graduateId, publishing]);
-  return progress;
-}
-
 /** Opens a page on Hugging Face in the browser. */
 function openOnHub(url: string): void {
   void attempt("Couldn't open Hugging Face", () => architect().app.openLink(url));
@@ -160,18 +137,20 @@ function cardBody(card: string): string {
 export function PublishPanel({ agent }: { agent: GraduateSummary }) {
   const publications = usePublications(agent.id);
   const token = useHubToken();
-  const last = publications.data?.at(-1)?.repository;
+  // Kept outside this tab, so closing the agent's settings never loses a publication on its way;
+  // the tab opens again on what it last sent, and where.
+  const state = usePublishing((store) => store.states[agent.id] ?? IDLE);
+  const publishing = state.kind === 'publishing';
+  const target = lastTarget(state);
+  const last = target?.repository ?? publications.data?.at(-1)?.repository;
   const [typed, setTyped] = useState<string | null>(null);
   const repository = (typed ?? last ?? '').trim();
   const valid = HubRepositorySchema.safeParse(repository).success;
-  const [visibility, setVisibility] = useState<HubVisibility>('private');
+  const [visibility, setVisibility] = useState<HubVisibility>(target?.visibility ?? 'private');
   const settled = useSettled(valid ? repository : null, 300);
   const { review, error, loading, reload } = usePublicationReview(agent.id, settled, visibility);
   const [acknowledged, setAcknowledged] = useState(false);
   const [previewing, setPreviewing] = useState(false);
-  const [state, setState] = useState<PublishState>({ kind: 'idle' });
-  const publishing = state.kind === 'publishing';
-  const progress = usePublishProgress(agent.id, publishing);
   const top = useRef<HTMLDivElement>(null);
 
   const current = review && review.repository === repository ? review : null;
@@ -182,31 +161,28 @@ export function PublishPanel({ agent }: { agent: GraduateSummary }) {
     state.kind === 'done' &&
     state.result.publication.repository === repository &&
     state.result.publication.version === current?.version;
+  const unfinished = state.kind === 'failed' && state.repository === repository;
   const waiting = !valid
-    ? 'Name the repository as owner/name'
+    ? noToken
+      ? 'Name the repository as owner/name, and add a token'
+      : 'Name the repository as owner/name'
     : noToken
       ? 'Add a Hugging Face token in Settings'
       : findings > 0 && !acknowledged
         ? `${findings} flagged ${findings === 1 ? 'line needs' : 'lines need'} your OK`
         : null;
 
-  const publish = async () => {
+  const publish = () => {
     if (!current) return;
-    const target = { repository: current.repository, version: current.version };
-    setState({ kind: 'publishing', ...target });
     top.current?.scrollIntoView({ block: 'nearest' });
-    try {
-      const result = await graduatesApi.publish(agent.id, {
+    void startPublishing(
+      agent.id,
+      { repository: current.repository, version: current.version, visibility },
+      {
         repository: current.repository,
         visibility,
         ...(findings > 0 ? { acknowledgedFindings: current.findingsDigest } : {}),
-      });
-      setState({ kind: 'done', result });
-    } catch (failure) {
-      setState({ kind: 'failed', ...target, message: toError(failure).message });
-    }
-    await fetchQuery(graduateKeys.publications(agent.id), () =>
-      graduatesApi.publications(agent.id),
+      },
     );
   };
 
@@ -214,7 +190,7 @@ export function PublishPanel({ agent }: { agent: GraduateSummary }) {
     <div className="flex flex-1 flex-col" aria-busy={loading || undefined}>
       <div ref={top} />
       {state.kind === 'publishing' && (
-        <PublishingSection repository={state.repository} progress={progress} />
+        <PublishingSection repository={state.repository} progress={state.progress} />
       )}
       {state.kind === 'done' && <PublishedSection result={state.result} />}
       {state.kind === 'failed' && (
@@ -250,7 +226,8 @@ export function PublishPanel({ agent }: { agent: GraduateSummary }) {
             options={VISIBILITY_CHOICES}
             value={visibility}
             onValueChange={setVisibility}
-            disabled={publishing}
+            // Once it is there, publishing it again changes nothing, its visibility included.
+            disabled={publishing || sent}
           />
         </SettingsRow>
         <SettingsRow label="Token" error={errorOf(token)}>
@@ -300,16 +277,18 @@ export function PublishPanel({ agent }: { agent: GraduateSummary }) {
           size="sm"
           loading={publishing}
           disabled={publishing || sent || loading || waiting !== null || current === null}
-          onClick={() => void publish()}
+          onClick={publish}
         >
           {!publishing && <UploadCloud size={15} strokeWidth={1.7} aria-hidden />}
           {publishing
             ? 'Publishing'
             : sent
               ? 'Published'
-              : state.kind === 'failed' && state.repository === repository
-                ? 'Publish again'
-                : `Publish to ${valid ? repository : 'Hugging Face'}`}
+              : unfinished
+                ? 'Finish publishing'
+                : current
+                  ? `Publish version ${current.version}`
+                  : 'Publish to Hugging Face'}
         </Button>
       </div>
 
@@ -504,7 +483,7 @@ function ReviewSections({
         ) : (
           <SettingsRow
             icon={<StatusMark state="ok" />}
-            label="Nothing that goes looks like a key or a private path"
+            label="Nothing in these files looks like a key or a private path"
           />
         )}
         <SettingsRow
@@ -517,7 +496,7 @@ function ReviewSections({
         />
         <SettingsRow
           icon={<Info size={16} strokeWidth={1.8} aria-hidden className="text-fg-faint" />}
-          label="It runs with Architect on the computer that installs it, not on the Hub"
+          label="It runs with Architect on the computer that installs it, not on Hugging Face"
         />
       </SettingsSection>
     </>

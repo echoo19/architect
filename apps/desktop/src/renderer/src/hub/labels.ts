@@ -26,7 +26,7 @@ export const VISIBILITY_CHOICES: readonly { value: HubVisibility; label: string 
 
 /** What each visibility means for a new repository; an existing one keeps its own. */
 export const VISIBILITY_MEANINGS: Record<HubVisibility, string> = {
-  private: 'Only the accounts you allow can see it',
+  private: 'Only accounts you allow on Hugging Face can see it',
   public: 'Anyone can see and download it',
 };
 
@@ -53,7 +53,7 @@ export function stageText(progress: PublishProgress): string {
     case 'uploading':
       return 'Sending the package';
     case 'verifying':
-      return "Checking the Hub's copy";
+      return 'Checking the copy on Hugging Face';
     case 'describing':
       return 'Adding the model card';
   }

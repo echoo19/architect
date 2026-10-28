@@ -46,6 +46,9 @@ export const HUB = {
   earlierCommit: '9b2e41d07c5a3f8e6d1c2b0a9f8e7d6c5b4a3921',
   /** The commit the returns desk is installed at. */
   returnsCommit: 'c41d8a2e6f0b9d3c7a5e1f2b4d6c8a0e9f1b3d57',
+  /** A repository of notes, with no package in it. */
+  notes: 'dana/returns-notes',
+  notesCommit: '5d2e8c41f0a7b3c9e6d1f8a2b4c7e0d9f3a6b5c8',
 };
 
 const ACTIVE = VERSIONS.find((version) => version.active) ?? VERSIONS[1];
@@ -211,8 +214,11 @@ const HUB_INSTALL: HubInstallResult = HubInstallResultSchema.parse({
   source: RETURNS_SOURCE,
 });
 
+/** The weights of the base build the trained weights were trained on. */
+const TRAINED_ON = 'e3b8a7f2c91d4f06b5a8c3e7d2f1a9b04c6e8d2f1a3b5c7d9e0f2a4b6c8d0e1f';
+
 /** What the engine says of a base of another build than the one the trained weights need. */
-export const OTHER_BUILD_REASON = `muse-glimmer:30b on this computer is another build (weights sha256:5c0e17ab92d4) than the one its adapter was trained on (sha256:${'a'.repeat(12)}). It needs the exact base it was trained on, the build whose weights are sha256:${'a'.repeat(64)}: add that build to Ollama under a name of its own, then set this agent's model to that name. That build is about 18 GB.`;
+export const OTHER_BUILD_REASON = `muse-glimmer:30b on this computer is another build (weights sha256:5c0e17ab92d4) than the one its adapter was trained on (sha256:${TRAINED_ON.slice(0, 12)}). It needs the exact base it was trained on, the build whose weights are sha256:${TRAINED_ON}: add that build to Ollama under a name of its own, then set this agent's model to that name. That build is about 18 GB.`;
 
 /** Version 2, whose trained weights need a base this computer has under another name. */
 export function otherBuildInstallation(): Installation {
@@ -268,11 +274,12 @@ export const EXACT_BUILD = 'muse-glimmer-trained:30b';
 export const LOCAL_MODELS: LocalRuntimes = {
   ollama: {
     running: true,
-    version: '0.40.9',
+    version: '0.12.6',
     baseUrl: OLLAMA_BASE_URL,
+    // The sizes the package gives its base, so every screen says the same of a model.
     models: [
-      { id: 'muse-glimmer:30b', sizeBytes: 18_157_010_252 },
-      { id: EXACT_BUILD, sizeBytes: 18_157_010_252 },
+      { id: 'muse-glimmer:30b', sizeBytes: 18 * 1024 ** 3 },
+      { id: EXACT_BUILD, sizeBytes: 18 * 1024 ** 3 },
       { id: 'muse-glimmer:30b-iq2', sizeBytes: 10_746_373_364 },
     ],
   },
@@ -288,13 +295,15 @@ function exactBuildInstallation(model: string): Installation {
     model: { ...base.model, model },
     status: 'ready',
     reasons: [],
+    // Checked again when the model changed, a day after the first checks.
+    checkedAt: at(200 + 24 * 60),
     checks: base.checks.map((check) =>
       check.kind === 'model_available'
         ? {
             id: 'model-available',
             kind: 'model_available',
             status: 'passed',
-            detail: `${model} in Ollama's store, the build its adapter was trained on (sha256:${'a'.repeat(12)}), and its adapter as installed.`,
+            detail: `${model} in Ollama's store, the build its adapter was trained on (sha256:${TRAINED_ON.slice(0, 12)}), and its adapter as installed.`,
             sameBuild: true,
           }
         : check.kind === 'model_responds'
@@ -349,7 +358,14 @@ export async function installHubFake(app: ElectronApplication, seed: HubSeed): P
     const state = { token: data.seed.token };
     fake.hub = state;
     let publications = data.seed.publications.map((entry) => ({ ...entry }));
-    let agents = [{ ...data.agent }];
+    // The list says what this computer's checks say, as the engine's list does.
+    let agents = [
+      {
+        ...data.agent,
+        status: data.activeInstallation.status,
+        reasons: data.activeInstallation.reasons,
+      },
+    ];
     let active = { ...data.activeInstallation };
     let returns = { ...data.install.installation };
     const repositoryIn = (text: string, repository: string) =>
@@ -425,6 +441,7 @@ export async function installHubFake(app: ElectronApplication, seed: HubSeed): P
             ? {
                 ...agent,
                 status: 'ready',
+                reasons: [],
                 manifest: { ...agent.manifest, student: { ...agent.manifest.student, model } },
               }
             : agent,

@@ -1,6 +1,11 @@
 import { join, resolve } from 'node:path';
 import { HubError, type EngineApi } from '@architect/engine';
-import type { GraduateSummary, ImportResult, Installation } from '@architect/shared';
+import {
+  PackageError,
+  type GraduateSummary,
+  type ImportResult,
+  type Installation,
+} from '@architect/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { PickedPaths } from '../../../src/main/files/picked';
 import { registerGraduateHandlers } from '../../../src/main/handlers/graduates';
@@ -195,6 +200,19 @@ describe('graduate handlers', () => {
     expect(await call('graduates:installFromHub', 'hf://jake/desk')).toEqual({
       ok: false,
       error: { message: 'Hugging Face has no such repository. Check the names.' },
+    });
+    // A commit that holds no package says where to look.
+    engine.graduates.installFromHub.mockRejectedValueOnce(
+      new PackageError('not_a_package', [
+        "jake/notes has no graduate.json at c41d8a2, so it isn't an Architect package.",
+      ]),
+    );
+    expect(await call('graduates:installFromHub', 'hf://jake/notes')).toEqual({
+      ok: false,
+      error: {
+        message:
+          "jake/notes has no graduate.json at c41d8a2, so it isn't an Architect package. Check the repository and the commit.",
+      },
     });
     // Any other failure keeps its own words.
     engine.graduates.publish.mockRejectedValueOnce(new Error('jake/desk is public.'));

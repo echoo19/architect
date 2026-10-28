@@ -23,7 +23,7 @@ export const CHECK_LABELS: Record<string, string> = {
   resources_bound: 'Folders',
   adapter_runtime: 'llama.cpp',
   model_available: 'Base model',
-  model_responds: 'Model answers',
+  model_responds: 'Model responds',
 };
 
 export const STATUS_LABELS: Record<InstallStatus, string> = {

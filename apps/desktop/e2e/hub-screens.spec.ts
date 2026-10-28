@@ -142,7 +142,9 @@ for (const theme of THEMES) {
     await expect(files).toContainText('README.md');
     await expect(files).toContainText('Model card');
     await expect(dialog.getByText('Uses HF_TOKEN from this computer')).toBeVisible();
-    await expect(dialog.getByText('Only the accounts you allow can see it')).toBeVisible();
+    await expect(
+      dialog.getByText('Only accounts you allow on Hugging Face can see it'),
+    ).toBeVisible();
     await expect(dialog.getByRole('list', { name: 'Publications' })).toContainText(
       `Version 1 · commit ${HUB.earlierCommit.slice(0, 7)}`,
     );
@@ -151,7 +153,7 @@ for (const theme of THEMES) {
     const tab = dialog.getByRole('tabpanel');
     await tab.evaluate((element) => element.scrollTo({ top: element.scrollHeight }));
     await expect(
-      dialog.getByText('Nothing that goes looks like a key or a private path'),
+      dialog.getByText('Nothing in these files looks like a key or a private path'),
     ).toBeVisible();
     await capture(`agent-publish-scan-${theme}.png`);
     await tab.evaluate((element) => element.scrollTo({ top: 0 }));
@@ -164,12 +166,22 @@ for (const theme of THEMES) {
     await page.keyboard.press('Escape');
     await expect(card).toBeHidden();
 
-    await dialog.getByRole('button', { name: `Publish to ${HUB.repository}` }).click();
+    await dialog.getByRole('button', { name: 'Publish version 2' }).click();
     await expect.poll(() => isPublishing(app)).toBe(true);
     await emitPublishProgress(app, uploading(64 * 1024 ** 2));
     await expect(dialog.getByText('Sending the package')).toBeVisible();
     await expect(dialog.getByText('64 MB of 118 MB')).toBeVisible();
     await capture(`agent-publish-progress-${theme}.png`, true);
+    // Closing the settings loses nothing: they open again on Hugging Face, still sending.
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await openSettingsTab('Export');
+    await expect(dialog.getByRole('radio', { name: 'Hugging Face' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await expect(dialog.getByText('64 MB of 118 MB')).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Publishing' })).toBeDisabled();
 
     await settlePublish(app, 'complete');
     await expect(dialog.getByText('Version 2 is on Hugging Face')).toBeVisible();
@@ -191,11 +203,11 @@ for (const theme of THEMES) {
 for (const theme of THEMES) {
   test(`shows a failed publication as a failure, and publishes again (${theme})`, async () => {
     const app = launched.app;
-    await open(theme, chatPath(CHATS.closeout.id), { token: 'saved' });
+    await open(theme, chatPath(CHATS.closeout.id));
     const dialog = await openPublishing();
     await dialog.getByRole('textbox', { name: 'Repository' }).fill(HUB.repository);
     await expect(dialog.getByRole('list', { name: 'Files' })).toContainText('graduate.json');
-    await dialog.getByRole('button', { name: `Publish to ${HUB.repository}` }).click();
+    await dialog.getByRole('button', { name: 'Publish version 2' }).click();
     await expect.poll(() => isPublishing(app)).toBe(true);
     await settlePublish(app, 'failed', UPLOAD_FAILED);
 
@@ -204,10 +216,10 @@ for (const theme of THEMES) {
     await expect(dialog.getByText('Version 2 is on Hugging Face')).toHaveCount(0);
     const publications = dialog.getByRole('list', { name: 'Publications' });
     await expect(publications).toContainText("Didn't finish");
-    await expect(dialog.getByRole('button', { name: 'Publish again' })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Finish publishing' })).toBeVisible();
     await capture(`agent-publish-failed-${theme}.png`);
 
-    await dialog.getByRole('button', { name: 'Publish again' }).click();
+    await dialog.getByRole('button', { name: 'Finish publishing' }).click();
     await expect.poll(() => isPublishing(app)).toBe(true);
     await settlePublish(app, 'complete');
     await expect(dialog.getByText('Version 2 is on Hugging Face')).toBeVisible();
@@ -222,7 +234,9 @@ for (const theme of THEMES) {
     await open(theme, chatPath(CHATS.closeout.id), { token: null });
     const dialog = await openPublishing();
     await expect(dialog.getByRole('textbox', { name: 'Repository' })).toHaveValue('');
-    await expect(dialog.getByText('Name the repository as owner/name')).toBeVisible();
+    await expect(
+      dialog.getByText('Name the repository as owner/name, and add a token'),
+    ).toBeVisible();
     await expect(dialog.getByText('No token', { exact: true })).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Publish to Hugging Face' })).toBeDisabled();
     await capture(`agent-publish-empty-${theme}.png`);
@@ -325,16 +339,17 @@ for (const theme of THEMES) {
 for (const theme of THEMES) {
   test(`says why an install from Hugging Face failed, with a way back (${theme})`, async () => {
     await open(theme, chatPath(CHATS.closeout.id));
+    // As main passes it on: the engine's words, and what to check.
     await stubEngineFailure(launched.app, {
-      'graduates:installFromHub':
-        "dana/returns-desk has no graduate.json at c41d8a2e6f0b9d3c7a5e1f2b4d6c8a0e9f1b3d57, so it isn't an Architect package.",
+      'graduates:installFromHub': `${HUB.notes} has no graduate.json at ${HUB.notesCommit}, so it isn't an Architect package. Check the repository and the commit.`,
     });
     await page.getByRole('button', { name: 'Agent menu' }).click();
     await page.getByRole('menuitem', { name: 'Install from Hugging Face' }).click();
-    await page.getByRole('textbox', { name: 'Repository' }).fill(HUB.returns);
-    await page.getByRole('textbox', { name: 'Commit' }).fill(HUB.returnsCommit);
+    await page.getByRole('textbox', { name: 'Repository' }).fill(HUB.notes);
+    await page.getByRole('textbox', { name: 'Commit' }).fill(HUB.notesCommit);
     await page.getByRole('button', { name: 'Download' }).click();
-    await expect(page.getByText(`Couldn't install from ${HUB.returns}`)).toBeVisible();
+    await expect(page.getByText(`Couldn't install from ${HUB.notes}`)).toBeVisible();
+    await expect(page.getByText(/Check the repository and the commit\./)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Back' })).toBeVisible();
     await capture(`import-hub-error-${theme}.png`);
@@ -345,8 +360,10 @@ for (const theme of THEMES) {
   test(`changes the agent's model, the fix for a base of another build (${theme})`, async () => {
     const app = launched.app;
     await open(theme, chatPath(CHATS.closeout.id), { installation: otherBuildInstallation() });
+    // The chat's header says so too, rather than that it runs here.
+    await expect(page.getByText("Can't run on this computer")).toBeVisible();
     const dialog = await openSettingsTab('General');
-    await expect(dialog.getByText("Can't run")).toBeVisible();
+    await expect(dialog.getByText("Can't run", { exact: true })).toBeVisible();
     await expect(dialog.getByText('another build')).toBeVisible();
     await capture(`agent-model-other-build-${theme}.png`);
 
@@ -358,8 +375,12 @@ for (const theme of THEMES) {
     await capture(`agent-model-picker-${theme}.png`);
 
     await picker.getByRole('option', { name: /muse-glimmer-trained:30b/ }).click();
-    await expect(page.getByText(`Service desk now runs on ${EXACT_BUILD}`)).toBeVisible();
+    // Exactly the toast's title: its live region announces the same words for a moment.
+    await expect(
+      page.getByText(`Service desk now runs on ${EXACT_BUILD}`, { exact: true }),
+    ).toBeVisible();
     await expect(dialog.getByText('Ready to run')).toBeVisible();
+    await expect(page.getByText('Running on this computer')).toBeVisible();
     await capture(`agent-model-changed-${theme}.png`);
     expect(await callsTo(app, 'graduates:bind')).toEqual([
       [AGENT.id, { model: { runtime: 'ollama', baseUrl: OLLAMA_BASE_URL, model: EXACT_BUILD } }],

@@ -36,6 +36,7 @@ import { toError } from '../../api/query';
 import { formatBytes } from '../../lib/format';
 import { attempt } from '../../lib/notify';
 import { PublishPanel } from './PublishPanel';
+import { usePublishing } from './publishing';
 
 interface ReviewState {
   review?: ExportReview;
@@ -109,9 +110,14 @@ const DESTINATIONS: readonly { value: Destination; label: string }[] = [
   { value: 'hub', label: 'Hugging Face' },
 ];
 
-/** Export: as a package file on this computer, or published to Hugging Face. */
+/**
+ * Export: as a package file on this computer, or published to Hugging Face, where it opens while
+ * a publication is on its way.
+ */
 export function ExportTab({ agent }: { agent: GraduateSummary }) {
-  const [destination, setDestination] = useState<Destination>('file');
+  const [destination, setDestination] = useState<Destination>(() =>
+    usePublishing.getState().states[agent.id]?.kind === 'publishing' ? 'hub' : 'file',
+  );
   return (
     <div className="flex min-h-full flex-col">
       <Segmented

@@ -5,6 +5,7 @@ import {
   ExportRequestSchema,
   HubInstallRequestSchema,
   ImportRequestSchema,
+  PackageError,
   PublishRequestSchema,
   type BindRequest,
   type GraduateSummary,
@@ -25,9 +26,12 @@ export interface GraduateWorkspace {
 const text = z.string().min(1);
 const version = z.number().int().positive();
 
+/** What to do about a repository whose commit holds no package, said as a Hub hint is. */
+const NOT_A_PACKAGE_HINT = 'Check the repository and the commit.';
+
 /**
  * A Hugging Face failure with what to do about it in one message: only the message crosses to
- * the renderer, and the hint is the way out.
+ * the renderer, and the hint is the way out. A commit with no package gets one too.
  */
 async function withHubHint<T>(request: Promise<T>): Promise<T> {
   try {
@@ -35,6 +39,9 @@ async function withHubHint<T>(request: Promise<T>): Promise<T> {
   } catch (error) {
     if (error instanceof HubError && error.hint) {
       throw new Error(`${error.message} ${error.hint}`, { cause: error });
+    }
+    if (error instanceof PackageError && error.code === 'not_a_package') {
+      throw new Error(`${error.message} ${NOT_A_PACKAGE_HINT}`, { cause: error });
     }
     throw error;
   }

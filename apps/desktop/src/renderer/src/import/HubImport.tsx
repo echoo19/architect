@@ -460,7 +460,7 @@ function SourceForm({
             className="w-[400px] font-mono text-sm"
           />
         </SettingsRow>
-        <SettingsRow label="Commit">
+        <SettingsRow label="Commit" meta="Optional">
           <Input
             aria-label="Commit"
             placeholder="Latest on main"
