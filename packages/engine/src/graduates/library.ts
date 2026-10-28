@@ -1,6 +1,7 @@
-import { rm, stat } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { readFile, rm, stat } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { isLoopbackUrl } from '@architect/adapters';
+import { parseReportJson, sha256File } from '@architect/harness';
 import {
   GrantsSchema,
   GuardError,
@@ -12,6 +13,7 @@ import {
   type Machine,
   type ModelBinding,
   type PackageManifest,
+  type ReportCard,
   type StudentAdapter,
   type VersionEvent,
 } from '@architect/shared';
@@ -224,6 +226,30 @@ export class GraduateLibrary {
   history(graduateId: string): VersionEvent[] {
     this.agent(graduateId);
     return this.ctx.store.versionEvents.list(graduateId);
+  }
+
+  /**
+   * The report card a version carries (the active one by default): its own locked test, read
+   * from its folder and held to its checksum, wherever the version was made. It is the author's
+   * result, never this computer's checks.
+   */
+  async report(graduateId: string, which?: number): Promise<ReportCard> {
+    const agent = this.agent(graduateId);
+    const number = which ?? agent.activeVersion;
+    if (number === null) throw new Error(`${agent.name} has no version that can run yet.`);
+    const stored = this.version(graduateId, number);
+    const file = stored.manifest.evidence.files?.report;
+    if (file === undefined) {
+      throw new Error(`No locked test measured version ${number} of ${agent.name}.`);
+    }
+    const path = join(this.ctx.paths.fromStored(stored.path), ...file.split('/'));
+    const listed = stored.manifest.integrity.files.find((entry) => entry.path === file);
+    if (listed === undefined || (await sha256File(path)) !== listed.sha256) {
+      throw new Error(
+        `The report of version ${number} of ${agent.name} changed on disk after it was made.`,
+      );
+    }
+    return parseReportJson(await readFile(path, 'utf8'));
   }
 
   /** Accepts the version a run made. Its agent's first version is already the active one. */

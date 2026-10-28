@@ -310,6 +310,11 @@ export interface ArchitectApi {
     versions(graduateId: string): Promise<GraduateVersion[]>;
     /** Acceptances, rejections, promotions and rollbacks, oldest first. */
     history(graduateId: string): Promise<VersionEvent[]>;
+    /**
+     * The report card a version carries (the active one unless named): its own locked test, from
+     * its folder, wherever it was made. The author's result, never this computer's checks.
+     */
+    report(graduateId: string, version?: number): Promise<ReportCard>;
     acceptVersion(graduateId: string, version: number): Promise<GraduateVersion>;
     rejectVersion(graduateId: string, version: number): Promise<GraduateVersion>;
     /** Makes an accepted version the active one, in one step. Chats already answering finish first. */

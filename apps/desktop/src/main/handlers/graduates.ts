@@ -67,6 +67,7 @@ export function registerGraduateHandlers(
       },
       versions: (graduateId) => call((api) => api.graduates.versions(graduateId)),
       history: (graduateId) => call((api) => api.graduates.history(graduateId)),
+      report: (graduateId, number) => call((api) => api.graduates.report(graduateId, number)),
       acceptVersion: (graduateId, number) =>
         call((api) => api.graduates.acceptVersion(graduateId, number)),
       rejectVersion: (graduateId, number) =>
@@ -137,6 +138,7 @@ export function registerGraduateHandlers(
         call((api) => api.graduates.updateSettings(graduateId, patch)),
     },
     {
+      report: z.union([z.tuple([text]), z.tuple([text, version])]),
       acceptVersion: z.tuple([text, version]),
       rejectVersion: z.tuple([text, version]),
       promote: z.tuple([text, version]),

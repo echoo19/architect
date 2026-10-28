@@ -138,3 +138,32 @@ describe('previewing an import, before anything is installed', () => {
     expect(await readdir(recipient.paths.stagingDir())).toEqual([]);
   });
 });
+
+describe("a version's own report travels with it", () => {
+  it('reads the same report card on the computer it was imported to, held to its checksum', async () => {
+    const author = await computer();
+    const { archive } = await exported(author);
+    const recipient = await computer();
+    await importPackage({ library: recipient.library }, archive);
+
+    const theirs = await author.library.report('grd_desk');
+    expect(await recipient.library.report('grd_desk')).toEqual(theirs);
+    expect(theirs.test.score).toEqual(
+      author.store.versions.get('grd_desk', 1)?.manifest.evidence.summary?.score,
+    );
+
+    const folder = recipient.paths.fromStored(
+      recipient.store.versions.get('grd_desk', 1)?.path ?? '',
+    );
+    await writeFile(join(folder, 'evidence', 'report.json'), '{"tampered": true}\n');
+    await expect(recipient.library.report('grd_desk')).rejects.toThrow('changed on disk');
+  });
+
+  it('says so when no locked test measured the version', async () => {
+    const author = await computer();
+    await addVersion(author, { graduateId: 'grd_desk', unevaluated: true });
+    await expect(author.library.report('grd_desk')).rejects.toThrow(
+      'No locked test measured version 1',
+    );
+  });
+});

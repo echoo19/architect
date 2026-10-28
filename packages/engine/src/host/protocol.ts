@@ -115,6 +115,11 @@ export const ENGINE_ROUTES = {
   'graduates.history': route(z.tuple([id]), z.array(VersionEventSchema), (api, [graduateId]) =>
     api.graduates.history(graduateId),
   ),
+  'graduates.report': route(
+    z.tuple([id, versionNumber.nullable()]),
+    ReportCardSchema,
+    (api, [graduateId, version]) => api.graduates.report(graduateId, version ?? undefined),
+  ),
   'graduates.acceptVersion': route(
     z.tuple([id, versionNumber]),
     GraduateVersionSchema,

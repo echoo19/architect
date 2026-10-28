@@ -146,6 +146,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       accept: async (runId) => checked(graduates.acceptRun(runId).id),
       versions: async (graduateId) => graduates.versions(graduateId),
       history: async (graduateId) => graduates.history(graduateId),
+      report: (graduateId, version) => graduates.report(graduateId, version),
       acceptVersion: async (graduateId, version) => graduates.acceptVersion(graduateId, version),
       rejectVersion: async (graduateId, version) => graduates.rejectVersion(graduateId, version),
       promote: async (graduateId, version) => checked(graduates.promote(graduateId, version).id),

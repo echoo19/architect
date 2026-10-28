@@ -7,6 +7,7 @@ import {
   ImportPreviewSchema,
   ImportResultSchema,
   InstallationSchema,
+  ReportCardSchema,
   type BindRequest,
   type ExportPartRequest,
   type ExportRequest,
@@ -33,6 +34,8 @@ export const graduatesApi = {
       z.array(GraduateVersionSchema),
       architect().graduates.versions(graduateId),
     ),
+  report: (graduateId: string) =>
+    read('graduates.report', ReportCardSchema, architect().graduates.report(graduateId)),
   installation: (graduateId: string) =>
     read(
       'graduates.installation',
@@ -92,7 +95,12 @@ export const graduatesApi = {
 export const graduateKeys = {
   versions: (graduateId: string) => `versions:${graduateId}`,
   installation: (graduateId: string) => `installation:${graduateId}`,
+  report: (graduateId: string, version: number | null) => `version-report:${graduateId}:${version}`,
 };
+
+/** The report card the agent's active version carries, from its own folder. */
+export const useVersionReport = (agent: { id: string; activeVersion: number | null }) =>
+  useQuery(graduateKeys.report(agent.id, agent.activeVersion), () => graduatesApi.report(agent.id));
 
 export const useVersions = (graduateId: string) =>
   useQuery(graduateKeys.versions(graduateId), () => graduatesApi.versions(graduateId));

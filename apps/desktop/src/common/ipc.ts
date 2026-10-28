@@ -78,6 +78,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     accept: true,
     versions: true,
     history: true,
+    report: true,
     acceptVersion: true,
     rejectVersion: true,
     promote: true,
