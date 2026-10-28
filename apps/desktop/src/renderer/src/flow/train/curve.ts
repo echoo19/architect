@@ -62,8 +62,8 @@ export interface CurveGeometry {
   /** Reverted rounds: a dashed branch from the line to what the change measured. */
   branches: Branch[];
   head: Point | null;
-  /** The round still running, drawn level with the head until it is measured. */
-  pending: Branch | null;
+  /** The round still running, marked on the axis at its own round until it is measured. */
+  pending: { round: number; x: number } | null;
   targetY: number;
 }
 
@@ -139,8 +139,7 @@ export function curveGeometry(input: CurveInput): CurveGeometry {
 
   const head = line.at(-1) ?? null;
   const open = input.rounds.find((round) => !isSettled(round));
-  const pending =
-    head && open ? { round: open.index, from: head, to: point(open.index, head.value) } : null;
+  const pending = head && open ? { round: open.index, x: x(open.index) } : null;
 
   const every = Math.max(1, Math.ceil(MIN_LABEL_GAP / stepX));
   const ticks: Tick[] = Array.from({ length: span + 1 }, (_, round) => round)

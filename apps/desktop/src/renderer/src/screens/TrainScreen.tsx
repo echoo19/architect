@@ -223,6 +223,7 @@ function TrainBoard({
         <Examples
           job={job}
           attempts={live.attempts}
+          mentor={names.mentor}
           student={names.student}
           onOpen={onOpenAttempt}
         />

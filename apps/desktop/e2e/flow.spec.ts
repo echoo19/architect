@@ -27,7 +27,7 @@ const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.
 const WIDTH = 1440;
 /** Tall enough for each screen's whole page, so a screenshot shows everything on it. */
 const DEFINE_HEIGHT = 1580;
-const TRAIN_HEIGHT = 1380;
+const TRAIN_HEIGHT = 1440;
 const REPORT_HEIGHT = 1660;
 const THEMES = ['dark', 'light'] as const;
 
@@ -179,6 +179,10 @@ for (const theme of THEMES) {
     const rounds = page.getByRole('region', { name: 'Rounds' });
     await expect(success).toContainText('78%');
     await expect(success).toContainText('31 of 40 on average, over 2 checks');
+    await expect(success).toContainText('Round 4: being scored');
+    await expect(page.getByRole('list', { name: 'Each round' })).toHaveText(
+      'PracticeDiagnoseScore',
+    );
     await expect(page.getByRole('status').filter({ hasText: 'Scoring the change' })).toBeVisible();
     await expect(rounds).toContainText('65% to 63%');
     await expect(rounds).toContainText('First draft');
@@ -194,6 +198,16 @@ for (const theme of THEMES) {
     await expect(page.getByRole('region', { name: 'Current round' })).toContainText(
       '+3 to +6 more of the 40 check tasks right',
     );
+    await expect(
+      page.getByRole('heading', { name: 'Round 4: Allow for zone travel time' }),
+    ).toBeVisible();
+    // A check task is listed, so the list says the mentor never sees it.
+    const attempts = page.getByRole('region', { name: 'Latest attempts' });
+    await expect(attempts).toContainText('Practice task, round 4');
+    await expect(attempts).toContainText('Check task, round 3');
+    await expect(attempts).toContainText(
+      "Spark never sees check tasks, only how many come out right. They're shown here for you.",
+    );
     await capture(page, `flow-train-${theme}`);
 
     // Live: round 4 is kept and round 5 starts.
@@ -201,9 +215,10 @@ for (const theme of THEMES) {
     await expect(success).toContainText('85%');
     await expect(rounds).toContainText('78% to 85%');
     await expect(page.getByRole('region', { name: 'Current round' })).toContainText('Round 5');
-    await expect(
-      page.getByRole('region', { name: 'Latest attempts' }).getByRole('button').first(),
-    ).toContainText('9 Birch Ln');
+    await expect(attempts.getByRole('button').first()).toContainText('9 Birch Ln');
+    // The check task has scrolled out of the five latest, and the note goes with it.
+    await expect(attempts).not.toContainText('Check task');
+    await expect(attempts).not.toContainText('never sees check tasks');
 
     // An attempt's trace, then a round's changes, each in a drawer that Escape closes.
     await resize(900);

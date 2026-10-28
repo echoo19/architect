@@ -214,7 +214,7 @@ export const rounds: Round[] = [
   round(4, {
     status: 'evaluating',
     train: { pass: 8, total: 12 },
-    title: 'Check the zone travel time',
+    title: 'Allow for zone travel time',
     diagnosis:
       'Bookings start too early: it ignores the drive between zones, so 3 of 4 scheduling ' +
       "failures pick a slot the technician can't reach in time.",
@@ -536,7 +536,7 @@ function report(
         ? [
             { round: 1, title: 'Work from the office files', delta: 10 },
             { round: 3, title: 'Cents, not dollars', delta: 10, runs: 2 },
-            { round: 4, title: 'Check the zone travel time', delta: 6, runs: 2 },
+            { round: 4, title: 'Allow for zone travel time', delta: 6, runs: 2 },
           ]
         : [],
     requirements: { passRate: { target: 0.9, actual, met: actual >= 0.9 } },

@@ -44,11 +44,11 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
         )}
       </div>
       <p className="m-0 text-fg-secondary text-pretty">
-        {student} is scored on the check tasks but never learns from them. A change stays only if
-        more come out right on two checks, and training ends at the {Math.round(input.target * 100)}
-        % target.
+        {student} learns from practice tasks and is scored on separate check tasks, which it never
+        learns from. A change stays only if more of them come out right on two checks, and training
+        ends at the {Math.round(input.target * 100)}% target.
         {input.draftRound &&
-          ` Start is ${student} with no instructions; round 1 is its first full setup.`}
+          ` Start is ${student} with no instructions; round 1 is its first draft.`}
       </p>
       <Legend />
       <CurveChart input={input} />
@@ -112,15 +112,14 @@ function Legend() {
         swatch={
           <>
             <line
-              x1={1}
-              x2={18}
-              y1={6}
-              y2={6}
+              x1={13}
+              x2={13}
+              y1={0}
+              y2={12}
               className="stroke-mentor"
               strokeWidth={1.5}
-              strokeDasharray="2 3"
+              strokeDasharray="2 2"
             />
-            <circle cx={20} cy={6} r={3.5} className="fill-panel stroke-mentor" strokeWidth={1.5} />
           </>
         }
       >
@@ -197,7 +196,9 @@ function CurveChart({ input }: { input: CurveInput }) {
             textAnchor="middle"
             className={cn(
               'font-mono text-sm',
-              tick.reached ? 'fill-fg-secondary' : 'fill-fg-ghost',
+              tick.round === pending?.round && 'fill-mentor',
+              tick.round !== pending?.round &&
+                (tick.reached ? 'fill-fg-secondary' : 'fill-fg-ghost'),
             )}
           >
             {tick.round === 0 ? 'Start' : tick.round}
@@ -229,22 +230,25 @@ function CurveChart({ input }: { input: CurveInput }) {
       ))}
       {pending && (
         <>
-          <polyline
-            points={`${pending.from.x},${pending.from.y} ${pending.to.x},${pending.to.y}`}
-            fill="none"
+          <line
+            x1={pending.x}
+            x2={pending.x}
+            y1={PLOT.gridTop}
+            y2={PLOT.bottom}
             className="stroke-mentor"
             strokeWidth={1.5}
             strokeDasharray="2 4"
-          />
-          <circle
-            cx={pending.to.x}
-            cy={pending.to.y}
-            r={4}
-            className="fill-panel stroke-mentor"
-            strokeWidth={1.5}
           >
             <title>{`Round ${pending.round} in progress`}</title>
-          </circle>
+          </line>
+          <text
+            x={pending.x - 10}
+            y={PLOT.bottom - 12}
+            textAnchor="end"
+            className="fill-mentor text-sm"
+          >
+            Round {pending.round}: being scored
+          </text>
         </>
       )}
       {line.length > 1 && (
