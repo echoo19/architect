@@ -341,7 +341,7 @@ export function estimateMentorUsd(job: Job): number | null {
 
 /**
  * What the job's mentor costs per token: the price saved with it, its preset's, or nothing for a
- * model on this computer. Null when the price is unknown (decision 030).
+ * model on this computer. Null when the price is unknown (decision 034).
  */
 export function mentorPriceOf(job: Job): TokenPricing | null {
   return job.mentor.kind === 'model' ? (mentorPricing(job.mentor) ?? null) : null;

@@ -512,7 +512,7 @@ Through Google's OpenAI-compatible endpoint, `https://generativelanguage.googlea
 
 ### Other OpenAI-compatible services
 
-Groq, Together, DeepInfra and Fireworks have named connections; anything else (a vLLM server, another host) is added by its address. These get the `system` role, `max_tokens` (Groq: `max_completion_tokens`), no reasoning control, and the schema in the prompt with one repair call. None has preset mentor prices, so a model from one needs a price entered before training (decision 030). Groq keeps the schema in the prompt because its Chat Completions can't stream a reply held to a schema (unverified; not checked live, no key).
+Groq, Together, DeepInfra and Fireworks have named connections; anything else (a vLLM server, another host) is added by its address. These get the `system` role, `max_tokens` (Groq: `max_completion_tokens`), no reasoning control, and the schema in the prompt with one repair call. None has preset mentor prices, so a model from one needs a price entered before training (decision 034). Groq keeps the schema in the prompt because its Chat Completions can't stream a reply held to a schema (unverified; not checked live, no key).
 
 ### Models on this computer
 

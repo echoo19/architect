@@ -93,7 +93,7 @@ export class BudgetGuard {
   /**
    * Throws `GuardError('budget')` unless a mentor call that could cost up to `maxUsd` fits under
    * the dollar cap, and returns the authorized amount. A call whose price is unknown can't be
-   * checked, so it never starts (decision 030).
+   * checked, so it never starts (decision 034).
    */
   authorizeMentorCall(maxUsd: number | null): number {
     if (maxUsd === null) {
