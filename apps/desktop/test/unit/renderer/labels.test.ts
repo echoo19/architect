@@ -89,9 +89,8 @@ describe('formats', () => {
 
 describe('setupName', () => {
   it('names a kept setup by where it came from', () => {
-    expect(setupName(0, false)).toBe('the starting setup');
-    expect(setupName(1, true)).toBe('the first draft');
-    expect(setupName(1, false)).toBe('the setup from round 1');
-    expect(setupName(7, true)).toBe('the setup from round 7');
+    expect(setupName({})).toBe('the starting setup');
+    expect(setupName({ round: 1, draft: true })).toBe('the first draft');
+    expect(setupName({ round: 7 })).toBe('the setup from round 7');
   });
 });

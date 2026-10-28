@@ -37,7 +37,7 @@ export const STORY = {
   graduateId: 'grd_servicedesk',
   seed: 7,
   /** The kept version the graduate ships with: seven candidates, the last one kept. */
-  version: 7,
+  version: 8,
 };
 
 export const DESCRIPTION =
@@ -132,7 +132,7 @@ export function makeRun(overrides: Partial<Run>): Run {
     phase: 'evaluating',
     createdAt: AT,
     updatedAt: at(106),
-    currentVersion: 3,
+    currentVersion: 4,
     devBaseline: { pass: 16, total: 40 },
     devCurrent: { pass: 62, total: 80 },
     totals: {
@@ -165,6 +165,7 @@ export function round(index: number, fields: Partial<Round>): Round {
 export const rounds: Round[] = [
   round(1, {
     title: 'Work from the office files',
+    draft: true,
     train: { pass: 0, total: 0 },
     diagnosis:
       'A first full setup from the job and its example tasks: read policy.md and the rate card ' +
@@ -175,7 +176,7 @@ export const rounds: Round[] = [
       rationale: 'The blank start misses most invoices and bookings.',
     },
     files: ['system.md', 'skills/price-a-job.md', 'skills/book-urgent-calls.md'],
-    candidateVersion: 1,
+    candidateVersion: 2,
     devBefore: { pass: 16, total: 40 },
     devAfter: { pass: 26, total: 40 },
     decision: 'kept',
@@ -188,7 +189,7 @@ export const rounds: Round[] = [
     diagnosis: 'It calls read_table without filters and runs out of steps on the larger files.',
     predicted: { devDeltaMin: 2, devDeltaMax: 4, rationale: 'Fewer wasted steps.' },
     files: ['system.md'],
-    candidateVersion: 2,
+    candidateVersion: 3,
     devBefore: { pass: 26, total: 40 },
     devAfter: { pass: 25, total: 40 },
     decision: 'reverted',
@@ -201,7 +202,7 @@ export const rounds: Round[] = [
       'policy says to work in integer cents and round once, at the end.',
     predicted: { devDeltaMin: 5, devDeltaMax: 9, rationale: 'Every invoice total depends on it.' },
     files: ['system.md', 'skills/price-a-job.md'],
-    candidateVersion: 3,
+    candidateVersion: 4,
     devBefore: { pass: 52, total: 80 },
     devAfter: { pass: 62, total: 80 },
     firstMeasurement: { devBefore: { pass: 26, total: 40 }, devAfter: { pass: 32, total: 40 } },
@@ -219,7 +220,7 @@ export const rounds: Round[] = [
       "failures pick a slot the technician can't reach in time.",
     predicted: { devDeltaMin: 3, devDeltaMax: 6, rationale: 'Scheduling is the weakest type.' },
     files: ['skills/book-urgent-calls.md', 'tools/travel_minutes.js', 'tools/travel_minutes.json'],
-    candidateVersion: 4,
+    candidateVersion: 5,
   }),
 ];
 
@@ -234,7 +235,7 @@ function attempt(
     round: 4,
     taskId: `task_${id}`,
     split: 'train',
-    harnessVersion: 3,
+    harnessVersion: 4,
     latencyMs: 13_200,
     usage: { inputTokens: 8_400, outputTokens: 380 },
     ...fields,
@@ -349,17 +350,17 @@ export const detail: RunDetail = {
   rounds,
   recentAttempts,
   lineage: [
-    lineage(round1, 0, [
+    lineage(round1, 1, [
       { type: 'invoice', before: 3, after: 10 },
       { type: 'overdue', before: 8, after: 10 },
       { type: 'scheduling', before: 5, after: 6 },
     ]),
-    lineage(round2, 1, [
+    lineage(round2, 2, [
       { type: 'invoice', before: 10, after: 10 },
       { type: 'overdue', before: 10, after: 9 },
       { type: 'scheduling', before: 6, after: 6 },
     ]),
-    lineage(round3, 1, [
+    lineage(round3, 2, [
       { type: 'invoice', before: 20, after: 28 },
       { type: 'overdue', before: 20, after: 22 },
       { type: 'scheduling', before: 12, after: 12 },
@@ -369,7 +370,7 @@ export const detail: RunDetail = {
 
 export const trace: Trace = {
   taskId: failedBooking.taskId,
-  harnessVersion: 3,
+  harnessVersion: 4,
   studentModel: 'meta/muse-glimmer-30b',
   messages: [{ role: 'user', content: failedBooking.prompt }],
   steps: [
@@ -590,7 +591,7 @@ export const graduate: GraduateSummary = {
       sizeBytes: 18 * 1024 ** 3,
       contextLength: 16_384,
     },
-    harness: { version: STORY.version, hash: 'sha256-story' },
+    harness: { version: STORY.version, round: 7, hash: 'sha256-story' },
     requirements: { passRate: { target: 0.9, actual: 55 / 60, met: true } },
     test: { score: { pass: 55, total: 60 }, perType: FINAL_TEST },
     mentor: { label: 'Muse Spark 1.3', model: 'muse-spark-1.3' },

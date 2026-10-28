@@ -14,8 +14,7 @@ import { architect } from '../../api/client';
 import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
 import { modelNames } from '../names';
-import { setupName } from '../../lib/names';
-import { draftRoundOf } from './draft';
+import { setupOf } from './draft';
 import { hasKeptChange, type LiveRun } from './run-state';
 
 interface Request {
@@ -131,7 +130,7 @@ export function StopDialog({
     onClose();
   };
 
-  const best = setupName(live.run.currentVersion, draftRoundOf(live) === 1);
+  const best = setupOf(live, live.run.currentVersion);
   const copy = kept
     ? {
         title: 'Stop training?',

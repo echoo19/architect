@@ -7,7 +7,7 @@ import { modelNames, typeLabel } from '../flow/names';
 import { Apprenticeship } from '../flow/train/Apprenticeship';
 import { CurrentRound } from '../flow/train/CurrentRound';
 import { providerName } from '../flow/define/hosted';
-import { draftRoundOf } from '../flow/train/draft';
+import { draftRoundOf, setupOf } from '../flow/train/draft';
 import { Examples } from '../flow/train/Examples';
 import { phaseView } from '../flow/train/phase';
 import { Resources } from '../flow/train/Resources';
@@ -96,7 +96,7 @@ export function TrainScreen({ runId }: { runId: string }) {
                 attempt={trace.item}
                 type={typeLabel(live.job, trace.item.taskType)}
                 student={modelNames(live.job).student}
-                firstDraft={draftRoundOf(live) === 1}
+                setup={setupOf(live, trace.item.harnessVersion)}
               />
             )}
           </Drawer>
