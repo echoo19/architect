@@ -72,6 +72,15 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     trace: true,
     roundDiff: true,
   },
+  mentoring: {
+    lessons: true,
+    interventions: true,
+    experiments: true,
+    progress: true,
+    capabilities: true,
+    categories: true,
+    answer: true,
+  },
   reports: { get: true, list: true },
   graduates: {
     list: true,

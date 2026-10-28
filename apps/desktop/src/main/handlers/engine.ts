@@ -61,4 +61,14 @@ export function registerEngineHandlers(
     get: (runId, target) => call((api) => api.reports.get(runId, target)),
     list: (runId) => call((api) => api.reports.list(runId)),
   });
+
+  router.registerHandlers('mentoring', {
+    lessons: (runId) => call((api) => api.mentoring.lessons(runId)),
+    interventions: (runId) => call((api) => api.mentoring.interventions(runId)),
+    experiments: (runId) => call((api) => api.mentoring.experiments(runId)),
+    progress: (runId) => call((api) => api.mentoring.progress(runId)),
+    capabilities: (runId) => call((api) => api.mentoring.capabilities(runId)),
+    categories: (jobId) => call((api) => api.mentoring.categories(jobId)),
+    answer: (runId, round, reply) => call((api) => api.mentoring.answer(runId, round, reply)),
+  });
 }

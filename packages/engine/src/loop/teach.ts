@@ -11,6 +11,7 @@ import {
   type TeachingPlan,
 } from '@architect/shared';
 import { LeakRefusal } from '../mentor/gate';
+import type { EngineStore } from '../store/engine-store';
 import { gatedActor, refusalOf, type ActorCharge } from '../teaching/actor';
 import type { CorrectionResult, CorrectionStart } from '../teaching/correction';
 import { must } from './errors';
@@ -37,7 +38,14 @@ export function lessonId(runId: string, round: number, item: number, attempt: nu
  * failure doesn't start the count again.
  */
 export function stoppedTeaching(state: RunState): { categories: Set<string>; types: Set<string> } {
-  const { store, runId } = state.ctx;
+  return stoppedFromRecords(state.ctx.store, state.ctx.runId);
+}
+
+/** `stoppedTeaching`, from a run's stored interventions and experiments. */
+export function stoppedFromRecords(
+  store: EngineStore,
+  runId: string,
+): { categories: Set<string>; types: Set<string> } {
   const interventions = new Map(store.interventions.list(runId).map((item) => [item.round, item]));
   const sinceGain = { categories: new Map<string, number>(), types: new Map<string, number>() };
   for (const experiment of store.experiments.list(runId)) {

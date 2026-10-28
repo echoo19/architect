@@ -100,6 +100,15 @@ export function connectEngine(
         };
       },
     },
+    mentoring: {
+      lessons: (runId) => request('mentoring.lessons', [runId]),
+      interventions: (runId) => request('mentoring.interventions', [runId]),
+      experiments: (runId) => request('mentoring.experiments', [runId]),
+      progress: (runId) => request('mentoring.progress', [runId]),
+      capabilities: (runId) => request('mentoring.capabilities', [runId]),
+      categories: (jobId) => request('mentoring.categories', [jobId]),
+      answer: (runId, round, reply) => request('mentoring.answer', [runId, round, reply]),
+    },
     reports: {
       get: (runId, target) => request('reports.get', [runId, target ?? null]),
       list: (runId) => request('reports.list', [runId]),

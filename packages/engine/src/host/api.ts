@@ -3,6 +3,7 @@ import {
   GraduateSettingsSchema,
   JobSchema,
   TraceSchema,
+  type ClarificationReply,
   type FileDiff,
   type ReportCard,
   type RunDetail,
@@ -17,6 +18,8 @@ import { readJsonFile } from '../loop/files';
 import type { JobLibrary } from '../loop/jobs';
 import { LineageLog } from '../loop/lineage';
 import type { DataPaths } from '../loop/paths';
+import { capabilityBreakdown, mentoringProgress } from '../loop/progress';
+import { isoNow } from '../loop/time';
 import type { RunController } from '../loop/controller';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun } from '../store/records';
@@ -90,6 +93,36 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     return TraceSchema.parse(await readJsonFile(paths.fromStored(attempt.tracePath)));
   }
 
+  /**
+   * Records the person's answer to the question a paused run asked, on the round's intervention,
+   * before anything else happens in the round, and resumes the run.
+   */
+  async function answerClarification(
+    runId: string,
+    index: number,
+    reply: ClarificationReply,
+  ): Promise<void> {
+    run(runId);
+    const stored = found(store.rounds.get(runId, index), `This run has no round ${index}.`);
+    const intervention = store.interventions.get(runId, index);
+    if (
+      intervention?.type !== 'clarification' ||
+      stored.round.status !== 'clarifying' ||
+      intervention.answer !== undefined
+    ) {
+      throw new Error(`Round ${index} isn't waiting for an answer.`);
+    }
+    store.interventions.put({
+      ...intervention,
+      answer: {
+        text: reply.text.trim(),
+        changesCriteria: reply.changesCriteria,
+        at: isoNow(ctx.clock),
+      },
+    });
+    await controller.resume(runId);
+  }
+
   async function roundDiff(runId: string, index: number): Promise<FileDiff[]> {
     const record = run(runId);
     const stored = found(store.rounds.get(runId, index), `This run has no round ${index}.`);
@@ -129,6 +162,29 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       trace,
       roundDiff,
       onEvent: (listener) => controller.onEvent(listener),
+    },
+    mentoring: {
+      lessons: async (runId) => store.lessons.list({ runId: run(runId).run.id }),
+      interventions: async (runId) => store.interventions.list(run(runId).run.id),
+      experiments: async (runId) => store.experiments.list(run(runId).run.id),
+      progress: async (runId) => {
+        const record = run(runId);
+        return mentoringProgress(store, record, await jobs.forRun(record));
+      },
+      capabilities: async (runId) => {
+        const record = run(runId);
+        return capabilityBreakdown(
+          store,
+          record,
+          await jobs.forRun(record),
+          store.reports.get(record.run.id, record.lockedTestOn),
+        );
+      },
+      categories: async (jobId) => {
+        found(store.jobs.get(jobId), `There is no job "${jobId}".`);
+        return store.categories.list(jobId);
+      },
+      answer: (runId, round, reply) => answerClarification(runId, round, reply),
     },
     reports: {
       get: async (runId, target) => reportOf(run(runId), target),
