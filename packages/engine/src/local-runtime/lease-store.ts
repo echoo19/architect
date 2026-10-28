@@ -150,11 +150,20 @@ export class LeaseStore {
     }
   }
 
+  /**
+   * Takes the lock, waiting while another process holds it. A lock is held for milliseconds and a
+   * stale one is taken away after `lockStaleMs`, so failing to take it for twice that long means
+   * the folder can't be written: that is said, rather than waited on for ever.
+   */
   private async lock(): Promise<string> {
+    const deadline = Date.now() + 2 * this.lockStaleMs;
     for (;;) {
       const token = this.tryLock();
       if (token !== null) return token;
       this.breakIfStale();
+      if (Date.now() > deadline) {
+        throw new Error(`Architect couldn't take the GPU lease's lock at ${this.lockFile}.`);
+      }
       await new Promise((done) => setTimeout(done, 2 + Math.floor(Math.random() * 6)));
     }
   }
@@ -183,12 +192,17 @@ export class LeaseStore {
   }
 
   private unlock(token: string): void {
-    try {
-      const held = LockSchema.safeParse(JSON.parse(readFileSync(this.lockFile, 'utf8')));
-      // Only this process's own lock: one taken as stale meanwhile belongs to someone else now.
-      if (held.success && held.data.token === token) rmSync(this.lockFile, { force: true });
-    } catch {
-      // Gone already.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const held = LockSchema.safeParse(JSON.parse(readFileSync(this.lockFile, 'utf8')));
+        // Only this process's own lock: one taken as stale meanwhile belongs to someone else now.
+        if (held.success && held.data.token === token) rmSync(this.lockFile, { force: true });
+        return;
+      } catch (error) {
+        // Gone already, or for a moment out of reach while another process looks at it.
+        if (!TRANSIENT.has(codeOf(error) ?? '') || attempt >= 20) return;
+        pause(5);
+      }
     }
   }
 

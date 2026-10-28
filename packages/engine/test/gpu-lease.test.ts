@@ -415,6 +415,20 @@ describe('the GPU lease between processes', () => {
     await until(() => leaseFile().holders.length === 0);
   });
 
+  it("fails a request with the reason when the lease can't be written, rather than hang", async () => {
+    // Where the lease's folder should be, a file: nothing can be created in it.
+    writeFileSync(join(dir, 'local-runtime'), 'not a folder');
+    const reported: unknown[] = [];
+    const gpu = lease('workspace', { waitMs: 300, onError: (error) => reported.push(error) });
+    await expect(gpu.hold('llama-server', replyPurpose('Returns desk'))).rejects.toMatchObject({
+      name: 'LocalRuntimeError',
+      code: 'gpu_busy',
+      message: expect.stringMatching(/^Architect couldn't read who is using the GPU: /) as unknown,
+      hint: "Check that Architect's data folder can be written to, then try again.",
+    });
+    expect(reported.length).toBeGreaterThan(0);
+  });
+
   it('takes away a lock that a process left behind when it died mid-change', async () => {
     mkdirSync(join(dir, 'local-runtime'), { recursive: true });
     writeFileSync(
