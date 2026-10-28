@@ -29,7 +29,7 @@ interface ReportViewProps {
 }
 
 /**
- * Where the "before training" number comes from: the bare baseline's final test when it ran,
+ * The score before training, set against this one: the bare baseline's final test when it ran,
  * which is the same test this report scores; otherwise the check tasks before round one.
  */
 function beforeTraining(
@@ -37,11 +37,17 @@ function beforeTraining(
   comparison: QueryState<ComparisonRow[]>,
 ): string | undefined {
   const bare = comparison.data?.find((row) => row.method === 'bare');
-  if (bare && report.method !== 'bare') {
-    return `${Math.round(bare.testRate)}% with no setup`;
-  }
-  const { baseline } = report.dev;
-  return baseline ? `${formatRate(baseline)} on check tasks before training` : undefined;
+  const before =
+    bare && report.method !== 'bare'
+      ? { percent: Math.round(bare.testRate), where: 'with no setup' }
+      : report.dev.baseline && {
+          percent: percent(report.dev.baseline),
+          where: 'on check tasks before training',
+        };
+  if (!before) return undefined;
+  const now = percent(report.test.score);
+  const change = now > before.percent ? 'Up from' : now < before.percent ? 'Down from' : 'Same as';
+  return `${change} ${before.percent}% ${before.where}`;
 }
 
 /** Whether training began with a first full draft rather than a setup (decision 026). */
@@ -139,11 +145,7 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
           className="bg-panel p-[22px]"
           value={formatRate(test.score)}
           label="of new tasks right"
-          note={
-            <Lines
-              lines={[`${test.score.pass} of ${test.score.total}`, before && `Up from ${before}`]}
-            />
-          }
+          note={<Lines lines={[`${test.score.pass} of ${test.score.total}`, before]} />}
           noteFont="text"
         />
         <Stat
