@@ -644,6 +644,7 @@ describe('a run that starts from a blank harness', () => {
       decisionReason: expect.stringContaining('the first draft is kept as the starting point'),
     });
     expect(rounds[0]?.firstMeasurement).toBeUndefined();
+    expect(rounds.map((round) => round.draft)).toEqual([true, undefined]);
     const train = engine.store.attempts.list({ runId: run.id, split: 'train' });
     expect(train.filter((attempt) => attempt.round === 1)).toHaveLength(0);
     expect(train.filter((attempt) => attempt.round === 2).length).toBeGreaterThan(0);

@@ -349,7 +349,7 @@ describe('an architect run', () => {
     expect(graduate?.manifest).toMatchObject({
       id: record.run.graduateId,
       method: 'architect',
-      harness: { version: 2 },
+      harness: { version: 2, round: 1 },
       test: { score: { pass: 2, total: 6 }, testedOn: 'local' },
       student: {
         runtime: 'ollama',

@@ -127,7 +127,15 @@ describe('the one-shot baseline, when its reply cannot be used', () => {
     expect(fix?.messages.slice(0, -2)).toEqual(asked?.messages);
     expect(fix?.messages.at(-1)?.content).toContain('system.md: cannot be deleted.');
     expect(finished).toMatchObject({ currentVersion: 2, devCurrent: { pass: 6, total: 9 } });
-    expect(engine.store.rounds.get(finished.id, 1)?.round.decision).toBe('kept');
+    expect(engine.store.rounds.get(finished.id, 1)?.round).toMatchObject({
+      decision: 'kept',
+      draft: true,
+    });
+    expect(engine.store.graduates.forRun(finished.id)?.manifest.harness).toMatchObject({
+      version: 2,
+      round: 1,
+      draft: true,
+    });
   });
 });
 

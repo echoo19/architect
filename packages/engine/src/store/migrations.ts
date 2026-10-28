@@ -227,4 +227,12 @@ export const MIGRATIONS: readonly Migration[] = [
       ALTER TABLE rounds ADD COLUMN first_measurement TEXT;
     `,
   },
+  {
+    version: 7,
+    name: 'draft rounds',
+    sql: `
+      -- A round whose author wrote a whole harness: a blank start's first round, or one-shot's.
+      ALTER TABLE rounds ADD COLUMN draft INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];

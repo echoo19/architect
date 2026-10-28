@@ -24,7 +24,14 @@ export const GraduateManifestSchema = z.object({
     sizeBytes: z.number().int().nonnegative().optional(),
     contextLength: z.number().int().positive(),
   }),
-  harness: z.object({ version: z.number().int().nonnegative(), hash: z.string() }),
+  harness: z.object({
+    version: z.number().int().nonnegative(),
+    hash: z.string(),
+    /** The round whose kept change made this version; absent for the starting harness. */
+    round: z.number().int().positive().optional(),
+    /** That round wrote a whole draft rather than one change. */
+    draft: z.literal(true).optional(),
+  }),
   requirements: z.object({
     passRate: z.object({ target: z.number(), actual: z.number(), met: z.boolean() }),
     p95LatencyMs: z.object({ target: z.number(), actual: z.number(), met: z.boolean() }).optional(),

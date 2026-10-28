@@ -85,6 +85,7 @@ export function startRound(state: RunState, index: number): void {
   const round: Round = {
     runId: state.ctx.runId,
     index,
+    ...(drafting ? { draft: true as const } : {}),
     status: drafting ? 'diagnosing' : 'attempting',
     train: { pass: 0, total: 0 },
     files: [],

@@ -213,6 +213,7 @@ async function graduate(state: RunState, test: LockedTest, frozen: GraduateFreez
     job,
     run,
     report,
+    rounds: state.rounds().map(({ round }) => round),
     endpoint: job.student.local,
     createdAt,
   });

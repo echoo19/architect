@@ -98,6 +98,11 @@ export type Run = z.infer<typeof RunSchema>;
 export const RoundSchema = z.object({
   runId: z.string(),
   index: z.number().int().positive(),
+  /**
+   * The author wrote a whole harness this round instead of one change: the first round of a
+   * blank start, or one-shot's only round. It makes no train attempts and is always kept.
+   */
+  draft: z.literal(true).optional(),
   status: z.enum(['attempting', 'diagnosing', 'evaluating', 'decided', 'failed']),
   train: ScoreSchema,
   title: z.string().optional(),

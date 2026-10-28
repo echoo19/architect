@@ -224,6 +224,7 @@ function roundParams({ round, ...record }: StoredRound): Params {
   return {
     run_id: round.runId,
     idx: round.index,
+    draft: flag(round.draft === true),
     status: round.status,
     base_version: record.baseVersion,
     train: json(round.train),
@@ -252,6 +253,7 @@ function roundFromRow(row: Row): StoredRound {
     round: {
       runId: row.run_id,
       index: row.idx,
+      ...(row.draft === 1 ? { draft: true } : {}),
       status: row.status,
       train: fromJson(row.train),
       title: orUndefined(row.title),
