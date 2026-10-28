@@ -153,7 +153,7 @@ for (const theme of THEMES) {
     ]);
     await expect(page.getByText('The setup from round 7')).toBeVisible();
     await expect(page.getByText('Glimmer, 4-bit, on this computer')).toBeVisible();
-    await expect(page.getByText('Spark, the mentor: off')).toBeVisible();
+    await expect(page.getByText('Spark, the mentor: not connected')).toBeVisible();
     await expect(page.getByText('Running on this computer')).toBeVisible();
     await capture(`workspace-new-chat-${theme}.png`);
 
