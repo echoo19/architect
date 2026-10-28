@@ -28,23 +28,23 @@ export interface Span {
 }
 
 export interface TimeEstimate {
-  /** The starting check, which runs the check tasks once before the first round. */
+  /** The starting measurement: the check tasks, scored once before the first round. */
   startSeconds: number;
-  /** Training alone: the starting check and the round budget, or the time cap when it binds. */
+  /** Training alone: the starting measurement and the round budget, or the cap when it binds. */
   trainingSeconds: Span;
-  /** Rounds that fit in the time cap: if every round needs a second check, and if none does. */
+  /** Rounds that fit in the time cap: if every round is measured again, and if none is. */
   rounds: { fewest: number; most: number };
-  /** One round: a practice batch and two check runs, or four when its change is checked again. */
+  /** One round: a practice batch and two measurements, or four when its change is measured again. */
   roundSeconds: Span;
 }
 
 /**
- * How long training takes at a place. The starting version takes the check tasks once; then every
- * round attempts a practice batch and runs the check tasks for the current version and the
- * change, once per repeat. A change that clears the keep limits has both run again on new seeds
- * (decision 022), so a round runs the check tasks two or four times. All of it stops at the time
- * cap. The locked test is separate: it runs afterwards on this computer (decision 009), outside
- * the cap, and `testSeconds` times it.
+ * How long training takes at a place. The starting version is measured on the check tasks once;
+ * then every round attempts a practice batch and measures the current version and the change on
+ * the check tasks, once per repeat. A change that clears the keep limits has both measured again
+ * on new seeds (decision 022), so a round measures twice or four times. All of it stops at the
+ * time cap. The locked test is separate: it runs afterwards on this computer (decision 009),
+ * outside the cap, and `testSeconds` times it.
  */
 export function estimateTime(job: Job, place: TrainPlace): TimeEstimate {
   const perTask = SECONDS_PER_TASK[place];
@@ -109,7 +109,7 @@ export function roundsLine(job: Job, estimate: TimeEstimate): string {
     return `All ${roundCount(maxRounds)} fit, in ${aboutSpan(estimate.trainingSeconds).toLowerCase()} of training`;
   }
   if (most === 0) {
-    return `No full round fits in ${cap} of training: the starting check takes ${formatDuration(estimate.startSeconds * 1000)} here, then a round at least ${formatDuration(estimate.roundSeconds.least * 1000)}`;
+    return `No full round fits in ${cap} of training: the starting measurement takes ${formatDuration(estimate.startSeconds * 1000)} here, then a round at least ${formatDuration(estimate.roundSeconds.least * 1000)}`;
   }
   const verb = most === 1 ? 'fits' : 'fit';
   const count = countRange(estimate.rounds);
@@ -162,6 +162,17 @@ export function practiceUsd(pricing: TokenPricing, estimate: TimeEstimate): numb
   return tasks * costUsd(pricing, STUDENT_TOKENS_PER_TASK);
 }
 
+/** The practice the host bills for one training run, or null when it trains here or has no price. */
+function hostedPracticeUsd(
+  job: Job,
+  estimate: TimeEstimate,
+  hostedPricing: TokenPricing | null | undefined,
+): number | null {
+  return job.student.trainOn === 'hosted' && hostedPricing
+    ? practiceUsd(hostedPricing, estimate)
+    : null;
+}
+
 /** Training time a typical job uses up: its four-hour time limit. */
 const TYPICAL_TRAINING_SECONDS = 4 * 3600;
 
@@ -191,11 +202,42 @@ export function comparisonCost(
 ): ComparisonCost {
   const preset = mentorPresetOf(job);
   return {
-    hostedUsd:
-      job.student.trainOn === 'hosted' && hostedPricing
-        ? practiceUsd(hostedPricing, estimate)
-        : null,
+    hostedUsd: hostedPracticeUsd(job, estimate, hostedPricing),
     mentorUsd: preset ? mentorUsdFor(preset.pricing, 1) : null,
+  };
+}
+
+/** Training, the final test and, when asked for, the comparison runs, for the "In all" line. */
+export function planSeconds(job: Job, estimate: TimeEstimate, withComparison: boolean): Span {
+  const after = testSeconds(job) + (withComparison ? comparisonSeconds(job, estimate) : 0);
+  return {
+    least: estimate.trainingSeconds.least + after,
+    most: estimate.trainingSeconds.most + after,
+  };
+}
+
+/** The sum of the amounts that have a price, or null when none does. */
+function sumKnown(amounts: readonly (number | null)[]): number | null {
+  const known = amounts.filter((amount): amount is number => amount !== null);
+  return known.length === 0 ? null : known.reduce((total, amount) => total + amount, 0);
+}
+
+/**
+ * The money in the plan: what the agent's own training costs (hosted practice and the mentor's
+ * expected spend, not its cap) and what the comparison runs add. Each is null without a price.
+ */
+export function planUsd(
+  job: Job,
+  estimate: TimeEstimate,
+  hostedPricing: TokenPricing | null | undefined,
+): { own: number | null; comparison: number | null } {
+  const extra = comparisonCost(job, estimate, hostedPricing);
+  return {
+    own: sumKnown([
+      hostedPracticeUsd(job, estimate, hostedPricing),
+      expectedMentorUsd(job, estimate),
+    ]),
+    comparison: sumKnown([extra.hostedUsd, extra.mentorUsd]),
   };
 }
 
@@ -209,9 +251,9 @@ export function formatAbout(seconds: number): string {
   }
   const hours = minutes / 60;
   if (hours < 1.5) return 'About 1 hour';
-  // Under ten hours a half hour still matters: 60 tasks at 2.5 minutes are 2.5 hours, not 3.
-  if (hours < 10) return `About ${Math.round(hours * 2) / 2} hours`;
-  if (hours < 36) return `About ${Math.round(hours)} hours`;
+  // A half hour still matters: 60 tasks at 2.5 minutes are 2.5 hours, not 3, and the parts of
+  // the "In all" line should add up to its total.
+  if (hours < 36) return `About ${Math.round(hours * 2) / 2} hours`;
   return `About ${Math.round(hours / 24)} days`;
 }
 
@@ -258,6 +300,18 @@ export function estimateMentorUsd(job: Job): number | null {
   const preset = mentorPresetOf(job);
   if (!preset) return null;
   return mentorUsdFor(preset.pricing, job.budget.maxRounds);
+}
+
+/** The rounds the mentor is paid for: those that fit in the time limit, else the whole budget. */
+export function mentorRounds(job: Job, estimate: TimeEstimate): number {
+  const { maxRounds } = job.budget;
+  return estimate.rounds.most > 0 ? Math.min(estimate.rounds.most, maxRounds) : maxRounds;
+}
+
+/** What the mentor is expected to cost over those rounds, or null if its price is unknown. */
+export function expectedMentorUsd(job: Job, estimate: TimeEstimate): number | null {
+  const usual = estimateMentorUsd(job);
+  return usual === null ? null : (usual / job.budget.maxRounds) * mentorRounds(job, estimate);
 }
 
 /** "$0.05", "$0.70", "$4.50", "$18": precise enough for an estimate, never falsely exact. */

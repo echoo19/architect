@@ -26,7 +26,7 @@ import {
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const WIDTH = 1440;
 /** Tall enough for each screen's whole page, so a screenshot shows everything on it. */
-const DEFINE_HEIGHT = 1800;
+const DEFINE_HEIGHT = 1920;
 const TRAIN_HEIGHT = 1440;
 const REPORT_HEIGHT = 1660;
 const THEMES = ['dark', 'light'] as const;
@@ -145,6 +145,11 @@ for (const theme of THEMES) {
       page.getByText('Saves without asking; each change still shows in the chat'),
     ).toBeVisible();
     await expect(page.getByText("Can't change your files")).toBeVisible();
+    await expect(
+      page.getByText(
+        "Ask first waits for your OK before opening one. Allow opens it without asking. Never can't open one.",
+      ),
+    ).toBeVisible();
 
     // Training, the final test and the comparison are told apart, and never added together.
     await expect(
@@ -178,7 +183,13 @@ for (const theme of THEMES) {
     await expect(
       page.getByText('About 2.5 hours on this computer, on 60 tasks it has never seen.'),
     ).toBeVisible();
-    await expect(page.getByText('hours in all')).toHaveCount(0);
+    await expect(local).toBeDisabled();
+    await expect(hosted).toBeEnabled();
+    await expect(
+      page.getByText(
+        'In all: about 6.5 hours and about $0.70. Training alone stays within the 4-hour limit.',
+      ),
+    ).toBeVisible();
     // The choices the run below starts with, so every later screen agrees with this one.
     await hosted.click();
     await expect(hosted).toBeChecked();
@@ -186,12 +197,24 @@ for (const theme of THEMES) {
       page.getByText('About 4 hours on OpenRouter. The 4-hour limit ends it after 5 to 10 rounds.'),
     ).toBeVisible();
     await expect(page.getByText('about $0.60 expected, never more than $5')).toBeVisible();
+    // Without the comparison, the plan is training, the final test and Spark's expected cost.
+    await expect(
+      page.getByText(
+        'In all: about 6.5 hours and about $3.50. Training alone stays within the 4-hour limit.',
+      ),
+    ).toBeVisible();
     await page
       .getByRole('checkbox', { name: 'Also train three simpler versions to compare against' })
       .click();
     await expect(
       page.getByText(
-        'Adds about 12 hours, about $3 billed by OpenRouter and about $0.06 of Spark.',
+        'Adds about 11.5 hours, about $3 billed by OpenRouter and about $0.06 of Spark.',
+      ),
+    ).toBeVisible();
+    // Ticked, the plan adds the comparison and says how much of it that is.
+    await expect(
+      page.getByText(
+        'In all: about 18 hours and about $7, of which the optional comparison is about 11.5 hours and about $3. Training alone stays within the 4-hour limit.',
       ),
     ).toBeVisible();
     await capture(page, `flow-define-${theme}`);
@@ -228,7 +251,7 @@ for (const theme of THEMES) {
     const success = page.getByRole('region', { name: 'Check tasks right' });
     const rounds = page.getByRole('region', { name: 'Rounds' });
     await expect(success).toContainText('78%');
-    await expect(success).toContainText('31 of 40 on average, over 2 checks');
+    await expect(success).toContainText('31 of 40 on average, over 2 measurements');
     await expect(success).toContainText('Round 4: being scored');
     await expect(page.getByRole('list', { name: 'Each round' })).toHaveText(
       'PracticeDiagnoseScore',
@@ -293,11 +316,13 @@ for (const theme of THEMES) {
       roundDrawer.getByText('Work in integer cents from start to finish.'),
     ).toBeVisible();
     await expect(roundDrawer).toContainText(
-      '6 more check tasks passed on the first check (26 to 32 of 40). Run a second time to ' +
-        'rule out luck: 10 more over both checks (52 to 62 of 80), and no task type got worse.',
+      '6 more check tasks passed on the first measurement (26 to 32 of 40). Run a second time to ' +
+        'rule out luck: 10 more over both measurements (52 to 62 of 80), and no task type got worse.',
     );
-    await expect(roundDrawer).toContainText("The first check was inside Spark's predicted range.");
-    await expect(roundDrawer.getByText('Average of the two checks')).toBeVisible();
+    await expect(roundDrawer).toContainText(
+      "The first measurement was inside Spark's predicted range.",
+    );
+    await expect(roundDrawer.getByText('Average of the two measurements')).toBeVisible();
     await expect(roundDrawer).not.toContainText('@@');
     await capture(page, `flow-round-${theme}`);
     await page.keyboard.press('Escape');
@@ -358,7 +383,7 @@ for (const theme of THEMES) {
     ).toBeVisible();
     await expect(comparison.getByRole('row', { name: /Architect/ })).toContainText('+52 points');
     await expect(page.getByRole('region', { name: 'What helped most' })).toContainText(
-      '+5 check tasks a check, on average over 2',
+      '+5 check tasks per measurement, on average over 2',
     );
     await expect(page.getByRole('heading', { name: "What it won't do" })).toBeVisible();
     await capture(page, `flow-report-${theme}`);

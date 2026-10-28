@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import type { Job } from '@architect/shared';
-import { Checkbox, cn, Heading, RadioCard, RadioCardGroup, Slider } from '@architect/ui';
+import { Checkbox, Heading, RadioCard, RadioCardGroup, Slider } from '@architect/ui';
 import { RotateCw } from 'lucide-react';
 import { formatUsd } from '../../lib/format';
 import { mentorIntro, studentIntro } from '../../lib/names';
@@ -8,15 +8,20 @@ import { currentPlatform, deviceInSentence, deviceLabel } from '../../lib/platfo
 import { inSentence, listInSentence } from '../../workspace/labels';
 import { modelNames } from '../names';
 import {
+  aboutSpan,
   aboutUsd,
   capText,
   comparisonCost,
   comparisonSeconds,
   estimateMentorUsd,
   estimateTime,
+  expectedMentorUsd,
   finalTestSummary,
   formatAbout,
   limitText,
+  mentorRounds,
+  planSeconds,
+  planUsd,
   practiceUsd,
   roundsLine,
   taskTimeText,
@@ -64,9 +69,8 @@ export function TrainingPlace({
   const biller = provider ?? 'the host';
 
   // The mentor's expected cost counts the rounds that fit in the time limit.
-  const countedRounds =
-    chosen.rounds.most > 0 ? Math.min(chosen.rounds.most, maxRounds) : maxRounds;
-  const expected = usual === null ? null : (usual / maxRounds) * countedRounds;
+  const countedRounds = mentorRounds(job, chosen);
+  const expected = expectedMentorUsd(job, chosen);
   const counted =
     countedRounds < maxRounds
       ? `${countedRounds} rounds, the most that fit in the ${limit} limit`
@@ -78,6 +82,25 @@ export function TrainingPlace({
       formatAbout(comparisonSeconds(job, chosen)),
       ...(extra.hostedUsd === null ? [] : [`${aboutUsd(extra.hostedUsd)} billed by ${biller}`]),
       ...(extra.mentorUsd === null ? [] : [`${aboutUsd(extra.mentorUsd)} of ${mentor}`]),
+    ],
+    'and',
+  );
+
+  // The plan in one line, with the comparison's share named so it can be left out of the sum.
+  const comparing = baselines?.checked === true;
+  const money = planUsd(job, chosen, pricing);
+  const allUsd = money.own === null ? null : money.own + (comparing ? (money.comparison ?? 0) : 0);
+  const inAll = listInSentence(
+    [
+      aboutSpan(planSeconds(job, chosen, comparing)),
+      ...(allUsd === null ? [] : [aboutUsd(allUsd)]),
+    ],
+    'and',
+  );
+  const comparisonShare = listInSentence(
+    [
+      formatAbout(comparisonSeconds(job, chosen)),
+      ...(money.comparison === null ? [] : [aboutUsd(money.comparison)]),
     ],
     'and',
   );
@@ -106,7 +129,11 @@ export function TrainingPlace({
         value={job.student.trainOn}
         onValueChange={onPlaceChange}
       >
-        <RadioCard value="local" title={deviceLabel(currentPlatform())}>
+        <RadioCard
+          value="local"
+          title={deviceLabel(currentPlatform())}
+          unavailable={localSlow !== null}
+        >
           <span>
             {student} practices on {device}, {taskTimeText('local')} a task. The practice is free.
           </span>
@@ -115,10 +142,7 @@ export function TrainingPlace({
         <RadioCard
           value="hosted"
           title={provider ? `Hosted on ${provider}` : 'A hosted copy'}
-          disabled={!hosted.available}
-          className={cn(
-            !hosted.available && 'disabled:opacity-100 [&>span:first-child]:text-fg-muted',
-          )}
+          unavailable={!hosted.available || remoteSlow !== null}
         >
           <span>
             A hosted copy of {student}
@@ -147,6 +171,11 @@ export function TrainingPlace({
         <dt className="text-fg-secondary">Final test</dt>
         <dd className="m-0 text-pretty">{finalTestSummary(job, device)}</dd>
       </dl>
+      <p className="m-0 text-md text-pretty">
+        <span className="font-medium">In all:</span> {inAll}
+        {comparing && `, of which the optional comparison is ${comparisonShare}`}. Training alone
+        stays within the {limit} limit.
+      </p>
       <details className="text-sm text-fg-secondary">
         <summary className="cursor-pointer select-none text-fg-muted transition-colors duration-150 hover:text-fg-secondary">
           How this is estimated
@@ -167,8 +196,8 @@ export function TrainingPlace({
             </li>
           )}
           <li>
-            A round takes longer when its change looks promising, because the change is tested twice
-            before it stays.
+            A round takes longer when its change looks promising, because the change is measured
+            twice before it stays.
           </li>
           {baselines && (
             <li>
@@ -177,6 +206,10 @@ export function TrainingPlace({
               which has the same {capText(maxWallMinutes)} limit.
             </li>
           )}
+          <li>
+            In all adds the lines above, and the comparison when it is ticked. Its dollars add the
+            hosted practice and {mentor}&apos;s expected cost, not its cap.
+          </li>
         </ul>
       </details>
       {onRetryKeys && (

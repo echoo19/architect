@@ -11,7 +11,7 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
   const { run, job, rounds } = live;
   const { student } = modelNames(job);
   const score = run.devCurrent ?? run.devBaseline;
-  // A change checked twice is kept on both checks added up, so the count can span two runs.
+  // A change measured twice is kept on both measurements added up, so the count can span two.
   const runs = score && job.splits.dev > 0 ? Math.round(score.total / job.splits.dev) : 1;
   const input: CurveInput = {
     baseline: run.devBaseline,
@@ -35,7 +35,7 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
             {runs > 1 ? (
               <>
                 {Math.round((score.pass / runs) * 10) / 10} of {job.splits.dev}
-                <span className="font-sans"> on average, over {runs} checks</span>
+                <span className="font-sans"> on average, over {runs} measurements</span>
               </>
             ) : (
               `${score.pass} of ${score.total}`
@@ -45,8 +45,8 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
       </div>
       <p className="m-0 text-fg-secondary text-pretty">
         {student} learns from practice tasks and is scored on separate check tasks, which it never
-        learns from. A change stays only if more of them come out right on two checks, and training
-        ends at the {Math.round(input.target * 100)}% target.
+        learns from. A change stays only if more of them come out right when measured twice, and
+        training ends at the {Math.round(input.target * 100)}% target.
         {input.draftRound &&
           ` Start is ${student} with no instructions; round 1 is its first draft.`}
       </p>

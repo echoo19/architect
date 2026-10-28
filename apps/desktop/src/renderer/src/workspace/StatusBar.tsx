@@ -22,7 +22,7 @@ function Item({ hint, children }: { hint: string; children: ReactNode }) {
   );
 }
 
-/** The agent's quiet status line: its version, the model it runs on, and the mentor switched off. */
+/** The agent's quiet status line: its setup, the model it runs on, and that the mentor isn't connected. */
 export function StatusBar({ agent }: { agent: GraduateSummary }) {
   const { manifest } = agent;
   const mentor = shortModelName(manifest.mentor.label);
@@ -51,7 +51,7 @@ export function StatusBar({ agent }: { agent: GraduateSummary }) {
       </Item>
       <Item hint={`${mentor} only coached this agent during training. Chats stay on ${device}.`}>
         <StatusDot tone="faint" size={6} />
-        {mentorIntro(mentor)}: off
+        {mentorIntro(mentor)}: not connected
       </Item>
     </p>
   );
