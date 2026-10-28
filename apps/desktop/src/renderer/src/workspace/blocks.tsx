@@ -93,7 +93,7 @@ export function TableBlock({
             <>
               <TableRow>
                 <TableCell colSpan={block.columns.length} className="text-sm first:text-fg-muted">
-                  {hidden} more {hidden === 1 ? 'row' : 'rows'} in the total: {hiddenNames}
+                  {hidden} more {hidden === 1 ? 'row' : 'rows'}: {hiddenNames}
                 </TableCell>
               </TableRow>
               <TableRow className={TOTAL_ROW}>
@@ -125,22 +125,26 @@ export interface ApprovalCardProps {
   agent: GraduateSummary;
   /** False once the reply ended without an answer, for example because it was stopped. */
   answerable: boolean;
-  /** Says what Allow and Always allow mean; one card per reply carries it. */
-  explain: boolean;
   onOpenPanel: (content: PanelContent) => void;
+}
+
+/** What a write does to the file's rows: "2 new rows", "1 row changed". */
+function rowCounts({ added, changed, removed }: ApprovalBlockData['diff']): string {
+  const rows = (count: number) => (count === 1 ? 'row' : 'rows');
+  return [
+    added.length > 0 && `${added.length} new ${rows(added.length)}`,
+    changed.length > 0 && `${changed.length} ${rows(changed.length)} changed`,
+    removed.length > 0 && `${removed.length} ${rows(removed.length)} removed`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 /**
  * A write the agent wants to make: what it touches, the rows it writes, and Allow or Deny. A
  * pending write shows its rows from the start, so nothing is allowed unseen.
  */
-export function ApprovalCard({
-  block,
-  agent,
-  answerable,
-  explain,
-  onOpenPanel,
-}: ApprovalCardProps) {
+export function ApprovalCard({ block, agent, answerable, onOpenPanel }: ApprovalCardProps) {
   const previewId = useId();
   const [expanded, setExpanded] = useState(block.status === 'pending');
   const [sending, setSending] = useState<Decision | null>(null);
@@ -216,7 +220,7 @@ export function ApprovalCard({
                 )}
               />
             </span>
-            <span className="text-sm text-fg-muted">{block.summary}</span>
+            <span className="text-sm text-fg-muted">{rowCounts(block.diff) || block.summary}</span>
           </span>
         </button>
         {outcome ?? (
@@ -243,12 +247,6 @@ export function ApprovalCard({
           )}
         </div>
       )}
-      {!outcome && explain && (
-        <p className="m-0 border-t border-line-card px-4 py-2.5 text-sm text-fg-muted text-pretty">
-          Allow once saves these rows. Always allow saves them and stops asking for any file from
-          now on; you can change that under the message box.
-        </p>
-      )}
     </div>
   );
 }
@@ -272,10 +270,11 @@ export function RefusalCard({ block, agent }: { block: RefusalBlockData; agent: 
           {agent.name} doesn&apos;t handle {inSentence(label)}
         </span>
         <span className="text-sm text-fg-secondary text-pretty">{block.reason}</span>
-        <span className="text-sm text-fg-muted text-pretty">
-          You&apos;ll need to handle this one yourself.
-          {handled.length > 0 && ` ${agent.name} can help with ${listInSentence(handled)}.`}
-        </span>
+        {handled.length > 0 && (
+          <span className="text-sm text-fg-muted text-pretty">
+            It can help with {listInSentence(handled)}.
+          </span>
+        )}
       </span>
     </div>
   );

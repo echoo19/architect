@@ -9,7 +9,7 @@ export interface EmptyChatProps {
   onPick: (text: string) => void;
 }
 
-/** A new chat: the agent, what it was trained to do, and a few ways to start. */
+/** A new chat: the agent and a few ways to start, drawn from what it was trained to do. */
 export function EmptyChat({ agent, onPick }: EmptyChatProps) {
   const job = useJob(agent.manifest.jobId);
   // Wait for the job, so the suggestions don't change under the pointer when it arrives.
@@ -17,16 +17,11 @@ export function EmptyChat({ agent, onPick }: EmptyChatProps) {
     job.status === 'loading' ? [] : suggestionsFor(agent.manifest, job.data?.taskTypes);
   return (
     <div className="flex min-h-[52vh] animate-rise flex-col items-center justify-center gap-6">
-      <AgentAvatar name={agent.name} size="lg" />
-      <div className="flex max-w-[520px] flex-col items-center gap-1.5 text-center">
+      <div className="flex flex-col items-center gap-3">
+        <AgentAvatar name={agent.name} size="lg" />
         <Heading as="h2" size="title">
           {agent.name}
         </Heading>
-        {job.data && (
-          <p className="m-0 text-fg-secondary text-pretty">
-            {job.data.summary ?? job.data.description}
-          </p>
-        )}
       </div>
       {suggestions.length > 0 && (
         <div

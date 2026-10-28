@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { GraduateSummary } from '@architect/shared';
-import { Badge, Button, EmptyState, ErrorState, Skeleton, Tooltip } from '@architect/ui';
+import { Badge, Button, EmptyState, ErrorState, Skeleton } from '@architect/ui';
 import { Bot, Laptop } from 'lucide-react';
 import { architect } from '../api/client';
 import { useGraduates, useSettings } from '../api/hooks';
 import { attempt } from '../lib/notify';
-import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 import { WorkspaceHeader } from '../shell/WorkspaceShell';
 import { ChatComposer } from '../workspace/ChatComposer';
@@ -16,18 +15,9 @@ import { SidePanel, type PanelContent } from '../workspace/SidePanel';
 import { sendMessage, useAgentChats, useChatMessages } from '../workspace/store';
 import { useBottomPin } from '../workspace/useBottomPin';
 
-/** The header's status pill. The header drags the window, so the pill opts out to show its tip. */
+/** The header's status pill: the agent makes no network calls beyond its local model. */
 const runningHere = (
-  <Tooltip
-    side="bottom"
-    content={`This agent can't reach the internet. It only talks to the model on ${deviceInSentence(currentPlatform())}.`}
-  >
-    <span tabIndex={0} className="app-no-drag rounded-full">
-      <Badge icon={<Laptop size={14} strokeWidth={1.6} aria-hidden />}>
-        Running on {deviceInSentence(currentPlatform())}
-      </Badge>
-    </span>
-  </Tooltip>
+  <Badge icon={<Laptop size={14} strokeWidth={1.6} aria-hidden />}>Offline</Badge>
 );
 
 /** A chat with one graduated agent, running on this computer. */

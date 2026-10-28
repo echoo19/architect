@@ -152,9 +152,9 @@ for (const theme of THEMES) {
       'Book the earliest technician who can do the job',
     ]);
     await expect(page.getByText('The setup from round 7')).toBeVisible();
-    await expect(page.getByText('Glimmer, 4-bit, on this computer')).toBeVisible();
-    await expect(page.getByText('Spark, the mentor: not connected')).toBeVisible();
-    await expect(page.getByText('Running on this computer')).toBeVisible();
+    await expect(page.getByText('Glimmer 4-bit')).toBeVisible();
+    await expect(page.getByText('Spark not connected')).toBeVisible();
+    await expect(page.getByText('Offline', { exact: true })).toBeVisible();
     await capture(`workspace-new-chat-${theme}.png`);
 
     await suggestions
@@ -193,7 +193,7 @@ for (const theme of THEMES) {
     await expect(page.locator('strong', { hasText: '$524.03' })).toBeVisible();
     const breakdown = page.getByRole('table', { name: 'Price breakdown' });
     await expect(breakdown.getByRole('row')).toHaveCount(6);
-    await expect(breakdown).toContainText('2 more rows in the total: Plan discount, Tax');
+    await expect(breakdown).toContainText('2 more rows: Plan discount, Tax');
     await expect(page.getByRole('button', { name: 'Copy' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Send' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
@@ -223,13 +223,10 @@ for (const theme of THEMES) {
     await expect(preview).toContainText('Added');
     await expect(preview).toContainText('INV-4473');
     await expect(booking.getByRole('table', { name: 'Rows this change writes' })).toBeVisible();
-    await expect(invoices).toContainText(
-      'Allow once saves these rows. Always allow saves them and stops asking',
-    );
-    await expect(booking).not.toContainText('Allow once saves');
-    const waiting = page
-      .getByRole('status')
-      .filter({ hasText: 'Waiting for you to allow or deny the changes above.' });
+    // Each card counts the rows its write touches.
+    await expect(invoices).toContainText('2 new rows');
+    await expect(booking).toContainText('1 new row');
+    const waiting = page.getByRole('status').filter({ hasText: 'Waiting for your approval' });
     await expect(waiting).toBeVisible();
     await capture(`workspace-approval-${theme}.png`);
 
@@ -253,8 +250,7 @@ for (const theme of THEMES) {
     await expect(refusal).toContainText("Service desk doesn't handle refunds");
     await expect(refusal).toContainText("Its job says it won't issue refunds or credits");
     await expect(refusal).toContainText(
-      "You'll need to handle this one yourself. Service desk can help with invoices, overdue " +
-        'balances or scheduling.',
+      'It can help with invoices, overdue balances or scheduling.',
     );
     await capture(`workspace-refusal-${theme}.png`);
   });
