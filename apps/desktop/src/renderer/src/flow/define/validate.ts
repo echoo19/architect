@@ -86,7 +86,7 @@ export function validateJob(job: Job, taskCount: number | null): JobIssues {
   if (student.trainOn === 'hosted' && !student.hosted) {
     add('student.hosted', 'Pick a hosted copy, or train on this computer.');
   }
-  // The spending cap holds only at a known price (decision 029).
+  // The spending cap holds only at a known price (decision 030).
   if (job.mentor.kind === 'model' && !mentorPricing(job.mentor)) {
     add('mentor.pricing', 'Enter what this model costs, so training can keep to the spending cap.');
   }

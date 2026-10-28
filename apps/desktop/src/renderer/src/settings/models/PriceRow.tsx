@@ -15,7 +15,7 @@ function dollars(text: string): number | null {
 
 /**
  * Asks what a model without a known price costs, in dollars per million tokens in and out. The
- * spending cap needs it: a mentor with no price can't be trained with (decision 029).
+ * spending cap needs it: a mentor with no price can't be trained with (decision 030).
  */
 export function PriceRow({ onSave, error }: PriceRowProps) {
   const [input, setInput] = useState('');

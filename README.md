@@ -6,7 +6,7 @@ A strong model, the **mentor**, watches a small local model, the **student**, at
 
 It is meant for people with repetitive work and data they would rather not send to a cloud model on every request: small-business operations, back offices, internal tools.
 
-By default the mentor is Muse Spark 1.3 (Meta Model API) and the student is Muse Glimmer, a 30B open-weight model running locally through Ollama. Both are choices in the job setup.
+By default the mentor is Muse Spark 1.3 (Meta Model API) and the student is Muse Glimmer, a 30B open-weight model running locally through Ollama. Both can be swapped for other models (see [Models](#models)).
 
 ## Install
 
@@ -16,7 +16,29 @@ Download the installer for your computer from the [latest release](https://githu
 
 **macOS.** Open the disk image for your Mac, `arm64` for Apple silicon or `x64` for Intel, and drag Architect into Applications. The app is not signed, so macOS blocks the first launch. Right-click Architect, choose Open, then choose Open again. On macOS 15 and later there may be no Open button; go to System Settings > Privacy & Security and choose Open Anyway instead.
 
-Architect needs Ollama running on the same computer. The first-run screens check for it and say where to get it if it is missing, then download the student model (about 18 GB for Muse Glimmer) and ask for the mentor's API key.
+Architect needs Ollama running on the same computer. The first-run screens check for it and say where to get it if it is missing, then download the student model (about 18 GB for Muse Glimmer, or about 15 GB for the build that fits a 12 GB graphics card) and connect a mentor.
+
+## Models
+
+Meta's models are the defaults. You can pick others in Settings, under Models, or for one job in that job's settings.
+
+The mentor can be:
+
+- Muse Spark 1.3, with a key from Meta.
+- A model from OpenAI, Anthropic or Google Gemini, with that company's API key.
+- Any model on OpenRouter. Instead of pasting a key you can sign in: Architect opens OpenRouter in your browser, and OpenRouter gives the app a key once you approve.
+- A model from any other service that speaks the OpenAI API, such as Groq, Together, DeepInfra or your own vLLM server. You give its address and key.
+- A model already running on your computer in Ollama or LM Studio. It needs no key and costs nothing.
+
+Keys are encrypted on your computer and only ever sent to the service they belong to. A key for an address you typed in goes only to that address.
+
+The spending cap needs to know what the mentor costs. Meta, OpenAI, Anthropic and Gemini models come with their prices, and OpenRouter lists a price for each of its models. For any other model, Architect asks you for its price per million tokens before training starts instead of guessing one.
+
+The student can be any model in Ollama, or any model served by an OpenAI-compatible server on the same computer, such as LM Studio or llama.cpp. Architect reads how much memory your graphics card has and shows whether each model fits on it. Muse Glimmer comes in two builds: the 4-bit one needs about 20 GB of graphics memory, and a 2-bit one runs entirely on a 12 GB card. Architect suggests the build that fits and can install the 2-bit one for you.
+
+To train faster, the student can practice on a hosted copy from OpenRouter, Together, DeepInfra or a similar service. The locked test and every chat with the finished agent still run on your computer.
+
+Prices, endpoints and what was tested live are in [docs/MODELS.md](docs/MODELS.md).
 
 ## How it works
 

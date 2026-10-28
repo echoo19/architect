@@ -13,14 +13,14 @@ flowchart LR
     E --> S1[Tool sandbox<br/>QuickJS in a child process]
     A --> S2[Tool sandbox<br/>QuickJS in a child process]
   end
-  E -- training only --> Mentor[(Mentor<br/>Meta Model API, self-hosted<br/>Spark Open, or a coding agent)]
-  E --> Student[(Student runtime<br/>Ollama on localhost,<br/>or a hosted endpoint in development)]
-  A --> Local[(Ollama on localhost)]
+  E -- training only --> Mentor[(Mentor<br/>Meta Model API, another provider,<br/>a model on localhost, or a coding agent)]
+  E --> Student[(Student runtime<br/>Ollama or another server on localhost,<br/>or a hosted copy for practice)]
+  A --> Local[(Ollama or another server<br/>on localhost)]
 ```
 
 | Process | Owns | Never does |
 | --- | --- | --- |
-| Main | Windows, menus, IPC routing, settings, keys (Electron `safeStorage`), Ollama detection and model pulls | Run training or agent logic |
+| Main | Windows, menus, IPC routing, settings, keys (Electron `safeStorage`) and where each may go, connections and model lists, OpenRouter sign-in, local runtime and GPU detection, model pulls and installs | Run training or agent logic |
 | Renderer | All UI; talks only through the preload bridge (`window.architect`) | Touch Node, the network, or the disk |
 | Engine host (utility process) | Jobs, runs, rounds, the core loop, baselines, evaluation, the vault, SQLite, the run event stream | Serve the workspace |
 | Agent host (utility process) | Workspace sessions with graduates: student calls, harness loading, tool calls, pending writes awaiting approval | Load a mentor adapter or reach a non-loopback host |
@@ -72,7 +72,7 @@ graduates/<graduate>/              graduate folders, format in HARNESS_FORMAT.md
 | --- | --- |
 | `@architect/shared` | zod schemas and types for every contract below, model registry defaults, run events |
 | `@architect/harness` | harness and graduate folders: read, write, validate, diff, version, import, export |
-| `@architect/adapters` | `MentorAdapter` and `StudentAdapter` implementations: OpenAI-compatible base, Meta Model API, self-hosted Spark Open, Ollama |
+| `@architect/adapters` | `MentorAdapter` and `StudentAdapter` implementations: a Chat Completions mentor tuned per provider (Meta, OpenAI, Gemini, OpenRouter, Spark Open hosts, any OpenAI-compatible endpoint, local runtimes), Anthropic's Messages API, Ollama and OpenAI-compatible students, and model lists |
 | `@architect/engine` | splitter and vault, checkers, agent loop, tool host, core loop, baselines, budgets, lineage, storage, engine and agent hosts |
 | `@architect/ui` | tokens, theme, components |
 | `@architect/desktop` | Electron main, preload and renderer |
