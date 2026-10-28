@@ -1,8 +1,10 @@
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_CONFIG,
   DEFAULT_MODELS,
+  probeLocal,
   runComparison,
   type ComparisonConfig,
   type ComparisonRequest,
@@ -135,5 +137,122 @@ describe('the comparisons runner', () => {
     await expect(
       runComparison({ ...small, config: { ...CONFIG, arms: ['bare', 'draft'] } }, world.env),
     ).rejects.toThrow("This folder's plan was confirmed for bare;");
+    await expect(
+      runComparison({ ...small, config: { ...small.config, headroom: 1.5 } }, world.env),
+    ).rejects.toThrow("This folder's plan was confirmed with other settings (headroom)");
+  }, 300_000);
+
+  it("keeps a fixed-size arm whole when prices drift, and drops later arms in 037's order", async () => {
+    const { world, request } = setUp();
+    // Every attempt after calibration reads and writes half as much again.
+    world.runtime.beforeAttempt = () => {
+      if (new ComparisonFiles(world.out).readSweep('calibration').length === 15) {
+        world.runtime.costScale = 1.5;
+      }
+    };
+    const cap = 11.5;
+    const { outcome, report } = await runComparison(
+      { ...request, config: { ...CONFIG, caps: { ...CONFIG.caps, studentUsd: cap } } },
+      world.env,
+    );
+    expect(outcome).toBe('finished');
+    const arm = (id: string) => report.arms.find((item) => item.arm === id);
+    // Bare and draft cost more than their caps foresaw, and still took their locked tests whole.
+    expect(arm('bare')).toMatchObject({ status: 'complete' });
+    expect(arm('bare')?.spent.studentUsd ?? 0).toBeGreaterThan(arm('bare')?.caps.studentUsd ?? 0);
+    expect(arm('draft')).toMatchObject({ status: 'complete' });
+    const hosted = report.backends.find((table) => table.backend === 'hosted');
+    expect(hosted?.rows.map((row) => [row.arm, row.scenarios.total, row.complete])).toEqual([
+      ['bare', 60, true],
+      ['draft', 60, true],
+    ]);
+    // At what attempts cost by then, the credit held for arms 1 and 2 left too little for arm 3.
+    expect(arm('targeted')?.status).toBe('not_run');
+    expect(arm('targeted')?.reason).toMatch(
+      /^It needs \$\d+\.\d\d of student credit at what an attempt has cost so far \(\$0\.0149\)/,
+    );
+    expect(arm('repeat')?.status).toBe('complete');
+    const spent = report.arms.reduce((sum, item) => sum + (item.spent.studentUsd ?? 0), 0);
+    const sweeps = new ComparisonFiles(world.out)
+      .readSweep('calibration')
+      .reduce((sum, attempt) => sum + (attempt.usd ?? 0), 0);
+    expect(spent + sweeps).toBeLessThanOrEqual(cap);
+  }, 300_000);
+
+  it("pays for repeats only while the credit lasts, priced at what each arm's test cost", async () => {
+    const { world, request } = setUp();
+    // Locked tests and repeats read and write three times what calibration did.
+    world.runtime.lockedTestCostScale = 3;
+    const cap = 8;
+    const { report } = await runComparison(
+      {
+        ...request,
+        config: {
+          ...CONFIG,
+          arms: ['bare', 'draft', 'targeted', 'repeat'],
+          caps: { ...CONFIG.caps, studentUsd: cap },
+        },
+      },
+      world.env,
+    );
+    const arm = (id: string) => report.arms.find((item) => item.arm === id);
+    expect(arm('targeted')?.status).toBe('not_run');
+    expect(arm('repeat')).toMatchObject({
+      status: 'stopped',
+      reason: "The student credit left didn't pay for the repeat of the one-shot draft arm.",
+    });
+    const hosted = report.backends.find((table) => table.backend === 'hosted');
+    expect(hosted?.repeats.map((row) => row.arm)).toEqual(['bare']);
+    const spent = report.arms.reduce((sum, item) => sum + (item.spent.studentUsd ?? 0), 0);
+    const sweeps = new ComparisonFiles(world.out)
+      .readSweep('calibration')
+      .reduce((sum, attempt) => sum + (attempt.usd ?? 0), 0);
+    expect(spent + sweeps).toBeLessThanOrEqual(cap);
+  }, 300_000);
+
+  it('refuses a second process on the same folder, and takes over a lock its holder left', async () => {
+    const { world, request } = setUp();
+    mkdirSync(world.out, { recursive: true });
+    const lock = join(world.out, '.comparison.lock');
+    // A live process holds it: the one that started this test.
+    writeFileSync(lock, String(process.ppid));
+    await expect(runComparison(request, world.env)).rejects.toThrow(
+      `Another comparison process (${process.ppid}) is using`,
+    );
+    expect(world.runtime.attempts).toHaveLength(0);
+    // A process that is gone left it.
+    writeFileSync(lock, '99999999');
+    const small = { ...request, config: { ...CONFIG, arms: ['bare' as const] } };
+    expect((await runComparison(small, world.env)).outcome).toBe('finished');
+    expect(existsSync(lock)).toBe(false);
+  }, 300_000);
+
+  it('spends nothing when the local build that freezing pins is out of reach', async () => {
+    const { world, request } = setUp();
+    const { createStudent } = world.env.deps.adapters;
+    world.env.deps.adapters.createStudent = (endpoint, options) => {
+      const student = createStudent(endpoint, options);
+      if (endpoint.runtime !== 'ollama') return student;
+      return { ...student, describe: () => Promise.reject(new Error('connect ECONNREFUSED')) };
+    };
+    await expect(runComparison(request, world.env)).rejects.toThrow(
+      /pins this computer's muse-glimmer:30b-iq2 when it freezes, so ollama must be running with it installed; nothing is loaded\. connect ECONNREFUSED/,
+    );
+    expect(world.runtime.attempts).toHaveLength(0);
+    expect(new ComparisonFiles(world.out).readSweep('calibration')).toHaveLength(0);
+  }, 300_000);
+
+  it('resumes no arm while it probes this computer', async () => {
+    const { world, request } = setUp();
+    world.env.log = (line) => {
+      if (line.startsWith('Targeted mentoring: started run')) throw new Error('Closed mid-run.');
+    };
+    await expect(runComparison(request, world.env)).rejects.toThrow('Closed mid-run.');
+    world.env.log = () => undefined;
+    const before = world.runtime.attempts.length;
+    const probed = await probeLocal(request, world.env, { tasks: 3, meter: null });
+    expect(probed.attempts).toBe(3);
+    // Only the probe's three attempts: the targeted arm's run stayed where it stopped.
+    expect(world.runtime.attempts.length).toBe(before + 3);
   }, 300_000);
 });

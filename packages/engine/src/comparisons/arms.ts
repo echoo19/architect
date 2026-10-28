@@ -106,6 +106,8 @@ export interface StagingContext {
   runOf(arm: ArmId): StoredRun | null;
   /** Spark dollars a run spent, from its cost ledger. */
   sparkSpent(runId: string): number;
+  /** The arm's projected wall clock, which its run's wall cap is set from. */
+  wallMinutes: number;
   /** Writes a harness as a folder `importHarness` reads. */
   writeHarness(dir: string, harness: Harness): Promise<void>;
 }
@@ -120,7 +122,10 @@ async function versionOf(
   return context.deps.harness.versions(dir).load(version);
 }
 
-const wallMinutes = 720;
+/** An arm's wall cap: twice its projected wall clock, never under 12 hours or over a week. */
+function wallCap(projected: number): number {
+  return Math.min(10_080, Math.max(720, Math.ceil(2 * projected)));
+}
 
 /**
  * Every arm's run: its job copy (an id of its own, so a resumed runner finds it again), method,
@@ -137,7 +142,7 @@ export async function armStart(arm: ArmId, context: StagingContext): Promise<Arm
   const budget = (changes: Partial<Job['budget']>): Job['budget'] => ({
     maxRounds: 1,
     maxMentorUsd: 0,
-    maxWallMinutes: wallMinutes,
+    maxWallMinutes: wallCap(context.wallMinutes),
     ...changes,
   });
   switch (arm) {

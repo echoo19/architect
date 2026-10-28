@@ -73,7 +73,7 @@ function sampling(decoding: Decoding | null): string {
 function rowCells(row: ArmRow): string[] {
   return [
     row.label,
-    count(row.scenarios),
+    `${count(row.scenarios)}${row.complete ? '' : ', partial'}`,
     row.perType.map((type) => `${type.label} ${type.pass}/${type.total}`).join(', '),
     String(row.refusals),
     row.latencyMs === null ? '-' : `${seconds(row.latencyMs.p50)} / ${seconds(row.latencyMs.p95)}`,

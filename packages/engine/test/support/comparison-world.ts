@@ -91,6 +91,10 @@ const BASE_RATE: Record<string, number> = {
 export class DryRunRuntime extends FakeRuntime {
   /** Failed train attempts since the mentor last asked, in the order they failed. */
   private trainFailures: string[] = [];
+  /** How many times calibration's tokens an attempt reads and writes: a price that drifts. */
+  costScale = 1;
+  /** The same for locked-test attempts alone, under the declared seeds 101 and 102. */
+  lockedTestCostScale = 1;
   private trainIds = new Set<string>();
 
   constructor() {
@@ -129,10 +133,20 @@ export class DryRunRuntime extends FakeRuntime {
       if (item === undefined) continue;
       const { trace } = item.result;
       // A hosted attempt of the returns desk reads about 30,000 tokens and writes 800.
+      const locked = options.seed === 101 || options.seed === 102;
+      const scale = this.costScale * (locked ? this.lockedTestCostScale : 1);
       for (const step of trace.steps) {
-        if (step.kind === 'model') step.usage = { inputTokens: 15_000, outputTokens: 400 };
+        if (step.kind === 'model') {
+          step.usage = {
+            inputTokens: Math.round(15_000 * scale),
+            outputTokens: Math.round(400 * scale),
+          };
+        }
       }
-      trace.usage = { inputTokens: 30_000, outputTokens: 800 };
+      trace.usage = {
+        inputTokens: Math.round(30_000 * scale),
+        outputTokens: Math.round(800 * scale),
+      };
       if (this.trainIds.has(item.task.id) && !item.result.check.pass) {
         this.trainFailures.push(item.task.id);
       }

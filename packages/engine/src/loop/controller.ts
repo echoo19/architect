@@ -348,8 +348,13 @@ export class RunController {
     });
     // A run still training reads the release when it reaches its test; a parked one goes again.
     const active = this.active.get(runId);
-    if (active) void active.done.then(() => this.requeueReleased(runId));
-    else this.requeueReleased(runId);
+    if (active) {
+      void active.done
+        .then(() => this.requeueReleased(runId))
+        .catch((error: unknown) => this.onError(error));
+    } else {
+      this.requeueReleased(runId);
+    }
   }
 
   /** Queues a released run that parked frozen, waiting for the release. */

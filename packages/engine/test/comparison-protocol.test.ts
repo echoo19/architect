@@ -283,4 +283,26 @@ describe('the runtime meter', () => {
     });
     expect(measured?.seeds).toEqual(engine.store.runs.get(run.id)?.freeze?.testSeeds);
   });
+
+  it('never stops a locked test when it fails to start: that stretch goes unmeasured', async () => {
+    const job = await setUp();
+    world.deps.meter = {
+      start: async () => {
+        throw new Error('nvidia-smi is not installed');
+      },
+    };
+    const run = await engine.controller.start(job.id, 'bare', 7);
+    await engine.controller.idle();
+    expect(engine.store.runs.get(run.id)?.run.status).toBe('finished');
+    expect(engine.store.attempts.list({ runId: run.id, split: 'test' })).toHaveLength(6);
+    expect(engine.store.runtimeMeasurements.list(run.id)).toEqual([]);
+    expect(
+      engine.events.some(
+        (event) =>
+          event.type === 'log' &&
+          event.message ===
+            "The runtime meter couldn't start, so this stretch goes unmeasured: nvidia-smi is not installed",
+      ),
+    ).toBe(true);
+  });
 });

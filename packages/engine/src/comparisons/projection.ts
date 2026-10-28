@@ -358,10 +358,15 @@ function prerequisite(
  * reason. Spark is funded at each arm's own cap, which the engine holds it to; the student's
  * credit at its projection times the headroom, which the runner holds it to.
  */
-export function project(job: Job, config: ComparisonConfig, inputs: ModelInputs): Projection {
+export function project(
+  job: Job,
+  config: ComparisonConfig,
+  inputs: ModelInputs,
+  committedUsd = 0,
+): Projection {
   const requested = new Set(config.arms);
   const funded = new Set<ArmId>();
-  const left = { ...config.caps };
+  const left = { ...config.caps, studentUsd: config.caps.studentUsd - committedUsd };
   const arms: ArmProjection[] = [];
   const total = { studentUsd: 0, sparkUsd: 0, computeUsd: 0, localMinutes: 0 };
   const sum = { studentUsd: 0, sparkUsd: 0, computeUsd: 0, localMinutes: 0, wallMinutes: 0 };
@@ -440,6 +445,7 @@ export function project(job: Job, config: ComparisonConfig, inputs: ModelInputs)
     inputs: Object.values(inputs),
     arms,
     caps: config.caps,
+    committedUsd,
     funded: sum,
     requested: total,
   };

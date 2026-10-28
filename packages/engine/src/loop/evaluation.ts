@@ -192,13 +192,22 @@ async function startMeter(
   const backend =
     config.backend === 'job' ? studentEndpoint(state.job, spec.target).runtime : config.backend;
   const startedAt = state.now();
-  const session = await meter.start({
-    backend,
-    target: spec.target,
-    student,
-    signal: state.signal,
-  });
-  return session === null ? null : { session, backend, startedAt };
+  try {
+    const session = await meter.start({
+      backend,
+      target: spec.target,
+      student,
+      signal: state.signal,
+    });
+    return session === null ? null : { session, backend, startedAt };
+  } catch (error) {
+    state.signal.throwIfAborted();
+    state.log(
+      'warn',
+      `The runtime meter couldn't start, so this stretch goes unmeasured: ${errorMessage(error)}`,
+    );
+    return null;
+  }
 }
 
 /** Files what the meter saw over the stretch; a meter that fails to report loses only its record. */

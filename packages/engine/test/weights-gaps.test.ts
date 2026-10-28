@@ -108,7 +108,7 @@ function delegate(
 /** A worker over the world's data folder with the given backends, wired into its deps. */
 function trainWith(
   backends: Partial<Record<TrainingBackend['kind'], TrainingBackend>>,
-  current: () => TrainingBackend,
+  current: () => TrainingBackend | null,
 ): TrainingWorker {
   const store = new FileTrainingStore(world.dataDir);
   const worker = new TrainingWorker({
@@ -226,47 +226,53 @@ describe('a weights round after decision 045', () => {
     );
   });
 
-  it('never sends a second job when the backend changed between sending and recording it', async () => {
-    const inner = standIn();
-    const other = delegate(inner, { kind: 'hf-jobs', label: 'Another backend' });
-    let current: TrainingBackend = inner;
-    const worker = trainWith({ 'stand-in': inner, 'hf-jobs': other }, () => current);
-    const training = world.deps.training;
-    if (!training) throw new Error('No training deps.');
-    // The app closes after the job was sent and its record written, before the round knew it.
-    let crashed = false;
-    training.worker = {
-      ...training.worker,
-      list: () => worker.list(),
-      get: (id) => worker.get(id),
-      poll: (id, signal) => worker.poll(id, signal),
-      cancel: (id, signal) => worker.cancel(id, signal),
-      usage: (scope, max) => worker.usage(scope, max),
-      submit: async (request, signal) => {
-        const sent = await worker.submit(request, signal);
-        if (!crashed) {
-          crashed = true;
-          throw new Error('The app closed while recording the job.');
-        }
-        return sent;
-      },
-    };
-    const engine = open();
-    const runId = await startArchitect(engine);
-    await engine.controller.idle();
-    expect(engine.store.runs.get(runId)?.run.status).toBe('paused');
-    expect(engine.store.rounds.get(runId, 2)?.round.status).toBe('teaching');
-    expect(worker.list()).toHaveLength(1);
+  it.each([
+    ['another backend', 'other'],
+    ['no backend at all', 'none'],
+  ] as const)(
+    'never sends a second job when, after it was sent, %s is set up',
+    async (_name, after) => {
+      const inner = standIn();
+      const other = delegate(inner, { kind: 'hf-jobs', label: 'Another backend' });
+      let current: TrainingBackend | null = inner;
+      const worker = trainWith({ 'stand-in': inner, 'hf-jobs': other }, () => current);
+      const training = world.deps.training;
+      if (!training) throw new Error('No training deps.');
+      // The app closes after the job was sent and its record written, before the round knew it.
+      let crashed = false;
+      training.worker = {
+        ...training.worker,
+        list: () => worker.list(),
+        get: (id) => worker.get(id),
+        poll: (id, signal) => worker.poll(id, signal),
+        cancel: (id, signal) => worker.cancel(id, signal),
+        usage: (scope, max) => worker.usage(scope, max),
+        submit: async (request, signal) => {
+          const sent = await worker.submit(request, signal);
+          if (!crashed) {
+            crashed = true;
+            throw new Error('The app closed while recording the job.');
+          }
+          return sent;
+        },
+      };
+      const engine = open();
+      const runId = await startArchitect(engine);
+      await engine.controller.idle();
+      expect(engine.store.runs.get(runId)?.run.status).toBe('paused');
+      expect(engine.store.rounds.get(runId, 2)?.round.status).toBe('teaching');
+      expect(worker.list()).toHaveLength(1);
 
-    // A token appeared meanwhile: new jobs would now go to another backend.
-    current = other;
-    await engine.controller.resume(runId);
-    await engine.controller.idle();
-    expect(worker.list()).toHaveLength(1);
-    expect(worker.list()[0]?.backend).toBe('stand-in');
-    expect(engine.store.interventions.get(runId, 2)?.trainingJobId).toBe(worker.list()[0]?.id);
-    expect(engine.store.experiments.list(runId)[1]?.kind).toBe('weights');
-  });
+      // A token appeared meanwhile, or went: new jobs would go elsewhere, or nowhere.
+      current = after === 'other' ? other : null;
+      await engine.controller.resume(runId);
+      await engine.controller.idle();
+      expect(worker.list()).toHaveLength(1);
+      expect(worker.list()[0]?.backend).toBe('stand-in');
+      expect(engine.store.interventions.get(runId, 2)?.trainingJobId).toBe(worker.list()[0]?.id);
+      expect(engine.store.experiments.list(runId)[1]?.kind).toBe('weights');
+    },
+  );
 
   it('records a stopped round at the most its running job can cost, then settles it once it ends', async () => {
     world.cleanup();

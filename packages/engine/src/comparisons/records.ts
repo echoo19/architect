@@ -56,6 +56,32 @@ export const ArmDecisionSchema = z.object({
 });
 export type ArmDecision = z.infer<typeof ArmDecisionSchema>;
 
+/**
+ * Every setting that changes what a comparison spends or measures, as the plan was confirmed
+ * with: a resumed runner refuses other settings, so a resume can't quietly change the plan.
+ */
+export const PlanSettingsSchema = z.object({
+  mentoringSeed: z.number().int(),
+  testSeeds: z.array(z.number().int()),
+  rounds: z.number().int(),
+  weightsRounds: z.number().int(),
+  oneShotPerType: z.number().int(),
+  jobMinutes: z.number().int(),
+  fixedIntervention: z.string(),
+  headroom: z.number(),
+  concurrency: z.number().int(),
+  localOllama: z.boolean(),
+  realCompute: z.boolean(),
+  llamaServer: z.boolean(),
+  sparkCaps: z.record(z.string(), z.number()),
+  studentCaps: z.record(z.string(), z.number()),
+  mentor: z.string(),
+  student: z.string(),
+  providers: z.array(z.string()).nullable(),
+  localModel: z.string(),
+});
+export type PlanSettings = z.infer<typeof PlanSettingsSchema>;
+
 /** The plan as confirmed before any arm spent: fixed, so a resumed runner follows the same one. */
 export const PlanRecordSchema = z.object({
   format: z.literal(1),
@@ -64,6 +90,7 @@ export const PlanRecordSchema = z.object({
   arms: z.array(ArmIdSchema),
   funded: z.array(ArmIdSchema),
   caps: ComparisonCapsSchema,
+  settings: PlanSettingsSchema,
   projection: ProjectionSchema,
   /** Each funded arm's student cap, its locked test's share reserved inside it. */
   studentCaps: z.record(z.string(), z.number().nonnegative()),

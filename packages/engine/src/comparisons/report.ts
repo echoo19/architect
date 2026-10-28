@@ -23,6 +23,7 @@ import type { LoopDeps } from '../loop/deps';
 import { settleExperimentCompute } from '../loop/experiments';
 import { frozenConfig } from '../loop/graduation';
 import { isHeld } from '../loop/protocol';
+import { TRAINING_ENDED } from '../loop/run-state';
 import { percentile } from '../report/report-card';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredAttempt, StoredRun } from '../store/records';
@@ -163,6 +164,7 @@ function rowOf(input: ReportInput, slice: Slice): ArmRow | null {
     harnessHash: frozen?.harnessHash ?? null,
     adapterSha256: slice.arm === 'reference' ? null : (adapter?.sha256 ?? null),
     sampling: frozen?.configuration?.decoding ?? null,
+    complete: attempts.length >= input.base.splits.test,
   };
 }
 
@@ -416,6 +418,17 @@ function spendOf(input: ReportInput, arm: ArmId): Spend {
   };
 }
 
+/** What ends training before its plan did: a stop, a cap, a refusal. */
+const CUT_SHORT: ReadonlySet<keyof typeof TRAINING_ENDED> = new Set([
+  'user',
+  'usd',
+  'wall_clock',
+  'leak',
+  'rejected',
+  'error',
+  'contract',
+]);
+
 /** The status of an arm and why, from its records and the runner's decisions. */
 function statusOf(
   input: ReportInput,
@@ -445,6 +458,8 @@ function statusOf(
     });
     if (records.length === 0) return dropped();
     if (records.every((record) => record.status === 'finished')) {
+      // The runner cut it short: the credit didn't pay for every arm's repeat.
+      if (decision?.kind === 'stopped') return { status: 'stopped', reason: decision.reason };
       return { status: 'complete', reason: null };
     }
     const paused = records.find((record) => record.status === 'paused');
@@ -456,10 +471,14 @@ function statusOf(
   const run = armRun(store, arm);
   if (run === null) return dropped();
   const stopped = decision?.kind === 'stopped' ? decision.reason : null;
+  const ended = run.run.stopReason;
   switch (run.run.status) {
     case 'finished':
-      if (stopped !== null || run.run.stopReason === 'user') {
-        return { status: 'stopped', reason: stopped ?? 'Stopped before training ended.' };
+      if (stopped !== null) return { status: 'stopped', reason: stopped };
+      // A cap or a refusal that ended training cut the arm short; meeting the target or using
+      // every round didn't.
+      if (ended !== undefined && CUT_SHORT.has(ended)) {
+        return { status: 'stopped', reason: TRAINING_ENDED[ended] };
       }
       return { status: 'complete', reason: null };
     case 'stopped':
@@ -471,6 +490,7 @@ function statusOf(
       return { status: 'incomplete', reason: run.run.error ?? 'The run failed.' };
     default:
       if (isHeld(run)) {
+        if (stopped !== null) return { status: 'stopped', reason: stopped };
         return { status: 'incomplete', reason: "Frozen; its locked test wasn't released yet." };
       }
       return { status: 'incomplete', reason: run.run.error ?? `The run is ${run.run.status}.` };
@@ -511,6 +531,19 @@ function notesOf(input: ReportInput, arm: ArmId, run: StoredRun | null, job: Job
   const notes: string[] = [];
   const draft = armRun(store, 'draft');
   switch (arm) {
+    case 'draft': {
+      const kept =
+        run !== null &&
+        store.rounds
+          .list(run.run.id)
+          .some(({ round }) => round.index === 1 && round.decision === 'kept');
+      if (run !== null && run.freeze !== null && !kept) {
+        notes.push(
+          'Its draft was refused even after its fix, so it froze the blank harness: its results are the bare harness again, not a draft.',
+        );
+      }
+      break;
+    }
     case 'targeted':
     case 'fixed':
       if (job?.startingHarness.kind === 'import' && draft !== null) {

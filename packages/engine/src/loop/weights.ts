@@ -1,13 +1,19 @@
 import {
   GuardError,
   TERMINAL_TRAINING_STATES,
+  type Intervention,
   type Lesson,
   type TrainedAdapter,
   type TrainingJobRecord,
   type VerifiedEpisode,
 } from '@architect/shared';
 import { hashFile } from '../training/artifacts';
-import { buildTrainingDataset, DatasetError, writeTrainingDataset } from '../training/dataset';
+import {
+  buildTrainingDataset,
+  DatasetError,
+  readTrainingDataset,
+  writeTrainingDataset,
+} from '../training/dataset';
 import { must } from './errors';
 import { interventionOfRound } from './intervene';
 import type { RunState } from './run-state';
@@ -56,6 +62,11 @@ export async function startTraining(state: RunState, index: number): Promise<voi
       undefined,
       'invalid',
     );
+    return;
+  }
+  const earlier = sentFor(state, training.datasetDir(state.ctx.runId, index));
+  if (earlier !== null) {
+    recordJob(state, index, intervention, earlier);
     return;
   }
   const backend = await training.backend();
@@ -128,6 +139,42 @@ export async function startTraining(state: RunState, index: number): Promise<voi
       return;
     }
   }
+  recordJob(state, index, intervention, record);
+}
+
+/**
+ * A job this run already sent for the examples a round's dataset folder holds, on whatever
+ * backend it went to, unless it failed or was cancelled; null when the round wrote no dataset or
+ * sent nothing yet.
+ */
+function sentFor(state: RunState, dir: string): TrainingJobRecord | null {
+  const training = must(state.ctx.deps.training, 'The training worker');
+  let sha256: string;
+  try {
+    sha256 = readTrainingDataset(dir).manifest.examples_sha256;
+  } catch {
+    return null;
+  }
+  return (
+    training.worker
+      .list()
+      .find(
+        (job) =>
+          job.scope === state.ctx.runId &&
+          job.dataset.sha256 === sha256 &&
+          job.state !== 'failed' &&
+          job.state !== 'cancelled',
+      ) ?? null
+  );
+}
+
+/** Makes a job the round's, which moves the round to training. */
+function recordJob(
+  state: RunState,
+  index: number,
+  intervention: Intervention,
+  record: TrainingJobRecord,
+): void {
   const stored = state.round(index);
   state.ctx.store.transaction(() => {
     state.ctx.store.interventions.put({ ...intervention, trainingJobId: record.id });

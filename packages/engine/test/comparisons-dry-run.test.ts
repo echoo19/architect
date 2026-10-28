@@ -88,8 +88,9 @@ describe('a dry run of every arm on fakes', () => {
     // The dropped arm never started; the stopped one says why and kept to its cap.
     expect(arm('fixed')?.runId).toBeNull();
     expect(arm('fixed')?.reason).toMatch(/^It needs \$\d+\.\d\d of student credit/);
+    // It kept its adopted harness, then stopped at round 2's start, before paying for it.
     expect(arm('weights-targeted')?.reason).toMatch(
-      /^Stopped when its development had spent \$\d+\.\d\d of the \$\d+\.\d\d its student cap allowed\.$/,
+      /^Stopped before round 2: its development had spent \$\d+\.\d\d, and a round at its most with its locked test \(\$\d+\.\d\d at \$\d\.\d{4} an attempt\) would pass its \$1\.00 cap\.$/,
     );
     expect(arm('weights-targeted')?.spent.studentUsd ?? 2).toBeLessThanOrEqual(1);
 

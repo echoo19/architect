@@ -109,6 +109,8 @@ export const ArmRowSchema = z.object({
   harnessHash: z.string().nullable(),
   adapterSha256: z.string().nullable(),
   sampling: DecodingSchema.nullable(),
+  /** False when fewer scenarios ran than the locked test holds: a paused or capped evaluation. */
+  complete: z.boolean(),
 });
 export type ArmRow = z.infer<typeof ArmRowSchema>;
 
@@ -298,6 +300,8 @@ export const ProjectionSchema = z.object({
   inputs: z.array(ProjectionInputSchema),
   arms: z.array(ArmProjectionSchema),
   caps: ComparisonCapsSchema,
+  /** Student dollars spoken for before any arm: calibration paid, the regression check to come. */
+  committedUsd: z.number().nonnegative(),
   /** The funded arms' projections added up. */
   funded: z.object({
     studentUsd: z.number().nonnegative(),
