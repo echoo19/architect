@@ -1,10 +1,15 @@
-import type { Experiment, RunEvent } from '@architect/shared';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { COMPARISON_REPORT_FORMAT, type Experiment, type RunEvent } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { connectEngine, type EngineClient } from '../src/host/client';
 import { createEngineHost, type EngineHost } from '../src/host/engine-host';
+import { DataPaths } from '../src/loop/paths';
 import { STOPPED_ROUND } from '../src/loop/plan';
+import { openEngineStore } from '../src/store/engine-store';
 import { diagnosis, hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
+import { defaultTasks } from './fakes/job';
 import { portPair } from './fakes/ports';
 import { createWorld, type World } from './fakes/world';
 
@@ -153,6 +158,116 @@ describe('the progress and capability numbers', () => {
   });
 });
 
+describe('a correction played back beside its lesson', () => {
+  beforeEach(async () => {
+    world = await createWorld();
+    world.mentor.script = (_request, call) =>
+      call === 1
+        ? diagnosis('Show an invoice done right', {
+            system: 'Service desk.\nfix:invoice',
+            findings: [{ taskId: 'train-invoice-1' }],
+            intervention: { workedExamples: ['invoice'] },
+          })
+        : hypothesis('Nothing more', 'Service desk.\nfix:invoice\nAgain.');
+    // The try from the suspected turn can't be replayed; the whole task then verifies.
+    world.runtime.correction = (_task, start) =>
+      start.kind === 'checkpoint'
+        ? { verified: false, replayed: null, reason: "The replay didn't hold." }
+        : { verified: true };
+  });
+
+  it('keeps the trace of each correction that ran, and none for a try that never did', async () => {
+    const api = await connect();
+    const job = await api.jobs.createSample();
+    const run = await api.runs.start(job.id, { method: 'architect', seed: 7 });
+    await next(api, (event) => settled(event, run.id));
+
+    const lessons = await api.mentoring.lessons(run.id);
+    const tried = lessons.find((lesson) => lesson.kind === 'replay_correction');
+    const whole = lessons.find((lesson) => lesson.kind === 'full_task_demonstration');
+    expect(tried?.status).toBe('rejected');
+    expect(whole?.status).toBe('verified');
+    // Each lesson comes with its train task's request, for the list it shows in.
+    const asked = defaultTasks().find((task) => task.id === 'train-invoice-1')?.prompt;
+    expect(asked).toEqual(expect.any(String));
+    expect(whole?.prompt).toBe(asked);
+    expect(await api.mentoring.lessonTrace(tried?.id ?? '')).toBeNull();
+    const played = await api.mentoring.lessonTrace(whole?.id ?? '');
+    expect(played).toMatchObject({ taskId: 'train-invoice-1', stopReason: 'answer' });
+    expect(played?.finalText).toBe(whole?.turns.at(-1)?.content);
+    await expect(api.mentoring.lessonTrace('lsn_unknown')).rejects.toThrow(
+      'There is no lesson "lsn_unknown".',
+    );
+  });
+
+  it('opens the attempt a finding names, and never a final-test attempt', async () => {
+    const api = await connect();
+    const job = await api.jobs.createSample();
+    const run = await api.runs.start(job.id, { method: 'architect', seed: 7 });
+    await next(api, (event) => settled(event, run.id));
+
+    const [intervention] = await api.mentoring.interventions(run.id);
+    const finding = intervention?.findings[0];
+    const opened = await api.runs.attempt(finding?.attemptId ?? '');
+    expect(opened).toMatchObject({
+      id: finding?.attemptId,
+      taskId: 'train-invoice-1',
+      split: 'train',
+      check: { pass: false },
+    });
+    expect(opened.prompt).toEqual(expect.any(String));
+
+    const engine = openEngineStore(new DataPaths(world.dataDir).database);
+    const tested = engine.attempts.list({ runId: run.id, split: 'test' })[0];
+    engine.close();
+    await expect(api.runs.attempt(tested?.id ?? '')).rejects.toThrow(
+      "A final-test attempt isn't shown on its own; the report card counts it.",
+    );
+  });
+
+  it('serves the runtime meter readings a run has, and a comparisons report only beside its data', async () => {
+    const api = await connect();
+    const job = await api.jobs.createSample();
+    const run = await api.runs.start(job.id, { method: 'architect', seed: 7 });
+    await next(api, (event) => settled(event, run.id));
+
+    // No meter ran, so there is nothing to show; a reading the store has comes back as stored.
+    expect(await api.runs.runtimeMeasurements(run.id)).toEqual([]);
+    const engine = openEngineStore(new DataPaths(world.dataDir).database);
+    const reading = {
+      id: 'msr_first',
+      runId: run.id,
+      split: 'test' as const,
+      target: 'local' as const,
+      config: 'student',
+      harnessVersion: 1,
+      seeds: [101],
+      backend: 'ollama',
+      peakProcessBytes: 19_000_000_000,
+      peakGpuBytes: 7_000_000_000,
+      coldStartMs: 8_400,
+      samples: 12,
+      sampler: 'a meter in a test',
+      startedAt: '2026-10-28T10:00:00.000Z',
+      endedAt: '2026-10-28T10:20:00.000Z',
+    };
+    engine.runtimeMeasurements.insert(reading);
+    engine.close();
+    expect(await api.runs.runtimeMeasurements(run.id)).toEqual([reading]);
+
+    // The runner leaves its report beside the `data` folder it ran in. With none there, or a file
+    // in another format, there is no report; one in its format that doesn't parse says so.
+    const beside = join(world.dataDir, '..', 'report.json');
+    expect(await api.reports.comparisons(run.id)).toBeNull();
+    writeFileSync(beside, JSON.stringify({ format: 'something else', arms: [] }));
+    expect(await api.reports.comparisons(run.id)).toBeNull();
+    writeFileSync(beside, JSON.stringify({ format: COMPARISON_REPORT_FORMAT, arms: [] }));
+    await expect(api.reports.comparisons(run.id)).rejects.toThrow(
+      "doesn't match its format, so it can't be shown",
+    );
+  });
+});
+
 describe('a clarifying question', () => {
   beforeEach(async () => {
     world = await createWorld();
@@ -241,7 +356,7 @@ describe('a clarifying question', () => {
     const [refused] = await api.mentoring.interventions(run.id);
     expect(refused?.status).toBe('invalid');
     expect(refused?.invalidReason).toBe(
-      "A clarification intervention isn't possible in this run: Nobody is there to answer: this run wasn't started from the app.",
+      "The mentor chose to ask a question, which this run can't do. Nobody is there to answer: this run wasn't started from the app.",
     );
   });
 });

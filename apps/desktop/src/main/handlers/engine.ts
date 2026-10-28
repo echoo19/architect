@@ -53,8 +53,10 @@ export function registerEngineHandlers(
     retest: (runId, target) => call((api) => api.runs.retest(runId, target)),
     get: (runId) => call((api) => api.runs.get(runId)),
     list: (jobId) => call((api) => api.runs.list(jobId)),
+    attempt: (attemptId) => call((api) => api.runs.attempt(attemptId)),
     trace: (attemptId) => call((api) => api.runs.trace(attemptId)),
     roundDiff: (runId, round) => call((api) => api.runs.roundDiff(runId, round)),
+    runtimeMeasurements: (runId) => call((api) => api.runs.runtimeMeasurements(runId)),
   });
 
   router.registerHandlers('teach', {
@@ -74,10 +76,12 @@ export function registerEngineHandlers(
   router.registerHandlers('reports', {
     get: (runId, target) => call((api) => api.reports.get(runId, target)),
     list: (runId) => call((api) => api.reports.list(runId)),
+    comparisons: (runId) => call((api) => api.reports.comparisons(runId)),
   });
 
   router.registerHandlers('mentoring', {
     lessons: (runId) => call((api) => api.mentoring.lessons(runId)),
+    lessonTrace: (lessonId) => call((api) => api.mentoring.lessonTrace(lessonId)),
     interventions: (runId) => call((api) => api.mentoring.interventions(runId)),
     experiments: (runId) => call((api) => api.mentoring.experiments(runId)),
     progress: (runId) => call((api) => api.mentoring.progress(runId)),

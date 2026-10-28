@@ -21,6 +21,22 @@ export function signed(value: number): string {
   return '0';
 }
 
+/** "57 of 60 passed": a score in the words every screen uses for one. */
+export function passedOf(score: Score): string {
+  return `${score.pass} of ${score.total} passed`;
+}
+
+/**
+ * A cost as precise as it needs to be: "$0", "$0.0042" for a fraction of a cent, "$1.37".
+ * Mentoring records often cost less than a cent, which "$0.00" would hide.
+ */
+export function formatCost(usd: number): string {
+  if (usd === 0) return '$0';
+  if (usd < 0.0001) return '<$0.0001';
+  if (usd < 0.01) return `$${Number(usd.toPrecision(2))}`;
+  return `$${usd.toFixed(2)}`;
+}
+
 /** "+6 to +9", or one number when the range is a single value. */
 export function formatRange(min: number, max: number): string {
   return min === max ? signed(min) : `${signed(min)} to ${signed(max)}`;

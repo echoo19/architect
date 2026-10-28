@@ -66,7 +66,7 @@ export function ComparisonTable({
       )}
       {rows.status === 'success' && (
         <div className="rounded-xl bg-panel">
-          <Table>
+          <Table aria-label="Compared with simpler methods">
             <TableHeader>
               <TableRow>
                 <TableHead>Method</TableHead>

@@ -100,8 +100,10 @@ export function connectEngine(
       retest: (runId, target) => request('runs.retest', [runId, target]),
       get: (runId) => request('runs.get', [runId]),
       list: (jobId) => request('runs.list', [jobId ?? null]),
+      attempt: (attemptId) => request('runs.attempt', [attemptId]),
       trace: (attemptId) => request('runs.trace', [attemptId]),
       roundDiff: (runId, round) => request('runs.roundDiff', [runId, round]),
+      runtimeMeasurements: (runId) => request('runs.runtimeMeasurements', [runId]),
       onEvent(listener) {
         listeners.add(listener);
         return () => {
@@ -111,6 +113,7 @@ export function connectEngine(
     },
     mentoring: {
       lessons: (runId) => request('mentoring.lessons', [runId]),
+      lessonTrace: (lessonId) => request('mentoring.lessonTrace', [lessonId]),
       interventions: (runId) => request('mentoring.interventions', [runId]),
       experiments: (runId) => request('mentoring.experiments', [runId]),
       progress: (runId) => request('mentoring.progress', [runId]),
@@ -136,6 +139,7 @@ export function connectEngine(
     reports: {
       get: (runId, target) => request('reports.get', [runId, target ?? null]),
       list: (runId) => request('reports.list', [runId]),
+      comparisons: (runId) => request('reports.comparisons', [runId]),
     },
     graduates: {
       list: () => request('graduates.list', []),

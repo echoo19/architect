@@ -79,4 +79,14 @@ describe('missedRequirements', () => {
       ),
     ).toEqual(['task success (84%, needs 90%)', 'answer time (slowest 9.1 s, needs under 8.0 s)']);
   });
+
+  it('says how many tasks a target needs on the test it reports', () => {
+    const short = {
+      ...requirements({ passRate: { target: 0.95, actual: 5 / 6, met: false } }),
+      test: { score: { pass: 5, total: 6 } },
+    } as ReportCard;
+    expect(missedRequirements(short)).toEqual([
+      'task success (5 of 6, 83%; needs 95%, which is 6 of 6)',
+    ]);
+  });
 });

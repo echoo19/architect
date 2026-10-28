@@ -17,11 +17,13 @@ import type {
   Category,
   Experiment,
   Intervention,
-  Lesson,
+  ListedLesson,
   MentoringProgress,
   ReferenceRecord,
 } from './mentoring';
 import type { GpuInfo, ProviderId, StudentBuild, TokenPricing } from './models';
+import type { ComparisonReport } from './comparisons';
+import type { RuntimeMeasurement } from './measurements';
 import type { ReportCard } from './report';
 import type { Method, Round, Run } from './run';
 import type { Attempt, Trace } from './trace';
@@ -225,12 +227,15 @@ export interface ReferenceOptions {
   maxUsd: number;
 }
 
+/** An attempt as the training screen lists it, with its task's request when the task is visible. */
+export type ListedAttempt = Attempt & { prompt?: string };
+
 export interface RunDetail {
   run: Run;
   job: Job;
   rounds: Round[];
   /** Most recent attempts first, train and dev only. */
-  recentAttempts: (Attempt & { prompt?: string })[];
+  recentAttempts: ListedAttempt[];
   lineage: LineageEntry[];
   /**
    * Set when the run is Improve agent's: the agent and version it improves and the lessons it
@@ -390,8 +395,18 @@ export interface ArchitectApi {
     retest(runId: string, target: StudentTarget): Promise<void>;
     get(runId: string): Promise<RunDetail>;
     list(jobId?: string): Promise<Run[]>;
+    /**
+     * One practice or check attempt, with its verdict, for opening it from a record that names
+     * it, such as a finding. A locked-test attempt is refused: the final test shows as counts.
+     */
+    attempt(attemptId: string): Promise<ListedAttempt>;
     trace(attemptId: string): Promise<Trace>;
     roundDiff(runId: string, round: number): Promise<FileDiff[]>;
+    /**
+     * What a runtime meter read while the run's locked tests ran on this computer, oldest first:
+     * peak memory and a cold start (decision 045). None where no meter ran.
+     */
+    runtimeMeasurements(runId: string): Promise<RuntimeMeasurement[]>;
     onEvent(listener: (event: RunEvent) => void): Unsubscribe;
   };
   /**
@@ -400,7 +415,12 @@ export interface ArchitectApi {
    */
   mentoring: {
     /** Verified and rejected, oldest first. */
-    lessons(runId: string): Promise<Lesson[]>;
+    lessons(runId: string): Promise<ListedLesson[]>;
+    /**
+     * What the mentor did as the agent in one lesson's correction, step by step. Null when the
+     * correction never ran (its replay didn't hold, or a guard refused it).
+     */
+    lessonTrace(lessonId: string): Promise<Trace | null>;
     /** One per round that reached a diagnosis, accepted or refused. */
     interventions(runId: string): Promise<Intervention[]>;
     /** One per round that ended, rejected, invalid and stopped ones included, by round. */
@@ -454,6 +474,12 @@ export interface ArchitectApi {
     get(runId: string, target?: StudentTarget): Promise<ReportCard>;
     /** The student endpoints the run has a report card from, oldest card first. */
     list(runId: string): Promise<StudentTarget[]>;
+    /**
+     * The comparisons runner's report the run is an arm of (decision 045), when the app runs on
+     * that comparison's data folder and the report sits beside it, as the runner leaves them.
+     * Null otherwise.
+     */
+    comparisons(runId: string): Promise<ComparisonReport | null>;
   };
   graduates: {
     list(): Promise<GraduateSummary[]>;

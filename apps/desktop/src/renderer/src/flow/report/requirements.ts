@@ -8,7 +8,14 @@ export function missedRequirements(report: ReportCard): string[] {
   if (!passRate.met) {
     const actual = Math.round(passRate.actual * 100);
     const target = Math.round(passRate.target * 100);
-    missed.push(`task success (${actual}%, needs ${target}%)`);
+    // On a short test a target is a count of tasks; say it, since 95% of 6 is all 6.
+    const total = report.test?.score.total;
+    const needed = total ? Math.ceil(passRate.target * total - 1e-9) : null;
+    missed.push(
+      needed === null
+        ? `task success (${actual}%, needs ${target}%)`
+        : `task success (${report.test.score.pass} of ${total}, ${actual}%; needs ${target}%, which is ${needed} of ${total})`,
+    );
   }
   if (p95LatencyMs && !p95LatencyMs.met) {
     const actual = formatAnswerTime(p95LatencyMs.actual);

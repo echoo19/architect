@@ -1,8 +1,10 @@
-import type { Round } from '@architect/shared';
-import { Heading, Panel, Spinner } from '@architect/ui';
+import type { Experiment, Round } from '@architect/shared';
+import { cn, Heading, Panel, Spinner } from '@architect/ui';
 import { CircleAlert } from 'lucide-react';
 import { formatRange } from '../format';
+import { outcomeNote } from './decision';
 import { draftRoundOf } from './draft';
+import { DISPOSITIONS } from './evidence-words';
 import { failureLine } from './failure-line';
 import type { ModelNames } from './phase';
 import { latestFailure, roundAttempts, type LiveRun, type RecentAttempt } from './run-state';
@@ -65,20 +67,31 @@ function roundHeading(round: Round | null, draft: boolean): string {
   return round.title ? `Round ${round.index}: ${round.title}` : `Round ${round.index}`;
 }
 
-/** What the student just got wrong, what the mentor makes of it, and what it expects to gain. */
+/**
+ * What the student just got wrong, what the mentor makes of it, and what it expects to gain;
+ * once the round has ended, how its change ended too.
+ */
 export function CurrentRound({
   live,
   round,
   names,
+  experiment,
+  recordsFailed,
 }: {
   live: LiveRun;
   round: Round | null;
   names: ModelNames;
+  /** The round's experiment record, once it has one. */
+  experiment: Experiment | undefined;
+  /** The mentoring records couldn't be read, so an ended round's result is unknown here. */
+  recordsFailed: boolean;
 }) {
   const draft = round !== null && round.index === draftRoundOf(live);
   const failure = round && !draft ? latestFailure(live, round.index) : null;
   const working = ACTIVE.has(live.run.status);
-  const { predicted } = round ?? {};
+  const predicted = round?.predicted;
+  const ended = experiment && !draft ? experiment : undefined;
+  const over = round !== null && (round.status === 'decided' || round.status === 'failed');
   return (
     <Panel padded aria-label="Current round" className="min-w-0 flex-[5_1_360px]">
       <div className="flex items-center justify-between gap-3">
@@ -109,19 +122,51 @@ export function CurrentRound({
           {live.notice.message}
         </p>
       )}
-      <div className="mt-auto flex items-baseline justify-between gap-3 border-t border-line-row-strong pt-[18px]">
-        <span className="text-fg-secondary">{names.mentor} expects</span>
-        {predicted ? (
-          <span>
-            <span className="font-mono tabular-nums">
-              {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)}
-            </span>{' '}
-            <span className="text-fg-secondary">check tasks</span>
+      <div className="mt-auto flex flex-col gap-3 border-t border-line-row-strong pt-[18px]">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-fg-secondary">
+            {names.mentor} {ended || over ? 'expected' : 'expects'}
           </span>
+          {predicted ? (
+            <span>
+              <span className="font-mono tabular-nums">
+                {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)}
+              </span>{' '}
+              <span className="text-fg-secondary">check tasks</span>
+            </span>
+          ) : (
+            <span className="text-fg-muted">–</span>
+          )}
+        </div>
+        {ended ? (
+          <Outcome experiment={ended} live={live} />
         ) : (
-          <span className="text-fg-muted">–</span>
+          over &&
+          !draft &&
+          recordsFailed && (
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-fg-secondary">Result</span>
+              <span className="text-fg-muted">–</span>
+            </div>
+          )
         )}
       </div>
     </Panel>
+  );
+}
+
+/** How the round's change ended: its disposition, and in a few words why it isn't kept. */
+function Outcome({ experiment, live }: { experiment: Experiment; live: LiveRun }) {
+  const { label, icon: Icon, tone } = DISPOSITIONS[experiment.disposition];
+  const note = outcomeNote(experiment, live.job);
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="text-fg-secondary">Result</span>
+      <span className="flex min-w-0 items-center gap-2">
+        <Icon size={14} strokeWidth={2} aria-hidden className={cn('shrink-0', tone)} />
+        <span className={tone}>{label}</span>
+        {note && <span className="truncate text-fg-secondary">· {note}</span>}
+      </span>
+    </div>
   );
 }

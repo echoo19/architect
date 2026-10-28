@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 import { Dialog as RadixDialog } from 'radix-ui';
 import { cn } from '../lib/cn';
 import { IconButton } from './icon-button';
@@ -13,6 +13,8 @@ export interface DrawerContentProps {
   subtitle?: ReactNode;
   /** Controls in the header, left of the close button. */
   actions?: ReactNode;
+  /** When one drawer leads to another, the way back to the one before, left of the title. */
+  onBack?: () => void;
   /** A bar pinned along the bottom, such as a form's buttons, so it stays in view. */
   footer?: ReactNode;
   children: ReactNode;
@@ -27,6 +29,7 @@ export function DrawerContent({
   title,
   subtitle,
   actions,
+  onBack,
   footer,
   children,
   className,
@@ -53,9 +56,21 @@ export function DrawerContent({
           className,
         )}
       >
-        <div className="flex min-h-[60px] shrink-0 items-start gap-3 border-b border-line-card py-2.5 pl-6 pr-3">
+        <div
+          className={cn(
+            'flex min-h-[60px] shrink-0 items-start gap-3 border-b border-line-card py-2.5 pr-3',
+            onBack ? 'pl-3' : 'pl-6',
+          )}
+        >
+          {onBack && (
+            <IconButton label="Back" onClick={onBack}>
+              <ArrowLeft size={16} strokeWidth={1.8} aria-hidden />
+            </IconButton>
+          )}
           <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1.5">
-            <RadixDialog.Title className="m-0 break-words text-md font-medium text-pretty">
+            {/* Three lines at most: a long title, such as a task's whole request, keeps the
+                drawer's body in view. Its full text is still the dialog's accessible name. */}
+            <RadixDialog.Title className="m-0 line-clamp-3 break-words text-md font-medium text-pretty">
               {title}
             </RadixDialog.Title>
             {subtitle && <span className="text-sm text-fg-muted text-pretty">{subtitle}</span>}
@@ -75,5 +90,41 @@ export function DrawerContent({
         )}
       </RadixDialog.Content>
     </RadixDialog.Portal>
+  );
+}
+
+export interface DrawerSectionProps {
+  title: string;
+  /** `mentor` sets the title in the mentor's color, for what the mentor wrote. */
+  tone?: 'default' | 'mentor';
+  /** Controls at the right of the title. */
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}
+
+/** One titled part of a drawer, such as "Spark's diagnosis" or "Files changed". */
+export function DrawerSection({
+  title,
+  tone = 'default',
+  actions,
+  children,
+  className,
+}: DrawerSectionProps) {
+  return (
+    <section aria-label={title} className={cn('flex min-w-0 flex-col gap-3', className)}>
+      <div className="flex min-h-[30px] items-center justify-between gap-3">
+        <h3
+          className={cn(
+            'm-0 text-sm font-medium',
+            tone === 'mentor' ? 'text-mentor' : 'text-fg-secondary',
+          )}
+        >
+          {title}
+        </h3>
+        {actions}
+      </div>
+      {children}
+    </section>
   );
 }

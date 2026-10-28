@@ -239,6 +239,10 @@ export const LessonSchema = z.object({
 });
 export type Lesson = z.infer<typeof LessonSchema>;
 
+/** A lesson as the training screen lists it, with its train task's request. */
+export const ListedLessonSchema = LessonSchema.extend({ prompt: z.string().optional() });
+export type ListedLesson = z.infer<typeof ListedLessonSchema>;
+
 /** Who attempts a task: the student, or the mentor's model run as a reference. */
 export const ActorSchema = z.enum(['student', 'reference']);
 export type Actor = z.infer<typeof ActorSchema>;

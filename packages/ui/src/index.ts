@@ -46,7 +46,28 @@ export {
   DialogTrigger,
   type DialogContentProps,
 } from './components/dialog';
-export { Drawer, DrawerContent, type DrawerContentProps } from './components/drawer';
+export {
+  DetailList,
+  Disclosure,
+  type DetailItem,
+  type DetailListProps,
+  type DisclosureProps,
+} from './components/disclosure';
+export {
+  Drawer,
+  DrawerContent,
+  DrawerSection,
+  type DrawerContentProps,
+  type DrawerSectionProps,
+} from './components/drawer';
+export {
+  EvidenceMark,
+  EvidenceMeter,
+  evidenceLabel,
+  type EvidenceKind,
+  type EvidenceMarkProps,
+  type EvidenceMeterProps,
+} from './components/evidence';
 export {
   EmptyState,
   ErrorState,
@@ -115,6 +136,15 @@ export {
 export { ReplyComposer, type ReplyComposerProps } from './components/reply-composer';
 export { ScrollArea, type ScrollAreaProps } from './components/scroll-area';
 export { Segmented, type SegmentedOption, type SegmentedProps } from './components/segmented';
+export {
+  StepList,
+  StepListItem,
+  StepListNav,
+  type StepListItemProps,
+  type StepListNavProps,
+  type StepListProps,
+  type StepTone,
+} from './components/step-list';
 export { Select, type SelectOption, type SelectProps } from './components/select';
 export {
   SettingsDialog,

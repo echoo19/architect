@@ -61,6 +61,10 @@ export interface CurveGeometry {
   line: Point[];
   /** Reverted rounds: a dashed branch from the line to what the change measured. */
   branches: Branch[];
+  /**
+   * Where the kept setup was last measured, which is the score the agent has now. The line runs
+   * on flat past it through rounds that kept nothing, but they measured nothing new.
+   */
   head: Point | null;
   /** The round still running, marked on the axis at its own round until it is measured. */
   pending: { round: number; x: number } | null;
@@ -79,6 +83,8 @@ function isSettled(round: Round): boolean {
 interface Step {
   round: number;
   value: number;
+  /** The value is the kept setup's own measurement here, not one carried over from before. */
+  measured: boolean;
   reverted?: number;
 }
 
@@ -86,17 +92,22 @@ interface Step {
 function steps(input: CurveInput): Step[] {
   const start = baselineOf(input);
   if (!start) return [];
-  const result: Step[] = [{ round: 0, value: rate(start) }];
+  const result: Step[] = [{ round: 0, value: rate(start), measured: true }];
   let current = rate(start);
   for (const round of input.rounds) {
     if (!isSettled(round)) break;
     if (round.decision === 'kept' && round.devAfter) {
       current = rate(round.devAfter);
-      result.push({ round: round.index, value: current });
+      result.push({ round: round.index, value: current, measured: true });
     } else if (round.decision === 'reverted' && round.devAfter) {
-      result.push({ round: round.index, value: current, reverted: rate(round.devAfter) });
+      result.push({
+        round: round.index,
+        value: current,
+        measured: false,
+        reverted: rate(round.devAfter),
+      });
     } else {
-      result.push({ round: round.index, value: current });
+      result.push({ round: round.index, value: current, measured: false });
     }
   }
   return result;
@@ -137,7 +148,8 @@ export function curveGeometry(input: CurveInput): CurveGeometry {
     }
   });
 
-  const head = line.at(-1) ?? null;
+  const lastMeasured = history.reduce((at, step, index) => (step.measured ? index : at), -1);
+  const head = line[lastMeasured] ?? null;
   const open = input.rounds.find((round) => !isSettled(round));
   const pending = head && open ? { round: open.index, x: x(open.index) } : null;
 

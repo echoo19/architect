@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,6 +34,16 @@ export interface LaunchOptions {
   env?: Record<string, string>;
   /** Settings the profile starts with; defaults for the rest. */
   settings?: Partial<AppSettings>;
+  /**
+   * A data folder the profile starts as a copy of, such as a recorded run, so the app's real
+   * engine reads its records. The folder itself is never changed.
+   */
+  data?: string;
+  /**
+   * A comparisons runner's output folder to open as the runner left it: the profile is a copy
+   * of its `data` folder, with its `report.json` beside it. The folder itself is never changed.
+   */
+  comparison?: string;
   /** Fills the throwaway profile before the app starts, such as with a graduate. */
   prepare?: (userData: string) => Promise<void>;
 }
@@ -57,7 +67,14 @@ function noHub(userData: string): Record<string, string> {
  * hidden window and a throwaway profile.
  */
 export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedApp> {
-  const userData = await mkdtemp(join(tmpdir(), 'architect-e2e-'));
+  const profile = await mkdtemp(join(tmpdir(), 'architect-e2e-'));
+  // A comparison's data sits in its `data` folder, where the engine looks for the report beside.
+  const userData = options.comparison ? join(profile, 'data') : profile;
+  if (options.data) await cp(options.data, userData, { recursive: true });
+  if (options.comparison) {
+    await cp(join(options.comparison, 'data'), userData, { recursive: true });
+    await cp(join(options.comparison, 'report.json'), join(profile, 'report.json'));
+  }
   if (options.settings) {
     await writeFile(join(userData, 'settings.json'), JSON.stringify(options.settings));
   }
@@ -82,7 +99,7 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
     page,
     close: async () => {
       await app.close();
-      await rm(userData, { recursive: true, force: true });
+      await rm(profile, { recursive: true, force: true });
     },
   };
 }

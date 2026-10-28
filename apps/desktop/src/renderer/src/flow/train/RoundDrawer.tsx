@@ -1,21 +1,49 @@
 import type { ReactNode } from 'react';
-import type { FileDiff, Job, LineageEntry, Round, Score } from '@architect/shared';
-import { cn, DrawerContent, ErrorState, Skeleton, Spinner } from '@architect/ui';
-import { Check, FilePen, Undo2 } from 'lucide-react';
+import type {
+  Category,
+  Experiment,
+  ExperimentDisposition,
+  FileDiff,
+  Finding,
+  Intervention,
+  Job,
+  LineageEntry,
+  ListedLesson,
+  Round,
+  Score,
+} from '@architect/shared';
+import { cn, DrawerContent, DrawerSection, ErrorState, Skeleton, Spinner } from '@architect/ui';
+import { FilePen } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { useQuery } from '../../api/query';
 import { formatRange, formatRate, signed } from '../format';
 import { typeLabel } from '../names';
-import { decisionSentence, predictionCheck } from './decision';
+import { decisionSentence, harmSentence, predictionCheck } from './decision';
 import { PatchLines } from '../../components/PatchLines';
 import { countChanges, parseUnifiedDiff } from './diff';
+import {
+  checkMeasurements,
+  DISPOSITIONS,
+  FIRST_DRAFT,
+  INTERVENTIONS,
+  sentence,
+} from './evidence-words';
+import {
+  CheckTasks,
+  ExperimentDetails,
+  Findings,
+  Gates,
+  InterventionLine,
+  RoundCost,
+  RoundExamples,
+} from './ExperimentSections';
 import type { ModelNames } from './phase';
 
 const STATUS_TEXT: Record<Round['status'], string> = {
   attempting: 'Working through practice tasks',
   diagnosing: 'Waiting for the diagnosis',
   teaching: 'Checking corrections of the failures',
-  training: 'Training an adapter on the corrections',
+  training: 'Training weights on the corrections',
   clarifying: 'Waiting for your answer',
   evaluating: 'Scoring the change on the check tasks',
   decided: 'Decided',
@@ -32,14 +60,50 @@ function lines(count: number): string {
   return `${count} ${count === 1 ? 'line' : 'lines'}`;
 }
 
-/** What the drawer is about: the mentor's one change, and how many files it touched. */
-function changeSummary(mentor: string, lineage: LineageEntry | undefined): string {
+/** What the drawer is about: the intervention's type, and how many files the change touched. */
+function subtitleOf(
+  mentor: string,
+  lineage: LineageEntry | undefined,
+  intervention: Intervention | undefined,
+  draft: boolean,
+): ReactNode {
+  const { label, icon: Icon } = draft
+    ? FIRST_DRAFT
+    : intervention
+      ? INTERVENTIONS[intervention.type]
+      : FIRST_DRAFT;
   const count = lineage?.files.length ?? 0;
-  if (count === 0) return `${mentor}'s change`;
-  return `${mentor} changed ${count === 1 ? 'one file' : `${count} files`}`;
+  const files =
+    count === 0 ? null : `${mentor} changed ${count === 1 ? 'one file' : `${count} files`}`;
+  if (!draft && !intervention) return files ?? `${mentor}'s change`;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-2">
+      <span className="inline-flex items-center gap-1.5">
+        <Icon size={13} strokeWidth={1.8} aria-hidden className="text-mentor" />
+        {label}
+      </span>
+      {files && (
+        <>
+          <span aria-hidden>·</span>
+          <span>{files}</span>
+        </>
+      )}
+    </span>
+  );
 }
 
-/** One round in full: the decision, the diagnosis, and the files the change touched. */
+/** A round's records from mentoring, as the drawer reads them. */
+export interface RoundEvidence {
+  experiment: Experiment | undefined;
+  intervention: Intervention | undefined;
+  lessons: readonly ListedLesson[];
+  categories: readonly Category[];
+}
+
+/**
+ * One round in full: how it ended and why, what Spark found and chose, the examples it verified,
+ * the check tasks the change was measured on, the gates, what it cost, and the files it changed.
+ */
 export function RoundDrawerContent({
   runId,
   round,
@@ -47,6 +111,10 @@ export function RoundDrawerContent({
   job,
   lineage,
   names,
+  evidence,
+  onOpenLesson,
+  onOpenFinding,
+  onBack,
 }: {
   runId: string;
   round: Round;
@@ -55,8 +123,22 @@ export function RoundDrawerContent({
   job: Job;
   lineage: LineageEntry | undefined;
   names: ModelNames;
+  /** The round's mentoring records; an error when they couldn't be read. */
+  evidence:
+    | { status: 'loading' }
+    | { status: 'error'; error: Error; reload: () => void }
+    | {
+        status: 'success';
+        data: RoundEvidence;
+      };
+  onOpenLesson: (lesson: ListedLesson) => void;
+  onOpenFinding: (finding: Finding) => void;
+  onBack?: (() => void) | undefined;
 }) {
   const title = `Round ${round.index}${round.title ? `: ${round.title}` : ''}`;
+  const records = evidence.status === 'success' ? evidence.data : null;
+  const experiment = records?.experiment;
+  const intervention = records?.intervention;
   const measured =
     round.devBefore && round.devAfter ? round.devAfter.pass - round.devBefore.pass : null;
   // The prediction is for one measurement, so a change measured twice is set beside its first.
@@ -64,18 +146,22 @@ export function RoundDrawerContent({
   const firstMeasured = first ? first.devAfter.pass - first.devBefore.pass : measured;
   const second =
     first && round.devBefore && round.devAfter ? secondMeasurement(first, round) : null;
+  // A round refused or cut short keeps its prediction on the intervention alone.
+  const predicted = round.predicted ?? intervention?.predicted;
+  const unmeasured = experiment?.disposition === 'invalid' || experiment?.disposition === 'stopped';
   return (
     <DrawerContent
       title={title}
-      subtitle={draft ? `${names.mentor}'s first full draft` : changeSummary(names.mentor, lineage)}
+      onBack={onBack}
+      subtitle={subtitleOf(names.mentor, lineage, intervention, draft)}
     >
       <div className="flex flex-col gap-7">
         {draft ? (
           <DraftDecision round={round} names={names} />
         ) : (
-          <Decision round={round} job={job} lineage={lineage} />
+          <Decision round={round} job={job} lineage={lineage} experiment={experiment} />
         )}
-        {round.error && (
+        {round.error && experiment === undefined && (
           <ErrorState layout="inline" title="This round failed" message={round.error} />
         )}
 
@@ -83,14 +169,16 @@ export function RoundDrawerContent({
           <Effect
             label={`${names.mentor} expected`}
             note={
-              round.predicted && firstMeasured !== null
-                ? predictionCheck(round.predicted, firstMeasured)
+              predicted && firstMeasured !== null && !unmeasured
+                ? predictionCheck(predicted, firstMeasured)
                 : undefined
             }
+            /* Measured twice, the prediction heads both measurements on a row of its own. */
+            wide={second !== null}
           >
-            {round.predicted ? (
+            {predicted ? (
               <>
-                {formatRange(round.predicted.devDeltaMin, round.predicted.devDeltaMax)}
+                {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)}
                 <Unit>check tasks</Unit>
               </>
             ) : (
@@ -101,62 +189,122 @@ export function RoundDrawerContent({
             label={first ? 'First measurement' : 'Measured'}
             note={rateChange(first ?? round)}
           >
-            <TaskCount delta={firstMeasured} />
+            {unmeasured ? (
+              <span className="font-sans text-md text-fg-muted">Not measured</span>
+            ) : (
+              <TaskCount delta={firstMeasured} />
+            )}
           </Effect>
           {second && (
-            <>
-              <Effect label="Measured again" note={rateChange(second)}>
-                <TaskCount delta={second.devAfter.pass - second.devBefore.pass} />
-              </Effect>
-              <Effect label="Average" note={rateChange(round)}>
-                <TaskCount delta={measured === null ? null : measured / 2} />
-              </Effect>
-            </>
+            <Effect label="Measured again" note={rateChange(second)}>
+              <TaskCount delta={second.devAfter.pass - second.devBefore.pass} />
+            </Effect>
           )}
         </dl>
 
-        {round.diagnosis && (
-          <Block
+        {(round.diagnosis || intervention) && (
+          <DrawerSection
             title={draft ? `What ${names.mentor} set out to do` : `${names.mentor}'s diagnosis`}
             tone="mentor"
           >
-            <p className="m-0 whitespace-pre-wrap text-md text-fg-soft text-pretty">
-              {round.diagnosis}
-            </p>
-            {round.predicted?.rationale && (
-              <p className="m-0 text-fg-secondary text-pretty">
-                Why it expected that: {round.predicted.rationale}
+            {round.diagnosis && (
+              <p className="m-0 whitespace-pre-wrap text-md text-fg-soft text-pretty">
+                {round.diagnosis}
               </p>
             )}
-          </Block>
+            {predicted?.rationale && (
+              <p className="m-0 text-fg-secondary text-pretty">
+                Why it expected that: {predicted.rationale}
+              </p>
+            )}
+            {intervention && !draft && <InterventionLine intervention={intervention} />}
+          </DrawerSection>
         )}
 
-        {lineage && lineage.measured.perType.length > 0 && (
-          <Block title={first ? 'By task type, over both measurements' : 'By task type'}>
-            <ul className="m-0 flex list-none flex-col p-0">
-              {lineage.measured.perType.map((type) => (
-                <li
-                  key={type.type}
-                  className="flex items-baseline justify-between border-t border-line-row py-2 first:border-t-0"
-                >
-                  <span>{typeLabel(job, type.type)}</span>
-                  <span className="text-sm text-fg-secondary">
-                    <span className="font-mono tabular-nums text-fg">
-                      {signed(type.after - type.before)}
-                    </span>{' '}
-                    {Math.abs(type.after - type.before) === 1 ? 'task' : 'tasks'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Block>
+        {evidence.status === 'loading' && (
+          <div
+            aria-busy="true"
+            aria-label="Loading the round's records"
+            className="flex flex-col gap-2"
+          >
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-24 w-full" />
+          </div>
         )}
+        {evidence.status === 'error' && (
+          <ErrorState
+            layout="inline"
+            title="Couldn't load this round's findings, examples, check tasks and costs"
+            message={evidence.error.message}
+            onRetry={evidence.reload}
+          />
+        )}
+        {records && intervention && (
+          <Findings
+            intervention={intervention}
+            job={job}
+            categories={records.categories}
+            names={names}
+            onOpenAttempt={onOpenFinding}
+          />
+        )}
+        {records && (
+          <RoundExamples
+            lessons={records.lessons}
+            intervention={intervention}
+            job={job}
+            onOpen={onOpenLesson}
+          />
+        )}
+        {experiment && checkMeasurements(experiment).length > 0 ? (
+          <CheckTasks experiment={experiment} job={job} names={names} />
+        ) : (
+          // A round from before experiments has only its lineage; one whose records failed to
+          // load shows the error above, not a coarser table in their place.
+          records &&
+          lineage &&
+          lineage.measured.perType.length > 0 && (
+            <ByTaskType lineage={lineage} job={job} twice={first !== undefined} />
+          )
+        )}
+        {experiment && <Gates experiment={experiment} />}
+        {experiment && <RoundCost experiment={experiment} names={names} />}
 
-        <Block title={draft ? 'Files written' : 'Files changed'}>
-          <RoundFiles runId={runId} round={round} />
-        </Block>
+        <DrawerSection title={filesTitle(draft, experiment?.disposition)}>
+          <RoundFiles
+            runId={runId}
+            round={round}
+            // Trained weights change no files, so only a change to the setup says why it has none.
+            disposition={intervention?.type === 'weights' ? undefined : experiment?.disposition}
+          />
+        </DrawerSection>
+        {experiment && <ExperimentDetails experiment={experiment} intervention={intervention} />}
       </div>
     </DrawerContent>
+  );
+}
+
+/** Per task type, the change in check-task passes, for a round recorded before experiments. */
+function ByTaskType({ lineage, job, twice }: { lineage: LineageEntry; job: Job; twice: boolean }) {
+  return (
+    <DrawerSection title={twice ? 'By task type, over both measurements' : 'By task type'}>
+      <ul className="m-0 flex list-none flex-col p-0">
+        {lineage.measured.perType.map((type) => (
+          <li
+            key={type.type}
+            className="flex items-baseline justify-between border-t border-line-row py-2 first:border-t-0"
+          >
+            <span>{typeLabel(job, type.type)}</span>
+            <span className="text-sm text-fg-secondary">
+              <span className="font-mono tabular-nums text-fg">
+                {signed(type.after - type.before)}
+              </span>{' '}
+              {Math.abs(type.after - type.before) === 1 ? 'task' : 'tasks'}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </DrawerSection>
   );
 }
 
@@ -188,18 +336,51 @@ function DraftDecision({ round, names }: { round: Round; names: ModelNames }) {
   );
 }
 
-/** The keep-or-revert decision, big and plain, with the reason in one sentence. */
+/**
+ * How the round ended, big and plain, with the reason in a sentence: kept or reverted on the
+ * scores and the job's rules; rejected for harm or a failed gate; invalid or stopped with the
+ * runner's own reason.
+ */
+function dispositionReason(
+  experiment: Experiment | undefined,
+  round: Round,
+  lineage: LineageEntry | undefined,
+  job: Job,
+): string | null {
+  const scores = decisionSentence(round, lineage, job);
+  if (!experiment) return scores;
+  switch (experiment.disposition) {
+    case 'kept':
+    case 'reverted':
+      return scores ?? sentence(experiment.reason);
+    case 'rejected': {
+      const failed = experiment.gates.find((gate) => !gate.passed);
+      if (!failed) return harmSentence(experiment, job) ?? sentence(experiment.reason);
+      const gate = sentence(failed.detail);
+      return scores ? `${scores} But ${gate.charAt(0).toLowerCase()}${gate.slice(1)}` : gate;
+    }
+    // Neither kind was measured: an invalid change was never made, a stopped one never taken.
+    case 'invalid':
+      return `${sentence(experiment.reason)} Nothing changed.`;
+    case 'stopped':
+      return `${sentence(experiment.reason)} It isn't in the agent.`;
+  }
+}
+
 function Decision({
   round,
   job,
   lineage,
+  experiment,
 }: {
   round: Round;
   job: Job;
   lineage: LineageEntry | undefined;
+  experiment: Experiment | undefined;
 }) {
-  const sentence = decisionSentence(round, lineage, job);
-  if (!round.decision || !sentence) {
+  const disposition = experiment?.disposition ?? round.decision;
+  const reason = dispositionReason(experiment, round, lineage, job);
+  if (!disposition || !reason) {
     return (
       <div className="flex items-center gap-3 rounded-xl border border-line-card bg-well px-4 py-3.5">
         {round.status !== 'failed' && <Spinner tone="mentor" size={16} />}
@@ -207,28 +388,28 @@ function Decision({
       </div>
     );
   }
-  const kept = round.decision === 'kept';
+  const { label, icon: Icon, tone } = DISPOSITIONS[disposition];
   return (
     <div
       className={cn(
         'flex flex-col gap-1.5 rounded-xl border px-4 py-3.5',
-        kept ? 'border-student-tile-line bg-student-tile' : 'border-line-card bg-well',
+        disposition === 'kept'
+          ? 'border-student-tile-line bg-student-tile'
+          : disposition === 'rejected'
+            ? 'border-danger-line bg-danger-tint'
+            : 'border-line-card bg-well',
       )}
     >
       <span
         className={cn(
           'flex items-center gap-2.5 text-2xl font-medium',
-          kept ? 'text-student' : 'text-fg-secondary',
+          disposition === 'kept' || disposition === 'rejected' ? tone : 'text-fg-secondary',
         )}
       >
-        {kept ? (
-          <Check size={20} strokeWidth={2.2} aria-hidden />
-        ) : (
-          <Undo2 size={20} strokeWidth={2} aria-hidden />
-        )}
-        {kept ? 'Kept' : 'Reverted'}
+        <Icon size={20} strokeWidth={2} aria-hidden />
+        {label}
       </span>
-      <p className="m-0 text-md text-fg-soft text-pretty">{sentence}</p>
+      <p className="m-0 text-md text-fg-soft text-pretty">{reason}</p>
     </div>
   );
 }
@@ -273,14 +454,17 @@ function TaskCount({ delta }: { delta: number | null }) {
 function Effect({
   label,
   note,
+  wide = false,
   children,
 }: {
   label: string;
   note?: string | undefined;
+  /** Spans the grid's row. */
+  wide?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1 bg-modal px-4 py-3.5">
+    <div className={cn('flex flex-col gap-1 bg-modal px-4 py-3.5', wide && 'col-span-2')}>
       <dt className="text-fg-secondary">{label}</dt>
       <dd className="m-0 font-mono text-2xl tabular-nums">{children}</dd>
       {note && <dd className="m-0 text-sm text-fg-muted">{note}</dd>}
@@ -288,23 +472,29 @@ function Effect({
   );
 }
 
-function Block({ title, tone, children }: { title: string; tone?: 'mentor'; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-3">
-      <h3
-        className={cn(
-          'm-0 text-sm font-medium',
-          tone === 'mentor' ? 'text-mentor' : 'text-fg-secondary',
-        )}
-      >
-        {title}
-      </h3>
-      {children}
-    </section>
-  );
+/** A change that was undone took its files with it, so their heading says so. */
+function filesTitle(draft: boolean, disposition: ExperimentDisposition | undefined): string {
+  if (draft) return 'Files written';
+  return disposition === 'reverted' || disposition === 'rejected'
+    ? 'Files changed, then undone'
+    : 'Files changed';
 }
 
-function RoundFiles({ runId, round }: { runId: string; round: Round }) {
+/** Why a round that ended before its change was made has no files to show. */
+const NO_FILES: Partial<Record<ExperimentDisposition, string>> = {
+  invalid: 'No files changed: the change was refused before it was made.',
+  stopped: 'No files changed: training stopped before the change was written.',
+};
+
+function RoundFiles({
+  runId,
+  round,
+  disposition,
+}: {
+  runId: string;
+  round: Round;
+  disposition: ExperimentDisposition | undefined;
+}) {
   // A round's change can still be written while it runs, so its status is part of the key.
   const diff = useQuery(`round-diff:${runId}:${round.index}:${round.status}`, () =>
     flowApi.roundDiff(runId, round.index),
@@ -328,7 +518,11 @@ function RoundFiles({ runId, round }: { runId: string; round: Round }) {
     );
   }
   if (diff.data.length === 0) {
-    return <p className="m-0 text-fg-secondary">No files changed in this round yet.</p>;
+    return (
+      <p className="m-0 text-fg-secondary">
+        {(disposition && NO_FILES[disposition]) ?? 'No files changed in this round.'}
+      </p>
+    );
   }
   return (
     <div className="flex flex-col gap-3">

@@ -3,9 +3,24 @@ import type { ReportCard } from '@architect/shared';
 import { Button, ErrorState, Skeleton } from '@architect/ui';
 import { ArrowRight } from 'lucide-react';
 import { api, flowApi } from '../api/client';
-import { createChat, queryKeys, useGraduates, useJob, useReport, useSettings } from '../api/hooks';
-import { fetchQuery } from '../api/query';
+import { graduateKeys, graduatesApi } from '../api/graduates';
+import {
+  createChat,
+  queryKeys,
+  useGraduates,
+  useJob,
+  useReport,
+  useRunDetail,
+  useSettings,
+} from '../api/hooks';
+import { fetchQuery, useQuery } from '../api/query';
 import { useComparison } from '../flow/report/ComparisonTable';
+import {
+  useBareReport,
+  useCapabilityEvidence,
+  useComparisonReport,
+  useReportEvidence,
+} from '../flow/report/evidence';
 import { ReportView } from '../flow/report/ReportView';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
@@ -69,13 +84,30 @@ function LoadedReport({ report }: { report: ReportCard }) {
   const job = useJob(report.jobId);
   const graduates = useGraduates();
   const settings = useSettings();
+  const run = useRunDetail(report.runId);
   const comparison = useComparison(report, settings.data?.comparisonMode === true);
+  const blankStart = job.data?.startingHarness.kind === 'blank';
+  const capabilities = useCapabilityEvidence(report);
+  const evidence = useReportEvidence(report);
+  const comparisonReport = useComparisonReport(report);
+  const bare = useBareReport(report, blankStart);
+  const graduate = graduates.data?.find((item) => item.manifest.runId === report.runId);
+  // Install checks belong to the agent on this computer, once the run has made one.
+  const installation = useQuery(graduateKeys.installation(graduate?.id ?? 'none'), () =>
+    graduate ? graduatesApi.installation(graduate.id) : Promise.resolve(null),
+  );
   return (
     <ReportView
       report={report}
       job={job.status === 'success' ? job.data : null}
-      graduate={graduates.data?.find((graduate) => graduate.manifest.runId === report.runId)}
+      graduate={graduate}
       comparison={comparison}
+      capabilities={capabilities}
+      evidence={evidence}
+      bare={bare.data ?? null}
+      run={run.data?.run ?? null}
+      installation={installation.data ?? null}
+      comparisonReport={comparisonReport}
     />
   );
 }

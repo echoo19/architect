@@ -1,12 +1,20 @@
 import { Fragment } from 'react';
-import { cn, Panel } from '@architect/ui';
+import { cn, EvidenceMark, Panel } from '@architect/ui';
 import { formatRate } from '../format';
-import { CURVE_BOX, curveGeometry, describeCurve, PLOT, type CurveInput } from './curve';
+import {
+  CURVE_BOX,
+  curveGeometry,
+  describeCurve,
+  PLOT,
+  type CurveGeometry,
+  type CurveInput,
+} from './curve';
 import { draftRoundOf } from './draft';
+import type { ModelNames } from './phase';
 import type { LiveRun } from './run-state';
 
 /** The share of check tasks right, round by round. The student never practices on them. */
-export function TaskSuccess({ live }: { live: LiveRun }) {
+export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames }) {
   const { run, job, rounds } = live;
   const score = run.devCurrent ?? run.devBaseline;
   // A change measured twice is kept on both measurements added up, so the count can span two.
@@ -18,6 +26,7 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
     maxRounds: job.budget.maxRounds,
     draftRound: draftRoundOf(live),
   };
+  const geometry = curveGeometry(input);
   return (
     <Panel
       aria-label="Check tasks right"
@@ -35,14 +44,48 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
               : `${score.pass} of ${score.total}`}
           </span>
         )}
+        {geometry.branches.length > 0 && <Legend />}
       </div>
-      <CurveChart input={input} />
+      {/* What check tasks are, once, where their score first shows. */}
+      <EvidenceMark kind="check" className="-mt-1 text-fg-muted">
+        Tasks set aside to score each change, never shown to {names.mentor}
+      </EvidenceMark>
+      <CurveChart input={input} geometry={geometry} />
     </Panel>
   );
 }
 
-function CurveChart({ input }: { input: CurveInput }) {
-  const { ticks, valueTicks, line, branches, head, pending, targetY } = curveGeometry(input);
+/** What the two kinds of point mean, once a change that wasn't kept has its own. */
+function Legend() {
+  return (
+    <span aria-hidden className="ml-auto flex items-center gap-4 text-sm text-fg-muted">
+      <span className="flex items-center gap-1.5">
+        <svg width={10} height={10} viewBox="0 0 10 10">
+          <circle cx={5} cy={5} r={4} className="fill-student" />
+        </svg>
+        Score now
+      </span>
+      <span className="flex items-center gap-1.5">
+        <svg width={26} height={10} viewBox="0 0 26 10">
+          <line
+            x1={1}
+            x2={17}
+            y1={5}
+            y2={5}
+            className="stroke-fg-ghost"
+            strokeWidth={1.5}
+            strokeDasharray="3 3"
+          />
+          <circle cx={21} cy={5} r={3.5} className="fill-panel stroke-fg-faint" strokeWidth={1.5} />
+        </svg>
+        A change tried and not kept
+      </span>
+    </span>
+  );
+}
+
+function CurveChart({ input, geometry }: { input: CurveInput; geometry: CurveGeometry }) {
+  const { ticks, valueTicks, line, branches, head, pending, targetY } = geometry;
   const points = line.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
   const target = Math.round(input.target * 100);
   return (
@@ -130,7 +173,7 @@ function CurveChart({ input }: { input: CurveInput }) {
             className="fill-panel stroke-fg-faint"
             strokeWidth={1.5}
           >
-            <title>{`Round ${branch.round} reverted at ${Math.round(branch.to.value)}%`}</title>
+            <title>{`Round ${branch.round}, not kept: ${Math.round(branch.to.value)}%`}</title>
           </circle>
         </Fragment>
       ))}

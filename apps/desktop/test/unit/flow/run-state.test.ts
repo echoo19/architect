@@ -191,16 +191,21 @@ describe('failureLine', () => {
     expectedSummary: '$1,284.50',
   });
 
-  it('sets the answer against the right one, ending the sentence once', () => {
+  it("says what was wrong in the checker's words, ending the sentence once", () => {
     expect(failureLine({ ...failed, prompt: 'Price job J-4412.' })).toBe(
-      'Missed "Price job J-4412.": answered $1,248.50, but the right answer is $1,284.50.',
+      'Missed "Price job J-4412.": Total is off by $36.00.',
     );
-    expect(
-      failureLine({ ...failed, expectedSummary: 'Tue 09:30, Priya N.', prompt: 'Book it' }),
-    ).toBe('Missed "Book it": answered $1,248.50, but the right answer is Tue 09:30, Priya N.');
+    const booked = makeAttempt('c', {
+      check: { pass: false, reason: 'pickup_date is 2026-12-01 but should be 2026-12-17' },
+      answerSummary: '{"pickup_date":"2026-12-01"}',
+      expectedSummary: 'pickup_booked {"pickup_id":"PU-4178"}',
+    });
+    expect(failureLine({ ...booked, prompt: 'Book it' })).toBe(
+      'Missed "Book it": pickup_date is 2026-12-01 but should be 2026-12-17.',
+    );
   });
 
-  it("falls back to the checker's reason when there is no short answer", () => {
+  it('names the task when the request is missing', () => {
     const bare = makeAttempt('b', { check: { pass: false, reason: 'No ANSWER line' } });
     expect(failureLine(bare)).toBe('Missed task task_b: No ANSWER line.');
   });

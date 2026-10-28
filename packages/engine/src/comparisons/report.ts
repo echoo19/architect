@@ -642,7 +642,10 @@ function statusOf(
       if (decision?.kind === 'held') return { status: 'stopped', reason: decision.reason };
       if (isHeld(run)) {
         if (stopped !== null) return { status: 'stopped', reason: stopped };
-        return { status: 'incomplete', reason: "Frozen; its locked test wasn't released yet." };
+        return {
+          status: 'incomplete',
+          reason: "Its training is done, and its final test hasn't run yet.",
+        };
       }
       if (stopped !== null) return { status: 'stopped', reason: stopped };
       return { status: 'incomplete', reason: run.run.error ?? `The run is ${run.run.status}.` };

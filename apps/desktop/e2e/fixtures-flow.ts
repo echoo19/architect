@@ -8,7 +8,7 @@ import type {
   WorkspaceChat,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
-import type { EngineReplies } from './fixtures';
+import { STORY_EVIDENCE, type EngineReplies } from './fixtures';
 import {
   at,
   AT,
@@ -105,6 +105,7 @@ const chat: WorkspaceChat = {
 
 /** Replies that never change during the walk; the rest are stubbed by the helpers below. */
 export const FLOW_ENGINE: EngineReplies = {
+  ...STORY_EVIDENCE,
   'files:pick': ATTACHED,
   'jobs:draftStart': turns.start,
   'jobs:save': job,

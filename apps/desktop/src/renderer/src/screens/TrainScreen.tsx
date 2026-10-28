@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import type { Round, RunStatus } from '@architect/shared';
-import { Button, cn, Drawer, ErrorState, Skeleton } from '@architect/ui';
+import type { Finding, ListedAttempt, ListedLesson, Round, RunStatus } from '@architect/shared';
+import { Button, cn, Drawer, DrawerContent, ErrorState, Skeleton } from '@architect/ui';
 import { CircleAlert } from 'lucide-react';
+import {
+  mentoringApi,
+  mentoringKeys,
+  useMentoringRecords,
+  type MentoringRecords,
+} from '../api/mentoring';
+import { useQuery, type QueryState } from '../api/query';
 import { rate } from '../flow/format';
 import { modelNames, typeLabel } from '../flow/names';
 import { Apprenticeship } from '../flow/train/Apprenticeship';
@@ -9,21 +16,18 @@ import { CurrentRound } from '../flow/train/CurrentRound';
 import { providerName } from '../flow/define/hosted';
 import { draftRoundOf, setupOf } from '../flow/train/draft';
 import { Examples } from '../flow/train/Examples';
+import { LatestAttempts } from '../flow/train/LatestAttempts';
+import { findingNotes, lessonNotes, type StepNote } from '../flow/train/lesson-steps';
+import { LessonDrawerContent } from '../flow/train/LessonView';
 import { phaseView } from '../flow/train/phase';
 import { Resources } from '../flow/train/Resources';
-import { RoundDrawerContent } from '../flow/train/RoundDrawer';
+import { RoundDrawerContent, type RoundEvidence } from '../flow/train/RoundDrawer';
 import { Rounds, type RoundsFooter } from '../flow/train/Rounds';
 import { RunControls, StopDialog } from '../flow/train/RunControls';
-import {
-  activeProgress,
-  currentRound,
-  hasKeptChange,
-  type LiveRun,
-  type RecentAttempt,
-} from '../flow/train/run-state';
+import { activeProgress, currentRound, hasKeptChange, type LiveRun } from '../flow/train/run-state';
 import { TaskSuccess } from '../flow/train/TaskSuccess';
 import { TaughtLessons } from '../flow/train/TaughtLessons';
-import { TraceDrawerContent } from '../flow/train/TraceDrawer';
+import { StepsSkeleton, TraceDrawerContent } from '../flow/train/TraceDrawer';
 import { useLiveRun } from '../flow/train/use-live-run';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
@@ -36,15 +40,30 @@ const WORKING: ReadonlySet<RunStatus> = new Set(['queued', 'running', 'stopping'
 /** Scrolled further than this, the user is reading something and isn't moved to the report. */
 const SCROLLED_AWAY_PX = 80;
 
-/** What an overlay shows. It stays set while the overlay animates closed. */
-function useOverlay<T>() {
-  const [state, setState] = useState<{ item: T | null; open: boolean }>({
-    item: null,
+/** What the drawer shows. One view can lead to another: a round to an example to an attempt. */
+type DrawerView =
+  | { kind: 'attempt'; attempt: ListedAttempt; openAt?: number; notes?: StepNote[] }
+  | { kind: 'finding'; attemptId: string; openAt: number; notes: StepNote[] }
+  | { kind: 'round'; index: number }
+  | { kind: 'lesson'; lessonId: string };
+
+/** The drawer's views, newest last. It stays set while the drawer animates closed. */
+function useDrawerStack() {
+  const [state, setState] = useState<{ stack: DrawerView[]; open: boolean }>({
+    stack: [],
     open: false,
   });
-  const show = useCallback((item: T) => setState({ item, open: true }), []);
+  const show = useCallback((view: DrawerView) => setState({ stack: [view], open: true }), []);
+  const push = useCallback(
+    (view: DrawerView) => setState((current) => ({ stack: [...current.stack, view], open: true })),
+    [],
+  );
+  const back = useCallback(
+    () => setState((current) => ({ ...current, stack: current.stack.slice(0, -1) })),
+    [],
+  );
   const hide = useCallback(() => setState((current) => ({ ...current, open: false })), []);
-  return { item: state.item, open: state.open, show, hide };
+  return { ...state, top: state.stack.at(-1) ?? null, show, push, back, hide };
 }
 
 /**
@@ -54,11 +73,10 @@ function useOverlay<T>() {
 export function TrainScreen({ runId }: { runId: string }) {
   const { state, retry } = useLiveRun(runId);
   const live = state.status === 'live' ? state.live : null;
-  const trace = useOverlay<RecentAttempt>();
-  const round = useOverlay<number>();
-  const stop = useOverlay<true>();
+  const drawer = useDrawerStack();
+  const [stopping, setStopping] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
-  const reading = trace.open || round.open || stop.open;
+  const reading = drawer.open || stopping;
   const improving = live?.improves ?? null;
 
   useReportWhenFinished(live, contentRef, reading);
@@ -68,7 +86,7 @@ export function TrainScreen({ runId }: { runId: string }) {
       title={live?.job.name ?? 'Training'}
       step={improving ? 'Improve' : 'Train'}
       {...(improving ? { steps: IMPROVE_STEPS } : {})}
-      actions={live && <RunControls live={live} onStop={() => stop.show(true)} />}
+      actions={live && <RunControls live={live} onStop={() => setStopping(true)} />}
     >
       <div
         ref={contentRef}
@@ -88,69 +106,185 @@ export function TrainScreen({ runId }: { runId: string }) {
             className="min-h-[60vh]"
           />
         )}
-        {live && (
-          <TrainBoard
-            live={live}
-            onOpenAttempt={trace.show}
-            onOpenRound={(opened) => round.show(opened.index)}
-          />
-        )}
+        {live && <LiveTraining live={live} drawer={drawer} />}
       </div>
-      {live && (
-        <>
-          <Drawer open={trace.open} onOpenChange={(open) => !open && trace.hide()}>
-            {trace.item && (
-              <TraceDrawerContent
-                attempt={trace.item}
-                type={typeLabel(live.job, trace.item.taskType)}
-                names={modelNames(live.job)}
-                setup={setupOf(live, trace.item.harnessVersion)}
-              />
-            )}
-          </Drawer>
-          <RoundDrawer live={live} index={round.item} open={round.open} onClose={round.hide} />
-          {live.improves ? (
-            <StopImprovementDialog
-              open={stop.open}
-              runId={live.run.id}
-              writing={live.run.status === 'testing' || live.run.phase === 'testing'}
-              kept={hasKeptChange(live.rounds)}
-              onClose={stop.hide}
-            />
-          ) : (
-            <StopDialog open={stop.open} live={live} onClose={stop.hide} />
-          )}
-        </>
-      )}
+      {live &&
+        (live.improves ? (
+          <StopImprovementDialog
+            open={stopping}
+            runId={live.run.id}
+            writing={live.run.status === 'testing' || live.run.phase === 'testing'}
+            kept={hasKeptChange(live.rounds)}
+            onClose={() => setStopping(false)}
+          />
+        ) : (
+          <StopDialog open={stopping} live={live} onClose={() => setStopping(false)} />
+        ))}
     </FlowShell>
   );
 }
 
-function RoundDrawer({
+type DrawerStack = ReturnType<typeof useDrawerStack>;
+
+/** The board and its drawer, which read the run's mentoring records together. */
+function LiveTraining({ live, drawer }: { live: LiveRun; drawer: DrawerStack }) {
+  const records = useMentoringRecords(live.run.id, live.job.id);
+  return (
+    <>
+      <TrainBoard
+        live={live}
+        records={records}
+        onOpenAttempt={(attempt) => drawer.show({ kind: 'attempt', attempt })}
+        onOpenRound={(round) => drawer.show({ kind: 'round', index: round.index })}
+        onOpenLesson={(lesson) => drawer.show({ kind: 'lesson', lessonId: lesson.id })}
+      />
+      <Drawer
+        open={drawer.open && drawer.top !== null}
+        onOpenChange={(next) => !next && drawer.hide()}
+      >
+        {drawer.top && (
+          <DrawerBody live={live} records={records} view={drawer.top} drawer={drawer} />
+        )}
+      </Drawer>
+    </>
+  );
+}
+
+function DrawerBody({
   live,
-  index,
-  open,
-  onClose,
+  records,
+  view,
+  drawer,
 }: {
   live: LiveRun;
-  index: number | null;
-  open: boolean;
-  onClose: () => void;
+  records: QueryState<MentoringRecords>;
+  view: DrawerView;
+  drawer: DrawerStack;
 }) {
-  const round = live.rounds.find((item) => item.index === index) ?? null;
-  return (
-    <Drawer open={open && round !== null} onOpenChange={(next) => !next && onClose()}>
-      {round && (
+  const names = modelNames(live.job);
+  const onBack = drawer.stack.length > 1 ? drawer.back : undefined;
+  const openFinding = (finding: Finding) =>
+    drawer.push({
+      kind: 'finding',
+      attemptId: finding.attemptId,
+      openAt: finding.failureTurn,
+      notes: findingNotes(finding),
+    });
+  switch (view.kind) {
+    case 'attempt':
+      return (
+        <TraceDrawerContent
+          attempt={view.attempt}
+          type={typeLabel(live.job, view.attempt.taskType)}
+          names={names}
+          setup={setupOf(live, view.attempt.harnessVersion)}
+          {...(view.openAt === undefined ? {} : { openAt: view.openAt })}
+          {...(view.notes === undefined ? {} : { notes: view.notes })}
+          onBack={onBack}
+        />
+      );
+    case 'finding':
+      return <FindingAttempt live={live} view={view} onBack={onBack} />;
+    case 'round': {
+      const round = live.rounds.find((item) => item.index === view.index);
+      if (!round) return null;
+      return (
         <RoundDrawerContent
           runId={live.run.id}
           round={round}
           draft={round.index === draftRoundOf(live)}
           job={live.job}
           lineage={live.lineage.find((entry) => entry.round === round.index)}
-          names={modelNames(live.job)}
+          names={names}
+          evidence={roundEvidence(records, round.index)}
+          onOpenLesson={(lesson) => drawer.push({ kind: 'lesson', lessonId: lesson.id })}
+          onOpenFinding={openFinding}
+          onBack={onBack}
         />
-      )}
-    </Drawer>
+      );
+    }
+    case 'lesson': {
+      const lesson = records.data?.lessons.find((item) => item.id === view.lessonId);
+      if (!lesson) return null;
+      return (
+        <LessonDrawerContent
+          lesson={lesson}
+          job={live.job}
+          names={names}
+          onOpenAttempt={(attemptId, step) =>
+            drawer.push({ kind: 'finding', attemptId, openAt: step, notes: lessonNotes(lesson) })
+          }
+          onBack={onBack}
+        />
+      );
+    }
+  }
+}
+
+/** A round's records, picked out of the run's. */
+function roundEvidence(
+  records: QueryState<MentoringRecords>,
+  index: number,
+):
+  | { status: 'loading' }
+  | { status: 'error'; error: Error; reload: () => void }
+  | { status: 'success'; data: RoundEvidence } {
+  if (records.data === undefined) {
+    return records.status === 'error'
+      ? { status: 'error', error: records.error, reload: records.reload }
+      : { status: 'loading' };
+  }
+  const { experiments, interventions, lessons, categories } = records.data;
+  return {
+    status: 'success',
+    data: {
+      experiment: experiments.find((item) => item.round === index),
+      intervention: interventions.find((item) => item.round === index),
+      lessons: lessons.filter((item) => item.round === index),
+      categories,
+    },
+  };
+}
+
+/** The attempt a finding names, read by its id, opened at the step the finding points to. */
+function FindingAttempt({
+  live,
+  view,
+  onBack,
+}: {
+  live: LiveRun;
+  view: Extract<DrawerView, { kind: 'finding' }>;
+  onBack: (() => void) | undefined;
+}) {
+  const attempt = useQuery(mentoringKeys.attempt(view.attemptId), () =>
+    mentoringApi.attempt(view.attemptId),
+  );
+  if (attempt.status !== 'success') {
+    return (
+      <DrawerContent title="Attempt" onBack={onBack}>
+        {attempt.status === 'loading' ? (
+          <StepsSkeleton />
+        ) : (
+          <ErrorState
+            layout="inline"
+            title="Couldn't open this attempt"
+            message={attempt.error.message}
+            onRetry={attempt.reload}
+          />
+        )}
+      </DrawerContent>
+    );
+  }
+  return (
+    <TraceDrawerContent
+      attempt={attempt.data}
+      type={typeLabel(live.job, attempt.data.taskType)}
+      names={modelNames(live.job)}
+      setup={setupOf(live, attempt.data.harnessVersion)}
+      openAt={view.openAt}
+      notes={view.notes}
+      onBack={onBack}
+    />
   );
 }
 
@@ -188,12 +322,16 @@ function studentPlace({ run, job }: LiveRun): string {
 
 function TrainBoard({
   live,
+  records,
   onOpenAttempt,
   onOpenRound,
+  onOpenLesson,
 }: {
   live: LiveRun;
-  onOpenAttempt: (attempt: RecentAttempt) => void;
+  records: QueryState<MentoringRecords>;
+  onOpenAttempt: (attempt: ListedAttempt) => void;
   onOpenRound: (round: Round) => void;
+  onOpenLesson: (lesson: ListedLesson) => void;
 }) {
   const { run, job, improves } = live;
   const names = modelNames(job);
@@ -207,7 +345,12 @@ function TrainBoard({
       ? { label: 'See what changed', onClick: () => navigate(paths.improvement(run.id)) }
       : { label: 'See the report card', onClick: () => navigate(paths.report(run.id)) };
   }
-
+  const evidence = records.data ?? null;
+  const failure =
+    records.status === 'error' && evidence === null
+      ? { message: records.error.message, reload: records.reload }
+      : null;
+  const round = currentRound(live);
   return (
     <>
       {improves && <TaughtLessons improves={improves} />}
@@ -237,20 +380,43 @@ function TrainBoard({
           passRate={score ? rate(score) / 100 : null}
           progress={activeProgress(live)}
         />
-        <CurrentRound live={live} round={currentRound(live)} names={names} />
+        <CurrentRound
+          live={live}
+          round={round}
+          names={names}
+          experiment={evidence?.experiments.find((item) => item.round === round?.index)}
+          recordsFailed={failure !== null}
+        />
       </div>
       <div className="flex flex-wrap gap-5">
-        <TaskSuccess live={live} />
-        <Resources live={live} mentor={names.mentor} />
+        <TaskSuccess live={live} names={names} />
+        <Resources
+          live={live}
+          mentor={names.mentor}
+          records={evidence}
+          recordsFailed={failure !== null}
+        />
       </div>
       <div className="flex flex-wrap gap-5">
-        <Examples job={job} attempts={live.attempts} mentor={names.mentor} onOpen={onOpenAttempt} />
+        <Examples job={job} records={records} onOpen={onOpenLesson} />
         <Rounds
+          job={job}
           rounds={live.rounds}
           running={WORKING.has(run.status)}
           draftRound={draft}
+          records={evidence}
+          failure={failure}
+          stopReason={run.stopReason}
           onOpen={onOpenRound}
           footer={footer}
+        />
+      </div>
+      <div className="flex flex-wrap gap-5">
+        <LatestAttempts
+          job={job}
+          attempts={live.attempts}
+          mentor={names.mentor}
+          onOpen={onOpenAttempt}
         />
       </div>
     </>

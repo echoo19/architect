@@ -1,70 +1,118 @@
-import type { Job } from '@architect/shared';
-import { Panel, PanelHeader, PanelRow } from '@architect/ui';
-import { Check, ChevronRight, EyeOff, X } from 'lucide-react';
+import { useState } from 'react';
+import type { Job, ListedLesson } from '@architect/shared';
+import { ErrorState, Panel, PanelHeader, PanelRow, Skeleton } from '@architect/ui';
+import { Check, ChevronRight, X } from 'lucide-react';
+import type { QueryState } from '../../api/query';
+import type { MentoringRecords } from '../../api/mentoring';
 import { typeLabel } from '../names';
-import type { RecentAttempt } from './run-state';
+import { lessonOrigin, lessonVerdict } from './evidence-words';
 
-/** How many of the latest attempts show. */
-const SHOWN = 5;
+/** Up to this many examples show at once, the newest; the rest unfold. */
+const SHOWN = 8;
 
-/** The student's latest attempts, newest first. A row opens its trace. */
+/**
+ * The worked examples Spark wrote for the agent to learn from, newest first: what the checker
+ * said of each, whether it passed, the task it came from and how its answer was obtained. A row
+ * opens it, step by step. The header counts the ones that passed, over every example listed.
+ */
 export function Examples({
   job,
-  attempts,
-  mentor,
+  records,
   onOpen,
 }: {
   job: Job;
-  attempts: readonly RecentAttempt[];
-  mentor: string;
-  onOpen: (attempt: RecentAttempt) => void;
+  records: QueryState<MentoringRecords>;
+  onOpen: (lesson: ListedLesson) => void;
 }) {
-  const shown = attempts.slice(0, SHOWN);
+  const [all, setAll] = useState(false);
+  const lessons = records.data?.lessons ?? [];
+  const passed = lessons.filter((lesson) => lesson.status === 'verified').length;
+  // An example belongs to its round's change, so one from a change not kept isn't in the agent.
+  const notKept = new Set(
+    (records.data?.experiments ?? [])
+      .filter((experiment) => experiment.disposition !== 'kept')
+      .map((experiment) => experiment.round),
+  );
+  const newest = [...lessons].reverse();
+  const shown = all ? newest : newest.slice(0, SHOWN);
   return (
-    <Panel aria-label="Latest attempts" className="min-w-0 flex-[7_1_560px]">
-      <PanelHeader title="Latest attempts" />
-      {shown.length === 0 ? (
-        <PanelRow className="text-fg-muted">No attempts yet</PanelRow>
+    <Panel aria-label="Worked examples" className="min-w-0 flex-[7_1_560px]">
+      <PanelHeader
+        title="Worked examples"
+        actions={
+          lessons.length > 0 && (
+            <span className="text-sm tabular-nums text-fg-muted">
+              {passed} of {lessons.length} passed the checker
+            </span>
+          )
+        }
+      />
+      {records.status === 'error' && lessons.length === 0 ? (
+        <PanelRow className="py-3">
+          <ErrorState
+            layout="inline"
+            title="Couldn't load the worked examples"
+            message={records.error.message}
+            onRetry={records.reload}
+          />
+        </PanelRow>
+      ) : records.status === 'loading' && records.data === undefined ? (
+        <div aria-busy="true" aria-label="Loading the worked examples" className="flex flex-col">
+          {[0, 1, 2].map((row) => (
+            <PanelRow key={row}>
+              <Skeleton className="h-4 w-full" />
+            </PanelRow>
+          ))}
+        </div>
+      ) : lessons.length === 0 ? (
+        <PanelRow className="text-fg-muted">No worked examples yet</PanelRow>
       ) : (
         <div className="overflow-x-auto">
-          <ul className="m-0 min-w-[680px] list-none p-0">
-            {shown.map((attempt) => (
-              <li key={attempt.id}>
+          <ul className="m-0 min-w-[620px] list-none p-0">
+            {shown.map((lesson) => (
+              <li key={lesson.id}>
                 <ExampleRow
-                  attempt={attempt}
-                  type={typeLabel(job, attempt.taskType)}
-                  mentor={mentor}
-                  onOpen={() => onOpen(attempt)}
+                  lesson={lesson}
+                  type={typeLabel(job, lesson.taskType)}
+                  kept={lesson.round === null || !notKept.has(lesson.round)}
+                  onOpen={() => onOpen(lesson)}
                 />
               </li>
             ))}
           </ul>
         </div>
       )}
+      {lessons.length > SHOWN && (
+        <button
+          type="button"
+          onClick={() => setAll((open) => !open)}
+          className="mt-auto flex min-h-[54px] items-center justify-end border-t border-line-row px-7 text-fg-secondary transition-colors duration-150 hover:text-fg"
+        >
+          {all ? `Show the newest ${SHOWN}` : `Show all ${lessons.length}`}
+        </button>
+      )}
     </Panel>
   );
 }
 
 function ExampleRow({
-  attempt,
+  lesson,
   type,
-  mentor,
+  kept,
   onOpen,
 }: {
-  attempt: RecentAttempt;
+  lesson: ListedLesson;
   type: string;
-  mentor: string;
+  /** False when the round's change, which the example went with, wasn't kept. */
+  kept: boolean;
   onOpen: () => void;
 }) {
-  const passed = attempt.check.pass;
-  const check = attempt.split === 'dev';
-  const kind = check ? 'Check task' : 'Practice task';
-  const set = attempt.round ? `${kind}, round ${attempt.round}` : kind;
+  const passed = lesson.status === 'verified';
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="group grid min-h-[54px] w-full grid-cols-[20px_minmax(0,1fr)_230px_150px_14px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left font-mono text-sm transition-colors duration-150 hover:bg-row-hover"
+      className="group grid min-h-[62px] w-full grid-cols-[20px_minmax(0,1fr)_190px_120px_14px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left transition-colors duration-150 hover:bg-row-hover"
     >
       {passed ? (
         <Check
@@ -72,28 +120,43 @@ function ExampleRow({
           strokeWidth={2.2}
           className="text-student"
           role="img"
-          aria-label="Passed"
+          aria-label="Passed the checker"
         />
       ) : (
-        <X size={15} strokeWidth={2.2} className="text-fg-faint" role="img" aria-label="Failed" />
+        <X
+          size={15}
+          strokeWidth={2.2}
+          className="text-fg-faint"
+          role="img"
+          aria-label="Failed the checker"
+        />
       )}
-      <span className={passed ? 'truncate text-fg-soft' : 'truncate text-fg-muted'}>
-        {attempt.prompt ?? attempt.taskId}
+      <span className="flex min-w-0 flex-col gap-1">
+        <span className={passed ? 'truncate text-fg-soft' : 'truncate text-fg-muted'}>
+          {lessonVerdict(lesson)}
+        </span>
+        <span className="truncate font-mono text-xs text-fg-muted">
+          {lesson.prompt ?? lesson.taskType}
+        </span>
       </span>
-      <Answer attempt={attempt} />
-      <span className="flex min-w-0 flex-col font-sans">
+      <span className="flex min-w-0 flex-col">
+        <span className={passed ? 'truncate text-fg-secondary' : 'truncate text-fg-muted'}>
+          {lessonOrigin(lesson)}
+        </span>
+        <span
+          className={passed ? 'truncate text-xs text-student' : 'truncate text-xs text-fg-muted'}
+        >
+          {passed ? 'Checker passed it' : 'Checker failed it'}
+        </span>
+      </span>
+      <span className="flex min-w-0 flex-col">
         <span className="truncate text-fg-secondary">{type}</span>
-        <span className="flex min-w-0 items-center gap-1.5 text-xs text-fg-muted">
-          <span className="truncate">{set}</span>
-          {check && (
-            <EyeOff
-              size={12}
-              strokeWidth={1.8}
-              className="shrink-0"
-              role="img"
-              aria-label={`Hidden from ${mentor}`}
-            />
-          )}
+        <span className="truncate text-xs text-fg-muted">
+          {lesson.round === null
+            ? 'Example'
+            : kept
+              ? `Round ${lesson.round}`
+              : `Round ${lesson.round}, not kept`}
         </span>
       </span>
       <ChevronRight
@@ -103,25 +166,5 @@ function ExampleRow({
         className="text-fg-faint opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
       />
     </button>
-  );
-}
-
-/** A right answer as given; a wrong one struck through, with the expected one under it. */
-function Answer({ attempt }: { attempt: RecentAttempt }) {
-  const { answerSummary, expectedSummary, check } = attempt;
-  if (check.pass) return <span className="truncate text-fg">{answerSummary ?? 'Passed'}</span>;
-  if (!answerSummary) return <span className="truncate text-fg-muted">{check.reason}</span>;
-  return (
-    <span className="flex min-w-0 flex-col">
-      <span className="truncate text-fg-muted line-through decoration-fg-faint">
-        {answerSummary}
-      </span>
-      {expectedSummary && (
-        <span className="truncate text-fg-secondary">
-          <span className="font-sans text-fg-muted">Expected </span>
-          {expectedSummary}
-        </span>
-      )}
-    </span>
   );
 }

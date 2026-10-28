@@ -1,5 +1,6 @@
-import type { Job, LineageEntry, Prediction, Round, Score } from '@architect/shared';
+import type { Experiment, Job, LineageEntry, Prediction, Round, Score } from '@architect/shared';
 import { typeLabel } from '../names';
+import { GATES } from './evidence-words';
 
 const NUMBER_WORDS = [
   'zero',
@@ -47,14 +48,35 @@ function capitalized(sentence: string): string {
   return `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)}`;
 }
 
-/** The task type that lost the most check-task passes, by its label. */
-function worstLoss(lineage: LineageEntry | undefined, job: Job): { label: string; lost: number } {
-  let worst = { label: '', lost: 0 };
-  for (const type of lineage?.measured.perType ?? []) {
+interface TypeLoss {
+  label: string;
+  lost: number;
+  before: number;
+  after: number;
+}
+
+/** The task type that lost the most check-task passes, by its label, from per-type scores. */
+function worstOf(
+  perType: readonly { type: string; before: number; after: number }[],
+  job: Job,
+): TypeLoss {
+  let worst: TypeLoss = { label: '', lost: 0, before: 0, after: 0 };
+  for (const type of perType) {
     const lost = type.before - type.after;
-    if (lost > worst.lost) worst = { label: typeLabel(job, type.type), lost };
+    if (lost > worst.lost) {
+      worst = { label: typeLabel(job, type.type), lost, before: type.before, after: type.after };
+    }
   }
   return worst;
+}
+
+function worstLoss(lineage: LineageEntry | undefined, job: Job): TypeLoss {
+  return worstOf(lineage?.measured.perType ?? [], job);
+}
+
+/** "Order questions went from 3 to 0": a type's passes, so the size of the loss is plain. */
+function lossPhrase(worst: TypeLoss): string {
+  return `${worst.label} went from ${worst.before} to ${worst.after}`;
 }
 
 /**
@@ -89,7 +111,7 @@ export function decisionSentence(
   }
   if (worst.lost > allowed) {
     const rule = lossRule(allowed, 'may lose');
-    return `${measured}, but ${worst.label} lost ${inWords(worst.lost)}. ${rule.charAt(0).toUpperCase()}${rule.slice(1)}.`;
+    return `${measured}, but ${lossPhrase(worst)}. ${capitalized(rule)}.`;
   }
   return `${measured}.`;
 }
@@ -126,9 +148,60 @@ function measuredTwice(
   }
   if (worst.lost > allowed) {
     const rule = capitalized(lossRule(allowed, 'may lose'));
-    return `${opening}. ${again}, but ${worst.label} lost ${inWords(worst.lost)}. ${rule}.`;
+    return `${opening}. ${again}, but ${lossPhrase(worst)}. ${rule}.`;
   }
   return `${opening}. ${again}.`;
+}
+
+/**
+ * Why a measured change was rejected rather than only reverted, from its experiment: a task
+ * type lost more check tasks than the job allows, or fewer passed in all. Null when the
+ * experiment has no measurement to say it from.
+ */
+export function harmSentence(experiment: Experiment, job: Job): string | null {
+  const { devBefore: before, devAfter: after } = experiment;
+  if (!before || !after) return null;
+  // Each dev seed is one run over the check tasks; the limit counts per run.
+  const runs = Math.max(1, experiment.seeds.dev.length);
+  const allowed = job.evaluation.maxTypeRegression * runs;
+  const measured = `${gainPhrase(after.pass - before.pass)} (${before.pass} → ${after.pass} of ${after.total})`;
+  const worst = worstOf(experiment.regressions, job);
+  if (worst.lost > allowed) {
+    const rule = capitalized(lossRule(allowed, 'may lose'));
+    return `${measured}, and ${lossPhrase(worst)}. ${rule}.`;
+  }
+  return `${measured}. A change that loses check tasks is rejected.`;
+}
+
+/**
+ * How a round's change ended, in a few words for its line in a list, from its experiment: what a
+ * rejected change harmed or the gate it failed, a reverted one's too-small gain, an invalid one
+ * never tried, a stopped one never scored. A kept change's numbers say it, so it has none.
+ */
+export function outcomeNote(experiment: Experiment, job: Job): string | null {
+  switch (experiment.disposition) {
+    case 'kept':
+      return null;
+    case 'reverted':
+      return 'Gain too small to keep';
+    case 'invalid':
+      return "Couldn't be tried";
+    case 'stopped':
+      return 'Not scored';
+    case 'rejected': {
+      const failed = experiment.gates.find((gate) => !gate.passed);
+      if (failed) return `Failed the ${GATES[failed.gate].toLowerCase()} check`;
+      const runs = Math.max(1, experiment.seeds.dev.length);
+      const worst = worstOf(experiment.regressions, job);
+      // Short enough for a list's line, beside the round's own before and after.
+      if (worst.lost > job.evaluation.maxTypeRegression * runs) {
+        return `${worst.label} ${worst.before} → ${worst.after}`;
+      }
+      const { devBefore: before, devAfter: after } = experiment;
+      if (before && after && after.pass < before.pass) return gainPhrase(after.pass - before.pass);
+      return null;
+    }
+  }
 }
 
 /**
@@ -136,7 +209,7 @@ function measuredTwice(
  * prediction is for one measurement, so a change measured twice is compared on its first.
  */
 export function predictionCheck(predicted: Prediction, measured: number): string {
-  if (measured < predicted.devDeltaMin) return 'Short of the prediction';
-  if (measured > predicted.devDeltaMax) return 'Beat the prediction';
-  return 'Within the prediction';
+  if (measured < predicted.devDeltaMin) return 'Measured below this range';
+  if (measured > predicted.devDeltaMax) return 'Measured above this range';
+  return 'Measured within this range';
 }

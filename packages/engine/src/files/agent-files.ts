@@ -7,6 +7,7 @@ import {
   DATA_FOLDER,
   GuardError,
   OUTPUT_FOLDER,
+  patchStats,
   SKILLS_FOLDER,
   type DataFile,
   type FileChange,
@@ -18,7 +19,7 @@ import { parseCsv } from '../data/csv';
 import { DataError, SaveError } from '../data/errors';
 import type { FileInfo, TableSnapshot } from '../data/types';
 import type { SandboxData } from '../sandbox/types';
-import { filePatch, patchStats, rowDiff, type FilePatch } from './diff';
+import { filePatch, rowDiff, type FilePatch } from './diff';
 import { agentPath, isWithin, parentOf, unsafeName } from './paths';
 import { count, fromDisk, lineCount, normalizeBreaks, toDisk, type TextFormat } from './text';
 

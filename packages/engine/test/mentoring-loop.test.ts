@@ -241,7 +241,7 @@ describe('findings and interventions the runner refuses', () => {
     const intervention = engine.store.interventions.get(runId, 1);
     expect(intervention?.status).toBe('invalid');
     expect(intervention?.invalidReason).toBe(
-      "A weights intervention isn't possible in this run: No training worker is set up in this build.",
+      "The mentor chose to train the weights, which this run can't do. This copy of Architect has no trainer for weights.",
     );
     const [experiment] = engine.store.experiments.list(runId);
     expect(experiment).toMatchObject({ round: 1, disposition: 'invalid', devAfter: null });

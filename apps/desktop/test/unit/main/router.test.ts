@@ -72,6 +72,7 @@ describe('IpcRouter', () => {
         throw new Error('That run has no report yet.');
       },
       list: () => [],
+      comparisons: () => null,
     });
     expect(await call('reports:get', ['run_1'])).toEqual({
       ok: false,

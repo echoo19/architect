@@ -10,24 +10,16 @@ import {
   type EngineHostDeps,
   type EngineStore,
 } from '@architect/engine';
-import type {
-  ActorAdapter,
-  ChatMessage,
-  JsonValue,
-  MentorAdapter,
-  MentorCompletion,
-  MentorCompletionRequest,
-  StudentChatRequest,
-  StudentStreamEvent,
-  Task,
-  Usage,
-} from '@architect/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { answerOrder, solvePickup, solveReturn } from '../src/reference/solver';
-import type { OrderQuestion } from '../src/reference/orders';
-import type { PickupRequest, ReturnRequest } from '../src/reference/solver';
-import { AgentTools } from '../src/reference/tools';
-import { BUSINESS_DATE, job, paramsOf } from './helpers';
+import { job } from './helpers';
+import {
+  appendTurn,
+  REFUND_HABIT,
+  refundProcedure,
+  ScriptedGlimmer,
+  ScriptedSpark,
+  ScriptedSparkAgent,
+} from './scripted-models';
 
 /**
  * One whole chain of failure-specific mentoring on the returns desk, with the engine's real
@@ -35,207 +27,15 @@ import { BUSINESS_DATE, job, paramsOf } from './helpers';
  * recorded failure, a finding that names its turn, a correction replayed from that turn and
  * verified by the checker, the lesson kept, a procedure that uses it, a paired dev measurement,
  * the experiment record, and a related practice case verified on its own. No model is called.
+ * The scripted student gets refunds wrong until its harness holds the refund rule.
  */
-
-/** What the procedure adds; the scripted student gets refunds right once its harness says it. */
-const RULE =
-  'Refunds: the refund is the list price times the quantity, less any fee the policy names.';
-const WRONG_BY = 500;
-
-interface Solution {
-  calls: { name: string; arguments: Record<string, JsonValue> }[];
-  answer: JsonValue;
-}
-
-/** A task's calls and answer, the way the reference solution works them out. */
-function solve(task: Task): Solution {
-  const tools = new AgentTools(job.data());
-  let answer: JsonValue;
-  if (task.type === 'refund') {
-    const request = task.meta?.request as unknown as ReturnRequest;
-    const { decision, refund_cents, refund_to } = solveReturn(tools, request, BUSINESS_DATE).result;
-    answer = { decision, refund_cents, refund_to };
-  } else if (task.type === 'pickup') {
-    const request = task.meta?.request as unknown as PickupRequest;
-    const { carrier, pickup_date } = solvePickup(tools, request, BUSINESS_DATE).result;
-    answer = { pickup_id: String(paramsOf(task).pickup_id), carrier, pickup_date };
-  } else {
-    answer = answerOrder(tools, task.meta?.question as unknown as OrderQuestion).result;
-  }
-  return {
-    calls: tools.calls.map(({ name, arguments: args }) => ({ name, arguments: args })),
-    answer,
-  };
-}
-
-/** The refund solution with the refund off by `WRONG_BY` cents, in the row and the answer. */
-function mistaken(solution: Solution): Solution {
-  const columns = job.data().columns('returns.csv');
-  const at = columns.indexOf('refund_cents');
-  const calls = solution.calls.map((call) => {
-    if (call.name !== 'append') return call;
-    const cells = String(call.arguments['text']).replace(/\n$/, '').split(',');
-    cells[at] = String(Number(cells[at]) + WRONG_BY);
-    return { ...call, arguments: { ...call.arguments, text: `${cells.join(',')}\n` } };
-  });
-  const answer = solution.answer as Record<string, JsonValue>;
-  return { calls, answer: { ...answer, refund_cents: Number(answer['refund_cents']) + WRONG_BY } };
-}
-
-/** The model turn a solution writes its row on: one call per turn, the first turn 1. */
-function appendTurn(solution: Solution): number {
-  return solution.calls.findIndex((call) => call.name === 'append') + 1;
-}
-
-const USAGE: Usage = { inputTokens: 400, outputTokens: 60 };
-
-/** Plays a solution one call per model turn, then the answer, from wherever the request is. */
-async function* play(
-  solution: Solution | undefined,
-  messages: readonly ChatMessage[],
-): AsyncGenerator<StudentStreamEvent> {
-  const turn = messages.filter((message) => message.role === 'assistant').length;
-  const call = solution?.calls[turn];
-  if (call) {
-    yield {
-      type: 'tool_call',
-      call: { id: `call_${turn}`, name: call.name, arguments: call.arguments },
-    };
-    yield { type: 'done', usage: USAGE, finish: 'tool_calls' };
-    return;
-  }
-  yield { type: 'text', delta: `ANSWER: ${JSON.stringify(solution?.answer ?? {})}` };
-  yield { type: 'done', usage: USAGE, finish: 'stop' };
-}
-
-/** The train or dev task a request is about; a locked test task is one it doesn't know. */
-function taskOf(known: readonly Task[], messages: readonly ChatMessage[]): Task | undefined {
-  const user = messages.find((message) => message.role === 'user')?.content ?? '';
-  return known.find((task) => user.includes(task.prompt));
-}
-
-class ScriptedGlimmer {
-  readonly label: string = 'Glimmer';
-  readonly model: string = 'muse-glimmer:30b';
-  readonly baseUrl: string = 'http://127.0.0.1:11434';
-  readonly isLocal: boolean = true;
-  known: Task[] = [];
-  private readonly solutions = new Map<string, Solution>();
-
-  solution(task: Task): Solution {
-    let found = this.solutions.get(task.id);
-    if (!found) this.solutions.set(task.id, (found = solve(task)));
-    return found;
-  }
-
-  chat(request: StudentChatRequest): AsyncIterable<StudentStreamEvent> {
-    const task = taskOf(this.known, request.messages);
-    const system = request.messages[0]?.content ?? '';
-    const right = task === undefined ? undefined : this.solution(task);
-    const wrong = task?.type === 'refund' && !system.includes(RULE);
-    return play(wrong && right ? mistaken(right) : right, request.messages);
-  }
-
-  async describe() {
-    return { model: this.model };
-  }
-  async testConnection() {
-    return { ok: true as const, latencyMs: 1, detail: 'scripted' };
-  }
-  async release() {}
-}
-
-/** Spark as the agent: it carries a task on from wherever its request leaves off, correctly. */
-class ScriptedSparkAgent extends ScriptedGlimmer implements ActorAdapter {
-  override readonly label = 'Spark';
-  override readonly model = 'muse-spark-1.3';
-  override readonly baseUrl = 'https://api.meta.ai/v1';
-  override readonly isLocal = false;
-  readonly requests: StudentChatRequest[] = [];
-
-  override chat(request: StudentChatRequest): AsyncIterable<StudentStreamEvent> {
-    this.requests.push(request);
-    const task = taskOf(this.known, request.messages);
-    return play(task === undefined ? undefined : this.solution(task), request.messages);
-  }
-
-  estimateCostUsd(usage: Usage): number {
-    return (usage.inputTokens * 1.25 + usage.outputTokens * 4.25) / 1_000_000;
-  }
-}
-
-/** Spark as the mentor: one diagnosis naming the first failed refund at the turn it wrote its row. */
-class ScriptedSpark implements MentorAdapter {
-  readonly kind = 'model' as const;
-  readonly label = 'Spark';
-  readonly model = 'muse-spark-1.3';
-  readonly provider = 'meta';
-  readonly requests: MentorCompletionRequest[] = [];
-  finding: { taskId: string; failureTurn: number } | undefined;
-
-  async complete(request: MentorCompletionRequest): Promise<MentorCompletion> {
-    this.requests.push(request);
-    if (request.json?.name !== 'diagnosis' || !this.finding) {
-      throw new Error(`No reply was scripted for ${request.json?.name ?? 'a text request'}.`);
-    }
-    const { taskId, failureTurn } = this.finding;
-    const json = {
-      title: 'Work out the refund from the policy',
-      diagnosis: 'The agent wrote the refund before applying the policy to the price.',
-      causeTaskIds: [taskId],
-      edits: [
-        { op: 'write', path: 'AGENTS.md', content: `You are the Returns desk agent.\n\n${RULE}\n` },
-      ],
-      predicted: { devDeltaMin: 2, devDeltaMax: 4, rationale: 'Every dev refund turns on it.' },
-      readyClaim: false,
-      findings: [
-        {
-          taskId,
-          failureTurn,
-          evidence: [
-            { turn: failureTurn, note: 'The row it appended has the wrong refund_cents.' },
-          ],
-          cause: 'It never applied the refund rule to the list price.',
-          category: { id: '', slug: 'refund-amount', label: 'Refund amount' },
-          taskType: 'refund',
-        },
-      ],
-      intervention: {
-        type: 'procedure',
-        hypothesis: 'A written refund rule, with a worked example, fixes the amount.',
-        workedExamples: ['refund'],
-        practicePerFinding: 1,
-        question: '',
-        estimatedCost: { mentorUsd: 0.5, computeUsd: 0, minutes: 5 },
-        verificationPlan: 'Replay from the turn that wrote the row; the checker grades the row.',
-      },
-    };
-    const usage = { inputTokens: 3000, outputTokens: 800 };
-    return {
-      text: JSON.stringify(json),
-      json,
-      usage,
-      costUsd: this.estimateCostUsd(usage),
-      model: this.model,
-      latencyMs: 5,
-    };
-  }
-
-  estimateCostUsd(usage: Usage): number {
-    return (usage.inputTokens * 1.25 + usage.outputTokens * 4.25) / 1_000_000;
-  }
-
-  async testConnection() {
-    return { ok: true as const, latencyMs: 1, detail: 'scripted' };
-  }
-}
 
 let root: string;
 let store: EngineStore;
 let controller: RunController;
 let jobs: JobLibrary;
-const glimmer = new ScriptedGlimmer();
-const agent = new ScriptedSparkAgent();
+const glimmer = new ScriptedGlimmer([REFUND_HABIT]);
+const agent = new ScriptedSparkAgent([REFUND_HABIT]);
 const spark = new ScriptedSpark();
 
 beforeAll(async () => {
@@ -303,7 +103,9 @@ describe('failure-specific mentoring on the returns desk', () => {
     if (!first) throw new Error('No train refund.');
     const turn = appendTurn(glimmer.solution(first));
     expect(turn).toBeGreaterThan(1);
-    spark.finding = { taskId: first.id, failureTurn: turn };
+    spark.replies.set(1, (request) =>
+      refundProcedure(request, { taskId: first.id, failureTurn: turn }),
+    );
 
     const run = await controller.start('sample-gear-returns', 'architect', 11);
     await controller.idle();

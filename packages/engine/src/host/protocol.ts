@@ -3,6 +3,7 @@ import {
   BindRequestSchema,
   CapabilityBreakdownSchema,
   CategorySchema,
+  ComparisonReportSchema,
   CorrectionRequestSchema,
   CorrectionSchema,
   ClarificationReplySchema,
@@ -30,7 +31,8 @@ import {
   InterventionSchema,
   JobSchema,
   JobSummarySchema,
-  LessonSchema,
+  ListedAttemptSchema,
+  ListedLessonSchema,
   MentoringProgressSchema,
   PackageError,
   PackageInspectionSchema,
@@ -47,6 +49,7 @@ import {
   RunEventSchema,
   RunSchema,
   RunStartOptionsSchema,
+  RuntimeMeasurementSchema,
   StudentTargetSchema,
   TeachingOverviewSchema,
   TraceSchema,
@@ -115,14 +118,25 @@ export const ENGINE_ROUTES = {
   'runs.list': route(z.tuple([id.nullable()]), z.array(RunSchema), (api, [jobId]) =>
     api.runs.list(jobId ?? undefined),
   ),
+  'runs.attempt': route(z.tuple([id]), ListedAttemptSchema, (api, [attemptId]) =>
+    api.runs.attempt(attemptId),
+  ),
   'runs.trace': route(z.tuple([id]), TraceSchema, (api, [attemptId]) => api.runs.trace(attemptId)),
   'runs.roundDiff': route(
     z.tuple([id, z.number().int().positive()]),
     z.array(FileDiffSchema),
     (api, [runId, round]) => api.runs.roundDiff(runId, round),
   ),
-  'mentoring.lessons': route(z.tuple([id]), z.array(LessonSchema), (api, [runId]) =>
+  'runs.runtimeMeasurements': route(
+    z.tuple([id]),
+    z.array(RuntimeMeasurementSchema),
+    (api, [runId]) => api.runs.runtimeMeasurements(runId),
+  ),
+  'mentoring.lessons': route(z.tuple([id]), z.array(ListedLessonSchema), (api, [runId]) =>
     api.mentoring.lessons(runId),
+  ),
+  'mentoring.lessonTrace': route(z.tuple([id]), TraceSchema.nullable(), (api, [lessonId]) =>
+    api.mentoring.lessonTrace(lessonId),
   ),
   'mentoring.interventions': route(z.tuple([id]), z.array(InterventionSchema), (api, [runId]) =>
     api.mentoring.interventions(runId),
@@ -192,6 +206,9 @@ export const ENGINE_ROUTES = {
   ),
   'reports.list': route(z.tuple([id]), z.array(StudentTargetSchema), (api, [runId]) =>
     api.reports.list(runId),
+  ),
+  'reports.comparisons': route(z.tuple([id]), ComparisonReportSchema.nullable(), (api, [runId]) =>
+    api.reports.comparisons(runId),
   ),
   'graduates.list': route(z.tuple([]), z.array(GraduateSummarySchema), (api) =>
     api.graduates.list(),

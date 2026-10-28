@@ -4,13 +4,17 @@ import {
   JobSchema,
   TraceSchema,
   type ClarificationReply,
+  type ComparisonReport,
   type FileDiff,
+  type ListedAttempt,
+  type ListedLesson,
   type PublishProgress,
   type ReportCard,
   type RunDetail,
   type StudentTarget,
   type Trace,
 } from '@architect/shared';
+import { reportBeside } from '../comparisons/records';
 import { exportPackage, exportPart, reviewExport } from '../graduates/exporter';
 import { installFromHub } from '../graduates/hub-install';
 import { importPackage, inspectPackage, previewImport } from '../graduates/importer';
@@ -114,12 +118,64 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     };
   }
 
+  /** A run's lessons, each with its train task's request. */
+  async function lessons(runId: string): Promise<ListedLesson[]> {
+    const record = run(runId);
+    const train = await jobs.tasks(record.run.jobId, 'train');
+    const prompts = new Map(train.map((task) => [task.id, task.prompt]));
+    return store.lessons.list({ runId: record.run.id }).map((lesson) => ({
+      ...lesson,
+      prompt: lesson.source.kind === 'correction' ? undefined : prompts.get(lesson.source.taskId),
+    }));
+  }
+
+  async function attempt(attemptId: string): Promise<ListedAttempt> {
+    const stored = found(store.attempts.get(attemptId), `There is no attempt "${attemptId}".`);
+    if (stored.split === 'test') {
+      throw new Error("A final-test attempt isn't shown on its own; the report card counts it.");
+    }
+    const record = run(stored.runId);
+    const tasks = await jobs.tasks(record.run.jobId, stored.split);
+    return {
+      ...AttemptSchema.parse(stored),
+      prompt: tasks.find((task) => task.id === stored.taskId)?.prompt,
+    };
+  }
+
   async function trace(attemptId: string): Promise<Trace> {
     const attempt = found(store.attempts.get(attemptId), `There is no attempt "${attemptId}".`);
     if (attempt.tracePath === null) {
       throw new Error('Locked-test traces are not kept, so test prompts never leave the vault.');
     }
     return TraceSchema.parse(await readJsonFile(paths.fromStored(attempt.tracePath)));
+  }
+
+  /**
+   * What the mentor did as the agent in one correction, step by step. Null when the try never
+   * ran (its replay didn't hold, or a guard refused it) or was made before traces were kept.
+   */
+  async function lessonTrace(lessonId: string): Promise<Trace | null> {
+    const lesson = found(store.lessons.get(lessonId), `There is no lesson "${lessonId}".`);
+    if (lesson.runId === null) return null;
+    let stored: unknown;
+    try {
+      stored = await readJsonFile(paths.traceFile(lesson.jobId, lesson.runId, lesson.id));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw error;
+    }
+    return TraceSchema.parse(stored);
+  }
+
+  /**
+   * The comparisons runner's report the run is an arm of. The runner keeps a comparison's data
+   * in `<out>/data` and its report in `<out>/report.json` (decision 045), so the app shows one
+   * when it runs on such a `data` folder.
+   */
+  async function comparisons(runId: string): Promise<ComparisonReport | null> {
+    const id = run(runId).run.id;
+    const report = await reportBeside(paths.root);
+    return report?.arms.some((arm) => arm.runId === id) ? report : null;
   }
 
   /**
@@ -188,12 +244,15 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       retest: (runId, target) => controller.retest(runId, target),
       get: runDetail,
       list: async (jobId) => store.runs.list(jobId).map(({ run: listed }) => listed),
+      attempt,
       trace,
       roundDiff,
+      runtimeMeasurements: async (runId) => store.runtimeMeasurements.list(run(runId).run.id),
       onEvent: (listener) => controller.onEvent(listener),
     },
     mentoring: {
-      lessons: async (runId) => store.lessons.list({ runId: run(runId).run.id }),
+      lessons,
+      lessonTrace,
       interventions: async (runId) => store.interventions.list(run(runId).run.id),
       experiments: async (runId) => store.experiments.list(run(runId).run.id),
       progress: async (runId) => {
@@ -234,6 +293,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     reports: {
       get: async (runId, target) => reportOf(run(runId), target),
       list: async (runId) => store.reports.targets(run(runId).run.id),
+      comparisons,
     },
     graduates: {
       // A graduate never shows as unchecked: its active version is checked the first time it is

@@ -7,8 +7,17 @@ import {
   type LocalRuntimes,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
+import { installation } from './fixtures-versions';
 import { CHATS, MESSAGES } from './fixtures-workspace';
-import { detail, graduate, job, STORY, storyReport } from './story';
+import {
+  detail,
+  graduate,
+  job,
+  STORY,
+  storyCapabilities,
+  storyProgress,
+  storyReport,
+} from './story';
 
 /*
  * Sample engine replies for screenshots of populated screens. They stand in for the engine
@@ -75,6 +84,23 @@ export const EMPTY_ENGINE: EngineReplies = {
   'connections:llamaServer': LLAMA_SERVER_READY,
 };
 
+/**
+ * The story's run as the evidence screens read it: no lessons or experiments (it ran before
+ * they were kept), its capabilities from its final test, and its agent ready on this computer.
+ */
+export const STORY_EVIDENCE: EngineReplies = {
+  'mentoring:lessons': [],
+  'mentoring:interventions': [],
+  'mentoring:experiments': [],
+  'mentoring:progress': storyProgress,
+  'mentoring:categories': [],
+  'mentoring:capabilities': storyCapabilities,
+  'mentoring:references': [],
+  'runs:runtimeMeasurements': [],
+  'reports:comparisons': null,
+  'graduates:installation': installation(STORY.graduateId),
+};
+
 export const SAMPLE_ENGINE: EngineReplies = {
   'connections:detectLocal': LOCAL_WITH_GLIMMER,
   'connections:llamaServer': LLAMA_SERVER_READY,
@@ -86,6 +112,7 @@ export const SAMPLE_ENGINE: EngineReplies = {
   'jobs:get': job,
   'runs:get': detail,
   'reports:get': storyReport,
+  ...STORY_EVIDENCE,
 };
 
 /** Makes engine channels in the main process fail with the given message, as an outage would. */

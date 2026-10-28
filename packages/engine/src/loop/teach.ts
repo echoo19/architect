@@ -17,6 +17,7 @@ import type { EngineStore } from '../store/engine-store';
 import { gatedActor, refusalOf, type ActorCharge } from '../teaching/actor';
 import type { CorrectionResult, CorrectionStart } from '../teaching/correction';
 import { isAbort, must, passesOnItsOwn, summaryOf } from './errors';
+import { writeJsonFile } from './files';
 import { failedAttempts, interventionOfRound } from './intervene';
 import type { RunState } from './run-state';
 import { deriveSeed } from './seeds';
@@ -156,12 +157,12 @@ export async function planTeaching(
     if (stopped.categories.has(finding.categoryId)) {
       skipped.push({
         what,
-        reason: `its category made no dev gain in ${STOP_CATEGORY_AFTER} rounds, so its teaching stopped`,
+        reason: `its category gained no check tasks in ${STOP_CATEGORY_AFTER} rounds, so its teaching stopped`,
       });
     } else if (stopped.types.has(finding.taskType)) {
       skipped.push({
         what,
-        reason: `its task type made no dev gain in ${STOP_TYPE_AFTER} rounds, so its teaching stopped`,
+        reason: `its task type gained no check tasks in ${STOP_TYPE_AFTER} rounds, so its teaching stopped`,
       });
     } else if (taught.has(finding.taskId)) {
       skipped.push({ what, reason: 'the task was taught in an earlier round' });
@@ -535,6 +536,14 @@ export async function teach(state: RunState, index: number): Promise<boolean> {
       // A correction cut short by shutdown isn't a verdict; the try runs again on the next start.
       state.signal.throwIfAborted();
       const lesson = lessonOf(state, context, result);
+      // What the mentor did as the agent, step by step, for playback beside the lesson: written
+      // first, so a lesson on record always has the trace it was judged on.
+      if (result.trace !== null) {
+        await writeJsonFile(
+          state.ctx.paths.traceFile(state.run.jobId, runId, lesson.id),
+          result.trace,
+        );
+      }
       store.lessons.put(lesson);
       state.announce('lesson', lesson.id, index);
       state.log(

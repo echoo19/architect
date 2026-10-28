@@ -196,7 +196,7 @@ describe('the comparisons runner', () => {
     // At what attempts cost by then, the credit held for arms 1 and 2 left too little for arm 3.
     expect(arm('targeted')?.status).toBe('not_run');
     expect(arm('targeted')?.reason).toMatch(
-      /^It needs \$\d+\.\d\d of student credit at what an attempt has cost so far \(\$0\.0149\)/,
+      /^At what an attempt has cost so far \(\$0\.0149\), it needs \$\d+\.\d\d of the hosted student's budget/,
     );
     expect(arm('repeat')?.status).toBe('complete');
     expect(journalTotal(world)).toBeLessThanOrEqual(cap);
@@ -218,7 +218,7 @@ describe('the comparisons runner', () => {
     expect(arm('targeted')?.status).toBe('not_run');
     expect(arm('repeat')).toMatchObject({
       status: 'stopped',
-      reason: "The student credit left didn't pay for the repeat of the one-shot draft arm.",
+      reason: "The hosted student's budget left didn't pay to run the one-shot draft again.",
     });
     const hosted = report.backends.find((table) => table.backend === 'hosted');
     expect(hosted?.repeats.map((row) => row.arm)).toEqual(['bare']);
@@ -404,7 +404,7 @@ describe('the test-release barrier (decision 051)', () => {
       status: 'not_run',
     });
     expect(first.report.arms.find((arm) => arm.arm === 'fixed')?.reason).toMatch(
-      /^It needs \$\d+\.\d\d of student credit at what an attempt has cost so far/,
+      /^At what an attempt has cost so far \(\$\d+\.\d+\), it needs \$\d+\.\d\d of the hosted student's budget/,
     );
     expect(first.report.plan.releasedAt).not.toBeNull();
     const before = paidFor(world);

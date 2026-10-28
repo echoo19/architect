@@ -12,6 +12,15 @@ import {
   stubEngine,
   stubEngineFailure,
 } from './fixtures';
+import {
+  lessonCount,
+  recordedComparison,
+  recordedComparisonReport,
+  recordedData,
+  recordedSummary,
+  roundWith,
+  type RecordedSummary,
+} from './recorded';
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const SIZE = { width: 1440, height: 900 };
@@ -152,5 +161,221 @@ test('captures the populated screens with sample engine replies', async () => {
       await expect(page.getByRole('alert')).toHaveCount(0);
       await capture(page, `${route.name}-${theme}.png`);
     }
+  }
+});
+
+/*
+ * The evidence screens on the run the global setup recorded with the engine's fakes: the app's
+ * own engine reads its lessons, experiments, traces and report, so nothing on these screens is
+ * a number written for a screenshot. The story's run above, which kept no mentoring records,
+ * shows the same screens empty.
+ */
+test.describe('the evidence screens of a recorded run', () => {
+  /** What every call says while the engine process restarts after stopping mid-call. */
+  const ENGINE_RESTARTING =
+    'The engine stopped while it was working on this. It is restarting; try again in a moment.';
+  /** Tall enough for the whole training board and the whole report. */
+  const BOARD_HEIGHT = 1840;
+  const REPORT_HEIGHT = 1700;
+  /** Tall enough for a whole round or example in its drawer, down to the files it changed. */
+  const DRAWER_HEIGHT = 2400;
+  /** The report without its capabilities and comparisons, when they fail to load. */
+  const SHORT_REPORT_HEIGHT = 1300;
+  /** A comparison arm's report, with every arm of the comparison in its table. */
+  const COMPARISON_REPORT_HEIGHT = 2100;
+
+  let recorded: LaunchedApp;
+  let summary: RecordedSummary;
+
+  async function open(
+    theme: (typeof THEMES)[number],
+    from: { data: string } | { comparison: string } = { data: recordedData() },
+  ): Promise<LaunchedApp> {
+    const app = await launchApp({ ...from, settings: { onboarded: true, theme } });
+    await expect(app.page.locator('html')).toHaveAttribute('data-theme', theme);
+    return app;
+  }
+
+  async function resize(height: number): Promise<void> {
+    await recorded.app.evaluate(
+      ({ BrowserWindow }, size) => {
+        BrowserWindow.getAllWindows()[0]?.setContentSize(size.width, size.height);
+      },
+      { width: SIZE.width, height },
+    );
+    await recorded.page.waitForFunction((h) => window.innerHeight === h, height);
+  }
+
+  async function shoot(file: string): Promise<void> {
+    // The pointer would otherwise leave a hover highlight wherever the last click was.
+    await recorded.page.mouse.move(0, 0);
+    await capture(recorded.page, file);
+  }
+
+  async function openRound(round: number) {
+    await recorded.page
+      .getByRole('region', { name: 'Rounds' })
+      .getByRole('button')
+      .filter({ hasText: new RegExp(`^${String(round).padStart(2, '0')}`) })
+      .click();
+    const drawer = recorded.page.getByRole('dialog', { name: new RegExp(`^Round ${round}`) });
+    await expect(drawer).toBeVisible();
+    return drawer;
+  }
+
+  async function closeDrawer(): Promise<void> {
+    await recorded.page.keyboard.press('Escape');
+    await expect(recorded.page.getByRole('dialog')).toHaveCount(0);
+  }
+
+  test.beforeAll(async () => {
+    summary = await recordedSummary();
+  });
+
+  test.afterEach(async () => {
+    await recorded?.close();
+  });
+
+  for (const theme of THEMES) {
+    test(`captures lessons, experiments, playback and the report (${theme})`, async () => {
+      recorded = await open(theme);
+      const { page } = recorded;
+      await resize(BOARD_HEIGHT);
+      await goTo(page, `/runs/${summary.runId}/train`);
+      await expect(
+        page.getByRole('region', { name: 'Worked examples' }).getByRole('listitem'),
+      ).toHaveCount(lessonCount(summary));
+      await shoot(`evidence-train-${theme}.png`);
+
+      // Each way a round can end, its drawer whole.
+      await resize(DRAWER_HEIGHT);
+      for (const disposition of ['kept', 'reverted', 'rejected', 'invalid', 'stopped'] as const) {
+        await openRound(roundWith(summary, disposition));
+        await shoot(`evidence-round-${disposition}-${theme}.png`);
+        await closeDrawer();
+      }
+
+      // Round 1's verified repair, played from its checkpoint, then the attempt it repaired,
+      // opened at the step the finding points to.
+      const kept = await openRound(roundWith(summary, 'kept'));
+      await kept
+        .getByRole('region', { name: 'Worked examples' })
+        .getByRole('button')
+        .filter({ hasText: 'Replayed from step' })
+        .first()
+        .click();
+      const lesson = page.getByRole('dialog');
+      await expect(lesson.getByRole('list', { name: "Spark's correction" })).toBeVisible();
+      await shoot(`evidence-lesson-${theme}.png`);
+      // In a window of the usual size: the correction itself, from where Spark took over.
+      await resize(SIZE.height);
+      await lesson
+        .locator('.overflow-y-auto')
+        .first()
+        .evaluate((body) => {
+          const step = body.querySelector('[aria-current="step"]');
+          if (!step) throw new Error('No current step');
+          body.scrollTop +=
+            step.getBoundingClientRect().top - body.getBoundingClientRect().top - 240;
+        });
+      await shoot(`evidence-lesson-steps-${theme}.png`);
+      await resize(DRAWER_HEIGHT);
+      await lesson
+        .getByRole('button', {
+          name: `Open Glimmer's attempt at step ${summary.repair.failureTurn}`,
+        })
+        .click();
+      await expect(page.getByRole('dialog')).toContainText('Spark suspects this step');
+      await shoot(`evidence-attempt-${theme}.png`);
+      await closeDrawer();
+
+      // Round 2's repair had to start over: a full-task demonstration, labelled as one.
+      const rejected = await openRound(roundWith(summary, 'rejected'));
+      await rejected
+        .getByRole('region', { name: 'Worked examples' })
+        .getByRole('button')
+        .filter({ hasText: 'Full-task demonstration' })
+        .click();
+      await expect(page.getByRole('dialog')).toContainText('Spark does the whole task');
+      await shoot(`evidence-lesson-full-task-${theme}.png`);
+      await closeDrawer();
+
+      await resize(REPORT_HEIGHT);
+      await goTo(page, `/runs/${summary.runId}/report`);
+      await expect(page.getByRole('table', { name: 'Capabilities by task type' })).toBeVisible();
+      await expect(page.getByRole('table', { name: 'Comparisons' })).toBeVisible();
+      // The agent's install checks and its model's facts arrive with the agent, a moment later.
+      await expect(page.getByText('Install checks on this computer')).toBeVisible();
+      await shoot(`evidence-report-${theme}.png`);
+
+      // An example whose steps can't be read says so, with a way to try again.
+      await stubEngineFailure(recorded.app, {
+        'mentoring:lessonTrace': ENGINE_RESTARTING,
+      });
+      await resize(SIZE.height);
+      await goTo(page, `/runs/${summary.runId}/train`);
+      const reverted = await openRound(roundWith(summary, 'reverted'));
+      await reverted
+        .getByRole('region', { name: 'Worked examples' })
+        .getByRole('button')
+        .first()
+        .click();
+      await expect(page.getByRole('dialog')).toContainText("Couldn't load the steps");
+      await shoot(`evidence-lesson-error-${theme}.png`);
+      await closeDrawer();
+    });
+
+    test(`captures the evidence screens when their records fail to load (${theme})`, async () => {
+      recorded = await open(theme);
+      const { app, page } = recorded;
+      await stubEngineFailure(app, {
+        'mentoring:lessons': ENGINE_RESTARTING,
+        'mentoring:capabilities': ENGINE_RESTARTING,
+      });
+      await resize(BOARD_HEIGHT);
+      await goTo(page, `/runs/${summary.runId}/train`);
+      await expect(page.getByText("Couldn't load the worked examples")).toBeVisible();
+      await expect(page.getByText("Couldn't load how the rounds ended")).toBeVisible();
+      await shoot(`evidence-train-error-${theme}.png`);
+      // A round opened while the records still load, and then the load fails.
+      await app.evaluate(({ ipcMain }, message) => {
+        ipcMain.removeHandler('mentoring:lessons');
+        ipcMain.handle(
+          'mentoring:lessons',
+          () =>
+            new Promise((resolve) => {
+              setTimeout(() => resolve({ ok: false, error: { message } }), 3_000);
+            }),
+        );
+      }, ENGINE_RESTARTING);
+      await resize(DRAWER_HEIGHT);
+      await page.reload();
+      const opened = await openRound(roundWith(summary, 'kept'));
+      await expect(opened).toContainText("Couldn't load this round's findings, examples and costs");
+      await shoot(`evidence-round-error-${theme}.png`);
+      await closeDrawer();
+
+      await stubEngineFailure(app, {
+        'mentoring:experiments': ENGINE_RESTARTING,
+      });
+      await resize(SHORT_REPORT_HEIGHT);
+      await goTo(page, `/runs/${summary.runId}/report`);
+      // Each section says what it couldn't read; the rest of the card stands.
+      await expect(page.getByText("Couldn't load the capabilities")).toBeVisible();
+      await expect(page.getByText("Couldn't load the comparisons")).toBeVisible();
+      await shoot(`evidence-report-error-${theme}.png`);
+    });
+
+    test(`captures a comparison's own report on one of its arms (${theme})`, async () => {
+      const report = await recordedComparisonReport();
+      const targeted = report.arms.find((arm) => arm.arm === 'targeted');
+      if (!targeted?.runId) throw new Error('The recorded comparison has no targeted run.');
+      recorded = await open(theme, { comparison: recordedComparison() });
+      await resize(COMPARISON_REPORT_HEIGHT);
+      await goTo(recorded.page, `/runs/${targeted.runId}/report`);
+      await expect(recorded.page.getByRole('table', { name: 'Comparisons' })).toBeVisible();
+      await expect(recorded.page.getByText('Install checks on this computer')).toBeVisible();
+      await shoot(`evidence-report-comparison-${theme}.png`);
+    });
   }
 });

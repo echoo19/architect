@@ -175,7 +175,7 @@ describe('a fixed intervention', () => {
     });
     await engine.controller.idle();
     expect(engine.store.interventions.get(run.id, 1)?.invalidReason).toBe(
-      "A helper intervention isn't possible in this run: This run's comparison fixes the intervention to procedure, so the mentor doesn't choose it.",
+      "The mentor chose a helper, which this run can't do. This run's comparison fixes the intervention to procedure, so the mentor doesn't choose it.",
     );
     const [request] = world.mentor.requests;
     expect(JSON.stringify(request)).toContain(

@@ -62,10 +62,10 @@ type RecordPatch = Partial<Omit<StoredRun, 'run'>>;
 
 export const TRAINING_ENDED: Record<RunStopReason | 'complete', string> = {
   complete: 'Training is complete.',
-  target_met: 'Dev reached the target pass rate.',
+  target_met: 'The check tasks reached the target pass rate.',
   rounds: 'Every round in the budget is used.',
-  usd: 'The mentor dollar budget is spent.',
-  wall_clock: 'The wall-clock budget is spent.',
+  usd: "The mentor's budget is spent.",
+  wall_clock: 'The time limit ran out.',
   patience: 'Too many rounds in a row brought no kept change.',
   rejected: `${MAX_REJECTED_IN_A_ROW} rounds in a row ended with a reply or change set that couldn't be used, so training ended.`,
   leak: 'The leak check refused a mentor call, so training ended before any later round could send the same data.',
