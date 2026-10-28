@@ -474,6 +474,8 @@ export async function teach(state: RunState, index: number): Promise<boolean> {
         endForRefusal(state, index, refusal);
         return false;
       }
+      // A correction cut short by shutdown isn't a verdict; the try runs again on the next start.
+      state.signal.throwIfAborted();
       const lesson = lessonOf(state, context, result);
       store.lessons.put(lesson);
       state.announce('lesson', lesson.id, index);

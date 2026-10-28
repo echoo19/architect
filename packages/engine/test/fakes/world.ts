@@ -11,7 +11,7 @@ import {
   type Task,
 } from '@architect/shared';
 import { RunController } from '../../src/loop/controller';
-import type { EngineHostDeps } from '../../src/loop/deps';
+import type { AdapterServeRequest, EngineHostDeps } from '../../src/loop/deps';
 import { JobLibrary } from '../../src/loop/jobs';
 import { DataPaths } from '../../src/loop/paths';
 import { openEngineStore, type EngineStore } from '../../src/store/engine-store';
@@ -42,6 +42,8 @@ export interface World {
   actors: FakeActor[];
   /** How many times the mentor's price the actor charges. */
   actorPriceScale: number;
+  /** Every llama.cpp student asked for, with the adapters it loads and its scales. */
+  adapterRequests: AdapterServeRequest[];
   mentorsCreated: number;
   studentReply: (request: StudentChatRequest, call: number) => string;
   /** The build the local student reports; change it to swap the model under a frozen graduate. */
@@ -76,6 +78,7 @@ export async function createWorld(
     students: [],
     actors: [],
     actorPriceScale: 1,
+    adapterRequests: [],
     mentorsCreated: 0,
     studentReply: () => '',
     localDigest: 'sha256:fake',
@@ -123,6 +126,26 @@ export async function createWorld(
         actor.priceScale = world.actorPriceScale;
         world.actors.push(actor);
         return actor;
+      },
+      // A llama-server student: its model names the adapters it applies, so a test's pass rule
+      // can tell adapter-on from adapter-off.
+      createAdapterStudent: (request) => {
+        const applied = Object.entries(request.scales)
+          .filter(([, scale]) => scale !== 0)
+          .map(([key, scale]) => `${key}@${scale}`);
+        const student = new FakeStudent(
+          {
+            runtime: 'openai_compatible',
+            baseUrl: 'http://127.0.0.1:8081',
+            model: `${request.model}+${applied.join(',') || 'base'}`,
+            contextLength: 16_384,
+          },
+          (chat, call) => world.studentReply(chat, call),
+          () => world.localDigest,
+        );
+        world.adapterRequests.push(request);
+        world.students.push(student);
+        return student;
       },
     },
     secrets: { get: async (ref) => secrets.get(ref) },

@@ -176,6 +176,7 @@ export async function awaitTraining(state: RunState, index: number): Promise<voi
     return;
   }
   await pause(state, TRAINING_POLL_MS);
+  state.signal.throwIfAborted();
 }
 
 /** Asks the worker to stop a round's training job, when it has one still running. */

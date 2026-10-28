@@ -129,8 +129,10 @@ export class FakeRuntime implements RuntimeDeps {
   readonly proofs = new Set<object>();
   sandboxesDisposed = 0;
   beforeAttempt: AttemptHook | undefined;
-  passes: (task: Task, harness: Harness, seed: number) => boolean = (task, harness) =>
-    harness.system.includes(`fix:${task.type}`);
+  passes: (task: Task, harness: Harness, seed: number, student: string) => boolean = (
+    task,
+    harness,
+  ) => harness.system.includes(`fix:${task.type}`);
   /** The check a failed attempt gets; a test can make it carry values and details. */
   failedCheck: (task: Task) => CheckResult = (task) => ({
     pass: false,
@@ -162,7 +164,7 @@ export class FakeRuntime implements RuntimeDeps {
       });
       if (task.id.startsWith('test-')) this.sequence.push(`test:${task.id}`);
       const refused = ctx.harness.guardrails.refuse.some((rule) => rule.taskType === task.type);
-      const pass = !refused && this.passes(task, ctx.harness, options.seed);
+      const pass = !refused && this.passes(task, ctx.harness, options.seed, ctx.student.model);
       const trace = fakeTrace(task, ctx, pass, refused);
       items.push({
         task,
