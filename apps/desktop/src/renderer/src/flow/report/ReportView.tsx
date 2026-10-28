@@ -36,6 +36,8 @@ interface ReportViewProps {
   run: Run | null;
   /** This computer's install checks of the agent, once it is one. */
   installation: Installation | null;
+  /** A run with no setup on the same job and seed, for the untouched student's final test. */
+  bare: ReportCard | null;
 }
 
 /**
@@ -108,6 +110,7 @@ export function ReportView({
   evidence,
   run,
   installation,
+  bare,
 }: ReportViewProps) {
   const { test, cost } = report;
   const names: ModelNames = {
@@ -214,7 +217,7 @@ export function ReportView({
             progress: evidence.data.progress,
             experiments: evidence.data.experiments,
             references: evidence.data.references,
-            bare: evidence.data.bare,
+            bare,
           })}
           names={names}
         />

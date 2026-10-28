@@ -15,10 +15,23 @@ export interface ReportEvidence {
   references: ReferenceRecord[];
   experiments: Experiment[];
   progress: MentoringProgress;
-  /** The final test of a run with no setup on the same job and seed, when one finished. */
-  bare: ReportCard | null;
 }
 
+async function loadEvidence(runId: string): Promise<ReportEvidence> {
+  const [capabilities, references, experiments, progress] = await Promise.all([
+    mentoringApi.capabilities(runId),
+    mentoringApi.references(runId),
+    mentoringApi.experiments(runId),
+    mentoringApi.progress(runId),
+  ]);
+  return { capabilities, references, experiments, progress };
+}
+
+export function useReportEvidence(report: ReportCard) {
+  return useQuery(`report-evidence:${report.runId}`, () => loadEvidence(report.runId));
+}
+
+/** The final test of a finished run with no setup on the same job and seed, if there is one. */
 async function bareReport(report: ReportCard): Promise<ReportCard | null> {
   const runs = await flowApi.runs(report.jobId);
   const current = runs.find((run) => run.id === report.runId);
@@ -32,21 +45,12 @@ async function bareReport(report: ReportCard): Promise<ReportCard | null> {
   return bare ? api.report(bare.id) : null;
 }
 
-async function loadEvidence(report: ReportCard, blankStart: boolean): Promise<ReportEvidence> {
-  const { runId } = report;
-  const [capabilities, references, experiments, progress, bare] = await Promise.all([
-    mentoringApi.capabilities(runId),
-    mentoringApi.references(runId),
-    mentoringApi.experiments(runId),
-    mentoringApi.progress(runId),
-    // Only a run that started with no setup measures the same student as a run with none.
+/**
+ * The untouched student's final test, for a run that started with no setup: only then does a
+ * run with none measure the same student. Null otherwise, and while that isn't known yet.
+ */
+export function useBareReport(report: ReportCard, blankStart: boolean) {
+  return useQuery(`bare-report:${report.runId}:${blankStart ? 'blank' : 'set'}`, () =>
     blankStart ? bareReport(report) : Promise.resolve(null),
-  ]);
-  return { capabilities, references, experiments, progress, bare };
-}
-
-export function useReportEvidence(report: ReportCard, blankStart: boolean) {
-  return useQuery(`report-evidence:${report.runId}:${blankStart ? 'blank' : 'set'}`, () =>
-    loadEvidence(report, blankStart),
   );
 }
