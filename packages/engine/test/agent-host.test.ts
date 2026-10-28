@@ -153,18 +153,18 @@ describe('chatting with a graduate', () => {
       {
         kind: 'model',
         text: 'Let me check the invoices.',
-        toolCalls: [
-          { id: expect.any(String), name: 'read', arguments: { path: 'data/invoices.csv' } },
+        calls: [
+          { id: expect.any(String), name: 'read', arguments: '{"path":"data/invoices.csv"}' },
         ],
       },
       {
         kind: 'tool',
         callId: expect.any(String),
         name: 'read',
-        arguments: { path: 'data/invoices.csv' },
+        arguments: '{"path":"data/invoices.csv"}',
         result: expect.stringContaining('INV-3,C-1,990,2026-11-02,false'),
       },
-      { kind: 'model', text: 'Two invoices are unpaid: INV-2 and INV-3.', toolCalls: [] },
+      { kind: 'model', text: 'Two invoices are unpaid: INV-2 and INV-3.', calls: [] },
     ]);
     const streamed = world.events.flatMap((event) =>
       event.type === 'message.updated' && event.message.id === reply.id ? [event.message] : [],

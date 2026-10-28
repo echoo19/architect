@@ -1,8 +1,6 @@
 import { z } from 'zod';
 import { CellValueSchema } from './cells';
-import { ToolCallSchema } from './chat';
 import { WRITE_TOOL_NAMES } from './data';
-import { JsonValueSchema } from './json';
 
 /** Rows that a read of a table showed, with the table's column names. */
 export const TableViewSchema = z.object({
@@ -91,17 +89,21 @@ export type ApprovalRequest = z.infer<typeof ApprovalRequestSchema>;
 
 /**
  * One step of a reply's work as the model took it: what the model said and the calls it made,
- * each call's result as the model saw it, a skill a rule loaded, or a refusal. The steps a chat
- * shows are summaries of these.
+ * each call's result as the model saw it, a skill a rule loaded, or a refusal. Arguments and
+ * results are kept as the JSON text or text they were. The steps a chat shows summarize these.
  */
 export const ReplyStepSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('model'), text: z.string(), toolCalls: z.array(ToolCallSchema) }),
+  z.object({
+    kind: z.literal('model'),
+    text: z.string(),
+    calls: z.array(z.object({ id: z.string(), name: z.string(), arguments: z.string() })),
+  }),
   z.object({
     kind: z.literal('tool'),
     callId: z.string(),
     name: z.string(),
-    arguments: z.record(z.string(), JsonValueSchema),
-    result: JsonValueSchema.nullable(),
+    arguments: z.string(),
+    result: z.string(),
     error: z.string().optional(),
   }),
   z.object({ kind: z.literal('skill'), slug: z.string(), via: z.enum(['rule', 'tool']) }),

@@ -125,17 +125,17 @@ describe('schemas', () => {
       {
         kind: 'model',
         text: 'Let me check.',
-        toolCalls: [{ id: 'c1', name: 'read', arguments: { path: 'data/invoices.csv' } }],
+        calls: [{ id: 'c1', name: 'read', arguments: '{"path":"data/invoices.csv"}' }],
       },
       {
         kind: 'tool',
         callId: 'c1',
         name: 'read',
-        arguments: { path: 'data/invoices.csv' },
+        arguments: '{"path":"data/invoices.csv"}',
         result: '1\tinvoice_id,paid\n2\tINV-2,false',
       },
       { kind: 'skill', slug: 'overdue-balances', via: 'rule' },
-      { kind: 'model', text: 'Two invoices are unpaid.', toolCalls: [] },
+      { kind: 'model', text: 'Two invoices are unpaid.', calls: [] },
     ];
     expect(WorkspaceMessageSchema.parse({ ...earlier, trace }).trace).toEqual(trace);
     expect(

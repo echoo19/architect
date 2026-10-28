@@ -143,14 +143,22 @@ export class LiveReply {
 function replyStep(step: TraceStep): ReplyStep {
   switch (step.kind) {
     case 'model':
-      return { kind: 'model', text: step.text, toolCalls: step.toolCalls };
+      return {
+        kind: 'model',
+        text: step.text,
+        calls: step.toolCalls.map((call) => ({
+          id: call.id,
+          name: call.name,
+          arguments: JSON.stringify(call.arguments),
+        })),
+      };
     case 'tool':
       return {
         kind: 'tool',
         callId: step.callId,
         name: step.name,
-        arguments: step.arguments,
-        result: step.result,
+        arguments: JSON.stringify(step.arguments),
+        result: typeof step.result === 'string' ? step.result : JSON.stringify(step.result ?? null),
         ...(step.error === undefined ? {} : { error: step.error }),
       };
     case 'skill':
