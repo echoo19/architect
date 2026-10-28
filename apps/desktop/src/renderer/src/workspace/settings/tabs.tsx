@@ -28,21 +28,15 @@ import { fetchQuery, setQueryData } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
 import { FixButtons } from '../../install/InstallChecks';
 import { osName, STATUS_LABELS, statusMark } from '../../install/labels';
-import { formatBytes, formatPercent, shortPath } from '../../lib/format';
-import {
-  capitalized,
-  quantizationLabel,
-  setupName,
-  setupSource,
-  shortModelName,
-  STUDENT_ROLE,
-} from '../../lib/names';
+import { formatPercent, shortPath } from '../../lib/format';
+import { capitalized, setupName, setupSource, shortModelName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { navigate, paths, type Route } from '../../lib/router';
 import { updateGraduateSettings, useGraduateSettings } from '../graduateSettings';
 import { WRITE_MODE_LABELS, WRITE_MODE_MEANINGS, WRITE_MODES, WRITE_SETTING } from '../labels';
 import { forgetAgent } from '../store';
+import { AgentModelRow } from './AgentModel';
 import { useAgentSettingsUi } from './agentSettingsUi';
 import { versionDate } from './versions';
 
@@ -59,19 +53,12 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
   const { versions, active } = useActiveVersion(agent.id);
   const [confirming, setConfirming] = useState(false);
   const { manifest } = agent;
-  const model = manifest.student;
   const mentor = shortModelName(manifest.mentor.label);
   const { score } = manifest.test;
   const { met, target } = manifest.requirements.passRate;
   const result = `${met ? 'Passed' : 'Below its target'}: ${score.pass} of ${score.total} (${formatPercent(score)})`;
   const contract = active?.manifest.contract;
   const evaluatedHere = active?.origin === undefined;
-  const modelDetails = [
-    model.quantization && quantizationLabel(model.quantization),
-    model.sizeBytes && `${formatBytes(model.sizeBytes)} on disk`,
-  ]
-    .filter(Boolean)
-    .join(' · ');
 
   return (
     <>
@@ -102,17 +89,7 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
       >
         <SettingsValue>{result}</SettingsValue>
       </SettingsRow>
-      <SettingsRow
-        label={capitalized(STUDENT_ROLE)}
-        meta={
-          <>
-            {modelDetails && `${modelDetails} · `}
-            <span className="font-mono text-xs">{model.model}</span>
-          </>
-        }
-      >
-        <SettingsValue>{shortModelName(model.label)}</SettingsValue>
-      </SettingsRow>
+      <AgentModelRow agent={agent} active={active} />
       <InstallRow agent={agent} active={active} />
       <SettingsRow
         label="Delete agent"
@@ -145,6 +122,7 @@ function InstallRow({
   active: GraduateVersion | undefined;
 }) {
   const installation = useInstallation(agent.id);
+  const chooseModel = useAgentSettingsUi((state) => state.setChoosingModel);
   const checked = installation.data;
   const status = checked?.status ?? agent.status;
   const machine = checked?.machine;
@@ -172,6 +150,7 @@ function InstallRow({
               installation={checked}
               manifest={active.manifest}
               onChanged={changed}
+              onChooseModel={() => chooseModel(true)}
             />
           )}
         </div>

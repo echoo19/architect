@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Installation, PackageManifest } from '@architect/shared';
 import { Button, SettingsRow, StatusMark } from '@architect/ui';
-import { Cpu, Download, FolderOpen, RotateCw, ShieldCheck } from 'lucide-react';
+import { Cpu, Download, FolderOpen, HardDrive, RotateCw, ShieldCheck } from 'lucide-react';
 import { architect } from '../api/client';
 import { graduatesApi, refreshAgent } from '../api/graduates';
 import { attempt } from '../lib/notify';
@@ -41,6 +41,11 @@ export interface FixButtonsProps {
   manifest: PackageManifest;
   /** The installation once a fix ran and the checks ran again. */
   onChanged: (installation: Installation) => void;
+  /**
+   * Opens the model picker where it is, for a fix that needs another model. Without it, the
+   * agent's settings open on General with the picker open.
+   */
+  onChooseModel?: () => void;
 }
 
 /**
@@ -65,10 +70,17 @@ export function SetUpLlamaButton({ disabled = false }: { disabled?: boolean }) {
 
 /**
  * A button for each way out of what the checks found: choose a folder, allow one, set up
- * llama.cpp, download the model, or check again. Each one but llama.cpp's runs the checks again
- * and hands back what they found; after Settings, Check again does.
+ * llama.cpp, download the model, choose another model, or check again. Each one but llama.cpp's
+ * and the model's runs the checks again and hands back what they found; after Settings, Check
+ * again does, and choosing a model runs them itself.
  */
-export function FixButtons({ graduateId, installation, manifest, onChanged }: FixButtonsProps) {
+export function FixButtons({
+  graduateId,
+  installation,
+  manifest,
+  onChanged,
+  onChooseModel,
+}: FixButtonsProps) {
   const fixes = fixesFor(installation, manifest);
   const [running, setRunning] = useState<string | null>(null);
 
@@ -83,7 +95,7 @@ export function FixButtons({ graduateId, installation, manifest, onChanged }: Fi
     if (changed) onChanged(changed);
   };
 
-  const apply = (fix: Exclude<Fix, { kind: 'llama' }>): Promise<Installation | null> => {
+  const apply = (fix: Exclude<Fix, { kind: 'llama' | 'model' }>): Promise<Installation | null> => {
     switch (fix.kind) {
       case 'choose':
         return (async () => {
@@ -111,6 +123,23 @@ export function FixButtons({ graduateId, installation, manifest, onChanged }: Fi
         const key =
           fix.kind === 'choose' || fix.kind === 'allow' ? `${fix.kind}:${fix.resource}` : fix.kind;
         if (fix.kind === 'llama') return <SetUpLlamaButton key={key} disabled={running !== null} />;
+        if (fix.kind === 'model') {
+          return (
+            <Button
+              key={key}
+              size="xs"
+              disabled={running !== null}
+              onClick={() =>
+                onChooseModel
+                  ? onChooseModel()
+                  : useAgentSettingsUi.getState().chooseModel(graduateId)
+              }
+            >
+              <HardDrive size={14} strokeWidth={1.7} aria-hidden />
+              Choose its model
+            </Button>
+          );
+        }
         if (fix.kind === 'download') {
           return (
             <DownloadModelButton
@@ -141,7 +170,7 @@ export function FixButtons({ graduateId, installation, manifest, onChanged }: Fi
   );
 }
 
-function fixLabel(fix: Exclude<Fix, { kind: 'download' | 'llama' }>): string {
+function fixLabel(fix: Exclude<Fix, { kind: 'download' | 'llama' | 'model' }>): string {
   switch (fix.kind) {
     case 'choose':
       return fix.again
