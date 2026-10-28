@@ -62,7 +62,7 @@ const EntrySchema = z.object({
   /** The process's lease and the use: `<token>:<use>`. */
   user: z.string().min(1),
   pid: z.number().int().positive(),
-  /** Which of Architect's processes: `workspace`, `engine` or `cli`. */
+  /** Which of Architect's processes: `workspace`, `engine`, `cli` or `comparisons`. */
   owner: z.string().min(1),
   use: UseSchema,
   /** When its process last said it was there, in milliseconds since the epoch. */

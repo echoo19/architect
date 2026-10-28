@@ -340,6 +340,61 @@ describe('the GPU lease between processes', () => {
     reply.release();
   });
 
+  it('takes only a free GPU when told to, failing at once while another process has it', async () => {
+    const events: string[] = [];
+    const hint = 'Close Architect while a comparison runs, then run the command again.';
+    const tool = lease('comparisons', { onlyWhenFree: { hint } });
+    served(tool, 'llama-server', events, "the tool's server");
+    served(tool, 'ollama', events, "the tool's Ollama");
+    const workspace = lease('workspace');
+    const theirs = served(workspace, 'ollama', events, 'the workspace');
+
+    // Busy: no waiting its turn, though a turn could come within the default 5 minutes.
+    const reply = await workspace.hold('ollama', replyPurpose('Returns desk'));
+    const started = Date.now();
+    await expect(tool.hold('llama-server', RUN_PURPOSE)).rejects.toMatchObject({
+      code: 'gpu_busy',
+      message: 'The GPU is busy: the workspace is answering a chat with Returns desk.',
+      hint,
+    });
+    expect(Date.now() - started).toBeLessThan(2_000);
+    // Idle: it doesn't take the GPU from the holder either.
+    reply.release();
+    await until(() => leaseFile().holders[0]?.busy === false);
+    await expect(tool.hold('llama-server', RUN_PURPOSE)).rejects.toMatchObject({
+      message: 'The GPU is busy: the workspace has it, with nothing running.',
+      hint,
+    });
+    expect(events).toEqual([]);
+    expect(leaseFile().asks).toEqual([]);
+
+    // Free, it takes the GPU, its own other use giving way as usual, and gives it up when idle.
+    theirs.resident = false;
+    await until(() => leaseFile().holders.length === 0);
+    (await tool.hold('ollama', RUN_PURPOSE)).release();
+    (await tool.hold('llama-server', RUN_PURPOSE)).release();
+    expect(events).toEqual(["the tool's Ollama let go"]);
+    (await lease('engine').hold('llama-server', CHECK_PURPOSE)).release();
+    expect(events).toEqual(["the tool's Ollama let go", "the tool's server let go"]);
+  });
+
+  it('lets an asker of the app go first when the GPU is taken only when free', async () => {
+    const hint = 'Close Architect while a comparison runs, then run the command again.';
+    const tool = lease('comparisons', { onlyWhenFree: { hint } });
+    const request = await tool.hold('llama-server', RUN_PURPOSE);
+    const reply = lease('workspace').hold('llama-server', replyPurpose('Returns desk'));
+    await until(() => leaseFile().asks.length === 1);
+    // Its next request would have gone before a run's, but not before the app's reply.
+    await expect(tool.hold('llama-server', RUN_PURPOSE)).rejects.toMatchObject({
+      code: 'gpu_busy',
+      message: 'The GPU is busy: the workspace is waiting for it first.',
+      hint,
+    });
+    expect(await settled(reply)).toBe(false);
+    request.release();
+    (await reply).release();
+  });
+
   it('stops blocking at once for a holder whose process has exited', async () => {
     const gone = deadPid();
     mkdirSync(join(dir, 'local-runtime'), { recursive: true });

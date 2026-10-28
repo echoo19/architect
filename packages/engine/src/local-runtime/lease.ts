@@ -27,10 +27,17 @@ import { stopServerLeftIn } from './server';
 export interface GpuLeaseOptions {
   /** The app's data folder: every Architect process on it shares one lease. */
   dataDir: string;
-  /** Which process this is (`workspace`, `engine` or `cli`): a busy error names it. */
+  /** Which process this is (`workspace`, `engine`, `cli`, `comparisons`): a busy error names it. */
   owner: string;
   /** How long a request waits its turn before it fails as busy. Default 5 minutes. */
   waitMs?: number;
+  /**
+   * Take the GPU only when no other process has it or waits for it first, and otherwise fail at
+   * once with the busy error and this hint instead of waiting a turn: for a tool that measures
+   * the GPU, such as the comparisons script, which neither waits out the app's work nor takes the
+   * GPU from it. What it holds idle it still gives up to whoever asks.
+   */
+  onlyWhenFree?: { hint: string };
   /** How often a process holding or waiting for the GPU looks at the lease. Default 250 ms. */
   pollMs?: number;
   /** How often a process holding or waiting says it is still there. Default 5 s. */
@@ -87,6 +94,7 @@ const OWNER_NAMES: Readonly<Record<string, string>> = {
   workspace: 'the workspace',
   engine: 'Architect',
   cli: 'the architect command',
+  comparisons: 'the comparisons script',
   script: 'a developer script',
 };
 
@@ -167,9 +175,10 @@ function joinWithAnd(parts: readonly string[]): string {
  * one data folder takes it before a model loads on the GPU and holds it while a request runs. A
  * llama-server holds the GPU alone; Ollama's users share it. A holder with nothing running gives
  * the GPU up when someone else asks; a busy one keeps it, and the one asking waits its turn, up
- * to `waitMs`, then fails with an error that says who holds it and what to do. A reply goes
- * before a check, and a check before a run's next request. A holder that died stops blocking as
- * soon as the llama-server it left running is gone.
+ * to `waitMs`, then fails with an error that says who holds it and what to do; one that takes
+ * only a free GPU fails that way at once. A reply goes before a check, and a check before a run's
+ * next request. A holder that died stops blocking as soon as the llama-server it left running is
+ * gone.
  */
 export class GpuLease {
   /** Ollama on this computer, as this process uses it under the lease. */
@@ -410,6 +419,11 @@ export class GpuLease {
     return `${this.token}:${use}`;
   }
 
+  /** Whether an entry is this process's own. */
+  private isOwn(entry: { user: string }): boolean {
+    return entry.user.startsWith(`${this.token}:`);
+  }
+
   private report(error: unknown): void {
     if (this.options.onError) this.options.onError(error);
     else console.error('[gpu]', error);
@@ -545,10 +559,9 @@ export class GpuLease {
   /** Whether a look at the lease as it stands would change anything, so it needs the lock. */
   private needsChange(seen: LeaseState, now: number): boolean {
     if (this.waiters.size > 0) return true;
-    const own = (entry: { user: string }) => entry.user.startsWith(`${this.token}:`);
     const entries = [...seen.holders, ...seen.asks];
-    if (entries.some((entry) => !own(entry) && !this.isLive(entry, now))) return true;
-    if (seen.asks.some(own)) return true;
+    if (entries.some((entry) => !this.isOwn(entry) && !this.isLive(entry, now))) return true;
+    if (seen.asks.some((ask) => this.isOwn(ask))) return true;
     const holding = GPU_USES.some((use) => this.slots[use].holding);
     if (holding && now - this.lastWrite >= this.heartbeatMs) return true;
     for (const use of GPU_USES) {
@@ -601,9 +614,10 @@ export class GpuLease {
       write = true;
     }
     for (const waiter of this.waiters) {
-      if (now < waiter.deadline) continue;
+      const refused = this.refuses(state, waiter);
+      if (!refused && now < waiter.deadline) continue;
       this.waiters.delete(waiter);
-      result.expired.push([waiter, this.busyError(state, waiter)]);
+      result.expired.push([waiter, this.busyError(state, waiter, refused)]);
       write = true;
     }
     for (const use of GPU_USES) {
@@ -620,7 +634,7 @@ export class GpuLease {
     write = this.syncHolders(state) || write;
     if (write || now - this.lastWrite >= this.heartbeatMs) {
       for (const entry of [...state.holders, ...state.asks]) {
-        if (entry.user.startsWith(`${this.token}:`)) entry.beat = now;
+        if (this.isOwn(entry)) entry.beat = now;
       }
       this.lastWrite = now;
       this.entered = true;
@@ -735,8 +749,7 @@ export class GpuLease {
     state: LeaseState,
     which: (entry: LeaseHolder | LeaseAsk) => boolean = () => true,
   ): boolean {
-    const goes = (entry: LeaseHolder | LeaseAsk) =>
-      entry.user.startsWith(`${this.token}:`) && which(entry);
+    const goes = (entry: LeaseHolder | LeaseAsk) => this.isOwn(entry) && which(entry);
     const before = state.holders.length + state.asks.length;
     state.holders = state.holders.filter((holder) => !goes(holder));
     state.asks = state.asks.filter((ask) => !goes(ask));
@@ -764,33 +777,59 @@ export class GpuLease {
 
   /**
    * Who keeps a request from the GPU, in plain words: who holds it and what they are doing, or,
-   * when nobody holds it, who waits ahead. Null when nobody does.
+   * when nobody holds it, who waits ahead; other processes alone when `othersOnly`. Null when
+   * nobody does.
    */
-  private whoBlocks(state: LeaseState, use: GpuUse, place: Place): string | null {
+  private whoBlocks(
+    state: LeaseState,
+    use: GpuUse,
+    place: Place,
+    othersOnly = false,
+  ): string | null {
     const live = this.live(state);
-    const parts = blockingHolders(live, place.user, use).map((holder) => {
-      const name = nameOf(holder.owner);
-      if (holder.leaving) return `${name} is letting go of it`;
-      return holder.busy ? `${name} is ${holder.doing}` : `${name} has it, with nothing running`;
-    });
+    const counts = (entry: { user: string }) => !othersOnly || !this.isOwn(entry);
+    const parts = blockingHolders(live, place.user, use)
+      .filter(counts)
+      .map((holder) => {
+        const name = nameOf(holder.owner);
+        if (holder.leaving) return `${name} is letting go of it`;
+        return holder.busy ? `${name} is ${holder.doing}` : `${name} has it, with nothing running`;
+      });
     if (parts.length === 0) {
-      for (const ask of asksAhead(live, use, place)) {
+      for (const ask of asksAhead(live, use, place).filter(counts)) {
         parts.push(`${nameOf(ask.owner)} is waiting for it first`);
       }
     }
     return parts.length === 0 ? null : joinWithAnd(parts);
   }
 
-  /** Why a request waited in vain: who holds the GPU and what they are doing, or who is ahead. */
-  private busyError(state: LeaseState, waiter: Waiter): LocalRuntimeError {
-    const who = this.whoBlocks(state, waiter.use, waiter.place);
+  /**
+   * Whether a request fails at once rather than wait: this process takes only a free GPU, and
+   * another process has it or waits for it first. Its own other use gives way as usual.
+   */
+  private refuses(state: LeaseState, waiter: Waiter): boolean {
+    if (this.options.onlyWhenFree === undefined) return false;
+    const other = (entry: { user: string }) => !this.isOwn(entry);
+    return (
+      blockingHolders(state, waiter.place.user, waiter.use).some(other) ||
+      asksAhead(state, waiter.use, waiter.place).some(other)
+    );
+  }
+
+  /**
+   * Why a request waited in vain, or wasn't let wait: who holds the GPU and what they are doing,
+   * or who is ahead, and what to do about it.
+   */
+  private busyError(state: LeaseState, waiter: Waiter, refused: boolean): LocalRuntimeError {
+    const who = this.whoBlocks(state, waiter.use, waiter.place, refused);
     const working = blockingHolders(this.live(state), waiter.place.user, waiter.use).find(
       (holder) => holder.busy && !holder.leaving,
     );
+    const hint = refused ? this.options.onlyWhenFree?.hint : working?.hint;
     return new LocalRuntimeError(
       'gpu_busy',
       who === null ? 'The GPU is busy.' : `The GPU is busy: ${who}.`,
-      working?.hint ?? 'Try again in a moment.',
+      hint ?? 'Try again in a moment.',
     );
   }
 
