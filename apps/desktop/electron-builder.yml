@@ -61,6 +61,8 @@ mac:
   target: dmg
   category: public.app-category.productivity
   hardenedRuntime: true
+  # Notarized with an App Store Connect API key from the environment; see scripts/release-mac.sh.
+  notarize: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist

@@ -5,12 +5,15 @@ name: Release
 # same and then attaches them to that tag's GitHub release, creating the release if it is not
 # there yet. The installers carry the version in apps/desktop/package.json, not the tag's.
 #
-# They are not signed unless the repository has the signing secrets: WINDOWS_CERTIFICATE and
-# WINDOWS_CERTIFICATE_PASSWORD (a code signing certificate as a base64 .p12 or .pfx, and its
-# password), and MACOS_CERTIFICATE and MACOS_CERTIFICATE_PASSWORD (a Developer ID Application
-# certificate the same way) with APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID to
-# notarize it. The certificate goes to electron-builder only when its secret is set, because
-# electron-builder reads an empty CSC_LINK on macOS as a certificate to import.
+# The macOS app is signed and notarized when the repository has these secrets:
+# MAC_CERT_P12_BASE64 and MAC_CERT_PASSWORD (a Developer ID Application certificate as a base64
+# .p12, and its password), and APPLE_API_KEY_P8, APPLE_API_KEY_ID and APPLE_API_ISSUER (an App
+# Store Connect API key for notarization: the .p8 file's text, its key id and its issuer id).
+# scripts/release-mac.sh then checks the app in each disk image with codesign, its stapled ticket
+# and Gatekeeper. The Windows installer is signed when WINDOWS_CERTIFICATE and
+# WINDOWS_CERTIFICATE_PASSWORD hold a code signing certificate the same way. A certificate goes to
+# electron-builder only when its secret is set, because electron-builder reads an empty CSC_LINK
+# as a certificate to import.
 on:
   workflow_dispatch:
   push:
@@ -70,7 +73,8 @@ jobs:
 
   macos:
     runs-on: macos-latest
-    timeout-minutes: 45
+    # Notarization waits on Apple, often for several minutes per image.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -85,29 +89,14 @@ jobs:
         run: |
           bash scripts/install-electron.sh darwin arm64
           bash scripts/install-electron.sh darwin x64 "$RUNNER_TEMP/electron-x64"
-      # electron-builder signs nothing when it finds no certificate, and Apple silicon will not
-      # run an app that is not signed. So without a certificate the app is signed ad hoc, and
-      # without the hardened runtime, whose library validation rejects Electron's own frameworks
-      # under an ad hoc signature. macOS still asks the user to approve the first launch.
-      - name: Build the disk images
+      - name: Build, sign and notarize the disk images
         env:
-          SIGNING_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
-          SIGNING_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          if [ -n "$SIGNING_CERTIFICATE" ]; then
-            export CSC_LINK="$SIGNING_CERTIFICATE" CSC_KEY_PASSWORD="$SIGNING_PASSWORD"
-            signing=""
-          else
-            export CSC_IDENTITY_AUTO_DISCOVERY=false
-            signing="-c.mac.identity=- -c.mac.hardenedRuntime=false"
-          fi
-          pnpm --filter @architect/desktop build
-          pnpm --filter @architect/desktop exec electron-builder --publish never --mac --arm64 $signing
-          pnpm --filter @architect/desktop exec electron-builder --publish never --mac --x64 \
-            -c.electronDist="$RUNNER_TEMP/electron-x64" $signing
+          MAC_CERT_P12_BASE64: ${{ secrets.MAC_CERT_P12_BASE64 }}
+          MAC_CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: bash scripts/release-mac.sh "$RUNNER_TEMP/electron-x64"
       - uses: actions/upload-artifact@v7
         with:
           name: macos-installers
