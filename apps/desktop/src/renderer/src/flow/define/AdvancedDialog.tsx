@@ -637,8 +637,8 @@ function SplitsTab({ editor }: TabProps) {
   return (
     <>
       <ExperimentNote>
-        Architect divides the example tasks you attached into these sets. Each round, {mentor}
-        makes one change, and the check tasks decide whether it stays.
+        Architect divides the example tasks you attached into these sets. Each round, {mentor} makes
+        one change, and the check tasks decide whether it stays.
       </ExperimentNote>
       <NumberField
         label="Practice tasks"
