@@ -4,7 +4,12 @@
  *
  *   pnpm --filter @architect/engine exec tsx scripts/run.ts <jobDir> [--method architect]
  *     [--seed 1] [--profile smoke|full] [--mentor <preset>] [--student local|<preset>]
- *     [--data <dir>]
+ *     [--data <dir>] [--threads N] [--wall-minutes N]
+ *
+ * It can be stopped at any time: every finished attempt is saved, and running the same command
+ * with the same `--data` folder continues the run where it stopped. `--threads` caps the CPU
+ * threads a local student uses, so a long run stays cooler and quieter, and `--wall-minutes`
+ * gives a local run more training time than the job's own budget.
  *
  * The smoke profile keeps the job's data and task pool but asks for small splits and one round, so
  * a run finishes in under an hour on a local student. `--mentor` takes a mentor preset key (for
@@ -26,6 +31,10 @@ import {
   type RunEvent,
 } from '@architect/shared';
 import { createEngineDeps, createEngineHost } from '../src';
+
+/** A run paused by an error (the local model server restarting, say) is resumed this often at most. */
+const MAX_PAUSES = 5;
+const RESUME_AFTER_MS = 60_000;
 
 const SECRET_ENV: Record<string, string> = {
   meta: 'META_API_TOKEN',
@@ -78,27 +87,59 @@ async function main(): Promise<void> {
   });
 
   try {
-    const imported = await host.api.jobs.importFile(join(staging, 'job.json'));
-    write(
-      `${imported.name}: ${METHOD_LABELS[options.method]}, seed ${options.seed}, ${options.profile} profile\n` +
-        `mentor ${imported.mentor.kind === 'model' ? imported.mentor.model : imported.mentor.agent}, ` +
-        `student ${imported.student.local.model} (train on ${imported.student.trainOn}), data in ${dataDir}\n\n`,
-    );
+    // Pauses in a row with no attempt finished between them; any progress starts the count over.
+    let pauses = 0;
+    let settle: (runId: string) => void = () => {};
     const finished = new Promise<string>((done) => {
-      host.api.runs.onEvent((event) => {
-        const line = describe(event);
-        if (line) write(`${clock()}  ${line}\n`);
-        if (event.type === 'run.updated' && isTerminal(event.run.status)) done(event.run.id);
-      });
+      settle = done;
     });
-    const run = await host.api.runs.start(imported.id, {
-      method: options.method,
-      seed: options.seed,
+    host.api.runs.onEvent((event) => {
+      const line = describe(event);
+      if (line) write(`${clock()}  ${line}\n`);
+      if (event.type === 'attempt.finished') pauses = 0;
+      if (event.type !== 'run.updated') return;
+      const { run } = event;
+      if (isTerminal(run.status)) settle(run.id);
+      if (run.status !== 'paused') return;
+      if (pauses >= MAX_PAUSES) {
+        write(`${clock()}  Paused ${pauses + 1} times in a row; run this again to continue.\n`);
+        settle(run.id);
+        return;
+      }
+      pauses += 1;
+      write(`${clock()}  Paused (${run.error ?? 'no reason given'}); resuming in a minute\n`);
+      setTimeout(() => {
+        host.api.runs.resume(run.id).catch((error: unknown) => {
+          write(`${clock()}  The resume failed: ${String(error)}\n`);
+          settle(run.id);
+        });
+      }, RESUME_AFTER_MS);
     });
-    const runId = await finished;
+
+    // A data folder from an interrupted start already holds its run: the host has recovered it
+    // if it was running, and a paused one is resumed here. Starting another would redo its work.
+    const earlier = (await host.api.runs.list()).find(
+      (run) => run.method === options.method && run.seed === options.seed,
+    );
+    let runId: string;
+    if (earlier === undefined) {
+      const imported = await host.api.jobs.importFile(join(staging, 'job.json'));
+      write(
+        `${imported.name}: ${METHOD_LABELS[options.method]}, seed ${options.seed}, ${options.profile} profile\n` +
+          `mentor ${imported.mentor.kind === 'model' ? imported.mentor.model : imported.mentor.agent}, ` +
+          `student ${imported.student.local.model} (train on ${imported.student.trainOn}), data in ${dataDir}\n\n`,
+      );
+      await host.api.runs.start(imported.id, { method: options.method, seed: options.seed });
+      runId = await finished;
+    } else {
+      write(`Continuing run ${earlier.id} (${earlier.status}), data in ${dataDir}\n\n`);
+      if (earlier.status === 'paused') await host.api.runs.resume(earlier.id);
+      const now = (await host.api.runs.get(earlier.id)).run.status;
+      runId = isTerminal(now) ? earlier.id : await finished;
+    }
     const detail = await host.api.runs.get(runId);
     write(
-      `\nRun ${run.id} ended: ${detail.run.status}${detail.run.error ? ` (${detail.run.error})` : ''}\n`,
+      `\nRun ${runId} ended: ${detail.run.status}${detail.run.error ? ` (${detail.run.error})` : ''}\n`,
     );
     if (detail.run.status === 'finished') {
       const report = await host.api.reports.get(runId);
