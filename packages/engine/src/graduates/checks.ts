@@ -229,14 +229,14 @@ async function resourcesCheck(
     if (resource.required && grant === 'none') {
       findings.push({
         level: 'needs_attention',
-        reason: `${resource.name}/ is bound but not granted, so the agent can't open it.`,
+        reason: `${resource.name}/ has a folder, but the agent isn't allowed to open it.`,
       });
     }
     const folder = absoluteFolder(paths, stored);
     if (!(await exists(folder))) {
       findings.push({
         level: 'needs_attention',
-        reason: `The folder bound to ${resource.name}/ (${folder}) isn't there.`,
+        reason: `The folder chosen for ${resource.name}/ (${folder}) isn't there.`,
       });
       continue;
     }
@@ -276,7 +276,7 @@ async function resourcesCheck(
       status: findings.length === 0 ? 'passed' : 'failed',
       detail:
         findings.length === 0
-          ? 'Every folder is bound and holds the files it should.'
+          ? 'Every folder is chosen and holds the files it should.'
           : findings.map((finding) => finding.reason).join(' '),
     },
     findings,
