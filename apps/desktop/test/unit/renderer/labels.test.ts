@@ -13,6 +13,7 @@ import {
   studentIntro,
   studentLabel,
   studentName,
+  setupName,
 } from '../../../src/renderer/src/lib/names';
 import {
   detectPlatform,
@@ -83,5 +84,14 @@ describe('formats', () => {
     expect(formatBytes(236 * 1024 ** 2)).toBe('236 MB');
     expect(formatPercent({ pass: 31, total: 40 })).toBe('78%');
     expect(formatPercent({ pass: 0, total: 0 })).toBe('0%');
+  });
+});
+
+describe('setupName', () => {
+  it('names a kept setup by where it came from', () => {
+    expect(setupName(0, false)).toBe('the starting setup');
+    expect(setupName(1, true)).toBe('the first draft');
+    expect(setupName(1, false)).toBe('the setup from round 1');
+    expect(setupName(7, true)).toBe('the setup from round 7');
   });
 });

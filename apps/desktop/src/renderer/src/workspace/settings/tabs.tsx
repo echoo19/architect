@@ -18,7 +18,13 @@ import { queryKeys, useJob } from '../../api/hooks';
 import { fetchQuery } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
 import { formatBytes } from '../../lib/format';
-import { capitalized, quantizationLabel, shortModelName, STUDENT_ROLE } from '../../lib/names';
+import {
+  capitalized,
+  quantizationLabel,
+  setupName,
+  shortModelName,
+  STUDENT_ROLE,
+} from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { navigate, paths, type Route } from '../../lib/router';
@@ -61,12 +67,12 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
         )}
       </SettingsRow>
       <SettingsRow
-        label="Version"
-        meta={`Of its instructions, skills and tools, as ${shortModelName(manifest.mentor.label)} left them when training ended. ${
+        label="Setup"
+        meta={`Its instructions, skills and tools, as ${shortModelName(manifest.mentor.label)} left them when training ended. ${
           manifest.requirements.passRate.met ? 'Passed its final test' : 'Finished below its target'
         } on ${formatDay(manifest.acceptedAt ?? manifest.createdAt)}.`}
       >
-        <SettingsValue>{manifest.harness.version}</SettingsValue>
+        <SettingsValue>{capitalized(setupName(manifest.harness.version, false))}</SettingsValue>
       </SettingsRow>
       <SettingsRow
         label={capitalized(STUDENT_ROLE)}

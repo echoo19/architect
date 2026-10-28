@@ -96,6 +96,7 @@ export function TrainScreen({ runId }: { runId: string }) {
                 attempt={trace.item}
                 type={typeLabel(live.job, trace.item.taskType)}
                 student={modelNames(live.job).student}
+                firstDraft={draftRoundOf(live) === 1}
               />
             )}
           </Drawer>
