@@ -107,7 +107,26 @@ export function connectEngine(
     graduates: {
       list: () => request('graduates.list', []),
       accept: (runId) => request('graduates.accept', [runId]),
-      exportFolder: (graduateId, folder) => request('graduates.exportFolder', [graduateId, folder]),
+      versions: (graduateId) => request('graduates.versions', [graduateId]),
+      history: (graduateId) => request('graduates.history', [graduateId]),
+      acceptVersion: (graduateId, version) =>
+        request('graduates.acceptVersion', [graduateId, version]),
+      rejectVersion: (graduateId, version) =>
+        request('graduates.rejectVersion', [graduateId, version]),
+      promote: (graduateId, version) => request('graduates.promote', [graduateId, version]),
+      rollback: (graduateId, version) => request('graduates.rollback', [graduateId, version]),
+      installation: (graduateId) => request('graduates.installation', [graduateId]),
+      bind: (graduateId, bindRequest) => request('graduates.bind', [graduateId, bindRequest]),
+      verify: (graduateId, options) => request('graduates.verify', [graduateId, options ?? {}]),
+      reviewExport: (graduateId, version, include) =>
+        request('graduates.reviewExport', [graduateId, version ?? null, include ?? []]),
+      exportPackage: (graduateId, exportRequest) =>
+        request('graduates.exportPackage', [graduateId, exportRequest]),
+      exportFolder: (graduateId, directory) =>
+        request('graduates.exportFolder', [graduateId, directory]),
+      inspectPackage: (path) => request('graduates.inspectPackage', [path]),
+      importPackage: (path, importRequest) =>
+        request('graduates.importPackage', [path, importRequest ?? {}]),
       importFolder: (folder) => request('graduates.importFolder', [folder]),
       remove: (graduateId) => request('graduates.remove', [graduateId]),
       settings: (graduateId) => request('graduates.settings', [graduateId]),

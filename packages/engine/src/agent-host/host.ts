@@ -26,8 +26,7 @@ import { approveWrites, PendingWrites } from './writes';
 export type WorkspaceApi = ArchitectApi['workspace'];
 
 export interface AgentHostOptions {
-  /** The app's data folder. The jobs graduates were trained for are read from it. */
-  dataDir: string;
+  /** Graduates, their installations and chats, on the app's database. */
   store: WorkspaceStore;
   /** The tool sandbox's child entry. A bundled app passes its built file. */
   sandboxEntryPath?: string;
@@ -38,13 +37,11 @@ export interface AgentHostOptions {
 }
 
 export interface AgentHost extends WorkspaceApi {
-  /** Loads a graduate so its chats can run. One whose model isn't on this computer is refused. */
-  openGraduate(
-    graduateId: string,
-    folder: string,
-    workspaceDataDir: string,
-    cpuThreads?: number,
-  ): Promise<void>;
+  /**
+   * Loads a graduate's active version so its chats can run, from its own folder and this
+   * computer's installation. One whose model isn't on this computer is refused.
+   */
+  openGraduate(graduateId: string, cpuThreads?: number): Promise<void>;
   /** Stops the graduate's replies and unloads it. */
   closeGraduate(graduateId: string): Promise<void>;
   /** Stops every reply and the tool sandbox. The store stays open: it belongs to the caller. */
@@ -75,6 +72,8 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
     options.sandboxEntryPath === undefined ? {} : { entryPath: options.sandboxEntryPath },
   );
   const graduates = new Map<string, GraduateSession>();
+  /** The CPU-thread cap each graduate was opened with, for reopening it on a new version. */
+  const threads = new Map<string, number | undefined>();
   const replies = new Map<string, RunningReply>();
   const pending = new PendingWrites();
   const listeners = new Set<(event: WorkspaceEvent) => void>();
@@ -116,9 +115,29 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
     saveChat({ ...chatOf(chatId), ...patch });
   }
 
-  /** Until the user picks one, a graduate writes the way its job allowed. */
+  /** What this computer granted, read on every write: the user can change it mid-reply. */
   function writeMode(graduate: GraduateSession): PermissionMode {
-    return store.graduateSettings(graduate.id)?.writeMode ?? graduate.job.permissions.writes;
+    return store.writeMode(graduate.id) ?? graduate.grants.writes;
+  }
+
+  const answering = (graduateId: string): boolean =>
+    [...replies.values()].some((reply) => reply.graduateId === graduateId);
+
+  /**
+   * The graduate's session, opened again if another version became active, or its folders or
+   * grants changed, since it opened. A graduate that is still answering keeps what it had until
+   * it is done, so no reply ever switches version or folders halfway.
+   */
+  async function current(graduateId: string): Promise<GraduateSession> {
+    const graduate = graduateOf(graduateId);
+    const stamp = store.activeStamp(graduateId);
+    if (stamp === null || stamp === graduate.stamp || answering(graduateId)) return graduate;
+    const reopened = await openGraduateSession(
+      await store.activeVersion(graduateId),
+      threads.get(graduateId),
+    );
+    graduates.set(graduateId, reopened);
+    return reopened;
   }
 
   /** A reply left running when the host last stopped can't resume, so it is closed off. */
@@ -148,7 +167,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
     history: ChatMessage[],
   ): void {
     const startedAt = now();
-    const message = agentMessage(chat.id, startedAt.toISOString());
+    const message = agentMessage(chat.id, graduate.version, startedAt.toISOString());
     store.appendMessage(message);
     emit({ type: 'message.updated', message });
     let finished = false;
@@ -173,7 +192,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
     const approveWrite = approveWrites({
       agentName: graduate.name,
       mode: () => writeMode(graduate),
-      allowFromNowOn: () => store.saveGraduateSettings(graduate.id, { writeMode: 'allow' }),
+      allowFromNowOn: () => store.saveWriteMode(graduate.id, 'allow'),
       reply,
       pending,
       setWaiting: (waiting) => updateChat(chat.id, { waiting }),
@@ -196,21 +215,15 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
   }
 
   return {
-    async openGraduate(graduateId, folder, workspaceDataDir, cpuThreads) {
+    async openGraduate(graduateId, cpuThreads) {
       assertOpen();
-      if ([...replies.values()].some((reply) => reply.graduateId === graduateId)) {
-        throw new Error('Stop the chats this graduate is answering before opening it again.');
-      }
       if (!store.hasGraduate(graduateId)) {
         throw new Error(`There is no graduate "${graduateId}" in Architect.`);
       }
-      const graduate = await openGraduateSession({
-        graduateId,
-        folder,
-        workspaceDataDir,
-        appDataDir: options.dataDir,
-        ...(cpuThreads === undefined ? {} : { cpuThreads }),
-      });
+      threads.set(graduateId, cpuThreads);
+      // A graduate that is answering is opened again before its next reply, never during one.
+      if (answering(graduateId)) return;
+      const graduate = await openGraduateSession(await store.activeVersion(graduateId), cpuThreads);
       graduates.set(graduateId, graduate);
       settleInterrupted(graduateId);
     },
@@ -218,6 +231,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
     async closeGraduate(graduateId) {
       await stopReplies((reply) => reply.graduateId === graduateId);
       graduates.delete(graduateId);
+      threads.delete(graduateId);
     },
 
     async listChats(graduateId) {
@@ -226,8 +240,8 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
 
     async createChat(graduateId) {
       assertOpen();
-      graduateOf(graduateId);
-      return saveChat(newChat(graduateId, now().toISOString()));
+      const graduate = await current(graduateId);
+      return saveChat(newChat(graduateId, graduate.version, now().toISOString()));
     },
 
     async messages(chatId) {
@@ -240,7 +254,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
       const request = text.trim();
       if (request === '') throw new Error('Write a message to send.');
       const chat = chatOf(chatId);
-      const graduate = graduateOf(chat.graduateId);
+      const graduate = await current(chat.graduateId);
       if (replies.has(chatId)) {
         throw new Error('This chat is still answering. Stop it or wait for it to finish.');
       }
@@ -281,6 +295,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
       closed = true;
       await stopReplies(() => true);
       graduates.clear();
+      threads.clear();
       listeners.clear();
       await sandbox.dispose();
     },

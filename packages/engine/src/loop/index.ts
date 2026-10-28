@@ -33,7 +33,6 @@ export {
   type TrainResult,
 } from '../mentor/view';
 
-export { buildGraduateManifest } from '../report/manifest';
 export { computeReportCard, percentile, type ReportCardInput } from '../report/report-card';
 
 export { openEngineStore, type AttemptFilter, type EngineStore } from '../store/engine-store';

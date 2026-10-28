@@ -27,7 +27,6 @@ export const BlockedConnectionSchema = z.object({
 }) satisfies z.ZodType<BlockedConnection>;
 
 const id = z.string().min(1);
-const path = z.string().min(1);
 
 /**
  * One request type: the schema its parameters must pass in the host, the schema its result
@@ -47,12 +46,12 @@ function route<P extends z.ZodType<unknown[]>, R extends z.ZodType>(
 
 export const AGENT_HOST_ROUTES = {
   'host.openGraduate': route(
-    z.tuple([id, path, path, z.number().int().positive().optional()]),
+    z.tuple([id, z.number().int().positive().optional()]),
     z.void(),
-    (api, [graduateId, folder, workspaceDataDir, cpuThreads]) =>
+    (api, [graduateId, cpuThreads]) =>
       cpuThreads === undefined
-        ? api.openGraduate(graduateId, folder, workspaceDataDir)
-        : api.openGraduate(graduateId, folder, workspaceDataDir, cpuThreads),
+        ? api.openGraduate(graduateId)
+        : api.openGraduate(graduateId, cpuThreads),
   ),
   'host.closeGraduate': route(z.tuple([id]), z.void(), (api, [graduateId]) =>
     api.closeGraduate(graduateId),

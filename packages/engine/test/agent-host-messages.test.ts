@@ -62,7 +62,7 @@ describe('step descriptions', () => {
 describe('chat history', () => {
   const user = (text: string) => userMessage('cht_1', text, AT);
   const agent = (text: string, extra: Partial<WorkspaceMessage> = {}): WorkspaceMessage => ({
-    ...agentMessage('cht_1', AT),
+    ...agentMessage('cht_1', 1, AT),
     text,
     status: 'done',
     ...extra,
@@ -123,7 +123,7 @@ describe('a live reply', () => {
   function live() {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
     const published: { message: WorkspaceMessage; save: boolean }[] = [];
-    const reply = new LiveReply(agentMessage('cht_1', AT), (message, save) =>
+    const reply = new LiveReply(agentMessage('cht_1', 1, AT), (message, save) =>
       published.push({ message, save }),
     );
     return { reply, published };

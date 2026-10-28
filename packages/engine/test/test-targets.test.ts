@@ -117,7 +117,14 @@ describe('where the locked test runs', () => {
       model: 'glimmer-hosted',
       runtime: 'openai_compatible',
     });
-    expect(engine.store.graduates.forRun(run.id)?.manifest.test.testedOn).toBe('hosted');
+    const version = engine.store.versions.forRun(run.id);
+    expect(version?.manifest.evidence).toMatchObject({
+      status: 'experimental',
+      provenance: { testedOn: 'hosted', ranOffline: false },
+    });
+    expect(version?.manifest.requirements.tested).toMatchObject([
+      { backend: 'hosted', target: 'hosted' },
+    ]);
   });
 
   it('pauses before testing a local student that is no longer the frozen build', async () => {
@@ -163,7 +170,7 @@ describe('re-testing a frozen graduate', () => {
     const runId = record.run.id;
     const frozen = record.freeze;
     if (!frozen) throw new Error('The run froze no graduate.');
-    const graduate = engine.store.graduates.forRun(runId);
+    const graduate = engine.store.versions.forRun(runId);
     const folder = join(engine.paths.fromStored(graduate?.path ?? ''), 'graduate.json');
     const written = readFileSync(folder, 'utf8');
     const lineageFile = engine.paths.lineageFile(record.run.jobId, runId);
@@ -202,7 +209,7 @@ describe('re-testing a frozen graduate', () => {
     expect(engine.store.retests.get(runId, 'local')).toMatchObject({ status: 'finished' });
 
     expect(engine.store.runs.get(runId)).toEqual(record);
-    expect(engine.store.graduates.forRun(runId)).toEqual(graduate);
+    expect(engine.store.versions.forRun(runId)).toEqual(graduate);
     expect(readFileSync(folder, 'utf8')).toBe(written);
     expect(engine.store.rounds.list(runId)).toEqual(rounds);
     expect(readFileSync(lineageFile, 'utf8')).toBe(lineage);

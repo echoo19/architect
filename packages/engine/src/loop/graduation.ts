@@ -7,7 +7,9 @@ import {
   type StudentTarget,
   type Task,
 } from '@architect/shared';
-import { buildGraduateManifest } from '../report/manifest';
+import { ContractBook } from '../graduates/contracts';
+import { prepareGraduate } from '../graduates/graduation';
+import { registerVersion } from '../graduates/versions';
 import { computeReportCard } from '../report/report-card';
 import type { GraduateFreeze, StoredAttempt, StudentPin } from '../store/records';
 import { resultOf } from './attempts';
@@ -191,7 +193,10 @@ export async function lockedTestReport(
   });
 }
 
-/** Writes the report card and the graduate folder, and finishes the run. */
+/**
+ * Writes the graduate's version 1 and prepares its installation on this computer, then files the
+ * report card, records the version and finishes the run in one transaction.
+ */
 async function graduate(state: RunState, test: LockedTest, frozen: GraduateFreeze): Promise<void> {
   const { paths, store, deps, runId } = state.ctx;
   const { job } = state;
@@ -208,37 +213,32 @@ async function graduate(state: RunState, test: LockedTest, frozen: GraduateFreez
   };
   const report = await lockedTestReport(state, run, test, attempts);
   const { createdAt } = report;
-  const manifest = buildGraduateManifest({
-    freeze: frozen,
+  const contract = new ContractBook(store, state.ctx.clock).ensure(job);
+  const graduation = {
     job,
     run,
+    contract,
+    freeze: frozen,
+    harness: test.harness,
+    harnessFiles: deps.harness.harnessToFiles(test.harness),
     report,
     rounds: state.rounds().map(({ round }) => round),
-    endpoint: job.student.local,
-    createdAt,
-  });
-  const dir = paths.graduateDir(frozen.graduateId);
-  await deps.harness.writeGraduate(dir, {
-    harness: test.harness,
-    manifest,
-    report,
     lineage: await state.lineage.read(),
-  });
+  };
+  const { written, installation } = await prepareGraduate(store, paths, graduation);
 
   const finished = store.transaction(() => {
     store.reports.put(report);
-    const existing = store.graduates.get(frozen.graduateId);
-    const record = {
-      id: frozen.graduateId,
-      runId,
+    registerVersion(store, paths, {
+      graduateId: frozen.graduateId,
       name: job.name,
-      path: paths.toStored(dir),
-      manifest,
-      settings: existing?.settings ?? null,
-      createdAt,
-    };
-    if (existing) store.graduates.update(record);
-    else store.graduates.insert(record);
+      version: 1,
+      written,
+      runId,
+      state: 'candidate',
+      installation,
+      at: createdAt,
+    });
     return state.writeRun({
       status: 'finished',
       phase: 'done',

@@ -17,7 +17,8 @@ export const INTERRUPTED: ReplyOutcome = {
   error: 'Architect closed before this reply finished.',
 };
 
-export function newChat(graduateId: string, at: string): WorkspaceChat {
+/** A chat records the graduate version that was active when it started. */
+export function newChat(graduateId: string, version: number, at: string): WorkspaceChat {
   return {
     id: newId('cht'),
     graduateId,
@@ -26,6 +27,7 @@ export function newChat(graduateId: string, at: string): WorkspaceChat {
     updatedAt: at,
     running: false,
     waiting: false,
+    graduateVersion: version,
   };
 }
 
@@ -44,8 +46,9 @@ export function userMessage(chatId: string, text: string, at: string): Workspace
   return { ...message(chatId, 'user', at), text, status: 'done' };
 }
 
-export function agentMessage(chatId: string, at: string): WorkspaceMessage {
-  return { ...message(chatId, 'agent', at), status: 'streaming' };
+/** A reply records the graduate version that wrote it. */
+export function agentMessage(chatId: string, version: number, at: string): WorkspaceMessage {
+  return { ...message(chatId, 'agent', at), status: 'streaming', graduateVersion: version };
 }
 
 /** A reply in its final state: nothing left running and no write left waiting for a decision. */

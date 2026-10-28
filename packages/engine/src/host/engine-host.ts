@@ -5,6 +5,8 @@ import { systemClock, type Clock, type EngineHostDeps } from '../loop/deps';
 import { JobLibrary } from '../loop/jobs';
 import { DataPaths } from '../loop/paths';
 import { openEngineStore } from '../store/engine-store';
+import { ContractBook } from '../graduates/contracts';
+import { GraduateLibrary } from '../graduates/library';
 import { createEngineApi } from './api';
 import type { EnginePort } from './port';
 import {
@@ -66,7 +68,9 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
   const onError = options.onError ?? ((error: unknown) => console.error(error));
   const paths = new DataPaths(options.dataDir);
   const store = openEngineStore(paths.database);
-  const jobs = new JobLibrary(store, paths, options.deps, clock);
+  const contracts = new ContractBook(store, clock);
+  const jobs = new JobLibrary(store, paths, options.deps, clock, contracts);
+  const graduates = new GraduateLibrary({ store, paths, clock, contracts, deps: options.deps });
   const controller = new RunController({
     store,
     paths,
@@ -76,7 +80,15 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     concurrency: options.concurrency,
     onError,
   });
-  const api = createEngineApi({ store, paths, jobs, controller, deps: options.deps, clock });
+  const api = createEngineApi({
+    store,
+    paths,
+    jobs,
+    controller,
+    graduates,
+    deps: options.deps,
+    clock,
+  });
   const ports = new Set<EnginePort>();
   let closed = false;
 
@@ -84,6 +96,8 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     const message = { kind: 'event', event: RunEventSchema.parse(event) };
     for (const port of ports) port.postMessage(message);
   });
+  // Graduates from before versions become version 1 before anyone can open them.
+  await graduates.upgrade();
   controller.recover();
 
   return {

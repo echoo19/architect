@@ -4,14 +4,11 @@ import type {
   DraftTurn,
   FileDiff,
   FileEdit,
-  GraduateManifest,
   Harness,
   HarnessTool,
   Job,
-  LineageEntry,
   MentorAdapter,
   MentorConfig,
-  ReportCard,
   Score,
   SplitConfig,
   StudentAdapter,
@@ -139,13 +136,6 @@ export interface HarnessVersionStore {
   latest(): Awaitable<Harness | undefined>;
 }
 
-export interface GraduateContents {
-  harness: Harness;
-  manifest: GraduateManifest;
-  report: ReportCard;
-  lineage: LineageEntry[];
-}
-
 /** The name `applyEdits` gives the error for a change set whose files don't validate. */
 export const HARNESS_VALIDATION_ERROR = 'HarnessValidationError';
 
@@ -163,9 +153,6 @@ export interface HarnessDeps {
   templateHarness(name: string, jobDescription: string, template: string): Harness;
   /** Reads a harness folder to improve, as a fresh starting point. */
   importHarness(dir: string): Awaitable<Harness>;
-  writeGraduate(dir: string, graduate: GraduateContents): Awaitable<void>;
-  /** Reads and validates a graduate folder, for graduate import. */
-  readGraduate(dir: string): Awaitable<{ manifest: GraduateManifest }>;
 }
 
 export interface AdapterDeps {

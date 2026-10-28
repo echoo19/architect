@@ -94,7 +94,7 @@ function raw(port: AgentHostPort, message: { id: number } & Record<string, unkno
 describe('the agent host protocol', () => {
   it('carries the workspace API over a port', async () => {
     const { client, calls } = connect();
-    await client.openGraduate('grd_1', '/graduates/grd_1', '/workspace/grd_1');
+    await client.openGraduate('grd_1');
     expect(await client.listChats('grd_1')).toEqual([CHAT]);
     expect(await client.createChat('grd_1')).toEqual(CHAT);
     expect(await client.messages('cht_1')).toEqual([MESSAGE]);
@@ -103,7 +103,7 @@ describe('the agent host protocol', () => {
     await client.stop('cht_1');
     await client.closeGraduate('grd_1');
     expect(calls).toEqual([
-      ['openGraduate', 'grd_1', '/graduates/grd_1', '/workspace/grd_1'],
+      ['openGraduate', 'grd_1'],
       ['send', 'cht_1', 'Which invoices are unpaid?'],
       ['decide', 'chg_1', 'always'],
       ['stop', 'cht_1'],
@@ -113,8 +113,8 @@ describe('the agent host protocol', () => {
 
   it('passes a graduate its CPU thread cap only when there is one', async () => {
     const { client, calls } = connect();
-    await client.openGraduate('grd_1', '/graduates/grd_1', '/workspace/grd_1', 6);
-    expect(calls).toEqual([['openGraduate', 'grd_1', '/graduates/grd_1', '/workspace/grd_1', 6]]);
+    await client.openGraduate('grd_1', 6);
+    expect(calls).toEqual([['openGraduate', 'grd_1', 6]]);
   });
 
   it('streams workspace events and drops malformed ones', async () => {
@@ -153,7 +153,7 @@ describe('the agent host protocol', () => {
     const { client } = connect({
       openGraduate: () => Promise.reject(new GuardError('network', 'Not on this computer.')),
     });
-    const error = await client.openGraduate('grd_1', '/g', '/d').catch((caught: unknown) => caught);
+    const error = await client.openGraduate('grd_1').catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(GuardError);
     expect(error).toMatchObject({ guard: 'network', message: 'Not on this computer.' });
   });

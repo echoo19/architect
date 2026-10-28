@@ -244,4 +244,127 @@ export const MIGRATIONS: readonly Migration[] = [
         WHERE idx = 1 AND run_id IN (SELECT id FROM runs WHERE method = 'one_shot');
     `,
   },
+  {
+    version: 9,
+    name: 'graduate versions',
+    sql: `
+      -- A graduate is an agent with immutable versions (decision 037). Its graduates row is the
+      -- agent; each version is a package folder under graduates/<id>/versions/. Rows made before
+      -- this keep their format 1 manifest until the engine converts their folder to version 1.
+      CREATE TABLE graduate_versions (
+        graduate_id TEXT NOT NULL REFERENCES graduates(id) ON DELETE CASCADE,
+        version INTEGER NOT NULL,
+        parent INTEGER,
+        origin TEXT,
+        path TEXT NOT NULL,
+        manifest TEXT NOT NULL,
+        digest TEXT NOT NULL,
+        contract_version INTEGER NOT NULL,
+        state TEXT NOT NULL,
+        evaluation TEXT NOT NULL,
+        run_id TEXT,
+        created_at TEXT NOT NULL,
+        accepted_at TEXT,
+        PRIMARY KEY (graduate_id, version)
+      );
+      CREATE INDEX graduate_versions_by_run ON graduate_versions (run_id);
+
+      -- Acceptances, rejections, promotions and rollbacks, in the order they happened.
+      CREATE TABLE graduate_events (
+        id INTEGER PRIMARY KEY,
+        graduate_id TEXT NOT NULL REFERENCES graduates(id) ON DELETE CASCADE,
+        kind TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        from_version INTEGER,
+        at TEXT NOT NULL
+      );
+      CREATE INDEX graduate_events_by_graduate ON graduate_events (graduate_id, id);
+
+      -- The version chats run on; NULL while the agent has none that can.
+      ALTER TABLE graduates ADD COLUMN active_version INTEGER;
+    `,
+  },
+  {
+    version: 10,
+    name: 'installations',
+    sql: `
+      -- What this computer gave a graduate: folders for its logical resources, the permissions
+      -- the user granted, and the local runtime that serves its model. Never exported.
+      CREATE TABLE installations (
+        graduate_id TEXT PRIMARY KEY REFERENCES graduates(id) ON DELETE CASCADE,
+        model TEXT NOT NULL,
+        bindings TEXT NOT NULL,
+        grants TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      -- The last installation checks of each version here: compatibility and smoke results.
+      CREATE TABLE installation_checks (
+        graduate_id TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        reasons TEXT NOT NULL,
+        checks TEXT NOT NULL,
+        machine TEXT,
+        measurements TEXT NOT NULL,
+        checked_at TEXT NOT NULL,
+        PRIMARY KEY (graduate_id, version),
+        FOREIGN KEY (graduate_id, version)
+          REFERENCES graduate_versions (graduate_id, version) ON DELETE CASCADE
+      );
+    `,
+  },
+  {
+    version: 11,
+    name: 'publications',
+    sql: `
+      -- A version published to a hub: the repository, its visibility and, once the upload
+      -- finished, the immutable revision. Publishing itself comes later; this keeps its record.
+      CREATE TABLE publications (
+        id TEXT PRIMARY KEY,
+        graduate_id TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        destination TEXT NOT NULL,
+        repository TEXT NOT NULL,
+        visibility TEXT NOT NULL,
+        revision TEXT,
+        url TEXT,
+        status TEXT NOT NULL,
+        error TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (graduate_id, version)
+          REFERENCES graduate_versions (graduate_id, version) ON DELETE CASCADE
+      );
+      CREATE INDEX publications_by_version ON publications (graduate_id, version);
+    `,
+  },
+  {
+    version: 12,
+    name: 'job contracts',
+    sql: `
+      -- Every version of each job's contract. A change to its scope or success criteria adds a
+      -- version; job.json stays the editable job, and a graduate carries the version it met.
+      CREATE TABLE job_contracts (
+        job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+        version INTEGER NOT NULL,
+        contract TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (job_id, version)
+      );
+    `,
+  },
+  {
+    version: 13,
+    name: 'versions in chats',
+    sql: `
+      -- The version a chat started on, and the version that wrote each reply.
+      ALTER TABLE chats ADD COLUMN graduate_version INTEGER;
+      ALTER TABLE messages ADD COLUMN graduate_version INTEGER;
+      -- Until now every graduate had one version, and it becomes version 1.
+      UPDATE chats SET graduate_version = 1;
+      UPDATE messages SET graduate_version = 1 WHERE role = 'agent';
+    `,
+  },
 ];

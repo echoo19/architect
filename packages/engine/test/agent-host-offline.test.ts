@@ -119,7 +119,7 @@ describe('a graduate in the workspace', () => {
     };
     const { client } = host;
 
-    await client.openGraduate(local.id, local.folder, local.workspaceDataDir);
+    await client.openGraduate(local.id);
     const chat = await client.createChat(local.id);
     const replied = settledReply(client, chat.id);
     await client.send(chat.id, 'How many invoices are there?');
@@ -132,9 +132,10 @@ describe('a graduate in the workspace', () => {
     expect(model.chats()).toHaveLength(2);
 
     const requestsBefore = model.requests.length;
-    await expect(
-      client.openGraduate(remote.id, remote.folder, remote.workspaceDataDir),
-    ).rejects.toMatchObject({ name: 'GuardError', guard: 'network' });
+    await expect(client.openGraduate(remote.id)).rejects.toMatchObject({
+      name: 'GuardError',
+      guard: 'network',
+    });
     expect(model.requests).toHaveLength(requestsBefore);
 
     expect(await client.blockedConnections()).toEqual([]);

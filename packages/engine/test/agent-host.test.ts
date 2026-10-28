@@ -52,11 +52,11 @@ async function setup(
     baseUrl: model.url,
     ...options,
   });
-  const host = createAgentHost({ dataDir, store: workspaceStore(engine) });
+  const host = createAgentHost({ store: workspaceStore(engine, dataDir) });
   const events: WorkspaceEvent[] = [];
   host.onEvent((event) => events.push(event));
   world = { dataDir, engine, host, model, graduate, events };
-  await host.openGraduate(graduate.id, graduate.folder, graduate.workspaceDataDir);
+  await host.openGraduate(graduate.id);
   return world;
 }
 
@@ -338,9 +338,7 @@ describe('writes', () => {
     await world.host.send(chat.id, 'Add an invoice for Ruiz, Ben.');
     await world.host.decide((await waiting).changeId, 'always');
     expect(approvalOf(await done)?.status).toBe('approved');
-    expect(workspaceStore(world.engine).graduateSettings(world.graduate.id)).toEqual({
-      writeMode: 'allow',
-    });
+    expect(workspaceStore(world.engine, world.dataDir).writeMode(world.graduate.id)).toBe('allow');
 
     const { reply } = await ask(world, 'And another one for INV-5.', chat);
     expect(approvalOf(reply)).toMatchObject({ status: 'approved', file: 'invoices.csv' });
@@ -428,15 +426,16 @@ describe('the host', () => {
       id: 'grd_remote',
       baseUrl: 'https://api.example.com/v1',
     });
-    await expect(
-      world.host.openGraduate(remote.id, remote.folder, remote.workspaceDataDir),
-    ).rejects.toMatchObject({ name: 'GuardError', guard: 'network' });
+    await expect(world.host.openGraduate(remote.id)).rejects.toMatchObject({
+      name: 'GuardError',
+      guard: 'network',
+    });
     await expect(world.host.createChat(remote.id)).rejects.toThrow('Open the graduate');
   });
 
   it('closes off replies that were still running when the host last stopped', async () => {
     const world = await setup([]);
-    const store = workspaceStore(world.engine);
+    const store = workspaceStore(world.engine, world.dataDir);
     const chat: WorkspaceChat = {
       id: 'cht_left',
       graduateId: world.graduate.id,
@@ -476,11 +475,7 @@ describe('the host', () => {
       status: 'streaming',
     });
 
-    await world.host.openGraduate(
-      world.graduate.id,
-      world.graduate.folder,
-      world.graduate.workspaceDataDir,
-    );
+    await world.host.openGraduate(world.graduate.id);
     expect(await world.host.messages(chat.id)).toEqual([
       expect.objectContaining({
         status: 'error',

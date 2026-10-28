@@ -10,8 +10,9 @@
  * --task keeps only the named tasks of the split.
  * --student runs a hosted student preset (e.g. openrouter-glimmer) instead of the job's local one;
  * its key comes from the environment (OPENROUTER_API_KEY, TOGETHER_API_KEY or DEEPINFRA_API_KEY).
- * --graduate runs the tasks inside a graduate folder's harness instead of a blank one, to see how
- * a trained harness does with another student; --model names another model on the job's local
+ * --graduate runs the tasks inside a graduate's harness instead of a blank one, to see how a
+ * trained harness does with another student: a version's package folder (graduates/<id>/versions/
+ * v0001) or a format 1 graduate folder; --model names another model on the job's local
  * runtime, such as a smaller build that fits the GPU; --threads caps its CPU threads and
  * --cooldown rests it after each reply for that share of the reply's time, to keep it quieter.
  *
@@ -19,13 +20,20 @@
  * (the default), train or dev; the test split stays locked in the vault. The student is the job's
  * local endpoint, normally Ollama, so the model loads on this machine for the duration of the run.
  */
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createStudent } from '@architect/adapters';
-import { blankHarness, readGraduate } from '@architect/harness';
+import {
+  blankHarness,
+  PACKAGE_MANIFEST_FILE,
+  readGraduate,
+  readHarness,
+  readPackage,
+} from '@architect/harness';
 import {
   AdapterError,
   JobSchema,
+  type Harness,
   STUDENT_PRESETS,
   TaskSchema,
   type Job,
@@ -107,6 +115,15 @@ interface Options {
   cooldown?: number;
 }
 
+/** A graduate's harness: from a version's package, checked file by file, or a format 1 folder. */
+async function graduateHarness(dir: string): Promise<Harness> {
+  if (await stat(join(dir, PACKAGE_MANIFEST_FILE)).catch(() => null)) {
+    await readPackage(dir);
+    return readHarness(join(dir, 'harness'));
+  }
+  return (await readGraduate(dir)).harness;
+}
+
 const USAGE =
   'Usage: tsx scripts/calibrate.ts <jobDir> [calibration|train|dev] [--limit N] [--seed N] [--concurrency N] [--traces <dir>] [--task <id,id,...>] [--student <preset>] [--graduate <dir>] [--model <name>] [--threads N] [--cooldown <share>]';
 
@@ -124,7 +141,7 @@ async function main(): Promise<void> {
   const harness =
     options.graduate === undefined
       ? blankHarness(job.name, job.description)
-      : (await readGraduate(options.graduate)).harness;
+      : await graduateHarness(options.graduate);
   if (options.traces !== undefined) await mkdir(options.traces, { recursive: true });
   const sandbox = createSandbox();
   const checker = createChecker({ job, jobDir: options.jobDir, sandbox });
