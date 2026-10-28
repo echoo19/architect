@@ -72,7 +72,7 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
           manifest.requirements.passRate.met ? 'Passed its final test' : 'Finished below its target'
         } on ${formatDay(manifest.acceptedAt ?? manifest.createdAt)}.`}
       >
-        <SettingsValue>{capitalized(setupName(manifest.harness.version, false))}</SettingsValue>
+        <SettingsValue>{capitalized(setupName(manifest.harness))}</SettingsValue>
       </SettingsRow>
       <SettingsRow
         label={capitalized(STUDENT_ROLE)}

@@ -27,12 +27,15 @@ export const MENTOR_ROLE = 'the mentor';
 
 /**
  * A kept setup by where it came from rather than its internal number: "the first draft", "the
- * setup from round 4". A setup's number is the round whose change made it.
+ * setup from round 4", or "the starting setup" when no round made it.
  */
-export function setupName(version: number, firstDraft: boolean): string {
-  if (version === 0) return 'the starting setup';
-  if (version === 1 && firstDraft) return 'the first draft';
-  return `the setup from round ${version}`;
+export function setupName(origin: {
+  round?: number | undefined;
+  draft?: boolean | undefined;
+}): string {
+  if (origin.draft) return 'the first draft';
+  if (origin.round !== undefined) return `the setup from round ${origin.round}`;
+  return 'the starting setup';
 }
 export const MENTOR_ROLE_DETAIL = 'a cloud model that coaches during training only';
 export const STUDENT_ROLE = "your agent's model";

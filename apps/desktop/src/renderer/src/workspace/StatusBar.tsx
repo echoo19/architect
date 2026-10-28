@@ -34,10 +34,10 @@ export function StatusBar({ agent }: { agent: GraduateSummary }) {
   return (
     <p className="mx-auto mb-0 mt-2.5 flex max-w-[720px] flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-fg-muted">
       <Item
-        hint={`The instructions, skills and tools ${agent.name} uses: ${setupName(manifest.harness.version, false)}, written by ${mentor} during training.`}
+        hint={`The instructions, skills and tools ${agent.name} uses: ${setupName(manifest.harness)}, written by ${mentor} during training.`}
       >
         <Layers size={12} strokeWidth={1.8} aria-hidden />
-        {capitalized(setupName(manifest.harness.version, false))}
+        {capitalized(setupName(manifest.harness))}
       </Item>
       <Item
         hint={`${model}, through Ollama on ${device}.${

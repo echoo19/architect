@@ -127,7 +127,7 @@ function progressed(overrides: Partial<Run>): Run {
   return makeRun({
     phase: 'attempting',
     updatedAt: at(130),
-    currentVersion: 4,
+    currentVersion: 5,
     devCurrent: { pass: 68, total: 80 },
     totals: { ...makeRun({}).totals, rounds: 5, wallMs: 130 * 60_000 },
     ...overrides,
@@ -164,7 +164,7 @@ export function roundFourKept(): RunEvent[] {
         taskId: 'task_att_0501',
         taskType: 'scheduling',
         split: 'train',
-        harnessVersion: 4,
+        harnessVersion: 5,
         check: { pass: true, reason: 'Feasible, and the earliest start.' },
         latencyMs: 12_300,
         usage: { inputTokens: 8_900, outputTokens: 402 },

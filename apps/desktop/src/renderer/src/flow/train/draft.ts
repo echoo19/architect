@@ -1,4 +1,5 @@
 import type { Job, Method, Round } from '@architect/shared';
+import { setupName } from '../../lib/names';
 import type { LiveRun } from './run-state';
 
 /**
@@ -19,6 +20,12 @@ export function isDraftRound(
     job.startingHarness.kind === 'blank' &&
     (method === 'architect' || method === 'self_reflection')
   );
+}
+
+/** The setup a version is, named by the round whose change made it. */
+export function setupOf({ rounds }: LiveRun, version: number): string {
+  const round = rounds.find((item) => item.candidateVersion === version);
+  return setupName(round ? { round: round.index, draft: round.draft } : {});
 }
 
 /** The index of the run's draft round, or null when it has none. */
