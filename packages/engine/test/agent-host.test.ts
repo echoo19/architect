@@ -131,7 +131,8 @@ describe('chatting with a graduate', () => {
           kind: 'tool',
           name: 'read',
           detail: 'data/invoices.csv',
-          meta: '4 lines',
+          // A table read counts rows, as the table under it does; the header isn't one.
+          meta: '3 rows',
           status: 'done',
           view: {
             kind: 'table',
@@ -172,6 +173,30 @@ describe('chatting with a graduate', () => {
     expect(request?.messages.map((message) => message.role)).toEqual(['system', 'user']);
     expect(request?.messages[0]?.content).toContain('Today is Tuesday, 2026-11-03.');
     expect(request?.messages[0]?.content).toContain('no ANSWER line is needed');
+  });
+
+  it('counts a page of a table in rows, as its table shows them', async () => {
+    const world = await setup([
+      {
+        toolCalls: [{ name: 'read', arguments: { path: 'data/invoices.csv', offset: 3 } }],
+      },
+      { text: 'INV-2 and INV-3.' },
+    ]);
+    const { reply } = await ask(world, 'Show me the last two invoices.');
+    expect(reply.steps).toMatchObject([
+      {
+        name: 'read',
+        meta: 'rows 2-3 of 3',
+        view: {
+          kind: 'table',
+          rows: [
+            ['INV-2', 'C-2', '4550', '2026-11-15', null],
+            ['INV-3', 'C-1', '990', '2026-11-02', 'false'],
+          ],
+          total: 3,
+        },
+      },
+    ]);
   });
 
   it('shows the skills it loads, by retrieval rule or by reading one', async () => {

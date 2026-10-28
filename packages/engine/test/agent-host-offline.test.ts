@@ -127,7 +127,7 @@ describe('a graduate in the workspace', () => {
     expect(reply).toMatchObject({
       status: 'done',
       text: 'There are 3 invoices on file.',
-      steps: [{ name: 'read', detail: 'data/invoices.csv', meta: '4 lines', status: 'done' }],
+      steps: [{ name: 'read', detail: 'data/invoices.csv', meta: '3 rows', status: 'done' }],
     });
     expect(model.chats()).toHaveLength(2);
 
