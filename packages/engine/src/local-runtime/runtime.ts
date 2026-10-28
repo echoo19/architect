@@ -44,6 +44,11 @@ export interface ServeRequest {
   baseDigest?: string;
   /** The context the server runs with, as the version was made with; the runtime's default when absent. */
   contextLength?: number;
+  /**
+   * The base as the version's package records it: the name its author ran it under and, when the
+   * weights came from a hub, their revision. A base of another build is refused with these.
+   */
+  publishedBase?: { name: string; revision?: string };
 }
 
 /** Everything serving a request needs, as a check found it. Nothing was loaded to find it. */
@@ -180,7 +185,10 @@ export class LocalAdapterRuntime implements AdapterServing {
    * and each adapter's file and fit. Throws the first problem it finds.
    */
   async prepare(
-    request: Pick<ServeRequest, 'model' | 'adapters' | 'baseDigest' | 'contextLength'>,
+    request: Pick<
+      ServeRequest,
+      'model' | 'adapters' | 'baseDigest' | 'contextLength' | 'publishedBase'
+    >,
   ): Promise<{ launch: LlamaServerLaunch; model: OllamaModelFile; version: ServerVersion }> {
     const keys = request.adapters.map((adapter) => adapter.key);
     if (new Set(keys).size !== keys.length) throw new Error('Two adapters have the same key.');
@@ -348,19 +356,29 @@ export class LocalAdapterRuntime implements AdapterServing {
     return { model, header };
   }
 
-  /** Refuses a base whose weights aren't the build the adapters were trained on. */
+  /**
+   * Refuses a base whose weights aren't the build the adapters were trained on. Ollama can't
+   * download a build by its weights, so the fix is that exact file, from whoever published the
+   * agent, added under a name of its own: other versions may use the model under this name, so
+   * the fix never replaces it.
+   */
   private assertBaseBuild(
-    request: Pick<ServeRequest, 'model' | 'adapters' | 'baseDigest'>,
+    request: Pick<ServeRequest, 'model' | 'adapters' | 'baseDigest' | 'publishedBase'>,
     model: OllamaModelFile,
   ): void {
     const expected = request.baseDigest;
     if (expected === undefined || model.digest === expected) return;
     const trained = request.adapters.length === 1 ? 'its adapter was' : 'its adapters were';
-    // Other versions may use the model under this name, so the fix never replaces it.
+    const published = request.publishedBase;
+    const named =
+      published === undefined ||
+      (published.name === request.model && published.revision === undefined)
+        ? ''
+        : ` (its package names it ${published.name}${published.revision === undefined ? '' : ` at revision ${published.revision}`})`;
     throw new LocalRuntimeError(
       'base_mismatch',
       `${request.model} on this computer is another build (weights ${shortDigest(model.digest)}) than the one ${trained} trained on (${shortDigest(expected)}).`,
-      `It needs the exact base it was trained on, the build whose weights are ${expected}: add that build to Ollama under a name of its own, then set this agent's model to that name.`,
+      `It needs the exact GGUF ${trained} trained on, whose weights are ${expected}. Ollama can't download a build by its weights, so get that file from whoever published this agent${named}, add it to Ollama under a name of its own, then set this agent's model to that name.`,
     );
   }
 

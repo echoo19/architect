@@ -216,7 +216,7 @@ describe('serving a version that carries an adapter', () => {
       "Version 1 of Service desk wasn't opened. muse-glimmer:30b on this computer is another build",
     );
     expect((refused as GuardError).message).toContain(
-      `the build whose weights are ${trainedOn.digest}: add that build to Ollama under a name of its own`,
+      `It needs the exact GGUF its adapter was trained on, whose weights are ${trainedOn.digest}. Ollama can't download a build by its weights, so get that file from whoever published this agent, add it to Ollama under a name of its own`,
     );
 
     // With the right build in place it opens; an adapter changed afterwards never loads.
@@ -364,7 +364,7 @@ describe('A07: a package with an adapter, installed on another computer', () => 
       ),
     ]);
     expect(result.installation.reasons[0]).toContain(
-      `It needs the exact base it was trained on, the build whose weights are ${base.digest}: add that build to Ollama under a name of its own, then set this agent's model to that name. That build is about 1 GB.`,
+      `It needs the exact GGUF its adapter was trained on, whose weights are ${base.digest}. Ollama can't download a build by its weights, so get that file from whoever published this agent, add it to Ollama under a name of its own, then set this agent's model to that name. That build is about 1 GB.`,
     );
     await expect(activeVersion(recipient.store, recipient.paths, 'grd_desk')).rejects.toThrow(
       "can't run on this computer",

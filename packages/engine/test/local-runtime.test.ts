@@ -703,28 +703,50 @@ describe('serving a graduate with its adapter', () => {
     const [candidate] = adapters;
     if (!candidate) throw new Error('No candidate.');
     const sha256 = sha256Of(candidate.path);
-    const serve = (overrides: { baseDigest: string; sha256: string }) =>
+    const serve = (overrides: {
+      baseDigest: string;
+      sha256: string;
+      publishedBase?: { name: string; revision?: string };
+    }) =>
       runtime.access({
         model: 'muse-glimmer:30b-iq2',
         adapters: [{ ...candidate, sha256: overrides.sha256 }],
         scales: { candidate: 1 },
         baseDigest: overrides.baseDigest,
+        ...(overrides.publishedBase === undefined
+          ? {}
+          : { publishedBase: overrides.publishedBase }),
       });
     const otherBuild = `sha256:${'b2'.repeat(32)}`;
 
     const wrongBase = await serve({ baseDigest: otherBuild, sha256 })
       .acquire()
       .catch((error: unknown) => error);
-    // A student sees an adapter error, which stops an evaluation and says how to recover.
+    // A student sees an adapter error, which stops an evaluation and says how to recover: Ollama
+    // can't fetch a build by its weights, so the fix is that file, from whoever published it.
     expect(wrongBase).toBeInstanceOf(AdapterError);
     expect(wrongBase).toMatchObject({
       code: 'bad_request',
       cause: {
         code: 'base_mismatch',
         message: `muse-glimmer:30b-iq2 on this computer is another build (weights ${digest.slice(0, 19)}) than the one its adapter was trained on (sha256:b2b2b2b2b2b2).`,
-        hint: `It needs the exact base it was trained on, the build whose weights are ${otherBuild}: add that build to Ollama under a name of its own, then set this agent's model to that name.`,
+        hint: `It needs the exact GGUF its adapter was trained on, whose weights are ${otherBuild}. Ollama can't download a build by its weights, so get that file from whoever published this agent, add it to Ollama under a name of its own, then set this agent's model to that name.`,
       },
     });
+    // Where the package says its base came from is named, when it says more than the name here.
+    const published = await serve({
+      baseDigest: otherBuild,
+      sha256,
+      publishedBase: {
+        name: 'hf.co/unsloth/Muse-Glimmer-30B-GGUF:UD-IQ2_XXS',
+        revision: 'a1b2c3d',
+      },
+    })
+      .acquire()
+      .catch((error: unknown) => error);
+    expect((published as { cause: LocalRuntimeError }).cause.hint).toContain(
+      'so get that file from whoever published this agent (its package names it hf.co/unsloth/Muse-Glimmer-30B-GGUF:UD-IQ2_XXS at revision a1b2c3d), add it to Ollama under a name of its own',
+    );
     const changed = await serve({ baseDigest: digest, sha256: 'c3'.repeat(32) })
       .acquire()
       .catch((error: unknown) => error);
