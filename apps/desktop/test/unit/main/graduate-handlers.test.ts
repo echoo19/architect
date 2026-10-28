@@ -1,6 +1,11 @@
 import { join, resolve } from 'node:path';
-import type { EngineApi } from '@architect/engine';
-import type { GraduateSummary, ImportResult, Installation } from '@architect/shared';
+import { HubError, type EngineApi } from '@architect/engine';
+import {
+  PackageError,
+  type GraduateSummary,
+  type ImportResult,
+  type Installation,
+} from '@architect/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { PickedPaths } from '../../../src/main/files/picked';
 import { registerGraduateHandlers } from '../../../src/main/handlers/graduates';
@@ -171,6 +176,50 @@ describe('graduate handlers', () => {
     expect(engine.graduates.publish).not.toHaveBeenCalled();
     expect((await call('graduates:publish', 'grd_1', { repository: 'jake/desk' })).ok).toBe(true);
     expect((await call('graduates:publications', 'grd_1')).ok).toBe(true);
+  });
+
+  it('say what to do about a Hub failure, since only the message reaches the screen', async () => {
+    const { engine, call } = setup();
+    engine.graduates.publish.mockRejectedValueOnce(
+      new HubError(
+        'auth',
+        'Hugging Face refused the token.',
+        'Check the Hugging Face token in Settings; it needs write access.',
+      ),
+    );
+    expect(await call('graduates:publish', 'grd_1', { repository: 'jake/desk' })).toEqual({
+      ok: false,
+      error: {
+        message:
+          'Hugging Face refused the token. Check the Hugging Face token in Settings; it needs write access.',
+      },
+    });
+    engine.graduates.installFromHub.mockRejectedValueOnce(
+      new HubError('not_found', 'Hugging Face has no such repository.', 'Check the names.'),
+    );
+    expect(await call('graduates:installFromHub', 'hf://jake/desk')).toEqual({
+      ok: false,
+      error: { message: 'Hugging Face has no such repository. Check the names.' },
+    });
+    // A commit that holds no package says where to look.
+    engine.graduates.installFromHub.mockRejectedValueOnce(
+      new PackageError('not_a_package', [
+        "jake/notes has no graduate.json at c41d8a2, so it isn't an Architect package.",
+      ]),
+    );
+    expect(await call('graduates:installFromHub', 'hf://jake/notes')).toEqual({
+      ok: false,
+      error: {
+        message:
+          "jake/notes has no graduate.json at c41d8a2, so it isn't an Architect package. Check the repository and the commit.",
+      },
+    });
+    // Any other failure keeps its own words.
+    engine.graduates.publish.mockRejectedValueOnce(new Error('jake/desk is public.'));
+    expect(await call('graduates:publish', 'grd_1', { repository: 'jake/desk' })).toEqual({
+      ok: false,
+      error: { message: 'jake/desk is public.' },
+    });
   });
 
   it('close a graduate in the workspace before the engine removes it', async () => {

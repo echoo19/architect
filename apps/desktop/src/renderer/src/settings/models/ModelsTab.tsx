@@ -11,8 +11,8 @@ import { sameOllamaModel, StudentRows } from './StudentRows';
 import { ConnectionsSection } from './ConnectionsSection';
 
 /**
- * Settings › Models: the default mentor and agent's model, each picked from every connection,
- * then the connections themselves.
+ * Settings › Models: the default mentor and the model new agents start on, each picked from
+ * every connection, then the connections themselves.
  */
 export function ModelsTab({ settings, update }: TabProps) {
   const { connections, gpu, local, secrets } = useConnections();
@@ -55,10 +55,11 @@ export function ModelsTab({ settings, update }: TabProps) {
       {mentor.kind === 'model' && pricing === undefined && (
         <PriceRow onSave={(saved) => update({ defaultMentor: { ...mentor, pricing: saved } })} />
       )}
-      <SettingsRow label="Agent's model" meta={student.model} metaFont="code">
+      {/* Each agent keeps its own model, chosen in its settings; this one is for the next. */}
+      <SettingsRow label="Model for new agents" meta={student.model} metaFont="code">
         <ModelPicker
           role="student"
-          aria-label="Agent's model"
+          aria-label="Model for new agents"
           current={student}
           onChoose={(choice) =>
             update({ defaultStudent: studentFromChoice(choice, student.contextLength) })

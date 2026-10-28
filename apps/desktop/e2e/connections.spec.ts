@@ -241,10 +241,10 @@ test('lists every connection and picks the mentor from any of them', async () =>
   await page.keyboard.press('Escape');
 });
 
-test("picks the agent's model on this computer, with whether it fits the GPU", async () => {
+test('picks the model for new agents on this computer, with whether it fits the GPU', async () => {
   await open('/', { secrets: { meta: true }, local: LOCAL });
   await openModelsTab();
-  await page.getByRole('button', { name: "Agent's model" }).click();
+  await page.getByRole('button', { name: 'Model for new agents' }).click();
   const menu = page.getByRole('listbox');
   await expect(menu.getByRole('option', { name: /Muse Glimmer · 2-bit/ })).toContainText('GPU');
   await expect(menu.getByRole('option', { name: /Muse Glimmer · 4-bit/ })).toContainText(
@@ -254,7 +254,7 @@ test("picks the agent's model on this computer, with whether it fits the GPU", a
   await expect.poll(async () => (await settings(page)).defaultStudent.model).toBe(GRANITE);
 
   // The 4-bit build would run partly on this 12 GB card; the 2-bit one fits and is here.
-  await page.getByRole('button', { name: "Agent's model" }).click();
+  await page.getByRole('button', { name: 'Model for new agents' }).click();
   await page.getByRole('option', { name: /Muse Glimmer · 4-bit/ }).click();
   await expect(page.getByText('Not downloaded yet')).toBeVisible();
   await expect(

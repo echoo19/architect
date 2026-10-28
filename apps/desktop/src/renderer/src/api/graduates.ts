@@ -4,14 +4,20 @@ import {
   ExportReviewSchema,
   GraduateSummarySchema,
   GraduateVersionSchema,
+  HubInstallResultSchema,
   ImportPreviewSchema,
   ImportResultSchema,
   InstallationSchema,
+  PublicationReviewSchema,
+  PublicationSchema,
+  PublishResultSchema,
   ReportCardSchema,
   type BindRequest,
   type ExportPartRequest,
   type ExportRequest,
+  type HubInstallRequest,
   type ImportRequest,
+  type PublishRequest,
 } from '@architect/shared';
 import { z } from 'zod';
 import { api, architect } from './client';
@@ -60,8 +66,9 @@ export const graduatesApi = {
       GraduateSummarySchema,
       architect().graduates.rollback(graduateId, version),
     ),
-  verify: (graduateId: string) =>
-    read('graduates.verify', InstallationSchema, architect().graduates.verify(graduateId)),
+  /** Runs the install checks again: with one short request to the model unless told not to. */
+  verify: (graduateId: string, options?: { loadModel: boolean }) =>
+    read('graduates.verify', InstallationSchema, architect().graduates.verify(graduateId, options)),
   bind: (graduateId: string, request: BindRequest) =>
     read('graduates.bind', InstallationSchema, architect().graduates.bind(graduateId, request)),
   reviewExport: (graduateId: string, include: string[]) =>
@@ -90,13 +97,48 @@ export const graduatesApi = {
       ImportResultSchema,
       architect().graduates.importPackage(path, request),
     ),
+  installFromHub: (source: string, request: HubInstallRequest) =>
+    read(
+      'graduates.installFromHub',
+      HubInstallResultSchema,
+      architect().graduates.installFromHub(source, request),
+    ),
+  rejectVersion: (graduateId: string, version: number) =>
+    read(
+      'graduates.rejectVersion',
+      GraduateVersionSchema,
+      architect().graduates.rejectVersion(graduateId, version),
+    ),
+  reviewPublication: (graduateId: string, request: PublishRequest) =>
+    read(
+      'graduates.reviewPublication',
+      PublicationReviewSchema,
+      architect().graduates.reviewPublication(graduateId, request),
+    ),
+  publish: (graduateId: string, request: PublishRequest) =>
+    read(
+      'graduates.publish',
+      PublishResultSchema,
+      architect().graduates.publish(graduateId, request),
+    ),
+  publications: (graduateId: string) =>
+    read(
+      'graduates.publications',
+      z.array(PublicationSchema),
+      architect().graduates.publications(graduateId),
+    ),
 };
 
 export const graduateKeys = {
   versions: (graduateId: string) => `versions:${graduateId}`,
   installation: (graduateId: string) => `installation:${graduateId}`,
   report: (graduateId: string, version: number | null) => `version-report:${graduateId}:${version}`,
+  publications: (graduateId: string) => `publications:${graduateId}`,
 };
+
+/** Every publication of the agent's versions, oldest first, as recorded on this computer. */
+export const usePublications = (graduateId: string) =>
+  useQuery(graduateKeys.publications(graduateId), () => graduatesApi.publications(graduateId));
 
 /** The report card the agent's active version carries, from its own folder. */
 export const useVersionReport = (agent: { id: string; activeVersion: number | null }) =>

@@ -1,9 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { ImportPreview, ImportResult, PermissionMode, ResourceGrant } from '@architect/shared';
 import { Button, EmptyState, ErrorState, Skeleton } from '@architect/ui';
-import { FolderOpen, MessageSquarePlus, PackageOpen } from 'lucide-react';
+import { Cloud, FolderOpen, MessageSquarePlus, PackageOpen } from 'lucide-react';
 import { api, architect } from '../api/client';
-import { graduatesApi } from '../api/graduates';
+import { graduatesApi, refreshAgent } from '../api/graduates';
 import { queryKeys } from '../api/hooks';
 import { fetchQuery, toError } from '../api/query';
 import { attempt } from '../lib/notify';
@@ -12,9 +12,10 @@ import { FlowShell } from '../shell/FlowShell';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { createChat, forgetAgent } from '../workspace/store';
 import { CheckStep, Refused } from './CheckStep';
+import { HubImportFlow } from './HubImport';
 import { InstallStep } from './InstallStep';
 import { FoldersStep, PermissionsStep } from './SetupSteps';
-import { chooseImport, useImportSession } from './session';
+import { chooseFromHub, chooseImport, useImportSession } from './session';
 
 type Stage = 'Package' | 'Folders' | 'Permissions' | 'Install';
 
@@ -51,9 +52,14 @@ function usePreview(path: string | null) {
   return { ...state, reload: () => setRound((value) => value + 1) };
 }
 
-/** Import agent: a package checked, set up for this computer, installed, and its checks run. */
+/**
+ * Import agent: a package checked, set up for this computer, installed, and its checks run; or
+ * a version installed from Hugging Face, which goes through the same steps.
+ */
 export function ImportScreen() {
-  const path = useImportSession((state) => state.path);
+  const source = useImportSession((state) => state.source);
+  if (source?.kind === 'hub') return <HubImportFlow key={source.started} />;
+  const path = source?.path ?? null;
   return <ImportFlow key={path ?? 'none'} path={path} />;
 }
 
@@ -98,7 +104,8 @@ function ImportFlow({ path }: { path: string | null }) {
           ? { bindings, grants: { writes, resources: grants }, loadModel: true }
           : {},
       );
-      await fetchQuery(queryKeys.graduates, api.graduates);
+      // Everything read about this id before, as for an agent removed and imported again.
+      await refreshAgent(installed.graduate.id);
       setResult(installed);
     } catch (failure) {
       setInstallError(toError(failure));
@@ -137,7 +144,7 @@ function ImportFlow({ path }: { path: string | null }) {
       <EmptyState
         icon={<PackageOpen aria-hidden />}
         title="Import an agent"
-        description="An .architect.zip package, or a folder exported from Architect"
+        description="An .architect.zip package, a folder exported from Architect, or a repository on Hugging Face"
         actions={
           <>
             <Button variant="primary" size="md" onClick={() => void chooseImport()}>
@@ -146,6 +153,10 @@ function ImportFlow({ path }: { path: string | null }) {
             <Button size="md" onClick={() => void chooseImport(true)}>
               <FolderOpen size={15} strokeWidth={1.7} aria-hidden />
               Choose a folder
+            </Button>
+            <Button size="md" onClick={chooseFromHub}>
+              <Cloud size={15} strokeWidth={1.7} aria-hidden />
+              From Hugging Face
             </Button>
           </>
         }

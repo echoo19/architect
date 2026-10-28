@@ -6,12 +6,19 @@ export type OpenExternal = (url: string) => Promise<void>;
 /** OpenRouter's sign-in page, which the PKCE flow opens. */
 const SIGN_IN_HOSTS = ['openrouter.ai'];
 
-/** The hosts of every page Architect may open: provider key pages, runtime downloads, sign-in. */
+/** Hugging Face: its token page, and the repositories agents are published to. */
+export const HUGGING_FACE_HOST = 'huggingface.co';
+
+/**
+ * The hosts of every page Architect may open: provider key pages, runtime downloads, sign-in,
+ * and Hugging Face.
+ */
 const KNOWN_HOSTS = new Set([
   ...Object.values(PROVIDERS).flatMap((provider) =>
     provider.page ? [new URL(provider.page).hostname] : [],
   ),
   ...SIGN_IN_HOSTS,
+  HUGGING_FACE_HOST,
 ]);
 
 /** Whether Architect may open `url` in the browser: HTTPS, on one of the hosts it knows. */
@@ -34,7 +41,9 @@ export function providerPage(provider: ProviderId): string {
  */
 export function createLinkOpener(open: OpenExternal, hidden: boolean): OpenExternal {
   return async (url) => {
-    if (!isKnownPage(url)) throw new Error('Architect only opens the provider pages it knows.');
+    if (!isKnownPage(url)) {
+      throw new Error('Architect only opens pages on the sites it knows, over HTTPS.');
+    }
     if (hidden) {
       console.warn(`[links] Running hidden, so ${new URL(url).host} was not opened.`);
       return;
