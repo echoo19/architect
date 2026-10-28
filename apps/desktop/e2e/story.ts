@@ -1,9 +1,11 @@
 import type {
   Attempt,
+  CapabilityBreakdown,
   FileDiff,
   GraduateSummary,
   Job,
   LineageEntry,
+  MentoringProgress,
   Method,
   ReportCard,
   Round,
@@ -647,4 +649,53 @@ export const graduate: GraduateSummary = {
   versions: 1,
   status: 'ready',
   reasons: [],
+};
+
+/**
+ * The story's run kept no mentoring records: it ran before lessons and experiments existed, so
+ * the evidence screens show it with no examples and no experiments. Its capability numbers come
+ * from its own final test; the breakdown has no practice or check-task results to show for it.
+ */
+export const storyCapabilities: CapabilityBreakdown = {
+  runId: STORY.runId,
+  capabilities: trainedJob.taskTypes.map((type) => {
+    const final = FINAL_TEST.find((item) => item.type === type.id);
+    return {
+      type: type.id,
+      label: type.label,
+      practice: null,
+      check: null,
+      finalTest: final ? { pass: final.pass, total: final.total } : null,
+      installCheck: null,
+      categories: [],
+    };
+  }),
+};
+
+export const storyProgress: MentoringProgress = {
+  runId: STORY.runId,
+  experiments: { total: 0, kept: 0, reverted: 0, rejected: 0, invalid: 0, stopped: 0 },
+  dev: { baseline: { pass: 16, total: 40 }, current: { pass: 72, total: 80 } },
+  lessons: { verified: 0, rejected: 0, byKind: {} },
+  clarifications: 0,
+  spent: {
+    mentorUsd: 0,
+    mentorInputTokens: 0,
+    mentorOutputTokens: 0,
+    studentUsd: 0,
+    studentInputTokens: 0,
+    studentOutputTokens: 0,
+    computeUsd: 0,
+    computeMinutes: 0,
+    examples: 0,
+    trainedTokens: 0,
+    attempts: 0,
+    minutes: 0,
+  },
+  budget: {
+    maxRounds: trainedJob.budget.maxRounds,
+    maxMentorUsd: trainedJob.budget.maxMentorUsd,
+    maxComputeUsd: 0,
+    maxWallMinutes: trainedJob.budget.maxWallMinutes,
+  },
 };

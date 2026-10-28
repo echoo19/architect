@@ -29,4 +29,6 @@ process.env.ARCHITECT_E2E_EXECUTABLE ||= unpackedExecutable();
  */
 export default defineConfig(base, {
   testMatch: ['shell.spec.ts', 'engine.spec.ts', 'agent-host.spec.ts', 'packaging.spec.ts'],
+  // None of these reads the recorded run.
+  globalSetup: [],
 });

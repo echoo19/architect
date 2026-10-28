@@ -28,7 +28,7 @@ const WIDTH = 1440;
 /** Tall enough for each screen's whole page, so a screenshot shows everything on it. */
 const DEFINE_HEIGHT = 1580;
 const TRAIN_HEIGHT = 1270;
-const REPORT_HEIGHT = 1500;
+const REPORT_HEIGHT = 2060;
 const THEMES = ['dark', 'light'] as const;
 
 test.describe.configure({ mode: 'serial' });
@@ -239,7 +239,7 @@ for (const theme of THEMES) {
     ).toBeVisible();
     // A check task is listed, marked as one the mentor never sees.
     const attempts = page.getByRole('region', { name: 'Latest attempts' });
-    const hidden = attempts.getByRole('img', { name: 'Hidden from Spark' });
+    const hidden = attempts.getByText(', hidden from Spark');
     await expect(attempts).toContainText('Practice task, round 4');
     await expect(attempts).toContainText('Check task, round 3');
     await expect(hidden).toHaveCount(1);
@@ -261,21 +261,30 @@ for (const theme of THEMES) {
     await failed.click();
     const traceDrawer = page.getByRole('dialog');
     await expect(traceDrawer.getByText('Failed', { exact: true })).toBeVisible();
-    await expect(traceDrawer.getByText('read', { exact: true })).toBeVisible();
-    // A table read shows its rows, and code shows folded, with what it gave back under it.
+    await expect(traceDrawer).toContainText(
+      'Scheduling · Practice task, round 4 · using the setup from round 3',
+    );
+    // Each step reads the way the workspace words it; the first is open, with its evidence.
+    const steps = traceDrawer.getByRole('list', { name: "Glimmer's steps" });
+    await expect(steps).toContainText('Read data/technicians.csv 3 rows');
+    await expect(steps).toContainText('Searched data/bookings.csv for /,T-(07|11),2026-10-28,/');
+    await expect(steps).toContainText('Ran code');
+    await expect(traceDrawer).toContainText(
+      'Loaded the skill book-urgent-calls, which matches the request',
+    );
+    // A table read shows its rows.
     await expect(traceDrawer.getByRole('row', { name: /T-11 Marcus O\./ })).toBeVisible();
-    await expect(traceDrawer.getByRole('button', { name: 'Code' })).toHaveAttribute(
+    await capture(page, `flow-trace-${theme}`);
+    // Two steps on, code shows folded, with what it gave back under it.
+    await steps.locator('[aria-current="step"]').focus();
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+    await expect(traceDrawer.getByText(/^Step 3 of 4$/)).toBeVisible();
+    await expect(traceDrawer.getByRole('button', { name: 'Code', exact: true })).toHaveAttribute(
       'aria-expanded',
       'false',
     );
     await expect(traceDrawer.getByText('=> "08:00"')).toBeVisible();
-    await expect(traceDrawer).toContainText(
-      'Scheduling · Practice task, round 4 · using the setup from round 3',
-    );
-    await expect(traceDrawer).toContainText(
-      'Loaded the skill book-urgent-calls, which matches the request',
-    );
-    await capture(page, `flow-trace-${theme}`);
     await page.keyboard.press('Escape');
     await expect(traceDrawer).toBeHidden();
     await expect(failed).toBeFocused();
@@ -290,7 +299,7 @@ for (const theme of THEMES) {
         'both (52 → 62 of 80), and no task type got worse.',
     );
     await expect(roundDrawer).toContainText('Within the prediction');
-    await expect(roundDrawer.getByText('Average', { exact: true })).toBeVisible();
+    await expect(roundDrawer.getByText('Measured again', { exact: true })).toBeVisible();
     await expect(roundDrawer).not.toContainText('@@');
     await capture(page, `flow-round-${theme}`);
     await page.keyboard.press('Escape');
@@ -342,7 +351,7 @@ for (const theme of THEMES) {
         'Final test of 60 unseen tasks, offline on this computer, with Spark disconnected.',
       ),
     ).toBeVisible();
-    const comparison = page.getByRole('table');
+    const comparison = page.getByRole('table', { name: 'Compared with simpler methods' });
     await expect(comparison.getByRole('row')).toHaveCount(5);
     const bare = comparison.getByRole('row', { name: /No setup/ });
     await expect(bare).toContainText('40%');

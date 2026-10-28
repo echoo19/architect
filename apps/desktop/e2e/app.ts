@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,6 +34,11 @@ export interface LaunchOptions {
   env?: Record<string, string>;
   /** Settings the profile starts with; defaults for the rest. */
   settings?: Partial<AppSettings>;
+  /**
+   * A data folder the profile starts as a copy of, such as a recorded run, so the app's real
+   * engine reads its records. The folder itself is never changed.
+   */
+  data?: string;
 }
 
 /**
@@ -42,6 +47,7 @@ export interface LaunchOptions {
  */
 export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedApp> {
   const userData = await mkdtemp(join(tmpdir(), 'architect-e2e-'));
+  if (options.data) await cp(options.data, userData, { recursive: true });
   if (options.settings) {
     await writeFile(join(userData, 'settings.json'), JSON.stringify(options.settings));
   }
