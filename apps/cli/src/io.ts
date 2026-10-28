@@ -1,4 +1,5 @@
 import type { Readable } from 'node:stream';
+import type { ServerCommand } from '@architect/engine/local-runtime';
 
 /** Where text goes. `write` returns once the text is handed over. */
 export interface Output {
@@ -29,6 +30,8 @@ export interface CliIo {
   installGuard(): void;
   /** The tool sandbox's child entry, when the command runs from a bundle. */
   sandboxEntryPath?: string;
+  /** A stand-in llama-server, run instead of finding the real one. Only tests set it. */
+  llamaServerCommand?: ServerCommand;
 }
 
 /** Sets up interrupts for one command: a controller that aborts on the first Ctrl+C. */

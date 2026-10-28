@@ -19,6 +19,7 @@ import { resourcesFor, type AdapterFile, type VersionFacts } from '../../src/gra
 import { ContractBook } from '../../src/graduates/contracts';
 import { GraduateLibrary } from '../../src/graduates/library';
 import { registerVersion, writeVersionFolder } from '../../src/graduates/versions';
+import { LocalAdapterRuntime, type ServerCommand } from '../../src/local-runtime';
 import { DataPaths } from '../../src/loop/paths';
 import { openEngineStore, type EngineStore } from '../../src/store/engine-store';
 import type { StoredVersion } from '../../src/store/records';
@@ -39,11 +40,22 @@ export interface Computer {
   loaded: string[];
   students: FakeStudent[];
   machine: Machine;
+  /** The folder Ollama keeps models in here: empty until a test stores a base in it. */
+  modelsDir: string;
+  /** The engine's adapter runtime, with the stand-in llama-server when the computer has one. */
+  adapterRuntime: LocalAdapterRuntime;
+  /** A new adapter runtime for an agent host here: its own folder, the same server and models. */
+  workspaceRuntime(): LocalAdapterRuntime;
   /** Closes the database, as quitting the app would. */
   close(): void;
   /** Opens the same data folder again, as restarting the app would. */
   restart(): Computer;
   remove(): Promise<void>;
+}
+
+export interface ComputerOptions {
+  /** The llama-server this computer has: the stand-in. None at all when absent, PATH included. */
+  llamaServer?: ServerCommand;
 }
 
 /** The digest Ollama's store gives the base's GGUF file, as the adapter runtime reports it. */
@@ -55,13 +67,43 @@ export const THIS_MACHINE: Machine = {
   memoryBytes: 32 * 1024 ** 3,
 };
 
+/**
+ * An adapter runtime that finds only what a test gives it: the stand-in llama-server or none (no
+ * PATH), the models in `modelsDir`, and an Ollama that holds nothing, so no test ever reaches the
+ * real llama-server or Ollama of the computer it runs on.
+ */
+export function testAdapterRuntime(
+  runtimeDir: string,
+  modelsDir: string,
+  llamaServer?: ServerCommand,
+): LocalAdapterRuntime {
+  return new LocalAdapterRuntime({
+    runtimeDir,
+    ollamaModelsDir: () => modelsDir,
+    env: {},
+    freeGpu: async () => undefined,
+    ...(llamaServer === undefined ? {} : { command: llamaServer }),
+  });
+}
+
 /** Architect started on an existing data folder. */
-export function attach(dataDir: string, machine: Machine, clock: ManualClock): Computer {
+export function attach(
+  dataDir: string,
+  machine: Machine,
+  clock: ManualClock,
+  options: ComputerOptions = {},
+): Computer {
   const paths = new DataPaths(dataDir);
   const store = openEngineStore(paths.database);
   const contracts = new ContractBook(store, clock);
   const loaded: string[] = [];
   const students: FakeStudent[] = [];
+  const modelsDir = join(dataDir, 'ollama-models');
+  const adapterRuntime = testAdapterRuntime(
+    paths.runtimeDir('engine'),
+    modelsDir,
+    options.llamaServer,
+  );
   const library = new GraduateLibrary({
     store,
     paths,
@@ -89,6 +131,7 @@ export function attach(dataDir: string, machine: Machine, clock: ManualClock): C
         },
       },
     },
+    adapterRuntime,
   });
   const computer: Computer = {
     dataDir,
@@ -100,12 +143,17 @@ export function attach(dataDir: string, machine: Machine, clock: ManualClock): C
     loaded,
     students,
     machine,
+    modelsDir,
+    adapterRuntime,
+    workspaceRuntime: () =>
+      testAdapterRuntime(paths.runtimeDir('workspace'), modelsDir, options.llamaServer),
     close: () => store.close(),
     restart: () => {
       store.close();
-      return attach(dataDir, computer.machine, clock);
+      return attach(dataDir, computer.machine, clock, options);
     },
     remove: async () => {
+      await adapterRuntime.stop();
       try {
         store.close();
       } catch {
@@ -117,9 +165,12 @@ export function attach(dataDir: string, machine: Machine, clock: ManualClock): C
   return computer;
 }
 
-export async function newComputer(machine: Machine = THIS_MACHINE): Promise<Computer> {
+export async function newComputer(
+  machine: Machine = THIS_MACHINE,
+  options: ComputerOptions = {},
+): Promise<Computer> {
   const dataDir = await mkdtemp(join(tmpdir(), 'architect-computer-'));
-  return attach(dataDir, machine, new ManualClock());
+  return attach(dataDir, machine, new ManualClock(), options);
 }
 
 export const PRICE_TOOL: HarnessTool = {
@@ -149,13 +200,15 @@ export interface VersionOptions {
   job?: Job;
   harness?: Harness;
   /** Bytes of a LoRA adapter file to ship with the version. */
-  adapter?: string;
+  adapter?: string | Uint8Array;
   /** The adapter's identity beyond its file, when a test needs it to differ: scale, job, base. */
   adapterIdentity?: Partial<
     Pick<AdapterFile, 'scale' | 'trainingJobId' | 'standIn' | 'baseDigest'>
   >;
   /** The local version it derives from. */
   parent?: number;
+  /** The context the version was made with; 16K when absent. */
+  contextLength?: number;
   /** A model endpoint on this computer for its installation. */
   baseUrl?: string;
   state?: 'candidate' | 'accepted';
@@ -195,7 +248,10 @@ export async function addVersion(
       path: 'adapter/adapter.gguf',
       format: 'gguf_lora',
       sha256: sha256Bytes(options.adapter),
-      sizeBytes: Buffer.byteLength(options.adapter),
+      sizeBytes:
+        typeof options.adapter === 'string'
+          ? Buffer.byteLength(options.adapter)
+          : options.adapter.byteLength,
       baseDigest: GLIMMER_GGUF,
       scale: 1,
       ...options.adapterIdentity,
@@ -220,7 +276,7 @@ export async function addVersion(
     contract,
     modelLabel: 'Glimmer',
     base: { name: 'muse-glimmer:30b', digest: 'sha256:glimmer', sizeBytes: 1024 ** 3 },
-    contextLength: 16_384,
+    contextLength: options.contextLength ?? 16_384,
     runtime: 'ollama',
     ...(adapter === undefined ? {} : { adapter }),
     harness: { meta: harness.meta, files: harnessToFiles(harness) },

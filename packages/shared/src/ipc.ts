@@ -46,6 +46,31 @@ export interface AppSettings {
   customEndpoints: CustomEndpoint[];
   /** True once first-run setup is finished. */
   onboarded: boolean;
+  /**
+   * The llama-server the user chose, which runs graduates that carry an adapter: the program or
+   * its folder. Absent: the first one on PATH.
+   */
+  llamaServerPath?: string;
+}
+
+/** What the renderer may change in settings: everything but the program Architect runs. */
+export type AppSettingsPatch = Partial<Omit<AppSettings, 'llamaServerPath'>>;
+
+/** llama.cpp's llama-server on this computer, as Settings shows it. */
+export interface LlamaServerStatus {
+  /** Where it was found: the path chosen in Settings, or the system PATH; null when it wasn't. */
+  source: 'setting' | 'path' | null;
+  /** The program, when one was found. */
+  path?: string;
+  /** Its build number, when it said. */
+  build?: number;
+  /** It runs and is new enough to serve graduates that carry an adapter. */
+  ready: boolean;
+  /** What stands in the way when it isn't ready, and how to fix it. */
+  problem?: string;
+  hint?: string;
+  /** The oldest build that runs Glimmer. */
+  minimumBuild: number;
 }
 
 /** An OpenAI-compatible endpoint the user added by its address, such as a vLLM server. */
@@ -227,7 +252,7 @@ export interface ArchitectApi {
   };
   settings: {
     get(): Promise<AppSettings>;
-    update(patch: Partial<AppSettings>): Promise<AppSettings>;
+    update(patch: AppSettingsPatch): Promise<AppSettings>;
     /** Fires whenever settings change, from this window or anywhere else. */
     onChange(listener: (settings: AppSettings) => void): Unsubscribe;
   };
@@ -252,6 +277,13 @@ export interface ArchitectApi {
     signIn(provider: 'openrouter'): Promise<SignInResult>;
     /** Stops a sign-in that is waiting for the browser. */
     cancelSignIn(): Promise<void>;
+    /** Finds llama-server, asks its build, and says whether it can serve adapters. Loads nothing. */
+    llamaServer(): Promise<LlamaServerStatus>;
+    /**
+     * Uses this llama-server from now on, which must be a file the user picked; null goes back
+     * to the one on PATH. Checks it like `llamaServer`.
+     */
+    chooseLlamaServer(path: string | null): Promise<LlamaServerStatus>;
   };
   ollama: {
     status(): Promise<OllamaStatus>;

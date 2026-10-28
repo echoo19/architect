@@ -6,6 +6,7 @@ import type {
   AddConnectionResult,
   AppInfo,
   AppSettings,
+  AppSettingsPatch,
   CustomEndpoint,
   DraftTurn,
   FileDiff,
@@ -14,6 +15,7 @@ import type {
   HubInstallResult,
   ImportResult,
   JobSummary,
+  LlamaServerStatus,
   LocalRuntime,
   LocalRuntimes,
   ModelEntry,
@@ -59,10 +61,27 @@ export const AppSettingsSchema = z.object({
   defaultStudent: StudentEndpointSchema,
   customEndpoints: z.array(CustomEndpointSchema).max(50),
   onboarded: z.boolean(),
+  llamaServerPath: z.string().min(1).optional(),
 }) satisfies z.ZodType<AppSettings>;
 
-/** What `settings.update` accepts: any subset of fields, and nothing else. */
-export const AppSettingsPatchSchema = AppSettingsSchema.partial().strict();
+/**
+ * What `settings.update` accepts: any subset of fields, and nothing else. The llama-server path
+ * isn't among them: Architect runs that program, so only a file the user picked may become it
+ * (`connections.chooseLlamaServer`).
+ */
+export const AppSettingsPatchSchema = AppSettingsSchema.omit({ llamaServerPath: true })
+  .partial()
+  .strict() satisfies z.ZodType<AppSettingsPatch>;
+
+export const LlamaServerStatusSchema = z.object({
+  source: z.enum(['setting', 'path']).nullable(),
+  path: z.string().optional(),
+  build: z.number().int().nonnegative().optional(),
+  ready: z.boolean(),
+  problem: z.string().optional(),
+  hint: z.string().optional(),
+  minimumBuild: z.number().int().positive(),
+}) satisfies z.ZodType<LlamaServerStatus>;
 
 export const AppInfoSchema = z.object({
   version: z.string(),

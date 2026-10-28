@@ -12,6 +12,7 @@ import {
   type Machine,
   type VersionEvent,
 } from '@architect/shared';
+import type { AdapterServing } from '../local-runtime';
 import type { AdapterDeps, Clock, RuntimeDeps } from '../loop/deps';
 import type { DataPaths } from '../loop/paths';
 import { isoNow } from '../loop/time';
@@ -33,9 +34,14 @@ export interface LibraryContext {
     runtime: Pick<RuntimeDeps, 'createSandbox' | 'toolLoadProblem'>;
     adapters: Pick<AdapterDeps, 'createStudent'>;
   };
+  /** Checks and serves the versions that carry an adapter: llama-server, the base, the file. */
+  adapterRuntime: AdapterServing;
   /** This computer, for the compatibility check; tests stand in other machines. */
   machine?: () => Machine;
 }
+
+/** The lock key for the engine's llama-server; no agent id has a colon. */
+const SERVER_TURN = ':llama-server';
 
 /** Runs one task at a time per key, so two changes to one agent never interleave. */
 export class KeyedLock {
@@ -367,14 +373,18 @@ export class GraduateLibrary {
             },
             {},
           ),
+        adapters: this.ctx.adapterRuntime,
         now: () => this.now(),
       };
-      const checks = await checkInstallation(
-        deps,
-        this.version(graduateId, number),
-        this.installationOf(graduateId),
-        { loadModel: options.loadModel },
-      );
+      const version = this.version(graduateId, number);
+      const check = () =>
+        checkInstallation(deps, version, this.installationOf(graduateId), {
+          loadModel: options.loadModel,
+        });
+      // The engine has one llama-server: checks that load a model through it take turns, or
+      // one would find it busy with another agent's adapter and report a problem that isn't one.
+      const serves = options.loadModel && version.manifest.model.adapter !== undefined;
+      const checks = serves ? await this.lock.run(SERVER_TURN, check) : await check();
       store.installationChecks.put(checks);
     } finally {
       await sandbox.dispose();

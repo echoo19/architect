@@ -65,11 +65,14 @@ async function inspectionOf(ctx: CliContext, path: string): Promise<PackageInspe
     return inspectPackage({ library: ctx.library().library }, path);
   }
   const scratch = await mkdtemp(join(tmpdir(), 'architect-inspect-'));
-  const local = openLocalLibrary({ dataDir: scratch });
+  const local = openLocalLibrary({
+    dataDir: scratch,
+    runtime: { owner: 'cli', settings: () => ({}) },
+  });
   try {
     return await inspectPackage({ library: local.library }, path);
   } finally {
-    local.close();
+    await local.close();
     await rm(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   }
 }

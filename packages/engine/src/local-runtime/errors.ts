@@ -7,6 +7,8 @@ export type LocalRuntimeErrorCode =
   | 'model_not_found'
   /** The model's file is missing, the wrong size, or not a GGUF file llama-server can load. */
   | 'model_unusable'
+  /** The model in Ollama's store is another build than the one its adapters were trained on. */
+  | 'base_mismatch'
   /** An adapter doesn't fit the base model, or llama-server refused it. */
   | 'adapter_unusable'
   /** Ollama kept a model on the GPU after being asked to let it go. */

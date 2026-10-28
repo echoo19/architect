@@ -132,4 +132,10 @@ describe('settings patches', () => {
     expect(AppSettingsPatchSchema.safeParse({ fontSize: 14 }).success).toBe(false);
     expect(AppSettingsPatchSchema.safeParse({ theme: 'sepia' }).success).toBe(false);
   });
+
+  it('never name the program Architect runs: only a file the user picks becomes llama-server', () => {
+    expect(
+      AppSettingsPatchSchema.safeParse({ llamaServerPath: 'C:\\Temp\\anything.exe' }).success,
+    ).toBe(false);
+  });
 });

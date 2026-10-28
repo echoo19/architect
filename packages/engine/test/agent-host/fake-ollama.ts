@@ -39,8 +39,8 @@ const MODEL = 'muse-glimmer:30b';
 
 /**
  * A stand-in for Ollama on 127.0.0.1 that plays scripted turns in order, one per streamed
- * `/api/chat` request, answers `/api/show` like a model with tools and thinking, and lists that
- * one model in `/api/tags`.
+ * `/api/chat` request, answers `/api/show` like a model with tools and thinking, lists that one
+ * model in `/api/tags`, and answers `/api/ps` with nothing loaded.
  */
 export async function startFakeOllama(script: readonly ScriptedTurn[]): Promise<FakeOllama> {
   const requests: { path: string; body: unknown }[] = [];
@@ -60,6 +60,11 @@ export async function startFakeOllama(script: readonly ScriptedTurn[]): Promise<
       sendJson(response, 200, {
         models: [{ name: MODEL, model: MODEL, size: 1024, digest: 'sha256:glimmer' }],
       });
+      return;
+    }
+    // What the adapter runtime asks before llama-server starts: nothing is loaded here.
+    if (path === '/api/ps') {
+      sendJson(response, 200, { models: [] });
       return;
     }
     if (path === '/api/show') {

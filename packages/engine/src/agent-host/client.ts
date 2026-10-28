@@ -1,5 +1,6 @@
 import type { WorkspaceEvent } from '@architect/shared';
 import { fromErrorPayload, ResponseMessageSchema } from '../host/protocol';
+import type { LocalRuntimeSettings } from '../local-runtime';
 import type { BlockedConnection } from './guard/install';
 import type { SendOptions, WorkspaceApi } from './host';
 import {
@@ -18,6 +19,8 @@ export interface AgentHostClient extends WorkspaceApi {
   closeGraduate(graduateId: string): Promise<void>;
   /** Network calls the agent host's guard has blocked, oldest first. */
   blockedConnections(): Promise<BlockedConnection[]>;
+  /** The settings the host's llama-server starts with from now on. */
+  configure(settings: LocalRuntimeSettings): Promise<void>;
   /** Stops listening and fails the requests still waiting for an answer. */
   close(): void;
 }
@@ -109,6 +112,7 @@ export function connectAgentHost(
       ),
     closeGraduate: (graduateId) => request('host.closeGraduate', [graduateId]),
     blockedConnections: () => request('host.blockedConnections', []),
+    configure: (settings) => request('host.configure', [settings]),
     listChats: (graduateId) => request('workspace.listChats', [graduateId]),
     createChat: (graduateId) => request('workspace.createChat', [graduateId]),
     messages: (chatId) => request('workspace.messages', [chatId]),

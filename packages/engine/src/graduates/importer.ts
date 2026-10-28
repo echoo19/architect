@@ -82,9 +82,10 @@ const runtimesList = (names: readonly string[]): string => names.join(' or ');
 
 /**
  * Refuses a package this build can't use, before anything else happens: one that runs on no
- * runtime an installation here can serve (an adapter needs one that loads adapters), one whose
- * harness format is newer than this build reads, or one whose resources don't match its
- * contract. Nothing about it has been parsed beyond its manifest.
+ * runtime this build serves, one whose harness format is newer than this build reads, or one
+ * whose resources don't match its contract. Nothing about it has been parsed beyond its manifest.
+ * Whether this computer can run it (llama-server, the base and its build) is for the
+ * installation checks to say, as needing attention or blocked, never a refusal here.
  */
 function assertUsable(manifest: PackageManifest): void {
   const problems: string[] = [];
@@ -93,12 +94,10 @@ function assertUsable(manifest: PackageManifest): void {
     (BINDABLE_RUNTIMES as readonly string[]).includes(runtime),
   );
   if (manifest.model.adapter !== undefined) {
-    const loaders = bindable.filter((runtime) =>
-      (ADAPTER_RUNTIMES as readonly string[]).includes(runtime),
-    );
-    if (loaders.length === 0) {
+    // llama.cpp serves an adapter on its base from Ollama's store (decision 041).
+    if (!compatible.some((runtime) => (ADAPTER_RUNTIMES as readonly string[]).includes(runtime))) {
       problems.push(
-        `It carries a LoRA adapter, which needs ${runtimesList(ADAPTER_RUNTIMES)}; this version of Architect can't run that yet.`,
+        `It carries a LoRA adapter for ${runtimesList(compatible)}, and this version of Architect serves adapters only with ${runtimesList(ADAPTER_RUNTIMES)}.`,
       );
     }
   } else if (bindable.length === 0) {
@@ -263,11 +262,16 @@ export async function inspectPackage(ctx: ImportContext, path: string): Promise<
   }
 }
 
-/** The local runtime to serve a package's model with, when the user named none. */
+/**
+ * The local runtime to serve a package's model with, when the user named none. A package with an
+ * adapter gets Ollama, whose store holds the base llama.cpp serves the adapter on.
+ */
 function defaultModel(manifest: PackageManifest): ModelBinding {
   const { compatible } = manifest.model.runtime;
   const runtime =
-    compatible.includes('openai_compatible') && !compatible.includes('ollama')
+    manifest.model.adapter === undefined &&
+    compatible.includes('openai_compatible') &&
+    !compatible.includes('ollama')
       ? 'openai_compatible'
       : 'ollama';
   return { runtime, baseUrl: OLLAMA_BASE_URL, model: manifest.model.base.name };

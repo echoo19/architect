@@ -94,6 +94,8 @@ export async function openSession(
   const failures: unknown[] = [];
   const host = createAgentHost({
     store: sessionStore(workspaceStore(local.store, local.paths.root), options.save),
+    // This command's own llama-server, for a version with an adapter; it stops with the host.
+    adapters: local.adapterRuntime,
     ...(ctx.io.sandboxEntryPath === undefined ? {} : { sandboxEntryPath: ctx.io.sandboxEntryPath }),
     onError: (error) => failures.push(error),
   });

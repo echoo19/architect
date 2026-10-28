@@ -3,8 +3,10 @@ import { homedir } from 'node:os';
 import { isAbsolute, join, resolve } from 'node:path';
 import { openLocalLibrary, type LocalLibrary } from '@architect/engine/graduates';
 import { HF_ENDPOINT, HubClient, hubTokenResolver } from '@architect/engine/hub';
+import type { LocalRuntimeSettings } from '@architect/engine/local-runtime';
 import { CliError } from './exit';
 import type { CliIo } from './io';
+import { appRuntimeSettings } from './runtime-settings';
 
 /**
  * The app's data folder, found the way the desktop app finds it: ARCHITECT_USER_DATA when set,
@@ -29,6 +31,7 @@ export class CliContext {
   readonly dataDir: string;
   private opened: LocalLibrary | null = null;
   private hubClient: HubClient | null = null;
+  private runtimeSettings: LocalRuntimeSettings | null = null;
 
   constructor(readonly io: CliIo) {
     this.dataDir = appDataDir(io.env);
@@ -58,6 +61,13 @@ export class CliContext {
       ...(this.io.sandboxEntryPath === undefined
         ? {}
         : { sandboxEntryPath: this.io.sandboxEntryPath }),
+      runtime: {
+        owner: 'cli',
+        settings: () => (this.runtimeSettings ??= appRuntimeSettings(this.dataDir)),
+        ...(this.io.llamaServerCommand === undefined
+          ? {}
+          : { command: this.io.llamaServerCommand }),
+      },
     });
     return this.opened;
   }
@@ -71,8 +81,10 @@ export class CliContext {
     return this.hubClient;
   }
 
-  close(): void {
-    this.opened?.close();
+  /** Stops this command's llama-server, if it started, so none outlives it; closes the store. */
+  async close(): Promise<void> {
+    const opened = this.opened;
     this.opened = null;
+    await opened?.close();
   }
 }

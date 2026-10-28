@@ -1074,16 +1074,19 @@ interface PreparedUpload {
   size: number;
   sha256: string;
   sample: Uint8Array;
-  bytes(): Promise<Uint8Array>;
-  slice(start: number, length: number): Promise<Uint8Array>;
-  stream(start: number, length: number): ReadableStream<Uint8Array> | Uint8Array;
+  bytes(): Promise<Bytes>;
+  slice(start: number, length: number): Promise<Bytes>;
+  stream(start: number, length: number): ReadableStream<Bytes> | Bytes;
 }
+
+/** Bytes in an ArrayBuffer of their own, which every fetch body type accepts. */
+type Bytes = Uint8Array<ArrayBuffer>;
 
 const SAMPLE_BYTES = 512;
 
 async function describeUpload(file: UploadFile): Promise<PreparedUpload> {
   if ('content' in file) {
-    const content = file.content;
+    const content: Bytes = new Uint8Array(file.content);
     return {
       path: file.path,
       size: content.length,
@@ -1095,7 +1098,7 @@ async function describeUpload(file: UploadFile): Promise<PreparedUpload> {
     };
   }
   const { source, size } = file;
-  const slice = async (start: number, length: number): Promise<Uint8Array> => {
+  const slice = async (start: number, length: number): Promise<Bytes> => {
     const handle = await open(source, 'r');
     try {
       const buffer = Buffer.alloc(length);
@@ -1123,6 +1126,6 @@ async function describeUpload(file: UploadFile): Promise<PreparedUpload> {
         ? new Uint8Array()
         : (Readable.toWeb(
             createReadStream(source, { start, end: start + length - 1 }),
-          ) as ReadableStream<Uint8Array>),
+          ) as ReadableStream<Bytes>),
   };
 }

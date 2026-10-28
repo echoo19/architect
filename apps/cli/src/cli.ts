@@ -71,6 +71,6 @@ export async function runCli(argv: readonly string[], io: CliIo): Promise<number
     return exitCodeOf(failure.outcome);
   } finally {
     stop.dispose();
-    ctx.close();
+    await ctx.close();
   }
 }

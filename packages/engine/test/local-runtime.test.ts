@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import {
   chmodSync,
   existsSync,
@@ -18,6 +19,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { encodeGguf, parseGgufHeader, bufferSource, standInLoraSpec } from '../src/gguf';
 import {
   checkServerVersion,
+  describeLlamaServer,
   findFreePort,
   findLlamaServer,
   freeGpuFromOllama,
@@ -167,6 +169,51 @@ describe('finding llama-server', () => {
         hint: expect.stringContaining('build 10358 or newer') as unknown,
       });
     }
+  });
+
+  it('says for Settings where it is, its build, and what to do when it is missing or too old', async () => {
+    const record = join(dir, 'status.jsonl');
+    await expect(describeLlamaServer({ command: fakeCommand(record) })).resolves.toEqual({
+      source: 'setting',
+      path: process.execPath,
+      build: 10472,
+      ready: true,
+      minimumBuild: 10358,
+    });
+    await expect(
+      describeLlamaServer({ command: fakeCommand(record, '--fake-build', '9000') }),
+    ).resolves.toEqual({
+      source: 'setting',
+      path: process.execPath,
+      build: 9000,
+      ready: false,
+      problem: 'llama-server is build 9000, older than 10358, the first that runs Muse Glimmer.',
+      hint: 'Update llama.cpp to build 10358 or newer.',
+      minimumBuild: 10358,
+    });
+    await expect(describeLlamaServer({ env: {} })).resolves.toEqual({
+      source: null,
+      ready: false,
+      problem: "llama-server isn't installed, or isn't on PATH.",
+      hint: 'Install llama.cpp (build 10358 or newer), then choose its llama-server in Settings or add its folder to PATH.',
+      minimumBuild: 10358,
+    });
+    await expect(
+      describeLlamaServer({ configured: join(dir, 'nowhere'), env: {} }),
+    ).resolves.toMatchObject({
+      source: null,
+      ready: false,
+      problem: expect.stringContaining("The llama-server set in Settings isn't at") as unknown,
+    });
+    // A file that isn't a program that runs is found, and said not to work.
+    const file = program(join(dir, 'broken'));
+    await expect(describeLlamaServer({ configured: file, env: {} })).resolves.toMatchObject({
+      source: 'setting',
+      path: file,
+      ready: false,
+      problem: expect.any(String) as unknown,
+    });
+    expect(starts(record)).toEqual([]);
   });
 
   it('reads the build and refuses one too old for Glimmer', async () => {
@@ -645,8 +692,157 @@ describe('serving a graduate with its adapter', () => {
       { key: 'candidate', path: candidate },
       { key: 'incumbent', path: incumbent },
     ];
-    return { runtime, record, adapters, freed, base };
+    const digest = `sha256:${createHash('sha256').update(baseBytes).digest('hex')}`;
+    return { runtime, record, adapters, freed, base, digest };
   }
+
+  const sha256Of = (path: string) => createHash('sha256').update(readFileSync(path)).digest('hex');
+
+  it('refuses a base of another build and an adapter file that changed, before anything starts', async () => {
+    const { runtime, record, adapters, digest } = setUp();
+    const [candidate] = adapters;
+    if (!candidate) throw new Error('No candidate.');
+    const sha256 = sha256Of(candidate.path);
+    const serve = (overrides: { baseDigest: string; sha256: string }) =>
+      runtime.access({
+        model: 'muse-glimmer:30b-iq2',
+        adapters: [{ ...candidate, sha256: overrides.sha256 }],
+        scales: { candidate: 1 },
+        baseDigest: overrides.baseDigest,
+      });
+    const otherBuild = `sha256:${'b2'.repeat(32)}`;
+
+    const wrongBase = await serve({ baseDigest: otherBuild, sha256 })
+      .acquire()
+      .catch((error: unknown) => error);
+    // A student sees an adapter error, which stops an evaluation and says how to recover.
+    expect(wrongBase).toBeInstanceOf(AdapterError);
+    expect(wrongBase).toMatchObject({
+      code: 'bad_request',
+      cause: {
+        code: 'base_mismatch',
+        message: `muse-glimmer:30b-iq2 on this computer is another build (weights ${digest.slice(0, 19)}) than the one its adapter was trained on (sha256:b2b2b2b2b2b2).`,
+        hint: `It needs the exact base it was trained on, the build whose weights are ${otherBuild}: add that build to Ollama under a name of its own, then set this agent's model to that name.`,
+      },
+    });
+    const changed = await serve({ baseDigest: digest, sha256: 'c3'.repeat(32) })
+      .acquire()
+      .catch((error: unknown) => error);
+    expect(changed).toMatchObject({
+      code: 'bad_request',
+      cause: {
+        code: 'adapter_unusable',
+        message: `The adapter for candidate isn't the file it was installed with: its sha256 begins ${sha256.slice(0, 12)}, not c3c3c3c3c3c3.`,
+      },
+    });
+    expect(starts(record)).toEqual([]);
+
+    // The build it was trained on, with the file as installed, starts.
+    (await serve({ baseDigest: digest, sha256 }).acquire()).release();
+    expect(starts(record)).toHaveLength(1);
+    // A file changed after it was served is caught at the next start.
+    await runtime.stop();
+    writeFileSync(candidate.path, Buffer.concat([readFileSync(candidate.path), Buffer.from([0])]));
+    await expect(serve({ baseDigest: digest, sha256 }).acquire()).rejects.toMatchObject({
+      cause: { code: 'adapter_unusable' },
+    });
+    expect(starts(record)).toHaveLength(1);
+  });
+
+  it('restarts for an adapter file replaced at the same path, and runs with the context asked for', async () => {
+    const { runtime, record, adapters, digest, base } = setUp();
+    const [candidate] = adapters;
+    if (!candidate) throw new Error('No candidate.');
+    const named = () =>
+      runtime.access({
+        model: 'muse-glimmer:30b-iq2',
+        adapters: [{ ...candidate, sha256: sha256Of(candidate.path) }],
+        scales: { candidate: 1 },
+        baseDigest: digest,
+        contextLength: 32_768,
+      });
+    (await named().acquire()).release();
+    // Another adapter where the first one was, as when an agent is removed and imported again:
+    // the running server loaded the old file, so it must not answer for the new one.
+    const replace = (options: { seed?: number; rank?: number }) =>
+      writeFileSync(
+        candidate.path,
+        encodeGguf(standInLoraSpec(base, { modules: ['attn_q'], effect: 'perturb', ...options })),
+      );
+    replace({ seed: 9 });
+    (await named().acquire()).release();
+    expect(starts(record)).toHaveLength(2);
+    expect(starts(record).map((entry) => flag(entry.argv ?? [], '--ctx-size'))).toEqual([
+      '32768',
+      '32768',
+    ]);
+    await expect(named().describe()).resolves.toMatchObject({ contextLength: 32_768 });
+
+    // Without a sha256, the file's size and time tell the two apart.
+    const unnamed = runtime.access({
+      model: 'muse-glimmer:30b-iq2',
+      adapters: [candidate],
+      scales: { candidate: 1 },
+    });
+    (await unnamed.acquire()).release();
+    replace({ rank: 8 });
+    (await unnamed.acquire()).release();
+    expect(starts(record)).toHaveLength(4);
+    expect(flag(starts(record).at(-1)?.argv ?? [], '--ctx-size')).toBe('16384');
+  });
+
+  it('finds every problem at once, and loads nothing to find them', async () => {
+    const record = join(dir, 'record.jsonl');
+    const runtime = new LocalAdapterRuntime({
+      runtimeDir: join(dir, 'runtime'),
+      ollamaModelsDir: () => join(dir, 'no-models'),
+      env: {},
+      freeGpu: async () => undefined,
+    });
+    runtimes.push(runtime);
+    const survey = await runtime.survey({
+      model: 'muse-glimmer:30b-iq2',
+      adapters: [{ key: 'v1', path: join(dir, 'missing.gguf'), sha256: 'd4'.repeat(32) }],
+      scales: { v1: 1 },
+      baseDigest: `sha256:${'e5'.repeat(32)}`,
+    });
+    expect(survey.server).toBeNull();
+    expect(survey.base).toBeNull();
+    expect(survey.problems.map((problem) => problem.code)).toEqual([
+      'binary_not_found',
+      'model_not_found',
+      'adapter_unusable',
+    ]);
+    expect(starts(record)).toEqual([]);
+  });
+
+  it('reads the build of a stand-in like any llama-server, and refuses one too old', async () => {
+    const { adapters, digest } = setUp();
+    const record = join(dir, 'old.jsonl');
+    const runtime = new LocalAdapterRuntime({
+      runtimeDir: join(dir, 'old-runtime'),
+      ollamaModelsDir: () => join(dir, 'models'),
+      command: fakeCommand(record, '--fake-build', '9000'),
+      freeGpu: async () => undefined,
+    });
+    runtimes.push(runtime);
+    const survey = await runtime.survey({
+      model: 'muse-glimmer:30b-iq2',
+      adapters,
+      scales: {},
+      baseDigest: digest,
+    });
+    expect(survey.server).toBeNull();
+    expect(survey.base?.digest).toBe(digest);
+    expect(survey.problems).toMatchObject([
+      {
+        code: 'binary_unusable',
+        message: 'llama-server is build 9000, older than 10358, the first that runs Muse Glimmer.',
+        hint: 'Update llama.cpp to build 10358 or newer.',
+      },
+    ]);
+    expect(starts(record)).toEqual([]);
+  });
 
   it('shares one server between students and sets each one scale per request', async () => {
     const { runtime, record, adapters, freed } = setUp();
@@ -776,7 +972,7 @@ describe('serving a graduate with its adapter', () => {
       runtime.access({ model: 'muse-glimmer:30b-iq2', adapters, scales: {} }).check(),
     ).resolves.toMatchObject({
       ok: true,
-      detail: 'llama-server can run muse-glimmer:30b-iq2 with 2 adapters.',
+      detail: 'llama-server build 10472 can run muse-glimmer:30b-iq2 with 2 adapters.',
     });
     await expect(
       runtime.access({ model: 'muse-glimmer:70b', adapters: [], scales: {} }).check(),
