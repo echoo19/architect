@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type {
@@ -103,6 +103,18 @@ async function ask(
 
 const invoicesFile = (world: World) =>
   readFile(join(world.graduate.workspaceDataDir, 'invoices.csv'), 'utf8');
+
+/**
+ * Puts a folder where one of the graduate's data files is, so saving to it fails as it would
+ * when another program holds the file. `release` takes the folder away again.
+ */
+async function holdFile(world: World, name: string): Promise<{ release: () => Promise<void> }> {
+  const path = join(world.graduate.workspaceDataDir, name);
+  await rm(path, { force: true });
+  await mkdir(path);
+  await writeFile(join(path, 'in-use.txt'), 'another program has this open\n');
+  return { release: () => rm(path, { recursive: true, force: true }) };
+}
 
 const NEW_INVOICE = 'INV-4,C-2,5000,2026-12-05,false';
 
@@ -389,6 +401,72 @@ describe('writes', () => {
     const saved = await invoicesFile(world);
     expect(saved).toContain('INV-4,');
     expect(saved).toContain('INV-5,');
+  });
+
+  it('shows an allowed change that could not be saved, and saves it when the user tries again', async () => {
+    const world = await setup([addInvoice(), { text: 'Added INV-4.' }]);
+    const chat = await world.host.createChat(world.graduate.id);
+    const asked = pendingApproval(world, chat.id);
+    const failed = nextReply(world, chat.id, (message) => approvalOf(message)?.error !== undefined);
+    const done = settled(world, chat.id);
+    await world.host.send(chat.id, 'Add an invoice for Ruiz, Ben: $50 due Dec 5.');
+    const approval = await asked;
+    const unsaved = await holdFile(world, 'invoices.csv');
+    await world.host.decide(approval.changeId, 'approve');
+
+    // Allowed, but not saved: it waits again, with the reason, and never shows as approved.
+    const stuck = approvalOf(await failed);
+    expect(stuck).toMatchObject({ status: 'pending', changeId: approval.changeId });
+    expect(stuck?.error).toContain("The change couldn't be saved, so nothing was written");
+    expect((await world.host.listChats(world.graduate.id))[0]?.waiting).toBe(true);
+
+    await unsaved.release();
+    await world.host.decide(approval.changeId, 'approve');
+    const reply = await done;
+    expect(approvalOf(reply)).toMatchObject({ status: 'approved' });
+    expect(approvalOf(reply)).not.toHaveProperty('error');
+    expect(reply.steps).toMatchObject([{ name: 'append', meta: '1 row added', status: 'done' }]);
+    expect(await invoicesFile(world)).toContain(NEW_INVOICE);
+    expect((await world.host.listChats(world.graduate.id))[0]?.waiting).toBe(false);
+  });
+
+  it('shows a change as failed when the user stops trying to save it, and tells the agent', async () => {
+    const world = await setup([addInvoice(), { text: "I couldn't save the invoice." }]);
+    const chat = await world.host.createChat(world.graduate.id);
+    const asked = pendingApproval(world, chat.id);
+    const failed = nextReply(world, chat.id, (message) => approvalOf(message)?.error !== undefined);
+    const done = settled(world, chat.id);
+    await world.host.send(chat.id, 'Add an invoice for Ruiz, Ben.');
+    const approval = await asked;
+    await holdFile(world, 'invoices.csv');
+    await world.host.decide(approval.changeId, 'approve');
+    await failed;
+    await world.host.decide(approval.changeId, 'deny');
+
+    const reply = await done;
+    expect(approvalOf(reply)).toMatchObject({
+      status: 'failed',
+      error: expect.stringContaining("couldn't be saved"),
+    });
+    expect(reply.steps).toMatchObject([{ name: 'append', status: 'error' }]);
+    const toolMessage = world.model.chats()[1]?.messages.at(-1);
+    expect(toolMessage?.content).toContain("The change couldn't be saved, so nothing was written");
+  });
+
+  it('shows a change it may make without asking as failed when nobody can try it again', async () => {
+    const world = await setup([addInvoice(), { text: "I couldn't save the invoice." }], {
+      writes: 'allow',
+    });
+    await holdFile(world, 'invoices.csv');
+    const chat = await world.host.createChat(world.graduate.id);
+    const done = settled(world, chat.id);
+    await world.host.send(chat.id, 'Add an invoice for Ruiz, Ben.', { approvals: 'fail' });
+    const reply = await done;
+    expect(approvalOf(reply)).toMatchObject({
+      status: 'failed',
+      error: expect.stringContaining("couldn't be saved"),
+    });
+    expect(reply.steps).toMatchObject([{ name: 'append', status: 'error' }]);
   });
 
   it("fails writes with a reason the agent can pass on when the job doesn't allow them", async () => {

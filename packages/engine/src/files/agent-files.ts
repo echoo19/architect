@@ -15,7 +15,7 @@ import {
 } from '@architect/shared';
 import { writeFileAtomic } from '../data/atomic-write';
 import { parseCsv } from '../data/csv';
-import { DataError } from '../data/errors';
+import { DataError, SaveError } from '../data/errors';
 import type { FileInfo, TableSnapshot } from '../data/types';
 import type { SandboxData } from '../sandbox/types';
 import { filePatch, patchStats, rowDiff, type FilePatch } from './diff';
@@ -372,7 +372,7 @@ class FolderFiles implements AgentFiles {
       state.version = previous.version;
       if (!current) this.files.delete(state.path);
       const reason = error instanceof Error ? error.message : String(error);
-      throw new DataError(`The change couldn't be saved, so nothing was written: ${reason}`);
+      throw new SaveError(`The change couldn't be saved, so nothing was written: ${reason}`);
     }
   }
 
