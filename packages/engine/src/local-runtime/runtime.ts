@@ -190,11 +190,10 @@ export class LocalAdapterRuntime {
       acquire: async (signal) => {
         try {
           const { launch } = await this.prepare(request);
-          const running = await this.server.ensure(launch, signal);
-          const release = this.server.hold();
+          const { server, release } = await this.server.acquire(launch, signal);
           return {
-            url: running.url,
-            apiKey: running.apiKey,
+            url: server.url,
+            apiKey: server.apiKey,
             lora: lora.map((entry) => ({ ...entry })),
             release,
           };
@@ -204,7 +203,8 @@ export class LocalAdapterRuntime {
       },
       check: () => this.check(request),
       describe: () => this.describe(request),
-      stop: () => this.server.stop(),
+      // Other students may share the server: it stops once none of them has a request in flight.
+      stop: () => this.server.stopWhenIdle(),
     };
   }
 

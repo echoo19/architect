@@ -1,11 +1,19 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { createWriteStream, mkdirSync, readdirSync, rmSync, type WriteStream } from 'node:fs';
+import {
+  createWriteStream,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  type WriteStream,
+} from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { AdapterError } from '@architect/shared';
 import { z } from 'zod';
 import type { ServerCommand } from './binary';
+import { writeFileAtomic } from '../data/atomic-write';
 import { LocalRuntimeError } from './errors';
 import { findFreePort } from './gpu';
 
@@ -148,10 +156,17 @@ export class LlamaServer {
   private child: ChildProcess | null = null;
   private running: RunningServer | null = null;
   private fingerprint: string | null = null;
-  private starting: { fingerprint: string; promise: Promise<RunningServer> } | null = null;
+  private starting: {
+    fingerprint: string;
+    promise: Promise<RunningServer>;
+    abort: AbortController;
+  } | null = null;
   private stopping: Promise<void> | null = null;
   private state: ServerState = 'stopped';
+  /** Requests in flight; the server neither idles out nor restarts under one. */
   private holds = 0;
+  /** Stop as soon as the last request in flight ends, not after an idle spell. */
+  private stopWhenReleased = false;
   private idleTimer: NodeJS.Timeout | null = null;
   private lines: string[] = [];
   private log: WriteStream | null = null;
@@ -161,6 +176,8 @@ export class LlamaServer {
   private startedAt: string | null = null;
   private reaped = false;
   private exitHook: (() => void) | null = null;
+  /** The key this manager last gave a server; its files are removed only while they hold it. */
+  private ownKey: string | null = null;
 
   constructor(private readonly options: LlamaServerOptions) {
     this.idleStopMs = options.idleStopMs ?? 10 * 60_000;
@@ -169,6 +186,10 @@ export class LlamaServer {
 
   private get recordFile(): string {
     return join(this.options.runtimeDir, 'server.json');
+  }
+
+  private get keyFile(): string {
+    return join(this.options.runtimeDir, 'server.key');
   }
 
   status(): ServerStatus {
@@ -190,21 +211,117 @@ export class LlamaServer {
    * The running server for this launch: started if none runs, reused if one runs with the same
    * launch, restarted if one runs with another launch and no request is in flight.
    */
-  async ensure(launch: LlamaServerLaunch, signal?: AbortSignal): Promise<RunningServer> {
+  ensure(launch: LlamaServerLaunch, signal?: AbortSignal): Promise<RunningServer> {
+    return this.obtain(launch, signal, false);
+  }
+
+  /**
+   * The running server for this launch, held for one request: it neither idles out nor restarts
+   * for another launch until `release` is called. The hold is taken in the same step that hands
+   * the server over, so nothing can stop it in between.
+   */
+  async acquire(
+    launch: LlamaServerLaunch,
+    signal?: AbortSignal,
+  ): Promise<{ server: RunningServer; release: () => void }> {
+    const server = await this.obtain(launch, signal, true);
+    return { server, release: this.releaser() };
+  }
+
+  /** Holds the running server, as `acquire` does, for a caller that already has it. */
+  hold(): () => void {
+    if (!this.running || this.state !== 'ready') {
+      throw new LocalRuntimeError(
+        'start_failed',
+        'The local model server is not running.',
+        'Try again; the next request starts it.',
+      );
+    }
+    this.holds += 1;
+    this.clearIdle();
+    return this.releaser();
+  }
+
+  /** Stops the server now, which frees the GPU. A start under way is called off. */
+  stop(): Promise<void> {
+    if (this.stopping) return this.stopping;
+    this.clearIdle();
+    this.stopWhenReleased = false;
+    const starting = this.starting;
+    if (!starting && !this.child) return Promise.resolve();
+    this.stopping = (async () => {
+      try {
+        if (starting) {
+          starting.abort.abort();
+          await starting.promise.catch(() => undefined);
+        }
+        const child = this.child;
+        if (child) {
+          this.state = 'stopping';
+          await terminate(child);
+        }
+      } finally {
+        this.cleanUp();
+        this.stopping = null;
+      }
+    })();
+    return this.stopping;
+  }
+
+  /** Stops the server once no request is in flight: now, if none is. */
+  stopWhenIdle(): Promise<void> {
+    if (this.holds === 0) return this.stop();
+    this.stopWhenReleased = true;
+    return Promise.resolve();
+  }
+
+  private releaser(): () => void {
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.holds -= 1;
+      if (this.holds > 0) return;
+      if (!this.stopWhenReleased) {
+        this.armIdle();
+        return;
+      }
+      this.stop().catch((error: unknown) => {
+        this.lastError = `Stopping the server failed: ${String(error)}`;
+      });
+    };
+  }
+
+  private async obtain(
+    launch: LlamaServerLaunch,
+    signal: AbortSignal | undefined,
+    hold: boolean,
+  ): Promise<RunningServer> {
     const fingerprint = fingerprintOf(launch);
     for (;;) {
+      if (signal?.aborted) throw aborted();
       if (this.stopping) {
         await this.stopping;
         continue;
       }
-      if (this.starting) {
-        if (this.starting.fingerprint === fingerprint) return this.starting.promise;
-        await this.starting.promise.catch(() => undefined);
+      const starting = this.starting;
+      if (starting) {
+        try {
+          await settleOrAbort(starting.promise, signal);
+        } catch (error) {
+          // A failed start of this launch is this caller's failure too; another launch's isn't.
+          if (starting.fingerprint === fingerprint || signal?.aborted) throw error;
+        }
         continue;
       }
       if (this.running && this.state === 'ready') {
         if (this.fingerprint === fingerprint) {
-          if (this.holds === 0) this.armIdle();
+          if (hold) {
+            this.holds += 1;
+            this.clearIdle();
+          } else if (this.holds === 0) {
+            this.armIdle();
+          }
           return this.running;
         }
         if (this.holds > 0) {
@@ -217,52 +334,29 @@ export class LlamaServer {
         await this.stop();
         continue;
       }
-      const promise = this.start(launch, fingerprint, signal);
-      this.starting = { fingerprint, promise };
-      try {
-        const running = await promise;
-        if (this.holds === 0) this.armIdle();
-        return running;
-      } finally {
-        if (this.starting?.promise === promise) this.starting = null;
-      }
+      this.begin(launch, fingerprint);
     }
   }
 
-  /** Keeps the server from stopping for idleness until the returned function is called. */
-  hold(): () => void {
-    if (!this.running) throw new Error('The local model server is not running.');
-    this.holds += 1;
-    this.clearIdle();
-    let released = false;
-    return () => {
-      if (released) return;
-      released = true;
-      this.holds -= 1;
-      if (this.holds === 0) this.armIdle();
-    };
-  }
-
-  /** Stops the server, which frees the GPU. */
-  stop(): Promise<void> {
-    if (this.stopping) return this.stopping;
-    this.clearIdle();
-    const child = this.child;
-    if (!child) return Promise.resolve();
-    this.state = 'stopping';
-    this.stopping = (async () => {
-      try {
-        child.kill('SIGTERM');
-        if (!(await exitWithin(child, 5000))) {
-          child.kill('SIGKILL');
-          await exitWithin(child, 5000);
-        }
-      } finally {
-        this.cleanUp();
-        this.stopping = null;
-      }
-    })();
-    return this.stopping;
+  /**
+   * Starts the server in the background. Every caller waits for the start the same way, and none
+   * of their signals can call it off for the others: only `stop` can.
+   */
+  private begin(launch: LlamaServerLaunch, fingerprint: string): void {
+    const abort = new AbortController();
+    const promise = this.start(launch, fingerprint, abort.signal);
+    const entry = { fingerprint, promise, abort };
+    this.starting = entry;
+    void promise
+      .then(
+        () => {
+          if (this.holds === 0) this.armIdle();
+        },
+        () => undefined,
+      )
+      .finally(() => {
+        if (this.starting === entry) this.starting = null;
+      });
   }
 
   private armIdle(): void {
@@ -282,6 +376,7 @@ export class LlamaServer {
   }
 
   private cleanUp(): void {
+    this.clearIdle();
     if (this.exitHook) process.off('exit', this.exitHook);
     this.exitHook = null;
     this.child = null;
@@ -292,7 +387,39 @@ export class LlamaServer {
     this.state = 'stopped';
     this.log?.end();
     this.log = null;
-    rmSync(this.recordFile, { force: true });
+    this.removeOwnFiles();
+  }
+
+  /**
+   * Removes the key and process record this manager wrote, and only those: after a restart they
+   * may already belong to the next process.
+   */
+  private removeOwnFiles(): void {
+    const key = this.ownKey;
+    this.ownKey = null;
+    if (key === null) return;
+    const read = (file: string) => {
+      try {
+        return readFileSync(file, 'utf8');
+      } catch {
+        return null;
+      }
+    };
+    if (read(this.keyFile)?.trim() === key) rmSync(this.keyFile, { force: true });
+    let saved: unknown = null;
+    try {
+      saved = JSON.parse(read(this.recordFile) ?? 'null');
+    } catch {
+      // Not a record this manager wrote.
+    }
+    const record = RecordSchema.safeParse(saved);
+    if (record.success && record.data.apiKey === key) rmSync(this.recordFile, { force: true });
+  }
+
+  /** Stops a child that never became the running server, and forgets it. */
+  private async discard(child: ChildProcess): Promise<void> {
+    await terminate(child);
+    if (this.child === child) this.cleanUp();
   }
 
   private record(line: string): void {
@@ -302,7 +429,10 @@ export class LlamaServer {
     this.log?.write(`${line}\n`);
   }
 
-  /** A server a crashed app left running holds the GPU; stop it if it answers to its saved key. */
+  /**
+   * A server a crashed app left running holds the GPU. If it answers to the key this app saved
+   * for it, it is ours: stop it and wait until it has gone.
+   */
   private async reapOrphan(): Promise<void> {
     let saved: z.infer<typeof RecordSchema>;
     try {
@@ -315,7 +445,13 @@ export class LlamaServer {
         headers: { authorization: `Bearer ${saved.apiKey}` },
         signal: AbortSignal.timeout(2000),
       });
-      if (response.ok) process.kill(saved.pid);
+      if (response.ok) {
+        process.kill(saved.pid);
+        const deadline = Date.now() + 10_000;
+        while (isAlive(saved.pid) && Date.now() < deadline) {
+          await new Promise((done) => setTimeout(done, 100));
+        }
+      }
     } catch {
       // Nothing answers there with that key, so nothing of ours is left to stop.
     }
@@ -325,8 +461,9 @@ export class LlamaServer {
   private async start(
     launch: LlamaServerLaunch,
     fingerprint: string,
-    signal?: AbortSignal,
+    signal: AbortSignal,
   ): Promise<RunningServer> {
+    this.clearIdle();
     this.state = 'starting';
     this.lastError = null;
     try {
@@ -345,12 +482,11 @@ export class LlamaServer {
         await this.reapOrphan();
       }
       await this.options.beforeStart?.(signal);
-      const apiKey = randomBytes(24).toString('hex');
-      const keyFile = join(this.options.runtimeDir, 'server.key');
-      await writeFile(keyFile, `${apiKey}\n`, { mode: 0o600 });
+      if (signal.aborted) throw aborted();
       for (let attempt = 1; ; attempt++) {
+        this.state = 'starting';
         try {
-          const running = await this.launchOnce(launch, apiKey, keyFile, signal);
+          const running = await this.launchOnce(launch, signal);
           this.fingerprint = fingerprint;
           return running;
         } catch (error) {
@@ -359,8 +495,9 @@ export class LlamaServer {
       }
     } catch (error) {
       this.lastError = error instanceof Error ? error.message : String(error);
-      if (this.child) await this.stop();
-      this.state = 'stopped';
+      const child = this.child;
+      if (child) await terminate(child);
+      this.cleanUp();
       throw error instanceof PortTaken
         ? new LocalRuntimeError(
             'start_failed',
@@ -387,15 +524,14 @@ export class LlamaServer {
     return file;
   }
 
-  private async launchOnce(
-    launch: LlamaServerLaunch,
-    apiKey: string,
-    keyFile: string,
-    signal?: AbortSignal,
-  ): Promise<RunningServer> {
+  private async launchOnce(launch: LlamaServerLaunch, signal: AbortSignal): Promise<RunningServer> {
     const port = await findFreePort();
+    // A fresh key for every process, kept in a file so it never shows in a process list.
+    const apiKey = randomBytes(24).toString('hex');
+    this.ownKey = apiKey;
+    await writeFile(this.keyFile, `${apiKey}\n`, { mode: 0o600 });
     const sleepSeconds = Math.ceil(this.idleStopMs / 1000) + 60;
-    const args = [...launch.command.args, ...serverArgs(launch, port, keyFile, sleepSeconds)];
+    const args = [...launch.command.args, ...serverArgs(launch, port, this.keyFile, sleepSeconds)];
     this.openLog();
     this.record(`# ${new Date().toISOString()} ${launch.command.file} ${args.join(' ')}`);
 
@@ -426,7 +562,7 @@ export class LlamaServer {
       );
     });
     if (child.pid !== undefined) {
-      await writeFile(
+      writeFileAtomic(
         this.recordFile,
         JSON.stringify({ pid: child.pid, port, apiKey, startedAt: this.startedAt }),
       );
@@ -435,8 +571,7 @@ export class LlamaServer {
     const url = `http://127.0.0.1:${port}`;
     const outcome = await this.waitUntilReady(url, exited, signal);
     if (outcome.kind !== 'ready') {
-      if (outcome.kind === 'exited') this.cleanUp();
-      else await this.stop();
+      await this.discard(child);
       throw this.startFailure(outcome);
     }
 
@@ -445,13 +580,17 @@ export class LlamaServer {
       (path, id) => !adapters.some((entry) => entry.id === id && samePath(entry.path, path)),
     );
     if (missing.length > 0 || adapters.length !== launch.adapters.length) {
-      await this.stop();
+      await this.discard(child);
       throw new LocalRuntimeError(
         'adapter_unusable',
         'llama-server did not load the adapters it was given.',
         'Check the adapter files, then try again.',
         { log: this.recentLog().slice(-8) },
       );
+    }
+    if (signal.aborted) {
+      await this.discard(child);
+      throw aborted();
     }
 
     this.running = { url, apiKey, adapters: [...launch.adapters] };
@@ -513,7 +652,7 @@ export class LlamaServer {
       .filter((line) => !line.startsWith('# '))
       .join('\n');
     if (outcome.kind === 'aborted') {
-      return new AdapterError('aborted', 'Starting the local model server was stopped.');
+      return aborted();
     }
     if (outcome.kind === 'timeout') {
       return new LocalRuntimeError(
@@ -565,5 +704,49 @@ function exitWithin(child: ChildProcess, ms: number): Promise<boolean> {
       clearTimeout(timer);
       done(true);
     });
+  });
+}
+
+/** Ends a child process, politely and then for good. One that never started has nothing to end. */
+async function terminate(child: ChildProcess): Promise<void> {
+  if (child.pid === undefined || child.exitCode !== null || child.signalCode !== null) return;
+  child.kill('SIGTERM');
+  if (!(await exitWithin(child, 5000))) {
+    child.kill('SIGKILL');
+    await exitWithin(child, 5000);
+  }
+}
+
+function isAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'EPERM';
+  }
+}
+
+const aborted = () => new AdapterError('aborted', 'Starting the local model server was stopped.');
+
+/** Waits for a promise, or rejects as soon as the signal aborts; the promise itself runs on. */
+function settleOrAbort<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  return new Promise((resolve, reject) => {
+    const onAbort = () => reject(aborted());
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      },
+    );
   });
 }

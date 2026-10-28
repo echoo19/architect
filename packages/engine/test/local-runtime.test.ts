@@ -457,6 +457,68 @@ describe('the llama-server process', () => {
     expect(starts(record)).toHaveLength(2);
   });
 
+  it('holds the server in the same step that hands it over, so another launch waits its turn', async () => {
+    const record = join(dir, 'record.jsonl');
+    const llama = server();
+    const [first, second] = await Promise.allSettled([
+      llama.acquire(launchFor(record, { threads: 3 })),
+      llama.acquire(launchFor(record, { threads: 6 })),
+    ]);
+    expect(first.status).toBe('fulfilled');
+    expect(second).toMatchObject({ status: 'rejected', reason: { code: 'busy' } });
+    const lease = first.status === 'fulfilled' ? first.value : null;
+    expect(llama.status().state).toBe('ready');
+    const answer = await fetch(`${lease?.server.url}/lora-adapters`, {
+      headers: { authorization: `Bearer ${lease?.server.apiKey}` },
+    });
+    expect(answer.status).toBe(200);
+    lease?.release();
+    expect(starts(record)).toHaveLength(1);
+  });
+
+  it('forgets the idle timer of a server that died, so it never stops the next one', async () => {
+    const record = join(dir, 'record.jsonl');
+    const llama = server({ idleStopMs: 1500 });
+    const armedAt = Date.now();
+    await llama.ensure(launchFor(record));
+    process.kill(starts(record)[0]?.pid ?? 0);
+    await until(() => llama.status().state === 'stopped');
+    // The second server is held, so only a timer left over from the first could stop it.
+    const { release } = await llama.acquire(launchFor(record));
+    await pause(Math.max(0, armedAt + 1800 - Date.now()));
+    expect(llama.status().state).toBe('ready');
+    release();
+  });
+
+  it('calls off a start under way when asked to stop', async () => {
+    const record = join(dir, 'record.jsonl');
+    const llama = server({
+      beforeStart: async () => {
+        await pause(300);
+      },
+    });
+    const starting = llama.ensure(launchFor(record));
+    await pause(50);
+    await llama.stop();
+    await expect(starting).rejects.toMatchObject({ code: 'aborted' });
+    expect(llama.status().state).toBe('stopped');
+    expect(starts(record)).toEqual([]);
+  });
+
+  it("lets one caller give up waiting without calling off another's start", async () => {
+    const record = join(dir, 'record.jsonl');
+    const llama = server();
+    const impatient = new AbortController();
+    const first = llama.ensure(launchFor(record), impatient.signal);
+    const second = llama.ensure(launchFor(record));
+    impatient.abort();
+    await expect(first).rejects.toMatchObject({ code: 'aborted' });
+    await expect(second).resolves.toMatchObject({
+      url: expect.stringMatching(/^http:\/\/127\.0\.0\.1:\d+$/) as unknown,
+    });
+    expect(llama.status().state).toBe('ready');
+  });
+
   it('refuses an adapter path llama-server would split at a comma', async () => {
     const llama = server();
     const record = join(dir, 'record.jsonl');
@@ -739,5 +801,20 @@ describe('serving a graduate with its adapter', () => {
       '3',
       undefined,
     ]);
+  });
+
+  it("stops the shared server when one student lets go only once the others' requests end", async () => {
+    const { runtime, adapters } = setUp();
+    const candidate = runtime.access({
+      model: 'muse-glimmer:30b-iq2',
+      adapters,
+      scales: { candidate: 1 },
+    });
+    const base = runtime.access({ model: 'muse-glimmer:30b-iq2', adapters, scales: {} });
+    const lease = await base.acquire();
+    await candidate.stop();
+    expect(runtime.status().state).toBe('ready');
+    lease.release();
+    await until(() => runtime.status().state === 'stopped');
   });
 });

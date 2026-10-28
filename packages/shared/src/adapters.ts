@@ -62,7 +62,10 @@ export interface LlamaServerAccess {
   /** Checks what loading needs: the server program, the model's file and every adapter. Loads nothing. */
   check(): Promise<ConnectionTest>;
   describe(): Promise<StudentModelInfo>;
-  /** Stops the server, which frees the GPU. */
+  /**
+   * Stops the server, which frees the GPU: now if no student has a request in flight on it,
+   * otherwise as soon as the last one ends.
+   */
   stop(): Promise<void>;
 }
 
