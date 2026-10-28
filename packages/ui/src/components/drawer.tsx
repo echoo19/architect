@@ -65,7 +65,9 @@ export function DrawerContent({
             </IconButton>
           )}
           <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1.5">
-            <RadixDialog.Title className="m-0 break-words text-md font-medium text-pretty">
+            {/* Three lines at most: a long title, such as a task's whole request, keeps the
+                drawer's body in view. Its full text is still the dialog's accessible name. */}
+            <RadixDialog.Title className="m-0 line-clamp-3 break-words text-md font-medium text-pretty">
               {title}
             </RadixDialog.Title>
             {subtitle && <span className="text-sm text-fg-muted text-pretty">{subtitle}</span>}

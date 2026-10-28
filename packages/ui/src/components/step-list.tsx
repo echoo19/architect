@@ -26,6 +26,33 @@ function useStepList(): StepListState {
   return state;
 }
 
+/** The nearest ancestor that scrolls vertically, such as a drawer's body. */
+function scroller(element: HTMLElement): HTMLElement | null {
+  for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+    const { overflowY } = getComputedStyle(parent);
+    if (overflowY === 'auto' || overflowY === 'scroll') return parent;
+  }
+  return null;
+}
+
+/**
+ * Brings a step into its scroller's view: to the middle, or just into view. Only the scroller
+ * moves, never a container that clips without scrolling, such as a drawer's frame.
+ */
+function reveal(element: HTMLElement, middle: boolean): void {
+  const box = scroller(element);
+  if (!box) return;
+  const view = box.getBoundingClientRect();
+  const item = element.getBoundingClientRect();
+  if (middle) {
+    box.scrollTop += item.top + item.height / 2 - (view.top + view.height / 2);
+  } else if (item.top < view.top) {
+    box.scrollTop += item.top - view.top;
+  } else if (item.bottom > view.bottom) {
+    box.scrollTop += item.bottom - view.bottom;
+  }
+}
+
 /** The keys that move through the steps, and where each one goes. */
 function moveFor(key: string, current: number, count: number): number | null {
   switch (key) {
@@ -51,6 +78,11 @@ export interface StepListProps {
   /** The step shown in full. */
   current: number;
   onCurrentChange: (index: number) => void;
+  /**
+   * Whether a list that opens at a later step scrolls it to the middle, as when it opens at the
+   * step a finding names. Off where the content above the list should stay in view first.
+   */
+  revealOnOpen?: boolean;
   children: ReactNode;
   className?: string;
 }
@@ -64,6 +96,7 @@ export function StepList({
   count,
   current,
   onCurrentChange,
+  revealOnOpen = true,
   children,
   className,
   ...props
@@ -76,14 +109,14 @@ export function StepList({
     const button = buttons.current.get(current);
     if (!button) return;
     // A list that opens at a later step brings it to the middle; after that, only into view.
-    if (shown.current) button.scrollIntoView({ block: 'nearest' });
-    else if (current > 0) button.scrollIntoView({ block: 'center' });
+    if (shown.current) reveal(button, false);
+    else if (current > 0 && revealOnOpen) reveal(button, true);
     shown.current = true;
     if (focusOnMove.current) {
       focusOnMove.current = false;
       button.focus({ preventScroll: true });
     }
-  }, [current]);
+  }, [current, revealOnOpen]);
 
   const select = useCallback(
     (index: number, focus: boolean) => {
