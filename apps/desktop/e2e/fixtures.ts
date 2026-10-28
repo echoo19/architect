@@ -115,15 +115,32 @@ export const SAMPLE_ENGINE: EngineReplies = {
   ...STORY_EVIDENCE,
 };
 
-/** Makes engine channels in the main process fail with the given message, as an outage would. */
+/** A failure the way the main process sends one: its message, and the code a screen words it by. */
+export interface StubFailure {
+  message: string;
+  code?: string;
+}
+
+/** What every call says while the engine process restarts after stopping mid-call. */
+export const ENGINE_RESTARTING: StubFailure = {
+  message:
+    'The engine stopped while it was working on this. It is restarting; try again in a moment.',
+  code: 'process_restarting',
+};
+
+/**
+ * Makes engine channels in the main process fail as an outage would: with a message alone, or
+ * with the message and code the main process sends.
+ */
 export async function stubEngineFailure(
   app: ElectronApplication,
-  failures: Record<string, string>,
+  failures: Record<string, string | StubFailure>,
 ): Promise<void> {
   await app.evaluate(({ ipcMain }, entries) => {
-    for (const [channel, message] of Object.entries(entries)) {
+    for (const [channel, failure] of Object.entries(entries)) {
+      const error = typeof failure === 'string' ? { message: failure } : failure;
       ipcMain.removeHandler(channel);
-      ipcMain.handle(channel, () => ({ ok: false, error: { message } }));
+      ipcMain.handle(channel, () => ({ ok: false, error }));
     }
   }, failures);
 }

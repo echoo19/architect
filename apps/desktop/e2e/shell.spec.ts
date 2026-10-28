@@ -109,7 +109,10 @@ test('switches the theme from settings', async () => {
 test('finishes setup and shows an error state with a retry when agents fail to load', async () => {
   const page = launched.page;
   await stubEngineFailure(launched.app, {
-    'graduates:list': "The engine isn't connected yet, so graduates.list can't run.",
+    'graduates:list': {
+      message: "The engine isn't connected yet, so graduates.list can't run.",
+      code: 'process_starting',
+    },
   });
   // The real Ollama on the machine running the tests would change the first step.
   await stubEngine(launched.app, { 'connections:detectLocal': NOTHING_LOCAL });
@@ -128,7 +131,9 @@ test('finishes setup and shows an error state with a retry when agents fail to l
   });
   const main = page.getByRole('main');
   await expect(main.getByRole('heading', { name: "Couldn't load your agents" })).toBeVisible();
-  await expect(main.getByText("The engine isn't connected yet")).toBeVisible();
+  await expect(
+    main.getByText('Architect is still starting up. Try again in a moment.'),
+  ).toBeVisible();
   await main.getByRole('button', { name: 'Try again' }).click();
   await expect(main.getByRole('heading', { name: "Couldn't load your agents" })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Agents' }).getByRole('alert')).toBeVisible();

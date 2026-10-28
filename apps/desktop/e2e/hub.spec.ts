@@ -252,10 +252,10 @@ test("changes the agent's model to one on this computer, and its checks run agai
   const dialog = await openSettingsTab('General');
   await dialog.getByRole('button', { name: "Your agent's model" }).click();
   await page.getByRole('option', { name: /service-base:30b/ }).click();
-  await expect(page.getByText('Service desk now runs on service-base:30b')).toBeVisible({
+  await expect(page.getByText('Changed the model of Service desk', { exact: true })).toBeVisible({
     timeout: 30_000,
   });
-  await expect(dialog.getByText('Ready to run')).toBeVisible();
+  await expect(dialog.getByText('All checks passed')).toBeVisible();
 
   const after = await page.evaluate((id) => window.architect.graduates.installation(id), AGENT);
   expect(after.model).toEqual({

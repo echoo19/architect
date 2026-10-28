@@ -21,7 +21,7 @@ import {
   type Score,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
-import { at, graduate, job, STORY } from './story';
+import { at, FINAL_TEST, graduate, job, STORY } from './story';
 
 /*
  * An agent with four versions, its installation on this computer, an export review, and
@@ -231,16 +231,17 @@ export const STORY_VERSION: GraduateVersion = version(1, {
 });
 
 /**
- * Version 2 is active, with trained weights on top of its setup. Version 3, an improvement on it,
- * waits as a candidate, and so does version 4, which came from another computer and was never
- * evaluated.
+ * One history for the agent, so every screen that names a version says the same score. Version 1
+ * is what the run made: the story's 55 of 60. Version 2 is active, with trained weights on top of
+ * its setup, and passed 57 of 60. Version 3, an improvement on it, waits as a candidate that took
+ * 51 of 60, short of the job's 90%. Version 4 came from another computer and took no final test.
  */
 export const VERSIONS: GraduateVersion[] = [
   version(1, {
     state: 'accepted',
     active: false,
-    status: 'experimental',
-    score: { pass: 51, total: 60 },
+    status: 'ready',
+    score: { pass: 55, total: 60 },
     day: 0,
   }),
   version(2, {
@@ -248,7 +249,7 @@ export const VERSIONS: GraduateVersion[] = [
     active: true,
     parent: 1,
     status: 'ready',
-    score: { pass: 55, total: 60 },
+    score: { pass: 57, total: 60 },
     adapter: true,
     day: 1,
   }),
@@ -256,8 +257,8 @@ export const VERSIONS: GraduateVersion[] = [
     state: 'candidate',
     active: false,
     parent: 2,
-    status: 'ready',
-    score: { pass: 57, total: 60 },
+    status: 'experimental',
+    score: { pass: 51, total: 60 },
     adapter: true,
     day: 2,
   }),
@@ -271,8 +272,25 @@ export const VERSIONS: GraduateVersion[] = [
   }),
 ];
 
-/** The agent as the sidebar lists it, on version 2 of 4. */
-export const AGENT_WITH_VERSIONS: GraduateSummary = { ...graduate, activeVersion: 2, versions: 4 };
+/**
+ * The agent as the sidebar lists it, on version 2 of 4, whose final test its own record carries:
+ * the same 57 of 60 the versions list shows beside it.
+ */
+export const AGENT_WITH_VERSIONS: GraduateSummary = {
+  ...graduate,
+  activeVersion: 2,
+  versions: 4,
+  manifest: {
+    ...graduate.manifest,
+    requirements: { passRate: { target: 0.9, actual: 57 / 60, met: true } },
+    test: {
+      score: { pass: 57, total: 60 },
+      perType: FINAL_TEST.map((type) =>
+        type.type === 'scheduling' ? { ...type, pass: type.pass + 2 } : type,
+      ),
+    },
+  },
+};
 
 export const passed = (id: string, kind: string, detail: string, ms?: number): InstallCheck => ({
   id,

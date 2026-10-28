@@ -260,6 +260,8 @@ for (const theme of THEMES) {
     const settings = page.getByRole('dialog', { name: 'Settings' });
     await settings.getByRole('tab', { name: 'Models' }).click();
     const connections = settings.getByRole('region', { name: 'Connections' });
+    // The token sits under Advanced, with the runtimes on this computer.
+    await connections.getByRole('button', { name: 'Advanced' }).click();
     await expect(connections).toContainText('Hugging Face');
     await expect(connections).toContainText('Uses HF_TOKEN from this computer');
     await connections.getByText('Hugging Face', { exact: true }).scrollIntoViewIfNeeded();
@@ -274,9 +276,7 @@ for (const theme of THEMES) {
     await add.getByRole('button', { name: 'Save' }).click();
     await expect(add).toBeHidden();
     await expect(connections).toContainText('Token saved');
-    await expect(
-      connections.getByRole('button', { name: 'Remove the Hugging Face token' }),
-    ).toBeVisible();
+    await expect(connections.getByRole('button', { name: 'Remove token' })).toBeVisible();
     // Only the key's name is recorded, never what was typed.
     expect((await callsTo(app, 'secrets:set')).map(([ref]) => ref)).toEqual(['huggingface']);
   });
@@ -364,8 +364,13 @@ for (const theme of THEMES) {
     await expect(page.getByText("Can't run on this computer")).toBeVisible();
     const dialog = await openSettingsTab('General');
     await expect(dialog.getByText("Can't run", { exact: true })).toBeVisible();
-    await expect(dialog.getByText('another build')).toBeVisible();
+    await expect(dialog.getByText('Needs a different copy of Glimmer (18 GB).')).toBeVisible();
     await capture(`agent-model-other-build-${theme}.png`);
+    // The checks' own sentences, with the builds and their digests, wait under Details.
+    await expect(dialog.getByText('another build')).toBeHidden();
+    await dialog.getByRole('button', { name: 'Details' }).click();
+    await expect(dialog.getByText('another build')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Details' }).click();
 
     await dialog.getByRole('button', { name: 'Choose its model' }).click();
     const picker = page.getByRole('listbox', { name: 'Suggestions' });
@@ -377,9 +382,9 @@ for (const theme of THEMES) {
     await picker.getByRole('option', { name: /muse-glimmer-trained:30b/ }).click();
     // Exactly the toast's title: its live region announces the same words for a moment.
     await expect(
-      page.getByText(`Service desk now runs on ${EXACT_BUILD}`, { exact: true }),
+      page.getByText('Changed the model of Service desk', { exact: true }),
     ).toBeVisible();
-    await expect(dialog.getByText('Ready to run')).toBeVisible();
+    await expect(dialog.getByText('All checks passed')).toBeVisible();
     await expect(page.getByText('Running on this computer')).toBeVisible();
     await capture(`agent-model-changed-${theme}.png`);
     expect(await callsTo(app, 'graduates:bind')).toEqual([

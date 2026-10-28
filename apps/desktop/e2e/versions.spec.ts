@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { WorkspaceChat, WorkspaceMessage } from '@architect/shared';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
-import { stubEngineFailure } from './fixtures';
+import { ENGINE_RESTARTING, stubEngineFailure } from './fixtures';
 import {
   AGENT_WITH_VERSIONS,
   exportReview,
@@ -188,50 +188,55 @@ for (const theme of THEMES) {
     const versions = dialog.getByRole('list', { name: 'Versions' });
     await expect(versions.getByRole('listitem')).toHaveCount(4);
     const row = (number: number) => versions.getByRole('listitem', { name: `Version ${number}` });
-    await expect(row(2)).toContainText('Active');
-    await expect(row(2)).toContainText('92%');
-    await expect(row(2)).toContainText('55 of 60 passed');
-    await expect(row(3)).toContainText('Candidate');
-    await expect(row(3)).toContainText('Ready · from v2');
-    await expect(row(4)).toContainText('No final test yet · from v2, imported');
-    await expect(row(1)).toContainText('Experimental');
-    await expect(row(1)).toContainText('Below its 90% target');
+    // One score for the agent wherever it shows: the versions list agrees with its settings.
+    await expect(row(2)).toContainText('In use');
+    await expect(row(2)).toContainText('95%');
+    await expect(row(2)).toContainText('57 of 60 passed');
+    await expect(row(3)).toContainText('New, not in use yet');
+    await expect(row(3)).toContainText('Below its 90% target · from version 2');
+    await expect(row(4)).toContainText('No final test yet · from version 2, imported');
+    await expect(row(1)).toContainText('Earlier version');
+    await expect(row(1)).toContainText('55 of 60 passed');
     await expect(dialog.getByRole('region', { name: 'Versions' })).toContainText('Final test');
-    await expect(row(1).getByRole('button', { name: 'Roll back' })).toBeVisible();
+    await expect(row(1).getByRole('button', { name: 'Go back to this version' })).toBeVisible();
     await expect(row(2).getByRole('button')).toHaveCount(0);
     await capture(`agent-teaching-${theme}.png`);
 
-    // A version no locked test measured can be promoted, after saying so.
-    await row(4).getByRole('button', { name: 'Promote' }).click();
-    const unmeasured = page.getByRole('dialog', { name: 'Promote version 4?' });
+    // A version no final test measured can be used, after saying so.
+    await row(4).getByRole('button', { name: 'Use this version' }).click();
+    const unmeasured = page.getByRole('dialog', { name: 'Use version 4?' });
     await expect(unmeasured).toContainText("Version 4 hasn't taken a final test.");
     await capture(`agent-promote-unevaluated-${theme}.png`);
     await unmeasured.getByRole('button', { name: 'Cancel' }).click();
     await expect(unmeasured).toBeHidden();
 
-    await row(3).getByRole('button', { name: 'Promote' }).click();
-    const promote = page.getByRole('dialog', { name: 'Promote version 3?' });
+    // One that fell short says by how much.
+    await row(3).getByRole('button', { name: 'Use this version' }).click();
+    const promote = page.getByRole('dialog', { name: 'Use version 3?' });
+    await expect(promote).toContainText(
+      'Version 3 fell short on its final test: 85% passed, 90% needed.',
+    );
     await expect(promote).toContainText("New replies use version 3's setup and trained weights.");
-    await expect(promote).toContainText('Version 2 stays, so you can roll back to it.');
+    await expect(promote).toContainText('Version 2 stays, so you can go back to it.');
     await capture(`agent-promote-${theme}.png`);
-    await promote.getByRole('button', { name: 'Promote' }).click();
+    await promote.getByRole('button', { name: 'Use version 3' }).click();
     await expect(promote).toBeHidden();
-    await expect(row(3)).toContainText('Active');
-    await expect(row(2)).toContainText('Ready');
+    await expect(row(3)).toContainText('In use');
+    await expect(row(2)).toContainText('Earlier version');
     expect(await callsTo(app, 'graduates:acceptVersion')).toEqual([[AGENT.id, 3]]);
     expect(await callsTo(app, 'graduates:promote')).toEqual([[AGENT.id, 3]]);
 
-    await row(2).getByRole('button', { name: 'Roll back' }).click();
-    const rollback = page.getByRole('dialog', { name: 'Roll back to version 2?' });
+    await row(2).getByRole('button', { name: 'Go back to this version' }).click();
+    const rollback = page.getByRole('dialog', { name: 'Go back to version 2?' });
     await expect(rollback).toContainText(
       "New replies use version 2's setup and trained weights again.",
     );
-    await expect(rollback).toContainText('Version 3 stays, so you can promote it again.');
+    await expect(rollback).toContainText('Version 3 stays, so you can use it again.');
     await capture(`agent-rollback-${theme}.png`);
-    await rollback.getByRole('button', { name: 'Roll back' }).click();
+    await rollback.getByRole('button', { name: 'Go back' }).click();
     await expect(rollback).toBeHidden();
-    await expect(row(2)).toContainText('Active');
-    await expect(row(3).getByRole('button', { name: 'Promote' })).toBeVisible();
+    await expect(row(2)).toContainText('In use');
+    await expect(row(3).getByRole('button', { name: 'Use this version' })).toBeVisible();
     expect(await callsTo(app, 'graduates:rollback')).toEqual([[AGENT.id, 2]]);
   });
 }
@@ -239,9 +244,7 @@ for (const theme of THEMES) {
 for (const theme of THEMES) {
   test(`shows why the versions couldn't load, with a way to try again (${theme})`, async () => {
     await open(theme, chatPath(CHATS.closeout.id));
-    await stubEngineFailure(launched.app, {
-      'graduates:versions': "The engine stopped, so the versions couldn't be read.",
-    });
+    await stubEngineFailure(launched.app, { 'graduates:versions': ENGINE_RESTARTING });
     const dialog = await openSettingsTab('Teaching');
     await expect(dialog.getByText("Couldn't load the versions")).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Try again' })).toBeVisible();
@@ -314,9 +317,7 @@ for (const theme of THEMES) {
       ],
     ]);
     await expect(dialog.getByRole('button', { name: 'Export the trained weights' })).toBeVisible();
-    await expect(
-      dialog.getByRole('button', { name: 'Export the evaluation report' }),
-    ).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Export the results' })).toBeVisible();
   });
 }
 
@@ -324,11 +325,17 @@ for (const theme of THEMES) {
   test(`says why an export couldn't be reviewed (${theme})`, async () => {
     await open(theme, chatPath(CHATS.closeout.id));
     await stubEngineFailure(launched.app, {
-      'graduates:reviewExport':
-        "Version 2 of Service desk changed on disk after it was made, so it won't be exported.",
+      'graduates:reviewExport': {
+        message:
+          "Version 2 of Service desk changed on disk after it was made, so it won't be exported.",
+        code: 'version_modified',
+      },
     });
     const dialog = await openSettingsTab('Export');
-    await expect(dialog.getByText("Couldn't review the export")).toBeVisible();
+    // A version changed after it was made can't be tried again; the way out is an earlier one.
+    await expect(dialog.getByText('This version was changed after it was made.')).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Try again' })).toHaveCount(0);
+    await expect(dialog.getByRole('button', { name: 'See earlier versions' })).toBeVisible();
     await capture(`agent-export-error-${theme}.png`);
   });
 }

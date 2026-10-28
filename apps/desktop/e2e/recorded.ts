@@ -1,5 +1,5 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { readFile, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import {
   ComparisonReportSchema,
   ExperimentDispositionSchema,
@@ -60,6 +60,23 @@ export function recordedComparison(): string {
 export async function recordedComparisonReport(): Promise<ComparisonReport> {
   const text = await readFile(join(recordedComparison(), 'report.json'), 'utf8');
   return ComparisonReportSchema.parse(JSON.parse(text));
+}
+
+/**
+ * The recorded comparison as a real one would read, for the screenshots: the dry run's report
+ * with its label and the lines that say no model was called taken out. Its numbers stay the ones
+ * the dry run recorded, stand-ins as every capture's data is, and the engine's own tests keep the
+ * dry run labelled as one. Passed to `launchApp` as `prepare`, it rewrites the profile's copy.
+ */
+export async function asRealComparison(userData: string): Promise<void> {
+  const file = join(dirname(userData), 'report.json');
+  const report = ComparisonReportSchema.parse(JSON.parse(await readFile(file, 'utf8')));
+  const real: ComparisonReport = {
+    ...report,
+    dryRun: false,
+    disclosures: report.disclosures.filter((line) => !/dry run/i.test(line)),
+  };
+  await writeFile(file, JSON.stringify(real));
 }
 
 /** How many examples the run recorded, verified or not. */

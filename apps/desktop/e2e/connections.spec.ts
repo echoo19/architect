@@ -191,11 +191,14 @@ test('lists every connection and picks the mentor from any of them', async () =>
   await open('/', { secrets: { meta: true, openrouter: true }, local: LOCAL });
   await openModelsTab();
   const connections = page.getByRole('region', { name: 'Connections' });
+  // The runtimes on this computer wait under Advanced, which opens when Ollama is down.
+  await expect(connections.getByText('Running · 0.12.6 · 2 models')).toBeHidden();
+  await connections.getByRole('button', { name: 'Advanced' }).click();
   await expect(connections.getByText('Running · 0.12.6 · 2 models')).toBeVisible();
   await expect(connections.getByText('Not found')).toBeVisible();
   await expect(connections.getByText('Build 10472 · on PATH')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Mentor', exact: true }).click();
+  await page.getByRole('button', { name: 'Teacher', exact: true }).click();
   const menu = page.getByRole('listbox');
   await expect(menu.getByRole('option', { name: /Muse Spark 1\.3/ }).first()).toBeVisible();
   const listed = menu.getByRole('option', { name: /Some Model/ });
@@ -218,7 +221,7 @@ test('lists every connection and picks the mentor from any of them', async () =>
   ]);
 
   // A model chosen by its id has no listed price, so the page asks for one.
-  await page.getByRole('button', { name: 'Mentor', exact: true }).click();
+  await page.getByRole('button', { name: 'Teacher', exact: true }).click();
   await page.getByPlaceholder('Search models').fill('maker/unlisted');
   await page
     .getByRole('option', { name: /maker\/unlisted/ })
@@ -235,7 +238,7 @@ test('lists every connection and picks the mentor from any of them', async () =>
     });
 
   // A preset from a provider with no key yet asks for its key.
-  await page.getByRole('button', { name: 'Mentor', exact: true }).click();
+  await page.getByRole('button', { name: 'Teacher', exact: true }).click();
   await page.getByRole('option', { name: /Claude Haiku/ }).click();
   await expect(page.getByLabel('Anthropic API key')).toBeVisible();
   await page.keyboard.press('Escape');
@@ -246,7 +249,7 @@ test('picks the model for new agents on this computer, with whether it fits the 
   await openModelsTab();
   await page.getByRole('button', { name: 'Model for new agents' }).click();
   const menu = page.getByRole('listbox');
-  await expect(menu.getByRole('option', { name: /Muse Glimmer · 2-bit/ })).toContainText('GPU');
+  await expect(menu.getByRole('option', { name: /Muse Glimmer · 2-bit/ })).toContainText('Fast');
   await expect(menu.getByRole('option', { name: /Muse Glimmer · 4-bit/ })).toContainText(
     'Not downloaded',
   );
@@ -278,10 +281,14 @@ test('shows a llama-server too old for Glimmer as too old, with how to fix it', 
   await open('/', { secrets: { meta: true }, local: LOCAL, llamaServer: tooOld });
   await openModelsTab();
   const connections = page.getByRole('region', { name: 'Connections' });
-  await expect(connections.getByText('Too old')).toBeVisible();
+  await connections.getByRole('button', { name: 'Advanced' }).click();
+  await expect(connections.getByText('Too old', { exact: true })).toBeVisible();
+  // One plain sentence leads; the engine's words, which say what to do, wait under Details.
   await expect(connections.getByRole('alert')).toContainText(
-    'Update llama.cpp to build 10358 or newer.',
+    'Build 9000 is too old. Build 10358 or newer is needed.',
   );
+  await connections.getByRole('button', { name: 'Details' }).click();
+  await expect(connections).toContainText('Update llama.cpp to build 10358 or newer.');
   await page.getByRole('button', { name: 'Check again' }).click();
   await expect.poll(() => callsTo(launched.app, 'connections:llamaServer')).toHaveLength(2);
   await page.keyboard.press('Escape');

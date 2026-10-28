@@ -71,11 +71,19 @@ test('shows each round as its experiment ended, rejected and stopped ones includ
   expect(stored.map((item) => item.disposition)).toEqual(
     summary.rounds.map((round) => round.disposition),
   );
+  // Five different outcomes in five different words: none runs two together.
   const words = {
     kept: 'Kept',
-    reverted: 'Reverted',
-    rejected: 'Rejected',
-    invalid: 'Invalid',
+    reverted: 'No gain',
+    rejected: 'Made it worse',
+    invalid: "Couldn't be tried",
+    stopped: 'Stopped',
+  };
+  const headlines = {
+    kept: 'Kept',
+    reverted: 'Undone, no gain',
+    rejected: 'Undone, made things worse',
+    invalid: "Couldn't be tried",
     stopped: 'Stopped',
   };
   for (const experiment of stored) {
@@ -94,7 +102,7 @@ test('shows each round as its experiment ended, rejected and stopped ones includ
   const loss = `went from ${worst.before} to ${worst.after}`;
   await expect(roundRow(page, rejected.round)).toContainText(`${worst.before} → ${worst.after}`);
   const drawer = await openRound(page, rejected.round);
-  await expect(drawer.getByText('Rejected', { exact: true })).toBeVisible();
+  await expect(drawer.getByText(headlines.rejected, { exact: true })).toBeVisible();
   await expect(drawer).toContainText(loss);
   await expect(drawer.getByRole('table', { name: 'Check tasks by type' })).toContainText(
     `Lost ${worst.before - worst.after} passes`,
@@ -104,9 +112,9 @@ test('shows each round as its experiment ended, rejected and stopped ones includ
   // A stopped round gives the engine's own reason, and nothing measured or kept.
   const stopped = stored.find((item) => item.disposition === 'stopped');
   if (!stopped) throw new Error('No stopped experiment was recorded.');
-  await expect(roundRow(page, stopped.round)).toContainText('Not scored');
+  await expect(roundRow(page, stopped.round)).toContainText(words.stopped);
   const stoppedDrawer = await openRound(page, stopped.round);
-  await expect(stoppedDrawer.getByText('Stopped', { exact: true })).toBeVisible();
+  await expect(stoppedDrawer.getByText(headlines.stopped, { exact: true })).toBeVisible();
   await expect(stoppedDrawer).toContainText(stopped.reason);
   await expect(stoppedDrawer).toContainText("It isn't in the agent.");
   await expect(stoppedDrawer).toContainText('Not measured');
@@ -120,8 +128,10 @@ test('shows each round as its experiment ended, rejected and stopped ones includ
   const invalid = stored.find((item) => item.disposition === 'invalid');
   if (!invalid) throw new Error('No invalid experiment was recorded.');
   const invalidDrawer = await openRound(page, invalid.round);
-  await expect(invalidDrawer.getByText('Invalid', { exact: true })).toBeVisible();
-  await expect(invalidDrawer).toContainText(invalid.reason);
+  await expect(invalidDrawer.getByText(headlines.invalid, { exact: true })).toBeVisible();
+  // Retraining the model is what a run can't do here, said in plain words; the engine's own
+  // sentence stays in the record.
+  await expect(invalidDrawer).toContainText("which this computer can't do. Nothing changed.");
   await closeDrawer(page);
 });
 
@@ -163,7 +173,7 @@ test("opens a lesson's attempt at the step its finding points to", async () => {
   const repair = examples.getByRole('button').filter({ hasText: 'Replayed from step' }).first();
   await repair.click();
   const lesson = page.getByRole('dialog');
-  await expect(lesson).toContainText('Passed the checker · Replayed from step');
+  await expect(lesson).toContainText("Spark's example passed the checker");
   await expect(lesson.getByRole('button', { name: 'Back' })).toBeVisible();
   // The correction plays back from the checkpoint: Glimmer's steps replayed, then Spark's own.
   const replayed = summary.repair.failureTurn - 1;
@@ -207,7 +217,7 @@ test("opens a lesson's attempt at the step its finding points to", async () => {
 
   // Back to the lesson, then the round.
   await attempt.getByRole('button', { name: 'Back' }).click();
-  await expect(page.getByRole('dialog')).toContainText('Passed the checker · Replayed from step');
+  await expect(page.getByRole('dialog')).toContainText("Spark's example passed the checker");
   await page.getByRole('dialog').getByRole('button', { name: 'Back' }).click();
   await expect(page.getByRole('dialog', { name: new RegExp(`^Round ${kept}`) })).toBeVisible();
   await closeDrawer(page);
@@ -232,7 +242,7 @@ test('reconciles the capability breakdown with the stored experiments and the fi
   const stored = await experiments(page);
   const card = await page.evaluate((id) => window.architect.reports.get(id), summary.runId);
   const job = await page.evaluate((id) => window.architect.jobs.get(id), summary.jobId);
-  const table = page.getByRole('table', { name: 'Capabilities by task type' });
+  const table = page.getByRole('table', { name: 'Results by task type' });
   await expect(table).toBeVisible();
   const check = checkScores(stored);
   for (const type of job.taskTypes) {
@@ -254,9 +264,9 @@ test('reconciles the capability breakdown with the stored experiments and the fi
 test('keeps practice, check tasks, the final test and install checks apart', async () => {
   const { page } = launched;
   await goTo(page, `/runs/${summary.runId}/report`);
-  const table = page.getByRole('table', { name: 'Capabilities by task type' });
+  const table = page.getByRole('table', { name: 'Results by task type' });
   const headers = table.getByRole('columnheader');
-  await expect(headers.nth(1)).toContainText('Practice, latest round');
+  await expect(headers.nth(1)).toContainText('Practice tasks');
   await expect(headers.nth(2)).toContainText('Check tasks');
   await expect(headers.nth(3)).toContainText('Final test');
   // Each kind has its own bar.
@@ -272,13 +282,18 @@ test('keeps practice, check tasks, the final test and install checks apart', asy
   await expect(table.locator('[data-kind="check"] [data-marker]')).toHaveCount(3);
   await expect(table.locator('[data-kind="final"] [data-marker]')).toHaveCount(0);
   await expect(table.locator('[data-kind="practice"] [data-marker]')).toHaveCount(0);
-  // Install checks stand apart, named as this computer's.
-  await expect(page.getByText('Install checks on this computer')).toBeVisible();
-  // A comparison with no record says so, and why, from what the records lack.
+  // Spark's own score stands beside the bar it marks, where it was measured on the same tasks.
+  await expect(table.getByText(/Spark \d+ of \d+/)).toHaveCount(3);
+  // This computer's checks stand apart, named as this computer's.
+  await expect(page.getByText('Works on this computer')).toBeVisible();
+  // A comparison with no record says so, and why, from what the records lack, under Details.
   const comparisons = page.getByRole('table', { name: 'Comparisons' });
+  await expect(comparisons.getByRole('row')).toHaveCount(4);
+  const section = page.locator('section[aria-labelledby="comparisons"]');
+  await section.getByRole('button', { name: 'Details' }).click();
   for (const arm of ['Glimmer with trained weights', 'Glimmer with both']) {
-    await expect(comparisons.getByRole('row', { name: new RegExp(`^${arm}`) })).toContainText(
-      'Not run: no round measured trained weights',
+    await expect(section).toContainText(
+      `${arm} wasn't measured: no round measured trained weights`,
     );
   }
   await expect(
@@ -299,14 +314,19 @@ test('shows the memory a meter read over the final test, and nothing where it re
   );
   expect(others).toEqual([]);
   expect(reading?.peakProcessBytes).not.toBeNull();
-  await expect(page.getByText(/^Up to [\d.]+ GB of RAM in the final test$/)).toBeVisible();
-  await expect(page.getByText(/^Up to [\d.]+ GB of GPU memory$/)).toBeVisible();
-  await expect(page.getByText(/^First answer in [\d.]+ s, the model loading first$/)).toBeVisible();
-  // Only the agent's own final test was metered: its row has the figure, no other row does.
-  const comparisons = page.getByRole('table', { name: 'Comparisons' });
-  await expect(comparisons.getByRole('columnheader', { name: 'Peak memory' })).toBeVisible();
-  await expect(comparisons.getByRole('row', { name: /this agent/ })).toContainText('GPU');
-  await expect(comparisons.getByRole('row', { name: /starting setup/ })).not.toContainText('GPU');
+  // The figures are for whoever asks: behind the stats' Details.
+  await page.getByRole('button', { name: 'Details' }).first().click();
+  await expect(
+    page.getByText(/^Up to [\d.]+ GB of RAM and [\d.]+ GB of GPU memory$/),
+  ).toBeVisible();
+  await expect(page.getByText(/^[\d.]+ s, the model loading first$/)).toBeVisible();
+  // Only the agent's own final test was metered: its line says so, and no other line does.
+  const section = page.locator('section[aria-labelledby="comparisons"]');
+  // The comparisons' own Details stay open from the last test, which opened them.
+  await expect(section.getByText(/Glimmer with Spark's setup used at most/)).toContainText(
+    'GB of GPU memory in its final test',
+  );
+  await expect(section.getByText(/starting setup used at most/)).toHaveCount(0);
 });
 
 test("reads a comparison's own report: each arm as it ended, and one not run with its reason", async () => {
@@ -327,41 +347,63 @@ test("reads a comparison's own report: each arm as it ended, and one not run wit
     await expect(
       opened.page.getByText('Dry run on fakes, no model called', { exact: true }),
     ).toBeVisible();
-    // Every arm in the report's order, this run's marked as this agent.
-    await expect(table.getByRole('row')).toHaveCount(report.arms.length + 1);
-    const own = table.getByRole('row', { name: /Glimmer mentored by Spark/ });
+    // The first look is three rows: the untouched student, this agent and Spark doing the tasks
+    // itself. This run's is marked as this agent.
+    await expect(table.getByRole('row')).toHaveCount(4);
+    const own = table.getByRole('row', { name: /Glimmer taught by Spark/ });
     await expect(own).toContainText('this agent');
-    // Its final test as the report holds it: the hosted copy under the first seed, the second
-    // seed's beside it, and this computer's test with the memory the meter read there.
+    await expect(table.getByRole('row', { name: /Glimmer, untouched/ })).toBeVisible();
+    await expect(table.getByRole('row', { name: /Spark doing the tasks itself/ })).toBeVisible();
+    // Its final test as the report holds it: one figure on the same kind of copy as the stats
+    // above, and what it cost in all, each bill counted once.
     const seed = report.plan.testSeeds[0];
-    const rowOf = (backend: string) =>
+    const rowOf = (backend: string, arm: string) =>
       report.backends
         .find((item) => item.backend === backend)
-        ?.rows.find((row) => row.arm === 'targeted' && row.seed === seed);
-    const hosted = rowOf('hosted');
-    const local = rowOf('local-ollama');
+        ?.rows.find((row) => row.arm === arm && row.seed === seed);
+    const hosted = rowOf('hosted', 'targeted');
+    const local = rowOf('local-ollama', 'targeted');
     await expect(own).toContainText(`${hosted?.scenarios.pass} of ${hosted?.scenarios.total}`);
-    await expect(own).toContainText(`${local?.scenarios.pass} of ${local?.scenarios.total}`);
-    await expect(own).toContainText('GPU');
-    // An arm tested on the hosted copy alone has no memory to show.
-    await expect(table.getByRole('row', { name: /wrote in one go/ })).not.toContainText('GPU');
+    const spent = targeted.spent;
+    const total = spent.sparkUsd + (spent.studentUsd ?? 0) + spent.computeUsd;
+    await expect(own).toContainText(total.toFixed(2));
+    // Nothing is cut off at the right: the table ends inside its page.
+    const box = await table.boundingBox();
+    const width = await opened.page.evaluate(() => window.innerWidth);
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(width);
+
+    // The other arms wait under their own fold, each as it ended.
+    const more = opened.page.getByRole('button', {
+      name: `${report.arms.length - 3} more comparisons`,
+    });
+    await more.click();
+    const rest = opened.page.getByRole('table', { name: 'More comparisons' });
+    await expect(rest.getByRole('row')).toHaveCount(report.arms.length - 3 + 1);
     // The arm that wasn't run says so, with the runner's reason, and nothing else.
-    await expect(table.getByRole('row', { name: /procedures only/ })).toContainText(
+    await expect(rest.getByRole('row', { name: /written rules only/ })).toContainText(
       `Not run: ${fixed.reason}`,
     );
     // The arm the runner stopped says so, with its reason.
     const stopped = report.arms.find((arm) => arm.arm === 'weights-targeted');
     expect(stopped?.status).toBe('stopped');
-    await expect(table.getByRole('row', { name: /trained on its failures/ })).toContainText(
+    await expect(rest.getByRole('row', { name: /trained on its failures/ })).toContainText(
       `Stopped: ${stopped?.reason}`,
     );
-    // Spark's second reference, with the mentored setup, has a row of its own.
-    const second = report.backends
-      .find((item) => item.backend === 'reference')
-      ?.rows.find((row) => row.arm === 'reference-targeted' && row.seed === seed);
-    await expect(table.getByRole('row', { name: /with the mentored setup/ })).toContainText(
+    // Spark's second reference, with the setup this agent made, has a row of its own.
+    const second = rowOf('reference', 'reference-targeted');
+    await expect(rest.getByRole('row', { name: /final setup/ })).toContainText(
       `${second?.scenarios.pass} of ${second?.scenarios.total}`,
     );
+    // How sure each score is, this computer's result and the memory a meter read wait under Details.
+    await opened.page
+      .locator('section[aria-labelledby="comparisons"]')
+      .getByRole('button', { name: 'Details' })
+      .click();
+    const notes = opened.page.locator('section[aria-labelledby="comparisons"]');
+    await expect(notes).toContainText(
+      `on this computer: ${local?.scenarios.pass} of ${local?.scenarios.total}`,
+    );
+    await expect(notes).toContainText('GB of GPU memory');
   } finally {
     await opened.close();
   }
