@@ -48,6 +48,8 @@ export const TRAINING_ENDED: Record<RunStopReason | 'complete', string> = {
   leak: 'The leak check refused a mentor call, so training ended before any later round could send the same data.',
   user: 'Stopped by you.',
   error: 'Training ended after an error.',
+  contract:
+    'Your answer changes what counts as success, so this run stopped: its locked test belongs to the job as it was. Start a new run on the changed job.',
 };
 
 /** The run patch that ends training and hands the run to its locked test. */

@@ -14,6 +14,7 @@ export * from './job';
 export * from './json';
 export * from './lineage';
 export * from './mentor';
+export * from './mentoring';
 export * from './models';
 export * from './net';
 export * from './report';

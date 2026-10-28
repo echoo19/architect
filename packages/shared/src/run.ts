@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ScoreSchema } from './lineage';
 import { PredictionSchema } from './mentor';
+import { AdapterRefSchema } from './mentoring';
 
 export const MethodSchema = z.enum(['architect', 'bare', 'one_shot', 'self_reflection']);
 export type Method = z.infer<typeof MethodSchema>;
@@ -30,6 +31,12 @@ export const RunPhaseSchema = z.enum([
   'baseline',
   'attempting',
   'diagnosing',
+  /** The mentor works through verified corrections of this round's failures. */
+  'teaching',
+  /** An adapter is training on the round's lessons. */
+  'training',
+  /** The run waits for the person's answer to one question. */
+  'clarifying',
   'evaluating',
   'testing',
   'done',
@@ -48,6 +55,8 @@ export const StopReasonRunSchema = z.enum([
   'leak',
   'user',
   'error',
+  /** An answer changed what counts as success, which needs a new job contract and a new run. */
+  'contract',
 ]);
 export type RunStopReason = z.infer<typeof StopReasonRunSchema>;
 
@@ -92,6 +101,8 @@ export const RunSchema = z.object({
   stopReason: StopReasonRunSchema.optional(),
   error: z.string().optional(),
   graduateId: z.string().optional(),
+  /** The adapter the run kept, served with the current harness version; none until one is kept. */
+  currentAdapter: AdapterRefSchema.optional(),
 });
 export type Run = z.infer<typeof RunSchema>;
 
@@ -103,13 +114,24 @@ export const RoundSchema = z.object({
    * blank start, or one-shot's only round. It makes no train attempts and is always kept.
    */
   draft: z.literal(true).optional(),
-  status: z.enum(['attempting', 'diagnosing', 'evaluating', 'decided', 'failed']),
+  status: z.enum([
+    'attempting',
+    'diagnosing',
+    'teaching',
+    'training',
+    'clarifying',
+    'evaluating',
+    'decided',
+    'failed',
+  ]),
   train: ScoreSchema,
   title: z.string().optional(),
   diagnosis: z.string().optional(),
   predicted: PredictionSchema.optional(),
   files: z.array(z.string()).default([]),
   candidateVersion: z.number().int().nonnegative().optional(),
+  /** The adapter a weights round trained, served with the incumbent harness. */
+  candidateAdapter: AdapterRefSchema.optional(),
   devBefore: ScoreSchema.optional(),
   devAfter: ScoreSchema.optional(),
   /** When the change cleared the keep limits once and was measured again: that first measurement. */

@@ -103,6 +103,40 @@ function attempt(id: string, round: number | null, split: 'dev' | 'test' = 'dev'
   };
 }
 
+/**
+ * A run as the first migration's columns hold it, for databases made before later migrations:
+ * the current store writes columns those don't have yet.
+ */
+function insertEarlierRun(db: DatabaseSync, { run, ...record }: StoredRun): void {
+  db.prepare(
+    `INSERT INTO runs (id, job_id, method, seed, seeds, status, phase, today, locked_test_on,
+      stop_requested, current_version, dev_baseline, dev_current, totals, stop_reason, freeze,
+      created_at, updated_at)
+     VALUES (:id, :job_id, :method, :seed, :seeds, :status, :phase, :today, :locked_test_on,
+      :stop_requested, :current_version, :dev_baseline, :dev_current, :totals, :stop_reason,
+      :freeze, :created_at, :updated_at)`,
+  ).run({
+    id: run.id,
+    job_id: run.jobId,
+    method: run.method,
+    seed: run.seed,
+    seeds: JSON.stringify(record.seeds),
+    status: run.status,
+    phase: run.phase,
+    today: record.today,
+    locked_test_on: record.lockedTestOn,
+    stop_requested: record.stopRequested ? 1 : 0,
+    current_version: run.currentVersion,
+    dev_baseline: JSON.stringify(run.devBaseline),
+    dev_current: JSON.stringify(run.devCurrent),
+    totals: JSON.stringify(run.totals),
+    stop_reason: run.stopReason ?? null,
+    freeze: JSON.stringify(record.freeze),
+    created_at: run.createdAt,
+    updated_at: run.updatedAt,
+  });
+}
+
 const JOB: JobRecord = {
   id: 'job_1',
   name: 'Service desk',
@@ -176,8 +210,8 @@ describe('migrations', () => {
     );
     const old = createEngineStore(db);
     old.jobs.insert(JOB);
-    old.runs.insert(storedRun('run_1'));
-    old.runs.insert({ ...storedRun('run_2'), lockedTestOn: 'hosted' });
+    insertEarlierRun(db, storedRun('run_1'));
+    insertEarlierRun(db, { ...storedRun('run_2'), lockedTestOn: 'hosted' });
     const insert = db.prepare('INSERT INTO reports (run_id, card, created_at) VALUES (?, ?, ?)');
     for (const [runId, target] of [
       ['run_1', 'local'],
@@ -206,25 +240,14 @@ describe('migrations', () => {
     const old = createEngineStore(db);
     old.jobs.insert(JOB);
     const oneShot = storedRun('run_one_shot');
-    old.runs.insert({ ...oneShot, run: { ...oneShot.run, method: 'one_shot' } });
-    old.runs.insert(storedRun('run_architect'));
-    const roundOf = (runId: string): StoredRound => ({
-      round: {
-        runId,
-        index: 1,
-        status: 'decided',
-        train: { pass: 0, total: 0 },
-        files: [],
-        costUsd: 0,
-        startedAt: AT,
-      },
-      baseVersion: 1,
-      reply: null,
-      hypothesis: null,
-      rejected: false,
-    });
-    old.rounds.insert(roundOf('run_one_shot'));
-    old.rounds.insert(roundOf('run_architect'));
+    insertEarlierRun(db, { ...oneShot, run: { ...oneShot.run, method: 'one_shot' } });
+    insertEarlierRun(db, storedRun('run_architect'));
+    const insertRound = db.prepare(
+      `INSERT INTO rounds (run_id, idx, status, base_version, train, files, cost_usd, started_at)
+       VALUES (?, 1, 'decided', 1, '{"pass":0,"total":0}', '[]', 0, ?)`,
+    );
+    insertRound.run('run_one_shot', AT);
+    insertRound.run('run_architect', AT);
     db.close();
 
     const migrated = openEngineStore(earlier);

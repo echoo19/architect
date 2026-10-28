@@ -41,6 +41,16 @@ export interface StudentAdapter {
   release(): Promise<void>;
 }
 
+/**
+ * The mentor's model working as an agent: it takes the student's tools and attempts a task, to
+ * demonstrate a correction or to serve as a reference. Every call costs mentor dollars, so it
+ * can price its own usage; the runner admits each call through the mentor's gate.
+ */
+export interface ActorAdapter extends StudentAdapter {
+  /** Dollar cost of a usage record, or null if the price isn't known. */
+  estimateCostUsd(usage: Usage): number | null;
+}
+
 /** One loaded adapter's weight in a llama-server request: its place in the load order, and its scale. */
 export interface LoraScale {
   id: number;

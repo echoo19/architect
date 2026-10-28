@@ -1,5 +1,7 @@
 import {
+  AdapterRefSchema,
   AttemptSchema,
+  DecodingSchema,
   GraduateManifestSchema,
   GraduateSettingsSchema,
   HypothesisSchema,
@@ -32,6 +34,18 @@ export const StudentPinSchema = z.object({
 });
 export type StudentPin = z.infer<typeof StudentPinSchema>;
 
+/**
+ * How the frozen graduate runs, beside its harness: the backend that serves the student, its
+ * adapter with the GGUF's hash and the scale, and the decoding. The locked test runs exactly this.
+ */
+export const FrozenConfigurationSchema = z.object({
+  /** `ollama` or `openai_compatible` for the job's student, `llama.cpp` with an adapter. */
+  backend: z.string().min(1),
+  adapter: AdapterRefSchema.extend({ scale: z.number() }).nullable(),
+  decoding: DecodingSchema,
+});
+export type FrozenConfiguration = z.infer<typeof FrozenConfigurationSchema>;
+
 /** The graduate as frozen before its locked test. Nothing after this changes what ships. */
 export const GraduateFreezeSchema = z.object({
   graduateId: z.string(),
@@ -39,6 +53,13 @@ export const GraduateFreezeSchema = z.object({
   harnessHash: z.string(),
   student: StudentPinSchema,
   frozenAt: z.iso.datetime(),
+  /** Absent for graduates frozen before it was recorded: the student with no adapter. */
+  configuration: FrozenConfigurationSchema.optional(),
+  /**
+   * The locked test's decoding seeds, fixed at freezing. Absent for graduates frozen before:
+   * one repeat, under the run's test seed.
+   */
+  testSeeds: z.array(z.number().int().nonnegative()).min(1).optional(),
 });
 export type GraduateFreeze = z.infer<typeof GraduateFreezeSchema>;
 
@@ -50,6 +71,8 @@ export const StoredRunSchema = z.object({
   lockedTestOn: StudentTargetSchema,
   stopRequested: z.boolean(),
   freeze: GraduateFreezeSchema.nullable(),
+  /** Someone can answer a clarifying question; runs from scripts can't. Absent: no one. */
+  interactive: z.boolean().optional(),
 });
 export type StoredRun = z.infer<typeof StoredRunSchema>;
 
@@ -99,6 +122,12 @@ export type StoredRound = z.infer<typeof StoredRoundSchema>;
 
 export const StoredAttemptSchema = AttemptSchema.extend({
   target: StudentTargetSchema,
+  /**
+   * Who attempted and how, beside the harness version: absent or `student` for the job's student
+   * with no adapter, else a key from `configurationKey`. Attempts under different keys are never
+   * reused for each other.
+   */
+  config: z.string().min(1).optional(),
   /** The evaluation seed handed to the runtime. */
   seed: z.number().int(),
   stopReason: StopReasonSchema,
@@ -134,10 +163,10 @@ export const LineageIndexSchema = z.object({
 });
 export type LineageIndex = z.infer<typeof LineageIndexSchema>;
 
-/** One mentor or student call. */
+/** One mentor or student call, or a call of Spark run as a reference. */
 export const CostEntrySchema = z.object({
   runId: z.string().nullable(),
-  role: z.enum(['mentor', 'student']),
+  role: z.enum(['mentor', 'student', 'reference']),
   model: z.string(),
   round: z.number().int().nonnegative().nullable(),
   attemptId: z.string().nullable(),

@@ -41,6 +41,14 @@ export const ReportCardSchema = z.object({
     refusals: z.number().int().nonnegative(),
     /** True only for a test on the local student at a loopback address; a hosted test never is. */
     ranOffline: z.boolean(),
+    /**
+     * With more than one predeclared decoding seed, each repeat's own result. The score above
+     * then counts scenarios: a task passes only when it passed under every seed.
+     */
+    repeats: z
+      .array(z.object({ seed: z.number().int(), score: ScoreSchema }))
+      .min(2)
+      .optional(),
   }),
   dev: z.object({
     baseline: ScoreSchema.nullable(),

@@ -16,18 +16,120 @@ export const PredictionSchema = z.object({
 });
 export type Prediction = z.infer<typeof PredictionSchema>;
 
-/** One round's proposal: a single diagnosis and the change set that tests it. */
-export const HypothesisSchema = z.object({
-  title: z.string().min(1).max(80),
-  diagnosis: z.string().min(1),
-  edits: z.array(FileEditSchema).min(1).max(16),
-  /** Train task ids whose failures this addresses. */
-  causeTaskIds: z.array(z.string()).default([]),
-  predicted: PredictionSchema,
-  /** The mentor's own claim that the student is ready. Logged to measure overclaiming. */
-  readyClaim: z.boolean().default(false),
+/** The bounded intervention menu (spec section 7). */
+export const InterventionTypeSchema = z.enum([
+  /** A rule or a step-by-step procedure in AGENTS.md or a skill. */
+  'procedure',
+  /** Which skill, example or source loads for which request. */
+  'retrieval',
+  /** A small typed tool in the sandbox. */
+  'helper',
+  /** A LoRA adapter trained on verified lessons. */
+  'weights',
+  /** One question for the person, asked before any label is made. */
+  'clarification',
+]);
+export type InterventionType = z.infer<typeof InterventionTypeSchema>;
+
+/** A step of a trace the mentor points at: model turn `turn`, counting from 1. */
+export const EvidenceSchema = z.object({
+  turn: z.number().int().positive(),
+  note: z.string().min(1),
 });
+export type Evidence = z.infer<typeof EvidenceSchema>;
+
+/** What the mentor expects an intervention to cost, checked against what is left. */
+export const CostEstimateSchema = z.object({
+  mentorUsd: z.number().nonnegative(),
+  computeUsd: z.number().nonnegative(),
+  minutes: z.number().nonnegative(),
+});
+export type CostEstimate = z.infer<typeof CostEstimateSchema>;
+
+/** One failed train attempt as the mentor wrote it up, before the runner checks it. */
+export const FindingDraftSchema = z.object({
+  taskId: z.string().min(1),
+  /** The model turn the mentor suspects went wrong, counting from 1. */
+  failureTurn: z.number().int().positive(),
+  evidence: z.array(EvidenceSchema).min(1),
+  cause: z.string().min(1),
+  /** An existing category's id, or a new slug and label when none fits. */
+  category: z.object({ id: z.string(), slug: z.string(), label: z.string() }),
+  taskType: z.string(),
+});
+export type FindingDraft = z.infer<typeof FindingDraftSchema>;
+
+/** The one intervention a round proposes, from the menu. */
+export const InterventionPlanSchema = z.object({
+  type: InterventionTypeSchema,
+  hypothesis: z.string(),
+  /** Words that load the round's verified lessons as worked examples; none adds none. */
+  workedExamples: z.array(z.string().min(1)).max(8).default([]),
+  /** Other train tasks of each finding's category to demonstrate from the start. */
+  practicePerFinding: z.number().int().min(0).max(3).default(0),
+  /** For a clarification: the one question for the person. */
+  question: z.string().default(''),
+  estimatedCost: CostEstimateSchema.default({ mentorUsd: 0, computeUsd: 0, minutes: 0 }),
+  verificationPlan: z.string().default(''),
+});
+export type InterventionPlan = z.infer<typeof InterventionPlanSchema>;
+
+const HARNESS_CHANGES = new Set<InterventionType>(['procedure', 'retrieval', 'helper']);
+
+/** What a reply from before the menu proposes: a procedure, with nothing to teach. */
+export const LEGACY_INTERVENTION: InterventionPlan = {
+  type: 'procedure',
+  hypothesis: '',
+  workedExamples: [],
+  practicePerFinding: 0,
+  question: '',
+  estimatedCost: { mentorUsd: 0, computeUsd: 0, minutes: 0 },
+  verificationPlan: '',
+};
+
+/**
+ * One round's proposal: a single diagnosis, the findings it rests on and one intervention. A
+ * reply from before the menu, a diagnosis and a change set, has neither and reads as a
+ * procedure with nothing to teach.
+ */
+export const HypothesisSchema = z
+  .object({
+    title: z.string().min(1).max(80),
+    diagnosis: z.string().min(1),
+    /** The harness change set; empty for a weights or clarification intervention. */
+    edits: z.array(FileEditSchema).max(16),
+    /** Train task ids whose failures this addresses. */
+    causeTaskIds: z.array(z.string()).default([]),
+    predicted: PredictionSchema,
+    /** The mentor's own claim that the student is ready. Logged to measure overclaiming. */
+    readyClaim: z.boolean().default(false),
+    findings: z.array(FindingDraftSchema).max(3).optional(),
+    intervention: InterventionPlanSchema.optional(),
+  })
+  .superRefine((hypothesis, context) => {
+    const type = hypothesis.intervention?.type ?? 'procedure';
+    const harness = HARNESS_CHANGES.has(type);
+    if (harness && hypothesis.edits.length === 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['edits'],
+        message: `A ${type} intervention needs at least one edit.`,
+      });
+    }
+    if (!harness && hypothesis.edits.length > 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['edits'],
+        message: `A ${type} intervention changes no harness file, so its edits must be empty.`,
+      });
+    }
+  });
 export type Hypothesis = z.infer<typeof HypothesisSchema>;
+
+/** The hypothesis's intervention; a reply from before the menu proposed a procedure. */
+export function interventionOf(hypothesis: Hypothesis): InterventionPlan {
+  return hypothesis.intervention ?? LEGACY_INTERVENTION;
+}
 
 export const TypeScoreSchema = z.object({
   type: z.string(),

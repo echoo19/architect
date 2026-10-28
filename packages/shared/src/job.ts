@@ -9,6 +9,11 @@ export const BudgetSchema = z.object({
   maxRounds: z.number().int().min(1).max(100),
   maxMentorUsd: z.number().min(0).max(1000),
   maxWallMinutes: z.number().int().min(1).max(10_080),
+  /**
+   * Dollars of training compute a run may spend on adapters. Absent means none: only the
+   * stand-in backend, which costs nothing and trains nothing, can take a weights intervention.
+   */
+  maxComputeUsd: z.number().min(0).max(1000).optional(),
 });
 export type Budget = z.infer<typeof BudgetSchema>;
 
@@ -108,6 +113,12 @@ export const EvaluationConfigSchema = z.object({
    * reply or change set was rejected before dev saw it don't count.
    */
   patience: z.number().int().min(1).default(3),
+  /**
+   * The locked test's decoding seeds, declared before any run: every test task is attempted once
+   * under each, and each repeat is recorded apart. Repeats are never counted as more scenarios.
+   * Absent: one repeat, under the seed the run derives from its own.
+   */
+  lockedTestSeeds: z.array(z.number().int().nonnegative()).min(1).max(4).optional(),
 });
 export type EvaluationConfig = z.infer<typeof EvaluationConfigSchema>;
 
@@ -121,6 +132,21 @@ export const PermissionsSchema = z.object({
   unseenFiles: PermissionModeSchema,
 });
 export type Permissions = z.infer<typeof PermissionsSchema>;
+
+/**
+ * What of a job's content may leave this computer besides the mentor's view of train attempts,
+ * which training always sends. Absent means neither.
+ */
+export const DataSharingSchema = z.object({
+  /** Verified lessons may go to remote compute to train an adapter. */
+  remoteTraining: z.boolean(),
+  /**
+   * A workspace correction may go to the mentor, once the person confirms that one correction.
+   * Corrections never leave this computer otherwise.
+   */
+  corrections: z.boolean(),
+});
+export type DataSharing = z.infer<typeof DataSharingSchema>;
 
 export const TaskTypeInfoSchema = z.object({
   id: z.string().regex(/^[a-z][a-z0-9_]{0,39}$/),
@@ -164,5 +190,6 @@ export const JobSchema = z.object({
   startingHarness: StartingHarnessSchema,
   splits: SplitConfigSchema,
   evaluation: EvaluationConfigSchema,
+  sharing: DataSharingSchema.optional(),
 });
 export type Job = z.infer<typeof JobSchema>;

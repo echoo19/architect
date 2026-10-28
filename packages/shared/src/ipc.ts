@@ -131,6 +131,24 @@ export interface RunStartOptions {
    * A hosted test is a supplementary result, and its report card says it didn't run offline.
    */
   lockedTestOn?: StudentTarget;
+  /**
+   * Someone is there to answer: the mentor may pause the run with one clarifying question.
+   * Runs started by scripts aren't.
+   */
+  interactive?: boolean;
+}
+
+/** The person's answer to a run's clarifying question. */
+export interface ClarificationReply {
+  text: string;
+  /** The answer changes what counts as success; the run then stops for a new job contract. */
+  changesCriteria: boolean;
+}
+
+/** How a reference run starts: on which split, and the most it may spend. */
+export interface ReferenceOptions {
+  split: 'dev' | 'test';
+  maxUsd: number;
 }
 
 export interface RunDetail {

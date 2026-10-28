@@ -1,4 +1,5 @@
 import type { Migration } from './database';
+import { MENTORING_MIGRATION } from './mentoring-migration';
 
 /**
  * Schema history. Never edit an applied migration; add a new one. Traces are JSON files under
@@ -244,4 +245,5 @@ export const MIGRATIONS: readonly Migration[] = [
         WHERE idx = 1 AND run_id IN (SELECT id FROM runs WHERE method = 'one_shot');
     `,
   },
+  MENTORING_MIGRATION,
 ];
