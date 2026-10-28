@@ -2,6 +2,14 @@
 
 Things that bit us, and how to avoid them. Newest first.
 
+## A stubbed engine channel stays stubbed for the rest of the spec
+
+`stubEngine` replaces a channel's handler in the main process, and nothing puts the engine's own back, so a later test in the same app gets the earlier stub. In `apps/desktop/e2e/screenshots.spec.ts` the dark theme's run routes ask the engine itself and show "There is no run", while the light theme's run after the sample replies were installed and show the sample run (`train-light`, `report-light`, `improvement-light`). A spec that needs the engine's own answer again stubs that answer itself, or launches a new app.
+
+## A reload in an e2e spec keeps the route, and a read that failed stays failed
+
+`page.reload()` keeps the location hash, so the app comes back on the screen the last test ended on, and asks the stand-in engine just installed for records it doesn't have yet. The renderer's query cache keeps that error, and a screen mounted on the same key later shows it instead of asking again. A spec that reinstalls its stand-in between tests sets the hash to `#/` before it reloads (`apps/desktop/e2e/teaching.spec.ts`).
+
 ## A toast's text is on the page twice for a moment
 
 Radix's toast also announces its message for screen readers, in a hidden `role="status"` element ("Notification Exported Service desk ..."), for about a second after it opens. An e2e check like `page.getByText('Exported Service desk')` then matches two elements, and Playwright stops on a strict mode violation, so it passes or fails by timing. Match the toast's own text exactly (`getByText('Exported Service desk', { exact: true })`). It failed `versions.spec.ts` once in a full hidden run.

@@ -7,6 +7,7 @@ import { ApprovalCard, NoteBlock, RefusalCard, TableBlock } from './blocks';
 import { Markdown } from './markdown/Markdown';
 import type { PanelContent } from './SidePanel';
 import { Steps } from './Steps';
+import { FlagButton } from './teach/FlagButton';
 
 export const UserMessage = memo(function UserMessage({ message }: { message: WorkspaceMessage }) {
   return (
@@ -38,6 +39,8 @@ export interface AgentMessageProps {
   /** Whether finished steps start open, from the "Tool steps" setting. */
   stepsStartOpen: boolean;
   onOpenPanel: (content: PanelContent) => void;
+  /** Opens Teach this for a settled reply. */
+  onFlag: (message: WorkspaceMessage) => void;
 }
 
 export const AgentMessage = memo(function AgentMessage({
@@ -45,6 +48,7 @@ export const AgentMessage = memo(function AgentMessage({
   agent,
   stepsStartOpen,
   onOpenPanel,
+  onFlag,
 }: AgentMessageProps) {
   const working = message.status === 'streaming';
   const answerable = working || message.status === 'done';
@@ -105,9 +109,11 @@ export const AgentMessage = memo(function AgentMessage({
           message={message.error}
         />
       )}
-      {!working && message.text && (
+      {/* A settled reply can be copied, and flagged for teaching. */}
+      {!working && (message.text || message.status === 'done') && (
         <div className="-ml-2 -mt-2 flex animate-fade">
-          <CopyButton text={message.text} />
+          {message.text && <CopyButton text={message.text} />}
+          {message.status === 'done' && <FlagButton onFlag={() => onFlag(message)} />}
         </div>
       )}
     </article>

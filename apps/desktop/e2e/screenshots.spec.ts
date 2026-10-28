@@ -34,6 +34,7 @@ const ROUTES = [
   { name: 'define', path: '/jobs/job_example/define' },
   { name: 'train', path: '/runs/run_example/train' },
   { name: 'report', path: '/runs/run_example/report' },
+  { name: 'improvement', path: '/runs/run_example/improvement' },
 ] as const;
 
 /** The same screens filled with sample engine replies. */

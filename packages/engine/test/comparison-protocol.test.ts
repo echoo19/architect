@@ -247,6 +247,50 @@ describe('an adopted harness and a one-shot adapter', () => {
   });
 });
 
+describe("the reduced protocol's smoke check (decision 051)", () => {
+  it('checks a one-shot adapter on train tasks instead of dev, and never keeps a stand-in', async () => {
+    const job = await setUp({
+      budget: { maxRounds: 1, maxMentorUsd: 5, maxWallMinutes: 60 },
+    });
+    withStandInTraining(world);
+    const run = await engine.controller.start(job.id, 'architect', 7, {
+      protocol: {
+        arm: 'weights-one-shot',
+        oneShotAdapter: { perType: 1, smokeTasks: 2 },
+        pairedWithoutAdapter: true,
+        fixedRounds: true,
+      },
+    });
+    await engine.controller.idle();
+    expect(engine.errors).toEqual([]);
+    const [smoked] = engine.store.experiments.list(run.id);
+    expect(smoked?.kind).toBe('weights');
+    // Measured on two train tasks with the adapter, and on no dev task.
+    expect(smoked?.measurements.map((cell) => [cell.label, cell.split, cell.score.total])).toEqual([
+      ['H1/A1 smoke check', 'train', 2],
+    ]);
+    expect(smoked?.devBefore).toBeNull();
+    const devWithAdapter = engine.store.attempts
+      .list({ runId: run.id, split: 'dev' })
+      .filter((attempt) => attempt.config?.startsWith('student/llama.cpp') === true);
+    expect(devWithAdapter).toEqual([]);
+    // The smoke check passed, and the stand-in still isn't kept.
+    expect(smoked?.gates.map((gate) => [gate.gate, gate.passed])).toEqual([
+      ['stand_in', false],
+      ['smoke', true],
+    ]);
+    expect(smoked?.disposition).toBe('rejected');
+    expect(engine.store.lineage.list(run.id)).toEqual([]);
+    // Without a kept adapter there is nothing to pair: one locked test, on Ollama.
+    const record = engine.store.runs.get(run.id);
+    expect(record?.freeze?.configuration?.adapter).toBeNull();
+    const tests = engine.store.attempts.list({ runId: run.id, split: 'test' });
+    expect(new Set(tests.map((attempt) => attempt.config ?? 'student'))).toEqual(
+      new Set(['student']),
+    );
+  });
+});
+
 describe('the runtime meter', () => {
   it('records what it saw during a locked test on this computer, and nothing during dev', async () => {
     const job = await setUp();

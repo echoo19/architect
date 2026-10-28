@@ -22,7 +22,13 @@ export interface ArmScore {
   complete: boolean;
   /** The 95% Wilson interval the report gives, so two close rows read as close. */
   range: { low: number; high: number } | null;
-  repeat: { seed: number; pass: number; total: number } | null;
+  /** The second seed's result; not complete when it ran fewer scenarios than the test holds. */
+  repeat: { seed: number; pass: number; total: number; complete: boolean } | null;
+  /**
+   * The same setup without the trained weights on the same test, when the test measured both
+   * (decision 051's reduced protocol), so the weights' own effect reads beside the result.
+   */
+  without: { pass: number; total: number } | null;
 }
 
 export interface ReportArm {
@@ -50,7 +56,9 @@ export function armLabel(arm: ArmId, { mentor, student }: ModelNames): string {
     case 'targeted':
       return `${student} mentored by ${mentor}`;
     case 'reference':
-      return `${mentor} doing the tasks itself`;
+      return `${mentor} doing the tasks itself, no setup`;
+    case 'reference-targeted':
+      return `${mentor} doing the tasks itself, with the mentored setup`;
     case 'repeat':
       return 'The first three, tested a second time';
     case 'fixed':
@@ -62,11 +70,27 @@ export function armLabel(arm: ArmId, { mentor, student }: ModelNames): string {
   }
 }
 
-function rowIn(report: ComparisonReport, backend: BackendId, arm: ArmId, seed: number) {
+/**
+ * An arm's row in a backend's table under one seed: its own result (its one row, or the one with
+ * its trained weights when it has both), or the one without them.
+ */
+function rowIn(
+  report: ComparisonReport,
+  backend: BackendId,
+  arm: ArmId,
+  seed: number,
+  which: 'own' | 'without' = 'own',
+) {
+  const own = (row: ArmRow) => row.configuration === null || row.configuration === 'H1/A1';
   return (
     report.backends
       .find((table) => table.backend === backend)
-      ?.rows.find((row) => row.arm === arm && row.seed === seed) ?? null
+      ?.rows.find(
+        (row) =>
+          row.arm === arm &&
+          row.seed === seed &&
+          (which === 'own' ? own(row) : row.configuration === 'H1/A0'),
+      ) ?? null
   );
 }
 
@@ -75,18 +99,26 @@ function scoreOf(
   backend: BackendId,
   arm: ArmId,
   row: ArmRow | null,
+  without: ArmRow | null,
 ): ArmScore | null {
   if (row === null) return null;
-  const seeds = report.backends
+  // A repeat is the same configuration's, so it carries the row's own label.
+  const repeat = report.backends
     .find((table) => table.backend === backend)
-    ?.repeats.find((repeat) => repeat.arm === arm)?.seeds;
-  const other = seeds?.find((item) => item.seed !== row.seed) ?? null;
+    ?.repeats.find((item) => item.arm === arm && item.label === row.label);
+  const other = repeat?.seeds.find((item) => item.seed !== row.seed) ?? null;
   return {
     pass: row.scenarios.pass,
     total: row.scenarios.total,
     complete: row.complete,
     range: row.scenarios.wilson95,
-    repeat: other && { seed: other.seed, pass: other.score.pass, total: other.score.total },
+    repeat: other && {
+      seed: other.seed,
+      pass: other.score.pass,
+      total: other.score.total,
+      complete: repeat?.complete ?? true,
+    },
+    without: without && { pass: without.scenarios.pass, total: without.scenarios.total },
   };
 }
 
@@ -98,7 +130,9 @@ export function reportArms(
 ): ReportArm[] {
   const seed = report.plan.testSeeds[0] ?? 101;
   return report.arms.map((arm) => {
-    const hostedOn: BackendId = arm.arm === 'reference' ? 'reference' : 'hosted';
+    // Spark's own results sit in a table of their own, beside the hosted copy's.
+    const spark = arm.arm === 'reference' || arm.arm === 'reference-targeted';
+    const hostedOn: BackendId = spark ? 'reference' : 'hosted';
     const hostedRow = rowIn(report, hostedOn, arm.arm, seed);
     const localOn: BackendId = rowIn(report, 'local-llama.cpp', arm.arm, seed)
       ? 'local-llama.cpp'
@@ -110,8 +144,20 @@ export function reportArms(
       status: arm.status,
       reason: arm.reason,
       current: arm.runId !== null && arm.runId === runId,
-      hosted: scoreOf(report, hostedOn, arm.arm, hostedRow),
-      local: scoreOf(report, localOn, arm.arm, localRow),
+      hosted: scoreOf(
+        report,
+        hostedOn,
+        arm.arm,
+        hostedRow,
+        rowIn(report, hostedOn, arm.arm, seed, 'without'),
+      ),
+      local: scoreOf(
+        report,
+        localOn,
+        arm.arm,
+        localRow,
+        rowIn(report, localOn, arm.arm, seed, 'without'),
+      ),
       memory: localRow?.peakMemory ?? null,
       spent: arm.spent,
     };

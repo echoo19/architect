@@ -456,8 +456,16 @@ describe('a comparisons report', () => {
     sparkAttempts: 0,
     wallMinutes: 0,
   });
-  const row = (arm: string, seed: number, pass: number, peakMemory: unknown = null) => ({
+  const row = (
+    arm: string,
+    seed: number,
+    pass: number,
+    peakMemory: unknown = null,
+    configuration: string | null = null,
+  ) => ({
     arm,
+    label: configuration === null ? arm : `${arm}, ${configuration}`,
+    configuration,
     seed,
     scenarios: { pass, total: 60 },
     complete: true,
@@ -485,6 +493,8 @@ describe('a comparisons report', () => {
         repeats: [
           {
             arm: 'targeted',
+            label: 'targeted',
+            complete: true,
             seeds: [
               { seed: 101, score: { pass: 51, total: 60 } },
               { seed: 102, score: { pass: 50, total: 60 } },
@@ -492,7 +502,11 @@ describe('a comparisons report', () => {
           },
         ],
       },
-      { backend: 'reference', rows: [row('reference', 101, 57)], repeats: [] },
+      {
+        backend: 'reference',
+        rows: [row('reference', 101, 57), row('reference-targeted', 101, 58)],
+        repeats: [],
+      },
       {
         backend: 'local-ollama',
         rows: [row('targeted', 101, 47, { processBytes: 19e9, gpuBytes: 7e9 })],
@@ -514,14 +528,60 @@ describe('a comparisons report', () => {
     expect(targeted).toMatchObject({
       label: 'Glimmer mentored by Spark',
       current: true,
-      hosted: { pass: 51, repeat: { seed: 102, pass: 50, total: 60 } },
+      hosted: { pass: 51, repeat: { seed: 102, pass: 50, total: 60, complete: true } },
       local: { pass: 47 },
       memory: { processBytes: 19e9, gpuBytes: 7e9 },
     });
-    // Spark doing the tasks itself is read from its own table.
+    // Spark doing the tasks itself is read from its own table, and so is its second reference.
     expect(reference).toMatchObject({
-      label: 'Spark doing the tasks itself',
+      label: 'Spark doing the tasks itself, no setup',
       hosted: { pass: 57 },
+    });
+    const second = reportArms(
+      {
+        ...report,
+        arms: [{ ...report.arms[2], arm: 'reference-targeted', runId: 'run_r2' }],
+      } as unknown as ComparisonReport,
+      'run_t',
+      names,
+    )[0];
+    expect(second).toMatchObject({
+      label: 'Spark doing the tasks itself, with the mentored setup',
+      hosted: { pass: 58 },
+      local: null,
+    });
+  });
+
+  it('reads an adapter tested with and without it as one result, and marks a partial repeat', () => {
+    const adapter = {
+      ...report,
+      arms: [{ ...report.arms[0], arm: 'weights-one-shot', runId: 'run_w' }],
+      backends: [
+        {
+          backend: 'local-llama.cpp',
+          rows: [
+            row('weights-one-shot', 101, 52, null, 'H1/A0'),
+            row('weights-one-shot', 101, 55, null, 'H1/A1'),
+          ],
+          repeats: [
+            {
+              arm: 'weights-one-shot',
+              label: 'weights-one-shot, H1/A1',
+              complete: false,
+              seeds: [
+                { seed: 101, score: { pass: 55, total: 60 } },
+                { seed: 102, score: { pass: 30, total: 31 } },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as ComparisonReport;
+    const [arm] = reportArms(adapter, 'run_w', names);
+    expect(arm?.local).toMatchObject({
+      pass: 55,
+      without: { pass: 52, total: 60 },
+      repeat: { seed: 102, pass: 30, total: 31, complete: false },
     });
   });
 

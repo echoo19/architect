@@ -89,6 +89,16 @@ export function frozenConfig(frozen: GraduateFreeze): AttemptConfig {
   };
 }
 
+/**
+ * The frozen harness without its adapter on the same llama-server: the adapter loaded and not
+ * applied, so the server, the base and the prompt are the graduate's own (decision 051). Null for
+ * a graduate without an adapter.
+ */
+export function withoutAdapterConfig(frozen: GraduateFreeze): AttemptConfig | null {
+  const adapter = frozen.configuration?.adapter ?? null;
+  return adapter === null ? null : llamaCppConfig([adapter], null);
+}
+
 /** The locked test's decoding seeds: fixed at freezing, or the run's test seed for older runs. */
 export function testSeedsOf(state: RunState, frozen: GraduateFreeze): number[] {
   return frozen.testSeeds ?? [state.record.seeds.test];
@@ -248,6 +258,7 @@ export function runLockedTest(
   test: LockedTest,
   purpose: Exclude<EvaluationPurpose, 'training'>,
   seeds: readonly number[] = firstSeedsOf(state, frozen),
+  config: AttemptConfig = frozenConfig(frozen),
 ): Promise<boolean> {
   return evaluate(state, {
     tasks: test.tasks,
@@ -258,7 +269,7 @@ export function runLockedTest(
     target: test.target,
     purpose,
     concurrency: 1,
-    config: frozenConfig(frozen),
+    config,
     ...(frozen.configuration === undefined ? {} : { decoding: frozen.configuration.decoding }),
   });
 }
@@ -421,10 +432,18 @@ async function graduate(state: RunState, test: LockedTest, frozen: GraduateFreez
 
 /**
  * The frozen graduate's one locked test, on the target the run chose, with the mentor
- * released first. A pause parks it like any other evaluation; it is never stopped.
+ * released first. A pause parks it like any other evaluation; it is never stopped. A protocol
+ * that pairs it without its adapter runs the same tasks and seeds again with the adapter loaded
+ * and not applied, before the graduate is filed; its card stays the graduate's own result.
  */
 export async function lockedTest(state: RunState): Promise<void> {
   const frozen = must(state.record.freeze, 'The frozen graduate');
   const test = await openLockedTest(state, frozen, state.record.lockedTestOn);
-  if (await runLockedTest(state, frozen, test, 'locked_test')) await graduate(state, test, frozen);
+  if (!(await runLockedTest(state, frozen, test, 'locked_test'))) return;
+  const without = withoutAdapterConfig(frozen);
+  if (state.record.protocol?.pairedWithoutAdapter === true && without !== null) {
+    const seeds = firstSeedsOf(state, frozen);
+    if (!(await runLockedTest(state, frozen, test, 'locked_test', seeds, without))) return;
+  }
+  await graduate(state, test, frozen);
 }

@@ -15,6 +15,8 @@ export interface DrawerContentProps {
   actions?: ReactNode;
   /** When one drawer leads to another, the way back to the one before, left of the title. */
   onBack?: () => void;
+  /** A bar pinned along the bottom, such as a form's buttons, so it stays in view. */
+  footer?: ReactNode;
   children: ReactNode;
   className?: string;
 }
@@ -28,6 +30,7 @@ export function DrawerContent({
   subtitle,
   actions,
   onBack,
+  footer,
   children,
   className,
 }: DrawerContentProps) {
@@ -80,6 +83,11 @@ export function DrawerContent({
           </RadixDialog.Close>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-5">{children}</div>
+        {footer && (
+          <div className="flex min-h-16 shrink-0 flex-wrap items-center justify-end gap-x-4 gap-y-3 border-t border-line-card px-6 py-3.5">
+            {footer}
+          </div>
+        )}
       </RadixDialog.Content>
     </RadixDialog.Portal>
   );

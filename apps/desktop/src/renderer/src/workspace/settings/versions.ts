@@ -5,7 +5,8 @@ import { formatPercent } from '../../lib/format';
 export const EVALUATION_LABELS: Record<EvaluationStatus, string> = {
   ready: 'Ready',
   experimental: 'Experimental',
-  unevaluated: 'Not evaluated',
+  // A version with a score on the check tasks still hasn't taken the final test this names.
+  unevaluated: 'No final test yet',
 };
 
 /** What can be done with a version from the list: make it active, or go back to it. */

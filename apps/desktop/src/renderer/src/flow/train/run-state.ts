@@ -7,6 +7,7 @@ import type {
   Run,
   RunDetail,
   RunEvent,
+  RunImprovement,
 } from '@architect/shared';
 
 /** An attempt as the training view lists it, with the request text when the engine sent it. */
@@ -41,6 +42,11 @@ export interface LiveRun {
   /** The latest warning or error the engine logged in the current phase. */
   notice: RunNotice | null;
   graduateId: string | null;
+  /**
+   * Set when the run is Improve agent's: it ends in a new version of that agent, scored on the
+   * check tasks, and takes no final test.
+   */
+  improves: RunImprovement | null;
 }
 
 export type LiveRunState =
@@ -92,6 +98,7 @@ function fromDetail(detail: RunDetail): LiveRun {
     mentorBusy: false,
     notice: null,
     graduateId: detail.run.graduateId ?? null,
+    improves: detail.improves ?? null,
   };
 }
 

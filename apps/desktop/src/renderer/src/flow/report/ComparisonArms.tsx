@@ -26,7 +26,8 @@ const percentOf = (share: number) => Math.round(share * 100);
 
 /**
  * "45%" over "27 of 60", the range the true rate likely sits in, a partial test said as such,
- * and the result when the same test ran a second time.
+ * the result when the same test ran a second time, and the same setup's without trained weights
+ * when the test measured both.
  */
 function ScoreCell({ score }: { score: ArmScore | null }) {
   if (score === null) return <span className="text-fg-faint">Not run</span>;
@@ -45,9 +46,15 @@ function ScoreCell({ score }: { score: ArmScore | null }) {
           likely {percentOf(score.range.low)} to {percentOf(score.range.high)}%
         </span>
       )}
+      {score.without && (
+        <span className="whitespace-nowrap text-xs tabular-nums text-fg-muted">
+          without the weights: {score.without.pass} of {score.without.total}
+        </span>
+      )}
       {score.repeat && (
         <span className="whitespace-nowrap text-xs tabular-nums text-fg-muted">
           tested again: {score.repeat.pass} of {score.repeat.total}
+          {!score.repeat.complete && ', partial'}
         </span>
       )}
     </span>

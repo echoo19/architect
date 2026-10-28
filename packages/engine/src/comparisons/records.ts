@@ -2,24 +2,29 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { appendFile, readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import {
+  AdapterProtocolSchema,
   ArmIdSchema,
+  BillingSchema,
   COMPARISON_REPORT_FORMAT,
   ComparisonCapsSchema,
   ComparisonReportSchema,
+  PinnedInputsSchema,
   ProjectionSchema,
   RuntimeIdentitySchema,
   StudentTargetSchema,
   UsageSchema,
   type ComparisonReport,
+  type PinnedInputs,
 } from '@architect/shared';
 import { z } from 'zod';
 import { writeFileAtomic } from '../data/atomic-write';
 
 /*
  * What the comparisons runner keeps beside the engine's database, in its output folder: the
- * attempts it makes outside any run (calibration, the regression check, the local probe), the plan
- * it fixed before spending, and what it decided about each arm. Everything the report says comes
- * from these files and the database, never from a number typed in.
+ * attempts it makes outside any run (calibration, the regression check, the local probe), the
+ * journal of every hosted request, the plan it fixed before spending, and what it decided about
+ * each arm. Everything the report says comes from these files and the database, never from a
+ * number typed in.
  */
 
 /** One attempt the runner made outside a run, written as it finished. */
@@ -31,8 +36,17 @@ export const SweepAttemptSchema = z.object({
   refused: z.boolean(),
   latencyMs: z.number().int().nonnegative(),
   usage: UsageSchema,
-  /** Null when the endpoint's price isn't known; 0 on this computer. */
+  /**
+   * What it cost: what the provider billed for each call that said, the listed price of the
+   * others. Null when a call's cost is known neither way; 0 on this computer.
+   */
   usd: z.number().nonnegative().nullable(),
+  /** The listed price of its usage, for holding up against the bill; null without a price. */
+  listedUsd: z.number().nonnegative().nullable(),
+  /** Its model calls, and how many of them the provider said it billed, for how much. */
+  calls: z.number().int().nonnegative(),
+  billedCalls: z.number().int().nonnegative(),
+  billedUsd: z.number().nonnegative(),
   seed: z.number().int(),
   at: z.iso.datetime(),
 });
@@ -49,11 +63,18 @@ export const ProbeReadingSchema = z.object({
 });
 export type ProbeReading = z.infer<typeof ProbeReadingSchema>;
 
-/** What the runner decided about an arm that the database can't say: why it wasn't run or stopped. */
+/**
+ * What the runner decided about an arm that the database can't say: why it wasn't run, was
+ * stopped, or had its locked test held. A decision is final: a later run of the same plan never
+ * starts an arm it dropped or releases a test it held.
+ */
 export const ArmDecisionSchema = z.object({
   arm: ArmIdSchema,
-  /** `dropped`: never started for its money or prerequisites; `stopped`: the runner stopped it. */
-  kind: z.enum(['dropped', 'stopped']),
+  /**
+   * `dropped`: never started, for its money or prerequisites; `stopped`: the runner stopped it;
+   * `held`: its locked test stayed held, since the credit couldn't pay for it.
+   */
+  kind: z.enum(['dropped', 'stopped', 'held']),
   reason: z.string().min(1),
   at: z.iso.datetime(),
 });
@@ -76,6 +97,8 @@ export const PlanSettingsSchema = z.object({
   localOllama: z.boolean(),
   realCompute: z.boolean(),
   llamaServer: z.boolean(),
+  adapterProtocol: AdapterProtocolSchema,
+  smokeTasks: z.number().int(),
   sparkCaps: z.record(z.string(), z.number()),
   studentCaps: z.record(z.string(), z.number()),
   mentor: z.string(),
@@ -85,20 +108,32 @@ export const PlanSettingsSchema = z.object({
 });
 export type PlanSettings = z.infer<typeof PlanSettingsSchema>;
 
+/** The plan file's format; an older one is refused, never read with other meanings. */
+export const PLAN_FORMAT = 2;
+
 /** The plan as confirmed before any arm spent: fixed, so a resumed runner follows the same one. */
 export const PlanRecordSchema = z.object({
-  format: z.literal(1),
+  format: z.literal(PLAN_FORMAT),
   /** Null while the plan waits for the owner: nothing but calibration has spent. */
   confirmedAt: z.iso.datetime().nullable(),
   arms: z.array(ArmIdSchema),
   funded: z.array(ArmIdSchema),
   caps: ComparisonCapsSchema,
   settings: PlanSettingsSchema,
+  /** The job and the regression check's job, pinned by their files; a run on others is refused. */
+  inputs: z.object({ job: PinnedInputsSchema, regression: PinnedInputsSchema.nullable() }),
+  /** Calibration's cost held up against the provider's billing. */
+  billing: BillingSchema.nullable(),
   projection: ProjectionSchema,
   /** Each funded arm's student cap, its locked test's share reserved inside it. */
   studentCaps: z.record(z.string(), z.number().nonnegative()),
   decisions: z.array(ArmDecisionSchema),
   identities: z.record(z.string(), RuntimeIdentitySchema),
+  /**
+   * The test-release barrier: when the first locked result was released. From then on no arm
+   * starts or goes on developing, so nothing learns after a locked result exists.
+   */
+  releasedAt: z.iso.datetime().nullable(),
 });
 export type PlanRecord = z.infer<typeof PlanRecordSchema>;
 
@@ -122,6 +157,29 @@ export class ComparisonFiles {
     return join(this.out, 'probe.json');
   }
 
+  /** The request journal: every hosted request, written before it is sent. */
+  get journal(): string {
+    return join(this.out, 'requests.jsonl');
+  }
+
+  /** The job's files as the folder's first command found them, before anything was imported. */
+  get pinnedJob(): string {
+    return join(this.out, 'inputs.json');
+  }
+
+  readPinnedJob(): PinnedInputs | null {
+    if (!existsSync(this.pinnedJob)) return null;
+    return PinnedInputsSchema.parse(JSON.parse(readFileSync(this.pinnedJob, 'utf8')));
+  }
+
+  writePinnedJob(pinned: PinnedInputs): void {
+    mkdirSync(this.out, { recursive: true });
+    writeFileAtomic(
+      this.pinnedJob,
+      `${JSON.stringify(PinnedInputsSchema.parse(pinned), null, 2)}\n`,
+    );
+  }
+
   staging(arm: string): string {
     return join(this.out, 'staging', arm);
   }
@@ -136,7 +194,14 @@ export class ComparisonFiles {
 
   readPlan(): PlanRecord | null {
     if (!existsSync(this.plan)) return null;
-    return PlanRecordSchema.parse(JSON.parse(readFileSync(this.plan, 'utf8')));
+    const raw: unknown = JSON.parse(readFileSync(this.plan, 'utf8'));
+    const format = (raw as { format?: unknown }).format;
+    if (format !== PLAN_FORMAT) {
+      throw new Error(
+        `${this.plan} was written by an earlier runner (plan format ${String(format)}), which pinned less than this one holds a run to. Start the comparison in a new output folder.`,
+      );
+    }
+    return PlanRecordSchema.parse(raw);
   }
 
   writePlan(plan: PlanRecord): void {

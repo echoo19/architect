@@ -20,18 +20,19 @@ import { LatestAttempts } from '../flow/train/LatestAttempts';
 import { findingNotes, lessonNotes, type StepNote } from '../flow/train/lesson-steps';
 import { LessonDrawerContent } from '../flow/train/LessonView';
 import { phaseView } from '../flow/train/phase';
-
 import { Resources } from '../flow/train/Resources';
 import { RoundDrawerContent, type RoundEvidence } from '../flow/train/RoundDrawer';
 import { Rounds, type RoundsFooter } from '../flow/train/Rounds';
 import { RunControls, StopDialog } from '../flow/train/RunControls';
-import { activeProgress, currentRound, type LiveRun } from '../flow/train/run-state';
+import { activeProgress, currentRound, hasKeptChange, type LiveRun } from '../flow/train/run-state';
 import { TaskSuccess } from '../flow/train/TaskSuccess';
+import { TaughtLessons } from '../flow/train/TaughtLessons';
 import { StepsSkeleton, TraceDrawerContent } from '../flow/train/TraceDrawer';
 import { useLiveRun } from '../flow/train/use-live-run';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
-import { FlowShell } from '../shell/FlowShell';
+import { FlowShell, IMPROVE_STEPS } from '../shell/FlowShell';
+import { StopImprovementDialog } from '../workspace/teach/StopImprovement';
 
 /** Statuses in which the run is doing something right now. */
 const WORKING: ReadonlySet<RunStatus> = new Set(['queued', 'running', 'stopping', 'testing']);
@@ -65,7 +66,10 @@ function useDrawerStack() {
   return { ...state, top: state.stack.at(-1) ?? null, show, push, back, hide };
 }
 
-/** Step three: the mentor teaching the student, live, round by round. */
+/**
+ * Step three: the mentor teaching the student, live, round by round. An improvement of an agent
+ * runs here too, under the lessons it teaches, and ends in a new version instead of a final test.
+ */
 export function TrainScreen({ runId }: { runId: string }) {
   const { state, retry } = useLiveRun(runId);
   const live = state.status === 'live' ? state.live : null;
@@ -73,13 +77,15 @@ export function TrainScreen({ runId }: { runId: string }) {
   const [stopping, setStopping] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const reading = drawer.open || stopping;
+  const improving = live?.improves ?? null;
 
   useReportWhenFinished(live, contentRef, reading);
 
   return (
-    <FlowShell
+    <FlowShell<string>
       title={live?.job.name ?? 'Training'}
-      step="Train"
+      step={improving ? 'Improve' : 'Train'}
+      {...(improving ? { steps: IMPROVE_STEPS } : {})}
       actions={live && <RunControls live={live} onStop={() => setStopping(true)} />}
     >
       <div
@@ -102,7 +108,18 @@ export function TrainScreen({ runId }: { runId: string }) {
         )}
         {live && <LiveTraining live={live} drawer={drawer} />}
       </div>
-      {live && <StopDialog open={stopping} live={live} onClose={() => setStopping(false)} />}
+      {live &&
+        (live.improves ? (
+          <StopImprovementDialog
+            open={stopping}
+            runId={live.run.id}
+            writing={live.run.status === 'testing' || live.run.phase === 'testing'}
+            kept={hasKeptChange(live.rounds)}
+            onClose={() => setStopping(false)}
+          />
+        ) : (
+          <StopDialog open={stopping} live={live} onClose={() => setStopping(false)} />
+        ))}
     </FlowShell>
   );
 }
@@ -282,6 +299,7 @@ function useReportWhenFinished(
 ): void {
   const status = live?.run.status ?? null;
   const runId = live?.run.id ?? null;
+  const improving = (live?.improves ?? null) !== null;
   const previous = useRef<RunStatus | null>(null);
   useEffect(() => {
     const before = previous.current;
@@ -289,8 +307,8 @@ function useReportWhenFinished(
     if (!runId || status !== 'finished' || before === null || before === 'finished') return;
     const scroller = contentRef.current?.closest('main');
     const atTop = !scroller || scroller.scrollTop < SCROLLED_AWAY_PX;
-    if (atTop && !reading) navigate(paths.report(runId));
-  }, [status, runId, contentRef, reading]);
+    if (atTop && !reading) navigate(improving ? paths.improvement(runId) : paths.report(runId));
+  }, [status, runId, contentRef, reading, improving]);
 }
 
 /** Where the student is running now: a hosted copy only practices; the final test runs here. */
@@ -315,15 +333,17 @@ function TrainBoard({
   onOpenRound: (round: Round) => void;
   onOpenLesson: (lesson: ListedLesson) => void;
 }) {
-  const { run, job } = live;
+  const { run, job, improves } = live;
   const names = modelNames(job);
   const draft = draftRoundOf(live);
   const drafting = draft !== null && currentRound(live)?.index === draft;
-  const view = phaseView(run, names, drafting);
+  const view = phaseView(run, names, drafting, improves !== null);
   const score = run.devCurrent ?? run.devBaseline;
   let footer: RoundsFooter | null = null;
   if (run.status === 'finished') {
-    footer = { label: 'See the report card', onClick: () => navigate(paths.report(run.id)) };
+    footer = improves
+      ? { label: 'See what changed', onClick: () => navigate(paths.improvement(run.id)) }
+      : { label: 'See the report card', onClick: () => navigate(paths.report(run.id)) };
   }
   const evidence = records.data ?? null;
   const failure =
@@ -333,6 +353,7 @@ function TrainBoard({
   const round = currentRound(live);
   return (
     <>
+      {improves && <TaughtLessons improves={improves} />}
       {run.status === 'failed' && (
         <div
           role="alert"
@@ -340,7 +361,9 @@ function TrainBoard({
         >
           <CircleAlert size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
           <div className="flex flex-col gap-0.5">
-            <span className="font-medium">Training stopped on an error</span>
+            <span className="font-medium">
+              {improves ? 'Improving stopped on an error' : 'Training stopped on an error'}
+            </span>
             <span className="text-fg-secondary text-pretty">
               {run.error ?? 'The engine reported a failure without a message.'}
             </span>

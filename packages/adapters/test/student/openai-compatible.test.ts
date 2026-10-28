@@ -326,6 +326,22 @@ describe('the reply', () => {
     });
   });
 
+  it('passes on what OpenRouter says it charged for the call', async () => {
+    const { student } = await hostedOn('openrouter-glimmer', (_request, res) =>
+      sendEventStream(
+        res,
+        textReply('ok', { prompt_tokens: 30_000, completion_tokens: 800, cost: 0.01294 }),
+      ),
+    );
+    const done = (await collect(student.chat(studentRequest()))).at(-1);
+    expect(done).toEqual({
+      type: 'done',
+      usage: { inputTokens: 30_000, outputTokens: 800 },
+      finish: 'stop',
+      costUsd: 0.01294,
+    });
+  });
+
   it('reports zero usage rather than failing when a host sends none', async () => {
     const { student } = await hostedOn('together-glimmer', (_request, res) =>
       sendEventStream(res, textReply('ok', null)),

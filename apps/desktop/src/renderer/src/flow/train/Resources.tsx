@@ -47,7 +47,9 @@ export function Resources({
   const speed = medianLatencyMs(live.attempts);
   const changes = recordsFailed ? null : keptChanges(live, records);
   // Training stops at the time limit, and the final test still runs: its time counts here too.
+  // An improvement takes no final test, so it says only that the limit was reached.
   const testedPast =
+    live.improves === null &&
     minutes.used > minutes.max &&
     (live.run.phase === 'testing' || live.run.graduateId !== undefined);
   return (
@@ -99,8 +101,15 @@ export function Resources({
           </span>
         }
       >
-        <span className="font-mono">{live.job.splits.test}</span>{' '}
-        <span className="text-fg-muted">unseen tasks</span>
+        {/* An improvement is scored on the check tasks and never takes the final test. */}
+        {live.improves ? (
+          <span className="text-fg-muted">Not taken</span>
+        ) : (
+          <>
+            <span className="font-mono">{live.job.splits.test}</span>{' '}
+            <span className="text-fg-muted">unseen tasks</span>
+          </>
+        )}
       </Fact>
     </Panel>
   );

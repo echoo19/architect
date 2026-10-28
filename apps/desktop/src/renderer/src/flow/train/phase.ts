@@ -34,10 +34,42 @@ export interface ModelNames {
 }
 
 /**
- * What the panel shows for the run's state. `drafting` is true while the current round writes
- * the first full draft of the agent's instructions instead of one watched change.
+ * An improvement's last steps and how it ended: it writes a new version of the agent where a
+ * training run takes its final test. Null while it is in its rounds, which read as any run's.
  */
-export function phaseView(run: Run, names: ModelNames, drafting = false): PhaseView {
+function improvementView(run: Run): PhaseView | null {
+  const still = { stage: null, motion: 'still', frozen: true } as const;
+  switch (run.status) {
+    case 'finished':
+      return {
+        ...still,
+        text: run.graduateId ? 'Made a new version' : 'No change was kept, so it made no version',
+      };
+    case 'stopped':
+      return { ...still, text: 'Improving stopped' };
+    case 'failed':
+      return { ...still, text: 'Improving stopped on an error' };
+    default:
+      if (run.phase !== 'testing' && run.status !== 'testing') return null;
+      return run.status === 'paused'
+        ? { stage: null, motion: 'idle', frozen: true, text: 'Paused' }
+        : { stage: null, motion: 'idle', frozen: false, text: 'Writing its new version' };
+  }
+}
+
+/**
+ * What the panel shows for the run's state. `drafting` is true while the current round writes
+ * the first full draft of the agent's instructions instead of one watched change; `improving`
+ * when the run is Improve agent's, which ends in a new version rather than a final test.
+ */
+export function phaseView(
+  run: Run,
+  names: ModelNames,
+  drafting = false,
+  improving = false,
+): PhaseView {
+  const improvement = improving ? improvementView(run) : null;
+  if (improvement) return improvement;
   const { mentor, student } = names;
   switch (run.status) {
     case 'queued':

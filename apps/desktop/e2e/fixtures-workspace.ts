@@ -409,6 +409,22 @@ export async function installFakeEngine(app: ElectronApplication, seed: EngineSe
     };
 
     handle('graduates:list', () => seed.graduates);
+    // Nothing flagged or queued, and Improve agent on the job's own budget.
+    handle('teach:overview', (graduateId: string) => ({
+      graduateId,
+      sharesCorrections: false,
+      mentor: seed.job.mentor.label,
+      correctionCapUsd: 0.25,
+      improve: {
+        fromVersion:
+          seed.graduates.find((graduate) => graduate.id === graduateId)?.activeVersion ?? 1,
+        budget: { ...seed.job.budget, maxRounds: Math.min(seed.job.budget.maxRounds, 10) },
+        training: false,
+        waits: false,
+      },
+    }));
+    handle('teach:list', () => []);
+    handle('teach:improvements', () => []);
     handle('graduates:versions', () => seed.versions);
     handle('graduates:installation', () => seed.installation);
     handle('graduates:report', () => seed.report);

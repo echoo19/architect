@@ -26,6 +26,7 @@ import { formatDuration } from '../../lib/format';
 import { formatAnswerTime, formatCost } from '../format';
 import { typeLabel } from '../names';
 import {
+  checkMeasurements,
   GATES,
   INTERVENTIONS,
   lessonOrigin,
@@ -438,7 +439,7 @@ export function ExperimentDetails({
                 },
               ]
             : []),
-          { label: 'Check seeds', value: seedsOf(experiment.measurements) },
+          { label: 'Check seeds', value: seedsOf(checkMeasurements(experiment)) },
           ...(experiment.seeds.train === null
             ? []
             : [{ label: 'Practice seed', value: String(experiment.seeds.train) }]),

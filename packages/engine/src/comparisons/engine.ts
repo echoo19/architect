@@ -12,6 +12,12 @@ export interface ComparisonEngine {
   store: EngineStore;
   jobs: JobLibrary;
   controller: RunController;
+  /**
+   * Resumes what was active when the folder was last closed: the training worker's unfinished
+   * jobs, and every run, re-test, repeat and reference that was going. Only once the runner has
+   * checked its plan and set up its guards, since what resumes spends at once.
+   */
+  recover(): void;
   close(): Promise<void>;
 }
 
@@ -21,14 +27,11 @@ export interface ComparisonEngineOptions {
   /** Attempts in flight at once within one hosted evaluation. */
   concurrency: number;
   onError(error: unknown): void;
-  /** Resume what was active when it last closed; false only to read the records. Default true. */
-  resume?: boolean;
 }
 
 /**
- * Opens the engine on a data folder the way the engine host does, without the app's API: the
- * training worker picks up its unfinished jobs and the controller resumes every run, re-test,
- * repeat and reference that was active, so a crash never pays for work twice.
+ * Opens the engine on a data folder the way the engine host does, without the app's API, and
+ * resumes nothing: work left active by a crash waits for `recover` (decision 051).
  */
 export function openComparisonEngine(
   dataDir: string,
@@ -51,15 +54,15 @@ export function openComparisonEngine(
     onError: options.onError,
     libraryLock: new KeyedLock(),
   });
-  if (options.resume !== false) {
-    deps.training?.worker.resume();
-    controller.recover();
-  }
   return {
     paths,
     store,
     jobs,
     controller,
+    recover: () => {
+      deps.training?.worker.resume();
+      controller.recover();
+    },
     close: async () => {
       await controller.close();
       deps.training?.worker.close();

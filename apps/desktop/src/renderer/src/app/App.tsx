@@ -7,6 +7,7 @@ import { ChatScreen } from '../screens/ChatScreen';
 import { DefineScreen } from '../screens/DefineScreen';
 import { DescribeScreen } from '../screens/DescribeScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { ImprovementScreen } from '../screens/ImprovementScreen';
 import { NotFoundScreen } from '../screens/NotFoundScreen';
 import { ReportScreen } from '../screens/ReportScreen';
 import { TrainScreen } from '../screens/TrainScreen';
@@ -44,6 +45,8 @@ function Screen({ route }: { route: Route }) {
       return <TrainScreen key={route.runId} runId={route.runId} />;
     case 'report':
       return <ReportScreen key={route.runId} runId={route.runId} />;
+    case 'improvement':
+      return <ImprovementScreen key={route.runId} runId={route.runId} />;
     case 'not-found':
       return <NotFoundScreen path={route.path} />;
   }

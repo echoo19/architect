@@ -1,5 +1,10 @@
-import { useState } from 'react';
-import type { GraduateSummary, JobSummary } from '@architect/shared';
+import { useEffect, useState } from 'react';
+import {
+  RunEventSchema,
+  type GraduateSummary,
+  type JobSummary,
+  type RunStatus,
+} from '@architect/shared';
 import {
   AgentAvatar,
   cn,
@@ -15,7 +20,9 @@ import {
   Tooltip,
 } from '@architect/ui';
 import { Cloud, Ellipsis, PackageOpen, Pause, Plus, Settings } from 'lucide-react';
-import { useGraduates, useJobs } from '../api/hooks';
+import { api, architect } from '../api/client';
+import { queryKeys, useGraduates, useJobs } from '../api/hooks';
+import { fetchQuery } from '../api/query';
 import { chooseFromHub, chooseImport } from '../import/session';
 import { formatPercent } from '../lib/format';
 import { attempt } from '../lib/notify';
@@ -31,10 +38,30 @@ const navRow =
 
 const ACTIVE_RUN = new Set(['queued', 'running', 'paused', 'stopping', 'testing']);
 
+/**
+ * Keeps the list of runs in training current: it is read again when the sidebar appears, and
+ * whenever a run starts, pauses, stops or ends, such as an improvement started from Teaching.
+ */
+function useTrainingUpdates(): void {
+  useEffect(() => {
+    void fetchQuery(queryKeys.jobs, api.jobs);
+    const statuses = new Map<string, RunStatus>();
+    return architect().runs.onEvent((payload) => {
+      const parsed = RunEventSchema.safeParse(payload);
+      if (!parsed.success || parsed.data.type !== 'run.updated') return;
+      const { runId, run } = parsed.data;
+      if (statuses.get(runId) === run.status) return;
+      statuses.set(runId, run.status);
+      void fetchQuery(queryKeys.jobs, api.jobs);
+    });
+  }, []);
+}
+
 export function Sidebar({ route }: { route: Route }) {
   const graduates = useGraduates();
   const jobs = useJobs();
   const openSettings = useUi((state) => state.openSettings);
+  useTrainingUpdates();
 
   return (
     <nav

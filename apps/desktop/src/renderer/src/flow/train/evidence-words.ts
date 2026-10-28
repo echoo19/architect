@@ -193,14 +193,22 @@ export function measurementLabel(measurement: Pick<Measurement, 'label'>): strin
   return MEASUREMENT_LABELS[measurement.label] ?? measurement.label;
 }
 
-/** The measurements in the order a table reads them: before, then after, then the rest. */
+/**
+ * The measurements on check tasks. A smoke check runs on practice tasks (decision 051), so it is
+ * never read as one.
+ */
+export function checkMeasurements(experiment: Experiment): Measurement[] {
+  return experiment.measurements.filter((item) => item.split !== 'train');
+}
+
+/** The check-task measurements in the order a table reads them: before, after, then the rest. */
 export function orderedMeasurements(experiment: Experiment): Measurement[] {
   const order = Object.keys(MEASUREMENT_LABELS);
   const rank = (label: string) => {
     const at = order.indexOf(label);
     return at < 0 ? order.length : at;
   };
-  return [...experiment.measurements].sort((a, b) => rank(a.label) - rank(b.label));
+  return checkMeasurements(experiment).sort((a, b) => rank(a.label) - rank(b.label));
 }
 
 /** What each hard gate looks at. */
@@ -208,6 +216,7 @@ export const GATES: Record<GateResult['gate'], string> = {
   permission: 'Writes',
   device: 'Answer time',
   stand_in: 'Trained weights',
+  smoke: 'Runs with the weights',
 };
 
 /** A sentence from the engine, ended as a sentence. */

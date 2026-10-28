@@ -274,6 +274,8 @@ export const MeasurementSchema = z.object({
   latencyMs: z.object({ p50: z.number().nonnegative(), p95: z.number().nonnegative() }),
   /** Where the numbers come from: measured for this experiment, or reused and from where. */
   provenance: z.string().min(1),
+  /** The tasks it ran on: dev when absent, or train for a smoke check (decision 051). */
+  split: z.enum(['dev', 'train']).optional(),
 });
 export type Measurement = z.infer<typeof MeasurementSchema>;
 
@@ -295,7 +297,7 @@ export const ExperimentKindSchema = z.enum(['draft', 'harness', 'weights']);
 export type ExperimentKind = z.infer<typeof ExperimentKindSchema>;
 
 export const GateResultSchema = z.object({
-  gate: z.enum(['permission', 'device', 'stand_in']),
+  gate: z.enum(['permission', 'device', 'stand_in', 'smoke']),
   passed: z.boolean(),
   detail: z.string(),
 });

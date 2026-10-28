@@ -2,8 +2,10 @@ import {
   ARM_LABELS,
   ArmIdSchema,
   MENTOR_PRESETS,
+  type AdapterProtocol,
   type ArmId,
   type ArmProjection,
+  type Billing,
   type ComparisonCaps,
   type Job,
   type Projection,
@@ -21,8 +23,15 @@ export interface ComparisonConfig {
   /** The arms asked for; they are funded and run in decision 037's order whatever this order. */
   arms: readonly ArmId[];
   caps: ComparisonCaps;
-  /** Spark's cap for each arm that calls it (decision 037). */
-  sparkCaps: { draft: number; targeted: number; fixed: number; reference: number; weights: number };
+  /** Spark's cap for each arm that calls it (decision 037), and the second reference's (051). */
+  sparkCaps: {
+    draft: number;
+    targeted: number;
+    fixed: number;
+    reference: number;
+    referenceTargeted: number;
+    weights: number;
+  };
   mentoringSeed: number;
   /** The locked test's decoding seeds: the first for every arm, the rest for the repeat. */
   testSeeds: readonly number[];
@@ -42,6 +51,13 @@ export interface ComparisonConfig {
   realCompute: boolean;
   /** llama-server may serve adapters here: the GPU window for the weights arms is granted. */
   llamaServer: boolean;
+  /**
+   * How the one-shot adapter is measured: in four configurations on dev, or by the reduced
+   * protocol for one GPU window, a smoke check and then the locked test with and without it.
+   */
+  adapterProtocol: AdapterProtocol;
+  /** The reduced protocol's smoke check: train tasks with the adapter before the locked test. */
+  smokeTasks: number;
   /** Each arm's student cap is its projection times this, its share of the slack. */
   headroom: number;
   /** An arm's student cap set by hand, below or above its projection times the headroom. */
@@ -51,7 +67,7 @@ export interface ComparisonConfig {
 }
 
 export const DEFAULT_CONFIG: Omit<ComparisonConfig, 'arms' | 'caps'> = {
-  sparkCaps: { draft: 1, targeted: 5, fixed: 5, reference: 4, weights: 3 },
+  sparkCaps: { draft: 1, targeted: 5, fixed: 5, reference: 4, referenceTargeted: 4, weights: 3 },
   mentoringSeed: 1,
   testSeeds: [101, 102],
   rounds: 2,
@@ -62,6 +78,8 @@ export const DEFAULT_CONFIG: Omit<ComparisonConfig, 'arms' | 'caps'> = {
   localOllama: false,
   realCompute: false,
   llamaServer: false,
+  adapterProtocol: 'four-cell',
+  smokeTasks: 3,
   headroom: 1.2,
   concurrency: 6,
 };
@@ -108,9 +126,42 @@ function sparkPricing(job: Job): { inputPerM: number; outputPerM: number } {
 }
 
 /**
+ * Calibration's cost held up against the provider's billing: over the attempts whose every model
+ * call came back with the provider's charge (OpenRouter reports one per call), what it billed and
+ * what the listed price of the same usage comes to. Null before calibration.
+ */
+export function billingOf(calibration: readonly SweepAttempt[]): Billing | null {
+  if (calibration.length === 0) return null;
+  const whole = calibration.filter(
+    (attempt) => attempt.calls > 0 && attempt.billedCalls === attempt.calls,
+  );
+  const billedUsd = whole.reduce((sum, attempt) => sum + attempt.billedUsd, 0);
+  const listedUsd = whole.reduce((sum, attempt) => sum + (attempt.listedUsd ?? 0), 0);
+  return {
+    calls: calibration.reduce((sum, attempt) => sum + attempt.calls, 0),
+    billedCalls: calibration.reduce((sum, attempt) => sum + attempt.billedCalls, 0),
+    billedUsd,
+    listedUsd,
+    ratio: whole.length === 0 || listedUsd <= 0 ? null : billedUsd / listedUsd,
+  };
+}
+
+/** Words for where calibration's price per attempt came from. */
+function pricedBy(billing: Billing | null, attempts: number): string {
+  if (billing === null || billing.billedCalls === 0) {
+    return `mean of ${attempts} calibration attempts at the listed price; the provider reported no charges`;
+  }
+  if (billing.billedCalls === billing.calls) {
+    return `mean of ${attempts} calibration attempts as the provider billed them`;
+  }
+  return `mean of ${attempts} calibration attempts: what the provider billed for ${billing.billedCalls} of ${billing.calls} calls, the listed price of the others`;
+}
+
+/**
  * The measurement model's inputs: a hosted attempt's cost, time and tokens from the calibration
- * attempts, a local attempt's time from the probe; anything not measured yet is assumed, labeled
- * so, and the projection says which.
+ * attempts (each at what the provider billed, where it said), a local attempt's time from the
+ * probe; anything not measured yet is assumed, labeled so, and the projection says which. An
+ * attempt whose cost can't be known stops the plan: it never counts as zero.
  */
 export function modelInputs(
   job: Job,
@@ -118,7 +169,12 @@ export function modelInputs(
   calibration: readonly SweepAttempt[],
   probe: { attempts: readonly SweepAttempt[]; reading: ProbeReading | null },
 ): ModelInputs {
-  const priced = calibration.filter((attempt) => attempt.usd !== null);
+  const costs = calibration.flatMap((attempt) => (attempt.usd === null ? [] : [attempt.usd]));
+  if (costs.length < calibration.length) {
+    throw new Error(
+      `${calibration.length - costs.length} of ${calibration.length} calibration attempts have no known cost: the provider reported neither a charge nor usage for some of their calls, and nothing else can price them. The plan can't be held to the student's credit, so nothing beyond calibration spends.`,
+    );
+  }
   const measured = calibration.length > 0;
   const inputTokens = mean(calibration.map((attempt) => attempt.usage.inputTokens));
   const outputTokens = mean(calibration.map((attempt) => attempt.usage.outputTokens));
@@ -128,22 +184,21 @@ export function modelInputs(
   const localLatencies = probe.attempts.map((attempt) => attempt.latencyMs);
   const calibrationNote = `${calibration.length} calibration attempts on the hosted student`;
   return {
-    studentUsd:
-      priced.length > 0
-        ? {
-            name: 'Hosted attempt',
-            value: mean(priced.map((attempt) => attempt.usd ?? 0)),
-            unit: 'USD',
-            source: 'measured',
-            note: `mean of ${priced.length} priced calibration attempts`,
-          }
-        : {
-            name: 'Hosted attempt',
-            value: ASSUMED_STUDENT.usd,
-            unit: 'USD',
-            source: 'assumed',
-            note: "decision 037's expected $0.01, until calibration prices one",
-          },
+    studentUsd: measured
+      ? {
+          name: 'Hosted attempt',
+          value: mean(costs),
+          unit: 'USD',
+          source: 'measured',
+          note: pricedBy(billingOf(calibration), calibration.length),
+        }
+      : {
+          name: 'Hosted attempt',
+          value: ASSUMED_STUDENT.usd,
+          unit: 'USD',
+          source: 'assumed',
+          note: "decision 037's expected $0.01, until calibration prices one",
+        },
     studentSeconds: measured
       ? {
           name: 'Hosted attempt time (p50)',
@@ -282,6 +337,8 @@ function needOf(arm: ArmId, job: Job, config: ComparisonConfig, funded: Readonly
       };
     case 'reference':
       return { ...none, sparkAttempts: test, sparkCap: config.sparkCaps.reference };
+    case 'reference-targeted':
+      return { ...none, sparkAttempts: test, sparkCap: config.sparkCaps.referenceTargeted };
     case 'repeat': {
       const repeated = (['bare', 'draft', 'targeted'] as const).filter((other) =>
         funded.has(other),
@@ -289,6 +346,18 @@ function needOf(arm: ArmId, job: Job, config: ComparisonConfig, funded: Readonly
       return { ...none, hosted: test * repeated.length, oneAtATime: test * repeated.length };
     }
     case 'weights-one-shot':
+      if (config.adapterProtocol === 'reduced') {
+        return {
+          ...none,
+          // The run's baseline of the targeted harness it starts from.
+          hosted: dev,
+          // The smoke check, then the locked test with and without the adapter.
+          local: config.smokeTasks + 2 * test,
+          sparkAttempts: config.oneShotPerType * job.taskTypes.length,
+          jobs: 1,
+          sparkCap: config.sparkCaps.weights,
+        };
+      }
       return {
         ...none,
         hosted: 2 * dev,
@@ -333,6 +402,8 @@ function prerequisite(
       return needs('draft');
     case 'reference':
       return needs('bare');
+    case 'reference-targeted':
+      return needs('targeted');
     case 'repeat':
       return ['bare', 'draft', 'targeted'].some((other) => funded.has(other as ArmId))
         ? null
@@ -344,6 +415,9 @@ function prerequisite(
       }
       if (!config.llamaServer) {
         return "Adapters are measured and tested only on this computer's llama-server, and no GPU window is granted.";
+      }
+      if (arm === 'weights-targeted' && config.adapterProtocol === 'reduced') {
+        return 'The reduced adapter protocol measures only the one-shot adapter; a failure-specific adapter needs dev measurements to keep or reject each round.';
       }
       return needs('targeted');
     default:

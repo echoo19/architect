@@ -14,7 +14,7 @@ import {
 import { improvementHarness } from '../improve/improvement';
 import type { StoredRound } from '../store/records';
 import { resultOf, type EvaluationResult } from './attempts';
-import { configurationKey, llamaCppConfig, type AttemptConfig } from './configuration';
+import { configurationKey, LLAMA_CPP, llamaCppConfig, type AttemptConfig } from './configuration';
 import { must } from './errors';
 import { evaluate, type EvaluationSpec } from './evaluation';
 import { measurement, recordExperiment, settleExperimentCompute } from './experiments';
@@ -719,6 +719,119 @@ function distinctCells(cells: readonly Cell[]): Cell[] {
 }
 
 /**
+ * The reduced adapter protocol's check of a one-shot adapter (decision 051): the round's harness
+ * with the adapter on a few train tasks, on the llama-server its locked test will use, instead of
+ * four configurations on dev. It checks that the adapter loads and the student still works with
+ * it, every attempt ending without an error, not what it adds: the adapter is kept unless the
+ * check or a hard gate fails, and its locked test measures it with and without the adapter. It
+ * changes no harness and measures nothing on dev, so it writes an experiment and no lineage entry.
+ */
+async function smokeAdapter(state: RunState, index: number, count: number): Promise<void> {
+  const { store, runId } = state.ctx;
+  const stored = state.round(index);
+  const candidate = must(stored.round.candidateAdapter, 'The candidate adapter');
+  const h1 = stored.baseVersion;
+  const a1 = llamaCppConfig([candidate], candidate);
+  const taught = new Set(
+    (store.interventions.get(runId, index)?.teaching?.items ?? []).flatMap((item) =>
+      item.kind === 'demonstration' ? [item.taskId] : [],
+    ),
+  );
+  const train = await state.trainTasks();
+  const untaught = train.filter((task) => !taught.has(task.id));
+  const tasks = sampleTrainBatch(
+    untaught.length >= count ? untaught : train,
+    count,
+    deriveSeed(state.record.seeds.trainBatch, `smoke-${index}`),
+  );
+  const seed = roundSeed(state.record.seeds.trainStudent, index);
+  const spec: EvaluationSpec = {
+    tasks,
+    split: 'train',
+    round: index,
+    version: h1,
+    seeds: [seed],
+    target: 'local',
+    purpose: 'training',
+    concurrency: 1,
+    config: a1,
+  };
+  if (!(await evaluate(state, spec))) return;
+  const attempts = state
+    .attempts({
+      split: 'train',
+      round: index,
+      version: h1,
+      target: 'local',
+      config: configurationKey(a1),
+    })
+    .filter((attempt) => attempt.seed === seed);
+  const result = resultOf(attempts, state.job);
+  const broken = attempts.filter((attempt) => attempt.stopReason === 'error').length;
+  const scored = `${result.score.pass} of ${result.score.total} passed the checker`;
+  const gates: GateResult[] = [
+    candidate.standIn
+      ? {
+          gate: 'stand_in',
+          passed: false,
+          detail: `Its adapter came from the stand-in backend (${candidate.label}), which trains nothing, so it is never kept`,
+        }
+      : { gate: 'stand_in', passed: true, detail: `Trained on ${candidate.label}.` },
+    broken === 0
+      ? {
+          gate: 'smoke',
+          passed: true,
+          detail: `${attempts.length} train tasks on llama-server with the adapter all ended without an error; ${scored}.`,
+        }
+      : {
+          gate: 'smoke',
+          passed: false,
+          detail: `${broken} of ${attempts.length} train tasks on llama-server with the adapter ended in an error, so it isn't kept`,
+        },
+  ];
+  const failed = gates.find((gate) => !gate.passed);
+  const kept = failed === undefined;
+  const reason = kept
+    ? `Smoke check on ${attempts.length} train tasks: ${scored}, none ended in an error. A one-shot adapter is kept as measured; the reduced protocol takes no dev measurement, and its locked test measures the harness with and without the adapter`
+    : failed.detail;
+  const smoke = {
+    ...measurement(
+      'H1/A1 smoke check',
+      { harnessVersion: h1, actor: 'student', backend: LLAMA_CPP, adapter: a1.adapter },
+      { ...result, latencies: attempts.map((attempt) => attempt.latencyMs) },
+      [seed],
+      'A smoke check on train tasks before the locked test, not a dev measurement.',
+    ),
+    split: 'train' as const,
+  };
+  const decided: Round = {
+    ...stored.round,
+    status: 'decided',
+    decision: kept ? 'kept' : 'reverted',
+    decisionReason: reason,
+    endedAt: state.now(),
+  };
+  const { decoding } = await state.resources.harness(h1);
+  const { run, experiment } = store.transaction(() => {
+    store.rounds.update({ ...stored, round: decided });
+    return {
+      experiment: recordExperiment(state, index, {
+        disposition: kept ? 'kept' : 'rejected',
+        reason,
+        measurements: [smoke],
+        gates,
+        decoding,
+      }),
+      run: kept ? state.writeRun({ currentAdapter: candidate }) : null,
+    };
+  });
+  state.emit({ type: 'round.updated', round: decided });
+  state.announce('experiment', experiment.id, index);
+  if (run) state.emit({ type: 'run.updated', run });
+  state.log('info', `Round ${index} ${kept ? 'kept' : 'rejected'}: ${reason}.`);
+}
+
+/**
  * A weights round's candidate: the adapter it trained, on the incumbent harness. Every
  * configuration runs on one llama-server, with the same base and decoding, grouped by adapter so
  * a scale change doesn't clear the server's prompt cache between requests. The four
@@ -732,6 +845,11 @@ function distinctCells(cells: readonly Cell[]): Cell[] {
  * one-shot harness is, unless a hard gate fails.
  */
 async function evaluateAdapter(state: RunState, index: number): Promise<void> {
+  const smokeTasks = state.record.protocol?.oneShotAdapter?.smokeTasks;
+  if (smokeTasks !== undefined) {
+    await smokeAdapter(state, index, smokeTasks);
+    return;
+  }
   const stored = state.round(index);
   const candidate = must(stored.round.candidateAdapter, 'The candidate adapter');
   const incumbent = state.run.currentAdapter ?? null;

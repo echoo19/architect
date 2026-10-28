@@ -95,6 +95,15 @@ describe('runAgent', () => {
     });
   });
 
+  it('keeps what the provider billed for each model call in the trace, when it said', async () => {
+    const { trace } = await run([
+      { text: 'Let me look.', toolCalls: [{ name: 'ls', arguments: {} }], costUsd: 0.0021 },
+      answer('[]'),
+    ]);
+    const models = trace.steps.filter((step) => step.kind === 'model');
+    expect(models.map((step) => step.costUsd)).toEqual([0.0021, undefined]);
+  });
+
   it("works as of the job's business date, or the day it runs when the job has none", async () => {
     const dated = await run([answer('1')], { now: new Date(2030, 0, 15, 12) });
     expect(dated.student.requests[0]?.messages[0]?.content).toContain(

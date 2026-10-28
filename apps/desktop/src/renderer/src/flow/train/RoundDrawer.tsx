@@ -21,7 +21,13 @@ import { typeLabel } from '../names';
 import { decisionSentence, harmSentence, predictionCheck } from './decision';
 import { PatchLines } from '../../components/PatchLines';
 import { countChanges, parseUnifiedDiff } from './diff';
-import { DISPOSITIONS, FIRST_DRAFT, INTERVENTIONS, sentence } from './evidence-words';
+import {
+  checkMeasurements,
+  DISPOSITIONS,
+  FIRST_DRAFT,
+  INTERVENTIONS,
+  sentence,
+} from './evidence-words';
 import {
   CheckTasks,
   ExperimentDetails,
@@ -250,7 +256,7 @@ export function RoundDrawerContent({
             onOpen={onOpenLesson}
           />
         )}
-        {experiment && experiment.measurements.length > 0 ? (
+        {experiment && checkMeasurements(experiment).length > 0 ? (
           <CheckTasks experiment={experiment} job={job} names={names} />
         ) : (
           // A round from before experiments has only its lineage; one whose records failed to

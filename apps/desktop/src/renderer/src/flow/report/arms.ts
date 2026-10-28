@@ -51,6 +51,11 @@ export interface ArmInputs {
   figures: RuntimeFigures | null;
 }
 
+/** A round's measurements on the check tasks; a smoke check on practice tasks isn't one. */
+function onCheckTasks(experiment: Experiment) {
+  return experiment.measurements.filter((item) => item.split !== 'train');
+}
+
 /** The latest round that measured trained weights in all four configurations. */
 function weightsExperiment(experiments: readonly Experiment[]): Experiment | null {
   const labels = ['H0/A0', 'H1/A0', 'H0/A1', 'H1/A1'];
@@ -60,7 +65,7 @@ function weightsExperiment(experiments: readonly Experiment[]): Experiment | nul
       .find(
         (experiment) =>
           experiment.kind === 'weights' &&
-          labels.every((label) => experiment.measurements.some((item) => item.label === label)),
+          labels.every((label) => onCheckTasks(experiment).some((item) => item.label === label)),
       ) ?? null
   );
 }
@@ -74,7 +79,7 @@ export function comparisonArms(inputs: ArmInputs): Arm[] {
   const { run, report, progress, experiments, references, bare, figures } = inputs;
   const weights = weightsExperiment(experiments);
   const measured = (label: string) =>
-    weights?.measurements.find((item) => item.label === label)?.score ?? null;
+    (weights && onCheckTasks(weights).find((item) => item.label === label)?.score) ?? null;
   const weightsBudget: ArmBudget | null = weights && {
     mentorUsd: weights.budget.mentorUsd,
     computeUsd: weights.budget.computeUsd,
