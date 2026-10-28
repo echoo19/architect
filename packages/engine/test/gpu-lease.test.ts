@@ -9,6 +9,7 @@ import {
   CHECK_PURPOSE,
   GpuLease,
   LlamaServer,
+  LocalAdapterRuntime,
   LocalRuntimeError,
   replyPurpose,
   RUN_PURPOSE,
@@ -25,7 +26,7 @@ import {
   type LeaseState,
 } from '../src/local-runtime/lease-rules';
 import { startFakeOllama, type FakeOllama } from './agent-host/fake-ollama';
-import { fakeLlamaCommand, recorded } from './support/adapter-runtime';
+import { fakeLlamaCommand, flag, recorded, storeBase } from './support/adapter-runtime';
 
 /*
  * The GPU lease (decision 046) between leases on one data folder in this process: each has a
@@ -36,13 +37,14 @@ import { fakeLlamaCommand, recorded } from './support/adapter-runtime';
 let dir: string;
 const leases: GpuLease[] = [];
 const servers: LlamaServer[] = [];
+const runtimes: LocalAdapterRuntime[] = [];
 const ollamas: FakeOllama[] = [];
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'architect-gpu-lease-'));
 });
 afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) => server.stop()));
+  await Promise.all([...servers.splice(0), ...runtimes.splice(0)].map((server) => server.stop()));
   await Promise.all(leases.splice(0).map((lease) => lease.close()));
   await Promise.all(ollamas.splice(0).map((ollama) => ollama.close()));
   rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
@@ -384,6 +386,33 @@ describe('the GPU lease between processes', () => {
     expect(alive(orphanPid)).toBe(false);
     expect(recorded(record).filter((entry) => entry.kind === 'start')).toHaveLength(1);
     hold.release();
+  });
+
+  it("keeps quiet mode's thread cap, and lets go of the GPU when the idle stop stops the server", async () => {
+    const record = join(dir, 'record.jsonl');
+    const models = join(dir, 'ollama-models');
+    storeBase(models);
+    const gpu = lease('workspace');
+    const runtime = new LocalAdapterRuntime({
+      runtimeDir: join(dir, 'local-runtime', 'workspace'),
+      ollamaModelsDir: () => models,
+      env: {},
+      freeGpu: async () => undefined,
+      command: fakeLlamaCommand(record),
+      threads: () => 3,
+      idleStopMs: 300,
+      gpu,
+    });
+    runtimes.push(runtime);
+    const served = await runtime
+      .access({ model: 'muse-glimmer:30b', adapters: [], scales: {} }, replyPurpose('Desk'))
+      .acquire();
+    served.release();
+    const [start] = recorded(record).filter((entry) => entry.kind === 'start');
+    expect(flag(start?.argv, '--threads')).toBe('3');
+    expect(leaseFile().holders).toMatchObject([{ owner: 'workspace', use: 'llama-server' }]);
+    await until(() => runtime.status().state === 'stopped');
+    await until(() => leaseFile().holders.length === 0);
   });
 
   it('takes away a lock that a process left behind when it died mid-change', async () => {

@@ -360,4 +360,16 @@ test('imports a package with an adapter, opens it, and answers through llama.cpp
   await page.waitForLoadState('domcontentloaded');
   await goTo(page, `/agents/${imported.graduate.id}/chats/${chat.id}`);
   await expect(page.getByText('Stand-in adapter')).toBeVisible();
+
+  // The engine checks the agent again with its model loaded while the workspace's llama-server
+  // sits idle: the workspace gives the GPU up first, so no two servers ever ran at once.
+  const checked = await page.evaluate(
+    (id) => window.architect.graduates.verify(id, { loadModel: true }),
+    imported.graduate.id,
+  );
+  expect(checked.status).toBe('ready');
+  const everyStart = recorded(llamaRecord).filter((line) => line.kind === 'start');
+  expect(everyStart).toHaveLength(3);
+  for (const start of everyStart) expect(start.alongside).toEqual([]);
+  expect(isRunning(everyStart[1]?.pid ?? 0)).toBe(false);
 });
