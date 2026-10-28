@@ -409,7 +409,14 @@ export function HubImportFlow() {
   }
 
   return (
-    <FlowShell title={name} step={stage} steps={steps} footer={footer}>
+    <FlowShell
+      title={name}
+      step={stage}
+      steps={steps}
+      footer={footer}
+      // Leaving partway takes back what the download installed, as Cancel does.
+      {...(downloaded && !result ? { onClose: () => void cancel() } : {})}
+    >
       <div className="mx-auto box-content flex max-w-[680px] flex-col gap-10 px-8 pb-12 pt-14">
         {body}
       </div>
