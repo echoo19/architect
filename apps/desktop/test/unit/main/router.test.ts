@@ -1,4 +1,4 @@
-import { CodedError, GuardError } from '@architect/shared';
+import { CodedError, GuardError, PackageError } from '@architect/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import type { IpcResult } from '../../../src/common/ipc';
@@ -128,6 +128,30 @@ describe('IpcRouter', () => {
     expect(await call('reports:list', ['run_1'])).toEqual({
       ok: false,
       error: { message: 'Refused.' },
+    });
+    errors.mockRestore();
+  });
+
+  it('gives a refused package the code a screen words, for the refusals it words', async () => {
+    const { router, call } = setup();
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    router.registerHandlers('reports', {
+      get: () => {
+        throw new PackageError('checksum', ['harness/AGENTS.md has a different checksum.']);
+      },
+      list: () => {
+        throw new PackageError('too_large', ['The package is too large.']);
+      },
+      comparisons: () => null,
+    });
+    expect(await call('reports:get', ['run_1'])).toEqual({
+      ok: false,
+      error: { message: 'harness/AGENTS.md has a different checksum.', code: 'package_changed' },
+    });
+    // The others keep the engine's sentences, with no code.
+    expect(await call('reports:list', ['run_1'])).toEqual({
+      ok: false,
+      error: { message: 'The package is too large.' },
     });
     errors.mockRestore();
   });

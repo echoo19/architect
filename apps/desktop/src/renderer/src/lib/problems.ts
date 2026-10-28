@@ -19,6 +19,18 @@ const PROBLEMS: Record<ErrorCode, Problem> = {
   chat_not_found: { cause: 'This chat is gone.' },
   record_not_found: { cause: 'This record is gone.' },
   version_modified: { cause: 'This version was changed after it was made.' },
+  not_a_package: {
+    cause: "That isn't an Architect agent.",
+    next: 'Check the name and try again.',
+  },
+  package_changed: {
+    cause: 'This package was edited after it was made.',
+    next: 'Ask whoever sent it for a new copy.',
+  },
+  disk_full: {
+    cause: "There isn't enough free space on this computer.",
+    next: 'Free some space, then try again.',
+  },
   guard_split: { cause: 'This matches a question from the final test.' },
   guard_budget: { cause: 'That would cost more than the limit allows.' },
   process_starting: {

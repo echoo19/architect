@@ -5,9 +5,10 @@ import type { ApprovalRequest } from './workspace';
 /**
  * Failures a screen can answer in a plain sentence with the next step that helps, which the
  * message alone can't say: the thing asked for is gone, a version's files changed after it was
- * made, or a part of Architect isn't answering. Every other failure reaches a screen as its
- * message. A guard that refused a request is one of them, since what it refused says what to do:
- * a text that matches the final test, or a request that would cost more than its cap.
+ * made, a package isn't one or was edited after it was made, the disk is full, or a part of
+ * Architect isn't answering. Every other failure reaches a screen as its message. A guard that
+ * refused a request is one of them, since what it refused says what to do: a text that matches
+ * the final test, or a request that would cost more than its cap.
  */
 export const ERROR_CODES = [
   'run_not_found',
@@ -16,6 +17,9 @@ export const ERROR_CODES = [
   'chat_not_found',
   'record_not_found',
   'version_modified',
+  'not_a_package',
+  'package_changed',
+  'disk_full',
   'guard_split',
   'guard_budget',
   'process_starting',

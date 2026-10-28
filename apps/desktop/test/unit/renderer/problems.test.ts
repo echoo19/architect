@@ -41,6 +41,20 @@ describe('a failure in plain words', () => {
     }
   });
 
+  it('says what an import needs from the person, when the package or the disk is the trouble', () => {
+    expect(problemOf(new CodedError('not_a_package', 'x'))).toEqual({
+      cause: "That isn't an Architect agent.",
+      next: 'Check the name and try again.',
+    });
+    expect(problemOf(new CodedError('package_changed', 'x'))).toEqual({
+      cause: 'This package was edited after it was made.',
+      next: 'Ask whoever sent it for a new copy.',
+    });
+    expect(problemOf(new CodedError('disk_full', 'x'))?.next).toBe(
+      'Free some space, then try again.',
+    );
+  });
+
   it('leaves every failure without a code to say its own message', () => {
     expect(problemOf(new Error('Spark refused the key.'))).toBeNull();
   });
