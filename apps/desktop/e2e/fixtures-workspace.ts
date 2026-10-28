@@ -409,6 +409,8 @@ export async function installFakeEngine(app: ElectronApplication, seed: EngineSe
     };
 
     handle('graduates:list', () => seed.graduates);
+    // No ready-made agent in this build, so these screens never depend on the repository's file.
+    handle('graduates:hasSampleAgent', () => false);
     // Nothing flagged or queued, and Improve agent on the job's own budget.
     handle('teach:overview', (graduateId: string) => ({
       graduateId,

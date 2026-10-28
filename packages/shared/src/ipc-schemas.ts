@@ -29,6 +29,7 @@ import type {
   ReferenceOptions,
   RunDetail,
   RunStartOptions,
+  SampleAgent,
   SignInResult,
 } from './ipc';
 import {
@@ -116,6 +117,11 @@ export const ImportResultSchema = z.object({
 export const HubInstallResultSchema = ImportResultSchema.extend({
   source: VersionSourceSchema,
 }) satisfies z.ZodType<HubInstallResult>;
+
+export const SampleAgentSchema = z.object({
+  package: z.string().min(1),
+  data: z.string().min(1),
+}) satisfies z.ZodType<SampleAgent>;
 
 export const GraduateSettingsSchema = z.object({
   writeMode: PermissionModeSchema,

@@ -6,6 +6,7 @@ import { architect } from '../api/client';
 import { useGraduates, useSettings } from '../api/hooks';
 import { toError } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
+import { ReadyMadeAgentButton } from '../import/ReadyMadeAgentButton';
 import { mentorIntro, mentorName, studentIntro, studentName } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
@@ -123,6 +124,7 @@ function NoAgentsYet() {
           <Button size="md" loading={creating} onClick={trySample}>
             Try the sample job
           </Button>
+          <ReadyMadeAgentButton size="md" />
         </>
       }
     />

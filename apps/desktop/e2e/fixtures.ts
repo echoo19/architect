@@ -76,9 +76,13 @@ export const LLAMA_SERVER_READY: LlamaServerStatus = {
   minimumBuild: 10358,
 };
 
-/** A fresh install: the engine answers, and there is nothing yet. */
+/**
+ * A fresh install: the engine answers, and there is nothing yet. The build ships no ready-made
+ * agent, so these screens look the same whether or not the repository holds its package.
+ */
 export const EMPTY_ENGINE: EngineReplies = {
   'graduates:list': [],
+  'graduates:hasSampleAgent': false,
   'jobs:list': [],
   'connections:detectLocal': NOTHING_LOCAL,
   'connections:llamaServer': LLAMA_SERVER_READY,

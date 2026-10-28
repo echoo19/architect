@@ -437,10 +437,14 @@ export const PACKAGES = {
   weights: 'C:\\Users\\dana\\Downloads\\returns-desk-v2.architect.zip',
   blocked: 'C:\\Users\\dana\\Downloads\\front-desk-v1.architect.zip',
   broken: 'C:\\Users\\dana\\Downloads\\service-desk-v2.architect.zip',
+  /** The ready-made agent, in the resources the app is installed with. */
+  sample: 'C:\\Program Files\\Architect\\resources\\sample-agent\\returns-desk.architect.zip',
 };
 
 export const FOLDERS = {
   records: 'C:\\Users\\dana\\Documents\\Larchwood\\Records',
+  /** This computer's copy of the ready-made agent's data, in the app's data folder. */
+  sample: 'C:\\Users\\dana\\AppData\\Roaming\\Architect\\samples\\returns-desk\\data',
 };
 
 /** What the engine says when this computer has no llama-server (decision 041). */
@@ -529,6 +533,7 @@ function preview(madeFor: Job, agentId: string, tools: string[], weights = false
 
 const PREVIEWS: Record<string, ImportPreview> = {
   [PACKAGES.ready]: preview(returnsJob, 'grd_returns', ['label_for']),
+  [PACKAGES.sample]: preview(returnsJob, 'grd_returns', ['label_for']),
   [PACKAGES.weights]: preview(returnsJob, 'grd_returns', ['label_for'], true),
   [PACKAGES.blocked]: preview(frontDeskJob, 'grd_front', ['lookup_order']),
   [PACKAGES.broken]: {
@@ -651,6 +656,10 @@ function importResultFor(
 export interface PackagesSeed {
   versions: GraduateVersion[];
   installation: Installation;
+  /** The agents the sidebar lists; the agent with versions alone when absent. */
+  agents?: GraduateSummary[];
+  /** Whether this build ships the ready-made agent; it doesn't when absent. */
+  sampleAgent?: boolean;
 }
 
 /**
@@ -667,9 +676,11 @@ export async function installPackagesFake(
     agent: AGENT_WITH_VERSIONS,
     previews: PREVIEWS,
     packages: PACKAGES,
+    folders: FOLDERS,
+    sampleAgent: seed.sampleAgent ?? false,
     llamaServer: LLAMA_SERVER_MISSING,
     results: Object.fromEntries(
-      [PACKAGES.ready, PACKAGES.weights, PACKAGES.blocked].flatMap((path) => [
+      [PACKAGES.ready, PACKAGES.sample, PACKAGES.weights, PACKAGES.blocked].flatMap((path) => [
         [
           `${path}|ready`,
           importResultFor(path, {
@@ -687,7 +698,7 @@ export async function installPackagesFake(
     const fake = (globalThis as unknown as { fakeEngine: Fake }).fakeEngine;
     const versions = data.seed.versions.map((item) => ({ ...item }));
     let installed = { ...data.seed.installation };
-    let agents = [{ ...data.agent }];
+    let agents = (data.seed.agents ?? [data.agent]).map((agent) => ({ ...agent }));
     let chats = 0;
     fake.picks = [];
 
@@ -754,6 +765,12 @@ export async function installPackagesFake(
       const found = data.previews[path];
       if (!found) throw new Error(`${path} isn't a file or a folder.`);
       return found;
+    });
+    // Whether this build ships the ready-made agent, and where its package and data are.
+    handle('graduates:hasSampleAgent', () => data.sampleAgent);
+    handle('graduates:prepareSampleAgent', () => {
+      if (!data.sampleAgent) throw new Error("The ready-made agent isn't available in this build.");
+      return { package: data.packages.sample, data: data.folders.sample };
     });
     handle(
       'graduates:importPackage',

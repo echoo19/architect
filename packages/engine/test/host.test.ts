@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseReportJson } from '@architect/harness';
 import {
@@ -127,6 +127,34 @@ describe('the engine host', () => {
     expect(events.every((event) => RunEventSchema.safeParse(event).success)).toBe(true);
     const types = events.map((event) => event.type);
     expect(types.indexOf('eval.finished')).toBeLessThan(types.indexOf('graduate.ready'));
+  });
+
+  it('offers the ready-made agent only where the build ships it, and copies its data once', async () => {
+    const { client } = await connect();
+    expect(await client.graduates.hasSampleAgent()).toBe(false);
+    await expect(client.graduates.prepareSampleAgent()).rejects.toThrow(
+      "The ready-made agent isn't available in this build.",
+    );
+
+    const shipped = join(world.root, 'sample-agent');
+    await mkdir(join(shipped, 'data'), { recursive: true });
+    await writeFile(join(shipped, 'data', 'returns.csv'), 'return_id\nR-1\n', 'utf8');
+    await writeFile(join(shipped, 'returns-desk.architect.zip'), 'a package', 'utf8');
+    world.deps.sampleAgent = {
+      packageFile: join(shipped, 'returns-desk.architect.zip'),
+      dataDir: join(shipped, 'data'),
+    };
+    expect(await client.graduates.hasSampleAgent()).toBe(true);
+
+    const sample = await client.graduates.prepareSampleAgent();
+    expect(sample).toEqual({
+      package: join(shipped, 'returns-desk.architect.zip'),
+      data: join(world.dataDir, 'samples', 'returns-desk', 'data'),
+    });
+    await writeFile(join(sample.data, 'returns.csv'), 'return_id\nR-1\nR-2\n', 'utf8');
+    expect(await client.graduates.prepareSampleAgent()).toEqual(sample);
+    expect(await readFile(join(sample.data, 'returns.csv'), 'utf8')).toBe('return_id\nR-1\nR-2\n');
+    expect(await readdir(sample.data)).toEqual(['returns.csv']);
   });
 
   it('keeps every event a run sent, in the order sent, beside its records', async () => {

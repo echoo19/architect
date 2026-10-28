@@ -2,6 +2,43 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-28 (Tue), a ready-made agent that opens through the import
+
+**Done** (on a branch; decision 054; no model was called, the GPU stayed off)
+- The app ships a ready-made agent. `sample-agent/` in its resources holds the returns desk's own data (`examples/gear-returns/job/data`) and, when the repository has it, the agent's package, `examples/gear-returns/graduate/returns-desk.architect.zip`. The owner adds that file from the real comparison run; none is committed here, and the tests make their own package from the returns desk job. Main finds both the way it finds the sample job (`processResources`, in development and packaged) and gives them to the engine; electron-builder only warns about a package that isn't there, so a build without it still builds and the app doesn't offer the agent.
+- Engine, additive with zod schemas: `graduates.hasSampleAgent` (the package is a file and the data folder holds a file; changes nothing) and `graduates.prepareSampleAgent`, which copies the data to `samples/returns-desk/data` of the app's data folder the first time, as a graduate made here gets its own copy of its job's data, keeps a copy already there as it is, and returns the package's path and the copy's. A copy that can't be made says why. Main allows exactly those two paths for the import that follows.
+- "Try a ready-made agent", with a package icon, sits beside "Try the sample job" on the new-agent screen and on the empty workspace, and the welcome flow's last line names it when the build has it. It opens the import on the package with `data/` already chosen: the person still sees Package, Folders (data/ shown as chosen, still theirs to change), Permissions (nothing granted until they choose) and the install checks. A build without the package or its data shows no entry and says nothing of it, and so does an engine that can't answer.
+- The sample job's link on the new-agent screen is now a ghost button of the UI package like the new one, so `describe-*` moved by two pixels.
+- Tests: engine `sample-agent.test.ts` (whether a build has it; the first copy; a copy kept after the agent changed it; a copy that can't be made; a package made from the returns desk job installing ready from its own data once allowed to open it, and with nothing granted before) and `host.test.ts` over the port; desktop unit tests for the paths in development and packaged, the engine's start message, the paths main allows and the import session's start (the copy that is kept and the allowed paths were each checked to fail without their code); hidden e2e `sample-agent.spec.ts` on a stand-in engine (from the new-agent screen through folders and permissions to a ready install, the welcome flow and the empty workspace, a build without the agent, a copy that fails; captures `sample-agent-*` in both themes) and, on the real engine, `engine.spec.ts` (hidden when the build has no package; when it has one, its data is copied once and kept and the package previews), which also runs against the packaged app. The existing stand-in engines now say the build ships no agent, so their captures never depend on whether the repository holds the file.
+- Tried by hand with a throwaway package made from the returns desk job (never committed): the built app copied the 8 data files on first use, its import found `data/` satisfied, edits to the copy survived removing the agent and opening it again, other paths stayed refused, and deleting the package hid the entry; `electron-builder --dir` carried both into `resources/sample-agent`, and the packaged app did the same, and without the package only warned and hid the entry. The model was never loaded (Install wasn't pressed against the running Ollama; the import was made with `loadModel: false`).
+- Verified: `pnpm check` exits 0 (186 test files, 2,279 passed, 2 skipped), and the hidden `pnpm e2e` passes (122 passed, 2 skipped, 24 minutes: the packaging spec, and the real engine's test of a shipped package, which waits for the owner's file). Every new capture was looked at in both themes. Four captures of other screens came out 2 to 8 pixels different (timing and anti-aliasing), so main's copies stay; `describe-*` changed because the sample job's link is now a ghost button.
+
+**Next**
+- The owner adds the package at `examples/gear-returns/graduate/returns-desk.architect.zip`. From then the real engine's test in `engine.spec.ts` opens it without any other change, `pnpm package` carries it, and the entry shows in the app. Look at the import's first step once with the real package's own evidence.
+
+**Open issues**
+- The Package step names the bundled file (`returns-desk.architect.zip`) under the agent's name, as it names any package; it could say the agent comes with Architect.
+- The data the agent writes stays through removing and opening the agent again, by design (a copy already there is kept), and nothing on screen resets it.
+- The entry appears a moment after its screen, since it asks the engine whether the build has the agent; it never shows an offer that can't be taken up.
+
+## 2026-10-28 (Tue), afternoon: merges, three bugs the real run found, and the comparison started
+
+**Done**
+- Merged the evidence screens (decision 049), the GPU lease (046), Teach this on screen (048), Hugging Face on screen (050) and the comparisons runner's safeguards (051). GitHub CI had failed on Linux since fe07109 while local checks passed on Windows; package tests now state the computers they depend on, and CI is green again.
+- Every run keeps the events it sent in `events.jsonl` beside its records (decision 052), so a paid run can be shown again for the demo and screenshots without running it again.
+- Three bugs found while preparing the real run, each fixed with a test: llama-server's build read as 0 from its newer version line; a command exited with code 0 in the middle of a 30-second retry wait (`AbortSignal.timeout` doesn't hold Node open; `waitOnClock` does); and a tool call Ollama couldn't parse counted as an outage instead of the model's unreadable reply (decision 053: such a turn is asked for again, twice, with seeds derived from its own).
+- The owner chose remote inference only, spent sparingly, with development as the must and one graduate to test. The comparison runs hosted with four arms (Glimmer alone, Spark's one-shot draft, targeted mentoring, Spark as a reference), capped at $15 of OpenRouter and $10 of Spark, in `C:/JakeOS/projects/architect-runs/comparison-1`. Calibration measured $0.0062 an attempt, 31.7 s p50, 11 of 15 passed. The trained-weights arm and local tests are out of this comparison.
+- A short local probe (owner-approved) measured the 2-bit build at about 90 s an attempt, 6 s a model call, 230 to 250 W; the bare student failed all 3 tasks locally while the hosted bf16 copy passes 11 of 15 on calibration.
+- The Windows installer builds (`apps/desktop/release/Architect-Setup-0.1.0.exe`) and the packaged app passes its 21 hidden e2e specs.
+
+**Next**
+- When the comparison finishes: the report, the README's results, and the targeted arm's graduate exported as the shipped sample agent.
+- Merging the running passes: a ready-made sample agent in the app, a polish pass from a blind review of all 114 screens, and a public website in `site/`.
+
+**Open issues**
+- Local inference on a 12 GB card (the 2-bit build) is much weaker than the hosted copy and unmeasured on the final test; the README must say so.
+- Trained weights are built and tested against stand-ins but have never run end to end.
+
 ## 2026-10-28 (Tue), the evidence screens
 
 **Done** (on a branch; decision 049)

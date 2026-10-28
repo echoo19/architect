@@ -21,6 +21,7 @@ import { exportPackage, exportPart, reviewExport } from '../graduates/exporter';
 import { installFromHub } from '../graduates/hub-install';
 import { importPackage, inspectPackage, previewImport } from '../graduates/importer';
 import { listPublications, publishVersion, reviewPublication } from '../graduates/publish';
+import { prepareSampleAgent, sampleAgentAvailable } from '../graduates/sample';
 import type { HubClient } from '../hub';
 import type { GraduateLibrary } from '../graduates/library';
 import { improvementsOf } from '../improve/improvement';
@@ -347,6 +348,8 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       importPackage: (path, request) => importPackage(packages, path, request),
       importFolder: async (path) => (await importPackage(packages, path)).graduate,
       installFromHub: (source, request) => installFromHub(packages, source, request),
+      hasSampleAgent: () => sampleAgentAvailable(deps.sampleAgent),
+      prepareSampleAgent: () => prepareSampleAgent(paths, deps.sampleAgent),
       reviewPublication: (graduateId, request) => reviewPublication(packages, graduateId, request),
       publish: (graduateId, request) =>
         publishVersion(packages, graduateId, request, { onUpdate: publishUpdate }),

@@ -308,9 +308,19 @@ export interface JobDrafter {
   reply(sessionId: string, text: string): Promise<DraftTurn>;
 }
 
+/** The ready-made agent shipped with the app: its package, and the data it works on. */
+export interface SampleAgentFiles {
+  /** The agent's package, a `.architect.zip`. */
+  packageFile: string;
+  /** The folder holding the data the agent works on, which this computer gets its own copy of. */
+  dataDir: string;
+}
+
 export interface EngineHostDeps extends LoopDeps {
   /** The sample job's `job.json`, shipped with the app, with `tasks.jsonl` and `data/` beside it. */
   sampleJobFile?: string;
+  /** Absent where the app ships no ready-made agent, which is then never offered. */
+  sampleAgent?: SampleAgentFiles;
   drafts?: JobDrafter;
 }
 

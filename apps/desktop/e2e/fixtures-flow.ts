@@ -117,6 +117,7 @@ export const FLOW_ENGINE: EngineReplies = {
   'runs:roundDiff': roundDiff,
   'runs:list': runs,
   'graduates:list': [graduate],
+  'graduates:hasSampleAgent': false,
   'graduates:accept': graduate,
   'workspace:createChat': chat,
   'workspace:listChats': [chat],

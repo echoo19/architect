@@ -155,6 +155,8 @@ async function start(): Promise<void> {
           dataDir,
           sandboxEntryPath: resources.sandboxEntry,
           sampleJobFile: resources.sampleJobFile,
+          sampleAgentFile: resources.sampleAgentFile,
+          sampleAgentDataDir: resources.sampleAgentDataDir,
           trainerDir: resources.trainerDir,
           ...followed(),
           ...(launch.llamaServerCommand === undefined
