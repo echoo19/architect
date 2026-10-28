@@ -1,6 +1,7 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import type { Job, RunEvent } from '@architect/shared';
 import { launchApp, type LaunchedApp } from './app';
@@ -9,6 +10,10 @@ import { startFakeStudent } from './models';
 test.describe.configure({ mode: 'serial' });
 
 const ENGINE = 'Architect engine';
+/** The sample job's records, as another computer might keep them. */
+const SAMPLE_DATA = fileURLToPath(
+  new URL('../../../examples/home-services/job/data', import.meta.url),
+);
 const WORKSPACE = 'Architect workspace';
 
 let launched: LaunchedApp;
@@ -176,15 +181,16 @@ test('runs the sample job end to end and grades end states in the sandbox', asyn
   }
 });
 
-test('opens an accepted, exported and re-imported graduate in the workspace', async () => {
+test('exports a graduate as a package and imports it again with other folders', async () => {
   const page = launched.page;
   const accepted = await page.evaluate((id) => window.architect.graduates.accept(id), runId);
   const graduateId = accepted.id;
+  expect(accepted).toMatchObject({ activeVersion: 1, versions: 1 });
   expect(await page.evaluate((id) => window.architect.workspace.listChats(id), graduateId)).toEqual(
     [],
   );
   const chat = await page.evaluate((id) => window.architect.workspace.createChat(id), graduateId);
-  expect(chat.graduateId).toBe(graduateId);
+  expect(chat).toMatchObject({ graduateId, graduateVersion: 1 });
 
   // The system dialog is answered in main, so nothing appears on screen.
   await launched.app.evaluate(({ dialog }, folder) => {
@@ -195,26 +201,64 @@ test('opens an accepted, exported and re-imported graduate in the workspace', as
       window.architect.files.pick({ title: 'Export the agent', directory: true }),
     ),
   ).toEqual([exports]);
-  const folder = join(exports, 'service-desk');
-  await page.evaluate(([id, target]) => window.architect.graduates.exportFolder(id, target), [
+  const review = await page.evaluate(
+    (id) => window.architect.graduates.reviewExport(id),
     graduateId,
-    folder,
-  ] as const);
+  );
+  expect(review.items.filter((item) => item.included).map((item) => item.id)).toEqual(['package']);
+  expect(review.items.find((item) => item.id === 'chats')).toMatchObject({
+    label: '1 chat',
+    included: false,
+  });
+  const exported = await page.evaluate(
+    ([id, target]) => window.architect.graduates.exportFolder(id, target),
+    [graduateId, exports] as const,
+  );
+  expect(exported.folder).toBe(join(exports, 'service-desk-v1'));
+  expect(exported.archive).toBe(join(exports, 'service-desk-v1.architect.zip'));
+  expect(exported.files).toContain('harness/AGENTS.md');
+  expect(exported.files.some((file) => file.startsWith('resources/'))).toBe(false);
+
   await page.evaluate((id) => window.architect.graduates.remove(id), graduateId);
   expect(await page.evaluate(() => window.architect.graduates.list())).toEqual([]);
 
-  const imported = await page.evaluate(
-    (path) => window.architect.graduates.importFolder(path),
-    folder,
-  );
-  expect(imported.id).toBe(graduateId);
-  expect(await page.evaluate((id) => window.architect.workspace.listChats(id), graduateId)).toEqual(
-    [],
-  );
-  const again = await page.evaluate((id) => window.architect.workspace.createChat(id), graduateId);
-  expect(await page.evaluate((id) => window.architect.workspace.listChats(id), graduateId)).toEqual(
-    [again],
-  );
+  // Another computer's folder for the job's records, and its own model endpoint.
+  const records = join(exports, 'records');
+  await cp(SAMPLE_DATA, records, { recursive: true });
+  const student = await startFakeStudent();
+  try {
+    const inspection = await page.evaluate(
+      (path) => window.architect.graduates.inspectPackage(path),
+      exported.archive,
+    );
+    expect(inspection).toMatchObject({ ok: true, digest: exported.digest });
+    const imported = await page.evaluate(
+      ([path, data, baseUrl]) =>
+        window.architect.graduates.importPackage(path, {
+          bindings: { data },
+          grants: { writes: 'ask', resources: { data: 'read_write', output: 'read_write' } },
+          model: { runtime: 'openai_compatible', baseUrl, model: 'fake-student' },
+          loadModel: false,
+        }),
+      [exported.archive, records, student.baseUrl] as const,
+    );
+    expect(imported).toMatchObject({ version: 1, alreadyInstalled: false });
+    expect(imported.graduate.id).toBe(graduateId);
+    expect(imported.installation.bindings).toEqual({ data: records });
+    expect(imported.installation.label).toBe('Installation checks on this computer');
+    expect(
+      await page.evaluate((id) => window.architect.workspace.listChats(id), graduateId),
+    ).toEqual([]);
+    const again = await page.evaluate(
+      (id) => window.architect.workspace.createChat(id),
+      graduateId,
+    );
+    expect(
+      await page.evaluate((id) => window.architect.workspace.listChats(id), graduateId),
+    ).toEqual([again]);
+  } finally {
+    student.server.close();
+  }
 });
 
 /** Lists the jobs' task counts, or says why it couldn't. */

@@ -2,7 +2,12 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { emptyTotals, type ReportCard, type StudentTarget } from '@architect/shared';
+import {
+  emptyTotals,
+  type PackageManifest,
+  type ReportCard,
+  type StudentTarget,
+} from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { migrate, openDatabase } from '../src/store/database';
 import { createEngineStore, openEngineStore, type EngineStore } from '../src/store/engine-store';
@@ -144,6 +149,48 @@ const JOB: JobRecord = {
   taskCount: 21,
   createdAt: AT,
   updatedAt: AT,
+};
+
+/** A version's manifest as a package carries it; its content doesn't matter to the store. */
+const PACKAGE_MANIFEST: PackageManifest = {
+  schema: 2,
+  kind: 'architect.graduate',
+  identity: {
+    agentId: 'grd_2',
+    name: 'Service desk',
+    version: 3,
+    createdAt: AT,
+    method: 'architect',
+  },
+  contract: {
+    version: 1,
+    jobId: 'job_author',
+    name: 'Service desk',
+    description: 'Invoices for a home-services office.',
+    capabilities: { taskTypes: [{ id: 'invoice', label: 'Invoices' }], does: [], doesNot: [] },
+    inputs: { request: 'text', files: [] },
+    outputs: { answer: 'text', files: [] },
+    boundaries: { writes: 'ask', unseenFiles: 'never', network: 'none' },
+    acceptance: { passRate: 0.9 },
+  },
+  model: {
+    label: 'Glimmer',
+    base: { name: 'glimmer:test' },
+    inference: { contextLength: 16_384 },
+    runtime: { compatible: ['ollama'] },
+  },
+  harness: { format: 1, path: 'harness', hash: 'sha256-abc', version: 2 },
+  resources: [],
+  requirements: { tested: [], measured: {}, minimum: {}, limitations: [] },
+  evidence: {
+    label: "Evaluated on the author's configuration",
+    status: 'unevaluated',
+    contractVersion: 1,
+    counts: { testTasks: 0, rounds: 0, keptChanges: 0 },
+  },
+  verification: { checks: [], fixtures: [] },
+  integrity: { algorithm: 'sha256', files: [] },
+  terms: { baseModel: 'Its own licence applies.', notices: [] },
 };
 
 beforeEach(() => {
@@ -482,6 +529,7 @@ describe('repositories', () => {
       path: 'graduates/grd_1',
       manifest,
       settings: { writeMode: 'allow' as const },
+      activeVersion: null,
       createdAt: AT,
     };
     store.graduates.insert(graduate);
@@ -516,5 +564,110 @@ describe('repositories', () => {
     store.graduates.remove('grd_1');
     expect(store.graduates.list()).toEqual([]);
     expect(store.chats.list('grd_1')).toEqual([]);
+  });
+
+  it('round-trips versions, their events, installations, checks and publications', () => {
+    const agent = {
+      id: 'grd_2',
+      runId: null,
+      name: 'Service desk',
+      path: 'graduates/grd_2',
+      manifest: null,
+      settings: null,
+      activeVersion: null,
+      createdAt: AT,
+    };
+    store.graduates.insert(agent);
+    expect(store.graduates.get('grd_2')).toEqual(agent);
+    const version = {
+      graduateId: 'grd_2',
+      version: 1,
+      origin: { agentId: 'grd_2', version: 3, digest: 'a'.repeat(64) },
+      path: 'graduates/grd_2/versions/v0001',
+      manifest: PACKAGE_MANIFEST,
+      digest: 'b'.repeat(64),
+      contractVersion: 1,
+      state: 'candidate' as const,
+      evaluation: 'unevaluated' as const,
+      createdAt: AT,
+    };
+    store.versions.insert(version);
+    store.versions.update({ ...version, state: 'accepted', acceptedAt: LATER });
+    expect(store.versions.list('grd_2')).toEqual([
+      { ...version, state: 'accepted', acceptedAt: LATER },
+    ]);
+    expect(() => store.versions.insert(version)).toThrow();
+
+    store.versionEvents.insert({ graduateId: 'grd_2', kind: 'promoted', version: 1, at: AT });
+    expect(store.versionEvents.list('grd_2')).toEqual([
+      { graduateId: 'grd_2', kind: 'promoted', version: 1, at: AT },
+    ]);
+
+    const installation = {
+      graduateId: 'grd_2',
+      model: { runtime: 'ollama' as const, baseUrl: 'http://127.0.0.1:11434', model: 'm' },
+      bindings: { data: 'workspace/grd_2', output: 'D:\\Exports\\out' },
+      grants: { writes: 'ask' as const, resources: { data: 'read' as const } },
+      createdAt: AT,
+      updatedAt: AT,
+    };
+    store.installations.put(installation);
+    store.installations.put({ ...installation, updatedAt: LATER });
+    expect(store.installations.get('grd_2')).toEqual({ ...installation, updatedAt: LATER });
+
+    const checks = {
+      graduateId: 'grd_2',
+      version: 1,
+      status: 'needs_attention' as const,
+      reasons: ['Choose a folder for data/.'],
+      checks: [
+        { id: 'resources-bound', kind: 'resources_bound', status: 'failed' as const, detail: 'x' },
+      ],
+      machine: { os: 'win32', arch: 'x64', memoryBytes: 1024 },
+      measurements: { firstReplyMs: 900 },
+      checkedAt: AT,
+    };
+    store.installationChecks.put(checks);
+    expect(store.installationChecks.get('grd_2', 1)).toEqual(checks);
+
+    const publication = {
+      id: 'pub_1',
+      graduateId: 'grd_2',
+      version: 1,
+      destination: 'huggingface' as const,
+      repository: 'dana/service-desk',
+      visibility: 'private' as const,
+      status: 'staged' as const,
+      createdAt: AT,
+      updatedAt: AT,
+    };
+    store.publications.insert(publication);
+    store.publications.update({ ...publication, status: 'complete', revision: 'c0ffee' });
+    expect(store.publications.list('grd_2')).toEqual([
+      { ...publication, status: 'complete', revision: 'c0ffee' },
+    ]);
+
+    store.graduates.remove('grd_2');
+    expect(store.versions.list('grd_2')).toEqual([]);
+    expect(store.installations.get('grd_2')).toBeNull();
+    expect(store.installationChecks.get('grd_2', 1)).toBeNull();
+    expect(store.publications.list('grd_2')).toEqual([]);
+  });
+
+  it('keeps every version of a job contract', () => {
+    const contract = { ...PACKAGE_MANIFEST.contract, jobId: 'job_1' };
+    store.contracts.insert({ jobId: 'job_1', version: 1, contract, createdAt: AT });
+    store.contracts.insert({
+      jobId: 'job_1',
+      version: 2,
+      contract: { ...contract, version: 2, acceptance: { passRate: 0.95 } },
+      createdAt: LATER,
+    });
+    expect(store.contracts.list('job_1').map(({ version }) => version)).toEqual([1, 2]);
+    expect(store.contracts.latest('job_1')?.contract.acceptance.passRate).toBe(0.95);
+    expect(store.contracts.get('job_1', 1)?.contract).toEqual(contract);
+    expect(() =>
+      store.contracts.insert({ jobId: 'job_1', version: 2, contract, createdAt: LATER }),
+    ).toThrow();
   });
 });

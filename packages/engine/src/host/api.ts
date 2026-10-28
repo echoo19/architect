@@ -1,28 +1,25 @@
-import { cp, rm } from 'node:fs/promises';
 import {
   AttemptSchema,
-  GraduateManifestSchema,
   GraduateSettingsSchema,
   JobSchema,
   TraceSchema,
   type FileDiff,
-  type GraduateSettings,
-  type GraduateSummary,
   type ReportCard,
   type RunDetail,
   type StudentTarget,
   type Trace,
 } from '@architect/shared';
+import { exportPackage, reviewExport } from '../graduates/exporter';
+import { importPackage, inspectPackage } from '../graduates/importer';
+import type { GraduateLibrary } from '../graduates/library';
 import type { Clock, EngineHostDeps, JobDrafter } from '../loop/deps';
-import { must } from '../loop/errors';
 import { readJsonFile } from '../loop/files';
 import type { JobLibrary } from '../loop/jobs';
 import { LineageLog } from '../loop/lineage';
-import { isSafeId, type DataPaths } from '../loop/paths';
+import type { DataPaths } from '../loop/paths';
 import type { RunController } from '../loop/controller';
-import { isoNow } from '../loop/time';
 import type { EngineStore } from '../store/engine-store';
-import type { GraduateRecord, StoredRun } from '../store/records';
+import type { StoredRun } from '../store/records';
 import type { EngineApi } from './protocol';
 
 /** Train and dev attempts shown on the training view, newest first. */
@@ -39,13 +36,14 @@ export interface EngineApiContext {
   paths: DataPaths;
   jobs: JobLibrary;
   controller: RunController;
+  graduates: GraduateLibrary;
   deps: EngineHostDeps;
   clock: Clock;
 }
 
 /** The engine API for callers in the host's own process; `serve` exposes it over a port. */
 export function createEngineApi(ctx: EngineApiContext): EngineApi {
-  const { store, paths, jobs, controller, deps } = ctx;
+  const { store, paths, jobs, controller, graduates, deps } = ctx;
 
   const run = (runId: string): StoredRun =>
     found(store.runs.get(runId), `There is no run "${runId}".`);
@@ -63,12 +61,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     deps.harness.versions(paths.harnessDir(record.run.jobId, record.run.id));
   const drafter = (): JobDrafter =>
     found(deps.drafts, "Drafting a job with the mentor isn't available in this build.");
-  const summary = (graduate: GraduateRecord): GraduateSummary => ({
-    id: graduate.id,
-    name: graduate.name,
-    manifest: graduate.manifest,
-    path: paths.fromStored(graduate.path),
-  });
+  const packages = { library: graduates, secrets: deps.secrets };
 
   async function runDetail(runId: string): Promise<RunDetail> {
     const record = run(runId);
@@ -109,61 +102,6 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     );
   }
 
-  /**
-   * Marks the run's graduate accepted and rewrites its folder with the new manifest. The folder
-   * keeps the card of the run's own locked test; a later re-test's card stays in the database.
-   */
-  async function accept(runId: string): Promise<GraduateSummary> {
-    const record = run(runId);
-    const graduate = found(store.graduates.forRun(runId), 'This run has no graduate yet.');
-    if (graduate.manifest.acceptedAt) return summary(graduate);
-    const freeze = must(record.freeze, 'The frozen graduate');
-    const manifest = GraduateManifestSchema.parse({
-      ...graduate.manifest,
-      acceptedAt: isoNow(ctx.clock),
-    });
-    await deps.harness.writeGraduate(paths.fromStored(graduate.path), {
-      harness: await versionsOf(record).load(freeze.harnessVersion),
-      manifest,
-      report: reportOf(record),
-      lineage: await lineageOf(record),
-    });
-    const accepted = { ...graduate, manifest };
-    store.graduates.update(accepted);
-    return summary(accepted);
-  }
-
-  async function importFolder(folder: string): Promise<GraduateSummary> {
-    const { manifest } = await deps.harness.readGraduate(folder);
-    if (!isSafeId(manifest.id)) throw new Error(`"${manifest.id}" isn't a valid graduate id.`);
-    if (store.graduates.get(manifest.id)) {
-      throw new Error(`"${manifest.name}" is already in Architect.`);
-    }
-    const dir = paths.graduateDir(manifest.id);
-    await cp(folder, dir, { recursive: true, force: false, errorOnExist: true });
-    const record: GraduateRecord = {
-      id: manifest.id,
-      runId: store.runs.get(manifest.runId) ? manifest.runId : null,
-      name: manifest.name,
-      path: paths.toStored(dir),
-      manifest: GraduateManifestSchema.parse(manifest),
-      settings: null,
-      createdAt: manifest.createdAt,
-    };
-    store.graduates.insert(record);
-    return summary(record);
-  }
-
-  const graduate = (graduateId: string): GraduateRecord =>
-    found(store.graduates.get(graduateId), `There is no graduate "${graduateId}".`);
-
-  /** Until the user changes them, a graduate's settings follow its job's permissions. */
-  async function settingsOf(record: GraduateRecord): Promise<GraduateSettings> {
-    if (record.settings) return record.settings;
-    const origin = record.runId === null ? null : store.runs.get(record.runId);
-    return { writeMode: origin ? (await jobs.forRun(origin)).permissions.writes : 'ask' };
-  }
-
   return {
     jobs: {
       list: async () => jobs.summaries(),
@@ -197,28 +135,28 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       list: async (runId) => store.reports.targets(run(runId).run.id),
     },
     graduates: {
-      list: async () => store.graduates.list().map(summary),
-      accept,
-      exportFolder: async (graduateId, folder) => {
-        await cp(paths.fromStored(graduate(graduateId).path), folder, {
-          recursive: true,
-          force: false,
-          errorOnExist: true,
-        });
-      },
-      importFolder,
-      remove: async (graduateId) => {
-        const record = graduate(graduateId);
-        store.graduates.remove(record.id);
-        await rm(paths.fromStored(record.path), { recursive: true, force: true });
-      },
-      settings: (graduateId) => settingsOf(graduate(graduateId)),
-      updateSettings: async (graduateId, patch) => {
-        const record = graduate(graduateId);
-        const settings = GraduateSettingsSchema.parse({ ...(await settingsOf(record)), ...patch });
-        store.graduates.update({ ...record, settings });
-        return settings;
-      },
+      list: async () => graduates.list(),
+      accept: async (runId) => graduates.acceptRun(runId),
+      versions: async (graduateId) => graduates.versions(graduateId),
+      history: async (graduateId) => graduates.history(graduateId),
+      acceptVersion: async (graduateId, version) => graduates.acceptVersion(graduateId, version),
+      rejectVersion: async (graduateId, version) => graduates.rejectVersion(graduateId, version),
+      promote: async (graduateId, version) => graduates.promote(graduateId, version),
+      rollback: async (graduateId, version) => graduates.rollback(graduateId, version),
+      installation: async (graduateId) => graduates.installation(graduateId),
+      bind: (graduateId, request) => graduates.bind(graduateId, request),
+      verify: (graduateId, options) => graduates.verify(graduateId, options),
+      reviewExport: (graduateId, version, include) =>
+        reviewExport(packages, graduateId, version, include),
+      exportPackage: (graduateId, request) => exportPackage(packages, graduateId, request),
+      exportFolder: (graduateId, directory) => exportPackage(packages, graduateId, { directory }),
+      inspectPackage: (path) => inspectPackage(packages, path),
+      importPackage: (path, request) => importPackage(packages, path, request),
+      importFolder: async (path) => (await importPackage(packages, path)).graduate,
+      remove: (graduateId) => graduates.remove(graduateId),
+      settings: async (graduateId) => graduates.settings(graduateId),
+      updateSettings: async (graduateId, patch) =>
+        graduates.updateSettings(graduateId, GraduateSettingsSchema.partial().parse(patch)),
     },
   };
 }

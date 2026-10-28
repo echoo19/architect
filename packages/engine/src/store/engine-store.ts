@@ -30,18 +30,30 @@ import {
   JobRecordSchema,
   LineageIndexSchema,
   StoredAttemptSchema,
+  StoredChecksSchema,
+  StoredContractSchema,
+  StoredInstallationSchema,
+  StoredPublicationSchema,
   StoredRetestSchema,
   StoredRoundSchema,
   StoredRunSchema,
+  StoredVersionEventSchema,
+  StoredVersionSchema,
   type CostEntry,
   type GraduateRecord,
   type JobRecord,
   type LineageIndex,
   type RetestStatus,
   type StoredAttempt,
+  type StoredChecks,
+  type StoredContract,
+  type StoredInstallation,
+  type StoredPublication,
   type StoredRetest,
   type StoredRound,
   type StoredRun,
+  type StoredVersion,
+  type StoredVersionEvent,
 } from './records';
 import {
   flag,
@@ -138,7 +150,49 @@ export interface EngineStore {
     forRun(runId: string): GraduateRecord | null;
     /** Newest first. */
     list(): GraduateRecord[];
+    /** Removes the agent with its versions, installation and chats. */
     remove(id: string): void;
+  };
+  /** Each agent's immutable versions. */
+  versions: {
+    insert(version: StoredVersion): void;
+    /** Only a version's state and acceptance change; its folder and manifest never do. */
+    update(version: StoredVersion): void;
+    get(graduateId: string, version: number): StoredVersion | null;
+    /** Oldest first. */
+    list(graduateId: string): StoredVersion[];
+    /** The version a run made, if any. */
+    forRun(runId: string): StoredVersion | null;
+    /** The version whose `graduate.json` has this digest, made here or imported, if any. */
+    withDigest(digest: string): StoredVersion | null;
+  };
+  versionEvents: {
+    insert(event: StoredVersionEvent): void;
+    /** Oldest first. */
+    list(graduateId: string): StoredVersionEvent[];
+  };
+  installations: {
+    /** Inserts or replaces the agent's installation. */
+    put(installation: StoredInstallation): void;
+    get(graduateId: string): StoredInstallation | null;
+  };
+  installationChecks: {
+    put(checks: StoredChecks): void;
+    get(graduateId: string, version: number): StoredChecks | null;
+  };
+  publications: {
+    insert(publication: StoredPublication): void;
+    update(publication: StoredPublication): void;
+    /** Oldest first. */
+    list(graduateId: string): StoredPublication[];
+  };
+  contracts: {
+    insert(contract: StoredContract): void;
+    get(jobId: string, version: number): StoredContract | null;
+    /** The newest version, or null before the job's first. */
+    latest(jobId: string): StoredContract | null;
+    /** Oldest first. */
+    list(jobId: string): StoredContract[];
   };
   chats: {
     insert(chat: WorkspaceChat): void;
@@ -460,8 +514,10 @@ function graduateParams(record: GraduateRecord): Params {
     run_id: record.runId,
     name: record.name,
     path: record.path,
+    // The column predates versions and can't be null; an agent made since stores JSON null.
     manifest: json(record.manifest),
     settings: jsonOrNull(record.settings),
+    active_version: record.activeVersion,
     created_at: record.createdAt,
   };
 }
@@ -474,6 +530,120 @@ function graduateFromRow(row: Row): GraduateRecord {
     path: row.path,
     manifest: fromJson(row.manifest),
     settings: fromJson(row.settings),
+    activeVersion: row.active_version,
+    createdAt: row.created_at,
+  });
+}
+
+function versionParams(version: StoredVersion): Params {
+  return {
+    graduate_id: version.graduateId,
+    version: version.version,
+    parent: version.parent ?? null,
+    origin: jsonOrNull(version.origin),
+    path: version.path,
+    manifest: json(version.manifest),
+    digest: version.digest,
+    contract_version: version.contractVersion,
+    state: version.state,
+    evaluation: version.evaluation,
+    run_id: version.runId ?? null,
+    created_at: version.createdAt,
+    accepted_at: version.acceptedAt ?? null,
+  };
+}
+
+function versionFromRow(row: Row): StoredVersion {
+  return StoredVersionSchema.parse({
+    graduateId: row.graduate_id,
+    version: row.version,
+    parent: orUndefined(row.parent),
+    origin: orUndefined(fromJson(row.origin)),
+    path: row.path,
+    manifest: fromJson(row.manifest),
+    digest: row.digest,
+    contractVersion: row.contract_version,
+    state: row.state,
+    evaluation: row.evaluation,
+    runId: orUndefined(row.run_id),
+    createdAt: row.created_at,
+    acceptedAt: orUndefined(row.accepted_at),
+  });
+}
+
+function eventFromRow(row: Row): StoredVersionEvent {
+  return StoredVersionEventSchema.parse({
+    graduateId: row.graduate_id,
+    kind: row.kind,
+    version: row.version,
+    from: orUndefined(row.from_version),
+    at: row.at,
+  });
+}
+
+function installationFromRow(row: Row): StoredInstallation {
+  return StoredInstallationSchema.parse({
+    graduateId: row.graduate_id,
+    model: fromJson(row.model),
+    bindings: fromJson(row.bindings),
+    grants: fromJson(row.grants),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  });
+}
+
+function checksFromRow(row: Row): StoredChecks {
+  return StoredChecksSchema.parse({
+    graduateId: row.graduate_id,
+    version: row.version,
+    status: row.status,
+    reasons: fromJson(row.reasons),
+    checks: fromJson(row.checks),
+    machine: orUndefined(fromJson(row.machine)),
+    measurements: fromJson(row.measurements),
+    checkedAt: row.checked_at,
+  });
+}
+
+function publicationParams(publication: StoredPublication): Params {
+  return {
+    id: publication.id,
+    graduate_id: publication.graduateId,
+    version: publication.version,
+    destination: publication.destination,
+    repository: publication.repository,
+    visibility: publication.visibility,
+    revision: publication.revision ?? null,
+    url: publication.url ?? null,
+    status: publication.status,
+    error: publication.error ?? null,
+    created_at: publication.createdAt,
+    updated_at: publication.updatedAt,
+  };
+}
+
+function publicationFromRow(row: Row): StoredPublication {
+  return StoredPublicationSchema.parse({
+    id: row.id,
+    graduateId: row.graduate_id,
+    version: row.version,
+    destination: row.destination,
+    repository: row.repository,
+    visibility: row.visibility,
+    revision: orUndefined(row.revision),
+    url: orUndefined(row.url),
+    status: row.status,
+    error: orUndefined(row.error),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  });
+}
+
+function contractFromRow(row: Row): StoredContract {
+  return StoredContractSchema.parse({
+    jobId: row.job_id,
+    version: row.version,
+    contract: fromJson(row.contract),
     createdAt: row.created_at,
   });
 }
@@ -485,6 +655,7 @@ function chatParams(chat: WorkspaceChat): Params {
     title: chat.title,
     running: flag(chat.running),
     waiting: flag(chat.waiting),
+    graduate_version: chat.graduateVersion ?? null,
     created_at: chat.createdAt,
     updated_at: chat.updatedAt,
   };
@@ -497,6 +668,7 @@ function chatFromRow(row: Row): WorkspaceChat {
     title: row.title,
     running: row.running === 1,
     waiting: row.waiting === 1,
+    graduateVersion: orUndefined(row.graduate_version),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   });
@@ -509,8 +681,18 @@ function messageParams(message: WorkspaceMessage): Params {
     role: message.role,
     status: message.status,
     body: json(message),
+    graduate_version: message.graduateVersion ?? null,
     created_at: message.createdAt,
   };
+}
+
+/** A message from its JSON body; replies from before versions take the version from the column. */
+function messageFromRow(row: Row): WorkspaceMessage {
+  const message = WorkspaceMessageSchema.parse(fromJson(row.body));
+  const version = orUndefined(row.graduate_version);
+  return message.graduateVersion === undefined && typeof version === 'number'
+    ? { ...message, graduateVersion: version }
+    : message;
 }
 
 function attemptQuery(filter: AttemptFilter): { where: string; params: Params } {
@@ -787,6 +969,148 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
       },
     },
 
+    versions: {
+      insert: (version) => sql.insert('graduate_versions', versionParams(version)),
+      update: (version) =>
+        sql.update('graduate_versions', versionParams(version), ['graduate_id', 'version']),
+      get: (graduateId, version) => {
+        const row = sql.one(
+          'SELECT * FROM graduate_versions WHERE graduate_id = :graduate_id AND version = :version',
+          { graduate_id: graduateId, version },
+        );
+        return row ? versionFromRow(row) : null;
+      },
+      list: (graduateId) =>
+        sql
+          .all(
+            'SELECT * FROM graduate_versions WHERE graduate_id = :graduate_id ORDER BY version',
+            { graduate_id: graduateId },
+          )
+          .map(versionFromRow),
+      forRun: (runId) => {
+        const row = sql.one(
+          'SELECT * FROM graduate_versions WHERE run_id = :run_id ORDER BY created_at DESC LIMIT 1',
+          { run_id: runId },
+        );
+        return row ? versionFromRow(row) : null;
+      },
+      withDigest: (digest) => {
+        const row = sql.one(
+          `SELECT * FROM graduate_versions
+           WHERE digest = :digest OR json_extract(origin, '$.digest') = :digest
+           ORDER BY created_at, rowid LIMIT 1`,
+          { digest },
+        );
+        return row ? versionFromRow(row) : null;
+      },
+    },
+
+    versionEvents: {
+      insert: (event) =>
+        sql.insert('graduate_events', {
+          graduate_id: event.graduateId,
+          kind: event.kind,
+          version: event.version,
+          from_version: event.from ?? null,
+          at: event.at,
+        }),
+      list: (graduateId) =>
+        sql
+          .all('SELECT * FROM graduate_events WHERE graduate_id = :graduate_id ORDER BY id', {
+            graduate_id: graduateId,
+          })
+          .map(eventFromRow),
+    },
+
+    installations: {
+      put: (installation) =>
+        sql.insert(
+          'installations',
+          {
+            graduate_id: installation.graduateId,
+            model: json(installation.model),
+            bindings: json(installation.bindings),
+            grants: json(installation.grants),
+            created_at: installation.createdAt,
+            updated_at: installation.updatedAt,
+          },
+          'replace',
+        ),
+      get: (graduateId) => {
+        const row = sql.one('SELECT * FROM installations WHERE graduate_id = :graduate_id', {
+          graduate_id: graduateId,
+        });
+        return row ? installationFromRow(row) : null;
+      },
+    },
+
+    installationChecks: {
+      put: (checks) =>
+        sql.insert(
+          'installation_checks',
+          {
+            graduate_id: checks.graduateId,
+            version: checks.version,
+            status: checks.status,
+            reasons: json(checks.reasons),
+            checks: json(checks.checks),
+            machine: jsonOrNull(checks.machine),
+            measurements: json(checks.measurements),
+            checked_at: checks.checkedAt,
+          },
+          'replace',
+        ),
+      get: (graduateId, version) => {
+        const row = sql.one(
+          'SELECT * FROM installation_checks WHERE graduate_id = :graduate_id AND version = :version',
+          { graduate_id: graduateId, version },
+        );
+        return row ? checksFromRow(row) : null;
+      },
+    },
+
+    publications: {
+      insert: (publication) => sql.insert('publications', publicationParams(publication)),
+      update: (publication) => sql.update('publications', publicationParams(publication), ['id']),
+      list: (graduateId) =>
+        sql
+          .all(
+            'SELECT * FROM publications WHERE graduate_id = :graduate_id ORDER BY created_at, rowid',
+            { graduate_id: graduateId },
+          )
+          .map(publicationFromRow),
+    },
+
+    contracts: {
+      insert: (contract) =>
+        sql.insert('job_contracts', {
+          job_id: contract.jobId,
+          version: contract.version,
+          contract: json(contract.contract),
+          created_at: contract.createdAt,
+        }),
+      get: (jobId, version) => {
+        const row = sql.one(
+          'SELECT * FROM job_contracts WHERE job_id = :job_id AND version = :version',
+          { job_id: jobId, version },
+        );
+        return row ? contractFromRow(row) : null;
+      },
+      latest: (jobId) => {
+        const row = sql.one(
+          'SELECT * FROM job_contracts WHERE job_id = :job_id ORDER BY version DESC LIMIT 1',
+          { job_id: jobId },
+        );
+        return row ? contractFromRow(row) : null;
+      },
+      list: (jobId) =>
+        sql
+          .all('SELECT * FROM job_contracts WHERE job_id = :job_id ORDER BY version', {
+            job_id: jobId,
+          })
+          .map(contractFromRow),
+    },
+
     chats: {
       insert: (chat) => sql.insert('chats', chatParams(chat)),
       update: (chat) => sql.update('chats', chatParams(chat), ['id']),
@@ -808,10 +1132,11 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
       update: (message) => sql.update('messages', messageParams(message), ['id']),
       list: (chatId) =>
         sql
-          .all('SELECT body FROM messages WHERE chat_id = :chat_id ORDER BY created_at, rowid', {
-            chat_id: chatId,
-          })
-          .map((row) => WorkspaceMessageSchema.parse(fromJson(row.body))),
+          .all(
+            'SELECT body, graduate_version FROM messages WHERE chat_id = :chat_id ORDER BY created_at, rowid',
+            { chat_id: chatId },
+          )
+          .map(messageFromRow),
     },
 
     categories: {

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ScoreSchema } from './lineage';
 import { PredictionSchema } from './mentor';
-import { AdapterRefSchema } from './mentoring';
+import { TrainedAdapterSchema } from './mentoring';
 
 export const MethodSchema = z.enum(['architect', 'bare', 'one_shot', 'self_reflection']);
 export type Method = z.infer<typeof MethodSchema>;
@@ -102,7 +102,7 @@ export const RunSchema = z.object({
   error: z.string().optional(),
   graduateId: z.string().optional(),
   /** The adapter the run kept, served with the current harness version; none until one is kept. */
-  currentAdapter: AdapterRefSchema.optional(),
+  currentAdapter: TrainedAdapterSchema.optional(),
 });
 export type Run = z.infer<typeof RunSchema>;
 
@@ -131,7 +131,7 @@ export const RoundSchema = z.object({
   files: z.array(z.string()).default([]),
   candidateVersion: z.number().int().nonnegative().optional(),
   /** The adapter a weights round trained, served with the incumbent harness. */
-  candidateAdapter: AdapterRefSchema.optional(),
+  candidateAdapter: TrainedAdapterSchema.optional(),
   devBefore: ScoreSchema.optional(),
   devAfter: ScoreSchema.optional(),
   /** When the change cleared the keep limits once and was measured again: that first measurement. */

@@ -51,11 +51,11 @@ async function setup(
     baseUrl: model.url,
     ...options,
   });
-  const host = createAgentHost({ dataDir, store: workspaceStore(engine) });
+  const host = createAgentHost({ store: workspaceStore(engine, dataDir) });
   const events: WorkspaceEvent[] = [];
   host.onEvent((event) => events.push(event));
   world = { dataDir, engine, host, model, graduate, events };
-  await host.openGraduate(graduate.id, graduate.folder, graduate.workspaceDataDir);
+  await host.openGraduate(graduate.id);
   return world;
 }
 
@@ -353,9 +353,7 @@ describe('writes', () => {
     await world.host.send(chat.id, 'Add an invoice for Ruiz, Ben.');
     await world.host.decide((await waiting).changeId, 'always');
     expect(approvalOf(await done)?.status).toBe('approved');
-    expect(workspaceStore(world.engine).graduateSettings(world.graduate.id)).toEqual({
-      writeMode: 'allow',
-    });
+    expect(workspaceStore(world.engine, world.dataDir).writeMode(world.graduate.id)).toBe('allow');
 
     const { reply } = await ask(world, 'And another one for INV-5.', chat);
     expect(approvalOf(reply)).toMatchObject({ status: 'approved', file: 'data/invoices.csv' });
@@ -425,6 +423,54 @@ describe('stopping', () => {
   });
 });
 
+describe('when no one can answer an approval', () => {
+  it('ends the reply at once with an approval-required failure, and writes nothing', async () => {
+    const world = await setup([addInvoice(), { text: 'Added INV-4.' }]);
+    const chat = await world.host.createChat(world.graduate.id);
+    const done = settled(world, chat.id);
+    await world.host.send(chat.id, 'Add an invoice for Ruiz, Ben.', { approvals: 'fail' });
+    const reply = await done;
+
+    expect(reply).toMatchObject({
+      status: 'error',
+      error: expect.stringContaining('needs your approval'),
+      graduateVersion: 1,
+      failure: {
+        kind: 'approval_required',
+        approval: {
+          tool: 'append',
+          file: 'data/invoices.csv',
+          summary: 'Add 1 row to data/invoices.csv',
+          diff: { added: [['INV-4', 'C-2', '5000', '2026-12-05', 'false']] },
+        },
+      },
+    });
+    expect(approvalOf(reply)?.status).toBe('denied');
+    expect(reply.text).not.toContain('Added INV-4.');
+    expect(await invoicesFile(world)).toBe(SAMPLE_CONTENT['invoices.csv']);
+    expect(world.events.some((event) => event.type === 'chat.updated' && event.chat.waiting)).toBe(
+      false,
+    );
+    expect((await world.host.listChats(world.graduate.id))[0]).toMatchObject({
+      running: false,
+      waiting: false,
+    });
+    const saved = (await world.host.messages(chat.id)).at(-1);
+    expect(saved?.failure?.approval.changeId).toBe(reply.failure?.approval.changeId);
+  });
+
+  it('still writes without asking when this computer allows writes', async () => {
+    const world = await setup([addInvoice(), { text: 'Added INV-4.' }], { writes: 'allow' });
+    const chat = await world.host.createChat(world.graduate.id);
+    const done = settled(world, chat.id);
+    await world.host.send(chat.id, 'Add an invoice for Ruiz, Ben.', { approvals: 'fail' });
+    const reply = await done;
+    expect(reply).toMatchObject({ status: 'done', text: expect.stringContaining('Added INV-4.') });
+    expect(approvalOf(reply)?.status).toBe('approved');
+    expect(await invoicesFile(world)).toContain('INV-4,C-2,5000,2026-12-05,false');
+  });
+});
+
 describe('the host', () => {
   it('sends a fast stream as about 30 updates a second, not one per piece', async () => {
     const text = 'x'.repeat(600);
@@ -443,15 +489,16 @@ describe('the host', () => {
       id: 'grd_remote',
       baseUrl: 'https://api.example.com/v1',
     });
-    await expect(
-      world.host.openGraduate(remote.id, remote.folder, remote.workspaceDataDir),
-    ).rejects.toMatchObject({ name: 'GuardError', guard: 'network' });
+    await expect(world.host.openGraduate(remote.id)).rejects.toMatchObject({
+      name: 'GuardError',
+      guard: 'network',
+    });
     await expect(world.host.createChat(remote.id)).rejects.toThrow('Open the graduate');
   });
 
   it('closes off replies that were still running when the host last stopped', async () => {
     const world = await setup([]);
-    const store = workspaceStore(world.engine);
+    const store = workspaceStore(world.engine, world.dataDir);
     const chat: WorkspaceChat = {
       id: 'cht_left',
       graduateId: world.graduate.id,
@@ -491,11 +538,7 @@ describe('the host', () => {
       status: 'streaming',
     });
 
-    await world.host.openGraduate(
-      world.graduate.id,
-      world.graduate.folder,
-      world.graduate.workspaceDataDir,
-    );
+    await world.host.openGraduate(world.graduate.id);
     expect(await world.host.messages(chat.id)).toEqual([
       expect.objectContaining({
         status: 'error',

@@ -1,16 +1,28 @@
 import {
-  AdapterRefSchema,
+  TrainedAdapterSchema,
   AttemptSchema,
   DecodingSchema,
+  EvaluationStatusSchema,
+  GrantsSchema,
   GraduateManifestSchema,
   GraduateSettingsSchema,
   HypothesisSchema,
+  InstallCheckSchema,
+  InstallStatusSchema,
+  JobContractSchema,
   JsonValueSchema,
+  MachineSchema,
+  ModelBindingSchema,
+  PackageManifestSchema,
+  PublicationSchema,
   RoundSchema,
   RunSchema,
   StopReasonSchema,
   StudentTargetSchema,
   UsageSchema,
+  VersionEventSchema,
+  VersionRefSchema,
+  VersionStateSchema,
 } from '@architect/shared';
 import { z } from 'zod';
 
@@ -41,7 +53,7 @@ export type StudentPin = z.infer<typeof StudentPinSchema>;
 export const FrozenConfigurationSchema = z.object({
   /** `ollama` or `openai_compatible` for the job's student, `llama.cpp` with an adapter. */
   backend: z.string().min(1),
-  adapter: AdapterRefSchema.extend({ scale: z.number() }).nullable(),
+  adapter: TrainedAdapterSchema.extend({ scale: z.number() }).nullable(),
   decoding: DecodingSchema,
 });
 export type FrozenConfiguration = z.infer<typeof FrozenConfigurationSchema>;
@@ -177,16 +189,85 @@ export const CostEntrySchema = z.object({
 });
 export type CostEntry = z.infer<typeof CostEntrySchema>;
 
+/** An agent: the graduate whose versions live under `path`. */
 export const GraduateRecordSchema = z.object({
   id: z.string(),
-  /** Null for graduates imported from another installation. */
+  /** The run that made its first version; null for graduates imported from elsewhere. */
   runId: z.string().nullable(),
   name: z.string(),
-  /** The graduate folder, relative to the data folder. */
+  /** The agent's folder, relative to the data folder; its versions are under `versions/`. */
   path: z.string(),
-  manifest: GraduateManifestSchema,
-  /** The user's choices for this graduate; null until they change one. */
+  /**
+   * The format 1 `graduate.yaml` of a graduate made before versions, kept until its folder is
+   * converted and as a record of it after; null for agents made since.
+   */
+  manifest: GraduateManifestSchema.nullable(),
+  /** A format 1 graduate's write mode, before installations held it. */
   settings: GraduateSettingsSchema.nullable(),
+  /** The version chats run on, or null while it has none that can. */
+  activeVersion: z.number().int().positive().nullable(),
   createdAt: z.iso.datetime(),
 });
 export type GraduateRecord = z.infer<typeof GraduateRecordSchema>;
+
+/** One immutable version of an agent, as the database indexes its package folder. */
+export const StoredVersionSchema = z.object({
+  graduateId: z.string(),
+  version: z.number().int().positive(),
+  parent: z.number().int().positive().optional(),
+  origin: VersionRefSchema.optional(),
+  /** The package folder, relative to the data folder. */
+  path: z.string(),
+  manifest: PackageManifestSchema,
+  /** sha256 of `graduate.json` when the version was recorded; opening checks it again. */
+  digest: z.string(),
+  contractVersion: z.number().int().positive(),
+  state: VersionStateSchema,
+  evaluation: EvaluationStatusSchema,
+  runId: z.string().optional(),
+  createdAt: z.iso.datetime(),
+  acceptedAt: z.iso.datetime().optional(),
+});
+export type StoredVersion = z.infer<typeof StoredVersionSchema>;
+
+export const StoredVersionEventSchema = VersionEventSchema;
+export type StoredVersionEvent = z.infer<typeof StoredVersionEventSchema>;
+
+/**
+ * A graduate on this computer. Bindings inside the data folder are stored relative to it, so
+ * the folder can move, and anything the user chose elsewhere is stored as an absolute path.
+ */
+export const StoredInstallationSchema = z.object({
+  graduateId: z.string(),
+  model: ModelBindingSchema,
+  bindings: z.record(z.string(), z.string()),
+  grants: GrantsSchema,
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+export type StoredInstallation = z.infer<typeof StoredInstallationSchema>;
+
+/** The last installation checks of one version on this computer. */
+export const StoredChecksSchema = z.object({
+  graduateId: z.string(),
+  version: z.number().int().positive(),
+  status: InstallStatusSchema,
+  reasons: z.array(z.string()),
+  checks: z.array(InstallCheckSchema),
+  machine: MachineSchema.optional(),
+  measurements: z.object({ firstReplyMs: z.number().int().nonnegative().optional() }),
+  checkedAt: z.iso.datetime(),
+});
+export type StoredChecks = z.infer<typeof StoredChecksSchema>;
+
+export const StoredPublicationSchema = PublicationSchema;
+export type StoredPublication = z.infer<typeof StoredPublicationSchema>;
+
+/** One version of a job's contract. */
+export const StoredContractSchema = z.object({
+  jobId: z.string(),
+  version: z.number().int().positive(),
+  contract: JobContractSchema,
+  createdAt: z.iso.datetime(),
+});
+export type StoredContract = z.infer<typeof StoredContractSchema>;

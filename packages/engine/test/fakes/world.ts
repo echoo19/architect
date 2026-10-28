@@ -1,9 +1,8 @@
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  GraduateManifestSchema,
   HarnessSchema,
   RunEventSchema,
   type Job,
@@ -89,15 +88,6 @@ export async function createWorld(
       templateHarness,
       importHarness: async (dir) =>
         HarnessSchema.parse(JSON.parse(await readFile(join(dir, 'harness.json'), 'utf8'))),
-      writeGraduate: async (dir, graduate) => {
-        await mkdir(dir, { recursive: true });
-        await writeFile(join(dir, 'graduate.json'), JSON.stringify(graduate, null, 2));
-      },
-      readGraduate: async (dir) => ({
-        manifest: GraduateManifestSchema.parse(
-          JSON.parse(await readFile(join(dir, 'graduate.json'), 'utf8')).manifest,
-        ),
-      }),
     },
     adapters: {
       createMentor: () => {

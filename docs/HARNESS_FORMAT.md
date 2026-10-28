@@ -1,8 +1,8 @@
 # Harness and graduate format
 
-A harness is a plain folder, so it can be read, diffed, imported, improved and exported without Architect. A graduate is a harness folder plus the files that pin it to a model and record how it was made.
+A harness is a plain folder, so it can be read, diffed, imported, improved and exported without Architect. A graduate version is a package: a harness folder plus the files that pin it to a model and record how it was made.
 
-Format version: **2**. `@architect/harness` reads, writes, validates, diffs and versions these folders; the zod schemas in `@architect/shared` are the source of truth, and this page describes them. Format 1 folders still load (see the end of this page).
+Harness format: **2**. Graduate package format: **2**. `@architect/harness` reads, writes, validates, diffs and versions these folders; the zod schemas in `@architect/shared` are the source of truth, and this page describes them. Harness format 1 folders still load (see the end of this page).
 
 ## Harness folder
 
@@ -132,25 +132,86 @@ skills/<name>/SKILL.md  the harness's skills, read-only
 | `append(path, text)` | Adds lines at the end of a file. |
 | `run(code)` | JavaScript in the QuickJS sandbox, with `files.read`, `files.list`, `csv.parse`, `csv.stringify`, `print`, `console.log` and `today` (the job's business date). No network, no clock, no randomness, a time and memory limit, and no way to change a file. It returns what the code printed and `=> ` the JSON of its last value, both capped. |
 
-The three write tools go through the job's write permissions, and in the workspace through the user's approval (ask, allow or never); every change is diffed by line, and a change to a table also by row. A table must stay valid CSV with its header line. During training each attempt works on its own scratch copy; in the workspace `data/` is the graduate's own copy of the job's data, and `output/` is a folder inside it.
+The three write tools go through the job's write permissions, and in the workspace through the user's approval (ask, allow or never); every change is diffed by line, and a change to a table also by row. A table must stay valid CSV with its header line. During training each attempt works on its own scratch copy; in the workspace `data/` and `output/` are the folders the graduate's installation on this computer binds (below).
 
-## Graduate folder
+## Graduate package (format 2)
+
+A graduate is an agent with immutable versions. Each version is a package: a plain folder, and the same files in a ZIP named `<name>-v<n>.architect.zip` for moving it. The desktop app, export, import and (later) the CLI and the Hub all use this one artifact (decisions 038 and 039).
 
 ```
-graduate.yaml     name, job, pinned student (runtime, model id, quantization, digest), harness version and hash,
-                  requirements and whether each was met, test results summary, mentor used, created date
-report.json       the report card as data (snake_case keys), for the app
-report.md         the same report card for people
-lineage.jsonl     one line per hypothesis: round, files changed, diagnosis, cause, predicted and measured effect, decision
-(the harness files above)
+graduate.json          the manifest: everything below, and the sha256 of every other file
+harness/               the harness folder above, as @architect/harness writes it
+evidence/report.json   the author's report card (snake_case keys), for the app
+evidence/report.md     the same report card for people
+evidence/lineage.jsonl each round's title, files, predicted and measured effect and decision;
+                       without the mentor's diagnosis, its reasoning or the task ids behind it
+adapter/...            a LoRA adapter, when the version has one
+resources/<name>/...   a resource's files, only when the author chose to share them
 ```
+
+Nothing in a package belongs to one computer: no model endpoint, folder, chat or key. Those are the installation's (below).
+
+### graduate.json
+
+```json
+{
+  "schema": 2,
+  "kind": "architect.graduate",
+  "identity": { "agent_id": "grd_...", "name": "Service desk", "version": 2,
+                "parent": { "agent_id": "grd_...", "version": 1, "digest": "..." },
+                "created_at": "2026-11-05T18:00:00.000Z", "method": "architect" },
+  "contract": { "version": 1, "job_id": "...", "capabilities": {...}, "inputs": {...},
+                "outputs": {...}, "boundaries": {...}, "acceptance": { "pass_rate": 0.95 } },
+  "model": { "label": "Glimmer",
+             "base": { "name": "muse-glimmer:30b", "digest": "sha256:...", "quantization": "Q4_K_M" },
+             "adapter": { "path": "adapter/adapter.gguf", "format": "gguf_lora", "sha256": "...", "size_bytes": 0,
+                          "base_digest": "sha256:...", "scale": 1, "training_job_id": "trn_..." },
+             "inference": { "context_length": 16384 },
+             "runtime": { "compatible": ["ollama", "openai_compatible", "llama.cpp"] } },
+  "harness": { "format": 2, "path": "harness", "hash": "sha256-...", "version": 7, "round": 3 },
+  "resources": [ { "name": "data", "kind": "folder", "required": true, "accepts": ["text/csv"],
+                   "access": "read_write", "files": [ { "name": "invoices.csv", "kind": "table",
+                   "access": "write", "columns": ["invoice_id", "..."] } ] } ],
+  "requirements": { "tested": [ { "os": "win32", "arch": "x64", "backend": "ollama", "target": "local" } ],
+                    "measured": { "latency_ms": { "p50": 9000, "p95": 21000 } },
+                    "minimum": { "memory_bytes": 0 }, "limitations": [ "..." ] },
+  "evidence": { "label": "Evaluated on the author's configuration", "status": "ready",
+                "contract_version": 1, "summary": {...}, "counts": {...}, "provenance": {...},
+                "files": { "report": "evidence/report.json", "...": "..." } },
+  "verification": { "checks": [ { "id": "harness-valid", "kind": "harness_valid", "description": "..." } ],
+                    "fixtures": [] },
+  "integrity": { "algorithm": "sha256", "files": [ { "path": "harness/AGENTS.md", "sha256": "...", "size": 0 } ] },
+  "terms": { "base_model": "Uses muse-glimmer:30b, which isn't included...", "notices": [ "..." ] }
+}
+```
+
+- **identity**: the agent's id stays the same across versions; `parent` names the version this one was derived from.
+- **contract**: the job contract it was tested against (`JobContractSchema`). A change to a job's scope or success criteria makes a new contract version, and a result measured under one never counts for another.
+- **model**: the base weights named the way runtimes name them and pinned by digest (or a hub revision); never the weights themselves. A harness-only graduate runs on any local runtime that serves its base; one with an adapter only on a runtime that loads adapters (llama.cpp). An adapter is a GGUF LoRA named as the adapter runtime loads it (decision 038): its file's sha256, which the integrity section must list the same; `base_digest`, the digest of the base's GGUF file in Ollama's store, the only build it loads on; the `scale` every request applies; and the training job that made it, with `stand_in` when the stand-in backend built it.
+- **harness**: the harness folder's format and hash, and the round that made it. A harness migrated from an older format has the migrated files and hash, and `migrated_from` keeps the format and hash it was tested with (decision 040).
+- **resources**: logical folders the graduate works in. `data` holds the files the contract names; `output` is for new files. Each installation binds them to its own folders, and `access` is a request, not a grant.
+- **evidence**: the author's results, labelled as such. Its `status` is `ready` only when the locked test met the contract's bar on a local student.
+- **verification**: checks any installation can run without private data. Never the locked test.
+- **integrity**: every file but `graduate.json`, in path order. The version's identity is the sha256 of `graduate.json` itself.
+
+### Rules for files in a package
+
+Paths are relative with forward slashes. Every segment starts with a letter or digit and holds only letters, digits, `.`, `_`, `-` and spaces; no segment is `..`, ends in a dot or space, or is a Windows device name (`con`, `nul`, `com1`...); no two paths differ only in letter case. Only plain files and folders: links, junctions and special files are refused. At most 2,000 files, 2 GB a file and 4 GB in all. Archives are stored or deflated, UTF-8 named, unencrypted and without ZIP64. What file managers leave behind (`.DS_Store`, `._` files, `__MACOSX`, `Thumbs.db`, `desktop.ini`) is passed over and never counts as part of a package.
+
+### Installation
+
+A computer keeps, for each agent, an installation in its own database, never in a package: the local model endpoint (runtime, address, the name it serves the base under), a folder for each logical resource, and the grants (write mode, and `none`, `read` or `read_write` for each resource). A graduate made on the computer gets its job's endpoint, a copy of the job's data for `data/` and the job's write mode. An imported one gets only what the import names. Each version's last installation checks (platform, memory, runtime and adapter fit, harness hash, tools load, folders and their columns, model served and the same build, a short request) are stored with it under the label "Installation checks on this computer", apart from the author's evidence: ready, needs attention, or blocked.
+
+## Format 1 graduate folders
+
+Graduates made before versions were one folder: the harness files, `graduate.yaml` (name, job, run, the pinned student with its endpoint, harness version and hash, requirements, test summary, mentor), `report.json`, `report.md` and `lineage.jsonl`. Architect reads them and converts each to version 1 of a package: graduates already on a computer when it starts (their endpoint becomes the installation; the old files stay), and folders being imported.
 
 ## Versioning, import and export
 
-- Every candidate change produces a new version folder; reverted versions are kept for the lineage but are never a parent of a kept version.
-- `hash` changes whenever any file changes, so a graduate's harness can be verified against its `graduate.yaml`.
-- Import accepts any folder that validates; missing optional files are treated as empty. Export writes the folder as-is (zip on request).
+- Every candidate change to a harness during training produces a new harness version folder; reverted ones are kept for the lineage but are never a parent of a kept one.
+- `hash` changes whenever any harness file changes, so a package's harness can be checked against its manifest.
+- Export writes `<name>-v<n>/` and `<name>-v<n>.architect.zip`: the version's folder byte for byte, plus a resource's files only when chosen. Import accepts either, checks all of it before anything runs, and installs it as a new local version; the same version twice is found, never installed again. A package joins an agent already here only when that agent has the version it names as parent, by digest; otherwise it becomes an agent of its own.
 
 ## Format 1
 
-Format 1 kept the instructions in `system.md` and each skill in one file, `skills/<slug>.md`, with front matter `name` (a title), `summary` and `task_types`. Architect reads it and migrates it in memory: `system.md` becomes `AGENTS.md`, and each skill becomes `skills/<slug>/SKILL.md` with `name: <slug>`, `description: <summary>` and the old title as the first heading of its steps; `task_types` did nothing and is dropped. A helper named like one of today's built-in tools (format 1 allowed `grep` or `run`) becomes `<name>_helper`. A format 1 folder is checked against its hash as stored, then gets a new hash over its files in format 2. It is only ever written in format 2. An older graduate still opens in the workspace and runs on the new tools. A run frozen before the change keeps its old hash on record, so its locked test can't run (or run again) and its graduate can't be rewritten on acceptance: its results belong to the table tools it ran with.
+Format 1 kept the instructions in `system.md` and each skill in one file, `skills/<slug>.md`, with front matter `name` (a title), `summary` and `task_types`. Architect reads it and migrates it in memory: `system.md` becomes `AGENTS.md`, and each skill becomes `skills/<slug>/SKILL.md` with `name: <slug>`, `description: <summary>` and the old title as the first heading of its steps; `task_types` did nothing and is dropped. A helper named like one of today's built-in tools (format 1 allowed `grep` or `run`) becomes `<name>_helper`. A format 1 folder is checked against its hash as stored, then gets a new hash over its files in format 2. It is only ever written in format 2. An older graduate still opens in the workspace and runs on the new tools. From then on the migrated hash identifies the harness, and the old one stays as its provenance (decision 040): a graduate from before the change becomes a version whose package keeps the format 1 hash in `harness.migrated_from`, and a run frozen before the change takes its locked test on the migrated harness when its files still have the frozen hash.

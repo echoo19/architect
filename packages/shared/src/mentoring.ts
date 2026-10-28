@@ -15,7 +15,7 @@ import {
 import { EpisodeKindSchema, VerifiedEpisodeSchema } from './training';
 
 /*
- * Failure-specific mentoring (decision 038): what the mentor finds in failed train attempts, the
+ * Failure-specific mentoring (decision 041): what the mentor finds in failed train attempts, the
  * one intervention it picks from the bounded menu, the lessons a verified correction becomes, and
  * the experiment every round ends in. The engine stores these records and every number the
  * evidence screens show is computed from them.
@@ -63,7 +63,7 @@ export const FindingSchema = z.object({
 export type Finding = z.infer<typeof FindingSchema>;
 
 /** A trained adapter, as the training job that made it left it. */
-export const AdapterRefSchema = z.object({
+export const TrainedAdapterSchema = z.object({
   /** The training job's id. */
   id: z.string().min(1),
   /** The GGUF LoRA, relative to the data folder. */
@@ -74,7 +74,7 @@ export const AdapterRefSchema = z.object({
   /** What the training backend is called, e.g. `Hugging Face Jobs`. */
   label: z.string().min(1),
 });
-export type AdapterRef = z.infer<typeof AdapterRefSchema>;
+export type TrainedAdapter = z.infer<typeof TrainedAdapterSchema>;
 
 /** The person's answer to a clarification, recorded before any label is made. */
 export const ClarificationAnswerSchema = z.object({
@@ -133,7 +133,7 @@ export const InterventionSchema = z.object({
   /** What the candidate derives from: the incumbent harness and adapter. */
   parent: z.object({
     harnessVersion: z.number().int().nonnegative(),
-    adapter: AdapterRefSchema.nullable(),
+    adapter: TrainedAdapterSchema.nullable(),
   }),
   status: z.enum(['accepted', 'invalid']),
   /** Why the runner refused it. */
@@ -320,8 +320,8 @@ export const ExperimentSchema = z.object({
   inputs: z.object({
     baseVersion: z.number().int().nonnegative(),
     candidateVersion: z.number().int().nonnegative().nullable(),
-    incumbentAdapter: AdapterRefSchema.nullable(),
-    candidateAdapter: AdapterRefSchema.nullable(),
+    incumbentAdapter: TrainedAdapterSchema.nullable(),
+    candidateAdapter: TrainedAdapterSchema.nullable(),
     lessonIds: z.array(z.string()),
     datasetSha256: sha256Hex.nullable(),
     trainingJobId: z.string().nullable(),

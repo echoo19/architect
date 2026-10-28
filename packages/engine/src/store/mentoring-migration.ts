@@ -6,7 +6,7 @@ import type { Migration } from './database';
  * read as they did: the job's student with no adapter, in a run nobody was asked to answer.
  */
 export const MENTORING_MIGRATION: Migration = {
-  version: 9,
+  version: 14,
   name: 'lessons, interventions and experiments',
   sql: `
     -- Who made an attempt and how, beside its harness version: the student or Spark as a

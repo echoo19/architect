@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { parseReportJson } from '@architect/harness';
 import { AdapterError, GuardError, RunEventSchema, type RunEvent } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { connectEngine, type EngineClient } from '../src/host/client';
@@ -200,8 +201,8 @@ describe('the engine host', () => {
     );
 
     const accepted = await client.graduates.accept(run.id);
-    const folder = JSON.parse(await readFile(join(accepted.path, 'graduate.json'), 'utf8'));
-    expect(folder.report).toEqual(await client.reports.get(run.id, 'hosted'));
+    const evidence = await readFile(join(accepted.path, 'evidence', 'report.json'), 'utf8');
+    expect(parseReportJson(evidence)).toEqual(await client.reports.get(run.id, 'hosted'));
 
     const invalid = await raw(port, {
       kind: 'request',

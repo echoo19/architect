@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CellValueSchema } from './cells';
+import { WRITE_TOOL_NAMES } from './data';
 
 /** Rows that a read of a table showed, with the table's column names. */
 export const TableViewSchema = z.object({
@@ -71,6 +72,21 @@ export const AgentBlockSchema = z.discriminatedUnion('kind', [
 ]);
 export type AgentBlock = z.infer<typeof AgentBlockSchema>;
 
+/** A write that needed the user's approval when no one could give it. */
+export const ApprovalRequestSchema = z.object({
+  changeId: z.string(),
+  /** The write tool that asked: `write`, `edit` or `append`. */
+  tool: z.enum(WRITE_TOOL_NAMES),
+  /** The file it would change, e.g. `data/invoices.csv`. */
+  file: z.string(),
+  summary: z.string(),
+  /** For a table: the rows the change would add, remove and change. */
+  diff: RowDiffSchema.optional(),
+  /** For any other file: the change as a unified diff. */
+  patch: z.string().optional(),
+});
+export type ApprovalRequest = z.infer<typeof ApprovalRequestSchema>;
+
 export const WorkspaceMessageSchema = z.object({
   id: z.string(),
   chatId: z.string(),
@@ -81,7 +97,16 @@ export const WorkspaceMessageSchema = z.object({
   blocks: z.array(AgentBlockSchema).default([]),
   status: z.enum(['streaming', 'done', 'stopped', 'error']),
   error: z.string().optional(),
+  /**
+   * Why a reply ended without finishing, as data a caller can act on. A reply that needed an
+   * approval no one could give (a non-interactive run) ends `approval_required`.
+   */
+  failure: z
+    .object({ kind: z.literal('approval_required'), approval: ApprovalRequestSchema })
+    .optional(),
   workedMs: z.number().int().nonnegative().optional(),
+  /** The graduate version that answered. Absent on user messages and on replies from before versions. */
+  graduateVersion: z.number().int().positive().optional(),
 });
 export type WorkspaceMessage = z.infer<typeof WorkspaceMessageSchema>;
 
@@ -94,6 +119,8 @@ export const WorkspaceChatSchema = z.object({
   running: z.boolean(),
   /** True when an approval is waiting for the user. */
   waiting: z.boolean(),
+  /** The graduate version that was active when the chat started. Each reply records its own. */
+  graduateVersion: z.number().int().positive().optional(),
 });
 export type WorkspaceChat = z.infer<typeof WorkspaceChatSchema>;
 

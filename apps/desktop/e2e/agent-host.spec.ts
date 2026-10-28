@@ -1,8 +1,17 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { cp, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
-import { hashHarness, readGraduate, writeGraduate } from '@architect/harness';
+import {
+  harnessToFiles,
+  hashHarness,
+  metaToFile,
+  readHarness,
+  readPackage,
+  writePackage,
+  type PackageEntry,
+} from '@architect/harness';
 import type {
   GraduateSummary,
   HarnessTool,
@@ -35,8 +44,13 @@ const LABOR_COST: HarnessTool = {
 }`,
 };
 
+/** The sample job's records, which a graduate's `data/` folder is bound to. */
+const SAMPLE_DATA = fileURLToPath(
+  new URL('../../../examples/home-services/job/data', import.meta.url),
+);
+
 let launched: LaunchedApp;
-/** Where graduates are exported to and rewritten in. */
+/** Where graduates are exported to and repackaged in. */
 let folders: string;
 /** A graduate trained on the sample job against a student that answers nothing, exported. */
 let trained: string;
@@ -83,39 +97,64 @@ async function exportTrainedGraduate(): Promise<string> {
     await page.evaluate(() =>
       window.architect.files.pick({ title: 'Graduate folders', directory: true }),
     );
-    const folder = join(folders, 'trained');
-    await page.evaluate(([id, target]) => window.architect.graduates.exportFolder(id, target), [
-      graduate.id,
-      folder,
-    ] as const);
+    const exported = await page.evaluate(
+      ([id, target]) => window.architect.graduates.exportFolder(id, target),
+      [graduate.id, folders] as const,
+    );
     await page.evaluate((id) => window.architect.graduates.remove(id), graduate.id);
-    return folder;
+    return exported.folder;
   } finally {
     student.server.close();
   }
 }
 
-/** Imports a copy of the trained graduate whose model runs at `baseUrl`, with `tools` added. */
+/**
+ * Repackages the trained graduate as agent `id` with `tools` added to its harness, then imports
+ * it with its `data/` bound to a copy of the sample records and its model at `baseUrl`.
+ */
 async function importGraduate(
   id: string,
   baseUrl: string,
   tools: HarnessTool[] = [],
 ): Promise<GraduateSummary> {
-  const source = await readGraduate(trained);
-  const harness = { ...source.harness, tools: [...source.harness.tools, ...tools] };
+  const { manifest } = await readPackage(trained);
+  const source = await readHarness(join(trained, 'harness'));
+  const harness = { ...source, tools: [...source.tools, ...tools] };
   harness.meta = { ...harness.meta, hash: hashHarness(harness) };
+  const entries: PackageEntry[] = [
+    ...Object.entries(harnessToFiles(harness)).map(([path, content]) => ({
+      path: `harness/${path}`,
+      content,
+    })),
+    { path: 'harness/harness.yaml', content: metaToFile(harness.meta) },
+    ...manifest.integrity.files
+      .filter((file) => !file.path.startsWith('harness/'))
+      .map((file) => ({ path: file.path, source: join(trained, ...file.path.split('/')) })),
+  ];
+  const { integrity: _integrity, ...draft } = manifest;
   const folder = join(folders, id);
-  await writeGraduate(folder, {
-    ...source,
-    harness,
-    manifest: {
-      ...source.manifest,
-      id,
-      harness: { version: harness.meta.version, hash: harness.meta.hash },
-      student: { ...source.manifest.student, runtime: 'ollama', baseUrl },
+  await writePackage(
+    folder,
+    {
+      ...draft,
+      identity: { ...draft.identity, agentId: id },
+      harness: { ...draft.harness, hash: harness.meta.hash },
     },
-  });
-  return launched.page.evaluate((path) => window.architect.graduates.importFolder(path), folder);
+    entries,
+  );
+  const data = join(folders, `${id}-records`);
+  await cp(SAMPLE_DATA, data, { recursive: true });
+  const imported = await launched.page.evaluate(
+    ([path, records, url]) =>
+      window.architect.graduates.importPackage(path, {
+        bindings: { data: records },
+        grants: { writes: 'ask', resources: { data: 'read_write', output: 'read_write' } },
+        model: { runtime: 'ollama', baseUrl: url, model: 'muse-glimmer:30b' },
+        loadModel: false,
+      }),
+    [folder, data, baseUrl] as const,
+  );
+  return imported.graduate;
 }
 
 /** Starts a chat with a graduate and sends its first message. */
@@ -175,17 +214,31 @@ test('runs a tool the mentor wrote in the sandbox and answers from its result', 
   }
 });
 
-test('does not open a graduate whose model is not on this computer', async () => {
-  const graduate = await importGraduate('grd_remote', 'https://api.example.com/v1');
-  const message = await launched.page.evaluate(
-    (id) =>
-      window.architect.workspace.createChat(id).then(
-        () => 'opened',
-        (error: Error) => error.message,
-      ),
-    graduate.id,
-  );
-  expect(message).toContain("example.com, which isn't this computer");
+test('never installs or binds a graduate to a model that is not on this computer', async () => {
+  const model = await startFakeOllama([{ text: 'Hello.' }]);
+  try {
+    const graduate = await importGraduate('grd_local', model.baseUrl);
+    const message = await launched.page.evaluate(
+      (id) =>
+        window.architect.graduates
+          .bind(id, {
+            model: { runtime: 'ollama', baseUrl: 'https://api.example.com/v1', model: 'm' },
+          })
+          .then(
+            () => 'bound',
+            (error: Error) => error.message,
+          ),
+      graduate.id,
+    );
+    expect(message).toContain("api.example.com isn't this computer");
+    const installation = await launched.page.evaluate(
+      (id) => window.architect.graduates.installation(id),
+      graduate.id,
+    );
+    expect(installation.model.baseUrl).toBe(model.baseUrl);
+  } finally {
+    await model.close();
+  }
 });
 
 test('stops a connection that leaves this computer, even when a local model sends it there', async () => {

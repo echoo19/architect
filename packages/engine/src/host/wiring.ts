@@ -6,9 +6,7 @@ import {
   harnessToFiles,
   HarnessVersions,
   importHarness,
-  readGraduate,
   templateHarness,
-  writeGraduate,
 } from '@architect/harness';
 import type { EngineHostDeps, JobDrafter, TaskChecker, ToolSandbox } from '../loop/deps';
 import { runCorrection } from '../teaching/correction';
@@ -113,8 +111,6 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       blankHarness,
       templateHarness,
       importHarness,
-      writeGraduate,
-      readGraduate,
     },
     adapters: {
       createMentor: (config, mentorOptions) => createMentor(config, mentorOptions),

@@ -131,7 +131,7 @@ describe('the one-shot baseline, when its reply cannot be used', () => {
       decision: 'kept',
       draft: true,
     });
-    expect(engine.store.graduates.forRun(finished.id)?.manifest.harness).toMatchObject({
+    expect(engine.store.versions.forRun(finished.id)?.manifest.harness).toMatchObject({
       version: 2,
       round: 1,
       draft: true,

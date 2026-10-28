@@ -1,7 +1,7 @@
-import { DEFAULT_CONFIG_KEY, type Actor, type AdapterRef } from '@architect/shared';
+import { DEFAULT_CONFIG_KEY, type Actor, type TrainedAdapter } from '@architect/shared';
 
 /**
- * What an attempt runs as, beside its harness version (decision 038): who acts, on which backend,
+ * What an attempt runs as, beside its harness version (decision 041): who acts, on which backend,
  * and with which adapter at which scale. Attempts are stored and reused by this key, so an
  * adapter-off measurement is never taken for an adapter-on one, nor the student's for Spark's.
  */
@@ -18,7 +18,7 @@ export interface AttemptConfig {
    * Every adapter a llama.cpp server loads, so all the configurations of one experiment share a
    * server and a copy of the weights; the key leaves them out, since only `adapter` is applied.
    */
-  loaded?: readonly AdapterRef[];
+  loaded?: readonly TrainedAdapter[];
 }
 
 /** The job's own student with no adapter: every attempt made before configurations existed. */
@@ -41,8 +41,8 @@ export function configurationKey(config: AttemptConfig): string {
  * the base alone when `applied` is null.
  */
 export function llamaCppConfig(
-  loaded: readonly AdapterRef[],
-  applied: AdapterRef | null,
+  loaded: readonly TrainedAdapter[],
+  applied: TrainedAdapter | null,
 ): AttemptConfig {
   return {
     actor: 'student',

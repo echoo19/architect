@@ -12,6 +12,7 @@ import type {
   FileDiff,
   GraduateSettings,
   GraduateSummary,
+  ImportResult,
   JobSummary,
   LocalRuntime,
   LocalRuntimes,
@@ -36,6 +37,7 @@ import { TokenPricingSchema, type GpuInfo, type StudentBuild } from './models';
 import { LineageEntrySchema } from './lineage';
 import { MethodSchema, RoundSchema, RunSchema } from './run';
 import { AttemptSchema } from './trace';
+import { InstallationSchema, InstallStatusSchema } from './versions';
 
 /*
  * Schemas for the IPC types declared as interfaces in ipc.ts. Each one is checked against its
@@ -75,7 +77,18 @@ export const GraduateSummarySchema = z.object({
   name: z.string(),
   manifest: GraduateManifestSchema,
   path: z.string(),
+  activeVersion: z.number().int().positive().nullable(),
+  versions: z.number().int().nonnegative(),
+  status: InstallStatusSchema,
+  reasons: z.array(z.string()),
 }) satisfies z.ZodType<GraduateSummary>;
+
+export const ImportResultSchema = z.object({
+  graduate: GraduateSummarySchema,
+  version: z.number().int().positive(),
+  installation: InstallationSchema,
+  alreadyInstalled: z.boolean(),
+}) satisfies z.ZodType<ImportResult>;
 
 export const GraduateSettingsSchema = z.object({
   writeMode: PermissionModeSchema,
