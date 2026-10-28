@@ -39,7 +39,7 @@ function ReportSummary({ report }: { report: ReportCard }) {
 
   return (
     <div className="flex flex-col gap-8 pt-1">
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-px overflow-hidden rounded-2xl border border-line-card bg-line-card">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line-card bg-line-card">
         <Stat
           className={cell}
           value={formatPercent(test.score)}
@@ -57,7 +57,7 @@ function ReportSummary({ report }: { report: ReportCard }) {
           noteFont="text"
         />
         <Stat
-          className={cell}
+          className={`${cell} col-span-2`}
           value={formatUsd(cost.mentorUsd)}
           label={`${shortModelName(report.mentor.label)} mentoring`}
           note={`${cost.rounds} rounds, paid once`}
