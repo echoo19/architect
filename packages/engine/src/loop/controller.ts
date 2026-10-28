@@ -43,8 +43,11 @@ export interface RunControllerOptions {
   maxActiveRuns?: number;
   /** Where errors from event listeners and broken sessions go. They never stop a run. */
   onError?(error: unknown): void;
-  /** The graduate library's lock, so a run writing an agent's version waits for its other writers. */
-  versionLock?: KeyedLock;
+  /**
+   * The graduate library's lock, so a run writing an agent's version waits for its other
+   * writers, and a run using llama-server waits for checks using it.
+   */
+  libraryLock?: KeyedLock;
 }
 
 export interface StartRunOptions {
@@ -104,7 +107,7 @@ export class RunController {
   private readonly concurrency: number;
   private readonly maxActiveRuns: number;
   private readonly onError: (error: unknown) => void;
-  private readonly versionLock: KeyedLock;
+  private readonly libraryLock: KeyedLock;
   private closed = false;
 
   constructor(private readonly options: RunControllerOptions) {
@@ -112,7 +115,7 @@ export class RunController {
     this.concurrency = Math.max(1, options.concurrency ?? 1);
     this.maxActiveRuns = Math.max(1, options.maxActiveRuns ?? 1);
     this.onError = options.onError ?? ((error) => console.error(error));
-    this.versionLock = options.versionLock ?? new KeyedLock();
+    this.libraryLock = options.libraryLock ?? new KeyedLock();
   }
 
   onEvent(listener: (event: RunEvent) => void): () => void {
@@ -142,7 +145,7 @@ export class RunController {
    */
   improve(graduateId: string, options: ImproveOptions): Promise<ImprovementStart> {
     // One at a time per agent, so two quick asks can't both pass the check for a running one.
-    return this.versionLock.run(graduateId, () => this.startImprovement(graduateId, options));
+    return this.libraryLock.run(graduateId, () => this.startImprovement(graduateId, options));
   }
 
   private async startImprovement(
@@ -461,7 +464,7 @@ export class RunController {
       deps,
       clock: this.clock,
       concurrency: this.concurrency,
-      versionLock: this.versionLock,
+      libraryLock: this.libraryLock,
       emit: (event) => this.dispatch(event),
     };
   }

@@ -32,7 +32,7 @@ const teachThis = (engine: Engine) =>
     jobs: engine.jobs,
     deps: world.deps,
     clock: world.clock,
-    versionLock: new KeyedLock(),
+    libraryLock: new KeyedLock(),
   });
 
 const AT = '2026-10-28T09:00:00.000Z';

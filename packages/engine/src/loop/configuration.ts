@@ -1,7 +1,7 @@
 import { DEFAULT_CONFIG_KEY, type Actor, type TrainedAdapter } from '@architect/shared';
 
 /**
- * What an attempt runs as, beside its harness version (decision 041): who acts, on which backend,
+ * What an attempt runs as, beside its harness version (decision 042): who acts, on which backend,
  * and with which adapter at which scale. Attempts are stored and reused by this key, so an
  * adapter-off measurement is never taken for an adapter-on one, nor the student's for Spark's.
  */

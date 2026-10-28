@@ -1,4 +1,5 @@
 import { RequestMessageSchema, toErrorPayload } from '../host/protocol';
+import type { LocalRuntimeSettings } from '../local-runtime';
 import type { LoopbackGuard } from './guard/install';
 import type { AgentHost } from './host';
 import {
@@ -11,6 +12,8 @@ import {
 export interface ServeOptions {
   /** The process's network guard, whose blocked calls the host reports on request. */
   guard?: LoopbackGuard;
+  /** Takes the settings the host's adapter runtime follows from now on. */
+  configure?(settings: LocalRuntimeSettings): void;
   /** Problems nobody asked about, such as a message that isn't a request. */
   onError?(error: unknown): void;
 }
@@ -31,6 +34,10 @@ export function serveAgentHost(
     async blockedConnections() {
       if (!options.guard) throw new Error('This agent host runs without a network guard.');
       return options.guard.blocked();
+    },
+    async configure(settings) {
+      if (!options.configure) throw new Error('This agent host takes no settings.');
+      options.configure(settings);
     },
   };
   host.onEvent((event) => port.postMessage({ kind: 'event', event }));

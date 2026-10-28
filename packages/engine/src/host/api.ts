@@ -73,7 +73,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     jobs,
     deps,
     clock: ctx.clock,
-    versionLock: graduates.lock,
+    libraryLock: graduates.lock,
   });
 
   async function runDetail(runId: string): Promise<RunDetail> {

@@ -8,7 +8,7 @@ import {
 import { DEFAULT_STUDENT, GLIMMER_TRAINING_BASE } from '@architect/shared';
 import { readGgufHeader } from '../gguf';
 import { readPackageHarness } from '../graduates/harness';
-import { LocalAdapterRuntime, resolveOllamaModel } from '../local-runtime';
+import { resolveOllamaModel, type AdapterServing } from '../local-runtime';
 import {
   FileTrainingStore,
   HfJobsBackend,
@@ -75,6 +75,12 @@ export interface EngineWiringOptions {
    * only while this resolves to a token; otherwise the stand-in, which trains nothing.
    */
   huggingFaceToken?: () => Promise<string | undefined>;
+  /**
+   * The process's one adapter runtime, the one the engine host's installation checks use, so
+   * runs and checks share one llama-server. Without it no adapter is served: weights are off the
+   * mentor's menu.
+   */
+  adapterRuntime?: AdapterServing;
 }
 
 /** The training worker over `<data>/training`, its backends, and what the loop needs of it. */
@@ -111,10 +117,7 @@ function trainingWiring(options: EngineWiringOptions, trainerDir: string): Train
  */
 export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
   const vault = new Vault(options.dataDir);
-  const adapterRuntime = new LocalAdapterRuntime({
-    runtimeDir: join(options.dataDir, 'llama-server'),
-    ...(options.localThreads === undefined ? {} : { threads: options.localThreads }),
-  });
+  const { adapterRuntime } = options;
   return {
     ...(options.trainerDir === undefined
       ? {}
@@ -196,10 +199,14 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
         });
       },
       createActor: (config, actorOptions) => createMentorActor(config, actorOptions),
-      createAdapterStudent: (request, studentOptions) =>
-        createLlamaCppStudent(adapterRuntime.access(request), {
-          ...(studentOptions.label === undefined ? {} : { label: studentOptions.label }),
-        }),
+      ...(adapterRuntime === undefined
+        ? {}
+        : {
+            createAdapterStudent: (request, studentOptions) =>
+              createLlamaCppStudent(adapterRuntime.access(request), {
+                ...(studentOptions.label === undefined ? {} : { label: studentOptions.label }),
+              }),
+          }),
     },
     secrets: { get: options.getSecret },
     ...(options.sampleJobFile === undefined ? {} : { sampleJobFile: options.sampleJobFile }),

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createEngineHost } from '../src/host/engine-host';
 import { createEngineDeps } from '../src/host/wiring';
+import { hostAdapterRuntime } from '../src/local-runtime';
 import type { TrainingWorkerApi } from '../src/loop/deps';
 import { createWorld, type World } from './fakes/world';
 import { TRAINER_DIR } from './support/training-world';
@@ -46,7 +47,14 @@ describe('the training worker in the engine', () => {
     const deps = createEngineDeps({ dataDir, getSecret: async () => undefined });
     expect(deps.training).toBeUndefined();
     expect(deps.adapters.createActor).toBeDefined();
-    expect(deps.adapters.createAdapterStudent).toBeDefined();
+    // An adapter is served only through the process's one runtime, when it is given.
+    expect(deps.adapters.createAdapterStudent).toBeUndefined();
+    const adapterRuntime = hostAdapterRuntime({
+      runtimeDir: join(dataDir, 'runtime'),
+      settings: () => ({}),
+    });
+    const served = createEngineDeps({ dataDir, getSecret: async () => undefined, adapterRuntime });
+    expect(served.adapters.createAdapterStudent).toBeDefined();
   });
 });
 

@@ -28,6 +28,7 @@ import { safeStorageCipher } from './secrets/cipher';
 import { SecretStore } from './secrets/store';
 import { hardenContents, hardenSession, isAppUrl, type AppOrigin } from './security';
 import { quietCooldown, quietThreads } from './settings/quiet';
+import { localRuntimeSettings } from './settings/runtime';
 import { SettingsStore } from './settings/store';
 import { applyTheme } from './window/chrome';
 import { createMainWindow } from './window/main-window';
@@ -107,18 +108,44 @@ async function start(): Promise<void> {
   // The GPU doesn't change while the app is open, so it is looked for once, when first asked.
   let gpuProbe: ReturnType<typeof detectGpu> | null = null;
   const gpu = () => (gpuProbe ??= detectGpu());
-  registerConnectionHandlers(router, { keys, secrets, settings, signIns, gpu });
+  registerConnectionHandlers(router, {
+    keys,
+    secrets,
+    settings,
+    signIns,
+    gpu,
+    picked,
+    ...(launch.llamaServerCommand === undefined
+      ? {}
+      : { llamaServerCommand: launch.llamaServerCommand }),
+  });
   registerOllamaHandlers(router, settings, pulls);
   registerFilesHandlers(router, picked);
   settings.onChange((next) => router.emit('settings', 'onChange', next));
 
   const localThreads = () => quietThreads(settings.get());
-  const quiet = () => ({
-    localThreads: localThreads(),
-    localCooldown: quietCooldown(settings.get()),
-  });
+  const runtimeSettings = () => localRuntimeSettings(settings.get(), localThreads());
+  const followed = () => {
+    const runtime = runtimeSettings();
+    return {
+      localThreads: runtime.threads,
+      localCooldown: quietCooldown(settings.get()),
+      llamaServerPath: runtime.llamaServerPath,
+      ollamaUrl: runtime.ollamaUrl,
+    };
+  };
   let engineProcess: EngineProcess | null = null;
-  settings.onChange(() => engineProcess?.applySettings(quiet()));
+  settings.onChange(() => {
+    engineProcess?.applySettings(followed());
+    agentHost
+      .call((host) => host.configure(runtimeSettings()))
+      .catch((error: unknown) =>
+        console.error(
+          '[workspace] The new llama-server settings did not reach the workspace; it takes them when it starts again.',
+          error,
+        ),
+      );
+  });
   const engine: Supervisor<EngineClient> = new Supervisor({
     name: 'The engine',
     launch: () =>
@@ -129,7 +156,10 @@ async function start(): Promise<void> {
           sandboxEntryPath: resources.sandboxEntry,
           sampleJobFile: resources.sampleJobFile,
           trainerDir: resources.trainerDir,
-          ...quiet(),
+          ...followed(),
+          ...(launch.llamaServerCommand === undefined
+            ? {}
+            : { llamaServerCommand: launch.llamaServerCommand }),
         },
         keys,
       )),
@@ -146,10 +176,22 @@ async function start(): Promise<void> {
         entryPath: resources.agentHostEntry,
         dataDir,
         sandboxEntryPath: resources.sandboxEntry,
+        ...(launch.llamaServerCommand === undefined
+          ? {}
+          : { llamaServerCommand: launch.llamaServerCommand }),
         env: agentHostEnvironment(process.env),
       }),
     onConnect: (client) => {
       client.onEvent((event) => router.emit('workspace', 'onEvent', event));
+      // Sent before any graduate opens: requests go to the host in the order they were made.
+      client
+        .configure(runtimeSettings())
+        .catch((error: unknown) =>
+          console.error(
+            '[workspace] The llama-server settings did not reach the workspace.',
+            error,
+          ),
+        );
       graduates.openAll();
     },
   });

@@ -381,7 +381,7 @@ function trainingStudentModel(state: RunState): string {
 }
 
 /**
- * A round's teaching (decision 041): each planned item becomes a lesson, verified or rejected
+ * A round's teaching (decision 042): each planned item becomes a lesson, verified or rejected
  * with the reason. A repair resumes the failed attempt at the suspected turn; when that doesn't
  * verify, one checkpoint earlier, and then the whole task from the start, labelled as such. A
  * practice item is demonstrated from the start. Every try is recorded under an id fixed by the

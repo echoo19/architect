@@ -130,7 +130,7 @@ export interface RuntimeDeps {
   /** The checker runs end-state validators in the sandbox it is given. */
   createChecker(job: Job, jobDir: string, sandbox: ToolSandbox): Awaitable<TaskChecker>;
   /**
-   * One verified correction of a task (decision 041): from a checkpoint rebuilt by replaying a
+   * One verified correction of a task (decision 042): from a checkpoint rebuilt by replaying a
    * recorded attempt, or the whole task from the start, by the given actor, graded by the
    * checker and the mutation audit. A guard's refusal of the actor's call propagates.
    */

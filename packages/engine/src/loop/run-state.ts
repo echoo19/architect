@@ -43,8 +43,11 @@ export interface SessionContext {
   clock: Clock;
   /** Attempts in flight at once while training. The locked test runs one at a time. */
   concurrency: number;
-  /** One writer at a time for an agent's versions, shared with the graduate library. */
-  versionLock: KeyedLock;
+  /**
+   * The graduate library's lock: one writer at a time for an agent's versions, and one user at
+   * a time of the engine's llama-server (`SERVER_TURN`), shared with installation checks.
+   */
+  libraryLock: KeyedLock;
   emit(event: RunEvent): void;
 }
 

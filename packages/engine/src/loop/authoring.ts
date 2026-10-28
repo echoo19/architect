@@ -425,7 +425,7 @@ async function roundMenu(state: RunState): Promise<Menu> {
 }
 
 /**
- * Takes the recorded reply as the round's intervention (decision 041). Its findings are checked
+ * Takes the recorded reply as the round's intervention (decision 042). Its findings are checked
  * against this round's failed attempts and its intervention against the menu and the budgets,
  * and the intervention is recorded, accepted or refused. A harness change with nothing to teach
  * becomes a candidate version at once; one that asks for worked examples or practice, and a

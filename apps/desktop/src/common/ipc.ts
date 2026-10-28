@@ -48,6 +48,8 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     remove: true,
     signIn: true,
     cancelSignIn: true,
+    llamaServer: true,
+    chooseLlamaServer: true,
   },
   ollama: { status: true, pull: true, install: true },
   files: { pick: true },

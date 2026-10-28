@@ -21,7 +21,7 @@ import { chatTraits, type ModelMentorConfig } from './providers';
 const CHAT_PATH = '/chat/completions';
 
 /**
- * The mentor's model as an agent with the student's tools (decision 041): the same provider, key,
+ * The mentor's model as an agent with the student's tools (decision 042): the same provider, key,
  * price, token field, reasoning control and price cap as the mentor, with the tools offered and
  * their calls streamed back the way a student's are. The runner admits every call through the
  * mentor's gate. Sampling and the runner's seed are left to the provider, which may not take

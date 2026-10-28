@@ -77,7 +77,7 @@ function budgetOf(state: RunState, round: number, trainingJobId: string | null):
 }
 
 /**
- * Writes the experiment a round ends in (decision 041), whatever ended it: kept, reverted or
+ * Writes the experiment a round ends in (decision 042), whatever ended it: kept, reverted or
  * rejected after measurement, refused before it, or stopped. Its inputs, versions, recipe, seeds
  * and budget come from the stored round, intervention, lessons, attempts and training job, so
  * every number an evidence screen shows can be traced to them. Synchronous, so it joins the

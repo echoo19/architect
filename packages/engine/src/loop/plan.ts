@@ -49,7 +49,7 @@ export interface PlanInput {
   frozen: boolean;
   /**
    * The run improves an agent from its queued lessons: it ends in a candidate version of that
-   * agent, measured on dev, and never takes the locked test again (decision 041).
+   * agent, measured on dev, and never takes the locked test again (decision 042).
    */
   improves?: boolean;
   rounds: readonly PlannedRound[];

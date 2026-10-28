@@ -152,7 +152,7 @@ export async function proposeVersion(state: RunState): Promise<void> {
     );
     return;
   }
-  await state.ctx.versionLock.run(improves.graduateId, () => writeCandidate(state, kept));
+  await state.ctx.libraryLock.run(improves.graduateId, () => writeCandidate(state, kept));
 }
 
 /** Writes and records the improvement's candidate version, holding the agent's version lock. */

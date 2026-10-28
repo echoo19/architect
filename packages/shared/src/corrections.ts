@@ -4,7 +4,7 @@ import { TypeScoreSchema } from './mentor';
 import { RunStatusSchema } from './run';
 
 /**
- * Teach this and Improve agent (spec section 8, decision 041). A person corrects one reply in
+ * Teach this and Improve agent (spec section 8, decision 042). A person corrects one reply in
  * the workspace; the mentor reads that exchange, once they agree, and proposes a lesson; the
  * person queues it or discards it. A queued lesson becomes a candidate version, never the
  * active one: at once as an instruction, or through an improvement run.

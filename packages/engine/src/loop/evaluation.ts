@@ -8,9 +8,10 @@ import {
   type StudentTarget,
   type Task,
 } from '@architect/shared';
+import { SERVER_TURN } from '../graduates/library';
 import type { StoredAttempt } from '../store/records';
 import { answerSummary, expectedSummary, lockedCheck, studentPrice } from './attempts';
-import { configurationKey, STUDENT_CONFIG, type AttemptConfig } from './configuration';
+import { configurationKey, LLAMA_CPP, STUDENT_CONFIG, type AttemptConfig } from './configuration';
 import type { EvaluatedTask, Evaluation, EvaluationContext } from './deps';
 import { writeJsonFile } from './files';
 import { runPool } from './pool';
@@ -196,6 +197,13 @@ async function attemptTask(
  * to finish.
  */
 export async function evaluate(state: RunState, spec: EvaluationSpec): Promise<boolean> {
+  if (spec.config?.backend !== LLAMA_CPP) return evaluateNow(state, spec);
+  // The engine's one llama-server serves one set of adapters at a time: an evaluation through it
+  // waits for an installation check using it, and the other way round.
+  return state.ctx.libraryLock.run(SERVER_TURN, () => evaluateNow(state, spec));
+}
+
+async function evaluateNow(state: RunState, spec: EvaluationSpec): Promise<boolean> {
   const filter = filterOf(spec);
   const done = new Set(
     state.attempts(filter).map((attempt) => keyOf(attempt.seed, attempt.taskId)),

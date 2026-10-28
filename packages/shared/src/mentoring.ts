@@ -15,7 +15,7 @@ import {
 import { EpisodeKindSchema, VerifiedEpisodeSchema } from './training';
 
 /*
- * Failure-specific mentoring (decision 041): what the mentor finds in failed train attempts, the
+ * Failure-specific mentoring (decision 042): what the mentor finds in failed train attempts, the
  * one intervention it picks from the bounded menu, the lessons a verified correction becomes, and
  * the experiment every round ends in. The engine stores these records and every number the
  * evidence screens show is computed from them.

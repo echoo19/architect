@@ -5,6 +5,7 @@ import {
 } from '@architect/shared';
 import { z } from 'zod';
 import type { EnginePort } from '../host/port';
+import { LocalRuntimeSettingsSchema, type LocalRuntimeSettings } from '../local-runtime';
 import type { BlockedConnection } from './guard/install';
 import type { AgentHost, SendOptions } from './host';
 
@@ -14,10 +15,15 @@ import type { AgentHost, SendOptions } from './host';
  */
 export type AgentHostPort = EnginePort;
 
-/** What the host answers over its port: the workspace API, graduates, and guard diagnostics. */
+/**
+ * What the host answers over its port: the workspace API, graduates, guard diagnostics, and the
+ * settings its adapter runtime follows.
+ */
 export interface AgentHostApi extends Omit<AgentHost, 'onEvent' | 'close'> {
   /** Network calls the process's guard has blocked, oldest first. */
   blockedConnections(): Promise<BlockedConnection[]>;
+  /** The settings llama-server starts with from now on: its path, the thread cap, which Ollama. */
+  configure(settings: LocalRuntimeSettings): Promise<void>;
 }
 
 export const BlockedConnectionSchema = z.object({
@@ -64,6 +70,9 @@ export const AGENT_HOST_ROUTES = {
   'host.blockedConnections': route(z.tuple([]), z.array(BlockedConnectionSchema), (api) =>
     api.blockedConnections(),
   ),
+  'host.configure': route(z.tuple([LocalRuntimeSettingsSchema]), z.void(), (api, [settings]) =>
+    api.configure(settings),
+  ),
   'workspace.listChats': route(z.tuple([id]), z.array(WorkspaceChatSchema), (api, [graduateId]) =>
     api.listChats(graduateId),
   ),
@@ -103,3 +112,9 @@ export const HostEventMessageSchema = z.object({
 
 /** The host sends this once it is listening; requests sent earlier could be lost. */
 export const ReadyMessageSchema = z.object({ kind: z.literal('ready') });
+
+/**
+ * The parent sends this when the app quits: the host stops its replies and its llama-server, then
+ * exits, so no server outlives it holding the GPU.
+ */
+export const StopMessageSchema = z.object({ kind: z.literal('stop') });

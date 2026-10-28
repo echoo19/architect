@@ -135,7 +135,7 @@ export interface TeachThisContext {
   deps: EngineHostDeps;
   clock: Clock;
   /** The graduate library's lock: one writer at a time for an agent's versions. */
-  versionLock: KeyedLock;
+  libraryLock: KeyedLock;
 }
 
 /**
@@ -303,7 +303,7 @@ export class TeachThis {
    */
   async apply(id: string): Promise<Correction> {
     const graduateId = this.correction(id).graduateId;
-    return this.ctx.versionLock.run(graduateId, () => this.applyNow(id));
+    return this.ctx.libraryLock.run(graduateId, () => this.applyNow(id));
   }
 
   private async applyNow(id: string): Promise<Correction> {

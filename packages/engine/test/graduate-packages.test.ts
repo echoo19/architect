@@ -265,6 +265,7 @@ describe('A07: export and import keep the graduate, and the new computer binds i
     expect(theirs.installation.reasons[0]).toContain('Choose a folder for data/');
     const strangerHost = createAgentHost({
       store: workspaceStore(stranger.store, stranger.dataDir),
+      adapters: stranger.workspaceRuntime(),
     });
     cleanups.push(() => strangerHost.close());
     await expect(strangerHost.openGraduate('grd_desk')).rejects.toThrow('needs a folder for data/');
@@ -342,7 +343,10 @@ describe('A07: export and import keep the graduate, and the new computer binds i
     expect(theirsVersion?.manifest.model).toEqual(mine?.manifest.model);
     expect(theirsVersion?.manifest.contract).toEqual(mine?.manifest.contract);
 
-    const host = createAgentHost({ store: workspaceStore(recipient.store, recipient.dataDir) });
+    const host = createAgentHost({
+      store: workspaceStore(recipient.store, recipient.dataDir),
+      adapters: recipient.workspaceRuntime(),
+    });
     cleanups.push(() => host.close());
     await host.openGraduate('grd_desk');
     const chat = await host.createChat('grd_desk');
@@ -411,7 +415,7 @@ describe('A07: export and import keep the graduate, and the new computer binds i
     expect(recipient.library.settings('grd_desk')).toEqual({ writeMode: 'ask' });
   });
 
-  it('exports an adapter byte for byte, and refuses it where no runtime can load it', async () => {
+  it('exports an adapter byte for byte, and installs it for llama.cpp to serve', async () => {
     const author = await computer();
     const exportsDir = join(author.dataDir, 'exports');
     await addVersion(author, {
@@ -450,14 +454,22 @@ describe('A07: export and import keep the graduate, and the new computer binds i
       'Its adapter came from the stand-in training backend: it was built, not trained, and changes nothing.',
     );
 
+    // The import goes through; whether this computer can serve it is the checks' to say
+    // (graduate-adapters.test.ts). This adapter's bytes aren't a GGUF LoRA, so it is blocked.
     const recipient = await computer();
-    const refused = await importPackage({ library: recipient.library }, exported.archive).catch(
-      (error: unknown) => error,
+    const installed = await importPackage({ library: recipient.library }, exported.archive);
+    expect(installed.installation.status).toBe('blocked');
+    expect(installed.installation.reasons).toContain(
+      "The adapter for Service desk v1 is missing or isn't a GGUF file. Train it again, or restore the graduate from its export.",
     );
-    expect(refused).toBeInstanceOf(PackageError);
-    expect(refused).toMatchObject({ code: 'incompatible' });
-    expect((refused as PackageError).message).toContain('needs llama.cpp');
-    expect(recipient.store.graduates.list()).toEqual([]);
+    expect(installed.installation.model).toEqual({
+      runtime: 'ollama',
+      baseUrl: 'http://127.0.0.1:11434',
+      model: 'muse-glimmer:30b',
+    });
+    expect(recipient.store.versions.get('grd_desk', 1)?.manifest.model.adapter).toEqual(
+      manifest.model.adapter,
+    );
   });
 
   it('reads a format 1 graduate folder and installs it as a package', async () => {

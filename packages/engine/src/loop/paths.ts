@@ -105,4 +105,12 @@ export class DataPaths {
   stagingDir(): string {
     return join(this.root, 'staging');
   }
+
+  /**
+   * One host's llama-server folder: its key, process record and logs. Each host that serves
+   * adapters (`engine`, `workspace`, `cli`) has its own, so none stops another's server.
+   */
+  runtimeDir(owner: string): string {
+    return join(this.root, 'local-runtime', safe(owner));
+  }
 }

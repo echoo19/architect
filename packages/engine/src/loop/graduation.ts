@@ -8,6 +8,7 @@ import {
   type StudentTarget,
   type Task,
 } from '@architect/shared';
+import { SERVER_TURN } from '../graduates/library';
 import { ContractBook } from '../graduates/contracts';
 import { prepareGraduate } from '../graduates/graduation';
 import { registerVersion } from '../graduates/versions';
@@ -110,9 +111,10 @@ export async function freeze(state: RunState): Promise<void> {
         `The adapter ${kept.id} changed after it was measured, so the graduate can't be frozen with it.`,
       );
     }
-    const served = await (
-      await state.resources.student('local', llamaCppConfig([kept], kept))
-    ).describe();
+    // Describing it may start the engine's llama-server, so it takes the server's turn.
+    const served = await state.ctx.libraryLock.run(SERVER_TURN, async () =>
+      (await state.resources.student('local', llamaCppConfig([kept], kept))).describe(),
+    );
     adapter = {
       ...kept,
       scale: 1,

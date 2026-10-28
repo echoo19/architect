@@ -28,6 +28,13 @@ export const GraduateManifestSchema = z.object({
     digest: z.string().optional(),
     sizeBytes: z.number().int().nonnegative().optional(),
     contextLength: z.number().int().positive(),
+    /**
+     * In the workspace's view only: the version carries a LoRA adapter, which llama.cpp applies
+     * at this scale to every reply. Format 1 folders never have one.
+     */
+    adapter: z
+      .object({ scale: z.number().positive(), standIn: z.literal(true).optional() })
+      .optional(),
   }),
   harness: z.object({
     version: z.number().int().nonnegative(),
