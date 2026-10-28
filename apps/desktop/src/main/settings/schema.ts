@@ -15,6 +15,7 @@ export function defaultSettings(): AppSettings {
     theme: 'system',
     steps: 'collapsed',
     comparisonMode: false,
+    quietLocalModels: false,
     defaultMentor: {
       kind: 'model',
       provider: mentor.provider,
@@ -42,6 +43,7 @@ const StoredSettingsSchema = z.object({
   theme: ThemeSchema.catch(() => defaultSettings().theme),
   steps: AppSettingsSchema.shape.steps.catch(() => defaultSettings().steps),
   comparisonMode: z.boolean().catch(() => defaultSettings().comparisonMode),
+  quietLocalModels: z.boolean().catch(() => defaultSettings().quietLocalModels),
   defaultMentor: MentorConfigSchema.catch(() => defaultSettings().defaultMentor),
   defaultStudent: StudentEndpointSchema.catch(() => defaultSettings().defaultStudent),
   onboarded: z.boolean().catch(() => defaultSettings().onboarded),

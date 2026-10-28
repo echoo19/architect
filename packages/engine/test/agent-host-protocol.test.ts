@@ -111,6 +111,12 @@ describe('the agent host protocol', () => {
     ]);
   });
 
+  it('passes a graduate its CPU thread cap only when there is one', async () => {
+    const { client, calls } = connect();
+    await client.openGraduate('grd_1', '/graduates/grd_1', '/workspace/grd_1', 6);
+    expect(calls).toEqual([['openGraduate', 'grd_1', '/graduates/grd_1', '/workspace/grd_1', 6]]);
+  });
+
   it('streams workspace events and drops malformed ones', async () => {
     const { client, emit, hostPort, errors } = connect();
     const events: WorkspaceEvent[] = [];

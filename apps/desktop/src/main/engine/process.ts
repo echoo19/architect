@@ -4,6 +4,7 @@ import {
   answerSecretLookups,
   asEnginePort,
   EngineStatusSchema,
+  type EngineSettings,
   type EngineStart,
   type ParentMessage,
 } from '../../utility/link';
@@ -17,11 +18,16 @@ const ENGINE_SERVICE_NAME = 'Architect engine';
  * answers and run events, and one on which it asks main for secrets, so keys are decrypted only
  * in main and the engine process.
  */
+/** The engine process, which also follows setting changes while it runs. */
+export interface EngineProcess extends SupervisedProcess<EngineClient> {
+  applySettings(settings: Omit<EngineSettings, 'type'>): void;
+}
+
 export function launchEngineProcess(
   entryPath: string,
   start: Omit<EngineStart, 'type'>,
   getSecret: (ref: string) => Promise<string | undefined>,
-): SupervisedProcess<EngineClient> {
+): EngineProcess {
   const child = utilityProcess.fork(entryPath, [], { serviceName: ENGINE_SERVICE_NAME });
   const requests = new MessageChannelMain();
   const secrets = new MessageChannelMain();
@@ -49,6 +55,10 @@ export function launchEngineProcess(
     requestStop() {
       const stop: ParentMessage = { type: 'stop' };
       child.postMessage(stop);
+    },
+    applySettings(settings) {
+      const message: ParentMessage = { type: 'settings', ...settings };
+      child.postMessage(message);
     },
     kill() {
       child.kill();

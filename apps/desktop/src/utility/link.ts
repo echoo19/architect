@@ -14,12 +14,22 @@ export const EngineStartSchema = z.object({
   /** The built sandbox child, in a real folder the engine can fork it from. */
   sandboxEntryPath: z.string().min(1),
   sampleJobFile: z.string().min(1),
+  /** The CPU-thread cap for local models, when quiet mode is on. */
+  localThreads: z.number().int().positive().optional(),
 });
 export type EngineStart = z.infer<typeof EngineStartSchema>;
+
+/** Settings the engine follows while it runs. */
+export const EngineSettingsSchema = z.object({
+  type: z.literal('settings'),
+  localThreads: z.number().int().positive().optional(),
+});
+export type EngineSettings = z.infer<typeof EngineSettingsSchema>;
 
 /** Main to the engine process. */
 export const ParentMessageSchema = z.discriminatedUnion('type', [
   EngineStartSchema,
+  EngineSettingsSchema,
   z.object({ type: z.literal('stop') }),
 ]);
 export type ParentMessage = z.infer<typeof ParentMessageSchema>;

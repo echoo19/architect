@@ -15,6 +15,8 @@ import {
 
 const parent = process.parentPort;
 let starting: Promise<EngineHost> | null = null;
+/** The CPU-thread cap for local models; students made from now on use it. */
+let localThreads: number | undefined;
 
 function report(status: EngineStatus): void {
   parent.postMessage(status);
@@ -23,6 +25,7 @@ function report(status: EngineStatus): void {
 async function start(message: EngineStart, ports: readonly PortMain[]): Promise<EngineHost> {
   const [requests, secrets] = ports;
   if (!requests || !secrets) throw new Error('The engine was started without its ports.');
+  localThreads = message.localThreads;
   const host = await createEngineHost({
     dataDir: message.dataDir,
     deps: createEngineDeps({
@@ -30,6 +33,7 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
       sandboxEntryPath: message.sandboxEntryPath,
       sampleJobFile: message.sampleJobFile,
       getSecret: askForSecrets(asEnginePort(secrets)),
+      localThreads: () => localThreads,
     }),
   });
   host.serve(asEnginePort(requests));
@@ -45,6 +49,10 @@ async function stop(): Promise<void> {
 
 parent.on('message', (event) => {
   const message = ParentMessageSchema.parse(event.data);
+  if (message.type === 'settings') {
+    localThreads = message.localThreads;
+    return;
+  }
   if (message.type === 'stop') {
     stop().catch((error: unknown) => {
       console.error('[engine] The engine did not close cleanly.', error);

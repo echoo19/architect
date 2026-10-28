@@ -47,10 +47,12 @@ function route<P extends z.ZodType<unknown[]>, R extends z.ZodType>(
 
 export const AGENT_HOST_ROUTES = {
   'host.openGraduate': route(
-    z.tuple([id, path, path]),
+    z.tuple([id, path, path, z.number().int().positive().optional()]),
     z.void(),
-    (api, [graduateId, folder, workspaceDataDir]) =>
-      api.openGraduate(graduateId, folder, workspaceDataDir),
+    (api, [graduateId, folder, workspaceDataDir, cpuThreads]) =>
+      cpuThreads === undefined
+        ? api.openGraduate(graduateId, folder, workspaceDataDir)
+        : api.openGraduate(graduateId, folder, workspaceDataDir, cpuThreads),
   ),
   'host.closeGraduate': route(z.tuple([id]), z.void(), (api, [graduateId]) =>
     api.closeGraduate(graduateId),

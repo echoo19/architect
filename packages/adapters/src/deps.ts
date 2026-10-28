@@ -24,6 +24,11 @@ export interface MentorDeps extends AdapterDeps {
 export interface StudentDeps extends AdapterDeps {
   /** For hosted endpoints, and for a local server started with `--api-key`. */
   apiKey?: string;
+  /**
+   * The most CPU threads a local runtime may use for this model; its own default when absent.
+   * Fewer threads keep the computer cooler and quieter at the cost of speed.
+   */
+  cpuThreads?: number;
   /** What the app calls this endpoint. Default: the runtime or host name. */
   label?: string;
 }

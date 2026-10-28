@@ -32,11 +32,12 @@ const retry = { sleep: async () => {}, random: () => 0 };
 async function studentOn(
   options: FakeOllama = {},
   endpoint: Partial<ReturnType<typeof studentEndpoint>> = {},
+  cpuThreads?: number,
 ): Promise<{ student: StudentAdapter; server: FakeServer }> {
   const server = await startServer(fakeOllama(options));
   const student = createOllamaStudent(
     studentEndpoint('ollama-glimmer', { baseUrl: server.url, ...endpoint }),
-    { retry },
+    cpuThreads === undefined ? { retry } : { retry, cpuThreads },
   );
   return { student, server };
 }
@@ -90,6 +91,15 @@ describe('the chat request', () => {
       (request) => (request.json()['options'] as { seed: number }).seed,
     );
     expect(seeds).toEqual([5, 6]);
+  });
+
+  it('caps the CPU threads only when asked to', async () => {
+    const quiet = await studentOn({}, {}, 6);
+    await collect(quiet.student.chat(studentRequest()));
+    expect(chatRequests(quiet.server)[0]?.json()['options']).toMatchObject({ num_thread: 6 });
+    const { student, server } = await studentOn();
+    await collect(student.chat(studentRequest()));
+    expect(chatRequests(server)[0]?.json()['options']).not.toHaveProperty('num_thread');
   });
 
   it('asks for the context size the job configured on every request', async () => {

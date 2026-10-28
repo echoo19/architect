@@ -24,6 +24,7 @@ describe('default settings', () => {
       theme: 'system',
       steps: 'collapsed',
       comparisonMode: false,
+      quietLocalModels: false,
       onboarded: false,
       defaultMentor: {
         kind: 'model',

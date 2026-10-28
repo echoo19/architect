@@ -33,6 +33,8 @@ export interface GraduateLocation {
   workspaceDataDir: string;
   /** The app's data folder, where the job the graduate was trained for is kept. */
   appDataDir: string;
+  /** The most CPU threads the local model may use; its own default when absent. */
+  cpuThreads?: number;
 }
 
 /**
@@ -55,7 +57,10 @@ export async function openGraduateSession(location: GraduateLocation): Promise<G
     name: manifest.name,
     harness,
     job,
-    student: createStudent({ runtime, baseUrl, model, contextLength }),
+    student: createStudent(
+      { runtime, baseUrl, model, contextLength },
+      location.cpuThreads === undefined ? {} : { cpuThreads: location.cpuThreads },
+    ),
     data: await openTableStore({
       dataDir: location.workspaceDataDir,
       files: job.data.files,

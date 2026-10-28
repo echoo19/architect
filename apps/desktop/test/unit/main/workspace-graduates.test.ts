@@ -41,12 +41,14 @@ type OpenGraduate = AgentHostClient['openGraduate'];
 function setup(
   graduates: GraduateSummary[],
   openGraduate: Mock<OpenGraduate> = vi.fn<OpenGraduate>(async () => undefined),
+  threads?: number,
 ) {
   const host = { openGraduate, closeGraduate: vi.fn(async () => undefined) };
   const workspace = new WorkspaceGraduates({
     dataDir,
     listGraduates: async () => graduates,
     call: (request) => request(host as unknown as AgentHostClient),
+    localThreads: () => threads,
   });
   return { host, workspace };
 }
@@ -62,14 +64,29 @@ describe('WorkspaceGraduates', () => {
     await workspace.settled();
 
     const folder = join(dataDir, 'workspace', 'grd_1');
-    expect(host.openGraduate).toHaveBeenCalledWith('grd_1', first.path, folder);
+    expect(host.openGraduate).toHaveBeenCalledWith('grd_1', first.path, folder, undefined);
     expect(host.openGraduate).toHaveBeenCalledWith(
       'grd_2',
       second.path,
       join(dataDir, 'workspace', 'grd_2'),
+      undefined,
     );
     expect((await readdir(folder)).sort()).toEqual(['invoices.csv', 'policy.md']);
     expect(await readdir(join(dataDir, 'workspace'))).toEqual(['grd_1', 'grd_2']);
+  });
+
+  it('opens a graduate with the quiet thread cap when there is one', async () => {
+    await jobData('job_1', { 'invoices.csv': 'id\n1\n' });
+    const only = graduate('grd_1', 'job_1');
+    const { host, workspace } = setup([only], undefined, 6);
+    workspace.openAll();
+    await workspace.settled();
+    expect(host.openGraduate).toHaveBeenCalledWith(
+      'grd_1',
+      only.path,
+      join(dataDir, 'workspace', 'grd_1'),
+      6,
+    );
   });
 
   it('keeps workspace changes when the graduate is opened again', async () => {
@@ -129,6 +146,7 @@ describe('WorkspaceGraduates', () => {
   it('settles even when the graduates cannot be listed', async () => {
     const workspace = new WorkspaceGraduates({
       dataDir,
+      localThreads: () => undefined,
       listGraduates: async () => {
         throw new Error('The engine stopped unexpectedly and is restarting.');
       },

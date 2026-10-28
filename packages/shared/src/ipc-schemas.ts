@@ -36,6 +36,7 @@ export const AppSettingsSchema = z.object({
   theme: ThemeSchema,
   steps: z.enum(['collapsed', 'expanded']),
   comparisonMode: z.boolean(),
+  quietLocalModels: z.boolean(),
   defaultMentor: MentorConfigSchema,
   defaultStudent: StudentEndpointSchema,
   onboarded: z.boolean(),

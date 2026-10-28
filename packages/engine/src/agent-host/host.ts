@@ -39,7 +39,12 @@ export interface AgentHostOptions {
 
 export interface AgentHost extends WorkspaceApi {
   /** Loads a graduate so its chats can run. One whose model isn't on this computer is refused. */
-  openGraduate(graduateId: string, folder: string, workspaceDataDir: string): Promise<void>;
+  openGraduate(
+    graduateId: string,
+    folder: string,
+    workspaceDataDir: string,
+    cpuThreads?: number,
+  ): Promise<void>;
   /** Stops the graduate's replies and unloads it. */
   closeGraduate(graduateId: string): Promise<void>;
   /** Stops every reply and the tool sandbox. The store stays open: it belongs to the caller. */
@@ -191,7 +196,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
   }
 
   return {
-    async openGraduate(graduateId, folder, workspaceDataDir) {
+    async openGraduate(graduateId, folder, workspaceDataDir, cpuThreads) {
       assertOpen();
       if ([...replies.values()].some((reply) => reply.graduateId === graduateId)) {
         throw new Error('Stop the chats this graduate is answering before opening it again.');
@@ -204,6 +209,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
         folder,
         workspaceDataDir,
         appDataDir: options.dataDir,
+        ...(cpuThreads === undefined ? {} : { cpuThreads }),
       });
       graduates.set(graduateId, graduate);
       settleInterrupted(graduateId);

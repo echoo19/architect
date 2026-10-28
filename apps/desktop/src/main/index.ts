@@ -4,7 +4,7 @@ import type { EngineClient } from '@architect/engine';
 import type { AgentHostClient } from '@architect/engine/agent-host';
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import engineEntry from '../utility/engine?modulePath';
-import { launchEngineProcess } from './engine/process';
+import { launchEngineProcess, type EngineProcess } from './engine/process';
 import { PickedPaths } from './files/picked';
 import { registerAppHandlers } from './handlers/app';
 import { registerConnectionHandlers } from './handlers/connections';
@@ -23,6 +23,7 @@ import { Supervisor } from './processes/supervisor';
 import { safeStorageCipher } from './secrets/cipher';
 import { SecretStore } from './secrets/store';
 import { hardenContents, hardenSession, isAppUrl, type AppOrigin } from './security';
+import { quietThreads } from './settings/quiet';
 import { SettingsStore } from './settings/store';
 import { applyTheme } from './window/chrome';
 import { createMainWindow } from './window/main-window';
@@ -102,18 +103,22 @@ async function start(): Promise<void> {
   registerFilesHandlers(router, picked);
   settings.onChange((next) => router.emit('settings', 'onChange', next));
 
+  const localThreads = () => quietThreads(settings.get());
+  let engineProcess: EngineProcess | null = null;
+  settings.onChange(() => engineProcess?.applySettings({ localThreads: localThreads() }));
   const engine: Supervisor<EngineClient> = new Supervisor({
     name: 'The engine',
     launch: () =>
-      launchEngineProcess(
+      (engineProcess = launchEngineProcess(
         engineEntry,
         {
           dataDir,
           sandboxEntryPath: resources.sandboxEntry,
           sampleJobFile: resources.sampleJobFile,
+          localThreads: localThreads(),
         },
         keys,
-      ),
+      )),
     onConnect: (client) => {
       client.runs.onEvent((event) => router.emit('runs', 'onEvent', event));
     },
@@ -138,6 +143,7 @@ async function start(): Promise<void> {
     dataDir,
     listGraduates: () => engine.call((api) => api.graduates.list()),
     call: (request) => agentHost.call(request),
+    localThreads,
   });
   registerEngineHandlers(router, (request) => engine.call(request), picked);
   registerGraduateHandlers(router, (request) => engine.call(request), graduates, picked);

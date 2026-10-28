@@ -82,6 +82,7 @@ export function createOllamaStudent(
         top_p: decoding.topP,
         top_k: decoding.topK,
         seed: request.seed,
+        ...(deps.cpuThreads === undefined ? {} : { num_thread: deps.cpuThreads }),
       },
     };
   }

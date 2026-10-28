@@ -166,6 +166,13 @@ export function TrainingTab({ settings, update }: TabProps) {
           onCheckedChange={(comparisonMode) => update({ comparisonMode })}
         />
       </SettingsRow>
+      <SettingsRow label="Quiet local models" meta="Fewer CPU cores: slower, cooler and quieter">
+        <Switch
+          aria-label="Quiet local models"
+          checked={settings.quietLocalModels}
+          onCheckedChange={(quietLocalModels) => update({ quietLocalModels })}
+        />
+      </SettingsRow>
     </>
   );
 }

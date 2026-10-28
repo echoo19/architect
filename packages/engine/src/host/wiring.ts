@@ -37,6 +37,8 @@ export interface EngineWiringOptions {
   /** The sample job shipped with the app (`job.json`, with `tasks.jsonl` and `data/` beside it). */
   sampleJobFile?: string;
   drafts?: JobDrafter;
+  /** The CPU-thread cap for students on a local runtime right now, if there is one. */
+  localThreads?: () => number | undefined;
 }
 
 /**
@@ -105,7 +107,13 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
     },
     adapters: {
       createMentor: (config, { apiKey }) => createMentor(config, { apiKey }),
-      createStudent: (endpoint, adapterOptions) => createStudent(endpoint, adapterOptions),
+      createStudent: (endpoint, adapterOptions) => {
+        const cpuThreads = endpoint.runtime === 'ollama' ? options.localThreads?.() : undefined;
+        return createStudent(
+          endpoint,
+          cpuThreads === undefined ? adapterOptions : { ...adapterOptions, cpuThreads },
+        );
+      },
     },
     secrets: { get: options.getSecret },
     ...(options.sampleJobFile === undefined ? {} : { sampleJobFile: options.sampleJobFile }),

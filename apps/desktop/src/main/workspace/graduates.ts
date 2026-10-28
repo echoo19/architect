@@ -12,6 +12,8 @@ export interface WorkspaceGraduatesOptions {
   listGraduates(): Promise<GraduateSummary[]>;
   /** Sends one request to the agent host. */
   call<T>(request: (host: AgentHostClient) => Promise<T>): Promise<T>;
+  /** The CPU-thread cap for local models when quiet mode is on. */
+  localThreads(): number | undefined;
 }
 
 /**
@@ -53,7 +55,10 @@ export class WorkspaceGraduates {
   async open(graduate: GraduateSummary): Promise<void> {
     try {
       const data = await this.workspaceData(graduate);
-      await this.options.call((host) => host.openGraduate(graduate.id, graduate.path, data));
+      const threads = this.options.localThreads();
+      await this.options.call((host) =>
+        host.openGraduate(graduate.id, graduate.path, data, threads),
+      );
       this.failures.delete(graduate.id);
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);

@@ -18,6 +18,8 @@ export interface AppSettings {
   steps: 'collapsed' | 'expanded';
   /** Shows the baselines comparison on report cards and the run menu. */
   comparisonMode: boolean;
+  /** Local models use fewer CPU threads: slower, but cooler and quieter. */
+  quietLocalModels: boolean;
   /** Mentor preset used for new jobs. */
   defaultMentor: MentorConfig;
   defaultStudent: StudentEndpoint;

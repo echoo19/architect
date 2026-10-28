@@ -13,7 +13,12 @@ import {
 } from './protocol';
 
 export interface AgentHostClient extends WorkspaceApi {
-  openGraduate(graduateId: string, folder: string, workspaceDataDir: string): Promise<void>;
+  openGraduate(
+    graduateId: string,
+    folder: string,
+    workspaceDataDir: string,
+    cpuThreads?: number,
+  ): Promise<void>;
   closeGraduate(graduateId: string): Promise<void>;
   /** Network calls the agent host's guard has blocked, oldest first. */
   blockedConnections(): Promise<BlockedConnection[]>;
@@ -101,8 +106,13 @@ export function connectAgentHost(
   }
 
   return {
-    openGraduate: (graduateId, folder, workspaceDataDir) =>
-      request('host.openGraduate', [graduateId, folder, workspaceDataDir]),
+    openGraduate: (graduateId, folder, workspaceDataDir, cpuThreads) =>
+      request(
+        'host.openGraduate',
+        cpuThreads === undefined
+          ? [graduateId, folder, workspaceDataDir]
+          : [graduateId, folder, workspaceDataDir, cpuThreads],
+      ),
     closeGraduate: (graduateId) => request('host.closeGraduate', [graduateId]),
     blockedConnections: () => request('host.blockedConnections', []),
     listChats: (graduateId) => request('workspace.listChats', [graduateId]),
