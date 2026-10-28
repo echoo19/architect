@@ -132,7 +132,7 @@
 
   --animate-*: initial;
   --animate-spin: spin 900ms linear infinite;
-  --animate-rise: rise 320ms var(--ease-out-soft) both;
+  --animate-rise: rise 240ms var(--ease-out-soft) both;
   --animate-pop: pop 200ms var(--ease-out-soft) both;
   --animate-pop-out: pop-out 150ms ease-in both;
   --animate-fade: fade 200ms ease-out both;

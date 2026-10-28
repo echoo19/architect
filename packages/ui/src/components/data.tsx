@@ -6,7 +6,7 @@ export type StatSize = 'md' | 'lg' | 'xl';
 const statValue: Record<StatSize, string> = {
   md: 'text-stat tracking-tighter',
   lg: 'text-display-lg tracking-tightest',
-  xl: 'text-hero tracking-tightest tabular-nums',
+  xl: 'text-hero tracking-tightest',
 };
 
 export interface StatProps {
@@ -35,7 +35,7 @@ export function Stat({
 }: StatProps) {
   return (
     <div className={cn('flex flex-col', size === 'md' ? 'gap-1.5' : 'gap-1', className)}>
-      <span className={cn('font-medium', statValue[size])}>{value}</span>
+      <span className={cn('font-medium tabular-nums', statValue[size])}>{value}</span>
       {label && <span className="text-fg-secondary">{label}</span>}
       {note && (
         <span
