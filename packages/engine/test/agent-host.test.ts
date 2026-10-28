@@ -15,7 +15,12 @@ import { DataPaths } from '../src/loop/paths';
 import { openEngineStore, type EngineStore } from '../src/store/engine-store';
 import { startFakeOllama, type FakeOllama, type ScriptedTurn } from './agent-host/fake-ollama';
 import { addGraduate, type GraduateFixture, type GraduateOptions } from './agent-host/graduates';
-import type { GpuLease } from '../src/local-runtime';
+import {
+  CHECK_PURPOSE,
+  GpuLease,
+  LocalRuntimeError,
+  type GpuLeaseOptions,
+} from '../src/local-runtime';
 import { testAdapterRuntime, testGpu } from './support/computer';
 import { SAMPLE_CONTENT } from './support/fixtures';
 
@@ -29,6 +34,8 @@ interface World {
   model: FakeOllama;
   graduate: GraduateFixture;
   events: WorkspaceEvent[];
+  /** What the host reported that nobody was waiting on. */
+  errors: unknown[];
 }
 
 let world: World | undefined;
@@ -47,6 +54,7 @@ afterEach(async () => {
 async function setup(
   script: ScriptedTurn[],
   options: Partial<Omit<GraduateOptions, 'id'>> = {},
+  gpuOptions: Partial<GpuLeaseOptions> = {},
 ): Promise<World> {
   const dataDir = await mkdtemp(join(tmpdir(), 'architect-agent-host-'));
   const engine = openEngineStore(new DataPaths(dataDir).database);
@@ -56,7 +64,8 @@ async function setup(
     baseUrl: model.url,
     ...options,
   });
-  const gpu = testGpu(dataDir);
+  const gpu = testGpu(dataDir, 'workspace', gpuOptions);
+  const errors: unknown[] = [];
   const host = createAgentHost({
     store: workspaceStore(engine, dataDir),
     adapters: testAdapterRuntime(
@@ -66,10 +75,11 @@ async function setup(
       gpu,
     ),
     gpu,
+    onError: (error) => errors.push(error),
   });
   const events: WorkspaceEvent[] = [];
   host.onEvent((event) => events.push(event));
-  world = { dataDir, engine, host, gpu, model, graduate, events };
+  world = { dataDir, engine, host, gpu, model, graduate, events, errors };
   await host.openGraduate(graduate.id);
   return world;
 }
@@ -710,5 +720,86 @@ describe('the host', () => {
     await done;
     await expect(world.host.send(chat.id, '   ')).rejects.toThrow('Write a message');
     await expect(world.host.messages('cht_missing')).rejects.toThrow('There is no chat');
+  });
+});
+
+describe('taking turns at the GPU', () => {
+  /** Another of Architect's processes on the same data folder, with a llama-server running. */
+  function otherProcess(world: World): GpuLease {
+    return new GpuLease({ dataDir: world.dataDir, owner: 'engine', pollMs: 25 });
+  }
+
+  it('waits for the GPU while another process holds it, then answers', async () => {
+    const world = await setup([{ text: 'There are 3 invoices on file.' }]);
+    const engine = otherProcess(world);
+    try {
+      const check = await engine.hold('llama-server', CHECK_PURPOSE);
+      const chat = await world.host.createChat(world.graduate.id);
+      const answered = settled(world, chat.id);
+      await world.host.send(chat.id, 'How many invoices are there?');
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      // Nothing reached the model while the other process had the GPU.
+      expect(world.model.chats()).toEqual([]);
+      check.release();
+      expect(await answered).toMatchObject({
+        status: 'done',
+        text: 'There are 3 invoices on file.',
+      });
+    } finally {
+      await engine.close();
+    }
+  });
+
+  it('refuses a request on its guardrail list at once, without waiting for the GPU', async () => {
+    const reason = 'Bookings chose a valid slot only 60% of the time in testing.';
+    const world = await setup([], {
+      harness: {
+        guardrails: { refuse: [{ taskType: 'schedule', whenAny: ['book'], reason }] },
+      },
+    });
+    const engine = otherProcess(world);
+    try {
+      const check = await engine.hold('llama-server', CHECK_PURPOSE);
+      const { reply } = await ask(world, 'Book a plumber for tomorrow morning.');
+      expect(reply).toMatchObject({ status: 'done', blocks: [{ kind: 'refusal', reason }] });
+      check.release();
+    } finally {
+      await engine.close();
+    }
+  });
+
+  it('says who has the GPU when its turn never comes, and reports it', async () => {
+    const world = await setup([], {}, { waitMs: 300 });
+    const engine = otherProcess(world);
+    try {
+      const check = await engine.hold('llama-server', CHECK_PURPOSE);
+      const { reply } = await ask(world, 'How many invoices are there?');
+      expect(reply).toMatchObject({
+        status: 'error',
+        error:
+          'The GPU is busy: Architect is checking an agent on this computer. Wait for the check to finish, then try again.',
+      });
+      expect(world.errors).toEqual([expect.any(LocalRuntimeError)]);
+      check.release();
+    } finally {
+      await engine.close();
+    }
+  });
+
+  it('stops a reply that is still waiting for the GPU', async () => {
+    const world = await setup([]);
+    const engine = otherProcess(world);
+    try {
+      const check = await engine.hold('llama-server', CHECK_PURPOSE);
+      const chat = await world.host.createChat(world.graduate.id);
+      const stopped = settled(world, chat.id);
+      await world.host.send(chat.id, 'How many invoices are there?');
+      await world.host.stop(chat.id);
+      expect(await stopped).toMatchObject({ status: 'stopped' });
+      expect(world.errors).toEqual([]);
+      check.release();
+    } finally {
+      await engine.close();
+    }
   });
 });

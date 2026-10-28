@@ -19,7 +19,12 @@ import { resourcesFor, type AdapterFile, type VersionFacts } from '../../src/gra
 import { ContractBook } from '../../src/graduates/contracts';
 import { GraduateLibrary } from '../../src/graduates/library';
 import { registerVersion, writeVersionFolder } from '../../src/graduates/versions';
-import { GpuLease, LocalAdapterRuntime, type ServerCommand } from '../../src/local-runtime';
+import {
+  GpuLease,
+  LocalAdapterRuntime,
+  type GpuLeaseOptions,
+  type ServerCommand,
+} from '../../src/local-runtime';
 import { DataPaths } from '../../src/loop/paths';
 import { openEngineStore, type EngineStore } from '../../src/store/engine-store';
 import type { StoredVersion } from '../../src/store/records';
@@ -91,8 +96,12 @@ export function testAdapterRuntime(
 }
 
 /** A process's share of the GPU lease on a test's data folder, quick to look and to give up. */
-export function testGpu(dataDir: string, owner = 'workspace'): GpuLease {
-  return new GpuLease({ dataDir, owner, pollMs: 25, heartbeatMs: 500 });
+export function testGpu(
+  dataDir: string,
+  owner = 'workspace',
+  options: Partial<GpuLeaseOptions> = {},
+): GpuLease {
+  return new GpuLease({ dataDir, owner, pollMs: 25, heartbeatMs: 500, ...options });
 }
 
 /** Architect started on an existing data folder. */

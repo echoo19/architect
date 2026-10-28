@@ -7,6 +7,7 @@ import {
   type TraceStep,
 } from '@architect/shared';
 import { runAgent } from '../agent/loop';
+import { matchGuardrail } from '../agent/retrieval';
 import { LocalRuntimeError, type GpuHold } from '../local-runtime';
 import type { Sandbox } from '../sandbox/types';
 import type { ApproveWrite } from '../tools/builtins';
@@ -40,15 +41,16 @@ export interface ReplyRequest {
 /**
  * Runs the graduate on one message in chat mode and leaves its reply settled, whatever happens.
  * The reply first holds the GPU, waiting its turn when another of Architect's processes has it.
- * A refusal comes back from the runtime without the student being called. An error that isn't
- * the model's or a tool's is shown on the reply and then thrown for the host to report.
+ * A refusal comes back from the runtime without the student being called, so it needs no GPU. An
+ * error that isn't the model's or a tool's is shown on the reply and then thrown for the host to
+ * report.
  */
 export async function respond(input: ReplyRequest): Promise<void> {
   const { graduate, reply } = input;
   let trace: Trace;
   let gpu: GpuHold | null = null;
   try {
-    gpu = await input.holdGpu();
+    if (matchGuardrail(graduate.harness, input.request) === null) gpu = await input.holdGpu();
     trace = await runAgent({
       harness: graduate.harness,
       job: graduate.job,
