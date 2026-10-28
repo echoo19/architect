@@ -15,7 +15,7 @@ import {
 } from '../api/hooks';
 import { fetchQuery, useQuery } from '../api/query';
 import { useComparison } from '../flow/report/ComparisonTable';
-import { useBareReport, useReportEvidence } from '../flow/report/evidence';
+import { useBareReport, useComparisonReport, useReportEvidence } from '../flow/report/evidence';
 import { ReportView } from '../flow/report/ReportView';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
@@ -83,6 +83,7 @@ function LoadedReport({ report }: { report: ReportCard }) {
   const comparison = useComparison(report, settings.data?.comparisonMode === true);
   const blankStart = job.data?.startingHarness.kind === 'blank';
   const evidence = useReportEvidence(report);
+  const comparisonReport = useComparisonReport(report);
   const bare = useBareReport(report, blankStart);
   const graduate = graduates.data?.find((item) => item.manifest.runId === report.runId);
   // Install checks belong to the agent on this computer, once the run has made one.
@@ -99,6 +100,7 @@ function LoadedReport({ report }: { report: ReportCard }) {
       bare={bare.data ?? null}
       run={run.data?.run ?? null}
       installation={installation.data ?? null}
+      comparisonReport={comparisonReport}
     />
   );
 }

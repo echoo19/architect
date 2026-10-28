@@ -6,6 +6,7 @@ import type {
   Run,
   Score,
 } from '@architect/shared';
+import type { RuntimeFigures } from './evidence';
 
 /*
  * The comparisons the expanded spec asks for (section 17), from the records that exist: the
@@ -32,6 +33,8 @@ export interface Arm {
   final: Score | null;
   /** What the configuration cost, when a record says; null when it isn't recorded apart. */
   budget: ArmBudget | null;
+  /** The most memory a meter saw over its final test here; null where no meter read it. */
+  memory: RuntimeFigures | null;
   /** The configuration this agent is. */
   current: boolean;
 }
@@ -44,6 +47,8 @@ export interface ArmInputs {
   references: readonly ReferenceRecord[];
   /** The final test of a run with no setup on the same job and seed, when one ran. */
   bare: ReportCard | null;
+  /** The meter's figures for the agent's own final test, when a meter read it. */
+  figures: RuntimeFigures | null;
 }
 
 /** The latest round that measured trained weights in all four configurations. */
@@ -66,7 +71,7 @@ function finished(records: readonly ReferenceRecord[], split: ReferenceRecord['s
 }
 
 export function comparisonArms(inputs: ArmInputs): Arm[] {
-  const { run, report, progress, experiments, references, bare } = inputs;
+  const { run, report, progress, experiments, references, bare, figures } = inputs;
   const weights = weightsExperiment(experiments);
   const measured = (label: string) =>
     weights?.measurements.find((item) => item.label === label)?.score ?? null;
@@ -86,6 +91,7 @@ export function comparisonArms(inputs: ArmInputs): Arm[] {
       computeUsd: progress?.spent.computeUsd ?? 0,
       computeMinutes: progress?.spent.computeMinutes ?? 0,
     },
+    memory: figures,
     current: true,
   };
   const dev = finished(references, 'dev');
@@ -96,17 +102,26 @@ export function comparisonArms(inputs: ArmInputs): Arm[] {
       check: weights ? measured('H0/A0') : (progress?.dev.baseline ?? run.devBaseline),
       final: bare?.test.score ?? null,
       budget: { mentorUsd: 0, computeUsd: 0, computeMinutes: 0 },
+      memory: null,
       current: false,
     },
     setup:
       agentKey === 'setup'
         ? agent
-        : { key: 'setup', check: measured('H1/A0'), final: null, budget: null, current: false },
+        : {
+            key: 'setup',
+            check: measured('H1/A0'),
+            final: null,
+            budget: null,
+            memory: null,
+            current: false,
+          },
     weights: {
       key: 'weights',
       check: measured('H0/A1'),
       final: null,
       budget: weightsBudget,
+      memory: null,
       current: false,
     },
     both:
@@ -117,6 +132,7 @@ export function comparisonArms(inputs: ArmInputs): Arm[] {
             check: measured('H1/A1'),
             final: null,
             budget: weightsBudget,
+            memory: null,
             current: false,
           },
     mentor: {
@@ -131,6 +147,7 @@ export function comparisonArms(inputs: ArmInputs): Arm[] {
               computeMinutes: 0,
             }
           : null,
+      memory: null,
       current: false,
     },
   };

@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react';
-import type { GraduateSummary, Installation, Job, ReportCard, Run } from '@architect/shared';
+import type {
+  ComparisonReport,
+  GraduateSummary,
+  Installation,
+  Job,
+  ReportCard,
+  Run,
+} from '@architect/shared';
 import { Badge, ErrorState, Heading, Stat } from '@architect/ui';
 import { Check, CircleMinus } from 'lucide-react';
 import type { QueryState } from '../../api/query';
@@ -12,9 +19,10 @@ import type { ModelNames } from '../train/phase';
 import { comparisonArms } from './arms';
 import { Capabilities } from './Capabilities';
 import type { ComparisonRow } from './comparison';
+import { ComparisonArms } from './ComparisonArms';
 import { Comparisons } from './Comparisons';
 import { ComparisonTable } from './ComparisonTable';
-import type { ReportEvidence } from './evidence';
+import { runtimeFigures, type ReportEvidence, type RuntimeFigures } from './evidence';
 import { missedRequirements } from './requirements';
 
 /** How the report names the runtime the final test ran on. */
@@ -38,6 +46,17 @@ interface ReportViewProps {
   installation: Installation | null;
   /** A run with no setup on the same job and seed, for the untouched student's final test. */
   bare: ReportCard | null;
+  /** The comparisons runner's report this run is an arm of, when there is one. */
+  comparisonReport: QueryState<ComparisonReport | null>;
+}
+
+/** The meter's memory figures for the model's stat, where a meter read the final test here. */
+function memoryLines(figures: RuntimeFigures | null): string[] {
+  if (figures === null) return [];
+  return [
+    figures.peakProcessBytes !== null && `Peak memory ${formatBytes(figures.peakProcessBytes)}`,
+    figures.peakGpuBytes !== null && `Peak GPU memory ${formatBytes(figures.peakGpuBytes)}`,
+  ].filter((line): line is string => typeof line === 'string');
 }
 
 /**
@@ -107,8 +126,10 @@ export function ReportView({
   run,
   installation,
   bare,
+  comparisonReport,
 }: ReportViewProps) {
   const { test, cost } = report;
+  const figures = evidence.data ? runtimeFigures(evidence.data.measurements, report) : null;
   const names: ModelNames = {
     mentor: shortModelName(report.mentor.label),
     student: shortModelName(report.student.label),
@@ -169,14 +190,23 @@ export function ReportView({
           className="bg-panel p-[22px]"
           value={formatAnswerTime(test.latencyMs.p50)}
           label="Typical answer"
-          note={`95% within ${formatAnswerTime(test.latencyMs.p95)}`}
+          note={
+            <Lines
+              lines={[
+                `95% within ${formatAnswerTime(test.latencyMs.p95)}`,
+                figures !== null &&
+                  figures.coldStartMs !== null &&
+                  `First answer ${formatAnswerTime(figures.coldStartMs)} from cold`,
+              ]}
+            />
+          }
           noteFont="text"
         />
         <Stat
           className="bg-panel p-[22px]"
           value={names.student}
           label="Model"
-          note={modelFacts}
+          note={<Lines lines={[modelFacts, ...memoryLines(figures)]} />}
           noteFont="text"
         />
         <Stat
@@ -207,18 +237,35 @@ export function ReportView({
         )}
       </div>
 
-      {evidence.status === 'error' && evidence.data === undefined && (
+      {/* A comparison's own report, when this run is one of its arms; else the run's records. */}
+      {comparisonReport.status === 'error' && comparisonReport.data === undefined && (
         <section aria-labelledby="comparisons" className="flex flex-col gap-3.5">
           <Heading id="comparisons">Comparisons</Heading>
           <ErrorState
             layout="inline"
-            title="Couldn't load the comparisons"
-            message={evidence.error.message}
-            onRetry={evidence.reload}
+            title="Couldn't read the comparisons report"
+            message={comparisonReport.error.message}
+            onRetry={comparisonReport.reload}
           />
         </section>
       )}
-      {run && evidence.data && (
+      {comparisonReport.data && (
+        <ComparisonArms report={comparisonReport.data} runId={report.runId} names={names} />
+      )}
+      {comparisonReport.data === null &&
+        evidence.status === 'error' &&
+        evidence.data === undefined && (
+          <section aria-labelledby="comparisons" className="flex flex-col gap-3.5">
+            <Heading id="comparisons">Comparisons</Heading>
+            <ErrorState
+              layout="inline"
+              title="Couldn't load the comparisons"
+              message={evidence.error.message}
+              onRetry={evidence.reload}
+            />
+          </section>
+        )}
+      {comparisonReport.data === null && run && evidence.data && (
         <Comparisons
           arms={comparisonArms({
             run,
@@ -227,6 +274,7 @@ export function ReportView({
             experiments: evidence.data.experiments,
             references: evidence.data.references,
             bare,
+            figures,
           })}
           names={names}
           blankStart={job?.startingHarness.kind === 'blank'}

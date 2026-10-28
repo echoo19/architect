@@ -1,16 +1,20 @@
 import type {
+  ComparisonReport,
   Experiment,
   ListedLesson,
   MentoringProgress,
   Measurement,
   ReferenceRecord,
   ReportCard,
+  RuntimeMeasurement,
   Trace,
   TraceStep,
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { formatCost, passedOf } from '../../../src/renderer/src/flow/format';
 import { comparisonArms, wasRun } from '../../../src/renderer/src/flow/report/arms';
+import { reportArms } from '../../../src/renderer/src/flow/report/comparison-report';
+import { runtimeFigures } from '../../../src/renderer/src/flow/report/evidence';
 import {
   lessonOrigin,
   measurementLabel,
@@ -295,6 +299,7 @@ describe('comparisons', () => {
       experiments: [],
       references: [reference('dev')],
       bare: null,
+      figures: null,
     });
     expect(arms.map((arm) => [arm.key, wasRun(arm), arm.current])).toEqual([
       ['untouched', true, false],
@@ -345,6 +350,7 @@ describe('comparisons', () => {
       experiments: [weights],
       references: [],
       bare: null,
+      figures: null,
     });
     expect(arms.map((arm) => [arm.key, arm.check?.pass ?? null, arm.current])).toEqual([
       ['untouched', 3, false],
@@ -354,5 +360,163 @@ describe('comparisons', () => {
       ['mentor', null, false],
     ]);
     expect(arms[2]?.budget).toEqual({ mentorUsd: 0.4, computeUsd: 1.8, computeMinutes: 60 });
+  });
+
+  it("put a meter's figures beside the agent's own final test only", () => {
+    const figures = { peakProcessBytes: 19e9, peakGpuBytes: 7e9, coldStartMs: 8_400 };
+    const arms = comparisonArms({
+      run: makeRun({}),
+      report,
+      progress,
+      experiments: [],
+      references: [],
+      bare: null,
+      figures,
+    });
+    expect(arms.map((arm) => [arm.key, arm.memory])).toEqual([
+      ['untouched', null],
+      ['setup', figures],
+      ['weights', null],
+      ['both', null],
+      ['mentor', null],
+    ]);
+  });
+});
+
+describe("a runtime meter's figures", () => {
+  const card = { testedOn: 'local' } as ReportCard;
+  const reading = (overrides: Partial<RuntimeMeasurement>): RuntimeMeasurement => ({
+    id: 'msr_1',
+    runId: 'run_1',
+    split: 'test',
+    target: 'local',
+    config: 'student',
+    harnessVersion: 2,
+    seeds: [101],
+    backend: 'ollama',
+    peakProcessBytes: null,
+    peakGpuBytes: null,
+    coldStartMs: null,
+    samples: 4,
+    sampler: 'a test',
+    startedAt: AT,
+    endedAt: AT,
+    ...overrides,
+  });
+
+  it("take the most any stretch of the card's own test saw, and its first cold start", () => {
+    expect(
+      runtimeFigures(
+        [
+          reading({ peakProcessBytes: 18e9, coldStartMs: 9_000 }),
+          reading({ id: 'msr_2', peakProcessBytes: 19e9, peakGpuBytes: 7e9, coldStartMs: 4_000 }),
+          // Another endpoint's test, or a check-task run, is not this card's.
+          reading({ id: 'msr_3', target: 'hosted', peakProcessBytes: 30e9 }),
+        ],
+        card,
+      ),
+    ).toEqual({ peakProcessBytes: 19e9, peakGpuBytes: 7e9, coldStartMs: 9_000 });
+  });
+
+  it('are nothing where no meter read the test', () => {
+    expect(runtimeFigures([], card)).toBeNull();
+    expect(runtimeFigures([reading({})], card)).toBeNull();
+  });
+});
+
+describe('a comparisons report', () => {
+  const spent = (sparkUsd: number) => ({
+    sparkUsd,
+    sparkInputTokens: 0,
+    sparkOutputTokens: 0,
+    studentUsd: 1.2,
+    studentInputTokens: 0,
+    studentOutputTokens: 0,
+    computeUsd: 0,
+    computeMinutes: 0,
+    computeSettled: true,
+    examples: 0,
+    trainedTokens: 0,
+    studentAttempts: 0,
+    sparkAttempts: 0,
+    wallMinutes: 0,
+  });
+  const row = (arm: string, seed: number, pass: number, peakMemory: unknown = null) => ({
+    arm,
+    seed,
+    scenarios: { pass, total: 60 },
+    complete: true,
+    peakMemory,
+  });
+  const report = {
+    plan: { testSeeds: [101, 102] },
+    arms: [
+      { arm: 'bare', status: 'complete', reason: null, runId: 'run_bare', spent: spent(0) },
+      { arm: 'targeted', status: 'complete', reason: null, runId: 'run_t', spent: spent(3) },
+      { arm: 'reference', status: 'complete', reason: null, runId: 'run_r', spent: spent(2) },
+      {
+        arm: 'fixed',
+        status: 'not_run',
+        reason: 'It needs $5.87 of student credit, and $3.91 is left.',
+        runId: null,
+        spent: spent(0),
+      },
+    ],
+    backends: [
+      {
+        backend: 'hosted',
+        rows: [row('bare', 101, 24), row('targeted', 101, 51)],
+        repeats: [
+          {
+            arm: 'targeted',
+            seeds: [
+              { seed: 101, score: { pass: 51, total: 60 } },
+              { seed: 102, score: { pass: 50, total: 60 } },
+            ],
+          },
+        ],
+      },
+      { backend: 'reference', rows: [row('reference', 101, 57)], repeats: [] },
+      {
+        backend: 'local-ollama',
+        rows: [row('targeted', 101, 47, { processBytes: 19e9, gpuBytes: 7e9 })],
+        repeats: [],
+      },
+    ],
+  } as unknown as ComparisonReport;
+  const names = { mentor: 'Spark', student: 'Glimmer' };
+
+  it('reads each arm from its own rows, the other seed beside it, memory only where metered', () => {
+    const [bare, targeted, reference] = reportArms(report, 'run_t', names);
+    expect(bare).toMatchObject({
+      label: 'Glimmer, untouched',
+      current: false,
+      hosted: { pass: 24, total: 60, repeat: null },
+      local: null,
+      memory: null,
+    });
+    expect(targeted).toMatchObject({
+      label: 'Glimmer mentored by Spark',
+      current: true,
+      hosted: { pass: 51, repeat: { seed: 102, pass: 50, total: 60 } },
+      local: { pass: 47 },
+      memory: { processBytes: 19e9, gpuBytes: 7e9 },
+    });
+    // Spark doing the tasks itself is read from its own table.
+    expect(reference).toMatchObject({
+      label: 'Spark doing the tasks itself',
+      hosted: { pass: 57 },
+    });
+  });
+
+  it("says an arm that wasn't run wasn't, with the reason, and infers nothing for it", () => {
+    const fixed = reportArms(report, 'run_t', names).find((arm) => arm.arm === 'fixed');
+    expect(fixed).toMatchObject({
+      status: 'not_run',
+      reason: 'It needs $5.87 of student credit, and $3.91 is left.',
+      hosted: null,
+      local: null,
+      memory: null,
+    });
   });
 });

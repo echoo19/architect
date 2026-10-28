@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@architect/ui';
+import { formatBytes } from '../../lib/format';
 import { formatCost, formatRate } from '../format';
 import type { ModelNames } from '../train/phase';
 import { wasRun, type Arm, type ArmKey } from './arms';
@@ -50,6 +51,25 @@ function ScoreCell({ score, perRun }: { score: Score | null; perRun?: number | u
   );
 }
 
+/** The most memory a meter saw over a final test here, process and GPU; nothing where none ran. */
+export function PeakMemory({
+  processBytes,
+  gpuBytes,
+}: {
+  processBytes: number | null;
+  gpuBytes: number | null;
+}) {
+  if (processBytes === null && gpuBytes === null) return null;
+  return (
+    <span className="flex flex-col items-end text-xs tabular-nums text-fg-muted">
+      {processBytes !== null && (
+        <span className="font-mono text-sm text-fg">{formatBytes(processBytes)}</span>
+      )}
+      {gpuBytes !== null && <span>GPU {formatBytes(gpuBytes)}</span>}
+    </span>
+  );
+}
+
 /**
  * The student with and without the setup and trained weights, and Spark on the same tasks,
  * where their records exist. A comparison that wasn't run says so and shows nothing else.
@@ -67,6 +87,8 @@ export function Comparisons({
   /** How many check tasks one run has, to say when a score adds up more than one. */
   checkTasks: number | undefined;
 }) {
+  // Memory has a column only once a meter read some arm's final test here.
+  const metered = arms.some((arm) => arm.memory !== null);
   return (
     <section aria-labelledby="comparisons" className="flex flex-col gap-[18px]">
       <Heading id="comparisons">Comparisons</Heading>
@@ -75,18 +97,23 @@ export function Comparisons({
           <TableHeader>
             <TableRow>
               <TableHead />
-              <TableHead className="text-right">
+              <TableHead className="whitespace-nowrap text-right">
                 <EvidenceMark kind="check" className="justify-end">
                   Check tasks
                 </EvidenceMark>
               </TableHead>
-              <TableHead className="text-right">
+              <TableHead className="whitespace-nowrap text-right">
                 <EvidenceMark kind="final" className="justify-end">
                   Final test
                 </EvidenceMark>
               </TableHead>
-              <TableHead className="text-right">{names.mentor}&apos;s cost</TableHead>
-              <TableHead className="text-right">Compute cost</TableHead>
+              {metered && (
+                <TableHead className="whitespace-nowrap text-right">Peak memory</TableHead>
+              )}
+              <TableHead className="whitespace-nowrap text-right">
+                {names.mentor}&apos;s cost
+              </TableHead>
+              <TableHead className="whitespace-nowrap text-right">Compute cost</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -98,7 +125,9 @@ export function Comparisons({
                     <span className={arm.current ? 'font-medium' : undefined}>
                       {armLabel(arm.key, names, blankStart)}
                     </span>
-                    {arm.current && <span className="text-fg-muted"> · this agent</span>}
+                    {arm.current && (
+                      <span className="whitespace-nowrap text-fg-muted"> · this agent</span>
+                    )}
                   </TableCell>
                   {run ? (
                     <>
@@ -108,6 +137,16 @@ export function Comparisons({
                       <TableCell className="text-right">
                         <ScoreCell score={arm.final} />
                       </TableCell>
+                      {metered && (
+                        <TableCell className="text-right">
+                          {arm.memory && (
+                            <PeakMemory
+                              processBytes={arm.memory.peakProcessBytes}
+                              gpuBytes={arm.memory.peakGpuBytes}
+                            />
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell className="text-right font-mono tabular-nums">
                         {arm.budget ? formatCost(arm.budget.mentorUsd) : '–'}
                       </TableCell>
@@ -118,7 +157,7 @@ export function Comparisons({
                       </TableCell>
                     </>
                   ) : (
-                    <TableCell colSpan={4} className="text-right text-fg-faint">
+                    <TableCell colSpan={metered ? 5 : 4} className="text-right text-fg-faint">
                       Not run
                     </TableCell>
                   )}
