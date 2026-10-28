@@ -132,7 +132,7 @@ for (const theme of THEMES) {
     const hosted = page.getByRole('radio', { name: /Hosted on Together/ });
     await expect(local).toBeChecked();
     await expect(local).toContainText(
-      'No full round fits in 4 hours of training; one takes about 4 to 7 hours',
+      'No full round fits in 4 hours of training: one takes at least 3 h 50 min here',
     );
     await expect(local).toContainText('Too slow for this time limit');
     await expect(hosted).toContainText('about $3.50 billed by Together');

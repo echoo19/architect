@@ -163,7 +163,9 @@ export function TrainingPlace({
         <span className="text-fg-secondary text-pretty">
           {usual === null
             ? `No price on file for ${mentor}. Training stops before a call would go over the cap.`
-            : `${aboutUsd(usual)} if all ${job.budget.maxRounds} rounds run. Training stops before a call would go over the cap.`}
+            : chosen.rounds.most > 0 && chosen.rounds.most < job.budget.maxRounds
+              ? `${aboutUsd((usual / job.budget.maxRounds) * chosen.rounds.most)} for up to ${chosen.rounds.most} rounds, as many as fit. Training stops before a call would go over the cap.`
+              : `${aboutUsd(usual)} if all ${job.budget.maxRounds} rounds run. Training stops before a call would go over the cap.`}
         </span>
       </div>
 

@@ -1,3 +1,4 @@
+import { formatDuration } from '../../lib/format';
 import {
   costUsd,
   MENTOR_PRESETS,
@@ -97,7 +98,7 @@ export function roundsLine(job: Job, estimate: TimeEstimate): string {
     return `All ${roundCount(maxRounds)} fit, in ${aboutSpan(estimate.trainingSeconds).toLowerCase()} of training`;
   }
   if (most === 0) {
-    return `No full round fits in ${cap} of training; one takes ${aboutSpan(estimate.roundSeconds).toLowerCase()}`;
+    return `No full round fits in ${cap} of training: one takes at least ${formatDuration(estimate.roundSeconds.least * 1000)} here`;
   }
   const verb = most === 1 ? 'fits' : 'fit';
   const count = countRange(estimate.rounds);
