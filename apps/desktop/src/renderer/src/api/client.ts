@@ -6,6 +6,8 @@ import {
   GraduateSummarySchema,
   JobSchema,
   JobSummarySchema,
+  LocalRuntimesSchema,
+  ModelEntrySchema,
   OllamaStatusSchema,
   ReportCardSchema,
   RunDetailSchema,
@@ -17,6 +19,7 @@ import {
   type ArchitectApi,
   type Job,
   type Method,
+  type ModelSource,
 } from '@architect/shared';
 import { z } from 'zod';
 
@@ -41,6 +44,14 @@ export const api = {
   settings: () => read('settings.get', AppSettingsSchema, bridge().settings.get()),
   secretsStatus: () => read('secrets.status', SecretStatusSchema, bridge().secrets.status()),
   ollamaStatus: () => read('ollama.status', OllamaStatusSchema, bridge().ollama.status()),
+  localRuntimes: () =>
+    read('connections.detectLocal', LocalRuntimesSchema, bridge().connections.detectLocal()),
+  models: (source: ModelSource) =>
+    read(
+      'connections.listModels',
+      z.array(ModelEntrySchema),
+      bridge().connections.listModels(source),
+    ),
   graduates: () =>
     read('graduates.list', z.array(GraduateSummarySchema), bridge().graduates.list()),
   jobs: () => read('jobs.list', z.array(JobSummarySchema), bridge().jobs.list()),

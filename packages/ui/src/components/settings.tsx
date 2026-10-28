@@ -110,6 +110,8 @@ export function SettingsDialog<T extends string>({
 
 export interface SettingsRowProps {
   label: string;
+  /** A mark before the label, such as a provider's tile. */
+  icon?: ReactNode;
   /** A short line under the label: what the setting does, or a fact such as a model id. */
   meta?: ReactNode;
   /** `code` sets the meta in mono, for a model id, a path or a web address. */
@@ -123,6 +125,7 @@ export interface SettingsRowProps {
 
 export function SettingsRow({
   label,
+  icon,
   meta,
   metaFont = 'text',
   error,
@@ -131,6 +134,7 @@ export function SettingsRow({
 }: SettingsRowProps) {
   return (
     <div className="flex min-h-[60px] flex-wrap items-center justify-between gap-x-5 gap-y-2.5 border-t border-line py-2.5">
+      {icon && <div className="-mr-2 flex shrink-0 items-center">{icon}</div>}
       <div className="flex min-w-0 flex-[1_1_180px] flex-col gap-0.5">
         <span className={tone === 'danger' ? 'text-danger' : 'text-fg'}>{label}</span>
         {error ? (

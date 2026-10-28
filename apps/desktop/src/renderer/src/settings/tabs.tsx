@@ -1,25 +1,10 @@
-import {
-  MENTOR_PRESETS,
-  type MentorPresetKey,
-  type ReasoningEffort,
-  type Theme,
-} from '@architect/shared';
-import { Segmented, Select, SettingsRow, SettingsValue, Skeleton, Switch } from '@architect/ui';
+import { type ReasoningEffort, type Theme } from '@architect/shared';
+import { Segmented, SettingsRow, SettingsValue, Skeleton, Switch } from '@architect/ui';
 import { useAppInfo, useGraduates, useOllamaStatus } from '../api/hooks';
-import { KeyRow } from '../components/KeyRow';
 import { errorOf, QueryValue, RetryButton } from '../components/QueryValue';
 import { formatBytes } from '../lib/format';
-import {
-  capitalized,
-  MENTOR_ROLE_DETAIL,
-  mentorName,
-  shortModelName,
-  STUDENT_ROLE,
-  studentLabel,
-} from '../lib/names';
+import { mentorName } from '../lib/names';
 import { currentPlatform, deviceInSentence, deviceLabel } from '../lib/platform';
-import { HOSTED_PRESETS, hostedEndpoint, providerName } from '../flow/define/hosted';
-import { mentorFromPreset, mentorNote, mentorProvider, presetFor } from '../onboarding/mentor';
 import type { TabProps } from './SettingsModal';
 
 const THEMES = [
@@ -65,83 +50,11 @@ export function GeneralTab({ settings, update }: TabProps) {
   );
 }
 
-export function ModelsTab({ settings, update }: TabProps) {
-  const ollama = useOllamaStatus();
-  const mentor = settings.defaultMentor;
-  const student = settings.defaultStudent;
-  const preset = presetFor(mentor);
-  const device = deviceInSentence(currentPlatform());
-
-  return (
-    <>
-      <SettingsRow
-        label="Mentor"
-        meta={`${capitalized(MENTOR_ROLE_DETAIL)}, for new agents.${preset ? ` ${mentorNote(preset)}` : ''}`}
-      >
-        {mentor.kind === 'model' ? (
-          <Select<MentorPresetKey>
-            aria-label="Mentor"
-            placeholder={mentor.label}
-            options={MENTOR_PRESETS.map((option) => ({ value: option.key, label: option.label }))}
-            value={preset?.key}
-            onValueChange={(key) => {
-              const next = MENTOR_PRESETS.find((option) => option.key === key);
-              if (next) update({ defaultMentor: mentorFromPreset(next, mentor) });
-            }}
-            className="w-64"
-          />
-        ) : (
-          <SettingsValue>{mentor.label}</SettingsValue>
-        )}
-      </SettingsRow>
-      {mentor.kind === 'model' && mentor.secretRef !== undefined && (
-        <KeyRow secretRef={mentor.secretRef} provider={mentorProvider(mentor)} />
-      )}
-      <SettingsRow label={capitalized(STUDENT_ROLE)} meta={`Every agent runs on it, on ${device}`}>
-        <SettingsValue>{shortModelName(studentLabel(student))}</SettingsValue>
-      </SettingsRow>
-      <SettingsRow
-        label="Local model runtime"
-        meta={`Ollama · ${student.baseUrl}`}
-        metaFont="code"
-        error={errorOf(ollama)}
-      >
-        <QueryValue query={ollama}>
-          {(status) =>
-            status.running
-              ? `Running${status.version ? ` · ${status.version}` : ''}`
-              : 'Not running'
-          }
-        </QueryValue>
-      </SettingsRow>
-      <p className="m-0 border-t border-line pb-1 pt-5 font-medium">
-        Hosted copies of {shortModelName(studentLabel(student))}, for faster practice
-      </p>
-      <p className="m-0 pb-2 text-sm text-fg-muted text-pretty">
-        Optional, and separate from the mentor: a job can practice on one of these services instead
-        of {device}, picked under Where should it train when you define the job. The final test
-        always runs here.
-      </p>
-      {HOSTED_KEYS.map((key) => (
-        <KeyRow key={key.secretRef} secretRef={key.secretRef} provider={key.provider} />
-      ))}
-    </>
-  );
-}
-
-/** The hosted copies a job can practice on, one key each. */
-const HOSTED_KEYS = HOSTED_PRESETS.flatMap((preset) => {
-  const endpoint = hostedEndpoint(preset, 0);
-  return endpoint.secretRef
-    ? [{ secretRef: endpoint.secretRef, provider: providerName(endpoint) }]
-    : [];
-});
-
 export function TrainingTab({ settings, update }: TabProps) {
   const mentor = settings.defaultMentor;
   return (
     <>
-      {mentor.kind === 'model' && mentor.secretRef !== undefined && (
+      {mentor.kind === 'model' && (
         <SettingsRow
           label={`How hard ${mentorName(mentor)} thinks`}
           meta="More thinking can find subtler fixes but costs more per round"
