@@ -22,6 +22,8 @@ import {
   StandInBackend,
   TrainingWorker,
   writeTrainingDataset,
+  type BackendHandle,
+  type BackendStatus,
   type TrainingStore,
 } from '../src/training';
 import { orderEpisode } from './support/episodes';
@@ -211,6 +213,46 @@ describe('the stand-in backend', () => {
     });
     const lost = await restarted.poll('trn_lost1');
     expect(lost).toMatchObject({ state: 'failed', error: { code: 'interrupted' } });
+  });
+
+  it('keeps checking in the background, and reports a failed check instead of hiding it', async () => {
+    let failures = 1;
+    class Flaky extends StandInBackend {
+      override status(handle: BackendHandle): Promise<BackendStatus> {
+        if (failures-- > 0) return Promise.reject(new Error('The provider did not answer.'));
+        return super.status(handle);
+      }
+    }
+    const errors: string[] = [];
+    const states: string[] = [];
+    const training = new TrainingWorker({
+      store: new FileTrainingStore(dataDir),
+      backends: {
+        'stand-in': new Flaky({
+          stateDir: join(dataDir, 'training', 'stand-in'),
+          baseHeader: () => base,
+          now: () => now,
+        }),
+      },
+      trainerDir: TRAINER,
+      now: () => now,
+      pollMs: 5,
+      onChange: (record) => states.push(record.state),
+      onPollError: (_id, error) =>
+        errors.push(error instanceof Error ? error.message : String(error)),
+    });
+    try {
+      const job = await training.submit(request(datasetDir('a')));
+      const deadline = Date.now() + 5000;
+      while (training.get(job.id).state !== 'ready' && Date.now() < deadline) {
+        await new Promise((done) => setTimeout(done, 10));
+      }
+      expect(training.get(job.id).state).toBe('ready');
+      expect(errors).toEqual(['The provider did not answer.']);
+      expect(states).toEqual(['submitting', 'queued', 'succeeded', 'ready']);
+    } finally {
+      training.close();
+    }
   });
 
   it('cancels a job on request', async () => {

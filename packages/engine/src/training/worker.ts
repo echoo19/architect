@@ -42,6 +42,8 @@ export interface TrainingWorkerOptions {
   sleep?: (ms: number, signal: AbortSignal) => Promise<void>;
   /** Every saved change to a record. */
   onChange?: (record: TrainingJobRecord) => void;
+  /** A background check failed; the job is checked again on the next round. */
+  onPollError?: (id: string, error: unknown) => void;
   /** Keep checking jobs in the background once submitted or resumed. Default true. */
   watch?: boolean;
 }
@@ -455,8 +457,9 @@ export class TrainingWorker {
           let record: TrainingJobRecord;
           try {
             record = await this.poll(id, controller.signal);
-          } catch {
-            // A failed check (a network drop, a busy provider) is tried again on the next round.
+          } catch (error) {
+            // A failed check (a network drop, a busy provider) is reported, then tried again.
+            if (!controller.signal.aborted) this.options.onPollError?.(id, error);
             await sleep(this.options.pollMs ?? 30_000, controller.signal);
             continue;
           }
