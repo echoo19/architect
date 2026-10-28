@@ -40,6 +40,8 @@ const MODEL = 'muse-glimmer:30b';
 export interface FakeOllamaOptions {
   /** Called as each streamed chat request arrives, before it is answered. */
   onChat?(): void;
+  /** Called as each request to unload a model arrives, before it is answered. */
+  onUnload?(model: string): void;
 }
 
 /**
@@ -88,6 +90,9 @@ export async function startFakeOllama(
       return;
     }
     if (!isStreamed(body)) {
+      // A chat not streamed, with no messages and a keep-alive of 0, asks Ollama to unload a model.
+      const { model } = body as { model?: unknown };
+      options.onUnload?.(typeof model === 'string' ? model : '');
       sendJson(response, 200, { model: MODEL, done: true });
       return;
     }

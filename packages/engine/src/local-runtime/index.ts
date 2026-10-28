@@ -2,6 +2,7 @@
  * The local adapter runtime: llama-server on this computer, serving a base model from Ollama's
  * store with GGUF LoRA adapters for graduates that carry one (decision 031).
  */
+export { appDataDir } from './app-data';
 export {
   checkServerVersion,
   describeLlamaServer,

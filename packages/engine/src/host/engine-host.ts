@@ -5,13 +5,12 @@ import {
   hostAdapterRuntime,
   RUN_PURPOSE,
   type GpuLease,
-  type GpuPurpose,
   type LocalAdapterRuntime,
   type LocalRuntimeSettings,
   type ServerCommand,
 } from '../local-runtime';
 import { RunController } from '../loop/controller';
-import { systemClock, type AdapterDeps, type Clock, type EngineHostDeps } from '../loop/deps';
+import { systemClock, type Clock, type EngineHostDeps } from '../loop/deps';
 import { JobLibrary } from '../loop/jobs';
 import { DataPaths } from '../loop/paths';
 import { openEngineStore } from '../store/engine-store';
@@ -27,6 +26,7 @@ import {
   toErrorPayload,
   type EngineApi,
 } from './protocol';
+import { studentsHolding } from './students';
 
 export interface EngineHostOptions {
   /** The app's data folder: the database, jobs, the vault and graduates live here. */
@@ -68,21 +68,6 @@ export interface EngineHost {
   serve(port: EnginePort): void;
   /** Aborts active runs, which resume on the next start, and closes the database. */
   close(): Promise<void>;
-}
-
-/**
- * The engine's dependencies with every student on Ollama here holding the GPU lease for each
- * request, for `purpose`. Without a lease they are the same dependencies.
- */
-function studentsHolding(
-  deps: EngineHostDeps,
-  gpu: GpuLease | undefined,
-  purpose: GpuPurpose,
-): EngineHostDeps {
-  if (gpu === undefined) return deps;
-  const createStudent: AdapterDeps['createStudent'] = (endpoint, studentOptions) =>
-    gpu.ollama.student(endpoint, deps.adapters.createStudent(endpoint, studentOptions), purpose);
-  return { ...deps, adapters: { ...deps.adapters, createStudent } };
 }
 
 function requestId(message: unknown): number | null {

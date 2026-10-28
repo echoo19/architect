@@ -1,12 +1,13 @@
 import { fork, type ChildProcess } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createStudent } from '@architect/adapters';
 import { AdapterError, DecodingSchema, type StudentAdapter } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { clearBeforeColdStart, COMPARISON_PURPOSE, comparisonLease } from '../src/comparisons';
 import {
   CHECK_PURPOSE,
   GpuLease,
@@ -15,6 +16,7 @@ import {
   type GpuPriority,
   type ServeRequest,
 } from '../src/local-runtime';
+import { emptyLease, type LeaseState } from '../src/local-runtime/lease-rules';
 import { startFakeOllama, type FakeOllama } from './agent-host/fake-ollama';
 import {
   fakeLlamaCommand,
@@ -149,6 +151,33 @@ function thisProcess(
   return { gpu, runtime };
 }
 
+/**
+ * This test's process as the comparisons script: its share of the lease on the app's data folder,
+ * and its own llama-server, wired as `realEnvironment` wires them.
+ */
+function comparisonScript(): { gpu: GpuLease; runtime: LocalAdapterRuntime } {
+  const gpu = comparisonLease(dir, { pollMs: 25, heartbeatMs: 200 });
+  const runtime = new LocalAdapterRuntime({
+    runtimeDir: join(dir, 'comparison', 'local-runtime', 'comparisons'),
+    ollamaModelsDir: () => models,
+    env: {},
+    freeGpu: async () => undefined,
+    command: fakeLlamaCommand(record),
+    gpu,
+    purpose: COMPARISON_PURPOSE,
+  });
+  cleanups.push(async () => {
+    await runtime.stop();
+    await gpu.close();
+  });
+  return { gpu, runtime };
+}
+
+function leaseFile(): LeaseState {
+  const file = join(dir, 'local-runtime', 'gpu-lease.json');
+  return existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as LeaseState) : emptyLease();
+}
+
 const starts = (): Recorded[] => recorded(record).filter((entry) => entry.kind === 'start');
 
 function alive(pid: number): boolean {
@@ -276,5 +305,120 @@ describe('the GPU lease between two processes', () => {
     expect(alive(orphan)).toBe(false);
     expect(starts().map((start) => start.alongside)).toEqual([[], []]);
     await until(() => !alive(orphan));
+  }, 60_000);
+});
+
+describe('the comparisons script under the lease', () => {
+  const HINT = 'Close Architect while a comparison runs, then run the command again.';
+
+  it('takes the GPU only while no process of the app has it, and fails at once otherwise', async () => {
+    const app = await startUser('engine');
+    const theirs = await app.hold('check');
+    const script = comparisonScript();
+    const refused = async () => {
+      const started = Date.now();
+      const error = await script.runtime
+        .access(request)
+        .acquire()
+        .catch((caught: unknown) => caught);
+      // At once, where another of Architect's processes would wait up to 5 minutes.
+      expect(Date.now() - started).toBeLessThan(5_000);
+      return error;
+    };
+    expect(await refused()).toMatchObject({
+      code: 'server',
+      message: `The GPU is busy: Architect is checking an agent on this computer. ${HINT}`,
+    });
+    // Idle, the app keeps its llama-server: the script never takes the GPU from it.
+    await app.release();
+    expect(await refused()).toMatchObject({
+      code: 'server',
+      message: `The GPU is busy: Architect has it, with nothing running. ${HINT}`,
+    });
+    expect(alive(theirs)).toBe(true);
+    expect(starts()).toHaveLength(1);
+
+    // With the app closed, the GPU is the script's.
+    const closed = new Promise<void>((resolve) => app.child.once('exit', () => resolve()));
+    app.child.disconnect();
+    await closed;
+    const lease = await script.runtime.access(request).acquire();
+    lease.release();
+    expect(starts().map((start) => start.alongside)).toEqual([[], []]);
+  }, 60_000);
+
+  it('holds the GPU for each request as the engine does, and gives it up to the app when idle', async () => {
+    const script = comparisonScript();
+    const lease = await script.runtime.access(request).acquire();
+    expect(leaseFile().holders).toMatchObject([
+      {
+        owner: 'comparisons',
+        use: 'llama-server',
+        busy: true,
+        doing: 'testing a model on this computer',
+      },
+    ]);
+    lease.release();
+    await until(() => leaseFile().holders[0]?.busy === false);
+    const ours = script.runtime.status().pid ?? 0;
+
+    const app = await startUser('workspace');
+    expect(await app.serve('reply')).toBe('lora=[{"id":0,"scale":1}]');
+    expect(script.runtime.status().state).toBe('stopped');
+    expect(alive(ours)).toBe(false);
+    expect(starts().map((start) => start.alongside)).toEqual([[], []]);
+  }, 60_000);
+
+  it("clears the GPU for the meter's cold start under the lease, or not at all", async () => {
+    const atUnload: LeaseState['holders'][] = [];
+    const ollama = await startFakeOllama([{ text: 'Two are open.' }], {
+      onUnload: () => atUnload.push(leaseFile().holders),
+    });
+    cleanups.push(() => ollama.close());
+    const script = comparisonScript();
+    const clear = clearBeforeColdStart(script.gpu, script.runtime, {
+      baseUrl: ollama.url,
+      models: ['muse-glimmer:30b'],
+    });
+    const endpoint = {
+      runtime: 'ollama' as const,
+      baseUrl: ollama.url,
+      model: 'muse-glimmer:30b',
+      contextLength: 16_384,
+    };
+    const student = script.gpu.ollama.student(
+      endpoint,
+      createStudent(endpoint),
+      COMPARISON_PURPOSE,
+    );
+    expect(await ask(student)).toBe('Two are open.');
+
+    // Its own students on Ollama give the GPU up first, unloading what they used; then Ollama's
+    // presets are unloaded while the script holds the GPU alone.
+    await clear();
+    expect(atUnload).toEqual([
+      [expect.objectContaining({ owner: 'comparisons', use: 'ollama', leaving: true })],
+      [expect.objectContaining({ owner: 'comparisons', use: 'llama-server', busy: true })],
+    ]);
+    // Its llama-server stops under the same hold.
+    (await script.runtime.access(request).acquire()).release();
+    expect(script.runtime.status().state).not.toBe('stopped');
+    await clear();
+    expect(script.runtime.status().state).toBe('stopped');
+    expect(atUnload).toHaveLength(3);
+    await until(() => leaseFile().holders.length === 0);
+
+    // While the app has the GPU, it fails at once and unloads nothing.
+    const app = await startUser('engine');
+    await app.hold('check');
+    const started = Date.now();
+    await expect(clear()).rejects.toMatchObject({
+      code: 'gpu_busy',
+      message: 'The GPU is busy: Architect is checking an agent on this computer.',
+      hint: HINT,
+    });
+    expect(Date.now() - started).toBeLessThan(5_000);
+    expect(atUnload).toHaveLength(3);
+    await app.release();
   }, 60_000);
 });

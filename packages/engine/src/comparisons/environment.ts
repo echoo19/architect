@@ -1,18 +1,20 @@
 import { createHash } from 'node:crypto';
-import { unloadOllamaModel } from '@architect/adapters';
 import { writeHarness } from '@architect/harness';
-import { STUDENT_PRESETS, type BackendId, type Job, type RuntimeIdentity } from '@architect/shared';
+import {
+  OLLAMA_BASE_URL,
+  STUDENT_PRESETS,
+  type BackendId,
+  type Job,
+  type RuntimeIdentity,
+} from '@architect/shared';
 import { readGgufHeader } from '../gguf';
+import { studentsHolding } from '../host/students';
 import { createEngineDeps } from '../host/wiring';
 import { hubTokenResolver } from '../hub';
-import {
-  describeLlamaServer,
-  hostAdapterRuntime,
-  resolveOllamaModel,
-  type LocalAdapterRuntime,
-} from '../local-runtime';
+import { describeLlamaServer, hostAdapterRuntime, resolveOllamaModel } from '../local-runtime';
 import { systemClock } from '../loop/deps';
 import { DataPaths } from '../loop/paths';
+import { clearBeforeColdStart, COMPARISON_PURPOSE, comparisonLease } from './gpu';
 import { systemMeter } from './meter';
 import type { ComparisonEnvironment } from './runner';
 
@@ -25,6 +27,11 @@ const SECRET_ENV: Record<string, string> = {
 export interface RealEnvironmentOptions {
   /** The comparison's data folder. */
   dataDir: string;
+  /**
+   * The app's data folder, where the script takes its turns at the GPU with the app's processes
+   * (decision 046).
+   */
+  appDataDir: string;
   /** The repository's `trainer/` folder, for weights arms. */
   trainerDir: string;
   /** Watch the local runtime during local locked tests: only within the owner's GPU window. */
@@ -129,44 +136,52 @@ async function identify(backend: BackendId, job: Job): Promise<RuntimeIdentity |
 
 /**
  * The real environment for a comparison: the engine's own dependencies with keys from the
- * environment, a training worker that uses Hugging Face Jobs when a token resolves, the engine's
- * llama-server for adapter students, and the system meter when the GPU window is granted.
+ * environment, a training worker that uses Hugging Face Jobs when a token resolves, a llama-server
+ * of its own for adapter students, and the system meter when the GPU window is granted. Its
+ * llama-server and its students on Ollama take the GPU lease the app's processes share, and only
+ * when the app has none of it (decision 046).
  */
 export function realEnvironment(options: RealEnvironmentOptions): {
   env: ComparisonEnvironment;
-  adapterRuntime: LocalAdapterRuntime;
+  /** Stops the llama-server and leaves the GPU lease. */
+  close(): Promise<void>;
 } {
   const paths = new DataPaths(options.dataDir);
+  const gpu = comparisonLease(options.appDataDir);
   const adapterRuntime = hostAdapterRuntime({
     runtimeDir: paths.runtimeDir('comparisons'),
     settings: () => ({}),
+    gpu,
+    purpose: COMPARISON_PURPOSE,
   });
   const token = hubTokenResolver();
-  const deps = createEngineDeps({
-    dataDir: options.dataDir,
-    getSecret: async (ref) => {
-      const name = SECRET_ENV[ref];
-      return name === undefined ? undefined : process.env[name] || undefined;
-    },
-    trainerDir: options.trainerDir,
-    huggingFaceToken: token,
-    adapterRuntime,
-  });
-  if (options.meter) {
-    deps.meter = systemMeter({
-      unload: {
-        ollama: async () => {
-          const ollama = 'http://127.0.0.1:11434';
-          for (const preset of STUDENT_PRESETS.filter((item) => item.runtime === 'ollama')) {
-            await unloadOllamaModel(ollama, preset.model).catch(() => undefined);
-          }
-        },
-        'llama.cpp': () => adapterRuntime.stop(),
+  const deps = studentsHolding(
+    createEngineDeps({
+      dataDir: options.dataDir,
+      getSecret: async (ref) => {
+        const name = SECRET_ENV[ref];
+        return name === undefined ? undefined : process.env[name] || undefined;
       },
+      trainerDir: options.trainerDir,
+      huggingFaceToken: token,
+      adapterRuntime,
+    }),
+    gpu,
+    COMPARISON_PURPOSE,
+  );
+  if (options.meter) {
+    // Either backend's cold start begins from a GPU with nothing of Architect's on it.
+    const clear = clearBeforeColdStart(gpu, adapterRuntime, {
+      baseUrl: OLLAMA_BASE_URL,
+      models: STUDENT_PRESETS.filter((item) => item.runtime === 'ollama').map((item) => item.model),
     });
+    deps.meter = systemMeter({ unload: { ollama: clear, 'llama.cpp': clear } });
   }
   return {
-    adapterRuntime,
+    close: async () => {
+      await adapterRuntime.stop();
+      await gpu.close();
+    },
     env: {
       deps,
       clock: systemClock,

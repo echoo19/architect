@@ -1,9 +1,9 @@
 import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { appDataDir } from '@architect/engine/local-runtime';
 import { openEngineStore, SAMPLE_CONTENT } from '@architect/engine/testing';
 import { afterEach, describe, expect, it } from 'vitest';
-import { appDataDir } from '../src/context';
 import { cleanUp, cli, machineWith, spawnCli, tempDir, testEnv } from './support';
 
 afterEach(cleanUp);
