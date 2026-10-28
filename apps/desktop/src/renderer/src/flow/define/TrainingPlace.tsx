@@ -64,7 +64,12 @@ export function TrainingPlace({
         ]
       : []),
   ];
-  const breakdown = `${parts.join(', then ')}.`;
+  const joined = parts.join(', then ');
+  const breakdown = `${joined.charAt(0).toUpperCase()}${joined.slice(1)}.`;
+  const placeLabel = onHost ? `${provider ?? 'the hosted'}'s copy` : device;
+  const summary = `${aboutSpan(runSeconds(job, chosen, comparing))} in all on ${placeLabel}${
+    onHost && hostedUsd ? `, ${hostedUsd} billed by ${provider ?? 'the host'}` : ''
+  }, plus up to ${formatUsd(cap)} of ${mentor}.`;
 
   return (
     <section
@@ -74,11 +79,8 @@ export function TrainingPlace({
       <div className="flex flex-col gap-1.5">
         <Heading id="train-where">Where should it train?</Heading>
         <p className="m-0 max-w-[720px] text-fg-secondary text-pretty">
-          {studentIntro(names.student)}, practices where you choose while{' '}
-          {mentorIntro(names.mentor)}, coaches it from the cloud. Training stops after{' '}
-          {capText(job.budget.maxWallMinutes)} (set under Time and budget in Advanced settings),
-          then the final test runs on {device}. A round takes longer when its change looks
-          promising, because the change is tested twice before it stays.
+          {studentIntro(names.student)}, practices where you pick while {mentorIntro(names.mentor)},
+          coaches it.
         </p>
       </div>
       <RadioCardGroup
@@ -87,13 +89,11 @@ export function TrainingPlace({
         onValueChange={onPlaceChange}
       >
         <RadioCard value="local" title={deviceLabel(currentPlatform())}>
-          <span className="text-fg">{roundsLine(job, local)}</span>
-          {local.rounds.most === 0 ? (
-            <span>Too slow for this time limit. Raise it in Advanced settings to train here.</span>
-          ) : (
-            <span>{aboutSpan(local.trainingSeconds)} of training, at no cost</span>
-          )}
-          <span>Practice runs here; {mentor} sees only the attempts and file samples it needs</span>
+          <span>
+            {local.rounds.most === 0
+              ? `Too slow for the time limit of ${capText(job.budget.maxWallMinutes)}`
+              : `${aboutSpan(runSeconds(job, local, comparing))} in all, at no cost`}
+          </span>
         </RadioCard>
         <RadioCard
           value="hosted"
@@ -103,35 +103,41 @@ export function TrainingPlace({
             !hosted.available && 'disabled:opacity-100 [&>span:first-child]:text-fg-muted',
           )}
         >
-          {hosted.available ? (
-            <>
-              <span className="text-fg">{roundsLine(job, remote)}</span>
-              <span>
-                {aboutSpan(remote.trainingSeconds)} of training
-                {hostedUsd && `, ${hostedUsd} billed by ${provider ?? 'the host'}`}
-              </span>
-              <span>
-                Uses your {provider ?? 'host'} key from Settings; the practice tasks and the data
-                they read go to {provider ?? 'the host'}
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="text-fg-muted">{roundsLine(job, remote)}</span>
-              <span className="text-fg-secondary">{hosted.reason}</span>
-            </>
-          )}
+          <span className={hosted.available ? undefined : 'text-fg-secondary'}>
+            {hosted.available
+              ? `${aboutSpan(runSeconds(job, remote, comparing))} in all${
+                  hostedUsd ? `, ${hostedUsd} billed by ${provider ?? 'the host'}` : ''
+                }`
+              : hosted.reason}
+          </span>
         </RadioCard>
       </RadioCardGroup>
-      <div className="flex flex-col gap-1">
-        <p className="m-0 text-lg font-medium">
-          {aboutSpan(runSeconds(job, chosen, comparing))} in all
-        </p>
-        <p className="m-0 text-sm text-fg-muted text-pretty">
-          {breakdown.charAt(0).toUpperCase()}
-          {breakdown.slice(1)}
-        </p>
-      </div>
+      <p className="m-0 text-lg font-medium text-pretty">{summary}</p>
+      <details className="text-sm text-fg-secondary">
+        <summary className="cursor-pointer select-none text-fg-muted transition-colors duration-150 hover:text-fg-secondary">
+          How this is estimated
+        </summary>
+        <ul className="m-0 mt-2.5 flex list-disc flex-col gap-1.5 pl-5 text-pretty">
+          <li>
+            Training stops after {capText(job.budget.maxWallMinutes)} (set in Advanced settings),
+            then the final test runs on {device}. {breakdown}
+          </li>
+          <li>
+            {deviceLabel(currentPlatform())}: {roundsLine(job, local)}. Practice runs here, and{' '}
+            {mentor} sees only the attempts and file samples it needs.
+          </li>
+          {hosted.available && provider && (
+            <li>
+              {provider}: {roundsLine(job, remote)}. It uses your {provider} key from Settings, and
+              the practice tasks and the data they read go to {provider}.
+            </li>
+          )}
+          <li>
+            A round takes longer when its change looks promising, because the change is tested twice
+            before it stays.
+          </li>
+        </ul>
+      </details>
       {onRetryKeys && (
         <button
           type="button"

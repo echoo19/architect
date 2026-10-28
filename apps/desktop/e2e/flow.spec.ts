@@ -131,13 +131,9 @@ for (const theme of THEMES) {
     const local = page.getByRole('radio', { name: /This computer/ });
     const hosted = page.getByRole('radio', { name: /Hosted on OpenRouter/ });
     await expect(local).toBeChecked();
-    await expect(local).toContainText(
-      'No full round fits in 4 hours of training: one takes at least 3 h 50 min here',
-    );
-    await expect(local).toContainText('Too slow for this time limit');
+    await expect(local).toContainText('Too slow for the time limit of 4 hours');
     await expect(hosted).toContainText('billed by OpenRouter');
-    await expect(page.getByText('About 7 hours in all')).toBeVisible();
-    await expect(hosted).toContainText('5 to 10 of 12 rounds fit in 4 hours of training');
+    await expect(page.getByText('About 7 hours in all on this computer, plus up to')).toBeVisible();
     await expect(
       page.getByText('A hosted copy fits 5 to 10 rounds in the time this computer fits none.'),
     ).toBeHidden();
@@ -147,7 +143,7 @@ for (const theme of THEMES) {
     await page
       .getByRole('checkbox', { name: 'Also train three simpler versions to compare against' })
       .click();
-    await expect(page.getByText('About 18 hours in all')).toBeVisible();
+    await expect(page.getByText("About 18 hours in all on OpenRouter's copy, about")).toBeVisible();
     await capture(page, `flow-define-${theme}`);
 
     await page.getByRole('button', { name: 'Advanced settings' }).click();
