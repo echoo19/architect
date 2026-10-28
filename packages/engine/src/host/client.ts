@@ -91,6 +91,7 @@ export function connectEngine(
       retest: (runId, target) => request('runs.retest', [runId, target]),
       get: (runId) => request('runs.get', [runId]),
       list: (jobId) => request('runs.list', [jobId ?? null]),
+      attempt: (attemptId) => request('runs.attempt', [attemptId]),
       trace: (attemptId) => request('runs.trace', [attemptId]),
       roundDiff: (runId, round) => request('runs.roundDiff', [runId, round]),
       onEvent(listener) {

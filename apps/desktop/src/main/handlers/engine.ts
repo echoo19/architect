@@ -53,6 +53,7 @@ export function registerEngineHandlers(
     retest: (runId, target) => call((api) => api.runs.retest(runId, target)),
     get: (runId) => call((api) => api.runs.get(runId)),
     list: (jobId) => call((api) => api.runs.list(jobId)),
+    attempt: (attemptId) => call((api) => api.runs.attempt(attemptId)),
     trace: (attemptId) => call((api) => api.runs.trace(attemptId)),
     roundDiff: (runId, round) => call((api) => api.runs.roundDiff(runId, round)),
   });

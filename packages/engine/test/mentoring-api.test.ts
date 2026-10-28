@@ -2,7 +2,9 @@ import type { Experiment, RunEvent } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { connectEngine, type EngineClient } from '../src/host/client';
 import { createEngineHost, type EngineHost } from '../src/host/engine-host';
+import { DataPaths } from '../src/loop/paths';
 import { STOPPED_ROUND } from '../src/loop/plan';
+import { openEngineStore } from '../src/store/engine-store';
 import { diagnosis, hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
 import { portPair } from './fakes/ports';
@@ -188,6 +190,31 @@ describe('a correction played back beside its lesson', () => {
     expect(played?.finalText).toBe(whole?.turns.at(-1)?.content);
     await expect(api.mentoring.lessonTrace('lsn_unknown')).rejects.toThrow(
       'There is no lesson "lsn_unknown".',
+    );
+  });
+
+  it('opens the attempt a finding names, and never a final-test attempt', async () => {
+    const api = await connect();
+    const job = await api.jobs.createSample();
+    const run = await api.runs.start(job.id, { method: 'architect', seed: 7 });
+    await next(api, (event) => settled(event, run.id));
+
+    const [intervention] = await api.mentoring.interventions(run.id);
+    const finding = intervention?.findings[0];
+    const opened = await api.runs.attempt(finding?.attemptId ?? '');
+    expect(opened).toMatchObject({
+      id: finding?.attemptId,
+      taskId: 'train-invoice-1',
+      split: 'train',
+      check: { pass: false },
+    });
+    expect(opened.prompt).toEqual(expect.any(String));
+
+    const engine = openEngineStore(new DataPaths(world.dataDir).database);
+    const tested = engine.attempts.list({ runId: run.id, split: 'test' })[0];
+    engine.close();
+    await expect(api.runs.attempt(tested?.id ?? '')).rejects.toThrow(
+      "A final-test attempt isn't shown on its own; the report card counts it.",
     );
   });
 });

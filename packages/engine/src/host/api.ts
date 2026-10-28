@@ -5,6 +5,7 @@ import {
   TraceSchema,
   type ClarificationReply,
   type FileDiff,
+  type ListedAttempt,
   type ReportCard,
   type RunDetail,
   type StudentTarget,
@@ -107,6 +108,19 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     };
   }
 
+  async function attempt(attemptId: string): Promise<ListedAttempt> {
+    const stored = found(store.attempts.get(attemptId), `There is no attempt "${attemptId}".`);
+    if (stored.split === 'test') {
+      throw new Error("A final-test attempt isn't shown on its own; the report card counts it.");
+    }
+    const record = run(stored.runId);
+    const tasks = await jobs.tasks(record.run.jobId, stored.split);
+    return {
+      ...AttemptSchema.parse(stored),
+      prompt: tasks.find((task) => task.id === stored.taskId)?.prompt,
+    };
+  }
+
   async function trace(attemptId: string): Promise<Trace> {
     const attempt = found(store.attempts.get(attemptId), `There is no attempt "${attemptId}".`);
     if (attempt.tracePath === null) {
@@ -198,6 +212,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       retest: (runId, target) => controller.retest(runId, target),
       get: runDetail,
       list: async (jobId) => store.runs.list(jobId).map(({ run: listed }) => listed),
+      attempt,
       trace,
       roundDiff,
       onEvent: (listener) => controller.onEvent(listener),

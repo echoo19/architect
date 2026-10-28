@@ -16,6 +16,7 @@ import type {
   HubInstallResult,
   ImportResult,
   JobSummary,
+  ListedAttempt,
   LlamaServerStatus,
   LocalRuntime,
   LocalRuntimes,
@@ -152,11 +153,15 @@ export const ReferenceOptionsSchema = z
   .object({ split: z.enum(['dev', 'test']), maxUsd: z.number().positive().max(1000) })
   .strict() satisfies z.ZodType<ReferenceOptions>;
 
+export const ListedAttemptSchema = AttemptSchema.extend({
+  prompt: z.string().optional(),
+}) satisfies z.ZodType<ListedAttempt>;
+
 export const RunDetailSchema = z.object({
   run: RunSchema,
   job: JobSchema,
   rounds: z.array(RoundSchema),
-  recentAttempts: z.array(AttemptSchema.extend({ prompt: z.string().optional() })),
+  recentAttempts: z.array(ListedAttemptSchema),
   lineage: z.array(LineageEntrySchema),
 }) satisfies z.ZodType<RunDetail>;
 

@@ -31,6 +31,7 @@ import {
   JobSchema,
   JobSummarySchema,
   LessonSchema,
+  ListedAttemptSchema,
   MentoringProgressSchema,
   PackageError,
   PackageInspectionSchema,
@@ -112,6 +113,9 @@ export const ENGINE_ROUTES = {
   'runs.get': route(z.tuple([id]), RunDetailSchema, (api, [runId]) => api.runs.get(runId)),
   'runs.list': route(z.tuple([id.nullable()]), z.array(RunSchema), (api, [jobId]) =>
     api.runs.list(jobId ?? undefined),
+  ),
+  'runs.attempt': route(z.tuple([id]), ListedAttemptSchema, (api, [attemptId]) =>
+    api.runs.attempt(attemptId),
   ),
   'runs.trace': route(z.tuple([id]), TraceSchema, (api, [attemptId]) => api.runs.trace(attemptId)),
   'runs.roundDiff': route(

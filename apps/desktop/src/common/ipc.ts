@@ -71,6 +71,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     retest: true,
     get: true,
     list: true,
+    attempt: true,
     trace: true,
     roundDiff: true,
   },

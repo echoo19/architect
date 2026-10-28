@@ -213,12 +213,15 @@ export interface ReferenceOptions {
   maxUsd: number;
 }
 
+/** An attempt as the training screen lists it, with its task's request when the task is visible. */
+export type ListedAttempt = Attempt & { prompt?: string };
+
 export interface RunDetail {
   run: Run;
   job: Job;
   rounds: Round[];
   /** Most recent attempts first, train and dev only. */
-  recentAttempts: (Attempt & { prompt?: string })[];
+  recentAttempts: ListedAttempt[];
   lineage: LineageEntry[];
 }
 
@@ -366,6 +369,11 @@ export interface ArchitectApi {
     retest(runId: string, target: StudentTarget): Promise<void>;
     get(runId: string): Promise<RunDetail>;
     list(jobId?: string): Promise<Run[]>;
+    /**
+     * One practice or check attempt, with its verdict, for opening it from a record that names
+     * it, such as a finding. A locked-test attempt is refused: the final test shows as counts.
+     */
+    attempt(attemptId: string): Promise<ListedAttempt>;
     trace(attemptId: string): Promise<Trace>;
     roundDiff(runId: string, round: number): Promise<FileDiff[]>;
     onEvent(listener: (event: RunEvent) => void): Unsubscribe;
