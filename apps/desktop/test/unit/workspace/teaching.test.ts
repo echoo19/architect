@@ -100,13 +100,19 @@ describe('a proposed lesson', () => {
         'Spark',
       ),
     ).toEqual({
-      text: 'Nothing was sent: this exchange quotes a task from its final test, which Spark must never see.',
-      // The same exchange is refused however it is described, so it isn't offered again.
+      // A refusal, not a fault: the same exchange is refused however it is described, so it
+      // isn't offered again.
+      title: "Spark can't read this exchange",
+      text: 'It quotes a task from its final test, which Spark must never see. Nothing was sent.',
       retry: false,
     });
     const budget =
       'Reading this exchange could cost up to $0.31, more than the $0.25 a correction may.';
-    expect(proposeFailure(budget, 'Spark')).toEqual({ text: budget, retry: true });
+    expect(proposeFailure(budget, 'Spark')).toEqual({
+      title: "Couldn't propose a lesson",
+      text: budget,
+      retry: true,
+    });
   });
 
   it('shortens the request it answered to one line', () => {

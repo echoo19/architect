@@ -19,7 +19,7 @@ export function TaughtLessons({ improves }: { improves: RunImprovement }) {
       <PanelHeader
         title="Lessons from your flagged answers"
         actions={
-          <span className="text-sm text-fg-muted">Improving version {improves.version}</span>
+          <span className="text-sm text-fg-muted">Improving from version {improves.version}</span>
         }
       />
       {corrections.data ? (

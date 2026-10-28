@@ -131,13 +131,15 @@ export function ImprovementView({
           className="bg-panel p-[22px]"
           value={formatDuration(run.totals.wallMs)}
           label="Time"
-          note={`${run.totals.rounds} of ${improvement.budget.maxRounds} rounds`}
+          note={`of ${formatDuration(job.budget.maxWallMinutes * 60_000)}`}
           noteFont="text"
         />
         <Stat
           className="bg-panel p-[22px]"
-          value={String(improvement.corrections.length)}
-          label={improvement.corrections.length === 1 ? 'lesson taught' : 'lessons taught'}
+          value={String(run.totals.rounds)}
+          label="Rounds"
+          note={`of ${improvement.budget.maxRounds}`}
+          noteFont="text"
         />
       </div>
 

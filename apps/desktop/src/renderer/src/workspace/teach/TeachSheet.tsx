@@ -12,7 +12,7 @@ import {
   Textarea,
   ToggleChip,
 } from '@architect/ui';
-import { File, LockKeyhole, Send } from 'lucide-react';
+import { EyeOff, File, Laptop, Send } from 'lucide-react';
 import { useVersions } from '../../api/graduates';
 import { setQueryData, toError } from '../../api/query';
 import {
@@ -26,7 +26,14 @@ import {
 import { formatUsd } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
 import { useAgentSettingsUi } from '../settings/agentSettingsUi';
-import { canQueue, evidenceText, lessonCount, proposeFailure, shortRequest } from './lessons';
+import {
+  canQueue,
+  evidenceText,
+  lessonCount,
+  proposeFailure,
+  shortRequest,
+  type ProposeFailure,
+} from './lessons';
 import { ProposalActions, ProposalView } from './Proposal';
 
 export interface TeachSheetProps {
@@ -46,7 +53,7 @@ type Stage =
 
 /**
  * Teach this, opened from a reply's flag: the person says what was wrong and what it should
- * have done, with evidence if they have it. One line says what leaves this computer, and nothing
+ * have done, with the files or rows it should have used if they have them. One line says what leaves this computer, and nothing
  * does until they send it. The mentor's proposed lesson comes back, and the person adds it to
  * the teaching queue, applies an instruction as a new version, or discards it. The version chats
  * run on never changes here. Render it inside an open Drawer.
@@ -59,7 +66,7 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
   const [wanted, setWanted] = useState('');
   const [files, setFiles] = useState<string[]>([]);
   const [rows, setRows] = useState('');
-  const [error, setError] = useState<{ text: string; retry: boolean } | null>(null);
+  const [error, setError] = useState<ProposeFailure | null>(null);
   const versions = useVersions(agent.id);
   const corrections = useCorrections(agent.id);
   const showSettings = useAgentSettingsUi((state) => state.show);
@@ -121,7 +128,7 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
   } else if (ready.unavailable) {
     body = (
       <EmptyState
-        icon={<LockKeyhole aria-hidden />}
+        icon={<Laptop aria-hidden />}
         title={`${agent.name} can't be taught here`}
         description={ready.unavailable.message}
         className="min-h-[50vh]"
@@ -181,10 +188,19 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
         </Button>
       </>
     );
+  } else if (error !== null && !error.retry) {
+    // The leak check refuses this exchange however it is described, so it isn't offered again.
+    body = (
+      <EmptyState
+        icon={<EyeOff aria-hidden />}
+        title={error.title}
+        description={error.text}
+        className="min-h-[50vh]"
+      />
+    );
+    footer = <CloseButton onClose={onClose} />;
   } else {
     const sending = stage.kind === 'sending';
-    // The leak check refuses this exchange however it is described, so it isn't offered again.
-    const refused = error !== null && !error.retry;
     body = (
       <CorrectionForm
         reply={reply.text}
@@ -193,8 +209,8 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
         files={files}
         rows={rows}
         jobFiles={jobFiles}
-        disabled={sending || refused}
-        error={error?.text ?? null}
+        disabled={sending}
+        error={error}
         onWrong={setWrong}
         onWanted={setWanted}
         onFiles={setFiles}
@@ -202,13 +218,11 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
       />
     );
     // What leaves this computer, beside the one button that sends it.
-    footer = refused ? (
-      <CloseButton onClose={onClose} />
-    ) : (
+    footer = (
       <>
         <p className="m-0 mr-auto flex flex-col text-sm">
           <span className="text-fg-secondary">
-            {mentor} reads this exchange and your note to propose a lesson.
+            {mentor} reads this exchange, its steps and what you add here.
           </span>
           <span className="font-mono text-fg-muted">Up to {formatUsd(ready.correctionCapUsd)}</span>
         </p>
@@ -261,17 +275,17 @@ interface CorrectionFormProps {
   wanted: string;
   files: string[];
   rows: string;
-  /** The files the agent's job lists, any of which can be named as evidence. */
+  /** The files the agent's job lists, any of which can be named as one it should have used. */
   jobFiles: string[];
   disabled: boolean;
-  error: string | null;
+  error: ProposeFailure | null;
   onWrong: (text: string) => void;
   onWanted: (text: string) => void;
   onFiles: (files: string[]) => void;
   onRows: (text: string) => void;
 }
 
-/** What was wrong, what it should have done, and optional evidence: files or rows. */
+/** What was wrong and what it should have done, with the files or rows it should have used. */
 function CorrectionForm({
   reply,
   wrong,
@@ -316,7 +330,7 @@ function CorrectionForm({
           onChange={(event) => onWanted(event.target.value)}
         />
       </Field>
-      <Field label="Evidence" hint="Optional" htmlFor={`${id}-rows`}>
+      <Field label="What it should have used" hint="Optional" htmlFor={`${id}-rows`}>
         {jobFiles.length > 0 && (
           <div role="group" aria-label="Files it should have used" className="flex flex-wrap gap-2">
             {jobFiles.map((file) => (
@@ -345,7 +359,7 @@ function CorrectionForm({
           onChange={(event) => onRows(event.target.value)}
         />
       </Field>
-      {error && <ErrorState layout="inline" title="Couldn't propose a lesson" message={error} />}
+      {error && <ErrorState layout="inline" title={error.title} message={error.text} />}
     </div>
   );
 }

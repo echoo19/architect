@@ -69,7 +69,7 @@ const IMPORTED_TEACHING: TeachingOverview = {
   unavailable: {
     reason: 'imported',
     message:
-      'Returns desk was made on another computer. It can be taught there, where its training tasks are.',
+      'Returns desk was made on another computer. It can be taught there, where its practice and check tasks are.',
   },
 };
 
@@ -100,7 +100,7 @@ export const IMPORTED_MESSAGES: WorkspaceMessage[] = [
     chatId: IMPORTED_CHAT.id,
     role: 'agent',
     createdAt: AT,
-    text: 'Yes. It was delivered on Nov 3, so its 30-day window runs to Dec 3.',
+    text: 'Yes. It was delivered on Oct 9, so its 30-day window runs to Nov 8.',
     steps: [],
     blocks: [],
     status: 'done',

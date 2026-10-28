@@ -49,8 +49,8 @@ export function lessonChange(proposal: CorrectionProposal): { title: string; det
 
 /** Whether a lesson needs training, in a few words. */
 export const TRAINING_NEED: Record<CorrectionKind, string> = {
-  procedure: 'No',
-  source: 'No',
+  procedure: 'No, an instruction is enough',
+  source: 'No, an instruction is enough',
   weakness: 'Yes, through Improve agent',
   ambiguous: 'Not until you say which you meant',
   invalid: 'No',
@@ -133,20 +133,28 @@ export function evidenceText(files: readonly string[], rows: string): string | u
   return parts.length === 0 ? undefined : parts.join('\n');
 }
 
+/** Why a lesson couldn't be proposed, and whether sending it again could help. */
+export interface ProposeFailure {
+  title: string;
+  text: string;
+  retry: boolean;
+}
+
 /**
- * Why a lesson couldn't be proposed, in the app's words, and whether sending it again could
- * help. The engine's leak check names the locked test, which every screen calls the final
- * test, and refuses the same exchange however it is described; its other reasons read as
- * they are.
+ * Why a lesson couldn't be proposed, in the app's words. The engine's leak check names the
+ * locked test, which every screen calls the final test, and refuses the same exchange however
+ * it is described, so it reads as a refusal and isn't offered again; other reasons read as they
+ * are, with the note kept to send again.
  */
-export function proposeFailure(message: string, mentor: string): { text: string; retry: boolean } {
+export function proposeFailure(message: string, mentor: string): ProposeFailure {
   if (/payload matched \d+ locked test tasks?/.test(message)) {
     return {
-      text: `Nothing was sent: this exchange quotes a task from its final test, which ${mentor} must never see.`,
+      title: `${mentor} can't read this exchange`,
+      text: `It quotes a task from its final test, which ${mentor} must never see. Nothing was sent.`,
       retry: false,
     };
   }
-  return { text: message, retry: true };
+  return { title: "Couldn't propose a lesson", text: message, retry: true };
 }
 
 /** A request shortened to fit one line of a subtitle. */

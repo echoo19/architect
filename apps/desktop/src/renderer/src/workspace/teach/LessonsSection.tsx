@@ -17,8 +17,8 @@ import {
   Flag,
   GraduationCap,
   Hourglass,
+  Laptop,
   Layers,
-  LockKeyhole,
   MessageSquare,
   MessageSquarePlus,
   Square,
@@ -77,7 +77,7 @@ export function LessonsSection({ agent }: { agent: GraduateSummary }) {
       <SettingsRow
         icon={
           <Tile>
-            <LockKeyhole {...icon} />
+            <Laptop {...icon} />
           </Tile>
         }
         label="Can't be taught on this computer"

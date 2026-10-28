@@ -128,7 +128,7 @@ for (const theme of THEMES) {
     await expect(sheet).toContainText('Reply to "Who still owes us money from September?"');
     await expect(sheet).toContainText('Three customers, $2,915.00 in total.');
     await expect(
-      sheet.getByText('Spark reads this exchange and your note to propose a lesson.'),
+      sheet.getByText('Spark reads this exchange, its steps and what you add here.'),
     ).toBeVisible();
     await expect(sheet.getByText('Up to $0.25')).toBeVisible();
     const send = sheet.getByRole('button', { name: 'Send to Spark' });
@@ -154,7 +154,7 @@ for (const theme of THEMES) {
       'Count an invoice as overdue only when it is unpaid and past its due date.',
     );
     await expect(sheet).toContainText('Adds to its instructions');
-    await expect(sheet).toContainText('Needs training');
+    await expect(sheet).toContainText('No, an instruction is enough');
     await expect(sheet).toContainText(WRONG);
     expect(await callsTo(app, 'teach:shareCorrections')).toEqual([[AGENT.id, true]]);
     expect(await callsTo(app, 'teach:propose')).toEqual([
@@ -224,24 +224,35 @@ for (const theme of THEMES) {
 }
 
 for (const theme of THEMES) {
-  test(`says why a lesson couldn't be proposed, and keeps what was written (${theme})`, async () => {
+  test(`says why a lesson couldn't be proposed, keeps what was written, and refuses an exchange from the final test (${theme})`, async () => {
     await open(theme, chatPath(AGENT.id, CHATS.closeout.id), FILLED);
     await stubEngineFailure(launched.app, {
       'teach:propose':
-        "Refused a mentor call: its payload matched 1 locked test task, in the person's request.",
+        'Reading this exchange could cost up to $0.31, more than the $0.25 a correction may. Shorten what you wrote, or correct a shorter reply.',
     });
     const sheet = await flagReply();
     await sheet.getByLabel('What was wrong').fill(WRONG);
     await sheet.getByRole('button', { name: 'Send to Spark' }).click();
     await expect(sheet.getByText("Couldn't propose a lesson")).toBeVisible();
+    await expect(sheet).toContainText('Shorten what you wrote, or correct a shorter reply.');
+    // What was written stays, to say again more briefly.
+    await expect(sheet.getByLabel('What was wrong')).toHaveValue(WRONG);
+    await expect(sheet.getByRole('button', { name: 'Send to Spark' })).toBeEnabled();
+    await capture(`teach-error-${theme}.png`);
+
+    await stubEngineFailure(launched.app, {
+      'teach:propose':
+        "Refused a mentor call: its payload matched 1 locked test task, in the person's request.",
+    });
+    await sheet.getByRole('button', { name: 'Send to Spark' }).click();
     // The engine's words for the leak check, in the app's: it calls the locked test the final test.
+    await expect(sheet.getByText("Spark can't read this exchange")).toBeVisible();
     await expect(sheet).toContainText(
-      'Nothing was sent: this exchange quotes a task from its final test, which Spark must never see.',
+      'It quotes a task from its final test, which Spark must never see. Nothing was sent.',
     );
     // The same exchange would be refused again, so it isn't offered again.
     await expect(sheet.getByRole('button', { name: 'Send to Spark' })).toHaveCount(0);
-    await expect(sheet.getByLabel('What was wrong')).toHaveValue(WRONG);
-    await capture(`teach-error-${theme}.png`);
+    await capture(`teach-refused-${theme}.png`);
   });
 }
 
@@ -316,7 +327,7 @@ for (const theme of THEMES) {
     const sheet = await flagReply();
     await expect(sheet.getByText("Returns desk can't be taught here")).toBeVisible();
     await expect(sheet).toContainText(
-      'Returns desk was made on another computer. It can be taught there, where its training tasks are.',
+      'Returns desk was made on another computer. It can be taught there, where its practice and check tasks are.',
     );
     await expect(sheet.getByRole('button', { name: /Send/ })).toHaveCount(0);
     await capture(`teach-imported-${theme}.png`);
@@ -356,7 +367,7 @@ for (const theme of THEMES) {
     await expect(taught).toContainText(
       'Match each payment to its invoice by invoice number before adding up what is owed.',
     );
-    await expect(taught).toContainText('Improving version 2');
+    await expect(taught).toContainText('Improving from version 2');
     await expect(page.getByRole('region', { name: 'Resources' })).toContainText('Not taken');
     await capture(`improve-train-${theme}.png`);
 
@@ -447,6 +458,10 @@ for (const theme of THEMES) {
     ).toBeVisible();
     await expect(page.getByText("It hasn't taken a final test.", { exact: false })).toBeVisible();
     await expect(page.getByText('You can promote version 3')).toBeVisible();
+    // What it spent, each against its cap.
+    await expect(page.getByText('of $5', { exact: true })).toBeVisible();
+    await expect(page.getByText('of 4 h', { exact: true })).toBeVisible();
+    await expect(page.getByText('of 10', { exact: true })).toBeVisible();
     await expect(page.getByRole('region', { name: 'What improved' })).toContainText(
       'Overdue balances',
     );
