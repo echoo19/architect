@@ -98,6 +98,14 @@ export const TeachingItemSchema = z.discriminatedUnion('kind', [
     /** Another train task of the finding's category, demonstrated from the start. */
     taskId: z.string().min(1),
   }),
+  z.object({
+    /**
+     * A train task chosen by seed, not from any failure, demonstrated from the start: what a
+     * one-shot adapter trains on (decision 045).
+     */
+    kind: z.literal('demonstration'),
+    taskId: z.string().min(1),
+  }),
 ]);
 export type TeachingItem = z.infer<typeof TeachingItemSchema>;
 
@@ -304,6 +312,12 @@ export const ExperimentBudgetSchema = z.object({
   studentOutputTokens: z.number().int().nonnegative(),
   computeUsd: z.number().nonnegative(),
   computeMinutes: z.number().nonnegative(),
+  /**
+   * False while the round's training job hadn't stopped when the round ended, as when a stop
+   * came during training: compute is then the job's whole authorization, the most it can cost,
+   * until the job ends and its own time replaces it (decision 045). Absent once settled.
+   */
+  computeSettled: z.literal(false).optional(),
   /** Training examples sent, and the tokens trained on, for an adapter round. */
   examples: z.number().int().nonnegative(),
   trainedTokens: z.number().int().nonnegative(),

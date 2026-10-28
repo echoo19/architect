@@ -16,6 +16,8 @@ export type {
 } from './backend';
 export {
   authorizeCompute,
+  computeEnded,
+  computeSoFar,
   computeUsage,
   costOf,
   type ComputeAuthorization,

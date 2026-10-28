@@ -382,4 +382,45 @@ export const MIGRATIONS: readonly Migration[] = [
         ON publications (graduate_id, version, destination, repository);
     `,
   },
+  {
+    version: 16,
+    name: 'comparison protocols, repeats and runtime measurements',
+    sql: `
+      -- What a comparison holds a run to beyond its job: its arm, a locked test held until
+      -- released, deferred repeats, a fixed menu, an adopted harness, a one-shot adapter.
+      ALTER TABLE runs ADD COLUMN protocol TEXT;
+
+      -- A frozen graduate's locked test under the declared seeds it deferred, per target.
+      CREATE TABLE repeats (
+        run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+        target TEXT NOT NULL,
+        status TEXT NOT NULL,
+        error TEXT,
+        started_at TEXT NOT NULL,
+        ended_at TEXT,
+        PRIMARY KEY (run_id, target)
+      );
+
+      -- What the runtime serving a model held at most during a stretch of an evaluation, and
+      -- how long a cold first reply took.
+      CREATE TABLE runtime_measurements (
+        id TEXT PRIMARY KEY,
+        run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+        split TEXT NOT NULL,
+        target TEXT NOT NULL,
+        config TEXT NOT NULL,
+        harness_version INTEGER NOT NULL,
+        seeds TEXT NOT NULL,
+        backend TEXT NOT NULL,
+        peak_process_bytes INTEGER,
+        peak_gpu_bytes INTEGER,
+        cold_start_ms INTEGER,
+        samples INTEGER NOT NULL,
+        sampler TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        ended_at TEXT NOT NULL
+      );
+      CREATE INDEX runtime_measurements_by_run ON runtime_measurements (run_id, started_at);
+    `,
+  },
 ];

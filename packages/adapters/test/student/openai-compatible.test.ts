@@ -167,6 +167,19 @@ describe('the request to a hosted student', () => {
       { role: 'user', content: 'Hi' },
     ]);
     expect(body).not.toHaveProperty('chat_template_kwargs');
+    // Any provider may serve it unless the endpoint pins one.
+    expect(body).not.toHaveProperty('provider');
+  });
+
+  it('keeps OpenRouter on the providers an endpoint pins, with no fallback to others', async () => {
+    delays.length = 0;
+    const server = await startServer(answer);
+    const student = createOpenAICompatibleStudent(
+      studentEndpoint('openrouter-glimmer', { providers: ['DeepInfra'] }),
+      { apiKey: API_KEY, fetch: routeTo(server), retry },
+    );
+    await collect(student.chat(studentRequest()));
+    expect(lastBody(server)['provider']).toEqual({ order: ['DeepInfra'], allow_fallbacks: false });
   });
 
   it('sends a local server the strength as a template variable and leaves the prompt alone', async () => {
