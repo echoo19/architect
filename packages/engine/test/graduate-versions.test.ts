@@ -1,4 +1,4 @@
-import { cp, readFile, writeFile } from 'node:fs/promises';
+import { cp, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { PackageError, type WorkspaceEvent, type WorkspaceMessage } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -7,6 +7,7 @@ import { workspaceStore } from '../src/agent-host/store';
 import { activeVersion } from '../src/graduates/open';
 import { startFakeOllama, type FakeOllama } from './agent-host/fake-ollama';
 import { addVersion, harnessWith, newComputer, type Computer } from './support/computer';
+import { makeJob, SAMPLE_FILES } from './support/fixtures';
 
 const cleanups: (() => Promise<void>)[] = [];
 
@@ -268,5 +269,41 @@ describe('A06: a graduate after a restart and a rollback', () => {
 
     expect((await reply(agent, chat.id, 'And now?')).text).toBe('Read the second folder.');
     expect(ollama.chats()[3]?.messages.at(-1)?.content).toContain('INV-SECOND');
+  });
+
+  it('saves a new file in the output folder its installation bound, apart from its data', async () => {
+    const made = await computer();
+    const report = '# Overdue\n\nRuiz, Ben owes $45.50.\n';
+    const ollama = await model([
+      {
+        toolCalls: [{ name: 'write', arguments: { path: 'output/overdue.md', content: report } }],
+      },
+      { text: 'Saved the overdue report.' },
+    ]);
+    const job = makeJob({
+      id: 'job_desk',
+      data: { files: SAMPLE_FILES, output: { description: 'Reports for the office.' } },
+      permissions: { writes: 'allow', unseenFiles: 'never' },
+    });
+    await addVersion(made, { graduateId: 'grd_desk', job, baseUrl: ollama.url });
+    const { manifest } = (await activeVersion(made.store, made.paths, 'grd_desk')).version;
+    expect(manifest.contract.outputs.folder).toEqual({ description: 'Reports for the office.' });
+    expect(manifest.resources.map((resource) => resource.name)).toEqual(['data', 'output']);
+
+    const agent = host(made);
+    await agent.openGraduate('grd_desk');
+    const chat = await agent.createChat('grd_desk');
+    expect((await reply(agent, chat.id, 'Write up who is overdue.')).text).toBe(
+      'Saved the overdue report.',
+    );
+    const output = made.paths.outputDir('grd_desk');
+    expect(await readFile(join(output, 'overdue.md'), 'utf8')).toBe(report);
+    const inData = join(made.paths.workspaceDir('grd_desk'), 'output');
+    expect(
+      await stat(inData).then(
+        () => true,
+        () => false,
+      ),
+    ).toBe(false);
   });
 });

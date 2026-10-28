@@ -216,7 +216,7 @@ test('exports a graduate as a package and imports it again with other folders', 
   );
   expect(exported.folder).toBe(join(exports, 'service-desk-v1'));
   expect(exported.archive).toBe(join(exports, 'service-desk-v1.architect.zip'));
-  expect(exported.files).toContain('harness/system.md');
+  expect(exported.files).toContain('harness/AGENTS.md');
   expect(exported.files.some((file) => file.startsWith('resources/'))).toBe(false);
 
   await page.evaluate((id) => window.architect.graduates.remove(id), graduateId);
