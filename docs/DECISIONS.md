@@ -248,3 +248,43 @@ In simulation with the pilot's task pass rates, a do-nothing change is kept 11 t
 - *What may be trained on.* Episodes from train tasks and accepted workspace corrections. An episode from another split, or one the vault's leak detector flags, stops the dataset build. Episodes whose data may not leave the computer are left out of remote datasets, and the worker refuses a dataset that holds any.
 - *Stand-in.* As 033 says. Its label is in the record, its manifest, the adapter's GGUF metadata and every line the app writes about the job; its adapter is a no-op (lora_b is zero), and `countsAsRealTraining` is false for it whatever else its record says.
 **Consequences.** A01 stays blocked until the owner adds a Hugging Face token with Jobs access. Everything up to a real job is tested against fakes (a stand-in llama-server process, a fake Hub with a separate download host) and against this PC's real files without loading a model. The first real job will show whether the pins and the converter work on Glimmer; a wrong pin costs the setup minutes, not a full job, since the recipe checks its inputs before installing anything. The desktop app is not wired yet: Settings needs llama-server's path and a Hugging Face key service (`huggingface` isn't in the secret store's services), the `trainer/` folder must ship as an app resource, and the engine host must call `resume` when it starts.
+
+## 036. A task that asks only for an answer must leave the data as it found it
+
+**Context.** With the coding-agent tools an attempt can change any writable table. The built-in comparator graded answer and facts tasks without looking at the files, and the returns desk's validators checked only the table each task writes (order questions only the ANSWER line). So an attempt could book an unasked pickup while recording a return, or add a row while answering a question, and still pass. A second opinion on the evaluation plan found this before any measurement on the new runtime.
+**Decision.** The engine fails an answer or facts task when the attempt changed any table, comparing rows and columns, so a rewrite that kept every row counts as unchanged. The returns desk's validators fail an attempt that changed a writable table other than its own: a return adds its row to `returns.csv` only, a pickup to `pickups.csv` only, and an order question changes neither. The reason names the table, the way other reasons name a field. Text files and `output/` are outside the check: the sample jobs' text files are read-only, and neither job enables `output/`.
+**Consequences.** The tasks didn't change, and the reference solutions still pass. Results from before this change, including the Oct 27 calibration on the old tools, aren't comparable with measurements on the new runtime, which all start after it.
+
+## 037. The evaluation plan on the new runtime, fixed before any measurement
+
+**Context.** Spec 17 lists six comparisons. What's left is about $15 of hosted student credit on OpenRouter, Meta credit for Spark that the owner asked to spend carefully, and Hugging Face compute only if the owner adds a token. The local GPU is off by the owner's choice. Decision 027's five seeds were sized for the old method and no longer fit. The plan is set here, before any measurement on the coding-agent runtime, so results can't shape it; a second opinion helped shape it.
+**Decision.**
+- *Job.* The returns desk at its own splits (seed 20261124), with the checker as of 036. Home services is the regression check (30 attempts).
+- *Arms, in order.*
+  1. Bare: Glimmer on the fixed baseline harness.
+  2. Draft: Spark's one-shot harness, with no feedback.
+  3. Targeted: failure-specific mentoring with the intervention menu. At most two refinement rounds, which is a limit, not a goal; decision 022's confirmation rule; Spark capped at $5.
+  4. Spark as a reference on the same 60 test tasks, tools and limits, isolated from mentoring: about $1.50 to $4.
+
+  Then, while credit lasts:
+
+  5. A second decoding repeat of the three frozen student arms: 180 attempts.
+  6. A fixed-intervention arm, to test whether choosing the intervention helps: up to 444 attempts and $5 of Spark. It runs only if $5 of student credit is left after arm 5.
+  7. Weights, only with real compute: a one-shot verified-data LoRA and up to two failure-specific training rounds. Each job is authorized for at most 90 minutes on one L40S ($2.70). They're evaluated on one llama-server in the four configurations (H0/A0, H1/A0, H0/A1, H1/A1), with the same tasks and seeds.
+- *Seeds.* One mentoring seed. The locked test's decoding seed is 101, and 102 for the repeat. Repeats are reported as repeats, never as more scenarios.
+- *Backends.*
+  - Mentoring and dev run on hosted Glimmer bf16.
+  - Every frozen arm takes the locked test on the hosted backend.
+  - If the owner grants the GPU time, the baseline and the selected graduate also take it on the local 2-bit build, after a local calibration check and a throughput measurement. Without that window, local evaluation is reported as incomplete.
+  - Backends are never mixed within a comparison.
+- *Freezing.* Every arm is frozen before any arm's locked result is read.
+- *Reporting.* A table per backend, with:
+  - counts with 95% Wilson intervals, and paired wins and losses per scenario;
+  - per-type results, refusals and regressions;
+  - p50 and p95 latency, peak memory where recorded, and cold start apart;
+  - Spark tokens and dollars, student dollars, compute dollars and minutes, and examples and trained tokens, each separately.
+
+  Unequal budgets are disclosed. An arm not run is labeled "not run", and nothing is inferred for it.
+- *The claim.* Improvement on held-out tasks of this synthetic shop, from locked results only; dev gains picked by the keep rule aren't claimed. If adapter gains on bf16 don't hold on the 2-bit build, the report says the improvement didn't transfer to the intended deployment.
+- *Without a Hugging Face token.* The README, the app and the demo say: "Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. A01 is blocked without Hugging Face credentials."
+**Consequences.** Arms 1 to 4 take about 850 hosted student attempts, about $8.50 at the expected $0.01 each, and at most about $9 of Spark. The cost per attempt is measured on the calibration tasks first, and the order above sets what is dropped if it runs over. Decision 027 is superseded for the new runtime: the old comparison's results stay as history and are never mixed with new ones. The demo shows the frozen graduate on a held-out task, offline and live; recorded training is labeled as recorded.
