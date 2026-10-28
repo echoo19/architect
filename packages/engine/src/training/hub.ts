@@ -96,7 +96,7 @@ function failure(status: number, detail: string): HubError {
       return new HubError(
         'forbidden',
         `The token isn't allowed to do this.${said}`,
-        'Jobs need a Hugging Face PRO account or a team plan, and a token with write access.',
+        'Use a token with write access to the account or organization that runs the jobs.',
         status,
       );
     case 404:

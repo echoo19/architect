@@ -16,9 +16,9 @@ import { HubError, type HubClient, type JobInfo } from './hub';
 import type { LoadedRecipe } from './recipe';
 
 /**
- * Hardware Architect trains on, with its price per hour. The L40S figure is the owner's proposal
- * of Oct 28 (Hugging Face bills Jobs per minute); recheck it on the Hub's pricing page before
- * relying on it. A flavor that isn't listed has no known price, so no job runs on it.
+ * Hardware Architect trains on, with its price per hour as the Hub's Jobs hardware table listed it
+ * on Oct 28 (billed by the minute). A flavor that isn't listed has no known price, so no job runs
+ * on it.
  */
 export const HF_JOB_FLAVORS: readonly HardwareFlavor[] = [
   { id: 'l40sx1', label: 'one NVIDIA L40S (48 GB)', pricePerHourUsd: 1.8, gpuMemoryGb: 48 },
