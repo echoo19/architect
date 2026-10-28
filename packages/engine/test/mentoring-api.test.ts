@@ -7,6 +7,7 @@ import { STOPPED_ROUND } from '../src/loop/plan';
 import { openEngineStore } from '../src/store/engine-store';
 import { diagnosis, hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
+import { defaultTasks } from './fakes/job';
 import { portPair } from './fakes/ports';
 import { createWorld, type World } from './fakes/world';
 
@@ -184,6 +185,10 @@ describe('a correction played back beside its lesson', () => {
     const whole = lessons.find((lesson) => lesson.kind === 'full_task_demonstration');
     expect(tried?.status).toBe('rejected');
     expect(whole?.status).toBe('verified');
+    // Each lesson comes with its train task's request, for the list it shows in.
+    const asked = defaultTasks().find((task) => task.id === 'train-invoice-1')?.prompt;
+    expect(asked).toEqual(expect.any(String));
+    expect(whole?.prompt).toBe(asked);
     expect(await api.mentoring.lessonTrace(tried?.id ?? '')).toBeNull();
     const played = await api.mentoring.lessonTrace(whole?.id ?? '');
     expect(played).toMatchObject({ taskId: 'train-invoice-1', stopReason: 'answer' });

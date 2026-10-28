@@ -30,8 +30,8 @@ import {
   InterventionSchema,
   JobSchema,
   JobSummarySchema,
-  LessonSchema,
   ListedAttemptSchema,
+  ListedLessonSchema,
   MentoringProgressSchema,
   PackageError,
   PackageInspectionSchema,
@@ -123,7 +123,7 @@ export const ENGINE_ROUTES = {
     z.array(FileDiffSchema),
     (api, [runId, round]) => api.runs.roundDiff(runId, round),
   ),
-  'mentoring.lessons': route(z.tuple([id]), z.array(LessonSchema), (api, [runId]) =>
+  'mentoring.lessons': route(z.tuple([id]), z.array(ListedLessonSchema), (api, [runId]) =>
     api.mentoring.lessons(runId),
   ),
   'mentoring.lessonTrace': route(z.tuple([id]), TraceSchema.nullable(), (api, [lessonId]) =>

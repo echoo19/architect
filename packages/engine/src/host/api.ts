@@ -6,6 +6,7 @@ import {
   type ClarificationReply,
   type FileDiff,
   type ListedAttempt,
+  type ListedLesson,
   type ReportCard,
   type RunDetail,
   type StudentTarget,
@@ -106,6 +107,17 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
         })),
       lineage: await lineageOf(record),
     };
+  }
+
+  /** A run's lessons, each with its train task's request. */
+  async function lessons(runId: string): Promise<ListedLesson[]> {
+    const record = run(runId);
+    const train = await jobs.tasks(record.run.jobId, 'train');
+    const prompts = new Map(train.map((task) => [task.id, task.prompt]));
+    return store.lessons.list({ runId: record.run.id }).map((lesson) => ({
+      ...lesson,
+      prompt: lesson.source.kind === 'correction' ? undefined : prompts.get(lesson.source.taskId),
+    }));
   }
 
   async function attempt(attemptId: string): Promise<ListedAttempt> {
@@ -218,7 +230,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       onEvent: (listener) => controller.onEvent(listener),
     },
     mentoring: {
-      lessons: async (runId) => store.lessons.list({ runId: run(runId).run.id }),
+      lessons,
       lessonTrace,
       interventions: async (runId) => store.interventions.list(run(runId).run.id),
       experiments: async (runId) => store.experiments.list(run(runId).run.id),

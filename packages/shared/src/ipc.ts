@@ -15,7 +15,7 @@ import type {
   Category,
   Experiment,
   Intervention,
-  Lesson,
+  ListedLesson,
   MentoringProgress,
   ReferenceRecord,
 } from './mentoring';
@@ -384,7 +384,7 @@ export interface ArchitectApi {
    */
   mentoring: {
     /** Verified and rejected, oldest first. */
-    lessons(runId: string): Promise<Lesson[]>;
+    lessons(runId: string): Promise<ListedLesson[]>;
     /**
      * What the mentor did as the agent in one lesson's correction, step by step. Null when the
      * correction never ran (its replay didn't hold, or a guard refused it).
