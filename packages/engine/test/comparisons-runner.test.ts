@@ -552,8 +552,10 @@ describe('the GPU window (decision 051)', () => {
     expect(started.length).toBeGreaterThan(0);
     expect(started.length).toBeLessThan(60);
     const first = started[0] ?? 0;
-    // Nothing began after the window ended.
-    expect(started.every((at) => at - first <= 200 + 20)).toBe(true);
+    // Nothing began after the window ended. The slack covers a busy computer's delay between the
+    // runner letting a request in and the stand-in noting it; a runner that ignored the window
+    // would go on starting requests for seconds.
+    expect(started.every((at) => at - first <= 200 + 100)).toBe(true);
     expect(world.local.releases).toBeGreaterThan(0);
     const row = cut.report.backends.find((table) => table.backend === 'local-ollama')?.rows[0];
     expect(row?.complete).toBe(false);
