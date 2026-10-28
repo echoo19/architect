@@ -168,7 +168,7 @@ Nothing in a package belongs to one computer: no model endpoint, folder, chat or
                           "base_digest": "sha256:...", "scale": 1, "training_job_id": "trn_..." },
              "inference": { "context_length": 16384 },
              "runtime": { "compatible": ["ollama", "openai_compatible", "llama.cpp"] } },
-  "harness": { "format": 1, "path": "harness", "hash": "sha256-...", "version": 7, "round": 3 },
+  "harness": { "format": 2, "path": "harness", "hash": "sha256-...", "version": 7, "round": 3 },
   "resources": [ { "name": "data", "kind": "folder", "required": true, "accepts": ["text/csv"],
                    "access": "read_write", "files": [ { "name": "invoices.csv", "kind": "table",
                    "access": "write", "columns": ["invoice_id", "..."] } ] } ],
@@ -180,7 +180,7 @@ Nothing in a package belongs to one computer: no model endpoint, folder, chat or
                 "files": { "report": "evidence/report.json", "...": "..." } },
   "verification": { "checks": [ { "id": "harness-valid", "kind": "harness_valid", "description": "..." } ],
                     "fixtures": [] },
-  "integrity": { "algorithm": "sha256", "files": [ { "path": "harness/system.md", "sha256": "...", "size": 0 } ] },
+  "integrity": { "algorithm": "sha256", "files": [ { "path": "harness/AGENTS.md", "sha256": "...", "size": 0 } ] },
   "terms": { "base_model": "Uses muse-glimmer:30b, which isn't included...", "notices": [ "..." ] }
 }
 ```
@@ -188,6 +188,7 @@ Nothing in a package belongs to one computer: no model endpoint, folder, chat or
 - **identity**: the agent's id stays the same across versions; `parent` names the version this one was derived from.
 - **contract**: the job contract it was tested against (`JobContractSchema`). A change to a job's scope or success criteria makes a new contract version, and a result measured under one never counts for another.
 - **model**: the base weights named the way runtimes name them and pinned by digest (or a hub revision); never the weights themselves. A harness-only graduate runs on any local runtime that serves its base; one with an adapter only on a runtime that loads adapters (llama.cpp). An adapter is a GGUF LoRA named as the adapter runtime loads it (decision 036): its file's sha256, which the integrity section must list the same; `base_digest`, the digest of the base's GGUF file in Ollama's store, the only build it loads on; the `scale` every request applies; and the training job that made it, with `stand_in` when the stand-in backend built it.
+- **harness**: the harness folder's format and hash, and the round that made it. A harness migrated from an older format has the migrated files and hash, and `migrated_from` keeps the format and hash it was tested with (decision 038).
 - **resources**: logical folders the graduate works in. `data` holds the files the contract names; `output` is for new files. Each installation binds them to its own folders, and `access` is a request, not a grant.
 - **evidence**: the author's results, labelled as such. Its `status` is `ready` only when the locked test met the contract's bar on a local student.
 - **verification**: checks any installation can run without private data. Never the locked test.
@@ -213,4 +214,4 @@ Graduates made before versions were one folder: the harness files, `graduate.yam
 
 ## Format 1
 
-Format 1 kept the instructions in `system.md` and each skill in one file, `skills/<slug>.md`, with front matter `name` (a title), `summary` and `task_types`. Architect reads it and migrates it in memory: `system.md` becomes `AGENTS.md`, and each skill becomes `skills/<slug>/SKILL.md` with `name: <slug>`, `description: <summary>` and the old title as the first heading of its steps; `task_types` did nothing and is dropped. A helper named like one of today's built-in tools (format 1 allowed `grep` or `run`) becomes `<name>_helper`. A format 1 folder is checked against its hash as stored, then gets a new hash over its files in format 2. It is only ever written in format 2. An older graduate still opens in the workspace and runs on the new tools. A run frozen before the change keeps its old hash on record, so its locked test can't run (or run again) and its graduate can't be rewritten on acceptance: its results belong to the table tools it ran with.
+Format 1 kept the instructions in `system.md` and each skill in one file, `skills/<slug>.md`, with front matter `name` (a title), `summary` and `task_types`. Architect reads it and migrates it in memory: `system.md` becomes `AGENTS.md`, and each skill becomes `skills/<slug>/SKILL.md` with `name: <slug>`, `description: <summary>` and the old title as the first heading of its steps; `task_types` did nothing and is dropped. A helper named like one of today's built-in tools (format 1 allowed `grep` or `run`) becomes `<name>_helper`. A format 1 folder is checked against its hash as stored, then gets a new hash over its files in format 2. It is only ever written in format 2. An older graduate still opens in the workspace and runs on the new tools. From then on the migrated hash identifies the harness, and the old one stays as its provenance (decision 038): a graduate from before the change becomes a version whose package keeps the format 1 hash in `harness.migrated_from`, and a run frozen before the change takes its locked test on the migrated harness when its files still have the frozen hash.

@@ -6,7 +6,8 @@ import { HARNESS_DIR } from './build';
 /**
  * A version's harness, read (never run) and held to its manifest: the folder is in the format
  * the manifest names, and its files as stored have the manifest's hash. A harness a package
- * keeps in format 1 comes back migrated to the current format, with a hash of its own.
+ * keeps in format 1 comes back migrated to the current format, with a hash of its own and the
+ * manifest's in `meta.migratedFrom`.
  */
 export async function readPackageHarness(
   dir: string,

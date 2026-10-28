@@ -100,9 +100,13 @@ export async function openLockedTest(
 ): Promise<LockedTest> {
   const proof = await state.resources.releaseMentor();
   const harness = await state.resources.harness(frozen.harnessVersion);
-  if (harness.meta.hash !== frozen.harnessHash) {
+  // A version saved in format 1 is read migrated, with a new hash; it is still the frozen
+  // graduate when the files it was migrated from have the frozen hash. It is tested, and ships,
+  // as it runs now, and its package keeps the old hash.
+  const frozenAs = harness.meta.migratedFrom?.hash ?? harness.meta.hash;
+  if (harness.meta.hash !== frozen.harnessHash && frozenAs !== frozen.harnessHash) {
     throw new Error(
-      `Harness version ${frozen.harnessVersion} no longer has the hash it was frozen with, so it won't be tested: it changed after the graduate was frozen, or it was frozen in harness format 1, and its results belong to the tools it ran with.`,
+      `Harness version ${frozen.harnessVersion} changed after the graduate was frozen, so it won't be tested.`,
     );
   }
   const tester = await state.resources.student(target);

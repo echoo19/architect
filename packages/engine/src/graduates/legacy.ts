@@ -103,6 +103,9 @@ export function legacyFacts(
       ...(manifest.harness.round === undefined ? {} : { round: manifest.harness.round }),
       ...(manifest.harness.draft === undefined ? {} : { draft: manifest.harness.draft }),
     },
+    // A harness saved in format 1 comes back migrated, its old hash in `migratedFrom`; the
+    // locked test measured it as it was.
+    ...(harness.meta.migratedFrom === undefined ? {} : { testedBeforeMigration: true }),
     report,
     lineage,
     columns,

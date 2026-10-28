@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Job, Task } from '@architect/shared';
+import type { Harness, Job, Task } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { StoredRun } from '../src/store/records';
 import { hypothesis } from './fakes/adapters';
@@ -152,6 +152,59 @@ describe('where the locked test runs', () => {
     await engine.controller.idle();
     expect(engine.store.runs.get(run.id)?.run.status).toBe('finished');
     expect(engine.store.attempts.list({ runId: run.id, split: 'test' })).toHaveLength(6);
+  });
+
+  /**
+   * Starts a bare run that pauses at its locked test, then rewrites its frozen harness version
+   * as `change` says, as reading it in a later format would.
+   */
+  async function frozenThenRead(change: (meta: Harness['meta']) => Harness['meta']) {
+    const job = await setUp();
+    const swap = engine.controller.onEvent((event) => {
+      if (event.type === 'log' && event.message.startsWith('Graduate frozen')) {
+        world.localDigest = 'sha256:newer';
+      }
+    });
+    const run = await engine.controller.start(job.id, 'bare', 3);
+    await engine.controller.idle();
+    swap();
+    const frozen = stored(run.id).freeze;
+    if (!frozen) throw new Error('The run froze no graduate.');
+    const file = join(engine.paths.harnessDir(job.id, run.id), `v${frozen.harnessVersion}.json`);
+    const harness = JSON.parse(readFileSync(file, 'utf8')) as Harness;
+    writeFileSync(file, JSON.stringify({ ...harness, meta: change(harness.meta) }));
+    world.localDigest = 'sha256:fake';
+    await engine.controller.resume(run.id);
+    await engine.controller.idle();
+    return { run, frozen };
+  }
+
+  it('tests a graduate frozen in harness format 1 as it runs now, and its package keeps the old hash', async () => {
+    const { run, frozen } = await frozenThenRead((meta) => ({
+      ...meta,
+      hash: 'sha256-migrated',
+      migratedFrom: { format: 1, hash: meta.hash },
+    }));
+
+    expect(engine.store.runs.get(run.id)?.run.status).toBe('finished');
+    expect(engine.store.attempts.list({ runId: run.id, split: 'test' })).toHaveLength(6);
+    const graduate = engine.store.versions.forRun(run.id);
+    expect(graduate?.manifest.harness).toMatchObject({
+      hash: 'sha256-migrated',
+      migratedFrom: { format: 1, hash: frozen.harnessHash },
+    });
+    expect(graduate?.manifest.requirements.limitations).toContain(
+      'It was trained on its harness as format 1 wrote it, with the tools of that time, and migrated to format 2 before its locked test.',
+    );
+  });
+
+  it('still refuses a frozen harness whose files changed since', async () => {
+    const { run } = await frozenThenRead((meta) => ({ ...meta, hash: 'sha256-changed' }));
+    expect(engine.store.runs.get(run.id)?.run).toMatchObject({
+      status: 'paused',
+      error: expect.stringContaining('changed after the graduate was frozen'),
+    });
+    expect(engine.store.attempts.list({ runId: run.id, split: 'test' })).toEqual([]);
   });
 
   it('refuses a hosted locked test when the job has no hosted endpoint', async () => {

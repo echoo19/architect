@@ -59,12 +59,18 @@ export interface VersionFacts {
   runtime: string;
   adapter?: AdapterFile;
   harness: {
+    /** Its `migratedFrom` names the format and hash it had before it was migrated, if it was. */
     meta: HarnessMeta;
     /** The harness files as the harness package writes them, `harness.yaml` aside. */
     files: Readonly<Record<string, string>>;
     round?: number;
     draft?: true;
   };
+  /**
+   * The locked test measured the harness before it was migrated: a graduate made in an older
+   * format. A run frozen in one and tested since measured it migrated, as it runs now.
+   */
+  testedBeforeMigration?: true;
   /** The locked test's report card; null when no locked test measured this version. */
   report: ReportCard | null;
   lineage: readonly LineageEntry[];
@@ -255,6 +261,14 @@ function requirementsOf(facts: VersionFacts): PackageRequirements {
       "The base model's exact build wasn't recorded, so another copy can't be confirmed identical.",
     );
   }
+  const from = facts.harness.meta.migratedFrom;
+  if (from !== undefined) {
+    limitations.push(
+      facts.testedBeforeMigration && report !== null
+        ? `Its locked test ran on its harness as format ${from.format} wrote it, with the tools of that time; it now runs migrated to format ${facts.harness.meta.format}, which no locked test has measured.`
+        : `It was trained on its harness as format ${from.format} wrote it, with the tools of that time, and migrated to format ${facts.harness.meta.format} before its locked test.`,
+    );
+  }
   if (facts.adapter?.standIn === true) {
     limitations.push(
       'Its adapter came from the stand-in training backend: it was built, not trained, and changes nothing.',
@@ -382,6 +396,9 @@ export function buildPackage(facts: VersionFacts): {
       version: harness.meta.version,
       ...(harness.round === undefined ? {} : { round: harness.round }),
       ...(harness.draft === undefined ? {} : { draft: harness.draft }),
+      ...(harness.meta.migratedFrom === undefined
+        ? {}
+        : { migratedFrom: harness.meta.migratedFrom }),
     },
     resources: resourcesFor(facts.contract, facts.columns),
     requirements: requirementsOf(facts),

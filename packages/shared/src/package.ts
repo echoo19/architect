@@ -175,6 +175,15 @@ export const PackageHarnessSchema = z
     round: z.number().int().positive().optional(),
     /** That round wrote a whole draft rather than one change. */
     draft: z.literal(true).optional(),
+    /**
+     * When the harness was made in an older format and migrated since: that format, and the hash
+     * it had then, which its run and its locked test recorded. The files here are the migrated
+     * ones, and `hash` is theirs.
+     */
+    migratedFrom: z
+      .object({ format: z.number().int().positive(), hash: z.string().min(1) })
+      .strict()
+      .optional(),
   })
   .strict();
 export type PackageHarness = z.infer<typeof PackageHarnessSchema>;

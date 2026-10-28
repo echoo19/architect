@@ -118,6 +118,7 @@ describe('a format 1 folder', () => {
       name: 'Service desk',
       version: 1,
       hash: hashHarness(stored.harness),
+      migratedFrom: { format: 1, hash: recorded },
     });
     expect(stored.harness.meta.hash).not.toBe(recorded);
     expect(stored.harness.system).toBe('You are the Service desk agent.\n');
@@ -183,7 +184,9 @@ describe('a format 1 folder', () => {
     ]);
     expect(await readdir(join(dir, 'skills'))).toEqual(['price-a-job']);
     expect(await readFile(join(dir, 'harness.yaml'), 'utf8')).toContain('format: 2');
-    expect(await readHarness(dir)).toEqual(harness);
+    expect(await readFile(join(dir, 'harness.yaml'), 'utf8')).not.toContain('migrated');
+    const { migratedFrom: _old, ...meta } = harness.meta;
+    expect(await readHarness(dir)).toEqual({ ...harness, meta });
   });
 
   it('with both system.md and AGENTS.md is refused', async () => {

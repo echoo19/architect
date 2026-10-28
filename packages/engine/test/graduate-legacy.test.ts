@@ -5,13 +5,14 @@ import { join } from 'node:path';
 import { hashFiles, writeGraduate } from '@architect/harness';
 import type { GraduateManifest, Job, LineageEntry } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
+import { openGraduateSession } from '../src/agent-host/graduate';
 import { activeVersion } from '../src/graduates/open';
 import { DataPaths } from '../src/loop/paths';
 import { migrate } from '../src/store/database';
 import { MIGRATIONS } from '../src/store/migrations';
 import { fixtureHarness, reportFor } from './agent-host/graduates';
 import { ManualClock } from './fakes/clock';
-import { attach, THIS_MACHINE } from './support/computer';
+import { addVersion, attach, THIS_MACHINE } from './support/computer';
 import { makeJob, SAMPLE_CONTENT } from './support/fixtures';
 
 const AT = '2026-11-05T18:00:00.000Z';
@@ -238,6 +239,62 @@ describe('graduates from before versions', () => {
       expect(made.library.summary('grd_changed').reasons[0]).toContain('do not match the hash');
       expect(made.library.summary('grd_fine')).toMatchObject({ activeVersion: 1 });
       expect(made.store.chats.list('grd_changed')).toHaveLength(1);
+    } finally {
+      made.close();
+    }
+  });
+
+  it('take their migrated harness as its identity, keep the format 1 hash, and open, accept and roll back', async () => {
+    const { dataDir, job } = await before(['grd_new']);
+    const made = attach(dataDir, THIS_MACHINE, new ManualClock());
+    try {
+      await made.library.upgrade();
+      const first = made.store.versions.get('grd_new', 1);
+      const harness = first?.manifest.harness;
+      expect(harness).toMatchObject({
+        format: 2,
+        migratedFrom: { format: 1, hash: FORMAT_1_HASH },
+      });
+      expect(harness?.hash).not.toBe(FORMAT_1_HASH);
+      expect(first?.manifest.requirements.limitations).toContain(
+        'Its locked test ran on its harness as format 1 wrote it, with the tools of that time; it now runs migrated to format 2, which no locked test has measured.',
+      );
+      const folder = made.paths.versionDir('grd_new', 1);
+      expect((await readdir(join(folder, 'harness'))).sort()).toEqual([
+        'AGENTS.md',
+        'harness.yaml',
+        'skills',
+      ]);
+
+      // Open it: the migrated harness, held to the hash its version records.
+      const opened = await openGraduateSession(
+        await activeVersion(made.store, made.paths, 'grd_new'),
+      );
+      expect(opened.harness.meta.hash).toBe(harness?.hash);
+      expect(opened.harness.system).toBe(FORMAT_1_HARNESS['system.md']);
+      expect(opened.harness.skills).toEqual([
+        {
+          name: 'price-a-job',
+          description: 'Turn a finished visit into invoice lines.',
+          body: '# Price a completed job\n\n1. Read the visit.\n2. Add the trip fee.\n',
+        },
+      ]);
+      expect(opened.files.list().map((file) => file.path)).toContain('skills/price-a-job/SKILL.md');
+
+      // Accept it: its record changes, its folder doesn't.
+      const saved = await readFile(join(folder, 'graduate.json'), 'utf8');
+      expect(first?.state).toBe('candidate');
+      made.library.acceptVersion('grd_new', 1);
+      expect(made.store.versions.get('grd_new', 1)?.state).toBe('accepted');
+      expect(await readFile(join(folder, 'graduate.json'), 'utf8')).toBe(saved);
+
+      // Roll back to it from a later version: it opens as it was.
+      await addVersion(made, { graduateId: 'grd_new', job, parent: 1 });
+      made.library.promote('grd_new', 2);
+      made.library.rollback('grd_new', 1);
+      const back = await activeVersion(made.store, made.paths, 'grd_new');
+      expect(back.version.version).toBe(1);
+      expect((await openGraduateSession(back)).harness.meta.hash).toBe(harness?.hash);
     } finally {
       made.close();
     }

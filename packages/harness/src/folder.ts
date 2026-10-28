@@ -101,7 +101,8 @@ export function layoutFormat(files: Readonly<Record<string, string>>): StoredFor
 export interface StoredHarness {
   /**
    * The harness in the current format. Its `meta.hash` is over its files in that format, so a
-   * folder saved in format 1 gets a new hash when it is read.
+   * folder saved in format 1 gets a new hash when it is read, and its `meta.migratedFrom` holds
+   * the format and the hash of the files as stored.
    */
   harness: Harness;
   /** The format the folder was saved in. */
@@ -136,11 +137,19 @@ export async function readStoredHarness(dir: string): Promise<StoredHarness> {
   if (parsed.format === HARNESS_FORMAT) {
     return { harness, format: parsed.format, recordedHash, filesHash: hashHarness(harness) };
   }
+  const filesHash = hashFiles(files);
   return {
-    harness: { ...harness, meta: { ...harness.meta, hash: hashHarness(harness) } },
+    harness: {
+      ...harness,
+      meta: {
+        ...harness.meta,
+        hash: hashHarness(harness),
+        migratedFrom: { format: parsed.format, hash: filesHash },
+      },
+    },
     format: parsed.format,
     recordedHash,
-    filesHash: hashFiles(files),
+    filesHash,
   };
 }
 
