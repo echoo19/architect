@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
+  contractTerms,
   DecodingSchema,
   HypothesisSchema,
   isHarnessSurfacePath,
+  JobContractSchema,
+  JobSchema,
   newId,
+  packagePathProblem,
   ReportCardSchema,
+  sameContractTerms,
   slugify,
   TaskSchema,
 } from '../src';
@@ -114,5 +119,73 @@ describe('ids', () => {
   it('slugifies names for file paths', () => {
     expect(slugify('Price a Job (after hours)')).toBe('price-a-job-after-hours');
     expect(slugify('***')).toBe('item');
+  });
+});
+
+describe('job contracts', () => {
+  const job = JobSchema.parse({
+    format: 1,
+    id: 'job_desk',
+    name: 'Service desk',
+    description: 'Invoices for a home-services office.',
+    createdAt: '2026-10-27T09:00:00.000Z',
+    taskTypes: [{ id: 'invoice', label: 'Invoices' }],
+    data: { files: [{ name: 'invoices.csv', kind: 'table', access: 'write' }] },
+    permissions: { writes: 'ask', unseenFiles: 'never' },
+    checker: { kind: 'builtin' },
+    requirements: { passRate: 0.9 },
+    budget: { maxRounds: 4, maxMentorUsd: 1, maxWallMinutes: 60 },
+    mentor: { kind: 'coding_agent', agent: 'claude_code', label: 'Mentor' },
+    student: {
+      label: 'Glimmer',
+      local: { runtime: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'muse-glimmer:30b' },
+    },
+    startingHarness: { kind: 'blank' },
+    splits: { seed: 1, calibration: 0, train: 1, dev: 1, test: 1 },
+    evaluation: { trainBatch: 1, minDevGain: 1, maxTypeRegression: 0 },
+  });
+
+  it('state what the job promises, with nothing about training', () => {
+    const terms = contractTerms(job);
+    expect(terms.outputs.files).toEqual(['invoices.csv']);
+    expect(terms.boundaries).toEqual({ writes: 'ask', unseenFiles: 'never', network: 'none' });
+    expect(JSON.stringify(terms)).not.toContain('127.0.0.1');
+    expect(JobContractSchema.parse({ ...terms, version: 1 }).version).toBe(1);
+  });
+
+  it('compare by what they promise, not by their version or labels', () => {
+    const recorded = JobContractSchema.parse({ ...contractTerms(job), version: 3 });
+    expect(sameContractTerms(recorded, contractTerms({ ...job, name: 'Front desk' }))).toBe(true);
+    expect(sameContractTerms(recorded, contractTerms({ ...job, description: 'Refunds.' }))).toBe(
+      false,
+    );
+    expect(
+      sameContractTerms(recorded, contractTerms({ ...job, requirements: { passRate: 0.95 } })),
+    ).toBe(false);
+  });
+});
+
+describe('package paths', () => {
+  it('accept plain relative paths', () => {
+    for (const path of ['graduate.json', 'harness/skills/price-a-job.md', 'adapter/adapter.gguf']) {
+      expect(packagePathProblem(path), path).toBeNull();
+    }
+  });
+
+  it('refuse anything that could escape, hide or mean another file elsewhere', () => {
+    for (const path of [
+      '../evil.txt',
+      'harness/../../evil',
+      '/etc/passwd',
+      'C:/Windows/evil.dll',
+      'harness\\system.md',
+      'harness//system.md',
+      '.hidden',
+      'harness/con.md',
+      'harness/system.md.',
+      'harness/sys:tem.md',
+    ]) {
+      expect(packagePathProblem(path), path).not.toBeNull();
+    }
   });
 });
