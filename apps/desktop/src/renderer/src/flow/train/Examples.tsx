@@ -4,14 +4,12 @@ import { Check, ChevronRight, X } from 'lucide-react';
 import type { QueryState } from '../../api/query';
 import type { MentoringRecords } from '../../api/mentoring';
 import { typeLabel } from '../names';
-import { lessonOrigin } from './evidence-words';
-
-/** How many of the latest examples show. */
-const SHOWN = 5;
+import { lessonOrigin, lessonVerdict } from './evidence-words';
 
 /**
- * The worked examples Spark wrote and the checker verified, newest first: each kept or thrown
- * out, and how its right answer was obtained. A row opens it, step by step.
+ * The worked examples Spark wrote, newest first, each verified by the checker or rejected by it:
+ * what the checker said, the task it came from and how its right answer was obtained. A row
+ * opens it, step by step. The header counts how many were verified.
  */
 export function Examples({
   job,
@@ -23,10 +21,19 @@ export function Examples({
   onOpen: (lesson: ListedLesson) => void;
 }) {
   const lessons = records.data?.lessons ?? [];
-  const shown = [...lessons].reverse().slice(0, SHOWN);
+  const verified = lessons.filter((lesson) => lesson.status === 'verified').length;
   return (
     <Panel aria-label="Examples" className="min-w-0 flex-[7_1_560px]">
-      <PanelHeader title="Examples" />
+      <PanelHeader
+        title="Examples"
+        actions={
+          lessons.length > 0 && (
+            <span className="text-sm tabular-nums text-fg-muted">
+              {verified} of {lessons.length} verified
+            </span>
+          )
+        }
+      />
       {records.status === 'error' && lessons.length === 0 ? (
         <PanelRow className="py-3">
           <ErrorState
@@ -44,12 +51,12 @@ export function Examples({
             </PanelRow>
           ))}
         </div>
-      ) : shown.length === 0 ? (
+      ) : lessons.length === 0 ? (
         <PanelRow className="text-fg-muted">No examples yet</PanelRow>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="max-h-[372px] overflow-auto">
           <ul className="m-0 min-w-[620px] list-none p-0">
-            {shown.map((lesson) => (
+            {[...lessons].reverse().map((lesson) => (
               <li key={lesson.id}>
                 <ExampleRow
                   lesson={lesson}
@@ -79,33 +86,29 @@ function ExampleRow({
     <button
       type="button"
       onClick={onOpen}
-      className="group grid min-h-[54px] w-full grid-cols-[20px_minmax(0,1fr)_200px_150px_14px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left transition-colors duration-150 hover:bg-row-hover"
+      className="group grid min-h-[62px] w-full grid-cols-[20px_minmax(0,1fr)_180px_130px_14px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left transition-colors duration-150 hover:bg-row-hover"
     >
       {verified ? (
-        <Check size={15} strokeWidth={2.2} className="text-student" role="img" aria-label="Kept" />
-      ) : (
-        <X
+        <Check
           size={15}
           strokeWidth={2.2}
-          className="text-fg-faint"
+          className="text-student"
           role="img"
-          aria-label="Thrown out"
+          aria-label="Verified"
         />
+      ) : (
+        <X size={15} strokeWidth={2.2} className="text-fg-faint" role="img" aria-label="Rejected" />
       )}
-      <span
-        className={
-          verified
-            ? 'line-clamp-2 break-words font-mono text-sm text-fg-soft'
-            : 'line-clamp-2 break-words font-mono text-sm text-fg-muted'
-        }
-      >
-        {lesson.prompt ?? lesson.taskType}
-      </span>
-      <span className="flex min-w-0 flex-col">
-        <span className={verified ? 'truncate text-fg-secondary' : 'truncate text-fg-muted'}>
-          {lessonOrigin(lesson)}
+      <span className="flex min-w-0 flex-col gap-1">
+        <span className={verified ? 'truncate text-fg-soft' : 'truncate text-fg-muted'}>
+          {lessonVerdict(lesson)}
         </span>
-        {!verified && <span className="truncate text-xs text-fg-muted">{lesson.reason}</span>}
+        <span className="truncate font-mono text-xs text-fg-muted">
+          {lesson.prompt ?? lesson.taskType}
+        </span>
+      </span>
+      <span className={verified ? 'truncate text-fg-secondary' : 'truncate text-fg-muted'}>
+        {lessonOrigin(lesson)}
       </span>
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-fg-secondary">{type}</span>

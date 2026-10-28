@@ -162,10 +162,12 @@ export function RoundDrawerContent({
           <Effect
             label={`${names.mentor} expected`}
             note={
-              predicted && firstMeasured !== null
+              predicted && firstMeasured !== null && !unmeasured
                 ? predictionCheck(predicted, firstMeasured)
                 : undefined
             }
+            /* Measured twice, the prediction heads both measurements on a row of its own. */
+            wide={second !== null}
           >
             {predicted ? (
               <>
@@ -187,14 +189,9 @@ export function RoundDrawerContent({
             )}
           </Effect>
           {second && (
-            <>
-              <Effect label="Measured again" note={rateChange(second)}>
-                <TaskCount delta={second.devAfter.pass - second.devBefore.pass} />
-              </Effect>
-              <Effect label="Average" note={rateChange(round)}>
-                <TaskCount delta={measured === null ? null : measured / 2} />
-              </Effect>
-            </>
+            <Effect label="Measured again" note={rateChange(second)}>
+              <TaskCount delta={second.devAfter.pass - second.devBefore.pass} />
+            </Effect>
           )}
         </dl>
 
@@ -230,7 +227,7 @@ export function RoundDrawerContent({
         {evidence.status === 'error' && (
           <ErrorState
             layout="inline"
-            title="Couldn't load this round's examples and measurements"
+            title="Couldn't load the rest of this round"
             message={evidence.error.message}
             onRetry={evidence.reload}
           />
@@ -255,6 +252,9 @@ export function RoundDrawerContent({
         {experiment && experiment.measurements.length > 0 ? (
           <CheckTasks experiment={experiment} job={job} names={names} />
         ) : (
+          // A round from before experiments has only its lineage; one whose records failed to
+          // load shows the error above, not a coarser table in their place.
+          records &&
           lineage &&
           lineage.measured.perType.length > 0 && (
             <ByTaskType lineage={lineage} job={job} twice={first !== undefined} />
@@ -347,9 +347,11 @@ function dispositionReason(
       const gate = sentence(failed.detail);
       return scores ? `${scores} But ${gate.charAt(0).toLowerCase()}${gate.slice(1)}` : gate;
     }
+    // Neither kind was measured: an invalid change was never made, a stopped one never taken.
     case 'invalid':
+      return `${sentence(experiment.reason)} Nothing changed.`;
     case 'stopped':
-      return sentence(experiment.reason);
+      return `${sentence(experiment.reason)} It isn't in the agent.`;
   }
 }
 
@@ -440,14 +442,17 @@ function TaskCount({ delta }: { delta: number | null }) {
 function Effect({
   label,
   note,
+  wide = false,
   children,
 }: {
   label: string;
   note?: string | undefined;
+  /** Spans the grid's row. */
+  wide?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1 bg-modal px-4 py-3.5">
+    <div className={cn('flex flex-col gap-1 bg-modal px-4 py-3.5', wide && 'col-span-2')}>
       <dt className="text-fg-secondary">{label}</dt>
       <dd className="m-0 font-mono text-2xl tabular-nums">{children}</dd>
       {note && <dd className="m-0 text-sm text-fg-muted">{note}</dd>}

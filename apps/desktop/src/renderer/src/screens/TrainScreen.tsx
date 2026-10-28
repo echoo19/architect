@@ -15,7 +15,6 @@ import { Apprenticeship } from '../flow/train/Apprenticeship';
 import { CurrentRound } from '../flow/train/CurrentRound';
 import { providerName } from '../flow/define/hosted';
 import { draftRoundOf, setupOf } from '../flow/train/draft';
-import { trainingEnd } from '../flow/train/evidence-words';
 import { Examples } from '../flow/train/Examples';
 import { LatestAttempts } from '../flow/train/LatestAttempts';
 import { findingNotes, lessonNotes, type StepNote } from '../flow/train/lesson-steps';
@@ -327,6 +326,11 @@ function TrainBoard({
     footer = { label: 'See the report card', onClick: () => navigate(paths.report(run.id)) };
   }
   const evidence = records.data ?? null;
+  const failure =
+    records.status === 'error' && evidence === null
+      ? { message: records.error.message, reload: records.reload }
+      : null;
+  const round = currentRound(live);
   return (
     <>
       {run.status === 'failed' && (
@@ -353,20 +357,32 @@ function TrainBoard({
           passRate={score ? rate(score) / 100 : null}
           progress={activeProgress(live)}
         />
-        <CurrentRound live={live} round={currentRound(live)} names={names} />
+        <CurrentRound
+          live={live}
+          round={round}
+          names={names}
+          experiment={evidence?.experiments.find((item) => item.round === round?.index)}
+        />
       </div>
       <div className="flex flex-wrap gap-5">
         <TaskSuccess live={live} />
-        <Resources live={live} mentor={names.mentor} records={evidence} />
+        <Resources
+          live={live}
+          mentor={names.mentor}
+          records={evidence}
+          recordsFailed={failure !== null}
+        />
       </div>
       <div className="flex flex-wrap gap-5">
         <Examples job={job} records={records} onOpen={onOpenLesson} />
         <Rounds
+          job={job}
           rounds={live.rounds}
           running={WORKING.has(run.status)}
           draftRound={draft}
           records={evidence}
-          ended={run.stopReason ? trainingEnd(run.stopReason, job) : null}
+          failure={failure}
+          stopReason={run.stopReason}
           onOpen={onOpenRound}
           footer={footer}
         />

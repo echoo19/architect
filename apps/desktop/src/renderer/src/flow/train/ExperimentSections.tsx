@@ -29,6 +29,7 @@ import {
   GATES,
   INTERVENTIONS,
   lessonOrigin,
+  lessonVerdict,
   measurementLabel,
   orderedMeasurements,
   sentence,
@@ -175,18 +176,18 @@ export function RoundExamples({
                   className="text-fg-faint"
                 />
               )}
-              <span className="flex min-w-0 flex-col">
+              <span className="flex min-w-0 flex-col gap-0.5">
                 <span
                   className={cn(
                     'line-clamp-2 break-words',
                     lesson.status === 'verified' ? 'text-fg' : 'text-fg-muted',
                   )}
                 >
+                  {lessonVerdict(lesson)}
+                </span>
+                <span className="truncate font-mono text-xs text-fg-muted">
                   {lesson.prompt ?? typeLabel(job, lesson.taskType)}
                 </span>
-                {lesson.status === 'rejected' && (
-                  <span className="truncate text-sm text-fg-muted">{lesson.reason}</span>
-                )}
               </span>
               <span className="text-sm text-fg-secondary">{lessonOrigin(lesson)}</span>
               <ChevronRight

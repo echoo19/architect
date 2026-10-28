@@ -1,7 +1,14 @@
 import { Fragment } from 'react';
 import { cn, Panel } from '@architect/ui';
 import { formatRate } from '../format';
-import { CURVE_BOX, curveGeometry, describeCurve, PLOT, type CurveInput } from './curve';
+import {
+  CURVE_BOX,
+  curveGeometry,
+  describeCurve,
+  PLOT,
+  type CurveGeometry,
+  type CurveInput,
+} from './curve';
 import { draftRoundOf } from './draft';
 import type { LiveRun } from './run-state';
 
@@ -18,6 +25,7 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
     maxRounds: job.budget.maxRounds,
     draftRound: draftRoundOf(live),
   };
+  const geometry = curveGeometry(input);
   return (
     <Panel
       aria-label="Check tasks right"
@@ -35,14 +43,35 @@ export function TaskSuccess({ live }: { live: LiveRun }) {
               : `${score.pass} of ${score.total}`}
           </span>
         )}
+        {geometry.branches.length > 0 && <Legend />}
       </div>
-      <CurveChart input={input} />
+      <CurveChart input={input} geometry={geometry} />
     </Panel>
   );
 }
 
-function CurveChart({ input }: { input: CurveInput }) {
-  const { ticks, valueTicks, line, branches, head, pending, targetY } = curveGeometry(input);
+/** What the two kinds of point mean, once a change that wasn't kept has its own. */
+function Legend() {
+  return (
+    <span aria-hidden className="ml-auto flex items-center gap-4 text-sm text-fg-muted">
+      <span className="flex items-center gap-1.5">
+        <svg width={10} height={10} viewBox="0 0 10 10">
+          <circle cx={5} cy={5} r={4} className="fill-student" />
+        </svg>
+        Score now
+      </span>
+      <span className="flex items-center gap-1.5">
+        <svg width={10} height={10} viewBox="0 0 10 10">
+          <circle cx={5} cy={5} r={3.5} className="fill-panel stroke-fg-faint" strokeWidth={1.5} />
+        </svg>
+        A change not kept
+      </span>
+    </span>
+  );
+}
+
+function CurveChart({ input, geometry }: { input: CurveInput; geometry: CurveGeometry }) {
+  const { ticks, valueTicks, line, branches, head, pending, targetY } = geometry;
   const points = line.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
   const target = Math.round(input.target * 100);
   return (
@@ -130,7 +159,7 @@ function CurveChart({ input }: { input: CurveInput }) {
             className="fill-panel stroke-fg-faint"
             strokeWidth={1.5}
           >
-            <title>{`Round ${branch.round} reverted at ${Math.round(branch.to.value)}%`}</title>
+            <title>{`Round ${branch.round}, not kept: ${Math.round(branch.to.value)}%`}</title>
           </circle>
         </Fragment>
       ))}

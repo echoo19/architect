@@ -126,6 +126,19 @@ describe('curveGeometry', () => {
     });
     expect(line.map((point) => point.value)).toEqual([40, 57.5, 57.5]);
   });
+
+  it('marks the score where it was last measured, not where the flat line ends', () => {
+    const { line, head } = curveGeometry({
+      ...RUN,
+      rounds: [
+        decided(1, 16, 23),
+        decided(2, 23, 22),
+        makeRound(3, { status: 'failed', error: 'Stopped before this change was evaluated.' }),
+      ],
+    });
+    expect(line).toHaveLength(4);
+    expect(head).toEqual(line[1]);
+  });
 });
 
 describe('describeCurve', () => {

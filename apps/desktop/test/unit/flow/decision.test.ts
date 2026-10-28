@@ -3,6 +3,7 @@ import type { Experiment, LineageEntry, Round } from '@architect/shared';
 import {
   decisionSentence,
   harmSentence,
+  outcomeNote,
   predictionCheck,
 } from '../../../src/renderer/src/flow/train/decision';
 import { decided, makeJob, makeRound } from './factories';
@@ -50,7 +51,7 @@ describe('decisionSentence', () => {
         job,
       ),
     ).toBe(
-      '4 more check tasks passed (30 → 34 of 40), but Scheduling lost two. No task type may lose more than one.',
+      '4 more check tasks passed (30 → 34 of 40), but Scheduling went from 9 to 7. No task type may lose more than one.',
     );
   });
 
@@ -101,7 +102,7 @@ describe('decisionSentence', () => {
       ),
     ).toBe(
       '8 more check tasks passed (23 → 31 of 40). Measured again to rule out luck: 6 more over ' +
-        'both (46 → 52 of 80), but Scheduling lost three. No task type may lose more than two.',
+        'both (46 → 52 of 80), but Scheduling went from 14 to 11. No task type may lose more than two.',
     );
   });
 
@@ -110,18 +111,25 @@ describe('decisionSentence', () => {
   });
 });
 
-describe('harmSentence', () => {
-  const rejected = (regressions: Experiment['regressions'], before: number, after: number) =>
-    ({
-      devBefore: { pass: before, total: 9 },
-      devAfter: { pass: after, total: 9 },
-      regressions,
-      seeds: { dev: [101], train: 7 },
-    }) as Experiment;
+const rejected = (
+  regressions: Experiment['regressions'],
+  before: number,
+  after: number,
+  gates: Experiment['gates'] = [],
+) =>
+  ({
+    disposition: 'rejected',
+    devBefore: { pass: before, total: 9 },
+    devAfter: { pass: after, total: 9 },
+    regressions,
+    gates,
+    seeds: { dev: [101], train: 7 },
+  }) as Experiment;
 
-  it('names the task type that lost more than the job allows', () => {
+describe('harmSentence', () => {
+  it('names the task type that lost more than the job allows, with its passes', () => {
     expect(harmSentence(rejected([{ type: 'scheduling', before: 3, after: 0 }], 7, 6), job)).toBe(
-      '1 fewer check task passed (7 → 6 of 9), and Scheduling lost three. No task type may lose more than one.',
+      '1 fewer check task passed (7 → 6 of 9), and Scheduling went from 3 to 0. No task type may lose more than one.',
     );
   });
 
@@ -129,6 +137,35 @@ describe('harmSentence', () => {
     expect(harmSentence(rejected([{ type: 'invoice', before: 3, after: 2 }], 7, 6), job)).toBe(
       '1 fewer check task passed (7 → 6 of 9). A change that loses check tasks is rejected.',
     );
+  });
+});
+
+describe('outcomeNote', () => {
+  const ended = (disposition: Experiment['disposition']) =>
+    ({ ...rejected([], 7, 7), disposition }) as Experiment;
+
+  it('says in a few words why a change is not in the agent', () => {
+    expect(outcomeNote(ended('kept'), job)).toBeNull();
+    expect(outcomeNote(ended('reverted'), job)).toBe('Gain too small to keep');
+    expect(outcomeNote(ended('invalid'), job)).toBe("Couldn't be tried");
+    expect(outcomeNote(ended('stopped'), job)).toBe('Not scored');
+  });
+
+  it('names what a rejected change harmed, or the check it failed', () => {
+    expect(outcomeNote(rejected([{ type: 'scheduling', before: 3, after: 0 }], 7, 6), job)).toBe(
+      'Scheduling went from 3 to 0',
+    );
+    expect(outcomeNote(rejected([{ type: 'invoice', before: 3, after: 2 }], 7, 6), job)).toBe(
+      '1 fewer check task passed',
+    );
+    expect(
+      outcomeNote(
+        rejected([], 7, 9, [
+          { gate: 'device', passed: false, detail: 'Too slow on this computer' },
+        ]),
+        job,
+      ),
+    ).toBe('Failed the answer time check');
   });
 });
 

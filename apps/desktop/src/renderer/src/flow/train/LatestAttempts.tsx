@@ -64,7 +64,7 @@ function AttemptRow({
     <button
       type="button"
       onClick={onOpen}
-      className="group grid min-h-[54px] w-full grid-cols-[20px_minmax(0,1fr)_230px_170px_14px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left font-mono text-sm transition-colors duration-150 hover:bg-row-hover"
+      className="group grid min-h-[54px] w-full grid-cols-[20px_minmax(0,1fr)_280px_170px_14px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left font-mono text-sm transition-colors duration-150 hover:bg-row-hover"
     >
       {passed ? (
         <Check
@@ -104,9 +104,12 @@ function AttemptRow({
   );
 }
 
-/** A right answer as given; a wrong one struck through, with the expected one under it. */
+/**
+ * A right answer as given; a wrong one struck through, with what the checker found wrong under
+ * it. The checker's words fit any task, where the expected value can be a whole record.
+ */
 function Answer({ attempt }: { attempt: RecentAttempt }) {
-  const { answerSummary, expectedSummary, check } = attempt;
+  const { answerSummary, check } = attempt;
   if (check.pass) return <span className="truncate text-fg">{answerSummary ?? 'Passed'}</span>;
   if (!answerSummary) return <span className="truncate text-fg-muted">{check.reason}</span>;
   return (
@@ -114,12 +117,9 @@ function Answer({ attempt }: { attempt: RecentAttempt }) {
       <span className="truncate text-fg-muted line-through decoration-fg-faint">
         {answerSummary}
       </span>
-      {expectedSummary && (
-        <span className="truncate text-fg-secondary">
-          <span className="font-sans text-fg-muted">Expected </span>
-          {expectedSummary}
-        </span>
-      )}
+      <span className="truncate font-sans text-fg-secondary" title={check.reason}>
+        {check.reason}
+      </span>
     </span>
   );
 }

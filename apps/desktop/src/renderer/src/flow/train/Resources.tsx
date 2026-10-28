@@ -28,20 +28,24 @@ function keptChanges(live: LiveRun, records: MentoringRecords | null) {
   return changeCounts(live.rounds.filter((round) => round.index !== draft));
 }
 
-/** Time, money and rounds used against the job's caps, and how the student is doing on them. */
+/**
+ * Time, money and rounds used against the job's caps, and how the student is doing on them.
+ * While the mentoring records can't be read, the changes kept aren't counted from anything else.
+ */
 export function Resources({
   live,
   mentor,
   records,
+  recordsFailed,
 }: {
   live: LiveRun;
   mentor: string;
   records: MentoringRecords | null;
+  recordsFailed: boolean;
 }) {
   const { minutes, usd, rounds } = budgetMeters(live);
   const speed = medianLatencyMs(live.attempts);
-  const changes = keptChanges(live, records);
-  const lessons = records?.progress.lessons;
+  const changes = recordsFailed ? null : keptChanges(live, records);
   return (
     <Panel
       padded
@@ -55,7 +59,7 @@ export function Resources({
         fraction={share(minutes.used, minutes.max)}
       />
       <BudgetMeter
-        label={mentor}
+        label={`${mentor}'s cost`}
         used={formatUsd(roundCents(usd.used))}
         max={formatUsd(usd.max)}
         fraction={share(usd.used, usd.max)}
@@ -73,18 +77,14 @@ export function Resources({
           <span className="font-mono">{formatAnswerTime(speed)}</span>
         )}
       </Fact>
-      {lessons && lessons.verified + lessons.rejected > 0 && (
-        <Fact label="Examples kept">
-          <span className="font-mono tabular-nums">
-            {lessons.verified}{' '}
-            <span className="text-fg-muted">/ {lessons.verified + lessons.rejected}</span>
-          </span>
-        </Fact>
-      )}
       <Fact label="Changes kept">
-        <span className="font-mono tabular-nums">
-          {changes.kept} <span className="text-fg-muted">/ {changes.tried}</span>
-        </span>
+        {changes === null ? (
+          <span className="text-fg-muted">–</span>
+        ) : (
+          <span className="font-mono tabular-nums">
+            {changes.kept} <span className="text-fg-muted">/ {changes.tried}</span>
+          </span>
+        )}
       </Fact>
       <Fact
         label={
@@ -119,7 +119,11 @@ function BudgetMeter({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-fg-secondary">{label}</span>
+        <span className="text-fg-secondary">
+          {label}
+          {/* A cap is checked between steps, so the last step can carry the count past it. */}
+          {fraction >= 1 && <span className="text-fg-muted"> · limit reached</span>}
+        </span>
         <span className="font-mono tabular-nums">
           {used} <span className="text-fg-muted">/ {max}</span>
         </span>

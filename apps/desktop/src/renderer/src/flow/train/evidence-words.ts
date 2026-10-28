@@ -13,12 +13,21 @@ import {
   BookOpenText,
   BrainCircuit,
   Check,
+  CircleAlert,
   CircleSlash,
+  Equal,
   FilePen,
+  FileWarning,
   ListChecks,
+  ListEnd,
   MessageCircleQuestion,
   OctagonPause,
+  ShieldAlert,
+  Square,
+  Target,
+  TimerOff,
   Undo2,
+  Wallet,
   Wrench,
   type LucideIcon,
 } from 'lucide-react';
@@ -45,12 +54,41 @@ export const INTERVENTIONS: Record<InterventionType, Named> = {
 /** A blank start's first round: the mentor's whole first setup. */
 export const FIRST_DRAFT: Named = { label: 'First draft', icon: FilePen };
 
-export const DISPOSITIONS: Record<ExperimentDisposition, Named & { tone: string }> = {
-  kept: { label: 'Kept', icon: Check, tone: 'text-student' },
-  reverted: { label: 'Reverted', icon: Undo2, tone: 'text-fg-muted' },
-  rejected: { label: 'Rejected', icon: Ban, tone: 'text-danger' },
-  invalid: { label: 'Invalid', icon: CircleSlash, tone: 'text-fg-muted' },
-  stopped: { label: 'Stopped', icon: OctagonPause, tone: 'text-fg-muted' },
+/** How a round's change ended, with what the word means for a tooltip. */
+export const DISPOSITIONS: Record<
+  ExperimentDisposition,
+  Named & { tone: string; meaning: string }
+> = {
+  kept: {
+    label: 'Kept',
+    icon: Check,
+    tone: 'text-student',
+    meaning: 'It gained enough on the check tasks and broke no rule, so the agent keeps it',
+  },
+  reverted: {
+    label: 'Reverted',
+    icon: Undo2,
+    tone: 'text-fg-muted',
+    meaning: 'It did no harm but gained too little, so it was undone',
+  },
+  rejected: {
+    label: 'Rejected',
+    icon: Ban,
+    tone: 'text-danger',
+    meaning: 'It made the check tasks worse or failed a check, so it was thrown out',
+  },
+  invalid: {
+    label: 'Invalid',
+    icon: CircleSlash,
+    tone: 'text-fg-muted',
+    meaning: "It couldn't be tried in this run, so nothing changed",
+  },
+  stopped: {
+    label: 'Stopped',
+    icon: OctagonPause,
+    tone: 'text-fg-muted',
+    meaning: 'Training ended before it was scored, so the agent never took it',
+  },
 };
 
 /** How an example's right answer was obtained, in a few words. */
@@ -72,10 +110,32 @@ export function lessonStatus(lesson: Lesson): string {
   return lesson.status === 'verified' ? 'Verified' : 'Rejected';
 }
 
+/**
+ * What the checker said of an example, the line that tells one apart from another: the verified
+ * result, or what was wrong with a rejected one. The lesson's own reason when no check ran.
+ */
+export function lessonVerdict(lesson: Lesson): string {
+  return lesson.check?.reason ?? lesson.reason;
+}
+
 /** The task an example came from: the failed attempt's task, or the practice task. */
 export function lessonTaskId(lesson: Lesson): string | null {
   return lesson.source.kind === 'correction' ? null : lesson.source.taskId;
 }
+
+/** Each way training can end, with an icon of its own: a budget, the target, or a stop. */
+export const TRAINING_END_ICONS: Record<RunStopReason, LucideIcon> = {
+  target_met: Target,
+  rounds: ListEnd,
+  usd: Wallet,
+  wall_clock: TimerOff,
+  patience: Equal,
+  rejected: Ban,
+  leak: ShieldAlert,
+  user: Square,
+  error: CircleAlert,
+  contract: FileWarning,
+};
 
 /** Why training ended, as it happened, for the line after the last round. */
 export function trainingEnd(reason: RunStopReason, job: Job): string {

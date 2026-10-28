@@ -116,7 +116,12 @@ export function Apprenticeship({
         </div>
       </div>
 
-      <div className="flex min-h-14 flex-wrap items-center gap-x-5 gap-y-1 border-t border-line-row-strong bg-aside px-7 py-2">
+      <div className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 border-t border-line-row-strong bg-aside px-7 py-2">
+        {/* Named on screen too, so the steps read as a cycle rather than a path already taken. */}
+        <span aria-hidden className="flex items-center gap-4 text-sm text-fg-faint">
+          {stepsLabel}
+          <span className="h-4 w-px bg-line-row-strong" />
+        </span>
         <ol aria-label={stepsLabel} className="m-0 flex list-none items-center gap-2 p-0 text-sm">
           {stages.map((stage, index) => (
             <li
