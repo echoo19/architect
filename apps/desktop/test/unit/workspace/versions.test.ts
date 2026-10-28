@@ -5,7 +5,12 @@ import type {
   PackageManifest,
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
-import { checkDetail, checkMark, fixesFor } from '../../../src/renderer/src/install/labels';
+import {
+  checkDetail,
+  checkMark,
+  fixesFor,
+  needsAnotherModel,
+} from '../../../src/renderer/src/install/labels';
 import {
   evaluationNote,
   moveFor,
@@ -159,16 +164,33 @@ describe('install check details', () => {
     ).toBe('Every folder is chosen and has its files');
   });
 
-  it('says why a model check was not tried', () => {
-    const skipped = (detail: string) =>
-      checkDetail(check({ kind: 'model_responds', status: 'skipped', detail }), installation);
-    expect(skipped('Skipped: this computer cannot run it as it is.')).toBe(
-      'Not tried, since a check above failed',
+  it('says why a model check was not tried, from the reason the engine gives it', () => {
+    const skipped = (patch: Partial<InstallCheck>) =>
+      checkDetail(
+        check({ kind: 'model_responds', status: 'skipped', detail: 'Whatever it says.', ...patch }),
+        installation,
+      );
+    expect(skipped({ skipped: 'after_failure' })).toBe('Not tried, since a check above failed');
+    expect(skipped({ skipped: 'not_asked' })).toBe('Not tried yet');
+    // A check stored before the reason existed keeps its own words, never read for meaning.
+    expect(skipped({ detail: 'Skipped: the model is not available.' })).toBe(
+      'Skipped: the model is not available',
     );
-    expect(skipped('Skipped: the model is not available.')).toBe(
-      'Not tried, since a check above failed',
+  });
+
+  it('names the tested build only when the engine says the base is that build', () => {
+    const available = (patch: Partial<InstallCheck>) =>
+      checkDetail(
+        check({ kind: 'model_available', detail: 'muse-glimmer:30b on ollama.', ...patch }),
+        installation,
+      );
+    expect(available({ sameBuild: true })).toBe(
+      'muse-glimmer:30b on Ollama, the build that was tested',
     );
-    expect(skipped('Not asked for.')).toBe('Not tried yet');
+    expect(available({})).toBe('muse-glimmer:30b on Ollama');
+    expect(available({ detail: 'the same build that was tested, says the sentence' })).toBe(
+      'muse-glimmer:30b on Ollama',
+    );
   });
 
   it('says any other passed check in its own words, like the rows around it', () => {
@@ -197,6 +219,7 @@ describe('install check details', () => {
       id: 'adapter-runtime',
       kind: 'adapter_runtime',
       detail: 'llama-server build 10472, at C:\\llama.cpp\\llama-server.exe.',
+      build: 10472,
     });
     const served = { ...installation, checks: [server] } as Installation;
 
@@ -205,6 +228,11 @@ describe('install check details', () => {
         'Windows x64 · 32 GB',
       );
       expect(checkDetail(server, served)).toBe('Build 10472');
+      // Without the build the engine found, the row keeps the engine's words.
+      const { build: _build, ...unnumbered } = server;
+      expect(checkDetail(unnumbered, served)).toBe(
+        'llama-server build 10472, at C:\\llama.cpp\\llama-server.exe',
+      );
       expect(
         checkDetail(
           check({
@@ -235,5 +263,101 @@ describe('install check details', () => {
         checkMark({ ...failed, kind: 'model_available', id: 'model-available' }, 'blocked'),
       ).toBe('blocked');
     });
+
+    it('offers another model for a base of another build, even though it blocks', () => {
+      const otherBuild = {
+        ...served,
+        status: 'blocked',
+        bindings: {},
+        grants: { writes: 'ask', resources: {} },
+        checks: [
+          server,
+          check({
+            id: 'model-available',
+            kind: 'model_available',
+            status: 'failed',
+            detail: 'muse-glimmer:30b on this computer is another build.',
+            sameBuild: false,
+            modelProblem: 'other_build',
+          }),
+        ],
+      } as unknown as Installation;
+      const manifest = { resources: [] } as unknown as PackageManifest;
+      expect(needsAnotherModel(otherBuild)).toBe(true);
+      expect(fixesFor(otherBuild, manifest)).toEqual([{ kind: 'model' }]);
+    });
+  });
+});
+
+describe('ways out of what the checks found', () => {
+  const data = { name: 'data', required: true, access: 'read_write' } as const;
+  const output = { name: 'output', required: false, access: 'read_write' } as const;
+  const manifest = { resources: [data, output] } as unknown as PackageManifest;
+  const installation = (patch: Partial<Installation>): Installation =>
+    ({
+      status: 'needs_attention',
+      model: { runtime: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'muse-glimmer:30b' },
+      bindings: { data: 'C:\\records' },
+      grants: { writes: 'ask', resources: { data: 'read_write' } },
+      checks: [],
+      reasons: [],
+      ...patch,
+    }) as unknown as Installation;
+  const folders = (problems: { name: string; problem: string }[]): InstallCheck =>
+    ({
+      id: 'resources-bound',
+      kind: 'resources_bound',
+      status: 'failed',
+      detail: 'A sentence that is never read for meaning: data/ something.',
+      folders: problems,
+    }) as InstallCheck;
+
+  it("reads each folder's problem from the check, never from its sentence", () => {
+    expect(
+      fixesFor(installation({ checks: [folders([{ name: 'data', problem: 'files' }])] }), manifest),
+    ).toEqual([{ kind: 'choose', resource: 'data', again: true }, { kind: 'check' }]);
+    expect(
+      fixesFor(
+        installation({
+          bindings: {},
+          checks: [folders([{ name: 'data', problem: 'not_chosen' }])],
+        }),
+        manifest,
+      ),
+    ).toEqual([{ kind: 'choose', resource: 'data', again: false }, { kind: 'check' }]);
+    expect(
+      fixesFor(
+        installation({ checks: [folders([{ name: 'data', problem: 'not_allowed' }])] }),
+        manifest,
+      ),
+    ).toEqual([{ kind: 'allow', resource: 'data', grant: 'read_write' }, { kind: 'check' }]);
+  });
+
+  it('offers a download for a base that is missing, and another model for another build', () => {
+    const base = (patch: Partial<InstallCheck>) =>
+      ({
+        id: 'model-available',
+        kind: 'model_available',
+        status: 'failed',
+        detail: "Ollama can't serve muse-glimmer:30b.",
+        ...patch,
+      }) as InstallCheck;
+    expect(
+      fixesFor(installation({ checks: [base({ modelProblem: 'not_downloaded' })] }), manifest),
+    ).toEqual([{ kind: 'download', model: 'muse-glimmer:30b' }, { kind: 'check' }]);
+    expect(
+      fixesFor(installation({ checks: [base({ modelProblem: 'other_build' })] }), manifest),
+    ).toEqual([{ kind: 'model' }, { kind: 'check' }]);
+    const wrongRuntime = {
+      id: 'compatibility',
+      kind: 'compatibility',
+      status: 'failed',
+      detail: 'Set its model to muse-glimmer:30b on Ollama.',
+      modelProblem: 'wrong_runtime',
+    } as InstallCheck;
+    expect(fixesFor(installation({ checks: [wrongRuntime] }), manifest)).toEqual([
+      { kind: 'model' },
+      { kind: 'check' },
+    ]);
   });
 });

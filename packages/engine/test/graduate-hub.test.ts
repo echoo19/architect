@@ -1,7 +1,13 @@
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { readPackage } from '@architect/harness';
-import { GuardError, PackageError, type ImportRequest } from '@architect/shared';
+import {
+  GuardError,
+  PackageError,
+  PublishProgressSchema,
+  type ImportRequest,
+  type PublishProgress,
+} from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { exportPackage } from '../src/graduates/exporter';
 import { downloadFromHub, installFromHub } from '../src/graduates/hub-install';
@@ -148,6 +154,71 @@ describe('publishing a version to Hugging Face', () => {
     }
     expect(JSON.stringify(listPublications(ctx, 'grd_desk'))).not.toContain(FAKE_HUB_TOKEN);
     expect(await readdir(author.paths.stagingDir()).catch(() => [])).toEqual([]);
+  });
+
+  it("reports each stage as it is reached, with the upload's own count of the bytes it sent", async () => {
+    const author = await computer();
+    // Parts of 1,000 bytes, so the adapter's upload reports several times on its way.
+    const hub = await fakeHub({ multipartThreshold: 2048, partSize: 1000 });
+    await addVersion(author, { graduateId: 'grd_desk', adapter: 'GGUF'.padEnd(4096, 'x') });
+    const ctx = contextOf(author, hub);
+    const updates: PublishProgress[] = [];
+    const sentFiles: string[] = [];
+    const result = await publishVersion(
+      ctx,
+      'grd_desk',
+      { repository: REPO },
+      {
+        onUpdate: (progress) => updates.push(PublishProgressSchema.parse(progress)),
+        onProgress: (progress) => sentFiles.push(progress.path),
+      },
+    );
+
+    const packageBytes = result.files
+      .filter((file) => file.path !== 'README.md')
+      .reduce((sum, file) => sum + file.bytes, 0);
+    const stages = updates.map((update) => update.stage);
+    expect([...new Set(stages)]).toEqual(['connecting', 'uploading', 'verifying', 'describing']);
+    expect(updates.every((update) => update.totalBytes === packageBytes)).toBe(true);
+    expect(updates[0]).toEqual({
+      graduateId: 'grd_desk',
+      version: 1,
+      repository: REPO,
+      stage: 'connecting',
+      sentBytes: 0,
+      totalBytes: packageBytes,
+    });
+    // The bytes only ever grow, the adapter's parts show on the way, and all of it is sent
+    // before the Hub's copy is checked.
+    const sent = updates.map((update) => update.sentBytes);
+    expect(sent).toEqual([...sent].sort((a, b) => a - b));
+    const uploading = updates.filter((update) => update.stage === 'uploading');
+    expect(uploading.length).toBeGreaterThan(4);
+    expect(new Set(uploading.map((update) => update.sentBytes)).size).toBeGreaterThan(4);
+    expect(updates.find((update) => update.stage === 'verifying')?.sentBytes).toBe(packageBytes);
+    // The command line's per-file progress still comes too.
+    expect(sentFiles).toContain('adapter/adapter.gguf');
+  });
+
+  it('counts a package the Hub already holds as sent, and moves on to checking it', async () => {
+    const { hub, ctx } = await authored();
+    hub.failNext(`/api/models/${REPO}/tree/`, 500, 'flaky');
+    await expect(publishVersion(ctx, 'grd_desk', { repository: REPO })).rejects.toBeInstanceOf(
+      HubError,
+    );
+    const updates: PublishProgress[] = [];
+    await publishVersion(
+      ctx,
+      'grd_desk',
+      { repository: REPO },
+      { onUpdate: (u) => updates.push(u) },
+    );
+    expect(updates.map((update) => update.stage)).toEqual([
+      'connecting',
+      'verifying',
+      'describing',
+    ]);
+    expect(updates.at(-1)?.sentBytes).toBe(updates.at(-1)?.totalBytes);
   });
 
   it('sends an adapter through LFS without the token, and a second publication sends nothing', async () => {

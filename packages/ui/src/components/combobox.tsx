@@ -30,6 +30,8 @@ export interface ComboboxProps {
   fromSearch?: (text: string) => ComboboxGroup | null;
   /** Called when the menu opens or closes; a menu can load its lists on opening. */
   onOpenChange?: (open: boolean) => void;
+  /** Whether the menu is open, when something other than its own button opens it. */
+  open?: boolean;
   searchPlaceholder?: string;
   emptyText?: string;
   disabled?: boolean;
@@ -52,6 +54,7 @@ export function Combobox({
   groups,
   fromSearch,
   onOpenChange,
+  open: controlled,
   searchPlaceholder = 'Search',
   emptyText = 'Nothing matches that.',
   disabled,
@@ -59,13 +62,14 @@ export function Combobox({
   children,
   ...props
 }: ComboboxProps) {
-  const [open, setOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  const open = controlled ?? ownOpen;
   const [search, setSearch] = useState('');
   const typed = search.trim();
   const extra = typed && fromSearch ? fromSearch(typed) : null;
 
   const changeOpen = (next: boolean) => {
-    setOpen(next);
+    setOwnOpen(next);
     if (!next) setSearch('');
     onOpenChange?.(next);
   };

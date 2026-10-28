@@ -38,6 +38,11 @@ export interface GraduateOptions {
   writes?: PermissionMode;
   /** A GGUF LoRA for the version to carry, trained on the base whose GGUF has `baseDigest`. */
   adapter?: { bytes: Uint8Array; baseDigest: string; scale: number };
+  /**
+   * The base model's name, `muse-glimmer:30b` when absent. A test that may meet a real Ollama
+   * names one no runtime has, so no check of it can ever load a model.
+   */
+  baseModel?: string;
 }
 
 const CREATED_AT = '2026-11-05T18:00:00.000Z';
@@ -102,6 +107,8 @@ export async function addGraduate(
 
   const harness = fixtureHarness(job.name, options.harness);
   const facts = fixtureFacts(options.id, job, harness);
+  const baseModel = options.baseModel ?? facts.base.name;
+  facts.base = { ...facts.base, name: baseModel };
   if (options.adapter) {
     const source = join(dataDir, `adapter-${options.id}.gguf`);
     await writeFile(source, options.adapter.bytes);
@@ -125,7 +132,7 @@ export async function addGraduate(
       state: 'accepted',
       installation: {
         graduateId: options.id,
-        model: { runtime: 'ollama', baseUrl: options.baseUrl, model: 'muse-glimmer:30b' },
+        model: { runtime: 'ollama', baseUrl: options.baseUrl, model: baseModel },
         bindings: {
           data: storedFolder(paths, workspaceDataDir),
           output: storedFolder(paths, output),

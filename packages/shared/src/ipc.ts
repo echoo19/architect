@@ -39,6 +39,7 @@ import type {
   PackageInspection,
   Publication,
   PublicationReview,
+  PublishProgress,
   PublishRequest,
   PublishResult,
   VersionEvent,
@@ -151,6 +152,15 @@ export interface AddConnectionResult {
 }
 
 export type SignInResult = { status: 'signed_in' } | { status: 'cancelled' };
+
+/**
+ * Where the Hugging Face token that publishing and installing would use comes from, nearest
+ * first: the key saved in Architect, an environment variable, or the token file `hf auth login`
+ * writes. Never the token itself. Null when there is none.
+ */
+export interface HubTokenStatus {
+  source: 'saved' | 'HF_TOKEN' | 'HUGGING_FACE_HUB_TOKEN' | 'token_file' | null;
+}
 
 export interface AppInfo {
   version: string;
@@ -286,6 +296,11 @@ export interface ArchitectApi {
     info(): Promise<AppInfo>;
     /** Opens a provider's key page, or a local runtime's download page, in the browser. */
     openProviderPage(provider: ProviderId): Promise<void>;
+    /**
+     * Opens a web page in the browser, such as a repository on Hugging Face. Only HTTPS pages on
+     * the hosts Architect knows open; any other address is refused.
+     */
+    openLink(url: string): Promise<void>;
   };
   settings: {
     get(): Promise<AppSettings>;
@@ -321,6 +336,8 @@ export interface ArchitectApi {
      * to the one on PATH. Checks it like `llamaServer`.
      */
     chooseLlamaServer(path: string | null): Promise<LlamaServerStatus>;
+    /** Where the Hugging Face token comes from, if there is one. Sends nothing anywhere. */
+    huggingFace(): Promise<HubTokenStatus>;
   };
   ollama: {
     status(): Promise<OllamaStatus>;
@@ -475,10 +492,15 @@ export interface ArchitectApi {
     installFromHub(source: string, request?: HubInstallRequest): Promise<HubInstallResult>;
     /** What publishing a version to Hugging Face would send, and what the scan finds. Sends nothing. */
     reviewPublication(graduateId: string, request: PublishRequest): Promise<PublicationReview>;
-    /** Publishes a version to a Hugging Face repository, private unless the request says public. */
+    /**
+     * Publishes a version to a Hugging Face repository, private unless the request says public.
+     * Its progress comes as `onPublishProgress` events until it resolves.
+     */
     publish(graduateId: string, request: PublishRequest): Promise<PublishResult>;
     /** Every publication of the agent's versions, oldest first. */
     publications(graduateId: string): Promise<Publication[]>;
+    /** Fires as a publication moves: each stage, and the bytes sent while it uploads. */
+    onPublishProgress(listener: (progress: PublishProgress) => void): Unsubscribe;
     remove(graduateId: string): Promise<void>;
     settings(graduateId: string): Promise<GraduateSettings>;
     updateSettings(graduateId: string, patch: Partial<GraduateSettings>): Promise<GraduateSettings>;
