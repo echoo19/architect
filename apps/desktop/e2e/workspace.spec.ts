@@ -291,7 +291,9 @@ for (const theme of THEMES) {
     await expect(dialog.getByText('Prices finished jobs, finds overdue balances')).toBeVisible();
     // The name is the dialog's title, so no row offers a rename the app can't do.
     await expect(dialog.getByText('Name', { exact: true })).toHaveCount(0);
-    await expect(dialog.getByText('Round 7 was the last change Spark kept.')).toBeVisible();
+    // The setup is named by its version, as the Teaching tab and the status line name it.
+    await expect(dialog.getByText('Its instructions, skills and tools')).toBeVisible();
+    await expect(dialog.getByText('Version 1', { exact: true })).toBeVisible();
     await expect(dialog.getByText('Passed: 55 of 60 (92%)')).toBeVisible();
     await expect(
       dialog.getByText(

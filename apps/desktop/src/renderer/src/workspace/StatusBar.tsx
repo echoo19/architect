@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { GraduateSummary } from '@architect/shared';
 import { Blend, EyeOff, HardDrive, Layers } from 'lucide-react';
-import { agentModelName, capitalized, setupName, shortModelName } from '../lib/names';
+import { activeVersionName, agentModelName, shortModelName } from '../lib/names';
 
 function Item({ children }: { children: ReactNode }) {
   return <span className="flex min-w-0 items-center gap-1.5 [&_svg]:shrink-0">{children}</span>;
@@ -22,9 +22,7 @@ export function StatusBar({ agent }: { agent: GraduateSummary }) {
     <p className="mx-auto mb-0 mt-2.5 flex max-w-[720px] flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-fg-muted">
       <Item>
         <Layers size={12} strokeWidth={1.8} aria-hidden />
-        {agent.activeVersion === null
-          ? capitalized(setupName(manifest.harness))
-          : `Version ${agent.activeVersion}`}
+        {activeVersionName(agent)}
       </Item>
       <Item>
         <HardDrive size={12} strokeWidth={1.8} aria-hidden />

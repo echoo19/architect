@@ -29,7 +29,7 @@ import { errorOf, RetryButton } from '../../components/QueryValue';
 import { FixButtons } from '../../install/InstallChecks';
 import { fixesFor, osName, STATUS_LABELS, statusMark } from '../../install/labels';
 import { formatPercent, shortPath } from '../../lib/format';
-import { capitalized, setupName, setupSource, shortModelName } from '../../lib/names';
+import { activeVersionName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { navigate, paths, type Route } from '../../lib/router';
@@ -53,7 +53,6 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
   const { versions, active } = useActiveVersion(agent.id);
   const [confirming, setConfirming] = useState(false);
   const { manifest } = agent;
-  const mentor = shortModelName(manifest.mentor.label);
   const { score } = manifest.test;
   const { met, target } = manifest.requirements.passRate;
   const result = `${met ? 'Passed' : 'Below its target'}: ${score.pass} of ${score.total} (${formatPercent(score)})`;
@@ -73,11 +72,8 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
           pending
         )}
       </SettingsRow>
-      <SettingsRow
-        label="Setup"
-        meta={`Its instructions, skills and tools. ${setupSource(manifest.harness, mentor)}`}
-      >
-        <SettingsValue>{capitalized(setupName(manifest.harness))}</SettingsValue>
+      <SettingsRow label="Setup" meta="Its instructions, skills and tools">
+        <SettingsValue>{activeVersionName(agent)}</SettingsValue>
       </SettingsRow>
       <SettingsRow
         label="Final test"

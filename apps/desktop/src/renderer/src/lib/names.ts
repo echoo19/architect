@@ -52,17 +52,16 @@ export function setupName(origin: {
 }
 
 /**
- * What a kept setup's origin says about the training behind it, in plain words. A round number
- * names the last change the mentor kept, which is not where training ended.
+ * The version an agent answers with, as the Teaching tab names it: "Version 2". A graduate from
+ * before versions has none, so its setup is named by where it came from.
  */
-export function setupSource(
-  origin: { round?: number | undefined; draft?: boolean | undefined },
-  mentor: string,
-): string {
-  if (origin.draft) return `${mentor} wrote them in one go and kept no later change.`;
-  if (origin.round !== undefined)
-    return `Round ${origin.round} was the last change ${mentor} kept.`;
-  return `They are the ones it started with, and ${mentor} kept no change.`;
+export function activeVersionName(agent: {
+  activeVersion: number | null;
+  manifest: { harness: { round?: number | undefined; draft?: boolean | undefined } };
+}): string {
+  return agent.activeVersion === null
+    ? capitalized(setupName(agent.manifest.harness))
+    : `Version ${agent.activeVersion}`;
 }
 
 export const STUDENT_ROLE = "your agent's model";

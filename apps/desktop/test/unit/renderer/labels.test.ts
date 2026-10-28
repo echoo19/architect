@@ -7,6 +7,7 @@ import {
   shortPath,
 } from '../../../src/renderer/src/lib/format';
 import {
+  activeVersionName,
   agentModelName,
   capitalized,
   mentorIntro,
@@ -17,7 +18,6 @@ import {
   studentLabel,
   studentName,
   setupName,
-  setupSource,
 } from '../../../src/renderer/src/lib/names';
 import {
   detectPlatform,
@@ -136,14 +136,16 @@ describe('setupName', () => {
   });
 });
 
-describe('setupSource', () => {
-  it('says what a setup comes from without implying training stopped there', () => {
-    expect(setupSource({ round: 7 }, 'Spark')).toBe('Round 7 was the last change Spark kept.');
-    expect(setupSource({ round: 1, draft: true }, 'Spark')).toBe(
-      'Spark wrote them in one go and kept no later change.',
+describe('activeVersionName', () => {
+  it('names the version an agent answers with, as the Teaching tab does', () => {
+    expect(activeVersionName({ activeVersion: 2, manifest: { harness: { round: 7 } } })).toBe(
+      'Version 2',
     );
-    expect(setupSource({}, 'Spark')).toBe(
-      'They are the ones it started with, and Spark kept no change.',
+  });
+
+  it('names the setup of a graduate from before versions by where it came from', () => {
+    expect(activeVersionName({ activeVersion: null, manifest: { harness: { round: 7 } } })).toBe(
+      'The setup from round 7',
     );
   });
 });
