@@ -5,11 +5,15 @@ import type {
   PackageManifest,
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
+import { folderName } from '../../../src/renderer/src/install/folders';
 import {
   checkDetail,
   checkMark,
   fixesFor,
+  installProblem,
   needsAnotherModel,
+  needsLlama,
+  stepsNeedingAttention,
 } from '../../../src/renderer/src/install/labels';
 import {
   evaluationNote,
@@ -255,9 +259,7 @@ describe('install check details', () => {
           }),
           served,
         ),
-      ).toBe(
-        'muse-glimmer:30b, downloaded through Ollama, the exact build its trained weights need',
-      );
+      ).toBe('muse-glimmer:30b, the exact copy its trained weights need');
     });
 
     it('offers to set up llama.cpp when it is missing, and never reads that as blocking', () => {
@@ -345,6 +347,76 @@ describe('ways out of what the checks found', () => {
         manifest,
       ),
     ).toEqual([{ kind: 'allow', resource: 'data', grant: 'read_write' }, { kind: 'check' }]);
+  });
+
+  it('marks the step that left a folder undone, from the folders check and not its sentence', () => {
+    expect(stepsNeedingAttention(installation({ checks: [] }))).toEqual([]);
+    expect(stepsNeedingAttention(undefined)).toEqual([]);
+    expect(
+      stepsNeedingAttention(
+        installation({ checks: [folders([{ name: 'data', problem: 'not_chosen' }])] }),
+      ),
+    ).toEqual(['Folders']);
+    expect(
+      stepsNeedingAttention(
+        installation({ checks: [folders([{ name: 'data', problem: 'not_allowed' }])] }),
+      ),
+    ).toEqual(['Permissions']);
+    expect(
+      stepsNeedingAttention(
+        installation({
+          checks: [
+            folders([
+              { name: 'data', problem: 'missing' },
+              { name: 'output', problem: 'not_allowed' },
+            ]),
+          ],
+        }),
+      ),
+    ).toEqual(['Folders', 'Permissions']);
+  });
+
+  it('waits for llama.cpp only while its own check has failed', () => {
+    const runtime = (status: InstallCheck['status']): InstallCheck => ({
+      id: 'adapter-runtime',
+      kind: 'adapter_runtime',
+      status,
+      detail: 'A sentence that is never read for meaning.',
+    });
+    expect(needsLlama({ checks: [] })).toBe(false);
+    expect(needsLlama({ checks: [runtime('passed')] })).toBe(false);
+    expect(needsLlama({ checks: [runtime('skipped')] })).toBe(false);
+    expect(needsLlama({ checks: [runtime('failed')] })).toBe(true);
+    // Another check failing is not llama.cpp's trouble.
+    expect(needsLlama({ checks: [folders([{ name: 'data', problem: 'missing' }])] })).toBe(false);
+  });
+
+  it('says which folder is the trouble, by what it holds, and when several are', () => {
+    const say = (problems: { name: string; problem: string }[]) =>
+      installProblem(installation({ checks: [folders(problems)] }), { model: 'Glimmer' })?.cause;
+    expect(say([{ name: 'data', problem: 'not_chosen' }])).toBe(
+      "Its records folder isn't chosen yet.",
+    );
+    expect(say([{ name: 'data', problem: 'not_allowed' }])).toBe(
+      "It isn't allowed to use its records folder yet.",
+    );
+    expect(say([{ name: 'data', problem: 'missing' }])).toBe("Its records folder can't be found.");
+    expect(say([{ name: 'output', problem: 'files' }])).toBe(
+      'Its output folder is missing files it needs.',
+    );
+    expect(
+      say([
+        { name: 'data', problem: 'not_chosen' },
+        { name: 'output', problem: 'not_chosen' },
+      ]),
+    ).toBe("Some of the folders it needs aren't ready.");
+    expect(say([])).toBe("A folder it needs isn't ready.");
+  });
+
+  it('names a package folder by what it holds, never by its name with a slash', () => {
+    expect(folderName(data)).toBe('Records folder');
+    expect(folderName(output)).toBe('Output folder');
+    expect(folderName({ name: 'labels' })).toBe('Labels folder');
   });
 
   it('offers a download for a base that is missing, and another model for another build', () => {

@@ -27,6 +27,7 @@ import {
 import { queryKeys } from '../../api/hooks';
 import { fetchQuery, setQueryData } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
+import { folderName } from '../../install/folders';
 import { FixButtons } from '../../install/InstallChecks';
 import {
   AUTHOR_RESULT_TITLE,
@@ -245,16 +246,19 @@ function FolderRows({ agent, active }: { agent: GraduateSummary; active: Graduat
   const [choosing, setChoosing] = useState<string | null>(null);
   const choose = async (name: string) => {
     setChoosing(name);
-    const next = await attempt(`Couldn't change the folder for ${name}/`, async () => {
-      const [folder] = await architect().files.pick({
-        title: `Choose a folder for ${name}/`,
-        directory: true,
-      });
-      if (!folder) return null;
-      const bound = await graduatesApi.bind(agent.id, { bindings: { [name]: folder } });
-      await refreshAgent(agent.id);
-      return bound;
-    });
+    const next = await attempt(
+      `Couldn't change the ${folderName({ name }).toLowerCase()}`,
+      async () => {
+        const [folder] = await architect().files.pick({
+          title: `Choose the ${folderName({ name }).toLowerCase()}`,
+          directory: true,
+        });
+        if (!folder) return null;
+        const bound = await graduatesApi.bind(agent.id, { bindings: { [name]: folder } });
+        await refreshAgent(agent.id);
+        return bound;
+      },
+    );
     setChoosing(null);
     if (next) setQueryData(graduateKeys.installation(agent.id), next);
   };
@@ -269,7 +273,7 @@ function FolderRows({ agent, active }: { agent: GraduateSummary; active: Graduat
     return (
       <SettingsRow
         key={resource.name}
-        label={`${resource.name}/`}
+        label={folderName(resource)}
         meta={folder === undefined ? unbound : shortPath(folder)}
         metaFont={folder ? 'code' : 'text'}
         error={errorOf(installation)}

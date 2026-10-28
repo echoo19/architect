@@ -1,17 +1,19 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { ImportPreview, ImportResult, PermissionMode, ResourceGrant } from '@architect/shared';
-import { Button, EmptyState, ErrorState, Skeleton } from '@architect/ui';
+import { Button, EmptyState, Skeleton } from '@architect/ui';
 import { Cloud, FolderOpen, MessageSquarePlus, PackageOpen } from 'lucide-react';
 import { api, architect } from '../api/client';
 import { graduatesApi, refreshAgent } from '../api/graduates';
 import { queryKeys } from '../api/hooks';
 import { fetchQuery, toError } from '../api/query';
+import { ProblemState } from '../components/ProblemState';
+import { needsLlama, stepsNeedingAttention } from '../install/labels';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { FlowShell } from '../shell/FlowShell';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { createChat, forgetAgent } from '../workspace/store';
-import { CheckStep, Refused } from './CheckStep';
+import { CheckStep, Refused, WaitsForLlama } from './CheckStep';
 import { HubImportFlow } from './HubImport';
 import { InstallStep } from './InstallStep';
 import { FoldersStep, PermissionsStep } from './SetupSteps';
@@ -154,7 +156,7 @@ function ImportFlow({
       <EmptyState
         icon={<PackageOpen aria-hidden />}
         title="Import an agent"
-        description="An .architect.zip package, a folder exported from Architect, or a repository on Hugging Face"
+        description="An agent someone sent you as a file or a folder, or one shared on Hugging Face"
         actions={
           <>
             <Button variant="primary" size="md" onClick={() => void chooseImport()}>
@@ -177,20 +179,16 @@ function ImportFlow({
     body = <PreviewSkeleton />;
   } else if (error || !preview) {
     body = (
-      <ErrorState
+      <ProblemState
+        error={error ?? new Error("The package couldn't be checked.")}
         title="Couldn't check this package"
-        message={error?.message}
         onRetry={reload}
-        secondaryAction={
-          <Button size="md" onClick={() => void chooseImport()}>
-            Choose another package
-          </Button>
-        }
+        exit={{ label: 'Choose another package', onClick: () => void chooseImport() }}
         className="min-h-[56vh]"
       />
     );
   } else if (!preview.ok) {
-    body = <Refused file={baseName(path)} problems={preview.problems} />;
+    body = <Refused file={baseName(path)} code={preview.code} problems={preview.problems} />;
     footer = (
       <Footer>
         <Button size="lg" onClick={close}>
@@ -203,6 +201,8 @@ function ImportFlow({
     );
   } else if (stage === 'Package') {
     body = <CheckStep preview={preview} file={baseName(path)} onRecheck={reload} />;
+    // Trained weights run on llama.cpp, so the way on waits until it is set up, and says so.
+    const waitsForLlama = needsLlama(preview);
     footer = (
       <Footer>
         <Button size="lg" onClick={close}>
@@ -216,14 +216,29 @@ function ImportFlow({
           <Button variant="primary" size="lg" onClick={() => void chooseImport()}>
             Choose another package
           </Button>
-        ) : preview.place.kind === 'version' ? (
-          <Button variant="primary" size="lg" onClick={() => void install()}>
-            Install version {preview.place.version}
-          </Button>
         ) : (
-          <Button variant="primary" size="lg" onClick={() => setStage(next('Package'))}>
-            Continue
-          </Button>
+          <div className="flex items-center gap-4">
+            {waitsForLlama && <WaitsForLlama />}
+            {preview.place.kind === 'version' ? (
+              <Button
+                variant="primary"
+                size="lg"
+                disabled={waitsForLlama}
+                onClick={() => void install()}
+              >
+                Install version {preview.place.version}
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                size="lg"
+                disabled={waitsForLlama}
+                onClick={() => setStage(next('Package'))}
+              >
+                Continue
+              </Button>
+            )}
+          </div>
         )}
       </Footer>
     );
@@ -291,7 +306,7 @@ function ImportFlow({
       footer = (
         <Footer>
           <Button size="lg" onClick={close}>
-            Done
+            {result.installation.status === 'ready' || asVersion ? 'Done' : 'Not now'}
           </Button>
           {asVersion ? (
             <Button
@@ -321,7 +336,13 @@ function ImportFlow({
   }
 
   return (
-    <FlowShell title={name} step={stage} steps={steps} footer={footer}>
+    <FlowShell
+      title={name}
+      step={stage}
+      steps={steps}
+      footer={footer}
+      attention={stage === 'Install' ? stepsNeedingAttention(result?.installation) : []}
+    >
       <div className="mx-auto box-content flex max-w-[680px] flex-col gap-10 px-8 pb-12 pt-14">
         {body}
       </div>

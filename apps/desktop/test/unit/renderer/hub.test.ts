@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   bareUrl,
   installCommand,
+  repositoryOf,
   sentText,
   shortCommit,
   stageText,
@@ -17,6 +18,14 @@ describe('Hugging Face, in the words the screens use', () => {
     expect(tokenSourceText('HF_TOKEN')).toBe('Uses HF_TOKEN from this computer');
     expect(tokenSourceText('token_file')).toBe('Uses the token from hf auth login');
     expect(tokenSourceText(null)).toBe('No token');
+  });
+
+  it('takes a repository as it is typed: by name, with hf://, or as its page', () => {
+    expect(repositoryOf('dana/returns-desk')).toBe('dana/returns-desk');
+    expect(repositoryOf('  hf://dana/returns-desk/ ')).toBe('dana/returns-desk');
+    expect(repositoryOf('https://huggingface.co/dana/returns-desk')).toBe('dana/returns-desk');
+    expect(repositoryOf('https://www.huggingface.co/dana/returns-desk/')).toBe('dana/returns-desk');
+    expect(repositoryOf('')).toBe('');
   });
 
   it('names a publication by its commit, its page and the command that installs it', () => {
