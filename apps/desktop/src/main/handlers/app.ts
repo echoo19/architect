@@ -20,7 +20,9 @@ export function registerAppHandlers(router: IpcRouter, openLink: OpenExternal): 
         totalMemoryBytes: totalmem(),
       }),
       openProviderPage: (provider) => openLink(providerPage(provider)),
+      // The opener refuses any page that isn't HTTPS on a host Architect knows.
+      openLink: (url) => openLink(url),
     },
-    { openProviderPage: z.tuple([ProviderIdSchema]) },
+    { openProviderPage: z.tuple([ProviderIdSchema]), openLink: z.tuple([z.string().max(2048)]) },
   );
 }

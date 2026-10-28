@@ -1,3 +1,4 @@
+import { HubError } from '@architect/engine';
 import {
   BindRequestSchema,
   ExportPartRequestSchema,
@@ -23,6 +24,21 @@ export interface GraduateWorkspace {
 
 const text = z.string().min(1);
 const version = z.number().int().positive();
+
+/**
+ * A Hugging Face failure with what to do about it in one message: only the message crosses to
+ * the renderer, and the hint is the way out.
+ */
+async function withHubHint<T>(request: Promise<T>): Promise<T> {
+  try {
+    return await request;
+  } catch (error) {
+    if (error instanceof HubError && error.hint) {
+      throw new Error(`${error.message} ${error.hint}`, { cause: error });
+    }
+    throw error;
+  }
+}
 
 /** Folders named in a request must be ones the user picked, like every other path. */
 function checkedBindings<T extends BindRequest | ImportRequest | HubInstallRequest>(
@@ -134,13 +150,16 @@ export function registerGraduateHandlers(
       },
       installFromHub: async (source, request) => {
         const checked = request === undefined ? undefined : checkedBindings(picked, request);
-        const result = await call((api) => api.graduates.installFromHub(source, checked));
+        const result = await withHubHint(
+          call((api) => api.graduates.installFromHub(source, checked)),
+        );
         await workspace.open(result.graduate);
         return result;
       },
       reviewPublication: (graduateId, request) =>
         call((api) => api.graduates.reviewPublication(graduateId, request)),
-      publish: (graduateId, request) => call((api) => api.graduates.publish(graduateId, request)),
+      publish: (graduateId, request) =>
+        withHubHint(call((api) => api.graduates.publish(graduateId, request))),
       publications: (graduateId) => call((api) => api.graduates.publications(graduateId)),
       remove: async (graduateId) => {
         await workspace.close(graduateId);

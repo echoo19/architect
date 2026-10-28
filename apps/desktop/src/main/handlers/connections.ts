@@ -20,6 +20,7 @@ import {
 } from '../connections';
 import type { PickedPaths } from '../files/picked';
 import type { IpcRouter } from '../ipc/router';
+import { hubTokenStatus } from '../../utility/hub';
 import type { SignIns } from '../oauth/sign-ins';
 import { ollamaBaseUrl } from '../ollama/status';
 import type { SecretStore } from '../secrets/store';
@@ -93,6 +94,8 @@ export function registerConnectionHandlers(router: IpcRouter, deps: ConnectionHa
         });
         return llamaServer();
       },
+      // Where the token comes from, never what it is.
+      huggingFace: () => hubTokenStatus(() => keys('huggingface')),
     },
     {
       testMentor: z.tuple([MentorConfigSchema]),
