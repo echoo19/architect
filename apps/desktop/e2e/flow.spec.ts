@@ -325,8 +325,7 @@ for (const theme of THEMES) {
     await expect(page.getByText('Ready', { exact: true })).toBeVisible();
     await expect(
       page.getByText(
-        "Glimmer, your agent's model, took a final test of 60 tasks it had never seen, " +
-          'offline on this computer, with Spark, the mentor, disconnected.',
+        'Final test of 60 unseen tasks, offline on this computer, with Spark disconnected.',
       ),
     ).toBeVisible();
     const comparison = page.getByRole('table');
@@ -334,12 +333,10 @@ for (const theme of THEMES) {
     const bare = comparison.getByRole('row', { name: /No setup/ });
     await expect(bare).toContainText('40%');
     await expect(bare).toContainText('Glimmer on its own, with no instructions or skills');
-    await expect(
-      page.getByText('Up from 40% before training (Glimmer with no setup)'),
-    ).toBeVisible();
+    await expect(page.getByText('Up from 40% with no setup')).toBeVisible();
     await expect(comparison.getByRole('row', { name: /Architect/ })).toContainText('+52 points');
     await expect(page.getByRole('region', { name: 'What helped most' })).toContainText(
-      '+5 check tasks per measurement, on average over 2',
+      '+5 check tasks, average of 2 measurements',
     );
     await expect(page.getByRole('heading', { name: "What it won't do" })).toBeVisible();
     await capture(page, `flow-report-${theme}`);

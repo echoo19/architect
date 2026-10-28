@@ -130,13 +130,13 @@ describe('comparison', () => {
       'Glimmer on its own, with no instructions or skills',
     );
     expect(methodExplanation('one_shot', names)).toBe(
-      "Spark wrote the agent's setup once, without watching it work",
+      'Spark wrote the setup once, without watching',
     );
     expect(methodExplanation('self_reflection', names)).toBe(
       'Glimmer corrected its own setup, with no mentor',
     );
     expect(methodExplanation('architect', names)).toBe(
-      'Spark watched Glimmer work and kept only changes that helped',
+      'Spark watched Glimmer work and kept what helped',
     );
   });
 });
