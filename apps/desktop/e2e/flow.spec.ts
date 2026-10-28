@@ -127,90 +127,53 @@ for (const theme of THEMES) {
     await expect(page).toHaveURL(new RegExp(`#/jobs/${FLOW.jobId}/define$`));
     await resize(DEFINE_HEIGHT);
     await expect(page.getByRole('heading', { name: 'Service desk', level: 1 })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'What it does' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: "What it won't do" })).toBeVisible();
-    // The write setting is named for what it controls, with the files it applies to.
-    await expect(page.getByRole('heading', { name: 'Saving changes to your files' })).toBeVisible();
-    await expect(
-      page.getByText(
-        'Once trained, it can change invoices.csv and bookings.csv. It only reads jobs.csv, technicians.csv and policy.md.',
-      ),
-    ).toBeVisible();
-    const writes = page.getByRole('radiogroup', { name: 'Saving changes to your files' });
-    await expect(writes.getByRole('radio', { name: 'Ask first' })).toHaveAttribute(
-      'aria-checked',
-      'true',
+    await expect(page.getByRole('region', { name: 'What it does' })).toContainText(
+      'Prices a finished job from the rate card',
     );
-    await expect(page.getByText('Shows each change and waits for your OK')).toBeVisible();
-    await expect(
-      page.getByText('Saves without asking; each change still shows in the chat'),
-    ).toBeVisible();
-    await expect(page.getByText("Can't change your files")).toBeVisible();
-    await expect(
-      page.getByText(
-        "Ask first waits for your OK before opening one. Allow opens it without asking. Never can't open one.",
-      ),
-    ).toBeVisible();
+    await expect(page.getByRole('region', { name: "What it won't do" })).toContainText(
+      'Issues refunds or credits',
+    );
+    // The write setting names the files it covers, in the same words as the agent's own setting.
+    const permissions = page.getByRole('region', { name: 'Permissions' });
+    await expect(permissions).toContainText('invoices.csv, bookings.csv');
+    for (const setting of ['Saving changes to your files', 'Opening other files']) {
+      await expect(
+        permissions
+          .getByRole('radiogroup', { name: setting })
+          .getByRole('radio', { name: 'Ask first' }),
+      ).toHaveAttribute('aria-checked', 'true');
+    }
 
-    // Training and the final test are told apart, and each dollar figure says who bills it.
-    await expect(
-      page.getByText(
-        "Spark, the mentor, is a cloud model that coaches it in rounds: each round, Spark changes Glimmer's instructions, skills or tools and checks whether that helped.",
-      ),
-    ).toBeVisible();
-    await expect(
-      page.getByText(
-        'Training stops at the 90% target or after 4 hours, whichever comes first, or sooner if changes stop helping. Then the final test runs on this computer.',
-      ),
-    ).toBeVisible();
-    await expect(
-      page.getByText(
-        'Training runs only while Architect is open on this computer, even on a hosted copy.',
-      ),
-    ).toBeVisible();
+    // Each place says how fast it practices and where the files go; this computer is too slow.
     const local = page.getByRole('radio', { name: /This computer/ });
     const hosted = page.getByRole('radio', { name: /Hosted on OpenRouter/ });
     await expect(local).toBeChecked();
-    await expect(local).toContainText('about 2.5 minutes a task. The practice is free.');
-    await expect(local).toContainText(
-      'Too slow: the first round would end after about 5 h 30 min, past the 4-hour limit. Raise the limit in Advanced settings to train here.',
-    );
-    await expect(hosted).toContainText(
-      'A hosted copy of Glimmer on OpenRouter, about 15 seconds a task. Your practice tasks and the files they read are sent there.',
-    );
-    await expect(hosted).toContainText(
-      'Up to about $3 for practice, billed to your OpenRouter account.',
-    );
-    await expect(
-      page.getByText(
-        'No full round fits in the 4-hour limit on this computer, so no change could be kept.',
-      ),
-    ).toBeVisible();
-    await expect(
-      page.getByText('About 2.5 hours on this computer, on 60 tasks it has never seen.'),
-    ).toBeVisible();
     await expect(local).toBeDisabled();
+    await expect(local).toContainText('About 2.5 minutes a task');
+    await expect(local).toContainText('Free · files stay here');
+    await expect(local).toContainText('Too slow for the 4-hour limit');
     await expect(hosted).toBeEnabled();
-    await expect(
-      page.getByText(
-        'In all: about 6.5 hours and about $0.70 billed by Meta (never more than $5). Training alone stays within the 4-hour limit.',
-      ),
-    ).toBeVisible();
+    await expect(hosted).toContainText('About 15 seconds a task');
+    await expect(hosted).toContainText('About $3 · tasks and files go to OpenRouter');
+
+    // The plan keeps training apart from the final test, and each dollar under whoever bills it.
+    const time = page.getByRole('region', { name: 'Estimated time' });
+    const cost = page.getByRole('region', { name: 'Estimated cost' });
+    await expect(time).toContainText('No round fits the 4-hour limit');
+    await expect(time).toContainText('60 new tasks on this computer');
+    await expect(time).toContainText(/In all\s*6\.5 h/);
+    await expect(cost).not.toContainText('OpenRouter');
+    await expect(cost).toContainText(/Meta\s*Spark\s*\$0\.70/);
     // The choices the run below starts with, so every later screen agrees with this one.
     await hosted.click();
     await expect(hosted).toBeChecked();
-    await expect(
-      page.getByText('About 4 hours on OpenRouter. The 4-hour limit ends it after 5 to 10 rounds.'),
-    ).toBeVisible();
-    await expect(
-      page.getByText('about $0.60 expected, never more than $5, billed by Meta'),
-    ).toBeVisible();
-    // The plan is training, the final test and both bills, each with who sends it.
-    await expect(
-      page.getByText(
-        'In all: about 6.5 hours, about $3 billed by OpenRouter and about $0.60 billed by Meta (never more than $5). Training alone stays within the 4-hour limit.',
-      ),
-    ).toBeVisible();
+    await expect(time).toContainText(/Training\s*5 to 10 rounds on OpenRouter\s*4 h/);
+    await expect(time).toContainText(/In all\s*6\.5 h/);
+    await expect(cost).toContainText(/OpenRouter\s*Glimmer practice\s*\$3/);
+    await expect(cost).toContainText(/Meta\s*Spark\s*\$0\.60/);
+    // The total is the figures above it added up.
+    await expect(cost).toContainText(/In all\s*\$3\.60/);
+    await expect(page.getByText('About $0.60 expected', { exact: true })).toBeVisible();
     // Comparison mode is off, so nothing on the screen offers or mentions a comparison.
     await expect(page.getByText(/comparison|simpler versions/i)).toHaveCount(0);
     await capture(page, `flow-define-${theme}`);
@@ -398,27 +361,25 @@ test('trains three simpler versions beside the agent when comparison mode is on'
 
   // Unticked, the plan is the agent's own training and the final test.
   const compare = page.getByRole('checkbox', {
-    name: 'Also train three simpler versions to compare against',
+    name: 'Also train three simpler versions to compare',
   });
   await expect(compare).not.toBeChecked();
   await expect(
-    page.getByText(
-      'Adds about 11.5 hours, about $3 billed by OpenRouter and about $0.06 billed by Meta (never more than $5).',
-    ),
+    page.getByText('Adds 11.5 h · $3 OpenRouter · $0.06 Meta', { exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByText(
-      'In all: about 6.5 hours, about $3 billed by OpenRouter and about $0.60 billed by Meta (never more than $5). Training alone stays within the 4-hour limit.',
-    ),
-  ).toBeVisible();
+  const time = page.getByRole('region', { name: 'Estimated time' });
+  const cost = page.getByRole('region', { name: 'Estimated cost' });
+  await expect(time).not.toContainText('Comparison');
+  await expect(time).toContainText(/In all\s*6\.5 h/);
+  await expect(cost).toContainText(/In all\s*\$3\.60/);
 
-  // Ticked, the plan adds the comparison and says how much of it that is.
+  // Ticked, the plan adds the comparison to the time and to each bill.
   await compare.click();
-  await expect(
-    page.getByText(
-      'In all: about 18 hours, about $6 billed by OpenRouter and about $0.65 billed by Meta (never more than $5 for each version), of which the optional comparison is about 11.5 hours, about $3 billed by OpenRouter and about $0.06 billed by Meta (never more than $5). Training alone stays within the 4-hour limit.',
-    ),
-  ).toBeVisible();
+  await expect(time).toContainText(/Comparison\s*Three simpler versions\s*11\.5 h/);
+  await expect(time).toContainText(/In all\s*18 h/);
+  await expect(cost).toContainText(/OpenRouter\s*Glimmer practice\s*\$6/);
+  await expect(cost).toContainText(/Meta\s*Spark\s*\$0\.65/);
+  await expect(cost).toContainText(/In all\s*\$6\.65/);
 
   // The baselines reuse the agent's seed, so the four runs compare like for like.
   await page.getByRole('button', { name: 'Start training' }).click();

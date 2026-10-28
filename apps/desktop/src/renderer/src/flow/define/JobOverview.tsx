@@ -1,14 +1,9 @@
-import { Fragment, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { Job, PermissionMode } from '@architect/shared';
 import { Badge, cn, Heading, Segmented, Stat } from '@architect/ui';
 import { Check, CircleMinus, Laptop } from 'lucide-react';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
-import {
-  WRITE_MODE_LABELS,
-  WRITE_MODE_MEANINGS,
-  WRITE_MODES,
-  WRITE_SETTING,
-} from '../../workspace/labels';
+import { WRITE_MODE_LABELS, WRITE_MODES, WRITE_SETTING } from '../../workspace/labels';
 import { formatTimeLimit } from '../format';
 
 /** The same words as the agent's own setting, under its message box. */
@@ -32,31 +27,13 @@ export function JobHeader({ job }: { job: Job }) {
         icon={<Laptop size={14} strokeWidth={1.6} aria-hidden />}
         className="self-start"
       >
-        Once trained, runs offline on {deviceInSentence(currentPlatform())}
+        Runs offline on {deviceInSentence(currentPlatform())}
       </Badge>
     </div>
   );
 }
 
-/** A section heading with one plain line under it saying what the section means. */
-function SectionHeading({
-  id,
-  title,
-  children,
-}: {
-  id: string;
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <Heading id={id}>{title}</Heading>
-      <p className="m-0 text-fg-secondary text-pretty">{children}</p>
-    </div>
-  );
-}
-
-/** What the agent will and won't do, side by side under the design's own headings. */
+/** What the agent will and won't do, side by side; the marks tell the two lists apart. */
 export function Capabilities({ job }: { job: Job }) {
   if (job.does.length === 0 && job.doesNot.length === 0) return null;
   return (
@@ -99,8 +76,8 @@ function CapabilityList({
   className?: string;
 }) {
   return (
-    <section aria-labelledby={id} className={cn('flex flex-col gap-4 px-7 py-[26px]', className)}>
-      <Heading id={id} className="text-fg">
+    <section aria-labelledby={id} className={cn('px-7 py-[26px]', className)}>
+      <Heading id={id} className="sr-only">
         {title}
       </Heading>
       {items.length === 0 ? (
@@ -123,10 +100,7 @@ export function ReadyWhen({ job }: { job: Job }) {
   const { passRate, p95LatencyMs } = job.requirements;
   return (
     <section aria-labelledby="ready-when" className="flex flex-col gap-[18px]">
-      <SectionHeading id="ready-when" title="Ready when">
-        Training aims for this; a final test on tasks it has never seen confirms it. You can change
-        it in Advanced settings.
-      </SectionHeading>
+      <Heading id="ready-when">Ready when</Heading>
       <div className="flex flex-wrap gap-10">
         <Stat size="lg" value={`${Math.round(passRate * 100)}%`} label="of new tasks right" />
         {p95LatencyMs !== undefined && (
@@ -142,84 +116,60 @@ interface FilePermissionsProps {
   onChange: (permissions: Job['permissions']) => void;
 }
 
-/** What the three choices mean for a file the job doesn't list, in one line. */
-const UNSEEN_FILES_MEANING =
-  "Ask first waits for your OK before opening one. Allow opens it without asking. Never can't open one.";
-
-/** File names in a sentence, in mono: "a.csv", "a.csv and b.csv", "a.csv, b.csv and c.md". */
-function FileNames({ files }: { files: readonly { name: string }[] }) {
-  return files.map((file, index) => (
-    <Fragment key={file.name}>
-      {index > 0 && (index === files.length - 1 ? ' and ' : ', ')}
-      <span className="font-mono text-sm text-fg">{file.name}</span>
-    </Fragment>
-  ));
-}
-
-/** The job's files, what the agent may do with them in the workspace, and when it must ask first. */
+/** When the trained agent must ask first: before it saves a change, and before it opens a file. */
 export function FilePermissions({ job, onChange }: FilePermissionsProps) {
   const { permissions } = job;
   const changeable = job.data.files.filter((file) => file.access === 'write');
-  const readOnly = job.data.files.filter((file) => file.access === 'read');
   return (
-    <section aria-labelledby="file-writes" className="flex flex-col gap-4">
-      <SectionHeading id="file-writes" title={WRITE_SETTING}>
-        {changeable.length > 0 ? (
-          <>
-            Once trained, it can change <FileNames files={changeable} />.
-          </>
-        ) : (
-          'The job lists no file it can change.'
-        )}
-        {readOnly.length > 0 && (
-          <>
-            {' '}
-            It only reads <FileNames files={readOnly} />.
-          </>
-        )}
-      </SectionHeading>
-      <Segmented
-        aria-label={WRITE_SETTING}
-        options={MODES}
+    <section aria-labelledby="permissions" className="flex flex-col">
+      <Heading id="permissions" className="mb-2.5">
+        Permissions
+      </Heading>
+      <PermissionRow
+        label="Saving changes"
+        detail={
+          changeable.length > 0 ? (
+            <span className="font-mono">{changeable.map((file) => file.name).join(', ')}</span>
+          ) : (
+            'No file it can change'
+          )
+        }
+        setting={WRITE_SETTING}
         value={permissions.writes}
         onValueChange={(writes) => onChange({ ...permissions, writes })}
-        className="self-start"
       />
-      <dl className="m-0 flex flex-col gap-1.5 text-sm">
-        {WRITE_MODES.map((mode) => (
-          <div key={mode} className="flex items-baseline gap-3">
-            <dt
-              className={cn(
-                'w-[68px] shrink-0',
-                mode === permissions.writes ? 'text-fg' : 'text-fg-secondary',
-              )}
-            >
-              {WRITE_MODE_LABELS[mode]}
-            </dt>
-            <dd
-              className={cn(
-                'm-0 text-pretty',
-                mode === permissions.writes ? 'text-fg-secondary' : 'text-fg-muted',
-              )}
-            >
-              {WRITE_MODE_MEANINGS[mode]}
-            </dd>
-          </div>
-        ))}
-      </dl>
-      <div className="flex flex-col gap-2 border-t border-line-card pt-4">
-        <span>Opening a file the job doesn&apos;t list</span>
-        <p className="m-0 text-sm text-fg-muted text-pretty">
-          Any file besides the ones above. {UNSEEN_FILES_MEANING}
-        </p>
-        <Segmented
-          aria-label="Opening a file the job doesn't list"
-          options={MODES}
-          value={permissions.unseenFiles}
-          onValueChange={(unseenFiles) => onChange({ ...permissions, unseenFiles })}
-          className="self-start"
-        />
-      </div>
+      <PermissionRow
+        label="Opening other files"
+        setting="Opening other files"
+        value={permissions.unseenFiles}
+        onValueChange={(unseenFiles) => onChange({ ...permissions, unseenFiles })}
+      />
     </section>
+  );
+}
+
+function PermissionRow({
+  label,
+  detail,
+  setting,
+  value,
+  onValueChange,
+}: {
+  label: string;
+  /** A quiet line under the label, such as the files the setting covers. */
+  detail?: ReactNode;
+  /** The control's accessible name, the same words the agent's own setting uses. */
+  setting: string;
+  value: PermissionMode;
+  onValueChange: (value: PermissionMode) => void;
+}) {
+  return (
+    <div className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line-card py-2 last:border-b-0">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span>{label}</span>
+        {detail && <span className="truncate text-sm text-fg-muted">{detail}</span>}
+      </div>
+      <Segmented aria-label={setting} options={MODES} value={value} onValueChange={onValueChange} />
+    </div>
   );
 }

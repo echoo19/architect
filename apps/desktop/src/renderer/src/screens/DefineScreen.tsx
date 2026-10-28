@@ -139,7 +139,7 @@ function DefineEditor({ initial }: { initial: Job }) {
       step="Define"
       footer={
         <div className="mx-auto flex max-w-[880px] flex-wrap items-center justify-between gap-3">
-          <Button onClick={() => openAdvanced(tab)}>
+          <Button variant="ghost" className="-ml-3" onClick={() => openAdvanced(tab)}>
             <SlidersHorizontal size={16} strokeWidth={1.8} aria-hidden />
             Advanced settings
           </Button>
