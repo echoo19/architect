@@ -154,11 +154,18 @@ describe('the commands', () => {
     [['install', 'x.zip', '--grant', 'data=everything'], '--grant takes read, read_write or none'],
     [['publish', 'service-desk', '--repo', 'not a repo'], "isn't a repository name"],
     [['run', 'service-desk', '--timeout', '5'], '--timeout goes with --input'],
+    [['run', 'service-desk', '--input', '-', '--timeout', '2147484'], '--timeout takes at most'],
+    [['install', 'hf://not-a-repo'], 'hf://owner/name'],
+    [['install', 'hf://a/b--c'], 'hf://owner/name'],
+    [['export', 'service-desk', '--output', 'x.zip', '--version', '99'], 'has no version 99'],
+    [['export', 'service-desk', '--output', 'x.zip', '--include', 'bogus'], '"bogus"'],
+    [['publish', 'service-desk', '--repo', 'jake/desk', '--include', 'bogus'], '"bogus"'],
   ])('refuses %j with exit 2', async (argv, message) => {
     const machine = await machineWith([]);
-    const run = await cli(argv, { env: machine.env });
-    expect(run.code).toBe(2);
+    const run = await cli(argv, { env: machine.env, cwd: await tempDir('cwd') });
+    expect(run.code, run.stderr).toBe(2);
     expect(run.stderr).toContain(message);
+    expect(machine.model.requests).toEqual([]);
   });
 
   it('prints its help and version with exit 0', async () => {

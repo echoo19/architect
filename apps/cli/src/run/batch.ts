@@ -110,6 +110,9 @@ function checkInputs(session: AgentSession, inputs: readonly string[]): void {
   }
 }
 
+/** The longest wait a timer can hold, in whole seconds. */
+const MAX_TIMEOUT_SECONDS = Math.floor((2 ** 31 - 1) / 1000);
+
 /** The request as the agent reads it: the task, then the files it is about. */
 function taskText(task: string, inputs: readonly string[]): string {
   return inputs.length === 0 ? task : `${task}\n\nFiles: ${inputs.join(', ')}`;
@@ -146,6 +149,13 @@ export async function runBatch(
     throw new CliError('invalid_input', 'not_a_folder', `${dirname(output)} isn't a folder.`);
   }
   const timeoutSeconds = countOption(values, 'timeout');
+  if (timeoutSeconds !== undefined && timeoutSeconds > MAX_TIMEOUT_SECONDS) {
+    throw new CliError(
+      'invalid_input',
+      'usage',
+      `--timeout takes at most ${MAX_TIMEOUT_SECONDS} seconds (about 24 days).`,
+    );
+  }
   const save = flag(values, 'save');
   const source = stringOption(values, 'input') ?? '-';
   // A request read from stdin leaves no one there to answer an approval.

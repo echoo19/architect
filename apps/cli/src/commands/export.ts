@@ -8,7 +8,7 @@ import type { CliOutcome, ExportFinding } from '@architect/shared';
 import { agentSlug, resolveAgent } from '../agents';
 import { countOption, flag, listOption, stringOption, type Parsed } from '../args';
 import type { CliContext } from '../context';
-import { CliError } from '../exit';
+import { asRefusal, CliError } from '../exit';
 import { bytes, line, printJson } from '../render';
 
 /**
@@ -83,7 +83,11 @@ export async function exportCommand(ctx: CliContext, parsed: Parsed): Promise<Cl
   const version = countOption(values, 'version');
   const include = listOption(values, 'include');
   const packages = { library, secrets: cliSecrets(ctx) };
-  const review = await reviewExport(packages, agent.id, version, include);
+  const review = await reviewExport(packages, agent.id, version, include).catch(
+    (error: unknown) => {
+      throw asRefusal(error, 'invalid_request');
+    },
+  );
   const accepted = stringOption(values, 'accept-findings');
   stopOnFindings(ctx, review.findings, review.findingsDigest, accepted, 'exported');
   line(io.stderr, review.notice);

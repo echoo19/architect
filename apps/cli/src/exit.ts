@@ -22,6 +22,16 @@ export class CliError extends Error {
   }
 }
 
+/**
+ * What the engine refuses about a request itself (a version or an item that isn't there, a
+ * repository name it can't use) comes as a plain Error with no system code: that is invalid
+ * input. Anything else stays as it is.
+ */
+export function asRefusal(error: unknown, code: string): unknown {
+  const plain = error instanceof Error && error.constructor === Error && !('code' in error);
+  return plain ? new CliError('invalid_input', code, error.message) : error;
+}
+
 export interface Failure {
   outcome: Exclude<CliOutcome, 'succeeded'>;
   /** A short, stable word for scripts: `approval_required`, `hub_auth`, `model_network`. */

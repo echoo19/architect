@@ -14,7 +14,7 @@ import { HubRepositorySchema, type CliOutcome, type PublishRequest } from '@arch
 import { agentSlug, resolveAgent } from '../agents';
 import { countOption, flag, listOption, stringOption, type Parsed } from '../args';
 import type { CliContext } from '../context';
-import { CliError, TOKEN_HINT } from '../exit';
+import { asRefusal, CliError, TOKEN_HINT } from '../exit';
 import { bytes, line, printJson, table } from '../render';
 import { cliSecrets, stopOnFindings } from './export';
 
@@ -68,7 +68,9 @@ export async function publish(
     ...(accepted === undefined ? {} : { acknowledgedFindings: accepted }),
   };
   const packages: PublishContext = { library, secrets: cliSecrets(ctx), hub: ctx.hub() };
-  const review = await reviewPublication(packages, agent.id, request);
+  const review = await reviewPublication(packages, agent.id, request).catch((error: unknown) => {
+    throw asRefusal(error, 'invalid_request');
+  });
   const json = flag(values, 'json');
 
   line(

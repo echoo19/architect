@@ -18,7 +18,7 @@ import {
 import { agentSlug } from '../agents';
 import { flag, pairs, stringOption, type Parsed } from '../args';
 import type { CliContext } from '../context';
-import { CliError } from '../exit';
+import { asRefusal, CliError } from '../exit';
 import { installationLines, line, printJson } from '../render';
 
 const RUNTIMES = ['ollama', 'openai_compatible'] as const;
@@ -80,12 +80,6 @@ function importRequest(ctx: CliContext, parsed: Parsed): ImportRequest {
   };
 }
 
-/** An import the engine refused for what the request asked, rather than for a fault. */
-function refused(error: unknown): unknown {
-  const plain = error instanceof Error && error.constructor === Error && !('code' in error);
-  return plain ? new CliError('invalid_input', 'install_refused', error.message) : error;
-}
-
 /**
  * Installs a package from a file, a folder, or a Hugging Face repository at one commit. The
  * download comes first; then the network guard goes up, and the import checks everything
@@ -105,7 +99,12 @@ export async function install(
   let downloaded: DownloadedPackage | null = null;
   let path: string;
   if (source.startsWith(HUB_SCHEME)) {
-    const repository = hubRepository(source);
+    let repository: string;
+    try {
+      repository = hubRepository(source);
+    } catch (error) {
+      throw asRefusal(error, 'invalid_repository');
+    }
     line(
       io.stderr,
       revision === undefined
@@ -140,7 +139,7 @@ export async function install(
       request,
       origin ? { source: origin } : {},
     ).catch((error: unknown) => {
-      throw refused(error);
+      throw asRefusal(error, 'install_refused');
     });
   } finally {
     await downloaded?.discard();
