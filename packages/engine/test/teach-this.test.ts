@@ -5,6 +5,7 @@ import type { Correction, CorrectionRequest, WorkspaceMessage } from '@architect
 import { afterEach, describe, expect, it } from 'vitest';
 import { KeyedLock } from '../src/graduates/library';
 import { improvementsOf } from '../src/improve/improvement';
+import { NO_LOCKED_TEST } from '../src/loop/retest';
 import { LESSONS_HEADING, TeachThis } from '../src/improve/teach-this';
 import { hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
@@ -342,6 +343,53 @@ describe('Improve agent', () => {
     });
     expect(improvement?.spentUsd).toBeGreaterThan(0);
     expect(improvement?.spentUsd).toBeLessThanOrEqual(2);
+    // Its candidate never takes the locked test, by a re-test or with Spark as a reference.
+    await expect(engine.controller.retest(start.runId, 'hosted')).rejects.toThrow(NO_LOCKED_TEST);
+    await expect(engine.controller.reference(start.runId, 'test', 1)).rejects.toThrow(
+      NO_LOCKED_TEST,
+    );
+  });
+
+  it('sends no lesson once the job stops sharing corrections', async () => {
+    const { engine, graduateId } = await graduateWithChat();
+    improvingMentor();
+    await queued(engine);
+    await engine.jobs.save({
+      ...(await engine.jobs.get('service-desk')),
+      sharing: { remoteTraining: false, corrections: false },
+    });
+    const before = world.mentor.requests.length;
+    await expect(
+      engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 }),
+    ).rejects.toThrow(
+      "Service desk no longer shares corrections with the mentor, so Improve agent can't send it the lessons.",
+    );
+    expect(world.mentor.requests).toHaveLength(before);
+  });
+
+  it('teaches only the lessons still queued under it', async () => {
+    const { engine, graduateId } = await graduateWithChat();
+    improvingMentor();
+    const teach = teachThis(engine);
+    const kept = await teach.propose('cht_1', 'msg_2', correction);
+    teach.queue(kept.id);
+    const dropped = await teach.propose('cht_1', 'msg_2', {
+      ...correction,
+      wrong: 'It listed INV-9, which was written off.',
+    });
+    teach.queue(dropped.id);
+    await engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 });
+    // As if a discard had landed while the improvement was starting.
+    const taken = engine.store.corrections.get(dropped.id);
+    if (!taken) throw new Error('The lesson is gone.');
+    engine.store.corrections.put({ ...taken, status: 'discarded' });
+    await engine.controller.idle();
+
+    const diagnose = world.mentor.requests.at(-1)?.messages[0]?.content ?? '';
+    expect(diagnose).toContain('They said: INV-1 was paid, so it is not overdue.');
+    expect(diagnose).not.toContain('INV-9');
+    expect(engine.store.corrections.get(kept.id)?.status).toBe('used');
+    expect(engine.store.corrections.get(dropped.id)?.status).toBe('discarded');
   });
 
   it('puts the lessons back in the queue when no change was kept', async () => {

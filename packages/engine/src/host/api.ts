@@ -15,6 +15,7 @@ import { importPackage, inspectPackage } from '../graduates/importer';
 import type { GraduateLibrary } from '../graduates/library';
 import { improvementsOf } from '../improve/improvement';
 import { TeachThis } from '../improve/teach-this';
+import { isReferenceAttempt } from '../loop/configuration';
 import type { Clock, EngineHostDeps, JobDrafter } from '../loop/deps';
 import { readJsonFile } from '../loop/files';
 import type { JobLibrary } from '../loop/jobs';
@@ -87,6 +88,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       rounds: store.rounds.list(runId).map(({ round }) => round),
       recentAttempts: store.attempts
         .recent(runId, ['train', 'dev'], RECENT_ATTEMPTS)
+        .filter((attempt) => !isReferenceAttempt(attempt))
         .map((attempt) => ({
           ...AttemptSchema.parse(attempt),
           prompt: prompts.get(attempt.taskId),

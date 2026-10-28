@@ -114,13 +114,18 @@ export async function improvementHarness(state: RunState): Promise<Harness> {
   return deps.harness.readPackaged(paths.fromStored(version.path), version.manifest);
 }
 
-/** The lessons an improvement took, as the mentor reads them beside the round's evidence. */
+/**
+ * The lessons an improvement holds, as the mentor reads them beside the round's evidence: those
+ * it took that are still queued under it. One discarded or applied meanwhile isn't taught.
+ */
 export function improvementLessons(state: RunState): Correction[] {
   const improves = state.record.improves;
   if (improves === undefined) return [];
   return improves.corrections.flatMap((id) => {
     const correction = state.ctx.store.corrections.get(id);
-    return correction === null ? [] : [correction];
+    return correction?.status === 'queued' && correction.runId === state.ctx.runId
+      ? [correction]
+      : [];
   });
 }
 
@@ -246,11 +251,14 @@ export async function improvementsOf(
       const { run } = record;
       const { budget } = await jobs.forRun(record);
       const experiments = store.experiments.list(run.id);
-      const first = experiments[0]?.measurements.find((item) => item.label === 'incumbent');
+      // A harness round measures `incumbent` and `candidate`; a weights round H0/A0 and H1/A1.
+      const first = experiments[0]?.measurements.find((item) =>
+        ['incumbent', 'H0/A0'].includes(item.label),
+      );
       const lastKept = experiments
         .filter((experiment) => experiment.disposition === 'kept')
         .at(-1)
-        ?.measurements.find((item) => item.label === 'candidate');
+        ?.measurements.find((item) => ['candidate', 'H1/A1'].includes(item.label));
       const candidate = store.versions.forRun(run.id);
       const after = candidate === null ? null : (lastKept ?? null);
       return {

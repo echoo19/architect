@@ -1,5 +1,6 @@
 import {
   emptyTotals,
+  GuardError,
   newId,
   type ImprovementStart,
   type ImproveOptions,
@@ -155,20 +156,35 @@ export class RunController {
     const { jobs, store, paths } = this.options;
     const plan = improvementPlan(store, paths, graduateId);
     const job = await jobs.get(plan.jobId);
+    if (job.sharing?.corrections !== true) {
+      throw new GuardError(
+        'permission',
+        `${job.name} no longer shares corrections with the mentor, so Improve agent can't send it the lessons. Allow sharing corrections in the job's data settings.`,
+      );
+    }
     await this.checkRunnable(job, 'architect', {});
     const budgeted: Job = {
       ...job,
       budget: { ...job.budget, maxRounds: options.maxRounds, maxMentorUsd: options.maxMentorUsd },
     };
     const { adapter, name: _name, jobId: _jobId, ...improves } = plan;
-    const record = await this.create(budgeted, 'architect', undefined, {}, improves, adapter);
-    const at = isoNow(this.clock);
-    store.transaction(() => {
-      for (const id of improves.corrections) {
-        const correction = must(store.corrections.get(id), 'A queued lesson');
-        store.corrections.put({ ...correction, runId: record.run.id, updatedAt: at });
-      }
-    });
+    // The lessons are taken in the transaction that writes the run, and only those still queued.
+    const record = await this.create(
+      budgeted,
+      'architect',
+      undefined,
+      {},
+      improves,
+      adapter,
+      (runId) => {
+        const at = isoNow(this.clock);
+        for (const id of improves.corrections) {
+          const correction = store.corrections.get(id);
+          if (correction?.status !== 'queued') continue;
+          store.corrections.put({ ...correction, runId, updatedAt: at });
+        }
+      },
+    );
     this.enqueue(record.run.id);
     const started = this.active.has(record.run.id);
     return { runId: record.run.id, started, note: improvementNote(plan, options, started) };
@@ -182,6 +198,7 @@ export class RunController {
     options: StartRunOptions,
     improves?: RunImprovement,
     adapter?: TrainedAdapter,
+    alongside?: (runId: string) => void,
   ): Promise<StoredRun> {
     const { paths, store, deps } = this.options;
     const runSeed = seed ?? Math.floor(Math.random() * 2 ** 31);
@@ -211,7 +228,10 @@ export class RunController {
       ...(improves === undefined ? {} : { improves }),
     };
     await writeJsonFile(paths.runJobFile(job.id, record.run.id), job);
-    store.runs.insert(record);
+    store.transaction(() => {
+      store.runs.insert(record);
+      alongside?.(record.run.id);
+    });
     this.publish(record.run);
     return record;
   }
@@ -331,7 +351,7 @@ export class RunController {
   async reference(runId: string, split: ReferenceRecord['split'], maxUsd: number): Promise<void> {
     const record = this.get(runId);
     const job = await this.options.jobs.forRun(record);
-    const refusal = referenceRefusal(record, job);
+    const refusal = referenceRefusal(record, job, split);
     if (refusal !== null) throw new Error(refusal);
     const { store } = this.options;
     const turn: Turn = { kind: 'reference', runId, split };

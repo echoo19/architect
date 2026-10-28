@@ -14,6 +14,7 @@ import { formatUsd } from './budget';
 import { configurationKey, type AttemptConfig } from './configuration';
 import { errorMessage, isAbort, must } from './errors';
 import { evaluate } from './evaluation';
+import { NO_LOCKED_TEST } from './retest';
 import { RunState, type SessionContext, type SessionControl } from './run-state';
 import { devSeeds } from './seeds';
 import { connectActor } from './setup';
@@ -29,10 +30,15 @@ const TEST_CONTENT_IS_THE_POINT: LeakDetector = {
 };
 
 /** Why Spark can't be run as a reference on a run, or null when it can. */
-export function referenceRefusal(record: StoredRun, job: Job): string | null {
+export function referenceRefusal(
+  record: StoredRun,
+  job: Job,
+  split: ReferenceRecord['split'],
+): string | null {
   if (record.run.status !== 'finished' || record.freeze === null) {
     return "Spark runs as a reference only on a finished run's tasks, once its mentoring is over.";
   }
+  if (split === 'test' && record.improves !== undefined) return NO_LOCKED_TEST;
   if (job.mentor.kind !== 'model') return `${job.mentor.label} can't act as the agent.`;
   return null;
 }

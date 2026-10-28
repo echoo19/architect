@@ -124,9 +124,11 @@ async function recordAttempt(
     createdAt: state.now(),
   };
   const price = studentPrice(studentEndpoint(state.job, spec.target), student.isLocal);
+  // Spark's turns as a reference are charged as it takes them, under its own role.
+  const studentSteps = spec.config?.actor === 'reference' ? [] : trace.steps;
   const run = store.transaction(() => {
     store.attempts.insert(attempt);
-    for (const step of trace.steps) {
+    for (const step of studentSteps) {
       if (step.kind !== 'model') continue;
       store.costs.insert({
         runId,

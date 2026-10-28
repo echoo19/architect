@@ -28,6 +28,11 @@ export const STUDENT_CONFIG: AttemptConfig = { actor: 'student', backend: 'job',
 export const LLAMA_CPP = 'llama.cpp';
 
 /** The stored key of a configuration; the job's student with no adapter keeps the old key. */
+/** Whether an attempt was Spark's as a reference, which nothing about the student counts. */
+export function isReferenceAttempt(attempt: { config?: string }): boolean {
+  return attempt.config?.startsWith('reference/') === true;
+}
+
 export function configurationKey(config: AttemptConfig): string {
   if (config.actor === 'student' && config.backend === 'job' && config.adapter === null) {
     return DEFAULT_CONFIG_KEY;

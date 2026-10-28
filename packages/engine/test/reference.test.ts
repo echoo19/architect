@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { capabilityBreakdown } from '../src/loop/progress';
 import { hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
 import { defaultTasks, task } from './fakes/job';
@@ -61,6 +62,34 @@ describe('Spark as a reference', () => {
     await expect(engine.controller.reference(runId, 'dev', 1)).rejects.toThrow(
       "Spark was already measured on this run's dev tasks.",
     );
+  });
+
+  it("keeps its attempts out of the student's costs and capability numbers", async () => {
+    world = await createWorld();
+    engine = openEngine(world);
+    const job = await engine.jobs.importFile(world.jobFile);
+    const run = await engine.controller.start(job.id, 'bare', 7);
+    await engine.controller.idle();
+    world.runtime.askStudent = true;
+    world.runtime.passes = () => true;
+    const record = () => {
+      const stored = engine.store.runs.get(run.id);
+      if (!stored) throw new Error('The run is gone.');
+      return stored;
+    };
+    const studentCosts = () =>
+      engine.store.costs.list(run.id).filter((cost) => cost.role === 'student').length;
+    const capabilities = async () =>
+      capabilityBreakdown(engine.store, record(), await engine.jobs.forRun(record()), null);
+    const costsBefore = studentCosts();
+    const before = await capabilities();
+
+    await engine.controller.reference(run.id, 'dev', 1);
+    await engine.controller.idle();
+
+    expect(engine.store.references.get(run.id, 'dev')?.status).toBe('finished');
+    expect(studentCosts()).toBe(costsBefore);
+    expect(await capabilities()).toEqual(before);
   });
 
   it('opens the locked test only after the mentor is released, and leaves the card as it was', async () => {

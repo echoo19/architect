@@ -11,6 +11,7 @@ import type {
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun } from '../store/records';
 import { resultOf } from './attempts';
+import { isReferenceAttempt } from './configuration';
 import { stoppedFromRecords } from './teach';
 
 const EMPTY_BUDGET: ExperimentBudget = {
@@ -132,7 +133,12 @@ export function capabilityBreakdown(
   const runId = record.run.id;
   const experiments = store.experiments.list(runId);
   const train = store.attempts.list({ runId, split: 'train' });
-  const baseline = resultOf(store.attempts.list({ runId, split: 'dev', round: null }), job).perType;
+  const baseline = resultOf(
+    store.attempts
+      .list({ runId, split: 'dev', round: null })
+      .filter((attempt) => !isReferenceAttempt(attempt)),
+    job,
+  ).perType;
   const check = incumbentPerType(experiments) ?? baseline;
   const verified = store.lessons.list({ runId, status: 'verified' });
   const stopped = stoppedFromRecords(store, runId);
