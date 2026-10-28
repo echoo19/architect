@@ -17,7 +17,7 @@ import {
 } from '../../install/labels';
 import { rate } from '../format';
 import type { ModelNames } from '../train/phase';
-import type { ReportEvidence } from './evidence';
+import type { CapabilityEvidence } from './evidence';
 
 /** The kinds of result a capability shows, in the order a row reads them. */
 const COLUMNS: {
@@ -61,7 +61,7 @@ export function Capabilities({
   installation,
   names,
 }: {
-  evidence: QueryState<ReportEvidence>;
+  evidence: QueryState<CapabilityEvidence>;
   installation: Installation | null;
   names: ModelNames;
 }) {

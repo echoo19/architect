@@ -15,7 +15,12 @@ import {
 } from '../api/hooks';
 import { fetchQuery, useQuery } from '../api/query';
 import { useComparison } from '../flow/report/ComparisonTable';
-import { useBareReport, useComparisonReport, useReportEvidence } from '../flow/report/evidence';
+import {
+  useBareReport,
+  useCapabilityEvidence,
+  useComparisonReport,
+  useReportEvidence,
+} from '../flow/report/evidence';
 import { ReportView } from '../flow/report/ReportView';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
@@ -82,6 +87,7 @@ function LoadedReport({ report }: { report: ReportCard }) {
   const run = useRunDetail(report.runId);
   const comparison = useComparison(report, settings.data?.comparisonMode === true);
   const blankStart = job.data?.startingHarness.kind === 'blank';
+  const capabilities = useCapabilityEvidence(report);
   const evidence = useReportEvidence(report);
   const comparisonReport = useComparisonReport(report);
   const bare = useBareReport(report, blankStart);
@@ -96,6 +102,7 @@ function LoadedReport({ report }: { report: ReportCard }) {
       job={job.status === 'success' ? job.data : null}
       graduate={graduate}
       comparison={comparison}
+      capabilities={capabilities}
       evidence={evidence}
       bare={bare.data ?? null}
       run={run.data?.run ?? null}

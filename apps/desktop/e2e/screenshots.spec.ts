@@ -347,9 +347,14 @@ test.describe('the evidence screens of a recorded run', () => {
       await shoot(`evidence-round-error-${theme}.png`);
       await closeDrawer();
 
+      await stubEngineFailure(app, {
+        'mentoring:experiments': "The engine stopped, so the experiments couldn't be read.",
+      });
       await resize(SHORT_REPORT_HEIGHT);
       await goTo(page, `/runs/${summary.runId}/report`);
+      // Each section says what it couldn't read; the rest of the card stands.
       await expect(page.getByText("Couldn't load the capabilities")).toBeVisible();
+      await expect(page.getByText("Couldn't load the comparisons")).toBeVisible();
       await shoot(`evidence-report-error-${theme}.png`);
     });
 

@@ -14,9 +14,14 @@ import { api, architect, flowApi, read } from '../../api/client';
 import { mentoringApi } from '../../api/mentoring';
 import { useQuery } from '../../api/query';
 
-/** What the report reads beside its card: the run's records, from the engine. */
-export interface ReportEvidence {
+/** What the capability breakdown reads: the breakdown, and Spark's references for its tick. */
+export interface CapabilityEvidence {
   capabilities: CapabilityBreakdown;
+  references: ReferenceRecord[];
+}
+
+/** What the rest of the report reads beside its card: the run's records, from the engine. */
+export interface ReportEvidence {
   references: ReferenceRecord[];
   experiments: Experiment[];
   progress: MentoringProgress;
@@ -24,9 +29,16 @@ export interface ReportEvidence {
   measurements: RuntimeMeasurement[];
 }
 
-async function loadEvidence(runId: string): Promise<ReportEvidence> {
-  const [capabilities, references, experiments, progress, measurements] = await Promise.all([
+async function loadCapabilities(runId: string): Promise<CapabilityEvidence> {
+  const [capabilities, references] = await Promise.all([
     mentoringApi.capabilities(runId),
+    mentoringApi.references(runId),
+  ]);
+  return { capabilities, references };
+}
+
+async function loadEvidence(runId: string): Promise<ReportEvidence> {
+  const [references, experiments, progress, measurements] = await Promise.all([
     mentoringApi.references(runId),
     mentoringApi.experiments(runId),
     mentoringApi.progress(runId),
@@ -36,7 +48,12 @@ async function loadEvidence(runId: string): Promise<ReportEvidence> {
       architect().runs.runtimeMeasurements(runId),
     ),
   ]);
-  return { capabilities, references, experiments, progress, measurements };
+  return { references, experiments, progress, measurements };
+}
+
+/** The capability breakdown, read apart, so one that can't be read leaves the rest standing. */
+export function useCapabilityEvidence(report: ReportCard) {
+  return useQuery(`report-capabilities:${report.runId}`, () => loadCapabilities(report.runId));
 }
 
 export function useReportEvidence(report: ReportCard) {

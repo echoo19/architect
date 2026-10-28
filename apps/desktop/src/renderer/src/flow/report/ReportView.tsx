@@ -22,7 +22,12 @@ import type { ComparisonRow } from './comparison';
 import { ComparisonArms } from './ComparisonArms';
 import { Comparisons } from './Comparisons';
 import { ComparisonTable } from './ComparisonTable';
-import { runtimeFigures, type ReportEvidence, type RuntimeFigures } from './evidence';
+import {
+  runtimeFigures,
+  type CapabilityEvidence,
+  type ReportEvidence,
+  type RuntimeFigures,
+} from './evidence';
 import { missedRequirements } from './requirements';
 
 /** How the report names the runtime the final test ran on. */
@@ -38,7 +43,9 @@ interface ReportViewProps {
   graduate: GraduateSummary | undefined;
   /** The other methods on the same job and seed; empty unless comparison mode is on. */
   comparison: QueryState<ComparisonRow[]>;
-  /** The run's records beside the card: capabilities, references, experiments and progress. */
+  /** The capability breakdown and Spark's references, read apart from the rest. */
+  capabilities: QueryState<CapabilityEvidence>;
+  /** The run's records beside the card: references, experiments, progress and meter readings. */
   evidence: QueryState<ReportEvidence>;
   /** The run itself, for the baseline and any trained weights it kept; null while it loads. */
   run: Run | null;
@@ -122,6 +129,7 @@ export function ReportView({
   job,
   graduate,
   comparison,
+  capabilities,
   evidence,
   run,
   installation,
@@ -218,7 +226,7 @@ export function ReportView({
         />
       </div>
 
-      <Capabilities evidence={evidence} installation={installation} names={names} />
+      <Capabilities evidence={capabilities} installation={installation} names={names} />
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(360px,100%),1fr))] gap-x-14 gap-y-10">
         <section aria-labelledby="does-not" className="flex flex-col gap-3.5">
