@@ -786,6 +786,82 @@ describe('taking turns at the GPU', () => {
     }
   });
 
+  it('says, as one step, that a reply waits for the GPU and for whom, until it has it', async () => {
+    const world = await setup([{ text: 'There are 3 invoices on file.' }]);
+    const engine = otherProcess(world);
+    try {
+      const check = await engine.hold('llama-server', CHECK_PURPOSE);
+      const chat = await world.host.createChat(world.graduate.id);
+      const waiting = nextReply(world, chat.id, (message) =>
+        message.steps.some((step) => step.kind === 'wait'),
+      );
+      const answered = settled(world, chat.id);
+      await world.host.send(chat.id, 'How many invoices are there?');
+      expect((await waiting).steps).toEqual([
+        {
+          id: 'step-gpu',
+          kind: 'wait',
+          name: 'gpu',
+          detail: 'Waiting for the GPU: Architect is checking an agent on this computer',
+          status: 'running',
+        },
+      ]);
+      check.release();
+      const reply = await answered;
+      expect(reply).toMatchObject({ status: 'done', text: 'There are 3 invoices on file.' });
+      expect(reply.steps).toEqual([]);
+      // The step went as soon as the reply had the GPU, before the model said anything.
+      const updates = world.events.flatMap((event) =>
+        event.type === 'message.updated' && event.message.id === reply.id ? [event.message] : [],
+      );
+      const firstText = updates.findIndex((message) => message.text !== '');
+      expect(updates.slice(firstText).every((message) => message.steps.length === 0)).toBe(true);
+      expect(updates.slice(0, firstText).at(-1)?.steps).toEqual([]);
+    } finally {
+      await engine.close();
+    }
+  });
+
+  it('gives the GPU up while a reply waits for an approval, and takes it back to finish', async () => {
+    const world = await setup([addInvoice(), { text: 'Added INV-4.' }]);
+    const engine = otherProcess(world);
+    try {
+      const chat = await world.host.createChat(world.graduate.id);
+      const asked = pendingApproval(world, chat.id);
+      const done = settled(world, chat.id);
+      await world.host.send(chat.id, 'Add an invoice for Ruiz, Ben.');
+      const approval = await asked;
+
+      // Nobody has answered yet, so an engine check gets the GPU; the reply's model is unloaded.
+      const check = await engine.hold('llama-server', CHECK_PURPOSE);
+      const unloads = world.model.requests.filter(
+        (request) =>
+          request.path === '/api/chat' &&
+          (request.body as { keep_alive?: number }).keep_alive === 0,
+      );
+      expect(unloads).toMatchObject([{ body: { model: 'muse-glimmer:30b' } }]);
+
+      // Once approved, the reply's next turn waits its turn behind the check, then finishes.
+      const waitingAgain = nextReply(world, chat.id, (message) =>
+        message.steps.some((step) => step.kind === 'wait'),
+      );
+      await world.host.decide(approval.changeId, 'approve');
+      expect((await waitingAgain).steps.at(-1)?.detail).toBe(
+        'Waiting for the GPU: Architect is checking an agent on this computer',
+      );
+      expect(world.model.chats()).toHaveLength(1);
+      check.release();
+      expect(await done).toMatchObject({
+        status: 'done',
+        text: "I'll add the invoice.\n\nAdded INV-4.",
+      });
+      expect(world.model.chats()).toHaveLength(2);
+      expect(await invoicesFile(world)).toContain(NEW_INVOICE);
+    } finally {
+      await engine.close();
+    }
+  });
+
   it('stops a reply that is still waiting for the GPU', async () => {
     const world = await setup([]);
     const engine = otherProcess(world);

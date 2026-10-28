@@ -8,7 +8,13 @@ import {
   type WorkspaceChat,
   type WorkspaceEvent,
 } from '@architect/shared';
-import { replyPurpose, type AdapterServing, type GpuLease } from '../local-runtime';
+import {
+  replyPurpose,
+  type AdapterServing,
+  type GpuHold,
+  type GpuLease,
+  type GpuWatch,
+} from '../local-runtime';
 import { createSandbox } from '../sandbox/sandbox';
 import { openGraduateSession, type GraduateSession } from './graduate';
 import { chatHistory } from './history';
@@ -40,8 +46,8 @@ export interface AgentHostOptions {
   /**
    * The process's share of the machine-wide GPU lease (decision 046), which `adapters` holds too.
    * A reply holds it from its start to its end, so no other Architect process loads a model on
-   * the GPU halfway through one; a student on Ollama holds it for each request. The host doesn't
-   * close it: it belongs to whoever made it.
+   * the GPU halfway through one, except while it waits on a person's approval; a student on
+   * Ollama holds it for each request. The host doesn't close it: it belongs to whoever made it.
    */
   gpu: GpuLease;
   /** The tool sandbox's child entry. A bundled app passes its built file. */
@@ -224,13 +230,20 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
     });
     const controller = new AbortController();
     let required: ApprovalRequest | null = null;
+    /** The reply's hold of the GPU, once it has one. */
+    let held: GpuHold | null = null;
     const approveWrite = approveWrites({
       agentName: graduate.name,
       mode: () => writeMode(graduate),
       allowFromNowOn: () => store.saveWriteMode(graduate.id, 'allow'),
       reply,
       pending,
-      setWaiting: (waiting) => updateChat(chat.id, { waiting }),
+      setWaiting: (waiting) => {
+        updateChat(chat.id, { waiting });
+        // A person may take hours to answer, and no model runs meanwhile: the GPU is free for
+        // others until the reply's next model turn takes it back.
+        if (waiting) held?.pause();
+      },
       interactive: (options.approvals ?? 'ask') === 'ask',
       approvalRequired: (approval) => {
         required ??= approval;
@@ -242,6 +255,11 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
       },
     });
     const use = graduate.gpu;
+    // While the reply waits its turn for the GPU, one quiet step says for whom.
+    const watch: GpuWatch = {
+      waiting: (who) => reply.waitForGpu(who),
+      done: () => reply.endWait(),
+    };
     const done = respond({
       graduate,
       sandbox,
@@ -252,11 +270,12 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
       seed: randomInt(SEED_LIMIT),
       approveWrite,
       approvalRequired: () => required,
-      // The whole reply holds the GPU, approvals included: someone is reading it as it comes.
-      holdGpu: () =>
-        use === null
-          ? Promise.resolve(null)
-          : gpu.hold(use, replyPurpose(graduate.name), controller.signal),
+      // The reply holds the GPU from its start to its end, except while it waits on a person.
+      holdGpu: async () => {
+        if (use === null) return null;
+        held = await gpu.hold(use, replyPurpose(graduate.name), controller.signal, watch);
+        return held;
+      },
       signal: controller.signal,
     })
       .catch(onError)

@@ -81,12 +81,20 @@ export async function respond(input: ReplyRequest): Promise<void> {
       reply.finish({ status: 'stopped' });
       return;
     }
+    // A local runtime's problem, such as a GPU that stayed busy, says what to do in its own words,
+    // whether it came straight from the lease or through the student.
+    const local =
+      error instanceof LocalRuntimeError
+        ? error
+        : error instanceof AdapterError && error.cause instanceof LocalRuntimeError
+          ? error.cause
+          : null;
     reply.finish({
       status: 'error',
       error:
-        error instanceof LocalRuntimeError
-          ? `${error.message} ${error.hint}`
-          : `It stopped on an unexpected problem: ${messageOf(error)}`,
+        local === null
+          ? `It stopped on an unexpected problem: ${messageOf(error)}`
+          : `${local.message} ${local.hint}`,
     });
     throw error;
   } finally {

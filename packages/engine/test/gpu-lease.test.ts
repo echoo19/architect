@@ -278,6 +278,37 @@ describe('the GPU lease between processes', () => {
     expect(order).toEqual(['their reply', 'our next reply']);
   });
 
+  it('lets the GPU go while a hold is paused, and takes it back in its turn', async () => {
+    const events: string[] = [];
+    const watch = {
+      waiting: (who: string) => events.push(`waiting for ${who}`),
+      done: () => events.push('has it'),
+    };
+    const workspace = lease('workspace');
+    const reply = await workspace.hold('llama-server', replyPurpose('Desk'), undefined, watch);
+    // A free GPU is taken at once, with nothing to say.
+    expect(events).toEqual([]);
+    reply.pause();
+    const check = await lease('engine').hold('llama-server', CHECK_PURPOSE);
+
+    // The reply's next request inside it takes the GPU back first, in its turn.
+    const turn = reply.run(() => workspace.hold('llama-server', replyPurpose('Desk')));
+    await until(() => events.length === 1);
+    expect(events).toEqual(['waiting for Architect is checking an agent on this computer']);
+    expect(await settled(turn)).toBe(false);
+    check.release();
+    (await turn).release();
+    expect(events).toEqual([
+      'waiting for Architect is checking an agent on this computer',
+      'has it',
+    ]);
+    // Paused again with nobody asking, it takes the GPU straight back.
+    reply.pause();
+    await reply.resume();
+    expect(events).toHaveLength(2);
+    reply.release();
+  });
+
   it("keeps a run's next request behind a check that waits, even while the run is busy", async () => {
     const engine = lease('engine');
     const running = await engine.hold('llama-server', RUN_PURPOSE);

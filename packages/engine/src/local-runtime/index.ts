@@ -18,7 +18,13 @@ export {
 } from './binary';
 export { asAdapterError, LocalRuntimeError, type LocalRuntimeErrorCode } from './errors';
 export { findFreePort, freeGpuFromOllama, type FreeGpuOptions } from './gpu';
-export { GpuLease, type GpuHold, type GpuLeaseOptions, type GpuRelease } from './lease';
+export {
+  GpuLease,
+  type GpuHold,
+  type GpuLeaseOptions,
+  type GpuRelease,
+  type GpuWatch,
+} from './lease';
 export {
   CHECK_PURPOSE,
   replyPurpose,

@@ -61,9 +61,25 @@ export interface GpuHold {
   release(): void;
   /**
    * Runs `work` inside this hold: what it asks of the same use, such as a reply's model turns,
-   * joins this hold at once instead of waiting in line behind it.
+   * joins this hold at once instead of waiting in line behind it, and first takes the GPU back
+   * if the hold is paused.
    */
   run<T>(work: () => Promise<T>): Promise<T>;
+  /**
+   * Lets the GPU go while the work waits on a person, as an idle holder does: whoever asks for
+   * it meanwhile gets it. Nothing in the work runs on the GPU until `resume`.
+   */
+  pause(): void;
+  /** Takes the GPU back after a pause, in its turn like any request; at once if nobody took it. */
+  resume(signal?: AbortSignal): Promise<void>;
+}
+
+/** Who hears that a request waits for the GPU, and when it stops waiting. */
+export interface GpuWatch {
+  /** It waits: who has the GPU, or is ahead of it, in plain words. */
+  waiting(who: string): void;
+  /** It no longer waits: it has the GPU, or gave up. */
+  done(): void;
 }
 
 /** How Architect's processes are named to someone kept waiting. */
@@ -95,16 +111,19 @@ interface Slot {
 
 interface Waiter {
   use: GpuUse;
-  purpose: GpuPurpose;
+  /** The hold's entry, put on its use when its turn comes. */
+  running: Running;
   place: Place;
   deadline: number;
-  resolve(hold: GpuHold): void;
+  watch: GpuWatch | undefined;
+  /** The watch was told it waits. */
+  watched: boolean;
+  resolve(): void;
   reject(error: unknown): void;
 }
 
 interface Grant {
   waiter: Waiter;
-  hold: GpuHold;
   /** Takes the grant back and puts the waiter in line again, when the lease couldn't be saved. */
   undo(): void;
 }
@@ -116,7 +135,12 @@ interface Step {
 }
 
 /** The hold the current work runs inside, if any: its requests for the same use join it. */
-const inside = new AsyncLocalStorage<{ lease: GpuLease; use: GpuUse; running: Running }>();
+const inside = new AsyncLocalStorage<{
+  lease: GpuLease;
+  use: GpuUse;
+  running: Running;
+  hold: GpuHold;
+}>();
 
 /** Leases still open in this process, so an exit takes their entries away with it. */
 const open = new Set<GpuLease>();
@@ -204,49 +228,144 @@ export class GpuLease {
   /**
    * Holds the GPU for `use` for one request, or one reply: at once when this process has it and
    * nobody who goes first is waiting, or when the work asking runs inside a hold of the same use;
-   * otherwise in its turn. Fails with a busy error after `waitMs`, and as aborted when `signal`
-   * aborts first.
+   * otherwise in its turn, and `watch` hears who it waits for. Fails with a busy error after
+   * `waitMs`, and as aborted when `signal` aborts first.
    */
-  hold(use: GpuUse, purpose: GpuPurpose, signal?: AbortSignal): Promise<GpuHold> {
-    if (this.closed) return Promise.reject(aborted());
-    if (signal?.aborted) return Promise.reject(aborted());
-    const slot = this.slots[use];
+  hold(use: GpuUse, purpose: GpuPurpose, signal?: AbortSignal, watch?: GpuWatch): Promise<GpuHold> {
     const outer = inside.getStore();
-    const nested = outer?.lease === this && outer.use === use && slot.active.has(outer.running);
+    if (outer?.lease === this && outer.use === use) {
+      // Inside a hold of the same use: join it, once it has the GPU back from any pause.
+      return outer.hold.resume(signal).then(() => {
+        if (!this.slots[use].active.has(outer.running)) return this.request(use, purpose, signal);
+        const running: Running = { purpose };
+        this.activate(use, running);
+        this.kick();
+        return this.holdFor(use, running, undefined);
+      });
+    }
+    return this.request(use, purpose, signal, watch);
+  }
+
+  /** A new hold, in its turn. */
+  private async request(
+    use: GpuUse,
+    purpose: GpuPurpose,
+    signal?: AbortSignal,
+    watch?: GpuWatch,
+  ): Promise<GpuHold> {
+    const running: Running = { purpose };
+    await this.enqueue(use, running, signal, watch);
+    return this.holdFor(use, running, watch);
+  }
+
+  /**
+   * Puts `running` on its use in its turn: at once when this process holds the use and nobody
+   * waits ahead, otherwise once the lease says so. `watch` hears who it waits for, when someone
+   * holds the GPU or is ahead; a free GPU is taken at once, with nothing to say.
+   */
+  private enqueue(
+    use: GpuUse,
+    running: Running,
+    signal?: AbortSignal,
+    watch?: GpuWatch,
+  ): Promise<void> {
+    if (this.closed || signal?.aborted) return Promise.reject(aborted());
+    const slot = this.slots[use];
     const place: Place = {
       user: this.user(use),
-      rank: rankOf(purpose.priority),
+      rank: rankOf(running.purpose.priority),
       since: Date.now(),
     };
-    if (nested || (slot.holding && !slot.leaving && mayTake(this.freshView(), use, place))) {
-      const { hold } = this.grant(use, purpose);
+    const view = this.freshView();
+    if (slot.holding && !slot.leaving && mayTake(view, use, place)) {
+      this.activate(use, running);
       this.kick();
-      return Promise.resolve(hold);
+      return Promise.resolve();
     }
-    return new Promise<GpuHold>((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
+      const settle = () => {
+        signal?.removeEventListener('abort', onAbort);
+        if (waiter.watched) waiter.watch?.done();
+      };
       const onAbort = () => {
         if (!this.waiters.delete(waiter)) return;
+        settle();
         reject(aborted());
         this.kick();
       };
       const waiter: Waiter = {
         use,
-        purpose,
+        running,
         place,
         deadline: place.since + this.waitMs,
-        resolve: (hold) => {
-          signal?.removeEventListener('abort', onAbort);
-          resolve(hold);
+        watch,
+        watched: false,
+        resolve: () => {
+          settle();
+          resolve();
         },
         reject: (error) => {
-          signal?.removeEventListener('abort', onAbort);
+          settle();
           reject(error);
         },
       };
       signal?.addEventListener('abort', onAbort, { once: true });
       this.waiters.add(waiter);
+      const who = this.whoBlocks(view, use, place);
+      if (who !== null && watch !== undefined) {
+        waiter.watched = true;
+        watch.waiting(who);
+      }
       this.kick();
     });
+  }
+
+  /** Puts a hold on its use: the use is held, and busy while it runs. */
+  private activate(use: GpuUse, running: Running): void {
+    const slot = this.slots[use];
+    slot.active.add(running);
+    slot.holding = true;
+    slot.last = running.purpose;
+  }
+
+  /** Takes a hold off its use; the use may then be given up to whoever waits. */
+  private deactivate(use: GpuUse, running: Running): void {
+    this.slots[use].active.delete(running);
+    this.kick();
+  }
+
+  /** The hold a caller gets for an entry on its use. */
+  private holdFor(use: GpuUse, running: Running, watch: GpuWatch | undefined): GpuHold {
+    let released = false;
+    let paused = false;
+    let resuming: Promise<void> | null = null;
+    const hold: GpuHold = {
+      release: () => {
+        if (released) return;
+        released = true;
+        if (!paused) this.deactivate(use, running);
+      },
+      run: (work) => inside.run({ lease: this, use, running, hold }, work),
+      pause: () => {
+        if (released || paused) return;
+        paused = true;
+        this.deactivate(use, running);
+      },
+      resume: (signal) => {
+        if (released || !paused) return Promise.resolve();
+        resuming ??= this.enqueue(use, running, signal, watch)
+          .then(() => {
+            // Released while it waited: the turn it got is given straight back.
+            if (released) this.deactivate(use, running);
+            else paused = false;
+          })
+          .finally(() => {
+            resuming = null;
+          });
+        return resuming;
+      },
+    };
+    return hold;
   }
 
   /** Leaves the lease: waiting requests fail as stopped, and this process's entries go. */
@@ -316,26 +435,6 @@ export class GpuLease {
     } catch {
       return this.live(this.view);
     }
-  }
-
-  /** Starts one hold on a use: the hold, and what it took in this process, for taking it back. */
-  private grant(use: GpuUse, purpose: GpuPurpose): { hold: GpuHold; running: Running } {
-    const slot = this.slots[use];
-    const running: Running = { purpose };
-    slot.active.add(running);
-    slot.holding = true;
-    slot.last = purpose;
-    let released = false;
-    const hold: GpuHold = {
-      release: () => {
-        if (released) return;
-        released = true;
-        slot.active.delete(running);
-        this.kick();
-      },
-      run: (work) => inside.run({ lease: this, use, running }, work),
-    };
-    return { hold, running };
   }
 
   private kick(): void {
@@ -409,7 +508,7 @@ export class GpuLease {
     const { step } = decided;
     if (step === undefined) return;
     // A grant that wasn't saved never happened for the others: take it back, and try again.
-    if (decided.saved) for (const { waiter, hold } of step.granted) waiter.resolve(hold);
+    if (decided.saved) for (const { waiter } of step.granted) waiter.resolve();
     else for (const grant of [...step.granted].reverse()) grant.undo();
     for (const [waiter, error] of step.expired) waiter.reject(error);
     for (const use of step.leaving) void this.giveUp(use);
@@ -487,12 +586,11 @@ export class GpuLease {
       if (slot.leaving || !mayTake(state, waiter.use, waiter.place)) continue;
       this.waiters.delete(waiter);
       const wasHolding = slot.holding;
-      const { hold, running } = this.grant(waiter.use, waiter.purpose);
+      this.activate(waiter.use, waiter.running);
       result.granted.push({
         waiter,
-        hold,
         undo: () => {
-          slot.active.delete(running);
+          slot.active.delete(waiter.running);
           slot.holding = wasHolding;
           this.waiters.add(waiter);
         },
@@ -585,7 +683,7 @@ export class GpuLease {
         beat: existing?.beat ?? Date.now(),
         rank: place.rank,
         since: place.since,
-        doing: first?.purpose.doing ?? '',
+        doing: first?.running.purpose.doing ?? '',
       };
       if (existing && sameEntry(existing, ask)) continue;
       if (index === -1) state.asks.push(ask);
@@ -664,24 +762,36 @@ export class GpuLease {
     this.kick();
   }
 
-  /** Why a request waited in vain: who holds the GPU and what they are doing, or who is ahead. */
-  private busyError(state: LeaseState, waiter: Waiter): LocalRuntimeError {
+  /**
+   * Who keeps a request from the GPU, in plain words: who holds it and what they are doing, or,
+   * when nobody holds it, who waits ahead. Null when nobody does.
+   */
+  private whoBlocks(state: LeaseState, use: GpuUse, place: Place): string | null {
     const live = this.live(state);
-    const holders = blockingHolders(live, waiter.place.user, waiter.use);
-    const parts = holders.map((holder) => {
+    const parts = blockingHolders(live, place.user, use).map((holder) => {
       const name = nameOf(holder.owner);
       if (holder.leaving) return `${name} is letting go of it`;
       return holder.busy ? `${name} is ${holder.doing}` : `${name} has it, with nothing running`;
     });
-    const working = holders.find((holder) => holder.busy && !holder.leaving);
     if (parts.length === 0) {
-      for (const ask of asksAhead(live, waiter.use, waiter.place)) {
+      for (const ask of asksAhead(live, use, place)) {
         parts.push(`${nameOf(ask.owner)} is waiting for it first`);
       }
     }
-    const message =
-      parts.length === 0 ? 'The GPU is busy.' : `The GPU is busy: ${joinWithAnd(parts)}.`;
-    return new LocalRuntimeError('gpu_busy', message, working?.hint ?? 'Try again in a moment.');
+    return parts.length === 0 ? null : joinWithAnd(parts);
+  }
+
+  /** Why a request waited in vain: who holds the GPU and what they are doing, or who is ahead. */
+  private busyError(state: LeaseState, waiter: Waiter): LocalRuntimeError {
+    const who = this.whoBlocks(state, waiter.use, waiter.place);
+    const working = blockingHolders(this.live(state), waiter.place.user, waiter.use).find(
+      (holder) => holder.busy && !holder.leaving,
+    );
+    return new LocalRuntimeError(
+      'gpu_busy',
+      who === null ? 'The GPU is busy.' : `The GPU is busy: ${who}.`,
+      working?.hint ?? 'Try again in a moment.',
+    );
   }
 
   /** When the lease itself can't be read or written, waiting requests past their time fail with why. */

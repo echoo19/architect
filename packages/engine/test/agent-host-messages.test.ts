@@ -181,6 +181,35 @@ describe('a live reply', () => {
     expect(published.at(-1)).toMatchObject({ save: true, message: { steps: [{ id: 'step-1' }] } });
   });
 
+  it('shows one step while it waits for the GPU, and leaves none behind', () => {
+    const { reply, published } = live();
+    reply.addStep({ kind: 'tool', name: 'read', detail: 'data/invoices.csv', status: 'done' });
+    reply.waitForGpu('Architect is checking an agent on this computer');
+    reply.waitForGpu('the architect command is answering a chat with Service desk');
+    vi.advanceTimersByTime(33);
+    expect(published.at(-1)).toMatchObject({
+      save: true,
+      message: {
+        steps: [
+          { id: 'step-1', kind: 'tool' },
+          {
+            id: 'step-gpu',
+            kind: 'wait',
+            detail:
+              'Waiting for the GPU: the architect command is answering a chat with Service desk',
+            status: 'running',
+          },
+        ],
+      },
+    });
+    reply.endWait();
+    vi.advanceTimersByTime(33);
+    expect(published.at(-1)?.message.steps.map((step) => step.id)).toEqual(['step-1']);
+    // A reply that ends while it waits, stopped or failing, keeps no waiting step either.
+    reply.waitForGpu('Architect is checking an agent on this computer');
+    expect(reply.finish({ status: 'stopped' }).steps.map((step) => step.id)).toEqual(['step-1']);
+  });
+
   it('keeps text from each model turn as its own paragraph', () => {
     const { reply } = live();
     reply.appendText('Let me look.  ');
