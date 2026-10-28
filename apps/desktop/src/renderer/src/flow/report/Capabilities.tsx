@@ -1,6 +1,6 @@
 import type { Capability, Installation, ReferenceRecord, Score } from '@architect/shared';
 import {
-  ErrorState,
+  Disclosure,
   EvidenceMark,
   EvidenceMeter,
   Heading,
@@ -9,12 +9,9 @@ import {
   type EvidenceKind,
 } from '@architect/ui';
 import type { QueryState } from '../../api/query';
-import {
-  CHECK_LABELS,
-  INSTALL_CHECKS_TITLE,
-  STATUS_LABELS,
-  statusMark,
-} from '../../install/labels';
+import { ProblemState } from '../../components/ProblemState';
+import { CheckRows } from '../../install/InstallChecks';
+import { STATUS_LABELS, statusMark, WORKS_HERE_TITLE } from '../../install/labels';
 import { rate } from '../format';
 import type { ModelNames } from '../train/phase';
 import type { CapabilityEvidence } from './evidence';
@@ -30,28 +27,27 @@ const COLUMNS: {
   // The engine counts the latest round that practiced each type.
   {
     kind: 'practice',
-    label: 'Practice, latest round',
-    what: () => 'Tasks it trained on',
+    label: 'Practice tasks',
+    what: (mentor) => `${mentor} teaches from these`,
     pick: (capability) => capability.practice,
   },
   {
     kind: 'check',
     label: 'Check tasks',
-    what: (mentor) => `Never shown to ${mentor}`,
+    what: (mentor) => `${mentor} sees only the score`,
     pick: (capability) => capability.check,
   },
   {
     kind: 'final',
     label: 'Final test',
-    what: () => 'Unseen until the end',
+    what: () => 'Opened once, at the end',
     pick: (capability) => capability.finalTest,
   },
 ];
 
-/** A category's line under its task type: its verified examples, and whether teaching stopped. */
-function categoryLine(category: Capability['categories'][number]): string {
-  const examples = `${category.verifiedLessons} worked ${category.verifiedLessons === 1 ? 'example' : 'examples'} written`;
-  return category.stopped ? `${examples} · teaching stopped, no gain` : examples;
+/** A category's line under its task type, said only where teaching gave up on it. */
+function stoppedLine(category: Capability['categories'][number], mentor: string): string | null {
+  return category.stopped ? `${mentor} stopped teaching ${category.label}: no gain` : null;
 }
 
 /** Spark's own score on a type, only from a reference measured on that same split. */
@@ -69,9 +65,10 @@ function sparkScore(
 
 /**
  * What the agent can do, task type by task type, with each kind of result in its own column and
- * its own kind of bar: practice on training tasks Spark saw, check tasks hidden from Spark, and
- * the locked final test. Spark's tick marks a bar only where Spark was measured on the same tasks.
- * Install checks belong to this computer, not to a task type, and close the section on their own.
+ * its own kind of bar: practice tasks Spark teaches from, check tasks it sees only the score of,
+ * and the final test. Spark's own score stands beside a bar's, and its tick marks the bar, only
+ * where Spark was measured on the same tasks. This computer's checks belong to the agent, not to a
+ * task type, and close the section on their own line.
  */
 export function Capabilities({
   evidence,
@@ -88,31 +85,19 @@ export function Capabilities({
   const columns = COLUMNS.filter((column) =>
     breakdown?.capabilities.some((capability) => column.pick(capability) !== null),
   );
-  const marked =
-    breakdown?.capabilities.some((capability) =>
-      columns.some((column) => sparkScore(references, column.kind, capability.type) !== null),
-    ) ?? false;
   return (
     <section aria-labelledby="capabilities" className="flex flex-col gap-[18px]">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <Heading id="capabilities">Capabilities</Heading>
-        {marked && (
-          <span className="flex items-center gap-2 text-sm text-mentor">
-            <span aria-hidden className="h-4 w-[3px] rounded-full bg-mentor" />
-            {names.mentor} doing the tasks itself
-          </span>
-        )}
-      </div>
+      <Heading id="capabilities">By task type</Heading>
       {evidence.status === 'loading' && breakdown === undefined && (
-        <div aria-busy="true" aria-label="Loading the capabilities">
+        <div aria-busy="true" aria-label="Loading the results by task type">
           <Skeleton className="h-40 w-full rounded-xl" />
         </div>
       )}
       {evidence.status === 'error' && (
-        <ErrorState
+        <ProblemState
           layout="inline"
-          title="Couldn't load the capabilities"
-          message={evidence.error.message}
+          error={evidence.error}
+          title="Couldn't load the results by task type"
           onRetry={evidence.reload}
         />
       )}
@@ -122,7 +107,7 @@ export function Capabilities({
       {breakdown && columns.length > 0 && (
         <div className="overflow-x-auto">
           <table
-            aria-label="Capabilities by task type"
+            aria-label="Results by task type"
             className="w-full min-w-[640px] border-collapse text-left"
           >
             <thead>
@@ -144,17 +129,16 @@ export function Capabilities({
                   <th scope="row" className="py-3.5 pr-4 font-normal">
                     <span className="flex flex-col gap-1">
                       <span>{capability.label}</span>
-                      {capability.categories.length > 0 && (
-                        <span className="flex flex-col gap-0.5 text-sm text-fg-muted">
-                          {capability.categories.map((category) => (
-                            <span key={category.id}>
-                              {category.label}
-                              <span aria-hidden> · </span>
-                              {categoryLine(category)}
+                      {capability.categories.map((category) => {
+                        const line = stoppedLine(category, names.mentor);
+                        return (
+                          line && (
+                            <span key={category.id} className="text-sm text-fg-muted text-pretty">
+                              {line}
                             </span>
-                          ))}
-                        </span>
-                      )}
+                          )
+                        );
+                      })}
                     </span>
                   </th>
                   {columns.map((column) => (
@@ -175,35 +159,23 @@ export function Capabilities({
         </div>
       )}
       {installation && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line-card pt-3.5">
-          <EvidenceMark kind="install">{INSTALL_CHECKS_TITLE}</EvidenceMark>
-          <span className="flex items-center gap-2 text-sm text-fg-secondary">
-            <StatusMark state={statusMark(installation.status)} size={14} />
-            {STATUS_LABELS[installation.status]}
-            {installation.checks.length > 0 && (
-              <span className="text-fg-muted">· {checkCounts(installation)}</span>
-            )}
-          </span>
+        <div className="flex flex-col gap-1 border-t border-line-card pt-3.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <EvidenceMark kind="install">{WORKS_HERE_TITLE}</EvidenceMark>
+            <span className="flex items-center gap-2 text-sm text-fg-secondary">
+              <StatusMark state={statusMark(installation.status)} size={14} />
+              {STATUS_LABELS[installation.status]}
+            </span>
+          </div>
+          {installation.checks.length > 0 && (
+            <Disclosure label="Details">
+              <CheckRows installation={installation} />
+            </Disclosure>
+          )}
         </div>
       )}
     </section>
   );
-}
-
-/**
- * "6 passed", "5 passed, 1 skipped (llama.cpp)", "4 passed, 1 failed (Tools)": the checks'
- * outcomes by kind, naming the ones that didn't pass.
- */
-function checkCounts(installation: Installation): string {
-  const of = (status: string) => installation.checks.filter((check) => check.status === status);
-  const named = (status: string) => {
-    const checks = of(status);
-    const which = checks.map((check) => CHECK_LABELS[check.kind] ?? check.kind).join(', ');
-    return checks.length > 0 && `${checks.length} ${status} (${which})`;
-  };
-  return [`${of('passed').length} passed`, named('failed'), named('skipped')]
-    .filter(Boolean)
-    .join(', ');
 }
 
 function ScoreBar({
@@ -227,6 +199,12 @@ function ScoreBar({
     <span className="flex flex-col gap-2">
       <span className="font-mono text-sm tabular-nums text-fg-secondary">
         <span className="text-fg">{score.pass}</span> of {score.total}
+        {spark && (
+          <span className="font-sans text-mentor">
+            {' · '}
+            {mentor} {spark.pass} of {spark.total}
+          </span>
+        )}
       </span>
       <EvidenceMeter
         kind={kind}

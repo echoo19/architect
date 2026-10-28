@@ -1,4 +1,5 @@
 import {
+  CodedError,
   INSTRUCTION_KINDS,
   TEACHABLE_KINDS,
   type Budget,
@@ -12,11 +13,11 @@ import { formatDuration, formatUsd } from '../../lib/format';
 
 /** What each kind of lesson is, in the person's words. */
 export const KIND_LABELS: Record<CorrectionKind, string> = {
-  procedure: 'A preference or procedure',
-  source: 'A missing fact or source',
-  weakness: 'A weakness to train',
-  ambiguous: 'An ambiguous request',
-  invalid: "Something it can't verify",
+  procedure: 'Rule',
+  source: 'Missing fact',
+  weakness: 'Needs practice',
+  ambiguous: 'Unclear request',
+  invalid: "Can't be checked",
 };
 
 /** A lesson that can join the teaching queue. */
@@ -47,11 +48,11 @@ export function lessonChange(proposal: CorrectionProposal): { title: string; det
   }
 }
 
-/** Whether a lesson needs training, in a few words. */
+/** Whether a lesson needs practice, in a few words. */
 export const TRAINING_NEED: Record<CorrectionKind, string> = {
-  procedure: 'No, an instruction is enough',
-  source: 'No, an instruction is enough',
-  weakness: 'Yes, through Improve agent',
+  procedure: 'No, a rule is enough',
+  source: 'No, a rule is enough',
+  weakness: 'Yes, Improve will practice it',
   ambiguous: 'Not until you say which you meant',
   invalid: 'No',
 };
@@ -60,9 +61,11 @@ export const TRAINING_NEED: Record<CorrectionKind, string> = {
 export function correctionStatus(correction: Correction, improving: boolean): string {
   switch (correction.status) {
     case 'proposed':
-      return 'Waiting for you';
+      return 'To review';
     case 'queued':
-      return improving && correction.runId !== undefined ? 'Being taught' : 'In the queue';
+      return improving && correction.runId !== undefined
+        ? 'Being taught'
+        : 'Saved for next improve';
     case 'applied':
       return `In version ${correction.candidateVersion ?? '?'}`;
     case 'used':
@@ -79,15 +82,13 @@ export function openCorrections(corrections: readonly Correction[]): Correction[
   );
 }
 
-/** "1 waiting for you · 2 in the queue", or null when nothing is open. */
+/** "3 flagged answers · 1 to review", or null when nothing is open. */
 export function flaggedSummary(corrections: readonly Correction[]): string | null {
+  const open = openCorrections(corrections).length;
+  if (open === 0) return null;
   const waiting = corrections.filter((correction) => correction.status === 'proposed').length;
-  const queued = corrections.filter((correction) => correction.status === 'queued').length;
-  const parts = [
-    waiting > 0 && `${waiting} waiting for you`,
-    queued > 0 && `${queued} in the queue`,
-  ].filter(Boolean);
-  return parts.length === 0 ? null : parts.join(' · ');
+  const count = `${open} flagged ${open === 1 ? 'answer' : 'answers'}`;
+  return waiting > 0 ? `${count} · ${waiting} to review` : count;
 }
 
 const ACTIVE: ReadonlySet<RunStatus> = new Set([
@@ -104,15 +105,29 @@ export function runningImprovement(improvements: readonly Improvement[]): Improv
   return newest !== undefined && ACTIVE.has(newest.status) ? newest : null;
 }
 
+/** A time limit in words: "4 hours", "90 minutes", "1 h 30 min". */
+function spelled(minutes: number): string {
+  if (minutes < 60) return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+  if (minutes % 60 === 0) return `${minutes / 60} ${minutes === 60 ? 'hour' : 'hours'}`;
+  return formatDuration(minutes * 60_000);
+}
+
+/** "up to $5 and 4 hours": what an improvement may spend, with compute where weights may train. */
+export function budgetLine(budget: Budget): string {
+  const compute =
+    budget.maxComputeUsd === undefined ? '' : ` and ${formatUsd(budget.maxComputeUsd)} of compute`;
+  return `up to ${formatUsd(budget.maxMentorUsd)}${compute} and ${spelled(budget.maxWallMinutes)}`;
+}
+
 /**
- * "10 rounds, $5 of Spark and 4 h", with compute when an improvement may train weights: every
- * cap it keeps to.
+ * Every cap an improvement keeps to, as the dialog says them: it stops at the first one reached,
+ * and none is ever passed.
  */
-export function budgetLine(budget: Budget, mentor: string): string {
+export function capsLine(budget: Budget, mentor: string): string {
+  const rounds = budget.maxRounds === 1 ? '1 round' : `${budget.maxRounds} rounds`;
   const compute =
     budget.maxComputeUsd === undefined ? '' : `, ${formatUsd(budget.maxComputeUsd)} of compute`;
-  const rounds = budget.maxRounds === 1 ? '1 round' : `${budget.maxRounds} rounds`;
-  return `${rounds}, ${formatUsd(budget.maxMentorUsd)} of ${mentor}${compute} and ${formatDuration(budget.maxWallMinutes * 60_000)}`;
+  return `Stops at ${formatUsd(budget.maxMentorUsd)} of ${mentor}${compute}, ${spelled(budget.maxWallMinutes)} or ${rounds}, whichever comes first.`;
 }
 
 /** "1 lesson", "3 lessons". */
@@ -137,24 +152,36 @@ export function evidenceText(files: readonly string[], rows: string): string | u
 export interface ProposeFailure {
   title: string;
   text: string;
+  /** The engine's own message, for whoever opens Details. */
+  details?: string;
   retry: boolean;
 }
 
 /**
- * Why a lesson couldn't be proposed, in the app's words. The engine's leak check names the
- * locked test, which every screen calls the final test, and refuses the same exchange however
- * it is described, so it reads as a refusal and isn't offered again; other reasons read as they
- * are, with the note kept to send again.
+ * Why a lesson couldn't be proposed, in the app's words, from the guard that refused it. The
+ * leak check refuses the same exchange however it is described, so it reads as a refusal and
+ * isn't offered again; a cost over the cap says what to shorten; any other reason reads as it
+ * is, with the note kept to send again. The engine's own message always goes with it.
  */
-export function proposeFailure(message: string, mentor: string): ProposeFailure {
-  if (/payload matched \d+ locked test tasks?/.test(message)) {
+export function proposeFailure(error: Error, mentor: string, capUsd: number): ProposeFailure {
+  const code = error instanceof CodedError ? error.code : undefined;
+  if (code === 'guard_split') {
     return {
-      title: `${mentor} can't read this exchange`,
-      text: `It quotes a task from its final test, which ${mentor} must never see. Nothing was sent.`,
+      title: 'Not shared',
+      text: `It matches a question from the final test, which ${mentor} must never see.`,
+      details: error.message,
       retry: false,
     };
   }
-  return { title: "Couldn't propose a lesson", text: message, retry: true };
+  if (code === 'guard_budget') {
+    return {
+      title: 'Too long to review',
+      text: `Reading it would cost more than the ${formatUsd(capUsd)} limit. Shorten your note, or flag a shorter answer.`,
+      details: error.message,
+      retry: true,
+    };
+  }
+  return { title: "Couldn't propose a lesson", text: error.message, retry: true };
 }
 
 /** A request shortened to fit one line of a subtitle. */

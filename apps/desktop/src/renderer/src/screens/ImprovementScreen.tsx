@@ -39,7 +39,7 @@ function Page({
 
 /**
  * What Improve agent changed: its new version against the one it started from, on the check
- * tasks, with whether the new version may be promoted and a way to promote it.
+ * tasks, with whether the new version may be used and a way to use it.
  */
 export function ImprovementScreen({ runId }: { runId: string }) {
   const detail = useRunDetail(runId);
@@ -151,7 +151,7 @@ function Loaded({
           {canPromote ? (
             <Button variant="primary" onClick={() => setPromoting(true)}>
               <ArrowUpRight size={16} strokeWidth={1.8} aria-hidden />
-              Promote version {candidate.version}
+              Use version {candidate.version}
             </Button>
           ) : (
             <Button variant="primary" onClick={backToTeaching}>

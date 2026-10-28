@@ -1,4 +1,4 @@
-import { CodedError, type ArchitectApi } from '@architect/shared';
+import { CodedError, ErrorCodeSchema, GuardError, type ArchitectApi } from '@architect/shared';
 import { z } from 'zod';
 import {
   channel,
@@ -56,6 +56,16 @@ export interface IpcRouterOptions {
 
 function failure(message: string, code?: string): IpcResult<never> {
   return { ok: false, error: code === undefined ? { message } : { message, code } };
+}
+
+/** The code a failure crosses the bridge with: its own, or the guard that refused it. */
+function codeOf(error: unknown): string | undefined {
+  if (error instanceof CodedError) return error.code;
+  if (error instanceof GuardError) {
+    const code = `guard_${error.guard}`;
+    return ErrorCodeSchema.safeParse(code).success ? code : undefined;
+  }
+  return undefined;
 }
 
 function messageOf(error: unknown): string {
@@ -122,7 +132,7 @@ export class IpcRouter {
       return { ok: true, value: await handler(...args) };
     } catch (error) {
       if (!(error instanceof ArgumentError)) console.error(`[ipc] ${name} failed:`, error);
-      return failure(messageOf(error), error instanceof CodedError ? error.code : undefined);
+      return failure(messageOf(error), codeOf(error));
     }
   }
 }

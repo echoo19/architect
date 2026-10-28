@@ -374,7 +374,12 @@ describe('comparisons', () => {
       ['both', 14, true],
       ['mentor', null, false],
     ]);
-    expect(arms[2]?.budget).toEqual({ mentorUsd: 0.4, computeUsd: 1.8, computeMinutes: 60 });
+    expect(arms[2]?.budget).toEqual({
+      mentorUsd: 0.4,
+      onlineUsd: 0,
+      computeUsd: 1.8,
+      computeMinutes: 60,
+    });
   });
 
   it("put a meter's figures beside the agent's own final test only", () => {

@@ -1,4 +1,4 @@
-import type { ComparisonReport, Spend } from '@architect/shared';
+import type { ComparisonReport, Spend, StudentTarget } from '@architect/shared';
 import {
   Badge,
   Disclosure,
@@ -11,128 +11,90 @@ import {
   TableHeader,
   TableRow,
 } from '@architect/ui';
+import { formatBytes } from '../../lib/format';
 import { formatCost, formatRate } from '../format';
 import type { ModelNames } from '../train/phase';
 import { reportArms, type ArmScore, type ReportArm } from './comparison-report';
-import { PeakMemory } from './Comparisons';
-
-const STATUS_WORDS: Record<Exclude<ReportArm['status'], 'complete'>, string> = {
-  stopped: 'Stopped',
-  incomplete: 'Not finished',
-  not_run: 'Not run',
-};
 
 const percentOf = (share: number) => Math.round(share * 100);
 
-/**
- * "45%" over "27 of 60", the range the true rate likely sits in, a partial test said as such,
- * the result when the same test ran a second time, and the same setup's without trained weights
- * when the test measured both.
- */
-function ScoreCell({ score }: { score: ArmScore | null }) {
-  if (score === null) return <span className="text-fg-faint">Not run</span>;
-  return (
-    <span className="flex flex-col items-end">
-      <span className="font-mono tabular-nums text-fg">{formatRate(score)}</span>
-      <span className="text-xs tabular-nums text-fg-muted">
-        {score.pass} of {score.total}
-        {!score.complete && ', partial'}
-      </span>
-      {score.range && (
-        <span
-          title="95% interval: the rate the test points to, allowing for chance"
-          className="whitespace-nowrap text-xs tabular-nums text-fg-muted"
-        >
-          likely {percentOf(score.range.low)} to {percentOf(score.range.high)}%
-        </span>
-      )}
-      {score.without && (
-        <span className="whitespace-nowrap text-xs tabular-nums text-fg-muted">
-          without the weights: {score.without.pass} of {score.without.total}
-        </span>
-      )}
-      {score.repeat && (
-        <span className="whitespace-nowrap text-xs tabular-nums text-fg-muted">
-          tested again: {score.repeat.pass} of {score.repeat.total}
-          {!score.repeat.complete && ', partial'}
-        </span>
-      )}
-    </span>
-  );
+/** The score on the same kind of copy as the report's own final test, else the other one. */
+function scoreOn(
+  arm: ReportArm,
+  testedOn: StudentTarget,
+): { score: ArmScore; where: string } | null {
+  const own = testedOn === 'hosted' ? arm.hosted : arm.local;
+  const other = testedOn === 'hosted' ? arm.local : arm.hosted;
+  if (own) return { score: own, where: '' };
+  if (other) return { score: other, where: testedOn === 'hosted' ? 'on this computer' : 'online' };
+  return null;
+}
+
+/** What an arm spent in all, with "at most" while a training job could still cost more. */
+function costOf(spent: Spend): string {
+  const total = spent.sparkUsd + (spent.studentUsd ?? 0) + spent.computeUsd;
+  return `${spent.computeSettled ? '' : 'at most '}${formatCost(total)}`;
+}
+
+/** "58 of 60", said as partial when fewer tasks ran than the test holds. */
+function counts(score: ArmScore): string {
+  return `${score.pass} of ${score.total}${score.complete ? '' : ', partial'}`;
 }
 
 /**
- * What an arm spent, one bill a line: Spark, the student's hosted copy, and compute, which is
- * the most it may cost while a training job can still run.
+ * What an arm's row leaves out of the table, said once under Details: how sure the score is, the
+ * same test run again, the same setup without its trained weights, and the memory a meter saw.
  */
-function Costs({ spent, names, host }: { spent: Spend; names: ModelNames; host: string }) {
-  const line = (label: string, amount: string) => (
-    <span className="whitespace-nowrap">
-      <span className="text-xs text-fg-muted">{label}</span>{' '}
-      <span className="font-mono tabular-nums text-fg">{amount}</span>
-    </span>
-  );
-  const compute = `${spent.computeSettled ? '' : 'at most '}${formatCost(spent.computeUsd)}`;
-  const minutes =
-    spent.computeMinutes >= 0.5
-      ? ` · ${Math.round(spent.computeMinutes)} min`
-      : spent.computeMinutes > 0
-        ? ' · under 1 min'
-        : '';
-  return (
-    <span className="flex flex-col items-end gap-0.5 text-sm">
-      {line(names.mentor, formatCost(spent.sparkUsd))}
-      {line(host, spent.studentUsd === null ? '–' : formatCost(spent.studentUsd))}
-      {line('Compute', `${compute}${minutes}`)}
-    </span>
-  );
+function extras(arm: ReportArm, testedOn: StudentTarget): string[] {
+  const shown = scoreOn(arm, testedOn)?.score;
+  const facts = [
+    shown?.range && `likely ${percentOf(shown.range.low)} to ${percentOf(shown.range.high)}%`,
+    shown?.repeat &&
+      `tested again: ${shown.repeat.pass} of ${shown.repeat.total}${shown.repeat.complete ? '' : ', partial'}`,
+    shown?.without && `without the weights: ${shown.without.pass} of ${shown.without.total}`,
+    arm.memory &&
+      [
+        arm.memory.processBytes !== null && `${formatBytes(arm.memory.processBytes)} of RAM`,
+        arm.memory.gpuBytes !== null && `${formatBytes(arm.memory.gpuBytes)} of GPU memory`,
+      ]
+        .filter(Boolean)
+        .join(' and '),
+  ].filter((fact): fact is string => typeof fact === 'string' && fact !== '');
+  return facts;
 }
 
-/**
- * The comparisons runner's report for the job this run belongs to (decision 045): each arm's
- * final test on the hosted copy and on this computer, the memory a meter saw here, and what it
- * spent, from the report alone. An arm that wasn't run says so, with the reason.
- */
-export function ComparisonArms({
-  report,
-  runId,
-  names,
-  host,
+/** The arms a first look needs: the untouched student, this agent and Spark doing the tasks itself. */
+function isHeadline(arm: ReportArm): boolean {
+  return arm.arm === 'bare' || arm.arm === 'reference' || arm.current;
+}
+
+function Rows({
+  arms,
+  testedOn,
+  label,
 }: {
-  report: ComparisonReport;
-  runId: string;
-  names: ModelNames;
-  /** Who serves the hosted copy of the student, as its bill names it, such as "OpenRouter". */
-  host: string;
+  arms: readonly ReportArm[];
+  testedOn: StudentTarget;
+  label: string;
 }) {
-  const arms = reportArms(report, runId, names);
   return (
-    <section aria-labelledby="comparisons" className="flex flex-col gap-[18px]">
-      <div className="flex flex-wrap items-center gap-3">
-        <Heading id="comparisons">Comparisons</Heading>
-        {report.dryRun && <Badge>Dry run on fakes, no model called</Badge>}
-      </div>
-      <div className="overflow-x-auto rounded-xl bg-panel">
-        <Table aria-label="Comparisons" className="min-w-[760px]">
-          <TableHeader>
-            <TableRow>
-              <TableHead />
-              <TableHead className="whitespace-nowrap text-right">
-                <EvidenceMark kind="final" className="justify-end">
-                  Final test, hosted copy
-                </EvidenceMark>
-              </TableHead>
-              <TableHead className="whitespace-nowrap text-right">
-                <EvidenceMark kind="final" className="justify-end">
-                  Final test, this computer
-                </EvidenceMark>
-              </TableHead>
-              <TableHead className="whitespace-nowrap text-right">Peak memory</TableHead>
-              <TableHead className="whitespace-nowrap text-right">Cost</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {arms.map((arm) => (
+    <div className="rounded-xl bg-panel">
+      <Table aria-label={label}>
+        <TableHeader>
+          <TableRow>
+            <TableHead />
+            <TableHead className="whitespace-nowrap text-right">
+              <EvidenceMark kind="final" className="justify-end">
+                Final test
+              </EvidenceMark>
+            </TableHead>
+            <TableHead className="whitespace-nowrap text-right">Cost</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {arms.map((arm) => {
+            const shown = scoreOn(arm, testedOn);
+            return (
               <TableRow key={arm.arm} aria-current={arm.current ? 'true' : undefined}>
                 <TableCell className="align-top">
                   <span className="flex flex-col gap-0.5">
@@ -144,56 +106,96 @@ export function ComparisonArms({
                     </span>
                     {arm.status !== 'complete' && arm.status !== 'not_run' && (
                       <span className="text-xs text-fg-muted text-pretty">
-                        {STATUS_WORDS[arm.status]}
+                        {arm.status === 'stopped' ? 'Stopped' : 'Not finished'}
                         {arm.reason && `: ${arm.reason}`}
                       </span>
                     )}
                   </span>
                 </TableCell>
                 {arm.status === 'not_run' ? (
-                  <TableCell colSpan={4} className="align-top text-fg-faint text-pretty">
+                  <TableCell colSpan={2} className="align-top text-fg-faint text-pretty">
                     Not run{arm.reason && `: ${arm.reason}`}
                   </TableCell>
                 ) : (
                   <>
-                    {arm.arm === 'repeat' ? (
-                      // Its results are each first arm's second run, shown on that arm's row.
-                      <TableCell colSpan={2} className="text-right align-top text-sm text-fg-muted">
-                        Under each of the first three, as &quot;tested again&quot;
-                      </TableCell>
-                    ) : (
-                      <>
-                        <TableCell className="text-right align-top">
-                          <ScoreCell score={arm.hosted} />
-                        </TableCell>
-                        <TableCell className="text-right align-top">
-                          <ScoreCell score={arm.local} />
-                        </TableCell>
-                      </>
-                    )}
                     <TableCell className="text-right align-top">
-                      {arm.memory && (
-                        <PeakMemory
-                          processBytes={arm.memory.processBytes}
-                          gpuBytes={arm.memory.gpuBytes}
-                        />
+                      {shown === null ? (
+                        <span className="text-fg-faint">Not run</span>
+                      ) : (
+                        <span className="flex flex-col items-end">
+                          <span className="font-mono tabular-nums text-fg">
+                            {formatRate(shown.score)}
+                          </span>
+                          <span className="whitespace-nowrap text-xs tabular-nums text-fg-muted">
+                            {counts(shown.score)}
+                            {shown.where && `, ${shown.where}`}
+                          </span>
+                        </span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right align-top">
-                      <Costs spent={arm.spent} names={names} host={host} />
+                    <TableCell className="whitespace-nowrap text-right align-top font-mono tabular-nums">
+                      {costOf(arm.spent)}
                     </TableCell>
                   </>
                 )}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+/**
+ * The comparisons runner's report for the job this run belongs to (decision 045), in a table that
+ * fits its page: the untouched student, this agent and Spark doing the tasks itself, each with its
+ * final test and what it cost in all. The other arms, how sure each score is, a test run again
+ * and the memory a meter saw wait under their own disclosures. An arm that wasn't run says so with
+ * its reason. A dry run on fakes keeps its label, since that is what it is.
+ */
+export function ComparisonArms({
+  report,
+  runId,
+  names,
+  testedOn,
+}: {
+  report: ComparisonReport;
+  runId: string;
+  names: ModelNames;
+  /** Where this run's own final test ran, so its row reads the same figure as the stats above. */
+  testedOn: StudentTarget;
+}) {
+  const arms = reportArms(report, runId, names);
+  const main = arms.filter(isHeadline);
+  const more = arms.filter((arm) => !isHeadline(arm));
+  const notes = arms
+    .map((arm) => ({ arm, facts: extras(arm, testedOn) }))
+    .filter(({ facts }) => facts.length > 0);
+  return (
+    <section aria-labelledby="comparisons" className="flex flex-col gap-[18px]">
+      <div className="flex flex-wrap items-center gap-3">
+        <Heading id="comparisons">Comparisons</Heading>
+        {report.dryRun && <Badge>Dry run on fakes, no model called</Badge>}
       </div>
-      {report.disclosures.length > 0 && (
-        <Disclosure label="Notes on these numbers">
-          <ul className="m-0 flex list-disc flex-col gap-1.5 pl-5 text-sm text-fg-secondary">
+      <Rows arms={main} testedOn={testedOn} label="Comparisons" />
+      {more.length > 0 && (
+        <Disclosure
+          label={`${more.length} more ${more.length === 1 ? 'comparison' : 'comparisons'}`}
+        >
+          <Rows arms={more} testedOn={testedOn} label="More comparisons" />
+        </Disclosure>
+      )}
+      {(notes.length > 0 || report.disclosures.length > 0) && (
+        <Disclosure label="Details">
+          <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-fg-secondary">
+            {notes.map(({ arm, facts }) => (
+              <li key={arm.arm} className="text-pretty">
+                {arm.label}: {facts.join(', ')}.
+              </li>
+            ))}
             {report.disclosures.map((line) => (
-              <li key={line} className="text-pretty">
+              <li key={line} className="text-pretty text-fg-muted">
                 {line}
               </li>
             ))}

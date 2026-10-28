@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { cn, EvidenceMark, Panel } from '@architect/ui';
+import { cn, EvidenceMark, Panel, Tooltip } from '@architect/ui';
 import { formatRate } from '../format';
 import {
   CURVE_BOX,
@@ -29,27 +29,31 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
   const geometry = curveGeometry(input);
   return (
     <Panel
-      aria-label="Check tasks right"
+      aria-label="Score on the check tasks"
       className="min-w-0 flex-[7_1_560px] gap-2.5 px-8 pb-5 pt-7"
     >
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="text-hero font-medium leading-none tracking-tightest tabular-nums">
           {score ? formatRate(score) : '–'}
         </span>
-        <span className="text-fg-secondary">check tasks right</span>
+        <Tooltip
+          content={`${names.mentor} never practices on these. It sees only the score, and a change stays only if the score goes up.`}
+        >
+          <span className="cursor-help">
+            <EvidenceMark kind="check" className="text-md text-fg-secondary">
+              on check tasks
+            </EvidenceMark>
+          </span>
+        </Tooltip>
         {score && (
           <span className="text-sm tabular-nums text-fg-muted">
             {runs > 1
-              ? `${Math.round((score.pass / runs) * 10) / 10} of ${job.splits.dev}, average of ${runs} measurements`
+              ? `${Math.round((score.pass / runs) * 10) / 10} of ${job.splits.dev}`
               : `${score.pass} of ${score.total}`}
           </span>
         )}
         {geometry.branches.length > 0 && <Legend />}
       </div>
-      {/* What check tasks are, once, where their score first shows. */}
-      <EvidenceMark kind="check" className="-mt-1 text-fg-muted">
-        Tasks set aside to score each change, never shown to {names.mentor}
-      </EvidenceMark>
       <CurveChart input={input} geometry={geometry} />
     </Panel>
   );
@@ -78,7 +82,7 @@ function Legend() {
           />
           <circle cx={21} cy={5} r={3.5} className="fill-panel stroke-fg-faint" strokeWidth={1.5} />
         </svg>
-        A change tried and not kept
+        Not kept
       </span>
     </span>
   );

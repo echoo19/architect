@@ -1,10 +1,16 @@
-import type { Correction, CorrectionProposal, Improvement } from '@architect/shared';
+import {
+  CodedError,
+  type Correction,
+  type CorrectionProposal,
+  type Improvement,
+} from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { fromBefore, typeChanges } from '../../../src/renderer/src/flow/improve/ImprovementView';
 import { phaseView } from '../../../src/renderer/src/flow/train/phase';
 import {
   budgetLine,
   canApply,
+  capsLine,
   canQueue,
   correctionStatus,
   evidenceText,
@@ -93,24 +99,33 @@ describe('a proposed lesson', () => {
     );
   });
 
-  it("says why none could be proposed in the app's words", () => {
-    expect(
-      proposeFailure(
-        "Refused a mentor call: its payload matched 2 locked test tasks, in the person's request.",
-        'Spark',
-      ),
-    ).toEqual({
+  it("says why none could be proposed in the app's words, from the guard that refused it", () => {
+    const leak = new CodedError(
+      'guard_split',
+      "Refused a mentor call: its payload matched 2 locked test tasks, in the person's request.",
+    );
+    expect(proposeFailure(leak, 'Spark', 0.25)).toEqual({
       // A refusal, not a fault: the same exchange is refused however it is described, so it
       // isn't offered again.
-      title: "Spark can't read this exchange",
-      text: 'It quotes a task from its final test, which Spark must never see. Nothing was sent.',
+      title: 'Not shared',
+      text: 'It matches a question from the final test, which Spark must never see.',
+      details: leak.message,
       retry: false,
     });
-    const budget =
-      'Reading this exchange could cost up to $0.31, more than the $0.25 a correction may.';
-    expect(proposeFailure(budget, 'Spark')).toEqual({
+    const cost = new CodedError(
+      'guard_budget',
+      'Reading this exchange could cost up to $0.31, more than the $0.25 a correction may.',
+    );
+    expect(proposeFailure(cost, 'Spark', 0.25)).toEqual({
+      title: 'Too long to review',
+      text: 'Reading it would cost more than the $0.25 limit. Shorten your note, or flag a shorter answer.',
+      details: cost.message,
+      retry: true,
+    });
+    // Any other failure keeps its own message, and the note to send again.
+    expect(proposeFailure(new Error('Spark is busy.'), 'Spark', 0.25)).toEqual({
       title: "Couldn't propose a lesson",
-      text: budget,
+      text: 'Spark is busy.',
       retry: true,
     });
   });
@@ -122,7 +137,7 @@ describe('a proposed lesson', () => {
 });
 
 describe('the flagged answers', () => {
-  it('count what waits for the person and what is queued, and say where each stands', () => {
+  it('count the open ones at a glance, and say where each stands', () => {
     const list = [
       correction({ id: 'cor_a', status: 'proposed' }),
       correction({ id: 'cor_b', status: 'queued' }),
@@ -130,11 +145,14 @@ describe('the flagged answers', () => {
       correction({ id: 'cor_d', status: 'used', candidateVersion: 3 }),
       correction({ id: 'cor_e', status: 'discarded' }),
     ];
-    expect(flaggedSummary(list)).toBe('1 waiting for you · 2 in the queue');
+    expect(flaggedSummary(list)).toBe('3 flagged answers · 1 to review');
+    expect(flaggedSummary([correction({ id: 'cor_f', status: 'queued' })])).toBe(
+      '1 flagged answer',
+    );
     expect(flaggedSummary([])).toBeNull();
     expect(list.map((item) => correctionStatus(item, true))).toEqual([
-      'Waiting for you',
-      'In the queue',
+      'To review',
+      'Saved for next improve',
       'Being taught',
       'Taught in version 3',
       'Discarded',
@@ -145,17 +163,18 @@ describe('the flagged answers', () => {
   });
 });
 
-describe('Improve agent', () => {
-  it('states its budget from the job, with compute only when it may train', () => {
-    expect(budgetLine({ maxRounds: 10, maxMentorUsd: 5, maxWallMinutes: 240 }, 'Spark')).toBe(
-      '10 rounds, $5 of Spark and 4 h',
+describe('Improve', () => {
+  it('states its limits from the job, with compute only when it may train', () => {
+    const budget = { maxRounds: 10, maxMentorUsd: 5, maxWallMinutes: 240 };
+    expect(budgetLine(budget)).toBe('up to $5 and 4 hours');
+    expect(capsLine(budget, 'Spark')).toBe(
+      'Stops at $5 of Spark, 4 hours or 10 rounds, whichever comes first.',
     );
-    expect(
-      budgetLine(
-        { maxRounds: 4, maxMentorUsd: 2.5, maxWallMinutes: 90, maxComputeUsd: 2.7 },
-        'Spark',
-      ),
-    ).toBe('4 rounds, $2.50 of Spark, $2.70 of compute and 1 h 30 min');
+    const training = { maxRounds: 1, maxMentorUsd: 2.5, maxWallMinutes: 90, maxComputeUsd: 2.7 };
+    expect(budgetLine(training)).toBe('up to $2.50 and $2.70 of compute and 1 h 30 min');
+    expect(capsLine(training, 'Spark')).toBe(
+      'Stops at $2.50 of Spark, $2.70 of compute, 1 h 30 min or 1 round, whichever comes first.',
+    );
   });
 
   it('finds the improvement still going', () => {

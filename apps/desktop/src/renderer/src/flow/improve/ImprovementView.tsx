@@ -54,7 +54,7 @@ interface ImprovementViewProps {
 /**
  * What an improvement changed: its new version's score on the check tasks against the version it
  * started from, per task type what got better and what didn't, what it spent, the lessons it was
- * taught, and whether the new version may be promoted. It never takes the final test, and says so.
+ * taught, and whether the new version may be used. It never takes the final test, and says so.
  */
 export function ImprovementView({
   improvement,
@@ -76,8 +76,8 @@ export function ImprovementView({
   return (
     <>
       <div className="flex flex-col gap-3">
-        {/* A candidate hasn't passed anything yet, so its badge is plain. */}
-        <Badge className="self-start">{made ? 'Candidate' : 'No new version'}</Badge>
+        {/* A new version hasn't passed anything yet, so its badge is plain. */}
+        <Badge className="self-start">{made ? 'Not in use yet' : 'No new version'}</Badge>
         <Heading as="h1" size="display">
           {heading}
         </Heading>
@@ -93,12 +93,12 @@ export function ImprovementView({
         <div className="flex flex-col gap-0.5">
           <span className="text-fg">
             {promotion.allowed
-              ? `You can promote version ${candidateVersion}`
-              : 'Nothing to promote'}
+              ? `You can use version ${candidateVersion}`
+              : 'No new version to use'}
           </span>
           <span className="text-fg-secondary text-pretty">
             {promotion.allowed
-              ? `Version ${improvement.fromVersion} answers until you do, and stays so you can roll back.`
+              ? `Version ${improvement.fromVersion} keeps answering until you do, and stays so you can go back to it.`
               : promotion.reason}
           </span>
         </div>
@@ -108,7 +108,7 @@ export function ImprovementView({
         <Stat
           className="bg-panel p-[22px]"
           value={dev.after ? formatRate(dev.after) : dev.before ? formatRate(dev.before) : '–'}
-          label="of check tasks right"
+          label="right on check tasks"
           note={
             <Lines
               lines={[
@@ -152,7 +152,11 @@ export function ImprovementView({
             tone="student"
           />
           <TypeSection
-            title="What didn't improve"
+            title={
+              notBetter.every((change) => change.after.pass === change.before.pass)
+                ? 'Unchanged'
+                : 'Unchanged or worse'
+            }
             changes={notBetter}
             empty="Every task type scored better."
             tone="fg"

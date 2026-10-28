@@ -174,20 +174,17 @@ export function harmSentence(experiment: Experiment, job: Job): string | null {
 }
 
 /**
- * How a round's change ended, in a few words for its line in a list, from its experiment: what a
- * rejected change harmed or the gate it failed, a reverted one's too-small gain, an invalid one
- * never tried, a stopped one never scored. A kept change's numbers say it, so it has none.
+ * What a round's list line adds to its outcome, in a few words, from its experiment: what a
+ * change that made things worse harmed, or the rule it broke. The other outcomes say all of it in
+ * their own words, so they add nothing.
  */
 export function outcomeNote(experiment: Experiment, job: Job): string | null {
   switch (experiment.disposition) {
     case 'kept':
-      return null;
     case 'reverted':
-      return 'Gain too small to keep';
     case 'invalid':
-      return "Couldn't be tried";
     case 'stopped':
-      return 'Not scored';
+      return null;
     case 'rejected': {
       const failed = experiment.gates.find((gate) => !gate.passed);
       if (failed) return `Failed the ${GATES[failed.gate].toLowerCase()} check`;

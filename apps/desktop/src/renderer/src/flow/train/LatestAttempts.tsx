@@ -1,6 +1,7 @@
 import type { Job } from '@architect/shared';
 import { EvidenceMark, Panel, PanelHeader, PanelRow } from '@architect/ui';
 import { Check, ChevronRight, X } from 'lucide-react';
+import { taskTitle } from '../format';
 import { typeLabel } from '../names';
 import type { RecentAttempt } from './run-state';
 
@@ -27,7 +28,7 @@ export function LatestAttempts({
         <PanelRow className="text-fg-muted">No attempts yet</PanelRow>
       ) : (
         <div className="overflow-x-auto">
-          <ul className="m-0 min-w-[680px] list-none p-0">
+          <ul className="m-0 min-w-[560px] list-none p-0">
             {shown.map((attempt) => (
               <li key={attempt.id}>
                 <AttemptRow
@@ -64,7 +65,7 @@ function AttemptRow({
     <button
       type="button"
       onClick={onOpen}
-      className="group grid min-h-[54px] w-full grid-cols-[20px_minmax(0,1fr)_280px_170px_14px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left font-mono text-sm transition-colors duration-150 hover:bg-row-hover"
+      className="group grid min-h-[54px] w-full grid-cols-[20px_minmax(0,1fr)_170px_14px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left text-sm transition-colors duration-150 hover:bg-row-hover"
     >
       {passed ? (
         <Check
@@ -77,17 +78,17 @@ function AttemptRow({
       ) : (
         <X size={15} strokeWidth={2.2} className="text-fg-faint" role="img" aria-label="Failed" />
       )}
-      <span
-        className={
-          passed
-            ? 'line-clamp-2 break-words text-fg-soft'
-            : 'line-clamp-2 break-words text-fg-muted'
-        }
-      >
-        {attempt.prompt ?? attempt.taskId}
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className={passed ? 'truncate text-fg-soft' : 'truncate text-fg-muted'}>
+          {attempt.prompt ? taskTitle(attempt.prompt) : attempt.taskId}
+        </span>
+        {!passed && (
+          <span className="truncate text-xs text-fg-secondary" title={attempt.check.reason}>
+            {attempt.check.reason}
+          </span>
+        )}
       </span>
-      <Answer attempt={attempt} />
-      <span className="flex min-w-0 flex-col font-sans">
+      <span className="flex min-w-0 flex-col">
         <span className="truncate text-fg-secondary">{type}</span>
         <EvidenceMark kind={check ? 'check' : 'practice'} className="min-w-0 text-xs">
           <span className="truncate">{set}</span>
@@ -101,25 +102,5 @@ function AttemptRow({
         className="text-fg-faint opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
       />
     </button>
-  );
-}
-
-/**
- * A right answer as given; a wrong one struck through, with what the checker found wrong under
- * it. The checker's words fit any task, where the expected value can be a whole record.
- */
-function Answer({ attempt }: { attempt: RecentAttempt }) {
-  const { answerSummary, check } = attempt;
-  if (check.pass) return <span className="truncate text-fg">{answerSummary ?? 'Passed'}</span>;
-  if (!answerSummary) return <span className="truncate text-fg-muted">{check.reason}</span>;
-  return (
-    <span className="flex min-w-0 flex-col">
-      <span className="truncate text-fg-muted line-through decoration-fg-faint">
-        {answerSummary}
-      </span>
-      <span className="truncate font-sans text-fg-secondary" title={check.reason}>
-        {check.reason}
-      </span>
-    </span>
   );
 }

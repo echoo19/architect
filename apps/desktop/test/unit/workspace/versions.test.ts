@@ -13,8 +13,10 @@ import {
 } from '../../../src/renderer/src/install/labels';
 import {
   evaluationNote,
+  MOVE_WORDS,
   moveFor,
   promoteCaution,
+  standing,
   versionOrigin,
 } from '../../../src/renderer/src/workspace/settings/versions';
 
@@ -60,11 +62,23 @@ describe('version moves', () => {
 
   it('says where a version came from', () => {
     expect(versionOrigin(version({ version: 1 }))).toBeNull();
-    expect(versionOrigin(version({ version: 2, parent: 1 }))).toBe('from v1');
+    expect(versionOrigin(version({ version: 2, parent: 1 }))).toBe('from version 1');
     expect(versionOrigin(version({ version: 3, imported: true }))).toBe('imported');
     expect(versionOrigin(version({ version: 4, parent: 3, imported: true }))).toBe(
-      'from v3, imported',
+      'from version 3, imported',
     );
+  });
+
+  it('names what each version is to the agent, and each move in plain words', () => {
+    expect(standing(version({ version: 2, active: true }), 2)).toBe('In use');
+    expect(standing(version({ version: 4, state: 'candidate' }), 2)).toBe('New, not in use yet');
+    expect(standing(version({ version: 3 }), 2)).toBe('Newer, not in use');
+    expect(standing(version({ version: 1 }), 2)).toBe('Earlier version');
+    expect(standing(version({ version: 5, state: 'rejected' }), 2)).toBe('Set aside');
+    expect(MOVE_WORDS.promote.action).toBe('Use this version');
+    expect(MOVE_WORDS.rollback.action).toBe('Go back to this version');
+    expect(MOVE_WORDS.promote.title(3)).toBe('Use version 3?');
+    expect(MOVE_WORDS.rollback.title(2)).toBe('Go back to version 2?');
   });
 });
 
@@ -93,7 +107,7 @@ describe('promoting a version its final test did not vouch for', () => {
       score: { pass: 57, total: 60, target: 0.9 },
     });
     expect(promoteCaution(hosted)).toBe(
-      'Version 2 took its final test on a hosted copy, not on a computer like this one.',
+      'Version 2 took its final test online, not on a computer like this one.',
     );
   });
 
@@ -109,8 +123,8 @@ describe('promoting a version its final test did not vouch for', () => {
       score: { pass: 57, total: 60, target: 0.9 },
     });
     expect(evaluationNote(short)).toBe('Below its 90% target');
-    expect(evaluationNote(hosted)).toBe('Tested on a hosted copy');
-    expect(evaluationNote(version({ version: 3 }))).toBe('Ready');
+    expect(evaluationNote(hosted)).toBe('Final test run online');
+    expect(evaluationNote(version({ version: 3 }))).toBe('Passed its final test');
     expect(evaluationNote(version({ version: 4, evaluation: 'unevaluated' }))).toBe(
       'No final test yet',
     );

@@ -82,3 +82,44 @@ export function lineCounts(patch: string): string {
     .filter(Boolean)
     .join(' · ');
 }
+
+/** The unique names behind a set of paths: `tools/a.json` and `tools/a.js` are one helper. */
+function distinct(paths: readonly string[], stem: (path: string) => string): number {
+  return new Set(paths.map(stem)).size;
+}
+
+function counted(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
+}
+
+/**
+ * What a change touched, in plain words, from the paths of its files under the harness's own
+ * layout: "its instructions, 1 skill and 2 worked examples". Empty when no file changed.
+ */
+export function changeSummary(files: readonly { path: string }[]): string {
+  const paths = files.map((file) => file.path);
+  const under = (folder: string) => paths.filter((path) => path.startsWith(`${folder}/`));
+  const skills = distinct(under('skills'), (path) => path.split('/')[1] ?? path);
+  const helpers = distinct(under('tools'), (path) => path.replace(/\.[^./]+$/, ''));
+  const examples = under('examples').length;
+  const settings = paths.filter((path) => /^(retrieval|decoding|guardrails)\.yaml$/.test(path));
+  const other = paths.filter(
+    (path) =>
+      path !== 'AGENTS.md' &&
+      path !== 'harness.yaml' &&
+      !/^(skills|tools|examples)\//.test(path) &&
+      !settings.includes(path),
+  );
+  const parts = [
+    paths.includes('AGENTS.md') && 'its instructions',
+    skills > 0 && counted(skills, 'skill'),
+    helpers > 0 && counted(helpers, 'helper'),
+    examples > 0 && counted(examples, 'worked example'),
+    settings.length > 0 && 'its settings',
+    other.length > 0 && counted(other.length, 'other file'),
+  ].filter((part): part is string => typeof part === 'string');
+  if (parts.length === 0) return '';
+  return parts.length === 1
+    ? (parts[0] ?? '')
+    : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`;
+}

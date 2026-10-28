@@ -14,7 +14,7 @@ import { flowApi } from '../../api/client';
 import { mentoringApi, mentoringKeys } from '../../api/mentoring';
 import { useQuery, type QueryState } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
-import { formatCost } from '../format';
+import { formatCost, taskTitle } from '../format';
 import { typeLabel } from '../names';
 import { lessonOrigin, lessonStatus } from './evidence-words';
 import { answerOf, correctionSteps, lessonNotes, takeoverStep } from './lesson-steps';
@@ -60,7 +60,9 @@ export function LessonDrawerContent({
   const round = lesson.round === null ? 'Practice task' : `Practice task, round ${lesson.round}`;
   return (
     <DrawerContent
-      title={lesson.prompt ?? (taskId ? `Task ${taskId}` : 'Worked example')}
+      title={
+        lesson.prompt ? taskTitle(lesson.prompt) : taskId ? `Task ${taskId}` : 'Worked example'
+      }
       onBack={onBack}
       subtitle={
         <>

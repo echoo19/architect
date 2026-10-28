@@ -26,16 +26,14 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 
 /**
  * A lesson the mentor proposed from a flagged answer: its kind and the lesson, what the person
- * said, the change it would make, whether it needs training, the mentor's reason, and what
+ * said, the change it would make, whether it needs practice, the mentor's reason, and what
  * reading it cost. With `onEdit`, the person can say more and send it again.
  */
 export function ProposalView({
   correction,
-  capUsd,
   onEdit,
 }: {
   correction: Correction;
-  capUsd: number;
   /** Goes back to the form, with what was written kept, to say more and send it again. */
   onEdit?: () => void;
 }) {
@@ -57,13 +55,10 @@ export function ProposalView({
             </span>
           )}
         </Fact>
-        <Fact label="Needs training">{TRAINING_NEED[proposal.kind]}</Fact>
+        <Fact label="Needs practice">{TRAINING_NEED[proposal.kind]}</Fact>
         <Fact label="Why">{proposal.reason}</Fact>
         <Fact label="Cost">
-          <span className="font-mono tabular-nums">
-            {costLabel(correction.costUsd)}
-            <span className="text-fg-muted"> / {formatUsd(capUsd)}</span>
-          </span>
+          <span className="font-mono tabular-nums">{costLabel(correction.costUsd)}</span>
         </Fact>
       </dl>
       {onEdit && (
@@ -79,15 +74,15 @@ export function ProposalView({
 type Action = 'queue' | 'apply' | 'discard';
 
 const FAILED: Record<Action, string> = {
-  queue: "Couldn't add it to the queue",
+  queue: "Couldn't save it for the next improve",
   apply: "Couldn't save the new version",
   discard: "Couldn't discard it",
 };
 
 /**
- * The choices for a lesson that waits for the person: discard it, queue it for Improve agent,
+ * The choices for a lesson that waits for the person: discard it, save it for the next improve,
  * or, for an instruction, save it at once as a new version that hasn't taken a final test. The
- * version chats run on never changes here: only Promote does that.
+ * version chats run on never changes here: only using a version does that.
  */
 export function ProposalActions({
   graduateId,
@@ -159,7 +154,7 @@ export function ProposalActions({
           onClick={() => void act('queue')}
         >
           {busy !== 'queue' && <ListPlus size={15} strokeWidth={1.7} aria-hidden />}
-          Queue for Improve agent
+          Save for the next improve
         </Button>
       )}
       {applicable && (

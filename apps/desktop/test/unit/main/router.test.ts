@@ -1,4 +1,4 @@
-import { CodedError } from '@architect/shared';
+import { CodedError, GuardError } from '@architect/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import type { IpcResult } from '../../../src/common/ipc';
@@ -105,6 +105,29 @@ describe('IpcRouter', () => {
     expect(await call('reports:list', ['run_1'])).toEqual({
       ok: false,
       error: { message: 'Plain.' },
+    });
+    errors.mockRestore();
+  });
+
+  it('gives a failure the code of the guard that refused it, when the screens word that guard', async () => {
+    const { router, call } = setup();
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    router.registerHandlers('reports', {
+      get: () => {
+        throw new GuardError('split', 'The payload matched 1 locked test task.');
+      },
+      list: () => {
+        throw new GuardError('network', 'Refused.');
+      },
+      comparisons: () => null,
+    });
+    expect(await call('reports:get', ['run_1'])).toEqual({
+      ok: false,
+      error: { message: 'The payload matched 1 locked test task.', code: 'guard_split' },
+    });
+    expect(await call('reports:list', ['run_1'])).toEqual({
+      ok: false,
+      error: { message: 'Refused.' },
     });
     errors.mockRestore();
   });

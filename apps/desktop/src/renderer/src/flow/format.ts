@@ -63,6 +63,22 @@ export function fileName(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
 }
 
+/** How long a task's one-line title may run before it is cut. */
+const TITLE_CHARS = 90;
+
+/**
+ * A task's request as one short line: without the day and time it opens with, and the answer
+ * format it closes on, so the line says what is asked. The whole request stays behind Details.
+ */
+export function taskTitle(prompt: string): string {
+  const flat = prompt.replace(/\s+/g, ' ').trim();
+  const asked = flat
+    .replace(/^(?:Today is|It's|It is)\b[^.?!]*\b\d{4}\b[^.?!]*[.?!]\s+/i, '')
+    .replace(/\s*End with\b.*$/i, '')
+    .trim();
+  return clip(asked === '' ? flat : asked, TITLE_CHARS);
+}
+
 /** Shortens text to one line's worth, ending on a whole word where it can. */
 export function clip(text: string, max: number): string {
   const flat = text.replace(/\s+/g, ' ').trim();

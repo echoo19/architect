@@ -88,7 +88,7 @@ export function phaseView(
         stage: null,
         motion: 'still',
         frozen: true,
-        text: `${student} finished the final test`,
+        text: `Training is done, and ${student} took the final test`,
       };
     case 'stopped':
       return { stage: null, motion: 'still', frozen: true, text: 'Training stopped' };

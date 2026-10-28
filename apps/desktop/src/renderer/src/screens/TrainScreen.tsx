@@ -14,7 +14,6 @@ import { rate } from '../flow/format';
 import { modelNames, typeLabel } from '../flow/names';
 import { Apprenticeship } from '../flow/train/Apprenticeship';
 import { CurrentRound } from '../flow/train/CurrentRound';
-import { providerName } from '../flow/define/hosted';
 import { draftRoundOf, setupOf } from '../flow/train/draft';
 import { Examples } from '../flow/train/Examples';
 import { LatestAttempts } from '../flow/train/LatestAttempts';
@@ -311,9 +310,7 @@ function useReportWhenFinished(
 /** Where the student is running now: a hosted copy only practices; the final test runs here. */
 function studentPlace({ run, job }: LiveRun): string {
   const testing = run.status === 'testing' || run.phase === 'testing';
-  if (!testing && job.student.trainOn === 'hosted') {
-    return `on ${job.student.hosted ? providerName(job.student.hosted) : 'a hosted copy'}`;
-  }
+  if (!testing && job.student.trainOn === 'hosted') return 'online';
   return `on ${deviceInSentence(currentPlatform())}`;
 }
 
@@ -362,7 +359,7 @@ function TrainBoard({
               {improves ? 'Improving stopped on an error' : 'Training stopped on an error'}
             </span>
             <span className="text-fg-secondary text-pretty">
-              {run.error ?? 'The engine reported a failure without a message.'}
+              {run.error ?? 'It stopped without saying why.'}
             </span>
           </div>
         </div>

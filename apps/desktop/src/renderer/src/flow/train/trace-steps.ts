@@ -2,6 +2,7 @@ import {
   describeCall,
   describeResult,
   describeRowsRead,
+  filesRead,
   type Trace,
   type TraceStep,
 } from '@architect/shared';
@@ -98,13 +99,22 @@ export interface CallLine {
   failed: boolean;
 }
 
+/**
+ * What a call acted on. Code that reads files names them; code that reads none is left to the
+ * raw call under it, since its first line is source, not a thing a person can read at a glance.
+ */
+function callTarget(step: ToolTraceStep): string {
+  if (step.name !== 'run') return describeCall(step.name, step.arguments);
+  return filesRead(typeof step.arguments.code === 'string' ? step.arguments.code : '').join(', ');
+}
+
 export function callLine({ step, skill }: PlaybackCall): CallLine {
   const failed = step.error !== undefined;
   const words = stepWords({
     id: step.callId,
     kind: skill === undefined ? 'tool' : 'skill',
     name: skill ?? step.name,
-    detail: skill ?? describeCall(step.name, step.arguments),
+    detail: skill ?? callTarget(step),
     status: failed ? 'error' : 'done',
   });
   let meta: string;

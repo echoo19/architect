@@ -5,6 +5,7 @@ import { Check, ChevronRight, X } from 'lucide-react';
 import type { QueryState } from '../../api/query';
 import type { MentoringRecords } from '../../api/mentoring';
 import { ProblemState } from '../../components/ProblemState';
+import { taskTitle } from '../format';
 import { typeLabel } from '../names';
 import { lessonOrigin, lessonVerdict } from './evidence-words';
 
@@ -136,8 +137,8 @@ function ExampleRow({
         <span className={passed ? 'truncate text-fg-soft' : 'truncate text-fg-muted'}>
           {lessonVerdict(lesson)}
         </span>
-        <span className="truncate font-mono text-xs text-fg-muted">
-          {lesson.prompt ?? lesson.taskType}
+        <span className="truncate text-xs text-fg-muted">
+          {lesson.prompt ? taskTitle(lesson.prompt) : lesson.taskType}
         </span>
       </span>
       <span className="flex min-w-0 flex-col">

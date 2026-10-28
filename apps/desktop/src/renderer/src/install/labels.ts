@@ -218,3 +218,72 @@ export function fixesFor(installation: Installation, manifest: PackageManifest):
   fixes.push({ kind: 'check' });
   return fixes;
 }
+
+/** How this computer's own checks are titled in the agent's settings and on its results. */
+export const WORKS_HERE_TITLE = 'Works on this computer';
+
+/** What stands in the way of an agent here, said plainly, with the engine's sentences kept apart. */
+export interface InstallProblem {
+  /** One plain sentence: what is missing or wrong, with no hashes, builds or file names. */
+  cause: string;
+  /** The engine's own sentences for the checks that failed, for whoever opens Details. */
+  details: string[];
+}
+
+export interface InstallProblemContext {
+  /** The model the agent was made with, as people call it: "Glimmer". */
+  model: string;
+  /** What that model weighs on disk, when the package says. */
+  baseBytes?: number | undefined;
+}
+
+/**
+ * Why an agent isn't ready on this computer, in one plain sentence, from the fields of the check
+ * that failed and never from its words: a model of another build, one not downloaded yet, a
+ * runtime that doesn't answer, llama.cpp missing, a folder not chosen, a tool or the setup that
+ * won't load. Null when no check failed.
+ */
+export function installProblem(
+  installation: Pick<Installation, 'checks'>,
+  { model, baseBytes }: InstallProblemContext,
+): InstallProblem | null {
+  const failed = installation.checks.filter((check) => check.status === 'failed');
+  const first = failed[0];
+  if (!first) return null;
+  const size = baseBytes === undefined ? '' : ` (${formatBytes(baseBytes)})`;
+  const say = (cause: string): InstallProblem => ({
+    cause,
+    details: failed.map((check) => check.detail),
+  });
+  switch (first.kind) {
+    case 'compatibility':
+      return say("This computer can't run it.");
+    case 'harness_valid':
+      return say("Its setup doesn't load.");
+    case 'tools_load':
+      return say("One of its tools doesn't load.");
+    case 'resources_bound':
+      return say(
+        first.folders && first.folders.length > 1
+          ? "Some of the folders it needs aren't ready."
+          : "A folder it needs isn't ready.",
+      );
+    case 'adapter_runtime':
+      return say('Needs llama.cpp to run its trained weights.');
+    case 'model_available':
+      switch (first.modelProblem) {
+        case 'other_build':
+          return say(`Needs a different copy of ${model}${size}.`);
+        case 'not_downloaded':
+          return say(`${model} isn't downloaded yet${size}.`);
+        case 'wrong_runtime':
+          return say(`Its trained weights need Ollama's copy of ${model}.`);
+        default:
+          return say(`${model} isn't answering.`);
+      }
+    case 'model_responds':
+      return say(`${model} didn't answer a test question.`);
+    default:
+      return say("Something it needs isn't ready.");
+  }
+}

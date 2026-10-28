@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import type { ListedAttempt, Trace } from '@architect/shared';
-import { cn, Disclosure, DrawerContent, EvidenceMark, Skeleton } from '@architect/ui';
+import { cn, DetailList, Disclosure, DrawerContent, EvidenceMark, Skeleton } from '@architect/ui';
 import { Check, CircleX } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { useQuery } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
-import { formatAnswerTime } from '../format';
+import { formatAnswerTime, taskTitle } from '../format';
 import type { ModelNames } from './phase';
 import type { StepNote } from './lesson-steps';
 import { Playback } from './Playback';
@@ -60,7 +60,7 @@ export function TraceDrawerContent({
   const trace = useQuery(`trace:${attempt.id}`, () => flowApi.trace(attempt.id));
   return (
     <DrawerContent
-      title={attempt.prompt ?? `Task ${attempt.taskId}`}
+      title={attempt.prompt ? taskTitle(attempt.prompt) : `Task ${attempt.taskId}`}
       onBack={onBack}
       subtitle={
         <>
@@ -102,17 +102,17 @@ export function TraceDrawerContent({
   );
 }
 
-/** About what a drawer title shows in its three lines; a longer request folds out in full. */
-const TITLE_CHARS = 180;
-
-/** A task's request too long for the drawer's title, in full under a fold. */
+/** A task's request when its title says less than it: the whole of it, under Details. */
 export function WholeRequest({ prompt }: { prompt: string }) {
-  if (prompt.length <= TITLE_CHARS) return null;
+  if (taskTitle(prompt) === prompt) return null;
   return (
-    <Disclosure label="The whole request" className="-mt-3">
-      <p className="m-0 whitespace-pre-wrap break-words rounded-md bg-well px-3 py-2 text-sm text-fg-soft">
-        {prompt}
-      </p>
+    <Disclosure label="Details" className="-mt-3">
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm text-fg-muted">The whole request</span>
+        <p className="m-0 whitespace-pre-wrap break-words rounded-md bg-well px-3 py-2 text-sm text-fg-soft">
+          {prompt}
+        </p>
+      </div>
     </Disclosure>
   );
 }
@@ -138,15 +138,15 @@ export function TraceFooter({ trace }: { trace: Trace }) {
           {[stopped, trace.error].filter(Boolean).join(' ')}
         </p>
       )}
-      <p className="m-0 flex flex-wrap gap-x-2 border-t border-line-card pt-4 text-sm tabular-nums text-fg-muted">
-        <span>
-          Ran on <span className="font-mono text-xs leading-5">{trace.studentModel}</span>
-        </span>
-        <span aria-hidden>·</span>
-        <span>{formatAnswerTime(trace.latencyMs)} in all</span>
-        <span aria-hidden>·</span>
-        <span>{tokens.toLocaleString('en-US')} tokens of text read and written</span>
-      </p>
+      <Disclosure label="Details" className="border-t border-line-card pt-2">
+        <DetailList
+          items={[
+            { label: 'Model', value: trace.studentModel },
+            { label: 'Time', value: `${formatAnswerTime(trace.latencyMs)} in all` },
+            { label: 'Text read and written', value: `${tokens.toLocaleString('en-US')} tokens` },
+          ]}
+        />
+      </Disclosure>
     </>
   );
 }
@@ -208,14 +208,9 @@ export function VerdictBox({
         </div>
       </div>
       {rows.length > 0 && (
-        <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 pl-[26px] text-sm">
-          {rows.map((row) => (
-            <div key={row.label} className="contents">
-              <dt className="text-fg-muted">{row.label}</dt>
-              <dd className="m-0 break-words font-mono">{row.value}</dd>
-            </div>
-          ))}
-        </dl>
+        <Disclosure label="Details" className="pl-[26px]">
+          <DetailList items={rows} />
+        </Disclosure>
       )}
       {children}
     </div>

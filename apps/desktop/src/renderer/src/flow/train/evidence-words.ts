@@ -70,40 +70,49 @@ export const INTERVENTIONS: Record<InterventionType, Named & { meaning: string }
 /** A blank start's first round: the mentor's whole first setup. */
 export const FIRST_DRAFT: Named = { label: 'First draft', icon: FilePen };
 
-/** How a round's change ended, with what the word means for a tooltip. */
+/**
+ * How a round's change ended: five outcomes that are never run together, since the agent holds
+ * only what was kept and the other four say why it doesn't. `label` fits a list; `headline` leads
+ * the round's own view; `meaning` is for a tooltip.
+ */
 export const DISPOSITIONS: Record<
   ExperimentDisposition,
-  Named & { tone: string; meaning: string }
+  Named & { headline: string; tone: string; meaning: string }
 > = {
   kept: {
     label: 'Kept',
+    headline: 'Kept',
     icon: Check,
     tone: 'text-student',
-    meaning: 'It gained enough on the check tasks and broke no rule, so the agent keeps it',
+    meaning: 'It gained enough on the check tasks and broke no rule, so the agent keeps it.',
   },
   reverted: {
-    label: 'Reverted',
+    label: 'No gain',
+    headline: 'Undone, no gain',
     icon: Undo2,
     tone: 'text-fg-muted',
-    meaning: 'It did no harm but gained too little, so it was undone',
+    meaning: "It didn't gain enough on the check tasks, so it was undone.",
   },
   rejected: {
-    label: 'Rejected',
+    label: 'Made it worse',
+    headline: 'Undone, made things worse',
     icon: Ban,
     tone: 'text-danger',
-    meaning: 'It made the check tasks worse or failed a check, so it was thrown out',
+    meaning: 'It made the check tasks worse or broke a rule, so it was undone.',
   },
   invalid: {
-    label: 'Invalid',
+    label: "Couldn't be tried",
+    headline: "Couldn't be tried",
     icon: CircleSlash,
     tone: 'text-fg-muted',
-    meaning: "It couldn't be tried in this run, so nothing changed",
+    meaning: "It couldn't be tried in this run, so nothing changed.",
   },
   stopped: {
     label: 'Stopped',
+    headline: 'Stopped',
     icon: OctagonPause,
     tone: 'text-fg-muted',
-    meaning: 'Training ended before it was scored, so the agent never took it',
+    meaning: 'Training ended before it was scored, so the agent never took it.',
   },
 };
 

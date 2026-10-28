@@ -30,13 +30,15 @@ export function StatusDot({ tone = 'student', label, size = 7, className }: Stat
   );
 }
 
-export type BadgeTone = 'outline' | 'neutral' | 'student' | 'danger';
+export type BadgeTone = 'outline' | 'neutral' | 'student' | 'danger' | 'alert';
 
 const badgeTone: Record<BadgeTone, string> = {
   outline: 'border border-line-control text-fg-secondary',
   neutral: 'border border-line-control bg-card text-fg-soft',
   student: 'bg-student-tint font-medium text-student',
   danger: 'border border-danger-line text-danger',
+  /** Bad news as loud as the good: a filled tint where `student` is a filled blue. */
+  alert: 'bg-danger-tint font-medium text-danger',
 };
 
 export type MarkState = 'ok' | 'attention' | 'blocked' | 'off' | 'working';
@@ -121,7 +123,7 @@ export function Badge({ tone = 'outline', size = 'md', icon, children, className
       className={cn(
         'inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-3 text-sm',
         size === 'md' ? 'h-7' : 'h-[30px]',
-        icon && (tone === 'student' ? 'gap-1.5 pl-2.5' : 'gap-2'),
+        icon && (tone === 'student' || tone === 'alert' ? 'gap-1.5 pl-2.5' : 'gap-2'),
         badgeTone[tone],
         className,
       )}
