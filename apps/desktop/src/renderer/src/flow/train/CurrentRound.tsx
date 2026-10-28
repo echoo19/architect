@@ -17,7 +17,9 @@ function studentLine(
 ): string {
   const { run, job } = live;
   if (run.status === 'testing' || run.phase === 'testing') {
-    return `Taking the ${job.splits.test}-task final test on its own.`;
+    return live.improves
+      ? 'Done practising. What it kept becomes its new version.'
+      : `Taking the ${job.splits.test}-task final test on its own.`;
   }
   if (draft) {
     return round?.status === 'evaluating'
@@ -40,7 +42,7 @@ function studentLine(
 function mentorLine(live: LiveRun, round: Round | null, names: ModelNames, draft: boolean): string {
   const { run } = live;
   if (run.status === 'testing' || run.phase === 'testing') {
-    return 'Disconnected. The final test runs without help.';
+    return live.improves ? 'Finished teaching.' : 'Disconnected. The final test runs without help.';
   }
   if (!round) return `Starts teaching once ${names.student} has taken the check tasks.`;
   if (round.diagnosis) return round.diagnosis;

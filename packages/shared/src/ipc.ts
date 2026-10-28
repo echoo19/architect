@@ -5,6 +5,8 @@ import type {
   Improvement,
   ImprovementStart,
   ImproveOptions,
+  RunImprovement,
+  TeachingOverview,
 } from './corrections';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
@@ -230,6 +232,11 @@ export interface RunDetail {
   /** Most recent attempts first, train and dev only. */
   recentAttempts: (Attempt & { prompt?: string })[];
   lineage: LineageEntry[];
+  /**
+   * Set when the run is Improve agent's: the agent and version it improves and the lessons it
+   * took. Such a run ends in a candidate version measured on dev, never in a locked test.
+   */
+  improves?: RunImprovement;
 }
 
 export interface FileDiff {
@@ -431,6 +438,16 @@ export interface ArchitectApi {
     improve(graduateId: string, options: ImproveOptions): Promise<ImprovementStart>;
     /** Newest first: what each improvement changed and whether its candidate may be promoted. */
     improvements(graduateId: string): Promise<Improvement[]>;
+    /**
+     * Whether the agent can be taught on this computer and why not, who reads a flagged answer
+     * and the most that may cost, and the budget Improve agent would keep to. Sends nothing.
+     */
+    overview(graduateId: string): Promise<TeachingOverview>;
+    /**
+     * Lets the agent's job send flagged answers to the mentor, each one still only once the
+     * person agrees to it, or keeps them on this computer again.
+     */
+    shareCorrections(graduateId: string, allowed: boolean): Promise<TeachingOverview>;
   };
   reports: {
     /** The run's report card from one student endpoint: by default, where its locked test ran. */

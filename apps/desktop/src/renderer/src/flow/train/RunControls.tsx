@@ -5,6 +5,7 @@ import { ArrowRight, Pause, Play, Square } from 'lucide-react';
 import { architect } from '../../api/client';
 import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
+import { useAgentSettingsUi } from '../../workspace/settings/agentSettingsUi';
 import { modelNames } from '../names';
 import { setupOf } from './draft';
 import { hasKeptChange, type LiveRun } from './run-state';
@@ -15,11 +16,15 @@ interface Request {
   from: RunStatus;
 }
 
-/** Pause or resume and stop while training; the way forward once it has ended. */
+/**
+ * Pause or resume and stop while training; the way forward once it has ended. An improvement
+ * can be stopped at any point, even while it writes its new version, and ends on what changed.
+ */
 export function RunControls({ live, onStop }: { live: LiveRun; onStop: () => void }) {
-  const { run } = live;
+  const { run, improves } = live;
   const [request, setRequest] = useState<Request | null>(null);
   const pending = request?.from === run.status ? request.action : null;
+  const showSettings = useAgentSettingsUi((state) => state.show);
 
   const ask = async (action: Request['action']) => {
     setRequest({ action, from: run.status });
@@ -32,7 +37,12 @@ export function RunControls({ live, onStop }: { live: LiveRun; onStop: () => voi
 
   switch (run.status) {
     case 'finished':
-      return (
+      return improves ? (
+        <Button size="md" variant="primary" onClick={() => navigate(paths.improvement(run.id))}>
+          See what changed
+          <ArrowRight size={15} strokeWidth={2} aria-hidden />
+        </Button>
+      ) : (
         <Button size="md" variant="primary" onClick={() => navigate(paths.report(run.id))}>
           See the report card
           <ArrowRight size={15} strokeWidth={2} aria-hidden />
@@ -40,7 +50,17 @@ export function RunControls({ live, onStop }: { live: LiveRun; onStop: () => voi
       );
     case 'stopped':
     case 'failed':
-      return (
+      return improves ? (
+        <Button
+          size="md"
+          onClick={() => {
+            navigate(paths.home());
+            showSettings(improves.graduateId, 'teaching');
+          }}
+        >
+          Back to Teaching
+        </Button>
+      ) : (
         <Button size="md" onClick={() => navigate(paths.define(run.jobId))}>
           Back to the job
         </Button>
@@ -76,7 +96,7 @@ export function RunControls({ live, onStop }: { live: LiveRun; onStop: () => voi
           {pending === 'pause' ? 'Pausing' : 'Pause'}
         </Button>
       )}
-      {run.status !== 'testing' && (
+      {(run.status !== 'testing' || improves) && (
         <Button size="md" onClick={onStop}>
           <Square size={12} fill="currentColor" strokeWidth={0} aria-hidden />
           Stop

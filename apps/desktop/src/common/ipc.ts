@@ -94,6 +94,8 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     list: true,
     improve: true,
     improvements: true,
+    overview: true,
+    shareCorrections: true,
   },
   reports: { get: true, list: true },
   graduates: {

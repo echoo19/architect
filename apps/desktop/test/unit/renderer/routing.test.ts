@@ -17,6 +17,7 @@ describe('parsePath', () => {
     expect(parsePath('/jobs/job_1/define')).toEqual({ name: 'define', jobId: 'job_1' });
     expect(parsePath('/runs/run_1/train')).toEqual({ name: 'train', runId: 'run_1' });
     expect(parsePath('/runs/run_1/report')).toEqual({ name: 'report', runId: 'run_1' });
+    expect(parsePath(paths.improvement('run_1'))).toEqual({ name: 'improvement', runId: 'run_1' });
   });
 
   it('round-trips ids through the path builders', () => {

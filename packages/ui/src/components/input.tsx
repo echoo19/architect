@@ -1,4 +1,4 @@
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { cn } from '../lib/cn';
 
 const field =
@@ -18,6 +18,30 @@ export interface TextareaProps extends ComponentProps<'textarea'> {
    * shows focus on its container instead.
    */
   variant?: 'field' | 'bare';
+}
+
+export interface FieldProps {
+  label: string;
+  /** The id of the control the label names. */
+  htmlFor: string;
+  /** A word after the label in a quieter tone, such as "Optional". */
+  hint?: string;
+  /** The control, and anything that belongs under it. */
+  children: ReactNode;
+  className?: string;
+}
+
+/** A form control with its label above it, for a form laid out in a column. */
+export function Field({ label, htmlFor, hint, children, className }: FieldProps) {
+  return (
+    <div className={cn('flex flex-col gap-2', className)}>
+      <label htmlFor={htmlFor} className="flex items-baseline gap-2 text-fg">
+        {label}
+        {hint && <span className="text-sm text-fg-muted">{hint}</span>}
+      </label>
+      {children}
+    </div>
+  );
 }
 
 export function Textarea({ variant = 'field', className, ...props }: TextareaProps) {

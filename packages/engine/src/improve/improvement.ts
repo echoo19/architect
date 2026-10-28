@@ -4,6 +4,7 @@ import type {
   Harness,
   Improvement,
   ImproveOptions,
+  Run,
   RunImprovement,
   TrainedAdapter,
 } from '@architect/shared';
@@ -130,6 +131,24 @@ export function improvementLessons(state: RunState): Correction[] {
 }
 
 /**
+ * Puts the lessons an improvement took back in the teaching queue, as they were before it took
+ * them: only those still queued under it. Joins the caller's transaction.
+ */
+export function returnLessons(
+  store: EngineStore,
+  improves: RunImprovement,
+  runId: string,
+  at: string,
+): void {
+  for (const id of improves.corrections) {
+    const lesson = store.corrections.get(id);
+    if (lesson?.status !== 'queued' || lesson.runId !== runId) continue;
+    const { runId: _taken, ...rest } = lesson;
+    store.corrections.put({ ...rest, updatedAt: at });
+  }
+}
+
+/**
  * Ends an improvement: a candidate version of the same agent from its last kept change, its
  * lessons marked used, the run finished, in one transaction once the folder is written. The
  * active version is never touched. With no change kept there is no candidate, and the lessons
@@ -141,13 +160,8 @@ export async function proposeVersion(state: RunState): Promise<void> {
   const kept = state.rounds().filter(({ round }) => round.decision === 'kept').length;
   if (kept === 0) {
     const at = state.now();
-    const lessons = improvementLessons(state);
     const ended = store.transaction(() => {
-      for (const lesson of lessons) {
-        if (lesson.status !== 'queued' || lesson.runId !== runId) continue;
-        const { runId: _taken, ...rest } = lesson;
-        store.corrections.put({ ...rest, updatedAt: at });
-      }
+      returnLessons(store, improves, runId, at);
       return state.writeRun({ status: 'finished', phase: 'done', endedAt: at });
     });
     state.emit({ type: 'run.updated', run: ended });
@@ -292,7 +306,14 @@ function promotionOf(
     return { allowed: false, reason: 'It is still running.' };
   }
   if (candidate === null) {
-    return { allowed: false, reason: 'No change was kept, so there is nothing to promote.' };
+    const ended: Partial<Record<Run['status'], string>> = {
+      stopped: 'It was stopped before it made a version',
+      failed: 'It ended on an error before it made a version',
+    };
+    return {
+      allowed: false,
+      reason: `${ended[record.run.status] ?? 'No change was kept'}, so there is nothing to promote.`,
+    };
   }
   const measured = 'Its gain was measured on dev; no locked test measured it.';
   if (candidate.version === active) {

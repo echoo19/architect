@@ -129,6 +129,9 @@ export function connectEngine(
       list: (graduateId) => request('teach.list', [graduateId]),
       improve: (graduateId, options) => request('teach.improve', [graduateId, options]),
       improvements: (graduateId) => request('teach.improvements', [graduateId]),
+      overview: (graduateId) => request('teach.overview', [graduateId]),
+      shareCorrections: (graduateId, allowed) =>
+        request('teach.shareCorrections', [graduateId, allowed]),
     },
     reports: {
       get: (runId, target) => request('reports.get', [runId, target ?? null]),

@@ -2,6 +2,8 @@ import { join } from 'node:path';
 import {
   CorrectionKindSchema,
   GuardError,
+  IMPROVE_MAX_MENTOR_USD,
+  IMPROVE_MAX_ROUNDS,
   INSTRUCTION_KINDS,
   newId,
   TEACHABLE_KINDS,
@@ -12,6 +14,7 @@ import {
   type Job,
   type JsonSchemaObject,
   type MentorCompletionRequest,
+  type TeachingOverview,
 } from '@architect/shared';
 import { z } from 'zod';
 import type { AdapterFile, VersionFacts } from '../graduates/build';
@@ -121,6 +124,23 @@ function proposalOf(reply: z.infer<typeof ProposalReplySchema>, job: Job): Corre
   };
 }
 
+/**
+ * Whether an improvement of this job could train weights here, by the conditions the
+ * intervention menu checks before a round (`menuOf`): a training worker and a backend that
+ * trains for real, a runtime that serves adapters, a mentor that can act as the agent to make
+ * the verified lessons, and, for a backend that charges, a compute budget and the job's leave
+ * to send lessons for remote training.
+ */
+async function trainingApplies(job: Job, deps: EngineHostDeps): Promise<boolean> {
+  const { training, adapters } = deps;
+  if (!training || !adapters.createAdapterStudent || !adapters.createActor) return false;
+  if (job.mentor.kind !== 'model' || adapters.canAct?.(job.mentor) === false) return false;
+  const backend = await training.backend();
+  if (backend === null) return false;
+  if (!backend.real) return training.offersStandIn === true;
+  return (job.budget.maxComputeUsd ?? 0) > 0 && job.sharing?.remoteTraining === true;
+}
+
 /** `AGENTS.md` with one more standing instruction under the lessons heading. */
 export function withInstruction(system: string, instruction: string): string {
   const line = `- ${instruction.replace(/\s+/g, ' ').trim()}`;
@@ -167,6 +187,70 @@ export class TeachThis {
       );
     }
     return this.ctx.jobs.get(origin.run.jobId);
+  }
+
+  /**
+   * What Teach this and the Teaching tab show before anything is offered: whether the agent can
+   * be taught here and why not, who reads a flagged answer at what cap, and the budget Improve
+   * agent keeps to, which is its job's. `studentBusy` says whether a run started now would wait.
+   */
+  async overview(graduateId: string, studentBusy: boolean): Promise<TeachingOverview> {
+    const agent = this.agent(graduateId);
+    const base = { graduateId, correctionCapUsd: CORRECTION_CAP_USD };
+    if (agent.runId === null || !this.ctx.store.runs.get(agent.runId)) {
+      return {
+        ...base,
+        sharesCorrections: false,
+        unavailable: {
+          reason: 'imported',
+          message: `${agent.name} was made on another computer. It can be taught there, where its practice and check tasks are.`,
+        },
+      };
+    }
+    const job = await this.jobOf(agent);
+    const sharesCorrections = job.sharing?.corrections === true;
+    if (job.mentor.kind !== 'model') {
+      return {
+        ...base,
+        sharesCorrections,
+        mentor: job.mentor.label,
+        unavailable: {
+          reason: 'mentor',
+          message: `${job.mentor.label} can't read a flagged answer in this build.`,
+        },
+      };
+    }
+    const training = await trainingApplies(job, this.ctx.deps);
+    const { maxComputeUsd, maxWallMinutes } = job.budget;
+    // The job's caps, within what one improvement may be given (`ImproveOptionsSchema`).
+    const budget = {
+      maxRounds: Math.min(job.budget.maxRounds, IMPROVE_MAX_ROUNDS),
+      maxMentorUsd: Math.min(job.budget.maxMentorUsd, IMPROVE_MAX_MENTOR_USD),
+      maxWallMinutes,
+      ...(training && maxComputeUsd ? { maxComputeUsd } : {}),
+    };
+    return {
+      ...base,
+      sharesCorrections,
+      mentor: job.mentor.label,
+      ...(agent.activeVersion === null || budget.maxMentorUsd <= 0
+        ? {}
+        : { improve: { fromVersion: agent.activeVersion, budget, training, waits: studentBusy } }),
+    };
+  }
+
+  /**
+   * Lets the agent's job send flagged answers to the mentor, each one still only once the
+   * person agrees to it, or keeps them on this computer again. Sharing isn't part of the job's
+   * contract, so no new contract version comes of it, and a run already going keeps its copy.
+   */
+  async shareCorrections(graduateId: string, allowed: boolean): Promise<void> {
+    const job = await this.jobOf(this.agent(graduateId));
+    if ((job.sharing?.corrections === true) === allowed) return;
+    await this.ctx.jobs.save({
+      ...job,
+      sharing: { remoteTraining: job.sharing?.remoteTraining === true, corrections: allowed },
+    });
   }
 
   correction(id: string): Correction {

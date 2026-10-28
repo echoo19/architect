@@ -61,8 +61,15 @@ export function Resources({ live, mentor }: { live: LiveRun; mentor: string }) {
           </span>
         }
       >
-        <span className="font-mono">{live.job.splits.test}</span>{' '}
-        <span className="text-fg-muted">tasks</span>
+        {/* An improvement is scored on the check tasks and never takes the final test. */}
+        {live.improves ? (
+          <span className="text-fg-muted">Not taken</span>
+        ) : (
+          <>
+            <span className="font-mono">{live.job.splits.test}</span>{' '}
+            <span className="text-fg-muted">tasks</span>
+          </>
+        )}
       </Fact>
     </Panel>
   );

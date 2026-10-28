@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { File, X } from 'lucide-react';
+import { Check, File, X } from 'lucide-react';
 import { cn } from '../lib/cn';
 
 export interface FileChipProps {
@@ -12,6 +12,53 @@ export interface FileChipProps {
   /** Shows a remove button when set. */
   onRemove?: () => void;
   className?: string;
+}
+
+export interface ToggleChipProps {
+  pressed: boolean;
+  onPressedChange: (pressed: boolean) => void;
+  /** A 14px icon before the text. */
+  icon?: ReactNode;
+  children: ReactNode;
+  disabled?: boolean;
+  className?: string;
+}
+
+/**
+ * A chip that is on or off, such as one file in a set to choose from. When on, a check takes
+ * the icon's place.
+ */
+export function ToggleChip({
+  pressed,
+  onPressedChange,
+  icon,
+  children,
+  disabled,
+  className,
+}: ToggleChipProps) {
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      disabled={disabled}
+      onClick={() => onPressedChange(!pressed)}
+      className={cn(
+        'inline-flex h-8 max-w-full items-center gap-2 rounded-md border px-3 text-sm',
+        'transition-colors duration-150 disabled:opacity-40 [&_svg]:shrink-0',
+        pressed
+          ? 'border-fg-secondary bg-selected text-fg'
+          : 'border-line-control text-fg-secondary hover:border-line-strong hover:text-fg',
+        className,
+      )}
+    >
+      {pressed ? (
+        <Check size={14} strokeWidth={2.2} aria-hidden />
+      ) : (
+        icon && <span aria-hidden>{icon}</span>
+      )}
+      <span className="min-w-0 truncate">{children}</span>
+    </button>
+  );
 }
 
 /** An attached file, as under a message or in a composer. */

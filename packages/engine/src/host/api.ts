@@ -110,6 +110,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
           prompt: prompts.get(attempt.taskId),
         })),
       lineage: await lineageOf(record),
+      ...(record.improves === undefined ? {} : { improves: record.improves }),
     };
   }
 
@@ -224,6 +225,11 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       list: async (graduateId) => teachThis.list(graduateId),
       improve: (graduateId, options) => controller.improve(graduateId, options),
       improvements: (graduateId) => improvementsOf(store, jobs, graduateId),
+      overview: (graduateId) => teachThis.overview(graduateId, controller.studentBusy()),
+      shareCorrections: async (graduateId, allowed) => {
+        await teachThis.shareCorrections(graduateId, allowed);
+        return teachThis.overview(graduateId, controller.studentBusy());
+      },
     },
     reports: {
       get: async (runId, target) => reportOf(run(runId), target),
