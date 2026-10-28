@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Composer, Heading, IconButton, Spinner } from '@architect/ui';
-import { Paperclip } from 'lucide-react';
+import { Cloud, Paperclip } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { flowApi } from '../../api/client';
-import { queryKeys } from '../../api/hooks';
+import { queryKeys, useSettings } from '../../api/hooks';
 import { setQueryData } from '../../api/query';
+import { mentorName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
 import { AttachedFile, isTaskFile } from './AttachedFile';
@@ -28,6 +29,8 @@ export function DescribeHero() {
     })),
   );
   const [creatingSample, setCreatingSample] = useState(false);
+  const settings = useSettings();
+  const mentor = settings.status === 'success' ? mentorName(settings.data.defaultMentor) : null;
 
   const attach = async () => {
     const picked = await attempt("Couldn't open the file picker", () =>
@@ -75,6 +78,15 @@ export function DescribeHero() {
               <Paperclip size={18} strokeWidth={1.6} aria-hidden />
             </IconButton>
           }
+          trailing={
+            mentor && (
+              <span className="flex items-center gap-1.5 text-sm text-fg-muted">
+                <Cloud size={14} strokeWidth={1.6} aria-hidden />
+                {mentor}
+                <span className="sr-only">, in the cloud, reads what you send</span>
+              </span>
+            )
+          }
         />
         {files.length > 0 && (
           <ul aria-label="Attached files" className="m-0 flex list-none flex-wrap gap-2 p-0">
@@ -88,9 +100,9 @@ export function DescribeHero() {
             ))}
           </ul>
         )}
-        {files.length > 0 && !files.some(isTaskFile) && (
+        {!files.some(isTaskFile) && (
           <p className="m-0 text-sm text-fg-muted">
-            Add example tasks with their answers, as a .jsonl file or tasks.csv
+            Include example tasks with their answers, as .jsonl or tasks.csv
           </p>
         )}
       </div>
