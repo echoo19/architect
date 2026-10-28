@@ -237,6 +237,95 @@ describe('uploading files', () => {
   });
 });
 
+describe('without a token', () => {
+  it('reads a public repository, and asks for a token for a private one or any change', async () => {
+    const client = await setUp();
+    const { commit } = await client.uploadFiles(
+      REPO,
+      [{ path: 'graduate.json', content: Buffer.from('{}') }],
+      { summary: 'One' },
+    );
+    await client.createRepo('jake/open', { private: false });
+    const open = await client.uploadFiles(
+      'jake/open',
+      [{ path: 'graduate.json', content: Buffer.from('{"open": true}') }],
+      { summary: 'Open' },
+    );
+    const anonymous = new HubClient({ endpoint: hub.url, token: async () => undefined });
+    expect(await anonymous.revision('jake/open')).toBe(open.commit);
+    expect((await anonymous.listFiles('jake/open', open.commit)).map((file) => file.path)).toEqual([
+      'graduate.json',
+    ]);
+    const dest = join(dir, 'open.json');
+    await anonymous.download('jake/open', open.commit, 'graduate.json', dest, null);
+    expect(readFileSync(dest, 'utf8')).toBe('{"open": true}');
+    expect(hub.requests.filter((request) => !request.authorized).length).toBeGreaterThan(0);
+
+    await expect(anonymous.revision(REPO, commit)).rejects.toMatchObject({
+      code: 'auth',
+      message: expect.stringMatching(/needs a token/),
+    });
+    await expect(anonymous.createRepo('jake/new', { private: true })).rejects.toMatchObject({
+      code: 'auth',
+      message: 'No Hugging Face token is saved.',
+    });
+    expect(hub.repos.has('jake/new')).toBe(false);
+  });
+});
+
+describe('addresses the Hub hands out', () => {
+  /** A Hub on the internet, answered by `routes`, recording every address the client asks. */
+  function hubAt(routes: (url: URL, init: RequestInit | undefined) => Response | null) {
+    const asked: string[] = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const url = new URL(input instanceof Request ? input.url : String(input));
+      asked.push(url.href);
+      return routes(url, init) ?? new Response('not found', { status: 404 });
+    };
+    const client = new HubClient({
+      endpoint: 'https://hub.example',
+      token: async () => FAKE_HUB_TOKEN,
+      fetch: fetchImpl,
+    });
+    return { client, asked };
+  }
+
+  it('never sends a file to plain HTTP on this computer from a Hub on the internet', async () => {
+    const { client, asked } = hubAt((url, init) => {
+      if (url.pathname.endsWith('/preupload/main')) {
+        return Response.json({
+          files: [{ path: 'adapter/adapter.gguf', uploadMode: 'lfs', shouldIgnore: false }],
+        });
+      }
+      if (url.pathname.endsWith('/info/lfs/objects/batch')) {
+        const object = (JSON.parse(String(init?.body)) as { objects: object[] }).objects[0];
+        return Response.json({
+          objects: [{ ...object, actions: { upload: { href: 'http://127.0.0.1:9/upload' } } }],
+        });
+      }
+      return null;
+    });
+    await expect(
+      client.uploadFiles(REPO, [onDisk('adapter/adapter.gguf', adapterBytes(64))], {
+        summary: 'x',
+      }),
+    ).rejects.toMatchObject({ message: expect.stringMatching(/insecure upload address/) });
+    expect(asked.some((href) => href.startsWith('http://127.0.0.1'))).toBe(false);
+  });
+
+  it('never follows a download from a Hub on the internet to plain HTTP on this computer', async () => {
+    const { client, asked } = hubAt((url) =>
+      url.pathname.includes('/resolve/')
+        ? new Response(null, { status: 302, headers: { location: 'http://127.0.0.1:9/blob' } })
+        : null,
+    );
+    await expect(
+      client.download(REPO, 'a'.repeat(40), 'adapter/adapter.gguf', join(dir, 'x'), null),
+    ).rejects.toMatchObject({ message: expect.stringMatching(/insecure address/) });
+    expect(asked.some((href) => href.startsWith('http://127.0.0.1'))).toBe(false);
+  });
+});
+
 describe('revisions and downloads', () => {
   it('resolves a branch to its commit, and a commit to itself', async () => {
     const client = await setUp();

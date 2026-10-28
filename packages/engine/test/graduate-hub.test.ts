@@ -338,6 +338,27 @@ describe('installing a version from Hugging Face', () => {
     ]);
   });
 
+  it('installs from a public repository with no token at all', async () => {
+    const { hub, ctx } = await authored();
+    const { publication } = await publishVersion(ctx, 'grd_desk', {
+      repository: 'jake/open-desk',
+      visibility: 'public',
+    });
+    const other = await computer();
+    const anonymous: PublishContext = {
+      ...contextOf(other, hub),
+      hub: new HubClient({ endpoint: hub.url, token: async () => undefined }),
+    };
+    const installed = await installFromHub(anonymous, 'hf://jake/open-desk', {
+      revision: publication.revision,
+    });
+    expect(installed).toMatchObject({ version: 1, source: { revision: publication.revision } });
+    // A private repository still needs one.
+    await expect(
+      installFromHub(anonymous, `hf://${REPO}`, { revision: publication.revision }),
+    ).rejects.toMatchObject({ name: 'HubError', code: 'auth' });
+  });
+
   it('refuses a file that does not match its checksum, and installs nothing', async () => {
     const { hub, ctx } = await authored();
     await publishVersion(ctx, 'grd_desk', { repository: REPO });

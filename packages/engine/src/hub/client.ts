@@ -275,18 +275,31 @@ function messageOf(error: unknown): string {
 export class HubClient {
   readonly endpoint: string;
   private readonly origin: string;
+  /** A Hub on this computer (tests): only then may its hosts be reached over plain HTTP. */
+  private readonly local: boolean;
 
   constructor(private readonly options: HubClientOptions) {
     this.endpoint = (options.endpoint ?? HF_ENDPOINT).replace(/\/+$/, '');
     const url = new URL(this.endpoint);
-    if (url.protocol !== 'https:' && !isLoopbackUrl(url)) {
+    this.local = isLoopbackUrl(url);
+    if (url.protocol !== 'https:' && !this.local) {
       throw new Error('Hugging Face must be reached over HTTPS.');
     }
     this.origin = url.origin;
   }
 
+  /** Whether an address the Hub handed out may be used: HTTPS, or this computer for a local Hub. */
+  private secure(url: URL): boolean {
+    return url.protocol === 'https:' || (this.local && isLoopbackUrl(url));
+  }
+
   private get fetch(): typeof fetch {
     return this.options.fetch ?? ((input, init) => fetch(input, init));
+  }
+
+  /** The token when there is one: reading a public repository needs none. */
+  private async optionalToken(): Promise<string | null> {
+    return (await this.options.token()) || null;
   }
 
   private async token(): Promise<string> {
@@ -306,7 +319,10 @@ export class HubClient {
     return signal ? AbortSignal.any([signal, timeout]) : timeout;
   }
 
-  /** A request to the Hub's own API, with the token. `path` is a path, or a URL on the Hub. */
+  /**
+   * A request to the Hub's own API, with the token: always for a change, and for a read when there
+   * is one, so a public repository can be read without one. `path` is a path, or a URL on the Hub.
+   */
   private async send(
     method: 'GET' | 'POST',
     path: string,
@@ -318,7 +334,7 @@ export class HubClient {
       timeoutMs?: number;
     } = {},
   ): Promise<Response> {
-    const token = await this.token();
+    const token = method === 'GET' ? await this.optionalToken() : await this.token();
     const url = path.startsWith('/') ? this.endpoint + path : path;
     if (new URL(url).origin !== this.origin) {
       throw new HubError(
@@ -332,7 +348,7 @@ export class HubClient {
       response = await this.fetch(url, {
         method,
         headers: {
-          authorization: `Bearer ${token}`,
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
           accept: 'application/json',
           ...(options.contentType ? { 'content-type': options.contentType } : {}),
           ...options.headers,
@@ -350,8 +366,22 @@ export class HubClient {
         'Check the internet connection, then try again.',
       );
     }
-    if (!response.ok) throw failure(response.status, await this.detail(response, token));
+    if (!response.ok) throw await this.refusal(response, token);
     return response;
+  }
+
+  /** What a refused request means; without a token, a 401 asks for one. */
+  private async refusal(response: Response, token: string | null): Promise<HubError> {
+    if (token === null && response.status === 401) {
+      await response.body?.cancel();
+      return new HubError(
+        'auth',
+        'Hugging Face needs a token for this: the repository is private, or the request changes it.',
+        'Add a Hugging Face token that can see it.',
+        401,
+      );
+    }
+    return failure(response.status, await this.detail(response, token));
   }
 
   /** The error the Hub gave, without the token in it. */
@@ -718,7 +748,7 @@ export class HubClient {
         'Try again later.',
       );
     }
-    if (url.protocol !== 'https:' && !isLoopbackUrl(url)) {
+    if (!this.secure(url)) {
       throw new HubError(
         'bad_response',
         `Hugging Face gave an insecure upload address for ${path}.`,
@@ -898,7 +928,7 @@ export class HubClient {
     let url = new URL(
       `${this.endpoint}/${repoId}/resolve/${encodeURIComponent(revision)}/${encodePath(path)}`,
     );
-    let token: string | null = await this.token();
+    let token: string | null = await this.optionalToken();
     for (let hop = 0; ; hop++) {
       let response: Response;
       try {
@@ -924,7 +954,7 @@ export class HubClient {
             'Try again later.',
           );
         url = new URL(location, url);
-        if (url.protocol !== 'https:' && !isLoopbackUrl(url)) {
+        if (!this.secure(url)) {
           throw new HubError(
             'bad_response',
             `The download of ${path} was sent to an insecure address.`,
@@ -936,7 +966,9 @@ export class HubClient {
         continue;
       }
       if (!response.ok || !response.body) {
-        throw failure(response.status, await this.detail(response, token));
+        // A download host's refusal has nothing to do with the token, which it never saw.
+        if (url.origin !== this.origin) throw failure(response.status, '');
+        throw await this.refusal(response, token);
       }
       return this.save(response.body, path, dest, expect, limits?.maxBytes);
     }

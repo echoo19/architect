@@ -298,7 +298,14 @@ export async function startFakeHub(options: FakeHubOptions = {}): Promise<FakeHu
         return;
       }
 
-      if (!authorized) {
+      // As on the Hub: a wrong token is refused, and no token reads only public repositories.
+      const presented = request.headers.authorization !== undefined;
+      const repoMatch = /^\/api\/models\/([^/]+\/[^/]+)(?:\/|$)|^\/([^/]+\/[^/]+)\/resolve\//.exec(
+        route,
+      );
+      const publicRead =
+        method === 'GET' && repos.get(repoMatch?.[1] ?? repoMatch?.[2] ?? '')?.private === false;
+      if (presented ? !authorized : !publicRead) {
         send(response, 401, { error: 'Invalid credentials in Authorization header' });
         return;
       }
