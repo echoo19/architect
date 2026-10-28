@@ -167,7 +167,7 @@ function CurveChart({ input }: { input: CurveInput }) {
           textAnchor="middle"
           className="fill-fg-muted text-base"
         >
-          The line starts once the check tasks are first scored
+          Not scored yet
         </text>
       )}
     </svg>
