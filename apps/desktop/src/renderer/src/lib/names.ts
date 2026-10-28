@@ -1,4 +1,10 @@
-import { STUDENT_PRESETS, type MentorConfig, type StudentEndpoint } from '@architect/shared';
+import {
+  STUDENT_PRESETS,
+  isLoopbackUrl,
+  providerInfo,
+  type MentorConfig,
+  type StudentEndpoint,
+} from '@architect/shared';
 
 /**
  * The short name the UI uses for a model: "Muse Spark 1.3" → "Spark",
@@ -16,6 +22,12 @@ export function shortModelName(label: string): string {
 
 export function mentorName(mentor: MentorConfig): string {
   return shortModelName(mentor.label);
+}
+
+/** The mentor runs on this computer: a local runtime, or an address on this machine. */
+export function mentorIsLocal(mentor: MentorConfig): boolean {
+  if (mentor.kind !== 'model') return false;
+  return providerInfo(mentor.provider).local || isLoopbackUrl(mentor.baseUrl);
 }
 
 /*
@@ -51,7 +63,7 @@ export function setupSource(
     return `Round ${origin.round} was the last change ${mentor} kept.`;
   return `They are the ones it started with, and ${mentor} kept no change.`;
 }
-export const MENTOR_ROLE_DETAIL = 'a cloud model that coaches during training only';
+
 export const STUDENT_ROLE = "your agent's model";
 
 /** A phrase as it starts a line: "the mentor" → "The mentor". */

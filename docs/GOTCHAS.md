@@ -2,6 +2,14 @@
 
 Things that bit us, and how to avoid them. Newest first.
 
+## Ollama 0.40 keeps the models it makes in a second manifest folder
+
+`muse-glimmer:30b-iq2`, which Architect makes with `/api/create`, has no manifest under `manifests/registry.ollama.ai/`: Ollama 0.40.9 writes it to `manifests-v2/ollama.com/library/muse-glimmer/30b-iq2`, while models pulled by older versions stay in the first folder. Anything that finds a model's GGUF through the manifests has to look in both (`packages/engine/src/local-runtime/ollama-models.ts` does).
+
+## llama-server sets every adapter a request leaves out to 0
+
+With adapters loaded, a request's `lora` field sets the scale of each adapter it names, and build 10472's help text says the ones it leaves out "default to scale 0.0". A request without the field uses the server-wide scales instead, which Architect starts at 0 (`--lora-init-without-apply`). Name every loaded adapter in every request (the llama.cpp student does), and expect the server to throw away its prompt cache when the scales change between requests.
+
 ## electron-builder fails when a GitHub token is set and it finds no repository
 
 With `GH_TOKEN` or `GITHUB_TOKEN` in the environment, electron-builder decides to publish to GitHub and looks in `.git/config` for the repository. A git worktree has no `.git/config`, so it finds none and ends the build, after the installer is already made, with `Cannot read properties of null (reading 'channel')`. `publish: null` in `electron-builder.yml` stops it looking, and the release workflow attaches the installers itself.

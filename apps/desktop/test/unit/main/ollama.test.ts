@@ -1,5 +1,5 @@
 import type { ServerResponse } from 'node:http';
-import { OLLAMA_BASE_URL, type PullProgress } from '@architect/shared';
+import { glimmerBuild, OLLAMA_BASE_URL, type PullProgress } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ModelPulls } from '../../../src/main/ollama/pulls';
 import { ollamaBaseUrl, ollamaStatus } from '../../../src/main/ollama/status';
@@ -90,6 +90,58 @@ describe('ModelPulls', () => {
     ]);
     expect(progress[1]).toMatchObject({ completedBytes: 40, totalBytes: 100, done: false });
     expect(progress.at(-1)?.done).toBe(true);
+  });
+
+  it('installs the GPU-sized build: a pull, then a text-only model, all under its own name', async () => {
+    const weights = '3e9bd0e609df9d0121ba18c6556de496e7be880184cf22c5dbafbc0600875ad9';
+    const calls: string[] = [];
+    let created: unknown;
+    const server = await fakeServer((request, response) => {
+      calls.push(`${request.method} ${request.url}`);
+      if (request.url === '/api/pull') {
+        lines(response, { status: 'pulling manifest' }, { status: 'success' });
+        return response.end();
+      }
+      if (request.url === '/api/show') {
+        return sendJson(response, { modelfile: `FROM /models/blobs/sha256-${weights}\n` });
+      }
+      if (request.url === '/api/create') {
+        created = true;
+        return sendJson(response, { status: 'success' });
+      }
+      if (request.url === '/api/delete') return response.writeHead(200).end();
+      sendJson(response, { error: 'not found' }, 404);
+    });
+    servers.push(server);
+    const progress: PullProgress[] = [];
+    const build = glimmerBuild('glimmer-gpu');
+    await new ModelPulls((update) => progress.push(update)).install(server.url, build);
+
+    expect(calls).toEqual([
+      'POST /api/pull',
+      'POST /api/show',
+      'POST /api/create',
+      'DELETE /api/delete',
+    ]);
+    expect(created).toBe(true);
+    expect(progress.every((update) => update.model === build.model)).toBe(true);
+    expect(progress.filter((update) => update.done)).toEqual([
+      { model: build.model, status: 'Done', done: true },
+    ]);
+    expect(progress.map((update) => update.status)).toContain('Preparing it for your GPU');
+  });
+
+  it('installs the 4-bit build with a plain pull', async () => {
+    const url = await ollama((response) => {
+      lines(response, { status: 'success' });
+      response.end();
+    });
+    const progress: PullProgress[] = [];
+    await new ModelPulls((update) => progress.push(update)).install(
+      url,
+      glimmerBuild('glimmer-4bit'),
+    );
+    expect(progress.at(-1)).toMatchObject({ model: 'muse-glimmer:30b', done: true });
   });
 
   it('runs one download at a time and cancels it when asked', async () => {

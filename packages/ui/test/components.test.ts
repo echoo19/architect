@@ -1,7 +1,46 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { cn, Meter, ProgressStepper, SettingsRow, Shortcut, shortcutLabel, Spinner } from '../src';
+import {
+  cn,
+  Combobox,
+  Meter,
+  ProgressStepper,
+  ProviderMark,
+  SettingsRow,
+  Shortcut,
+  shortcutLabel,
+  Spinner,
+} from '../src';
+
+describe('Combobox', () => {
+  it('shows the current choice on a named button that opens a list', () => {
+    const html = renderToStaticMarkup(
+      createElement(Combobox, {
+        'aria-label': 'Mentor',
+        value: 'meta::muse-spark-1.3',
+        onValueChange: () => undefined,
+        groups: [{ heading: 'Meta', options: [{ value: 'meta::muse-spark-1.3', label: 'Spark' }] }],
+        children: 'Muse Spark 1.3',
+      }),
+    );
+    expect(html).toContain('aria-label="Mentor"');
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).toContain('Muse Spark 1.3');
+  });
+});
+
+describe('ProviderMark', () => {
+  it("shows the provider's initial, or an icon in its place, out of the reading order", () => {
+    const html = renderToStaticMarkup(createElement(ProviderMark, { name: 'openrouter' }));
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).toContain('>O</span>');
+    const icon = renderToStaticMarkup(
+      createElement(ProviderMark, { name: 'Ollama', icon: createElement('svg') }),
+    );
+    expect(icon).toContain('<svg></svg>');
+  });
+});
 
 describe('cn', () => {
   it('resolves conflicts between the theme’s custom tokens', () => {

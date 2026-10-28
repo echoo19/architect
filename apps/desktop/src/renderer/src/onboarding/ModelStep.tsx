@@ -1,140 +1,194 @@
-import type { OllamaStatus } from '@architect/shared';
 import {
+  fitsOnGpu,
+  GLIMMER_BUILDS,
+  recommendedBuild,
+  type GpuInfo,
+  type LocalRuntimes,
+  type StudentBuild,
+  type StudentEndpoint,
+} from '@architect/shared';
+import {
+  Badge,
   Button,
   Panel,
   Progress,
+  ProviderMark,
+  RadioCard,
+  RadioCardGroup,
   SettingsRow,
-  SettingsValue,
   Skeleton,
-  Spinner,
 } from '@architect/ui';
-import { Download, RotateCw } from 'lucide-react';
+import { Cpu, ExternalLink, RotateCw } from 'lucide-react';
+import { architect } from '../api/client';
 import type { QueryState } from '../api/query';
 import { errorOf, RetryButton } from '../components/QueryValue';
-import { shortModelName } from '../lib/names';
-import { currentPlatform, deviceInSentence, type Platform } from '../lib/platform';
+import { formatBytes } from '../lib/format';
+import { attempt } from '../lib/notify';
+import { currentPlatform, deviceInSentence } from '../lib/platform';
+import { localModelName, studentFromChoice } from '../settings/models/connections';
+import { ModelPicker } from '../settings/models/ModelPicker';
+import { isInstalled, PullControl } from '../settings/models/StudentRows';
 import { pullBytes, pullPercent, pullStage, type PullState } from './pull';
 import { StepIntro } from './SetupShell';
 import { StatusValue } from './StatusValue';
 
-const START_OLLAMA: Record<Platform, string> = {
-  darwin: 'Install Ollama from ollama.com and open it from Applications, then check again.',
-  win32:
-    "Install Ollama from ollama.com. It starts on its own after installing; if it doesn't, open it from the Start menu. Then check again.",
-  linux: 'Install Ollama from ollama.com and run "ollama serve" to start it, then check again.',
-};
-
-export interface ModelStepProps {
-  /** The model's name for people, e.g. "Muse Glimmer". */
-  label: string;
-  /** What the download involves, e.g. "Runs locally through Ollama. 18 GB download." */
-  note?: string;
-  ollama: QueryState<OllamaStatus>;
-  pull: PullState;
-  onDownload: () => void;
-  ready: boolean;
+/** "2-bit" from "2-bit, sized for a 12 GB GPU". */
+function bits(build: StudentBuild): string {
+  return build.label.split(',')[0] ?? build.label;
 }
 
-export function ModelStep({ label, note, ollama, pull, onDownload, ready }: ModelStepProps) {
-  const platform = currentPlatform();
-  const running = ollama.data?.running === true;
+/** Where a build runs here: entirely on the GPU, partly on the CPU, or unknown. */
+function fitLine(build: StudentBuild, gpu: GpuInfo | null): string | null {
+  if (!gpu) return null;
+  return fitsOnGpu(build.gpuBytes, gpu) ? 'Runs on your GPU' : 'Part on the CPU';
+}
+
+export interface ModelStepProps {
+  student: StudentEndpoint;
+  local: QueryState<LocalRuntimes>;
+  /** Makes this endpoint the agent's model. */
+  onChoose: (student: StudentEndpoint) => void;
+  /** The download of the chosen model, which setup keeps across its steps. */
+  pull: PullState;
+  onDownload: () => void;
+}
+
+/**
+ * The model every agent runs on: Muse Glimmer through Ollama, in the build that suits this
+ * computer's GPU, or another model already here.
+ */
+export function ModelStep({ student, local, onChoose, pull, onDownload }: ModelStepProps) {
+  const device = deviceInSentence(currentPlatform());
+  const ollama = local.data?.ollama;
+  const gpu = local.data?.gpu ?? null;
+  const running = ollama?.running === true;
+  const recommended = recommendedBuild(gpu);
+  const build = GLIMMER_BUILDS.find((candidate) => candidate.model === student.model);
+  const ready = isInstalled(ollama, student.model);
+  const name = localModelName(student.model);
   const downloading = pull.phase === 'starting' || pull.phase === 'pulling';
   const percent = pullPercent(pull);
   const bytes = pullBytes(pull);
 
+  const chooseBuild = (model: string) =>
+    onChoose({
+      runtime: 'ollama',
+      baseUrl: ollama?.baseUrl ?? student.baseUrl,
+      model,
+      contextLength: student.contextLength,
+    });
+
   let runtime;
-  if (ollama.status === 'error' && !ollama.data) runtime = <RetryButton onClick={ollama.reload} />;
-  else if (!ollama.data) runtime = <Skeleton shape="pill" className="h-4 w-24" />;
+  if (local.status === 'error' && !local.data) runtime = <RetryButton onClick={local.reload} />;
+  else if (!local.data) runtime = <Skeleton shape="pill" className="h-4 w-24" />;
   else if (running) {
     runtime = (
-      <StatusValue done>
-        Running{ollama.data.version ? ` · ${ollama.data.version}` : ''}
-      </StatusValue>
+      <StatusValue done>Running{ollama?.version ? ` · ${ollama.version}` : ''}</StatusValue>
     );
   } else {
     runtime = (
-      <Button size="xs" loading={ollama.status === 'loading'} onClick={ollama.reload}>
-        {ollama.status !== 'loading' && <RotateCw size={13} aria-hidden />}
-        Check again
-      </Button>
-    );
-  }
-
-  let download;
-  if (ready) download = <StatusValue done>Ready</StatusValue>;
-  else if (!running) download = <SettingsValue>Waiting for Ollama</SettingsValue>;
-  else if (downloading) {
-    download = (
-      <span className="flex items-center gap-2 font-mono text-fg-secondary">
-        <Spinner tone="student" size={13} />
-        {percent === null ? '' : `${percent}%`}
+      <span className="flex items-center gap-2">
+        <Button
+          size="xs"
+          variant="ghost"
+          onClick={() =>
+            void attempt("Couldn't open the page", () => architect().app.openProviderPage('ollama'))
+          }
+        >
+          <ExternalLink size={13} aria-hidden />
+          Get Ollama
+        </Button>
+        <Button size="xs" loading={local.status === 'loading'} onClick={local.reload}>
+          {local.status !== 'loading' && <RotateCw size={13} aria-hidden />}
+          Check again
+        </Button>
       </span>
-    );
-  } else {
-    download = (
-      <Button size="xs" onClick={onDownload}>
-        {pull.phase === 'failed' ? (
-          <RotateCw size={13} aria-hidden />
-        ) : (
-          <Download size={14} strokeWidth={1.8} aria-hidden />
-        )}
-        {pull.phase === 'failed' ? 'Try again' : 'Download'}
-      </Button>
     );
   }
 
   return (
     <>
       <StepIntro title="Welcome to Architect">
-        Architect builds private agents for work you describe. Every agent runs on{' '}
-        {shortModelName(label)}, an open model from Meta, through Ollama on{' '}
-        {deviceInSentence(platform)}, so what you ask your agents stays here. Training them uses a
-        paid cloud mentor, which you choose next.
+        Your agents run on a model on {device}, so what you ask them stays here.
       </StepIntro>
-      <Panel
-        aria-label="Agent's model"
-        className="w-full max-w-[620px] px-7 py-1 [&>*:first-child]:border-t-0"
-      >
-        <SettingsRow
-          label="Ollama"
-          meta={`The free app that runs ${shortModelName(label)} on ${deviceInSentence(platform)}`}
-          error={errorOf(ollama)}
+      <div className="flex w-full max-w-[720px] flex-col gap-3.5">
+        <Panel aria-label="Ollama" className="px-7 py-1 [&>*:first-child]:border-t-0">
+          <SettingsRow
+            icon={<ProviderMark name="Ollama" icon={<Cpu aria-hidden />} />}
+            label="Ollama"
+            error={errorOf(local)}
+          >
+            {runtime}
+          </SettingsRow>
+        </Panel>
+        <RadioCardGroup<string>
+          aria-label="Muse Glimmer build"
+          value={build ? build.model : ''}
+          onValueChange={chooseBuild}
         >
-          {runtime}
-        </SettingsRow>
-        {ollama.data && !running && (
-          <p className="m-0 border-t border-line py-4 text-fg-secondary text-pretty">
-            {START_OLLAMA[platform]}
-          </p>
-        )}
-        <SettingsRow
-          label={shortModelName(label)}
-          meta="The model every agent runs on"
-          error={pull.phase === 'failed' ? pull.error : undefined}
-        >
-          {download}
-        </SettingsRow>
-        {downloading && !ready && (
-          <div className="flex flex-col gap-2.5 border-t border-line pb-4 pt-3.5">
-            <Progress
-              label={`Downloading ${shortModelName(label)}`}
-              value={percent === null ? undefined : percent / 100}
-              valueText={bytes ?? undefined}
-            />
-            <div className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="text-fg-secondary">{pullStage(pull)}</span>
-              {bytes && <span className="font-mono text-fg-muted">{bytes}</span>}
+          {GLIMMER_BUILDS.map((option) => (
+            <RadioCard
+              key={option.key}
+              value={option.model}
+              title={`Muse Glimmer ${bits(option)}`}
+              disabled={downloading && option.model !== student.model}
+            >
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                {[formatBytes(option.diskBytes), fitLine(option, gpu)].filter(Boolean).join(' · ')}
+                {gpu && option.key === recommended.key && (
+                  <Badge tone="student" className="h-6 px-2.5 text-xs">
+                    Recommended
+                  </Badge>
+                )}
+              </span>
+            </RadioCard>
+          ))}
+        </RadioCardGroup>
+        <Panel aria-label="Agent's model" className="px-7 py-1 [&>*:first-child]:border-t-0">
+          <SettingsRow
+            label={name}
+            meta={name === student.model ? undefined : student.model}
+            metaFont="code"
+          >
+            {student.runtime !== 'ollama' || ready || pull.phase === 'done' ? (
+              <StatusValue done>Ready</StatusValue>
+            ) : !running ? (
+              <span className="text-fg-muted">Waiting for Ollama</span>
+            ) : (
+              <PullControl
+                state={pull}
+                onStart={onDownload}
+                label={build ? `Download · ${formatBytes(build.downloadBytes)}` : 'Download'}
+              />
+            )}
+          </SettingsRow>
+          {downloading && (
+            <div className="flex flex-col gap-2.5 border-t border-line pb-4 pt-3.5">
+              <Progress
+                label={`Downloading ${name}`}
+                value={percent === null ? undefined : percent / 100}
+                valueText={bytes ?? undefined}
+              />
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="text-fg-secondary">{pullStage(pull)}</span>
+                {bytes && <span className="font-mono text-fg-muted">{bytes}</span>}
+              </div>
             </div>
-          </div>
-        )}
-      </Panel>
-      {running && !ready && note && (
-        <p className="-mt-4 max-w-[620px] text-center text-sm text-fg-muted text-pretty">
-          {downloading
-            ? 'You can carry on while it downloads.'
-            : `${note} You can skip this for now, but agents can't run until it's downloaded.`}
-        </p>
-      )}
+          )}
+          <SettingsRow label="Another model">
+            <ModelPicker
+              role="student"
+              aria-label="Another model on this computer"
+              current={build ? null : student}
+              onChoose={(choice) => onChoose(studentFromChoice(choice, student.contextLength))}
+              disabled={downloading}
+              className="w-64"
+            >
+              <span className="truncate text-fg-muted">{build ? 'Choose a model' : name}</span>
+            </ModelPicker>
+          </SettingsRow>
+        </Panel>
+      </div>
     </>
   );
 }

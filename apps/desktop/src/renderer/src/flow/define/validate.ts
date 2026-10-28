@@ -1,4 +1,4 @@
-import { JobSchema, type Job } from '@architect/shared';
+import { JobSchema, mentorPricing, type Job } from '@architect/shared';
 
 /** A problem with one field, keyed by the field's dotted path (`splits.dev`). */
 export type JobIssues = Record<string, string>;
@@ -85,6 +85,10 @@ export function validateJob(job: Job, taskCount: number | null): JobIssues {
   }
   if (student.trainOn === 'hosted' && !student.hosted) {
     add('student.hosted', 'Pick a hosted copy, or train on this computer.');
+  }
+  // The spending cap holds only at a known price (decision 034).
+  if (job.mentor.kind === 'model' && !mentorPricing(job.mentor)) {
+    add('mentor.pricing', 'Enter what this model costs, so training can keep to the spending cap.');
   }
 
   if (checker.kind === 'module' && !checker.path.trim()) {

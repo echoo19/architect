@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { EngineClient } from '@architect/engine';
 import type { AgentHostClient } from '@architect/engine/agent-host';
-import { app, BrowserWindow, ipcMain, session } from 'electron';
+import { app, BrowserWindow, ipcMain, session, shell } from 'electron';
 import engineEntry from '../utility/engine?modulePath';
 import { launchEngineProcess, type EngineProcess } from './engine/process';
 import { PickedPaths } from './files/picked';
@@ -17,6 +17,10 @@ import { registerSettingsHandlers } from './handlers/settings';
 import { registerWorkspaceHandlers } from './handlers/workspace';
 import { IpcRouter } from './ipc/router';
 import { readLaunchOptions } from './launch';
+import { detectGpu } from './gpu';
+import { createLinkOpener } from './links';
+import { signInWithOpenRouter } from './oauth/openrouter';
+import { SignIns } from './oauth/sign-ins';
 import { ModelPulls } from './ollama/pulls';
 import { processResources } from './processes/resources';
 import { Supervisor } from './processes/supervisor';
@@ -95,10 +99,15 @@ async function start(): Promise<void> {
   const picked = new PickedPaths();
   const pulls = new ModelPulls((progress) => router.emit('ollama', 'onPullProgress', progress));
   const keys = (ref: string) => secrets.get(ref);
-  registerAppHandlers(router);
+  const openLink = createLinkOpener((url) => shell.openExternal(url), launch.hidden);
+  const signIns = new SignIns((signal) => signInWithOpenRouter({ openBrowser: openLink, signal }));
+  registerAppHandlers(router, openLink);
   registerSettingsHandlers(router, settings);
   registerSecretsHandlers(router, secrets);
-  registerConnectionHandlers(router, keys);
+  // The GPU doesn't change while the app is open, so it is looked for once, when first asked.
+  let gpuProbe: ReturnType<typeof detectGpu> | null = null;
+  const gpu = () => (gpuProbe ??= detectGpu());
+  registerConnectionHandlers(router, { keys, secrets, settings, signIns, gpu });
   registerOllamaHandlers(router, settings, pulls);
   registerFilesHandlers(router, picked);
   settings.onChange((next) => router.emit('settings', 'onChange', next));
@@ -154,8 +163,12 @@ async function start(): Promise<void> {
   engine.start();
   stopOnQuit([agentHost, engine]);
 
-  const cancelPull = () => pulls.cancel();
-  let main = await openMainWindow(cancelPull);
+  // Closing the window stops a download and a sign-in that would have nowhere to report.
+  const cancelPending = () => {
+    pulls.cancel();
+    signIns.cancel();
+  };
+  let main = await openMainWindow(cancelPending);
 
   app.on('second-instance', () => {
     if (main.isDestroyed()) return;
@@ -166,7 +179,7 @@ async function start(): Promise<void> {
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length > 0) return;
-    openMainWindow(cancelPull)
+    openMainWindow(cancelPending)
       .then((window) => {
         main = window;
       })

@@ -1,0 +1,55 @@
+{
+  "format": "architect.trainer-recipe/1",
+  "name": "glimmer-qlora",
+  "version": 1,
+  "image": "pytorch/pytorch:2.11.0-cuda12.8-cudnn9-runtime@sha256:eee11b3b3872a8c838e35ef48f08b2d5def2080902c7f666831310ca1a0ef2be",
+  "bootstrap_packages": ["huggingface_hub==1.33.0"],
+  "python_packages": [
+    "torch==2.11.0",
+    "transformers==5.19.0",
+    "tokenizers==0.23.3",
+    "peft==0.20.0",
+    "bitsandbytes==0.50.1",
+    "accelerate==1.14.0",
+    "safetensors==0.8.0",
+    "huggingface_hub==1.33.0"
+  ],
+  "quantization": {
+    "load_in_4bit": true,
+    "quant_type": "nf4",
+    "double_quant": true,
+    "compute_dtype": "bfloat16"
+  },
+  "lora": {
+    "r": 16,
+    "alpha": 32,
+    "dropout": 0.05,
+    "target_modules": "^model\\.language_model\\.layers\\.\\d+\\.(self_attn\\.(q_proj|k_proj|v_proj|o_proj|gate_proj)|mlp\\.(gate_proj|up_proj|down_proj))$",
+    "use_rslora": false,
+    "use_dora": false
+  },
+  "training": {
+    "epochs": 2,
+    "learning_rate": 0.0001,
+    "lr_scheduler": "cosine",
+    "warmup_steps": 5,
+    "per_device_batch_size": 1,
+    "gradient_accumulation_steps": 8,
+    "max_seq_len": 16384,
+    "seed": 1234,
+    "optimizer": "paged_adamw_8bit",
+    "gradient_checkpointing": true
+  },
+  "converter": {
+    "repo": "https://github.com/ggml-org/llama.cpp",
+    "commit": "60eeeb6082c1126bb8bc72902c83123cd056811b",
+    "build": 10472,
+    "outtype": "f16"
+  },
+  "hardware": {
+    "flavor": "l40sx1",
+    "min_gpu_memory_gb": 24
+  },
+  "files": ["pipeline.py", "train_qlora.py", "chat_spans.py"],
+  "entry": "pipeline.py"
+}

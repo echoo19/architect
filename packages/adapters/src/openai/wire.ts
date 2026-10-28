@@ -9,6 +9,8 @@ export const UsageWire = z.object({
   completion_tokens: count,
   prompt_tokens_details: z.object({ cached_tokens: count.nullish() }).nullish(),
   completion_tokens_details: z.object({ reasoning_tokens: count.nullish() }).nullish(),
+  /** What the call was charged, in US dollars. OpenRouter reports it. */
+  cost: z.number().nonnegative().nullish(),
 });
 export type UsageWire = z.output<typeof UsageWire>;
 

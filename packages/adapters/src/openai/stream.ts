@@ -10,7 +10,14 @@ export type FinishReason = 'stop' | 'length' | 'tool_calls';
 
 export type ChatStreamEvent =
   | { type: 'text'; delta: string }
-  | { type: 'end'; finish: FinishReason; toolCalls: ToolCall[]; usage?: Usage };
+  | {
+      type: 'end';
+      finish: FinishReason;
+      toolCalls: ToolCall[];
+      usage?: Usage;
+      /** The charge the server reported for the call, in US dollars, when it reports one. */
+      costUsd?: number;
+    };
 
 interface ChatStreamOptions {
   /** Who is answering, for error messages. */
@@ -77,6 +84,7 @@ export async function* readChatCompletionStream(
     .map(([, call], position) => toToolCall(call, first + position, service));
   const end: ChatStreamEvent = { type: 'end', finish: finishReason(finish, toolCalls), toolCalls };
   if (usage) end.usage = toUsage(usage, reasoningDeltas);
+  if (typeof usage?.cost === 'number') end.costUsd = usage.cost;
   yield end;
 }
 

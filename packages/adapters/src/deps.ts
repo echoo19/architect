@@ -13,9 +13,15 @@ export interface AdapterDeps {
 }
 
 export interface MentorDeps extends AdapterDeps {
-  /** Read from the app's secret store by the caller. It is sent to the provider and never logged. */
-  apiKey: string;
-  /** Defaults to the price of the preset that matches the config; with neither, cost is null. */
+  /**
+   * Read from the app's secret store by the caller. It is sent to the provider and never logged.
+   * A model on this computer needs none.
+   */
+  apiKey?: string;
+  /**
+   * Defaults to the price saved with the config, else its preset's, else free for a model on
+   * this computer; with none of them, cost is null.
+   */
   pricing?: TokenPricing;
   /** Ties one job's calls together for the provider's caching and routing. Default: a fresh id. */
   sessionKey?: string;

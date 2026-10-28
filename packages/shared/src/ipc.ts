@@ -3,6 +3,7 @@ import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
 import type { Job, MentorConfig, PermissionMode, StudentEndpoint, StudentTarget } from './job';
 import type { LineageEntry } from './lineage';
+import type { GpuInfo, ProviderId, StudentBuild, TokenPricing } from './models';
 import type { ReportCard } from './report';
 import type { Method, Round, Run } from './run';
 import type { Attempt, Trace } from './trace';
@@ -35,9 +36,71 @@ export interface AppSettings {
   /** Mentor preset used for new jobs. */
   defaultMentor: MentorConfig;
   defaultStudent: StudentEndpoint;
+  /** OpenAI-compatible endpoints the user added by address. */
+  customEndpoints: CustomEndpoint[];
   /** True once first-run setup is finished. */
   onboarded: boolean;
 }
+
+/** An OpenAI-compatible endpoint the user added by its address, such as a vLLM server. */
+export interface CustomEndpoint {
+  baseUrl: string;
+  /** What the app calls it: its host. */
+  label: string;
+}
+
+/** One model a connection offers. */
+export interface ModelEntry {
+  id: string;
+  /** A name for people, when the provider gives one. */
+  label?: string;
+  /** The price the provider lists with the model, when it lists one (OpenRouter does). */
+  pricing?: TokenPricing;
+  contextLength?: number;
+  /** Size on disk, for a model on this computer. */
+  sizeBytes?: number;
+  /** For a model loaded on this computer right now: its size in memory, and how much is on the GPU. */
+  inMemory?: { totalBytes: number; gpuBytes: number };
+}
+
+/** Where a model list comes from: a provider at an address, with the key it needs. */
+export interface ModelSource {
+  provider: ProviderId;
+  baseUrl: string;
+  secretRef?: string;
+}
+
+/** A model runtime on this computer, and the models it has. */
+export interface LocalRuntime {
+  running: boolean;
+  version?: string;
+  baseUrl: string;
+  models: ModelEntry[];
+}
+
+export interface LocalRuntimes {
+  ollama: LocalRuntime;
+  lmstudio: LocalRuntime;
+  /** The GPU local models can run on, when Architect can tell. */
+  gpu: GpuInfo | null;
+}
+
+export interface AddConnectionRequest {
+  provider: ProviderId;
+  /** The address of an endpoint the user adds (`other`); a named provider uses its own. */
+  baseUrl?: string;
+  /** Required by named providers; an added endpoint may need none. */
+  key?: string;
+}
+
+export interface AddConnectionResult {
+  /** Where the key was saved, when there was one. */
+  secretRef?: string;
+  /** How many models the connection offers, when it lists them. */
+  models?: number;
+}
+
+export type SignInResult = { status: 'signed_in' } | { status: 'cancelled' };
 
 export interface AppInfo {
   version: string;
@@ -148,6 +211,8 @@ export interface DraftTurn {
 export interface ArchitectApi {
   app: {
     info(): Promise<AppInfo>;
+    /** Opens a provider's key page, or a local runtime's download page, in the browser. */
+    openProviderPage(provider: ProviderId): Promise<void>;
   };
   settings: {
     get(): Promise<AppSettings>;
@@ -164,10 +229,27 @@ export interface ArchitectApi {
   connections: {
     testMentor(config: MentorConfig): Promise<ConnectionTest>;
     testStudent(endpoint: StudentEndpoint): Promise<ConnectionTest>;
+    /** The models a connection offers, from its own list. */
+    listModels(source: ModelSource): Promise<ModelEntry[]>;
+    /** Ollama and LM Studio on this computer: whether each runs, and its models. */
+    detectLocal(): Promise<LocalRuntimes>;
+    /** Checks a key with its provider, then saves it; an added endpoint is remembered too. */
+    add(request: AddConnectionRequest): Promise<AddConnectionResult>;
+    /** Forgets a connection's key, and an added endpoint's address. */
+    remove(source: Pick<ModelSource, 'provider' | 'baseUrl'>): Promise<void>;
+    /** Signs in with the provider in the browser and saves the key it issues. */
+    signIn(provider: 'openrouter'): Promise<SignInResult>;
+    /** Stops a sign-in that is waiting for the browser. */
+    cancelSignIn(): Promise<void>;
   };
   ollama: {
     status(): Promise<OllamaStatus>;
     pull(model: string): Promise<void>;
+    /**
+     * Installs one of Glimmer's builds: a plain pull, or for the GPU-sized one a pull, then a
+     * text-only model made from its weights. Progress comes under the build's model name.
+     */
+    install(build: StudentBuild['key']): Promise<void>;
     onPullProgress(listener: (progress: PullProgress) => void): Unsubscribe;
   };
   files: {

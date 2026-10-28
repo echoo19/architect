@@ -29,6 +29,7 @@ packages/adapters     mentor adapters (OpenAI-compatible, Meta, Spark Open self-
 packages/harness      harness and graduate folder format: read, write, validate, diff, version
 packages/ui           component library and design tokens; every screen uses it
 examples/             the sample job: data generator, tasks, checker
+trainer/              the pinned QLoRA recipe a remote training job runs (Python), with its GGUF conversion
 docs/                 plan, progress, architecture, decisions, models, harness format, gotchas
 ```
 

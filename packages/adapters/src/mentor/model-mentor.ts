@@ -2,6 +2,7 @@ import {
   addUsage,
   AdapterError,
   costUsd,
+  mentorPricing,
   type ChatMessage,
   type ConnectionTest,
   type MentorAdapter,
@@ -13,26 +14,29 @@ import type { MentorDeps } from '../deps';
 import { createHttpClient } from '../http/client';
 import { badResponse, connectionFailure, cutOff } from '../http/errors';
 import { extractJsonObject, type JsonObject } from '../json-extract';
+import { fitsStrictSubset } from '../json-schema';
 import { toWireMessages } from '../openai/messages';
 import { describeMissingModel, probeModel } from '../openai/models';
 import { readChatCompletionStream, type FinishReason } from '../openai/stream';
-import { jsonInstructions, repairMessages } from './prompts';
-import {
-  presetPricing,
-  providerTraits,
-  supportsStructuredOutput,
-  type ModelMentorConfig,
-} from './providers';
+import { emptyReply, jsonInstructions, repairMessages, unusableJson } from './prompts';
+import { chatTraits, type ModelMentorConfig } from './providers';
 
 const CHAT_PATH = '/chat/completions';
 
-/** The spend on a call that produced nothing usable, so the caller can still count it. */
+/**
+ * A call that produced nothing usable, with what it spent, so the caller can still count it. A
+ * provider declining the request is `blocked`; anything else is a `bad_response`.
+ */
 export class MentorReplyError extends AdapterError {
   readonly usage: Usage;
   readonly costUsd: number | null;
 
-  constructor(message: string, spent: { usage: Usage; costUsd: number | null }) {
-    super('bad_response', message);
+  constructor(
+    message: string,
+    spent: { usage: Usage; costUsd: number | null },
+    code: 'bad_response' | 'blocked' = 'bad_response',
+  ) {
+    super(code, message);
     this.usage = spent.usage;
     this.costUsd = spent.costUsd;
   }
@@ -42,28 +46,37 @@ interface Reply {
   text: string;
   finish: FinishReason;
   usage: Usage;
+  /** What the call cost: the server's own figure when it gives one, else the price applied. */
+  costUsd: number | null;
+}
+
+/** Two calls' costs together; unknown when either is. */
+export function addCosts(a: number | null, b: number | null): number | null {
+  return a === null || b === null ? null : a + b;
 }
 
 /**
- * A mentor behind an OpenAI-compatible Chat Completions endpoint: the Meta Model API, or Muse
- * Spark Open on Baseten, Modal or another host. Replies are streamed, since a long non-streamed
- * request can hit the gateway's timeout.
+ * A mentor behind an OpenAI-compatible Chat Completions endpoint: Meta, OpenAI, Google Gemini,
+ * OpenRouter, Muse Spark Open on Baseten or Modal, a model on this computer, or any other
+ * compatible server. Replies are streamed, since a long non-streamed request can hit a gateway's
+ * timeout.
  */
-export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps): MentorAdapter {
-  const traits = providerTraits(config);
-  const pricing = deps.pricing ?? presetPricing(config);
-  const structured = supportsStructuredOutput(config);
+export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps = {}): MentorAdapter {
+  const traits = chatTraits(config);
+  const pricing = deps.pricing ?? mentorPricing(config);
   const sessionKey = deps.sessionKey ?? `architect-${crypto.randomUUID()}`;
   const { service } = traits;
+  const apiKey = deps.apiKey ?? '';
 
   const http = createHttpClient({
-    baseUrl: config.baseUrl,
+    baseUrl: traits.baseUrl,
     service,
     headers: {
-      ...(deps.apiKey ? { authorization: `Bearer ${deps.apiKey}` } : {}),
+      ...traits.headers,
+      ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
       ...(traits.sendsAffinityKey ? { 'modal-routing-affinity-key': sessionKey } : {}),
     },
-    secrets: [deps.apiKey],
+    secrets: apiKey ? [apiKey] : [],
     fetch: deps.fetch,
     retry: deps.retry,
     timeouts: deps.timeouts,
@@ -75,9 +88,10 @@ export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps): 
     request: MentorCompletionRequest,
     messages: ChatMessage[],
   ): Record<string, unknown> {
+    const { json } = request;
     const system =
-      request.json && !structured
-        ? `${request.system}\n\n${jsonInstructions(request.json)}`
+      json && traits.json !== 'schema'
+        ? `${request.system}\n\n${jsonInstructions(json)}`
         : request.system;
     const body: Record<string, unknown> = {
       model: config.model,
@@ -87,16 +101,25 @@ export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps): 
       }),
       stream: true,
       stream_options: { include_usage: true },
-      reasoning_effort: request.reasoningEffort ?? config.reasoningEffort,
       [traits.tokenLimitField]: request.maxOutputTokens,
     };
-    if (request.json && structured) {
+    const effort = request.reasoningEffort ?? config.reasoningEffort;
+    if (traits.reasoning === 'reasoning_effort') body['reasoning_effort'] = effort;
+    if (traits.reasoning === 'openrouter') body['reasoning'] = { effort };
+    if (json && traits.json !== 'prompt') {
+      const strict = traits.strictSchema && fitsStrictSubset(json.schema);
       body['response_format'] = {
         type: 'json_schema',
-        json_schema: { name: request.json.name, schema: request.json.schema },
+        json_schema: { name: json.name, schema: json.schema, ...(strict ? { strict: true } : {}) },
       };
     }
     if (traits.sendsCacheKey) body['prompt_cache_key'] = sessionKey;
+    if (traits.capsPrice && pricing) {
+      // Never routed to a provider that charges more than the price the budget is kept with.
+      body['provider'] = {
+        max_price: { prompt: pricing.inputPerM, completion: pricing.outputPerM },
+      };
+    }
     return body;
   }
 
@@ -128,7 +151,12 @@ export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps): 
               'a reply without token usage, so its cost cannot be counted',
             );
           }
-          return { text, finish: event.finish, usage: event.usage };
+          return {
+            text,
+            finish: event.finish,
+            usage: event.usage,
+            costUsd: event.costUsd ?? price(event.usage),
+          };
         }
         throw cutOff(service);
       } finally {
@@ -147,6 +175,7 @@ export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps): 
     const first = await ask(requestBody(request, request.messages), signal, retries);
     let last = first;
     let usage = first.usage;
+    let cost = first.costUsd;
     let json: JsonObject | undefined;
 
     if (request.json) {
@@ -155,33 +184,33 @@ export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps): 
         // One chance to fix it: show the model what it wrote and why that failed.
         const correction = [
           ...request.messages,
-          ...repairMessages(first.text, parsed.error, !structured),
+          ...repairMessages(first.text, parsed.error, traits.json !== 'schema'),
         ];
         last = await ask(requestBody(request, correction), signal, retries);
         usage = addUsage(usage, last.usage);
+        cost = addCosts(cost, last.costUsd);
         parsed = extractJsonObject(last.text);
         if (!parsed.ok) {
-          throw new MentorReplyError(unusableJson(parsed.error, last.finish), spent(usage));
+          throw new MentorReplyError(unusableJson(parsed.error, last.finish === 'length'), {
+            usage,
+            costUsd: cost,
+          });
         }
       }
       json = parsed.value;
     } else if (first.text.trim() === '') {
-      throw new MentorReplyError(emptyReply(first.finish), spent(usage));
+      throw new MentorReplyError(emptyReply(first.finish === 'length'), { usage, costUsd: cost });
     }
 
     const completion: MentorCompletion = {
       text: last.text,
       usage,
-      costUsd: price(usage),
+      costUsd: cost,
       model: config.model,
       latencyMs: Math.round(performance.now() - started),
     };
     if (json !== undefined) completion.json = json;
     return completion;
-  }
-
-  function spent(usage: Usage): { usage: Usage; costUsd: number | null } {
-    return { usage, costUsd: price(usage) };
   }
 
   async function testConnection(): Promise<ConnectionTest> {
@@ -199,7 +228,9 @@ export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps): 
       if (probe.kind === 'missing') {
         return {
           ok: false,
-          error: `${service} accepted the key but doesn't offer "${config.model}".`,
+          error: apiKey
+            ? `${service} accepted the key but doesn't offer "${config.model}".`
+            : `${service} doesn't offer "${config.model}".`,
           hint: describeMissingModel(config.model, probe.available),
         };
       }
@@ -233,16 +264,4 @@ export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps): 
     estimateCostUsd: price,
     testConnection,
   };
-}
-
-function unusableJson(problem: string, finish: FinishReason): string {
-  return finish === 'length'
-    ? "The mentor's reply was cut off at the output limit, so its JSON was incomplete. Raise the limit or lower the reasoning effort."
-    : `The mentor's reply was not valid JSON, even after one correction. ${problem}`;
-}
-
-function emptyReply(finish: FinishReason): string {
-  return finish === 'length'
-    ? 'The mentor used its whole output limit on reasoning and wrote no answer. Raise the limit or lower the reasoning effort.'
-    : 'The mentor sent an empty reply.';
 }

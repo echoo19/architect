@@ -24,3 +24,17 @@ export function repairMessages(badReply: string, problem: string, fenced: boolea
   };
   return badReply.trim() === '' ? [ask] : [{ role: 'assistant', content: badReply }, ask];
 }
+
+/** Why a JSON reply couldn't be used, even after one correction. */
+export function unusableJson(problem: string, cutOff: boolean): string {
+  return cutOff
+    ? "The mentor's reply was cut off at the output limit, so its JSON was incomplete. Raise the limit or lower the reasoning effort."
+    : `The mentor's reply was not valid JSON, even after one correction. ${problem}`;
+}
+
+/** Why a reply with no text couldn't be used. */
+export function emptyReply(cutOff: boolean): string {
+  return cutOff
+    ? 'The mentor used its whole output limit on reasoning and wrote no answer. Raise the limit or lower the reasoning effort.'
+    : 'The mentor sent an empty reply.';
+}

@@ -55,4 +55,42 @@ describe('stored keys go only to their own service', () => {
     await expect(connectStudent(d, job, 'hosted')).rejects.toBeInstanceOf(GuardError);
     expect(d.secrets.get).not.toHaveBeenCalled();
   });
+
+  it('reaches a mentor on this computer without reading any key', async () => {
+    const d = deps();
+    const job = makeJob({
+      mentor: {
+        kind: 'model',
+        provider: 'ollama',
+        label: 'Granite',
+        baseUrl: 'http://127.0.0.1:11434',
+        model: 'granite4.2:8b',
+        reasoningEffort: 'medium',
+      },
+    });
+    await connectMentor(d, job);
+    expect(d.secrets.get).not.toHaveBeenCalled();
+    expect(d.adapters.createMentor).toHaveBeenCalledWith(expect.anything(), {});
+  });
+
+  it("sends an added endpoint's key to its own host and refuses it anywhere else", async () => {
+    const custom = (baseUrl: string): MentorConfig => ({
+      kind: 'model',
+      provider: 'other',
+      label: 'House model',
+      baseUrl,
+      model: 'house-model',
+      reasoningEffort: 'medium',
+      secretRef: 'custom:llm.example.com',
+    });
+    const ok = deps();
+    await connectMentor(ok, makeJob({ mentor: custom('https://llm.example.com/v1') }));
+    expect(ok.secrets.get).toHaveBeenCalledWith('custom:llm.example.com');
+
+    const moved = deps();
+    await expect(
+      connectMentor(moved, makeJob({ mentor: custom('https://collector.example/v1') })),
+    ).rejects.toBeInstanceOf(GuardError);
+    expect(moved.secrets.get).not.toHaveBeenCalled();
+  });
 });

@@ -1,4 +1,25 @@
-import { MENTOR_PRESETS, type MentorConfig, type MentorPreset } from '@architect/shared';
+import {
+  isLoopbackUrl,
+  MENTOR_PRESETS,
+  PROVIDERS,
+  type MentorConfig,
+  type MentorPreset,
+  type ProviderId,
+} from '@architect/shared';
+
+/** A mentor that is a model, which is every mentor this version can run. */
+export type ModelMentor = Extract<MentorConfig, { kind: 'model' }>;
+
+/** The four ways to a mentor that first-run setup offers. */
+export type MentorRoute = 'meta' | 'openrouter' | 'key' | 'local';
+
+/** Which way a saved mentor came in: a server on this computer counts as local. */
+export function routeOf(mentor: MentorConfig): MentorRoute {
+  if (mentor.kind !== 'model' || mentor.provider === 'meta') return 'meta';
+  if (mentor.provider === 'openrouter') return 'openrouter';
+  if (PROVIDERS[mentor.provider].local || isLoopbackUrl(mentor.baseUrl)) return 'local';
+  return 'key';
+}
 
 /** The preset a saved mentor was made from, if it was. */
 export function presetFor(mentor: MentorConfig): MentorPreset | undefined {
@@ -17,18 +38,12 @@ export function mentorFromPreset(preset: MentorPreset, current: MentorConfig): M
     baseUrl: preset.baseUrl,
     model: preset.model,
     reasoningEffort: current.kind === 'model' ? current.reasoningEffort : 'medium',
-    secretRef: preset.provider,
+    secretRef: preset.secretRef,
   };
 }
 
-const PROVIDER_NAMES: Record<MentorPreset['provider'], string> = {
-  meta: 'Meta',
-  baseten: 'Baseten',
-  modal: 'Modal',
-};
-
-export function providerName(provider: MentorPreset['provider']): string {
-  return PROVIDER_NAMES[provider];
+export function providerName(provider: ProviderId): string {
+  return PROVIDERS[provider].label;
 }
 
 /** What choosing a mentor means for your data, in the words this app uses everywhere. */
@@ -40,13 +55,13 @@ const MENTOR_NOTES: Partial<Record<MentorPreset['key'], string>> = {
     'You create the endpoint in your own Modal account first; what you send stays with Modal.',
 };
 
-/** The preset's own note unless this app says it more plainly. */
-export function mentorNote(preset: MentorPreset): string {
+/** The preset's own note unless this app says it more plainly; most presets need none. */
+export function mentorNote(preset: MentorPreset): string | undefined {
   return MENTOR_NOTES[preset.key] ?? preset.note;
 }
 
-/** Who a mentor's key comes from: "Meta", "Baseten", or the endpoint's host for any other. */
-export function mentorProvider(mentor: Extract<MentorConfig, { kind: 'model' }>): string {
+/** Who a mentor's key comes from: "Meta", "OpenAI", or the endpoint's host for any other. */
+export function mentorProvider(mentor: ModelMentor): string {
   if (mentor.provider !== 'other') return providerName(mentor.provider);
   try {
     return new URL(mentor.baseUrl).hostname;
@@ -54,10 +69,3 @@ export function mentorProvider(mentor: Extract<MentorConfig, { kind: 'model' }>)
     return mentor.label;
   }
 }
-
-/** Where a provider's keys are made, for people who don't have one yet. */
-export const KEY_PAGES: Record<MentorPreset['provider'], { url: string; where: string }> = {
-  meta: { url: 'https://dev.meta.ai', where: 'under API keys' },
-  baseten: { url: 'https://www.baseten.co', where: 'in your account settings' },
-  modal: { url: 'https://modal.com', where: 'in your workspace settings' },
-};
