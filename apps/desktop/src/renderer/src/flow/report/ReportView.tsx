@@ -13,6 +13,7 @@ import {
   studentIntro,
 } from '../../lib/names';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
+import { providerName } from '../define/hosted';
 import { formatAnswerTime, formatRate, percent, signed } from '../format';
 import type { ModelNames } from '../train/phase';
 import type { ComparisonRow } from './comparison';
@@ -57,6 +58,14 @@ function startedBlank(report: ReportCard, job: Job | null): boolean {
     job?.startingHarness.kind === 'blank' &&
     (report.method === 'architect' || report.method === 'self_reflection')
   );
+}
+
+/** "Spark $0.41, hosted copy on OpenRouter $3.20. " when a hosted copy was paid for too. */
+function costParts(report: ReportCard, mentor: string, job: Job | null): string {
+  const { mentorUsd, studentUsd } = report.cost;
+  if (!studentUsd) return '';
+  const host = job?.student.hosted ? ` on ${providerName(job.student.hosted)}` : '';
+  return `${mentor} ${formatUsd(Math.round(mentorUsd * 100) / 100)}, hosted copy${host} ${formatUsd(Math.round(studentUsd * 100) / 100)}. `;
 }
 
 /** How much training ran, and that it ended on reaching the target when it did. */
@@ -153,9 +162,11 @@ export function ReportView({ report, job, graduate, comparison }: ReportViewProp
         />
         <Stat
           className="bg-panel p-[22px]"
-          value={formatUsd(Math.round(cost.mentorUsd * 100) / 100)}
-          label={`${names.mentor} mentoring, paid once`}
-          note={trainingNote(report, job)}
+          value={formatUsd(Math.round((cost.mentorUsd + (cost.studentUsd ?? 0)) * 100) / 100)}
+          label={
+            cost.studentUsd ? 'Training cost, paid once' : `${names.mentor} mentoring, paid once`
+          }
+          note={`${costParts(report, names.mentor, job)}${trainingNote(report, job)}`}
           noteFont="text"
         />
       </div>
