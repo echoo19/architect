@@ -7,7 +7,7 @@ import { useJob, useJobs, useSecretsStatus, useSettings } from '../api/hooks';
 import { resetDraft, useDraftStore } from '../flow/describe/draft-store';
 import { AdvancedDialog, tabWithIssue, type AdvancedTab } from '../flow/define/AdvancedDialog';
 import { hostedAvailability, type KeyStatus } from '../flow/define/hosted';
-import { AsksFirst, Capabilities, JobHeader, ReadyWhen } from '../flow/define/JobOverview';
+import { Capabilities, FilePermissions, JobHeader, ReadyWhen } from '../flow/define/JobOverview';
 import { TrainingPlace } from '../flow/define/TrainingPlace';
 import { useJobEditor } from '../flow/define/use-job-editor';
 import { attempt } from '../lib/notify';
@@ -157,7 +157,7 @@ function DefineEditor({ initial }: { initial: Job }) {
         <Capabilities job={job} />
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-12">
           <ReadyWhen job={job} />
-          <AsksFirst
+          <FilePermissions
             job={job}
             onChange={(permissions) => editor.change((current) => ({ ...current, permissions }))}
           />

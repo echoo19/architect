@@ -10,7 +10,10 @@ import type {
 /** The composer's write choices, in the order its menu lists them. */
 export const WRITE_MODES = ['ask', 'allow', 'never'] as const satisfies readonly PermissionMode[];
 
-/** The three answers to "Saving changes to your files", in the same words on every screen. */
+/** What the write choices control, named the same way on every screen. */
+export const WRITE_SETTING = 'Saving changes to your files';
+
+/** The three answers to the write setting, in the same words on every screen. */
 export const WRITE_MODE_LABELS: Record<PermissionMode, string> = {
   ask: 'Ask first',
   allow: 'Allow',

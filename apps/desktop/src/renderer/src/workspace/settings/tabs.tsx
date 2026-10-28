@@ -31,7 +31,7 @@ import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { navigate, paths, type Route } from '../../lib/router';
 import { workspaceApi } from '../api';
 import { updateGraduateSettings, useGraduateSettings } from '../graduateSettings';
-import { WRITE_MODE_LABELS, WRITE_MODE_MEANINGS, WRITE_MODES } from '../labels';
+import { WRITE_MODE_LABELS, WRITE_MODE_MEANINGS, WRITE_MODES, WRITE_SETTING } from '../labels';
 import { forgetAgent } from '../store';
 import { useAgentSettingsUi } from './agentSettingsUi';
 
@@ -182,7 +182,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
   return (
     <>
       <SettingsRow
-        label="Saving changes to your files"
+        label={WRITE_SETTING}
         meta={
           settings.status === 'success' ? WRITE_MODE_MEANINGS[settings.data.writeMode] : undefined
         }
@@ -190,7 +190,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
       >
         {settings.status === 'success' ? (
           <Segmented
-            aria-label="Saving changes to your files"
+            aria-label={WRITE_SETTING}
             options={WRITE_CHOICES}
             value={settings.data.writeMode}
             onValueChange={(writeMode) =>

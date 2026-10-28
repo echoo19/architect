@@ -128,6 +128,24 @@ for (const theme of THEMES) {
     await expect(page.getByRole('heading', { name: 'Service desk', level: 1 })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'What it does' })).toBeVisible();
     await expect(page.getByRole('heading', { name: "What it won't do" })).toBeVisible();
+    // The write setting is named for what it controls, with the files it applies to.
+    await expect(page.getByRole('heading', { name: 'Saving changes to your files' })).toBeVisible();
+    await expect(
+      page.getByText(
+        'Once trained, it can change invoices.csv and bookings.csv. It only reads jobs.csv, technicians.csv and policy.md.',
+      ),
+    ).toBeVisible();
+    const writes = page.getByRole('radiogroup', { name: 'Saving changes to your files' });
+    await expect(writes.getByRole('radio', { name: 'Ask first' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await expect(page.getByText('Shows each change and waits for your OK')).toBeVisible();
+    await expect(
+      page.getByText('Saves without asking; each change still shows in the chat'),
+    ).toBeVisible();
+    await expect(page.getByText("Can't change your files")).toBeVisible();
+
     const local = page.getByRole('radio', { name: /This computer/ });
     const hosted = page.getByRole('radio', { name: /Hosted on OpenRouter/ });
     await expect(local).toBeChecked();

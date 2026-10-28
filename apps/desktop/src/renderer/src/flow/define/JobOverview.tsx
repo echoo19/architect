@@ -1,9 +1,14 @@
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import type { Job, PermissionMode } from '@architect/shared';
 import { Badge, cn, Heading, Segmented, Stat } from '@architect/ui';
 import { Check, CircleMinus, Laptop } from 'lucide-react';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
-import { WRITE_MODE_LABELS, WRITE_MODES } from '../../workspace/labels';
+import {
+  WRITE_MODE_LABELS,
+  WRITE_MODE_MEANINGS,
+  WRITE_MODES,
+  WRITE_SETTING,
+} from '../../workspace/labels';
 import { formatTimeLimit } from '../format';
 
 /** The same words as the agent's own setting, under its message box. */
@@ -132,52 +137,84 @@ export function ReadyWhen({ job }: { job: Job }) {
   );
 }
 
-interface AsksFirstProps {
+interface FilePermissionsProps {
   job: Job;
   onChange: (permissions: Job['permissions']) => void;
 }
 
-/** What the graduate must ask about before doing it in the workspace. */
-export function AsksFirst({ job, onChange }: AsksFirstProps) {
+/** File names in a sentence, in mono: "a.csv", "a.csv and b.csv", "a.csv, b.csv and c.md". */
+function FileNames({ files }: { files: readonly { name: string }[] }) {
+  return files.map((file, index) => (
+    <Fragment key={file.name}>
+      {index > 0 && (index === files.length - 1 ? ' and ' : ', ')}
+      <span className="font-mono text-sm text-fg">{file.name}</span>
+    </Fragment>
+  ));
+}
+
+/** The job's files, what the agent may do with them in the workspace, and when it must ask first. */
+export function FilePermissions({ job, onChange }: FilePermissionsProps) {
   const { permissions } = job;
-  const writable = job.data.files
-    .filter((file) => file.access === 'write')
-    .map((file) => file.name);
-  const rows = [
-    {
-      key: 'writes',
-      label:
-        writable.length > 0
-          ? `Saving changes to ${writable.join(' and ')}`
-          : 'Saving changes to your files',
-    },
-    { key: 'unseenFiles', label: "Opening a file the job doesn't list" },
-  ] as const;
+  const changeable = job.data.files.filter((file) => file.access === 'write');
+  const readOnly = job.data.files.filter((file) => file.access === 'read');
   return (
-    <section aria-labelledby="asks-first" className="flex flex-col gap-2.5">
-      <div className="mb-2">
-        <SectionHeading id="asks-first" title="Asks you first">
-          Ask first: it waits for your OK each time. Allow: it goes ahead. Never: it can&apos;t.
-        </SectionHeading>
-      </div>
-      {rows.map((row, index) => (
-        <div
-          key={row.key}
-          className={
-            index < rows.length - 1
-              ? 'flex min-h-12 items-center justify-between gap-4 border-b border-line-card'
-              : 'flex min-h-12 items-center justify-between gap-4'
-          }
-        >
-          <span>{row.label}</span>
-          <Segmented
-            aria-label={row.label}
-            options={MODES}
-            value={permissions[row.key]}
-            onValueChange={(mode) => onChange({ ...permissions, [row.key]: mode })}
-          />
+    <section aria-labelledby="file-writes" className="flex flex-col gap-4">
+      <SectionHeading id="file-writes" title={WRITE_SETTING}>
+        {changeable.length > 0 ? (
+          <>
+            Once trained, it can change <FileNames files={changeable} />.
+          </>
+        ) : (
+          'The job lists no file it can change.'
+        )}
+        {readOnly.length > 0 && (
+          <>
+            {' '}
+            It only reads <FileNames files={readOnly} />.
+          </>
+        )}
+      </SectionHeading>
+      <Segmented
+        aria-label={WRITE_SETTING}
+        options={MODES}
+        value={permissions.writes}
+        onValueChange={(writes) => onChange({ ...permissions, writes })}
+        className="self-start"
+      />
+      <dl className="m-0 flex flex-col gap-1.5 text-sm">
+        {WRITE_MODES.map((mode) => (
+          <div key={mode} className="flex items-baseline gap-3">
+            <dt
+              className={cn(
+                'w-[68px] shrink-0',
+                mode === permissions.writes ? 'text-fg' : 'text-fg-secondary',
+              )}
+            >
+              {WRITE_MODE_LABELS[mode]}
+            </dt>
+            <dd
+              className={cn(
+                'm-0 text-pretty',
+                mode === permissions.writes ? 'text-fg-secondary' : 'text-fg-muted',
+              )}
+            >
+              {WRITE_MODE_MEANINGS[mode]}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <div className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line-card pt-3">
+        <div className="flex flex-col gap-0.5">
+          <span>Opening a file the job doesn&apos;t list</span>
+          <span className="text-sm text-fg-muted">Any file besides the ones above</span>
         </div>
-      ))}
+        <Segmented
+          aria-label="Opening a file the job doesn't list"
+          options={MODES}
+          value={permissions.unseenFiles}
+          onValueChange={(unseenFiles) => onChange({ ...permissions, unseenFiles })}
+        />
+      </div>
     </section>
   );
 }

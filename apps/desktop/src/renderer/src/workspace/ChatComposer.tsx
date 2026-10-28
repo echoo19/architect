@@ -14,7 +14,7 @@ import {
 import { ArrowDown, Check, ChevronDown, Lock, LockOpen, PenOff, RotateCw } from 'lucide-react';
 import { attempt } from '../lib/notify';
 import { updateGraduateSettings, useGraduateSettings } from './graduateSettings';
-import { WRITE_MODE_LABELS, WRITE_MODE_MEANINGS, WRITE_MODES } from './labels';
+import { WRITE_MODE_LABELS, WRITE_MODE_MEANINGS, WRITE_MODES, WRITE_SETTING } from './labels';
 import { StatusBar } from './StatusBar';
 
 const modeButton =
@@ -65,7 +65,7 @@ function WriteModeMenu({ agent }: { agent: GraduateSummary }) {
         </DropdownMenuTrigger>
       </Tooltip>
       <DropdownMenuContent side="top" className="w-80">
-        <DropdownMenuLabel>Saving changes to your files</DropdownMenuLabel>
+        <DropdownMenuLabel>{WRITE_SETTING}</DropdownMenuLabel>
         {WRITE_MODES.map((option) => {
           const OptionIcon = MODE_ICONS[option];
           return (
