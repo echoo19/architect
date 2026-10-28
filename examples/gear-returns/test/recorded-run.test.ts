@@ -28,7 +28,7 @@ import {
  * experiments (A05). A change that breaks what the screens rely on fails here.
  */
 
-const OUT_OF_TIME = 'The wall-clock budget ran out before this change was evaluated.';
+const OUT_OF_TIME = 'The time limit ran out before this change was scored.';
 
 /** Two connected ports in one process; a message is cloned and arrives a tick later. */
 function portPair(): [EnginePort, EnginePort] {
@@ -267,7 +267,9 @@ describe('the recorded run on the returns desk', () => {
   it('refuses weights before measuring them', async () => {
     const proposed = await intervention(4);
     expect(proposed).toMatchObject({ type: 'weights', status: 'invalid' });
-    expect(proposed.invalidReason).toMatch(/^A weights intervention isn't possible in this run: /);
+    expect(proposed.invalidReason).toMatch(
+      /^The mentor chose to train the weights, which this run can't do\. /,
+    );
     expect(await experiment(4)).toMatchObject({
       kind: 'weights',
       disposition: 'invalid',
@@ -294,7 +296,7 @@ describe('the recorded run on the returns desk', () => {
       skipped: [
         {
           what: `the repair of ${stopped?.taskId}`,
-          reason: 'its category made no dev gain in 2 rounds, so its teaching stopped',
+          reason: 'its category gained no check tasks in 2 rounds, so its teaching stopped',
         },
       ],
     });

@@ -157,12 +157,12 @@ export async function planTeaching(
     if (stopped.categories.has(finding.categoryId)) {
       skipped.push({
         what,
-        reason: `its category made no dev gain in ${STOP_CATEGORY_AFTER} rounds, so its teaching stopped`,
+        reason: `its category gained no check tasks in ${STOP_CATEGORY_AFTER} rounds, so its teaching stopped`,
       });
     } else if (stopped.types.has(finding.taskType)) {
       skipped.push({
         what,
-        reason: `its task type made no dev gain in ${STOP_TYPE_AFTER} rounds, so its teaching stopped`,
+        reason: `its task type gained no check tasks in ${STOP_TYPE_AFTER} rounds, so its teaching stopped`,
       });
     } else if (taught.has(finding.taskId)) {
       skipped.push({ what, reason: 'the task was taught in an earlier round' });

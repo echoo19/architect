@@ -356,7 +356,7 @@ describe('a clarifying question', () => {
     const [refused] = await api.mentoring.interventions(run.id);
     expect(refused?.status).toBe('invalid');
     expect(refused?.invalidReason).toBe(
-      "A clarification intervention isn't possible in this run: Nobody is there to answer: this run wasn't started from the app.",
+      "The mentor chose to ask a question, which this run can't do. Nobody is there to answer: this run wasn't started from the app.",
     );
   });
 });

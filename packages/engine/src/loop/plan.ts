@@ -79,8 +79,8 @@ const OPEN: ReadonlySet<Round['status']> = new Set([
   'evaluating',
 ]);
 
-export const STOPPED_ROUND = 'Stopped before this change was evaluated.';
-export const OUT_OF_TIME_ROUND = 'The wall-clock budget ran out before this change was evaluated.';
+export const STOPPED_ROUND = 'Training was stopped before this change was scored.';
+export const OUT_OF_TIME_ROUND = 'The time limit ran out before this change was scored.';
 
 export function isTerminal(status: RunStatus): boolean {
   return TERMINAL.has(status);

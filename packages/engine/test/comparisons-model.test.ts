@@ -132,7 +132,7 @@ describe('the projection', () => {
     // Arms 1 to 5 reserve $11.09 of the $15 with the 1.2 headroom; the fixed arm needs $5.87.
     expect(fixed).toMatchObject({ funded: false, blockedBy: 'money' });
     expect(fixed?.reason).toBe(
-      'It needs $5.87 of student credit, and $3.91 is left after the arms before it.',
+      "It needs $5.87 of the hosted student's budget, and $3.91 is left after the comparisons before it.",
     );
     const weights = projection.arms.find((arm) => arm.arm === 'weights-one-shot');
     expect(weights).toMatchObject({ funded: false, blockedBy: 'prerequisite' });

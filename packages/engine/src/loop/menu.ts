@@ -11,6 +11,15 @@ import { MIN_JOB_SECONDS } from '../training/recipe';
 /** The types that change only the harness. */
 const HARNESS_TYPES: readonly InterventionType[] = ['procedure', 'retrieval', 'helper'];
 
+/** What choosing each type amounts to, in words for a refusal a person reads. */
+const CHOICES: Record<InterventionType, string> = {
+  procedure: 'a procedure',
+  retrieval: 'retrieval',
+  helper: 'a helper',
+  weights: 'to train the weights',
+  clarification: 'to ask a question',
+};
+
 /** What a run may choose from this round, and why the rest are off the menu. */
 export interface Menu {
   allowed: InterventionType[];
@@ -31,7 +40,7 @@ export function computeLeft(state: RunState): number {
 /** Why a weights intervention can't run now, or null when it can. */
 async function weightsRefusal(state: RunState, canTeach: boolean): Promise<string | null> {
   const { deps } = state.ctx;
-  if (!deps.training) return 'No training worker is set up in this build.';
+  if (!deps.training) return 'This copy of Architect has no trainer for weights.';
   if (!deps.adapters.createAdapterStudent) {
     return "This build can't serve an adapter, so a trained one couldn't be measured.";
   }
@@ -115,7 +124,7 @@ export function interventionRefusal(
   menu: Menu,
 ): string | null {
   if (!menu.allowed.includes(plan.type)) {
-    return `A ${plan.type} intervention isn't possible in this run: ${menu.refused[plan.type] ?? 'it is off the menu.'}`;
+    return `The mentor chose ${CHOICES[plan.type]}, which this run can't do. ${menu.refused[plan.type] ?? 'It is off the menu.'}`;
   }
   const teaches = plan.workedExamples.length > 0 || plan.practicePerFinding > 0;
   if (plan.type === 'weights' && findings === 0) {

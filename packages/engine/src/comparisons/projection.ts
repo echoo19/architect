@@ -400,10 +400,10 @@ export function project(
     // Decision 037 runs the fixed arm only with $5 of student credit left after the repeat.
     const studentFloor = arm === 'fixed' ? Math.max(5, studentReserve) : studentReserve;
     if (reason === null && studentFloor > left.studentUsd + 1e-9) {
-      reason = `It needs $${studentFloor.toFixed(2)} of student credit, and $${left.studentUsd.toFixed(2)} is left after the arms before it.`;
+      reason = `It needs $${studentFloor.toFixed(2)} of the hosted student's budget, and $${left.studentUsd.toFixed(2)} is left after the comparisons before it.`;
     }
     if (reason === null && need.sparkCap > left.sparkUsd + 1e-9) {
-      reason = `Its Spark cap is $${need.sparkCap.toFixed(2)}, and $${left.sparkUsd.toFixed(2)} of Spark is left after the arms before it.`;
+      reason = `It needs $${need.sparkCap.toFixed(2)} for Spark, and $${left.sparkUsd.toFixed(2)} of Spark's budget is left after the comparisons before it.`;
     }
     if (reason === null && computeUsd > left.computeUsd + 1e-9) {
       reason = `It needs $${computeUsd.toFixed(2)} of training compute, and $${left.computeUsd.toFixed(2)} is left.`;

@@ -501,7 +501,7 @@ function fundingProblem(
   }
   const left = plan.caps.studentUsd - credit.paid() - held;
   if (floor <= left + 1e-9) return null;
-  return `It needs $${floor.toFixed(2)} of student credit at what an attempt has cost so far ($${price.toFixed(4)}), and $${Math.max(0, left).toFixed(2)} is left after what was paid and what the arms before it still hold.`;
+  return `At what an attempt has cost so far ($${price.toFixed(4)}), it needs $${floor.toFixed(2)} of the hosted student's budget, and $${Math.max(0, left).toFixed(2)} is left after what was paid and what the comparisons before it still hold.`;
 }
 
 /**
@@ -550,7 +550,7 @@ function watchRounds(
     decide({
       arm,
       kind: 'stopped',
-      reason: `Stopped before round ${round.index}: its development had spent $${spent.toFixed(2)}, and a round at its most with its locked test ($${ahead.toFixed(2)} at $${price.toFixed(4)} an attempt) would pass its $${cap.toFixed(2)} cap.`,
+      reason: `Before round ${round.index} it had spent $${spent.toFixed(2)}, and one more round with its final test could cost $${ahead.toFixed(2)} more (at $${price.toFixed(4)} an attempt), past its $${cap.toFixed(2)} cap, so it stopped there with what it had kept.`,
     });
     engine.controller.stop(record.run.id).catch((error: unknown) => {
       env.log(`${ARM_LABELS[arm]}: the stop failed: ${errorMessage(error)}`);
@@ -583,7 +583,7 @@ function release(
       decide({
         arm,
         kind: 'stopped',
-        reason: `Its locked test wasn't released: at $${cost.toFixed(2)} it doesn't fit the $${Math.max(0, left).toFixed(2)} of student credit left after the arms before it.`,
+        reason: `Its final test didn't run: at $${cost.toFixed(2)} it doesn't fit the $${Math.max(0, left).toFixed(2)} of the hosted student's budget left after the comparisons before it.`,
       });
       continue;
     }
@@ -769,7 +769,7 @@ async function measureAfterRelease(
         decide({
           arm: 'repeat',
           kind: 'stopped',
-          reason: `The student credit left didn't pay for the repeat of the ${skipped.join(' and ')} arm${skipped.length > 1 ? 's' : ''}.`,
+          reason: `The hosted student's budget left didn't pay to run the ${skipped.join(' and the ')} again.`,
         });
       }
     }

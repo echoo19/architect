@@ -145,7 +145,7 @@ describe('a weights round', () => {
     ).id;
     await engine.controller.idle();
     expect(engine.store.interventions.get(runId, 2)?.invalidReason).toBe(
-      "A weights intervention isn't possible in this run: This run's locked test runs on the hosted copy of the student, which can't load an adapter.",
+      "The mentor chose to train the weights, which this run can't do. This run's locked test runs on the hosted copy of the student, which can't load an adapter.",
     );
   });
 
@@ -155,7 +155,7 @@ describe('a weights round', () => {
     const runId = await startArchitect(engine);
     await engine.controller.idle();
     expect(engine.store.interventions.get(runId, 2)?.invalidReason).toBe(
-      "A weights intervention isn't possible in this run: Only the stand-in backend is set up here, and it trains nothing. Add a Hugging Face token to train an adapter.",
+      "The mentor chose to train the weights, which this run can't do. Only the stand-in backend is set up here, and it trains nothing. Add a Hugging Face token to train an adapter.",
     );
   });
 

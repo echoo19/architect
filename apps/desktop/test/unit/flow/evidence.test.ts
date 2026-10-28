@@ -457,7 +457,8 @@ describe('a comparisons report', () => {
       {
         arm: 'fixed',
         status: 'not_run',
-        reason: 'It needs $5.87 of student credit, and $3.91 is left.',
+        reason:
+          "It needs $5.87 of the hosted student's budget, and $3.91 is left after the comparisons before it.",
         runId: null,
         spent: spent(0),
       },
@@ -513,7 +514,8 @@ describe('a comparisons report', () => {
     const fixed = reportArms(report, 'run_t', names).find((arm) => arm.arm === 'fixed');
     expect(fixed).toMatchObject({
       status: 'not_run',
-      reason: 'It needs $5.87 of student credit, and $3.91 is left.',
+      reason:
+        "It needs $5.87 of the hosted student's budget, and $3.91 is left after the comparisons before it.",
       hosted: null,
       local: null,
       memory: null,

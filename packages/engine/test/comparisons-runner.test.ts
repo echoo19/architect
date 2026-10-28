@@ -169,7 +169,7 @@ describe('the comparisons runner', () => {
     // At what attempts cost by then, the credit held for arms 1 and 2 left too little for arm 3.
     expect(arm('targeted')?.status).toBe('not_run');
     expect(arm('targeted')?.reason).toMatch(
-      /^It needs \$\d+\.\d\d of student credit at what an attempt has cost so far \(\$0\.0149\)/,
+      /^At what an attempt has cost so far \(\$0\.0149\), it needs \$\d+\.\d\d of the hosted student's budget/,
     );
     expect(arm('repeat')?.status).toBe('complete');
     const spent = report.arms.reduce((sum, item) => sum + (item.spent.studentUsd ?? 0), 0);
@@ -199,7 +199,7 @@ describe('the comparisons runner', () => {
     expect(arm('targeted')?.status).toBe('not_run');
     expect(arm('repeat')).toMatchObject({
       status: 'stopped',
-      reason: "The student credit left didn't pay for the repeat of the one-shot draft arm.",
+      reason: "The hosted student's budget left didn't pay to run the one-shot draft again.",
     });
     const hosted = report.backends.find((table) => table.backend === 'hosted');
     expect(hosted?.repeats.map((row) => row.arm)).toEqual(['bare']);
