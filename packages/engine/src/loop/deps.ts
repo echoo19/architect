@@ -11,6 +11,7 @@ import type {
   Job,
   MentorAdapter,
   MentorConfig,
+  PackageManifest,
   Score,
   SplitConfig,
   StudentAdapter,
@@ -183,6 +184,11 @@ export interface HarnessDeps {
   templateHarness(name: string, jobDescription: string, template: string): Harness;
   /** Reads a harness folder to improve, as a fresh starting point. */
   importHarness(dir: string): Awaitable<Harness>;
+  /**
+   * A graduate version's harness from its package folder, read (never run) and held to the hash
+   * its manifest records.
+   */
+  readPackaged(dir: string, manifest: PackageManifest): Awaitable<Harness>;
 }
 
 /** What a llama.cpp student serves: the base, every adapter loaded once, and its own scales. */

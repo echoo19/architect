@@ -18,6 +18,7 @@ import {
   type MentorCharge,
   type PayloadPart,
 } from '../mentor/gate';
+import { improvementLessons } from '../improve/improvement';
 import { diagnoseRequest, oneShotRequest, type PromptSettings } from '../mentor/prompts';
 import { MentorReplyError, parseHypothesis } from '../mentor/reply';
 import { studentAsMentor } from '../mentor/student-author';
@@ -165,6 +166,18 @@ async function mentoringView(state: RunState): Promise<NonNullable<MentorView['m
           ? [{ question: intervention.question, answer: intervention.answer.text }]
           : [],
       ),
+    ...(state.record.improves === undefined
+      ? {}
+      : {
+          lessons: improvementLessons(state).map(({ proposal, wrong, wanted }) => ({
+            kind: proposal.kind,
+            lesson: proposal.lesson,
+            wrong,
+            ...(wanted === undefined ? {} : { wanted }),
+            ...(proposal.instruction === undefined ? {} : { instruction: proposal.instruction }),
+            ...(proposal.taskType === undefined ? {} : { taskType: proposal.taskType }),
+          })),
+        }),
   };
 }
 

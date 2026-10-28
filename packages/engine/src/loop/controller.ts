@@ -1,13 +1,19 @@
 import {
   emptyTotals,
   newId,
+  type ImprovementStart,
+  type ImproveOptions,
   type Job,
   type Method,
   type ReferenceRecord,
   type Run,
   type RunEvent,
+  type RunImprovement,
   type StudentTarget,
+  type TrainedAdapter,
 } from '@architect/shared';
+import { KeyedLock } from '../graduates/library';
+import { improvementNote, improvementPlan } from '../improve/improvement';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun } from '../store/records';
 import { configurationKey } from './configuration';
@@ -37,6 +43,8 @@ export interface RunControllerOptions {
   maxActiveRuns?: number;
   /** Where errors from event listeners and broken sessions go. They never stop a run. */
   onError?(error: unknown): void;
+  /** The graduate library's lock, so a run writing an agent's version waits for its other writers. */
+  versionLock?: KeyedLock;
 }
 
 export interface StartRunOptions {
@@ -96,6 +104,7 @@ export class RunController {
   private readonly concurrency: number;
   private readonly maxActiveRuns: number;
   private readonly onError: (error: unknown) => void;
+  private readonly versionLock: KeyedLock;
   private closed = false;
 
   constructor(private readonly options: RunControllerOptions) {
@@ -103,6 +112,7 @@ export class RunController {
     this.concurrency = Math.max(1, options.concurrency ?? 1);
     this.maxActiveRuns = Math.max(1, options.maxActiveRuns ?? 1);
     this.onError = options.onError ?? ((error) => console.error(error));
+    this.versionLock = options.versionLock ?? new KeyedLock();
   }
 
   onEvent(listener: (event: RunEvent) => void): () => void {
@@ -117,15 +127,58 @@ export class RunController {
     seed?: number,
     options: StartRunOptions = {},
   ): Promise<Run> {
-    const { jobs, paths, store, deps } = this.options;
-    const job = await jobs.get(jobId);
+    const job = await this.options.jobs.get(jobId);
     await this.checkRunnable(job, method, options);
+    const record = await this.create(job, method, seed, options);
+    this.enqueue(record.run.id);
+    return record.run;
+  }
+
+  /**
+   * Improve agent (spec section 8): a run on an agent's job that starts from its active version
+   * with every lesson in its queue, within the budget the person was shown, and ends in a
+   * candidate version of that agent. The active version keeps answering and never changes. Like
+   * any run it waits its turn while another holds the student, and says so.
+   */
+  async improve(graduateId: string, options: ImproveOptions): Promise<ImprovementStart> {
+    const { jobs, store, paths } = this.options;
+    const plan = improvementPlan(store, paths, graduateId);
+    const job = await jobs.get(plan.jobId);
+    await this.checkRunnable(job, 'architect', {});
+    const budgeted: Job = {
+      ...job,
+      budget: { ...job.budget, maxRounds: options.maxRounds, maxMentorUsd: options.maxMentorUsd },
+    };
+    const { adapter, name: _name, jobId: _jobId, ...improves } = plan;
+    const record = await this.create(budgeted, 'architect', undefined, {}, improves, adapter);
+    const at = isoNow(this.clock);
+    store.transaction(() => {
+      for (const id of improves.corrections) {
+        const correction = must(store.corrections.get(id), 'A queued lesson');
+        store.corrections.put({ ...correction, runId: record.run.id, updatedAt: at });
+      }
+    });
+    this.enqueue(record.run.id);
+    const started = this.active.has(record.run.id);
+    return { runId: record.run.id, started, note: improvementNote(plan, options, started) };
+  }
+
+  /** Writes a new run, with the copy of its job it reads from then on. */
+  private async create(
+    job: Job,
+    method: Method,
+    seed: number | undefined,
+    options: StartRunOptions,
+    improves?: RunImprovement,
+    adapter?: TrainedAdapter,
+  ): Promise<StoredRun> {
+    const { paths, store, deps } = this.options;
     const runSeed = seed ?? Math.floor(Math.random() * 2 ** 31);
     const now = isoNow(this.clock);
     const record: StoredRun = {
       run: {
         id: newId('run'),
-        jobId,
+        jobId: job.id,
         method,
         seed: runSeed,
         status: 'queued',
@@ -136,6 +189,7 @@ export class RunController {
         devBaseline: null,
         devCurrent: null,
         totals: emptyTotals(),
+        ...(adapter === undefined ? {} : { currentAdapter: adapter }),
       },
       seeds: fanOutSeeds(runSeed),
       today: deps.runtime.today(job, new Date(this.clock.now())),
@@ -143,12 +197,12 @@ export class RunController {
       stopRequested: false,
       freeze: null,
       ...(options.interactive === true ? { interactive: true } : {}),
+      ...(improves === undefined ? {} : { improves }),
     };
-    await writeJsonFile(paths.runJobFile(jobId, record.run.id), job);
+    await writeJsonFile(paths.runJobFile(job.id, record.run.id), job);
     store.runs.insert(record);
     this.publish(record.run);
-    this.enqueue(record.run.id);
-    return record.run;
+    return record;
   }
 
   /** Resolves once the attempt in flight has finished and the run is parked. */
@@ -399,6 +453,7 @@ export class RunController {
       deps,
       clock: this.clock,
       concurrency: this.concurrency,
+      versionLock: this.versionLock,
       emit: (event) => this.dispatch(event),
     };
   }

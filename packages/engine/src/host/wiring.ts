@@ -7,6 +7,7 @@ import {
 } from '@architect/adapters';
 import { DEFAULT_STUDENT, GLIMMER_TRAINING_BASE } from '@architect/shared';
 import { readGgufHeader } from '../gguf';
+import { readPackageHarness } from '../graduates/harness';
 import { LocalAdapterRuntime, resolveOllamaModel } from '../local-runtime';
 import {
   FileTrainingStore,
@@ -180,6 +181,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       blankHarness,
       templateHarness,
       importHarness,
+      readPackaged: readPackageHarness,
     },
     adapters: {
       createMentor: (config, mentorOptions) => createMentor(config, mentorOptions),

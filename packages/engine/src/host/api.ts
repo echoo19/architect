@@ -13,6 +13,8 @@ import {
 import { exportPackage, reviewExport } from '../graduates/exporter';
 import { importPackage, inspectPackage } from '../graduates/importer';
 import type { GraduateLibrary } from '../graduates/library';
+import { improvementsOf } from '../improve/improvement';
+import { TeachThis } from '../improve/teach-this';
 import type { Clock, EngineHostDeps, JobDrafter } from '../loop/deps';
 import { readJsonFile } from '../loop/files';
 import type { JobLibrary } from '../loop/jobs';
@@ -65,6 +67,14 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
   const drafter = (): JobDrafter =>
     found(deps.drafts, "Drafting a job with the mentor isn't available in this build.");
   const packages = { library: graduates, secrets: deps.secrets };
+  const teachThis = new TeachThis({
+    store,
+    paths,
+    jobs,
+    deps,
+    clock: ctx.clock,
+    versionLock: graduates.lock,
+  });
 
   async function runDetail(runId: string): Promise<RunDetail> {
     const record = run(runId);
@@ -187,6 +197,15 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       answer: (runId, round, reply) => answerClarification(runId, round, reply),
       reference: (runId, { split, maxUsd }) => controller.reference(runId, split, maxUsd),
       references: async (runId) => store.references.list(run(runId).run.id),
+    },
+    teach: {
+      propose: (chatId, messageId, request) => teachThis.propose(chatId, messageId, request),
+      queue: async (correctionId) => teachThis.queue(correctionId),
+      discard: async (correctionId) => teachThis.discard(correctionId),
+      apply: (correctionId) => teachThis.apply(correctionId),
+      list: async (graduateId) => teachThis.list(graduateId),
+      improve: (graduateId, options) => controller.improve(graduateId, options),
+      improvements: (graduateId) => improvementsOf(store, jobs, graduateId),
     },
     reports: {
       get: async (runId, target) => reportOf(run(runId), target),

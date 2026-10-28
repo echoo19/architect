@@ -3,6 +3,7 @@ export * from './cells';
 export * from './chat';
 export * from './checker';
 export * from './contract';
+export * from './corrections';
 export * from './data';
 export * from './errors';
 export * from './events';

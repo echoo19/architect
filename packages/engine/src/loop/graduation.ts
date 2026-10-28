@@ -120,7 +120,8 @@ export async function freeze(state: RunState): Promise<void> {
     };
   }
   const frozen: GraduateFreeze = {
-    graduateId: newId('grd'),
+    // An improvement makes a version of the agent it improves, never a new agent.
+    graduateId: state.record.improves?.graduateId ?? newId('grd'),
     harnessVersion: harness.meta.version,
     harnessHash: harness.meta.hash,
     student: pinOf(state, await (await state.resources.student('local')).describe()),
@@ -133,9 +134,12 @@ export async function freeze(state: RunState): Promise<void> {
     testSeeds: state.job.evaluation.lockedTestSeeds ?? [state.record.seeds.test],
   };
   state.saveRun({}, { freeze: frozen });
+  const using = adapter === null ? '' : ` with adapter ${adapter.id}`;
   state.log(
     'info',
-    `Graduate frozen at harness version ${frozen.harnessVersion}${adapter === null ? '' : ` with adapter ${adapter.id}`} before its locked test.`,
+    state.record.improves === undefined
+      ? `Graduate frozen at harness version ${frozen.harnessVersion}${using} before its locked test.`
+      : `Candidate frozen at harness version ${frozen.harnessVersion}${using}. An improvement is measured on dev and takes no locked test.`,
   );
 }
 

@@ -225,6 +225,7 @@ export function mentorViewParts(view: MentorView): PayloadPart[] {
       : [
           { label: 'the failure vocabulary', text: JSON.stringify(view.mentoring.categories) },
           { label: "the person's answers", text: JSON.stringify(view.mentoring.answers) },
+          { label: "the person's lessons", text: JSON.stringify(view.mentoring.lessons ?? []) },
         ]),
   ];
 }

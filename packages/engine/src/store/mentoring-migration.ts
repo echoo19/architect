@@ -7,7 +7,7 @@ import type { Migration } from './database';
  */
 export const MENTORING_MIGRATION: Migration = {
   version: 14,
-  name: 'lessons, interventions and experiments',
+  name: 'lessons, interventions, experiments and corrections',
   sql: `
     -- Who made an attempt and how, beside its harness version: the student or Spark as a
     -- reference, the backend, and any adapter at its scale. Older attempts were all 'student'.
@@ -81,5 +81,20 @@ export const MENTORING_MIGRATION: Migration = {
       started_at TEXT NOT NULL,
       PRIMARY KEY (run_id, split)
     );
+
+    -- A run that improves an agent from its queued lessons: the agent, its starting version and
+    -- the lessons it took. Null for every other run.
+    ALTER TABLE runs ADD COLUMN improves TEXT;
+
+    -- Teach this: one person's correction of one reply, its proposed lesson and where it went.
+    CREATE TABLE corrections (
+      id TEXT PRIMARY KEY,
+      graduate_id TEXT NOT NULL REFERENCES graduates(id) ON DELETE CASCADE,
+      status TEXT NOT NULL,
+      run_id TEXT,
+      body TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX corrections_by_graduate ON corrections (graduate_id, created_at);
   `,
 };

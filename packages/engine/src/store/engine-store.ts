@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import {
   CategorySchema,
+  CorrectionSchema,
   DEFAULT_CONFIG_KEY,
   ExperimentSchema,
   InterventionSchema,
@@ -11,6 +12,8 @@ import {
   WorkspaceChatSchema,
   WorkspaceMessageSchema,
   type Category,
+  type Correction,
+  type CorrectionStatus,
   type Experiment,
   type Intervention,
   type Lesson,
@@ -243,6 +246,12 @@ export interface EngineStore {
     /** Oldest first, so interrupted references resume in the order they started. */
     withStatus(status: ReferenceRecord['status']): ReferenceRecord[];
   };
+  /** Teach this: corrections of workspace replies, by agent, oldest first. */
+  corrections: {
+    put(correction: Correction): void;
+    get(id: string): Correction | null;
+    list(graduateId: string, statuses?: readonly CorrectionStatus[]): Correction[];
+  };
 }
 
 export function openEngineStore(
@@ -301,6 +310,7 @@ function runParams({ run, ...record }: StoredRun): Params {
     ended_at: run.endedAt ?? null,
     interactive: flag(record.interactive === true),
     current_adapter: jsonOrNull(run.currentAdapter),
+    improves: jsonOrNull(record.improves),
   };
 }
 
@@ -331,6 +341,9 @@ function runFromRow(row: Row): StoredRun {
     stopRequested: row.stop_requested === 1,
     freeze: fromJson(row.freeze),
     ...(row.interactive === 1 ? { interactive: true } : {}),
+    ...(row.improves === null || row.improves === undefined
+      ? {}
+      : { improves: fromJson(row.improves) }),
   });
 }
 
@@ -1277,6 +1290,38 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
             { status },
           )
           .map((row) => bodyOf(ReferenceRecordSchema, row)),
+    },
+
+    corrections: {
+      put: (correction) => {
+        const parsed = CorrectionSchema.parse(correction);
+        sql.insert(
+          'corrections',
+          {
+            id: parsed.id,
+            graduate_id: parsed.graduateId,
+            status: parsed.status,
+            run_id: parsed.runId ?? null,
+            body: json(parsed),
+            created_at: parsed.createdAt,
+          },
+          'replace',
+        );
+      },
+      get: (id) => {
+        const row = sql.one('SELECT body FROM corrections WHERE id = :id', { id });
+        return row ? bodyOf(CorrectionSchema, row) : null;
+      },
+      list: (graduateId, statuses) =>
+        sql
+          .all(
+            'SELECT body, status FROM corrections WHERE graduate_id = :graduate_id ORDER BY created_at, rowid',
+            { graduate_id: graduateId },
+          )
+          .filter(
+            (row) => statuses === undefined || statuses.includes(row.status as CorrectionStatus),
+          )
+          .map((row) => bodyOf(CorrectionSchema, row)),
     },
   };
 }

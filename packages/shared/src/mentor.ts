@@ -240,6 +240,22 @@ export const MentorViewSchema = z.object({
         }),
       ),
       answers: z.array(z.object({ question: z.string(), answer: z.string() })),
+      /**
+       * In a run that improves an agent: the lessons the person queued with Teach this, each as
+       * the mentor proposed it from their correction of one reply (decision 041).
+       */
+      lessons: z
+        .array(
+          z.object({
+            kind: z.string(),
+            lesson: z.string(),
+            wrong: z.string(),
+            wanted: z.string().optional(),
+            instruction: z.string().optional(),
+            taskType: z.string().optional(),
+          }),
+        )
+        .optional(),
     })
     .optional(),
 });

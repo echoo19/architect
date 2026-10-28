@@ -23,6 +23,7 @@ import {
   diffHarness,
   FileVersions,
   harnessToFiles,
+  readPackaged,
   templateHarness,
 } from './harness';
 import { defaultJob, defaultTasks, writeJobFolder } from './job';
@@ -97,6 +98,7 @@ export async function createWorld(
       templateHarness,
       importHarness: async (dir) =>
         HarnessSchema.parse(JSON.parse(await readFile(join(dir, 'harness.json'), 'utf8'))),
+      readPackaged,
     },
     adapters: {
       createMentor: () => {

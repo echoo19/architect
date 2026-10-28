@@ -72,6 +72,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
   const jobs = new JobLibrary(store, paths, options.deps, clock, contracts);
   const graduates = new GraduateLibrary({ store, paths, clock, contracts, deps: options.deps });
   const controller = new RunController({
+    versionLock: graduates.lock,
     store,
     paths,
     jobs,

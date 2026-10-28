@@ -6,6 +6,7 @@ import { interventionOfRound } from './intervene';
 import { teach } from './teach';
 import { awaitTraining, cancelTraining, startTraining } from './weights';
 import { errorMessage, isAbort, passesOnItsOwn, summaryOf } from './errors';
+import { proposeVersion } from '../improve/improvement';
 import { freeze, lockedTest } from './graduation';
 import { planNextStep, type ActionStep, type PlanInput } from './plan';
 import { RunState, type SessionContext, type SessionControl } from './run-state';
@@ -105,6 +106,8 @@ export class RunDriver {
         return freeze(state);
       case 'locked_test':
         return lockedTest(state);
+      case 'propose_version':
+        return proposeVersion(state);
     }
   }
 
@@ -175,6 +178,7 @@ export class RunDriver {
       devBaseline: run.devBaseline,
       devCurrent: run.devCurrent,
       frozen: frozen !== null,
+      ...(state.record.improves === undefined ? {} : { improves: true }),
       rounds: state.rounds().map(({ round, rejected }) => ({
         ...round,
         rejected,

@@ -2,6 +2,7 @@ import {
   newId,
   TraceSchema,
   type GateResult,
+  type Harness,
   type Measurement as RecordedMeasurement,
   type Round,
   type RunStopReason,
@@ -9,6 +10,7 @@ import {
   type TrainedAdapter,
   type TypeScore,
 } from '@architect/shared';
+import { improvementHarness } from '../improve/improvement';
 import type { StoredRound } from '../store/records';
 import { resultOf, type EvaluationResult } from './attempts';
 import { configurationKey, llamaCppConfig, type AttemptConfig } from './configuration';
@@ -50,17 +52,21 @@ function draftDecision(state: RunState, before: Score, after: Score): KeepDecisi
   };
 }
 
-/** Saves the first version: blank for the bare baseline, otherwise the job's starting harness. */
+/**
+ * Saves the first version: blank for the bare baseline, the starting version's own harness for
+ * an improvement, otherwise the job's starting harness.
+ */
 export async function prepare(state: RunState): Promise<void> {
-  const { harness } = state.ctx.deps;
-  const start =
-    (await state.versions.latest()) ??
-    (await state.versions.save(
-      state.run.method === 'bare'
-        ? harness.blankHarness(state.job.name, state.job.description)
-        : await startingHarness(state.job, state.jobDir, harness),
-    ));
+  const start = (await state.versions.latest()) ?? (await state.versions.save(await first(state)));
   state.saveRun({ phase: 'baseline', currentVersion: start.meta.version });
+}
+
+async function first(state: RunState): Promise<Harness> {
+  const { harness } = state.ctx.deps;
+  if (state.record.improves !== undefined) return improvementHarness(state);
+  return state.run.method === 'bare'
+    ? harness.blankHarness(state.job.name, state.job.description)
+    : startingHarness(state.job, state.jobDir, harness);
 }
 
 /**

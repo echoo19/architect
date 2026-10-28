@@ -19,6 +19,7 @@ export type Step =
   | { kind: 'finish_training'; reason?: RunStopReason }
   | { kind: 'freeze' }
   | { kind: 'locked_test' }
+  | { kind: 'propose_version' }
   | { kind: 'park' }
   | { kind: 'done' };
 
@@ -46,6 +47,11 @@ export interface PlanInput {
   devCurrent: Score | null;
   /** The graduate has been frozen for its locked test. */
   frozen: boolean;
+  /**
+   * The run improves an agent from its queued lessons: it ends in a candidate version of that
+   * agent, measured on dev, and never takes the locked test again (decision 041).
+   */
+  improves?: boolean;
   rounds: readonly PlannedRound[];
   maxRounds: number;
   patience: number;
@@ -143,7 +149,8 @@ export function planNextStep(input: PlanInput): Step {
 
   if (input.phase === 'testing') {
     if (input.pauseRequested) return { kind: 'park' };
-    return input.frozen ? { kind: 'locked_test' } : { kind: 'freeze' };
+    if (!input.frozen) return { kind: 'freeze' };
+    return input.improves === true ? { kind: 'propose_version' } : { kind: 'locked_test' };
   }
 
   const open = input.rounds.find((round) => OPEN.has(round.status));

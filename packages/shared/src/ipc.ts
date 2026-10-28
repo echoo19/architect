@@ -1,4 +1,11 @@
 import type { ConnectionTest } from './adapters';
+import type {
+  Correction,
+  CorrectionRequest,
+  Improvement,
+  ImprovementStart,
+  ImproveOptions,
+} from './corrections';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
 import type { Job, MentorConfig, PermissionMode, StudentEndpoint, StudentTarget } from './job';
@@ -340,6 +347,27 @@ export interface ArchitectApi {
      */
     reference(runId: string, options: ReferenceOptions): Promise<void>;
     references(runId: string): Promise<ReferenceRecord[]>;
+  };
+  /**
+   * Teach this and Improve agent (spec section 8): corrections of workspace replies become
+   * lessons, and lessons become candidate versions. The active version never changes here.
+   */
+  teach: {
+    /**
+     * The mentor reads one reply's exchange and the person's correction, and proposes a lesson.
+     * Needs the job to allow sharing corrections and `consent` on this one; costs at most the
+     * cap shown beside the consent. Nothing is queued yet.
+     */
+    propose(chatId: string, messageId: string, request: CorrectionRequest): Promise<Correction>;
+    queue(correctionId: string): Promise<Correction>;
+    discard(correctionId: string): Promise<Correction>;
+    /** A procedure or source lesson as an instruction-only candidate version, not yet evaluated. */
+    apply(correctionId: string): Promise<Correction>;
+    list(graduateId: string): Promise<Correction[]>;
+    /** Improve agent on every queued lesson, within the budget shown. */
+    improve(graduateId: string, options: ImproveOptions): Promise<ImprovementStart>;
+    /** Newest first: what each improvement changed and whether its candidate may be promoted. */
+    improvements(graduateId: string): Promise<Improvement[]>;
   };
   reports: {
     /** The run's report card from one student endpoint: by default, where its locked test ran. */

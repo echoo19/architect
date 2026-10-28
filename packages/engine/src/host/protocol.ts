@@ -3,9 +3,14 @@ import {
   BindRequestSchema,
   CapabilityBreakdownSchema,
   CategorySchema,
+  CorrectionRequestSchema,
+  CorrectionSchema,
   ClarificationReplySchema,
   DraftTurnSchema,
   ExperimentSchema,
+  ImprovementSchema,
+  ImprovementStartSchema,
+  ImproveOptionsSchema,
   ExportRequestSchema,
   ExportResultSchema,
   ExportReviewSchema,
@@ -41,7 +46,10 @@ import {
 import { z } from 'zod';
 
 /** The part of the app's API the engine host serves. */
-export type EngineApi = Pick<ArchitectApi, 'jobs' | 'runs' | 'mentoring' | 'reports' | 'graduates'>;
+export type EngineApi = Pick<
+  ArchitectApi,
+  'jobs' | 'runs' | 'mentoring' | 'teach' | 'reports' | 'graduates'
+>;
 
 const id = z.string().min(1);
 const path = z.string().min(1);
@@ -131,6 +139,31 @@ export const ENGINE_ROUTES = {
   ),
   'mentoring.references': route(z.tuple([id]), z.array(ReferenceRecordSchema), (api, [runId]) =>
     api.mentoring.references(runId),
+  ),
+  'teach.propose': route(
+    z.tuple([id, id, CorrectionRequestSchema]),
+    CorrectionSchema,
+    (api, [chatId, messageId, request]) => api.teach.propose(chatId, messageId, request),
+  ),
+  'teach.queue': route(z.tuple([id]), CorrectionSchema, (api, [correctionId]) =>
+    api.teach.queue(correctionId),
+  ),
+  'teach.discard': route(z.tuple([id]), CorrectionSchema, (api, [correctionId]) =>
+    api.teach.discard(correctionId),
+  ),
+  'teach.apply': route(z.tuple([id]), CorrectionSchema, (api, [correctionId]) =>
+    api.teach.apply(correctionId),
+  ),
+  'teach.list': route(z.tuple([id]), z.array(CorrectionSchema), (api, [graduateId]) =>
+    api.teach.list(graduateId),
+  ),
+  'teach.improve': route(
+    z.tuple([id, ImproveOptionsSchema]),
+    ImprovementStartSchema,
+    (api, [graduateId, options]) => api.teach.improve(graduateId, options),
+  ),
+  'teach.improvements': route(z.tuple([id]), z.array(ImprovementSchema), (api, [graduateId]) =>
+    api.teach.improvements(graduateId),
   ),
   'reports.get': route(
     z.tuple([id, StudentTargetSchema.nullable()]),

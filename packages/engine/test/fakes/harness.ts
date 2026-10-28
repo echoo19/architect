@@ -12,6 +12,7 @@ import {
   type FileDiff,
   type FileEdit,
   type Harness,
+  type PackageManifest,
 } from '@architect/shared';
 import type { HarnessVersionStore } from '../../src/loop/deps';
 
@@ -193,5 +194,48 @@ export class FileVersions implements HarnessVersionStore {
     return names
       .filter((name) => /^v\d+\.json$/.test(name))
       .map((name) => Number(name.slice(1, -5)));
+  }
+}
+
+/**
+ * A version's harness read back from the files `harnessToFiles` wrote into its package, the way
+ * the real reader does from real files. Tools aren't written by the fake, so none come back.
+ */
+export async function readPackaged(
+  dir: string,
+  manifest: Pick<PackageManifest, 'harness' | 'identity'>,
+): Promise<Harness> {
+  const root = join(dir, 'harness');
+  const read = async (path: string): Promise<string | undefined> => {
+    try {
+      return await readFile(join(root, path), 'utf8');
+    } catch {
+      return undefined;
+    }
+  };
+  const harness = withSystem(manifest.identity.name, (await read('AGENTS.md')) ?? '');
+  for (const name of await folders(join(root, 'skills'))) {
+    const body = await read(`skills/${name}/SKILL.md`);
+    if (body !== undefined) harness.skills.push({ name, description: name, body });
+  }
+  for (const file of await folders(join(root, 'examples'))) {
+    const content = await read(`examples/${file}`);
+    if (content !== undefined) harness.examples.push(ExampleSchema.parse(JSON.parse(content)));
+  }
+  const guardrails = await read('guardrails.yaml');
+  if (guardrails !== undefined) harness.guardrails = GuardrailsSchema.parse(JSON.parse(guardrails));
+  const retrieval = await read('retrieval.yaml');
+  if (retrieval !== undefined) harness.retrieval = RetrievalSchema.parse(JSON.parse(retrieval));
+  return {
+    ...harness,
+    meta: { ...harness.meta, version: manifest.harness.version, hash: manifest.harness.hash },
+  };
+}
+
+async function folders(dir: string): Promise<string[]> {
+  try {
+    return (await readdir(dir)).sort();
+  } catch {
+    return [];
   }
 }

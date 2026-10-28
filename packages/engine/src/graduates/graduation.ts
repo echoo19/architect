@@ -42,7 +42,7 @@ export interface RunGraduation {
  * The adapter a frozen graduate was tested with, as its package ships it: the GGUF file named
  * the way the adapter runtime loads it (decision 038), at the scale its locked test used.
  */
-function adapterFile(paths: DataPaths, freeze: GraduateFreeze): AdapterFile {
+export function adapterFile(paths: DataPaths, freeze: GraduateFreeze): AdapterFile {
   const adapter = freeze.configuration?.adapter;
   if (!adapter) throw new Error('The frozen graduate has no adapter.');
   if (adapter.baseDigest === undefined) {

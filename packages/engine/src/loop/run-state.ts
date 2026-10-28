@@ -7,6 +7,7 @@ import type {
   StudentTarget,
   Task,
 } from '@architect/shared';
+import type { KeyedLock } from '../graduates/library';
 import type { AttemptFilter, EngineStore } from '../store/engine-store';
 import type { StoredAttempt, StoredRound, StoredRun } from '../store/records';
 import { resultOf, type EvaluationResult } from './attempts';
@@ -42,6 +43,8 @@ export interface SessionContext {
   clock: Clock;
   /** Attempts in flight at once while training. The locked test runs one at a time. */
   concurrency: number;
+  /** One writer at a time for an agent's versions, shared with the graduate library. */
+  versionLock: KeyedLock;
   emit(event: RunEvent): void;
 }
 
@@ -195,6 +198,8 @@ export class RunState {
   drafts(index: number): boolean {
     const { method } = this.run;
     if (method === 'one_shot') return true;
+    // An improvement starts from a graduate's harness and changes it one step at a time.
+    if (this.record.improves !== undefined) return false;
     if (method !== 'architect' && method !== 'self_reflection') return false;
     if (this.job.startingHarness.kind !== 'blank') return false;
     return !this.rounds().some(({ round }) => round.index < index && round.decision === 'kept');

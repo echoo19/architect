@@ -124,7 +124,22 @@ function renderMenuSection(mentoring: NonNullable<MentorView['mentoring']>): str
     mentoring.answers.length === 0
       ? ''
       : `\n\n# The person's answers\n${mentoring.answers.map((item) => `- Q: ${item.question}\n  A: ${item.answer}`).join('\n')}`;
-  return `# Failure categories\n${categories}${answers}\n\nAllowed this round: ${mentoring.allowed.join(', ')}.`;
+  return `# Failure categories\n${categories}${answers}${renderLessons(mentoring.lessons ?? [])}\n\nAllowed this round: ${mentoring.allowed.join(', ')}.`;
+}
+
+type ViewLessons = NonNullable<NonNullable<MentorView['mentoring']>['lessons']>;
+
+/** The person's queued lessons, in a run that improves an agent from them. */
+function renderLessons(lessons: ViewLessons): string {
+  if (lessons.length === 0) return '';
+  const items = lessons.map((item) => {
+    const type = item.taskType === undefined ? '' : ` (${item.taskType})`;
+    const lines = [`- ${item.kind}${type}: ${item.lesson}`, `  They said: ${item.wrong}`];
+    if (item.wanted !== undefined) lines.push(`  They wanted: ${item.wanted}`);
+    if (item.instruction !== undefined) lines.push(`  Proposed instruction: ${item.instruction}`);
+    return lines.join('\n');
+  });
+  return `\n\n# The person's lessons\nThis run improves an agent the person already uses. They corrected some of its replies, and each correction became a lesson. Teach what they ask where this round's train failures agree with it; a lesson never overrides the checker, and a rule must stay general.\n${items.join('\n')}`;
 }
 
 function replyFormatWithMenu(): string {

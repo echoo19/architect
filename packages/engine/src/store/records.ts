@@ -16,6 +16,7 @@ import {
   PackageManifestSchema,
   PublicationSchema,
   RoundSchema,
+  RunImprovementSchema,
   RunSchema,
   StopReasonSchema,
   StudentTargetSchema,
@@ -89,6 +90,11 @@ export const StoredRunSchema = z.object({
   freeze: GraduateFreezeSchema.nullable(),
   /** Someone can answer a clarifying question; runs from scripts can't. Absent: no one. */
   interactive: z.boolean().optional(),
+  /**
+   * The agent this run improves from its queued lessons (decision 041): it starts from that
+   * version and ends in a candidate version of the same agent, never in a new one.
+   */
+  improves: RunImprovementSchema.optional(),
 });
 export type StoredRun = z.infer<typeof StoredRunSchema>;
 
