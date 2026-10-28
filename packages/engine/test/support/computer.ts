@@ -231,6 +231,8 @@ export interface VersionOptions {
   >;
   /** The local version it derives from. */
   parent?: number;
+  /** The header of each table of the job's data that the package names; the sample tables' when absent. */
+  columns?: Record<string, string[]>;
   /** The context the version was made with; 16K when absent. */
   contextLength?: number;
   /** A model endpoint on this computer for its installation. */
@@ -306,7 +308,7 @@ export async function addVersion(
     harness: { meta: harness.meta, files: harnessToFiles(harness) },
     report: options.unevaluated ? null : reportFor(job),
     lineage: [],
-    columns: { 'customers.csv': ['customer_id', 'name', 'city', 'terms_days'] },
+    columns: options.columns ?? { 'customers.csv': ['customer_id', 'name', 'city', 'terms_days'] },
     rounds: 0,
     keptChanges: 0,
     // Made on this computer: its locked test ran here.

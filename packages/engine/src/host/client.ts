@@ -171,6 +171,8 @@ export function connectEngine(
       importFolder: (folder) => request('graduates.importFolder', [folder]),
       installFromHub: (source, installRequest) =>
         request('graduates.installFromHub', [source, installRequest ?? {}]),
+      hasSampleAgent: () => request('graduates.hasSampleAgent', []),
+      prepareSampleAgent: () => request('graduates.prepareSampleAgent', []),
       reviewPublication: (graduateId, publishRequest) =>
         request('graduates.reviewPublication', [graduateId, publishRequest]),
       publish: (graduateId, publishRequest) =>

@@ -31,6 +31,7 @@ import {
 import type {
   EngineHostDeps,
   JobDrafter,
+  SampleAgentFiles,
   TaskChecker,
   ToolSandbox,
   TrainingDeps,
@@ -62,6 +63,8 @@ export interface EngineWiringOptions {
   getSecret(ref: string): Promise<string | undefined>;
   /** The sample job shipped with the app (`job.json`, with `tasks.jsonl` and `data/` beside it). */
   sampleJobFile?: string;
+  /** The ready-made agent shipped with the app: its package, and the data it works on. */
+  sampleAgent?: SampleAgentFiles;
   drafts?: JobDrafter;
   /** The CPU-thread cap for students on a local runtime right now, if there is one. */
   localThreads?: () => number | undefined;
@@ -203,6 +206,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
     },
     secrets: { get: options.getSecret },
     ...(options.sampleJobFile === undefined ? {} : { sampleJobFile: options.sampleJobFile }),
+    ...(options.sampleAgent === undefined ? {} : { sampleAgent: options.sampleAgent }),
     ...(options.drafts === undefined ? {} : { drafts: options.drafts }),
   };
 }

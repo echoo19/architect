@@ -13,6 +13,12 @@ import { routerHarness } from './router-harness';
 
 const ROOT = resolve('/work');
 
+/** The ready-made agent: its package inside the app, and its data in the app's data folder. */
+const sample = {
+  package: join(ROOT, 'Architect', 'resources', 'sample-agent', 'returns-desk.architect.zip'),
+  data: join(ROOT, 'AppData', 'Architect', 'samples', 'returns-desk', 'data'),
+};
+
 function setup() {
   const { router, call } = routerHarness();
   const order: string[] = [];
@@ -36,6 +42,9 @@ function setup() {
       }),
       settings: vi.fn(async () => ({ writeMode: 'ask' })),
       installFromHub: vi.fn(async () => ({ ...imported, source: { kind: 'huggingface' } })),
+      previewImport: vi.fn(async () => ({ ok: true })),
+      hasSampleAgent: vi.fn(async () => true),
+      prepareSampleAgent: vi.fn(async () => sample),
       reviewPublication: vi.fn(async () => ({ files: [] })),
       publish: vi.fn(async () => ({ alreadyPublished: false })),
       publications: vi.fn(async () => []),
@@ -113,6 +122,56 @@ describe('graduate handlers', () => {
     expect((await call('graduates:bind', 'grd_1', { bindings: { data } })).ok).toBe(true);
     expect(engine.graduates.bind).toHaveBeenCalledWith('grd_1', { bindings: { data } });
     expect(workspace.open).toHaveBeenCalledTimes(2);
+  });
+
+  it('let the import of the ready-made agent read its package and its data, and nothing beside them', async () => {
+    const { engine, picked, call, imported } = setup();
+    expect(await call('graduates:hasSampleAgent')).toEqual({ ok: true, value: true });
+
+    // Nobody chose these, so until the engine hands them over an import may not read them.
+    const request = { bindings: { data: sample.data } };
+    expect((await call('graduates:previewImport', sample.package)).ok).toBe(false);
+    expect((await call('graduates:importPackage', sample.package, request)).ok).toBe(false);
+    expect(engine.graduates.previewImport).not.toHaveBeenCalled();
+    expect(engine.graduates.importPackage).not.toHaveBeenCalled();
+
+    expect(await call('graduates:prepareSampleAgent')).toEqual({ ok: true, value: sample });
+    expect(picked.check(sample.package)).toBe(sample.package);
+    expect(await call('graduates:previewImport', sample.package)).toEqual({
+      ok: true,
+      value: { ok: true },
+    });
+    expect(await call('graduates:importPackage', sample.package, request)).toEqual({
+      ok: true,
+      value: imported,
+    });
+    expect(engine.graduates.importPackage).toHaveBeenCalledWith(sample.package, {
+      bindings: { data: sample.data },
+      loadModel: true,
+    });
+
+    // A file beside the package, and one beside the data folder rather than in it, stay closed.
+    const beside = join(ROOT, 'Architect', 'resources', 'sample-agent', 'other.architect.zip');
+    expect((await call('graduates:previewImport', beside)).ok).toBe(false);
+    expect(
+      (await call('graduates:previewImport', join(sample.data, '..', 'secrets.json'))).ok,
+    ).toBe(false);
+    expect(
+      (await call('graduates:bind', 'grd_1', { bindings: { data: join(ROOT, 'elsewhere') } })).ok,
+    ).toBe(false);
+  });
+
+  it('hand over no path, and allow none, when the engine has no ready-made agent', async () => {
+    const { engine, picked, call } = setup();
+    engine.graduates.prepareSampleAgent.mockRejectedValueOnce(
+      new Error("The ready-made agent isn't available in this build."),
+    );
+    expect(await call('graduates:prepareSampleAgent')).toEqual({
+      ok: false,
+      error: { message: "The ready-made agent isn't available in this build." },
+    });
+    expect(() => picked.check(sample.package)).toThrow('only opens files and folders you choose');
+    expect(() => picked.check(sample.data)).toThrow('only opens files and folders you choose');
   });
 
   it('export into a folder the user picked', async () => {

@@ -163,6 +163,15 @@ export function registerGraduateHandlers(
         await workspace.open(result.graduate);
         return result;
       },
+      hasSampleAgent: () => call((api) => api.graduates.hasSampleAgent()),
+      prepareSampleAgent: async () => {
+        const sample = await call((api) => api.graduates.prepareSampleAgent());
+        // Files Architect ships and keeps itself: the import that follows may read them as it
+        // reads what the user chose, and nothing else comes with them.
+        picked.add([sample.package], 'files');
+        picked.add([sample.data], 'folders');
+        return sample;
+      },
       reviewPublication: (graduateId, request) =>
         call((api) => api.graduates.reviewPublication(graduateId, request)),
       publish: (graduateId, request) =>

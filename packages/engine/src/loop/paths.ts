@@ -109,6 +109,14 @@ export class DataPaths {
     return join(this.root, 'outputs', safe(graduateId));
   }
 
+  /**
+   * This computer's copy of a ready-made agent's data, the folder its `data/` is chosen from
+   * (decision 054). It sits apart from every agent's own folders, so removing an agent keeps it.
+   */
+  sampleDataDir(name: string): string {
+    return join(this.root, 'samples', safe(name), 'data');
+  }
+
   /** Where imports and exports are unpacked and checked before anything else sees them. */
   stagingDir(): string {
     return join(this.root, 'staging');
