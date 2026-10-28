@@ -17,6 +17,7 @@ import {
   describeLlamaServer,
   GpuLease,
   hostAdapterRuntime,
+  LocalRuntimeError,
   resolveOllamaModel,
   type GpuLeaseOptions,
   type GpuPurpose,
@@ -201,6 +202,11 @@ async function identify(backend: BackendId, job: Job): Promise<RuntimeIdentity |
   }
 }
 
+/** Whether an error is the lease's busy error: another process of the app has the GPU. */
+function gpuBusy(error: unknown): boolean {
+  return error instanceof LocalRuntimeError && error.code === 'gpu_busy';
+}
+
 /**
  * The real environment for a comparison: the engine's own dependencies with keys from the
  * environment, a training worker that uses Hugging Face Jobs when a token resolves, a llama-server
@@ -236,12 +242,12 @@ export function realEnvironment(options: RealEnvironmentOptions): {
     gpu,
     COMPARISON_PURPOSE,
   );
+  const clear = clearBeforeColdStart(gpu, adapterRuntime, {
+    baseUrl: OLLAMA_BASE_URL,
+    models: STUDENT_PRESETS.filter((item) => item.runtime === 'ollama').map((item) => item.model),
+  });
   if (options.meter) {
     // Either backend's cold start begins from a GPU with nothing of Architect's on it.
-    const clear = clearBeforeColdStart(gpu, adapterRuntime, {
-      baseUrl: OLLAMA_BASE_URL,
-      models: STUDENT_PRESETS.filter((item) => item.runtime === 'ollama').map((item) => item.model),
-    });
     deps.meter = systemMeter({ unload: { ollama: clear, 'llama.cpp': clear } });
   }
   return {
@@ -254,6 +260,21 @@ export function realEnvironment(options: RealEnvironmentOptions): {
       clock: systemClock,
       writeHarness,
       identify,
+      // A free GPU, through the lease: the busy error at once when the app has any of it. With no
+      // server running, the hold leaves the lease as soon as it is released.
+      checkGpu: async () => {
+        const hold = await gpu.hold('llama-server', COMPARISON_PURPOSE);
+        hold.release();
+      },
+      // When the GPU window closes (decision 051), through the lease, so nothing of the app's is
+      // touched: when the app has the GPU, the script gave up what it had loaded before it could.
+      releaseGpu: async () => {
+        try {
+          await clear();
+        } catch (error) {
+          if (!gpuBusy(error)) throw error;
+        }
+      },
       log: options.log,
       commit: options.commit,
       dryRun: false,

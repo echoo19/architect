@@ -12,6 +12,8 @@ export interface ScriptedTurn {
   text?: string;
   toolCalls?: { name: string; arguments?: Record<string, JsonValue> }[];
   usage?: Usage;
+  /** What the provider says the call cost, as OpenRouter reports it. */
+  costUsd?: number;
   /** Throw this instead of answering, as a failing adapter would. */
   error?: Error;
   /** Wait this long between streamed text pieces. */
@@ -60,6 +62,7 @@ export class ScriptedStudent implements StudentAdapter {
       type: 'done',
       usage: turn.usage ?? { inputTokens: 100, outputTokens: 20 },
       finish: turn.cutOff ? 'length' : calls.length > 0 ? 'tool_calls' : 'stop',
+      ...(turn.costUsd === undefined ? {} : { costUsd: turn.costUsd }),
     };
   }
 

@@ -14,7 +14,13 @@ export interface StudentChatRequest {
 export type StudentStreamEvent =
   | { type: 'text'; delta: string }
   | { type: 'tool_call'; call: ToolCall }
-  | { type: 'done'; usage: Usage; finish: 'stop' | 'tool_calls' | 'length' };
+  | {
+      type: 'done';
+      usage: Usage;
+      finish: 'stop' | 'tool_calls' | 'length';
+      /** What the provider says it charged for the call, in US dollars, when it says so. */
+      costUsd?: number;
+    };
 
 export interface StudentModelInfo {
   model: string;

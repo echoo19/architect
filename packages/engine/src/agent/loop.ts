@@ -88,6 +88,8 @@ type Turn =
       text: string;
       toolCalls: ToolCall[];
       usage: Usage;
+      /** The provider's charge for the call, when it reported one. */
+      costUsd?: number;
       latencyMs: number;
       finish: 'stop' | 'tool_calls' | 'length';
     }
@@ -241,6 +243,7 @@ async function takeTurns(
         text: turn.text,
         toolCalls: turn.toolCalls,
         usage: turn.usage,
+        ...(turn.costUsd === undefined ? {} : { costUsd: turn.costUsd }),
         latencyMs: turn.latencyMs,
       });
       messages.push(
@@ -309,6 +312,7 @@ async function callStudent(
   let text = '';
   const toolCalls: ToolCall[] = [];
   let usage = emptyUsage();
+  let costUsd: number | undefined;
   let finish: 'stop' | 'tool_calls' | 'length' = 'stop';
   let stream: AsyncIterator<StudentStreamEvent>;
   try {
@@ -341,13 +345,22 @@ async function callStudent(
         toolCalls.push(event.call);
       } else {
         usage = event.usage;
+        costUsd = event.costUsd;
         finish = event.finish;
       }
     }
   } finally {
     if (!ended) await stream.return?.();
   }
-  return { ok: true, text, toolCalls, usage, latencyMs: elapsedMs(started), finish };
+  return {
+    ok: true,
+    text,
+    toolCalls,
+    usage,
+    ...(costUsd === undefined ? {} : { costUsd }),
+    latencyMs: elapsedMs(started),
+    finish,
+  };
 }
 
 /**

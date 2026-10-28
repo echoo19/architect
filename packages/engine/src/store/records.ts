@@ -115,7 +115,22 @@ export const RunProtocolSchema = z.object({
    * chosen by seed and never from the student's failures, and kept as measured unless a hard
    * gate fails: decision 037's one-shot verified-data adapter.
    */
-  oneShotAdapter: z.object({ perType: z.number().int().min(1).max(20) }).optional(),
+  oneShotAdapter: z
+    .object({
+      perType: z.number().int().min(1).max(20),
+      /**
+       * The reduced protocol (decision 051): the adapter is checked on this many train tasks with
+       * the run's harness, instead of measured in four configurations on dev, and kept unless the
+       * check or a hard gate fails.
+       */
+      smokeTasks: z.number().int().min(1).max(12).optional(),
+    })
+    .optional(),
+  /**
+   * The locked test also runs the frozen harness without its adapter, on the same server, tasks,
+   * seeds and base, so the adapter's added effect is a paired locked result (decision 051).
+   */
+  pairedWithoutAdapter: z.literal(true).optional(),
   /** The longest one training job may run; the compute cap alone limits it when absent. */
   maxJobMinutes: z.number().int().min(35).max(600).optional(),
   /**

@@ -1,15 +1,17 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { readFile, rm, writeFile } from 'node:fs/promises';
+import { rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   ARM_LABELS,
   ARM_PRIORITY,
   JobSchema,
+  studentPricing,
   type ArmId,
   type BackendId,
   type ComparisonReport,
   type Harness,
   type Job,
+  type PinnedInputs,
   type RuntimeIdentity,
   type StudentAdapter,
 } from '@architect/shared';
@@ -23,9 +25,13 @@ import type { StoredRun } from '../store/records';
 import { armStart, comparisonJob, stageFolder, type ComparisonModels } from './arms';
 import { Credit } from './credit';
 import { openComparisonEngine, type ComparisonEngine } from './engine';
+import { GpuWindow } from './gpu';
+import { guardAllows, guardedDeps, isGuardRefusal, type Guards } from './guards';
+import { inputsChanged, pinInputs } from './inputs';
 import { renderMarkdown } from './markdown';
 import {
   ARM_ORDER,
+  billingOf,
   modelInputs,
   needsConfirmation,
   project,
@@ -34,12 +40,14 @@ import {
 } from './projection';
 import {
   ComparisonFiles,
+  PLAN_FORMAT,
   type ArmDecision,
   type PlanRecord,
   type PlanSettings,
   type SweepAttempt,
 } from './records';
 import { armRun, buildReport } from './report';
+import { StudentCredit } from './spend';
 import { sweep } from './sweep';
 
 /** What the runner runs on: the engine's dependencies, real or fakes, and a few of its own. */
@@ -50,6 +58,13 @@ export interface ComparisonEnvironment {
   writeHarness(dir: string, harness: Harness): Promise<void>;
   /** What a backend is, read without loading a model or calling one; null when it can't be. */
   identify(backend: BackendId, job: Job): Promise<RuntimeIdentity | null>;
+  /**
+   * Checks through the app's GPU lease that no process of the app has any of the GPU, and fails
+   * at once with the busy error, which says who has it and what to do, when one has (decision 046).
+   */
+  checkGpu(): Promise<void>;
+  /** Frees this computer's GPU: stops llama-server and unloads Ollama's models. */
+  releaseGpu(): Promise<void>;
   log(line: string): void;
   commit: string | null;
   dryRun: boolean;
@@ -86,6 +101,9 @@ const DEVELOPMENT_WAVES: readonly (readonly ArmId[])[] = [
   ['weights-one-shot', 'weights-targeted'],
 ];
 
+/** The arms that measure other arms' graduates and have no run of their own. */
+const MEASURING: ReadonlySet<ArmId> = new Set(['reference', 'reference-targeted', 'repeat']);
+
 /**
  * Arms whose spending their rounds decide: these are held to their student cap at each round's
  * start. The others have a size fixed in advance, so stopping one could only lose it.
@@ -94,6 +112,12 @@ const VARIABLE_ARMS: ReadonlySet<ArmId> = new Set(['targeted', 'fixed', 'weights
 
 /** The arms the repeat takes again under the deferred seed. */
 const REPEATED: readonly ArmId[] = ['bare', 'draft', 'targeted'];
+
+/** Each Spark reference, with the arm whose frozen graduate it acts with (decision 051). */
+const REFERENCES: readonly { arm: ArmId; on: ArmId }[] = [
+  { arm: 'reference', on: 'bare' },
+  { arm: 'reference-targeted', on: 'targeted' },
+];
 
 type Decide = (decision: Omit<ArmDecision, 'at'>) => void;
 
@@ -152,6 +176,7 @@ async function findJob(engine: ComparisonEngine, id: string): Promise<Job | null
 
 /**
  * Imports a job copy once: found again by its id after a restart, never imported twice. The
+ * staged copy must hold the tasks, data and checker the plan pinned, or nothing is imported. The
  * staging folder, which holds the job's tasks, the locked test's included, goes as soon as the
  * vault has them; an id a crash left sealed without its job is passed over for the next.
  */
@@ -161,6 +186,7 @@ async function ensureJob(
   dir: string,
   sourceDir: string,
   job: Job,
+  pinned: PinnedInputs,
   writeHarness: ComparisonEnvironment['writeHarness'],
   startingHarness?: Harness,
 ): Promise<Job> {
@@ -170,6 +196,12 @@ async function ensureJob(
     if (await deps.vault.isSealed(id)) continue;
     try {
       const file = await stageFolder(sourceDir, dir, { ...job, id }, writeHarness, startingHarness);
+      const changed = inputsChanged(pinned, pinInputs(dir, { ...job, id: pinned.jobId }), false);
+      if (changed !== null) {
+        throw new Error(
+          `The copy of ${pinned.name} for ${job.id} doesn't match the plan: ${changed}. Nothing was imported.`,
+        );
+      }
       const imported = await engine.jobs.importFile(file);
       if (imported.id !== id) {
         throw new Error(`The job copy was imported as ${imported.id}, not ${id}.`);
@@ -183,6 +215,49 @@ async function ensureJob(
 }
 
 const noHarness = async () => undefined;
+
+function readJob(dir: string): Job {
+  return JobSchema.parse(JSON.parse(readFileSync(join(dir, 'job.json'), 'utf8')));
+}
+
+/**
+ * The job's files, held to the pin the folder's first command took before importing anything:
+ * the same tasks, data, checker and job file, byte for byte, or nothing goes on. The first
+ * command takes the pin. Returns it.
+ */
+function pinJob(files: ComparisonFiles, dir: string, job: Job): PinnedInputs {
+  const now = pinInputs(dir, job);
+  const pinned = files.readPinnedJob();
+  if (pinned === null) {
+    files.writePinnedJob(now);
+    return now;
+  }
+  const changed = inputsChanged(pinned, now, true);
+  if (changed !== null) {
+    throw new Error(
+      `This folder's comparison runs on ${pinned.name} as it was when it began, and ${changed}. Every arm is measured on the same tasks, data and checker; use a new output folder for the job as it is now.`,
+    );
+  }
+  return pinned;
+}
+
+/** Why this request's regression job isn't the one the plan pinned, or null. */
+function regressionProblem(plan: PlanRecord, now: PinnedInputs | null): string | null {
+  const pinned = plan.inputs.regression;
+  if (pinned === null && now !== null) {
+    return "This folder's plan has no regression check; leave --regression out, or use a new output folder.";
+  }
+  if (pinned !== null && now === null) {
+    return `This folder's plan runs the regression check on ${pinned.name}; pass the same --regression folder.`;
+  }
+  if (pinned !== null && now !== null) {
+    const changed = inputsChanged(pinned, now, true);
+    if (changed !== null) {
+      return `This folder's plan runs the regression check on ${pinned.name} as it was then, and ${changed}. Pass the same job, unchanged, or use a new output folder.`;
+    }
+  }
+  return null;
+}
 
 /** The settings a plan is confirmed with: what a resume may not change. */
 function settingsOf(config: ComparisonConfig, models: ComparisonModels): PlanSettings {
@@ -199,6 +274,8 @@ function settingsOf(config: ComparisonConfig, models: ComparisonModels): PlanSet
     localOllama: config.localOllama,
     realCompute: config.realCompute,
     llamaServer: config.llamaServer,
+    adapterProtocol: config.adapterProtocol,
+    smokeTasks: config.smokeTasks,
     sparkCaps: { ...config.sparkCaps },
     studentCaps: { ...(config.studentCaps ?? {}) },
     mentor: models.mentor,
@@ -253,16 +330,65 @@ async function preflight(deps: LoopDeps, job: Job): Promise<void> {
   }
 }
 
+/** Refuses a hosted student whose price isn't known: its spending couldn't be held to the cap. */
+function requirePrice(job: Job): void {
+  const hosted = job.student.hosted;
+  if (hosted === undefined || studentPricing(hosted) !== undefined) return;
+  throw new Error(
+    `The hosted student ${hosted.model} has no known price, so the comparison can't hold it to the student's credit. Nothing was sent.`,
+  );
+}
+
+/** The guards every request goes through: the student's credit and the GPU window. */
+function openGuards(
+  files: ComparisonFiles,
+  env: ComparisonEnvironment,
+  cap: number,
+  gpuMinutes: number,
+): Guards {
+  return {
+    credit: new StudentCredit(files.journal, cap, env.clock),
+    gpu: new GpuWindow({
+      minutes: gpuMinutes,
+      clock: env.clock,
+      release: () => env.releaseGpu(),
+      log: env.log,
+    }),
+  };
+}
+
+/** Whether a plan does anything on this computer's GPU. */
+function usesGpu(plan: PlanRecord): boolean {
+  return (
+    plan.settings.localOllama ||
+    plan.funded.includes('weights-one-shot') ||
+    plan.funded.includes('weights-targeted')
+  );
+}
+
+/** Whether a request asks for work on this computer's GPU, before its plan exists. */
+function asksForGpu(config: ComparisonConfig): boolean {
+  return (
+    config.localOllama ||
+    (config.llamaServer && config.arms.some((arm) => arm.startsWith('weights-')))
+  );
+}
+
 /**
  * Runs decision 037's comparison: prices an attempt on the calibration tasks before any arm
  * spends, projects every arm and funds them in 037's order, and stops for the owner when the caps
- * cut the plan down. Then it develops the funded arms in waves (bare and draft; the arms that
- * start from the draft; the weights arms, which adopt the targeted arm's harness), checking the
- * student's credit before each, holding each variable arm to its cap between rounds, and holding
- * every locked test; releases them only once every arm is frozen, in 037's order while the credit
- * lasts; then Spark as a reference, local re-tests and the repeats; and writes the report.
- * Everything paid is stored as it happens, so running it again after a crash picks up where it
- * stopped and pays for nothing twice.
+ * cut the plan down. A plan once made pins the job's files; once confirmed, its arms and settings.
+ * Nothing left active by an earlier process resumes until the plan, the inputs and the request
+ * have been checked and the guards are in place: every hosted request reserved against the
+ * student's credit and written to the journal before it is sent, every local request held to the
+ * GPU window (decision 051). Then it develops the funded arms in waves (bare and draft; the arms
+ * that start from the draft; the weights arms, which adopt the targeted arm's harness), checking
+ * the credit before each and holding each variable arm to its cap between rounds, with every
+ * locked test held. Once every arm is frozen it records the test-release barrier, after which no
+ * arm starts or develops, and releases the tests in 037's order while the credit lasts; then
+ * Spark as a reference, local re-tests and the repeats; and writes the report. Run again after a
+ * crash, it repeats no recorded attempt, Spark reply or training job; attempts in flight are
+ * made again, and their requests count as spent at their worst.
  */
 export async function runComparison(
   request: ComparisonRequest,
@@ -271,25 +397,48 @@ export async function runComparison(
   const { config } = request;
   const unlock = lockFolder(request.out);
   const files = new ComparisonFiles(request.out);
-  const engine = openComparisonEngine(files.dataDir, env.deps, env.clock, {
-    parallel: env.parallel,
-    concurrency: config.concurrency,
-    onError: (error) => env.log(`engine: ${errorMessage(error)}`),
-  });
   const now = () => new Date(env.clock.now()).toISOString();
+  let opened: ComparisonEngine | null = null;
   try {
-    const source = JobSchema.parse(
-      JSON.parse(await readFile(join(request.jobDir, 'job.json'), 'utf8')),
-    );
+    const source = readJob(request.jobDir);
+    const regressionDir = request.regressionJobDir;
+    const inputs: PlanRecord['inputs'] = {
+      job: pinJob(files, request.jobDir, source),
+      regression:
+        regressionDir === undefined ? null : pinInputs(regressionDir, readJob(regressionDir)),
+    };
+    let plan = files.readPlan();
+    if (plan !== null) {
+      const problem = regressionProblem(plan, inputs.regression);
+      if (problem !== null) throw new Error(problem);
+    }
+    // Work on this computer's GPU runs only when the app has none of it (decision 046): when this
+    // command may do some, it checks before anything is paid, and stops at once if not.
+    const local = asksForGpu(config) || (plan !== null && usesGpu(plan));
+    if (!request.planOnly && local && config.caps.localMinutes > 0) await env.checkGpu();
+    // Until a plan is confirmed the request's cap holds calibration; then the plan's.
+    const cap =
+      plan !== null && plan.confirmedAt !== null ? plan.caps.studentUsd : config.caps.studentUsd;
+    const guards = openGuards(files, env, cap, config.caps.localMinutes);
+    const deps = guardedDeps(env.deps, guards);
+    // Nothing resumes yet: what an earlier process left active waits for the checks below.
+    const engine = openComparisonEngine(files.dataDir, deps, env.clock, {
+      parallel: env.parallel,
+      concurrency: config.concurrency,
+      onError: (error) => env.log(`engine: ${errorMessage(error)}`),
+    });
+    opened = engine;
     const base = await ensureJob(
       engine,
-      env.deps,
+      deps,
       files.staging('base'),
       request.jobDir,
       comparisonJob(source, config, request.models),
+      inputs.job,
       noHarness,
     );
-    await preflight(env.deps, base);
+    requirePrice(base);
+    await preflight(deps, base);
 
     // Cost first: the calibration tasks price an attempt before any arm spends.
     env.log('Calibration: the bare student on the calibration tasks, on the hosted copy.');
@@ -302,32 +451,38 @@ export async function runComparison(
         target: 'hosted',
         seed: deriveSeed(config.mentoringSeed, 'calibration'),
         concurrency: config.concurrency,
-        deps: env.deps,
+        deps,
         clock: env.clock,
         files,
         log: env.log,
       })
     ).attempts;
-    const inputs = modelInputs(base, config, calibration, {
+    const billing = billingOf(calibration);
+    guards.credit.billingFactor(billing?.ratio ?? 1);
+    const model = modelInputs(base, config, calibration, {
       attempts: files.readSweep('probe'),
       reading: files.readProbe(),
     });
 
-    let plan = files.readPlan();
     if (plan === null || plan.confirmedAt === null) {
       // Calibration is paid, and the regression check will be: both come off the credit first.
+      const regressionDone = files.readSweep('regression').length > 0;
       const committed =
-        sum(calibration.map((attempt) => attempt.usd ?? 0)) +
-        (request.regressionJobDir === undefined ? 0 : 30 * inputs.studentUsd.value);
-      const projection = project(base, config, inputs, committed);
+        guards.credit.total() +
+        (request.regressionJobDir === undefined || regressionDone
+          ? 0
+          : REGRESSION_PER_TYPE * source.taskTypes.length * model.studentUsd.value);
+      const projection = project(base, config, model, committed);
       const fits = !needsConfirmation(projection);
       plan = {
-        format: 1,
+        format: PLAN_FORMAT,
         confirmedAt: !request.planOnly && (fits || request.confirm) ? now() : null,
         arms: [...config.arms],
         funded: projection.arms.filter((arm) => arm.funded).map((arm) => arm.arm),
         caps: config.caps,
         settings: settingsOf(config, request.models),
+        inputs,
+        billing,
         projection,
         studentCaps: Object.fromEntries(
           projection.arms
@@ -343,19 +498,25 @@ export async function runComparison(
             at: now(),
           })),
         identities: await identities(env, base, projection, config),
+        releasedAt: null,
       };
       files.writePlan(plan);
       if (plan.confirmedAt === null) {
         const outcome: ComparisonOutcome = request.planOnly ? 'planned' : 'needs_confirmation';
-        return { outcome, report: await report(request, env, engine, files, base, plan) };
+        return { outcome, report: await report(request, env, engine, files, base, guards) };
       }
     }
     if (request.planOnly) {
-      return { outcome: 'planned', report: await report(request, env, engine, files, base, plan) };
+      return {
+        outcome: 'planned',
+        report: await report(request, env, engine, files, base, guards),
+      };
     }
-    const localMinutes = (2 * base.splits.test * inputs.localSeconds.value) / 60;
+    const localMinutes = (2 * base.splits.test * model.localSeconds.value) / 60;
     const problem = resumeProblem(plan, request, localMinutes);
     if (problem !== null) throw new Error(problem);
+    // The plan is confirmed and this request matches it: its cap holds the credit from here.
+    guards.credit.holdTo(plan.caps.studentUsd);
     if (config.localOllama && !plan.settings.localOllama) {
       // Local re-tests of frozen graduates, granted after the plan: recorded in it.
       plan = {
@@ -370,6 +531,11 @@ export async function runComparison(
       files.writePlan(plan);
     }
     const confirmed = plan;
+    if (usesGpu(confirmed) && guards.gpu.refusal() !== null) {
+      env.log(
+        'No GPU window is granted to this command (--gpu-minutes): the work this plan does on this computer waits for one.',
+      );
+    }
     const decide: Decide = (decision) => {
       const current = files.readPlan() ?? confirmed;
       if (
@@ -382,65 +548,132 @@ export async function runComparison(
       env.log(`${ARM_LABELS[decision.arm]}: ${decision.reason}`);
     };
 
-    if (request.regressionJobDir !== undefined && confirmed.funded.includes('bare')) {
-      await regressionCheck(request, env, engine, files, request.regressionJobDir);
-    }
-
-    const credit = new Credit(engine, files, inputs.studentUsd.value);
+    const credit = new Credit(engine, guards.credit, model.studentUsd.value);
     const stopWatching = watchRounds(engine, confirmed, credit, base, env, decide);
     try {
-      const development: readonly ArmId[] = confirmed.funded.filter(
-        (arm) => arm !== 'reference' && arm !== 'repeat',
-      );
-      for (const wave of DEVELOPMENT_WAVES) {
-        const arms = wave.filter((arm) => development.includes(arm));
-        for (const arm of arms) {
-          if (armRun(engine.store, arm) !== null) continue;
-          const short = fundingProblem(arm, confirmed, credit, engine, base, config);
-          if (short !== null) {
-            decide({ arm, kind: 'dropped', reason: short });
-            continue;
-          }
-          await startArm(arm, request, env, engine, files, base, confirmed, decide);
+      await holdBackAfterRelease(engine, files, decide);
+      engine.recover();
+      const development: readonly ArmId[] = confirmed.funded.filter((arm) => !MEASURING.has(arm));
+      if ((files.readPlan()?.releasedAt ?? null) === null) {
+        if (request.regressionJobDir !== undefined && confirmed.funded.includes('bare')) {
+          await regressionCheck(request, env, engine, deps, files, request.regressionJobDir);
         }
-        await settle(engine, env, arms);
-      }
+        for (const wave of DEVELOPMENT_WAVES) {
+          const arms = wave.filter((arm) => development.includes(arm));
+          for (const arm of arms) {
+            if (armRun(engine.store, arm) !== null) continue;
+            // A decision is final: an arm dropped once is never reconsidered.
+            if ((files.readPlan() ?? confirmed).decisions.some((item) => item.arm === arm)) {
+              continue;
+            }
+            const short = fundingProblem(arm, confirmed, credit, engine, base, config);
+            if (short !== null) {
+              decide({ arm, kind: 'dropped', reason: short });
+              continue;
+            }
+            await startArm(arm, request, env, engine, deps, files, base, confirmed, decide);
+          }
+          await settle(engine, env, guards, arms);
+        }
 
-      // Every arm is frozen, or ended without a graduate, before any locked result exists.
-      const waiting = development.filter((arm) => {
-        const run = armRun(engine.store, arm);
-        return run !== null && run.freeze === null && !isTerminal(run.run.status);
-      });
-      if (waiting.length > 0) {
-        env.log(
-          `Not every arm froze (${waiting.map((arm) => ARM_LABELS[arm]).join(', ')}), so every locked test stays held. Run again once they finish.`,
-        );
-        return {
-          outcome: 'incomplete',
-          report: await report(request, env, engine, files, base, confirmed),
-        };
+        // Every arm is frozen, or ended without a graduate, before any locked result exists.
+        const waiting = development.filter((arm) => {
+          const run = armRun(engine.store, arm);
+          return run !== null && run.freeze === null && !isTerminal(run.run.status);
+        });
+        if (waiting.length > 0) {
+          env.log(
+            `Not every arm froze (${waiting.map((arm) => ARM_LABELS[arm]).join(', ')}), so every locked test stays held. Run again once they can finish.`,
+          );
+          return {
+            outcome: 'incomplete',
+            report: await report(request, env, engine, files, base, guards),
+          };
+        }
+        markReleased(files, now());
       }
-      const released = release(engine, credit, base, config, decide);
-      env.log(`Every arm is frozen; released ${released.length} locked tests.`);
-      await settle(engine, env, released);
+      const released = release(engine, files, credit, base, config, decide);
+      env.log(
+        `Every arm is frozen; ${released.length} locked test${released.length === 1 ? ' is' : 's are'} released.`,
+      );
+      await settle(engine, env, guards, released);
 
-      await measureAfterRelease(request, env, engine, confirmed, credit, base, decide);
+      await measureAfterRelease(
+        request,
+        env,
+        engine,
+        files,
+        confirmed,
+        credit,
+        guards,
+        base,
+        decide,
+      );
     } finally {
       stopWatching();
     }
-    const done = await report(request, env, engine, files, base, confirmed);
-    const finished = done.arms.every(
-      (arm) => arm.status === 'complete' || arm.status === 'stopped' || arm.status === 'not_run',
-    );
+    const done = await report(request, env, engine, files, base, guards);
+    // A measurement left paused, such as a local re-test the GPU window cut, isn't finished.
+    const paused =
+      engine.store.references.withStatus('paused').length +
+      engine.store.retests.withStatus('paused').length +
+      engine.store.repeats.withStatus('paused').length;
+    const finished =
+      paused === 0 &&
+      done.arms.every(
+        (arm) => arm.status === 'complete' || arm.status === 'stopped' || arm.status === 'not_run',
+      );
     return { outcome: finished ? 'finished' : 'incomplete', report: done };
   } finally {
-    await engine.close();
+    await opened?.close();
     unlock();
   }
 }
 
-function sum(values: readonly number[]): number {
-  return values.reduce((total, value) => total + value, 0);
+/**
+ * The test-release barrier: written once, just before the first locked result is released. From
+ * then on no arm starts and none goes on developing (decision 051).
+ */
+function markReleased(files: ComparisonFiles, at: string): void {
+  const current = files.readPlan();
+  if (current === null || current.releasedAt !== null) return;
+  files.writePlan({ ...current, releasedAt: at });
+}
+
+/**
+ * Before anything resumes once a locked result exists: an arm still developing would learn
+ * after it, so it is paused for good and said so, never resumed. The runner releases tests only
+ * when every arm is frozen or ended, so this finds nothing unless the records were changed.
+ */
+async function holdBackAfterRelease(
+  engine: ComparisonEngine,
+  files: ComparisonFiles,
+  decide: Decide,
+): Promise<void> {
+  const releasedAt = files.readPlan()?.releasedAt ?? null;
+  if (releasedAt === null) return;
+  for (const record of engine.store.runs.list()) {
+    const arm = record.protocol?.arm as ArmId | undefined;
+    if (arm === undefined || record.freeze !== null || isTerminal(record.run.status)) continue;
+    // Nothing is active yet, so this parks it where the records left it.
+    await engine.controller.pause(record.run.id);
+    decide({
+      arm,
+      kind: 'stopped',
+      reason: `It was still developing when the first locked result was released (${releasedAt}), so it stays where it was: nothing may learn after a locked result exists.`,
+    });
+  }
+}
+
+/** Locked-test attempts a released run still has to make under its first seed. */
+function testsLeft(engine: ComparisonEngine, run: StoredRun, base: Job): number {
+  const first = run.freeze?.testSeeds?.[0];
+  const done = engine.store.attempts
+    .list({ runId: run.run.id, split: 'test' })
+    .filter(
+      (attempt) => attempt.seed === first && attempt.config?.startsWith('reference/') !== true,
+    );
+  return Math.max(0, base.splits.test - done.length);
 }
 
 /** What each backend the plan uses is, read without loading a model. */
@@ -454,7 +687,7 @@ async function identities(
   const weights = funded('weights-one-shot') || funded('weights-targeted');
   const backends: BackendId[] = [
     'hosted',
-    ...(funded('reference') ? (['reference'] as const) : []),
+    ...(funded('reference') || funded('reference-targeted') ? (['reference'] as const) : []),
     ...(config.localOllama || weights ? (['local-ollama'] as const) : []),
     ...(weights ? (['local-llama.cpp'] as const) : []),
   ];
@@ -474,8 +707,9 @@ function projectedHosted(plan: PlanRecord, arm: ArmId): number {
 /**
  * Why the student's credit can't start an arm now, or null: what it may spend at the price an
  * attempt has actually cost so far, with its headroom, must fit what is left after everything
- * paid, what the arms already started may still spend (their locked tests among it), and the
- * repeat when it comes before the arm in 037's order. The fixed arm needs $5 of it, as 037 says.
+ * paid or held in flight, what the arms already started may still spend (their locked tests
+ * among it), and the repeat when it comes before the arm in 037's order. The fixed arm needs $5
+ * of it, as 037 says.
  */
 function fundingProblem(
   arm: ArmId,
@@ -561,28 +795,38 @@ function watchRounds(
 /**
  * Releases the frozen arms' locked tests in 037's order while the student's credit pays for the
  * hosted ones, each priced at what its own attempts cost; a test on this computer costs nothing.
- * Returns the arms released. One the credit can't pay for stays held, said so.
+ * Returns the arms released. One the credit can't pay for stays held, said so, and stays held in
+ * every later run of the plan.
  */
 function release(
   engine: ComparisonEngine,
+  files: ComparisonFiles,
   credit: Credit,
   base: Job,
   config: ComparisonConfig,
   decide: Decide,
 ): ArmId[] {
   const released: ArmId[] = [];
+  const decisions = files.readPlan()?.decisions ?? [];
   let left = config.caps.studentUsd - credit.paid();
   for (const arm of ARM_ORDER) {
     const run = armRun(engine.store, arm);
     if (run === null || run.freeze === null || isTerminal(run.run.status)) continue;
+    if (decisions.some((item) => item.arm === arm && item.kind === 'held')) continue;
     const cost =
       run.lockedTestOn === 'hosted'
-        ? base.splits.test * credit.priceOf(run.run.id) * config.headroom
+        ? testsLeft(engine, run, base) * credit.priceOf(run.run.id) * config.headroom
         : 0;
+    if (run.protocol?.released === true) {
+      // Released by an earlier run of the plan: what its test has left is held for it first.
+      left -= cost;
+      released.push(arm);
+      continue;
+    }
     if (cost > left + 1e-9) {
       decide({
         arm,
-        kind: 'stopped',
+        kind: 'held',
         reason: `Its locked test wasn't released: at $${cost.toFixed(2)} it doesn't fit the $${Math.max(0, left).toFixed(2)} of student credit left after the arms before it.`,
       });
       continue;
@@ -600,6 +844,7 @@ async function startArm(
   request: ComparisonRequest,
   env: ComparisonEnvironment,
   engine: ComparisonEngine,
+  deps: LoopDeps,
   files: ComparisonFiles,
   base: Job,
   plan: PlanRecord,
@@ -628,7 +873,7 @@ async function startArm(
     base,
     config: request.config,
     engine,
-    deps: env.deps,
+    deps,
     files,
     runOf: (other) => armRun(engine.store, other),
     sparkSpent: (runId) =>
@@ -641,10 +886,11 @@ async function startArm(
   });
   const job = await ensureJob(
     engine,
-    env.deps,
+    deps,
     files.staging(arm),
     request.jobDir,
     start.job,
+    plan.inputs.job,
     env.writeHarness,
     start.startingHarness,
   );
@@ -656,12 +902,25 @@ async function startArm(
 }
 
 /**
+ * How often a paused run or measurement is asked again in one command: after a rest, up to five
+ * times in a row for an error that may pass; once for a guard's refusal, and only while that
+ * guard allows it, since waiting won't change it. Null when it isn't asked again.
+ */
+function resumeLimit(guards: Guards, error: string | undefined): number | null {
+  if (!isGuardRefusal(error)) return MAX_RESUMES;
+  return guardAllows(guards, error) ? 1 : null;
+}
+
+/**
  * Waits until nothing runs, resuming a run an error paused after a rest, at most five times in a
- * row; a run frozen and held is settled. Arms still paused after that stay paused, reported so.
+ * row; a run frozen and held is settled. A run a guard paused (the credit used up, the GPU window
+ * over or not granted) goes on only when that guard allows it, as when a later command has a GPU
+ * window. Arms still paused after that stay paused, reported so.
  */
 async function settle(
   engine: ComparisonEngine,
   env: ComparisonEnvironment,
+  guards: Guards,
   arms: readonly ArmId[],
 ): Promise<void> {
   const resumes = new Map<string, number>();
@@ -669,13 +928,11 @@ async function settle(
     await engine.controller.idle();
     const paused = arms
       .map((arm) => armRun(engine.store, arm))
-      .filter(
-        (run): run is StoredRun =>
-          run !== null &&
-          run.run.status === 'paused' &&
-          !isHeld(run) &&
-          (resumes.get(run.run.id) ?? 0) < MAX_RESUMES,
-      );
+      .filter((run): run is StoredRun => {
+        if (run === null || run.run.status !== 'paused' || isHeld(run)) return false;
+        const limit = resumeLimit(guards, run.run.error);
+        return limit !== null && (resumes.get(run.run.id) ?? 0) < limit;
+      });
     if (paused.length === 0) return;
     for (const run of paused) {
       env.log(`Run ${run.run.id} paused (${run.run.error ?? 'no reason'}); resuming after a rest.`);
@@ -699,16 +956,28 @@ async function askFor(env: ComparisonEnvironment, what: string, ask: () => Promi
 }
 
 /**
- * After the release: Spark as a reference (its own cap), the local re-tests (free), and the
+ * A side measurement to ask for again: paused by an error a rest may clear, or by a guard that
+ * allows it now.
+ */
+function mayAskAgain(guards: Guards, record: { status: string; error?: string }): boolean {
+  return record.status === 'paused' && resumeLimit(guards, record.error) !== null;
+}
+
+/**
+ * After the release: Spark as a reference with the bare arm's graduate and, when the plan
+ * declared it, with the targeted arm's (each its own cap), the local re-tests (free), and the
  * repeats in 037's order while the student's credit pays for each, priced at what that arm's
- * attempts cost.
+ * attempts cost. Decisions recorded earlier stand: a reference dropped stays dropped, and once
+ * the credit stopped the repeat no other repeat starts.
  */
 async function measureAfterRelease(
   request: ComparisonRequest,
   env: ComparisonEnvironment,
   engine: ComparisonEngine,
+  files: ComparisonFiles,
   plan: PlanRecord,
   credit: Credit,
+  guards: Guards,
   base: Job,
   decide: Decide,
 ): Promise<void> {
@@ -717,26 +986,43 @@ async function measureAfterRelease(
     const run = armRun(engine.store, arm);
     return run !== null && run.run.status === 'finished' ? run : null;
   };
+  const decided = (arm: ArmId) =>
+    (files.readPlan()?.decisions ?? []).some((item) => item.arm === arm);
+  // Never asked yet, or paused by an error; one a guard paused once at most, while it allows.
+  const askedOnce = new Set<string>();
+  const askAgain = (key: string, record: { status: string; error?: string } | null) => {
+    if (record === null) return true;
+    if (!mayAskAgain(guards, record)) return false;
+    if (!isGuardRefusal(record.error)) return true;
+    if (askedOnce.has(key)) return false;
+    askedOnce.add(key);
+    return true;
+  };
   for (let attempt = 0; attempt <= MAX_RESUMES; attempt += 1) {
-    const bare = finished('bare');
-    if (plan.funded.includes('reference')) {
-      if (bare === null) {
+    for (const { arm, on } of REFERENCES) {
+      if (!plan.funded.includes(arm) || decided(arm)) continue;
+      const run = finished(on);
+      if (run === null) {
         decide({
-          arm: 'reference',
+          arm,
           kind: 'dropped',
-          reason: "The bare arm has no frozen graduate's test to share.",
+          reason: `The ${ARM_LABELS[on].toLowerCase()} arm has no frozen graduate's test to share.`,
         });
-      } else if (engine.store.references.get(bare.run.id, 'test')?.status !== 'finished') {
-        await askFor(env, 'Spark as a reference', () =>
-          controller.reference(bare.run.id, 'test', request.config.sparkCaps.reference),
-        );
+        continue;
       }
+      // Finished, under way, or paused by a guard that holds: nothing to ask for now.
+      const record = engine.store.references.get(run.run.id, 'test');
+      if (!askAgain(`reference/${run.run.id}`, record)) continue;
+      const { sparkCaps } = request.config;
+      const cap = arm === 'reference' ? sparkCaps.reference : sparkCaps.referenceTargeted;
+      await askFor(env, ARM_LABELS[arm], () => controller.reference(run.run.id, 'test', cap));
     }
     if (request.config.localOllama) {
       for (const arm of ['bare', 'targeted'] as const) {
         const run = finished(arm);
         if (run === null || run.lockedTestOn === 'local') continue;
-        if (engine.store.retests.get(run.run.id, 'local')?.status === 'finished') continue;
+        const retest = engine.store.retests.get(run.run.id, 'local');
+        if (!askAgain(`retest/${run.run.id}`, retest)) continue;
         await askFor(env, `${ARM_LABELS[arm]} on this computer`, () =>
           controller.retest(run.run.id, 'local'),
         );
@@ -745,12 +1031,15 @@ async function measureAfterRelease(
     if (plan.funded.includes('repeat')) {
       let left = request.config.caps.studentUsd - credit.paid();
       const skipped: string[] = [];
+      const stoppedBefore = decided('repeat');
       for (const arm of REPEATED) {
         const run = finished(arm);
         if (run === null) continue;
         const repeat = engine.store.repeats.get(run.run.id, run.lockedTestOn);
-        if (repeat?.status === 'finished') continue;
+        if (!askAgain(`repeat/${run.run.id}`, repeat)) continue;
         if (repeat === null) {
+          // Once the credit stopped the repeat, no other repeat starts.
+          if (stoppedBefore) continue;
           const cost =
             run.lockedTestOn === 'hosted'
               ? base.splits.test * credit.testPriceOf(run.run.id) * request.config.headroom
@@ -774,31 +1063,35 @@ async function measureAfterRelease(
       }
     }
     await controller.idle();
-    const pausedSide =
-      engine.store.references.withStatus('paused').length +
-      engine.store.retests.withStatus('paused').length +
-      engine.store.repeats.withStatus('paused').length;
+    const pausedSide = [
+      ...engine.store.references.withStatus('paused'),
+      ...engine.store.retests.withStatus('paused'),
+      ...engine.store.repeats.withStatus('paused'),
+    ].filter((record) => !isGuardRefusal(record.error)).length;
     if (pausedSide === 0) return;
     env.log(`${pausedSide} measurement(s) paused after an error; asking again after a rest.`);
     await waitOn(env.clock, env.resumeAfterMs ?? 60_000);
   }
 }
 
-/** The bare student on 30 dev tasks of another job, hosted: the regression check. */
+/** The bare student on 30 dev tasks of another job, hosted: the runtime regression check. */
 async function regressionCheck(
   request: ComparisonRequest,
   env: ComparisonEnvironment,
   engine: ComparisonEngine,
+  deps: LoopDeps,
   files: ComparisonFiles,
   dir: string,
 ): Promise<void> {
-  const source = JobSchema.parse(JSON.parse(await readFile(join(dir, 'job.json'), 'utf8')));
+  const source = readJob(dir);
+  const pinned = files.readPlan()?.inputs.regression ?? pinInputs(dir, source);
   const job = await ensureJob(
     engine,
-    env.deps,
+    deps,
     files.staging('regression'),
     dir,
     comparisonJob(source, request.config, request.models),
+    pinned,
     noHarness,
   );
   const dev = await engine.jobs.tasks(job.id, 'dev');
@@ -807,7 +1100,9 @@ async function regressionCheck(
     REGRESSION_PER_TYPE * job.taskTypes.length,
     deriveSeed(request.config.mentoringSeed, 'regression'),
   );
-  env.log(`Regression check: the bare student on ${tasks.length} dev tasks of ${job.name}.`);
+  env.log(
+    `Runtime regression check: the bare student on ${tasks.length} dev tasks of ${job.name}.`,
+  );
   await sweep({
     name: 'regression',
     job,
@@ -816,7 +1111,7 @@ async function regressionCheck(
     target: 'hosted',
     seed: deriveSeed(request.config.mentoringSeed, 'regression'),
     concurrency: request.config.concurrency,
-    deps: env.deps,
+    deps,
     clock: env.clock,
     files,
     log: env.log,
@@ -830,25 +1125,25 @@ async function report(
   engine: ComparisonEngine,
   files: ComparisonFiles,
   base: Job,
-  plan: PlanRecord | null,
+  guards: Pick<Guards, 'credit'> | null,
 ): Promise<ComparisonReport> {
   let regression: { job: Job; attempts: SweepAttempt[] } | null = null;
   if (request.regressionJobDir !== undefined) {
     const attempts = files.readSweep('regression');
-    const source = JobSchema.parse(
-      JSON.parse(await readFile(join(request.regressionJobDir, 'job.json'), 'utf8')),
-    );
+    const source = readJob(request.regressionJobDir);
     if (attempts.length > 0) regression = { job: source, attempts };
   }
+  const plan = files.readPlan();
   const built = await buildReport({
     engine,
     deps: env.deps,
     config: request.config,
     // The plan as stored: decisions made since it was confirmed are in the file.
-    plan: files.readPlan() ?? plan,
+    plan,
     base,
     calibration: files.readSweep('calibration'),
     regression,
+    credit: guards === null ? null : guards.credit.summary(),
     dryRun: env.dryRun,
     commit: env.commit,
     now: new Date(env.clock.now()).toISOString(),
@@ -861,7 +1156,8 @@ async function report(
 /**
  * The local throughput probe: the bare student on a few calibration tasks on this computer, with
  * the meter on, so the GPU time a local evaluation takes is measured, not guessed. It loads the
- * model on the GPU, so it runs only when the owner grants the time. It resumes no run.
+ * model on the GPU, so it runs only within the window the owner grants (`--gpu-minutes`), held to
+ * it like any local work, and sends nothing to the hosted student. It resumes no run.
  */
 export async function probeLocal(
   request: Pick<ComparisonRequest, 'jobDir' | 'out' | 'config' | 'models'>,
@@ -870,25 +1166,27 @@ export async function probeLocal(
 ): Promise<{ attempts: number; reading: MeterReading | null }> {
   const unlock = lockFolder(request.out);
   const files = new ComparisonFiles(request.out);
-  const engine = openComparisonEngine(files.dataDir, env.deps, env.clock, {
+  const guards = openGuards(files, env, 0, request.config.caps.localMinutes);
+  const deps = guardedDeps(env.deps, guards);
+  const engine = openComparisonEngine(files.dataDir, deps, env.clock, {
     parallel: 1,
     concurrency: 1,
     onError: (error) => env.log(`engine: ${errorMessage(error)}`),
-    resume: false,
   });
   try {
-    const source = JobSchema.parse(
-      JSON.parse(await readFile(join(request.jobDir, 'job.json'), 'utf8')),
-    );
+    const source = readJob(request.jobDir);
     const base = await ensureJob(
       engine,
-      env.deps,
+      deps,
       files.staging('base'),
       request.jobDir,
       comparisonJob(source, request.config, request.models),
+      pinJob(files, request.jobDir, source),
       noHarness,
     );
     const tasks = (await engine.jobs.tasks(base.id, 'calibration')).slice(0, options.tasks);
+    // The probe loads the model only on a GPU the app has none of (decision 046).
+    if (request.config.caps.localMinutes > 0) await env.checkGpu();
     const meter = options.meter;
     const onStudent =
       meter === null
@@ -910,7 +1208,7 @@ export async function probeLocal(
       target: 'local',
       seed: deriveSeed(request.config.mentoringSeed, 'probe'),
       concurrency: 1,
-      deps: env.deps,
+      deps,
       clock: env.clock,
       files,
       ...(onStudent === undefined ? {} : { onStudent }),
@@ -940,21 +1238,24 @@ export async function reportOnly(
 ): Promise<ComparisonReport> {
   const unlock = lockFolder(request.out);
   const files = new ComparisonFiles(request.out);
-  // Nothing resumes: the report reads the records as they stand.
+  // Nothing resumes and nothing is sent: the report reads the records as they stand.
   const engine = openComparisonEngine(files.dataDir, env.deps, env.clock, {
     parallel: 1,
     concurrency: 1,
     onError: (error) => env.log(`engine: ${errorMessage(error)}`),
-    resume: false,
   });
   try {
-    const source = JobSchema.parse(
-      JSON.parse(await readFile(join(request.jobDir, 'job.json'), 'utf8')),
-    );
+    const source = readJob(request.jobDir);
     const id = comparisonJob(source, request.config, request.models).id;
     const base = await findJob(engine, id);
     if (base === null) throw new Error(`${request.out} holds no comparison of ${id} yet.`);
-    return await report(request, env, engine, files, base, files.readPlan());
+    const plan = files.readPlan();
+    const credit = new StudentCredit(
+      files.journal,
+      plan?.caps.studentUsd ?? request.config.caps.studentUsd,
+      env.clock,
+    );
+    return await report(request, env, engine, files, base, { credit });
   } finally {
     await engine.close();
     unlock();

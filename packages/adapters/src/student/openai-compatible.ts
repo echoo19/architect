@@ -119,7 +119,13 @@ export function createOpenAICompatibleStudent(
           continue;
         }
         for (const call of event.toolCalls) yield { type: 'tool_call', call };
-        yield { type: 'done', usage: event.usage ?? emptyUsage(), finish: event.finish };
+        // OpenRouter reports each call's charge with its usage; it is what the call cost.
+        yield {
+          type: 'done',
+          usage: event.usage ?? emptyUsage(),
+          finish: event.finish,
+          ...(event.costUsd === undefined ? {} : { costUsd: event.costUsd }),
+        };
       }
     } finally {
       stream.close();
