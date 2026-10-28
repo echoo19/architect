@@ -484,7 +484,7 @@ export function refundProcedure(
     diagnosis: 'The agent wrote the refund before applying the policy to the price.',
     causeTaskIds: [taskId],
     edits: [agentsWith(request, REFUND_RULE)],
-    predicted: { devDeltaMin: 2, devDeltaMax: 4, rationale: 'Every dev refund turns on it.' },
+    predicted: { devDeltaMin: 2, devDeltaMax: 4, rationale: 'Every refund turns on it.' },
     readyClaim: false,
     findings: [
       {

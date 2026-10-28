@@ -211,7 +211,7 @@ function bookedTooSoon(
     evidence: [
       { turn, note: 'The row it appended books the pickup before the return can be handed over.' },
     ],
-    cause: "It booked the first day after today and never read the return's pickup_from date.",
+    cause: "It booked the carrier's earliest day and never read the return's pickup_from date.",
     category: category(request, named),
     taskType: 'pickup',
   };
@@ -323,21 +323,21 @@ function helperRound(request: MentorCompletionRequest): Diagnosis {
 function weightsRound(request: MentorCompletionRequest): Diagnosis {
   const pickup = failedAt(request, 'pickup', 2);
   return {
-    title: 'Train pickup bookings into an adapter',
+    title: 'Train pickup bookings into the weights',
     diagnosis:
-      'Two harness changes left pickups where they were; the habit of booking from today may need training.',
+      'Two setup changes left pickups where they were; the habit of booking too soon may need training.',
     causeTaskIds: [pickup.taskId],
     edits: [],
     predicted: {
       devDeltaMin: 1,
       devDeltaMax: 2,
-      rationale: 'The verified pickup lessons show the booking done right.',
+      rationale: 'The verified pickup examples show the booking done right.',
     },
     readyClaim: false,
     findings: [bookedTooSoon(request, pickup, PICKUP_DATE)],
     intervention: {
       type: 'weights',
-      hypothesis: 'An adapter trained on the verified pickup lessons books from pickup_from.',
+      hypothesis: 'Weights trained on the verified pickup examples book from pickup_from.',
       workedExamples: [],
       practicePerFinding: 0,
       question: '',
@@ -362,7 +362,7 @@ function pickupRuleRound(request: MentorCompletionRequest): Diagnosis {
     predicted: {
       devDeltaMin: 1,
       devDeltaMax: 2,
-      rationale: 'Pickups fail in every train batch, all of them booked too soon.',
+      rationale: 'Pickups fail in every round of practice, all of them booked too soon.',
     },
     readyClaim: false,
     findings: [
