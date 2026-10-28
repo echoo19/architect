@@ -367,7 +367,11 @@ export class GpuLease {
     if (this.closed) return;
     const waiting = this.waiters.size > 0;
     const holding = GPU_USES.some((use) => this.slots[use].holding);
-    if (!waiting && !holding) return;
+    if (!waiting && !holding) {
+      // Nothing to look after until the next request: a long quiet spell isn't a sleep.
+      this.lastTick = 0;
+      return;
+    }
     this.timer = setTimeout(() => {
       this.timer = null;
       this.kick();
