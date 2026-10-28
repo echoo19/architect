@@ -1,10 +1,16 @@
-import { GuardError, TERMINAL_TRAINING_STATES, type TrainingJobRecord } from '@architect/shared';
+import { GuardError, type TrainingJobRecord, type TrainingJobState } from '@architect/shared';
 import { formatUsd } from '../loop/budget';
+
+/**
+ * A job that has stopped running costs what it ran for, whether or not its outputs have been
+ * downloaded yet; one still running may cost up to its whole authorization.
+ */
+const ENDED: ReadonlySet<TrainingJobState> = new Set(['succeeded', 'ready', 'failed', 'cancelled']);
 
 /** One scope's compute spending: the line next to mentor dollars. */
 export interface ComputeUsage {
   maxUsd: number;
-  /** What finished jobs cost. */
+  /** What jobs that stopped running cost. */
   spentUsd: number;
   /** What running jobs may still cost: each one's authorization until it ends. */
   reservedUsd: number;
@@ -29,7 +35,7 @@ export function computeUsage(
     if (record.scope !== scope) continue;
     jobs += 1;
     seconds += record.compute.seconds;
-    if (TERMINAL_TRAINING_STATES.has(record.state)) spentUsd += record.compute.usd;
+    if (ENDED.has(record.state)) spentUsd += record.compute.usd;
     else reservedUsd += Math.max(record.compute.authorizedUsd, record.compute.usd);
   }
   return {

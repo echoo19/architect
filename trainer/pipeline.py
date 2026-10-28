@@ -90,7 +90,9 @@ def load(job_path: Path, inputs: Path) -> tuple:
     if digest != dataset["examples_sha256"] or digest != job["dataset"]["sha256"]:
         raise JobError("examples.jsonl is not the dataset the job was made from")
     examples = []
-    for number, line in enumerate(examples_path.read_text(encoding="utf-8").splitlines(), 1):
+    # Only a newline ends a line here: JSON may hold U+2028 and the other characters that
+    # str.splitlines() also splits on.
+    for number, line in enumerate(examples_path.read_text(encoding="utf-8").split("\n"), 1):
         if not line.strip():
             continue
         example = json.loads(line)

@@ -193,9 +193,18 @@ export class HfJobsBackend implements TrainingBackend {
   ): Promise<FetchedArtifacts> {
     const { hub } = this.options;
     const repo = text(handle, 'repo');
-    const revision = await hub.revision(repo, 'main', signal);
     const manifestPath = join(destDir, 'manifest.json');
-    await hub.download(repo, revision, 'outputs/manifest.json', manifestPath, null, signal);
+    let revision: string;
+    try {
+      revision = await hub.revision(repo, 'main', signal);
+      await hub.download(repo, revision, 'outputs/manifest.json', manifestPath, null, signal);
+    } catch (error) {
+      // A finished job whose outputs aren't there will not upload them later.
+      if (error instanceof HubError && error.code === 'not_found') {
+        throw new ArtifactError("The job finished, but its outputs aren't in its repository.");
+      }
+      throw error;
+    }
     let manifest: TrainerOutput;
     try {
       manifest = TrainerOutputSchema.parse(JSON.parse(readFileSync(manifestPath, 'utf8')));
@@ -208,8 +217,11 @@ export class HfJobsBackend implements TrainingBackend {
       try {
         await hub.download(repo, revision, `outputs/${file.path}`, path, file, signal);
       } catch (error) {
-        // A file that doesn't match its hash won't match it on the next try either.
-        if (error instanceof HubError && error.code === 'mismatch') {
+        // A file that is missing, or doesn't match its hash, won't be right on the next try either.
+        if (
+          error instanceof HubError &&
+          (error.code === 'mismatch' || error.code === 'not_found')
+        ) {
           throw new ArtifactError(error.message);
         }
         throw error;

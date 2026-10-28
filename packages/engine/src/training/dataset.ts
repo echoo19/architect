@@ -14,6 +14,7 @@ import {
   type EpisodeMessage,
   type VerifiedEpisode,
 } from '@architect/shared';
+import { ZodError } from 'zod';
 import { writeFileAtomic } from '../data/atomic-write';
 import type { LeakDetector } from '../vault/fingerprint';
 
@@ -225,7 +226,19 @@ export function buildTrainingDataset(
       excluded.push({ episode_id: episode.id, reason: problem });
       continue;
     }
-    const example = toExample(episode);
+    let example: DatasetExample;
+    try {
+      example = toExample(episode);
+    } catch (error) {
+      if (!(error instanceof ZodError)) throw error;
+      const issue = error.issues[0];
+      excluded.push({
+        episode_id: episode.id,
+        reason:
+          `it can't be written as an example: ${issue?.path.join('.') ?? ''} ${issue?.message ?? ''}`.trim(),
+      });
+      continue;
+    }
     const content = contentOf(example);
     const leak = options.leakDetector?.scan(content);
     if (leak?.leaked) {

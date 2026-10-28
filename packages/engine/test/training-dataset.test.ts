@@ -149,6 +149,29 @@ describe('the training dataset', () => {
     ]);
   });
 
+  it('leaves out an episode that cannot be written as an example, and builds the rest', () => {
+    const base = orderEpisode('blank-id', {}, '6006');
+    const blankId: VerifiedEpisode = {
+      ...base,
+      messages: base.messages.map((message) => {
+        if (message.role === 'assistant' && message.toolCalls) {
+          return { ...message, toolCalls: message.toolCalls.map((call) => ({ ...call, id: '' })) };
+        }
+        return message.role === 'tool' ? { ...message, toolCallId: '' } : message;
+      }),
+    };
+    const built = buildTrainingDataset([orderEpisode('fine'), blankId], remote);
+    expect(built.examples.map((example) => example.id)).toEqual(['fine']);
+    expect(built.manifest.excluded).toEqual([
+      {
+        episode_id: 'blank-id',
+        reason: expect.stringMatching(
+          /^it can't be written as an example: messages\.2\.tool_calls\.0\.id/,
+        ) as unknown as string,
+      },
+    ]);
+  });
+
   it('keeps episodes that may not leave the computer when training stays on it', () => {
     const built = buildTrainingDataset(
       [orderEpisode('private', { sharing: { remoteTraining: false } })],

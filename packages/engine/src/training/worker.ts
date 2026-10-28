@@ -8,12 +8,18 @@ import {
   type TrainingJobRecord,
   type TrainingJobState,
 } from '@architect/shared';
-import { inspectLoraAdapter, readGgufHeader } from '../gguf';
+import { GgufError, inspectLoraAdapter, readGgufHeader } from '../gguf';
 import { ArtifactError, hashFile } from './artifacts';
-import type { BackendHandle, TrainingBackend } from './backend';
+import type { BackendHandle, HardwareFlavor, Submitted, TrainingBackend } from './backend';
 import { authorizeCompute, computeUsage, costOf, type ComputeUsage } from './budget';
 import { readTrainingDataset } from './dataset';
-import { buildTrainerJob, loadRecipe, MIN_JOB_SECONDS, writeTrainerInputs } from './recipe';
+import {
+  buildTrainerJob,
+  loadRecipe,
+  MIN_JOB_SECONDS,
+  writeTrainerInputs,
+  type InputFile,
+} from './recipe';
 import type { TrainingStore } from './store';
 
 export interface TrainingRequest {
@@ -70,6 +76,24 @@ function rest(ms: number, signal: AbortSignal): Promise<void> {
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
+/** Runs each piece of work after every earlier one under the same key has finished. */
+class Queue {
+  private readonly tails = new Map<string, Promise<void>>();
+
+  run<T>(key: string, work: () => Promise<T>): Promise<T> {
+    const result = (this.tails.get(key) ?? Promise.resolve()).then(work);
+    const tail = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.tails.set(key, tail);
+    void tail.then(() => {
+      if (this.tails.get(key) === tail) this.tails.delete(key);
+    });
+    return result;
+  }
+}
+
 /**
  * Runs training jobs on a backend and keeps a durable record of each: written before the backend
  * hears of a job, so a crash can't lose one, and keyed by what it trains, so the same job is never
@@ -77,10 +101,15 @@ const message = (error: unknown) => (error instanceof Error ? error.message : St
  * job whose submission was cut off, checks the status of running ones, and downloads the outputs
  * of finished ones. Compute is paid from a hard cap per scope; the provider is told to stop each
  * job at its share, and the worker stops it too if it is seen running past it.
+ *
+ * Every change to a job goes through one queue per job, so a check, a cancel and a download never
+ * work from a stale copy of its record; new jobs go through one queue per budget scope, so two
+ * can't be paid from the same dollars.
  */
 export class TrainingWorker {
   private readonly watchers = new Map<string, AbortController>();
-  private readonly submitting = new Map<string, Promise<TrainingJobRecord>>();
+  private readonly jobs = new Queue();
+  private readonly scopes = new Queue();
 
   constructor(private readonly options: TrainingWorkerOptions) {}
 
@@ -138,49 +167,44 @@ export class TrainingWorker {
     const backend = this.backend(request.backend);
     const dataset = readTrainingDataset(request.datasetDir);
     const recipe = loadRecipe(this.options.trainerDir);
+    if (backend.real && !dataset.manifest.remote_training_allowed) {
+      throw new GuardError(
+        'permission',
+        "Some of these examples may not leave this computer, so they can't go to remote training.",
+      );
+    }
     const flavorId = recipe.recipe.hardware.flavor;
-    const keyOf = (revision: string) =>
-      createHash('sha256')
-        .update(
-          JSON.stringify({
-            backend: backend.kind,
-            dataset: dataset.manifest.examples_sha256,
-            base: { repo: request.baseModel.repo, revision },
-            recipe: recipe.sha256,
-            flavor: flavorId,
-          }),
-        )
-        .digest('hex');
-    const pending = `${backend.kind}:${dataset.manifest.examples_sha256}:${request.baseModel.repo}`;
-    const running = this.submitting.get(pending);
-    if (running) return running;
+    const flavor = backend.flavor(flavorId);
+    if (!flavor) {
+      throw new GuardError(
+        'budget',
+        `The price of ${flavorId} on ${backend.label} isn't known, so the compute cap can't be kept.`,
+      );
+    }
+    const revision =
+      request.baseModel.revision ?? (await backend.resolveRevision(request.baseModel.repo, signal));
+    const key = createHash('sha256')
+      .update(
+        JSON.stringify({
+          backend: backend.kind,
+          dataset: dataset.manifest.examples_sha256,
+          base: { repo: request.baseModel.repo, revision },
+          recipe: recipe.sha256,
+          flavor: flavor.id,
+        }),
+      )
+      .digest('hex');
 
-    const work = (async () => {
-      if (backend.real && !dataset.manifest.remote_training_allowed) {
-        throw new GuardError(
-          'permission',
-          "Some of these examples may not leave this computer, so they can't go to remote training.",
-        );
-      }
-      const flavor = backend.flavor(flavorId);
-      if (!flavor) {
-        throw new GuardError(
-          'budget',
-          `The price of ${flavorId} on ${backend.label} isn't known, so the compute cap can't be kept.`,
-        );
-      }
-      const revision =
-        request.baseModel.revision ??
-        (await backend.resolveRevision(request.baseModel.repo, signal));
-      const key = keyOf(revision);
+    // The budget check and the record that reserves its dollars happen together, one job at a
+    // time per scope; the same job asked for twice finds the first one's record here.
+    const made = await this.scopes.run(request.scope, async () => {
       const existing = this.list().find(
         (record) =>
           record.idempotencyKey === key &&
           record.state !== 'failed' &&
           record.state !== 'cancelled',
       );
-      if (existing) return existing;
-
+      if (existing) return { record: existing, inputs: null };
       const authorized = authorizeCompute(
         this.usage(request.scope, request.maxComputeUsd),
         flavor.pricePerHourUsd,
@@ -199,43 +223,46 @@ export class TrainingWorker {
         outputRepo,
       });
       const at = this.iso();
-      let record: TrainingJobRecord = {
-        format: 1,
-        id,
-        idempotencyKey: key,
-        scope: request.scope,
-        backend: backend.kind,
-        real: backend.real,
-        label: backend.label,
-        state: 'submitting',
-        createdAt: at,
-        updatedAt: at,
-        dataset: {
-          sha256: dataset.manifest.examples_sha256,
-          exampleCount: dataset.manifest.example_count,
-          trainedTurns: dataset.manifest.trained_turns,
-        },
-        baseModel: { repo: request.baseModel.repo, revision },
-        recipe: { name: recipe.recipe.name, version: recipe.recipe.version, sha256: recipe.sha256 },
-        provider: null,
-        providerUrl: null,
-        compute: {
-          flavor: flavor.id,
-          pricePerHourUsd: flavor.pricePerHourUsd,
-          authorizedSeconds: authorized.seconds,
-          authorizedUsd: authorized.usd,
-          startedAt: null,
-          endedAt: null,
-          seconds: 0,
-          usd: 0,
-        },
-        artifacts: null,
-        error: null,
-        history: [],
-      };
       // Saved before the backend hears of the job, so a crash from here on can't lose it.
-      record = this.save(
-        record,
+      const record = this.save(
+        {
+          format: 1,
+          id,
+          idempotencyKey: key,
+          scope: request.scope,
+          backend: backend.kind,
+          real: backend.real,
+          label: backend.label,
+          state: 'submitting',
+          createdAt: at,
+          updatedAt: at,
+          dataset: {
+            sha256: dataset.manifest.examples_sha256,
+            exampleCount: dataset.manifest.example_count,
+            trainedTurns: dataset.manifest.trained_turns,
+          },
+          baseModel: { repo: request.baseModel.repo, revision },
+          recipe: {
+            name: recipe.recipe.name,
+            version: recipe.recipe.version,
+            sha256: recipe.sha256,
+          },
+          provider: null,
+          providerUrl: null,
+          compute: {
+            flavor: flavor.id,
+            pricePerHourUsd: flavor.pricePerHourUsd,
+            authorizedSeconds: authorized.seconds,
+            authorizedUsd: authorized.usd,
+            startedAt: null,
+            endedAt: null,
+            seconds: 0,
+            usd: 0,
+          },
+          artifacts: null,
+          error: null,
+          history: [],
+        },
         'submitting',
         `Sending ${dataset.manifest.example_count} examples to ${backend.label}`,
       );
@@ -245,39 +272,62 @@ export class TrainingWorker {
         recipe,
         dataset,
       );
-      let submitted;
-      try {
-        submitted = await backend.submit(
-          { jobId: id, inputs, flavor, timeoutSeconds: authorized.seconds },
-          signal,
-        );
-      } catch (error) {
-        // The provider may have the job even though the answer was lost: ask before giving up.
-        const found = await backend.recover(id).catch(() => null);
-        if (!found) {
-          this.save(
-            { ...record, error: { code: 'submit_failed', message: message(error) } },
-            'failed',
-            'The job could not be sent',
-          );
-          throw error;
-        }
-        submitted = found;
-      }
-      record = this.save(
-        { ...record, provider: submitted.handle, providerUrl: submitted.url },
-        'queued',
-        'The provider has the job',
-      );
-      if (this.options.watch !== false) this.watch(id);
-      return record;
-    })();
-    this.submitting.set(pending, work);
-    try {
-      return await work;
-    } finally {
-      this.submitting.delete(pending);
+      return { record, inputs };
+    });
+    if (made.inputs === null) return made.record;
+
+    const { record, inputs } = made;
+    const timeout = record.compute.authorizedSeconds;
+    const sent = await this.jobs.run(record.id, () =>
+      this.send(record.id, backend, inputs, flavor, timeout, signal),
+    );
+    if (this.options.watch !== false && !TERMINAL_TRAINING_STATES.has(sent.state)) {
+      this.watch(sent.id);
     }
+    return sent;
+  }
+
+  private async send(
+    id: string,
+    backend: TrainingBackend,
+    inputs: readonly InputFile[],
+    flavor: HardwareFlavor,
+    timeoutSeconds: number,
+    signal?: AbortSignal,
+  ): Promise<TrainingJobRecord> {
+    let submitted: Submitted;
+    try {
+      submitted = await backend.submit({ jobId: id, inputs, flavor, timeoutSeconds }, signal);
+    } catch (error) {
+      // The provider may have the job even though its answer was lost, so ask before giving up.
+      let found: Submitted | null;
+      try {
+        found = await backend.recover(id);
+      } catch {
+        // Not knowing is not the same as not having it: leave the job as sent, and ask again
+        // on the next check, rather than risk sending it twice.
+        this.save(
+          this.get(id),
+          'submitting',
+          `The provider couldn't be asked whether it received the job: ${message(error)}`,
+        );
+        throw error;
+      }
+      if (!found) {
+        this.save(
+          { ...this.get(id), error: { code: 'submit_failed', message: message(error) } },
+          'failed',
+          'The job could not be sent',
+        );
+        throw error;
+      }
+      submitted = found;
+    }
+    return this.save(
+      { ...this.get(id), provider: submitted.handle, providerUrl: submitted.url },
+      'queued',
+      'The provider has the job',
+    );
   }
 
   /** Picks up every unfinished job after a restart. Returns their ids. */
@@ -288,7 +338,11 @@ export class TrainingWorker {
   }
 
   /** One step for a job: recover its submission, check its status, or fetch its outputs. */
-  async poll(id: string, signal?: AbortSignal): Promise<TrainingJobRecord> {
+  poll(id: string, signal?: AbortSignal): Promise<TrainingJobRecord> {
+    return this.jobs.run(id, () => this.step(id, signal));
+  }
+
+  private async step(id: string, signal?: AbortSignal): Promise<TrainingJobRecord> {
     let record = this.get(id);
     if (TERMINAL_TRAINING_STATES.has(record.state)) return record;
     const backend = this.backend(record.backend);
@@ -321,26 +375,41 @@ export class TrainingWorker {
 
     const status = await backend.status(handle, signal);
     const now = this.now();
-    const startedAt = record.compute.startedAt ?? this.iso(status.createdAt ?? now);
     const finished = status.state !== 'queued' && status.state !== 'running';
+    let startedAt = record.compute.startedAt;
+    if (startedAt === null && status.state !== 'queued') {
+      // It began after it was last seen waiting, or else after it was made: the earliest it
+      // could have begun bounds what it can have cost.
+      const lastSeenWaiting = record.state === 'queued' ? Date.parse(record.updatedAt) : null;
+      startedAt = this.iso(lastSeenWaiting ?? status.createdAt ?? Date.parse(record.createdAt));
+    }
     const endedAt = finished ? (record.compute.endedAt ?? this.iso(now)) : null;
-    const seconds = Math.max(
-      0,
-      ((endedAt ? Date.parse(endedAt) : now) - Date.parse(startedAt)) / 1000,
-    );
-    const compute = {
-      ...record.compute,
-      startedAt,
-      endedAt,
-      seconds,
-      usd: costOf(seconds, record.compute.pricePerHourUsd),
+    const ran =
+      startedAt === null
+        ? 0
+        : Math.max(
+            0,
+            ((endedAt === null ? now : Date.parse(endedAt)) - Date.parse(startedAt)) / 1000,
+          );
+    // The provider stops a job at its limit, so it can't have run, or cost, more than that.
+    const seconds = Math.min(ran, record.compute.authorizedSeconds);
+    const updated: TrainingJobRecord = {
+      ...record,
+      compute: {
+        ...record.compute,
+        startedAt,
+        endedAt,
+        seconds,
+        usd: costOf(seconds, record.compute.pricePerHourUsd),
+      },
     };
-    const updated: TrainingJobRecord = { ...record, compute };
 
     switch (status.state) {
       case 'queued':
       case 'running': {
-        const overrun = seconds > record.compute.authorizedSeconds + OVERRUN_GRACE_SECONDS;
+        const overrun =
+          status.state === 'running' &&
+          ran > record.compute.authorizedSeconds + OVERRUN_GRACE_SECONDS;
         if (overrun && record.state !== 'cancelling') {
           await backend.cancel(handle, signal);
           return this.save(updated, 'cancelling', 'Stopped at its compute limit');
@@ -369,7 +438,10 @@ export class TrainingWorker {
     }
   }
 
-  /** Downloads and checks a finished job's outputs. A network failure leaves it to try again. */
+  /**
+   * Downloads and checks a finished job's outputs. Outputs that are missing or don't check out
+   * fail the job; a dropped connection leaves it to try again on the next check.
+   */
   private async collect(
     record: TrainingJobRecord,
     backend: TrainingBackend,
@@ -392,7 +464,15 @@ export class TrainingWorker {
       }
       const gguf = fetched.files.find((file) => file.kind === 'gguf_lora');
       if (!gguf) throw new ArtifactError('The outputs have no GGUF adapter.');
-      const check = inspectLoraAdapter(readGgufHeader(gguf.path));
+      let check;
+      try {
+        check = inspectLoraAdapter(readGgufHeader(gguf.path));
+      } catch (error) {
+        if (error instanceof GgufError) {
+          throw new ArtifactError(`The adapter is not a GGUF file: ${error.message}`);
+        }
+        throw error;
+      }
       if (!check.ok || !check.summary) {
         throw new ArtifactError(`The GGUF adapter is not usable: ${check.problems[0] ?? ''}`);
       }
@@ -431,12 +511,30 @@ export class TrainingWorker {
     }
   }
 
-  async cancel(id: string, signal?: AbortSignal): Promise<TrainingJobRecord> {
-    const record = this.get(id);
-    if (TERMINAL_TRAINING_STATES.has(record.state) || record.state === 'cancelling') return record;
-    if (record.provider === null) return this.poll(id, signal);
-    await this.backend(record.backend).cancel(record.provider, signal);
-    return this.save(record, 'cancelling', 'Asked the provider to stop the job');
+  /** Asks the provider to stop a job. A finished job, or one already stopping, is left as it is. */
+  cancel(id: string, signal?: AbortSignal): Promise<TrainingJobRecord> {
+    return this.jobs.run(id, async () => {
+      const record = this.get(id);
+      const settled =
+        TERMINAL_TRAINING_STATES.has(record.state) ||
+        record.state === 'cancelling' ||
+        record.state === 'succeeded';
+      if (settled) return record;
+      const backend = this.backend(record.backend);
+      if (record.provider === null) {
+        // Only after a restart cut a submission off: find out whether the provider has it.
+        const found = await backend.recover(id, signal);
+        if (!found) return this.save(record, 'cancelled', 'Cancelled before the provider had it');
+        await backend.cancel(found.handle, signal);
+        return this.save(
+          { ...record, provider: found.handle, providerUrl: found.url },
+          'cancelling',
+          'Asked the provider to stop the job',
+        );
+      }
+      await backend.cancel(record.provider, signal);
+      return this.save(record, 'cancelling', 'Asked the provider to stop the job');
+    });
   }
 
   logs(id: string, signal?: AbortSignal): Promise<string> {
@@ -451,6 +549,13 @@ export class TrainingWorker {
     const controller = new AbortController();
     this.watchers.set(id, controller);
     const sleep = this.options.sleep ?? rest;
+    const report = (error: unknown) => {
+      try {
+        this.options.onPollError?.(id, error);
+      } catch {
+        // A listener that fails must not stop the checks.
+      }
+    };
     void (async () => {
       try {
         while (!controller.signal.aborted) {
@@ -459,7 +564,7 @@ export class TrainingWorker {
             record = await this.poll(id, controller.signal);
           } catch (error) {
             // A failed check (a network drop, a busy provider) is reported, then tried again.
-            if (!controller.signal.aborted) this.options.onPollError?.(id, error);
+            if (!controller.signal.aborted) report(error);
             await sleep(this.options.pollMs ?? 30_000, controller.signal);
             continue;
           }
@@ -467,7 +572,7 @@ export class TrainingWorker {
           await sleep(this.options.pollMs ?? 30_000, controller.signal);
         }
       } finally {
-        this.watchers.delete(id);
+        if (this.watchers.get(id) === controller) this.watchers.delete(id);
       }
     })();
   }

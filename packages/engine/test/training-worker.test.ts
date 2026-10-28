@@ -24,6 +24,7 @@ import {
   writeTrainingDataset,
   type BackendHandle,
   type BackendStatus,
+  type Submitted,
   type TrainingStore,
 } from '../src/training';
 import { orderEpisode } from './support/episodes';
@@ -261,6 +262,98 @@ describe('the stand-in backend', () => {
     expect((await training.cancel(job.id)).state).toBe('cancelling');
     expect((await training.poll(job.id)).state).toBe('cancelled');
     expect(existsSync(join(dataDir, 'training', 'jobs', job.id, 'artifacts'))).toBe(false);
+  });
+});
+
+/** A stand-in whose provider side misbehaves the way a real one can. */
+function workerOn(backend: StandInBackend) {
+  return new TrainingWorker({
+    store: new FileTrainingStore(dataDir),
+    backends: { 'stand-in': backend },
+    trainerDir: TRAINER,
+    now: () => now,
+    watch: false,
+  });
+}
+
+const options = () => ({
+  stateDir: join(dataDir, 'training', 'stand-in'),
+  baseHeader: () => base,
+  now: () => now,
+});
+
+const pause = (ms: number) => new Promise((done) => setTimeout(done, ms));
+
+describe('a job that more than one thing touches at once', () => {
+  it("never sends a job twice when the provider took it but couldn't be asked about it", async () => {
+    let submits = 0;
+    let reachable = false;
+    class Lossy extends StandInBackend {
+      override async submit(...args: Parameters<StandInBackend['submit']>): Promise<Submitted> {
+        submits += 1;
+        await super.submit(...args);
+        throw new Error('The connection dropped before the answer came back.');
+      }
+      override recover(jobId: string) {
+        if (!reachable) return Promise.reject(new Error('The provider is unreachable.'));
+        return super.recover(jobId);
+      }
+    }
+    const training = workerOn(new Lossy({ ...options(), queueMs: MINUTE }));
+    const dir = datasetDir('a');
+    await expect(training.submit(request(dir))).rejects.toThrow('The connection dropped');
+    const [record] = training.list();
+    expect(record?.state).toBe('submitting');
+    expect(record?.history.at(-1)?.note).toMatch(/couldn't be asked whether it received the job/);
+
+    // Asking again finds the job already made: nothing is sent a second time.
+    expect(await training.submit(request(dir))).toMatchObject({
+      id: record?.id,
+      state: 'submitting',
+    });
+    expect(submits).toBe(1);
+    reachable = true;
+    expect((await training.poll(record?.id ?? '')).state).toBe('queued');
+    expect(submits).toBe(1);
+  });
+
+  it('waits for a submission under way before cancelling it, then cancels the job it made', async () => {
+    class Slow extends StandInBackend {
+      override async submit(...args: Parameters<StandInBackend['submit']>) {
+        await pause(100);
+        return super.submit(...args);
+      }
+    }
+    const training = workerOn(new Slow(options()));
+    const submitting = training.submit(request(datasetDir('a')));
+    while (training.list().length === 0) await pause(5);
+    const id = training.list()[0]?.id ?? '';
+    const cancelled = await training.cancel(id);
+    await submitting;
+    expect(cancelled.state).toBe('cancelling');
+    expect(cancelled.history.map((entry) => entry.state)).toEqual([
+      'submitting',
+      'queued',
+      'cancelling',
+    ]);
+    expect((await training.poll(id)).state).toBe('cancelled');
+  });
+
+  it('leaves a job whose outputs are downloading alone when a cancel arrives', async () => {
+    class SlowDownload extends StandInBackend {
+      override async fetchArtifacts(...args: Parameters<StandInBackend['fetchArtifacts']>) {
+        await pause(100);
+        return super.fetchArtifacts(...args);
+      }
+    }
+    const training = workerOn(new SlowDownload(options()));
+    const job = await training.submit(request(datasetDir('a')));
+    const polling = training.poll(job.id);
+    await pause(20);
+    const cancel = await training.cancel(job.id);
+    expect((await polling).state).toBe('ready');
+    expect(cancel.state).toBe('ready');
+    expect(training.get(job.id).artifacts).not.toBeNull();
   });
 });
 

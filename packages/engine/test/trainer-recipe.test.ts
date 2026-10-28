@@ -16,6 +16,11 @@ import {
 } from '../src/training';
 import { orderEpisode } from './support/episodes';
 
+/** Characters str.splitlines() ends a line at, which JSON leaves as they are. */
+const LINE_SEPARATOR = String.fromCharCode(0x2028);
+const NEXT_LINE = String.fromCharCode(0x85);
+const PARAGRAPH_SEPARATOR = String.fromCharCode(0x2029);
+
 const TRAINER = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'trainer');
 const BASE = { repo: GLIMMER_TRAINING_BASE.repo, revision: 'a'.repeat(40) };
 
@@ -180,6 +185,39 @@ describe.skipIf(python === null)('the recipe under Python', () => {
       lora: { r: 16, alpha: 32 },
       max_seconds: built.max_seconds,
     });
+  });
+
+  it('reads examples holding characters that only some readers take for line breaks', () => {
+    const episode = orderEpisode('odd', {}, '7007');
+    const odd = {
+      ...episode,
+      messages: episode.messages.map((message) =>
+        message.role === 'tool'
+          ? {
+              ...message,
+              content: `${message.content}${LINE_SEPARATOR}note${NEXT_LINE}end${PARAGRAPH_SEPARATOR}`,
+            }
+          : message,
+      ),
+    };
+    const built = buildTrainingDataset([odd], { destination: 'remote' });
+    const recipe = loadRecipe(TRAINER);
+    const trainerJob = buildTrainerJob({
+      jobId: 'trn_odd1',
+      recipe,
+      baseModel: BASE,
+      dataset: built.manifest,
+      authorizedSeconds: 3 * 3600,
+      outputRepo: null,
+    });
+    const inputs = join(dir, 'odd');
+    writeTrainerInputs(inputs, trainerJob, recipe, built);
+    const dry = run(
+      ['pipeline.py', '--job', join(inputs, 'job.json'), '--inputs', inputs, '--dry-run'],
+      inputs,
+    );
+    expect(dry.stdout).toContain('"ok": true');
+    expect(dry.status).toBe(0);
   });
 
   it('refuses inputs that changed after the job was made', () => {

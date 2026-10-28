@@ -343,13 +343,77 @@ describe('Hugging Face Jobs', () => {
     expect(stopping.history.at(-1)?.note).toBe('Stopped at its compute limit');
     const stopped = await worker.poll(record.id);
     expect(stopped.state).toBe('cancelled');
-    expect(worker.usage('job_returns', 1.2)).toMatchObject({ leftUsd: 0, reservedUsd: 0 });
-    expect(worker.usage('job_returns', 1.2).spentUsd).toBeGreaterThan(1.2);
+    // The Hub stops a job at its timeout, so it costs at most what was authorized.
+    expect(stopped.compute).toMatchObject({ seconds: 2400, usd: 1.2 });
+    expect(worker.usage('job_returns', 1.2)).toMatchObject({
+      leftUsd: 0,
+      reservedUsd: 0,
+      spentUsd: 1.2,
+    });
 
     await expect(worker.submit(request(datasetDir('c', '3003'), 0.5))).rejects.toThrow(
       /a training job needs at least 35/,
     );
     expect(MIN_JOB_SECONDS).toBe(2100);
+  });
+
+  it('never lets two jobs sent at once spend the same dollars', async () => {
+    const { worker } = setUp();
+    const results = await Promise.allSettled([
+      worker.submit(request(datasetDir('a'), 6)),
+      worker.submit(request(datasetDir('b', '2002'), 6)),
+    ]);
+    expect(results.map((result) => result.status).sort()).toEqual(['fulfilled', 'rejected']);
+    expect(results.find((result) => result.status === 'rejected')).toMatchObject({
+      reason: { guard: 'budget' },
+    });
+    expect(jobPosts()).toHaveLength(1);
+    expect(worker.usage('job_returns', 6).reservedUsd).toBeCloseTo(5.4, 9);
+  });
+
+  it('counts time in the queue as neither cost nor overrun', async () => {
+    const { worker } = setUp();
+    const record = await worker.submit(request(datasetDir('a'), 1.2));
+    const [jobId] = [...hub.jobs.keys()];
+    hub.setStage(jobId ?? '', 'SCHEDULING');
+    now += 4 * 3600 * 1000;
+    const waiting = await worker.poll(record.id);
+    expect(waiting).toMatchObject({
+      state: 'queued',
+      compute: { startedAt: null, seconds: 0, usd: 0 },
+    });
+
+    hub.setStage(jobId ?? '', 'RUNNING');
+    now += 10 * 60_000;
+    const running = await worker.poll(record.id);
+    expect(running.state).toBe('running');
+    expect(running.compute.seconds).toBe(10 * 60);
+  });
+
+  it('charges a job the app saw end a day late no more than it was allowed', async () => {
+    const { worker } = setUp();
+    const record = await worker.submit(request(datasetDir('a')));
+    hub.commit(`jake/architect-${record.id.replace('_', '-')}`, outputsFor(record));
+    hub.setStage([...hub.jobs.keys()][0] ?? '', 'COMPLETED');
+    now += 24 * 3600 * 1000;
+    const ready = await worker.poll(record.id);
+    expect(ready.state).toBe('ready');
+    expect(ready.compute).toMatchObject({ seconds: 3 * 3600, usd: 5.4 });
+  });
+
+  it('fails a finished job whose outputs never arrived, instead of trying forever', async () => {
+    const { worker } = setUp();
+    const record = await worker.submit(request(datasetDir('a')));
+    hub.setStage([...hub.jobs.keys()][0] ?? '', 'COMPLETED');
+    const failed = await worker.poll(record.id);
+    expect(failed).toMatchObject({
+      state: 'failed',
+      error: {
+        code: 'artifacts_invalid',
+        message: "The job finished, but its outputs aren't in its repository.",
+      },
+    });
+    expect(worker.usage('job_returns', 10).reservedUsd).toBe(0);
   });
 
   it('says what to do when Hugging Face refuses the token', async () => {
