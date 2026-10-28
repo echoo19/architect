@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 import { isLoopbackUrl } from '@architect/adapters';
 import { parseReportJson, sha256File } from '@architect/harness';
 import {
+  CodedError,
   GrantsSchema,
   GuardError,
   type BindRequest,
@@ -99,7 +100,7 @@ export class GraduateLibrary {
 
   agent(graduateId: string): GraduateRecord {
     const record = this.ctx.store.graduates.get(graduateId);
-    if (!record) throw new Error(`There is no graduate "${graduateId}".`);
+    if (!record) throw new CodedError('agent_not_found', `There is no graduate "${graduateId}".`);
     return record;
   }
 
@@ -217,7 +218,7 @@ export class GraduateLibrary {
 
   summary(graduateId: string): GraduateSummary {
     const summary = this.summaryOf(this.agent(graduateId));
-    if (!summary) throw new Error(`There is no graduate "${graduateId}".`);
+    if (!summary) throw new CodedError('agent_not_found', `There is no graduate "${graduateId}".`);
     return summary;
   }
 
@@ -254,7 +255,8 @@ export class GraduateLibrary {
     const path = join(this.ctx.paths.fromStored(stored.path), ...file.split('/'));
     const listed = stored.manifest.integrity.files.find((entry) => entry.path === file);
     if (listed === undefined || (await sha256File(path)) !== listed.sha256) {
-      throw new Error(
+      throw new CodedError(
+        'version_modified',
         `The report of version ${number} of ${agent.name} changed on disk after it was made.`,
       );
     }

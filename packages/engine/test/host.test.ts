@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { parseReportJson } from '@architect/harness';
 import {
   AdapterError,
+  CodedError,
   GuardError,
   PublishProgressSchema,
   RunEventSchema,
@@ -185,6 +186,30 @@ describe('the engine host', () => {
       'There is no run "run_missing".',
     );
     await expect(client.runs.get('run_missing')).rejects.toThrow('There is no run "run_missing".');
+  });
+
+  it('says what is gone with a code a screen can word, on top of the precise message', async () => {
+    const { client } = await connect();
+    const job = await client.jobs.createSample();
+    const graduated = next(client, (event) => event.type === 'graduate.ready');
+    const run = await client.runs.start(job.id, { method: 'bare', seed: 1 });
+    await graduated;
+    const code = async (request: Promise<unknown>) => {
+      const error: unknown = await request.then(
+        () => undefined,
+        (failure: unknown) => failure,
+      );
+      expect(error).toBeInstanceOf(CodedError);
+      return (error as CodedError).code;
+    };
+    expect(await code(client.runs.get('run_missing'))).toBe('run_not_found');
+    expect(await code(client.reports.get('run_missing'))).toBe('run_not_found');
+    expect(await code(client.jobs.get('job_missing'))).toBe('job_not_found');
+    expect(await code(client.mentoring.categories('job_missing'))).toBe('job_not_found');
+    expect(await code(client.graduates.settings('grd_missing'))).toBe('agent_not_found');
+    expect(await code(client.runs.attempt('att_missing'))).toBe('record_not_found');
+    expect(await code(client.mentoring.lessonTrace('les_missing'))).toBe('record_not_found');
+    expect(await code(client.runs.roundDiff(run.id, 99))).toBe('record_not_found');
   });
 
   it('tests a run on the hosted copy when asked, files its card there, and refuses unknown options', async () => {
@@ -426,6 +451,21 @@ describe('the engine host', () => {
     expect(adapter).toMatchObject({ name: 'AdapterError', code: 'rate_limit', retryable: true });
     const plain = fromErrorPayload(toErrorPayload(new TypeError('Nope.')));
     expect(plain).toMatchObject({ name: 'TypeError', message: 'Nope.' });
+  });
+
+  it('carries a coded error across with its code, and drops a code it does not know', () => {
+    const gone = fromErrorPayload(
+      toErrorPayload(new CodedError('run_not_found', 'There is no run "run_1".')),
+    );
+    expect(gone).toBeInstanceOf(CodedError);
+    expect(gone).toMatchObject({ code: 'run_not_found', message: 'There is no run "run_1".' });
+    const unknown = fromErrorPayload({
+      name: 'CodedError',
+      message: 'Newer.',
+      code: 'from_the_future',
+    });
+    expect(unknown).not.toBeInstanceOf(CodedError);
+    expect(unknown.message).toBe('Newer.');
   });
 
   it('resumes a run that was active when the app closed', async () => {

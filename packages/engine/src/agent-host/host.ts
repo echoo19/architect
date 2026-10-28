@@ -1,6 +1,7 @@
 import { randomInt } from 'node:crypto';
 import {
   ApprovalRequiredError,
+  CodedError,
   type ApprovalRequest,
   type ArchitectApi,
   type ChatMessage,
@@ -129,7 +130,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
 
   function chatOf(chatId: string): WorkspaceChat {
     const chat = store.getChat(chatId);
-    if (!chat) throw new Error(`There is no chat "${chatId}".`);
+    if (!chat) throw new CodedError('chat_not_found', `There is no chat "${chatId}".`);
     return chat;
   }
 
@@ -288,7 +289,10 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
     async openGraduate(graduateId, cpuThreads) {
       assertOpen();
       if (!store.hasGraduate(graduateId)) {
-        throw new Error(`There is no graduate "${graduateId}" in Architect.`);
+        throw new CodedError(
+          'agent_not_found',
+          `There is no graduate "${graduateId}" in Architect.`,
+        );
       }
       threads.set(graduateId, cpuThreads);
       // A graduate that is answering is opened again before its next reply, never during one.

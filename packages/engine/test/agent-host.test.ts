@@ -719,7 +719,10 @@ describe('the host', () => {
     await expect(world.host.send(chat.id, 'Second question.')).rejects.toThrow('still answering');
     await done;
     await expect(world.host.send(chat.id, '   ')).rejects.toThrow('Write a message');
-    await expect(world.host.messages('cht_missing')).rejects.toThrow('There is no chat');
+    await expect(world.host.messages('cht_missing')).rejects.toMatchObject({
+      code: 'chat_not_found',
+      message: expect.stringContaining('There is no chat'),
+    });
   });
 });
 

@@ -164,7 +164,10 @@ describe("a version's own report travels with it", () => {
       recipient.store.versions.get('grd_desk', 1)?.path ?? '',
     );
     await writeFile(join(folder, 'evidence', 'report.json'), '{"tampered": true}\n');
-    await expect(recipient.library.report('grd_desk')).rejects.toThrow('changed on disk');
+    await expect(recipient.library.report('grd_desk')).rejects.toMatchObject({
+      code: 'version_modified',
+      message: expect.stringContaining('changed on disk'),
+    });
   });
 
   it('says so when no locked test measured the version', async () => {

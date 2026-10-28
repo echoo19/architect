@@ -1,6 +1,7 @@
 import { copyFile, cp, mkdir, readFile, stat } from 'node:fs/promises';
 import { dirname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 import {
+  CodedError,
   JobSchema,
   newId,
   TaskSchema,
@@ -87,7 +88,9 @@ export class JobLibrary {
   }
 
   async get(jobId: string): Promise<Job> {
-    if (!this.store.jobs.get(jobId)) throw new Error(`There is no job "${jobId}".`);
+    if (!this.store.jobs.get(jobId)) {
+      throw new CodedError('job_not_found', `There is no job "${jobId}".`);
+    }
     return JobSchema.parse(await readJsonFile(this.paths.jobFile(jobId)));
   }
 

@@ -7,7 +7,9 @@ import {
   CorrectionRequestSchema,
   CorrectionSchema,
   ClarificationReplySchema,
+  CodedError,
   DraftTurnSchema,
+  ErrorCodeSchema,
   ExperimentSchema,
   ImprovementSchema,
   ImprovementStartSchema,
@@ -421,6 +423,9 @@ export function toErrorPayload(error: unknown): ErrorPayload {
     return { name: error.name, message: error.message, guard: error.guard };
   if (error instanceof AdapterError)
     return { name: error.name, message: error.message, code: error.code };
+  if (error instanceof CodedError) {
+    return { name: error.name, message: error.message, code: error.code };
+  }
   if (error instanceof HubError) {
     return { name: error.name, message: error.message, code: error.code, hint: error.hint };
   }
@@ -450,6 +455,10 @@ export function fromErrorPayload(payload: ErrorPayload): Error {
   }
   if (payload.name === 'HubError' && payload.code && isHubErrorCode(payload.code)) {
     return new HubError(payload.code, payload.message, payload.hint ?? '');
+  }
+  const coded = ErrorCodeSchema.safeParse(payload.code);
+  if (payload.name === 'CodedError' && coded.success) {
+    return new CodedError(coded.data, payload.message);
   }
   const packageCode = PackageProblemCodeSchema.safeParse(payload.code);
   if (payload.name === 'PackageError' && packageCode.success) {
