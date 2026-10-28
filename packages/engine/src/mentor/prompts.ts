@@ -1,10 +1,11 @@
 import type {
   EvaluationConfig,
+  InterventionType,
   MentorCompletionRequest,
   MentorView,
   ReasoningEffort,
 } from '@architect/shared';
-import { HYPOTHESIS_JSON_SCHEMA } from './reply';
+import { diagnosisJsonSchema, HYPOTHESIS_JSON_SCHEMA } from './reply';
 import type { OneShotView } from './view';
 
 /** Room for reasoning plus a change set of a few files. */
@@ -74,6 +75,77 @@ function replyFormat(): string {
   return `## Your reply
 
 Reply with one JSON object: title (at most 80 characters), diagnosis, causeTaskIds, edits (each {op, path, content}: the whole new file for a write, empty content for a delete), predicted {devDeltaMin, devDeltaMax, rationale} and readyClaim.`;
+}
+
+const MENU_ENTRIES: Record<InterventionType, string> = {
+  procedure:
+    'procedure: a rule or a step-by-step procedure, in AGENTS.md or a skill, for a workflow that skips a check or a step.',
+  retrieval:
+    'retrieval: which skill, example or source loads for which request (retrieval.yaml, skills, examples), when the student lacks a fact or reads the wrong source.',
+  helper:
+    'helper: a small typed tool for a deterministic operation the student keeps getting wrong by hand. A tool reads the data and computes; it can ask for no new access.',
+  weights:
+    'weights: train the student on verified corrections of your findings, when it keeps misreading requests or choosing wrong actions despite clear instructions. No edits; the harness stays as it is, and the adapter is measured with and without itself.',
+  clarification:
+    'clarification: one question for the person, when the request or what they want is ambiguous. No edits. Their answer is recorded before any correction is made.',
+};
+
+/** How findings and the intervention menu work, for a mentor choosing from the menu. */
+function menuInstructions(mentoring: NonNullable<MentorView['mentoring']>): string {
+  const allowed = mentoring.allowed.map((type) => `- ${MENU_ENTRIES[type]}`);
+  const refused = Object.entries(mentoring.refused).map(
+    ([type, reason]) => `- ${type} is off the menu this round: ${reason}`,
+  );
+  return `## Findings and the intervention menu
+
+The traces number the student's model turns: [turn 3] is its third reply, with the tool calls it made and their results indented under it. For up to three failed train attempts, write a finding: the task id, the turn you suspect went wrong (failureTurn), evidence that points at turns, the cause, a category and the task type. A finding is a suspicion, not proof. To teach from it, the runner rebuilds the state just before that turn by replaying the attempt's own tool calls, and you continue from there as the agent, with the student's tools and the task alone; only a continuation the checker passes, with every write along the way checked too, becomes a lesson. If that can't be done, it tries one turn earlier, then the whole task from the start, and says so.
+
+For a category, reuse an existing id when the failure fits it; otherwise leave id empty and give a new short slug and label. Caps on lessons count by category and by task type, and a category's teaching stops after two rounds without a dev gain.
+
+Then choose exactly one intervention:
+${allowed.join('\n')}
+${refused.length > 0 ? `${refused.join('\n')}\n` : ''}
+For procedure, retrieval and helper, edits hold the change set. workedExamples lists words in requests that should load this round's verified corrections as worked examples (empty adds none), and practicePerFinding asks for that many other train tasks of the same task type to be demonstrated from the start, 0 to 3. For weights, give findings and leave edits empty. For a clarification, give the question and leave edits and findings empty.
+
+estimatedCost is your estimate of mentor dollars, compute dollars and minutes; the runner refuses an intervention whose estimate is more than what is left. verificationPlan says how the result should be checked. Prefer the cheapest intervention the evidence supports.`;
+}
+
+function renderMenuSection(mentoring: NonNullable<MentorView['mentoring']>): string {
+  const categories =
+    mentoring.categories.length === 0
+      ? 'The job has no failure categories yet.'
+      : mentoring.categories
+          .map(
+            (category) =>
+              `- ${category.id}: ${category.slug} (${category.label}), ${category.taskType}, ${category.verifiedLessons} verified lessons${category.stopped ? ', stopped' : ''}`,
+          )
+          .join('\n');
+  const answers =
+    mentoring.answers.length === 0
+      ? ''
+      : `\n\n# The person's answers\n${mentoring.answers.map((item) => `- Q: ${item.question}\n  A: ${item.answer}`).join('\n')}`;
+  return `# Failure categories\n${categories}${answers}${renderLessons(mentoring.lessons ?? [])}\n\nAllowed this round: ${mentoring.allowed.join(', ')}.`;
+}
+
+type ViewLessons = NonNullable<NonNullable<MentorView['mentoring']>['lessons']>;
+
+/** The person's queued lessons, in a run that improves an agent from them. */
+function renderLessons(lessons: ViewLessons): string {
+  if (lessons.length === 0) return '';
+  const items = lessons.map((item) => {
+    const type = item.taskType === undefined ? '' : ` (${item.taskType})`;
+    const lines = [`- ${item.kind}${type}: ${item.lesson}`, `  They said: ${item.wrong}`];
+    if (item.wanted !== undefined) lines.push(`  They wanted: ${item.wanted}`);
+    if (item.instruction !== undefined) lines.push(`  Proposed instruction: ${item.instruction}`);
+    return lines.join('\n');
+  });
+  return `\n\n# The person's lessons\nThis run improves an agent the person already uses. They corrected some of its replies, and each correction became a lesson. Teach what they ask where this round's train failures agree with it; a lesson never overrides the checker, and a rule must stay general.\n${items.join('\n')}`;
+}
+
+function replyFormatWithMenu(): string {
+  return `## Your reply
+
+Reply with one JSON object: title (at most 80 characters), diagnosis, causeTaskIds, edits (each {op, path, content}), predicted {devDeltaMin, devDeltaMax, rationale}, readyClaim, findings (each {taskId, failureTurn, evidence [{turn, note}], cause, category {id, slug, label}, taskType}) and intervention {type, hypothesis, workedExamples, practicePerFinding, question, estimatedCost {mentorUsd, computeUsd, minutes}, verificationPlan}.`;
 }
 
 function diagnoseInstructions(settings: PromptSettings): string {
@@ -251,15 +323,39 @@ function systemPrompt(instructions: string): string {
   ].join('\n\n');
 }
 
-/** The round's diagnosis request. The self-reflection baseline sends the same one to the student. */
+/**
+ * The round's diagnosis request. The self-reflection baseline sends the same one to the student.
+ * A view that carries the intervention menu asks for findings and one intervention from it.
+ */
 export function diagnoseRequest(
   view: MentorView,
   settings: PromptSettings,
 ): MentorCompletionRequest {
+  const { mentoring } = view;
+  if (mentoring === undefined) {
+    return {
+      system: systemPrompt(diagnoseInstructions(settings)),
+      messages: [{ role: 'user', content: renderMentorView(view) }],
+      json: { name: 'hypothesis', schema: HYPOTHESIS_JSON_SCHEMA },
+      reasoningEffort: settings.reasoningEffort,
+      maxOutputTokens: DIAGNOSE_MAX_OUTPUT_TOKENS,
+    };
+  }
+  const system = [
+    diagnoseInstructions(settings),
+    menuInstructions(mentoring),
+    HARNESS_SURFACE,
+    BUILT_IN_TOOLS,
+    TOOL_RULES,
+    ANSWER_FORMAT,
+    replyFormatWithMenu(),
+  ].join('\n\n');
   return {
-    system: systemPrompt(diagnoseInstructions(settings)),
-    messages: [{ role: 'user', content: renderMentorView(view) }],
-    json: { name: 'hypothesis', schema: HYPOTHESIS_JSON_SCHEMA },
+    system,
+    messages: [
+      { role: 'user', content: `${renderMentorView(view)}\n\n${renderMenuSection(mentoring)}` },
+    ],
+    json: { name: 'diagnosis', schema: diagnosisJsonSchema(mentoring.allowed) },
     reasoningEffort: settings.reasoningEffort,
     maxOutputTokens: DIAGNOSE_MAX_OUTPUT_TOKENS,
   };

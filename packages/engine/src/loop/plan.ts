@@ -11,11 +11,15 @@ export type Step =
   | { kind: 'start_round'; round: number }
   | { kind: 'attempt_train'; round: number }
   | { kind: 'author'; round: number }
+  | { kind: 'teach'; round: number }
+  | { kind: 'await_training'; round: number }
+  | { kind: 'clarify'; round: number }
   | { kind: 'evaluate_candidate'; round: number }
   | { kind: 'abandon_round'; round: number; reason: string }
   | { kind: 'finish_training'; reason?: RunStopReason }
   | { kind: 'freeze' }
   | { kind: 'locked_test' }
+  | { kind: 'propose_version' }
   | { kind: 'park' }
   | { kind: 'done' };
 
@@ -25,6 +29,8 @@ export type ActionStep = Exclude<Step, { kind: 'park' } | { kind: 'done' }>;
 export type PlannedRound = Pick<Round, 'index' | 'status' | 'decision'> & {
   /** Its reply or change set was rejected before dev saw it. */
   rejected?: boolean;
+  /** A clarifying round whose question hasn't been answered yet. */
+  awaitingAnswer?: boolean;
 };
 
 /** Rejected rounds in a row that end training: the author isn't making changes the runner can use. */
@@ -41,6 +47,11 @@ export interface PlanInput {
   devCurrent: Score | null;
   /** The graduate has been frozen for its locked test. */
   frozen: boolean;
+  /**
+   * The run improves an agent from its queued lessons: it ends in a candidate version of that
+   * agent, measured on dev, and never takes the locked test again (decision 042).
+   */
+  improves?: boolean;
   rounds: readonly PlannedRound[];
   maxRounds: number;
   patience: number;
@@ -49,7 +60,14 @@ export interface PlanInput {
 }
 
 const TERMINAL: ReadonlySet<RunStatus> = new Set(['finished', 'stopped', 'failed']);
-const OPEN: ReadonlySet<Round['status']> = new Set(['attempting', 'diagnosing', 'evaluating']);
+const OPEN: ReadonlySet<Round['status']> = new Set([
+  'attempting',
+  'diagnosing',
+  'teaching',
+  'training',
+  'clarifying',
+  'evaluating',
+]);
 
 export const STOPPED_ROUND = 'Stopped before this change was evaluated.';
 export const OUT_OF_TIME_ROUND = 'The wall-clock budget ran out before this change was evaluated.';
@@ -92,6 +110,15 @@ function continueRound(round: PlanInput['rounds'][number]): Step {
       return { kind: 'attempt_train', round: round.index };
     case 'diagnosing':
       return { kind: 'author', round: round.index };
+    case 'teaching':
+      return { kind: 'teach', round: round.index };
+    case 'training':
+      return { kind: 'await_training', round: round.index };
+    case 'clarifying':
+      // The run waits, paused, for the person's answer; only the answer moves it on.
+      return round.awaitingAnswer === true
+        ? { kind: 'park' }
+        : { kind: 'clarify', round: round.index };
     default:
       return { kind: 'evaluate_candidate', round: round.index };
   }
@@ -122,7 +149,8 @@ export function planNextStep(input: PlanInput): Step {
 
   if (input.phase === 'testing') {
     if (input.pauseRequested) return { kind: 'park' };
-    return input.frozen ? { kind: 'locked_test' } : { kind: 'freeze' };
+    if (!input.frozen) return { kind: 'freeze' };
+    return input.improves === true ? { kind: 'propose_version' } : { kind: 'locked_test' };
   }
 
   const open = input.rounds.find((round) => OPEN.has(round.status));

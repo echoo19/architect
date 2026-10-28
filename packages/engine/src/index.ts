@@ -8,6 +8,7 @@ export * from './loop';
 export * from './gguf';
 export * from './local-runtime';
 export * from './training';
+export * from './hub';
 export { createEngineDeps, type EngineWiringOptions } from './host/wiring';
 // Both the runtime and the loop name these; the runtime's are the real types.
 export type { LeakDetector, LeakScan, MentorReleased, TaskSplits } from './runtime';

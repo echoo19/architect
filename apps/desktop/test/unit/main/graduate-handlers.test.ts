@@ -30,6 +30,10 @@ function setup() {
         order.push('engine.remove');
       }),
       settings: vi.fn(async () => ({ writeMode: 'ask' })),
+      installFromHub: vi.fn(async () => ({ ...imported, source: { kind: 'huggingface' } })),
+      reviewPublication: vi.fn(async () => ({ files: [] })),
+      publish: vi.fn(async () => ({ alreadyPublished: false })),
+      publications: vi.fn(async () => []),
     },
   };
   const workspace = {
@@ -128,6 +132,45 @@ describe('graduate handlers', () => {
     expect(
       (await call('graduates:exportPackage', 'grd_1', { directory: join(ROOT, 'elsewhere') })).ok,
     ).toBe(false);
+  });
+
+  it('install from the Hub binding only folders the user picked, then open it', async () => {
+    const { engine, workspace, picked, call, graduate } = setup();
+    const data = join(ROOT, 'records');
+    const request = { revision: 'a'.repeat(40), bindings: { data } };
+    expect((await call('graduates:installFromHub', 'hf://jake/desk', request)).ok).toBe(false);
+    expect(engine.graduates.installFromHub).not.toHaveBeenCalled();
+
+    picked.add([data], 'folders');
+    expect((await call('graduates:installFromHub', 'hf://jake/desk', request)).ok).toBe(true);
+    expect(engine.graduates.installFromHub).toHaveBeenCalledWith('hf://jake/desk', {
+      revision: 'a'.repeat(40),
+      bindings: { data },
+      loadModel: true,
+    });
+    expect(workspace.open).toHaveBeenCalledWith(graduate);
+    expect((await call('graduates:installFromHub', 'hf://jake/desk', { token: 'x' })).ok).toBe(
+      false,
+    );
+  });
+
+  it('review and publish only requests that name a repository, private by default', async () => {
+    const { engine, call } = setup();
+    expect(
+      (await call('graduates:reviewPublication', 'grd_1', { repository: 'jake/desk' })).ok,
+    ).toBe(true);
+    expect(engine.graduates.reviewPublication).toHaveBeenCalledWith('grd_1', {
+      repository: 'jake/desk',
+      visibility: 'private',
+      include: [],
+    });
+    expect((await call('graduates:publish', 'grd_1', { repository: 'not a repo' })).ok).toBe(false);
+    expect(
+      (await call('graduates:publish', 'grd_1', { repository: 'jake/desk', token: 'hf_x' })).ok,
+    ).toBe(false);
+    expect(engine.graduates.publish).not.toHaveBeenCalled();
+    expect((await call('graduates:publish', 'grd_1', { repository: 'jake/desk' })).ok).toBe(true);
+    expect((await call('graduates:publications', 'grd_1')).ok).toBe(true);
   });
 
   it('close a graduate in the workspace before the engine removes it', async () => {

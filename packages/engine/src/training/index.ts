@@ -39,6 +39,8 @@ export {
   JOB_TAG,
   type HfJobsBackendOptions,
 } from './hf-jobs';
+// The Hub client lives in ../hub, shared with publishing (decision 044); training's callers
+// keep importing it from here.
 export {
   HF_ENDPOINT,
   HubClient,
@@ -48,7 +50,7 @@ export {
   type HubErrorCode,
   type JobInfo,
   type JobSpec,
-} from './hub';
+} from '../hub';
 export {
   buildTrainerJob,
   FINISH_RESERVE_SECONDS,
@@ -64,6 +66,7 @@ export {
   type RecipeFile,
   type TrainerJobInput,
 } from './recipe';
+export { trainingDeps, type TrainingDepsOptions } from './loop-deps';
 export { STAND_IN_LABEL, STAND_IN_REVISION, StandInBackend, type StandInOptions } from './stand-in';
 export { FileTrainingStore, type TrainingStore } from './store';
 export { TrainingWorker, type TrainingRequest, type TrainingWorkerOptions } from './worker';

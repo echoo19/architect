@@ -40,8 +40,8 @@ export type {
 
 export { parseAnswerLine } from './agent/answer';
 export type { ParsedAnswer } from './agent/answer';
-export { runAgent } from './agent/loop';
-export type { RunAgentOptions } from './agent/loop';
+export { continueAgent, runAgent } from './agent/loop';
+export type { ContinueAgentOptions, RunAgentOptions } from './agent/loop';
 export { buildSystemPrompt } from './agent/prompt';
 export type { AgentMode, FolderSummary, SystemPromptInput } from './agent/prompt';
 export { matchGuardrail, selectRetrieval } from './agent/retrieval';

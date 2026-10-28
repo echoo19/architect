@@ -17,7 +17,8 @@
     "e2e": "pnpm --filter @architect/desktop e2e",
     "package": "pnpm --filter @architect/desktop package",
     "e2e:packaged": "pnpm --filter @architect/desktop e2e:packaged",
-    "check": "pnpm typecheck && pnpm lint && pnpm test"
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "architect": "node apps/cli/bin/architect.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

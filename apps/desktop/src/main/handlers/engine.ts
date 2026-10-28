@@ -57,8 +57,31 @@ export function registerEngineHandlers(
     roundDiff: (runId, round) => call((api) => api.runs.roundDiff(runId, round)),
   });
 
+  router.registerHandlers('teach', {
+    propose: (chatId, messageId, request) =>
+      call((api) => api.teach.propose(chatId, messageId, request)),
+    queue: (correctionId) => call((api) => api.teach.queue(correctionId)),
+    discard: (correctionId) => call((api) => api.teach.discard(correctionId)),
+    apply: (correctionId) => call((api) => api.teach.apply(correctionId)),
+    list: (graduateId) => call((api) => api.teach.list(graduateId)),
+    improve: (graduateId, options) => call((api) => api.teach.improve(graduateId, options)),
+    improvements: (graduateId) => call((api) => api.teach.improvements(graduateId)),
+  });
+
   router.registerHandlers('reports', {
     get: (runId, target) => call((api) => api.reports.get(runId, target)),
     list: (runId) => call((api) => api.reports.list(runId)),
+  });
+
+  router.registerHandlers('mentoring', {
+    lessons: (runId) => call((api) => api.mentoring.lessons(runId)),
+    interventions: (runId) => call((api) => api.mentoring.interventions(runId)),
+    experiments: (runId) => call((api) => api.mentoring.experiments(runId)),
+    progress: (runId) => call((api) => api.mentoring.progress(runId)),
+    capabilities: (runId) => call((api) => api.mentoring.capabilities(runId)),
+    categories: (jobId) => call((api) => api.mentoring.categories(jobId)),
+    answer: (runId, round, reply) => call((api) => api.mentoring.answer(runId, round, reply)),
+    reference: (runId, options) => call((api) => api.mentoring.reference(runId, options)),
+    references: (runId) => call((api) => api.mentoring.references(runId)),
   });
 }

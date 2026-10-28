@@ -2,6 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { RunEventSchema } from '@architect/shared';
 import {
   hostAdapterRuntime,
+  type LocalAdapterRuntime,
   type LocalRuntimeSettings,
   type ServerCommand,
 } from '../local-runtime';
@@ -12,6 +13,7 @@ import { DataPaths } from '../loop/paths';
 import { openEngineStore } from '../store/engine-store';
 import { ContractBook } from '../graduates/contracts';
 import { GraduateLibrary } from '../graduates/library';
+import { HubClient, hubTokenResolver } from '../hub';
 import { createEngineApi } from './api';
 import type { EnginePort } from './port';
 import {
@@ -33,8 +35,19 @@ export interface EngineHostOptions {
   localRuntime?: () => LocalRuntimeSettings;
   /** A stand-in llama-server for tests, run instead of finding the real one. */
   llamaServerCommand?: ServerCommand;
+  /**
+   * The process's adapter runtime when the caller made it, for its deps' students as well, so
+   * runs and installation checks share one llama-server. The host makes its own otherwise.
+   * Either way the host stops it when it closes.
+   */
+  adapterRuntime?: LocalAdapterRuntime;
   /** Errors nobody asked about: a broken event listener, a message that isn't a request. */
   onError?(error: unknown): void;
+  /**
+   * Hugging Face, for publishing and installing versions. By default the Hub itself, with the
+   * key saved in the app, else HF_TOKEN, else Hugging Face's token file.
+   */
+  hub?: HubClient;
 }
 
 export interface EngineHost {
@@ -79,13 +92,16 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
   const store = openEngineStore(paths.database);
   const contracts = new ContractBook(store, clock);
   const jobs = new JobLibrary(store, paths, options.deps, clock, contracts);
-  // The installation checks' own llama-server, apart from the workspace's (decision 041).
+  // The engine's one llama-server, for its installation checks and its runs' adapter students,
+  // apart from the workspace's (decision 041).
   const localRuntime = options.localRuntime ?? (() => ({}));
-  const adapterRuntime = hostAdapterRuntime({
-    runtimeDir: paths.runtimeDir('engine'),
-    settings: localRuntime,
-    ...(options.llamaServerCommand === undefined ? {} : { command: options.llamaServerCommand }),
-  });
+  const adapterRuntime =
+    options.adapterRuntime ??
+    hostAdapterRuntime({
+      runtimeDir: paths.runtimeDir('engine'),
+      settings: localRuntime,
+      ...(options.llamaServerCommand === undefined ? {} : { command: options.llamaServerCommand }),
+    });
   const graduates = new GraduateLibrary({
     store,
     paths,
@@ -95,6 +111,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     adapterRuntime,
   });
   const controller = new RunController({
+    libraryLock: graduates.lock,
     store,
     paths,
     jobs,
@@ -103,6 +120,11 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     concurrency: options.concurrency,
     onError,
   });
+  const hub =
+    options.hub ??
+    new HubClient({
+      token: hubTokenResolver({ saved: () => options.deps.secrets.get('huggingface') }),
+    });
   const api = createEngineApi({
     store,
     paths,
@@ -111,6 +133,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     graduates,
     deps: options.deps,
     clock,
+    hub,
   });
   const ports = new Set<EnginePort>();
   let closed = false;
@@ -121,6 +144,8 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
   });
   // Graduates from before versions become version 1 before anyone can open them.
   await graduates.upgrade();
+  // Training jobs left unfinished when the app closed are checked again, never sent again.
+  options.deps.training?.worker.resume();
   controller.recover();
 
   return {
@@ -135,6 +160,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
       closed = true;
       ports.clear();
       await Promise.all([controller.close(), adapterRuntime.stop()]);
+      options.deps.training?.worker.close();
       store.close();
     },
   };

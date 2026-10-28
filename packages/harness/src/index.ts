@@ -22,6 +22,7 @@ export {
   listPackageFiles,
   PACKAGE_LIMITS,
   PACKAGE_MANIFEST_FILE,
+  sameFileKey,
   sha256Bytes,
   sha256File,
   verifyIntegrity,

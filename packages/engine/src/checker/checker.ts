@@ -155,13 +155,23 @@ function stoppedEarly(outcome: CheckOutcome): string | null {
  * snapshot before and after; a rewrite that kept every row and column counts as unchanged.
  */
 function changedTable(files: CheckedFiles): string | null {
-  const before = files.originalTables();
-  for (const [name, table] of Object.entries(files.tables())) {
+  return changedTables(files.originalTables(), files.tables())[0] ?? null;
+}
+
+/**
+ * The tables in `now` whose rows or columns differ from `before`, by name, in the order `now`
+ * lists them. The checker's one notion of a changed table: a rewrite that kept every row and
+ * column is unchanged.
+ */
+export function changedTables(
+  before: Readonly<Record<string, TableSnapshot>>,
+  now: Readonly<Record<string, TableSnapshot>>,
+): string[] {
+  return Object.entries(now).flatMap(([name, table]) => {
     const original = before[name];
-    if (table === original) continue;
-    if (original === undefined || !sameRows(table, original)) return name;
-  }
-  return null;
+    if (table === original) return [];
+    return original === undefined || !sameRows(table, original) ? [name] : [];
+  });
 }
 
 function sameRows(a: TableSnapshot, b: TableSnapshot): boolean {

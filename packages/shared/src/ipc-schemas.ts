@@ -7,11 +7,13 @@ import type {
   AppInfo,
   AppSettings,
   AppSettingsPatch,
+  ClarificationReply,
   CustomEndpoint,
   DraftTurn,
   FileDiff,
   GraduateSettings,
   GraduateSummary,
+  HubInstallResult,
   ImportResult,
   JobSummary,
   LlamaServerStatus,
@@ -21,6 +23,7 @@ import type {
   ModelSource,
   OllamaStatus,
   PullProgress,
+  ReferenceOptions,
   RunDetail,
   RunStartOptions,
   SignInResult,
@@ -37,7 +40,7 @@ import { TokenPricingSchema, type GpuInfo, type StudentBuild } from './models';
 import { LineageEntrySchema } from './lineage';
 import { MethodSchema, RoundSchema, RunSchema } from './run';
 import { AttemptSchema } from './trace';
-import { InstallationSchema, InstallStatusSchema } from './versions';
+import { InstallationSchema, InstallStatusSchema, VersionSourceSchema } from './versions';
 
 /*
  * Schemas for the IPC types declared as interfaces in ipc.ts. Each one is checked against its
@@ -107,6 +110,10 @@ export const ImportResultSchema = z.object({
   alreadyInstalled: z.boolean(),
 }) satisfies z.ZodType<ImportResult>;
 
+export const HubInstallResultSchema = ImportResultSchema.extend({
+  source: VersionSourceSchema,
+}) satisfies z.ZodType<HubInstallResult>;
+
 export const GraduateSettingsSchema = z.object({
   writeMode: PermissionModeSchema,
 }) satisfies z.ZodType<GraduateSettings>;
@@ -133,8 +140,17 @@ export const RunStartOptionsSchema = z
     method: MethodSchema,
     seed: z.number().int().optional(),
     lockedTestOn: StudentTargetSchema.optional(),
+    interactive: z.boolean().optional(),
   })
   .strict() satisfies z.ZodType<RunStartOptions>;
+
+export const ClarificationReplySchema = z
+  .object({ text: z.string().trim().min(1).max(4000), changesCriteria: z.boolean() })
+  .strict() satisfies z.ZodType<ClarificationReply>;
+
+export const ReferenceOptionsSchema = z
+  .object({ split: z.enum(['dev', 'test']), maxUsd: z.number().positive().max(1000) })
+  .strict() satisfies z.ZodType<ReferenceOptions>;
 
 export const RunDetailSchema = z.object({
   run: RunSchema,

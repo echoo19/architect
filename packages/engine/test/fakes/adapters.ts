@@ -1,4 +1,5 @@
 import type {
+  ActorAdapter,
   MentorAdapter,
   MentorCompletion,
   MentorCompletionRequest,
@@ -66,6 +67,56 @@ export class FakeMentor implements MentorAdapter {
   }
 }
 
+/** A reply in the mentor's menu format: findings and one intervention. */
+export function diagnosis(
+  title: string,
+  options: {
+    system?: string;
+    findings?: {
+      taskId: string;
+      failureTurn?: number;
+      category?: { id?: string; slug?: string; label?: string };
+    }[];
+    intervention?: Partial<{
+      type: 'procedure' | 'retrieval' | 'helper' | 'weights' | 'clarification';
+      workedExamples: string[];
+      practicePerFinding: number;
+      question: string;
+      estimatedCost: { mentorUsd: number; computeUsd: number; minutes: number };
+    }>;
+    edits?: HypothesisReply['edits'];
+  } = {},
+) {
+  const type = options.intervention?.type ?? 'procedure';
+  const harness = type === 'procedure' || type === 'retrieval' || type === 'helper';
+  return {
+    ...hypothesis(title, options.system ?? `Service desk.\n${title}`),
+    edits: options.edits ?? (harness ? hypothesis(title, options.system ?? title).edits : []),
+    findings: (options.findings ?? []).map((finding) => ({
+      taskId: finding.taskId,
+      failureTurn: finding.failureTurn ?? 2,
+      evidence: [{ turn: 1, note: 'It read the jobs table and stopped there.' }],
+      cause: 'It never applied the rule the task turns on.',
+      category: {
+        id: finding.category?.id ?? '',
+        slug: finding.category?.slug ?? 'missed-rule',
+        label: finding.category?.label ?? 'A rule it missed',
+      },
+      taskType: 'invoice',
+    })),
+    intervention: {
+      type,
+      hypothesis: `${title}: the student misses one rule.`,
+      workedExamples: [],
+      practicePerFinding: 0,
+      question: '',
+      estimatedCost: { mentorUsd: 0.1, computeUsd: 0, minutes: 5 },
+      verificationPlan: 'Dev passes, checked by the checker.',
+      ...options.intervention,
+    },
+  };
+}
+
 /** A student whose chat replies come from a function; attempts go through the fake runtime. */
 export class FakeStudent implements StudentAdapter {
   readonly label: string;
@@ -110,5 +161,17 @@ export class FakeStudent implements StudentAdapter {
 
   async release() {
     this.released += 1;
+  }
+}
+
+/**
+ * The mentor's model as the agent: a fake student that prices its calls like the mentor, or at
+ * `priceScale` times that, so a test can make its calls dearer than the budget left.
+ */
+export class FakeActor extends FakeStudent implements ActorAdapter {
+  priceScale = 1;
+
+  estimateCostUsd(usage: Usage): number {
+    return (this.priceScale * (usage.inputTokens * 1.25 + usage.outputTokens * 4.25)) / 1_000_000;
   }
 }

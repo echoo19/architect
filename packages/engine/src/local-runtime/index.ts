@@ -37,6 +37,8 @@ export {
 export {
   hostAdapterRuntime,
   LocalRuntimeSettingsSchema,
+  quietThreadCap,
+  runtimeSettingsOf,
   ServerCommandSchema,
   type HostRuntimeOptions,
   type LocalRuntimeSettings,

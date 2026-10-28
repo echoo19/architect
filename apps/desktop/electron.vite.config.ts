@@ -9,6 +9,7 @@ import { build, type Plugin } from 'vite';
 
 const APP_DIR = dirname(fileURLToPath(import.meta.url));
 const ENGINE_SRC = dirname(createRequire(import.meta.url).resolve('@architect/engine'));
+const CLI_DIR = dirname(createRequire(import.meta.url).resolve('@architect/cli/package.json'));
 /** The name the QuickJS loader looks for beside itself. */
 const QUICKJS_WASM = 'emscripten-module.wasm';
 
@@ -78,6 +79,8 @@ function quickjsWasm(): Plugin {
 interface ProcessEntry {
   source: string;
   outDir: string;
+  /** The bundle's name, when not the source's. */
+  name?: string;
   plugins?: Plugin[];
 }
 
@@ -91,6 +94,13 @@ const PROCESS_ENTRIES: ProcessEntry[] = [
   },
   // The agent host, which installs its network guard before anything else it loads.
   { source: join(ENGINE_SRC, 'agent-host', 'main.ts'), outDir: join(APP_DIR, 'out', 'agent-host') },
+  // The architect command, which the installed app's launcher runs on the app's own Node. It
+  // finds the sandbox in the folder beside its own.
+  {
+    source: join(CLI_DIR, 'src', 'main.ts'),
+    outDir: join(APP_DIR, 'out', 'cli'),
+    name: 'architect',
+  },
 ];
 
 /**
@@ -122,7 +132,7 @@ function processEntries(entries: readonly ProcessEntry[]): Plugin {
             copyPublicDir: false,
             reportCompressedSize: false,
             rolldownOptions: {
-              input: { [basename(entry.source, '.ts')]: entry.source },
+              input: { [entry.name ?? basename(entry.source, '.ts')]: entry.source },
               output: { format: 'es', entryFileNames: '[name].mjs', codeSplitting: false },
             },
           },

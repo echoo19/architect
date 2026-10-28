@@ -17,6 +17,8 @@ export const SECRET_SERVICES = {
   fireworks: { label: 'Fireworks', hosts: ['api.fireworks.ai'] },
   baseten: { label: 'Baseten', hosts: ['inference.baseten.co', '*.api.baseten.co'] },
   modal: { label: 'Modal', hosts: ['*.modal.direct', '*.modal.run'] },
+  // The Hub's API host only: its upload and download hosts get signed addresses, never the key.
+  huggingface: { label: 'Hugging Face', hosts: ['huggingface.co'] },
 } as const satisfies Record<string, { label: string; hosts: readonly string[] }>;
 
 export type NamedSecretRef = keyof typeof SECRET_SERVICES;

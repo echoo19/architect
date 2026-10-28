@@ -2,9 +2,12 @@ import {
   BindRequestSchema,
   ExportPartRequestSchema,
   ExportRequestSchema,
+  HubInstallRequestSchema,
   ImportRequestSchema,
+  PublishRequestSchema,
   type BindRequest,
   type GraduateSummary,
+  type HubInstallRequest,
   type ImportRequest,
 } from '@architect/shared';
 import { z } from 'zod';
@@ -22,7 +25,7 @@ const text = z.string().min(1);
 const version = z.number().int().positive();
 
 /** Folders named in a request must be ones the user picked, like every other path. */
-function checkedBindings<T extends BindRequest | ImportRequest>(
+function checkedBindings<T extends BindRequest | ImportRequest | HubInstallRequest>(
   picked: PickedPaths,
   request: T,
 ): T {
@@ -129,6 +132,16 @@ export function registerGraduateHandlers(
         await workspace.open(graduate);
         return graduate;
       },
+      installFromHub: async (source, request) => {
+        const checked = request === undefined ? undefined : checkedBindings(picked, request);
+        const result = await call((api) => api.graduates.installFromHub(source, checked));
+        await workspace.open(result.graduate);
+        return result;
+      },
+      reviewPublication: (graduateId, request) =>
+        call((api) => api.graduates.reviewPublication(graduateId, request)),
+      publish: (graduateId, request) => call((api) => api.graduates.publish(graduateId, request)),
+      publications: (graduateId) => call((api) => api.graduates.publications(graduateId)),
       remove: async (graduateId) => {
         await workspace.close(graduateId);
         await call((api) => api.graduates.remove(graduateId));
@@ -151,6 +164,10 @@ export function registerGraduateHandlers(
       previewImport: z.tuple([text]),
       importPackage: z.union([z.tuple([text]), z.tuple([text, ImportRequestSchema])]),
       importFolder: z.tuple([text]),
+      installFromHub: z.union([z.tuple([text]), z.tuple([text, HubInstallRequestSchema])]),
+      reviewPublication: z.tuple([text, PublishRequestSchema]),
+      publish: z.tuple([text, PublishRequestSchema]),
+      publications: z.tuple([text]),
     },
   );
 }

@@ -1,7 +1,16 @@
 import {
   AdapterError,
   BindRequestSchema,
+  CapabilityBreakdownSchema,
+  CategorySchema,
+  CorrectionRequestSchema,
+  CorrectionSchema,
+  ClarificationReplySchema,
   DraftTurnSchema,
+  ExperimentSchema,
+  ImprovementSchema,
+  ImprovementStartSchema,
+  ImproveOptionsSchema,
   ExportPartRequestSchema,
   ExportPartResultSchema,
   ExportRequestSchema,
@@ -12,15 +21,26 @@ import {
   GraduateSummarySchema,
   GraduateVersionSchema,
   GuardError,
+  HubInstallRequestSchema,
+  HubInstallResultSchema,
   ImportPreviewSchema,
   ImportRequestSchema,
   ImportResultSchema,
   InstallationSchema,
+  InterventionSchema,
   JobSchema,
   JobSummarySchema,
+  LessonSchema,
+  MentoringProgressSchema,
   PackageError,
   PackageInspectionSchema,
   PackageProblemCodeSchema,
+  PublicationReviewSchema,
+  PublicationSchema,
+  PublishRequestSchema,
+  PublishResultSchema,
+  ReferenceOptionsSchema,
+  ReferenceRecordSchema,
   ReportCardSchema,
   RunDetailSchema,
   RunEventSchema,
@@ -33,9 +53,13 @@ import {
   type ArchitectApi,
 } from '@architect/shared';
 import { z } from 'zod';
+import { HubError, type HubErrorCode } from '../hub';
 
 /** The part of the app's API the engine host serves. */
-export type EngineApi = Pick<ArchitectApi, 'jobs' | 'runs' | 'reports' | 'graduates'>;
+export type EngineApi = Pick<
+  ArchitectApi,
+  'jobs' | 'runs' | 'mentoring' | 'teach' | 'reports' | 'graduates'
+>;
 
 const id = z.string().min(1);
 const path = z.string().min(1);
@@ -94,6 +118,62 @@ export const ENGINE_ROUTES = {
     z.tuple([id, z.number().int().positive()]),
     z.array(FileDiffSchema),
     (api, [runId, round]) => api.runs.roundDiff(runId, round),
+  ),
+  'mentoring.lessons': route(z.tuple([id]), z.array(LessonSchema), (api, [runId]) =>
+    api.mentoring.lessons(runId),
+  ),
+  'mentoring.interventions': route(z.tuple([id]), z.array(InterventionSchema), (api, [runId]) =>
+    api.mentoring.interventions(runId),
+  ),
+  'mentoring.experiments': route(z.tuple([id]), z.array(ExperimentSchema), (api, [runId]) =>
+    api.mentoring.experiments(runId),
+  ),
+  'mentoring.progress': route(z.tuple([id]), MentoringProgressSchema, (api, [runId]) =>
+    api.mentoring.progress(runId),
+  ),
+  'mentoring.capabilities': route(z.tuple([id]), CapabilityBreakdownSchema, (api, [runId]) =>
+    api.mentoring.capabilities(runId),
+  ),
+  'mentoring.categories': route(z.tuple([id]), z.array(CategorySchema), (api, [jobId]) =>
+    api.mentoring.categories(jobId),
+  ),
+  'mentoring.answer': route(
+    z.tuple([id, z.number().int().positive(), ClarificationReplySchema]),
+    z.void(),
+    (api, [runId, round, reply]) => api.mentoring.answer(runId, round, reply),
+  ),
+  'mentoring.reference': route(
+    z.tuple([id, ReferenceOptionsSchema]),
+    z.void(),
+    (api, [runId, options]) => api.mentoring.reference(runId, options),
+  ),
+  'mentoring.references': route(z.tuple([id]), z.array(ReferenceRecordSchema), (api, [runId]) =>
+    api.mentoring.references(runId),
+  ),
+  'teach.propose': route(
+    z.tuple([id, id, CorrectionRequestSchema]),
+    CorrectionSchema,
+    (api, [chatId, messageId, request]) => api.teach.propose(chatId, messageId, request),
+  ),
+  'teach.queue': route(z.tuple([id]), CorrectionSchema, (api, [correctionId]) =>
+    api.teach.queue(correctionId),
+  ),
+  'teach.discard': route(z.tuple([id]), CorrectionSchema, (api, [correctionId]) =>
+    api.teach.discard(correctionId),
+  ),
+  'teach.apply': route(z.tuple([id]), CorrectionSchema, (api, [correctionId]) =>
+    api.teach.apply(correctionId),
+  ),
+  'teach.list': route(z.tuple([id]), z.array(CorrectionSchema), (api, [graduateId]) =>
+    api.teach.list(graduateId),
+  ),
+  'teach.improve': route(
+    z.tuple([id, ImproveOptionsSchema]),
+    ImprovementStartSchema,
+    (api, [graduateId, options]) => api.teach.improve(graduateId, options),
+  ),
+  'teach.improvements': route(z.tuple([id]), z.array(ImprovementSchema), (api, [graduateId]) =>
+    api.teach.improvements(graduateId),
   ),
   'reports.get': route(
     z.tuple([id, StudentTargetSchema.nullable()]),
@@ -188,6 +268,24 @@ export const ENGINE_ROUTES = {
   'graduates.importFolder': route(z.tuple([path]), GraduateSummarySchema, (api, [folder]) =>
     api.graduates.importFolder(folder),
   ),
+  'graduates.installFromHub': route(
+    z.tuple([z.string().min(1).max(300), HubInstallRequestSchema]),
+    HubInstallResultSchema,
+    (api, [source, request]) => api.graduates.installFromHub(source, request),
+  ),
+  'graduates.reviewPublication': route(
+    z.tuple([id, PublishRequestSchema]),
+    PublicationReviewSchema,
+    (api, [graduateId, request]) => api.graduates.reviewPublication(graduateId, request),
+  ),
+  'graduates.publish': route(
+    z.tuple([id, PublishRequestSchema]),
+    PublishResultSchema,
+    (api, [graduateId, request]) => api.graduates.publish(graduateId, request),
+  ),
+  'graduates.publications': route(z.tuple([id]), z.array(PublicationSchema), (api, [graduateId]) =>
+    api.graduates.publications(graduateId),
+  ),
   'graduates.remove': route(z.tuple([id]), z.void(), (api, [graduateId]) =>
     api.graduates.remove(graduateId),
   ),
@@ -226,6 +324,8 @@ export const ErrorPayloadSchema = z.object({
   code: z.string().optional(),
   /** A refused package's problems, one sentence each. */
   problems: z.array(z.string()).optional(),
+  /** What to do about a Hugging Face failure. */
+  hint: z.string().optional(),
 });
 export type ErrorPayload = z.infer<typeof ErrorPayloadSchema>;
 
@@ -260,6 +360,24 @@ const ADAPTER_ERROR_CODES: readonly AdapterErrorCode[] = [
   'blocked',
 ];
 
+const HUB_ERROR_CODES: readonly HubErrorCode[] = [
+  'auth',
+  'forbidden',
+  'billing',
+  'not_found',
+  'conflict',
+  'too_large',
+  'rate_limit',
+  'server',
+  'network',
+  'bad_response',
+  'mismatch',
+];
+
+function isHubErrorCode(code: string): code is HubErrorCode {
+  return (HUB_ERROR_CODES as readonly string[]).includes(code);
+}
+
 function isAdapterErrorCode(code: string): code is AdapterErrorCode {
   return (ADAPTER_ERROR_CODES as readonly string[]).includes(code);
 }
@@ -270,6 +388,9 @@ export function toErrorPayload(error: unknown): ErrorPayload {
     return { name: error.name, message: error.message, guard: error.guard };
   if (error instanceof AdapterError)
     return { name: error.name, message: error.message, code: error.code };
+  if (error instanceof HubError) {
+    return { name: error.name, message: error.message, code: error.code, hint: error.hint };
+  }
   if (error instanceof PackageError) {
     return {
       name: error.name,
@@ -293,6 +414,9 @@ export function fromErrorPayload(payload: ErrorPayload): Error {
     return new GuardError(payload.guard, payload.message);
   if (payload.name === 'AdapterError' && payload.code && isAdapterErrorCode(payload.code)) {
     return new AdapterError(payload.code, payload.message);
+  }
+  if (payload.name === 'HubError' && payload.code && isHubErrorCode(payload.code)) {
+    return new HubError(payload.code, payload.message, payload.hint ?? '');
   }
   const packageCode = PackageProblemCodeSchema.safeParse(payload.code);
   if (payload.name === 'PackageError' && packageCode.success) {

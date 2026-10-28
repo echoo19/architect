@@ -1,3 +1,4 @@
+import { statSync } from 'node:fs';
 import type { WrittenPackage } from '@architect/harness';
 import type {
   Harness,
@@ -12,7 +13,7 @@ import type { DataPaths } from '../loop/paths';
 import type { EngineStore } from '../store/engine-store';
 import type { GraduateFreeze, StoredInstallation } from '../store/records';
 import { sameComputerGrants } from './bindings';
-import { resourcesFor, tableColumns, type VersionFacts } from './build';
+import { resourcesFor, tableColumns, type AdapterFile, type VersionFacts } from './build';
 import { sameComputerBindings, seedDataFolder, writeVersionFolder } from './versions';
 
 /** The round whose kept change made a version, and whether it was a whole draft. */
@@ -35,6 +36,33 @@ export interface RunGraduation {
   report: ReportCard;
   rounds: readonly Round[];
   lineage: readonly LineageEntry[];
+}
+
+/**
+ * The adapter a frozen graduate was tested with, as its package ships it: the GGUF file named
+ * the way the adapter runtime loads it (decision 038), at the scale its locked test used.
+ */
+export function adapterFile(paths: DataPaths, freeze: GraduateFreeze): AdapterFile {
+  const adapter = freeze.configuration?.adapter;
+  if (!adapter) throw new Error('The frozen graduate has no adapter.');
+  if (adapter.baseDigest === undefined) {
+    throw new Error(
+      "The runtime that served this graduate's adapter didn't report its base model's digest, so the package can't name the base it loads on.",
+    );
+  }
+  const source = paths.fromStored(adapter.path);
+  return {
+    path: 'adapter/adapter.gguf',
+    format: 'gguf_lora',
+    sha256: adapter.sha256,
+    sizeBytes: statSync(source).size,
+    baseDigest: adapter.baseDigest,
+    scale: adapter.scale,
+    // An adapter carried over from an earlier version keeps its id only when a training job made it.
+    ...(adapter.id.startsWith('trn_') ? { trainingJobId: adapter.id } : {}),
+    ...(adapter.standIn ? { standIn: true as const } : {}),
+    source,
+  };
 }
 
 /** What a finished run's frozen graduate becomes: version 1 of a new agent. */
@@ -61,6 +89,7 @@ export async function graduationFacts(
     },
     contextLength: job.student.local.contextLength,
     runtime: job.student.local.runtime,
+    ...(freeze.configuration?.adapter ? { adapter: adapterFile(paths, freeze) } : {}),
     harness: {
       meta: harness.meta,
       files: input.harnessFiles,

@@ -1,4 +1,5 @@
 import type { Migration } from './database';
+import { MENTORING_MIGRATION } from './mentoring-migration';
 
 /**
  * Schema history. Never edit an applied migration; add a new one. Traces are JSON files under
@@ -365,6 +366,20 @@ export const MIGRATIONS: readonly Migration[] = [
       -- Until now every graduate had one version, and it becomes version 1.
       UPDATE chats SET graduate_version = 1;
       UPDATE messages SET graduate_version = 1 WHERE role = 'agent';
+    `,
+  },
+  MENTORING_MIGRATION,
+  {
+    version: 15,
+    name: 'hub sources and publications',
+    sql: `
+      -- The hub repository and commit a version was installed from, when it came from one.
+      ALTER TABLE graduate_versions ADD COLUMN source TEXT;
+      -- The digest of the package a publication sent, and one record per version and repository,
+      -- so trying a publication again updates its record instead of adding another.
+      ALTER TABLE publications ADD COLUMN digest TEXT;
+      CREATE UNIQUE INDEX publications_once
+        ON publications (graduate_id, version, destination, repository);
     `,
   },
 ];

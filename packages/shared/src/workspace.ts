@@ -93,6 +93,30 @@ export const ApprovalRequestSchema = z.object({
 });
 export type ApprovalRequest = z.infer<typeof ApprovalRequestSchema>;
 
+/**
+ * One step of a reply's work as the model took it: what the model said and the calls it made,
+ * each call's result as the model saw it, a skill a rule loaded, or a refusal. Arguments and
+ * results are kept as the JSON text or text they were. The steps a chat shows summarize these.
+ */
+export const ReplyStepSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('model'),
+    text: z.string(),
+    calls: z.array(z.object({ id: z.string(), name: z.string(), arguments: z.string() })),
+  }),
+  z.object({
+    kind: z.literal('tool'),
+    callId: z.string(),
+    name: z.string(),
+    arguments: z.string(),
+    result: z.string(),
+    error: z.string().optional(),
+  }),
+  z.object({ kind: z.literal('skill'), slug: z.string(), via: z.enum(['rule', 'tool']) }),
+  z.object({ kind: z.literal('refusal'), taskType: z.string(), reason: z.string() }),
+]);
+export type ReplyStep = z.infer<typeof ReplyStepSchema>;
+
 export const WorkspaceMessageSchema = z.object({
   id: z.string(),
   chatId: z.string(),
@@ -100,6 +124,12 @@ export const WorkspaceMessageSchema = z.object({
   createdAt: z.iso.datetime(),
   text: z.string(),
   steps: z.array(AgentStepSchema).default([]),
+  /**
+   * A settled reply's whole work, step by step, kept with it so Teach this can show the mentor
+   * the exchange in full once the person agrees. Absent on user messages, on replies still being
+   * written, and on replies from before it was kept.
+   */
+  trace: z.array(ReplyStepSchema).optional(),
   blocks: z.array(AgentBlockSchema).default([]),
   status: z.enum(['streaming', 'done', 'stopped', 'error']),
   error: z.string().optional(),

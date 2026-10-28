@@ -5,6 +5,7 @@ import {
   type MentorAdapter,
   type MentorCompletion,
   type MentorCompletionRequest,
+  type ToolSpec,
   type Usage,
 } from '@architect/shared';
 import { z } from 'zod';
@@ -65,6 +66,21 @@ export interface GatedCallOptions {
   onSend?(): void;
   /** Runs when a call fails but reports what it spent, so the spend still counts. */
   onSpent?(charge: MentorCharge): void;
+}
+
+/** A call `admit` let through: what it may cost, and how to charge what it did cost. */
+export interface Admission {
+  authorizedUsd: number;
+  /** The dollars to charge for a call that used `usage`; the authorization when no price is known. */
+  charge(usage: Usage): number;
+}
+
+/** Everything one turn of the mentor's model acting as the agent sends, as one text. */
+export function chatPayloadText(
+  messages: readonly ChatMessage[],
+  tools: readonly ToolSpec[],
+): string {
+  return [...messages.map(messageText), JSON.stringify(tools)].join('\n\n');
 }
 
 /** Adapters attach the spend to an error when the provider charged for an unusable reply. */
@@ -147,31 +163,11 @@ export class MentorGate {
     request: MentorCompletionRequest,
     options: GatedCallOptions = {},
   ): Promise<GatedCompletion> {
-    if (this.released) {
-      throw this.refuse(
-        new GuardError(
-          'split',
-          'The mentor was released for the locked test; no mentor call can start.',
-        ),
-      );
-    }
-    const text = payloadText(request);
-    const scan = this.options.leakDetector.scan(text);
-    if (scan.leaked) {
-      throw this.refuse(
-        new LeakRefusal(this.leakMessage(scan.matchedIds.length, options.parts ?? [])),
-      );
-    }
-    // The last call's tokens per byte, when higher than the estimate, sets the floor: a payload
-    // the tokenizer splits finely can't push the call past the dollar cap.
-    const bytes = Buffer.byteLength(text, 'utf8');
-    const inputTokens = Math.max(estimateInputTokens(text), Math.ceil(bytes * this.tokensPerByte));
-    const authorized = this.options.authorize(worstCaseUsd(adapter, request, inputTokens));
+    const admission = this.admitText(payloadText(request), options.parts ?? [], (inputTokens) =>
+      worstCaseUsd(adapter, request, inputTokens),
+    );
     const charge = (usage: Usage, reported: number | null): number =>
-      reported ?? adapter.estimateCostUsd(usage) ?? authorized;
-    const learn = (usage: Usage) => {
-      if (bytes > 0) this.tokensPerByte = usage.inputTokens / bytes;
-    };
+      reported ?? adapter.estimateCostUsd(usage) ?? admission.authorizedUsd;
 
     options.onSend?.();
     let completion: MentorCompletion;
@@ -181,13 +177,67 @@ export class MentorGate {
       const spent = SpentSchema.safeParse(error);
       if (spent.success) {
         const { usage, costUsd } = spent.data;
-        learn(usage);
+        admission.learn(usage);
         options.onSpent?.({ model: adapter.model, usage, costUsd: charge(usage, costUsd) });
       }
       throw error;
     }
-    learn(completion.usage);
+    admission.learn(completion.usage);
     return { completion, costUsd: charge(completion.usage, completion.costUsd) };
+  }
+
+  /**
+   * Admits one call of the mentor's model that doesn't go through `complete`, such as one turn
+   * of it acting as the agent, under the same checks in the same order: not released, nothing
+   * from the test split in `text`, and at most `maxOutputTokens` more fits the budget. Throws the
+   * guard's error, or returns the authorized amount and how to charge the call once it ends.
+   */
+  admit(
+    adapter: Pick<MentorAdapter, 'estimateCostUsd'>,
+    text: string,
+    maxOutputTokens: number,
+    parts: readonly PayloadPart[] = [],
+  ): Admission {
+    const admission = this.admitText(text, parts, (inputTokens) =>
+      adapter.estimateCostUsd({ inputTokens, outputTokens: maxOutputTokens }),
+    );
+    return {
+      authorizedUsd: admission.authorizedUsd,
+      charge: (usage) => {
+        admission.learn(usage);
+        return adapter.estimateCostUsd(usage) ?? admission.authorizedUsd;
+      },
+    };
+  }
+
+  private admitText(
+    text: string,
+    parts: readonly PayloadPart[],
+    worstCase: (inputTokens: number) => number | null,
+  ): { authorizedUsd: number; learn(usage: Usage): void } {
+    if (this.released) {
+      throw this.refuse(
+        new GuardError(
+          'split',
+          'The mentor was released for the locked test; no mentor call can start.',
+        ),
+      );
+    }
+    const scan = this.options.leakDetector.scan(text);
+    if (scan.leaked) {
+      throw this.refuse(new LeakRefusal(this.leakMessage(scan.matchedIds.length, parts)));
+    }
+    // The last call's tokens per byte, when higher than the estimate, sets the floor: a payload
+    // the tokenizer splits finely can't push the call past the dollar cap.
+    const bytes = Buffer.byteLength(text, 'utf8');
+    const inputTokens = Math.max(estimateInputTokens(text), Math.ceil(bytes * this.tokensPerByte));
+    const authorizedUsd = this.options.authorize(worstCase(inputTokens));
+    return {
+      authorizedUsd,
+      learn: (usage) => {
+        if (bytes > 0) this.tokensPerByte = usage.inputTokens / bytes;
+      },
+    };
   }
 
   /** How many test tasks matched and in which parts of the payload, by label only. */

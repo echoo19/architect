@@ -83,6 +83,7 @@ function finishApprovalRequired(reply: LiveReply, approval: ApprovalRequest): vo
 }
 
 function record(reply: LiveReply, harness: Harness, step: TraceStep): void {
+  reply.recordStep(step);
   switch (step.kind) {
     case 'model':
       reply.endTurn();

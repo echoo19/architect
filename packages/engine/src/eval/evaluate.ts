@@ -3,6 +3,7 @@ import { skillFiles } from '@architect/harness';
 import type {
   CheckOutcome,
   CheckResult,
+  Decoding,
   FileChange,
   Harness,
   Job,
@@ -31,6 +32,8 @@ export interface EvalContext {
   checker: Checker;
   /** When the evaluation happens; the agent's date is `todayFor(job, now)`. Defaults to now. */
   now?: Date;
+  /** Replaces the harness's decoding, as a frozen graduate's recorded decoding does. */
+  decoding?: Decoding;
 }
 
 export interface TaskAttemptResult {
@@ -95,6 +98,7 @@ export async function runTaskAttempt(
     mode: 'task',
     now: ctx.now,
     seed: ctx.seed,
+    ...(ctx.decoding === undefined ? {} : { decoding: ctx.decoding }),
     signal: options.signal,
     onStep: options.onStep,
   });

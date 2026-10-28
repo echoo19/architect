@@ -1,13 +1,17 @@
 import {
   AttemptSchema,
+  DEFAULT_CONFIG_KEY,
   newId,
+  type Decoding,
   type SplitName,
   type StudentAdapter,
   type StudentTarget,
   type Task,
 } from '@architect/shared';
+import { SERVER_TURN } from '../graduates/library';
 import type { StoredAttempt } from '../store/records';
 import { answerSummary, expectedSummary, lockedCheck, studentPrice } from './attempts';
+import { configurationKey, LLAMA_CPP, STUDENT_CONFIG, type AttemptConfig } from './configuration';
 import type { EvaluatedTask, Evaluation, EvaluationContext } from './deps';
 import { writeJsonFile } from './files';
 import { runPool } from './pool';
@@ -30,6 +34,21 @@ export interface EvaluationSpec {
   target: StudentTarget;
   purpose: EvaluationPurpose;
   concurrency: number;
+  /** Who attempts and how; the job's student with no adapter when absent. */
+  config?: AttemptConfig;
+  /** Replaces the harness's decoding, as a frozen graduate's recorded decoding does. */
+  decoding?: Decoding;
+}
+
+/** The stored filter for one evaluation's attempts. */
+function filterOf(spec: EvaluationSpec) {
+  return {
+    split: spec.split,
+    round: spec.round,
+    version: spec.version,
+    target: spec.target,
+    config: configurationKey(spec.config ?? STUDENT_CONFIG),
+  };
 }
 
 /** One task under one seed: the unit an evaluation attempts and persists. */
@@ -53,12 +72,7 @@ function shouldHalt(state: RunState, training: boolean): boolean {
 
 function reportProgress(state: RunState, spec: EvaluationSpec, done: ReadonlySet<string>): void {
   if (spec.split !== 'dev' && spec.split !== 'test') return;
-  const filter = {
-    split: spec.split,
-    round: spec.round,
-    version: spec.version,
-    target: spec.target,
-  };
+  const filter = filterOf(spec);
   const all = seededTasks(spec);
   state.emit({
     type: 'eval.progress',
@@ -88,6 +102,7 @@ async function recordAttempt(
   const locked = spec.split === 'test';
   const traceFile = locked ? null : paths.traceFile(state.run.jobId, runId, id);
   if (traceFile) await writeJsonFile(traceFile, trace);
+  const config = configurationKey(spec.config ?? STUDENT_CONFIG);
   const attempt: StoredAttempt = {
     id,
     runId,
@@ -102,15 +117,18 @@ async function recordAttempt(
     answerSummary: locked ? undefined : answerSummary(outcome),
     expectedSummary: locked ? undefined : expectedSummary(item.task.expected),
     target: spec.target,
+    ...(config === DEFAULT_CONFIG_KEY ? {} : { config }),
     seed,
     stopReason: outcome.stopReason,
     tracePath: traceFile && paths.toStored(traceFile),
     createdAt: state.now(),
   };
   const price = studentPrice(studentEndpoint(state.job, spec.target), student.isLocal);
+  // Spark's turns as a reference are charged as it takes them, under its own role.
+  const studentSteps = spec.config?.actor === 'reference' ? [] : trace.steps;
   const run = store.transaction(() => {
     store.attempts.insert(attempt);
-    for (const step of trace.steps) {
+    for (const step of studentSteps) {
       if (step.kind !== 'model') continue;
       store.costs.insert({
         runId,
@@ -181,19 +199,21 @@ async function attemptTask(
  * to finish.
  */
 export async function evaluate(state: RunState, spec: EvaluationSpec): Promise<boolean> {
-  const filter = {
-    split: spec.split,
-    round: spec.round,
-    version: spec.version,
-    target: spec.target,
-  };
+  if (spec.config?.backend !== LLAMA_CPP) return evaluateNow(state, spec);
+  // The engine's one llama-server serves one set of adapters at a time: an evaluation through it
+  // waits for an installation check using it, and the other way round.
+  return state.ctx.libraryLock.run(SERVER_TURN, () => evaluateNow(state, spec));
+}
+
+async function evaluateNow(state: RunState, spec: EvaluationSpec): Promise<boolean> {
+  const filter = filterOf(spec);
   const done = new Set(
     state.attempts(filter).map((attempt) => keyOf(attempt.seed, attempt.taskId)),
   );
   const remaining = seededTasks(spec).filter(({ seed, task }) => !done.has(keyOf(seed, task.id)));
   if (remaining.length > 0) {
     const { resources } = state;
-    const student = await resources.student(spec.target);
+    const student = await resources.student(spec.target, spec.config ?? STUDENT_CONFIG);
     const context: EvaluationContext = {
       job: state.job,
       jobDir: state.jobDir,
@@ -202,6 +222,7 @@ export async function evaluate(state: RunState, spec: EvaluationSpec): Promise<b
       sandbox: await resources.sandbox(),
       checker: await resources.checker(),
       today: state.record.today,
+      ...(spec.decoding === undefined ? {} : { decoding: spec.decoding }),
     };
     const training = spec.purpose === 'training';
     const deadline = training ? state.budget.deadline() : null;

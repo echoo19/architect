@@ -1,4 +1,5 @@
 import { cpus } from 'node:os';
+import { quietThreadCap } from '@architect/engine';
 import type { AppSettings } from '@architect/shared';
 
 /**
@@ -18,5 +19,5 @@ export function quietThreads(
   settings: Pick<AppSettings, 'quietLocalModels'>,
   logicalCores = cpus().length,
 ): number | undefined {
-  return settings.quietLocalModels ? Math.max(2, Math.round(logicalCores / 4)) : undefined;
+  return quietThreadCap(settings.quietLocalModels, logicalCores);
 }

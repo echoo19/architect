@@ -1,5 +1,11 @@
 import { posix } from 'node:path';
-import { HypothesisSchema, type Hypothesis, type JsonSchemaObject } from '@architect/shared';
+import {
+  HypothesisSchema,
+  InterventionTypeSchema,
+  type Hypothesis,
+  type InterventionType,
+  type JsonSchemaObject,
+} from '@architect/shared';
 import { z } from 'zod';
 
 /**
@@ -65,6 +71,108 @@ export const HYPOTHESIS_JSON_SCHEMA: JsonSchemaObject = {
   },
 };
 
+/**
+ * The reply format for a round that diagnoses failures: the hypothesis's fields, the findings
+ * with the turns they point at, and one intervention from the types this run allows. Like the
+ * hypothesis format it suits constrained decoding: every key is required, and fields an
+ * intervention type doesn't use are left empty.
+ */
+export function diagnosisJsonSchema(allowed: readonly InterventionType[]): JsonSchemaObject {
+  const properties = HYPOTHESIS_JSON_SCHEMA.properties as Record<string, unknown>;
+  return {
+    type: 'object',
+    additionalProperties: false,
+    required: [...(HYPOTHESIS_JSON_SCHEMA.required as string[]), 'findings', 'intervention'],
+    properties: {
+      ...properties,
+      edits: {
+        ...(properties['edits'] as object),
+        description:
+          'The harness change set for a procedure, retrieval or helper intervention; empty for weights or clarification.',
+      },
+      findings: {
+        type: 'array',
+        description: 'At most three failed train attempts, one finding each.',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['taskId', 'failureTurn', 'evidence', 'cause', 'category', 'taskType'],
+          properties: {
+            taskId: { type: 'string', description: 'A failed train task shown this round.' },
+            failureTurn: {
+              type: 'integer',
+              description: 'The model turn you suspect went wrong, as the trace numbers it.',
+            },
+            evidence: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['turn', 'note'],
+                properties: { turn: { type: 'integer' }, note: { type: 'string' } },
+              },
+            },
+            cause: { type: 'string', description: 'The decision or missing fact that failed.' },
+            category: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['id', 'slug', 'label'],
+              properties: {
+                id: { type: 'string', description: "An existing category's id, or empty." },
+                slug: { type: 'string', description: 'For a new category: a short slug.' },
+                label: { type: 'string', description: 'For a new category: a short name.' },
+              },
+            },
+            taskType: { type: 'string' },
+          },
+        },
+      },
+      intervention: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'type',
+          'hypothesis',
+          'workedExamples',
+          'practicePerFinding',
+          'question',
+          'estimatedCost',
+          'verificationPlan',
+        ],
+        properties: {
+          type: { type: 'string', enum: [...allowed] },
+          hypothesis: {
+            type: 'string',
+            description: 'What you expect the change to fix, and why.',
+          },
+          workedExamples: {
+            type: 'array',
+            description:
+              "Words in requests that should load this round's verified corrections as worked examples; empty for none.",
+            items: { type: 'string' },
+          },
+          practicePerFinding: {
+            type: 'integer',
+            description: "Other train tasks of each finding's category to demonstrate, 0 to 3.",
+          },
+          question: { type: 'string', description: 'For a clarification, the one question.' },
+          estimatedCost: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['mentorUsd', 'computeUsd', 'minutes'],
+            properties: {
+              mentorUsd: { type: 'number' },
+              computeUsd: { type: 'number' },
+              minutes: { type: 'number' },
+            },
+          },
+          verificationPlan: { type: 'string', description: 'How the result will be checked.' },
+        },
+      },
+    },
+  };
+}
+
 const HypothesisReplySchema = z.object({
   title: z.string(),
   diagnosis: z.string(),
@@ -78,6 +186,33 @@ const HypothesisReplySchema = z.object({
     rationale: z.string(),
   }),
   readyClaim: z.boolean(),
+  findings: z
+    .array(
+      z.object({
+        taskId: z.string(),
+        failureTurn: z.number().int(),
+        evidence: z.array(z.object({ turn: z.number().int(), note: z.string() })),
+        cause: z.string(),
+        category: z.object({ id: z.string(), slug: z.string(), label: z.string() }),
+        taskType: z.string(),
+      }),
+    )
+    .optional(),
+  intervention: z
+    .object({
+      type: InterventionTypeSchema,
+      hypothesis: z.string(),
+      workedExamples: z.array(z.string()),
+      practicePerFinding: z.number().int(),
+      question: z.string(),
+      estimatedCost: z.object({
+        mentorUsd: z.number(),
+        computeUsd: z.number(),
+        minutes: z.number(),
+      }),
+      verificationPlan: z.string(),
+    })
+    .optional(),
 });
 
 /** The author's reply couldn't be used. The round fails with this message; the loop goes on. */
@@ -89,6 +224,9 @@ export class MentorReplyError extends Error {
 }
 
 const TITLE_MAX = 80;
+/** Words that load worked examples, and practice tasks per finding, at most. */
+const MAX_TRIGGERS = 8;
+const MAX_PRACTICE = 3;
 
 /** Pulls the JSON object out of a free-text reply, with or without a code fence around it. */
 export function extractJson(text: string): unknown {
@@ -123,7 +261,7 @@ export function parseHypothesis(
   if (!parsed.success) {
     throw new MentorReplyError(`The reply wasn't a hypothesis: ${describeIssues(parsed.error)}`);
   }
-  const { title, predicted, ...rest } = parsed.data;
+  const { title, predicted, findings, intervention, ...rest } = parsed.data;
   const trimmed = title.trim();
   const hypothesis = HypothesisSchema.safeParse({
     title: trimmed.length > TITLE_MAX ? `${trimmed.slice(0, TITLE_MAX - 1)}…` : trimmed,
@@ -140,6 +278,28 @@ export function parseHypothesis(
       rationale: predicted.rationale,
     },
     readyClaim: rest.readyClaim,
+    ...(findings === undefined ? {} : { findings }),
+    ...(intervention === undefined
+      ? {}
+      : {
+          intervention: {
+            ...intervention,
+            workedExamples: intervention.workedExamples
+              .map((word) => word.trim())
+              .filter((word) => word !== '')
+              .slice(0, MAX_TRIGGERS),
+            practicePerFinding: Math.min(
+              MAX_PRACTICE,
+              Math.max(0, intervention.practicePerFinding),
+            ),
+            question: intervention.question.trim(),
+            estimatedCost: {
+              mentorUsd: Math.max(0, intervention.estimatedCost.mentorUsd),
+              computeUsd: Math.max(0, intervention.estimatedCost.computeUsd),
+              minutes: Math.max(0, intervention.estimatedCost.minutes),
+            },
+          },
+        }),
   });
   if (!hypothesis.success) {
     throw new MentorReplyError(`The hypothesis was invalid: ${describeIssues(hypothesis.error)}`);

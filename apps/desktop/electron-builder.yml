@@ -33,8 +33,11 @@ asar: true
 # The engine and the agent host fork the tool sandbox as a Node process with the sandbox's
 # folder as its working directory, so the sandbox and its WebAssembly live in a real folder
 # beside the archive. The agent host itself, like the engine, runs from inside the archive.
+# The architect command runs as plain Node (the app with ELECTRON_RUN_AS_NODE=1) from a real
+# folder too, beside the sandbox it forks.
 asarUnpack:
   - out/sandbox/**
+  - out/cli/**
 
 extraResources:
   - from: ../../examples/home-services/job
@@ -44,9 +47,20 @@ extraResources:
       - tasks.jsonl
       - checker.js
       - data/**
+  # The pinned training recipe and the scripts a training job runs; the engine sends them with
+  # each job and reads the recipe to price it.
+  - from: ../../trainer
+    to: trainer
+    filter:
+      - recipe.json
+      - '*.py'
 
 win:
   target: nsis
+  # The architect command's launcher, beside Architect.exe (docs/CLI.md).
+  extraFiles:
+    - from: build/cli/architect.cmd
+      to: architect.cmd
 
 nsis:
   oneClick: true
@@ -59,6 +73,10 @@ mac:
   # No architecture is named, so --arm64 or --x64 picks it, and a build without either is for
   # this machine's.
   target: dmg
+  # The architect command's launcher, in Contents/Resources (docs/CLI.md).
+  extraResources:
+    - from: build/cli/architect
+      to: architect
   category: public.app-category.productivity
   hardenedRuntime: true
   # Notarized with an App Store Connect API key from the environment; see scripts/release-mac.sh.

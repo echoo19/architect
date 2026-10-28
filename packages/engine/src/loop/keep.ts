@@ -92,6 +92,16 @@ function judge(measurement: Measurement, evaluation: KeepLimits, runs: number): 
 }
 
 /**
+ * Whether a change did harm, rather than only failing to help: dev passes fell overall, or a
+ * task type lost more passes than the per-type limit allows for the runs measured.
+ */
+export function isHarmful(input: KeepInput): boolean {
+  if (input.after.pass < input.before.pass) return true;
+  const worst = worstTypeLoss(input.beforePerType, input.afterPerType);
+  return worst !== null && worst.lost > input.evaluation.maxTypeRegression * input.runs;
+}
+
+/**
  * Keep a change only if net dev passes rise by at least the margin and no task type loses more
  * than the allowed number of passes (decision 007). Scores add up every run, so both limits
  * scale with the run count. Anything else is reverted.

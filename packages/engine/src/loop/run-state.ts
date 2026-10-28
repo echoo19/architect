@@ -1,15 +1,33 @@
-import type { Job, Round, Run, RunEvent, RunStopReason, Task } from '@architect/shared';
+import type {
+  Job,
+  Round,
+  Run,
+  RunEvent,
+  RunStopReason,
+  StudentTarget,
+  Task,
+} from '@architect/shared';
+import type { KeyedLock } from '../graduates/library';
 import type { AttemptFilter, EngineStore } from '../store/engine-store';
 import type { StoredAttempt, StoredRound, StoredRun } from '../store/records';
 import { resultOf, type EvaluationResult } from './attempts';
 import { BudgetGuard } from './budget';
+import {
+  configurationKey,
+  LLAMA_CPP,
+  llamaCppConfig,
+  STUDENT_CONFIG,
+  type AttemptConfig,
+} from './configuration';
 import type { Clock, HarnessVersionStore, LoopDeps } from './deps';
+import { recordExperiment } from './experiments';
 import { must } from './errors';
 import type { JobLibrary } from './jobs';
 import { LineageLog } from './lineage';
 import type { DataPaths } from './paths';
 import { MAX_REJECTED_IN_A_ROW } from './plan';
 import { SessionResources, type LogLevel } from './resources';
+import { studentEndpoint } from './setup';
 import { roundSeed, sampleTrainBatch } from './seeds';
 import { isoNow } from './time';
 
@@ -25,6 +43,11 @@ export interface SessionContext {
   clock: Clock;
   /** Attempts in flight at once while training. The locked test runs one at a time. */
   concurrency: number;
+  /**
+   * The graduate library's lock: one writer at a time for an agent's versions, and one user at
+   * a time of the engine's llama-server (`SERVER_TURN`), shared with installation checks.
+   */
+  libraryLock: KeyedLock;
   emit(event: RunEvent): void;
 }
 
@@ -48,6 +71,8 @@ export const TRAINING_ENDED: Record<RunStopReason | 'complete', string> = {
   leak: 'The leak check refused a mentor call, so training ended before any later round could send the same data.',
   user: 'Stopped by you.',
   error: 'Training ended after an error.',
+  contract:
+    'Your answer changes what counts as success, so this run stopped: its locked test belongs to the job as it was. Start a new run on the changed job.',
 };
 
 /** The run patch that ends training and hands the run to its locked test. */
@@ -89,6 +114,7 @@ export class RunState {
       runId: run.id,
       versions: this.versions,
       budget: this.budget,
+      fromStored: (path) => ctx.paths.fromStored(path),
       log: (level, message) => this.log(level, message),
     });
   }
@@ -122,19 +148,48 @@ export class RunState {
   /**
    * A version's result in one dev evaluation, every repeat added up: the baseline's (round
    * null) or a round's, where the candidate and the incumbent are measured side by side. With
-   * `seeds`, only the attempts under those seeds, such as a round's first measurement.
+   * `seeds`, only the attempts under those seeds, such as a round's first measurement. Only the
+   * attempts made under `config` count: the job's student with no adapter unless it says.
    */
-  devResult(version: number, round: number | null, seeds?: readonly number[]): EvaluationResult {
+  devResult(
+    version: number,
+    round: number | null,
+    seeds?: readonly number[],
+    config: AttemptConfig = STUDENT_CONFIG,
+  ): EvaluationResult {
     const attempts = this.attempts({
       split: 'dev',
       version,
       round,
-      target: this.job.student.trainOn,
+      target: this.targetOf(config),
+      config: configurationKey(config),
     });
     return resultOf(
       seeds === undefined ? attempts : attempts.filter((attempt) => seeds.includes(attempt.seed)),
       this.job,
     );
+  }
+
+  /**
+   * Where a configuration's training and dev attempts run: an adapter is served on this computer
+   * with the local base; anything else on the endpoint the job trains on.
+   */
+  targetOf(config: AttemptConfig): StudentTarget {
+    return config.backend === LLAMA_CPP ? 'local' : this.job.student.trainOn;
+  }
+
+  /** The runtime of the student endpoint the job trains on, as an experiment names its backend. */
+  studentBackend(): string {
+    return studentEndpoint(this.job, this.job.student.trainOn).runtime;
+  }
+
+  /**
+   * The configuration the incumbent runs as: the job's student, or once the run kept an adapter,
+   * llama.cpp serving it with that adapter, so every later measurement keeps it on.
+   */
+  incumbentConfig(): AttemptConfig {
+    const adapter = this.run.currentAdapter;
+    return adapter === undefined ? STUDENT_CONFIG : llamaCppConfig([adapter], adapter);
   }
 
   /**
@@ -146,6 +201,8 @@ export class RunState {
   drafts(index: number): boolean {
     const { method } = this.run;
     if (method === 'one_shot') return true;
+    // An improvement starts from a graduate's harness and changes it one step at a time.
+    if (this.record.improves !== undefined) return false;
     if (method !== 'architect' && method !== 'self_reflection') return false;
     if (this.job.startingHarness.kind !== 'blank') return false;
     return !this.rounds().some(({ round }) => round.index < index && round.decision === 'kept');
@@ -204,15 +261,27 @@ export class RunState {
     this.emit({ type: 'round.updated', round: stored.round });
   }
 
-  /** Ends a round without a change, and training too when a stop reason is given. */
-  closeRound(index: number, message: string, stopReason?: RunStopReason): void {
+  /**
+   * Ends a round without a change, and training too when a stop reason is given. Its experiment
+   * is recorded as stopped, or as invalid when the change couldn't be built at all.
+   */
+  closeRound(
+    index: number,
+    message: string,
+    stopReason?: RunStopReason,
+    disposition: 'stopped' | 'invalid' = 'stopped',
+  ): void {
     const stored = this.round(index);
     const round: Round = { ...stored.round, status: 'failed', error: message, endedAt: this.now() };
-    const run = this.ctx.store.transaction(() => {
+    const { run, experiment } = this.ctx.store.transaction(() => {
       this.ctx.store.rounds.update({ ...stored, round });
-      return stopReason ? this.writeRun(trainingEnd(stopReason)) : null;
+      return {
+        experiment: recordExperiment(this, index, { disposition, reason: message }),
+        run: stopReason ? this.writeRun(trainingEnd(stopReason)) : null,
+      };
     });
     this.emit({ type: 'round.updated', round });
+    this.announce('experiment', experiment.id, index);
     this.log('warn', `Round ${index} ended without a change: ${message}`);
     if (run) {
       this.emit({ type: 'run.updated', run });
@@ -222,7 +291,8 @@ export class RunState {
 
   /**
    * Ends a round whose reply or change set can't be used. It is marked rejected, so the author
-   * is shown the reason next round and the planner counts it apart from changes dev measured.
+   * is shown the reason next round and the planner counts it apart from changes dev measured,
+   * and its experiment is recorded as invalid.
    */
   rejectRound(
     index: number,
@@ -237,8 +307,22 @@ export class RunState {
       error: reason,
       endedAt: this.now(),
     };
-    this.saveRound({ ...stored, round, rejected: true });
+    const experiment = this.ctx.store.transaction(() => {
+      this.ctx.store.rounds.update({ ...stored, round, rejected: true });
+      return recordExperiment(this, index, { disposition: 'invalid', reason });
+    });
+    this.emit({ type: 'round.updated', round });
+    this.announce('experiment', experiment.id, index);
     this.log('warn', `Round ${index} was rejected before evaluation: ${reason}`);
+  }
+
+  /** Tells listeners a mentoring record changed, so they read it back. */
+  announce(
+    record: 'lesson' | 'intervention' | 'experiment' | 'reference',
+    id: string,
+    round: number | null,
+  ): void {
+    this.emit({ type: 'mentoring.updated', record, id, round });
   }
 
   // Announcing

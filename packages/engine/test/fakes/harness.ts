@@ -3,6 +3,7 @@ import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   DecodingSchema,
+  ExampleSchema,
   GuardError,
   GuardrailsSchema,
   HarnessSchema,
@@ -11,6 +12,7 @@ import {
   type FileDiff,
   type FileEdit,
   type Harness,
+  type PackageManifest,
 } from '@architect/shared';
 import type { HarnessVersionStore } from '../../src/loop/deps';
 
@@ -35,11 +37,20 @@ function withSystem(name: string, system: string): Harness {
   };
 }
 
-export function harnessToFiles(harness: Harness): Record<string, string> {
+export function harnessToFiles(
+  harness: Harness,
+  options: { includeDefaults?: boolean } = {},
+): Record<string, string> {
   const files: Record<string, string> = { 'AGENTS.md': harness.system };
   for (const skill of harness.skills) files[`skills/${skill.name}/SKILL.md`] = skill.body;
   if (harness.guardrails.refuse.length > 0) {
     files['guardrails.yaml'] = JSON.stringify(harness.guardrails);
+  }
+  for (const example of harness.examples) {
+    files[`examples/${example.slug}.json`] = JSON.stringify(example);
+  }
+  if (harness.retrieval.rules.length > 0 || options.includeDefaults === true) {
+    files['retrieval.yaml'] = JSON.stringify(harness.retrieval);
   }
   return files;
 }
@@ -95,8 +106,40 @@ export function applyEdits(harness: Harness, edits: readonly FileEdit[]): Harnes
       next.skills = next.skills.filter((skill) => skill.name !== name);
       if (edit.op === 'write') next.skills.push({ name, description: name, body: edit.content });
     }
+    const example = /^examples\/([a-z0-9-]+)\.json$/.exec(edit.path);
+    if (example) {
+      const slug = example[1] ?? '';
+      next.examples = next.examples.filter((existing) => existing.slug !== slug);
+      if (edit.op === 'write') next.examples.push(exampleFromFile(slug, edit.content));
+    }
+    if (edit.path === 'retrieval.yaml') {
+      next.retrieval = RetrievalSchema.parse(edit.op === 'write' ? JSON.parse(edit.content) : {});
+    }
   }
   return next;
+}
+
+/** An example file as the real harness reads one: snake_case keys, checked message shapes. */
+function exampleFromFile(slug: string, content: string): Harness['examples'][number] {
+  const file = JSON.parse(content) as {
+    title: string;
+    task_types?: string[];
+    messages: Record<string, unknown>[];
+  };
+  const messages = file.messages.map((message) => {
+    const { tool_calls: toolCalls, tool_call_id: toolCallId, ...rest } = message;
+    return {
+      ...rest,
+      ...(toolCalls === undefined ? {} : { toolCalls }),
+      ...(toolCallId === undefined ? {} : { toolCallId }),
+    };
+  });
+  return ExampleSchema.parse({
+    slug,
+    title: file.title,
+    taskTypes: file.task_types ?? [],
+    messages,
+  });
 }
 
 export function diffHarness(from: Harness, to: Harness): FileDiff[] {
@@ -151,5 +194,48 @@ export class FileVersions implements HarnessVersionStore {
     return names
       .filter((name) => /^v\d+\.json$/.test(name))
       .map((name) => Number(name.slice(1, -5)));
+  }
+}
+
+/**
+ * A version's harness read back from the files `harnessToFiles` wrote into its package, the way
+ * the real reader does from real files. Tools aren't written by the fake, so none come back.
+ */
+export async function readPackaged(
+  dir: string,
+  manifest: Pick<PackageManifest, 'harness' | 'identity'>,
+): Promise<Harness> {
+  const root = join(dir, 'harness');
+  const read = async (path: string): Promise<string | undefined> => {
+    try {
+      return await readFile(join(root, path), 'utf8');
+    } catch {
+      return undefined;
+    }
+  };
+  const harness = withSystem(manifest.identity.name, (await read('AGENTS.md')) ?? '');
+  for (const name of await folders(join(root, 'skills'))) {
+    const body = await read(`skills/${name}/SKILL.md`);
+    if (body !== undefined) harness.skills.push({ name, description: name, body });
+  }
+  for (const file of await folders(join(root, 'examples'))) {
+    const content = await read(`examples/${file}`);
+    if (content !== undefined) harness.examples.push(ExampleSchema.parse(JSON.parse(content)));
+  }
+  const guardrails = await read('guardrails.yaml');
+  if (guardrails !== undefined) harness.guardrails = GuardrailsSchema.parse(JSON.parse(guardrails));
+  const retrieval = await read('retrieval.yaml');
+  if (retrieval !== undefined) harness.retrieval = RetrievalSchema.parse(JSON.parse(retrieval));
+  return {
+    ...harness,
+    meta: { ...harness.meta, version: manifest.harness.version, hash: manifest.harness.hash },
+  };
+}
+
+async function folders(dir: string): Promise<string[]> {
+  try {
+    return (await readdir(dir)).sort();
+  } catch {
+    return [];
   }
 }
