@@ -14,7 +14,7 @@ import {
   type TrainedAdapter,
 } from '@architect/shared';
 import { KeyedLock } from '../graduates/library';
-import { improvementNote, improvementPlan } from '../improve/improvement';
+import { improvementNote, improvementPlan, returnLessons } from '../improve/improvement';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun } from '../store/records';
 import { configurationKey } from './configuration';
@@ -265,13 +265,17 @@ export class RunController {
   /**
    * Finishes the current step and skips to the locked test, so the user still gets a report
    * card. A run that never kept a change ends without a test. A locked test that has started
-   * isn't stopped.
+   * isn't stopped. An improvement takes no locked test, so it stops even while it writes its
+   * candidate.
    */
   async stop(runId: string): Promise<void> {
     const before = this.get(runId);
-    if (isTerminal(before.run.status) || before.run.phase === 'testing' || before.stopRequested) {
+    if (isTerminal(before.run.status)) return;
+    if (before.improves !== undefined && before.run.phase === 'testing') {
+      await this.stopWriting(runId, before.improves);
       return;
     }
+    if (before.run.phase === 'testing' || before.stopRequested) return;
     const active = this.active.get(runId);
     if (active) {
       if (this.get(runId).run.status !== 'paused') {
@@ -294,6 +298,46 @@ export class RunController {
       phase: 'done',
       stopReason: 'user',
       endedAt: isoNow(this.clock),
+    });
+  }
+
+  /**
+   * Stops an improvement while it freezes and writes its candidate, which may fail every time it
+   * tries (decision 042). A step in flight finishes first, and a candidate it wrote by then
+   * stands. Otherwise the improvement ends stopped with no candidate, and its lessons go back to
+   * the queue.
+   */
+  private async stopWriting(runId: string, improves: RunImprovement): Promise<void> {
+    const active = this.active.get(runId);
+    if (active) {
+      active.session.requestPause();
+      await active.done;
+    }
+    const record = this.get(runId);
+    if (isTerminal(record.run.status)) return;
+    this.dequeue(runId);
+    const { store } = this.options;
+    const at = isoNow(this.clock);
+    const run: Run = {
+      ...record.run,
+      status: 'stopped',
+      phase: 'done',
+      stopReason: 'user',
+      error: undefined,
+      endedAt: at,
+      updatedAt: at,
+    };
+    store.transaction(() => {
+      returnLessons(store, improves, runId, at);
+      store.runs.update({ ...record, stopRequested: true, run });
+    });
+    this.publish(run);
+    this.dispatch({
+      type: 'log',
+      runId,
+      at,
+      level: 'info',
+      message: 'Stopped before its version was written. Its lessons are back in the queue.',
     });
   }
 

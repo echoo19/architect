@@ -466,6 +466,96 @@ describe('Improve agent', () => {
     expect(second.store.graduates.get(graduateId)?.activeVersion).toBe(1);
   });
 
+  it('stops an improvement that keeps failing while it writes its candidate', async () => {
+    const { engine, graduateId } = await graduateWithChat();
+    improvingMentor();
+    const lesson = await queued(engine);
+    const harnessToFiles = world.deps.harness.harnessToFiles;
+    // The candidate's folder can't be written, and every try fails the same way.
+    world.deps.harness.harnessToFiles = (harness, options) => {
+      if (options === undefined) throw new Error('There is no space left on the disk.');
+      return harnessToFiles(harness, options);
+    };
+    const start = await engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 });
+    await engine.controller.idle();
+    expect(engine.store.runs.get(start.runId)?.run).toMatchObject({
+      status: 'paused',
+      phase: 'testing',
+      error: 'There is no space left on the disk.',
+    });
+    await engine.controller.resume(start.runId);
+    await engine.controller.idle();
+    expect(engine.store.runs.get(start.runId)?.run.status).toBe('paused');
+
+    await engine.controller.stop(start.runId);
+    expect(engine.store.runs.get(start.runId)?.run).toMatchObject({
+      status: 'stopped',
+      phase: 'done',
+      stopReason: 'user',
+    });
+    expect(engine.store.runs.get(start.runId)?.run.error).toBeUndefined();
+    expect(engine.store.versions.list(graduateId)).toHaveLength(1);
+    expect(engine.store.graduates.get(graduateId)?.activeVersion).toBe(1);
+    const back = engine.store.corrections.get(lesson.id);
+    expect(back?.status).toBe('queued');
+    expect(back?.runId).toBeUndefined();
+    const [stopped] = await improvementsOf(engine.store, engine.jobs, graduateId);
+    expect(stopped).toMatchObject({
+      status: 'stopped',
+      promotion: {
+        allowed: false,
+        reason: 'It was stopped before it made a version, so there is nothing to promote.',
+      },
+    });
+    expect(
+      engine.events.some(
+        (event) =>
+          event.type === 'log' &&
+          event.runId === start.runId &&
+          event.message ===
+            'Stopped before its version was written. Its lessons are back in the queue.',
+      ),
+    ).toBe(true);
+
+    // Once the folder can be written, the same lesson makes a candidate.
+    world.deps.harness.harnessToFiles = harnessToFiles;
+    const again = await engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 });
+    await engine.controller.idle();
+    expect(engine.store.runs.get(again.runId)?.run.status).toBe('finished');
+    expect(engine.store.versions.get(graduateId, 2)).toMatchObject({ state: 'candidate' });
+    expect(engine.store.corrections.get(lesson.id)?.status).toBe('used');
+    expect(engine.errors).toEqual([]);
+  });
+
+  it('stops an improvement during its rounds, and its lessons stay in the queue', async () => {
+    const { engine, graduateId } = await graduateWithChat();
+    improvingMentor();
+    const lesson = await queued(engine);
+    const reached = deferred();
+    const release = deferred();
+    let seen = 0;
+    world.runtime.beforeAttempt = () => {
+      seen += 1;
+      if (seen !== 1) return;
+      reached.resolve();
+      return release.promise;
+    };
+    const start = await engine.controller.improve(graduateId, { maxRounds: 2, maxMentorUsd: 2 });
+    await reached.promise;
+    await engine.controller.stop(start.runId);
+    expect(engine.store.runs.get(start.runId)?.run.status).toBe('stopping');
+    release.resolve();
+    await engine.controller.idle();
+
+    expect(engine.store.runs.get(start.runId)?.run).toMatchObject({
+      status: 'stopped',
+      stopReason: 'user',
+    });
+    expect(engine.store.versions.list(graduateId)).toHaveLength(1);
+    expect(engine.store.corrections.get(lesson.id)?.status).toBe('queued');
+    expect(teachThis(engine).discard(lesson.id).status).toBe('discarded');
+  });
+
   it('refuses an agent with nothing queued or one already being improved', async () => {
     const { engine, graduateId } = await graduateWithChat();
     improvingMentor();
