@@ -58,7 +58,8 @@ export function adapterFile(paths: DataPaths, freeze: GraduateFreeze): AdapterFi
     sizeBytes: statSync(source).size,
     baseDigest: adapter.baseDigest,
     scale: adapter.scale,
-    trainingJobId: adapter.id,
+    // An adapter carried over from an earlier version keeps its id only when a training job made it.
+    ...(adapter.id.startsWith('trn_') ? { trainingJobId: adapter.id } : {}),
     ...(adapter.standIn ? { standIn: true as const } : {}),
     source,
   };
