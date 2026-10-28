@@ -10,6 +10,8 @@ export type Route =
   | { name: 'define'; jobId: string }
   | { name: 'train'; runId: string }
   | { name: 'report'; runId: string }
+  /** What an improvement of an agent changed, and whether its new version may be promoted. */
+  | { name: 'improvement'; runId: string }
   | { name: 'not-found'; path: string };
 
 const segment = (value: string) => encodeURIComponent(value);
@@ -24,6 +26,7 @@ export const paths = {
   define: (jobId: string) => `/jobs/${segment(jobId)}/define`,
   train: (runId: string) => `/runs/${segment(runId)}/train`,
   report: (runId: string) => `/runs/${segment(runId)}/report`,
+  improvement: (runId: string) => `/runs/${segment(runId)}/improvement`,
 };
 
 function decode(parts: string[]): string[] | null {
@@ -54,6 +57,7 @@ export function parsePath(path: string): Route {
   if (first === 'runs' && id && exactly(3)) {
     if (third === 'train') return { name: 'train', runId: id };
     if (third === 'report') return { name: 'report', runId: id };
+    if (third === 'improvement') return { name: 'improvement', runId: id };
   }
   return { name: 'not-found', path };
 }

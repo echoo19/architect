@@ -32,7 +32,11 @@ function bridge(): ArchitectApi {
  * Data arriving from the main process is parsed before the UI trusts it. A reply that doesn't
  * match the contract becomes an error the screen can show.
  */
-async function read<T>(label: string, schema: z.ZodType<T>, request: Promise<unknown>): Promise<T> {
+export async function read<T>(
+  label: string,
+  schema: z.ZodType<T>,
+  request: Promise<unknown>,
+): Promise<T> {
   const result = schema.safeParse(await request);
   if (result.success) return result.data;
   console.error(`[api] ${label} returned data that doesn't match the contract.`, result.error);

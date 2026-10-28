@@ -1,28 +1,22 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import type { GraduateSummary, GraduateVersion } from '@architect/shared';
 import {
   Button,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
   ErrorState,
   SettingsRow,
   SettingsSection,
   Skeleton,
   VersionTag,
 } from '@architect/ui';
-import { ArrowUpRight, CircleAlert, Layers, LockKeyhole, RotateCcw, Undo2 } from 'lucide-react';
-import { graduatesApi, refreshAgent, useVersions } from '../../api/graduates';
+import { ArrowUpRight, Undo2 } from 'lucide-react';
+import { useVersions } from '../../api/graduates';
 import { formatPercent } from '../../lib/format';
-import { attempt } from '../../lib/notify';
-import { useGraduateSettings } from '../graduateSettings';
-import { WRITE_MODE_LABELS } from '../labels';
+import { LessonsSection } from '../teach/LessonsSection';
+import { MoveDialog } from './MoveDialog';
 import {
   EVALUATION_LABELS,
   evaluationNote,
   moveFor,
-  promoteCaution,
   versionDate,
   versionOrigin,
   versionScore,
@@ -30,9 +24,10 @@ import {
 } from './versions';
 
 /**
- * Teaching: the agent's versions, newest first. Each says whether it is the one chats run on,
- * how its own final test came out, what it was made from and when, and can be promoted or
- * rolled back to after a confirmation that says what changes.
+ * Teaching: what the agent is being taught (flagged answers, teaching it something new, and
+ * Improve agent), then its versions, newest first. Each version says whether it is the one
+ * chats run on, how its own final test came out, what it was made from and when, and can be
+ * promoted or rolled back to after a confirmation that says what changes.
  */
 export function TeachingTab({ agent }: { agent: GraduateSummary }) {
   const versions = useVersions(agent.id);
@@ -42,45 +37,48 @@ export function TeachingTab({ agent }: { agent: GraduateSummary }) {
   const scored = list?.some((version) => versionScore(version) !== null) ?? false;
 
   return (
-    <SettingsSection
-      title="Versions"
-      actions={
-        // Names the score column: it ends where the scores do, left of the buttons' slot.
-        scored && <span className="mr-[124px] text-sm text-fg-muted">Final test</span>
-      }
-    >
-      {list ? (
-        <ul aria-label="Versions" className="m-0 flex list-none flex-col p-0">
-          {[...list].reverse().map((version) => (
-            <VersionRow
-              key={version.version}
-              version={version}
-              move={moveFor(version, active?.version ?? null)}
-              onMove={(kind) => setMove({ version, kind })}
-            />
-          ))}
-        </ul>
-      ) : versions.status === 'error' ? (
-        <ErrorState
-          layout="inline"
-          title="Couldn't load the versions"
-          message={versions.error.message}
-          onRetry={versions.reload}
-          className="border-t border-line py-4"
-        />
-      ) : (
-        <VersionSkeleton />
-      )}
-      {move && active && (
-        <MoveDialog
-          agent={agent}
-          version={move.version}
-          kind={move.kind}
-          active={active}
-          onClose={() => setMove(null)}
-        />
-      )}
-    </SettingsSection>
+    <>
+      <LessonsSection agent={agent} />
+      <SettingsSection
+        title="Versions"
+        actions={
+          // Names the score column: it ends where the scores do, left of the buttons' slot.
+          scored && <span className="mr-[124px] text-sm text-fg-muted">Final test</span>
+        }
+      >
+        {list ? (
+          <ul aria-label="Versions" className="m-0 flex list-none flex-col p-0">
+            {[...list].reverse().map((version) => (
+              <VersionRow
+                key={version.version}
+                version={version}
+                move={moveFor(version, active?.version ?? null)}
+                onMove={(kind) => setMove({ version, kind })}
+              />
+            ))}
+          </ul>
+        ) : versions.status === 'error' ? (
+          <ErrorState
+            layout="inline"
+            title="Couldn't load the versions"
+            message={versions.error.message}
+            onRetry={versions.reload}
+            className="border-t border-line py-4"
+          />
+        ) : (
+          <VersionSkeleton />
+        )}
+        {move && active && (
+          <MoveDialog
+            agent={agent}
+            version={move.version}
+            kind={move.kind}
+            active={active}
+            onClose={() => setMove(null)}
+          />
+        )}
+      </SettingsSection>
+    </>
   );
 }
 
@@ -163,100 +161,5 @@ function VersionRow({
         </div>
       </SettingsRow>
     </li>
-  );
-}
-
-function Change({ icon, children }: { icon: ReactNode; children: ReactNode }) {
-  return (
-    <li className="flex items-start gap-3 text-fg-secondary [&_svg]:mt-[3px] [&_svg]:shrink-0">
-      {icon}
-      <span className="text-pretty">{children}</span>
-    </li>
-  );
-}
-
-/**
- * Asks before the version chats run on changes, and says what changes: which version answers
- * from the next reply, what moves with it, and that the one it replaces stays.
- */
-function MoveDialog({
-  agent,
-  version,
-  kind,
-  active,
-  onClose,
-}: {
-  agent: GraduateSummary;
-  version: GraduateVersion;
-  kind: VersionMove;
-  active: GraduateVersion;
-  onClose: () => void;
-}) {
-  const settings = useGraduateSettings(agent.id);
-  const [moving, setMoving] = useState(false);
-  const promote = kind === 'promote';
-  const number = version.version;
-  const carries =
-    version.manifest.model.adapter === undefined ? 'setup' : 'setup and trained weights';
-  const caution = promote ? promoteCaution(version) : null;
-  // Promotion never lets a version from another computer write without asking (decision 039).
-  const backToAsk = promote && version.origin !== undefined && settings.data?.writeMode === 'allow';
-
-  const confirm = async () => {
-    setMoving(true);
-    const done = await attempt(
-      promote ? `Couldn't promote version ${number}` : `Couldn't roll back to version ${number}`,
-      async () => {
-        if (promote) {
-          if (version.state === 'candidate') await graduatesApi.acceptVersion(agent.id, number);
-          await graduatesApi.promote(agent.id, number);
-        } else {
-          await graduatesApi.rollback(agent.id, number);
-        }
-        await refreshAgent(agent.id);
-        return true;
-      },
-    );
-    setMoving(false);
-    if (done) onClose();
-  };
-
-  return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent
-        title={promote ? `Promote version ${number}?` : `Roll back to version ${number}?`}
-      >
-        <ul className="m-0 flex list-none flex-col gap-3 px-7 pt-4">
-          {caution && (
-            <Change icon={<CircleAlert size={15} strokeWidth={1.8} aria-hidden />}>
-              {caution}
-            </Change>
-          )}
-          <Change icon={<Layers size={15} strokeWidth={1.8} aria-hidden />}>
-            New replies use version {number}&apos;s {carries}
-            {promote ? '.' : ' again.'}
-          </Change>
-          <Change icon={<RotateCcw size={15} strokeWidth={1.8} aria-hidden />}>
-            {/* Going back to an earlier version is a rollback; to a later one, a promotion. */}
-            Version {active.version} stays, so you can{' '}
-            {active.version < number ? 'roll back to it' : 'promote it again'}.
-          </Change>
-          {backToAsk && (
-            <Change icon={<LockKeyhole size={15} strokeWidth={1.8} aria-hidden />}>
-              Saving changes goes back to {WRITE_MODE_LABELS.ask}, since version {number} came from
-              another computer.
-            </Change>
-          )}
-        </ul>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button size="md">Cancel</Button>
-          </DialogClose>
-          <Button variant="primary" size="md" loading={moving} onClick={() => void confirm()}>
-            {promote ? 'Promote' : 'Roll back'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

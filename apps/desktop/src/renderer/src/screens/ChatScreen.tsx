@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { GraduateSummary } from '@architect/shared';
-import { Badge, Button, EmptyState, ErrorState, Skeleton } from '@architect/ui';
+import type { GraduateSummary, WorkspaceMessage } from '@architect/shared';
+import { Badge, Button, Drawer, EmptyState, ErrorState, Skeleton } from '@architect/ui';
 import { Bot, Laptop } from 'lucide-react';
 import { architect } from '../api/client';
 import { useGraduates, useSettings } from '../api/hooks';
@@ -14,7 +14,19 @@ import { EmptyChat } from '../workspace/EmptyChat';
 import { AgentMessage, Thinking, UserMessage } from '../workspace/messages';
 import { SidePanel, type PanelContent } from '../workspace/SidePanel';
 import { sendMessage, useAgentChats, useChatMessages } from '../workspace/store';
+import { TeachSheet } from '../workspace/teach/TeachSheet';
 import { useBottomPin } from '../workspace/useBottomPin';
+
+/** The request a reply answered: the person's message before it in the chat. */
+function requestOf(messages: readonly WorkspaceMessage[], reply: WorkspaceMessage): string {
+  const index = messages.findIndex((message) => message.id === reply.id);
+  return (
+    messages
+      .slice(0, Math.max(0, index))
+      .reverse()
+      .find((message) => message.role === 'user')?.text ?? ''
+  );
+}
 
 /** The header's status pill: the agent makes no network calls beyond its local model. */
 const runningHere = (
@@ -124,6 +136,23 @@ function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [panel, closePanel]);
 
+  // The reply being taught from. It stays set while the sheet animates closed, and each flag
+  // starts a fresh sheet, even on a reply flagged before.
+  const [flagged, setFlagged] = useState<{
+    reply: WorkspaceMessage;
+    open: boolean;
+    count: number;
+  } | null>(null);
+  const flag = useCallback(
+    (reply: WorkspaceMessage) =>
+      setFlagged((current) => ({ reply, open: true, count: (current?.count ?? 0) + 1 })),
+    [],
+  );
+  const closeSheet = useCallback(
+    () => setFlagged((current) => current && { ...current, open: false }),
+    [],
+  );
+
   const send = async (text: string) => {
     changeDraft('');
     pinToBottom();
@@ -174,6 +203,7 @@ function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
               agent={agent}
               stepsStartOpen={stepsStartOpen}
               onOpenPanel={openPanel}
+              onFlag={flag}
             />
           ),
         )}
@@ -215,6 +245,17 @@ function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
         </div>
         {panel && <SidePanel content={panel} onClose={closePanel} />}
       </div>
+      <Drawer open={flagged?.open ?? false} onOpenChange={(open) => !open && closeSheet()}>
+        {flagged && (
+          <TeachSheet
+            key={flagged.count}
+            agent={agent}
+            reply={flagged.reply}
+            request={requestOf(list ?? [], flagged.reply)}
+            onClose={closeSheet}
+          />
+        )}
+      </Drawer>
     </>
   );
 }
