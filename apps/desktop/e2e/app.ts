@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,16 +29,31 @@ export interface LaunchedApp {
   close: () => Promise<void>;
 }
 
+export interface LaunchOptions {
+  /** More environment for the app, such as a stand-in llama-server. */
+  env?: Record<string, string>;
+  /** Settings the profile starts with; defaults for the rest. */
+  settings?: Partial<AppSettings>;
+}
+
 /**
  * Starts the built app, or the packaged one when ARCHITECT_E2E_EXECUTABLE names it, with a
  * hidden window and a throwaway profile.
  */
-export async function launchApp(): Promise<LaunchedApp> {
+export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedApp> {
   const userData = await mkdtemp(join(tmpdir(), 'architect-e2e-'));
+  if (options.settings) {
+    await writeFile(join(userData, 'settings.json'), JSON.stringify(options.settings));
+  }
   const executablePath = packagedExecutable();
   const app = await electron.launch({
     ...(executablePath ? { executablePath } : { args: [APP_DIR] }),
-    env: { ...process.env, ARCHITECT_HIDDEN: '1', ARCHITECT_USER_DATA: userData },
+    env: {
+      ...process.env,
+      ...options.env,
+      ARCHITECT_HIDDEN: '1',
+      ARCHITECT_USER_DATA: userData,
+    },
   });
   const page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');

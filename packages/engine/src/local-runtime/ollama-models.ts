@@ -144,7 +144,7 @@ export function resolveOllamaModel(
   throw new LocalRuntimeError(
     'model_not_found',
     `${name} isn't in Ollama's model folder (${dirs.join(' or ')}).`,
-    `Install ${name} in Settings › Models, or set the folder Ollama keeps models in.`,
+    `Download ${name} with Ollama (Settings › Models downloads Glimmer's builds), then try again.`,
   );
 }
 

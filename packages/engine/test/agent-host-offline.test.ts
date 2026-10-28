@@ -14,6 +14,13 @@ import { openEngineStore } from '../src/store/engine-store';
 import type { ObservedConnection } from './agent-host/connection-observer';
 import { startFakeOllama, type FakeOllama } from './agent-host/fake-ollama';
 import { addGraduate } from './agent-host/graduates';
+import {
+  fakeLlamaCommand,
+  flag,
+  recorded,
+  standInAdapter,
+  storeBase,
+} from './support/adapter-runtime';
 
 /*
  * The offline guarantee, end to end: the real agent host entry runs in its own process, with
@@ -38,12 +45,16 @@ interface HostProcess {
   stop(): Promise<string>;
 }
 
-function startHostProcess(dataDir: string, connectionLog: string): HostProcess {
-  const child: ChildProcess = fork(ENTRY, ['--data-dir', dataDir], {
+function startHostProcess(
+  dataDir: string,
+  connectionLog: string,
+  extra: { args?: string[]; env?: Record<string, string> } = {},
+): HostProcess {
+  const child: ChildProcess = fork(ENTRY, ['--data-dir', dataDir, ...(extra.args ?? [])], {
     cwd: dirname(ENTRY),
     execArgv: ['--import', 'tsx', '--import', OBSERVER],
     // Nothing from this environment: no proxy settings, no keys.
-    env: { ARCHITECT_CONNECTION_LOG: connectionLog },
+    env: { ARCHITECT_CONNECTION_LOG: connectionLog, ...extra.env },
     stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
     // Structured clone, like Electron's ports: a void result arrives as a present `undefined`.
     serialization: 'advanced',
@@ -158,4 +169,69 @@ describe('a graduate in the workspace', () => {
     }
     expect(JSON.stringify(observed)).not.toContain('example.com');
   }, 60_000);
+
+  it('serves a version with an adapter through llama-server on 127.0.0.1, and reaches nothing else', async () => {
+    const dataDir = await mkdtemp(join(tmpdir(), 'architect-offline-adapter-'));
+    const connectionLog = join(dataDir, 'connections.jsonl');
+    const record = join(dataDir, 'llama-server.jsonl');
+    const models = join(dataDir, 'ollama-models');
+    const base = storeBase(models);
+    const ollama = await startFakeOllama([]);
+    const store = openEngineStore(new DataPaths(dataDir).database);
+    const graduate = await addGraduate(dataDir, store, {
+      id: 'grd_adapter',
+      baseUrl: ollama.url,
+      adapter: { bytes: standInAdapter(base.header), baseDigest: base.digest, scale: 0.6 },
+    });
+    store.close();
+    const host = startHostProcess(dataDir, connectionLog, {
+      args: ['--llama-server-command', JSON.stringify(fakeLlamaCommand(record))],
+      env: { OLLAMA_MODELS: models },
+    });
+    cleanup = async () => {
+      await host.stop();
+      await ollama.close();
+      await rm(dataDir, { recursive: true, force: true });
+    };
+    const { client } = host;
+
+    await client.configure({ ollamaUrl: ollama.url });
+    await client.openGraduate(graduate.id);
+    const chat = await client.createChat(graduate.id);
+    const replied = settledReply(client, chat.id);
+    await client.send(chat.id, 'Which invoices are open?');
+    expect(await replied).toMatchObject({ status: 'done', text: 'lora=[{"id":0,"scale":0.6}]' });
+    // Before llama-server started, Ollama was asked to let go of the GPU; it was never asked to chat.
+    expect(new Set(ollama.requests.map((request) => request.path))).toEqual(new Set(['/api/ps']));
+
+    expect(await client.blockedConnections()).toEqual([]);
+    const stderr = await host.stop();
+    expect(stderr).not.toContain(BLOCKED_LOG_PREFIX);
+    // llama-server went with the host that started it.
+    const [started] = recorded(record).filter((entry) => entry.kind === 'start');
+    expect(started?.pid).toBeDefined();
+    expect(isRunning(started?.pid ?? 0)).toBe(false);
+
+    const serverPort = flag(started?.argv, '--port');
+    const observed = await readConnections(connectionLog);
+    const connects = observed.filter((entry) => entry.type === 'connect');
+    expect(connects.some(({ port }) => String(port) === serverPort)).toBe(true);
+    for (const { host: target, port, guarded } of connects) {
+      expect({ target, guarded }).toEqual({ target: '127.0.0.1', guarded: true });
+      expect([new URL(ollama.url).port, serverPort]).toContain(String(port));
+    }
+    for (const entry of observed) {
+      if (entry.type === 'connected') expect(isLoopbackHost(entry.address ?? '')).toBe(true);
+      if (entry.type === 'lookup') expect(isLoopbackHost(String(entry.name))).toBe(true);
+    }
+  }, 60_000);
 });
+
+function isRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}

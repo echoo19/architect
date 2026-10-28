@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { accessSync, constants, statSync } from 'node:fs';
 import { join } from 'node:path';
+import type { LlamaServerStatus } from '@architect/shared';
 import { LocalRuntimeError } from './errors';
 
 /**
@@ -103,11 +104,11 @@ export function parseServerVersion(output: string): ServerVersion | null {
   return { build: Number(match[1]), commit: match[2] ?? null };
 }
 
-/** Asks the server which build it is, and refuses one too old to run the model. */
-export async function checkServerVersion(
+/** Asks the server which build it is: null when it ran and didn't say. Loads no model. */
+export async function readServerVersion(
   command: ServerCommand,
   timeoutMs = 30_000,
-): Promise<ServerVersion> {
+): Promise<ServerVersion | null> {
   const output = await new Promise<string>((resolve, reject) => {
     execFile(
       command.file,
@@ -128,7 +129,11 @@ export async function checkServerVersion(
       { cause: error },
     );
   });
-  const version = parseServerVersion(output);
+  return parseServerVersion(output);
+}
+
+/** The build, when it is one that runs the model; otherwise why it can't be used. */
+function usableVersion(command: ServerCommand, version: ServerVersion | null): ServerVersion {
   if (!version) {
     throw new LocalRuntimeError(
       'binary_unusable',
@@ -144,4 +149,49 @@ export async function checkServerVersion(
     );
   }
   return version;
+}
+
+/** Asks the server which build it is, and refuses one too old to run the model. */
+export async function checkServerVersion(
+  command: ServerCommand,
+  timeoutMs = 30_000,
+): Promise<ServerVersion> {
+  return usableVersion(command, await readServerVersion(command, timeoutMs));
+}
+
+export interface DescribeServerOptions extends FindServerOptions {
+  /** Describes this program instead of finding llama-server: a stand-in for tests. */
+  command?: ServerCommand;
+  timeoutMs?: number;
+}
+
+/**
+ * llama-server on this computer as Settings shows it: where it was found, its build, and whether
+ * it can serve graduates that carry an adapter, with what to do when it can't. Loads no model.
+ */
+export async function describeLlamaServer(
+  options: DescribeServerOptions = {},
+): Promise<LlamaServerStatus> {
+  const minimumBuild = MIN_LLAMA_SERVER_BUILD;
+  let found: FoundServer;
+  try {
+    found = options.command
+      ? { command: options.command, source: 'setting' }
+      : findLlamaServer(options);
+  } catch (error) {
+    if (!(error instanceof LocalRuntimeError)) throw error;
+    return { source: null, ready: false, problem: error.message, hint: error.hint, minimumBuild };
+  }
+  const where = { source: found.source, path: found.command.file, minimumBuild };
+  let version: ServerVersion | null = null;
+  try {
+    version = await readServerVersion(found.command, options.timeoutMs);
+    const usable = usableVersion(found.command, version);
+    return { ...where, build: usable.build, ready: true };
+  } catch (error) {
+    if (!(error instanceof LocalRuntimeError)) throw error;
+    // A build too old still says which it is.
+    const build = version === null ? {} : { build: version.build };
+    return { ...where, ...build, ready: false, problem: error.message, hint: error.hint };
+  }
 }

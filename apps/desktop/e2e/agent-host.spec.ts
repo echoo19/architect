@@ -12,15 +12,25 @@ import {
   writePackage,
   type PackageEntry,
 } from '@architect/harness';
-import type {
-  GraduateSummary,
-  HarnessTool,
-  Job,
-  WorkspaceChat,
-  WorkspaceMessage,
+import {
+  DEFAULT_STUDENT,
+  type GraduateSummary,
+  type HarnessTool,
+  type Job,
+  type WorkspaceChat,
+  type WorkspaceMessage,
 } from '@architect/shared';
-import { launchApp, type LaunchedApp } from './app';
-import { startFakeOllama, startFakeStudent } from './models';
+import {
+  BASE_NAME,
+  flag,
+  recorded,
+  standInCommand,
+  storeBase,
+  withAdapter,
+  type StoredBase,
+} from './adapters';
+import { goTo, launchApp, type LaunchedApp } from './app';
+import { startFakeOllama, startFakeStudent, type FakeOllama } from './models';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -54,17 +64,51 @@ let launched: LaunchedApp;
 let folders: string;
 /** A graduate trained on the sample job against a student that answers nothing, exported. */
 let trained: string;
+/** The app's Ollama, which llama-server's start asks to let go of the GPU. It never chats. */
+let gpuOllama: FakeOllama;
+/** Ollama's store on this test computer: a tiny base, and nothing else. */
+let base: StoredBase;
+/** What the stand-in llama-server recorded: its starts and chat requests. */
+let llamaRecord: string;
 
 test.beforeAll(async () => {
-  launched = await launchApp();
   folders = await mkdtemp(join(tmpdir(), 'architect-e2e-graduates-'));
+  const models = join(folders, 'ollama-models');
+  base = await storeBase(models);
+  llamaRecord = join(folders, 'llama-server.jsonl');
+  gpuOllama = await startFakeOllama([{ text: 'Ollama is never asked to chat here.' }]);
+  launched = await launchApp({
+    env: { OLLAMA_MODELS: models, ARCHITECT_LLAMA_SERVER_COMMAND: standInCommand(llamaRecord) },
+    settings: {
+      defaultStudent: {
+        runtime: 'ollama',
+        baseUrl: gpuOllama.baseUrl,
+        model: DEFAULT_STUDENT.model,
+        contextLength: DEFAULT_STUDENT.contextLength,
+      },
+    },
+  });
   trained = await exportTrainedGraduate();
 });
 
 test.afterAll(async () => {
   await launched?.close();
+  await gpuOllama?.close();
+  // Quitting stopped every llama-server the app started: none outlives it.
+  for (const entry of recorded(llamaRecord).filter((line) => line.kind === 'start')) {
+    expect(isRunning(entry.pid ?? 0)).toBe(false);
+  }
   await rm(folders, { recursive: true, force: true });
 });
+
+function isRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 async function exportTrainedGraduate(): Promise<string> {
   const { page, app } = launched;
@@ -259,4 +303,61 @@ test('stops a connection that leaves this computer, even when a local model send
   } finally {
     await model.close();
   }
+});
+
+test('imports a package with an adapter, opens it, and answers through llama.cpp with the adapter', async () => {
+  const { page } = launched;
+  const folder = join(folders, 'grd_adapter');
+  await withAdapter(trained, folder, 'grd_adapter', base);
+  const records = join(folders, 'grd_adapter-records');
+  await cp(SAMPLE_DATA, records, { recursive: true });
+  const imported = await page.evaluate(
+    ([path, data, model]) =>
+      window.architect.graduates.importPackage(path, {
+        bindings: { data },
+        grants: { writes: 'ask', resources: { data: 'read_write' } },
+        model: { runtime: 'ollama', baseUrl: 'http://127.0.0.1:11434', model },
+      }),
+    [folder, records, BASE_NAME] as const,
+  );
+
+  // Its checks found llama-server and the exact base, and its short request went through it.
+  expect(imported.installation.status).toBe('ready');
+  expect(imported.installation.checks.map((check) => [check.id, check.status]).slice(-3)).toEqual([
+    ['adapter-runtime', 'passed'],
+    ['model-available', 'passed'],
+    ['model-responds', 'passed'],
+  ]);
+  expect(imported.graduate.manifest.student.adapter).toEqual({ scale: 1, standIn: true });
+
+  const chat = await startChat(imported.graduate.id, 'Which jobs are open?');
+  expect(await settledReply(chat.id)).toMatchObject({
+    status: 'done',
+    text: 'lora=[{"id":0,"scale":1}]',
+    graduateVersion: 1,
+  });
+
+  // One start for the check, one for the workspace: each on the base from the store, with the
+  // version's adapter, and every request applying it at its scale.
+  const lines = recorded(llamaRecord);
+  const starts = lines.filter((line) => line.kind === 'start');
+  expect(starts).toHaveLength(2);
+  for (const start of starts) {
+    expect(flag(start.argv, '--alias')).toBe(BASE_NAME);
+    expect(flag(start.argv, '--host')).toBe('127.0.0.1');
+    expect(flag(start.argv, '--lora')).toMatch(/[\\/]v0001[\\/]adapter[\\/]adapter\.gguf$/);
+  }
+  const lora = lines.filter((line) => line.kind === 'chat').map((line) => line.body?.['lora']);
+  expect(lora.length).toBeGreaterThanOrEqual(3);
+  for (const scales of lora) expect(scales).toEqual([{ id: 0, scale: 1 }]);
+  // Ollama was asked to let go of the GPU before each start, and never to answer.
+  expect(gpuOllama.loadedAsked()).toBeGreaterThanOrEqual(2);
+  expect(gpuOllama.chats).toEqual([]);
+
+  // The workspace's status line says the agent runs with its adapter. The page read its agents
+  // before this import, which went straight to the API, so it reads them again.
+  await page.reload();
+  await page.waitForLoadState('domcontentloaded');
+  await goTo(page, `/agents/${imported.graduate.id}/chats/${chat.id}`);
+  await expect(page.getByText('Stand-in adapter')).toBeVisible();
 });

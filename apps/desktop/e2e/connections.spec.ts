@@ -1,13 +1,14 @@
 import {
   glimmerBuild,
   type AppSettings,
+  type LlamaServerStatus,
   type LocalRuntimes,
   type ModelEntry,
   type PullProgress,
 } from '@architect/shared';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
-import { GPU_12GB, LOCAL_WITH_GLIMMER, OLLAMA_READY } from './fixtures';
+import { GPU_12GB, LLAMA_SERVER_READY, LOCAL_WITH_GLIMMER, OLLAMA_READY } from './fixtures';
 
 /*
  * Settings › Models and the mentor and model steps of first-run setup, against a stand-in for
@@ -41,6 +42,8 @@ const LISTS: Record<string, ModelEntry[]> = {
 interface Seed {
   secrets: Record<string, boolean>;
   local: LocalRuntimes;
+  /** What the llama.cpp row finds; ready on PATH when absent. */
+  llamaServer?: LlamaServerStatus;
 }
 
 interface FakeConnections {
@@ -54,7 +57,7 @@ interface FakeConnections {
  */
 async function installFakeConnections(app: ElectronApplication, seed: Seed): Promise<void> {
   await app.evaluate(
-    ({ BrowserWindow, ipcMain }, { seed, lists }) => {
+    ({ BrowserWindow, ipcMain }, { seed, lists, llamaServer }) => {
       const calls: { channel: string; args: unknown[] }[] = [];
       const secrets = { ...seed.secrets };
       const handle = (channel: string, reply: (...args: never[]) => unknown) => {
@@ -117,10 +120,11 @@ async function installFakeConnections(app: ElectronApplication, seed: Seed): Pro
       }));
       handle('app:openProviderPage', () => undefined);
       handle('ollama:install', () => new Promise<void>(() => undefined));
+      handle('connections:llamaServer', () => llamaServer);
 
       Object.assign(globalThis, { fakeConnections: { calls, broadcast } });
     },
-    { seed, lists: LISTS },
+    { seed, lists: LISTS, llamaServer: seed.llamaServer ?? LLAMA_SERVER_READY },
   );
 }
 
@@ -189,6 +193,7 @@ test('lists every connection and picks the mentor from any of them', async () =>
   const connections = page.getByRole('region', { name: 'Connections' });
   await expect(connections.getByText('Running · 0.12.6 · 2 models')).toBeVisible();
   await expect(connections.getByText('Not found')).toBeVisible();
+  await expect(connections.getByText('Build 10472 · on PATH')).toBeVisible();
 
   await page.getByRole('button', { name: 'Mentor', exact: true }).click();
   const menu = page.getByRole('listbox');
@@ -257,6 +262,28 @@ test("picks the agent's model on this computer, with whether it fits the GPU", a
   ).toBeVisible();
   await page.getByRole('button', { name: 'Use it' }).click();
   await expect.poll(async () => (await settings(page)).defaultStudent.model).toBe(GPU_BUILD.model);
+  await page.keyboard.press('Escape');
+});
+
+test('shows a llama-server too old for Glimmer as too old, with how to fix it', async () => {
+  const tooOld: LlamaServerStatus = {
+    source: 'path',
+    path: '/usr/local/bin/llama-server',
+    build: 9000,
+    ready: false,
+    problem: 'llama-server is build 9000, older than 10358, the first that runs Muse Glimmer.',
+    hint: 'Update llama.cpp to build 10358 or newer.',
+    minimumBuild: 10358,
+  };
+  await open('/', { secrets: { meta: true }, local: LOCAL, llamaServer: tooOld });
+  await openModelsTab();
+  const connections = page.getByRole('region', { name: 'Connections' });
+  await expect(connections.getByText('Too old')).toBeVisible();
+  await expect(connections.getByRole('alert')).toContainText(
+    'Update llama.cpp to build 10358 or newer.',
+  );
+  await page.getByRole('button', { name: 'Check again' }).click();
+  await expect.poll(() => callsTo(launched.app, 'connections:llamaServer')).toHaveLength(2);
   await page.keyboard.press('Escape');
 });
 

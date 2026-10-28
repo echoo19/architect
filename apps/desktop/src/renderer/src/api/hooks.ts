@@ -9,6 +9,7 @@ export const queryKeys = {
   secrets: 'secrets.status',
   ollama: 'ollama.status',
   local: 'connections.local',
+  llamaServer: 'connections.llamaServer',
   models: (source: { provider: string; baseUrl: string }) =>
     `models:${source.provider}:${source.baseUrl}`,
   graduates: 'graduates',

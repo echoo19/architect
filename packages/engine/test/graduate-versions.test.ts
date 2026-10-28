@@ -28,7 +28,10 @@ async function model(script: Parameters<typeof startFakeOllama>[0]): Promise<Fak
 }
 
 function host(made: Computer): AgentHost {
-  const opened = createAgentHost({ store: workspaceStore(made.store, made.dataDir) });
+  const opened = createAgentHost({
+    store: workspaceStore(made.store, made.dataDir),
+    adapters: made.workspaceRuntime(),
+  });
   cleanups.push(() => opened.close());
   return opened;
 }
@@ -177,7 +180,7 @@ describe('A06: a graduate after a restart and a rollback', () => {
     expect((refused as PackageError).code).toBe('checksum');
   });
 
-  it('refuses to run a version with an adapter on a runtime that would drop it', async () => {
+  it('never sends a version with an adapter to Ollama, which would leave the adapter out', async () => {
     const made = await computer();
     const ollama = await model([{ text: 'unused' }]);
     await addVersion(made, {
@@ -185,8 +188,9 @@ describe('A06: a graduate after a restart and a rollback', () => {
       adapter: 'LORA WEIGHTS',
       baseUrl: ollama.url,
     });
+    // llama.cpp serves it (graduate-adapters.test.ts); a file that isn't a GGUF LoRA never loads.
     await expect(host(made).openGraduate('grd_desk')).rejects.toThrow(
-      "carries a LoRA adapter, which ollama can't load",
+      "The adapter for Service desk v1 is missing or isn't a GGUF file.",
     );
     expect(ollama.requests).toEqual([]);
   });

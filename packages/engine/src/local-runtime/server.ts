@@ -29,6 +29,12 @@ export interface LlamaServerLaunch {
    * so one server measures a candidate with and without its adapter.
    */
   adapters: readonly string[];
+  /**
+   * What each adapter file holds, in the same order: its sha256, or its size and time when no
+   * sha256 is known. A file replaced at the same path makes another launch, so the server
+   * restarts instead of serving the adapter it loaded before.
+   */
+  adapterFiles?: readonly string[];
   contextSize: number;
   gpuLayers: number;
   /** The quiet-mode CPU thread cap; the server's own default when absent. */

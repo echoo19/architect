@@ -1,5 +1,10 @@
 import { mkdir } from 'node:fs/promises';
 import { RunEventSchema } from '@architect/shared';
+import {
+  hostAdapterRuntime,
+  type LocalRuntimeSettings,
+  type ServerCommand,
+} from '../local-runtime';
 import { RunController } from '../loop/controller';
 import { systemClock, type Clock, type EngineHostDeps } from '../loop/deps';
 import { JobLibrary } from '../loop/jobs';
@@ -24,6 +29,10 @@ export interface EngineHostOptions {
   clock?: Clock;
   /** Attempts in flight at once while training. */
   concurrency?: number;
+  /** The settings its llama-server follows, read at every start: path, thread cap, which Ollama. */
+  localRuntime?: () => LocalRuntimeSettings;
+  /** A stand-in llama-server for tests, run instead of finding the real one. */
+  llamaServerCommand?: ServerCommand;
   /** Errors nobody asked about: a broken event listener, a message that isn't a request. */
   onError?(error: unknown): void;
 }
@@ -70,7 +79,21 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
   const store = openEngineStore(paths.database);
   const contracts = new ContractBook(store, clock);
   const jobs = new JobLibrary(store, paths, options.deps, clock, contracts);
-  const graduates = new GraduateLibrary({ store, paths, clock, contracts, deps: options.deps });
+  // The installation checks' own llama-server, apart from the workspace's (decision 041).
+  const localRuntime = options.localRuntime ?? (() => ({}));
+  const adapterRuntime = hostAdapterRuntime({
+    runtimeDir: paths.runtimeDir('engine'),
+    settings: localRuntime,
+    ...(options.llamaServerCommand === undefined ? {} : { command: options.llamaServerCommand }),
+  });
+  const graduates = new GraduateLibrary({
+    store,
+    paths,
+    clock,
+    contracts,
+    deps: options.deps,
+    adapterRuntime,
+  });
   const controller = new RunController({
     store,
     paths,
@@ -111,7 +134,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     async close() {
       closed = true;
       ports.clear();
-      await controller.close();
+      await Promise.all([controller.close(), adapterRuntime.stop()]);
       store.close();
     },
   };

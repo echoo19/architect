@@ -16,14 +16,16 @@ flowchart LR
   E -- training only --> Mentor[(Mentor<br/>Meta Model API, another provider,<br/>a model on localhost, or a coding agent)]
   E --> Student[(Student runtime<br/>Ollama or another server on localhost,<br/>or a hosted copy for practice)]
   A --> Local[(Ollama or another server<br/>on localhost)]
+  A --> LS[llama-server on 127.0.0.1<br/>for versions with an adapter]
+  E --> LC[llama-server on 127.0.0.1<br/>for installation checks]
 ```
 
 | Process | Owns | Never does |
 | --- | --- | --- |
 | Main | Windows, menus, IPC routing, settings, keys (Electron `safeStorage`) and where each may go, connections and model lists, OpenRouter sign-in, local runtime and GPU detection, model pulls and installs | Run training or agent logic |
 | Renderer | All UI; talks only through the preload bridge (`window.architect`) | Touch Node, the network, or the disk |
-| Engine host (utility process) | Jobs, runs, rounds, the core loop, baselines, evaluation, the vault, SQLite, the run event stream | Serve the workspace |
-| Agent host (utility process) | Workspace sessions with graduates: opening a graduate's active version from its own folder and this computer's installation, student calls, harness loading, tool calls, pending writes awaiting approval | Load a mentor adapter or reach a non-loopback host |
+| Engine host (utility process) | Jobs, runs, rounds, the core loop, baselines, evaluation, the vault, SQLite, the run event stream, installation checks (with a llama-server of its own for versions with an adapter) | Serve the workspace |
+| Agent host (utility process) | Workspace sessions with graduates: opening a graduate's active version from its own folder and this computer's installation, student calls (llama-server for a version with an adapter, decision 041), harness loading, tool calls, pending writes awaiting approval | Load a mentor adapter or reach a non-loopback host |
 | Tool sandbox (child process) | One QuickJS VM per call: a mentor-written helper, a checker validator, the agent's `run` code or a `grep` search, each with only the files it is handed, read-only, plus time and memory limits | Network, process spawning, changing a file, or any file the job didn't declare |
 
 The engine and agent hosts are plain Node modules in `packages/engine`. The Electron entry points in `apps/desktop` are thin wrappers, so the whole loop runs under Vitest without Electron.
@@ -45,7 +47,7 @@ Baselines reuse the same runner, checker, data, budget and seed: **bare** (minim
 
 - **Test split.** Only `packages/engine/src/vault` reads or writes it. Mentor payloads are built from an allowlist of fields, and every payload passes a leak check against fingerprints of the test tasks (their prompts, ids and expected results, including the long ids and amounts no other task or data file holds) before it is sent. Tests assert both.
 - **Checker.** Deterministic functions; custom checker files run in the sandbox with no clock or randomness. The mentor's change set may only touch harness files; edits outside the harness surface are rejected.
-- **Offline graduates.** The agent host installs a guard at startup that refuses any non-loopback connection, and it only constructs local student adapters. A test runs a workspace session against a local fake model server and fails on any other connection attempt.
+- **Offline graduates.** The agent host installs a guard at startup that refuses any non-loopback connection, and it only constructs local student adapters: Ollama's, or llama.cpp's on 127.0.0.1 for a version with an adapter, which it starts with `--offline` and stops before it exits. A test runs a workspace session against a local fake model server, and another through a stand-in llama-server, and each fails on any other connection attempt.
 - **Budgets.** Rounds, mentor dollars and wall clock are checked before every mentor call and every round; a call that would cross a cap does not start. Every training attempt runs under the wall-clock deadline: one still running when the time is up is cut there, not scored, and the run goes to its locked test.
 - **Packages.** An import is unpacked and checked in a staging folder (entry names and types, sizes, the manifest's format, every checksum, the runtimes it needs) before anything in it runs, and its harness is parsed against its hash before its tools first load in the sandbox. A version opens only while its manifest and every file still match what was installed, so its harness and adapter can't drift apart. A package asks for access; only the user grants it.
 - **Restart.** Runs persist every step to SQLite. On launch the engine host marks interrupted runs and resumes them from the last completed step.
@@ -72,7 +74,8 @@ staging/                           where imports and exports are unpacked and ch
 training/jobs/<job>/record.json    a training job's durable record (decision 035)
 training/jobs/<job>/inputs/        what the job was sent: job.json, the dataset, the recipe
 training/jobs/<job>/artifacts/     its outputs, checked against its manifest: PEFT files, GGUF LoRA
-local-runtime/                     llama-server's key, process record and logs
+local-runtime/<host>/              each host's llama-server key, process record and logs
+                                   (workspace, engine, cli)
 ```
 
 ## Packages
