@@ -191,7 +191,7 @@ function operandOf(node: RuleNode, ctx: WordsContext): string {
   return bracketed(node, ctx, 1);
 }
 
-const larger = (op: 'min' | 'max'): string => (op === 'min' ? 'smaller' : 'larger');
+const comparative = (op: 'min' | 'max'): string => (op === 'min' ? 'smaller' : 'larger');
 
 const VERBS: Record<Arithmetic, string> = {
   add: 'add',
@@ -206,7 +206,7 @@ function doing(link: Doing, ctx: WordsContext): string {
     case 'do':
       return `${VERBS[link.op]} ${operandOf(link.operand, ctx)}`;
     case 'best':
-      return `take the ${larger(link.op)} of ${inWords([
+      return `take the ${comparative(link.op)} of ${inWords([
         'the result',
         ...link.others.map((other) => operandOf(other, ctx)),
       ])}`;
@@ -260,7 +260,7 @@ function together(start: RuleNode, next: Link, ctx: WordsContext): string | null
   }
   if (next.kind === 'best') {
     const others = next.others.map((other) => operandOf(other, ctx));
-    return `Take the ${larger(next.op)} of ${inWords([what, ...others])}.`;
+    return `Take the ${comparative(next.op)} of ${inWords([what, ...others])}.`;
   }
   return null;
 }
