@@ -1,11 +1,11 @@
-import { teachingLine, type RuleReport } from '@architect/shared';
+import { branchLine, teachingLine, type RuleReport } from '@architect/shared';
 import { DetailList, Disclosure } from '@architect/ui';
 import { PassageList } from '../PassageList';
 
 /**
  * Everything the final test's expected answers rest on, for a job with a rule: the rule and its
  * version, the passages it came from, when the person confirmed it, how numbers and rounding were
- * read, which rows were left out, what each side of the rule did, and whether teaching ran.
+ * read, which rows were left out, where each side of the rule applied, and whether teaching ran.
  */
 export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rounds: number }) {
   return (
@@ -62,12 +62,9 @@ export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rou
             </Facts>
           )}
           {rule.branches.length > 0 && (
-            <Facts title="What each side of the rule did">
+            <Facts title="Where each side of the rule applied">
               {rule.branches.map((branch) => (
-                <li key={branch.label}>
-                  {branch.label}: {branch.cases} {branch.cases === 1 ? 'case' : 'cases'},{' '}
-                  {branch.changes} where it changed the answer
-                </li>
+                <li key={branch.label}>{branchLine(branch)}</li>
               ))}
             </Facts>
           )}

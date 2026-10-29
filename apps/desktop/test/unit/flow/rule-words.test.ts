@@ -1,4 +1,5 @@
 import {
+  branchLine,
   passageOrigin,
   passageSource,
   ruleScoreNote,
@@ -185,15 +186,34 @@ describe('the words that put a rule in front of the person', () => {
 describe('what the results say about a rule', () => {
   it('says the expected answers follow a rule the person confirmed, and are not certified', () => {
     expect(ruleScoreNote('Spark')).toBe(
-      "Expected answers were calculated by Architect using Spark's interpretation of your policy, which you confirmed. This score measures agreement with that rule on held-out cases; it does not independently establish that the rule matches your business policy.",
+      "Architect worked out every expected answer from the rule you confirmed, which is Spark's reading of your policy. So this score shows how often the agent agreed with that rule on tasks it had never seen. It can't show whether the rule itself is right for your business.",
     );
   });
 
   it('says whether teaching ran', () => {
     expect(teachingLine(0)).toBe(
-      'Teaching did not run: the student met the target on the check tasks before any round.',
+      'Teaching did not run: the agent met the target on the check tasks before any round.',
     );
     expect(teachingLine(1)).toBe('Teaching ran for 1 round.');
     expect(teachingLine(4)).toBe('Teaching ran for 4 rounds.');
+  });
+
+  it('says where each side of a condition applied, and for how many rows it mattered', () => {
+    const label = 'member (customers.csv) is yes';
+    expect(branchLine({ label, cases: 40, changes: 40 })).toBe(
+      'member (customers.csv) is yes: 40 rows, and the other side would give a different answer for all 40',
+    );
+    expect(branchLine({ label, cases: 1200, changes: 30 })).toBe(
+      'member (customers.csv) is yes: 1,200 rows, and the other side would give a different answer for 30 of them',
+    );
+    expect(branchLine({ label, cases: 1, changes: 1 })).toBe(
+      'member (customers.csv) is yes: 1 row, and the other side would give a different answer for it',
+    );
+    expect(branchLine({ label, cases: 3, changes: 0 })).toBe(
+      'member (customers.csv) is yes: 3 rows, and the other side would give a different answer for none of them',
+    );
+    expect(branchLine({ label, cases: 0, changes: 0 })).toBe(
+      'member (customers.csv) is yes: no rows',
+    );
   });
 });

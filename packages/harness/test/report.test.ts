@@ -191,7 +191,7 @@ describe('renderReportMarkdown', () => {
     report.cost = { ...report.cost, rounds: 0 };
     const text = renderReportMarkdown(report);
     const note =
-      "Expected answers were calculated by Architect using Spark's interpretation of your policy, which you confirmed. This score measures agreement with that rule on held-out cases; it does not independently establish that the rule matches your business policy.";
+      "Architect worked out every expected answer from the rule you confirmed, which is Spark's reading of your policy. So this score shows how often the agent agreed with that rule on tasks it had never seen. It can't show whether the rule itself is right for your business.";
     expect(text).toContain(note);
     // Beside the score: right after the line that says it, before anything else.
     expect(text.indexOf(note)).toBeGreaterThan(text.indexOf('locked test tasks passed'));
@@ -211,14 +211,14 @@ describe('renderReportMarkdown', () => {
     expect(text).toContain('Rows of the table that could be worked out: 118 of 180.');
     expect(text).toContain('- 62 rows left out because parts_cost is empty or N/A, such as T-2002');
     expect(text).toContain(
-      '- member (customers.csv) is yes: 44 cases, 44 where it changed the answer',
+      '- member (customers.csv) is yes: 44 rows, and the other side would give a different answer for all 44',
     );
     expect(text).toContain('Worth knowing:');
     expect(
       text
         .trimEnd()
         .endsWith(
-          'Teaching did not run: the student met the target on the check tasks before any round.',
+          'Teaching did not run: the agent met the target on the check tasks before any round.',
         ),
     ).toBe(true);
     expect(text).not.toMatch(/[\u{2013}\u{2014}\u{2018}\u{2019}\u{201c}\u{201d}]/u);

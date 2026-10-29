@@ -567,7 +567,7 @@ for (const theme of THEMES) {
     // Right under the score, where it is read: the expected answers follow a rule that was
     // confirmed, and the score doesn't say the rule matches the business.
     const note =
-      "Expected answers were calculated by Architect using Spark's interpretation of your policy, which you confirmed. This score measures agreement with that rule on held-out cases; it does not independently establish that the rule matches your business policy.";
+      "Architect worked out every expected answer from the rule you confirmed, which is Spark's reading of your policy. So this score shows how often the agent agreed with that rule on tasks it had never seen. It can't show whether the rule itself is right for your business.";
     await expect(page.getByText(note)).toBeVisible();
     await expect(page.getByRole('region', { name: 'The rule for Ticket totals' })).toHaveCount(0);
 
