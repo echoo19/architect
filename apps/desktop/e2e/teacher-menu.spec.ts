@@ -234,13 +234,15 @@ test('the last switch that changes the agent stays on, and Start training says w
   expect((await savedJob(page)).interventions).toEqual(['weights']);
 
   const needs = page.getByRole('region', { name: 'Before it can start' });
-  await expect(needs).toContainText('Spark has nothing it may change');
+  await expect(needs).toContainText("Spark can't change anything yet");
   await expect(needs).toContainText(
     'Only retraining Glimmer itself is on, and it needs a Hugging Face key. A free Hugging Face account gives you one.',
   );
   await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
   // The footer says the same, beside the button that is held.
-  await expect(page.getByText('Spark has nothing it may change')).toHaveCount(2);
+  await expect(page.getByText("Spark can't change anything yet")).toHaveCount(2);
+  // Nowhere does it say that nothing is permitted: the switch for the weights is on, and held.
+  await expect(page.getByText('has nothing it may change')).toHaveCount(0);
 });
 
 test('a run whose teacher may change nothing ends at once, with the reason and no spend', async () => {

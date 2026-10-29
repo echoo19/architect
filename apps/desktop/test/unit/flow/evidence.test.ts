@@ -236,7 +236,7 @@ describe('evidence words', () => {
     expect(trainingEnd('wall_clock', job)).toBe('The time limit ran out');
     expect(trainingEnd('usd', job)).toBe("Spark's budget ran out");
     expect(trainingEnd('rounds', job)).toBe('Used all 12 rounds');
-    expect(trainingEnd('nothing_to_try', job)).toBe('Spark had nothing it may change');
+    expect(trainingEnd('nothing_to_try', job)).toBe("Spark couldn't change anything");
   });
 
   it('order measurements before, after, then the four configurations', () => {

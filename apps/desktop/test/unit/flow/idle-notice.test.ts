@@ -166,7 +166,7 @@ describe('what a run that had nothing it may change says to the person', () => {
   it("leaves it to Details when a harness change is on, so the person's choice isn't why", () => {
     const odd = idleView(live({ interventions: ['procedure', 'weights'] }), NO_KEY);
     expect(odd.body).toBe(
-      'Spark had nothing it may change in this run. The reason is under Details. Nothing was spent.',
+      "Spark couldn't change anything in this run. The reason is under Details. Nothing was spent.",
     );
     expect(odd.missingKey).toBe(false);
     expect(odd.turnOn).toBe(false);

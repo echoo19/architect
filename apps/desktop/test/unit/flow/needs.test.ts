@@ -345,12 +345,39 @@ describe('a teacher that may change nothing', () => {
     expect(more).toEqual([]);
     expect(need).toEqual({
       id: 'teacher-idle',
-      title: 'Spark has nothing it may change',
+      title: "Spark can't change anything yet",
       detail:
         'Only retraining Glimmer itself is on, and it needs a Hugging Face key. A free Hugging Face account gives you one. Turn something else on, or add the key.',
       label: "Open Spark's settings",
       action: { kind: 'open', tab: 'mentor' },
     });
+  });
+
+  it("says what the teacher can't do yet, not what it may not, since its switch is on", () => {
+    // The teacher's tab shows "Retrain Glimmer itself" switched on and held, so a title that says
+    // nothing is permitted would contradict it. What is lacking is a key, a budget or an online
+    // final test, and the title is about what the teacher is able to do.
+    const noBudget = makeJob({ interventions: ['weights'] });
+    const online = { job: weightsOnly, token: 'found' as const, testPlace: 'hosted' as const };
+    for (const facts of [
+      { job: weightsOnly, token: 'none' as const },
+      { job: noBudget, token: 'found' as const },
+      online,
+    ]) {
+      const idle = runNeeds(input(facts)).filter((need) => need.id === 'teacher-idle');
+      expect(idle.map((need) => need.title)).toEqual(["Spark can't change anything yet"]);
+      expect(idle[0]?.title).not.toMatch(/\bmay\b|nothing/i);
+      // The footer beside the held Start training says the same thing as the list above it.
+      expect(needsSummary(idle)).toBe("Spark can't change anything yet");
+    }
+    // And by the teacher's own short name, whoever it is.
+    const open = makeJob({
+      interventions: ['weights'],
+      mentor: { ...weightsOnly.mentor, label: 'Muse Spark Open on Baseten' },
+    });
+    expect(runNeeds(input({ job: open, token: 'none' }))[0]?.title).toBe(
+      "Spark Open can't change anything yet",
+    );
   });
 
   it('says what stops the weights, in the order the engine looks for it', () => {

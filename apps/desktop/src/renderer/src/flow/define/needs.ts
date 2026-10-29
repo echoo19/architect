@@ -197,9 +197,11 @@ function hostNeed(
 }
 
 /**
- * The teacher may change nothing in this run: the person left only its weights on, and the app
+ * The teacher can change nothing in this run: the person left only its weights on, and the app
  * already knows they can't be trained here. The run would only stop at its start with this reason,
- * so it is said before.
+ * so it is said before. The title is about what the teacher is able to do and not what it may: the
+ * switch for retraining is on, and what it lacks is a key, a budget or an offline final test, so
+ * a title that says nothing is permitted would contradict the tab that shows the switch on.
  */
 function idleNeed(
   job: Job,
@@ -212,7 +214,7 @@ function idleNeed(
   const device = deviceInSentence(currentPlatform());
   return {
     id: 'teacher-idle',
-    title: `${names.mentor} has nothing it may change`,
+    title: `${names.mentor} can't change anything yet`,
     detail: `Only retraining ${names.student} itself is on, and it ${BLOCK_REASONS[block]}.${keyHint(block)} ${blockFix(block, device)}`,
     label: `Open ${names.mentor}'s settings`,
     action: { kind: 'open', tab: 'mentor' },

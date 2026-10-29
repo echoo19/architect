@@ -62,7 +62,7 @@ export function idleView(live: LiveRun, facts: IdleFacts): IdleView {
   // The simpler versions of a comparison change nothing but the harness, and never the weights.
   if (run.method !== 'architect') {
     return harness
-      ? view(`${mentor} had nothing it may change in this run. The reason is under Details.`)
+      ? view(`${mentor} couldn't change anything in this run. The reason is under Details.`)
       : view(
           'This simpler version can only change instructions, what it reads and small tools, and every one of them is turned off for this job.',
           { turnOn: true },
@@ -71,7 +71,7 @@ export function idleView(live: LiveRun, facts: IdleFacts): IdleView {
   // A job always keeps one kind of change that changes the agent, so with the harness's three
   // off the weights are on. Anything else is for the engine's sentence to explain.
   if (harness || !mayIntervene(job, 'weights')) {
-    return view(`${mentor} had nothing it may change in this run. The reason is under Details.`);
+    return view(`${mentor} couldn't change anything in this run. The reason is under Details.`);
   }
 
   const block = weightsBlock(job, { token: facts.token, testPlace: live.lockedTestOn });

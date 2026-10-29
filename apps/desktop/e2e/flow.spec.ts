@@ -1064,7 +1064,10 @@ for (const theme of THEMES) {
     await page.keyboard.press('Escape');
     await expect(settings).toBeHidden();
     const needs = page.getByRole('region', { name: 'Before it can start' });
-    await expect(needs).toContainText('Spark has nothing it may change');
+    // Said as what Spark can't do yet, since the tab above shows its one way to change Glimmer
+    // switched on: a title that said nothing is permitted would contradict it.
+    await expect(needs).toContainText("Spark can't change anything yet");
+    await expect(page.getByText('nothing it may change')).toHaveCount(0);
     await expect(needs).toContainText(
       'Only retraining Glimmer itself is on, and it needs a Hugging Face key. A free Hugging Face account gives you one. Turn something else on, or add the key.',
     );
