@@ -182,3 +182,53 @@ export async function startFakeOllama(
     close: () => close(server),
   };
 }
+
+/** What a chat request to a mentor on this computer holds, as far as a test looks at it. */
+export interface MentorChatBody {
+  model: string;
+  messages: { role: string; content: string }[];
+  response_format?: { json_schema?: { name?: string } };
+}
+
+export interface ScriptedMentor {
+  /** Where the mentor's Chat Completions answer, with `/v1`. */
+  baseUrl: string;
+  /** Every chat request it was sent, in the order they came. */
+  requests: MentorChatBody[];
+  close(): Promise<void>;
+}
+
+/**
+ * A mentor on 127.0.0.1 that answers each chat request with the JSON object a script gives for
+ * it, streamed the way a model API streams. The script sees the request and its number, starting
+ * at 1, so a test can ask a question first and draft next.
+ */
+export async function startScriptedMentor(
+  script: (request: MentorChatBody, call: number) => unknown,
+): Promise<ScriptedMentor> {
+  const requests: MentorChatBody[] = [];
+  async function answer(request: IncomingMessage, response: ServerResponse): Promise<void> {
+    if (request.method !== 'POST' || request.url !== '/v1/chat/completions') {
+      response.writeHead(404).end();
+      return;
+    }
+    const body = (await readBody(request)) as MentorChatBody;
+    requests.push(body);
+    const content = JSON.stringify(script(body, requests.length));
+    const chunks = [
+      { choices: [{ index: 0, delta: { content }, finish_reason: null }] },
+      {
+        choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+        usage: { prompt_tokens: 2000, completion_tokens: 500 },
+      },
+    ];
+    response.writeHead(200, { 'content-type': 'text/event-stream' });
+    for (const chunk of chunks) response.write(`data: ${JSON.stringify(chunk)}\n\n`);
+    response.end('data: [DONE]\n\n');
+  }
+  const server = createServer((request, response) => {
+    answer(request, response).catch(() => response.destroy());
+  });
+  const port = await listen(server);
+  return { baseUrl: `http://127.0.0.1:${port}/v1`, requests, close: () => close(server) };
+}

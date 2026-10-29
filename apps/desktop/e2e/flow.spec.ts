@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
-import { stubEngine } from './fixtures';
+import { stubEngine, stubEngineFailure } from './fixtures';
 import {
   DESCRIPTION,
   emitRunEvents,
@@ -120,6 +120,8 @@ for (const theme of THEMES) {
     await expect(
       page.getByText("That's everything I need. I've drafted the job for you to review."),
     ).toBeVisible();
+    // A drafted job is reviewed on the next screen: nothing is left to reply to.
+    await expect(reply).toHaveCount(0);
     await capture(page, `flow-clarify-${theme}`);
     await review.click();
 
@@ -189,6 +191,20 @@ for (const theme of THEMES) {
     await page.getByRole('button', { name: 'Advanced settings' }).click();
     const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
     await expect(advanced).toBeVisible();
+    // The example tasks: where they came from, then each type with the rule behind it, its
+    // tasks in each set and three examples with their expected answers.
+    await advanced.getByRole('tab', { name: 'Example tasks' }).click();
+    await expect(advanced.getByText('From the tasks you attached.')).toBeVisible();
+    await expect(advanced.getByText('170 tasks', { exact: true })).toBeVisible();
+    await expect(
+      advanced.getByText('60 practice, 40 check, 60 final test, 10 set aside', { exact: true }),
+    ).toBeVisible();
+    const invoices = advanced.getByRole('region', { name: 'Invoices' });
+    await expect(invoices).toContainText('Price a finished job and add its invoice');
+    await expect(invoices).toContainText('20 practice, 13 check, 20 final test, 3 set aside');
+    await expect(invoices.getByText(/^Expected answer:/)).toHaveCount(3);
+    await expect(advanced.getByText(/independently certified/)).toHaveCount(0);
+    await capture(page, `flow-advanced-tasks-${theme}`);
     await advanced.getByRole('tab', { name: 'Task sets' }).click();
     const practice = advanced.getByRole('textbox', { name: 'Practice tasks' });
     await practice.fill('200');
@@ -374,6 +390,34 @@ for (const theme of THEMES) {
   });
 }
 
+for (const theme of THEMES) {
+  test(`says in the results' details where a drafted job's final test came from (${theme})`, async () => {
+    const { app, page } = launched;
+    await stubFlow();
+    const drafted = {
+      ...reports[FLOW.runId]!,
+      tasks: { source: 'generated' as const, draftingUsd: 0.04 },
+    };
+    await stubByKey(app, 'reports:get', { ...reports, [FLOW.runId]: drafted });
+    await applySettings(page, { theme, onboarded: true, comparisonMode: false });
+    await resize(REPORT_HEIGHT);
+    await goTo(page, `/runs/${FLOW.runId}/report`);
+    await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
+
+    // Behind the stats' Details: what drafting cost, and what the final test's answers rest on.
+    await expect(page.getByText(/independently certified/)).toHaveCount(0);
+    await page.getByRole('button', { name: 'Details' }).first().click();
+    await expect(page.getByText('Drafting the job')).toBeVisible();
+    await expect(page.getByText('$0.04, before training')).toBeVisible();
+    await expect(
+      page.getByText(
+        "The final test's requests were made by Architect from your files, following a job Spark drafted. Answers are checked against that job, not independently certified as right for your business.",
+      ),
+    ).toBeVisible();
+    await capture(page, `flow-report-drafted-${theme}`);
+  });
+}
+
 test('trains three simpler versions beside the agent when comparison mode is on', async () => {
   const { app, page } = launched;
   await stubFlow();
@@ -452,4 +496,85 @@ test('recovers when the mentor fails, and says so when it is slow', async () => 
   });
   await expect(page.getByText(turns.start.message)).toBeVisible({ timeout: 12_000 });
   await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
+const NOTE =
+  "I couldn't settle this from your files and answers, so I left it open:\nWhether cancelled orders count in totals.\n\nI've drafted the job for you to review.";
+const TOO_FEW =
+  'Your files hold only 3 rows between them, too few to make 30 different tasks to train and test on. Attach more of the records, or a tasks.jsonl file with example requests and their answers, and describe the job again.';
+
+for (const theme of THEMES) {
+  test(`shows what a draft left open, beside the way to review it (${theme})`, async () => {
+    const { app, page } = launched;
+    await stubFlow();
+    await applySettings(page, { theme, onboarded: true, comparisonMode: false });
+    await stubSequence(app, 'jobs:draftStart', [
+      { sessionId: FLOW.sessionId, message: NOTE, options: [], draft: turns.replies[1]?.draft },
+    ]);
+    await resize(900);
+    await goTo(page, '/new');
+    await page.getByRole('textbox', { name: 'Describe the job' }).fill(DESCRIPTION);
+    await page.getByRole('button', { name: 'Send' }).click();
+
+    await expect(
+      page.getByText("I couldn't settle this from your files and answers"),
+    ).toBeVisible();
+    await expect(page.getByText('Whether cancelled orders count in totals')).toBeVisible();
+    // The note stands in the place of the line that says nothing was left open.
+    await expect(page.getByText("That's everything I need.")).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Review the job' })).toBeFocused();
+    await expect(page.getByRole('textbox', { name: 'Reply' })).toHaveCount(0);
+    await capture(page, `flow-clarify-open-${theme}`);
+  });
+
+  test(`says what to attach when the files cannot make a job, and puts the description back (${theme})`, async () => {
+    const { app, page } = launched;
+    await stubFlow();
+    await applySettings(page, { theme, onboarded: true, comparisonMode: false });
+    await stubSequence(app, 'jobs:draftStart', [
+      { sessionId: FLOW.sessionId, message: TOO_FEW, options: [], ended: true },
+    ]);
+    await resize(900);
+    await goTo(page, '/new');
+    await page.getByRole('textbox', { name: 'Describe the job' }).fill(DESCRIPTION);
+    await page.getByRole('button', { name: 'Attach files' }).click();
+    await page.getByRole('button', { name: 'Send' }).click();
+
+    await expect(page.getByText('Your files hold only 3 rows between them')).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Reply' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Review the job' })).toHaveCount(0);
+    await capture(page, `flow-clarify-ended-${theme}`);
+
+    // Starting again leaves the description and its files in the box, to add to.
+    await page.getByRole('button', { name: 'Edit the description' }).click();
+    await expect(page.getByRole('textbox', { name: 'Describe the job' })).toHaveValue(DESCRIPTION);
+    await expect(
+      page.getByRole('list', { name: 'Attached files' }).getByRole('listitem'),
+    ).toHaveCount(6);
+  });
+}
+
+test('offers to edit the description when the conversation is gone, since asking again cannot bring it back', async () => {
+  const { app, page } = launched;
+  await stubFlow();
+  await applySettings(page, { theme: 'dark', onboarded: true, comparisonMode: false });
+  await stubEngineFailure(app, {
+    'jobs:draftReply': {
+      message: 'This conversation is no longer open. Describe the job again to start a new one.',
+      code: 'draft_not_found',
+    },
+  });
+  await resize(900);
+  await goTo(page, '/new');
+  await page.getByRole('textbox', { name: 'Describe the job' }).fill(DESCRIPTION);
+  await page.getByRole('button', { name: 'Send' }).click();
+  const reply = page.getByRole('textbox', { name: 'Reply' });
+  await reply.fill('North');
+  await reply.press('Enter');
+
+  const failure = page.getByRole('alert');
+  await expect(failure).toContainText('This conversation is gone.');
+  await expect(failure.getByRole('button', { name: 'Try again' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Edit the description' }).click();
+  await expect(page.getByRole('textbox', { name: 'Describe the job' })).toHaveValue(DESCRIPTION);
 });
