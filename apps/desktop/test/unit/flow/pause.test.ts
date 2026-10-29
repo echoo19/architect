@@ -1,4 +1,10 @@
-import { OLLAMA_BASE_URL, type Job, type LocalRuntimes, type Run } from '@architect/shared';
+import {
+  OLLAMA_BASE_URL,
+  type Job,
+  type LocalRuntimes,
+  type Run,
+  type StudentTarget,
+} from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { pauseProblems, type PauseFacts } from '../../../src/renderer/src/flow/train/pause';
 import {
@@ -8,10 +14,18 @@ import {
 } from '../../../src/renderer/src/flow/train/run-state';
 import { makeDetail, makeJob, makeRun } from './factories';
 
-function paused(run: Partial<Run> = {}, job: Job = makeJob()): LiveRun {
+function paused(
+  run: Partial<Run> = {},
+  job: Job = makeJob(),
+  lockedTestOn?: StudentTarget,
+): LiveRun {
   const state = liveRunReducer(initialLiveRunState, {
     type: 'snapshot',
-    detail: makeDetail({ job, run: makeRun({ status: 'paused', error: 'It stopped.', ...run }) }),
+    detail: makeDetail({
+      job,
+      run: makeRun({ status: 'paused', error: 'It stopped.', ...run }),
+      ...(lockedTestOn === undefined ? {} : { lockedTestOn }),
+    }),
   });
   if (state.status !== 'live') throw new Error('The run did not load.');
   return state.live;
@@ -154,5 +168,56 @@ describe('what a paused run needs before it can go on', () => {
       },
     });
     expect(pauseProblems(paused({}, job), facts({ local: local({ running: false }) }))).toEqual([]);
+  });
+});
+
+describe('a run that paused in its final test', () => {
+  // Everything gone at once, so each case shows which endpoint was looked at.
+  const nothing = facts({
+    keys: { meta: false, openrouter: false },
+    local: local({ running: false }),
+  });
+  const onlineKey = { kind: 'key', text: 'The online Glimmer has no key saved.' } as const;
+  const ollamaOff = {
+    kind: 'runtime',
+    text: "Ollama isn't running, so Glimmer can't answer.",
+  } as const;
+  /** An agent that practiced here, with an online copy to take its final test on. */
+  const practicedHere = () => makeJob({ student: { ...hostedJob().student, trainOn: 'local' } });
+
+  it("looks at the online copy's key when the final test runs online, not at Ollama", () => {
+    const run = paused({ phase: 'testing' }, hostedJob(), 'hosted');
+    expect(pauseProblems(run, nothing)).toEqual([onlineKey]);
+  });
+
+  it('does the same for an agent that practiced on this computer', () => {
+    const run = paused({ phase: 'testing' }, practicedHere(), 'hosted');
+    expect(pauseProblems(run, nothing)).toEqual([onlineKey]);
+  });
+
+  it('does not tell an online final test to start Ollama when its key is saved', () => {
+    const run = paused({ phase: 'testing' }, hostedJob(), 'hosted');
+    expect(pauseProblems(run, facts({ local: local({ running: false }) }))).toEqual([]);
+  });
+
+  it('looks at this computer for a final test taken here, whatever practice used', () => {
+    expect(pauseProblems(paused({ phase: 'testing' }, hostedJob(), 'local'), nothing)).toEqual([
+      ollamaOff,
+    ]);
+    // A run that never said where its test runs takes it here.
+    expect(pauseProblems(paused({ phase: 'testing' }, hostedJob()), nothing)).toEqual([ollamaOff]);
+  });
+
+  it('leaves where the final test will run out of the phases before it', () => {
+    // Practicing on this computer, with the final test to come online: the online copy is not
+    // asked for yet, and the teacher and this computer are.
+    const practicing = paused({ phase: 'diagnosing' }, practicedHere(), 'hosted');
+    expect(pauseProblems(practicing, facts({ keys: { meta: true, openrouter: false } }))).toEqual(
+      [],
+    );
+    expect(pauseProblems(practicing, nothing)).toEqual([
+      { kind: 'key', text: 'Spark has no key saved.' },
+      ollamaOff,
+    ]);
   });
 });

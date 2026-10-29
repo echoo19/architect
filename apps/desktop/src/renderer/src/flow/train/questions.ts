@@ -24,12 +24,33 @@ export function questionOfRound(
 }
 
 /**
+ * Whether a round waits for its answer while the records read so far hold no question for it.
+ * Records read before the question was asked don't, and nothing marks them out of date: they have
+ * to be read again to find it.
+ */
+export function questionMissing(
+  round: Round | null,
+  records: QueryState<MentoringRecords>,
+): boolean {
+  return (
+    round !== null &&
+    round.status === 'clarifying' &&
+    records.status === 'success' &&
+    questionOfRound(round, records.data.interventions) === undefined
+  );
+}
+
+/**
  * The question of the round on screen, or null for a round that asked none. A round waiting for
- * its answer is a question before its records are read, so the screen can say so at once.
+ * its answer is a question before its records are read, so the screen can say so at once. Records
+ * that were read and lack the question are out of date, so they are read again (`readAgain` says
+ * they have been asked to be) and the screen waits for that; if the question is still not in
+ * them it says so, rather than waiting on a read that is not coming.
  */
 export function questionView(
   round: Round | null,
   records: QueryState<MentoringRecords>,
+  readAgain = false,
 ): QuestionView | null {
   if (round === null) return null;
   const waiting = round.status === 'clarifying';
@@ -37,9 +58,19 @@ export function questionView(
     records.data === undefined ? undefined : questionOfRound(round, records.data.interventions);
   if (found !== undefined) return { state: 'ready', intervention: found };
   if (!waiting) return null;
-  return records.status === 'error'
-    ? { state: 'error', error: records.error, reload: records.reload }
-    : { state: 'loading' };
+  if (records.status === 'error') {
+    return { state: 'error', error: records.error, reload: records.reload };
+  }
+  if (readAgain && records.status === 'success') {
+    return {
+      state: 'error',
+      error: new Error(
+        "The run is waiting for an answer, but the question isn't in the records yet.",
+      ),
+      reload: records.reload,
+    };
+  }
+  return { state: 'loading' };
 }
 
 /** Whether a question still waits for its answer. */

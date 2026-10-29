@@ -11,11 +11,13 @@ import {
   recordedCalls,
   stubByKey,
   stubRecorded,
+  stubSequence,
 } from './fixtures-flow';
 import {
   ANSWER,
   answerTakenUp,
   askingEngine,
+  beforeAskingEngine,
   endedAskingEngine,
   flipSwitch,
   HOME_ENGINE,
@@ -29,7 +31,7 @@ import {
   SIDEBAR_JOBS_AFTER_ACCEPTING,
   stubSwitch,
 } from './fixtures-runs';
-import { graduate, reports, STORY } from './story';
+import { at, graduate, makeRun, reports, STORY } from './story';
 
 /*
  * Getting back to a run and seeing what happened: the rows the sidebar keeps for a run that ended
@@ -270,6 +272,47 @@ test('offers to download the model when Ollama is running without it', async () 
   await expect(notice.getByRole('button', { name: 'Download' })).toBeVisible();
 });
 
+/** A run paused in its final test, which trained on the online copy: the story's own job. */
+function pausedInTest(lockedTestOn: 'local' | 'hosted', local = NOTHING_LOCAL) {
+  return pausedEngine({
+    detail: {
+      lockedTestOn,
+      run: makeRun({
+        status: 'paused',
+        phase: 'testing',
+        updatedAt: at(240),
+        error: 'Something stopped the final test.',
+      }),
+    },
+    // The teacher's key is saved and the online copy's is not.
+    keys: { meta: true, openrouter: false },
+    local,
+  });
+}
+
+test("names the online copy's key for a final test taken online, and says nothing of Ollama", async () => {
+  const { app, page } = launched;
+  // Ollama is off, but the final test does not use it.
+  await stubEngine(app, pausedInTest('hosted'));
+  await applySettings(page, { theme: 'dark', onboarded: true });
+  await goTo(page, `/runs/${STORY.runId}/train`);
+  const notice = page.getByRole('status', { name: 'Training is paused' });
+  await expect(notice).toContainText('The online Glimmer has no key saved.');
+  await expect(notice.getByRole('button', { name: 'Add the key' })).toBeVisible();
+  await expect(notice).not.toContainText("Ollama isn't running");
+  await expect(notice.getByRole('button', { name: 'Check again' })).toHaveCount(0);
+});
+
+test('does not blame the online copy for a final test taken on this computer', async () => {
+  const { app, page } = launched;
+  await stubEngine(app, pausedInTest('local'));
+  await applySettings(page, { theme: 'dark', onboarded: true });
+  await goTo(page, `/runs/${STORY.runId}/train`);
+  const notice = page.getByRole('status', { name: 'Training is paused' });
+  await expect(notice).toContainText("Ollama isn't running, so Glimmer can't answer.");
+  await expect(notice).not.toContainText('no key saved');
+});
+
 for (const theme of THEMES) {
   test(`asks Spark's question inside the round, and shows what became of the answer (${theme})`, async () => {
     const { app, page } = launched;
@@ -340,6 +383,90 @@ for (const theme of THEMES) {
     await expect(drawer).toBeHidden();
   });
 }
+
+test('shows the question Spark asked while the person was on another screen', async () => {
+  const { app, page } = launched;
+  const before = beforeAskingEngine();
+  const asked = askingEngine();
+  await stubEngine(app, before);
+  await stubSwitch(
+    app,
+    'runs:get',
+    { before: before['runs:get'], asked: asked['runs:get'] },
+    'before',
+  );
+  await stubSwitch(
+    app,
+    'mentoring:interventions',
+    { before: before['mentoring:interventions'], asked: asked['mentoring:interventions'] },
+    'before',
+  );
+  await applySettings(page, { theme: 'dark', onboarded: true });
+  await resize(TRAIN_HEIGHT);
+  await goTo(page, `/runs/${STORY.runId}/train`);
+  const round = page.getByRole('region', { name: 'Current round' });
+  await expect(round).toContainText('Round 4');
+  await expect(round.getByRole('form', { name: "Spark's question" })).toHaveCount(0);
+
+  // The person leaves, and Spark asks while the training screen is not open.
+  await goTo(page, '/');
+  await flipSwitch(app, 'runs:get', 'asked');
+  await flipSwitch(app, 'mentoring:interventions', 'asked');
+
+  // Back on it, the question is there to answer, not a placeholder waiting for a read that never
+  // comes, and the list of rounds says the run needs the person.
+  await goTo(page, `/runs/${STORY.runId}/train`);
+  const form = round.getByRole('form', { name: "Spark's question" });
+  await expect(form).toContainText(QUESTION);
+  await expect(form.getByRole('textbox', { name: 'Your answer' })).toBeEnabled();
+  await expect(
+    page
+      .getByRole('region', { name: 'Rounds' })
+      .getByRole('button', { name: /Ask about due dates/ }),
+  ).toContainText('Needs you');
+});
+
+test("reads a run's records again each time its training screen opens", async () => {
+  const { app, page } = launched;
+  await stubEngine(app, beforeAskingEngine());
+  await stubRecorded(app, 'mentoring:interventions', []);
+  await applySettings(page, { theme: 'dark', onboarded: true });
+  await goTo(page, `/runs/${STORY.runId}/train`);
+  await expect(page.getByRole('region', { name: 'Current round' })).toContainText('Round 4');
+  const first = (await recordedCalls(app, 'mentoring:interventions')).length;
+  expect(first).toBeGreaterThan(0);
+
+  await goTo(page, '/');
+  await goTo(page, `/runs/${STORY.runId}/train`);
+  await expect(page.getByRole('region', { name: 'Current round' })).toContainText('Round 4');
+  expect((await recordedCalls(app, 'mentoring:interventions')).length).toBeGreaterThan(first);
+});
+
+test('reads once more, and then says so, when a waiting round has no question in the records', async () => {
+  const { app, page } = launched;
+  await stubEngine(app, askingEngine());
+  // The records lack the question for the first two reads (opening the screen, and the read
+  // made for the question), and hold it for the third, which the person asks for.
+  await stubSequence(app, 'mentoring:interventions', [
+    [],
+    [],
+    askingEngine()['mentoring:interventions'],
+  ]);
+  await applySettings(page, { theme: 'dark', onboarded: true });
+  await resize(TRAIN_HEIGHT);
+  await goTo(page, `/runs/${STORY.runId}/train`);
+  const round = page.getByRole('region', { name: 'Current round' });
+  await expect(round).toContainText("Couldn't read Spark's question");
+  await expect(round).toContainText("the question isn't in the records yet");
+  await expect(round.getByRole('form', { name: "Spark's question" })).toHaveCount(0);
+
+  // No read of its own is made again unasked: the person's Try again is the third.
+  await page.waitForTimeout(600);
+  await expect(round).toContainText("Couldn't read Spark's question");
+  await round.getByRole('button', { name: 'Try again' }).click();
+  await expect(round.getByRole('form', { name: "Spark's question" })).toContainText(QUESTION);
+  await expect(round).not.toContainText("Couldn't read Spark's question");
+});
 
 test('stops the run when the answer changes what counts as success, and says so', async () => {
   const { app, page } = launched;

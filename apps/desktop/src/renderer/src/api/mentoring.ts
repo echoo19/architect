@@ -96,10 +96,14 @@ const SETTLE_MS = 200;
 
 /**
  * A run's mentoring records, read again whenever the engine says one of them changed, so a
- * screen open during training shows each lesson and experiment as it is stored.
+ * screen open during training shows each lesson and experiment as it is stored. The engine says
+ * nothing to a screen that isn't open, so the records are also read again whenever the screen
+ * opens, showing what was kept from last time until that lands.
  */
 export function useMentoringRecords(runId: string, jobId: string) {
-  const records = useQuery(mentoringKeys.records(runId), () => loadRecords(runId, jobId));
+  const records = useQuery(mentoringKeys.records(runId), () => loadRecords(runId, jobId), {
+    refreshOnMount: true,
+  });
   const { reload } = records;
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
