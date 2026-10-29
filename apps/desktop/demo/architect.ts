@@ -161,8 +161,30 @@ function untilTeacher(label: string) {
   };
 }
 
-/** What the person in the demo answers, when the teacher offers it; otherwise its first answer. */
-const PREFERRED = [/round(ed)? up/i, /as zero/i, /labor only/i];
+/**
+ * What the shop in the demo would answer, by what the question is about: its policy gives the
+ * member discount on labor only, bills labor in half-hour steps rounded up, charges parts at what
+ * the shop paid, and an empty parts cost is nothing. A topic is found in the question or in its
+ * answers (Architect's own question about an empty cell always offers "Count it as zero"), and the
+ * topics are checked in this order, so empty parts costs come before parts in general.
+ */
+const ANSWERS_BY_TOPIC: readonly [about: RegExp, answer: RegExp][] = [
+  [/discount|10%|members?/i, /labor only|not (on )?parts|never.*parts/i],
+  [/round|half.hour/i, /round(ed)? up|up to the next/i],
+  [/empty|blank|missing|no parts cost|as zero/i, /as zero|count it as 0/i],
+  [/parts|include|pay/i, /at cost|as written|what the shop paid/i],
+];
+
+/** The answer to pick: the shop's, when the question is about something the policy settles. */
+function shopAnswer(question: string, options: readonly string[]): number {
+  const subject = `${question} ${options.join(' ')}`;
+  for (const [about, answer] of ANSWERS_BY_TOPIC) {
+    if (!about.test(subject)) continue;
+    const found = options.findIndex((option) => answer.test(option));
+    if (found >= 0) return found;
+  }
+  throw new Error(`No answer of the shop's fits "${question}": ${options.join(' | ')}`);
+}
 
 /** Picks an answer when the teacher asked something, after a moment to read the question. */
 function answerTeacher(label: string) {
@@ -172,10 +194,15 @@ function answerTeacher(label: string) {
     run: async ({ page, click }: StepContext) => {
       const options = ANSWERS(page);
       if ((await options.count()) === 0) return;
-      const texts = await options.allTextContents();
-      const preferred = texts.findIndex((text) => PREFERRED.some((pattern) => pattern.test(text)));
+      const question = await page
+        .getByRole('group', { name: 'Answers' })
+        .filter({ has: page.getByRole('button') })
+        .last()
+        .locator('xpath=preceding-sibling::p[1]')
+        .textContent();
+      const choice = shopAnswer(question ?? '', await options.allTextContents());
       await sleep(1800);
-      await click(options.nth(Math.max(0, preferred)));
+      await click(options.nth(choice));
       // The answered question's choices stop being buttons, so the next wait can't take them for
       // a new question.
       await expect(options).toHaveCount(0, { timeout: 10_000 });
@@ -215,7 +242,7 @@ const describe: DemoScene = {
       role: 'textbox',
       name: 'Describe the job',
       text: "Tell customers what a repair ticket costs under our pricing policy, labor billed in half-hour steps, and look up a customer's contact details.",
-      delayMs: 24,
+      delayMs: 16,
     },
     {
       kind: 'answerFileDialog',
