@@ -58,6 +58,14 @@ export function formatTimeLimit(ms: number): string {
   return ms < 60_000 ? `<${Math.ceil(ms / 1000)}s` : `<${Math.ceil(ms / 60_000)} min`;
 }
 
+/** A moment as a short date, the way the flow says one: "Oct 29". Null for text that is no date. */
+export function shortDate(iso: string): string | null {
+  const at = new Date(iso);
+  return Number.isNaN(at.getTime())
+    ? null
+    : at.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 /** The last part of a path, on any platform: `C:\office\jobs.csv` and `/srv/jobs.csv` → `jobs.csv`. */
 export function fileName(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path;

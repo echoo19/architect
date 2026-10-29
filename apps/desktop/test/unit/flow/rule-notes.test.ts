@@ -31,7 +31,7 @@ const DETAILS: RuleDetails = {
         { text: '416.58, rounded to the nearest cent, half a cent rounds up', value: '416.58' },
       ],
       answer: '$416.58',
-      covers: ['Shows the rounding (labor hours)'],
+      covers: ['Shows how the rule rounds labor hours'],
     },
     {
       request: 'Like T-2144, but with parts cost 0.005',
@@ -40,12 +40,74 @@ const DETAILS: RuleDetails = {
         { text: '195.005, rounded to the nearest cent, half a cent rounds up', value: '195.01' },
       ],
       answer: '$195.01',
-      covers: ['Shows the rounding (the result)'],
+      covers: ['Shows how the rule rounds the total'],
       madeUp: true,
     },
   ],
   uncovered: [],
 };
+
+const STEPS = [
+  { text: 'Round labor hours up to a multiple of 0.5.' },
+  { text: 'Multiply by 65.' },
+  { text: 'When member (customers.csv) is yes, multiply by 0.9.', files: ['customers.csv'] },
+  { text: 'Add parts cost.', note: 'An empty parts cost counts as 0, as you said.' },
+  { text: 'Round the result to the nearest cent; half a cent rounds up.' },
+];
+
+function reportOf(rule: Partial<RuleReport> = {}): RuleReport {
+  return {
+    typeId: 'cost',
+    label: 'Ticket totals',
+    version: 'affdb6c549fa',
+    statement: DETAILS.statement,
+    passages: DETAILS.passages,
+    conventions: DETAILS.conventions,
+    cases: DETAILS.cases,
+    excluded: DETAILS.excluded,
+    branches: [],
+    flags: [],
+    confirmedAt: '2026-10-29T12:00:00.000Z',
+    expression: { op: 'col', column: 'parts_cost', from: 'row' },
+    ...rule,
+  };
+}
+
+const notesOf = (rule: RuleReport): string =>
+  renderToStaticMarkup(createElement(RuleNotes, { rules: [rule], rounds: 3 }));
+
+/** What a person reads: no tags, one space between words. */
+const words = (html: string): string => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
+
+describe('the rule in the results', () => {
+  it('is told as numbered steps, the files named in a step set quietly', () => {
+    const html = notesOf(reportOf({ steps: STEPS }));
+    const steps = [...html.matchAll(/<li[^>]*class="grid[\s\S]*?<\/li>/g)].map((item) =>
+      words(item[0]).trim(),
+    );
+    expect(steps).toEqual([
+      '1. Round labor hours up to a multiple of 0.5.',
+      '2. Multiply by 65.',
+      '3. When member (customers.csv) is yes, multiply by 0.9.',
+      '4. Add parts cost. An empty parts cost counts as 0, as you said.',
+      '5. Round the result to the nearest cent; half a cent rounds up.',
+    ]);
+    expect(html).toContain('<span class="text-fg-muted">(customers.csv)</span>');
+    expect(words(html)).not.toContain('Start with (labor hours rounded up');
+  });
+
+  it('keeps the sentence for a report made before the steps existed', () => {
+    const html = notesOf(reportOf());
+    expect(words(html)).toContain('Start with (labor hours rounded up to a multiple of 0.5)');
+    expect(html).not.toContain('<ol');
+  });
+
+  it('says when the person confirmed it the way Define does: "Oct 29", not 2026-10-29', () => {
+    const html = notesOf(reportOf());
+    expect(words(html)).toContain('Confirmed Oct 29');
+    expect(words(html)).not.toContain('2026-10-29');
+  });
+});
 
 describe('the passages a rule rests on, wherever they are shown', () => {
   it('sets the source apart from the words, at the right, with room between them', () => {

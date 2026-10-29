@@ -176,7 +176,7 @@ describe('renderReportMarkdown', () => {
             { label: 'member (customers.csv) is no', cases: 74, changes: 74 },
           ],
           flags: [
-            'The rounding step (up to a multiple of 0.5) never changed a value in your records, so no task shows it at work.',
+            'None of your records needed rounding up to a multiple of 0.5, so no task tests it.',
           ],
           confirmedAt: '2026-10-29T10:00:00.000Z',
           expression: {

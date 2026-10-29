@@ -1,4 +1,5 @@
 import type { RuleConfirmationState, RuleDetails, TaskPlan } from '@architect/shared';
+import { shortDate } from '../format';
 
 /** The rule types of a task plan: the ones Architect works an answer out for from a policy. */
 export function ruleTypesOf(
@@ -73,11 +74,7 @@ export function confirmLine(teacher: string, count: number): string {
 
 /** When the person confirmed, as a short date: "Oct 29". */
 export function confirmedOn(state: RuleConfirmationState): string | null {
-  if (state.confirmedAt === undefined) return null;
-  const at = new Date(state.confirmedAt);
-  return Number.isNaN(at.getTime())
-    ? null
-    : at.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return state.confirmedAt === undefined ? null : shortDate(state.confirmedAt);
 }
 
 /**

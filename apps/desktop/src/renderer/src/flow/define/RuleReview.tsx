@@ -10,6 +10,7 @@ import { navigate, paths } from '../../lib/router';
 import { resetDraft } from '../describe/draft-store';
 import { modelNames } from '../names';
 import { PassageList } from '../PassageList';
+import { RuleSteps } from '../RuleSteps';
 import { confirmedOn, confirmLine, leftOutLine, reviewIntro, ruleTypesOf } from './rule-words';
 
 /**
@@ -148,7 +149,7 @@ function RuleCard({
 
       <div className="flex flex-col gap-3">
         <h4 className="m-0 text-sm font-normal text-fg-muted">The rule, in words</h4>
-        <p className="m-0 max-w-[640px] text-md text-pretty">{details.statement}</p>
+        <RuleSteps steps={details.steps} statement={details.statement} />
       </div>
 
       <div className="flex flex-col gap-3.5">
