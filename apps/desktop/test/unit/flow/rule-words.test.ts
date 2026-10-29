@@ -1,4 +1,5 @@
 import {
+  passageOrigin,
   passageSource,
   ruleScoreNote,
   teachingLine,
@@ -106,6 +107,14 @@ describe('the words that put a rule in front of the person', () => {
     expect(passageSource('policy.md')).toBe('policy.md');
     expect(passageSource('answers')).toBe('your answer');
     expect(passageSource('description')).toBe('your description');
+  });
+
+  it('names where a passage comes from in a line of text, with the question an answer was to', () => {
+    expect(passageOrigin({ file: 'policy.md' })).toBe('policy.md');
+    expect(passageOrigin({ file: 'answers' })).toBe('your answer');
+    expect(passageOrigin({ file: 'answers', question: 'Does the discount apply to parts?' })).toBe(
+      'your answer to "Does the discount apply to parts?"',
+    );
   });
 
   it('says who read the policy and what rests on the rule, one rule or several', () => {

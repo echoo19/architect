@@ -26,6 +26,65 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - A new job has everything on. There is no default for new jobs in Settings.
 - The first runs of the real-engine spec, before the rule against using the graphics card arrived, let Define's pre-flight ask this computer's local runtimes which models they hold and ask `nvidia-smi` for the card's name and memory. Those are reads, and nothing was loaded. The spec now answers that call itself, so nothing in it reaches a runtime or the card.
 
+## 2026-10-29 (Wed), what the teacher reads of the records, and a fifth thing seen in use
+
+**Done** (on `rule-fixes-3`, from main at `5cd891b`; decision 061 amended; no model was called, the GPU stayed off, and every run used stand-ins only)
+- Four findings of GPT-6 Sol's read of the second round, each with a test that fails without its fix:
+  - The teacher could read a row that a set was later made from. A column's examples were sampled across the file (rows 0, 6, 12, 18 and 24 of thirty) while only the first five rows were left out of the sets, so a row whose unique id and amount the teacher had read could be sealed into the final test. A column's examples now come from the first five rows, which no set is made from, plus, for a column with a few values (a status), the values more than one row has, which name no row. One function says which rows the teacher is shown, for what it is told and for what the sets leave out. The decision lists exactly what reaches the teacher.
+  - The reason for a refused division carried a proposed final test's counts to the teacher ("27 (82%) of the final-test tasks"). The teacher is now told only that a copy could pass, for which kind of task and what to do about it, with no set, count, share or column; the person gets the detail. No other message to the teacher comes from a proposed or a sealed set.
+  - Two lookups that asked the same words of two tables (`tickets.csv`, `archive.csv`) were one question, and the second lost every request. The table is part of the key.
+  - Two kinds of rule that ask about one ticket in other words, another order and another family column could still land on both sides of the final-test boundary. A row of a table is now the subject of one request whichever kind of lookup or rule asks it, so there is no twin: the kinds take turns, the one with the fewest rows first, and a kind that came away short says so in the job's notes. Putting every task about a row in one set was not built: two coarse families on one table chain every row they share into a family too large for any set (the decision).
+- From a live draft in the app: Spark cited "in half-hour steps" and wrote no rounding step and no question about it. The prompt now says every passage a rule cites must be carried out by the steps or listed in `rule.ambiguities`. There is no check in code, since whether steps carry out a passage is a question of meaning (a check on the numbers in a passage passes "half-hour steps", which has none, and fails "10% off" written as 0.9); the person's reading of each passage beside the rule in words and its examples, on Define, is the check.
+- Verified: `pnpm check` exits 0 (231 test files, 2,993 tests passed, 2 skipped; it was 2,979). Hidden e2e on the rebuilt app: `rule.spec.ts` (3), `flow.spec.ts` (25) and `drafting.spec.ts` (5) pass.
+
+**Next**
+- Merge the branch into main. The next test of the rule is still the owner's real run on the bike shop.
+
+**Open issues**
+- Two requests with the same words over two tables read as one prompt with two answers to an agent unless the words name the table, which is the teacher's to write.
+- A row is asked about once among lookups and rules. Lists and totals, which are about many rows, are not held to it, and a question worded differently about a different row is a different question.
+- When two kinds ask about one table's rows and the table has too few for both, each keeps what is left; the notes of the job say how many requests a kind lost.
+
+## 2026-10-29 (Wed), the rule read again by GPT-6 Sol, and two things seen in use
+
+**Done** (on `rule-fixes-2-work`, from main at `ce90f59`; decision 061 amended; no model was called, the GPU stayed off)
+- Four findings of the second read, each with a test that fails without its fix:
+  - A job's making could delete a folder it never made. An id was free when the library and the vault had nothing under it, so a job file whose id matched `jobs/orders` (a person's notes, no job, no seal) was made inside it, and a failed import removed the folder with the notes. An id is now free only with no folder under it, the folder is made without recursing, and only a folder a making created is ever taken back.
+  - "Count it as zero" for one table was taken for another table's column of the same name, and the question about the second was never asked. The answer now names its table, a rule takes the answer about its own table, and the other table's question is asked. Drafts made before still read.
+  - The copy guard measured all of a rule's cases, so with an 80% target 79 copies in 100 passed, and a final test of 33 could hold 27 of them (82%). The final test and the check tasks are held to the guard as they are divided. A division that fails is made again with the next seed, up to twelve, and when none is safe the draft is refused with the reason.
+  - Two rules that add labor and parts in either order, with one request, were two questions and could land on both sides of the final-test boundary. The same words put to the same row are now one question, whatever rule or template is behind them.
+- From the owner's look at the `rule-define` capture: an answer such as "No, labor only" read as a fragment. Define, Results (under Details), the report and `scripts/draft.ts` now show the question it answered, found in the answers the draft kept, and none when two answers to different questions hold the same words. It is worked out when the plan is made and never stored, so a draft made before shows its questions too.
+- A sentence-case name is asked for in the prompt and in the reply format, with an example. A proper noun keeps its capitals, and the name is not rewritten in code.
+- Verified: `pnpm check` exits 0 (231 test files, 2,979 tests passed, 2 skipped; it was 229 and 2,934). Hidden e2e on the rebuilt app: `rule.spec.ts` (3), `flow.spec.ts` (25) and `drafting.spec.ts` (5) pass. Looked at in both themes: `rule-define` and `flow-report-rule`. The captures that came out a few pixels different (a scrollbar) were put back.
+
+**Next**
+- Merge the branch into main. The next test of the rule is still the owner's real run on the bike shop.
+
+**Open issues**
+- A request worded differently is a different question, so two rules that ask the same thing in other words can still land on both sides of the boundary. Nothing here can tell them apart.
+- The copy guard holds each rule to its own tasks in a set, so a rule with few tasks in a set is refused when they are all copies, though a copy would not pass the whole set. It errs on the side of caution, and another seed usually makes the set safe.
+
+## 2026-10-29 (Wed), the rule on main, a drafted pricing job trained for real, and the demo's first scene live
+
+**Done** (Spark and online Glimmer called: about $0.10 of Spark and $0.19 of online Glimmer; the GPU stayed off)
+- The rule branch is merged into main (e16ebe8). `pnpm check` exits 0 on main (229 test files, 2,934 passed, 2 skipped) and CI passed.
+- The rule, live, from drafting to final test. `scripts/draft.ts` with real Spark on the bike shop's three files: Spark asked how labor is rounded (answered: round up to the next half hour) and what an empty parts cost means (count it as zero). It left open one thing the policy doesn't settle (a markup it mentions but gives no rate for) and drafted "Repair ticket pricing helper". The rule: labor hours rounded up to a multiple of 0.5, times 65, times 0.9 for members, plus parts. The 35 empty parts costs count as 0, as answered, and 27 rows with N/A or a dash are left out. Ten requests about rows the teacher had read were left out too.
+- `scripts/run.ts --job repair-ticket-pricing-helper --student openrouter-glimmer --test-on hosted --confirm-rules` trained it in 12 minutes:
+  - Before any teaching, Glimmer got 26 of 30 check tasks. All four misses were pricing replies with no ANSWER line.
+  - Round 1 was Spark's first draft: a `ticket_total` tool that works the rule. It was kept as the starting point (26 to 26), but it read a formatted parts cost such as "$96.47" as nothing, so four totals came out short by exactly their parts.
+  - Round 2: Spark first asked to train the weights, which this run had no compute budget for, and was sent back once. It then found the cause in its tool (`parseFloat` on a formatted cost, with NaN turned into 0) and fixed the parsing: 26 to 30 of 30, and measured again on new seeds, 52 to 60 of 60. Kept.
+  - Final test: 40 of 40 (contacts 12 of 12, ticket costs 28 of 28), typical answer 2.3 s, slowest 5% within 3.4 s, $0.085 of Spark over the two rounds and $0.19 of online Glimmer.
+- GPT-6 Sol re-reviewed the rule branch read-only. Ten of the fourteen fixes are complete. Two are partial: the copy guard measures every eligible case rather than the final test as picked, and two rules that differ only in the order of their terms can still put one question on both sides of the test. It found two new P1s: a failed import can delete a job folder it didn't make, and a blank-means-zero answer for one table reaches another table's column of the same name. All four went back to the rule's builder, with two clarity fixes: an answer listed under "From your policy" shows the question it answered, and Spark names jobs in sentence case.
+- The flaky lease test waits through three one-second stale windows instead of one of 300 ms (ce90f59).
+- The demo (d95710c) now opens with Spark drafting this job live in the app: keys come from the environment in a development build, the scene answers Spark's questions and confirms the rule, and it keeps the app's data so that exact job is trained and its run replayed in the next two scenes. Each new scene was recorded as a trial and looked at frame by frame: the drafting (46 s with the waits shown four times faster), the training replay with both rounds' pages, the results, and the two closing cards.
+
+**Next**
+- Merge the rule fixes and the teacher's change menu (two branches in progress), then release 0.3.0, which replaces 0.2.0 and its known leak.
+- Record the film: the drafting scene on its own, train its job online, then the replay, the returns desk on this computer (a short use of the GPU) and the closing cards.
+
+**Open issues**
+- A recording's hidden window sometimes takes a second for a screenshot, so a few frames are held that long. Most come every 31 ms.
+
 ## 2026-10-29 (Wed), main merged into the rule branch, three times
 
 **Done** (on the rule branch; nothing pushed; no model was called, the GPU stayed off)
@@ -151,7 +210,6 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - An exported job file holds the job's settings, not its tasks or data; to give a job away, hand over its folder.
 - `permissions.unseenFiles` stays in the job and its package contract, where the package format carries it, though no screen shows it.
 - A drafted job is saved twice, once as the engine makes it and once with the person's choices; nothing runs between.
-
 
 ## 2026-10-29 (Wed), the first real drafted job, end to end
 

@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   CodedError,
   DRAFTING_LIMITS,
@@ -110,6 +111,62 @@ describe('starting the conversation', () => {
     expect(opening.length).toBeLessThan(60_000);
   });
 
+  it('tells the teacher no value of a row it is not shown, so no task is about a row it has read', async () => {
+    // Thirty rows whose ids and amounts each name one row are the least a table can be. A hundred
+    // and twenty give a job tasks enough to be trained, and sampled rows further down the file.
+    const rows = Array.from(
+      { length: 120 },
+      (_, index) => `REC-${2000 + index},${(50 + index * 3.75).toFixed(2)}`,
+    );
+    const csv = `id,amount\n${rows.join('\n')}\n`;
+    world.mentor.script = () =>
+      draft({
+        does: ['Looks up the amount of a record'],
+        files: [{ name: 'records.csv', description: 'One row per record.', access: 'read' }],
+        taskTypes: [
+          {
+            ...NO_TYPE,
+            id: 'amount',
+            label: 'Amounts',
+            description: 'Look up the amount of a record.',
+            template: 'lookup' as const,
+            table: 'records.csv',
+            keyColumn: 'id',
+            columns: ['amount'],
+            request: 'What is the amount of record {key}?',
+          },
+        ],
+      });
+    const turn = await world.drafting.start(
+      'A ledger',
+      [world.attach('records.csv', csv)],
+      TEACHER,
+    );
+    const job = turn.draft;
+    if (job === undefined) throw new Error(turn.message);
+
+    // What reached the teacher: the first five rows, and of any other row nothing at all.
+    const sent = world.mentor.requests.map(textOf).join('\n');
+    for (let index = 0; index < 5; index += 1) expect(sent).toContain(`REC-${2000 + index}`);
+    for (let index = 5; index < 120; index += 1) {
+      expect(sent, `row ${index}`).not.toContain(`REC-${2000 + index}`);
+    }
+    // So no task of the job, the final test included, is about a row the teacher read.
+    const sealed = readFileSync(join(world.dataDir, 'vault', job.id, 'test.jsonl'), 'utf8')
+      .split('\n')
+      .filter((line) => line !== '')
+      .map((line) => JSON.parse(line) as Task);
+    expect(sealed.length).toBeGreaterThan(20);
+    const visible = (
+      await Promise.all(
+        (['calibration', 'train', 'dev'] as const).map((split) => world.jobs.tasks(job.id, split)),
+      )
+    ).flat();
+    for (const task of [...sealed, ...visible]) {
+      expect(sent, String(task.meta?.['key'])).not.toContain(String(task.meta?.['key']));
+    }
+  });
+
   it('will not read part of a long policy: it asks for the section that matters instead', async () => {
     const policy = `# Policy\n\n${'A rule that goes on. '.repeat(1_600)}\nEXCEPTION-AT-THE-END-4417`;
     expect(policy.length).toBeGreaterThan(DRAFTING_LIMITS.maxTextChars);
@@ -172,6 +229,19 @@ describe('starting the conversation', () => {
       expect(request?.system).toContain(word);
     }
     expect(request?.system).toContain('You never write an answer');
+  });
+
+  it('asks for the name of the agent in sentence case, with an example and what stays capitalized', async () => {
+    world.mentor.script = () => question('Which region?', ['North', 'South']);
+    await world.drafting.start('A desk', attachShop(), TEACHER);
+    const [request] = world.mentor.requests;
+    expect(request?.system).toContain(
+      'in sentence case: only the first word has a capital, as in "Repair ticket pricing helper", never "Repair Ticket Pricing Helper". A proper noun, such as the name of the person\'s shop, keeps its capitals.',
+    );
+    const job = request?.json?.schema['properties'] as {
+      job: { properties: { name: { description: string } } };
+    };
+    expect(job.job.properties.name.description).toContain('in sentence case');
   });
 
   it('talks to the teacher it is given, each time', async () => {

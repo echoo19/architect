@@ -2,6 +2,7 @@ import { RuleSpecSchema } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { checkReply } from '../src/drafting/envelope';
 import type { Attached } from '../src/drafting/files';
+import type { TableBlank } from '../src/drafting/rule-reply';
 import { WireStepSchema } from '../src/drafting/rule-steps';
 import { readTable } from '../src/drafting/table';
 import { bikeShop, POLICY } from './support/rule-data';
@@ -283,5 +284,88 @@ describe('the passages a rule quotes', () => {
     expect(problemsOf({ sources: [{ file: 'policy.md', passage: long }] })[0]).toContain(
       'longer than 600 characters',
     );
+  });
+});
+
+describe('what the person chose for an empty cell, table by table', () => {
+  // Two tables with a column of the same name, both with empty cells in it.
+  const EMPTY = {
+    question: 'What should an empty parts cost count as?',
+    options: [],
+    changesAnswers: true,
+    blankColumn: 'parts_cost',
+    blankFrom: 'row',
+  };
+  const archive = (): Attached => {
+    const base = attached();
+    return {
+      ...base,
+      files: [
+        ...base.files,
+        {
+          name: 'archive.csv',
+          kind: 'table' as const,
+          bytes: Buffer.from(bike.ticketsCsv),
+          table: readTable('archive.csv', bike.ticketsCsv),
+        },
+      ],
+    };
+  };
+  const SAID = { description: '', answers: 'Count it as zero' };
+  const zeroForTickets: TableBlank = {
+    table: 'tickets.csv',
+    column: 'parts_cost',
+    from: 'row',
+    means: 'zero',
+  };
+
+  /** What the reply makes of a rule over one of the tables, given what the person has chosen. */
+  function made(table: string, blanks: TableBlank[]) {
+    const checked = checkReply(bikeDraft([costType({ ambiguities: [EMPTY] }, { table })]), {
+      mustDraft: false,
+      attached: archive(),
+      said: { ...SAID, blanks },
+    });
+    if (!checked.ok || checked.reply.action !== 'draft') throw new Error('Expected a draft.');
+    const [type] = checked.reply.job.types;
+    return { spec: type?.spec, asked: type?.ambiguities };
+  }
+
+  it('counts an empty cell as zero in the table the person said so for, and asks nothing more of it', () => {
+    const { spec, asked } = made('tickets.csv', [zeroForTickets]);
+    expect(asked).toBeUndefined();
+    expect(spec?.template === 'rule' && spec.emptyMeansZero).toEqual([
+      { column: 'parts_cost', from: 'row' },
+    ]);
+  });
+
+  it('does not take that answer for a column of the same name in another table, and asks about it', () => {
+    const { spec, asked } = made('archive.csv', [zeroForTickets]);
+    expect(spec?.template === 'rule' && spec.emptyMeansZero).toBeUndefined();
+    expect(asked).toEqual([
+      {
+        question: EMPTY.question,
+        options: ['Count it as zero', 'Leave those rows out'],
+        blank: { table: 'archive.csv', column: 'parts_cost', from: 'row' },
+      },
+    ]);
+  });
+
+  it('keeps what was chosen for each table apart when both have been answered', () => {
+    const blanks: TableBlank[] = [
+      zeroForTickets,
+      { table: 'archive.csv', column: 'parts_cost', from: 'row', means: 'leave_out' },
+    ];
+    expect(made('tickets.csv', blanks).spec).toMatchObject({
+      emptyMeansZero: [{ column: 'parts_cost', from: 'row' }],
+    });
+    const other = made('archive.csv', blanks);
+    expect(other.asked).toBeUndefined();
+    expect(other.spec?.template === 'rule' && other.spec.emptyMeansZero).toBeUndefined();
+  });
+
+  it('knows the table by the name it was attached under, whatever the case or spacing', () => {
+    const { asked } = made('tickets.csv', [{ ...zeroForTickets, table: ' Tickets.CSV ' }]);
+    expect(asked).toBeUndefined();
   });
 });

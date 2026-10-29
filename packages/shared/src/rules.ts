@@ -27,6 +27,8 @@ export const RULE_LIMITS = {
   maxPassages: 8,
   /** The width of the longest passage kept, in characters. */
   maxPassageChars: 600,
+  /** The width of the longest question kept beside the answer that settled it, in characters. */
+  maxQuestionChars: 240,
   /** Examples shown for one rule, at most. */
   maxExamples: 5,
 } as const;
@@ -117,6 +119,12 @@ export const RulePassageSchema = z.object({
   /** A text file as attached, or `description` or `answers` for what the person typed. */
   file: z.string().min(1).max(160),
   passage: z.string().min(1).max(RULE_LIMITS.maxPassageChars),
+  /**
+   * For a passage that is the person's answer: the question they were asked, which an answer such
+   * as "No, labor only" can't be read without. Found in what the draft kept of the conversation,
+   * and absent when two answers to different questions hold the same words.
+   */
+  question: z.string().min(1).max(RULE_LIMITS.maxQuestionChars).optional(),
 });
 export type RulePassage = z.infer<typeof RulePassageSchema>;
 
@@ -142,9 +150,19 @@ export type RuleLookup = z.infer<typeof RuleLookupSchema>;
  * What the person said an empty cell of a numeric column should mean when the policy doesn't say:
  * it counts as zero, or its row is left out. Only the person's own answer to a question Architect
  * put to them sets it, never the teacher.
+ *
+ * It is about one column of one table. An empty `amount` in one file says nothing of an `amount`
+ * in another, so a rule takes an answer only for the table it reads the column from.
  */
 export const BlankAnswerSchema = z.object({
+  /**
+   * The file the column is in, as it was attached. Absent only from a draft made before the table
+   * was kept, which is shown and kept as it was and never read as an answer again: a conversation
+   * lasts as long as the app is open.
+   */
+  table: z.string().min(1).optional(),
   column: Column,
+  /** Which table of the rule that asked it was about: the cases' table or the looked-up one. */
   from: RuleFromSchema,
   means: z.enum(['zero', 'leave_out']),
 });
@@ -294,6 +312,15 @@ export type RuleReport = z.infer<typeof RuleReportSchema>;
  */
 export function passageSource(file: string): string {
   return file === 'answers' ? 'your answer' : file === 'description' ? 'your description' : file;
+}
+
+/**
+ * Where a passage comes from in a line of text: its file, or for an answer the question it
+ * answered, as in `your answer to "Does the discount apply to parts?"`.
+ */
+export function passageOrigin(passage: Pick<RulePassage, 'file' | 'question'>): string {
+  const source = passageSource(passage.file);
+  return passage.question === undefined ? source : `${source} to "${passage.question}"`;
 }
 
 /** Whether teaching ran, in a sentence, from how many rounds the run used. */

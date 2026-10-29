@@ -26,7 +26,8 @@ export function packagedExecutable(): string | undefined {
 export interface LaunchedApp {
   app: ElectronApplication;
   page: Page;
-  close: () => Promise<void>;
+  /** Closes the app and deletes its throwaway profile, first copying its data to `keep` if named. */
+  close: (keep?: string) => Promise<void>;
 }
 
 export interface LaunchOptions {
@@ -97,8 +98,9 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
   return {
     app,
     page,
-    close: async () => {
+    close: async (keep?: string) => {
       await app.close();
+      if (keep) await cp(userData, keep, { recursive: true });
       await rm(profile, { recursive: true, force: true });
     },
   };

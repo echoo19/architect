@@ -298,15 +298,16 @@ export class JobLibrary {
    * says why, so a second try finds nothing of the first and keeps the job's id. A mark in the
    * folder, there from the first file to the last step, tells the next start that the app closed
    * in the middle (`recoverInterrupted`). `work` ends with the job's place in the library.
+   *
+   * Only a folder this making created is ever taken back: the job's folder is made here and
+   * nowhere else, and one that is already there is someone else's and is left as it is.
    */
   private async finalize(job: Job, work: () => Promise<Job>): Promise<Job> {
     const { id } = job;
+    await this.claim(id);
     this.finalizing.add(id);
     let made: Job;
     try {
-      // What an earlier try left under this id is not part of this one.
-      if (await exists(this.paths.finalizingMark(id))) await this.takeBack(id);
-      await mkdir(this.paths.jobDir(id), { recursive: true });
       await writeFile(this.paths.finalizingMark(id), '');
       made = await work();
     } catch (error) {
@@ -320,6 +321,24 @@ export class JobLibrary {
     // yet, and the next start clears it.
     await rm(this.paths.finalizingMark(id), { force: true }).catch(() => undefined);
     return made;
+  }
+
+  /**
+   * Makes the job's folder, which must not be there yet. `freshId` chose an id with no folder, so
+   * one that is there now was made since by someone else: a person's own files, or another job
+   * of the same id being made at this moment. It is not touched, and nothing is made in it.
+   */
+  private async claim(jobId: string): Promise<void> {
+    await mkdir(this.paths.jobs, { recursive: true });
+    try {
+      await mkdir(this.paths.jobDir(jobId));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+      throw new Error(
+        `There is already a folder for a job called "${jobId}" that Architect did not make for this one, so it was left as it is. Try again, and the job will be made under another id.`,
+        { cause: error },
+      );
+    }
   }
 
   /** Takes back what making a job wrote: its seal first, so a folder never outlives it unmarked. */
@@ -603,11 +622,18 @@ export class JobLibrary {
     );
   }
 
+  /**
+   * The id a job is made under: the one asked for when nothing is under it, else a new one. A job
+   * in the library, a sealed final test and a folder in the jobs folder each take an id, the
+   * folder even when no job knows it: it may hold a person's own files, which making a job must
+   * not meet.
+   */
   private async freshId(candidate: string): Promise<string> {
     const free =
       isSafeId(candidate) &&
       this.store.jobs.get(candidate) === null &&
-      !(await this.deps.vault.isSealed(candidate));
+      !(await this.deps.vault.isSealed(candidate)) &&
+      !(await exists(this.paths.jobDir(candidate)));
     return free ? candidate : newId('job');
   }
 }

@@ -8,3 +8,4 @@ pnpm-lock.yaml
 **/playwright-report
 *.md
 examples/**/data
+apps/desktop/demo/work

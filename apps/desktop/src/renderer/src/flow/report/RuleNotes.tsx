@@ -36,8 +36,11 @@ export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rou
           />
           <Facts title="From your policy">
             {rule.passages.map((passage) => (
-              <li key={`${passage.file}:${passage.passage}`}>
-                {passage.passage}{' '}
+              <li key={`${passage.file}:${passage.question ?? ''}:${passage.passage}`}>
+                {passage.question !== undefined && (
+                  <span className="text-fg-muted">{passage.question} </span>
+                )}
+                <span>{passage.passage}</span>{' '}
                 <span className="font-mono text-xs">{passageSource(passage.file)}</span>
               </li>
             ))}

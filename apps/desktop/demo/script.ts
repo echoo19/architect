@@ -32,6 +32,10 @@ export interface DemoScene {
   };
   /** Install stand-in replies after launch. No production code is changed. */
   setup?: (launched: LaunchedApp) => Promise<void>;
+  /** Steps run before the title and not recorded, so the title opens onto the scene's screen. */
+  prepare?: DemoStep[];
+  /** A folder to copy the app's data to when the scene ends, such as a job drafted on camera. */
+  keepData?: string;
   title?: { heading: string; eyebrow?: string; seconds: number };
   steps: DemoStep[];
   speedups?: { fromStep: number; throughStep: number; factor: number }[];

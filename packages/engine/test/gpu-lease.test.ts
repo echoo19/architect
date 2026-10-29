@@ -455,8 +455,10 @@ describe('the GPU lease between processes', () => {
 
   it('keeps a busy holder that goes on saying it is there, however long it takes', async () => {
     const reply = await lease('workspace').hold('llama-server', replyPurpose('Returns desk'));
+    // The wait spans three stale windows, and each window is ten heartbeats long, so a pause of the
+    // test process under a full parallel run can't make a holder that is beating look gone.
     await expect(
-      lease('engine', { staleMs: 300, waitMs: 1_000 }).hold('llama-server', CHECK_PURPOSE),
+      lease('engine', { staleMs: 1_000, waitMs: 3_000 }).hold('llama-server', CHECK_PURPOSE),
     ).rejects.toMatchObject({ code: 'gpu_busy' });
     reply.release();
   });

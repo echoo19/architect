@@ -40,9 +40,9 @@ rule: a number that is not written in the records but follows from a policy appl
   - rule.lookupTable, rule.lookupKey, rule.matchColumn: when the rule needs a value from a row of another table (for example whether a customer is a member): that table's file, its key column (unique there), and the column of the cases' table that holds the key. At most one lookup. Else empty.
   - rule.categories: every column the rule tests with equals or in, with "row" for the cases' table or "lookup" for the looked-up one, and every value that column may have, spelled as the table spells them. A row whose value is not listed is left out, never guessed.
   - rule.familyColumn: the column naming the entity whose reuse would give an answer away, such as the customer; empty when each row stands alone.
-  - rule.sources: the passages the rule rests on, each copied word for word from an attached text file (file: its name) or from what the person wrote (file: "description") or answered (file: "answers"). Write the rule from the policy and the person's answers only, never from patterns in the rows. Do not paraphrase a passage.
+  - rule.sources: the passages the rule rests on, each copied word for word from an attached text file (file: its name) or from what the person wrote (file: "description") or answered (file: "answers"). Write the rule from the policy and the person's answers only, never from patterns in the rows. Do not paraphrase a passage. Every passage you cite must be carried out by the steps or listed in rule.ambiguities, never left out silently: a passage that says hours are billed in half-hour steps needs a rounding step, or a question about it.
   - rule.ambiguities: anything the policy leaves open that would change a number, for example whether a discount also applies to parts. Do not choose for the person. Give a plain question and 2 to 4 short answers, and set changesAnswers to true; the person is asked before any task is made. Set it to false for something that changes no number. Offer only answers the steps above can do: never one such as "ask the customer" or "use the average".
-    - An empty cell: when a column the rule adds up has empty cells (the table's profile says how many) and the policy doesn't say what an empty one means, ask it with blankColumn set to that column and blankFrom to "row" or "lookup", and leave options empty. Architect gives the person the only two answers a rule can do, to count it as zero or to leave those rows out, and applies the one chosen: write the steps as if every cell were filled, and add nothing of your own for an empty one. Ask nothing else about empty cells.
+    - An empty cell: when a column the rule adds up has empty cells (the table's profile says how many) and the policy doesn't say what an empty one means, ask it with blankColumn set to that column and blankFrom to "row" or "lookup", and leave options empty. Architect gives the person the only two answers a rule can do, to count it as zero or to leave those rows out, and applies the one chosen: write the steps as if every cell were filled, and add nothing of your own for an empty one. What the person answers is about that column of that table only: a column of the same name in another table is asked about on its own. Ask nothing else about empty cells.
   - rule.steps and rule.result: the answer worked out step by step, the way a calculation is written on paper. Each step has an id you choose (such as "hours" or "labor"), an op, and only the fields its op uses; the rest are empty. A step names the steps it is made of by id in args, a step may be used by several others, and rule.result is the id of the last step. Every step must be used. The ops:
       num: value is a number written with digits and at most one point, such as "65" or "0.9". Write a percentage as a factor: 10% off is "0.9".
       col: column and from: "row" for the cases' table or "lookup" for the looked-up row. The column must hold numbers.
@@ -77,7 +77,7 @@ Drafting. Draft when the files and the person's words are enough, after the last
 
 ## The job
 
-- name: what the agent is called, at most 60 characters.
+- name: what the agent is called, at most 60 characters, in sentence case: only the first word has a capital, as in "Repair ticket pricing helper", never "Repair Ticket Pricing Helper". A proper noun, such as the name of the person's shop, keeps its capitals.
 - summary: one plain sentence on what the agent does.
 - description: a few sentences on the job, written for the agent itself: what it works from and what it does. Say only what the files and the person said.
 - does and doesNot: short plain statements of what the agent does and does not do. Include what the person said it must not do.
@@ -101,15 +101,15 @@ Write for someone who has never used this app. No jargon, no mention of template
 export function settledMessage(
   question: string,
   answer: string,
-  blank?: { column: string; means: 'zero' | 'leave_out' },
+  blank?: { table: string; column: string; means: 'zero' | 'leave_out' },
 ): string {
   // An empty cell is dealt with by Architect from the answer: the rule's steps stay as they were.
   const effect =
     blank === undefined
       ? 'write the rule so that it follows the answer, quote the answer in sources with file "answers" if the rule rests on it,'
       : blank.means === 'zero'
-        ? `write the rule as it is: Architect counts an empty ${blank.column} as 0 itself, so the steps need nothing for it,`
-        : `write the rule as it is: Architect leaves out the rows where ${blank.column} is empty itself, so the steps need nothing for it,`;
+        ? `write the rule as it is: Architect counts an empty ${blank.column} in ${blank.table} as 0 itself, so the steps need nothing for it,`
+        : `write the rule as it is: Architect leaves out the rows where ${blank.column} in ${blank.table} is empty itself, so the steps need nothing for it,`;
   return `The person answered your question about the rule.\n\nQuestion: ${question}\nAnswer: ${answer.trim()}\n\nDraft the job again with this settled: ${effect} and do not list this question in ambiguities again. List any other open question that changes a number.`;
 }
 

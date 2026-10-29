@@ -13,9 +13,16 @@ import { sha256Of } from '../src/drafting/confirmation';
 import { DRAFT_NOW } from '../src/drafting/envelope';
 import { MAX_RULE_QUESTIONS } from '../src/drafting/drafter';
 import { RunController } from '../src/loop/controller';
-import { draftingWorld, question, TEACHER, type DraftingWorld } from './support/drafting-world';
+import {
+  draft,
+  draftingWorld,
+  NO_TYPE,
+  question,
+  TEACHER,
+  type DraftingWorld,
+} from './support/drafting-world';
 import { bikeShop, POLICY, type Bike } from './support/rule-data';
-import { bikeDraft, bikeSteps, costType, CONTACT_TYPE, step } from './support/rule-draft';
+import { bikeDraft, bikeSteps, costType, CONTACT_TYPE, step, wireRule } from './support/rule-draft';
 
 let world: DraftingWorld;
 let bike: Bike;
@@ -63,6 +70,8 @@ describe('asking the teacher for a rule', () => {
       'never from patterns in the rows',
       'There is no "not"',
       'the person is asked before any task is made',
+      // A passage the rule cites is carried out by its steps or asked about, never left out.
+      'Every passage you cite must be carried out by the steps or listed in rule.ambiguities, never left out silently',
     ]) {
       expect(request?.system).toContain(phrase);
     }
@@ -148,6 +157,52 @@ describe('drafting a job with a rule', () => {
     }
   });
 
+  it('puts every ticket in one set, whatever the words and the families of the kinds that ask about it', async () => {
+    // Two rules that work out the same total in another order, asked in other words, with another
+    // family column: one question to an agent, a ticket's answer in the practice tasks and in the
+    // final test. A ticket is the subject of one request, so there is no twin to put apart.
+    const swapped = bikeSteps().map((item) =>
+      item.id === 'sum' ? { ...item, args: ['parts', 'labor'] } : item,
+    );
+    const price = costType(
+      { familyColumn: 'customer_id', steps: swapped },
+      { id: 'price', label: 'Ticket prices', request: 'How much does ticket {key} cost?' },
+    );
+    const job = await draftedJob(bikeDraft([costType(), price, CONTACT_TYPE]));
+    const sealed = readFileSync(join(world.dataDir, 'vault', job.id, 'test.jsonl'), 'utf8')
+      .split('\n')
+      .filter((line) => line !== '')
+      .map((line) => JSON.parse(line) as Task);
+    const sets = {
+      calibration: await world.jobs.tasks(job.id, 'calibration'),
+      train: await world.jobs.tasks(job.id, 'train'),
+      dev: await world.jobs.tasks(job.id, 'dev'),
+      test: sealed,
+    };
+    const tickets = new Map<string, string>();
+    for (const [name, tasks] of Object.entries(sets)) {
+      for (const task of tasks.filter((item) => item.type === 'cost' || item.type === 'price')) {
+        const key = String(task.meta?.['key']);
+        expect(
+          tickets.has(key),
+          `${key} is asked about in ${tickets.get(key)} and in ${name}`,
+        ).toBe(false);
+        tickets.set(key, name);
+      }
+    }
+    // Both kinds of rule still have tasks in the final test and in the practice tasks.
+    for (const id of ['cost', 'price']) {
+      expect(
+        sets.test.some((task) => task.type === id),
+        id,
+      ).toBe(true);
+      expect(
+        sets.train.some((task) => task.type === id),
+        id,
+      ).toBe(true);
+    }
+  });
+
   it('shows the plan with the rule, its examples and a rule that waits to be confirmed', async () => {
     const job = await draftedJob();
     const plan = await world.jobs.taskPlan(job.id);
@@ -161,7 +216,15 @@ describe('drafting a job with a rule', () => {
     const other = draftingWorld();
     try {
       other.mentor.script = () =>
-        bikeDraft([CONTACT_TYPE, { ...CONTACT_TYPE, id: 'second', columns: ['name'] }]);
+        bikeDraft([
+          CONTACT_TYPE,
+          {
+            ...CONTACT_TYPE,
+            id: 'second',
+            columns: ['name'],
+            request: 'What is the name of customer {key}?',
+          },
+        ]);
       const turn = await other.drafting.start(
         'A repair desk',
         [
@@ -475,6 +538,14 @@ describe('a question the policy leaves open', () => {
     expect(record.answers).toEqual([{ question: OPEN.question, answer: 'No, labor only' }]);
     const cost = record.types.find((type) => type.id === 'cost');
     expect(cost?.details?.passages.map((item) => item.file)).toEqual(['policy.md', 'answers']);
+    // The record keeps the passage as it was quoted. The plan the person reads names the question
+    // the answer was given to, found in the answers the draft kept.
+    expect(cost?.details?.passages[1]).toEqual({ file: 'answers', passage: 'No, labor only' });
+    const plan = await world.jobs.taskPlan(second.draft?.id ?? '');
+    expect(plan.types.find((type) => type.id === 'cost')?.details?.passages).toEqual([
+      { file: 'policy.md', passage: 'Labor is billed at $65 an hour, in half-hour steps.' },
+      { file: 'answers', passage: 'No, labor only', question: OPEN.question },
+    ]);
   });
 
   it('is asked even when the person chose to draft now, and "Draft it now" does not answer it', async () => {
@@ -582,14 +653,14 @@ describe('a question about an empty cell', () => {
     const told = world.mentor.requests[1]?.messages.at(-1)?.content ?? '';
     expect(told).toContain(`Question: ${EMPTY.question}`);
     expect(told).toContain(`Answer: ${ZERO}`);
-    expect(told).toContain('Architect counts an empty parts_cost as 0 itself');
+    expect(told).toContain('Architect counts an empty parts_cost in tickets.csv as 0 itself');
 
     const record = recordOf(job.id);
     expect(record.answers).toEqual([
       {
         question: EMPTY.question,
         answer: ZERO,
-        blank: { column: 'parts_cost', from: 'row', means: 'zero' },
+        blank: { table: 'tickets.csv', column: 'parts_cost', from: 'row', means: 'zero' },
       },
     ]);
     const cost = record.types.find((type) => type.id === 'cost');
@@ -608,9 +679,24 @@ describe('a question about an empty cell', () => {
     ]);
     expect(await world.jobs.ruleReports(job.id)).toEqual([]);
     const plan = await world.jobs.taskPlan(job.id);
-    expect(plan.types.find((type) => type.id === 'cost')?.details?.statement).toBe(
-      cost?.details?.statement,
-    );
+    const planned = plan.types.find((type) => type.id === 'cost')?.details;
+    expect(planned?.statement).toBe(cost?.details?.statement);
+    // The answer is read with the question the person was asked about the empty cell.
+    expect(planned?.passages).toContainEqual({
+      file: 'answers',
+      passage: ZERO,
+      question: EMPTY.question,
+    });
+
+    // So is the report of the rule once the person has confirmed it.
+    const { token } = (await world.jobs.ruleState(job.id)) ?? { token: '' };
+    await world.jobs.confirmRules(job.id, token);
+    const [report] = await world.jobs.ruleReports(job.id);
+    expect(report?.passages).toContainEqual({
+      file: 'answers',
+      passage: ZERO,
+      question: EMPTY.question,
+    });
   });
 
   it('leaves the rows with an empty cell out when the person chose that, as it did before', async () => {
@@ -624,7 +710,7 @@ describe('a question about an empty cell', () => {
       {
         question: EMPTY.question,
         answer: LEAVE,
-        blank: { column: 'parts_cost', from: 'row', means: 'leave_out' },
+        blank: { table: 'tickets.csv', column: 'parts_cost', from: 'row', means: 'leave_out' },
       },
     ]);
     const cost = record.types.find((type) => type.id === 'cost');
@@ -653,6 +739,32 @@ describe('a question about an empty cell', () => {
     const second = await world.drafting.reply(first.sessionId, ZERO, TEACHER);
     expect(second.draft).toBeDefined();
     expect(second.message).not.toContain(EMPTY.question);
+  });
+
+  it('still reads a draft made before an answer named its table, and its rule is what it was', async () => {
+    asksThenDrafts();
+    const first = await world.drafting.start('A repair desk', attachBike(), TEACHER);
+    const job = (await world.drafting.reply(first.sessionId, ZERO, TEACHER)).draft;
+    if (job === undefined) throw new Error('Expected a job.');
+    const before = await world.jobs.ruleState(job.id);
+    const file = world.paths.draftingFile(job.id);
+    const old = JSON.parse(readFileSync(file, 'utf8')) as DraftRecord;
+    const blank = old.answers?.[0]?.blank;
+    if (blank === undefined) throw new Error('Expected an answer about an empty cell.');
+    delete blank.table;
+    writeFileSync(file, JSON.stringify(old));
+
+    expect(recordOf(job.id).answers?.[0]?.blank).toEqual({
+      column: 'parts_cost',
+      from: 'row',
+      means: 'zero',
+    });
+    // The rule is read from its own specification, which the answer's table never touched.
+    expect(await world.jobs.ruleState(job.id)).toEqual(before);
+    const plan = await world.jobs.taskPlan(job.id);
+    expect(plan.types.find((type) => type.id === 'cost')?.details?.statement).toMatch(
+      /An empty parts cost counts as 0/,
+    );
   });
 
   it('sends back a question about a column the rule does not add up, and one the table lacks', async () => {
@@ -694,6 +806,134 @@ describe('a question about an empty cell', () => {
     expect(schema).not.toContain('emptyMeansZero');
     expect(request.system).toContain('Offer only answers the steps above can do');
     expect(request.system).toContain('blankColumn');
+    expect(request.system).toContain('a column of the same name in another table is asked about');
+  });
+});
+
+describe('an empty cell in two tables that each have an amount column', () => {
+  const TICKETS = 'What should an empty amount on a ticket count as?';
+  const INVOICES = 'What should an empty amount on an invoice count as?';
+  const ZERO = 'Count it as zero';
+  const LEAVE = 'Leave those rows out';
+  const SAID = 'Tickets and invoices. Both carry a ten percent surcharge.';
+
+  /** Seventy rows, the amount of every fifth left empty. */
+  function amounts(key: string, prefix: string): string {
+    const rows = Array.from({ length: 70 }, (_, i) =>
+      [
+        `${prefix}-${1000 + i}`,
+        `C-${100 + (i % 20)}`,
+        i % 5 === 0 ? '' : (10 + i * 1.5).toFixed(2),
+      ].join(','),
+    );
+    return `${[`${key},customer_id,amount`, ...rows].join('\n')}\n`;
+  }
+
+  /** What a row of a table comes to with the surcharge, a rule that asks what an empty amount is. */
+  function surcharge(table: string, key: string, request: string, asking: string) {
+    return {
+      ...NO_TYPE,
+      id: `${table.replace('.csv', '')}_total`,
+      label: `Totals of ${table}`,
+      description: `Work out what a row of ${table} comes to.`,
+      template: 'rule' as const,
+      table,
+      keyColumn: key,
+      request,
+      rule: wireRule({
+        currency: '',
+        lookupTable: '',
+        lookupKey: '',
+        matchColumn: '',
+        categories: [],
+        sources: [{ file: 'description', passage: 'Both carry a ten percent surcharge.' }],
+        ambiguities: [
+          {
+            question: asking,
+            options: [],
+            changesAnswers: true,
+            blankColumn: 'amount',
+            blankFrom: 'row',
+          },
+        ],
+        steps: [
+          step('amount', 'col', { column: 'amount', from: 'row' }),
+          step('rate', 'num', { value: '1.1' }),
+          step('priced', 'mul', { args: ['amount', 'rate'] }),
+          step('total', 'round', { value: '0.01', mode: 'half_up', args: ['priced'] }),
+        ],
+        result: 'total',
+      }),
+    };
+  }
+
+  function teacherDrafts(): string[] {
+    world.mentor.script = () =>
+      draft({
+        files: [
+          { name: 'tickets.csv', description: 'Repair tickets.', access: 'read' },
+          { name: 'invoices.csv', description: 'Invoices.', access: 'read' },
+        ],
+        taskTypes: [
+          surcharge('tickets.csv', 'ticket_id', 'What does ticket {key} come to?', TICKETS),
+          surcharge('invoices.csv', 'invoice_id', 'What does invoice {key} come to?', INVOICES),
+        ],
+      });
+    return [
+      world.attach('tickets.csv', amounts('ticket_id', 'T')),
+      world.attach('invoices.csv', amounts('invoice_id', 'INV')),
+    ];
+  }
+
+  it("asks about each table's amount on its own, and keeps each answer for the table it was about", async () => {
+    const files = teacherDrafts();
+    const first = await world.drafting.start(SAID, files, TEACHER);
+    expect(first.message).toBe(TICKETS);
+    expect(first.options).toEqual([ZERO, LEAVE]);
+
+    // The answer was about the tickets' amount, so the invoices' amount is still a question.
+    const second = await world.drafting.reply(first.sessionId, ZERO, TEACHER);
+    expect(second.draft).toBeUndefined();
+    expect(second.message).toBe(INVOICES);
+    expect(world.store.jobs.list()).toEqual([]);
+
+    const third = await world.drafting.reply(second.sessionId, LEAVE, TEACHER);
+    const job = third.draft;
+    if (job === undefined) throw new Error(third.message);
+    const record = recordOf(job.id);
+    expect(record.answers).toEqual([
+      {
+        question: TICKETS,
+        answer: ZERO,
+        blank: { table: 'tickets.csv', column: 'amount', from: 'row', means: 'zero' },
+      },
+      {
+        question: INVOICES,
+        answer: LEAVE,
+        blank: { table: 'invoices.csv', column: 'amount', from: 'row', means: 'leave_out' },
+      },
+    ]);
+    const tickets = record.types.find((type) => type.id === 'tickets_total');
+    const invoices = record.types.find((type) => type.id === 'invoices_total');
+    expect(tickets?.spec).toMatchObject({ emptyMeansZero: [{ column: 'amount', from: 'row' }] });
+    expect(invoices?.spec).not.toHaveProperty('emptyMeansZero');
+    expect(tickets?.details?.statement).toContain('counts as 0');
+    expect(invoices?.details?.statement).not.toContain('counts as 0');
+    // Each table's empty amounts were dealt with as its own answer said.
+    expect(tickets?.details?.excluded.map((item) => item.reason)).not.toContain(
+      'amount is empty or N/A',
+    );
+    expect(invoices?.details?.excluded.map((item) => item.reason)).toContain(
+      'amount is empty or N/A',
+    );
+  });
+
+  it('puts the table into the question that is put again when the answer was not one of the two', async () => {
+    const first = await world.drafting.start(SAID, teacherDrafts(), TEACHER);
+    const again = await world.drafting.reply(first.sessionId, 'Use the average', TEACHER);
+    expect(again.message).toContain(
+      'it decides what an empty amount in tickets.csv counts as in every row',
+    );
   });
 });
 

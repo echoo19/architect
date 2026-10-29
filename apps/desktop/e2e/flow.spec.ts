@@ -470,7 +470,11 @@ for (const theme of THEMES) {
             passages: [
               { file: 'policy.md', passage: 'Labor is billed at $65 an hour, in half-hour steps.' },
               { file: 'policy.md', passage: 'Members get 10% off labor, never off parts.' },
-              { file: 'answers', passage: 'No, labor only' },
+              {
+                file: 'answers',
+                passage: 'No, labor only',
+                question: 'Does the 10% off for members also apply to the parts?',
+              },
             ],
             conventions: [
               'Numbers are read as written. A cell that is empty, N/A or not a number leaves its row out; it is never counted as zero.',
@@ -519,6 +523,10 @@ for (const theme of THEMES) {
     await expect(rule).toContainText('108 of 160');
     await expect(rule).toContainText('Members get 10% off labor, never off parts.');
     await expect(rule).toContainText('your answer');
+    // An answer is read with the question it answered.
+    await expect(rule).toContainText(
+      'Does the 10% off for members also apply to the parts? No, labor only',
+    );
     await expect(rule).toContainText('52 rows: parts_cost is empty or N/A, such as T-2001');
     await expect(rule).toContainText(
       'member (customers.csv) is yes: 40 cases, 40 where it changed',

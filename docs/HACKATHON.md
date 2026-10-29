@@ -21,15 +21,24 @@ Architect is being built during the Meta Global AI Developer Hackathon (indie de
 - Also eligible for: Best Build on Meta Open Weight Models (Glimmer, Spark Open) and Best Agentic Use-Case.
 - Submission: (1) public repo with the desktop app, a sample job with its tasks and checker, and one shipped graduate anyone can open in the workspace; (2) a demo video of 3 minutes at most, shot on the live product: the bare student failing a task, the training view as rounds climb, the network cut, then working with the graduate on the same task; (3) README results: the comparison table, the pass-rate-per-round curve, cost, failure cases, and related work. Working title for a later write-up: *Teaching Without Training: An LLM Mentor That Builds a Small Agent's Harness Until It Works Alone.*
 
+## Judging, as checked on Oct 29
+
+From the event page and the participants' event guide:
+
+- A pass/fail gate first: the project fits a problem statement (Build for Your World or Push the Frontier) and genuinely uses the Meta Model API or open-weight models. Architect fits Build for Your World and uses Muse Spark through the Meta Model API and Muse Glimmer's open weights; Muse Spark Open is the self-hosted mentor, with the event's Baseten id `meta-models/muse-spark-open-1026`. It is none of the disqualified kinds (medical or mental-health advice, basic RAG, simple image analyzers, education chatbots, job screeners, nutrition coaches, personality or sports analyzers, politics or war).
+- Then a score from 0 to 10: impact 30%, use of Meta's AI tools 25%, demo 25% (working, holds up live, the quality of the 3-minute video), technical depth 20%. The indie track is judged on creativity, technical ambition and whether it works. The top 5 of each track go to a live final on Nov 9, on the same rubric.
+- Bonus awards: Best Build on Open Weight Models (Glimmer or Spark Open on your own hardware or partner inference), Best Agentic Use-Case, Most Viral Project (engagement on an X post of the demo through Nov 8, its link submitted on the platform), Community Vote (the public gallery) and Best Creative Build (Muse Image or Muse Wonder, which Architect doesn't use).
+
 ## Submission checklist
 
-- [ ] Repository public, README complete, licence present
+- [x] Repository public, README complete, licence present
 - [ ] CI green on the final commit
-- [ ] Installers attached to a GitHub release
+- [ ] Installers attached to a GitHub release (0.3.0)
 - [x] Sample job and one shipped graduate in the repo
 - [x] README results filled from real runs
 - [ ] Demo video (3 minutes or less) uploaded and link checked
-- [ ] Submission form filled, team members listed
+- [ ] Submission made on the Cerebral Valley platform by Wed Nov 4, 9:00 PM ET, with the problem statement, the track (indie), the repository and video links, and everyone who contributed listed
+- [ ] Optional: the demo posted on X, its link added on the platform
 
 ## Demo script
 
