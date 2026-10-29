@@ -17,6 +17,19 @@ const COPY_SHARE = 0.9;
 /** ... and before it is only mentioned. */
 const MENTION_SHARE = 0.25;
 
+/**
+ * The most significant digits an answer may have. A number the checker compares holds fifteen
+ * digits exactly, and at fifteen a wrong answer one step off lies within the rounding of the right
+ * one, so it could pass. Thirteen leaves room to spare, and money to the cent, which is under a
+ * billion here, needs eleven.
+ */
+export const MAX_ANSWER_DIGITS = 13;
+
+/** The digits of a number's text that tell it apart: its leading zeros and its point don't count. */
+export function significantDigits(text: string): number {
+  return text.replace(/^-/, '').replace('.', '').replace(/^0+/, '').length;
+}
+
 export interface Audit {
   problems: string[];
   flags: string[];
@@ -85,6 +98,17 @@ export function auditCases(
   if (answers.size < 2) {
     problems.push(
       `Every row of ${spec.table} that can be worked out comes to the same ${spec.answerName}, ${[...answers][0] ?? ''}, so an agent could pass without working anything out.`,
+    );
+  }
+  // An answer is graded as a number, so one with more digits than a number holds exactly could be
+  // matched by a wrong answer that differs from it in the last place.
+  const longest = [...answers].reduce(
+    (most, text) => (significantDigits(text) > significantDigits(most) ? text : most),
+    '0',
+  );
+  if (significantDigits(longest) > MAX_ANSWER_DIGITS) {
+    problems.push(
+      `An answer such as ${longest} has ${significantDigits(longest)} digits, and an answer is graded as a number that holds ${MAX_ANSWER_DIGITS} exactly, so a wrong answer could be taken for the right one. Round the answer to a coarser step, such as the cent for money.`,
     );
   }
 

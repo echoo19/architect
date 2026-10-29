@@ -1,6 +1,7 @@
 import type { RuleNode, RuleSpec } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { compareAnswer } from '../src/checker/compare';
+import { significantDigits } from '../src/drafting/rule/guards';
 import { readTable, type Table } from '../src/drafting/table';
 import { conventionsOf, ruleVersion, runRule } from '../src/drafting/templates/rule';
 import {
@@ -229,6 +230,44 @@ describe('the rule template on the bike shop', () => {
         'parts_cost is written in a currency other than US dollars',
       );
     }
+  });
+
+  it('refuses a rule whose answers have more digits than a number can be checked by, and takes money to the cent', () => {
+    // 999999999.00000003 and 999999999.00000006 are different answers, but one number to a
+    // checker that compares numbers, so a wrong answer could be right.
+    const rows = Array.from({ length: 30 }, (_, i) => `K-${i},${111_111_111 + i}.00000001`);
+    const amounts = new Map([
+      ['amounts.csv', readTable('amounts.csv', ['id,value', ...rows].join('\n'))],
+    ]);
+    const spec = (increment: string): RuleSpec => ({
+      template: 'rule',
+      table: 'amounts.csv',
+      keyColumn: 'id',
+      request: 'What is the amount for {key}?',
+      answerName: 'amount',
+      categories: [],
+      expression: {
+        op: 'round',
+        arg: { op: 'mul', args: [col('value'), num('3')] },
+        increment,
+        mode: 'half_up',
+      },
+      sources: [{ file: 'policy.md', passage: 'Triple it.' }],
+    });
+    const fine = runRule(spec('0.01'), amounts);
+    expect(fine.problems).toEqual([]);
+    expect(fine.candidates).toHaveLength(30);
+
+    const fineGrained = runRule(spec('0.00000001'), amounts);
+    expect(fineGrained.candidates).toEqual([]);
+    expect(fineGrained.problems).toEqual([
+      'An answer such as 333333333.00000003 has 17 digits, and an answer is graded as a number that holds 13 exactly, so a wrong answer could be taken for the right one. Round the answer to a coarser step, such as the cent for money.',
+    ]);
+    // Fewer digits after the point is as fine, and small numbers need few digits however small.
+    expect(runRule(spec('0.0001'), amounts).problems).toEqual([]);
+    expect(significantDigits('0.00000001')).toBe(1);
+    expect(significantDigits('-120.50')).toBe(5);
+    expect(significantDigits('0')).toBe(0);
   });
 
   it('refuses a column that holds words where the rule adds numbers', () => {
