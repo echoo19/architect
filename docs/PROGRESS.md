@@ -2,6 +2,23 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Wed), two findings of the read of what the teacher may change, and main merged in
+
+**Done** (on the same branch; decision 063 amended; no model was called or loaded, the GPU stayed off, and every run used stand-ins only)
+- GPT-6 Astra read the branch: no invariant breached, and two bugs, each reproduced and fixed with tests that fail without the fix.
+  - An improvement with nothing to try could get stuck. Its training ended for that reason and the planner froze it before the step that hands its lessons back, and freezing asks the model on this computer for its build. With that model stopped, the run paused with its lessons still assigned to it, and Resume met the same failure. An improvement that kept no change has no candidate to freeze, so the planner now takes it straight to the step that hands the lessons back, whatever ended its training (`plan.ts`). A training run that kept nothing and has nothing to try needs no model either: it ends stopped without a freeze, which a test now holds with the model stopped.
+  - Self-reflection's permitted change was refused. Its reply format has no field for the kind, so every reply read as a procedure, and with procedures off a valid change to `retrieval.yaml` was refused as "the mentor chose a procedure", with a retry that could not fix it. A blank job met the same after its first draft. A reply that names no kind now stands for the kind its files belong to, which is what its record shows, and is judged by those files against the round's menu, a comparison's included: the refusal names the file and the switch. A kind the mentor names is held to the menu as before. A change to decoding or guardrails alone is refused where no kind of change to the harness is on.
+- Main was merged in (the rule's second and third rounds of fixes, the demo recorder and docs). The only conflict was the top of this file, where both sets of entries are kept, newest first.
+- `rule.spec.ts` asked this computer's own model runtimes and its graphics card, through Define's pre-flight, which the rule against using the card forbids. It now answers that call itself with one line, the way `flow.spec.ts` does, so the spec runs on stand-ins only. Its other lines are as main has them.
+- Verified: `pnpm check` exits 0 after the merge (235 test files, 3,062 tests passed, 2 skipped; the 2 skipped are the recipe's Python tests, which skip when Python isn't found). Hidden e2e on the rebuilt app, all on stand-ins: `teacher-menu.spec.ts` (4), `rule.spec.ts` (3) and `flow.spec.ts` (27) pass. Each fix was taken out again and the new tests failed: the planner's rule fails its own test and the improvement's, the direct stop of a run that kept nothing fails the training-run test, and the code as the read found it, a label read for every reply and a kind that defaults to a procedure, fails all five tests of replies that name no kind.
+
+**Next**
+- Merge the branch into main.
+
+**Open issues**
+- A reply that names no kind is recorded as the kind its files belong to, so a self-reflection round that changes retrieval reads as retrieval in the rounds list, where it used to read as a procedure. A change to files of two kinds is recorded as the first of them the job allows.
+- A student's own change to decoding or guardrails belongs to no kind, so it is judged by the one rule that some kind of change to the harness is on.
+
 ## 2026-10-29 (Wed), the person chooses what the teacher may change
 
 **Done** (on a branch from main; decision 063; no model was called or loaded)
@@ -15,7 +32,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Verified: `pnpm check` exits 0 (233 test files, 2,994 tests passed, 2 skipped). Hidden e2e: `teacher-menu.spec.ts` (4, the real engine with a scripted teacher and a stand-in student; local runtime detection stubbed) and `flow.spec.ts` (27) pass. Each rule was checked by taking its code out and watching a test fail: 22 in the unit tests (the menu, the worked examples, the file check, the draft's prompt and its hold, the check before the baseline and before a round, the improvement's ending, Teach this's three, the switch that holds, the order of what blocks weights, the need, the person's-choice sentence, the validation and its tab, the panel's lines, the words and the stored form) and the two screens in the e2e.
 
 **Next**
-- Merge the branch into main. Main has moved on three commits (the demo recorder, a test's timing and its own entry at the top of this file), so this entry will meet that one at the top.
+- Merge the branch into main. Main was merged into it afterwards, in the entry above.
 - Look at the Teacher tab once with a real Spark on a drafted job: turn small tools off and watch the first draft leave them out.
 
 **Open issues**
