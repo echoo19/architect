@@ -587,15 +587,16 @@ for (const theme of THEMES) {
     await expect(page.getByText(note)).toBeVisible();
     await expect(page.getByRole('region', { name: 'The rule for Ticket totals' })).toHaveCount(0);
 
-    // What the rule left out of the tests is said right under it, in the page's own text and not
-    // in the small grey type of the note above it, with how many rows the tests could use.
+    // What the rule left out of the tests is said right under it, with how many rows the tests
+    // could use. It qualifies the score as the note does, so it is set at the note's size, not
+    // louder than the note it follows.
     const leftOut = page.getByText(
       'The tests could use 108 of the 160 rows. The other 52 were left out because parts_cost is empty or N/A.',
     );
     await expect(leftOut).toBeVisible();
     const sizeOf = (line: Locator) =>
       line.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
-    expect(await sizeOf(leftOut)).toBeGreaterThan(await sizeOf(page.getByText(note)));
+    expect(await sizeOf(leftOut)).toBe(await sizeOf(page.getByText(note)));
     const [noteBox, leftBox, detailsBox] = await Promise.all([
       page.getByText(note).boundingBox(),
       leftOut.boundingBox(),
