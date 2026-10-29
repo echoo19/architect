@@ -26,8 +26,8 @@ Architect is being built during the Meta Global AI Developer Hackathon (indie de
 - [ ] Repository public, README complete, licence present
 - [ ] CI green on the final commit
 - [ ] Installers attached to a GitHub release
-- [ ] Sample job and one shipped graduate in the repo
-- [ ] README results filled from real runs
+- [x] Sample job and one shipped graduate in the repo
+- [x] README results filled from real runs
 - [ ] Demo video (3 minutes or less) uploaded and link checked
 - [ ] Submission form filled, team members listed
 

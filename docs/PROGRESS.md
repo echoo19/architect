@@ -2,6 +2,25 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-28 (Tue), night: comparison 2 shows a gain, and the agent it made ships
+
+**Done**
+- Comparison 1 read with GPT-6 Astra: two rounds of teaching showed no gain on the final test (+3.3 points, -11.5 to +18.0). Astra advised one more comparison, planned and published before it ran, then delivery.
+- Comparison 2, planned in `docs/comparisons/returns-desk-2-plan.md` before anything was generated or measured: a new returns desk from generator seed 20261029 (the split now follows the generator's seed, and the committed job is byte for byte the same), Glimmer on its own against teaching with the job's own budget (the runner took `--rounds`), the one-shot draft as a secondary checkpoint, and a gain counted only if the paired 95% interval is above zero.
+- Its first run was set aside: when attempts cost more than calibration said, the runner dropped the teaching arm, as it is built to, and opened the other two arms' final tests. It was stopped 84 seconds later, unread, and ran again with a wider total cap (each arm's own share still bounds what it spends). Both amendments are in the plan.
+- Results (hosted bf16 Glimmer, 60 final-test requests, seed 101): on its own 44, one-shot draft 38, taught 58. Teaching against Glimmer on its own: 15 won, 1 lost, +23.3 points (+10.9 to +35.9), a gain by the plan's rule; against the draft, 20 won and 0 lost. Teaching met the 95% target on the check tasks after 4 rounds (two kept, both tool changes that read messy money and quoted values), so it stopped there. Typical answer 3.5 s against 17.7 s. Spent: Spark $0.42, hosted Glimmer $3.38.
+- The taught agent ships as the ready-made agent: `examples/gear-returns/graduate/returns-desk.architect.zip`, with its shop's records in `graduate/data` (a test holds them to seed 20261029 byte for byte). It is marked experimental, since the 2-bit build it runs on locally hasn't taken the final test (decision 009).
+- Both reports are published in `docs/comparisons`, with an index; the README's Results section now reports both comparisons and the earlier service desk result, in plain words.
+- A one-request check of a comparison 1 agent on this computer's 2-bit Glimmer failed after 13 steps: seven file reads filled the 16K context, and Ollama cut the reply off inside a tool call. Online runs have far more room, so nothing had shown it. A context budget is on a branch (decision 057).
+- EXPANSION rows A01 (not done, by the owner's choice of hosted inference only) and A12 (a Hugging Face token now exists; a live private test waits for the owner) say where they stand.
+
+**Next**
+- Merge the context budget, then check the shipped agent on this computer's 2-bit Glimmer, briefly, unloading the model afterwards.
+- Merge the website, rebuild the installer for the owner to try, and update the demo script for the returns desk.
+
+**Open issues**
+- The owner's go-ahead is needed for a live private Hugging Face test, a GitHub release and where the website goes.
+
 ## 2026-10-28 (Tue), night: comparison 1's report says what it measured
 
 **Done** (on a branch; decision 056; no model was called, the GPU stayed off, and nothing of comparison 2 was read, run or changed)
