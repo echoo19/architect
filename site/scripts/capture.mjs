@@ -8,6 +8,7 @@
  *   node scripts/capture.mjs                      the standard set into screenshots/
  *   node scripts/capture.mjs --only hero,page     only the named kinds
  *   node scripts/capture.mjs --widths 1280        only these widths
+ *   node scripts/capture.mjs --height 1200        a taller window than the width's usual one
  *   node scripts/capture.mjs --url <address>      a different address (default: the preview server)
  *   node scripts/capture.mjs --out <folder>       a different folder
  *   node scripts/capture.mjs --selector '[data-stage="train"]' --widths 1280 --name train
@@ -63,7 +64,7 @@ const problems = [];
 
 async function open(width, { reducedMotion = false } = {}) {
   const context = await browser.newContext({
-    viewport: { width, height: HEIGHTS[width] ?? 900 },
+    viewport: { width, height: Number(args.height ?? HEIGHTS[width] ?? 900) },
     deviceScaleFactor: 1,
     reducedMotion: reducedMotion ? 'reduce' : 'no-preference',
   });
@@ -106,7 +107,8 @@ async function playEverything(context, page) {
 
 async function save(page, name, options = {}) {
   const file = path.join(outDir, `${name}.png`);
-  await page.screenshot({ path: file, ...options });
+  // A shot of more than the screen starts the page's animations over, so they are let finish first.
+  await page.screenshot({ path: file, animations: 'disabled', ...options });
   console.log(file);
 }
 
@@ -168,7 +170,10 @@ if (args.selector) {
           const id = await stage.getAttribute('data-stage');
           await stage.scrollIntoViewIfNeeded();
           await page.waitForTimeout(250);
-          await stage.screenshot({ path: path.join(outDir, `chapter-${id}-${width}.png`) });
+          await stage.screenshot({
+            path: path.join(outDir, `chapter-${id}-${width}.png`),
+            animations: 'disabled',
+          });
           console.log(path.join(outDir, `chapter-${id}-${width}.png`));
         }
       }

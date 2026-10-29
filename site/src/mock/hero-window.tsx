@@ -153,7 +153,7 @@ export function HeroWindow() {
       label="The Architect window, showing three small businesses in turn: an agent has finished a chat, with its answer and a table of figures."
       heightWide={644}
       heightCompact={620}
-      played
+      playback="playing"
     >
       <AppWindow className="inset-x-3 top-3 flex h-[800px] wide:inset-x-7 wide:top-7">
         <Sidebar agents={sidebarFor(index)} className="narrow:hidden" />

@@ -109,6 +109,18 @@ html.motion .stage .motion-only {
   visibility: visible;
 }
 
+/*
+ * A stage that has finished, or was scrolled past, is its finished picture: nothing in it moves
+ * and nothing is left waiting. Whatever comes to it late, a reader or a capture, sees what a
+ * reader who watched it saw last, even if the browser starts its animations over.
+ */
+html.motion .stage[data-finished] .a {
+  animation: none;
+}
+html.motion .stage[data-finished] .motion-only {
+  visibility: hidden;
+}
+
 @keyframes m-up {
   from {
     opacity: 0;
