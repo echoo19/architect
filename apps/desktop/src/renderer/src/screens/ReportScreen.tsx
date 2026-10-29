@@ -23,6 +23,7 @@ import {
   useReportEvidence,
 } from '../flow/report/evidence';
 import { ReportView } from '../flow/report/ReportView';
+import { useLocalCard } from '../flow/report/use-retest';
 import { reportVerdict } from '../flow/report/verdict';
 import { shortModelName } from '../lib/names';
 import { attempt } from '../lib/notify';
@@ -90,11 +91,18 @@ function useReportAgent(report: ReportCard) {
   const installation = useQuery(graduateKeys.installation(graduate?.id ?? 'none'), () =>
     graduate ? graduatesApi.installation(graduate.id) : Promise.resolve(null),
   );
-  const verdict = reportVerdict(report, installation.data ?? null, {
-    model: shortModelName(report.student.label),
-    baseBytes: graduate?.manifest.student.sizeBytes,
-  });
-  return { graduate, installation: installation.data ?? null, verdict };
+  // A run whose own test ran online is ready only once it has been tested here.
+  const here = useLocalCard(report).data ?? null;
+  const verdict = reportVerdict(
+    report,
+    installation.data ?? null,
+    {
+      model: shortModelName(report.student.label),
+      baseBytes: graduate?.manifest.student.sizeBytes,
+    },
+    here,
+  );
+  return { graduate, installation: installation.data ?? null, verdict, here };
 }
 
 /**
@@ -146,7 +154,7 @@ function LoadedReport({ report }: { report: ReportCard }) {
   const evidence = useReportEvidence(report);
   const comparisonReport = useComparisonReport(report);
   const bare = useBareReport(report, blankStart);
-  const { graduate, installation, verdict } = useReportAgent(report);
+  const { graduate, installation, verdict, here } = useReportAgent(report);
   return (
     <ReportView
       report={report}
@@ -160,6 +168,7 @@ function LoadedReport({ report }: { report: ReportCard }) {
       run={run.data?.run ?? null}
       installation={installation}
       comparisonReport={comparisonReport}
+      here={here}
     />
   );
 }

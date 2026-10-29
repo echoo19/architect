@@ -24,6 +24,7 @@ import {
   type ModelSource,
   type RunStartOptions,
   type StudentEndpoint,
+  type StudentTarget,
 } from '@architect/shared';
 import { z } from 'zod';
 import { withTypedFailures } from '../../../common/bridge';
@@ -75,7 +76,9 @@ export const api = {
   jobs: () => read('jobs.list', z.array(JobSummarySchema), bridge().jobs.list()),
   job: (jobId: string) => read('jobs.get', JobSchema, bridge().jobs.get(jobId)),
   run: (runId: string) => read('runs.get', RunDetailSchema, bridge().runs.get(runId)),
-  report: (runId: string) => read('reports.get', ReportCardSchema, bridge().reports.get(runId)),
+  /** The run's report card: from where its own final test ran, or from one endpoint when named. */
+  report: (runId: string, target?: StudentTarget) =>
+    read('reports.get', ReportCardSchema, bridge().reports.get(runId, target)),
   chats: (graduateId: string) =>
     read(
       'workspace.listChats',
@@ -114,6 +117,8 @@ export const flowApi = {
     ),
   startRun: (jobId: string, options: RunStartOptions) =>
     read('runs.start', RunSchema, bridge().runs.start(jobId, options)),
+  /** Takes a finished run's frozen agent through its final test again on the other endpoint. */
+  retest: (runId: string, target: StudentTarget) => bridge().runs.retest(runId, target),
   runs: (jobId: string) => read('runs.list', z.array(RunSchema), bridge().runs.list(jobId)),
   trace: (attemptId: string) => read('runs.trace', TraceSchema, bridge().runs.trace(attemptId)),
   roundDiff: (runId: string, round: number) =>

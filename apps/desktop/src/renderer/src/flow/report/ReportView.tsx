@@ -8,7 +8,7 @@ import type {
   Run,
 } from '@architect/shared';
 import { Badge, DetailList, Disclosure, Heading, Stat, type BadgeTone } from '@architect/ui';
-import { Check, CircleAlert, CircleMinus, CircleX } from 'lucide-react';
+import { Check, CircleAlert, CircleMinus, CircleX, Cloud } from 'lucide-react';
 import type { QueryState } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
 import { formatBytes, formatDuration, formatUsd } from '../../lib/format';
@@ -28,6 +28,7 @@ import {
   type ReportEvidence,
   type RuntimeFigures,
 } from './evidence';
+import { LocalTest } from './LocalTest';
 import type { Verdict, VerdictState } from './verdict';
 
 /** How the report names the runtime the final test ran on, behind Details. */
@@ -57,6 +58,8 @@ interface ReportViewProps {
   bare: ReportCard | null;
   /** The comparisons runner's report this run is an arm of, when there is one. */
   comparisonReport: QueryState<ComparisonReport | null>;
+  /** The run's own final test on this computer, when its own ran online and it was taken since. */
+  here: ReportCard | null;
 }
 
 /** The meter's memory figures, where a meter read the final test here, for Details. */
@@ -142,6 +145,7 @@ function trainingNote(report: ReportCard, job: Job | null): string {
 
 const PILL: Record<VerdictState, { tone: BadgeTone; icon: ReactNode }> = {
   ready: { tone: 'student', icon: <Check size={14} strokeWidth={2} aria-hidden /> },
+  tested_online: { tone: 'neutral', icon: <Cloud size={14} strokeWidth={1.8} aria-hidden /> },
   below_target: { tone: 'alert', icon: <CircleAlert size={14} strokeWidth={2} aria-hidden /> },
   needs_attention: { tone: 'alert', icon: <CircleAlert size={14} strokeWidth={2} aria-hidden /> },
   blocked: { tone: 'alert', icon: <CircleX size={14} strokeWidth={2} aria-hidden /> },
@@ -159,6 +163,7 @@ export function ReportView({
   installation,
   bare,
   comparisonReport,
+  here,
 }: ReportViewProps) {
   const { test } = report;
   const figures = evidence.data ? runtimeFigures(evidence.data.measurements, report) : null;
@@ -167,7 +172,12 @@ export function ReportView({
     student: shortModelName(report.student.label),
   };
   const device = deviceInSentence(currentPlatform());
-  const where = test.ranOffline ? `offline on ${device}` : `on an online copy of ${names.student}`;
+  const online = `on an online copy of ${names.student}`;
+  const where = test.ranOffline
+    ? `offline on ${device}`
+    : here
+      ? `${online}, and again on ${device}`
+      : online;
   const bill = costParts(report, names.mentor, evidence.data?.progress.spent.computeUsd ?? 0);
   const before = beforeTraining(report, comparison, bare);
   const size = graduate?.manifest.student.sizeBytes;
@@ -256,6 +266,8 @@ export function ReportView({
           </Disclosure>
         )}
       </div>
+
+      {report.testedOn === 'hosted' && <LocalTest report={report} />}
 
       <Capabilities evidence={capabilities} installation={installation} names={names} />
 

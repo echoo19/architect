@@ -110,3 +110,81 @@ describe('the one verdict of a report', () => {
     expect(verdict.because.join(' ')).not.toMatch(/sha256/);
   });
 });
+
+/** A final test taken on the online copy, and one taken on this computer since. */
+function online(pass = 58, met = true): ReportCard {
+  return {
+    ...card({ passRate: { target: 0.9, actual: pass / 60, met } }),
+    testedOn: 'hosted',
+    test: { score: { pass, total: 60 } },
+  } as ReportCard;
+}
+
+function here(pass: number, met: boolean): ReportCard {
+  return {
+    ...card({ passRate: { target: 0.9, actual: pass / 60, met } }),
+    testedOn: 'local',
+    test: { score: { pass, total: 60 } },
+  } as ReportCard;
+}
+
+describe('an agent whose final test ran on the online copy', () => {
+  it('is tested online, not ready, however well it scored', () => {
+    const verdict = reportVerdict(online(), checked('ready'), CONTEXT);
+    expect(verdict).toEqual({
+      state: 'tested_online',
+      pill: 'Tested online',
+      title: 'Returns desk passed its final test online',
+      because: [
+        'Its final test ran on an online copy of Glimmer, not on this computer. It got 58 of 60.',
+        'Test it on this computer to see how it does on its own.',
+      ],
+      usable: true,
+    });
+    expect(`${verdict.title} ${verdict.pill}`).not.toMatch(/graduated|Ready/);
+  });
+
+  it('is ready once a test on this computer met the targets, and says both results', () => {
+    const verdict = reportVerdict(online(), checked('ready'), CONTEXT, here(52, true));
+    expect(verdict).toEqual({
+      state: 'ready',
+      pill: 'Ready',
+      title: 'Returns desk graduated',
+      because: ['It passed on this computer too: 52 of 60 on its final test.'],
+      usable: true,
+    });
+  });
+
+  it('is not ready when it passed online but fell short on this computer', () => {
+    const verdict = reportVerdict(online(), checked('ready'), CONTEXT, here(40, false));
+    expect(verdict.state).toBe('below_target');
+    expect(verdict.because[0]).toBe(
+      "It missed the job's target on this computer: 40 of 60 right, and the job needs 90%, which is 54 of 60.",
+    );
+    expect(verdict.because[1]).toBe('It scored 58 of 60 on its final test, run online.');
+    expect(verdict.because.at(-1)).toBe('You can still use it.');
+  });
+
+  it('says it fell short online when that is the only test there is', () => {
+    const verdict = reportVerdict(online(40, false), checked('ready'), CONTEXT);
+    expect(verdict.state).toBe('below_target');
+    expect(verdict.because[0]).toMatch(/^It missed the job's target on its online final test: /);
+    expect(verdict.because).toHaveLength(2);
+  });
+
+  it('puts a check that says it cannot run first, and names where it was tested', () => {
+    const verdict = reportVerdict(online(), checked('blocked', SETUP_FAILED), CONTEXT);
+    expect(verdict.state).toBe('blocked');
+    expect(verdict.because[1]).toBe('It scored 58 of 60 on its final test, run online.');
+  });
+
+  it('asks for the missing step before it asks for a test on this computer', () => {
+    const verdict = reportVerdict(online(), checked('needs_attention'), CONTEXT);
+    expect(verdict.state).toBe('needs_attention');
+  });
+
+  it('leaves a test that ran here as it is, whatever else is passed', () => {
+    const verdict = reportVerdict(card(), checked('ready'), CONTEXT, here(10, false));
+    expect(verdict).toMatchObject({ state: 'ready', because: [] });
+  });
+});

@@ -63,9 +63,11 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
   const { versions, active } = useActiveVersion(agent.id);
   const [confirming, setConfirming] = useState(false);
   const { manifest } = agent;
-  const { score } = manifest.test;
+  const { score, testedOn } = manifest.test;
   const { met, target } = manifest.requirements.passRate;
-  const result = `${met ? 'Passed' : `Needs ${Math.round(target * 100)}%`}: ${score.pass} of ${score.total} (${formatPercent(score)})`;
+  // A test taken on the online copy says so: the agent isn't marked ready until it is taken here.
+  const online = testedOn === 'hosted' ? ' online' : '';
+  const result = `${met ? `Passed${online}` : `Needs ${Math.round(target * 100)}%${online}`}: ${score.pass} of ${score.total} (${formatPercent(score)})`;
   const contract = active?.manifest.contract;
   const evaluatedHere = active?.origin === undefined;
 
@@ -87,7 +89,13 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
       </SettingsRow>
       <SettingsRow
         label="Final test"
-        meta={evaluatedHere ? 'Tasks it had never seen' : AUTHOR_RESULT_TITLE}
+        meta={
+          evaluatedHere
+            ? testedOn === 'hosted'
+              ? 'Tasks it had never seen, on the online copy'
+              : 'Tasks it had never seen'
+            : AUTHOR_RESULT_TITLE
+        }
       >
         <SettingsValue>{result}</SettingsValue>
       </SettingsRow>

@@ -12,6 +12,7 @@ import {
   type ListedLesson,
   type PublishProgress,
   type ReportCard,
+  type Retest,
   type RunDetail,
   type StudentTarget,
   type Trace,
@@ -105,11 +106,30 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     libraryLock: graduates.lock,
   });
 
+  /** The final tests the run has been put through again, local first. */
+  function retestsOf(runId: string): Retest[] {
+    return (['local', 'hosted'] as const).flatMap((target) => {
+      const retest = store.retests.get(runId, target);
+      if (retest === null) return [];
+      const { status, error, startedAt, endedAt } = retest;
+      return [
+        {
+          target,
+          status,
+          ...(error === undefined ? {} : { error }),
+          startedAt,
+          ...(endedAt === undefined ? {} : { endedAt }),
+        },
+      ];
+    });
+  }
+
   async function runDetail(runId: string): Promise<RunDetail> {
     const record = run(runId);
     const { jobId } = record.run;
     const visible = [...(await jobs.tasks(jobId, 'train')), ...(await jobs.tasks(jobId, 'dev'))];
     const prompts = new Map(visible.map((task) => [task.id, task.prompt]));
+    const retests = retestsOf(runId);
     return {
       run: record.run,
       job: await jobs.forRun(record),
@@ -122,6 +142,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
           prompt: prompts.get(attempt.taskId),
         })),
       lineage: await lineageOf(record),
+      ...(retests.length === 0 ? {} : { retests }),
       ...(record.improves === undefined ? {} : { improves: record.improves }),
     };
   }
