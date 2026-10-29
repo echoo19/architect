@@ -291,7 +291,7 @@ function RowIcon({ kind }: { kind: TrainingRowKind }) {
     case 'results':
       return <CircleCheck size={16} strokeWidth={1.8} className="text-student" aria-hidden />;
     case 'stopped':
-      return <Square size={14} strokeWidth={1.8} className="text-fg-muted" aria-hidden />;
+      return <Square size={16} strokeWidth={1.8} className="text-fg-muted" aria-hidden />;
     case 'failed':
       return <CircleAlert size={16} strokeWidth={1.8} className="text-danger" aria-hidden />;
   }
