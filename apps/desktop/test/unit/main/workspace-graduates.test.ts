@@ -32,13 +32,11 @@ type OpenGraduate = AgentHostClient['openGraduate'];
 function setup(
   graduates: GraduateSummary[],
   openGraduate: Mock<OpenGraduate> = vi.fn<OpenGraduate>(async () => undefined),
-  threads?: number,
 ) {
   const host = { openGraduate, closeGraduate: vi.fn(async () => undefined) };
   const workspace = new WorkspaceGraduates({
     listGraduates: async () => graduates,
     call: (request) => request(host as unknown as AgentHostClient),
-    localThreads: () => threads,
   });
   return { host, workspace };
 }
@@ -48,15 +46,16 @@ describe('WorkspaceGraduates', () => {
     const { host, workspace } = setup([graduate('grd_1'), graduate('grd_2')]);
     workspace.openAll();
     await workspace.settled();
-    expect(host.openGraduate).toHaveBeenCalledWith('grd_1', undefined);
-    expect(host.openGraduate).toHaveBeenCalledWith('grd_2', undefined);
+    expect(host.openGraduate).toHaveBeenCalledWith('grd_1');
+    expect(host.openGraduate).toHaveBeenCalledWith('grd_2');
   });
 
-  it('opens a graduate with the quiet thread cap when there is one', async () => {
-    const { host, workspace } = setup([graduate('grd_1')], undefined, 6);
+  it('opens a graduate without a thread cap of its own, which the agent host follows', async () => {
+    const { host, workspace } = setup([graduate('grd_1')]);
     workspace.openAll();
     await workspace.settled();
-    expect(host.openGraduate).toHaveBeenCalledWith('grd_1', 6);
+    // Not even an undefined second argument: the cap is the host's to read at every request.
+    expect(host.openGraduate.mock.calls).toEqual([['grd_1']]);
   });
 
   it("remembers why a graduate couldn't be opened, and opens the others", async () => {
@@ -75,7 +74,7 @@ describe('WorkspaceGraduates', () => {
       "Its folder from before versions couldn't be converted.",
     );
     expect(workspace.failure('grd_remote')).toBe("Its model isn't on this computer.");
-    expect(openGraduate).not.toHaveBeenCalledWith('grd_unconverted', undefined);
+    expect(openGraduate).not.toHaveBeenCalledWith('grd_unconverted');
   });
 
   it('closes a graduate and forgets why it failed', async () => {
@@ -90,7 +89,6 @@ describe('WorkspaceGraduates', () => {
 
   it('settles even when the graduates cannot be listed', async () => {
     const workspace = new WorkspaceGraduates({
-      localThreads: () => undefined,
       listGraduates: async () => {
         throw new Error('The engine stopped unexpectedly and is restarting.');
       },

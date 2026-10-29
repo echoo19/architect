@@ -27,6 +27,17 @@ export interface MentorDeps extends AdapterDeps {
   sessionKey?: string;
 }
 
+/**
+ * A setting a student follows. A function is asked at every request, so a student made long ago
+ * is held to what the setting says now, not to what it said when it was made.
+ */
+export type Following<T> = T | (() => T);
+
+/** What a following setting says now. */
+export function current<T>(setting: Following<T>): T {
+  return typeof setting === 'function' ? (setting as () => T)() : setting;
+}
+
 export interface StudentDeps extends AdapterDeps {
   /** For hosted endpoints, and for a local server started with `--api-key`. */
   apiKey?: string;
@@ -34,13 +45,13 @@ export interface StudentDeps extends AdapterDeps {
    * The most CPU threads a local runtime may use for this model; its own default when absent.
    * Fewer threads keep the computer cooler and quieter at the cost of speed.
    */
-  cpuThreads?: number;
+  cpuThreads?: Following<number | undefined>;
   /**
    * How long a local runtime rests after each reply, as a share of the time the reply took: 0.75
    * rests three quarters as long. The GPU then draws less on average, so it runs cooler and
    * quieter. No rest when absent.
    */
-  cooldown?: number;
+  cooldown?: Following<number | undefined>;
   /** Waits out a rest, or until the signal aborts. Tests replace it to stay fast. */
   rest?: (ms: number, signal?: AbortSignal) => Promise<void>;
   /** What the app calls this endpoint. Default: the runtime or host name. */

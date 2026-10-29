@@ -216,6 +216,23 @@ describe('the llama.cpp student', () => {
     expect(calls).toEqual(['acquire', 'rest', 'release']);
   });
 
+  it('follows a rest that is switched on while the student is open', async () => {
+    const { access } = await llamaServer((_request, res) => sendEventStream(res, textReply('ok')));
+    const rests: number[] = [];
+    let cooldown: number | undefined;
+    const student = createLlamaCppStudent(access, {
+      cooldown: () => cooldown,
+      rest: async (ms) => {
+        rests.push(ms);
+      },
+    });
+    await collect(student.chat(studentRequest()));
+    expect(rests).toEqual([]);
+    cooldown = 0.75;
+    await collect(student.chat(studentRequest()));
+    expect(rests).toHaveLength(1);
+  });
+
   it('checks, describes and frees the GPU through the runtime, loading nothing to check', async () => {
     const { access, calls, server } = await llamaServer(() => undefined);
     const student = createLlamaCppStudent(access);

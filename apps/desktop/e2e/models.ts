@@ -82,6 +82,8 @@ export interface FakeOllama {
   port: number;
   /** The messages of each chat request, in the order the requests came. */
   chats: ChatRequestMessage[][];
+  /** The options of each chat request (its context, seed, thread cap), in the same order. */
+  options: Record<string, unknown>[];
   /** The host each chat request was addressed to, in the same order. */
   hosts: string[];
   /** How often it was asked which models it holds, as llama-server's start asks first. */
@@ -106,12 +108,16 @@ export async function startFakeOllama(
   options: { models?: readonly FakeOllamaModel[] } = {},
 ): Promise<FakeOllama> {
   const chats: ChatRequestMessage[][] = [];
+  const chatOptions: Record<string, unknown>[] = [];
   const hosts: string[] = [];
   let port = 0;
   let loadedAsked = 0;
 
   async function answer(request: IncomingMessage, response: ServerResponse): Promise<void> {
-    const body = (await readBody(request)) as { messages?: ChatRequestMessage[] };
+    const body = (await readBody(request)) as {
+      messages?: ChatRequestMessage[];
+      options?: Record<string, unknown>;
+    };
     if (request.url === '/api/ps') {
       loadedAsked += 1;
       sendJson(response, { models: [] });
@@ -140,6 +146,7 @@ export async function startFakeOllama(
       return;
     }
     chats.push(body.messages ?? []);
+    chatOptions.push(body.options ?? {});
     hosts.push(request.headers.host ?? '');
     const turn = script[Math.min(chats.length, script.length) - 1];
     if (!turn) {
@@ -177,6 +184,7 @@ export async function startFakeOllama(
     baseUrl: `http://127.0.0.1:${port}`,
     port,
     chats,
+    options: chatOptions,
     hosts,
     loadedAsked: () => loadedAsked,
     close: () => close(server),

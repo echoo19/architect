@@ -7,7 +7,7 @@ import {
   type StudentModelInfo,
   type StudentStreamEvent,
 } from '@architect/shared';
-import type { StudentDeps } from '../deps';
+import { current, type StudentDeps } from '../deps';
 import { createHttpClient } from '../http/client';
 import { badResponse, connectionFailure, cutOff, HttpError } from '../http/errors';
 import { describeErrorPayload, failureForStreamError } from '../http/failures';
@@ -89,6 +89,8 @@ export function createOllamaStudent(
 
   function chatBody(request: StudentChatRequest, style: ThinkStyle): Record<string, unknown> {
     const { decoding } = request;
+    // Asked for each request: a change in quiet mode reaches a student that is already open.
+    const threads = current(deps.cpuThreads);
     return {
       model: endpoint.model,
       messages: toOllamaMessages(request.messages),
@@ -102,7 +104,7 @@ export function createOllamaStudent(
         top_p: decoding.topP,
         top_k: decoding.topK,
         seed: request.seed,
-        ...(deps.cpuThreads === undefined ? {} : { num_thread: deps.cpuThreads }),
+        ...(threads === undefined ? {} : { num_thread: threads }),
       },
     };
   }
@@ -159,9 +161,8 @@ export function createOllamaStudent(
           };
           // In quiet mode the GPU rests for a share of the time the reply took, so the next
           // call starts cooler.
-          if (deps.cooldown) {
-            await (deps.rest ?? rest)((performance.now() - started) * deps.cooldown, signal);
-          }
+          const cooldown = current(deps.cooldown);
+          if (cooldown) await (deps.rest ?? rest)((performance.now() - started) * cooldown, signal);
           return;
         }
       }

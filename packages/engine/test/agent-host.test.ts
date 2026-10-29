@@ -8,7 +8,7 @@ import type {
   WorkspaceMessage,
 } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createAgentHost, type AgentHost } from '../src/agent-host/host';
+import { createAgentHost, type AgentHost, type AgentHostOptions } from '../src/agent-host/host';
 import { workspaceStore } from '../src/agent-host/store';
 import { saveProblem } from '../src/files/agent-files';
 import { DataPaths } from '../src/loop/paths';
@@ -55,6 +55,7 @@ async function setup(
   script: ScriptedTurn[],
   options: Partial<Omit<GraduateOptions, 'id'>> = {},
   gpuOptions: Partial<GpuLeaseOptions> = {},
+  hostOptions: Partial<Pick<AgentHostOptions, 'cpuThreads'>> = {},
 ): Promise<World> {
   const dataDir = await mkdtemp(join(tmpdir(), 'architect-agent-host-'));
   const engine = openEngineStore(new DataPaths(dataDir).database);
@@ -76,6 +77,7 @@ async function setup(
     ),
     gpu,
     onError: (error) => errors.push(error),
+    ...hostOptions,
   });
   const events: WorkspaceEvent[] = [];
   host.onEvent((event) => events.push(event));
@@ -779,6 +781,34 @@ describe('the host', () => {
       (event) => event.type === 'message.updated' && event.message.id === reply.id,
     );
     expect(updates.length).toBeLessThan(text.length / 10);
+  });
+
+  it("holds an agent that is already open to quiet mode's thread cap as it stands at each reply", async () => {
+    let cap: number | undefined;
+    const world = await setup(
+      [{ text: 'One.' }, { text: 'Two.' }, { text: 'Three.' }],
+      {},
+      {},
+      { cpuThreads: () => cap },
+    );
+    const { chat } = await ask(world, 'First.');
+    // Quiet mode is switched on in Settings while the agent is open, then off again.
+    cap = 4;
+    await ask(world, 'Second.', chat);
+    cap = undefined;
+    await ask(world, 'Third.', chat);
+    const [first, second, third] = world.model.chats().map((request) => request.options);
+    expect(first).not.toHaveProperty('num_thread');
+    expect(second).toMatchObject({ num_thread: 4 });
+    expect(third).not.toHaveProperty('num_thread');
+    expect(world.errors).toEqual([]);
+  });
+
+  it('keeps the cap an agent was opened with when the host follows none', async () => {
+    const world = await setup([{ text: 'One.' }]);
+    await world.host.openGraduate(world.graduate.id, 3);
+    await ask(world, 'First.');
+    expect(world.model.chats()[0]?.options).toMatchObject({ num_thread: 3 });
   });
 
   it('refuses a graduate whose model is not on this computer, before any request', async () => {

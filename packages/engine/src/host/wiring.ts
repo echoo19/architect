@@ -184,13 +184,14 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
     adapters: {
       createMentor: (config, mentorOptions) => createMentor(config, mentorOptions),
       createStudent: (endpoint, adapterOptions) => {
+        // The settings themselves, not what they say now: a student lives as long as a session, and
+        // quiet mode may be switched on or off while it works.
         const local = endpoint.runtime === 'ollama';
-        const cpuThreads = local ? options.localThreads?.() : undefined;
-        const cooldown = local ? options.localCooldown?.() : undefined;
+        const { localThreads, localCooldown } = options;
         return createStudent(endpoint, {
           ...adapterOptions,
-          ...(cpuThreads === undefined ? {} : { cpuThreads }),
-          ...(cooldown === undefined ? {} : { cooldown }),
+          ...(local && localThreads !== undefined ? { cpuThreads: localThreads } : {}),
+          ...(local && localCooldown !== undefined ? { cooldown: localCooldown } : {}),
         });
       },
       createActor: (config, actorOptions) => createMentorActor(config, actorOptions),
