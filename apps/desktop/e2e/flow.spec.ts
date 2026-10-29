@@ -183,7 +183,12 @@ for (const theme of THEMES) {
     await expect(local).toBeChecked();
     await expect(local).toBeDisabled();
     await expect(local).toContainText('Slower: about 2.5 minutes a task');
-    await expect(local).toContainText('Free. Nothing leaves this computer.');
+    // Training always sends the teacher what it reads to teach, and the story's teacher is
+    // Spark through Meta's API, so the card says what goes online instead of that nothing does.
+    await expect(local).toContainText(
+      'Free. Glimmer runs here; only what Spark reads to teach goes online.',
+    );
+    await expect(local).not.toContainText('Nothing leaves');
     // The place chosen can't fit a round, so one callout by the choice says so in plain words,
     // Start training waits, and the footer says why. The card does not say it again right above.
     await expect(local).not.toContainText('Too slow');

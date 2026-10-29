@@ -1,4 +1,5 @@
 import { formatDuration, formatUsd } from '../../lib/format';
+import { mentorIsLocal } from '../../lib/names';
 import {
   costUsd,
   MENTOR_PRESETS,
@@ -148,6 +149,23 @@ export function tooSlow(job: Job, estimate: TimeEstimate): string | null {
 /** Where training happens, as the middle of a sentence: "online", or "on this computer". */
 export function placePhrase(place: TrainPlace, device: string): string {
   return place === 'hosted' ? 'online' : `on ${device}`;
+}
+
+/**
+ * What the card for training on this computer says about what leaves it. Training always sends
+ * the teacher its view of the practice attempts (`DataSharingSchema`), so "nothing leaves" is only
+ * true when the teacher runs on this computer as well. Any other teacher, a coding agent included,
+ * is online, and the line says what goes there.
+ */
+export function trainHereLine(job: Job, names: ModelNames, device: string): string {
+  return mentorIsLocal(job.mentor)
+    ? `Free. Nothing leaves ${device}.`
+    : `Free. ${names.student} runs here; only what ${names.mentor} reads to teach goes online.`;
+}
+
+/** Where the teacher works, as the start of a sentence about what it sees. */
+export function teacherWorks(job: Job, device: string): string {
+  return mentorIsLocal(job.mentor) ? `runs on ${device}` : 'works in the cloud';
 }
 
 /**
