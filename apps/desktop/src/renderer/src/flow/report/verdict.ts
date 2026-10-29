@@ -100,8 +100,7 @@ export function reportVerdict(
       pill: 'Passed online',
       title: `${name} finished training`,
       because: [
-        `Its final test ran on an online copy of ${context.model}, not on this computer. It got ${pass} of ${total}.`,
-        'It is marked ready once it passes on this computer too.',
+        `It got ${pass} of ${total} there, and is marked ready once it passes on this computer too.`,
       ],
       usable: true,
     };

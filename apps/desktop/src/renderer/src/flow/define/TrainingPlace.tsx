@@ -106,15 +106,25 @@ export function TrainingPlace({
       : [{ label: mentor, detail: 'Teaching', value: formatAboutUsd(shares.mentorUsd) }]),
   ];
   const fits = chosen.rounds.most > 0;
+  const place = onHost ? 'online' : `on ${device}`;
+  // When every round fits, the time is a ceiling: training stops once the check tasks reach the
+  // target, often well before the last round.
+  const allFit = chosen.rounds.fewest >= job.budget.maxRounds;
   const time: PlanLine[] = [
     {
       label: 'Training',
       detail: fits ? (
-        `${fittingRounds(job, chosen)} ${onHost ? 'online' : `on ${device}`}`
+        allFit ? (
+          `Up to ${job.budget.maxRounds} rounds ${place}, fewer if it reaches the target first`
+        ) : (
+          `${fittingRounds(job, chosen)} ${place}`
+        )
       ) : (
         <span className="text-danger">No round fits the {limit} limit</span>
       ),
-      value: shortSpan(chosen.trainingSeconds),
+      value: allFit
+        ? `at most ${shortDuration(chosen.trainingSeconds.most)}`
+        : shortSpan(chosen.trainingSeconds),
     },
     {
       label: 'Final test',

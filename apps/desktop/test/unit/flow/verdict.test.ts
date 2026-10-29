@@ -135,10 +135,7 @@ describe('an agent whose final test ran on the online copy', () => {
       state: 'tested_online',
       pill: 'Passed online',
       title: 'Returns desk finished training',
-      because: [
-        'Its final test ran on an online copy of Glimmer, not on this computer. It got 58 of 60.',
-        'It is marked ready once it passes on this computer too.',
-      ],
+      because: ['It got 58 of 60 there, and is marked ready once it passes on this computer too.'],
       usable: true,
     });
     expect(`${verdict.title} ${verdict.pill}`).not.toMatch(/graduated|Ready/);
@@ -148,7 +145,7 @@ describe('an agent whose final test ran on the online copy', () => {
     const verdict = reportVerdict(online(28, true, 30), checked('ready'), CONTEXT);
     expect(verdict).toMatchObject({ state: 'tested_online', pill: 'Passed online' });
     expect(verdict.because[0]).toBe(
-      'Its final test ran on an online copy of Glimmer, not on this computer. It got 28 of 30.',
+      'It got 28 of 30 there, and is marked ready once it passes on this computer too.',
     );
     expect(`${verdict.title} ${verdict.pill}`).not.toMatch(/graduated|Ready/);
   });
