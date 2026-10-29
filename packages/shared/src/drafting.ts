@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   BlankAnswerSchema,
+  PlaceholderAnswerSchema,
   RuleConfirmationStateSchema,
   RuleDetailsSchema,
   RuleSpecSchema,
@@ -143,8 +144,9 @@ export const DraftRecordSchema = z.object({
   /** What Architect assumed or left out where the files didn't say, in plain words. */
   notes: z.array(z.string()),
   /**
-   * What the person answered to the teacher's questions, which the rules may rest on. An answer to
-   * a question about an empty cell says which column it was about and what the person chose.
+   * What the person answered to the questions they were asked, which the rules may rest on. An
+   * answer to a question about an empty cell says which column it was about and what the person
+   * chose. So does an answer to one Architect asked about a mark such as N/A or a dash.
    */
   answers: z
     .array(
@@ -152,6 +154,7 @@ export const DraftRecordSchema = z.object({
         question: z.string(),
         answer: z.string(),
         blank: BlankAnswerSchema.optional(),
+        placeholder: PlaceholderAnswerSchema.optional(),
       }),
     )
     .optional(),

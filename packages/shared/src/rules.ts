@@ -24,7 +24,17 @@ export const RULE_LIMITS = {
   maxCategoryValues: 24,
   /** Columns whose empty cell may count as zero, when the person said so. */
   maxEmptyZero: 4,
+  /** Marks such as N/A or a dash that may count as zero in one column, when the person said so. */
+  maxPlaceholderMarks: 4,
+  /** The longest mark a person is asked about, in characters. A longer run of dashes is not one. */
+  maxMarkChars: 16,
+  /** Passages the teacher may quote for a rule. */
   maxPassages: 8,
+  /**
+   * Passages Architect adds itself, one for each answer of the person's that the rule rests on, so
+   * that the teacher quoting a full eight leaves no answer without a place.
+   */
+  maxAnswerPassages: 8,
   /** The width of the longest passage kept, in characters. */
   maxPassageChars: 600,
   /** The width of the longest question kept beside the answer that settled it, in characters. */
@@ -168,11 +178,31 @@ export const BlankAnswerSchema = z.object({
 });
 export type BlankAnswer = z.infer<typeof BlankAnswerSchema>;
 
-/** The two answers to a question about an empty cell, which are all a rule can do with one. */
+/**
+ * The two answers to a question about an empty cell, which are all a rule can do with one. They
+ * are the two answers to a question about a mark such as N/A or a dash too.
+ */
 export const BLANK_ANSWERS = {
   zero: 'Count it as zero',
   leave_out: 'Leave those rows out',
 } as const;
+
+/**
+ * What the person chose for one mark a number column holds where a number should be: N/A, a dash
+ * and the like (decision 061). Only Architect asks, and only the person's answer sets it, never
+ * the teacher. It is about one mark in one column of one table: an N/A in one file says nothing of
+ * an N/A in another, and a dash is not an N/A. "Leave those rows out" is an answer too, kept so
+ * that the question is not asked again.
+ */
+export const PlaceholderAnswerSchema = z.object({
+  /** The file the column is in, as it was attached. */
+  table: z.string().min(1),
+  column: Column,
+  /** The mark as the column spells it most often. N/A and n/a are one mark. */
+  mark: z.string().min(1).max(RULE_LIMITS.maxMarkChars),
+  means: z.enum(['zero', 'leave_out']),
+});
+export type PlaceholderAnswer = z.infer<typeof PlaceholderAnswerSchema>;
 
 /**
  * One numeric answer per row of a table, as an expression. The rule's text comes from the policy
@@ -203,7 +233,32 @@ export const RuleSpecSchema = z.object({
     .array(z.object({ column: Column, from: RuleFromSchema }))
     .max(RULE_LIMITS.maxEmptyZero)
     .optional(),
-  sources: z.array(RulePassageSchema).min(1).max(RULE_LIMITS.maxPassages),
+  /**
+   * The marks, N/A or a dash, that count as zero in a numeric column, because the person answered
+   * that they should. Absent for every rule that has none, and never an empty list, so that the
+   * version of a rule that says nothing of a mark is what it was before marks could be counted. A
+   * mark not listed here leaves its row out. Only Architect sets it, from the person's answer to
+   * a question it asked; the teacher has no field for it.
+   */
+  placeholderMeansZero: z
+    .array(
+      z.object({
+        column: Column,
+        from: RuleFromSchema,
+        /** The marks as the column spells them, each compared without regard to case or spacing. */
+        tokens: z
+          .array(z.string().min(1).max(RULE_LIMITS.maxMarkChars))
+          .min(1)
+          .max(RULE_LIMITS.maxPlaceholderMarks),
+      }),
+    )
+    .min(1)
+    .max(RULE_LIMITS.maxEmptyZero)
+    .optional(),
+  sources: z
+    .array(RulePassageSchema)
+    .min(1)
+    .max(RULE_LIMITS.maxPassages + RULE_LIMITS.maxAnswerPassages),
   /**
    * The column naming the business entity whose reuse would reveal an answer, such as the
    * customer. Cases of the same entity are kept in one set. The case's own key when absent.

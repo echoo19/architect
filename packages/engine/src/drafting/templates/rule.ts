@@ -8,14 +8,23 @@ import {
   type RuleSpec,
 } from '@architect/shared';
 import { cellsOf, findColumn, kindOf, type Table } from '../table';
-import { cleanText, foldKey, isBlank } from '../values';
+import { cleanText, foldKey, isBlank, markOf, parseDecimal } from '../values';
 import { makeCases, type Tables } from '../rule/cases';
 import { agreed, currencyName, marksIn } from '../rule/currency';
-import { checkExpression, numberRefs, refKey } from '../rule/expression';
+import { checkExpression, numberRefs, refKey, type ColumnRef } from '../rule/expression';
 import { auditCases, DEFAULT_PASS_RATE } from '../rule/guards';
 import type { RuleOutcome } from '../rule/outcome';
+import { markWords, sameMark } from '../rule/placeholders';
 import * as q from '../rule/rational';
-import { NEAREST_CLAUSE, nameOf, statementOf, wordsOf, type WordsContext } from '../rule/words';
+import {
+  NEAREST_CLAUSE,
+  nameOf,
+  statementOf,
+  upper,
+  wordsOf,
+  zeroRefs,
+  type WordsContext,
+} from '../rule/words';
 import {
   addProblem,
   answerKeyName,
@@ -23,6 +32,7 @@ import {
   checkRequest,
   columnList,
   fillRequest,
+  inWords,
   type Candidate,
   type TemplateRun,
 } from './common';
@@ -47,23 +57,51 @@ export function ruleVersion(spec: RuleSpec): string {
  * the words of the request and the passages quoted.
  */
 function semanticsOf(spec: RuleSpec): JsonValue {
-  const { expression, lookup, categories, currency, emptyMeansZero } = spec;
+  const { expression, lookup, categories, currency, emptyMeansZero, placeholderMeansZero } = spec;
   return JSON.parse(
-    JSON.stringify({ expression, lookup, categories, currency, emptyMeansZero }),
+    JSON.stringify({
+      expression,
+      lookup,
+      categories,
+      currency,
+      emptyMeansZero,
+      placeholderMeansZero,
+    }),
   ) as JsonValue;
+}
+
+/**
+ * What the person said counts as zero in one column, for the list of how numbers are read. The
+ * column is named as the file spells it, with the lookup's file beside a column that comes from
+ * it. A column with only empty cells named says what it always said.
+ */
+function zeroConvention(ref: ColumnRef, spec: RuleSpec): string {
+  const name = `${ref.column}${ref.from === 'lookup' && spec.lookup ? ` (${spec.lookup.table})` : ''}`;
+  const empty = (spec.emptyMeansZero ?? []).some((item) => refKey(item) === refKey(ref));
+  const marks = (spec.placeholderMeansZero ?? [])
+    .filter((item) => refKey(item) === refKey(ref))
+    .flatMap((item) => item.tokens.map(markWords));
+  if (marks.length === 0) {
+    return `An empty ${name} counts as 0, as you said. N/A or words in it still leave the row out.`;
+  }
+  const counted = empty
+    ? upper(inWords([`An empty ${name}`, ...marks], 'or'))
+    : `${upper(inWords(marks, 'or'))} in ${name}`;
+  return `${counted} counts as 0, as you said. Anything else in it that is not a number still leaves the row out.`;
 }
 
 /** How numbers, words and rounding are read, in plain words, for the person and the report. */
 export function conventionsOf(spec: RuleSpec): string[] {
   const zero = spec.emptyMeansZero ?? [];
+  const read =
+    'Numbers are read as written: a currency sign, thousands separators and brackets or a minus sign for a negative are understood.';
   const conventions = [
-    zero.length === 0
-      ? 'Numbers are read as written: a currency sign, thousands separators and brackets or a minus sign for a negative are understood. A cell that is empty, N/A or not a number leaves its row out; it is never counted as zero.'
-      : 'Numbers are read as written: a currency sign, thousands separators and brackets or a minus sign for a negative are understood. A cell that is N/A or not a number leaves its row out. Nothing is counted as zero unless you said so.',
-    ...zero.map(
-      (ref) =>
-        `An empty ${ref.column}${ref.from === 'lookup' && spec.lookup ? ` (${spec.lookup.table})` : ''} counts as 0, as you said. N/A or words in it still leave the row out.`,
-    ),
+    (spec.placeholderMeansZero ?? []).length > 0
+      ? `${read} A cell that is empty, N/A or not a number leaves its row out, except where you said below that it counts as 0.`
+      : zero.length === 0
+        ? `${read} A cell that is empty, N/A or not a number leaves its row out; it is never counted as zero.`
+        : `${read} A cell that is N/A or not a number leaves its row out. Nothing is counted as zero unless you said so.`,
+    ...zeroRefs(wordsOf(spec)).map((ref) => zeroConvention(ref, spec)),
   ];
   if (spec.currency !== undefined) {
     conventions.push(
@@ -214,14 +252,23 @@ export function runRule(
     column: found(inTable(ref.from), ref.column, 'The column'),
     from: ref.from,
   }));
+  const placeholderMeansZero = (spec.placeholderMeansZero ?? []).map((ref) => ({
+    column: found(inTable(ref.from), ref.column, 'The column'),
+    from: ref.from,
+    tokens: ref.tokens,
+  }));
+  // A rule that names no mark carries no field for it, however it was written, so that its version
+  // is what it was before marks could be named.
+  const { placeholderMeansZero: _named, ...unmarked } = spec;
   const resolved: RuleSpec = {
-    ...spec,
+    ...unmarked,
     keyColumn,
     ...(familyColumn === undefined ? {} : { familyColumn }),
     ...(lookup === undefined ? {} : { lookup }),
     categories,
     expression,
     ...(emptyMeansZero.length === 0 ? {} : { emptyMeansZero }),
+    ...(placeholderMeansZero.length === 0 ? {} : { placeholderMeansZero }),
   };
   const words: WordsContext = wordsOf(resolved);
   const rule = `Work out ${spec.answerName.replace(/_/g, ' ')} for each ${keyColumn} of ${source.name}`;
@@ -235,6 +282,33 @@ export function runRule(
       problems.push(
         `${ref.column} is said to count as zero when it is empty, but the rule doesn't read it.`,
       );
+    }
+  }
+  // A mark can count as zero only in a column the rule adds up, and only a mark that stands where
+  // a number should be: not a number, and not a word that is neither N/A nor a dash.
+  const named = new Set<string>();
+  for (const item of placeholderMeansZero) {
+    if (named.has(refKey(item))) {
+      problems.push(`${item.column} is listed twice among the columns a mark counts as zero in.`);
+    }
+    named.add(refKey(item));
+    if (!added.has(refKey(item))) {
+      problems.push(
+        `${item.column} is said to count as zero when it holds a mark, but the rule does not read it.`,
+      );
+    }
+    const spelled = new Set<string>();
+    for (const token of item.tokens) {
+      if (markOf(token) === null) {
+        problems.push(
+          parseDecimal(token) !== null
+            ? `"${token}" is a number. Only a mark that stands where a number should be, such as N/A or a dash, can be said to count as zero.`
+            : `"${token}" is not a mark that stands where a number should be, such as N/A or a dash.`,
+        );
+      } else if (spelled.has(foldKey(token))) {
+        problems.push(`"${token}" is listed twice for ${item.column}.`);
+      }
+      spelled.add(foldKey(token));
     }
   }
   if (!/^[a-z]/i.test(spec.answerName))
@@ -303,14 +377,26 @@ export function runRule(
   const statement = statementOf(expression, words);
   // How far an empty cell counted as zero reaches, so the person sees what their answer decided.
   const zeroed = emptyMeansZero.flatMap((ref) => {
-    const count = made.cases.filter((item) => item.zeroed.has(refKey(ref))).length;
+    const count = made.cases.filter((item) => item.zeroed.get(refKey(ref)) === '').length;
     return count === 0
       ? []
       : [
           `${count} ${count === 1 ? 'row has' : 'rows have'} an empty ${nameOf(ref, words)}, which counts as 0, as you said.`,
         ];
   });
-  const flags = [...audit.flags, ...zeroed];
+  const marked = placeholderMeansZero.flatMap((ref) =>
+    ref.tokens.flatMap((token) => {
+      const count = made.cases.filter((item) =>
+        sameMark(item.zeroed.get(refKey(ref)) ?? '', token),
+      ).length;
+      return count === 0
+        ? []
+        : [
+            `${count} ${count === 1 ? 'row has' : 'rows have'} ${markWords(token)} in ${nameOf(ref, words)}, which counts as 0, as you said.`,
+          ];
+    }),
+  );
+  const flags = [...audit.flags, ...zeroed, ...marked];
   const details: RuleOutcome['details'] = {
     version: ruleVersion(resolved),
     statement,

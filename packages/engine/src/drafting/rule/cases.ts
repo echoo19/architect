@@ -1,7 +1,7 @@
 import type { RuleSpec } from '@architect/shared';
 import type { Row } from '../../data/types';
 import type { Table } from '../table';
-import { cleanText, foldKey, isBlank, parseDecimal } from '../values';
+import { cleanText, foldKey, isBlank, markOf, parseDecimal } from '../values';
 import { currencyName, fits, marksIn } from './currency';
 import {
   categoryRefs,
@@ -12,12 +12,14 @@ import {
   type ColumnRef,
   type Run,
 } from './expression';
+import { markWords } from './placeholders';
 import * as q from './rational';
 
 /*
  * The cases of a rule: one for each row of its table, with the values the expression needs read
  * from the row and from the row looked up in another table. A case whose inputs can't all be read
- * is left out and counted with its reason; nothing is ever read as zero or guessed.
+ * is left out and counted with its reason; nothing is ever read as zero or guessed, except an
+ * empty cell or a mark such as N/A in a column the person said so for.
  */
 
 /** The largest answer a case may have; a larger one is a mistake in the records. */
@@ -37,8 +39,12 @@ export interface RuleCase {
   cells: Map<string, string>;
   numbers: Map<string, q.Q>;
   categories: Map<string, string>;
-  /** The columns whose cell was empty and counted as zero, because the person said it should. */
-  zeroed: ReadonlySet<string>;
+  /**
+   * The columns whose cell counted as zero because the person said it should, with what the cell
+   * held: nothing, the empty string, for an empty cell, or the mark, such as N/A, that stood in
+   * its place. The cell as the file wrote it is in `cells` too, for showing the working.
+   */
+  zeroed: ReadonlyMap<string, string>;
   run: Run;
   answer: q.Q;
 }
@@ -63,12 +69,12 @@ export interface Tables {
 export function inputsOf(
   numbers: ReadonlyMap<string, q.Q>,
   categories: ReadonlyMap<string, string>,
-  zeroed: ReadonlySet<string> = new Set(),
+  zeroed: ReadonlyMap<string, string> = new Map(),
 ): CaseInputs {
   return {
     number: (ref) => numbers.get(refKey(ref)) ?? q.ZERO,
     category: (ref) => categories.get(refKey(ref)) ?? '',
-    zeroed: (ref) => zeroed.has(refKey(ref)),
+    zeroed: (ref) => zeroed.get(refKey(ref)),
   };
 }
 
@@ -101,6 +107,42 @@ export function makeCases(spec: RuleSpec, tables: Tables): Cases {
     ref.from === 'lookup' && spec.lookup ? `${ref.column} (${spec.lookup.table})` : ref.column;
   // Only a cell with nothing in it, and only in a column the person said so for, counts as zero.
   const emptyIsZero = new Set((spec.emptyMeansZero ?? []).map(refKey));
+  // So does a mark such as N/A or a dash, but only one the person named, in the column they named
+  // it for: every other mark says nothing was known, which is not the same as nothing was bought.
+  const markIsZero = new Map(
+    (spec.placeholderMeansZero ?? []).map((item) => [
+      refKey(item),
+      new Set(item.tokens.map((token) => foldKey(token))),
+    ]),
+  );
+  /** Whether a cell with this mark, or with nothing in it when `mark` is null, counts as zero. */
+  const countsAsZero = (ref: ColumnRef, mark: string | null): boolean =>
+    mark === null
+      ? emptyIsZero.has(refKey(ref))
+      : markIsZero.get(refKey(ref))?.has(foldKey(mark)) === true;
+  /**
+   * Why a cell with nothing readable in it leaves its row out. Where the person named marks for
+   * the column, each other cell is said for what it holds, since "N/A or a dash" would name a mark
+   * they have just said counts. Everywhere else it is said as it always was.
+   */
+  const blankSkip = (ref: ColumnRef, mark: string | null, rowKey: string): Skip => {
+    if (markIsZero.has(refKey(ref))) {
+      return mark === null
+        ? new Skip(`${where(ref)} is empty`, rowKey)
+        : new Skip(
+            `${where(ref)} says ${markWords(mark)}, which is not counted as 0`,
+            `${mark} in ${rowKey}`,
+          );
+    }
+    if (mark === null || !emptyIsZero.has(refKey(ref))) {
+      return new Skip(`${where(ref)} is empty or N/A`, rowKey);
+    }
+    // N/A and a dash say nothing was known, which is not the same as nothing was bought.
+    return new Skip(
+      `${where(ref)} says N/A or a dash, which is not the same as empty`,
+      `${mark} in ${rowKey}`,
+    );
+  };
 
   const keyCounts = new Map<string, number>();
   for (const row of source.rows) {
@@ -157,22 +199,18 @@ export function makeCases(spec: RuleSpec, tables: Tables): Cases {
       const numbers = new Map<string, q.Q>();
       const categories = new Map<string, string>();
       const cells = new Map<string, string>();
-      const zeroed = new Set<string>();
+      const zeroed = new Map<string, string>();
       for (const ref of numberColumns) {
         const cell = cellOf(ref, row, lookupRow);
         if (isBlank(cell)) {
-          if (!emptyIsZero.has(refKey(ref))) throw new Skip(`${where(ref)} is empty or N/A`, key);
-          // N/A and a dash say nothing was known, which is not the same as nothing was bought.
-          if (cleanText(cell) !== '') {
-            throw new Skip(
-              `${where(ref)} says N/A or a dash, which is not the same as empty`,
-              `${cleanText(cell)} in ${key}`,
-            );
+          const mark = markOf(cell);
+          if (countsAsZero(ref, mark)) {
+            numbers.set(refKey(ref), q.ZERO);
+            cells.set(refKey(ref), mark ?? '');
+            zeroed.set(refKey(ref), mark ?? '');
+            continue;
           }
-          numbers.set(refKey(ref), q.ZERO);
-          cells.set(refKey(ref), '');
-          zeroed.add(refKey(ref));
-          continue;
+          throw blankSkip(ref, mark, key);
         }
         const value = parseDecimal(cell);
         if (value === null) {

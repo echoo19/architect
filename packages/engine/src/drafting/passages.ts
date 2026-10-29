@@ -8,7 +8,7 @@ import {
 import { plain } from './rule-reply';
 import { ruleSteps } from './rule/steps';
 import { wordsOf } from './rule/words';
-import { cleanText, foldKey } from './values';
+import { briefly, foldKey } from './values';
 
 /*
  * What a rule rests on, as the person reads it. A passage that is their own answer, such as "No,
@@ -18,12 +18,7 @@ import { cleanText, foldKey } from './values';
 
 /** A question cut to a short line, at a word when there is one. */
 function brief(question: string): string {
-  const text = cleanText(question);
-  const width = RULE_LIMITS.maxQuestionChars;
-  if (text.length <= width) return text;
-  const cut = text.slice(0, width - 3);
-  const space = cut.lastIndexOf(' ');
-  return `${(space > width / 2 ? cut.slice(0, space) : cut).trim()}...`;
+  return briefly(question, RULE_LIMITS.maxQuestionChars);
 }
 
 /**
@@ -31,7 +26,9 @@ function brief(question: string): string {
  * answered. The answer is the one that holds the passage's words, about a table the rule reads
  * (an answer made before the table was kept is taken for any). Two answers to different questions
  * that hold the same words leave nothing to say which was meant, and the passage is left as it
- * was rather than given a question that may be the wrong one.
+ * was rather than given a question that may be the wrong one. An answer about a mark such as N/A
+ * is never the one a passage quotes without saying so: the passage of a mark carries its own
+ * question, and its words, the same as an answer about an empty cell, must not borrow it.
  */
 export function withQuestions(
   passages: readonly RulePassage[],
@@ -48,6 +45,7 @@ export function withQuestions(
       (answers ?? [])
         .filter(
           (item) =>
+            item.placeholder === undefined &&
             (item.blank?.table === undefined || tables.has(foldKey(item.blank.table))) &&
             plain(item.answer).includes(wanted),
         )

@@ -51,6 +51,15 @@ export function foldKey(cell: string | null | undefined): string {
   return cleanText(cell).toLowerCase();
 }
 
+/** A text cleaned and, when longer than `width`, cut at a word and ended with "...". */
+export function briefly(text: string, width: number): string {
+  const cleaned = cleanText(text);
+  if (cleaned.length <= width) return cleaned;
+  const cut = cleaned.slice(0, width - 3);
+  const space = cut.lastIndexOf(' ');
+  return `${(space > width / 2 ? cut.slice(0, space) : cut).trim()}...`;
+}
+
 /** Marks that files put where a number or a date is missing: n/a, null, a dash, a question mark. */
 const BLANK_MARKS = /^(?:n\/a|n\.a\.|na|nan|null|nil|none|-+|\?+|\u{2013}|\u{2014})$/iu;
 
@@ -58,6 +67,17 @@ const BLANK_MARKS = /^(?:n\/a|n\.a\.|na|nan|null|nil|none|-+|\?+|\u{2013}|\u{201
 export function isBlank(cell: string | null | undefined): boolean {
   const text = cleanText(cell);
   return text === '' || BLANK_MARKS.test(text);
+}
+
+/**
+ * The mark a cell holds where a number should be (N/A, a dash and the other forms `isBlank` knows),
+ * cleaned, or null for a cell with a number or words in it. A cell with nothing in it holds no
+ * mark: it is empty, which is a different thing to say. Two cells hold the same mark when `foldKey`
+ * reads them alike, so N/A and n/a are one.
+ */
+export function markOf(cell: string | null | undefined): string | null {
+  const text = cleanText(cell);
+  return text !== '' && BLANK_MARKS.test(text) ? text : null;
 }
 
 /** A number written out exactly: `units` hundredths when `places` is 2. */
