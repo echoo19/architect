@@ -1,4 +1,4 @@
-import type { FilteredListSpec, FilterSpec } from '@architect/shared';
+import type { FilteredListSpec, FilterSpec, JsonValue } from '@architect/shared';
 import type { Table } from '../table';
 import { cleanText, foldKey } from '../values';
 import {
@@ -63,6 +63,47 @@ function meets(filter: FilterSpec, cell: string | null): boolean {
     case 'not_equals':
       return foldKey(cell) !== foldKey(filter.value);
   }
+}
+
+/**
+ * A fixed condition as a question is identified by it: the column, how it is compared and the
+ * values, in folded text. A set of one value is the same condition as an equals.
+ */
+function conditionOf(filter: FilterSpec): JsonValue {
+  const column = foldKey(filter.column);
+  switch (filter.op) {
+    case 'equals':
+      return [column, 'equals', [foldKey(filter.value)]];
+    case 'in': {
+      const values = [...new Set(keptValues(filter).map(foldKey))].sort();
+      return values.length === 1 ? [column, 'equals', values] : [column, 'in', values];
+    }
+    case 'not_equals':
+      return [column, 'not_equals', [foldKey(filter.value)]];
+    case 'empty':
+      return [column, 'empty', []];
+    case 'not_empty':
+      return [column, 'not_empty', []];
+  }
+}
+
+/**
+ * The varying column a request is about: the one with the most different values, and the first by
+ * name when two tie. It does not depend on the order the filters were written in, so two ways of
+ * writing the same question give it the same family.
+ */
+function entityOf(
+  varying: readonly { column: string }[],
+  forms: readonly ReadonlyMap<string, string>[],
+): { column: string; at: number } {
+  let best = 0;
+  for (let at = 1; at < varying.length; at += 1) {
+    const size = forms[at]?.size ?? 0;
+    const most = forms[best]?.size ?? 0;
+    const sooner = foldKey(varying[at]?.column) < foldKey(varying[best]?.column);
+    if (size > most || (size === most && sooner)) best = at;
+  }
+  return { column: varying[best]?.column ?? '', at: best };
 }
 
 /**
@@ -199,33 +240,38 @@ export function runFilteredList(
   const forms = varying.map((filter) =>
     spellings(table.rows.map((row) => row[filter.column] ?? null)),
   );
+  // The varying column that tells the most requests apart names the entity a request is about, so
+  // that a family doesn't depend on the order the conditions were written in.
+  const entity = entityOf(varying, forms);
   // Each combination of values the varying columns take together, with the keys of the rows that
   // meet every fixed condition. A combination no row meets has an empty list.
-  const lists = new Map<string, Map<string, string>>();
+  const lists = new Map<string, { keys: Map<string, string>; rows: number[] }>();
   let rowsWithoutKey = 0;
-  for (const row of table.rows) {
+  for (const [at, row] of table.rows.entries()) {
     const values = varying.map((filter) => foldKey(row[filter.column]));
     if (values.some((value) => value === '')) continue;
     const combination = JSON.stringify(values);
-    const list = lists.get(combination) ?? new Map<string, string>();
+    const list = lists.get(combination) ?? { keys: new Map<string, string>(), rows: [] };
     lists.set(combination, list);
+    list.rows.push(at);
     if (!fixed.every((filter) => meets(filter, row[filter.column] ?? null))) continue;
     const key = cleanText(row[keyColumn]);
     if (key === '') {
       rowsWithoutKey += 1;
       continue;
     }
-    list.set(key.toLowerCase(), key);
+    list.keys.set(key.toLowerCase(), key);
   }
   if (rowsWithoutKey > 0) {
     notes.push(`${rowsWithoutKey} rows have no ${keyColumn}, so they are never listed.`);
   }
 
+  const asked = [...fixed.map(conditionOf)];
   const candidates: Candidate[] = [];
   let tooLong = 0;
   for (const [combination, list] of lists) {
     const folded = JSON.parse(combination) as string[];
-    const keys = [...list.values()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    const keys = [...list.keys.values()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
     if (keys.length > MAX_LISTED) {
       tooLong += 1;
       continue;
@@ -235,8 +281,18 @@ export function runFilteredList(
       varying.map((filter, index) => [filter.column, shown[index]]),
     );
     const question = fillRequest(spec.request, values as Record<string, string>);
+    // Whatever way the conditions were split into fixed and varying, the question is the same
+    // when the same values of the same columns are asked for.
+    const conditions = [
+      ...asked,
+      ...varying.map((filter, index) => [foldKey(filter.column), 'equals', [folded[index] ?? '']]),
+    ]
+      .map((condition) => canonicalJson(condition as JsonValue))
+      .sort();
     candidates.push({
-      family: `list:${table.name}:${varying[0]?.column ?? ''}=${folded[0] ?? ''}`,
+      family: `list:${table.name}:${entity.column}=${folded[entity.at] ?? ''}`,
+      identity: canonicalJson(['list', foldKey(table.name), foldKey(keyColumn), conditions]),
+      rows: list.rows,
       prompt: [
         question,
         `List each ${resolved.keyColumn} once, in any order, and use [] if there are none.`,

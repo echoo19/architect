@@ -168,16 +168,44 @@ function taskId(type: string, index: number): string {
   return `${type}-${String(index + 1).padStart(3, '0')}`;
 }
 
+/** The rows of each table, by position, that the teacher was shown while drafting. */
+export type ShownRows = ReadonlyMap<string, ReadonlySet<number>>;
+
+/**
+ * The requests left once the ones worked out only from rows the teacher was shown are taken out.
+ * What the teacher has read the answer to must not come up again as a practice task or in the
+ * final test.
+ */
+function exceptShown(
+  candidates: readonly Candidate[],
+  rows: ReadonlySet<number> | undefined,
+): { kept: Candidate[]; left: number } {
+  if (rows === undefined || rows.size === 0) return { kept: [...candidates], left: 0 };
+  const kept = candidates.filter(
+    (candidate) =>
+      candidate.rows === undefined ||
+      candidate.rows.length === 0 ||
+      !candidate.rows.every((row) => rows.has(row)),
+  );
+  return { kept, left: candidates.length - kept.length };
+}
+
 /**
  * Makes the tasks of a job from the kinds of task the teacher chose, each held against its table.
  * A kind whose specification names a column the table lacks, or whose requests would all have
  * one answer, is rejected with its reasons; one whose table supports too few requests is set
  * aside as thin. The rest share the quota.
+ *
+ * A request that asks what an earlier kind of task already asks, however its conditions are
+ * ordered or which template wrote it, is left out, so that one question is never a practice task
+ * and a final-test task at once. So are the requests whose answer comes only from rows the teacher
+ * was shown (`shownRows`).
  */
 export function generateTasks(
   inputs: readonly TypeInput[],
   tables: ReadonlyMap<string, Table>,
   seed: number,
+  shownRows: ShownRows = new Map(),
 ): Generation {
   const rejected: Generation['rejected'] = [];
   const thin: Generation['thin'] = [];
@@ -187,6 +215,8 @@ export function generateTasks(
     candidates: Candidate[];
     random: () => number;
   }[] = [];
+  /** The question each request asks, with the kind of task that asked it first. */
+  const asked = new Map<string, string>();
 
   for (const input of inputs) {
     const random = seededRandom(`architect-draft:${seed}:${input.id}`);
@@ -201,8 +231,34 @@ export function generateTasks(
     }
     const run = runTemplate(input.spec, table, tables, random);
     const problems = [...run.problems];
+    let candidates = run.candidates;
     if (problems.length === 0) {
-      const answers = new Set(run.candidates.map((candidate) => candidate.answerKey));
+      const unshown = exceptShown(candidates, shownRows.get(input.spec.table));
+      candidates = unshown.kept;
+      if (unshown.left > 0) {
+        run.notes.push(
+          `${unshown.left} ${unshown.left === 1 ? 'request was' : 'requests were'} left out of ${table.name}: the teacher read the rows ${unshown.left === 1 ? 'it is' : 'they are'} about while drafting, and nothing may be asked whose answer it has seen.`,
+        );
+      }
+      const fresh = candidates.filter((candidate) => !asked.has(candidate.identity));
+      const repeats = candidates.length - fresh.length;
+      if (repeats > 0) {
+        const earlier = candidates.find((candidate) => asked.has(candidate.identity));
+        const by = earlier === undefined ? '' : (asked.get(earlier.identity) ?? '');
+        if (fresh.length === 0 && candidates.length > 0) {
+          problems.push(
+            `Every request of this kind asks what "${by}" already asks, in other words, so it would only repeat it. Change what it asks, or leave it out.`,
+          );
+        } else {
+          run.notes.push(
+            `${repeats} ${repeats === 1 ? 'request asks' : 'requests ask'} what "${by}" already asks, so Architect left ${repeats === 1 ? 'it' : 'them'} out.`,
+          );
+        }
+      }
+      candidates = fresh;
+    }
+    if (problems.length === 0 && candidates.length > 0) {
+      const answers = new Set(candidates.map((candidate) => candidate.answerKey));
       if (answers.size < 2) {
         problems.push(
           `Every request would have the same answer${answers.size === 1 ? `, ${shown([...answers][0] ?? '')}` : ''}, so an agent could pass without reading the data.`,
@@ -213,11 +269,15 @@ export function generateTasks(
       rejected.push({ id: input.id, label: input.label, problems });
       continue;
     }
-    const candidates = limitRepeats(run.candidates, random);
+    // Every question this kind could ask is its own, whichever of them it ends up choosing, so a
+    // later kind can't ask one of them again.
+    const askable = candidates;
+    candidates = limitRepeats(candidates, random);
     if (candidates.length < MIN_PER_TYPE) {
       thin.push({ id: input.id, label: input.label, available: candidates.length });
       continue;
     }
+    for (const candidate of askable) asked.set(candidate.identity, input.label);
     usable.push({ input, run, candidates, random });
   }
 

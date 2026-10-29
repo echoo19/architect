@@ -213,6 +213,21 @@ const CELL_WIDTH = 40;
 const WIDE_PROFILE = 30;
 const WIDE_ROWS = 12;
 
+/**
+ * The rows of each table the teacher is shown: the first few, by position. The tasks are made
+ * without any request whose answer comes only from these rows, so nothing in the practice tasks or
+ * the final test is something the teacher has already read the answer to.
+ */
+export function shownRowsOf(attached: Attached): Map<string, Set<number>> {
+  return new Map(
+    attached.files.flatMap((file) =>
+      file.table === undefined
+        ? []
+        : [[file.name, new Set(file.table.rows.slice(0, FIRST_ROWS).keys())] as const],
+    ),
+  );
+}
+
 function clip(text: string, width: number): string {
   return text.length > width ? `${text.slice(0, width - 3)}...` : text;
 }

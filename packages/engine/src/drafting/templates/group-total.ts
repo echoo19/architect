@@ -35,6 +35,8 @@ const CANDIDATE_LIMIT = 1_200;
 const EXAMPLES = 3;
 
 interface Entry {
+  /** The row's position in the table. */
+  row: number;
   day: string | null;
   amount: Decimal | null;
   /** Whether the row counts when rows are counted. */
@@ -130,7 +132,7 @@ export function runGroupTotal(
   const badAmounts: string[] = [];
   const badDays: string[] = [];
   let missingDays = 0;
-  for (const row of table.rows) {
+  for (const [at, row] of table.rows.entries()) {
     const group = foldKey(row[groupColumn]);
     if (group === '') continue;
     let amount: Decimal | null = null;
@@ -149,7 +151,7 @@ export function runGroupTotal(
       else day = cell.day;
     }
     const list = entries.get(group) ?? [];
-    list.push({ day, amount, counted });
+    list.push({ row: at, day, amount, counted });
     entries.set(group, list);
   }
   if (valueColumn !== null && badAmounts.length > 0) {
@@ -241,6 +243,19 @@ export function runGroupTotal(
     candidates.push({
       // Ranges of one group never overlap, so two of them share no rows and are no near-duplicates.
       family: `total:${table.name}:${groupColumn}=${group}${range === null ? '' : `:${range.from}`}`,
+      identity: canonicalJson([
+        'total',
+        foldKey(table.name),
+        foldKey(groupColumn),
+        group,
+        spec.measure,
+        valueColumn === null ? null : foldKey(valueColumn),
+        spec.unit,
+        dateColumn === null ? null : foldKey(dateColumn),
+        range?.from ?? null,
+        range?.to ?? null,
+      ]),
+      rows: rows.map((entry) => entry.row),
       prompt: [question, hint, `End with: ANSWER: {"${key}": <number>}`].join('\n'),
       expected: {
         kind: 'answer',

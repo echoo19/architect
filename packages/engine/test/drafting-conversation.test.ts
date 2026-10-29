@@ -511,6 +511,81 @@ describe('drafting the job', () => {
     }
   });
 
+  it('asks nothing about the rows it showed the teacher, in any set, the final test included', async () => {
+    world.mentor.script = () => draft();
+    const turn = await world.drafting.start('A desk', attachShop(), TEACHER);
+    const job = turn.draft;
+    if (!job) throw new Error('Expected a draft.');
+    const shown = data.customers.slice(0, 5).map((customer) => customer.id);
+    // They really were in the first message: their keys are in the rows the teacher read.
+    const told = world.mentor.requests[0]?.messages[0]?.content ?? '';
+    for (const key of shown) expect(told).toContain(key);
+    const proof = await releaseMentor({ dispose: () => undefined });
+    const everything: Task[] = [
+      ...world.vault.openForLockedTest(job.id, proof),
+      ...(await world.jobs.tasks(job.id, 'train')),
+      ...(await world.jobs.tasks(job.id, 'dev')),
+      ...(await world.jobs.tasks(job.id, 'calibration')),
+    ];
+    const asked = everything
+      .filter((task) => task.type === 'email')
+      .map((task) => task.meta?.['key']);
+    expect(asked.length).toBeGreaterThan(20);
+    for (const key of shown) expect(asked).not.toContain(key);
+    expect(recordOf(job.id)['notes']).toContainEqual(
+      expect.stringContaining('the teacher read the rows they are about while drafting'),
+    );
+  });
+
+  it('keeps one question out of both the practice tasks and the final test, however two kinds of task were written', async () => {
+    const list = (id: string, first: string, second: string) => ({
+      ...NO_TYPE,
+      id,
+      label: `Orders by ${first} and ${second}`,
+      description: 'List the orders of a customer in a region.',
+      template: 'filtered_list' as const,
+      table: 'orders.csv',
+      keyColumn: 'order_id',
+      filters: [first, second].map((column) => ({
+        column,
+        op: 'equals' as const,
+        value: '',
+        varies: true,
+      })),
+      request: 'Which orders did customer {customer_id} place in the {region} region?',
+    });
+    world.mentor.script = (_request, call) =>
+      call === 1
+        ? draft({
+            taskTypes: [
+              EMAIL_TYPE,
+              list('by_customer', 'customer_id', 'region'),
+              list('by_region', 'region', 'customer_id'),
+            ],
+          })
+        : draft({ taskTypes: [EMAIL_TYPE, list('by_customer', 'customer_id', 'region')] });
+    const turn = await world.drafting.start('A desk', attachShop(), TEACHER);
+    const fix = world.mentor.requests[1]?.messages.at(-1)?.content ?? '';
+    expect(fix).toContain(
+      'Task type "by_region" (Orders by region and customer_id): Every request of this kind asks what "Orders by customer_id and region" already asks, in other words',
+    );
+    const job = turn.draft;
+    if (!job) throw new Error('Expected a draft.');
+    const proof = await releaseMentor({ dispose: () => undefined });
+    const asked = (tasks: readonly Task[]) =>
+      tasks
+        .filter((task) => task.type === 'by_customer')
+        .map((task) => JSON.stringify([task.meta?.['customer_id'], task.meta?.['region']]));
+    const held = asked(world.vault.openForLockedTest(job.id, proof));
+    const seen = new Set([
+      ...asked(await world.jobs.tasks(job.id, 'train')),
+      ...asked(await world.jobs.tasks(job.id, 'dev')),
+      ...asked(await world.jobs.tasks(job.id, 'calibration')),
+    ]);
+    expect(held.length).toBeGreaterThan(5);
+    expect(held.filter((question) => seen.has(question))).toEqual([]);
+  });
+
   it('never shows the teacher a task, and keeps the review examples out of the final test', async () => {
     world.mentor.script = () => draft();
     const turn = await world.drafting.start('A desk', attachShop(), TEACHER);
@@ -628,9 +703,10 @@ describe('drafting the job', () => {
   });
 
   it('leaves out a kind of task the files support too few requests of, and says so', async () => {
+    // Ten rows, of which the teacher is shown the first five: nothing is asked about those.
     const small = world.attach(
       'regions.csv',
-      ['code,name', ...Array.from({ length: 5 }, (_, i) => `R-${i},Region ${i}`)].join('\n'),
+      ['code,name', ...Array.from({ length: 10 }, (_, i) => `R-${i},Region ${i}`)].join('\n'),
     );
     const thin = {
       ...EMAIL_TYPE,

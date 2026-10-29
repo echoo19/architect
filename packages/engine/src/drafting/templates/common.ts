@@ -6,6 +6,19 @@ import { cleanText } from '../values';
 export interface Candidate {
   /** Requests with the same family land in the same split. */
   family: string;
+  /**
+   * The business question the request asks, in one text that doesn't depend on how the kind of
+   * task was configured. Two requests with the same identity ask the same thing, whatever order
+   * their conditions were written in and whichever kind of task made them, so only one is kept:
+   * a question in the practice tasks and again in the final test would give the answer away.
+   */
+  identity: string;
+  /**
+   * The rows of the table, by position, that the answer is worked out from. When the teacher was
+   * shown every one of them while drafting, the request is left out, since nothing may be asked
+   * whose answer the teacher has already read.
+   */
+  rows?: readonly number[];
   /** The request, ending with the line that states the answer's shape. */
   prompt: string;
   expected: Expected;

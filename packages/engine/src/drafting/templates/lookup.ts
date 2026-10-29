@@ -99,7 +99,8 @@ export function runLookup(spec: LookupSpec, table: Table): TemplateRun<LookupSpe
   const candidates: Candidate[] = [];
   let unreadable = 0;
   let missing = 0;
-  for (const row of table.rows) {
+  const askedAbout = asked.map(foldKey).sort();
+  for (const [at, row] of table.rows.entries()) {
     const keyText = cleanText(row[keyColumn]);
     if (keyText === '' || (keys.get(keyText.toLowerCase()) ?? 0) !== 1) continue;
     const values: JsonValue[] = [];
@@ -148,6 +149,14 @@ export function runLookup(spec: LookupSpec, table: Table): TemplateRun<LookupSpe
     const question = fillRequest(spec.request, { key: keyText });
     candidates.push({
       family: `row:${table.name}:${keyColumn}=${keyText.toLowerCase()}`,
+      identity: canonicalJson([
+        'lookup',
+        foldKey(table.name),
+        foldKey(keyColumn),
+        foldKey(keyText),
+        askedAbout,
+      ]),
+      rows: [at],
       prompt: [question, ...hints, `End with: ANSWER: ${shape}`].join('\n'),
       expected: {
         kind: 'facts',

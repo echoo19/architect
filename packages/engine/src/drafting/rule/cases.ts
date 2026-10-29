@@ -26,6 +26,8 @@ const LARGEST = q.fraction(1_000_000_000n);
 export interface RuleCase {
   /** The row's key, as the file spells it. */
   key: string;
+  /** The row's position in its table. */
+  rowIndex: number;
   /** The entity the case belongs to, lowercased, for keeping related cases in one set. */
   family: string;
   row: Row;
@@ -115,7 +117,7 @@ export function makeCases(spec: RuleSpec, tables: Tables): Cases {
     else skipped.set(reason, { reason, count: 1, example: shown });
   };
 
-  for (const row of source.rows) {
+  for (const [rowIndex, row] of source.rows.entries()) {
     const key = cleanText(row[spec.keyColumn]);
     try {
       if (key === '') throw new Skip(`${spec.keyColumn} is empty`, 'a row with no key');
@@ -193,6 +195,7 @@ export function makeCases(spec: RuleSpec, tables: Tables): Cases {
       if (familyCell === '') throw new Skip(`${spec.familyColumn ?? ''} is empty`, key);
       cases.push({
         key,
+        rowIndex,
         family: familyCell.toLowerCase(),
         row,
         lookupRow,

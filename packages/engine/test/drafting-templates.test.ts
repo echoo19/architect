@@ -239,6 +239,74 @@ describe('the filtered list template', () => {
     expect(tooLong.problems[0]).toContain('Every list is longer than 20');
   });
 
+  it('gives a request the same family and the same question whatever order its conditions were written in', () => {
+    const small = readTable('orders.csv', shopData('canonical', 200, 40).ordersCsv);
+    const order = (first: string, second: string) =>
+      runFilteredList(
+        list({
+          filters: [
+            { column: first, op: 'equals', varies: true },
+            { column: second, op: 'equals', varies: true },
+          ],
+          request: 'Which orders did customer {customer_id} place in the {region} region?',
+        }),
+        small,
+      );
+    const forward = order('customer_id', 'region');
+    const backward = order('region', 'customer_id');
+    expect(forward.problems).toEqual([]);
+    expect(backward.problems).toEqual([]);
+    const familyOf = (run: typeof forward) =>
+      new Map(run.candidates.map((item) => [item.identity, item.family] as const));
+    expect(familyOf(forward).size).toBe(forward.candidates.length);
+    expect([...familyOf(backward)].sort()).toEqual([...familyOf(forward)].sort());
+    // The family is the customer, the column that tells the most requests apart.
+    for (const family of familyOf(forward).values()) {
+      expect(family).toMatch(/^list:orders\.csv:customer_id=c-\d+$/);
+    }
+  });
+
+  it('asks the same question whether a value is fixed in the conditions or taken in turn', () => {
+    const small = readTable('orders.csv', shopData('fixed', 200, 40).ordersCsv);
+    const taken = runFilteredList(
+      list({
+        filters: [
+          { column: 'customer_id', op: 'equals', varies: true },
+          { column: 'region', op: 'equals', varies: true },
+        ],
+        request: 'Which orders did customer {customer_id} place in the {region} region?',
+      }),
+      small,
+    );
+    const fixed = runFilteredList(
+      list({
+        filters: [
+          { column: 'region', op: 'equals', value: ' north ', varies: false },
+          { column: 'customer_id', op: 'equals', varies: true },
+        ],
+        request: 'Which orders did customer {customer_id} place in the North region?',
+      }),
+      small,
+    );
+    const inOne = runFilteredList(
+      list({
+        filters: [
+          { column: 'region', op: 'in', values: ['North'], varies: false },
+          { column: 'customer_id', op: 'equals', varies: true },
+        ],
+        request: 'Which orders did customer {customer_id} place in the North region?',
+      }),
+      small,
+    );
+    const north = taken.candidates
+      .filter((item) => String(item.meta['region']).replace(/["\s]/g, '').toLowerCase() === 'north')
+      .map((item) => item.identity);
+    expect(north.length).toBeGreaterThan(3);
+    const fixedQuestions = new Set(fixed.candidates.map((item) => item.identity));
+    expect(north.filter((question) => !fixedQuestions.has(question))).toEqual([]);
+    expect(new Set(inOne.candidates.map((item) => item.identity))).toEqual(fixedQuestions);
+  });
+
   it('understands empty, filled and "is not" conditions', () => {
     const unshipped = runFilteredList(
       list({

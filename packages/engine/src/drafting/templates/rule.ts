@@ -41,6 +41,15 @@ export function ruleVersion(spec: RuleSpec): string {
     .slice(0, 12);
 }
 
+/**
+ * What makes two rules ask the same question of a row: how the answer is worked out, apart from
+ * the words of the request and the passages quoted.
+ */
+function semanticsOf(spec: RuleSpec): JsonValue {
+  const { expression, lookup, categories, currency } = spec;
+  return JSON.parse(JSON.stringify({ expression, lookup, categories, currency })) as JsonValue;
+}
+
 /** How numbers, words and rounding are read, in plain words, for the person and the report. */
 export function conventionsOf(spec: RuleSpec): string[] {
   const conventions = [
@@ -287,11 +296,20 @@ export function runRule(spec: RuleSpec, tables: ReadonlyMap<string, Table>): Rul
 
   const name = answerKeyName(spec.answerName);
   const tolerance = toleranceOf(resolved);
+  const semantics = semanticsOf(resolved);
   const candidates: Candidate[] = made.cases.map((item) => {
     const answer = q.toNumber(item.answer);
     const question = outcome.requestOf(item.key);
     return {
       family: `rule:${source.name}:${familyColumn ?? keyColumn}=${item.family}`,
+      identity: canonicalJson([
+        'rule',
+        foldKey(source.name),
+        foldKey(keyColumn),
+        foldKey(item.key),
+        semantics,
+      ]),
+      rows: [item.rowIndex],
       prompt: [question, hintOf(resolved), `End with: ANSWER: {"${name}": <number>}`].join('\n'),
       expected: {
         kind: 'answer',
