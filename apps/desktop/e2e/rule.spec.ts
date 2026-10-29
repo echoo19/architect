@@ -18,9 +18,10 @@ import {
 /*
  * A rule in the real app, on the real engine: the person attaches a bike shop's records and its
  * policy, the teacher (a scripted one on this computer) asks what the policy leaves open and
- * drafts, Architect works every answer out itself, and Define puts the rule in front of the person
- * with the passages it came from and examples with their working. Training waits for the person to
- * confirm it, and a record that changes after asks for it again.
+ * drafts, Architect asks what the N/A in the parts cost means, works every answer out itself, and
+ * Define puts the rule in front of the person with the passages it came from and examples with
+ * their working. Training waits for the person to confirm it, and a record that changes after asks
+ * for it again.
  */
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
@@ -43,6 +44,13 @@ let labor = '$65';
 const DESCRIPTION =
   'Answer questions about the tickets of our bike repair shop: what a ticket costs under our ' +
   'policy, and who a customer is.';
+
+/**
+ * What Architect asks about the tickets that say N/A, after the teacher's two questions and
+ * without the teacher: the teacher is not called for it, and never sees it.
+ */
+const NA_QUESTION =
+  'In tickets.csv, parts_cost sometimes says "N/A". Does "N/A" mean no parts cost? If it can also mean "not known yet", leave those rows out.';
 
 function reply(request: MentorChatBody): unknown {
   if (request.response_format?.json_schema?.name === 'job_draft') {
@@ -183,14 +191,25 @@ function cost(ticket: string): number {
   const halfHours = Math.ceil(Number((row[3] ?? '').trim()) * 2 - 1e-9);
   const labor = halfHours * 3250;
   const paid = members.get(row[1] ?? '') ? halfHours * 2925 : labor;
-  return paid + Math.round(Number((row[4] ?? '').replace('$', '')) * 100);
+  // The person said that an empty parts cost and N/A both mean none.
+  const parts = (row[4] ?? '').trim();
+  return (
+    paid + (parts === '' || parts === 'N/A' ? 0 : Math.round(Number(parts.replace('$', '')) * 100))
+  );
 }
 
 /**
  * Answers the teacher's two questions about the rule, the discount and then what a ticket with no
- * parts cost counts as, and goes on to Define. `shot` names a capture of the second.
+ * parts cost counts as, then Architect's own, about the tickets that say N/A, and goes on to
+ * Define. `shot` names a capture of the second, `markShot` one of the third. `na` is what the
+ * person says N/A means.
  */
-async function reviewTheJob(page: Page, shot?: string): Promise<string> {
+async function reviewTheJob(
+  page: Page,
+  shot?: string,
+  options: { na?: 'Count it as zero' | 'Leave those rows out'; markShot?: string } = {},
+): Promise<string> {
+  const { na = 'Count it as zero', markShot } = options;
   const question = page.getByText(OPEN_QUESTION.question);
   await expect(question).toBeVisible();
   await page.getByRole('button', { name: 'No, labor only' }).click();
@@ -203,6 +222,26 @@ async function reviewTheJob(page: Page, shot?: string): Promise<string> {
   await expect(page.getByRole('button', { name: 'Draft it now' })).toHaveCount(0);
   if (shot !== undefined) await capture(page, shot);
   await page.getByRole('button', { name: 'Count it as zero' }).click();
+
+  // Then Architect asks about the N/A, itself. It is in the person's records and not in the
+  // teacher's reply, so it comes after the teacher's questions and the teacher is not called.
+  const conversation = page.getByRole('list', { name: 'Conversation with the mentor' });
+  await expect(page.getByText(NA_QUESTION, { exact: true })).toBeVisible();
+  await expect(conversation.getByText('Architect', { exact: true })).toBeVisible();
+  const zero = page.getByRole('button', { name: 'Count it as zero' });
+  const leave = page.getByRole('button', { name: 'Leave those rows out' });
+  await expect(zero).toBeVisible();
+  await expect(leave).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Draft it now' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Review the job' })).toHaveCount(0);
+  // Neither answer is chosen for the person: nothing is pressed, selected or focused.
+  for (const answer of [zero, leave]) {
+    await expect(answer).not.toBeFocused();
+    await expect(answer).not.toHaveAttribute('aria-pressed', /true/);
+    await expect(answer).not.toHaveAttribute('aria-checked', /true/);
+  }
+  if (markShot !== undefined) await capture(page, markShot);
+  await page.getByRole('button', { name: na }).click();
   const review = page.getByRole('button', { name: 'Review the job' });
   await expect(review).toBeFocused();
   await review.click();
@@ -229,8 +268,17 @@ for (const theme of THEMES) {
     expect(told).toContain('Labor is billed at $65 an hour, in half-hour steps.');
     expect(told).toContain('Members get 10% off labor, never off parts.');
 
-    const jobId = await reviewTheJob(page, `rule-empty-${theme}`);
+    const jobId = await reviewTheJob(page, `rule-empty-${theme}`, {
+      markShot: `rule-mark-${theme}`,
+    });
+    // The teacher drafted three times, for the discount, for the empty cell and for the rule. What
+    // N/A means is Architect's question and answer: the teacher was not called again for it, and
+    // was told nothing of it.
     expect(drafting).toBe(3);
+    expect(mentor.requests).toHaveLength(3);
+    const sentToTeacher = mentor.requests.map((item) => JSON.stringify(item)).join('\n');
+    expect(sentToTeacher).not.toContain('sometimes says');
+    expect(sentToTeacher).not.toContain('"N/A" mean');
     const answered = mentor.requests[1]?.messages.at(-1)?.content ?? '';
     expect(answered).toContain('Answer: No, labor only');
     // What the person chose for an empty parts cost went to the teacher as what Architect does with
@@ -257,39 +305,40 @@ for (const theme of THEMES) {
     ).toBeVisible();
     await expect(card.getByText('Members get 10% off labor, never off parts.')).toBeVisible();
     await expect(card.getByText('No, labor only', { exact: true })).toBeVisible();
-    await expect(card.getByText('Count it as zero', { exact: true })).toBeVisible();
-    await expect(card.getByText('your answer', { exact: true })).toHaveCount(2);
+    await expect(card.getByText('Count it as zero', { exact: true })).toHaveCount(2);
+    await expect(card.getByText('your answer', { exact: true })).toHaveCount(3);
     // An answer is read with the question it answered, which the draft kept beside it.
     const discount = card.getByRole('listitem').filter({ hasText: 'No, labor only' });
     await expect(discount.getByText(OPEN_QUESTION.question, { exact: true })).toBeVisible();
-    const empty = card.getByRole('listitem').filter({ hasText: 'Count it as zero' });
-    await expect(empty.getByText(EMPTY_QUESTION.question, { exact: true })).toBeVisible();
+    const empty = card
+      .getByRole('listitem')
+      .filter({ has: page.getByText(EMPTY_QUESTION.question, { exact: true }) });
+    await expect(empty.getByText('Count it as zero', { exact: true })).toBeVisible();
+    // So is the answer about the N/A, beside the question Architect put.
+    const mark = card
+      .getByRole('listitem')
+      .filter({ has: page.getByText(NA_QUESTION, { exact: true }) });
+    await expect(mark.getByText('Count it as zero', { exact: true })).toBeVisible();
+    await expect(mark.getByText('your answer', { exact: true })).toBeVisible();
     // The rule in words is a short list of steps, and what the person said an empty parts cost
     // counts as is part of the step that adds it, as the rule they confirm.
     await expect(card.locator('ol').first().locator('> li')).toHaveText([
       '1.Round labor hours up to a multiple of 0.5.',
       '2.Multiply by 65.',
       '3.When member (customers.csv) is yes, take 10% off.',
-      '4.Add parts cost. An empty parts cost counts as 0, as you said.',
+      '4.Add parts cost. An empty parts cost or "N/A" counts as 0, as you said.',
       '5.Round the result to the nearest cent; half a cent rounds up.',
     ]);
     await expect(card.getByText(/^Start with \(labor hours rounded up/)).toHaveCount(0);
     await expect(
       card.getByText(/^\d+ rows have an empty parts cost, which counts as 0, as you said\.$/),
     ).toBeVisible();
-    // Only an empty cell: the tickets whose parts say N/A are still left out, and the line that
-    // says how many says why too, when it is the one reason.
-    const leftOut = card.getByRole('button', { name: /rows? left out/ });
-    await expect(leftOut).toHaveText(
-      /^\d+ of \d+ rows left out of the tasks: parts_cost says N\/A or a dash, which is not the same as empty$/,
-    );
-    await leftOut.click();
     await expect(
-      card.getByRole('listitem').filter({
-        hasText: /^\d+ rows?: parts_cost says N\/A or a dash, which is not the same as empty/,
-      }),
+      card.getByText(/^\d+ rows have "N\/A" in parts cost, which counts as 0, as you said\.$/),
     ).toBeVisible();
-    await leftOut.click();
+    // The empty cell and the N/A both count, and nothing else in these records is wrong, so no row
+    // is left out and the screen says nothing of any.
+    await expect(card.getByRole('button', { name: /rows? left out/ })).toHaveCount(0);
     const examples = card.locator('ul > li').filter({ hasText: /What does ticket|Like T-/ });
     expect(await examples.count()).toBeGreaterThanOrEqual(3);
     await expect(
@@ -331,9 +380,12 @@ for (const theme of THEMES) {
     await expect(card.getByText('Rule version')).toBeVisible();
     await expect(card.getByText(/^[0-9a-f]{12}$/)).toBeVisible();
     await card.getByRole('button', { name: 'Details' }).click();
-    // One example is a ticket with no parts cost, shown as nothing and counted as 0.
+    // One example is a ticket with no parts cost, shown as nothing and counted as 0, and one is a
+    // ticket whose parts cost says N/A, shown as the file wrote it and counted as 0.
     await expect(card.getByText('An empty parts cost counts as 0', { exact: true })).toBeVisible();
     await expect(card.getByText('empty (counted as 0)').first()).toBeVisible();
+    await expect(card.getByText('"N/A" in parts cost counts as 0', { exact: true })).toBeVisible();
+    await expect(card.getByText('N/A (counted as 0)').first()).toBeVisible();
 
     // Each example is right: worked out again from the records, not from the mess in them.
     let checked = 0;
@@ -454,6 +506,70 @@ for (const theme of THEMES) {
     await page.evaluate((id) => window.architect.runs.stop(id), runId).catch(() => undefined);
   });
 }
+
+test('leaves the tickets that say N/A out when the person says so, and says why', async () => {
+  const { page } = launched;
+  labor = '$65';
+  await describe(page, 'dark');
+  await reviewTheJob(page, undefined, { na: 'Leave those rows out' });
+  expect(drafting).toBe(3);
+  expect(mentor.requests).toHaveLength(3);
+  const section = page.getByRole('region', { name: 'Check the rule' });
+  const card = section.getByRole('article', { name: 'Ticket totals' });
+  // The answer is kept as an answer, but the rule rests on nothing of it: it is the rule it was.
+  await expect(card.getByText('your answer', { exact: true })).toHaveCount(2);
+  await expect(card.getByText(NA_QUESTION, { exact: true })).toHaveCount(0);
+  await expect(card.locator('ol').first().locator('> li').nth(3)).toHaveText(
+    '4.Add parts cost. An empty parts cost counts as 0, as you said.',
+  );
+  await expect(card.getByText(/"N\/A" in parts cost/)).toHaveCount(0);
+  // The tickets whose parts say N/A are still left out, and the line that says how many says why
+  // too, when it is the one reason.
+  const leftOut = card.getByRole('button', { name: /rows? left out/ });
+  await expect(leftOut).toHaveText(
+    /^\d+ of \d+ rows left out of the tasks: parts_cost says N\/A or a dash, which is not the same as empty$/,
+  );
+  await leftOut.click();
+  await expect(
+    card.getByRole('listitem').filter({
+      hasText: /^\d+ rows?: parts_cost says N\/A or a dash, which is not the same as empty/,
+    }),
+  ).toBeVisible();
+});
+
+test('does not take a word, "Draft it now" or a zero typed for what N/A means', async () => {
+  const { page } = launched;
+  labor = '$65';
+  await describe(page, 'dark');
+  await expect(page.getByText(OPEN_QUESTION.question)).toBeVisible();
+  await page.getByRole('button', { name: 'No, labor only' }).click();
+  await expect(page.getByText(EMPTY_QUESTION.question)).toBeVisible();
+  await page.getByRole('button', { name: 'Leave those rows out' }).click();
+  await expect(page.getByText(NA_QUESTION, { exact: true })).toBeVisible();
+  const calls = mentor.requests.length;
+
+  const reply = page.getByRole('textbox', { name: 'Reply' });
+  for (const typed of ['zero', 'Draft it now']) {
+    await reply.fill(typed);
+    await reply.press('Enter');
+    await expect(
+      page
+        .getByText(NA_QUESTION, { exact: false })
+        .filter({ hasText: typed === 'zero' ? 'Choose one of the answers' : 'needs an answer' }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Review the job' })).toHaveCount(0);
+  }
+  await expect(
+    page.getByText('it decides what "N/A" counts as in parts_cost of tickets.csv, in every row.'),
+  ).toBeVisible();
+  // Nothing was made, and the teacher was not asked anything for any of it.
+  expect(mentor.requests).toHaveLength(calls);
+
+  // Only the answer drafts the job, and leaving the rows out is as much an answer as counting them.
+  await page.getByRole('button', { name: 'Leave those rows out' }).last().click();
+  await expect(page.getByRole('button', { name: 'Review the job' })).toBeVisible();
+  expect(mentor.requests).toHaveLength(calls);
+});
 
 test('asks for the confirmation again when a record changes, or when the files are drafted again', async () => {
   const { page } = launched;
