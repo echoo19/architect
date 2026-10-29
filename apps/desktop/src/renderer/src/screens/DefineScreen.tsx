@@ -3,12 +3,14 @@ import type { Job, Method } from '@architect/shared';
 import { Button, Skeleton, toast } from '@architect/ui';
 import { SlidersHorizontal } from 'lucide-react';
 import { flowApi } from '../api/client';
-import { useJob, useJobs, useSecretsStatus, useSettings } from '../api/hooks';
+import { useJob, useJobs, useSecretsStatus, useSettings, useTaskPlan } from '../api/hooks';
 import { ProblemState } from '../components/ProblemState';
 import { resetDraft, useDraftStore } from '../flow/describe/draft-store';
 import { AdvancedDialog, tabWithIssue, type AdvancedTab } from '../flow/define/AdvancedDialog';
 import { hostedAvailability, type KeyStatus } from '../flow/define/hosted';
 import { Capabilities, FilePermissions, JobHeader, ReadyWhen } from '../flow/define/JobOverview';
+import { RuleReview } from '../flow/define/RuleReview';
+import { waitsForRule } from '../flow/define/rule-words';
 import { TrainingPlace } from '../flow/define/TrainingPlace';
 import { useJobEditor } from '../flow/define/use-job-editor';
 import { attempt } from '../lib/notify';
@@ -67,6 +69,8 @@ function DefineEditor({ initial }: { initial: Job }) {
   const summaries = useJobs();
   const taskCount = summaries.data?.find((summary) => summary.id === initial.id)?.taskCount ?? null;
   const editor = useJobEditor(initial, taskCount);
+  const taskPlan = useTaskPlan(initial.id);
+  const waitingForRule = waitsForRule(taskPlan.data);
   const { job } = editor;
   const settings = useSettings();
   const secrets = useSecretsStatus();
@@ -81,6 +85,9 @@ function DefineEditor({ initial }: { initial: Job }) {
   // Keys can be added in Settings at any time, so check again whenever a job opens.
   const { reload: reloadKeys } = secrets;
   useEffect(() => reloadKeys(), [reloadKeys]);
+  // So can the records change under a confirmed rule, so read the plan again as well.
+  const { reload: reloadPlan } = taskPlan;
+  useEffect(() => reloadPlan(), [reloadPlan]);
 
   // A conversation that didn't draft this job is abandoned once another job is open.
   useEffect(() => {
@@ -141,9 +148,16 @@ function DefineEditor({ initial }: { initial: Job }) {
             Advanced settings
           </Button>
           <div className="flex items-center gap-2">
-            <span className="mr-2 text-sm text-fg-muted">Keep Architect open while it trains</span>
+            <span className="mr-2 text-sm text-fg-muted">
+              {waitingForRule ? 'Confirm the rule first' : 'Keep Architect open while it trains'}
+            </span>
             <Button onClick={() => navigate(paths.newAgent())}>Back</Button>
-            <Button variant="primary" loading={starting} onClick={() => void start()}>
+            <Button
+              variant="primary"
+              loading={starting}
+              disabled={waitingForRule}
+              onClick={() => void start()}
+            >
               Start training
             </Button>
           </div>
@@ -153,6 +167,7 @@ function DefineEditor({ initial }: { initial: Job }) {
       <div className="mx-auto box-content flex max-w-[880px] flex-col gap-12 px-8 pb-10 pt-14">
         <JobHeader job={job} />
         <Capabilities job={job} />
+        {taskPlan.data && <RuleReview job={job} plan={taskPlan.data} />}
         <TrainingPlace
           job={job}
           hosted={hosted}

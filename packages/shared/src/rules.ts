@@ -258,6 +258,13 @@ export const RuleReportSchema = RuleDetailsSchema.omit({ examples: true, uncover
 });
 export type RuleReport = z.infer<typeof RuleReportSchema>;
 
+/** Whether teaching ran, in a sentence, from how many rounds the run used. */
+export function teachingLine(rounds: number): string {
+  return rounds === 0
+    ? 'Teaching did not run: the student met the target on the check tasks before any round.'
+    : `Teaching ran for ${rounds} ${rounds === 1 ? 'round' : 'rounds'}.`;
+}
+
 /**
  * What the Results page says beside the score of a job with a rule, and the report says too
  * (decision 061). `teacher` is the model's name as the place it appears calls it.

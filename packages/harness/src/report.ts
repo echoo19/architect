@@ -1,5 +1,5 @@
 import type { ReportCard, RuleReport, Score } from '@architect/shared';
-import { METHOD_LABELS, ruleScoreNote } from '@architect/shared';
+import { METHOD_LABELS, ruleScoreNote, teachingLine } from '@architect/shared';
 
 const percent = (fraction: number): string => `${Number((fraction * 100).toFixed(1))}%`;
 
@@ -182,10 +182,7 @@ export function renderReportMarkdown(report: ReportCard): string {
  * which rows were left out, what each side of a condition did, and whether teaching ran.
  */
 function ruleDetails(report: ReportCard, rules: readonly RuleReport[]): string {
-  const teaching =
-    report.cost.rounds === 0
-      ? 'Teaching did not run: the student met the target on the check tasks before any round.'
-      : `Teaching ran for ${report.cost.rounds} ${plural(report.cost.rounds, 'round', 'rounds')}.`;
+  const teaching = teachingLine(report.cost.rounds);
   const parts = rules.map((rule) =>
     [
       `### ${rule.label} (version ${rule.version})`,
