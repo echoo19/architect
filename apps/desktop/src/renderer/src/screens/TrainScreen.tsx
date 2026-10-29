@@ -19,6 +19,7 @@ import { Examples } from '../flow/train/Examples';
 import { LatestAttempts } from '../flow/train/LatestAttempts';
 import { findingNotes, lessonNotes, type StepNote } from '../flow/train/lesson-steps';
 import { LessonDrawerContent } from '../flow/train/LessonView';
+import { PausedNotice } from '../flow/train/PausedNotice';
 import { phaseView } from '../flow/train/phase';
 import { Resources } from '../flow/train/Resources';
 import { RoundDrawerContent, type RoundEvidence } from '../flow/train/RoundDrawer';
@@ -364,6 +365,7 @@ function TrainBoard({
           </div>
         </div>
       )}
+      {run.status === 'paused' && run.error !== undefined && <PausedNotice live={live} />}
       <div className="flex flex-wrap gap-5">
         <Apprenticeship
           mentor={names.mentor}

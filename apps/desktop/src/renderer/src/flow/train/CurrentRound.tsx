@@ -92,6 +92,8 @@ export function CurrentRound({
   const predicted = round?.predicted;
   const ended = experiment && !draft ? experiment : undefined;
   const over = round !== null && (round.status === 'decided' || round.status === 'failed');
+  // A run paused on an error says so, with what to do, in a notice of its own above.
+  const pausedOnError = live.run.status === 'paused' && live.run.error !== undefined;
   return (
     <Panel padded aria-label="Current round" className="min-w-0 flex-[5_1_360px]">
       <div className="flex items-center justify-between gap-3">
@@ -110,7 +112,7 @@ export function CurrentRound({
           {mentorLine(live, round, names, draft)}
         </p>
       </div>
-      {live.notice && (
+      {live.notice && !pausedOnError && (
         <p role="status" className="m-0 flex items-start gap-2 text-sm text-fg-muted">
           <CircleAlert
             size={13}
