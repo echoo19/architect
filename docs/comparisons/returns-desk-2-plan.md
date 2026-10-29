@@ -59,3 +59,7 @@ The targeted arm's frozen agent becomes Architect's ready-made sample agent, wit
 ## What will be published
 
 Both reports go in this folder, whatever they show. A result with no gain is reported as no gain, beside comparison 1.
+
+## Amendment, before any arm ran
+
+Oct 28, 2026, about 20:20 Eastern. The plan step ran the bare student on the 15 calibration tasks, which only prices an attempt, and projected the targeted arm at $8.85 at most. At 1.5 times that, its share is $13.28, and the $15 cap left $12.57 after the other two arms, so the targeted arm was not funded. The online Glimmer cap is raised to $16 (`--student-usd 16`). Nothing else changes, and no arm had started.
