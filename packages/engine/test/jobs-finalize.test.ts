@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Task } from '@architect/shared';
@@ -8,6 +16,7 @@ import { createEngineDeps } from '../src/host/wiring';
 import { DataPaths } from '../src/loop/paths';
 import { Vault } from '../src/vault/vault';
 import { deferred } from './fakes/clock';
+import { defaultJob, defaultTasks, writeJobFolder } from './fakes/job';
 import { shopData } from './support/drafting-data';
 import { draft, draftingWorld, TEACHER, type DraftingWorld } from './support/drafting-world';
 
@@ -85,6 +94,96 @@ describe('a job whose making failed', () => {
     expect(seal).toHaveBeenCalledTimes(1);
     expect(existsSync(world.paths.jobDir('shop-desk'))).toBe(false);
     expect(world.vault.isSealed('shop-desk')).toBe(false);
+  });
+});
+
+describe('an id that already has a folder', () => {
+  /** What a person may keep in the jobs folder: their own file, with no job and no seal behind it. */
+  function strayFolder(id: string): string {
+    const folder = world.paths.jobDir(id);
+    mkdirSync(folder, { recursive: true });
+    writeFileSync(join(folder, 'notes.txt'), 'my own notes');
+    return folder;
+  }
+
+  /** A job file whose data file is missing, so that importing it fails after its folder is made. */
+  async function brokenImport(id: string): Promise<string> {
+    const source = join(world.root, 'source');
+    const file = await writeJobFolder(source, defaultJob({ id }), defaultTasks());
+    rmSync(join(source, 'data', 'policy.md'));
+    return file;
+  }
+
+  it('is never made under, so an import that fails leaves the folder and its files as they were', async () => {
+    const folder = strayFolder('orders');
+    await expect(world.jobs.importFile(await brokenImport('orders'))).rejects.toThrow(
+      'The data file "policy.md" is missing',
+    );
+    expect(readFileSync(join(folder, 'notes.txt'), 'utf8')).toBe('my own notes');
+    // The import was made under another id, and that one is taken back whole.
+    expect(readdirSync(world.paths.jobs)).toEqual(['orders']);
+    expect(world.store.jobs.list()).toEqual([]);
+    expect(world.vault.isSealed('orders')).toBe(false);
+  });
+
+  it('gets a job of the same id another id, and leaves the folder alone when the job is made', async () => {
+    const folder = strayFolder('orders');
+    const source = join(world.root, 'source');
+    const file = await writeJobFolder(source, defaultJob({ id: 'orders' }), defaultTasks());
+    const job = await world.jobs.importFile(file);
+    expect(job.id).not.toBe('orders');
+    expect(world.store.jobs.list().map((record) => record.id)).toEqual([job.id]);
+    expect(world.vault.isSealed(job.id)).toBe(true);
+    expect(readdirSync(folder)).toEqual(['notes.txt']);
+  });
+
+  it('keeps a folder of a drafted job whose id is the same, when the database fails the job', async () => {
+    const folder = strayFolder('shop-desk');
+    vi.spyOn(world.store.jobs, 'insert').mockImplementationOnce(() => {
+      throw new Error('The database could not save the job.');
+    });
+    await expect(world.drafting.start('A desk', attachShop(), TEACHER)).rejects.toThrow(
+      'The database could not save the job.',
+    );
+    expect(readFileSync(join(folder, 'notes.txt'), 'utf8')).toBe('my own notes');
+    expect(readdirSync(world.paths.jobs)).toEqual(['shop-desk']);
+    expect(world.vault.isSealed('shop-desk')).toBe(false);
+  });
+
+  it('is refused, and the folder left as it is, when one appears after the id was chosen', async () => {
+    // Another job of the same id began between choosing the id and making the folder: the split
+    // that comes just before the folder is made is where it shows up.
+    const rival = world.paths.jobDir('busy');
+    const split = world.deps.runtime.splitTasks.bind(world.deps.runtime);
+    vi.spyOn(world.deps.runtime, 'splitTasks').mockImplementationOnce((tasks, config) => {
+      mkdirSync(rival, { recursive: true });
+      writeFileSync(join(rival, 'notes.txt'), 'made in between');
+      return split(tasks, config);
+    });
+    const made = world.jobs.create({
+      job: defaultJob({ id: 'busy' }),
+      files: [
+        { name: 'jobs.csv', content: new TextEncoder().encode('id,tech\nJ-1,T-1\n') },
+        { name: 'policy.md', content: new TextEncoder().encode('# Policy\n') },
+      ],
+      tasks: defaultTasks(),
+      drafting: {
+        format: 1,
+        source: 'generated',
+        createdAt: '2026-10-29T09:00:00.000Z',
+        seed: 7,
+        teacher: { label: 'Scripted', model: 'scripted' },
+        cost: { calls: 0, inputTokens: 0, outputTokens: 0, usd: 0 },
+        types: [],
+        unresolved: [],
+        notes: [],
+      },
+    });
+    await expect(made).rejects.toThrow('There is already a folder for a job called "busy"');
+    expect(readFileSync(join(rival, 'notes.txt'), 'utf8')).toBe('made in between');
+    expect(readdirSync(rival)).toEqual(['notes.txt']);
+    expect(world.vault.isSealed('busy')).toBe(false);
+    expect(world.store.jobs.list()).toEqual([]);
   });
 });
 
