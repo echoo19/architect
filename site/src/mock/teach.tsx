@@ -12,28 +12,23 @@ import {
 import { ArrowUpRight, File, ListChecks, Send, X } from 'lucide-react';
 import { Prose, P, Reply, ReplyActions, UserBubble, WorkedFor } from './chat';
 import { AppWindow, ChatHeader, Sidebar } from './frame';
+import { PICKUP_ASK, PICKUP_SIDEBAR, PICKUP_TITLE } from './jobs';
 import { at } from './motion';
 import { noop } from './noop';
 import { ChapterStage } from './stage';
 
-const AGENTS = [
-  {
-    name: 'Service desk',
-    chats: [
-      { title: 'Price the two jobs Dana finished' },
-      { title: 'Close out Tuesday', current: true },
-      { title: 'Invoice the Cedar Ave panel repair', awaitsApproval: true },
-    ],
-  },
-  { name: 'Returns desk', chats: [{ title: 'Can order 1187 come back?' }] },
-];
+const FILES = ['orders.csv', 'customers.csv', 'returns.csv', 'pickups.csv', 'policy.md'];
 
-const FILES = ['jobs.csv', 'invoices.csv', 'technicians.csv', 'bookings.csv', 'policy.md'];
-
-/** The flagged reply, what the person says is wrong with it, and the lesson Spark makes of that. */
-const REPLY = 'Three customers owe $2,915.00.';
-const WRONG = 'Okafor paid INV-3018 on Oct 2, so it is not owed.';
-const LESSON_TEXT = 'Count an invoice as overdue only when it is unpaid and past its due date.';
+/**
+ * The flagged reply, what the person says is wrong with it, and the lesson Spark makes of that.
+ * The pickup is for return RT-4092, which can be handed over from Thursday, November 26, 2026. That
+ * is Thanksgiving, and the shop's policy says no carrier collects on it.
+ */
+const REPLY = 'Cedarline Parcel can collect it Thursday, 2026-11-26.';
+const WRONG = 'No carrier picks up on Thanksgiving.';
+const SHOULD = 'Book Friday, the next day Cedarline collects.';
+const LESSON_TEXT =
+  'Before booking a pickup, check policy.md for days when no carrier collects, like Thanksgiving.';
 
 /** When the chapter's moments happen, in ms from the start. */
 const FLAG = 500;
@@ -107,7 +102,7 @@ function WriteLayer() {
       </Field>
       <Field label="What it should have done" hint="Optional" style={at(WRITE + 300, { dy: 10 })}>
         <div className={cn(box, 'min-h-[70px]')}>
-          <Typed text="Only invoices still unpaid after their due date." start={WRITE + 1250} />
+          <Typed text={SHOULD} start={WRITE + 1250} />
         </div>
       </Field>
       <Field label="What it should have used" hint="Optional" style={at(WRITE + 450, { dy: 10 })}>
@@ -118,7 +113,7 @@ function WriteLayer() {
               className="a a-from-left grid"
               style={at(WRITE + 2100 + index * 70, { dx: 8, dur: 360 })}
             >
-              {file === 'invoices.csv' ? (
+              {file === 'policy.md' ? (
                 <>
                   <span
                     className="a a-exit-up [grid-area:1/1]"
@@ -208,7 +203,7 @@ function LessonLayer() {
         <Fact label="Change" style={at(LESSON + 1300, { dy: 10 })}>
           <span className="text-fg">Adds to its instructions</span>
           <span className="border-l-2 border-line-control pl-3 text-fg-secondary">
-            An invoice is overdue only when it is unpaid and its due date has passed.
+            A pickup date must be a day the carrier collects. policy.md lists the days none do.
           </span>
         </Fact>
         <Fact label="Practice needed" style={at(LESSON + 1500, { dy: 10 })}>
@@ -229,14 +224,14 @@ function SavedLayer() {
         </div>
         <div className="flex flex-col gap-1.5">
           <Heading as="h3" size="title" className="a a-up" style={at(SAVED + 250, { dy: 12 })}>
-            Saved as version 3
+            Saved as version 2
           </Heading>
           <p className="m-0 flex flex-col text-fg-secondary">
             <span className="a a-up narrow:hidden" style={at(SAVED + 450, { dy: 10 })}>
               It hasn&apos;t taken a final test.
             </span>
             <span className="a a-up" style={at(SAVED + 650, { dy: 10 })}>
-              Version 2 keeps answering until you use version 3.
+              Version 1 keeps answering until you use version 2.
             </span>
           </p>
         </div>
@@ -252,9 +247,9 @@ function SavedLayer() {
       <ul aria-label="Versions" className="m-0 flex list-none flex-col p-0">
         <li className="a a-up" style={at(SAVED + 1100, { dy: 12 })}>
           <SettingsRow
-            icon={<VersionTag version={3} />}
+            icon={<VersionTag version={2} />}
             label="New, not in use yet"
-            meta="No final test yet · from version 2"
+            meta="No final test yet · from version 1"
           >
             <Button size="xs" tabIndex={-1}>
               <ArrowUpRight size={14} strokeWidth={1.8} aria-hidden />
@@ -263,14 +258,10 @@ function SavedLayer() {
           </SettingsRow>
         </li>
         <li className="a a-up" style={at(SAVED + 1300, { dy: 12 })}>
-          <SettingsRow
-            icon={<VersionTag version={2} active />}
-            label="In use"
-            meta="from version 1"
-          >
+          <SettingsRow icon={<VersionTag version={1} active />} label="In use">
             <span className="flex flex-col items-end tabular-nums narrow:hidden">
-              <span className="font-mono">92%</span>
-              <span className="text-sm text-fg-muted">55 of 60 passed</span>
+              <span className="font-mono">97%</span>
+              <span className="text-sm text-fg-muted">58 of 60 passed</span>
             </span>
           </SettingsRow>
         </li>
@@ -313,7 +304,7 @@ function Footers() {
           </Button>
           <span className="a a-press inline-flex" style={at(SAVE - 150, { dur: 300 })}>
             <Button size="md" variant="primary" tabIndex={-1}>
-              Save as version 3
+              Save as version 2
             </Button>
           </span>
         </div>
@@ -348,7 +339,7 @@ function Drawer() {
         <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1.5">
           <h3 className="m-0 text-md font-medium">Teach this</h3>
           <span className="truncate text-sm text-fg-muted narrow:hidden">
-            Reply to &quot;Who still owes us money from September?&quot;
+            Reply to &quot;{PICKUP_ASK}&quot;
           </span>
         </div>
         <IconButton label="Close" tabIndex={-1}>
@@ -374,18 +365,18 @@ export function TeachMock() {
   return (
     <ChapterStage
       id="teach"
-      label="The Architect workspace with Teach this open. The person flagged a reply about who owes money, wrote what was wrong, and Spark turned it into a lesson: count an invoice as overdue only when it is unpaid and past its due date. It is saved as version 3. Version 2 keeps answering until the person uses version 3."
+      label="The Architect workspace with Teach this open. The person flagged the returns desk's reply about a pickup date, and wrote what was wrong: no carrier picks up on Thanksgiving. Spark turned it into a lesson: before booking a pickup, check policy.md for days when no carrier collects. It is saved as version 2. Version 1 keeps answering until the person uses version 2."
       heightWide={690}
       heightCompact={800}
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 wide:inset-x-7 wide:top-6">
         <div className="absolute inset-0 flex narrow:hidden">
-          <Sidebar agents={AGENTS} />
+          <Sidebar agents={PICKUP_SIDEBAR} />
           <div className="flex min-w-0 flex-1 flex-col">
-            <ChatHeader title="Close out Tuesday" />
+            <ChatHeader title={PICKUP_TITLE} />
             <div className="min-h-0 flex-1 overflow-hidden px-8 pt-5">
-              <div className="mx-auto flex max-w-[720px] flex-col gap-6 text-chat">
-                <UserBubble>Who still owes us money from September?</UserBubble>
+              <div className="ml-0 flex w-[212px] flex-col gap-6 text-chat">
+                <UserBubble articleClassName="max-w-full">{PICKUP_ASK}</UserBubble>
                 <Reply>
                   <WorkedFor>Worked for 29 s · 2 steps</WorkedFor>
                   <Prose>

@@ -72,6 +72,7 @@ function Conversation({ job, phase }: { job: JobChat; phase: Phase }) {
           label={job.table.label}
           columns={job.table.columns}
           rows={job.table.rows}
+          hideOnNarrow={job.table.hideOnNarrow}
           note={job.table.note}
           className={card.className}
           style={card.style}
@@ -85,7 +86,10 @@ function Conversation({ job, phase }: { job: JobChat; phase: Phase }) {
 function Title({ job, phase }: { job: JobChat; phase: Phase }) {
   const { className, style } = turn(phase, 0);
   return (
-    <span className={cn('block', phase === 'out' && 'absolute inset-0', className)} style={style}>
+    <span
+      className={cn('block truncate', phase === 'out' && 'absolute inset-0', className)}
+      style={style}
+    >
       {job.title}
     </span>
   );
@@ -93,8 +97,8 @@ function Title({ job, phase }: { job: JobChat; phase: Phase }) {
 
 /**
  * The window over the page's first screen, near its real size and cropped by the band's bottom
- * edge. It is the one thing on the page that cycles: every few seconds the jobs of three small
- * businesses take their turn in the same frame, and only what is inside the conversation changes.
+ * edge. It is the one thing on the page that cycles: every few seconds the returns desk's next
+ * finished chat takes its turn in the same frame, and only what is inside the conversation changes.
  */
 export function HeroWindow() {
   const stage = useRef<HTMLDivElement>(null);
@@ -150,8 +154,8 @@ export function HeroWindow() {
     <Stage
       ref={stage}
       id="hero"
-      label="The Architect window, showing three small businesses in turn: an agent has finished a chat, with its answer and a table of figures."
-      heightWide={644}
+      label="The Architect window with the returns desk agent of an outdoor-gear shop, showing three finished chats in turn: a tent return refunded with its fees, a customer's spending on tents, and a return that was denied. Each has the agent's answer and a table of figures."
+      heightWide={692}
       heightCompact={620}
       playback="playing"
     >

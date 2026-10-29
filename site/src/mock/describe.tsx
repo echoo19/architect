@@ -6,15 +6,17 @@ import { at } from './motion';
 import { noop } from './noop';
 import { ChapterStage } from './stage';
 
+/** The job in the person's words: a returns desk, and the only files it may change. */
 const JOB =
-  'Close out the day for our home-services office: price the visits the technicians finished, find customers with overdue balances, and book the earliest technician for urgent calls.';
+  'Run the returns desk for Larchwood Outfitters, our outdoor-gear shop. Decide returns and refunds, answer questions about orders, and book carrier pickups. Follow policy.md, and only change returns.csv and pickups.csv.';
 
 const FILES = [
-  'jobs.csv',
-  'invoices.csv',
-  'technicians.csv',
-  'bookings.csv',
+  'orders.csv',
+  'returns.csv',
+  'pickups.csv',
   'policy.md',
+  'customers.csv',
+  'order_lines.csv',
   'tasks.jsonl',
 ] as const;
 
@@ -34,11 +36,12 @@ function Attached({ name }: { name: string }) {
 
 /** When the chapter's moments happen, in ms from the start. */
 const TYPE_AT = 450;
-const READY_AT = 2200;
-const SEND_AT = 3000;
-const HAND_OVER = 3400;
+const TYPE_STEP = 36;
+const READY_AT = 2450;
+const SEND_AT = 3200;
+const HAND_OVER = 3600;
 const ASKED = HAND_OVER + 1100;
-const CHOSEN = 6300;
+const CHOSEN = HAND_OVER + 2900;
 
 /** The job in the person's words, arriving a word at a time. */
 function Typed({ text }: { text: string }) {
@@ -48,7 +51,7 @@ function Typed({ text }: { text: string }) {
         <span
           key={index}
           className="a a-up inline-block"
-          style={at(TYPE_AT + index * 52, { dy: 5, dur: 260 })}
+          style={at(TYPE_AT + index * TYPE_STEP, { dy: 5, dur: 260 })}
         >
           {word}
           {' '}
@@ -70,7 +73,7 @@ function DescribeScreen() {
       </Heading>
       <div className="flex w-full max-w-[680px] flex-col gap-3">
         <div className="flex w-full flex-col gap-2 rounded-4xl border border-line-control bg-field pb-3.5 pl-[22px] pr-3.5 pt-[18px] shadow-composer">
-          <p className="m-0 min-h-[74px] pr-2 text-lg leading-[1.55] narrow:min-h-[190px]">
+          <p className="m-0 min-h-[98px] pr-2 text-lg leading-[1.55] narrow:min-h-[230px]">
             <Typed text={JOB} />
           </p>
           <div className="flex items-center justify-between gap-2">
@@ -190,11 +193,11 @@ function ClarifyScreen() {
                 style={at(ASKED + 200, { dy: 10 })}
               >
                 <Check size={14} strokeWidth={1.8} aria-hidden />
-                <span>Read 6 files</span>
+                <span>Read {FILES.length} files</span>
               </div>
               <p className="a a-wipe m-0 text-pretty" style={at(ASKED + 450, { dur: 1000 })}>
-                Got it. When it prices a finished visit, should it show the line items or just the
-                total?
+                Got it. When it decides a return or books a pickup, should it save the row right
+                away or ask you first?
               </p>
               <div role="group" aria-label="Answers" className="flex flex-wrap gap-2">
                 <span className="a a-up grid" style={at(ASKED + 1500, { dy: 8 })}>
@@ -205,20 +208,20 @@ function ClarifyScreen() {
                     )}
                     style={at(CHOSEN - 60, { dur: 140, dy: 0 })}
                   >
-                    Show the line items
+                    Ask me first
                   </span>
                   <span
                     className={cn(option, 'a a-pop border-fg bg-selected text-fg [grid-area:1/1]')}
                     style={at(CHOSEN, { dur: 260 })}
                   >
-                    Show the line items
+                    Ask me first
                   </span>
                 </span>
                 <span
                   className={cn(option, 'a a-up border-line-control bg-card text-fg-muted')}
                   style={at(ASKED + 1500, { dy: 8 })}
                 >
-                  Just the total
+                  Save it right away
                 </span>
               </div>
             </div>
@@ -263,9 +266,9 @@ export function DescribeMock() {
   return (
     <ChapterStage
       id="describe"
-      label="The Architect Describe screen. The person has written what the job is and attached six files. Spark has read the files and asked whether the agent should show line items or just the total. The person chose line items, and Spark says it has drafted the job and offers a Review the job button."
-      heightWide={700}
-      heightCompact={730}
+      label="The Architect Describe screen. The person has written what the job is, running the returns desk of an outdoor-gear shop, and attached seven files. Spark has read the files and asked whether the agent should save a return or a pickup right away or ask first. The person chose to be asked first, and Spark says it has drafted the job and offers a Review the job button."
+      heightWide={760}
+      heightCompact={830}
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 flex flex-col wide:inset-x-7 wide:top-6">
         <FlowBar title="New agent" current={0} />

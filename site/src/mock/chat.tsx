@@ -45,9 +45,21 @@ export function UserBubble({
 }
 
 /** The agent's whole reply: steps, text, tables and cards, a screen's gap apart. */
-export function Reply({ children, className }: { children: ReactNode; className?: string }) {
+export function Reply({
+  children,
+  className,
+  style,
+}: {
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+}) {
   return (
-    <article aria-label="Agent" className={cn('flex min-w-0 flex-col gap-[18px]', className)}>
+    <article
+      aria-label="Agent"
+      className={cn('flex min-w-0 flex-col gap-[18px]', className)}
+      style={style}
+    >
       {children}
     </article>
   );
@@ -183,6 +195,7 @@ export function DataCard({
   label,
   columns,
   rows,
+  hideOnNarrow = [],
   note,
   footer,
   rowClassName,
@@ -193,6 +206,8 @@ export function DataCard({
   label: string;
   columns: readonly string[];
   rows: readonly (readonly string[])[];
+  /** Columns left out where the stage is narrow, by position. */
+  hideOnNarrow?: readonly number[];
   /** A full-width row of small text, such as "2 more rows: Plan discount, Tax". */
   note?: string;
   footer?: ReactNode;
@@ -219,7 +234,11 @@ export function DataCard({
             {columns.map((column, index) => (
               <TableHead
                 key={column}
-                className={cn('whitespace-nowrap narrow:px-3!', index > 0 && 'text-right')}
+                className={cn(
+                  'whitespace-nowrap narrow:px-3!',
+                  index > 0 && 'text-right',
+                  hideOnNarrow.includes(index) && 'narrow:hidden',
+                )}
               >
                 {column}
               </TableHead>
@@ -246,7 +265,12 @@ export function DataCard({
                   {row.map((cell, column) => (
                     <TableCell
                       key={column}
-                      className={cn('whitespace-nowrap narrow:px-3!', column > 0 && 'text-right')}
+                      className={cn(
+                        'whitespace-nowrap narrow:px-3!',
+                        column === 0 && 'narrow:whitespace-normal',
+                        column > 0 && 'text-right',
+                        hideOnNarrow.includes(column) && 'narrow:hidden',
+                      )}
                     >
                       {cell}
                     </TableCell>
@@ -275,6 +299,7 @@ export function ApprovalCard({
   columns,
   rows,
   hideOnNarrow = [],
+  wrapOnNarrow = [],
   headStyle,
   buttonsClassName,
   buttonsStyle,
@@ -290,6 +315,8 @@ export function ApprovalCard({
   rows: readonly ChangeRow[];
   /** Columns left out where the stage is narrow, by position. */
   hideOnNarrow?: readonly number[];
+  /** Columns whose text may run onto a second line where the stage is narrow, by position. */
+  wrapOnNarrow?: readonly number[];
   headStyle?: CSSProperties;
   buttonsClassName?: string;
   buttonsStyle?: CSSProperties;
@@ -374,6 +401,7 @@ export function ApprovalCard({
                         'whitespace-nowrap text-fg',
                         column === row.cells.length - 1 && 'text-right',
                         hideOnNarrow.includes(column) && 'narrow:hidden',
+                        wrapOnNarrow.includes(column) && 'narrow:whitespace-normal',
                       )}
                     >
                       {cell}

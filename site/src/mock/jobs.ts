@@ -1,9 +1,31 @@
 import type { SidebarAgent } from './frame';
 
 /**
- * What the hero window shows, one job at a time: three small businesses, each with its own agent
- * and a chat that has finished. The names and figures are made up for the mocks.
+ * What the page's windows show: one made-up shop, Larchwood Outfitters, and the returns desk agent
+ * that works its records. The first window's three finished chats are answered from the sample
+ * job's own records and rules, so every figure in them is one the rules give.
  */
+
+export const DESK = 'Returns desk';
+
+/** The chats the chapters list beside the one that is open. */
+export const ORDERS_TITLE =
+  'Which orders did orrin.castellanos@example.com place in October 2026, and what was in each?';
+export const PICKUP_ASK = 'Book the earliest pickup for return RT-4092.';
+export const PICKUP_TITLE = 'Book the earliest pickup for return RT-4092';
+export const START_TITLE = 'Start a return';
+
+/** The sidebar of the chapters about correcting and sharing: the pickup chat is the open one. */
+export const PICKUP_SIDEBAR: SidebarAgent[] = [
+  {
+    name: DESK,
+    chats: [
+      { title: ORDERS_TITLE },
+      { title: PICKUP_TITLE, current: true },
+      { title: START_TITLE, awaitsApproval: true },
+    ],
+  },
+];
 
 export interface JobChat {
   /** The chat's title in the sidebar and over the transcript. */
@@ -18,109 +40,95 @@ export interface JobChat {
     label: string;
     columns: readonly string[];
     rows: readonly (readonly string[])[];
+    /** Columns a phone's narrow window leaves out, by position. */
+    hideOnNarrow?: readonly number[];
     note?: string;
   };
 }
 
 export const JOBS: readonly JobChat[] = [
   {
-    title: 'Price the two jobs Dana finished',
-    ask: 'Price the two jobs Dana finished today and tell me the totals.',
-    worked: 'Worked for 47 s · 3 steps',
+    title: "Can Nico's tent come back?",
+    ask: "Nico Mbeki wants to return the Two-Person Backpacking Tent from order ORD-10506. It's opened. Can it come back, and what does he get?",
+    worked: 'Worked for 52 s · 4 steps',
     lead: [
-      'Job J-4471 comes to ',
-      { b: '$524.03' },
-      ' and job J-4473 to ',
-      { b: '$1,116.52' },
-      '.',
+      'Yes. The tent was delivered 23 days ago, inside the 30 day window, and Nico gets ',
+      { b: '$258.22' },
+      ' back on his card.',
     ],
     bullets: [
-      'J-4473 ran after hours, so labor is billed at 1.5x.',
-      'The customer on J-4473 is a plan member, so 10% comes off before tax.',
+      'An opened tent has a 15% restocking fee.',
+      'Nico is not a member, so he pays the $6.95 return label.',
     ],
-    intro: "Here's how each total breaks down:",
+    intro: 'Here is how the refund adds up:',
     table: {
-      label: 'Totals for the two jobs',
-      columns: ['Item', 'J-4471', 'J-4473'],
+      label: 'Refund for order ORD-10506',
+      columns: ['Item', 'Amount'],
       rows: [
-        ['Labor', '$300.00', '$720.00'],
-        ['Parts', '$158.20', '$412.60'],
-        ['Trip fee', '$35.00', '$35.00'],
-        ['Total', '$524.03', '$1,116.52'],
-      ],
-      note: '2 more rows: Plan discount, Tax',
-    },
-  },
-  {
-    title: 'Can order 1187 come back?',
-    ask: 'Order 1187 wants to send back the Rain Shell Jacket, unworn. Can it come back, and what do they get?',
-    worked: 'Worked for 31 s · 2 steps',
-    lead: [
-      'Yes. Order 1187 was delivered 12 days ago, inside the 30 day window, and the refund is ',
-      { b: '$84.96' },
-      '.',
-    ],
-    bullets: [
-      'They get the price paid, not the list price.',
-      'Return shipping is free on a first return.',
-    ],
-    intro: "Here's the refund:",
-    table: {
-      label: 'Refund for order 1187',
-      columns: ['Item', 'Paid', 'Refund'],
-      rows: [
-        ['Rain Shell Jacket', '$84.96', '$84.96'],
-        ['Shipping', '$7.50', '$0.00'],
-        ['Restocking fee', '$0.00', '$0.00'],
-        ['Total', '$92.46', '$84.96'],
+        ['Two-Person Backpacking Tent', '$311.96'],
+        ['Restocking fee, 15%', '-$46.79'],
+        ['Return label', '-$6.95'],
+        ['Refund to card', '$258.22'],
       ],
     },
   },
   {
-    title: 'Bills due this week',
-    ask: 'Which supplier bills are due this week, and what do we owe in all?',
-    worked: 'Worked for 54 s · 3 steps',
-    lead: ['Three bills are due by Friday, ', { b: '$1,482.30' }, ' in all.'],
+    title: 'What has Marcus spent on tents?',
+    ask: 'How much has Marcus Fairbanks spent on tents since September 23?',
+    worked: 'Worked for 47 s · 4 steps',
+    lead: ['Marcus has spent ', { b: '$1,189.95' }, ' on tents since September 23.'],
     bullets: [
-      'Marlow Supply is due Wednesday and is the largest.',
-      'Alder Bay Parts was part paid, so only the rest is counted.',
+      'One order counts: ORD-10413, placed on September 23.',
+      'The tent was returned later, but a return does not lower what a customer has spent.',
     ],
-    intro: 'Each bill and what is still owed:',
+    intro: 'Here is the order:',
     table: {
-      label: 'Bills due this week',
-      columns: ['Supplier', 'Due', 'Owed'],
+      label: 'Tent spending for Marcus Fairbanks',
+      columns: ['Item', 'Order', 'Spent'],
       rows: [
-        ['Marlow Supply', 'Wed', '$812.00'],
-        ['Alder Bay Parts', 'Thu', '$370.30'],
-        ['Ferncliff Fuel', 'Fri', '$300.00'],
-        ['Total', '', '$1,482.30'],
+        ['Four-Season Expedition Tent', 'ORD-10413', '$1,189.95'],
+        ['Total', '', '$1,189.95'],
+      ],
+      hideOnNarrow: [1],
+    },
+  },
+  {
+    title: "Can Vera's pot sets come back?",
+    ask: 'Vera Galloway brought back 2 Titanium Pot Sets from order ORD-10289. They are opened. Can they come back?',
+    worked: 'Worked for 36 s · 3 steps',
+    lead: [
+      'No. The order was delivered 94 days ago, far past the 30 day window, so the refund is ',
+      { b: '$0.00' },
+      '.',
+    ],
+    bullets: [
+      'Vera is not a member, so the window is 30 days, not 60.',
+      'The order had 1 pot set, so 2 could not come back anyway.',
+    ],
+    intro: 'Here is how it was decided:',
+    table: {
+      label: 'How the return was decided',
+      columns: ['Check', 'Result'],
+      rows: [
+        ['Delivered', '94 days ago'],
+        ['Window for Vera', '30 days'],
+        ['Pot sets bought', '1'],
+        ['Pot sets returned', '2'],
+        ['Decision', 'Denied'],
       ],
     },
   },
 ];
 
-const OTHER_CHATS: Record<string, readonly string[]> = {
-  'Service desk': ['Close out Tuesday', 'Invoice the Cedar Ave panel repair'],
-  'Returns desk': ['Refund the rain shell'],
-  'Back office': ['Reorder shop supplies'],
-};
-
-const AGENT_OF_JOB = ['Service desk', 'Returns desk', 'Back office'] as const;
-
-/** The sidebar with one job's chat open; every other chat and agent stays where it is. */
+/** The window's sidebar with one chat open; the agent's other chat stays where it is. */
 export function sidebarFor(open: number): SidebarAgent[] {
-  return AGENT_OF_JOB.map((name, agentIndex) => {
-    const job = JOBS[agentIndex];
-    const others = OTHER_CHATS[name] ?? [];
-    return {
-      name,
+  return [
+    {
+      name: DESK,
       chats: [
-        { title: job?.title ?? name, current: agentIndex === open },
-        ...others.map((title, index) => ({
-          title,
-          awaitsApproval: name === 'Service desk' && index === 1,
-        })),
+        ...JOBS.map((job, index) => ({ title: job.title, current: index === open })),
+        { title: START_TITLE, awaitsApproval: true },
       ],
-    };
-  });
+    },
+  ];
 }

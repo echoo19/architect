@@ -10,24 +10,18 @@ import {
   StatusMark,
   Switch,
 } from '@architect/ui';
-import { Copy, ExternalLink, Info, Package, UploadCloud, X } from 'lucide-react';
+import { Copy, ExternalLink, Package, UploadCloud, X } from 'lucide-react';
 import { AppWindow, ChatHeader, Sidebar } from './frame';
+import { DESK, PICKUP_SIDEBAR, PICKUP_TITLE } from './jobs';
 import { at } from './motion';
 import { noop } from './noop';
 import { ChapterStage } from './stage';
 
 const TABS = ['General', 'Permissions', 'Teaching', 'Results', 'Export'] as const;
 
-const AGENTS = [
-  {
-    name: 'Service desk',
-    chats: [
-      { title: 'Price the two jobs Dana finished' },
-      { title: 'Close out Tuesday', current: true },
-    ],
-  },
-  { name: 'Returns desk', chats: [{ title: 'Can order 1187 come back?' }] },
-];
+/** The agent's name on Hugging Face, and the commit the repository reports. */
+const REPO_NAME = 'larchwood/returns';
+const COMMIT = '3f9a2c1';
 
 /** When the chapter's moments happen, in ms from the start. */
 const DIALOG = 350;
@@ -105,10 +99,10 @@ function PackageLayer() {
           <Row style={at(start, { dy: 12 })}>
             <SettingsRow
               icon={<StatusMark state="ok" />}
-              label="Service desk, version 2"
-              meta="Setup, trained weights, job and test results"
+              label={`${DESK}, version 1`}
+              meta="Setup, job and test results"
             >
-              <SettingsValue>118 MB</SettingsValue>
+              <SettingsValue>18 KB</SettingsValue>
             </SettingsRow>
           </Row>
           <Row style={at(start + 250, { dy: 12 })}>
@@ -117,12 +111,13 @@ function PackageLayer() {
               label="Files in data/"
               meta={
                 <span className="font-mono">
-                  jobs.csv, invoices.csv, technicians.csv, bookings.csv, policy.md
+                  category_map.csv, customers.csv, order_lines.csv, orders.csv, pickups.csv,
+                  policy.md, products.csv, returns.csv
                 </span>
               }
             >
               <div className="flex items-center gap-4">
-                <SettingsValue>1 MB</SettingsValue>
+                <SettingsValue>125 KB</SettingsValue>
                 <Switch
                   checked={false}
                   onCheckedChange={noop}
@@ -137,12 +132,6 @@ function PackageLayer() {
             <SettingsRow
               icon={<StatusMark state="ok" />}
               label="Nothing in the package looks like a key or a private path"
-            />
-          </Row>
-          <Row style={at(start + 900, { dy: 12 })}>
-            <SettingsRow
-              icon={<Info size={16} strokeWidth={1.8} aria-hidden className="text-fg-faint" />}
-              label="Trained weights may retain information from their training data"
             />
           </Row>
         </SettingsSection>
@@ -162,8 +151,8 @@ function HubLayer() {
         <SettingsSection title="Repository">
           <Row style={at(HUB, { dy: 12 })}>
             <SettingsRow label="Name">
-              <span className={cn(field, 'w-64 narrow:w-44')}>
-                {'dana/service-desk'.split('').map((letter, index) => (
+              <span className={cn(field, 'w-64 narrow:w-56')}>
+                {REPO_NAME.split('').map((letter, index) => (
                   <span
                     key={index}
                     className="a a-up inline-block"
@@ -200,19 +189,20 @@ function HubLayer() {
           <SettingsSection title="Published" className="pt-5">
             <SettingsRow
               icon={<StatusMark state="ok" label="Published" />}
-              label="Version 2 is on Hugging Face"
-              meta="Commit 3f9a2c1 · Private"
+              label="Version 1 is on Hugging Face"
+              meta={`Commit ${COMMIT} · Private`}
             >
               <Button size="xs" tabIndex={-1}>
                 <ExternalLink size={14} strokeWidth={1.7} aria-hidden />
                 <span>
-                  <span className="narrow:hidden">huggingface.co/</span>dana/service-desk
+                  <span className="narrow:hidden">huggingface.co/</span>
+                  {REPO_NAME}
                 </span>
               </Button>
             </SettingsRow>
-            <div className="flex items-center justify-between gap-3 border-t border-line-card py-3 narrow:hidden">
-              <code className="min-w-0 truncate font-mono text-sm text-fg-secondary">
-                architect install hf://dana/service-desk --revision 3f9a2c1
+            <div className="flex min-h-11 items-center justify-between gap-3 border-t border-line pl-8 narrow:hidden">
+              <code className="min-w-0 truncate font-mono text-xs text-fg-secondary">
+                architect install hf://{REPO_NAME} --revision {COMMIT}
               </code>
               <IconButton label="Copy the command" size="xs" tabIndex={-1}>
                 <Copy size={14} strokeWidth={1.7} aria-hidden />
@@ -236,7 +226,7 @@ function Actions() {
         <span className="a a-press inline-flex" style={at(EXPORT, { dur: 320 })}>
           <Button variant="primary" size="sm" tabIndex={-1}>
             <Package size={15} strokeWidth={1.7} aria-hidden />
-            Export service-desk-v2.architect.zip
+            Export returns-desk.architect.zip
           </Button>
         </span>
       </div>
@@ -252,7 +242,7 @@ function Actions() {
             <span className="a a-press inline-flex" style={at(PUBLISH, { dur: 320 })}>
               <Button variant="primary" size="sm" tabIndex={-1}>
                 <UploadCloud size={15} strokeWidth={1.7} aria-hidden />
-                Publish version 2
+                Publish version 1
               </Button>
             </span>
           </span>
@@ -279,10 +269,8 @@ function Toast() {
         className="a a-from-right flex flex-col gap-0.5 rounded-xl border border-line-control bg-modal px-4 py-3 shadow-popover"
         style={at(EXPORT + 250, { dx: 40, dur: 520 })}
       >
-        <span className="font-medium">Exported Service desk</span>
-        <span className="truncate font-mono text-sm text-fg-muted">
-          service-desk-v2.architect.zip
-        </span>
+        <span className="font-medium">Exported {DESK}</span>
+        <span className="truncate font-mono text-sm text-fg-muted">returns-desk.architect.zip</span>
       </div>
     </div>
   );
@@ -301,8 +289,8 @@ function Dialog() {
     >
       <div className="flex w-[196px] shrink-0 flex-col gap-0.5 border-r border-line-card bg-modal-rail px-2.5 py-[18px] narrow:hidden">
         <div className="mb-2.5 flex h-9 items-center gap-2.5 px-2.5 text-md font-medium">
-          <AgentAvatar name="Service desk" className="text-[13px]!" />
-          <span className="truncate">Service desk</span>
+          <AgentAvatar name={DESK} className="text-[13px]!" />
+          <span className="truncate">{DESK}</span>
         </div>
         {TABS.map((tab) => (
           <span
@@ -346,15 +334,15 @@ export function ShareMock() {
   return (
     <ChapterStage
       id="share"
-      label="The Architect Export tab. The agent, Service desk version 2, is written as one package file, and the scan finds nothing that looks like a key or a private path. Then it is published to a private repository on Hugging Face, where the version and its commit are listed."
+      label="The Architect Export tab. The returns desk agent, version 1, is written as one package file, and the scan finds nothing that looks like a key or a private path. Then it is published to a private repository on Hugging Face, where the version and its commit are listed."
       heightWide={690}
       heightCompact={745}
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 wide:inset-x-7 wide:top-6">
         <div className="absolute inset-0 flex narrow:hidden">
-          <Sidebar agents={AGENTS} />
+          <Sidebar agents={PICKUP_SIDEBAR} />
           <div className="flex min-w-0 flex-1 flex-col">
-            <ChatHeader title="Close out Tuesday" />
+            <ChatHeader title={PICKUP_TITLE} />
           </div>
         </div>
         <div

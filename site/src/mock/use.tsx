@@ -7,29 +7,34 @@ import {
   TableHeader,
   TableRow,
 } from '@architect/ui';
-import { Reply, Steps, UserBubble } from './chat';
+import { ApprovalCard, Reply, Steps, UserBubble, WaitingLine } from './chat';
 import { AppWindow, ChatComposer, ChatHeader, Sidebar } from './frame';
+import { DESK, ORDERS_TITLE, START_TITLE } from './jobs';
 import { at } from './motion';
 import { ChapterStage } from './stage';
 
 /**
  * Using the agent: the ready-made returns desk, a made-up business, on this computer's 2-bit
- * Glimmer, asked one question about a customer's October orders. It read two files, searched two
- * more, and answered correctly in 97 seconds. The question and the answer are the run's own.
+ * Glimmer. It is asked one question about a customer's October orders, reads two files, searches
+ * two more, and answers correctly in 97 seconds; the question and the answer are the run's own.
+ * Then it is asked to book a carrier pickup for one of that customer's returns, and it stops at the
+ * row it wants to add to pickups.csv and waits, because writing a file needs the person's say.
+ * That second request is made up to show the wait, from the same shop's records and rules.
  */
 
-const QUESTION =
-  'Which orders did orrin.castellanos@example.com place in October 2026, and what was in each?';
+const QUESTION = ORDERS_TITLE;
 
 const AGENTS = [
   {
-    name: 'Returns desk',
+    name: DESK,
     chats: [
       { title: QUESTION, current: true },
-      { title: 'Start a return', awaitsApproval: true },
+      { title: START_TITLE, awaitsApproval: true },
     ],
   },
 ];
+
+const ASK = 'Orrin is sending back the dry bag, return RT-4106. Book the earliest carrier pickup.';
 
 const STEPS = [
   { action: 'Read', target: 'data/orders.csv' },
@@ -37,6 +42,23 @@ const STEPS = [
   { action: 'Searched', target: 'orders.csv' },
   { action: 'Searched', target: 'order_lines.csv' },
 ];
+
+const BOOKING_STEPS = [
+  { action: 'Read', target: 'data/policy.md' },
+  { action: 'Searched', target: 'returns.csv' },
+  { action: 'Searched', target: 'pickups.csv' },
+];
+
+/**
+ * The row it wants to add. RT-4106 is the dry bag, for a customer in the Valley region, which
+ * Cedarline Parcel serves. The dry bag can be handed over from Friday, December 4, a day Cedarline
+ * collects, and no Cedarline pickup is booked for that day yet.
+ */
+const PICKUP_COLUMNS = ['pickup_id', 'return_id', 'carrier', 'pickup_date', 'booked_on'];
+const PICKUP_ROW = ['PU-4106', 'RT-4106', 'Cedarline Parcel', '2026-12-04', '2026-11-24'];
+/** On a phone the row keeps the carrier, which may take two lines, and the date. */
+const PICKUP_HIDDEN_ON_NARROW = [0, 1, 4];
+const PICKUP_WRAPS_ON_NARROW = [2];
 
 type Line = readonly [sku: string, name: string, qty: string, price: string];
 
@@ -86,7 +108,14 @@ const ORDERS: readonly Order[] = [
 
 /** On a phone the table keeps this many orders and counts the rest. */
 const SHOWN_ON_NARROW = 1;
+
+/** When the chapter's moments happen, in ms from the start. */
 const TABLE_AT = 3000;
+const HAND_OVER = 5900;
+const ASK_AT = HAND_OVER + 350;
+const WORK_AT = ASK_AT + 700;
+const CARD_AT = WORK_AT + 1750;
+const WAIT_AT = CARD_AT + 1100;
 
 /** The agent's answer: each order it found, when it was placed, and what was in it. */
 function Orders() {
@@ -141,11 +170,90 @@ function Orders() {
   );
 }
 
+/** The first exchange, played from the top as a chat starts, and gone when the chat moves on. */
+function FirstExchange() {
+  return (
+    <div
+      className="a a-exit-up motion-only absolute inset-0 px-8 pt-5 narrow:px-4"
+      style={at(HAND_OVER, { dur: 420, dy: 40 })}
+    >
+      <div className="mx-auto flex max-w-[720px] flex-col gap-6 text-chat">
+        <UserBubble
+          className="a a-up"
+          articleClassName="narrow:max-w-full"
+          style={at(250, { dy: 36, dur: 700 })}
+        >
+          {QUESTION}
+        </UserBubble>
+        <Reply>
+          <Steps
+            header="Worked for 1 min 37 s · 4 steps"
+            steps={STEPS}
+            headerStyle={at(1000, { dy: 10 })}
+            headerClassName="a a-up"
+            stepClassName="a a-wipe"
+            stepStyle={(index) => at(1250 + index * 420, { dur: 520 })}
+          />
+          <Orders />
+        </Reply>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The same chat once the next request is in: scrolled down, so the end of the answer is still
+ * above it. On a phone only the new request has room.
+ */
+function SecondExchange() {
+  return (
+    <div className="absolute inset-0 flex flex-col justify-end px-8 pb-5 narrow:px-4">
+      <div className="mx-auto flex w-full max-w-[720px] flex-col gap-6 text-chat">
+        <div className="a a-up narrow:hidden" style={at(HAND_OVER + 150, { dur: 450, dy: 0 })}>
+          <Orders />
+        </div>
+        <UserBubble
+          className="a a-up"
+          articleClassName="narrow:max-w-full"
+          style={at(ASK_AT, { dy: 36, dur: 700 })}
+        >
+          {ASK}
+        </UserBubble>
+        <Reply className="a a-up" style={at(WORK_AT - 100, { dur: 300, dy: 0 })}>
+          <Steps
+            header="3 steps so far"
+            steps={BOOKING_STEPS}
+            headerStyle={at(WORK_AT, { dy: 10 })}
+            headerClassName="a a-up"
+            stepClassName="a a-wipe"
+            stepStyle={(index) => at(WORK_AT + 250 + index * 420, { dur: 520 })}
+          />
+          <ApprovalCard
+            file="data/pickups.csv"
+            summary="1 new row"
+            columns={PICKUP_COLUMNS}
+            rows={[{ cells: PICKUP_ROW }]}
+            hideOnNarrow={PICKUP_HIDDEN_ON_NARROW}
+            wrapOnNarrow={PICKUP_WRAPS_ON_NARROW}
+            className="a a-up"
+            style={at(CARD_AT, { dy: 20, dur: 700 })}
+            bodyClassName="a a-unfold"
+            bodyStyle={at(CARD_AT + 500, { dur: 600 })}
+            buttonsClassName="a a-pop"
+            buttonsStyle={at(CARD_AT + 800, { dur: 400 })}
+          />
+          <WaitingLine className="a a-up" style={at(WAIT_AT, { dy: 8 })} />
+        </Reply>
+      </div>
+    </div>
+  );
+}
+
 export function UseMock() {
   return (
     <ChapterStage
       id="use"
-      label="The Architect workspace. The ready-made returns desk agent, running on this computer, was asked which orders a customer placed in October 2026 and what was in each. It read the orders and customers files, searched the orders and order lines, and answered in 1 minute 37 seconds with four orders and their items. Another chat is waiting for the person to approve a change, and the box below says it asks first before saving files."
+      label="The Architect workspace. The ready-made returns desk agent, running on this computer, was asked which orders a customer placed in October 2026 and what was in each. It read the orders and customers files, searched the orders and order lines, and answered in 1 minute 37 seconds with four orders and their items. Then it was asked to book the earliest carrier pickup for that customer's return. It shows the row it wants to add to pickups.csv, with Deny, Allow saving from now on and Allow once, and waits. Nothing is saved until the person answers."
       heightWide={945}
       heightCompact={865}
     >
@@ -153,29 +261,11 @@ export function UseMock() {
         <Sidebar agents={AGENTS} className="narrow:hidden" />
         <div className="flex min-w-0 flex-1 flex-col">
           <ChatHeader title={QUESTION} />
-          <div className="min-h-0 flex-1 overflow-hidden px-8 pt-5 narrow:px-4">
-            <div className="mx-auto flex max-w-[720px] flex-col gap-6 text-chat">
-              <UserBubble
-                className="a a-up"
-                articleClassName="narrow:max-w-full"
-                style={at(250, { dy: 36, dur: 700 })}
-              >
-                {QUESTION}
-              </UserBubble>
-              <Reply>
-                <Steps
-                  header="Worked for 1 min 37 s · 4 steps"
-                  steps={STEPS}
-                  headerStyle={at(1000, { dy: 10 })}
-                  headerClassName="a a-up"
-                  stepClassName="a a-wipe"
-                  stepStyle={(index) => at(1250 + index * 420, { dur: 520 })}
-                />
-                <Orders />
-              </Reply>
-            </div>
+          <div className="relative min-h-0 flex-1 overflow-hidden">
+            <FirstExchange />
+            <SecondExchange />
           </div>
-          <ChatComposer agent="Returns desk" version={1} />
+          <ChatComposer agent={DESK} version={1} />
         </div>
       </AppWindow>
     </ChapterStage>

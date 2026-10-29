@@ -165,6 +165,8 @@ if (args.selector) {
         }
       }
       if (wanted('chapters')) {
+        // The bar that follows the page would sit over the top of a picture.
+        await page.addStyleTag({ content: 'header.sticky { position: static !important; }' });
         const stages = await page.locator('[data-stage]').all();
         for (const stage of stages) {
           const id = await stage.getAttribute('data-stage');
