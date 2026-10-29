@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Toaster, TooltipProvider } from '@architect/ui';
 import { useSettings } from '../api/hooks';
+import { useEngineUpdates } from '../api/updates';
 import { ImportScreen } from '../import/ImportScreen';
 import { navigate, paths, useRoute, type Route } from '../lib/router';
 import { ChatScreen } from '../screens/ChatScreen';
@@ -65,6 +66,7 @@ export function App() {
   const route = useRoute();
   useThemeSync();
   useGlobalShortcuts();
+  useEngineUpdates();
   useFirstRunRedirect(route);
 
   return (

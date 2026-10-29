@@ -189,13 +189,31 @@ export interface PullProgress {
   error?: string;
 }
 
+/**
+ * A job's newest run that isn't a baseline: the run of the agent itself, or an improvement of it,
+ * never one of the simpler versions a comparison trains beside the agent.
+ */
+export type JobRun = Pick<
+  Run,
+  'id' | 'status' | 'phase' | 'method' | 'devCurrent' | 'devBaseline'
+> & {
+  /** Set for an improvement, whose version is a candidate of an agent that already exists. */
+  improves?: true;
+  /**
+   * Whether the version this run made is accepted: false while it is only a candidate, which is
+   * when its results still wait for the person. Absent when the run made no version, or when the
+   * agent it made has since been removed.
+   */
+  accepted?: boolean;
+};
+
 export interface JobSummary {
   id: string;
   name: string;
   summary?: string;
   createdAt: string;
   taskCount: number;
-  latestRun?: Pick<Run, 'id' | 'status' | 'phase' | 'method' | 'devCurrent' | 'devBaseline'>;
+  latestRun?: JobRun;
 }
 
 /** How a run starts. */

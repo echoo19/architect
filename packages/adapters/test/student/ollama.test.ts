@@ -102,6 +102,52 @@ describe('the chat request', () => {
     expect(chatRequests(server)[0]?.json()['options']).not.toHaveProperty('num_thread');
   });
 
+  it('follows a thread cap that changes while the student is open', async () => {
+    let cap: number | undefined = 6;
+    const server = await startServer(fakeOllama({}));
+    const student = createOllamaStudent(
+      studentEndpoint('ollama-glimmer', { baseUrl: server.url }),
+      {
+        retry,
+        cpuThreads: () => cap,
+      },
+    );
+    const threads = () => chatRequests(server).map((request) => request.json()['options']);
+    await collect(student.chat(studentRequest()));
+    cap = 2;
+    await collect(student.chat(studentRequest()));
+    cap = undefined;
+    await collect(student.chat(studentRequest()));
+    const [first, second, third] = threads();
+    expect(first).toMatchObject({ num_thread: 6 });
+    expect(second).toMatchObject({ num_thread: 2 });
+    expect(third).not.toHaveProperty('num_thread');
+  });
+
+  it('follows a rest that is switched on or off while the student is open', async () => {
+    const rests: number[] = [];
+    let cooldown: number | undefined;
+    const server = await startServer(fakeOllama({}));
+    const student = createOllamaStudent(
+      studentEndpoint('ollama-glimmer', { baseUrl: server.url }),
+      {
+        retry,
+        cooldown: () => cooldown,
+        rest: async (ms) => {
+          rests.push(ms);
+        },
+      },
+    );
+    await collect(student.chat(studentRequest()));
+    expect(rests).toEqual([]);
+    cooldown = 0.75;
+    await collect(student.chat(studentRequest()));
+    expect(rests).toHaveLength(1);
+    cooldown = undefined;
+    await collect(student.chat(studentRequest()));
+    expect(rests).toHaveLength(1);
+  });
+
   it('rests for a share of the reply time after each reply, only in quiet mode', async () => {
     const rests: number[] = [];
     const rest = async (ms: number) => {

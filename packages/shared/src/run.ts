@@ -13,6 +13,14 @@ export const METHOD_LABELS: Record<Method, string> = {
   self_reflection: 'Self-reflection',
 };
 
+/**
+ * Whether a run is one of the simpler versions a comparison trains beside the agent, to be
+ * compared with it. The agent's own runs, and the improvements of it, are not.
+ */
+export function isBaselineMethod(method: Method): boolean {
+  return method !== 'architect';
+}
+
 export const RunStatusSchema = z.enum([
   'queued',
   'running',

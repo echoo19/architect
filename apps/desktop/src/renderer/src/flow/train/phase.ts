@@ -75,7 +75,12 @@ export function phaseView(
     case 'queued':
       return { stage: null, motion: 'idle', frozen: false, text: 'Waiting to start' };
     case 'paused':
-      return { stage: stageOf(run), motion: motionOf(run), frozen: true, text: 'Paused' };
+      return {
+        stage: stageOf(run),
+        motion: motionOf(run),
+        frozen: true,
+        text: run.phase === 'clarifying' ? `${mentor} has a question for you` : 'Paused',
+      };
     case 'stopping':
       return {
         stage: stageOf(run),

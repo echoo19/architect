@@ -51,6 +51,12 @@ export interface AgentHostOptions {
    * Ollama holds it for each request. The host doesn't close it: it belongs to whoever made it.
    */
   gpu: GpuLease;
+  /**
+   * The CPU-thread cap local students follow now (quiet mode's), asked at every request, so a change
+   * in Settings reaches an agent that is already open and not only the next one opened. An agent
+   * opened with a cap of its own, as the command opens one, keeps it when this is absent.
+   */
+  cpuThreads?: () => number | undefined;
   /** The tool sandbox's child entry. A bundled app passes its built file. */
   sandboxEntryPath?: string;
   /** The clock for timestamps and for the date the agent works as of. */
@@ -173,10 +179,11 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
   }
 
   async function openSession(graduateId: string, cpuThreads: number | undefined) {
+    const cap = options.cpuThreads ?? cpuThreads;
     return openGraduateSession(await store.activeVersion(graduateId), {
       adapters,
       gpu,
-      ...(cpuThreads === undefined ? {} : { cpuThreads }),
+      ...(cap === undefined ? {} : { cpuThreads: cap }),
     });
   }
 

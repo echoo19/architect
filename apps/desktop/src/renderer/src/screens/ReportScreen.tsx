@@ -2,18 +2,18 @@ import { useState } from 'react';
 import type { ReportCard } from '@architect/shared';
 import { Button, Skeleton } from '@architect/ui';
 import { ArrowRight } from 'lucide-react';
-import { api, flowApi } from '../api/client';
+import { flowApi } from '../api/client';
 import { graduateKeys, graduatesApi } from '../api/graduates';
 import {
   createChat,
-  queryKeys,
   useGraduates,
   useJob,
   useReport,
   useRunDetail,
   useSettings,
 } from '../api/hooks';
-import { fetchQuery, useQuery } from '../api/query';
+import { useQuery } from '../api/query';
+import { refreshRunLists } from '../api/updates';
 import { ProblemState } from '../components/ProblemState';
 import { useComparison } from '../flow/report/ComparisonTable';
 import {
@@ -40,7 +40,8 @@ export function ReportScreen({ runId }: { runId: string }) {
     setAccepting(true);
     const opened = await attempt(`Couldn't add ${card.name} to your workspace`, async () => {
       const graduate = await flowApi.acceptGraduate(runId);
-      await fetchQuery(queryKeys.graduates, api.graduates);
+      // Its row stops reading "Results ready" now that the agent is the person's.
+      await refreshRunLists();
       const chat = await createChat(graduate.id);
       return { graduateId: graduate.id, chatId: chat.id };
     });

@@ -1,4 +1,9 @@
-import { createLlamaCppStudent, createStudent, isLoopbackUrl } from '@architect/adapters';
+import {
+  createLlamaCppStudent,
+  createStudent,
+  isLoopbackUrl,
+  type Following,
+} from '@architect/adapters';
 import { skillFiles } from '@architect/harness';
 import {
   GuardError,
@@ -85,8 +90,11 @@ function outputFolder(active: ActiveVersion): OutputFolder | undefined {
 }
 
 export interface SessionOptions {
-  /** The quiet-mode CPU thread cap for a student on Ollama. */
-  cpuThreads?: number;
+  /**
+   * The quiet-mode CPU thread cap for a student on Ollama. A function is asked at every request,
+   * so a cap that changes reaches an agent that is already open.
+   */
+  cpuThreads?: Following<number | undefined>;
   /** Serves a version that carries an adapter. Without it, such a version isn't opened. */
   adapters?: AdapterServing;
   /**

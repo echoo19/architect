@@ -7,7 +7,7 @@ import {
   type StudentChatRequest,
   type StudentStreamEvent,
 } from '@architect/shared';
-import type { StudentDeps } from '../deps';
+import { current, type StudentDeps } from '../deps';
 import { createHttpClient } from '../http/client';
 import { isLoopbackUrl } from '../loopback';
 import { toWireMessages, toWireTools } from '../openai/messages';
@@ -97,9 +97,8 @@ export function createLlamaCppStudent(
         stream.close();
       }
       // In quiet mode the GPU rests for a share of the time the reply took.
-      if (deps.cooldown) {
-        await (deps.rest ?? rest)((performance.now() - started) * deps.cooldown, signal);
-      }
+      const cooldown = current(deps.cooldown);
+      if (cooldown) await (deps.rest ?? rest)((performance.now() - started) * cooldown, signal);
     } finally {
       lease.release();
     }

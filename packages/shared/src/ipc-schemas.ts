@@ -141,7 +141,9 @@ export const JobSummarySchema = z.object({
     method: true,
     devCurrent: true,
     devBaseline: true,
-  }).optional(),
+  })
+    .extend({ improves: z.literal(true).optional(), accepted: z.boolean().optional() })
+    .optional(),
 }) satisfies z.ZodType<JobSummary>;
 
 /** What `runs.start` accepts, and nothing else: a misspelled option must not be dropped quietly. */

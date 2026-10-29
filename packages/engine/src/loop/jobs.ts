@@ -4,11 +4,13 @@ import { basename, dirname, extname, isAbsolute, join, normalize, resolve, sep }
 import {
   CodedError,
   DraftRecordSchema,
+  isBaselineMethod,
   JobSchema,
   newId,
   TaskSchema,
   type DraftRecord,
   type Job,
+  type JobRun,
   type JobSummary,
   type Task,
   type TaskPlan,
@@ -135,25 +137,39 @@ export class JobLibrary {
     private readonly contracts: ContractBook = new ContractBook(store, clock),
   ) {}
 
+  /**
+   * Each job with its newest run that isn't a baseline. A comparison starts its baselines after
+   * the agent's own run, so the newest run of the job can be one of them, which is never the run
+   * a person opens the job to.
+   */
   summaries(): JobSummary[] {
     return this.store.jobs.list().map((record) => {
-      const latest = this.store.runs.list(record.id)[0]?.run;
+      const latest = this.store.runs
+        .list(record.id)
+        .find(({ run }) => !isBaselineMethod(run.method));
       return {
         id: record.id,
         name: record.name,
         summary: record.summary,
         createdAt: record.createdAt,
         taskCount: record.taskCount,
-        latestRun: latest && {
-          id: latest.id,
-          status: latest.status,
-          phase: latest.phase,
-          method: latest.method,
-          devCurrent: latest.devCurrent,
-          devBaseline: latest.devBaseline,
-        },
+        ...(latest === undefined ? {} : { latestRun: this.jobRun(latest) }),
       };
     });
+  }
+
+  private jobRun({ run, improves }: StoredRun): JobRun {
+    const made = this.store.versions.forRun(run.id);
+    return {
+      id: run.id,
+      status: run.status,
+      phase: run.phase,
+      method: run.method,
+      devCurrent: run.devCurrent,
+      devBaseline: run.devBaseline,
+      ...(improves === undefined ? {} : { improves: true as const }),
+      ...(made === null ? {} : { accepted: made.state === 'accepted' }),
+    };
   }
 
   async get(jobId: string): Promise<Job> {

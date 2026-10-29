@@ -77,7 +77,13 @@ export function RunControls({ live, onStop }: { live: LiveRun; onStop: () => voi
   return (
     <>
       {run.status === 'paused' ? (
-        <Button size="md" loading={pending === 'resume'} onClick={() => void ask('resume')}>
+        <Button
+          size="md"
+          loading={pending === 'resume'}
+          // Going on without the answer would only ask again; the question is on the screen.
+          disabled={run.phase === 'clarifying'}
+          onClick={() => void ask('resume')}
+        >
           {pending !== 'resume' && (
             <Play size={13} fill="currentColor" strokeWidth={0} aria-hidden />
           )}
