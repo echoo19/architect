@@ -158,7 +158,7 @@ describe('renderReportMarkdown', () => {
           label: 'Ticket totals',
           version: 'db5fc3156380',
           statement:
-            'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up.',
+            'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, half a cent rounds up.',
           passages: [
             { file: 'policy.md', passage: 'Labor is billed at $65 an hour, in half-hour steps.' },
             {

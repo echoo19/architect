@@ -21,6 +21,7 @@ import {
 } from '@architect/shared';
 import { z } from 'zod';
 import { bindingOf, reportsOf, ruleTypesOf, stateOf, type Binding } from '../drafting/confirmation';
+import { readInPlainerWords } from '../drafting/older-words';
 import { buildTaskPlan } from '../drafting/plan';
 import { ContractBook } from '../graduates/contracts';
 import type { EngineStore } from '../store/engine-store';
@@ -408,7 +409,10 @@ export class JobLibrary {
     });
   }
 
-  /** What drafting a job left beside it, or null for a job whose tasks came with it. */
+  /**
+   * What drafting a job left beside it, or null for a job whose tasks came with it. The record is
+   * read in the words a rule is told in now, whenever it was drafted; the file is not changed.
+   */
   async drafting(jobId: string): Promise<DraftRecord | null> {
     let stored: unknown;
     try {
@@ -417,7 +421,7 @@ export class JobLibrary {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
       throw error;
     }
-    return DraftRecordSchema.parse(stored);
+    return readInPlainerWords(DraftRecordSchema.parse(stored));
   }
 
   /**

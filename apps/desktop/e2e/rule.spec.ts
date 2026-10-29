@@ -258,18 +258,25 @@ for (const theme of THEMES) {
     // What the person said an empty parts cost counts as is part of the rule they confirm.
     await expect(
       card.getByText(
-        'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up. An empty parts cost counts as 0, as you said.',
+        'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, half a cent rounds up. An empty parts cost counts as 0, as you said.',
       ),
     ).toBeVisible();
     await expect(
       card.getByText(/^\d+ rows have an empty parts cost, which counts as 0, as you said\.$/),
     ).toBeVisible();
-    // Only an empty cell: the tickets whose parts say N/A are still left out, and say why.
-    await card.getByRole('button', { name: /rows? left out/ }).click();
+    // Only an empty cell: the tickets whose parts say N/A are still left out, and the line that
+    // says how many says why too, when it is the one reason.
+    const leftOut = card.getByRole('button', { name: /rows? left out/ });
+    await expect(leftOut).toHaveText(
+      /^\d+ of \d+ rows left out: parts_cost says N\/A or a dash, which is not the same as empty$/,
+    );
+    await leftOut.click();
     await expect(
-      card.getByText(/parts_cost says N\/A or a dash, which is not the same as empty/),
+      card.getByRole('listitem').filter({
+        hasText: /^\d+ rows?: parts_cost says N\/A or a dash, which is not the same as empty/,
+      }),
     ).toBeVisible();
-    await card.getByRole('button', { name: /rows? left out/ }).click();
+    await leftOut.click();
     const examples = card.locator('ul > li').filter({ hasText: /What does ticket|Like T-/ });
     expect(await examples.count()).toBeGreaterThanOrEqual(3);
     await expect(
@@ -278,7 +285,17 @@ for (const theme of THEMES) {
     await expect(
       card.getByText('member (customers.csv) is no', { exact: true }).first(),
     ).toBeVisible();
-    await expect(card.getByText(/A rounding edge/).first()).toBeVisible();
+    await expect(card.getByText(/Shows the rounding/).first()).toBeVisible();
+    await expect(card.getByText(/A rounding edge|halves going up/)).toHaveCount(0);
+    // A rounding the records never need is shown with numbers that are not theirs, and says so.
+    await expect(card.getByText('Not from your records', { exact: true })).toBeVisible();
+    await expect(card.getByText('Made-up numbers')).toHaveCount(0);
+    // The version is not beside the title: it waits under Details, for whoever wants to quote it.
+    await expect(card.getByText(/^version [0-9a-f]{12}$/)).toHaveCount(0);
+    await card.getByRole('button', { name: 'Details' }).click();
+    await expect(card.getByText('Rule version')).toBeVisible();
+    await expect(card.getByText(/^[0-9a-f]{12}$/)).toBeVisible();
+    await card.getByRole('button', { name: 'Details' }).click();
     // One example is a ticket with no parts cost, shown as nothing and counted as 0.
     await expect(card.getByText('An empty parts cost counts as 0', { exact: true })).toBeVisible();
     await expect(card.getByText('empty (counted as 0)').first()).toBeVisible();
@@ -299,8 +316,13 @@ for (const theme of THEMES) {
     const start = page.getByRole('button', { name: 'Start training' });
     await expect(start).toBeDisabled();
     await expect(page.getByText('Confirm the rule first')).toBeVisible();
-    // A rule that isn't right has a way out: describe the job again, with the same words to edit.
-    await expect(section.getByRole('button', { name: 'Describe the job again' })).toBeVisible();
+    // A rule that isn't right has a way out: change the description, which comes back as it was
+    // with its files, and the line beside the button says so.
+    await expect(section.getByRole('button', { name: 'Change the description' })).toBeVisible();
+    await expect(section.getByRole('button', { name: 'Describe the job again' })).toHaveCount(0);
+    await expect(section).toContainText(
+      'Your words and files come back as you left them, and Spark may ask its questions again.',
+    );
     await capture(page, `rule-define-${theme}`);
 
     // The examples are practice or starting tasks: none is a ticket of the final test.

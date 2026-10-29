@@ -221,7 +221,7 @@ export const RuleExampleSchema = z.object({
   inputs: z.array(z.object({ label: z.string(), value: z.string() })),
   steps: z.array(z.object({ text: z.string(), value: z.string() })),
   answer: z.string(),
-  /** What the example shows: "member is yes", "member is no", "A rounding edge". */
+  /** What the example shows: "member is yes", "member is no", "Shows the rounding". */
   covers: z.array(z.string()),
   /** True for numbers Architect made up to show a rounding the records never need. */
   madeUp: z.boolean().optional(),

@@ -59,11 +59,16 @@ export function reviewIntro(teacher: string, count: number): string {
     : `${teacher} turned your policy into these rules. Architect works out every expected answer from them, so what the agent is tested on is only as right as the rules.`;
 }
 
-/** The line beside the button that confirms. */
-export function confirmLine(count: number): string {
+/**
+ * The line beside the button that confirms, and what the way out of it keeps: changing the
+ * description puts the person's words and files back as they left them, and drafts again, so the
+ * teacher's questions are asked again and the answers to them are not kept.
+ */
+export function confirmLine(teacher: string, count: number): string {
+  const kept = `Your words and files come back as you left them, and ${teacher} may ask its questions again.`;
   return count === 1
-    ? "Check the passages, the rule and the examples against your policy. Training can't start until you confirm it. If it isn't right, describe the job again with what is missing."
-    : "Check the passages, the rules and the examples against your policy. Training can't start until you confirm them. If they aren't right, describe the job again with what is missing.";
+    ? `Check the passages, the rule and the examples against your policy. Training can't start until you confirm it. If it isn't right, change the description. ${kept}`
+    : `Check the passages, the rules and the examples against your policy. Training can't start until you confirm them. If they aren't right, change the description. ${kept}`;
 }
 
 /** When the person confirmed, as a short date: "Oct 29". */
@@ -75,9 +80,14 @@ export function confirmedOn(state: RuleConfirmationState): string | null {
     : at.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-/** "62 of 180 rows left out" for the rows that couldn't be worked out. */
+/**
+ * "62 of 180 rows left out" for the rows that couldn't be worked out, and why when there is one
+ * reason for all of them: "62 of 180 rows left out: parts_cost is empty or N/A".
+ */
 export function leftOutLine(details: RuleDetails): string | null {
   const out = details.cases.total - details.cases.eligible;
   if (out <= 0) return null;
-  return `${out} of ${details.cases.total} ${details.cases.total === 1 ? 'row' : 'rows'} left out`;
+  const rows = `${out} of ${details.cases.total} ${details.cases.total === 1 ? 'row' : 'rows'} left out`;
+  const [only, ...others] = details.excluded;
+  return only !== undefined && others.length === 0 ? `${rows}: ${only.reason}` : rows;
 }

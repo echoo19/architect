@@ -103,7 +103,7 @@ describe('drafting a job with a rule', () => {
     const cost = record.types.find((type) => type.id === 'cost');
     expect(cost?.spec?.template).toBe('rule');
     expect(cost?.details?.statement).toBe(
-      'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up.',
+      'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, half a cent rounds up.',
     );
     expect(cost?.rule).toContain('Work out total for each ticket_id of tickets.csv:');
     expect(cost?.details?.passages).toHaveLength(2);
