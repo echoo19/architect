@@ -5,6 +5,7 @@ import {
   HARNESS_INTERVENTIONS,
   INTERVENTION_LABELS,
   InterventionTypeSchema,
+  interventionsForFile,
   mayIntervene,
   type CostEstimate,
   type InterventionPlan,
@@ -183,32 +184,74 @@ function overBudget(estimate: CostEstimate, state: RunState, menu: Menu): string
 }
 
 /**
- * Why a change set can't be applied for the job it is for, or null when it can: it writes or
- * deletes a file that only a kind of change the job turned off may write, whatever the mentor
- * called the change. A draft is held to this too, which no menu is asked about.
+ * The kind a reply that names none stands for: a student's own, one from before the menu, or one
+ * that left the field out (decision 063). It chose no kind, so it is read as the kind its files
+ * belong to, the first the job allows, and as a procedure when they belong to none.
  */
-export function changeSetRefusal(paths: readonly string[], job: Job): string | null {
-  const off = fileOffLimits(paths, job);
-  if (off === null) return null;
-  const names = off.kinds.map((kind) => `"${INTERVENTION_LABELS[kind]}"`);
-  const which =
-    names.length === 1 ? `${names[0]}, which is` : `${names.join(' or ')}, and both are`;
-  return `${off.path} needs ${which} turned off for this job in the teacher's settings.`;
+export function impliedKind(paths: readonly string[], job: Job): InterventionType {
+  const owners = paths.flatMap((path) => interventionsForFile(path) ?? []);
+  const allowed = allowedInterventions(job);
+  return owners.find((kind) => allowed.includes(kind)) ?? owners[0] ?? 'procedure';
+}
+
+/**
+ * Why a change set can't be applied, or null when it can: it writes or deletes a file that only a
+ * kind of change this round doesn't allow may write, whatever the mentor called the change, or it
+ * changes the harness where no kind of change to it is allowed. The round's menu has the kinds and
+ * the reasons, a comparison's among them; a first draft has none and is held to what the job
+ * allows.
+ */
+export function changeSetRefusal(paths: readonly string[], job: Job, menu?: Menu): string | null {
+  const allowed = menu?.allowed ?? allowedInterventions(job);
+  const reasons = (kinds: readonly InterventionType[]) => [
+    ...new Set(kinds.map((kind) => menu?.refused[kind] ?? TURNED_OFF)),
+  ];
+  const off = fileOffLimits(paths, { interventions: allowed });
+  if (off !== null) {
+    const names = off.kinds.map((kind) => `"${INTERVENTION_LABELS[kind]}"`);
+    const why = reasons(off.kinds);
+    if (why.length === 1 && why[0] === TURNED_OFF) {
+      const which =
+        names.length === 1 ? `${names[0]}, which is` : `${names.join(' or ')}, and both are`;
+      return `${off.path} needs ${which} turned off for this job in the teacher's settings.`;
+    }
+    return `${off.path} needs ${names.join(' or ')}, which this run can't do. ${why.join(' ')}`;
+  }
+  // Decoding and guardrails belong to no kind, but they are the harness all the same.
+  const [first] = paths;
+  if (first !== undefined && !HARNESS_INTERVENTIONS.some((kind) => allowed.includes(kind))) {
+    const names = listOf(HARNESS_INTERVENTIONS.map((kind) => INTERVENTION_LABELS[kind]));
+    return `${first} changes the harness, and ${names} are all off. ${reasons(HARNESS_INTERVENTIONS).join(' ')}`;
+  }
+  return null;
+}
+
+/** What a reply says it is, and what it writes: a reply that names no kind is judged by its files. */
+export interface Change {
+  named: boolean;
+  paths: readonly string[];
 }
 
 /**
  * Why the runner can't take an intervention, or null when it can: a type the job or this run
  * doesn't allow, teaching it asks for that can't happen here, nothing to teach from, or an
- * estimate past what is left of a budget.
+ * estimate past what is left of a budget. A reply that names no kind chose none, so it is not held
+ * to the kind it is read as: the files it writes decide, and the refusal names those.
  */
 export function interventionRefusal(
   plan: InterventionPlan,
   findings: number,
   state: RunState,
   menu: Menu,
+  change: Change,
 ): string | null {
-  if (!menu.allowed.includes(plan.type)) {
-    return `The mentor chose ${CHOICES[plan.type]}, which this run can't do. ${menu.refused[plan.type] ?? 'It is off the menu.'}`;
+  if (change.named) {
+    if (!menu.allowed.includes(plan.type)) {
+      return `The mentor chose ${CHOICES[plan.type]}, which this run can't do. ${menu.refused[plan.type] ?? 'It is off the menu.'}`;
+    }
+  } else {
+    const unusable = changeSetRefusal(change.paths, state.job, menu);
+    if (unusable !== null) return unusable;
   }
   const teaches = plan.workedExamples.length > 0 || plan.practicePerFinding > 0;
   if (plan.type === 'weights' && findings === 0) {

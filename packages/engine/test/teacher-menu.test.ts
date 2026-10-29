@@ -175,6 +175,115 @@ describe('a kind of change the job turned off', () => {
   });
 });
 
+describe('a reply that names no kind', () => {
+  /** A change to retrieval.yaml in the plain reply format, which has no field for the kind. */
+  const retrieval = (title: string, change: object) =>
+    hypothesis(title, '', {
+      edits: [{ op: 'write', path: 'retrieval.yaml', content: JSON.stringify(change) }],
+    });
+
+  /** What the student writes as its own author, one reply for each time it is asked. */
+  function reflects(...replies: object[]): void {
+    world.studentReply = (_request, call) => `My analysis:\n${JSON.stringify(replies[call - 1])}`;
+  }
+
+  async function reflect(): Promise<{ engine: Engine; runId: string }> {
+    const engine = open();
+    const job = await engine.jobs.importFile(world.jobFile);
+    const started = await engine.controller.start(job.id, 'self_reflection', 7);
+    await engine.controller.idle();
+    expect(engine.errors).toEqual([]);
+    return { engine, runId: started.id };
+  }
+
+  it('is judged by the files it writes: a change to retrieval is not refused as a procedure', async () => {
+    await setUp({ interventions: ['retrieval'] });
+    reflects(retrieval('Load fewer examples', { maxExamples: 1 }), retrieval('Skip the list', {}));
+    const { engine, runId } = await reflect();
+
+    // Round one went to dev as a change of retrieval, the kind its file belongs to.
+    expect(engine.store.interventions.get(runId, 1)).toMatchObject({
+      type: 'retrieval',
+      status: 'accepted',
+    });
+    expect(engine.store.interventions.get(runId, 1)?.invalidReason).toBeUndefined();
+    expect(engine.store.rounds.get(runId, 1)?.round.candidateVersion).toBeDefined();
+    expect(engine.store.experiments.list(runId).map((item) => item.disposition)).not.toContain(
+      'invalid',
+    );
+    // The student wrote once for each round: nothing had to be said again.
+    expect(world.students[0]?.chats).toHaveLength(2);
+  });
+
+  it('is refused for the file that is off, and the refusal says so, not that it chose a procedure', async () => {
+    await setUp({ interventions: ['retrieval'] });
+    reflects(hypothesis('Say it in the words', 'fix:invoice'), retrieval('Load fewer', {}));
+    const { engine, runId } = await reflect();
+
+    const [, again] = world.students[0]?.chats ?? [];
+    const said = again?.messages.at(-1)?.content ?? '';
+    expect(said).toContain(
+      'AGENTS.md needs "Instructions and steps", which is turned off for this job in the teacher\'s settings.',
+    );
+    expect(said).not.toContain('chose a procedure');
+    // Its one fix writes the file that is on, and is taken.
+    expect(engine.store.interventions.get(runId, 1)).toMatchObject({
+      type: 'retrieval',
+      status: 'accepted',
+    });
+  });
+
+  it('is judged the same way after the first draft of a job that starts blank', async () => {
+    await setUp({ startingHarness: { kind: 'blank' }, interventions: ['retrieval'] });
+    reflects(retrieval('A first harness', { listSkills: false }), retrieval('Load fewer', {}));
+    const { engine, runId } = await reflect();
+
+    expect(engine.store.rounds.get(runId, 1)?.round).toMatchObject({
+      draft: true,
+      decision: 'kept',
+    });
+    expect(engine.store.interventions.get(runId, 2)).toMatchObject({
+      type: 'retrieval',
+      status: 'accepted',
+    });
+    expect(world.students[0]?.chats).toHaveLength(2);
+  });
+
+  it('changes no harness where the job lets the mentor change none, whatever file it writes', async () => {
+    // Weights are the one kind on, and a trainer is set up, so rounds run and ask for a change.
+    await setUp({ interventions: ['weights'] });
+    withStandInTraining(world);
+    world.mentor.script = () =>
+      hypothesis('Slow it down', '', {
+        edits: [{ op: 'write', path: 'decoding.yaml', content: '{"temperature":0.2}' }],
+      });
+    const engine = open();
+    const runId = await run(engine);
+    expect(engine.store.interventions.get(runId, 1)?.invalidReason).toBe(
+      "decoding.yaml changes the harness, and Instructions and steps, What it reads when and Small tools are all off. Turned off for this job in the teacher's settings.",
+    );
+  });
+
+  it("is held to a comparison's fixed menu by the files it writes", async () => {
+    await setUp({});
+    world.mentor.script = (_request, call) =>
+      call === 1
+        ? hypothesis('Add a tool', 'Service desk.', {
+            edits: [{ op: 'write', path: 'tools/sum.js', content: 'function run() { return 1; }' }],
+          })
+        : hypothesis('Say it in words', 'Service desk.\nfix:invoice');
+    const engine = open();
+    const runId = await run(engine, { protocol: { arm: 'fixed', interventions: ['procedure'] } });
+    expect(world.mentor.requests[1]?.messages.at(-1)?.content).toContain(
+      `tools/sum.js needs "Small tools", which this run can't do. This run's comparison fixes the intervention to procedure, so the mentor doesn't choose it.`,
+    );
+    expect(engine.store.interventions.get(runId, 1)).toMatchObject({
+      type: 'procedure',
+      status: 'accepted',
+    });
+  });
+});
+
 describe('a first draft', () => {
   const blank: Partial<Job> = { startingHarness: { kind: 'blank' } };
 
@@ -263,6 +372,24 @@ describe('a mentor with nothing it may change', () => {
     ).toBe(true);
     // The sentence the run keeps for the person is the one the report words the stop with.
     expect(TRAINING_ENDED.nothing_to_try).toMatch(/nothing it may change/);
+  });
+
+  it('needs no model on this computer to end a run that kept nothing: there is nothing to freeze', async () => {
+    await setUp({ interventions: ['weights', 'clarification'] });
+    // The model on this computer is stopped, so anything that asks it for its build fails.
+    Object.defineProperty(world, 'localDigest', {
+      get: () => {
+        throw new Error('Ollama is not running.');
+      },
+    });
+    const engine = open();
+    const runId = await run(engine);
+    expect(engine.errors).toEqual([]);
+    expect(engine.store.runs.get(runId)).toMatchObject({
+      freeze: null,
+      run: { status: 'stopped', phase: 'done', stopReason: 'nothing_to_try' },
+    });
+    expect(engine.store.runs.get(runId)?.run.error).toContain('nothing it may change');
   });
 
   it('is not the case while weights can run here, with a blank start that needs no draft first', async () => {

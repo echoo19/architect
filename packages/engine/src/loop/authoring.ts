@@ -38,7 +38,7 @@ import { must } from './errors';
 import { readJsonFile, writeJsonFile } from './files';
 import { interventionRecord, resolveFindings } from './intervene';
 import { answerTableProblem } from './lookup';
-import { changeSetRefusal, interventionRefusal, menuOf, roundMenu } from './menu';
+import { changeSetRefusal, impliedKind, interventionRefusal, menuOf, roundMenu } from './menu';
 import type { RunState } from './run-state';
 import { roundSeed } from './seeds';
 import { stoppedTeaching } from './teach';
@@ -440,15 +440,21 @@ async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<Un
     return { reason: error.message, proposal: {} };
   }
   const drafting = state.drafts(index);
-  // A draft is a whole harness: whatever intervention its reply names, it is measured as one.
-  const plan = drafting ? LEGACY_INTERVENTION : interventionOf(hypothesis);
+  const change = { named: hypothesis.intervention !== undefined, paths: changedFiles(hypothesis) };
+  // A draft is a whole harness: whatever intervention its reply names, it is measured as one. A
+  // reply that names none, such as a student's own, stands for the kind its files belong to.
+  const plan = drafting
+    ? LEGACY_INTERVENTION
+    : change.named
+      ? interventionOf(hypothesis)
+      : { ...LEGACY_INTERVENTION, type: impliedKind(change.paths, state.job) };
   const menu = drafting ? null : await roundMenu(state);
   const resolved =
     drafting || hypothesis.findings === undefined
       ? { findings: [], setAside: [] }
       : await resolveFindings(state, index, hypothesis.findings);
   let refusal =
-    menu === null ? null : interventionRefusal(plan, resolved.findings.length, state, menu);
+    menu === null ? null : interventionRefusal(plan, resolved.findings.length, state, menu, change);
   let candidate: Harness | null = null;
   if (refusal === null && HARNESS_INTERVENTIONS.includes(plan.type)) {
     const built = await candidateOf(state, stored, hypothesis);
