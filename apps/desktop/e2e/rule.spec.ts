@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import type { Job, MentorConfig, Task } from '@architect/shared';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
-import { bikeDraft, bikeShop, OPEN_QUESTION, POLICY, type BikeShop } from './bike';
+import { bikeDraft, bikeShop, EMPTY_QUESTION, OPEN_QUESTION, POLICY, type BikeShop } from './bike';
 import {
   startFakeStudent,
   startScriptedMentor,
@@ -46,7 +46,7 @@ function reply(request: MentorChatBody): unknown {
   if (request.response_format?.json_schema?.name === 'job_draft') {
     drafting += 1;
     // The first draft rests on something the policy leaves open, so it is asked about instead.
-    return bikeDraft(drafting > 1, labor);
+    return bikeDraft(drafting - 1, labor);
   }
   // A training round's request: a plain whole-harness draft, so training has something to measure.
   return {
@@ -181,10 +181,23 @@ function cost(ticket: string): number {
   return paid + Math.round(Number((row[4] ?? '').replace('$', '')) * 100);
 }
 
-async function reviewTheJob(page: Page): Promise<string> {
+/**
+ * Answers the teacher's two questions about the rule, the discount and then what a ticket with no
+ * parts cost counts as, and goes on to Define. `shot` names a capture of the second.
+ */
+async function reviewTheJob(page: Page, shot?: string): Promise<string> {
   const question = page.getByText(OPEN_QUESTION.question);
   await expect(question).toBeVisible();
   await page.getByRole('button', { name: 'No, labor only' }).click();
+  // About an empty cell the teacher's own options are not used: a rule can only do two things with
+  // one, and those are what the person is offered.
+  await expect(page.getByText(EMPTY_QUESTION.question)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Count it as zero' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Leave those rows out' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Zero', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Draft it now' })).toHaveCount(0);
+  if (shot !== undefined) await capture(page, shot);
+  await page.getByRole('button', { name: 'Count it as zero' }).click();
   const review = page.getByRole('button', { name: 'Review the job' });
   await expect(review).toBeFocused();
   await review.click();
@@ -211,10 +224,15 @@ for (const theme of THEMES) {
     expect(told).toContain('Labor is billed at $65 an hour, in half-hour steps.');
     expect(told).toContain('Members get 10% off labor, never off parts.');
 
-    const jobId = await reviewTheJob(page);
-    expect(drafting).toBe(2);
+    const jobId = await reviewTheJob(page, `rule-empty-${theme}`);
+    expect(drafting).toBe(3);
     const answered = mentor.requests[1]?.messages.at(-1)?.content ?? '';
     expect(answered).toContain('Answer: No, labor only');
+    // What the person chose for an empty parts cost went to the teacher as what Architect does with
+    // it, in the words of the choice and not of the options the teacher wrote.
+    const emptied = mentor.requests[2]?.messages.at(-1)?.content ?? '';
+    expect(emptied).toContain('Answer: Count it as zero');
+    expect(emptied).toContain('Architect counts an empty parts_cost as 0 itself');
 
     // Define puts the rule first: the passages, the rule in words, the examples and their working.
     const section = page.getByRole('region', { name: 'Check the rule' });
@@ -225,12 +243,23 @@ for (const theme of THEMES) {
     ).toBeVisible();
     await expect(card.getByText('Members get 10% off labor, never off parts.')).toBeVisible();
     await expect(card.getByText('No, labor only', { exact: true })).toBeVisible();
-    await expect(card.getByText('your answer', { exact: true })).toBeVisible();
+    await expect(card.getByText('Count it as zero', { exact: true })).toBeVisible();
+    await expect(card.getByText('your answer', { exact: true })).toHaveCount(2);
+    // What the person said an empty parts cost counts as is part of the rule they confirm.
     await expect(
       card.getByText(
-        'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up.',
+        'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up. An empty parts cost counts as 0, as you said.',
       ),
     ).toBeVisible();
+    await expect(
+      card.getByText(/^\d+ rows have an empty parts cost, which counts as 0, as you said\.$/),
+    ).toBeVisible();
+    // Only an empty cell: the tickets whose parts say N/A are still left out, and say why.
+    await card.getByRole('button', { name: /rows? left out/ }).click();
+    await expect(
+      card.getByText(/parts_cost says N\/A or a dash, which is not the same as empty/),
+    ).toBeVisible();
+    await card.getByRole('button', { name: /rows? left out/ }).click();
     const examples = card.locator('ul > li').filter({ hasText: /What does ticket|Like T-/ });
     expect(await examples.count()).toBeGreaterThanOrEqual(3);
     await expect(
@@ -240,6 +269,9 @@ for (const theme of THEMES) {
       card.getByText('member (customers.csv) is no', { exact: true }).first(),
     ).toBeVisible();
     await expect(card.getByText(/A rounding edge/).first()).toBeVisible();
+    // One example is a ticket with no parts cost, shown as nothing and counted as 0.
+    await expect(card.getByText('An empty parts cost counts as 0', { exact: true })).toBeVisible();
+    await expect(card.getByText('empty (counted as 0)').first()).toBeVisible();
 
     // Each example is right: worked out again from the records, not from the mess in them.
     let checked = 0;

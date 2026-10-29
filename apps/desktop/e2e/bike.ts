@@ -138,10 +138,29 @@ export const OPEN_QUESTION = {
   question: 'Does the 10% off for members also apply to the parts?',
   options: ['No, labor only', 'Yes, parts too'],
   changesAnswers: true,
+  blankColumn: '',
+  blankFrom: '',
 };
 
-/** What the teacher drafts: the ticket's cost as a rule, and a lookup of a customer's email. */
-export function bikeDraft(settled: boolean, labor = '$65') {
+/**
+ * What Spark asked of the real bike shop's records: what a ticket with no parts cost counts as.
+ * The options it wrote are not used, since a rule can do only two things with an empty cell and
+ * Architect puts those to the person.
+ */
+export const EMPTY_QUESTION = {
+  question: 'What parts amount should be used when a ticket lists no parts cost?',
+  options: ['Zero', 'Leave those tickets out'],
+  changesAnswers: true,
+  blankColumn: 'parts_cost',
+  blankFrom: 'row',
+};
+
+/**
+ * What the teacher drafts: the ticket's cost as a rule, and a lookup of a customer's email.
+ * `answered` is how many of its questions the person has answered: it asks the one about the
+ * discount first, then the one about an empty parts cost, and then drafts.
+ */
+export function bikeDraft(answered: number, labor = '$65') {
   return {
     action: 'draft',
     message: '',
@@ -185,9 +204,9 @@ export function bikeDraft(settled: boolean, labor = '$65') {
                 passage: `Labor is billed at ${labor} an hour, in half-hour steps.`,
               },
               { file: 'policy.md', passage: 'Members get 10% off labor, never off parts.' },
-              ...(settled ? [{ file: 'answers', passage: 'No, labor only' }] : []),
+              ...(answered > 0 ? [{ file: 'answers', passage: 'No, labor only' }] : []),
             ],
-            ambiguities: settled ? [] : [OPEN_QUESTION],
+            ambiguities: answered === 0 ? [OPEN_QUESTION] : answered === 1 ? [EMPTY_QUESTION] : [],
             steps: steps(),
             result: 'total',
           },
