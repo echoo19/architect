@@ -206,6 +206,68 @@ describe('a draft', () => {
     ).toContain('is a lookup');
   });
 
+  it('takes a set of values to keep, and refuses a filter that says what a row is not', () => {
+    const filters = (kept: object) => [
+      kept,
+      { column: 'customer_id', op: 'equals', value: '', varies: true },
+    ];
+    const status = { column: 'status', value: '', varies: false };
+    const set = check(
+      draft({
+        taskTypes: [
+          {
+            ...PENDING_TYPE,
+            filters: filters({ ...status, op: 'in', values: [' Open ', 'open', 'Ready'] }),
+          },
+        ],
+      }),
+    );
+    const job = jobOf(set.ok ? set.reply : undefined);
+    expect(job.types[0]?.spec).toMatchObject({
+      template: 'filtered_list',
+      filters: [{ column: 'status', op: 'in', values: ['Open', 'Ready'], varies: false }, {}],
+    });
+
+    const complement = check(
+      draft({
+        taskTypes: [
+          {
+            ...PENDING_TYPE,
+            filters: filters({ ...status, op: 'not_equals', value: 'Picked up' }),
+          },
+        ],
+      }),
+    );
+    expect(complement.ok).toBe(false);
+    if (!complement.ok) {
+      expect(complement.problems).toEqual([
+        'Task type "pending": the filter on status says what a row is not. That also keeps rows where it is empty or has a value nobody expected. Use op "in" and list every value that makes a row count, as the policy or the person names them.',
+      ]);
+    }
+
+    // The format the teacher is held to offers the set and no longer offers "is not".
+    const schema = replyJsonSchema(false) as unknown as {
+      properties: {
+        job: {
+          properties: {
+            taskTypes: {
+              items: {
+                properties: {
+                  filters: {
+                    items: { properties: { op: { enum: string[] }; values: { type: string } } };
+                  };
+                };
+              };
+            };
+          };
+        };
+      };
+    };
+    const filter = schema.properties.job.properties.taskTypes.items.properties.filters.items;
+    expect(filter.properties.op.enum).toEqual(['equals', 'in', 'empty', 'not_empty', '']);
+    expect(filter.properties.values.type).toBe('array');
+  });
+
   it('takes the types of an attached tasks file as they are, and only names and describes them', () => {
     const tasks: Attached['tasks'] = {
       name: 'tasks.jsonl',

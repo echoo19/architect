@@ -153,10 +153,10 @@ export function spellings(cells: Iterable<string | null>): Map<string, string> {
   return chosen;
 }
 
-/** A list in words: `a`, `a and b`, `a, b and c`. */
-export function inWords(items: readonly string[]): string {
+/** A list in words: `a`, `a and b`, `a, b and c`; with `or`, `a, b or c`. */
+export function inWords(items: readonly string[], joiner: 'and' | 'or' = 'and'): string {
   if (items.length <= 1) return items.join('');
-  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+  return `${items.slice(0, -1).join(', ')} ${joiner} ${items[items.length - 1]}`;
 }
 
 /** One canonical text for a JSON value, with object keys in order. */

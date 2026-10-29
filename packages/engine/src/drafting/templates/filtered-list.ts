@@ -20,10 +20,25 @@ export const MAX_LISTED = 20;
 const MAX_VARYING = 2;
 const MAX_FIXED = 2;
 
+/** The values a membership filter keeps, cleaned and without repeats. */
+function keptValues(filter: FilterSpec): string[] {
+  const seen = new Set<string>();
+  const kept: string[] = [];
+  for (const value of filter.values ?? []) {
+    const text = cleanText(value);
+    if (text === '' || seen.has(text.toLowerCase())) continue;
+    seen.add(text.toLowerCase());
+    kept.push(text);
+  }
+  return kept;
+}
+
 function describeFixed(filter: FilterSpec): string {
   switch (filter.op) {
     case 'equals':
       return `${filter.column} is ${cleanText(filter.value)}`;
+    case 'in':
+      return `${filter.column} is ${inWords(keptValues(filter), 'or')}`;
     case 'not_equals':
       return `${filter.column} is not ${cleanText(filter.value)}`;
     case 'empty':
@@ -43,9 +58,43 @@ function meets(filter: FilterSpec, cell: string | null): boolean {
       return !empty;
     case 'equals':
       return !empty && foldKey(cell) === foldKey(filter.value);
+    case 'in':
+      return !empty && keptValues(filter).some((value) => foldKey(value) === foldKey(cell));
     case 'not_equals':
       return foldKey(cell) !== foldKey(filter.value);
   }
+}
+
+/**
+ * What else a membership filter's column holds, so the person can see which rows are left out
+ * and say so if one of those values should count.
+ */
+function leftOutValues(table: Table, filter: FilterSpec): string[] {
+  const kept = new Set(keptValues(filter).map((value) => value.toLowerCase()));
+  const shown = spellings(table.rows.map((row) => row[filter.column] ?? null));
+  const counts = new Map<string, number>();
+  let empty = 0;
+  for (const row of table.rows) {
+    const key = cleanText(row[filter.column]).toLowerCase();
+    if (key === '') empty += 1;
+    else if (!kept.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  const others = [...counts].sort((a, b) => b[1] - a[1]);
+  const notes: string[] = [];
+  if (others.length > 0) {
+    const named = others
+      .slice(0, 6)
+      .map(([key, rows]) => `${shown.get(key) ?? key} (${rows} ${rows === 1 ? 'row' : 'rows'})`);
+    notes.push(
+      `${filter.column} also holds ${inWords(named)}${others.length > 6 ? ' and more' : ''}. ${others.length === 1 ? 'Those rows are' : 'Rows with those values are'} not listed, because only ${inWords(keptValues(filter), 'or')} count.`,
+    );
+  }
+  if (empty > 0) {
+    notes.push(
+      `${empty} ${empty === 1 ? 'row has' : 'rows have'} no ${filter.column}, so ${empty === 1 ? 'it is' : 'they are'} not listed.`,
+    );
+  }
+  return notes;
 }
 
 /**
@@ -98,6 +147,9 @@ export function runFilteredList(
     if (needsValue && filter.value === undefined) {
       problems.push(`The filter on ${filter.column} needs the value it compares with.`);
     }
+    if (filter.op === 'in' && keptValues(filter).length === 0) {
+      problems.push(`The filter on ${filter.column} needs the values it keeps.`);
+    }
   }
   const columns = filters.map((filter) => filter.column);
   if (new Set(columns).size !== columns.length) {
@@ -116,17 +168,33 @@ export function runFilteredList(
     return { spec: resolved, candidates: [], problems, notes, rule };
   }
 
-  // A condition that no row can meet would leave every list empty.
+  // A condition that no row can meet would leave every list empty. A set of values to keep must
+  // be values the column really holds, so a misspelled one can't quietly drop rows.
   for (const filter of fixed) {
-    if (!table.rows.some((row) => meets(filter, row[filter.column] ?? null))) {
-      const values = [...spellings(table.rows.map((row) => row[filter.column] ?? null)).values()];
+    const held = spellings(table.rows.map((row) => row[filter.column] ?? null));
+    const holds = (): string => {
+      const values = [...held.values()];
       const some = values.slice(0, 12).join(', ');
-      problems.push(
-        `No row of ${table.name} meets "${describeFixed(filter)}". ${filter.column} holds ${some === '' ? 'nothing' : some}${values.length > 12 ? ' and more' : ''}.`,
-      );
+      return `${filter.column} holds ${some === '' ? 'nothing' : some}${values.length > 12 ? ' and more' : ''}.`;
+    };
+    if (filter.op === 'in') {
+      const unseen = keptValues(filter).filter((value) => !held.has(value.toLowerCase()));
+      if (unseen.length > 0) {
+        problems.push(
+          `No row of ${table.name} has ${inWords(
+            unseen.map((value) => `"${value}"`),
+            'or',
+          )} in ${filter.column}. ${holds()}`,
+        );
+      }
+    } else if (!table.rows.some((row) => meets(filter, row[filter.column] ?? null))) {
+      problems.push(`No row of ${table.name} meets "${describeFixed(filter)}". ${holds()}`);
     }
   }
   if (problems.length > 0) return { spec: resolved, candidates: [], problems, notes, rule };
+  for (const filter of fixed) {
+    if (filter.op === 'in') notes.push(...leftOutValues(table, filter));
+  }
 
   const forms = varying.map((filter) =>
     spellings(table.rows.map((row) => row[filter.column] ?? null)),

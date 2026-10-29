@@ -280,6 +280,114 @@ describe('the filtered list template', () => {
     expect(notCancelled.rule).toContain('where status is not cancelled, for each customer_id');
   });
 
+  it('keeps the rows whose value is in a set it is told, and no row with an empty or unexpected one', () => {
+    const kept = ['Pending', 'Shipped'];
+    const open = runFilteredList(
+      list({
+        filters: [
+          { column: 'status', op: 'in', values: kept, varies: false },
+          { column: 'customer_id', op: 'equals', varies: true },
+        ],
+      }),
+      orders,
+    );
+    expect(open.problems).toEqual([]);
+    expect(open.rule).toContain('where status is Pending or Shipped, for each customer_id');
+    const first = open.candidates[0];
+    const customer = String(first?.meta['customer_id']);
+    expect(first?.expected).toMatchObject({
+      value: data.orders
+        .filter((order) => order.customerId === customer && kept.includes(order.status))
+        .map((order) => order.id)
+        .sort(),
+    });
+    // The answers never hold a cancelled order, whatever the customer's other orders are.
+    for (const candidate of open.candidates) {
+      if (candidate.expected.kind !== 'answer') throw new Error('Expected an answer.');
+      const ids = new Set(candidate.expected.value as string[]);
+      const cancelled = data.orders.filter((order) => order.status === 'Cancelled');
+      expect(cancelled.some((order) => ids.has(order.id))).toBe(false);
+    }
+    expect(open.notes.join(' ')).toContain('status also holds Cancelled (');
+    expect(open.notes.join(' ')).toContain('only Pending or Shipped count');
+  });
+
+  it('keeps a row out of a set when its value is blank or one nobody listed, which "is not" does not', () => {
+    const rows = [
+      'ticket_id,customer_id,status',
+      ...Array.from(
+        { length: 12 },
+        (_, i) => `T-${i},C-${i % 3},${i % 4 === 0 ? 'Open' : 'Ready'}`,
+      ),
+      'T-90,C-0,Picked up',
+      'T-91,C-0,',
+      'T-92,C-0,Mystery',
+    ].join('\n');
+    const tickets = readTable('tickets.csv', rows);
+    const set = (filter: object) =>
+      runFilteredList(
+        list({
+          table: 'tickets.csv',
+          keyColumn: 'ticket_id',
+          filters: [filter as never, { column: 'customer_id', op: 'equals', varies: true }],
+          request: 'Which tickets of {customer_id} are still open?',
+        }),
+        tickets,
+      );
+    const listed = (run: ReturnType<typeof set>): string[] => {
+      const zero = run.candidates.find((candidate) => candidate.meta['customer_id'] === 'C-0');
+      if (zero?.expected.kind !== 'answer') throw new Error('Expected an answer.');
+      return zero.expected.value as string[];
+    };
+    const complement = set({
+      column: 'status',
+      op: 'not_equals',
+      value: 'Picked up',
+      varies: false,
+    });
+    expect(listed(complement)).toEqual(expect.arrayContaining(['T-91', 'T-92']));
+    const members = set({
+      column: 'status',
+      op: 'in',
+      values: ['Open', 'Ready'],
+      varies: false,
+    });
+    expect(members.problems).toEqual([]);
+    expect(listed(members)).not.toContain('T-90');
+    expect(listed(members)).not.toContain('T-91');
+    expect(listed(members)).not.toContain('T-92');
+    expect(members.notes.join(' ')).toContain(
+      'status also holds Picked up (1 row) and Mystery (1 row). Rows with those values are not listed, because only Open or Ready count.',
+    );
+    expect(members.notes.join(' ')).toContain('1 row has no status, so it is not listed.');
+  });
+
+  it('refuses a set that names a value the column does not hold, or no values at all', () => {
+    const wrong = runFilteredList(
+      list({
+        filters: [
+          { column: 'status', op: 'in', values: ['Pending', 'Waiting'], varies: false },
+          { column: 'customer_id', op: 'equals', varies: true },
+        ],
+      }),
+      orders,
+    );
+    expect(wrong.candidates).toEqual([]);
+    expect(wrong.problems).toEqual([
+      'No row of orders.csv has "Waiting" in status. status holds Pending, Shipped, Cancelled.',
+    ]);
+    const none = runFilteredList(
+      list({
+        filters: [
+          { column: 'status', op: 'in', varies: false },
+          { column: 'customer_id', op: 'equals', varies: true },
+        ],
+      }),
+      orders,
+    );
+    expect(none.problems).toContain('The filter on status needs the values it keeps.');
+  });
+
   it('says what is wrong with a specification instead of guessing', () => {
     const noVarying = runFilteredList(
       list({ filters: [{ column: 'status', op: 'equals', value: 'Pending', varies: false }] }),

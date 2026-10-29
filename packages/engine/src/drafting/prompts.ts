@@ -19,7 +19,8 @@ lookup: the value of one to three columns of the row with a given key. Example r
 filtered_list: the key values of the rows that meet some conditions. Example request: "Which orders of customer {customer_id} are still unshipped?" The answer is a list of at most 20 values.
   - table: the CSV file.
   - keyColumn: the column whose values are listed.
-  - filters: one or two filters have varies set to true and op "equals": each takes every value of its column in turn, one request per value, and the request names it as {column name}, using the column's exact name. The others are fixed conditions with varies false: op "equals" or "not_equals" with a value, or "empty" or "not_empty".
+  - filters: one or two filters have varies set to true and op "equals": each takes every value of its column in turn, one request per value, and the request names it as {column name}, using the column's exact name. The others are fixed conditions with varies false: op "equals" with a value, op "in" with values (below), or "empty" or "not_empty".
+  - To keep the rows whose column has one of several values, use op "in" and list in values every value that makes a row count, spelled as the table spells it. If the policy or the person names the values (for example "Open, Waiting on parts or Ready"), use exactly those. Never describe a set of rows by what it is not: "status is not Picked up" also keeps rows whose status is empty or one nobody expected, and there is no such op.
   - request: the question, with {column name} for each varying filter.
 
 group_total: the sum, or the count, for one value of a grouping column, maybe within a range of dates. Example request: "What is the total of orders in the {group} region from {from} to {to}?"

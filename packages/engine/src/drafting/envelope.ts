@@ -1,4 +1,4 @@
-import type { JsonSchemaObject, TaskSpec } from '@architect/shared';
+import { MAX_FILTER_VALUES, type JsonSchemaObject, type TaskSpec } from '@architect/shared';
 import { z } from 'zod';
 import type { Attached } from './files';
 import { cleanText, foldKey } from './values';
@@ -17,8 +17,10 @@ export const MAX_QUESTIONS = 3;
 
 const FilterReplySchema = z.object({
   column: z.string(),
-  op: z.enum(['equals', 'not_equals', 'empty', 'not_empty', '']),
+  // `not_equals` is read so that it can be refused with the reason, never to be used.
+  op: z.enum(['equals', 'in', 'not_equals', 'empty', 'not_empty', '']),
   value: z.string(),
+  values: z.array(z.string()).optional(),
   varies: z.boolean(),
 });
 
@@ -87,9 +89,10 @@ function objectOf(properties: Record<string, object>): JsonSchemaObject {
 export function replyJsonSchema(mustDraft: boolean): JsonSchemaObject {
   const filter = objectOf({
     column: text('The column, spelled as the table spells it.'),
-    op: { type: 'string', enum: ['equals', 'not_equals', 'empty', 'not_empty', ''] },
-    value: text(
-      'What equals and not_equals compare with. Empty for the others and when varies is true.',
+    op: { type: 'string', enum: ['equals', 'in', 'empty', 'not_empty', ''] },
+    value: text('What equals compares with. Empty for the others and when varies is true.'),
+    values: list(
+      'in: every value that makes a row count, spelled as the table spells it. Else empty.',
     ),
     varies: {
       type: 'boolean',
@@ -247,6 +250,13 @@ function specOf(
         problems.push(`${who} is a filtered_list: it needs a keyColumn and 1 to 4 filters.`);
         return undefined;
       }
+      for (const filter of filters) {
+        if (filter.op === 'not_equals') {
+          problems.push(
+            `${who}: the filter on ${cleanText(filter.column)} says what a row is not. That also keeps rows where it is empty or has a value nobody expected. Use op "in" and list every value that makes a row count, as the policy or the person names them.`,
+          );
+        }
+      }
       return {
         template: 'filtered_list',
         table,
@@ -255,13 +265,17 @@ function specOf(
         filters: filters.map((filter) => {
           const value = cleanText(filter.value);
           const op = filter.op === '' ? 'equals' : filter.op;
+          const values = distinct((filter.values ?? []).map(cleanText));
           return {
             column: cleanText(filter.column),
             op,
             varies: filter.varies,
-            ...(value === '' || filter.varies || op === 'empty' || op === 'not_empty'
+            ...(value === '' || filter.varies || (op !== 'equals' && op !== 'not_equals')
               ? {}
               : { value }),
+            ...(op === 'in' && !filter.varies && values.length > 0
+              ? { values: values.slice(0, MAX_FILTER_VALUES) }
+              : {}),
           };
         }),
       };

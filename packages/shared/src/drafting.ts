@@ -11,15 +11,25 @@ export const TASK_TEMPLATES = ['lookup', 'filtered_list', 'group_total'] as cons
 export const TaskTemplateSchema = z.enum(TASK_TEMPLATES);
 export type TaskTemplate = z.infer<typeof TaskTemplateSchema>;
 
-/** A condition on one column's text, compared without regard to case, spacing or quotes. */
-export const FilterOpSchema = z.enum(['equals', 'not_equals', 'empty', 'not_empty']);
+/**
+ * A condition on one column's text, compared without regard to case, spacing or quotes. `in`
+ * keeps the rows whose value is one of a set the teacher states in full. `not_equals` is what
+ * older drafts used; it also admits empty and unfamiliar values, so a new draft never has one
+ * (decision 061).
+ */
+export const FilterOpSchema = z.enum(['equals', 'in', 'not_equals', 'empty', 'not_empty']);
 export type FilterOp = z.infer<typeof FilterOpSchema>;
+
+/** The most values a membership filter may list. */
+export const MAX_FILTER_VALUES = 12;
 
 export const FilterSpecSchema = z.object({
   column: z.string().min(1),
   op: FilterOpSchema,
   /** What `equals` and `not_equals` compare with. Absent for the others and for a varying filter. */
   value: z.string().min(1).optional(),
+  /** The values `in` keeps: every one the row may have to count, stated in full. */
+  values: z.array(z.string().min(1)).min(1).max(MAX_FILTER_VALUES).optional(),
   /** The filter takes each of the column's values in turn, one request apiece. */
   varies: z.boolean(),
 });
