@@ -1,4 +1,4 @@
-import { TaskSchema, type TaskSpec } from '@architect/shared';
+import { TaskSchema, type RuleNode, type TaskSpec } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import {
   allocate,
@@ -19,6 +19,7 @@ import type { Candidate } from '../src/drafting/templates/common';
 import { splitTasks } from '../src/splits/split';
 import { seededRandom } from '../src/splits/random';
 import { shopData } from './support/drafting-data';
+import { bikeRule, bikeShop, bikeTables, billedHours, col, num } from './support/rule-data';
 
 const data = shopData('generate', 400, 150);
 const tables = new Map([
@@ -393,6 +394,82 @@ describe('asking one question once', () => {
       .filter((task) => task.type === 'north')
       .map((task) => task.meta?.['customer_id']);
     expect(alsoAsked.filter((customer) => asked.includes(customer))).toEqual([]);
+  });
+});
+
+describe('asking one question once, whichever rule is behind it', () => {
+  const bike = bikeShop({ offGrid: true });
+  const shop = bikeTables(bike);
+
+  /** What a ticket costs: the labor at 65 an hour in half hours and the parts, in the order given. */
+  function cost(id: string, order: 'labor first' | 'parts first', family?: string): TypeInput {
+    const labor: RuleNode = { op: 'mul', args: [billedHours, num('65')] };
+    const args = order === 'labor first' ? [labor, col('parts_cost')] : [col('parts_cost'), labor];
+    // The member discount is left out, so the rule reads no other table.
+    const { lookup: _lookup, ...rule } = bikeRule({
+      categories: [],
+      expression: { op: 'round', increment: '0.01', mode: 'half_up', arg: { op: 'add', args } },
+      ...(family === undefined ? {} : { familyColumn: family }),
+    });
+    return {
+      id,
+      label: `Ticket totals (${id})`,
+      description: 'Work out what a repair ticket costs.',
+      spec: rule,
+    };
+  }
+
+  // The reproduction: the same sum written in the other order, asking the same request, and told
+  // apart by a family column, which made the two rules' questions different to Architect and the
+  // same to the agent. Both could then be split apart, one as practice and one as the final test.
+  it('leaves out a rule that asks the same request as an earlier one in another order', () => {
+    const first = cost('first', 'labor first');
+    const second = cost('second', 'parts first', 'customer_id');
+    const made = generateTasks([first, second], shop, 11);
+    expect(made.types.map((type) => type.id)).toEqual(['first']);
+    expect(made.rejected.map((type) => type.id)).toEqual(['second']);
+    expect(made.rejected[0]?.problems[0]).toContain(
+      `asks what "${first.label}" already asks, in the same words`,
+    );
+    const prompts = made.tasks.map((task) => task.prompt);
+    expect(new Set(prompts).size).toBe(prompts.length);
+  });
+
+  it('never lets a question come up as a practice task and as a final-test task', () => {
+    const made = generateTasks(
+      [cost('first', 'labor first'), cost('second', 'parts first', 'customer_id'), emails],
+      new Map([...shop, ...tables]),
+      13,
+    );
+    const sizes = splitSizes(made.tasks.length);
+    const splits = splitTasks(made.tasks, { seed: 13, ...sizes });
+    const seenAs = new Map<string, string>();
+    for (const name of ['calibration', 'train', 'dev', 'test'] as const) {
+      for (const task of splits[name]) {
+        const where = seenAs.get(task.prompt);
+        expect(where === undefined || where === name, task.prompt).toBe(true);
+        seenAs.set(task.prompt, name);
+      }
+    }
+  });
+
+  it('knows the same words put by another kind of task, which asks something else of the row', () => {
+    const lookup: TypeInput = {
+      id: 'parts',
+      label: 'Parts of a ticket',
+      description: 'Look up what parts a ticket used.',
+      spec: {
+        template: 'lookup',
+        table: 'tickets.csv',
+        keyColumn: 'ticket_id',
+        columns: ['parts_cost'],
+        request: 'What does ticket {key} cost the customer?',
+      },
+    };
+    const made = generateTasks([cost('first', 'labor first'), lookup], shop, 11);
+    expect(made.types.map((type) => type.id)).toEqual(['first']);
+    expect(made.rejected.map((type) => type.id)).toEqual(['parts']);
+    expect(made.rejected[0]?.problems[0]).toContain('in the same words');
   });
 });
 

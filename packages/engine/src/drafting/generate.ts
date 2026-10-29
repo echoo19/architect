@@ -199,6 +199,20 @@ function exceptShown(
 }
 
 /**
+ * A request as it reads, with case, spacing and punctuation set aside: what two kinds of task
+ * ask when they put the same words to the same row, however their rules were written.
+ */
+function wordsOf(candidate: Candidate): string {
+  const request = candidate.meta['request'];
+  const text = typeof request === 'string' ? request : (candidate.prompt.split('\n')[0] ?? '');
+  return text
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/**
  * Makes the tasks of a job from the kinds of task the teacher chose, each held against its table.
  * A kind whose specification names a column the table lacks, or whose requests would all have
  * one answer, is rejected with its reasons; one whose table supports too few requests is set
@@ -206,9 +220,11 @@ function exceptShown(
  *
  * A request that asks what an earlier kind of task already asks, however its conditions are
  * ordered or which template wrote it, is left out, so that one question is never a practice task
- * and a final-test task at once. So are the requests whose answer comes only from rows the teacher
- * was shown (`shown`). `passRate` is the share of tasks the job asks to get right, which a rule
- * that is a copy in that many cases must not reach.
+ * and a final-test task at once. So is a request that puts an earlier one's words to the same
+ * row, whatever rule is behind it: two rules that work out the same number in another order, or
+ * differently, still ask one question in those words. So are the requests whose answer comes only
+ * from rows the teacher was shown (`shown`). `passRate` is the share of tasks the job asks to get
+ * right, which a rule that is a copy in that many cases must not reach.
  */
 export function generateTasks(
   inputs: readonly TypeInput[],
@@ -226,6 +242,8 @@ export function generateTasks(
   }[] = [];
   /** The question each request asks, with the kind of task that asked it first. */
   const asked = new Map<string, string>();
+  /** The words of each request, with the kind of task that put them first. */
+  const worded = new Map<string, string>();
 
   for (const input of inputs) {
     const random = seededRandom(`architect-draft:${seed}:${input.id}`);
@@ -249,14 +267,20 @@ export function generateTasks(
           `${unshown.left} ${unshown.left === 1 ? 'request was' : 'requests were'} left out of ${table.name}: the teacher read the rows ${unshown.left === 1 ? 'it is' : 'they are'} about while drafting, and nothing may be asked whose answer it has seen.`,
         );
       }
-      const fresh = candidates.filter((candidate) => !asked.has(candidate.identity));
+      const before = (candidate: Candidate): string | undefined =>
+        asked.get(candidate.identity) ?? worded.get(wordsOf(candidate));
+      const fresh = candidates.filter((candidate) => before(candidate) === undefined);
       const repeats = candidates.length - fresh.length;
       if (repeats > 0) {
-        const earlier = candidates.find((candidate) => asked.has(candidate.identity));
-        const by = earlier === undefined ? '' : (asked.get(earlier.identity) ?? '');
+        const earlier = candidates.find((candidate) => before(candidate) !== undefined);
+        const by = earlier === undefined ? '' : (before(earlier) ?? '');
+        const how =
+          earlier !== undefined && !asked.has(earlier.identity)
+            ? 'in the same words'
+            : 'in other words';
         if (fresh.length === 0 && candidates.length > 0) {
           problems.push(
-            `Every request of this kind asks what "${by}" already asks, in other words, so it would only repeat it. Change what it asks, or leave it out.`,
+            `Every request of this kind asks what "${by}" already asks, ${how}, so it would only repeat it. Change what it asks, or leave it out.`,
           );
         } else {
           run.notes.push(
@@ -286,7 +310,10 @@ export function generateTasks(
       thin.push({ id: input.id, label: input.label, available: candidates.length });
       continue;
     }
-    for (const candidate of askable) asked.set(candidate.identity, input.label);
+    for (const candidate of askable) {
+      asked.set(candidate.identity, input.label);
+      worded.set(wordsOf(candidate), input.label);
+    }
     usable.push({ input, run, candidates, random });
   }
 

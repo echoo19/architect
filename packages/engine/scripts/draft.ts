@@ -17,7 +17,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import {
   mentorPreset,
-  passageSource,
+  passageOrigin,
   type MentorConfig,
   type MentorPresetKey,
 } from '@architect/shared';
@@ -120,7 +120,7 @@ async function main(): Promise<void> {
       if (details === undefined) continue;
       write(`\nRule "${type.label}", version ${details.version}:\n${details.statement}\n`);
       for (const passage of details.passages) {
-        write(`  from ${passageSource(passage.file)}: ${passage.passage}\n`);
+        write(`  from ${passageOrigin(passage)}: ${passage.passage}\n`);
       }
       for (const example of details.examples) {
         write(`\n  ${example.request}  ->  ${example.answer}\n`);

@@ -2,6 +2,25 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Wed), the rule read again by GPT-6 Sol, and two things seen in use
+
+**Done** (on `rule-fixes-2-work`, from main at `ce90f59`; decision 061 amended; no model was called, the GPU stayed off)
+- Four findings of the second read, each with a test that fails without its fix:
+  - A job's making could delete a folder it never made. An id was free when the library and the vault had nothing under it, so a job file whose id matched `jobs/orders` (a person's notes, no job, no seal) was made inside it, and a failed import removed the folder with the notes. An id is now free only with no folder under it, the folder is made without recursing, and only a folder a making created is ever taken back.
+  - "Count it as zero" for one table was taken for another table's column of the same name, and the question about the second was never asked. The answer now names its table, a rule takes the answer about its own table, and the other table's question is asked. Drafts made before still read.
+  - The copy guard measured all of a rule's cases, so with an 80% target 79 copies in 100 passed, and a final test of 33 could hold 27 of them (82%). The final test and the check tasks are held to the guard as they are divided. A division that fails is made again with the next seed, up to twelve, and when none is safe the draft is refused with the reason.
+  - Two rules that add labor and parts in either order, with one request, were two questions and could land on both sides of the final-test boundary. The same words put to the same row are now one question, whatever rule or template is behind them.
+- From the owner's look at the `rule-define` capture: an answer such as "No, labor only" read as a fragment. Define, Results (under Details), the report and `scripts/draft.ts` now show the question it answered, found in the answers the draft kept, and none when two answers to different questions hold the same words. It is worked out when the plan is made and never stored, so a draft made before shows its questions too.
+- A sentence-case name is asked for in the prompt and in the reply format, with an example. A proper noun keeps its capitals, and the name is not rewritten in code.
+- Verified: `pnpm check` exits 0 (231 test files, 2,979 tests passed, 2 skipped; it was 229 and 2,934). Hidden e2e on the rebuilt app: `rule.spec.ts` (3), `flow.spec.ts` (25) and `drafting.spec.ts` (5) pass. Looked at in both themes: `rule-define` and `flow-report-rule`. The captures that came out a few pixels different (a scrollbar) were put back.
+
+**Next**
+- Merge the branch into main. The next test of the rule is still the owner's real run on the bike shop.
+
+**Open issues**
+- A request worded differently is a different question, so two rules that ask the same thing in other words can still land on both sides of the boundary. Nothing here can tell them apart.
+- The copy guard holds each rule to its own tasks in a set, so a rule with few tasks in a set is refused when they are all copies, though a copy would not pass the whole set. It errs on the side of caution, and another seed usually makes the set safe.
+
 ## 2026-10-29 (Wed), the rule on main, a drafted pricing job trained for real, and the demo's first scene live
 
 **Done** (Spark and online Glimmer called: about $0.10 of Spark and $0.19 of online Glimmer; the GPU stayed off)
@@ -22,6 +41,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 
 **Open issues**
 - A recording's hidden window sometimes takes a second for a screenshot, so a few frames are held that long. Most come every 31 ms.
+
 
 ## 2026-10-29 (Wed), main merged into the rule branch, three times
 

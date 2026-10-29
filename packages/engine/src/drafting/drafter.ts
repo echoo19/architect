@@ -14,7 +14,6 @@ import {
   type MentorCompletionRequest,
   type MentorConfig,
   type RuleDetails,
-  type RuleFrom,
   type Task,
   type TaskSpec,
 } from '@architect/shared';
@@ -24,7 +23,6 @@ import type { JobLibrary } from '../loop/jobs';
 import { connectTeacher } from '../loop/setup';
 import { isoNow } from '../loop/time';
 import { formatUsd } from '../loop/budget';
-import { SplitError } from '../splits/split';
 import {
   checkReply,
   DRAFT_NOW,
@@ -44,6 +42,7 @@ import {
   type Attached,
 } from './files';
 import type { RuleCase } from './rule/cases';
+import { auditSplits, divide, type Division } from './division';
 import { chooseExamples } from './rule/examples';
 import type { RuleOutcome } from './rule/outcome';
 import {
@@ -63,6 +62,7 @@ import {
   settledMessage,
   systemPrompt,
 } from './prompts';
+import type { BlankAsked, TableBlank } from './rule-reply';
 import { foldKey } from './values';
 
 /** The most a drafting conversation may cost the teacher, in dollars. */
@@ -87,12 +87,13 @@ interface Spend {
 
 /**
  * An open question about a rule that changes an answer, which waits for the person. One about an
- * empty cell names the column, and is answered with one of the two choices a rule can do.
+ * empty cell names the column and its table, and is answered with one of the two choices a rule
+ * can do.
  */
 interface Settling {
   question: string;
   options: string[];
-  blank?: { column: string; from: RuleFrom };
+  blank?: BlankAsked;
 }
 
 /** Questions about a rule Architect puts to the person in all, after which the draft ends. */
@@ -106,7 +107,7 @@ interface Session {
   history: ChatMessage[];
   questions: number;
   /** What the person answered, which a rule may rest on. */
-  answers: { question: string; answer: string; blank?: BlankAnswer }[];
+  answers: { question: string; answer: string; blank?: TableBlank }[];
   /** The last question the teacher asked, which the next reply answers. */
   asking: string | null;
   /** A question about a rule that must be answered before any job is drafted, and how many so far. */
@@ -127,6 +128,8 @@ interface Built {
   /** Task types the files support too few requests of, left out. */
   dropped: { label: string; available: number }[];
   seed: number;
+  /** The tasks divided into the job's sets, or null when they can't be. */
+  divided: Extract<Division, { kind: 'divided' }> | null;
 }
 
 export interface DraftingOptions {
@@ -224,14 +227,14 @@ export class JobDrafting implements JobDrafter {
         };
       }
       let answer = text.trim();
-      let blank: BlankAnswer | undefined;
+      let blank: TableBlank | undefined;
       if (open.blank !== undefined) {
         // Only two things can be done with an empty cell, so only one of the two is an answer.
         const means = blankMeaning(text);
         if (means === null) {
           return {
             sessionId: session.id,
-            message: `${open.question}\n\nChoose one of the answers: it decides what an empty ${open.blank.column} counts as in every row.`,
+            message: `${open.question}\n\nChoose one of the answers: it decides what an empty ${open.blank.column} in ${open.blank.table} counts as in every row.`,
             options: open.options,
           };
         }
@@ -458,6 +461,9 @@ export class JobDrafting implements JobDrafter {
   ): { built: Built } | { problems: string[] } {
     const { attached } = session;
     if (attached.tasks !== null) {
+      const seed = seedFrom([...digestOf(attached), 'attached']);
+      const division = this.divideTasks(attached.tasks.tasks, seed, null, job.passRate);
+      if (division.kind === 'unsafe') return { problems: division.problems };
       return {
         built: {
           job,
@@ -465,7 +471,8 @@ export class JobDrafting implements JobDrafter {
           tasks: attached.tasks.tasks,
           generation: null,
           dropped: [],
-          seed: seedFrom([...digestOf(attached), 'attached']),
+          seed,
+          divided: division.kind === 'divided' ? division : null,
         },
       };
     }
@@ -498,6 +505,10 @@ export class JobDrafting implements JobDrafter {
       }
     }
     if (problems.length > 0) return { problems };
+    // The sets as they are divided are held to the guard a rule is held to over all its cases, so
+    // that what a copy could pass is known before the final test is sealed.
+    const division = this.divideTasks(generation.tasks, seed, generation, job.passRate);
+    if (division.kind === 'unsafe') return { problems: division.problems };
     return {
       built: {
         job,
@@ -506,13 +517,30 @@ export class JobDrafting implements JobDrafter {
         generation,
         dropped: generation.thin.map((type) => ({ label: type.label, available: type.available })),
         seed,
+        divided: division.kind === 'divided' ? division : null,
       },
     };
   }
 
+  /** The tasks divided into the job's sets, each of them safe from a copy, or what stops that. */
+  private divideTasks(
+    tasks: readonly Task[],
+    seed: number,
+    generation: Generation | null,
+    passRate: number,
+  ): Division {
+    const { runtime } = this.options.deps;
+    return divide(
+      tasks,
+      seed,
+      (list, config) => runtime.splitTasks(list, config),
+      (splits) => (generation === null ? [] : auditSplits(generation.types, splits, passRate)),
+    );
+  }
+
   /** Records the drafted job, or ends the conversation when the files can't train one. */
   private async drafted(session: Session, teacher: MentorConfig, built: Built): Promise<DraftTurn> {
-    const fitted = this.fitToSplits(built);
+    const fitted = built.divided;
     if (fitted === null) {
       this.sessions.delete(session.id);
       return {
@@ -562,7 +590,8 @@ export class JobDrafting implements JobDrafter {
       budget: BUDGET,
       ...shippedModels(),
       startingHarness: { kind: 'blank' },
-      splits: { seed: built.seed, ...sizes },
+      // The seed that divided the tasks safely, which is the one the job divides them with again.
+      splits: { seed: fitted.seed, ...sizes },
       evaluation: {
         trainBatch: Math.min(12, sizes.train),
         minDevGain: Math.min(2, sizes.dev),
@@ -623,33 +652,6 @@ export class JobDrafting implements JobDrafter {
       options: [],
       draft: created,
     };
-  }
-
-  /**
-   * The tasks that can be divided into the job's sets with every family in one set. A job whose
-   * tasks can't be divided loses its last tasks, one at a time from its largest kind, until they
-   * can; one left with too few to train on is null.
-   */
-  private fitToSplits(built: Built): { tasks: Task[]; splits: TaskSplits } | null {
-    const tasks = [...built.tasks];
-    for (;;) {
-      if (!trainable(tasks.length)) return null;
-      try {
-        const splits = this.options.deps.runtime.splitTasks(tasks, {
-          seed: built.seed,
-          ...splitSizes(tasks.length),
-        });
-        return { tasks, splits };
-      } catch (error) {
-        if (!(error instanceof SplitError)) throw error;
-        const counts = new Map<string, number>();
-        for (const task of tasks) counts.set(task.type, (counts.get(task.type) ?? 0) + 1);
-        const largest = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0];
-        const at = tasks.findLastIndex((task) => task.type === largest);
-        if (at < 0) return null;
-        tasks.splice(at, 1);
-      }
-    }
   }
 
   /**

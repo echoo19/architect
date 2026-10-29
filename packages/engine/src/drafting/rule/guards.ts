@@ -87,8 +87,45 @@ function copiesOf(
   return found;
 }
 
+/** How many cases have their own key for an answer. */
+function echoesIn(cases: readonly RuleCase[]): number {
+  return cases.filter((item) => {
+    const key = parseDecimal(item.key);
+    return key !== null && q.equal(q.fromDecimal(key), item.answer);
+  }).length;
+}
+
 /** The share of the final test a job asks to get right, when nobody said. */
 export const DEFAULT_PASS_RATE = 0.9;
+
+/**
+ * Holds the cases that became the tasks of one set to the guard all of a rule's cases are held
+ * to. Every case together can be short of a copy and the few that were chosen for a set not: with
+ * an 80% target, 79 copies in 100 cases pass `auditCases`, and a final test of 33 holding 27 of
+ * them is a copy that passes. `set` names the tasks and what a copy would get past.
+ */
+export function auditSet(
+  spec: RuleSpec,
+  tables: Tables,
+  cases: readonly RuleCase[],
+  passRate: number,
+  set: { tasks: string; passes: string },
+): string[] {
+  const chosen = cases.length;
+  if (chosen === 0) return [];
+  const copyShare = Math.min(COPY_SHARE, passRate);
+  const copying = (what: string, matches: number): string =>
+    `Of the ${chosen} ${set.tasks} Architect set aside, ${matches} (${percent(matches, chosen)}) have ${what} for their answer, and the job asks for ${percent(passRate, 1)} right, so an agent that copies it would ${set.passes} without working anything out. A rule has to work something out.`;
+  const problems: string[] = [];
+  const echoes = echoesIn(cases);
+  if (echoes / chosen >= copyShare) problems.push(copying(`the ${spec.keyColumn}`, echoes));
+  for (const copy of copiesOf(tables, spec, cases)) {
+    if (copy.matches / chosen >= copyShare) {
+      problems.push(copying(`the value of ${copy.name}`, copy.matches));
+    }
+  }
+  return problems;
+}
 
 /**
  * Holds the cases of a rule to the guards and counts what each branch does. `passRate` is the
@@ -134,10 +171,7 @@ export function auditCases(
       ? `The answer is just ${what}, ${why}. A rule has to work something out.`
       : `The answer is ${what} in ${percent(matches, eligible)} of the rows, and the job asks for ${percent(passRate, 1)} right, so an agent that copies it would pass without working anything out. A rule has to work something out.`;
 
-  const echoes = cases.filter((item) => {
-    const key = parseDecimal(item.key);
-    return key !== null && q.equal(q.fromDecimal(key), item.answer);
-  }).length;
+  const echoes = echoesIn(cases);
   if (echoes / eligible >= copyShare) {
     problems.push(copying(`the ${spec.keyColumn}`, 'which the request already gives', echoes));
   }

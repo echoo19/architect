@@ -232,7 +232,7 @@ for (const theme of THEMES) {
     // it, in the words of the choice and not of the options the teacher wrote.
     const emptied = mentor.requests[2]?.messages.at(-1)?.content ?? '';
     expect(emptied).toContain('Answer: Count it as zero');
-    expect(emptied).toContain('Architect counts an empty parts_cost as 0 itself');
+    expect(emptied).toContain('Architect counts an empty parts_cost in tickets.csv as 0 itself');
 
     // Define puts the rule first: the passages, the rule in words, the examples and their working.
     const section = page.getByRole('region', { name: 'Check the rule' });
@@ -245,6 +245,11 @@ for (const theme of THEMES) {
     await expect(card.getByText('No, labor only', { exact: true })).toBeVisible();
     await expect(card.getByText('Count it as zero', { exact: true })).toBeVisible();
     await expect(card.getByText('your answer', { exact: true })).toHaveCount(2);
+    // An answer is read with the question it answered, which the draft kept beside it.
+    const discount = card.getByRole('listitem').filter({ hasText: 'No, labor only' });
+    await expect(discount.getByText(OPEN_QUESTION.question, { exact: true })).toBeVisible();
+    const empty = card.getByRole('listitem').filter({ hasText: 'Count it as zero' });
+    await expect(empty.getByText(EMPTY_QUESTION.question, { exact: true })).toBeVisible();
     // What the person said an empty parts cost counts as is part of the rule they confirm.
     await expect(
       card.getByText(
