@@ -2,6 +2,25 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Wed), what the teacher is told of the records, said exactly
+
+**Done** (on `rule-fixes-4`, from main at `0f86c10`; decision 061 amended; no model was called, the GPU stayed off, and every run used stand-ins only)
+- Four findings of GPT-6 Sol's read of the third round, each decided by the owner and each with a test that fails without its fix:
+  - A reason a draft was sent back for could say a value of a row the teacher had not read. A list that kept a value no row has quoted the first twelve values of the column (the ids of rows 5 to 11 of a table), a total quoted the cells it could not read, a lookup and a rule quoted a key that rows share, and a rule quoted the one answer every row comes to and its longest answer. Every reason now names the column and gives counts, and says a value only when it is one of the column's examples, which the teacher had read already. The person still reads the whole of it, in the error that ends the draft. `drafting-diagnostics` walks each reason over tables whose later rows each hold values no earlier row has, and finds none of them in anything the teacher is sent.
+  - `CaseX` in one row and `casex` in another counted as one value shared by two rows, and the profile named the first's spelling, which is the exact answer of a row the teacher had not read. A value is now said only in a spelling that two rows or more write alike or that a row the teacher was shown writes.
+  - Two lookups with the same words over `tickets.csv` and `archive.csv`, with the same ids in both, gave an agent one prompt with two right answers, and last round's table key kept both. The second kind is now sent back with the reason, whether one of its requests reads the same or all of them, and is told to say which table. With ids that differ, or words that name the table, both stay.
+  - Decision 061 no longer says that nothing the teacher is sent names a row a set is made from. It says what the teacher is kept from: the check tasks and the final test as tasks (what they ask, their answers, which rows they are about, how tasks are divided, any score), since the records are shared by every set and the practice traces show the teacher rows anyway. A task about one row is never about a shown row. A total or a list is left out when the rows shown decide its answer. The code did that only when every row of the group was shown, so a shown row with a hidden row that adds nothing, or a list whose pending orders were all shown, was kept; both are now left out, and a total or a list with a hidden row that counts is still kept. The decision lists everything the teacher is sent, and says that the person's own words go as written.
+- A passage a rule cites but leaves out of its steps is still caught only by the person's reading on Define. It stays in the prompt and is not checked in code, as decided; the decision names it a known limit.
+- Verified: `pnpm check` exits 0 (232 test files, 3,013 tests passed, 2 skipped; it was 231 and 2,993). Hidden e2e on the rebuilt app: `rule.spec.ts` (3), `flow.spec.ts` (25) and `drafting.spec.ts` (5) pass. Each fix was switched off in turn, and the tests written for it failed.
+
+**Next**
+- Merge the branch into main. The next test of the rule is still the owner's real run on the bike shop.
+
+**Open issues**
+- An id or a value the person types in the description, a text file or an answer goes to the teacher as written, and a task may be about it. Someone who wants a record kept out of the tests should not name it there.
+- A passage a rule cites and leaves out of its steps is caught only by the person's reading on Define.
+- Of two kinds that read alike over two tables, the first keeps its requests, so the second is the one the teacher has to change.
+
 ## 2026-10-29 (Wed), two findings of the read of what the teacher may change, and main merged in
 
 **Done** (on the same branch; decision 063 amended; no model was called or loaded, the GPU stayed off, and every run used stand-ins only)

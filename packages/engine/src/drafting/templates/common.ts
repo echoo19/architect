@@ -14,9 +14,11 @@ export interface Candidate {
    */
   identity: string;
   /**
-   * The rows of the table, by position, that the answer is worked out from. When the teacher was
-   * shown every one of them while drafting, the request is left out, since nothing may be asked
-   * whose answer the teacher has already read.
+   * The rows of the table, by position, that decide the answer: the one a request is about, or the
+   * ones a list names or a total adds up (all the rows it looked at, when none of them counts).
+   * When the teacher was shown every one of them while drafting, the shown rows decide the answer
+   * and the request is left out, since nothing may be asked whose answer the teacher has already
+   * read. With one of them unshown the answer is still the teacher's to work out, and it is kept.
    */
   rows?: readonly number[];
   /** The request, ending with the line that states the answer's shape. */
@@ -32,12 +34,35 @@ export interface TemplateRun<S> {
   /** The specification with its columns spelled as the table's header spells them. */
   spec: S;
   candidates: Candidate[];
-  /** Why the specification can't be used. Empty when it can. */
+  /**
+   * Why the specification can't be used, in the words the teacher is told. Empty when it can. They
+   * name columns and give counts, and never say a value of a row the teacher was not shown: any
+   * row a set is made from may be the subject of a check or final-test task.
+   */
   problems: string[];
+  /**
+   * A problem again with the values of the records in it, by the words the teacher is told. Only
+   * the person reads these, who knows the records.
+   */
+  inFull?: ReadonlyMap<string, string>;
   /** What was assumed or skipped, in plain words. */
   notes: string[];
   /** The rule behind the requests, in words. */
   rule: string;
+}
+
+/**
+ * Adds a problem in the two voices it is told in: `teacher` names columns and gives counts, and
+ * `person` is the same with the values of the records that the teacher must not be told.
+ */
+export function addProblem(
+  problems: string[],
+  inFull: Map<string, string>,
+  teacher: string,
+  person: string,
+): void {
+  problems.push(teacher);
+  inFull.set(teacher, person);
 }
 
 /** The longest request a teacher may write, in characters. */

@@ -19,6 +19,7 @@ import {
   type Decimal,
 } from '../values';
 import {
+  addProblem,
   canonicalJson,
   checkRequest,
   fillRequest,
@@ -58,11 +59,17 @@ function exampleCells(bad: readonly string[]): string {
     .join(', ');
 }
 
+/** A number of cells with its noun: "1 value", "3 values". */
+function valuesIn(count: number): string {
+  return `${count} ${count === 1 ? 'value' : 'values'}`;
+}
+
 /**
  * The sum, or the count, of a column for one value of a grouping column, such as the total of
  * amount for a region, optionally within a range of dates. Rows with no date are left out of a
  * ranged total, and an empty amount adds nothing. A total is made only when every filled cell of
- * the column read can be read, so no total rests on a guess.
+ * the column read can be read, so no total rests on a guess. The teacher is told how many cells
+ * can't be read and the person which, since a cell is a value of a row.
  */
 export function runGroupTotal(
   spec: GroupTotalSpec,
@@ -70,6 +77,7 @@ export function runGroupTotal(
   random: () => number,
 ): TemplateRun<GroupTotalSpec> {
   const problems: string[] = [];
+  const inFull = new Map<string, string>();
   const notes: string[] = [];
   const groupColumn = needColumn(table, spec.groupColumn, 'The grouping column', problems);
   const valueColumn =
@@ -169,16 +177,16 @@ export function runGroupTotal(
     entries.set(group, list);
   }
   if (valueColumn !== null && badAmounts.length > 0) {
-    problems.push(
-      `${valueColumn} has ${badAmounts.length} values Architect can't read as numbers, such as ${exampleCells(badAmounts)}.`,
-    );
+    const cannot = `${valueColumn} has ${valuesIn(badAmounts.length)} Architect can't read as numbers`;
+    addProblem(problems, inFull, `${cannot}.`, `${cannot}, such as ${exampleCells(badAmounts)}.`);
   }
   if (dateColumn !== null && badDays.length > 0) {
-    problems.push(
-      `${dateColumn} has ${badDays.length} values Architect can't read as dates, such as ${exampleCells(badDays)}.`,
-    );
+    const cannot = `${dateColumn} has ${valuesIn(badDays.length)} Architect can't read as dates`;
+    addProblem(problems, inFull, `${cannot}.`, `${cannot}, such as ${exampleCells(badDays)}.`);
   }
-  if (problems.length > 0) return { spec: resolved, candidates: [], problems, notes, rule };
+  if (problems.length > 0) {
+    return { spec: resolved, candidates: [], problems, inFull, notes, rule };
+  }
   if (dateColumn !== null && missingDays > 0) {
     notes.push(
       `${missingDays} rows have no ${dateColumn}, so they are left out of every total within dates.`,
@@ -249,6 +257,12 @@ export function runGroupTotal(
     range: { from: string; to: string } | null,
   ) => {
     const answer = measured(rows);
+    // The rows the answer is worked out from are those that add to a total or are counted, so a row
+    // of the group with nothing in the column decides nothing. A group none of whose rows count is
+    // decided by every row looked at.
+    const counting = rows.filter((entry) =>
+      spec.measure === 'count' ? entry.counted : entry.amount !== null,
+    );
     const asked = fillRequest(spec.request, {
       group: names.get(group) ?? group,
       ...(range === null ? {} : { from: range.from, to: range.to }),
@@ -269,7 +283,7 @@ export function runGroupTotal(
         range?.from ?? null,
         range?.to ?? null,
       ]),
-      rows: rows.map((entry) => entry.row),
+      rows: (counting.length > 0 ? counting : rows).map((entry) => entry.row),
       prompt: [question, hint, `End with: ANSWER: {"${key}": <number>}`].join('\n'),
       expected: {
         kind: 'answer',

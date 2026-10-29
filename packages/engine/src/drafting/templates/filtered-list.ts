@@ -1,7 +1,8 @@
 import type { FilteredListSpec, FilterSpec, JsonValue } from '@architect/shared';
-import type { Table } from '../table';
+import { examplesOf, type Table } from '../table';
 import { cleanText, foldKey } from '../values';
 import {
+  addProblem,
   canonicalJson,
   checkRequest,
   columnList,
@@ -12,6 +13,9 @@ import {
   type Candidate,
   type TemplateRun,
 } from './common';
+
+/** The rows of a table the teacher was not shown anything of, when nothing is known of them. */
+const NONE_SHOWN: ReadonlySet<number> = new Set();
 
 /** The most keys an answer may list; a longer list is more than a request should ask for. */
 export const MAX_LISTED = 20;
@@ -141,13 +145,17 @@ function leftOutValues(table: Table, filter: FilterSpec): string[] {
 /**
  * The key values of the rows that meet a few conditions, such as the orders still unshipped in a
  * region. One or two conditions take each of their column's values in turn, one request apiece; the
- * others are fixed. A request is made only when its list is short enough to write out.
+ * others are fixed. A request is made only when its list is short enough to write out. `rowsShown` is
+ * the rows of the table the teacher read while drafting, the only ones whose values a problem
+ * may say to it.
  */
 export function runFilteredList(
   spec: FilteredListSpec,
   table: Table,
+  rowsShown: ReadonlySet<number> = NONE_SHOWN,
 ): TemplateRun<FilteredListSpec> {
   const problems: string[] = [];
+  const inFull = new Map<string, string>();
   const notes: string[] = [];
   const keyColumn = needColumn(table, spec.keyColumn, 'The column to list', problems);
   const filters = spec.filters.map((filter) => {
@@ -210,29 +218,40 @@ export function runFilteredList(
   }
 
   // A condition that no row can meet would leave every list empty. A set of values to keep must
-  // be values the column really holds, so a misspelled one can't quietly drop rows.
+  // be values the column really holds, so a misspelled one can't quietly drop rows. The teacher
+  // is told how many values the column has and the ones it was shown (`examplesOf`), which it
+  // read already; the person is told the values the column holds.
   for (const filter of fixed) {
     const held = spellings(table.rows.map((row) => row[filter.column] ?? null));
-    const holds = (): string => {
+    const holds = (): { teacher: string; person: string } => {
       const values = [...held.values()];
+      const examples = examplesOf(table, filter.column, rowsShown);
       const some = values.slice(0, 12).join(', ');
-      return `${filter.column} holds ${some === '' ? 'nothing' : some}${values.length > 12 ? ' and more' : ''}.`;
+      return {
+        teacher:
+          values.length === 0
+            ? `${filter.column} has no values.`
+            : `${filter.column} has ${values.length} different ${values.length === 1 ? 'value' : 'values'}${examples.length > 0 ? `, such as ${inWords(examples)}` : ''}.`,
+        person: `${filter.column} holds ${some === '' ? 'nothing' : some}${values.length > 12 ? ' and more' : ''}.`,
+      };
     };
     if (filter.op === 'in') {
       const unseen = keptValues(filter).filter((value) => !held.has(value.toLowerCase()));
       if (unseen.length > 0) {
-        problems.push(
-          `No row of ${table.name} has ${inWords(
-            unseen.map((value) => `"${value}"`),
-            'or',
-          )} in ${filter.column}. ${holds()}`,
-        );
+        const none = `No row of ${table.name} has ${inWords(
+          unseen.map((value) => `"${value}"`),
+          'or',
+        )} in ${filter.column}.`;
+        const said = holds();
+        addProblem(problems, inFull, `${none} ${said.teacher}`, `${none} ${said.person}`);
       }
     } else if (!table.rows.some((row) => meets(filter, row[filter.column] ?? null))) {
-      problems.push(`No row of ${table.name} meets "${describeFixed(filter)}". ${holds()}`);
+      const none = `No row of ${table.name} meets "${describeFixed(filter)}".`;
+      const said = holds();
+      addProblem(problems, inFull, `${none} ${said.teacher}`, `${none} ${said.person}`);
     }
   }
-  if (problems.length > 0) return { spec: resolved, candidates: [], problems, notes, rule };
+  if (problems.length > 0) return { spec: resolved, candidates: [], problems, inFull, notes, rule };
   for (const filter of fixed) {
     if (filter.op === 'in') notes.push(...leftOutValues(table, filter));
   }
@@ -244,14 +263,19 @@ export function runFilteredList(
   // that a family doesn't depend on the order the conditions were written in.
   const entity = entityOf(varying, forms);
   // Each combination of values the varying columns take together, with the keys of the rows that
-  // meet every fixed condition. A combination no row meets has an empty list.
-  const lists = new Map<string, { keys: Map<string, string>; rows: number[] }>();
+  // meet every fixed condition, and the rows those keys are from. A combination no row meets has
+  // an empty list, which every one of its rows is looked at to make.
+  const lists = new Map<string, { keys: Map<string, string>; listed: number[]; rows: number[] }>();
   let rowsWithoutKey = 0;
   for (const [at, row] of table.rows.entries()) {
     const values = varying.map((filter) => foldKey(row[filter.column]));
     if (values.some((value) => value === '')) continue;
     const combination = JSON.stringify(values);
-    const list = lists.get(combination) ?? { keys: new Map<string, string>(), rows: [] };
+    const list = lists.get(combination) ?? {
+      keys: new Map<string, string>(),
+      listed: [],
+      rows: [],
+    };
     lists.set(combination, list);
     list.rows.push(at);
     if (!fixed.every((filter) => meets(filter, row[filter.column] ?? null))) continue;
@@ -261,6 +285,7 @@ export function runFilteredList(
       continue;
     }
     list.keys.set(key.toLowerCase(), key);
+    list.listed.push(at);
   }
   if (rowsWithoutKey > 0) {
     notes.push(`${rowsWithoutKey} rows have no ${keyColumn}, so they are never listed.`);
@@ -292,7 +317,8 @@ export function runFilteredList(
     candidates.push({
       family: `list:${table.name}:${entity.column}=${folded[entity.at] ?? ''}`,
       identity: canonicalJson(['list', foldKey(table.name), foldKey(keyColumn), conditions]),
-      rows: list.rows,
+      // The rows the keys are from decide the list; an empty list is decided by every row looked at.
+      rows: list.listed.length > 0 ? list.listed : list.rows,
       prompt: [
         question,
         `List each ${resolved.keyColumn} once, in any order, and use [] if there are none.`,

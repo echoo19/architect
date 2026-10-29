@@ -163,8 +163,12 @@ describe('the rule template on the bike shop', () => {
     });
     const result = runRule(bikeRule(), tables);
     expect(result.candidates).toEqual([]);
-    expect(result.problems.join(' ')).toMatch(
-      /customer_id isn't a key in customers\.csv: \d+ of 40 rows share/,
+    // The teacher is told how many rows share a value, and the person which value.
+    expect(result.problems).toEqual([
+      "customer_id isn't a key in customers.csv: 19 of 40 rows share their value with another row.",
+    ]);
+    expect(result.inFull?.get(result.problems[0] ?? '')).toBe(
+      'customer_id isn\'t a key in customers.csv: 19 of 40 rows share their value with another row, such as "c-101".',
     );
   });
 
@@ -260,9 +264,13 @@ describe('the rule template on the bike shop', () => {
 
     const fineGrained = runRule(spec('0.00000001'), amounts);
     expect(fineGrained.candidates).toEqual([]);
+    // The teacher is told how long the longest answer is, and the person which answer it is.
     expect(fineGrained.problems).toEqual([
-      'An answer such as 333333333.00000003 has 17 digits, and an answer is graded as a number that holds 13 exactly, so a wrong answer could be taken for the right one. Round the answer to a coarser step, such as the cent for money.',
+      'The longest answer has 17 digits, and an answer is graded as a number that holds 13 exactly, so a wrong answer could be taken for the right one. Round the answer to a coarser step, such as the cent for money.',
     ]);
+    expect(fineGrained.inFull?.get(fineGrained.problems[0] ?? '')).toBe(
+      'An answer such as 333333333.00000003 has 17 digits, and an answer is graded as a number that holds 13 exactly, so a wrong answer could be taken for the right one. Round the answer to a coarser step, such as the cent for money.',
+    );
     // Fewer digits after the point is as fine, and small numbers need few digits however small.
     expect(runRule(spec('0.0001'), amounts).problems).toEqual([]);
     expect(significantDigits('0.00000001')).toBe(1);
@@ -460,7 +468,11 @@ describe('what a rule must not be', () => {
   it('refuses an answer that is the same for every case', () => {
     const result = only({ expression: rounded(num('65')) });
     expect(result.candidates).toEqual([]);
+    // The teacher is told the answers are all one; the person, which one.
     expect(result.problems[0]).toBe(
+      'Every row of tickets.csv that can be worked out comes to the same total, so an agent could pass without working anything out.',
+    );
+    expect(result.inFull?.get(result.problems[0] ?? '')).toBe(
       'Every row of tickets.csv that can be worked out comes to the same total, 65, so an agent could pass without working anything out.',
     );
   });

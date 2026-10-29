@@ -1,4 +1,5 @@
 import type { RuleBranch, RuleNode, RuleSpec } from '@architect/shared';
+import { addProblem } from '../templates/common';
 import { parseDecimal } from '../values';
 import type { RuleCase, Tables } from './cases';
 import {
@@ -37,7 +38,10 @@ export function significantDigits(text: string): number {
 }
 
 export interface Audit {
+  /** What is wrong with the rule, in the words the teacher is told: counts, and no answer. */
   problems: string[];
+  /** A problem again with the answers of the records in it, by the words the teacher is told. */
+  inFull: Map<string, string>;
   flags: string[];
   /** Each side of each condition, each operand of a smallest or largest. */
   branches: RuleBranch[];
@@ -140,15 +144,23 @@ export function auditCases(
   passRate: number = DEFAULT_PASS_RATE,
 ): Audit {
   const problems: string[] = [];
+  const inFull = new Map<string, string>();
   const flags: string[] = [];
   const branches: RuleBranch[] = [];
   const eligible = cases.length;
-  if (eligible === 0) return { problems, flags, branches };
+  if (eligible === 0) return { problems, inFull, flags, branches };
 
+  // The teacher is told that the answers are all one, or how long the longest is; the person is
+  // told which, since an answer is the value of a row the teacher was not shown.
   const answers = new Set(cases.map((item) => q.toText(item.answer).text));
   if (answers.size < 2) {
-    problems.push(
-      `Every row of ${spec.table} that can be worked out comes to the same ${spec.answerName}, ${[...answers][0] ?? ''}, so an agent could pass without working anything out.`,
+    const same = `Every row of ${spec.table} that can be worked out comes to the same ${spec.answerName}`;
+    const agent = 'so an agent could pass without working anything out.';
+    addProblem(
+      problems,
+      inFull,
+      `${same}, ${agent}`,
+      `${same}, ${[...answers][0] ?? ''}, ${agent}`,
     );
   }
   // An answer is graded as a number, so one with more digits than a number holds exactly could be
@@ -158,8 +170,12 @@ export function auditCases(
     '0',
   );
   if (significantDigits(longest) > MAX_ANSWER_DIGITS) {
-    problems.push(
-      `An answer such as ${longest} has ${significantDigits(longest)} digits, and an answer is graded as a number that holds ${MAX_ANSWER_DIGITS} exactly, so a wrong answer could be taken for the right one. Round the answer to a coarser step, such as the cent for money.`,
+    const grading = `has ${significantDigits(longest)} digits, and an answer is graded as a number that holds ${MAX_ANSWER_DIGITS} exactly, so a wrong answer could be taken for the right one. Round the answer to a coarser step, such as the cent for money.`;
+    addProblem(
+      problems,
+      inFull,
+      `The longest answer ${grading}`,
+      `An answer such as ${longest} ${grading}`,
     );
   }
 
@@ -271,5 +287,5 @@ export function auditCases(
     );
   }
   // A rounding written on both sides of a condition is one thing to say, once.
-  return { problems, flags: [...new Set(flags)], branches };
+  return { problems, inFull, flags: [...new Set(flags)], branches };
 }

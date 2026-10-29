@@ -481,9 +481,15 @@ describe('the filtered list template', () => {
       orders,
     );
     expect(wrong.candidates).toEqual([]);
+    // The teacher is told how many values the column has and the ones it was shown; the person,
+    // the values the column holds.
+    const told = 'No row of orders.csv has "Waiting" in status.';
     expect(wrong.problems).toEqual([
-      'No row of orders.csv has "Waiting" in status. status holds Pending, Shipped, Cancelled.',
+      `${told} status has 3 different values, such as Pending, Shipped and Cancelled.`,
     ]);
+    expect(wrong.inFull?.get(wrong.problems[0] ?? '')).toBe(
+      `${told} status holds Pending, Shipped, Cancelled.`,
+    );
     const none = runFilteredList(
       list({
         filters: [
@@ -515,8 +521,11 @@ describe('the filtered list template', () => {
       orders,
     );
     expect(unknownValue.problems).toEqual([
-      'No row of orders.csv meets "status is Unshipped". status holds Pending, Shipped, Cancelled.',
+      'No row of orders.csv meets "status is Unshipped". status has 3 different values, such as Pending, Shipped and Cancelled.',
     ]);
+    expect(unknownValue.inFull?.get(unknownValue.problems[0] ?? '')).toBe(
+      'No row of orders.csv meets "status is Unshipped". status holds Pending, Shipped, Cancelled.',
+    );
 
     const wrongColumn = runFilteredList(
       list({
@@ -822,9 +831,15 @@ describe('the group total template', () => {
     );
     const run = runGroupTotal(total(), broken, seededRandom('broken'));
     expect(run.candidates).toEqual([]);
+    // The teacher is told how many cells can't be read, and the person which: a cell is a value
+    // of a row.
     expect(run.problems).toEqual([
-      'amount has 1 values Architect can\'t read as numbers, such as "twelve dollars".',
-      'order_date has 1 values Architect can\'t read as dates, such as "sometime in May".',
+      "amount has 1 value Architect can't read as numbers.",
+      "order_date has 1 value Architect can't read as dates.",
+    ]);
+    expect(run.problems.map((problem) => run.inFull?.get(problem))).toEqual([
+      'amount has 1 value Architect can\'t read as numbers, such as "twelve dollars".',
+      'order_date has 1 value Architect can\'t read as dates, such as "sometime in May".',
     ]);
   });
 

@@ -194,13 +194,20 @@ describe('making the tasks of a job', () => {
     );
     const made = generateTasks([constant], new Map([['customers.csv', same]]), 1);
     expect(made.tasks).toEqual([]);
+    // The teacher is told the answers are all one, and the person which: it is a value of rows.
+    const problem =
+      'Every request would have the same answer, so an agent could pass without reading the data.';
     expect(made.rejected).toEqual([
       {
         id: 'constant',
         label: 'Constant',
-        problems: [
-          'Every request would have the same answer, {"region":"North"}, so an agent could pass without reading the data.',
-        ],
+        problems: [problem],
+        inFull: new Map([
+          [
+            problem,
+            'Every request would have the same answer, {"region":"North"}, so an agent could pass without reading the data.',
+          ],
+        ]),
       },
     ]);
   });
@@ -484,51 +491,113 @@ describe('asking one question once, whichever rule is behind it', () => {
 });
 
 describe('asking the same words of two tables', () => {
-  /** Forty records with the same ids in both files and an amount of each file's own. */
-  const records = (amount: (index: number) => number): string =>
-    `id,amount\n${Array.from({ length: 40 }, (_, index) => `R-${index + 1},${amount(index).toFixed(2)}`).join('\n')}\n`;
-  const pair = new Map([
-    [
-      'tickets.csv',
-      readTable(
+  /** The ids of a file and an amount of each id, as the file writes them. */
+  const records = (ids: readonly string[], amount: (index: number) => number): string =>
+    `id,amount\n${ids.map((id, index) => `${id},${amount(index).toFixed(2)}`).join('\n')}\n`;
+  const ids = (prefix: string, count: number): string[] =>
+    Array.from({ length: count }, (_, index) => `${prefix}-${index + 1}`);
+  const tablesOf = (tickets: readonly string[], archive: readonly string[]) =>
+    new Map([
+      [
         'tickets.csv',
-        records((index) => 100 + index * 2.5),
-      ),
-    ],
-    [
-      'archive.csv',
-      readTable(
+        readTable(
+          'tickets.csv',
+          records(tickets, (index) => 100 + index * 2.5),
+        ),
+      ],
+      [
         'archive.csv',
-        records((index) => 7000 + index * 3.1),
-      ),
-    ],
-  ]);
-  const amountIn = (table: string): TypeInput => ({
+        readTable(
+          'archive.csv',
+          records(archive, (index) => 7000 + index * 3.1),
+        ),
+      ],
+    ]);
+  const amountIn = (
+    table: string,
+    request = 'What is the amount for record {key}?',
+  ): TypeInput => ({
     id: table.replace('.csv', ''),
     label: `Amounts in ${table}`,
     description: 'Look up the amount of a record.',
-    spec: {
-      template: 'lookup',
-      table,
-      keyColumn: 'id',
-      columns: ['amount'],
-      request: 'What is the amount for record {key}?',
-    },
+    spec: { template: 'lookup', table, keyColumn: 'id', columns: ['amount'], request },
+  });
+  /** What an agent reads in each task, set against what it is to answer: one prompt, one answer. */
+  const answersOf = (made: ReturnType<typeof generateTasks>): Map<string, Set<string>> => {
+    const answers = new Map<string, Set<string>>();
+    for (const task of made.tasks) {
+      const prompt = task.prompt.toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+      answers.set(prompt, (answers.get(prompt) ?? new Set()).add(JSON.stringify(task.expected)));
+    }
+    return answers;
+  };
+  const tasksOf = (made: ReturnType<typeof generateTasks>, type: string) =>
+    made.tasks.filter((task) => task.type === type);
+
+  it('sends the second kind back to say which table, when the same words and key have two answers', () => {
+    // Record R-1 is in both files, with the answer of each: asked in the same words of both, an
+    // agent is given one prompt and two right answers.
+    const both = tablesOf(ids('R', 40), ids('R', 40));
+    const made = generateTasks([amountIn('tickets.csv'), amountIn('archive.csv')], both, 5);
+    expect(made.types.map((type) => type.id)).toEqual(['tickets']);
+    expect(made.rejected.map((type) => type.id)).toEqual(['archive']);
+    const told =
+      '40 of its 40 requests read exactly like requests of "Amounts in tickets.csv", which asks about tickets.csv, so an agent could not tell which table to read.';
+    const say = 'Say which table the request is about, for example "in archive.csv".';
+    expect(made.rejected[0]?.problems).toEqual([`${told} ${say}`]);
+    // The teacher is told no key; the person is shown one request that reads the same in both.
+    expect(made.rejected[0]?.problems.join(' ')).not.toMatch(/R-\d/);
+    expect(made.rejected[0]?.inFull.get(`${told} ${say}`)).toMatch(
+      /^40 of its 40 requests .*to read\. One is "What is the amount for record R-\d+\?"\. Say which/,
+    );
+    // No prompt of the job has two answers, whichever file is asked first.
+    for (const [prompt, answers] of answersOf(made)) expect(answers.size, prompt).toBe(1);
+    const swapped = generateTasks([amountIn('archive.csv'), amountIn('tickets.csv')], both, 5);
+    expect(swapped.types.map((type) => type.id)).toEqual(['archive']);
+    expect(swapped.rejected.map((type) => type.id)).toEqual(['tickets']);
   });
 
-  it('keeps both, since each reads other rows and has other answers', () => {
-    const made = generateTasks([amountIn('tickets.csv'), amountIn('archive.csv')], pair, 5);
+  it('sends it back for a few requests too, since the words are the same for every key', () => {
+    // Six of the archive's forty records are also in the tickets.
+    const partly = tablesOf(ids('R', 40), [...ids('A', 34), ...ids('R', 6)]);
+    const made = generateTasks([amountIn('tickets.csv'), amountIn('archive.csv')], partly, 5);
+    expect(made.rejected.map((type) => type.id)).toEqual(['archive']);
+    expect(made.rejected[0]?.problems[0]).toMatch(
+      /^6 of its 40 requests read exactly like requests of "Amounts in tickets\.csv"/,
+    );
+    for (const [prompt, answers] of answersOf(made)) expect(answers.size, prompt).toBe(1);
+  });
+
+  it('keeps both when the two files have no id in common, since no request reads the same', () => {
+    const apart = tablesOf(ids('R', 40), ids('A', 40));
+    const made = generateTasks([amountIn('tickets.csv'), amountIn('archive.csv')], apart, 5);
     expect(made.rejected).toEqual([]);
     expect(made.types.map((type) => type.id)).toEqual(['tickets', 'archive']);
-    for (const id of ['tickets', 'archive']) {
-      expect(made.tasks.filter((task) => task.type === id).length).toBeGreaterThan(30);
+    for (const type of ['tickets', 'archive']) {
+      expect(tasksOf(made, type).length, type).toBeGreaterThan(30);
     }
-    // Record R-1 is asked about in each, and each file gives it its own answer.
-    const expectedOf = (type: string) =>
-      made.tasks.find((task) => task.type === type && task.meta?.['key'] === 'R-1')?.expected;
-    expect(expectedOf('tickets')).toBeDefined();
-    expect(expectedOf('archive')).toBeDefined();
-    expect(expectedOf('tickets')).not.toEqual(expectedOf('archive'));
+    for (const [prompt, answers] of answersOf(made)) expect(answers.size, prompt).toBe(1);
+  });
+
+  it('keeps both when the words name the table, though both files have the same ids', () => {
+    const both = tablesOf(ids('R', 40), ids('R', 40));
+    const made = generateTasks(
+      [
+        amountIn('tickets.csv', 'What is the amount for record {key} in tickets.csv?'),
+        amountIn('archive.csv', 'What is the amount for record {key} in archive.csv?'),
+      ],
+      both,
+      5,
+    );
+    expect(made.rejected).toEqual([]);
+    expect(made.types.map((type) => type.id)).toEqual(['tickets', 'archive']);
+    // Record R-1 is asked about in each, in words that say which file, with each file's answer.
+    const first = (type: string) =>
+      tasksOf(made, type).find((task) => task.meta?.['key'] === 'R-1');
+    expect(first('tickets')?.prompt).toContain('in tickets.csv?');
+    expect(first('archive')?.prompt).toContain('in archive.csv?');
+    expect(first('tickets')?.expected).not.toEqual(first('archive')?.expected);
+    for (const [prompt, answers] of answersOf(made)) expect(answers.size, prompt).toBe(1);
   });
 });
 
@@ -652,6 +721,208 @@ describe('leaving out what the teacher was shown', () => {
     const asked = made.tasks.map((task) => task.meta?.['customer_id']);
     expect(asked).not.toContain(alone);
     expect(asked).toContain(several);
+  });
+});
+
+describe('leaving out what the rows the teacher read decide', () => {
+  // The teacher read the first five rows. A total or a list is left out when those rows alone
+  // decide its answer, which they have all of; when a row it rests on was not shown, the answer is
+  // still the teacher's to work out, and the request stays whether or not it read another row.
+  const shown = (name: string): Map<string, Set<number>> =>
+    new Map([[name, new Set([0, 1, 2, 3, 4])]]);
+
+  it('leaves out a total whose counted rows were all shown, and keeps one with a row it was not', () => {
+    // A has a row shown and one not; B is a group of one, shown; C has a shown row and a row with
+    // no amount, which adds nothing; D has two rows, both shown.
+    const sales = readTable(
+      'sales.csv',
+      [
+        'team,amount',
+        'A,10',
+        'B,20',
+        'C,5',
+        'D,7',
+        'D,8',
+        'A,30',
+        'C,',
+        ...Array.from({ length: 40 }, (_, i) => `G${i},${100 + i * 3}\nG${i},${200 + i * 7}`),
+      ].join('\n'),
+    );
+    const totalsBy: TypeInput = {
+      id: 'team',
+      label: 'Team totals',
+      description: 'Add up the amounts of a team.',
+      spec: {
+        template: 'group_total',
+        table: 'sales.csv',
+        groupColumn: 'team',
+        measure: 'sum',
+        valueColumn: 'amount',
+        unit: 'as_written',
+        request: 'What is the total of the amounts of team {group}?',
+      },
+    };
+    const everyone = generateTasks([totalsBy], new Map([['sales.csv', sales]]), 3);
+    const asked = (made: typeof everyone) => made.tasks.map((task) => task.meta?.['group']);
+    expect(asked(everyone)).toEqual(expect.arrayContaining(['A', 'B', 'C', 'D']));
+
+    const made = generateTasks([totalsBy], new Map([['sales.csv', sales]]), 3, {
+      shown: shown('sales.csv'),
+    });
+    // B, C and D are what the first five rows come to; A also rests on a row the teacher did not read.
+    expect(asked(made)).toContain('A');
+    for (const group of ['B', 'C', 'D']) expect(asked(made), group).not.toContain(group);
+    expect(made.types[0]?.notes.join(' ')).toContain('3 requests were left out of sales.csv');
+    // The groups of two hidden rows are all asked.
+    expect(asked(made)).toEqual(expect.arrayContaining(['G0', 'G17', 'G39']));
+  });
+
+  it('counts only the rows that give a value, so a count the shown rows decide is left out', () => {
+    // A: one amount, shown, and a row with none that was not. B: three amounts, all shown, and a
+    // row with none that was not. C: two amounts, one shown and one not.
+    const given = [
+      ...['A,10', 'B,5', 'B,6', 'B,7', 'C,9'],
+      ...['A,', 'C,12', 'B,'],
+      ...Array.from({ length: 30 }, (_, i) =>
+        Array.from({ length: [1, 3, 4, 5, 6, 7][i % 6] ?? 1 }, (_, n) => `H${i},${n + 1}`).join(
+          '\n',
+        ),
+      ),
+    ];
+    const book = readTable('book.csv', ['team,amount', ...given].join('\n'));
+    const counted: TypeInput = {
+      id: 'counted',
+      label: 'Amounts given',
+      description: 'Count the rows of a team that give an amount.',
+      spec: {
+        template: 'group_total',
+        table: 'book.csv',
+        groupColumn: 'team',
+        measure: 'count',
+        valueColumn: 'amount',
+        unit: 'as_written',
+        request: 'How many amounts were given for team {group}?',
+      },
+    };
+    const made = generateTasks([counted], new Map([['book.csv', book]]), 4, {
+      shown: shown('book.csv'),
+    });
+    const groups = made.tasks.map((task) => task.meta?.['group']);
+    expect(groups).toContain('C');
+    expect(groups.length).toBeGreaterThan(10);
+    for (const group of ['A', 'B']) expect(groups, group).not.toContain(group);
+  });
+
+  it('asks no total within dates that the rows the teacher read decide', () => {
+    // A has two rows in January, shown, and one in March, not. B has three rows, all shown.
+    const rows = [
+      'team,amount,placed',
+      ...[
+        'A,10,2026-01-03',
+        'A,20,2026-01-05',
+        'B,5,2026-01-10',
+        'B,6,2026-02-20',
+        'B,7,2026-03-30',
+      ],
+      'A,40,2026-03-15',
+      ...Array.from({ length: 40 }, (_, i) =>
+        [
+          `H${i},${10 + i},2026-01-${String((i % 27) + 1).padStart(2, '0')}`,
+          `H${i},${60 + 2 * i},2026-02-${String(((i + 7) % 27) + 1).padStart(2, '0')}`,
+          `H${i},${200 + 3 * i},2026-03-${String(((i + 13) % 27) + 1).padStart(2, '0')}`,
+        ].join('\n'),
+      ),
+    ];
+    const book = readTable('book.csv', rows.join('\n'));
+    const ranged: TypeInput = {
+      id: 'ranged',
+      label: 'Team totals in a range',
+      description: 'Add up the amounts of a team between two dates.',
+      spec: {
+        template: 'group_total',
+        table: 'book.csv',
+        groupColumn: 'team',
+        measure: 'sum',
+        valueColumn: 'amount',
+        dateColumn: 'placed',
+        unit: 'as_written',
+        request: 'What is the total of team {group} from {from} to {to}?',
+      },
+    };
+    const read = new Set([0, 1, 2, 3, 4]);
+    /** The rows a total adds up, from the group and the days it names. */
+    const addedUp = (task: { meta?: Record<string, unknown> }): number[] =>
+      book.rows.flatMap((row, at) => {
+        const day = row['placed'] ?? '';
+        return row['team'] === task.meta?.['group'] &&
+          day >= String(task.meta?.['from']) &&
+          day <= String(task.meta?.['to']) &&
+          (row['amount'] ?? '') !== ''
+          ? [at]
+          : [];
+      });
+    const tablesOf = new Map([['book.csv', book]]);
+    // Asked of every row, some totals rest on the rows read alone, so the test has something to leave out.
+    const everyone = generateTasks([ranged], tablesOf, 6);
+    expect(everyone.tasks.filter((task) => addedUp(task).every((at) => read.has(at)))).not.toEqual(
+      [],
+    );
+    const made = generateTasks([ranged], tablesOf, 6, { shown: new Map([['book.csv', read]]) });
+    expect(made.tasks.length).toBeGreaterThan(40);
+    for (const task of made.tasks) {
+      expect(
+        addedUp(task).some((at) => !read.has(at)),
+        String(task.prompt),
+      ).toBe(true);
+    }
+  });
+
+  it('leaves out a list whose rows were all shown, the ones that make it or, for an empty list, all it looked at', () => {
+    // Pending orders of each customer. A: its one pending order was shown, and its other order was
+    // not. B: one pending order shown and one not. C: one shown, and one of another status not.
+    // D: no pending order, and one of its two rows not shown.
+    const orders = readTable(
+      'orders.csv',
+      [
+        'order_id,customer,status',
+        'O-1,A,Pending',
+        'O-2,B,Pending',
+        'O-3,B,Shipped',
+        'O-4,C,Pending',
+        'O-5,D,Shipped',
+        'O-6,A,Shipped',
+        'O-7,B,Pending',
+        'O-8,C,Cancelled',
+        'O-9,D,Shipped',
+        ...Array.from({ length: 40 }, (_, i) => `P-${i},E${i},Pending`),
+      ].join('\n'),
+    );
+    const pendingBy: TypeInput = {
+      id: 'pending',
+      label: 'Pending orders',
+      description: 'List the pending orders of a customer.',
+      spec: {
+        template: 'filtered_list',
+        table: 'orders.csv',
+        keyColumn: 'order_id',
+        filters: [
+          { column: 'status', op: 'equals', value: 'Pending', varies: false },
+          { column: 'customer', op: 'equals', varies: true },
+        ],
+        request: 'Which orders of customer {customer} are still pending?',
+      },
+    };
+    const tablesOf = new Map([['orders.csv', orders]]);
+    const everyone = generateTasks([pendingBy], tablesOf, 3);
+    const asked = (made: typeof everyone) => made.tasks.map((task) => task.meta?.['customer']);
+    expect(asked(everyone)).toEqual(expect.arrayContaining(['A', 'B', 'C', 'D']));
+
+    const made = generateTasks([pendingBy], tablesOf, 3, { shown: shown('orders.csv') });
+    // A and C: the pending orders are all read, whatever else those customers ordered.
+    for (const customer of ['A', 'C']) expect(asked(made), customer).not.toContain(customer);
+    // B has a pending order not shown. D has none, which its row not shown could have changed.
+    for (const customer of ['B', 'D']) expect(asked(made), customer).toContain(customer);
+    expect(asked(made)).toEqual(expect.arrayContaining(['E0', 'E39']));
   });
 });
 

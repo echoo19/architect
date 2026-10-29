@@ -13,7 +13,7 @@ import { runFilteredList } from './templates/filtered-list';
 import { runGroupTotal } from './templates/group-total';
 import { runLookup } from './templates/lookup';
 import { runRule } from './templates/rule';
-import type { Candidate, TemplateRun } from './templates/common';
+import { addProblem, type Candidate, type TemplateRun } from './templates/common';
 import type { Table } from './table';
 import { foldKey } from './values';
 
@@ -75,8 +75,16 @@ export interface Generation {
   tasks: Task[];
   /** The kinds of task that made tasks, in the order they were given. */
   types: GeneratedType[];
-  /** Kinds of task that can't be used, each with its reasons. */
-  rejected: { id: string; label: string; problems: string[] }[];
+  /**
+   * Kinds of task that can't be used, each with its reasons in the words the teacher is told, and
+   * the reasons again with the values of the records in them for the person (`inFull`).
+   */
+  rejected: {
+    id: string;
+    label: string;
+    problems: string[];
+    inFull: ReadonlyMap<string, string>;
+  }[];
   /** Kinds of task whose table supports fewer than `MIN_PER_TYPE` requests. */
   thin: { id: string; label: string; available: number }[];
 }
@@ -87,12 +95,13 @@ function runTemplate(
   tables: ReadonlyMap<string, Table>,
   random: () => number,
   passRate: number,
+  rowsShown: ReadonlySet<number> | undefined,
 ): TemplateRun<TaskSpec> & { outcome?: RuleOutcome | null } {
   switch (spec.template) {
     case 'lookup':
       return runLookup(spec, table);
     case 'filtered_list':
-      return runFilteredList(spec, table);
+      return runFilteredList(spec, table, rowsShown);
     case 'group_total':
       return runGroupTotal(spec, table, random);
     case 'rule':
@@ -181,9 +190,10 @@ export interface GenerationContext {
 }
 
 /**
- * The requests left once the ones worked out only from rows the teacher was shown are taken out.
- * What the teacher has read the answer to must not come up again as a practice task or in the
- * final test.
+ * The requests left once the ones whose answer the rows the teacher was shown decide are taken
+ * out: every row a request is worked out from (`Candidate.rows`) was shown. What the teacher has
+ * read the answer to must not come up again as a practice task or in the final test. A request
+ * with a row the teacher was not shown stays, since the answer is still the teacher's to work out.
  */
 function exceptShown(
   candidates: readonly Candidate[],
@@ -199,21 +209,37 @@ function exceptShown(
   return { kept, left: candidates.length - kept.length };
 }
 
-/**
- * A request as it reads, with case, spacing and punctuation set aside, and the table it is put
- * to: what two kinds of task ask when they put the same words to the same table, however their
- * rules were written. The same words put to two tables are two questions, since they read other
- * rows and have other answers.
- */
-function wordsOf(table: string, candidate: Candidate): string {
+/** The request of a candidate as the agent reads it, without the lines that state the answer. */
+function requestOf(candidate: Candidate): string {
   const request = candidate.meta['request'];
-  const text = typeof request === 'string' ? request : (candidate.prompt.split('\n')[0] ?? '');
-  const words = text
+  return typeof request === 'string' ? request : (candidate.prompt.split('\n')[0] ?? '');
+}
+
+/** Text as it reads, with case, spacing and punctuation set aside. */
+function plainWords(text: string): string {
+  return text
     .normalize('NFKC')
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
-  return `${foldKey(table)}\n${words}`;
+}
+
+/**
+ * A request as it reads, with case, spacing and punctuation set aside, and the table it is put
+ * to: what two kinds of task ask when they put the same words to the same table, however their
+ * rules were written.
+ */
+function wordsOf(table: string, candidate: Candidate): string {
+  return `${foldKey(table)}\n${plainWords(requestOf(candidate))}`;
+}
+
+/**
+ * Everything an agent is told by a request, as it reads. The table is not in it, since the agent
+ * is not told one unless the words say it, so two kinds of task that put these same words to
+ * two tables give an agent one prompt with two answers.
+ */
+function promptOf(candidate: Candidate): string {
+  return plainWords(candidate.prompt);
 }
 
 /** Kinds of task whose every request is about one row of one table. */
@@ -299,9 +325,11 @@ function choose(kinds: readonly Asking[], shares: readonly number[]): Candidate[
  * ordered or which template wrote it, is left out, so that one question is never a practice task
  * and a final-test task at once. So is a request that puts an earlier one's words to the same
  * row, whatever rule is behind it: two rules that work out the same number in another order, or
- * differently, still ask one question in those words. So are the requests whose answer comes only
- * from rows the teacher was shown (`shown`). `passRate` is the share of tasks the job asks to get
- * right, which a rule that is a copy in that many cases must not reach.
+ * differently, still ask one question in those words. So are the requests whose answer the rows
+ * the teacher was shown decide (`shown`). A kind whose requests read exactly like an earlier
+ * kind's about another table is rejected: the agent is not told the table, so it would be given
+ * one prompt with two answers. `passRate` is the share of tasks the job asks to get right, which
+ * a rule that is a copy in that many cases must not reach.
  */
 export function generateTasks(
   inputs: readonly TypeInput[],
@@ -321,6 +349,8 @@ export function generateTasks(
   const asked = new Map<string, string>();
   /** The words of each request, with the kind of task that put them first. */
   const worded = new Map<string, string>();
+  /** What an agent reads in each request, with the kind of task and the table that put it first. */
+  const prompted = new Map<string, { label: string; table: string }>();
 
   for (const input of inputs) {
     const random = seededRandom(`architect-draft:${seed}:${input.id}`);
@@ -330,11 +360,20 @@ export function generateTasks(
         id: input.id,
         label: input.label,
         problems: [`There is no table called ${input.spec.table}.`],
+        inFull: new Map(),
       });
       continue;
     }
-    const run = runTemplate(input.spec, table, tables, random, passRate);
+    const run = runTemplate(
+      input.spec,
+      table,
+      tables,
+      random,
+      passRate,
+      shownRows.get(input.spec.table),
+    );
     const problems = [...run.problems];
+    const inFull = new Map(run.inFull);
     let candidates = run.candidates;
     if (problems.length === 0) {
       const unshown = exceptShown(candidates, shownRows.get(input.spec.table));
@@ -366,17 +405,40 @@ export function generateTasks(
         }
       }
       candidates = fresh;
+      // An agent is not told which table a request is about, so the same words put to two tables
+      // are one prompt with two answers: a request an earlier kind of task has put to another
+      // table, in words that read the same, can't be told from it. The kind that comes second is
+      // sent back to say which table it means.
+      const crossed = candidates.filter((candidate) => prompted.has(promptOf(candidate)));
+      const first = crossed[0];
+      const other = first === undefined ? undefined : prompted.get(promptOf(first));
+      if (first !== undefined && other !== undefined) {
+        const reads = `${crossed.length} of its ${candidates.length} requests read exactly like requests of "${other.label}", which asks about ${other.table}, so an agent could not tell which table to read.`;
+        const say = `Say which table the request is about, for example "in ${table.name}".`;
+        addProblem(
+          problems,
+          inFull,
+          `${reads} ${say}`,
+          `${reads} One is "${requestOf(first)}". ${say}`,
+        );
+        candidates = [];
+      }
     }
     if (problems.length === 0 && candidates.length > 0) {
       const answers = new Set(candidates.map((candidate) => candidate.answerKey));
       if (answers.size < 2) {
-        problems.push(
-          `Every request would have the same answer${answers.size === 1 ? `, ${shown([...answers][0] ?? '')}` : ''}, so an agent could pass without reading the data.`,
+        const same = 'Every request would have the same answer';
+        const agent = 'so an agent could pass without reading the data.';
+        addProblem(
+          problems,
+          inFull,
+          `${same}, ${agent}`,
+          `${same}${answers.size === 1 ? `, ${shown([...answers][0] ?? '')}` : ''}, ${agent}`,
         );
       }
     }
     if (problems.length > 0) {
-      rejected.push({ id: input.id, label: input.label, problems });
+      rejected.push({ id: input.id, label: input.label, problems, inFull });
       continue;
     }
     // Every question this kind could ask is its own, whichever of them it ends up choosing, so a
@@ -390,6 +452,7 @@ export function generateTasks(
     for (const candidate of askable) {
       asked.set(candidate.identity, input.label);
       worded.set(wordsOf(table.name, candidate), input.label);
+      prompted.set(promptOf(candidate), { label: input.label, table: table.name });
     }
     usable.push({ input, run, candidates, random });
   }
