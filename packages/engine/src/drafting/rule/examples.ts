@@ -296,9 +296,7 @@ export function chooseExamples(
       continue;
     }
     examples.push(
-      exampleOf(outcome, made.item, [`A rounding edge (${what}), with made-up numbers`], {
-        request: made.request,
-      }),
+      exampleOf(outcome, made.item, [`A rounding edge (${what})`], { request: made.request }),
     );
   }
   return { examples, uncovered };

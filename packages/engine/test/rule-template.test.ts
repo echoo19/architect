@@ -424,6 +424,9 @@ describe('what a rule must not be', () => {
     expect(run().outcome?.details.flags).not.toContain(
       'The rounding step (up to a multiple of 0.5) never changed a value in your records, so no task shows it at work.',
     );
+    // The hours are rounded the same way on both sides of the member test: one thing to say.
+    expect(result.outcome?.details.flags).toHaveLength(2);
+    expect(result.notes.filter((note) => note.includes('up to a multiple of 0.5'))).toHaveLength(1);
   });
 
   it('refuses a rule for which no row can be worked out, with the main reasons', () => {

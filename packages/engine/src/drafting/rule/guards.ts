@@ -178,5 +178,6 @@ export function auditCases(
       `The rounding step (${roundingText(node.mode, node.increment, words.currency)}) never changed a value in your records, so no task shows it at work.`,
     );
   }
-  return { problems, flags, branches };
+  // A rounding written on both sides of a condition is one thing to say, once.
+  return { problems, flags: [...new Set(flags)], branches };
 }
