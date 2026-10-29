@@ -1,4 +1,4 @@
-import { cleanText } from '../values';
+import { cleanText, currencyCodes, currencySigns } from '../values';
 
 /*
  * Which currency a cell says its amount is in, when it says. A rule declares the one currency its
@@ -22,17 +22,18 @@ const SIGNS: Readonly<Record<string, readonly string[]>> = {
   '\u{20bd}': ['RUB'],
 };
 
-const CODES = /\b(USD|EUR|GBP|CAD|AUD|NZD|JPY|CHF|CNY|INR|MXN|KRW|RUB)\b/gi;
-
-/** What each currency sign or code in a cell could stand for, one set per mark. */
+/**
+ * What each currency sign or code in a cell could stand for, one set per mark. The marks are the
+ * ones `parseDecimal` takes off a number, so a cell it reads always has its currency checked.
+ */
 export function marksIn(cell: string | null | undefined): (readonly string[])[] {
   const text = cleanText(cell);
   const marks: (readonly string[])[] = [];
-  for (const sign of text.matchAll(/[$\u{a2}\u{a3}\u{a5}\u{20a9}\u{20ac}\u{20b9}\u{20bd}]/gu)) {
+  for (const sign of text.matchAll(currencySigns())) {
     const meant = SIGNS[sign[0]];
     if (meant !== undefined) marks.push(meant);
   }
-  for (const code of text.matchAll(CODES)) marks.push([code[1]?.toUpperCase() ?? '']);
+  for (const code of text.matchAll(currencyCodes())) marks.push([code[1]?.toUpperCase() ?? '']);
   return marks;
 }
 

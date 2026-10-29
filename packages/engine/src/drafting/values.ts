@@ -69,9 +69,32 @@ export interface Decimal {
 /** The most digits after the point a cell may have. */
 const MAX_PLACES = 8;
 
-/** Dollar, cent, pound, yen, won, euro, rupee and ruble signs. */
-const CURRENCY_SIGNS = /[$\u{a2}\u{a3}\u{a5}\u{20a9}\u{20ac}\u{20b9}\u{20bd}]/gu;
-const CURRENCY_CODES = /\b(?:USD|EUR|GBP|CAD|AUD|NZD|JPY|CHF|CNY|INR|MXN)\b/gi;
+/**
+ * The currencies Architect knows by their ISO code and by their sign, in one place so that the
+ * reading of a number and the check of a rule's currency can't disagree about what a mark is.
+ * The signs are dollar, cent, pound, yen, won, euro, rupee and ruble.
+ */
+export const CURRENCY_CODE_LIST = [
+  'USD',
+  'EUR',
+  'GBP',
+  'CAD',
+  'AUD',
+  'NZD',
+  'JPY',
+  'CHF',
+  'CNY',
+  'INR',
+  'MXN',
+  'KRW',
+  'RUB',
+] as const;
+export const CURRENCY_SIGN_CHARS = '$\u{a2}\u{a3}\u{a5}\u{20a9}\u{20ac}\u{20b9}\u{20bd}';
+
+/** Every currency sign and every currency code in a text, each a pattern of its own to match with. */
+export const currencySigns = (): RegExp => new RegExp(`[${CURRENCY_SIGN_CHARS}]`, 'gu');
+export const currencyCodes = (): RegExp =>
+  new RegExp(`\\b(${CURRENCY_CODE_LIST.join('|')})\\b`, 'gi');
 /** A hyphen or a true minus sign. */
 const SIGN_BEFORE = /^[-\u{2212}]\s*/u;
 const SIGN_AFTER = /\s*[-\u{2212}]$/u;
@@ -126,7 +149,7 @@ export function parseDecimal(cell: string | null | undefined): Decimal | null {
     negative = true;
     text = (bracketed[1] ?? '').trim();
   }
-  text = text.replace(CURRENCY_CODES, '').replace(CURRENCY_SIGNS, '').trim();
+  text = text.replace(currencyCodes(), '').replace(currencySigns(), '').trim();
   if (SIGN_BEFORE.test(text)) {
     negative = true;
     text = text.replace(SIGN_BEFORE, '');

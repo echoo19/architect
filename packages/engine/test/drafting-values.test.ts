@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { agreed, currencyName, marksIn } from '../src/drafting/rule/currency';
 import { readTable, kindOf, profileColumn, resolveDateOrder } from '../src/drafting/table';
 import {
   addDays,
   cleanText,
+  CURRENCY_CODE_LIST,
+  CURRENCY_SIGN_CHARS,
   dateOrderEvidence,
   dayNumber,
   decimalToNumber,
@@ -73,6 +76,23 @@ describe('reading numbers', () => {
     expect(read('1200 EUR')).toBe('1200/0');
     expect(read('\u{20ac}99.99')).toBe('9999/2');
     expect(read('  "1,250.00"  ')).toBe('125000/2');
+  });
+
+  it('takes off every currency code and sign that a rule recognises, so a cell it checks is a cell it reads', () => {
+    // The two lists used to differ: KRW and RUB were recognised as currencies but left in the number.
+    for (const code of CURRENCY_CODE_LIST) {
+      expect(read(`${code} 1,200`), code).toBe('1200/0');
+      expect(read(`1,200.50 ${code.toLowerCase()}`), code).toBe('120050/2');
+      expect(marksIn(`${code} 1200`), code).toEqual([[code]]);
+      expect(currencyName(code), code).not.toBe(code);
+    }
+    for (const sign of CURRENCY_SIGN_CHARS) {
+      expect(read(`${sign}1,200`), sign).toBe('1200/0');
+      expect(marksIn(`${sign}1200`), sign).toHaveLength(1);
+    }
+    expect(agreed(marksIn('KRW 1200'))).toEqual(['KRW']);
+    expect(agreed(marksIn('\u{20a9}1200'))).toEqual(['KRW']);
+    expect(agreed(marksIn('\u{20bd} 90'))).toEqual(['RUB']);
   });
 
   it('reads a decimal comma and spaced groups', () => {

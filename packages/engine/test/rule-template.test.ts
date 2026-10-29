@@ -203,6 +203,34 @@ describe('the rule template on the bike shop', () => {
     ]);
   });
 
+  it('reads amounts written in won or rubles, by code or by sign, when the rule declares that currency', () => {
+    for (const [code, sign] of [
+      ['KRW', '\u{20a9}'],
+      ['RUB', '\u{20bd}'],
+    ] as const) {
+      const written = edited((tickets) => {
+        for (const row of tickets.slice(1)) row[4] = (row[4] ?? '').replaceAll('$', '');
+        (tickets[1] as string[])[4] = `${code} 1200`;
+        (tickets[2] as string[])[4] = `${sign}2500`;
+      });
+      const keys = (written.get('tickets.csv')?.rows ?? [])
+        .slice(0, 2)
+        .map((row) => row['ticket_id']);
+      expect(keys).toHaveLength(2);
+      const result = runRule(bikeRule({ currency: code }), written);
+      expect(result.problems, code).toEqual([]);
+      const reasons = result.outcome?.details.excluded.map((item) => item.reason) ?? [];
+      expect(reasons.join(' '), code).not.toContain("can't be read as a number");
+      const worked = result.candidates.map((candidate) => candidate.meta['key']);
+      for (const key of keys) expect(worked, `${code} ${key}`).toContain(key);
+      // Declared in dollars instead, the same two cells are in another currency, not unreadable.
+      const dollars = runRule(bikeRule(), written);
+      expect(dollars.outcome?.details.excluded.map((item) => item.reason)).toContain(
+        'parts_cost is written in a currency other than US dollars',
+      );
+    }
+  });
+
   it('refuses a column that holds words where the rule adds numbers', () => {
     const result = runRule(
       bikeRule({
