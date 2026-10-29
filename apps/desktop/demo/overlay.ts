@@ -87,13 +87,15 @@ export async function setSpeedMark(page: Page, factor?: number): Promise<void> {
   }, factor);
 }
 
+/** Draws the title card: `words` is how far its words have faded in, `card` the whole card. */
 export async function showTitle(
   page: Page,
   title: { heading: string; eyebrow?: string },
-  opacity: number,
+  words: number,
+  card: number,
 ): Promise<void> {
   await page.evaluate(
-    ({ heading, eyebrow, opacity: alpha }) => {
+    ({ heading, eyebrow, words: wordsAlpha, card: alpha }) => {
       let card = document.getElementById('architect-demo-title');
       if (!card) {
         card = document.createElement('div');
@@ -139,12 +141,15 @@ export async function showTitle(
         document.body.append(card);
       }
       card.style.opacity = String(alpha);
+      for (const child of Array.from(card.children)) {
+        (child as HTMLElement).style.opacity = String(wordsAlpha);
+      }
       const eyebrowNode = document.getElementById('architect-demo-eyebrow');
       const headingNode = document.getElementById('architect-demo-heading');
       if (eyebrowNode) eyebrowNode.textContent = eyebrow ?? 'ARCHITECT';
       if (headingNode) headingNode.textContent = heading;
     },
-    { ...title, opacity },
+    { ...title, words, card },
   );
 }
 

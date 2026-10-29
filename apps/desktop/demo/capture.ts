@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
@@ -104,6 +105,10 @@ async function executeStep(
 }
 
 export async function captureScene(scene: DemoScene, sceneDir: string): Promise<CapturedScene> {
+  // A folder that already holds data would mix an earlier take into this one.
+  if (scene.keepData && existsSync(scene.keepData)) {
+    throw new Error(`${scene.keepData} exists already; the scene keeps its data in a new folder.`);
+  }
   const framesDir = join(sceneDir, 'frames');
   await mkdir(framesDir, { recursive: true });
   process.stdout.write('Launching hidden Electron window\n');
@@ -138,19 +143,35 @@ export async function captureScene(scene: DemoScene, sceneDir: string): Promise<
     });
     await scene.setup?.(launched);
     await page.evaluate(() => document.fonts.ready.then(() => undefined));
+    for (const step of scene.prepare ?? []) await executeStep(step, page, app, pointer);
+    // The first screenshots of a fresh window are slow; take one that isn't kept, so the title's
+    // frames come at the usual pace.
+    await page.screenshot({ type: 'jpeg', quality: 10, timeout: 15000 });
+    // A scene of a title alone is a closing card: it stays on the card to the end.
+    const closing = scene.steps.length === 0;
     if (scene.title) {
       const start = performance.now();
       const durationMs = scene.title.seconds * 1000;
       let frameIndex = 0;
       while (performance.now() - start < durationMs) {
         const progress = (performance.now() - start) / durationMs;
-        const fade = Math.min(1, progress / 0.17, (1 - progress) / 0.17);
-        await showTitle(page, scene.title, Math.max(0, fade));
+        // The words fade in on a dark card; at the end the whole card fades onto the screen.
+        await showTitle(
+          page,
+          scene.title,
+          Math.max(0, Math.min(1, progress / 0.17)),
+          closing ? 1 : Math.max(0, Math.min(1, (1 - progress) / 0.17)),
+        );
         await capture('title');
         frameIndex++;
         await sleep(Math.max(0, start + frameIndex * FRAME_MS - performance.now()));
       }
-      await hideTitle(page);
+      if (!closing) await hideTitle(page);
+    }
+    if (closing) {
+      const result = { name: scene.name, frames, speedIntervals };
+      await writeFile(join(sceneDir, 'frames.json'), JSON.stringify(result, null, 2));
+      return result;
     }
 
     let stopped = false;
@@ -194,6 +215,6 @@ export async function captureScene(scene: DemoScene, sceneDir: string): Promise<
     await writeFile(join(sceneDir, 'frames.json'), JSON.stringify(result, null, 2));
     return result;
   } finally {
-    await launched.close();
+    await launched.close(scene.keepData);
   }
 }
