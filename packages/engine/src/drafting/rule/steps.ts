@@ -1,4 +1,4 @@
-import type { RuleNode, RuleStep } from '@architect/shared';
+import type { RuleNode, RuleRounding, RuleStep } from '@architect/shared';
 import { inWords } from '../templates/common';
 import { numberRefs, refKey, type ColumnRef } from './expression';
 import * as q from './rational';
@@ -21,7 +21,6 @@ import {
  */
 
 type IfNode = Extract<RuleNode, { op: 'if' }>;
-type RoundNode = Extract<RuleNode, { op: 'round' }>;
 type Arithmetic = 'add' | 'sub' | 'mul' | 'div';
 
 /** Something done to an amount that already exists. */
@@ -30,7 +29,8 @@ export type Doing =
   | { kind: 'do'; op: Arithmetic; operand: RuleNode }
   /** It is held to the smaller or the larger of itself and others. */
   | { kind: 'best'; op: 'min' | 'max'; others: RuleNode[] }
-  | { kind: 'round'; node: RoundNode };
+  /** It is rounded. The rounding is told apart from what it rounds, so two of them can be alike. */
+  | { kind: 'round'; increment: string; mode: RuleRounding };
 
 /** One thing in the chain a rule comes to. */
 export type Link =
@@ -103,7 +103,10 @@ function arithmetic(op: Arithmetic, operand: RuleNode, ctx: WordsContext): Link[
   return [{ kind: 'do', op, operand }];
 }
 
-/** A test: what its two sides share is said once, and what they differ in under the test. */
+/**
+ * A test: what its two sides start with and what they end with is said once, before and after the
+ * test, and only what differs in between is said under it.
+ */
 function conditional(node: IfNode, ctx: WordsContext): Link[] {
   const then = linksOf(node.then, ctx);
   const otherwise = linksOf(node.else, ctx);
@@ -115,9 +118,21 @@ function conditional(node: IfNode, ctx: WordsContext): Link[] {
   const first = then.slice(shared);
   const second = otherwise.slice(shared);
   if (shared === 0 || !allDoing(first) || !allDoing(second)) return [{ kind: 'pick', node }];
-  if (first.length === 0 && second.length === 0) return then.slice(0, shared);
-  const split = splitBy(node, first, second, ctx);
-  return split === null ? [{ kind: 'pick', node }] : [...then.slice(0, shared), split];
+  // What both sides end with, such as a rounding written on each, is done once after the test.
+  let tail = 0;
+  while (tail < first.length && tail < second.length) {
+    const one = first[first.length - 1 - tail];
+    const other = second[second.length - 1 - tail];
+    if (one === undefined || other === undefined || !same(one, other)) break;
+    tail += 1;
+  }
+  const ends = first.slice(first.length - tail);
+  const firstOnly = first.slice(0, first.length - tail);
+  const secondOnly = second.slice(0, second.length - tail);
+  const start = then.slice(0, shared);
+  if (firstOnly.length === 0 && secondOnly.length === 0) return [...start, ...ends];
+  const split = splitBy(node, firstOnly, secondOnly, ctx);
+  return split === null ? [{ kind: 'pick', node }] : [...start, split, ...ends];
 }
 
 /** The chain a rule comes to, from the amount it begins as to the last thing done to it. */
@@ -151,7 +166,10 @@ export function linksOf(node: RuleNode, ctx: WordsContext): Link[] {
       ];
     }
     case 'round':
-      return [...linksOf(node.arg, ctx), { kind: 'round', node }];
+      return [
+        ...linksOf(node.arg, ctx),
+        { kind: 'round', increment: node.increment, mode: node.mode },
+      ];
     case 'if':
       return conditional(node, ctx);
   }
@@ -181,8 +199,11 @@ function namedBy(link: Link): RuleNode[] {
 }
 
 /** How a rounding is said: "up to a multiple of 0.5", "to the nearest cent; half a cent rounds up". */
-function roundedHow(node: RoundNode, ctx: WordsContext): string {
-  const { how, tie } = roundingParts(node.mode, node.increment, ctx.currency);
+function roundedHow(
+  rounding: { increment: string; mode: RuleRounding },
+  ctx: WordsContext,
+): string {
+  const { how, tie } = roundingParts(rounding.mode, rounding.increment, ctx.currency);
   return tie === null ? how : `${how}; ${tie}`;
 }
 
@@ -211,7 +232,7 @@ function doing(link: Doing, ctx: WordsContext): string {
         ...link.others.map((other) => operandOf(other, ctx)),
       ])}`;
     case 'round':
-      return `round the result ${roundedHow(link.node, ctx)}`;
+      return `round the result ${roundedHow(link, ctx)}`;
   }
 }
 
@@ -253,7 +274,7 @@ function said(link: Link, ctx: WordsContext): string {
  */
 function together(start: RuleNode, next: Link, ctx: WordsContext): string | null {
   const what = phrase(start, ctx).text;
-  if (next.kind === 'round') return `Round ${what} ${roundedHow(next.node, ctx)}.`;
+  if (next.kind === 'round') return `Round ${what} ${roundedHow(next, ctx)}.`;
   if (next.kind === 'do' && (next.op === 'mul' || next.op === 'div')) {
     const verb = next.op === 'mul' ? 'Multiply' : 'Divide';
     return `${verb} ${what} by ${operandOf(next.operand, ctx)}.`;

@@ -78,6 +78,37 @@ describe("a rule told as steps, the shop's rule first", () => {
     ]);
   });
 
+  it('says what both sides end with once, after the test, such as a rounding written on each', () => {
+    const roundedUp = (arg: RuleNode): RuleNode => rounded(arg, '5', 'up');
+    const hours = (...factors: string[]): RuleNode => ({
+      op: 'mul',
+      args: [col('hours'), ...factors.map(num)],
+    });
+    // The discount is all that differs; both prices go up to the next five.
+    expect(
+      textOf(rounded(whenMember(roundedUp(hours('65', '0.9')), roundedUp(hours('65'))))),
+    ).toEqual([
+      'Multiply hours by 65.',
+      'When member (customers.csv) is yes, multiply by 0.9.',
+      'Round the result up to a multiple of 5.',
+      'Round the result to the nearest cent; half a cent rounds up.',
+    ]);
+    // Each side does something of its own, and the ending is the same.
+    expect(textOf(rounded(whenMember(roundedUp(hours('55')), roundedUp(hours('65')))))).toEqual([
+      'Start with hours.',
+      'When member (customers.csv) is yes, multiply by 55. Otherwise, multiply by 65.',
+      'Round the result up to a multiple of 5.',
+      'Round the result to the nearest cent; half a cent rounds up.',
+    ]);
+    // The side that does the extra thing is the other one, and the test is said the other way.
+    expect(textOf(rounded(whenMember(roundedUp(col('hours')), roundedUp(hours('2')))))).toEqual([
+      'Start with hours.',
+      'When member (customers.csv) is no, multiply by 2.',
+      'Round the result up to a multiple of 5.',
+      'Round the result to the nearest cent; half a cent rounds up.',
+    ]);
+  });
+
   it('spreads a test used as a factor over its two sides, leaving out a side that multiplies by one', () => {
     const factor = (then: string, otherwise: string) =>
       rounded({
@@ -316,6 +347,13 @@ function generator(seed: string) {
     if (more < 0.9) return { op: 'round', arg: base, increment: choose(['1', '0.5']), mode: 'up' };
     return { op: 'max', args: [base, leaf()] };
   };
+  /** Something done to either side of a test alike: a rounding, or a doubling. */
+  const endWith =
+    (rounding: boolean) =>
+    (side: RuleNode): RuleNode =>
+      rounding
+        ? { op: 'round', arg: side, increment: '1', mode: 'up' }
+        : { op: 'mul', args: [side, num('2')] };
   function node(depth: number): RuleNode {
     if (depth <= 0 || random() < 0.2) return leaf();
     const kind = random();
@@ -344,9 +382,12 @@ function generator(seed: string) {
     }
     const then = node(depth - 1);
     const otherwise = random() < 0.6 ? extended(then) : node(depth - 1);
+    // Both sides may end the same way, such as with a rounding written on each.
+    const ending = endWith(random() < 0.5);
+    const [first, second] = random() < 0.25 ? [ending(then), ending(otherwise)] : [then, otherwise];
     return random() < 0.5
-      ? { op: 'if', when: condition(depth), then, else: otherwise }
-      : { op: 'if', when: condition(depth), then: otherwise, else: then };
+      ? { op: 'if', when: condition(depth), then: first, else: second }
+      : { op: 'if', when: condition(depth), then: second, else: first };
   }
   const inputs = (): CaseInputs => {
     const numbers = new Map(
@@ -376,7 +417,7 @@ function followed(links: readonly Link[], inputs: CaseInputs): q.Q {
   const worked = (doing: Doing, value: q.Q): q.Q => {
     if (doing.kind === 'do') return APPLY[doing.op](value, evaluate(doing.operand, inputs).value);
     if (doing.kind === 'round') {
-      return q.roundTo(value, q.fromText(doing.node.increment) ?? q.ONE, doing.node.mode);
+      return q.roundTo(value, q.fromText(doing.increment) ?? q.ONE, doing.mode);
     }
     const all = [value, ...doing.others.map((other) => evaluate(other, inputs).value)];
     return all.reduce((best, next) => {
