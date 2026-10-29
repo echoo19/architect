@@ -70,7 +70,7 @@ import {
   settledMessage,
   systemPrompt,
 } from './prompts';
-import { markWords } from './rule/placeholders';
+import { markWords, unaskedLine } from './rule/placeholders';
 import type { BlankAsked, MarkAsked, TableBlank, TableMark } from './rule-reply';
 import { foldKey } from './values';
 
@@ -765,13 +765,7 @@ export class JobDrafting implements JobDrafter {
       ),
     ];
     const { spend } = session;
-    const unresolved = [
-      ...drafted.unresolved,
-      ...unasked.map(
-        (item) =>
-          `${item.column} in ${item.table} also holds ${markWords(item.mark)}. I did not ask what it means, so those rows are left out.`,
-      ),
-    ];
+    const unresolved = [...drafted.unresolved, ...unasked.map(unaskedLine)];
     const specs = new Map<string, { rule: string; spec: TaskSpec; details?: RuleDetails }>(
       (built.generation?.types ?? []).map((type) => [
         type.id,

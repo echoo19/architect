@@ -14,8 +14,8 @@ import {
 import { z } from 'zod';
 import type { Attached } from './files';
 import { list, objectOf, text } from './json-parts';
-import { numberRefs } from './rule/expression';
-import { markQuestion, placeholdersIn, sameMark, type Placeholder } from './rule/placeholders';
+import { numberRefs, type ColumnRef } from './rule/expression';
+import { markQuestion, placeholdersIn, sameMark, unaskedLine } from './rule/placeholders';
 import { expandSteps, stepSchema, WireStepSchema } from './rule-steps';
 import { cellsOf, findColumn, kindOf, type Table } from './table';
 import { briefly, cleanText, foldKey } from './values';
@@ -166,18 +166,18 @@ export type TableMark = PlaceholderAnswer & { question: string };
 /**
  * The answer the person gave about this mark in this column of this table, if they gave one. An
  * answer about another table, another column or another mark never stands in for it, however alike
- * they are named.
+ * they are named. The column is the one the table finds by the answer's name, so in a table with
+ * both a Cost and a cost an answer about one is never taken for the other.
  */
 function markFor(
   marks: readonly TableMark[] | undefined,
-  table: string,
-  column: string,
+  found: { table: string; header: string; data: Table },
   mark: string,
 ): TableMark | undefined {
   return (marks ?? []).find(
     (answer) =>
-      foldKey(answer.table) === foldKey(table) &&
-      foldKey(answer.column) === foldKey(column) &&
+      foldKey(answer.table) === foldKey(found.table) &&
+      findColumn(found.data, answer.column) === found.header &&
       sameMark(answer.mark, mark),
   );
 }
@@ -272,7 +272,10 @@ export interface Settled {
     /** Set for a question Architect asks about a mark itself, even when the teacher raised none. */
     mark?: MarkAsked;
   }[];
-  /** Open questions that don't change an answer, which are told as left open. */
+  /**
+   * Open questions that don't change an answer, which are told as left open, and the marks Architect
+   * had no room to ask about, whose rows stay out.
+   */
   left: string[];
 }
 
@@ -443,9 +446,12 @@ export function settleRule(
       ...asked,
       ...marked.open,
     ],
-    left: ambiguities
-      .filter((item) => !item.changesAnswers && item.blankColumn === '')
-      .map((item) => item.question),
+    left: [
+      ...ambiguities
+        .filter((item) => !item.changesAnswers && item.blankColumn === '')
+        .map((item) => item.question),
+      ...marked.unasked.map(unaskedLine),
+    ],
   };
 }
 
@@ -460,12 +466,12 @@ function numberColumnOf(
   name: string | undefined,
   column: string,
   attached: Attached,
-): { table: string; header: string; cells: (string | null)[] } | undefined {
+): { table: string; header: string; data: Table; cells: (string | null)[] } | undefined {
   const table: Table | undefined = attached.files.find((file) => file.name === name)?.table;
   const header = table === undefined ? null : findColumn(table, column);
   if (name === undefined || table === undefined || header === null) return undefined;
   const cells = cellsOf(table, header);
-  return kindOf(cells) === 'number' ? { table: name, header, cells } : undefined;
+  return kindOf(cells) === 'number' ? { table: name, header, data: table, cells } : undefined;
 }
 
 /**
@@ -474,6 +480,11 @@ function numberColumnOf(
  * should be: the marks they said count as zero, for the rule to carry, and a question for each
  * mark they have not been asked about yet. The teacher has no part in it. Asked once for each
  * table, column and mark, in the order the column holds them most to least often.
+ *
+ * A rule names marks in a few columns at most, and a few marks in each (`RULE_LIMITS`). A mark
+ * past that room is not asked about, its rows stay out as they always did, and the draft says so,
+ * so that no answer can make a rule too big to hold. The columns with a mark counted as zero have
+ * the room first, then those with a mark still to ask about.
  */
 function marksOf(
   expression: RuleNode,
@@ -483,11 +494,11 @@ function marksOf(
   columns: NonNullable<RuleSpec['placeholderMeansZero']>;
   zero: TableMark[];
   open: { question: string; options: string[]; mark: MarkAsked }[];
+  unasked: MarkAsked[];
 } {
-  const columns: NonNullable<RuleSpec['placeholderMeansZero']> = [];
-  const zero: TableMark[] = [];
-  const open: { question: string; options: string[]; mark: MarkAsked }[] = [];
-  const asked = new Set<string>();
+  // Each column the rule adds up that holds marks: those the person said count as zero, and those
+  // they have not been asked about. A mark whose rows they said to leave out is settled.
+  const read: { ref: ColumnRef; counted: TableMark[]; tokens: string[]; open: MarkAsked[] }[] = [];
   for (const ref of numberRefs(expression)) {
     const found = numberColumnOf(
       ref.from === 'lookup' ? tables.lookup : tables.row,
@@ -495,29 +506,61 @@ function marksOf(
       context.attached,
     );
     if (found === undefined) continue;
-    const held: Placeholder[] = placeholdersIn(found.cells);
-    const tokens: string[] = [];
-    for (const mark of held) {
-      const answer = markFor(context.said.marks, found.table, found.header, mark.spelling);
-      if (answer?.means === 'zero') {
-        tokens.push(mark.spelling);
-        if (!zero.includes(answer)) zero.push(answer);
-      } else if (answer === undefined) {
-        const key = JSON.stringify([foldKey(found.table), foldKey(found.header), mark.key]);
-        if (asked.has(key)) continue;
-        asked.add(key);
-        open.push({
-          question: markQuestion(found.table, found.header, mark.spelling),
-          options: BLANK_OPTIONS,
-          mark: { table: found.table, column: found.header, mark: mark.spelling },
-        });
+    const item = { ref, counted: [] as TableMark[], tokens: [] as string[], open: [] as MarkAsked[] };
+    for (const mark of placeholdersIn(found.cells)) {
+      const answer = markFor(context.said.marks, found, mark.spelling);
+      if (answer === undefined) {
+        item.open.push({ table: found.table, column: found.header, mark: mark.spelling });
+      } else if (answer.means === 'zero') {
+        item.counted.push(answer);
+        item.tokens.push(mark.spelling);
       }
     }
-    if (tokens.length > 0) {
-      columns.push({ column: ref.column, from: ref.from, tokens });
+    if (item.tokens.length > 0 || item.open.length > 0) read.push(item);
+  }
+
+  const roomy = new Set<(typeof read)[number]>();
+  for (const counting of [true, false]) {
+    for (const item of read) {
+      if (roomy.size < RULE_LIMITS.maxEmptyZero && (item.tokens.length > 0) === counting) {
+        roomy.add(item);
+      }
     }
   }
-  return { columns, zero, open };
+
+  const columns: NonNullable<RuleSpec['placeholderMeansZero']> = [];
+  const zero: TableMark[] = [];
+  const open: { question: string; options: string[]; mark: MarkAsked }[] = [];
+  const unasked: MarkAsked[] = [];
+  // A mark of a table's column is asked about once, however many times the rule reads the column.
+  const seen = new Set<string>();
+  const once = (mark: MarkAsked): boolean => {
+    const key = JSON.stringify([foldKey(mark.table), mark.column, foldKey(mark.mark)]);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  };
+  for (const item of read) {
+    const room = roomy.has(item) ? RULE_LIMITS.maxPlaceholderMarks : 0;
+    const tokens = item.tokens.slice(0, room);
+    for (const answer of item.counted.slice(0, room)) {
+      if (!zero.includes(answer)) zero.push(answer);
+    }
+    if (tokens.length > 0) columns.push({ column: item.ref.column, from: item.ref.from, tokens });
+    const asking = item.open.slice(0, room - tokens.length);
+    for (const mark of asking) {
+      if (!once(mark)) continue;
+      open.push({
+        question: markQuestion(mark.table, mark.column, mark.mark),
+        options: BLANK_OPTIONS,
+        mark,
+      });
+    }
+    for (const mark of item.open.slice(asking.length)) {
+      if (once(mark)) unasked.push(mark);
+    }
+  }
+  return { columns, zero, open, unasked };
 }
 
 type BlankQuestion = {

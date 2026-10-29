@@ -635,6 +635,26 @@ describe('a question asked once, whatever the teacher does after it', () => {
   });
 });
 
+describe('the room a rule has for marks', () => {
+  it('asks about four marks of a column and drafts when all four count as zero, telling the fifth', async () => {
+    world.mentor.script = () => bikeDraft();
+    let turn = await start(attach({ '-': 4, '--': 3, '---': 2, '?': 1 }));
+    const asked: string[] = [];
+    while (turn.draft === undefined) {
+      asked.push(turn.message);
+      turn = await world.drafting.reply(turn.sessionId, ZERO, TEACHER);
+    }
+    expect(asked).toEqual([NA_QUESTION, dashQuestion('-'), dashQuestion('--'), dashQuestion('---')]);
+    const record = recordOf(jobOf(turn).id);
+    expect(tokensOf(record)).toEqual(['N/A', '-', '--', '---']);
+    expect(record.unresolved).toContain(
+      'parts_cost in tickets.csv also holds a question mark ("?"). I did not ask what it means, so those rows are left out.',
+    );
+    // The teacher drafted once, and was never told of a mark or of a rule it could not hold.
+    expect(world.mentor.requests).toHaveLength(1);
+  });
+});
+
 describe('what only Architect can decide', () => {
   it('keeps the teacher from naming a mark: its reply has no field for one, and one it adds is ignored', async () => {
     world.mentor.script = () => bikeDraft();

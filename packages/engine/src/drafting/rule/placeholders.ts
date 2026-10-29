@@ -103,3 +103,8 @@ export function markQuestion(table: string, column: string, spelling: string): s
       : `has ${markWords(spelling)} where a number should be`;
   return `In ${table}, ${column} sometimes ${holds}. Does ${markName(spelling)} mean no ${columnWords(column)}? If it can also mean "not known yet", leave those rows out.`;
 }
+
+/** What a draft says of a mark Architect did not ask about: its rows are left out. */
+export function unaskedLine(mark: { table: string; column: string; mark: string }): string {
+  return `${mark.column} in ${mark.table} also holds ${markWords(mark.mark)}. I did not ask what it means, so those rows are left out.`;
+}
