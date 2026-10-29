@@ -684,14 +684,15 @@ describe('what a rule must not be', () => {
     const onGrid = bikeShop({ offGrid: false });
     const result = runRule(bikeRule(), bikeTables(onGrid));
     expect(result.problems).toEqual([]);
+    // Said plainly, of any rounding step, and without the tie that the rule's own words give.
     expect(result.outcome?.details.flags).toContain(
-      'The rounding step (up to a multiple of 0.5) never changed a value in your records, so no task shows it at work.',
+      'None of your records needed rounding up to a multiple of 0.5, so no task tests it.',
     );
     expect(result.outcome?.details.flags).toContain(
-      'The rounding step (to the nearest cent, half a cent rounds up) never changed a value in your records, so no task shows it at work.',
+      'None of your records needed rounding to the nearest cent, so no task tests it.',
     );
     expect(run().outcome?.details.flags).not.toContain(
-      'The rounding step (up to a multiple of 0.5) never changed a value in your records, so no task shows it at work.',
+      'None of your records needed rounding up to a multiple of 0.5, so no task tests it.',
     );
     // The hours are rounded the same way on both sides of the member test: one thing to say.
     expect(result.outcome?.details.flags).toHaveLength(2);

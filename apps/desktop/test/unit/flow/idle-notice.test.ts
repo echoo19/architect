@@ -58,9 +58,49 @@ describe('what a run that had nothing it may change says to the person', () => {
     const view = idleView(live(), NO_KEY);
     expect(view).toEqual({
       title: "Training didn't start",
-      body: 'Every kind of change Spark may make is turned off for this job, except retraining Glimmer itself, which needs a Hugging Face key. Nothing was spent.',
+      body: 'Every kind of change Spark may make is turned off for this job, except retraining Glimmer itself, which needs a Hugging Face key. A free Hugging Face account gives you one. Nothing was spent.',
       missingKey: true,
+      turnOn: true,
     });
+  });
+
+  it('says where the key comes from once, and only while the key is what is missing', () => {
+    const once = (body: string) => body.match(/A free Hugging Face account gives you one\./g);
+    expect(once(idleView(live(), NO_KEY).body)).toHaveLength(1);
+    // Not for a budget the job lacks, a final test online, a key that is saved or a run begun.
+    expect(once(idleView(live(), HAS_KEY).body)).toBeNull();
+    expect(
+      once(idleView(live(WEIGHTS_ONLY, {}, { lockedTestOn: 'hosted' }), NO_KEY).body),
+    ).toBeNull();
+    expect(
+      once(
+        idleView(live({ ...WEIGHTS_ONLY, budget: FUNDED }), { token: 'found', keyAdded: true })
+          .body,
+      ),
+    ).toBeNull();
+    expect(once(idleView(live(), NO_KEY).title)).toBeNull();
+    // A run that had begun names the key the same way.
+    const begun = live(WEIGHTS_ONLY, {}, { rounds: [makeRound(1, { decision: 'reverted' })] });
+    expect(once(idleView(begun, NO_KEY).body)).toHaveLength(1);
+  });
+
+  it('is mended by turning a change back on, except where one is on already', () => {
+    // Everything but the weights is off: the way out is to turn one back on.
+    for (const [run, facts] of [
+      [live(), NO_KEY],
+      [live(), HAS_KEY],
+      [live({ ...WEIGHTS_ONLY, budget: FUNDED }), HAS_KEY],
+      [live({ ...WEIGHTS_ONLY, budget: FUNDED }), { token: 'found', keyAdded: true }],
+      [live(WEIGHTS_ONLY, { method: 'self_reflection' }), NO_KEY],
+    ] as [LiveRun, IdleFacts][]) {
+      expect(idleView(run, facts).turnOn).toBe(true);
+    }
+    // A kind that changes the harness is on already: there is nothing to turn back on, and the
+    // reason is in the engine's sentence.
+    expect(idleView(live({ interventions: ['procedure', 'weights'] }), NO_KEY).turnOn).toBe(false);
+    expect(
+      idleView(live({ interventions: ['procedure'] }, { method: 'one_shot' }), NO_KEY).turnOn,
+    ).toBe(false);
   });
 
   it('names whatever else keeps the retraining from running, as the Define screen does', () => {
@@ -129,6 +169,7 @@ describe('what a run that had nothing it may change says to the person', () => {
       'Spark had nothing it may change in this run. The reason is under Details. Nothing was spent.',
     );
     expect(odd.missingKey).toBe(false);
+    expect(odd.turnOn).toBe(false);
   });
 
   it('speaks of the simpler versions of a comparison as they are, with no weights in them', () => {
@@ -190,15 +231,30 @@ describe('the notice as it is shown', () => {
     expect(markup).toContain('role="status"');
     expect(markup).toContain('aria-label="Training didn&#x27;t start"');
     expect(markup).toContain('Training didn&#x27;t start');
-    expect(markup).toContain('which needs a Hugging Face key. Nothing was spent.');
-    expect(markup).toContain('Open Spark&#x27;s settings');
+    expect(markup).toContain(
+      'which needs a Hugging Face key. A free Hugging Face account gives you one. Nothing was spent.',
+    );
     expect(markup).toContain('Add the Hugging Face key');
     expect(markup.match(/<button/g)).toHaveLength(3);
   });
 
+  it('names what the first button does, which is to turn a change back on', () => {
+    const markup = html();
+    expect(markup).toContain('Turn a change back on');
+    // It is an action, not a place: it still opens the teacher's tab, and says so nowhere.
+    expect(markup).not.toContain('Open Spark&#x27;s settings');
+    expect(markup).toMatch(/<svg[^>]*lucide-toggle-right[^>]*aria-hidden="true"/);
+  });
+
+  it('keeps the name of the place where there is no change to turn on', () => {
+    const odd = html(idleView(live({ interventions: ['procedure', 'weights'] }), NO_KEY));
+    expect(odd).toContain('Open Spark&#x27;s settings');
+    expect(odd).not.toContain('Turn a change back on');
+  });
+
   it('offers the key only while the key is what is missing', () => {
     const markup = html(idleView(live(), HAS_KEY));
-    expect(markup).toContain('Open Spark&#x27;s settings');
+    expect(markup).toContain('Turn a change back on');
     expect(markup).not.toContain('Add the Hugging Face key');
   });
 

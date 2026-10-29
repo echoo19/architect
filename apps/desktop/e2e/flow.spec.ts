@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Job } from '@architect/shared';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { NOTHING_LOCAL, OLLAMA_READY, stubEngine, stubEngineFailure } from './fixtures';
@@ -184,15 +184,24 @@ for (const theme of THEMES) {
     await expect(local).toBeDisabled();
     await expect(local).toContainText('Slower: about 2.5 minutes a task');
     await expect(local).toContainText('Free. Nothing leaves this computer.');
-    await expect(local).toContainText('Too slow for the 4-hour limit');
     // The place chosen can't fit a round, so one callout by the choice says so in plain words,
-    // Start training waits, and the footer says why.
-    const wont = "Training on this computer won't get to teach in 4 hours";
+    // Start training waits, and the footer says why. The card does not say it again right above.
+    await expect(local).not.toContainText('Too slow');
+    const wont = 'Not even one round of teaching fits in 4 hours on this computer';
     const callout = page.getByRole('status').filter({ hasText: wont });
     await expect(callout).toContainText(
       'Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once',
     );
     await expect(callout).toContainText("That doesn't fit in the 4 hours allowed");
+    // What the time button gives is said beside it, and it is the limit the button names.
+    await expect(callout).toContainText('Allowing 9 hours leaves room for one round.');
+    // The chosen card keeps its title in the normal color, so it does not look switched off.
+    const titleColor = (card: Locator) =>
+      card
+        .locator('span')
+        .first()
+        .evaluate((title) => getComputedStyle(title).color);
+    expect(await titleColor(local)).toBe(await titleColor(hosted));
     await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
     await expect(page.getByText(wont, { exact: true })).toHaveCount(2);
     await capture(page, `flow-define-slow-${theme}`);
@@ -493,6 +502,17 @@ for (const theme of THEMES) {
             version: '2a3e028da93a',
             statement:
               'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, half a cent rounds up.',
+            // The same rule as the engine tells it in steps (`rule-steps.test.ts`).
+            steps: [
+              { text: 'Round labor hours up to a multiple of 0.5.' },
+              { text: 'Multiply by 65.' },
+              {
+                text: 'When member (customers.csv) is yes, multiply by 0.9.',
+                files: ['customers.csv'],
+              },
+              { text: 'Add parts cost.' },
+              { text: 'Round the result to the nearest cent; half a cent rounds up.' },
+            ],
             passages: [
               { file: 'policy.md', passage: 'Labor is billed at $65 an hour, in half-hour steps.' },
               { file: 'policy.md', passage: 'Members get 10% off labor, never off parts.' },
@@ -513,7 +533,7 @@ for (const theme of THEMES) {
               { label: 'member (customers.csv) is no', cases: 68, changes: 68 },
             ],
             flags: [
-              'The rounding step (to the nearest cent, half a cent rounds up) never changed a value in your records, so no task shows it at work.',
+              'None of your records needed rounding to the nearest cent, so no task tests it.',
             ],
             confirmedAt: '2026-10-29T12:00:00.000Z',
             // The rule the statement says, as the engine holds it: labor in half hours, a tenth
@@ -567,13 +587,47 @@ for (const theme of THEMES) {
     await expect(page.getByText(note)).toBeVisible();
     await expect(page.getByRole('region', { name: 'The rule for Ticket totals' })).toHaveCount(0);
 
+    // What the rule left out of the tests is said right under it, in the page's own text and not
+    // in the small grey type of the note above it, with how many rows the tests could use.
+    const leftOut = page.getByText(
+      'The tests could use 108 of the 160 rows. The other 52 were left out because parts_cost is empty or N/A.',
+    );
+    await expect(leftOut).toBeVisible();
+    const sizeOf = (line: Locator) =>
+      line.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+    expect(await sizeOf(leftOut)).toBeGreaterThan(await sizeOf(page.getByText(note)));
+    const [noteBox, leftBox, detailsBox] = await Promise.all([
+      page.getByText(note).boundingBox(),
+      leftOut.boundingBox(),
+      page.getByRole('button', { name: 'Details' }).first().boundingBox(),
+    ]);
+    expect(leftBox!.y).toBeGreaterThanOrEqual(noteBox!.y + noteBox!.height);
+    expect(leftBox!.y + leftBox!.height).toBeLessThanOrEqual(detailsBox!.y);
+
+    // The tiles say what they are: the time of an answer, and the model's size on disk.
+    await expect(page.getByText('Typical answer time', { exact: true })).toBeVisible();
+    await expect(page.getByText(/^\d+(\.\d)? GB on disk$/)).toBeVisible();
+
     // Behind Details: the rule and its version, where it came from, how it was read, what was left
     // out, what each side did, and whether teaching ran.
     await page.getByRole('button', { name: 'Details' }).first().click();
     const rule = page.getByRole('region', { name: 'The rule for Ticket totals' });
-    await expect(rule).toContainText('Start with (labor hours rounded up to a multiple of 0.5)');
+    // The rule in words is a short numbered list, the file named in a step set quietly.
+    const told = rule.locator('ol > li');
+    await expect(told).toHaveCount(5);
+    await expect(told.nth(0)).toHaveText('1.Round labor hours up to a multiple of 0.5.');
+    await expect(told.nth(2)).toHaveText('3.When member (customers.csv) is yes, multiply by 0.9.');
+    await expect(told.nth(4)).toHaveText(
+      '5.Round the result to the nearest cent; half a cent rounds up.',
+    );
+    await expect(rule).not.toContainText('Start with (labor hours rounded up');
+    const file = told.nth(2).getByText('(customers.csv)', { exact: true });
+    const quiet = (element: Locator) => element.evaluate((node) => getComputedStyle(node).color);
+    expect(await quiet(file)).not.toBe(await quiet(told.nth(2)));
     await expect(rule).toContainText('2a3e028da93a');
-    await expect(rule).toContainText('2026-10-29');
+    // The date is said the way Define says it, not as a stamp.
+    await expect(rule).toContainText(/Confirmed\s*Oct 29/);
+    await expect(rule).not.toContainText('2026-10-29');
     await expect(rule).toContainText('108 of 160');
     await expect(rule).toContainText('Members get 10% off labor, never off parts.');
     await expect(rule).toContainText('your answer');
@@ -927,7 +981,9 @@ for (const theme of THEMES) {
     for (const kind of kinds) {
       await expect(section.getByRole('switch', { name: kind })).toBeChecked();
     }
-    await expect(section).toContainText('Needs a Hugging Face key');
+    await expect(section).toContainText(
+      'Needs a Hugging Face key. A free Hugging Face account gives you one.',
+    );
     await expect(section.getByRole('switch', { name: 'Retrain Glimmer itself' })).toBeEnabled();
 
     await section.getByRole('switch', { name: 'Small tools' }).click();
@@ -950,7 +1006,7 @@ for (const theme of THEMES) {
     await expect(section.getByRole('switch', { name: 'Retrain Glimmer itself' })).toBeDisabled();
     await expect(section.getByRole('switch', { name: 'Retrain Glimmer itself' })).toBeChecked();
     await expect(section).toContainText(
-      'Stays on: the only way left to change the agent. Retraining Glimmer itself needs a Hugging Face key.',
+      'Stays on: Spark needs at least one way to change Glimmer. Retraining Glimmer itself needs a Hugging Face key. A free Hugging Face account gives you one.',
     );
     await expect(advanced.getByRole('status')).toContainText('Saved');
     expect(((await recordedCalls(app, 'jobs:save')).at(-1)?.[0] as Job).interventions).toEqual([
@@ -965,7 +1021,13 @@ for (const theme of THEMES) {
     await expect(advanced).toBeHidden();
     const settings = page.getByRole('dialog', { name: 'Settings' });
     await expect(settings.getByRole('button', { name: 'Add token' })).toBeVisible();
-    await expect(settings.getByText('No token', { exact: true })).toBeVisible();
+    // The row says where a key comes from, with the address of the page that makes one.
+    await expect(
+      settings.getByText(/^No token yet\. Hugging Face calls its keys tokens/),
+    ).toBeVisible();
+    await expect(
+      settings.getByRole('button', { name: 'huggingface.co/settings/tokens' }),
+    ).toBeVisible();
     // Its button is on screen inside the modal's scroll, not under the fade at the bottom of it.
     const panel = await settings.getByRole('tabpanel').boundingBox();
     const add = await settings.getByRole('button', { name: 'Add token' }).boundingBox();
@@ -977,7 +1039,7 @@ for (const theme of THEMES) {
     const needs = page.getByRole('region', { name: 'Before it can start' });
     await expect(needs).toContainText('Spark has nothing it may change');
     await expect(needs).toContainText(
-      'Only retraining Glimmer itself is on, and it needs a Hugging Face key. Turn something else on, or add the key.',
+      'Only retraining Glimmer itself is on, and it needs a Hugging Face key. A free Hugging Face account gives you one. Turn something else on, or add the key.',
     );
     await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
     expect(await recordedCalls(app, 'runs:start')).toEqual([]);
@@ -1002,10 +1064,13 @@ test('cannot take the final test online without an online copy to take it on', a
   await goTo(page, `/jobs/${FLOW.jobId}/define`);
 
   // Training here can't fit a round, and there is no online copy to offer instead: the callout
-  // says what online needs, in plain words, and its button goes to where that is chosen.
-  const callout = page.getByRole('status').filter({ hasText: "won't get to teach" });
-  await expect(callout).toContainText(
-    "Online training isn't ready. Pick an online service under Agent's model in Advanced settings.",
+  // says online isn't set up in a few words, and its button goes to where that is done. The
+  // card for training online says what it needs.
+  const callout = page.getByRole('status').filter({ hasText: 'Not even one round of teaching' });
+  await expect(callout).toContainText("Online training isn't set up yet.");
+  await expect(callout).not.toContainText("Pick an online service under Agent's model");
+  await expect(page.getByRole('radio', { name: /Train online/ })).toContainText(
+    "Pick an online service under Agent's model in Advanced settings",
   );
   await expect(callout.getByRole('button', { name: 'Train online instead' })).toHaveCount(0);
   await expect(page.getByRole('radio', { name: /Train online/ })).toContainText(

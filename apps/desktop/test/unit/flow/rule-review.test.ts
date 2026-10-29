@@ -15,6 +15,13 @@ const DETAILS: RuleDetails = {
     { file: 'policy.md', passage: 'Labor is billed at $65 an hour, in half-hour steps.' },
     { file: 'answers', passage: 'No, labor only', question: QUESTION },
   ],
+  steps: [
+    { text: 'Round labor hours up to a multiple of 0.5.' },
+    { text: 'Multiply by 65.' },
+    { text: 'When member (customers.csv) is yes, multiply by 0.9.', files: ['customers.csv'] },
+    { text: 'Add parts cost.', note: 'An empty parts cost counts as 0, as you said.' },
+    { text: 'Round the result to the nearest cent; half a cent rounds up.' },
+  ],
   conventions: ['All arithmetic is exact until a rounding step.'],
   cases: { total: 160, eligible: 134 },
   excluded: [
@@ -31,7 +38,7 @@ const DETAILS: RuleDetails = {
         { text: '416.58, rounded to the nearest cent, half a cent rounds up', value: '416.58' },
       ],
       answer: '$416.58',
-      covers: ['Shows the rounding (labor hours)'],
+      covers: ['Shows how the rule rounds labor hours'],
     },
     {
       request: 'Like T-2144, but with parts cost 0.005',
@@ -40,7 +47,7 @@ const DETAILS: RuleDetails = {
         { text: '195.005, rounded to the nearest cent, half a cent rounds up', value: '195.01' },
       ],
       answer: '$195.01',
-      covers: ['Shows the rounding (the result)'],
+      covers: ['Shows how the rule rounds the total'],
       madeUp: true,
     },
   ],
@@ -49,20 +56,26 @@ const DETAILS: RuleDetails = {
 
 const COUNTS = { calibration: 1, train: 2, dev: 3, test: 4 };
 
-function plan(confirmation: NonNullable<TaskPlan['confirmation']>): TaskPlan {
+function plan(
+  confirmation: NonNullable<TaskPlan['confirmation']>,
+  details: RuleDetails = DETAILS,
+): TaskPlan {
   return {
     source: 'generated',
     counts: COUNTS,
-    types: [{ id: 'cost', label: 'Ticket totals', counts: COUNTS, examples: [], details: DETAILS }],
+    types: [{ id: 'cost', label: 'Ticket totals', counts: COUNTS, examples: [], details }],
     unresolved: [],
     notes: [],
     confirmation,
   };
 }
 
-function review(confirmation: NonNullable<TaskPlan['confirmation']>): string {
+function review(
+  confirmation: NonNullable<TaskPlan['confirmation']>,
+  details: RuleDetails = DETAILS,
+): string {
   return renderToStaticMarkup(
-    createElement(RuleReview, { job: makeJob(), plan: plan(confirmation) }),
+    createElement(RuleReview, { job: makeJob(), plan: plan(confirmation, details) }),
   );
 }
 
@@ -82,16 +95,54 @@ describe('the rule as Define puts it in front of the person', () => {
     expect(text(html)).not.toContain('Made-up numbers');
   });
 
-  it('says what an example shows, not what it is called', () => {
-    expect(text(html)).toContain('Shows the rounding (labor hours)');
-    expect(text(html)).toContain('Shows the rounding (the result)');
+  it('says what an example shows, not what it is called, and without brackets', () => {
+    expect(text(html)).toContain('Shows how the rule rounds labor hours');
+    expect(text(html)).toContain('Shows how the rule rounds the total');
     expect(text(html)).not.toContain('A rounding edge');
+    expect(text(html)).not.toContain('Shows the rounding (');
   });
 
   it('says a tie in plain words, in the rule and in each step', () => {
-    expect(text(html)).toContain('rounded to the nearest cent, half a cent rounds up.');
+    expect(text(html)).toContain('Round the result to the nearest cent; half a cent rounds up.');
     expect(text(html)).toContain('195.005, rounded to the nearest cent, half a cent rounds up');
     expect(text(html)).not.toContain('halves going up');
+  });
+
+  it('tells the rule as numbered steps in plain words, not as one sentence that reads like a formula', () => {
+    const rule = html.slice(html.indexOf('The rule, in words'), html.indexOf('>Examples<'));
+    expect(rule).toContain('<ol');
+    const steps = [...rule.matchAll(/<li[\s\S]*?<\/li>/g)].map((item) => text(item[0]).trim());
+    expect(steps).toEqual([
+      '1. Round labor hours up to a multiple of 0.5.',
+      '2. Multiply by 65.',
+      '3. When member (customers.csv) is yes, multiply by 0.9.',
+      '4. Add parts cost. An empty parts cost counts as 0, as you said.',
+      '5. Round the result to the nearest cent; half a cent rounds up.',
+    ]);
+    expect(text(rule)).not.toContain('Start with (labor hours rounded up');
+  });
+
+  it('sets a file named in a step quietly, apart from the weight of the sentence', () => {
+    const rule = html.slice(html.indexOf('The rule, in words'), html.indexOf('>Examples<'));
+    expect(rule).toContain('<span class="text-fg-muted">(customers.csv)</span>');
+    // Only the file is quiet: the words around it are not.
+    expect(rule).toMatch(
+      /When member <span class="text-fg-muted">\(customers\.csv\)<\/span> is yes/,
+    );
+    // What the person said a step rests on follows it, quietly too.
+    expect(rule).toContain(
+      '<span class="text-fg-muted"> An empty parts cost counts as 0, as you said.</span>',
+    );
+  });
+
+  it('says the rule as its one sentence when there are no steps to tell', () => {
+    const sentence = review({ state: 'needed', token: 'abc' }, { ...DETAILS, steps: undefined });
+    const rule = sentence.slice(
+      sentence.indexOf('The rule, in words'),
+      sentence.indexOf('>Examples<'),
+    );
+    expect(rule).not.toContain('<ol');
+    expect(text(rule)).toContain('Start with (labor hours rounded up to a multiple of 0.5)');
   });
 
   it('gives the rows left out their reason in the line that says how many, when it is one', () => {

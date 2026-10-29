@@ -6,6 +6,8 @@ import {
   type RuleSpec,
 } from '@architect/shared';
 import { plain } from './rule-reply';
+import { ruleSteps } from './rule/steps';
+import { wordsOf } from './rule/words';
 import { cleanText, foldKey } from './values';
 
 /*
@@ -66,4 +68,19 @@ export function questioned(
   const { details, spec } = type;
   if (details === undefined || spec?.template !== 'rule') return details;
   return { ...details, passages: withQuestions(details.passages, spec, answers) };
+}
+
+/**
+ * A rule type's details as the person reads them: with the question beside each answer and the
+ * rule told as numbered steps. The steps come from the rule's expression when the plan and the
+ * report are made, and are never stored, so a draft made before them has them too.
+ */
+export function readable(
+  type: DraftRecord['types'][number],
+  answers: DraftRecord['answers'],
+): RuleDetails | undefined {
+  const details = questioned(type, answers);
+  const { spec } = type;
+  if (details === undefined || spec?.template !== 'rule') return details;
+  return { ...details, steps: ruleSteps(spec.expression, wordsOf(spec)) };
 }

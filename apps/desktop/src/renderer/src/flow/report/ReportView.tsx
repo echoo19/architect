@@ -29,6 +29,7 @@ import {
   type ReportEvidence,
   type RuntimeFigures,
 } from './evidence';
+import { leftOutNotes } from './left-out';
 import { LocalTest } from './LocalTest';
 import { RuleNotes } from './RuleNotes';
 import { testSourceNote } from './test-source';
@@ -187,6 +188,7 @@ export function ReportView({
   const memory = memoryFact(figures);
   const pill = PILL[verdict.state];
   const source = testSourceNote(report.tasks, names.mentor);
+  const leftOut = leftOutNotes(report.tasks?.rules ?? []);
 
   return (
     <>
@@ -223,7 +225,7 @@ export function ReportView({
           <Stat
             className="bg-panel p-[22px]"
             value={formatAnswerTime(test.latencyMs.p50)}
-            label="Typical answer"
+            label="Typical answer time"
             note={<Lines lines={[`95% within ${formatAnswerTime(test.latencyMs.p95)}`]} />}
             noteFont="text"
           />
@@ -231,7 +233,7 @@ export function ReportView({
             className="bg-panel p-[22px]"
             value={names.student}
             label="Model"
-            note={size ? formatBytes(size) : undefined}
+            note={size ? `${formatBytes(size)} on disk` : undefined}
             noteFont="text"
           />
           <Stat
@@ -247,6 +249,12 @@ export function ReportView({
             {ruleScoreNote(names.mentor)}
           </p>
         )}
+        {/* What the rule left out of the tests is said where the score is, in the body's own text. */}
+        {leftOut.map((line) => (
+          <p key={line} className="m-0 max-w-[660px] text-pretty">
+            {line}
+          </p>
+        ))}
         {evidence.status === 'error' && evidence.data === undefined && (
           // Readings that couldn't be read say so, with a way to read them again, rather than
           // vanish as if none were taken.

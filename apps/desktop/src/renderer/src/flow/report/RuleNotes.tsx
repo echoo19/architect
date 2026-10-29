@@ -1,6 +1,8 @@
 import { branchLine, teachingLine, type RuleReport } from '@architect/shared';
 import { DetailList, Disclosure } from '@architect/ui';
+import { shortDate } from '../format';
 import { PassageList } from '../PassageList';
+import { RuleSteps } from '../RuleSteps';
 
 /**
  * Everything the final test's expected answers rest on, for a job with a rule: the rule and its
@@ -17,9 +19,7 @@ export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rou
           className="flex flex-col gap-3"
         >
           <h4 className="m-0 text-md font-medium">{rule.label}</h4>
-          <p className="m-0 max-w-[620px] text-sm text-fg-secondary text-pretty">
-            {rule.statement}
-          </p>
+          <RuleSteps steps={rule.steps} statement={rule.statement} size="sm" />
           <Disclosure label="The rule exactly as Architect evaluates it">
             {/* All of it, down the page: a rule cut off at a height is not the rule it says it is.
                 Only a line wider than the page scrolls, and the keyboard can reach that. */}
@@ -35,7 +35,10 @@ export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rou
           <DetailList
             items={[
               { label: 'Version', value: rule.version },
-              { label: 'Confirmed', value: rule.confirmedAt.slice(0, 10) },
+              {
+                label: 'Confirmed',
+                value: shortDate(rule.confirmedAt) ?? rule.confirmedAt.slice(0, 10),
+              },
               {
                 label: 'Rows worked out',
                 value: `${rule.cases.eligible} of ${rule.cases.total}`,

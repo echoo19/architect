@@ -15,7 +15,17 @@ import {
 } from './expression';
 import type { RuleOutcome } from './outcome';
 import * as q from './rational';
-import { money, nameOf, numberText, phrase, sideLabel, stepsOf, type WordsContext } from './words';
+import {
+  answerWords,
+  money,
+  nameOf,
+  numberText,
+  phrase,
+  showsRounding,
+  sideLabel,
+  stepsOf,
+  type WordsContext,
+} from './words';
 
 /*
  * The examples a person confirms a rule by. Three, chosen on purpose: between them they take every
@@ -258,7 +268,7 @@ export function chooseExamples(
   const whatRounds = (group: readonly RoundNode[]): string => {
     const first = group[0];
     return first === undefined || first === spec.expression
-      ? 'the result'
+      ? answerWords(spec)
       : phrase(first.arg, words).text;
   };
 
@@ -291,9 +301,7 @@ export function chooseExamples(
       if (edgeCase.get(signature) !== best.item) continue;
       edgesLeft.delete(signature);
       covers.push(
-        rounding.size > 1
-          ? `Shows the rounding (${whatRounds(rounding.get(signature) ?? [])})`
-          : 'Shows the rounding',
+        showsRounding(rounding.size > 1 ? whatRounds(rounding.get(signature) ?? []) : null),
       );
     }
     picked.push({ item: best.item, covers });
@@ -333,9 +341,7 @@ export function chooseExamples(
       uncovered.push(`No practice task needs ${what} rounded, so none shows it.`);
       continue;
     }
-    examples.push(
-      exampleOf(outcome, made.item, [`Shows the rounding (${what})`], { request: made.request }),
-    );
+    examples.push(exampleOf(outcome, made.item, [showsRounding(what)], { request: made.request }));
   }
   return { examples, uncovered };
 }

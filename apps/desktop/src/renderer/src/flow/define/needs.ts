@@ -15,7 +15,7 @@ import { isInstalled } from '../../settings/models/StudentRows';
 import { modelNames } from '../names';
 import type { ModelNames } from '../train/phase';
 import { aKey, hostedAvailability, providerName, type KeyStatus } from './hosted';
-import { BLOCK_REASONS, blockFix, idleBlock } from './teacher-menu';
+import { BLOCK_REASONS, blockFix, idleBlock, keyHint } from './teacher-menu';
 
 /** The one thing that puts a missing piece right. */
 export type NeedAction =
@@ -213,7 +213,7 @@ function idleNeed(
   return {
     id: 'teacher-idle',
     title: `${names.mentor} has nothing it may change`,
-    detail: `Only retraining ${names.student} itself is on, and it ${BLOCK_REASONS[block]}. ${blockFix(block, device)}`,
+    detail: `Only retraining ${names.student} itself is on, and it ${BLOCK_REASONS[block]}.${keyHint(block)} ${blockFix(block, device)}`,
     label: `Open ${names.mentor}'s settings`,
     action: { kind: 'open', tab: 'mentor' },
   };

@@ -347,7 +347,7 @@ describe('a teacher that may change nothing', () => {
       id: 'teacher-idle',
       title: 'Spark has nothing it may change',
       detail:
-        'Only retraining Glimmer itself is on, and it needs a Hugging Face key. Turn something else on, or add the key.',
+        'Only retraining Glimmer itself is on, and it needs a Hugging Face key. A free Hugging Face account gives you one. Turn something else on, or add the key.',
       label: "Open Spark's settings",
       action: { kind: 'open', tab: 'mentor' },
     });
@@ -361,6 +361,12 @@ describe('a teacher that may change nothing', () => {
       'it needs a training budget, and this job has none. Turn something else on.',
     );
     expect(reason(noBudget, { token: 'none' })).toContain('it needs a Hugging Face key');
+    // Where the key comes from is said where the key is what is missing, and nowhere else.
+    expect(reason(noBudget, { token: 'none' })).toContain(
+      'A free Hugging Face account gives you one.',
+    );
+    expect(reason(noBudget, { token: 'found' })).not.toContain('Hugging Face');
+    expect(reason(noBudget, { token: 'none', testPlace: 'hosted' })).not.toContain('free');
     expect(reason(noBudget, { token: 'none', testPlace: 'hosted' })).toMatch(
       /it can't be done while the final test runs online\. Turn something else on, or run the final test on (this computer|your Mac)\./,
     );

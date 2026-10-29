@@ -1,5 +1,5 @@
 import { HARNESS_INTERVENTIONS, mayIntervene } from '@architect/shared';
-import { BLOCK_REASONS, weightsBlock, type WeightsFacts } from '../define/teacher-menu';
+import { BLOCK_REASONS, keyHint, weightsBlock, type WeightsFacts } from '../define/teacher-menu';
 import { modelNames } from '../names';
 import { neverStarted, type LiveRun } from './run-state';
 
@@ -25,6 +25,11 @@ export interface IdleView {
   body: string;
   /** The Hugging Face key is what keeps the run from going on, so the way to add it is offered. */
   missingKey: boolean;
+  /**
+   * The person turned the other kinds of change off, so the way out is to turn one back on. False
+   * when a kind is on already and the reason is the engine's to give, under Details.
+   */
+  turnOn: boolean;
 }
 
 /** Whether the run had begun: a round was started or a check task attempted. */
@@ -44,19 +49,24 @@ export function idleView(live: LiveRun, facts: IdleFacts): IdleView {
   const title = started ? 'Training stopped' : "Training didn't start";
   const spent = started || run.totals.mentorUsd > 0 ? [] : ['Nothing was spent.'];
   const harness = HARNESS_INTERVENTIONS.some((kind) => mayIntervene(job, kind));
-  const view = (reason: string, missingKey = false): IdleView => ({
+  const view = (
+    reason: string,
+    how: { missingKey?: boolean; turnOn?: boolean } = {},
+  ): IdleView => ({
     title,
     body: [reason, ...spent].join(' '),
-    missingKey,
+    missingKey: how.missingKey ?? false,
+    turnOn: how.turnOn ?? false,
   });
 
   // The simpler versions of a comparison change nothing but the harness, and never the weights.
   if (run.method !== 'architect') {
-    return view(
-      harness
-        ? `${mentor} had nothing it may change in this run. The reason is under Details.`
-        : 'This simpler version can only change instructions, what it reads and small tools, and every one of them is turned off for this job.',
-    );
+    return harness
+      ? view(`${mentor} had nothing it may change in this run. The reason is under Details.`)
+      : view(
+          'This simpler version can only change instructions, what it reads and small tools, and every one of them is turned off for this job.',
+          { turnOn: true },
+        );
   }
   // A job always keeps one kind of change that changes the agent, so with the harness's three
   // off the weights are on. Anything else is for the engine's sentence to explain.
@@ -66,12 +76,17 @@ export function idleView(live: LiveRun, facts: IdleFacts): IdleView {
 
   const block = weightsBlock(job, { token: facts.token, testPlace: live.lockedTestOn });
   const except = `Every kind of change ${mentor} may make is turned off for this job, except retraining ${student} itself`;
-  if (block !== null)
-    return view(`${except}, which ${BLOCK_REASONS[block]}.`, block === 'no_token');
+  if (block !== null) {
+    return view(`${except}, which ${BLOCK_REASONS[block]}.${keyHint(block)}`, {
+      missingKey: block === 'no_token',
+      turnOn: true,
+    });
+  }
   if (facts.keyAdded) {
     return view(
       `${except}, which needed a Hugging Face key. The key is saved now, so start again from the job.`,
+      { turnOn: true },
     );
   }
-  return view(`${except}, which couldn't ${started ? 'go on' : 'run here'}.`);
+  return view(`${except}, which couldn't ${started ? 'go on' : 'run here'}.`, { turnOn: true });
 }

@@ -12,6 +12,7 @@ import {
   agentChanges,
   idleBlock,
   isLastChange,
+  keyHint,
   tokenState,
   weightsBlock,
   withIntervention,
@@ -154,7 +155,9 @@ describe("the Teacher tab's section", () => {
     const last = row(html, 'Small tools');
     expect(last).toContain('aria-checked="true"');
     expect(last).toContain('disabled=""');
-    expect(html).toContain('Stays on: the only way left to change the agent');
+    // It names the teacher and the student, as every other line of the screen does.
+    expect(html).toContain('Stays on: Spark needs at least one way to change Glimmer.');
+    expect(html).not.toContain('the only way left');
     // Questions can always be turned off, since they change nothing.
     expect(row(html, 'Questions for you')).not.toContain('disabled=""');
     // Nothing else is held.
@@ -192,8 +195,32 @@ describe("the Teacher tab's section", () => {
     // A switch held on reads as on, with a padlock, not as one that is off.
     expect(held).toContain('lucide-lock');
     expect(html).toContain(
-      'Stays on: the only way left to change the agent. Retraining Glimmer itself needs a Hugging Face key.',
+      'Stays on: Spark needs at least one way to change Glimmer. Retraining Glimmer itself needs a Hugging Face key. A free Hugging Face account gives you one.',
     );
+  });
+
+  it('says where the key comes from once, on the row that names it as missing, and only then', () => {
+    const none: WeightsFacts = { token: 'none', testPlace: 'local' };
+    const once = (html: string) => html.match(/A free Hugging Face account gives you one\./g);
+    // On the weights row while the key is missing: one mention.
+    expect(menu(makeJob({ budget: FUNDED }), none)).toContain(
+      'Needs a Hugging Face key. A free Hugging Face account gives you one.',
+    );
+    expect(once(menu(makeJob({ budget: FUNDED }), none))).toHaveLength(1);
+    // On the held row too, in the sentence that names the key, and not twice.
+    expect(once(menu(makeJob({ interventions: ['weights'] }), none))).toHaveLength(1);
+    // Nowhere when the key is not what is missing, or when nothing is missing.
+    for (const html of [
+      menu(makeJob({ budget: FUNDED }), READY),
+      menu(makeJob(), { token: 'found', testPlace: 'local' }),
+      menu(makeJob({ budget: FUNDED }), { token: 'found', testPlace: 'hosted' }),
+      menu(makeJob({ interventions: ['procedure'] }), none),
+    ]) {
+      expect(once(html)).toBeNull();
+    }
+    expect(keyHint('no_token')).toBe(' A free Hugging Face account gives you one.');
+    expect(keyHint('no_budget')).toBe('');
+    expect(keyHint('online_test')).toBe('');
   });
 
   it('puts the way to add the key on the weights row while the key is what is missing', () => {

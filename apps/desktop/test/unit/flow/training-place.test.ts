@@ -3,6 +3,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { Job } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import type { HostedAvailability } from '../../../src/renderer/src/flow/define/hosted';
+import {
+  allowingLine,
+  capText,
+  estimateTime,
+  minutesForOneRound,
+} from '../../../src/renderer/src/flow/define/estimates';
 import { TrainingPlace } from '../../../src/renderer/src/flow/define/TrainingPlace';
 import { makeJob } from './factories';
 
@@ -62,12 +68,20 @@ function text(html: string): string {
     .replace(/\s+/g, ' ');
 }
 
-const TITLE = "Training on this computer won't get to teach in 3 hours";
+const TITLE = 'Not even one round of teaching fits in 3 hours on this computer';
 const BODY =
   "Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once, and at least 3 h 50 min more for each round of practice and fixing. That doesn't fit in the 3 hours allowed, so Spark would run out of time before it changed anything.";
+/** What the button that sets a longer limit gives: the limit `minutesForOneRound` found. */
+const GIVES = 'Allowing 9 hours leaves room for one round.';
+
+/** The words of the callout alone, apart from the cards and the plan around it. */
+function callout(html: string): string {
+  const at = html.indexOf('role="status"');
+  return text(html.slice(html.lastIndexOf('<div', at), html.indexOf('Estimated time')));
+}
 
 describe('a place that cannot fit a round', () => {
-  it('is one clear callout by the choice, saying in plain words that nothing would be taught', () => {
+  it('is one clear callout by the choice, saying in plain words that not one round fits', () => {
     const html = render(jobOf('local'));
     expect(html).toContain('role="status"');
     expect(text(html)).toContain(TITLE);
@@ -82,6 +96,35 @@ describe('a place that cannot fit a round', () => {
     expect(html.indexOf('Train online instead')).toBeLessThan(html.indexOf('Estimated time'));
   });
 
+  it('does not leave the reader asking what is taught: it says rounds of teaching', () => {
+    const words = text(render(jobOf('local')));
+    expect(words).not.toContain("won't get to teach");
+    expect(words).toContain('Not even one round of teaching');
+  });
+
+  it('says what the time button gives, in the limit that button sets', () => {
+    const job = jobOf('local');
+    const html = render(job);
+    expect(callout(html)).toContain(GIVES);
+    // It is the limit the button names, found once: the line and the label cannot differ.
+    const minutes = minutesForOneRound(job, 'local') ?? 0;
+    expect(minutes).toBe(540);
+    expect(allowingLine(minutes)).toBe(GIVES);
+    expect(html).toContain(`>Allow ${capText(minutes)}<`);
+    // And it is true: a job allowed that long has room for a round, and no callout.
+    expect(text(render(jobOf('local', minutes)))).not.toContain('Not even one round');
+    expect(estimateTime(jobOf('local', minutes), 'local').rounds.fewest).toBeGreaterThanOrEqual(1);
+    // It is the shortest whole number of hours that does: a round that is measured again needs
+    // 8 h 50 min, and 8 hours does not give it.
+    expect(estimateTime(jobOf('local', 529), 'local').rounds.fewest).toBe(0);
+    expect(estimateTime(jobOf('local', minutes - 60), 'local').rounds.fewest).toBe(0);
+  });
+
+  it('says it in the unit the time is in, for a job that trains online', () => {
+    const html = render(jobOf('hosted', 20));
+    expect(callout(html)).toContain('Allowing 1 hour leaves room for one round.');
+  });
+
   it('is loud: a tinted box with an alert mark, not a pale line', () => {
     const html = render(jobOf('local'));
     expect(html).toMatch(
@@ -90,21 +133,23 @@ describe('a place that cannot fit a round', () => {
   });
 
   it('offers training online only when it is possible, and says what it needs when not', () => {
-    // No online service chosen: what it needs, and the way to set it up, but no switch to it.
+    // No online service chosen: a button sets it up, and the sentence next to it is short.
     const none = render(jobOf('local'), NO_SERVICE);
     expect(none).not.toContain('Train online instead');
-    expect(text(none)).toContain(
-      "Online training isn't ready. Pick an online service under Agent's model in Advanced settings.",
-    );
+    expect(callout(none)).toContain("Online training isn't set up yet.");
+    expect(callout(none)).not.toContain("Online training isn't ready.");
+    expect(callout(none)).not.toContain("Pick an online service under Agent's model");
     expect(none).toContain('Set up online training');
-    // Its key isn't saved: the same.
+    // Its key isn't saved: the same, and the card says which key.
     const key = render(jobOf('local'), NO_KEY);
     expect(key).not.toContain('Train online instead');
-    expect(text(key)).toContain("Online training isn't ready. Add an OpenRouter key");
+    expect(callout(key)).toContain("Online training isn't set up yet.");
+    expect(callout(key)).not.toContain('Add an OpenRouter key');
+    expect(text(key)).toContain('Add an OpenRouter key in Advanced settings');
     expect(key).toContain('Set up online training');
-    // Still looking for the key: it says so, and has nothing to set up yet.
+    // Still looking for the key: no button to set up, so the sentence says the rest itself.
     const looking = render(jobOf('local'), CHECKING);
-    expect(text(looking)).toContain("Online training isn't ready. Checking for a saved key.");
+    expect(callout(looking)).toContain("Online training isn't ready. Checking for a saved key.");
     expect(looking).not.toContain('Set up online training');
     expect(looking).not.toContain('Train online instead');
   });
@@ -114,34 +159,71 @@ describe('a place that cannot fit a round', () => {
     const html = render(jobOf('local', 20));
     expect(html).toContain('>Allow 9 hours</button>');
     expect(html).not.toContain('Train online instead');
-    expect(text(html)).toContain("Training on this computer won't get to teach in 20 minutes");
+    expect(text(html)).toContain(
+      'Not even one round of teaching fits in 20 minutes on this computer',
+    );
   });
 
-  it("says online won't get to teach when online is where it trains, with nothing else to offer", () => {
+  it("says online can't fit a round when online is where it trains, with nothing else to offer", () => {
     const html = render(jobOf('hosted', 20));
-    expect(text(html)).toContain("Training online won't get to teach in 20 minutes");
+    expect(text(html)).toContain('Not even one round of teaching fits in 20 minutes online');
     expect(text(html)).toContain('Glimmer takes about 15 seconds a task online');
     expect(html).toContain('>Allow 1 hour</button>');
     expect(html).not.toContain('instead');
   });
 
-  it('opens the time limit instead when not even a week would fit a round', () => {
+  it('opens the time limit instead when not even a week would fit a round, with nothing promised', () => {
     const base = jobOf('local');
     const html = render({ ...base, splits: { ...base.splits, dev: 2000 } });
     expect(html).toContain('>Allow more time</button>');
     expect(html).not.toMatch(/>Allow \d+ hours?</);
+    expect(text(html)).not.toContain('leaves room for one round');
   });
 
-  it('says nothing of the kind where a round fits, and keeps the quiet link for the other place', () => {
+  it('says nothing of the kind where a round fits, and keeps the quiet line for the other place', () => {
     // Training online fits; this computer, which is not chosen, doesn't.
     const html = render(jobOf('hosted'));
-    expect(text(html)).not.toContain("won't get to teach");
+    expect(text(html)).not.toContain('Not even one round');
     expect(text(html)).toContain('Too slow for the 3-hour limit');
     expect(html.match(/>Allow more time</g)).toHaveLength(1);
     // And where both fit there is nothing to say about time at all.
     const roomy = render(jobOf('local', 2000));
-    expect(text(roomy)).not.toContain("won't get to teach");
+    expect(text(roomy)).not.toContain('Not even one round');
     expect(roomy).not.toContain('Allow more time');
+  });
+});
+
+describe('the card of the place that is chosen', () => {
+  /** The markup of one card, from its radio button to its end. */
+  function card(html: string, title: string): string {
+    const at = html.indexOf(title);
+    return html.slice(html.lastIndexOf('<button', at), html.indexOf('</button>', at));
+  }
+
+  it('does not say again that it is too slow, right above the callout that says so', () => {
+    const html = render(jobOf('local'));
+    expect(card(html, 'Train on this computer')).not.toContain('Too slow');
+    expect(callout(html)).toContain('Not even one round');
+    // Online is not chosen and fits: it says nothing of the kind either.
+    expect(card(html, 'Train online')).not.toContain('Too slow');
+  });
+
+  it('keeps the line on a card that is not chosen', () => {
+    const online = render(jobOf('hosted'));
+    expect(card(online, 'Train on this computer')).toContain('Too slow for the 3-hour limit');
+    // Online chosen and too slow: its callout says so, and this computer, not chosen, still does.
+    const both = render(jobOf('hosted', 20));
+    expect(card(both, 'Train on this computer')).toContain('Too slow for the 20-minute limit');
+    expect(card(both, 'Train online')).not.toContain('Too slow');
+  });
+
+  it('keeps its title in the normal color, so it does not look switched off', () => {
+    const html = render(jobOf('local'));
+    const chosen = card(html, 'Train on this computer');
+    expect(chosen).toContain('data-state="checked"');
+    // The quiet title is for a card that is not chosen; a chosen one keeps the color of its text.
+    expect(chosen).toContain('group-data-[state=unchecked]:text-fg-muted');
+    expect(chosen).not.toMatch(/(?:^|[\s"])text-fg-muted/);
   });
 });
 

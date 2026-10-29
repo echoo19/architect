@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import type { MentorConfig, StudentEndpoint, Task } from '@architect/shared';
 import { allowMoreTime, goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { stubEngine } from './fixtures';
+import { FLOW_LOCAL } from './fixtures-flow';
 import {
   startFakeStudent,
   startScriptedMentor,
@@ -200,6 +202,9 @@ test.beforeAll(async () => {
   launched = await launchApp({
     settings: { onboarded: true, comparisonMode: false, defaultMentor, defaultStudent },
   });
+  // Define asks which models this computer holds before a run starts. This spec answers that
+  // itself, so it never reaches this computer's own model runtimes or its graphics card.
+  await stubEngine(launched.app, { 'connections:detectLocal': FLOW_LOCAL });
   // The system file dialog is answered in main, so nothing appears on screen.
   await launched.app.evaluate(({ dialog }, picked) => {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: picked });

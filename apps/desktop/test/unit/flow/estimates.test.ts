@@ -3,6 +3,7 @@ import { mentorPreset } from '@architect/shared';
 import {
   aboutSpan,
   aboutUsd,
+  allowingLine,
   capText,
   comparisonCost,
   comparisonSeconds,
@@ -199,20 +200,38 @@ describe('what each part of a run takes', () => {
     ).toBeNull();
   });
 
+  it('says what the time button gives, in the limit that button sets', () => {
+    // The button's limit and the line beside it are found from the same number.
+    expect(allowingLine(540)).toBe('Allowing 9 hours leaves room for one round.');
+    expect(allowingLine(60)).toBe('Allowing 1 hour leaves room for one round.');
+    expect(allowingLine(150)).toBe('Allowing 2.5 hours leaves room for one round.');
+    for (const place of ['local', 'hosted'] as const) {
+      const minutes = minutesForOneRound(job, place);
+      if (minutes === null) throw new Error('A round fits in a week.');
+      const allowed = makeJob({ budget: { ...job.budget, maxWallMinutes: minutes } });
+      // What the line says is true: one round fits, even when its change is measured again.
+      expect(estimateTime(allowed, place).rounds.fewest).toBeGreaterThanOrEqual(1);
+      expect(allowingLine(minutes)).toBe(`Allowing ${capText(minutes)} leaves room for one round.`);
+    }
+  });
+
   it('says where a place is, in the middle of a sentence', () => {
     expect(placePhrase('local', 'this computer')).toBe('on this computer');
     expect(placePhrase('local', 'this Mac')).toBe('on this Mac');
     expect(placePhrase('hosted', 'this computer')).toBe('online');
   });
 
-  it("says in plain words that training in a place won't get to teach, and why", () => {
+  it('says in plain words that not one round of teaching fits in a place, and why', () => {
     const names = { mentor: 'Spark', student: 'Glimmer' };
     const local = estimateTime(job, 'local');
     expect(wontTeachTitle(job, 'local', 'this computer')).toBe(
-      "Training on this computer won't get to teach in 3 hours",
+      'Not even one round of teaching fits in 3 hours on this computer',
     );
     expect(wontTeachTitle(job, 'hosted', 'this computer')).toBe(
-      "Training online won't get to teach in 3 hours",
+      'Not even one round of teaching fits in 3 hours online',
+    );
+    expect(wontTeachTitle(job, 'local', 'this Mac')).toBe(
+      'Not even one round of teaching fits in 3 hours on this Mac',
     );
     expect(wontTeachBody(job, 'local', local, names)).toBe(
       "Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once, and at least 3 h 50 min more for each round of practice and fixing. That doesn't fit in the 3 hours allowed, so Spark would run out of time before it changed anything.",

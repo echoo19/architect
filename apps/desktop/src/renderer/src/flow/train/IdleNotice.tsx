@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, Disclosure } from '@architect/ui';
-import { KeyRound, ToggleLeft } from 'lucide-react';
+import { KeyRound, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useHubToken } from '../../api/hooks';
 import { navigate, paths } from '../../lib/router';
 import { useUi } from '../../state/ui';
@@ -13,9 +13,9 @@ import type { LiveRun } from './run-state';
 /**
  * Why a run ended before it could teach: the teacher had nothing it may change (decision 063).
  * The job turned off every way to change the agent that could run here, so nothing was spent. It
- * says in plain words what is off and what is missing, with a button to the teacher's settings
- * and, while the Hugging Face key is what is missing, the way to add it. The engine's own sentence
- * is kept under Details.
+ * says in plain words what is off and what is missing, with a button that takes the person to the
+ * teacher's settings to turn a change back on and, while the Hugging Face key is what is missing,
+ * the way to add it. The engine's own sentence is kept under Details.
  */
 export function IdleNotice({ live }: { live: LiveRun }) {
   const token = useHubToken();
@@ -76,7 +76,14 @@ export function IdleNoticeView({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" onClick={onOpenTeacher}>
-            Open {teacher}&apos;s settings
+            {view.turnOn ? (
+              <>
+                <ToggleRight size={14} aria-hidden />
+                Turn a change back on
+              </>
+            ) : (
+              <>Open {teacher}&apos;s settings</>
+            )}
           </Button>
           {view.missingKey && (
             <Button size="sm" onClick={onAddKey}>

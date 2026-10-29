@@ -1,5 +1,5 @@
 import type { DraftRecord, Job, JsonValue, SplitCounts, Task, TaskPlan } from '@architect/shared';
-import { questioned } from './passages';
+import { readable } from './passages';
 
 /** Examples of each type the Define screen shows. */
 export const EXAMPLES_PER_TYPE = 3;
@@ -141,7 +141,7 @@ export interface PlanInput {
 export function buildTaskPlan({ job, draft, visible, sealed }: PlanInput): TaskPlan {
   const rules = new Map((draft?.types ?? []).map((type) => [type.id, type.rule]));
   const details = new Map(
-    (draft?.types ?? []).map((type) => [type.id, questioned(type, draft?.answers)]),
+    (draft?.types ?? []).map((type) => [type.id, readable(type, draft?.answers)]),
   );
   const ofType = (tasks: readonly Task[], id: string) => tasks.filter((task) => task.type === id);
   const types = job.taskTypes.map((type): TaskPlan['types'][number] => {

@@ -174,10 +174,18 @@ export function minutesForOneRound(job: Job, place: TrainPlace): number | null {
 
 /**
  * What it comes to, in a line: the callout's headline, and what the footer says beside a Start
- * training that waits for it.
+ * training that waits for it. A round is one go at teaching, so not one fitting is plain to say.
  */
 export function wontTeachTitle(job: Job, place: TrainPlace, device: string): string {
-  return `Training ${placePhrase(place, device)} won't get to teach in ${capText(job.budget.maxWallMinutes)}`;
+  return `Not even one round of teaching fits in ${capText(job.budget.maxWallMinutes)} ${placePhrase(place, device)}`;
+}
+
+/**
+ * What the button that sets a longer time limit gives, said beside it: the limit it sets is the
+ * one `minutesForOneRound` found, so one round does fit in it.
+ */
+export function allowingLine(minutes: number): string {
+  return `Allowing ${capText(minutes)} leaves room for one round.`;
 }
 
 /** A length of time to the minute, which the person can add up: "1 h 40 min", "23 min". */

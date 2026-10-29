@@ -286,7 +286,7 @@ for (const theme of THEMES) {
     });
     await emitRunEvents(launched.app, [testFinished]);
     await expect(offer).toContainText('Passed on this computer');
-    await expect(offer).toContainText('55 of 60 right (92%). Typical answer 1 min 34 s');
+    await expect(offer).toContainText('55 of 60 right (92%). Typical answer time 1 min 34 s');
     await expect(offer).toContainText('Online it got 54 of 60.');
     await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
     await expect(page.getByText('Ready', { exact: true })).toBeVisible();

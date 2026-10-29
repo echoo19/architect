@@ -1,4 +1,10 @@
-import type { RuleCategory, RuleCondition, RuleNode, RuleRounding } from '@architect/shared';
+import type {
+  RuleCategory,
+  RuleCondition,
+  RuleNode,
+  RuleRounding,
+  RuleSpec,
+} from '@architect/shared';
 import { foldKey } from '../values';
 import { inWords } from '../templates/common';
 import { literalText, type ColumnRef, type Run } from './expression';
@@ -17,6 +23,18 @@ export interface WordsContext {
   categories: readonly RuleCategory[];
   /** The columns whose empty cell counts as zero, because the person said it should. */
   emptyMeansZero?: readonly ColumnRef[];
+}
+
+/** The words the rule's sentences are told in, from the rule alone. */
+export function wordsOf(spec: RuleSpec): WordsContext {
+  return {
+    ...(spec.lookup === undefined ? {} : { lookupTable: spec.lookup.table }),
+    ...(spec.currency === undefined ? {} : { currency: spec.currency }),
+    categories: spec.categories,
+    ...(spec.emptyMeansZero === undefined || spec.emptyMeansZero.length === 0
+      ? {}
+      : { emptyMeansZero: spec.emptyMeansZero }),
+  };
 }
 
 const CURRENCY_SIGNS: Readonly<Record<string, string>> = {
@@ -62,6 +80,25 @@ export function tieText(unit: string): string {
 export const NEAREST_CLAUSE = 'and to the nearest sends exactly halfway up';
 
 /**
+ * A rounding step in two parts: how it rounds ("up to a multiple of 0.5", "to the nearest cent")
+ * and, for the nearest, what it does with a value exactly halfway.
+ */
+export function roundingParts(
+  mode: RuleRounding,
+  increment: string,
+  currency: string | undefined,
+): { how: string; tie: string | null } {
+  const step = literalText(increment);
+  const cent = currency !== undefined && step === '0.01';
+  if (mode === 'half_up') {
+    const unit = step === '1' ? 'whole number' : cent ? 'cent' : `multiple of ${step}`;
+    return { how: `to the nearest ${unit}`, tie: tieText(unit) };
+  }
+  const unit = step === '1' ? 'a whole number' : cent ? 'a whole cent' : `a multiple of ${step}`;
+  return { how: `${mode} to ${unit}`, tie: null };
+}
+
+/**
  * A rounding step in words: "up to a multiple of 0.5", "to the nearest cent, half a cent rounds
  * up".
  */
@@ -70,14 +107,36 @@ export function roundingText(
   increment: string,
   currency: string | undefined,
 ): string {
-  const step = literalText(increment);
-  const cent = currency !== undefined && step === '0.01';
-  if (mode === 'half_up') {
-    const unit = step === '1' ? 'whole number' : cent ? 'cent' : `multiple of ${step}`;
-    return `to the nearest ${unit}, ${tieText(unit)}`;
-  }
-  const unit = step === '1' ? 'a whole number' : cent ? 'a whole cent' : `a multiple of ${step}`;
-  return `${mode} to ${unit}`;
+  const { how, tie } = roundingParts(mode, increment, currency);
+  return tie === null ? how : `${how}, ${tie}`;
+}
+
+/**
+ * What is said of a rounding that no record needed, given how it rounds: "None of your records
+ * needed rounding to the nearest cent, so no task tests it." One sentence for Define, the results
+ * and the report, true of any rounding step.
+ */
+export function unneededRoundingText(how: string): string {
+  return `None of your records needed rounding ${how}, so no task tests it.`;
+}
+
+/** The same, for a rounding step. */
+export function unneededRounding(
+  mode: RuleRounding,
+  increment: string,
+  currency: string | undefined,
+): string {
+  return unneededRoundingText(roundingParts(mode, increment, currency).how);
+}
+
+/** What an example shows when it is a rounding: "Shows how the rule rounds labor hours". */
+export function showsRounding(what: string | null): string {
+  return what === null ? 'Shows the rounding' : `Shows how the rule rounds ${what}`;
+}
+
+/** The rule's answer as a thing a sentence can be about: "the total", "the refund amount". */
+export function answerWords(spec: Pick<RuleSpec, 'answerName'>): string {
+  return `the ${spec.answerName.replace(/_/g, ' ')}`;
 }
 
 const COMPARES = {
@@ -244,6 +303,14 @@ export function phrase(node: RuleNode, ctx: WordsContext): Phrase {
       };
     }
   }
+}
+
+/**
+ * A part of the rule as the object of a sentence, in brackets where it binds more loosely than
+ * `highest`: 1 keeps a product and a quotient bare, 2 also a sum and a difference.
+ */
+export function bracketed(node: RuleNode, ctx: WordsContext, highest: 0 | 1 | 2): string {
+  return within(phrase(node, ctx), highest);
 }
 
 const upper = (text: string): string => `${text.charAt(0).toUpperCase()}${text.slice(1)}`;

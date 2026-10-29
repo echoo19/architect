@@ -255,12 +255,16 @@ for (const theme of THEMES) {
     await expect(discount.getByText(OPEN_QUESTION.question, { exact: true })).toBeVisible();
     const empty = card.getByRole('listitem').filter({ hasText: 'Count it as zero' });
     await expect(empty.getByText(EMPTY_QUESTION.question, { exact: true })).toBeVisible();
-    // What the person said an empty parts cost counts as is part of the rule they confirm.
-    await expect(
-      card.getByText(
-        'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, half a cent rounds up. An empty parts cost counts as 0, as you said.',
-      ),
-    ).toBeVisible();
+    // The rule in words is a short list of steps, and what the person said an empty parts cost
+    // counts as is part of the step that adds it, as the rule they confirm.
+    await expect(card.locator('ol').first().locator('> li')).toHaveText([
+      '1.Round labor hours up to a multiple of 0.5.',
+      '2.Multiply by 65.',
+      '3.When member (customers.csv) is yes, multiply by 0.9.',
+      '4.Add parts cost. An empty parts cost counts as 0, as you said.',
+      '5.Round the result to the nearest cent; half a cent rounds up.',
+    ]);
+    await expect(card.getByText(/^Start with \(labor hours rounded up/)).toHaveCount(0);
     await expect(
       card.getByText(/^\d+ rows have an empty parts cost, which counts as 0, as you said\.$/),
     ).toBeVisible();
@@ -285,8 +289,17 @@ for (const theme of THEMES) {
     await expect(
       card.getByText('member (customers.csv) is no', { exact: true }).first(),
     ).toBeVisible();
-    await expect(card.getByText(/Shows the rounding/).first()).toBeVisible();
-    await expect(card.getByText(/A rounding edge|halves going up/)).toHaveCount(0);
+    await expect(card.getByText(/^Shows how the rule rounds /).first()).toBeVisible();
+    await expect(
+      card.getByText(/A rounding edge|halves going up|Shows the rounding \(/),
+    ).toHaveCount(0);
+    // A rounding no record needed is said plainly, beside the example with numbers made up for it.
+    await expect(
+      card.getByText(
+        'None of your records needed rounding to the nearest cent, so no task tests it.',
+      ),
+    ).toBeVisible();
+    await expect(card.getByText(/never changed a value in your records/)).toHaveCount(0);
     // A rounding the records never need is shown with numbers that are not theirs, and says so.
     await expect(card.getByText('Not from your records', { exact: true })).toBeVisible();
     await expect(card.getByText('Made-up numbers')).toHaveCount(0);
@@ -348,9 +361,12 @@ for (const theme of THEMES) {
     // four hours, so one callout by the choice says so, with the way out, and Start training waits.
     await expect(page.getByText('Confirm the rule first')).toHaveCount(0);
     await expect(start).toBeDisabled();
-    const slow = page.getByRole('status').filter({ hasText: "won't get to teach" });
-    await expect(slow).toContainText("Training on this computer won't get to teach in 4 hours");
+    const slow = page.getByRole('status').filter({ hasText: 'Not even one round of teaching' });
+    await expect(slow).toContainText(
+      'Not even one round of teaching fits in 4 hours on this computer',
+    );
     await expect(slow.getByRole('button', { name: 'Allow 7 hours' })).toBeVisible();
+    await expect(slow).toContainText('Allowing 7 hours leaves room for one round.');
     await capture(page, `rule-confirmed-${theme}`);
     await allowMoreTime(page);
     await expect(slow).toHaveCount(0);
