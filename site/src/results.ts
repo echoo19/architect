@@ -53,3 +53,12 @@ export const RESULTS: Results = {
     'An earlier comparison, with teaching held to two rounds on another returns desk, showed no clear gain.',
   reports: 'Read the full reports',
 };
+
+/**
+ * What the repair shop's run showed, said under the rule chapter's picture. It is one run of one
+ * drafted job, on an online copy of Glimmer, and not a planned comparison, which the sentence says.
+ * The figures are the run's own record, and the README gives the same: 22 of 30 check tasks before
+ * any teaching, one round of teaching, and 40 of 40 on the final test.
+ */
+export const REPAIR_RUN =
+  "On this repair shop's pricing, an online copy of Glimmer got 22 of 30 check tasks before teaching. After one round of teaching it got 40 of 40 on its final test, where the rule you confirmed grades each ticket cost. That was a single run, not a planned comparison.";

@@ -22,7 +22,7 @@ export const HERO = {
   ],
 } as const;
 
-export type ChapterId = 'describe' | 'train' | 'test' | 'use' | 'teach' | 'share';
+export type ChapterId = 'describe' | 'check' | 'train' | 'test' | 'use' | 'teach' | 'share';
 
 export interface ChapterCopy {
   id: ChapterId;
@@ -37,6 +37,11 @@ export const CHAPTERS: readonly ChapterCopy[] = [
     id: 'describe',
     title: 'Describe the job in your own words.',
     body: 'Attach its files. Spark asks about anything unclear, then drafts the job with you.',
+  },
+  {
+    id: 'check',
+    title: 'Nothing trains until you confirm the rule.',
+    body: 'When your files hold prices or discounts, Spark turns them into a rule. You read it as steps, with some of your own records worked through it.',
   },
   {
     id: 'train',
@@ -76,5 +81,5 @@ export const CLOSING = {
 export const FOOTER = {
   licence: 'Open source under the MIT licence.',
   author: 'Made by Jake Kang.',
-  note: 'The returns desk is a made-up shop. Its training run, its results and the October orders answer are real; the other requests shown are written from its records.',
+  note: "The returns desk and the repair shop are made-up shops. The returns desk's training run, its results and the October orders answer are real. The repair shop's rule and its run are real too. The other returns desk requests shown are written from its records.",
 } as const;

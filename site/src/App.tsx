@@ -4,8 +4,10 @@ import { Closing } from './components/Closing';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
+import { RepairRun } from './components/RepairRun';
 import { ResultsSlot } from './components/ResultsSlot';
 import { CHAPTERS, type ChapterId } from './content';
+import { CheckMock } from './mock/check';
 import { DescribeMock } from './mock/describe';
 import { ReportMock } from './mock/report';
 import { ShareMock } from './mock/share';
@@ -15,6 +17,12 @@ import { UseMock } from './mock/use';
 
 const MOCKS: Record<ChapterId, ReactNode> = {
   describe: <DescribeMock />,
+  check: (
+    <>
+      <CheckMock />
+      <RepairRun />
+    </>
+  ),
   train: <TrainMock />,
   test: (
     <>
