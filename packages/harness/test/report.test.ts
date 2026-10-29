@@ -212,7 +212,7 @@ describe('renderReportMarkdown', () => {
           'Teaching did not run: the student met the target on the check tasks before any round.',
         ),
     ).toBe(true);
-    expect(text).not.toMatch(/—|–|[“”‘’]/u);
+    expect(text).not.toMatch(/[\u{2013}\u{2014}\u{2018}\u{2019}\u{201c}\u{201d}]/u);
 
     report.cost = { ...report.cost, rounds: 3 };
     expect(renderReportMarkdown(report)).toContain('Teaching ran for 3 rounds.');
@@ -235,6 +235,6 @@ describe('renderReportMarkdown', () => {
     expect(text).not.toContain('\r');
     expect(text.endsWith('.\n')).toBe(true);
     expect(text.endsWith('\n\n')).toBe(false);
-    expect(text).not.toMatch(/—|–/);
+    expect(text).not.toMatch(/[\u{2013}\u{2014}]/u);
   });
 });
