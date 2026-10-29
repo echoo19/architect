@@ -250,10 +250,10 @@ for (const theme of THEMES) {
       page.getByRole('heading', { name: 'Service desk finished training' }),
     ).toBeVisible();
     await expect(
-      page.getByText('Its final test ran on an online copy of Glimmer, not on this computer.'),
+      page.getByText(/on an online copy of Glimmer, with Spark disconnected/),
     ).toBeVisible();
     await expect(
-      page.getByText('It is marked ready once it passes on this computer too.'),
+      page.getByText(/and is marked ready once it passes on this computer too\./),
     ).toBeVisible();
     await expect(page.getByText('Ready', { exact: true })).toHaveCount(0);
     await expect(page.getByText(/graduated/i)).toHaveCount(0);
@@ -320,7 +320,7 @@ test('says a small final test passed online the same way, 28 of 30, with the off
   await openResults('dark');
 
   await expect(page.getByText('Passed online', { exact: true })).toBeVisible();
-  await expect(page.getByText('It got 28 of 30.')).toBeVisible();
+  await expect(page.getByText(/It got 28 of 30 there/)).toBeVisible();
   await expect(page.getByText('Ready', { exact: true })).toHaveCount(0);
   await expect(page.getByText(/graduated/i)).toHaveCount(0);
   const offer = page.getByRole('region', { name: 'Test on this computer' });
