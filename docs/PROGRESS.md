@@ -2,6 +2,25 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Wed), main merged into the rule branch, three times
+
+**Done** (on the rule branch; nothing pushed; no model was called, the GPU stayed off)
+- Main moved a lot while the branch waited, so it was merged in three times: the job files with the final-test choice and the pre-flight, then the four fixes from the review of the app (decision 062), then the demo's scenes. Wherever the two sides met, both were kept:
+  - Define keeps main's rows for what a run needs, its choice of where the final test runs, "Up to N rounds" and the dialog for adding a key. The rule review sits between them and the training place. Start training stays off until the plan is read and the rule is confirmed, and the footer says which ("Couldn't check the job", "Confirm the rule first"). The plan is read again whenever a job opens.
+  - Results keeps main's verdict for an agent tested online and adds the note on what the score is, with the rule under Details.
+  - A job imported from a file reads it the way main does (`readJobFile`, `readTasks`) and, like a job made from a draft, is then made all at once or not at all. Saving a job still keeps its checker (`keepChecker`).
+  - README is main's short one with a single line about the rule. Architecture, the expansion checklist and the decisions say both: decision 061 (the rule) and main's 062.
+- Define now asks for the job's plan to know whether a rule waits, so a stand-in engine that shows Define has to answer for it. The shared sample replies (`SAMPLE_ENGINE`, used by the populated-screens test and by the demo recorder's second scene) did not, and the sample job's Define said it couldn't check for a rule. They answer with a plan that has no rule.
+- Captures made again and looked at in both themes: `describe` and `sample-agent-new` (the quiet line about the files drafting reads), `drafting-examples` and `drafting-tasks` (examples picked to show the variety), `rule-confirmed` and `rule-changed-dark` (they follow main's Define: the estimate for this small job is under a cent, and there is no setting for opening files outside a job that has none). `rule-define`, `flow-define-unreadable`, `define-sample` and the others that came out a few pixels different (a scrollbar, the edge of a letter) were put back.
+- Verified: `pnpm check` exits 0 (229 test files, 2,934 tests passed, 2 skipped). Hidden e2e on the app after the second merge: `rule`, `flow`, `drafting`, `retest`, `runs`, `runs-engine`, `sample-agent` and `job-files`, 76 passed; the screenshots spec, 3 passed once the sample plan was answered. The third merge touched only the demo recorder, which `pnpm e2e` does not run.
+
+**Next**
+- Merge the branch into main. The next test of the rule is still the owner's real training run on the bike shop with the answer Zero (the entry below).
+
+**Open issues**
+- A new channel that Define reads has to be answered in `SAMPLE_ENGINE` too, or the populated-screens test and the demo's second scene show an error where the sample job's Define should be.
+- `gpu-lease.test.ts` ("keeps a busy holder that goes on saying it is there") failed once in a full run while the machine was busy, and passed alone and in the next full run. It depends on the timing of other processes.
+
 ## 2026-10-29 (Wed), the first real session on the rule, and fourteen fixes from it and two reviews
 
 **Done** (on the same branch; decision 061 amended; no model was called, the GPU stayed off)
