@@ -2,6 +2,20 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), a blind read of the N/A screens, and its fixes waiting on a branch
+
+**Done** (no model of the product was called; the GPU stayed off)
+- A fresh reader, given only the captures `rule-mark-light` and `rule-define-light` and playing a bike shop's owner, read both screens. What it found that is real:
+  - The question asks yes or no ("Does "N/A" mean no parts cost?") while its buttons say "Count it as zero" and "Leave those rows out".
+  - Under "From your policy" the answer's line read "...If it can also mean "not known yet", leave those rows out. Count it as zero", as if it said both.
+  - The lines on how far an answer reaches ("26 rows have an empty parts cost...") don't say out of how many.
+- Fixed on the branch `wording-after-blind-read` (`d7b43bb`), not yet merged: the question says when each answer is the right one ("If "N/A" means no parts cost, count it as zero. If it can also mean "not known yet", leave those rows out."); the rule shows it in short beside the answer ("What should "N/A" in parts_cost (tickets.csv) count as?"); and each count line says it out of all the rows, as the line on the rows left out does ("19 of 160 rows have..."). That line is the one sentence of a rule that names no mark that changes; its version, token and tasks do not. Decision 061 says so. The engine, harness, shared and desktop unit tests pass (203 files, 2,554 tests), and typecheck and lint pass.
+- Kept as they are: no count in the question itself (decision 061 keeps the question to the choice); "rows", "task" and "Glimmer" (said elsewhere in the app); the made-up example, which is tagged.
+- The hidden e2e run for it (rule, drafting and flow specs) was stopped by Claude Code because the computer was low on memory, before `rule.spec.ts` ran. Its leftover runner and hidden app were stopped, the one capture it had rewritten was restored, and an old site preview server was stopped too. It was not started again.
+
+**Next**
+- When there's memory for it: build, run `rule.spec.ts` (it recaptures `rule-mark` and `rule-define`), look at the captures, then merge `wording-after-blind-read` and release.
+
 ## 2026-10-29 (Thu), release 0.3.4
 
 **Done**
