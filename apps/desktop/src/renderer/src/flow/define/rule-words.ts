@@ -9,23 +9,45 @@ export function ruleTypesOf(
   );
 }
 
-/** Whether training has to wait: the plan has a rule the person has not confirmed over these records. */
-export function waitsForRule(plan: TaskPlan | undefined): boolean {
-  return plan?.confirmation !== undefined && plan.confirmation.state !== 'confirmed';
+/** The plan of a job as the screen holds it: being read, not readable, or read. */
+export interface PlanQuery {
+  status: 'loading' | 'error' | 'success';
+  data: TaskPlan | undefined;
 }
 
 /**
- * What the footer says in place of "Keep Architect open" while training has to wait: that the
- * rule needs confirming, or, when the records changed under it, that the job must be described
- * again, since confirming can't bring the old tasks back.
+ * What training waits for before it may start. The plan says whether the job has a rule and
+ * whether the person has confirmed it over these records, so until it has been read, and whenever
+ * it couldn't be, it is not known that nothing is owed. `confirm`: a rule the person hasn't
+ * confirmed. `describe`: records that changed under the rule, which confirming can't mend.
  */
-export function waitLine(plan: TaskPlan | undefined): string | null {
-  switch (plan?.confirmation?.state) {
+export type TrainingWait = 'reading' | 'unreadable' | 'confirm' | 'describe';
+
+export function trainingWait(plan: PlanQuery): TrainingWait | null {
+  if (plan.status === 'loading') return 'reading';
+  if (plan.status === 'error') return 'unreadable';
+  switch (plan.data?.confirmation?.state) {
     case 'needed':
-      return 'Confirm the rule first';
+      return 'confirm';
     case 'changed':
-      return 'Describe the job again first';
+      return 'describe';
     default:
+      return null;
+  }
+}
+
+/** What the footer says in place of "Keep Architect open" while training has to wait. */
+export function waitLine(wait: TrainingWait | null): string | null {
+  switch (wait) {
+    case 'reading':
+      return 'Checking the job';
+    case 'unreadable':
+      return "Couldn't check the job";
+    case 'confirm':
+      return 'Confirm the rule first';
+    case 'describe':
+      return 'Describe the job again first';
+    case null:
       return null;
   }
 }

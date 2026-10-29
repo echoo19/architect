@@ -20,6 +20,7 @@ import {
   stubByKey,
   stubRecorded,
   stubSequence,
+  taskPlan,
   turns,
 } from './fixtures-flow';
 
@@ -500,6 +501,53 @@ for (const theme of THEMES) {
     await rule.getByRole('button', { name: 'The rule exactly as Architect evaluates it' }).click();
     await expect(rule).toContainText('"column": "parts_cost"');
     await capture(page, `flow-report-rule-${theme}`);
+  });
+}
+
+for (const theme of THEMES) {
+  test(`keeps Start training off until the job's plan is known, and says so when it cannot be read (${theme})`, async () => {
+    const { app, page } = launched;
+    await stubFlow();
+    await applySettings(page, { theme, onboarded: true, comparisonMode: false });
+    await resize(DEFINE_HEIGHT);
+    const start = page.getByRole('button', { name: 'Start training' });
+    // Away from the job first, so that opening it reads its plan again.
+    await goTo(page, '/');
+
+    // The plan says whether the job has a rule to confirm. Until it is read, nothing says there is none.
+    await app.evaluate(({ ipcMain }, plan) => {
+      ipcMain.removeHandler('jobs:taskPlan');
+      ipcMain.handle(
+        'jobs:taskPlan',
+        () => new Promise((resolve) => setTimeout(() => resolve({ ok: true, value: plan }), 2_500)),
+      );
+    }, taskPlan);
+    await goTo(page, `/jobs/${FLOW.jobId}/define`);
+    await expect(page.getByRole('heading', { name: 'Service desk', level: 1 })).toBeVisible();
+    await expect(page.getByText('Checking the job', { exact: true })).toBeVisible();
+    await expect(start).toBeDisabled();
+    await expect(page.getByText('Keep Architect open while it trains')).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(start).toBeEnabled();
+
+    // A plan that can't be read leaves it off, with the reason and a way to try again.
+    await stubEngineFailure(app, { 'jobs:taskPlan': 'The engine did not answer.' });
+    await page.reload();
+    await page.waitForLoadState('domcontentloaded');
+    const alert = page.getByRole('alert').filter({ hasText: "Couldn't check whether this job" });
+    await expect(alert).toContainText('The engine did not answer.');
+    await expect(alert).toContainText("Training can't start until it is checked.");
+    await expect(page.getByText("Couldn't check the job", { exact: true })).toBeVisible();
+    await expect(start).toBeDisabled();
+    await capture(page, `flow-define-unreadable-${theme}`);
+
+    // Read at last, the job has no rule to wait for, and training may start.
+    await stubEngine(app, { 'jobs:taskPlan': taskPlan });
+    await alert.getByRole('button', { name: 'Try again' }).click();
+    await expect(alert).toHaveCount(0);
+    await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
+    await expect(start).toBeEnabled();
   });
 }
 

@@ -10,7 +10,7 @@ import { AdvancedDialog, tabWithIssue, type AdvancedTab } from '../flow/define/A
 import { hostedAvailability, type KeyStatus } from '../flow/define/hosted';
 import { Capabilities, FilePermissions, JobHeader, ReadyWhen } from '../flow/define/JobOverview';
 import { RuleReview } from '../flow/define/RuleReview';
-import { waitLine, waitsForRule } from '../flow/define/rule-words';
+import { trainingWait, waitLine } from '../flow/define/rule-words';
 import { TrainingPlace } from '../flow/define/TrainingPlace';
 import { useJobEditor } from '../flow/define/use-job-editor';
 import { attempt } from '../lib/notify';
@@ -70,7 +70,8 @@ function DefineEditor({ initial }: { initial: Job }) {
   const taskCount = summaries.data?.find((summary) => summary.id === initial.id)?.taskCount ?? null;
   const editor = useJobEditor(initial, taskCount);
   const taskPlan = useTaskPlan(initial.id);
-  const waitingForRule = waitsForRule(taskPlan.data);
+  // Whether the job has a rule to confirm is in its plan, so training waits until it is read.
+  const wait = trainingWait(taskPlan);
   const { job } = editor;
   const settings = useSettings();
   const secrets = useSecretsStatus();
@@ -149,13 +150,13 @@ function DefineEditor({ initial }: { initial: Job }) {
           </Button>
           <div className="flex items-center gap-2">
             <span className="mr-2 text-sm text-fg-muted">
-              {waitLine(taskPlan.data) ?? 'Keep Architect open while it trains'}
+              {waitLine(wait) ?? 'Keep Architect open while it trains'}
             </span>
             <Button onClick={() => navigate(paths.newAgent())}>Back</Button>
             <Button
               variant="primary"
               loading={starting}
-              disabled={waitingForRule}
+              disabled={wait !== null}
               onClick={() => void start()}
             >
               Start training
@@ -167,7 +168,20 @@ function DefineEditor({ initial }: { initial: Job }) {
       <div className="mx-auto box-content flex max-w-[880px] flex-col gap-12 px-8 pb-10 pt-14">
         <JobHeader job={job} />
         <Capabilities job={job} />
-        {taskPlan.data && <RuleReview job={job} plan={taskPlan.data} />}
+        {taskPlan.status === 'error' && (
+          <div
+            role="alert"
+            className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-danger-line px-6 py-5"
+          >
+            <p className="m-0 max-w-[560px] text-pretty">
+              {`Couldn't check whether this job has a rule to confirm: ${taskPlan.error.message} Training can't start until it is checked.`}
+            </p>
+            <Button onClick={taskPlan.reload}>Try again</Button>
+          </div>
+        )}
+        {taskPlan.data && taskPlan.status !== 'error' && (
+          <RuleReview job={job} plan={taskPlan.data} />
+        )}
         <TrainingPlace
           job={job}
           hosted={hosted}

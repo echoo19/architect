@@ -13,8 +13,9 @@ import {
   leftOutLine,
   reviewIntro,
   ruleTypesOf,
+  trainingWait,
   waitLine,
-  waitsForRule,
+  type PlanQuery,
 } from '../../../src/renderer/src/flow/define/rule-words';
 
 const DETAILS: RuleDetails = {
@@ -60,30 +61,45 @@ describe('the words that put a rule in front of the person', () => {
     expect(ruleTypesOf(plan(undefined, false))).toEqual([]);
   });
 
-  it('holds training back until the rule is confirmed over these records, and only for a job with one', () => {
-    expect(waitsForRule(undefined)).toBe(false);
-    expect(waitsForRule(plan(undefined, false))).toBe(false);
-    expect(waitsForRule(plan({ state: 'needed', token: 'abc' }))).toBe(true);
-    expect(waitsForRule(plan({ state: 'changed', token: 'abc', problem: 'It changed.' }))).toBe(
-      true,
-    );
-    expect(
-      waitsForRule(
-        plan({ state: 'confirmed', token: 'abc', confirmedAt: '2026-10-29T10:00:00.000Z' }),
-      ),
-    ).toBe(false);
+  const read = (confirmation: TaskPlan['confirmation'], withRule = true): PlanQuery => ({
+    status: 'success',
+    data: plan(confirmation, withRule),
   });
 
-  it('says in the footer why training waits: to confirm, or to describe the job again', () => {
-    expect(waitLine(undefined)).toBeNull();
-    expect(waitLine(plan(undefined, false))).toBeNull();
-    expect(waitLine(plan({ state: 'needed', token: 'abc' }))).toBe('Confirm the rule first');
-    expect(waitLine(plan({ state: 'changed', token: 'abc', problem: 'It changed.' }))).toBe(
-      'Describe the job again first',
+  it('holds training back until the rule is confirmed over these records, and only for a job with one', () => {
+    expect(trainingWait(read(undefined, false))).toBeNull();
+    expect(trainingWait(read({ state: 'needed', token: 'abc' }))).toBe('confirm');
+    expect(trainingWait(read({ state: 'changed', token: 'abc', problem: 'It changed.' }))).toBe(
+      'describe',
     );
     expect(
-      waitLine(plan({ state: 'confirmed', token: 'abc', confirmedAt: '2026-10-29T12:00:00.000Z' })),
+      trainingWait(
+        read({ state: 'confirmed', token: 'abc', confirmedAt: '2026-10-29T10:00:00.000Z' }),
+      ),
     ).toBeNull();
+  });
+
+  it('holds training back until the plan is known: while it is read, and when it could not be', () => {
+    // Whether there is a rule to confirm is in the plan, so a plan nobody has read is not "no rule".
+    expect(trainingWait({ status: 'loading', data: undefined })).toBe('reading');
+    expect(trainingWait({ status: 'error', data: undefined })).toBe('unreadable');
+    // Read before and being read again, or failed after being read: the earlier answer is not trusted.
+    const confirmed = plan({
+      state: 'confirmed',
+      token: 'abc',
+      confirmedAt: '2026-10-29T10:00:00.000Z',
+    });
+    expect(trainingWait({ status: 'loading', data: confirmed })).toBe('reading');
+    expect(trainingWait({ status: 'error', data: confirmed })).toBe('unreadable');
+    expect(trainingWait({ status: 'success', data: confirmed })).toBeNull();
+  });
+
+  it('says in the footer why training waits', () => {
+    expect(waitLine(null)).toBeNull();
+    expect(waitLine('reading')).toBe('Checking the job');
+    expect(waitLine('unreadable')).toBe("Couldn't check the job");
+    expect(waitLine('confirm')).toBe('Confirm the rule first');
+    expect(waitLine('describe')).toBe('Describe the job again first');
   });
 
   it('names a passage by whose words it is, when it is the person who wrote it', () => {
