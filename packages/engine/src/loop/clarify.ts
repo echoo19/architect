@@ -10,10 +10,8 @@ import type { RunState } from './run-state';
  * belongs to the job as it was, and a changed job is a new contract version and a new run.
  */
 export function clarify(state: RunState, index: number): void {
-  const answer: ClarificationAnswer = must(
-    interventionOfRound(state, index).answer,
-    "The person's answer",
-  );
+  const asked = interventionOfRound(state, index);
+  const answer: ClarificationAnswer = must(asked.answer, "The person's answer");
   const stored = state.round(index);
   const now = state.now();
   const reason = answer.changesCriteria
@@ -32,6 +30,8 @@ export function clarify(state: RunState, index: number): void {
       : null;
   });
   state.emit({ type: 'round.updated', round });
+  // The answer was recorded when it was given; whoever shows it is told it has been taken up.
+  state.announce('intervention', asked.id, index);
   if (run) {
     state.emit({ type: 'run.updated', run });
     state.log('info', reason);
