@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { goTo, launchApp } from '../e2e/app';
 import { drawPointer, hideTitle, setSpeedMark, showTitle, type PointerState } from './overlay';
 import type { DemoScene, DemoStep } from './script';
@@ -22,6 +22,17 @@ export interface CapturedScene {
 const FRAME_MS = 1000 / 30;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+/** Moves the drawn pointer to a target, clicks it and starts the click's ripple. */
+async function clickWithPointer(page: Page, target: Locator, pointer: PointerState, what: string) {
+  const box = await target.boundingBox();
+  if (!box) throw new Error(`Click target is not visible: ${what}`);
+  pointer.x = box.x + box.width / 2;
+  pointer.y = box.y + box.height / 2;
+  await page.mouse.move(pointer.x, pointer.y);
+  await target.click();
+  pointer.rippleAt = performance.now();
+}
+
 async function executeStep(
   step: DemoStep,
   page: Page,
@@ -32,17 +43,21 @@ async function executeStep(
     case 'route':
       await goTo(page, step.path);
       break;
-    case 'click': {
-      const target = page.getByRole(step.role, { name: step.name, exact: true });
-      const box = await target.boundingBox();
-      if (!box) throw new Error(`Click target is not visible: ${step.role} ${step.name}`);
-      pointer.x = box.x + box.width / 2;
-      pointer.y = box.y + box.height / 2;
-      await page.mouse.move(pointer.x, pointer.y);
-      await target.click();
-      pointer.rippleAt = performance.now();
+    case 'click':
+      await clickWithPointer(
+        page,
+        page.getByRole(step.role, { name: step.name, exact: true }),
+        pointer,
+        `${step.role} ${step.name}`,
+      );
       break;
-    }
+    case 'run':
+      await step.run({
+        page,
+        app,
+        click: (target) => clickWithPointer(page, target, pointer, step.label),
+      });
+      break;
     case 'type':
       await page
         .getByRole(step.role, { name: step.name, exact: true })

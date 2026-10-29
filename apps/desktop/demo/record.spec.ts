@@ -7,7 +7,8 @@ import { captureScene } from './capture';
 import type { DemoScript } from './script';
 
 test('record the scene script in a hidden window', async () => {
-  test.setTimeout(10 * 60_000);
+  // A scene with a local model's replies can take many minutes before they are sped up.
+  test.setTimeout(Number(process.env.ARCHITECT_DEMO_MINUTES ?? 30) * 60_000);
   const scriptPath = resolve(process.env.ARCHITECT_DEMO_SCRIPT ?? 'demo/sample.ts');
   const output = resolve(process.env.ARCHITECT_DEMO_OUTPUT ?? 'demo/work/sample.mp4');
   const work = resolve('demo/work', basename(output, '.mp4'));
