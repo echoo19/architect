@@ -288,6 +288,8 @@ test('a run whose teacher may change nothing ends at once, with the reason and n
       'Every kind of change Spark may make is turned off for this job, except retraining Glimmer itself, which needs a Hugging Face key. A free Hugging Face account gives you one. Nothing was spent.',
     );
     await expect(notice).not.toContainText(/mentor|stand-in|adapter|backend/i);
+    // This screen has no Start button, so the notice says what to do after its button.
+    await expect(notice).toContainText('Turn one on, then start training again from the job.');
     await capture(page, `teacher-idle-${theme}`);
   }
 
@@ -309,8 +311,18 @@ test('a run whose teacher may change nothing ends at once, with the reason and n
   await expect(page).toHaveURL(new RegExp(`#/jobs/${jobId}/define$`));
   const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
   await expect(advanced.getByRole('region', { name: 'What Spark may change' })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(advanced).toBeHidden();
+  // What the notice says to do next is what the job offers: turn one on, and Start training is
+  // there, no longer held. Then it is put back as the next test finds it.
+  await advanced
+    .getByRole('region', { name: 'What Spark may change' })
+    .getByRole('switch', { name: 'Instructions and steps' })
+    .click();
+  await closeAdvanced(page, advanced);
+  await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
+  const back = await openTeacherTab(page);
+  await back.section.getByRole('switch', { name: 'Instructions and steps' }).click();
+  await closeAdvanced(page, back.advanced);
+  await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
 
   // The run's own controls lead back to the job too, without opening anything.
   await goTo(page, `/runs/${started.id}/train`);
