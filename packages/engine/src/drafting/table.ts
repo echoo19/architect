@@ -122,24 +122,23 @@ export interface ColumnProfile {
   distinctCapped: boolean;
   /** Every cell is filled and no two are the same. */
   unique: boolean;
-  /** A few values as the file writes them. */
-  samples: string[];
   /** Some numbers are written with a currency sign, or with separators or brackets. */
   decorated: boolean;
 }
 
 export const DISTINCT_CAP = 1_000;
-const SAMPLES = 5;
+const EXAMPLES = 5;
 const FEW_VALUES = 12;
-const SAMPLE_WIDTH = 40;
+const EXAMPLE_WIDTH = 40;
 
 function shortened(text: string): string {
-  return text.length > SAMPLE_WIDTH ? `${text.slice(0, SAMPLE_WIDTH - 1)}...` : text;
+  return text.length > EXAMPLE_WIDTH ? `${text.slice(0, EXAMPLE_WIDTH - 1)}...` : text;
 }
 
+/** What a column holds, counted: nothing of any one row, so it can be said to anyone. */
 export function profileColumn(table: Table, column: string): ColumnProfile {
   const cells = cellsOf(table, column);
-  const counts = new Map<string, { first: string; count: number }>();
+  const distinct = new Set<string>();
   let empty = 0;
   let capped = false;
   let decorated = false;
@@ -150,44 +149,59 @@ export function profileColumn(table: Table, column: string): ColumnProfile {
       continue;
     }
     const key = text.toLowerCase();
-    const seen = counts.get(key);
-    if (seen) seen.count += 1;
-    else if (counts.size < DISTINCT_CAP) counts.set(key, { first: text, count: 1 });
-    else capped = true;
+    if (!distinct.has(key)) {
+      if (distinct.size < DISTINCT_CAP) distinct.add(key);
+      else capped = true;
+    }
     if (!decorated && !/^[+-]?\d+(?:\.\d+)?$/.test(text) && parseDecimal(text) !== null) {
       decorated = true;
     }
   }
   const kind = kindOf(cells);
-  const filled = cells.length - empty;
-  const found = [...counts.values()];
-  let samples: string[];
-  if (found.length <= FEW_VALUES) {
-    samples = [...found]
-      .sort((a, b) => b.count - a.count)
-      .slice(0, SAMPLES)
-      .map((entry) => entry.first);
-  } else {
-    // Spread across the file, so the mess that sits further down shows too.
-    const chosen = new Set<string>();
-    const stride = Math.max(1, Math.floor(cells.length / SAMPLES));
-    for (let at = 0; at < cells.length && chosen.size < SAMPLES; at += stride) {
-      const text = cleanText(cells[at]);
-      if (text !== '') chosen.add(text);
-    }
-    samples = [...chosen];
-  }
   return {
     name: column,
     kind,
-    filled,
+    filled: cells.length - empty,
     empty,
-    distinct: counts.size,
+    distinct: distinct.size,
     distinctCapped: capped,
-    unique: empty === 0 && !capped && counts.size === cells.length,
-    samples: samples.map(shortened),
+    unique: empty === 0 && !capped && distinct.size === cells.length,
     decorated: kind === 'number' && decorated,
   };
+}
+
+/**
+ * A few values of a column, as the file writes them, to show the teacher what it holds. Nothing
+ * of a row reaches the teacher that the teacher isn't shown already: a value only one row has
+ * comes from a row in `shown`, which no set of tasks is made from, and a value that several rows
+ * share names no row, so a column with a few values (a status, a region) lists those it has in
+ * common, which a filter needs. Any other column gives the values of the rows in `shown`.
+ */
+export function examplesOf(table: Table, column: string, shown: ReadonlySet<number>): string[] {
+  const values = new Map<string, { first: string; row: number; count: number }>();
+  for (const [at, row] of table.rows.entries()) {
+    const text = cleanText(row[column]);
+    if (text === '') continue;
+    const key = text.toLowerCase();
+    const seen = values.get(key);
+    if (seen) seen.count += 1;
+    else values.set(key, { first: text, row: at, count: 1 });
+  }
+  let chosen: string[];
+  if (values.size <= FEW_VALUES) {
+    chosen = [...values.values()]
+      .filter((value) => value.count > 1 || shown.has(value.row))
+      .sort((a, b) => b.count - a.count)
+      .map((value) => value.first);
+  } else {
+    const fromShown = new Set<string>();
+    for (const at of [...shown].sort((a, b) => a - b)) {
+      const text = cleanText(table.rows[at]?.[column]);
+      if (text !== '') fromShown.add(text);
+    }
+    chosen = [...fromShown];
+  }
+  return chosen.slice(0, EXAMPLES).map(shortened);
 }
 
 /** A number read from a cell that has to hold one: blank, a number, or a word that isn't one. */

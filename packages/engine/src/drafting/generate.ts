@@ -15,6 +15,7 @@ import { runLookup } from './templates/lookup';
 import { runRule } from './templates/rule';
 import type { Candidate, TemplateRun } from './templates/common';
 import type { Table } from './table';
+import { foldKey } from './values';
 
 /*
  * Making the tasks of a drafted job. Coverage, not a quota: every kind of request makes as many
@@ -199,17 +200,93 @@ function exceptShown(
 }
 
 /**
- * A request as it reads, with case, spacing and punctuation set aside: what two kinds of task
- * ask when they put the same words to the same row, however their rules were written.
+ * A request as it reads, with case, spacing and punctuation set aside, and the table it is put
+ * to: what two kinds of task ask when they put the same words to the same table, however their
+ * rules were written. The same words put to two tables are two questions, since they read other
+ * rows and have other answers.
  */
-function wordsOf(candidate: Candidate): string {
+function wordsOf(table: string, candidate: Candidate): string {
   const request = candidate.meta['request'];
   const text = typeof request === 'string' ? request : (candidate.prompt.split('\n')[0] ?? '');
-  return text
+  const words = text
     .normalize('NFKC')
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
+  return `${foldKey(table)}\n${words}`;
+}
+
+/** Kinds of task whose every request is about one row of one table. */
+function asksAboutRows(spec: TaskSpec): boolean {
+  return spec.template === 'lookup' || spec.template === 'rule';
+}
+
+/** A kind of task that made requests, to choose among. */
+interface Asking {
+  input: TypeInput;
+  candidates: readonly Candidate[];
+  run: { notes: string[] };
+}
+
+/**
+ * The requests each kind of task makes: its share, one from each family before a second from any.
+ * A row of a table is the subject of one request, whichever kind asks it. Two kinds that ask about
+ * a row in different words are one question to an agent, and only the row ties them: on both sides
+ * of the final-test boundary they give the answer away. Families can't tie them, since two kinds
+ * whose families are different columns of the table, a customer and a technician, chain every row
+ * they share into one family too large for any set. So the kinds that ask about single rows of one
+ * table take turns, each taking the next request it has about a row nobody has taken, until each
+ * has its share or no row is left it can take. The kind with the fewest rows to choose from goes
+ * first in each round, since it is the one a taken row can leave short.
+ */
+function choose(kinds: readonly Asking[], shares: readonly number[]): Candidate[][] {
+  const picked: Candidate[][] = kinds.map(() => []);
+  const byTable = new Map<string, number[]>();
+  kinds.forEach((kind, index) => {
+    if (!asksAboutRows(kind.input.spec)) {
+      picked[index] = spread(kind.candidates, shares[index] ?? 0);
+      return;
+    }
+    const table = foldKey(kind.input.spec.table);
+    byTable.set(table, [...(byTable.get(table) ?? []), index]);
+  });
+  for (const sharing of byTable.values()) {
+    const askers = sharing.map((index) => ({
+      index,
+      want: shares[index] ?? 0,
+      order: spread(kinds[index]?.candidates ?? [], kinds[index]?.candidates.length ?? 0),
+      next: 0,
+      got: [] as Candidate[],
+    }));
+    askers.sort((a, b) => a.order.length - b.order.length);
+    const taken = new Set<number>();
+    for (let moved = true; moved;) {
+      moved = false;
+      for (const asker of askers) {
+        while (asker.got.length < asker.want && asker.next < asker.order.length) {
+          const candidate = asker.order[asker.next];
+          asker.next += 1;
+          const row = candidate?.rows?.[0];
+          if (candidate === undefined || (row !== undefined && taken.has(row))) continue;
+          if (row !== undefined) taken.add(row);
+          asker.got.push(candidate);
+          moved = true;
+          break;
+        }
+      }
+    }
+    for (const asker of askers) {
+      picked[asker.index] = asker.got;
+      const kind = kinds[asker.index];
+      const left = Math.min(asker.want, kind?.candidates.length ?? 0) - asker.got.length;
+      if (kind !== undefined && sharing.length > 1 && left > 0) {
+        kind.run.notes.push(
+          `${left} ${left === 1 ? 'request was' : 'requests were'} left out of ${kind.input.spec.table}: another kind of task asks about the same rows, and a row is asked about once, so that one question is never a practice task and a final-test task at once.`,
+        );
+      }
+    }
+  }
+  return picked;
 }
 
 /**
@@ -268,7 +345,7 @@ export function generateTasks(
         );
       }
       const before = (candidate: Candidate): string | undefined =>
-        asked.get(candidate.identity) ?? worded.get(wordsOf(candidate));
+        asked.get(candidate.identity) ?? worded.get(wordsOf(table.name, candidate));
       const fresh = candidates.filter((candidate) => before(candidate) === undefined);
       const repeats = candidates.length - fresh.length;
       if (repeats > 0) {
@@ -312,7 +389,7 @@ export function generateTasks(
     }
     for (const candidate of askable) {
       asked.set(candidate.identity, input.label);
-      worded.set(wordsOf(candidate), input.label);
+      worded.set(wordsOf(table.name, candidate), input.label);
     }
     usable.push({ input, run, candidates, random });
   }
@@ -321,10 +398,11 @@ export function generateTasks(
     usable.map((entry) => entry.candidates.length),
     MAX_TASKS,
   );
+  const picks = choose(usable, shares);
   const types: GeneratedType[] = [];
   const tasks: Task[] = [];
   usable.forEach((entry, index) => {
-    const chosen = spread(entry.candidates, shares[index] ?? 0);
+    const chosen = picks[index] ?? [];
     chosen.forEach((candidate, position) => {
       tasks.push(
         TaskSchema.parse({

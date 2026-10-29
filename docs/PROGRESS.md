@@ -2,6 +2,25 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Wed), what the teacher reads of the records, and a fifth thing seen in use
+
+**Done** (on `rule-fixes-3`, from main at `5cd891b`; decision 061 amended; no model was called, the GPU stayed off, and every run used stand-ins only)
+- Four findings of GPT-6 Sol's read of the second round, each with a test that fails without its fix:
+  - The teacher could read a row that a set was later made from. A column's examples were sampled across the file (rows 0, 6, 12, 18 and 24 of thirty) while only the first five rows were left out of the sets, so a row whose unique id and amount the teacher had read could be sealed into the final test. A column's examples now come from the first five rows, which no set is made from, plus, for a column with a few values (a status), the values more than one row has, which name no row. One function says which rows the teacher is shown, for what it is told and for what the sets leave out. The decision lists exactly what reaches the teacher.
+  - The reason for a refused division carried a proposed final test's counts to the teacher ("27 (82%) of the final-test tasks"). The teacher is now told only that a copy could pass, for which kind of task and what to do about it, with no set, count, share or column; the person gets the detail. No other message to the teacher comes from a proposed or a sealed set.
+  - Two lookups that asked the same words of two tables (`tickets.csv`, `archive.csv`) were one question, and the second lost every request. The table is part of the key.
+  - Two kinds of rule that ask about one ticket in other words, another order and another family column could still land on both sides of the final-test boundary. A row of a table is now the subject of one request whichever kind of lookup or rule asks it, so there is no twin: the kinds take turns, the one with the fewest rows first, and a kind that came away short says so in the job's notes. Putting every task about a row in one set was not built: two coarse families on one table chain every row they share into a family too large for any set (the decision).
+- From a live draft in the app: Spark cited "in half-hour steps" and wrote no rounding step and no question about it. The prompt now says every passage a rule cites must be carried out by the steps or listed in `rule.ambiguities`. There is no check in code, since whether steps carry out a passage is a question of meaning (a check on the numbers in a passage passes "half-hour steps", which has none, and fails "10% off" written as 0.9); the person's reading of each passage beside the rule in words and its examples, on Define, is the check.
+- Verified: `pnpm check` exits 0 (231 test files, 2,993 tests passed, 2 skipped; it was 2,979). Hidden e2e on the rebuilt app: `rule.spec.ts` (3), `flow.spec.ts` (25) and `drafting.spec.ts` (5) pass.
+
+**Next**
+- Merge the branch into main. The next test of the rule is still the owner's real run on the bike shop.
+
+**Open issues**
+- Two requests with the same words over two tables read as one prompt with two answers to an agent unless the words name the table, which is the teacher's to write.
+- A row is asked about once among lookups and rules. Lists and totals, which are about many rows, are not held to it, and a question worded differently about a different row is a different question.
+- When two kinds ask about one table's rows and the table has too few for both, each keeps what is left; the notes of the job say how many requests a kind lost.
+
 ## 2026-10-29 (Wed), the rule read again by GPT-6 Sol, and two things seen in use
 
 **Done** (on `rule-fixes-2-work`, from main at `ce90f59`; decision 061 amended; no model was called, the GPU stayed off)

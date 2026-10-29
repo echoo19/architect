@@ -2,7 +2,14 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { TaskSchema, type SplitConfig, type Task } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { auditSplits, divide, DIVISION_ATTEMPTS } from '../src/drafting/division';
+import {
+  auditSplits,
+  divide,
+  DIVISION_ATTEMPTS,
+  faultsToPerson,
+  faultsToTeacher,
+  type Fault,
+} from '../src/drafting/division';
 import { generateTasks, splitSizes, type GeneratedType } from '../src/drafting/generate';
 import type { RuleCase, Tables } from '../src/drafting/rule/cases';
 import { auditSet } from '../src/drafting/rule/guards';
@@ -64,10 +71,24 @@ describe('holding the sets as they are divided to the guard of a rule', () => {
 
   it('refuses a final test of 33 that holds 27 copies, which is 82% against a target of 80%', () => {
     const test = [...copies.slice(0, 27), ...others.slice(0, 6)];
-    const problems = auditSplits(types, { ...empty, test }, 0.8);
-    expect(problems).toEqual([
-      'Task type "cost" (Ticket totals): Of the 33 final-test tasks Architect set aside, 27 (82%) have the value of parts_cost for their answer, and the job asks for 80% right, so an agent that copies it would pass the final test without working anything out. A rule has to work something out.',
+    const faults = auditSplits(types, { ...empty, test }, 0.8);
+    expect(faults).toEqual([
+      {
+        id: 'cost',
+        label: 'Ticket totals',
+        detail:
+          'Of the 33 final-test tasks Architect set aside, 27 (82%) have the value of parts_cost for their answer, and the job asks for 80% right, so an agent that copies it would pass the final test without working anything out. A rule has to work something out.',
+      },
     ]);
+    // The person is told in full. The teacher is told that a copy could pass, and nothing of the
+    // set: not which, not how many tasks, not what share.
+    expect(faultsToPerson(faults)[0]).toContain('27 (82%)');
+    const told = faultsToTeacher(faults).join('\n');
+    expect(told).toContain(
+      'Task type "cost" (Ticket totals): its answers are close enough to a copy',
+    );
+    expect(told).not.toMatch(/\d/);
+    expect(told).not.toMatch(/final|check|test|set aside|%/i);
   });
 
   it('lets a final test of 33 with 26 copies through, which is under the target', () => {
@@ -77,10 +98,31 @@ describe('holding the sets as they are divided to the guard of a rule', () => {
 
   it('holds the check tasks to it too, since their target ends training', () => {
     const dev = [...copies.slice(0, 25), ...others.slice(0, 5)];
-    const problems = auditSplits(types, { ...empty, dev }, 0.8);
-    expect(problems).toHaveLength(1);
-    expect(problems[0]).toContain('Of the 30 check tasks Architect set aside, 25 (83%)');
-    expect(problems[0]).toContain('would reach the target on the check tasks without working');
+    const faults = auditSplits(types, { ...empty, dev }, 0.8);
+    expect(faults).toHaveLength(1);
+    expect(faults[0]?.detail).toContain('Of the 30 check tasks Architect set aside, 25 (83%)');
+    expect(faults[0]?.detail).toContain(
+      'would reach the target on the check tasks without working',
+    );
+    // Told the same to the teacher whichever set it was, so that it can't tell the two apart.
+    expect(faultsToTeacher(faults)).toEqual(
+      faultsToTeacher(
+        auditSplits(
+          types,
+          { ...empty, test: [...copies.slice(0, 27), ...others.slice(0, 6)] },
+          0.8,
+        ),
+      ),
+    );
+  });
+
+  it('tells the teacher once of a kind of task, however many sets and tasks a copy could pass', () => {
+    const test = [...copies.slice(0, 27), ...others.slice(0, 6)];
+    const dev = [...copies.slice(0, 25), ...others.slice(0, 5)];
+    const faults = auditSplits(types, { ...empty, test, dev }, 0.8);
+    expect(faults).toHaveLength(2);
+    expect(faultsToTeacher(faults)).toHaveLength(1);
+    expect(faultsToPerson(faults)).toHaveLength(3);
   });
 
   it('counts only the tasks of the rule in the set, and holds nothing that has no rule', () => {
@@ -125,6 +167,11 @@ const FORTY = [
   ...Array.from({ length: 16 }, (_, n) => task('b', n)),
 ];
 
+/** A guard's finding about a kind of task, as `divide` is told of one. */
+function fault(detail: string): Fault[] {
+  return [{ id: 'a', label: 'Kind a', detail }];
+}
+
 function sets(list: readonly Task[], config: SplitConfig): TaskSplits {
   return {
     calibration: list.slice(0, config.calibration),
@@ -163,13 +210,13 @@ describe('dividing the tasks of a job', () => {
         seeds.push(config.seed);
         return sets(list, config);
       },
-      () => (seeds.length < 3 ? ['A copy would pass.'] : []),
+      () => (seeds.length < 3 ? fault('A copy would pass.') : []),
     );
     expect(seeds).toEqual([500, 501, 502]);
     expect(division).toMatchObject({ kind: 'divided', seed: 502 });
   });
 
-  it('refuses them, with the reasons of the first division, when no seed makes them safe', () => {
+  it('refuses them, with the faults of the first division, when no seed makes them safe', () => {
     const seeds: number[] = [];
     const division = divide(
       FORTY,
@@ -178,16 +225,15 @@ describe('dividing the tasks of a job', () => {
         seeds.push(config.seed);
         return sets(list, config);
       },
-      () => [`A copy would pass (${seeds.length}).`],
+      () => fault(`A copy would pass (${seeds.length}).`),
     );
     expect(seeds).toHaveLength(DIVISION_ATTEMPTS);
-    expect(division).toEqual({
-      kind: 'unsafe',
-      problems: [
-        'A copy would pass (1).',
-        `Architect divided the tasks ${DIVISION_ATTEMPTS} ways, and in each the final test or the check tasks could be passed by copying.`,
-      ],
-    });
+    expect(division).toEqual({ kind: 'unsafe', faults: fault('A copy would pass (1).') });
+    if (division.kind !== 'unsafe') return;
+    expect(faultsToPerson(division.faults)).toEqual([
+      'Task type "a" (Kind a): A copy would pass (1).',
+      `Architect divided the tasks ${DIVISION_ATTEMPTS} ways, and in each the final test or the check tasks could be passed by copying.`,
+    ]);
   });
 
   it('keeps its seeds inside the range tasks are chosen with', () => {
@@ -199,7 +245,7 @@ describe('dividing the tasks of a job', () => {
         seeds.push(config.seed);
         return sets(list, config);
       },
-      () => ['A copy would pass.'],
+      () => fault('A copy would pass.'),
     );
     expect(seeds.slice(0, 3)).toEqual([2_147_483_646, 0, 1]);
   });
@@ -231,7 +277,7 @@ describe('dividing the tasks of a job', () => {
         if (calls === 2) throw new SplitError('This seed cannot.');
         return sets(list, config);
       },
-      () => (calls < 3 ? ['A copy would pass.'] : []),
+      () => (calls < 3 ? fault('A copy would pass.') : []),
     );
     expect(division).toMatchObject({ kind: 'divided', seed: 502 });
     expect(division.kind === 'divided' && division.tasks).toHaveLength(40);
@@ -377,22 +423,43 @@ describe('drafting a job whose final test a copy could pass', () => {
     expect(shareOf(await world.jobs.tasks(job.id, 'dev'))).toBeLessThan(0.65);
   });
 
-  it('is refused, with the reason, when every way of dividing it leaves a copy that passes', async () => {
+  it('is refused, with the reason for the person in full, when every way of dividing it leaves a copy that passes', async () => {
     nearCopy();
     const real = world.deps.runtime.splitTasks.bind(world.deps.runtime);
     vi.spyOn(world.deps.runtime, 'splitTasks').mockImplementation((tasks, config) =>
       skewed(real(tasks, config)),
     );
-    await expect(world.drafting.start('A repair desk', attachBike(), TEACHER)).rejects.toThrow(
+    const refused = world.drafting.start('A repair desk', attachBike(), TEACHER);
+    await expect(refused).rejects.toThrow(
       /Task type "cost" \(Ticket totals\): Of the \d+ final-test tasks Architect set aside, \d+ \(100%\) have the value of parts_cost for their answer/,
     );
-    // The teacher was told, once, and could not change what the records hold.
-    expect(world.mentor.requests).toHaveLength(2);
-    const told = world.mentor.requests[1]?.messages.at(-1)?.content ?? '';
-    expect(told).toContain('would pass the final test without working anything out');
-    expect(told).toContain(`Architect divided the tasks ${DIVISION_ATTEMPTS} ways`);
+    await expect(refused).rejects.toThrow(`Architect divided the tasks ${DIVISION_ATTEMPTS} ways`);
     expect(world.store.jobs.list()).toEqual([]);
     expect(world.vault.isSealed('repair-desk')).toBe(false);
+  });
+
+  it('tells the teacher that a copy could pass, and nothing of the sets it could pass', async () => {
+    nearCopy();
+    const real = world.deps.runtime.splitTasks.bind(world.deps.runtime);
+    vi.spyOn(world.deps.runtime, 'splitTasks').mockImplementation((tasks, config) =>
+      skewed(real(tasks, config)),
+    );
+    await expect(world.drafting.start('A repair desk', attachBike(), TEACHER)).rejects.toThrow();
+    // The teacher was told once, and could not change what the records hold.
+    expect(world.mentor.requests).toHaveLength(2);
+    const told = world.mentor.requests[1]?.messages.at(-1)?.content ?? '';
+    expect(told).toContain(
+      'Task type "cost" (Ticket totals): its answers are close enough to a copy of a value in the table, or of the key, that an agent could pass by copying without working anything out.',
+    );
+    // Not which set, not how many tasks, not what share, not how many ways were tried.
+    expect(told).not.toMatch(/final|check task|set aside|%|divided|ways/i);
+    expect(told).not.toContain('parts_cost');
+    expect(told).not.toMatch(/\d+ \(/);
+    // The proposed sets are the final test's before it is sealed: nothing of them in anything
+    // the teacher was sent, in any request of the conversation.
+    const everything = world.mentor.requests.map((request) => JSON.stringify(request)).join('\n');
+    expect(everything).not.toContain('Architect set aside');
+    expect(everything).not.toContain(`divided the tasks ${DIVISION_ATTEMPTS} ways`);
   });
 
   it('is divided with the seed it was made with when no copy could pass, as it always was', async () => {
