@@ -34,6 +34,8 @@ export class LiveReply {
   private readonly calls = new Map<string, string>();
   private stepCount = 0;
   private turnEnded = false;
+  /** How the text stood before the turn being written began, to go back to if it starts over. */
+  private turnStart: { text: string; turnEnded: boolean } | null = null;
   private finished = false;
   private unsavedStructure = false;
   private lastPublished = Number.NEGATIVE_INFINITY;
@@ -50,12 +52,26 @@ export class LiveReply {
   }
 
   appendText(delta: string): void {
+    this.turnStart ??= { text: this.message.text, turnEnded: this.turnEnded };
     const { text } = this.message;
     const piece = text === '' || this.turnEnded ? delta.trimStart() : delta;
     if (piece === '') return;
     const before = text !== '' && this.turnEnded ? `${text.trimEnd()}\n\n` : text;
     this.turnEnded = false;
     this.change({ text: before + piece }, false);
+  }
+
+  /**
+   * The turn being written is asked for again, so the text it showed goes: the reply reads as if
+   * that turn had not been written yet, and the text of its next try follows. Published at once,
+   * so a listener that can't take text back (the command line) hears of it before the new text.
+   */
+  retract(): void {
+    const start = this.turnStart;
+    this.turnStart = null;
+    if (start === null) return;
+    this.turnEnded = start.turnEnded;
+    this.change({ text: start.text }, true, true);
   }
 
   /** Keeps one step of the agent's work: the model's turn, a tool's result, a skill, a refusal. */
@@ -67,6 +83,7 @@ export class LiveReply {
   /** The model finished a turn; text from its next turn starts a new paragraph. */
   endTurn(): void {
     this.turnEnded = true;
+    this.turnStart = null;
   }
 
   addStep(step: NewStep, callId?: string): void {
@@ -149,14 +166,19 @@ export class LiveReply {
     return this.message;
   }
 
-  private change(patch: Partial<WorkspaceMessage>, structural: boolean): void {
+  /** `now` skips the wait between updates, for a change a listener must not see merged with the next. */
+  private change(patch: Partial<WorkspaceMessage>, structural: boolean, now = false): void {
     if (this.finished) return;
     this.message = { ...this.message, ...patch };
     this.unsavedStructure ||= structural;
-    if (this.timer !== undefined) return;
-    const wait = this.lastPublished + PUBLISH_EVERY_MS - performance.now();
-    if (wait <= 0) this.flush();
-    else this.timer = setTimeout(() => this.flush(), wait);
+    if (this.timer !== undefined && !now) return;
+    const wait = now ? 0 : this.lastPublished + PUBLISH_EVERY_MS - performance.now();
+    if (wait <= 0) {
+      clearTimeout(this.timer);
+      this.flush();
+    } else {
+      this.timer = setTimeout(() => this.flush(), wait);
+    }
   }
 
   private flush(): void {

@@ -305,6 +305,51 @@ test('stops a connection that leaves this computer, even when a local model send
   }
 });
 
+test("asks a turn again when its call can't be read, and the chat never shows both", async () => {
+  const model = await startFakeOllama([
+    // The model writes some words, then a tool call Ollama can't parse.
+    { unreadableAfter: 'Let me add it up, then check.', pieceMs: 250 },
+    { text: 'Two invoices are unpaid: INV-2 and INV-3.' },
+  ]);
+  try {
+    const { page } = launched;
+    const graduate = await importGraduate('grd_again', model.baseUrl);
+    // The page read its agents before this import, which went straight to the API.
+    await page.reload();
+    await page.waitForLoadState('domcontentloaded');
+    const chat = await page.evaluate(
+      (id) => window.architect.workspace.createChat(id),
+      graduate.id,
+    );
+    await goTo(page, `/agents/${graduate.id}/chats/${chat.id}`);
+    await page.evaluate(([id, message]) => window.architect.workspace.send(id, message), [
+      chat.id,
+      'Which invoices are unpaid?',
+    ] as const);
+
+    // The words show as they are written, are taken back when the turn is asked for again, and
+    // the new turn's words stand alone.
+    await expect(page.getByText(/^Let me/)).toBeVisible();
+    await expect(page.getByText('Two invoices are unpaid: INV-2 and INV-3.')).toBeVisible();
+    await expect(page.getByText(/Let me/)).toHaveCount(0);
+
+    const reply = await settledReply(chat.id);
+    expect(reply).toMatchObject({
+      status: 'done',
+      text: 'Two invoices are unpaid: INV-2 and INV-3.',
+    });
+    expect(model.chats).toHaveLength(2);
+    // What was saved is the same, and so is what a person sees when they open the chat again.
+    await page.reload();
+    await page.waitForLoadState('domcontentloaded');
+    await goTo(page, `/agents/${graduate.id}/chats/${chat.id}`);
+    await expect(page.getByText('Two invoices are unpaid: INV-2 and INV-3.')).toHaveCount(1);
+    await expect(page.getByText(/Let me/)).toHaveCount(0);
+  } finally {
+    await model.close();
+  }
+});
+
 test('imports a package with an adapter, opens it, and answers through llama.cpp with the adapter', async () => {
   const { page } = launched;
   const folder = join(folders, 'grd_adapter');

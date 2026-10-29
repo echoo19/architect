@@ -120,6 +120,12 @@ export interface AskOptions {
   onStep?(step: AgentStep): void;
   /** The reply's text as it arrives. */
   onText?(delta: string): void;
+  /**
+   * The model's turn is being asked again, so the reply took back the text it had shown for that
+   * turn. What `onText` was given can't be un-written, so this is the place to say so; the turn's
+   * new text follows through `onText`.
+   */
+  onRetract?(): void;
   /** Stops the reply. */
   signal: AbortSignal;
 }
@@ -135,6 +141,15 @@ function sharedStart(a: string, b: string): number {
   let at = 0;
   while (at < a.length && at < b.length && a[at] === b[at]) at++;
   return at;
+}
+
+/**
+ * Whether a reply's text went back to an earlier point: it is now a shorter start of what was
+ * shown, not counting the blanks a new paragraph trims off the end.
+ */
+function tookBack(shown: string, text: string): boolean {
+  const kept = text.trimEnd();
+  return kept.length < shown.trimEnd().length && shown.startsWith(kept);
 }
 
 /**
@@ -165,8 +180,12 @@ export function ask(session: AgentSession, text: string, options: AskOptions): P
         options.onStep?.(step);
       }
       if (message.text !== shown) {
-        const from = sharedStart(shown, message.text);
-        if (message.text.length > from) options.onText?.(message.text.slice(from));
+        if (tookBack(shown, message.text)) {
+          options.onRetract?.();
+        } else {
+          const from = sharedStart(shown, message.text);
+          if (message.text.length > from) options.onText?.(message.text.slice(from));
+        }
         shown = message.text;
       }
       for (const block of message.blocks) {
