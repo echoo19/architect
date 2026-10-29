@@ -2,6 +2,30 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), the third blind read: nine fixes in words, size and layout
+
+**Done** (on `worktree-agent-a169ed3996fd6c982`, from main at `83e5a96`, release 0.3.2; decisions 061, 063 and 064 amended; no model was called or loaded, the GPU stayed off, and every run used stand-ins)
+- A third reader, again playing the owner of a bike shop and seeing only seven captures, found nine real things. Much of what it said came from the captures themselves and was left alone: the fixture jobs differ ("Repair desk" and "Service desk", 4 and 20 hours, 40 and 60 tasks, 90% and 95%, "7 of 12" and "0 / 8"), the results' fixture has no empty-means-zero answer, the rule's code block is open because the spec opens it, one panel was captured scrolled, and the doubled "Refunds" line and the sidebar's chat titles are fixture data.
+- *The privacy line on the card for training here* said "Free. Nothing leaves this computer." for every job, but training always sends the teacher what it reads of the practice attempts. It is kept for a teacher at an address on this machine, and otherwise reads "Free. Glimmer runs here; only what Spark reads to teach goes online." A coding agent, and a local runtime pointed at another machine, count as online; `mentorIsLocal` now asks for the address alone, so the Describe screen agrees. The note under "How this is estimated" says "runs on this computer" or "works in the cloud" by the same test.
+- *The score's caveat* and the line on rows left out are one block under the tiles at 15px in the secondary color, where they were 13px, the size of a tile's note. They stay equal to each other. `flow.spec.ts` holds the one block, the one size, no smaller than the page's text and larger than a tile's note.
+- *The slow-training callout adds up.* The body says "about 1 h 40 min to score the check tasks once, then 3 h 50 min to 7 h 10 min for each round of teaching", and the button's 9 hours is the next whole hour above 1 h 40 min and the longest round. A round has one name in the box, a round of teaching.
+- *The rule screen's sentences*: "Architect works out the right answer to every task from this rule and grades Glimmer against those answers, so if the rule is wrong, the grades are wrong too"; "Check that the lines from your policy are the right ones, and that the rule and the examples match them" (the section is "From your policy"); "26 of 160 rows left out of the tasks".
+- *A discount is said as one*: "When member (customers.csv) is yes, take 10% off." A factor from one half to just under one with a percentage off of at most one decimal place is said so; every other factor stays a multiplication. Only the words change: the steps are worked out when read and never stored, so no version or confirmation moves, and `older-words.test.ts` and the random chain check pass. A test works every factor of up to four decimals.
+- *The footer says what the teacher can't do yet* ("Spark can't change anything yet", where it said "has nothing it may change" beside a tab that shows its switch on), and the two words on the Train screen that said the same of a run that ended now agree.
+- *The made-up example's tag* ("Not from your records") comes first and is the filled warning, with its mark.
+- *Saving files is not offered where nothing can be saved.* `permissions.writes` governs only a data file the job lets the agent write and its output folder, and a write is refused for anything else before a person is asked (a test in `files.test.ts`). For a job whose agent only reads, Permissions says "Files it can change: None"; otherwise the choice stays and names the files and the output folder, which the old line left out.
+- *The Train notice says what comes next* ("Turn one on, then start training again from the job."), only where the button turns a change on, and the hidden spec does exactly that.
+- Verified: `pnpm check` exits 0 (248 test files, 3,255 tests passed, 2 skipped; it was 246 and 3,221). Each fix was switched off in turn and the test written for it failed. Hidden e2e on the rebuilt app, all on stand-ins: `flow.spec.ts` (27), `rule.spec.ts` (3), `teacher-menu.spec.ts` (4), `drafting.spec.ts` (5), `screenshots.spec.ts` (10) and `retest.spec.ts` (11) pass. Of the 47 captures the specs rewrote, 31 show a change of this pass and were looked at in both themes and kept; 16 moved only by noise (a hover colour, a seconds figure, an edge pixel) and were put back.
+
+**Next**
+- Review and merge the branch, and release it.
+- Show the changed screens to a fresh reader again.
+- `hub-screens.spec.ts` and `job-files.spec.ts` still never answer `connections:detectLocal` themselves, so they let the app read this computer's model runtimes; they were not run.
+
+**Open issues**
+- A report card made before this keeps the steps it was made with ("multiply by 0.9"): it stores them.
+- Under "How this is estimated", the line for a place where no round fits still says "a round at least 3 h 50 min", where the callout says the whole range.
+
 ## 2026-10-29 (Thu), release 0.3.2
 
 **Done**
