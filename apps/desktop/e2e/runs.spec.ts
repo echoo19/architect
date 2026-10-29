@@ -29,7 +29,7 @@ import {
   SIDEBAR_JOBS_AFTER_ACCEPTING,
   stubSwitch,
 } from './fixtures-runs';
-import { graduate, reports, STORY } from './story';
+import { at, graduate, makeRun, reports, STORY } from './story';
 
 /*
  * Getting back to a run and seeing what happened: the rows the sidebar keeps for a run that ended
@@ -268,6 +268,47 @@ test('offers to download the model when Ollama is running without it', async () 
   const notice = page.getByRole('status', { name: 'Training is paused' });
   await expect(notice).toContainText("Glimmer isn't downloaded on this computer.");
   await expect(notice.getByRole('button', { name: 'Download' })).toBeVisible();
+});
+
+/** A run paused in its final test, which trained on the online copy: the story's own job. */
+function pausedInTest(lockedTestOn: 'local' | 'hosted', local = NOTHING_LOCAL) {
+  return pausedEngine({
+    detail: {
+      lockedTestOn,
+      run: makeRun({
+        status: 'paused',
+        phase: 'testing',
+        updatedAt: at(240),
+        error: 'Something stopped the final test.',
+      }),
+    },
+    // The teacher's key is saved and the online copy's is not.
+    keys: { meta: true, openrouter: false },
+    local,
+  });
+}
+
+test("names the online copy's key for a final test taken online, and says nothing of Ollama", async () => {
+  const { app, page } = launched;
+  // Ollama is off, but the final test does not use it.
+  await stubEngine(app, pausedInTest('hosted'));
+  await applySettings(page, { theme: 'dark', onboarded: true });
+  await goTo(page, `/runs/${STORY.runId}/train`);
+  const notice = page.getByRole('status', { name: 'Training is paused' });
+  await expect(notice).toContainText('The online Glimmer has no key saved.');
+  await expect(notice.getByRole('button', { name: 'Add the key' })).toBeVisible();
+  await expect(notice).not.toContainText("Ollama isn't running");
+  await expect(notice.getByRole('button', { name: 'Check again' })).toHaveCount(0);
+});
+
+test('does not blame the online copy for a final test taken on this computer', async () => {
+  const { app, page } = launched;
+  await stubEngine(app, pausedInTest('local'));
+  await applySettings(page, { theme: 'dark', onboarded: true });
+  await goTo(page, `/runs/${STORY.runId}/train`);
+  const notice = page.getByRole('status', { name: 'Training is paused' });
+  await expect(notice).toContainText("Ollama isn't running, so Glimmer can't answer.");
+  await expect(notice).not.toContainText('no key saved');
 });
 
 for (const theme of THEMES) {

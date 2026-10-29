@@ -28,6 +28,7 @@ import { Rounds, type RoundsFooter } from '../flow/train/Rounds';
 import { RunControls, StopDialog } from '../flow/train/RunControls';
 import {
   activeProgress,
+  activeTarget,
   currentRound,
   hasEnded,
   hasKeptChange,
@@ -316,10 +317,9 @@ function useReportWhenFinished(
   }, [status, runId, contentRef, reading, improving]);
 }
 
-/** Where the student is running now: a hosted copy only practices; the final test runs here. */
-function studentPlace({ run, job }: LiveRun): string {
-  const testing = run.status === 'testing' || run.phase === 'testing';
-  if (!testing && job.student.trainOn === 'hosted') return 'online';
+/** Where the student is running now: online while it practices or takes its final test there. */
+function studentPlace(live: LiveRun): string {
+  if (activeTarget(live) === 'hosted') return 'online';
   return `on ${deviceInSentence(currentPlatform())}`;
 }
 

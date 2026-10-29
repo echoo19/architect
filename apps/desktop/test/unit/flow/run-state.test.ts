@@ -3,6 +3,7 @@ import type { RunEvent } from '@architect/shared';
 import { failureLine } from '../../../src/renderer/src/flow/train/failure-line';
 import {
   activeProgress,
+  activeTarget,
   budgetMeters,
   changeCounts,
   currentRound,
@@ -23,6 +24,7 @@ import {
   decided,
   makeAttempt,
   makeDetail,
+  makeJob,
   makeRound,
   makeRun,
   roundUpdated,
@@ -280,5 +282,64 @@ describe('hasEnded', () => {
     for (const status of ['queued', 'running', 'paused', 'stopping', 'testing'] as const) {
       expect(hasEnded(makeRun({ status }))).toBe(false);
     }
+  });
+});
+
+describe('where the student answers', () => {
+  const base = makeJob().student;
+  const hostedCopy = {
+    runtime: 'openai_compatible',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    model: 'meta/muse-glimmer-30b',
+    secretRef: 'openrouter',
+    contextLength: 16_384,
+  } as const;
+  /** A run of a job that practices where `trainOn` says, with its final test where `lockedTestOn` says. */
+  function running(
+    trainOn: 'local' | 'hosted',
+    lockedTestOn: 'local' | 'hosted' | undefined,
+    run: Parameters<typeof makeRun>[0] = {},
+  ): LiveRun {
+    const job = makeJob({ student: { ...base, hosted: hostedCopy, trainOn } });
+    const detail = makeDetail({
+      job,
+      run: makeRun(run),
+      ...(lockedTestOn === undefined ? {} : { lockedTestOn }),
+    });
+    return live(liveRunReducer(initialLiveRunState, { type: 'snapshot', detail }));
+  }
+
+  it('carries where the final test runs from the run, and takes this computer when it says nothing', () => {
+    expect(running('local', 'hosted').lockedTestOn).toBe('hosted');
+    expect(running('local', 'local').lockedTestOn).toBe('local');
+    expect(running('local', undefined).lockedTestOn).toBe('local');
+  });
+
+  it('is where the job practices while the run practices, whatever the final test will use', () => {
+    for (const phase of ['baseline', 'attempting', 'diagnosing', 'evaluating'] as const) {
+      expect(activeTarget(running('hosted', 'local', { phase }))).toBe('hosted');
+      expect(activeTarget(running('local', 'hosted', { phase }))).toBe('local');
+    }
+  });
+
+  it('is where the run takes its final test once it is testing, whatever practice used', () => {
+    const testing = { phase: 'testing', status: 'testing' } as const;
+    expect(activeTarget(running('hosted', 'local', testing))).toBe('local');
+    expect(activeTarget(running('local', 'hosted', testing))).toBe('hosted');
+    expect(activeTarget(running('hosted', 'hosted', testing))).toBe('hosted');
+    expect(activeTarget(running('hosted', undefined, { phase: 'testing' }))).toBe('local');
+  });
+
+  it('follows a run into its final test when the engine says it moved there', () => {
+    const practicing = running('local', 'hosted', { phase: 'evaluating' });
+    expect(activeTarget(practicing)).toBe('local');
+    const moved = liveRunReducer(
+      { status: 'live', live: practicing },
+      {
+        type: 'event',
+        event: runUpdated(makeRun({ phase: 'testing', status: 'testing', updatedAt: at(5) })),
+      },
+    );
+    expect(activeTarget(live(moved))).toBe('hosted');
   });
 });

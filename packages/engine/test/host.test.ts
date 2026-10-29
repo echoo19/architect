@@ -94,6 +94,8 @@ describe('the engine host', () => {
     const detail = await client.runs.get(run.id);
     expect(detail.run.status).toBe('finished');
     expect(detail.job.id).toBe(job.id);
+    // A run takes its final test on this computer unless it asks otherwise, and its detail says so.
+    expect(detail.lockedTestOn).toBe('local');
     expect(detail.recentAttempts).toHaveLength(9);
     expect(detail.recentAttempts.every((attempt) => attempt.split === 'dev')).toBe(true);
     expect(detail.recentAttempts[0]?.prompt).toContain('[dev]');
@@ -281,6 +283,7 @@ describe('the engine host', () => {
       lockedTestOn: 'hosted',
     });
     await graduated;
+    expect((await client.runs.get(run.id)).lockedTestOn).toBe('hosted');
     expect(await client.reports.list(run.id)).toEqual(['hosted']);
     expect(await client.reports.get(run.id)).toMatchObject({
       testedOn: 'hosted',

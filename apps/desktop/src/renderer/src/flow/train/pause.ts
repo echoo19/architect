@@ -1,7 +1,7 @@
 import { isLoopbackUrl, type LocalRuntimes } from '@architect/shared';
 import { isInstalled } from '../../settings/models/StudentRows';
 import { modelNames } from '../names';
-import type { LiveRun } from './run-state';
+import { activeTarget, isTesting, type LiveRun } from './run-state';
 
 /**
  * Something that would keep a paused run from going on, found by looking at the computer now, not
@@ -31,23 +31,23 @@ function sameServer(a: string, b: string): boolean {
 /**
  * What stands in the way of a paused run, from the job's own settings and what the computer has
  * now. The mentor is looked at only while the run teaches: its final test runs without it. The
- * student is looked at where it works now, which is a hosted copy while a hosted run practices
- * and this computer for the final test. A fact not read yet claims nothing.
+ * student is looked at where it works now: the online copy while a run practices there or takes
+ * its final test there, and this computer otherwise, whatever the other phase used. A fact not
+ * read yet claims nothing.
  */
 export function pauseProblems(live: LiveRun, facts: PauseFacts): PauseProblem[] {
   const { job, run } = live;
   const names = modelNames(job);
   const problems: PauseProblem[] = [];
-  const testing = run.phase === 'testing' || run.status === 'testing';
 
   const { mentor } = job;
-  if (!testing && mentor.kind === 'model' && mentor.secretRef !== undefined) {
+  if (!isTesting(run) && mentor.kind === 'model' && mentor.secretRef !== undefined) {
     if (facts.keys?.[mentor.secretRef] === false) {
       problems.push({ kind: 'key', text: `${names.mentor} has no key saved.` });
     }
   }
 
-  if (!testing && job.student.trainOn === 'hosted') {
+  if (activeTarget(live) === 'hosted') {
     const { hosted } = job.student;
     if (hosted?.secretRef !== undefined && facts.keys?.[hosted.secretRef] === false) {
       problems.push({ kind: 'key', text: `The online ${names.student} has no key saved.` });
