@@ -345,17 +345,6 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
         <SettingsValue>Never, by design</SettingsValue>
       </SettingsRow>
       <SettingsRow
-        label="Opening files outside the job"
-        meta="Set by its job when it was trained"
-        error={errorOf(versions)}
-      >
-        {contract ? (
-          <SettingsValue>{WRITE_MODE_LABELS[contract.boundaries.unseenFiles]}</SettingsValue>
-        ) : (
-          unavailable
-        )}
-      </SettingsRow>
-      <SettingsRow
         label="Files it can read"
         meta="The files its job lists"
         error={errorOf(versions)}
