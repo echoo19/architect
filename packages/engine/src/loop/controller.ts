@@ -554,6 +554,9 @@ export class RunController {
     if (needsHosted && !job.student.hosted) {
       throw new Error(`"${job.name}" has no hosted student endpoint.`);
     }
+    // A rule the person hasn't confirmed over these records would make the final test a measure of
+    // nothing anyone agreed to (decision 061).
+    await jobs.requireConfirmedRules(job);
   }
 
   private get(runId: string): StoredRun {

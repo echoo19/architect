@@ -175,7 +175,7 @@ describe('a draft', () => {
     ]);
     expect(problems([EMAIL_TYPE, EMAIL_TYPE])).toEqual(['The task type id "email" is used twice.']);
     expect(problems([{ ...EMAIL_TYPE, template: '' }])).toEqual([
-      'Task type "email" needs a template: lookup, filtered_list or group_total.',
+      'Task type "email" needs a template: lookup, filtered_list, group_total or rule.',
     ]);
     expect(problems([{ ...EMAIL_TYPE, table: 'policy.md' }])[0]).toContain(
       'names the table "policy.md", which isn\'t one of the attached CSV files (customers.csv, orders.csv)',

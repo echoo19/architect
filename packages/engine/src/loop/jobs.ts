@@ -6,14 +6,19 @@ import {
   isBaselineMethod,
   JobSchema,
   newId,
+  RuleConfirmationSchema,
   TaskSchema,
   type DraftRecord,
   type Job,
   type JobRun,
   type JobSummary,
+  type RuleConfirmation,
+  type RuleConfirmationState,
+  type RuleReport,
   type Task,
   type TaskPlan,
 } from '@architect/shared';
+import { bindingOf, reportsOf, ruleTypesOf, stateOf, type Binding } from '../drafting/confirmation';
 import { buildTaskPlan } from '../drafting/plan';
 import { ContractBook } from '../graduates/contracts';
 import type { EngineStore } from '../store/engine-store';
@@ -257,7 +262,8 @@ export class JobLibrary {
   /**
    * What a job's tasks are: where they came from, the rule behind each type, a few examples with
    * their expected answers, and how many sit in each set. The examples come from the practice and
-   * starting sets; the final test is only counted.
+   * starting sets; the final test is only counted. A job with a rule also says whether the person
+   * has confirmed it over these records.
    */
   async taskPlan(jobId: string): Promise<TaskPlan> {
     const job = await this.get(jobId);
@@ -269,12 +275,110 @@ export class JobLibrary {
     const sealed = (await this.deps.vault.isSealed(jobId))
       ? await this.deps.vault.typeCounts(jobId)
       : {};
-    return buildTaskPlan({
-      job,
-      draft: await this.drafting(jobId),
-      visible: { calibration, train, dev },
-      sealed,
-    });
+    const confirmation = await this.ruleState(jobId);
+    return {
+      ...buildTaskPlan({
+        job,
+        draft: await this.drafting(jobId),
+        visible: { calibration, train, dev },
+        sealed,
+      }),
+      ...(confirmation === null ? {} : { confirmation }),
+    };
+  }
+
+  /** What the person confirmed about a job's rules, or null while nothing is confirmed. */
+  private async confirmation(jobId: string): Promise<RuleConfirmation | null> {
+    try {
+      return RuleConfirmationSchema.parse(await readJsonFile(this.paths.confirmationFile(jobId)));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw error;
+    }
+  }
+
+  /** The rules and the records as they are now, hashed, for comparing with what was confirmed. */
+  private async binding(job: Job, draft: DraftRecord): Promise<Binding> {
+    return bindingOf(
+      draft,
+      job.data.files.map((file) => file.name),
+      async (name) => {
+        try {
+          return await readFile(join(this.paths.dataDir(job.id), name));
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+          throw error;
+        }
+      },
+    );
+  }
+
+  /**
+   * Whether a job's rules are confirmed over the records the tasks were made from. Null for a
+   * job with no rule, which has nothing to confirm.
+   */
+  async ruleState(jobId: string): Promise<RuleConfirmationState | null> {
+    const draft = await this.drafting(jobId);
+    if (draft === null || ruleTypesOf(draft).length === 0) return null;
+    const job = await this.get(jobId);
+    return stateOf(draft, await this.confirmation(jobId), await this.binding(job, draft));
+  }
+
+  /**
+   * Records that the person confirmed the job's rules over these records. `token` is what the
+   * screen showed them (`ruleState`'s), so a rule or a file that changed since is refused rather
+   * than confirmed unseen.
+   */
+  async confirmRules(jobId: string, token: string): Promise<RuleConfirmationState> {
+    const draft = await this.drafting(jobId);
+    if (draft === null || ruleTypesOf(draft).length === 0) {
+      throw new Error('This job has no rule to confirm.');
+    }
+    const job = await this.get(jobId);
+    const now = await this.binding(job, draft);
+    const state = stateOf(draft, null, now);
+    if (state.state === 'changed') {
+      throw new CodedError('rule_changed', state.problem ?? 'The records changed.');
+    }
+    if (token !== now.token) {
+      throw new CodedError(
+        'rule_changed',
+        'The rule or the records changed since you looked at them. Look at the rule again, then confirm it.',
+      );
+    }
+    const confirmedAt = isoNow(this.clock);
+    await writeJsonFile(this.paths.confirmationFile(jobId), {
+      format: 1,
+      confirmedAt,
+      rules: now.rules,
+      files: now.files,
+    } satisfies RuleConfirmation);
+    return { state: 'confirmed', token: now.token, confirmedAt };
+  }
+
+  /** Refuses a run on a job whose rules the person has not confirmed over these records. */
+  async requireConfirmedRules(job: Job): Promise<void> {
+    const state = await this.ruleState(job.id);
+    if (state === null || state.state === 'confirmed') return;
+    if (state.state === 'needed') {
+      throw new CodedError(
+        'rule_unconfirmed',
+        `The rule for "${job.name}" isn't confirmed yet. Open the job, check the rule against your policy and confirm it before training.`,
+      );
+    }
+    throw new CodedError('rule_changed', state.problem ?? 'The records changed.');
+  }
+
+  /** The job's rules as the report says them, each with when the person confirmed it. */
+  async ruleReports(jobId: string): Promise<RuleReport[]> {
+    const draft = await this.drafting(jobId);
+    if (draft === null) return [];
+    const job = await this.get(jobId);
+    return reportsOf(
+      draft,
+      new Map(job.taskTypes.map((type) => [type.id, type.label])),
+      await this.confirmation(jobId),
+    );
   }
 
   private record(job: Job, taskCount: number): void {

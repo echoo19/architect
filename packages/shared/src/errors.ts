@@ -23,6 +23,8 @@ export const ERROR_CODES = [
   'disk_full',
   'guard_split',
   'guard_budget',
+  'rule_unconfirmed',
+  'rule_changed',
   'process_starting',
   'process_restarting',
   'process_failed',

@@ -137,6 +137,8 @@ export const DraftRecordSchema = z.object({
   notes: z.array(z.string()),
   /** What the person answered to the teacher's questions, which the rules may rest on. */
   answers: z.array(z.object({ question: z.string(), answer: z.string() })).optional(),
+  /** The records the tasks were made from: each file's name and the hash of its bytes. */
+  files: z.array(z.object({ name: z.string().min(1), sha256: z.string().min(1) })).optional(),
 });
 export type DraftRecord = z.infer<typeof DraftRecordSchema>;
 

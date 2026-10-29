@@ -1,6 +1,7 @@
 import { MAX_FILTER_VALUES, type JsonSchemaObject, type TaskSpec } from '@architect/shared';
 import { z } from 'zod';
 import type { Attached } from './files';
+import { RuleReplySchema, ruleSchema, settleRule, type Said, type Settled } from './rule-reply';
 import { cleanText, foldKey } from './values';
 
 /*
@@ -28,7 +29,7 @@ const TypeReplySchema = z.object({
   id: z.string(),
   label: z.string(),
   description: z.string(),
-  template: z.enum(['lookup', 'filtered_list', 'group_total', '']),
+  template: z.enum(['lookup', 'filtered_list', 'group_total', 'rule', '']),
   table: z.string(),
   keyColumn: z.string(),
   columns: z.array(z.string()),
@@ -40,6 +41,7 @@ const TypeReplySchema = z.object({
   dateOrder: z.enum(['month_first', 'day_first', '']),
   unit: z.enum(['as_written', 'cents', '']),
   request: z.string(),
+  rule: RuleReplySchema.optional(),
 });
 
 const FileReplySchema = z.object({
@@ -103,10 +105,10 @@ export function replyJsonSchema(mustDraft: boolean): JsonSchemaObject {
     id: text('A short id: lowercase letters, digits and underscores, starting with a letter.'),
     label: text('A short plain name, such as "Customer emails".'),
     description: text('One plain sentence on what this kind of request is.'),
-    template: { type: 'string', enum: ['lookup', 'filtered_list', 'group_total', ''] },
+    template: { type: 'string', enum: ['lookup', 'filtered_list', 'group_total', 'rule', ''] },
     table: text('The CSV file the requests are made from, by its name.'),
     keyColumn: text(
-      'lookup: the column that identifies a row. filtered_list: the column listed. Else empty.',
+      'lookup and rule: the column that identifies a row. filtered_list: the column listed. Else empty.',
     ),
     columns: list('lookup: the one to three columns asked for. Else empty.'),
     filters: list('filtered_list: the conditions. Else empty.', filter),
@@ -121,6 +123,7 @@ export function replyJsonSchema(mustDraft: boolean): JsonSchemaObject {
     request: text(
       'The question, with {key}, {column name}, {group}, {from} and {to} where values go.',
     ),
+    rule: ruleSchema(),
   });
   return objectOf({
     action: { type: 'string', enum: mustDraft ? ['draft'] : ['ask', 'draft'] },
@@ -169,7 +172,14 @@ export interface DraftedJob {
   passRate: number;
   files: { name: string; description: string; access: 'read' | 'write' }[];
   unresolved: string[];
-  types: { id: string; label: string; description: string; spec?: TaskSpec }[];
+  types: {
+    id: string;
+    label: string;
+    description: string;
+    spec?: TaskSpec;
+    /** For a rule: what the policy leaves open that changes an answer, which must be asked. */
+    ambiguities?: { question: string; options: string[] }[];
+  }[];
 }
 
 export interface Drafted {
@@ -207,16 +217,24 @@ function titled(id: string): string {
   return words === '' ? id : `${words.charAt(0).toUpperCase()}${words.slice(1)}`;
 }
 
+/** What a rule is held to besides its shape: the policy it quotes and where it reports back. */
+interface RuleContext {
+  attached: Attached;
+  said: Said;
+  found(settled: Settled): void;
+}
+
 /** The kind of task a reply's type asks for, as a specification, or what is missing from it. */
 function specOf(
   type: z.infer<typeof TypeReplySchema>,
   tables: ReadonlySet<string>,
   tableNames: readonly string[],
   problems: string[],
+  rules: RuleContext,
 ): TaskSpec | undefined {
   const who = `Task type "${type.id}"`;
   if (type.template === '') {
-    problems.push(`${who} needs a template: lookup, filtered_list or group_total.`);
+    problems.push(`${who} needs a template: lookup, filtered_list, group_total or rule.`);
     return undefined;
   }
   const table = tableNames.find(
@@ -299,6 +317,23 @@ function specOf(
         ...(type.dateOrder === '' ? {} : { dateOrder: type.dateOrder }),
       };
     }
+    case 'rule': {
+      if (cleanText(type.keyColumn) === '') {
+        problems.push(`${who} is a rule: it needs a keyColumn.`);
+        return undefined;
+      }
+      const settled = settleRule(
+        type.rule,
+        { table, keyColumn: cleanText(type.keyColumn), request },
+        tableNames,
+        rules,
+        who,
+        problems,
+      );
+      if (settled === undefined) return undefined;
+      rules.found(settled);
+      return settled.spec;
+    }
   }
 }
 
@@ -310,7 +345,7 @@ function specOf(
  */
 export function checkReply(
   raw: unknown,
-  context: { mustDraft: boolean; attached: Attached },
+  context: { mustDraft: boolean; attached: Attached; said?: Said },
 ): Checked {
   const parsed = ReplySchema.safeParse(raw);
   if (!parsed.success) {
@@ -385,6 +420,8 @@ export function checkReply(
   );
   const tableNames = [...tables];
   const types: DraftedJob['types'] = [];
+  const left: string[] = [];
+  const said = context.said ?? { description: '', answers: '' };
   if (context.attached.tasks !== null) {
     // The tasks came with the files, so the teacher only names and describes their types.
     const given = new Map(job.taskTypes.map((type) => [cleanText(type.id), type]));
@@ -416,12 +453,23 @@ export function checkReply(
       seen.add(id);
       const label = fit(type.label, 60);
       if (label === '') problems.push(`Task type "${id}" needs a label.`);
-      const spec = specOf(type, tables, tableNames, problems);
+      const rule: { settled?: Settled } = {};
+      const spec = specOf(type, tables, tableNames, problems, {
+        attached: context.attached,
+        said,
+        found: (settled) => {
+          rule.settled = settled;
+        },
+      });
+      left.push(...(rule.settled?.left ?? []));
       types.push({
         id,
         label: label || titled(id),
         description: fit(type.description, 200),
         ...(spec === undefined ? {} : { spec }),
+        ...(rule.settled && rule.settled.blocking.length > 0
+          ? { ambiguities: rule.settled.blocking }
+          : {}),
       });
     }
   }
@@ -444,7 +492,7 @@ export function checkReply(
           description: described.get(file.name)?.description ?? '',
           access: described.get(file.name)?.access ?? 'read',
         })),
-        unresolved,
+        unresolved: distinct([...unresolved, ...left.map((item) => fit(item, 200))]).slice(0, 6),
         types,
       },
     },

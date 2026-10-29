@@ -8,7 +8,7 @@ const TEMPLATES = `## Task types
 
 Architect makes the practice tasks and the final test itself, from the attached tables, and works out every expected answer from the files with its own code. You choose which kinds of request to make and configure them. You never write an answer, a formula or code that decides one.
 
-Choose one to three task types, each from one of these three templates. Use column names exactly as the table spells them. A type must give many different requests: at least ${MIN_PER_TYPE}, and up to about ${MAX_TASKS} tasks are made in all. Prefer columns whose values differ from row to row. Use a value in a filter only if you saw it in the table's profile.
+Choose one to three task types, each from one of these templates. Use column names exactly as the table spells them. A type must give many different requests: at least ${MIN_PER_TYPE}, and up to about ${MAX_TASKS} tasks are made in all. Prefer columns whose values differ from row to row. Use a value in a filter only if you saw it in the table's profile.
 
 lookup: the value of one to three columns of the row with a given key. Example request: "What is the email of customer {key}?"
   - table: the CSV file.
@@ -32,7 +32,25 @@ group_total: the sum, or the count, for one value of a grouping column, maybe wi
   - unit: "as_written", or "cents" to answer a sum in hundredths of the file's unit.
   - request: the question, with {group} for the group and {from} and {to} when there is a dateColumn.
 
-In every request, write only the question. Architect adds how the answer is written and the line "End with: ANSWER: ...". Fields a template doesn't use are left empty.`;
+rule: a number that is not written in the records but follows from a policy applied to them: a price from hours and rates, a discount, a fee, an amount rounded a certain way. Example request: "What does ticket {key} cost the customer?" Use it only when the attached policy states the rule; otherwise use another template. One answer is worked out for each row of a table.
+  - table: the CSV file whose rows are the cases. keyColumn: the column that identifies a row, which the request names as {key}.
+  - rule.answerName: the name of the number in the answer, such as "total".
+  - rule.currency: the ISO code (USD, EUR) when the answer is money; every money column must be in that one currency. Else empty.
+  - rule.lookupTable, rule.lookupKey, rule.matchColumn: when the rule needs a value from a row of another table (for example whether a customer is a member): that table's file, its key column (unique there), and the column of the cases' table that holds the key. At most one lookup. Else empty.
+  - rule.categories: every column the rule tests with equals or in, with "row" for the cases' table or "lookup" for the looked-up one, and every value that column may have, spelled as the table spells them. A row whose value is not listed is left out, never guessed.
+  - rule.familyColumn: the column naming the entity whose reuse would give an answer away, such as the customer; empty when each row stands alone.
+  - rule.sources: the passages the rule rests on, each copied word for word from an attached text file (file: its name) or from what the person wrote (file: "description") or answered (file: "answers"). Write the rule from the policy and the person's answers only, never from patterns in the rows. Do not paraphrase a passage.
+  - rule.ambiguities: anything the policy leaves open that would change a number, for example whether a discount also applies to parts. Do not choose for the person. Give a plain question and 2 to 4 short answers, and set changesAnswers to true; the person is asked before any task is made. Set it to false for something that changes no number.
+  - rule.expression: the answer as a tree of steps. Every step has op, and only the fields its op uses; the rest are empty.
+      num: value is a number written with digits and at most one point, such as "65" or "0.9". Write a percentage as a factor: 10% off is "0.9".
+      col: column and from: "row" for the cases' table or "lookup" for the looked-up row. The column must hold numbers.
+      add, mul: args are 2 to 4 steps. sub: args are exactly 2 (the first less the second). min, max: 2 to 4 steps.
+      div: args is one step; value is the number to divide by, not zero.
+      round: args is one step; value is the size of the step to round to ("0.01", "0.5"); mode is "up" (to the larger multiple), "down" (to the smaller) or "half_up" (to the nearest, a tie going up). The last step of the whole rule must be a round to the precision of the answer.
+      if: args are three steps: first the test, then the step used when it holds, then the step used when it does not. The test is equals (column, from, value), in (column, from, values), or gt, gte, lt, lte (args is the one step to compare, value is the number to compare with). There is no "not": test for the values that count, and list them in categories.
+    Limits: at most 32 steps in all, 6 operations nested inside one another, 2 ifs, at most 4 steps in an add, mul, min or max. Use a single mul with several factors instead of mul inside mul. Round a quantity the policy rounds (hours to the half hour) where the policy applies it, and round the final amount last.
+
+In every request, write only the question. Architect adds how the answer is written and the line "End with: ANSWER: ...". Fields a template doesn't use are left empty; for a task type that is not a rule, leave every field of rule empty, with op "" in its expression.`;
 
 const WHEN_A_TASKS_FILE = `## When the person attached a tasks file
 
@@ -70,7 +88,15 @@ ${WHEN_A_TASKS_FILE}
 
 ## Plain words
 
-Write for someone who has never used this app. No jargon, no mention of templates or JSON in anything the person reads (message, options, summary, does, doesNot, unresolved).`;
+Write for someone who has never used this app. No jargon, no mention of templates or JSON in anything the person reads (message, options, summary, does, doesNot, unresolved, and the question and answers of a rule's ambiguities).`;
+}
+
+/**
+ * What the person answered to a question about a rule, put to the teacher. It settles the open
+ * question, so the teacher has to draft again, and may not leave it open or ask it again.
+ */
+export function settledMessage(question: string, answer: string): string {
+  return `The person answered your question about the rule.\n\nQuestion: ${question}\nAnswer: ${answer.trim()}\n\nDraft the job again with this settled: write the rule so that it follows the answer, quote the answer in sources with file "answers" if the rule rests on it, and do not list this question in ambiguities again. List any other open question that changes a number.`;
 }
 
 /** The person's description and what the files hold, as the conversation's first message. */

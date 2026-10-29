@@ -54,6 +54,11 @@ export class DataPaths {
     return join(this.jobDir(jobId), 'drafting.json');
   }
 
+  /** What the person confirmed about a job's rules, and over which records (decision 061). */
+  confirmationFile(jobId: string): string {
+    return join(this.jobDir(jobId), 'confirmation.json');
+  }
+
   tasksFile(jobId: string, split: VisibleSplit): string {
     return join(this.jobDir(jobId), 'tasks', `${split}.jsonl`);
   }

@@ -139,9 +139,11 @@ export interface PlanInput {
  */
 export function buildTaskPlan({ job, draft, visible, sealed }: PlanInput): TaskPlan {
   const rules = new Map((draft?.types ?? []).map((type) => [type.id, type.rule]));
+  const details = new Map((draft?.types ?? []).map((type) => [type.id, type.details]));
   const ofType = (tasks: readonly Task[], id: string) => tasks.filter((task) => task.type === id);
   const types = job.taskTypes.map((type): TaskPlan['types'][number] => {
     const rule = rules.get(type.id);
+    const detail = details.get(type.id);
     const counts: SplitCounts = {
       calibration: ofType(visible.calibration, type.id).length,
       train: ofType(visible.train, type.id).length,
@@ -160,6 +162,7 @@ export function buildTaskPlan({ job, draft, visible, sealed }: PlanInput): TaskP
       label: type.label,
       ...(type.description === undefined ? {} : { description: type.description }),
       ...(rule === undefined ? {} : { rule }),
+      ...(detail === undefined ? {} : { details: detail }),
       counts,
       examples,
     };

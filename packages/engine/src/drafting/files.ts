@@ -183,12 +183,18 @@ export async function readAttachments(paths: readonly string[]): Promise<Attache
   return { files, tasks };
 }
 
+/** Each attached file's name and the hash of its bytes. */
+export function hashesOf(attached: Attached): { name: string; sha256: string }[] {
+  return attached.files.map((file) => ({
+    name: file.name,
+    sha256: createHash('sha256').update(file.bytes).digest('hex'),
+  }));
+}
+
 /** The hash of everything attached, for a seed that follows from the files. */
 export function digestOf(attached: Attached): string[] {
   return [
-    ...attached.files.map(
-      (file) => `${file.name}:${createHash('sha256').update(file.bytes).digest('hex')}`,
-    ),
+    ...hashesOf(attached).map(({ name, sha256 }) => `${name}:${sha256}`),
     ...(attached.tasks === null
       ? []
       : [

@@ -351,6 +351,7 @@ export async function lockedTestReport(
   const frozen = must(state.record.freeze, 'The frozen graduate');
   const seeds = firstSeedsOf(state, frozen);
   const drafted = await state.ctx.jobs.drafting(run.jobId);
+  const rules = drafted === null ? [] : await state.ctx.jobs.ruleReports(run.jobId);
   const card = computeReportCard({
     job: state.job,
     run,
@@ -374,6 +375,7 @@ export async function lockedTestReport(
           tasks: {
             source: drafted.source,
             ...(drafted.cost.usd === null ? {} : { draftingUsd: drafted.cost.usd }),
+            ...(rules.length === 0 ? {} : { rules }),
           },
         }),
   });
