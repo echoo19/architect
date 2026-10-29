@@ -1101,8 +1101,8 @@ export function finishTraining(
     return;
   }
   if (reason === 'nothing_to_try') {
-    // The run keeps the sentence where the person reads it. An improvement still ends in its own
-    // step, which hands the lessons back when it kept nothing.
+    // The run keeps the sentence where the person reads it. An improvement that kept nothing goes
+    // on to the step that hands its lessons back, which the planner takes before any freeze.
     const message = why ?? TRAINING_ENDED.nothing_to_try;
     if (!kept && state.record.improves === undefined) {
       state.saveRun({

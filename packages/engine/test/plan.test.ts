@@ -150,6 +150,32 @@ describe('planNextStep', () => {
     expect(plan({ ...testing, frozen: true, pauseRequested: true })).toEqual({ kind: 'park' });
   });
 
+  it('hands back the lessons of an improvement that kept nothing, with no freeze to ask the model for', () => {
+    const testing = { phase: 'testing' as const, status: 'testing' as const, improves: true };
+    expect(plan(testing)).toEqual({ kind: 'propose_version' });
+    const reverted = [{ index: 1, status: 'decided' as const, decision: 'reverted' as const }];
+    expect(plan({ ...testing, rounds: reverted })).toEqual({ kind: 'propose_version' });
+    // A pause still parks it, as it does a locked test.
+    expect(plan({ ...testing, pauseRequested: true })).toEqual({ kind: 'park' });
+  });
+
+  it('freezes an improvement that kept a change, which is the candidate it writes', () => {
+    const kept = [{ index: 1, status: 'decided' as const, decision: 'kept' as const }];
+    const testing = {
+      phase: 'testing' as const,
+      status: 'testing' as const,
+      improves: true,
+      rounds: kept,
+    };
+    expect(plan(testing)).toEqual({ kind: 'freeze' });
+    expect(plan({ ...testing, frozen: true })).toEqual({ kind: 'propose_version' });
+  });
+
+  it('still freezes a training run that kept nothing, which has its starting harness to test', () => {
+    const testing = { phase: 'testing' as const, status: 'testing' as const };
+    expect(plan(testing)).toEqual({ kind: 'freeze' });
+  });
+
   it('never goes back to training once the graduate is being tested', () => {
     const testing = {
       phase: 'testing' as const,

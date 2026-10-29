@@ -560,20 +560,30 @@ describe('Improve agent', () => {
       throw new Error('The mentor was asked for a change it may not make.');
     };
     const lesson = await queued(engine);
-    // Only weights and questions are on now, and this copy has no trainer.
+    // Only weights and questions are on now, and this copy has no trainer. The model on this
+    // computer is stopped too: an improvement with no candidate has no build of it to ask for.
     await engine.jobs.save({
       ...(await engine.jobs.get('service-desk')),
       interventions: ['weights', 'clarification'],
+    });
+    Object.defineProperty(world, 'localDigest', {
+      get: () => {
+        throw new Error('Ollama is not running.');
+      },
     });
     const asked = world.mentor.requests.length;
     const start = await engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 });
     await engine.controller.idle();
 
+    // It finished, not paused on a model that nothing needed: no freeze, and no error to resume.
     expect(engine.errors).toEqual([]);
-    expect(engine.store.runs.get(start.runId)?.run).toMatchObject({
-      status: 'finished',
-      stopReason: 'nothing_to_try',
+    expect(engine.store.runs.get(start.runId)).toMatchObject({
+      freeze: null,
+      run: { status: 'finished', phase: 'done', stopReason: 'nothing_to_try' },
     });
+    expect(engine.store.runs.get(start.runId)?.run.error).toContain(
+      'The mentor has nothing it may change in this run.',
+    );
     expect(world.mentor.requests).toHaveLength(asked);
     expect(engine.store.rounds.list(start.runId)).toEqual([]);
     expect(engine.store.versions.list(graduateId)).toHaveLength(1);
