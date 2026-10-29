@@ -70,6 +70,8 @@ describe('asking the teacher for a rule', () => {
       'never from patterns in the rows',
       'There is no "not"',
       'the person is asked before any task is made',
+      // A passage the rule cites is carried out by its steps or asked about, never left out.
+      'Every passage you cite must be carried out by the steps or listed in rule.ambiguities, never left out silently',
     ]) {
       expect(request?.system).toContain(phrase);
     }
