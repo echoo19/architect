@@ -53,6 +53,77 @@ export function requestText(task: Task): string {
     .trim();
 }
 
+/**
+ * How big a task's answer is, for telling tasks of one type apart: the length of a list or a text,
+ * the size of a number, the length of the facts asked for. The size is what an example is chosen
+ * by, so that three examples show the range of a type instead of three alike.
+ */
+function sizeOf(task: Task): number {
+  const { expected } = task;
+  if (expected.kind === 'facts') {
+    return expected.facts.reduce((sum, fact) => sum + plainValue(fact.value).length, 0);
+  }
+  if (expected.kind !== 'answer') return 0;
+  const { value } = expected;
+  if (Array.isArray(value)) return value.length;
+  if (typeof value === 'number') return Math.abs(value);
+  if (typeof value === 'string') return value.length;
+  if (value !== null && typeof value === 'object') {
+    const number = Object.values(value).find((inner) => typeof inner === 'number');
+    if (typeof number === 'number') return Math.abs(number);
+  }
+  return 0;
+}
+
+/**
+ * Where along the range of sizes `n` examples sit, apart from an empty or zero answer: one in
+ * the middle, two near the ends, three at both ends and the middle. Not the very ends, which are
+ * the odd cases of a type.
+ */
+function spreadOf(n: number): number[] {
+  return n === 1 ? [0.5] : Array.from({ length: n }, (_, i) => 0.1 + (0.8 * i) / (n - 1));
+}
+
+/**
+ * Up to `count` tasks that show the variety of a type: one with an empty or zero answer when
+ * there is one, and others spread along the range of answer sizes, each of a different size and
+ * none repeating a request. Tasks are taken in the order given, so practice comes before
+ * starting tasks and a family is not shown twice while another can be.
+ */
+export function pickExamples(tasks: readonly Task[], count: number = EXAMPLES_PER_TYPE): Task[] {
+  const seen = new Set<string>();
+  const pool = tasks.filter((task) => {
+    const request = requestText(task);
+    if (seen.has(request)) return false;
+    seen.add(request);
+    return true;
+  });
+  const picked: Task[] = [];
+  const families = new Set<string>();
+  const take = (task: Task | undefined): void => {
+    if (task === undefined || picked.includes(task) || picked.length >= count) return;
+    picked.push(task);
+    families.add(task.family);
+  };
+  /** The first task of a size, in the order given, preferring a family not shown yet. */
+  const ofSize = (size: number): Task | undefined => {
+    const same = pool.filter((task) => sizeOf(task) === size && !picked.includes(task));
+    return same.find((task) => !families.has(task.family)) ?? same[0];
+  };
+
+  take(pool.find((task) => sizeOf(task) === 0));
+  const sizes = [...new Set(pool.map(sizeOf))].filter((size) => size !== 0).sort((a, b) => a - b);
+  const wanted = Math.min(count - picked.length, sizes.length);
+  for (const fraction of spreadOf(wanted)) {
+    const size = sizes[Math.round(fraction * (sizes.length - 1))];
+    if (size !== undefined) take(ofSize(size));
+  }
+  // Anything still missing: sizes not shown yet, then whatever is left, in the order given.
+  for (const size of sizes) take(ofSize(size));
+  for (const task of pool) take(task);
+  return picked;
+}
+
 export interface PlanInput {
   job: Job;
   draft: DraftRecord | null;
@@ -77,19 +148,13 @@ export function buildTaskPlan({ job, draft, visible, sealed }: PlanInput): TaskP
       dev: ofType(visible.dev, type.id).length,
       test: sealed[type.id] ?? 0,
     };
-    const seen = new Set<string>();
-    const examples = [...ofType(visible.train, type.id), ...ofType(visible.calibration, type.id)]
-      .filter((task) => {
-        const request = requestText(task);
-        if (seen.has(request)) return false;
-        seen.add(request);
-        return true;
-      })
-      .slice(0, EXAMPLES_PER_TYPE)
-      .map((task) => {
-        const answer = answerText(task);
-        return { request: requestText(task), ...(answer === undefined ? {} : { answer }) };
-      });
+    const examples = pickExamples([
+      ...ofType(visible.train, type.id),
+      ...ofType(visible.calibration, type.id),
+    ]).map((task) => {
+      const answer = answerText(task);
+      return { request: requestText(task), ...(answer === undefined ? {} : { answer }) };
+    });
     return {
       id: type.id,
       label: type.label,
