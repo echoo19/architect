@@ -12,6 +12,10 @@ import { bikeRule, bikeShop, bikeTables } from './support/rule-data';
 const OLD_STATEMENT =
   'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up.';
 const NEW_STATEMENT = OLD_STATEMENT.replace('halves going up', 'half a cent rounds up');
+const OLD_CONVENTION =
+  'All arithmetic is exact until a rounding step. Up rounds to the larger multiple, down to the smaller, and half up to the nearest with a tie going up.';
+const NEW_CONVENTION =
+  'All arithmetic is exact until a rounding step. Up rounds to the larger multiple, down to the smaller, and to the nearest sends exactly halfway up.';
 const OLD_FLAG =
   'The rounding step (to the nearest cent, halves going up) never changed a value in your records, so no task shows it at work.';
 
@@ -23,6 +27,7 @@ function olderDraft(): DraftRecord {
   const details: RuleDetails = {
     ...made.outcome.details,
     statement: OLD_STATEMENT,
+    conventions: [OLD_CONVENTION],
     flags: [OLD_FLAG],
     examples: [
       {
@@ -77,6 +82,14 @@ describe('words a rule was told in before they were plainer', () => {
     expect(plainerSentence('to the nearest multiple of 0.05, halves going up')).toBe(
       'to the nearest multiple of 0.05, exactly halfway rounds up',
     );
+    // The conventions, which say it in a sentence of their own.
+    expect(
+      plainerSentence(
+        'All arithmetic is exact until a rounding step. Up rounds to the larger multiple, down to the smaller, and half up to the nearest with a tie going up.',
+      ),
+    ).toBe(
+      'All arithmetic is exact until a rounding step. Up rounds to the larger multiple, down to the smaller, and to the nearest sends exactly halfway up.',
+    );
     // Words already plain, and a rounding that is not to the nearest, are not touched.
     const plain = 'rounded to the nearest cent, half a cent rounds up';
     expect(plainerSentence(plain)).toBe(plain);
@@ -91,6 +104,7 @@ describe('words a rule was told in before they were plainer', () => {
     const read = readInPlainerWords(olderDraft());
     const [type] = read.types;
     expect(type?.details?.statement).toBe(NEW_STATEMENT);
+    expect(type?.details?.conventions).toEqual([NEW_CONVENTION]);
     expect(type?.rule).toBe(`Work out total for each ticket_id of tickets.csv: ${NEW_STATEMENT}`);
     expect(type?.details?.flags).toEqual([
       OLD_FLAG.replace('halves going up', 'half a cent rounds up'),

@@ -15,7 +15,7 @@ import { checkExpression, numberRefs, refKey } from '../rule/expression';
 import { auditCases, DEFAULT_PASS_RATE } from '../rule/guards';
 import type { RuleOutcome } from '../rule/outcome';
 import * as q from '../rule/rational';
-import { nameOf, statementOf, type WordsContext } from '../rule/words';
+import { NEAREST_CLAUSE, nameOf, statementOf, type WordsContext } from '../rule/words';
 import {
   addProblem,
   answerKeyName,
@@ -81,7 +81,7 @@ export function conventionsOf(spec: RuleSpec): string[] {
     );
   }
   conventions.push(
-    'All arithmetic is exact until a rounding step. Up rounds to the larger multiple, down to the smaller, and half up to the nearest with a tie going up.',
+    `All arithmetic is exact until a rounding step. Up rounds to the larger multiple, down to the smaller, ${NEAREST_CLAUSE}.`,
   );
   return conventions;
 }

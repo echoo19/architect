@@ -58,6 +58,9 @@ export function tieText(unit: string): string {
   return unit === 'cent' ? 'half a cent rounds up' : 'exactly halfway rounds up';
 }
 
+/** What the conventions say rounding to the nearest does with a value exactly halfway. */
+export const NEAREST_CLAUSE = 'and to the nearest sends exactly halfway up';
+
 /**
  * A rounding step in words: "up to a multiple of 0.5", "to the nearest cent, half a cent rounds
  * up".
