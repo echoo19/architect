@@ -4,7 +4,7 @@ Architect is being built during the Meta Global AI Developer Hackathon (indie de
 
 ## Dates
 
-- Building period: Mon Oct 27 to Wed Nov 4, 2026.
+- Building period: Tue Oct 27 to Wed Nov 4, 2026.
 - Submissions close **Wed Nov 4, 9:00 PM ET** on the Cerebral Valley platform.
 - Judging Nov 5 to Nov 8; finals and winners Nov 9.
 
@@ -81,5 +81,5 @@ Filled from the commit log at the end of each day.
 
 | Day | Built |
 | --- | --- |
-| Mon Oct 27 | From an empty folder to a working app (227 commits): the shared contracts, the harness folder format, mentor and student adapters (Meta Model API, Ollama, OpenAI-compatible), the engine (runner, QuickJS tool sandbox, deterministic checker, sealed test vault, keep or revert with a second measurement, budgets, storage), the desktop shell and screens from the design, the agent workspace with its loopback-only guard, the sample job in two versions, and a Windows installer. First real runs: a vertical slice on local Glimmer, two dev noise pilots, and seed 1 of the comparison. |
-| Tue Oct 28 | The owner's expanded spec, built in parallel branches (354 commits): the coding-agent harness, versioned agents with portable packages and their import checks, failure-specific mentoring with replay, Teach this and Improve agent, the `architect` command, Hugging Face publishing, adapter training and serving built against stand-ins, one GPU lease across processes, the comparisons runner with its money and GPU safeguards, the evidence screens, a ready-made agent, a polish pass from a blind read of every screen, and a context budget for the 16K local model. Real runs: comparison 1 (no gain from two rounds of teaching), then comparison 2, planned and published first (44 to 58 of 60 with teaching); its agent ships with the app. Release 0.1.0 for Windows and macOS. |
+| Tue Oct 27 | From an empty folder to a working app (227 commits): the shared contracts, the harness folder format, mentor and student adapters (Meta Model API, Ollama, OpenAI-compatible), the engine (runner, QuickJS tool sandbox, deterministic checker, sealed test vault, keep or revert with a second measurement, budgets, storage), the desktop shell and screens from the design, the agent workspace with its loopback-only guard, the sample job in two versions, and a Windows installer. First real runs: a vertical slice on local Glimmer, two dev noise pilots, and seed 1 of the comparison. |
+| Wed Oct 28 | The owner's expanded spec, built in parallel branches (354 commits): the coding-agent harness, versioned agents with portable packages and their import checks, failure-specific mentoring with replay, Teach this and Improve agent, the `architect` command, Hugging Face publishing, adapter training and serving built against stand-ins, one GPU lease across processes, the comparisons runner with its money and GPU safeguards, the evidence screens, a ready-made agent, a polish pass from a blind read of every screen, and a context budget for the 16K local model. Real runs: comparison 1 (no gain from two rounds of teaching), then comparison 2, planned and published first (44 to 58 of 60 with teaching); its agent ships with the app. Release 0.1.0 for Windows and macOS. |

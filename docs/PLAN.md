@@ -1,10 +1,10 @@
 # Plan
 
-Build window: Mon Oct 27 to Wed Nov 4, 9:00 PM ET. Dates follow `SPEC.md`. Each milestone lists the checks that must pass before it counts as done; a fresh-eyes review runs at the end of every milestone and its findings are fixed before the next one starts.
+Build window: Tue Oct 27 to Wed Nov 4, 9:00 PM ET. Dates follow `SPEC.md`. Each milestone lists the checks that must pass before it counts as done; a fresh-eyes review runs at the end of every milestone and its findings are fixed before the next one starts.
 
 **Current phase: the expansion week (from Oct 28). `docs/EXPANSION.md` holds its plan and requirement checklist; `docs/SPEC_EXPANSION.md` is the governing spec.**
 
-## Phase 0. Foundations (Mon Oct 27)
+## Phase 0. Foundations (Tue Oct 27)
 
 - Repo, docs, licence, CI (typecheck, lint, unit tests, build) on GitHub Actions.
 - pnpm monorepo: `apps/desktop`, `packages/{shared,engine,adapters,harness,ui}`, `examples/`.
@@ -15,7 +15,7 @@ Build window: Mon Oct 27 to Wed Nov 4, 9:00 PM ET. Dates follow `SPEC.md`. Each 
 
 Acceptance: CI green on `main`; `pnpm dev` opens a themed window; feasibility numbers written down; any failed check has its fallback applied and reported.
 
-## Phase 1. Core loop and baselines (Tue Oct 28 to Sat Oct 31)
+## Phase 1. Core loop and baselines (Wed Oct 28 to Sat Oct 31)
 
 **M1 (Oct 28). Runner and sample job.** Data generator (seeded), task generator with ground truth, deterministic checker, splitter with the vault, student agent loop with built-in data tools, sandboxed tool host, Ollama and OpenAI-compatible student adapters, SQLite storage.
 Checks: splitter and vault tests (mentor-facing APIs cannot reach test), checker determinism tests, bare-student pass rate measured on real Glimmer.

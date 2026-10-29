@@ -2,7 +2,7 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
-## 2026-10-29 (Thu morning ET), release 0.3.0
+## 2026-10-29 (Thu), release 0.3.0
 
 **Done**
 - Merged the change menu (79fcf11, decision 063, after GPT-6 Astra's two findings were fixed) and the fourth round of rule fixes (40e763f). `pnpm check` exits 0 on main (236 test files, 3,082 passed, 2 skipped) and CI passed on the release commit.
@@ -14,7 +14,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - The offline-chat scene of the film, when the owner allows the GPU; then the full film.
 
 
-## 2026-10-29 (Wed), what the teacher is told of the records, said exactly
+## 2026-10-29 (Thu), what the teacher is told of the records, said exactly
 
 **Done** (on `rule-fixes-4`, from main at `0f86c10`; decision 061 amended; no model was called, the GPU stayed off, and every run used stand-ins only)
 - Four findings of GPT-6 Sol's read of the third round, each decided by the owner and each with a test that fails without its fix:
@@ -33,7 +33,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - A passage a rule cites and leaves out of its steps is caught only by the person's reading on Define.
 - Of two kinds that read alike over two tables, the first keeps its requests, so the second is the one the teacher has to change.
 
-## 2026-10-29 (Wed), two findings of the read of what the teacher may change, and main merged in
+## 2026-10-29 (Thu), two findings of the read of what the teacher may change, and main merged in
 
 **Done** (on the same branch; decision 063 amended; no model was called or loaded, the GPU stayed off, and every run used stand-ins only)
 - GPT-6 Astra read the branch: no invariant breached, and two bugs, each reproduced and fixed with tests that fail without the fix.
@@ -50,7 +50,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - A reply that names no kind is recorded as the kind its files belong to, so a self-reflection round that changes retrieval reads as retrieval in the rounds list, where it used to read as a procedure. A change to files of two kinds is recorded as the first of them the job allows.
 - A student's own change to decoding or guardrails belongs to no kind, so it is judged by the one rule that some kind of change to the harness is on.
 
-## 2026-10-29 (Wed), the person chooses what the teacher may change
+## 2026-10-29 (Thu), the person chooses what the teacher may change
 
 **Done** (on a branch from main; decision 063; no model was called or loaded)
 - Each round Spark picks one of five kinds of change: a procedure, retrieval, a helper, weights or a question for the person. A job can now say which of them it may use, with an optional `interventions` list. It reads as all five when absent, so every job file, package and saved job is as it was. The list has to keep one kind that changes the agent, since a teacher that may only ask teaches nothing, and it names each kind once. The types moved to `packages/shared/src/interventions.ts`: `job.ts` holds the choice and `mentor.ts` already imports from `job.ts`, so they could not stay in `mentor.ts` without a cycle.
@@ -74,7 +74,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - A new job has everything on. There is no default for new jobs in Settings.
 - The first runs of the real-engine spec, before the rule against using the graphics card arrived, let Define's pre-flight ask this computer's local runtimes which models they hold and ask `nvidia-smi` for the card's name and memory. Those are reads, and nothing was loaded. The spec now answers that call itself, so nothing in it reaches a runtime or the card.
 
-## 2026-10-29 (Wed), the film's working cut, no GPU, and the event's rules checked
+## 2026-10-29 (Thu), the film's working cut, no GPU, and the event's rules checked
 
 **Done** (Spark and online Glimmer called for the film's job; the GPU is now off for good, see below)
 - The owner said "dont utilize gpu" while a recording had loaded the 2-bit Glimmer for the offline-chat scene. The recording was stopped, its app's processes ended, the model unloaded from Ollama, and the scratch records checked untouched. From now on nothing in this repo's work loads a local model; the rule is in the session memory. The owner chose to hold the offline-chat scene's slot and record it later, when about ten minutes of GPU use is fine.
@@ -95,7 +95,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - The film has no sound. A disclosed generated voice-over would help it; the owner's call.
 
 
-## 2026-10-29 (Wed), what the teacher reads of the records, and a fifth thing seen in use
+## 2026-10-29 (Thu), what the teacher reads of the records, and a fifth thing seen in use
 
 **Done** (on `rule-fixes-3`, from main at `5cd891b`; decision 061 amended; no model was called, the GPU stayed off, and every run used stand-ins only)
 - Four findings of GPT-6 Sol's read of the second round, each with a test that fails without its fix:
@@ -114,7 +114,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - A row is asked about once among lookups and rules. Lists and totals, which are about many rows, are not held to it, and a question worded differently about a different row is a different question.
 - When two kinds ask about one table's rows and the table has too few for both, each keeps what is left; the notes of the job say how many requests a kind lost.
 
-## 2026-10-29 (Wed), the rule read again by GPT-6 Sol, and two things seen in use
+## 2026-10-29 (Thu), the rule read again by GPT-6 Sol, and two things seen in use
 
 **Done** (on `rule-fixes-2-work`, from main at `ce90f59`; decision 061 amended; no model was called, the GPU stayed off)
 - Four findings of the second read, each with a test that fails without its fix:
@@ -133,7 +133,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - A request worded differently is a different question, so two rules that ask the same thing in other words can still land on both sides of the boundary. Nothing here can tell them apart.
 - The copy guard holds each rule to its own tasks in a set, so a rule with few tasks in a set is refused when they are all copies, though a copy would not pass the whole set. It errs on the side of caution, and another seed usually makes the set safe.
 
-## 2026-10-29 (Wed), the rule on main, a drafted pricing job trained for real, and the demo's first scene live
+## 2026-10-29 (Thu), the rule on main, a drafted pricing job trained for real, and the demo's first scene live
 
 **Done** (Spark and online Glimmer called: about $0.10 of Spark and $0.19 of online Glimmer; the GPU stayed off)
 - The rule branch is merged into main (e16ebe8). `pnpm check` exits 0 on main (229 test files, 2,934 passed, 2 skipped) and CI passed.
@@ -154,7 +154,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Open issues**
 - A recording's hidden window sometimes takes a second for a screenshot, so a few frames are held that long. Most come every 31 ms.
 
-## 2026-10-29 (Wed), main merged into the rule branch, three times
+## 2026-10-29 (Thu), main merged into the rule branch, three times
 
 **Done** (on the rule branch; nothing pushed; no model was called, the GPU stayed off)
 - Main moved a lot while the branch waited, so it was merged in three times: the job files with the final-test choice and the pre-flight, then the four fixes from the review of the app (decision 062), then the demo's scenes. Wherever the two sides met, both were kept:
@@ -173,7 +173,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - A new channel that Define reads has to be answered in `SAMPLE_ENGINE` too, or the populated-screens test and the demo's second scene show an error where the sample job's Define should be.
 - `gpu-lease.test.ts` ("keeps a busy holder that goes on saying it is there") failed once in a full run while the machine was busy, and passed alone and in the next full run. It depends on the timing of other processes.
 
-## 2026-10-29 (Wed), the first real session on the rule, and fourteen fixes from it and two reviews
+## 2026-10-29 (Thu), the first real session on the rule, and fourteen fixes from it and two reviews
 
 **Done** (on the same branch; decision 061 amended; no model was called, the GPU stayed off)
 - From the real session on the bike shop (Spark, three calls, $0.09, every step of the rule right the first time): Spark asked what a ticket with no parts cost counts as, the person answered Zero, and the rule left all 62 of those tickets out anyway. An empty cell now counts as 0 when the person chooses it, and only then. The question names its column, Architect puts the two answers a rule can do (Count it as zero, Leave those rows out) whatever the teacher wrote, and sets the rule from the answer. N/A and words still leave their row out, "Leave those rows out" keeps the old behavior, and Define says it in the rule in words, in how numbers are read, in how many rows it reaches and in an example.
@@ -189,7 +189,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - An empty cell the policy itself says counts as zero still has the question asked once: only the person's own answer declares it.
 - The first five rows of each table are left out of the tasks even when a very wide table's description is cut before it shows them, which errs on the side of caution.
 
-## 2026-10-29 (Wed): four things a review found in the app, fixed
+## 2026-10-29 (Thu): four things a review found in the app, fixed
 
 **Done** (on a branch; decision 062; no model was called, the GPU stayed off)
 - GPT-6 Astra read the app on main and found nine defects. Five are in the drafter and the job library and were taken up elsewhere; these four are the app's (items 3, 4, 5 and 8 of its review). Each was confirmed in the code before it was changed, and each has a test that fails without its fix.
@@ -210,13 +210,13 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - The paused notice doesn't look at a kept adapter, which is served on this computer even when the job practices online.
 - `peekQuery` exists for the cache's tests.
 
-## 2026-10-29 (Wed), a recorder for the demo
+## 2026-10-29 (Thu), a recorder for the demo
 
 **Done**
 - A developer tool in `apps/desktop/demo`, written by GPT-6 Sol through Codex and checked here: a scene script (routes, clicks, typing at a human pace, waits, scrolls, the native file dialog, window size), frames captured from the hidden window with their real timestamps, a drawn pointer and click ripple, title cards in Architect's look, a speed-up mark for long waits, and ffmpeg assembly into a 1440x900, 30 fps H.264 video with cross-fades. It has its own Playwright config, so `pnpm e2e` never runs it, and it never writes a key.
 - Its sample, on the stand-in engine, recorded a 10.6 s video in 16 s; frames from it show the cards, the pointer and the screens cleanly. Codex's sandbox couldn't launch Electron or commit from a worktree, so the run and the commit were done outside it.
 
-## 2026-10-29 (Wed), a rule a person can confirm, and the first things a reviewer meets
+## 2026-10-29 (Thu), a rule a person can confirm, and the first things a reviewer meets
 
 **Done** (on a branch; decision 061; no model was called, the GPU stayed off)
 - The four things a reviewer meets first, each fixed and tested:
@@ -252,7 +252,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - `pnpm check` exits 0 (217 test files, 2,729 passed, 2 skipped). The new unit tests: `rule-expression` (20), `rule-template` (20), `rule-examples` (5), `drafting-rule-reply` (11) and `drafting-rules` (20), `drafting-plan` (5), plus more in `drafting-templates`, `drafting-envelope`, `drafting-conversation`, the harness report and the desktop's words for the screens. Taking out the controller's confirmation check, the file-hash check, the dead-branch guard and half-up rounding each made a test fail; each was put back.
 - Hidden e2e on the rebuilt app: `rule.spec.ts` (3, the real engine with a scripted teacher: the question, the rule and its examples, training waiting, confirming, starting in both themes; a changed record and a second drafting asking for confirmation again), `flow.spec.ts` (13) and `drafting.spec.ts` (5) all pass, 21 in 5 minutes. The captures `rule-question`, `rule-define`, `rule-confirmed`, `rule-changed` and `flow-report-rule`, and the changed `describe` and `drafting-examples`, were looked at in both themes.
 
-## 2026-10-29 (Wed): new jobs take your choices, and a run says what it needs
+## 2026-10-29 (Thu): new jobs take your choices, and a run says what it needs
 
 **Done** (on a branch with the drafter and the runs branch merged in; decision 059; no model was called, the GPU stayed off)
 - The gap, found in the code before changing it: the teacher and model picked in setup or Settings only wrote `defaultMentor` and `defaultStudent`, and nothing put them on a job, so the sample job asked for Spark and the 4-bit model whatever setup had steered the person to, had no hosted copy, and "Train online" said "Choose a host". A run could start with no teacher key and no model and fail long after. The engine could take the final test online and test an agent here later, and no screen offered either. `jobs.importFile` had no caller. Three Define settings did nothing, and the Privacy tab was wrong about Teach this.
@@ -280,7 +280,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - `permissions.unseenFiles` stays in the job and its package contract, where the package format carries it, though no screen shows it.
 - A drafted job is saved twice, once as the engine makes it and once with the person's choices; nothing runs between.
 
-## 2026-10-29 (Wed), the first real drafted job, end to end
+## 2026-10-29 (Thu), the first real drafted job, end to end
 
 **Done**
 - A fresh dataset nobody had seen (a made-up bike repair shop: 40 customers, 180 tickets with messy hours and costs, a short policy) went through the whole journey with real models, using the new `scripts/draft.ts` and `scripts/run.ts --job`:
@@ -293,7 +293,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **What it shows**
 - The drafted task types are retrieval and arithmetic over the records, which Glimmer already handles well. Teaching earns its keep where a job has rules to learn, as the returns desk's policy showed in comparison 2; the catalog doesn't make such tasks yet.
 
-## 2026-10-29 (Wed), getting back to a run
+## 2026-10-29 (Thu), getting back to a run
 
 **Done** (on a branch; decision 060; no model was called, the GPU stayed off)
 - An audit of the real app found seven places a run was lost or a person left guessing. Each was confirmed in the code before it was changed.
@@ -317,7 +317,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - The paused notice says what the computer lacks now; a key that is saved but refused is only in the engine's sentence under Details.
 - `DefineScreen` keeps its own list of the three baseline methods instead of using `isBaselineMethod`. It was left alone so this branch doesn't touch the file the branch that makes Define start interactive runs changes.
 
-## 2026-10-29 (Wed): a job of your own can be described, drafted and trained
+## 2026-10-29 (Thu): a job of your own can be described, drafted and trained
 
 **Done** (on a branch; decision 058; no model was called, the GPU stayed off)
 - The gap, found in the code: in the app, describing a job ended in "Drafting a job with the mentor isn't available in this build". Nothing implemented `JobDrafter`, the desktop never passed one, and the hidden flow spec passed only because it stubbed the engine's turns. So only the sample job, an imported job and the ready-made agent could be trained. The design was reviewed with GPT-6 Astra before it was built: the teacher understands the job and configures it, Architect works out every expected answer, and the teacher never writes code that decides a right answer.
@@ -343,7 +343,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - The sample job still takes its models from its job file, not from Settings (the other branch's change).
 - When the files hold too little to make a job, "Architect" answers, not the teacher: the teacher was not asked.
 
-## 2026-10-28 (Tue), late night: published, and an audit of what doesn't work end to end
+## 2026-10-28 (Wed), late night: published, and an audit of what doesn't work end to end
 
 **Done**
 - With the owner's go-ahead: release v0.1.0 (the Windows installer and the macOS disk images for Apple silicon and Intel, built by the release workflow from the tag, with plain notes), and the ready-made agent published privately to Hugging Face (`jke-kang/architect-returns-desk`) and installed again by its commit into a fresh data folder (A12 done).
@@ -354,7 +354,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Three branches: the drafter (decision 058), new jobs and Define (059), and runs you can always get back to (060). Then one real drafting session with Spark on a fresh dataset, through training.
 - The website, rebuilt on comparison 2's real run, published on GitHub Pages after the next release.
 
-## 2026-10-28 (Tue), night: comparison 2 shows a gain, and the agent it made ships
+## 2026-10-28 (Wed), night: comparison 2 shows a gain, and the agent it made ships
 
 **Done**
 - Comparison 1 read with GPT-6 Astra: two rounds of teaching showed no gain on the final test (+3.3 points, -11.5 to +18.0). Astra advised one more comparison, planned and published before it ran, then delivery.
@@ -374,7 +374,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Open issues**
 - The owner's go-ahead is needed for a live private Hugging Face test, a GitHub release and where the website goes.
 
-## 2026-10-28 (Tue), the student's prompt kept inside its context
+## 2026-10-28 (Wed), the student's prompt kept inside its context
 
 **Done** (on a branch; decision 057; no model was called, the GPU stayed off)
 - The cause of the failed local run, found in the code: nothing kept a conversation inside the model's context, and a turn that had shown text was never asked again (053 asked again only before any text was shown, and the agent host always streams text). Hosted runs have a 131K context and never met either.
@@ -397,7 +397,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - The estimate errs high by the reasoning of the turn before, which the template does not send back.
 - The CLI prints a step's line before the text that arrived with it (as before), so a short text can be split by a step line.
 
-## 2026-10-28 (Tue), night: comparison 1's report says what it measured
+## 2026-10-28 (Wed), night: comparison 1's report says what it measured
 
 **Done** (on a branch; decision 056; no model was called, the GPU stayed off, and nothing of comparison 2 was read, run or changed)
 - A reviewer read comparison 1's report as an outsider and found eight faults. Each is fixed in the code that writes the report (`packages/engine/src/comparisons/report.ts` and `markdown.ts`), never in its output. The report's format is now `architect.comparisons/3`.
@@ -422,7 +422,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Ollama reports the local build's quantization as Q4_K_M though its name says iq2; the report names the build by its name and says nothing of its bits.
 - The app does not read a report in the earlier format, so a `report.json` made before this change shows nothing until `report` makes it again.
 
-## 2026-10-28 (Tue), the polish pass
+## 2026-10-28 (Wed), the polish pass
 
 **Done** (on a branch; decision 055; no model was called, the GPU stayed off)
 - Phase 1, everything but the welcome, import and new-agent screens, after a blind review of all 114 screens: every failure a screen words has a code (engine, router, bridge and renderer; a plain sentence and what to do, with the precise message under Details), one verdict on Results and in the agent's settings, one set of words for practice tasks, check tasks and the final test and five outcomes for a round, versions in plain states and actions, Spark and Glimmer named alone with their ids and prices in Settings or Details, numbers that agree across the captures, Settings > Models with the teacher and the agent's model first, Define's training place above the fold, and plainer chat states.
@@ -441,7 +441,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - "llama.cpp" and "trained weights" are named as they are, with a row that says what the program is; no size is given for its download.
 - An engine failure that has no code reaches the person in the engine's own words.
 
-## 2026-10-28 (Tue), a ready-made agent that opens through the import
+## 2026-10-28 (Wed), a ready-made agent that opens through the import
 
 **Done** (on a branch; decision 054; no model was called, the GPU stayed off)
 - The app ships a ready-made agent. `sample-agent/` in its resources holds the returns desk's own data (`examples/gear-returns/job/data`) and, when the repository has it, the agent's package, `examples/gear-returns/graduate/returns-desk.architect.zip`. The owner adds that file from the real comparison run; none is committed here, and the tests make their own package from the returns desk job. Main finds both the way it finds the sample job (`processResources`, in development and packaged) and gives them to the engine; electron-builder only warns about a package that isn't there, so a build without it still builds and the app doesn't offer the agent.
@@ -460,7 +460,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - The data the agent writes stays through removing and opening the agent again, by design (a copy already there is kept), and nothing on screen resets it.
 - The entry appears a moment after its screen, since it asks the engine whether the build has the agent; it never shows an offer that can't be taken up.
 
-## 2026-10-28 (Tue), afternoon: merges, three bugs the real run found, and the comparison started
+## 2026-10-28 (Wed), afternoon: merges, three bugs the real run found, and the comparison started
 
 **Done**
 - Merged the evidence screens (decision 049), the GPU lease (046), Teach this on screen (048), Hugging Face on screen (050) and the comparisons runner's safeguards (051). GitHub CI had failed on Linux since fe07109 while local checks passed on Windows; package tests now state the computers they depend on, and CI is green again.
@@ -478,7 +478,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Local inference on a 12 GB card (the 2-bit build) is much weaker than the hosted copy and unmeasured on the final test; the README must say so.
 - Trained weights are built and tested against stand-ins but have never run end to end.
 
-## 2026-10-28 (Tue), the evidence screens
+## 2026-10-28 (Wed), the evidence screens
 
 **Done** (on a branch; decision 049)
 - Train: a Worked examples panel lists every correction Spark wrote with what the checker said of it and whether it passed, how it was obtained (replayed from a step, a full-task demonstration, practice on a similar task) and a count of those that passed; one from a change that wasn't kept says so. Rounds names each round's kind of change and how its experiment ended (kept, reverted, rejected, invalid, stopped), with why in a few words when it isn't kept, and why training ended. The current round says how it ended, the chart marks the score where it was last measured, a cap past its limit says so (the time's, that the final test ran after it), and the screen reads the records again whenever the engine says one changed.
@@ -499,7 +499,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Open issues**
 - The recorder points `performance.now` at its clock while it records, since the agent loop times turns with `performance.now`; a clock passed to the loop would remove that.
 
-## 2026-10-28 (Tue), the comparisons runner made safe to spend (decision 051)
+## 2026-10-28 (Wed), the comparisons runner made safe to spend (decision 051)
 
 **Done** (on a branch; no model was called, the GPU stayed off)
 - Nothing resumes before the checks: the engine opens without resuming, and the runner checks the plan's pinned inputs, the request against the confirmed plan, and sets up its guards before anything an earlier process left active goes on. `plan` and a mismatched request resume nothing. After merging the GPU lease (decision 046): when the command may work on this computer (the plan or the request has local work, and `--gpu-minutes` grants a window), it checks through the lease that the app has none of the GPU before anything is paid, and stops at once with the busy error if it has, instead of finding out through a run's retries. `probe` checks the same way; `plan` and hosted-only runs never ask. The GPU window's release goes through the lease too, so it never unloads a model of the app's.
@@ -521,7 +521,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - OpenRouter's per-call charge and the DeepInfra pin are unverified live; the first `plan` shows both in its billing line and identity.
 - A request a crash cut off counts at its worst instead of being looked up by its generation id, which the student doesn't keep. Spark calls aren't journaled: one cut off by a crash is paid again and counted once.
 
-## 2026-10-28 (Tue), Teach this, the teaching queue and Improve agent on screen
+## 2026-10-28 (Wed), Teach this, the teaching queue and Improve agent on screen
 
 **Done** (on a branch; decision 048)
 - Teach this: every settled reply has a flag beside Copy ("Flag for teaching"). Its sheet asks what was wrong and, optionally, what it should have done, with what it should have used (the files its job lists, as chips, or pasted rows), and says what leaves before anything does: "Only this exchange, its steps and what you add go to Spark. Up to $0.25", beside Share with Spark, in the words of the status line's "Private from Spark" (decision 050). An exchange the leak check refuses says "Spark can't read this exchange" in the form's place; any other failure keeps the form to send again. The proposed lesson shows its kind, what the person said, the change it would make, whether it needs training, why, and its cost; it is queued for Improve agent, saved as the next version (no final test yet, and the active version keeps answering), discarded, or said again. The first send gives the job's leave to share flagged answers, which nothing on screen could set before (`teach.shareCorrections`). An agent from another computer says why it can't be taught here, in the sheet and in Teaching.
@@ -541,7 +541,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Teach it something new is a new chat: a lesson is always taught from an exchange, and the engine has no lesson without one.
 - The teaching e2e runs against a stand-in engine, like the other screen specs; the real engine's side is covered by its own tests and the host test over the port.
 
-## 2026-10-28 (Tue), one GPU lease for the workspace, the engine, the command and the comparisons
+## 2026-10-28 (Wed), one GPU lease for the workspace, the engine, the command and the comparisons
 
 **Done** (on a branch; decision 046)
 - One machine-wide GPU lease in the data folder (`local-runtime/gpu-lease.json`, changed under `gpu-lease.lock` in one synchronous step), taken by the workspace's agent host, the engine's utility process and the `architect` command before any model loads on the GPU, in plain Node and in Electron's utility processes alike. A llama-server holds the GPU alone; Ollama's users share it. An idle holder gives it up when another process asks, stopping its llama-server or unloading the Ollama models it used; a busy one keeps it, and the asker waits its turn for up to 5 minutes, then fails with an error that names who holds the GPU and what to do ("The GPU is busy: the workspace is answering a chat with Returns desk. Wait for that reply to finish, or stop it, then try again."). A reply holds it from start to end, except while it waits on the person (an approval, or whether to try saving a change again), when it gives the GPU up and its next model turn takes it back in its turn; a check holds it for its one request, a run for each request; a reply goes before a check and a check before a run's next request. A reply that has to wait says so in one quiet step in its steps ("Waiting for the GPU: Architect is checking an agent on this computer"), gone once it has the GPU (`docs/screenshots/workspace-gpu-wait-*.png`). A request to Ollama stops every idle llama-server of Architect's first. A holder that died stops blocking as soon as a llama-server it left running is gone: the next process to look stops it, even while it is still loading. Quiet mode's thread cap and the 10-minute idle stop are unchanged; the idle stop now also lets go of the lease.
@@ -565,7 +565,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Risks**
 - A long chat still holds the GPU between its model turns, so a run's next request can wait past 5 minutes behind one; it then stops with the busy error, waits as decision 029 says, and pauses with the reason, and resuming it is the person's.
 
-## 2026-10-28 (Tue), Hugging Face on screen, an agent's model, and clearer checks
+## 2026-10-28 (Wed), Hugging Face on screen, an agent's model, and clearer checks
 
 **Done** (on a branch; decision 050)
 - Publishing to Hugging Face is the Export tab's second destination: the repository (the last one the agent went to), Private unless chosen, where the token comes from, every file that will go with the model card to preview, and the scan; then the upload's stage and bytes; then "Version N is on Hugging Face" with the commit, the link and the install command, or "Couldn't publish ..." with the Hub's message and what to do, and Finish publishing completes the same record. A publication on its way survives closing the agent's settings. The agent's publications are listed with repository, version, commit and date.
@@ -587,7 +587,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - If the app quits during a Hub install, after the download and before Install, the version stays installed with nothing granted, needing attention.
 - A publication can't be stopped once it starts: the engine has no way to, so the screen offers none.
 
-## 2026-10-28 (Tue), the comparisons runner
+## 2026-10-28 (Wed), the comparisons runner
 
 **Done** (on a branch; decision 045)
 - `packages/engine/scripts/comparisons.ts` runs decision 037's arms on the new runtime and replaces `experiment.ts` for them: plan, run, probe and report over `packages/engine/src/comparisons`. Calibration prices an attempt before any arm spends; arms are funded in 037's order and a plan the caps cut waits for `--confirm`; each arm holds its locked test until every arm is frozen; the repeat runs seed 102 later; each arm is held to its caps; a crash resumes from the records (decision 051 says exactly what a restart can pay again). The report is JSON for the app and Markdown for the README, from stored records only, one table per backend.
@@ -608,7 +608,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - OpenRouter's provider pin and the system meter (tasklist or ps, and nvidia-smi) are unverified live.
 - The runner holds the student's credit at each step at measured prices, not per attempt; OpenRouter's own balance stops calls past it. Local GPU minutes are a funding check, not a hold on the running time.
 
-## 2026-10-28 (Tue), the versions, export and import screens
+## 2026-10-28 (Wed), the versions, export and import screens
 
 **Done** (decision 047)
 - Agent settings are General, Permissions, Teaching, Report and Export, each tab one entry in a list. Teaching lists the versions, newest first, with each one's standing (active, candidate, rejected, or its own evaluation: ready, experimental, not evaluated), its score from its own report ("55 of 60 passed"), its parent or "imported", and its date. Promote and Roll back each ask first in a dialog that says which setup (and trained weights) answers next and that the other version stays, and, before promoting a version its own test didn't vouch for, why. A reply's steps end with the version that answered it.
@@ -629,7 +629,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - The import, export and versions e2e run against a stand-in engine in the main process (like the other screen specs); the real engine's export and import stay covered by `engine.spec.ts` and the engine tests.
 - Install checks run on first listing describe the model through the local runtime once per version; they never load it. "Check again" in General and in an import's result runs the full checks, which load the model once.
 
-## 2026-10-28 (Tue), morning: adapter serving, mentoring and the command merged
+## 2026-10-28 (Wed), morning: adapter serving, mentoring and the command merged
 
 **Done**
 - Merged three branches into main, in this order: adapter serving (decision 041), failure-specific mentoring with Teach this and Improve agent (042), and the `architect` command with Hugging Face publishing (043, 044). Each merge passed `pnpm check`.
@@ -642,7 +642,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Open issues**
 - Live Hugging Face validation (A01, A12) waits for a token with write access on an account with credit.
 
-## 2026-10-28 (Tue), the architect command and Hugging Face
+## 2026-10-28 (Wed), the architect command and Hugging Face
 
 **Done** (on a branch; decisions 043 and 044)
 - `apps/cli`, the `architect` command: list, install (a package, or `hf://owner/name` at a commit), run, inspect, verify, export and publish, on the app's own data folder (`ARCHITECT_USER_DATA` overrides). `run` goes through the workspace's agent host in its own process: the same loader, folders, grants, approvals, tools and event stream, behind the same network guard, never a mentor. Without a request it is a conversation (answer on stdout, steps on stderr, approvals asked on a terminal); with `--input` it is one task, `architect.run-request/1` in and `architect.run-result/1` out, checked with zod before anything runs. An approval it can't ask about ends the run as `approval_required` with the change it wanted. Exit codes: 0, 1 runtime error, 2 invalid input, 3 not permitted, 4 task failed, 130 cancelled. `docs/CLI.md` documents it.
@@ -667,7 +667,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - An import from the command and one from the app for the same agent at the same moment aren't coordinated.
 - Publishing over IPC reports no progress until it ends.
 
-## 2026-10-28 (Tue), failure-specific mentoring, Teach this and Improve agent
+## 2026-10-28 (Wed), failure-specific mentoring, Teach this and Improve agent
 
 **Done**
 - Failure-specific mentoring (decision 042). The mentor's reply names findings on failed train attempts (the turn it suspects, step-referenced evidence, a category with a stable id) and one intervention from a menu the runner validates. Findings that don't hold are set aside with the reason; estimates past what is left, weights without compute and lookup tables of train answers are refused and recorded.
@@ -691,7 +691,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - The stand-in backend reads its base header from the default student in Ollama's store.
 - An imported agent can't be taught here: its job isn't on this computer.
 
-## 2026-10-28 (Tue), graduates with an adapter run
+## 2026-10-28 (Wed), graduates with an adapter run
 
 **Done** (on a branch, decision 041)
 - A version with an adapter runs on llama.cpp, on the base from Ollama's store, with its adapter at its scale on every request; a version without one runs on Ollama as before. Its installation stays bound to Ollama, so one agent rolls back between the two kinds with nothing rebound.
@@ -711,7 +711,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - An installation check that loads the model starts the engine's llama-server while the workspace's may be running; on a 12 GB card the second would run out of memory and the check would say so.
 - After an adapter reply llama-server keeps the GPU until it has been idle 10 minutes; an Ollama graduate answering meanwhile shares the card.
 
-## 2026-10-28 (Tue), graduate versions and portable packages
+## 2026-10-28 (Wed), graduate versions and portable packages
 
 **Done**
 - A graduate version is now a package (decision 038): a folder with `graduate.json` (manifest v2: identity, contract, model, harness, resources, requirements, evidence, verification, checksums of every file, terms) and `<name>-v<n>.architect.zip` for moving it. Nothing machine-specific goes in. The ZIP reader and writer are written here and refuse traversal, links, devices, bombs, lying sizes, oversized directories, encryption and overlapping entries.
@@ -735,7 +735,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Open issues**
 - The agent loop still takes a whole `Job`, so the workspace builds one from the contract with inert training fields; narrowing `RunAgentOptions.job` to the data files and business date would remove them.
 
-## 2026-10-28 (Tue), before dawn: two merges, a checker gap, and the plan fixed
+## 2026-10-28 (Wed), before dawn: two merges, a checker gap, and the plan fixed
 
 **Done**
 - Merged the adapter runtime and training worker (134e00a) and the coding-agent runtime (abb8885). `pnpm check` passed on main after each; the runtime branch's hidden e2e run passed 45 with 1 skipped.
@@ -752,7 +752,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Local evaluation on the 2-bit build needs a GPU window from the owner. Its length is measured first with a throughput probe.
 - Graduates made before runtime v2 can't be accepted or re-tested yet. The graduate-versions agent has the fix.
 
-## 2026-10-28 (Tue), runtime v2: a coding agent's harness
+## 2026-10-28 (Wed), runtime v2: a coding agent's harness
 
 **Done**
 - The student and every graduate now work like a coding agent (decision 030 and its as-built notes): `read`, `ls`, `glob`, `grep`, `write`, `edit`, `append` and `run` over a folder of logical paths, `data/` for the job's files, `output/` when the job allows one, `skills/` read-only. `run` is JavaScript in the QuickJS sandbox with read-only files, `csv.parse` and `csv.stringify`, and the job's date as `today`; `grep` runs there too, so a runaway pattern is stopped. Writes go through the job's permissions and the workspace's approvals, keep tables valid CSV, and are diffed by line and by row. The table tools are gone.
@@ -774,7 +774,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Validators don't read `output/` yet, and in the workspace `output/` sits inside the graduate's data folder until installations get their own bindings.
 - A format 1 graduate's skills and examples still mention the table tools; a call to one gets an error that names the new tool.
 
-## 2026-10-28 (Tue): the adapter runtime and the training worker
+## 2026-10-28 (Wed): the adapter runtime and the training worker
 
 **Done** (on a branch, not merged; decision 035)
 - GGUF: a header reader and writer and LoRA checks against a base, plus a stand-in adapter labeled as such. Checked on this PC's files without loading a model: the reader parses the 10.7 GB 2-bit Glimmer blob in 70 ms (731 tensors, every size known, the last ending at the file's last byte) and passes the probe adapter llama-server had loaded.
@@ -794,7 +794,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - A01 stays blocked on training compute. None of the pins has run a job yet; the recipe checks its inputs before installing, so a wrong pin costs only the setup.
 - Checked after the merge against the Hub's Jobs guide: Jobs need only a positive credit balance (no PRO plan, as first written), and the L40S is $1.80 an hour.
 
-## 2026-10-28 (Tue), morning: any model
+## 2026-10-28 (Wed), morning: any model
 
 **Done** (merged into main the same morning)
 - Mentors from OpenAI, Anthropic (its own Messages adapter), Google Gemini, OpenRouter, Groq, Together, DeepInfra, Fireworks, any OpenAI-compatible address, and models running here in Ollama or LM Studio. Each is held to the loop's JSON schema the best way its API allows, and reasoning effort goes to each API's own control or is left out.
@@ -814,7 +814,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - The Describe screen shows a cloud icon for the mentor even when it runs on this computer (`flow/describe`, outside this branch).
 - The expanded spec keeps week one to one model family and one inference backend; this work started before it and keeps Meta's models as the defaults.
 
-## 2026-10-28 (Tue), the expanded spec arrives
+## 2026-10-28 (Wed), the expanded spec arrives
 
 **Done**
 - The owner's expanded spec (`docs/SPEC_EXPANSION.md`) now governs scope. `docs/EXPANSION.md` maps it onto the repo and tracks every requirement; decisions 030 to 033 settle the harness, the adapter backend, the teaching job and training compute.
@@ -836,7 +836,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Training compute: the owner has been asked for a Hugging Face token with credit (or Modal); until then A01 is blocked and graduates are harness-only.
 - GPU work stays off except brief checks.
 
-## 2026-10-28 (Tue), early morning
+## 2026-10-28 (Wed), early morning
 
 **Done**
 - A clean pass on Describe, Clarify, Define, Advanced settings, Train and its drawers, Report and the workspace: standing paragraphs, captions and tooltips cut, numbers and short labels kept. A blind reviewer preferred the new screens on all 15 pairs; the facts it found missing came back as labels, not paragraphs.
@@ -854,7 +854,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - GPU work is off for now at the owner's request: even with rests between replies, each reply drew about 240 W and the fans swung between 31 and 42 percent. Hosted credit covers runs; the local GPU gets brief checks only. A graduate's local test (offline, on the GPU) waits until GPU work is back on.
 - The Windows installer is unsigned, so SmartScreen warns on first launch.
 
-## 2026-10-28 (Tue), overnight
+## 2026-10-28 (Wed), overnight
 
 **Done**
 - Screens: three clarity passes plus a last one on Define, Train and agent settings, each checked by a fresh blind tester who sees only screenshots. Most screens now score 8 or more out of 10; Define sits at 6 and Train at 7, and a last fix adds the total time and cost that every tester asked for on Define. The sample story trains on OpenRouter's hosted copy of Glimmer, which first-run setup now introduces as an optional step, and the report shows what training cost in all.
@@ -870,7 +870,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Open issues**
 - The OpenRouter account's $10 prepaid credit is spent; every hosted step waits on it.
 
-## 2026-10-27 (Mon), a second sample job
+## 2026-10-27 (Tue), a second sample job
 
 **Done**
 - `examples/gear-returns` (decision 028): Returns desk at Larchwood Outfitters, a made-up outdoor-gear shop, as of Tuesday, November 24, 2026. 180 tasks: 60 refunds written to returns.csv, 60 order questions, 60 pickups written to pickups.csv. The policy states every rule with an example. In 17 to 22 percent of the rows of each exported table a date, an amount, a SKU, an email or a category code is written another way; the first five rows of every file are plain. 88 tasks turn on such a value. The package README has the details.
@@ -882,7 +882,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Open issues**
 - Not run on any model yet. `category_map.csv`, the key to the old codes, is the one table written plainly throughout.
 
-## 2026-10-27 (Mon), installers
+## 2026-10-27 (Tue), installers
 
 **Done**
 - `pnpm package` builds the app and then the installer for the platform it runs on. The Windows installer is `apps/desktop/release/Architect-Setup-0.1.0.exe`, 111 MB (106 MiB). Its 93 files, extracted with 7-Zip, match `release/win-unpacked` byte for byte. It was not run, because that would install it on this machine.
@@ -903,7 +903,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Risks**
 - The macOS smoke test starts the app, which stores keys in the runner's keychain. If that fails there, the disk images are already uploaded, and only the release step is held back.
 
-## 2026-10-27 (Mon), Phase 0 into Phase 1
+## 2026-10-27 (Tue), Phase 0 into Phase 1
 
 **Done**
 - Docs: spec, agent rules (`CLAUDE.md`), plan, architecture, decisions 001 to 027, harness format, verified model facts (`MODELS.md`), gotchas. Two second opinions from GPT-6 Astra shaped the sample job (decision 005) and the evaluation protocol (decisions 006, 007, 009).
