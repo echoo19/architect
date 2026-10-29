@@ -2,6 +2,28 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), the landing page shows the rule being checked before anything trains
+
+**Done** (on `worktree-agent-a18cd40183ffcb858`, brought up to main at `06129fe` first, since the numbered steps are only there; only `site/` and this file changed; no model was called, the GPU stayed off, and everything is static)
+- A new chapter, `check`, between describe and train. Its claim is "Nothing trains until you confirm the rule." and its line says that when the files hold prices or discounts, Spark turns them into a rule, which the person reads as steps with some of their own records worked through it. The picture is the app's Define screen at the rule, built from `@architect/ui` and the page's own frame, flow bar, stage and motion classes: the flow bar on Define, the rule as five numbered steps (the file named quietly, "as you said" beside step 4), one ticket worked through line by line to $292.50, then the bar's "Confirm the rule" is pressed. The confirmed mark appears, the bar leaves, and Start training, which was waiting with "Confirm the rule first", can be pressed. It plays once when scrolled into view and is its finished picture with reduced motion and with scripts off. On a phone it keeps the steps, the ticket's lines, the button and Start training, and the mark says "Confirmed" without the date.
+- Every word in the picture is the real repair shop job's (`demo-drafted`), read the way the app reads it. The five steps are what `ruleSteps(spec.expression, wordsOf(spec))` gives, and the ticket is the draft's own member example (T-2014), with its older "halves going up" read as "half a cent rounds up" by `readInPlainerWords`. A throwaway script compared every step and every worked line with the page's copy: all the same. The date, the job's name and the card's title are the confirmation's, the job's and its task type's. Nothing under the vault was opened.
+- Under the picture, one sentence on that job's run, from the run's own record and the README: before teaching an online copy of Glimmer got 22 of 30 check tasks, and after one round it got 40 of 40 on its final test, where the rule the person confirmed grades each ticket cost. "A single run, not a planned comparison." It says "an online copy" because the job trains on the hosted copy and its 40 final-test tasks took 86 seconds, as the page already says for the returns desk.
+- The footer note now says both shops are made up and which parts are real: the returns desk's training run, results and October orders answer, and the repair shop's rule and its run.
+- One wording choice to know: the line gives the rule to Spark and leaves who works the records unsaid, since it is Architect's own code that works them, not the model, and the app's own sentence on the screen keeps that apart ("Spark turned your policy into this rule. Architect works out every expected answer from it").
+- `site/test/rule.test.ts`: the chapter sits between describe and train; the ticket is worked out again, exactly and without floats, from the steps the page shows, and each line ends in the number so far (a wrong figure fails it; I broke one to see); the file named in brackets is the only part set quietly; the footer names both shops; and the run's figures are the README's, said as one run.
+
+**Verified**
+- `pnpm check` exits 0 (247 test files, 3,226 tests passed, 2 skipped).
+- `pnpm --filter @architect/site build`, served headless and captured: the chapter at 1280 and 375 (and 768, 1024, 1920), timed frames from 0 to 9.5 seconds at both main widths, the whole page at both widths, the page with reduced motion, and the chapter with scripts off. Each was looked at. At 360 to 1920 wide nothing sits outside the mock's window and the page does not scroll sideways. `site/screenshots` is refreshed.
+
+**Next**
+- Merge the branch into main and let the site deploy.
+- The owner's call on the sentence under the picture. If it goes, so do `RepairRun` in `App.tsx`, "and its run" in the footer note, and the test of both.
+
+**Open issues**
+- The real Define screen folds the rule under "Show the rule" once it is confirmed. The picture keeps it open, so the last frame still shows the steps and the ticket.
+- The shared flow bar's step pills are a few pixels wider than the window at 320 px, in every mock that uses it (the page's target is 375).
+
 ## 2026-10-29 (Thu), the second blind read: the rule as steps, and plainer words on seven screens
 
 **Done** (on `worktree-agent-a808911edeb33ea54`, from main at `d546661`, release 0.3.1; decisions 061, 063 and 064 amended; no model was called or loaded, and every run used stand-ins, save for one read of this computer's model list and graphics card name, said below)
