@@ -2,6 +2,26 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Wed), the film's working cut, no GPU, and the event's rules checked
+
+**Done** (Spark and online Glimmer called for the film's job; the GPU is now off for good, see below)
+- The owner said "dont utilize gpu" while a recording had loaded the 2-bit Glimmer for the offline-chat scene. The recording was stopped, its app's processes ended, the model unloaded from Ollama, and the scratch records checked untouched. From now on nothing in this repo's work loads a local model; the rule is in the session memory. The owner chose to hold the offline-chat scene's slot and record it later, when about ten minutes of GPU use is fine.
+- The event's rules were checked against the event page and the participants' guide (docs/HACKATHON.md, "Judging, as checked on Oct 29"): Architect passes the gate (Build for Your World, Meta's models used for real, not a disqualified kind), the repository is public and MIT-licensed, the first commit is Oct 27, and the 3-minute video is the main thing judged. The submission checklist now lists the Cerebral Valley submission, the video link and the optional X post.
+- The film (`apps/desktop/demo/architect.ts`), recorded from the real app in hidden windows:
+  - An opening card naming Muse Spark and Muse Glimmer; then Spark drafting the repair desk's pricing job live, its two questions answered by what the shop's policy says, the rule confirmed; the training of that exact job, replayed from its own records; its results; the planned comparison's numbers; a closing card.
+  - Takes that came out wrong were thrown away rather than used: one rule left out the policy's half-hour steps (the description now names them), and one answer rule picked "Billed labor only" for what a ticket includes (answers are now chosen by what each question is about).
+  - The recorder warms a window up before a title until screenshots come quickly, can record a scene's title again into a take that can't be made again, and opens each round a run had. One-second stalls remain where the page changes a lot (typing, attaching files, opening a round), from how a hidden window paints.
+- The third round of rule fixes was merged (1becb12) and GPT-6 Sol read it: four of its findings are fully fixed, and three more paths by which record values could reach the teacher went to the rule's builder as a fourth round, with the precise statement of what the teacher may and may not see (decision 061 is being amended to say it exactly).
+- GPT-6 Astra read the teacher's change menu (decision 063, on its branch): no invariant breach, two P2 bugs (an improvement with nothing to try could stall at the freeze; self-reflection's replies were all taken as procedures). Both went back to its builder with main to merge.
+
+**Next**
+- Merge the fourth round of rule fixes and the change menu once each passes; release 0.3.0.
+- Record the offline-chat scene when the owner allows the GPU, then assemble the full film (under three minutes).
+- Draft the submission text and an X post for the owner.
+
+**Open issues**
+- The film has no sound. A disclosed generated voice-over would help it; the owner's call.
+
 ## 2026-10-29 (Wed), what the teacher reads of the records, and a fifth thing seen in use
 
 **Done** (on `rule-fixes-3`, from main at `5cd891b`; decision 061 amended; no model was called, the GPU stayed off, and every run used stand-ins only)
