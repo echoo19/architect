@@ -286,7 +286,7 @@ In simulation with the pilot's task pass rates, a do-nothing change is kept 11 t
 
   Unequal budgets are disclosed. An arm not run is labeled "not run", and nothing is inferred for it.
 - *The claim.* Improvement on held-out tasks of this synthetic shop, from locked results only; dev gains picked by the keep rule aren't claimed. If adapter gains on bf16 don't hold on the 2-bit build, the report says the improvement didn't transfer to the intended deployment.
-- *Without a Hugging Face token.* The README, the app and the demo say: "Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. A01 is blocked without Hugging Face credentials."
+- *Without a Hugging Face token.* The README, the app and the demo say: "Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. A01 is blocked without Hugging Face credentials." Amended on Oct 28: a token now exists, and by the owner's choice development runs on hosted inference with no training jobs, so a comparison that ran none ends the sentence with "A01 is not met: this comparison ran no training job."
 **Consequences.** Arms 1 to 4 take about 850 hosted student attempts, about $8.50 at the expected $0.01 each, and at most about $9 of Spark. The cost per attempt is measured on the calibration tasks first, and the order above sets what is dropped if it runs over. Decision 027 is superseded for the new runtime: the old comparison's results stay as history and are never mixed with new ones. The demo shows the frozen graduate on a held-out task, offline and live; recorded training is labeled as recorded.
 
 ## 038. A graduate version is a portable package

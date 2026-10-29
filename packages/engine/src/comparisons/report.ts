@@ -1075,7 +1075,7 @@ function disclosures(
   }
   if (!adapterTested(arms, backends)) {
     lines.push(
-      `Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. ${declared(input).realCompute ? 'A01 is not met: no adapter a real training job made took the locked test.' : 'A01 is blocked without Hugging Face credentials.'}`,
+      `Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. ${declared(input).realCompute ? 'A01 is not met: no adapter a real training job made took the locked test.' : 'A01 is not met: this comparison ran no training job.'}`,
     );
   } else {
     lines.push(

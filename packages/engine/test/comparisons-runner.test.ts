@@ -634,6 +634,9 @@ describe('what the report claims (decision 051)', () => {
     // No adapter arm ran: no protocol, and one plain statement instead.
     expect(markdown).not.toContain('Adapter protocol');
     expect(markdown).toContain('Every reported agent is harness-only: none has trained weights.');
+    expect(report.disclosures).toContain(
+      'Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. A01 is not met: this comparison ran no training job.',
+    );
     // The rounds the targeted arm used of the two it was allowed, and why its training ended: in
     // this world its dev tasks reached the target after the first.
     const targeted = report.arms.find((arm) => arm.arm === 'targeted');
