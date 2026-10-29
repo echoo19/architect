@@ -20,14 +20,17 @@ import { ChevronRight, CirclePause, Copy, FilePlus, Flag } from 'lucide-react';
 export function UserBubble({
   children,
   className,
+  articleClassName,
   style,
 }: {
   children: ReactNode;
   className?: string;
+  /** For the message's own box, such as how wide it may grow. */
+  articleClassName?: string;
   style?: CSSProperties;
 }) {
   return (
-    <article aria-label="You" className="flex max-w-[75%] self-end">
+    <article aria-label="You" className={cn('flex max-w-[75%] self-end', articleClassName)}>
       <p
         className={cn(
           'm-0 min-w-0 break-words rounded-[22px] bg-bubble px-[18px] py-[11px] leading-[1.55]',

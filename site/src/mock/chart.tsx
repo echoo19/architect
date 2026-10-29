@@ -7,29 +7,38 @@ import { at } from './motion';
  * with each change that is kept, a dashed branch ending in a hollow point for a change that was
  * tried and not kept, and the target. It is laid out in HTML over a plot box, with a stretched
  * SVG for the line, so its labels stay the size of the product's text at any width.
+ *
+ * The scores are the returns desk's, from comparison 2: 31 of 45 check tasks to start, 42 of 45
+ * once round 1 was kept, and 44 of 45 once round 4 was. Rounds 2 and 3 scored 44 of 45 but did not
+ * clear the rule for keeping a change, so they are hollow points off the line.
  */
 
-const FLOOR = 40;
+const FLOOR = 60;
 const TOP = 100;
 /** The share of the plot's height from its top for a score. */
 const row = (score: number) => ((TOP - score) / (TOP - FLOOR)) * 100;
 /** The share of the plot's width for a round, 0 to 4. */
 const column = (round: number) => round * 25;
 
-const TARGET = 90;
+const TARGET = 95;
 const TICKS = ['Start', '1', '2', '3', '4'] as const;
-const LINE = `${column(0)},${row(40)} ${column(1)},${row(65)} ${column(2)},${row(65)} ${column(3)},${row(78)} ${column(4)},${row(90)}`;
+const START = (31 / 45) * 100;
+const KEPT_ONE = (42 / 45) * 100;
+const FINAL = (44 / 45) * 100;
+/** Where the line runs: up with round 1, level through rounds 2 and 3, up again with round 4. */
+const LINE = `${column(0)},${row(START)} ${column(1)},${row(KEPT_ONE)} ${column(2)},${row(KEPT_ONE)} ${column(3)},${row(KEPT_ONE)} ${column(4)},${row(FINAL)}`;
 
 /** When each stretch of the line is drawn, in ms from the start of the chapter. */
 export interface ChartTimes {
-  firstRise: number;
-  branch: number;
-  flat: number;
-  secondRise: number;
+  /** Round 1 is kept and the line climbs to it. */
+  rise1: number;
+  /** Rounds 2 and 3 are tried and not kept. */
+  hollow2: number;
+  hollow3: number;
   /** Round 4 starts being scored. */
   pending: number;
-  /** Its score lands. */
-  last: number;
+  /** Its score lands and the line climbs to it. */
+  rise4: number;
 }
 
 /** The part of the plot a sweep reveals, as columns from 0 to 100, and when. */
@@ -79,6 +88,40 @@ function Stretch({
   );
 }
 
+/**
+ * A change that was tried and not kept: a dashed branch off the line to a hollow point, one round
+ * on, at the score it reached.
+ */
+function NotKept({ round, start }: { round: 2 | 3; start: number }) {
+  return (
+    <div
+      className="a a-sweep absolute inset-0"
+      style={sweep(column(round - 1), column(round) + 4, start, 560)}
+    >
+      <svg
+        aria-hidden
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        className="absolute inset-0 h-full w-full overflow-visible"
+      >
+        <polyline
+          points={`${column(round - 1)},${row(KEPT_ONE)} ${column(round)},${row(FINAL)}`}
+          fill="none"
+          strokeWidth={1.5}
+          strokeDasharray="3 4"
+          vectorEffect="non-scaling-stroke"
+          className="stroke-fg-ghost"
+        />
+      </svg>
+      <span
+        aria-hidden
+        className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px] border-fg-faint bg-panel"
+        style={{ left: `${column(round)}%`, top: `${row(FINAL)}%` }}
+      />
+    </div>
+  );
+}
+
 export function ScoreChart({
   times,
   className,
@@ -96,7 +139,7 @@ export function ScoreChart({
         className,
       )}
     >
-      {[100, 80, 60, 40].map((value) => (
+      {[100, 90, 80, 70, 60].map((value) => (
         <span
           key={value}
           className="absolute inset-x-0 border-t border-line-row"
@@ -114,7 +157,7 @@ export function ScoreChart({
         <span
           className={cn(
             'absolute whitespace-nowrap font-mono text-sm text-fg-secondary',
-            compact ? 'bottom-1 right-0' : 'left-full top-0 -translate-y-1/2 pl-3',
+            compact ? 'bottom-1 left-0' : 'left-full top-0 -translate-y-1/2 pl-3',
           )}
         >
           Target {TARGET}%
@@ -142,7 +185,7 @@ export function ScoreChart({
         className="motion-only absolute inset-y-0"
         style={{ left: `${column(4)}%` }}
       >
-        <span className="a a-exit-up block h-full" style={at(times.last, { dur: 240, dy: 0 })}>
+        <span className="a a-exit-up block h-full" style={at(times.rise4, { dur: 240, dy: 0 })}>
           <span
             className="a a-pop block h-full border-l-2 border-dashed border-mentor"
             style={at(times.pending, { dur: 300 })}
@@ -150,43 +193,23 @@ export function ScoreChart({
         </span>
       </span>
 
-      <Stretch from={column(0)} to={column(1)} start={times.firstRise} dur={750} />
-      <Stretch from={column(1)} to={column(2)} start={times.flat} dur={420} played />
-      <Stretch from={column(2)} to={column(3)} start={times.secondRise} dur={650} played />
-      <Stretch from={column(3)} to={column(4)} start={times.last} dur={600} played />
+      <Stretch from={column(0)} to={column(1)} start={times.rise1} dur={750} />
+      <Stretch from={column(1)} to={column(2)} start={times.hollow2} dur={420} played />
+      <Stretch from={column(2)} to={column(3)} start={times.hollow3} dur={420} played />
+      <Stretch from={column(3)} to={column(4)} start={times.rise4} dur={600} played />
 
-      {/* The change that was tried and not kept: a dashed branch off round 1 to a hollow point. */}
-      <div
-        className="a a-sweep absolute inset-0"
-        style={sweep(column(1), column(2) + 4, times.branch, 560)}
-      >
-        <svg
-          aria-hidden
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          className="absolute inset-0 h-full w-full overflow-visible"
-        >
-          <polyline
-            points={`${column(1)},${row(65)} ${column(2)},${row(62)}`}
-            fill="none"
-            strokeWidth={1.5}
-            strokeDasharray="3 4"
-            vectorEffect="non-scaling-stroke"
-            className="stroke-fg-ghost"
-          />
-        </svg>
-        <span
-          aria-hidden
-          className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px] border-fg-faint bg-panel"
-          style={{ left: `${column(2)}%`, top: `${row(62)}%` }}
-        />
-      </div>
+      <NotKept round={2} start={times.hollow2} />
+      <NotKept round={3} start={times.hollow3} />
 
       {/* The score now: the line's head. */}
       <span
         aria-hidden
         className="a a-pop absolute size-[9px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-student"
-        style={{ left: `${column(4)}%`, top: `${row(90)}%`, ...at(times.last + 540, { dur: 340 }) }}
+        style={{
+          left: `${column(4)}%`,
+          top: `${row(FINAL)}%`,
+          ...at(times.rise4 + 540, { dur: 340 }),
+        }}
       />
     </div>
   );

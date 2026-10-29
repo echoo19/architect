@@ -22,6 +22,8 @@ export interface Results {
   rows: readonly ResultRow[];
   /** What else the run showed, one plain sentence each. */
   findings: readonly string[];
+  /** The result of the comparison that came before it, in one plain sentence. */
+  earlier: string;
   /** The words of the link to the full reports. */
   reports: string;
 }
@@ -29,7 +31,7 @@ export interface Results {
 export const RESULTS: Results = {
   title: 'Measured results',
   scope:
-    'The report above is a made-up job. These numbers were measured on one made-up business, a returns desk, with Glimmer served online. The smaller build that runs on your computer has not taken this test.',
+    'These numbers are from the run shown above: one made-up business, a returns desk, measured with Glimmer served online. The smaller build that runs on your computer has not taken this test.',
   test: '60 requests it had never seen',
   rows: [
     { label: 'Glimmer on its own', passed: 44, total: 60 },
@@ -45,7 +47,9 @@ export const RESULTS: Results = {
     "Request by request, teaching fixed 15 of Glimmer's misses and broke 1 of its right answers.",
     'On the online copy, a typical answer took 3.5 s after teaching, against 17.7 s before.',
     'The setup Spark wrote without watching Glimmer scored below Glimmer alone. The gain came from the rounds where Spark watched Glimmer fail.',
-    'Teaching cost 42 cents of Spark.',
+    'Teaching cost 42 cents of Spark: 34 for the rounds and 8 for its first setup.',
   ],
+  earlier:
+    'An earlier comparison, with teaching held to two rounds on another returns desk, showed no clear gain.',
   reports: 'Read the full reports',
 };

@@ -63,7 +63,10 @@ export function ResultsSlot() {
           ))}
         </ul>
       </div>
-      <a className="link-quiet mt-8 inline-flex items-center gap-1.5 text-[16px]" href={REPORTS}>
+      <p className="mb-0 mt-8 max-w-[62ch] text-[16px] leading-snug text-fg-secondary text-pretty">
+        {RESULTS.earlier}
+      </p>
+      <a className="link-quiet mt-4 inline-flex items-center gap-1.5 text-[16px]" href={REPORTS}>
         {RESULTS.reports}
         <ArrowUpRight size={16} strokeWidth={1.8} aria-hidden />
       </a>

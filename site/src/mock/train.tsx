@@ -1,34 +1,43 @@
-import { Button, cn, EvidenceMark, Heading, Panel } from '@architect/ui';
-import { Check, ChevronRight, Pause, Square } from 'lucide-react';
+import { Button, cn, EvidenceMark, Heading, Meter, Panel } from '@architect/ui';
+import { ArrowRight, Check, ChevronRight, Pause, Square } from 'lucide-react';
 import { ChartLegend, ScoreChart, type ChartTimes } from './chart';
 import { FlowBar } from './flow-bar';
 import { AppWindow } from './frame';
 import { at } from './motion';
 import { ChapterStage } from './stage';
 
+/**
+ * Training as the Train screen shows it once the run has ended: the returns desk of comparison 2,
+ * a made-up business. The figures are the run's own. Check tasks went from 31 of 45 to 44 of 45
+ * over four rounds against a target of 95%; rounds 2 and 3 were not kept; the run took 28 minutes
+ * and 4 of its 7 rounds, and cost Spark $0.34 of $4.92.
+ */
+
 /** When things happen in this chapter, in ms from the start. */
 const TIMES: ChartTimes = {
-  firstRise: 600,
-  branch: 1500,
-  flat: 2000,
-  secondRise: 2400,
-  pending: 3150,
-  last: 4900,
+  rise1: 600,
+  hollow2: 2000,
+  hollow3: 2900,
+  pending: 4800,
+  rise4: 5600,
 };
 const SCORE_STEPS = [
-  { value: '40%', count: '16 of 40', at: 0 },
-  { value: '65%', count: '26 of 40', at: 1350 },
-  { value: '78%', count: '31 of 40', at: 3050 },
-  { value: '90%', count: '36 of 40', at: 5500 },
+  { value: '69%', count: '31 of 45', at: 0 },
+  { value: '93%', count: '42 of 45', at: 1350 },
+  { value: '98%', count: '44 of 45', at: 6300 },
 ] as const;
 const STATUS = [
   { text: 'Glimmer is working through practice tasks', at: 0 },
-  { text: 'Spark is reading the failures', at: 1500 },
-  { text: 'Scoring the change on the check tasks', at: 3200 },
-  { text: 'Wrapping up', at: 6300 },
+  { text: 'Spark is reading the failures', at: 3300 },
+  { text: 'Scoring the change on the check tasks', at: 4800 },
+  { text: 'Training is done, and Glimmer took the final test', at: 7300 },
 ] as const;
 const STAGES = ['Practice', 'Diagnose', 'Score'] as const;
-const RESULT_AT = 5700;
+const ROUND_AT = 3300;
+const DIAGNOSIS_AT = 3800;
+const EXPECTED_AT = 4900;
+const RESULT_AT = 6500;
+const DONE_AT = 7300;
 
 /** The score now, which rolls up to each new figure as the line reaches it. */
 function Score() {
@@ -108,7 +117,7 @@ function Tile() {
   const cells = Array.from({ length: 81 }, (_, index) => {
     const shade = scatter(index, 7919, 13, 97);
     const order = scatter(index, 104729, 7, 89);
-    const alpha = order < 0.78 ? 0.42 + shade * 0.42 : 0.08 + shade * 0.1;
+    const alpha = order < 0.9 ? 0.42 + shade * 0.42 : 0.08 + shade * 0.1;
     return Math.round(alpha * 100);
   });
   return (
@@ -131,50 +140,71 @@ function Tile() {
   );
 }
 
+/** What the run is doing now, rolling up to the next line as the round moves on. */
+function Status({ className }: { className?: string }) {
+  return (
+    <span
+      role="status"
+      className={cn(
+        'relative grid justify-items-center text-center text-lg text-pretty',
+        className,
+      )}
+    >
+      {STATUS.map((status, index) => {
+        const next = STATUS[index + 1];
+        const last = index === STATUS.length - 1;
+        const line = <span>{status.text}</span>;
+        return (
+          <span
+            key={status.text}
+            className={cn('[grid-area:1/1]', index > 0 && 'a a-roll-in', !last && 'motion-only')}
+            style={index > 0 ? at(status.at + 40, { dur: 440 }) : undefined}
+          >
+            {next ? (
+              <span className="a a-roll-out block" style={at(next.at - 100, { dur: 300 })}>
+                {line}
+              </span>
+            ) : (
+              line
+            )}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+/** What a model is doing under its name while the run goes; once it has ended, nothing. */
+function Role({ children }: { children: string }) {
+  return (
+    <span
+      className="a a-exit-up motion-only text-sm text-fg-muted"
+      style={at(DONE_AT - 100, { dur: 240, dy: 0 })}
+    >
+      {children}
+    </span>
+  );
+}
+
 /** The panel that shows the two models at work, and which step of the round it is. */
 function Apprenticeship() {
   return (
     <Panel aria-label="Spark is mentoring Glimmer" className="narrow:hidden">
-      <div className="flex items-center gap-5 px-7 py-5">
-        <div className="flex w-[260px] shrink-0 items-center gap-4">
+      <div className="flex flex-1 items-center gap-4 px-7 py-6">
+        <div className="flex w-[132px] shrink-0 flex-col items-center gap-3 text-center">
           <Orb />
           <span className="flex flex-col gap-0.5">
             <span className="font-medium text-mentor">Spark</span>
-            <span className="text-sm text-fg-muted">Teaching</span>
+            <Role>Teaching</Role>
           </span>
         </div>
-        <span className="relative grid min-w-0 flex-1 justify-items-center text-center text-lg text-pretty">
-          {STATUS.map((status, index) => {
-            const next = STATUS[index + 1];
-            const last = index === STATUS.length - 1;
-            const line = <span>{status.text}</span>;
-            return (
-              <span
-                key={status.text}
-                className={cn(
-                  '[grid-area:1/1]',
-                  index > 0 && 'a a-roll-in',
-                  !last && 'motion-only',
-                )}
-                style={index > 0 ? at(status.at + 40, { dur: 440 }) : undefined}
-              >
-                {next ? (
-                  <span className="a a-roll-out block" style={at(next.at - 100, { dur: 300 })}>
-                    {line}
-                  </span>
-                ) : (
-                  line
-                )}
-              </span>
-            );
-          })}
-        </span>
-        <div className="flex w-[260px] shrink-0 items-center justify-end gap-4">
-          <span className="flex flex-col items-end gap-0.5 text-right">
-            <span className="font-medium text-student">Glimmer</span>
-            <span className="text-sm text-fg-muted">Learning on this computer</span>
-          </span>
+        <Status className="min-w-0 flex-1" />
+        <div className="flex w-[132px] shrink-0 flex-col items-center gap-3 text-center">
           <Tile />
+          <span className="flex flex-col gap-0.5">
+            <span className="font-medium text-student">Glimmer</span>
+            <Role>Learning online</Role>
+          </span>
         </div>
       </div>
       <div className="flex min-h-12 items-center gap-4 border-t border-line-row-strong bg-aside px-7 py-2 text-sm">
@@ -222,37 +252,34 @@ function Apprenticeship() {
   );
 }
 
-/** The round Spark is on: what Glimmer got wrong, what Spark makes of it, and what it expects. */
+/** The round Spark is on: what Glimmer is doing, what Spark makes of it, and what it expects. */
 function RoundCard() {
   return (
     <Panel
       padded
       aria-label="Current round"
-      className="min-w-0 flex-[5_1_0%] gap-4 p-6 narrow:flex-none narrow:gap-3 narrow:p-4"
+      className="a a-up min-w-0 gap-4 p-6 narrow:order-3 narrow:gap-3 narrow:p-4"
+      style={at(ROUND_AT, { dy: 18, dur: 600 })}
     >
-      <Heading as="h3">Round 4: Allow for zone travel time</Heading>
+      <Heading as="h3">Round 4: Parse dirty money with numeric extraction in helpers</Heading>
       <div className="flex flex-col gap-1.5 narrow:hidden">
         <span className="text-student">Glimmer</span>
-        <p className="a a-wipe m-0 text-md text-fg-soft text-pretty" style={at(700, { dur: 1300 })}>
-          Booked an urgent repair in zone C for 08:00, but the technician first has to drive 90
-          minutes from zone A.
-        </p>
+        <p className="m-0 text-md text-fg-soft text-pretty">Working through 12 practice tasks.</p>
       </div>
       <div className="flex flex-col gap-1.5">
         <span className="text-mentor">Spark</span>
         <p
           className="a a-wipe m-0 text-md text-fg-soft text-pretty"
-          style={at(2200, { dur: 1300 })}
+          style={at(DIAGNOSIS_AT, { dur: 1300 })}
         >
-          <span className="narrow:hidden">Glimmer books slots too early. It ignores</span>
-          <span className="hidden narrow:inline">Glimmer ignores</span> the drive between zones, so
-          3 of 4 scheduling failures pick a slot nobody can reach in time.
+          Glimmer&apos;s helpers misread money written as &quot;$74.95&quot; or &quot;74.95
+          USD&quot;.
         </p>
       </div>
       <div className="mt-auto flex flex-col gap-3 border-t border-line-row-strong pt-4">
         <div
-          className="a a-up flex items-baseline justify-between gap-3 narrow:hidden"
-          style={at(3300, { dy: 10 })}
+          className="a a-up flex items-baseline justify-between gap-3"
+          style={at(EXPECTED_AT, { dy: 10 })}
         >
           <span className="grid text-fg-secondary">
             <span
@@ -269,7 +296,7 @@ function RoundCard() {
             </span>
           </span>
           <span>
-            <span className="font-mono tabular-nums">+3 to +6</span>{' '}
+            <span className="font-mono tabular-nums">+2 to +4</span>{' '}
             <span className="text-fg-secondary">check tasks</span>
           </span>
         </div>
@@ -278,12 +305,9 @@ function RoundCard() {
           style={at(RESULT_AT, { dur: 520 })}
         >
           <span className="text-fg-secondary">Result</span>
-          <span className="flex min-w-0 flex-wrap items-center justify-end gap-x-2">
+          <span className="flex items-center gap-2">
             <Check size={14} strokeWidth={2} aria-hidden className="shrink-0 text-student" />
             <span className="text-student">Kept</span>
-            <span className="text-fg-secondary">
-              · 5 more <span className="narrow:hidden">check tasks </span>passed
-            </span>
           </span>
         </div>
       </div>
@@ -291,60 +315,123 @@ function RoundCard() {
   );
 }
 
+/** The score on check tasks, and the chart of it round by round. */
+function ScorePanel() {
+  return (
+    <Panel
+      aria-label="Score on the check tasks"
+      className="min-w-0 gap-2.5 px-8 pb-2 pt-6 narrow:order-2 narrow:px-5 narrow:pt-5"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <Score />
+        <ChartLegend />
+      </div>
+      <ScoreChart times={TIMES} className="narrow:hidden" />
+      <ScoreChart times={TIMES} compact className="hidden narrow:block" />
+    </Panel>
+  );
+}
+
+/** One of the run's limits: what it has used of what it was allowed, and a bar of the share. */
+function Budget({
+  label,
+  used,
+  max,
+  fraction,
+  order,
+}: {
+  label: string;
+  used: string;
+  max: string;
+  fraction: number;
+  order: number;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-fg-secondary">{label}</span>
+        <span className="font-mono tabular-nums">
+          {used} <span className="text-fg-muted">/ {max}</span>
+        </span>
+      </div>
+      <span className="a a-wipe block" style={at(DONE_AT + 300 + order * 160, { dur: 700 })}>
+        <Meter label={label} value={fraction} valueText={`${used} of ${max}`} />
+      </span>
+    </div>
+  );
+}
+
+/** Time, money and rounds used against the job's caps, and the changes kept of those tried. */
+function Resources() {
+  return (
+    <Panel
+      padded
+      aria-label="Resources"
+      className="a a-up min-w-0 justify-between gap-[18px] p-6 narrow:hidden"
+      style={at(DONE_AT, { dy: 18, dur: 600 })}
+    >
+      <Budget label="Time" used="28 min" max="12 h" fraction={28 / 720} order={0} />
+      <Budget label="Spark's cost" used="$0.34" max="$4.92" fraction={0.34 / 4.92} order={1} />
+      <Budget label="Rounds" used="4" max="7" fraction={4 / 7} order={2} />
+      <div className="flex items-baseline justify-between gap-3 border-t border-line-row-strong pt-[18px]">
+        <span className="text-fg-secondary">Changes kept</span>
+        <span className="font-mono tabular-nums">
+          2 <span className="text-fg-muted">/ 4</span>
+        </span>
+      </div>
+    </Panel>
+  );
+}
+
 /**
- * Watching it learn: Spark reads where Glimmer went wrong, makes one change, and the change is
- * scored on check tasks Spark never sees. The line climbs for a change that is kept; a change that
- * was tried and not kept leaves a hollow point and no climb.
+ * Watching it learn: the returns desk of comparison 2, from 31 of 45 check tasks to 44 of 45.
+ * Spark reads where Glimmer went wrong and makes one change a round, and a change stays only if
+ * the score goes up on check tasks Spark never sees. Two changes were tried and not kept.
  */
 export function TrainMock() {
   return (
     <ChapterStage
       id="train"
-      label="The Architect Train screen. Spark, the large model, has read where Glimmer, the small model, went wrong in round 4 and made one change. A chart of the score on check tasks Spark never sees climbs over four rounds; one change that was tried and not kept leaves a hollow point. Round 4 is kept and the score reaches the 90 percent target."
-      heightWide={700}
-      heightCompact={760}
+      label="The Architect Train screen for the Returns desk, when training is done. A chart of the score on check tasks, which Spark sees only the score of, climbs from 69 percent, 31 of 45, to 98 percent, 44 of 45, over four rounds against a target of 95 percent. Rounds 2 and 3 were tried and not kept. In round 4 Spark found that Glimmer's helpers misread money written as $74.95 or 74.95 USD, and its change was kept. The run took 28 minutes and 4 of 7 rounds, and cost Spark 34 cents."
+      heightWide={800}
+      heightCompact={815}
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 flex flex-col wide:inset-x-7 wide:top-6">
         <FlowBar
-          title="Service desk"
+          title="Returns desk"
           current={2}
           actions={
-            <>
-              <Button variant="secondary" size="sm" tabIndex={-1}>
-                <Pause size={13} fill="currentColor" strokeWidth={0} aria-hidden />
-                Pause
-              </Button>
-              <Button variant="secondary" size="sm" tabIndex={-1}>
-                <Square size={12} fill="currentColor" strokeWidth={0} aria-hidden />
-                Stop
-              </Button>
-            </>
+            <span className="grid justify-items-end [&>*]:[grid-area:1/1]">
+              <span
+                className="a a-exit-up motion-only flex gap-2"
+                style={at(DONE_AT - 100, { dur: 240, dy: 0 })}
+              >
+                <Button variant="secondary" size="sm" tabIndex={-1}>
+                  <Pause size={13} fill="currentColor" strokeWidth={0} aria-hidden />
+                  Pause
+                </Button>
+                <Button variant="secondary" size="sm" tabIndex={-1}>
+                  <Square size={12} fill="currentColor" strokeWidth={0} aria-hidden />
+                  Stop
+                </Button>
+              </span>
+              <span className="a a-pop" style={at(DONE_AT, { dur: 320 })}>
+                <Button variant="primary" size="sm" tabIndex={-1}>
+                  See the results
+                  <ArrowRight size={15} strokeWidth={2} aria-hidden />
+                </Button>
+              </span>
+            </span>
           }
         />
         <div className="min-h-0 flex-1 overflow-hidden bg-ground-flow bg-dot-grid p-6 narrow:p-4">
-          <div className="flex flex-col gap-5 narrow:gap-4">
-            <Apprenticeship />
-            <p className="m-0 hidden flex-wrap gap-x-5 gap-y-0.5 px-1 text-sm text-fg-muted narrow:flex">
-              <span>
-                <span className="font-medium text-mentor">Spark</span> teaching
-              </span>
-              <span>
-                <span className="font-medium text-student">Glimmer</span> learning on this computer
-              </span>
-            </p>
-            <div className="flex items-stretch gap-5 narrow:flex-col narrow:gap-4">
-              <Panel
-                aria-label="Score on the check tasks"
-                className="min-w-0 flex-[7_1_0%] gap-2.5 px-8 pb-2 pt-6 narrow:flex-none narrow:px-5 narrow:pt-5"
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                  <Score />
-                  <ChartLegend />
-                </div>
-                <ScoreChart times={TIMES} className="narrow:hidden" />
-                <ScoreChart times={TIMES} compact className="hidden narrow:block" />
-              </Panel>
+          <div className="flex flex-col gap-4 narrow:gap-4">
+            <Status className="hidden narrow:grid" />
+            <div className="grid grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-5 narrow:grid-cols-1 narrow:gap-4">
+              <Apprenticeship />
               <RoundCard />
+              <ScorePanel />
+              <Resources />
             </div>
           </div>
         </div>

@@ -149,10 +149,13 @@ const modeButton =
 export function ChatComposer({
   agent,
   placeholder,
+  version,
   className,
 }: {
   agent: string;
   placeholder?: string;
+  /** The version answering, under the box. */
+  version?: number;
   className?: string;
 }) {
   return (
@@ -172,7 +175,7 @@ export function ChatComposer({
           </span>
         }
       />
-      <ChatStatusBar />
+      <ChatStatusBar {...(version === undefined ? {} : { version })} />
     </div>
   );
 }
