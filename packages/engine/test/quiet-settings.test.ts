@@ -2,106 +2,104 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DecodingSchema, type StudentEndpoint } from '@architect/shared';
-import { afterEach, describe, expect, it } from 'vitest';
-import { createEngineDeps } from '../src/host/wiring';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createEngineDeps, followedQuietSettings } from '../src/host/wiring';
 
 /*
- * Quiet local models: the thread cap and the rests a student follows are the settings as they
+ * Quiet local models: the thread cap and the rest a run's student follows are the settings as they
  * stand at each request, so switching quiet mode on or off reaches a student that is already
- * working, such as a run's, and not only the next one made.
+ * working, and not only the next one made.
  */
 
 const roots: string[] = [];
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
 });
 
-const ENDPOINT: StudentEndpoint = {
+const OLLAMA: StudentEndpoint = {
   runtime: 'ollama',
   baseUrl: 'http://127.0.0.1:11434',
   model: 'muse-glimmer:30b',
   contextLength: 16_384,
 };
 
-/** A fetch that is Ollama answering one short reply, and remembers what it was asked. */
-function fakeOllama() {
-  const options: Record<string, unknown>[] = [];
-  const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = String(input);
-    if (url.endsWith('/api/show')) {
-      return Response.json({ capabilities: ['completion', 'tools', 'thinking'] });
-    }
-    const body = JSON.parse(String(init?.body ?? '{}')) as { options?: Record<string, unknown> };
-    options.push(body.options ?? {});
-    const lines = [
-      { message: { role: 'assistant', content: 'ok' }, done: false },
-      { message: { role: 'assistant', content: '' }, done: true, done_reason: 'stop' },
-    ];
-    return new Response(lines.map((line) => JSON.stringify(line)).join('\n') + '\n', {
-      headers: { 'content-type': 'application/x-ndjson' },
+const HOSTED: StudentEndpoint = {
+  runtime: 'openai_compatible',
+  baseUrl: 'https://openrouter.ai/api/v1',
+  model: 'meta/muse-glimmer-30b',
+  contextLength: 16_384,
+};
+
+describe('the settings a student follows', () => {
+  it('are the settings themselves, so a change shows at the next request', () => {
+    let threads: number | undefined;
+    let share: number | undefined;
+    const { cpuThreads, cooldown } = followedQuietSettings(OLLAMA, {
+      localThreads: () => threads,
+      localCooldown: () => share,
     });
-  }) as typeof fetch;
-  return { fetch: fetchImpl, options };
-}
-
-async function reply(student: ReturnType<ReturnType<typeof deps>['adapters']['createStudent']>) {
-  const events = student.chat({
-    messages: [{ role: 'user', content: 'Hello.' }],
-    tools: [],
-    decoding: DecodingSchema.parse({}),
-    seed: 1,
+    if (typeof cpuThreads !== 'function' || typeof cooldown !== 'function') {
+      throw new Error('The settings were copied instead of followed.');
+    }
+    expect([cpuThreads(), cooldown()]).toEqual([undefined, undefined]);
+    threads = 4;
+    share = 0.75;
+    expect([cpuThreads(), cooldown()]).toEqual([4, 0.75]);
   });
-  for await (const _event of events) void _event;
-}
 
-function deps(settings: {
-  threads?: () => number | undefined;
-  cooldown?: () => number | undefined;
-}) {
-  const dataDir = mkdtempSync(join(tmpdir(), 'architect-quiet-'));
-  roots.push(dataDir);
-  return createEngineDeps({
-    dataDir,
-    getSecret: async () => undefined,
-    ...(settings.threads === undefined ? {} : { localThreads: settings.threads }),
-    ...(settings.cooldown === undefined ? {} : { localCooldown: settings.cooldown }),
+  it('are none for a student that is not on Ollama here, or when nothing sets them', () => {
+    expect(
+      followedQuietSettings(HOSTED, { localThreads: () => 4, localCooldown: () => 0.5 }),
+    ).toEqual({});
+    expect(followedQuietSettings(OLLAMA, {})).toEqual({});
   });
-}
+});
 
 describe('a student made for a run', () => {
   it('is held to the thread cap in force at each request', async () => {
-    let cap: number | undefined;
-    const ollama = fakeOllama();
-    const student = deps({ threads: () => cap }).adapters.createStudent(ENDPOINT, {
-      fetch: ollama.fetch,
+    const asked: Record<string, unknown>[] = [];
+    vi.stubGlobal('fetch', async (input: string | URL | Request, init?: RequestInit) => {
+      if (String(input).endsWith('/api/show')) {
+        return Response.json({ capabilities: ['completion', 'tools', 'thinking'] });
+      }
+      const body = JSON.parse(String(init?.body ?? '{}')) as { options?: Record<string, unknown> };
+      asked.push(body.options ?? {});
+      const lines = [
+        { message: { role: 'assistant', content: 'ok' }, done: false },
+        { message: { role: 'assistant', content: '' }, done: true, done_reason: 'stop' },
+      ];
+      return new Response(`${lines.map((line) => JSON.stringify(line)).join('\n')}\n`, {
+        headers: { 'content-type': 'application/x-ndjson' },
+      });
     });
-    await reply(student);
+    const dataDir = mkdtempSync(join(tmpdir(), 'architect-quiet-'));
+    roots.push(dataDir);
+    let cap: number | undefined;
+    const student = createEngineDeps({
+      dataDir,
+      getSecret: async () => undefined,
+      localThreads: () => cap,
+    }).adapters.createStudent(OLLAMA, {});
+
+    const reply = async () => {
+      const events = student.chat({
+        messages: [{ role: 'user', content: 'Hello.' }],
+        tools: [],
+        decoding: DecodingSchema.parse({}),
+        seed: 1,
+      });
+      for await (const event of events) void event;
+    };
+    await reply();
     cap = 4;
-    await reply(student);
+    await reply();
     cap = undefined;
-    await reply(student);
-    const [before, during, after] = ollama.options;
+    await reply();
+    const [before, during, after] = asked;
     expect(before).not.toHaveProperty('num_thread');
     expect(during).toMatchObject({ num_thread: 4 });
     expect(after).not.toHaveProperty('num_thread');
-  });
-
-  it('rests only while quiet mode is on', async () => {
-    let share: number | undefined;
-    const rests: number[] = [];
-    const ollama = fakeOllama();
-    const student = deps({ cooldown: () => share }).adapters.createStudent(ENDPOINT, {
-      fetch: ollama.fetch,
-      rest: async (ms) => {
-        rests.push(ms);
-      },
-    });
-    await reply(student);
-    share = 0.75;
-    await reply(student);
-    share = undefined;
-    await reply(student);
-    expect(rests).toHaveLength(1);
   });
 });
