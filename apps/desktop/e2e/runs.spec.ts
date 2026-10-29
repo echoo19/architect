@@ -11,11 +11,13 @@ import {
   recordedCalls,
   stubByKey,
   stubRecorded,
+  stubSequence,
 } from './fixtures-flow';
 import {
   ANSWER,
   answerTakenUp,
   askingEngine,
+  beforeAskingEngine,
   endedAskingEngine,
   flipSwitch,
   HOME_ENGINE,
@@ -381,6 +383,90 @@ for (const theme of THEMES) {
     await expect(drawer).toBeHidden();
   });
 }
+
+test('shows the question Spark asked while the person was on another screen', async () => {
+  const { app, page } = launched;
+  const before = beforeAskingEngine();
+  const asked = askingEngine();
+  await stubEngine(app, before);
+  await stubSwitch(
+    app,
+    'runs:get',
+    { before: before['runs:get'], asked: asked['runs:get'] },
+    'before',
+  );
+  await stubSwitch(
+    app,
+    'mentoring:interventions',
+    { before: before['mentoring:interventions'], asked: asked['mentoring:interventions'] },
+    'before',
+  );
+  await applySettings(page, { theme: 'dark', onboarded: true });
+  await resize(TRAIN_HEIGHT);
+  await goTo(page, `/runs/${STORY.runId}/train`);
+  const round = page.getByRole('region', { name: 'Current round' });
+  await expect(round).toContainText('Round 4');
+  await expect(round.getByRole('form', { name: "Spark's question" })).toHaveCount(0);
+
+  // The person leaves, and Spark asks while the training screen is not open.
+  await goTo(page, '/');
+  await flipSwitch(app, 'runs:get', 'asked');
+  await flipSwitch(app, 'mentoring:interventions', 'asked');
+
+  // Back on it, the question is there to answer, not a placeholder waiting for a read that never
+  // comes, and the list of rounds says the run needs the person.
+  await goTo(page, `/runs/${STORY.runId}/train`);
+  const form = round.getByRole('form', { name: "Spark's question" });
+  await expect(form).toContainText(QUESTION);
+  await expect(form.getByRole('textbox', { name: 'Your answer' })).toBeEnabled();
+  await expect(
+    page
+      .getByRole('region', { name: 'Rounds' })
+      .getByRole('button', { name: /Ask about due dates/ }),
+  ).toContainText('Needs you');
+});
+
+test("reads a run's records again each time its training screen opens", async () => {
+  const { app, page } = launched;
+  await stubEngine(app, beforeAskingEngine());
+  await stubRecorded(app, 'mentoring:interventions', []);
+  await applySettings(page, { theme: 'dark', onboarded: true });
+  await goTo(page, `/runs/${STORY.runId}/train`);
+  await expect(page.getByRole('region', { name: 'Current round' })).toContainText('Round 4');
+  const first = (await recordedCalls(app, 'mentoring:interventions')).length;
+  expect(first).toBeGreaterThan(0);
+
+  await goTo(page, '/');
+  await goTo(page, `/runs/${STORY.runId}/train`);
+  await expect(page.getByRole('region', { name: 'Current round' })).toContainText('Round 4');
+  expect((await recordedCalls(app, 'mentoring:interventions')).length).toBeGreaterThan(first);
+});
+
+test('reads once more, and then says so, when a waiting round has no question in the records', async () => {
+  const { app, page } = launched;
+  await stubEngine(app, askingEngine());
+  // The records lack the question for the first two reads (opening the screen, and the read
+  // made for the question), and hold it for the third, which the person asks for.
+  await stubSequence(app, 'mentoring:interventions', [
+    [],
+    [],
+    askingEngine()['mentoring:interventions'],
+  ]);
+  await applySettings(page, { theme: 'dark', onboarded: true });
+  await resize(TRAIN_HEIGHT);
+  await goTo(page, `/runs/${STORY.runId}/train`);
+  const round = page.getByRole('region', { name: 'Current round' });
+  await expect(round).toContainText("Couldn't read Spark's question");
+  await expect(round).toContainText("the question isn't in the records yet");
+  await expect(round.getByRole('form', { name: "Spark's question" })).toHaveCount(0);
+
+  // No read of its own is made again unasked: the person's Try again is the third.
+  await page.waitForTimeout(600);
+  await expect(round).toContainText("Couldn't read Spark's question");
+  await round.getByRole('button', { name: 'Try again' }).click();
+  await expect(round.getByRole('form', { name: "Spark's question" })).toContainText(QUESTION);
+  await expect(round).not.toContainText("Couldn't read Spark's question");
+});
 
 test('stops the run when the answer changes what counts as success, and says so', async () => {
   const { app, page } = launched;

@@ -198,6 +198,23 @@ export function askingEngine(answered?: { text: string; changesCriteria: boolean
   };
 }
 
+/**
+ * The same run a moment before Spark asks: round 4 is still practicing, and nothing has been
+ * asked. Its records hold no question.
+ */
+export function beforeAskingEngine(): EngineReplies {
+  const { title: _title, diagnosis: _diagnosis, ...practicing } = asking;
+  return {
+    ...askingEngine(),
+    'runs:get': {
+      ...detail,
+      run: makeRun({ status: 'running', phase: 'attempting', updatedAt: at(110) }),
+      rounds: [...rounds.slice(0, 3), { ...practicing, status: 'attempting' }],
+    } satisfies RunDetail,
+    'mentoring:interventions': [],
+  };
+}
+
 /** A run stopped while the question was still open: nothing can take an answer any more. */
 export function endedAskingEngine(): EngineReplies {
   return {

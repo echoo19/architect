@@ -300,6 +300,59 @@ for (const theme of THEMES) {
   });
 }
 
+/** Starts the test on this computer from Results, then leaves for the home screen. */
+async function startThenLeave() {
+  await installEngine({ detail: withRetests(), own: ONLINE, local: null });
+  await openResults('dark');
+  const offer = page.getByRole('region', { name: 'Test on this computer' });
+  await offer.getByRole('button', { name: 'Test on this computer' }).click();
+  await expect(offer).toContainText('Testing on this computer');
+  await goTo(page, '/');
+  await expect(page.getByRole('region', { name: 'Test on this computer' })).toHaveCount(0);
+}
+
+test('shows the result of a test on this computer that finished while the person was elsewhere', async () => {
+  await startThenLeave();
+  // Nothing on Results was listening when the test ended.
+  await change({
+    detail: withRetests([{ ...TESTING, status: 'finished', endedAt: at(520) }]),
+    local: onThisComputer(55),
+  });
+
+  await goTo(page, `/runs/${STORY.runId}/report`);
+  const offer = page.getByRole('region', { name: 'Test on this computer' });
+  await expect(offer).toContainText('Passed on this computer');
+  await expect(offer).toContainText('55 of 60 right (92%).');
+  await expect(offer).not.toContainText('Testing on this computer');
+  await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
+  await expect(page.getByText('Ready', { exact: true })).toBeVisible();
+});
+
+test('offers to try again a test on this computer that stopped while the person was elsewhere', async () => {
+  await startThenLeave();
+  await change({
+    detail: withRetests([
+      {
+        ...TESTING,
+        status: 'paused',
+        error: "Ollama isn't running at http://127.0.0.1:11434. Open it, then ask again.",
+      },
+    ]),
+  });
+
+  await goTo(page, `/runs/${STORY.runId}/report`);
+  const offer = page.getByRole('region', { name: 'Test on this computer' });
+  await expect(offer).toContainText('The test on this computer stopped');
+  await expect(offer).toContainText("Ollama isn't running at http://127.0.0.1:11434.");
+  await expect(offer).not.toContainText('Testing on this computer');
+  await offer.getByRole('button', { name: 'Try again' }).click();
+  expect(await asked()).toEqual([
+    [STORY.runId, 'local'],
+    [STORY.runId, 'local'],
+  ]);
+  await expect(offer).toContainText('Testing on this computer');
+});
+
 /** A drafted job's smaller final test, taken on the online copy: 28 of 30. */
 const ONLINE_SMALL: ReportCard = {
   ...ONLINE,

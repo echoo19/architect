@@ -5,6 +5,7 @@ import type { QueryState } from '../../../src/renderer/src/api/query';
 import {
   answerEffect,
   isOpen,
+  questionMissing,
   questionOfRound,
   questionView,
 } from '../../../src/renderer/src/flow/train/questions';
@@ -103,6 +104,42 @@ describe('what the screen shows of the question of a round', () => {
     expect(view).toMatchObject({ state: 'ready', intervention: { answer: { text: answer.text } } });
   });
 
+  it('is waiting while the records are read again, whatever the old ones held', () => {
+    const waiting = makeRound(2, { status: 'clarifying' });
+    const again: QueryState<MentoringRecords> = {
+      ...records(),
+      status: 'loading',
+      error: undefined,
+    };
+    expect(questionView(waiting, again)).toEqual({ state: 'loading' });
+    expect(questionView(waiting, again, true)).toEqual({ state: 'loading' });
+  });
+
+  it('is waiting for the records to be read once more when they hold no question yet', () => {
+    expect(questionView(makeRound(2, { status: 'clarifying' }), records())).toEqual({
+      state: 'loading',
+    });
+  });
+
+  it('says the question is not there once the records were read again for it and still lack it', () => {
+    const reload = () => undefined;
+    const view = questionView(
+      makeRound(2, { status: 'clarifying' }),
+      { ...records(), reload },
+      true,
+    );
+    expect(view).toMatchObject({
+      state: 'error',
+      error: { message: expect.stringContaining("isn't in the records") },
+      reload,
+    });
+  });
+
+  it('shows the question when the records read again hold it', () => {
+    const view = questionView(makeRound(2, { status: 'clarifying' }), records(asked()), true);
+    expect(view).toMatchObject({ state: 'ready', intervention: { id: 'itv_1' } });
+  });
+
   it('is waiting while the records are read, and says so when they cannot be', () => {
     const waiting = makeRound(2, { status: 'clarifying' });
     const loading: QueryState<MentoringRecords> = {
@@ -122,6 +159,38 @@ describe('what the screen shows of the question of a round', () => {
       state: 'error',
       error: { message: 'No.' },
     });
+  });
+});
+
+describe('a question the records read so far do not hold', () => {
+  const waiting = makeRound(2, { status: 'clarifying' });
+
+  it('is missing from a round that waits for its answer, when the records lack it', () => {
+    expect(questionMissing(waiting, records())).toBe(true);
+    expect(questionMissing(waiting, records(asked({ round: 3 })))).toBe(true);
+  });
+
+  it('is not missing when the records hold it, or when the round asks nothing', () => {
+    expect(questionMissing(waiting, records(asked()))).toBe(false);
+    expect(questionMissing(makeRound(2, { status: 'decided' }), records())).toBe(false);
+    expect(questionMissing(makeRound(2, { status: 'evaluating' }), records())).toBe(false);
+    expect(questionMissing(null, records())).toBe(false);
+  });
+
+  it('is not missing while the records are being read or could not be', () => {
+    const loading: QueryState<MentoringRecords> = {
+      ...records(),
+      status: 'loading',
+      error: undefined,
+    };
+    const failed: QueryState<MentoringRecords> = {
+      status: 'error',
+      data: undefined,
+      error: new Error('No.'),
+      reload: () => undefined,
+    };
+    expect(questionMissing(waiting, loading)).toBe(false);
+    expect(questionMissing(waiting, failed)).toBe(false);
   });
 });
 
