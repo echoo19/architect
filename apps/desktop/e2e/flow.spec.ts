@@ -594,7 +594,7 @@ for (const theme of THEMES) {
 
     // What the rule left out of the tests is said right under it, with how many rows the tests
     // could use. It qualifies the score as the note does, so it is set at the note's size, not
-    // louder than the note it follows.
+    // louder than the note it follows, and the two are one block under the tiles.
     const leftOut = page.getByText(
       'The tests could use 108 of the 160 rows. The other 52 were left out because parts_cost is empty or N/A.',
     );
@@ -602,6 +602,23 @@ for (const theme of THEMES) {
     const sizeOf = (line: Locator) =>
       line.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
     expect(await sizeOf(leftOut)).toBe(await sizeOf(page.getByText(note)));
+    expect(
+      await page
+        .getByText(note)
+        .evaluate(
+          (first, second) => first.parentElement === second?.parentElement,
+          await leftOut.elementHandle(),
+        ),
+    ).toBe(true);
+    // A reader called the note the most important sentence on the page and read the score as
+    // "92% of my bills right", so it is read at the size of the page's own text, not smaller,
+    // and not in the small print of the notes inside the tiles above it.
+    const body = await page
+      .locator('body')
+      .evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+    const noteSize = await sizeOf(page.getByText(note));
+    expect(noteSize).toBeGreaterThanOrEqual(body);
+    expect(noteSize).toBeGreaterThan(await sizeOf(page.getByText('Up from 40% before training')));
     const [noteBox, leftBox, detailsBox] = await Promise.all([
       page.getByText(note).boundingBox(),
       leftOut.boundingBox(),
