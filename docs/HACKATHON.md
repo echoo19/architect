@@ -40,18 +40,40 @@ From the event page and the participants' event guide:
 - [ ] Submission made on the Cerebral Valley platform by Wed Nov 4, 9:00 PM ET, with the problem statement, the track (indie), the repository and video links, and everyone who contributed listed
 - [ ] Optional: the demo posted on X, its link added on the platform
 
+## Submission text (draft, for the owner to edit)
+
+**Name:** Architect
+
+**One line:** A large model teaches a small one your job, and the small one then does it on your own computer.
+
+**What it does:** Architect turns a job you describe into an AI agent that runs on your own computer. You describe the job in a sentence and attach the records it works from. Muse Spark reads them, asks about anything your policy leaves open, and drafts the job. Architect works out every expected answer from your files itself, and nothing trains until you've confirmed the rule it made. Then Spark watches Muse Glimmer, a model small enough for a PC, try the job. When Glimmer gets something wrong, Spark finds the step where it went wrong and changes Glimmer's instructions and tools. A change stays only if Glimmer then does better on check tasks Spark never sees. Once Glimmer passes a final test on its own, it's your agent: it works offline, on your files, and asks before it changes one.
+
+**Results:** in a comparison planned and published before it ran, teaching took a returns desk from 44 to 58 of 60 requests right, where Spark's one-shot setup got 38. It cost 42 cents of Spark. A pricing job drafted from a repair shop's files went from 22 of 30 check tasks to 40 of 40 on its final test after one round.
+
+**How it uses Meta's models:**
+- Muse Spark 1.3, through the Meta Model API, drafts the job from the person's files, reads each failed attempt's trace, and edits the agent's harness: its instructions, skills and small sandboxed tools.
+- Muse Glimmer 30B is the agent. It trains against a hosted copy of the open weights and then runs offline on the person's computer through Ollama.
+- Muse Spark Open can be the teacher instead, served by Baseten or Modal.
+
+**Track:** indie developer. **Problem statement:** Build for Your World.
+
+**Links:** https://github.com/echoo19/architect, https://echoo19.github.io/architect/, the latest release for Windows and macOS, and the video (to add).
+
+**X post (draft):** I built Architect: Muse Spark teaches Muse Glimmer a job you describe, then Glimmer does it offline on your own computer. In a comparison planned before it ran, teaching took a returns desk from 44 to 58 of 60 right. Open source: github.com/echoo19/architect
+
 ## Demo script
 
-A draft, revised on Oct 28 after comparison 2. It is shot on the live app: the training part replays comparison 2's real records in the app's own screens (labeled as a replay), and the agent part runs live on this computer's 2-bit Glimmer. About three minutes; times are targets.
+The film as recorded on Oct 29 from the real app in hidden windows (`apps/desktop/demo/architect.ts`). Every screen is the app's own; a wait for a model is shown four times faster, with a 4x mark. No sound yet.
 
-1. **The problem (0:00 to 0:20).** An outdoor-gear shop's returns desk: deciding refunds, answering order questions, booking carrier pickups, from records that are messy (money written with currency signs and commas, values in quotes). Show Glimmer on its own getting a refund wrong in a recorded attempt. Say what the shop needs: an agent on its own computer, with no data going to a cloud model on every request.
-2. **Describe and define (0:20 to 0:45).** Type the job in a sentence and attach the shop's records. Spark asks a few questions. The Define screen shows what the agent will and won't do, the 95% bar for the final test, and that writes need approval.
-3. **Training (0:45 to 1:35), a replay of comparison 2.** The check score climbs from 31 of 45. Open round 1: the attempt Spark read, its diagnosis (the tools misread messy money), the tool change, what it predicted and what was measured twice, kept. Round 2: undone, no gain. Round 4: kept, and the target is met. The final test runs with Spark disconnected.
-4. **Results (1:35 to 1:55).** 58 of 60 on requests teaching never saw, against 44 for Glimmer on its own and 38 for Spark's one-shot setup; a typical answer in 3.5 s instead of 17.7 s; 42 cents of Spark.
-5. **On this computer (1:55 to 2:45).** Turn the network off. Open the ready-made agent and ask an order question: each step shows as it runs, then the answer. Ask it to book a pickup: the new row waits for approval with its diff. Ask for something outside its job and show the refusal with its reason.
-6. **Close (2:45 to 3:00).** Meta's models do the two jobs: Muse Spark teaches, Muse Glimmer works, on your computer. The plan for this comparison was published before it ran.
+1. **Opening card.** Muse Spark teaches Muse Glimmer your job; then Glimmer does it on your computer.
+2. **Describe a job, live.** A repair shop's job in one sentence and its three files. Spark reads them, asks how half-hour labor is billed and what an empty parts cost means, and drafts the job. Define shows the rule it made from the policy, each answer beside its question, worked examples, and the rule is confirmed.
+3. **Training, replayed from that job's own run.** Before teaching, Glimmer got 22 of 30 check tasks. Round 1, Spark's first draft (a ticket-cost tool and a lookup harness), took it to 30 of 30.
+4. **The final test.** 40 of 40 on requests it had never seen, graded by the confirmed rule, for 11 cents in all.
+5. **On your computer (slot held).** The ready-made returns desk agent on 2-bit Glimmer with no network: an order question, a pickup booking that waits for approval, a refusal. It needs about ten minutes of GPU use, which the owner allows when it suits them.
+6. **Measured.** In a comparison planned before it ran, teaching took the returns desk from 44 to 58 of 60.
+7. **Closing card.** Where to get it.
 
-Narration, if any, is a disclosed generated voice; no generated images.
+The working cut without scene 5 runs 1:28; with it, about 2:30.
 
 ## What was built when
 
