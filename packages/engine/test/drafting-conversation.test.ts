@@ -174,6 +174,19 @@ describe('starting the conversation', () => {
     expect(request?.system).toContain('You never write an answer');
   });
 
+  it('asks for the name of the agent in sentence case, with an example and what stays capitalized', async () => {
+    world.mentor.script = () => question('Which region?', ['North', 'South']);
+    await world.drafting.start('A desk', attachShop(), TEACHER);
+    const [request] = world.mentor.requests;
+    expect(request?.system).toContain(
+      'in sentence case: only the first word has a capital, as in "Repair ticket pricing helper", never "Repair Ticket Pricing Helper". A proper noun, such as the name of the person\'s shop, keeps its capitals.',
+    );
+    const job = request?.json?.schema['properties'] as {
+      job: { properties: { name: { description: string } } };
+    };
+    expect(job.job.properties.name.description).toContain('in sentence case');
+  });
+
   it('talks to the teacher it is given, each time', async () => {
     world.mentor.script = (_request, call) =>
       call === 1 ? question('Which region?', ['North', 'South']) : draft();

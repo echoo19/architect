@@ -127,7 +127,9 @@ export function replyJsonSchema(mustDraft: boolean): JsonSchemaObject {
     message: text('When asking: the question, in plain words. When drafting: empty.'),
     options: list('When asking: 2 to 4 short answers. When drafting: empty.'),
     job: objectOf({
-      name: text("The agent's name, at most 60 characters. Empty when asking."),
+      name: text(
+        'The agent\'s name, at most 60 characters, in sentence case such as "Repair ticket pricing helper". Empty when asking.',
+      ),
       summary: text('One plain sentence on what the agent does. Empty when asking.'),
       description: text('A few sentences on the job, for the agent itself. Empty when asking.'),
       does: list('What the agent does, as short plain statements. Empty when asking.'),

@@ -77,7 +77,7 @@ Drafting. Draft when the files and the person's words are enough, after the last
 
 ## The job
 
-- name: what the agent is called, at most 60 characters.
+- name: what the agent is called, at most 60 characters, in sentence case: only the first word has a capital, as in "Repair ticket pricing helper", never "Repair Ticket Pricing Helper". A proper noun, such as the name of the person's shop, keeps its capitals.
 - summary: one plain sentence on what the agent does.
 - description: a few sentences on the job, written for the agent itself: what it works from and what it does. Say only what the files and the person said.
 - does and doesNot: short plain statements of what the agent does and does not do. Include what the person said it must not do.
