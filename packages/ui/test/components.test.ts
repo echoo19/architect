@@ -1,4 +1,4 @@
-import { createElement } from 'react';
+import { createElement, Fragment } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import {
@@ -263,14 +263,20 @@ describe('Switch', () => {
 });
 
 describe('RadioCard', () => {
+  const cards = createElement(
+    Fragment,
+    null,
+    createElement(RadioCard, { value: 'here', title: 'Here', unavailable: true }, 'Too slow'),
+    createElement(RadioCard, { value: 'there', title: 'There' }, 'Fine'),
+  );
   const render = (value: string) =>
     renderToStaticMarkup(
-      createElement(
-        RadioCardGroup,
-        { value, onValueChange: () => undefined, 'aria-label': 'Where' },
-        createElement(RadioCard, { value: 'here', title: 'Here', unavailable: true }, 'Too slow'),
-        createElement(RadioCard, { value: 'there', title: 'There' }, 'Fine'),
-      ),
+      createElement(RadioCardGroup, {
+        value,
+        onValueChange: () => undefined,
+        'aria-label': 'Where',
+        children: cards,
+      }),
     );
 
   it('goes quiet in the title of a card that cannot be chosen and is not', () => {
