@@ -6,7 +6,7 @@
  *   pnpm --filter @architect/engine exec tsx scripts/comparisons.ts <command> <jobDir> --out <dir>
  *     [--arms bare,draft,targeted,reference,reference-targeted,repeat,fixed,weights-one-shot,
  *       weights-targeted]
- *     [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N]
+ *     [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N] [--rounds N]
  *     [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter]
  *     [--adapter-protocol four-cell|reduced] [--smoke-tasks N]
  *     [--providers DeepInfra|any] [--local-model <name>] [--headroom N] [--parallel N]
@@ -56,7 +56,7 @@ const COMMANDS = ['plan', 'run', 'probe', 'report'] as const;
 type Command = (typeof COMMANDS)[number];
 
 const USAGE =
-  'Usage: tsx scripts/comparisons.ts <plan|run|probe|report> <jobDir> --out <dir> [--arms a,b] [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N] [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter] [--adapter-protocol four-cell|reduced] [--smoke-tasks N] [--providers <names>|any] [--local-model <name>] [--headroom N] [--parallel N] [--concurrency N] [--confirm] [--tasks N]';
+  'Usage: tsx scripts/comparisons.ts <plan|run|probe|report> <jobDir> --out <dir> [--arms a,b] [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N] [--rounds N] [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter] [--adapter-protocol four-cell|reduced] [--smoke-tasks N] [--providers <names>|any] [--local-model <name>] [--headroom N] [--parallel N] [--concurrency N] [--confirm] [--tasks N]';
 
 class UsageError extends Error {}
 
@@ -125,6 +125,8 @@ function parse(args: readonly string[]): Parsed {
     arms,
     adapterProtocol: adapterProtocol.data,
     smokeTasks: Math.max(1, Math.floor(number('--smoke-tasks', DEFAULT_CONFIG.smokeTasks))),
+    // Refinement rounds for the targeted and fixed arms; the plan records them, so a resume keeps them.
+    rounds: Math.max(1, Math.floor(number('--rounds', DEFAULT_CONFIG.rounds))),
     caps: {
       studentUsd: number('--student-usd', 0),
       sparkUsd: number('--spark-usd', 0),
