@@ -2,6 +2,21 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), the third blind read's fixes reviewed and merged, and the site's chapter with them
+
+**Done** (on main; decision 061 amended; no model was called or loaded, and every run used stand-ins)
+- Merged the site's chapter on checking the rule (697e021) after looking at it at 1280 and 375. Two of its sentences were changed: the run's sentence said "the rule you confirmed" to a visitor who confirmed nothing, and now says the final test was "graded by the rule the shop confirmed"; the footer note says "Both shops are made up" in two sentences where it took four. The live page has the chapter.
+- Reviewed the fourth pass below before merging it (4681d58): the card's line on what goes online (it follows `mentorIsLocal`, now strict about the address, which only screen words read), the discount words and their bounds, what may save files, the caveat's size, and the 31 recaptures. No attribution line.
+- The made-up example's tag was set in the red of a rule that changed since it was confirmed. A made-up example is not bad news, and red beside a rule waiting to be confirmed reads as something wrong with it, so `packages/ui` has a badge tone `emphasis` (the body's own ink, a stronger edge) and the tag wears it with an info mark, still first (decision 061).
+- The site's rule says "take 10% off" as the app's now does, and its test reads the discount from those words.
+- Verified: `pnpm check` exits 0 (249 test files, 3,260 tests passed, 2 skipped). The pass's own hidden runs (`flow` 27, `rule` 3, `teacher-menu` 4, `drafting` 5, `screenshots` 10, `retest` 11) stand for the merged app, whose code is the branch's; after the tag's change `rule.spec.ts` (3) passes again and `rule-define` is recaptured in both themes. The site is rebuilt and its page captures refreshed.
+
+**Next**
+- Release 0.3.3.
+- Re-record the film's "Describe a job" scene from the Define step, so the film shows the rule as steps: from a copy of the drafted job with its confirmation removed, so no model is called.
+- Placeholder cells: a person can say an empty cell counts as 0, but "N/A" or a dash always leaves its row out (26 of 160 rows in one sample), and a reader said "in my shop a dash means none". GPT-6 Astra's design: an optional per-column list of the placeholders that count as 0 (`placeholderMeansZero`), asked by Architect itself once per column with a choice per mark and none preselected, so a mark that may mean "not yet priced" stays out; no existing rule's version changes.
+- Specs that never answer `connections:detectLocal` (see the entry two below).
+
 ## 2026-10-29 (Thu), the third blind read: nine fixes in words, size and layout
 
 **Done** (on `worktree-agent-a169ed3996fd6c982`, from main at `83e5a96`, release 0.3.2; decisions 061, 063 and 064 amended; no model was called or loaded, the GPU stayed off, and every run used stand-ins)
