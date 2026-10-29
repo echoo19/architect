@@ -20,14 +20,19 @@
     <script>
       // Motion is on only when scripts run and the visitor has not asked for less of it. Without
       // this class every chapter shows its finished picture, still. The computer's kind picks
-      // which download button is the solid one, before anything paints.
+      // which download button is the solid one, before anything paints, and whether the Windows
+      // button goes straight to its installer.
       var root = document.documentElement;
       if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         root.classList.add('motion');
       }
       var platform =
         (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
-      root.dataset.os = /mac|iphone|ipad/i.test(platform) ? 'mac' : 'windows';
+      root.dataset.os = /mac|iphone|ipad/i.test(platform)
+        ? 'mac'
+        : /win/i.test(platform)
+          ? 'windows'
+          : 'other';
     </script>
   </head>
   <body>

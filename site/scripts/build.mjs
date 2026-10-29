@@ -34,11 +34,6 @@ try {
   const marker = '<!--app-html-->';
   if (!html.includes(marker)) throw new Error(`dist/index.html has no ${marker} to render into.`);
   await writeFile(file, html.replace(marker, server.render()));
-  if (!server.resultsAreIn) {
-    console.warn(
-      'The measured results are not in yet: the page shows a marked empty spot (src/results.ts).',
-    );
-  }
 } finally {
   await rm(rendered, { recursive: true, force: true });
 }

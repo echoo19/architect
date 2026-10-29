@@ -13,7 +13,7 @@ import { TeachMock } from './mock/teach';
 import { TrainMock } from './mock/train';
 import { UseMock } from './mock/use';
 
-const MOCKS: Partial<Record<ChapterId, ReactNode>> = {
+const MOCKS: Record<ChapterId, ReactNode> = {
   describe: <DescribeMock />,
   train: <TrainMock />,
   test: (
@@ -41,7 +41,7 @@ export function App() {
         <Hero />
         {CHAPTERS.map((copy) => (
           <Chapter key={copy.id} copy={copy}>
-            {MOCKS[copy.id] ?? <div className="h-64 rounded-[10px] border border-line" />}
+            {MOCKS[copy.id]}
           </Chapter>
         ))}
         <Closing />

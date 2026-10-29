@@ -1,55 +1,72 @@
-import { cn, EvidenceMark, EvidenceMeter } from '@architect/ui';
-import { RESULTS, type Results } from '../results';
+import { EvidenceMark, EvidenceMeter } from '@architect/ui';
+import { ArrowUpRight } from 'lucide-react';
+import { REPORTS } from '../content';
+import { RESULTS } from '../results';
+import { Actors } from './Actors';
 
 /**
- * Measured results, under the report: the same final test, and how each way of doing it scored.
- * Until the numbers are filled in `src/results.ts`, it is a marked empty spot, so nothing on the
- * page states a result that was not measured.
+ * The measured results, under the report that is only a picture: the same final test taken three
+ * ways, what else the run showed, and the link to the full reports. Everything it says is in
+ * `src/results.ts`.
  */
-export function ResultsSlot({ results = RESULTS }: { results?: Results | null }) {
-  if (results === null) {
-    return (
-      <div
-        role="note"
-        className="mt-6 flex flex-col gap-1 rounded-[10px] border border-dashed border-line-strong px-5 py-4 text-[15px] text-fg-secondary sm:mt-8"
-      >
-        <span className="font-bold text-fg">Results go here</span>
-        <span>
-          Add the measured final-test results in{' '}
-          <code className="font-mono">site/src/results.ts</code>. The figures in the report above
-          belong to a made-up sample job.
-        </span>
-      </div>
-    );
-  }
+export function ResultsSlot() {
   return (
     <section
-      aria-label={`Final test results on ${results.job}`}
-      className="mt-6 rounded-[10px] border border-line px-5 py-5 sm:mt-8"
+      aria-labelledby="measured-title"
+      className="mt-6 rounded-[10px] border border-line px-5 py-7 sm:mt-8 sm:px-8 sm:py-9"
     >
-      <p className="m-0 mb-4 flex items-center gap-2 text-[15px] text-fg-secondary">
-        <EvidenceMark kind="final">Final test</EvidenceMark>
-        <span>{results.job}</span>
+      <h3
+        id="measured-title"
+        className="m-0 text-[24px] font-bold leading-tight tracking-[-0.015em] text-fg"
+      >
+        {RESULTS.title}
+      </h3>
+      <p className="mb-0 mt-3 max-w-[62ch] text-[17px] leading-relaxed text-fg-secondary text-pretty">
+        <Actors text={RESULTS.scope} />
       </p>
-      <ul className="m-0 grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
-        {results.rows.map((row) => (
-          <li key={row.label} className="flex flex-col gap-2">
-            <span className={cn('text-[15px]', row.spark ? 'text-mentor' : 'text-fg')}>
-              {row.label}
-            </span>
-            <span className="font-mono text-sm tabular-nums text-fg-secondary">
-              <span className="text-fg">{row.passed}</span> of {row.total}
-            </span>
-            <EvidenceMeter
-              kind="final"
-              value={row.total === 0 ? 0 : row.passed / row.total}
-              label={`${row.label}, final test`}
-              valueText={`${row.passed} of ${row.total} passed`}
-              {...(row.spark ? { marker: row.total === 0 ? 0 : row.passed / row.total } : {})}
-            />
-          </li>
-        ))}
-      </ul>
+      <div className="mt-8 grid gap-x-14 gap-y-9 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+        <div className="flex flex-col gap-5">
+          <p className="m-0 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[15px] text-fg-secondary">
+            <EvidenceMark kind="final" className="text-[15px]">
+              Final test
+            </EvidenceMark>
+            <span>{RESULTS.test}</span>
+          </p>
+          <ul className="m-0 flex list-none flex-col gap-6 p-0">
+            {RESULTS.rows.map((row) => (
+              <li key={row.label} className="flex flex-col gap-2">
+                <span className="text-[16px] text-fg">
+                  <Actors text={row.label} />
+                </span>
+                <span className="font-mono text-[15px] tabular-nums text-fg-secondary">
+                  <span className="text-fg">{row.passed}</span> of {row.total}
+                </span>
+                <EvidenceMeter
+                  kind="final"
+                  value={row.total === 0 ? 0 : row.passed / row.total}
+                  label={`${row.label}, final test`}
+                  valueText={`${row.passed} of ${row.total} passed`}
+                />
+                {row.note && <span className="text-[15px] text-fg-secondary">{row.note}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <ul className="m-0 flex list-none flex-col p-0">
+          {RESULTS.findings.map((finding) => (
+            <li
+              key={finding}
+              className="border-t border-line py-4 text-[16px] leading-snug text-fg first:border-t-0 first:pt-0"
+            >
+              <Actors text={finding} />
+            </li>
+          ))}
+        </ul>
+      </div>
+      <a className="link-quiet mt-8 inline-flex items-center gap-1.5 text-[16px]" href={REPORTS}>
+        {RESULTS.reports}
+        <ArrowUpRight size={16} strokeWidth={1.8} aria-hidden />
+      </a>
     </section>
   );
 }

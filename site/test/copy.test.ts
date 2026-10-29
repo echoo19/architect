@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { APP_VERSION, WINDOWS_INSTALLER } from '../src/content';
 
 const SITE = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -38,6 +39,13 @@ describe('the site', () => {
   it('leaves no unfinished markers in the code', () => {
     const found = FILES.filter(({ text }) => /\b(TODO|FIXME|XXX)\b/.test(text));
     expect(found.map(({ path }) => path)).toEqual([]);
+  });
+
+  it('names the installer of the version the app is at, so the download is never a dead link', () => {
+    const manifest = readFileSync(join(SITE, '..', 'apps', 'desktop', 'package.json'), 'utf8');
+    const { version } = JSON.parse(manifest) as { version: string };
+    expect(APP_VERSION).toBe(version);
+    expect(WINDOWS_INSTALLER.endsWith(`/Architect-Setup-${version}.exe`)).toBe(true);
   });
 
   it('refers to no address but the repository, so the page fetches from nobody else', () => {
