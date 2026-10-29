@@ -5,6 +5,7 @@ import {
   IMPROVE_MAX_MENTOR_USD,
   IMPROVE_MAX_ROUNDS,
   INSTRUCTION_KINDS,
+  mayIntervene,
   newId,
   TEACHABLE_KINDS,
   type Correction,
@@ -66,6 +67,25 @@ const PROPOSAL_JSON_SCHEMA: JsonSchemaObject = {
   },
 };
 
+/**
+ * The reply format for a job that may not ask the person questions: no `ambiguous` kind to
+ * choose, and nothing to put in its question (decision 063).
+ */
+const PROPOSAL_JSON_SCHEMA_WITHOUT_QUESTIONS: JsonSchemaObject = {
+  ...PROPOSAL_JSON_SCHEMA,
+  properties: {
+    ...(PROPOSAL_JSON_SCHEMA.properties as Record<string, unknown>),
+    kind: {
+      type: 'string',
+      enum: CorrectionKindSchema.options.filter((kind) => kind !== 'ambiguous'),
+    },
+    question: {
+      type: 'string',
+      description: 'Always empty: the person asked not to be asked questions.',
+    },
+  },
+};
+
 const emptyAsAbsent = z
   .string()
   .transform((text) => text.trim())
@@ -91,31 +111,47 @@ Classify the correction as exactly one kind:
 
 Not every correction needs training. Only weakness asks for practice. Answer with one JSON object.`;
 
+/** What the classification is told instead of the `ambiguous` kind, when the job asks no questions. */
+const CLASSIFY_SYSTEM_WITHOUT_QUESTIONS = CLASSIFY_SYSTEM.replace(
+  'Classify the correction as exactly one kind:',
+  'The person asked not to be asked questions, so there is no kind for a request that could mean more than one thing, and you never ask what they meant. Take the reading their correction settles, or call the correction invalid when it settles none. Classify the correction as exactly one kind:',
+).replace(/^- ambiguous: .*\n/m, '');
+
 function classifyRequest(job: Job, parts: readonly { text: string }[]): MentorCompletionRequest {
   const types = job.taskTypes.map((type) => `- ${type.id}: ${type.label}`).join('\n');
+  const asks = mayIntervene(job, 'clarification');
   return {
-    system: CLASSIFY_SYSTEM,
+    system: asks ? CLASSIFY_SYSTEM : CLASSIFY_SYSTEM_WITHOUT_QUESTIONS,
     messages: [
       {
         role: 'user',
         content: `# The job\n${job.name}: ${job.description}\n\nTask types:\n${types}\n\n${parts.map((part) => part.text).join('\n\n')}`,
       },
     ],
-    json: { name: 'correction', schema: PROPOSAL_JSON_SCHEMA },
+    json: {
+      name: 'correction',
+      schema: asks ? PROPOSAL_JSON_SCHEMA : PROPOSAL_JSON_SCHEMA_WITHOUT_QUESTIONS,
+    },
     maxOutputTokens: CORRECTION_MAX_OUTPUT_TOKENS,
   };
 }
 
-/** The proposal as stored: instructions only where a kind uses one, a task type only if known. */
+/**
+ * The proposal as stored: instructions only where a kind uses one, a task type only if known.
+ * A job that asks the person no questions never stores one: a reading of the request as unclear
+ * that comes anyway is kept as a correction that can't be checked, with no question put to them.
+ */
 function proposalOf(reply: z.infer<typeof ProposalReplySchema>, job: Job): CorrectionProposal {
-  const instruction = INSTRUCTION_KINDS.includes(reply.kind) ? reply.instruction : undefined;
-  if (INSTRUCTION_KINDS.includes(reply.kind) && instruction === undefined) {
-    throw new Error(`The mentor read this as a ${reply.kind} lesson but wrote no instruction.`);
+  const asks = mayIntervene(job, 'clarification');
+  const kind = !asks && reply.kind === 'ambiguous' ? 'invalid' : reply.kind;
+  const instruction = INSTRUCTION_KINDS.includes(kind) ? reply.instruction : undefined;
+  if (INSTRUCTION_KINDS.includes(kind) && instruction === undefined) {
+    throw new Error(`The mentor read this as a ${kind} lesson but wrote no instruction.`);
   }
-  const question = reply.kind === 'ambiguous' ? reply.question : undefined;
+  const question = kind === 'ambiguous' ? reply.question : undefined;
   const known = job.taskTypes.some((type) => type.id === reply.taskType);
   return {
-    kind: reply.kind,
+    kind,
     lesson: reply.lesson,
     reason: reply.reason,
     ...(instruction === undefined ? {} : { instruction }),
@@ -126,12 +162,13 @@ function proposalOf(reply: z.infer<typeof ProposalReplySchema>, job: Job): Corre
 
 /**
  * Whether an improvement of this job could train weights here, by the conditions the
- * intervention menu checks before a round (`menuOf`): a training worker and a backend that
- * trains for real, a runtime that serves adapters, a mentor that can act as the agent to make
- * the verified lessons, and, for a backend that charges, a compute budget and the job's leave
- * to send lessons for remote training.
+ * intervention menu checks before a round (`menuOf`): the job lets the mentor train them, a
+ * training worker and a backend that trains for real, a runtime that serves adapters, a mentor
+ * that can act as the agent to make the verified lessons, and, for a backend that charges, a
+ * compute budget and the job's leave to send lessons for remote training.
  */
 async function trainingApplies(job: Job, deps: EngineHostDeps): Promise<boolean> {
+  if (!mayIntervene(job, 'weights')) return false;
   const { training, adapters } = deps;
   if (!training || !adapters.createAdapterStudent || !adapters.createActor) return false;
   if (job.mentor.kind !== 'model' || adapters.canAct?.(job.mentor) === false) return false;

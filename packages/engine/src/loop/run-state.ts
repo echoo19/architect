@@ -1,11 +1,13 @@
-import type {
-  Job,
-  Round,
-  Run,
-  RunEvent,
-  RunStopReason,
-  StudentTarget,
-  Task,
+import {
+  HARNESS_INTERVENTIONS,
+  mayIntervene,
+  type Job,
+  type Round,
+  type Run,
+  type RunEvent,
+  type RunStopReason,
+  type StudentTarget,
+  type Task,
 } from '@architect/shared';
 import type { KeyedLock } from '../graduates/library';
 import type { AttemptFilter, EngineStore } from '../store/engine-store';
@@ -73,6 +75,7 @@ export const TRAINING_ENDED: Record<RunStopReason | 'complete', string> = {
   error: 'Training ended after an error.',
   contract:
     'Your answer changes what counts as success, so this run stopped: its locked test belongs to the job as it was. Start a new run on the changed job.',
+  nothing_to_try: 'The mentor has nothing it may change in this run, so training ended.',
 };
 
 /** The run patch that ends training and hands the run to its locked test. */
@@ -209,6 +212,8 @@ export class RunState {
     if (this.record.improves !== undefined) return false;
     if (method !== 'architect' && method !== 'self_reflection') return false;
     if (this.job.startingHarness.kind !== 'blank') return false;
+    // A job that lets the mentor change no file of the harness has no draft for it to write.
+    if (!HARNESS_INTERVENTIONS.some((type) => mayIntervene(this.job, type))) return false;
     return !this.rounds().some(({ round }) => round.index < index && round.decision === 'kept');
   }
 

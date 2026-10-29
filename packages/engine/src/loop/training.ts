@@ -28,7 +28,7 @@ import {
   type Measurement,
 } from './keep';
 import { percentile } from '../report/report-card';
-import { menuOf } from './menu';
+import { menuOf, nothingToTry } from './menu';
 import { TRAINING_ENDED, trainingEnd, type RunState } from './run-state';
 import { deriveSeed, devSeeds, roundSeed, sampleTrainBatch } from './seeds';
 import { startingHarness } from './setup';
@@ -72,6 +72,12 @@ function draftDecision(
 export async function prepare(state: RunState): Promise<void> {
   const start = (await state.versions.latest()) ?? (await state.versions.save(await first(state)));
   state.saveRun({ phase: 'baseline', currentVersion: start.meta.version });
+  // Said before the baseline, which is the student on every check task: a run whose mentor may
+  // change nothing has no use for it. A comparison's adopted harness and its one-shot adapter are
+  // the runner's own plan, so the mentor is not asked there.
+  const planned = adopts(state, 1) || isOneShotAdapter(state);
+  const idle = planned ? null : await nothingToTry(state, 1);
+  if (idle !== null) finishTraining(state, 'nothing_to_try', idle);
 }
 
 async function first(state: RunState): Promise<Harness> {
@@ -119,6 +125,11 @@ export async function baseline(state: RunState): Promise<void> {
 
 /** The title an adopted harness's round carries, so the decision and reports can name it. */
 export const ADOPTED_TITLE = 'Adopt the comparison harness';
+
+/** The protocol plans one adapter itself in place of the mentor's choice, for every round. */
+function isOneShotAdapter(state: RunState): boolean {
+  return state.record.protocol?.oneShotAdapter !== undefined;
+}
 
 /** The round adopts the protocol's harness: the first round of a run whose protocol names one. */
 function adopts(state: RunState, index: number): boolean {
@@ -302,8 +313,13 @@ export async function startRound(state: RunState, index: number): Promise<void> 
     await adoptRound(state, index);
     return;
   }
-  if (state.record.protocol?.oneShotAdapter !== undefined) {
+  if (isOneShotAdapter(state)) {
     await oneShotRound(state, index);
+    return;
+  }
+  const idle = await nothingToTry(state, index);
+  if (idle !== null) {
+    finishTraining(state, 'nothing_to_try', idle);
     return;
   }
   const drafting = state.drafts(index);
@@ -1061,8 +1077,16 @@ export function abandonRound(state: RunState, index: number, reason: string): vo
   state.log('info', `Round ${index}: ${reason}`);
 }
 
-/** Hands the run to its locked test, or ends it when a stop came before anything was kept. */
-export function finishTraining(state: RunState, reason: RunStopReason | undefined): void {
+/**
+ * Hands the run to its locked test, or ends it when there is nothing to test: a stop, or a mentor
+ * with nothing it may change (decision 063), before anything was kept. `why` is the sentence for
+ * the second, which the run keeps where the person reads it.
+ */
+export function finishTraining(
+  state: RunState,
+  reason: RunStopReason | undefined,
+  why?: string,
+): void {
   for (const settled of settleExperimentCompute(
     state.ctx.store,
     state.ctx.deps.training,
@@ -1076,6 +1100,19 @@ export function finishTraining(state: RunState, reason: RunStopReason | undefine
     state.log('info', 'Stopped before any change was kept, so there is no graduate to test.');
     return;
   }
+  // An improvement still ends in its own step, which hands the lessons back when it kept nothing.
+  if (reason === 'nothing_to_try' && !kept && state.record.improves === undefined) {
+    const message = why ?? TRAINING_ENDED.nothing_to_try;
+    state.saveRun({
+      status: 'stopped',
+      phase: 'done',
+      stopReason: 'nothing_to_try',
+      error: message,
+      endedAt: state.now(),
+    });
+    state.log('info', `${message} There is no graduate to test.`);
+    return;
+  }
   state.saveRun(trainingEnd(reason));
-  state.log('info', TRAINING_ENDED[reason ?? 'complete']);
+  state.log('info', why ?? TRAINING_ENDED[reason ?? 'complete']);
 }

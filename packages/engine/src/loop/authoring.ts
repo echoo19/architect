@@ -1,5 +1,6 @@
 import {
   AdapterError,
+  allowedInterventions,
   GuardError,
   HARNESS_INTERVENTIONS,
   interventionOf,
@@ -37,7 +38,7 @@ import { must } from './errors';
 import { readJsonFile, writeJsonFile } from './files';
 import { interventionRecord, resolveFindings } from './intervene';
 import { answerTableProblem } from './lookup';
-import { interventionRefusal, menuOf, type Menu } from './menu';
+import { changeSetRefusal, interventionRefusal, menuOf, roundMenu } from './menu';
 import type { RunState } from './run-state';
 import { roundSeed } from './seeds';
 import { stoppedTeaching } from './teach';
@@ -94,6 +95,7 @@ function promptSettings(state: RunState): PromptSettings {
       state.run.method !== 'self_reflection' && mentor.kind === 'model'
         ? mentor.reasoningEffort
         : undefined,
+    allowed: allowedInterventions(state.job),
   };
 }
 
@@ -391,6 +393,9 @@ async function candidateOf(
   stored: StoredRound,
   hypothesis: Hypothesis,
 ): Promise<{ harness: Harness } | { reason: string }> {
+  // A first draft is held to the job's choice here too; no menu is asked about it.
+  const barred = changeSetRefusal(changedFiles(hypothesis), state.job);
+  if (barred !== null) return { reason: barred };
   let candidate: Harness;
   try {
     candidate = state.ctx.deps.harness.applyEdits(
@@ -412,17 +417,6 @@ async function candidateOf(
     if (table !== null) return { reason: table };
   }
   return { harness: candidate };
-}
-
-/** The menu a round's author chose from: Architect's full one, or harness changes alone. */
-async function roundMenu(state: RunState): Promise<Menu> {
-  if (state.run.method === 'architect') return menuOf(state);
-  return {
-    allowed: [...HARNESS_INTERVENTIONS],
-    refused: {},
-    canTeach: false,
-    computeLeftUsd: 0,
-  };
 }
 
 /**
