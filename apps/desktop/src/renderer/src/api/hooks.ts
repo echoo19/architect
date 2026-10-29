@@ -16,6 +16,7 @@ export const queryKeys = {
   graduates: 'graduates',
   jobs: 'jobs',
   job: (jobId: string) => `job:${jobId}`,
+  taskPlan: (jobId: string) => `taskPlan:${jobId}`,
   run: (runId: string) => `run:${runId}`,
   report: (runId: string) => `report:${runId}`,
   chats: (graduateId: string) => `chats:${graduateId}`,
@@ -50,6 +51,9 @@ export const useGraduates = () => useQuery(queryKeys.graduates, api.graduates);
 export const useJobs = () => useQuery(queryKeys.jobs, api.jobs);
 
 export const useJob = (jobId: string) => useQuery(queryKeys.job(jobId), () => api.job(jobId));
+/** What a job's tasks are: where they came from, the rule behind each type, examples and counts. */
+export const useTaskPlan = (jobId: string) =>
+  useQuery(queryKeys.taskPlan(jobId), () => api.taskPlan(jobId));
 export const useRunDetail = (runId: string) => useQuery(queryKeys.run(runId), () => api.run(runId));
 export const useReport = (runId: string) =>
   useQuery(queryKeys.report(runId), () => api.report(runId));

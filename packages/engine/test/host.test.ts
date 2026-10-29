@@ -129,6 +129,32 @@ describe('the engine host', () => {
     expect(types.indexOf('eval.finished')).toBeLessThan(types.indexOf('graduate.ready'));
   });
 
+  it('says on the report card that the final test of a drafted job was generated, and what drafting cost', async () => {
+    const { client } = await connect();
+    const job = await client.jobs.createSample();
+    await writeFile(
+      new DataPaths(world.dataDir).draftingFile(job.id),
+      JSON.stringify({
+        format: 1,
+        source: 'generated',
+        createdAt: '2026-10-27T09:00:00.000Z',
+        seed: 7,
+        teacher: { label: 'Muse Spark 1.3', model: 'muse-spark-1.3' },
+        cost: { calls: 2, inputTokens: 9000, outputTokens: 1200, usd: 0.04 },
+        types: [],
+        unresolved: [],
+        notes: [],
+      }),
+    );
+    const graduated = next(client, (event) => event.type === 'graduate.ready');
+    const run = await client.runs.start(job.id, { method: 'bare', seed: 1 });
+    await graduated;
+    expect((await client.reports.get(run.id)).tasks).toEqual({
+      source: 'generated',
+      draftingUsd: 0.04,
+    });
+  });
+
   it('offers the ready-made agent only where the build ships it, and copies its data once', async () => {
     const { client } = await connect();
     expect(await client.graduates.hasSampleAgent()).toBe(false);
@@ -204,9 +230,14 @@ describe('the engine host', () => {
       ok: false,
       error: { message: 'There is no "runs.explode" request.' },
     });
-    await expect(client.jobs.draftStart('Invoices for a plumber', [])).rejects.toThrow(
-      "Drafting a job with the mentor isn't available in this build.",
-    );
+    // A conversation that drafts a job always says which teacher it talks to.
+    const noTeacher = await raw(port, {
+      kind: 'request',
+      id: 903,
+      method: 'jobs.draftStart',
+      params: ['Invoices for a plumber', []],
+    });
+    expect(noTeacher).toMatchObject({ ok: false, error: { name: 'ValidationError' } });
     await expect(client.reports.get('run_missing')).rejects.toThrow(
       'There is no run "run_missing".',
     );

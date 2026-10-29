@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { Button, cn, ReplyComposer, Spinner } from '@architect/ui';
+import { CodedError } from '@architect/shared';
 import { ArrowRight, Check } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { queryKeys, useSettings } from '../../api/hooks';
@@ -38,6 +39,10 @@ export function Clarify() {
   const { entries, waiting, failure, sessionId } = conversation;
   const last = lastMentorEntry(conversation);
   const firstReply = entries.find((entry) => entry.kind === 'mentor');
+  // A drafted job is reviewed on the next screen, and a conversation that ended has nothing left
+  // to answer, so neither takes another reply.
+  const finished = last?.draft !== undefined || last?.ended === true;
+  const startAgain = () => resetDraft({ keepFirstMessage: true });
 
   useEffect(() => {
     const scroller = scrollRef.current;
@@ -91,7 +96,7 @@ export function Clarify() {
               <li key={entry.id} className="flex flex-col">
                 <MentorMessage
                   entry={entry}
-                  speaker={entry === firstReply ? mentor : undefined}
+                  speaker={entry === firstReply ? (entry.ended ? 'Architect' : mentor) : undefined}
                   current={entry === last && !waiting}
                   onPick={(option) => sendToMentor(option, [], option)}
                   review={
@@ -99,6 +104,7 @@ export function Clarify() {
                       ? { saving, buttonRef: reviewRef, onReview: () => void review(entry) }
                       : undefined
                   }
+                  onStartAgain={entry === last && entry.ended ? startAgain : undefined}
                 />
               </li>
             ),
@@ -126,12 +132,8 @@ export function Clarify() {
                 title={`${mentor} couldn't answer`}
                 onRetry={retryLastMessage}
               />
-              {!sessionId && (
-                <Button
-                  size="sm"
-                  className="self-start"
-                  onClick={() => resetDraft({ keepFirstMessage: true })}
-                >
+              {(!sessionId || lost(failure.error)) && (
+                <Button size="sm" className="self-start" onClick={startAgain}>
                   Edit the description
                 </Button>
               )}
@@ -139,7 +141,7 @@ export function Clarify() {
           )}
         </ol>
       </div>
-      {sessionId && (
+      {sessionId && !finished && (
         <div className="px-6 pb-6">
           <ReplyComposer
             className="mx-auto"
@@ -159,6 +161,11 @@ export function Clarify() {
 
 function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? '' : 's'}`;
+}
+
+/** The conversation is gone from the engine, so asking again can't help. */
+function lost(error: Error): boolean {
+  return error instanceof CodedError && error.code === 'draft_not_found';
 }
 
 function UserMessage({ entry }: { entry: UserEntry }) {
@@ -201,6 +208,7 @@ function MentorMessage({
   current,
   onPick,
   review,
+  onStartAgain,
 }: {
   entry: MentorEntry;
   /** Who is talking, on the first reply only: "Spark". */
@@ -209,6 +217,8 @@ function MentorMessage({
   current: boolean;
   onPick: (option: string) => void;
   review: ReviewAction | undefined;
+  /** Present on a conversation that ended: puts the description back to edit with more files. */
+  onStartAgain: (() => void) | undefined;
 }) {
   const message = entry.message.trim();
   const showMessage = message.length > 0 && !(entry.draft && message === DRAFTED);
@@ -250,9 +260,14 @@ function MentorMessage({
           )}
         </div>
       )}
+      {onStartAgain && (
+        <Button size="md" className="self-start" onClick={onStartAgain}>
+          Edit the description
+        </Button>
+      )}
       {entry.draft && (
         <div className="flex flex-col gap-4">
-          <p className="m-0">{DRAFTED}</p>
+          {!showMessage && <p className="m-0">{DRAFTED}</p>}
           {review && (
             <Button
               ref={review.buttonRef}

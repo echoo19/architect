@@ -89,5 +89,19 @@ export const ReportCardSchema = z.object({
   }),
   /** The mentor claimed "ready" during training; true when the test disagreed. */
   overclaim: z.boolean().nullable(),
+  /**
+   * Where the final test's requests came from, for a job whose tasks weren't shipped with it
+   * (decision 058). `generated`: Architect made them from the person's files, following a job
+   * description the mentor drafted, so the answers are checked against that description and not
+   * independently certified as right for the business. `attached`: they are the example tasks the
+   * person attached. Absent for the sample jobs and for jobs imported with their tasks.
+   */
+  tasks: z
+    .object({
+      source: z.enum(['generated', 'attached']),
+      /** What drafting the job cost the mentor, when every call had a price. */
+      draftingUsd: z.number().nonnegative().optional(),
+    })
+    .optional(),
 });
 export type ReportCard = z.infer<typeof ReportCardSchema>;

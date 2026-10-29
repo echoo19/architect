@@ -91,4 +91,25 @@ describe('conversationReducer', () => {
     expect(state.saved).toEqual({ entryId: 'mentor-1', jobId: draft.id });
     expect(conversationReducer(state, { type: 'reset' })).toEqual(emptyConversation);
   });
+
+  it('holds what the mentor said with a draft, and a conversation that ended with no draft', () => {
+    const draft = makeJob();
+    const note = "I couldn't settle this from your files and answers, so I left it open:\nA rule.";
+    const drafted = run(
+      { type: 'sent', text: 'Close out the day', files: FILES, at: 1 },
+      { type: 'replied', turn: { sessionId: 's1', message: note, options: [], draft } },
+    );
+    expect(lastMentorEntry(drafted)).toMatchObject({ message: note, draft });
+    expect(lastMentorEntry(drafted)?.ended).toBeUndefined();
+
+    const ended = run(
+      { type: 'sent', text: 'Close out the day', files: FILES, at: 1 },
+      {
+        type: 'replied',
+        turn: { sessionId: 's2', message: 'Attach more rows.', options: [], ended: true },
+      },
+    );
+    expect(lastMentorEntry(ended)).toMatchObject({ message: 'Attach more rows.', ended: true });
+    expect(lastMentorEntry(ended)?.draft).toBeUndefined();
+  });
 });

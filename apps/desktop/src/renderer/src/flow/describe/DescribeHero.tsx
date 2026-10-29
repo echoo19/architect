@@ -12,9 +12,9 @@ import { SampleJobButton } from './SampleJobButton';
 
 /** Data the agent works with, and example tasks with their answers. */
 const ATTACHABLE = [
-  { name: 'Data and task files', extensions: ['csv', 'xlsx', 'txt', 'md', 'jsonl'] },
-  { name: 'Data files', extensions: ['csv', 'xlsx', 'txt', 'md'] },
-  { name: 'Task files', extensions: ['jsonl', 'csv'] },
+  { name: 'Data and task files', extensions: ['csv', 'txt', 'md', 'jsonl'] },
+  { name: 'Data files', extensions: ['csv', 'txt', 'md'] },
+  { name: 'Task files', extensions: ['jsonl'] },
 ];
 
 /** The first step of a new agent: the job in the user's own words, plus its files. */
@@ -70,7 +70,7 @@ export function DescribeHero() {
           autoFocus
           leading={
             <Tooltip
-              content="Add the job's files, and example tasks with their answers as .jsonl or tasks.csv"
+              content="Add the job's files as CSV, text or Markdown, and example tasks with their answers as a .jsonl file"
               side="bottom"
             >
               <IconButton label="Attach files" onClick={() => void attach()}>

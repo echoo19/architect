@@ -1,7 +1,13 @@
 import { z } from 'zod';
 import { CheckerConfigSchema } from './checker';
 import { DataFileSchema } from './data';
-import { PROVIDER_IDS, TokenPricingSchema } from './models';
+import {
+  DEFAULT_MENTOR_PRESET,
+  DEFAULT_STUDENT,
+  mentorPreset,
+  PROVIDER_IDS,
+  TokenPricingSchema,
+} from './models';
 
 export const JOB_FORMAT = 1;
 
@@ -207,3 +213,33 @@ export const JobSchema = z.object({
   sharing: DataSharingSchema.optional(),
 });
 export type Job = z.infer<typeof JobSchema>;
+
+/**
+ * The teacher and the agent's model a new job starts with, as the sample jobs ship them: Muse
+ * Spark through Meta, and Muse Glimmer on this computer through Ollama. The app puts the models
+ * the person chose in Settings on a job when it arrives.
+ */
+export function shippedModels(): Pick<Job, 'mentor' | 'student'> {
+  const preset = mentorPreset(DEFAULT_MENTOR_PRESET);
+  return {
+    mentor: {
+      kind: 'model',
+      provider: preset.provider,
+      label: preset.label,
+      baseUrl: preset.baseUrl,
+      model: preset.model,
+      reasoningEffort: 'medium',
+      secretRef: preset.secretRef,
+    },
+    student: {
+      label: DEFAULT_STUDENT.label,
+      local: {
+        runtime: DEFAULT_STUDENT.runtime,
+        baseUrl: DEFAULT_STUDENT.baseUrl,
+        model: DEFAULT_STUDENT.model,
+        contextLength: DEFAULT_STUDENT.contextLength,
+      },
+      trainOn: 'local',
+    },
+  };
+}

@@ -28,6 +28,7 @@ import {
   type ReportEvidence,
   type RuntimeFigures,
 } from './evidence';
+import { testSourceNote } from './test-source';
 import type { Verdict, VerdictState } from './verdict';
 
 /** How the report names the runtime the final test ran on, behind Details. */
@@ -173,6 +174,7 @@ export function ReportView({
   const size = graduate?.manifest.student.sizeBytes;
   const memory = memoryFact(figures);
   const pill = PILL[verdict.state];
+  const source = testSourceNote(report.tasks, names.mentor);
 
   return (
     <>
@@ -225,7 +227,7 @@ export function ReportView({
             noteFont="text"
           />
         </div>
-        {evidence.status === 'error' && evidence.data === undefined ? (
+        {evidence.status === 'error' && evidence.data === undefined && (
           // Readings that couldn't be read say so, with a way to read them again, rather than
           // vanish as if none were taken.
           <ProblemState
@@ -234,27 +236,37 @@ export function ReportView({
             title="Some of these figures couldn't be loaded"
             onRetry={evidence.reload}
           />
-        ) : (
-          <Disclosure label="Details">
-            <DetailList
-              items={[
-                {
-                  label: 'Model',
-                  value: `${report.student.model} on ${RUNTIMES[report.student.runtime] ?? report.student.runtime}`,
-                },
-                ...(memory ? [{ label: 'Memory in the final test', value: memory }] : []),
-                ...(figures !== null && figures.coldStartMs !== null
-                  ? [
-                      {
-                        label: 'First answer',
-                        value: `${formatAnswerTime(figures.coldStartMs)}, the model loading first`,
-                      },
-                    ]
-                  : []),
-              ]}
-            />
-          </Disclosure>
         )}
+        <Disclosure label="Details">
+          <DetailList
+            items={[
+              {
+                label: 'Model',
+                value: `${report.student.model} on ${RUNTIMES[report.student.runtime] ?? report.student.runtime}`,
+              },
+              ...(memory ? [{ label: 'Memory in the final test', value: memory }] : []),
+              ...(figures !== null && figures.coldStartMs !== null
+                ? [
+                    {
+                      label: 'First answer',
+                      value: `${formatAnswerTime(figures.coldStartMs)}, the model loading first`,
+                    },
+                  ]
+                : []),
+              ...(report.tasks?.draftingUsd
+                ? [
+                    {
+                      label: 'Drafting the job',
+                      value: `${cents(report.tasks.draftingUsd)}, before training`,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+          {source && (
+            <p className="m-0 mt-3 max-w-[620px] text-sm text-fg-secondary text-pretty">{source}</p>
+          )}
+        </Disclosure>
       </div>
 
       <Capabilities evidence={capabilities} installation={installation} names={names} />

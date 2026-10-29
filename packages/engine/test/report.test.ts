@@ -129,6 +129,19 @@ describe('computeReportCard', () => {
     ]);
   });
 
+  it('says where the final test came from only for tasks Architect did not ship with the job', () => {
+    expect(computeReportCard(input())).not.toHaveProperty('tasks');
+    expect(
+      computeReportCard(input({ tasks: { source: 'generated', draftingUsd: 0.03 } })).tasks,
+    ).toEqual({
+      source: 'generated',
+      draftingUsd: 0.03,
+    });
+    expect(computeReportCard(input({ tasks: { source: 'attached' } })).tasks).toEqual({
+      source: 'attached',
+    });
+  });
+
   it('counts refusals on supported types as failures and reports them', () => {
     expect(computeReportCard(input()).test.refusals).toBe(1);
   });

@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import {
   studentPricing,
   type Job,
-  type JobSummary,
   type ReasoningEffort,
   type StartingHarness,
   type TokenPricing,
@@ -20,9 +19,7 @@ import {
   type SettingsTab,
 } from '@architect/ui';
 import { Check, CircleAlert } from 'lucide-react';
-import type { QueryState } from '../../api/query';
 import { KeyRow } from '../../components/KeyRow';
-import { errorOf, QueryValue } from '../../components/QueryValue';
 import { mentorNote, mentorProvider } from '../../onboarding/mentor';
 import {
   hostedFromChoice,
@@ -35,6 +32,7 @@ import { PriceRow } from '../../settings/models/PriceRow';
 import { modelNames } from '../names';
 import { aboutUsd, estimateMentorUsd, mentorPresetOf, mentorPriceOf } from './estimates';
 import { NumberField, PathField, TabNote } from './fields';
+import { TasksTab } from './TasksTab';
 import { presetOf, providerName } from './hosted';
 import { TYPING_PAUSE_MS, type JobEditor } from './use-job-editor';
 import type { JobIssues } from './validate';
@@ -94,7 +92,6 @@ interface AdvancedDialogProps {
   tab: AdvancedTab;
   onTabChange: (tab: AdvancedTab) => void;
   editor: JobEditor;
-  summaries: QueryState<JobSummary[]>;
 }
 
 /** Every field of the job, in the settings modal's layout. Changes save as they're made. */
@@ -104,7 +101,6 @@ export function AdvancedDialog({
   tab,
   onTabChange,
   editor,
-  summaries,
 }: AdvancedDialogProps) {
   return (
     <SettingsDialog
@@ -125,7 +121,7 @@ export function AdvancedDialog({
         </>
       }
     >
-      <TabContent tab={tab} editor={editor} summaries={summaries} />
+      <TabContent tab={tab} editor={editor} />
     </SettingsDialog>
   );
 }
@@ -185,18 +181,10 @@ interface TabProps {
   editor: JobEditor;
 }
 
-function TabContent({
-  tab,
-  editor,
-  summaries,
-}: {
-  tab: AdvancedTab;
-  editor: JobEditor;
-  summaries: QueryState<JobSummary[]>;
-}) {
+function TabContent({ tab, editor }: { tab: AdvancedTab; editor: JobEditor }) {
   switch (tab) {
     case 'tasks':
-      return <TasksTab editor={editor} summaries={summaries} />;
+      return <TasksTab job={editor.job} />;
     case 'checker':
       return <CheckerTab editor={editor} />;
     case 'requirements':
@@ -219,33 +207,6 @@ function TabContent({
 /** Saves typed values once the user pauses. */
 function typed(editor: JobEditor) {
   return (recipe: (job: Job) => Job) => editor.change(recipe, TYPING_PAUSE_MS);
-}
-
-function plural(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? '' : 's'}`;
-}
-
-function TasksTab({ editor, summaries }: TabProps & { summaries: QueryState<JobSummary[]> }) {
-  const { job } = editor;
-  return (
-    <>
-      <SettingsRow
-        label="Example tasks"
-        meta="From the tasks you attached"
-        error={errorOf(summaries)}
-      >
-        <QueryValue query={summaries}>
-          {(list) => {
-            const count = list.find((summary) => summary.id === job.id)?.taskCount;
-            return count === undefined ? 'Not counted yet' : plural(count, 'task');
-          }}
-        </QueryValue>
-      </SettingsRow>
-      {job.taskTypes.map((type) => (
-        <SettingsRow key={type.id} label={type.label} meta={type.description} />
-      ))}
-    </>
-  );
 }
 
 const CHECKERS = [

@@ -205,7 +205,7 @@ async function start(): Promise<void> {
     call: (request) => agentHost.call(request),
     localThreads,
   });
-  registerEngineHandlers(router, (request) => engine.call(request), picked);
+  registerEngineHandlers(router, (request) => engine.call(request), picked, settings);
   registerGraduateHandlers(router, (request) => engine.call(request), graduates, picked);
   registerWorkspaceHandlers(router, (request) => agentHost.call(request), graduates);
   engine.start();

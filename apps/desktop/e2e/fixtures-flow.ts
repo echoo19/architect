@@ -5,6 +5,7 @@ import type {
   Round,
   Run,
   RunEvent,
+  TaskPlan,
   WorkspaceChat,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
@@ -69,6 +70,83 @@ export const turns: { start: DraftTurn; replies: DraftTurn[] } = {
   ],
 };
 
+/**
+ * What the Define screen's Example tasks tab shows for the story's job: the tasks came from the
+ * tasks.jsonl the person attached, so each type has its description and three examples from the
+ * practice tasks, and no rule Architect made.
+ */
+export const taskPlan: TaskPlan = {
+  source: 'attached',
+  counts: { calibration: 10, train: 60, dev: 40, test: 60 },
+  types: [
+    {
+      id: 'invoice',
+      label: 'Invoices',
+      description: 'Price a finished job and add its invoice',
+      counts: { calibration: 3, train: 20, dev: 13, test: 20 },
+      examples: [
+        {
+          request:
+            'Job W-2401 is finished. A tier 2 technician worked on it after hours. Create its invoice.',
+          answer: 'INV-2401, total 270.91',
+        },
+        {
+          request:
+            'Price finished job J-4410, a plan member visit with two parts, and add its invoice.',
+          answer: 'INV-4410, total 486.20',
+        },
+        {
+          request: 'Price finished job J-4412, an after-hours callout, and add its invoice.',
+          answer: 'INV-4412, total 1,284.50',
+        },
+      ],
+    },
+    {
+      id: 'overdue',
+      label: 'Overdue balances',
+      description: 'Find who owes money after partial payments',
+      counts: { calibration: 4, train: 20, dev: 14, test: 20 },
+      examples: [
+        {
+          request: 'Which customers are more than 30 days overdue after partial payments?',
+          answer: '3 customers, 2,915.00 in all',
+        },
+        {
+          request: "What is Oakridge Dental's oldest unpaid balance?",
+          answer: '640.00, due Aug 14',
+        },
+        {
+          request: 'How much does Ironwood Fitness Studio owe past its due date?',
+          answer: '256.48',
+        },
+      ],
+    },
+    {
+      id: 'scheduling',
+      label: 'Scheduling',
+      description: 'Book the earliest technician who can do the job',
+      counts: { calibration: 3, train: 20, dev: 13, test: 20 },
+      examples: [
+        {
+          request:
+            'Book the earliest licensed electrician for an urgent panel repair at 14 Alder St, zone C.',
+          answer: 'Wed 09:30, Priya N.',
+        },
+        {
+          request: 'Book the earliest plumber for a burst pipe at 9 Birch Ln, zone B.',
+          answer: 'Thu 10:00, Omar K.',
+        },
+        {
+          request: 'Book the next heating technician for a furnace that will not start, zone A.',
+          answer: 'Wed 08:00, Marcus O.',
+        },
+      ],
+    },
+  ],
+  unresolved: [],
+  notes: [],
+};
+
 const summaries: JobSummary[] = [
   { id: FLOW.jobId, name: 'Service desk', summary: job.summary, createdAt: AT, taskCount: 170 },
 ];
@@ -111,6 +189,7 @@ export const FLOW_ENGINE: EngineReplies = {
   'jobs:save': job,
   'jobs:get': job,
   'jobs:list': summaries,
+  'jobs:taskPlan': taskPlan,
   'secrets:status': { meta: true, openrouter: true },
   'runs:get': detail,
   'runs:trace': trace,

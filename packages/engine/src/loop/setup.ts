@@ -6,6 +6,7 @@ import {
   type Harness,
   type Job,
   type MentorAdapter,
+  type MentorConfig,
   type StudentAdapter,
   type StudentEndpoint,
   type StudentTarget,
@@ -40,7 +41,14 @@ export async function connectMentor(
   deps: Pick<LoopDeps, 'adapters' | 'secrets'>,
   job: Job,
 ): Promise<MentorAdapter> {
-  const { mentor } = job;
+  return connectTeacher(deps, job.mentor);
+}
+
+/** The mentor a config names, reached through the key it asks for and the hosts that key may go to. */
+export async function connectTeacher(
+  deps: Pick<LoopDeps, 'adapters' | 'secrets'>,
+  mentor: MentorConfig,
+): Promise<MentorAdapter> {
   if (mentor.kind !== 'model') {
     throw new Error('Coding-agent mentors are not supported yet; pick a model mentor.');
   }
