@@ -9,7 +9,13 @@ import { failureLine } from './failure-line';
 import type { ModelNames } from './phase';
 import { Question } from './Question';
 import { answerEffect, isOpen, type QuestionView } from './questions';
-import { latestFailure, roundAttempts, type LiveRun, type RecentAttempt } from './run-state';
+import {
+  hasEnded,
+  latestFailure,
+  roundAttempts,
+  type LiveRun,
+  type RecentAttempt,
+} from './run-state';
 
 const ACTIVE = new Set(['running', 'testing', 'stopping']);
 
@@ -99,12 +105,16 @@ export function CurrentRound({
   const over = round !== null && (round.status === 'decided' || round.status === 'failed');
   // A run paused on an error says so, with what to do, in a notice of its own above.
   const pausedOnError = live.run.status === 'paused' && live.run.error !== undefined;
-  // A question round waits for its answer here, then says what the mentor did with it.
+  // A question round waits for its answer here, then says what the mentor did with it. A run that
+  // ended first can't take the answer any more, so it only says what was asked.
+  const runOver = hasEnded(live.run);
   const asking =
+    !runOver &&
     round !== null &&
     question !== null &&
     (question.state !== 'ready' || isOpen(round, question.intervention));
   const answered = question?.state === 'ready' ? question.intervention : undefined;
+  const unanswered = runOver && answered?.answer === undefined ? answered : undefined;
   return (
     <Panel padded aria-label="Current round" className="min-w-0 flex-[5_1_360px]">
       <div className="flex items-center justify-between gap-3">
@@ -129,6 +139,15 @@ export function CurrentRound({
               </p>
               <p className="m-0 text-md text-fg-soft text-pretty">
                 {answerEffect(answered, names)}
+              </p>
+            </>
+          ) : unanswered ? (
+            <>
+              <p className="m-0 text-md text-fg-soft text-pretty">
+                {names.mentor} asked: {unanswered.question}
+              </p>
+              <p className="m-0 text-md text-fg-soft text-pretty">
+                Training ended before you answered.
               </p>
             </>
           ) : (

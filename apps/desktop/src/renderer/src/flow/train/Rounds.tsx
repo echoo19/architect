@@ -48,6 +48,7 @@ export function Rounds({
   job,
   rounds,
   running,
+  ended,
   draftRound,
   records,
   failure,
@@ -59,6 +60,8 @@ export function Rounds({
   rounds: readonly Round[];
   /** The newest unfinished round shows a spinner while the run is going. */
   running: boolean;
+  /** The run is over, so a question still unanswered never will be. */
+  ended: boolean;
   /** The round that wrote the first full draft, or null when the run started from a setup. */
   draftRound: number | null;
   records: RoundRecords | null;
@@ -101,6 +104,7 @@ export function Rounds({
                 round={round}
                 draft={round.index === draftRound}
                 running={running}
+                ended={ended}
                 experiment={records?.experiments.find((item) => item.round === round.index)}
                 asked={records ? questionOfRound(round, records.interventions) : undefined}
                 onOpen={() => onOpen(round)}
@@ -130,6 +134,7 @@ function RoundRow({
   round,
   draft,
   running,
+  ended,
   experiment,
   asked,
   onOpen,
@@ -138,6 +143,7 @@ function RoundRow({
   round: Round;
   draft: boolean;
   running: boolean;
+  ended: boolean;
   experiment: Experiment | undefined;
   /** The question the round put to the person, when it was one. */
   asked: Intervention | undefined;
@@ -177,6 +183,7 @@ function RoundRow({
         round={round}
         draft={draft}
         running={running}
+        ended={ended}
         experiment={experiment}
         asked={asked}
       />
@@ -188,12 +195,14 @@ function RoundResult({
   round,
   draft,
   running,
+  ended,
   experiment,
   asked,
 }: {
   round: Round;
   draft: boolean;
   running: boolean;
+  ended: boolean;
   experiment: Experiment | undefined;
   asked: Intervention | undefined;
 }) {
@@ -221,11 +230,17 @@ function RoundResult({
       </span>
     );
   }
-  // A question tries no change, so it has no result to measure: it is waiting, or it was answered.
+  // A question tries no change, so it has no result to measure: it waits, was answered, or the run
+  // ended without anyone answering it.
   if (asked) {
     return (
-      <span className="min-w-[84px] whitespace-nowrap text-right text-sm text-mentor">
-        {asked.answer ? 'Answered' : 'Needs you'}
+      <span
+        className={cn(
+          'min-w-[84px] whitespace-nowrap text-right text-sm',
+          !asked.answer && ended ? 'text-fg-muted' : 'text-mentor',
+        )}
+      >
+        {asked.answer ? 'Answered' : ended ? 'Not answered' : 'Needs you'}
       </span>
     );
   }

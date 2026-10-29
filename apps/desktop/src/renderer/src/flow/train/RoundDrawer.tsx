@@ -122,6 +122,7 @@ export function RoundDrawerContent({
   lineage,
   names,
   evidence,
+  runEnded,
   onOpenLesson,
   onOpenFinding,
   onBack,
@@ -141,6 +142,8 @@ export function RoundDrawerContent({
         status: 'success';
         data: RoundEvidence;
       };
+  /** The run is over, so a question it never had answered stays unanswered. */
+  runEnded: boolean;
   onOpenLesson: (lesson: ListedLesson) => void;
   onOpenFinding: (finding: Finding) => void;
   onBack?: (() => void) | undefined;
@@ -171,7 +174,7 @@ export function RoundDrawerContent({
         {draft ? (
           <DraftDecision round={round} names={names} />
         ) : question && experiment === undefined && round.status !== 'failed' ? (
-          <QuestionDecision round={round} question={question} names={names} />
+          <QuestionDecision round={round} question={question} names={names} runEnded={runEnded} />
         ) : (
           <Decision round={round} job={job} lineage={lineage} experiment={experiment} />
         )}
@@ -357,18 +360,21 @@ function QuestionDecision({
   round,
   question,
   names,
+  runEnded,
 }: {
   round: Round;
   question: Intervention;
   names: ModelNames;
+  runEnded: boolean;
 }) {
   const { icon: Icon } = INTERVENTIONS.clarification;
   const { answer } = question;
+  const waiting = round.status === 'clarifying' && !runEnded;
   return (
     <div className="flex flex-col gap-1.5 rounded-xl border border-line-card bg-well px-4 py-3.5">
       <span className="flex items-center gap-2.5 text-2xl font-medium text-fg-secondary">
         <Icon size={20} strokeWidth={2} aria-hidden />
-        {answer ? 'Answered' : 'Waiting for your answer'}
+        {answer ? 'Answered' : waiting ? 'Waiting for your answer' : 'Not answered'}
       </span>
       {answer ? (
         <p className="m-0 text-md text-fg-soft text-pretty">
@@ -377,7 +383,9 @@ function QuestionDecision({
       ) : (
         <p className="m-0 text-md text-fg-soft text-pretty">
           {names.mentor} asked: {question.question}{' '}
-          {round.status === 'clarifying' ? 'Close this and answer it in the current round.' : ''}
+          {waiting
+            ? 'Close this and answer it in the current round.'
+            : 'Training ended before you answered.'}
         </p>
       )}
     </div>

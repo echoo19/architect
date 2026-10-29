@@ -220,6 +220,11 @@ export function changeCounts(rounds: readonly Round[]): { kept: number; tried: n
   };
 }
 
+/** Whether the run is over, so nothing more happens in it and nothing waits on the person. */
+export function hasEnded(run: Run): boolean {
+  return run.status === 'finished' || run.status === 'stopped' || run.status === 'failed';
+}
+
 export function hasKeptChange(rounds: readonly Round[]): boolean {
   return rounds.some((round) => round.decision === 'kept');
 }

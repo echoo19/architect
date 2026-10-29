@@ -26,7 +26,13 @@ import { Resources } from '../flow/train/Resources';
 import { RoundDrawerContent, type RoundEvidence } from '../flow/train/RoundDrawer';
 import { Rounds, type RoundsFooter } from '../flow/train/Rounds';
 import { RunControls, StopDialog } from '../flow/train/RunControls';
-import { activeProgress, currentRound, hasKeptChange, type LiveRun } from '../flow/train/run-state';
+import {
+  activeProgress,
+  currentRound,
+  hasEnded,
+  hasKeptChange,
+  type LiveRun,
+} from '../flow/train/run-state';
 import { TaskSuccess } from '../flow/train/TaskSuccess';
 import { TaughtLessons } from '../flow/train/TaughtLessons';
 import { StepsSkeleton, TraceDrawerContent } from '../flow/train/TraceDrawer';
@@ -195,6 +201,7 @@ function DrawerBody({
           lineage={live.lineage.find((entry) => entry.round === round.index)}
           names={names}
           evidence={roundEvidence(records, round.index)}
+          runEnded={hasEnded(live.run)}
           onOpenLesson={(lesson) => drawer.push({ kind: 'lesson', lessonId: lesson.id })}
           onOpenFinding={openFinding}
           onBack={onBack}
@@ -402,6 +409,7 @@ function TrainBoard({
           job={job}
           rounds={live.rounds}
           running={WORKING.has(run.status)}
+          ended={hasEnded(run)}
           draftRound={draft}
           records={evidence}
           failure={failure}
