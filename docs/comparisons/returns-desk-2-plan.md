@@ -63,3 +63,9 @@ Both reports go in this folder, whatever they show. A result with no gain is rep
 ## Amendment, before any arm ran
 
 Oct 28, 2026, about 20:20 Eastern. The plan step ran the bare student on the 15 calibration tasks, which only prices an attempt, and projected the targeted arm at $8.85 at most. At 1.5 times that, its share is $13.28, and the $15 cap left $12.57 after the other two arms, so the targeted arm was not funded. The online Glimmer cap is raised to $16 (`--student-usd 16`). Nothing else changes, and no arm had started.
+
+## Second amendment: the first run was set aside
+
+Oct 28, 2026, about 20:30 Eastern. The first run (output folder `comparison-2`) started Glimmer on its own and the draft at 20:15. When the targeted arm's turn came at 20:20, attempts had cost $0.0079 each, more than calibration's estimate, because the draft's harness is longer than the blank one. At that price its share came to $17.25, with $12.87 left, so the runner left it out, as it is built to, froze the other two arms and opened their final tests. That broke this plan's rule that all three arms freeze before any final test opens. The run was stopped at 20:21, 84 seconds later. The few final-test results it made won't be looked at or reported, and that folder is set aside.
+
+The comparison runs again from the start in a new folder (`comparison-2b`), on the same business, with the same arms, seeds and rules. The only change is a $25 total cap for the online Glimmer (`--student-usd 25`). The total cap decides whether an arm may start. Each arm's own share stays 1.5 times its projection at the plan's price, and the targeted arm is held to it before every round, so the most the comparison can spend barely changes.
