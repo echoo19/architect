@@ -583,7 +583,7 @@ for (const theme of THEMES) {
     );
     await expect(rule).toContainText('52 rows: parts_cost is empty or N/A, such as T-2001');
     await expect(rule).toContainText(
-      'member (customers.csv) is yes: 40 cases, 40 where it changed',
+      'member (customers.csv) is yes: 40 rows, and the other side would give a different answer for all 40',
     );
     await expect(page.getByText(/^Teaching (ran for|did not run)/)).toBeVisible();
     // The tag says where the answer came from, apart from the answer and not run on from it.
