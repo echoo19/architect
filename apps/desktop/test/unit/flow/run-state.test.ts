@@ -6,6 +6,7 @@ import {
   budgetMeters,
   changeCounts,
   currentRound,
+  hasEnded,
   hasKeptChange,
   initialLiveRunState,
   latestFailure,
@@ -268,5 +269,16 @@ describe('training view selectors', () => {
       runUpdated(makeRun({ phase: 'diagnosing', updatedAt: at(1) })),
     );
     expect(activeProgress(moved)).toBeNull();
+  });
+});
+
+describe('hasEnded', () => {
+  it('is true once a run finished, stopped or failed, and false while it can still go on', () => {
+    for (const status of ['finished', 'stopped', 'failed'] as const) {
+      expect(hasEnded(makeRun({ status }))).toBe(true);
+    }
+    for (const status of ['queued', 'running', 'paused', 'stopping', 'testing'] as const) {
+      expect(hasEnded(makeRun({ status }))).toBe(false);
+    }
   });
 });

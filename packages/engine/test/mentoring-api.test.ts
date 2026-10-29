@@ -292,6 +292,17 @@ describe('a clarifying question', () => {
     const [asked] = await api.mentoring.interventions(run.id);
     expect(asked).toMatchObject({ type: 'clarification', status: 'accepted' });
     expect(asked?.answer).toBeUndefined();
+    // The run says what it waits for, in its own record and in the job's list, so a person who is
+    // elsewhere can tell a run waiting for them from one they paused.
+    expect((await api.runs.get(run.id)).run).toMatchObject({
+      status: 'paused',
+      phase: 'clarifying',
+    });
+    expect((await api.jobs.list())[0]?.latestRun).toMatchObject({
+      id: run.id,
+      status: 'paused',
+      phase: 'clarifying',
+    });
 
     await disconnect();
     api = await connect();
@@ -300,10 +311,20 @@ describe('a clarifying question', () => {
       api,
       (event) => event.type === 'run.updated' && event.run.status === 'finished',
     );
+    // Whoever shows the question is told when its answer has been taken up, to read it back.
+    const taken = next(
+      api,
+      (event) =>
+        event.type === 'mentoring.updated' &&
+        event.record === 'intervention' &&
+        event.id === asked?.id &&
+        event.round === 1,
+    );
     await api.mentoring.answer(run.id, 1, {
       text: 'No, only from tomorrow.',
       changesCriteria: false,
     });
+    await taken;
     await done;
 
     const detail = await api.runs.get(run.id);

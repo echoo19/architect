@@ -31,7 +31,7 @@ export interface OllamaChatBody {
   model: string;
   messages: { role: string; content: string; tool_name?: string }[];
   tools?: { function: { name: string } }[];
-  options: { seed: number; num_ctx: number };
+  options: { seed: number; num_ctx: number; num_thread?: number };
   stream: boolean;
 }
 

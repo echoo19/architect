@@ -19,12 +19,20 @@ import { Examples } from '../flow/train/Examples';
 import { LatestAttempts } from '../flow/train/LatestAttempts';
 import { findingNotes, lessonNotes, type StepNote } from '../flow/train/lesson-steps';
 import { LessonDrawerContent } from '../flow/train/LessonView';
+import { PausedNotice } from '../flow/train/PausedNotice';
 import { phaseView } from '../flow/train/phase';
+import { questionView } from '../flow/train/questions';
 import { Resources } from '../flow/train/Resources';
 import { RoundDrawerContent, type RoundEvidence } from '../flow/train/RoundDrawer';
 import { Rounds, type RoundsFooter } from '../flow/train/Rounds';
 import { RunControls, StopDialog } from '../flow/train/RunControls';
-import { activeProgress, currentRound, hasKeptChange, type LiveRun } from '../flow/train/run-state';
+import {
+  activeProgress,
+  currentRound,
+  hasEnded,
+  hasKeptChange,
+  type LiveRun,
+} from '../flow/train/run-state';
 import { TaskSuccess } from '../flow/train/TaskSuccess';
 import { TaughtLessons } from '../flow/train/TaughtLessons';
 import { StepsSkeleton, TraceDrawerContent } from '../flow/train/TraceDrawer';
@@ -193,6 +201,7 @@ function DrawerBody({
           lineage={live.lineage.find((entry) => entry.round === round.index)}
           names={names}
           evidence={roundEvidence(records, round.index)}
+          runEnded={hasEnded(live.run)}
           onOpenLesson={(lesson) => drawer.push({ kind: 'lesson', lessonId: lesson.id })}
           onOpenFinding={openFinding}
           onBack={onBack}
@@ -345,6 +354,7 @@ function TrainBoard({
       ? { error: records.error, reload: records.reload }
       : null;
   const round = currentRound(live);
+  const question = questionView(round, records);
   return (
     <>
       {improves && <TaughtLessons improves={improves} />}
@@ -364,6 +374,7 @@ function TrainBoard({
           </div>
         </div>
       )}
+      {run.status === 'paused' && run.error !== undefined && <PausedNotice live={live} />}
       <div className="flex flex-wrap gap-5">
         <Apprenticeship
           mentor={names.mentor}
@@ -379,6 +390,7 @@ function TrainBoard({
           round={round}
           names={names}
           experiment={evidence?.experiments.find((item) => item.round === round?.index)}
+          question={question}
           recordsFailed={failure !== null}
         />
       </div>
@@ -397,6 +409,7 @@ function TrainBoard({
           job={job}
           rounds={live.rounds}
           running={WORKING.has(run.status)}
+          ended={hasEnded(run)}
           draftRound={draft}
           records={evidence}
           failure={failure}

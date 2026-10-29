@@ -5,8 +5,9 @@ import {
   createMentorActor,
   createStudent,
   mentorCanAct,
+  type StudentDeps,
 } from '@architect/adapters';
-import { DEFAULT_STUDENT, GLIMMER_TRAINING_BASE } from '@architect/shared';
+import { DEFAULT_STUDENT, GLIMMER_TRAINING_BASE, type StudentEndpoint } from '@architect/shared';
 import { readGgufHeader } from '../gguf';
 import { readPackageHarness } from '../graduates/harness';
 import { resolveOllamaModel, type AdapterServing } from '../local-runtime';
@@ -114,6 +115,22 @@ function trainingWiring(options: EngineWiringOptions, trainerDir: string): Train
 }
 
 /**
+ * Quiet mode's settings for a student on `endpoint`: the settings themselves, not what they say
+ * now, since a student lives as long as a session and quiet mode may be switched on or off while
+ * it works. Only a student on Ollama, which is on this computer, follows them.
+ */
+export function followedQuietSettings(
+  endpoint: StudentEndpoint,
+  { localThreads, localCooldown }: Pick<EngineWiringOptions, 'localThreads' | 'localCooldown'>,
+): Pick<StudentDeps, 'cpuThreads' | 'cooldown'> {
+  if (endpoint.runtime !== 'ollama') return {};
+  return {
+    ...(localThreads === undefined ? {} : { cpuThreads: localThreads }),
+    ...(localCooldown === undefined ? {} : { cooldown: localCooldown }),
+  };
+}
+
+/**
  * The real dependencies of the core loop: the runtime, the vault, the harness folders, the
  * model adapters and the training worker. Tests build the loop with fakes instead; this is the
  * one place they meet.
@@ -182,16 +199,8 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
     },
     adapters: {
       createMentor: (config, mentorOptions) => createMentor(config, mentorOptions),
-      createStudent: (endpoint, adapterOptions) => {
-        const local = endpoint.runtime === 'ollama';
-        const cpuThreads = local ? options.localThreads?.() : undefined;
-        const cooldown = local ? options.localCooldown?.() : undefined;
-        return createStudent(endpoint, {
-          ...adapterOptions,
-          ...(cpuThreads === undefined ? {} : { cpuThreads }),
-          ...(cooldown === undefined ? {} : { cooldown }),
-        });
-      },
+      createStudent: (endpoint, adapterOptions) =>
+        createStudent(endpoint, { ...adapterOptions, ...followedQuietSettings(endpoint, options) }),
       createActor: (config, actorOptions) => createMentorActor(config, actorOptions),
       canAct: (config) => mentorCanAct(config),
       ...(adapterRuntime === undefined
