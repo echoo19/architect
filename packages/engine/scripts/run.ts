@@ -17,7 +17,9 @@
  *
  * `--job` trains a job already in `--data` instead of importing one, such as a job scripts/draft.ts
  * drafted. Its tasks are split already, so the profile changes nothing; the model, test and time
- * options still apply.
+ * options still apply. A job with a rule trains only once its rule is confirmed over its records
+ * (decision 061): `--confirm-rules` says that the person has read the rule, as scripts/draft.ts
+ * prints it, and it is right.
  *
  * The smoke profile keeps the job's data and task pool but asks for small splits and one round, so
  * a run finishes in under an hour on a local student. `--mentor` takes a mentor preset key (for
@@ -68,6 +70,8 @@ interface Options {
   jobDir?: string;
   /** A job already in the data folder, trained instead of an imported one. */
   jobId?: string;
+  /** The person has read the job's rule and says it is right, which training waits for. */
+  confirmRules?: boolean;
   method: Method;
   seed: number;
   profile: 'smoke' | 'full';
@@ -77,7 +81,7 @@ interface Options {
 }
 
 const USAGE =
-  'Usage: tsx scripts/run.ts <jobDir> | --job <id> --data <dir> [--method architect|bare|one_shot|self_reflection] [--seed N] [--profile smoke|full] [--mentor <preset>] [--student local|<preset>] [--data <dir>] [--threads N] [--cooldown <share>] [--wall-minutes N] [--test-on local|hosted]';
+  'Usage: tsx scripts/run.ts <jobDir> | --job <id> --data <dir> [--method architect|bare|one_shot|self_reflection] [--seed N] [--profile smoke|full] [--mentor <preset>] [--student local|<preset>] [--data <dir>] [--threads N] [--cooldown <share>] [--wall-minutes N] [--test-on local|hosted] [--confirm-rules]';
 
 async function main(): Promise<void> {
   const options = parseArguments(process.argv.slice(2));
@@ -157,6 +161,11 @@ async function main(): Promise<void> {
           `mentor ${imported.mentor.kind === 'model' ? imported.mentor.model : imported.mentor.agent}, ` +
           `student ${imported.student.local.model} (train on ${imported.student.trainOn}), data in ${dataDir}\n\n`,
       );
+      const rule = (await host.api.jobs.taskPlan(imported.id)).confirmation;
+      if (options.confirmRules === true && rule?.state === 'needed') {
+        await host.api.jobs.confirmRules(imported.id, rule.token);
+        write('Confirmed the rule over these records, because --confirm-rules was given.\n');
+      }
       await host.api.runs.start(imported.id, {
         method: options.method,
         seed: options.seed,
@@ -282,6 +291,10 @@ function parseArguments(args: readonly string[]): Options {
       positional.push(arg);
       continue;
     }
+    if (arg === '--confirm-rules') {
+      flags.set(arg, 'yes');
+      continue;
+    }
     const value = args[index + 1];
     if (value === undefined) throw new Error(USAGE);
     flags.set(arg, value);
@@ -309,6 +322,7 @@ function parseArguments(args: readonly string[]): Options {
   return {
     ...(jobDir === undefined ? {} : { jobDir: resolve(jobDir) }),
     ...(jobId === undefined ? {} : { jobId }),
+    ...(flags.has('--confirm-rules') ? { confirmRules: true } : {}),
     method: MethodSchema.parse(flags.get('--method') ?? 'architect'),
     seed,
     profile,
