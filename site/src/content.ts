@@ -76,4 +76,5 @@ export const CLOSING = {
 export const FOOTER = {
   licence: 'Open source under the MIT licence.',
   author: 'Made by Jake Kang.',
+  note: 'The returns desk is a made-up shop. Its training run, its results and the October orders answer are real; the other requests shown are written from its records.',
 } as const;
