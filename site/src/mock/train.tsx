@@ -25,7 +25,7 @@ const STATUS = [
   { text: 'Glimmer is working through practice tasks', at: 0 },
   { text: 'Spark is reading the failures', at: 1500 },
   { text: 'Scoring the change on the check tasks', at: 3200 },
-  { text: 'Wrapping up', at: 6500 },
+  { text: 'Wrapping up', at: 6300 },
 ] as const;
 const STAGES = ['Practice', 'Diagnose', 'Score'] as const;
 const RESULT_AT = 5700;
@@ -42,7 +42,9 @@ function Score() {
             <span className="text-hero font-medium leading-none tracking-tightest tabular-nums narrow:text-display">
               {step.value}
             </span>
-            <span className="text-fg-secondary">check tasks right</span>
+            <EvidenceMark kind="check" className="text-md text-fg-secondary">
+              on check tasks
+            </EvidenceMark>
             <span className="text-sm tabular-nums text-fg-muted">{step.count}</span>
           </span>
         );
@@ -134,11 +136,11 @@ function Apprenticeship() {
   return (
     <Panel aria-label="Spark is mentoring Glimmer" className="narrow:hidden">
       <div className="flex items-center gap-5 px-7 py-5">
-        <div className="flex w-[210px] shrink-0 items-center gap-4">
+        <div className="flex w-[260px] shrink-0 items-center gap-4">
           <Orb />
           <span className="flex flex-col gap-0.5">
             <span className="font-medium text-mentor">Spark</span>
-            <span className="text-sm text-fg-muted">In the cloud</span>
+            <span className="text-sm text-fg-muted">Teaching</span>
           </span>
         </div>
         <span className="relative grid min-w-0 flex-1 justify-items-center text-center text-lg text-pretty">
@@ -167,10 +169,10 @@ function Apprenticeship() {
             );
           })}
         </span>
-        <div className="flex w-[210px] shrink-0 items-center justify-end gap-4">
+        <div className="flex w-[260px] shrink-0 items-center justify-end gap-4">
           <span className="flex flex-col items-end gap-0.5 text-right">
             <span className="font-medium text-student">Glimmer</span>
-            <span className="text-sm text-fg-muted">On this computer</span>
+            <span className="text-sm text-fg-muted">Learning on this computer</span>
           </span>
           <Tile />
         </div>
@@ -252,7 +254,20 @@ function RoundCard() {
           className="a a-up flex items-baseline justify-between gap-3 narrow:hidden"
           style={at(3300, { dy: 10 })}
         >
-          <span className="text-fg-secondary">Spark expects</span>
+          <span className="grid text-fg-secondary">
+            <span
+              className="a a-exit-up motion-only [grid-area:1/1]"
+              style={at(RESULT_AT - 60, { dur: 200, dy: 0 })}
+            >
+              Spark expects
+            </span>
+            <span
+              className="a a-up [grid-area:1/1]"
+              style={at(RESULT_AT - 60, { dur: 260, dy: 6 })}
+            >
+              Spark expected
+            </span>
+          </span>
           <span>
             <span className="font-mono tabular-nums">+3 to +6</span>{' '}
             <span className="text-fg-secondary">check tasks</span>
@@ -311,27 +326,21 @@ export function TrainMock() {
             <Apprenticeship />
             <p className="m-0 hidden flex-wrap gap-x-5 gap-y-0.5 px-1 text-sm text-fg-muted narrow:flex">
               <span>
-                <span className="font-medium text-mentor">Spark</span> in the cloud
+                <span className="font-medium text-mentor">Spark</span> teaching
               </span>
               <span>
-                <span className="font-medium text-student">Glimmer</span> on this computer
+                <span className="font-medium text-student">Glimmer</span> learning on this computer
               </span>
             </p>
             <div className="flex items-stretch gap-5 narrow:flex-col narrow:gap-4">
               <Panel
-                aria-label="Check tasks right"
+                aria-label="Score on the check tasks"
                 className="min-w-0 flex-[7_1_0%] gap-2.5 px-8 pb-2 pt-6 narrow:flex-none narrow:px-5 narrow:pt-5"
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                   <Score />
                   <ChartLegend />
                 </div>
-                <EvidenceMark kind="check" className="-mt-1 text-fg-muted">
-                  <span className="narrow:hidden">
-                    Tasks set aside to score each change, never shown to Spark
-                  </span>
-                  <span className="hidden narrow:inline">Check tasks, never shown to Spark</span>
-                </EvidenceMark>
                 <ScoreChart times={TIMES} className="narrow:hidden" />
                 <ScoreChart times={TIMES} compact className="hidden narrow:block" />
               </Panel>

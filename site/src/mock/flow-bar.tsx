@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { cn, IconButton } from '@architect/ui';
 import { Check, X } from 'lucide-react';
 
-const FLOW_STEPS = ['Describe', 'Define', 'Train', 'Report'] as const;
+const FLOW_STEPS = ['Describe', 'Define', 'Train', 'Results'] as const;
 
 /**
  * The bar over the new-agent flow: close, the job's name and the four steps, of which `current`

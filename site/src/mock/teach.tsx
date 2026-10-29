@@ -22,7 +22,7 @@ const AGENTS = [
     chats: [
       { title: 'Price the two jobs Dana finished' },
       { title: 'Close out Tuesday', current: true },
-      { title: 'Invoice the Cedar Ave panel repair', needsYou: true },
+      { title: 'Invoice the Cedar Ave panel repair', awaitsApproval: true },
     ],
   },
   { name: 'Returns desk', chats: [{ title: 'Can order 1187 come back?' }] },
@@ -191,7 +191,8 @@ function LessonLayer() {
           className="a a-up flex items-center gap-2 text-sm text-fg-secondary"
           style={at(LESSON + 150, { dy: 10 })}
         >
-          <ListChecks size={15} strokeWidth={1.7} aria-hidden />A preference or procedure
+          <ListChecks size={15} strokeWidth={1.7} aria-hidden />
+          Rule
         </span>
         <p
           className="a a-wipe m-0 text-2xl text-fg text-pretty"
@@ -210,8 +211,8 @@ function LessonLayer() {
             An invoice is overdue only when it is unpaid and its due date has passed.
           </span>
         </Fact>
-        <Fact label="Needs training" style={at(LESSON + 1500, { dy: 10 })}>
-          No, an instruction is enough
+        <Fact label="Practice needed" style={at(LESSON + 1500, { dy: 10 })}>
+          No, a rule is enough
         </Fact>
       </dl>
     </div>
@@ -235,7 +236,7 @@ function SavedLayer() {
               It hasn&apos;t taken a final test.
             </span>
             <span className="a a-up" style={at(SAVED + 650, { dy: 10 })}>
-              Version 2 keeps answering until you promote version 3.
+              Version 2 keeps answering until you use version 3.
             </span>
           </p>
         </div>
@@ -250,22 +251,22 @@ function SavedLayer() {
         <li className="a a-up" style={at(SAVED + 1100, { dy: 12 })}>
           <SettingsRow
             icon={<VersionTag version={3} />}
-            label="Candidate"
-            meta="No final test yet · from v2"
+            label="New, not in use yet"
+            meta="No final test yet · from version 2"
           >
             <Button size="xs" tabIndex={-1}>
               <ArrowUpRight size={14} strokeWidth={1.8} aria-hidden />
-              Promote
+              Use this version
             </Button>
           </SettingsRow>
         </li>
         <li className="a a-up" style={at(SAVED + 1300, { dy: 12 })}>
           <SettingsRow
             icon={<VersionTag version={2} active />}
-            label="Active"
-            meta="Answering now · Ready"
+            label="In use"
+            meta="from version 1"
           >
-            <span className="flex items-baseline gap-2 tabular-nums narrow:hidden">
+            <span className="flex flex-col items-end tabular-nums narrow:hidden">
               <span className="font-mono">92%</span>
               <span className="text-sm text-fg-muted">55 of 60 passed</span>
             </span>
@@ -284,11 +285,8 @@ function Footers() {
         className="a a-exit-up motion-only flex flex-wrap items-center justify-end gap-x-4 gap-y-3"
         style={at(SEND + 350, { dur: 260, dy: 0 })}
       >
-        <p className="m-0 mr-auto flex flex-col text-sm narrow:hidden">
-          <span className="text-fg-secondary">
-            Only this exchange, its steps and what you add go to Spark.
-          </span>
-          <span className="font-mono text-fg-muted">Up to $0.25</span>
+        <p className="m-0 mr-auto max-w-[260px] text-sm text-fg-secondary text-pretty narrow:hidden">
+          Only this exchange, its steps and your notes go to Spark, for up to $0.25.
         </p>
         <span className="a a-press inline-flex" style={at(SEND - 100, { dur: 300 })}>
           <Button size="md" variant="primary" tabIndex={-1}>
@@ -309,7 +307,7 @@ function Footers() {
             Discard
           </Button>
           <Button size="md" variant="secondary" tabIndex={-1} className="narrow:hidden">
-            Queue for Improve agent
+            Save for Improve
           </Button>
           <span className="a a-press inline-flex" style={at(SAVE - 150, { dur: 300 })}>
             <Button size="md" variant="primary" tabIndex={-1}>
@@ -374,8 +372,8 @@ export function TeachMock() {
   return (
     <ChapterStage
       id="teach"
-      label="The Architect workspace with Teach this open. The person flagged a reply about who owes money, wrote what was wrong, and Spark turned it into a lesson: count an invoice as overdue only when it is unpaid and past its due date. It is saved as version 3. Version 2 keeps answering until the person promotes version 3."
-      heightWide={690}
+      label="The Architect workspace with Teach this open. The person flagged a reply about who owes money, wrote what was wrong, and Spark turned it into a lesson: count an invoice as overdue only when it is unpaid and past its due date. It is saved as version 3. Version 2 keeps answering until the person uses version 3."
+      heightWide={670}
       heightCompact={760}
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 wide:inset-x-7 wide:top-6">
@@ -387,7 +385,7 @@ export function TeachMock() {
               <div className="mx-auto flex max-w-[720px] flex-col gap-6 text-chat">
                 <UserBubble>Who still owes us money from September?</UserBubble>
                 <Reply>
-                  <WorkedFor>Worked for 29 s</WorkedFor>
+                  <WorkedFor>Worked for 29 s · 2 steps</WorkedFor>
                   <Prose>
                     <P>{REPLY}</P>
                   </Prose>

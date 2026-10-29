@@ -10,13 +10,13 @@ import {
   StatusMark,
   Switch,
 } from '@architect/ui';
-import { ExternalLink, Info, Package, UploadCloud, X } from 'lucide-react';
+import { Copy, ExternalLink, Info, Package, UploadCloud, X } from 'lucide-react';
 import { AppWindow, ChatHeader, Sidebar } from './frame';
 import { at } from './motion';
 import { noop } from './noop';
 import { ChapterStage } from './stage';
 
-const TABS = ['General', 'Permissions', 'Teaching', 'Report', 'Export'] as const;
+const TABS = ['General', 'Permissions', 'Teaching', 'Results', 'Export'] as const;
 
 const AGENTS = [
   {
@@ -192,7 +192,7 @@ function HubLayer() {
           </Row>
           <Row style={at(HUB + 400, { dy: 12 })}>
             <SettingsRow label="Token">
-              <SettingsValue>Saved in Architect</SettingsValue>
+              <SettingsValue>Token saved</SettingsValue>
             </SettingsRow>
           </Row>
         </SettingsSection>
@@ -210,6 +210,14 @@ function HubLayer() {
                 </span>
               </Button>
             </SettingsRow>
+            <div className="flex items-center justify-between gap-3 border-t border-line-card py-3 narrow:hidden">
+              <code className="min-w-0 truncate font-mono text-sm text-fg-secondary">
+                architect install hf://dana/service-desk --revision 3f9a2c1
+              </code>
+              <IconButton label="Copy the command" size="xs" tabIndex={-1}>
+                <Copy size={14} strokeWidth={1.7} aria-hidden />
+              </IconButton>
+            </div>
           </SettingsSection>
         </div>
       </div>
@@ -232,7 +240,10 @@ function Actions() {
           </Button>
         </span>
       </div>
-      <div className="flex items-center justify-end">
+      <div
+        className="a a-up flex items-center justify-end"
+        style={at(SWITCH + 300, { dy: 10, dur: 320 })}
+      >
         <span className="grid">
           <span
             className="a a-exit-up motion-only [grid-area:1/1]"
@@ -336,7 +347,7 @@ export function ShareMock() {
     <ChapterStage
       id="share"
       label="The Architect Export tab. The agent, Service desk version 2, is written as one package file, and the scan finds nothing that looks like a key or a private path. Then it is published to a private repository on Hugging Face, where the version and its commit are listed."
-      heightWide={640}
+      heightWide={690}
       heightCompact={745}
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 wide:inset-x-7 wide:top-6">

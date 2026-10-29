@@ -50,7 +50,7 @@ export function Reply({ children, className }: { children: ReactNode; className?
   );
 }
 
-/** "Worked for 47 s", closed, as a finished reply shows its steps. */
+/** "Worked for 47 s · 3 steps", closed, as a finished reply shows its steps. */
 export function WorkedFor({
   children,
   className,
@@ -264,7 +264,7 @@ export interface ChangeRow {
 
 /**
  * A change the agent wants to make, as the workspace shows it before anything is saved: the file,
- * how much it adds, the rows it writes, and Deny, Allow all from now on and Allow once.
+ * how much it adds, the rows it writes, and Deny, Allow saving from now on and Allow once.
  */
 export function ApprovalCard({
   file,
@@ -330,7 +330,7 @@ export function ApprovalCard({
             Deny
           </Button>
           <Button variant="secondary" size="md" className="h-[38px] narrow:hidden" tabIndex={-1}>
-            Allow all from now on
+            Allow saving from now on
           </Button>
           <Button variant="primary" size="md" className="h-[38px]" tabIndex={-1}>
             Allow once

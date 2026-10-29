@@ -82,7 +82,7 @@ function DescribeScreen() {
             <div className="flex items-center gap-2.5">
               <span className="flex items-center gap-1.5 text-sm text-fg-muted">
                 <Cloud size={14} strokeWidth={1.6} aria-hidden />
-                Spark
+                Teacher: Spark
               </span>
               <span
                 className="a a-press relative inline-flex size-10"
@@ -197,11 +197,11 @@ function ClarifyScreen() {
                 total?
               </p>
               <div role="group" aria-label="Answers" className="flex flex-wrap gap-2">
-                <span className="grid">
+                <span className="a a-up grid" style={at(ASKED + 1500, { dy: 8 })}>
                   <span
                     className={cn(
                       option,
-                      'a a-exit-up border-line-control bg-card text-fg-secondary [grid-area:1/1]',
+                      'a a-exit-up motion-only border-line-control bg-card text-fg-secondary [grid-area:1/1]',
                     )}
                     style={at(CHOSEN - 60, { dur: 140, dy: 0 })}
                   >

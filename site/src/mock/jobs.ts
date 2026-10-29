@@ -26,7 +26,7 @@ export const JOBS: readonly JobChat[] = [
   {
     title: 'Price the two jobs Dana finished',
     ask: 'Price the two jobs Dana finished today and tell me the totals.',
-    worked: 'Worked for 47 s',
+    worked: 'Worked for 47 s · 3 steps',
     lead: [
       'Job J-4471 comes to ',
       { b: '$524.03' },
@@ -54,7 +54,7 @@ export const JOBS: readonly JobChat[] = [
   {
     title: 'Can order 1187 come back?',
     ask: 'Order 1187 wants to send back the Rain Shell Jacket, unworn. Can it come back, and what do they get?',
-    worked: 'Worked for 31 s',
+    worked: 'Worked for 31 s · 2 steps',
     lead: [
       'Yes. Order 1187 was delivered 12 days ago, inside the 30 day window, and the refund is ',
       { b: '$84.96' },
@@ -79,7 +79,7 @@ export const JOBS: readonly JobChat[] = [
   {
     title: 'Bills due this week',
     ask: 'Which supplier bills are due this week, and what do we owe in all?',
-    worked: 'Worked for 54 s',
+    worked: 'Worked for 54 s · 3 steps',
     lead: ['Three bills are due by Friday, ', { b: '$1,482.30' }, ' in all.'],
     bullets: [
       'Marlow Supply is due Wednesday and is the largest.',
@@ -118,7 +118,7 @@ export function sidebarFor(open: number): SidebarAgent[] {
         { title: job?.title ?? name, current: agentIndex === open },
         ...others.map((title, index) => ({
           title,
-          needsYou: name === 'Service desk' && index === 1,
+          awaitsApproval: name === 'Service desk' && index === 1,
         })),
       ],
     };

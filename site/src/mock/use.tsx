@@ -43,7 +43,7 @@ export function UseMock() {
               </UserBubble>
               <Reply>
                 <Steps
-                  header="Worked for 38 s"
+                  header="Worked for 38 s · 2 steps"
                   steps={STEPS}
                   hideOnNarrow={[1]}
                   headerStyle={at(1000, { dy: 10 })}

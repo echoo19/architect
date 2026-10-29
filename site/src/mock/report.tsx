@@ -1,5 +1,4 @@
-import type { CSSProperties } from 'react';
-import { Badge, cn, EvidenceMark, EvidenceMeter, Heading, Stat } from '@architect/ui';
+import { Badge, EvidenceMark, EvidenceMeter, Heading, Stat } from '@architect/ui';
 import { Check } from 'lucide-react';
 import { FlowBar } from './flow-bar';
 import { AppWindow } from './frame';
@@ -24,16 +23,6 @@ const CAPABILITIES: readonly Capability[] = [
 const ROW_START = 2500;
 const ROW_STEP = 520;
 
-/** The key to the amber mark on a bar: where Spark did the same tasks itself. */
-function SparkKey({ className, style }: { className?: string; style?: CSSProperties }) {
-  return (
-    <span className={cn('flex items-center gap-2 text-sm text-mentor', className)} style={style}>
-      <span aria-hidden className="h-4 w-[3px] rounded-full bg-mentor" />
-      Spark doing the tasks itself
-    </span>
-  );
-}
-
 function Lines({ lines }: { lines: readonly string[] }) {
   return (
     <span className="flex flex-col gap-1.5 text-sm text-fg-muted">
@@ -52,9 +41,9 @@ export function ReportMock() {
   return (
     <ChapterStage
       id="test"
-      label="The Architect report for the Service desk agent, marked Ready. The agent took a final test of unseen tasks, offline, with Spark disconnected. Its results are shown by kind of request as bars, with an amber mark where Spark did the same tasks itself."
-      heightWide={700}
-      heightCompact={680}
+      label="The Architect results for the Service desk agent, marked Ready. The agent took a final test of tasks it had never seen, offline, with Spark disconnected. Its results are shown by type of task as bars, with Spark's own score beside each bar and an amber mark on it."
+      heightWide={735}
+      heightCompact={640}
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 flex flex-col wide:inset-x-7 wide:top-6">
         <FlowBar title="Service desk" current={3} />
@@ -82,7 +71,8 @@ export function ReportMock() {
                 className="a a-up m-0 max-w-[660px] text-lg text-fg-secondary text-pretty narrow:hidden"
                 style={at(1000, { dy: 12 })}
               >
-                Final test of 60 unseen tasks, offline on this computer, with Spark disconnected.
+                Tested on 60 tasks it had never seen, offline on this computer, with Spark
+                disconnected.
               </p>
             </div>
 
@@ -95,7 +85,7 @@ export function ReportMock() {
                 size="md"
                 value="92%"
                 label="of new tasks right"
-                note={<Lines lines={['55 of 60']} />}
+                note={<Lines lines={['55 of 60', 'Up from 40% before training']} />}
                 noteFont="text"
               />
               <Stat
@@ -111,18 +101,14 @@ export function ReportMock() {
                 size="md"
                 value="Glimmer"
                 label="Model"
-                note={<Lines lines={['4-bit']} />}
+                note={<Lines lines={['17 GB']} />}
                 noteFont="text"
               />
             </div>
 
-            <section aria-label="Capabilities" className="flex flex-col gap-4">
-              <div
-                className="a a-up flex flex-wrap items-baseline justify-between gap-3"
-                style={at(1900, { dy: 12 })}
-              >
-                <Heading as="h3">Capabilities</Heading>
-                <SparkKey className="narrow:hidden" />
+            <section aria-label="Results by task type" className="flex flex-col gap-4">
+              <div className="a a-up" style={at(1900, { dy: 12 })}>
+                <Heading as="h3">By task type</Heading>
               </div>
               <div className="flex flex-col">
                 <div
@@ -132,7 +118,7 @@ export function ReportMock() {
                   <span className="narrow:hidden" />
                   <span className="flex flex-col gap-0.5">
                     <EvidenceMark kind="final">Final test</EvidenceMark>
-                    <span className="text-sm text-fg-muted">Unseen until the end</span>
+                    <span className="text-sm text-fg-muted">Opened once, at the end</span>
                   </span>
                 </div>
                 {CAPABILITIES.map((capability, index) => {
@@ -151,6 +137,11 @@ export function ReportMock() {
                           style={at(start, { dy: 8 })}
                         >
                           <span className="text-fg">{capability.pass}</span> of {capability.total}
+                          {capability.spark !== undefined && (
+                            <span className="font-sans text-mentor">
+                              {' · '}Spark {capability.spark} of {capability.total}
+                            </span>
+                          )}
                         </span>
                         <span className="a a-wipe block" style={at(start + 80, { dur: 1000 })}>
                           <EvidenceMeter
@@ -168,10 +159,6 @@ export function ReportMock() {
                   );
                 })}
               </div>
-              <SparkKey
-                className="a a-up hidden narrow:flex"
-                style={at(ROW_START + CAPABILITIES.length * ROW_STEP, { dy: 8 })}
-              />
             </section>
           </div>
         </div>

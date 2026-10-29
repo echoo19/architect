@@ -1,8 +1,16 @@
 /** Every word and link the page says outside the mocks, in the order it appears. */
 
 export const REPO = 'https://github.com/echoo19/architect';
-/** The installers' file names carry the version, so both buttons open the latest release. */
+/** The release page, with every installer on it. */
 export const RELEASES = `${REPO}/releases/latest`;
+/**
+ * The Windows installer, which a visitor on Windows is sent to directly. Its name carries the
+ * app's version, and a test keeps this one in step with it.
+ */
+export const APP_VERSION = '0.1.0';
+export const WINDOWS_INSTALLER = `${RELEASES}/download/Architect-Setup-${APP_VERSION}.exe`;
+/** The full reports behind the measured results. */
+export const REPORTS = `${REPO}/tree/main/docs/comparisons`;
 
 export const HERO = {
   eyebrow: 'Open source, for Windows and macOS',
@@ -33,12 +41,12 @@ export const CHAPTERS: readonly ChapterCopy[] = [
   {
     id: 'train',
     title: 'It learns by trying and keeps only what works.',
-    body: 'Spark finds where Glimmer goes wrong and changes its instructions. A change stays only if the score goes up on tasks Spark never sees.',
+    body: 'Spark finds where Glimmer goes wrong and changes its instructions. A change stays only if the score goes up on check tasks that Spark never sees.',
   },
   {
     id: 'test',
     title: 'Then it takes a test it has never seen.',
-    body: 'Spark is disconnected. Glimmer answers new tasks once, and you see how it did on each kind of request.',
+    body: 'Spark is disconnected. Glimmer answers new tasks once, and you see how it did on each type of task.',
   },
   {
     id: 'use',
@@ -48,7 +56,7 @@ export const CHAPTERS: readonly ChapterCopy[] = [
   {
     id: 'teach',
     title: 'Correct it when it is wrong.',
-    body: 'Flag an answer and Spark turns it into a lesson. Save it as a new version, and the old one keeps answering until you switch.',
+    body: 'Flag an answer and Spark turns it into a lesson. Save it as a new version, and the old one keeps answering until you use the new one.',
   },
   {
     id: 'share',

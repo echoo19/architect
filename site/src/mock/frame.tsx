@@ -3,7 +3,6 @@ import { AgentAvatar, Badge, cn, Composer, IconButton, LogoMark } from '@archite
 import {
   ChevronDown,
   Ellipsis,
-  EyeOff,
   HardDrive,
   Laptop,
   Layers,
@@ -46,8 +45,8 @@ export interface SidebarChat {
   title: string;
   /** The chat that is open. */
   current?: boolean;
-  /** An answer is waiting for the person. */
-  needsYou?: boolean;
+  /** A change in it is waiting for the person to allow it. */
+  awaitsApproval?: boolean;
 }
 
 export interface SidebarAgent {
@@ -108,8 +107,8 @@ export function Sidebar({
                 )}
               >
                 <span className="truncate">{chat.title}</span>
-                {chat.needsYou && !chat.current && (
-                  <span className="shrink-0 text-sm font-medium text-student">Needs you</span>
+                {chat.awaitsApproval && !chat.current && (
+                  <span className="shrink-0 text-sm font-medium text-student">Approve</span>
                 )}
               </span>
             ))}
@@ -168,7 +167,7 @@ export function ChatComposer({
         leading={
           <span className={modeButton}>
             <Lock size={14} strokeWidth={1.8} aria-hidden />
-            Saving: Ask first
+            Saving files: Ask first
             <ChevronDown size={13} strokeWidth={1.8} aria-hidden />
           </span>
         }
@@ -178,7 +177,7 @@ export function ChatComposer({
   );
 }
 
-/** The quiet line under the composer: the version answering, the model, and what stays private. */
+/** The quiet line under the composer: the version answering, and the model it runs on. */
 export function ChatStatusBar({
   version = 2,
   className,
@@ -197,13 +196,9 @@ export function ChatStatusBar({
         <Layers size={13} strokeWidth={1.8} aria-hidden />
         Version {version}
       </span>
-      <span className="flex items-center gap-1.5 narrow:hidden">
-        <HardDrive size={13} strokeWidth={1.8} aria-hidden />
-        Glimmer 4-bit
-      </span>
       <span className="flex items-center gap-1.5">
-        <EyeOff size={13} strokeWidth={1.8} aria-hidden />
-        Private from Spark
+        <HardDrive size={13} strokeWidth={1.8} aria-hidden />
+        Glimmer
       </span>
     </p>
   );

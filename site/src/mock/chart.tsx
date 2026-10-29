@@ -205,8 +205,8 @@ export function ChartLegend({ className }: { className?: string }) {
       </span>
       <span className="flex items-center gap-1.5">
         <span className="h-0 w-4 border-t-[1.5px] border-dashed border-fg-ghost" />
-        <span className="size-2.5 rounded-full border-[1.5px] border-fg-faint" />A change tried and
-        not kept
+        <span className="size-2.5 rounded-full border-[1.5px] border-fg-faint" />
+        Not kept
       </span>
     </span>
   );
