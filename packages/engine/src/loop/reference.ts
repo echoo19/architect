@@ -184,7 +184,7 @@ export class ReferenceSession {
     if (!record || store.references.get(runId, this.split)?.status !== 'running') return;
     let state: RunState | undefined;
     try {
-      state = new RunState(this.ctx, this.control, await jobs.forRun(record));
+      state = new RunState(this.ctx, this.control, await jobs.forWork(record));
       await measureReference(state, this.split);
     } catch (error) {
       if (this.control.abort.signal.aborted || isAbort(error)) return;

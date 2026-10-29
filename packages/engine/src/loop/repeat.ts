@@ -102,7 +102,7 @@ export class RepeatSession {
     if (!record || store.repeats.get(runId, this.target)?.status !== 'testing') return;
     let state: RunState | undefined;
     try {
-      state = new RunState(this.ctx, this.control, await jobs.forRun(record));
+      state = new RunState(this.ctx, this.control, await jobs.forWork(record));
       await repeatGraduate(state, this.target);
     } catch (error) {
       if (this.control.abort.signal.aborted || isAbort(error)) return;

@@ -138,6 +138,17 @@ export class JobLibrary {
   }
 
   /**
+   * The job as it was when the run started, for work that is about to use the job's records as
+   * they are now: refused, with the reason, unless its rules are confirmed over them (decision
+   * 061). A re-test or a measure of a finished run is such work too.
+   */
+  async forWork(record: StoredRun): Promise<Job> {
+    const job = await this.forRun(record);
+    await this.requireConfirmedRules(job);
+    return job;
+  }
+
+  /**
    * Saves the editable job. When its scope or success criteria differ from every contract
    * version it had, that makes a new version; earlier versions, and the graduation results
    * measured against them, stay as they were.
