@@ -34,8 +34,8 @@ const HOSTED: StudentEndpoint = {
 
 describe('the settings a student follows', () => {
   it('are the settings themselves, so a change shows at the next request', () => {
-    let threads: number | undefined;
-    let share: number | undefined;
+    let threads: number | undefined = undefined;
+    let share: number | undefined = undefined;
     const { cpuThreads, cooldown } = followedQuietSettings(OLLAMA, {
       localThreads: () => threads,
       localCooldown: () => share,

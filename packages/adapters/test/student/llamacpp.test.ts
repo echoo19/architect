@@ -219,7 +219,7 @@ describe('the llama.cpp student', () => {
   it('follows a rest that is switched on while the student is open', async () => {
     const { access } = await llamaServer((_request, res) => sendEventStream(res, textReply('ok')));
     const rests: number[] = [];
-    let cooldown: number | undefined;
+    let cooldown: number | undefined = undefined;
     const student = createLlamaCppStudent(access, {
       cooldown: () => cooldown,
       rest: async (ms) => {
