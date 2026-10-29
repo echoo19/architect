@@ -2,6 +2,12 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Wed), a recorder for the demo
+
+**Done**
+- A developer tool in `apps/desktop/demo`, written by GPT-6 Sol through Codex and checked here: a scene script (routes, clicks, typing at a human pace, waits, scrolls, the native file dialog, window size), frames captured from the hidden window with their real timestamps, a drawn pointer and click ripple, title cards in Architect's look, a speed-up mark for long waits, and ffmpeg assembly into a 1440x900, 30 fps H.264 video with cross-fades. It has its own Playwright config, so `pnpm e2e` never runs it, and it never writes a key.
+- Its sample, on the stand-in engine, recorded a 10.6 s video in 16 s; frames from it show the cards, the pointer and the screens cleanly. Codex's sandbox couldn't launch Electron or commit from a worktree, so the run and the commit were done outside it.
+
 ## 2026-10-29 (Wed): new jobs take your choices, and a run says what it needs
 
 **Done** (on a branch with the drafter and the runs branch merged in; decision 059; no model was called, the GPU stayed off)
