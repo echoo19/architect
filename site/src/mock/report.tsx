@@ -125,7 +125,7 @@ export function ReportMock() {
                 className="bg-panel p-5 narrow:hidden"
                 size="md"
                 value="3.5 s"
-                label="Typical answer"
+                label="Typical answer time"
                 note={<Lines lines={['95% within 4.8 s']} />}
                 noteFont="text"
               />
