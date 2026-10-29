@@ -1,5 +1,6 @@
+import { DRAFTING_LIMITS } from '@architect/shared';
 import { Composer, Heading, IconButton, Tooltip } from '@architect/ui';
-import { Cloud, Laptop, Paperclip } from 'lucide-react';
+import { Cloud, FileText, Laptop, Paperclip } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { flowApi } from '../../api/client';
 import { useSettings } from '../../api/hooks';
@@ -9,6 +10,9 @@ import { attempt } from '../../lib/notify';
 import { AttachedFile } from './AttachedFile';
 import { sendToMentor, useDraftStore } from './draft-store';
 import { SampleJobButton } from './SampleJobButton';
+
+/** What drafting reads and the least it needs, said before anything is attached (decision 061). */
+const FILES_NEEDED = `CSV, text and Markdown files, with at least ${DRAFTING_LIMITS.minTasks} rows of records in all`;
 
 /** Data the agent works with, and example tasks with their answers. */
 const ATTACHABLE = [
@@ -70,7 +74,7 @@ export function DescribeHero() {
           autoFocus
           leading={
             <Tooltip
-              content="Add the job's files as CSV, text or Markdown, and example tasks with their answers as a .jsonl file"
+              content={`Add the job's files as CSV, text or Markdown (a text is read whole, up to ${DRAFTING_LIMITS.maxTextChars.toLocaleString('en-US')} characters), and example tasks with their answers as a .jsonl file`}
               side="bottom"
             >
               <IconButton label="Attach files" onClick={() => void attach()}>
@@ -96,7 +100,7 @@ export function DescribeHero() {
             )
           }
         />
-        {files.length > 0 && (
+        {files.length > 0 ? (
           <ul aria-label="Attached files" className="m-0 flex list-none flex-wrap gap-2 p-0">
             {files.map((path) => (
               <li key={path} className="min-w-0">
@@ -107,6 +111,11 @@ export function DescribeHero() {
               </li>
             ))}
           </ul>
+        ) : (
+          <p className="m-0 flex items-center justify-center gap-2 text-sm text-fg-muted">
+            <FileText size={14} strokeWidth={1.6} aria-hidden />
+            {FILES_NEEDED}
+          </p>
         )}
       </div>
       {empty && (
