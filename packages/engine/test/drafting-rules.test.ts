@@ -161,7 +161,15 @@ describe('drafting a job with a rule', () => {
     const other = draftingWorld();
     try {
       other.mentor.script = () =>
-        bikeDraft([CONTACT_TYPE, { ...CONTACT_TYPE, id: 'second', columns: ['name'] }]);
+        bikeDraft([
+          CONTACT_TYPE,
+          {
+            ...CONTACT_TYPE,
+            id: 'second',
+            columns: ['name'],
+            request: 'What is the name of customer {key}?',
+          },
+        ]);
       const turn = await other.drafting.start(
         'A repair desk',
         [
