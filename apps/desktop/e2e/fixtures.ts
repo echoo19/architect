@@ -5,6 +5,7 @@ import {
   type GpuInfo,
   type LlamaServerStatus,
   type LocalRuntimes,
+  type TaskPlan,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
 import { installation } from './fixtures-versions';
@@ -105,6 +106,18 @@ export const STORY_EVIDENCE: EngineReplies = {
   'graduates:installation': installation(STORY.graduateId),
 };
 
+/**
+ * What the Define screen reads of the story's job to know whether it has a rule to confirm: it
+ * came with its tasks and has none, so nothing waits for the person.
+ */
+const SAMPLE_PLAN: TaskPlan = {
+  source: 'included',
+  counts: { calibration: 0, train: 0, dev: 0, test: 0 },
+  types: [],
+  unresolved: [],
+  notes: [],
+};
+
 export const SAMPLE_ENGINE: EngineReplies = {
   'connections:detectLocal': LOCAL_WITH_GLIMMER,
   'connections:llamaServer': LLAMA_SERVER_READY,
@@ -114,6 +127,7 @@ export const SAMPLE_ENGINE: EngineReplies = {
   'workspace:messages': MESSAGES.filter((message) => message.chatId === CHATS.closeout.id),
   'jobs:list': [],
   'jobs:get': job,
+  'jobs:taskPlan': SAMPLE_PLAN,
   'runs:get': detail,
   'reports:get': storyReport,
   ...STORY_EVIDENCE,
