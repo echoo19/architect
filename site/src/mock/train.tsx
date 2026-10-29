@@ -262,10 +262,6 @@ function RoundCard() {
       style={at(ROUND_AT, { dy: 18, dur: 600 })}
     >
       <Heading as="h3">Round 4: Parse dirty money with numeric extraction in helpers</Heading>
-      <div className="flex flex-col gap-1.5 narrow:hidden">
-        <span className="text-student">Glimmer</span>
-        <p className="m-0 text-md text-fg-soft text-pretty">Working through 12 practice tasks.</p>
-      </div>
       <div className="flex flex-col gap-1.5">
         <span className="text-mentor">Spark</span>
         <p
@@ -383,6 +379,32 @@ function Resources() {
   );
 }
 
+/** The run's limits as a phone has room for them: the same four figures, without the bars. */
+function CompactResources() {
+  const facts = [
+    ['Time', '28 min', '12 h'],
+    ["Spark's cost", '$0.34', '$4.92'],
+    ['Rounds', '4', '7'],
+    ['Changes kept', '2', '4'],
+  ] as const;
+  return (
+    <Panel
+      aria-label="Resources"
+      className="a a-up hidden grid-cols-2 gap-x-4 gap-y-3 p-4 narrow:order-4 narrow:grid"
+      style={at(DONE_AT, { dy: 18, dur: 600 })}
+    >
+      {facts.map(([label, used, max]) => (
+        <div key={label} className="flex flex-col gap-0.5">
+          <span className="text-sm text-fg-secondary">{label}</span>
+          <span className="whitespace-nowrap font-mono text-sm tabular-nums">
+            {used} <span className="text-fg-muted">/ {max}</span>
+          </span>
+        </div>
+      ))}
+    </Panel>
+  );
+}
+
 /**
  * Watching it learn: the returns desk of comparison 2, from 31 of 45 check tasks to 44 of 45.
  * Spark reads where Glimmer went wrong and makes one change a round, and a change stays only if
@@ -393,8 +415,8 @@ export function TrainMock() {
     <ChapterStage
       id="train"
       label="The Architect Train screen for the Returns desk, when training is done. A chart of the score on check tasks, which Spark sees only the score of, climbs from 69 percent, 31 of 45, to 98 percent, 44 of 45, over four rounds against a target of 95 percent. Rounds 2 and 3 were tried and not kept. In round 4 Spark found that Glimmer's helpers misread money written as $74.95 or 74.95 USD, and its change was kept. The run took 28 minutes and 4 of 7 rounds, and cost Spark 34 cents."
-      heightWide={800}
-      heightCompact={815}
+      heightWide={735}
+      heightCompact={960}
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 flex flex-col wide:inset-x-7 wide:top-6">
         <FlowBar
@@ -432,6 +454,7 @@ export function TrainMock() {
               <RoundCard />
               <ScorePanel />
               <Resources />
+              <CompactResources />
             </div>
           </div>
         </div>

@@ -154,14 +154,11 @@ export function ScoreChart({
         className="absolute inset-x-0 border-t border-dashed border-fg-faint"
         style={{ top: `${row(TARGET)}%` }}
       >
-        <span
-          className={cn(
-            'absolute whitespace-nowrap font-mono text-sm text-fg-secondary',
-            compact ? 'bottom-1 left-0' : 'left-full top-0 -translate-y-1/2 pl-3',
-          )}
-        >
-          Target {TARGET}%
-        </span>
+        {!compact && (
+          <span className="absolute left-full top-0 -translate-y-1/2 whitespace-nowrap pl-3 font-mono text-sm text-fg-secondary">
+            Target {TARGET}%
+          </span>
+        )}
       </span>
       {TICKS.map((label, round) => (
         <span
@@ -230,6 +227,11 @@ export function ChartLegend({ className }: { className?: string }) {
         <span className="h-0 w-4 border-t-[1.5px] border-dashed border-fg-ghost" />
         <span className="size-2.5 rounded-full border-[1.5px] border-fg-faint" />
         Not kept
+      </span>
+      {/* Where the plot has no room to label its target line, the legend does. */}
+      <span className="hidden items-center gap-1.5 narrow:flex">
+        <span className="h-0 w-4 border-t border-dashed border-fg-faint" />
+        Target {TARGET}%
       </span>
     </span>
   );

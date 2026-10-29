@@ -41,7 +41,7 @@ export const CHAPTERS: readonly ChapterCopy[] = [
   {
     id: 'train',
     title: 'It learns by trying and keeps only what works.',
-    body: 'Spark finds where Glimmer goes wrong and changes its instructions. A change stays only if the score goes up on check tasks that Spark never sees.',
+    body: 'Spark finds where Glimmer goes wrong and changes its instructions. A change stays only if the score goes up enough on check tasks that Spark never sees.',
   },
   {
     id: 'test',

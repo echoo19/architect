@@ -26,7 +26,7 @@ const AGENTS = [
     name: 'Returns desk',
     chats: [
       { title: QUESTION, current: true },
-      { title: 'Start a return for ORD-10482', awaitsApproval: true },
+      { title: 'Start a return', awaitsApproval: true },
     ],
   },
 ];
