@@ -2,6 +2,17 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), release 0.3.4
+
+**Done**
+- Released 0.3.4 (`27c0392`, tag v0.3.4) with plain notes: Architect asks what N/A or a dash in a column means, and counts it as 0 only when the person says so; what a rule takes away is always in brackets; the rule's heading and its confirmation come into view once it is confirmed. CI passed on main before the tag and on the release commit. The release workflow attached the Windows installer and both Mac disk images. The site was deployed after them: its bundle names `Architect-Setup-0.3.4.exe`, and the three download links answer 302.
+- `docs/HACKATHON.md` names 0.3.4 as the release with installers and has the Oct 29 row of "What was built when", from the commit log (249 commits by author date, merges included).
+
+**Next**
+- The film: the offline chat, once the GPU may be used, then sound and the full cut under three minutes.
+- Show the rule's screens to a fresh reader with a file that has a dash in it.
+- Specs that never stub `connections:detectLocal` still need their own stubs (agent-host uses fake Ollama servers, so not in `launchApp`).
+
 ## 2026-10-29 (Thu), the film's rule in a scene of its own, and the confirmed rule kept in view
 
 **Done** (on main; no model was called or loaded, and the GPU stayed off)
