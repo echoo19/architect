@@ -347,6 +347,16 @@ for (const theme of THEMES) {
     }
     expect(checked).toBeGreaterThanOrEqual(3);
 
+    // The agent only reads these files and has no folder to make files in, so nothing is offered
+    // about saving them: a choice about something that cannot happen, and no line that says there
+    // is no file while asking what to do about files.
+    const permissions = page.getByRole('region', { name: 'Permissions' });
+    await expect(permissions).toContainText('Files it can change');
+    await expect(permissions).toContainText('None');
+    await expect(permissions.getByRole('radiogroup')).toHaveCount(0);
+    await expect(permissions).not.toContainText('Saving files');
+    await expect(page.getByText('No file it can change')).toHaveCount(0);
+
     // Not confirmed: training can't start, and the screen says why.
     const start = page.getByRole('button', { name: 'Start training' });
     await expect(start).toBeDisabled();

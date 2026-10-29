@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 import type { Job, PermissionMode } from '@architect/shared';
-import { Badge, cn, Heading, Segmented, Stat } from '@architect/ui';
+import { Badge, cn, Heading, Segmented, SettingsValue, Stat } from '@architect/ui';
 import { Check, CircleMinus, Laptop } from 'lucide-react';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { WRITE_MODE_LABELS, WRITE_MODES, WRITE_SETTING } from '../../workspace/labels';
 import { formatTimeLimit } from '../format';
+import { changeableOf, type Changeable } from './permissions';
 
 /** The same words as the agent's own setting, under its message box. */
 const MODES: readonly { value: PermissionMode; label: string }[] = WRITE_MODES.map((value) => ({
@@ -116,54 +117,68 @@ interface FilePermissionsProps {
   onChange: (permissions: Job['permissions']) => void;
 }
 
-/** When the trained agent must ask first: before it saves a change to a file it works on. */
+/**
+ * What the trained agent may do with files. The one choice is when it must ask first: before it
+ * saves a change to a file it works on, a data file the job lets it write or its output folder.
+ * It is offered only where the agent can change something (`changeableOf`). Where it can't, the
+ * section says so in plain words instead of offering a choice about something that can't happen.
+ */
 export function FilePermissions({ job, onChange }: FilePermissionsProps) {
   const { permissions } = job;
-  const changeable = job.data.files.filter((file) => file.access === 'write');
+  const changeable = changeableOf(job);
   return (
     <section aria-labelledby="permissions" className="flex flex-col">
       <Heading id="permissions" className="mb-2.5">
         Permissions
       </Heading>
-      <PermissionRow
-        label={WRITE_SETTING}
-        detail={
-          changeable.length > 0 ? (
-            <span className="font-mono">{changeable.map((file) => file.name).join(', ')}</span>
-          ) : (
-            'No file it can change'
-          )
-        }
-        setting={WRITE_SETTING}
-        value={permissions.writes}
-        onValueChange={(writes) => onChange({ ...permissions, writes })}
-      />
+      {changeable === null ? (
+        <PermissionRow label="Files it can change">
+          <SettingsValue>None</SettingsValue>
+        </PermissionRow>
+      ) : (
+        <PermissionRow label={WRITE_SETTING} detail={<Covers changeable={changeable} />}>
+          <Segmented
+            aria-label={WRITE_SETTING}
+            options={MODES}
+            value={permissions.writes}
+            onValueChange={(writes) => onChange({ ...permissions, writes })}
+          />
+        </PermissionRow>
+      )}
     </section>
+  );
+}
+
+/** What the saving setting covers: the files the agent may write, and its output folder. */
+function Covers({ changeable }: { changeable: Changeable }) {
+  const { files, folder } = changeable;
+  if (files.length === 0) return <>Its output folder</>;
+  return (
+    <>
+      <span className="font-mono">{files.join(', ')}</span>
+      {folder && ' and its output folder'}
+    </>
   );
 }
 
 function PermissionRow({
   label,
   detail,
-  setting,
-  value,
-  onValueChange,
+  children,
 }: {
   label: string;
   /** A quiet line under the label, such as the files the setting covers. */
   detail?: ReactNode;
-  /** The control's accessible name, the same words the agent's own setting uses. */
-  setting: string;
-  value: PermissionMode;
-  onValueChange: (value: PermissionMode) => void;
+  /** What is on the right: the choice, or the one fact there is when there is no choice. */
+  children: ReactNode;
 }) {
   return (
     <div className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line-card py-2 last:border-b-0">
-      <div className="flex min-w-0 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-[1_1_12rem] flex-col gap-0.5">
         <span>{label}</span>
-        {detail && <span className="truncate text-sm text-fg-muted">{detail}</span>}
+        {detail && <span className="text-sm text-fg-muted text-pretty">{detail}</span>}
       </div>
-      <Segmented aria-label={setting} options={MODES} value={value} onValueChange={onValueChange} />
+      {children}
     </div>
   );
 }

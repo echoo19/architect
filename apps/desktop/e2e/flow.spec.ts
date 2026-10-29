@@ -163,9 +163,10 @@ for (const theme of THEMES) {
     await expect(page.getByRole('region', { name: "What it won't do" })).toContainText(
       'Issues refunds or credits',
     );
-    // The write setting names the files it covers, in the same words as the agent's own setting.
+    // The write setting names the files it covers, in the same words as the agent's own setting,
+    // and the output folder the job gives the agent, which it covers as well.
     const permissions = page.getByRole('region', { name: 'Permissions' });
-    await expect(permissions).toContainText('invoices.csv, bookings.csv');
+    await expect(permissions).toContainText('invoices.csv, bookings.csv and its output folder');
     await expect(
       permissions
         .getByRole('radiogroup', { name: 'Saving files' })
