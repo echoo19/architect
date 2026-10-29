@@ -1,4 +1,4 @@
-import { copyFile, cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 import {
   CodedError,
@@ -49,6 +49,10 @@ function checkTasks(job: Job, tasks: readonly Task[]): void {
   }
 }
 
+async function exists(path: string): Promise<boolean> {
+  return (await stat(path).catch(() => null)) !== null;
+}
+
 async function copyInto(from: string, to: string, missing: string): Promise<void> {
   await mkdir(dirname(to), { recursive: true });
   try {
@@ -79,6 +83,8 @@ export interface NewJob {
  */
 export class JobLibrary {
   private readonly taskCache = new Map<string, Task[]>();
+  /** The jobs being made now in this process, which an interrupted one is told apart from. */
+  private readonly finalizing = new Set<string>();
 
   constructor(
     private readonly store: EngineStore,
@@ -197,36 +203,110 @@ export class JobLibrary {
     );
     checkTasks(job, tasks);
 
-    for (const data of job.data.files) {
-      await copyInto(
-        join(source, 'data', data.name),
-        join(this.paths.dataDir(job.id), data.name),
-        `The data file "${data.name}" is missing; it belongs in a data folder next to the job file.`,
-      );
-    }
-    if (job.checker.kind === 'module') {
-      const checker = insidePath(job.checker.path);
-      await copyInto(
-        join(source, checker),
-        join(this.paths.jobDir(job.id), checker),
-        `The checker "${job.checker.path}" is missing next to the job file.`,
-      );
-    }
-    if (job.startingHarness.kind === 'import') {
-      const folder = insidePath(job.startingHarness.path);
-      const from = join(source, folder);
-      if (!(await stat(from).catch(() => null))?.isDirectory()) {
-        throw new Error(
-          `The starting harness folder "${job.startingHarness.path}" is missing next to the job file.`,
+    return this.finalize(job, async () => {
+      for (const data of job.data.files) {
+        await copyInto(
+          join(source, 'data', data.name),
+          join(this.paths.dataDir(job.id), data.name),
+          `The data file "${data.name}" is missing; it belongs in a data folder next to the job file.`,
         );
       }
-      await cp(from, join(this.paths.jobDir(job.id), folder), { recursive: true });
-    }
-    if (tasks.length > 0) await this.installTasks(job, tasks);
+      if (job.checker.kind === 'module') {
+        const checker = insidePath(job.checker.path);
+        await copyInto(
+          join(source, checker),
+          join(this.paths.jobDir(job.id), checker),
+          `The checker "${job.checker.path}" is missing next to the job file.`,
+        );
+      }
+      if (job.startingHarness.kind === 'import') {
+        const folder = insidePath(job.startingHarness.path);
+        const from = join(source, folder);
+        if (!(await stat(from).catch(() => null))?.isDirectory()) {
+          throw new Error(
+            `The starting harness folder "${job.startingHarness.path}" is missing next to the job file.`,
+          );
+        }
+        await cp(from, join(this.paths.jobDir(job.id), folder), { recursive: true });
+      }
+      if (tasks.length > 0) await this.installTasks(job, tasks);
 
-    await writeJsonFile(this.paths.jobFile(job.id), job);
-    this.record(job, tasks.length);
-    return job;
+      await writeJsonFile(this.paths.jobFile(job.id), job);
+      this.record(job, tasks.length);
+      return job;
+    });
+  }
+
+  /**
+   * Makes a job all at once or not at all: its folder, its tasks, its sealed final test and its
+   * place in the library. A step that fails takes back the others, the seal and the folder, and
+   * says why, so a second try finds nothing of the first and keeps the job's id. A mark in the
+   * folder, there from the first file to the last step, tells the next start that the app closed
+   * in the middle (`recoverInterrupted`). `work` ends with the job's place in the library.
+   */
+  private async finalize(job: Job, work: () => Promise<Job>): Promise<Job> {
+    const { id } = job;
+    this.finalizing.add(id);
+    let made: Job;
+    try {
+      // What an earlier try left under this id is not part of this one.
+      if (await exists(this.paths.finalizingMark(id))) await this.takeBack(id);
+      await mkdir(this.paths.jobDir(id), { recursive: true });
+      await writeFile(this.paths.finalizingMark(id), '');
+      made = await work();
+    } catch (error) {
+      // Should taking back fail too, the mark stays and the next start finishes it, and says so.
+      await this.takeBack(id).catch(() => undefined);
+      throw error;
+    } finally {
+      this.finalizing.delete(id);
+    }
+    // The job is whole and in the library. A mark that can't be removed now only says it wasn't
+    // yet, and the next start clears it.
+    await rm(this.paths.finalizingMark(id), { force: true }).catch(() => undefined);
+    return made;
+  }
+
+  /** Takes back what making a job wrote: its seal first, so a folder never outlives it unmarked. */
+  private async takeBack(jobId: string): Promise<void> {
+    await this.deps.vault.discard(jobId);
+    await rm(this.paths.jobDir(jobId), { recursive: true, force: true });
+  }
+
+  /**
+   * Finishes what an app that closed in the middle of making a job left behind: the folder, its
+   * tasks and its seal of a job that never reached the library are taken back, and the mark of one
+   * that did is cleared. A job being made now is left alone. Returns the jobs taken back. A job
+   * that can't be taken back is reported through `onError` and tried again at the next start.
+   */
+  async recoverInterrupted(onError?: (error: unknown) => void): Promise<string[]> {
+    let names: string[];
+    try {
+      names = await readdir(this.paths.jobs);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+      throw error;
+    }
+    const taken: string[] = [];
+    for (const id of names) {
+      if (!isSafeId(id) || this.finalizing.has(id)) continue;
+      if (!(await exists(this.paths.finalizingMark(id)))) continue;
+      try {
+        if (this.store.jobs.get(id) === null) {
+          await this.takeBack(id);
+          taken.push(id);
+        } else {
+          await rm(this.paths.finalizingMark(id), { force: true });
+        }
+      } catch (error) {
+        onError?.(
+          new Error(`The job "${id}" was left half made and could not be cleared away.`, {
+            cause: error,
+          }),
+        );
+      }
+    }
+    return taken;
   }
 
   /**
@@ -240,8 +320,7 @@ export class JobLibrary {
     const tasks = [...input.tasks];
     checkTasks(job, tasks);
     this.deps.runtime.splitTasks(tasks, job.splits);
-    const folder = this.paths.jobDir(job.id);
-    try {
+    return this.finalize(job, async () => {
       for (const file of input.files) {
         const target = join(this.paths.dataDir(job.id), file.name);
         await mkdir(dirname(target), { recursive: true });
@@ -250,12 +329,9 @@ export class JobLibrary {
       await writeJsonFile(this.paths.draftingFile(job.id), DraftRecordSchema.parse(input.drafting));
       await writeJsonFile(this.paths.jobFile(job.id), job);
       await this.installTasks(job, tasks);
-    } catch (error) {
-      await rm(folder, { recursive: true, force: true });
-      throw error;
-    }
-    this.record(job, tasks.length);
-    return job;
+      this.record(job, tasks.length);
+      return job;
+    });
   }
 
   /** What drafting a job left beside it, or null for a job whose tasks came with it. */

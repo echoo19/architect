@@ -295,6 +295,10 @@ export class FakeVault implements VaultDeps {
     this.sealed.set(jobId, structuredClone(tests));
   }
 
+  discard(jobId: string): void {
+    this.sealed.delete(jobId);
+  }
+
   isSealed(jobId: string): boolean {
     return this.sealed.has(jobId);
   }

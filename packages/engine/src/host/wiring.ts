@@ -181,6 +181,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
     },
     vault: {
       seal: (jobId, tests, others, data) => vault.seal(jobId, tests, others, data),
+      discard: (jobId) => vault.reset(jobId),
       isSealed: (jobId) => vault.isSealed(jobId),
       count: (jobId) => vault.count(jobId),
       typeCounts: (jobId) => vault.typeCounts(jobId),

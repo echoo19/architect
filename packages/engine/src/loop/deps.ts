@@ -153,6 +153,11 @@ export interface VaultDeps {
    * fingerprint.
    */
   seal(jobId: string, tests: Task[], others: Task[], data: string[]): Awaitable<void>;
+  /**
+   * Takes back a seal, for a job whose making failed or was interrupted before it was in the
+   * library: nothing of it was ever read, and nothing is to be left that no job owns.
+   */
+  discard(jobId: string): Awaitable<void>;
   isSealed(jobId: string): Awaitable<boolean>;
   count(jobId: string): Awaitable<number>;
   /** How many sealed tasks there are of each type; nothing else about them leaves the vault. */
