@@ -2,6 +2,18 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), the film's rule in a scene of its own, and the confirmed rule kept in view
+
+**Done** (on main; no model was called or loaded, and the GPU stayed off)
+- The film: "Describe a job" now ends when the draft is ready, and a new scene, "Check the rule" (its card: "Before it trains. Nothing trains until you confirm the rule"), shows today's Define screen: the lines of the policy, the rule as steps, the examples with their working, and the confirmation. It is recorded on a throwaway copy of the drafted job with its confirmation taken out, so the teacher is not called again (a scene's `launch` can now `prepare` that copy). A stand-in tells the app what this computer has, Ollama with both of Glimmer's builds and a 12 GB card, so neither the local runtime nor `nvidia-smi` is asked. The first take used a stand-in with only the 2-bit build, and Define said Glimmer wasn't on this computer, which isn't true here, so it was recorded again. The drafting conversation is the one recorded this morning, cut where its "Review the job" opened the old Define screen. The working cut is now 1:35, at `C:\JakeOS\projectsrchitect-runsilmrchitect-working-cut-2026-10-29b.mp4`, with the earlier one kept beside it. "On your computer" still waits for the GPU.
+- Found while checking the film: confirming the rule folds it away and takes the button with it, so a window shorter than the page was left on the estimates, with the "Confirmed" badge out of view and the focus nowhere. The heading, with its badge, now comes into view and takes the focus. `rule.spec.ts` confirms in a 900-pixel window and holds both; on a build without the change it fails.
+- CI passed on main for the merge of the marks (`e5cb96e`).
+- Verified: the hidden `rule.spec.ts` passes on the rebuilt app (5 tests), the desktop flow unit tests pass (34 files, 415 tests), and typecheck and lint pass for the changed files. No capture changed.
+
+**Next**
+- Release 0.3.4: the marks, the brackets and the confirmed rule kept in view.
+- The film: the offline chat, once the GPU may be used, then sound and the full cut under three minutes.
+
 ## 2026-10-29 (Thu), the question about N/A and dashes reviewed, fixed and merged
 
 **Done** (on main, merge `a99add0`; no model was called or loaded, and the GPU stayed off)
