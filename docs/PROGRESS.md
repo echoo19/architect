@@ -2,6 +2,27 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Wed), the rule on main, a drafted pricing job trained for real, and the demo's first scene live
+
+**Done** (Spark and online Glimmer called: about $0.10 of Spark and $0.19 of online Glimmer; the GPU stayed off)
+- The rule branch is merged into main (e16ebe8). `pnpm check` exits 0 on main (229 test files, 2,934 passed, 2 skipped) and CI passed.
+- The rule, live, from drafting to final test. `scripts/draft.ts` with real Spark on the bike shop's three files: Spark asked how labor is rounded (answered: round up to the next half hour) and what an empty parts cost means (count it as zero). It left open one thing the policy doesn't settle (a markup it mentions but gives no rate for) and drafted "Repair ticket pricing helper". The rule: labor hours rounded up to a multiple of 0.5, times 65, times 0.9 for members, plus parts. The 35 empty parts costs count as 0, as answered, and 27 rows with N/A or a dash are left out. Ten requests about rows the teacher had read were left out too.
+- `scripts/run.ts --job repair-ticket-pricing-helper --student openrouter-glimmer --test-on hosted --confirm-rules` trained it in 12 minutes:
+  - Before any teaching, Glimmer got 26 of 30 check tasks. All four misses were pricing replies with no ANSWER line.
+  - Round 1 was Spark's first draft: a `ticket_total` tool that works the rule. It was kept as the starting point (26 to 26), but it read a formatted parts cost such as "$96.47" as nothing, so four totals came out short by exactly their parts.
+  - Round 2: Spark first asked to train the weights, which this run had no compute budget for, and was sent back once. It then found the cause in its tool (`parseFloat` on a formatted cost, with NaN turned into 0) and fixed the parsing: 26 to 30 of 30, and measured again on new seeds, 52 to 60 of 60. Kept.
+  - Final test: 40 of 40 (contacts 12 of 12, ticket costs 28 of 28), typical answer 2.3 s, slowest 5% within 3.4 s, $0.085 of Spark over the two rounds and $0.19 of online Glimmer.
+- GPT-6 Sol re-reviewed the rule branch read-only. Ten of the fourteen fixes are complete. Two are partial: the copy guard measures every eligible case rather than the final test as picked, and two rules that differ only in the order of their terms can still put one question on both sides of the test. It found two new P1s: a failed import can delete a job folder it didn't make, and a blank-means-zero answer for one table reaches another table's column of the same name. All four went back to the rule's builder, with two clarity fixes: an answer listed under "From your policy" shows the question it answered, and Spark names jobs in sentence case.
+- The flaky lease test waits through three one-second stale windows instead of one of 300 ms (ce90f59).
+- The demo (d95710c) now opens with Spark drafting this job live in the app: keys come from the environment in a development build, the scene answers Spark's questions and confirms the rule, and it keeps the app's data so that exact job is trained and its run replayed in the next two scenes. Each new scene was recorded as a trial and looked at frame by frame: the drafting (46 s with the waits shown four times faster), the training replay with both rounds' pages, the results, and the two closing cards.
+
+**Next**
+- Merge the rule fixes and the teacher's change menu (two branches in progress), then release 0.3.0, which replaces 0.2.0 and its known leak.
+- Record the film: the drafting scene on its own, train its job online, then the replay, the returns desk on this computer (a short use of the GPU) and the closing cards.
+
+**Open issues**
+- A recording's hidden window sometimes takes a second for a screenshot, so a few frames are held that long. Most come every 31 ms.
+
 ## 2026-10-29 (Wed), main merged into the rule branch, three times
 
 **Done** (on the rule branch; nothing pushed; no model was called, the GPU stayed off)
