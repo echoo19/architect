@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   DraftRecordSchema,
@@ -282,6 +282,29 @@ describe('the confirmation that binds', () => {
     // Put the file back and the confirmation holds again.
     writeFileSync(policy, POLICY);
     expect((await world.jobs.ruleState(job.id))?.state).toBe('confirmed');
+  });
+
+  it('will not confirm records that are not the ones the tasks were made from, changed or gone', async () => {
+    const job = await draftedJob();
+    const customers = join(world.paths.dataDir(job.id), 'customers.csv');
+    writeFileSync(customers, `${bike.customersCsv}C-999,Extra,extra@example.com,yes\n`);
+    const changed = await world.jobs.ruleState(job.id);
+    expect(changed?.state).toBe('changed');
+    expect(changed?.problem).toContain('customers.csv is not the file the tasks were made from');
+    await expect(world.jobs.confirmRules(job.id, changed?.token ?? '')).rejects.toMatchObject({
+      code: 'rule_changed',
+    });
+    // A file that is gone is as changed as one that was edited.
+    writeFileSync(customers, bike.customersCsv);
+    expect((await world.jobs.ruleState(job.id))?.state).toBe('needed');
+    rmSync(join(world.paths.dataDir(job.id), 'policy.md'));
+    expect(await world.jobs.ruleState(job.id)).toMatchObject({
+      state: 'changed',
+      problem: expect.stringContaining('policy.md is not the file the tasks were made from'),
+    });
+    await expect(world.jobs.requireConfirmedRules(job)).rejects.toMatchObject({
+      code: 'rule_changed',
+    });
   });
 
   it('asks again when the rule itself is not the one confirmed', async () => {
