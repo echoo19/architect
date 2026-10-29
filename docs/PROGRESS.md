@@ -2,6 +2,21 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), the steps pass reviewed and merged, and one line set quieter
+
+**Done** (on main; decision 061 amended; no model was called or loaded, and every run used stand-ins)
+- Reviewed the pass below before merging it. The code: the steps generator and the random check that holds it to the rule's own arithmetic; where the steps are worked out (`readable`, when the plan and the report are made, never stored, so `ruleVersion` and every confirmation stand); the older words; the callout; the teacher tab; the Hugging Face row, which opens the page through the app's own link opener; the results line and the date. Looked at the changed part of each of the 50 recaptures. Nothing blocked the merge, and no commit carries an attribution line. Merged as 1b10fe0.
+- The line on rows left out was set louder than the score note it follows, so it read as the main text with the note as its preface. It now has the note's size and color, since both qualify the score; `flow.spec.ts` holds it at the note's size and decision 061 says why. With no reason held, one row is "was left out", not "were".
+- The site's results mock names its tile "Typical answer time", as the app does.
+- Verified: `pnpm check` exits 0 (246 test files, 3,221 tests passed, 2 skipped). Hidden e2e on the rebuilt app: `flow.spec.ts` (27), `rule.spec.ts` (3), `teacher-menu.spec.ts` (4), `drafting.spec.ts` (5) and `screenshots.spec.ts` (10), 49 in all, pass. The first run stopped on the spec's old check that the line was larger than the note; that check was changed. `flow-report-rule` was kept in both themes, and the twelve captures that moved only by noise were put back.
+
+**Next**
+- Release 0.3.2.
+- A chapter of the site on checking the rule, built from the repair shop's real drafted rule and run.
+- Specs that never answer `connections:detectLocal` (`hub-screens.spec.ts`, `job-files.spec.ts` and others) let the app look at this computer's runtimes. A default answer in `launchApp` would also replace the check for specs that point it at their own fake servers (`agent-host.spec.ts`), so each spec needs looking at, not one blanket line.
+- A third blind read of the rule's screens.
+- The offline-chat scene of the film, when the owner allows about ten minutes of the GPU.
+
 ## 2026-10-29 (Thu), the second blind read: the rule as steps, and plainer words on seven screens
 
 **Done** (on `worktree-agent-a808911edeb33ea54`, from main at `d546661`, release 0.3.1; decisions 061, 063 and 064 amended; no model was called or loaded, and every run used stand-ins, save for one read of this computer's model list and graphics card name, said below)
