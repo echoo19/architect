@@ -206,6 +206,9 @@ export function ReportView({
         )}
       </div>
 
+      {/* An agent tested online is offered the test on this computer where its badge says so. */}
+      {report.testedOn === 'hosted' && <LocalTest report={report} />}
+
       <div className="flex flex-col gap-3">
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(180px,100%),1fr))] gap-px overflow-hidden rounded-2xl border border-line-card bg-line-card">
           <Stat
@@ -278,8 +281,6 @@ export function ReportView({
           )}
         </Disclosure>
       </div>
-
-      {report.testedOn === 'hosted' && <LocalTest report={report} />}
 
       <Capabilities evidence={capabilities} installation={installation} names={names} />
 

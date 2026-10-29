@@ -48,6 +48,7 @@ describe("where a run's test on this computer stands", () => {
 describe('how long the test takes on this computer', () => {
   it('says so for the tasks of the final test', () => {
     expect(localTestTime(60)).toBe('About 2.5 hours for 60 tasks');
+    expect(localTestTime(30)).toBe('About 1 hour for 30 tasks');
     expect(localTestTime(6)).toBe('About 15 minutes for 6 tasks');
     expect(localTestTime(1)).toBe('About 5 minutes for 1 task');
   });

@@ -7,7 +7,7 @@ import { missedRequirements } from './requirements';
  * and whether it runs on this computer. The two never disagree on screen, so a page never calls an
  * agent graduated and ready beside a check that says it can't run. An agent is ready only once a
  * final test taken on this computer met the targets (decision 009): one whose test ran on the
- * online copy is marked as tested online until it is tested here.
+ * online copy says it passed online, never that it is ready, until it is tested here.
  */
 export type VerdictState =
   'ready' | 'tested_online' | 'below_target' | 'needs_attention' | 'blocked';
@@ -97,11 +97,11 @@ export function reportVerdict(
     const { pass, total } = report.test.score;
     return {
       state: 'tested_online',
-      pill: 'Tested online',
-      title: `${name} passed its final test online`,
+      pill: 'Passed online',
+      title: `${name} finished training`,
       because: [
         `Its final test ran on an online copy of ${context.model}, not on this computer. It got ${pass} of ${total}.`,
-        'Test it on this computer to see how it does on its own.',
+        'It is marked ready once it passes on this computer too.',
       ],
       usable: true,
     };

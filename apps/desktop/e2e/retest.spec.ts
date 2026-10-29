@@ -244,22 +244,30 @@ for (const theme of THEMES) {
     await installEngine({ detail: withRetests(), own: ONLINE, local: null });
     await openResults(theme);
 
-    // Passed online is not ready: the pill, the title and the footer say it was tested there.
-    await expect(page.getByText('Tested online', { exact: true })).toBeVisible();
+    // Passed online is not ready: the badge says it passed there, and nothing says it graduated.
+    await expect(page.getByText('Passed online', { exact: true })).toBeVisible();
     await expect(
-      page.getByRole('heading', { name: 'Service desk passed its final test online' }),
+      page.getByRole('heading', { name: 'Service desk finished training' }),
     ).toBeVisible();
     await expect(
       page.getByText('Its final test ran on an online copy of Glimmer, not on this computer.'),
     ).toBeVisible();
+    await expect(
+      page.getByText('It is marked ready once it passes on this computer too.'),
+    ).toBeVisible();
     await expect(page.getByText('Ready', { exact: true })).toHaveCount(0);
+    await expect(page.getByText(/graduated/i)).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Start using Service desk' })).toBeEnabled();
 
-    // The offer says how long it takes and that it uses the graphics card.
+    // The offer says how long it takes and that it uses the graphics card, and sits right under
+    // the badge, before any figure.
     const offer = page.getByRole('region', { name: 'Test on this computer' });
     await expect(offer).toContainText(
       'It takes about 2.5 hours for 60 tasks and uses the graphics card.',
     );
+    const offerTop = (await offer.boundingBox())?.y ?? Number.POSITIVE_INFINITY;
+    const figuresTop = (await page.getByText('of new tasks right').boundingBox())?.y ?? 0;
+    expect(offerTop).toBeLessThan(figuresTop);
     await capture(`report-online-${theme}.png`);
 
     await offer.getByRole('button', { name: 'Test on this computer' }).click();
@@ -291,6 +299,36 @@ for (const theme of THEMES) {
     await capture(`report-online-done-${theme}.png`);
   });
 }
+
+/** A drafted job's smaller final test, taken on the online copy: 28 of 30. */
+const ONLINE_SMALL: ReportCard = {
+  ...ONLINE,
+  test: {
+    ...ONLINE.test,
+    score: { pass: 28, total: 30 },
+    perType: [
+      { type: 'invoice', label: 'Invoices', pass: 10, total: 10, refused: false },
+      { type: 'overdue', label: 'Overdue balances', pass: 10, total: 10, refused: false },
+      { type: 'scheduling', label: 'Scheduling', pass: 8, total: 10, refused: false },
+    ],
+  },
+  requirements: { passRate: { target: 0.9, actual: 28 / 30, met: true } },
+};
+
+test('says a small final test passed online the same way, 28 of 30, with the offer beside it', async () => {
+  await installEngine({ detail: withRetests(), own: ONLINE_SMALL, local: null });
+  await openResults('dark');
+
+  await expect(page.getByText('Passed online', { exact: true })).toBeVisible();
+  await expect(page.getByText('It got 28 of 30.')).toBeVisible();
+  await expect(page.getByText('Ready', { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/graduated/i)).toHaveCount(0);
+  const offer = page.getByRole('region', { name: 'Test on this computer' });
+  await expect(offer).toContainText(
+    'It takes about 1 hour for 30 tasks and uses the graphics card.',
+  );
+  await expect(offer.getByRole('button', { name: 'Test on this computer' })).toBeVisible();
+});
 
 test('says it fell short on this computer when it passed online', async () => {
   await installEngine({

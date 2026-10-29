@@ -112,11 +112,11 @@ describe('the one verdict of a report', () => {
 });
 
 /** A final test taken on the online copy, and one taken on this computer since. */
-function online(pass = 58, met = true): ReportCard {
+function online(pass = 58, met = true, total = 60): ReportCard {
   return {
-    ...card({ passRate: { target: 0.9, actual: pass / 60, met } }),
+    ...card({ passRate: { target: 0.9, actual: pass / total, met } }),
     testedOn: 'hosted',
-    test: { score: { pass, total: 60 } },
+    test: { score: { pass, total } },
   } as ReportCard;
 }
 
@@ -129,19 +129,43 @@ function here(pass: number, met: boolean): ReportCard {
 }
 
 describe('an agent whose final test ran on the online copy', () => {
-  it('is tested online, not ready, however well it scored', () => {
+  it('says it passed online, not that it is ready, however well it scored', () => {
     const verdict = reportVerdict(online(), checked('ready'), CONTEXT);
     expect(verdict).toEqual({
       state: 'tested_online',
-      pill: 'Tested online',
-      title: 'Returns desk passed its final test online',
+      pill: 'Passed online',
+      title: 'Returns desk finished training',
       because: [
         'Its final test ran on an online copy of Glimmer, not on this computer. It got 58 of 60.',
-        'Test it on this computer to see how it does on its own.',
+        'It is marked ready once it passes on this computer too.',
       ],
       usable: true,
     });
     expect(`${verdict.title} ${verdict.pill}`).not.toMatch(/graduated|Ready/);
+  });
+
+  it("says the same of a small final test, a drafted job's 28 of 30", () => {
+    const verdict = reportVerdict(online(28, true, 30), checked('ready'), CONTEXT);
+    expect(verdict).toMatchObject({ state: 'tested_online', pill: 'Passed online' });
+    expect(verdict.because[0]).toBe(
+      'Its final test ran on an online copy of Glimmer, not on this computer. It got 28 of 30.',
+    );
+    expect(`${verdict.title} ${verdict.pill}`).not.toMatch(/graduated|Ready/);
+  });
+
+  it('is ready on this computer after the same 28 of 30 passed there too', () => {
+    const elsewhere = { ...online(28, true, 30) };
+    const local = {
+      ...card({ passRate: { target: 0.9, actual: 27 / 30, met: true } }),
+      testedOn: 'local',
+      test: { score: { pass: 27, total: 30 } },
+    } as ReportCard;
+    expect(reportVerdict(elsewhere, checked('ready'), CONTEXT, local)).toMatchObject({
+      state: 'ready',
+      pill: 'Ready',
+      title: 'Returns desk graduated',
+      because: ['It passed on this computer too: 27 of 30 on its final test.'],
+    });
   });
 
   it('is ready once a test on this computer met the targets, and says both results', () => {
