@@ -1,0 +1,40 @@
+{"order_id":"ORD-10001","customer_id":"C-1107","order_date":"2026-05-04","shipped_on":"2026-05-05","delivered_on":"2026-05-08","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10002","customer_id":"C-1123","order_date":"2026-05-04","shipped_on":"2026-05-05","delivered_on":"2026-05-08","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10003","customer_id":"C-1059","order_date":"2026-05-04","shipped_on":"2026-05-06","delivered_on":"2026-05-11","shipping":"14.50","payment":"card"}
+{"order_id":"ORD-10004","customer_id":"C-1033","order_date":"2026-05-04","shipped_on":"2026-05-05","delivered_on":"2026-05-07","shipping":"0.00","payment":"gift_card"}
+{"order_id":"ORD-10005","customer_id":"C-1007","order_date":"2026-05-05","shipped_on":"2026-05-05","delivered_on":"2026-05-07","shipping":"14.50","payment":"card"}
+{"order_id":"ORD-10006","customer_id":"C-1125","order_date":"2026-05-05","shipped_on":"2026-05-06","delivered_on":"2026-05-08","shipping":"0.00 USD","payment":"card"}
+{"order_id":"ORD-10007","customer_id":"C-1003","order_date":"2026-05-06","shipped_on":"2026-05-06","delivered_on":"2026-05-11","shipping":"14.50","payment":"gift_card"}
+{"order_id":"ORD-10008","customer_id":"C-1100","order_date":"2026-05-06","shipped_on":"2026-05-09","delivered_on":"2026-05-13","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10009","customer_id":"C-1025","order_date":"2026-05-06","shipped_on":"2026-05-06","delivered_on":"2026-05-08","shipping":"7.95","payment":"card"}
+{"order_id":"ORD-10010","customer_id":"C-1159","order_date":"2026-05-06","shipped_on":"2026-05-06","delivered_on":"2026-05-08","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10011","customer_id":"C-1095","order_date":"2026-05-07","shipped_on":"2026-05-07","delivered_on":"2026-05-10","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10012","customer_id":"C-1038","order_date":"2026-05-07","shipped_on":"2026-05-09","delivered_on":"2026-05-11","shipping":"7.95","payment":"card"}
+{"order_id":"ORD-10013","customer_id":"C-1002","order_date":"2026-05-07","shipped_on":"\"May 7","delivered_on":" 2026\"","shipping":"\"May 11","payment":" 2026\""}
+{"order_id":"ORD-10014","customer_id":"C-1156","order_date":"2026-05-08","shipped_on":"2026-05-08","delivered_on":"2026-05-13","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10015","customer_id":"C-1059","order_date":"2026-05-08","shipped_on":"2026-05-09","delivered_on":"\"May 12","shipping":" 2026\"","payment":"7.95"}
+{"order_id":"ORD-10016","customer_id":"C-1016","order_date":"2026-05-08","shipped_on":"2026-05-09","delivered_on":"2026-05-11","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10017","customer_id":"C-1153","order_date":"2026-05-09","shipped_on":"2026-05-11","delivered_on":"\"May 14","shipping":" 2026\"","payment":"0.00 USD"}
+{"order_id":"ORD-10018","customer_id":"C-1079","order_date":"2026-05-09","shipped_on":"2026-05-10","delivered_on":"2026-05-15","shipping":"7.95","payment":"card"}
+{"order_id":"ORD-10019","customer_id":"C-1077","order_date":"2026-05-10","shipped_on":"2026-05-10","delivered_on":"2026-05-13","shipping":"0.00","payment":"gift_card"}
+{"order_id":"ORD-10020","customer_id":"C-1127","order_date":"\"May 10","shipped_on":" 2026\"","delivered_on":"\"May 11","shipping":" 2026\"","payment":"2026-05-17"}
+{"order_id":"ORD-10021","customer_id":"C-1101","order_date":"2026-05-11","shipped_on":"2026-05-11","delivered_on":"\"May 14","shipping":" 2026\"","payment":"0.00"}
+{"order_id":"ORD-10022","customer_id":"C-1149","order_date":"2026-05-11","shipped_on":"2026-05-12","delivered_on":"2026-05-17","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10023","customer_id":"C-1085","order_date":"2026-05-11","shipped_on":"2026-05-11","delivered_on":"2026-05-17","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10024","customer_id":"C-1086","order_date":"2026-05-12","shipped_on":"2026-05-12","delivered_on":"2026-05-16","shipping":"7.95","payment":"card"}
+{"order_id":"ORD-10025","customer_id":"C-1152","order_date":"2026-05-12","shipped_on":"2026-05-12","delivered_on":"2026-05-14","shipping":"7.95","payment":"gift_card"}
+{"order_id":"ORD-10026","customer_id":"C-1040","order_date":"2026-05-12","shipped_on":"2026-05-14","delivered_on":"2026-05-20","shipping":"7.95","payment":"card"}
+{"order_id":"ORD-10027","customer_id":"C-1033","order_date":"2026-05-13","shipped_on":"2026-05-14","delivered_on":"2026-05-20","shipping":"7.95","payment":"card"}
+{"order_id":"ORD-10028","customer_id":"C-1070","order_date":"2026-05-13","shipped_on":"2026-05-13","delivered_on":"2026-05-17","shipping":"7.95","payment":"card"}
+{"order_id":"ORD-10029","customer_id":"C-1150","order_date":"2026-05-13","shipped_on":"2026-05-14","delivered_on":"2026-05-16","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10030","customer_id":"C-1085","order_date":"2026-05-13","shipped_on":"2026-05-14","delivered_on":"2026-05-19","shipping":"7.95","payment":"card"}
+{"order_id":"ORD-10031","customer_id":"C-1125","order_date":"2026-05-14","shipped_on":"2026-05-16","delivered_on":"2026-05-19","shipping":"7.95","payment":"card"}
+{"order_id":"ORD-10032","customer_id":"C-1025","order_date":"2026-05-14","shipped_on":"2026-05-16","delivered_on":"2026-05-22","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10033","customer_id":"C-1029","order_date":"2026-05-15","shipped_on":"2026-05-18","delivered_on":"2026-05-20","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10034","customer_id":"C-1133","order_date":"05/15/2026","shipped_on":"2026-05-17","delivered_on":"2026-05-20","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10035","customer_id":"C-1072","order_date":"2026-05-16","shipped_on":"2026-05-16","delivered_on":"2026-05-20","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10036","customer_id":"C-1151","order_date":"2026-05-16","shipped_on":"2026-05-17","delivered_on":"2026-05-20","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10037","customer_id":"C-1095","order_date":"2026-05-16","shipped_on":"2026-05-16","delivered_on":"2026-05-21","shipping":"0.00","payment":"card"}
+{"order_id":"ORD-10038","customer_id":"C-1033","order_date":"2026-05-17","shipped_on":"2026-05-18","delivered_on":"2026-05-24","shipping":"7.95","payment":"card"}
+{"order_id":"ORD-10039","customer_id":"C-1002","order_date":"2026-05-17","shipped_on":"2026-05-17","delivered_on":"2026-05-21","shipping":"0.00","payment":"gift_card"}
+=> [{"order_id":"ORD-10001","customer_id":"C-1107","order_date":"2026-05-04","shipped_on":"2026-05-05","delivered_on":"2026-05-08","shipping":"0.00","payment":"card"},{"order_id":"ORD-10002","customer_id":"C-1123","order_date":"2026-05-04","shipped_on":"2026-05-05","delivered_on":"2026-05-08","shipping":"0.00","payment":"card"},{"order_id":"ORD-10003","customer_id":"C-1059","order_date":"2026-05-04","shipped_on":"2026-05-06","delivered_on":"2026-05-11","shipping":"14.50","payment":"card"},{"order_id":"ORD-10004","customer_id":"C-1033","order_date":"2026-05-04","shipped_on":"2026-05-05","delivered_on":"2026-05-07","shipping":"0.00","payment":"gift_card"},{"order_id":"ORD-10005","customer_id":"C-1007","order_date":"2026-05-05","shipped_on":"2026-05-05","delivered_on":"2026-05-07","shipping":"14.50","payment":"card"}]

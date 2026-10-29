@@ -44,6 +44,7 @@ function student(reply: Reply, isLocal = false): StudentAdapter & { calls: numbe
     model: 'hosted-student',
     baseUrl: isLocal ? 'http://127.0.0.1:11434' : 'https://openrouter.ai/api/v1',
     isLocal,
+    contextLength: 16_384,
     calls: 0,
     chat: (_request: StudentChatRequest, signal?: AbortSignal) => {
       fake.calls += 1;

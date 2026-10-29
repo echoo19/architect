@@ -1,0 +1,39 @@
+19	   - Enough left: the quantity is at most the line's `qty` minus the units of the same SKU on the same order in approved returns already in returns.csv.
+20	3. **Item** (`item_cents`): the quantity × the line's `unit_price` in order_lines.csv, the price paid (not the list price). Record it for a denied return too.
+21	4. **Restocking fee** (`restocking_fee_cents`): 15% of the item amount, rounded half up, for an `opened` item in the tents, sleeping or electronics category. Otherwise 0.
+22	5. **Return shipping** (`return_shipping_cents`): 695 for the prepaid label, unless the customer has member perks or the item is defective. Then 0.
+23	6. **Shipping refund** (`shipping_refund_cents`): a defective item gets the order's original `shipping` back, unless an earlier approved return on the same order already refunded it. Otherwise 0.
+24	7. **Refund** (`refund_cents`) = item − restocking fee − return shipping + shipping refund.
+25	8. **Refund to** (`refund_to`): `card` when the order was paid by card and it is at most 30 days since delivery; otherwise `store_credit`.
+26	9. **Denied.** A denied return keeps its `item_cents`; every other amount is 0 and `refund_to` is `none`.
+27	10. **The row.** `return_id` is RT- plus the request's number (request RQ-5012 gets RT-5012). Fill in `order_id`, `sku`, `qty`, `condition`, `decided_on` (today), `decision` (`approved` or `denied`), the five amounts and `refund_to`. Leave `pickup_from` empty: it is only for returns that go back by carrier.
+28	
+29	Example: a customer without member perks returns 2 opened sleeping pads (sleeping) bought at 64.50 each on an order delivered 2026-10-27, 28 days ago, paid by card. Item 12900. Restocking fee 15% of 12900 = 1935. Return shipping 695. Refund 12900 − 1935 − 695 = 10270, to card.
+30	
+31	Example: a member whose perks cover the order returns a defective headlamp bought at 59.95. The order was delivered 45 days ago, shipping was 7.95, and nothing on it was refunded before. Item 5995, no fees, shipping refund 795, refund 6790. It's more than 30 days since delivery, so it goes to store_credit.
+32	
+33	## Order questions
+34	
+35	- A customer's **spending** is the quantity × `unit_price` of the lines on their orders placed in the period asked about. Shipping isn't spending, and returns don't reduce it.
+36	- A product's **sales** in a month are the units on its order lines and their quantity × `unit_price`, counting orders by `order_date`.
+37	- An order's **total** is its lines (quantity × `unit_price`) plus its `shipping`.
+38	- A month runs from its first day to its last. "Since" a date and "on or before" a date both include that date.
+39	- An order is **unshipped** while its `shipped_on` is empty.
+40	- A product's category is in products.csv.
+41	
+42	Example: a customer placed two orders in October. On 2026-10-02: 2 mugs at 29.95 (kitchen), shipping 7.95. On 2026-10-30: a stove at 79.95 (kitchen) and a headlamp at 59.95 (electronics), free shipping. Since 2026-10-30 they have spent 7995 in the kitchen category, and since 2026-10-01, 2 × 2995 + 7995 = 13985. Their October total is 2 × 2995 + 795 + 7995 + 5995 = 20775.
+43	
+44	Example: if that second order hasn't shipped, it is one of the customer's unshipped orders placed on or before 2026-10-30, and the stove's sales in October include its 1 unit for 7995.
+45	
+46	## Pickups
+47	
+48	An approved return the customer sends back is collected by a carrier. Its row in returns.csv has a `pickup_from` date: the first day the customer can hand the parcel over. Book the pickup by adding one row to pickups.csv.
+49	
+50	- **Carrier.** By the customer's `region` in customers.csv: Cedarline Parcel for Lakeshore and Valley, Kettlepoint Courier for Foothills and Uplands. A bulky product (`bulky` = yes in products.csv) goes with Basalt Freight from any region.
+51	- **Days.** Cedarline picks up on Monday, Tuesday, Thursday and Friday; Kettlepoint on Monday, Wednesday, Friday and Saturday; Basalt on Tuesday and Thursday. No carrier picks up on Thursday, November 26, 2026 (Thanksgiving).
+52	- **Not too soon.** Booked before 14:00, the earliest pickup is tomorrow; booked at 14:00 or later, the day after tomorrow. Never before the return's `pickup_from` date.
+53	- **Capacity.** A carrier collects at most 3 of our returns a day. Count the pickups already in pickups.csv: a day with 3 is full.
+54	- **Earliest.** Book the earliest date that passes every rule.
+55	- **The row.** `pickup_id` is PU- plus the return's number (return RT-4410 gets PU-4410). Fill in `return_id`, `carrier`, `pickup_date` and `booked_on` (today).
+56	
+57	Example: at 15:10 today, a Valley customer's daypack (not bulky) goes with Cedarline, and its `pickup_from` is 2026-11-25. Booked after 14:00, the earliest day is Thursday 2026-11-26, but no carrier picks up on Thanksgiving. Friday 2026-11-27 is a Cedarline day; if pickups.csv already has 3 Cedarline pickups that day, the next one, Monday 2026-11-30, is the date to book.

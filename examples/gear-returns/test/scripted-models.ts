@@ -215,6 +215,8 @@ export class ScriptedGlimmer implements StudentAdapter {
   readonly model: string = 'muse-glimmer:30b';
   readonly baseUrl: string = 'http://127.0.0.1:11434';
   readonly isLocal: boolean = true;
+  /** A window the scripted run never fills: these tests are about habits, not the context. */
+  readonly contextLength: number | null = 131_072;
   known: readonly Task[] = [];
   private readonly solutions = new Map<string, Solution>();
 
@@ -259,6 +261,7 @@ export class ScriptedSparkAgent extends ScriptedGlimmer implements ActorAdapter 
   override readonly model = 'muse-spark-1.3';
   override readonly baseUrl = 'https://api.meta.ai/v1';
   override readonly isLocal = false;
+  override readonly contextLength = null;
   readonly requests: StudentChatRequest[] = [];
 
   override chat(request: StudentChatRequest): AsyncIterable<StudentStreamEvent> {

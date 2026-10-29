@@ -1,26 +1,25 @@
 import {
-  AdapterError,
   addUsage,
   emptyUsage,
   type ChatMessage,
+  type ClearedResult,
   type Decoding,
   type Harness,
   type Job,
   type ReplaySetup,
   type StopReason,
   type StudentAdapter,
-  type StudentChatRequest,
-  type StudentStreamEvent,
-  type ToolCall,
   type Trace,
   type TraceStep,
-  type Usage,
 } from '@architect/shared';
 import type { AgentFiles } from '../files/agent-files';
 import type { Sandbox } from '../sandbox/types';
 import type { ApproveWrite } from '../tools/builtins';
 import { TOOL_RUNTIME } from '../tools/specs';
 import { createToolbox } from '../tools/toolbox';
+import { askStudent, cutOffError, isCutOff, withSpent } from './ask';
+import { ContextWindow } from './context';
+import { elapsedMs } from './elapsed';
 import { buildSystemPrompt, type AgentMode } from './prompt';
 import { matchGuardrail, selectRetrieval } from './retrieval';
 import { todayFor } from './today';
@@ -60,6 +59,12 @@ export interface RunAgentOptions {
   onStep?: (step: TraceStep) => void;
   /** Called with the model's text as it streams. */
   onText?: (delta: string) => void;
+  /**
+   * Called when the turn whose text `onText` has been sending is asked for again, because its
+   * reply couldn't be used. `chars` is how much text it sent for that turn, which the caller
+   * should take back: the turn starts over, and its new text follows.
+   */
+  onRetract?: (chars: number) => void;
   /** Chat mode: asks the user before each change to a file. */
   approveWrite?: ApproveWrite;
   signal?: AbortSignal;
@@ -82,22 +87,11 @@ export interface ContinueAgentOptions extends Omit<RunAgentOptions, 'request' | 
   startTexts: Readonly<Record<string, string>>;
 }
 
-type Turn =
-  | {
-      ok: true;
-      text: string;
-      toolCalls: ToolCall[];
-      usage: Usage;
-      /** The provider's charge for the call, when it reported one. */
-      costUsd?: number;
-      latencyMs: number;
-      finish: 'stop' | 'tool_calls' | 'length';
-    }
-  | { ok: false; error: string };
-
 /** One attempt's trace as it grows: its steps, usage and clock, and how it ends. */
 class TraceBuilder {
   readonly steps: TraceStep[] = [];
+  /** The tool results taken out of the model's view, oldest first. */
+  readonly cleared: ClearedResult[] = [];
   usage = emptyUsage();
   private readonly started = performance.now();
 
@@ -131,6 +125,7 @@ class TraceBuilder {
       latencyMs: elapsedMs(this.started),
       replay: this.replay,
       changes: files.changesSince(this.startTexts),
+      ...(this.cleared.length === 0 ? {} : { cleared: this.cleared }),
     };
   }
 }
@@ -225,44 +220,65 @@ async function takeTurns(
     today,
     approveWrite: options.approveWrite,
   });
+  const tools = [...toolbox.specs];
+  // Every prompt stays inside the student's context, on every backend (decision 057).
+  const window =
+    student.contextLength === null
+      ? null
+      : new ContextWindow(student.contextLength, decoding.maxOutputTokens, tools);
   let finalText = '';
 
   try {
     for (let step = at.turnsTaken; step < decoding.maxSteps; step += 1) {
       if (signal?.aborted) return trace.finish(messages, finalText, 'aborted');
-      const chatRequest = { messages: [...messages], tools: [...toolbox.specs], decoding, seed };
-      const turn = await askStudent(student, chatRequest, signal, options.onText);
-      if (!turn.ok) {
+      const asked = await askStudent({
+        student,
+        messages,
+        tools,
+        decoding,
+        seed,
+        window,
+        turn: step + 1,
+        signal,
+        onText: options.onText,
+        onRetract: options.onRetract,
+        onCleared: (cleared) => trace.cleared.push(...cleared),
+      });
+      if (!asked.ok) {
+        // Replies asked for again and thrown away were paid for all the same.
+        if (asked.spent.replies > 0) trace.usage = addUsage(trace.usage, asked.spent.usage);
         return signal?.aborted
           ? trace.finish(messages, finalText, 'aborted')
-          : trace.finish(messages, finalText, 'error', turn.error);
+          : trace.finish(messages, finalText, 'error', asked.error);
       }
-      trace.usage = addUsage(trace.usage, turn.usage);
+      const { reply } = asked;
+      const spent = withSpent(reply, asked.spent);
+      trace.usage = addUsage(trace.usage, spent.usage);
       trace.record({
         kind: 'model',
-        text: turn.text,
-        toolCalls: turn.toolCalls,
-        usage: turn.usage,
-        ...(turn.costUsd === undefined ? {} : { costUsd: turn.costUsd }),
-        latencyMs: turn.latencyMs,
+        text: reply.text,
+        toolCalls: reply.toolCalls,
+        usage: spent.usage,
+        ...(spent.costUsd === undefined ? {} : { costUsd: spent.costUsd }),
+        latencyMs: reply.latencyMs,
       });
       messages.push(
-        turn.toolCalls.length > 0
-          ? { role: 'assistant', content: turn.text, toolCalls: turn.toolCalls }
-          : { role: 'assistant', content: turn.text },
+        reply.toolCalls.length > 0
+          ? { role: 'assistant', content: reply.text, toolCalls: reply.toolCalls }
+          : { role: 'assistant', content: reply.text },
       );
-      finalText = turn.text;
-      if (turn.toolCalls.length === 0 && turn.finish === 'length') {
-        return trace.finish(
-          messages,
-          finalText,
-          'error',
-          cutOff(decoding.maxOutputTokens, turn.text),
-        );
+      window?.learn(messages, reply.usage, true);
+      finalText = reply.text;
+      if (isCutOff(reply)) {
+        const limits = {
+          maxOutputTokens: decoding.maxOutputTokens,
+          contextLength: student.contextLength,
+        };
+        return trace.finish(messages, finalText, 'error', cutOffError(reply, limits, asked.tries));
       }
-      if (turn.toolCalls.length === 0) return trace.finish(messages, finalText, 'answer');
+      if (reply.toolCalls.length === 0) return trace.finish(messages, finalText, 'answer');
 
-      for (const call of turn.toolCalls) {
+      for (const call of reply.toolCalls) {
         const toolStarted = performance.now();
         const outcome = await toolbox.run(call, signal);
         trace.record({
@@ -294,130 +310,4 @@ async function takeTurns(
     throw error;
   }
   return trace.finish(messages, finalText, 'max_steps');
-}
-
-/** How often a turn is asked for again after a reply that couldn't be read. */
-const UNREADABLE_RETRIES = 2;
-/** How far apart the seeds of a turn and its retries are. */
-const RETRY_SEED_STEP = 1_000_003;
-const MAX_SEED = 2_147_483_647;
-
-/**
- * One model turn, asked for again when the reply couldn't be read and none of it was shown: a
- * small model sometimes writes a tool call its runtime can't parse, and another sample usually
- * doesn't. Each retry's seed follows from the turn's own, so a repeated run asks the same
- * questions. After the retries, the unreadable reply ends the attempt, as before.
- */
-async function askStudent(
-  student: StudentAdapter,
-  request: StudentChatRequest,
-  signal: AbortSignal | undefined,
-  onText: ((delta: string) => void) | undefined,
-): Promise<Turn> {
-  let shown = false;
-  const show =
-    onText === undefined
-      ? undefined
-      : (delta: string) => {
-          shown = true;
-          onText(delta);
-        };
-  for (let retry = 0; ; retry += 1) {
-    const seed = retry === 0 ? request.seed : (request.seed + retry * RETRY_SEED_STEP) % MAX_SEED;
-    const turn = await callStudent(student, { ...request, seed }, signal, show);
-    if (turn.ok || shown || signal?.aborted || retry >= UNREADABLE_RETRIES) return turn;
-  }
-}
-
-/**
- * One streamed model turn. A reply the adapter couldn't read becomes a failed turn, which counts
- * against the student. Any other adapter error means the runtime failed (server down, model
- * missing, key rejected, network), not the student, so it propagates: an evaluation stops instead
- * of scoring an outage as wrong answers. Errors thrown by `onText` belong to the caller.
- */
-async function callStudent(
-  student: StudentAdapter,
-  request: StudentChatRequest,
-  signal: AbortSignal | undefined,
-  onText: ((delta: string) => void) | undefined,
-): Promise<Turn> {
-  const started = performance.now();
-  let text = '';
-  const toolCalls: ToolCall[] = [];
-  let usage = emptyUsage();
-  let costUsd: number | undefined;
-  let finish: 'stop' | 'tool_calls' | 'length' = 'stop';
-  let stream: AsyncIterator<StudentStreamEvent>;
-  try {
-    stream = student.chat(request, signal)[Symbol.asyncIterator]();
-  } catch (error) {
-    if (isRuntimeFailure(error)) throw error;
-    return { ok: false, error: errorMessage(error) };
-  }
-
-  let ended = false;
-  try {
-    for (;;) {
-      let next: IteratorResult<StudentStreamEvent>;
-      try {
-        next = await stream.next();
-      } catch (error) {
-        ended = true;
-        if (isRuntimeFailure(error)) throw error;
-        return { ok: false, error: errorMessage(error) };
-      }
-      if (next.done) {
-        ended = true;
-        break;
-      }
-      const event = next.value;
-      if (event.type === 'text') {
-        text += event.delta;
-        onText?.(event.delta);
-      } else if (event.type === 'tool_call') {
-        toolCalls.push(event.call);
-      } else {
-        usage = event.usage;
-        costUsd = event.costUsd;
-        finish = event.finish;
-      }
-    }
-  } finally {
-    if (!ended) await stream.return?.();
-  }
-  return {
-    ok: true,
-    text,
-    toolCalls,
-    usage,
-    ...(costUsd === undefined ? {} : { costUsd }),
-    latencyMs: elapsedMs(started),
-    finish,
-  };
-}
-
-/**
- * Why a reply that hit the output-token limit ended the attempt. Reasoning counts against the
- * limit, so a long think can use all of it before the model says anything; the harness can raise
- * the limit or lower the reasoning strength.
- */
-function cutOff(limit: number, text: string): string {
-  const what =
-    text.trim() === ''
-      ? 'while the model was still thinking, before it said anything'
-      : 'in the middle of its answer';
-  return `The reply hit the ${limit}-token output limit ${what}. Raise max_output_tokens or lower thinking in decoding.yaml.`;
-}
-
-/** True for adapter errors caused by the model runtime rather than by what the student wrote. */
-function isRuntimeFailure(error: unknown): boolean {
-  return error instanceof AdapterError && error.code !== 'bad_response' && error.code !== 'aborted';
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function elapsedMs(since: number): number {
-  return Math.max(0, Math.round(performance.now() - since));
 }

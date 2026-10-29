@@ -79,9 +79,7 @@ export async function* readChatCompletionStream(
   }
 
   const first = options.firstCallNumber ?? 1;
-  const toolCalls = [...calls.entries()]
-    .sort(([a], [b]) => a - b)
-    .map(([, call], position) => toToolCall(call, first + position, service));
+  const toolCalls = completeCalls(calls, first, service, finish === 'length');
   const end: ChatStreamEvent = { type: 'end', finish: finishReason(finish, toolCalls), toolCalls };
   if (usage) end.usage = toUsage(usage, reasoningDeltas);
   if (typeof usage?.cost === 'number') end.costUsd = usage.cost;
@@ -114,6 +112,27 @@ function addToolCallPart(
   if (part.function?.name) call.name ??= part.function.name;
   if (part.function?.arguments) call.arguments += part.function.arguments;
   calls.set(index, call);
+}
+
+/**
+ * The calls the reply made, in order. A reply that stopped at its length limit stops in the middle
+ * of its last call, so a call that can't be read is the cut, not a call the model wrote badly: the
+ * reply is reported as cut off, with none of its calls, instead of as an unreadable one.
+ */
+function completeCalls(
+  calls: ReadonlyMap<number, PartialCall>,
+  first: number,
+  service: string,
+  cutAtLimit: boolean,
+): ToolCall[] {
+  try {
+    return [...calls.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([, call], position) => toToolCall(call, first + position, service));
+  } catch (error) {
+    if (cutAtLimit && error instanceof AdapterError && error.code === 'bad_response') return [];
+    throw error;
+  }
 }
 
 function toToolCall(call: PartialCall, position: number, service: string): ToolCall {

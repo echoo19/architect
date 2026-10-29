@@ -254,6 +254,7 @@ describe('the comparisons runner', () => {
         model: student.model,
         baseUrl: student.baseUrl,
         isLocal: student.isLocal,
+        contextLength: student.contextLength,
         chat: (chat, signal) => student.chat(chat, signal),
         describe: () => Promise.reject(new Error('connect ECONNREFUSED')),
         testConnection: () => student.testConnection(),

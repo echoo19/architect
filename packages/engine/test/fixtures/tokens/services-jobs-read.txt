@@ -1,0 +1,31 @@
+603	W-1602,C-0134,T-02,2026-07-15,Garbage disposal install,91,no
+604	W-1603,C-0252,T-04,2026-07-15,Light fixture install,46,no
+605	W-1604,C-0197,T-01,2026-07-15,Toilet repair,56,no
+606	W-1605,C-0335,T-09,2026-07-15,Shutoff valve replacement,75,no
+607	W-1606,C-0127,T-07,2026-07-15,Faucet repair,75,no
+608	W-1607,C-0386,T-07,2026-07-15,Heat pump repair,76,no
+609	W-1608,C-0318,T-06,2026-07-15,Outlet repair,50,no
+610	W-1609,C-0205,T-04,2026-07-15,Light fixture install,116,no
+611	W-1610,C-0148,T-08,2026-07-16,Breaker replacement,98,no
+612	W-1611,C-0096,T-04,2026-07-16,Outlet repair,78,no
+613	W-1612,C-0275,T-04,2026-07-16,GFCI outlet install,68,no
+614	W-1613,C-0390,T-09,2026-07-16,Thermostat install,76,no
+615	W-1614,C-0283,T-01,2026-07-16,No heat call,97,no
+616	W-1615,C-0078,T-05,2026-07-16,Toilet repair,45,no
+617	W-1616,C-0033,T-05,2026-07-16,Kitchen faucet replacement,106,no
+618	W-1617,C-0370,T-12,2026-07-16,Drain clearing,127,no
+619	W-1618,C-0189,T-01,2026-07-16,Backflow test,38,no
+620	W-1619,C-0035,T-07,2026-07-16,Heat pump repair,99,yes
+621	W-1620,C-0171,T-12,2026-07-16,Drain clearing,115,no
+622	W-1621,C-0073,T-01,2026-07-16,Backflow test,58,no
+623	W-1622,C-0293,T-12,2026-07-16,Sump pump replacement,122,no
+624	W-1623,C-0125,T-12,2026-07-17,Sump pump replacement,178,no
+625	W-1624,C-0307,T-08,2026-07-17,Outlet repair,87,no
+626	W-1625,C-0111,T-07,2026-07-17,Furnace tune-up,60,no
+627	W-1626,C-0278,T-11,2026-07-17,Furnace tune-up,101,no
+628	W-1627,C-0073,T-08,2026-07-17,Breaker replacement,60,no
+629	W-1628,C-0329,T-02,2026-07-17,Faucet repair,76,no
+630	W-1629,C-0266,T-01,2026-07-17,Shutoff valve replacement,116,no
+631	W-1630,C-0152,T-05,2026-07-17,Shutoff valve replacement,90,no
+632	W-1631,C-0020,T-10,2026-07-18,Panel upgrade,324,no
+[Lines 603-632 of 1506. 874 more lines: read on with offset 633.]
