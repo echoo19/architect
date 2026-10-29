@@ -12,6 +12,7 @@ import {
   BLOCK_NOTES,
   BLOCK_REASONS,
   isLastChange,
+  keyHint,
   weightsBlock,
   type WeightsBlock,
   type WeightsFacts,
@@ -50,8 +51,10 @@ export function rowNote(
   const { on, last, block, teacher, student } = state;
   const blocked = type === 'weights' && on && block !== null;
   if (last) {
-    const stays = 'Stays on: the only way left to change the agent';
-    return blocked ? `${stays}. Retraining ${student} itself ${BLOCK_REASONS[block]}.` : stays;
+    const stays = `Stays on: ${teacher} needs at least one way to change ${student}.`;
+    return blocked
+      ? `${stays} Retraining ${student} itself ${BLOCK_REASONS[block]}.${keyHint(block)}`
+      : stays;
   }
   return blocked ? BLOCK_NOTES[block] : explanation(type, teacher);
 }

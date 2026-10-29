@@ -50,7 +50,13 @@ export function HuggingFaceRow() {
         <SettingsRow
           icon={<ProviderMark name="Hugging Face" />}
           label="Hugging Face"
-          meta={token.status === 'success' ? tokenSourceText(token.data.source) : undefined}
+          meta={
+            token.status !== 'success' ? undefined : token.data.source === null ? (
+              <WhereToGetOne />
+            ) : (
+              tokenSourceText(token.data.source)
+            )
+          }
           error={errorOf(token)}
         >
           {token.status === 'error' ? (
@@ -81,6 +87,30 @@ export function HuggingFaceRow() {
       <HubTokenDialog open={adding} onOpenChange={setAdding} source={source ?? null} />
     </>
   );
+}
+
+/**
+ * What the row says while there is no token, for a person sent here to add the key: Hugging Face
+ * calls its keys tokens, and a free account gives you one at its page, which the line opens.
+ */
+export function WhereToGetOne({ onOpen = openTokensPage }: { onOpen?: () => void }) {
+  return (
+    <>
+      No token yet. Hugging Face calls its keys tokens, and a free account gives you one at{' '}
+      <button
+        type="button"
+        onClick={onOpen}
+        className="rounded-xs text-fg-secondary underline underline-offset-4 transition-colors duration-150 hover:text-fg"
+      >
+        huggingface.co/settings/tokens
+      </button>
+      .
+    </>
+  );
+}
+
+function openTokensPage(): void {
+  void attempt("Couldn't open the page", () => architect().app.openLink(HUB_TOKENS_PAGE));
 }
 
 /** What the dialog says of a token saved here: what it needs, where it's kept, what it replaces. */
@@ -157,11 +187,7 @@ function HubTokenDialog({
               variant="ghost"
               size="md"
               className="mr-auto"
-              onClick={() =>
-                void attempt("Couldn't open the page", () =>
-                  architect().app.openLink(HUB_TOKENS_PAGE),
-                )
-              }
+              onClick={openTokensPage}
             >
               <ExternalLink size={14} aria-hidden />
               Get a token

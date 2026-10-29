@@ -44,10 +44,21 @@ export function weightsBlock(job: Job, facts: WeightsFacts): WeightsBlock | null
   return null;
 }
 
+/** Where a person gets the Hugging Face key, said once wherever it is named as missing. */
+export const FREE_KEY = 'A free Hugging Face account gives you one.';
+
+/**
+ * What follows a sentence that says why weights can't be trained: where the key comes from when
+ * the key is what is missing, with the space that joins it to that sentence, else nothing.
+ */
+export function keyHint(block: WeightsBlock): string {
+  return block === 'no_token' ? ` ${FREE_KEY}` : '';
+}
+
 /** What a row says in place of its explanation while weights are on and can't be trained. */
 export const BLOCK_NOTES: Record<WeightsBlock, string> = {
   online_test: "Can't run while the final test is online",
-  no_token: 'Needs a Hugging Face key',
+  no_token: `Needs a Hugging Face key. ${FREE_KEY}`,
   no_budget: 'This job has no budget for training',
 };
 
