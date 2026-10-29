@@ -223,7 +223,7 @@ test('the last switch that changes the agent stays on, and Start training says w
   await expect(weights).toBeChecked();
   await expect(weights).toBeDisabled();
   await expect(section).toContainText(
-    'Stays on: the only way left to change the agent. Retraining Glimmer itself needs a Hugging Face key.',
+    'Stays on: Spark needs at least one way to change Glimmer. Retraining Glimmer itself needs a Hugging Face key. A free Hugging Face account gives you one.',
   );
   await closeAdvanced(page, advanced);
   expect((await savedJob(page)).interventions).toEqual(['weights']);
@@ -231,7 +231,7 @@ test('the last switch that changes the agent stays on, and Start training says w
   const needs = page.getByRole('region', { name: 'Before it can start' });
   await expect(needs).toContainText('Spark has nothing it may change');
   await expect(needs).toContainText(
-    'Only retraining Glimmer itself is on, and it needs a Hugging Face key.',
+    'Only retraining Glimmer itself is on, and it needs a Hugging Face key. A free Hugging Face account gives you one.',
   );
   await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
   // The footer says the same, beside the button that is held.
@@ -278,7 +278,7 @@ test('a run whose teacher may change nothing ends at once, with the reason and n
     // In plain words, from the job and what the app knows: what is off, what is missing, and that
     // nothing was spent. None of the engine's words for its own parts.
     await expect(notice).toContainText(
-      'Every kind of change Spark may make is turned off for this job, except retraining Glimmer itself, which needs a Hugging Face key. Nothing was spent.',
+      'Every kind of change Spark may make is turned off for this job, except retraining Glimmer itself, which needs a Hugging Face key. A free Hugging Face account gives you one. Nothing was spent.',
     );
     await expect(notice).not.toContainText(/mentor|stand-in|adapter|backend/i);
     await capture(page, `teacher-idle-${theme}`);
@@ -296,8 +296,9 @@ test('a run whose teacher may change nothing ends at once, with the reason and n
   await page.keyboard.press('Escape');
   await expect(settings).toBeHidden();
 
-  // Its other button goes to the job with the teacher's tab open.
-  await notice.getByRole('button', { name: "Open Spark's settings" }).click();
+  // Its other button is an action, and goes to the job with the teacher's tab open.
+  await expect(notice.getByRole('button', { name: "Open Spark's settings" })).toHaveCount(0);
+  await notice.getByRole('button', { name: 'Turn a change back on' }).click();
   await expect(page).toHaveURL(new RegExp(`#/jobs/${jobId}/define$`));
   const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
   await expect(advanced.getByRole('region', { name: 'What Spark may change' })).toBeVisible();

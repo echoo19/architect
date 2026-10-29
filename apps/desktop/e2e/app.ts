@@ -120,7 +120,7 @@ export function updateSettings(page: Page, patch: Partial<AppSettings>): Promise
  * can't fit a round in it, the way a person would: its first button sets a limit a round fits in.
  */
 export async function allowMoreTime(page: Page): Promise<void> {
-  const callout = page.getByRole('status').filter({ hasText: "won't get to teach" });
+  const callout = page.getByRole('status').filter({ hasText: 'Not even one round of teaching' });
   await callout.getByRole('button', { name: /^Allow \d+ hours?$/ }).click();
   await expect(callout).toHaveCount(0);
 }
