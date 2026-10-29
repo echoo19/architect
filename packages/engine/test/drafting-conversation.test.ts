@@ -167,6 +167,26 @@ describe('starting the conversation', () => {
     }
   });
 
+  it('tells the teacher a value that is cut short as something no row it was not shown writes', async () => {
+    // The first row's id is 37 A's and LONG; row 5 writes, as its own id, what that is cut to.
+    const dots = `${'A'.repeat(37)}...`;
+    const ids = [
+      `${'A'.repeat(37)}LONG`,
+      ...['B-2', 'B-3', 'B-4', 'B-5'],
+      dots,
+      ...Array.from({ length: 114 }, (_, index) => `C-${index}`),
+    ];
+    const csv = `id,amount\n${ids.map((id, index) => `${id},${(10 + index * 1.25).toFixed(2)}`).join('\n')}\n`;
+    world.mentor.script = () => question('Which record matters most?', ['A', 'B']);
+    await world.drafting.start('A ledger', [world.attach('ledger.csv', csv)], TEACHER);
+    const sent = world.mentor.requests.map(textOf).join('\n');
+    expect(sent).not.toContain(dots);
+    // It is still cut, one character shorter, in the first rows and in the examples.
+    const shorter = `${'A'.repeat(36)}...`;
+    expect(sent).toContain(`First rows (id | amount):\n${shorter} | 10.00`);
+    expect(sent).toContain(`Examples: ${shorter} | B-2`);
+  });
+
   it('will not read part of a long policy: it asks for the section that matters instead', async () => {
     const policy = `# Policy\n\n${'A rule that goes on. '.repeat(1_600)}\nEXCEPTION-AT-THE-END-4417`;
     expect(policy.length).toBeGreaterThan(DRAFTING_LIMITS.maxTextChars);

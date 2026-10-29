@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { agreed, currencyName, marksIn } from '../src/drafting/rule/currency';
 import {
+  cutShort,
   examplesOf,
+  outsideOf,
   readTable,
   kindOf,
   profileColumn,
@@ -398,7 +400,96 @@ describe('what the teacher is shown of a column', () => {
     );
     const examples = examplesOf(odd, 'note', new Set([0, 1, 2, 3, 4, 5, 6, 7]));
     expect(examples).toHaveLength(5);
-    expect(examples[0]).toBe(`${'x'.repeat(39)}...`);
+    // Cut to forty characters, the dots among them.
+    expect(examples[0]).toBe(`${'x'.repeat(37)}...`);
     expect(examples).not.toContain('');
+  });
+
+  describe('a value cut short', () => {
+    // A first-row id of 37 A's and LONG is cut to 37 A's and "...", which is also what another
+    // row, one the teacher is not shown, writes as its own id.
+    const dots = `${'A'.repeat(37)}...`;
+    const long = `${'A'.repeat(37)}LONG`;
+    const ids = [
+      long,
+      'B-2',
+      'B-3',
+      'B-4',
+      'B-5',
+      dots,
+      ...Array.from({ length: 34 }, (_, i) => `C-${i}`),
+    ];
+    const table = readTable(
+      'ids.csv',
+      ['id,amount', ...ids.map((id, i) => `${id},${100 + i}`)].join('\n'),
+    );
+
+    it('is never what a row the teacher is not shown writes', () => {
+      const examples = examplesOf(table, 'id', firstFive);
+      expect(examples).not.toContain(dots);
+      // It is cut one character shorter instead, and still says where the value begins.
+      expect(examples[0]).toBe(`${'A'.repeat(36)}...`);
+      expect(examples.slice(1)).toEqual(['B-2', 'B-3', 'B-4', 'B-5']);
+    });
+
+    it('is cut as it always was when no such row writes it', () => {
+      const alone = readTable(
+        'ids.csv',
+        ['id', long, 'B-2', 'B-3', 'B-4', 'B-5', 'C-1'].join('\n'),
+      );
+      expect(examplesOf(alone, 'id', firstFive)[0]).toBe(dots);
+    });
+
+    it('is compared with the rows outside without regard to case, quotes or spacing', () => {
+      const lower = readTable(
+        'ids.csv',
+        ['id', long, 'B-2', 'B-3', 'B-4', 'B-5', `"${'a'.repeat(37)}..."`].join('\n'),
+      );
+      expect(examplesOf(lower, 'id', firstFive)[0]).toBe(`${'A'.repeat(36)}...`);
+    });
+  });
+});
+
+describe('cutting a value short for the teacher', () => {
+  const never = (): ReadonlySet<string> => {
+    throw new Error('Nothing was cut, so nothing outside needed to be read.');
+  };
+
+  it('leaves a value that fits as it is, and reads nothing else', () => {
+    expect(cutShort('short', 40, never)).toBe('short');
+    expect(cutShort('x'.repeat(40), 40, never)).toBe('x'.repeat(40));
+  });
+
+  it('cuts a longer value to the width, dots included', () => {
+    const cut = cutShort('y'.repeat(41), 40, () => new Set());
+    expect(cut).toBe(`${'y'.repeat(37)}...`);
+    expect(cut).toHaveLength(40);
+  });
+
+  it('cuts shorter, one character at a time, while a row outside writes the cut', () => {
+    const outside = new Set([
+      `${'z'.repeat(37)}...`,
+      `${'z'.repeat(36)}...`,
+      `${'z'.repeat(35)}...`,
+    ]);
+    expect(cutShort('z'.repeat(60), 40, () => outside)).toBe(`${'z'.repeat(34)}...`);
+  });
+
+  it('ends in dots no row outside writes, even when every cut is written', () => {
+    const outside = new Set(Array.from({ length: 38 }, (_, keep) => `${'w'.repeat(keep)}...`));
+    outside.add('....');
+    outside.add('.....');
+    expect(cutShort('w'.repeat(60), 40, () => outside)).toBe('......');
+  });
+
+  it('reads what the rows outside write in a column, and no row the teacher is shown', () => {
+    const table = readTable(
+      't.csv',
+      ['code', ' Alpha ', '"Beta"', 'gamma', '', 'delta'].join('\n'),
+    );
+    const outside = outsideOf(table, new Set([0, 1]));
+    expect(outside('code')).toEqual(new Set(['gamma', 'delta']));
+    // Worked out once for a column, and only when it is asked for.
+    expect(outside('code')).toBe(outside('code'));
   });
 });

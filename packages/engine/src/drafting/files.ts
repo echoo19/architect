@@ -2,7 +2,15 @@ import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { basename, extname, resolve } from 'node:path';
 import { DRAFTING_LIMITS, TaskSchema, type DataFile, type Task } from '@architect/shared';
-import { examplesOf, profileColumn, readTable, type ColumnProfile, type Table } from './table';
+import {
+  cutShort,
+  examplesOf,
+  outsideOf,
+  profileColumn,
+  readTable,
+  type ColumnProfile,
+  type Table,
+} from './table';
 import { cleanText } from './values';
 
 /*
@@ -233,10 +241,6 @@ export function shownRowsOf(attached: Attached): Map<string, Set<number>> {
   );
 }
 
-function clip(text: string, width: number): string {
-  return text.length > width ? `${text.slice(0, width - 3)}...` : text;
-}
-
 function describeColumn(profile: ColumnProfile, examples: readonly string[]): string {
   const kind =
     profile.kind === 'number'
@@ -259,7 +263,8 @@ function describeColumn(profile: ColumnProfile, examples: readonly string[]): st
 /**
  * What the teacher is told of a table: its shape, each column and the first rows. The columns
  * are told in counts and in examples of `examplesOf`, so no spelling that only one row the teacher
- * is not shown (`shownRowsOfTable`) writes reaches it.
+ * is not shown (`shownRowsOfTable`) writes reaches it. A cell too long to show is cut so that it
+ * does not read as what such a row writes (`cutShort`).
  */
 export function describeTable(file: Attachment, budget: number): string {
   const table = file.table;
@@ -276,10 +281,15 @@ export function describeTable(file: Attachment, budget: number): string {
         ]
       : [];
   const rowColumns = table.columns.slice(0, WIDE_ROWS);
+  const outside = outsideOf(table, rowsShown);
   const rows = [...rowsShown]
     .sort((a, b) => a - b)
     .map((at) =>
-      rowColumns.map((column) => clip(cleanText(table.rows[at]?.[column]), CELL_WIDTH)).join(' | '),
+      rowColumns
+        .map((column) =>
+          cutShort(cleanText(table.rows[at]?.[column]), CELL_WIDTH, () => outside(column)),
+        )
+        .join(' | '),
     );
   const text = [
     `### ${file.name} (a table)`,
@@ -290,7 +300,12 @@ export function describeTable(file: Attachment, budget: number): string {
     `First rows (${rowColumns.join(' | ')}):`,
     ...rows,
   ].join('\n');
-  return text.length > budget ? `${text.slice(0, budget - 40)}\n[The rest is left out.]` : text;
+  if (text.length <= budget) return text;
+  // Cut between lines, since a line cut in the middle would end in part of a cell, which can read
+  // as the whole of what another row writes.
+  const kept = text.slice(0, budget - 40);
+  const whole = kept.lastIndexOf('\n');
+  return `${whole > 0 ? kept.slice(0, whole) : kept}\n[The rest is left out.]`;
 }
 
 /**

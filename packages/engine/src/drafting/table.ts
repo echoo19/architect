@@ -131,8 +131,47 @@ const EXAMPLES = 5;
 const FEW_VALUES = 12;
 const EXAMPLE_WIDTH = 40;
 
-function shortened(text: string): string {
-  return text.length > EXAMPLE_WIDTH ? `${text.slice(0, EXAMPLE_WIDTH - 1)}...` : text;
+/**
+ * What the rows outside `shown` write in each column, cleaned and without regard to case, worked
+ * out the first time a column is asked for. It is what a value cut short for the teacher must not
+ * read as (`cutShort`).
+ */
+export function outsideOf(
+  table: Table,
+  shown: ReadonlySet<number>,
+): (column: string) => ReadonlySet<string> {
+  const known = new Map<string, ReadonlySet<string>>();
+  return (column) => {
+    const seen = known.get(column);
+    if (seen !== undefined) return seen;
+    const values = new Set<string>();
+    for (const [at, row] of table.rows.entries()) {
+      const key = shown.has(at) ? '' : foldKey(row[column]);
+      if (key !== '') values.add(key);
+    }
+    known.set(column, values);
+    return values;
+  };
+}
+
+/**
+ * A value as the teacher reads it: whole when it fits in `width` characters, else cut short and
+ * ended with "...". A cut is no value of the column, but it can read as one, and a cut that reads
+ * exactly as what a row outside `shown` writes would tell the teacher that row's value in the
+ * place of another's. So such a cut is made shorter until no row outside writes it. `outside` is
+ * asked for only when a value is cut.
+ */
+export function cutShort(text: string, width: number, outside: () => ReadonlySet<string>): string {
+  if (text.length <= width) return text;
+  const written = outside();
+  for (let keep = width - 3; keep >= 0; keep -= 1) {
+    const cut = `${text.slice(0, keep)}...`;
+    if (!written.has(foldKey(cut))) return cut;
+  }
+  // Every cut is written by some row outside, so the dots are made longer until none is.
+  let cut = '....';
+  while (written.has(foldKey(cut))) cut += '.';
+  return cut;
 }
 
 /** What a column holds, counted: nothing of any one row, so it can be said to anyone. */
@@ -184,7 +223,8 @@ interface Spelling {
  * with a few values (a status, a region) lists those it has in common, which a filter needs.
  * `CaseX` in one row and `casex` in another are one value but two spellings, each the exact answer
  * of one row, and neither is listed unless the teacher is shown that row. Any other column gives
- * the values of the rows in `shown`.
+ * the values of the rows in `shown`. A long value is cut short (`cutShort`), never to the text of
+ * a row outside `shown`.
  */
 export function examplesOf(table: Table, column: string, shown: ReadonlySet<number>): string[] {
   const values = new Map<string, { count: number; spellings: Map<string, Spelling> }>();
@@ -224,7 +264,10 @@ export function examplesOf(table: Table, column: string, shown: ReadonlySet<numb
     }
     chosen = [...fromShown];
   }
-  return chosen.slice(0, EXAMPLES).map(shortened);
+  const outside = outsideOf(table, shown);
+  return chosen
+    .slice(0, EXAMPLES)
+    .map((text) => cutShort(text, EXAMPLE_WIDTH, () => outside(column)));
 }
 
 /** A number read from a cell that has to hold one: blank, a number, or a word that isn't one. */
