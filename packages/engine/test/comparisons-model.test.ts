@@ -9,6 +9,7 @@ import {
   modelInputs,
   needsConfirmation,
   paired,
+  pairedDifference,
   parseGpuMemory,
   parseProcessMemory,
   project,
@@ -56,6 +57,98 @@ describe('paired counts', () => {
     ]);
     expect(paired(a, b)).toEqual({ scenarios: 4, aOnly: 1, bOnly: 1, both: 1, neither: 1 });
     expect(paired(b, a)).toEqual({ scenarios: 4, aOnly: 1, bOnly: 1, both: 1, neither: 1 });
+  });
+});
+
+describe("the paired difference with Newcombe's hybrid score interval (method 10)", () => {
+  // Newcombe RG, Statistics in Medicine 1998; 17: 2635-2650, Table III: the 95 per cent limits of
+  // method 10 for tables of e both, f only the first, g only the second and h neither. The first
+  // arm's pass rate less the second's is (f - g) / n. The paper prints four decimals.
+  const PUBLISHED: [number, number, number, number, number, number][] = [
+    // e, f, g, h, lower, upper
+    [36, 12, 2, 0, 0.0569, 0.3404],
+    [20, 12, 2, 16, 0.0562, 0.3292],
+    [18, 12, 2, 18, 0.0562, 0.329],
+    [36, 14, 0, 0, 0.1528, 0.4167],
+    [35, 14, 0, 1, 0.1461, 0.4175],
+    [18, 14, 0, 18, 0.1441, 0.3963],
+    [2, 97, 1, 0, 0.8721, 0.9854],
+    // The paper prints 0.8736 for method 10 here, and 0.8737 for method 8. The two methods give
+    // the same interval whenever e*h is not above f*g, as here, and the lower limit is 0.87367.
+    [1, 97, 1, 1, 0.8737, 0.985],
+    [0, 29, 1, 0, 0.6666, 0.9882],
+    [2, 98, 0, 0, 0.9178, 0.9945],
+    [1, 98, 0, 1, 0.9171, 0.9916],
+    // Every scenario a win.
+    [0, 30, 0, 0, 0.8395, 1],
+    // No wins and no losses: the interval is not a point, whatever e and h are.
+    [54, 0, 0, 0, -0.0664, 0.0664],
+    [53, 0, 0, 1, -0.0729, 0.0729],
+    [30, 0, 0, 24, -0.0358, 0.0358],
+    [29, 0, 0, 25, -0.0354, 0.0354],
+    [28, 0, 0, 26, -0.0352, 0.0352],
+    [27, 0, 0, 27, -0.0351, 0.0351],
+  ];
+
+  it.each(PUBLISHED)(
+    'gives the published interval for e=%i, f=%i, g=%i, h=%i',
+    (both, aOnly, bOnly, neither, low, high) => {
+      const difference = pairedDifference({ aOnly, bOnly, both, neither });
+      expect(difference?.rate).toBeCloseTo((aOnly - bOnly) / (both + aOnly + bOnly + neither), 12);
+      expect(difference?.low).toBeCloseTo(low, 4);
+      expect(difference?.high).toBeCloseTo(high, 4);
+    },
+  );
+
+  it('works one out by hand: all wins, with the first arm passing everything and the second nothing', () => {
+    // Sixty wins. Neither arm's pass rate varies with the other's, since a margin is empty (phi is
+    // 0), so each end is the difference moved by the two Wilson distances added in quadrature:
+    // 1 - sqrt(2) * (1 - 0.9398) at the bottom, and nothing above 1.
+    const low = 1 - Math.SQRT2 * (1 - (wilson(60, 60)?.low ?? 0));
+    expect(pairedDifference({ aOnly: 60, bOnly: 0, both: 0, neither: 0 })).toEqual({
+      rate: 1,
+      low: expect.closeTo(low, 12),
+      high: 1,
+    });
+    expect(low).toBeCloseTo(0.9149, 4);
+  });
+
+  it('works one out by hand: no wins and no losses still leaves an interval', () => {
+    // Thirty scenarios both pass and thirty neither pass: 50% each, perfectly correlated. Phi is
+    // (30*30 - 30) / 30*30 once method 10 takes n/2 off its numerator; each Wilson distance is
+    // 0.5 less the lower limit of 30 in 60.
+    const phi = (30 * 30 - 30) / (30 * 30);
+    const distance = 0.5 - (wilson(30, 60)?.low ?? 0);
+    const reach = Math.sqrt(2 * distance * distance * (1 - phi));
+    const difference = pairedDifference({ aOnly: 0, bOnly: 0, both: 30, neither: 30 });
+    expect(difference?.rate).toBe(0);
+    expect(difference?.low).toBeCloseTo(-reach, 12);
+    expect(difference?.high).toBeCloseTo(reach, 12);
+    expect(reach).toBeCloseTo(0.0317, 4);
+  });
+
+  it('is the mirror image when the arms swap, and stays inside minus one and one', () => {
+    for (const [both, aOnly, bOnly, neither] of [
+      [34, 11, 9, 6],
+      [42, 3, 5, 10],
+      [43, 17, 0, 0],
+      [0, 0, 60, 0],
+      [1, 0, 0, 0],
+    ] as const) {
+      const forward = pairedDifference({ aOnly, bOnly, both, neither });
+      const back = pairedDifference({ aOnly: bOnly, bOnly: aOnly, both, neither });
+      expect(forward?.rate).toBeCloseTo(-(back?.rate ?? NaN), 12);
+      expect(forward?.low).toBeCloseTo(-(back?.high ?? NaN), 12);
+      expect(forward?.high).toBeCloseTo(-(back?.low ?? NaN), 12);
+      expect(forward?.low ?? -2).toBeGreaterThanOrEqual(-1);
+      expect(forward?.high ?? 2).toBeLessThanOrEqual(1);
+      expect(forward?.low ?? 1).toBeLessThanOrEqual(forward?.rate ?? 0);
+      expect(forward?.high ?? -1).toBeGreaterThanOrEqual(forward?.rate ?? 0);
+    }
+  });
+
+  it('has no interval when no scenario was paired', () => {
+    expect(pairedDifference({ aOnly: 0, bOnly: 0, both: 0, neither: 0 })).toBeNull();
   });
 });
 
