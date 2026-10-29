@@ -11,8 +11,8 @@ It's meant for repetitive work on data you'd rather not send to a cloud model ev
 By default the teacher is Muse Spark 1.3, through Meta's API, and the small model is Muse Glimmer, a 30-billion-parameter open model that runs on your PC through Ollama. You can swap either one.
 
 <picture>
-  <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/flow-round-light.png">
-  <img alt="A round of training: Spark's diagnosis, the change it made, and how many check requests passed before and after" src="docs/screenshots/flow-round-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/comparisons/screens/returns-desk-2-round-1-light.png">
+  <img alt="Round 1 of a real training run: Spark's diagnosis of the shop's messy records, the helper it changed, and the check requests that passed before and after, measured twice" src="docs/comparisons/screens/returns-desk-2-round-1-dark.png">
 </picture>
 
 ## Install
@@ -85,6 +85,11 @@ Comparison 2 was planned after seeing comparison 1, and [the plan](docs/comparis
 Teaching reached the job's 95% target on the check requests after four rounds and stopped there. It kept two changes, both to Glimmer's tools, so they read the shop's messy records correctly: amounts written with currency signs and commas, and values wrapped in quotes. On the final test Glimmer then passed 58 of 60. Request by request, teaching fixed 15 of Glimmer's misses and broke 1 of its right answers: 23 points better, with a 95% interval of 11 to 36 points, so by the plan's own rule the gain is real. It also made answers much faster: 3.5 s for a typical one and 4.8 s for the slowest one in twenty, against 17.7 s and 42.7 s.
 
 Spark's one-shot setup scored 38, lower than Glimmer on its own, though not by a clear margin. The gain came from the rounds: teaching started from that same setup and beat it on 20 requests while losing none. The whole comparison cost $0.42 of Spark and $3.38 of online Glimmer. The agent it made is the one under **Try a ready-made agent**.
+
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/comparisons/screens/returns-desk-2-results-light.png">
+  <img alt="The results page of comparison 2's taught agent: 58 of 60 on the final test, a typical answer in 3.5 seconds, the score for each kind of request, and Glimmer untouched at 44 of 60" src="docs/comparisons/screens/returns-desk-2-results-dark.png">
+</picture>
 
 ### Service desk, with the first version of the tools
 
