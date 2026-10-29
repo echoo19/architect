@@ -43,7 +43,7 @@ export function ReportMock() {
       id="test"
       label="The Architect results for the Service desk agent, marked Ready. The agent took a final test of tasks it had never seen, offline, with Spark disconnected. Its results are shown by type of task as bars, with Spark's own score beside each bar and an amber mark on it."
       heightWide={735}
-      heightCompact={640}
+      heightCompact={715}
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 flex flex-col wide:inset-x-7 wide:top-6">
         <FlowBar title="Service desk" current={3} />
@@ -68,7 +68,7 @@ export function ReportMock() {
                 Service desk graduated
               </Heading>
               <p
-                className="a a-up m-0 max-w-[660px] text-lg text-fg-secondary text-pretty narrow:hidden"
+                className="a a-up m-0 max-w-[660px] text-lg text-fg-secondary text-pretty narrow:text-md"
                 style={at(1000, { dy: 12 })}
               >
                 Tested on 60 tasks it had never seen, offline on this computer, with Spark
@@ -139,7 +139,7 @@ export function ReportMock() {
                           <span className="text-fg">{capability.pass}</span> of {capability.total}
                           {capability.spark !== undefined && (
                             <span className="font-sans text-mentor">
-                              {' · '}Spark {capability.spark} of {capability.total}
+                              {' · '}Spark itself {capability.spark} of {capability.total}
                             </span>
                           )}
                         </span>

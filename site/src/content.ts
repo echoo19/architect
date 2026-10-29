@@ -67,6 +67,9 @@ export const CHAPTERS: readonly ChapterCopy[] = [
 
 export const CLOSING = {
   title: 'Get Architect.',
+  /** What a first run asks for, as the README says it. */
+  needs:
+    'On the first run, Architect downloads Glimmer. The recommended 17 GB needs about 20 GB of graphics memory, and a 14 GB build is made for 12 GB graphics cards. You also need Ollama, and an API key for Spark.',
   github: 'View the code on GitHub',
 } as const;
 

@@ -27,9 +27,9 @@ export interface Results {
 }
 
 export const RESULTS: Results = {
-  title: 'Measured on a real run',
+  title: 'Measured results',
   scope:
-    'The report above is a made-up job. These numbers were measured on one made-up business, a returns desk, with Glimmer served online.',
+    'The report above is a made-up job. These numbers were measured on one made-up business, a returns desk, with Glimmer served online. The smaller build that runs on your computer has not taken this test.',
   test: '60 requests it had never seen',
   rows: [
     { label: 'Glimmer on its own', passed: 44, total: 60 },
@@ -44,7 +44,7 @@ export const RESULTS: Results = {
   findings: [
     "Request by request, teaching fixed 15 of Glimmer's misses and broke 1 of its right answers.",
     'On the online copy, a typical answer took 3.5 s after teaching, against 17.7 s before.',
-    'The gain came from the rounds where Spark watched Glimmer fail.',
+    'The setup Spark wrote without watching Glimmer scored below Glimmer alone. The gain came from the rounds where Spark watched Glimmer fail.',
     'Teaching cost 42 cents of Spark.',
   ],
   reports: 'Read the full reports',

@@ -30,7 +30,7 @@ export function UseMock() {
       id="use"
       label="The Architect workspace. The agent has read two files and worked out an invoice. It wants to add a row to invoices.csv, and the row is shown with Deny and Allow once. Nothing is saved until the person answers."
       heightWide={664}
-      heightCompact={730}
+      heightCompact={765}
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 flex wide:inset-x-7 wide:top-6">
         <Sidebar agents={AGENTS} className="narrow:hidden" />
@@ -45,7 +45,6 @@ export function UseMock() {
                 <Steps
                   header="Worked for 38 s · 2 steps"
                   steps={STEPS}
-                  hideOnNarrow={[1]}
                   headerStyle={at(1000, { dy: 10 })}
                   headerClassName="a a-up"
                   stepClassName="a a-wipe"

@@ -170,7 +170,7 @@ function Fact({
 }) {
   return (
     <div
-      className="a a-up grid grid-cols-[112px_minmax(0,1fr)] gap-4 border-t border-line py-3.5 narrow:grid-cols-[88px_minmax(0,1fr)] narrow:gap-3"
+      className="a a-up grid grid-cols-[112px_minmax(0,1fr)] gap-4 border-t border-line py-3.5 narrow:grid-cols-[72px_minmax(0,1fr)] narrow:gap-2.5"
       style={style}
     >
       <dt className="text-fg-muted">{label}</dt>
@@ -223,7 +223,7 @@ function LessonLayer() {
 function SavedLayer() {
   return (
     <div className="absolute inset-0 flex flex-col gap-7 px-6 pt-7">
-      <div role="status" className="flex flex-col items-start gap-4">
+      <div role="status" className="flex flex-col items-start gap-4 narrow:flex-row narrow:gap-3">
         <div className="a a-pop" style={at(SAVED + 100, { dur: 420 })}>
           <StatusMark state="ok" size={24} />
         </div>
@@ -241,12 +241,14 @@ function SavedLayer() {
           </p>
         </div>
       </div>
-      <div className="a a-up flex flex-col gap-2" style={at(SAVED + 850, { dy: 12 })}>
-        <span className="text-sm text-fg-muted">Lesson</span>
-        <p className="m-0 border-l-2 border-line-control pl-4 text-fg-secondary text-pretty">
+      <dl className="m-0 flex flex-col">
+        <Fact label="You said" style={at(SAVED + 800, { dy: 12 })}>
+          {WRONG}
+        </Fact>
+        <Fact label="Lesson" style={at(SAVED + 950, { dy: 12 })}>
           {LESSON_TEXT}
-        </p>
-      </div>
+        </Fact>
+      </dl>
       <ul aria-label="Versions" className="m-0 flex list-none flex-col p-0">
         <li className="a a-up" style={at(SAVED + 1100, { dy: 12 })}>
           <SettingsRow
@@ -345,7 +347,7 @@ function Drawer() {
       <div className="flex min-h-[60px] shrink-0 items-start gap-3 border-b border-line-card py-2.5 pl-6 pr-3">
         <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1.5">
           <h3 className="m-0 text-md font-medium">Teach this</h3>
-          <span className="truncate text-sm text-fg-muted">
+          <span className="truncate text-sm text-fg-muted narrow:hidden">
             Reply to &quot;Who still owes us money from September?&quot;
           </span>
         </div>
@@ -373,8 +375,8 @@ export function TeachMock() {
     <ChapterStage
       id="teach"
       label="The Architect workspace with Teach this open. The person flagged a reply about who owes money, wrote what was wrong, and Spark turned it into a lesson: count an invoice as overdue only when it is unpaid and past its due date. It is saved as version 3. Version 2 keeps answering until the person uses version 3."
-      heightWide={670}
-      heightCompact={760}
+      heightWide={690}
+      heightCompact={800}
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 wide:inset-x-7 wide:top-6">
         <div className="absolute inset-0 flex narrow:hidden">
