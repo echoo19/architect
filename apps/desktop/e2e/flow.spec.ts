@@ -34,6 +34,8 @@ const WIDTH = 1440;
 const DEFINE_HEIGHT = 1580;
 const TRAIN_HEIGHT = 1270;
 const REPORT_HEIGHT = 2060;
+/** The results with a rule's whole expression open, which runs a hundred lines down the page. */
+const RULE_REPORT_HEIGHT = 3600;
 const THEMES = ['dark', 'light'] as const;
 
 test.describe.configure({ mode: 'serial' });
@@ -88,6 +90,14 @@ async function applySettings(page: Page, patch: Parameters<typeof updateSettings
  * to a job where it does, and the test about that limit starts from the job as it ships.
  */
 const roomy: Job = { ...job, budget: { ...job.budget, maxWallMinutes: 1_200 } };
+
+/** Hours rounded up to the half hour, which the rule of the results page does first. */
+const BILLED_HOURS = {
+  op: 'round' as const,
+  arg: { op: 'col' as const, column: 'labor_hours', from: 'row' as const },
+  increment: '0.5',
+  mode: 'up' as const,
+};
 
 async function stubFlow(base: Job = roomy): Promise<void> {
   const { app } = launched;
@@ -485,7 +495,7 @@ for (const theme of THEMES) {
             label: 'Ticket totals',
             version: '2a3e028da93a',
             statement:
-              'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up.',
+              'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, half a cent rounds up.',
             passages: [
               { file: 'policy.md', passage: 'Labor is billed at $65 an hour, in half-hour steps.' },
               { file: 'policy.md', passage: 'Members get 10% off labor, never off parts.' },
@@ -506,14 +516,42 @@ for (const theme of THEMES) {
               { label: 'member (customers.csv) is no', cases: 68, changes: 68 },
             ],
             flags: [
-              'The rounding step (to the nearest cent, halves going up) never changed a value in your records, so no task shows it at work.',
+              'The rounding step (to the nearest cent, half a cent rounds up) never changed a value in your records, so no task shows it at work.',
             ],
             confirmedAt: '2026-10-29T12:00:00.000Z',
+            // The rule the statement says, as the engine holds it: labor in half hours, a tenth
+            // off for a member, plus the parts, to the cent.
             expression: {
               op: 'round' as const,
-              arg: { op: 'col' as const, column: 'parts_cost', from: 'row' as const },
               increment: '0.01',
               mode: 'half_up' as const,
+              arg: {
+                op: 'add' as const,
+                args: [
+                  {
+                    op: 'if' as const,
+                    when: {
+                      test: 'equals' as const,
+                      column: 'member',
+                      from: 'lookup' as const,
+                      value: 'yes',
+                    },
+                    then: {
+                      op: 'mul' as const,
+                      args: [
+                        BILLED_HOURS,
+                        { op: 'num' as const, value: '65' },
+                        { op: 'num' as const, value: '0.9' },
+                      ],
+                    },
+                    else: {
+                      op: 'mul' as const,
+                      args: [BILLED_HOURS, { op: 'num' as const, value: '65' }],
+                    },
+                  },
+                  { op: 'col' as const, column: 'parts_cost', from: 'row' as const },
+                ],
+              },
             },
           },
         ],
@@ -551,8 +589,29 @@ for (const theme of THEMES) {
       'member (customers.csv) is yes: 40 cases, 40 where it changed',
     );
     await expect(page.getByText(/^Teaching (ran for|did not run)/)).toBeVisible();
+    // The tag says where the answer came from, apart from the answer and not run on from it.
+    const answer = await rule.getByText('No, labor only', { exact: true }).boundingBox();
+    const tag = await rule.getByText('your answer', { exact: true }).boundingBox();
+    expect(answer && tag).toBeTruthy();
+    expect(tag!.x).toBeGreaterThanOrEqual(answer!.x + answer!.width + 16);
+
+    // The rule exactly as Architect evaluates it is all there, down the page: nothing of it is cut
+    // off by a height, and it is the rule the sentence above it says.
     await rule.getByRole('button', { name: 'The rule exactly as Architect evaluates it' }).click();
-    await expect(rule).toContainText('"column": "parts_cost"');
+    const exact = rule.getByRole('region', { name: 'Rule expression' });
+    for (const part of [
+      '"column": "labor_hours"',
+      '"value": "65"',
+      '"value": "0.9"',
+      '"value": "yes"',
+      '"column": "parts_cost"',
+    ]) {
+      await expect(exact).toContainText(part);
+    }
+    expect(await exact.evaluate((block) => block.scrollHeight > block.clientHeight + 1)).toBe(
+      false,
+    );
+    await resize(RULE_REPORT_HEIGHT);
     await capture(page, `flow-report-rule-${theme}`);
   });
 }
