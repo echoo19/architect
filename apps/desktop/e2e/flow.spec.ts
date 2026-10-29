@@ -82,9 +82,16 @@ async function applySettings(page: Page, patch: Parameters<typeof updateSettings
   await page.waitForLoadState('domcontentloaded');
 }
 
-async function stubFlow(): Promise<void> {
+/**
+ * The job with time to spare: training on this computer fits in it. Start training waits where the
+ * place a job trains at can't fit a round in its time limit, so a test about anything else keeps
+ * to a job where it does, and the test about that limit starts from the job as it ships.
+ */
+const roomy: Job = { ...job, budget: { ...job.budget, maxWallMinutes: 1_200 } };
+
+async function stubFlow(base: Job = roomy): Promise<void> {
   const { app } = launched;
-  await stubEngine(app, FLOW_ENGINE);
+  await stubEngine(app, { ...FLOW_ENGINE, 'jobs:get': base, 'jobs:save': base });
   await stubSequence(app, 'jobs:draftReply', turns.replies);
   await stubByKey(app, 'reports:get', reports);
   await stubRecorded(app, 'runs:start', startedRun);
@@ -95,7 +102,7 @@ async function stubFlow(): Promise<void> {
 for (const theme of THEMES) {
   test(`walks from a description to a graduate (${theme})`, async () => {
     const { app, page } = launched;
-    await stubFlow();
+    await stubFlow(job);
     // Comparison mode is a researcher's setting, so the screens that get captured leave it off.
     await applySettings(page, { theme, onboarded: true, comparisonMode: false });
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
@@ -157,9 +164,8 @@ for (const theme of THEMES) {
     // Nothing offers a setting that does nothing: the agent can't open files outside its job.
     await expect(page.getByText('Opening files outside the job')).toHaveCount(0);
 
-    // With the teacher's key saved and the model on this computer, nothing stands in the way.
+    // With the teacher's key saved and the model on this computer, nothing is missing.
     await expect(page.getByRole('heading', { name: 'Before it can start' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
 
     // Each place says how fast it practices and where the files go; this computer is too slow.
     const local = page.getByRole('radio', { name: /Train on this computer/ });
@@ -169,8 +175,18 @@ for (const theme of THEMES) {
     await expect(local).toContainText('Slower: about 2.5 minutes a task');
     await expect(local).toContainText('Free. Nothing leaves this computer.');
     await expect(local).toContainText('Too slow for the 4-hour limit');
-    // A place too slow for the limit offers the setting that would let it train.
-    await page.getByRole('button', { name: 'Allow more time' }).click();
+    // The place chosen can't fit a round, so one callout by the choice says so in plain words,
+    // Start training waits, and the footer says why.
+    const wont = "Training on this computer won't get to teach in 4 hours";
+    const callout = page.getByRole('status').filter({ hasText: wont });
+    await expect(callout).toContainText(
+      'Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once',
+    );
+    await expect(callout).toContainText("That doesn't fit in the 4 hours allowed");
+    await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
+    await expect(page.getByText(wont, { exact: true })).toHaveCount(2);
+    // Its first button is the setting that would let it train.
+    await callout.getByRole('button', { name: 'Allow more time' }).click();
     const limits = page.getByRole('dialog', { name: 'Advanced settings' });
     await expect(limits.getByRole('heading', { name: 'Time and budget' })).toBeVisible();
     await expect(limits.getByRole('textbox', { name: 'Training time' })).toHaveValue('240');
@@ -188,9 +204,12 @@ for (const theme of THEMES) {
     await expect(time).toContainText(/In all\s*6\.5 h/);
     await expect(cost).not.toContainText('Online practice');
     await expect(cost).toContainText(/Spark\s*Teaching\s*\$0\.70/);
-    // The choices the run below starts with, so every later screen agrees with this one.
-    await hosted.click();
+    // The choices the run below starts with, so every later screen agrees with this one. Its
+    // second button trains online instead, and with that the callout is gone.
+    await callout.getByRole('button', { name: 'Train online instead' }).click();
     await expect(hosted).toBeChecked();
+    await expect(callout).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
     await expect(time).toContainText(/Training\s*5 to 10 rounds online\s*4 h/);
     await expect(time).toContainText(/In all\s*6\.5 h/);
     await expect(cost).toContainText(/Online practice\s*Glimmer practicing online\s*\$3/);
@@ -587,7 +606,8 @@ for (const theme of THEMES) {
 
 test('trains three simpler versions beside the agent when comparison mode is on', async () => {
   const { app, page } = launched;
-  await stubFlow();
+  // The plan's figures are those of the job as it ships, trained online.
+  await stubFlow(job);
   await applySettings(page, { theme: 'dark', onboarded: true, comparisonMode: true });
   await resize(DEFINE_HEIGHT);
   await goTo(page, `/jobs/${FLOW.jobId}/define`);
@@ -924,8 +944,21 @@ test('cannot take the final test online without an online copy to take it on', a
   await applySettings(page, { theme: 'dark', onboarded: true, comparisonMode: false });
   await resize(DEFINE_HEIGHT);
   await goTo(page, `/jobs/${FLOW.jobId}/define`);
-  await page.getByRole('button', { name: 'Advanced settings' }).click();
+
+  // Training here can't fit a round, and there is no online copy to offer instead: the callout
+  // says what online needs, in plain words, and its button goes to where that is chosen.
+  const callout = page.getByRole('status').filter({ hasText: "won't get to teach" });
+  await expect(callout).toContainText(
+    "Online training isn't ready. Pick an online service under Agent's model in Advanced settings.",
+  );
+  await expect(callout.getByRole('button', { name: 'Train online instead' })).toHaveCount(0);
+  await expect(page.getByRole('radio', { name: /Train online/ })).toContainText(
+    'Sends tasks and files online',
+  );
+  await callout.getByRole('button', { name: 'Set up online training' }).click();
   const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+  await expect(advanced.getByRole('heading', { name: "Agent's model" })).toBeVisible();
+
   await advanced.getByRole('tab', { name: 'Ready when' }).click();
   const where = advanced.getByRole('radiogroup', { name: 'Where the final test runs' });
   const online = where.getByRole('radio', { name: /On the online copy/ });

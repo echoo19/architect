@@ -164,6 +164,9 @@ test("a kind switched off in the teacher's tab is still off when the job is open
   // The models a run here can reach: the scripted teacher and a student on this computer.
   await page.evaluate((next) => window.architect.jobs.save(next), {
     ...sample,
+    // Time to spare, so that training here fits and Start training waits for nothing but what a
+    // test is about.
+    budget: { ...sample.budget, maxWallMinutes: 1_200 },
     mentor: teacher,
     student: {
       label: 'Glimmer',

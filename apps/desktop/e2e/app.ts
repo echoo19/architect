@@ -3,7 +3,12 @@ import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { _electron as electron, type ElectronApplication, type Page } from '@playwright/test';
+import {
+  _electron as electron,
+  expect,
+  type ElectronApplication,
+  type Page,
+} from '@playwright/test';
 import type { AppSettings } from '@architect/shared';
 
 /** No trailing separator: on Windows a trailing backslash would escape the closing quote. */
@@ -108,6 +113,19 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
 
 export function updateSettings(page: Page, patch: Partial<AppSettings>): Promise<AppSettings> {
   return page.evaluate((next) => window.architect.settings.update(next), patch);
+}
+
+/**
+ * Raises the training time on the Define screen through the callout that says the place chosen
+ * can't fit a round in it, the way a person would, and closes the settings it opens.
+ */
+export async function allowMoreTime(page: Page, minutes = 1_200): Promise<void> {
+  await page.getByRole('button', { name: 'Allow more time' }).click();
+  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+  await advanced.getByRole('textbox', { name: 'Training time' }).fill(String(minutes));
+  await expect(advanced.getByRole('status')).toContainText('Saved');
+  await page.keyboard.press('Escape');
+  await expect(advanced).toBeHidden();
 }
 
 /** Navigates by hash and waits until nothing on screen is still loading. */

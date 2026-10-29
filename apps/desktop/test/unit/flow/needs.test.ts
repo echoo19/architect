@@ -259,18 +259,20 @@ describe('the online copy', () => {
   const needsHost = (job: Job, rest: Partial<RunNeedsInput> = {}) =>
     runNeeds(input({ job, local: runtimes(true, [MODEL]), ...rest }));
 
-  it('needs a host when training online with none chosen', () => {
+  it('needs an online service when training online with none chosen', () => {
     const noCopy = makeJob({ student: { ...here.student, trainOn: 'hosted' } });
     const [need] = needsHost(noCopy);
     expect(need).toMatchObject({
       id: 'host-missing',
-      title: 'The online copy needs a host',
-      label: 'Choose a host',
+      title: 'The online copy needs a service',
+      detail: 'Pick the online service that runs Glimmer.',
+      label: 'Pick a service',
       action: { kind: 'open', tab: 'student' },
     });
+    expect([need?.title, need?.detail, need?.label].join(' ')).not.toMatch(/\bhost\b/i);
   });
 
-  it('needs a host when only the final test is online', () => {
+  it('needs an online service when only the final test is online', () => {
     const [need] = needsHost(here, { testPlace: 'hosted' });
     expect(need).toMatchObject({ id: 'host-missing' });
   });

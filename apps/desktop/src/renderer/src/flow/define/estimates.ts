@@ -7,6 +7,7 @@ import {
   type MentorPreset,
   type TokenPricing,
 } from '@architect/shared';
+import type { ModelNames } from '../train/phase';
 
 /**
  * Rough seconds per task: Glimmer on this machine takes 2 to 3 minutes per task (measured
@@ -142,6 +143,55 @@ export function taskTimeText(place: TrainPlace): string {
 export function tooSlow(job: Job, estimate: TimeEstimate): string | null {
   if (estimate.rounds.most > 0) return null;
   return `Too slow for the ${limitText(job.budget.maxWallMinutes)} limit`;
+}
+
+/** Where training happens, as the middle of a sentence: "online", or "on this computer". */
+export function placePhrase(place: TrainPlace, device: string): string {
+  return place === 'hosted' ? 'online' : `on ${device}`;
+}
+
+/**
+ * Whether the place the job trains at can't fit a single round in the time limit. The run would
+ * score the student on the check tasks and then run out of time, with nothing taught.
+ */
+export function trainsTooSlow(job: Job): boolean {
+  return tooSlow(job, estimateTime(job, job.student.trainOn)) !== null;
+}
+
+/**
+ * What it comes to, in a line: the callout's headline, and what the footer says beside a Start
+ * training that waits for it.
+ */
+export function wontTeachTitle(job: Job, place: TrainPlace, device: string): string {
+  return `Training ${placePhrase(place, device)} won't get to teach in ${capText(job.budget.maxWallMinutes)}`;
+}
+
+/** A length of time to the minute, which the person can add up: "1 h 40 min", "23 min". */
+function toTheMinute(seconds: number): string {
+  return formatDuration(seconds * 1000);
+}
+
+/**
+ * Said plainly for a place where not one round fits the time limit: the starting measurement and
+ * a round take longer than the limit, so the teacher would run out of time before it changed
+ * anything. What a round is comes with its time. The times are to the minute, since two figures
+ * rounded to the half hour can add up to the limit that the sentence says they pass.
+ */
+export function wontTeachBody(
+  job: Job,
+  place: TrainPlace,
+  estimate: TimeEstimate,
+  names: ModelNames,
+): string {
+  const { mentor, student } = names;
+  const cap = capText(job.budget.maxWallMinutes);
+  const task = `${student} takes ${taskTimeText(place)} a task ${place === 'hosted' ? 'online' : 'here'}`;
+  const start = toTheMinute(estimate.startSeconds);
+  if (estimate.startSeconds >= job.budget.maxWallMinutes * 60) {
+    return `${task}, so scoring the check tasks once takes about ${start}. That doesn't fit in the ${cap} allowed, so ${mentor} would never get to teach.`;
+  }
+  const round = toTheMinute(estimate.roundSeconds.least);
+  return `${task}: about ${start} to score the check tasks once, and at least ${round} more for each round of practice and fixing. That doesn't fit in the ${cap} allowed, so ${mentor} would run out of time before it changed anything.`;
 }
 
 /** Rough size of one task for the student: the request, its tool results and an answer. */

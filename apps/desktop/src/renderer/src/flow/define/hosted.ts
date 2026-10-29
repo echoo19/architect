@@ -47,7 +47,11 @@ export type HostedAvailability =
 export function hostedAvailability(student: StudentConfig, keys: KeyStatus): HostedAvailability {
   const { hosted } = student;
   if (!hosted) {
-    return { available: false, reason: 'Choose a host in Advanced settings', why: 'no_host' };
+    return {
+      available: false,
+      reason: "Pick an online service under Agent's model in Advanced settings",
+      why: 'no_host',
+    };
   }
   if (!hosted.secretRef) return { available: true };
   if (keys === 'loading') {

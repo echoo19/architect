@@ -161,9 +161,9 @@ function hostNeed(
     if (availability.why === 'no_host' || hosted === undefined) {
       return {
         id: 'host-missing',
-        title: 'The online copy needs a host',
-        detail: `Choose the service that runs ${student} online.`,
-        label: 'Choose a host',
+        title: 'The online copy needs a service',
+        detail: `Pick the online service that runs ${student}.`,
+        label: 'Pick a service',
         action: { kind: 'open', tab: 'student' },
       };
     }

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import type { Job, MentorConfig, Task } from '@architect/shared';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { allowMoreTime, goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { bikeDraft, bikeShop, EMPTY_QUESTION, OPEN_QUESTION, POLICY, type BikeShop } from './bike';
 import { stubEngine } from './fixtures';
 import { FLOW_LOCAL } from './fixtures-flow';
@@ -322,9 +322,18 @@ for (const theme of THEMES) {
     await section.getByRole('button', { name: 'Confirm the rule' }).click();
     await expect(section.getByText(/^Confirmed on /)).toBeVisible();
     await expect(section.getByRole('button', { name: 'Confirm the rule' })).toHaveCount(0);
+    // The rule is no longer what holds training back. Time is: this computer can't fit a round in
+    // four hours, so one callout by the choice says so, with the way out, and Start training waits.
+    await expect(page.getByText('Confirm the rule first')).toHaveCount(0);
+    await expect(start).toBeDisabled();
+    const slow = page.getByRole('status').filter({ hasText: "won't get to teach" });
+    await expect(slow).toContainText("Training on this computer won't get to teach in 4 hours");
+    await expect(slow.getByRole('button', { name: 'Allow more time' })).toBeVisible();
+    await capture(page, `rule-confirmed-${theme}`);
+    await allowMoreTime(page);
+    await expect(slow).toHaveCount(0);
     await expect(start).toBeEnabled();
     await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
-    await capture(page, `rule-confirmed-${theme}`);
 
     // The app puts the person's own models on a new job when it arrives; this stands in for that.
     const job = await page.evaluate((id) => window.architect.jobs.get(id), jobId);
@@ -380,6 +389,7 @@ test('asks for the confirmation again when a record changes, or when the files a
   const section = page.getByRole('region', { name: 'Check the rule' });
   await section.getByRole('button', { name: 'Confirm the rule' }).click();
   await expect(section.getByText(/^Confirmed on /)).toBeVisible();
+  await allowMoreTime(page);
   await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
 
   // A record changes on this computer after the person confirmed: the confirmation no longer
