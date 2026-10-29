@@ -255,8 +255,18 @@ export const RuleReportSchema = RuleDetailsSchema.omit({ examples: true, uncover
   typeId: z.string().min(1),
   label: z.string().min(1),
   confirmedAt: z.iso.datetime(),
+  /** The rule exactly as Architect evaluates it, which the statement is written from. */
+  expression: RuleNodeSchema,
 });
 export type RuleReport = z.infer<typeof RuleReportSchema>;
+
+/**
+ * Where a passage comes from, as a person would say it: the name of a file, or whose words they
+ * are when a rule rests on what the person typed or answered.
+ */
+export function passageSource(file: string): string {
+  return file === 'answers' ? 'your answer' : file === 'description' ? 'your description' : file;
+}
 
 /** Whether teaching ran, in a sentence, from how many rounds the run used. */
 export function teachingLine(rounds: number): string {

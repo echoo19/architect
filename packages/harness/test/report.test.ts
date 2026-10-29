@@ -161,6 +161,7 @@ describe('renderReportMarkdown', () => {
             'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up.',
           passages: [
             { file: 'policy.md', passage: 'Labor is billed at $65 an hour, in half-hour steps.' },
+            { file: 'answers', passage: 'No, labor only' },
           ],
           conventions: ['A cell that is empty, N/A or not a number leaves its row out.'],
           cases: { total: 180, eligible: 118 },
@@ -173,6 +174,12 @@ describe('renderReportMarkdown', () => {
             'The rounding step (up to a multiple of 0.5) never changed a value in your records, so no task shows it at work.',
           ],
           confirmedAt: '2026-10-29T10:00:00.000Z',
+          expression: {
+            op: 'round',
+            arg: { op: 'col', column: 'parts_cost', from: 'row' },
+            increment: '0.01',
+            mode: 'half_up',
+          },
         },
       ],
     };
@@ -187,8 +194,11 @@ describe('renderReportMarkdown', () => {
     expect(text).toContain('## The rule behind the expected answers');
     expect(text).toContain('### Ticket totals (version db5fc3156380)');
     expect(text).toContain('The rule in words: Start with (labor hours rounded up');
+    expect(text).toContain('The rule exactly as Architect evaluates it:');
+    expect(text).toContain('```json\n{\n  "op": "round",\n  "arg": {\n    "op": "col",');
     expect(text).toContain('The person confirmed this rule on 2026-10-29');
     expect(text).toContain('- policy.md: "Labor is billed at $65 an hour, in half-hour steps."');
+    expect(text).toContain('- your answer: "No, labor only"');
     expect(text).toContain('Rows of the table that could be worked out: 118 of 180.');
     expect(text).toContain('- 62 rows left out because parts_cost is empty or N/A, such as T-2002');
     expect(text).toContain(

@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import {
   DraftRecordSchema,
   RuleConfirmationSchema,
+  RuleReportSchema,
   type DraftRecord,
   type MentorCompletionRequest,
   type Task,
@@ -203,6 +204,27 @@ describe('the confirmation that binds', () => {
       state: 'confirmed',
       confirmedAt: confirmed.confirmedAt,
     });
+  });
+
+  it('gives the report the rule as confirmed: its words, its expression and when, never an example', async () => {
+    const job = await draftedJob();
+    // Nothing is confirmed, so there is no rule for a report to say.
+    expect(await world.jobs.ruleReports(job.id)).toEqual([]);
+    const { token } = (await world.jobs.ruleState(job.id)) ?? { token: '' };
+    const confirmed = await world.jobs.confirmRules(job.id, token);
+    const [rule, ...others] = await world.jobs.ruleReports(job.id);
+    expect(others).toEqual([]);
+    expect(RuleReportSchema.safeParse(rule).success).toBe(true);
+    expect(rule).toMatchObject({
+      typeId: 'cost',
+      label: 'Ticket totals',
+      confirmedAt: confirmed.confirmedAt,
+      expression: { op: 'round', increment: '0.01', mode: 'half_up' },
+      cases: { total: 160 },
+    });
+    expect(rule?.statement).toContain('Add parts cost.');
+    expect(rule).not.toHaveProperty('examples');
+    expect(rule).not.toHaveProperty('uncovered');
   });
 
   it('stops every kind of run at the controller, not only a button on a screen', async () => {

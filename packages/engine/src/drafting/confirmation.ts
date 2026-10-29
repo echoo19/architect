@@ -131,6 +131,7 @@ export function reportsOf(
         typeId: type.id,
         label: labels.get(type.id) ?? type.id,
         confirmedAt: saved.confirmedAt,
+        expression: type.spec.expression,
       }),
     ];
   });

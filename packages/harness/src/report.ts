@@ -1,5 +1,5 @@
 import type { ReportCard, RuleReport, Score } from '@architect/shared';
-import { METHOD_LABELS, ruleScoreNote, teachingLine } from '@architect/shared';
+import { METHOD_LABELS, passageSource, ruleScoreNote, teachingLine } from '@architect/shared';
 
 const percent = (fraction: number): string => `${Number((fraction * 100).toFixed(1))}%`;
 
@@ -187,8 +187,9 @@ function ruleDetails(report: ReportCard, rules: readonly RuleReport[]): string {
     [
       `### ${rule.label} (version ${rule.version})`,
       `The rule in words: ${rule.statement}`,
+      `The rule exactly as Architect evaluates it:\n\n\`\`\`json\n${JSON.stringify(rule.expression, null, 2)}\n\`\`\``,
       `The person confirmed this rule on ${rule.confirmedAt.slice(0, 10)}, over the records the tasks were made from.`,
-      `It rests on these passages:\n${rule.passages.map((item) => `- ${item.file}: "${item.passage}"`).join('\n')}`,
+      `It rests on these passages:\n${rule.passages.map((item) => `- ${passageSource(item.file)}: "${item.passage}"`).join('\n')}`,
       `How numbers, words and rounding were read:\n${rule.conventions.map((item) => `- ${item}`).join('\n')}`,
       `Rows of the table that could be worked out: ${count(rule.cases.eligible)} of ${count(rule.cases.total)}.${
         rule.excluded.length === 0
