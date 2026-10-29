@@ -2,6 +2,27 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), a dash can mean none: a mark such as N/A counts as 0 when the person says so
+
+**Done** (on `worktree-agent-aaccec9f7285b0152`, from main at `148d4b5`, release 0.3.2; decision 061 amended; no model was called or loaded, the GPU stayed off, and every run used stand-ins)
+- A reader playing a bike shop's owner said "in my shop a dash means none, and I get no way to say so", and in one sample 26 of 160 rows were left out for an N/A or a dash, a sixth of the records. A rule can now name, for a column of a table, the marks that count as exactly 0 (`placeholderMeansZero`, GPT-6 Astra's design). A mark is only a form the reading of cells already knew as standing for nothing (N/A, a dash, a question mark, null and the like), compared without regard to case or spacing, so N/A and n/a are one mark and a hyphen and a longer dash are two. Any other mark leaves its row out as before.
+- *No rule that exists changes.* The field is optional, has no default and is never an empty list, and is added only to a rule that names a mark, so every version, confirmation token, task and sentence of a rule that names none is what it was. `rule-versions.test.ts` holds six versions, three tokens, the tasks of two rules and their words, taken before the change. A new mark is a new version, so changing the answer later needs a new confirmation by the binding that was there. `RULE_CONVENTIONS_VERSION` stays 1.
+- *Architect asks, not the teacher.* When the rule reads a column of numbers that holds marks, the person is asked before any task is made, once for each table, column and mark: "In tickets.csv, parts_cost sometimes says "N/A". Does "N/A" mean no parts cost? If it can also mean "not known yet", leave those rows out." with the two answers of an empty cell, neither chosen. "Draft it now", a word that is no choice and running out of questions never mean zero; leaving out is an answer too and is kept, so a redraft does not ask again. At most six such questions are asked; the rest stay out and the draft says so. The conversation says who is asking: "Architect" over the question (`DraftTurn.from`).
+- *No second call to the teacher.* Astra proposed telling the teacher the answer and drafting again; the steps do not change with the answer, so Architect holds the teacher's reply and checks it again with the answer. The person gets the next question or the finished draft at once, and the teacher is told nothing of any mark. Its prompt says that N/A and a dash are Architect's to ask about, its reply format has no field for a mark, and one it writes anyway is dropped (a test).
+- *What the person sees.* "An empty parts cost or "N/A" counts as 0, as you said." beside the step that adds the column; the answer under "From your policy" beside its question; the example shows the cell as the file wrote it ("N/A (counted as 0)"); a count for each mark; and the rows left out are only the ones still left out, each reason saying what the cell holds. Nothing says the rows come back.
+- Smaller: a report line sets a question that holds quotes in single quotes; the teacher's quotes are held to eight passages with a reason and Architect's answers have room of their own; the dev drafting script leaves those rows out by default instead of taking the first option (zero). The tests' drafting world answers Architect's question about a mark with "Leave those rows out" unless a test asks for the question itself (`marks: 'ask'`), which is what a rule did before, so the tests that draft the bike shop for other reasons read as they did.
+- Verified: `pnpm check` exits 0 (254 test files, 3,353 tests passed, 2 skipped; it was 249 and 3,260). Forty-three breaks were made on purpose, one at a time (a default in a version, marks compared as written, any word taken for zero, the teacher called again, an answer settling another table, column or mark, no limit on the questions, a field for a mark in the teacher's reply, the note saying only the empty cell, the schema letting a number through, and the rest), and each failed a test and was put back. Hidden e2e on the rebuilt app, all on stand-ins: `rule.spec.ts` (5), `drafting.spec.ts` (5), `flow.spec.ts` (27), `screenshots.spec.ts` (10) and `teacher-menu.spec.ts` (4) pass. `rule-mark` (new) and `rule-define` were looked at in both themes and kept; 20 captures that moved only by a few pixels were put back.
+
+**Next**
+- Review and merge the branch. The captures `rule-mark` and `rule-define` are the ones that show it.
+- Show the rule's screens to a fresh reader again, with a file that has a dash in it.
+- Merge it with the release being cut on main. No version string was touched here.
+
+**Open issues**
+- The prompt's new sentence and the question's words were never tried on a real teacher: the run used scripted ones.
+- A mark of more than 16 characters is not asked about. N/A and NA are two marks, asked about apart.
+- A dash that means none on one ticket and "waiting for a quote" on another cannot be told apart. The question says to leave the rows out if a mark can mean that.
+
 ## 2026-10-29 (Thu), the third blind read's fixes reviewed and merged, and the site's chapter with them
 
 **Done** (on main; decision 061 amended; no model was called or loaded, and every run used stand-ins)
