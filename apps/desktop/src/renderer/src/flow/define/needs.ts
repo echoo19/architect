@@ -14,6 +14,7 @@ import { mentorProvider } from '../../onboarding/mentor';
 import { isInstalled } from '../../settings/models/StudentRows';
 import { modelNames } from '../names';
 import { aKey, hostedAvailability, providerName, type KeyStatus } from './hosted';
+import { BLOCK_REASONS, idleBlock } from './teacher-menu';
 
 /** The one thing that puts a missing piece right. */
 export type NeedAction =
@@ -52,6 +53,8 @@ export interface RunNeedsInput {
   local: LocalState;
   /** What the last live check of the online copy found, when it found it out of reach. */
   hostedProblem: HostedProblem | null;
+  /** Whether a Hugging Face token comes from anywhere, which weights are trained with. */
+  token: 'found' | 'none' | 'unknown';
 }
 
 /** The provider an endpoint's key belongs to, by its address; `other` for one the user added. */
@@ -193,6 +196,28 @@ function hostNeed(
 }
 
 /**
+ * The teacher may change nothing in this run: the person left only its weights on, and the app
+ * already knows they can't be trained here. The run would only stop at its start with this reason,
+ * so it is said before.
+ */
+function idleNeed(
+  job: Job,
+  teacher: string,
+  testPlace: StudentTarget,
+  token: RunNeedsInput['token'],
+): Need | null {
+  const block = idleBlock(job, { token, testPlace });
+  if (block === null) return null;
+  return {
+    id: 'teacher-idle',
+    title: `${teacher} has nothing it may change`,
+    detail: `Only its weights are on, and they ${BLOCK_REASONS[block]}. Turn something else on, or put that right.`,
+    label: `Open ${teacher}'s settings`,
+    action: { kind: 'open', tab: 'mentor' },
+  };
+}
+
+/**
  * What a run can't start without, before it starts: the teacher's key, the model on this
  * computer, and the online copy and its key for whatever runs online. The model is needed even
  * when practice and the final test both run online, because the finished agent runs on this
@@ -200,7 +225,14 @@ function hostNeed(
  * missing and carries the one action that fixes it. A run with everything in place needs nothing,
  * and the list is empty.
  */
-export function runNeeds({ job, testPlace, keys, local, hostedProblem }: RunNeedsInput): Need[] {
+export function runNeeds({
+  job,
+  testPlace,
+  keys,
+  local,
+  hostedProblem,
+  token,
+}: RunNeedsInput): Need[] {
   const names = modelNames(job);
   const usesHosted = job.student.trainOn === 'hosted' || testPlace === 'hosted';
   const needs: Need[] = [];
@@ -219,6 +251,8 @@ export function runNeeds({ job, testPlace, keys, local, hostedProblem }: RunNeed
     const teacher = teacherNeed(job, names.mentor, keys);
     if (teacher) needs.push(teacher);
   }
+  const idle = idleNeed(job, names.mentor, testPlace, token);
+  if (idle) needs.push(idle);
   const model = modelNeed(job, names.student, testPlace, local);
   if (model) needs.push(model);
   if (usesHosted) {

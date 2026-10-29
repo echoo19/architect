@@ -24,6 +24,11 @@ function metUnaided(live: LiveRun, round: Round | null): boolean {
   return round === null && hasEnded(live.run) && live.run.stopReason === 'target_met';
 }
 
+/** The run ended before its first round: the teacher had nothing it may change. */
+function idle(live: LiveRun, round: Round | null): boolean {
+  return round === null && live.run.stopReason === 'nothing_to_try';
+}
+
 function studentLine(
   live: LiveRun,
   round: Round | null,
@@ -45,6 +50,7 @@ function studentLine(
   if (metUnaided(live, round) && baseline !== null) {
     return `Got ${baseline.pass} of ${baseline.total} check tasks right before any teaching, then took the final test.`;
   }
+  if (idle(live, round)) return 'No practice ran.';
   if (failure) return failureLine(failure);
   if (!round) {
     return run.phase === 'baseline'
@@ -66,6 +72,7 @@ function mentorLine(live: LiveRun, round: Round | null, names: ModelNames, draft
   if (metUnaided(live, round)) {
     return `Had nothing to change: ${names.student} already met the target.`;
   }
+  if (idle(live, round)) return 'Has nothing it may change in this run.';
   if (!round) return `Starts teaching once ${names.student} has taken the check tasks.`;
   if (round.diagnosis) return round.diagnosis;
   if (draft) {

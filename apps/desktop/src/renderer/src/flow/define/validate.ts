@@ -1,4 +1,4 @@
-import { JobSchema, mentorPricing, type Job } from '@architect/shared';
+import { AllowedInterventionsSchema, JobSchema, mentorPricing, type Job } from '@architect/shared';
 
 /** A problem with one field, keyed by the field's dotted path (`splits.dev`). */
 export type JobIssues = Record<string, string>;
@@ -90,6 +90,17 @@ export function validateJob(job: Job, taskCount: number | null): JobIssues {
   // The spending cap holds only at a known price (decision 034).
   if (job.mentor.kind === 'model' && !mentorPricing(job.mentor)) {
     add('mentor.pricing', 'Enter what this model costs, so training can keep to the spending cap.');
+  }
+
+  // The Teacher tab can't make a list the engine would refuse, but a job from elsewhere can hold one.
+  if (job.interventions !== undefined) {
+    const allowed = AllowedInterventionsSchema.safeParse(job.interventions);
+    if (!allowed.success) {
+      add(
+        'interventions',
+        allowed.error.issues[0]?.message ?? 'Keep a way to change the agent on.',
+      );
+    }
   }
 
   if (checker.kind === 'module' && !checker.path.trim()) {

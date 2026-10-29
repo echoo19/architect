@@ -20,6 +20,7 @@ import {
   type SettingsTab,
 } from '@architect/ui';
 import { Check, CircleAlert } from 'lucide-react';
+import { useHubToken } from '../../api/hooks';
 import { KeyRow } from '../../components/KeyRow';
 import { mentorNote, mentorProvider } from '../../onboarding/mentor';
 import {
@@ -37,6 +38,8 @@ import { NumberField, PathField, TabNote } from './fields';
 import { FinalTestChoice } from './FinalTestChoice';
 import { presetOf, providerName, type HostedAvailability } from './hosted';
 import { TasksTab } from './TasksTab';
+import { TeacherMenu } from './TeacherMenu';
+import { tokenState, withIntervention } from './teacher-menu';
 import { TYPING_PAUSE_MS, type JobEditor } from './use-job-editor';
 import { tasksSplit, type JobIssues } from './validate';
 
@@ -70,6 +73,7 @@ const TAB_OF_FIELD: readonly [string, AdvancedTab][] = [
   ['requirements', 'requirements'],
   ['budget', 'budget'],
   ['mentor', 'mentor'],
+  ['interventions', 'mentor'],
   ['student', 'student'],
   ['startingHarness', 'harness'],
   ['splits', 'splits'],
@@ -221,7 +225,7 @@ function TabContent({
     case 'budget':
       return <BudgetTab editor={editor} />;
     case 'mentor':
-      return <MentorTab editor={editor} />;
+      return <MentorTab editor={editor} finalTest={finalTest} />;
     case 'student':
       return <StudentTab editor={editor} />;
     case 'harness':
@@ -400,15 +404,30 @@ function priceText(pricing: TokenPricing): string {
   return `$${pricing.inputPerM} to read, $${pricing.outputPerM} to write, per million tokens`;
 }
 
-function MentorTab({ editor }: TabProps) {
+function MentorTab({ editor, finalTest }: TabProps & { finalTest: FinalTestState }) {
   const { job, issues, change } = editor;
   const { mentor } = job;
   const name = modelNames(job).mentor;
+  const token = useHubToken();
+  const menu = (
+    <TeacherMenu
+      job={job}
+      facts={{ token: tokenState(token), testPlace: finalTest.place }}
+      issue={issues['interventions']}
+      onToggle={(type, on) => change((current) => withIntervention(current, type, on))}
+    />
+  );
   if (mentor.kind !== 'model') {
     return (
-      <SettingsRow label="Teacher" meta="Edits the agent's instructions, skills and tools directly">
-        <SettingsValue>{mentor.label}</SettingsValue>
-      </SettingsRow>
+      <>
+        <SettingsRow
+          label="Teacher"
+          meta="Edits the agent's instructions, skills and tools directly"
+        >
+          <SettingsValue>{mentor.label}</SettingsValue>
+        </SettingsRow>
+        {menu}
+      </>
     );
   }
   const preset = mentorPresetOf(job);
@@ -478,6 +497,7 @@ function MentorTab({ editor }: TabProps) {
           }
         />
       </SettingsRow>
+      {menu}
     </>
   );
 }

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Job, LocalRuntimes, ProviderId, StudentTarget } from '@architect/shared';
 import { api, flowApi } from '../../api/client';
-import { queryKeys, useLocalRuntimes, useSecretsStatus } from '../../api/hooks';
+import { queryKeys, useHubToken, useLocalRuntimes, useSecretsStatus } from '../../api/hooks';
 import { fetchQuery, type QueryState } from '../../api/query';
 import { attempt } from '../../lib/notify';
 import type { KeyStatus } from './hosted';
 import { needsSummary, runNeeds, type HostedProblem, type LocalState, type Need } from './needs';
+import { tokenState } from './teacher-menu';
 
 /** The saved keys as far as they are known; the last answer stays while a new one is read. */
 export function keyStatusOf(query: QueryState<Record<string, boolean>>): KeyStatus {
@@ -37,6 +38,7 @@ export function usePreflight(
 ) {
   const secrets = useSecretsStatus();
   const local = useLocalRuntimes();
+  const hubToken = useHubToken();
   const [found, setFound] = useState<{ copy: string | null; problem: HostedProblem } | null>(null);
   const [asking, setAsking] = useState(false);
   const [adding, setAdding] = useState<ProviderId | null>(null);
@@ -51,7 +53,14 @@ export function usePreflight(
   const copy = copyKey(job);
   const hostedProblem = found !== null && found.copy === copy ? found.problem : null;
   const localState = localStateOf(local);
-  const needs = runNeeds({ job, testPlace, keys, local: localState, hostedProblem });
+  const needs = runNeeds({
+    job,
+    testPlace,
+    keys,
+    local: localState,
+    hostedProblem,
+    token: tokenState(hubToken),
+  });
 
   /** Asks the online copy whether it answers. True when it does; false says why in the needs. */
   const askHosted = useCallback(async (): Promise<boolean> => {

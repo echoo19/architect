@@ -37,6 +37,19 @@ function panel(run: LiveRun): string {
   );
 }
 
+describe('a run whose teacher had nothing it may change', () => {
+  it('says so, in place of waiting for a first round that will not come', () => {
+    const html = panel(
+      live({ status: 'stopped', phase: 'done', stopReason: 'nothing_to_try', devBaseline: null }),
+    );
+    expect(html).toContain('Before the first round');
+    expect(html).toContain('Has nothing it may change in this run.');
+    expect(html).toContain('No practice ran.');
+    expect(html).not.toContain('Waiting for the first round');
+    expect(html).not.toContain('Starts teaching once');
+  });
+});
+
 describe('a run that needed no rounds', () => {
   it('says the student met the target before any teaching, with its real score', () => {
     const html = panel(

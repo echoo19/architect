@@ -49,6 +49,7 @@ function input(overrides: Partial<RunNeedsInput> = {}): RunNeedsInput {
     keys: { meta: true, openrouter: true },
     local: runtimes(true, [MODEL]),
     hostedProblem: null,
+    token: 'found',
     ...overrides,
   };
 }
@@ -330,6 +331,65 @@ describe('the online copy', () => {
   });
 });
 
+describe('a teacher that may change nothing', () => {
+  /** Only the weights and the questions are on, and a budget for training is set. */
+  const weightsOnly = makeJob({
+    interventions: ['weights', 'clarification'],
+    budget: { ...here.budget, maxComputeUsd: 5 },
+  });
+
+  it('says so before the run, when only weights are on and the app knows they cannot run', () => {
+    const [need, ...more] = runNeeds(input({ job: weightsOnly, token: 'none' }));
+    expect(more).toEqual([]);
+    expect(need).toEqual({
+      id: 'teacher-idle',
+      title: 'Spark has nothing it may change',
+      detail:
+        'Only its weights are on, and they need a Hugging Face token, added in Settings. Turn something else on, or put that right.',
+      label: "Open Spark's settings",
+      action: { kind: 'open', tab: 'mentor' },
+    });
+  });
+
+  it('says what stops the weights, in the order the engine looks for it', () => {
+    const noBudget = makeJob({ interventions: ['weights'] });
+    const reason = (job: Job, extra: Partial<RunNeedsInput>) =>
+      runNeeds(input({ job, ...extra })).find((need) => need.id === 'teacher-idle')?.detail;
+    expect(reason(noBudget, { token: 'found' })).toContain(
+      'they need a training budget, and this job has none.',
+    );
+    expect(reason(noBudget, { token: 'none' })).toContain('need a Hugging Face token');
+    expect(reason(noBudget, { token: 'none', testPlace: 'hosted' })).toContain(
+      "they can't be trained while the final test runs online.",
+    );
+  });
+
+  it('leaves it to the run when the app cannot tell, or when the weights can run', () => {
+    expect(runNeeds(input({ job: weightsOnly, token: 'unknown' }))).toEqual([]);
+    expect(runNeeds(input({ job: weightsOnly, token: 'found' }))).toEqual([]);
+  });
+
+  it('is silent while a harness change is on, whatever keeps the weights from running', () => {
+    for (const interventions of [
+      ['procedure'],
+      ['retrieval', 'weights'],
+      ['helper', 'clarification'],
+    ] as const) {
+      const job = makeJob({ interventions: [...interventions] });
+      expect(runNeeds(input({ job, token: 'none' }))).toEqual([]);
+    }
+    expect(runNeeds(input({ token: 'none' }))).toEqual([]);
+  });
+
+  it("comes after the teacher's key and before the model, and blocks like any other need", () => {
+    const needs = runNeeds(
+      input({ job: weightsOnly, token: 'none', keys: {}, local: runtimes(true) }),
+    );
+    expect(ids(needs)).toEqual(['teacher-key', 'teacher-idle', 'model-missing']);
+    expect(needsSummary(needs)).toBe('Spark needs a Meta key, and 2 more');
+  });
+});
+
 describe('everything missing at once', () => {
   it('lists the teacher, then the model on this computer, then the online copy', () => {
     const everything = makeJob({
@@ -341,6 +401,7 @@ describe('everything missing at once', () => {
       keys: {},
       local: runtimes(true),
       hostedProblem: null,
+      token: 'found',
     });
     expect(ids(needs)).toEqual(['teacher-key', 'model-missing', 'host-key']);
   });
@@ -357,6 +418,7 @@ describe("the footer's line while something is missing", () => {
       keys: {},
       local: runtimes(true),
       hostedProblem: null,
+      token: 'found',
     });
     expect(needsSummary(needs)).toBe('Spark needs a Meta key, and 2 more');
     expect(needsSummary(needs.slice(0, 1))).toBe('Spark needs a Meta key');
