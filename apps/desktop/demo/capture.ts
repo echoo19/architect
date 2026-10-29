@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { expect, type Locator, type Page } from '@playwright/test';
@@ -104,6 +104,71 @@ async function executeStep(
   }
 }
 
+/**
+ * Readies a launched scene: checks the window stays hidden, sizes it, installs stand-ins, waits
+ * for the fonts and runs the scene's unrecorded prepare steps.
+ */
+async function openScene(
+  scene: DemoScene,
+  launched: Awaited<ReturnType<typeof launchApp>>,
+  pointer: PointerState,
+): Promise<void> {
+  const { app, page } = launched;
+  const visible = await app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows().some((window) => window.isVisible()),
+  );
+  if (visible) throw new Error('Architect window is visible');
+  await app.evaluate(({ BrowserWindow }) => {
+    const [window] = BrowserWindow.getAllWindows();
+    window?.setContentSize(1440, 900);
+  });
+  await scene.setup?.(launched);
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
+  for (const step of scene.prepare ?? []) await executeStep(step, page, app, pointer);
+}
+
+/**
+ * A fresh window's first screenshots, and the first after the title card is drawn, take a second
+ * or more. Screenshots that aren't kept are taken until one comes quickly, so the recorded frames
+ * keep their pace.
+ */
+async function warmUp(page: Page, title: DemoScene['title']): Promise<void> {
+  if (title) await showTitle(page, title, 0, 1);
+  const until = performance.now() + 8000;
+  while (performance.now() < until) {
+    const start = performance.now();
+    await page.screenshot({ type: 'jpeg', quality: 10, timeout: 15000 });
+    if (performance.now() - start < 120) return;
+  }
+}
+
+/**
+ * Records the title card for its seconds. The words fade in on a dark card; at the end the whole
+ * card fades onto the screen, unless the card closes the film.
+ */
+async function recordTitle(
+  page: Page,
+  title: NonNullable<DemoScene['title']>,
+  closing: boolean,
+  capture: () => Promise<void>,
+): Promise<void> {
+  const start = performance.now();
+  const durationMs = title.seconds * 1000;
+  let frameIndex = 0;
+  while (performance.now() - start < durationMs) {
+    const progress = (performance.now() - start) / durationMs;
+    await showTitle(
+      page,
+      title,
+      Math.max(0, Math.min(1, progress / 0.17)),
+      closing ? 1 : Math.max(0, Math.min(1, (1 - progress) / 0.17)),
+    );
+    await capture();
+    frameIndex++;
+    await sleep(Math.max(0, start + frameIndex * FRAME_MS - performance.now()));
+  }
+}
+
 export async function captureScene(scene: DemoScene, sceneDir: string): Promise<CapturedScene> {
   // A folder that already holds data would mix an earlier take into this one.
   if (scene.keepData && existsSync(scene.keepData)) {
@@ -133,39 +198,12 @@ export async function captureScene(scene: DemoScene, sceneDir: string): Promise<
     frames.push({ file: `frames/${file}`, timestampMs: now - epoch, kind });
   };
   try {
-    const visible = await app.evaluate(({ BrowserWindow }) =>
-      BrowserWindow.getAllWindows().some((window) => window.isVisible()),
-    );
-    if (visible) throw new Error('Architect window is visible');
-    await app.evaluate(({ BrowserWindow }) => {
-      const [window] = BrowserWindow.getAllWindows();
-      window?.setContentSize(1440, 900);
-    });
-    await scene.setup?.(launched);
-    await page.evaluate(() => document.fonts.ready.then(() => undefined));
-    for (const step of scene.prepare ?? []) await executeStep(step, page, app, pointer);
-    // The first screenshots of a fresh window are slow; take one that isn't kept, so the title's
-    // frames come at the usual pace.
-    await page.screenshot({ type: 'jpeg', quality: 10, timeout: 15000 });
+    await openScene(scene, launched, pointer);
+    await warmUp(page, scene.title);
     // A scene of a title alone is a closing card: it stays on the card to the end.
     const closing = scene.steps.length === 0;
     if (scene.title) {
-      const start = performance.now();
-      const durationMs = scene.title.seconds * 1000;
-      let frameIndex = 0;
-      while (performance.now() - start < durationMs) {
-        const progress = (performance.now() - start) / durationMs;
-        // The words fade in on a dark card; at the end the whole card fades onto the screen.
-        await showTitle(
-          page,
-          scene.title,
-          Math.max(0, Math.min(1, progress / 0.17)),
-          closing ? 1 : Math.max(0, Math.min(1, (1 - progress) / 0.17)),
-        );
-        await capture('title');
-        frameIndex++;
-        await sleep(Math.max(0, start + frameIndex * FRAME_MS - performance.now()));
-      }
+      await recordTitle(page, scene.title, closing, () => capture('title'));
       if (!closing) await hideTitle(page);
     }
     if (closing) {
@@ -217,4 +255,52 @@ export async function captureScene(scene: DemoScene, sceneDir: string): Promise<
   } finally {
     await launched.close(scene.keepData);
   }
+}
+
+/**
+ * Records a scene's title card again, on the scene's first screen, and puts it in place of the
+ * title in the scene's earlier capture, so a take that can't be made again keeps its own steps.
+ */
+export async function recaptureTitle(scene: DemoScene, sceneDir: string): Promise<CapturedScene> {
+  if (!scene.title) throw new Error(`${scene.name} has no title to record again`);
+  const earlier = JSON.parse(
+    await readFile(join(sceneDir, 'frames.json'), 'utf8'),
+  ) as CapturedScene;
+  const launched = await launchApp(scene.launch);
+  const { page } = launched;
+  const frames: CapturedFrame[] = [];
+  let count = 0;
+  try {
+    await openScene(scene, launched, { x: 140, y: 130 });
+    await warmUp(page, scene.title);
+    const epoch = performance.now();
+    await recordTitle(page, scene.title, scene.steps.length === 0, async () => {
+      const now = performance.now();
+      const file = `title-${String(count++).padStart(6, '0')}.jpg`;
+      await page.screenshot({
+        path: join(sceneDir, 'frames', file),
+        type: 'jpeg',
+        quality: 90,
+        timeout: 15000,
+      });
+      frames.push({ file: `frames/${file}`, timestampMs: now - epoch, kind: 'title' });
+    });
+  } finally {
+    await launched.close();
+  }
+  const kept = earlier.frames.filter((frame) => frame.kind === 'app');
+  const last = frames.at(-1);
+  if (!last) throw new Error(`No title frames were recorded for ${scene.name}`);
+  // The new title ends where the scene's first recorded screen begins.
+  const shift =
+    (kept[0]?.timestampMs ?? last.timestampMs + FRAME_MS) - (last.timestampMs + FRAME_MS);
+  const result: CapturedScene = {
+    ...earlier,
+    frames: [
+      ...frames.map((frame) => ({ ...frame, timestampMs: frame.timestampMs + shift })),
+      ...kept,
+    ],
+  };
+  await writeFile(join(sceneDir, 'frames.json'), JSON.stringify(result, null, 2));
+  return result;
 }

@@ -3,7 +3,7 @@ import { resolve, join, basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { test } from '@playwright/test';
 import { assemble } from './assemble';
-import { captureScene, type CapturedScene } from './capture';
+import { captureScene, recaptureTitle, type CapturedScene } from './capture';
 import type { DemoScript } from './script';
 
 /** Scene names from a comma-separated environment variable. */
@@ -25,11 +25,13 @@ test('record the scene script in a hidden window', async () => {
   const module = (await import(pathToFileURL(scriptPath).href)) as { default: DemoScript };
   const script = module.default;
   if (!script?.scenes?.length) throw new Error('The scene script is empty');
-  // ARCHITECT_DEMO_ONLY names the scenes to record, and ARCHITECT_DEMO_REUSE the ones whose
-  // earlier capture under the same output name is used again rather than recorded.
+  // ARCHITECT_DEMO_ONLY names the scenes to record, ARCHITECT_DEMO_REUSE the ones whose earlier
+  // capture under the same output name is used again rather than recorded, and
+  // ARCHITECT_DEMO_RETITLE the ones reused with their title card recorded again.
   const only = sceneNames('ARCHITECT_DEMO_ONLY');
   const reuse = sceneNames('ARCHITECT_DEMO_REUSE');
-  for (const name of [...only, ...reuse]) {
+  const retitle = sceneNames('ARCHITECT_DEMO_RETITLE');
+  for (const name of [...only, ...reuse, ...retitle]) {
     if (!script.scenes.some((scene) => scene.name === name)) {
       throw new Error(`The script has no scene named ${name}`);
     }
@@ -43,8 +45,14 @@ test('record the scene script in a hidden window', async () => {
   // A scene keeps its folder number from its place in the whole script, so a capture made on
   // its own can be reused in the full film.
   for (const [index, scene] of script.scenes.entries()) {
-    if (only.size > 0 && !only.has(scene.name) && !reuse.has(scene.name)) continue;
+    const named = only.has(scene.name) || reuse.has(scene.name) || retitle.has(scene.name);
+    if (only.size > 0 && !named) continue;
     const dir = join(work, `scene-${String(index + 1).padStart(2, '0')}`);
+    if (retitle.has(scene.name)) {
+      process.stdout.write(`Recording the title of ${scene.name} again\n`);
+      captured.push({ dir, capture: await recaptureTitle(scene, dir) });
+      continue;
+    }
     if (reuse.has(scene.name)) {
       process.stdout.write(`Reusing ${scene.name}\n`);
       const capture = JSON.parse(await readFile(join(dir, 'frames.json'), 'utf8')) as CapturedScene;

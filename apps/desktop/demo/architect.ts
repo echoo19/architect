@@ -52,6 +52,26 @@ function openRound(round: number, holdMs: number) {
   };
 }
 
+/** Opens each round the run had, oldest first and at most `most`, holding each one's page. */
+function openRounds(most: number, holdMs: number) {
+  return {
+    kind: 'run' as const,
+    label: 'open the rounds',
+    run: async (context: StepContext) => {
+      const rows = context.page
+        .getByRole('region', { name: 'Rounds' })
+        .getByRole('button')
+        .filter({ hasText: /^\d{2}/ });
+      const count = Math.min(most, await rows.count());
+      if (count === 0) throw new Error('The run has no rounds to open.');
+      for (let round = 1; round <= count; round += 1) {
+        await openRound(round, holdMs).run(context);
+        await sleep(500);
+      }
+    },
+  };
+}
+
 /** Waits, as long as a local model needs, until a reply holds some text. */
 function waitForText(text: string | RegExp, label: string) {
   return {
@@ -262,13 +282,7 @@ const learn: DemoScene = {
     heading: 'Spark teaches. A change stays only if it helps.',
     seconds: 2.4,
   },
-  steps: [
-    { kind: 'wait', ms: 3200 },
-    openRound(1, 5200),
-    { kind: 'wait', ms: 500 },
-    openRound(2, 5200),
-    { kind: 'wait', ms: 600 },
-  ],
+  steps: [{ kind: 'wait', ms: 3200 }, openRounds(2, 6400), { kind: 'wait', ms: 600 }],
   tailMs: 400,
 };
 
@@ -369,13 +383,24 @@ const measured: DemoScene = {
   steps: [],
 };
 
+const opening: DemoScene = {
+  name: 'Opening',
+  launch: { settings: SETTINGS },
+  title: {
+    eyebrow: 'Architect',
+    heading: 'Muse Spark teaches Muse Glimmer your job. Then Glimmer does it on your computer.',
+    seconds: 3.6,
+  },
+  steps: [],
+};
+
 const closing: DemoScene = {
   name: 'Architect',
   launch: { settings: SETTINGS },
   title: {
     eyebrow: 'github.com/echoo19/architect',
-    heading: 'A large model teaches a small one your job. Then it runs on your computer.',
-    seconds: 3.8,
+    heading: 'Open source, for Windows and Mac',
+    seconds: 3.4,
   },
   steps: [],
 };
@@ -385,7 +410,7 @@ const script: DemoScript = {
   height: 900,
   fps: 30,
   crossfadeSeconds: 0.4,
-  scenes: [describe, learn, test, local, measured, closing],
+  scenes: [opening, describe, learn, test, local, measured, closing],
 };
 
 export default script;
