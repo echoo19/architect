@@ -10,7 +10,7 @@ import {
   VersionTag,
 } from '@architect/ui';
 import { ArrowUpRight, File, ListChecks, Send, X } from 'lucide-react';
-import { Prose, P, Reply, ReplyActions, UserBubble, WorkedFor } from './chat';
+import { KeepIds, Prose, P, Reply, ReplyActions, UserBubble, WorkedFor } from './chat';
 import { AppWindow, ChatHeader, Sidebar } from './frame';
 import { PICKUP_ASK, PICKUP_SIDEBAR, PICKUP_TITLE } from './jobs';
 import { at } from './motion';
@@ -24,8 +24,8 @@ const FILES = ['orders.csv', 'customers.csv', 'returns.csv', 'pickups.csv', 'pol
  * The pickup is for return RT-4092, which can be handed over from Thursday, November 26, 2026. That
  * is Thanksgiving, and the shop's policy says no carrier collects on it.
  */
-const REPLY = 'Cedarline Parcel can collect it Thursday, 2026-11-26.';
-const WRONG = 'No carrier picks up on Thanksgiving.';
+const REPLY = 'Cedarline Parcel can collect it on Thursday, November 26.';
+const WRONG = 'November 26 is Thanksgiving, and no carrier picks up that day.';
 const SHOULD = 'Book Friday, the next day Cedarline collects.';
 const LESSON_TEXT =
   'Before booking a pickup, check policy.md for days when no carrier collects, like Thanksgiving.';
@@ -367,7 +367,7 @@ export function TeachMock() {
       id="teach"
       label="The Architect workspace with Teach this open. The person flagged the returns desk's reply about a pickup date, and wrote what was wrong: no carrier picks up on Thanksgiving. Spark turned it into a lesson: before booking a pickup, check policy.md for days when no carrier collects. It is saved as version 2. Version 1 keeps answering until the person uses version 2."
       heightWide={690}
-      heightCompact={800}
+      heightCompact={865}
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 wide:inset-x-7 wide:top-6">
         <div className="absolute inset-0 flex narrow:hidden">
@@ -376,9 +376,11 @@ export function TeachMock() {
             <ChatHeader title={PICKUP_TITLE} />
             <div className="min-h-0 flex-1 overflow-hidden px-8 pt-5">
               <div className="ml-0 flex w-[212px] flex-col gap-6 text-chat">
-                <UserBubble articleClassName="max-w-full">{PICKUP_ASK}</UserBubble>
+                <UserBubble articleClassName="max-w-full">
+                  <KeepIds text={PICKUP_ASK} />
+                </UserBubble>
                 <Reply>
-                  <WorkedFor>Worked for 29 s · 2 steps</WorkedFor>
+                  <WorkedFor>Worked for 49 s · 2 steps</WorkedFor>
                   <Prose>
                     <P>{REPLY}</P>
                   </Prose>

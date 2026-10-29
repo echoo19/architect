@@ -50,7 +50,7 @@ export const JOBS: readonly JobChat[] = [
   {
     title: "Can Nico's tent come back?",
     ask: "Nico Mbeki wants to return the Two-Person Backpacking Tent from order ORD-10506. It's opened. Can it come back, and what does he get?",
-    worked: 'Worked for 52 s · 4 steps',
+    worked: 'Worked for 1 min 31 s · 4 steps',
     lead: [
       'Yes. The tent was delivered 23 days ago, inside the 30 day window, and Nico gets ',
       { b: '$258.22' },
@@ -75,7 +75,7 @@ export const JOBS: readonly JobChat[] = [
   {
     title: 'What has Marcus spent on tents?',
     ask: 'How much has Marcus Fairbanks spent on tents since September 23?',
-    worked: 'Worked for 47 s · 4 steps',
+    worked: 'Worked for 1 min 18 s · 4 steps',
     lead: ['Marcus has spent ', { b: '$1,189.95' }, ' on tents since September 23.'],
     bullets: [
       'One order counts: ORD-10413, placed on September 23.',
@@ -95,7 +95,7 @@ export const JOBS: readonly JobChat[] = [
   {
     title: "Can Vera's pot sets come back?",
     ask: 'Vera Galloway brought back 2 Titanium Pot Sets from order ORD-10289. They are opened. Can they come back?',
-    worked: 'Worked for 36 s · 3 steps',
+    worked: 'Worked for 58 s · 3 steps',
     lead: [
       'No. The order was delivered 94 days ago, far past the 30 day window, so the refund is ',
       { b: '$0.00' },

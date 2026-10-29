@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { cn } from '@architect/ui';
-import { Bullets, DataCard, P, Prose, Reply, UserBubble, WorkedFor } from './chat';
+import { Bullets, DataCard, KeepIds, P, Prose, Reply, UserBubble, WorkedFor } from './chat';
 import { AppWindow, ChatHeader, Sidebar } from './frame';
 import { JOBS, sidebarFor, type JobChat } from './jobs';
 import { at } from './motion';
@@ -49,7 +49,7 @@ function Conversation({ job, phase }: { job: JobChat; phase: Phase }) {
   return (
     <div className="mx-auto flex max-w-[720px] flex-col gap-10 text-chat">
       <UserBubble className={ask.className} style={ask.style}>
-        {job.ask}
+        <KeepIds text={job.ask} />
       </UserBubble>
       <Reply>
         <WorkedFor className={worked.className} style={worked.style}>
@@ -59,7 +59,9 @@ function Conversation({ job, phase }: { job: JobChat; phase: Phase }) {
           <Lead job={job} phase={phase} />
           <div className="narrow:hidden">
             <Bullets
-              items={job.bullets}
+              items={job.bullets.map((bullet) => (
+                <KeepIds text={bullet} />
+              ))}
               itemClassName={turn(phase, 4).className}
               itemStyle={(index) => turn(phase, 4 + index).style}
             />

@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from '@architect/ui';
-import { ApprovalCard, Reply, Steps, UserBubble, WaitingLine } from './chat';
+import { ApprovalCard, KeepIds, P, Reply, Steps, UserBubble, WaitingLine } from './chat';
 import { AppWindow, ChatComposer, ChatHeader, Sidebar } from './frame';
 import { DESK, ORDERS_TITLE, START_TITLE } from './jobs';
 import { at } from './motion';
@@ -27,14 +27,12 @@ const QUESTION = ORDERS_TITLE;
 const AGENTS = [
   {
     name: DESK,
-    chats: [
-      { title: QUESTION, current: true },
-      { title: START_TITLE, awaitsApproval: true },
-    ],
+    chats: [{ title: QUESTION, current: true }, { title: START_TITLE }],
   },
 ];
 
-const ASK = 'Orrin is sending back the dry bag, return RT-4106. Book the earliest carrier pickup.';
+const ASK =
+  'Orrin is sending back the dry bag from ORD-10482, return RT-4106. Book the earliest carrier pickup.';
 
 const STEPS = [
   { action: 'Read', target: 'data/orders.csv' },
@@ -44,16 +42,19 @@ const STEPS = [
 ];
 
 const BOOKING_STEPS = [
-  { action: 'Read', target: 'data/policy.md' },
   { action: 'Searched', target: 'returns.csv' },
+  { action: 'Searched', target: 'customers.csv' },
   { action: 'Searched', target: 'pickups.csv' },
 ];
 
 /**
- * The row it wants to add. RT-4106 is the dry bag, for a customer in the Valley region, which
- * Cedarline Parcel serves. The dry bag can be handed over from Friday, December 4, a day Cedarline
- * collects, and no Cedarline pickup is booked for that day yet.
+ * What it says before the row, and the row. RT-4106 is the dry bag, for a customer in the Valley
+ * region, which Cedarline Parcel serves. The dry bag can be handed over from Friday, December 4, a
+ * day Cedarline collects, and no Cedarline pickup is booked for that day yet.
  */
+const BOOKING_SAYS =
+  'Orrin can hand over RT-4106 from Friday, December 4, so that is the earliest day.';
+const BOOKING_WHY = ' Cedarline Parcel serves his region and collects that day.';
 const PICKUP_COLUMNS = ['pickup_id', 'return_id', 'carrier', 'pickup_date', 'booked_on'];
 const PICKUP_ROW = ['PU-4106', 'RT-4106', 'Cedarline Parcel', '2026-12-04', '2026-11-24'];
 /** On a phone the row keeps the carrier, which may take two lines, and the date. */
@@ -66,6 +67,8 @@ interface Order {
   id: string;
   placed: string;
   lines: readonly Line[];
+  /** The one order a phone shows, since it has room for one: the one the next request is about. */
+  keptOnNarrow?: boolean;
 }
 
 const ORDERS: readonly Order[] = [
@@ -90,6 +93,7 @@ const ORDERS: readonly Order[] = [
   {
     id: 'ORD-10482',
     placed: 'Oct 17',
+    keptOnNarrow: true,
     lines: [
       ['FN-6517', 'Dry Bag 20L', 'x1', '$34.95'],
       ['VB-3808', 'Four-Season Expedition Tent', 'x1', '$1,189.95'],
@@ -106,20 +110,18 @@ const ORDERS: readonly Order[] = [
   },
 ];
 
-/** On a phone the table keeps this many orders and counts the rest. */
-const SHOWN_ON_NARROW = 1;
-
 /** When the chapter's moments happen, in ms from the start. */
 const TABLE_AT = 3000;
 const HAND_OVER = 5900;
 const ASK_AT = HAND_OVER + 350;
 const WORK_AT = ASK_AT + 700;
-const CARD_AT = WORK_AT + 1750;
+const SAYS_AT = WORK_AT + 1750;
+const CARD_AT = SAYS_AT + 800;
 const WAIT_AT = CARD_AT + 1100;
 
 /** The agent's answer: each order it found, when it was placed, and what was in it. */
 function Orders() {
-  const rest = ORDERS.slice(SHOWN_ON_NARROW);
+  const rest = ORDERS.filter((order) => !order.keptOnNarrow);
   return (
     <div className="a a-up" style={at(TABLE_AT, { dy: 20, dur: 700 })}>
       <TableCard aria-label="Orders placed in October 2026">
@@ -131,7 +133,7 @@ function Orders() {
         </TableHeader>
         <TableBody>
           {ORDERS.map((order, index) => (
-            <TableRow key={order.id} className={cn(index >= SHOWN_ON_NARROW && 'narrow:hidden')}>
+            <TableRow key={order.id} className={cn(!order.keptOnNarrow && 'narrow:hidden')}>
               <TableCell className="whitespace-nowrap align-top narrow:px-3!">
                 <span
                   className="a a-up flex flex-col"
@@ -148,7 +150,7 @@ function Orders() {
                 >
                   {order.lines.map(([sku, name, qty, price]) => (
                     <li key={sku} className="flex flex-wrap items-baseline gap-x-3">
-                      <span className="font-mono text-sm text-fg-muted">{sku}</span>
+                      <span className="font-mono text-sm text-fg-muted narrow:hidden">{sku}</span>
                       <span className="text-fg">{name}</span>
                       <span className="font-mono text-sm tabular-nums text-fg-secondary sm:ml-auto">
                         {qty} {price}
@@ -161,7 +163,9 @@ function Orders() {
           ))}
           <TableRow className="hidden narrow:table-row">
             <TableCell colSpan={2} className="text-sm text-fg-muted narrow:px-3!">
-              {rest.length} more orders: {rest.map((order) => order.id).join(', ')}
+              <KeepIds
+                text={`${rest.length} more orders: ${rest.map((order) => order.id).join(', ')}`}
+              />
             </TableCell>
           </TableRow>
         </TableBody>
@@ -183,7 +187,7 @@ function FirstExchange() {
           articleClassName="narrow:max-w-full"
           style={at(250, { dy: 36, dur: 700 })}
         >
-          {QUESTION}
+          {QUESTION.replace('@', '@\u200b')}
         </UserBubble>
         <Reply>
           <Steps
@@ -217,7 +221,7 @@ function SecondExchange() {
           articleClassName="narrow:max-w-full"
           style={at(ASK_AT, { dy: 36, dur: 700 })}
         >
-          {ASK}
+          <KeepIds text={ASK} />
         </UserBubble>
         <Reply className="a a-up" style={at(WORK_AT - 100, { dur: 300, dy: 0 })}>
           <Steps
@@ -228,6 +232,10 @@ function SecondExchange() {
             stepClassName="a a-wipe"
             stepStyle={(index) => at(WORK_AT + 250 + index * 420, { dur: 520 })}
           />
+          <P className="a a-up" style={at(SAYS_AT, { dy: 10, dur: 600 })}>
+            <KeepIds text={BOOKING_SAYS} />
+            <span className="narrow:hidden">{BOOKING_WHY}</span>
+          </P>
           <ApprovalCard
             file="data/pickups.csv"
             summary="1 new row"
@@ -255,7 +263,7 @@ export function UseMock() {
       id="use"
       label="The Architect workspace. The ready-made returns desk agent, running on this computer, was asked which orders a customer placed in October 2026 and what was in each. It read the orders and customers files, searched the orders and order lines, and answered in 1 minute 37 seconds with four orders and their items. Then it was asked to book the earliest carrier pickup for that customer's return. It shows the row it wants to add to pickups.csv, with Deny, Allow saving from now on and Allow once, and waits. Nothing is saved until the person answers."
       heightWide={945}
-      heightCompact={865}
+      heightCompact={960}
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 flex wide:inset-x-7 wide:top-6">
         <Sidebar agents={AGENTS} className="narrow:hidden" />

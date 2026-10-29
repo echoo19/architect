@@ -134,7 +134,7 @@ export function ChatHeader({ title, className }: { title: ReactNode; className?:
         className,
       )}
     >
-      <h3 className="m-0 min-w-0 truncate text-md font-medium">{title}</h3>
+      <h3 className="m-0 min-w-0 max-w-full truncate text-md font-medium">{title}</h3>
       <Badge icon={<Laptop size={14} strokeWidth={1.6} aria-hidden />}>
         Running on this computer
       </Badge>

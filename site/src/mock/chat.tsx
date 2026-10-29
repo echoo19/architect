@@ -17,6 +17,23 @@ import { ChevronRight, CirclePause, Copy, FilePlus, Flag } from 'lucide-react';
  * answer, and a change waiting for approval. Each piece takes the style that times its arrival.
  */
 
+/** Text with its order, return and pickup ids kept whole, so a line never ends on their hyphen. */
+export function KeepIds({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(\b(?:ORD|RT|RQ|PU)-\d+\b)/).map((part, index) =>
+        index % 2 === 1 ? (
+          <span key={index} className="whitespace-nowrap">
+            {part}
+          </span>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
+
 export function UserBubble({
   children,
   className,
