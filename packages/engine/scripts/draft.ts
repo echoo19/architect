@@ -7,6 +7,8 @@
  *     [--answer "<text>"]... [--data <dir>] [--mentor meta-spark] [--confirm-rules]
  *
  * Each question is answered with the next --answer, or with its first option when none is left.
+ * A question about an empty cell, or about N/A or a dash, is answered "Leave those rows out" when
+ * none is left, never "Count it as zero": counting a mark as nothing is the person's to decide.
  * The drafted job stays in --data (a new folder when absent), ready for scripts/run.ts or the app.
  * A rule is printed with its passages and examples; --confirm-rules is the person saying they read
  * it and it is right, which training waits for.
@@ -16,6 +18,7 @@ import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import {
+  BLANK_ANSWERS,
   mentorPreset,
   passageOrigin,
   type MentorConfig,
@@ -32,6 +35,21 @@ const SECRET_ENV: Record<string, string> = {
 
 /** Questions answered before the script asks for the draft itself, as "Draft it now" does. */
 const MAX_TURNS = 4;
+
+/** Turns in all, so a question that is never answered cannot keep the script asking for ever. */
+const MOST_TURNS = 24;
+
+const DRAFT_NOW = 'Draft it now';
+
+/**
+ * What a question is answered with when no --answer is left: the first option the person is
+ * offered, except that an empty cell or a mark is left out of the rule and never counted as zero.
+ */
+function defaultAnswer(options: readonly string[]): string | undefined {
+  return options.includes(BLANK_ANSWERS.leave_out)
+    ? BLANK_ANSWERS.leave_out
+    : options.find((option) => option !== DRAFT_NOW);
+}
 
 function write(text: string): void {
   process.stdout.write(text);
@@ -93,12 +111,16 @@ async function main(): Promise<void> {
       write(`\n${teacher.kind === 'model' ? teacher.label : 'Teacher'}: ${turn.message}\n`);
       if (turn.options.length > 0) write(`  options: ${turn.options.join(' | ')}\n`);
       if (turn.draft !== undefined || turn.ended === true) break;
-      const answer =
-        turns + 1 >= MAX_TURNS
-          ? 'Draft it now'
-          : (answers.shift() ??
-            turn.options.find((option) => option !== 'Draft it now') ??
-            'Draft it now');
+      // A question the teacher asked can be cut short with "Draft it now". A question about the
+      // rule has no such way out, and has to be answered.
+      const cutShort = turn.options.includes(DRAFT_NOW) && turns + 1 >= MAX_TURNS;
+      if (turns + 1 >= MOST_TURNS) {
+        write(`\nThe script stopped asking after ${MOST_TURNS} turns.\n`);
+        return;
+      }
+      const answer = cutShort
+        ? DRAFT_NOW
+        : (answers.shift() ?? defaultAnswer(turn.options) ?? DRAFT_NOW);
       write(`You: ${answer}\n`);
       turn = await host.api.jobs.draftReply(turn.sessionId, answer, teacher);
     }

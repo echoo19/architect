@@ -26,8 +26,12 @@ export const refKey = (ref: ColumnRef): string => `${ref.from}:${ref.column.toLo
 export interface CaseInputs {
   number(ref: ColumnRef): q.Q;
   category(ref: ColumnRef): string;
-  /** Whether the number was an empty cell that the person said counts as zero. */
-  zeroed?(ref: ColumnRef): boolean;
+  /**
+   * What the cell held when it counted as zero because the person said it should: nothing, the
+   * empty string, for an empty cell, or the mark that stood where the number should be, such as
+   * N/A. Undefined when the cell was read as a number.
+   */
+  zeroed?(ref: ColumnRef): string | undefined;
 }
 
 /** The nodes of an expression, each before the ones inside it. */
@@ -210,8 +214,11 @@ export interface Run {
   winner?: { index: number; alone: boolean };
   /** For a rounding: the value before it. */
   before?: q.Q;
-  /** For a column: its cell was empty and counted as zero, as the person said it should. */
-  zeroed?: boolean;
+  /**
+   * For a column: what its cell held when that counted as zero, as the person said it should. The
+   * empty string for an empty cell, the mark for N/A or a dash.
+   */
+  zeroed?: string;
 }
 
 /**
@@ -293,13 +300,15 @@ export function evaluate(node: RuleNode, inputs: CaseInputs, overrides?: Overrid
   switch (node.op) {
     case 'num':
       return { node, value: q.fromText(node.value) ?? q.ZERO, children: [] };
-    case 'col':
+    case 'col': {
+      const held = inputs.zeroed?.(node);
       return {
         node,
         value: inputs.number(node),
         children: [],
-        ...(inputs.zeroed?.(node) === true ? { zeroed: true } : {}),
+        ...(held === undefined ? {} : { zeroed: held }),
       };
+    }
     case 'add':
     case 'sub':
     case 'mul': {

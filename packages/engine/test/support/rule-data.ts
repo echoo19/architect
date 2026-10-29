@@ -187,3 +187,42 @@ export function bikeTables(bike: Bike): Map<string, Table> {
     ['customers.csv', bike.customerTable],
   ]);
 }
+
+/** The shop's records as CSV text, split into cells, for a test that edits a few of them by hand. */
+export interface BikeCsv {
+  tickets: string[][];
+  customers: string[][];
+}
+
+const cellsOfCsv = (csv: string): string[][] =>
+  csv
+    .trim()
+    .split('\n')
+    .map((line) => line.split(','));
+const csvOfCells = (rows: readonly string[][]): string =>
+  `${rows.map((row) => row.join(',')).join('\n')}\n`;
+
+/** The shop's records after an edit, as the files a person would attach. */
+export function editedBikeCsv(
+  source: Bike,
+  edit: (csv: BikeCsv) => void,
+): { ticketsCsv: string; customersCsv: string } {
+  const csv = {
+    tickets: cellsOfCsv(source.ticketsCsv),
+    customers: cellsOfCsv(source.customersCsv),
+  };
+  edit(csv);
+  return { ticketsCsv: csvOfCells(csv.tickets), customersCsv: csvOfCells(csv.customers) };
+}
+
+/** The shop's tables after an edit of the records. */
+export function editedBikeTables(source: Bike, edit: (csv: BikeCsv) => void): Map<string, Table> {
+  const { ticketsCsv, customersCsv } = editedBikeCsv(source, edit);
+  return new Map([
+    ['tickets.csv', readTable('tickets.csv', ticketsCsv)],
+    ['customers.csv', readTable('customers.csv', customersCsv)],
+  ]);
+}
+
+/** The column of the tickets that holds the parts cost. */
+export const PARTS = 4;

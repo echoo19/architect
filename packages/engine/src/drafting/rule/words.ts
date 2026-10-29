@@ -7,7 +7,8 @@ import type {
 } from '@architect/shared';
 import { foldKey } from '../values';
 import { inWords } from '../templates/common';
-import { literalText, type ColumnRef, type Run } from './expression';
+import { literalText, refKey, type ColumnRef, type Run } from './expression';
+import { markWords } from './placeholders';
 import * as q from './rational';
 
 /*
@@ -23,6 +24,8 @@ export interface WordsContext {
   categories: readonly RuleCategory[];
   /** The columns whose empty cell counts as zero, because the person said it should. */
   emptyMeansZero?: readonly ColumnRef[];
+  /** The marks, N/A or a dash, that count as zero in a column, because the person said they should. */
+  placeholderMeansZero?: readonly (ColumnRef & { tokens: readonly string[] })[];
 }
 
 /** The words the rule's sentences are told in, from the rule alone. */
@@ -34,7 +37,43 @@ export function wordsOf(spec: RuleSpec): WordsContext {
     ...(spec.emptyMeansZero === undefined || spec.emptyMeansZero.length === 0
       ? {}
       : { emptyMeansZero: spec.emptyMeansZero }),
+    ...(spec.placeholderMeansZero === undefined || spec.placeholderMeansZero.length === 0
+      ? {}
+      : { placeholderMeansZero: spec.placeholderMeansZero }),
   };
+}
+
+/**
+ * The columns the person said something counts as zero in, in the order the rule's words tell
+ * them: those whose empty cell counts first, then those that only have marks.
+ */
+export function zeroRefs(ctx: WordsContext): ColumnRef[] {
+  const refs = [...(ctx.emptyMeansZero ?? [])];
+  for (const item of ctx.placeholderMeansZero ?? []) {
+    if (!refs.some((ref) => refKey(ref) === refKey(item))) {
+      refs.push({ column: item.column, from: item.from });
+    }
+  }
+  return refs;
+}
+
+/**
+ * What counts as zero in a column, in the sentence the rule tells it and the step that reads the
+ * column notes it: "An empty parts cost counts as 0, as you said." When marks count too they are
+ * named as the person sees them in their records: "An empty parts cost or a dash ("-") counts as 0,
+ * as you said." Null for a column nothing was said of.
+ */
+export function zeroNote(ref: ColumnRef, ctx: WordsContext): string | null {
+  const name = nameOf(ref, ctx);
+  const empty = (ctx.emptyMeansZero ?? []).some((item) => refKey(item) === refKey(ref));
+  const marks = (ctx.placeholderMeansZero ?? [])
+    .filter((item) => refKey(item) === refKey(ref))
+    .flatMap((item) => item.tokens.map(markWords));
+  if (!empty && marks.length === 0) return null;
+  if (marks.length === 0) return `An empty ${name} counts as 0, as you said.`;
+  if (empty)
+    return `${upper(inWords([`An empty ${name}`, ...marks], 'or'))} counts as 0, as you said.`;
+  return `${upper(inWords(marks, 'or'))} in ${name} counts as 0, as you said.`;
 }
 
 const CURRENCY_SIGNS: Readonly<Record<string, string>> = {
@@ -319,7 +358,8 @@ export function bracketed(node: RuleNode, ctx: WordsContext, highest: 0 | 1 | 2)
   return within(phrase(node, ctx), highest);
 }
 
-const upper = (text: string): string => `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+/** A text with its first letter a capital. */
+export const upper = (text: string): string => `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 
 /**
  * The rule in plain sentences, from the expression. A sum is told one part at a time, and a final
@@ -346,9 +386,10 @@ export function statementOf(root: RuleNode, ctx: WordsContext): string {
       `The result is rounded ${roundingText(root.mode, root.increment, ctx.currency)}.`,
     );
   }
-  // What an empty cell counts as is part of the rule, and said where the person reads it.
-  for (const ref of ctx.emptyMeansZero ?? []) {
-    sentences.push(`An empty ${nameOf(ref, ctx)} counts as 0, as you said.`);
+  // What an empty cell or a mark counts as is part of the rule, and said where the person reads it.
+  for (const ref of zeroRefs(ctx)) {
+    const note = zeroNote(ref, ctx);
+    if (note !== null) sentences.push(note);
   }
   return sentences.join(' ');
 }
@@ -362,7 +403,10 @@ export interface Step {
 /** How an operand shows in a step: a column with its value, a number as written, a result as is. */
 function operand(run: Run, ctx: WordsContext): string {
   if (run.node.op === 'col') {
-    const shown = run.zeroed === true ? 'empty, so 0' : numberText(run.value);
+    const shown =
+      run.zeroed === undefined
+        ? numberText(run.value)
+        : `${run.zeroed === '' ? 'empty' : run.zeroed}, so 0`;
     return `${nameOf(run.node, ctx)} (${shown})`;
   }
   if (run.node.op === 'num') return literalText(run.node.value);

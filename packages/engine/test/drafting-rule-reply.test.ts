@@ -2,7 +2,7 @@ import { RuleSpecSchema } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { checkReply } from '../src/drafting/envelope';
 import type { Attached } from '../src/drafting/files';
-import type { TableBlank } from '../src/drafting/rule-reply';
+import type { TableBlank, TableMark } from '../src/drafting/rule-reply';
 import { WireStepSchema } from '../src/drafting/rule-steps';
 import { readTable } from '../src/drafting/table';
 import { bikeShop, POLICY } from './support/rule-data';
@@ -27,8 +27,30 @@ function attached(): Attached {
   };
 }
 
-function check(rule: Parameters<typeof costType>[0], said = { description: '', answers: '' }) {
-  return checkReply(bikeDraft([costType(rule)]), { mustDraft: false, attached: attached(), said });
+/**
+ * The tickets' parts cost says N/A in places, which Architect asks the person about. These tests are
+ * about something else, so the person has said to leave those rows out, as a rule always did.
+ */
+const leaveOut = (table: string): TableMark => ({
+  table,
+  column: 'parts_cost',
+  mark: 'N/A',
+  means: 'leave_out',
+  question: `In ${table}, parts_cost sometimes says "N/A". Does "N/A" mean no parts cost?`,
+});
+
+function check(
+  rule: Parameters<typeof costType>[0],
+  said: { description: string; answers: string; marks?: TableMark[] } = {
+    description: '',
+    answers: '',
+  },
+) {
+  return checkReply(bikeDraft([costType(rule)]), {
+    mustDraft: false,
+    attached: attached(),
+    said: { marks: [leaveOut('tickets.csv')], ...said },
+  });
 }
 
 function problemsOf(rule: Parameters<typeof costType>[0]): string[] {
@@ -324,7 +346,7 @@ describe('what the person chose for an empty cell, table by table', () => {
     const checked = checkReply(bikeDraft([costType({ ambiguities: [EMPTY] }, { table })]), {
       mustDraft: false,
       attached: archive(),
-      said: { ...SAID, blanks },
+      said: { ...SAID, blanks, marks: [leaveOut('tickets.csv'), leaveOut('archive.csv')] },
     });
     if (!checked.ok || checked.reply.action !== 'draft') throw new Error('Expected a draft.');
     const [type] = checked.reply.job.types;
@@ -367,5 +389,307 @@ describe('what the person chose for an empty cell, table by table', () => {
   it('knows the table by the name it was attached under, whatever the case or spacing', () => {
     const { asked } = made('tickets.csv', [{ ...zeroForTickets, table: ' Tickets.CSV ' }]);
     expect(asked).toBeUndefined();
+  });
+});
+
+describe('what the person chose for a mark such as N/A, mark by mark and table by table', () => {
+  // The tickets, and an archive of them in which some of the N/A are dashes.
+  const archiveCsv = bike.ticketsCsv.replace(/,N\/A\n/g, (found, at: number) =>
+    at % 3 === 0 ? ',-\n' : found,
+  );
+  const both = (): Attached => {
+    const base = attached();
+    return {
+      ...base,
+      files: [
+        ...base.files,
+        {
+          name: 'archive.csv',
+          kind: 'table' as const,
+          bytes: Buffer.from(archiveCsv),
+          table: readTable('archive.csv', archiveCsv),
+        },
+      ],
+    };
+  };
+  const answer = (
+    table: string,
+    mark: string,
+    means: TableMark['means'],
+    column = 'parts_cost',
+  ): TableMark => ({
+    table,
+    column,
+    mark,
+    means,
+    question: `In ${table}, ${column} sometimes says "${mark}". Does "${mark}" mean no ${column}?`,
+  });
+
+  /** What the reply makes of the rule over one table, given what the person has chosen so far. */
+  function made(
+    table: string,
+    marks: TableMark[],
+    rule: Parameters<typeof costType>[0] = {},
+    files: Attached = both(),
+  ) {
+    const checked = checkReply(bikeDraft([costType(rule, { table })]), {
+      mustDraft: false,
+      attached: files,
+      said: { description: '', answers: '', marks },
+    });
+    if (!checked.ok || checked.reply.action !== 'draft') {
+      throw new Error(checked.ok ? 'Expected a draft.' : checked.problems.join(' '));
+    }
+    const [type] = checked.reply.job.types;
+    return { spec: type?.spec, asked: type?.ambiguities };
+  }
+
+  const tokensOf = (spec: ReturnType<typeof made>['spec']) =>
+    spec?.template === 'rule' ? spec.placeholderMeansZero : undefined;
+
+  it('asks for a mark the teacher raised nothing about, once for each, the most common first', () => {
+    const { asked, spec } = made('archive.csv', []);
+    expect(tokensOf(spec)).toBeUndefined();
+    expect(asked?.map((item) => item.mark)).toEqual([
+      { table: 'archive.csv', column: 'parts_cost', mark: 'N/A' },
+      { table: 'archive.csv', column: 'parts_cost', mark: '-' },
+    ]);
+    expect(asked?.[0]?.options).toEqual(['Count it as zero', 'Leave those rows out']);
+    expect(asked?.[0]?.question).toBe(
+      'In archive.csv, parts_cost sometimes says "N/A". Does "N/A" mean no parts cost? If it can also mean "not known yet", leave those rows out.',
+    );
+    expect(asked?.[1]?.question).toContain('has a dash ("-") where a number should be');
+  });
+
+  it("asks the teacher's own questions first, and its own after them", () => {
+    const open = {
+      question: 'Does the discount apply to parts?',
+      options: ['No', 'Yes'],
+      changesAnswers: true,
+    };
+    const { asked } = made('archive.csv', [], { ambiguities: [open] });
+    expect(asked?.map((item) => item.question)).toEqual([
+      open.question,
+      expect.stringContaining('sometimes says "N/A"'),
+      expect.stringContaining('sometimes has a dash'),
+    ]);
+    expect(asked?.map((item) => item.mark !== undefined)).toEqual([false, true, true]);
+  });
+
+  it('counts as zero the marks the person said so for, and asks only about the rest', () => {
+    const { asked, spec } = made('archive.csv', [answer('archive.csv', 'N/A', 'zero')]);
+    expect(tokensOf(spec)).toEqual([{ column: 'parts_cost', from: 'row', tokens: ['N/A'] }]);
+    expect(asked?.map((item) => item.mark?.mark)).toEqual(['-']);
+    // The rule rests on the answer: it is a passage, beside the question it was given to.
+    expect(spec?.template === 'rule' && spec.sources.at(-1)).toEqual({
+      file: 'answers',
+      passage: 'Count it as zero',
+      question: 'In archive.csv, parts_cost sometimes says "N/A". Does "N/A" mean no parts_cost?',
+    });
+  });
+
+  it('keeps leaving out as an answer: it is not asked again, and the rule is not changed by it', () => {
+    const { asked, spec } = made('archive.csv', [
+      answer('archive.csv', 'N/A', 'leave_out'),
+      answer('archive.csv', '-', 'leave_out'),
+    ]);
+    expect(asked).toBeUndefined();
+    expect(tokensOf(spec)).toBeUndefined();
+    expect(spec?.template === 'rule' && spec.sources).toHaveLength(2);
+  });
+
+  it('takes n/a for N/A, but a dash for neither, one table for another, or one column for another', () => {
+    // n/a and N/A are one mark.
+    const same = made('archive.csv', [
+      answer('archive.csv', 'n/a', 'zero'),
+      answer('archive.csv', '-', 'leave_out'),
+    ]);
+    expect(same.asked).toBeUndefined();
+    expect(tokensOf(same.spec)).toEqual([{ column: 'parts_cost', from: 'row', tokens: ['N/A'] }]);
+    // The tickets' answer is not the archive's, and the archive's dash is not N/A.
+    const { asked, spec } = made('archive.csv', [
+      answer('tickets.csv', 'N/A', 'zero'),
+      answer('archive.csv', '-', 'zero'),
+    ]);
+    expect(asked?.map((item) => item.mark?.mark)).toEqual(['N/A']);
+    expect(tokensOf(spec)).toEqual([{ column: 'parts_cost', from: 'row', tokens: ['-'] }]);
+    // Another column of the same table is a question of its own.
+    const other = made('archive.csv', [answer('archive.csv', 'N/A', 'zero', 'labor_hours')]);
+    expect(other.asked?.map((item) => item.mark?.mark)).toEqual(['N/A', '-']);
+    expect(tokensOf(other.spec)).toBeUndefined();
+  });
+
+  it('knows the table and the column by the name they were attached under, whatever the case or spacing', () => {
+    const { asked, spec } = made('tickets.csv', [
+      { ...answer(' Tickets.CSV ', 'N/A', 'zero'), column: ' PARTS_COST ' },
+    ]);
+    expect(asked).toBeUndefined();
+    expect(tokensOf(spec)).toEqual([{ column: 'parts_cost', from: 'row', tokens: ['N/A'] }]);
+  });
+
+  /** A table of amounts, the first cells of each column written as `marks` says, the rest numbers. */
+  function amounts(
+    marks: Record<string, readonly string[]>,
+    columns: readonly string[] = ['a', 'b', 'c', 'd', 'e'],
+  ): Attached {
+    const lines = [['ticket_id', ...columns].join(',')];
+    for (let row = 0; row < 30; row += 1) {
+      const cells = columns.map((column) => marks[column]?.[row] ?? String(10 + row));
+      lines.push([`T-${100 + row}`, ...cells].join(','));
+    }
+    const csv = `${lines.join('\n')}\n`;
+    const base = attached();
+    const table = readTable('amounts.csv', csv);
+    return {
+      ...base,
+      files: [
+        ...base.files,
+        { name: 'amounts.csv', kind: 'table' as const, bytes: Buffer.from(csv), table },
+      ],
+    };
+  }
+
+  /** What the reply makes of a rule that adds up `columns` of the amounts, four to a step. */
+  function summed(files: Attached, columns: readonly string[], marks: TableMark[] = []) {
+    const steps = [
+      ...columns.map((column) => step(column, 'col', { column, from: 'row' })),
+      ...(columns.length > 4
+        ? [
+            step('part', 'add', { args: columns.slice(0, 4) }),
+            step('sum', 'add', { args: ['part', ...columns.slice(4)] }),
+          ]
+        : [step('sum', 'add', { args: [...columns] })]),
+    ];
+    const checked = checkReply(bikeDraft([costType(alone(steps, 'sum'), { table: 'amounts.csv' })]), {
+      mustDraft: false,
+      attached: files,
+      said: { description: '', answers: '', marks },
+    });
+    if (!checked.ok || checked.reply.action !== 'draft') {
+      throw new Error(checked.ok ? 'Expected a draft.' : checked.problems.join(' '));
+    }
+    const { job } = checked.reply;
+    const [type] = job.types;
+    return {
+      spec: type?.spec,
+      asked: type?.ambiguities?.map((item) => item.mark),
+      left: job.unresolved,
+    };
+  }
+
+  const notAsked = (column: string, mark: string) =>
+    `${column} in amounts.csv also holds ${mark}. I did not ask what it means, so those rows are left out.`;
+
+  it('asks about four marks of a column at most, and says which it did not ask about', () => {
+    const files = amounts({ a: ['N/A', '-', '--', '?', 'null'] });
+    const zero = (mark: string) => answer('amounts.csv', mark, 'zero', 'a');
+    const first = summed(files, ['a', 'b']);
+    expect(first.asked?.map((item) => item?.mark)).toEqual(['N/A', '-', '--', '?']);
+    expect(first.left).toContain(notAsked('a', '"null"'));
+    // All four counted as zero fill the column's room, and the rule can still be held.
+    const counted = summed(files, ['a', 'b'], ['N/A', '-', '--', '?'].map(zero));
+    expect(counted.asked).toBeUndefined();
+    expect(tokensOf(counted.spec)).toEqual([
+      { column: 'a', from: 'row', tokens: ['N/A', '-', '--', '?'] },
+    ]);
+    expect(counted.left).toContain(notAsked('a', '"null"'));
+    // One whose rows are left out makes room for the fifth.
+    const freed = summed(files, ['a', 'b'], [
+      answer('amounts.csv', 'N/A', 'leave_out', 'a'),
+      ...['-', '--', '?'].map(zero),
+    ]);
+    expect(freed.asked?.map((item) => item?.mark)).toEqual(['null']);
+    expect(freed.left).not.toContain(notAsked('a', '"null"'));
+  });
+
+  it('asks about marks in four columns at most, a column whose mark counts keeping its room', () => {
+    const files = amounts({ a: ['N/A'], b: ['N/A'], c: ['N/A'], d: ['N/A'], e: ['N/A'] });
+    const all = ['a', 'b', 'c', 'd', 'e'];
+    const first = summed(files, all);
+    expect(first.asked?.map((item) => item?.column)).toEqual(['a', 'b', 'c', 'd']);
+    expect(first.left).toContain(notAsked('e', '"N/A"'));
+    const counted = summed(files, all, [answer('amounts.csv', 'N/A', 'zero', 'e')]);
+    expect(tokensOf(counted.spec)).toEqual([{ column: 'e', from: 'row', tokens: ['N/A'] }]);
+    expect(counted.asked?.map((item) => item?.column)).toEqual(['a', 'b', 'c']);
+    expect(counted.left).toContain(notAsked('d', '"N/A"'));
+  });
+
+  it('never takes an answer about one column for another that differs only in case', () => {
+    const files = amounts({ Cost: ['N/A'], cost: ['N/A'] }, ['Cost', 'cost', 'b']);
+    const { asked, spec } = summed(files, ['cost', 'b'], [
+      answer('amounts.csv', 'N/A', 'zero', 'Cost'),
+    ]);
+    expect(tokensOf(spec)).toBeUndefined();
+    expect(asked).toEqual([{ table: 'amounts.csv', column: 'cost', mark: 'N/A' }]);
+  });
+
+  it('asks nothing of a column the rule does not add up', () => {
+    // The status says N/A in places too, but the rule reads the hours and the parts cost only.
+    const sheet = bike.ticketsCsv.replace(/,Open,/g, ',N/A,');
+    expect(sheet).not.toBe(bike.ticketsCsv);
+    const files = attached();
+    const tickets = files.files.find((file) => file.name === 'tickets.csv');
+    if (tickets === undefined) throw new Error('No tickets.');
+    tickets.table = readTable('tickets.csv', sheet);
+    const { asked } = made('tickets.csv', [answer('tickets.csv', 'N/A', 'leave_out')], {}, files);
+    expect(asked).toBeUndefined();
+  });
+
+  it('asks nothing about a column of numbers the rule does not add up', () => {
+    // The rule reads the hours only. The parts cost says N/A in places, but it is not in the rule.
+    const hoursOnly = alone(
+      [
+        step('hours', 'col', { column: 'labor_hours', from: 'row' }),
+        step('rate', 'num', { value: '65' }),
+        step('price', 'mul', { args: ['hours', 'rate'] }),
+        step('total', 'round', { value: '0.01', mode: 'half_up', args: ['price'] }),
+      ],
+      'total',
+    );
+    const { asked, spec } = made('tickets.csv', [], hoursOnly);
+    expect(asked).toBeUndefined();
+    expect(tokensOf(spec)).toBeUndefined();
+  });
+
+  it('asks nothing about a column that holds words, even when the rule reads it as a number', () => {
+    // The rule is wrong to add up a status, and runRule says so. The person is not asked about it.
+    const sheet = bike.ticketsCsv.replace(/,Open,/g, ',N/A,');
+    const files = attached();
+    const tickets = files.files.find((file) => file.name === 'tickets.csv');
+    if (tickets === undefined) throw new Error('No tickets.');
+    tickets.table = readTable('tickets.csv', sheet);
+    const status = alone(
+      [
+        step('hours', 'col', { column: 'labor_hours', from: 'row' }),
+        step('state', 'col', { column: 'status', from: 'row' }),
+        step('sum', 'add', { args: ['hours', 'state'] }),
+        step('total', 'round', { value: '0.01', mode: 'half_up', args: ['sum'] }),
+      ],
+      'total',
+    );
+    const { asked } = made('tickets.csv', [], status, files);
+    expect(asked).toBeUndefined();
+  });
+
+  it('holds the teacher to eight passages, so that the answers Architect adds always have room', () => {
+    const passages = [
+      'Labor is billed',
+      'at $65 an hour',
+      'in half-hour steps',
+      'Members get 10% off labor',
+      'never off parts',
+      'A ticket is still open',
+      'Waiting on parts',
+      'Picked up means',
+      'Parts costs are what the shop paid',
+    ].map((passage) => ({ file: 'policy.md', passage }));
+    expect(problemsOf({ sources: passages })).toEqual([
+      'Task type "cost": a rule quotes at most 8 passages. Quote just the sentences it rests on.',
+    ]);
+    const { spec } = made('tickets.csv', [answer('tickets.csv', 'N/A', 'zero')], {
+      sources: passages.slice(0, 8),
+    });
+    expect(spec?.template === 'rule' && spec.sources).toHaveLength(9);
+    expect(tokensOf(spec)).toBeDefined();
   });
 });

@@ -6,6 +6,7 @@ import {
   DraftTurnSchema,
   RuleConfirmationStateSchema,
   TaskPlanSchema,
+  type DraftTurn,
 } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { connectEngine, type EngineClient } from '../src/host/client';
@@ -56,6 +57,36 @@ function attach(name: string, content: string): string {
   return path;
 }
 
+/**
+ * The repair desk drafted through the port. The tickets' parts cost says N/A in places, so
+ * Architect asks what that means before it makes anything; the question and its two answers cross
+ * the port as any question does, and here the person leaves those rows out.
+ */
+async function draftRepairDesk(): Promise<DraftTurn> {
+  const bike = bikeShop({ offGrid: true });
+  mentor.script = () => bikeDraft();
+  const asked = await client.jobs.draftStart(
+    'A repair desk',
+    [
+      attach('customers.csv', bike.customersCsv),
+      attach('tickets.csv', bike.ticketsCsv),
+      attach('policy.md', POLICY),
+    ],
+    TEACHER,
+  );
+  expect(DraftTurnSchema.safeParse(asked).success).toBe(true);
+  expect(asked.draft).toBeUndefined();
+  expect(asked.message).toBe(
+    'In tickets.csv, parts_cost sometimes says "N/A". Does "N/A" mean no parts cost? If it can also mean "not known yet", leave those rows out.',
+  );
+  expect(asked.options).toEqual(['Count it as zero', 'Leave those rows out']);
+  const turn = await client.jobs.draftReply(asked.sessionId, 'Leave those rows out', TEACHER);
+  expect(DraftTurnSchema.safeParse(turn).success).toBe(true);
+  // The teacher was asked once: the answer about a mark is applied by Architect, not drafted again.
+  expect(mentor.requests).toHaveLength(1);
+  return turn;
+}
+
 describe('drafting through the engine host', () => {
   it('asks, drafts and shows the job and its tasks, each reply held to its schema', async () => {
     mentor.script = (_request, call) =>
@@ -89,17 +120,7 @@ describe('drafting through the engine host', () => {
   });
 
   it('confirms a rule through the port, with the token the plan showed and the codes of a refusal', async () => {
-    const bike = bikeShop({ offGrid: true });
-    mentor.script = () => bikeDraft();
-    const turn = await client.jobs.draftStart(
-      'A repair desk',
-      [
-        attach('customers.csv', bike.customersCsv),
-        attach('tickets.csv', bike.ticketsCsv),
-        attach('policy.md', POLICY),
-      ],
-      TEACHER,
-    );
+    const turn = await draftRepairDesk();
     const job = turn.draft;
     if (!job) throw new Error('Expected a draft.');
 
@@ -125,17 +146,7 @@ describe('drafting through the engine host', () => {
   });
 
   it('refuses a run before the rule is confirmed, with its code', async () => {
-    const bike = bikeShop({ offGrid: true });
-    mentor.script = () => bikeDraft();
-    const turn = await client.jobs.draftStart(
-      'A repair desk',
-      [
-        attach('customers.csv', bike.customersCsv),
-        attach('tickets.csv', bike.ticketsCsv),
-        attach('policy.md', POLICY),
-      ],
-      TEACHER,
-    );
+    const turn = await draftRepairDesk();
     const refused = await client.runs
       .start(turn.draft?.id ?? '', { method: 'bare' })
       .catch((e: unknown) => e);

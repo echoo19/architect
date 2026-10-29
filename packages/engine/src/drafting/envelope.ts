@@ -7,6 +7,7 @@ import {
   ruleSchema,
   settleRule,
   type BlankAsked,
+  type MarkAsked,
   type Said,
   type Settled,
 } from './rule-reply';
@@ -178,12 +179,15 @@ export interface DraftedJob {
     spec?: TaskSpec;
     /**
      * For a rule: what the policy leaves open that changes an answer, which must be asked. A
-     * question about an empty cell says which column, since only two answers can be put to it.
+     * question about an empty cell says which column, since only two answers can be put to it, and
+     * so does one about a mark such as N/A, which Architect asks itself, however little the
+     * teacher raised.
      */
     ambiguities?: {
       question: string;
       options: string[];
       blank?: BlankAsked;
+      mark?: MarkAsked;
     }[];
   }[];
 }

@@ -118,6 +118,15 @@ describe('the words that put a rule in front of the person', () => {
     );
   });
 
+  it('sets a question that quotes a word of its own in single quotes, so the quotes never nest', () => {
+    const question =
+      'In tickets.csv, parts_cost sometimes says "N/A". Does "N/A" mean no parts cost?';
+    expect(passageOrigin({ file: 'answers', question })).toBe(`your answer to '${question}'`);
+    // One that has an apostrophe too keeps the double quotes, which are the line's own.
+    const both = `Does "N/A" mean what's owed?`;
+    expect(passageOrigin({ file: 'answers', question: both })).toBe(`your answer to "${both}"`);
+  });
+
   it('says who read the policy and what rests on the rule, one rule or several', () => {
     expect(reviewIntro('Spark', 'Glimmer', 1)).toBe(
       'Spark turned your policy into this rule. Architect works out the right answer to every task from this rule and grades Glimmer against those answers, so if the rule is wrong, the grades are wrong too.',

@@ -276,6 +276,59 @@ describe('renderReportMarkdown', () => {
     );
   });
 
+  it('says an answer about a mark beside its question, the quotes of the two never nested', () => {
+    const question =
+      'In tickets.csv, parts_cost sometimes says "N/A". Does "N/A" mean no parts cost? If it can also mean "not known yet", leave those rows out.';
+    const report = sampleReport();
+    report.tasks = {
+      source: 'generated',
+      rules: [
+        {
+          typeId: 'cost',
+          label: 'Ticket totals',
+          version: 'db5fc3156380',
+          statement: 'Add parts cost. "N/A" in parts cost counts as 0, as you said.',
+          steps: [
+            {
+              text: 'Add parts cost.',
+              note: '"N/A" in parts cost counts as 0, as you said.',
+            },
+          ],
+          passages: [
+            { file: 'policy.md', passage: 'Labor is billed at $65 an hour.' },
+            { file: 'answers', passage: 'Count it as zero', question },
+          ],
+          conventions: [
+            '"N/A" in parts_cost counts as 0, as you said. Anything else in it that is not a number still leaves the row out.',
+          ],
+          cases: { total: 160, eligible: 140 },
+          excluded: [
+            {
+              reason: 'parts_cost says a dash ("-"), which is not counted as 0',
+              count: 20,
+              example: '- in T-2005',
+            },
+          ],
+          branches: [],
+          flags: ['23 rows have "N/A" in parts cost, which counts as 0, as you said.'],
+          confirmedAt: '2026-10-29T10:00:00.000Z',
+          expression: { op: 'col', column: 'parts_cost', from: 'row' },
+        },
+      ],
+    };
+    const text = renderReportMarkdown(report);
+    expect(text).toContain(`- your answer to '${question}': "Count it as zero"`);
+    expect(text).toContain(
+      'The rule in words:\n1. Add parts cost. "N/A" in parts cost counts as 0, as you said.\n',
+    );
+    expect(text).toContain(
+      '- 20 rows left out because parts_cost says a dash ("-"), which is not counted as 0, such as - in T-2005',
+    );
+    expect(text).toContain(
+      '- "N/A" in parts_cost counts as 0, as you said. Anything else in it that is not a number still leaves the row out.',
+    );
+  });
+
   it('formats small amounts and durations', () => {
     const report = sampleReport();
     report.cost = { ...report.cost, mentorUsd: 0.0043, wallMs: 45_000 };

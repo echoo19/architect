@@ -60,6 +60,14 @@ function recordOf(jobId: string): DraftRecord {
   return DraftRecordSchema.parse(JSON.parse(readFileSync(world.paths.draftingFile(jobId), 'utf8')));
 }
 
+/**
+ * The answers kept for the teacher's questions. Architect's own, about a mark such as N/A, is kept
+ * too (the world's person leaves those rows out), and is the subject of `drafting-marks.test.ts`.
+ */
+function answersOf(record: DraftRecord): NonNullable<DraftRecord['answers']> {
+  return (record.answers ?? []).filter((item) => item.placeholder === undefined);
+}
+
 async function draftedJob(reply: unknown = bikeDraft()) {
   world.mentor.script = () => reply;
   const turn = await world.drafting.start('A repair desk for our bike shop', attachBike(), TEACHER);
@@ -547,7 +555,7 @@ describe('a question the policy leaves open', () => {
       action: { enum: ['draft'] },
     });
     const record = recordOf(second.draft?.id ?? '');
-    expect(record.answers).toEqual([{ question: OPEN.question, answer: 'No, labor only' }]);
+    expect(answersOf(record)).toEqual([{ question: OPEN.question, answer: 'No, labor only' }]);
     const cost = record.types.find((type) => type.id === 'cost');
     expect(cost?.details?.passages.map((item) => item.file)).toEqual(['policy.md', 'answers']);
     // The record keeps the passage as it was quoted. The plan the person reads names the question
@@ -584,7 +592,7 @@ describe('a question the policy leaves open', () => {
     const told = world.mentor.requests[1]?.messages.at(-1)?.content ?? '';
     expect(told).toContain(`Answer: ${typed}\n\nDraft the job again`);
     const record = recordOf(second.draft?.id ?? '');
-    expect(record.answers).toEqual([{ question: OPEN.question, answer: typed }]);
+    expect(answersOf(record)).toEqual([{ question: OPEN.question, answer: typed }]);
     // The passage is found in the answer all the same, and shown with its question.
     const plan = await world.jobs.taskPlan(second.draft?.id ?? '');
     expect(plan.types.find((type) => type.id === 'cost')?.details?.passages[1]).toEqual({
@@ -702,7 +710,7 @@ describe('a question about an empty cell', () => {
     expect(told).toContain('Architect counts an empty parts_cost in tickets.csv as 0 itself');
 
     const record = recordOf(job.id);
-    expect(record.answers).toEqual([
+    expect(answersOf(record)).toEqual([
       {
         question: EMPTY.question,
         answer: ZERO,
@@ -759,7 +767,7 @@ describe('a question about an empty cell', () => {
     const job = second.draft;
     if (job === undefined) throw new Error(second.message);
     const record = recordOf(job.id);
-    expect(record.answers).toEqual([
+    expect(answersOf(record)).toEqual([
       {
         question: EMPTY.question,
         answer: LEAVE,
@@ -954,7 +962,7 @@ describe('an empty cell in two tables that each have an amount column', () => {
     const job = third.draft;
     if (job === undefined) throw new Error(third.message);
     const record = recordOf(job.id);
-    expect(record.answers).toEqual([
+    expect(answersOf(record)).toEqual([
       {
         question: TICKETS,
         answer: ZERO,

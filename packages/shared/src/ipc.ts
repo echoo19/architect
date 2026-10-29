@@ -355,6 +355,11 @@ export interface DraftTurn {
    * message says what to attach, and the person starts again with it.
    */
   ended?: true;
+  /**
+   * Set when Architect itself is asking, not the mentor: a question it found in the person's
+   * records, such as what N/A in a column means. The conversation says who is asking.
+   */
+  from?: 'architect';
 }
 
 /** The API the preload script exposes to the renderer as `window.architect`. */

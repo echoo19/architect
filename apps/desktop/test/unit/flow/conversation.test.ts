@@ -3,6 +3,7 @@ import {
   conversationReducer,
   emptyConversation,
   lastMentorEntry,
+  speakerOf,
   type Conversation,
   type ConversationAction,
 } from '../../../src/renderer/src/flow/describe/conversation';
@@ -111,5 +112,114 @@ describe('conversationReducer', () => {
     );
     expect(lastMentorEntry(ended)).toMatchObject({ message: 'Attach more rows.', ended: true });
     expect(lastMentorEntry(ended)?.draft).toBeUndefined();
+  });
+
+  it('remembers when Architect is asking and not the mentor, and nothing otherwise', () => {
+    const state = run(
+      { type: 'sent', text: 'Close out the day', files: FILES, at: 1 },
+      { type: 'replied', turn: { sessionId: 's1', message: 'Which jobs?', options: [] } },
+      { type: 'sent', text: 'Invoices', files: [], at: 2 },
+      {
+        type: 'replied',
+        turn: {
+          sessionId: 's1',
+          message: 'In invoices.csv, amount sometimes says "N/A". Does "N/A" mean no amount?',
+          options: ['Count it as zero', 'Leave those rows out'],
+          from: 'architect',
+        },
+      },
+    );
+    const [mentor, architect] = state.entries.filter((entry) => entry.kind === 'mentor');
+    expect(mentor).not.toHaveProperty('from');
+    expect(architect).toMatchObject({ from: 'architect' });
+    expect(lastMentorEntry(state)?.options).toEqual(['Count it as zero', 'Leave those rows out']);
+  });
+});
+
+describe('who is speaking', () => {
+  const reply = (message: string, extra: object = {}): ConversationAction => ({
+    type: 'replied',
+    turn: { sessionId: 's1', message, options: ['A', 'B'], ...extra },
+  });
+  const said = (text: string): ConversationAction => ({ type: 'sent', text, files: [], at: 1 });
+  const speakers = (state: Conversation): (string | undefined)[] =>
+    state.entries.map((_, at) => speakerOf(state.entries, at, 'Spark'));
+
+  it('is the mentor on its first reply and nobody after it, as it always was', () => {
+    const state = run(said('Close out the day'), reply('One?'), said('A'), reply('Two?'));
+    expect(speakers(state)).toEqual([undefined, 'Spark', undefined, undefined]);
+  });
+
+  it('is Architect when the conversation ended, where it has been the one to say so', () => {
+    const state = run(said('Close out the day'), reply('Attach more.', { ended: true }));
+    expect(speakers(state)).toEqual([undefined, 'Architect']);
+  });
+
+  it('is Architect on the first reply when it is the one asking, with nothing said for the mentor', () => {
+    const state = run(
+      said('Close out the day'),
+      reply('What does N/A mean?', { from: 'architect' }),
+    );
+    expect(speakers(state)).toEqual([undefined, 'Architect']);
+  });
+
+  it('says Architect where it takes over from the mentor, once, and not again for its next question', () => {
+    const state = run(
+      said('Close out the day'),
+      reply('One?'),
+      said('A'),
+      reply('What does N/A mean?', { from: 'architect' }),
+      said('Count it as zero'),
+      reply('And a dash?', { from: 'architect' }),
+    );
+    expect(speakers(state)).toEqual([
+      undefined,
+      'Spark',
+      undefined,
+      'Architect',
+      undefined,
+      undefined,
+    ]);
+  });
+
+  it('says nothing for a message that ends the conversation after the mentor was asking', () => {
+    const state = run(
+      said('Close out the day'),
+      reply('One?'),
+      said('A'),
+      reply('I still cannot settle this.', { ended: true }),
+    );
+    expect(speakers(state)).toEqual([undefined, 'Spark', undefined, undefined]);
+  });
+
+  it('names the mentor again when it carries on after Architect, but not an end Architect says', () => {
+    const state = run(
+      said('Close out the day'),
+      reply('One?'),
+      said('A'),
+      reply('What does N/A mean?', { from: 'architect' }),
+      said('Count it as zero'),
+      reply('Two?'),
+      said('B'),
+      reply('And a dash?', { from: 'architect' }),
+      said('Leave those rows out'),
+      reply('Attach more.', { ended: true }),
+    );
+    expect(speakers(state)).toEqual([
+      undefined,
+      'Spark',
+      undefined,
+      'Architect',
+      undefined,
+      'Spark',
+      undefined,
+      'Architect',
+      undefined,
+      undefined,
+    ]);
+  });
+
+  it('is nobody for something the person said', () => {
+    expect(speakerOf(run(said('Hello')).entries, 0, 'Spark')).toBeUndefined();
   });
 });

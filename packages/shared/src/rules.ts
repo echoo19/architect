@@ -24,7 +24,17 @@ export const RULE_LIMITS = {
   maxCategoryValues: 24,
   /** Columns whose empty cell may count as zero, when the person said so. */
   maxEmptyZero: 4,
+  /** Marks such as N/A or a dash that may count as zero in one column, when the person said so. */
+  maxPlaceholderMarks: 4,
+  /** The longest mark a person is asked about, in characters. A longer run of dashes is not one. */
+  maxMarkChars: 16,
+  /** Passages the teacher may quote for a rule. */
   maxPassages: 8,
+  /**
+   * Passages Architect adds itself, one for each answer of the person's that the rule rests on, so
+   * that the teacher quoting a full eight leaves no answer without a place.
+   */
+  maxAnswerPassages: 8,
   /** The width of the longest passage kept, in characters. */
   maxPassageChars: 600,
   /** The width of the longest question kept beside the answer that settled it, in characters. */
@@ -168,11 +178,48 @@ export const BlankAnswerSchema = z.object({
 });
 export type BlankAnswer = z.infer<typeof BlankAnswerSchema>;
 
-/** The two answers to a question about an empty cell, which are all a rule can do with one. */
+/**
+ * The two answers to a question about an empty cell, which are all a rule can do with one. They
+ * are the two answers to a question about a mark such as N/A or a dash too.
+ */
 export const BLANK_ANSWERS = {
   zero: 'Count it as zero',
   leave_out: 'Leave those rows out',
 } as const;
+
+/**
+ * The marks a messy export writes where a number or a date is missing: n/a, null, a dash, a
+ * question mark. It is one list, so that the reading of a cell and the check of a rule's marks
+ * can't disagree about what a mark is. The en dash and the em dash are written as code point
+ * escapes, so they can be seen here.
+ */
+export const PLACEHOLDER_MARK = /^(?:n\/a|n\.a\.|na|nan|null|nil|none|-+|\?+|\u{2013}|\u{2014})$/iu;
+
+/** A mark a person is asked about, as a column spells it: one of those forms, and never a number. */
+const MarkText = z
+  .string()
+  .min(1)
+  .max(RULE_LIMITS.maxMarkChars)
+  .refine((mark) => PLACEHOLDER_MARK.test(mark.trim()), {
+    message: 'A mark is N/A, a dash or another form that stands where a number should be.',
+  });
+
+/**
+ * What the person chose for one mark a number column holds where a number should be: N/A, a dash
+ * and the like (decision 061). Only Architect asks, and only the person's answer sets it, never
+ * the teacher. It is about one mark in one column of one table: an N/A in one file says nothing of
+ * an N/A in another, and a dash is not an N/A. "Leave those rows out" is an answer too, kept so
+ * that the question is not asked again.
+ */
+export const PlaceholderAnswerSchema = z.object({
+  /** The file the column is in, as it was attached. */
+  table: z.string().min(1),
+  column: Column,
+  /** The mark as the column spells it most often. N/A and n/a are one mark. */
+  mark: MarkText,
+  means: z.enum(['zero', 'leave_out']),
+});
+export type PlaceholderAnswer = z.infer<typeof PlaceholderAnswerSchema>;
 
 /**
  * One numeric answer per row of a table, as an expression. The rule's text comes from the policy
@@ -203,7 +250,56 @@ export const RuleSpecSchema = z.object({
     .array(z.object({ column: Column, from: RuleFromSchema }))
     .max(RULE_LIMITS.maxEmptyZero)
     .optional(),
-  sources: z.array(RulePassageSchema).min(1).max(RULE_LIMITS.maxPassages),
+  /**
+   * The marks, N/A or a dash, that count as zero in a numeric column, because the person answered
+   * that they should. Absent for every rule that has none, and never an empty list, so that the
+   * version of a rule that says nothing of a mark is what it was before marks could be counted. A
+   * mark not listed here leaves its row out. Only Architect sets it, from the person's answer to
+   * a question it asked; the teacher has no field for it.
+   */
+  placeholderMeansZero: z
+    .array(
+      z.object({
+        column: Column,
+        from: RuleFromSchema,
+        /** The marks as the column spells them, each compared without regard to case or spacing. */
+        tokens: z.array(MarkText).min(1).max(RULE_LIMITS.maxPlaceholderMarks),
+      }),
+    )
+    .min(1)
+    .max(RULE_LIMITS.maxEmptyZero)
+    .superRefine((columns, context) => {
+      // A column is named once for each table it is read from, and a mark once for a column.
+      const seen = new Set<string>();
+      for (const [at, item] of columns.entries()) {
+        const key = `${item.from}:${item.column.trim().toLowerCase()}`;
+        if (seen.has(key)) {
+          context.addIssue({
+            code: 'custom',
+            path: [at, 'column'],
+            message: `${item.column} is named twice.`,
+          });
+        }
+        seen.add(key);
+        const marks = new Set<string>();
+        for (const [index, token] of item.tokens.entries()) {
+          const mark = token.trim().toLowerCase();
+          if (marks.has(mark)) {
+            context.addIssue({
+              code: 'custom',
+              path: [at, 'tokens', index],
+              message: `${token} is named twice for ${item.column}.`,
+            });
+          }
+          marks.add(mark);
+        }
+      }
+    })
+    .optional(),
+  sources: z
+    .array(RulePassageSchema)
+    .min(1)
+    .max(RULE_LIMITS.maxPassages + RULE_LIMITS.maxAnswerPassages),
   /**
    * The column naming the business entity whose reuse would reveal an answer, such as the
    * customer. Cases of the same entity are kept in one set. The case's own key when absent.
@@ -340,11 +436,15 @@ export function passageSource(file: string): string {
 
 /**
  * Where a passage comes from in a line of text: its file, or for an answer the question it
- * answered, as in `your answer to "Does the discount apply to parts?"`.
+ * answered, as in `your answer to "Does the discount apply to parts?"`. A question that quotes a
+ * word of its own, such as the one about what "N/A" means, is set in single quotes, so that its
+ * quotes and the line's never nest.
  */
 export function passageOrigin(passage: Pick<RulePassage, 'file' | 'question'>): string {
   const source = passageSource(passage.file);
-  return passage.question === undefined ? source : `${source} to "${passage.question}"`;
+  if (passage.question === undefined) return source;
+  const quote = passage.question.includes('"') && !passage.question.includes("'") ? "'" : '"';
+  return `${source} to ${quote}${passage.question}${quote}`;
 }
 
 /** Whether teaching ran, in a sentence, from how many rounds the run used. */

@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 import type { RuleOutcome } from '../src/drafting/rule/outcome';
 import { chooseExamples } from '../src/drafting/rule/examples';
 import { runRule } from '../src/drafting/templates/rule';
-import { bikeRule, bikeShop, bikeTables, truth } from './support/rule-data';
+import {
+  bikeRule,
+  bikeShop,
+  bikeTables,
+  editedBikeTables,
+  PARTS,
+  truth,
+} from './support/rule-data';
 
 function outcomeOf(offGrid: boolean): RuleOutcome {
   const bike = bikeShop({ offGrid });
@@ -206,5 +213,134 @@ describe('the examples a rule is confirmed by', () => {
     expect(new Set(keys).size).toBe(keys.length);
     expect(examples.length).toBeLessThanOrEqual(5);
     expect(examples.every((example) => example.taskId === undefined)).toBe(true);
+  });
+});
+
+describe('the examples of a rule that counts a mark as zero', () => {
+  const bike = bikeShop({ offGrid: true });
+  const members = new Map(bike.customers.map((c) => [c.id, c.member]));
+  const tickets = new Map(bike.tickets.map((t) => [t.id, t]));
+  /** Tickets whose export wrote N/A, which the tests below write another way. */
+  const notApplicable = bike.tickets.filter(
+    (ticket, at) => ticket.partsCents === null && at % 2 === 0,
+  );
+  const at = (ticket: (typeof bike.tickets)[number]) => bike.tickets.indexOf(ticket) + 1;
+
+  function outcomeFor(
+    tokens: string[],
+    extra: Partial<Parameters<typeof bikeRule>[0]> = {},
+    tables = bikeTables(bike),
+  ): RuleOutcome {
+    const result = runRule(
+      bikeRule({ placeholderMeansZero: [{ column: 'parts_cost', from: 'row', tokens }], ...extra }),
+      tables,
+    );
+    if (result.outcome === null) throw new Error(result.problems.join(' '));
+    return result.outcome;
+  }
+
+  it('shows the mark as the file wrote it, counted as 0, with its working and the right answer', () => {
+    const outcome = outcomeFor(['N/A']);
+    const visible = outcome.cases.slice(0, 60);
+    expect(visible.some((item) => item.zeroed.size > 0)).toBe(true);
+    const { examples, uncovered } = chooseExamples(
+      outcome,
+      visible,
+      ids(
+        outcome,
+        visible.map((item) => item.key),
+      ),
+    );
+    expect(uncovered).toEqual([]);
+    const shown = examples.find((example) =>
+      example.covers.includes('"N/A" in parts cost counts as 0'),
+    );
+    if (shown === undefined) throw new Error('No example shows an N/A.');
+    expect(shown.inputs.find((input) => input.label === 'parts cost')?.value).toBe(
+      'N/A (counted as 0)',
+    );
+    expect(shown.steps.map((step) => step.text).join(' | ')).toContain('parts cost (N/A, so 0)');
+    const key = /T-\d+/.exec(shown.request)?.[0] ?? '';
+    const ticket = tickets.get(key);
+    if (ticket === undefined) throw new Error(`No ticket ${key}`);
+    expect(shown.answer).toBe(
+      `$${(truth(ticket, members.get(ticket.customerId) ?? false) / 100).toFixed(2)}`,
+    );
+  });
+
+  it('shows a dash by the character the file used, and an empty cell beside it as its own thing', () => {
+    // Five tickets the export wrote N/A for are written with a dash, and the dash is named too.
+    const dashed = new Set(notApplicable.slice(0, 5).map((ticket) => ticket.id));
+    const tables = editedBikeTables(bike, (csv) => {
+      for (const ticket of notApplicable.slice(0, 5)) {
+        (csv.tickets[at(ticket)] as string[])[PARTS] = '\u2014';
+      }
+    });
+    const outcome = outcomeFor(
+      ['\u2014'],
+      { emptyMeansZero: [{ column: 'parts_cost', from: 'row' }] },
+      tables,
+    );
+    const given = outcome.cases.filter(
+      (item) => dashed.has(item.key) || item.zeroed.get('row:parts_cost') === '',
+    );
+    expect(given.some((item) => dashed.has(item.key))).toBe(true);
+    expect(given.some((item) => item.zeroed.get('row:parts_cost') === '')).toBe(true);
+    const { examples } = chooseExamples(
+      outcome,
+      given,
+      ids(
+        outcome,
+        given.map((item) => item.key),
+      ),
+    );
+    const covers = examples.flatMap((example) => example.covers);
+    expect(covers).toContain('An empty parts cost counts as 0');
+    expect(covers).toContain('A dash ("\u2014") in parts cost counts as 0');
+    const dash = examples.find((example) =>
+      example.covers.includes('A dash ("\u2014") in parts cost counts as 0'),
+    );
+    expect(dash?.inputs.find((input) => input.label === 'parts cost')?.value).toBe(
+      '\u2014 (counted as 0)',
+    );
+    expect(dash?.steps.map((step) => step.text).join(' | ')).toContain('parts cost (\u2014, so 0)');
+  });
+
+  it('says when no practice task has the mark, and shows none of it', () => {
+    const outcome = outcomeFor(['N/A']);
+    const filled = outcome.cases.filter((item) => item.zeroed.size === 0).slice(0, 40);
+    const none = chooseExamples(
+      outcome,
+      filled,
+      ids(
+        outcome,
+        filled.map((item) => item.key),
+      ),
+    );
+    expect(none.uncovered).toContain(
+      'No practice task has "N/A" in parts cost, so none shows it counted as 0.',
+    );
+    expect(none.examples.flatMap((example) => example.covers).join(' ')).not.toContain(
+      'counts as 0',
+    );
+  });
+
+  it('does not take a task that shows an empty cell for one that shows the mark', () => {
+    const outcome = outcomeFor(['N/A'], {
+      emptyMeansZero: [{ column: 'parts_cost', from: 'row' }],
+    });
+    const emptied = outcome.cases.filter((item) => item.zeroed.get('row:parts_cost') === '');
+    expect(emptied.length).toBeGreaterThan(5);
+    const none = chooseExamples(
+      outcome,
+      emptied.slice(0, 30),
+      ids(
+        outcome,
+        emptied.map((item) => item.key),
+      ),
+    );
+    expect(none.uncovered).toEqual([
+      'No practice task has "N/A" in parts cost, so none shows it counted as 0.',
+    ]);
   });
 });

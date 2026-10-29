@@ -5,9 +5,10 @@ import * as q from './rational';
 import {
   bracketed,
   conditionText,
-  nameOf,
   phrase,
   roundingParts,
+  zeroNote,
+  zeroRefs,
   type WordsContext,
 } from './words';
 
@@ -323,9 +324,10 @@ function reads(nodes: readonly RuleNode[], ref: ColumnRef): boolean {
 
 /**
  * The rule as numbered steps. Each is a sentence about the amount the steps above it came to. A
- * step that reads a column the person said counts as zero when empty says so beside it, in the
- * first step that reads the column, and a step that names a file in brackets lists it, so a
- * screen can set it quietly. The same words as the rule in one sentence, a step at a time.
+ * step that reads a column the person said something counts as zero in (an empty cell, or a mark
+ * such as N/A) says so beside it, in the first step that reads the column, and a step that names a
+ * file in brackets lists it, so a screen can set it quietly. The same words as the rule in one
+ * sentence, a step at a time.
  */
 export function ruleSteps(root: RuleNode, ctx: WordsContext): RuleStep[] {
   const links = linksOf(root, ctx);
@@ -347,10 +349,11 @@ export function ruleSteps(root: RuleNode, ctx: WordsContext): RuleStep[] {
 
   const noted = new Set<string>();
   return drafted.map(({ text, named }) => {
-    const notes = (ctx.emptyMeansZero ?? []).flatMap((ref) => {
-      if (noted.has(refKey(ref)) || !reads(named, ref)) return [];
+    const notes = zeroRefs(ctx).flatMap((ref) => {
+      const said = zeroNote(ref, ctx);
+      if (said === null || noted.has(refKey(ref)) || !reads(named, ref)) return [];
       noted.add(refKey(ref));
-      return [`An empty ${nameOf(ref, ctx)} counts as 0, as you said.`];
+      return [said];
     });
     const note = notes.join(' ');
     const files =

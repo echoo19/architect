@@ -1,4 +1,5 @@
 import { RULE_LIMITS, type RuleExample, type RuleNode, type RuleSpec } from '@architect/shared';
+import { foldKey } from '../values';
 import type { RuleCase } from './cases';
 import { inputsOf } from './cases';
 import {
@@ -14,6 +15,7 @@ import {
   type Run,
 } from './expression';
 import type { RuleOutcome } from './outcome';
+import { markWords, sameMark } from './placeholders';
 import * as q from './rational';
 import {
   answerWords,
@@ -24,6 +26,7 @@ import {
   showsRounding,
   sideLabel,
   stepsOf,
+  upper,
   type WordsContext,
 } from './words';
 
@@ -40,6 +43,13 @@ const MOST = RULE_LIMITS.maxExamples - 1;
 
 /** What starts the name of a thing a case shows that is not a side of a condition. */
 const ZERO = 'zero|';
+
+/**
+ * What a case shows when something counted as zero: the column, and what its cell held, the empty
+ * string for an empty cell or the mark, so that a column with an empty cell and a dash shows each.
+ */
+const zeroId = (key: string, held: string): string =>
+  `${ZERO}${JSON.stringify([key, foldKey(held)])}`;
 
 type RoundNode = Extract<RuleNode, { op: 'round' }>;
 
@@ -87,9 +97,14 @@ function describedInput(
   item: RuleCase,
   words: WordsContext,
 ): { label: string; value: string } {
-  // An empty cell has nothing to show but what the person said it counts as.
-  if (item.zeroed.has(refKey(ref))) {
-    return { label: nameOf(ref, words), value: 'empty (counted as 0)' };
+  // An empty cell has nothing to show but what the person said it counts as. A mark is shown as
+  // the file wrote it, so the person sees the dash or the N/A their answer was about.
+  const held = item.zeroed.get(refKey(ref));
+  if (held !== undefined) {
+    return {
+      label: nameOf(ref, words),
+      value: held === '' ? 'empty (counted as 0)' : `${held} (counted as 0)`,
+    };
   }
   const raw = item.cells.get(refKey(ref)) ?? '';
   const number = item.numbers.get(refKey(ref));
@@ -125,8 +140,9 @@ function exampleOf(
  * case shows a side only if the answer would be different on the other one, after the rounding.
  */
 function coverage(item: RuleCase, ids: ReadonlyMap<RuleNode, number>, root: RuleNode): Set<string> {
-  // An empty cell that counted as zero is something a case shows, since the person decided it.
-  const covered = new Set<string>([...item.zeroed].map((key) => `${ZERO}${key}`));
+  // An empty cell or a mark that counted as zero is something a case shows, since the person
+  // decided it.
+  const covered = new Set<string>([...item.zeroed].map(([key, held]) => zeroId(key, held)));
   reached(item.run, (run) => {
     const id = ids.get(run.node);
     if (id === undefined) return;
@@ -172,7 +188,7 @@ function illustrate(
     const start = base.numbers.get(refKey(ref));
     if (start === undefined) continue;
     // The input moved is a number now, even where the case had it empty.
-    const zeroed = new Set(base.zeroed);
+    const zeroed = new Map(base.zeroed);
     zeroed.delete(refKey(ref));
     const at = (value: q.Q): Run => {
       const numbers = new Map(base.numbers);
@@ -244,11 +260,22 @@ export function chooseExamples(
     .filter((label) => !visible.some((item) => coverageLabels(item, ids, outcome).includes(label)));
   for (const label of unseen) uncovered.push(`No practice task shows ${label}.`);
   for (const ref of spec.emptyMeansZero ?? []) {
-    const used = outcome.cases.some((item) => item.zeroed.has(refKey(ref)));
-    if (used && !visible.some((item) => item.zeroed.has(refKey(ref)))) {
+    const empty = (item: RuleCase): boolean => item.zeroed.get(refKey(ref)) === '';
+    if (outcome.cases.some(empty) && !visible.some(empty)) {
       uncovered.push(
         `No practice task has an empty ${nameOf(ref, words)}, so none shows it counted as 0.`,
       );
+    }
+  }
+  for (const ref of spec.placeholderMeansZero ?? []) {
+    for (const token of ref.tokens) {
+      const holds = (item: RuleCase): boolean =>
+        sameMark(item.zeroed.get(refKey(ref)) ?? '', token);
+      if (outcome.cases.some(holds) && !visible.some(holds)) {
+        uncovered.push(
+          `No practice task has ${markWords(token)} in ${nameOf(ref, words)}, so none shows it counted as 0.`,
+        );
+      }
     }
   }
 
@@ -346,11 +373,23 @@ export function chooseExamples(
   return { examples, uncovered };
 }
 
-/** What an example of an empty cell counted as zero is called: "An empty parts cost counts as 0". */
+/**
+ * What an example of an empty cell or a mark counted as zero is called: "An empty parts cost counts
+ * as 0", "A dash ("-") in parts cost counts as 0".
+ */
 function zeroLabel(id: string, spec: RuleSpec, words: WordsContext): string {
-  const key = id.slice(ZERO.length);
-  const ref = (spec.emptyMeansZero ?? []).find((item) => refKey(item) === key);
-  return `An empty ${ref === undefined ? key : nameOf(ref, words)} counts as 0`;
+  const [key = '', held = ''] = JSON.parse(id.slice(ZERO.length)) as [string, string];
+  const ref = [...(spec.emptyMeansZero ?? []), ...(spec.placeholderMeansZero ?? [])].find(
+    (item) => refKey(item) === key,
+  );
+  const name = ref === undefined ? key : nameOf(ref, words);
+  if (held === '') return `An empty ${name} counts as 0`;
+  // The mark is named as the rule spells it, not as the id folded it.
+  const token =
+    spec.placeholderMeansZero
+      ?.find((item) => refKey(item) === key)
+      ?.tokens.find((named) => sameMark(named, held)) ?? held;
+  return `${upper(markWords(token))} in ${name} counts as 0`;
 }
 
 /** The labels of the branches a case shows, to find the ones no visible case shows. */
