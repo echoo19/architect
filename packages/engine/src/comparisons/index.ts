@@ -21,7 +21,7 @@ export {
   type ComparisonConfig,
 } from './projection';
 export { ComparisonFiles, reportBeside } from './records';
-export { armRun, buildReport } from './report';
+export { armRun, buildReport, roundsOf } from './report';
 export {
   probeLocal,
   reportOnly,

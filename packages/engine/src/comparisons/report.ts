@@ -16,6 +16,8 @@ import {
   type Paired,
   type PassTarget,
   type RepeatRow,
+  type RunStatus,
+  type RunStopReason,
   type RuntimeIdentity,
   type Spend,
   type TaskSweep,
@@ -31,9 +33,10 @@ import type { EngineStore } from '../store/engine-store';
 import type { StoredAttempt, StoredRun } from '../store/records';
 import { computeSoFar } from '../training/budget';
 import type { ComparisonEngine } from './engine';
+import { plainStrings } from './plain';
 import { ARM_ORDER, billingOf, type ComparisonConfig } from './projection';
 import type { PlanRecord, SweepAttempt } from './records';
-import { counted, paired, percent, wilson } from './stats';
+import { counted, paired, pairedDifference, percent, wilson } from './stats';
 
 export interface ReportInput {
   engine: ComparisonEngine;
@@ -53,6 +56,20 @@ export interface ReportInput {
 /** The run an arm started, found by the arm its protocol names. */
 export function armRun(store: EngineStore, arm: ArmId): StoredRun | null {
   return store.runs.list().find((record) => record.protocol?.arm === arm) ?? null;
+}
+
+/**
+ * The settings the report says the comparison ran with. The plan as confirmed wins over the
+ * request, so a report asked for without the flags of the run still says what ran.
+ */
+function declared(input: ReportInput) {
+  const settings = input.plan?.settings;
+  return {
+    mentoringSeed: settings?.mentoringSeed ?? input.config.mentoringSeed,
+    testSeeds: settings?.testSeeds ?? input.config.testSeeds,
+    adapterProtocol: settings?.adapterProtocol ?? input.config.adapterProtocol,
+    realCompute: settings?.realCompute ?? input.config.realCompute,
+  };
 }
 
 const UNKNOWN_IDENTITY = (runtime: string): RuntimeIdentity => ({
@@ -212,7 +229,8 @@ function pairOf(input: ReportInput, a: Slice, b: Slice, label?: string): Paired 
   const left = outcomes(store, a);
   const right = outcomes(store, b);
   const all = paired(left, right);
-  if (all.scenarios === 0) return null;
+  const difference = pairedDifference(all);
+  if (all.scenarios === 0 || difference === null) return null;
   const tasks = new Map(
     attemptsOf(store, a).map((attempt) => [attempt.taskId, attempt.taskType] as const),
   );
@@ -230,6 +248,7 @@ function pairOf(input: ReportInput, a: Slice, b: Slice, label?: string): Paired 
     label: label ?? `${labelOf(a)} vs ${labelOf(b)}`,
     seed: a.seed,
     ...all,
+    difference,
     byType,
   };
 }
@@ -311,7 +330,7 @@ function repeatRow(input: ReportInput, slices: readonly Slice[]): RepeatRow | nu
 /** Every backend table: rows under the first declared seed, pairs within the table, repeats apart. */
 function backendTables(input: ReportInput): BackendTable[] {
   const { store } = input.engine;
-  const [firstSeed = 0, ...repeatSeeds] = input.config.testSeeds;
+  const [firstSeed = 0, ...repeatSeeds] = declared(input).testSeeds;
   const slices: Slice[] = [];
   const paired: { a: Slice; b: Slice; label: string }[] = [];
   for (const arm of ARM_ORDER) {
@@ -447,7 +466,7 @@ function jobsOf(input: ReportInput, runId: string) {
 /** What an arm spent, each line apart, from the run's ledger, attempts and training jobs. */
 function spendOf(input: ReportInput, arm: ArmId): Spend {
   const { store } = input.engine;
-  const deferred = new Set(input.config.testSeeds.slice(1));
+  const deferred = new Set(declared(input).testSeeds.slice(1));
   const isRepeat = (attempt: StoredAttempt) =>
     attempt.split === 'test' && deferred.has(attempt.seed);
   if (arm === 'repeat') {
@@ -752,7 +771,15 @@ function notesOf(input: ReportInput, arm: ArmId, run: StoredRun | null, job: Job
   const notes: string[] = [];
   const draft = armRun(store, 'draft');
   switch (arm) {
+    case 'bare':
+      notes.push(
+        'The student on the blank starting harness, with no mentoring: the baseline the other arms are compared with.',
+      );
+      break;
     case 'draft': {
+      notes.push(
+        'Spark wrote the whole harness once, from the job alone, without seeing the student attempt anything. It is kept whatever it scores.',
+      );
       const kept =
         run !== null &&
         store.rounds
@@ -767,9 +794,12 @@ function notesOf(input: ReportInput, arm: ArmId, run: StoredRun | null, job: Job
     }
     case 'targeted':
     case 'fixed':
+      notes.push(
+        "Each round Spark reads the student's failed attempts on practice tasks and makes one change to the harness; a change is kept only if it clears the keep rule on dev.",
+      );
       if (job?.startingHarness.kind === 'import' && draft !== null) {
         notes.push(
-          `Starts from the draft arm's kept harness (version ${draft.freeze?.harnessVersion ?? '?'}), as decision 026 shares it; the draft's Spark spend is the draft arm's and came off this arm's cap. Its cumulative cost below includes the draft's development.`,
+          `It starts from the draft arm's kept harness (version ${draft.freeze?.harnessVersion ?? '?'}), so the draft's Spark spend came off this arm's cap, and its cumulative cost below includes the draft's development.`,
         );
       } else if (run !== null) {
         notes.push('The draft arm kept no draft, so this arm drafted for itself.');
@@ -796,13 +826,46 @@ function notesOf(input: ReportInput, arm: ArmId, run: StoredRun | null, job: Job
       break;
     case 'repeat':
       notes.push(
-        `The frozen bare, draft and targeted graduates took the locked test again under seed ${input.config.testSeeds.slice(1).join(' and ')}, declared before any run. Repeats are reported as repeats, never as more scenarios.`,
+        `The frozen bare, draft and targeted graduates took the locked test again under seed ${declared(input).testSeeds.slice(1).join(' and ')}, declared before any run. Repeats are reported as repeats, never as more scenarios.`,
       );
       break;
     default:
       break;
   }
   return notes;
+}
+
+/** Why training ended, in a few words, by the run's stop reason. */
+const TRAINING_ENDED_SHORT: Record<RunStopReason | 'complete', string> = {
+  complete: 'done',
+  target_met: 'done, the dev target was reached',
+  rounds: 'cap reached',
+  patience: 'patience ran out',
+  usd: 'money ran out',
+  wall_clock: 'time ran out',
+  rejected: 'replies it could not use',
+  leak: 'stopped by the leak check',
+  user: 'stopped',
+  error: 'stopped by an error',
+  contract: 'the job contract changed',
+};
+
+/** Statuses of a run whose training is over, successfully or not. */
+const TRAINING_OVER: ReadonlySet<RunStatus> = new Set(['testing', 'finished', 'stopped', 'failed']);
+
+/**
+ * The rounds a run used and why its training ended, from its totals and stop reason; null for an
+ * arm with no rounds (the bare student, and the arms that measure other arms' runs).
+ */
+export function roundsOf(run: StoredRun | null, caps: ArmCaps): ArmReport['rounds'] {
+  if (run === null || caps.rounds === null) return null;
+  const { status, stopReason } = run.run;
+  const reason =
+    status === 'failed' ? 'error' : (stopReason ?? (status === 'stopped' ? 'user' : 'complete'));
+  return {
+    used: run.run.totals.rounds,
+    ended: TRAINING_OVER.has(status) ? TRAINING_ENDED_SHORT[reason] : null,
+  };
 }
 
 function armReport(input: ReportInput, arm: ArmId, jobOf: JobOf): ArmReport {
@@ -813,6 +876,21 @@ function armReport(input: ReportInput, arm: ArmId, jobOf: JobOf): ArmReport {
   const { status, reason } = statusOf(input, arm);
   const frozen = run?.freeze ?? null;
   const adapter = frozen?.configuration?.adapter ?? null;
+  const caps = capsOf(input, arm, job);
+  const experiments =
+    run === null
+      ? []
+      : store.experiments.list(run.run.id).map((experiment) => ({
+          round: experiment.round,
+          kind: experiment.kind,
+          title: experiment.title,
+          disposition: experiment.disposition,
+          devBefore: experiment.devBefore,
+          devAfter: experiment.devAfter,
+          regressions: experiment.regressions,
+          reason: experiment.reason,
+        }));
+  const kept = experiments.filter((experiment) => experiment.disposition === 'kept').at(-1);
   return {
     arm,
     label: ARM_LABELS[arm],
@@ -821,29 +899,26 @@ function armReport(input: ReportInput, arm: ArmId, jobOf: JobOf): ArmReport {
     reason,
     runId: run?.run.id ?? null,
     notes: notesOf(input, arm, run, job),
-    caps: capsOf(input, arm, job),
+    caps,
     spent: spendOf(input, arm),
     cumulative: cumulativeOf(input, arm, jobOf),
-    dev: { baseline: run?.run.devBaseline ?? null, final: run?.run.devCurrent ?? null },
-    experiments:
-      run === null
-        ? []
-        : store.experiments.list(run.run.id).map((experiment) => ({
-            round: experiment.round,
-            kind: experiment.kind,
-            title: experiment.title,
-            disposition: experiment.disposition,
-            devBefore: experiment.devBefore,
-            devAfter: experiment.devAfter,
-            regressions: experiment.regressions,
-            reason: experiment.reason,
-          })),
+    dev: {
+      baseline: run?.run.devBaseline ?? null,
+      kept:
+        kept === undefined
+          ? null
+          : { round: kept.round, kind: kept.kind, before: kept.devBefore, after: kept.devAfter },
+    },
+    rounds: roundsOf(run, caps),
+    measuredOn: [],
+    experiments,
     frozen:
       frozen === null
         ? null
         : {
             harnessVersion: frozen.harnessVersion,
             harnessHash: frozen.harnessHash,
+            localModel: frozen.student.model,
             backend: frozen.configuration?.backend ?? 'not recorded',
             adapter:
               adapter === null
@@ -911,13 +986,37 @@ function adapterTested(arms: readonly ArmReport[], backends: readonly BackendTab
   );
 }
 
+/**
+ * Which seeds the locked test ran under: the mentoring seed, the one the arms' tables are under,
+ * and each seed declared for the repeat, said as it ran or as it didn't.
+ */
+function seedsDisclosure(plan: ComparisonReport['plan']): string {
+  const ran = (seed: number) =>
+    (plan.seedResults.find((item) => item.seed === seed)?.arms.length ?? 0) > 0;
+  const [first, ...repeats] = plan.testSeeds;
+  const sentences = [`Every arm ran with one mentoring seed (${plan.mentoringSeed}).`];
+  if (first !== undefined) {
+    sentences.push(
+      ran(first) ? `The locked test ran under seed ${first}.` : 'No locked test has run.',
+    );
+  }
+  for (const seed of repeats) {
+    sentences.push(
+      ran(seed)
+        ? `Seed ${seed} is a decoding repeat, never more scenarios.`
+        : `Seed ${seed} was declared for a decoding repeat that was not run, so no result here is under it.`,
+    );
+  }
+  return sentences.join(' ');
+}
+
 /** What a reader needs before trusting a number, made from the same records as the tables. */
 function disclosures(
   input: ReportInput,
   arms: readonly ArmReport[],
   backends: readonly BackendTable[],
-  totals: ComparisonReport['totals'],
   adapters: readonly AdapterCell[],
+  plan: ComparisonReport['plan'],
 ): string[] {
   const lines: string[] = [];
   if (input.dryRun) {
@@ -928,9 +1027,12 @@ function disclosures(
   lines.push(
     'Claims rest on the locked test alone. Dev gains were picked by the keep rule, so they lean upward and are not claimed.',
   );
-  lines.push(
-    `Every arm ran with one mentoring seed (${input.config.mentoringSeed}); the locked test ran under seed ${input.config.testSeeds[0]}, and seed ${input.config.testSeeds.slice(1).join(', ')} is a decoding repeat, never more scenarios.`,
-  );
+  lines.push(seedsDisclosure(plan));
+  if (backends.some((table) => table.paired.length > 0)) {
+    lines.push(
+      "A pair's difference in pass rate is the first arm's less the second's, with a 95% interval for paired proportions: Newcombe's hybrid score method, his method 10 (Statistics in Medicine, 1998), made from the wins, losses, both and neither counts. When the interval includes zero, no difference was shown, which is not the same as showing there is none.",
+    );
+  }
   const target = passTargetOf(input, 0, 0);
   const interval = wilson(target.needed, target.of);
   lines.push(
@@ -948,26 +1050,20 @@ function disclosures(
     );
   }
   const built = arms.filter((arm) => (arm.cumulative?.builtOn.length ?? 0) > 0);
-  lines.push(
-    `Every dollar is counted once in the totals: Spark ${money(totals.sparkUsd)}, student ${money(totals.studentUsd)}, compute ${money(totals.computeUsd)}.${built.length === 0 ? '' : ` A graduate's cumulative cost adds what it builds on: ${built.map((arm) => `${arm.label} includes the ${(arm.cumulative?.builtOn ?? []).map((other) => ARM_LABELS[other].toLowerCase()).join(' and ')} arm's development (Spark ${money(arm.cumulative?.sparkUsd ?? null)}, student ${money(arm.cumulative?.studentUsd ?? null)}, compute ${money(arm.cumulative?.computeUsd ?? null)} in all)`).join('; ')}.`}`,
-  );
+  if (built.length > 0) {
+    lines.push(
+      `The totals count each dollar once. A graduate's cumulative cost adds what it builds on: ${built.map((arm) => `${arm.label} includes the ${(arm.cumulative?.builtOn ?? []).map((other) => ARM_LABELS[other].toLowerCase()).join(' and ')} arm's development (Spark ${money(arm.cumulative?.sparkUsd ?? null)}, student ${money(arm.cumulative?.studentUsd ?? null)}, compute ${money(arm.cumulative?.computeUsd ?? null)} in all)`).join('; ')}.`,
+    );
+  }
   if (arms.some((arm) => !arm.spent.computeSettled)) {
     lines.push(
       "Some compute is a training job's whole authorization: the job had not ended when this report was made, so its cost may be lower.",
     );
   }
-  const credit = input.credit;
-  if (credit !== null && credit.requests > 0) {
+  if (input.credit !== null && input.credit.requests > 0) {
     lines.push(
-      `Student credit, from the request journal (every hosted request written down before it was sent): ${money(credit.settledUsd)} settled over ${credit.requests - credit.uncertainRequests - credit.inFlightRequests} requests, ${credit.billedRequests} of them as the provider billed them, of the ${money(credit.capUsd)} set aside.${credit.uncertainRequests > 0 ? ` A further ${money(credit.uncertainUsd)} is counted as spent at its worst for ${credit.uncertainRequests} requests a crash or a failure cut off, whose charge isn't known.` : ''} A restart repeats no recorded attempt, Spark reply or training job; an attempt in flight when a process stopped is made again, and its cut-off requests count here at their worst; a Spark call in flight is paid again.`,
+      'The request journal writes down every hosted request before it is sent, so it also holds requests that no recorded attempt keeps the cost of (an attempt that failed or was cut off and was made again), and it counts a request a crash or a failure cut off at the most it could have cost, since its charge is not known. A restart repeats no recorded attempt, Spark reply or training job; an attempt in flight when a process stopped is made again, and its cut-off requests count in the journal at their worst; a Spark call in flight is paid again.',
     );
-    const journal = credit.settledUsd + credit.uncertainUsd;
-    const recorded = totals.studentUsd;
-    if (recorded !== null && journal - recorded > 0.005) {
-      lines.push(
-        `The journal holds ${money(journal - recorded)} more than the attempts' records: requests whose attempts weren't recorded (failed, cut off, or made again after a stop), counted at their worst where uncertain.`,
-      );
-    }
   }
   const billing = input.plan?.billing ?? billingOf(input.calibration);
   if (billing !== null) {
@@ -979,7 +1075,7 @@ function disclosures(
   }
   if (!adapterTested(arms, backends)) {
     lines.push(
-      `Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. ${input.config.realCompute ? 'A01 is not met: no adapter a real training job made took the locked test.' : 'A01 is blocked without Hugging Face credentials.'}`,
+      `Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. ${declared(input).realCompute ? 'A01 is not met: no adapter a real training job made took the locked test.' : 'A01 is blocked without Hugging Face credentials.'}`,
     );
   } else {
     lines.push(
@@ -994,19 +1090,22 @@ function disclosures(
       'The adapter configurations table is development only: dev measurements the keep rule picked from, and smoke checks on train tasks. Only the locked-test tables carry results.',
     );
   }
+  // The build each frozen agent is set to run on once installed: named, never measured unless a
+  // locked test ran on this computer.
+  const build = arms.find((arm) => arm.frozen !== null)?.frozen?.localModel;
   if (
     !backends.some(
       (table) => table.backend === 'local-ollama' || table.backend === 'local-llama.cpp',
     )
   ) {
     lines.push(
-      'Local evaluation incomplete: no locked test ran on this computer, so no result here describes the 2-bit build the graduate runs on.',
+      `Local evaluation incomplete: no locked test ran on this computer, so no result here describes ${build === undefined ? 'the build the agents are set to run on' : `${build}, the build the agents are set to run on`}.`,
     );
   }
   const hosted = backends.find((table) => table.backend === 'hosted');
   if (hosted !== undefined) {
     lines.push(
-      `Hosted results ran on ${hosted.identity.provider ?? 'the hosted copy'} (${hosted.identity.quantization ?? 'precision not reported'}); this computer runs a 2-bit build, so hosted and local tables are never compared row to row.`,
+      `Hosted results ran on ${hosted.identity.provider ?? 'the hosted copy'} (${hosted.identity.quantization ?? 'precision not reported'}); this computer runs ${build ?? 'another build'}, so hosted and local tables are never compared row to row.`,
     );
   }
   if (
@@ -1034,18 +1133,70 @@ function disclosures(
   return lines;
 }
 
-/** Every dollar the comparison spent, once: each arm's own lines and the sweeps'. */
+/**
+ * Every dollar the attempts and the ledger record as spent, once: each arm's own lines and the
+ * sweeps', the student's in its three parts.
+ */
 function totalsOf(input: ReportInput, arms: readonly ArmReport[]): ComparisonReport['totals'] {
-  const sweeps = [...input.calibration, ...(input.regression?.attempts ?? [])];
+  const studentParts = {
+    armsUsd: addKnown(arms.map((arm) => arm.spent.studentUsd)),
+    calibrationUsd: addKnown(input.calibration.map((attempt) => attempt.usd)),
+    regressionUsd: addKnown((input.regression?.attempts ?? []).map((attempt) => attempt.usd)),
+  };
   return {
     sparkUsd: arms.reduce((sum, arm) => sum + arm.spent.sparkUsd, 0),
-    studentUsd: addKnown([
-      ...arms.map((arm) => arm.spent.studentUsd),
-      ...sweeps.map((attempt) => attempt.usd),
-    ]),
+    studentUsd: addKnown(Object.values(studentParts)),
+    studentParts,
     computeUsd: arms.reduce((sum, arm) => sum + arm.spent.computeUsd, 0),
     computeSettled: arms.every((arm) => arm.spent.computeSettled),
   };
+}
+
+/**
+ * Each declared locked-test seed, then any other one a locked test ran under, with the arms that
+ * have a stored result under it. The first seed is every arm's; the rest are the repeat's.
+ */
+function seedResultsOf(input: ReportInput): ComparisonReport['plan']['seedResults'] {
+  const { store } = input.engine;
+  const found = new Map<number, Set<ArmId>>();
+  for (const arm of ARM_ORDER) {
+    if (arm === 'repeat') continue;
+    const on = REFERENCE_ON[arm];
+    const run = armRun(store, on ?? arm);
+    if (run === null) continue;
+    // A Spark reference's results are the attempts filed under its configuration; every other
+    // arm's, the student's own.
+    const reference = on === undefined ? null : store.references.get(run.run.id, 'test');
+    if (on !== undefined && reference === null) continue;
+    for (const attempt of store.attempts.list({ runId: run.run.id, split: 'test' })) {
+      const mine =
+        reference === null
+          ? attempt.config?.startsWith('reference/') !== true
+          : attempt.config === reference.configKey;
+      if (mine) found.set(attempt.seed, (found.get(attempt.seed) ?? new Set<ArmId>()).add(arm));
+    }
+  }
+  const { testSeeds } = declared(input);
+  const others = [...found.keys()]
+    .filter((seed) => !testSeeds.includes(seed))
+    .sort((a, b) => a - b);
+  return [...testSeeds, ...others].map((seed) => ({
+    seed,
+    arms: ARM_ORDER.filter((arm) => found.get(seed)?.has(arm) === true),
+  }));
+}
+
+/** The arms with the backends they have a locked-test row in. */
+function withMeasuredOn(
+  arms: readonly ArmReport[],
+  backends: readonly BackendTable[],
+): ArmReport[] {
+  return arms.map((arm) => ({
+    ...arm,
+    measuredOn: backends
+      .filter((table) => table.rows.some((row) => row.arm === arm.arm))
+      .map((table) => table.backend),
+  }));
 }
 
 /**
@@ -1064,12 +1215,24 @@ export async function buildReport(input: ReportInput): Promise<ComparisonReport>
     if (run !== null) jobsByArm.set(arm, await jobs.forRun(run));
   }
   const jobOf: JobOf = (arm) => jobsByArm.get(arm) ?? null;
-  const arms = ARM_ORDER.filter(
-    (arm) => input.plan?.arms.includes(arm) ?? input.config.arms.includes(arm),
-  ).map((arm) => armReport(input, arm, jobOf));
   const backends = backendTables(input);
+  const arms = withMeasuredOn(
+    ARM_ORDER.filter(
+      (arm) => input.plan?.arms.includes(arm) ?? input.config.arms.includes(arm),
+    ).map((arm) => armReport(input, arm, jobOf)),
+    backends,
+  );
   const adapters = adapterCells(input);
   const totals = totalsOf(input, arms);
+  const settings = declared(input);
+  const plan: ComparisonReport['plan'] = {
+    mentoringSeed: settings.mentoringSeed,
+    testSeeds: [...settings.testSeeds],
+    seedResults: seedResultsOf(input),
+    order: [...ARM_ORDER],
+    adapterProtocol: settings.adapterProtocol,
+    releasedAt: input.plan?.releasedAt ?? null,
+  };
   const report: ComparisonReport = {
     format: COMPARISON_REPORT_FORMAT,
     generatedAt: input.now,
@@ -1086,13 +1249,7 @@ export async function buildReport(input: ReportInput): Promise<ComparisonReport>
         test: input.base.splits.test,
       },
     },
-    plan: {
-      mentoringSeed: input.config.mentoringSeed,
-      testSeeds: [...input.config.testSeeds],
-      order: [...ARM_ORDER],
-      adapterProtocol: input.plan?.settings.adapterProtocol ?? input.config.adapterProtocol,
-      releasedAt: input.plan?.releasedAt ?? null,
-    },
+    plan,
     inputs: input.plan?.inputs ?? null,
     calibration: sweepSummary('Calibration', input.base, input.calibration, 'hosted'),
     billing: input.plan?.billing ?? billingOf(input.calibration),
@@ -1105,13 +1262,17 @@ export async function buildReport(input: ReportInput): Promise<ComparisonReport>
             input.regression.attempts,
             'hosted',
           ),
-    credit: input.credit,
+    credit:
+      input.credit === null
+        ? null
+        : { ...input.credit, totalUsd: input.credit.settledUsd + input.credit.uncertainUsd },
     totals,
     projection: input.plan?.projection ?? null,
     arms,
     backends,
     adapters,
-    disclosures: disclosures(input, arms, backends, totals, adapters),
+    disclosures: disclosures(input, arms, backends, adapters, plan),
   };
-  return ComparisonReportSchema.parse(report);
+  // The records keep their words as they were; the report says them in plain text.
+  return ComparisonReportSchema.parse(plainStrings(report));
 }
