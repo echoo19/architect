@@ -90,7 +90,11 @@ function teacherNeed(job: Job, teacher: string, keys: Record<string, boolean>): 
   };
 }
 
-/** The model on this computer, which practice and the final test use unless they run online. */
+/**
+ * The model on this computer. Practice and the final test use it unless they run online, and the
+ * finished agent runs on it whatever trained it, so a run that ends without it can't pin the
+ * agent's model.
+ */
 function modelNeed(
   job: Job,
   student: string,
@@ -126,10 +130,15 @@ function modelNeed(
     testPlace === 'local' ? 'the final test' : null,
   ].filter((part): part is string => part !== null);
   const bytes = GLIMMER_BUILDS.find((build) => build.model === endpoint.model)?.downloadBytes;
+  // Neither is here when both run online; the agent that training ends with still is.
+  const detail =
+    runs.length === 0
+      ? 'The finished agent runs on it, so it has to be here when training ends. It downloads once.'
+      : `${capitalized(runs.join(' and '))} run${runs.length === 1 ? 's' : ''} on it. It downloads once.`;
   return {
     id: 'model-missing',
     title: `${student} isn't on ${device} yet`,
-    detail: `${capitalized(runs.join(' and '))} run${runs.length === 1 ? 's' : ''} on it. It downloads once.`,
+    detail,
     label: bytes === undefined ? 'Download' : `Download · ${formatBytes(bytes)}`,
     action: { kind: 'download', model: endpoint.model },
   };
@@ -185,14 +194,15 @@ function hostNeed(
 
 /**
  * What a run can't start without, before it starts: the teacher's key, the model on this
- * computer for whatever runs here (practice, the final test), and the online copy and its key for
- * whatever runs online. Each says what is missing and carries the one action that fixes it. A
- * run with everything in place needs nothing, and the list is empty.
+ * computer, and the online copy and its key for whatever runs online. The model is needed even
+ * when practice and the final test both run online, because the finished agent runs on this
+ * computer and training ends by recording which build of the model that is. Each says what is
+ * missing and carries the one action that fixes it. A run with everything in place needs nothing,
+ * and the list is empty.
  */
 export function runNeeds({ job, testPlace, keys, local, hostedProblem }: RunNeedsInput): Need[] {
   const names = modelNames(job);
   const usesHosted = job.student.trainOn === 'hosted' || testPlace === 'hosted';
-  const usesLocal = job.student.trainOn === 'local' || testPlace === 'local';
   const needs: Need[] = [];
 
   if (keys === 'error') {
@@ -209,10 +219,8 @@ export function runNeeds({ job, testPlace, keys, local, hostedProblem }: RunNeed
     const teacher = teacherNeed(job, names.mentor, keys);
     if (teacher) needs.push(teacher);
   }
-  if (usesLocal) {
-    const model = modelNeed(job, names.student, testPlace, local);
-    if (model) needs.push(model);
-  }
+  const model = modelNeed(job, names.student, testPlace, local);
+  if (model) needs.push(model);
   if (usesHosted) {
     const host = hostNeed(job, names.student, keys, hostedProblem);
     if (host) needs.push(host);

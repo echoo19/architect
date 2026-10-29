@@ -54,7 +54,12 @@ export const useJob = (jobId: string) => useQuery(queryKeys.job(jobId), () => ap
 /** What a job's tasks are: where they came from, the rule behind each type, examples and counts. */
 export const useTaskPlan = (jobId: string) =>
   useQuery(queryKeys.taskPlan(jobId), () => api.taskPlan(jobId));
-export const useRunDetail = (runId: string) => useQuery(queryKeys.run(runId), () => api.run(runId));
+/**
+ * A run's detail. A run goes on, ends, and is tested again while nobody is looking, so each
+ * screen that opens it reads it again, and shows what it kept from last time until that lands.
+ */
+export const useRunDetail = (runId: string) =>
+  useQuery(queryKeys.run(runId), () => api.run(runId), { refreshOnMount: true });
 export const useReport = (runId: string) =>
   useQuery(queryKeys.report(runId), () => api.report(runId));
 export const useChats = (graduateId: string) =>

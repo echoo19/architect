@@ -21,13 +21,13 @@ import { findingNotes, lessonNotes, type StepNote } from '../flow/train/lesson-s
 import { LessonDrawerContent } from '../flow/train/LessonView';
 import { PausedNotice } from '../flow/train/PausedNotice';
 import { phaseView } from '../flow/train/phase';
-import { questionView } from '../flow/train/questions';
 import { Resources } from '../flow/train/Resources';
 import { RoundDrawerContent, type RoundEvidence } from '../flow/train/RoundDrawer';
 import { Rounds, type RoundsFooter } from '../flow/train/Rounds';
 import { RunControls, StopDialog } from '../flow/train/RunControls';
 import {
   activeProgress,
+  activeTarget,
   currentRound,
   hasEnded,
   hasKeptChange,
@@ -37,6 +37,7 @@ import { TaskSuccess } from '../flow/train/TaskSuccess';
 import { TaughtLessons } from '../flow/train/TaughtLessons';
 import { StepsSkeleton, TraceDrawerContent } from '../flow/train/TraceDrawer';
 import { useLiveRun } from '../flow/train/use-live-run';
+import { useQuestion } from '../flow/train/use-question';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 import { FlowShell, IMPROVE_STEPS } from '../shell/FlowShell';
@@ -316,10 +317,9 @@ function useReportWhenFinished(
   }, [status, runId, contentRef, reading, improving]);
 }
 
-/** Where the student is running now: a hosted copy only practices; the final test runs here. */
-function studentPlace({ run, job }: LiveRun): string {
-  const testing = run.status === 'testing' || run.phase === 'testing';
-  if (!testing && job.student.trainOn === 'hosted') return 'online';
+/** Where the student is running now: online while it practices or takes its final test there. */
+function studentPlace(live: LiveRun): string {
+  if (activeTarget(live) === 'hosted') return 'online';
   return `on ${deviceInSentence(currentPlatform())}`;
 }
 
@@ -354,7 +354,7 @@ function TrainBoard({
       ? { error: records.error, reload: records.reload }
       : null;
   const round = currentRound(live);
-  const question = questionView(round, records);
+  const question = useQuestion(run.id, round, records);
   return (
     <>
       {improves && <TaughtLessons improves={improves} />}

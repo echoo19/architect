@@ -267,6 +267,12 @@ export interface Retest {
 export interface RunDetail {
   run: Run;
   job: Job;
+  /**
+   * Where the run's final test runs, as it was asked for when the run started: the endpoint
+   * that works in the testing phase, whatever the practice used. This computer when absent, as a
+   * run starts there unless it asks otherwise.
+   */
+  lockedTestOn?: StudentTarget;
   rounds: Round[];
   /** Most recent attempts first, train and dev only. */
   recentAttempts: ListedAttempt[];

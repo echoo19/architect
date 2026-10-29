@@ -179,6 +179,7 @@ export const RetestSchema = z.object({
 export const RunDetailSchema = z.object({
   run: RunSchema,
   job: JobSchema,
+  lockedTestOn: StudentTargetSchema.optional(),
   rounds: z.array(RoundSchema),
   recentAttempts: z.array(ListedAttemptSchema),
   lineage: z.array(LineageEntrySchema),

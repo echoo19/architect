@@ -11,6 +11,7 @@ function live(overrides: Partial<LiveRun['run']>): LiveRun {
   return {
     run: makeRun(overrides),
     job: makeJob(),
+    lockedTestOn: 'local',
     rounds: [],
     attempts: [],
     lineage: [],

@@ -132,6 +132,47 @@ describe('where the locked test runs', () => {
     ]);
   });
 
+  /**
+   * The graduate runs on this computer whatever trained and tested it, so freezing pins the
+   * local student's build even when practice and the final test both ran online. Define says so
+   * before a run starts (the pre-flight asks for the model on this computer for every run); this
+   * is what it protects from.
+   */
+  it('pins the local student when freezing, so a run wholly online stops without it', async () => {
+    const { label, local, hosted } = defaultJob().student;
+    const job = await setUp({ student: { label, local, hosted, trainOn: 'hosted' } });
+    let ollamaRunning = false;
+    Object.defineProperty(world, 'localDigest', {
+      get: () => {
+        if (!ollamaRunning) throw new Error("Ollama isn't running at http://127.0.0.1:11434.");
+        return 'sha256:fake';
+      },
+    });
+    const run = await engine.controller.start(job.id, 'bare', 3, { lockedTestOn: 'hosted' });
+    await engine.controller.idle();
+
+    // Practice ran online and the final test never started: the run stopped at the pin.
+    expect(engine.store.runs.get(run.id)?.run).toMatchObject({
+      status: 'paused',
+      phase: 'testing',
+      error: "Ollama isn't running at http://127.0.0.1:11434.",
+    });
+    const dev = engine.store.attempts.list({ runId: run.id, split: 'dev' });
+    expect(dev.length).toBeGreaterThan(0);
+    expect(dev.every((attempt) => attempt.target === 'hosted')).toBe(true);
+    expect(engine.store.attempts.list({ runId: run.id, split: 'test' })).toEqual([]);
+    expect(engine.store.runs.get(run.id)?.freeze).toBeNull();
+
+    ollamaRunning = true;
+    await engine.controller.resume(run.id);
+    await engine.controller.idle();
+    expect(engine.store.runs.get(run.id)?.run.status).toBe('finished');
+    expect(engine.store.runs.get(run.id)?.freeze?.student).toMatchObject({
+      model: 'glimmer:test',
+      digest: 'sha256:fake',
+    });
+  });
+
   it('pauses before testing a local student that is no longer the frozen build', async () => {
     const job = await setUp();
     const swap = engine.controller.onEvent((event) => {

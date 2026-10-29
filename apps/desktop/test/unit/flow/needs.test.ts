@@ -188,10 +188,37 @@ describe('the model on this computer', () => {
     });
   });
 
-  it('does not need the model on this computer when both run online', () => {
-    expect(runNeeds(input({ job: online, testPlace: 'hosted', local: runtimes(false) }))).toEqual(
-      [],
-    );
+  describe('when practice and the final test both run online', () => {
+    const wholly = (local: RunNeedsInput['local']) =>
+      runNeeds(input({ job: online, testPlace: 'hosted', local }));
+
+    it('still needs the model on this computer, because the finished agent runs there', () => {
+      const [need, ...more] = wholly(runtimes(true, ['other-model']));
+      expect(more).toEqual([]);
+      expect(need).toMatchObject({
+        id: 'model-missing',
+        title: "Glimmer isn't on this computer yet",
+        detail:
+          'The finished agent runs on it, so it has to be here when training ends. It downloads once.',
+        label: 'Download · 17 GB',
+        action: { kind: 'download', model: MODEL },
+      });
+    });
+
+    it('says Ollama is not running before it says the model is missing', () => {
+      const [need, ...more] = wholly(runtimes(false));
+      expect(more).toEqual([]);
+      expect(need).toMatchObject({ id: 'ollama-off', action: { kind: 'recheck', what: 'local' } });
+    });
+
+    it('needs nothing once the model is there', () => {
+      expect(wholly(runtimes(true, [MODEL]))).toEqual([]);
+    });
+
+    it('waits while the computer is looked at, and says so when it cannot be', () => {
+      expect(wholly('loading')).toEqual([]);
+      expect(wholly('error')).toMatchObject([{ id: 'local-unknown' }]);
+    });
   });
 
   it('waits while the computer is looked at, and says so when it cannot be', () => {

@@ -133,6 +133,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     return {
       run: record.run,
       job: await jobs.forRun(record),
+      lockedTestOn: record.lockedTestOn,
       rounds: store.rounds.list(runId).map(({ round }) => round),
       recentAttempts: store.attempts
         .recent(runId, ['train', 'dev'], RECENT_ATTEMPTS)

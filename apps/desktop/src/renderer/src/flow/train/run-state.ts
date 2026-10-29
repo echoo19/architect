@@ -8,6 +8,7 @@ import type {
   RunDetail,
   RunEvent,
   RunImprovement,
+  StudentTarget,
 } from '@architect/shared';
 
 /** An attempt as the training view lists it, with the request text when the engine sent it. */
@@ -31,6 +32,11 @@ export interface RunNotice {
 export interface LiveRun {
   run: Run;
   job: Job;
+  /**
+   * Where the run's final test runs, as the run asked for it when it started. Practice runs where
+   * the job trains; once the run is testing, the student that answers is this one.
+   */
+  lockedTestOn: StudentTarget;
   /** Ascending by round number. */
   rounds: Round[];
   /** Newest first, practice (train) and check (dev) attempts only. */
@@ -90,6 +96,7 @@ function fromDetail(detail: RunDetail): LiveRun {
   return {
     run: detail.run,
     job: detail.job,
+    lockedTestOn: detail.lockedTestOn ?? 'local',
     rounds: [...detail.rounds].sort((a, b) => a.index - b.index),
     attempts: keepRecent(detail.recentAttempts.filter(isListed)),
     lineage: detail.lineage,
@@ -247,11 +254,23 @@ export function budgetMeters(live: LiveRun): BudgetMeters {
   };
 }
 
+/** Whether the run has ended its training and is freezing or taking its final test. */
+export function isTesting(run: Run): boolean {
+  return run.phase === 'testing' || run.status === 'testing';
+}
+
+/**
+ * The student endpoint that works in the run's current phase: where the job trains while the run
+ * practices, and where the run takes its final test once it is testing, whatever practice used.
+ */
+export function activeTarget({ run, job, lockedTestOn }: LiveRun): StudentTarget {
+  return isTesting(run) ? lockedTestOn : job.student.trainOn;
+}
+
 /** Evaluation progress that belongs to what the run is doing now. */
 export function activeProgress(live: LiveRun): EvalProgress | null {
   const { progress, run } = live;
   if (!progress) return null;
-  const testing = run.phase === 'testing' || run.status === 'testing';
-  if (progress.split === 'test') return testing ? progress : null;
+  if (progress.split === 'test') return isTesting(run) ? progress : null;
   return run.phase === 'evaluating' || run.phase === 'baseline' ? progress : null;
 }
