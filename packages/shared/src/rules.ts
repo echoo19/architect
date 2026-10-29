@@ -436,11 +436,15 @@ export function passageSource(file: string): string {
 
 /**
  * Where a passage comes from in a line of text: its file, or for an answer the question it
- * answered, as in `your answer to "Does the discount apply to parts?"`.
+ * answered, as in `your answer to "Does the discount apply to parts?"`. A question that quotes a
+ * word of its own, such as the one about what "N/A" means, is set in single quotes, so that its
+ * quotes and the line's never nest.
  */
 export function passageOrigin(passage: Pick<RulePassage, 'file' | 'question'>): string {
   const source = passageSource(passage.file);
-  return passage.question === undefined ? source : `${source} to "${passage.question}"`;
+  if (passage.question === undefined) return source;
+  const quote = passage.question.includes('"') && !passage.question.includes("'") ? "'" : '"';
+  return `${source} to ${quote}${passage.question}${quote}`;
 }
 
 /** Whether teaching ran, in a sentence, from how many rounds the run used. */
