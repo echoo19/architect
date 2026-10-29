@@ -7,7 +7,7 @@ export const RELEASES = `${REPO}/releases/latest`;
  * The Windows installer, which a visitor on Windows is sent to directly. Its name carries the
  * app's version, and a test keeps this one in step with it.
  */
-export const APP_VERSION = '0.1.0';
+export const APP_VERSION = '0.2.0';
 export const WINDOWS_INSTALLER = `${RELEASES}/download/Architect-Setup-${APP_VERSION}.exe`;
 /** The full reports behind the measured results. */
 export const REPORTS = `${REPO}/tree/main/docs/comparisons`;
@@ -17,7 +17,7 @@ export const HERO = {
   title: 'Describe a job. Get an agent that runs on your computer.',
   /** Two sentences, each on its own line where there is room. */
   line: [
-    'Spark, a large model, teaches Glimmer, a small one.',
+    'Spark, a large model, teaches Glimmer, a small one that fits on a PC.',
     'Glimmer then works on your files, offline, on your own computer.',
   ],
 } as const;
@@ -67,9 +67,9 @@ export const CHAPTERS: readonly ChapterCopy[] = [
 
 export const CLOSING = {
   title: 'Get Architect.',
-  /** What a first run asks for, as the README says it. */
+  /** What a first run asks for, in the README's words. */
   needs:
-    'On the first run, Architect downloads Glimmer. The recommended 17 GB needs about 20 GB of graphics memory, and a 14 GB build is made for 12 GB graphics cards. You also need Ollama, and an API key for Spark.',
+    "You'll need Ollama. The first screens download Glimmer (17 GB, or 14 GB for a 12 GB graphics card) and connect Spark with an API key from Meta. The app isn't signed yet: on Windows choose More info, then Run anyway; on a Mac, right-click it and choose Open.",
   github: 'View the code on GitHub',
 } as const;
 
