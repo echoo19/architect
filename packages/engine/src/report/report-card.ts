@@ -35,6 +35,8 @@ export interface ReportCardInput {
   studentUsd: number;
   ranOffline: boolean;
   createdAt: string;
+  /** Where the final test's tasks came from, for a job whose tasks weren't shipped with it. */
+  tasks?: ReportCard['tasks'];
 }
 
 /** Nearest-rank percentile, 0 when there are no values. */
@@ -166,5 +168,6 @@ export function computeReportCard(input: ReportCardInput): ReportCard {
     topInterventions: topInterventions(input.lineage, job.splits.dev),
     requirements: p95LatencyMs ? { passRate, p95LatencyMs } : { passRate },
     overclaim: input.readyClaimed ? !requirementsMet : null,
+    ...(input.tasks === undefined ? {} : { tasks: input.tasks }),
   };
 }

@@ -8,6 +8,7 @@ import type {
   RunImprovement,
   TeachingOverview,
 } from './corrections';
+import type { TaskPlan } from './drafting';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
 import type { Job, MentorConfig, PermissionMode, StudentEndpoint, StudentTarget } from './job';
@@ -324,6 +325,11 @@ export interface DraftTurn {
   options: string[];
   /** Set once the mentor has enough to draft the job. */
   draft?: Job;
+  /**
+   * True when no job can be drafted from what was attached, and the conversation stops here: the
+   * message says what to attach, and the person starts again with it.
+   */
+  ended?: true;
 }
 
 /** The API the preload script exposes to the renderer as `window.architect`. */
@@ -419,6 +425,12 @@ export interface ArchitectApi {
     exportFile(jobId: string, path: string): Promise<void>;
     draftStart(description: string, files: string[]): Promise<DraftTurn>;
     draftReply(sessionId: string, text: string): Promise<DraftTurn>;
+    /**
+     * What a job's tasks are: where they came from, the rule behind each type, a few examples of
+     * each with their expected answers, and how many sit in each set. The examples never come
+     * from the final test.
+     */
+    taskPlan(jobId: string): Promise<TaskPlan>;
   };
   runs: {
     start(jobId: string, options: RunStartOptions): Promise<Run>;

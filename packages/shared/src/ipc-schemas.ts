@@ -195,6 +195,7 @@ export const DraftTurnSchema = z.object({
   message: z.string(),
   options: z.array(z.string()),
   draft: JobSchema.optional(),
+  ended: z.literal(true).optional(),
 }) satisfies z.ZodType<DraftTurn>;
 
 export const OllamaStatusSchema = z.object({

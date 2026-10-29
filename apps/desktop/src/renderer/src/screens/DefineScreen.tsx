@@ -215,7 +215,7 @@ function DefineEditor({ initial }: { initial: Job }) {
         tab={tab}
         onTabChange={setTab}
         editor={editor}
-        summaries={summaries}
+        taskCount={taskCount}
         finalTest={{ place: testPlace, onPlaceChange: setTestPlace, hosted }}
       />
       {preflight.adding !== null && (

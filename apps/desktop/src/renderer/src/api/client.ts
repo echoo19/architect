@@ -16,6 +16,7 @@ import {
   RunDetailSchema,
   RunSchema,
   SecretStatusSchema,
+  TaskPlanSchema,
   TraceSchema,
   WorkspaceChatSchema,
   WorkspaceMessageSchema,
@@ -75,6 +76,7 @@ export const api = {
     read('graduates.list', z.array(GraduateSummarySchema), bridge().graduates.list()),
   jobs: () => read('jobs.list', z.array(JobSummarySchema), bridge().jobs.list()),
   job: (jobId: string) => read('jobs.get', JobSchema, bridge().jobs.get(jobId)),
+  taskPlan: (jobId: string) => read('jobs.taskPlan', TaskPlanSchema, bridge().jobs.taskPlan(jobId)),
   run: (runId: string) => read('runs.get', RunDetailSchema, bridge().runs.get(runId)),
   /** The run's report card: from where its own final test ran, or from one endpoint when named. */
   report: (runId: string, target?: StudentTarget) =>

@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import {
   studentPricing,
   type Job,
-  type JobSummary,
   type ReasoningEffort,
   type StartingHarness,
   type StudentTarget,
@@ -21,9 +20,7 @@ import {
   type SettingsTab,
 } from '@architect/ui';
 import { Check, CircleAlert } from 'lucide-react';
-import type { QueryState } from '../../api/query';
 import { KeyRow } from '../../components/KeyRow';
-import { errorOf, QueryValue } from '../../components/QueryValue';
 import { mentorNote, mentorProvider } from '../../onboarding/mentor';
 import {
   hostedFromChoice,
@@ -39,6 +36,7 @@ import { ExportJobFile } from './ExportJobFile';
 import { NumberField, PathField, TabNote } from './fields';
 import { FinalTestChoice } from './FinalTestChoice';
 import { presetOf, providerName, type HostedAvailability } from './hosted';
+import { TasksTab } from './TasksTab';
 import { TYPING_PAUSE_MS, type JobEditor } from './use-job-editor';
 import { tasksSplit, type JobIssues } from './validate';
 
@@ -97,7 +95,8 @@ interface AdvancedDialogProps {
   tab: AdvancedTab;
   onTabChange: (tab: AdvancedTab) => void;
   editor: JobEditor;
-  summaries: QueryState<JobSummary[]>;
+  /** How many tasks the job holds, when that is known: once it holds any, they were split. */
+  taskCount: number | null;
   /** Where the final test runs: the run's own choice, which the job doesn't keep. */
   finalTest: FinalTestState;
 }
@@ -116,7 +115,7 @@ export function AdvancedDialog({
   tab,
   onTabChange,
   editor,
-  summaries,
+  taskCount,
   finalTest,
 }: AdvancedDialogProps) {
   return (
@@ -141,7 +140,7 @@ export function AdvancedDialog({
         </>
       }
     >
-      <TabContent tab={tab} editor={editor} summaries={summaries} finalTest={finalTest} />
+      <TabContent tab={tab} editor={editor} taskCount={taskCount} finalTest={finalTest} />
     </SettingsDialog>
   );
 }
@@ -204,17 +203,17 @@ interface TabProps {
 function TabContent({
   tab,
   editor,
-  summaries,
+  taskCount,
   finalTest,
 }: {
   tab: AdvancedTab;
   editor: JobEditor;
-  summaries: QueryState<JobSummary[]>;
+  taskCount: number | null;
   finalTest: FinalTestState;
 }) {
   switch (tab) {
     case 'tasks':
-      return <TasksTab editor={editor} summaries={summaries} />;
+      return <TasksTab job={editor.job} />;
     case 'checker':
       return <CheckerTab editor={editor} />;
     case 'requirements':
@@ -228,49 +227,19 @@ function TabContent({
     case 'harness':
       return <HarnessTab editor={editor} />;
     case 'splits':
-      return (
-        <SplitsTab
-          editor={editor}
-          taskCount={
-            summaries.data?.find((summary) => summary.id === editor.job.id)?.taskCount ?? null
-          }
-        />
-      );
+      return <SplitsTab editor={editor} taskCount={taskCount} />;
     case 'evaluation':
       return <EvaluationTab editor={editor} />;
   }
-}
-
-/** Saves typed values once the user pauses. */
-function typed(editor: JobEditor) {
-  return (recipe: (job: Job) => Job) => editor.change(recipe, TYPING_PAUSE_MS);
 }
 
 function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
 
-function TasksTab({ editor, summaries }: TabProps & { summaries: QueryState<JobSummary[]> }) {
-  const { job } = editor;
-  return (
-    <>
-      <SettingsRow
-        label="Example tasks"
-        meta="From the tasks you attached"
-        error={errorOf(summaries)}
-      >
-        <QueryValue query={summaries}>
-          {(list) => {
-            const count = list.find((summary) => summary.id === job.id)?.taskCount;
-            return count === undefined ? 'Not counted yet' : plural(count, 'task');
-          }}
-        </QueryValue>
-      </SettingsRow>
-      {job.taskTypes.map((type) => (
-        <SettingsRow key={type.id} label={type.label} meta={type.description} />
-      ))}
-    </>
-  );
+/** Saves typed values once the user pauses. */
+function typed(editor: JobEditor) {
+  return (recipe: (job: Job) => Job) => editor.change(recipe, TYPING_PAUSE_MS);
 }
 
 const CHECKERS = [

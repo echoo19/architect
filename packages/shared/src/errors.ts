@@ -15,6 +15,7 @@ export const ERROR_CODES = [
   'job_not_found',
   'agent_not_found',
   'chat_not_found',
+  'draft_not_found',
   'record_not_found',
   'version_modified',
   'not_a_package',

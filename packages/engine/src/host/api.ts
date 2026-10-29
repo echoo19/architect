@@ -28,6 +28,7 @@ import type { GraduateLibrary } from '../graduates/library';
 import { improvementsOf } from '../improve/improvement';
 import { TeachThis } from '../improve/teach-this';
 import { isReferenceAttempt } from '../loop/configuration';
+import { JobDrafting } from '../drafting/drafter';
 import type { Clock, EngineHostDeps, JobDrafter } from '../loop/deps';
 import { readJsonFile } from '../loop/files';
 import type { JobLibrary } from '../loop/jobs';
@@ -84,8 +85,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     new LineageLog(paths.lineageFile(record.run.jobId, record.run.id)).read();
   const versionsOf = (record: StoredRun) =>
     deps.harness.versions(paths.harnessDir(record.run.jobId, record.run.id));
-  const drafter = (): JobDrafter =>
-    found(deps.drafts, "Drafting a job with the mentor isn't available in this build.");
+  const drafter: JobDrafter = new JobDrafting({ jobs, deps, clock: ctx.clock });
   const packages = { library: graduates, secrets: deps.secrets, hub: ctx.hub };
   /** Who hears a publication move. Listeners only pass it on, so none of them throws. */
   const publishListeners = new Set<(progress: PublishProgress) => void>();
@@ -281,8 +281,9 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       },
       importFile: (file) => jobs.importFile(file),
       exportFile: (jobId, file) => jobs.exportFile(jobId, file),
-      draftStart: (description, files) => drafter().start(description, files),
-      draftReply: (sessionId, text) => drafter().reply(sessionId, text),
+      draftStart: (description, files, teacher) => drafter.start(description, files, teacher),
+      draftReply: (sessionId, text, teacher) => drafter.reply(sessionId, text, teacher),
+      taskPlan: (jobId) => jobs.taskPlan(jobId),
     },
     runs: {
       start: (jobId, { method, seed, lockedTestOn, interactive }) =>

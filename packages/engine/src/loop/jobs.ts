@@ -1,16 +1,20 @@
 import { createHash } from 'node:crypto';
-import { copyFile, cp, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 import {
   CodedError,
+  DraftRecordSchema,
   JobSchema,
   newId,
   TaskSchema,
+  type DraftRecord,
   type Job,
   type JobSummary,
   type Task,
+  type TaskPlan,
 } from '@architect/shared';
 import { z } from 'zod';
+import { buildTaskPlan } from '../drafting/plan';
 import { ContractBook } from '../graduates/contracts';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun } from '../store/records';
@@ -102,6 +106,17 @@ async function copyInto(from: string, to: string, missing: string): Promise<void
     }
     throw error;
   }
+}
+
+/** A job built from files and tasks that are in hand, which `create` records as an import does. */
+export interface NewJob {
+  /** Its id is a request: a fresh one is chosen when it is taken. */
+  job: Job;
+  /** The data files, by the names the job gives them. */
+  files: readonly { name: string; content: Uint8Array }[];
+  tasks: readonly Task[];
+  /** Where the tasks came from and what drafting cost, kept beside the job. */
+  drafting: DraftRecord;
 }
 
 /**
@@ -233,19 +248,87 @@ export class JobLibrary {
     if (tasks.length > 0) await this.installTasks(job, tasks);
 
     await writeJsonFile(this.paths.jobFile(job.id), job);
+    this.record(job, tasks.length);
+    return job;
+  }
+
+  /**
+   * Records a job whose files and tasks are in hand, such as one drafted from a person's own
+   * files: the files are written as its data, the tasks are split and the final test sealed in
+   * the vault, and the job is recorded, so `save` and a run work on it as they do on an import.
+   * The split is worked out first, so tasks that can't be split leave nothing behind.
+   */
+  async create(input: NewJob): Promise<Job> {
+    const job: Job = { ...input.job, id: await this.freshId(input.job.id) };
+    const tasks = [...input.tasks];
+    checkTasks(job, tasks);
+    this.deps.runtime.splitTasks(tasks, job.splits);
+    const folder = this.paths.jobDir(job.id);
+    try {
+      for (const file of input.files) {
+        const target = join(this.paths.dataDir(job.id), file.name);
+        await mkdir(dirname(target), { recursive: true });
+        await writeFile(target, file.content);
+      }
+      await writeJsonFile(this.paths.draftingFile(job.id), DraftRecordSchema.parse(input.drafting));
+      await writeJsonFile(this.paths.jobFile(job.id), job);
+      await this.installTasks(job, tasks);
+    } catch (error) {
+      await rm(folder, { recursive: true, force: true });
+      throw error;
+    }
+    this.record(job, tasks.length);
+    return job;
+  }
+
+  /** What drafting a job left beside it, or null for a job whose tasks came with it. */
+  async drafting(jobId: string): Promise<DraftRecord | null> {
+    let stored: unknown;
+    try {
+      stored = await readJsonFile(this.paths.draftingFile(jobId));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw error;
+    }
+    return DraftRecordSchema.parse(stored);
+  }
+
+  /**
+   * What a job's tasks are: where they came from, the rule behind each type, a few examples with
+   * their expected answers, and how many sit in each set. The examples come from the practice and
+   * starting sets; the final test is only counted.
+   */
+  async taskPlan(jobId: string): Promise<TaskPlan> {
+    const job = await this.get(jobId);
+    const [calibration, train, dev] = await Promise.all([
+      this.tasks(jobId, 'calibration'),
+      this.tasks(jobId, 'train'),
+      this.tasks(jobId, 'dev'),
+    ]);
+    const sealed = (await this.deps.vault.isSealed(jobId))
+      ? await this.deps.vault.typeCounts(jobId)
+      : {};
+    return buildTaskPlan({
+      job,
+      draft: await this.drafting(jobId),
+      visible: { calibration, train, dev },
+      sealed,
+    });
+  }
+
+  private record(job: Job, taskCount: number): void {
     this.store.transaction(() => {
       this.store.jobs.insert({
         id: job.id,
         name: job.name,
         summary: job.summary,
         path: this.paths.toStored(this.paths.jobDir(job.id)),
-        taskCount: tasks.length,
+        taskCount,
         createdAt: job.createdAt,
         updatedAt: isoNow(this.clock),
       });
       this.contracts.ensure(job);
     });
-    return job;
   }
 
   /**

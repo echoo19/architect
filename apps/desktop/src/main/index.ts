@@ -210,6 +210,7 @@ async function start(): Promise<void> {
     router,
     (request) => engine.call(request),
     picked,
+    settings,
     async () => currentChoices(settings, secrets),
   );
   registerGraduateHandlers(router, (request) => engine.call(request), graduates, picked);

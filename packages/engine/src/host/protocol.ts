@@ -35,6 +35,7 @@ import {
   JobSummarySchema,
   ListedAttemptSchema,
   ListedLessonSchema,
+  MentorConfigSchema,
   MentoringProgressSchema,
   PackageError,
   PackageInspectionSchema,
@@ -54,20 +55,32 @@ import {
   RuntimeMeasurementSchema,
   SampleAgentSchema,
   StudentTargetSchema,
+  TaskPlanSchema,
   TeachingOverviewSchema,
   TraceSchema,
   VersionEventSchema,
   type AdapterErrorCode,
   type ArchitectApi,
+  type DraftTurn,
+  type MentorConfig,
 } from '@architect/shared';
 import { z } from 'zod';
 import { HubError, type HubErrorCode } from '../hub';
 
-/** The part of the app's API the engine host serves. */
+/**
+ * The part of the app's API the engine host serves. The conversation that drafts a job also takes
+ * the teacher the person chose in Settings, which only the main process knows, so the renderer's
+ * two calls gain a third argument on their way to the engine.
+ */
 export type EngineApi = Pick<
   ArchitectApi,
-  'jobs' | 'runs' | 'mentoring' | 'teach' | 'reports' | 'graduates'
->;
+  'runs' | 'mentoring' | 'teach' | 'reports' | 'graduates'
+> & {
+  jobs: Omit<ArchitectApi['jobs'], 'draftStart' | 'draftReply'> & {
+    draftStart(description: string, files: string[], teacher: MentorConfig): Promise<DraftTurn>;
+    draftReply(sessionId: string, text: string, teacher: MentorConfig): Promise<DraftTurn>;
+  };
+};
 
 const id = z.string().min(1);
 const path = z.string().min(1);
@@ -99,15 +112,16 @@ export const ENGINE_ROUTES = {
     api.jobs.exportFile(jobId, file),
   ),
   'jobs.draftStart': route(
-    z.tuple([z.string().min(1), z.array(path)]),
+    z.tuple([z.string().min(1), z.array(path), MentorConfigSchema]),
     DraftTurnSchema,
-    (api, [description, files]) => api.jobs.draftStart(description, files),
+    (api, [description, files, teacher]) => api.jobs.draftStart(description, files, teacher),
   ),
   'jobs.draftReply': route(
-    z.tuple([id, z.string().min(1)]),
+    z.tuple([id, z.string().min(1), MentorConfigSchema]),
     DraftTurnSchema,
-    (api, [sessionId, text]) => api.jobs.draftReply(sessionId, text),
+    (api, [sessionId, text, teacher]) => api.jobs.draftReply(sessionId, text, teacher),
   ),
+  'jobs.taskPlan': route(z.tuple([id]), TaskPlanSchema, (api, [jobId]) => api.jobs.taskPlan(jobId)),
   'runs.start': route(z.tuple([id, RunStartOptionsSchema]), RunSchema, (api, [jobId, options]) =>
     api.runs.start(jobId, options),
   ),

@@ -6,6 +6,7 @@ import { z } from 'zod';
 import type { PickedPaths } from '../files/picked';
 import type { IpcRouter } from '../ipc/router';
 import { applyChoices, type JobChoices } from '../jobs/choices';
+import type { SettingsStore } from '../settings/store';
 
 /** Sends one request to the engine process. */
 export type EngineCall = <T>(request: (api: EngineApi) => Promise<T>) => Promise<T>;
@@ -14,14 +15,17 @@ const text = z.string().min(1);
 
 /**
  * The jobs, runs and reports domains, forwarded to the engine process, which checks every
- * argument it gets. A path from the renderer must be one the user picked in a file dialog. A job
- * that is new, whether the sample job, a job file or a drafted job, starts from the teacher and
- * model the person chose (`choices`); a job that already exists keeps what it has.
+ * argument it gets. A path from the renderer must be one the user picked in a file dialog. The
+ * conversation that drafts a job talks to the teacher the person chose in Settings, which only
+ * this process reads, so each of its calls carries it to the engine. A job that is new, whether
+ * the sample job, a job file or a drafted job, starts from the teacher and model the person chose
+ * (`choices`); a job that already exists keeps what it has.
  */
 export function registerEngineHandlers(
   router: IpcRouter,
   call: EngineCall,
   picked: PickedPaths,
+  settings: Pick<SettingsStore, 'get'>,
   choices: () => Promise<JobChoices>,
 ): void {
   /** A job just made, saved again with the person's choices unless it already has them. */
@@ -38,9 +42,12 @@ export function registerEngineHandlers(
     if (checker?.kind !== 'module' || !isAbsolute(String(checker.path))) return job;
     return { ...job, checker: { kind: 'module', path: picked.check(checker.path) } };
   };
-  /** A drafted job, which isn't saved yet, as it will be reviewed. */
+  /**
+   * A conversation's turn, with the job it drafted, which the engine has already made from the
+   * shipped models, put through the person's choices like any other new job.
+   */
   const draftedWith = async (turn: DraftTurn): Promise<DraftTurn> =>
-    turn.draft === undefined ? turn : { ...turn, draft: applyChoices(turn.draft, await choices()) };
+    turn.draft === undefined ? turn : { ...turn, draft: await chosenFor(turn.draft) };
 
   router.registerHandlers(
     'jobs',
@@ -64,10 +71,17 @@ export function registerEngineHandlers(
       },
       draftStart: async (description, files) => {
         const chosen = files.map((file) => picked.check(file));
-        return draftedWith(await call((api) => api.jobs.draftStart(description, chosen)));
+        return draftedWith(
+          await call((api) =>
+            api.jobs.draftStart(description, chosen, settings.get().defaultMentor),
+          ),
+        );
       },
       draftReply: async (sessionId, reply) =>
-        draftedWith(await call((api) => api.jobs.draftReply(sessionId, reply))),
+        draftedWith(
+          await call((api) => api.jobs.draftReply(sessionId, reply, settings.get().defaultMentor)),
+        ),
+      taskPlan: (jobId) => call((api) => api.jobs.taskPlan(jobId)),
     },
     {
       importFile: z.tuple([text]),
