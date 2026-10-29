@@ -257,8 +257,8 @@ function describeColumn(profile: ColumnProfile, examples: readonly string[]): st
 
 /**
  * What the teacher is told of a table: its shape, each column and the first rows. The columns
- * are told in counts and in examples of `examplesOf`, so no value of a row the teacher is not
- * shown (`shownRowsOfTable`) reaches it.
+ * are told in counts and in examples of `examplesOf`, so no spelling that only one row the teacher
+ * is not shown (`shownRowsOfTable`) writes reaches it.
  */
 export function describeTable(file: Attachment, budget: number): string {
   const table = file.table;

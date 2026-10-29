@@ -334,6 +334,41 @@ describe('what the teacher is shown of a column', () => {
     expect(examplesOf(records, 'status', new Set([17]))).toEqual(['Open', 'Closed', 'Reopened']);
   });
 
+  describe('a value written in more than one way', () => {
+    // One value to a filter, `CaseX` and `casex`, is two spellings, and each is the exact answer
+    // of the one row that writes it: saying either would say what a row holds that the teacher is
+    // not shown. `mix` is written the same way by two rows, so it names none.
+    const spelled = readTable(
+      'spelled.csv',
+      [
+        'code',
+        ...['North', 'South', 'North', 'South', 'North'],
+        ...['CaseX', 'casex', 'Pair', 'Pair', 'MIX', 'mix', 'mix', 'Solo'],
+        ...Array.from({ length: 17 }, () => 'Other'),
+      ].join('\n'),
+    );
+
+    it('says a spelling that several rows write alike, never one that a single unshown row writes', () => {
+      const examples = examplesOf(spelled, 'code', firstFive);
+      expect(examples).toEqual(['Other', 'North', 'mix', 'South', 'Pair']);
+      for (const spelling of ['CaseX', 'casex', 'MIX', 'Solo']) {
+        expect(examples, spelling).not.toContain(spelling);
+      }
+    });
+
+    it('says the spelling of a row it is shown, as no secret', () => {
+      expect(examplesOf(spelled, 'code', new Set([0, 1, 2, 3, 4, 5]))).toEqual([
+        'Other',
+        'North',
+        'mix',
+        'South',
+        'CaseX',
+      ]);
+      // Shown the other row of the pair, it is that row's spelling that is said.
+      expect(examplesOf(spelled, 'code', new Set([0, 1, 2, 3, 4, 6]))).toContain('casex');
+    });
+  });
+
   it('gives a short table of few rows only the rows it is shown, not every value it has', () => {
     const few = readTable('few.csv', 'name\nAda\nBen\nCho\nDana\nEli\nFay\nGus\n');
     expect(examplesOf(few, 'name', firstFive)).toEqual(['Ada', 'Ben', 'Cho', 'Dana', 'Eli']);

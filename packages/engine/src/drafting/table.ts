@@ -170,29 +170,52 @@ export function profileColumn(table: Table, column: string): ColumnProfile {
   };
 }
 
+/** The rows that share a spelling of a value, and whether the teacher is shown one of them. */
+interface Spelling {
+  count: number;
+  shown: boolean;
+}
+
 /**
- * A few values of a column, as the file writes them, to show the teacher what it holds. Nothing
- * of a row reaches the teacher that the teacher isn't shown already: a value only one row has
- * comes from a row in `shown`, which no set of tasks is made from, and a value that several rows
- * share names no row, so a column with a few values (a status, a region) lists those it has in
- * common, which a filter needs. Any other column gives the values of the rows in `shown`.
+ * A few values of a column, as the file writes them, to show the teacher what it holds. A value is
+ * its exact spelling, and it is said only when saying it gives away no row the teacher was not
+ * shown: a spelling that a row in `shown` writes, which the teacher has read and no request is
+ * about alone, or that two rows or more write the same way, which names none of them. So a column
+ * with a few values (a status, a region) lists those it has in common, which a filter needs.
+ * `CaseX` in one row and `casex` in another are one value but two spellings, each the exact answer
+ * of one row, and neither is listed unless the teacher is shown that row. Any other column gives
+ * the values of the rows in `shown`.
  */
 export function examplesOf(table: Table, column: string, shown: ReadonlySet<number>): string[] {
-  const values = new Map<string, { first: string; row: number; count: number }>();
+  const values = new Map<string, { count: number; spellings: Map<string, Spelling> }>();
   for (const [at, row] of table.rows.entries()) {
     const text = cleanText(row[column]);
     if (text === '') continue;
     const key = text.toLowerCase();
-    const seen = values.get(key);
-    if (seen) seen.count += 1;
-    else values.set(key, { first: text, row: at, count: 1 });
+    const value = values.get(key) ?? { count: 0, spellings: new Map<string, Spelling>() };
+    value.count += 1;
+    const spelling = value.spellings.get(text) ?? { count: 0, shown: false };
+    spelling.count += 1;
+    if (shown.has(at)) spelling.shown = true;
+    value.spellings.set(text, spelling);
+    values.set(key, value);
   }
   let chosen: string[];
   if (values.size <= FEW_VALUES) {
     chosen = [...values.values()]
-      .filter((value) => value.count > 1 || shown.has(value.row))
       .sort((a, b) => b.count - a.count)
-      .map((value) => value.first);
+      .flatMap((value) => {
+        let best: string | undefined;
+        let most = 0;
+        for (const [text, spelling] of value.spellings) {
+          if (spelling.count < 2 && !spelling.shown) continue;
+          if (spelling.count > most) {
+            best = text;
+            most = spelling.count;
+          }
+        }
+        return best === undefined ? [] : [best];
+      });
   } else {
     const fromShown = new Set<string>();
     for (const at of [...shown].sort((a, b) => a - b)) {
