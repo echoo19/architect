@@ -194,7 +194,7 @@ const describe: DemoScene = {
       kind: 'type',
       role: 'textbox',
       name: 'Describe the job',
-      text: "Tell customers what a repair ticket costs under our pricing policy, and look up a customer's contact details.",
+      text: "Tell customers what a repair ticket costs under our pricing policy, labor billed in half-hour steps, and look up a customer's contact details.",
       delayMs: 24,
     },
     {
