@@ -398,28 +398,37 @@ describe('asking one question once', () => {
   });
 });
 
+const bike = bikeShop({ offGrid: true });
+const shop = bikeTables(bike);
+
+/**
+ * What a ticket costs: the labor at 65 an hour in half hours and the parts, in the order given,
+ * asked in the words given.
+ */
+function cost(
+  id: string,
+  order: 'labor first' | 'parts first',
+  family?: string,
+  request?: string,
+): TypeInput {
+  const labor: RuleNode = { op: 'mul', args: [billedHours, num('65')] };
+  const args = order === 'labor first' ? [labor, col('parts_cost')] : [col('parts_cost'), labor];
+  // The member discount is left out, so the rule reads no other table.
+  const { lookup: _lookup, ...rule } = bikeRule({
+    categories: [],
+    expression: { op: 'round', increment: '0.01', mode: 'half_up', arg: { op: 'add', args } },
+    ...(family === undefined ? {} : { familyColumn: family }),
+    ...(request === undefined ? {} : { request }),
+  });
+  return {
+    id,
+    label: `Ticket totals (${id})`,
+    description: 'Work out what a repair ticket costs.',
+    spec: rule,
+  };
+}
+
 describe('asking one question once, whichever rule is behind it', () => {
-  const bike = bikeShop({ offGrid: true });
-  const shop = bikeTables(bike);
-
-  /** What a ticket costs: the labor at 65 an hour in half hours and the parts, in the order given. */
-  function cost(id: string, order: 'labor first' | 'parts first', family?: string): TypeInput {
-    const labor: RuleNode = { op: 'mul', args: [billedHours, num('65')] };
-    const args = order === 'labor first' ? [labor, col('parts_cost')] : [col('parts_cost'), labor];
-    // The member discount is left out, so the rule reads no other table.
-    const { lookup: _lookup, ...rule } = bikeRule({
-      categories: [],
-      expression: { op: 'round', increment: '0.01', mode: 'half_up', arg: { op: 'add', args } },
-      ...(family === undefined ? {} : { familyColumn: family }),
-    });
-    return {
-      id,
-      label: `Ticket totals (${id})`,
-      description: 'Work out what a repair ticket costs.',
-      spec: rule,
-    };
-  }
-
   // The reproduction: the same sum written in the other order, asking the same request, and told
   // apart by a family column, which made the two rules' questions different to Architect and the
   // same to the agent. Both could then be split apart, one as practice and one as the final test.
@@ -471,6 +480,138 @@ describe('asking one question once, whichever rule is behind it', () => {
     expect(made.types.map((type) => type.id)).toEqual(['first']);
     expect(made.rejected.map((type) => type.id)).toEqual(['parts']);
     expect(made.rejected[0]?.problems[0]).toContain('in the same words');
+  });
+});
+
+describe('asking the same words of two tables', () => {
+  /** Forty records with the same ids in both files and an amount of each file's own. */
+  const records = (amount: (index: number) => number): string =>
+    `id,amount\n${Array.from({ length: 40 }, (_, index) => `R-${index + 1},${amount(index).toFixed(2)}`).join('\n')}\n`;
+  const pair = new Map([
+    [
+      'tickets.csv',
+      readTable(
+        'tickets.csv',
+        records((index) => 100 + index * 2.5),
+      ),
+    ],
+    [
+      'archive.csv',
+      readTable(
+        'archive.csv',
+        records((index) => 7000 + index * 3.1),
+      ),
+    ],
+  ]);
+  const amountIn = (table: string): TypeInput => ({
+    id: table.replace('.csv', ''),
+    label: `Amounts in ${table}`,
+    description: 'Look up the amount of a record.',
+    spec: {
+      template: 'lookup',
+      table,
+      keyColumn: 'id',
+      columns: ['amount'],
+      request: 'What is the amount for record {key}?',
+    },
+  });
+
+  it('keeps both, since each reads other rows and has other answers', () => {
+    const made = generateTasks([amountIn('tickets.csv'), amountIn('archive.csv')], pair, 5);
+    expect(made.rejected).toEqual([]);
+    expect(made.types.map((type) => type.id)).toEqual(['tickets', 'archive']);
+    for (const id of ['tickets', 'archive']) {
+      expect(made.tasks.filter((task) => task.type === id).length).toBeGreaterThan(30);
+    }
+    // Record R-1 is asked about in each, and each file gives it its own answer.
+    const expectedOf = (type: string) =>
+      made.tasks.find((task) => task.type === type && task.meta?.['key'] === 'R-1')?.expected;
+    expect(expectedOf('tickets')).toBeDefined();
+    expect(expectedOf('archive')).toBeDefined();
+    expect(expectedOf('tickets')).not.toEqual(expectedOf('archive'));
+  });
+});
+
+describe('asking about a row once, whatever the words', () => {
+  const status: TypeInput = {
+    id: 'status',
+    label: 'Ticket statuses',
+    description: 'Look up the status of a ticket.',
+    spec: {
+      template: 'lookup',
+      table: 'tickets.csv',
+      keyColumn: 'ticket_id',
+      columns: ['status'],
+      request: 'What is the status of ticket {key}?',
+    },
+  };
+  // The same sum in the other order, in other words, with another family column: one question to
+  // an agent, which the identity and the words of a request can't tie to each other.
+  const total = cost('total', 'labor first', undefined, 'What is the total for ticket {key}?');
+  const price = cost('price', 'parts first', 'customer_id', 'How much does ticket {key} cost?');
+
+  it('gives each row to one kind, so a twin in other words is never on the other side of the boundary', () => {
+    const made = generateTasks([total, price, status], shop, 21);
+    expect(made.rejected).toEqual([]);
+    const keys = made.tasks.map((task) => task.meta?.['key']);
+    expect(new Set(keys).size).toBe(keys.length);
+    for (const id of ['total', 'price', 'status']) {
+      const mine = made.tasks.filter((task) => task.type === id);
+      expect(mine.length, id).toBeGreaterThanOrEqual(MIN_PER_TYPE);
+    }
+    expect(made.tasks.length).toBeLessThanOrEqual(MAX_TASKS);
+    // The sets are not starved: divided as a job is, every kind is in the practice tasks and in
+    // the final test, and no ticket is in two sets.
+    const splits = splitTasks(made.tasks, { seed: 21, ...splitSizes(made.tasks.length) });
+    for (const id of ['total', 'price', 'status']) {
+      expect(
+        splits.test.some((task) => task.type === id),
+        id,
+      ).toBe(true);
+      expect(
+        splits.train.some((task) => task.type === id),
+        id,
+      ).toBe(true);
+    }
+    const homeOf = new Map<string, string>();
+    for (const name of ['calibration', 'train', 'dev', 'test'] as const) {
+      for (const task of splits[name]) {
+        const key = String(task.meta?.['key']);
+        expect(homeOf.has(key), key).toBe(false);
+        homeOf.set(key, name);
+      }
+    }
+  });
+
+  it('says what a kind lost to another when the table has fewer rows than the kinds ask for', () => {
+    // Sixty tickets can't give three kinds the rows they each ask for.
+    const few = generateTasks([total, price, status], bikeTables(bikeShop({ tickets: 60 })), 21);
+    const keys = few.tasks.map((task) => task.meta?.['key']);
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(few.tasks.length).toBeLessThanOrEqual(60);
+    for (const id of ['total', 'price', 'status']) {
+      expect(few.tasks.filter((task) => task.type === id).length, id).toBeGreaterThanOrEqual(
+        MIN_PER_TYPE,
+      );
+    }
+    const notes = few.types.flatMap((type) => type.notes).join('\n');
+    expect(notes).toMatch(
+      /\d+ requests? (was|were) left out of tickets\.csv: another kind of task asks about the same rows, and a row is asked about once/,
+    );
+  });
+
+  it('is the same job each time it is made', () => {
+    const again = (): string[] =>
+      generateTasks([total, price, status], shop, 21).tasks.map((task) => task.id);
+    expect(again()).toEqual(again());
+  });
+
+  it('takes no row from a kind that asks about another table, or from one that lists or adds up', () => {
+    const made = generateTasks([emails, total, pending, totals], new Map([...shop, ...tables]), 21);
+    const notes = made.types.flatMap((type) => type.notes).join('\n');
+    expect(notes).not.toContain('another kind of task asks about the same rows');
+    const orders = made.tasks.filter((task) => ['pending', 'totals'].includes(task.type));
+    expect(orders.length).toBeGreaterThan(10);
   });
 });
 

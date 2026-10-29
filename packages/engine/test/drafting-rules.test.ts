@@ -155,6 +155,52 @@ describe('drafting a job with a rule', () => {
     }
   });
 
+  it('puts every ticket in one set, whatever the words and the families of the kinds that ask about it', async () => {
+    // Two rules that work out the same total in another order, asked in other words, with another
+    // family column: one question to an agent, a ticket's answer in the practice tasks and in the
+    // final test. A ticket is the subject of one request, so there is no twin to put apart.
+    const swapped = bikeSteps().map((item) =>
+      item.id === 'sum' ? { ...item, args: ['parts', 'labor'] } : item,
+    );
+    const price = costType(
+      { familyColumn: 'customer_id', steps: swapped },
+      { id: 'price', label: 'Ticket prices', request: 'How much does ticket {key} cost?' },
+    );
+    const job = await draftedJob(bikeDraft([costType(), price, CONTACT_TYPE]));
+    const sealed = readFileSync(join(world.dataDir, 'vault', job.id, 'test.jsonl'), 'utf8')
+      .split('\n')
+      .filter((line) => line !== '')
+      .map((line) => JSON.parse(line) as Task);
+    const sets = {
+      calibration: await world.jobs.tasks(job.id, 'calibration'),
+      train: await world.jobs.tasks(job.id, 'train'),
+      dev: await world.jobs.tasks(job.id, 'dev'),
+      test: sealed,
+    };
+    const tickets = new Map<string, string>();
+    for (const [name, tasks] of Object.entries(sets)) {
+      for (const task of tasks.filter((item) => item.type === 'cost' || item.type === 'price')) {
+        const key = String(task.meta?.['key']);
+        expect(
+          tickets.has(key),
+          `${key} is asked about in ${tickets.get(key)} and in ${name}`,
+        ).toBe(false);
+        tickets.set(key, name);
+      }
+    }
+    // Both kinds of rule still have tasks in the final test and in the practice tasks.
+    for (const id of ['cost', 'price']) {
+      expect(
+        sets.test.some((task) => task.type === id),
+        id,
+      ).toBe(true);
+      expect(
+        sets.train.some((task) => task.type === id),
+        id,
+      ).toBe(true);
+    }
+  });
+
   it('shows the plan with the rule, its examples and a rule that waits to be confirmed', async () => {
     const job = await draftedJob();
     const plan = await world.jobs.taskPlan(job.id);
