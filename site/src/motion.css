@@ -1,0 +1,235 @@
+/*
+ * How the mocks move. Each mock is a stage; when it first scrolls into view the stage gets
+ * data-played, and the elements marked `a` run their animation once and hold their last frame.
+ *
+ * Everything lives under html.motion, which the page sets only for scripts that are running and
+ * visitors who have not asked for less motion. Without that class nothing animates and every mock
+ * is its finished picture. Before a stage plays, its animations sit paused at their first frame,
+ * so the opening picture is already complete: the elements that arrive later are simply not there.
+ *
+ * A keyframe names only where an element comes from (or, for an exit, where it goes); the other
+ * end is the element's own style. --d is the delay in ms, --dur the length. --dy and --dx set how
+ * far a thing travels.
+ */
+
+html.motion .stage .a {
+  animation-duration: var(--dur, 640ms);
+  animation-delay: var(--d, 0ms);
+  animation-timing-function: var(--ease-enter);
+  animation-fill-mode: both;
+  animation-play-state: paused;
+}
+
+html.motion .stage[data-played] .a {
+  animation-play-state: running;
+}
+
+/* Arrivals: each comes from somewhere. */
+html.motion .stage .a-up {
+  animation-name: m-up;
+}
+html.motion .stage .a-from-left {
+  animation-name: m-from-left;
+}
+html.motion .stage .a-from-right {
+  animation-name: m-from-right;
+}
+html.motion .stage .a-wipe {
+  animation-name: m-wipe;
+  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+}
+html.motion .stage .a-unfold {
+  animation-name: m-unfold;
+}
+html.motion .stage .a-pop {
+  animation-name: m-pop;
+}
+/* A panel arriving from the edge it is attached to: a window's right, or a small one's bottom. */
+html.motion .stage .a-slide-in {
+  animation-name: m-slide-in;
+}
+@container stage (max-width: 1079.98px) {
+  html.motion .stage .a-slide-in {
+    animation-name: m-sheet-in;
+  }
+}
+/* A scrim coming over what is behind a panel. */
+html.motion .stage .a-scrim {
+  animation-name: m-scrim;
+  animation-timing-function: ease-out;
+}
+/* A figure or a line of text rolling up to the next, the old one leaving as the new arrives. */
+html.motion .stage .a-roll-in {
+  animation-name: m-roll-in;
+}
+html.motion .stage .a-roll-out {
+  animation-name: m-roll-out;
+  animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0);
+}
+/* A sweep reveals the part of an element between --x0 and --x1, left to right, as a line is drawn. */
+html.motion .stage .a-sweep {
+  animation-name: m-sweep;
+  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+}
+/* A control taking its pressed fill. */
+html.motion .stage .a-fill {
+  animation-name: m-fill;
+  animation-timing-function: ease-out;
+}
+/* A change of tone: the text starts in --from-color and settles into its own. */
+html.motion .stage .a-color {
+  animation-name: m-color;
+  animation-timing-function: ease-out;
+}
+/* A press: the element dips and comes back. */
+html.motion .stage .a-press {
+  animation-name: m-press;
+  animation-timing-function: ease-in-out;
+}
+
+/* Exits: the element is there at first and leaves. */
+html.motion .stage .a-exit-up {
+  animation-name: m-exit-up;
+  animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0);
+}
+html.motion .stage .a-exit-left {
+  animation-name: m-exit-left;
+  animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0);
+}
+html.motion .stage .a-unwipe {
+  animation-name: m-unwipe;
+  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Something the finished picture leaves out: it is there at the start and handed over. */
+.motion-only {
+  visibility: hidden;
+}
+html.motion .stage .motion-only {
+  visibility: visible;
+}
+
+/*
+ * A stage that has finished, or was scrolled past, is its finished picture: nothing in it moves
+ * and nothing is left waiting. Whatever comes to it late, a reader or a capture, sees what a
+ * reader who watched it saw last, even if the browser starts its animations over.
+ */
+html.motion .stage[data-finished] .a {
+  animation: none;
+}
+html.motion .stage[data-finished] .motion-only {
+  visibility: hidden;
+}
+
+@keyframes m-up {
+  from {
+    opacity: 0;
+    translate: 0 var(--dy, 14px);
+  }
+}
+@keyframes m-from-left {
+  from {
+    opacity: 0;
+    translate: calc(var(--dx, 18px) * -1) 0;
+  }
+}
+@keyframes m-from-right {
+  from {
+    opacity: 0;
+    translate: var(--dx, 18px) 0;
+  }
+}
+@keyframes m-wipe {
+  from {
+    clip-path: inset(-6px 100% -6px 0);
+  }
+  to {
+    clip-path: inset(-6px -6px -6px 0);
+  }
+}
+@keyframes m-unfold {
+  from {
+    clip-path: inset(0 0 100% 0);
+    opacity: 0.4;
+    translate: 0 calc(var(--dy, 10px) * -1);
+  }
+  to {
+    clip-path: inset(0 0 -8px 0);
+  }
+}
+@keyframes m-pop {
+  from {
+    opacity: 0;
+    scale: 0.92;
+  }
+}
+@keyframes m-slide-in {
+  from {
+    opacity: 0.6;
+    translate: var(--dx, 100%) 0;
+  }
+}
+@keyframes m-sheet-in {
+  from {
+    opacity: 0.5;
+    translate: 0 var(--dy, 48px);
+  }
+}
+@keyframes m-scrim {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes m-roll-in {
+  from {
+    opacity: 0;
+    translate: 0 70%;
+  }
+}
+@keyframes m-roll-out {
+  to {
+    opacity: 0;
+    translate: 0 -70%;
+  }
+}
+@keyframes m-sweep {
+  from {
+    clip-path: inset(-8px calc(100% - var(--x0)) -8px var(--x0));
+  }
+  to {
+    clip-path: inset(-8px calc(100% - var(--x1)) -8px var(--x0));
+  }
+}
+@keyframes m-fill {
+  from {
+    background-color: transparent;
+    color: var(--color-fg-muted);
+  }
+}
+@keyframes m-color {
+  from {
+    color: var(--from-color);
+  }
+}
+@keyframes m-press {
+  45% {
+    scale: 0.93;
+  }
+}
+@keyframes m-exit-up {
+  to {
+    opacity: 0;
+    translate: 0 calc(var(--dy, 28px) * -1);
+  }
+}
+@keyframes m-exit-left {
+  to {
+    opacity: 0;
+    translate: calc(var(--dx, 28px) * -1) 0;
+  }
+}
+@keyframes m-unwipe {
+  to {
+    clip-path: inset(-6px 0 -6px 100%);
+  }
+}
