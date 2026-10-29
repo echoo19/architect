@@ -61,20 +61,27 @@ export async function bindingOf(
   return { rules, files, token };
 }
 
+/**
+ * The first file that is not what it was: one that changed or is gone, or one that is there now
+ * and wasn't. A file added to a job is a record the rule never saw, as much as one edited.
+ */
 function firstFileChange(
   before: readonly { name: string; sha256: string }[],
   now: readonly { name: string; sha256: string }[],
-): string | null {
+): { name: string; added: boolean } | null {
   const current = new Map(now.map((file) => [file.name, file.sha256]));
   for (const file of before) {
-    if (current.get(file.name) !== file.sha256) return file.name;
+    if (current.get(file.name) !== file.sha256) return { name: file.name, added: false };
   }
-  return null;
+  const known = new Set(before.map((file) => file.name));
+  const extra = now.find((file) => !known.has(file.name));
+  return extra === undefined ? null : { name: extra.name, added: true };
 }
 
 /**
  * Where a job's rules stand. The records must still be the ones the tasks were made from, and
- * once confirmed the rules and the records must still be the ones confirmed.
+ * once confirmed the rules and the records must still be the ones confirmed. The files themselves
+ * count, by name as well as by what is in them.
  */
 export function stateOf(
   draft: DraftRecord,
@@ -82,12 +89,12 @@ export function stateOf(
   now: Binding,
 ): RuleConfirmationState {
   const { token } = now;
-  const moved = firstFileChange(draft.files ?? [], now.files);
+  const moved = draft.files === undefined ? null : firstFileChange(draft.files, now.files);
   if (moved !== null) {
     return {
       state: 'changed',
       token,
-      problem: `${moved} is not the file the tasks were made from. Describe the job again, so the tasks and the final test are made from the records as they are now.`,
+      problem: `${moved.name} ${moved.added ? 'was added after' : 'is not the file'} the tasks were made${moved.added ? '' : ' from'}. Describe the job again, so the tasks and the final test are made from the records as they are now.`,
     };
   }
   if (saved === null) return { state: 'needed', token };
@@ -106,7 +113,7 @@ export function stateOf(
     return {
       state: 'changed',
       token,
-      problem: `${edited} changed after you confirmed the rule. Describe the job again, so the tasks are made from the records as they are now, and confirm the rule again.`,
+      problem: `${edited.name} ${edited.added ? 'was added' : 'changed'} after you confirmed the rule. Describe the job again, so the tasks are made from the records as they are now, and confirm the rule again.`,
     };
   }
   return { state: 'confirmed', token, confirmedAt: saved.confirmedAt };

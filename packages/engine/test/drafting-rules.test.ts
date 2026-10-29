@@ -9,6 +9,7 @@ import {
   type Task,
 } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { sha256Of } from '../src/drafting/confirmation';
 import { DRAFT_NOW } from '../src/drafting/envelope';
 import { MAX_RULE_QUESTIONS } from '../src/drafting/drafter';
 import { RunController } from '../src/loop/controller';
@@ -305,6 +306,95 @@ describe('the confirmation that binds', () => {
     await expect(world.jobs.requireConfirmedRules(job)).rejects.toMatchObject({
       code: 'rule_changed',
     });
+  });
+
+  it('asks again when a file is added to the job, whenever, and when one is taken away', async () => {
+    const job = await draftedJob();
+    const jobFile = world.paths.jobFile(job.id);
+    const stored = () =>
+      JSON.parse(readFileSync(jobFile, 'utf8')) as { data: { files: { name: string }[] } };
+    const addExtra = () => {
+      const next = stored();
+      next.data.files.push({ name: 'extra.csv', kind: 'table', access: 'read' } as never);
+      writeFileSync(jobFile, JSON.stringify(next));
+      writeFileSync(join(world.paths.dataDir(job.id), 'extra.csv'), 'id,note\n1,a\n');
+    };
+
+    // Added before anyone confirmed: the tasks were made without it, so confirming is refused.
+    addExtra();
+    const added = await world.jobs.ruleState(job.id);
+    expect(added?.state).toBe('changed');
+    expect(added?.problem).toContain('extra.csv was added after the tasks were made.');
+    await expect(world.jobs.confirmRules(job.id, added?.token ?? '')).rejects.toMatchObject({
+      code: 'rule_changed',
+    });
+    await expect(world.jobs.requireConfirmedRules(job)).rejects.toMatchObject({
+      code: 'rule_changed',
+    });
+
+    // Taken away again, the job is the one the rule was made for, and can be confirmed.
+    const next = stored();
+    next.data.files = next.data.files.filter((file) => file.name !== 'extra.csv');
+    writeFileSync(jobFile, JSON.stringify(next));
+    const back = await world.jobs.ruleState(job.id);
+    expect(back?.state).toBe('needed');
+    await world.jobs.confirmRules(job.id, back?.token ?? '');
+    expect((await world.jobs.ruleState(job.id))?.state).toBe('confirmed');
+
+    // Added after it was confirmed: no longer what the person looked at.
+    addExtra();
+    const later = await world.jobs.ruleState(job.id);
+    expect(later?.state).toBe('changed');
+    expect(later?.token).not.toBe(back?.token);
+    await expect(world.jobs.requireConfirmedRules(job)).rejects.toMatchObject({
+      code: 'rule_changed',
+    });
+
+    // A file taken out of the job's list is as changed as one deleted.
+    const without = stored();
+    without.data.files = without.data.files.filter((file) => file.name !== 'policy.md');
+    writeFileSync(jobFile, JSON.stringify(without));
+    expect((await world.jobs.ruleState(job.id))?.problem).toContain(
+      'is not the file the tasks were made from',
+    );
+  });
+
+  it('compares what was confirmed with the files by name as well as by what is in them', async () => {
+    const job = await draftedJob();
+    // The extra file is one the tasks were made from, so the draft's own list allows it.
+    const jobFile = world.paths.jobFile(job.id);
+    const stored = JSON.parse(readFileSync(jobFile, 'utf8')) as { data: { files: object[] } };
+    stored.data.files.push({ name: 'extra.csv', kind: 'table', access: 'read' });
+    writeFileSync(jobFile, JSON.stringify(stored));
+    const bytes = Buffer.from('id,note\n1,a\n');
+    writeFileSync(join(world.paths.dataDir(job.id), 'extra.csv'), bytes);
+    const record = recordOf(job.id);
+    writeFileSync(
+      world.paths.draftingFile(job.id),
+      JSON.stringify({
+        ...record,
+        files: [...(record.files ?? []), { name: 'extra.csv', sha256: sha256Of(bytes) }],
+      }),
+    );
+    const needed = await world.jobs.ruleState(job.id);
+    expect(needed?.state).toBe('needed');
+    await world.jobs.confirmRules(job.id, needed?.token ?? '');
+    expect((await world.jobs.ruleState(job.id))?.state).toBe('confirmed');
+
+    // A confirmation from before the file was part of the job doesn't cover it.
+    const saved = RuleConfirmationSchema.parse(
+      JSON.parse(readFileSync(world.paths.confirmationFile(job.id), 'utf8')),
+    );
+    writeFileSync(
+      world.paths.confirmationFile(job.id),
+      JSON.stringify({
+        ...saved,
+        files: saved.files.filter((file) => file.name !== 'extra.csv'),
+      }),
+    );
+    const state = await world.jobs.ruleState(job.id);
+    expect(state?.state).toBe('changed');
+    expect(state?.problem).toContain('extra.csv was added after you confirmed the rule.');
   });
 
   it('asks again when the rule itself is not the one confirmed', async () => {
