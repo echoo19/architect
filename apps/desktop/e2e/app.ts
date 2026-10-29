@@ -117,15 +117,12 @@ export function updateSettings(page: Page, patch: Partial<AppSettings>): Promise
 
 /**
  * Raises the training time on the Define screen through the callout that says the place chosen
- * can't fit a round in it, the way a person would, and closes the settings it opens.
+ * can't fit a round in it, the way a person would: its first button sets a limit a round fits in.
  */
-export async function allowMoreTime(page: Page, minutes = 1_200): Promise<void> {
-  await page.getByRole('button', { name: 'Allow more time' }).click();
-  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-  await advanced.getByRole('textbox', { name: 'Training time' }).fill(String(minutes));
-  await expect(advanced.getByRole('status')).toContainText('Saved');
-  await page.keyboard.press('Escape');
-  await expect(advanced).toBeHidden();
+export async function allowMoreTime(page: Page): Promise<void> {
+  const callout = page.getByRole('status').filter({ hasText: "won't get to teach" });
+  await callout.getByRole('button', { name: /^Allow \d+ hours?$/ }).click();
+  await expect(callout).toHaveCount(0);
 }
 
 /** Navigates by hash and waits until nothing on screen is still loading. */

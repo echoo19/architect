@@ -14,6 +14,7 @@ import {
   formatAboutUsd,
   limitText,
   mentorPresetOf,
+  minutesForOneRound,
   mentorPriceOf,
   mentorRounds,
   mentorUsdFor,
@@ -182,6 +183,20 @@ describe('what each part of a run takes', () => {
     // One round that fits is enough to teach: the warning is for a place where none does.
     const tight = makeJob({ budget: { maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: 360 } });
     expect(trainsTooSlow(tight)).toBe(false);
+  });
+
+  it('offers the limit, in whole hours, that is sure to fit one round', () => {
+    // 40 check tasks once, then a round of at most 172 tasks, at 2.5 minutes each: 8 h 50 min.
+    expect(minutesForOneRound(job, 'local')).toBe(540);
+    const nine = makeJob({ budget: { ...job.budget, maxWallMinutes: 540 } });
+    expect(estimateTime(nine, 'local').rounds.fewest).toBe(1);
+    expect(trainsTooSlow(nine)).toBe(false);
+    // Online, 15 seconds a task: 53 minutes, so an hour.
+    expect(minutesForOneRound(job, 'hosted')).toBe(60);
+    // 2,000 check tasks on this computer: not even a week.
+    expect(
+      minutesForOneRound(makeJob({ splits: { ...job.splits, dev: 2000 } }), 'local'),
+    ).toBeNull();
   });
 
   it('says where a place is, in the middle of a sentence', () => {

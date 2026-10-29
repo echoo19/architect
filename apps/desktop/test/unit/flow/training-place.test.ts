@@ -47,6 +47,7 @@ function render(job: Job, hosted: HostedAvailability = READY): string {
       onPlaceChange: noop,
       onCapChange: noop,
       onRaiseLimit: noop,
+      onAllowTime: noop,
       onSetUpOnline: noop,
     }),
   );
@@ -71,8 +72,10 @@ describe('a place that cannot fit a round', () => {
     expect(html).toContain('role="status"');
     expect(text(html)).toContain(TITLE);
     expect(text(html)).toContain(BODY);
-    // Both ways out are buttons on it, and the small link that used to be alone is gone.
-    expect(html.match(/>Allow more time</g)).toHaveLength(1);
+    // Both ways out are buttons on it: a limit sure to fit a round (1 h 40 min of check tasks and
+    // a round of at most 7 h 10 min), and training online. The small link that was alone is gone.
+    expect(html.match(/>Allow 9 hours</g)).toHaveLength(1);
+    expect(html).not.toContain('Allow more time');
     expect(html).toContain('>Train online instead</button>');
     // It sits right under the choice, before the plan's figures.
     expect(html.indexOf('Train online instead')).toBeGreaterThan(html.indexOf('Train on this'));
@@ -109,7 +112,7 @@ describe('a place that cannot fit a round', () => {
   it('offers more time alone when training online would be too slow as well', () => {
     // 20 minutes: this computer can't score the check tasks, and online can't fit a round either.
     const html = render(jobOf('local', 20));
-    expect(html).toContain('>Allow more time</button>');
+    expect(html).toContain('>Allow 9 hours</button>');
     expect(html).not.toContain('Train online instead');
     expect(text(html)).toContain("Training on this computer won't get to teach in 20 minutes");
   });
@@ -118,8 +121,15 @@ describe('a place that cannot fit a round', () => {
     const html = render(jobOf('hosted', 20));
     expect(text(html)).toContain("Training online won't get to teach in 20 minutes");
     expect(text(html)).toContain('Glimmer takes about 15 seconds a task online');
-    expect(html).toContain('>Allow more time</button>');
+    expect(html).toContain('>Allow 1 hour</button>');
     expect(html).not.toContain('instead');
+  });
+
+  it('opens the time limit instead when not even a week would fit a round', () => {
+    const base = jobOf('local');
+    const html = render({ ...base, splits: { ...base.splits, dev: 2000 } });
+    expect(html).toContain('>Allow more time</button>');
+    expect(html).not.toMatch(/>Allow \d+ hours?</);
   });
 
   it('says nothing of the kind where a round fits, and keeps the quiet link for the other place', () => {

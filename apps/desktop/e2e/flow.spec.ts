@@ -196,13 +196,9 @@ for (const theme of THEMES) {
     await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
     await expect(page.getByText(wont, { exact: true })).toHaveCount(2);
     await capture(page, `flow-define-slow-${theme}`);
-    // Its first button is the setting that would let it train.
-    await callout.getByRole('button', { name: 'Allow more time' }).click();
-    const limits = page.getByRole('dialog', { name: 'Advanced settings' });
-    await expect(limits.getByRole('heading', { name: 'Time and budget' })).toBeVisible();
-    await expect(limits.getByRole('textbox', { name: 'Training time' })).toHaveValue('240');
-    await page.keyboard.press('Escape');
-    await expect(limits).toBeHidden();
+    // Its first button sets the shortest limit, in whole hours, that is sure to fit a round: 1 h
+    // 40 min of check tasks and a round of at most 7 h 10 min. Clicking it is in `allowMoreTime`.
+    await expect(callout.getByRole('button', { name: 'Allow 9 hours' })).toBeVisible();
     await expect(hosted).toBeEnabled();
     await expect(hosted).toContainText('Faster: about 15 seconds a task');
     await expect(hosted).toContainText('About $3 · sends tasks and files online');

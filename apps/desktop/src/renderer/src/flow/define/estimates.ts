@@ -158,6 +158,20 @@ export function trainsTooSlow(job: Job): boolean {
   return tooSlow(job, estimateTime(job, job.student.trainOn)) !== null;
 }
 
+/** The longest a job may train for: a week, as the job's own limit allows. */
+const MOST_MINUTES = 10_080;
+
+/**
+ * The time limit, in whole hours, that lets a place fit one round even when its change is
+ * measured again: what the callout offers when not one round fits, so a click on it is sure to
+ * let the teacher teach. Null when not even a week would.
+ */
+export function minutesForOneRound(job: Job, place: TrainPlace): number | null {
+  const { startSeconds, roundSeconds } = estimateTime(job, place);
+  const minutes = Math.ceil((startSeconds + roundSeconds.most) / 3600) * 60;
+  return minutes <= MOST_MINUTES ? minutes : null;
+}
+
 /**
  * What it comes to, in a line: the callout's headline, and what the footer says beside a Start
  * training that waits for it.

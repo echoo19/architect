@@ -241,6 +241,12 @@ function DefineEditor({ initial }: { initial: Job }) {
           }
           onRetryKeys={preflight.keys === 'error' ? preflight.reloadKeys : undefined}
           onRaiseLimit={() => openAdvanced('budget')}
+          onAllowTime={(maxWallMinutes) =>
+            editor.change((current) => ({
+              ...current,
+              budget: { ...current.budget, maxWallMinutes },
+            }))
+          }
           onSetUpOnline={() => openAdvanced('student')}
           baselines={
             comparisonMode

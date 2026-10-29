@@ -11,6 +11,8 @@ export type Alternative =
 interface WontTeachProps {
   title: string;
   body: string;
+  /** A time limit that fits a round, set in one click; null when none does, to open the limit. */
+  allow: { label: string; onAllow: () => void } | null;
   /** Opens the training time limit. */
   onRaiseLimit: () => void;
   alternative: Alternative | null;
@@ -19,9 +21,9 @@ interface WontTeachProps {
 /**
  * Said beside the choice, where it is made: training in the place chosen would run out of time
  * before the teacher changed anything. Start training waits until it is put right, and the two
- * ways of doing so are here: allow more time, or train in the other place.
+ * ways of doing so are here: allow a time that fits a round, or train in the other place.
  */
-export function WontTeach({ title, body, onRaiseLimit, alternative }: WontTeachProps) {
+export function WontTeach({ title, body, allow, onRaiseLimit, alternative }: WontTeachProps) {
   return (
     <div
       role="status"
@@ -37,8 +39,8 @@ export function WontTeach({ title, body, onRaiseLimit, alternative }: WontTeachP
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" onClick={onRaiseLimit}>
-            Allow more time
+          <Button size="sm" onClick={allow?.onAllow ?? onRaiseLimit}>
+            {allow?.label ?? 'Allow more time'}
           </Button>
           {alternative?.kind === 'switch' && (
             <Button size="sm" onClick={alternative.onSwitch}>

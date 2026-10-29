@@ -350,7 +350,7 @@ for (const theme of THEMES) {
     await expect(start).toBeDisabled();
     const slow = page.getByRole('status').filter({ hasText: "won't get to teach" });
     await expect(slow).toContainText("Training on this computer won't get to teach in 4 hours");
-    await expect(slow.getByRole('button', { name: 'Allow more time' })).toBeVisible();
+    await expect(slow.getByRole('button', { name: 'Allow 7 hours' })).toBeVisible();
     await capture(page, `rule-confirmed-${theme}`);
     await allowMoreTime(page);
     await expect(slow).toHaveCount(0);

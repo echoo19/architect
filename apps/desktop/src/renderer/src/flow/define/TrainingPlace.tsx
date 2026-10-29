@@ -16,6 +16,7 @@ import {
   fittingRounds,
   formatAboutUsd,
   limitText,
+  minutesForOneRound,
   planBills,
   placePhrase,
   planSeconds,
@@ -44,6 +45,8 @@ interface TrainingPlaceProps {
   onRetryKeys?: (() => void) | undefined;
   /** Opens the time limit, for a place too slow to fit a round in it. */
   onRaiseLimit: () => void;
+  /** Sets the time limit, to one the callout offers because a round fits in it. */
+  onAllowTime: (minutes: number) => void;
   /** Opens where the online copy is chosen and its key saved. */
   onSetUpOnline: () => void;
   /** Present when comparison mode is on. */
@@ -65,6 +68,7 @@ export function TrainingPlace({
   onCapChange,
   onRetryKeys,
   onRaiseLimit,
+  onAllowTime,
   onSetUpOnline,
   baselines,
 }: TrainingPlaceProps) {
@@ -173,6 +177,7 @@ export function TrainingPlace({
       onSwitch: () => onPlaceChange('hosted'),
     };
   }
+  const roomy = fits ? null : minutesForOneRound(job, job.student.trainOn);
   return (
     <section aria-labelledby="train-where" className="flex flex-col gap-[18px]">
       <Heading id="train-where">Where should it train?</Heading>
@@ -209,6 +214,11 @@ export function TrainingPlace({
         <WontTeach
           title={wontTeachTitle(job, job.student.trainOn, device)}
           body={wontTeachBody(job, job.student.trainOn, chosen, { mentor, student })}
+          allow={
+            roomy === null
+              ? null
+              : { label: `Allow ${capText(roomy)}`, onAllow: () => onAllowTime(roomy) }
+          }
           onRaiseLimit={onRaiseLimit}
           alternative={alternative}
         />
