@@ -153,7 +153,7 @@ export interface Said {
 }
 
 /** Text as it is compared for a quotation: spaces, quotes and emphasis marks set aside. */
-function plain(text: string): string {
+export function plain(text: string): string {
   return cleanText(text).replace(/[*`]/g, '').toLowerCase();
 }
 

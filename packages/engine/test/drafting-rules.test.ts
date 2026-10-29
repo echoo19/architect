@@ -490,6 +490,14 @@ describe('a question the policy leaves open', () => {
     expect(record.answers).toEqual([{ question: OPEN.question, answer: 'No, labor only' }]);
     const cost = record.types.find((type) => type.id === 'cost');
     expect(cost?.details?.passages.map((item) => item.file)).toEqual(['policy.md', 'answers']);
+    // The record keeps the passage as it was quoted. The plan the person reads names the question
+    // the answer was given to, found in the answers the draft kept.
+    expect(cost?.details?.passages[1]).toEqual({ file: 'answers', passage: 'No, labor only' });
+    const plan = await world.jobs.taskPlan(second.draft?.id ?? '');
+    expect(plan.types.find((type) => type.id === 'cost')?.details?.passages).toEqual([
+      { file: 'policy.md', passage: 'Labor is billed at $65 an hour, in half-hour steps.' },
+      { file: 'answers', passage: 'No, labor only', question: OPEN.question },
+    ]);
   });
 
   it('is asked even when the person chose to draft now, and "Draft it now" does not answer it', async () => {
@@ -623,9 +631,24 @@ describe('a question about an empty cell', () => {
     ]);
     expect(await world.jobs.ruleReports(job.id)).toEqual([]);
     const plan = await world.jobs.taskPlan(job.id);
-    expect(plan.types.find((type) => type.id === 'cost')?.details?.statement).toBe(
-      cost?.details?.statement,
-    );
+    const planned = plan.types.find((type) => type.id === 'cost')?.details;
+    expect(planned?.statement).toBe(cost?.details?.statement);
+    // The answer is read with the question the person was asked about the empty cell.
+    expect(planned?.passages).toContainEqual({
+      file: 'answers',
+      passage: ZERO,
+      question: EMPTY.question,
+    });
+
+    // So is the report of the rule once the person has confirmed it.
+    const { token } = (await world.jobs.ruleState(job.id)) ?? { token: '' };
+    await world.jobs.confirmRules(job.id, token);
+    const [report] = await world.jobs.ruleReports(job.id);
+    expect(report?.passages).toContainEqual({
+      file: 'answers',
+      passage: ZERO,
+      question: EMPTY.question,
+    });
   });
 
   it('leaves the rows with an empty cell out when the person chose that, as it did before', async () => {

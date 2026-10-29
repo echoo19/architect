@@ -152,10 +152,15 @@ function RuleCard({
         <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
           {details.passages.map((passage) => (
             <li
-              key={`${passage.file}:${passage.passage}`}
+              key={`${passage.file}:${passage.question ?? ''}:${passage.passage}`}
               className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-l-2 border-line-control pl-4"
             >
-              <span className="min-w-0 max-w-[560px] text-pretty">{passage.passage}</span>
+              <span className="min-w-0 max-w-[560px] text-pretty">
+                {passage.question !== undefined && (
+                  <span className="text-fg-muted">{passage.question} </span>
+                )}
+                <span>{passage.passage}</span>
+              </span>
               <span className="font-mono text-xs text-fg-muted">{passageSource(passage.file)}</span>
             </li>
           ))}
