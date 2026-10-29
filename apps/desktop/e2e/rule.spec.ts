@@ -437,10 +437,21 @@ for (const theme of THEMES) {
     for (const task of test) expect(sent).not.toContain(task.prompt.split('\n')[0]);
 
     // Confirming it is the person's, once, over these records.
-    await card.scrollIntoViewIfNeeded();
-    await section.getByRole('button', { name: 'Confirm the rule' }).click();
+    // In a window shorter than the page, as on a laptop.
+    await resize(900);
+    const confirmButton = section.getByRole('button', { name: 'Confirm the rule' });
+    await confirmButton.scrollIntoViewIfNeeded();
+    const ruleHeading = section.getByRole('heading', { name: 'Check the rule' });
+    await expect(ruleHeading).not.toBeInViewport();
+    await confirmButton.click();
     await expect(section.getByText(/^Confirmed on /)).toBeVisible();
-    await expect(section.getByRole('button', { name: 'Confirm the rule' })).toHaveCount(0);
+    await expect(confirmButton).toHaveCount(0);
+    // The rule folds away, and the heading with its badge is what the person then sees, with the
+    // focus the button had.
+    await expect(ruleHeading).toBeInViewport();
+    await expect(section.getByText(/^Confirmed on /)).toBeInViewport();
+    await expect(ruleHeading).toBeFocused();
+    await resize(DEFINE_HEIGHT);
     // The rule is no longer what holds training back. Time is: this computer can't fit a round in
     // four hours, so one callout by the choice says so, with the way out, and Start training waits.
     await expect(page.getByText('Confirm the rule first')).toHaveCount(0);

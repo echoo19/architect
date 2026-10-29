@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { type Job, type RuleDetails, type RuleExample, type TaskPlan } from '@architect/shared';
 import { Badge, Button, cn, DetailList, Disclosure, Heading } from '@architect/ui';
 import { Check, CircleAlert, Info, ScrollText } from 'lucide-react';
@@ -22,6 +22,7 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
   const rules = ruleTypesOf(plan);
   const { confirmation } = plan;
   const [confirming, setConfirming] = useState(false);
+  const heading = useRef<HTMLHeadingElement>(null);
   if (rules.length === 0 || confirmation === undefined) return null;
   const { mentor, student } = modelNames(job);
   const confirmed = confirmation.state === 'confirmed';
@@ -33,7 +34,15 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
       flowApi.confirmRules(job.id, confirmation.token),
     );
     setConfirming(false);
-    if (state) setQueryData(queryKeys.taskPlan(job.id), { ...plan, confirmation: state });
+    if (!state) return;
+    setQueryData(queryKeys.taskPlan(job.id), { ...plan, confirmation: state });
+    // Confirmed, the rule folds away and takes the button with it, which would leave the person
+    // looking at whatever was below. The heading comes into view instead, with the badge that says
+    // it is confirmed, and takes the focus the button had.
+    requestAnimationFrame(() => {
+      heading.current?.focus({ preventScroll: true });
+      heading.current?.scrollIntoView({ block: 'start' });
+    });
   };
 
   // A rule that isn't right is mended by describing the job again with what was missing, so the
@@ -55,7 +64,7 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
   return (
     <section aria-labelledby="rule-check" className="flex flex-col gap-[18px]">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Heading id="rule-check">
+        <Heading id="rule-check" ref={heading} tabIndex={-1} className="scroll-mt-6">
           {rules.length === 1 ? 'Check the rule' : 'Check the rules'}
         </Heading>
         {confirmed && (
