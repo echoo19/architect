@@ -2,6 +2,18 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), release 0.3.3
+
+**Done**
+- Released 0.3.3 (192441a, tag v0.3.3) with plain notes: the training card's line on what goes online, which was untrue with an online teacher; the score's caveat at reading size; discounts as "take 10% off"; the rule screen saying who does what; a round's time as a range; "Spark can't change anything yet" and the way on after the notice; no saving choice for a job that only reads. CI passed on the release commit. The release workflow attached the Windows installer and both Mac disk images. The site's deploy for the version commit was cancelled before it ran and run again after the installers were attached; the live page links `Architect-Setup-0.3.3.exe`, and each download resolves.
+- `docs/HACKATHON.md` names 0.3.3 as the release with installers.
+- The placeholder-cells work was started on its own branch.
+
+**Next**
+- Review and merge the placeholder-cells branch.
+- The film's "Describe a job" scene: the repair shop's real tickets have 35 empty and 27 "N/A" parts costs, so a fresh draft would now ask one more question and make a different job from the one whose run the film replays. Keep the drafting conversation as recorded and record only its Define part again, from a copy of the saved draft with its confirmation removed: the steps are worked out when the screen reads the draft, so it is today's screen of the same job, and no model is called.
+- The Oct 29 row of "What was built when" in `docs/HACKATHON.md`.
+
 ## 2026-10-29 (Thu), the third blind read's fixes reviewed and merged, and the site's chapter with them
 
 **Done** (on main; decision 061 amended; no model was called or loaded, and every run used stand-ins)
