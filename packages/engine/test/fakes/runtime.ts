@@ -303,6 +303,13 @@ export class FakeVault implements VaultDeps {
     return this.sealed.get(jobId)?.length ?? 0;
   }
 
+  typeCounts(jobId: string): Record<string, number> {
+    const counts: Record<string, number> = {};
+    for (const task of this.sealed.get(jobId) ?? [])
+      counts[task.type] = (counts[task.type] ?? 0) + 1;
+    return counts;
+  }
+
   leakDetector(jobId: string) {
     const tests = this.sealed.get(jobId) ?? [];
     return {

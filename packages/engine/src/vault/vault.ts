@@ -68,6 +68,26 @@ export class Vault {
     return this.isSealed(jobId) ? this.fingerprint(jobId).tasks.length : 0;
   }
 
+  /**
+   * How many sealed tasks there are of each type. Only the counts leave: the tasks stay in the
+   * vault, and a file that changed since it was sealed is refused like it is for the locked test.
+   */
+  typeCounts(jobId: string): Record<string, number> {
+    if (!this.isSealed(jobId)) return {};
+    const fingerprint = this.fingerprint(jobId);
+    const content = readFileSync(join(this.dir(jobId), TEST_FILE), 'utf8');
+    if (sha256(content) !== fingerprint.testFileSha256) {
+      throw new GuardError('split', `The locked test of job ${jobId} changed after it was sealed.`);
+    }
+    const counts: Record<string, number> = {};
+    for (const line of content.split('\n')) {
+      if (line === '') continue;
+      const { type } = TaskSchema.parse(JSON.parse(line));
+      counts[type] = (counts[type] ?? 0) + 1;
+    }
+    return counts;
+  }
+
   /** Removes a job's sealed split so a new one can be sealed. */
   reset(jobId: string): void {
     rmSync(this.dir(jobId), { recursive: true, force: true });

@@ -15,7 +15,8 @@ export type IdPrefix =
   | 'cat'
   | 'cor'
   | 'pub'
-  | 'msr';
+  | 'msr'
+  | 'drf';
 
 /** A short, sortable-enough unique id: `<prefix>_<time36><random>`. */
 export function newId(prefix: IdPrefix): string {

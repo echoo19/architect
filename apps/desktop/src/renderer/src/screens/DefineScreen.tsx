@@ -190,7 +190,6 @@ function DefineEditor({ initial }: { initial: Job }) {
         tab={tab}
         onTabChange={setTab}
         editor={editor}
-        summaries={summaries}
       />
     </FlowShell>
   );

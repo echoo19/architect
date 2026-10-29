@@ -17,6 +17,7 @@ const PROBLEMS: Record<ErrorCode, Problem> = {
   job_not_found: { cause: 'This job is gone.' },
   agent_not_found: { cause: 'This agent is gone.' },
   chat_not_found: { cause: 'This chat is gone.' },
+  draft_not_found: { cause: 'This conversation is gone.' },
   record_not_found: { cause: 'This record is gone.' },
   version_modified: { cause: 'This version was changed after it was made.' },
   not_a_package: {

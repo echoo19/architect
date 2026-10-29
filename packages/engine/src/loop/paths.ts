@@ -49,6 +49,11 @@ export class DataPaths {
     return join(this.jobDir(jobId), 'data');
   }
 
+  /** What drafting the job left: where its tasks came from, and what drafting cost. */
+  draftingFile(jobId: string): string {
+    return join(this.jobDir(jobId), 'drafting.json');
+  }
+
   tasksFile(jobId: string, split: VisibleSplit): string {
     return join(this.jobDir(jobId), 'tasks', `${split}.jsonl`);
   }

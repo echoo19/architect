@@ -5,6 +5,7 @@
  *   pnpm --filter @architect/engine exec tsx scripts/run.ts <jobDir> [--method architect]
  *     [--seed 1] [--profile smoke|full] [--mentor <preset>] [--student local|<preset>]
  *     [--data <dir>] [--threads N] [--cooldown <share>] [--wall-minutes N] [--test-on local|hosted]
+ *   pnpm --filter @architect/engine exec tsx scripts/run.ts --job <id> --data <dir> [same options]
  *
  * It can be stopped at any time: every finished attempt is saved, and running the same command
  * with the same `--data` folder continues the run where it stopped. `--threads` caps the CPU
@@ -13,6 +14,10 @@
  * gives a local run more training time than the job's own budget. `--test-on hosted` runs the
  * final test on the hosted student instead of this computer's model; the graduate can be tested
  * locally later.
+ *
+ * `--job` trains a job already in `--data` instead of importing one, such as a job scripts/draft.ts
+ * drafted. Its tasks are split already, so the profile changes nothing; the model, test and time
+ * options still apply.
  *
  * The smoke profile keeps the job's data and task pool but asks for small splits and one round, so
  * a run finishes in under an hour on a local student. `--mentor` takes a mentor preset key (for
@@ -59,7 +64,10 @@ interface Options {
   cooldown?: number;
   /** Where the final test runs; this computer when absent. */
   testOn?: StudentTarget;
-  jobDir: string;
+  /** The job folder to import; absent when `jobId` names a job already in the data folder. */
+  jobDir?: string;
+  /** A job already in the data folder, trained instead of an imported one. */
+  jobId?: string;
   method: Method;
   seed: number;
   profile: 'smoke' | 'full';
@@ -69,18 +77,23 @@ interface Options {
 }
 
 const USAGE =
-  'Usage: tsx scripts/run.ts <jobDir> [--method architect|bare|one_shot|self_reflection] [--seed N] [--profile smoke|full] [--mentor <preset>] [--student local|<preset>] [--data <dir>] [--threads N] [--cooldown <share>] [--wall-minutes N] [--test-on local|hosted]';
+  'Usage: tsx scripts/run.ts <jobDir> | --job <id> --data <dir> [--method architect|bare|one_shot|self_reflection] [--seed N] [--profile smoke|full] [--mentor <preset>] [--student local|<preset>] [--data <dir>] [--threads N] [--cooldown <share>] [--wall-minutes N] [--test-on local|hosted]';
 
 async function main(): Promise<void> {
   const options = parseArguments(process.argv.slice(2));
-  const source = JobSchema.parse(
-    JSON.parse(await readFile(join(options.jobDir, 'job.json'), 'utf8')),
-  );
-  const job = adjust(source, options);
-
-  const staging = await mkdtemp(join(tmpdir(), 'architect-run-'));
-  await cp(options.jobDir, staging, { recursive: true });
-  await writeFile(join(staging, 'job.json'), `${JSON.stringify(job, null, 2)}\n`);
+  // An imported job is adjusted in a staging copy; a job already in the data folder in place.
+  let staging: string | undefined;
+  if (options.jobDir !== undefined) {
+    const source = JobSchema.parse(
+      JSON.parse(await readFile(join(options.jobDir, 'job.json'), 'utf8')),
+    );
+    staging = await mkdtemp(join(tmpdir(), 'architect-run-'));
+    await cp(options.jobDir, staging, { recursive: true });
+    await writeFile(
+      join(staging, 'job.json'),
+      `${JSON.stringify(adjust(source, options), null, 2)}\n`,
+    );
+  }
 
   const dataDir = options.dataDir ?? (await mkdtemp(join(tmpdir(), 'architect-data-')));
   const host = await createEngineHost({
@@ -133,9 +146,14 @@ async function main(): Promise<void> {
     );
     let runId: string;
     if (earlier === undefined) {
-      const imported = await host.api.jobs.importFile(join(staging, 'job.json'));
+      const imported =
+        staging === undefined
+          ? await host.api.jobs.save(
+              adjust(await host.api.jobs.get(options.jobId ?? ''), { ...options, profile: 'full' }),
+            )
+          : await host.api.jobs.importFile(join(staging, 'job.json'));
       write(
-        `${imported.name}: ${METHOD_LABELS[options.method]}, seed ${options.seed}, ${options.profile} profile\n` +
+        `${imported.name}: ${METHOD_LABELS[options.method]}, seed ${options.seed}, ${options.jobId === undefined ? `${options.profile} profile` : 'its own budget'}\n` +
           `mentor ${imported.mentor.kind === 'model' ? imported.mentor.model : imported.mentor.agent}, ` +
           `student ${imported.student.local.model} (train on ${imported.student.trainOn}), data in ${dataDir}\n\n`,
       );
@@ -270,7 +288,11 @@ function parseArguments(args: readonly string[]): Options {
     index += 1;
   }
   const [jobDir] = positional;
-  if (!jobDir || positional.length > 1) throw new Error(USAGE);
+  const jobId = flags.get('--job');
+  if (positional.length > 1 || (jobId === undefined) === (jobDir === undefined)) {
+    throw new Error(USAGE);
+  }
+  if (jobId !== undefined && flags.get('--data') === undefined) throw new Error(USAGE);
   const profile = flags.get('--profile') ?? 'smoke';
   if (profile !== 'smoke' && profile !== 'full') throw new Error(USAGE);
   const seed = Number(flags.get('--seed') ?? '1');
@@ -285,7 +307,8 @@ function parseArguments(args: readonly string[]): Options {
     throw new Error(USAGE);
   }
   return {
-    jobDir: resolve(jobDir),
+    ...(jobDir === undefined ? {} : { jobDir: resolve(jobDir) }),
+    ...(jobId === undefined ? {} : { jobId }),
     method: MethodSchema.parse(flags.get('--method') ?? 'architect'),
     seed,
     profile,

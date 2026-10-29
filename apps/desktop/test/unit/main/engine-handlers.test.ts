@@ -1,5 +1,6 @@
 import { join, resolve } from 'node:path';
 import type { EngineApi } from '@architect/engine';
+import { mentorPreset, type MentorConfig } from '@architect/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { PickedPaths } from '../../../src/main/files/picked';
 import { registerEngineHandlers } from '../../../src/main/handlers/engine';
@@ -7,10 +8,28 @@ import { routerHarness } from './router-harness';
 
 const ROOT = resolve('/work');
 
+/** The teacher the person chose in Settings. */
+const TEACHER: MentorConfig = {
+  kind: 'model',
+  provider: 'openai',
+  label: mentorPreset('openai-gpt-6-luna').label,
+  baseUrl: mentorPreset('openai-gpt-6-luna').baseUrl,
+  model: mentorPreset('openai-gpt-6-luna').model,
+  reasoningEffort: 'low',
+  secretRef: 'openai',
+};
+
 function setup() {
   const { router, call } = routerHarness();
+  const turn = { sessionId: 'drf_1', message: 'Which region?', options: ['North', 'South'] };
   const engine = {
-    jobs: { list: vi.fn(async () => []), importFile: vi.fn(async () => ({ id: 'job_1' })) },
+    jobs: {
+      list: vi.fn(async () => []),
+      importFile: vi.fn(async () => ({ id: 'job_1' })),
+      draftStart: vi.fn(async () => turn),
+      draftReply: vi.fn(async () => turn),
+      taskPlan: vi.fn(async () => ({ source: 'generated' })),
+    },
     runs: { retest: vi.fn(async () => undefined) },
     reports: {
       get: vi.fn(async () => {
@@ -20,7 +39,13 @@ function setup() {
     },
   };
   const picked = new PickedPaths();
-  registerEngineHandlers(router, (request) => request(engine as unknown as EngineApi), picked);
+  const settings = { get: () => ({ defaultMentor: TEACHER }) };
+  registerEngineHandlers(
+    router,
+    (request) => request(engine as unknown as EngineApi),
+    picked,
+    settings as never,
+  );
   return { engine, picked, call };
 }
 
@@ -68,6 +93,35 @@ describe('engine handlers', () => {
     picked.add([job], 'files');
     expect(await call('jobs:importFile', job)).toEqual({ ok: true, value: { id: 'job_1' } });
     expect(engine.jobs.importFile).toHaveBeenCalledWith(job);
+  });
+
+  it('carry the teacher chosen in Settings to the conversation that drafts a job, on every call', async () => {
+    const { engine, picked, call } = setup();
+    const files = [join(ROOT, 'office', 'orders.csv'), join(ROOT, 'office', 'policy.md')];
+    picked.add(files, 'files');
+
+    expect(await call('jobs:draftStart', 'Close out the day', files)).toMatchObject({ ok: true });
+    expect(engine.jobs.draftStart).toHaveBeenCalledWith('Close out the day', files, TEACHER);
+    expect(await call('jobs:draftReply', 'drf_1', 'North')).toMatchObject({ ok: true });
+    expect(engine.jobs.draftReply).toHaveBeenCalledWith('drf_1', 'North', TEACHER);
+  });
+
+  it('draft a job only from files the user picked', async () => {
+    const { engine, call } = setup();
+    const refused = await call('jobs:draftStart', 'Close out the day', [
+      join(ROOT, 'secrets', 'keys.csv'),
+    ]);
+    expect(refused.ok).toBe(false);
+    expect(engine.jobs.draftStart).not.toHaveBeenCalled();
+  });
+
+  it('ask the engine what the tasks of a job are', async () => {
+    const { engine, call } = setup();
+    expect(await call('jobs:taskPlan', 'job_1')).toEqual({
+      ok: true,
+      value: { source: 'generated' },
+    });
+    expect(engine.jobs.taskPlan).toHaveBeenCalledWith('job_1');
   });
 
   it('check the shape of path arguments before anything else', async () => {
