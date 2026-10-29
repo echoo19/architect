@@ -13,10 +13,13 @@ export function LatestAttempts({
   job,
   attempts,
   mentor,
+  ended,
   onOpen,
 }: {
   job: Job;
   attempts: readonly RecentAttempt[];
+  /** The run is over, so an empty list stays empty. */
+  ended: boolean;
   mentor: string;
   onOpen: (attempt: RecentAttempt) => void;
 }) {
@@ -25,7 +28,7 @@ export function LatestAttempts({
     <Panel aria-label="Latest attempts" className="min-w-0 flex-[7_1_560px]">
       <PanelHeader title="Latest attempts" />
       {shown.length === 0 ? (
-        <PanelRow className="text-fg-muted">No attempts yet</PanelRow>
+        <PanelRow className="text-fg-muted">{ended ? 'No attempts' : 'No attempts yet'}</PanelRow>
       ) : (
         <div className="overflow-x-auto">
           <ul className="m-0 min-w-[560px] list-none p-0">
