@@ -2,6 +2,26 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), the question about N/A and dashes reviewed, fixed and merged
+
+**Done** (on main, merge `a99add0`; no model was called or loaded, and the GPU stayed off)
+- Reviewed the branch (eight commits, author Jake Kang, no attribution lines): the code, the versions of rules that name no mark, the teacher's prompt and reply format, the question flow, and the two captures that show it, `rule-mark` and `rule-define`, in both themes. GPT-6 Sol read it too, read-only, and found four things. I reproduced the first before fixing it.
+- *Five marks in one column.* All five said to count as zero made a rule its own schema refused (four marks to a column), and the conversation ended after the fifth answer with a reason that named the field to the teacher. Architect now asks about four marks of a column at most, in four columns at most, and a column with a mark that already counts as zero keeps its room first. A mark past that is not asked about, its rows stay out, and the draft says so, as it does past the six questions.
+- *Cost and cost.* An answer was matched to its column without regard to case, so in a table with both, an answer about one could stand for the other after the teacher drafted again. It is now matched to the column the table finds by the answer's name, which still allows another case or spacing when only one column fits.
+- *What the teacher hears when no row can be worked out.* The reason named a mark the person was asked about, with how many rows hold it. The teacher now reads it as it did before ("parts_cost is empty or N/A"), and the person reads it in full.
+- *Kept as it is:* a teacher that quotes eight passages for a rule whose empty cells count as zero now gets the person's answer as a ninth passage, where it used to be dropped. Stored rules keep their versions; the same reply drafted again makes a new version, which the person confirms again. Decision 061 says so.
+- Mine: where Spark carries on after a question of Architect's, the conversation names Spark again.
+- Each fix has a test that fails without it: three in `drafting-rule-reply`, one each in `drafting-marks`, `rule-marks` and `conversation`.
+- Verified: `pnpm check` exits 0 (254 test files, 3,361 tests passed, 2 skipped). Hidden e2e on the rebuilt app, all on stand-ins: `rule.spec.ts`, `drafting.spec.ts`, `flow.spec.ts` and `teacher-menu.spec.ts` pass (41 tests).
+
+**Next**
+- Release 0.3.4 with the marks and the bracket fix.
+- The film: "Check the rule" recorded again as a scene of its own, from a copy of the drafted job with its confirmation taken out.
+- Show the rule's screens to a fresh reader with a file that has a dash in it.
+
+**Open issues**
+- The prompt's new sentence and the question's words were never tried on a real teacher.
+
 ## 2026-10-29 (Thu), a dash can mean none: a mark such as N/A counts as 0 when the person says so
 
 **Done** (on `worktree-agent-aaccec9f7285b0152`, from main at `148d4b5`, release 0.3.2; decision 061 amended; no model was called or loaded, the GPU stayed off, and every run used stand-ins)
