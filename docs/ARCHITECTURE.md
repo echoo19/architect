@@ -70,6 +70,10 @@ jobs/<job>/drafting.json           for a job drafted from the person's files: wh
                                    passages and examples (decision 061)
 jobs/<job>/confirmation.json       what the person confirmed about a job's rules: each rule's
                                    version and the hash of every data file (decision 061)
+jobs/<job>/finalizing              there only while a job is being made, from its first file to
+                                   its place in the library; one left behind with no job in the
+                                   library is a job the app closed in the middle of, which the
+                                   engine takes back, with its sealed test, when it starts
 jobs/<job>/tasks/train.jsonl       mentor-visible splits
 jobs/<job>/tasks/dev.jsonl
 jobs/<job>/runs/<run>/harness/v<n>/   every harness version, full folder

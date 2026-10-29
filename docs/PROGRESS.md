@@ -2,6 +2,22 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Wed), the first real session on the rule, and fourteen fixes from it and two reviews
+
+**Done** (on the same branch; decision 061 amended; no model was called, the GPU stayed off)
+- From the real session on the bike shop (Spark, three calls, $0.09, every step of the rule right the first time): Spark asked what a ticket with no parts cost counts as, the person answered Zero, and the rule left all 62 of those tickets out anyway. An empty cell now counts as 0 when the person chooses it, and only then. The question names its column, Architect puts the two answers a rule can do (Count it as zero, Leave those rows out) whatever the teacher wrote, and sets the rule from the answer. N/A and words still leave their row out, "Leave those rows out" keeps the old behavior, and Define says it in the rule in words, in how numbers are read, in how many rows it reaches and in an example.
+- From GPT-6 Sol's review of the rule: a rule whose answers need more than 13 digits is refused (a checker that compares numbers would take two answers one step apart for the same); a branch counts as changing an answer only when the final answer changes; a rule is a copy at the job's own pass rate, not only at nine in ten; one list of currency codes (KRW and RUB were refused as not numbers); a file added to a job asks for the confirmation again, by name as well as by hash; every way a run goes on (resume, restart, released hold, stop for the final test) meets the confirmation check, and so do a re-test, a repeat and a reference; the rows the teacher is shown are left out of every set, the final test included; Start training stays off until the plan is read, and says so when it can't be.
+- From GPT-6 Astra's review of the drafter on main: two orders of the same list conditions made the same questions with different families, so the same question could be a practice task and a final-test task (23 in a reproduction, five of them review examples). Every request now carries the question it asks; a later kind of task that asks what an earlier one asks is left out or sent back with the reason; a list's family is the varying column that tells the most requests apart. A lookup keeps the day-first or month-first the person said, a count of filled cells no longer needs them to be numbers, a column named as the date column may be written 20260131, and a job is made all at once or not at all, with the engine taking back one the app left half made.
+- Verified: `pnpm check` exits 0 (219 test files, 2,782 passed, 2 skipped). Hidden e2e on the rebuilt app: `rule.spec.ts` (3, with the scripted teacher now asking what an empty parts cost counts as), `flow.spec.ts` (15, with a new test of Start training staying off while the plan is read and when it can't be) and `drafting.spec.ts` (5) pass. Each fix has a test that fails without it: the reproduction of the P1 (a list's conditions in two orders, split as a job is, with no question in both a practice set and the final test), the 13-digit answers, the final-answer branches, the pass-rate copy, KRW and RUB, a file added, every way a run goes on (the tests never give the student a chance to be reached), a failing database at the last step of making a job, the empty cell in the conversation and in the examples. Looked at in both themes: `rule-empty`, `flow-define-unreadable` and `rule-define` (the rule in words with the empty cell, how many rows it reaches, and an example whose parts cost is empty); `drafting-examples` and `drafting-tasks` were made again since the tasks differ.
+
+**Next**
+- The owner's real training run on the bike shop with the answer Zero: 62 more tickets are tasks, so the final test and the examples change.
+- The two other findings of the Astra review that are not the drafter's (a fully online run needing the local model to pin at the end, and three screens that read stale data when left and entered again) are not in this branch.
+
+**Open issues**
+- An empty cell the policy itself says counts as zero still has the question asked once: only the person's own answer declares it.
+- The first five rows of each table are left out of the tasks even when a very wide table's description is cut before it shows them, which errs on the side of caution.
+
 ## 2026-10-29 (Wed), a rule a person can confirm, and the first things a reviewer meets
 
 **Done** (on a branch; decision 061; no model was called, the GPU stayed off)
