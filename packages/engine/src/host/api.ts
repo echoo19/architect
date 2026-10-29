@@ -263,6 +263,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       draftStart: (description, files, teacher) => drafter.start(description, files, teacher),
       draftReply: (sessionId, text, teacher) => drafter.reply(sessionId, text, teacher),
       taskPlan: (jobId) => jobs.taskPlan(jobId),
+      confirmRules: (jobId, token) => jobs.confirmRules(jobId, token),
     },
     runs: {
       start: (jobId, { method, seed, lockedTestOn, interactive }) =>

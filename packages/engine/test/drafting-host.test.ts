@@ -1,7 +1,12 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CodedError, DraftTurnSchema, TaskPlanSchema } from '@architect/shared';
+import {
+  CodedError,
+  DraftTurnSchema,
+  RuleConfirmationStateSchema,
+  TaskPlanSchema,
+} from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { connectEngine, type EngineClient } from '../src/host/client';
 import { createEngineHost, type EngineHost } from '../src/host/engine-host';
@@ -10,6 +15,8 @@ import { FakeMentor } from './fakes/adapters';
 import { portPair } from './fakes/ports';
 import { shopData } from './support/drafting-data';
 import { draft, question, TEACHER } from './support/drafting-world';
+import { bikeShop, POLICY } from './support/rule-data';
+import { bikeDraft } from './support/rule-draft';
 
 /*
  * The drafting conversation as the app reaches it: through the engine host's port, with the
@@ -79,6 +86,61 @@ describe('drafting through the engine host', () => {
     // Saving it from Clarify changes nothing the job's tasks stand on.
     expect(await client.jobs.save(job)).toEqual(job);
     expect((await client.jobs.taskPlan(job.id)).counts).toEqual(plan.counts);
+  });
+
+  it('confirms a rule through the port, with the token the plan showed and the codes of a refusal', async () => {
+    const bike = bikeShop({ offGrid: true });
+    mentor.script = () => bikeDraft();
+    const turn = await client.jobs.draftStart(
+      'A repair desk',
+      [
+        attach('customers.csv', bike.customersCsv),
+        attach('tickets.csv', bike.ticketsCsv),
+        attach('policy.md', POLICY),
+      ],
+      TEACHER,
+    );
+    const job = turn.draft;
+    if (!job) throw new Error('Expected a draft.');
+
+    const plan = await client.jobs.taskPlan(job.id);
+    expect(TaskPlanSchema.safeParse(plan).success).toBe(true);
+    expect(plan.confirmation).toMatchObject({ state: 'needed' });
+    expect(plan.types.find((type) => type.id === 'cost')?.details?.examples.length).toBeGreaterThan(
+      2,
+    );
+
+    const stale = await client.jobs.confirmRules(job.id, 'old-token').catch((e: unknown) => e);
+    expect(stale).toBeInstanceOf(CodedError);
+    expect((stale as CodedError).code).toBe('rule_changed');
+
+    const token = plan.confirmation?.token ?? '';
+    const confirmed = await client.jobs.confirmRules(job.id, token);
+    expect(RuleConfirmationStateSchema.safeParse(confirmed).success).toBe(true);
+    expect(confirmed).toMatchObject({ state: 'confirmed', token });
+    expect((await client.jobs.taskPlan(job.id)).confirmation).toMatchObject({
+      state: 'confirmed',
+      confirmedAt: confirmed.confirmedAt,
+    });
+  });
+
+  it('refuses a run before the rule is confirmed, with its code', async () => {
+    const bike = bikeShop({ offGrid: true });
+    mentor.script = () => bikeDraft();
+    const turn = await client.jobs.draftStart(
+      'A repair desk',
+      [
+        attach('customers.csv', bike.customersCsv),
+        attach('tickets.csv', bike.ticketsCsv),
+        attach('policy.md', POLICY),
+      ],
+      TEACHER,
+    );
+    const refused = await client.runs
+      .start(turn.draft?.id ?? '', { method: 'bare' })
+      .catch((e: unknown) => e);
+    expect(refused).toBeInstanceOf(CodedError);
+    expect((refused as CodedError).code).toBe('rule_unconfirmed');
   });
 
   it('carries a lost conversation with its code, and a plan for a job that is not there', async () => {

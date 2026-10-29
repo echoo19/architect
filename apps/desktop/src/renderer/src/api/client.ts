@@ -12,6 +12,7 @@ import {
   ModelEntrySchema,
   OllamaStatusSchema,
   ReportCardSchema,
+  RuleConfirmationStateSchema,
   RunDetailSchema,
   RunSchema,
   SecretStatusSchema,
@@ -104,6 +105,12 @@ export const flowApi = {
   draftReply: (sessionId: string, text: string) =>
     read('jobs.draftReply', DraftTurnSchema, bridge().jobs.draftReply(sessionId, text)),
   saveJob: (job: Job) => read('jobs.save', JobSchema, bridge().jobs.save(job)),
+  confirmRules: (jobId: string, token: string) =>
+    read(
+      'jobs.confirmRules',
+      RuleConfirmationStateSchema,
+      bridge().jobs.confirmRules(jobId, token),
+    ),
   createSample: () => read('jobs.createSample', JobSchema, bridge().jobs.createSample()),
   startRun: (jobId: string, options: { method: Method; seed?: number }) =>
     read('runs.start', RunSchema, bridge().runs.start(jobId, options)),

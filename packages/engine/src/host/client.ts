@@ -94,6 +94,7 @@ export function connectEngine(
       draftReply: (sessionId, text, teacher) =>
         request('jobs.draftReply', [sessionId, text, teacher]),
       taskPlan: (jobId) => request('jobs.taskPlan', [jobId]),
+      confirmRules: (jobId, token) => request('jobs.confirmRules', [jobId, token]),
     },
     runs: {
       start: (jobId, options) => request('runs.start', [jobId, options]),

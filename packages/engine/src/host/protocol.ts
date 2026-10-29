@@ -48,6 +48,7 @@ import {
   ReferenceOptionsSchema,
   ReferenceRecordSchema,
   ReportCardSchema,
+  RuleConfirmationStateSchema,
   RunDetailSchema,
   RunEventSchema,
   RunSchema,
@@ -122,6 +123,11 @@ export const ENGINE_ROUTES = {
     (api, [sessionId, text, teacher]) => api.jobs.draftReply(sessionId, text, teacher),
   ),
   'jobs.taskPlan': route(z.tuple([id]), TaskPlanSchema, (api, [jobId]) => api.jobs.taskPlan(jobId)),
+  'jobs.confirmRules': route(
+    z.tuple([id, id]),
+    RuleConfirmationStateSchema,
+    (api, [jobId, token]) => api.jobs.confirmRules(jobId, token),
+  ),
   'runs.start': route(z.tuple([id, RunStartOptionsSchema]), RunSchema, (api, [jobId, options]) =>
     api.runs.start(jobId, options),
   ),
