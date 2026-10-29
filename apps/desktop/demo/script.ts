@@ -1,5 +1,13 @@
 import type { AppSettings } from '@architect/shared';
+import type { ElectronApplication, Locator, Page } from '@playwright/test';
 import type { LaunchedApp } from '../e2e/app';
+
+/** What a scene's own step gets: the page and app, and a click that moves the drawn pointer. */
+export interface StepContext {
+  page: Page;
+  app: ElectronApplication;
+  click(target: Locator): Promise<void>;
+}
 
 export type DemoStep =
   | { kind: 'route'; path: string }
@@ -10,7 +18,9 @@ export type DemoStep =
   | { kind: 'wait'; ms: number }
   | { kind: 'scroll'; x?: number; y: number }
   | { kind: 'answerFileDialog'; files: string[] }
-  | { kind: 'resize'; width: number; height: number };
+  | { kind: 'resize'; width: number; height: number }
+  /** A step the scene writes itself, for replies it can't name in advance, such as a model's. */
+  | { kind: 'run'; label: string; run: (context: StepContext) => Promise<void> };
 
 export interface DemoScene {
   name: string;
