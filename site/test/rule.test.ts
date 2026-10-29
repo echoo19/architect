@@ -91,7 +91,7 @@ describe('the rule chapter', () => {
 
 describe('what the page says about the repair shop', () => {
   it('tells that both shops are made up, and which of their parts are real', () => {
-    expect(FOOTER.note).toContain('returns desk and the repair shop are made-up shops');
+    expect(FOOTER.note).toContain('Both shops are made up.');
     expect(FOOTER.note).toContain("repair shop's rule and its run");
   });
 

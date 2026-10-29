@@ -61,4 +61,4 @@ export const RESULTS: Results = {
  * any teaching, one round of teaching, and 40 of 40 on the final test.
  */
 export const REPAIR_RUN =
-  "On this repair shop's pricing, an online copy of Glimmer got 22 of 30 check tasks before teaching. After one round of teaching it got 40 of 40 on its final test, where the rule you confirmed grades each ticket cost. That was a single run, not a planned comparison.";
+  "On this repair shop's pricing, an online copy of Glimmer got 22 of 30 check tasks before teaching. After one round of teaching it got 40 of 40 on its final test, graded by the rule the shop confirmed. That was a single run, not a planned comparison.";

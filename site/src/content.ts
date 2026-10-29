@@ -81,5 +81,5 @@ export const CLOSING = {
 export const FOOTER = {
   licence: 'Open source under the MIT licence.',
   author: 'Made by Jake Kang.',
-  note: "The returns desk and the repair shop are made-up shops. The returns desk's training run, its results and the October orders answer are real. The repair shop's rule and its run are real too. The other returns desk requests shown are written from its records.",
+  note: "Both shops are made up. The returns desk's training run, its results and the October orders answer are real, and so are the repair shop's rule and its run. The other requests shown are written from the returns desk's records.",
 } as const;
