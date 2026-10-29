@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { HubTokenStatus } from '@architect/shared';
 import {
   Button,
@@ -18,6 +18,7 @@ import { fetchQuery, toError } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
 import { HUB_TOKENS_PAGE, tokenSourceText } from '../../hub/labels';
 import { attempt } from '../../lib/notify';
+import { useUi } from '../../state/ui';
 
 /** Reads again where the token comes from, and which keys are saved. */
 async function refreshToken(): Promise<void> {
@@ -36,39 +37,47 @@ export function HuggingFaceRow() {
   const token = useHubToken();
   const [adding, setAdding] = useState(false);
   const source = token.data?.source;
+  // A person sent here to add the key finds its row on screen, not below the fold of the modal.
+  const sentForKey = useUi((state) => state.settingsFocus === 'huggingface');
+  const row = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (sentForKey) row.current?.scrollIntoView({ block: 'center' });
+  }, [sentForKey]);
 
   return (
     <>
-      <SettingsRow
-        icon={<ProviderMark name="Hugging Face" />}
-        label="Hugging Face"
-        meta={token.status === 'success' ? tokenSourceText(token.data.source) : undefined}
-        error={errorOf(token)}
-      >
-        {token.status === 'error' ? (
-          <RetryButton onClick={token.reload} />
-        ) : token.status === 'loading' ? (
-          <Skeleton shape="pill" className="h-4 w-20" />
-        ) : source === 'saved' ? (
-          <Button
-            size="xs"
-            variant="ghost"
-            onClick={() =>
-              void attempt("Couldn't remove the Hugging Face token", async () => {
-                await architect().secrets.clear('huggingface');
-                await refreshToken();
-              })
-            }
-          >
-            Remove token
-          </Button>
-        ) : (
-          <Button size="xs" onClick={() => setAdding(true)}>
-            <KeyRound size={14} aria-hidden />
-            Add token
-          </Button>
-        )}
-      </SettingsRow>
+      <div ref={row}>
+        <SettingsRow
+          icon={<ProviderMark name="Hugging Face" />}
+          label="Hugging Face"
+          meta={token.status === 'success' ? tokenSourceText(token.data.source) : undefined}
+          error={errorOf(token)}
+        >
+          {token.status === 'error' ? (
+            <RetryButton onClick={token.reload} />
+          ) : token.status === 'loading' ? (
+            <Skeleton shape="pill" className="h-4 w-20" />
+          ) : source === 'saved' ? (
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={() =>
+                void attempt("Couldn't remove the Hugging Face token", async () => {
+                  await architect().secrets.clear('huggingface');
+                  await refreshToken();
+                })
+              }
+            >
+              Remove token
+            </Button>
+          ) : (
+            <Button size="xs" onClick={() => setAdding(true)}>
+              <KeyRound size={14} aria-hidden />
+              Add token
+            </Button>
+          )}
+        </SettingsRow>
+      </div>
       <HubTokenDialog open={adding} onOpenChange={setAdding} source={source ?? null} />
     </>
   );

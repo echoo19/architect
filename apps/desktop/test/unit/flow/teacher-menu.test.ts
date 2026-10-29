@@ -2,7 +2,11 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { JobSchema, type InterventionType, type Job } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
-import { tabWithIssue } from '../../../src/renderer/src/flow/define/AdvancedDialog';
+import {
+  advancedTabs,
+  tabLabel,
+  tabWithIssue,
+} from '../../../src/renderer/src/flow/define/AdvancedDialog';
 import { TeacherMenu } from '../../../src/renderer/src/flow/define/TeacherMenu';
 import {
   agentChanges,
@@ -14,15 +18,16 @@ import {
   type WeightsFacts,
 } from '../../../src/renderer/src/flow/define/teacher-menu';
 import { validateJob } from '../../../src/renderer/src/flow/define/validate';
+import { kindLabel } from '../../../src/renderer/src/flow/names';
 import { makeJob } from './factories';
 
 /** Everything the app can see says weights could be trained. */
 const READY: WeightsFacts = { token: 'found', testPlace: 'local' };
 const FUNDED = { ...makeJob().budget, maxComputeUsd: 5 };
 
-function menu(job: Job, facts: WeightsFacts = READY): string {
+function menu(job: Job, facts: WeightsFacts = READY, onAddKey?: () => void): string {
   return renderToStaticMarkup(
-    createElement(TeacherMenu, { job, facts, onToggle: () => undefined }),
+    createElement(TeacherMenu, { job, facts, onToggle: () => undefined, onAddKey }),
   );
 }
 
@@ -120,9 +125,9 @@ describe("the Teacher tab's section", () => {
     expect(html).toContain('What Spark may change');
     for (const label of [
       'Instructions and steps',
-      'What it reads when',
+      'What it reads, and when',
       'Small tools',
-      'Its weights',
+      'Retrain Glimmer itself',
       'Questions for you',
     ]) {
       const one = row(html, label);
@@ -158,24 +163,22 @@ describe("the Teacher tab's section", () => {
 
   it('says on the weights row what the app knows keeps them from being trained here', () => {
     const job = makeJob();
-    expect(menu(job, { token: 'none', testPlace: 'local' })).toContain(
-      'Needs a Hugging Face token, added in Settings',
-    );
+    expect(menu(job, { token: 'none', testPlace: 'local' })).toContain('Needs a Hugging Face key');
     expect(menu(job, READY)).toContain('This job has no budget for training');
     expect(menu(makeJob({ budget: FUNDED }), { token: 'found', testPlace: 'hosted' })).toContain(
       'Can&#x27;t run while the final test is online',
     );
     // Nothing to say once it can: the row says what weights are.
     const fine = menu(makeJob({ budget: FUNDED }));
-    expect(fine).toContain('Trains the model itself on checked corrections');
-    expect(fine).not.toContain('Needs a Hugging Face token');
+    expect(fine).toContain('Trains the model on checked corrections');
+    expect(fine).not.toContain('Needs a Hugging Face key');
     // A kind that is off needs none of it.
     const off = menu(makeJob({ interventions: ['procedure'] }), {
       token: 'none',
       testPlace: 'local',
     });
-    expect(off).not.toContain('Needs a Hugging Face token');
-    expect(off).toContain('Trains the model itself on checked corrections');
+    expect(off).not.toContain('Needs a Hugging Face key');
+    expect(off).toContain('Trains the model on checked corrections');
   });
 
   it('says both when the only way left is the weights and they cannot be trained', () => {
@@ -183,10 +186,47 @@ describe("the Teacher tab's section", () => {
       token: 'none',
       testPlace: 'local',
     });
-    expect(row(html, 'Its weights')).toContain('disabled=""');
+    const held = row(html, 'Retrain Glimmer itself');
+    expect(held).toContain('disabled=""');
+    expect(held).toContain('aria-checked="true"');
+    // A switch held on reads as on, with a padlock, not as one that is off.
+    expect(held).toContain('lucide-lock');
     expect(html).toContain(
-      'Stays on: the only way left to change the agent. Its weights need a Hugging Face token, added in Settings.',
+      'Stays on: the only way left to change the agent. Retraining Glimmer itself needs a Hugging Face key.',
     );
+  });
+
+  it('puts the way to add the key on the weights row while the key is what is missing', () => {
+    const none: WeightsFacts = { token: 'none', testPlace: 'local' };
+    const add = () => undefined;
+    const html = menu(makeJob({ budget: FUNDED }), none, add);
+    // One button, between the weights row's name and the next row's.
+    const between = html.slice(
+      html.indexOf('>Retrain Glimmer itself<'),
+      html.indexOf('>Questions for you<'),
+    );
+    expect(between).toContain('>Add the key</button>');
+    expect(html.match(/>Add the key</g)).toHaveLength(1);
+    // It is there too when the weights are the only way left, which is when it matters most.
+    expect(
+      menu(makeJob({ interventions: ['weights'] }), none, add).match(/>Add the key</g),
+    ).toHaveLength(1);
+    // Nothing to add once the key is found, when something else keeps the weights from running,
+    // when they are turned off, or when nothing can take the person there.
+    expect(menu(makeJob({ budget: FUNDED }), READY, add)).not.toContain('Add the key');
+    expect(menu(makeJob(), { token: 'found', testPlace: 'local' }, add)).not.toContain(
+      'Add the key',
+    );
+    expect(menu(makeJob({ interventions: ['procedure'] }), none, add)).not.toContain('Add the key');
+    expect(menu(makeJob({ budget: FUNDED }), none)).not.toContain('Add the key');
+  });
+
+  it('never says token, where the person has to look for a key', () => {
+    const html = menu(makeJob({ interventions: ['weights'] }), {
+      token: 'none',
+      testPlace: 'local',
+    });
+    expect(html.replace(/<[^>]*>/g, ' ')).not.toMatch(/token/i);
   });
 
   it('shows a problem with the saved choice where the person is looking', () => {
@@ -203,8 +243,42 @@ describe("the Teacher tab's section", () => {
   });
 });
 
+describe('what each kind of change is called', () => {
+  it('names the student in the kind that retrains it, and puts the other names in plain words', () => {
+    expect(kindLabel('weights', 'Glimmer')).toBe('Retrain Glimmer itself');
+    expect(kindLabel('weights', 'Glimmer Open')).toBe('Retrain Glimmer Open itself');
+    expect(kindLabel('retrieval', 'Glimmer')).toBe('What it reads, and when');
+    expect(kindLabel('procedure', 'Glimmer')).toBe('Instructions and steps');
+    expect(kindLabel('helper', 'Glimmer')).toBe('Small tools');
+    expect(kindLabel('clarification', 'Glimmer')).toBe('Questions for you');
+  });
+});
+
+describe("the teacher's tab", () => {
+  it('is named for the teacher, wherever the rail lists it, and wherever a line sends the person to it', () => {
+    const named = (teacher: string) =>
+      advancedTabs(teacher).find((tab) => tab.value === 'mentor')?.label;
+    expect(named('Spark')).toBe('Spark');
+    expect(named('Spark Open')).toBe('Spark Open');
+    expect(tabLabel('mentor', 'Spark')).toBe('Spark');
+    // The other tabs keep their names, in the same order, whoever teaches.
+    expect(advancedTabs('Spark').map((tab) => tab.label)).toEqual([
+      'Example tasks',
+      'Ready when',
+      'Time and budget',
+      'Spark',
+      "Agent's model",
+      'Starting instructions',
+      'Grading',
+      'Task sets',
+      'When a change stays',
+    ]);
+    expect(tabLabel('budget', 'Spark')).toBe('Time and budget');
+  });
+});
+
 describe('a choice the engine would refuse', () => {
-  it('is marked in the Teacher tab, which Start training opens', () => {
+  it("is marked in the teacher's tab, which Start training opens", () => {
     const issues = validateJob({ ...makeJob(), interventions: ['clarification'] }, 170);
     expect(Object.keys(issues)).toEqual(['interventions']);
     expect(tabWithIssue(issues)).toBe('mentor');

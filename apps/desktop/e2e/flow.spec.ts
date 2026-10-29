@@ -836,21 +836,23 @@ for (const theme of THEMES) {
     await goTo(page, `/jobs/${FLOW.jobId}/define`);
     await page.getByRole('button', { name: 'Advanced settings' }).click();
     const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-    await advanced.getByRole('tab', { name: 'Teacher' }).click();
+    // The teacher's tab is named for the teacher.
+    await advanced.getByRole('tab', { name: 'Spark' }).click();
+    await expect(advanced.getByRole('tab', { name: 'Teacher' })).toHaveCount(0);
     const section = advanced.getByRole('region', { name: 'What Spark may change' });
     const kinds = [
       'Instructions and steps',
-      'What it reads when',
+      'What it reads, and when',
       'Small tools',
-      'Its weights',
+      'Retrain Glimmer itself',
       'Questions for you',
     ];
     // A job that never chose has every kind on, and the weights say what they need.
     for (const kind of kinds) {
       await expect(section.getByRole('switch', { name: kind })).toBeChecked();
     }
-    await expect(section).toContainText('Needs a Hugging Face token, added in Settings');
-    await expect(section.getByRole('switch', { name: 'Its weights' })).toBeEnabled();
+    await expect(section).toContainText('Needs a Hugging Face key');
+    await expect(section.getByRole('switch', { name: 'Retrain Glimmer itself' })).toBeEnabled();
 
     await section.getByRole('switch', { name: 'Small tools' }).click();
     await section.getByRole('switch', { name: 'Questions for you' }).click();
@@ -868,11 +870,11 @@ for (const theme of THEMES) {
     // Leave only the weights, which the app knows can't be trained here: the switch holds, and
     // says why, and Start training says there is nothing for the teacher to do.
     await section.getByRole('switch', { name: 'Instructions and steps' }).click();
-    await section.getByRole('switch', { name: 'What it reads when' }).click();
-    await expect(section.getByRole('switch', { name: 'Its weights' })).toBeDisabled();
-    await expect(section.getByRole('switch', { name: 'Its weights' })).toBeChecked();
+    await section.getByRole('switch', { name: 'What it reads, and when' }).click();
+    await expect(section.getByRole('switch', { name: 'Retrain Glimmer itself' })).toBeDisabled();
+    await expect(section.getByRole('switch', { name: 'Retrain Glimmer itself' })).toBeChecked();
     await expect(section).toContainText(
-      'Stays on: the only way left to change the agent. Its weights need a Hugging Face token, added in Settings.',
+      'Stays on: the only way left to change the agent. Retraining Glimmer itself needs a Hugging Face key.',
     );
     await expect(advanced.getByRole('status')).toContainText('Saved');
     expect(((await recordedCalls(app, 'jobs:save')).at(-1)?.[0] as Job).interventions).toEqual([
@@ -881,17 +883,30 @@ for (const theme of THEMES) {
     await toBottom();
     await capture(page, `flow-advanced-teacher-last-${theme}`);
 
-    await page.keyboard.press('Escape');
+    // The row that needs the key has the way to add it: this dialog closes, and Settings opens on
+    // the Hugging Face row, which is not folded away under Advanced.
+    await section.getByRole('button', { name: 'Add the key' }).click();
     await expect(advanced).toBeHidden();
+    const settings = page.getByRole('dialog', { name: 'Settings' });
+    await expect(settings.getByRole('button', { name: 'Add token' })).toBeVisible();
+    await expect(settings.getByText('No token', { exact: true })).toBeVisible();
+    // Its button is on screen inside the modal's scroll, not under the fade at the bottom of it.
+    const panel = await settings.getByRole('tabpanel').boundingBox();
+    const add = await settings.getByRole('button', { name: 'Add token' }).boundingBox();
+    expect(panel && add).toBeTruthy();
+    expect(add!.y).toBeGreaterThanOrEqual(panel!.y);
+    expect(add!.y + add!.height).toBeLessThanOrEqual(panel!.y + panel!.height - 24);
+    await page.keyboard.press('Escape');
+    await expect(settings).toBeHidden();
     const needs = page.getByRole('region', { name: 'Before it can start' });
     await expect(needs).toContainText('Spark has nothing it may change');
     await expect(needs).toContainText(
-      'Only its weights are on, and they need a Hugging Face token, added in Settings. Turn something else on, or put that right.',
+      'Only retraining Glimmer itself is on, and it needs a Hugging Face key. Turn something else on, or add the key.',
     );
     await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
     expect(await recordedCalls(app, 'runs:start')).toEqual([]);
 
-    // Its button opens the Teacher tab, where a kind is turned on again and the hold lifts.
+    // Its button opens the teacher's tab, where a kind is turned on again and the hold lifts.
     await needs.getByRole('button', { name: "Open Spark's settings" }).click();
     await expect(advanced.getByRole('region', { name: 'What Spark may change' })).toBeVisible();
     await advanced.getByRole('switch', { name: 'Instructions and steps' }).click();

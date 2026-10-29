@@ -47,16 +47,31 @@ export function weightsBlock(job: Job, facts: WeightsFacts): WeightsBlock | null
 /** What a row says in place of its explanation while weights are on and can't be trained. */
 export const BLOCK_NOTES: Record<WeightsBlock, string> = {
   online_test: "Can't run while the final test is online",
-  no_token: 'Needs a Hugging Face token, added in Settings',
+  no_token: 'Needs a Hugging Face key',
   no_budget: 'This job has no budget for training',
 };
 
-/** The same, as the end of a sentence about the weights. */
+/**
+ * What keeps retraining the student from running, as the end of a sentence whose subject is that
+ * retraining: "... it needs a Hugging Face key", "... which needs a Hugging Face key".
+ */
 export const BLOCK_REASONS: Record<WeightsBlock, string> = {
-  online_test: "can't be trained while the final test runs online",
-  no_token: 'need a Hugging Face token, added in Settings',
-  no_budget: 'need a training budget, and this job has none',
+  online_test: "can't be done while the final test runs online",
+  no_token: 'needs a Hugging Face key',
+  no_budget: 'needs a training budget, and this job has none',
 };
+
+/** What the person can do about it besides turning another kind of change on. */
+export function blockFix(block: WeightsBlock, device: string): string {
+  switch (block) {
+    case 'online_test':
+      return `Turn something else on, or run the final test on ${device}.`;
+    case 'no_token':
+      return 'Turn something else on, or add the key.';
+    case 'no_budget':
+      return 'Turn something else on.';
+  }
+}
 
 /** The kinds of change the mentor may use that change the agent. */
 export function agentChanges(job: Job): InterventionType[] {

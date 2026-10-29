@@ -13,8 +13,9 @@ import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { mentorProvider } from '../../onboarding/mentor';
 import { isInstalled } from '../../settings/models/StudentRows';
 import { modelNames } from '../names';
+import type { ModelNames } from '../train/phase';
 import { aKey, hostedAvailability, providerName, type KeyStatus } from './hosted';
-import { BLOCK_REASONS, idleBlock } from './teacher-menu';
+import { BLOCK_REASONS, blockFix, idleBlock } from './teacher-menu';
 
 /** The one thing that puts a missing piece right. */
 export type NeedAction =
@@ -202,17 +203,18 @@ function hostNeed(
  */
 function idleNeed(
   job: Job,
-  teacher: string,
+  names: ModelNames,
   testPlace: StudentTarget,
   token: RunNeedsInput['token'],
 ): Need | null {
   const block = idleBlock(job, { token, testPlace });
   if (block === null) return null;
+  const device = deviceInSentence(currentPlatform());
   return {
     id: 'teacher-idle',
-    title: `${teacher} has nothing it may change`,
-    detail: `Only its weights are on, and they ${BLOCK_REASONS[block]}. Turn something else on, or put that right.`,
-    label: `Open ${teacher}'s settings`,
+    title: `${names.mentor} has nothing it may change`,
+    detail: `Only retraining ${names.student} itself is on, and it ${BLOCK_REASONS[block]}. ${blockFix(block, device)}`,
+    label: `Open ${names.mentor}'s settings`,
     action: { kind: 'open', tab: 'mentor' },
   };
 }
@@ -251,7 +253,7 @@ export function runNeeds({
     const teacher = teacherNeed(job, names.mentor, keys);
     if (teacher) needs.push(teacher);
   }
-  const idle = idleNeed(job, names.mentor, testPlace, token);
+  const idle = idleNeed(job, names, testPlace, token);
   if (idle) needs.push(idle);
   const model = modelNeed(job, names.student, testPlace, local);
   if (model) needs.push(model);

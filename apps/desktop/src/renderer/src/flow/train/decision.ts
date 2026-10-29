@@ -1,5 +1,4 @@
 import {
-  INTERVENTION_LABELS,
   mayIntervene,
   type Experiment,
   type Intervention,
@@ -9,7 +8,7 @@ import {
   type Round,
   type Score,
 } from '@architect/shared';
-import { modelNames, typeLabel } from '../names';
+import { kindLabel, modelNames, typeLabel } from '../names';
 import { GATES } from './evidence-words';
 
 const NUMBER_WORDS = [
@@ -171,9 +170,10 @@ function measuredTwice(
  */
 export function refusalSentence(intervention: Intervention | undefined, job: Job): string | null {
   if (intervention === undefined || mayIntervene(job, intervention.type)) return null;
-  const { mentor } = modelNames(job);
-  const kind = INTERVENTION_LABELS[intervention.type];
-  return `${mentor} chose "${kind}", which is turned off for this job under Teacher in Advanced settings. Nothing changed.`;
+  const { mentor, student } = modelNames(job);
+  const kind = kindLabel(intervention.type, student);
+  // The teacher's tab in Advanced settings is named for the teacher.
+  return `${mentor} chose "${kind}", which is turned off for this job under ${mentor} in Advanced settings. Nothing changed.`;
 }
 
 /**

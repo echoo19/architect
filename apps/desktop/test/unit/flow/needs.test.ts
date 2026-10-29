@@ -345,7 +345,7 @@ describe('a teacher that may change nothing', () => {
       id: 'teacher-idle',
       title: 'Spark has nothing it may change',
       detail:
-        'Only its weights are on, and they need a Hugging Face token, added in Settings. Turn something else on, or put that right.',
+        'Only retraining Glimmer itself is on, and it needs a Hugging Face key. Turn something else on, or add the key.',
       label: "Open Spark's settings",
       action: { kind: 'open', tab: 'mentor' },
     });
@@ -356,11 +356,11 @@ describe('a teacher that may change nothing', () => {
     const reason = (job: Job, extra: Partial<RunNeedsInput>) =>
       runNeeds(input({ job, ...extra })).find((need) => need.id === 'teacher-idle')?.detail;
     expect(reason(noBudget, { token: 'found' })).toContain(
-      'they need a training budget, and this job has none.',
+      'it needs a training budget, and this job has none. Turn something else on.',
     );
-    expect(reason(noBudget, { token: 'none' })).toContain('need a Hugging Face token');
-    expect(reason(noBudget, { token: 'none', testPlace: 'hosted' })).toContain(
-      "they can't be trained while the final test runs online.",
+    expect(reason(noBudget, { token: 'none' })).toContain('it needs a Hugging Face key');
+    expect(reason(noBudget, { token: 'none', testPlace: 'hosted' })).toMatch(
+      /it can't be done while the final test runs online\. Turn something else on, or run the final test on (this computer|your Mac)\./,
     );
   });
 
