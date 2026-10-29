@@ -13,7 +13,7 @@ import { MAX_RULE_QUESTIONS } from '../src/drafting/drafter';
 import { RunController } from '../src/loop/controller';
 import { draftingWorld, question, TEACHER, type DraftingWorld } from './support/drafting-world';
 import { bikeShop, POLICY, type Bike } from './support/rule-data';
-import { bikeDraft, costType, CONTACT_TYPE, wireBike } from './support/rule-draft';
+import { bikeDraft, bikeSteps, costType, CONTACT_TYPE, step } from './support/rule-draft';
 
 let world: DraftingWorld;
 let bike: Bike;
@@ -56,7 +56,7 @@ describe('asking the teacher for a rule', () => {
     const [request] = world.mentor.requests;
     for (const phrase of [
       'rule: a number that is not written in the records but follows from a policy',
-      'at most 32 steps in all, 6 operations nested inside one another, 2 ifs',
+      'at most 32 parts in all, 6 operations nested inside one another and 2 ifs',
       'copied word for word',
       'never from patterns in the rows',
       'There is no "not"',
@@ -67,10 +67,20 @@ describe('asking the teacher for a rule', () => {
     const schema = JSON.stringify(request?.json?.schema);
     expect(schema).not.toContain('$ref');
     expect(schema).not.toContain('$defs');
-    // Seven levels of steps: six operations nested, and a column or a number under them.
-    expect(schema.match(/"args":\{"type":"array"/g)?.length).toBe(7);
     expect(schema).toContain('"ambiguities"');
     expect(schema).toContain('"changesAnswers"');
+    // The rule is a list of steps that name each other by id, so the format is no deeper than
+    // the rest of it: providers that limit how deep a schema nests accept it.
+    const found = (schema: unknown): number => {
+      if (schema === null || typeof schema !== 'object') return 0;
+      const node = schema as Record<string, unknown>;
+      const inner = Object.values((node['properties'] ?? {}) as object).map(found);
+      const items = node['items'] === undefined ? 0 : found(node['items']);
+      return (node['type'] === 'object' ? 1 : 0) + Math.max(0, items, ...inner);
+    };
+    expect(found(request?.json?.schema)).toBeLessThanOrEqual(6);
+    expect(request?.system).toContain('rule.steps and rule.result');
+    expect(request?.system).toContain('Every step must be used');
   });
 });
 
@@ -415,10 +425,10 @@ describe('holding a rule to the policy and to the guards', () => {
 
   it('sends back a rule a guard refuses, with the reason, instead of making tasks', async () => {
     const constant = costType({
-      expression: {
-        ...wireBike(),
-        args: [{ ...wireBike().args[0]!, op: 'num', value: '65', args: [] }],
-      },
+      steps: [
+        step('rate', 'num', { value: '65' }),
+        step('total', 'round', { value: '0.01', mode: 'half_up', args: ['rate'] }),
+      ],
       lookupTable: '',
       lookupKey: '',
       matchColumn: '',
@@ -437,11 +447,11 @@ describe('holding a rule to the policy and to the guards', () => {
 
   it('says what is wrong with a step it cannot read', async () => {
     const bad = costType({
-      expression: { ...wireBike(), op: 'sum' },
+      steps: bikeSteps().map((item) => (item.id === 'sum' ? { ...item, op: 'blend' } : item)),
     });
     world.mentor.script = () => bikeDraft([bad, CONTACT_TYPE]);
     await expect(world.drafting.start('A repair desk', attachBike(), TEACHER)).rejects.toThrow(
-      'Step 1 is "sum", which is not an operation',
+      'Step "sum" is "blend", which is not an operation',
     );
   });
 });

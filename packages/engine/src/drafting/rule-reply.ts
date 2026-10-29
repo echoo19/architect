@@ -3,45 +3,21 @@ import {
   RuleSpecSchema,
   type JsonSchemaObject,
   type RuleCategory,
-  type RuleCondition,
   type RuleFrom,
-  type RuleNode,
-  type RuleRounding,
   type RuleSpec,
 } from '@architect/shared';
 import { z } from 'zod';
 import type { Attached } from './files';
+import { list, objectOf, text } from './json-parts';
+import { expandSteps, stepSchema, WireStepSchema } from './rule-steps';
 import { cleanText, foldKey } from './values';
 
 /*
  * How the teacher hands over a rule: the part of its reply that carries one, and what becomes of
- * it. The expression comes as one uniform kind of step (an `op` and the few fields that op uses,
- * the rest empty), so the format the teacher is held to does not need a schema that refers to
- * itself. Architect turns it into the typed expression of `@architect/shared`, or says what is
- * wrong with it, and holds the passages it quotes to the policy word for word.
+ * it. The expression comes as steps that name one another by id (`rule-steps`), which Architect
+ * turns into the typed expression of `@architect/shared` or sends back with what is wrong, and
+ * the passages the rule quotes are held to the policy word for word.
  */
-
-export interface WireNode {
-  op: string;
-  value?: string | undefined;
-  column?: string | undefined;
-  from?: string | undefined;
-  values?: string[] | undefined;
-  mode?: string | undefined;
-  args?: WireNode[] | undefined;
-}
-
-const WireNodeSchema: z.ZodType<WireNode> = z.lazy(() =>
-  z.object({
-    op: z.string(),
-    value: z.string().optional(),
-    column: z.string().optional(),
-    from: z.string().optional(),
-    values: z.array(z.string()).optional(),
-    mode: z.string().optional(),
-    args: z.array(WireNodeSchema).optional(),
-  }),
-);
 
 export const RuleReplySchema = z.object({
   answerName: z.string(),
@@ -57,77 +33,10 @@ export const RuleReplySchema = z.object({
   ambiguities: z.array(
     z.object({ question: z.string(), options: z.array(z.string()), changesAnswers: z.boolean() }),
   ),
-  expression: WireNodeSchema,
+  steps: z.array(WireStepSchema),
+  result: z.string(),
 });
 export type RuleReply = z.infer<typeof RuleReplySchema>;
-
-/** The operations a step may name, as the format spells them. */
-const OPS = [
-  'num',
-  'col',
-  'add',
-  'sub',
-  'mul',
-  'div',
-  'min',
-  'max',
-  'round',
-  'if',
-  'equals',
-  'in',
-  'gt',
-  'gte',
-  'lt',
-  'lte',
-] as const;
-
-/** Levels of steps the format allows: six nested operations and a column or number below them. */
-const LEVELS = RULE_LIMITS.maxDepth + 1;
-
-const text = (description: string) => ({ type: 'string', description });
-const list = (description: string, items: object = { type: 'string' }) => ({
-  type: 'array',
-  description,
-  items,
-});
-
-function objectOf(properties: Record<string, object>): JsonSchemaObject {
-  return {
-    type: 'object',
-    additionalProperties: false,
-    required: Object.keys(properties),
-    properties,
-  };
-}
-
-/** One step of an expression, with as many levels of steps inside it as `levels` says. */
-function stepSchema(levels: number): JsonSchemaObject {
-  return objectOf({
-    op: { type: 'string', enum: [...OPS, ''], description: 'The operation. Empty when unused.' },
-    value: text(
-      'num: the number. div: the divisor. round: the step size. equals, gt, gte, lt, lte: what to compare with. Else empty.',
-    ),
-    column: text('col, equals, in: the column, spelled as the table spells it. Else empty.'),
-    from: {
-      type: 'string',
-      enum: ['row', 'lookup', ''],
-      description: 'col, equals, in: row, or lookup for the looked-up row. Else empty.',
-    },
-    values: list('in: every value that makes the test true. Else empty.'),
-    mode: {
-      type: 'string',
-      enum: ['up', 'down', 'half_up', ''],
-      description: 'round only. Else empty.',
-    },
-    args:
-      levels > 1
-        ? list(
-            'The steps this one is made of, in order. Empty for num, col, equals and in.',
-            stepSchema(levels - 1),
-          )
-        : list('Leave empty.'),
-  });
-}
 
 /** The rule part of a task type in the reply format: filled for a rule, empty for the others. */
 export function ruleSchema(): JsonSchemaObject {
@@ -176,156 +85,16 @@ export function ruleSchema(): JsonSchemaObject {
         },
       }),
     ),
-    expression: stepSchema(LEVELS),
+    steps: list(
+      'rule: the steps the answer is worked out in, each naming the steps it is made of by id. Empty when the task type is not a rule.',
+      stepSchema(),
+    ),
+    result: text('rule: the id of the last step, the rounding that gives the answer. Else empty.'),
   });
 }
 
-const NUMBER = /^-?\d{1,12}(?:\.\d{1,8})?$/;
-
 function fromOf(value: string | undefined): RuleFrom {
   return value === 'lookup' ? 'lookup' : 'row';
-}
-
-/** Turns what the teacher sent for a step into a typed step, or says what is wrong at `where`. */
-function toNode(wire: WireNode, where: string, problems: string[]): RuleNode | null {
-  const args = wire.args ?? [];
-  const value = cleanText(wire.value);
-  const need = (count: number | [number, number]): boolean => {
-    const [least, most] = typeof count === 'number' ? [count, count] : count;
-    if (args.length >= least && args.length <= most) return true;
-    problems.push(
-      `Step ${where} is "${wire.op}" with ${args.length} ${args.length === 1 ? 'step' : 'steps'} inside it, and it takes ${least === most ? least : `${least} to ${most}`}.`,
-    );
-    return false;
-  };
-  const inside = (): RuleNode[] | null => {
-    const nodes = args.map((arg, at) => toNode(arg, `${where}.${at + 1}`, problems));
-    return nodes.every((node) => node !== null) ? (nodes as RuleNode[]) : null;
-  };
-  switch (wire.op) {
-    case 'num':
-      if (!NUMBER.test(value)) {
-        problems.push(
-          `Step ${where} is a number, but "${value}" is not one. Write digits and at most one point, such as 65 or 0.1.`,
-        );
-        return null;
-      }
-      return { op: 'num', value };
-    case 'col': {
-      const column = cleanText(wire.column);
-      if (column === '') {
-        problems.push(`Step ${where} reads a column but names none.`);
-        return null;
-      }
-      return { op: 'col', column, from: fromOf(wire.from) };
-    }
-    case 'add':
-    case 'mul':
-    case 'min':
-    case 'max': {
-      if (!need([2, RULE_LIMITS.maxOperands])) return null;
-      const nodes = inside();
-      return nodes === null ? null : { op: wire.op, args: nodes };
-    }
-    case 'sub': {
-      if (!need(2)) return null;
-      const nodes = inside();
-      const [first, second] = nodes ?? [];
-      return first === undefined || second === undefined
-        ? null
-        : { op: 'sub', args: [first, second] };
-    }
-    case 'div': {
-      if (!need(1)) return null;
-      const [arg] = inside() ?? [];
-      if (arg === undefined) return null;
-      if (!NUMBER.test(value)) {
-        problems.push(
-          `Step ${where} divides by "${value}", which is not a number. Divide by a number such as 12.`,
-        );
-        return null;
-      }
-      return { op: 'div', arg, by: value };
-    }
-    case 'round': {
-      if (!need(1)) return null;
-      const [arg] = inside() ?? [];
-      if (arg === undefined) return null;
-      if (!NUMBER.test(value)) {
-        problems.push(
-          `Step ${where} rounds to "${value}", which is not a number. Give the step size, such as 0.01.`,
-        );
-        return null;
-      }
-      if (wire.mode !== 'up' && wire.mode !== 'down' && wire.mode !== 'half_up') {
-        problems.push(`Step ${where} is a rounding with no mode. Use up, down or half_up.`);
-        return null;
-      }
-      return { op: 'round', arg, increment: value, mode: wire.mode as RuleRounding };
-    }
-    case 'if': {
-      if (!need(3)) return null;
-      const [test, first, second] = args;
-      if (test === undefined || first === undefined || second === undefined) return null;
-      const when = toCondition(test, `${where}.1`, problems);
-      const then = toNode(first, `${where}.2`, problems);
-      const otherwise = toNode(second, `${where}.3`, problems);
-      return when === null || then === null || otherwise === null
-        ? null
-        : { op: 'if', when, then, else: otherwise };
-    }
-    case '':
-      problems.push(`Step ${where} has no operation.`);
-      return null;
-    default:
-      problems.push(
-        `Step ${where} is "${wire.op}", which is not an operation. The operations are num, col, add, sub, mul, div, min, max, round and if.`,
-      );
-      return null;
-  }
-}
-
-function toCondition(wire: WireNode, where: string, problems: string[]): RuleCondition | null {
-  const column = cleanText(wire.column);
-  const from = fromOf(wire.from);
-  switch (wire.op) {
-    case 'equals': {
-      const value = cleanText(wire.value);
-      if (column === '' || value === '') {
-        problems.push(`Test ${where} (equals) needs a column and a value.`);
-        return null;
-      }
-      return { test: 'equals', column, from, value };
-    }
-    case 'in': {
-      const values = (wire.values ?? []).map(cleanText).filter((value) => value !== '');
-      if (column === '' || values.length === 0) {
-        problems.push(`Test ${where} (in) needs a column and the values that make it true.`);
-        return null;
-      }
-      return { test: 'in', column, from, values: [...new Set(values)] };
-    }
-    case 'gt':
-    case 'gte':
-    case 'lt':
-    case 'lte': {
-      const than = cleanText(wire.value);
-      const [first] = wire.args ?? [];
-      if (first === undefined || !NUMBER.test(than)) {
-        problems.push(
-          `Test ${where} (${wire.op}) needs one step to compare and a number to compare it with.`,
-        );
-        return null;
-      }
-      const arg = toNode(first, `${where}.1`, problems);
-      return arg === null ? null : { test: wire.op, arg, than };
-    }
-    default:
-      problems.push(
-        `The first step inside an if (${where}) must be a test: equals, in, gt, gte, lt or lte, not "${wire.op}". There is no "not": test for the values that count.`,
-      );
-      return null;
-  }
 }
 
 /** What the person has said, for a passage to be found in. */
@@ -440,7 +209,9 @@ export function settleRule(
     return undefined;
   }
   const before = problems.length;
-  const expression = toNode(reply.expression, '1', problems);
+  const expressionProblems: string[] = [];
+  const expression = expandSteps(reply.steps, reply.result, expressionProblems);
+  problems.push(...expressionProblems.map((problem) => `${who}: ${problem}`));
   const named = (file: string): string | undefined =>
     tableNames.find((name) => foldKey(name) === foldKey(file.replace(/^.*[\\/]/, '')));
   const lookupFile = cleanText(reply.lookupTable);

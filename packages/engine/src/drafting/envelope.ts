@@ -1,6 +1,7 @@
 import { MAX_FILTER_VALUES, type JsonSchemaObject, type TaskSpec } from '@architect/shared';
 import { z } from 'zod';
 import type { Attached } from './files';
+import { list, objectOf, text } from './json-parts';
 import { RuleReplySchema, ruleSchema, settleRule, type Said, type Settled } from './rule-reply';
 import { cleanText, foldKey } from './values';
 
@@ -70,22 +71,6 @@ export const ReplySchema = z.object({
   job: JobReplySchema,
 });
 export type Reply = z.infer<typeof ReplySchema>;
-
-const text = (description: string) => ({ type: 'string', description });
-const list = (description: string, items: object = { type: 'string' }) => ({
-  type: 'array',
-  description,
-  items,
-});
-
-function objectOf(properties: Record<string, object>): JsonSchemaObject {
-  return {
-    type: 'object',
-    additionalProperties: false,
-    required: Object.keys(properties),
-    properties,
-  };
-}
 
 /** The reply format, as a JSON Schema. A reply that must draft cannot ask. */
 export function replyJsonSchema(mustDraft: boolean): JsonSchemaObject {

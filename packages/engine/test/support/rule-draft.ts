@@ -2,54 +2,23 @@ import { draft, NO_TYPE } from './drafting-world';
 
 /*
  * What a teacher sends to draft the bike shop's rule: the same expression as `bikeExpression`,
- * written in the uniform steps of the reply format.
+ * written as the reply format asks, in steps that name one another by id.
  */
 
 export interface Step {
+  id: string;
   op: string;
   value: string;
   column: string;
   from: string;
   values: string[];
   mode: string;
-  args: Step[];
+  args: string[];
 }
 
 /** A step with every field the format asks for, the ones an op doesn't use left empty. */
-export function step(op: string, fields: Partial<Step> = {}): Step {
-  return { op, value: '', column: '', from: '', values: [], mode: '', args: [], ...fields };
-}
-
-export const wireNum = (value: string): Step => step('num', { value });
-export const wireCol = (column: string, from = 'row'): Step => step('col', { column, from });
-
-/** Hours rounded up to the half hour. */
-export const WIRE_HOURS = step('round', {
-  value: '0.5',
-  mode: 'up',
-  args: [wireCol('labor_hours')],
-});
-
-/** The policy as the format carries it: labor, less a tenth for a member, plus parts, to the cent. */
-export function wireBike(factor = '0.9'): Step {
-  return step('round', {
-    value: '0.01',
-    mode: 'half_up',
-    args: [
-      step('add', {
-        args: [
-          step('if', {
-            args: [
-              step('equals', { column: 'member', from: 'lookup', value: 'yes' }),
-              step('mul', { args: [WIRE_HOURS, wireNum('65'), wireNum(factor)] }),
-              step('mul', { args: [WIRE_HOURS, wireNum('65')] }),
-            ],
-          }),
-          wireCol('parts_cost'),
-        ],
-      }),
-    ],
-  });
+export function step(id: string, op: string, fields: Partial<Step> = {}): Step {
+  return { id, op, value: '', column: '', from: '', values: [], mode: '', args: [], ...fields };
 }
 
 export interface WireRule {
@@ -62,7 +31,28 @@ export interface WireRule {
   categories: { column: string; from: string; values: string[] }[];
   sources: { file: string; passage: string }[];
   ambiguities: { question: string; options: string[]; changesAnswers: boolean }[];
-  expression: Step;
+  steps: Step[];
+  result: string;
+}
+
+/**
+ * The policy as steps: hours rounded up to the half hour, times 65, times 0.9 for a member, plus
+ * parts, to the cent.
+ */
+export function bikeSteps(factor = '0.9'): Step[] {
+  return [
+    step('hours', 'col', { column: 'labor_hours', from: 'row' }),
+    step('billed', 'round', { value: '0.5', mode: 'up', args: ['hours'] }),
+    step('rate', 'num', { value: '65' }),
+    step('discount', 'num', { value: factor }),
+    step('member_price', 'mul', { args: ['billed', 'rate', 'discount'] }),
+    step('price', 'mul', { args: ['billed', 'rate'] }),
+    step('is_member', 'equals', { column: 'member', from: 'lookup', value: 'yes' }),
+    step('labor', 'if', { args: ['is_member', 'member_price', 'price'] }),
+    step('parts', 'col', { column: 'parts_cost', from: 'row' }),
+    step('sum', 'add', { args: ['labor', 'parts'] }),
+    step('total', 'round', { value: '0.01', mode: 'half_up', args: ['sum'] }),
+  ];
 }
 
 export function wireRule(overrides: Partial<WireRule> = {}): WireRule {
@@ -79,7 +69,8 @@ export function wireRule(overrides: Partial<WireRule> = {}): WireRule {
       { file: 'policy.md', passage: 'Members get 10% off labor, never off parts.' },
     ],
     ambiguities: [],
-    expression: wireBike(),
+    steps: bikeSteps(),
+    result: 'total',
     ...overrides,
   };
 }
