@@ -2,6 +2,18 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), release 0.3.2
+
+**Done**
+- Released 0.3.2 (bcfc4f9, tag v0.3.2) with plain notes: the rule as numbered steps on Define, Results and the report; plainer example tags and rounding note; the slow-training warning and what its time button gives; why the last switch stays on, where a Hugging Face key comes from, and "Turn a change back on"; the line on rows left out, "Typical answer time" and "17 GB on disk". CI passed on the release commit. The release workflow built and attached the Windows installer and both Mac disk images. The site's deploy for the version commit was cancelled before it ran and run again once the installers were attached; the live page links `Architect-Setup-0.3.2.exe`, and each download resolves.
+- `docs/HACKATHON.md` names 0.3.2 as the release with installers.
+- A third blind read of the rule's screens and a chapter of the site on checking the rule were started.
+
+**Next**
+- What the third blind read finds.
+- Review and merge the site's chapter on checking the rule.
+- The Oct 29 row of "What was built when" in `docs/HACKATHON.md`, at the end of the day.
+
 ## 2026-10-29 (Thu), the steps pass reviewed and merged, and one line set quieter
 
 **Done** (on main; decision 061 amended; no model was called or loaded, and every run used stand-ins)
