@@ -153,7 +153,7 @@ async function main(): Promise<void> {
             )
           : await host.api.jobs.importFile(join(staging, 'job.json'));
       write(
-        `${imported.name}: ${METHOD_LABELS[options.method]}, seed ${options.seed}, ${options.profile} profile\n` +
+        `${imported.name}: ${METHOD_LABELS[options.method]}, seed ${options.seed}, ${options.jobId === undefined ? `${options.profile} profile` : 'its own budget'}\n` +
           `mentor ${imported.mentor.kind === 'model' ? imported.mentor.model : imported.mentor.agent}, ` +
           `student ${imported.student.local.model} (train on ${imported.student.trainOn}), data in ${dataDir}\n\n`,
       );
