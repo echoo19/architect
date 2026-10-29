@@ -1,3 +1,4 @@
+import { isAbsolute } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import type { EngineApi } from '@architect/engine';
 import type { DraftTurn, Job } from '@architect/shared';
@@ -28,6 +29,15 @@ export function registerEngineHandlers(
     const chosen = applyChoices(job, await choices());
     return isDeepStrictEqual(chosen, job) ? job : call((api) => api.jobs.save(chosen));
   };
+  /**
+   * A job about to be saved. A checker chosen by its full path must be a file the user picked: the
+   * engine copies it into the job's folder, so a page may not name any other file to read.
+   */
+  const checkedJob = (job: Job): Job => {
+    const checker = (job as Partial<Job>).checker;
+    if (checker?.kind !== 'module' || !isAbsolute(String(checker.path))) return job;
+    return { ...job, checker: { kind: 'module', path: picked.check(checker.path) } };
+  };
   /** A drafted job, which isn't saved yet, as it will be reviewed. */
   const draftedWith = async (turn: DraftTurn): Promise<DraftTurn> =>
     turn.draft === undefined ? turn : { ...turn, draft: applyChoices(turn.draft, await choices()) };
@@ -37,7 +47,7 @@ export function registerEngineHandlers(
     {
       list: () => call((api) => api.jobs.list()),
       get: (jobId) => call((api) => api.jobs.get(jobId)),
-      save: (job) => call((api) => api.jobs.save(job)),
+      save: (job) => call((api) => api.jobs.save(checkedJob(job))),
       createSample: async () => {
         // The sample job is made once; asking again opens it as it is.
         const known = new Set((await call((api) => api.jobs.list())).map(({ id }) => id));

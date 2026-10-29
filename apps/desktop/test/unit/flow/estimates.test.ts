@@ -278,7 +278,7 @@ describe('the final test on the online copy', () => {
   const estimate = estimateTime(hosted, 'hosted');
   const test = 60 * 0.00318;
 
-  it('takes the time of the online copy instead of this computer’s', () => {
+  it('takes the time of the online copy instead of the time of this computer', () => {
     expect(testSeconds(hosted)).toBe(60 * 150);
     expect(testSeconds(hosted, 'local')).toBe(60 * 150);
     expect(testSeconds(hosted, 'hosted')).toBe(60 * 15);

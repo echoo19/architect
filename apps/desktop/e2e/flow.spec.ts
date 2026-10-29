@@ -139,13 +139,13 @@ for (const theme of THEMES) {
     // The write setting names the files it covers, in the same words as the agent's own setting.
     const permissions = page.getByRole('region', { name: 'Permissions' });
     await expect(permissions).toContainText('invoices.csv, bookings.csv');
-    for (const setting of ['Saving files', 'Opening files outside the job']) {
-      await expect(
-        permissions
-          .getByRole('radiogroup', { name: setting })
-          .getByRole('radio', { name: 'Ask first' }),
-      ).toHaveAttribute('aria-checked', 'true');
-    }
+    await expect(
+      permissions
+        .getByRole('radiogroup', { name: 'Saving files' })
+        .getByRole('radio', { name: 'Ask first' }),
+    ).toHaveAttribute('aria-checked', 'true');
+    // Nothing offers a setting that does nothing: the agent can't open files outside its job.
+    await expect(page.getByText('Opening files outside the job')).toHaveCount(0);
 
     // With the teacher's key saved and the model on this computer, nothing stands in the way.
     await expect(page.getByRole('heading', { name: 'Before it can start' })).toHaveCount(0);
@@ -196,17 +196,32 @@ for (const theme of THEMES) {
     await page.getByRole('button', { name: 'Advanced settings' }).click();
     const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
     await expect(advanced).toBeVisible();
+    // The tasks were split when they were added and nothing splits them again, so the sets
+    // show what they are and say why they can't change.
     await advanced.getByRole('tab', { name: 'Task sets' }).click();
-    const practice = advanced.getByRole('textbox', { name: 'Practice tasks' });
-    await practice.fill('200');
     await expect(
-      advanced.getByText('These add up to 310 tasks, but the job has 170.'),
+      advanced.getByText(
+        "The tasks were split into these sets when they were added, so the sets can't change now.",
+      ),
     ).toBeVisible();
-    await expect(advanced.getByRole('status')).toContainText('Not saved: fix the marked field');
-    await practice.fill('60');
+    await expect(advanced.getByRole('textbox', { name: 'Practice tasks' })).toHaveCount(0);
+    await expect(advanced).toContainText(/Practice tasks[\s\S]*60 tasks/);
+    await expect(advanced).toContainText(/Check tasks[\s\S]*40 tasks/);
+    await expect(advanced).toContainText(/Final test[\s\S]*60 tasks/);
+    await capture(page, `flow-advanced-${theme}`);
+    // A field that can change is held to its limits, and says so until it is put right.
+    await advanced.getByRole('tab', { name: 'Time and budget' }).click();
+    const minutes = advanced.getByRole('textbox', { name: 'Training time' });
+    await minutes.fill('0');
+    await expect(
+      advanced.getByText('Use whole minutes, from 1 up to a week (10,080).'),
+    ).toBeVisible();
+    await expect(advanced.getByRole('status')).toContainText(
+      'Not saved: fix the marked field in Time and budget',
+    );
+    await minutes.fill('240');
     await expect(advanced.getByRole('alert')).toHaveCount(0);
     await expect(advanced.getByRole('status')).toContainText('Saved');
-    await capture(page, `flow-advanced-${theme}`);
     await page.keyboard.press('Escape');
     await expect(advanced).toBeHidden();
     await page.getByRole('button', { name: 'Start training' }).click();
@@ -595,6 +610,94 @@ test('cannot take the final test online without an online copy to take it on', a
   await expect(online).toBeDisabled();
   await expect(online).toContainText("Choose an online copy under Agent's model first");
   await expect(where.getByRole('radio', { name: /On this computer/ })).toBeChecked();
+});
+
+test('keeps a checker file chosen from elsewhere inside the job, and saves that copy from then on', async () => {
+  const { app, page } = launched;
+  await stubFlow();
+  // A job graded by a checker file, as the sample job is, and a file to choose in its place.
+  await stubEngine(app, {
+    'jobs:get': { ...job, checker: { kind: 'module', path: 'checker.js' } },
+    'files:pick': ['D:/Downloads/my-checks.js'],
+  });
+  // The engine copies a file chosen by its full path into the job and answers with the copy's name.
+  await app.evaluate(({ ipcMain }) => {
+    const store = globalThis as typeof globalThis & { savedCheckers?: unknown[] };
+    store.savedCheckers = [];
+    ipcMain.removeHandler('jobs:save');
+    ipcMain.handle('jobs:save', (_event, saved: { checker: { kind: string; path?: string } }) => {
+      store.savedCheckers?.push(saved.checker);
+      const chosen =
+        saved.checker.kind === 'module' && /^([A-Za-z]:)?[\\/]/.test(saved.checker.path ?? '');
+      const checker = { kind: 'module', path: 'my-checks-3f9a2c1b4d5e.js' };
+      return { ok: true, value: chosen ? { ...saved, checker } : saved };
+    });
+  });
+  const savedCheckers = () =>
+    app.evaluate(
+      () => (globalThis as typeof globalThis & { savedCheckers?: unknown[] }).savedCheckers ?? [],
+    );
+  await applySettings(page, { theme: 'dark', onboarded: true, comparisonMode: false });
+  await resize(DEFINE_HEIGHT);
+  await goTo(page, `/jobs/${FLOW.jobId}/define`);
+  await page.getByRole('button', { name: 'Advanced settings' }).click();
+  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+  await advanced.getByRole('tab', { name: 'Grading' }).click();
+  await expect(advanced.getByText('checker.js', { exact: true }).first()).toBeVisible();
+  await expect(
+    advanced.getByText(
+      'A file you choose is copied into the job when it saves, so moving the original changes nothing.',
+    ),
+  ).toBeVisible();
+
+  await advanced.getByRole('button', { name: 'Change' }).click();
+  await expect(advanced.getByText('my-checks-3f9a2c1b4d5e.js').first()).toBeVisible();
+  expect(await savedCheckers()).toEqual([{ kind: 'module', path: 'D:/Downloads/my-checks.js' }]);
+
+  // The next save, of another field, names the copy: the original is never looked for again.
+  await advanced.getByRole('tab', { name: 'Time and budget' }).click();
+  await advanced.getByRole('textbox', { name: 'Rounds' }).fill('10');
+  await expect(advanced.getByRole('status')).toContainText('Saved');
+  expect((await savedCheckers()).at(-1)).toEqual({
+    kind: 'module',
+    path: 'my-checks-3f9a2c1b4d5e.js',
+  });
+});
+
+test('exports the job file where the person chooses, and says what stays behind', async () => {
+  const { app, page } = launched;
+  await stubFlow();
+  await stubRecorded(app, 'files:save', 'D:/Exports/service-desk.job.json');
+  await stubRecorded(app, 'jobs:exportFile', null);
+  await applySettings(page, { theme: 'dark', onboarded: true, comparisonMode: false });
+  await resize(DEFINE_HEIGHT);
+  await goTo(page, `/jobs/${FLOW.jobId}/define`);
+  await page.getByRole('button', { name: 'Advanced settings' }).click();
+  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+
+  await advanced.getByRole('button', { name: 'Export the job file' }).click();
+  await expect(
+    page.getByText('service-desk.job.json. Its tasks and data files stay on this computer.'),
+  ).toBeVisible();
+  expect(await recordedCalls(app, 'files:save')).toEqual([
+    [
+      {
+        title: 'Export the job file',
+        defaultName: 'service-desk.job.json',
+        filters: [{ name: 'Job file', extensions: ['json'] }],
+      },
+    ],
+  ]);
+  expect(await recordedCalls(app, 'jobs:exportFile')).toEqual([
+    [FLOW.jobId, 'D:/Exports/service-desk.job.json'],
+  ]);
+
+  // Closing the save dialog without choosing a file writes nothing.
+  await stubRecorded(app, 'files:save', null);
+  await stubRecorded(app, 'jobs:exportFile', null);
+  await advanced.getByRole('button', { name: 'Export the job file' }).click();
+  await expect.poll(() => recordedCalls(app, 'files:save')).toHaveLength(1);
+  expect(await recordedCalls(app, 'jobs:exportFile')).toEqual([]);
 });
 
 test('recovers when the mentor fails, and says so when it is slow', async () => {

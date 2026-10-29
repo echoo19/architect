@@ -23,6 +23,10 @@ const PROBLEMS: Record<ErrorCode, Problem> = {
     cause: "That isn't an Architect agent.",
     next: 'Check the name and try again.',
   },
+  not_a_job: {
+    cause: "That isn't a job file.",
+    next: 'A job folder holds job.json, tasks.jsonl and a data folder with the files the job works on. Choose its job.json.',
+  },
   package_changed: {
     cause: 'This package was edited after it was made.',
     next: 'Ask whoever sent it for a new copy.',

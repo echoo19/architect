@@ -63,6 +63,10 @@ function DefineSkeleton() {
 
 function DefineEditor({ initial }: { initial: Job }) {
   const summaries = useJobs();
+  // A job just made, imported or drafted isn't in a list read before it, and its task count says
+  // whether its tasks were split: read the list again whenever a job opens.
+  const { reload: reloadJobs } = summaries;
+  useEffect(() => reloadJobs(), [reloadJobs]);
   const taskCount = summaries.data?.find((summary) => summary.id === initial.id)?.taskCount ?? null;
   const editor = useJobEditor(initial, taskCount);
   const { job } = editor;

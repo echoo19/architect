@@ -107,6 +107,13 @@ export const flowApi = {
   draftReply: (sessionId: string, text: string) =>
     read('jobs.draftReply', DraftTurnSchema, bridge().jobs.draftReply(sessionId, text)),
   saveJob: (job: Job) => read('jobs.save', JobSchema, bridge().jobs.save(job)),
+  /** Imports a job file picked in a dialog, as a new job. */
+  importJob: (path: string) => read('jobs.importFile', JobSchema, bridge().jobs.importFile(path)),
+  /** Writes the job's settings to a file chosen in a save dialog. */
+  exportJob: (jobId: string, path: string) => bridge().jobs.exportFile(jobId, path),
+  /** The system's save dialog: the file chosen, or null when the person cancels. */
+  saveFile: (options: Parameters<ArchitectApi['files']['save']>[0]) =>
+    read('files.save', z.string().nullable(), bridge().files.save(options)),
   createSample: () => read('jobs.createSample', JobSchema, bridge().jobs.createSample()),
   /** Whether a model's server answers and has the model, without running it. */
   testStudent: (endpoint: StudentEndpoint) =>

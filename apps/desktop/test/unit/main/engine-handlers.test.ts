@@ -107,6 +107,48 @@ describe('engine handlers', () => {
     expect(!result.ok && result.error.message).toContain('Invalid arguments for jobs.draftStart');
   });
 
+  describe('saving a job with a checker file', () => {
+    const job = (checker: Job['checker']): Job => makeJob({ id: 'job_1', checker });
+
+    it('passes on the file when the user picked it, to be copied into the job', async () => {
+      const { engine, picked, call } = setup();
+      const file = join(ROOT, 'downloads', 'checks.js');
+      picked.add([file], 'files');
+      const saved = job({ kind: 'module', path: file });
+      expect(await call('jobs:save', saved)).toEqual({ ok: true, value: saved });
+      expect(engine.jobs.save).toHaveBeenCalledExactlyOnceWith(saved);
+    });
+
+    it('refuses a file the user did not pick, so a page cannot name one to be read', async () => {
+      const { engine, call } = setup();
+      const result = await call(
+        'jobs:save',
+        job({ kind: 'module', path: join(ROOT, 'secrets', 'passwords.js') }),
+      );
+      expect(result.ok).toBe(false);
+      expect(!result.ok && result.error.message).toContain(
+        'only opens files and folders you choose',
+      );
+      expect(engine.jobs.save).not.toHaveBeenCalled();
+    });
+
+    it('passes on a checker that is already a name inside the job, and a built-in one', async () => {
+      const { engine, call } = setup();
+      await call('jobs:save', job({ kind: 'module', path: 'checker.js' }));
+      await call('jobs:save', job({ kind: 'builtin' }));
+      expect(engine.jobs.save.mock.calls.map(([saved]) => saved.checker)).toEqual([
+        { kind: 'module', path: 'checker.js' },
+        { kind: 'builtin' },
+      ]);
+    });
+
+    it('leaves a job it cannot read for the engine to refuse in its own words', async () => {
+      const { engine, call } = setup();
+      await call('jobs:save', { id: 'job_1' });
+      expect(engine.jobs.save).toHaveBeenCalledExactlyOnceWith({ id: 'job_1' });
+    });
+  });
+
   describe('a new job takes what the person chose', () => {
     const wanted = (job: Job) => applyChoices(job, CHOSEN);
 

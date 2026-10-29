@@ -8,6 +8,7 @@ import { mentorIsLocal, mentorName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { AttachedFile } from './AttachedFile';
 import { sendToMentor, useDraftStore } from './draft-store';
+import { ImportJobButton } from './ImportJobButton';
 import { SampleJobButton } from './SampleJobButton';
 
 /** Data the agent works with, and example tasks with their answers. */
@@ -113,6 +114,7 @@ export function DescribeHero() {
         <div className="-mt-3 flex flex-wrap items-center justify-center gap-2">
           <SampleJobButton size="md" />
           <ReadyMadeAgentButton size="md" />
+          <ImportJobButton size="md" />
         </div>
       )}
     </div>

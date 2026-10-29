@@ -35,11 +35,12 @@ import { ModelPicker } from '../../settings/models/ModelPicker';
 import { PriceRow } from '../../settings/models/PriceRow';
 import { modelNames } from '../names';
 import { aboutUsd, estimateMentorUsd, mentorPresetOf, mentorPriceOf } from './estimates';
+import { ExportJobFile } from './ExportJobFile';
 import { NumberField, PathField, TabNote } from './fields';
 import { FinalTestChoice } from './FinalTestChoice';
 import { presetOf, providerName, type HostedAvailability } from './hosted';
 import { TYPING_PAUSE_MS, type JobEditor } from './use-job-editor';
-import type { JobIssues } from './validate';
+import { tasksSplit, type JobIssues } from './validate';
 
 export type AdvancedTab =
   | 'tasks'
@@ -129,11 +130,14 @@ export function AdvancedDialog({
       footer={
         <>
           <SaveIndicator editor={editor} />
-          <DialogClose asChild>
-            <Button variant="primary" size="md">
-              Done
-            </Button>
-          </DialogClose>
+          <span className="flex items-center gap-2">
+            <ExportJobFile editor={editor} />
+            <DialogClose asChild>
+              <Button variant="primary" size="md">
+                Done
+              </Button>
+            </DialogClose>
+          </span>
         </>
       }
     >
@@ -224,7 +228,14 @@ function TabContent({
     case 'harness':
       return <HarnessTab editor={editor} />;
     case 'splits':
-      return <SplitsTab editor={editor} />;
+      return (
+        <SplitsTab
+          editor={editor}
+          taskCount={
+            summaries.data?.find((summary) => summary.id === editor.job.id)?.taskCount ?? null
+          }
+        />
+      );
     case 'evaluation':
       return <EvaluationTab editor={editor} />;
   }
@@ -294,16 +305,22 @@ function CheckerTab({ editor }: TabProps) {
         />
       </SettingsRow>
       {checker.kind === 'module' && (
-        <PathField
-          label="Checker file"
-          kind="file"
-          extensions={['js', 'mjs']}
-          path={checker.path}
-          issue={issues['checker.path']}
-          onPick={(path) =>
-            change((current) => ({ ...current, checker: { kind: 'module', path } }))
-          }
-        />
+        <>
+          <PathField
+            label="Checker file"
+            kind="file"
+            extensions={['js', 'mjs']}
+            path={checker.path}
+            issue={issues['checker.path']}
+            onPick={(path) =>
+              change((current) => ({ ...current, checker: { kind: 'module', path } }))
+            }
+          />
+          <TabNote>
+            A file you choose is copied into the job when it saves, so moving the original changes
+            nothing.
+          </TabNote>
+        </>
       )}
     </>
   );
@@ -647,13 +664,36 @@ function HarnessTab({ editor }: TabProps) {
   );
 }
 
-function SplitsTab({ editor }: TabProps) {
+function SplitsTab({ editor, taskCount }: TabProps & { taskCount: number | null }) {
   const { job, issues } = editor;
   const set = typed(editor);
   const { mentor, student } = modelNames(job);
   const splits = (patch: Partial<Job['splits']>) =>
     set((current) => ({ ...current, splits: { ...current.splits, ...patch } }));
   const { train, dev, test } = job.splits;
+  if (tasksSplit(taskCount)) {
+    // The tasks were split when they were added, and nothing splits them again.
+    return (
+      <>
+        <TabNote className="border-t-0 pt-1">
+          The tasks were split into these sets when they were added, so the sets can&apos;t change
+          now.
+        </TabNote>
+        <SettingsRow label="Practice tasks" meta={`${mentor} teaches ${student} from these`}>
+          <SettingsValue>{plural(train, 'task')}</SettingsValue>
+        </SettingsRow>
+        <SettingsRow
+          label="Check tasks"
+          meta={`${mentor} sees only the score. It decides which changes stay.`}
+        >
+          <SettingsValue>{plural(dev, 'task')}</SettingsValue>
+        </SettingsRow>
+        <SettingsRow label="Final test" meta="Opened once, at the end">
+          <SettingsValue>{plural(test, 'task')}</SettingsValue>
+        </SettingsRow>
+      </>
+    );
+  }
   return (
     <>
       <NumberField

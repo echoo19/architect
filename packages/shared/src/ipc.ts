@@ -392,6 +392,16 @@ export interface ArchitectApi {
       multiple?: boolean;
       directory?: boolean;
     }): Promise<string[]>;
+    /**
+     * The system's save dialog, for a file to write, such as a job file: the file chosen, or null
+     * when the person cancels. The file is theirs to overwrite, which the dialog confirms, and it
+     * is the only one that may then be written.
+     */
+    save(options: {
+      title: string;
+      defaultName: string;
+      filters?: { name: string; extensions: string[] }[];
+    }): Promise<string | null>;
   };
   jobs: {
     list(): Promise<JobSummary[]>;
@@ -399,7 +409,13 @@ export interface ArchitectApi {
     save(job: Job): Promise<Job>;
     /** Creates the sample job shipped with the app and returns it. */
     createSample(): Promise<Job>;
+    /**
+     * Imports a job file with its `tasks.jsonl` and `data/` folder beside it, as a new job that
+     * starts from this person's teacher and model. A file that isn't a job file fails with the
+     * code `not_a_job`.
+     */
     importFile(path: string): Promise<Job>;
+    /** Writes the job's settings as a job file. Its tasks and data stay where they are. */
     exportFile(jobId: string, path: string): Promise<void>;
     draftStart(description: string, files: string[]): Promise<DraftTurn>;
     draftReply(sessionId: string, text: string): Promise<DraftTurn>;

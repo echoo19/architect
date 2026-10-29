@@ -13,6 +13,7 @@ import {
   stubEngine,
   stubEngineFailure,
 } from './fixtures';
+import { FLOW_LOCAL } from './fixtures-flow';
 import { installation } from './fixtures-versions';
 import {
   asRealComparison,
@@ -171,7 +172,12 @@ test('captures the empty workspace and a failed action', async () => {
 
 test('captures the populated screens with sample engine replies', async () => {
   const page = launched.page;
-  await stubEngine(launched.app, SAMPLE_ENGINE);
+  // The story's job is ready to start: its teacher's key is saved and its model is downloaded.
+  await stubEngine(launched.app, {
+    ...SAMPLE_ENGINE,
+    'secrets:status': { meta: true, openrouter: true },
+    'connections:detectLocal': FLOW_LOCAL,
+  });
   for (const theme of THEMES) {
     await applySettings(page, { theme });
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
