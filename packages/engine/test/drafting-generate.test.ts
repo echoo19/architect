@@ -491,51 +491,113 @@ describe('asking one question once, whichever rule is behind it', () => {
 });
 
 describe('asking the same words of two tables', () => {
-  /** Forty records with the same ids in both files and an amount of each file's own. */
-  const records = (amount: (index: number) => number): string =>
-    `id,amount\n${Array.from({ length: 40 }, (_, index) => `R-${index + 1},${amount(index).toFixed(2)}`).join('\n')}\n`;
-  const pair = new Map([
-    [
-      'tickets.csv',
-      readTable(
+  /** The ids of a file and an amount of each id, as the file writes them. */
+  const records = (ids: readonly string[], amount: (index: number) => number): string =>
+    `id,amount\n${ids.map((id, index) => `${id},${amount(index).toFixed(2)}`).join('\n')}\n`;
+  const ids = (prefix: string, count: number): string[] =>
+    Array.from({ length: count }, (_, index) => `${prefix}-${index + 1}`);
+  const tablesOf = (tickets: readonly string[], archive: readonly string[]) =>
+    new Map([
+      [
         'tickets.csv',
-        records((index) => 100 + index * 2.5),
-      ),
-    ],
-    [
-      'archive.csv',
-      readTable(
+        readTable(
+          'tickets.csv',
+          records(tickets, (index) => 100 + index * 2.5),
+        ),
+      ],
+      [
         'archive.csv',
-        records((index) => 7000 + index * 3.1),
-      ),
-    ],
-  ]);
-  const amountIn = (table: string): TypeInput => ({
+        readTable(
+          'archive.csv',
+          records(archive, (index) => 7000 + index * 3.1),
+        ),
+      ],
+    ]);
+  const amountIn = (
+    table: string,
+    request = 'What is the amount for record {key}?',
+  ): TypeInput => ({
     id: table.replace('.csv', ''),
     label: `Amounts in ${table}`,
     description: 'Look up the amount of a record.',
-    spec: {
-      template: 'lookup',
-      table,
-      keyColumn: 'id',
-      columns: ['amount'],
-      request: 'What is the amount for record {key}?',
-    },
+    spec: { template: 'lookup', table, keyColumn: 'id', columns: ['amount'], request },
+  });
+  /** What an agent reads in each task, set against what it is to answer: one prompt, one answer. */
+  const answersOf = (made: ReturnType<typeof generateTasks>): Map<string, Set<string>> => {
+    const answers = new Map<string, Set<string>>();
+    for (const task of made.tasks) {
+      const prompt = task.prompt.toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+      answers.set(prompt, (answers.get(prompt) ?? new Set()).add(JSON.stringify(task.expected)));
+    }
+    return answers;
+  };
+  const tasksOf = (made: ReturnType<typeof generateTasks>, type: string) =>
+    made.tasks.filter((task) => task.type === type);
+
+  it('sends the second kind back to say which table, when the same words and key have two answers', () => {
+    // Record R-1 is in both files, with the answer of each: asked in the same words of both, an
+    // agent is given one prompt and two right answers.
+    const both = tablesOf(ids('R', 40), ids('R', 40));
+    const made = generateTasks([amountIn('tickets.csv'), amountIn('archive.csv')], both, 5);
+    expect(made.types.map((type) => type.id)).toEqual(['tickets']);
+    expect(made.rejected.map((type) => type.id)).toEqual(['archive']);
+    const told =
+      '40 of its 40 requests read exactly like requests of "Amounts in tickets.csv", which asks about tickets.csv, so an agent could not tell which table to read.';
+    const say = 'Say which table the request is about, for example "in archive.csv".';
+    expect(made.rejected[0]?.problems).toEqual([`${told} ${say}`]);
+    // The teacher is told no key; the person is shown one request that reads the same in both.
+    expect(made.rejected[0]?.problems.join(' ')).not.toMatch(/R-\d/);
+    expect(made.rejected[0]?.inFull.get(`${told} ${say}`)).toMatch(
+      /^40 of its 40 requests .*to read\. One is "What is the amount for record R-\d+\?"\. Say which/,
+    );
+    // No prompt of the job has two answers, whichever file is asked first.
+    for (const [prompt, answers] of answersOf(made)) expect(answers.size, prompt).toBe(1);
+    const swapped = generateTasks([amountIn('archive.csv'), amountIn('tickets.csv')], both, 5);
+    expect(swapped.types.map((type) => type.id)).toEqual(['archive']);
+    expect(swapped.rejected.map((type) => type.id)).toEqual(['tickets']);
   });
 
-  it('keeps both, since each reads other rows and has other answers', () => {
-    const made = generateTasks([amountIn('tickets.csv'), amountIn('archive.csv')], pair, 5);
+  it('sends it back for a few requests too, since the words are the same for every key', () => {
+    // Six of the archive's forty records are also in the tickets.
+    const partly = tablesOf(ids('R', 40), [...ids('A', 34), ...ids('R', 6)]);
+    const made = generateTasks([amountIn('tickets.csv'), amountIn('archive.csv')], partly, 5);
+    expect(made.rejected.map((type) => type.id)).toEqual(['archive']);
+    expect(made.rejected[0]?.problems[0]).toMatch(
+      /^6 of its 40 requests read exactly like requests of "Amounts in tickets\.csv"/,
+    );
+    for (const [prompt, answers] of answersOf(made)) expect(answers.size, prompt).toBe(1);
+  });
+
+  it('keeps both when the two files have no id in common, since no request reads the same', () => {
+    const apart = tablesOf(ids('R', 40), ids('A', 40));
+    const made = generateTasks([amountIn('tickets.csv'), amountIn('archive.csv')], apart, 5);
     expect(made.rejected).toEqual([]);
     expect(made.types.map((type) => type.id)).toEqual(['tickets', 'archive']);
-    for (const id of ['tickets', 'archive']) {
-      expect(made.tasks.filter((task) => task.type === id).length).toBeGreaterThan(30);
+    for (const type of ['tickets', 'archive']) {
+      expect(tasksOf(made, type).length, type).toBeGreaterThan(30);
     }
-    // Record R-1 is asked about in each, and each file gives it its own answer.
-    const expectedOf = (type: string) =>
-      made.tasks.find((task) => task.type === type && task.meta?.['key'] === 'R-1')?.expected;
-    expect(expectedOf('tickets')).toBeDefined();
-    expect(expectedOf('archive')).toBeDefined();
-    expect(expectedOf('tickets')).not.toEqual(expectedOf('archive'));
+    for (const [prompt, answers] of answersOf(made)) expect(answers.size, prompt).toBe(1);
+  });
+
+  it('keeps both when the words name the table, though both files have the same ids', () => {
+    const both = tablesOf(ids('R', 40), ids('R', 40));
+    const made = generateTasks(
+      [
+        amountIn('tickets.csv', 'What is the amount for record {key} in tickets.csv?'),
+        amountIn('archive.csv', 'What is the amount for record {key} in archive.csv?'),
+      ],
+      both,
+      5,
+    );
+    expect(made.rejected).toEqual([]);
+    expect(made.types.map((type) => type.id)).toEqual(['tickets', 'archive']);
+    // Record R-1 is asked about in each, in words that say which file, with each file's answer.
+    const first = (type: string) =>
+      tasksOf(made, type).find((task) => task.meta?.['key'] === 'R-1');
+    expect(first('tickets')?.prompt).toContain('in tickets.csv?');
+    expect(first('archive')?.prompt).toContain('in archive.csv?');
+    expect(first('tickets')?.expected).not.toEqual(first('archive')?.expected);
+    for (const [prompt, answers] of answersOf(made)) expect(answers.size, prompt).toBe(1);
   });
 });
 

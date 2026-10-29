@@ -232,6 +232,15 @@ function wordsOf(table: string, candidate: Candidate): string {
   return `${foldKey(table)}\n${plainWords(requestOf(candidate))}`;
 }
 
+/**
+ * Everything an agent is told by a request, as it reads. The table is not in it, since the agent
+ * is not told one unless the words say it, so two kinds of task that put these same words to
+ * two tables give an agent one prompt with two answers.
+ */
+function promptOf(candidate: Candidate): string {
+  return plainWords(candidate.prompt);
+}
+
 /** Kinds of task whose every request is about one row of one table. */
 function asksAboutRows(spec: TaskSpec): boolean {
   return spec.template === 'lookup' || spec.template === 'rule';
@@ -316,8 +325,10 @@ function choose(kinds: readonly Asking[], shares: readonly number[]): Candidate[
  * and a final-test task at once. So is a request that puts an earlier one's words to the same
  * row, whatever rule is behind it: two rules that work out the same number in another order, or
  * differently, still ask one question in those words. So are the requests whose answer comes only
- * from rows the teacher was shown (`shown`). `passRate` is the share of tasks the job asks to get
- * right, which a rule that is a copy in that many cases must not reach.
+ * from rows the teacher was shown (`shown`). A kind whose requests read exactly like an earlier
+ * kind's about another table is rejected: the agent is not told the table, so it would be given
+ * one prompt with two answers. `passRate` is the share of tasks the job asks to get right, which
+ * a rule that is a copy in that many cases must not reach.
  */
 export function generateTasks(
   inputs: readonly TypeInput[],
@@ -337,6 +348,8 @@ export function generateTasks(
   const asked = new Map<string, string>();
   /** The words of each request, with the kind of task that put them first. */
   const worded = new Map<string, string>();
+  /** What an agent reads in each request, with the kind of task and the table that put it first. */
+  const prompted = new Map<string, { label: string; table: string }>();
 
   for (const input of inputs) {
     const random = seededRandom(`architect-draft:${seed}:${input.id}`);
@@ -391,6 +404,24 @@ export function generateTasks(
         }
       }
       candidates = fresh;
+      // An agent is not told which table a request is about, so the same words put to two tables
+      // are one prompt with two answers: a request an earlier kind of task has put to another
+      // table, in words that read the same, can't be told from it. The kind that comes second is
+      // sent back to say which table it means.
+      const crossed = candidates.filter((candidate) => prompted.has(promptOf(candidate)));
+      const first = crossed[0];
+      const other = first === undefined ? undefined : prompted.get(promptOf(first));
+      if (first !== undefined && other !== undefined) {
+        const reads = `${crossed.length} of its ${candidates.length} requests read exactly like requests of "${other.label}", which asks about ${other.table}, so an agent could not tell which table to read.`;
+        const say = `Say which table the request is about, for example "in ${table.name}".`;
+        addProblem(
+          problems,
+          inFull,
+          `${reads} ${say}`,
+          `${reads} One is "${requestOf(first)}". ${say}`,
+        );
+        candidates = [];
+      }
     }
     if (problems.length === 0 && candidates.length > 0) {
       const answers = new Set(candidates.map((candidate) => candidate.answerKey));
@@ -420,6 +451,7 @@ export function generateTasks(
     for (const candidate of askable) {
       asked.set(candidate.identity, input.label);
       worded.set(wordsOf(table.name, candidate), input.label);
+      prompted.set(promptOf(candidate), { label: input.label, table: table.name });
     }
     usable.push({ input, run, candidates, random });
   }

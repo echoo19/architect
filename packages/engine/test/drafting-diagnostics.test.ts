@@ -209,6 +209,17 @@ const WALKS: Walk[] = [
     ],
     shown: [/Every request would have the same answer, \{"note":"LATE-lone note"\}, so an agent/],
   },
+  {
+    name: 'two lookups that ask the same words of two files with the same ids',
+    types: [
+      lookup({ id: 'ledger_amounts', label: 'Ledger amounts' }),
+      lookup({ id: 'archive_amounts', label: 'Archive amounts', table: 'archive.csv' }),
+    ],
+    told: [
+      /Task type "archive_amounts" \(Archive amounts\): \d+ of its 55 requests read exactly like requests of "Ledger amounts", which asks about ledger\.csv, so an agent could not tell which table to read\. Say which table the request is about, for example "in archive\.csv"\./,
+    ],
+    shown: [/One is "What is the amount for record LATE-\d+\?"\. Say which table/],
+  },
 ];
 
 describe('what a draft is sent back for, over tables whose later rows each hold their own values', () => {
