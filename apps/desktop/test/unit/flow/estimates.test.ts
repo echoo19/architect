@@ -202,16 +202,18 @@ describe('what each part of a run takes', () => {
 
   it('says what the time button gives, in the limit that button sets', () => {
     // The button's limit and the line beside it are found from the same number.
-    expect(allowingLine(540)).toBe('Allowing 9 hours leaves room for one round.');
-    expect(allowingLine(60)).toBe('Allowing 1 hour leaves room for one round.');
-    expect(allowingLine(150)).toBe('Allowing 2.5 hours leaves room for one round.');
+    expect(allowingLine(540)).toBe('Allowing 9 hours leaves room for one round of teaching.');
+    expect(allowingLine(60)).toBe('Allowing 1 hour leaves room for one round of teaching.');
+    expect(allowingLine(150)).toBe('Allowing 2.5 hours leaves room for one round of teaching.');
     for (const place of ['local', 'hosted'] as const) {
       const minutes = minutesForOneRound(job, place);
       if (minutes === null) throw new Error('A round fits in a week.');
       const allowed = makeJob({ budget: { ...job.budget, maxWallMinutes: minutes } });
       // What the line says is true: one round fits, even when its change is measured again.
       expect(estimateTime(allowed, place).rounds.fewest).toBeGreaterThanOrEqual(1);
-      expect(allowingLine(minutes)).toBe(`Allowing ${capText(minutes)} leaves room for one round.`);
+      expect(allowingLine(minutes)).toBe(
+        `Allowing ${capText(minutes)} leaves room for one round of teaching.`,
+      );
     }
   });
 
@@ -234,7 +236,7 @@ describe('what each part of a run takes', () => {
       'Not even one round of teaching fits in 3 hours on this Mac',
     );
     expect(wontTeachBody(job, 'local', local, names)).toBe(
-      "Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once, and at least 3 h 50 min more for each round of practice and fixing. That doesn't fit in the 3 hours allowed, so Spark would run out of time before it changed anything.",
+      "Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once, then 3 h 50 min to 7 h 10 min for each round of teaching. That doesn't fit in the 3 hours allowed, so Spark would run out of time before it changed anything.",
     );
     // Online, with a limit that leaves room to score the check tasks and not for a round after it.
     const short = makeJob({ budget: { maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: 20 } });
@@ -242,7 +244,7 @@ describe('what each part of a run takes', () => {
       true,
     );
     expect(wontTeachBody(short, 'hosted', estimateTime(short, 'hosted'), names)).toBe(
-      "Glimmer takes about 15 seconds a task online: about 10 min to score the check tasks once, and at least 23 min more for each round of practice and fixing. That doesn't fit in the 20 minutes allowed, so Spark would run out of time before it changed anything.",
+      "Glimmer takes about 15 seconds a task online: about 10 min to score the check tasks once, then 23 min to 43 min for each round of teaching. That doesn't fit in the 20 minutes allowed, so Spark would run out of time before it changed anything.",
     );
   });
 
@@ -252,6 +254,52 @@ describe('what each part of a run takes', () => {
     expect(wontTeachBody(hour, 'local', estimateTime(hour, 'local'), names)).toBe(
       "Glimmer takes about 2.5 minutes a task here, so scoring the check tasks once takes about 1 h 40 min. That doesn't fit in the 1 hour allowed, so Spark would never get to teach.",
     );
+  });
+
+  it("says a round's range, so the limit the button names adds up from what is said", () => {
+    const names = { mentor: 'Spark', student: 'Glimmer' };
+    /** A time as the callout writes it: "1 h 40 min", "23 min" or "9 h". */
+    const time = String.raw`\d+ h(?: \d+ min)?|\d+ min`;
+    const seconds = (text: string): number =>
+      (Number(/(\d+) h/.exec(text)?.[1] ?? 0) * 60 + Number(/(\d+) min/.exec(text)?.[1] ?? 0)) * 60;
+    // A limit that leaves room to score the check tasks and not for a round after it, at each place.
+    const limits = { local: 180, hosted: 20 } as const;
+    for (const place of ['local', 'hosted'] as const) {
+      const short = makeJob({
+        budget: { maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: limits[place] },
+      });
+      const estimate = estimateTime(short, place);
+      const body = wontTeachBody(short, place, estimate, names);
+      const said = new RegExp(
+        `about (${time}) to score the check tasks once, then (${time}) to (${time}) for each round of teaching\\.`,
+      ).exec(body);
+      if (said === null) throw new Error(`The body does not say a round's range: ${body}`);
+      const [start = '', shortest = '', longest = ''] = said.slice(1);
+      expect(seconds(start)).toBe(estimate.startSeconds);
+      expect(seconds(shortest)).toBe(estimate.roundSeconds.least);
+      expect(seconds(longest)).toBe(estimate.roundSeconds.most);
+      // The button's limit is the next whole hour above the check tasks and the longest round
+      // said there, and the line beside it says what that gives, so the two add up.
+      const minutes = minutesForOneRound(short, place) ?? 0;
+      const needed = seconds(start) + seconds(longest);
+      expect(minutes * 60).toBeGreaterThanOrEqual(needed);
+      expect(minutes * 60).toBeLessThan(needed + 3600);
+      expect(allowingLine(minutes)).toContain(`${capText(minutes)} leaves room for one round`);
+    }
+  });
+
+  it('calls a round a round of teaching everywhere in the callout, and by no other name', () => {
+    const names = { mentor: 'Spark', student: 'Glimmer' };
+    for (const place of ['local', 'hosted'] as const) {
+      const words = [
+        wontTeachTitle(job, place, 'this computer'),
+        wontTeachBody(job, place, estimateTime(job, place), names),
+        allowingLine(minutesForOneRound(job, place) ?? 0),
+      ].join(' ');
+      expect(words.match(/\bround\b/g)).toHaveLength(3);
+      expect(words.match(/\bround of teaching\b/g)).toHaveLength(3);
+      expect(words).not.toMatch(/practice|fixing/);
+    }
   });
 
   it("keeps the engine's words and the host's out of what it says", () => {

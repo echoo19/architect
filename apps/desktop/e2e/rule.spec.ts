@@ -366,7 +366,11 @@ for (const theme of THEMES) {
       'Not even one round of teaching fits in 4 hours on this computer',
     );
     await expect(slow.getByRole('button', { name: 'Allow 7 hours' })).toBeVisible();
-    await expect(slow).toContainText('Allowing 7 hours leaves room for one round.');
+    await expect(slow).toContainText('Allowing 7 hours leaves room for one round of teaching.');
+    // The round's time is said as a range, which the limit the button names is made from.
+    await expect(slow).toContainText(
+      /to score the check tasks once, then \d+ h( \d+ min)? to \d+ h( \d+ min)? for each round of teaching\./,
+    );
     await capture(page, `rule-confirmed-${theme}`);
     await allowMoreTime(page);
     await expect(slow).toHaveCount(0);

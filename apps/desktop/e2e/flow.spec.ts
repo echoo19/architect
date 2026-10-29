@@ -194,12 +194,16 @@ for (const theme of THEMES) {
     await expect(local).not.toContainText('Too slow');
     const wont = 'Not even one round of teaching fits in 4 hours on this computer';
     const callout = page.getByRole('status').filter({ hasText: wont });
+    // A round is said as a range, from the shortest it takes to the longest, so that the limit the
+    // button names adds up: 1 h 40 min of check tasks and a round of at most 7 h 10 min is 8 h 50.
     await expect(callout).toContainText(
-      'Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once',
+      'Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once, then 3 h 50 min to 7 h 10 min for each round of teaching.',
     );
     await expect(callout).toContainText("That doesn't fit in the 4 hours allowed");
     // What the time button gives is said beside it, and it is the limit the button names.
-    await expect(callout).toContainText('Allowing 9 hours leaves room for one round.');
+    await expect(callout).toContainText('Allowing 9 hours leaves room for one round of teaching.');
+    // A round has one name in the box, the one its title has.
+    await expect(callout).not.toContainText('practice and fixing');
     // The chosen card keeps its title in the normal color, so it does not look switched off.
     const titleColor = (card: Locator) =>
       card

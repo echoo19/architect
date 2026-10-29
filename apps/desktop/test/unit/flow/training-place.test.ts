@@ -71,9 +71,9 @@ function text(html: string): string {
 
 const TITLE = 'Not even one round of teaching fits in 3 hours on this computer';
 const BODY =
-  "Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once, and at least 3 h 50 min more for each round of practice and fixing. That doesn't fit in the 3 hours allowed, so Spark would run out of time before it changed anything.";
+  "Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once, then 3 h 50 min to 7 h 10 min for each round of teaching. That doesn't fit in the 3 hours allowed, so Spark would run out of time before it changed anything.";
 /** What the button that sets a longer limit gives: the limit `minutesForOneRound` found. */
-const GIVES = 'Allowing 9 hours leaves room for one round.';
+const GIVES = 'Allowing 9 hours leaves room for one round of teaching.';
 
 /** The words of the callout alone, apart from the cards and the plan around it. */
 function callout(html: string): string {
@@ -123,7 +123,7 @@ describe('a place that cannot fit a round', () => {
 
   it('says it in the unit the time is in, for a job that trains online', () => {
     const html = render(jobOf('hosted', 20));
-    expect(callout(html)).toContain('Allowing 1 hour leaves room for one round.');
+    expect(callout(html)).toContain('Allowing 1 hour leaves room for one round of teaching.');
   });
 
   it('is loud: a tinted box with an alert mark, not a pale line', () => {

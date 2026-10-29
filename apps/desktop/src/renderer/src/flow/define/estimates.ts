@@ -200,10 +200,11 @@ export function wontTeachTitle(job: Job, place: TrainPlace, device: string): str
 
 /**
  * What the button that sets a longer time limit gives, said beside it: the limit it sets is the
- * one `minutesForOneRound` found, so one round does fit in it.
+ * one `minutesForOneRound` found, so one round does fit in it, the longest it can take included.
+ * A round is called a round of teaching throughout the callout, as its title does.
  */
 export function allowingLine(minutes: number): string {
-  return `Allowing ${capText(minutes)} leaves room for one round.`;
+  return `Allowing ${capText(minutes)} leaves room for one round of teaching.`;
 }
 
 /** A length of time to the minute, which the person can add up: "1 h 40 min", "23 min". */
@@ -214,8 +215,10 @@ function toTheMinute(seconds: number): string {
 /**
  * Said plainly for a place where not one round fits the time limit: the starting measurement and
  * a round take longer than the limit, so the teacher would run out of time before it changed
- * anything. What a round is comes with its time. The times are to the minute, since two figures
- * rounded to the half hour can add up to the limit that the sentence says they pass.
+ * anything. A round comes with its time, from the shortest it takes to the longest, which is the
+ * one the button's limit is made from, so the line under the body adds up. The times are to the
+ * minute, since two figures rounded to the half hour can add up to the limit that the sentence
+ * says they pass.
  */
 export function wontTeachBody(
   job: Job,
@@ -230,8 +233,10 @@ export function wontTeachBody(
   if (estimate.startSeconds >= job.budget.maxWallMinutes * 60) {
     return `${task}, so scoring the check tasks once takes about ${start}. That doesn't fit in the ${cap} allowed, so ${mentor} would never get to teach.`;
   }
-  const round = toTheMinute(estimate.roundSeconds.least);
-  return `${task}: about ${start} to score the check tasks once, and at least ${round} more for each round of practice and fixing. That doesn't fit in the ${cap} allowed, so ${mentor} would run out of time before it changed anything.`;
+  const { least, most } = estimate.roundSeconds;
+  const round =
+    least === most ? toTheMinute(least) : `${toTheMinute(least)} to ${toTheMinute(most)}`;
+  return `${task}: about ${start} to score the check tasks once, then ${round} for each round of teaching. That doesn't fit in the ${cap} allowed, so ${mentor} would run out of time before it changed anything.`;
 }
 
 /** Rough size of one task for the student: the request, its tool results and an answer. */
