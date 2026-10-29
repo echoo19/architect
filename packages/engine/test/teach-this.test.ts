@@ -580,6 +580,12 @@ describe('Improve agent', () => {
     const back = engine.store.corrections.get(lesson.id);
     expect(back?.status).toBe('queued');
     expect(back?.runId).toBeUndefined();
+    // The improvement says why it made no version in the sentence the run keeps.
+    const [improvement] = await improvementsOf(engine.store, engine.jobs, graduateId);
+    expect(improvement?.promotion.allowed).toBe(false);
+    expect(improvement?.promotion.reason).toContain(
+      "Instructions and steps, What it reads when and Small tools are turned off for this job in the teacher's settings.",
+    );
   });
 
   it('waits its turn while another run holds the student, and says so', async () => {

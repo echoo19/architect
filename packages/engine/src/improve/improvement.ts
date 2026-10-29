@@ -17,7 +17,7 @@ import { must } from '../loop/errors';
 import type { JobLibrary } from '../loop/jobs';
 import type { DataPaths } from '../loop/paths';
 import { isTerminal } from '../loop/plan';
-import type { RunState } from '../loop/run-state';
+import { TRAINING_ENDED, type RunState } from '../loop/run-state';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun, StoredVersion } from '../store/records';
 
@@ -304,6 +304,9 @@ function promotionOf(
 ): Improvement['promotion'] {
   if (!isTerminal(record.run.status)) {
     return { allowed: false, reason: 'It is still running.' };
+  }
+  if (candidate === null && record.run.stopReason === 'nothing_to_try') {
+    return { allowed: false, reason: record.run.error ?? TRAINING_ENDED.nothing_to_try };
   }
   if (candidate === null) {
     const ended: Partial<Record<Run['status'], string>> = {

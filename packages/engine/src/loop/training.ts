@@ -1100,19 +1100,25 @@ export function finishTraining(
     state.log('info', 'Stopped before any change was kept, so there is no graduate to test.');
     return;
   }
-  // An improvement still ends in its own step, which hands the lessons back when it kept nothing.
-  if (reason === 'nothing_to_try' && !kept && state.record.improves === undefined) {
+  if (reason === 'nothing_to_try') {
+    // The run keeps the sentence where the person reads it. An improvement still ends in its own
+    // step, which hands the lessons back when it kept nothing.
     const message = why ?? TRAINING_ENDED.nothing_to_try;
-    state.saveRun({
-      status: 'stopped',
-      phase: 'done',
-      stopReason: 'nothing_to_try',
-      error: message,
-      endedAt: state.now(),
-    });
-    state.log('info', `${message} There is no graduate to test.`);
+    if (!kept && state.record.improves === undefined) {
+      state.saveRun({
+        status: 'stopped',
+        phase: 'done',
+        stopReason: reason,
+        error: message,
+        endedAt: state.now(),
+      });
+      state.log('info', `${message} There is no graduate to test.`);
+    } else {
+      state.saveRun({ ...trainingEnd(reason), error: message });
+      state.log('info', message);
+    }
     return;
   }
   state.saveRun(trainingEnd(reason));
-  state.log('info', why ?? TRAINING_ENDED[reason ?? 'complete']);
+  state.log('info', TRAINING_ENDED[reason ?? 'complete']);
 }
