@@ -50,7 +50,9 @@ const DESCRIPTION =
  * without the teacher: the teacher is not called for it, and never sees it.
  */
 const NA_QUESTION =
-  'In tickets.csv, parts_cost sometimes says "N/A". Does "N/A" mean no parts cost? If it can also mean "not known yet", leave those rows out.';
+  'In tickets.csv, parts_cost sometimes says "N/A". If "N/A" means no parts cost, count it as zero. If it can also mean "not known yet", leave those rows out.';
+/** The same question in short, as the rule shows it beside the answer. */
+const NA_PASSAGE = 'What should "N/A" in parts_cost (tickets.csv) count as?';
 
 function reply(request: MentorChatBody): unknown {
   if (request.response_format?.json_schema?.name === 'job_draft') {
@@ -317,7 +319,7 @@ for (const theme of THEMES) {
     // So is the answer about the N/A, beside the question Architect put.
     const mark = card
       .getByRole('listitem')
-      .filter({ has: page.getByText(NA_QUESTION, { exact: true }) });
+      .filter({ has: page.getByText(NA_PASSAGE, { exact: true }) });
     await expect(mark.getByText('Count it as zero', { exact: true })).toBeVisible();
     await expect(mark.getByText('your answer', { exact: true })).toBeVisible();
     // The rule in words is a short list of steps, and what the person said an empty parts cost
@@ -331,10 +333,14 @@ for (const theme of THEMES) {
     ]);
     await expect(card.getByText(/^Start with \(labor hours rounded up/)).toHaveCount(0);
     await expect(
-      card.getByText(/^\d+ rows have an empty parts cost, which counts as 0, as you said\.$/),
+      card.getByText(
+        /^\d+ of \d+ rows have an empty parts cost, which counts as 0, as you said\.$/,
+      ),
     ).toBeVisible();
     await expect(
-      card.getByText(/^\d+ rows have "N\/A" in parts cost, which counts as 0, as you said\.$/),
+      card.getByText(
+        /^\d+ of \d+ rows have "N\/A" in parts cost, which counts as 0, as you said\.$/,
+      ),
     ).toBeVisible();
     // The empty cell and the N/A both count, and nothing else in these records is wrong, so no row
     // is left out and the screen says nothing of any.
@@ -529,7 +535,7 @@ test('leaves the tickets that say N/A out when the person says so, and says why'
   const card = section.getByRole('article', { name: 'Ticket totals' });
   // The answer is kept as an answer, but the rule rests on nothing of it: it is the rule it was.
   await expect(card.getByText('your answer', { exact: true })).toHaveCount(2);
-  await expect(card.getByText(NA_QUESTION, { exact: true })).toHaveCount(0);
+  await expect(card.getByText(NA_PASSAGE, { exact: true })).toHaveCount(0);
   await expect(card.locator('ol').first().locator('> li').nth(3)).toHaveText(
     '4.Add parts cost. An empty parts cost counts as 0, as you said.',
   );

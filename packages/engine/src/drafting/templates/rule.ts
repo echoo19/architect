@@ -386,14 +386,15 @@ export function runRule(
   if (problems.length > 0) return refused(resolved, rule);
 
   const statement = statementOf(expression, words);
-  // How far an empty cell counted as zero reaches, so the person sees what their answer decided.
+  // How far an empty cell counted as zero reaches, out of all the rows as the line on the rows left
+  // out says them, so the person sees what their answer decided.
+  const ofAll = (count: number): string =>
+    `${count} of ${source.rows.length} ${source.rows.length === 1 ? 'row' : 'rows'} ${count === 1 ? 'has' : 'have'}`;
   const zeroed = emptyMeansZero.flatMap((ref) => {
     const count = made.cases.filter((item) => item.zeroed.get(refKey(ref)) === '').length;
     return count === 0
       ? []
-      : [
-          `${count} ${count === 1 ? 'row has' : 'rows have'} an empty ${nameOf(ref, words)}, which counts as 0, as you said.`,
-        ];
+      : [`${ofAll(count)} an empty ${nameOf(ref, words)}, which counts as 0, as you said.`];
   });
   const marked = placeholderMeansZero.flatMap((ref) =>
     ref.tokens.flatMap((token) => {
@@ -403,7 +404,7 @@ export function runRule(
       return count === 0
         ? []
         : [
-            `${count} ${count === 1 ? 'row has' : 'rows have'} ${markWords(token)} in ${nameOf(ref, words)}, which counts as 0, as you said.`,
+            `${ofAll(count)} ${markWords(token)} in ${nameOf(ref, words)}, which counts as 0, as you said.`,
           ];
     }),
   );

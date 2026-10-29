@@ -456,7 +456,7 @@ describe('what the person chose for a mark such as N/A, mark by mark and table b
     ]);
     expect(asked?.[0]?.options).toEqual(['Count it as zero', 'Leave those rows out']);
     expect(asked?.[0]?.question).toBe(
-      'In archive.csv, parts_cost sometimes says "N/A". Does "N/A" mean no parts cost? If it can also mean "not known yet", leave those rows out.',
+      'In archive.csv, parts_cost sometimes says "N/A". If "N/A" means no parts cost, count it as zero. If it can also mean "not known yet", leave those rows out.',
     );
     expect(asked?.[1]?.question).toContain('has a dash ("-") where a number should be');
   });
@@ -484,7 +484,7 @@ describe('what the person chose for a mark such as N/A, mark by mark and table b
     expect(spec?.template === 'rule' && spec.sources.at(-1)).toEqual({
       file: 'answers',
       passage: 'Count it as zero',
-      question: 'In archive.csv, parts_cost sometimes says "N/A". Does "N/A" mean no parts_cost?',
+      question: 'What should "N/A" in parts_cost (archive.csv) count as?',
     });
   });
 
