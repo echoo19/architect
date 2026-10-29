@@ -27,6 +27,7 @@ import type {
   OllamaStatus,
   PullProgress,
   ReferenceOptions,
+  Retest,
   RunDetail,
   RunStartOptions,
   SampleAgent,
@@ -167,12 +168,21 @@ export const ListedAttemptSchema = AttemptSchema.extend({
   prompt: z.string().optional(),
 }) satisfies z.ZodType<ListedAttempt>;
 
+export const RetestSchema = z.object({
+  target: StudentTargetSchema,
+  status: z.enum(['testing', 'paused', 'finished']),
+  error: z.string().optional(),
+  startedAt: z.iso.datetime(),
+  endedAt: z.iso.datetime().optional(),
+}) satisfies z.ZodType<Retest>;
+
 export const RunDetailSchema = z.object({
   run: RunSchema,
   job: JobSchema,
   rounds: z.array(RoundSchema),
   recentAttempts: z.array(ListedAttemptSchema),
   lineage: z.array(LineageEntrySchema),
+  retests: z.array(RetestSchema).optional(),
   improves: RunImprovementSchema.optional(),
 }) satisfies z.ZodType<RunDetail>;
 

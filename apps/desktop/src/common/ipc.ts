@@ -53,7 +53,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     huggingFace: true,
   },
   ollama: { status: true, pull: true, install: true },
-  files: { pick: true },
+  files: { pick: true, save: true },
   jobs: {
     list: true,
     get: true,

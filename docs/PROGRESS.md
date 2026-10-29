@@ -18,6 +18,12 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - An empty cell the policy itself says counts as zero still has the question asked once: only the person's own answer declares it.
 - The first five rows of each table are left out of the tasks even when a very wide table's description is cut before it shows them, which errs on the side of caution.
 
+## 2026-10-29 (Wed), a recorder for the demo
+
+**Done**
+- A developer tool in `apps/desktop/demo`, written by GPT-6 Sol through Codex and checked here: a scene script (routes, clicks, typing at a human pace, waits, scrolls, the native file dialog, window size), frames captured from the hidden window with their real timestamps, a drawn pointer and click ripple, title cards in Architect's look, a speed-up mark for long waits, and ffmpeg assembly into a 1440x900, 30 fps H.264 video with cross-fades. It has its own Playwright config, so `pnpm e2e` never runs it, and it never writes a key.
+- Its sample, on the stand-in engine, recorded a 10.6 s video in 16 s; frames from it show the cards, the pointer and the screens cleanly. Codex's sandbox couldn't launch Electron or commit from a worktree, so the run and the commit were done outside it.
+
 ## 2026-10-29 (Wed), a rule a person can confirm, and the first things a reviewer meets
 
 **Done** (on a branch; decision 061; no model was called, the GPU stayed off)
@@ -53,6 +59,35 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Verified**
 - `pnpm check` exits 0 (217 test files, 2,729 passed, 2 skipped). The new unit tests: `rule-expression` (20), `rule-template` (20), `rule-examples` (5), `drafting-rule-reply` (11) and `drafting-rules` (20), `drafting-plan` (5), plus more in `drafting-templates`, `drafting-envelope`, `drafting-conversation`, the harness report and the desktop's words for the screens. Taking out the controller's confirmation check, the file-hash check, the dead-branch guard and half-up rounding each made a test fail; each was put back.
 - Hidden e2e on the rebuilt app: `rule.spec.ts` (3, the real engine with a scripted teacher: the question, the rule and its examples, training waiting, confirming, starting in both themes; a changed record and a second drafting asking for confirmation again), `flow.spec.ts` (13) and `drafting.spec.ts` (5) all pass, 21 in 5 minutes. The captures `rule-question`, `rule-define`, `rule-confirmed`, `rule-changed` and `flow-report-rule`, and the changed `describe` and `drafting-examples`, were looked at in both themes.
+
+## 2026-10-29 (Wed): new jobs take your choices, and a run says what it needs
+
+**Done** (on a branch with the drafter and the runs branch merged in; decision 059; no model was called, the GPU stayed off)
+- The gap, found in the code before changing it: the teacher and model picked in setup or Settings only wrote `defaultMentor` and `defaultStudent`, and nothing put them on a job, so the sample job asked for Spark and the 4-bit model whatever setup had steered the person to, had no hosted copy, and "Train online" said "Choose a host". A run could start with no teacher key and no model and fail long after. The engine could take the final test online and test an agent here later, and no screen offered either. `jobs.importFile` had no caller. Three Define settings did nothing, and the Privacy tab was wrong about Teach this.
+- New jobs: one function in the main process, `applyChoices`, puts the person's teacher, their model on this computer (build, runtime, address), a hosted copy of Glimmer when a host that serves it has a saved key (OpenRouter first), and training online when there is a copy, on every new job. Main's handlers call it for the sample job (when it is new), an imported job file and a drafted job in either reply; a job that exists keeps what it has. The drafter is merged in: the engine makes its job from the shipped models, and the handler saves it again with the person's choices. A job file's own hosted copy is dropped, and a model that isn't Glimmer gets none.
+- Define says what a run needs before Start training: the teacher's key, the model on this computer (with its download), and the online copy and its key, each with the one action that fixes it, a footer that names the first thing missing, and a live ask of the online copy when a run is about to start, so a copy that doesn't answer stops the run there.
+- Where the final test runs: Advanced settings, Ready when, "On this computer" (default) or "On the online copy", each with its time and cost. Start sends `lockedTestOn` (also to the comparison's baselines) and `interactive: true`; the plan's time and bills follow the choice.
+- An agent tested online is badged "Passed online" and "finished training", never "Ready" or "graduated" (a drafted job's 28 of 30 included); the offer "Test on this computer" sits right under the badge, with how long it takes and that it uses the graphics card, how far it has got, and the result. The agent's own Results tab has it too. `runs.get` lists a run's re-tests so a page opened mid-test knows.
+- Job files: "Import a job file" on the new-agent screen (a file that isn't a job fails with `not_a_job` and says what a job folder holds; a bad line of tasks.jsonl is named by its number) and "Export the job file" in Advanced settings through a save dialog (`files.save`). The file holds the settings only.
+- Settings that did nothing: a checker file chosen by its full path is copied into the job's folder (content-named, so an old run still finds its own), the task sets are read-only once split with one line why, "Opening files outside the job" is gone from Define and from the agent's settings. The Privacy tab says the teacher never sees a chat, except the one exchange Teach this sends after the person confirms.
+- Tests: unit, `job-choices`, `engine-handlers` (the sample job, an imported file, a drafted job in either reply, an existing job left alone, a checker path the person didn't pick), `needs`, `hosted`, `final-test`, `estimates`, `verdict`, `retest`, `job-file`, `job-editor`, `validate`, the engine's `job-files` and `host`. Hidden e2e: `flow.spec.ts` (the pre-flight and each action, the online ask, the final-test choice both ways), `retest.spec.ts` (9: from Results and from the agent's settings, each phase, the result, a 28 of 30 final test, and the offer placed before the figures), `job-files.spec.ts` (5, on the real engine: an import, a file that isn't a job, an export that imports again, a checker copied in, task sets read-only), `drafting.spec.ts` (the drafted job arrives with the person's teacher and model, then trains on them), `shell.spec.ts`. Each new rule was checked by taking its code out and watching a test fail: 41 of 41 caught, the drafted-job call, the verdict for an agent tested online and where its offer sits included.
+- The runs branch (decision 060) merged with no conflict, since it left the Define screen alone. Define's comparison baselines now come from `isBaselineMethod` instead of a list of their own, which that branch's entry asked for.
+- Verified: `pnpm check` exits 0 (218 test files, 2,738 tests passed, 2 skipped). The whole hidden e2e run passed (175 passed, 2 skipped, none failed; the skips are the packaged-app spec and a refusal that only applies to a build without the ready-made agent), and `flow.spec.ts` (20) and `retest.spec.ts` (9, one of them a 28 of 30 final test, as a real drafted job had) passed again after the last changes. The captures `flow-define-needs`, `flow-advanced-final-test`, `flow-advanced`, `report-online*`, `workspace-agent-report-online`, `define-sample`, `workspace-agent-permissions` and the new-agent screens were looked at in both themes.
+
+**Next**
+- One real run with a connected host: the live ask of the online copy, a final test online, "Test on this computer" on the graphics card, and a question from Spark, asked because Define now sends `interactive: true`, reaching the Train screen's answer box. None of these has run against a real service.
+- Read Define, Train and Results once more together on a real drafted job tested online.
+- Take drafted jobs nobody went on with out of the library (still open from decision 058).
+
+**Open issues**
+- "Faster training" is any host with a saved key, since that is all setup's last step records. A key saved only for the teacher counts too.
+- The online final test is chosen on each visit to Define; it isn't saved with the job.
+- An agent tested online and then here shows "Ready" on Results while its version's own record still says tested online (versions are immutable).
+- The pre-flight can tell only about Ollama at the address it looked at, and reads the model when the screen opens or the person asks again, not at the moment Start is pressed.
+- An exported job file holds the job's settings, not its tasks or data; to give a job away, hand over its folder.
+- `permissions.unseenFiles` stays in the job and its package contract, where the package format carries it, though no screen shows it.
+- A drafted job is saved twice, once as the engine makes it and once with the person's choices; nothing runs between.
+
 
 ## 2026-10-29 (Wed), the first real drafted job, end to end
 

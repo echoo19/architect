@@ -16,6 +16,7 @@ import { registerSecretsHandlers } from './handlers/secrets';
 import { registerSettingsHandlers } from './handlers/settings';
 import { registerWorkspaceHandlers } from './handlers/workspace';
 import { IpcRouter } from './ipc/router';
+import { currentChoices } from './jobs/choices';
 import { readLaunchOptions } from './launch';
 import { detectGpu } from './gpu';
 import { createLinkOpener } from './links';
@@ -25,6 +26,7 @@ import { ModelPulls } from './ollama/pulls';
 import { processResources } from './processes/resources';
 import { Supervisor } from './processes/supervisor';
 import { safeStorageCipher } from './secrets/cipher';
+import { environmentKeys } from './secrets/environment';
 import { SecretStore } from './secrets/store';
 import { hardenContents, hardenSession, isAppUrl, type AppOrigin } from './security';
 import { quietCooldown, quietThreads } from './settings/quiet';
@@ -88,7 +90,11 @@ async function start(): Promise<void> {
 
   const dataDir = app.getPath('userData');
   const settings = await SettingsStore.open(join(dataDir, 'settings.json'));
-  const secrets = await SecretStore.open(join(dataDir, 'secrets.json'), safeStorageCipher);
+  const secrets = await SecretStore.open(
+    join(dataDir, 'secrets.json'),
+    safeStorageCipher,
+    environmentKeys(process.env, app.isPackaged),
+  );
   applyTheme(settings.get().theme);
   settings.onChange((next) => applyTheme(next.theme));
 
@@ -204,7 +210,13 @@ async function start(): Promise<void> {
     listGraduates: () => engine.call((api) => api.graduates.list()),
     call: (request) => agentHost.call(request),
   });
-  registerEngineHandlers(router, (request) => engine.call(request), picked, settings);
+  registerEngineHandlers(
+    router,
+    (request) => engine.call(request),
+    picked,
+    settings,
+    async () => currentChoices(settings, secrets),
+  );
   registerGraduateHandlers(router, (request) => engine.call(request), graduates, picked);
   registerWorkspaceHandlers(router, (request) => agentHost.call(request), graduates);
   engine.start();

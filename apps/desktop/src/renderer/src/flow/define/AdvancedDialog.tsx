@@ -4,6 +4,7 @@ import {
   type Job,
   type ReasoningEffort,
   type StartingHarness,
+  type StudentTarget,
   type TokenPricing,
 } from '@architect/shared';
 import {
@@ -31,11 +32,13 @@ import { ModelPicker } from '../../settings/models/ModelPicker';
 import { PriceRow } from '../../settings/models/PriceRow';
 import { modelNames } from '../names';
 import { aboutUsd, estimateMentorUsd, mentorPresetOf, mentorPriceOf } from './estimates';
+import { ExportJobFile } from './ExportJobFile';
 import { NumberField, PathField, TabNote } from './fields';
+import { FinalTestChoice } from './FinalTestChoice';
+import { presetOf, providerName, type HostedAvailability } from './hosted';
 import { TasksTab } from './TasksTab';
-import { presetOf, providerName } from './hosted';
 import { TYPING_PAUSE_MS, type JobEditor } from './use-job-editor';
-import type { JobIssues } from './validate';
+import { tasksSplit, type JobIssues } from './validate';
 
 export type AdvancedTab =
   | 'tasks'
@@ -92,6 +95,17 @@ interface AdvancedDialogProps {
   tab: AdvancedTab;
   onTabChange: (tab: AdvancedTab) => void;
   editor: JobEditor;
+  /** How many tasks the job holds, when that is known: once it holds any, they were split. */
+  taskCount: number | null;
+  /** Where the final test runs: the run's own choice, which the job doesn't keep. */
+  finalTest: FinalTestState;
+}
+
+/** Where the final test runs, and whether the online copy can take it. */
+export interface FinalTestState {
+  place: StudentTarget;
+  onPlaceChange: (place: StudentTarget) => void;
+  hosted: HostedAvailability;
 }
 
 /** Every field of the job, in the settings modal's layout. Changes save as they're made. */
@@ -101,6 +115,8 @@ export function AdvancedDialog({
   tab,
   onTabChange,
   editor,
+  taskCount,
+  finalTest,
 }: AdvancedDialogProps) {
   return (
     <SettingsDialog
@@ -113,15 +129,18 @@ export function AdvancedDialog({
       footer={
         <>
           <SaveIndicator editor={editor} />
-          <DialogClose asChild>
-            <Button variant="primary" size="md">
-              Done
-            </Button>
-          </DialogClose>
+          <span className="flex items-center gap-2">
+            <ExportJobFile editor={editor} />
+            <DialogClose asChild>
+              <Button variant="primary" size="md">
+                Done
+              </Button>
+            </DialogClose>
+          </span>
         </>
       }
     >
-      <TabContent tab={tab} editor={editor} />
+      <TabContent tab={tab} editor={editor} taskCount={taskCount} finalTest={finalTest} />
     </SettingsDialog>
   );
 }
@@ -181,14 +200,24 @@ interface TabProps {
   editor: JobEditor;
 }
 
-function TabContent({ tab, editor }: { tab: AdvancedTab; editor: JobEditor }) {
+function TabContent({
+  tab,
+  editor,
+  taskCount,
+  finalTest,
+}: {
+  tab: AdvancedTab;
+  editor: JobEditor;
+  taskCount: number | null;
+  finalTest: FinalTestState;
+}) {
   switch (tab) {
     case 'tasks':
       return <TasksTab job={editor.job} />;
     case 'checker':
       return <CheckerTab editor={editor} />;
     case 'requirements':
-      return <RequirementsTab editor={editor} />;
+      return <RequirementsTab editor={editor} finalTest={finalTest} />;
     case 'budget':
       return <BudgetTab editor={editor} />;
     case 'mentor':
@@ -198,10 +227,14 @@ function TabContent({ tab, editor }: { tab: AdvancedTab; editor: JobEditor }) {
     case 'harness':
       return <HarnessTab editor={editor} />;
     case 'splits':
-      return <SplitsTab editor={editor} />;
+      return <SplitsTab editor={editor} taskCount={taskCount} />;
     case 'evaluation':
       return <EvaluationTab editor={editor} />;
   }
+}
+
+function plural(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
 
 /** Saves typed values once the user pauses. */
@@ -241,22 +274,28 @@ function CheckerTab({ editor }: TabProps) {
         />
       </SettingsRow>
       {checker.kind === 'module' && (
-        <PathField
-          label="Checker file"
-          kind="file"
-          extensions={['js', 'mjs']}
-          path={checker.path}
-          issue={issues['checker.path']}
-          onPick={(path) =>
-            change((current) => ({ ...current, checker: { kind: 'module', path } }))
-          }
-        />
+        <>
+          <PathField
+            label="Checker file"
+            kind="file"
+            extensions={['js', 'mjs']}
+            path={checker.path}
+            issue={issues['checker.path']}
+            onPick={(path) =>
+              change((current) => ({ ...current, checker: { kind: 'module', path } }))
+            }
+          />
+          <TabNote>
+            A file you choose is copied into the job when it saves, so moving the original changes
+            nothing.
+          </TabNote>
+        </>
       )}
     </>
   );
 }
 
-function RequirementsTab({ editor }: TabProps) {
+function RequirementsTab({ editor, finalTest }: TabProps & { finalTest: FinalTestState }) {
   const { job, issues, change } = editor;
   const set = typed(editor);
   const { p95LatencyMs } = job.requirements;
@@ -303,6 +342,12 @@ function RequirementsTab({ editor }: TabProps) {
           }
         />
       )}
+      <FinalTestChoice
+        job={job}
+        place={finalTest.place}
+        onPlaceChange={finalTest.onPlaceChange}
+        hosted={finalTest.hosted}
+      />
     </>
   );
 }
@@ -588,13 +633,36 @@ function HarnessTab({ editor }: TabProps) {
   );
 }
 
-function SplitsTab({ editor }: TabProps) {
+function SplitsTab({ editor, taskCount }: TabProps & { taskCount: number | null }) {
   const { job, issues } = editor;
   const set = typed(editor);
   const { mentor, student } = modelNames(job);
   const splits = (patch: Partial<Job['splits']>) =>
     set((current) => ({ ...current, splits: { ...current.splits, ...patch } }));
   const { train, dev, test } = job.splits;
+  if (tasksSplit(taskCount)) {
+    // The tasks were split when they were added, and nothing splits them again.
+    return (
+      <>
+        <TabNote className="border-t-0 pt-1">
+          The tasks were split into these sets when they were added, so the sets can&apos;t change
+          now.
+        </TabNote>
+        <SettingsRow label="Practice tasks" meta={`${mentor} teaches ${student} from these`}>
+          <SettingsValue>{plural(train, 'task')}</SettingsValue>
+        </SettingsRow>
+        <SettingsRow
+          label="Check tasks"
+          meta={`${mentor} sees only the score. It decides which changes stay.`}
+        >
+          <SettingsValue>{plural(dev, 'task')}</SettingsValue>
+        </SettingsRow>
+        <SettingsRow label="Final test" meta="Opened once, at the end">
+          <SettingsValue>{plural(test, 'task')}</SettingsValue>
+        </SettingsRow>
+      </>
+    );
+  }
   return (
     <>
       <NumberField

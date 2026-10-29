@@ -116,7 +116,7 @@ interface FilePermissionsProps {
   onChange: (permissions: Job['permissions']) => void;
 }
 
-/** When the trained agent must ask first: before it saves a change, and before it opens a file. */
+/** When the trained agent must ask first: before it saves a change to a file it works on. */
 export function FilePermissions({ job, onChange }: FilePermissionsProps) {
   const { permissions } = job;
   const changeable = job.data.files.filter((file) => file.access === 'write');
@@ -137,12 +137,6 @@ export function FilePermissions({ job, onChange }: FilePermissionsProps) {
         setting={WRITE_SETTING}
         value={permissions.writes}
         onValueChange={(writes) => onChange({ ...permissions, writes })}
-      />
-      <PermissionRow
-        label="Opening files outside the job"
-        setting="Opening files outside the job"
-        value={permissions.unseenFiles}
-        onValueChange={(unseenFiles) => onChange({ ...permissions, unseenFiles })}
       />
     </section>
   );

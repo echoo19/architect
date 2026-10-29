@@ -3,14 +3,16 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
-import { stubEngine, stubEngineFailure } from './fixtures';
+import { NOTHING_LOCAL, OLLAMA_READY, stubEngine, stubEngineFailure } from './fixtures';
 import {
+  COPY_ANSWERS,
   DESCRIPTION,
   emitRunEvents,
   finalTest,
   finished,
   FLOW,
   FLOW_ENGINE,
+  FLOW_LOCAL,
   paused,
   recordedCalls,
   REPLY,
@@ -23,6 +25,7 @@ import {
   taskPlan,
   turns,
 } from './fixtures-flow';
+import { job, trainedJob } from './story';
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const WIDTH = 1440;
@@ -145,13 +148,17 @@ for (const theme of THEMES) {
     // The write setting names the files it covers, in the same words as the agent's own setting.
     const permissions = page.getByRole('region', { name: 'Permissions' });
     await expect(permissions).toContainText('invoices.csv, bookings.csv');
-    for (const setting of ['Saving files', 'Opening files outside the job']) {
-      await expect(
-        permissions
-          .getByRole('radiogroup', { name: setting })
-          .getByRole('radio', { name: 'Ask first' }),
-      ).toHaveAttribute('aria-checked', 'true');
-    }
+    await expect(
+      permissions
+        .getByRole('radiogroup', { name: 'Saving files' })
+        .getByRole('radio', { name: 'Ask first' }),
+    ).toHaveAttribute('aria-checked', 'true');
+    // Nothing offers a setting that does nothing: the agent can't open files outside its job.
+    await expect(page.getByText('Opening files outside the job')).toHaveCount(0);
+
+    // With the teacher's key saved and the model on this computer, nothing stands in the way.
+    await expect(page.getByRole('heading', { name: 'Before it can start' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
 
     // Each place says how fast it practices and where the files go; this computer is too slow.
     const local = page.getByRole('radio', { name: /Train on this computer/ });
@@ -212,24 +219,42 @@ for (const theme of THEMES) {
     await expect(invoices.getByText(/^Expected answer:/)).toHaveCount(3);
     await expect(advanced.getByText(/independently certified/)).toHaveCount(0);
     await capture(page, `flow-advanced-tasks-${theme}`);
+    // The tasks were split when they were added and nothing splits them again, so the sets
+    // show what they are and say why they can't change.
     await advanced.getByRole('tab', { name: 'Task sets' }).click();
-    const practice = advanced.getByRole('textbox', { name: 'Practice tasks' });
-    await practice.fill('200');
     await expect(
-      advanced.getByText('These add up to 310 tasks, but the job has 170.'),
+      advanced.getByText(
+        "The tasks were split into these sets when they were added, so the sets can't change now.",
+      ),
     ).toBeVisible();
-    await expect(advanced.getByRole('status')).toContainText('Not saved: fix the marked field');
-    await practice.fill('60');
+    await expect(advanced.getByRole('textbox', { name: 'Practice tasks' })).toHaveCount(0);
+    await expect(advanced).toContainText(/Practice tasks[\s\S]*60 tasks/);
+    await expect(advanced).toContainText(/Check tasks[\s\S]*40 tasks/);
+    await expect(advanced).toContainText(/Final test[\s\S]*60 tasks/);
+    await capture(page, `flow-advanced-${theme}`);
+    // A field that can change is held to its limits, and says so until it is put right.
+    await advanced.getByRole('tab', { name: 'Time and budget' }).click();
+    const minutes = advanced.getByRole('textbox', { name: 'Training time' });
+    await minutes.fill('0');
+    await expect(
+      advanced.getByText('Use whole minutes, from 1 up to a week (10,080).'),
+    ).toBeVisible();
+    await expect(advanced.getByRole('status')).toContainText(
+      'Not saved: fix the marked field in Time and budget',
+    );
+    await minutes.fill('240');
     await expect(advanced.getByRole('alert')).toHaveCount(0);
     await expect(advanced.getByRole('status')).toContainText('Saved');
-    await capture(page, `flow-advanced-${theme}`);
     await page.keyboard.press('Escape');
     await expect(advanced).toBeHidden();
     await page.getByRole('button', { name: 'Start training' }).click();
 
-    // Train: only the agent's own run starts.
+    // Train: only the agent's own run starts, with its final test on this computer and Spark
+    // free to stop and ask a question.
     await expect(page).toHaveURL(new RegExp(`#/runs/${FLOW.runId}/train$`));
-    expect(await recordedCalls(app, 'runs:start')).toEqual([[FLOW.jobId, { method: 'architect' }]]);
+    expect(await recordedCalls(app, 'runs:start')).toEqual([
+      [FLOW.jobId, { method: 'architect', lockedTestOn: 'local', interactive: true }],
+    ]);
 
     await resize(TRAIN_HEIGHT);
     const success = page.getByRole('region', { name: 'Score on the check tasks' });
@@ -588,11 +613,268 @@ test('trains three simpler versions beside the agent when comparison mode is on'
   await page.getByRole('button', { name: 'Start training' }).click();
   await expect(page).toHaveURL(new RegExp(`#/runs/${FLOW.runId}/train$`));
   expect(await recordedCalls(app, 'runs:start')).toEqual([
-    [FLOW.jobId, { method: 'architect' }],
-    [FLOW.jobId, { method: 'bare', seed: FLOW.seed }],
-    [FLOW.jobId, { method: 'one_shot', seed: FLOW.seed }],
-    [FLOW.jobId, { method: 'self_reflection', seed: FLOW.seed }],
+    [FLOW.jobId, { method: 'architect', lockedTestOn: 'local', interactive: true }],
+    [FLOW.jobId, { method: 'bare', seed: FLOW.seed, lockedTestOn: 'local' }],
+    [FLOW.jobId, { method: 'one_shot', seed: FLOW.seed, lockedTestOn: 'local' }],
+    [FLOW.jobId, { method: 'self_reflection', seed: FLOW.seed, lockedTestOn: 'local' }],
   ]);
+});
+
+for (const theme of THEMES) {
+  test(`says what a run needs before it starts, with one action for each (${theme})`, async () => {
+    const { app, page } = launched;
+    await stubFlow();
+    // Nothing is in place yet: no teacher key, and Glimmer isn't downloaded.
+    await stubEngine(app, {
+      'secrets:status': { meta: false, openrouter: false },
+      'connections:detectLocal': OLLAMA_READY,
+    });
+    await applySettings(page, { theme, onboarded: true, comparisonMode: false });
+    await resize(DEFINE_HEIGHT);
+    await goTo(page, `/jobs/${FLOW.jobId}/define`);
+    await expect(page.getByRole('heading', { name: 'Service desk', level: 1 })).toBeVisible();
+
+    const needs = page.getByRole('region', { name: 'Before it can start' });
+    await expect(needs).toContainText('Spark needs a Meta key');
+    await expect(needs).toContainText('Meta bills your account for it');
+    await expect(needs).toContainText("Glimmer isn't on this computer yet");
+    await expect(needs).toContainText('Practice and the final test run on it');
+    // A run that can't start says so on its button and in the footer, and starts nothing.
+    const start = page.getByRole('button', { name: 'Start training' });
+    await expect(start).toBeDisabled();
+    await expect(page.getByText('Spark needs a Meta key, and 1 more')).toBeVisible();
+    await capture(page, `flow-define-needs-${theme}`);
+
+    // The teacher's key is one dialog away, opened on the teacher's own provider.
+    await needs.getByRole('button', { name: 'Add a Meta key' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Add an API key' });
+    await expect(dialog.getByRole('combobox', { name: 'Provider' })).toContainText('Meta');
+    await stubEngine(app, {
+      'connections:add': { secretRef: 'meta', models: 3 },
+      'secrets:status': { meta: true, openrouter: false },
+    });
+    await dialog.getByLabel('API key').fill('key-for-the-test');
+    await dialog.getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(dialog).toBeHidden();
+    await expect(needs).not.toContainText('Spark needs a Meta key');
+    await expect(needs).toContainText("Glimmer isn't on this computer yet");
+
+    // The download is on the row too; once the model is there the whole list is gone.
+    await expect(needs.getByRole('button', { name: 'Download · 17 GB' })).toBeVisible();
+    await stubEngine(app, { 'ollama:install': null, 'connections:detectLocal': FLOW_LOCAL });
+    await needs.getByRole('button', { name: 'Download · 17 GB' }).click();
+    await expect(page.getByRole('heading', { name: 'Before it can start' })).toHaveCount(0);
+    await expect(start).toBeEnabled();
+    await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
+  });
+}
+
+test('says when Ollama is not running, and looks again when asked', async () => {
+  const { app, page } = launched;
+  await stubFlow();
+  await stubEngine(app, { 'connections:detectLocal': NOTHING_LOCAL });
+  await applySettings(page, { theme: 'dark', onboarded: true, comparisonMode: false });
+  await resize(DEFINE_HEIGHT);
+  await goTo(page, `/jobs/${FLOW.jobId}/define`);
+
+  const needs = page.getByRole('region', { name: 'Before it can start' });
+  await expect(needs).toContainText("Ollama isn't running");
+  await expect(needs).toContainText('Glimmer runs through Ollama on this computer');
+  await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
+  await stubEngine(app, { 'connections:detectLocal': FLOW_LOCAL });
+  await needs.getByRole('button', { name: 'Check again' }).click();
+  await expect(page.getByRole('heading', { name: 'Before it can start' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
+});
+
+test('asks the online copy before it starts, and stays when it does not answer', async () => {
+  const { app, page } = launched;
+  await stubFlow();
+  await stubEngine(app, {
+    'jobs:get': trainedJob,
+    'connections:testStudent': {
+      ok: false,
+      error: 'OpenRouter did not answer in time.',
+      hint: 'Check your connection, then try again.',
+    },
+  });
+  await applySettings(page, { theme: 'dark', onboarded: true, comparisonMode: false });
+  await resize(DEFINE_HEIGHT);
+  await goTo(page, `/jobs/${FLOW.jobId}/define`);
+
+  // Everything saved is in place, so nothing is listed until the copy is asked.
+  await expect(page.getByRole('radio', { name: /Train online/ })).toBeChecked();
+  await expect(page.getByRole('heading', { name: 'Before it can start' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Start training' }).click();
+  const needs = page.getByRole('region', { name: 'Before it can start' });
+  await expect(needs).toContainText("OpenRouter didn't answer");
+  await expect(needs).toContainText('OpenRouter did not answer in time. Check your connection');
+  await expect(page).toHaveURL(new RegExp(`#/jobs/${FLOW.jobId}/define$`));
+  expect(await recordedCalls(app, 'runs:start')).toEqual([]);
+
+  // Once it answers, one press of Try again clears the list and the run can start.
+  await stubEngine(app, { 'connections:testStudent': COPY_ANSWERS });
+  await needs.getByRole('button', { name: 'Try again' }).click();
+  await expect(page.getByRole('heading', { name: 'Before it can start' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Start training' }).click();
+  await expect(page).toHaveURL(new RegExp(`#/runs/${FLOW.runId}/train$`));
+  expect(await recordedCalls(app, 'runs:start')).toEqual([
+    [FLOW.jobId, { method: 'architect', lockedTestOn: 'local', interactive: true }],
+  ]);
+});
+
+for (const theme of THEMES) {
+  test(`takes the final test on the online copy when asked (${theme})`, async () => {
+    const { app, page } = launched;
+    await stubFlow();
+    await applySettings(page, { theme, onboarded: true, comparisonMode: false });
+    await resize(DEFINE_HEIGHT);
+    await goTo(page, `/jobs/${FLOW.jobId}/define`);
+    await expect(page.getByRole('heading', { name: 'Service desk', level: 1 })).toBeVisible();
+
+    // By default the final test is taken on this computer, which the plan shows.
+    const time = page.getByRole('region', { name: 'Estimated time' });
+    const cost = page.getByRole('region', { name: 'Estimated cost' });
+    await expect(time).toContainText(/Final test\s*60 new tasks on this computer\s*2\.5 h/);
+    await expect(cost).not.toContainText('Online final test');
+
+    await page.getByRole('button', { name: 'Advanced settings' }).click();
+    const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+    await advanced.getByRole('tab', { name: 'Ready when' }).click();
+    const where = advanced.getByRole('radiogroup', { name: 'Where the final test runs' });
+    const here = where.getByRole('radio', { name: /On this computer/ });
+    const online = where.getByRole('radio', { name: /On the online copy/ });
+    await expect(here).toBeChecked();
+    await expect(here).toContainText('About 2.5 hours for 60 tasks · Free');
+    await expect(here).toContainText('The agent is marked ready when it passes.');
+    await expect(online).toContainText('About 15 minutes for 60 tasks · About $0.20');
+    await expect(online).toContainText(
+      'The agent is marked as tested online. You can test it on this computer later.',
+    );
+    await online.click();
+    await expect(online).toBeChecked();
+    await capture(page, `flow-advanced-final-test-${theme}`);
+    await page.keyboard.press('Escape');
+    await expect(advanced).toBeHidden();
+
+    // The plan follows the choice: a quarter of an hour, and a line on the host's bill.
+    await expect(time).toContainText(/Final test\s*60 new tasks online\s*15 min/);
+    await expect(cost).toContainText(
+      /Online final test\s*Glimmer taking the final test online\s*\$0\.20/,
+    );
+
+    await page.getByRole('button', { name: 'Start training' }).click();
+    await expect(page).toHaveURL(new RegExp(`#/runs/${FLOW.runId}/train$`));
+    expect(await recordedCalls(app, 'runs:start')).toEqual([
+      [FLOW.jobId, { method: 'architect', lockedTestOn: 'hosted', interactive: true }],
+    ]);
+  });
+}
+
+test('cannot take the final test online without an online copy to take it on', async () => {
+  const { app, page } = launched;
+  await stubFlow();
+  const { hosted: _copy, ...student } = job.student;
+  await stubEngine(app, { 'jobs:get': { ...job, student } });
+  await applySettings(page, { theme: 'dark', onboarded: true, comparisonMode: false });
+  await resize(DEFINE_HEIGHT);
+  await goTo(page, `/jobs/${FLOW.jobId}/define`);
+  await page.getByRole('button', { name: 'Advanced settings' }).click();
+  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+  await advanced.getByRole('tab', { name: 'Ready when' }).click();
+  const where = advanced.getByRole('radiogroup', { name: 'Where the final test runs' });
+  const online = where.getByRole('radio', { name: /On the online copy/ });
+  await expect(online).toBeDisabled();
+  await expect(online).toContainText("Choose an online copy under Agent's model first");
+  await expect(where.getByRole('radio', { name: /On this computer/ })).toBeChecked();
+});
+
+test('keeps a checker file chosen from elsewhere inside the job, and saves that copy from then on', async () => {
+  const { app, page } = launched;
+  await stubFlow();
+  // A job graded by a checker file, as the sample job is, and a file to choose in its place.
+  await stubEngine(app, {
+    'jobs:get': { ...job, checker: { kind: 'module', path: 'checker.js' } },
+    'files:pick': ['D:/Downloads/my-checks.js'],
+  });
+  // The engine copies a file chosen by its full path into the job and answers with the copy's name.
+  await app.evaluate(({ ipcMain }) => {
+    const store = globalThis as typeof globalThis & { savedCheckers?: unknown[] };
+    store.savedCheckers = [];
+    ipcMain.removeHandler('jobs:save');
+    ipcMain.handle('jobs:save', (_event, saved: { checker: { kind: string; path?: string } }) => {
+      store.savedCheckers?.push(saved.checker);
+      const chosen =
+        saved.checker.kind === 'module' && /^([A-Za-z]:)?[\\/]/.test(saved.checker.path ?? '');
+      const checker = { kind: 'module', path: 'my-checks-3f9a2c1b4d5e.js' };
+      return { ok: true, value: chosen ? { ...saved, checker } : saved };
+    });
+  });
+  const savedCheckers = () =>
+    app.evaluate(
+      () => (globalThis as typeof globalThis & { savedCheckers?: unknown[] }).savedCheckers ?? [],
+    );
+  await applySettings(page, { theme: 'dark', onboarded: true, comparisonMode: false });
+  await resize(DEFINE_HEIGHT);
+  await goTo(page, `/jobs/${FLOW.jobId}/define`);
+  await page.getByRole('button', { name: 'Advanced settings' }).click();
+  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+  await advanced.getByRole('tab', { name: 'Grading' }).click();
+  await expect(advanced.getByText('checker.js', { exact: true }).first()).toBeVisible();
+  await expect(
+    advanced.getByText(
+      'A file you choose is copied into the job when it saves, so moving the original changes nothing.',
+    ),
+  ).toBeVisible();
+
+  await advanced.getByRole('button', { name: 'Change' }).click();
+  await expect(advanced.getByText('my-checks-3f9a2c1b4d5e.js').first()).toBeVisible();
+  expect(await savedCheckers()).toEqual([{ kind: 'module', path: 'D:/Downloads/my-checks.js' }]);
+
+  // The next save, of another field, names the copy: the original is never looked for again.
+  await advanced.getByRole('tab', { name: 'Time and budget' }).click();
+  await advanced.getByRole('textbox', { name: 'Rounds' }).fill('10');
+  await expect(advanced.getByRole('status')).toContainText('Saved');
+  expect((await savedCheckers()).at(-1)).toEqual({
+    kind: 'module',
+    path: 'my-checks-3f9a2c1b4d5e.js',
+  });
+});
+
+test('exports the job file where the person chooses, and says what stays behind', async () => {
+  const { app, page } = launched;
+  await stubFlow();
+  await stubRecorded(app, 'files:save', 'D:/Exports/service-desk.job.json');
+  await stubRecorded(app, 'jobs:exportFile', null);
+  await applySettings(page, { theme: 'dark', onboarded: true, comparisonMode: false });
+  await resize(DEFINE_HEIGHT);
+  await goTo(page, `/jobs/${FLOW.jobId}/define`);
+  await page.getByRole('button', { name: 'Advanced settings' }).click();
+  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+
+  await advanced.getByRole('button', { name: 'Export the job file' }).click();
+  await expect(
+    page.getByText('service-desk.job.json. Its tasks and data files stay on this computer.'),
+  ).toBeVisible();
+  expect(await recordedCalls(app, 'files:save')).toEqual([
+    [
+      {
+        title: 'Export the job file',
+        defaultName: 'service-desk.job.json',
+        filters: [{ name: 'Job file', extensions: ['json'] }],
+      },
+    ],
+  ]);
+  expect(await recordedCalls(app, 'jobs:exportFile')).toEqual([
+    [FLOW.jobId, 'D:/Exports/service-desk.job.json'],
+  ]);
+
+  // Closing the save dialog without choosing a file writes nothing.
+  await stubRecorded(app, 'files:save', null);
+  await stubRecorded(app, 'jobs:exportFile', null);
+  await advanced.getByRole('button', { name: 'Export the job file' }).click();
+  await expect.poll(() => recordedCalls(app, 'files:save')).toHaveLength(1);
+  expect(await recordedCalls(app, 'jobs:exportFile')).toEqual([]);
 });
 
 test('recovers when the mentor fails, and says so when it is slow', async () => {

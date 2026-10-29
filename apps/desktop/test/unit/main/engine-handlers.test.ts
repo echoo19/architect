@@ -1,9 +1,18 @@
 import { join, resolve } from 'node:path';
 import type { EngineApi } from '@architect/engine';
-import { mentorPreset, type MentorConfig } from '@architect/shared';
+import {
+  glimmerBuild,
+  mentorPreset,
+  type DraftTurn,
+  type Job,
+  type MentorConfig,
+} from '@architect/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { PickedPaths } from '../../../src/main/files/picked';
 import { registerEngineHandlers } from '../../../src/main/handlers/engine';
+import { applyChoices, type JobChoices } from '../../../src/main/jobs/choices';
+import { defaultSettings } from '../../../src/main/settings/schema';
+import { makeJob } from '../flow/factories';
 import { routerHarness } from './router-harness';
 
 const ROOT = resolve('/work');
@@ -19,13 +28,26 @@ const TEACHER: MentorConfig = {
   secretRef: 'openai',
 };
 
-function setup() {
+/** What the person set up: Glimmer's 2-bit build and Spark, and a host connected. */
+const CHOSEN: JobChoices = {
+  mentor: defaultSettings().defaultMentor,
+  student: { ...defaultSettings().defaultStudent, model: glimmerBuild('glimmer-gpu').model },
+  keys: { openrouter: true },
+};
+
+function setup(choices: JobChoices = CHOSEN) {
   const { router, call } = routerHarness();
-  const turn = { sessionId: 'drf_1', message: 'Which region?', options: ['North', 'South'] };
+  const turn: DraftTurn = {
+    sessionId: 'drf_1',
+    message: 'Which region?',
+    options: ['North', 'South'],
+  };
   const engine = {
     jobs: {
-      list: vi.fn(async () => []),
-      importFile: vi.fn(async () => ({ id: 'job_1' })),
+      list: vi.fn(async (): Promise<{ id: string }[]> => []),
+      importFile: vi.fn(async () => makeJob({ id: 'job_1' })),
+      createSample: vi.fn(async () => makeJob({ id: 'sample' })),
+      save: vi.fn(async (job: Job) => job),
       draftStart: vi.fn(async () => turn),
       draftReply: vi.fn(async () => turn),
       taskPlan: vi.fn(async () => ({ source: 'generated' })),
@@ -46,6 +68,7 @@ function setup() {
     (request) => request(engine as unknown as EngineApi),
     picked,
     settings as never,
+    async () => choices,
   );
   return { engine, picked, call };
 }
@@ -92,7 +115,7 @@ describe('engine handlers', () => {
     expect(engine.jobs.importFile).not.toHaveBeenCalled();
 
     picked.add([job], 'files');
-    expect(await call('jobs:importFile', job)).toEqual({ ok: true, value: { id: 'job_1' } });
+    expect(await call('jobs:importFile', job)).toMatchObject({ ok: true, value: { id: 'job_1' } });
     expect(engine.jobs.importFile).toHaveBeenCalledWith(job);
   });
 
@@ -138,5 +161,145 @@ describe('engine handlers', () => {
     const { call } = setup();
     const result = await call('jobs:draftStart', 'Bill finished jobs', 'not-a-list');
     expect(!result.ok && result.error.message).toContain('Invalid arguments for jobs.draftStart');
+  });
+
+  describe('saving a job with a checker file', () => {
+    const job = (checker: Job['checker']): Job => makeJob({ id: 'job_1', checker });
+
+    it('passes on the file when the user picked it, to be copied into the job', async () => {
+      const { engine, picked, call } = setup();
+      const file = join(ROOT, 'downloads', 'checks.js');
+      picked.add([file], 'files');
+      const saved = job({ kind: 'module', path: file });
+      expect(await call('jobs:save', saved)).toEqual({ ok: true, value: saved });
+      expect(engine.jobs.save).toHaveBeenCalledExactlyOnceWith(saved);
+    });
+
+    it('refuses a file the user did not pick, so a page cannot name one to be read', async () => {
+      const { engine, call } = setup();
+      const result = await call(
+        'jobs:save',
+        job({ kind: 'module', path: join(ROOT, 'secrets', 'passwords.js') }),
+      );
+      expect(result.ok).toBe(false);
+      expect(!result.ok && result.error.message).toContain(
+        'only opens files and folders you choose',
+      );
+      expect(engine.jobs.save).not.toHaveBeenCalled();
+    });
+
+    it('passes on a checker that is already a name inside the job, and a built-in one', async () => {
+      const { engine, call } = setup();
+      await call('jobs:save', job({ kind: 'module', path: 'checker.js' }));
+      await call('jobs:save', job({ kind: 'builtin' }));
+      expect(engine.jobs.save.mock.calls.map(([saved]) => saved.checker)).toEqual([
+        { kind: 'module', path: 'checker.js' },
+        { kind: 'builtin' },
+      ]);
+    });
+
+    it('leaves a job it cannot read for the engine to refuse in its own words', async () => {
+      const { engine, call } = setup();
+      await call('jobs:save', { id: 'job_1' });
+      expect(engine.jobs.save).toHaveBeenCalledExactlyOnceWith({ id: 'job_1' });
+    });
+  });
+
+  describe('a new job takes what the person chose', () => {
+    const wanted = (job: Job) => applyChoices(job, CHOSEN);
+
+    it('starts the sample job with their teacher, model and hosted copy, and keeps that', async () => {
+      const { engine, call } = setup();
+      const result = await call('jobs:createSample');
+      const expected = wanted(makeJob({ id: 'sample' }));
+      expect(result).toEqual({ ok: true, value: expected });
+      expect(engine.jobs.save).toHaveBeenCalledExactlyOnceWith(expected);
+      expect(expected.student.local.model).toBe(glimmerBuild('glimmer-gpu').model);
+      expect(expected.student.trainOn).toBe('hosted');
+    });
+
+    it('opens a sample job that already exists as it is', async () => {
+      const { engine, call } = setup();
+      engine.jobs.list.mockResolvedValue([{ id: 'sample' }]);
+      const result = await call('jobs:createSample');
+      expect(result).toEqual({ ok: true, value: makeJob({ id: 'sample' }) });
+      expect(engine.jobs.save).not.toHaveBeenCalled();
+    });
+
+    it('does not save a sample job again when it already has what they chose', async () => {
+      const { engine, call } = setup();
+      engine.jobs.createSample.mockResolvedValue(wanted(makeJob({ id: 'sample' })));
+      await call('jobs:createSample');
+      expect(engine.jobs.save).not.toHaveBeenCalled();
+    });
+
+    it("starts an imported job file with theirs, whatever the file's author chose", async () => {
+      const { engine, picked, call } = setup();
+      const file = join(ROOT, 'downloads', 'job.json');
+      picked.add([file], 'files');
+      const result = await call('jobs:importFile', file);
+      const expected = wanted(makeJob({ id: 'job_1' }));
+      expect(result).toEqual({ ok: true, value: expected });
+      expect(engine.jobs.save).toHaveBeenCalledExactlyOnceWith(expected);
+    });
+
+    it('fails an import the engine refuses, and saves nothing', async () => {
+      const { engine, picked, call } = setup();
+      const file = join(ROOT, 'downloads', 'notes.json');
+      picked.add([file], 'files');
+      engine.jobs.importFile.mockRejectedValue(new Error('That is not a job file.'));
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      expect(await call('jobs:importFile', file)).toEqual({
+        ok: false,
+        error: { message: 'That is not a job file.' },
+      });
+      errors.mockRestore();
+      expect(engine.jobs.save).not.toHaveBeenCalled();
+    });
+
+    it('starts a drafted job with theirs when the draft arrives, in either reply', async () => {
+      const { engine, picked, call } = setup();
+      // The engine made the job from the models the app ships, and has it on record.
+      const draft = makeJob({ id: 'drafted' });
+      const turn: DraftTurn = { sessionId: 's', message: 'Here it is.', options: [], draft };
+      engine.jobs.draftStart.mockResolvedValue(turn);
+      engine.jobs.draftReply.mockResolvedValue(turn);
+      const file = join(ROOT, 'office', 'jobs.csv');
+      picked.add([file], 'files');
+
+      const expected = { ...turn, draft: wanted(draft) };
+      expect(await call('jobs:draftStart', 'Close out the day', [file])).toEqual({
+        ok: true,
+        value: expected,
+      });
+      expect(engine.jobs.save).toHaveBeenLastCalledWith(wanted(draft));
+      expect(await call('jobs:draftReply', 's', 'Show the line items')).toEqual({
+        ok: true,
+        value: expected,
+      });
+      expect(engine.jobs.save).toHaveBeenCalledTimes(2);
+      // Still the teacher of the conversation, which is the one chosen in Settings.
+      expect(engine.jobs.draftStart).toHaveBeenCalledWith('Close out the day', [file], TEACHER);
+    });
+
+    it('does not save a drafted job again when it already has what they chose', async () => {
+      const { engine, call } = setup();
+      const chosen = wanted(makeJob({ id: 'drafted' }));
+      engine.jobs.draftReply.mockResolvedValue({
+        sessionId: 's',
+        message: 'Here it is.',
+        options: [],
+        draft: chosen,
+      });
+      await call('jobs:draftReply', 's', 'Show the line items');
+      expect(engine.jobs.save).not.toHaveBeenCalled();
+    });
+
+    it('passes a question from the drafter through untouched', async () => {
+      const { engine, call } = setup();
+      const question: DraftTurn = { sessionId: 's', message: 'Which tasks?', options: ['All'] };
+      engine.jobs.draftReply.mockResolvedValue(question);
+      expect(await call('jobs:draftReply', 's', 'Hello')).toEqual({ ok: true, value: question });
+    });
   });
 });

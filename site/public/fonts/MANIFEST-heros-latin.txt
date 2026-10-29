@@ -1,0 +1,19 @@
+Heros, Latin subset
+===================
+
+heros-regular-latin.woff2 and heros-bold-latin.woff2 are subsets of TeX Gyre Heros 2.004
+(texgyreheros-regular.otf and texgyreheros-bold.otf), by Bogusław Jackowski and Janusz M. Nowacki
+of the GUST e-foundry, itself based on URW Nimbus Sans L.
+
+The site loads them as a fallback for the marketing text on computers that have no Helvetica Neue
+(Windows and most Linux systems). Where Helvetica Neue is installed, the page uses that instead.
+
+What changed from the original files:
+
+- Only the Latin letters, digits, punctuation, currency signs and arrows the page uses are kept.
+- The outlines are unchanged. Hinting was dropped and the files were converted to WOFF2.
+- No design change was made, and the glyphs are not edited.
+
+The fonts are used under the GUST Font License, which is in GUST-FONT-LICENSE.txt beside this
+file. It asks that derived files be renamed and listed in a manifest like this one: the files here
+are named heros-*-latin, and the page refers to the family as "Heros".

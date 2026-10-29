@@ -1,6 +1,7 @@
 import {
   AppInfoSchema,
   AppSettingsSchema,
+  ConnectionTestSchema,
   DraftTurnSchema,
   FileDiffSchema,
   GraduateSummarySchema,
@@ -22,8 +23,10 @@ import {
   WorkspaceMessageSchema,
   type ArchitectApi,
   type Job,
-  type Method,
   type ModelSource,
+  type RunStartOptions,
+  type StudentEndpoint,
+  type StudentTarget,
 } from '@architect/shared';
 import { z } from 'zod';
 import { withTypedFailures } from '../../../common/bridge';
@@ -76,7 +79,9 @@ export const api = {
   job: (jobId: string) => read('jobs.get', JobSchema, bridge().jobs.get(jobId)),
   taskPlan: (jobId: string) => read('jobs.taskPlan', TaskPlanSchema, bridge().jobs.taskPlan(jobId)),
   run: (runId: string) => read('runs.get', RunDetailSchema, bridge().runs.get(runId)),
-  report: (runId: string) => read('reports.get', ReportCardSchema, bridge().reports.get(runId)),
+  /** The run's report card: from where its own final test ran, or from one endpoint when named. */
+  report: (runId: string, target?: StudentTarget) =>
+    read('reports.get', ReportCardSchema, bridge().reports.get(runId, target)),
   chats: (graduateId: string) =>
     read(
       'workspace.listChats',
@@ -111,9 +116,25 @@ export const flowApi = {
       RuleConfirmationStateSchema,
       bridge().jobs.confirmRules(jobId, token),
     ),
+  /** Imports a job file picked in a dialog, as a new job. */
+  importJob: (path: string) => read('jobs.importFile', JobSchema, bridge().jobs.importFile(path)),
+  /** Writes the job's settings to a file chosen in a save dialog. */
+  exportJob: (jobId: string, path: string) => bridge().jobs.exportFile(jobId, path),
+  /** The system's save dialog: the file chosen, or null when the person cancels. */
+  saveFile: (options: Parameters<ArchitectApi['files']['save']>[0]) =>
+    read('files.save', z.string().nullable(), bridge().files.save(options)),
   createSample: () => read('jobs.createSample', JobSchema, bridge().jobs.createSample()),
-  startRun: (jobId: string, options: { method: Method; seed?: number }) =>
+  /** Whether a model's server answers and has the model, without running it. */
+  testStudent: (endpoint: StudentEndpoint) =>
+    read(
+      'connections.testStudent',
+      ConnectionTestSchema,
+      bridge().connections.testStudent(endpoint),
+    ),
+  startRun: (jobId: string, options: RunStartOptions) =>
     read('runs.start', RunSchema, bridge().runs.start(jobId, options)),
+  /** Takes a finished run's frozen agent through its final test again on the other endpoint. */
+  retest: (runId: string, target: StudentTarget) => bridge().runs.retest(runId, target),
   runs: (jobId: string) => read('runs.list', z.array(RunSchema), bridge().runs.list(jobId)),
   trace: (attemptId: string) => read('runs.trace', TraceSchema, bridge().runs.trace(attemptId)),
   roundDiff: (runId: string, round: number) =>

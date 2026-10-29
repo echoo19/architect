@@ -27,14 +27,17 @@ import {
   shortDuration,
   shortSpan,
   taskTimeText,
+  testSeconds,
+  testUsd,
   tooSlow,
+  type Bills,
 } from '../../../src/renderer/src/flow/define/estimates';
 import { makeJob } from './factories';
 
 /** Both bills added up, or null when neither has a price. */
-function sumOf(bills: { hostedUsd: number | null; mentorUsd: number | null }): number | null {
-  if (bills.hostedUsd === null && bills.mentorUsd === null) return null;
-  return (bills.hostedUsd ?? 0) + (bills.mentorUsd ?? 0);
+function sumOf(bills: Bills): number | null {
+  if (bills.hostedUsd === null && bills.testUsd === null && bills.mentorUsd === null) return null;
+  return (bills.hostedUsd ?? 0) + (bills.testUsd ?? 0) + (bills.mentorUsd ?? 0);
 }
 
 const pricing = { inputPerM: 0.3, cachedInputPerM: 0.04, outputPerM: 1.2 };
@@ -258,9 +261,63 @@ describe('the plan in all', () => {
     // $3.04 shows as $3 and $0.5875 as $0.60, so the total shows $3.60, not $3.50.
     expect(roughUsd(3.04)).toBe(3);
     expect(roughUsd(0.5875)).toBeCloseTo(0.6, 6);
-    expect(shownTotalUsd({ hostedUsd: 3.04, mentorUsd: 0.5875 })).toBeCloseTo(3.6, 6);
-    expect(shownTotalUsd({ hostedUsd: null, mentorUsd: 0.004 })).toBe(0);
-    expect(shownTotalUsd({ hostedUsd: null, mentorUsd: null })).toBeNull();
+    const bills = (hostedUsd: number | null, testUsd: number | null, mentorUsd: number | null) => ({
+      hostedUsd,
+      testUsd,
+      mentorUsd,
+    });
+    expect(shownTotalUsd(bills(3.04, null, 0.5875))).toBeCloseTo(3.6, 6);
+    expect(shownTotalUsd(bills(null, null, 0.004))).toBe(0);
+    expect(shownTotalUsd(bills(null, null, null))).toBeNull();
+    // The online final test is a line of its own, rounded like the others: $0.19 shows as $0.20.
+    expect(shownTotalUsd(bills(3.04, 0.19, 0.5875))).toBeCloseTo(3.8, 6);
+  });
+});
+
+describe('the final test on the online copy', () => {
+  const estimate = estimateTime(hosted, 'hosted');
+  const test = 60 * 0.00318;
+
+  it('takes the time of the online copy instead of the time of this computer', () => {
+    expect(testSeconds(hosted)).toBe(60 * 150);
+    expect(testSeconds(hosted, 'local')).toBe(60 * 150);
+    expect(testSeconds(hosted, 'hosted')).toBe(60 * 15);
+    // 3 hours of training, then 15 minutes where it was 2.5 hours.
+    expect(planSeconds(hosted, estimate, false, 'hosted')).toEqual({ least: 11_700, most: 11_700 });
+    expect(planSeconds(hosted, estimate, false, 'local')).toEqual({ least: 19_800, most: 19_800 });
+  });
+
+  it('shortens the comparison, whose three simpler versions are tested in the same place', () => {
+    expect(comparisonSeconds(hosted, estimate, 'hosted')).toBe(3 * 60 * 15 + 180 * 60);
+    expect(planSeconds(hosted, estimate, true, 'hosted')).toEqual({
+      least: 11_700 + 3 * 900 + 10_800,
+      most: 11_700 + 3 * 900 + 10_800,
+    });
+  });
+
+  it('bills the host for the tasks of the final test, apart from the practice', () => {
+    expect(testUsd(hosted, pricing)).toBeCloseTo(test, 6);
+    const online = planBills(hosted, estimate, pricing, false, 'hosted');
+    expect(online.total.testUsd).toBeCloseTo(test, 6);
+    expect(online.total.hostedUsd).toBeCloseTo(practiceUsd(pricing, estimate), 6);
+    expect(online.comparison.testUsd).toBeCloseTo(3 * test, 6);
+    const withComparison = planBills(hosted, estimate, pricing, true, 'hosted');
+    expect(withComparison.total.testUsd).toBeCloseTo(4 * test, 6);
+  });
+
+  it('bills the final test to the host even when the practice stays on this computer', () => {
+    const local = makeJob({
+      student: { ...hosted.student, trainOn: 'local' },
+    });
+    const bills = planBills(local, estimateTime(local, 'local'), pricing, false, 'hosted');
+    expect(bills.total.hostedUsd).toBeNull();
+    expect(bills.total.testUsd).toBeCloseTo(test, 6);
+  });
+
+  it('bills nothing for a final test on this computer, or on a copy with no price', () => {
+    expect(planBills(hosted, estimate, pricing, false).total.testUsd).toBeNull();
+    expect(planBills(hosted, estimate, pricing, false, 'local').total.testUsd).toBeNull();
+    expect(planBills(hosted, estimate, null, false, 'hosted').total.testUsd).toBeNull();
   });
 });
 

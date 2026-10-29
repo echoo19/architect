@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Architect: an agent for your job, on your own computer</title>
+    <meta
+      name="description"
+      content="Describe a job. A large model teaches a small one until it passes a test it has never seen, and the result runs on your computer."
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Architect" />
+    <meta
+      property="og:description"
+      content="An agent for your job, on your own computer. A large model teaches a small one, and the result runs offline."
+    />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <script>
+      // Motion is on only when scripts run and the visitor has not asked for less of it. Without
+      // this class every chapter shows its finished picture, still. The computer's kind picks
+      // which download button is the solid one, before anything paints, and whether the Windows
+      // button goes straight to its installer.
+      var root = document.documentElement;
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        root.classList.add('motion');
+      }
+      var platform =
+        (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+      root.dataset.os = /mac|iphone|ipad/i.test(platform)
+        ? 'mac'
+        : /win/i.test(platform)
+          ? 'windows'
+          : 'other';
+    </script>
+  </head>
+  <body>
+    <div id="root"><!--app-html--></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from 'react';
-import { studentPricing, type Job } from '@architect/shared';
+import { studentPricing, type Job, type StudentTarget } from '@architect/shared';
 import { Checkbox, cn, Heading, RadioCard, RadioCardGroup, Slider } from '@architect/ui';
 import { ChevronRight, RotateCw } from 'lucide-react';
 import { formatUsd } from '../../lib/format';
@@ -32,6 +32,8 @@ import { providerName, type HostedAvailability } from './hosted';
 interface TrainingPlaceProps {
   job: Job;
   hosted: HostedAvailability;
+  /** Where the final test runs, which sets its time and who bills it. */
+  testPlace: StudentTarget;
   onPlaceChange: (place: Job['student']['trainOn']) => void;
   onCapChange: (usd: number) => void;
   /** Present when checking for the hosted copy's key failed. */
@@ -52,6 +54,7 @@ interface PlanLine {
 export function TrainingPlace({
   job,
   hosted,
+  testPlace,
   onPlaceChange,
   onCapChange,
   onRetryKeys,
@@ -78,7 +81,7 @@ export function TrainingPlace({
 
   // Every dollar figure sits under what it pays for; the comparison's share adds in when ticked.
   const comparing = baselines?.checked === true;
-  const bills = planBills(job, chosen, pricing, comparing);
+  const bills = planBills(job, chosen, pricing, comparing, testPlace);
   const billLines = (shares: Bills): PlanLine[] => [
     ...(shares.hostedUsd === null
       ? []
@@ -89,32 +92,51 @@ export function TrainingPlace({
             value: formatAboutUsd(shares.hostedUsd),
           },
         ]),
+    ...(shares.testUsd === null
+      ? []
+      : [
+          {
+            label: 'Online final test',
+            detail: `${student} taking the final test online`,
+            value: formatAboutUsd(shares.testUsd),
+          },
+        ]),
     ...(shares.mentorUsd === null
       ? []
       : [{ label: mentor, detail: 'Teaching', value: formatAboutUsd(shares.mentorUsd) }]),
   ];
   const fits = chosen.rounds.most > 0;
+  const place = onHost ? 'online' : `on ${device}`;
+  // When every round fits, the time is a ceiling: training stops once the check tasks reach the
+  // target, often well before the last round.
+  const allFit = chosen.rounds.fewest >= job.budget.maxRounds;
   const time: PlanLine[] = [
     {
       label: 'Training',
       detail: fits ? (
-        `${fittingRounds(job, chosen)} ${onHost ? 'online' : `on ${device}`}`
+        allFit ? (
+          `Up to ${job.budget.maxRounds} rounds ${place}, fewer if it reaches the target first`
+        ) : (
+          `${fittingRounds(job, chosen)} ${place}`
+        )
       ) : (
         <span className="text-danger">No round fits the {limit} limit</span>
       ),
-      value: shortSpan(chosen.trainingSeconds),
+      value: allFit
+        ? `at most ${shortDuration(chosen.trainingSeconds.most)}`
+        : shortSpan(chosen.trainingSeconds),
     },
     {
       label: 'Final test',
-      detail: `${job.splits.test} new tasks on ${device}`,
-      value: shortDuration(testSeconds(job)),
+      detail: `${job.splits.test} new tasks ${testPlace === 'hosted' ? 'online' : `on ${device}`}`,
+      value: shortDuration(testSeconds(job, testPlace)),
     },
     ...(comparing
       ? [
           {
             label: 'Comparison',
             detail: 'Three simpler versions',
-            value: shortDuration(comparisonSeconds(job, chosen)),
+            value: shortDuration(comparisonSeconds(job, chosen, testPlace)),
           },
         ]
       : []),
@@ -122,7 +144,7 @@ export function TrainingPlace({
   const cost = billLines(bills.total);
   const costTotal = shownTotalUsd(bills.total);
   const adds = [
-    shortDuration(comparisonSeconds(job, chosen)),
+    shortDuration(comparisonSeconds(job, chosen, testPlace)),
     ...billLines(bills.comparison).map((line) => `${line.value} ${line.label}`),
   ].join(' · ');
 
@@ -184,7 +206,7 @@ export function TrainingPlace({
         <PlanColumn
           title="Estimated time"
           lines={time}
-          total={shortSpan(planSeconds(job, chosen, comparing))}
+          total={shortSpan(planSeconds(job, chosen, comparing, testPlace))}
         />
         <PlanColumn
           title="Estimated cost"

@@ -12,6 +12,12 @@ export interface Cipher {
   decrypt(data: Buffer): Promise<{ value: string; stale: boolean }>;
 }
 
+/**
+ * Keys from somewhere besides the file, for development only (`environmentKeys`). They are read,
+ * never written: a saved key wins, and nothing a fallback holds is ever saved.
+ */
+export type KeyFallback = (ref: SecretRef) => string | undefined;
+
 const StoredFileSchema = z.record(z.string(), z.string());
 
 type Stored = Partial<Record<SecretRef, string>>;
@@ -31,6 +37,7 @@ export class SecretStore {
     private stored: Stored,
     /** Why the keys file can't be used; while set, nothing reads keys from it or writes to it. */
     private readonly unreadable: string | null,
+    private readonly fallback: KeyFallback | undefined,
   ) {}
 
   /**
@@ -38,7 +45,7 @@ export class SecretStore {
    * in the expected shape is left exactly as it is, and every use of the store says why, so a
    * save never replaces keys that are still in there.
    */
-  static async open(file: string, cipher: Cipher): Promise<SecretStore> {
+  static async open(file: string, cipher: Cipher, fallback?: KeyFallback): Promise<SecretStore> {
     let raw: unknown;
     try {
       raw = await readJsonFile(file);
@@ -49,19 +56,19 @@ export class SecretStore {
         error instanceof Error ? error.message : String(error),
       );
     }
-    if (raw === null) return new SecretStore(file, cipher, {}, null);
+    if (raw === null) return new SecretStore(file, cipher, {}, null, fallback);
     const parsed = StoredFileSchema.safeParse(raw);
     if (!parsed.success) return SecretStore.unusable(file, cipher, "it isn't a list of saved keys");
     const stored = Object.fromEntries(
       Object.entries(parsed.data).filter(([ref]) => isSecretRef(ref)),
     ) as Stored;
-    return new SecretStore(file, cipher, stored, null);
+    return new SecretStore(file, cipher, stored, null, fallback);
   }
 
   private static unusable(file: string, cipher: Cipher, why: string): SecretStore {
     const problem = `The saved keys in ${file} can't be read (${why}), so Architect won't change that file. Fix it, or move it away to start with no keys, then restart Architect.`;
     console.warn(`[secrets] ${problem}`);
-    return new SecretStore(file, cipher, {}, problem);
+    return new SecretStore(file, cipher, {}, problem, undefined);
   }
 
   /** Which keys are saved: every named service, saved or not, and each added endpoint's. */
@@ -69,7 +76,10 @@ export class SecretStore {
     this.ensureReadable();
     const added = Object.keys(this.stored).filter((ref) => !isNamedSecretRef(ref));
     return Object.fromEntries([
-      ...SECRET_REF_NAMES.map((ref) => [ref, this.stored[ref] !== undefined] as const),
+      ...SECRET_REF_NAMES.map(
+        (ref) =>
+          [ref, this.stored[ref] !== undefined || this.fallback?.(ref) !== undefined] as const,
+      ),
       ...added.map((ref) => [ref, true] as const),
     ]);
   }
@@ -103,7 +113,7 @@ export class SecretStore {
     this.ensureReadable();
     if (!isSecretRef(ref)) return undefined;
     const ciphertext = this.stored[ref];
-    if (ciphertext === undefined) return undefined;
+    if (ciphertext === undefined) return this.fallback?.(ref);
     let decrypted: { value: string; stale: boolean };
     try {
       decrypted = await this.cipher.decrypt(Buffer.from(ciphertext, 'base64'));
