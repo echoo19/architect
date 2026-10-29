@@ -407,6 +407,27 @@ describe('what is refused when a rule names a mark', () => {
     );
     expect(result.problems.join(' ')).toContain('status in tickets.csv holds words or dates');
   });
+
+  it('tells the teacher no mark when no row can be worked out, and the person each one', () => {
+    // Half the tickets have a dash for their parts cost, and the person named only N/A. The other
+    // half have no labor hours. No row can be worked out.
+    const tables = editedBikeTables(bike, (csv) => {
+      for (let at = 1; at < csv.tickets.length; at += 1) {
+        if (at % 2 === 0) (csv.tickets[at] as string[])[PARTS] = '-';
+        else (csv.tickets[at] as string[])[PARTS - 1] = '';
+      }
+    });
+    const result = run(named('N/A'), tables);
+    expect(result.outcome).toBeNull();
+    const told = result.problems.find((problem) => problem.startsWith('No row of tickets.csv'));
+    expect(told).toContain('because parts_cost is empty or N/A');
+    expect(told).toContain('because labor_hours is empty or N/A');
+    expect(told).not.toContain('dash');
+    expect(told).not.toContain('counted');
+    const person = result.inFull?.get(told ?? '');
+    expect(person).toContain('because parts_cost says a dash ("-"), which is not counted as 0');
+    expect(person).toContain('because labor_hours is empty or N/A');
+  });
 });
 
 describe('a mark in a column of the table a rule looks up', () => {

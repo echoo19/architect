@@ -362,11 +362,22 @@ export function runRule(
   const caseTables: Tables = { source, lookup: lookupTable ?? null };
   const made = makeCases(resolved, caseTables);
   if (made.cases.length === 0) {
-    const why = made.excluded
-      .slice(0, 3)
-      .map((item) => `${item.count} because ${item.reason}`)
-      .join('; ');
-    problems.push(`No row of ${source.name} can be worked out${why === '' ? '' : `: ${why}`}.`);
+    // The person reads every reason as it is. The teacher reads one that names a mark as it was
+    // told before the person was asked about marks, with the rows of such reasons counted together.
+    const told = (teacher: boolean): string => {
+      const counts = new Map<string, number>();
+      for (const item of made.excluded) {
+        const reason = teacher ? (item.teacher ?? item.reason) : item.reason;
+        counts.set(reason, (counts.get(reason) ?? 0) + item.count);
+      }
+      const why = [...counts]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([reason, count]) => `${count} because ${reason}`)
+        .join('; ');
+      return `No row of ${source.name} can be worked out${why === '' ? '' : `: ${why}`}.`;
+    };
+    addProblem(problems, inFull, told(true), told(false));
     return refused(resolved, rule);
   }
   const audit = auditCases(resolved, caseTables, made.cases, words, passRate);

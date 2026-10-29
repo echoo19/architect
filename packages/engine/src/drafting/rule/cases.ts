@@ -53,6 +53,11 @@ export interface Exclusion {
   reason: string;
   count: number;
   example: string;
+  /**
+   * The reason as the teacher is told it, when it differs: one that names a mark the person was
+   * asked about is told as it was before they were, since what they said of a mark is theirs.
+   */
+  teacher?: string;
 }
 
 export interface Cases {
@@ -83,11 +88,12 @@ function cellOf(ref: ColumnRef, row: Row, lookupRow: Row | null): string | null 
   return from?.[ref.column] ?? null;
 }
 
-/** Why a case cannot be made, with the text that shows it. */
+/** Why a case cannot be made, with the text that shows it, and how the teacher is told it. */
 class Skip extends Error {
   constructor(
     readonly reason: string,
     readonly shown: string,
+    readonly teacher?: string,
   ) {
     super(reason);
   }
@@ -128,11 +134,13 @@ export function makeCases(spec: RuleSpec, tables: Tables): Cases {
    */
   const blankSkip = (ref: ColumnRef, mark: string | null, rowKey: string): Skip => {
     if (markIsZero.has(refKey(ref))) {
+      const told = `${where(ref)} is empty or N/A`;
       return mark === null
-        ? new Skip(`${where(ref)} is empty`, rowKey)
+        ? new Skip(`${where(ref)} is empty`, rowKey, told)
         : new Skip(
             `${where(ref)} says ${markWords(foldKey(mark))}, which is not counted as 0`,
             `${mark} in ${rowKey}`,
+            told,
           );
     }
     if (mark === null || !emptyIsZero.has(refKey(ref))) {
@@ -160,10 +168,16 @@ export function makeCases(spec: RuleSpec, tables: Tables): Cases {
 
   const cases: RuleCase[] = [];
   const skipped = new Map<string, Exclusion>();
-  const skip = (reason: string, shown: string): void => {
+  const skip = (reason: string, shown: string, teacher?: string): void => {
     const seen = skipped.get(reason);
     if (seen) seen.count += 1;
-    else skipped.set(reason, { reason, count: 1, example: shown });
+    else
+      skipped.set(reason, {
+        reason,
+        count: 1,
+        example: shown,
+        ...(teacher === undefined ? {} : { teacher }),
+      });
   };
 
   for (const [rowIndex, row] of source.rows.entries()) {
@@ -268,7 +282,7 @@ export function makeCases(spec: RuleSpec, tables: Tables): Cases {
       });
     } catch (error) {
       if (!(error instanceof Skip)) throw error;
-      skip(error.reason, error.shown);
+      skip(error.reason, error.shown, error.teacher);
     }
   }
   return {
