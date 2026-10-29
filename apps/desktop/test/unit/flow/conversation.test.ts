@@ -192,6 +192,33 @@ describe('who is speaking', () => {
     expect(speakers(state)).toEqual([undefined, 'Spark', undefined, undefined]);
   });
 
+  it('names the mentor again when it carries on after Architect, but not an end Architect says', () => {
+    const state = run(
+      said('Close out the day'),
+      reply('One?'),
+      said('A'),
+      reply('What does N/A mean?', { from: 'architect' }),
+      said('Count it as zero'),
+      reply('Two?'),
+      said('B'),
+      reply('And a dash?', { from: 'architect' }),
+      said('Leave those rows out'),
+      reply('Attach more.', { ended: true }),
+    );
+    expect(speakers(state)).toEqual([
+      undefined,
+      'Spark',
+      undefined,
+      'Architect',
+      undefined,
+      'Spark',
+      undefined,
+      'Architect',
+      undefined,
+      undefined,
+    ]);
+  });
+
   it('is nobody for something the person said', () => {
     expect(speakerOf(run(said('Hello')).entries, 0, 'Spark')).toBeUndefined();
   });

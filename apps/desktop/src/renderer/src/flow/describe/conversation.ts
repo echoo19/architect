@@ -128,8 +128,9 @@ function markChosen(entries: Entry[], option: string): Entry[] {
 
 /**
  * Who is speaking in the mentor's entry at `at`, when the conversation should say so: on the first
- * reply, and again when Architect takes over from the mentor, since a question it found in the
- * person's records is its own and not the mentor's. Undefined for an entry that carries on.
+ * reply, again when Architect takes over from the mentor, since a question it found in the
+ * person's records is its own and not the mentor's, and again when the mentor carries on after it.
+ * Undefined for an entry that carries on from the same speaker.
  */
 export function speakerOf(
   entries: readonly Entry[],
@@ -143,7 +144,9 @@ export function speakerOf(
     .filter((item): item is MentorEntry => item.kind === 'mentor')
     .at(-1);
   if (before === undefined) return entry.ended || entry.from === 'architect' ? 'Architect' : mentor;
-  return entry.from === 'architect' && before.from !== 'architect' ? 'Architect' : undefined;
+  if (entry.from === 'architect') return before.from === 'architect' ? undefined : 'Architect';
+  // A conversation that ends is Architect's to end, so it carries on from Architect's question.
+  return before.from === 'architect' && entry.ended !== true ? mentor : undefined;
 }
 
 /** The mentor's latest message, if it is the last thing said. */
