@@ -164,6 +164,17 @@ describe("a rule told as steps, the shop's rule first", () => {
     ]);
   });
 
+  it('keeps what a side takes away as one amount, in brackets', () => {
+    // 100 less (10 plus 5) is 85; "use 100 less 10 plus 5" would read as 95.
+    const taken = whenMember(
+      { op: 'sub', args: [num('100'), { op: 'add', args: [num('10'), num('5')] }] },
+      num('5'),
+    );
+    expect(textOf(taken)).toEqual([
+      'When member (customers.csv) is yes, use 100 less (10 plus 5). Otherwise, use 5.',
+    ]);
+  });
+
   it('says a test with nothing in common as a sentence about each side', () => {
     const overtime = rounded({
       op: 'if',

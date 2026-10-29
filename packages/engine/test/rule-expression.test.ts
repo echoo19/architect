@@ -156,6 +156,32 @@ describe('evaluating an expression', () => {
     );
   });
 
+  it('keeps what is taken away as one amount, in brackets', () => {
+    const words = { categories: [] };
+    // 100 less (10 plus 5) is 85. Without the brackets it reads as 95.
+    const sum: RuleNode = {
+      op: 'sub',
+      args: [num('100'), { op: 'add', args: [num('10'), num('5')] }],
+    };
+    expect(text(evaluate(sum, inputs({})).value)).toBe('85');
+    expect(statementOf(sum, words)).toBe('Start with 100. Take away (10 plus 5).');
+    const twice: RuleNode = {
+      op: 'sub',
+      args: [col('a'), { op: 'sub', args: [col('b'), col('c')] }],
+    };
+    expect(statementOf(twice, words)).toBe('Start with a. Take away (b less c).');
+    // A difference that comes first is worked from the left, as it reads, and needs none.
+    const first: RuleNode = {
+      op: 'sub',
+      args: [{ op: 'sub', args: [col('a'), col('b')] }, col('c')],
+    };
+    expect(statementOf(first, words)).toBe('Start with a less b. Take away c.');
+    // Inside a larger phrase the brackets stay.
+    expect(statementOf({ op: 'mul', args: [sum, num('2')] }, words)).toBe(
+      '(100 less (10 plus 5)) times 2.',
+    );
+  });
+
   it('compares a number with a threshold, and picks the smaller or the larger', () => {
     const overtime: RuleNode = {
       op: 'round',

@@ -248,11 +248,13 @@ function adjusted(node: Extract<RuleNode, { op: 'if' }>, ctx: WordsContext): Phr
     if (more === null || when === null) continue;
     const highest = more.op === 'add' || more.op === 'sub' ? 2 : 1;
     const start = within(phrase(base, ctx), highest);
+    // As in `phrase`, what is taken away is one amount and keeps its brackets.
+    const restHighest = more.op === 'sub' ? 1 : highest;
     const added =
       more.op === 'div'
         ? ` divided by ${literalText(more.by)}`
         : more.rest
-            .map((rest) => `${CONNECTORS[more.op]}${within(phrase(rest, ctx), highest)}`)
+            .map((rest) => `${CONNECTORS[more.op]}${within(phrase(rest, ctx), restHighest)}`)
             .join('');
     return { text: `${start}${added} when ${when}`, level: 3 };
   }
@@ -268,7 +270,11 @@ export function phrase(node: RuleNode, ctx: WordsContext): Phrase {
       return { text: nameOf(node, ctx), level: 0 };
     case 'add':
     case 'sub': {
-      const parts = node.args.map((arg) => within(phrase(arg, ctx), 2));
+      // What is taken away is one amount, so a sum or a difference after "less" is in brackets:
+      // 100 less (10 plus 5) is 85, and "100 less 10 plus 5" reads as 95.
+      const parts = node.args.map((arg, at) =>
+        within(phrase(arg, ctx), node.op === 'sub' && at > 0 ? 1 : 2),
+      );
       return { text: parts.join(CONNECTORS[node.op]), level: 2 };
     }
     case 'mul': {
@@ -326,7 +332,11 @@ export function statementOf(root: RuleNode, ctx: WordsContext): string {
     const [first, ...rest] = body.args;
     if (first !== undefined) sentences.push(`Start with ${phrase(first, ctx).text}.`);
     for (const next of rest) {
-      sentences.push(`${body.op === 'add' ? 'Add' : 'Take away'} ${phrase(next, ctx).text}.`);
+      sentences.push(
+        body.op === 'add'
+          ? `Add ${phrase(next, ctx).text}.`
+          : `Take away ${within(phrase(next, ctx), 1)}.`,
+      );
     }
   } else {
     sentences.push(`${upper(phrase(body, ctx).text)}.`);
