@@ -20,6 +20,8 @@ export interface MentorEntry {
   /** The option the user picked, once they answered with one. */
   chosen?: string;
   draft?: Job;
+  /** No job can be drafted from what was attached; the person starts again with more. */
+  ended?: true;
 }
 
 export type Entry = UserEntry | MentorEntry;
@@ -93,6 +95,7 @@ export function conversationReducer(state: Conversation, action: ConversationAct
         options: turn.options,
         readFiles,
         ...(turn.draft ? { draft: turn.draft } : {}),
+        ...(turn.ended ? { ended: true as const } : {}),
       };
       return {
         ...state,

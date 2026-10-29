@@ -2,9 +2,9 @@ import { FileChip } from '@architect/ui';
 import { ListChecks } from 'lucide-react';
 import { fileName } from '../format';
 
-/** Files read as example requests with their answers: task lists by name or format. */
+/** Files read as example requests with their answers: task lists in JSON Lines. */
 function isTaskFile(path: string): boolean {
-  return /\.jsonl$/i.test(path) || /(^|[\\/])tasks?\.csv$/i.test(path);
+  return /\.jsonl$/i.test(path);
 }
 
 /** A file attached to the job, with example tasks marked apart from the data. */
