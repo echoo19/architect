@@ -7,7 +7,7 @@ import {
   type RuleReport,
   type RuleSpec,
 } from '@architect/shared';
-import { questioned } from './passages';
+import { readable } from './passages';
 import { ruleVersion } from './templates/rule';
 
 /*
@@ -131,7 +131,7 @@ export function reportsOf(
 ): RuleReport[] {
   if (saved === null) return [];
   return draft.types.flatMap((type) => {
-    const details = questioned(type, draft.answers);
+    const details = readable(type, draft.answers);
     if (type.spec?.template !== 'rule' || details === undefined) return [];
     const { examples: _examples, uncovered: _uncovered, ...rest } = details;
     return [

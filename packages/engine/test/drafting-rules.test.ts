@@ -47,6 +47,15 @@ function attachBike(): string[] {
 const TEXT = (request: MentorCompletionRequest): string =>
   [request.system, ...request.messages.map((message) => message.content)].join('\n');
 
+/** The rule of the shop, told a step at a time. */
+const SHOP_STEPS = [
+  'Round labor hours up to a multiple of 0.5.',
+  'Multiply by 65.',
+  'When member (customers.csv) is yes, multiply by 0.9.',
+  'Add parts cost.',
+  'Round the result to the nearest cent; half a cent rounds up.',
+];
+
 function recordOf(jobId: string): DraftRecord {
   return DraftRecordSchema.parse(JSON.parse(readFileSync(world.paths.draftingFile(jobId), 'utf8')));
 }
@@ -106,6 +115,8 @@ describe('drafting a job with a rule', () => {
       'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, half a cent rounds up.',
     );
     expect(cost?.rule).toContain('Work out total for each ticket_id of tickets.csv:');
+    // The steps are worked out when the plan and the report are made, never stored.
+    expect(cost?.details?.steps).toBeUndefined();
     expect(cost?.details?.passages).toHaveLength(2);
     expect(record.files?.map((file) => file.name).sort()).toEqual([
       'customers.csv',
@@ -287,6 +298,7 @@ describe('the confirmation that binds', () => {
       cases: { total: 160 },
     });
     expect(rule?.statement).toContain('Add parts cost.');
+    expect(rule?.steps?.map((step) => step.text)).toEqual(SHOP_STEPS);
     expect(rule).not.toHaveProperty('examples');
     expect(rule).not.toHaveProperty('uncovered');
   });
@@ -715,6 +727,13 @@ describe('a question about an empty cell', () => {
     const plan = await world.jobs.taskPlan(job.id);
     const planned = plan.types.find((type) => type.id === 'cost')?.details;
     expect(planned?.statement).toBe(cost?.details?.statement);
+    // The same rule as steps, the empty cell said beside the step that adds it up.
+    expect(planned?.steps?.map((step) => [step.text, step.note])).toEqual(
+      SHOP_STEPS.map((text) => [
+        text,
+        text === 'Add parts cost.' ? 'An empty parts cost counts as 0, as you said.' : undefined,
+      ]),
+    );
     // The answer is read with the question the person was asked about the empty cell.
     expect(planned?.passages).toContainEqual({
       file: 'answers',

@@ -118,7 +118,12 @@ async function main(): Promise<void> {
     for (const type of plan.types) {
       const { details } = type;
       if (details === undefined) continue;
-      write(`\nRule "${type.label}", version ${details.version}:\n${details.statement}\n`);
+      // The rule is read as the Define screen shows it: numbered steps, the sentence if it has none.
+      const steps = (details.steps ?? []).map(
+        (step, at) => `  ${at + 1}. ${step.text}${step.note === undefined ? '' : ` ${step.note}`}`,
+      );
+      const told = steps.length === 0 ? details.statement : steps.join('\n');
+      write(`\nRule "${type.label}", version ${details.version}:\n${told}\n`);
       for (const passage of details.passages) {
         write(`  from ${passageOrigin(passage)}: ${passage.passage}\n`);
       }

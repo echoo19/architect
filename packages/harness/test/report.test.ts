@@ -229,6 +229,53 @@ describe('renderReportMarkdown', () => {
     expect(renderReportMarkdown(report)).not.toContain(note);
   });
 
+  it('tells the rule as numbered steps, each with what the person said it rests on', () => {
+    const report = sampleReport();
+    report.tasks = {
+      source: 'generated',
+      rules: [
+        {
+          typeId: 'cost',
+          label: 'Ticket totals',
+          version: 'db5fc3156380',
+          statement: 'Start with labor. Add parts cost.',
+          steps: [
+            { text: 'Round labor hours up to a multiple of 0.5.' },
+            {
+              text: 'When member (customers.csv) is yes, multiply by 0.9.',
+              files: ['customers.csv'],
+            },
+            { text: 'Add parts cost.', note: 'An empty parts cost counts as 0, as you said.' },
+          ],
+          passages: [{ file: 'policy.md', passage: 'Labor is billed at $65 an hour.' }],
+          conventions: [],
+          cases: { total: 10, eligible: 10 },
+          excluded: [],
+          branches: [],
+          flags: [],
+          confirmedAt: '2026-10-29T10:00:00.000Z',
+          expression: { op: 'col', column: 'parts_cost', from: 'row' },
+        },
+      ],
+    };
+    const text = renderReportMarkdown(report);
+    expect(text).toContain(
+      'The rule in words:\n1. Round labor hours up to a multiple of 0.5.\n2. When member (customers.csv) is yes, multiply by 0.9.\n3. Add parts cost. An empty parts cost counts as 0, as you said.\n',
+    );
+    // The sentence is for a report made before the steps existed.
+    expect(text).not.toContain('Start with labor.');
+    const rule = report.tasks.rules?.[0];
+    if (rule === undefined) throw new Error('The report has a rule.');
+    delete rule.steps;
+    expect(renderReportMarkdown(report)).toContain(
+      'The rule in words: Start with labor. Add parts cost.',
+    );
+    rule.steps = [];
+    expect(renderReportMarkdown(report)).toContain(
+      'The rule in words: Start with labor. Add parts cost.',
+    );
+  });
+
   it('formats small amounts and durations', () => {
     const report = sampleReport();
     report.cost = { ...report.cost, mentorUsd: 0.0043, wallMs: 45_000 };

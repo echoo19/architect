@@ -183,6 +183,19 @@ export function renderReportMarkdown(report: ReportCard): string {
 }
 
 /**
+ * A rule in words: numbered steps, each with what the person said that it rests on, or the one
+ * sentence for a report made before the steps existed.
+ */
+function ruleWords(rule: RuleReport): string {
+  const { steps } = rule;
+  if (steps === undefined || steps.length === 0) return `The rule in words: ${rule.statement}`;
+  const lines = steps.map(
+    (step, at) => `${at + 1}. ${step.text}${step.note === undefined ? '' : ` ${step.note}`}`,
+  );
+  return `The rule in words:\n${lines.join('\n')}`;
+}
+
+/**
  * The rules the expected answers were calculated by, in full: each in words with its version,
  * the passages it rests on, when the person confirmed it, how numbers and rounding were read,
  * which rows were left out, what each side of a condition did, and whether teaching ran.
@@ -192,7 +205,7 @@ function ruleDetails(report: ReportCard, rules: readonly RuleReport[]): string {
   const parts = rules.map((rule) =>
     [
       `### ${rule.label} (version ${rule.version})`,
-      `The rule in words: ${rule.statement}`,
+      ruleWords(rule),
       `The rule exactly as Architect evaluates it:\n\n\`\`\`json\n${JSON.stringify(rule.expression, null, 2)}\n\`\`\``,
       `The person confirmed this rule on ${rule.confirmedAt.slice(0, 10)}, over the records the tasks were made from.`,
       `It rests on these passages:\n${rule.passages.map((item) => `- ${passageOrigin(item)}: "${item.passage}"`).join('\n')}`,

@@ -10,7 +10,7 @@ import {
   reached,
 } from './expression';
 import * as q from './rational';
-import { roundingText, sideLabel, type WordsContext } from './words';
+import { sideLabel, unneededRounding, type WordsContext } from './words';
 
 /*
  * What a rule must not be, however well it is written. An agent that can pass without working
@@ -282,9 +282,7 @@ export function auditCases(
   }
   for (const [node, seen] of rounds) {
     if (node.op !== 'round' || seen.changed > 0) continue;
-    flags.push(
-      `The rounding step (${roundingText(node.mode, node.increment, words.currency)}) never changed a value in your records, so no task shows it at work.`,
-    );
+    flags.push(unneededRounding(node.mode, node.increment, words.currency));
   }
   // A rounding written on both sides of a condition is one thing to say, once.
   return { problems, inFull, flags: [...new Set(flags)], branches };

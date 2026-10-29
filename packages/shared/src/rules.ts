@@ -238,12 +238,36 @@ export const RuleBranchSchema = z.object({
 });
 export type RuleBranch = z.infer<typeof RuleBranchSchema>;
 
+/**
+ * One step of a rule in plain words, such as "Multiply by 65.": what is done to the amount the
+ * steps above it came to. A step that can't be said as one thing to that amount says what it is
+ * as a plain sentence.
+ */
+export const RuleStepSchema = z.object({
+  text: z.string().min(1),
+  /**
+   * The files the step names in brackets after a column, such as `customers.csv` in "member
+   * (customers.csv) is yes", so a screen can set them quietly beside the words.
+   */
+  files: z.array(z.string().min(1)).optional(),
+  /** Something the person said that the step rests on: "An empty parts cost counts as 0, as you said." */
+  note: z.string().min(1).optional(),
+});
+export type RuleStep = z.infer<typeof RuleStepSchema>;
+
 /** What Architect worked out about a rule: the same for the screen, the report and the record. */
 export const RuleDetailsSchema = z.object({
   /** A short hash of the rule and of how Architect reads and rounds. */
   version: z.string().min(1),
-  /** The rule in plain words, derived from the expression. */
+  /** The rule in plain words, derived from the expression, as one sentence. */
   statement: z.string().min(1),
+  /**
+   * The same rule as numbered steps, derived from the expression alone. Worked out when the plan
+   * and the report are made and never stored with a draft, so a draft made before has them too and
+   * no rule's version changes. Absent from a report card made before they existed, and from a
+   * stand-in's: a screen then says the statement.
+   */
+  steps: z.array(RuleStepSchema).optional(),
   passages: z.array(RulePassageSchema),
   /** How numbers, categories and rounding are read, in plain words. */
   conventions: z.array(z.string()),

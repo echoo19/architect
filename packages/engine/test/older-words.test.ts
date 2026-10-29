@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { bindingOf, reportsOf, stateOf } from '../src/drafting/confirmation';
 import { plainerCover, plainerSentence, readInPlainerWords } from '../src/drafting/older-words';
 import { buildTaskPlan } from '../src/drafting/plan';
+import { ruleSteps } from '../src/drafting/rule/steps';
+import { wordsOf } from '../src/drafting/rule/words';
 import { runRule, ruleVersion } from '../src/drafting/templates/rule';
 import { writeJsonFile } from '../src/loop/files';
 import { draftingWorld, type DraftingWorld } from './support/drafting-world';
@@ -16,36 +18,58 @@ const OLD_CONVENTION =
   'All arithmetic is exact until a rounding step. Up rounds to the larger multiple, down to the smaller, and half up to the nearest with a tie going up.';
 const NEW_CONVENTION =
   'All arithmetic is exact until a rounding step. Up rounds to the larger multiple, down to the smaller, and to the nearest sends exactly halfway up.';
+/** A rounding no record needed, as drafts said it before 0.3.1 and as 0.3.1 said it. */
 const OLD_FLAG =
   'The rounding step (to the nearest cent, halves going up) never changed a value in your records, so no task shows it at work.';
+const FLAG_031 =
+  'The rounding step (to the nearest cent, half a cent rounds up) never changed a value in your records, so no task shows it at work.';
+const NEW_FLAG = 'None of your records needed rounding to the nearest cent, so no task tests it.';
 
-/** A draft record as one made before the words were plainer stored it, with its rule's real spec. */
-function olderDraft(): DraftRecord {
+/** What the shop's rule is told as, step by step, whenever it was drafted. */
+const STEPS = [
+  { text: 'Round labor hours up to a multiple of 0.5.' },
+  { text: 'Multiply by 65.' },
+  { text: 'When member (customers.csv) is yes, multiply by 0.9.', files: ['customers.csv'] },
+  { text: 'Add parts cost.' },
+  { text: 'Round the result to the nearest cent; half a cent rounds up.' },
+];
+
+/**
+ * A draft record as one made before the words were plainer stored it, with its rule's real spec.
+ * `edge` is how it said what an example shows: before 0.3.1 "A rounding edge", then "Shows the
+ * rounding" with what is rounded in brackets.
+ */
+function olderDraft(
+  edge: 'A rounding edge' | 'Shows the rounding' = 'A rounding edge',
+): DraftRecord {
   const spec = bikeRule();
   const made = runRule(spec, bikeTables(bikeShop({ offGrid: true })));
   if (made.outcome === null) throw new Error(made.problems.join(' '));
+  const flag = edge === 'A rounding edge' ? OLD_FLAG : FLAG_031;
+  const statement = edge === 'A rounding edge' ? OLD_STATEMENT : NEW_STATEMENT;
+  const tie = edge === 'A rounding edge' ? 'halves going up' : 'half a cent rounds up';
   const details: RuleDetails = {
     ...made.outcome.details,
-    statement: OLD_STATEMENT,
+    statement,
     conventions: [OLD_CONVENTION],
-    flags: [OLD_FLAG],
+    flags: [flag],
     examples: [
       {
         request: 'What does ticket T-2148 cost the customer?',
         inputs: [{ label: 'labor hours', value: '2.6' }],
         steps: [
           { text: 'Labor hours (2.6), rounded up to a multiple of 0.5', value: '3' },
-          { text: '416.58, rounded to the nearest cent, halves going up', value: '416.58' },
+          { text: `416.58, rounded to the nearest cent, ${tie}`, value: '416.58' },
         ],
         answer: '416.58',
-        covers: ['A rounding edge (labor hours)', 'member (customers.csv) is no'],
+        covers: [`${edge} (labor hours)`, 'member (customers.csv) is no'],
       },
       {
         request: 'Like T-2144, but with parts cost 0.005',
         inputs: [],
-        steps: [{ text: '195.005, rounded to the nearest cent, halves going up', value: '195.01' }],
+        steps: [{ text: `195.005, rounded to the nearest cent, ${tie}`, value: '195.01' }],
         answer: '195.01',
-        covers: ['A rounding edge (the result)'],
+        covers: [`${edge} (the result)`],
         madeUp: true,
       },
     ],
@@ -61,13 +85,13 @@ function olderDraft(): DraftRecord {
     types: [
       {
         id: 'cost',
-        rule: `Work out total for each ticket_id of tickets.csv: ${OLD_STATEMENT}`,
+        rule: `Work out total for each ticket_id of tickets.csv: ${statement}`,
         spec,
         details,
       },
     ],
     unresolved: [],
-    notes: [OLD_FLAG],
+    notes: [flag],
   };
 }
 
@@ -95,38 +119,81 @@ describe('words a rule was told in before they were plainer', () => {
     expect(plainerSentence(plain)).toBe(plain);
     const up = 'labor hours rounded up to a multiple of 0.5';
     expect(plainerSentence(up)).toBe(up);
-    expect(plainerCover('A rounding edge (labor hours)')).toBe('Shows the rounding (labor hours)');
-    expect(plainerCover('A rounding edge')).toBe('Shows the rounding');
-    expect(plainerCover('member (customers.csv) is yes')).toBe('member (customers.csv) is yes');
   });
 
-  it('reads a draft made before in the plainer words, in everything a person is shown', () => {
-    const read = readInPlainerWords(olderDraft());
-    const [type] = read.types;
-    expect(type?.details?.statement).toBe(NEW_STATEMENT);
-    expect(type?.details?.conventions).toEqual([NEW_CONVENTION]);
-    expect(type?.rule).toBe(`Work out total for each ticket_id of tickets.csv: ${NEW_STATEMENT}`);
-    expect(type?.details?.flags).toEqual([
-      OLD_FLAG.replace('halves going up', 'half a cent rounds up'),
-    ]);
-    expect(read.notes).toEqual(type?.details?.flags);
-    const [first, made] = type?.details?.examples ?? [];
-    expect(first?.covers).toEqual([
-      'Shows the rounding (labor hours)',
-      'member (customers.csv) is no',
-    ]);
-    expect(first?.steps[1]?.text).toBe(
-      '416.58, rounded to the nearest cent, half a cent rounds up',
+  it('says what an example shows in the words of now, from either older way of saying it', () => {
+    for (const before of ['A rounding edge', 'Shows the rounding']) {
+      expect(plainerCover(`${before} (labor hours)`)).toBe('Shows how the rule rounds labor hours');
+      expect(plainerCover(`${before} (labor hours times 65)`)).toBe(
+        'Shows how the rule rounds labor hours times 65',
+      );
+      expect(plainerCover(before)).toBe('Shows the rounding');
+      // The answer is called what the rule calls it, where the older words said "the result".
+      expect(plainerCover(`${before} (the result)`)).toBe('Shows how the rule rounds the result');
+      expect(plainerCover(`${before} (the result)`, 'the total')).toBe(
+        'Shows how the rule rounds the total',
+      );
+    }
+    // The words of now, and the rest of what an example covers, are not touched.
+    expect(plainerCover('Shows how the rule rounds labor hours')).toBe(
+      'Shows how the rule rounds labor hours',
     );
-    expect(made?.covers).toEqual(['Shows the rounding (the result)']);
-    expect(made?.madeUp).toBe(true);
-    // What the person confirms and the numbers are as they were.
-    expect(type?.details?.passages).toEqual(olderDraft().types[0]?.details?.passages);
-    expect(type?.details?.version).toBe(olderDraft().types[0]?.details?.version);
-    expect(first?.steps[1]?.value).toBe('416.58');
-    // And a draft made now, in the words of now, reads as it is.
-    expect(readInPlainerWords(read)).toEqual(read);
+    expect(plainerCover('member (customers.csv) is yes')).toBe('member (customers.csv) is yes');
+    expect(plainerCover('An empty parts cost counts as 0')).toBe('An empty parts cost counts as 0');
   });
+
+  it('says a rounding no record needed in the words of now, for any rounding step', () => {
+    expect(plainerSentence(OLD_FLAG)).toBe(NEW_FLAG);
+    expect(plainerSentence(FLAG_031)).toBe(NEW_FLAG);
+    expect(
+      plainerSentence(
+        'The rounding step (up to a multiple of 0.5) never changed a value in your records, so no task shows it at work.',
+      ),
+    ).toBe('None of your records needed rounding up to a multiple of 0.5, so no task tests it.');
+    expect(
+      plainerSentence(
+        'The rounding step (to the nearest whole number, exactly halfway rounds up) never changed a value in your records, so no task shows it at work.',
+      ),
+    ).toBe(
+      'None of your records needed rounding to the nearest whole number, so no task tests it.',
+    );
+    expect(
+      plainerSentence(
+        'The rounding step (down to a whole cent) never changed a value in your records, so no task shows it at work.',
+      ),
+    ).toBe('None of your records needed rounding down to a whole cent, so no task tests it.');
+    expect(plainerSentence(NEW_FLAG)).toBe(NEW_FLAG);
+  });
+
+  it.each(['A rounding edge', 'Shows the rounding'] as const)(
+    'reads a draft made with "%s" in the plainer words, in everything a person is shown',
+    (edge) => {
+      const read = readInPlainerWords(olderDraft(edge));
+      const [type] = read.types;
+      expect(type?.details?.statement).toBe(NEW_STATEMENT);
+      expect(type?.details?.conventions).toEqual([NEW_CONVENTION]);
+      expect(type?.rule).toBe(`Work out total for each ticket_id of tickets.csv: ${NEW_STATEMENT}`);
+      expect(type?.details?.flags).toEqual([NEW_FLAG]);
+      expect(read.notes).toEqual([NEW_FLAG]);
+      const [first, made] = type?.details?.examples ?? [];
+      expect(first?.covers).toEqual([
+        'Shows how the rule rounds labor hours',
+        'member (customers.csv) is no',
+      ]);
+      expect(first?.steps[1]?.text).toBe(
+        '416.58, rounded to the nearest cent, half a cent rounds up',
+      );
+      // The rule calls its answer "total", so the rounding of the answer is the total's.
+      expect(made?.covers).toEqual(['Shows how the rule rounds the total']);
+      expect(made?.madeUp).toBe(true);
+      // What the person confirms and the numbers are as they were.
+      expect(type?.details?.passages).toEqual(olderDraft(edge).types[0]?.details?.passages);
+      expect(type?.details?.version).toBe(olderDraft(edge).types[0]?.details?.version);
+      expect(first?.steps[1]?.value).toBe('416.58');
+      // And a draft made now, in the words of now, reads as it is.
+      expect(readInPlainerWords(read)).toEqual(read);
+    },
+  );
 
   it("is not part of a rule's version, so a rule confirmed over the older words is still confirmed", async () => {
     const old = olderDraft();
@@ -170,7 +237,7 @@ describe('words a rule was told in before they were plainer', () => {
     });
     expect(plan.types[0]?.details?.statement).toBe(NEW_STATEMENT);
     expect(plan.types[0]?.rule).toContain('half a cent rounds up');
-    expect(plan.notes[0]).toContain('half a cent rounds up');
+    expect(plan.notes[0]).toBe(NEW_FLAG);
     const [report] = reportsOf(read, new Map([['cost', 'Ticket totals']]), {
       format: 1,
       confirmedAt: '2026-10-29T12:00:00.000Z',
@@ -178,7 +245,75 @@ describe('words a rule was told in before they were plainer', () => {
       files: [],
     });
     expect(report?.statement).toBe(NEW_STATEMENT);
-    expect(report?.flags[0]).toContain('half a cent rounds up');
+    expect(report?.flags).toEqual([NEW_FLAG]);
+  });
+});
+
+describe('a rule told as steps', () => {
+  const unwritten = { taskTypes: [{ id: 'cost', label: 'Ticket totals' }] };
+  const planOf = (draft: DraftRecord) =>
+    buildTaskPlan({
+      job: unwritten as Parameters<typeof buildTaskPlan>[0]['job'],
+      draft,
+      visible: { calibration: [], train: [], dev: [] },
+      sealed: {},
+    });
+  const saved: RuleConfirmation = {
+    format: 1,
+    confirmedAt: '2026-10-29T12:00:00.000Z',
+    rules: [],
+    files: [],
+  };
+
+  it('is worked out for a draft made before it, which stored none', () => {
+    for (const edge of ['A rounding edge', 'Shows the rounding'] as const) {
+      const old = olderDraft(edge);
+      expect(old.types[0]?.details?.steps).toBeUndefined();
+      expect(planOf(readInPlainerWords(old)).types[0]?.details?.steps).toEqual(STEPS);
+      const [report] = reportsOf(readInPlainerWords(old), new Map([['cost', 'Totals']]), saved);
+      expect(report?.steps).toEqual(STEPS);
+    }
+    // And from the rule alone: the words the rule was drafted in have nothing to do with them.
+    const spec = olderDraft().types[0]?.spec;
+    if (spec?.template !== 'rule') throw new Error('The draft has a rule.');
+    expect(ruleSteps(spec.expression, wordsOf(spec))).toEqual(STEPS);
+  });
+
+  it('is never stored with the draft, so the file a draft made before has is as it was', () => {
+    const read = readInPlainerWords(olderDraft());
+    expect(read.types[0]?.details?.steps).toBeUndefined();
+    expect(Object.keys(read.types[0]?.details ?? {})).not.toContain('steps');
+  });
+
+  it("changes neither the rule's version nor what a person confirmed", async () => {
+    const old = olderDraft();
+    const spec = old.types[0]?.spec;
+    if (spec?.template !== 'rule') throw new Error('The draft has a rule.');
+    const files = ['tickets.csv', 'customers.csv'];
+    const bytes = (name: string) => Promise.resolve(new TextEncoder().encode(`${name} as it was`));
+    const before = await bindingOf(old, files, bytes);
+
+    // The record as the plan and the report hold it, steps and all.
+    const told = planOf(readInPlainerWords(old)).types[0]?.details;
+    expect(told?.steps).toHaveLength(5);
+    const withSteps: DraftRecord = {
+      ...old,
+      types: old.types.map((type) => ({ ...type, details: told })),
+    };
+    expect(told?.version).toBe(ruleVersion(spec));
+    expect(await bindingOf(withSteps, files, bytes)).toEqual(before);
+
+    // A rule confirmed before the steps existed is still the one confirmed.
+    const confirmed: RuleConfirmation = {
+      format: 1,
+      confirmedAt: '2026-10-29T12:00:00.000Z',
+      rules: before.rules,
+      files: before.files,
+    };
+    expect(stateOf({ ...withSteps, files: before.files }, confirmed, before)).toMatchObject({
+      state: 'confirmed',
+      token: before.token,
+    });
   });
 });
 
@@ -192,10 +327,15 @@ describe('the job library', () => {
     await writeJsonFile(file, olderDraft());
     const before = readFileSync(file, 'utf8');
     expect(before).toContain('halves going up');
+    expect(before).toContain('A rounding edge');
+    expect(before).toContain('never changed a value');
 
     const read = await world.jobs.drafting('job_1');
     expect(read?.types[0]?.details?.statement).toBe(NEW_STATEMENT);
-    expect(read?.notes[0]).toContain('half a cent rounds up');
+    expect(read?.notes[0]).toBe(NEW_FLAG);
+    expect(read?.types[0]?.details?.examples[0]?.covers[0]).toBe(
+      'Shows how the rule rounds labor hours',
+    );
     expect(readFileSync(file, 'utf8')).toBe(before);
   });
 });

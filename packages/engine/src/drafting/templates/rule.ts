@@ -15,7 +15,7 @@ import { checkExpression, numberRefs, refKey } from '../rule/expression';
 import { auditCases, DEFAULT_PASS_RATE } from '../rule/guards';
 import type { RuleOutcome } from '../rule/outcome';
 import * as q from '../rule/rational';
-import { NEAREST_CLAUSE, nameOf, statementOf, type WordsContext } from '../rule/words';
+import { NEAREST_CLAUSE, nameOf, statementOf, wordsOf, type WordsContext } from '../rule/words';
 import {
   addProblem,
   answerKeyName,
@@ -223,12 +223,7 @@ export function runRule(
     expression,
     ...(emptyMeansZero.length === 0 ? {} : { emptyMeansZero }),
   };
-  const words: WordsContext = {
-    ...(lookup === undefined ? {} : { lookupTable: lookup.table }),
-    ...(spec.currency === undefined ? {} : { currency: spec.currency }),
-    categories,
-    ...(emptyMeansZero.length === 0 ? {} : { emptyMeansZero }),
-  };
+  const words: WordsContext = wordsOf(resolved);
   const rule = `Work out ${spec.answerName.replace(/_/g, ' ')} for each ${keyColumn} of ${source.name}`;
 
   checkRequest(spec.request, ['key'], ['key'], problems);

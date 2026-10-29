@@ -36,7 +36,7 @@ describe('the examples a rule is confirmed by', () => {
     const covers = real.flatMap((example) => example.covers);
     expect(covers).toContain('member (customers.csv) is yes');
     expect(covers).toContain('member (customers.csv) is no');
-    expect(covers).toContain('Shows the rounding (labor hours)');
+    expect(covers).toContain('Shows how the rule rounds labor hours');
     for (const example of real) {
       expect(example.taskId).toMatch(/^task-T-\d+$/);
       expect(example.request).toMatch(/^What does ticket T-\d+ cost the customer\?$/);
@@ -119,7 +119,7 @@ describe('the examples a rule is confirmed by', () => {
     const [hours, cents] = made;
     expect(hours?.taskId).toBeUndefined();
     expect(hours?.request).toMatch(/^Like T-\d+, but with labor hours \d+\.\d\d?$/);
-    expect(hours?.covers[0]).toBe('Shows the rounding (labor hours)');
+    expect(hours?.covers[0]).toBe('Shows how the rule rounds labor hours');
     expect(hours?.steps[0]?.text).toMatch(
       /^Labor hours \([\d.]+\), rounded up to a multiple of 0.5$/,
     );
@@ -129,7 +129,7 @@ describe('the examples a rule is confirmed by', () => {
     expect(Number(hours?.steps[0]?.value)).toBe(Math.ceil(billed * 2) / 2);
     // The cent is shown at the tie that the rule rounds up.
     expect(cents?.request).toMatch(/^Like T-\d+, but with parts cost \d+\.\d\d5$/);
-    expect(cents?.covers[0]).toBe('Shows the rounding (the result)');
+    expect(cents?.covers[0]).toBe('Shows how the rule rounds the total');
     const before = cents?.steps.at(-2)?.value ?? '';
     const after = cents?.steps.at(-1)?.value ?? '';
     expect(before).toMatch(/^\d+\.\d\d5$/);
