@@ -33,14 +33,14 @@ Architect is being built during the Meta Global AI Developer Hackathon (indie de
 
 ## Demo script
 
-A draft, to be shot on the live app during a real run of the sample job (hosted training for speed, the graduate on the local model). About three minutes; times are targets.
+A draft, revised on Oct 28 after comparison 2. It is shot on the live app: the training part replays comparison 2's real records in the app's own screens (labeled as a replay), and the agent part runs live on this computer's 2-bit Glimmer. About three minutes; times are targets.
 
-1. **The problem (0:00 to 0:20).** A small office's back-office work: billing finished jobs, chasing overdue balances, booking visits. Show Glimmer on its own getting a billing task wrong in a trace: it reads the tables line by line and runs out of steps before it writes the invoice. Say what the job needs: an agent that runs on the office's own computer, with no data going to a cloud model on every request.
-2. **Describe and define (0:20 to 0:50).** Type the job in a sentence and attach the office's files. Spark asks a few questions. The Define screen shows what the agent will and won't do, the 95% bar for the final test, and that writes need approval.
-3. **Training (0:50 to 1:40).** Spark writes the first full setup without seeing an attempt; the chart jumps from Glimmer alone to the first draft. Open the round drawer on a change: the failure Spark read, its diagnosis, the tool or skill it wrote, what it predicted and what was measured, and why it was kept. Then the final test runs with Spark disconnected.
-4. **Report card (1:40 to 2:00).** Every task type with its score, typical answer time, what training cost (Spark and the hosted copy, apart), and that the test ran once on tasks Spark never saw.
-5. **Offline (2:00 to 2:45).** Turn the network off. In the workspace, ask the graduate to bill a finished job: each step shows as it runs, the new invoice row waits for approval with its diff, then the answer. Ask for something outside its job and show the refusal with its reason.
-6. **Results (2:45 to 3:00).** The comparison in one line from the README: Glimmer alone 45 of 60 on the locked test, with Architect's setup 60 of 60, and the same on the local 4-bit model offline. Meta's models do the two jobs: Muse Spark teaches, Muse Glimmer works.
+1. **The problem (0:00 to 0:20).** An outdoor-gear shop's returns desk: deciding refunds, answering order questions, booking carrier pickups, from records that are messy (money written with currency signs and commas, values in quotes). Show Glimmer on its own getting a refund wrong in a recorded attempt. Say what the shop needs: an agent on its own computer, with no data going to a cloud model on every request.
+2. **Describe and define (0:20 to 0:45).** Type the job in a sentence and attach the shop's records. Spark asks a few questions. The Define screen shows what the agent will and won't do, the 95% bar for the final test, and that writes need approval.
+3. **Training (0:45 to 1:35), a replay of comparison 2.** The check score climbs from 31 of 45. Open round 1: the attempt Spark read, its diagnosis (the tools misread messy money), the tool change, what it predicted and what was measured twice, kept. Round 2: undone, no gain. Round 4: kept, and the target is met. The final test runs with Spark disconnected.
+4. **Results (1:35 to 1:55).** 58 of 60 on requests teaching never saw, against 44 for Glimmer on its own and 38 for Spark's one-shot setup; a typical answer in 3.5 s instead of 17.7 s; 42 cents of Spark.
+5. **On this computer (1:55 to 2:45).** Turn the network off. Open the ready-made agent and ask an order question: each step shows as it runs, then the answer. Ask it to book a pickup: the new row waits for approval with its diff. Ask for something outside its job and show the refusal with its reason.
+6. **Close (2:45 to 3:00).** Meta's models do the two jobs: Muse Spark teaches, Muse Glimmer works, on your computer. The plan for this comparison was published before it ran.
 
 Narration, if any, is a disclosed generated voice; no generated images.
 

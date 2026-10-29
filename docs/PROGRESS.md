@@ -14,8 +14,9 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - A one-request check of a comparison 1 agent on this computer's 2-bit Glimmer failed after 13 steps: seven file reads filled the 16K context, and Ollama cut the reply off inside a tool call. Online runs have far more room, so nothing had shown it. A context budget keeps every prompt inside the student's context (decision 057, merged).
 - EXPANSION rows A01 (not done, by the owner's choice of hosted inference only) and A12 (a Hugging Face token now exists; a live private test waits for the owner) say where they stand.
 
+- The shipped agent, installed through the CLI into a fresh data folder on this computer: every installation check passed (it answered in 8.2 s with loading), and one order question on the 2-bit Glimmer with the context budget merged came back right, every order and line, in 96.9 s and 12 steps. The model was unloaded afterwards. Two small fixes came out of it: the model check no longer calls the local build "the build that was tested" for an agent whose final test ran online, and installing into a data folder that doesn't exist yet now starts it.
+
 **Next**
-- Check the shipped agent on this computer's 2-bit Glimmer, briefly, unloading the model afterwards.
 - Merge the website, rebuild the installer for the owner to try, and update the demo script for the returns desk.
 
 **Open issues**
