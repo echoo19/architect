@@ -589,7 +589,7 @@ for (const theme of THEMES) {
   test(`asks for a package when Import opens without one (${theme})`, async () => {
     await open(theme, '/import');
     await expect(page.getByRole('heading', { name: 'Import an agent' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Choose a package' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Choose a file' })).toBeVisible();
     await capture(`import-empty-${theme}.png`);
   });
 }

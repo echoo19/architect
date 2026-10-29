@@ -265,7 +265,7 @@ export function MentorStep({
 
   return (
     <>
-      <StepIntro title="Choose a teacher">
+      <StepIntro title="Connect a teacher">
         {mentorName(mentor)} teaches each new agent while it trains. Your finished agents never use
         it.
       </StepIntro>

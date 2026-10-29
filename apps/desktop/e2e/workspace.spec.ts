@@ -83,8 +83,8 @@ for (const theme of THEMES) {
     const recommended = page.getByRole('radio', { name: /Recommended/ });
     const smaller = page.getByRole('radio', { name: /Smaller/ });
     await expect(recommended).toHaveAttribute('aria-checked', 'true');
-    await expect(recommended).toContainText('17 GB download');
-    await expect(smaller).toContainText('14 GB download');
+    await expect(recommended).toContainText('17 GB download · Most accurate');
+    await expect(smaller).toContainText('14 GB download · Lighter, but less accurate');
     await capture(`welcome-model-${theme}.png`);
 
     await page.getByRole('button', { name: /^Download Glimmer ·/ }).click();
@@ -105,7 +105,7 @@ for (const theme of THEMES) {
     await capture(`welcome-download-${theme}.png`);
 
     await page.getByRole('button', { name: 'Continue' }).click();
-    await expect(page.getByRole('heading', { name: 'Choose a teacher' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Connect a teacher' })).toBeVisible();
     // Spark with a Meta key is the way shown; the others wait behind one line.
     await expect(page.getByLabel('Meta API key')).toBeVisible();
     await expect(page.getByRole('radio', { name: /OpenRouter/ })).toHaveCount(0);

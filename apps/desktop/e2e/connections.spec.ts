@@ -332,7 +332,7 @@ test('offers Spark first and three other ways to a teacher in setup, and a model
   await open('/welcome', { secrets: {}, local: LOCAL }, false);
   await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page.getByRole('heading', { name: 'Choose a teacher' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Connect a teacher' })).toBeVisible();
   // Spark with a Meta key comes first; the other ways wait behind one line.
   await expect(page.getByLabel('Meta API key')).toBeVisible();
   await expect(page.getByRole('radio')).toHaveCount(0);
@@ -344,7 +344,7 @@ test('offers Spark first and three other ways to a teacher in setup, and a model
   const next = page.getByRole('button', { name: 'Continue' });
   await expect(next).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Skip for now' })).toBeVisible();
-  await expect(page.getByText('You can add a teacher later in Settings.')).toBeVisible();
+  await expect(page.getByText('You can connect one later in Settings.')).toBeVisible();
 
   await page.getByRole('radio', { name: /On this computer/ }).click();
   await page.getByRole('button', { name: 'Teacher', exact: true }).click();
@@ -372,9 +372,9 @@ test('sizes Glimmer for the GPU in setup and installs the GPU-sized build', asyn
   // The build that fits this card is chosen while the default isn't downloaded.
   await expect(recommended).toHaveAttribute('aria-checked', 'true');
   await expect(recommended).toContainText('Runs on your graphics card');
-  await expect(recommended).toContainText('14 GB download');
+  await expect(recommended).toContainText('14 GB download · Lighter, but less accurate');
   await expect(larger).toContainText('Part runs on the processor');
-  await expect(larger).toContainText('17 GB download');
+  await expect(larger).toContainText('17 GB download · Most accurate');
   await expect.poll(async () => (await settings(page)).defaultStudent.model).toBe(GPU_BUILD.model);
 
   await page.getByRole('button', { name: /^Download Glimmer ·/ }).click();

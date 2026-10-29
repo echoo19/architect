@@ -27,7 +27,7 @@ import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { localModelName, studentFromChoice } from '../settings/models/connections';
 import { ModelPicker } from '../settings/models/ModelPicker';
 import { isInstalled } from '../settings/models/StudentRows';
-import { sizeWord } from './builds';
+import { sizeWord, tradeoff } from './builds';
 import { pullBytes, pullPercent, pullStage, type PullState } from './pull';
 import { StepIntro } from './SetupShell';
 import { StatusValue } from './StatusValue';
@@ -83,8 +83,8 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
   return (
     <>
       <StepIntro title="Welcome to Architect">
-        Describe a job. {names.mentor}, a large AI, teaches {names.student}, a small one that runs
-        on {device}, to do it. Your agent then works offline.
+        Architect trains an agent for any job you describe. {names.mentor}, a large AI, teaches{' '}
+        {names.student}, a small one that runs on {device}, so your agent works offline.
       </StepIntro>
       <div className="flex w-full max-w-[720px] flex-col gap-3.5">
         {local.status === 'error' && !local.data && (
@@ -137,6 +137,8 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
                 {downloaded(option.model)
                   ? 'Downloaded'
                   : `${formatBytes(option.downloadBytes)} download`}
+                {' · '}
+                {tradeoff(option)}
               </span>
               {fitLine(option, gpu) && <span>{fitLine(option, gpu)}</span>}
             </RadioCard>

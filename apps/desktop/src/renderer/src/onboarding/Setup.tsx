@@ -154,8 +154,8 @@ export function Setup({ settings, update }: SetupProps) {
             ) : (
               <>
                 <span className="max-w-[360px] text-right text-sm text-fg-muted text-pretty">
-                  You can add a teacher later in Settings. Until then, agents work, but new ones
-                  can&apos;t be trained.
+                  You can connect one later in Settings. Until then, Architect can&apos;t train new
+                  agents.
                 </span>
                 <Button onClick={() => setStep('Faster training')}>Skip for now</Button>
               </>

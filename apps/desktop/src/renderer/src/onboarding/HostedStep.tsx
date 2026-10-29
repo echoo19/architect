@@ -33,7 +33,7 @@ export function HostedStep({ student, connected }: HostedStepProps) {
   return (
     <>
       <StepIntro title="Faster training">
-        {student} can practice on an online copy about ten times faster
+        Optional: {student} can practice on an online copy of itself about ten times faster
         {price === null ? '' : `, for ${price.toLowerCase()} an agent`}. The finished agent still
         runs only on {device}.
       </StepIntro>

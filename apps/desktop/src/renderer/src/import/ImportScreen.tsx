@@ -160,7 +160,7 @@ function ImportFlow({
         actions={
           <>
             <Button variant="primary" size="md" onClick={() => void chooseImport()}>
-              Choose a package
+              Choose a file
             </Button>
             <Button size="md" onClick={() => void chooseImport(true)}>
               <FolderOpen size={15} strokeWidth={1.7} aria-hidden />
@@ -183,7 +183,7 @@ function ImportFlow({
         error={error ?? new Error("The package couldn't be checked.")}
         title="Couldn't check this package"
         onRetry={reload}
-        exit={{ label: 'Choose another package', onClick: () => void chooseImport() }}
+        exit={{ label: 'Choose another file', onClick: () => void chooseImport() }}
         className="min-h-[56vh]"
       />
     );
@@ -195,7 +195,7 @@ function ImportFlow({
           Cancel
         </Button>
         <Button variant="primary" size="lg" onClick={() => void chooseImport()}>
-          Choose another package
+          Choose another file
         </Button>
       </Footer>
     );
@@ -214,7 +214,7 @@ function ImportFlow({
           </Button>
         ) : preview.status === 'blocked' ? (
           <Button variant="primary" size="lg" onClick={() => void chooseImport()}>
-            Choose another package
+            Choose another file
           </Button>
         ) : (
           <div className="flex items-center gap-4">

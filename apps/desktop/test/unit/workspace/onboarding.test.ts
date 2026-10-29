@@ -9,7 +9,7 @@ import {
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { mentorFromPreset, presetFor, routeOf } from '../../../src/renderer/src/onboarding/mentor';
-import { sizeWord } from '../../../src/renderer/src/onboarding/builds';
+import { sizeWord, tradeoff } from '../../../src/renderer/src/onboarding/builds';
 import {
   idlePull,
   pullBytes,
@@ -138,5 +138,12 @@ describe("Glimmer's builds, named next to the one recommended", () => {
     // On a graphics card that holds only the smaller one, the larger one is the other choice.
     expect(sizeWord(gpu, gpu)).toBe('Recommended');
     expect(sizeWord(fourBit, gpu)).toBe('Larger');
+  });
+
+  it('says what each build gives and gives up', () => {
+    const [fourBit, gpu] = GLIMMER_BUILDS;
+    if (!fourBit || !gpu) throw new Error('Glimmer has two builds.');
+    expect(tradeoff(fourBit)).toBe('Most accurate');
+    expect(tradeoff(gpu)).toBe('Lighter, but less accurate');
   });
 });
