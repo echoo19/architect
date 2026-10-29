@@ -40,7 +40,7 @@ export interface RuleStep {
 export const RULE_STEPS: readonly RuleStep[] = [
   { text: 'Round labor hours up to a multiple of 0.5.' },
   { text: 'Multiply by 65.' },
-  { text: 'When member (customers.csv) is yes, multiply by 0.9.', files: ['customers.csv'] },
+  { text: 'When member (customers.csv) is yes, take 10% off.', files: ['customers.csv'] },
   { text: 'Add parts cost.', note: 'An empty parts cost counts as 0, as you said.' },
   { text: 'Round the result to the nearest cent; half a cent rounds up.' },
 ];

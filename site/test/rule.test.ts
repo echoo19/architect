@@ -73,7 +73,9 @@ describe('the rule chapter', () => {
     // What the steps say to do, and the ticket's own cells: nothing is taken from the working.
     const multiple = numberAfter('multiple of', 0);
     const rate = numberAfter('Multiply by', 1);
-    const discount = numberAfter('multiply by', 2);
+    // A discount is said as the share taken off, as the app says it: 10% off is times 0.9.
+    expect(RULE_STEPS[2]?.text).toMatch(/% off\.$/);
+    const discount = SCALE - numberAfter('take', 2) / 100n;
     expect(RULE_STEPS[4]?.text).toContain('nearest cent');
 
     const hours = roundTo(dec(input('labor hours')), multiple, 'up');
