@@ -1,7 +1,7 @@
 {
   "name": "@architect/desktop",
   "productName": "Architect",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "private": true,
   "type": "module",
   "description": "Turn a job you describe into an agent that runs on your own computer.",
