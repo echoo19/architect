@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { InterventionTypeSchema, type InterventionType } from './interventions';
 import { JsonValueSchema } from './json';
 import { RequirementsSchema, TaskTypeInfoSchema } from './job';
 
@@ -15,21 +16,6 @@ export const PredictionSchema = z.object({
   rationale: z.string().min(1),
 });
 export type Prediction = z.infer<typeof PredictionSchema>;
-
-/** The bounded intervention menu (spec section 7). */
-export const InterventionTypeSchema = z.enum([
-  /** A rule or a step-by-step procedure in AGENTS.md or a skill. */
-  'procedure',
-  /** Which skill, example or source loads for which request. */
-  'retrieval',
-  /** A small typed tool in the sandbox. */
-  'helper',
-  /** A LoRA adapter trained on verified lessons. */
-  'weights',
-  /** One question for the person, asked before any label is made. */
-  'clarification',
-]);
-export type InterventionType = z.infer<typeof InterventionTypeSchema>;
 
 /** A step of a trace the mentor points at: model turn `turn`, counting from 1. */
 export const EvidenceSchema = z.object({
