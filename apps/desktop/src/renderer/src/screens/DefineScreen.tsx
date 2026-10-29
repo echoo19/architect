@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
-import type { Job, Method, StudentTarget } from '@architect/shared';
+import {
+  isBaselineMethod,
+  MethodSchema,
+  type Job,
+  type Method,
+  type StudentTarget,
+} from '@architect/shared';
 import { Button, Skeleton, toast } from '@architect/ui';
 import { SlidersHorizontal } from 'lucide-react';
 import { flowApi } from '../api/client';
@@ -18,7 +24,8 @@ import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { FlowShell } from '../shell/FlowShell';
 
-const BASELINES: readonly Method[] = ['bare', 'one_shot', 'self_reflection'];
+/** The simpler versions a comparison trains beside the agent: every method but the agent's own. */
+const BASELINES: readonly Method[] = MethodSchema.options.filter(isBaselineMethod);
 
 /** Step two: the drafted job, what it will and won't do, when it's ready, and where it trains. */
 export function DefineScreen({ jobId }: { jobId: string }) {
