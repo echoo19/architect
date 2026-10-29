@@ -32,13 +32,24 @@ export default tseslint.config(
     },
   },
   {
-    files: ['packages/ui/**/*.{ts,tsx}', 'apps/desktop/src/renderer/**/*.{ts,tsx}'],
+    files: [
+      'packages/ui/**/*.{ts,tsx}',
+      'apps/desktop/src/renderer/**/*.{ts,tsx}',
+      'site/src/**/*.{ts,tsx}',
+    ],
     plugins: { 'react-hooks': reactHooks },
     languageOptions: { globals: { ...globals.browser } },
     rules: {
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'error',
     },
+  },
+  {
+    // The site's own scripts (its build and its captures) report to the terminal, and the
+    // captures run small functions inside the page they open.
+    files: ['site/scripts/**/*.mjs'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+    rules: { 'no-console': 'off' },
   },
   {
     // The mentor side of the engine and every adapter must never reach the test split.

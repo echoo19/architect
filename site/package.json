@@ -1,0 +1,29 @@
+{
+  "name": "@architect/site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The public landing page for Architect: one static page, built with Vite and React.",
+  "scripts": {
+    "dev": "vite",
+    "build": "node scripts/build.mjs",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json && tsc -p test/tsconfig.json",
+    "capture": "node scripts/capture.mjs"
+  },
+  "dependencies": {
+    "@architect/ui": "workspace:*",
+    "lucide-react": "^1.62.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.5"
+  }
+}

@@ -1,0 +1,250 @@
+@import '@architect/ui/styles.css';
+@import './motion.css';
+
+@source './';
+
+/*
+ * The marketing text is Helvetica Neue where the computer has it. Windows and most Linux systems
+ * do not, so the page carries Heros, a Latin subset of TeX Gyre Heros (a Helvetica look-alike
+ * under the GUST Font License), as the fallback. Nothing is fetched from another address. The
+ * mocks keep the product's own Geist and Geist Mono, which @architect/ui brings.
+ */
+@font-face {
+  font-family: 'Site Sans';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src:
+    local('Helvetica Neue'),
+    local('HelveticaNeue'),
+    url('./fonts/heros-regular-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Site Sans';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src:
+    local('Helvetica Neue Bold'),
+    local('HelveticaNeue-Bold'),
+    url('./fonts/heros-bold-latin.woff2') format('woff2');
+}
+
+@theme {
+  --font-site: 'Site Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+:root {
+  /* The page sits one step below the product's own ground, so a window on it reads as lit. */
+  --site-ground: var(--ui-ground-flow);
+  --site-band: #111114;
+  --site-gutter: 16px;
+  --site-page: 1200px;
+  --mock-zoom: 1.08;
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 640px) {
+  :root {
+    --site-gutter: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --site-gutter: 40px;
+  }
+}
+
+@media (min-width: 1600px) {
+  :root {
+    --site-page: 1360px;
+    --mock-zoom: 1.2;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* The product's base styles pin the page to one window; a web page scrolls. */
+html,
+body,
+#root {
+  height: auto;
+}
+
+body {
+  overflow: visible;
+  overflow-x: clip;
+  min-height: 100vh;
+  background: var(--site-ground);
+  font-family: var(--font-site);
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+.page {
+  width: min(100% - 2 * var(--site-gutter), var(--site-page));
+  margin-inline: auto;
+}
+
+/*
+ * Mocks. The stage is the band, and it answers to its own width: the wide layout where the page
+ * has room for the product's real arrangement, the compact one where it crops to what matters.
+ */
+@custom-variant wide {
+  @container stage (min-width: 1080px) {
+    @slot;
+  }
+}
+
+@custom-variant narrow {
+  @container stage (max-width: 1079.98px) {
+    @slot;
+  }
+}
+
+.stage {
+  container-type: inline-size;
+  container-name: stage;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--ui-line);
+  border-radius: 10px;
+  background: var(--site-band);
+}
+
+.stage-zoom {
+  zoom: var(--mock-zoom);
+  position: relative;
+  height: calc(var(--h-compact, 520) * 1px);
+  /* The product's own base text, not the page's. */
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
+  color: var(--color-fg);
+  user-select: none;
+}
+
+@container stage (min-width: 1080px) {
+  .stage-zoom {
+    height: calc(var(--h-wide, 600) * 1px);
+  }
+}
+
+/* The marketing layer: text, buttons and the page's own bands. Utilities may still override it. */
+@layer components {
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    font-size: 15px;
+    line-height: 1.3;
+    color: var(--ui-fg-secondary);
+  }
+
+  .display-xl,
+  .display-lg,
+  .display-xxl {
+    margin: 0;
+    font-weight: 400;
+    color: var(--ui-fg);
+    text-wrap: balance;
+    font-kerning: normal;
+  }
+
+  .display-xl {
+    font-size: clamp(2.5rem, 1.35rem + 4.6vw, 5.5rem);
+    line-height: 1;
+    letter-spacing: -0.045em;
+  }
+
+  .display-lg {
+    font-size: clamp(2rem, 1.1rem + 2.9vw, 3.5rem);
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+  }
+
+  .display-xxl {
+    font-size: clamp(3rem, 1rem + 8.2vw, 8.5rem);
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+  }
+
+  .lead {
+    margin: 0;
+    font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+    line-height: 1.45;
+    color: var(--ui-fg-secondary);
+    text-wrap: pretty;
+  }
+
+  .btn {
+    display: inline-flex;
+    height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: 1px solid var(--ui-line-strong);
+    border-radius: 8px;
+    padding: 0 20px;
+    font-size: 15.5px;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+    color: var(--ui-fg);
+    transition:
+      background-color 150ms,
+      border-color 150ms,
+      color 150ms;
+  }
+
+  .btn:hover {
+    background: var(--ui-hover);
+    border-color: var(--ui-fg-faint);
+  }
+
+  .btn-solid,
+  html:not([data-os='mac']) .btn-os[data-for='windows'],
+  html[data-os='mac'] .btn-os[data-for='mac'] {
+    border-color: transparent;
+    background: var(--ui-primary);
+    color: var(--ui-on-primary);
+  }
+
+  .btn-solid:hover,
+  html:not([data-os='mac']) .btn-os[data-for='windows']:hover,
+  html[data-os='mac'] .btn-os[data-for='mac']:hover {
+    border-color: transparent;
+    background: var(--ui-primary-hover);
+  }
+
+  html[data-os='mac'] .btn-os[data-for='mac'] {
+    order: -1;
+  }
+
+  .btn-sm {
+    height: 38px;
+    padding: 0 14px;
+    font-size: 14.5px;
+  }
+
+  .link-quiet {
+    color: var(--ui-fg-secondary);
+    text-underline-offset: 4px;
+    transition: color 150ms;
+  }
+
+  .link-quiet:hover {
+    color: var(--ui-fg);
+    text-decoration: underline;
+  }
+}
