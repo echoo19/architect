@@ -59,7 +59,8 @@ export function runLookup(spec: LookupSpec, table: Table): TemplateRun<LookupSpe
   const kinds = asked.map((column) => kindOf(cellsOf(table, column)));
   const dayOrders = asked.map((column, index) => {
     if (kinds[index] !== 'date') return null;
-    const order = resolveDateOrder(cellsOf(table, column), column, undefined);
+    // What the person said about how a date like 03/04/2026 reads wins whenever the cells allow it.
+    const order = resolveDateOrder(cellsOf(table, column), column, spec.dateOrder);
     if (order.problem) problems.push(order.problem);
     if (order.assumed) {
       notes.push(

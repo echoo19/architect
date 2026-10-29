@@ -127,6 +127,28 @@ describe('a draft', () => {
     expect(job.types[1]?.spec).not.toMatchObject({ filters: [{}, { value: '' }] });
   });
 
+  it("carries the person's date order through a lookup, as it does for a total", () => {
+    const lookupOf = (dateOrder: 'day_first' | 'month_first' | '') =>
+      jobOf(
+        (
+          check(
+            draft({
+              taskTypes: [
+                { ...EMAIL_TYPE, id: 'when', columns: ['member_since'], dateOrder },
+                { ...TOTAL_TYPE, dateOrder },
+              ],
+            } as never),
+          ) as { reply: Understood }
+        ).reply,
+      ).types.map((type) => type.spec);
+    const [dayFirst, totalDayFirst] = lookupOf('day_first');
+    expect(dayFirst).toMatchObject({ template: 'lookup', dateOrder: 'day_first' });
+    expect(totalDayFirst).toMatchObject({ template: 'group_total', dateOrder: 'day_first' });
+    expect(lookupOf('month_first')[0]).toMatchObject({ dateOrder: 'month_first' });
+    // Said by nobody, it is left for the file to settle.
+    expect(lookupOf('')[0]).not.toHaveProperty('dateOrder');
+  });
+
   it('reads a pass rate written as a percentage, and refuses one that is out of range', () => {
     const rate = (passRate: number) => check(draft({ passRate } as never));
     expect(jobOf((rate(90) as { reply: Understood }).reply).passRate).toBe(0.9);

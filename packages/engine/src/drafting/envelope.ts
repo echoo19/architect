@@ -103,7 +103,12 @@ export function replyJsonSchema(mustDraft: boolean): JsonSchemaObject {
       'group_total: the column added up (or counted when it has a value). Else empty.',
     ),
     dateColumn: text('group_total: a date column to total within ranges of dates. Empty for none.'),
-    dateOrder: { type: 'string', enum: ['month_first', 'day_first', ''] },
+    dateOrder: {
+      type: 'string',
+      enum: ['month_first', 'day_first', ''],
+      description:
+        'lookup and group_total: how a date like 03/04/2026 reads, only if the person said. Else empty.',
+    },
     unit: { type: 'string', enum: ['as_written', 'cents', ''] },
     request: text(
       'The question, with {key}, {column name}, {group}, {from} and {to} where values go.',
@@ -243,7 +248,14 @@ function specOf(
         problems.push(`${who} is a lookup: it needs a keyColumn and 1 to 3 columns.`);
         return undefined;
       }
-      return { template: 'lookup', table, keyColumn: cleanText(type.keyColumn), columns, request };
+      return {
+        template: 'lookup',
+        table,
+        keyColumn: cleanText(type.keyColumn),
+        columns,
+        request,
+        ...(type.dateOrder === '' ? {} : { dateOrder: type.dateOrder }),
+      };
     }
     case 'filtered_list': {
       const filters = type.filters.filter(

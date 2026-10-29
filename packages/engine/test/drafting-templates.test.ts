@@ -2,7 +2,7 @@ import type { FilteredListSpec, GroupTotalSpec, LookupSpec } from '@architect/sh
 import { describe, expect, it } from 'vitest';
 import { compareAnswer, checkFacts } from '../src/checker/compare';
 import { seededRandom } from '../src/splits/random';
-import { readTable } from '../src/drafting/table';
+import { cellsOf, kindOf, readTable } from '../src/drafting/table';
 import { runFilteredList } from '../src/drafting/templates/filtered-list';
 import { runGroupTotal } from '../src/drafting/templates/group-total';
 import { runLookup } from '../src/drafting/templates/lookup';
@@ -94,6 +94,46 @@ describe('the lookup template', () => {
       'Write numbers as plain digits, without currency signs or commas.',
     );
     expect(amounts.candidates[0]?.prompt).toContain('{"amount": <number>}');
+  });
+
+  it('reads a date the way the person said it reads, and only assumes month first when nobody said', () => {
+    // Every date here could be read either way: 01/04/2026 is the 1st of April or the 4th of January.
+    const events = readTable(
+      'events.csv',
+      [
+        'event_id,happened_on',
+        ...Array.from(
+          { length: 12 },
+          (_, i) => `E-${i + 1},0${(i % 9) + 1}/0${((i + 3) % 9) + 1}/2026`,
+        ),
+      ].join('\n'),
+    );
+    const spec = (overrides: Partial<LookupSpec>): LookupSpec =>
+      lookup({
+        table: 'events.csv',
+        keyColumn: 'event_id',
+        columns: ['happened_on'],
+        request: 'When did event {key} happen?',
+        ...overrides,
+      });
+    const answerFor = (run: ReturnType<typeof runLookup>, key: string): unknown => {
+      const found = run.candidates.find((candidate) => candidate.meta['key'] === key);
+      return found?.expected.kind === 'facts' ? found.expected.facts[0]?.value : undefined;
+    };
+
+    const unsaid = runLookup(spec({}), events);
+    expect(answerFor(unsaid, 'E-1')).toBe('2026-01-04');
+    expect(unsaid.notes.join(' ')).toContain('could be read either way');
+
+    const dayFirst = runLookup(spec({ dateOrder: 'day_first' }), events);
+    expect(dayFirst.problems).toEqual([]);
+    expect(answerFor(dayFirst, 'E-1')).toBe('2026-04-01');
+    expect(answerFor(dayFirst, 'E-4')).toBe('2026-07-04');
+    expect(dayFirst.notes.join(' ')).not.toContain('either way');
+
+    const monthFirst = runLookup(spec({ dateOrder: 'month_first' }), events);
+    expect(answerFor(monthFirst, 'E-1')).toBe('2026-01-04');
+    expect(monthFirst.notes.join(' ')).not.toContain('either way');
   });
 
   it('leaves out a row whose key another row shares', () => {
@@ -684,6 +724,86 @@ describe('the group total template', () => {
       expect(candidate.expected).toMatchObject({ value: { count: expected } });
     }
     expect(run.rule).toBe('Number of rows with a amount for each region, from orders.csv');
+  });
+
+  it('counts the rows that have a value in a column of words by whether the cell is filled in', () => {
+    // An email is no number: counting the customers who have one only asks whether it is there.
+    const people = readTable(
+      'people.csv',
+      [
+        'region,email',
+        ...Array.from({ length: 48 }, (_, i) => {
+          const email = i % 4 === 0 ? '' : i % 4 === 1 ? 'N/A' : `someone${i}@example.com`;
+          return `${i % 2 === 0 ? 'North' : 'South'},${email}`;
+        }),
+      ].join('\n'),
+    );
+    const run = runGroupTotal(
+      total({
+        measure: 'count',
+        valueColumn: 'email',
+        dateColumn: undefined,
+        request: 'How many {group} customers have an email?',
+      }),
+      people,
+      seededRandom('emails'),
+    );
+    expect(run.problems).toEqual([]);
+    expect(run.rule).toBe('Number of rows with a email for each region, from people.csv');
+    const filled = (region: string) =>
+      Array.from({ length: 48 }, (_, i) => i).filter(
+        (i) => (i % 2 === 0 ? 'North' : 'South') === region && i % 4 >= 2,
+      ).length;
+    expect(run.candidates.map((candidate) => candidate.expected)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ value: { count: filled('North') } }),
+        expect.objectContaining({ value: { count: filled('South') } }),
+      ]),
+    );
+    // A total of the same column is still refused: its cells are words.
+    const summed = runGroupTotal(
+      total({ valueColumn: 'email', dateColumn: undefined, request: 'Total for {group}?' }),
+      people,
+      seededRandom('emails'),
+    );
+    expect(summed.problems.join(' ')).toContain("can't read as numbers");
+  });
+
+  it('takes a column named as the date column for dates when its cells are written 20261001', () => {
+    const rows = Array.from({ length: 120 }, (_, i) => ({
+      region: i % 2 === 0 ? 'North' : 'South',
+      amount: i + 1,
+      month: String(9 + Math.floor(i / 30)).padStart(2, '0'),
+      day: String((i % 28) + 1).padStart(2, '0'),
+    }));
+    const compact = readTable(
+      'orders.csv',
+      [
+        'region,amount,order_date',
+        ...rows.map((row) => `${row.region},${row.amount},2026${row.month}${row.day}`),
+      ].join('\n'),
+    );
+    // Read as numbers first, which is what a column of these is called until it is named a date.
+    expect(kindOf(cellsOf(compact, 'order_date'))).toBe('number');
+    const run = runGroupTotal(total(), compact, seededRandom('compact'));
+    expect(run.problems).toEqual([]);
+    expect(run.candidates.length).toBeGreaterThan(2);
+    for (const candidate of run.candidates) {
+      const from = String(candidate.meta['from']);
+      const to = String(candidate.meta['to']);
+      const group = String(candidate.meta['group']);
+      const sum = rows
+        .filter((row) => row.region === group)
+        .filter((row) => {
+          const day = `2026-${row.month}-${row.day}`;
+          return day >= from && day <= to;
+        })
+        .reduce((all, row) => all + row.amount, 0);
+      expect(candidate.expected).toMatchObject({ value: { total: sum } });
+    }
+    // A column that is no date column is still refused when it is named as one.
+    const wrong = runGroupTotal(total({ dateColumn: 'amount' }), compact, seededRandom('compact'));
+    expect(wrong.problems.join(' ')).toContain("amount doesn't read as dates");
   });
 
   it('stops at a cell it cannot read instead of making a total from a guess', () => {

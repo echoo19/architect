@@ -14,6 +14,7 @@ lookup: the value of one to three columns of the row with a given key. Example r
   - table: the CSV file.
   - keyColumn: the column that identifies a row. Its values should be different in every row.
   - columns: the one to three other columns whose values are asked for.
+  - dateOrder: "month_first" or "day_first" only if a column asked for holds dates like 03/04/2026 and the person said how they read; else empty.
   - request: the question, with {key} where the key goes.
 
 filtered_list: the key values of the rows that meet some conditions. Example request: "Which orders of customer {customer_id} are still unshipped?" The answer is a list of at most 20 values.

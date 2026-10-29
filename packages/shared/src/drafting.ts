@@ -52,12 +52,17 @@ export type FilterSpec = z.infer<typeof FilterSpecSchema>;
 /** The words of a request, with `{name}` where a value goes. */
 const RequestSchema = z.string().min(1);
 
+export const DateOrderSchema = z.enum(['month_first', 'day_first']);
+export type DateOrder = z.infer<typeof DateOrderSchema>;
+
 /** The values of one to three columns for the row with a given key. */
 export const LookupSpecSchema = z.object({
   template: z.literal('lookup'),
   table: z.string().min(1),
   keyColumn: z.string().min(1),
   columns: z.array(z.string().min(1)).min(1).max(3),
+  /** How `03/04/2026` reads in the date columns asked for, when the file doesn't settle it. */
+  dateOrder: DateOrderSchema.optional(),
   request: RequestSchema,
 });
 export type LookupSpec = z.infer<typeof LookupSpecSchema>;
@@ -71,9 +76,6 @@ export const FilteredListSpecSchema = z.object({
   request: RequestSchema,
 });
 export type FilteredListSpec = z.infer<typeof FilteredListSpecSchema>;
-
-export const DateOrderSchema = z.enum(['month_first', 'day_first']);
-export type DateOrder = z.infer<typeof DateOrderSchema>;
 
 /** The sum, or the count, of a column for one value of a grouping column, maybe within dates. */
 export const GroupTotalSpecSchema = z.object({

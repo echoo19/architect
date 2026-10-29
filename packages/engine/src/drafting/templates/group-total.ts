@@ -3,13 +3,21 @@ import { shuffle } from '../../splits/random';
 import {
   cellsOf,
   dayCell,
-  kindOf,
   numberCell,
   profileColumn,
+  readsAsDates,
   resolveDateOrder,
   type Table,
 } from '../table';
-import { addDays, dayNumber, decimalToNumber, foldKey, sumDecimals, type Decimal } from '../values';
+import {
+  addDays,
+  dayNumber,
+  decimalToNumber,
+  foldKey,
+  isBlank,
+  sumDecimals,
+  type Decimal,
+} from '../values';
 import {
   canonicalJson,
   checkRequest,
@@ -124,7 +132,9 @@ export function runGroupTotal(
         `${dateColumn} writes dates like 03/04/2026 that could be read either way. Architect read them month first, so that is March 4.`,
       );
     }
-    if (kindOf(cells) !== 'date') {
+    // A column named as the date column is held to reading as dates, whatever else its cells look
+    // like: 20260131 reads as a number first, and is a day all the same.
+    if (!readsAsDates(cells)) {
       problems.push(`${dateColumn} doesn't read as dates.`);
     }
   }
@@ -137,7 +147,11 @@ export function runGroupTotal(
     if (group === '') continue;
     let amount: Decimal | null = null;
     let counted = true;
-    if (valueColumn !== null) {
+    if (valueColumn !== null && spec.measure === 'count') {
+      // Counting the rows that have a value asks only whether the cell is filled in, whatever it
+      // holds: an email is no number.
+      counted = !isBlank(row[valueColumn] ?? null);
+    } else if (valueColumn !== null) {
       const cell = numberCell(row[valueColumn] ?? null);
       if ('bad' in cell) badAmounts.push(cell.bad);
       else if (cell.empty) counted = false;
