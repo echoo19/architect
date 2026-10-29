@@ -5,8 +5,8 @@ Architect turns a job you describe into an AI agent that runs on your own comput
 You describe the job and attach the files it works from. Muse Spark, a large model, watches Muse Glimmer, a small one that fits on a PC, try the job. When Glimmer gets something wrong, Spark finds the step where it went wrong and changes Glimmer's instructions and tools. A change stays only if Glimmer then does better on check requests Spark never sees. Once Glimmer passes a final test on its own, it's your agent: it works on your files, asks before it changes one, and talks to nothing but the model on your machine.
 
 <picture>
-  <source media="(prefers-color-scheme: light)" srcset="docs/comparisons/screens/returns-desk-2-round-1-light.png">
-  <img alt="A round of real training: Spark's diagnosis of the shop's messy records, the helper it changed, and the check requests that passed before and after, measured twice" src="docs/comparisons/screens/returns-desk-2-round-1-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/comparisons/screens/returns-desk-2-train-light.png">
+  <img alt="A real training run: Spark teaching Glimmer the returns desk, the check score climbing from 69% past the 95% target, and Spark's diagnosis of the round it kept" src="docs/comparisons/screens/returns-desk-2-train-dark.png">
 </picture>
 
 ## Results
