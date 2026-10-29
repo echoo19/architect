@@ -548,6 +548,40 @@ describe('a question the policy leaves open', () => {
     ]);
   });
 
+  it('tells the teacher the answer as it was typed, and still finds its words in the answer kept', async () => {
+    world.mentor.script = (_request, call) =>
+      call === 1
+        ? bikeDraft([costType({ ambiguities: [OPEN] }), CONTACT_TYPE])
+        : bikeDraft([
+            costType({
+              sources: [
+                {
+                  file: 'policy.md',
+                  passage: 'Labor is billed at $65 an hour, in half-hour steps.',
+                },
+                { file: 'answers', passage: 'No, labor only' },
+              ],
+            }),
+            CONTACT_TYPE,
+          ]);
+    const first = await world.drafting.start('A repair desk', attachBike(), TEACHER);
+    const typed = '  No,   labor only \n';
+    const second = await world.drafting.reply(first.sessionId, typed, TEACHER);
+    expect(second.draft?.name).toBe('Repair desk');
+    // The spaces round it are the person's: only a copy was trimmed, to see which answer it was.
+    const told = world.mentor.requests[1]?.messages.at(-1)?.content ?? '';
+    expect(told).toContain(`Answer: ${typed}\n\nDraft the job again`);
+    const record = recordOf(second.draft?.id ?? '');
+    expect(record.answers).toEqual([{ question: OPEN.question, answer: typed }]);
+    // The passage is found in the answer all the same, and shown with its question.
+    const plan = await world.jobs.taskPlan(second.draft?.id ?? '');
+    expect(plan.types.find((type) => type.id === 'cost')?.details?.passages[1]).toEqual({
+      file: 'answers',
+      passage: 'No, labor only',
+      question: OPEN.question,
+    });
+  });
+
   it('is asked even when the person chose to draft now, and "Draft it now" does not answer it', async () => {
     world.mentor.script = (_request, call) => {
       if (call === 1) return question('Should I count cancelled tickets?', ['Yes', 'No']);

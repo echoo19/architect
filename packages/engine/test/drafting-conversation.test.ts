@@ -167,6 +167,43 @@ describe('starting the conversation', () => {
     }
   });
 
+  it('tells the teacher a value that is cut short as something no row it was not shown writes', async () => {
+    // The first row's id is 37 A's and LONG; row 5 writes, as its own id, what that is cut to.
+    const dots = `${'A'.repeat(37)}...`;
+    const ids = [
+      `${'A'.repeat(37)}LONG`,
+      ...['B-2', 'B-3', 'B-4', 'B-5'],
+      dots,
+      ...Array.from({ length: 114 }, (_, index) => `C-${index}`),
+    ];
+    const csv = `id,amount\n${ids.map((id, index) => `${id},${(10 + index * 1.25).toFixed(2)}`).join('\n')}\n`;
+    world.mentor.script = () => question('Which record matters most?', ['A', 'B']);
+    await world.drafting.start('A ledger', [world.attach('ledger.csv', csv)], TEACHER);
+    const sent = world.mentor.requests.map(textOf).join('\n');
+    expect(sent).not.toContain(dots);
+    // It is still cut, one character shorter, in the first rows and in the examples.
+    const shorter = `${'A'.repeat(36)}...`;
+    expect(sent).toContain(`First rows (id | amount):\n${shorter} | 10.00`);
+    expect(sent).toContain(`Examples: ${shorter} | B-2`);
+  });
+
+  it('sends the description and a text as the person wrote them, spaces and all', async () => {
+    // Four spaces open a code block in Markdown, so they are part of what a text says.
+    const description = '    Charge $65 an hour for labor  ';
+    const policy = '    Labor is billed at $65 an hour.\n\n  - Members get 10% off labor.\n';
+    world.mentor.script = () => question('Which region matters most?', ['North', 'South']);
+    await world.drafting.start(
+      description,
+      [...attachShop(), world.attach('rules.md', policy)],
+      TEACHER,
+    );
+    const opening = world.mentor.requests[0]?.messages[0]?.content ?? '';
+    expect(opening).toContain(
+      `The person describes the job like this:\n\n${description}\n\nThe attached files:`,
+    );
+    expect(opening).toContain(`### rules.md (text, ${policy.length} characters)\n${policy}`);
+  });
+
   it('will not read part of a long policy: it asks for the section that matters instead', async () => {
     const policy = `# Policy\n\n${'A rule that goes on. '.repeat(1_600)}\nEXCEPTION-AT-THE-END-4417`;
     expect(policy.length).toBeGreaterThan(DRAFTING_LIMITS.maxTextChars);
@@ -332,6 +369,30 @@ describe('asking and answering', () => {
     const request = world.mentor.requests[1];
     expect(actionsOf(request)).toEqual(['draft']);
     expect(request?.messages[2]?.content).toContain('Draft the job now from what you have');
+  });
+
+  it('sends an answer and keeps it as it was written, with the spaces round it', async () => {
+    world.mentor.script = (_request, call) =>
+      call === 1 ? question('Should cancelled orders count?', ['Yes', 'No']) : draft();
+    const first = await world.drafting.start('A desk', attachShop(), TEACHER);
+    const answer = '  No,   not for members.  ';
+    const turn = await world.drafting.reply(first.sessionId, answer, TEACHER);
+    expect(world.mentor.requests[1]?.messages.at(-1)?.content).toBe(answer);
+    expect(recordOf(turn.draft?.id ?? '')['answers']).toEqual([
+      { question: 'Should cancelled orders count?', answer },
+    ]);
+  });
+
+  it('sends the answer to the last question as it was written, before the words that close it', async () => {
+    world.mentor.script = (_request, call) =>
+      call <= 3 ? question(`Question ${call}?`, ['A', 'B', 'C']) : draft();
+    let turn = await world.drafting.start('A desk', attachShop(), TEACHER);
+    turn = await world.drafting.reply(turn.sessionId, 'A', TEACHER);
+    turn = await world.drafting.reply(turn.sessionId, 'B', TEACHER);
+    await world.drafting.reply(turn.sessionId, '   C   ', TEACHER);
+    expect(world.mentor.requests[3]?.messages.at(-1)?.content).toMatch(
+      /^ {3}C {3}\n\nThat was the last question\./,
+    );
   });
 
   it('asks at most three questions, and drafts after the third answer', async () => {

@@ -14,7 +14,7 @@ import {
   trainable,
   type TypeInput,
 } from '../src/drafting/generate';
-import { describeAttached, shownRowsOf, type Attached } from '../src/drafting/files';
+import { describeAttached, describeTable, shownRowsOf, type Attached } from '../src/drafting/files';
 import { readTable } from '../src/drafting/table';
 import type { Candidate } from '../src/drafting/templates/common';
 import { splitTasks } from '../src/splits/split';
@@ -963,6 +963,57 @@ describe('asking about rows the teacher has not read', () => {
     // The first rows, which the teacher reads, have no task either.
     const keys = made.tasks.map((task) => task.meta?.['key']);
     for (const index of [0, 1, 2, 3, 4]) expect(keys).not.toContain(`REC-${2000 + index}`);
+  });
+
+  it('is not told a cut value that reads as the id of a row it was not shown', () => {
+    // The first row's id is 37 A's and LONG, 41 characters, which the teacher is told cut to 37
+    // A's and "...". Row 5 writes exactly that as its own id, so it is a row a task can be about.
+    const dots = `${'A'.repeat(37)}...`;
+    const ids = [
+      `${'A'.repeat(37)}LONG`,
+      ...['B-2', 'B-3', 'B-4', 'B-5'],
+      dots,
+      ...Array.from({ length: 54 }, (_, index) => `C-${index}`),
+    ];
+    const text = `id,amount\n${ids.map((id, index) => `${id},${(10 + index * 1.25).toFixed(2)}`).join('\n')}\n`;
+    const cut = readTable('cut.csv', text);
+    const cutFiles: Attached = {
+      files: [{ name: 'cut.csv', kind: 'table', bytes: Buffer.from(text), table: cut }],
+      tasks: null,
+    };
+    const made = generateTasks(
+      [{ ...lookup, spec: { ...lookup.spec, table: 'cut.csv' } as TaskSpec }],
+      new Map([['cut.csv', cut]]),
+      9,
+      { shown: shownRowsOf(cutFiles) },
+    );
+    const keys = made.tasks.map((task) => task.meta?.['key']);
+    expect(keys).toContain(dots);
+
+    const told = describeAttached(cutFiles);
+    expect(told).not.toContain(dots);
+    expect(told).toContain(`${'A'.repeat(36)}...`);
+    for (const key of keys) expect(told, String(key)).not.toContain(String(key));
+  });
+
+  it('is told the rows of a table whole when the description has to be cut', () => {
+    const wide = readTable(
+      'wide.csv',
+      [
+        Array.from({ length: 12 }, (_, i) => `column_${i}`).join(','),
+        ...Array.from({ length: 30 }, (_, row) =>
+          Array.from({ length: 12 }, (_, i) => `value-${row}-${i}`).join(','),
+        ),
+      ].join('\n'),
+    );
+    const file = { name: 'wide.csv', kind: 'table' as const, bytes: Buffer.from(''), table: wide };
+    const whole = describeTable(file, 100_000).split('\n');
+    const told = describeTable(file, 1_600).split('\n');
+    expect(told.at(-1)).toBe('[The rest is left out.]');
+    const kept = told.slice(0, -1);
+    expect(kept.length).toBeGreaterThan(14);
+    // Every line it kept is a line of the whole description, none cut in the middle of a cell.
+    expect(kept).toEqual(whole.slice(0, kept.length));
   });
 });
 

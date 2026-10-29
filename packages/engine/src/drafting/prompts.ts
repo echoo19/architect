@@ -110,22 +110,25 @@ export function settledMessage(
       : blank.means === 'zero'
         ? `write the rule as it is: Architect counts an empty ${blank.column} in ${blank.table} as 0 itself, so the steps need nothing for it,`
         : `write the rule as it is: Architect leaves out the rows where ${blank.column} in ${blank.table} is empty itself, so the steps need nothing for it,`;
-  return `The person answered your question about the rule.\n\nQuestion: ${question}\nAnswer: ${answer.trim()}\n\nDraft the job again with this settled: ${effect} and do not list this question in ambiguities again. List any other open question that changes a number.`;
+  return `The person answered your question about the rule.\n\nQuestion: ${question}\nAnswer: ${answer}\n\nDraft the job again with this settled: ${effect} and do not list this question in ambiguities again. List any other open question that changes a number.`;
 }
 
-/** The person's description and what the files hold, as the conversation's first message. */
+/**
+ * The person's description, as they wrote it, and what the files hold, as the conversation's first
+ * message.
+ */
 export function openingMessage(description: string, files: string): string {
-  return `The person describes the job like this:\n\n${description.trim()}\n\nThe attached files:\n\n${files}`;
+  return `The person describes the job like this:\n\n${description}\n\nThe attached files:\n\n${files}`;
 }
 
-/** The person's answer, or their choice to draft now, as the next message. */
+/** The person's answer, exactly as they wrote it, or their choice to draft now, as the next message. */
 export function answerMessage(text: string, draftNow: boolean, mustDraft: boolean): string {
   if (draftNow) {
     return `${DRAFT_NOW}. Draft the job now from what you have, and list in job.unresolved anything the files and answers do not settle.`;
   }
   return mustDraft
-    ? `${text.trim()}\n\nThat was the last question. Draft the job now, and list in job.unresolved anything the files and answers do not settle.`
-    : text.trim();
+    ? `${text}\n\nThat was the last question. Draft the job now, and list in job.unresolved anything the files and answers do not settle.`
+    : text;
 }
 
 /** Why a reply couldn't be used, sent back with the reply itself for one more try. */

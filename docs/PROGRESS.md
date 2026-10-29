@@ -2,6 +2,22 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), a cut value and the person's own words, kept as they are
+
+**Done** (on `rule-fixes-5`, from main at `cf56da3`, the 0.3.0 release; decision 061 amended; no model was called, the GPU stayed off, and every run used stand-ins only)
+- Two findings of GPT-6 Sol's read of the fourth round, each with a test that fails without its fix:
+  - A value cut short for the teacher could read as the exact id of a row it was not shown. A first-row id of 37 A's and LONG was cut to 37 A's and "...", which row 5 could write as its own id, so the first rows and the examples could tell the teacher the key of a row a check or final-test task can be about. A cut that reads as what a row outside the first five writes (without regard to case, quotes or spacing) is now cut one character shorter, and again, until none does. Examples are cut like cells, to forty characters with the dots, where they were forty-two. A table's description that outgrows its share is cut between lines, so it never ends in half a cell.
+  - The description, a text file and a typed answer were trimmed before the teacher read them, and an answer was stored trimmed, which drops the four spaces that open a code block in Markdown. They go as written now and an answer is stored as typed. Only a copy is trimmed, to tell a blank message or to match a choice, and the passage an answer holds is still found. The two typing boxes (`Composer`, `ReplyComposer`) still drop the spaces and blank lines at the very start and end of a message before it is sent; the decision names that a known limit.
+- Verified: `pnpm check` exits 0 (236 test files, 3,097 tests passed, 2 skipped; it was 236 and 3,082). Hidden e2e on the rebuilt app: `rule.spec.ts` (3) and `drafting.spec.ts` (5) pass. Each fix was switched off in turn, and the tests written for it failed.
+
+**Next**
+- Merge the branch into main and release 0.3.1.
+
+**Open issues**
+- A message typed in the Describe or reply box loses the spaces at its very start and end on the screen. Sending it whole would also change the workspace chat, which uses `Composer`, so it was not changed here.
+
+## 2026-10-29 (Wed), what the teacher is told of the records, said exactly
+
 ## 2026-10-29 (Thu), release 0.3.0
 
 **Done**
@@ -15,6 +31,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 
 
 ## 2026-10-29 (Thu), what the teacher is told of the records, said exactly
+
 
 **Done** (on `rule-fixes-4`, from main at `0f86c10`; decision 061 amended; no model was called, the GPU stayed off, and every run used stand-ins only)
 - Four findings of GPT-6 Sol's read of the third round, each decided by the owner and each with a test that fails without its fix:
