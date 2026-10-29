@@ -2,6 +2,15 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), a second reader of the day's code, and brackets on what is taken away
+
+**Done** (on main; no model of the product was called)
+- GPT-6 Sol read the day's app changes (d546661 to 6996642), read-only: the steps' chain against the rule's arithmetic in the shapes the random test doesn't make, the steps against the statement and the version, the older words, the results' counts, the line on what goes online, the saving choice and the time button's sums. One bug: the words of a rule left the right side of a subtraction unbracketed, so `100 - (10 + 5)`, which is 85, could be said "100 less 10 plus 5", which reads as 95, in a step that uses a whole side of a test and in the statement's "Take away" sentence. A sum or a difference that is taken away is now in brackets in `phrase`, in the shortened form of a test, and in "Take away (10 plus 5)."; a difference that comes first needs none. Two tests hold it, and both fail without the fix.
+- Verified: the engine, flow and report tests pass (146 files, 2,008 tests), typecheck and lint exit 0. No sample rule takes away a sum, so no capture changed.
+
+**Open issues**
+- A statement stored by a draft made before this keeps its words; the steps, worked out when a screen reads the draft, have the brackets.
+
 ## 2026-10-29 (Thu), release 0.3.3
 
 **Done**
