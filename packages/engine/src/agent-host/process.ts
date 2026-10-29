@@ -50,6 +50,8 @@ export function startAgentHostProcess(guard: LoopbackGuard): void {
       ...(llamaServerCommand === undefined ? {} : { command: llamaServerCommand }),
     }),
     gpu,
+    // Quiet mode's cap as the parent last sent it, read at every request.
+    cpuThreads: () => settings.threads,
     ...(sandboxEntryPath === undefined ? {} : { sandboxEntryPath }),
   });
   let stopping: Promise<void> | null = null;

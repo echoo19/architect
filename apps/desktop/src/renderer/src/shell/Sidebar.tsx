@@ -1,10 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  RunEventSchema,
-  type GraduateSummary,
-  type JobSummary,
-  type RunStatus,
-} from '@architect/shared';
+import type { GraduateSummary, JobSummary } from '@architect/shared';
 import {
   AgentAvatar,
   cn,
@@ -18,8 +13,19 @@ import {
   Spinner,
   Tooltip,
 } from '@architect/ui';
-import { Cloud, Ellipsis, PackageOpen, Pause, Plus, Settings } from 'lucide-react';
-import { api, architect } from '../api/client';
+import {
+  CircleAlert,
+  CircleCheck,
+  Cloud,
+  Ellipsis,
+  MessageCircleQuestion,
+  PackageOpen,
+  Pause,
+  Plus,
+  Settings,
+  Square,
+} from 'lucide-react';
+import { api } from '../api/client';
 import { queryKeys, useGraduates, useJobs } from '../api/hooks';
 import { fetchQuery } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
@@ -30,29 +36,25 @@ import { navigate, paths, type Route } from '../lib/router';
 import { useUi } from '../state/ui';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { createChat, useAgentChats } from '../workspace/store';
+import {
+  TRAINING_ROW_WORDS,
+  trainingRows,
+  type TrainingRow,
+  type TrainingRowKind,
+} from './training-rows';
 
 const navRow =
   'flex h-10 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-fg-secondary ' +
   'transition-colors duration-150 hover:bg-hover hover:text-fg';
 
-const ACTIVE_RUN = new Set(['queued', 'running', 'paused', 'stopping', 'testing']);
-
 /**
- * Keeps the list of runs in training current: it is read again when the sidebar appears, and
- * whenever a run starts, pauses, stops or ends, such as an improvement started from Teaching.
+ * The list of runs is read again whenever the sidebar appears, since the screens without it, such
+ * as training and results, are where runs start and end. The app keeps it current in between
+ * (`useEngineUpdates`).
  */
-function useTrainingUpdates(): void {
+function useTrainingRefresh(): void {
   useEffect(() => {
     void fetchQuery(queryKeys.jobs, api.jobs);
-    const statuses = new Map<string, RunStatus>();
-    return architect().runs.onEvent((payload) => {
-      const parsed = RunEventSchema.safeParse(payload);
-      if (!parsed.success || parsed.data.type !== 'run.updated') return;
-      const { runId, run } = parsed.data;
-      if (statuses.get(runId) === run.status) return;
-      statuses.set(runId, run.status);
-      void fetchQuery(queryKeys.jobs, api.jobs);
-    });
   }, []);
 }
 
@@ -60,7 +62,7 @@ export function Sidebar({ route }: { route: Route }) {
   const graduates = useGraduates();
   const jobs = useJobs();
   const openSettings = useUi((state) => state.openSettings);
-  useTrainingUpdates();
+  useTrainingRefresh();
 
   return (
     <nav
@@ -275,34 +277,62 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
   );
 }
 
+/** What each kind of row leads with: a spinner while it trains, an icon of its own otherwise. */
+function RowIcon({ kind }: { kind: TrainingRowKind }) {
+  switch (kind) {
+    case 'training':
+      return <Spinner tone="mentor" size={16} label="Training" />;
+    case 'paused':
+      return <Pause size={16} className="text-mentor" aria-label="Paused" />;
+    case 'question':
+      return (
+        <MessageCircleQuestion size={16} strokeWidth={1.8} className="text-mentor" aria-hidden />
+      );
+    case 'results':
+      return <CircleCheck size={16} strokeWidth={1.8} className="text-student" aria-hidden />;
+    case 'stopped':
+      return <Square size={16} strokeWidth={1.8} className="text-fg-muted" aria-hidden />;
+    case 'failed':
+      return <CircleAlert size={16} strokeWidth={1.8} className="text-danger" aria-hidden />;
+  }
+}
+
+const ROW_TONE: Partial<Record<TrainingRowKind, string>> = {
+  results: 'text-student',
+  failed: 'text-danger',
+};
+
+function TrainingRowButton({ row, route }: { row: TrainingRow; route: Route }) {
+  const current = (route.name === 'train' || route.name === 'report') && route.runId === row.runId;
+  return (
+    <button
+      type="button"
+      onClick={() => navigate(row.path)}
+      aria-current={current ? 'page' : undefined}
+      className={cn(navRow, current && 'bg-hover text-fg')}
+    >
+      <RowIcon kind={row.kind} />
+      <span className="flex-1 truncate">{row.jobName}</span>
+      <span className={cn('shrink-0 text-xs', ROW_TONE[row.kind] ?? 'text-fg-muted')}>
+        {TRAINING_ROW_WORDS[row.kind]}
+      </span>
+    </button>
+  );
+}
+
+/**
+ * The runs a person can open from here: each job's newest run of its agent while it trains, when
+ * its results are ready and nobody has taken the agent yet, and when it stopped or failed, so a
+ * run that ends while they are elsewhere is never lost.
+ */
 function TrainingList({ jobs, route }: { jobs: JobSummary[]; route: Route }) {
-  const training = jobs.filter((job) => job.latestRun && ACTIVE_RUN.has(job.latestRun.status));
-  if (training.length === 0) return null;
+  const rows = trainingRows(jobs);
+  if (rows.length === 0) return null;
   return (
     <div className="flex flex-col gap-0.5 border-t border-line pt-4">
-      {training.map((job) => {
-        const run = job.latestRun!;
-        const current = route.name === 'train' && route.runId === run.id;
-        return (
-          <button
-            key={job.id}
-            type="button"
-            onClick={() => navigate(paths.train(run.id))}
-            aria-current={current ? 'page' : undefined}
-            className={cn(navRow, current && 'bg-hover text-fg')}
-          >
-            {run.status === 'paused' ? (
-              <Pause size={16} className="text-mentor" aria-label="Paused" />
-            ) : (
-              <Spinner tone="mentor" size={16} label="Training" />
-            )}
-            <span className="flex-1 truncate">{job.name}</span>
-            <span className="text-xs text-fg-muted">
-              {run.status === 'paused' ? 'Paused' : 'Training'}
-            </span>
-          </button>
-        );
-      })}
+      {rows.map((row) => (
+        <TrainingRowButton key={row.jobId} row={row} route={route} />
+      ))}
     </div>
   );
 }

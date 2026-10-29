@@ -1,5 +1,5 @@
 import { cp, mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { cpus, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
@@ -29,7 +29,7 @@ import {
   withAdapter,
   type StoredBase,
 } from './adapters';
-import { goTo, launchApp, type LaunchedApp } from './app';
+import { goTo, launchApp, updateSettings, type LaunchedApp } from './app';
 import { startFakeOllama, startFakeStudent, type FakeOllama } from './models';
 
 test.describe.configure({ mode: 'serial' });
@@ -254,6 +254,52 @@ test('runs a tool the mentor wrote in the sandbox and answers from its result', 
     expect(toolMessage).toMatchObject({ tool_name: 'labor_cost' });
     expect(toolMessage?.content).toContain('27600');
   } finally {
+    await model.close();
+  }
+});
+
+test('holds an agent that is already open to quiet mode as it is switched on and off in Settings', async () => {
+  const model = await startFakeOllama([{ text: 'One.' }, { text: 'Two.' }, { text: 'Three.' }]);
+  try {
+    const { page } = launched;
+    const graduate = await importGraduate('grd_quiet', model.baseUrl);
+    const chat = await page.evaluate(
+      (id) => window.architect.workspace.createChat(id),
+      graduate.id,
+    );
+    // Sends a message and waits until the agent has answered it, in the chat's own state.
+    const say = async (text: string, answers: number) => {
+      await page.evaluate(([id, message]) => window.architect.workspace.send(id, message), [
+        chat.id,
+        text,
+      ] as const);
+      await expect.poll(() => model.chats.length).toBe(answers);
+      await expect
+        .poll(async () => {
+          const chats = await page.evaluate(
+            (id) => window.architect.workspace.listChats(id),
+            graduate.id,
+          );
+          return chats.find((item) => item.id === chat.id)?.running;
+        })
+        .toBe(false);
+    };
+
+    await updateSettings(page, { quietLocalModels: false });
+    await say('First.', 1);
+    // Quiet mode is switched on while the agent is open: its next reply keeps to a quarter of the
+    // computer's threads, as an agent opened afterwards would.
+    await updateSettings(page, { quietLocalModels: true });
+    await say('Second.', 2);
+    await updateSettings(page, { quietLocalModels: false });
+    await say('Third.', 3);
+
+    const [before, during, after] = model.options;
+    expect(before).not.toHaveProperty('num_thread');
+    expect(during).toMatchObject({ num_thread: Math.max(2, Math.round(cpus().length / 4)) });
+    expect(after).not.toHaveProperty('num_thread');
+  } finally {
+    await updateSettings(launched.page, { quietLocalModels: false });
     await model.close();
   }
 });

@@ -203,7 +203,6 @@ async function start(): Promise<void> {
   const graduates = new WorkspaceGraduates({
     listGraduates: () => engine.call((api) => api.graduates.list()),
     call: (request) => agentHost.call(request),
-    localThreads,
   });
   registerEngineHandlers(router, (request) => engine.call(request), picked, settings);
   registerGraduateHandlers(router, (request) => engine.call(request), graduates, picked);

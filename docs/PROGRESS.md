@@ -2,6 +2,43 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Wed), the first real drafted job, end to end
+
+**Done**
+- A fresh dataset nobody had seen (a made-up bike repair shop: 40 customers, 180 tickets with messy hours and costs, a short policy) went through the whole journey with real models, using the new `scripts/draft.ts` and `scripts/run.ts --job`:
+  - Spark drafted it in one call ($0.02) from one sentence and three files, with no unresolved rules: contact lookups, a customer's open tickets (the policy's "Open, Waiting on parts or Ready", which Spark turned into "status is not Picked up"), and a mechanic's labor hours over a date range.
+  - Architect made 90 tasks (8 calibration, 29 practice, 23 check, 30 final test). Six expected answers recomputed by hand from the raw files all matched, including totals over values like " 0.5 " and "$1,204.00".
+  - Trained with Glimmer served online: it passed 22 of 23 check tasks before any teaching, above the 90% target, so no round ran, and passed 28 of 30 on the final test (contacts 14/14, open tickets 11/12, labor hours 3/4), typical answer 9.3 s, $0.18 of online Glimmer.
+- The Train screen now says when no teaching was needed, instead of waiting for a first round that never comes.
+- Merged: getting back to a run (decision 060).
+
+**What it shows**
+- The drafted task types are retrieval and arithmetic over the records, which Glimmer already handles well. Teaching earns its keep where a job has rules to learn, as the returns desk's policy showed in comparison 2; the catalog doesn't make such tasks yet.
+
+## 2026-10-29 (Wed), getting back to a run
+
+**Done** (on a branch; decision 060; no model was called, the GPU stayed off)
+- An audit of the real app found seven places a run was lost or a person left guessing. Each was confirmed in the code before it was changed.
+- Finished runs stay reachable. The sidebar has a row for each job's newest run of its agent: Training, Paused, Needs you (waiting for an answer), Results ready (finished, agent not accepted yet; opens the Results page), and Stopped and Error (open the run). A finished run whose agent is accepted has no row, since the agent is in the list.
+- A job's row opens its agent's own run, never a baseline a comparison started after it: a job's summary is its newest run that isn't a baseline, with whether its version is accepted.
+- A new agent is in the list at once. One hook the App mounts reads the agents and jobs when the engine says a graduate is ready or a run changes status, so it works on the training and results screens too, which have no sidebar. Before, nothing read the list again until a restart.
+- A paused run says why whenever it is opened: a notice looks at the computer now (the teacher's key, the online student's key, Ollama running, the model downloaded) and offers Add the key, Check again or Download, with the engine's sentence under Details or leading when nothing explains the pause. The live line it replaces is gone.
+- Spark's question has its place on the training screen, in the current round's panel: the question, a box for the answer, and the choice that the answer changes what counts as success (which says the run will stop before it is sent). It goes through `mentoring.answer`. The round then says what became of it, the rounds list reads Needs you and Answered, and the round's page names the question. The engine now sets the run's phase to `clarifying` while it waits and announces the answered question, so the sidebar and the screen both know.
+- Quiet mode reaches agents already open: a student reads the thread cap and the rest at every request. The workspace host follows the cap it last received (the app no longer sends it as an agent opens), and a run's student follows both. A hidden e2e switches quiet mode in Settings between an open agent's replies and sees the cap on each request.
+- Not done, and why: the runtime meter isn't wired into the app (never run against a real runtime, unloads the person's model and holds the GPU to time a first reply, and its GPU figure is the whole card's), and rests still don't apply to chats (decision 060 says what each would take).
+- A run that ended with a question still open offers no box for an answer it could no longer take: its round says what was asked and that training ended before it was answered.
+- Verified: `pnpm check` exits 0 (201 test files, 2,516 passed, 2 skipped), and the whole hidden `pnpm e2e` passes (140 passed and 2 skipped in 27 minutes; the skipped ones are the packaging spec and the real engine's test of a shipped package, which waits for the owner's file). The new specs are `runs.spec.ts` (a stand-in engine), `runs-engine.spec.ts` (the real engine) and the quiet mode test in `agent-host.spec.ts`; the two tests of an agent appearing fail with the hook taken out. The captures of other screens that the full run made again came out a few pixels different (the recorded run's wall time, anti-aliasing), so the committed ones stay. Every new capture was looked at in both themes: `runs-sidebar`, `train-paused`, `train-question`, `train-answered` and `train-question-round`.
+
+**Next**
+- Decide whether a stopped or failed row should be dismissible, and whether a run that ends while the app is behind other windows should tell the person (a toast or the system's own).
+- If rests should reach chats, put them in front of the next turn rather than after the last, and say so in Settings.
+- The meter, when there is a go-ahead and a supervised run on a real card: per-process GPU memory, the job's endpoint, and the unload asked for.
+
+**Open issues**
+- A run paused on a question before this change reads Paused in the sidebar (its phase wasn't `clarifying`), though its training screen shows the question.
+- The paused notice says what the computer lacks now; a key that is saved but refused is only in the engine's sentence under Details.
+- `DefineScreen` keeps its own list of the three baseline methods instead of using `isBaselineMethod`. It was left alone so this branch doesn't touch the file the branch that makes Define start interactive runs changes.
+
 ## 2026-10-29 (Wed): a job of your own can be described, drafted and trained
 
 **Done** (on a branch; decision 058; no model was called, the GPU stayed off)

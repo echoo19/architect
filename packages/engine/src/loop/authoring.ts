@@ -498,6 +498,8 @@ async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<Un
   state.emit({ type: 'round.updated', round });
   if (intervention) state.announce('intervention', intervention.id, index);
   if (status === 'clarifying') {
+    // The run parks until the person answers; its phase says what it waits for.
+    state.setPhase('clarifying');
     state.log('info', `Round ${index}: the mentor has a question for you. ${plan.question}`);
   }
   return null;
