@@ -7,6 +7,7 @@ import { currentPlatform, deviceInSentence, deviceLabel } from '../../lib/platfo
 import { modelNames } from '../names';
 import {
   aboutUsd,
+  allowingLine,
   type Bills,
   capText,
   comparisonSeconds,
@@ -165,10 +166,14 @@ export function TrainingPlace({
   // slow, this computer is no better and there is nothing else to offer.
   let alternative: Alternative | null = null;
   if (!onHost && !hosted.available) {
+    // Where a button takes the person to set it up, it does the rest and the sentence is short.
+    const setUp = hosted.why === 'no_host' || hosted.why === 'no_key';
     alternative = {
       kind: 'missing',
-      text: `Online training isn't ready. ${hosted.reason}.`,
-      ...(hosted.why === 'no_host' || hosted.why === 'no_key' ? { onSetUp: onSetUpOnline } : {}),
+      text: setUp
+        ? "Online training isn't set up yet."
+        : `Online training isn't ready. ${hosted.reason}.`,
+      ...(setUp ? { onSetUp: onSetUpOnline } : {}),
     };
   } else if (!onHost && remoteSlow === null) {
     alternative = {
@@ -189,7 +194,8 @@ export function TrainingPlace({
         <RadioCard value="local" title={`Train on ${device}`} unavailable={localSlow !== null}>
           <span>Slower: {taskTimeText('local')} a task</span>
           <span>Free. Nothing leaves this computer.</span>
-          {localSlow && <span>{localSlow}</span>}
+          {/* The callout says it for the place chosen, so the card does not say it again. */}
+          {localSlow && onHost && <span>{localSlow}</span>}
         </RadioCard>
         <RadioCard
           value="hosted"
@@ -204,7 +210,7 @@ export function TrainingPlace({
               .join(' · ')}
           </span>
           {hosted.available ? (
-            remoteSlow && <span>{remoteSlow}</span>
+            remoteSlow && !onHost && <span>{remoteSlow}</span>
           ) : (
             <span>{hosted.reason}</span>
           )}
@@ -217,7 +223,11 @@ export function TrainingPlace({
           allow={
             roomy === null
               ? null
-              : { label: `Allow ${capText(roomy)}`, onAllow: () => onAllowTime(roomy) }
+              : {
+                  label: `Allow ${capText(roomy)}`,
+                  gives: allowingLine(roomy),
+                  onAllow: () => onAllowTime(roomy),
+                }
           }
           onRaiseLimit={onRaiseLimit}
           alternative={alternative}

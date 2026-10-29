@@ -42,7 +42,8 @@ export interface RadioCardProps {
   disabled?: boolean;
   /**
    * Can't be chosen, and its lines say why: they stay readable, the title goes quiet, and an
-   * unchosen card loses the mark that invites a click.
+   * unchosen card loses the mark that invites a click. A card that is chosen keeps its title as
+   * it was: it is the one in use, and whatever is wrong with it is said beside the choice.
    */
   unavailable?: boolean;
   className?: string;
@@ -72,7 +73,7 @@ export function RadioCard({
       <span
         className={cn(
           'flex w-full items-center justify-between gap-3 text-lg font-medium',
-          unavailable && 'text-fg-muted',
+          unavailable && 'group-data-[state=unchecked]:text-fg-muted',
         )}
       >
         {title}

@@ -11,8 +11,11 @@ export type Alternative =
 interface WontTeachProps {
   title: string;
   body: string;
-  /** A time limit that fits a round, set in one click; null when none does, to open the limit. */
-  allow: { label: string; onAllow: () => void } | null;
+  /**
+   * A time limit that fits a round, set in one click, with a line on what it gives; null when none
+   * does, to open the limit.
+   */
+  allow: { label: string; gives: string; onAllow: () => void } | null;
   /** Opens the training time limit. */
   onRaiseLimit: () => void;
   alternative: Alternative | null;
@@ -34,6 +37,9 @@ export function WontTeach({ title, body, allow, onRaiseLimit, alternative }: Won
         <div className="flex flex-col gap-1">
           <span className="font-medium">{title}</span>
           <span className="max-w-[640px] text-fg-secondary text-pretty">{body}</span>
+          {allow !== null && (
+            <span className="max-w-[640px] text-fg-secondary text-pretty">{allow.gives}</span>
+          )}
           {alternative?.kind === 'missing' && (
             <span className="max-w-[640px] text-fg-secondary text-pretty">{alternative.text}</span>
           )}

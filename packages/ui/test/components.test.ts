@@ -11,6 +11,8 @@ import {
   Meter,
   ProgressStepper,
   ProviderMark,
+  RadioCard,
+  RadioCardGroup,
   SettingsRow,
   Shortcut,
   shortcutLabel,
@@ -257,5 +259,39 @@ describe('Switch', () => {
   it('hides the padlock from a screen reader, which hears a switch that is on and unavailable', () => {
     const held = render(true, true);
     expect(held).toMatch(/<svg[^>]*lucide-lock[^>]*aria-hidden="true"/);
+  });
+});
+
+describe('RadioCard', () => {
+  const render = (value: string) =>
+    renderToStaticMarkup(
+      createElement(
+        RadioCardGroup,
+        { value, onValueChange: () => undefined, 'aria-label': 'Where' },
+        createElement(RadioCard, { value: 'here', title: 'Here', unavailable: true }, 'Too slow'),
+        createElement(RadioCard, { value: 'there', title: 'There' }, 'Fine'),
+      ),
+    );
+
+  it('goes quiet in the title of a card that cannot be chosen and is not', () => {
+    const html = render('there');
+    const title = html.slice(
+      html.indexOf('<span', html.indexOf('>Here<') - 200),
+      html.indexOf('>Here<'),
+    );
+    expect(title).toContain('group-data-[state=unchecked]:text-fg-muted');
+    expect(html).toContain('data-state="unchecked"');
+  });
+
+  it('keeps the title of the card that is chosen in its normal color, though it cannot be chosen', () => {
+    const html = render('here');
+    const chosen = html.slice(html.indexOf('<button'), html.indexOf('</button>'));
+    expect(chosen).toContain('data-state="checked"');
+    expect(chosen).toContain('disabled=""');
+    // The quiet color is only for the card that is not chosen: a bare class would grey this one.
+    expect(chosen).not.toMatch(/(?:^|[\s"])text-fg-muted/);
+    // And a card that can be chosen is never quiet.
+    const other = html.slice(html.lastIndexOf('<button'));
+    expect(other).not.toContain('text-fg-muted');
   });
 });
