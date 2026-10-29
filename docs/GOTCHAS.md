@@ -89,3 +89,7 @@ typescript-eslint 8 supports TypeScript below 6.1. Keep the workspace on TypeScr
 ## The Meta Model API key name
 
 The Meta docs call the key `MODEL_API_KEY`, and the OpenAI SDK does not read it automatically: pass `apiKey` explicitly. In the app the key comes from Settings, never from the environment.
+
+## Running the app with real keys while developing
+
+A packaged app reads keys only from Settings. An unpackaged build started with `ARCHITECT_KEYS_FROM_ENV=1` also reads them from the environment, by the names the developer scripts use (`META_API_TOKEN`, `OPENROUTER_API_KEY`, and so on), so it can be run or recorded with real models without typing a key into it. The environment is only read: a key saved in Settings wins, and nothing from the environment is ever saved.
