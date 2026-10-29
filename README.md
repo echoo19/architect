@@ -1,6 +1,6 @@
 # Architect
 
-Architect turns a job you describe into an AI agent that runs on your own computer.
+Architect turns a job you describe into an AI agent that runs on your own computer. [See it on the website](https://echoo19.github.io/architect/).
 
 You describe the job and attach the files it works from. Muse Spark, a large model, watches Muse Glimmer, a small one that fits on a PC, try the job. When Glimmer gets something wrong, Spark finds the step where it went wrong and changes Glimmer's instructions and tools. A change stays only if Glimmer then does better on check requests Spark never sees. Once Glimmer passes a final test on its own, it's your agent: it works on your files, asks before it changes one, and talks to nothing but the model on your machine.
 
