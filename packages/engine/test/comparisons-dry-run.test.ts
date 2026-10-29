@@ -1,11 +1,12 @@
 import { cpSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { COMPARISON_REPORT_FORMAT, ComparisonReportSchema } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   ARM_ORDER,
   DEFAULT_CONFIG,
   DEFAULT_MODELS,
+  pairedDifference,
   probeLocal,
   reportBeside,
   runComparison,
@@ -197,6 +198,95 @@ describe('a dry run of every arm on fakes', () => {
       "a result without an effect means this recipe didn't help, not that weights lose to harnesses",
     );
     expect(report.disclosures.join('\n')).toContain('Adapters trained against NF4 weights');
+    // An adapter arm ran, so the protocol is printed and no agent is called harness-only. The
+    // plan asked for every arm, so none is said to be left out.
+    expect(markdown).toContain('Adapter protocol: four-cell.');
+    expect(markdown).not.toContain('Every reported agent is harness-only');
+    expect(markdown).not.toContain('Not in this comparison');
+
+    // The seeds the plan declared, with the arms that have a result under each: 101 for every arm
+    // that took a locked test, and the repeat's 102 for the three it covers.
+    expect(report.plan.testSeeds).toEqual([101, 102]);
+    expect(report.plan.seedResults).toEqual([
+      {
+        seed: 101,
+        arms: [
+          'bare',
+          'draft',
+          'targeted',
+          'reference',
+          'reference-targeted',
+          'weights-one-shot',
+          'weights-targeted',
+        ],
+      },
+      { seed: 102, arms: ['bare', 'draft', 'targeted'] },
+    ]);
+
+    // Each pair carries its difference in pass rate, worked out from its own counts.
+    const pairs = report.backends.flatMap((table) => table.paired);
+    expect(pairs.length).toBeGreaterThan(5);
+    for (const item of pairs) {
+      expect(item.difference).toEqual(pairedDifference(item));
+      expect(item.difference.rate).toBeCloseTo((item.aOnly - item.bOnly) / item.scenarios, 12);
+      expect(item.difference.low).toBeLessThanOrEqual(item.difference.rate);
+      expect(item.difference.high).toBeGreaterThanOrEqual(item.difference.rate);
+    }
+
+    // The rounds an arm used of the most it was allowed, why training ended, and the kept
+    // round's own before and after, which are on one scale.
+    expect(arm('bare')?.rounds).toBeNull();
+    expect(arm('draft')).toMatchObject({ rounds: { used: 1, ended: 'done' }, caps: { rounds: 1 } });
+    expect(arm('targeted')?.rounds?.used).toBeLessThanOrEqual(arm('targeted')?.caps.rounds ?? 0);
+    expect(arm('targeted')?.rounds?.ended).toEqual(expect.any(String));
+    for (const id of ['draft', 'targeted']) {
+      const kept = arm(id)
+        ?.experiments.filter((item) => item.disposition === 'kept')
+        .at(-1);
+      expect(kept).toBeDefined();
+      expect(arm(id)?.dev.kept).toEqual({
+        round: kept?.round,
+        kind: kept?.kind,
+        before: kept?.devBefore,
+        after: kept?.devAfter,
+      });
+      expect(arm(id)?.dev.kept?.before?.total).toBe(arm(id)?.dev.kept?.after?.total);
+    }
+
+    // Where each was measured, and the local build each frozen agent is set to run on.
+    expect(arm('bare')?.measuredOn).toEqual(['hosted', 'local-ollama']);
+    expect(arm('reference')?.measuredOn).toEqual(['reference']);
+    expect(arm('weights-one-shot')?.measuredOn).toEqual(['local-llama.cpp']);
+    expect(arm('fixed')?.measuredOn).toEqual([]);
+    expect(arm('bare')?.frozen?.localModel).toBe('muse-glimmer:30b-iq2');
+    expect(markdown).toContain(
+      'Its locked test also ran on this computer; see the table "This computer\'s Glimmer on Ollama".',
+    );
+
+    // The money: the journal's total is its settled and uncertain charges together, and the
+    // student's recorded costs are the sum of their three parts.
+    expect(report.credit?.totalUsd).toBeCloseTo(
+      (report.credit?.settledUsd ?? NaN) + (report.credit?.uncertainUsd ?? NaN),
+      12,
+    );
+    const parts = report.totals.studentParts;
+    expect(parts.armsUsd).toBeCloseTo(
+      report.arms.reduce((sum, item) => sum + (item.spent.studentUsd ?? 0), 0),
+      9,
+    );
+    expect(
+      (parts.armsUsd ?? NaN) + (parts.calibrationUsd ?? NaN) + (parts.regressionUsd ?? NaN),
+    ).toBeCloseTo(report.totals.studentUsd ?? NaN, 9);
+    expect(markdown).toContain('settled by the provider');
+
+    // Plain words: no arrow or typographic mark, the loop's stored "30/45 -> 35/45" says "to", and
+    // nothing names the folder the dry run was made in.
+    const marks = /[\u{2192}\u{2013}\u{2014}\u{2018}\u{2019}\u{201C}\u{201D}\u{2026}]/u;
+    expect(markdown).not.toMatch(marks);
+    expect(JSON.stringify(report)).not.toMatch(marks);
+    expect(arm('draft')?.experiments[0]?.reason).toMatch(/^Dev \d+\/\d+ to \d+\/\d+;/);
+    expect(markdown).not.toContain(basename(world.root));
+    expect(JSON.stringify(report)).not.toContain(basename(world.root));
 
     const store = openEngineStore(new DataPaths(join(world.out, 'data')).database);
     try {
@@ -263,6 +353,8 @@ describe('a dry run of every arm on fakes', () => {
     keep(world, 'report-reduced');
     expect(outcome).toBe('finished');
     expect(report.plan.adapterProtocol).toBe('reduced');
+    const markdown = readFileSync(join(world.out, 'report.md'), 'utf8');
+    expect(markdown).toContain('Adapter protocol: reduced.');
     const weights = report.arms.find((arm) => arm.arm === 'weights-one-shot');
     expect(weights?.status).toBe('complete');
     // One round: the adapter, checked on train tasks and measured on no dev task.

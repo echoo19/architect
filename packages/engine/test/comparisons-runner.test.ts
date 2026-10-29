@@ -13,6 +13,7 @@ import {
   DEFAULT_CONFIG,
   DEFAULT_MODELS,
   probeLocal,
+  reportOnly,
   runComparison,
   type ComparisonConfig,
   type ComparisonRequest,
@@ -468,8 +469,14 @@ describe("the student's credit (decision 051)", () => {
     expect(report.projection?.committedUsd).toBeCloseTo(calibration + 0.75, 9);
     expect(report.credit).toMatchObject({ uncertainRequests: 1, requests: 16 });
     expect(report.credit?.uncertainUsd).toBeCloseTo(0.75, 9);
+    // The report names it: what the journal could not settle, counted at its worst, apart from
+    // what the provider settled and what the attempts recorded.
+    expect(report.credit?.totalUsd).toBeCloseTo(
+      (report.credit?.settledUsd ?? NaN) + (report.credit?.uncertainUsd ?? NaN),
+      12,
+    );
     expect(readFileSync(join(world.out, 'report.md'), 'utf8')).toContain(
-      'counted as spent at its worst for 1 requests a crash or a failure cut off',
+      "**The hosted student, uncertain: $0.7500.** The journal's 1 request that a crash or a failure cut off, whose charge is not known, counted at the most it could have cost.",
     );
   }, 300_000);
 
@@ -596,6 +603,65 @@ describe('what the report claims (decision 051)', () => {
       'Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. A01 is not met: no adapter a real training job made took the locked test.',
     );
     expect(report.disclosures.join(' ')).not.toContain('Adapters trained against NF4');
+  }, 300_000);
+
+  it('says a declared seed that did not run was not run, and that no agent has trained weights', async () => {
+    const { world, request } = setUp();
+    const { report } = await runComparison(
+      asking(request, { arms: ['bare', 'draft', 'targeted'] }),
+      world.env,
+    );
+    // The plan declared 101 and 102; the repeat was not asked for, so only 101 has results.
+    expect(report.plan.testSeeds).toEqual([101, 102]);
+    expect(report.plan.seedResults).toEqual([
+      { seed: 101, arms: ['bare', 'draft', 'targeted'] },
+      { seed: 102, arms: [] },
+    ]);
+    const markdown = readFileSync(join(world.out, 'report.md'), 'utf8');
+    expect(markdown).toContain(
+      'Seed 101 ran for Bare student, One-shot draft and Targeted mentoring.',
+    );
+    expect(markdown).toContain(
+      'Seed 102 was declared for the decoding repeat and was not run, so no result in this report is under it.',
+    );
+    expect(report.disclosures).toContain(
+      'Every arm ran with one mentoring seed (1). The locked test ran under seed 101. Seed 102 was declared for a decoding repeat that was not run, so no result here is under it.',
+    );
+    // What the plan never asked for is said to be not run.
+    expect(markdown).toContain(
+      'Not in this comparison, so not run: Spark reference, blank harness; Spark reference, targeted harness; Decoding repeat; Fixed intervention; One-shot adapter; Failure-specific adapter; and the runtime regression check.',
+    );
+    // No adapter arm ran: no protocol, and one plain statement instead.
+    expect(markdown).not.toContain('Adapter protocol');
+    expect(markdown).toContain('Every reported agent is harness-only: none has trained weights.');
+    expect(report.disclosures).toContain(
+      'Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. A01 is not met: this comparison ran no training job.',
+    );
+    // The rounds the targeted arm used of the two it was allowed, and why its training ended: in
+    // this world its dev tasks reached the target after the first.
+    const targeted = report.arms.find((arm) => arm.arm === 'targeted');
+    expect(targeted?.caps.rounds).toBe(2);
+    expect(targeted?.rounds).toEqual({ used: 1, ended: 'done, the dev target was reached' });
+    expect(markdown).toContain(
+      '| Targeted mentoring | complete | 1 of 2, done, the dev target was reached |',
+    );
+  }, 300_000);
+
+  it('reports the seeds the plan declared, not the ones a request names, so a report asked for later says what ran', async () => {
+    const { world, request } = setUp();
+    const small = asking(request, { arms: ['bare'] });
+    await runComparison(small, world.env);
+    const { config } = small;
+    const later = await reportOnly(
+      { ...small, config: { ...config, testSeeds: [7, 8], mentoringSeed: 9 } },
+      world.env,
+    );
+    expect(later.plan.testSeeds).toEqual([101, 102]);
+    expect(later.plan.mentoringSeed).toBe(1);
+    expect(later.plan.seedResults).toEqual([
+      { seed: 101, arms: ['bare'] },
+      { seed: 102, arms: [] },
+    ]);
   }, 300_000);
 
   it('marks a repeat cut short as partial', async () => {

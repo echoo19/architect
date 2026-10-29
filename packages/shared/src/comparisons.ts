@@ -8,7 +8,7 @@ import { ScoreSchema } from './lineage';
  * from the same object.
  */
 
-export const COMPARISON_REPORT_FORMAT = 'architect.comparisons/2';
+export const COMPARISON_REPORT_FORMAT = 'architect.comparisons/3';
 
 /**
  * Decision 037's arms, in its order, which decides what is dropped when money runs short: the
@@ -124,6 +124,17 @@ export const CreditSummarySchema = z.object({
 });
 export type CreditSummary = z.infer<typeof CreditSummarySchema>;
 
+/**
+ * The journal as the report holds it: its summary, and what it counts as spent in all. The report
+ * names that total beside the attempts' recorded costs, which are a different count of the same
+ * requests: the journal also holds requests no recorded attempt keeps the cost of.
+ */
+export const ReportCreditSchema = CreditSummarySchema.extend({
+  /** Settled plus uncertain: every dollar the journal counts as spent, uncertain ones at their worst. */
+  totalUsd: z.number().nonnegative(),
+});
+export type ReportCredit = z.infer<typeof ReportCreditSchema>;
+
 const share = z.number().min(0).max(1);
 
 /** A count with its rate and 95% Wilson interval; both null when nothing was counted. */
@@ -210,6 +221,18 @@ const pairedCounts = {
   neither: z.number().int().nonnegative(),
 };
 
+/**
+ * `a`'s pass rate less `b`'s on the paired scenarios, with a 95% interval for paired proportions:
+ * Newcombe's hybrid score method (his method 10), made from the wins, losses, both and neither
+ * counts. As shares of the scenarios, so 0.033 is 3.3 percentage points.
+ */
+export const PassDifferenceSchema = z.object({
+  rate: z.number().min(-1).max(1),
+  low: z.number().min(-1).max(1),
+  high: z.number().min(-1).max(1),
+});
+export type PassDifference = z.infer<typeof PassDifferenceSchema>;
+
 /** Two arms on the same backend, seed and scenarios, counted scenario by scenario. */
 export const PairedSchema = z.object({
   a: ArmIdSchema,
@@ -219,6 +242,8 @@ export const PairedSchema = z.object({
   seed: z.number().int(),
   scenarios: z.number().int().nonnegative(),
   ...pairedCounts,
+  /** The difference in pass rate, `a` less `b`, from the counts above. */
+  difference: PassDifferenceSchema,
   byType: z.array(z.object({ type: z.string(), ...pairedCounts })),
 });
 export type Paired = z.infer<typeof PairedSchema>;
@@ -314,7 +339,32 @@ export const ArmReportSchema = z.object({
       computeUsd: z.number().nonnegative(),
     })
     .nullable(),
-  dev: z.object({ baseline: ScoreSchema.nullable(), final: ScoreSchema.nullable() }),
+  /**
+   * What dev showed, each measurement on its own scale. `baseline` is the run's first dev
+   * measurement: one run over the dev tasks. `kept` is the last round that was kept, with the
+   * before and after it was decided on, which are the same tasks and seeds: the keep rule's
+   * confirmation over several runs, or one run each for a one-shot draft, which has no check.
+   */
+  dev: z.object({
+    baseline: ScoreSchema.nullable(),
+    kept: z
+      .object({
+        round: z.number().int().positive(),
+        kind: z.string(),
+        before: ScoreSchema.nullable(),
+        after: ScoreSchema.nullable(),
+      })
+      .nullable(),
+  }),
+  /**
+   * The rounds it used of the most it was allowed (`caps.rounds`), and why training ended, in a
+   * few words: the cap, patience, money, the time limit, or done. Null for an arm with no rounds.
+   */
+  rounds: z
+    .object({ used: z.number().int().nonnegative(), ended: z.string().nullable() })
+    .nullable(),
+  /** The backends of the tables it has a locked-test result in; empty when it has none. */
+  measuredOn: z.array(BackendIdSchema),
   experiments: z.array(
     z.object({
       round: z.number().int().positive(),
@@ -334,6 +384,9 @@ export const ArmReportSchema = z.object({
     .object({
       harnessVersion: z.number().int().nonnegative(),
       harnessHash: z.string(),
+      /** The build on this computer it is pinned to and set to run on once installed. */
+      localModel: z.string(),
+      /** The runtime that serves that build, or llama.cpp with an adapter. */
       backend: z.string(),
       adapter: z
         .object({
@@ -469,7 +522,13 @@ export const ComparisonReportSchema = z.object({
   }),
   plan: z.object({
     mentoringSeed: z.number().int(),
+    /** The locked-test seeds the plan declared: the first for every arm, the rest for the repeat. */
     testSeeds: z.array(z.number().int()),
+    /**
+     * Each declared seed, then any other a locked test ran under, with the arms that have a stored
+     * locked-test result under it. A declared seed with no arm was not run.
+     */
+    seedResults: z.array(z.object({ seed: z.number().int(), arms: z.array(ArmIdSchema) })),
     order: z.array(ArmIdSchema),
     adapterProtocol: AdapterProtocolSchema,
     /** When development closed and the locked tests were released; no arm developed after it. */
@@ -482,11 +541,20 @@ export const ComparisonReportSchema = z.object({
   calibration: TaskSweepSchema.nullable(),
   billing: BillingSchema.nullable(),
   regression: TaskSweepSchema.nullable(),
-  credit: CreditSummarySchema.nullable(),
-  /** Every dollar the comparison spent, each counted once: the arms' own and the sweeps'. */
+  credit: ReportCreditSchema.nullable(),
+  /**
+   * Every dollar the attempts and the ledger record as spent, each counted once: the arms' own
+   * and the sweeps'. `studentUsd` is the attempts' recorded costs, which `studentParts` add up
+   * from; the request journal (`credit`) is a different count of the same requests.
+   */
   totals: z.object({
     sparkUsd: z.number().nonnegative(),
     studentUsd: z.number().nonnegative().nullable(),
+    studentParts: z.object({
+      armsUsd: z.number().nonnegative().nullable(),
+      calibrationUsd: z.number().nonnegative().nullable(),
+      regressionUsd: z.number().nonnegative().nullable(),
+    }),
     computeUsd: z.number().nonnegative(),
     computeSettled: z.boolean(),
   }),
