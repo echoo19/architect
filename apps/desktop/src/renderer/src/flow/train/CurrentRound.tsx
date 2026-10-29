@@ -19,6 +19,11 @@ import {
 
 const ACTIVE = new Set(['running', 'testing', 'stopping']);
 
+/** The student met the target on its check tasks before any teaching, so no round ran. */
+function metUnaided(live: LiveRun, round: Round | null): boolean {
+  return round === null && hasEnded(live.run) && live.run.stopReason === 'target_met';
+}
+
 function studentLine(
   live: LiveRun,
   round: Round | null,
@@ -35,6 +40,10 @@ function studentLine(
     return round?.status === 'evaluating'
       ? `Taking the ${job.splits.dev} check tasks with the first draft.`
       : 'No practice this round. It waits for its first setup.';
+  }
+  const baseline = run.devBaseline;
+  if (metUnaided(live, round) && baseline !== null) {
+    return `Got ${baseline.pass} of ${baseline.total} check tasks right before any teaching, then took the final test.`;
   }
   if (failure) return failureLine(failure);
   if (!round) {
@@ -54,6 +63,9 @@ function mentorLine(live: LiveRun, round: Round | null, names: ModelNames, draft
   if (run.status === 'testing' || run.phase === 'testing') {
     return live.improves ? 'Finished teaching.' : 'Disconnected. The final test runs without help.';
   }
+  if (metUnaided(live, round)) {
+    return `Had nothing to change: ${names.student} already met the target.`;
+  }
   if (!round) return `Starts teaching once ${names.student} has taken the check tasks.`;
   if (round.diagnosis) return round.diagnosis;
   if (draft) {
@@ -69,7 +81,8 @@ function mentorLine(live: LiveRun, round: Round | null, names: ModelNames, draft
 }
 
 /** The round's number and, once the mentor has named it, the change it is trying. */
-function roundHeading(round: Round | null, draft: boolean): string {
+function roundHeading(round: Round | null, draft: boolean, unaided: boolean): string {
+  if (unaided) return 'No teaching needed';
   if (!round) return 'Before the first round';
   if (draft) return `Round ${round.index}: first draft`;
   return round.title ? `Round ${round.index}: ${round.title}` : `Round ${round.index}`;
@@ -118,7 +131,7 @@ export function CurrentRound({
   return (
     <Panel padded aria-label="Current round" className="min-w-0 flex-[5_1_360px]">
       <div className="flex items-center justify-between gap-3">
-        <Heading>{roundHeading(round, draft)}</Heading>
+        <Heading>{roundHeading(round, draft, metUnaided(live, round))}</Heading>
         {working && <Spinner tone="mentor" size={16} label="Working" />}
       </div>
       <div className="flex flex-col gap-2">

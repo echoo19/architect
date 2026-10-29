@@ -86,7 +86,13 @@ export function Rounds({
           />
         </PanelRow>
       ) : rounds.length === 0 ? (
-        <PanelRow className="text-fg-muted">No rounds yet</PanelRow>
+        <PanelRow className="text-fg-muted">
+          {stopReason === 'target_met'
+            ? 'No rounds were needed'
+            : stopReason === undefined
+              ? 'No rounds yet'
+              : 'No rounds ran'}
+        </PanelRow>
       ) : (
         <ol className="m-0 max-h-[372px] list-none overflow-y-auto p-0">
           {stopReason && EndIcon && (
