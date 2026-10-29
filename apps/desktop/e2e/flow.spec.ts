@@ -34,6 +34,8 @@ const WIDTH = 1440;
 const DEFINE_HEIGHT = 1580;
 const TRAIN_HEIGHT = 1270;
 const REPORT_HEIGHT = 2060;
+/** The results with a rule's whole expression open, which runs a hundred lines down the page. */
+const RULE_REPORT_HEIGHT = 3600;
 const THEMES = ['dark', 'light'] as const;
 
 test.describe.configure({ mode: 'serial' });
@@ -82,9 +84,24 @@ async function applySettings(page: Page, patch: Parameters<typeof updateSettings
   await page.waitForLoadState('domcontentloaded');
 }
 
-async function stubFlow(): Promise<void> {
+/**
+ * The job with time to spare: training on this computer fits in it. Start training waits where the
+ * place a job trains at can't fit a round in its time limit, so a test about anything else keeps
+ * to a job where it does, and the test about that limit starts from the job as it ships.
+ */
+const roomy: Job = { ...job, budget: { ...job.budget, maxWallMinutes: 1_200 } };
+
+/** Hours rounded up to the half hour, which the rule of the results page does first. */
+const BILLED_HOURS = {
+  op: 'round' as const,
+  arg: { op: 'col' as const, column: 'labor_hours', from: 'row' as const },
+  increment: '0.5',
+  mode: 'up' as const,
+};
+
+async function stubFlow(base: Job = roomy): Promise<void> {
   const { app } = launched;
-  await stubEngine(app, FLOW_ENGINE);
+  await stubEngine(app, { ...FLOW_ENGINE, 'jobs:get': base, 'jobs:save': base });
   await stubSequence(app, 'jobs:draftReply', turns.replies);
   await stubByKey(app, 'reports:get', reports);
   await stubRecorded(app, 'runs:start', startedRun);
@@ -95,7 +112,7 @@ async function stubFlow(): Promise<void> {
 for (const theme of THEMES) {
   test(`walks from a description to a graduate (${theme})`, async () => {
     const { app, page } = launched;
-    await stubFlow();
+    await stubFlow(job);
     // Comparison mode is a researcher's setting, so the screens that get captured leave it off.
     await applySettings(page, { theme, onboarded: true, comparisonMode: false });
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
@@ -157,9 +174,8 @@ for (const theme of THEMES) {
     // Nothing offers a setting that does nothing: the agent can't open files outside its job.
     await expect(page.getByText('Opening files outside the job')).toHaveCount(0);
 
-    // With the teacher's key saved and the model on this computer, nothing stands in the way.
+    // With the teacher's key saved and the model on this computer, nothing is missing.
     await expect(page.getByRole('heading', { name: 'Before it can start' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
 
     // Each place says how fast it practices and where the files go; this computer is too slow.
     const local = page.getByRole('radio', { name: /Train on this computer/ });
@@ -169,13 +185,20 @@ for (const theme of THEMES) {
     await expect(local).toContainText('Slower: about 2.5 minutes a task');
     await expect(local).toContainText('Free. Nothing leaves this computer.');
     await expect(local).toContainText('Too slow for the 4-hour limit');
-    // A place too slow for the limit offers the setting that would let it train.
-    await page.getByRole('button', { name: 'Allow more time' }).click();
-    const limits = page.getByRole('dialog', { name: 'Advanced settings' });
-    await expect(limits.getByRole('heading', { name: 'Time and budget' })).toBeVisible();
-    await expect(limits.getByRole('textbox', { name: 'Training time' })).toHaveValue('240');
-    await page.keyboard.press('Escape');
-    await expect(limits).toBeHidden();
+    // The place chosen can't fit a round, so one callout by the choice says so in plain words,
+    // Start training waits, and the footer says why.
+    const wont = "Training on this computer won't get to teach in 4 hours";
+    const callout = page.getByRole('status').filter({ hasText: wont });
+    await expect(callout).toContainText(
+      'Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once',
+    );
+    await expect(callout).toContainText("That doesn't fit in the 4 hours allowed");
+    await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
+    await expect(page.getByText(wont, { exact: true })).toHaveCount(2);
+    await capture(page, `flow-define-slow-${theme}`);
+    // Its first button sets the shortest limit, in whole hours, that is sure to fit a round: 1 h
+    // 40 min of check tasks and a round of at most 7 h 10 min. Clicking it is in `allowMoreTime`.
+    await expect(callout.getByRole('button', { name: 'Allow 9 hours' })).toBeVisible();
     await expect(hosted).toBeEnabled();
     await expect(hosted).toContainText('Faster: about 15 seconds a task');
     await expect(hosted).toContainText('About $3 · sends tasks and files online');
@@ -188,9 +211,12 @@ for (const theme of THEMES) {
     await expect(time).toContainText(/In all\s*6\.5 h/);
     await expect(cost).not.toContainText('Online practice');
     await expect(cost).toContainText(/Spark\s*Teaching\s*\$0\.70/);
-    // The choices the run below starts with, so every later screen agrees with this one.
-    await hosted.click();
+    // The choices the run below starts with, so every later screen agrees with this one. Its
+    // second button trains online instead, and with that the callout is gone.
+    await callout.getByRole('button', { name: 'Train online instead' }).click();
     await expect(hosted).toBeChecked();
+    await expect(callout).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
     await expect(time).toContainText(/Training\s*5 to 10 rounds online\s*4 h/);
     await expect(time).toContainText(/In all\s*6\.5 h/);
     await expect(cost).toContainText(/Online practice\s*Glimmer practicing online\s*\$3/);
@@ -466,7 +492,7 @@ for (const theme of THEMES) {
             label: 'Ticket totals',
             version: '2a3e028da93a',
             statement:
-              'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up.',
+              'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, half a cent rounds up.',
             passages: [
               { file: 'policy.md', passage: 'Labor is billed at $65 an hour, in half-hour steps.' },
               { file: 'policy.md', passage: 'Members get 10% off labor, never off parts.' },
@@ -487,14 +513,42 @@ for (const theme of THEMES) {
               { label: 'member (customers.csv) is no', cases: 68, changes: 68 },
             ],
             flags: [
-              'The rounding step (to the nearest cent, halves going up) never changed a value in your records, so no task shows it at work.',
+              'The rounding step (to the nearest cent, half a cent rounds up) never changed a value in your records, so no task shows it at work.',
             ],
             confirmedAt: '2026-10-29T12:00:00.000Z',
+            // The rule the statement says, as the engine holds it: labor in half hours, a tenth
+            // off for a member, plus the parts, to the cent.
             expression: {
               op: 'round' as const,
-              arg: { op: 'col' as const, column: 'parts_cost', from: 'row' as const },
               increment: '0.01',
               mode: 'half_up' as const,
+              arg: {
+                op: 'add' as const,
+                args: [
+                  {
+                    op: 'if' as const,
+                    when: {
+                      test: 'equals' as const,
+                      column: 'member',
+                      from: 'lookup' as const,
+                      value: 'yes',
+                    },
+                    then: {
+                      op: 'mul' as const,
+                      args: [
+                        BILLED_HOURS,
+                        { op: 'num' as const, value: '65' },
+                        { op: 'num' as const, value: '0.9' },
+                      ],
+                    },
+                    else: {
+                      op: 'mul' as const,
+                      args: [BILLED_HOURS, { op: 'num' as const, value: '65' }],
+                    },
+                  },
+                  { op: 'col' as const, column: 'parts_cost', from: 'row' as const },
+                ],
+              },
             },
           },
         ],
@@ -509,7 +563,7 @@ for (const theme of THEMES) {
     // Right under the score, where it is read: the expected answers follow a rule that was
     // confirmed, and the score doesn't say the rule matches the business.
     const note =
-      "Expected answers were calculated by Architect using Spark's interpretation of your policy, which you confirmed. This score measures agreement with that rule on held-out cases; it does not independently establish that the rule matches your business policy.";
+      "Architect worked out every expected answer from the rule you confirmed, which is Spark's reading of your policy. So this score shows how often the agent agreed with that rule on tasks it had never seen. It can't show whether the rule itself is right for your business.";
     await expect(page.getByText(note)).toBeVisible();
     await expect(page.getByRole('region', { name: 'The rule for Ticket totals' })).toHaveCount(0);
 
@@ -529,11 +583,32 @@ for (const theme of THEMES) {
     );
     await expect(rule).toContainText('52 rows: parts_cost is empty or N/A, such as T-2001');
     await expect(rule).toContainText(
-      'member (customers.csv) is yes: 40 cases, 40 where it changed',
+      'member (customers.csv) is yes: 40 rows, and the other side would give a different answer for all 40',
     );
     await expect(page.getByText(/^Teaching (ran for|did not run)/)).toBeVisible();
+    // The tag says where the answer came from, apart from the answer and not run on from it.
+    const answer = await rule.getByText('No, labor only', { exact: true }).boundingBox();
+    const tag = await rule.getByText('your answer', { exact: true }).boundingBox();
+    expect(answer && tag).toBeTruthy();
+    expect(tag!.x).toBeGreaterThanOrEqual(answer!.x + answer!.width + 16);
+
+    // The rule exactly as Architect evaluates it is all there, down the page: nothing of it is cut
+    // off by a height, and it is the rule the sentence above it says.
     await rule.getByRole('button', { name: 'The rule exactly as Architect evaluates it' }).click();
-    await expect(rule).toContainText('"column": "parts_cost"');
+    const exact = rule.getByRole('region', { name: 'Rule expression' });
+    for (const part of [
+      '"column": "labor_hours"',
+      '"value": "65"',
+      '"value": "0.9"',
+      '"value": "yes"',
+      '"column": "parts_cost"',
+    ]) {
+      await expect(exact).toContainText(part);
+    }
+    expect(await exact.evaluate((block) => block.scrollHeight > block.clientHeight + 1)).toBe(
+      false,
+    );
+    await resize(RULE_REPORT_HEIGHT);
     await capture(page, `flow-report-rule-${theme}`);
   });
 }
@@ -587,7 +662,8 @@ for (const theme of THEMES) {
 
 test('trains three simpler versions beside the agent when comparison mode is on', async () => {
   const { app, page } = launched;
-  await stubFlow();
+  // The plan's figures are those of the job as it ships, trained online.
+  await stubFlow(job);
   await applySettings(page, { theme: 'dark', onboarded: true, comparisonMode: true });
   await resize(DEFINE_HEIGHT);
   await goTo(page, `/jobs/${FLOW.jobId}/define`);
@@ -836,21 +912,23 @@ for (const theme of THEMES) {
     await goTo(page, `/jobs/${FLOW.jobId}/define`);
     await page.getByRole('button', { name: 'Advanced settings' }).click();
     const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-    await advanced.getByRole('tab', { name: 'Teacher' }).click();
+    // The teacher's tab is named for the teacher.
+    await advanced.getByRole('tab', { name: 'Spark' }).click();
+    await expect(advanced.getByRole('tab', { name: 'Teacher' })).toHaveCount(0);
     const section = advanced.getByRole('region', { name: 'What Spark may change' });
     const kinds = [
       'Instructions and steps',
-      'What it reads when',
+      'What it reads, and when',
       'Small tools',
-      'Its weights',
+      'Retrain Glimmer itself',
       'Questions for you',
     ];
     // A job that never chose has every kind on, and the weights say what they need.
     for (const kind of kinds) {
       await expect(section.getByRole('switch', { name: kind })).toBeChecked();
     }
-    await expect(section).toContainText('Needs a Hugging Face token, added in Settings');
-    await expect(section.getByRole('switch', { name: 'Its weights' })).toBeEnabled();
+    await expect(section).toContainText('Needs a Hugging Face key');
+    await expect(section.getByRole('switch', { name: 'Retrain Glimmer itself' })).toBeEnabled();
 
     await section.getByRole('switch', { name: 'Small tools' }).click();
     await section.getByRole('switch', { name: 'Questions for you' }).click();
@@ -868,11 +946,11 @@ for (const theme of THEMES) {
     // Leave only the weights, which the app knows can't be trained here: the switch holds, and
     // says why, and Start training says there is nothing for the teacher to do.
     await section.getByRole('switch', { name: 'Instructions and steps' }).click();
-    await section.getByRole('switch', { name: 'What it reads when' }).click();
-    await expect(section.getByRole('switch', { name: 'Its weights' })).toBeDisabled();
-    await expect(section.getByRole('switch', { name: 'Its weights' })).toBeChecked();
+    await section.getByRole('switch', { name: 'What it reads, and when' }).click();
+    await expect(section.getByRole('switch', { name: 'Retrain Glimmer itself' })).toBeDisabled();
+    await expect(section.getByRole('switch', { name: 'Retrain Glimmer itself' })).toBeChecked();
     await expect(section).toContainText(
-      'Stays on: the only way left to change the agent. Its weights need a Hugging Face token, added in Settings.',
+      'Stays on: the only way left to change the agent. Retraining Glimmer itself needs a Hugging Face key.',
     );
     await expect(advanced.getByRole('status')).toContainText('Saved');
     expect(((await recordedCalls(app, 'jobs:save')).at(-1)?.[0] as Job).interventions).toEqual([
@@ -881,17 +959,30 @@ for (const theme of THEMES) {
     await toBottom();
     await capture(page, `flow-advanced-teacher-last-${theme}`);
 
-    await page.keyboard.press('Escape');
+    // The row that needs the key has the way to add it: this dialog closes, and Settings opens on
+    // the Hugging Face row, which is not folded away under Advanced.
+    await section.getByRole('button', { name: 'Add the key' }).click();
     await expect(advanced).toBeHidden();
+    const settings = page.getByRole('dialog', { name: 'Settings' });
+    await expect(settings.getByRole('button', { name: 'Add token' })).toBeVisible();
+    await expect(settings.getByText('No token', { exact: true })).toBeVisible();
+    // Its button is on screen inside the modal's scroll, not under the fade at the bottom of it.
+    const panel = await settings.getByRole('tabpanel').boundingBox();
+    const add = await settings.getByRole('button', { name: 'Add token' }).boundingBox();
+    expect(panel && add).toBeTruthy();
+    expect(add!.y).toBeGreaterThanOrEqual(panel!.y);
+    expect(add!.y + add!.height).toBeLessThanOrEqual(panel!.y + panel!.height - 24);
+    await page.keyboard.press('Escape');
+    await expect(settings).toBeHidden();
     const needs = page.getByRole('region', { name: 'Before it can start' });
     await expect(needs).toContainText('Spark has nothing it may change');
     await expect(needs).toContainText(
-      'Only its weights are on, and they need a Hugging Face token, added in Settings. Turn something else on, or put that right.',
+      'Only retraining Glimmer itself is on, and it needs a Hugging Face key. Turn something else on, or add the key.',
     );
     await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
     expect(await recordedCalls(app, 'runs:start')).toEqual([]);
 
-    // Its button opens the Teacher tab, where a kind is turned on again and the hold lifts.
+    // Its button opens the teacher's tab, where a kind is turned on again and the hold lifts.
     await needs.getByRole('button', { name: "Open Spark's settings" }).click();
     await expect(advanced.getByRole('region', { name: 'What Spark may change' })).toBeVisible();
     await advanced.getByRole('switch', { name: 'Instructions and steps' }).click();
@@ -909,8 +1000,21 @@ test('cannot take the final test online without an online copy to take it on', a
   await applySettings(page, { theme: 'dark', onboarded: true, comparisonMode: false });
   await resize(DEFINE_HEIGHT);
   await goTo(page, `/jobs/${FLOW.jobId}/define`);
-  await page.getByRole('button', { name: 'Advanced settings' }).click();
+
+  // Training here can't fit a round, and there is no online copy to offer instead: the callout
+  // says what online needs, in plain words, and its button goes to where that is chosen.
+  const callout = page.getByRole('status').filter({ hasText: "won't get to teach" });
+  await expect(callout).toContainText(
+    "Online training isn't ready. Pick an online service under Agent's model in Advanced settings.",
+  );
+  await expect(callout.getByRole('button', { name: 'Train online instead' })).toHaveCount(0);
+  await expect(page.getByRole('radio', { name: /Train online/ })).toContainText(
+    'Sends tasks and files online',
+  );
+  await callout.getByRole('button', { name: 'Set up online training' }).click();
   const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+  await expect(advanced.getByRole('heading', { name: "Agent's model" })).toBeVisible();
+
   await advanced.getByRole('tab', { name: 'Ready when' }).click();
   const where = advanced.getByRole('radiogroup', { name: 'Where the final test runs' });
   const online = where.getByRole('radio', { name: /On the online copy/ });

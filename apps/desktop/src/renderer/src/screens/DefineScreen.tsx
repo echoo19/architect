@@ -12,7 +12,9 @@ import { flowApi } from '../api/client';
 import { useJob, useJobs, useSettings, useTaskPlan } from '../api/hooks';
 import { ProblemState } from '../components/ProblemState';
 import { resetDraft, useDraftStore } from '../flow/describe/draft-store';
+import { takeAdvanced } from '../flow/define/advanced-request';
 import { AdvancedDialog, tabWithIssue, type AdvancedTab } from '../flow/define/AdvancedDialog';
+import { trainsTooSlow, wontTeachTitle } from '../flow/define/estimates';
 import { hostedAvailability } from '../flow/define/hosted';
 import { Capabilities, FilePermissions, JobHeader, ReadyWhen } from '../flow/define/JobOverview';
 import { RuleReview } from '../flow/define/RuleReview';
@@ -23,6 +25,7 @@ import { useJobEditor } from '../flow/define/use-job-editor';
 import { usePreflight } from '../flow/define/use-preflight';
 import { AddKeyDialog } from '../settings/models/AddKeyDialog';
 import { attempt } from '../lib/notify';
+import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 import { FlowShell } from '../shell/FlowShell';
 
@@ -96,8 +99,21 @@ function DefineEditor({ initial }: { initial: Job }) {
     setTab(at);
     setAdvancedOpen(true);
   };
+
+  // Another screen may have sent the person here to change something in this job's settings.
+  const { id: jobId } = initial;
+  useEffect(() => {
+    const asked = takeAdvanced(jobId);
+    if (asked !== null) {
+      setTab(asked);
+      setAdvancedOpen(true);
+    }
+  }, [jobId]);
   const preflight = usePreflight(job, testPlace, openAdvanced);
   const hosted = hostedAvailability(job.student, preflight.keys);
+  // Training where the job trains would run out of time before the teacher changed anything. It
+  // waits like any other need, and the way out is on the page: more time, or the other place.
+  const wontTeach = trainsTooSlow(job);
 
   // With no online copy there is nothing for the final test to run on.
   const hasCopy = job.student.hosted !== undefined;
@@ -116,7 +132,7 @@ function DefineEditor({ initial }: { initial: Job }) {
   }, [initial.id]);
 
   const start = async () => {
-    if (preflight.blocked || wait !== null) return;
+    if (preflight.blocked || wait !== null || wontTeach) return;
     setStarting(true);
     // The online copy is asked now, so a run that can't reach it stops here and says so, instead
     // of failing hours into its training.
@@ -175,13 +191,15 @@ function DefineEditor({ initial }: { initial: Job }) {
               {waitLine(wait) ??
                 (preflight.needs.length > 0
                   ? preflight.summary
-                  : 'Keep Architect open while it trains')}
+                  : wontTeach
+                    ? wontTeachTitle(job, job.student.trainOn, deviceInSentence(currentPlatform()))
+                    : 'Keep Architect open while it trains')}
             </span>
             <Button onClick={() => navigate(paths.newAgent())}>Back</Button>
             <Button
               variant="primary"
               loading={starting}
-              disabled={preflight.blocked || wait !== null}
+              disabled={preflight.blocked || wait !== null || wontTeach}
               onClick={() => void start()}
             >
               Start training
@@ -223,6 +241,13 @@ function DefineEditor({ initial }: { initial: Job }) {
           }
           onRetryKeys={preflight.keys === 'error' ? preflight.reloadKeys : undefined}
           onRaiseLimit={() => openAdvanced('budget')}
+          onAllowTime={(maxWallMinutes) =>
+            editor.change((current) => ({
+              ...current,
+              budget: { ...current.budget, maxWallMinutes },
+            }))
+          }
+          onSetUpOnline={() => openAdvanced('student')}
           baselines={
             comparisonMode
               ? { checked: withBaselines, onCheckedChange: setWithBaselines }

@@ -20,10 +20,13 @@ const SHOWN = 8;
 export function Examples({
   job,
   records,
+  ended,
   onOpen,
 }: {
   job: Job;
   records: QueryState<MentoringRecords>;
+  /** The run is over, so an empty list stays empty. */
+  ended: boolean;
   onOpen: (lesson: ListedLesson) => void;
 }) {
   const [all, setAll] = useState(false);
@@ -71,7 +74,9 @@ export function Examples({
           ))}
         </div>
       ) : lessons.length === 0 ? (
-        <PanelRow className="text-fg-muted">No worked examples yet</PanelRow>
+        <PanelRow className="text-fg-muted">
+          {ended ? 'No worked examples' : 'No worked examples yet'}
+        </PanelRow>
       ) : (
         <div className="overflow-x-auto">
           <ul className="m-0 min-w-[620px] list-none p-0">

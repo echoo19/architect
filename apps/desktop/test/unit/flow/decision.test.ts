@@ -206,11 +206,15 @@ describe('refusalSentence', () => {
   it('names a kind the person turned off as theirs, and says where to turn it on', () => {
     const noTools = makeJob({ interventions: ['procedure', 'retrieval', 'weights'] });
     expect(refusalSentence(chosen('helper'), noTools)).toBe(
-      'Spark chose "Small tools", which is turned off for this job under Teacher in Advanced settings. Nothing changed.',
+      'Spark chose "Small tools", which is turned off for this job under Spark in Advanced settings. Nothing changed.',
     );
-    // Weights get the same words, not the line for what this computer can't do.
+    // Weights get the same words, not the line for what this computer can't do, and each kind has
+    // the name its switch has on the teacher's tab.
     const noWeights = makeJob({ interventions: ['procedure', 'clarification'] });
-    expect(refusalSentence(chosen('weights'), noWeights)).toContain('"Its weights"');
+    expect(refusalSentence(chosen('weights'), noWeights)).toContain('"Retrain Glimmer itself"');
+    expect(
+      refusalSentence(chosen('retrieval'), makeJob({ interventions: ['procedure'] })),
+    ).toContain('"What it reads, and when"');
     expect(
       refusalSentence(chosen('clarification'), makeJob({ interventions: ['helper'] })),
     ).toContain('"Questions for you"');

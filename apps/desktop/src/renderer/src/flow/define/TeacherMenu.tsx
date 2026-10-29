@@ -1,13 +1,12 @@
 import {
   allowedInterventions,
-  INTERVENTION_LABELS,
   InterventionTypeSchema,
   type InterventionType,
   type Job,
 } from '@architect/shared';
-import { SettingsRow, SettingsSection, Switch } from '@architect/ui';
+import { Button, SettingsRow, SettingsSection, Switch } from '@architect/ui';
 import { CircleAlert } from 'lucide-react';
-import { modelNames } from '../names';
+import { kindLabel, modelNames } from '../names';
 import { INTERVENTIONS } from '../train/evidence-words';
 import {
   BLOCK_NOTES,
@@ -28,7 +27,7 @@ function explanation(type: InterventionType, teacher: string): string {
     case 'helper':
       return 'Small programs for exact sums and lookups';
     case 'weights':
-      return 'Trains the model itself on checked corrections';
+      return 'Trains the model on checked corrections';
     case 'clarification':
       return `${teacher} may stop and ask you one question`;
   }
@@ -40,13 +39,19 @@ function explanation(type: InterventionType, teacher: string): string {
  */
 export function rowNote(
   type: InterventionType,
-  state: { on: boolean; last: boolean; block: WeightsBlock | null; teacher: string },
+  state: {
+    on: boolean;
+    last: boolean;
+    block: WeightsBlock | null;
+    teacher: string;
+    student: string;
+  },
 ): string {
-  const { on, last, block, teacher } = state;
+  const { on, last, block, teacher, student } = state;
   const blocked = type === 'weights' && on && block !== null;
   if (last) {
     const stays = 'Stays on: the only way left to change the agent';
-    return blocked ? `${stays}. Its weights ${BLOCK_REASONS[block]}.` : stays;
+    return blocked ? `${stays}. Retraining ${student} itself ${BLOCK_REASONS[block]}.` : stays;
   }
   return blocked ? BLOCK_NOTES[block] : explanation(type, teacher);
 }
@@ -59,14 +64,16 @@ interface TeacherMenuProps {
   issue?: string | undefined;
   /** Called when a switch moves, with the kind and whether it is now on. */
   onToggle: (type: InterventionType, on: boolean) => void;
+  /** Takes the person to where the Hugging Face key is added, offered while it is what is missing. */
+  onAddKey?: (() => void) | undefined;
 }
 
 /**
  * What the teacher may change on this job, a switch for each kind of change it can make. At least
  * one that changes the agent stays on, since a teacher that only asks questions teaches nothing.
  */
-export function TeacherMenu({ job, facts, issue, onToggle }: TeacherMenuProps) {
-  const teacher = modelNames(job).mentor;
+export function TeacherMenu({ job, facts, issue, onToggle, onAddKey }: TeacherMenuProps) {
+  const { mentor: teacher, student } = modelNames(job);
   const allowed = allowedInterventions(job);
   const block = weightsBlock(job, facts);
   return (
@@ -75,20 +82,33 @@ export function TeacherMenu({ job, facts, issue, onToggle }: TeacherMenuProps) {
         const on = allowed.includes(type);
         const last = on && isLastChange(job, type);
         const Icon = INTERVENTIONS[type].icon;
-        const label = INTERVENTION_LABELS[type];
+        const label = kindLabel(type, student);
+        const needsKey = type === 'weights' && on && block === 'no_token' && onAddKey !== undefined;
+        const toggle = (
+          <Switch
+            aria-label={label}
+            checked={on}
+            disabled={last}
+            onCheckedChange={(next) => onToggle(type, next)}
+          />
+        );
         return (
           <SettingsRow
             key={type}
             icon={<Icon size={16} strokeWidth={1.7} aria-hidden className="text-fg-secondary" />}
             label={label}
-            meta={rowNote(type, { on, last, block, teacher })}
+            meta={rowNote(type, { on, last, block, teacher, student })}
           >
-            <Switch
-              aria-label={label}
-              checked={on}
-              disabled={last}
-              onCheckedChange={(next) => onToggle(type, next)}
-            />
+            {needsKey ? (
+              <div className="flex items-center gap-3">
+                <Button size="xs" onClick={onAddKey}>
+                  Add the key
+                </Button>
+                {toggle}
+              </div>
+            ) : (
+              toggle
+            )}
           </SettingsRow>
         );
       })}

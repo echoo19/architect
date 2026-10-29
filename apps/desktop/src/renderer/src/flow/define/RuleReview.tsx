@@ -1,12 +1,6 @@
 import { useState } from 'react';
-import {
-  passageSource,
-  type Job,
-  type RuleDetails,
-  type RuleExample,
-  type TaskPlan,
-} from '@architect/shared';
-import { Badge, Button, cn, Disclosure, Heading } from '@architect/ui';
+import { type Job, type RuleDetails, type RuleExample, type TaskPlan } from '@architect/shared';
+import { Badge, Button, cn, DetailList, Disclosure, Heading } from '@architect/ui';
 import { Check, CircleAlert, ScrollText } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { queryKeys } from '../../api/hooks';
@@ -15,6 +9,7 @@ import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
 import { resetDraft } from '../describe/draft-store';
 import { modelNames } from '../names';
+import { PassageList } from '../PassageList';
 import { confirmedOn, confirmLine, leftOutLine, reviewIntro, ruleTypesOf } from './rule-words';
 
 /**
@@ -107,11 +102,11 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
       {confirmation.state === 'needed' && (
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-list px-6 py-5">
           <p className="m-0 max-w-[520px] text-fg-secondary text-pretty">
-            {confirmLine(rules.length)}
+            {confirmLine(mentor, rules.length)}
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="ghost" onClick={describeAgain}>
-              Describe the job again
+              Change the description
             </Button>
             <Button variant="primary" loading={confirming} onClick={() => void confirm()}>
               <Check size={16} strokeWidth={2} aria-hidden />
@@ -139,32 +134,16 @@ function RuleCard({
       aria-label={label}
       className="flex flex-col gap-6 rounded-3xl border border-line-card bg-card px-7 py-[26px]"
     >
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      <header>
         <h3 className="m-0 flex items-center gap-2.5 text-lg font-medium">
           <ScrollText size={18} strokeWidth={1.7} className="shrink-0 text-fg-muted" aria-hidden />
           {label}
         </h3>
-        <span className="font-mono text-xs text-fg-muted">version {details.version}</span>
       </header>
 
       <div className="flex flex-col gap-3">
         <h4 className="m-0 text-sm font-normal text-fg-muted">From your policy</h4>
-        <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
-          {details.passages.map((passage) => (
-            <li
-              key={`${passage.file}:${passage.question ?? ''}:${passage.passage}`}
-              className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-l-2 border-line-control pl-4"
-            >
-              <span className="min-w-0 max-w-[560px] text-pretty">
-                {passage.question !== undefined && (
-                  <span className="text-fg-muted">{passage.question} </span>
-                )}
-                <span>{passage.passage}</span>
-              </span>
-              <span className="font-mono text-xs text-fg-muted">{passageSource(passage.file)}</span>
-            </li>
-          ))}
-        </ul>
+        <PassageList passages={details.passages} />
       </div>
 
       <div className="flex flex-col gap-3">
@@ -205,14 +184,22 @@ function RuleCard({
             </ul>
           </Disclosure>
         )}
-        <Disclosure label="How numbers and rounding are read">
-          <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-fg-secondary">
-            {details.conventions.map((line) => (
-              <li key={line} className="text-pretty">
-                {line}
-              </li>
-            ))}
-          </ul>
+        <Disclosure label="Details">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <h5 className="m-0 text-sm font-normal text-fg-muted">
+                How numbers and rounding are read
+              </h5>
+              <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-fg-secondary">
+                {details.conventions.map((line) => (
+                  <li key={line} className="text-pretty">
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <DetailList items={[{ label: 'Rule version', value: details.version }]} />
+          </div>
         </Disclosure>
       </div>
     </article>
@@ -233,7 +220,7 @@ function Example({ example }: { example: RuleExample }) {
               {cover}
             </Badge>
           ))}
-          {example.madeUp === true && <Badge tone="outline">Made-up numbers</Badge>}
+          {example.madeUp === true && <Badge tone="outline">Not from your records</Badge>}
         </div>
       )}
       <dl className="m-0 flex flex-wrap gap-x-6 gap-y-1 text-sm">

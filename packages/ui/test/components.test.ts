@@ -17,6 +17,7 @@ import {
   Spinner,
   StepList,
   StepListItem,
+  Switch,
 } from '../src';
 
 describe('Combobox', () => {
@@ -218,5 +219,43 @@ describe('Disclosure', () => {
       createElement(Disclosure, { label: 'Details', defaultOpen: true, children: 'exp_1' }),
     );
     expect(open).toContain('exp_1');
+  });
+});
+
+describe('Switch', () => {
+  const render = (checked: boolean, disabled?: boolean) =>
+    renderToStaticMarkup(
+      createElement(Switch, {
+        'aria-label': 'Small tools',
+        checked,
+        onCheckedChange: () => undefined,
+        ...(disabled === undefined ? {} : { disabled }),
+      }),
+    );
+
+  it('keeps a switch that is held on at full strength, with a padlock on its knob', () => {
+    const held = render(true, true);
+    expect(held).toContain('role="switch"');
+    expect(held).toContain('aria-checked="true"');
+    expect(held).toContain('disabled=""');
+    expect(held).toContain('lucide-lock');
+    // It is not faded with the other controls that are unavailable: the track stays the on color.
+    expect(held).toContain('disabled:data-[state=checked]:opacity-100');
+    expect(held).toContain('data-[state=checked]:bg-primary');
+  });
+
+  it('shows the padlock only on a switch that is both on and held', () => {
+    expect(render(true)).not.toContain('lucide-lock');
+    expect(render(false)).not.toContain('lucide-lock');
+    // A held switch that is off keeps fading, and has nothing to say it is locked on.
+    const off = render(false, true);
+    expect(off).not.toContain('lucide-lock');
+    expect(off).toContain('aria-checked="false"');
+    expect(off).toContain('disabled:opacity-40');
+  });
+
+  it('hides the padlock from a screen reader, which hears a switch that is on and unavailable', () => {
+    const held = render(true, true);
+    expect(held).toMatch(/<svg[^>]*lucide-lock[^>]*aria-hidden="true"/);
   });
 });

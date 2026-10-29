@@ -50,7 +50,21 @@ export function numberText(value: q.Q): string {
   return exact ? text : `about ${text}`;
 }
 
-/** A rounding step in words: "up to a multiple of 0.5", "to the nearest cent, halves going up". */
+/**
+ * What happens to a value exactly halfway between two steps, when it is rounded to the nearest:
+ * it goes up. Said for the unit it is rounded to, in the words a person would use.
+ */
+export function tieText(unit: string): string {
+  return unit === 'cent' ? 'half a cent rounds up' : 'exactly halfway rounds up';
+}
+
+/** What the conventions say rounding to the nearest does with a value exactly halfway. */
+export const NEAREST_CLAUSE = 'and to the nearest sends exactly halfway up';
+
+/**
+ * A rounding step in words: "up to a multiple of 0.5", "to the nearest cent, half a cent rounds
+ * up".
+ */
 export function roundingText(
   mode: RuleRounding,
   increment: string,
@@ -60,7 +74,7 @@ export function roundingText(
   const cent = currency !== undefined && step === '0.01';
   if (mode === 'half_up') {
     const unit = step === '1' ? 'whole number' : cent ? 'cent' : `multiple of ${step}`;
-    return `to the nearest ${unit}, halves going up`;
+    return `to the nearest ${unit}, ${tieText(unit)}`;
   }
   const unit = step === '1' ? 'a whole number' : cent ? 'a whole cent' : `a multiple of ${step}`;
   return `${mode} to ${unit}`;

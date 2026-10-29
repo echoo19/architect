@@ -6,6 +6,7 @@ import { api, architect } from '../../api/client';
 import { queryKeys } from '../../api/hooks';
 import { fetchQuery } from '../../api/query';
 import { attempt } from '../../lib/notify';
+import { useUi } from '../../state/ui';
 import { AddKeyDialog } from './AddKeyDialog';
 import type { Connection } from './connections';
 import { forgetModelList } from './hooks';
@@ -62,6 +63,8 @@ export function ConnectionsSection({ connections, detecting }: ConnectionsSectio
   const ollamaDown = here.some(
     (connection) => connection.provider === 'ollama' && connection.runtime?.running === false,
   );
+  // A person sent here to add the Hugging Face key finds its row open, not folded under Advanced.
+  const sentForKey = useUi((state) => state.settingsFocus === 'huggingface');
 
   return (
     <section aria-label="Connections" className="flex flex-col">
@@ -89,7 +92,7 @@ export function ConnectionsSection({ connections, detecting }: ConnectionsSectio
           {signIn.state.message}
         </p>
       )}
-      <Disclosure label="Advanced" defaultOpen={ollamaDown} className="pt-5">
+      <Disclosure label="Advanced" defaultOpen={ollamaDown || sentForKey} className="pt-5">
         <div className="flex flex-col">
           <HuggingFaceRow />
           {here.map(row)}

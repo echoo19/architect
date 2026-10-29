@@ -1,10 +1,11 @@
-import { passageSource, teachingLine, type RuleReport } from '@architect/shared';
+import { branchLine, teachingLine, type RuleReport } from '@architect/shared';
 import { DetailList, Disclosure } from '@architect/ui';
+import { PassageList } from '../PassageList';
 
 /**
  * Everything the final test's expected answers rest on, for a job with a rule: the rule and its
  * version, the passages it came from, when the person confirmed it, how numbers and rounding were
- * read, which rows were left out, what each side of the rule did, and whether teaching ran.
+ * read, which rows were left out, where each side of the rule applied, and whether teaching ran.
  */
 export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rounds: number }) {
   return (
@@ -20,7 +21,14 @@ export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rou
             {rule.statement}
           </p>
           <Disclosure label="The rule exactly as Architect evaluates it">
-            <pre className="m-0 max-h-72 overflow-auto rounded-xl bg-list p-4 font-mono text-xs leading-5 text-fg-secondary">
+            {/* All of it, down the page: a rule cut off at a height is not the rule it says it is.
+                Only a line wider than the page scrolls, and the keyboard can reach that. */}
+            <pre
+              tabIndex={0}
+              role="region"
+              aria-label="Rule expression"
+              className="m-0 overflow-x-auto rounded-xl bg-list p-4 font-mono text-xs leading-5 text-fg-secondary"
+            >
               {JSON.stringify(rule.expression, null, 2)}
             </pre>
           </Disclosure>
@@ -34,17 +42,10 @@ export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rou
               },
             ]}
           />
-          <Facts title="From your policy">
-            {rule.passages.map((passage) => (
-              <li key={`${passage.file}:${passage.question ?? ''}:${passage.passage}`}>
-                {passage.question !== undefined && (
-                  <span className="text-fg-muted">{passage.question} </span>
-                )}
-                <span>{passage.passage}</span>{' '}
-                <span className="font-mono text-xs">{passageSource(passage.file)}</span>
-              </li>
-            ))}
-          </Facts>
+          <div className="flex flex-col gap-1.5">
+            <h5 className="m-0 text-sm font-normal text-fg-muted">From your policy</h5>
+            <PassageList passages={rule.passages} className="text-sm" />
+          </div>
           <Facts title="How numbers and rounding were read">
             {rule.conventions.map((line) => (
               <li key={line}>{line}</li>
@@ -61,12 +62,9 @@ export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rou
             </Facts>
           )}
           {rule.branches.length > 0 && (
-            <Facts title="What each side of the rule did">
+            <Facts title="Where each side of the rule applied">
               {rule.branches.map((branch) => (
-                <li key={branch.label}>
-                  {branch.label}: {branch.cases} {branch.cases === 1 ? 'case' : 'cases'},{' '}
-                  {branch.changes} where it changed the answer
-                </li>
+                <li key={branch.label}>{branchLine(branch)}</li>
               ))}
             </Facts>
           )}

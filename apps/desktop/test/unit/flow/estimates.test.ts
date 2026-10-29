@@ -14,9 +14,11 @@ import {
   formatAboutUsd,
   limitText,
   mentorPresetOf,
+  minutesForOneRound,
   mentorPriceOf,
   mentorRounds,
   mentorUsdFor,
+  placePhrase,
   planBills,
   planSeconds,
   practiceUsd,
@@ -30,6 +32,9 @@ import {
   testSeconds,
   testUsd,
   tooSlow,
+  trainsTooSlow,
+  wontTeachBody,
+  wontTeachTitle,
   type Bills,
 } from '../../../src/renderer/src/flow/define/estimates';
 import { makeJob } from './factories';
@@ -166,6 +171,77 @@ describe('what each part of a run takes', () => {
     // The starting check is 40 tasks and a round at least 92, at 2.5 minutes each.
     expect(tooSlow(job, estimateTime(job, 'local'))).toBe('Too slow for the 3-hour limit');
     expect(tooSlow(job, estimateTime(job, 'hosted'))).toBeNull();
+  });
+
+  it('knows when the place a job trains at cannot fit a round, and only that place', () => {
+    // 3 hours: this computer can't fit one, the online copy fits a few.
+    expect(trainsTooSlow(makeJob())).toBe(true);
+    const online = makeJob({ student: { ...job.student, trainOn: 'hosted' } });
+    expect(trainsTooSlow(online)).toBe(false);
+    const roomy = makeJob({ budget: { maxRounds: 4, maxMentorUsd: 5, maxWallMinutes: 2000 } });
+    expect(trainsTooSlow(roomy)).toBe(false);
+    // One round that fits is enough to teach: the warning is for a place where none does.
+    const tight = makeJob({ budget: { maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: 360 } });
+    expect(trainsTooSlow(tight)).toBe(false);
+  });
+
+  it('offers the limit, in whole hours, that is sure to fit one round', () => {
+    // 40 check tasks once, then a round of at most 172 tasks, at 2.5 minutes each: 8 h 50 min.
+    expect(minutesForOneRound(job, 'local')).toBe(540);
+    const nine = makeJob({ budget: { ...job.budget, maxWallMinutes: 540 } });
+    expect(estimateTime(nine, 'local').rounds.fewest).toBe(1);
+    expect(trainsTooSlow(nine)).toBe(false);
+    // Online, 15 seconds a task: 53 minutes, so an hour.
+    expect(minutesForOneRound(job, 'hosted')).toBe(60);
+    // 2,000 check tasks on this computer: not even a week.
+    expect(
+      minutesForOneRound(makeJob({ splits: { ...job.splits, dev: 2000 } }), 'local'),
+    ).toBeNull();
+  });
+
+  it('says where a place is, in the middle of a sentence', () => {
+    expect(placePhrase('local', 'this computer')).toBe('on this computer');
+    expect(placePhrase('local', 'this Mac')).toBe('on this Mac');
+    expect(placePhrase('hosted', 'this computer')).toBe('online');
+  });
+
+  it("says in plain words that training in a place won't get to teach, and why", () => {
+    const names = { mentor: 'Spark', student: 'Glimmer' };
+    const local = estimateTime(job, 'local');
+    expect(wontTeachTitle(job, 'local', 'this computer')).toBe(
+      "Training on this computer won't get to teach in 3 hours",
+    );
+    expect(wontTeachTitle(job, 'hosted', 'this computer')).toBe(
+      "Training online won't get to teach in 3 hours",
+    );
+    expect(wontTeachBody(job, 'local', local, names)).toBe(
+      "Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once, and at least 3 h 50 min more for each round of practice and fixing. That doesn't fit in the 3 hours allowed, so Spark would run out of time before it changed anything.",
+    );
+    // Online, with a limit that leaves room to score the check tasks and not for a round after it.
+    const short = makeJob({ budget: { maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: 20 } });
+    expect(trainsTooSlow({ ...short, student: { ...short.student, trainOn: 'hosted' } })).toBe(
+      true,
+    );
+    expect(wontTeachBody(short, 'hosted', estimateTime(short, 'hosted'), names)).toBe(
+      "Glimmer takes about 15 seconds a task online: about 10 min to score the check tasks once, and at least 23 min more for each round of practice and fixing. That doesn't fit in the 20 minutes allowed, so Spark would run out of time before it changed anything.",
+    );
+  });
+
+  it('says the check tasks alone are too long when they are', () => {
+    const names = { mentor: 'Spark', student: 'Glimmer' };
+    const hour = makeJob({ budget: { maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: 60 } });
+    expect(wontTeachBody(hour, 'local', estimateTime(hour, 'local'), names)).toBe(
+      "Glimmer takes about 2.5 minutes a task here, so scoring the check tasks once takes about 1 h 40 min. That doesn't fit in the 1 hour allowed, so Spark would never get to teach.",
+    );
+  });
+
+  it("keeps the engine's words and the host's out of what it says", () => {
+    const names = { mentor: 'Spark', student: 'Glimmer' };
+    const words = [
+      wontTeachTitle(job, 'local', 'this computer'),
+      wontTeachBody(job, 'local', estimateTime(job, 'local'), names),
+    ].join(' ');
+    expect(words).not.toMatch(/mentor|student|host|adapter/i);
   });
 
   it('counts the rounds that fit beside the training time', () => {

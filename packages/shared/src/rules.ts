@@ -221,7 +221,7 @@ export const RuleExampleSchema = z.object({
   inputs: z.array(z.object({ label: z.string(), value: z.string() })),
   steps: z.array(z.object({ text: z.string(), value: z.string() })),
   answer: z.string(),
-  /** What the example shows: "member is yes", "member is no", "A rounding edge". */
+  /** What the example shows: "member is yes", "member is no", "Shows the rounding". */
   covers: z.array(z.string()),
   /** True for numbers Architect made up to show a rounding the records never need. */
   madeUp: z.boolean().optional(),
@@ -326,7 +326,7 @@ export function passageOrigin(passage: Pick<RulePassage, 'file' | 'question'>): 
 /** Whether teaching ran, in a sentence, from how many rounds the run used. */
 export function teachingLine(rounds: number): string {
   return rounds === 0
-    ? 'Teaching did not run: the student met the target on the check tasks before any round.'
+    ? 'Teaching did not run: the agent met the target on the check tasks before any round.'
     : `Teaching ran for ${rounds} ${rounds === 1 ? 'round' : 'rounds'}.`;
 }
 
@@ -335,5 +335,25 @@ export function teachingLine(rounds: number): string {
  * (decision 061). `teacher` is the model's name as the place it appears calls it.
  */
 export function ruleScoreNote(teacher: string): string {
-  return `Expected answers were calculated by Architect using ${teacher}'s interpretation of your policy, which you confirmed. This score measures agreement with that rule on held-out cases; it does not independently establish that the rule matches your business policy.`;
+  return `Architect worked out every expected answer from the rule you confirmed, which is ${teacher}'s reading of your policy. So this score shows how often the agent agreed with that rule on tasks it had never seen. It can't show whether the rule itself is right for your business.`;
+}
+
+/**
+ * One side of a rule's condition over the records, in a sentence the Results page and the report
+ * both say (decision 061): how many rows took it, and for how many the other side would answer
+ * differently.
+ */
+export function branchLine(branch: RuleBranch): string {
+  const count = (value: number): string => value.toLocaleString('en-US');
+  if (branch.cases === 0) return `${branch.label}: no rows`;
+  const rows = `${count(branch.cases)} ${branch.cases === 1 ? 'row' : 'rows'}`;
+  const which =
+    branch.changes === 0
+      ? 'none of them'
+      : branch.changes < branch.cases
+        ? `${count(branch.changes)} of them`
+        : branch.cases === 1
+          ? 'it'
+          : `all ${count(branch.cases)}`;
+  return `${branch.label}: ${rows}, and the other side would give a different answer for ${which}`;
 }

@@ -16,7 +16,9 @@ import {
   fittingRounds,
   formatAboutUsd,
   limitText,
+  minutesForOneRound,
   planBills,
+  placePhrase,
   planSeconds,
   practiceUsd,
   roundsLine,
@@ -26,8 +28,11 @@ import {
   taskTimeText,
   testSeconds,
   tooSlow,
+  wontTeachBody,
+  wontTeachTitle,
 } from './estimates';
 import { providerName, type HostedAvailability } from './hosted';
+import { WontTeach, type Alternative } from './WontTeach';
 
 interface TrainingPlaceProps {
   job: Job;
@@ -40,6 +45,10 @@ interface TrainingPlaceProps {
   onRetryKeys?: (() => void) | undefined;
   /** Opens the time limit, for a place too slow to fit a round in it. */
   onRaiseLimit: () => void;
+  /** Sets the time limit, to one the callout offers because a round fits in it. */
+  onAllowTime: (minutes: number) => void;
+  /** Opens where the online copy is chosen and its key saved. */
+  onSetUpOnline: () => void;
   /** Present when comparison mode is on. */
   baselines?: { checked: boolean; onCheckedChange: (checked: boolean) => void } | undefined;
 }
@@ -59,6 +68,8 @@ export function TrainingPlace({
   onCapChange,
   onRetryKeys,
   onRaiseLimit,
+  onAllowTime,
+  onSetUpOnline,
   baselines,
 }: TrainingPlaceProps) {
   const capId = useId();
@@ -106,7 +117,7 @@ export function TrainingPlace({
       : [{ label: mentor, detail: 'Teaching', value: formatAboutUsd(shares.mentorUsd) }]),
   ];
   const fits = chosen.rounds.most > 0;
-  const place = onHost ? 'online' : `on ${device}`;
+  const place = placePhrase(job.student.trainOn, device);
   // When every round fits, the time is a ceiling: training stops once the check tasks reach the
   // target, often well before the last round.
   const allFit = chosen.rounds.fewest >= job.budget.maxRounds;
@@ -148,6 +159,25 @@ export function TrainingPlace({
     ...billLines(bills.comparison).map((line) => `${line.value} ${line.label}`),
   ].join(' · ');
 
+  // Where training would run out of time before the teacher changed anything, the two ways out
+  // are said next to the choice: more time, or training online, which is offered when it fits and
+  // otherwise says what it needs. Online is the faster place, so when it is the one that is too
+  // slow, this computer is no better and there is nothing else to offer.
+  let alternative: Alternative | null = null;
+  if (!onHost && !hosted.available) {
+    alternative = {
+      kind: 'missing',
+      text: `Online training isn't ready. ${hosted.reason}.`,
+      ...(hosted.why === 'no_host' || hosted.why === 'no_key' ? { onSetUp: onSetUpOnline } : {}),
+    };
+  } else if (!onHost && remoteSlow === null) {
+    alternative = {
+      kind: 'switch',
+      label: 'Train online instead',
+      onSwitch: () => onPlaceChange('hosted'),
+    };
+  }
+  const roomy = fits ? null : minutesForOneRound(job, job.student.trainOn);
   return (
     <section aria-labelledby="train-where" className="flex flex-col gap-[18px]">
       <Heading id="train-where">Where should it train?</Heading>
@@ -167,21 +197,33 @@ export function TrainingPlace({
           unavailable={!hosted.available || remoteSlow !== null}
         >
           <span>Faster: {taskTimeText('hosted')} a task</span>
+          {/* What it costs and what leaves this computer are said wherever the app knows them. */}
+          <span>
+            {[hostedPrice, `${hostedPrice ? 'sends' : 'Sends'} tasks and files online`]
+              .filter(Boolean)
+              .join(' · ')}
+          </span>
           {hosted.available ? (
-            <>
-              <span>
-                {[hostedPrice, `${hostedPrice ? 'sends' : 'Sends'} tasks and files online`]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </span>
-              {remoteSlow && <span>{remoteSlow}</span>}
-            </>
+            remoteSlow && <span>{remoteSlow}</span>
           ) : (
             <span>{hosted.reason}</span>
           )}
         </RadioCard>
       </RadioCardGroup>
-      {(localSlow || remoteSlow) && (
+      {!fits && (
+        <WontTeach
+          title={wontTeachTitle(job, job.student.trainOn, device)}
+          body={wontTeachBody(job, job.student.trainOn, chosen, { mentor, student })}
+          allow={
+            roomy === null
+              ? null
+              : { label: `Allow ${capText(roomy)}`, onAllow: () => onAllowTime(roomy) }
+          }
+          onRaiseLimit={onRaiseLimit}
+          alternative={alternative}
+        />
+      )}
+      {fits && (localSlow || remoteSlow) && (
         <button
           type="button"
           onClick={onRaiseLimit}

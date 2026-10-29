@@ -18,11 +18,11 @@ const student = makeJob().student;
 const withCopy = { ...student, trainOn: 'hosted', hosted: copy } as const;
 
 describe('whether the online copy can be used', () => {
-  it('needs a host chosen first', () => {
+  it('needs an online service chosen first, said in plain words', () => {
     expect(hostedAvailability(student, { openrouter: true })).toMatchObject({
       available: false,
       why: 'no_host',
-      reason: 'Choose a host in Advanced settings',
+      reason: "Pick an online service under Agent's model in Advanced settings",
     });
   });
 

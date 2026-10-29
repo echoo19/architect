@@ -14,7 +14,7 @@ import {
 
 /*
  * What the person lets the teacher change, in the real app on the real engine with a scripted
- * teacher and a student that always answers the same: a kind switched off in the Teacher tab is
+ * teacher and a student that always answers the same: a kind switched off in the teacher's tab is
  * still off when the job is opened again, the first draft and every later round keep to it, a
  * round that asks for it anyway is refused as the person's choice, and a run whose teacher may
  * change nothing ends before it starts to spend.
@@ -143,7 +143,7 @@ async function savedJob(page: Page): Promise<Job> {
 async function openTeacherTab(page: Page) {
   await page.getByRole('button', { name: 'Advanced settings' }).click();
   const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-  await advanced.getByRole('tab', { name: 'Teacher' }).click();
+  await advanced.getByRole('tab', { name: 'Spark' }).click();
   const section = advanced.getByRole('region', { name: 'What Spark may change' });
   await section.scrollIntoViewIfNeeded();
   return { advanced, section };
@@ -156,7 +156,7 @@ async function closeAdvanced(page: Page, advanced: ReturnType<Page['getByRole']>
   await expect(advanced).toBeHidden();
 }
 
-test('a kind switched off in the Teacher tab is still off when the job is opened again', async () => {
+test("a kind switched off in the teacher's tab is still off when the job is opened again", async () => {
   const { page } = launched;
   const sample = await page.evaluate(() => window.architect.jobs.createSample());
   jobId = sample.id;
@@ -164,6 +164,9 @@ test('a kind switched off in the Teacher tab is still off when the job is opened
   // The models a run here can reach: the scripted teacher and a student on this computer.
   await page.evaluate((next) => window.architect.jobs.save(next), {
     ...sample,
+    // Time to spare, so that training here fits and Start training waits for nothing but what a
+    // test is about.
+    budget: { ...sample.budget, maxWallMinutes: 1_200 },
     mentor: teacher,
     student: {
       label: 'Glimmer',
@@ -183,9 +186,9 @@ test('a kind switched off in the Teacher tab is still off when the job is opened
   const questions = section.getByRole('switch', { name: 'Questions for you' });
   for (const name of [
     'Instructions and steps',
-    'What it reads when',
+    'What it reads, and when',
     'Small tools',
-    'Its weights',
+    'Retrain Glimmer itself',
     'Questions for you',
   ]) {
     await expect(section.getByRole('switch', { name: name })).toBeChecked();
@@ -213,14 +216,14 @@ test('the last switch that changes the agent stays on, and Start training says w
   await goTo(page, `/jobs/${jobId}/define`);
   const { advanced, section } = await openTeacherTab(page);
   await section.getByRole('switch', { name: 'Instructions and steps' }).click();
-  await section.getByRole('switch', { name: 'What it reads when' }).click();
+  await section.getByRole('switch', { name: 'What it reads, and when' }).click();
 
   // Only the weights are left, and the app already knows they can't be trained here.
-  const weights = section.getByRole('switch', { name: 'Its weights' });
+  const weights = section.getByRole('switch', { name: 'Retrain Glimmer itself' });
   await expect(weights).toBeChecked();
   await expect(weights).toBeDisabled();
   await expect(section).toContainText(
-    'Stays on: the only way left to change the agent. Its weights need a Hugging Face token, added in Settings.',
+    'Stays on: the only way left to change the agent. Retraining Glimmer itself needs a Hugging Face key.',
   );
   await closeAdvanced(page, advanced);
   expect((await savedJob(page)).interventions).toEqual(['weights']);
@@ -228,7 +231,7 @@ test('the last switch that changes the agent stays on, and Start training says w
   const needs = page.getByRole('region', { name: 'Before it can start' });
   await expect(needs).toContainText('Spark has nothing it may change');
   await expect(needs).toContainText(
-    'Only its weights are on, and they need a Hugging Face token, added in Settings.',
+    'Only retraining Glimmer itself is on, and it needs a Hugging Face key.',
   );
   await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
   // The footer says the same, beside the button that is held.
@@ -270,14 +273,42 @@ test('a run whose teacher may change nothing ends at once, with the reason and n
       { width: WIDTH, height: TRAIN_HEIGHT },
     );
     await goTo(page, `/runs/${started.id}/train`);
-    const notice = page.getByRole('status', { name: 'Spark had nothing it may change' });
+    const notice = page.getByRole('status', { name: "Training didn't start" });
     await expect(notice).toBeVisible();
-    await expect(notice).toContainText('The mentor has nothing it may change in this run.');
+    // In plain words, from the job and what the app knows: what is off, what is missing, and that
+    // nothing was spent. None of the engine's words for its own parts.
+    await expect(notice).toContainText(
+      'Every kind of change Spark may make is turned off for this job, except retraining Glimmer itself, which needs a Hugging Face key. Nothing was spent.',
+    );
+    await expect(notice).not.toContainText(/mentor|stand-in|adapter|backend/i);
     await capture(page, `teacher-idle-${theme}`);
   }
-  // The run's controls lead back to the job, where the Teacher tab is.
+
+  // The engine's own sentence is kept under Details.
+  const notice = page.getByRole('status', { name: "Training didn't start" });
+  await notice.getByRole('button', { name: 'Details' }).click();
+  await expect(notice).toContainText('The mentor has nothing it may change in this run.');
+
+  // The way to add the key is Settings, open on the Hugging Face row.
+  await notice.getByRole('button', { name: 'Add the Hugging Face key' }).click();
+  const settings = page.getByRole('dialog', { name: 'Settings' });
+  await expect(settings.getByRole('button', { name: 'Add token' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(settings).toBeHidden();
+
+  // Its other button goes to the job with the teacher's tab open.
+  await notice.getByRole('button', { name: "Open Spark's settings" }).click();
+  await expect(page).toHaveURL(new RegExp(`#/jobs/${jobId}/define$`));
+  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+  await expect(advanced.getByRole('region', { name: 'What Spark may change' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(advanced).toBeHidden();
+
+  // The run's own controls lead back to the job too, without opening anything.
+  await goTo(page, `/runs/${started.id}/train`);
   await page.getByRole('button', { name: 'Back to the job' }).click();
   await expect(page).toHaveURL(new RegExp(`#/jobs/${jobId}/define$`));
+  await expect(advanced).toBeHidden();
 });
 
 test('the first draft and the rounds after it keep to the choice, and a refused round says whose it was', async () => {
@@ -286,8 +317,8 @@ test('the first draft and the rounds after it keep to the choice, and a refused 
   await goTo(page, `/jobs/${jobId}/define`);
   const { advanced, section } = await openTeacherTab(page);
   await section.getByRole('switch', { name: 'Instructions and steps' }).click();
-  await section.getByRole('switch', { name: 'What it reads when' }).click();
-  await expect(section.getByRole('switch', { name: 'Its weights' })).toBeEnabled();
+  await section.getByRole('switch', { name: 'What it reads, and when' }).click();
+  await expect(section.getByRole('switch', { name: 'Retrain Glimmer itself' })).toBeEnabled();
   await closeAdvanced(page, advanced);
   expect((await savedJob(page)).interventions).toEqual(['procedure', 'retrieval', 'weights']);
   await expect(page.getByRole('region', { name: 'Before it can start' })).toHaveCount(0);
@@ -340,7 +371,7 @@ test('the first draft and the rounds after it keep to the choice, and a refused 
   await row.click();
   const drawer = page.getByRole('dialog').last();
   await expect(drawer).toContainText(
-    'Spark chose "Small tools", which is turned off for this job under Teacher in Advanced settings. Nothing changed.',
+    'Spark chose "Small tools", which is turned off for this job under Spark in Advanced settings. Nothing changed.',
   );
   await page.evaluate((id) => window.architect.runs.stop(id), runId).catch(() => undefined);
 });

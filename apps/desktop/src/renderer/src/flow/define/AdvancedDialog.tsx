@@ -31,6 +31,7 @@ import {
 } from '../../settings/models/connections';
 import { ModelPicker } from '../../settings/models/ModelPicker';
 import { PriceRow } from '../../settings/models/PriceRow';
+import { useUi } from '../../state/ui';
 import { modelNames } from '../names';
 import { aboutUsd, estimateMentorUsd, mentorPresetOf, mentorPriceOf } from './estimates';
 import { ExportJobFile } from './ExportJobFile';
@@ -56,17 +57,20 @@ export type AdvancedTab =
 
 const EXPERIMENTS = 'Rarely changed';
 
-const TABS: readonly SettingsTab<AdvancedTab>[] = [
-  { value: 'tasks', label: 'Example tasks' },
-  { value: 'requirements', label: 'Ready when' },
-  { value: 'budget', label: 'Time and budget' },
-  { value: 'mentor', label: 'Teacher' },
-  { value: 'student', label: "Agent's model" },
-  { value: 'harness', label: 'Starting instructions' },
-  { value: 'checker', label: 'Grading', group: EXPERIMENTS },
-  { value: 'splits', label: 'Task sets', group: EXPERIMENTS },
-  { value: 'evaluation', label: 'When a change stays', group: EXPERIMENTS },
-];
+/** The tabs, in the order the rail lists them. The teacher's tab is named for the teacher. */
+export function advancedTabs(teacher: string): readonly SettingsTab<AdvancedTab>[] {
+  return [
+    { value: 'tasks', label: 'Example tasks' },
+    { value: 'requirements', label: 'Ready when' },
+    { value: 'budget', label: 'Time and budget' },
+    { value: 'mentor', label: teacher },
+    { value: 'student', label: "Agent's model" },
+    { value: 'harness', label: 'Starting instructions' },
+    { value: 'checker', label: 'Grading', group: EXPERIMENTS },
+    { value: 'splits', label: 'Task sets', group: EXPERIMENTS },
+    { value: 'evaluation', label: 'When a change stays', group: EXPERIMENTS },
+  ];
+}
 
 const TAB_OF_FIELD: readonly [string, AdvancedTab][] = [
   ['checker', 'checker'],
@@ -89,8 +93,9 @@ export function tabWithIssue(issues: JobIssues): AdvancedTab | null {
   return null;
 }
 
-function tabLabel(tab: AdvancedTab): string {
-  return TABS.find((item) => item.value === tab)?.label ?? tab;
+/** A tab as the rail names it, for a line that sends the person to it. */
+export function tabLabel(tab: AdvancedTab, teacher: string): string {
+  return advancedTabs(teacher).find((item) => item.value === tab)?.label ?? tab;
 }
 
 interface AdvancedDialogProps {
@@ -122,17 +127,18 @@ export function AdvancedDialog({
   taskCount,
   finalTest,
 }: AdvancedDialogProps) {
+  const teacher = modelNames(editor.job).mentor;
   return (
     <SettingsDialog
       open={open}
       onOpenChange={onOpenChange}
       title="Advanced settings"
-      tabs={TABS}
+      tabs={advancedTabs(teacher)}
       tab={tab}
       onTabChange={onTabChange}
       footer={
         <>
-          <SaveIndicator editor={editor} />
+          <SaveIndicator editor={editor} teacher={teacher} />
           <span className="flex items-center gap-2">
             <ExportJobFile editor={editor} />
             <DialogClose asChild>
@@ -144,13 +150,19 @@ export function AdvancedDialog({
         </>
       }
     >
-      <TabContent tab={tab} editor={editor} taskCount={taskCount} finalTest={finalTest} />
+      <TabContent
+        tab={tab}
+        editor={editor}
+        taskCount={taskCount}
+        finalTest={finalTest}
+        onClose={() => onOpenChange(false)}
+      />
     </SettingsDialog>
   );
 }
 
 /** Whether the latest edit has saved; edits save on their own. */
-function SaveIndicator({ editor }: { editor: JobEditor }) {
+function SaveIndicator({ editor, teacher }: { editor: JobEditor; teacher: string }) {
   const { issues, saveStatus, flush } = editor;
   const problem = tabWithIssue(issues);
   let state: ReactNode;
@@ -158,7 +170,7 @@ function SaveIndicator({ editor }: { editor: JobEditor }) {
     state = (
       <>
         <CircleAlert size={14} className="shrink-0 text-danger" aria-hidden />
-        Not saved: fix the marked field{problem ? ` in ${tabLabel(problem)}` : ''}
+        Not saved: fix the marked field{problem ? ` in ${tabLabel(problem, teacher)}` : ''}
       </>
     );
   } else if (saveStatus === 'saving') {
@@ -209,11 +221,14 @@ function TabContent({
   editor,
   taskCount,
   finalTest,
+  onClose,
 }: {
   tab: AdvancedTab;
   editor: JobEditor;
   taskCount: number | null;
   finalTest: FinalTestState;
+  /** Closes the dialog, for a way out of it that leads to another screen. */
+  onClose: () => void;
 }) {
   switch (tab) {
     case 'tasks':
@@ -225,7 +240,7 @@ function TabContent({
     case 'budget':
       return <BudgetTab editor={editor} />;
     case 'mentor':
-      return <MentorTab editor={editor} finalTest={finalTest} />;
+      return <MentorTab editor={editor} finalTest={finalTest} onClose={onClose} />;
     case 'student':
       return <StudentTab editor={editor} />;
     case 'harness':
@@ -404,17 +419,28 @@ function priceText(pricing: TokenPricing): string {
   return `$${pricing.inputPerM} to read, $${pricing.outputPerM} to write, per million tokens`;
 }
 
-function MentorTab({ editor, finalTest }: TabProps & { finalTest: FinalTestState }) {
+function MentorTab({
+  editor,
+  finalTest,
+  onClose,
+}: TabProps & { finalTest: FinalTestState; onClose: () => void }) {
   const { job, issues, change } = editor;
   const { mentor } = job;
   const name = modelNames(job).mentor;
   const token = useHubToken();
+  const openSettings = useUi((state) => state.openSettings);
   const menu = (
     <TeacherMenu
       job={job}
       facts={{ token: tokenState(token), testPlace: finalTest.place }}
       issue={issues['interventions']}
       onToggle={(type, on) => change((current) => withIntervention(current, type, on))}
+      // Settings is a screen of its own: this one closes first, so the edits are saved, and the
+      // key is found on its row instead of under a fold.
+      onAddKey={() => {
+        onClose();
+        openSettings('models', 'huggingface');
+      }}
     />
   );
   if (mentor.kind !== 'model') {

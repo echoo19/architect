@@ -85,11 +85,11 @@ describe('the rule template on the bike shop', () => {
   it('states the rule in plain words, and the details that go with it', () => {
     const result = run();
     expect(result.rule).toBe(
-      'Work out total for each ticket_id of tickets.csv: Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up.',
+      'Work out total for each ticket_id of tickets.csv: Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, half a cent rounds up.',
     );
     const details = result.outcome?.details;
     expect(details?.statement).toBe(
-      'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up.',
+      'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, half a cent rounds up.',
     );
     expect(details?.passages).toEqual(bikeRule().sources);
     expect(details?.cases).toEqual({ total: 160, eligible: result.candidates.length });
@@ -384,7 +384,7 @@ describe('an empty cell the person said counts as zero', () => {
     const result = run(zero());
     const details = result.outcome?.details;
     expect(details?.statement).toBe(
-      'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up. An empty parts cost counts as 0, as you said.',
+      'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, half a cent rounds up. An empty parts cost counts as 0, as you said.',
     );
     expect(details?.conventions).toContain(
       'An empty parts_cost counts as 0, as you said. N/A or words in it still leave the row out.',
@@ -688,7 +688,7 @@ describe('what a rule must not be', () => {
       'The rounding step (up to a multiple of 0.5) never changed a value in your records, so no task shows it at work.',
     );
     expect(result.outcome?.details.flags).toContain(
-      'The rounding step (to the nearest cent, halves going up) never changed a value in your records, so no task shows it at work.',
+      'The rounding step (to the nearest cent, half a cent rounds up) never changed a value in your records, so no task shows it at work.',
     );
     expect(run().outcome?.details.flags).not.toContain(
       'The rounding step (up to a multiple of 0.5) never changed a value in your records, so no task shows it at work.',

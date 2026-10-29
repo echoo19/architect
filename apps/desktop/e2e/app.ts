@@ -3,7 +3,12 @@ import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { _electron as electron, type ElectronApplication, type Page } from '@playwright/test';
+import {
+  _electron as electron,
+  expect,
+  type ElectronApplication,
+  type Page,
+} from '@playwright/test';
 import type { AppSettings } from '@architect/shared';
 
 /** No trailing separator: on Windows a trailing backslash would escape the closing quote. */
@@ -108,6 +113,16 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
 
 export function updateSettings(page: Page, patch: Partial<AppSettings>): Promise<AppSettings> {
   return page.evaluate((next) => window.architect.settings.update(next), patch);
+}
+
+/**
+ * Raises the training time on the Define screen through the callout that says the place chosen
+ * can't fit a round in it, the way a person would: its first button sets a limit a round fits in.
+ */
+export async function allowMoreTime(page: Page): Promise<void> {
+  const callout = page.getByRole('status').filter({ hasText: "won't get to teach" });
+  await callout.getByRole('button', { name: /^Allow \d+ hours?$/ }).click();
+  await expect(callout).toHaveCount(0);
 }
 
 /** Navigates by hash and waits until nothing on screen is still loading. */

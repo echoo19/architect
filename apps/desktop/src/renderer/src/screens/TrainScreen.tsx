@@ -408,7 +408,7 @@ function TrainBoard({
         />
       </div>
       <div className="flex flex-wrap gap-5">
-        <Examples job={job} records={records} onOpen={onOpenLesson} />
+        <Examples job={job} records={records} ended={hasEnded(run)} onOpen={onOpenLesson} />
         <Rounds
           job={job}
           rounds={live.rounds}
@@ -427,6 +427,7 @@ function TrainBoard({
           job={job}
           attempts={live.attempts}
           mentor={names.mentor}
+          ended={hasEnded(run)}
           onOpen={onOpenAttempt}
         />
       </div>

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import type { MentorConfig, StudentEndpoint, Task } from '@architect/shared';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { allowMoreTime, goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import {
   startFakeStudent,
   startScriptedMentor,
@@ -189,10 +189,12 @@ test.beforeAll(async () => {
     model: 'scripted-spark',
     reasoningEffort: 'medium',
   };
+  // The stand-in answers to Glimmer's name, so the job's student is called Glimmer, as a person
+  // sees it, on the screens this spec captures.
   defaultStudent = {
     runtime: 'openai_compatible',
     baseUrl: student.baseUrl,
-    model: 'fake-student',
+    model: 'muse-glimmer:30b',
     contextLength: 16_384,
   };
   launched = await launchApp({
@@ -401,6 +403,11 @@ for (const theme of THEMES) {
     expect(job.student.local).toEqual(defaultStudent);
     expect(job.student.trainOn).toBe('local');
     expect(job.student.hosted).toBeUndefined();
+
+    // This computer can't fit a round in the four hours a drafted job allows, so Start training
+    // waits and says why, with more time one button away.
+    await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
+    await allowMoreTime(page);
 
     // Start training: the run works on the tasks Architect made, and the checker grades them.
     await page.getByRole('button', { name: 'Start training' }).click();

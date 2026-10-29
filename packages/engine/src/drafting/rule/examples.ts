@@ -292,8 +292,8 @@ export function chooseExamples(
       edgesLeft.delete(signature);
       covers.push(
         rounding.size > 1
-          ? `A rounding edge (${whatRounds(rounding.get(signature) ?? [])})`
-          : 'A rounding edge',
+          ? `Shows the rounding (${whatRounds(rounding.get(signature) ?? [])})`
+          : 'Shows the rounding',
       );
     }
     picked.push({ item: best.item, covers });
@@ -334,7 +334,7 @@ export function chooseExamples(
       continue;
     }
     examples.push(
-      exampleOf(outcome, made.item, [`A rounding edge (${what})`], { request: made.request }),
+      exampleOf(outcome, made.item, [`Shows the rounding (${what})`], { request: made.request }),
     );
   }
   return { examples, uncovered };

@@ -1,5 +1,11 @@
 import type { ReportCard, RuleReport, Score } from '@architect/shared';
-import { METHOD_LABELS, passageOrigin, ruleScoreNote, teachingLine } from '@architect/shared';
+import {
+  branchLine,
+  METHOD_LABELS,
+  passageOrigin,
+  ruleScoreNote,
+  teachingLine,
+} from '@architect/shared';
 
 const percent = (fraction: number): string => `${Number((fraction * 100).toFixed(1))}%`;
 
@@ -204,11 +210,8 @@ function ruleDetails(report: ReportCard, rules: readonly RuleReport[]): string {
       ...(rule.branches.length === 0
         ? []
         : [
-            `What each side of the rule did:\n${rule.branches
-              .map(
-                (item) =>
-                  `- ${item.label}: ${count(item.cases)} ${plural(item.cases, 'case', 'cases')}, ${count(item.changes)} where it changed the answer`,
-              )
+            `Where each side of the rule applied:\n${rule.branches
+              .map((item) => `- ${branchLine(item)}`)
               .join('\n')}`,
           ]),
       ...(rule.flags.length === 0

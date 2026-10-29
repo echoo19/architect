@@ -97,13 +97,15 @@ describe('rounding to an increment', () => {
   it('says in plain words what a rounding step does', () => {
     expect(roundingText('up', '0.5', undefined)).toBe('up to a multiple of 0.5');
     expect(roundingText('down', '0.50', undefined)).toBe('down to a multiple of 0.5');
-    expect(roundingText('half_up', '0.01', 'USD')).toBe('to the nearest cent, halves going up');
+    expect(roundingText('half_up', '0.01', 'USD')).toBe(
+      'to the nearest cent, half a cent rounds up',
+    );
     expect(roundingText('up', '0.01', 'USD')).toBe('up to a whole cent');
     expect(roundingText('half_up', '1', undefined)).toBe(
-      'to the nearest whole number, halves going up',
+      'to the nearest whole number, exactly halfway rounds up',
     );
     expect(roundingText('half_up', '0.05', 'USD')).toBe(
-      'to the nearest multiple of 0.05, halves going up',
+      'to the nearest multiple of 0.05, exactly halfway rounds up',
     );
   });
 });
@@ -135,7 +137,7 @@ describe('evaluating an expression', () => {
       { text: '2.5 times 65 times 0.9', value: '146.25' },
       { text: 'Member (customers.csv) is yes, so use 146.25', value: '146.25' },
       { text: '146.25 plus parts cost (23.5)', value: '169.75' },
-      { text: '169.75, rounded to the nearest cent, halves going up', value: '169.75' },
+      { text: '169.75, rounded to the nearest cent, half a cent rounds up', value: '169.75' },
     ]);
     const other = evaluate(bikeExpression(), inputs(base, { [refKey(lookup('member'))]: 'no' }));
     const steps = stepsOf(other, words);
@@ -150,7 +152,7 @@ describe('evaluating an expression', () => {
       categories: [{ column: 'member', from: 'lookup' as const, values: ['yes', 'no'] }],
     };
     expect(statementOf(bikeExpression(), words)).toBe(
-      'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up.',
+      'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, half a cent rounds up.',
     );
   });
 

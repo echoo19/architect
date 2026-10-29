@@ -11,7 +11,7 @@ import {
 } from './curve';
 import { draftRoundOf } from './draft';
 import type { ModelNames } from './phase';
-import type { LiveRun } from './run-state';
+import { hasEnded, type LiveRun } from './run-state';
 
 /** The share of check tasks right, round by round. The student never practices on them. */
 export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames }) {
@@ -27,13 +27,19 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
     draftRound: draftRoundOf(live),
   };
   const geometry = curveGeometry(input);
+  const ended = hasEnded(run);
   return (
     <Panel
       aria-label="Score on the check tasks"
       className="min-w-0 flex-[7_1_560px] gap-2.5 px-8 pb-5 pt-7"
     >
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="text-hero font-medium leading-none tracking-tightest tabular-nums">
+        <span
+          className={cn(
+            'text-hero font-medium leading-none tracking-tightest tabular-nums',
+            !score && 'text-fg-muted',
+          )}
+        >
           {score ? formatRate(score) : '–'}
         </span>
         <Tooltip
@@ -54,7 +60,7 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
         )}
         {geometry.branches.length > 0 && <Legend />}
       </div>
-      <CurveChart input={input} geometry={geometry} />
+      <CurveChart input={input} geometry={geometry} ended={ended} />
     </Panel>
   );
 }
@@ -88,7 +94,16 @@ function Legend() {
   );
 }
 
-function CurveChart({ input, geometry }: { input: CurveInput; geometry: CurveGeometry }) {
+function CurveChart({
+  input,
+  geometry,
+  ended,
+}: {
+  input: CurveInput;
+  geometry: CurveGeometry;
+  /** The run is over, so a curve with no score will never get one. */
+  ended: boolean;
+}) {
   const { ticks, valueTicks, line, branches, head, pending, targetY } = geometry;
   const points = line.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
   const target = Math.round(input.target * 100);
@@ -214,7 +229,7 @@ function CurveChart({ input, geometry }: { input: CurveInput; geometry: CurveGeo
           textAnchor="middle"
           className="fill-fg-muted text-base"
         >
-          Not scored yet
+          {ended ? 'Not scored' : 'Not scored yet'}
         </text>
       )}
     </svg>

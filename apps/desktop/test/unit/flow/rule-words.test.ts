@@ -1,4 +1,5 @@
 import {
+  branchLine,
   passageOrigin,
   passageSource,
   ruleScoreNote,
@@ -122,8 +123,21 @@ describe('the words that put a rule in front of the person', () => {
       'Spark turned your policy into this rule. Architect works out every expected answer from it, so what the agent is tested on is only as right as the rule.',
     );
     expect(reviewIntro('Spark', 2)).toContain('into these rules');
-    expect(confirmLine(1)).toContain("Training can't start until you confirm it.");
-    expect(confirmLine(2)).toContain('until you confirm them.');
+    expect(confirmLine('Spark', 1)).toContain("Training can't start until you confirm it.");
+    expect(confirmLine('Spark', 2)).toContain('until you confirm them.');
+  });
+
+  it('says what changing the description keeps, and what it does not', () => {
+    // Changing the description puts the words and the attached files back, and drafts again: the
+    // conversation, with the answers in it, starts over.
+    expect(confirmLine('Spark', 1)).toBe(
+      "Check the passages, the rule and the examples against your policy. Training can't start until you confirm it. If it isn't right, change the description. Your words and files come back as you left them, and Spark may ask its questions again.",
+    );
+    expect(confirmLine('Spark Open', 2)).toContain('and Spark Open may ask its questions again.');
+    expect(confirmLine('Spark', 2)).toContain("If they aren't right, change the description.");
+    for (const count of [1, 2]) {
+      expect(confirmLine('Spark', count)).not.toMatch(/describe the job again/i);
+    }
   });
 
   it('names the day it was confirmed and the rows that could not be worked out', () => {
@@ -137,20 +151,69 @@ describe('the words that put a rule in front of the person', () => {
     expect(leftOutLine(DETAILS)).toBe('62 of 180 rows left out');
     expect(leftOutLine({ ...DETAILS, cases: { total: 118, eligible: 118 } })).toBeNull();
   });
+
+  it('gives the reason in the same line when there is one reason, and only then', () => {
+    const one = {
+      ...DETAILS,
+      cases: { total: 160, eligible: 134 },
+      excluded: [
+        { reason: 'parts_cost says N/A or a dash, which is not the same as empty', count: 26 },
+      ],
+    };
+    expect(leftOutLine(one)).toBe(
+      '26 of 160 rows left out: parts_cost says N/A or a dash, which is not the same as empty',
+    );
+    // Two reasons are too many for a line: the counts alone, and the reasons when it is opened.
+    const two = {
+      ...one,
+      excluded: [
+        { reason: 'parts_cost is empty or N/A', count: 20 },
+        { reason: 'customer_id has no row in customers.csv', count: 6 },
+      ],
+    };
+    expect(leftOutLine(two)).toBe('26 of 160 rows left out');
+    // One row left out of one.
+    expect(
+      leftOutLine({
+        ...DETAILS,
+        cases: { total: 1, eligible: 0 },
+        excluded: [{ reason: 'ticket_id is empty', count: 1 }],
+      }),
+    ).toBe('1 of 1 row left out: ticket_id is empty');
+  });
 });
 
 describe('what the results say about a rule', () => {
   it('says the expected answers follow a rule the person confirmed, and are not certified', () => {
     expect(ruleScoreNote('Spark')).toBe(
-      "Expected answers were calculated by Architect using Spark's interpretation of your policy, which you confirmed. This score measures agreement with that rule on held-out cases; it does not independently establish that the rule matches your business policy.",
+      "Architect worked out every expected answer from the rule you confirmed, which is Spark's reading of your policy. So this score shows how often the agent agreed with that rule on tasks it had never seen. It can't show whether the rule itself is right for your business.",
     );
   });
 
   it('says whether teaching ran', () => {
     expect(teachingLine(0)).toBe(
-      'Teaching did not run: the student met the target on the check tasks before any round.',
+      'Teaching did not run: the agent met the target on the check tasks before any round.',
     );
     expect(teachingLine(1)).toBe('Teaching ran for 1 round.');
     expect(teachingLine(4)).toBe('Teaching ran for 4 rounds.');
+  });
+
+  it('says where each side of a condition applied, and for how many rows it mattered', () => {
+    const label = 'member (customers.csv) is yes';
+    expect(branchLine({ label, cases: 40, changes: 40 })).toBe(
+      'member (customers.csv) is yes: 40 rows, and the other side would give a different answer for all 40',
+    );
+    expect(branchLine({ label, cases: 1200, changes: 30 })).toBe(
+      'member (customers.csv) is yes: 1,200 rows, and the other side would give a different answer for 30 of them',
+    );
+    expect(branchLine({ label, cases: 1, changes: 1 })).toBe(
+      'member (customers.csv) is yes: 1 row, and the other side would give a different answer for it',
+    );
+    expect(branchLine({ label, cases: 3, changes: 0 })).toBe(
+      'member (customers.csv) is yes: 3 rows, and the other side would give a different answer for none of them',
+    );
+    expect(branchLine({ label, cases: 0, changes: 0 })).toBe(
+      'member (customers.csv) is yes: no rows',
+    );
   });
 });
