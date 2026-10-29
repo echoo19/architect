@@ -14,6 +14,7 @@ import {
   trainable,
   type TypeInput,
 } from '../src/drafting/generate';
+import { describeAttached, shownRowsOf, type Attached } from '../src/drafting/files';
 import { readTable } from '../src/drafting/table';
 import type { Candidate } from '../src/drafting/templates/common';
 import { splitTasks } from '../src/splits/split';
@@ -510,6 +511,46 @@ describe('leaving out what the teacher was shown', () => {
     const asked = made.tasks.map((task) => task.meta?.['customer_id']);
     expect(asked).not.toContain(alone);
     expect(asked).toContain(several);
+  });
+});
+
+describe('asking about rows the teacher has not read', () => {
+  // Ids and amounts that each name one row. The teacher is told the first rows and, of the rest,
+  // only what several rows share, so what it reads of a row is something no task is about.
+  const csv = `id,amount\n${Array.from(
+    { length: 120 },
+    (_, index) => `REC-${2000 + index},${(50 + index * 3.75).toFixed(2)}`,
+  ).join('\n')}\n`;
+  const table = readTable('records.csv', csv);
+  const attached: Attached = {
+    files: [{ name: 'records.csv', kind: 'table', bytes: Buffer.from(csv), table }],
+    tasks: null,
+  };
+  const lookup: TypeInput = {
+    id: 'amount',
+    label: 'Amounts',
+    description: 'Look up the amount of a record.',
+    spec: {
+      template: 'lookup',
+      table: 'records.csv',
+      keyColumn: 'id',
+      columns: ['amount'],
+      request: 'What is the amount of record {key}?',
+    },
+  };
+
+  it('makes no request about a row any value of which the teacher was told', () => {
+    const told = describeAttached(attached);
+    const made = generateTasks([lookup], new Map([['records.csv', table]]), 9, {
+      shown: shownRowsOf(attached),
+    });
+    expect(made.tasks.length).toBeGreaterThan(100);
+    for (const task of made.tasks) {
+      expect(told, String(task.meta?.['key'])).not.toContain(String(task.meta?.['key']));
+    }
+    // The first rows, which the teacher reads, have no task either.
+    const keys = made.tasks.map((task) => task.meta?.['key']);
+    for (const index of [0, 1, 2, 3, 4]) expect(keys).not.toContain(`REC-${2000 + index}`);
   });
 });
 

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { agreed, currencyName, marksIn } from '../src/drafting/rule/currency';
-import { readTable, kindOf, profileColumn, resolveDateOrder } from '../src/drafting/table';
+import {
+  examplesOf,
+  readTable,
+  kindOf,
+  profileColumn,
+  resolveDateOrder,
+} from '../src/drafting/table';
 import {
   addDays,
   cleanText,
@@ -284,10 +290,80 @@ describe('reading a table', () => {
     );
     const id = profileColumn(table, 'id');
     expect(id).toMatchObject({ kind: 'text', filled: 30, empty: 0, distinct: 30, unique: true });
-    expect(id.samples).toHaveLength(5);
     const region = profileColumn(table, 'region');
     expect(region).toMatchObject({ distinct: 3, unique: false });
-    expect(region.samples).toEqual(['North', 'south', 'EAST']);
     expect(profileColumn(table, 'amount')).toMatchObject({ kind: 'number', decorated: true });
+  });
+});
+
+describe('what the teacher is shown of a column', () => {
+  /** Thirty rows whose ids and amounts are each different, so each names one row. */
+  const records = readTable(
+    'records.csv',
+    [
+      'id,status,amount',
+      ...Array.from({ length: 30 }, (_, index) => {
+        const status = index === 17 ? 'Reopened' : index % 3 === 0 ? 'Closed' : 'Open';
+        return `REC-${1000 + index},${status},${(100 + index * 7.25).toFixed(2)}`;
+      }),
+    ].join('\n'),
+  );
+  const firstFive = new Set([0, 1, 2, 3, 4]);
+
+  it('gives the values of the rows it is shown for a column whose values each name a row', () => {
+    expect(examplesOf(records, 'id', firstFive)).toEqual([
+      'REC-1000',
+      'REC-1001',
+      'REC-1002',
+      'REC-1003',
+      'REC-1004',
+    ]);
+    // Rows 6, 12, 18 and 24 used to be sampled, and are rows a final test can be made of.
+    const amounts = examplesOf(records, 'amount', firstFive);
+    expect(amounts).toEqual(['100.00', '107.25', '114.50', '121.75', '129.00']);
+    for (const row of [6, 12, 18, 24, 29]) {
+      expect(amounts).not.toContain(records.rows[row]?.['amount']);
+      expect(examplesOf(records, 'id', firstFive)).not.toContain(records.rows[row]?.['id']);
+    }
+  });
+
+  it('lists the values that several rows share, and not one that names a single row it is not shown', () => {
+    // Open and Closed are in many rows. Reopened is in row 17 alone: it names that row.
+    expect(examplesOf(records, 'status', firstFive)).toEqual(['Open', 'Closed']);
+    // Shown the row, the value is no secret.
+    expect(examplesOf(records, 'status', new Set([17]))).toEqual(['Open', 'Closed', 'Reopened']);
+  });
+
+  it('gives a short table of few rows only the rows it is shown, not every value it has', () => {
+    const few = readTable('few.csv', 'name\nAda\nBen\nCho\nDana\nEli\nFay\nGus\n');
+    expect(examplesOf(few, 'name', firstFive)).toEqual(['Ada', 'Ben', 'Cho', 'Dana', 'Eli']);
+  });
+
+  it('leaves out an empty cell, cuts a long value, and never gives more than five', () => {
+    const odd = readTable(
+      'odd.csv',
+      [
+        'note',
+        '',
+        'x'.repeat(60),
+        'a',
+        'b',
+        'c',
+        'd',
+        'e',
+        'f',
+        'g',
+        'h',
+        'i',
+        'j',
+        'k',
+        'l',
+        'm',
+      ].join('\n'),
+    );
+    const examples = examplesOf(odd, 'note', new Set([0, 1, 2, 3, 4, 5, 6, 7]));
+    expect(examples).toHaveLength(5);
+    expect(examples[0]).toBe(`${'x'.repeat(39)}...`);
+    expect(examples).not.toContain('');
   });
 });

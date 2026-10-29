@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { basename, extname, resolve } from 'node:path';
 import { DRAFTING_LIMITS, TaskSchema, type DataFile, type Task } from '@architect/shared';
-import { profileColumn, readTable, type ColumnProfile, type Table } from './table';
+import { examplesOf, profileColumn, readTable, type ColumnProfile, type Table } from './table';
 import { cleanText } from './values';
 
 /*
@@ -214,16 +214,20 @@ const WIDE_PROFILE = 30;
 const WIDE_ROWS = 12;
 
 /**
- * The rows of each table the teacher is shown: the first few, by position. The tasks are made
- * without any request whose answer comes only from these rows, so nothing in the practice tasks or
- * the final test is something the teacher has already read the answer to.
+ * The rows of a table the teacher is shown, by position: the first few. They are the only rows
+ * any value of which reaches the teacher, in the first rows themselves and in the examples of a
+ * column (`examplesOf`), so the tasks, made without any request whose answer comes only from
+ * these rows, have nothing in the practice tasks or the final test that the teacher has read.
  */
+export function shownRowsOfTable(table: Table): Set<number> {
+  return new Set(table.rows.slice(0, FIRST_ROWS).keys());
+}
+
+/** The rows each table of the files shows the teacher, by the table's name. */
 export function shownRowsOf(attached: Attached): Map<string, Set<number>> {
   return new Map(
     attached.files.flatMap((file) =>
-      file.table === undefined
-        ? []
-        : [[file.name, new Set(file.table.rows.slice(0, FIRST_ROWS).keys())] as const],
+      file.table === undefined ? [] : [[file.name, shownRowsOfTable(file.table)] as const],
     ),
   );
 }
@@ -232,7 +236,7 @@ function clip(text: string, width: number): string {
   return text.length > width ? `${text.slice(0, width - 3)}...` : text;
 }
 
-function describeColumn(profile: ColumnProfile): string {
+function describeColumn(profile: ColumnProfile, examples: readonly string[]): string {
   const kind =
     profile.kind === 'number'
       ? profile.decorated
@@ -247,16 +251,23 @@ function describeColumn(profile: ColumnProfile): string {
       ? 'no values'
       : `${profile.distinctCapped ? `over ${profile.distinct}` : profile.distinct} different value${profile.distinct === 1 ? '' : 's'}`;
   const empty = profile.empty > 0 ? `, ${profile.empty} empty` : '';
-  const examples = profile.samples.length > 0 ? `. Examples: ${profile.samples.join(' | ')}` : '';
-  return `- ${profile.name}: ${kind}, ${variety}${empty}${examples}`;
+  const shown = examples.length > 0 ? `. Examples: ${examples.join(' | ')}` : '';
+  return `- ${profile.name}: ${kind}, ${variety}${empty}${shown}`;
 }
 
-/** What the teacher is told of a table: its shape, each column, and the first rows. */
+/**
+ * What the teacher is told of a table: its shape, each column and the first rows. The columns
+ * are told in counts and in examples of `examplesOf`, so no value of a row the teacher is not
+ * shown (`shownRowsOfTable`) reaches it.
+ */
 export function describeTable(file: Attachment, budget: number): string {
   const table = file.table;
   if (table === undefined) return '';
+  const rowsShown = shownRowsOfTable(table);
   const shown = table.columns.slice(0, WIDE_PROFILE);
-  const profiles = shown.map((column) => describeColumn(profileColumn(table, column)));
+  const profiles = shown.map((column) =>
+    describeColumn(profileColumn(table, column), examplesOf(table, column, rowsShown)),
+  );
   const more =
     table.columns.length > shown.length
       ? [
@@ -264,9 +275,11 @@ export function describeTable(file: Attachment, budget: number): string {
         ]
       : [];
   const rowColumns = table.columns.slice(0, WIDE_ROWS);
-  const rows = table.rows
-    .slice(0, FIRST_ROWS)
-    .map((row) => rowColumns.map((column) => clip(cleanText(row[column]), CELL_WIDTH)).join(' | '));
+  const rows = [...rowsShown]
+    .sort((a, b) => a - b)
+    .map((at) =>
+      rowColumns.map((column) => clip(cleanText(table.rows[at]?.[column]), CELL_WIDTH)).join(' | '),
+    );
   const text = [
     `### ${file.name} (a table)`,
     `${table.rows.length.toLocaleString('en-US')} rows, ${table.columns.length} columns.`,
