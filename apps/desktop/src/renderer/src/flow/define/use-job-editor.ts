@@ -22,6 +22,11 @@ export interface JobEditor {
   flush: () => Promise<Job | null>;
 }
 
+/** Whether two jobs grade the same way: the same built-in checker, or the same checker file. */
+export function sameChecker(a: Job['checker'], b: Job['checker']): boolean {
+  return a.kind === 'builtin' ? b.kind === 'builtin' : b.kind === 'module' && a.path === b.path;
+}
+
 /** Typing in a number field saves once the user pauses for this long. */
 export const TYPING_PAUSE_MS = 500;
 
@@ -59,6 +64,12 @@ export function useJobEditor(initial: Job, taskCount: number | null): JobEditor 
       .then(
         (saved) => {
           setQueryData(queryKeys.job(saved.id), saved);
+          // A checker file chosen from elsewhere is kept inside the job under a name of its own;
+          // from now on the job points at that copy, so a later save never looks for the original.
+          if (!sameChecker(saved.checker, next.checker)) {
+            latest.current = { ...latest.current, checker: saved.checker };
+            setJob((current) => ({ ...current, checker: saved.checker }));
+          }
           if (!dirty.current) setSaveStatus('saved');
           return saved;
         },

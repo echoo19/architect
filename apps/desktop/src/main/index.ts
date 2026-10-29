@@ -16,6 +16,7 @@ import { registerSecretsHandlers } from './handlers/secrets';
 import { registerSettingsHandlers } from './handlers/settings';
 import { registerWorkspaceHandlers } from './handlers/workspace';
 import { IpcRouter } from './ipc/router';
+import { currentChoices } from './jobs/choices';
 import { readLaunchOptions } from './launch';
 import { detectGpu } from './gpu';
 import { createLinkOpener } from './links';
@@ -204,7 +205,13 @@ async function start(): Promise<void> {
     listGraduates: () => engine.call((api) => api.graduates.list()),
     call: (request) => agentHost.call(request),
   });
-  registerEngineHandlers(router, (request) => engine.call(request), picked, settings);
+  registerEngineHandlers(
+    router,
+    (request) => engine.call(request),
+    picked,
+    settings,
+    async () => currentChoices(settings, secrets),
+  );
   registerGraduateHandlers(router, (request) => engine.call(request), graduates, picked);
   registerWorkspaceHandlers(router, (request) => agentHost.call(request), graduates);
   engine.start();

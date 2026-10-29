@@ -1,21 +1,31 @@
 import { useEffect, useState } from 'react';
-import type { Job, Method } from '@architect/shared';
+import {
+  isBaselineMethod,
+  MethodSchema,
+  type Job,
+  type Method,
+  type StudentTarget,
+} from '@architect/shared';
 import { Button, Skeleton, toast } from '@architect/ui';
 import { SlidersHorizontal } from 'lucide-react';
 import { flowApi } from '../api/client';
-import { useJob, useJobs, useSecretsStatus, useSettings } from '../api/hooks';
+import { useJob, useJobs, useSettings } from '../api/hooks';
 import { ProblemState } from '../components/ProblemState';
 import { resetDraft, useDraftStore } from '../flow/describe/draft-store';
 import { AdvancedDialog, tabWithIssue, type AdvancedTab } from '../flow/define/AdvancedDialog';
-import { hostedAvailability, type KeyStatus } from '../flow/define/hosted';
+import { hostedAvailability } from '../flow/define/hosted';
 import { Capabilities, FilePermissions, JobHeader, ReadyWhen } from '../flow/define/JobOverview';
+import { RunNeeds } from '../flow/define/RunNeeds';
 import { TrainingPlace } from '../flow/define/TrainingPlace';
 import { useJobEditor } from '../flow/define/use-job-editor';
+import { usePreflight } from '../flow/define/use-preflight';
+import { AddKeyDialog } from '../settings/models/AddKeyDialog';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { FlowShell } from '../shell/FlowShell';
 
-const BASELINES: readonly Method[] = ['bare', 'one_shot', 'self_reflection'];
+/** The simpler versions a comparison trains beside the agent: every method but the agent's own. */
+const BASELINES: readonly Method[] = MethodSchema.options.filter(isBaselineMethod);
 
 /** Step two: the drafted job, what it will and won't do, when it's ready, and where it trains. */
 export function DefineScreen({ jobId }: { jobId: string }) {
@@ -58,29 +68,37 @@ function DefineSkeleton() {
   );
 }
 
-function keyStatus(query: ReturnType<typeof useSecretsStatus>): KeyStatus {
-  if (query.status === 'success') return query.data;
-  return query.status;
-}
-
 function DefineEditor({ initial }: { initial: Job }) {
   const summaries = useJobs();
+  // A job just made, imported or drafted isn't in a list read before it, and its task count says
+  // whether its tasks were split: read the list again whenever a job opens.
+  const { reload: reloadJobs } = summaries;
+  useEffect(() => reloadJobs(), [reloadJobs]);
   const taskCount = summaries.data?.find((summary) => summary.id === initial.id)?.taskCount ?? null;
   const editor = useJobEditor(initial, taskCount);
   const { job } = editor;
   const settings = useSettings();
-  const secrets = useSecretsStatus();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [tab, setTab] = useState<AdvancedTab>('tasks');
   const [withBaselines, setWithBaselines] = useState(false);
   const [starting, setStarting] = useState(false);
+  // Where the final test runs belongs to the run, not to the job: on this computer unless chosen.
+  const [testPlace, setTestPlace] = useState<StudentTarget>('local');
 
   const comparisonMode = settings.data?.comparisonMode === true;
-  const hosted = hostedAvailability(job.student, keyStatus(secrets));
 
-  // Keys can be added in Settings at any time, so check again whenever a job opens.
-  const { reload: reloadKeys } = secrets;
-  useEffect(() => reloadKeys(), [reloadKeys]);
+  const openAdvanced = (at: AdvancedTab) => {
+    setTab(at);
+    setAdvancedOpen(true);
+  };
+  const preflight = usePreflight(job, testPlace, openAdvanced);
+  const hosted = hostedAvailability(job.student, preflight.keys);
+
+  // With no online copy there is nothing for the final test to run on.
+  const hasCopy = job.student.hosted !== undefined;
+  useEffect(() => {
+    if (!hasCopy) setTestPlace('local');
+  }, [hasCopy]);
 
   // A conversation that didn't draft this job is abandoned once another job is open.
   useEffect(() => {
@@ -88,21 +106,16 @@ function DefineEditor({ initial }: { initial: Job }) {
     if (entries.length > 0 && saved?.jobId !== initial.id) resetDraft();
   }, [initial.id]);
 
-  const openAdvanced = (at: AdvancedTab) => {
-    setTab(at);
-    setAdvancedOpen(true);
-  };
-
   const start = async () => {
-    if (job.student.trainOn === 'hosted' && !hosted.available) {
-      toast({
-        tone: 'danger',
-        title: "Can't train on the hosted copy yet",
-        description: hosted.reason,
-      });
+    if (preflight.blocked) return;
+    setStarting(true);
+    // The online copy is asked now, so a run that can't reach it stops here and says so, instead
+    // of failing hours into its training.
+    const usesCopy = job.student.trainOn === 'hosted' || testPlace === 'hosted';
+    if (usesCopy && !(await preflight.askHosted())) {
+      setStarting(false);
       return;
     }
-    setStarting(true);
     const saved = await editor.flush();
     if (!saved) {
       setStarting(false);
@@ -113,14 +126,22 @@ function DefineEditor({ initial }: { initial: Job }) {
       }
       return;
     }
+    // Someone is here to answer, so Spark may stop to ask one question while it teaches.
     const run = await attempt("Couldn't start training", () =>
-      flowApi.startRun(saved.id, { method: 'architect' }),
+      flowApi.startRun(saved.id, {
+        method: 'architect',
+        lockedTestOn: testPlace,
+        interactive: true,
+      }),
     );
     if (run && comparisonMode && withBaselines) {
-      // The baselines reuse the Architect run's seed, so the four runs compare like for like.
+      // The baselines reuse the Architect run's seed and take the final test in the same place, so
+      // the four runs compare like for like.
       await attempt("Couldn't start the comparison baselines", () =>
         Promise.all(
-          BASELINES.map((method) => flowApi.startRun(saved.id, { method, seed: run.seed })),
+          BASELINES.map((method) =>
+            flowApi.startRun(saved.id, { method, seed: run.seed, lockedTestOn: testPlace }),
+          ),
         ),
       );
     }
@@ -141,9 +162,18 @@ function DefineEditor({ initial }: { initial: Job }) {
             Advanced settings
           </Button>
           <div className="flex items-center gap-2">
-            <span className="mr-2 text-sm text-fg-muted">Keep Architect open while it trains</span>
+            <span className="mr-2 text-sm text-fg-muted">
+              {preflight.needs.length > 0
+                ? preflight.summary
+                : 'Keep Architect open while it trains'}
+            </span>
             <Button onClick={() => navigate(paths.newAgent())}>Back</Button>
-            <Button variant="primary" loading={starting} onClick={() => void start()}>
+            <Button
+              variant="primary"
+              loading={starting}
+              disabled={preflight.blocked}
+              onClick={() => void start()}
+            >
               Start training
             </Button>
           </div>
@@ -153,9 +183,11 @@ function DefineEditor({ initial }: { initial: Job }) {
       <div className="mx-auto box-content flex max-w-[880px] flex-col gap-12 px-8 pb-10 pt-14">
         <JobHeader job={job} />
         <Capabilities job={job} />
+        <RunNeeds needs={preflight.needs} onAction={preflight.act} busyId={preflight.busyId} />
         <TrainingPlace
           job={job}
           hosted={hosted}
+          testPlace={testPlace}
           onPlaceChange={(trainOn) =>
             editor.change((current) => ({ ...current, student: { ...current.student, trainOn } }))
           }
@@ -165,7 +197,7 @@ function DefineEditor({ initial }: { initial: Job }) {
               400,
             )
           }
-          onRetryKeys={secrets.status === 'error' ? reloadKeys : undefined}
+          onRetryKeys={preflight.keys === 'error' ? preflight.reloadKeys : undefined}
           onRaiseLimit={() => openAdvanced('budget')}
           baselines={
             comparisonMode
@@ -190,7 +222,19 @@ function DefineEditor({ initial }: { initial: Job }) {
         tab={tab}
         onTabChange={setTab}
         editor={editor}
+        taskCount={taskCount}
+        finalTest={{ place: testPlace, onPlaceChange: setTestPlace, hosted }}
       />
+      {preflight.adding !== null && (
+        <AddKeyDialog
+          key={preflight.adding}
+          open
+          onOpenChange={(open) => {
+            if (!open) preflight.stopAdding();
+          }}
+          provider={preflight.adding}
+        />
+      )}
     </FlowShell>
   );
 }

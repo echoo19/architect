@@ -3,6 +3,7 @@ import { Heading, Meter, Skeleton, Stat } from '@architect/ui';
 import { useVersionReport, useVersions } from '../../api/graduates';
 import { ProblemState } from '../../components/ProblemState';
 import { formatAnswerTime } from '../../flow/format';
+import { LocalTest } from '../../flow/report/LocalTest';
 import { AUTHOR_RESULT_TITLE } from '../../install/labels';
 import { formatPercent, formatUsd, percentOf } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
@@ -51,7 +52,7 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
     ? "on the author's computer"
     : test.ranOffline
       ? `on ${deviceInSentence(currentPlatform())}`
-      : 'on a hosted copy';
+      : 'on the online copy';
 
   return (
     <div className="flex flex-col gap-8 pt-1">
@@ -81,12 +82,14 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
           }
           note={
             cost.studentUsd
-              ? `${shortModelName(report.mentor.label)} ${formatUsd(Math.round(cost.mentorUsd * 100) / 100)}, hosted copy ${formatUsd(Math.round(cost.studentUsd * 100) / 100)}; ${cost.rounds} rounds, paid once`
+              ? `${shortModelName(report.mentor.label)} ${formatUsd(Math.round(cost.mentorUsd * 100) / 100)}, online copy ${formatUsd(Math.round(cost.studentUsd * 100) / 100)}; ${cost.rounds} rounds, paid once`
               : `${cost.rounds} rounds, paid once`
           }
           noteFont="text"
         />
       </div>
+
+      {!imported && report.testedOn === 'hosted' && <LocalTest report={report} />}
 
       <section className="flex flex-col gap-4">
         <Heading>Handles</Heading>
