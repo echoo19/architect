@@ -233,25 +233,27 @@ export function runGroupTotal(
     range: { from: string; to: string } | null,
   ) => {
     const answer = measured(rows);
-    const question = fillRequest(spec.request, {
+    const asked = fillRequest(spec.request, {
       group: names.get(group) ?? group,
       ...(range === null ? {} : { from: range.from, to: range.to }),
     });
+    const question = range === null ? asked : `${asked} Both dates are included.`;
     candidates.push({
       // Ranges of one group never overlap, so two of them share no rows and are no near-duplicates.
       family: `total:${table.name}:${groupColumn}=${group}${range === null ? '' : `:${range.from}`}`,
-      prompt: [
-        range === null ? question : `${question} Both dates are included.`,
-        hint,
-        `End with: ANSWER: {"${key}": <number>}`,
-      ].join('\n'),
+      prompt: [question, hint, `End with: ANSWER: {"${key}": <number>}`].join('\n'),
       expected: {
         kind: 'answer',
         value: { [key]: answer },
         compare: { mode: 'number', tolerance },
       },
       answerKey: canonicalJson({ [key]: answer }),
-      meta: { template: 'group_total', group: names.get(group) ?? group, ...(range ?? {}) },
+      meta: {
+        template: 'group_total',
+        group: names.get(group) ?? group,
+        ...(range ?? {}),
+        request: question,
+      },
     });
   };
 

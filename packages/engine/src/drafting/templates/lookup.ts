@@ -154,7 +154,7 @@ export function runLookup(spec: LookupSpec, table: Table): TemplateRun<LookupSpe
         facts: names.map((name, index) => ({ path: name, value: values[index] ?? null })),
       },
       answerKey: canonicalJson(answer),
-      meta: { template: 'lookup', key: keyText },
+      meta: { template: 'lookup', key: keyText, request: question },
     });
   }
   if (missing > 0) {

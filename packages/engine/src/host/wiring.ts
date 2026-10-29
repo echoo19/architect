@@ -30,7 +30,6 @@ import {
 } from '@architect/harness';
 import type {
   EngineHostDeps,
-  JobDrafter,
   SampleAgentFiles,
   TaskChecker,
   ToolSandbox,
@@ -65,7 +64,6 @@ export interface EngineWiringOptions {
   sampleJobFile?: string;
   /** The ready-made agent shipped with the app: its package, and the data it works on. */
   sampleAgent?: SampleAgentFiles;
-  drafts?: JobDrafter;
   /** The CPU-thread cap for students on a local runtime right now, if there is one. */
   localThreads?: () => number | undefined;
   /** How long a local student rests after each reply, as a share of its time; none if absent. */
@@ -168,6 +166,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       seal: (jobId, tests, others, data) => vault.seal(jobId, tests, others, data),
       isSealed: (jobId) => vault.isSealed(jobId),
       count: (jobId) => vault.count(jobId),
+      typeCounts: (jobId) => vault.typeCounts(jobId),
       leakDetector: (jobId) => vault.leakDetector(jobId),
       openForLockedTest: (jobId, proof) => vault.openForLockedTest(jobId, proof as MentorReleased),
     },
@@ -207,7 +206,6 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
     secrets: { get: options.getSecret },
     ...(options.sampleJobFile === undefined ? {} : { sampleJobFile: options.sampleJobFile }),
     ...(options.sampleAgent === undefined ? {} : { sampleAgent: options.sampleAgent }),
-    ...(options.drafts === undefined ? {} : { drafts: options.drafts }),
   };
 }
 

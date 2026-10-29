@@ -89,8 +89,11 @@ export function connectEngine(
       createSample: () => request('jobs.createSample', []),
       importFile: (file) => request('jobs.importFile', [file]),
       exportFile: (jobId, file) => request('jobs.exportFile', [jobId, file]),
-      draftStart: (description, files) => request('jobs.draftStart', [description, files]),
-      draftReply: (sessionId, text) => request('jobs.draftReply', [sessionId, text]),
+      draftStart: (description, files, teacher) =>
+        request('jobs.draftStart', [description, files, teacher]),
+      draftReply: (sessionId, text, teacher) =>
+        request('jobs.draftReply', [sessionId, text, teacher]),
+      taskPlan: (jobId) => request('jobs.taskPlan', [jobId]),
     },
     runs: {
       start: (jobId, options) => request('runs.start', [jobId, options]),

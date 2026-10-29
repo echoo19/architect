@@ -155,6 +155,8 @@ export interface VaultDeps {
   seal(jobId: string, tests: Task[], others: Task[], data: string[]): Awaitable<void>;
   isSealed(jobId: string): Awaitable<boolean>;
   count(jobId: string): Awaitable<number>;
+  /** How many sealed tasks there are of each type; nothing else about them leaves the vault. */
+  typeCounts(jobId: string): Awaitable<Record<string, number>>;
   leakDetector(jobId: string): Awaitable<LeakDetector>;
   openForLockedTest(jobId: string, proof: MentorReleased): Awaitable<Task[]>;
 }
@@ -302,10 +304,13 @@ export interface LoopDeps {
   meter?: RuntimeMeter;
 }
 
-/** The Describe and Clarify conversation that drafts a job (decision 010). */
+/**
+ * The Describe and Clarify conversation that drafts a job (decisions 010 and 058). `teacher` is
+ * the mentor the person chose in Settings, which the conversation talks to.
+ */
 export interface JobDrafter {
-  start(description: string, files: string[]): Promise<DraftTurn>;
-  reply(sessionId: string, text: string): Promise<DraftTurn>;
+  start(description: string, files: string[], teacher: MentorConfig): Promise<DraftTurn>;
+  reply(sessionId: string, text: string, teacher: MentorConfig): Promise<DraftTurn>;
 }
 
 /** The ready-made agent shipped with the app: its package, and the data it works on. */
@@ -321,7 +326,6 @@ export interface EngineHostDeps extends LoopDeps {
   sampleJobFile?: string;
   /** Absent where the app ships no ready-made agent, which is then never offered. */
   sampleAgent?: SampleAgentFiles;
-  drafts?: JobDrafter;
 }
 
 export interface Clock {

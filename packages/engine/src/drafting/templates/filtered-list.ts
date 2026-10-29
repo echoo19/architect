@@ -176,7 +176,7 @@ export function runFilteredList(
       ].join('\n'),
       expected: { kind: 'answer', value: keys, compare: { mode: 'set' } },
       answerKey: canonicalJson(keys.map((key) => key.toLowerCase())),
-      meta: { template: 'filtered_list', ...values },
+      meta: { ...values, template: 'filtered_list', request: question },
     });
   }
   if (tooLong > 0) {

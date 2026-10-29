@@ -350,6 +350,7 @@ export async function lockedTestReport(
   const tester = await state.resources.student(test.target);
   const frozen = must(state.record.freeze, 'The frozen graduate');
   const seeds = firstSeedsOf(state, frozen);
+  const drafted = await state.ctx.jobs.drafting(run.jobId);
   const card = computeReportCard({
     job: state.job,
     run,
@@ -367,6 +368,14 @@ export async function lockedTestReport(
       .reduce((sum, cost) => sum + (cost.usd ?? 0), 0),
     ranOffline: test.target === 'local' && tester.isLocal,
     createdAt: state.now(),
+    ...(drafted === null
+      ? {}
+      : {
+          tasks: {
+            source: drafted.source,
+            ...(drafted.cost.usd === null ? {} : { draftingUsd: drafted.cost.usd }),
+          },
+        }),
   });
   return seeds.length < 2
     ? card

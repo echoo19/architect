@@ -22,6 +22,7 @@ describe('a failure in plain words', () => {
       'job_not_found',
       'agent_not_found',
       'chat_not_found',
+      'draft_not_found',
       'record_not_found',
       'version_modified',
       'process_closing',
@@ -31,6 +32,9 @@ describe('a failure in plain words', () => {
     }
     expect(problemOf(new CodedError('run_not_found', 'x'))?.cause).toBe('This run is gone.');
     expect(problemOf(new CodedError('job_not_found', 'x'))?.cause).toBe('This job is gone.');
+    expect(problemOf(new CodedError('draft_not_found', 'x'))?.cause).toBe(
+      'This conversation is gone.',
+    );
   });
 
   it('offers another try only for what may pass', () => {
