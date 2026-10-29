@@ -2,6 +2,8 @@ import { RULE_LIMITS, type RuleExample, type RuleNode, type RuleSpec } from '@ar
 import type { RuleCase } from './cases';
 import { inputsOf } from './cases';
 import {
+  answerTakingOtherSide,
+  answerWithout,
   categoryRefs,
   evaluate,
   nodesOf,
@@ -101,16 +103,22 @@ function exampleOf(
   };
 }
 
-/** What a case takes of each condition, smaller or larger, and the order of nodes for naming. */
-function coverage(item: RuleCase, ids: ReadonlyMap<RuleNode, number>): Set<string> {
+/**
+ * What a case takes of each condition, smaller or larger, and the order of nodes for naming. A
+ * case shows a side only if the answer would be different on the other one, after the rounding.
+ */
+function coverage(item: RuleCase, ids: ReadonlyMap<RuleNode, number>, root: RuleNode): Set<string> {
   const covered = new Set<string>();
   reached(item.run, (run) => {
     const id = ids.get(run.node);
     if (id === undefined) return;
-    if (run.node.op === 'if' && run.choice && !q.equal(run.choice.first, run.choice.second)) {
-      covered.add(`${id}:${run.choice.held ? 'first' : 'second'}`);
+    if (run.node.op === 'if' && run.choice) {
+      const other = answerTakingOtherSide(root, item.inputs, run.node, run.choice.held);
+      if (!q.equal(other, item.answer))
+        covered.add(`${id}:${run.choice.held ? 'first' : 'second'}`);
     } else if ((run.node.op === 'min' || run.node.op === 'max') && run.winner?.alone) {
-      covered.add(`${id}:${run.winner.index}`);
+      const without = answerWithout(root, item.inputs, run.node, run.winner.index);
+      if (!q.equal(without, item.answer)) covered.add(`${id}:${run.winner.index}`);
     }
   });
   return covered;
@@ -199,7 +207,9 @@ export function chooseExamples(
   }
 
   // Every side that could be shown, and which visible cases show it.
-  const showing = new Map(visible.map((item) => [item, coverage(item, ids)] as const));
+  const showing = new Map(
+    visible.map((item) => [item, coverage(item, ids, spec.expression)] as const),
+  );
   const sides = [...showing.values()].flatMap((covered) => [...covered]);
   const wanted = [...new Set(sides)].sort();
   const uncovered: string[] = [];
@@ -309,7 +319,7 @@ function coverageLabels(
   outcome: RuleOutcome,
 ): string[] {
   const nodes = nodesOf(outcome.spec.expression);
-  return [...coverage(item, ids)].flatMap((id) => {
+  return [...coverage(item, ids, outcome.spec.expression)].flatMap((id) => {
     const [index, side = ''] = id.split(':');
     const node = nodes[Number(index)];
     return node === undefined ? [] : [sideLabel(node, side, outcome.words)];

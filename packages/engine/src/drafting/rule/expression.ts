@@ -210,7 +210,21 @@ export interface Run {
   before?: q.Q;
 }
 
-function holds(when: RuleCondition, inputs: CaseInputs): { held: boolean; compared?: Run } {
+/**
+ * Ways to work an expression out differently, to see what a part of it does to the answer: an
+ * `if` taken one way whatever its test says, and a smallest or largest worked out without one of
+ * its operands.
+ */
+export interface Overrides {
+  choice?: ReadonlyMap<RuleNode, boolean>;
+  without?: ReadonlyMap<RuleNode, number>;
+}
+
+function holds(
+  when: RuleCondition,
+  inputs: CaseInputs,
+  overrides: Overrides | undefined,
+): { held: boolean; compared?: Run } {
   if (when.test === 'equals') {
     return { held: inputs.category(when) === foldKey(when.value) };
   }
@@ -218,7 +232,7 @@ function holds(when: RuleCondition, inputs: CaseInputs): { held: boolean; compar
     const folded = inputs.category(when);
     return { held: when.values.some((value) => foldKey(value) === folded) };
   }
-  const compared = evaluate(when.arg, inputs);
+  const compared = evaluate(when.arg, inputs, overrides);
   const order = q.compare(compared.value, q.fromText(when.than) ?? q.ZERO);
   const held =
     when.test === 'gt'
@@ -246,8 +260,32 @@ export function reached(run: Run, visit: (run: Run) => void): void {
   for (const child of run.children) reached(child, visit);
 }
 
+/**
+ * What a case's answer comes to when the `if` that was taken one way is taken the other. Whether
+ * that differs from the answer is what the `if` does to it: a difference lost in the final
+ * rounding is no difference to the person.
+ */
+export function answerTakingOtherSide(
+  root: RuleNode,
+  inputs: CaseInputs,
+  node: RuleNode,
+  held: boolean,
+): q.Q {
+  return evaluate(root, inputs, { choice: new Map([[node, !held]]) }).value;
+}
+
+/** What a case's answer comes to when one operand of a smallest or largest is left out. */
+export function answerWithout(
+  root: RuleNode,
+  inputs: CaseInputs,
+  node: RuleNode,
+  operand: number,
+): q.Q {
+  return evaluate(root, inputs, { without: new Map([[node, operand]]) }).value;
+}
+
 /** Evaluates an expression for one case, keeping every step's value. */
-export function evaluate(node: RuleNode, inputs: CaseInputs): Run {
+export function evaluate(node: RuleNode, inputs: CaseInputs, overrides?: Overrides): Run {
   switch (node.op) {
     case 'num':
       return { node, value: q.fromText(node.value) ?? q.ZERO, children: [] };
@@ -256,7 +294,7 @@ export function evaluate(node: RuleNode, inputs: CaseInputs): Run {
     case 'add':
     case 'sub':
     case 'mul': {
-      const children = node.args.map((arg) => evaluate(arg, inputs));
+      const children = node.args.map((arg) => evaluate(arg, inputs, overrides));
       const [first, ...rest] = children;
       const combine = node.op === 'add' ? q.add : node.op === 'sub' ? q.sub : q.mul;
       const value = rest.reduce(
@@ -267,23 +305,26 @@ export function evaluate(node: RuleNode, inputs: CaseInputs): Run {
     }
     case 'min':
     case 'max': {
-      const children = node.args.map((arg) => evaluate(arg, inputs));
+      const children = node.args.map((arg) => evaluate(arg, inputs, overrides));
       const better = (a: q.Q, b: q.Q): boolean =>
         node.op === 'min' ? q.compare(a, b) < 0 : q.compare(a, b) > 0;
-      let index = 0;
+      const left = overrides?.without?.get(node);
+      let index = -1;
       children.forEach((child, at) => {
-        if (better(child.value, children[index]?.value ?? q.ZERO)) index = at;
+        if (at === left) return;
+        if (index < 0 || better(child.value, children[index]?.value ?? q.ZERO)) index = at;
       });
       const best = children[index]?.value ?? q.ZERO;
-      const alone = children.filter((child) => q.equal(child.value, best)).length === 1;
+      const alone =
+        children.filter((child, at) => at !== left && q.equal(child.value, best)).length === 1;
       return { node, value: best, children, winner: { index, alone } };
     }
     case 'div': {
-      const inner = evaluate(node.arg, inputs);
+      const inner = evaluate(node.arg, inputs, overrides);
       return { node, value: q.div(inner.value, q.fromText(node.by) ?? q.ONE), children: [inner] };
     }
     case 'round': {
-      const inner = evaluate(node.arg, inputs);
+      const inner = evaluate(node.arg, inputs, overrides);
       const increment = q.fromText(node.increment) ?? q.ONE;
       return {
         node,
@@ -293,9 +334,11 @@ export function evaluate(node: RuleNode, inputs: CaseInputs): Run {
       };
     }
     case 'if': {
-      const { held, compared } = holds(node.when, inputs);
-      const first = evaluate(node.then, inputs);
-      const second = evaluate(node.else, inputs);
+      const forced = overrides?.choice?.get(node);
+      const { held, compared } =
+        forced === undefined ? holds(node.when, inputs, overrides) : { held: forced };
+      const first = evaluate(node.then, inputs, overrides);
+      const second = evaluate(node.else, inputs, overrides);
       return {
         node,
         value: held ? first.value : second.value,

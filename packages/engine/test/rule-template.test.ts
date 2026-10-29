@@ -455,6 +455,70 @@ describe('what a rule must not be', () => {
     expect(same.problems[0]).toContain('the answer is the same on either side for all');
   });
 
+  it('counts a side as changing an answer only when the final answer changes, not a difference the rounding wipes out', () => {
+    const labor: RuleNode = { op: 'mul', args: [col('labor_hours'), num('65')] };
+    const member = (more: string): RuleNode => ({
+      op: 'if',
+      when: { test: 'equals', column: 'member', from: 'lookup', value: 'yes' },
+      then: { op: 'add', args: [col('parts_cost'), num(more)] },
+      else: col('parts_cost'),
+    });
+    const withMore = (more: string) =>
+      runRule(
+        bikeRule({ expression: rounded({ op: 'add', args: [labor, member(more)] }) }),
+        bikeTables(bike),
+      );
+
+    // A tenth of a cent more for members is a difference before the rounding and none after it.
+    const wiped = withMore('0.001');
+    expect(wiped.candidates).toEqual([]);
+    expect(wiped.problems).toHaveLength(2);
+    expect(wiped.problems[0]).toMatch(
+      /^The rule never changes an answer where member \(customers\.csv\) is yes: the answer is the same on either side for all \d+ rows that are\./,
+    );
+    expect(wiped.problems[1]).toContain('where member (customers.csv) is no');
+    // Five cents more is a difference in the answer, so both sides count.
+    const real = withMore('0.05');
+    expect(real.problems).toEqual([]);
+    expect(real.outcome?.details.branches.map((branch) => branch.changes > 0)).toEqual([
+      true,
+      true,
+    ]);
+  });
+
+  it('counts an operand of a smaller-of or larger-of only when leaving it out changes the final answer', () => {
+    const labor: RuleNode = { op: 'mul', args: [col('labor_hours'), num('65')] };
+    const result = runRule(
+      bikeRule({
+        lookup: undefined,
+        categories: [],
+        expression: rounded({
+          op: 'add',
+          args: [
+            labor,
+            {
+              op: 'max',
+              args: [col('parts_cost'), { op: 'add', args: [col('parts_cost'), num('0.001')] }],
+            },
+          ],
+        }),
+      }),
+      bikeTables(bike),
+    );
+    expect(result.candidates).toEqual([]);
+    // The first never wins. The second always does, but without it the answer is the same.
+    expect(result.problems).toContainEqual(
+      expect.stringMatching(
+        /where parts cost is the larger one: no row of tickets\.csv that can be worked out is like that/,
+      ),
+    );
+    expect(result.problems).toContainEqual(
+      expect.stringMatching(
+        /where parts cost plus 0\.001 is the larger one: the answer is the same without it for all \d+ rows that are/,
+      ),
+    );
+  });
+
   it('refuses a cap that no row reaches, and a smaller-of whose one side always wins', () => {
     const capped = (limit: string) =>
       runRule(

@@ -1,7 +1,13 @@
 import type { RuleBranch, RuleNode, RuleSpec } from '@architect/shared';
 import { parseDecimal } from '../values';
 import type { RuleCase, Tables } from './cases';
-import { conditionalsOf, reached } from './expression';
+import {
+  answerTakingOtherSide,
+  answerWithout,
+  conditionalsOf,
+  nodesOf,
+  reached,
+} from './expression';
 import * as q from './rational';
 import { roundingText, sideLabel, type WordsContext } from './words';
 
@@ -134,9 +140,11 @@ export function auditCases(
     }
   }
 
-  // What each condition, smallest, largest and rounding did across the cases.
+  // What each condition, smallest, largest and rounding did across the cases. A side or an operand
+  // counts as changing an answer only when the final answer is different without it: a difference
+  // that the last rounding wipes out changes nothing for the person.
   const sides = new Map<RuleNode, [Side, Side]>();
-  const wins = new Map<RuleNode, number[]>();
+  const wins = new Map<RuleNode, Side[]>();
   const rounds = new Map<RuleNode, { reached: number; changed: number }>();
   for (const item of cases) {
     reached(item.run, (run) => {
@@ -148,11 +156,17 @@ export function auditCases(
         ];
         const side = run.choice.held ? pair[0] : pair[1];
         side.cases += 1;
-        if (!q.equal(run.choice.first, run.choice.second)) side.changes += 1;
+        const other = answerTakingOtherSide(spec.expression, item.inputs, node, run.choice.held);
+        if (!q.equal(other, item.answer)) side.changes += 1;
         sides.set(node, pair);
       } else if ((node.op === 'min' || node.op === 'max') && run.winner) {
-        const counts = wins.get(node) ?? node.args.map(() => 0);
-        if (run.winner.alone) counts[run.winner.index] = (counts[run.winner.index] ?? 0) + 1;
+        const counts = wins.get(node) ?? node.args.map(() => ({ cases: 0, changes: 0 }));
+        const won = counts[run.winner.index];
+        if (run.winner.alone && won !== undefined) {
+          won.cases += 1;
+          const without = answerWithout(spec.expression, item.inputs, node, run.winner.index);
+          if (!q.equal(without, item.answer)) won.changes += 1;
+        }
         wins.set(node, counts);
       } else if (node.op === 'round' && run.before) {
         const seen = rounds.get(node) ?? { reached: 0, changed: 0 };
@@ -185,14 +199,22 @@ export function auditCases(
       }
     });
   }
-  for (const [node, counts] of wins) {
+  for (const node of nodesOf(spec.expression)) {
     if (node.op !== 'min' && node.op !== 'max') continue;
+    const counts = wins.get(node) ?? [];
     node.args.forEach((_arg, at) => {
       const label = sideLabel(node, String(at), words);
-      const cases = counts[at] ?? 0;
-      branches.push({ label, cases, changes: cases });
-      if (cases === 0) {
-        problems.push(idle(label, `no row of ${spec.table} that can be worked out is like that`));
+      const { cases, changes } = counts[at] ?? { cases: 0, changes: 0 };
+      branches.push({ label, cases, changes });
+      if (changes === 0) {
+        problems.push(
+          idle(
+            label,
+            cases === 0
+              ? `no row of ${spec.table} that can be worked out is like that`
+              : `the answer is the same without it for all ${cases} rows that are`,
+          ),
+        );
       }
     });
   }
