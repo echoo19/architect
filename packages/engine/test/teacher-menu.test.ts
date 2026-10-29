@@ -327,6 +327,40 @@ describe('a mentor with nothing it may change', () => {
     expect(engine.errors).toEqual([]);
   });
 
+  it('holds the simpler methods of a comparison to it, and leaves the bare student alone', async () => {
+    await setUp({ interventions: ['weights', 'clarification'] });
+    const engine = open();
+    const job = await engine.jobs.importFile(world.jobFile);
+    // The one-shot guide writes a whole harness, which this job does not let anyone write.
+    const guide = await engine.controller.start(job.id, 'one_shot', 7);
+    await engine.controller.idle();
+    expect(engine.store.runs.get(guide.id)?.run).toMatchObject({
+      status: 'stopped',
+      stopReason: 'nothing_to_try',
+    });
+    // The bare student never asks the mentor for anything, so there is nothing to refuse it.
+    const bare = await engine.controller.start(job.id, 'bare', 7);
+    await engine.controller.idle();
+    expect(engine.store.runs.get(bare.id)?.run.status).toBe('finished');
+    expect(world.mentor.requests).toEqual([]);
+    expect(engine.errors).toEqual([]);
+  });
+
+  it('is no new version of the job, which a graduate promises, when the choice changes', async () => {
+    await setUp({});
+    const engine = open();
+    const job = await engine.jobs.importFile(world.jobFile);
+    const versions = engine.store.contracts.list(job.id).length;
+    await engine.jobs.save({ ...job, interventions: ['procedure', 'weights'] });
+    expect((await engine.jobs.get(job.id)).interventions).toEqual(['procedure', 'weights']);
+    expect(engine.store.contracts.list(job.id)).toHaveLength(versions);
+    // Saving what the engine would refuse changes nothing.
+    await expect(engine.jobs.save({ ...job, interventions: ['clarification'] })).rejects.toThrow(
+      /Keep at least one way to change the agent/,
+    );
+    expect((await engine.jobs.get(job.id)).interventions).toEqual(['procedure', 'weights']);
+  });
+
   it('is the same for a job that allows everything: nothing changes for a job that never chose', async () => {
     await setUp({});
     world.mentor.script = (_request, call) =>
