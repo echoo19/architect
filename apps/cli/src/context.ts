@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
 import { openLocalLibrary, type LocalLibrary } from '@architect/engine/graduates';
 import { HF_ENDPOINT, HubClient, hubTokenResolver } from '@architect/engine/hub';
@@ -38,6 +38,8 @@ export class CliContext {
         'Install one with `architect install`, or set ARCHITECT_USER_DATA to the folder the app uses.',
       );
     }
+    // Installing into a folder named in ARCHITECT_USER_DATA that doesn't exist yet starts it.
+    if (options.create) mkdirSync(this.dataDir, { recursive: true });
     this.opened = openLocalLibrary({
       dataDir: this.dataDir,
       ...(this.io.sandboxEntryPath === undefined

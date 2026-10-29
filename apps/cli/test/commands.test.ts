@@ -92,6 +92,8 @@ describe('the commands', () => {
     expect(again.code).toBe(2);
 
     const env = await testEnv();
+    // A data folder that doesn't exist yet: installing starts it.
+    env['ARCHITECT_USER_DATA'] = join(env['ARCHITECT_USER_DATA'] ?? '', 'new', 'profile');
     const records = await tempDir('records');
     for (const [name, content] of Object.entries(SAMPLE_CONTENT)) {
       await writeFile(join(records, name), content, 'utf8');
