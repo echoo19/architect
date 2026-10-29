@@ -2,6 +2,20 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), that pass reviewed, three more lines in plain words, and a time limit in one click
+
+**Done** (on the same branch; decisions 061 and 064 amended; no model was called, the GPU stayed off, and every run used stand-ins only)
+- Reviewed the pass below: every recaptured screen in both themes, and the code of the held Start training, older drafts read in the new words, the one-time requests between screens, the idle notice and the held switch. No defect found. GPT-6 Sol's read of the branch was started and then stopped by Claude Code when the computer ran short of memory (other programs held most of it), and was not run again.
+- Three lines the blind read named that the pass had left:
+  - The note beside a rule's score said it "measures agreement with that rule on held-out cases; it does not independently establish that the rule matches your business policy". It now says the expected answers came from the rule the person confirmed, that the score is how often the agent agreed with it on tasks it had never seen, and that it can't show whether the rule is right for the business (`ruleScoreNote`, on Results and in the report).
+  - "member (customers.csv) is no: 68 cases, 68 where it changed the answer" reads "68 rows, and the other side would give a different answer for all 68", from one function for Results and the report (`branchLine`), under "Where each side of the rule applied". The line for a run that needed no teaching says "the agent met the target", not "the student".
+  - A run that ended with nothing in a panel no longer says "yet": "No worked examples", "No attempts", "Not scored". The dash that stands in for a missing score is muted, since it read as a legend line cut off in front of "on check tasks".
+- The callout's first button names the limit and sets it: the shortest whole number of hours that fits the check tasks once and one round even when its change is measured again ("Allow 9 hours" for 40 check tasks on this computer, "Allow 7 hours" for 30). A drafted job's 4 hours fits no round on this computer, so it is the button a person training there meets first. Where not even a week would do, it is "Allow more time" and opens the limit, as before (decision 064 amended). The e2e helper `allowMoreTime` clicks it, as a person would.
+- Verified: `pnpm check` exits 0 (241 test files, 3,156 tests passed, 2 skipped). Hidden e2e on the rebuilt app, all on stand-ins: `flow.spec.ts` (27), `rule.spec.ts` (3), `teacher-menu.spec.ts` (4), `drafting.spec.ts` (5) and `screenshots.spec.ts` (10) pass; `flow.spec.ts` first failed on one line that still held the old words, which was then changed. Captures that changed were looked at and kept (`flow-report-rule`, `teacher-idle`, `rule-confirmed`, `flow-define-slow`, `drafting-define`, `rule-changed-dark`, and `evidence-report-error`, stale since an earlier change to Results); those that moved only by noise were put back.
+
+**Next**
+- Merge into main and release 0.3.1.
+
 ## 2026-10-29 (Thu), the six new screens, after a blind read
 
 **Done** (on `worktree-agent-abb57ecd48beadc40`, from main at `c8c8385`; decisions 061 and 063 amended and 064 written; no model was called, the GPU stayed off, and every run used stand-ins only)
