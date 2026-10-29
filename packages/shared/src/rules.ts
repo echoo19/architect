@@ -142,9 +142,19 @@ export type RuleLookup = z.infer<typeof RuleLookupSchema>;
  * What the person said an empty cell of a numeric column should mean when the policy doesn't say:
  * it counts as zero, or its row is left out. Only the person's own answer to a question Architect
  * put to them sets it, never the teacher.
+ *
+ * It is about one column of one table. An empty `amount` in one file says nothing of an `amount`
+ * in another, so a rule takes an answer only for the table it reads the column from.
  */
 export const BlankAnswerSchema = z.object({
+  /**
+   * The file the column is in, as it was attached. Absent only from a draft made before the table
+   * was kept, which is shown and kept as it was and never read as an answer again: a conversation
+   * lasts as long as the app is open.
+   */
+  table: z.string().min(1).optional(),
   column: Column,
+  /** Which table of the rule that asked it was about: the cases' table or the looked-up one. */
   from: RuleFromSchema,
   means: z.enum(['zero', 'leave_out']),
 });

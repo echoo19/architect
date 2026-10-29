@@ -119,12 +119,37 @@ function fromOf(value: string | undefined): RuleFrom {
   return value === 'lookup' ? 'lookup' : 'row';
 }
 
+/** The column of a table that an empty cell was asked about, as the person is asked. */
+export interface BlankAsked {
+  table: string;
+  column: string;
+  from: RuleFrom;
+}
+
+/** What the person chose for an empty cell of one column of one table. */
+export type TableBlank = BlankAnswer & { table: string };
+
+/**
+ * The answer the person gave about this column of this table, if they gave one. An answer about
+ * a column of another table never stands in for it, however alike the two are named.
+ */
+function blankFor(
+  blanks: readonly TableBlank[] | undefined,
+  table: string,
+  column: string,
+): TableBlank | undefined {
+  return (blanks ?? []).find(
+    (answer) =>
+      foldKey(answer.table) === foldKey(table) && foldKey(answer.column) === foldKey(column),
+  );
+}
+
 /** What the person has said, for a passage to be found in. */
 export interface Said {
   description: string;
   answers: string;
   /** What they chose for each empty cell they were asked about, which the rule has to follow. */
-  blanks?: readonly BlankAnswer[];
+  blanks?: readonly TableBlank[];
 }
 
 /** Text as it is compared for a quotation: spaces, quotes and emphasis marks set aside. */
@@ -200,7 +225,7 @@ export interface Settled {
   blocking: {
     question: string;
     options: string[];
-    blank?: { column: string; from: RuleFrom };
+    blank?: BlankAsked;
   }[];
   /** Open questions that don't change an answer, which are told as left open. */
   left: string[];
@@ -296,12 +321,12 @@ export function settleRule(
     who,
     problems,
   );
-  const emptyMeansZero = (context.said.blanks ?? []).flatMap((answer) => {
-    if (answer.means !== 'zero') return [];
-    const ref = numberRefs(expression).find(
-      (item) => item.from === answer.from && foldKey(item.column) === foldKey(answer.column),
-    );
-    return ref === undefined ? [] : [{ column: ref.column, from: ref.from }];
+  // Each column the rule adds up takes the answer given about that column of its own table.
+  const emptyMeansZero = numberRefs(expression).flatMap((ref) => {
+    const table = ref.from === 'lookup' ? lookupTable : base.table;
+    const answer =
+      table === undefined ? undefined : blankFor(context.said.blanks, table, ref.column);
+    return answer?.means === 'zero' ? [{ column: ref.column, from: ref.from }] : [];
   });
   if (problems.length > before) return undefined;
 
@@ -363,13 +388,14 @@ const BLANK_OPTIONS = [BLANK_ANSWERS.zero, BLANK_ANSWERS.leave_out];
 type BlankQuestion = {
   question: string;
   options: string[];
-  blank: { column: string; from: RuleFrom };
+  blank: BlankAsked;
 };
 
 /**
  * The questions about an empty cell that the person has to answer. The column must be one the rule
- * adds up and must have an empty cell somewhere, or there is nothing to ask, and a column the
- * person already answered for is not asked about again.
+ * adds up and must have an empty cell somewhere, or there is nothing to ask, and a column of a
+ * table that the person already answered for is not asked about again. A column of another table
+ * with the same name is another question.
  */
 function blankQuestions(
   ambiguities: readonly {
@@ -389,7 +415,7 @@ function blankQuestions(
     const name = item.blankFrom === 'lookup' ? tables.lookup : tables.row;
     const table = context.attached.files.find((candidate) => candidate.name === name)?.table;
     const column = table === undefined ? null : findColumn(table, item.blankColumn);
-    if (table === undefined || column === null) {
+    if (name === undefined || table === undefined || column === null) {
       problems.push(
         `${who}: the question about an empty ${item.blankColumn} names a column that isn't in the table.`,
       );
@@ -404,15 +430,13 @@ function blankQuestions(
       );
       continue;
     }
-    const answered = (context.said.blanks ?? []).some(
-      (answer) => answer.from === item.blankFrom && foldKey(answer.column) === foldKey(column),
-    );
+    const answered = blankFor(context.said.blanks, name, column) !== undefined;
     const empty = cellsOf(table, column).some((cell) => cleanText(cell) === '');
     if (answered || !empty || item.question === '') continue;
     asked.push({
       question: item.question,
       options: BLANK_OPTIONS,
-      blank: { column, from: item.blankFrom },
+      blank: { table: name, column, from: item.blankFrom },
     });
   }
   return asked;

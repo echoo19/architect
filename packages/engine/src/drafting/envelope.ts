@@ -1,13 +1,15 @@
-import {
-  MAX_FILTER_VALUES,
-  type JsonSchemaObject,
-  type RuleFrom,
-  type TaskSpec,
-} from '@architect/shared';
+import { MAX_FILTER_VALUES, type JsonSchemaObject, type TaskSpec } from '@architect/shared';
 import { z } from 'zod';
 import type { Attached } from './files';
 import { list, objectOf, text } from './json-parts';
-import { RuleReplySchema, ruleSchema, settleRule, type Said, type Settled } from './rule-reply';
+import {
+  RuleReplySchema,
+  ruleSchema,
+  settleRule,
+  type BlankAsked,
+  type Said,
+  type Settled,
+} from './rule-reply';
 import { cleanText, foldKey } from './values';
 
 /*
@@ -179,7 +181,7 @@ export interface DraftedJob {
     ambiguities?: {
       question: string;
       options: string[];
-      blank?: { column: string; from: RuleFrom };
+      blank?: BlankAsked;
     }[];
   }[];
 }

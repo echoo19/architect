@@ -14,7 +14,6 @@ import {
   type MentorCompletionRequest,
   type MentorConfig,
   type RuleDetails,
-  type RuleFrom,
   type Task,
   type TaskSpec,
 } from '@architect/shared';
@@ -63,6 +62,7 @@ import {
   settledMessage,
   systemPrompt,
 } from './prompts';
+import type { BlankAsked, TableBlank } from './rule-reply';
 import { foldKey } from './values';
 
 /** The most a drafting conversation may cost the teacher, in dollars. */
@@ -87,12 +87,13 @@ interface Spend {
 
 /**
  * An open question about a rule that changes an answer, which waits for the person. One about an
- * empty cell names the column, and is answered with one of the two choices a rule can do.
+ * empty cell names the column and its table, and is answered with one of the two choices a rule
+ * can do.
  */
 interface Settling {
   question: string;
   options: string[];
-  blank?: { column: string; from: RuleFrom };
+  blank?: BlankAsked;
 }
 
 /** Questions about a rule Architect puts to the person in all, after which the draft ends. */
@@ -106,7 +107,7 @@ interface Session {
   history: ChatMessage[];
   questions: number;
   /** What the person answered, which a rule may rest on. */
-  answers: { question: string; answer: string; blank?: BlankAnswer }[];
+  answers: { question: string; answer: string; blank?: TableBlank }[];
   /** The last question the teacher asked, which the next reply answers. */
   asking: string | null;
   /** A question about a rule that must be answered before any job is drafted, and how many so far. */
@@ -224,14 +225,14 @@ export class JobDrafting implements JobDrafter {
         };
       }
       let answer = text.trim();
-      let blank: BlankAnswer | undefined;
+      let blank: TableBlank | undefined;
       if (open.blank !== undefined) {
         // Only two things can be done with an empty cell, so only one of the two is an answer.
         const means = blankMeaning(text);
         if (means === null) {
           return {
             sessionId: session.id,
-            message: `${open.question}\n\nChoose one of the answers: it decides what an empty ${open.blank.column} counts as in every row.`,
+            message: `${open.question}\n\nChoose one of the answers: it decides what an empty ${open.blank.column} in ${open.blank.table} counts as in every row.`,
             options: open.options,
           };
         }
