@@ -22,6 +22,8 @@ export interface MentorEntry {
   draft?: Job;
   /** No job can be drafted from what was attached; the person starts again with more. */
   ended?: true;
+  /** Architect is asking, not the mentor: a question it found in the person's records. */
+  from?: 'architect';
 }
 
 export type Entry = UserEntry | MentorEntry;
@@ -96,6 +98,7 @@ export function conversationReducer(state: Conversation, action: ConversationAct
         readFiles,
         ...(turn.draft ? { draft: turn.draft } : {}),
         ...(turn.ended ? { ended: true as const } : {}),
+        ...(turn.from === 'architect' ? { from: 'architect' as const } : {}),
       };
       return {
         ...state,
@@ -121,6 +124,26 @@ function markChosen(entries: Entry[], option: string): Entry[] {
   const last = entries.at(-1);
   if (last?.kind !== 'mentor' || !last.options.includes(option)) return entries;
   return [...entries.slice(0, -1), { ...last, chosen: option }];
+}
+
+/**
+ * Who is speaking in the mentor's entry at `at`, when the conversation should say so: on the first
+ * reply, and again when Architect takes over from the mentor, since a question it found in the
+ * person's records is its own and not the mentor's. Undefined for an entry that carries on.
+ */
+export function speakerOf(
+  entries: readonly Entry[],
+  at: number,
+  mentor: string,
+): string | undefined {
+  const entry = entries[at];
+  if (entry?.kind !== 'mentor') return undefined;
+  const before = entries
+    .slice(0, at)
+    .filter((item): item is MentorEntry => item.kind === 'mentor')
+    .at(-1);
+  if (before === undefined) return entry.ended || entry.from === 'architect' ? 'Architect' : mentor;
+  return entry.from === 'architect' && before.from !== 'architect' ? 'Architect' : undefined;
 }
 
 /** The mentor's latest message, if it is the last thing said. */

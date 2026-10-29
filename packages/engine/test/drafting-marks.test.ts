@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import {
   DraftRecordSchema,
+  DraftTurnSchema,
   type DraftRecord,
   type DraftTurn,
   type MentorCompletionRequest,
@@ -105,6 +106,9 @@ describe('the question about a mark', () => {
     expect(turn.draft).toBeUndefined();
     expect(turn.ended).toBeUndefined();
     expect(turn.message).toBe(NA_QUESTION);
+    // It is Architect asking, not the teacher, and the conversation can say so.
+    expect(turn.from).toBe('architect');
+    expect(DraftTurnSchema.safeParse(turn).success).toBe(true);
     // Two answers a rule can do, in the order the empty cell's are, and no way to draft anyway.
     expect(turn.options).toEqual([ZERO, LEAVE]);
     expect(turn.options).not.toContain(DRAFT_NOW);
@@ -141,6 +145,7 @@ describe('the question about a mark', () => {
       `${NA_QUESTION}\n\nThis changes the numbers the agent is tested on, so it needs an answer before I can draft the job.`,
     );
     expect(now.options).toEqual([ZERO, LEAVE]);
+    expect(now.from).toBe('architect');
     const typed = await world.drafting.reply(first.sessionId, 'draft it now', TEACHER);
     expect(typed.draft).toBeUndefined();
     expect(typed.options).toEqual([ZERO, LEAVE]);
@@ -153,6 +158,7 @@ describe('the question about a mark', () => {
         `${NA_QUESTION}\n\nChoose one of the answers: it decides what "N/A" counts as in parts_cost of tickets.csv, in every row.`,
       );
       expect(turn.options, reply).toEqual([ZERO, LEAVE]);
+      expect(turn.from, reply).toBe('architect');
     }
     // Nothing was recorded or made, and the teacher was not called.
     expect(world.mentor.requests).toHaveLength(calls);
@@ -168,6 +174,7 @@ describe('the question about a mark', () => {
     const first = await start();
     const turn = await world.drafting.reply(first.sessionId, ZERO, TEACHER);
     const job = jobOf(turn);
+    expect(turn.from).toBeUndefined();
     expect(world.mentor.requests).toHaveLength(1);
     expect(world.teachers).toHaveLength(1);
 
@@ -230,6 +237,43 @@ describe('the question about a mark', () => {
     expect(details?.conventions[1]).toBe(
       '"N/A" in parts_cost counts as 0, as you said. Anything else in it that is not a number still leaves the row out.',
     );
+  });
+
+  it('keeps the answer about an empty cell beside its own question when the one about N/A was answered too', async () => {
+    // Both answers read "Count it as zero". What tells them apart is the question each was given to.
+    const EMPTY = {
+      question: 'What parts amount should be used when a ticket lists no parts cost?',
+      options: [],
+      changesAnswers: true,
+      blankColumn: 'parts_cost',
+      blankFrom: 'row',
+    };
+    world.mentor.script = () => bikeDraft([costType({ ambiguities: [EMPTY] }), CONTACT_TYPE]);
+    let turn = await start();
+    expect(turn.message).toBe(EMPTY.question);
+    expect(turn.from).toBeUndefined();
+    turn = await world.drafting.reply(turn.sessionId, ZERO, TEACHER);
+    expect(turn.message).toBe(NA_QUESTION);
+    const job = jobOf(await world.drafting.reply(turn.sessionId, ZERO, TEACHER));
+    // The teacher was called for the empty cell's answer, and for nothing after it.
+    expect(world.mentor.requests).toHaveLength(2);
+    const plan = await world.jobs.taskPlan(job.id);
+    const details = plan.types.find((type) => type.id === 'cost')?.details;
+    expect(details?.passages.filter((item) => item.file === 'answers')).toEqual([
+      { file: 'answers', passage: ZERO, question: EMPTY.question },
+      { file: 'answers', passage: ZERO, question: NA_QUESTION },
+    ]);
+    expect(details?.steps?.find((item) => item.note !== undefined)?.note).toBe(
+      'An empty parts cost or "N/A" counts as 0, as you said.',
+    );
+    expect(details?.excluded).toEqual([]);
+    expect(details?.cases).toEqual({ total: 160, eligible: 160 });
+    // Nothing is left out for being empty or N/A now, so the screen has no rows to account for.
+    const record = recordOf(job.id);
+    expect(record.types.find((type) => type.id === 'cost')?.spec).toMatchObject({
+      emptyMeansZero: [{ column: 'parts_cost', from: 'row' }],
+      placeholderMeansZero: [{ column: 'parts_cost', from: 'row', tokens: ['N/A'] }],
+    });
   });
 
   it('keeps "leave those rows out" as an answer, and the rule is the one it always was', async () => {
@@ -535,9 +579,11 @@ describe('a question asked once, whatever the teacher does after it', () => {
       call === 1 ? bikeDraft([costType({ ambiguities: [OPEN] }), CONTACT_TYPE]) : bikeDraft();
     let turn = await start();
     expect(turn.message).toBe(OPEN.question);
+    expect(turn.from).toBeUndefined();
     turn = await world.drafting.reply(turn.sessionId, 'No, labor only', TEACHER);
     // The teacher drafted again with its answer, and now Architect asks about the mark, once.
     expect(turn.message).toBe(NA_QUESTION);
+    expect(turn.from).toBe('architect');
     expect(world.mentor.requests).toHaveLength(2);
     turn = await world.drafting.reply(turn.sessionId, LEAVE, TEACHER);
     expect(turn.draft).toBeDefined();

@@ -10,7 +10,7 @@ import { mentorName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
 import { AttachedFile } from './AttachedFile';
-import { lastMentorEntry, type MentorEntry, type UserEntry } from './conversation';
+import { lastMentorEntry, speakerOf, type MentorEntry, type UserEntry } from './conversation';
 import {
   markDraftSaved,
   resetDraft,
@@ -38,7 +38,6 @@ export function Clarify() {
 
   const { entries, waiting, failure, sessionId } = conversation;
   const last = lastMentorEntry(conversation);
-  const firstReply = entries.find((entry) => entry.kind === 'mentor');
   // A drafted job is reviewed on the next screen, and a conversation that ended has nothing left
   // to answer, so neither takes another reply.
   const finished = last?.draft !== undefined || last?.ended === true;
@@ -85,7 +84,7 @@ export function Clarify() {
           aria-label="Conversation with the mentor"
           className="m-0 mx-auto flex max-w-[720px] list-none flex-col gap-7 p-0"
         >
-          {entries.map((entry) =>
+          {entries.map((entry, at) =>
             entry.kind === 'user' ? (
               !entry.viaOption && (
                 <li key={entry.id} className="flex flex-col">
@@ -96,7 +95,7 @@ export function Clarify() {
               <li key={entry.id} className="flex flex-col">
                 <MentorMessage
                   entry={entry}
-                  speaker={entry === firstReply ? (entry.ended ? 'Architect' : mentor) : undefined}
+                  speaker={speakerOf(entries, at, mentor)}
                   current={entry === last && !waiting}
                   onPick={(option) => sendToMentor(option, [], option)}
                   review={
@@ -211,7 +210,7 @@ function MentorMessage({
   onStartAgain,
 }: {
   entry: MentorEntry;
-  /** Who is talking, on the first reply only: "Spark". */
+  /** Who is talking, on the first reply and when Architect takes over from the mentor. */
   speaker: string | undefined;
   /** The latest message, still waiting for an answer. */
   current: boolean;

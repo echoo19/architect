@@ -143,6 +143,9 @@ export const MAX_RULE_QUESTIONS = 3;
  */
 export const MAX_MARK_QUESTIONS = 6;
 
+/** What a turn says when it is Architect asking, not the teacher. */
+const ARCHITECT = { from: 'architect' } as const;
+
 interface Session {
   id: string;
   /** The description exactly as the person wrote it. */
@@ -292,6 +295,7 @@ export class JobDrafting implements JobDrafter {
           sessionId: session.id,
           message: `${open.question}\n\nThis changes the numbers the agent is tested on, so it needs an answer before I can draft the job.`,
           options: open.options,
+          ...('mark' in open ? ARCHITECT : {}),
         };
       }
       if ('mark' in open) {
@@ -301,6 +305,7 @@ export class JobDrafting implements JobDrafter {
             sessionId: session.id,
             message: `${open.question}\n\nChoose one of the answers: it decides what ${markWords(open.mark.mark)} counts as in ${open.mark.column} of ${open.mark.table}, in every row.`,
             options: open.options,
+            ...ARCHITECT,
           };
         }
         session.answers.push({
@@ -563,7 +568,12 @@ export class JobDrafting implements JobDrafter {
         parked: { messages, reply, mustDraft },
       };
       session.asking = null;
-      return { sessionId: session.id, message: open.question, options: open.options };
+      return {
+        sessionId: session.id,
+        message: open.question,
+        options: open.options,
+        ...ARCHITECT,
+      };
     }
     if (session.ruleQuestions >= MAX_RULE_QUESTIONS) {
       this.sessions.delete(session.id);
