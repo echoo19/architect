@@ -1,10 +1,12 @@
 import {
   AttemptSchema,
+  CodedError,
   GraduateSettingsSchema,
   JobSchema,
   TraceSchema,
   type ClarificationReply,
   type ComparisonReport,
+  type ErrorCode,
   type FileDiff,
   type ListedAttempt,
   type ListedLesson,
@@ -40,9 +42,14 @@ import type { EngineApi } from './protocol';
 /** Train and dev attempts shown on the training view, newest first. */
 const RECENT_ATTEMPTS = 200;
 
-/** A lookup the caller asked for; the message says what wasn't there. */
-function found<T>(value: T | null | undefined, message: string): T {
-  if (value === null || value === undefined) throw new Error(message);
+/**
+ * A lookup the caller asked for; the message says what wasn't there, and a code lets a screen
+ * say so in its own words.
+ */
+function found<T>(value: T | null | undefined, message: string, code?: ErrorCode): T {
+  if (value === null || value === undefined) {
+    throw code === undefined ? new Error(message) : new CodedError(code, message);
+  }
   return value;
 }
 
@@ -63,7 +70,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
   const { store, paths, jobs, controller, graduates, deps } = ctx;
 
   const run = (runId: string): StoredRun =>
-    found(store.runs.get(runId), `There is no run "${runId}".`);
+    found(store.runs.get(runId), `There is no run "${runId}".`, 'run_not_found');
   /** The run's card from one student endpoint; from its own locked test when none is named. */
   const reportOf = (record: StoredRun, target: StudentTarget = record.lockedTestOn): ReportCard =>
     found(
@@ -131,7 +138,11 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
   }
 
   async function attempt(attemptId: string): Promise<ListedAttempt> {
-    const stored = found(store.attempts.get(attemptId), `There is no attempt "${attemptId}".`);
+    const stored = found(
+      store.attempts.get(attemptId),
+      `There is no attempt "${attemptId}".`,
+      'record_not_found',
+    );
     if (stored.split === 'test') {
       throw new Error("A final-test attempt isn't shown on its own; the report card counts it.");
     }
@@ -144,7 +155,11 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
   }
 
   async function trace(attemptId: string): Promise<Trace> {
-    const attempt = found(store.attempts.get(attemptId), `There is no attempt "${attemptId}".`);
+    const attempt = found(
+      store.attempts.get(attemptId),
+      `There is no attempt "${attemptId}".`,
+      'record_not_found',
+    );
     if (attempt.tracePath === null) {
       throw new Error('Locked-test traces are not kept, so test prompts never leave the vault.');
     }
@@ -156,7 +171,11 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
    * ran (its replay didn't hold, or a guard refused it) or was made before traces were kept.
    */
   async function lessonTrace(lessonId: string): Promise<Trace | null> {
-    const lesson = found(store.lessons.get(lessonId), `There is no lesson "${lessonId}".`);
+    const lesson = found(
+      store.lessons.get(lessonId),
+      `There is no lesson "${lessonId}".`,
+      'record_not_found',
+    );
     if (lesson.runId === null) return null;
     let stored: unknown;
     try {
@@ -189,7 +208,11 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     reply: ClarificationReply,
   ): Promise<void> {
     run(runId);
-    const stored = found(store.rounds.get(runId, index), `This run has no round ${index}.`);
+    const stored = found(
+      store.rounds.get(runId, index),
+      `This run has no round ${index}.`,
+      'record_not_found',
+    );
     const intervention = store.interventions.get(runId, index);
     if (
       intervention?.type !== 'clarification' ||
@@ -211,7 +234,11 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
 
   async function roundDiff(runId: string, index: number): Promise<FileDiff[]> {
     const record = run(runId);
-    const stored = found(store.rounds.get(runId, index), `This run has no round ${index}.`);
+    const stored = found(
+      store.rounds.get(runId, index),
+      `This run has no round ${index}.`,
+      'record_not_found',
+    );
     const candidate = stored.round.candidateVersion;
     if (candidate === undefined) return [];
     const versions = versionsOf(record);
@@ -270,7 +297,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
         );
       },
       categories: async (jobId) => {
-        found(store.jobs.get(jobId), `There is no job "${jobId}".`);
+        found(store.jobs.get(jobId), `There is no job "${jobId}".`, 'job_not_found');
         return store.categories.list(jobId);
       },
       answer: (runId, round, reply) => answerClarification(runId, round, reply),

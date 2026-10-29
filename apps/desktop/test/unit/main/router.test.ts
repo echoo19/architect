@@ -1,3 +1,4 @@
+import { CodedError, GuardError, PackageError } from '@architect/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import type { IpcResult } from '../../../src/common/ipc';
@@ -47,7 +48,10 @@ describe('IpcRouter', () => {
     const { call } = setup();
     expect(await call('graduates:list')).toEqual({
       ok: false,
-      error: { message: "The engine isn't connected yet, so graduates.list can't run." },
+      error: {
+        message: "The engine isn't connected yet, so graduates.list can't run.",
+        code: 'process_starting',
+      },
     });
   });
 
@@ -79,6 +83,76 @@ describe('IpcRouter', () => {
       error: { message: 'That run has no report yet.' },
     });
     expect(errors).toHaveBeenCalledOnce();
+    errors.mockRestore();
+  });
+
+  it('passes a failure with a code on, and none that has no code', async () => {
+    const { router, call } = setup();
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    router.registerHandlers('reports', {
+      get: () => {
+        throw new CodedError('run_not_found', 'There is no run "run_1".');
+      },
+      list: () => {
+        throw new Error('Plain.');
+      },
+      comparisons: () => null,
+    });
+    expect(await call('reports:get', ['run_1'])).toEqual({
+      ok: false,
+      error: { message: 'There is no run "run_1".', code: 'run_not_found' },
+    });
+    expect(await call('reports:list', ['run_1'])).toEqual({
+      ok: false,
+      error: { message: 'Plain.' },
+    });
+    errors.mockRestore();
+  });
+
+  it('gives a failure the code of the guard that refused it, when the screens word that guard', async () => {
+    const { router, call } = setup();
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    router.registerHandlers('reports', {
+      get: () => {
+        throw new GuardError('split', 'The payload matched 1 locked test task.');
+      },
+      list: () => {
+        throw new GuardError('network', 'Refused.');
+      },
+      comparisons: () => null,
+    });
+    expect(await call('reports:get', ['run_1'])).toEqual({
+      ok: false,
+      error: { message: 'The payload matched 1 locked test task.', code: 'guard_split' },
+    });
+    expect(await call('reports:list', ['run_1'])).toEqual({
+      ok: false,
+      error: { message: 'Refused.' },
+    });
+    errors.mockRestore();
+  });
+
+  it('gives a refused package the code a screen words, for the refusals it words', async () => {
+    const { router, call } = setup();
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    router.registerHandlers('reports', {
+      get: () => {
+        throw new PackageError('checksum', ['harness/AGENTS.md has a different checksum.']);
+      },
+      list: () => {
+        throw new PackageError('too_large', ['The package is too large.']);
+      },
+      comparisons: () => null,
+    });
+    expect(await call('reports:get', ['run_1'])).toEqual({
+      ok: false,
+      error: { message: 'harness/AGENTS.md has a different checksum.', code: 'package_changed' },
+    });
+    // The others keep the engine's sentences, with no code.
+    expect(await call('reports:list', ['run_1'])).toEqual({
+      ok: false,
+      error: { message: 'The package is too large.' },
+    });
     errors.mockRestore();
   });
 

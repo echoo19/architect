@@ -1,6 +1,7 @@
 import type { RunImprovement } from '@architect/shared';
-import { ErrorState, Panel, PanelHeader, PanelRow, Skeleton } from '@architect/ui';
+import { Panel, PanelHeader, PanelRow, Skeleton } from '@architect/ui';
 import { useCorrections } from '../../api/teaching';
+import { ProblemState } from '../../components/ProblemState';
 import { KindTile } from '../../workspace/teach/kinds';
 import { KIND_LABELS } from '../../workspace/teach/lessons';
 
@@ -35,10 +36,10 @@ export function TaughtLessons({ improves }: { improves: RunImprovement }) {
           ))}
         </ul>
       ) : corrections.status === 'error' ? (
-        <ErrorState
+        <ProblemState
           layout="inline"
+          error={corrections.error}
           title="Couldn't load its lessons"
-          message={corrections.error.message}
           onRetry={corrections.reload}
           className="border-t border-line-row px-7 py-4"
         />

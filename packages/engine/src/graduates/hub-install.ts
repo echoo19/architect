@@ -18,6 +18,7 @@ import {
 } from '@architect/shared';
 import { HubError, type HubClient } from '../hub';
 import { hubSource, repositoryUrl } from '../hub/names';
+import { asDiskFull } from './disk';
 import { importPackage, type ImportContext } from './importer';
 
 export interface HubInstallContext extends ImportContext {
@@ -146,7 +147,7 @@ export async function downloadFromHub(
     };
   } catch (error) {
     await discard();
-    throw error;
+    throw asDiskFull(error);
   }
 }
 

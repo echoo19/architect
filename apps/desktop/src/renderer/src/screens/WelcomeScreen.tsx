@@ -1,20 +1,21 @@
-import { ErrorState, Skeleton } from '@architect/ui';
+import { Skeleton } from '@architect/ui';
 import { useSettings } from '../api/hooks';
+import { ProblemState } from '../components/ProblemState';
 import { Setup } from '../onboarding/Setup';
 import { SetupShell } from '../onboarding/SetupShell';
 
-/** First run: get the local model, connect a mentor, then open the workspace. */
+/** First run: get the local model, connect a teacher, then open the workspace. */
 export function WelcomeScreen() {
   const settings = useSettings();
   if (settings.status === 'success') {
     return <Setup settings={settings.data} update={settings.update} />;
   }
   return (
-    <SetupShell step="Agent's model">
+    <SetupShell step="Model">
       {settings.status === 'error' ? (
-        <ErrorState
+        <ProblemState
+          error={settings.error}
           title="Couldn't load your settings"
-          message={settings.error.message}
           onRetry={settings.reload}
         />
       ) : (

@@ -173,9 +173,11 @@ export function invokeChannels(): string[] {
 
 /**
  * Handlers never throw across the bridge: Electron rewrites thrown errors into
- * "Error invoking remote method …" text. They resolve with this envelope instead.
+ * "Error invoking remote method …" text. They resolve with this envelope instead. A failure
+ * with a code (`ErrorCode`) names the cases a screen words itself.
  */
-export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: { message: string } };
+export type IpcResult<T> =
+  { ok: true; value: T } | { ok: false; error: { message: string; code?: string } };
 
 export function isIpcResult(value: unknown): value is IpcResult<unknown> {
   if (typeof value !== 'object' || value === null || !('ok' in value)) return false;
@@ -186,6 +188,7 @@ export function isIpcResult(value: unknown): value is IpcResult<unknown> {
     typeof error === 'object' &&
     error !== null &&
     'message' in error &&
-    typeof error.message === 'string'
+    typeof error.message === 'string' &&
+    (!('code' in error) || error.code === undefined || typeof error.code === 'string')
   );
 }

@@ -6,13 +6,12 @@ import {
   DialogClose,
   DialogContent,
   DialogFooter,
-  IconButton,
   Input,
   ProviderMark,
   SettingsRow,
   Skeleton,
 } from '@architect/ui';
-import { ExternalLink, KeyRound, Trash2 } from 'lucide-react';
+import { ExternalLink, KeyRound } from 'lucide-react';
 import { api, architect } from '../../api/client';
 import { queryKeys, useHubToken } from '../../api/hooks';
 import { fetchQuery, toError } from '../../api/query';
@@ -51,9 +50,9 @@ export function HuggingFaceRow() {
         ) : token.status === 'loading' ? (
           <Skeleton shape="pill" className="h-4 w-20" />
         ) : source === 'saved' ? (
-          <IconButton
-            label="Remove the Hugging Face token"
-            size="sm"
+          <Button
+            size="xs"
+            variant="ghost"
             onClick={() =>
               void attempt("Couldn't remove the Hugging Face token", async () => {
                 await architect().secrets.clear('huggingface');
@@ -61,8 +60,8 @@ export function HuggingFaceRow() {
               })
             }
           >
-            <Trash2 size={15} strokeWidth={1.7} aria-hidden />
-          </IconButton>
+            Remove token
+          </Button>
         ) : (
           <Button size="xs" onClick={() => setAdding(true)}>
             <KeyRound size={14} aria-hidden />

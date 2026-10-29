@@ -30,13 +30,15 @@ export function StatusDot({ tone = 'student', label, size = 7, className }: Stat
   );
 }
 
-export type BadgeTone = 'outline' | 'neutral' | 'student' | 'danger';
+export type BadgeTone = 'outline' | 'neutral' | 'student' | 'danger' | 'alert';
 
 const badgeTone: Record<BadgeTone, string> = {
   outline: 'border border-line-control text-fg-secondary',
   neutral: 'border border-line-control bg-card text-fg-soft',
   student: 'bg-student-tint font-medium text-student',
   danger: 'border border-danger-line text-danger',
+  /** Bad news as loud as the good: a filled tint where `student` is a filled blue. */
+  alert: 'bg-danger-tint font-medium text-danger',
 };
 
 export type MarkState = 'ok' | 'attention' | 'blocked' | 'off' | 'working';
@@ -121,7 +123,7 @@ export function Badge({ tone = 'outline', size = 'md', icon, children, className
       className={cn(
         'inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-3 text-sm',
         size === 'md' ? 'h-7' : 'h-[30px]',
-        icon && (tone === 'student' ? 'gap-1.5 pl-2.5' : 'gap-2'),
+        icon && (tone === 'student' || tone === 'alert' ? 'gap-1.5 pl-2.5' : 'gap-2'),
         badgeTone[tone],
         className,
       )}
@@ -136,12 +138,20 @@ export interface ProgressStepperProps {
   steps: readonly string[];
   /** Index of the current step. Earlier steps show as done. */
   current: number;
+  /** Earlier steps that still need something from the person: marked as that, not as done. */
+  attention?: readonly string[];
   'aria-label'?: string;
   className?: string;
 }
 
 /** The header pills of the new-agent flow: Describe, Define, Train, Graduate. */
-export function ProgressStepper({ steps, current, className, ...props }: ProgressStepperProps) {
+export function ProgressStepper({
+  steps,
+  current,
+  attention = [],
+  className,
+  ...props
+}: ProgressStepperProps) {
   return (
     <ol
       aria-label={props['aria-label'] ?? 'Progress'}
@@ -149,6 +159,7 @@ export function ProgressStepper({ steps, current, className, ...props }: Progres
     >
       {steps.map((step, index) => {
         const state = index < current ? 'done' : index === current ? 'current' : 'next';
+        const needs = state === 'done' && attention.includes(step);
         return (
           <li
             key={step}
@@ -160,9 +171,16 @@ export function ProgressStepper({ steps, current, className, ...props }: Progres
               state === 'next' && 'text-fg-muted',
             )}
           >
-            {state === 'done' && <Check size={12} strokeWidth={2.2} aria-hidden />}
+            {state === 'done' &&
+              (needs ? (
+                <CircleAlert size={12} strokeWidth={2.2} aria-hidden />
+              ) : (
+                <Check size={12} strokeWidth={2.2} aria-hidden />
+              ))}
             {step}
-            {state === 'done' && <span className="sr-only">, done</span>}
+            {state === 'done' && (
+              <span className="sr-only">{needs ? ', needs attention' : ', done'}</span>
+            )}
           </li>
         );
       })}

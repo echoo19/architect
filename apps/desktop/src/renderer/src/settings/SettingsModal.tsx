@@ -1,7 +1,8 @@
 import type { AppSettings } from '@architect/shared';
-import { ErrorState, SettingsDialog, Skeleton, type SettingsTab } from '@architect/ui';
+import { SettingsDialog, Skeleton, type SettingsTab } from '@architect/ui';
 import { useShallow } from 'zustand/react/shallow';
 import { useSettings } from '../api/hooks';
+import { ProblemState } from '../components/ProblemState';
 import { attempt } from '../lib/notify';
 import { useUi, type SettingsTabId } from '../state/ui';
 import { ModelsTab } from './models/ModelsTab';
@@ -63,9 +64,9 @@ function TabContent({ tab }: { tab: SettingsTabId }) {
   }
   if (settings.status === 'error') {
     return (
-      <ErrorState
+      <ProblemState
+        error={settings.error}
         title="Couldn't load your settings"
-        message={settings.error.message}
         onRetry={settings.reload}
         className="py-16"
       />

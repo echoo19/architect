@@ -14,7 +14,6 @@ import {
   Checkbox,
   Drawer,
   DrawerContent,
-  ErrorState,
   IconButton,
   Input,
   Progress,
@@ -40,6 +39,7 @@ import { graduatesApi, usePublications } from '../../api/graduates';
 import { useHubToken } from '../../api/hooks';
 import { toError } from '../../api/query';
 import { CopyButton } from '../../components/CopyButton';
+import { ProblemState } from '../../components/ProblemState';
 import { errorOf, RetryButton } from '../../components/QueryValue';
 import {
   bareUrl,
@@ -384,10 +384,10 @@ function ReviewSections({
 }) {
   if (!review) {
     return error ? (
-      <ErrorState
+      <ProblemState
         layout="inline"
+        error={error}
         title="Couldn't review what would be published"
-        message={error.message}
         onRetry={onRetry}
         className="border-t border-line py-4"
       />

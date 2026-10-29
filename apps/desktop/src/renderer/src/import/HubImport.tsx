@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import {
+  CodedError,
   HubRepositorySchema,
   type GraduateVersion,
   type HubInstallResult,
@@ -12,7 +13,7 @@ import {
 } from '@architect/shared';
 import {
   Button,
-  ErrorState,
+  Disclosure,
   Heading,
   Input,
   SettingsRow,
@@ -25,15 +26,16 @@ import { api, architect } from '../api/client';
 import { graduatesApi, refreshAgent } from '../api/graduates';
 import { queryKeys, useHubToken } from '../api/hooks';
 import { fetchQuery, toError } from '../api/query';
-import { shortCommit, tokenSourceText } from '../hub/labels';
-import { needsAnotherModel } from '../install/labels';
+import { ProblemState } from '../components/ProblemState';
+import { repositoryOf, shortCommit, tokenSourceText } from '../hub/labels';
+import { needsAnotherModel, needsLlama, stepsNeedingAttention } from '../install/labels';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { FlowShell } from '../shell/FlowShell';
 import { useUi } from '../state/ui';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { createChat, forgetAgent } from '../workspace/store';
-import { CheckStep } from './CheckStep';
+import { CheckStep, WaitsForLlama } from './CheckStep';
 import { InstallStep } from './InstallStep';
 import { FoldersStep, PermissionsStep } from './SetupSteps';
 
@@ -49,12 +51,9 @@ interface Downloaded {
   version: GraduateVersion;
 }
 
-/** "jake/service-desk" from what was typed, `hf://jake/service-desk` included. */
-function repositoryOf(typed: string): string {
-  return typed
-    .trim()
-    .replace(/^hf:\/\//, '')
-    .replace(/\/+$/, '');
+/** Whether the repository was found but holds no agent: asking again for it can't change that. */
+function isNotAnAgent(error: Error): boolean {
+  return error instanceof CodedError && error.code === 'not_a_package';
 }
 
 function Footer({ children }: { children: ReactNode }) {
@@ -242,15 +241,12 @@ export function HubImportFlow() {
       );
     } else if (downloadError) {
       body = (
-        <ErrorState
+        <ProblemState
+          error={downloadError}
           title={`Couldn't install from ${repository}`}
-          message={downloadError.message}
-          onRetry={() => void download()}
-          secondaryAction={
-            <Button size="md" onClick={() => setDownloadError(undefined)}>
-              Back
-            </Button>
-          }
+          // The same name finds the same thing, so a name that isn't an agent is mended in the form.
+          {...(isNotAnAgent(downloadError) ? {} : { onRetry: () => void download() })}
+          exit={{ label: 'Back', onClick: () => setDownloadError(undefined) }}
           className="min-h-[50vh]"
         />
       );
@@ -287,6 +283,8 @@ export function HubImportFlow() {
         onRecheck={recheck}
       />
     );
+    // Trained weights run on llama.cpp, so the way on waits until it is set up.
+    const waitsForLlama = needsLlama(preview);
     footer = (
       <Footer>
         <Button size="lg" loading={leaving === 'cancel'} onClick={() => void cancel()}>
@@ -305,14 +303,29 @@ export function HubImportFlow() {
           >
             Remove it from this computer
           </Button>
-        ) : asVersion ? (
-          <Button variant="primary" size="lg" onClick={() => void install()}>
-            Keep version {preview.place.kind === 'version' ? preview.place.version : ''}
-          </Button>
         ) : (
-          <Button variant="primary" size="lg" onClick={() => setStage(next('Package'))}>
-            Continue
-          </Button>
+          <div className="flex items-center gap-4">
+            {waitsForLlama && <WaitsForLlama />}
+            {asVersion ? (
+              <Button
+                variant="primary"
+                size="lg"
+                disabled={waitsForLlama}
+                onClick={() => void install()}
+              >
+                Keep version {preview.place.kind === 'version' ? preview.place.version : ''}
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                size="lg"
+                disabled={waitsForLlama}
+                onClick={() => setStage(next('Package'))}
+              >
+                Continue
+              </Button>
+            )}
+          </div>
         )}
       </Footer>
     );
@@ -379,7 +392,7 @@ export function HubImportFlow() {
       footer = (
         <Footer>
           <Button size="lg" onClick={home}>
-            Done
+            {result.installation.status === 'ready' || asVersion ? 'Done' : 'Not now'}
           </Button>
           {asVersion ? (
             <Button
@@ -414,6 +427,7 @@ export function HubImportFlow() {
       step={stage}
       steps={steps}
       footer={footer}
+      attention={stage === 'Install' ? stepsNeedingAttention(result?.installation) : []}
       // Leaving partway takes back what the download installed, as Cancel does.
       {...(downloaded && !result ? { onClose: () => void cancel() } : {})}
     >
@@ -424,7 +438,10 @@ export function HubImportFlow() {
   );
 }
 
-/** The repository to install from, the commit if a particular one is wanted, and the token. */
+/**
+ * The Hugging Face address to install from, one field. The commit, if a particular one is wanted,
+ * and where the token comes from wait under Advanced.
+ */
 function SourceForm({
   typed,
   onTyped,
@@ -447,9 +464,9 @@ function SourceForm({
         Install from Hugging Face
       </Heading>
       <div className="flex flex-col">
-        <SettingsRow label="Repository">
+        <SettingsRow label="Hugging Face address" meta="Like dana/returns-notes">
           <Input
-            aria-label="Repository"
+            aria-label="Hugging Face address"
             aria-invalid={invalid || undefined}
             placeholder="owner/name"
             value={typed}
@@ -460,35 +477,39 @@ function SourceForm({
             className="w-[400px] font-mono text-sm"
           />
         </SettingsRow>
-        <SettingsRow label="Commit" meta="Optional">
-          <Input
-            aria-label="Commit"
-            placeholder="Latest on main"
-            value={commit}
-            onChange={(event) => onCommit(event.target.value)}
-            autoComplete="off"
-            spellCheck={false}
-            className="w-[400px] font-mono text-sm"
-          />
-        </SettingsRow>
-        <SettingsRow label="Token">
-          {token === undefined ? (
-            <Skeleton shape="pill" className="h-4 w-36" />
-          ) : (
-            <div className="flex items-center gap-3">
-              <SettingsValue>
-                {token === null ? 'No token, so public repositories only' : tokenSourceText(token)}
-              </SettingsValue>
-              {token === null && (
-                <Button size="xs" onClick={() => useUi.getState().openSettings('models')}>
-                  <KeyRound size={14} strokeWidth={1.7} aria-hidden />
-                  Add in Settings
-                </Button>
-              )}
-            </div>
-          )}
-        </SettingsRow>
       </div>
+      <Disclosure label="Advanced" className="-mt-4">
+        <div className="flex flex-col">
+          <SettingsRow label="Commit" meta="Optional">
+            <Input
+              aria-label="Commit"
+              placeholder="Latest on main"
+              value={commit}
+              onChange={(event) => onCommit(event.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+              className="w-[400px] font-mono text-sm"
+            />
+          </SettingsRow>
+          <SettingsRow label="Token">
+            {token === undefined ? (
+              <Skeleton shape="pill" className="h-4 w-36" />
+            ) : (
+              <div className="flex items-center gap-3">
+                <SettingsValue>
+                  {token === null ? 'No token, so public ones only' : tokenSourceText(token)}
+                </SettingsValue>
+                {token === null && (
+                  <Button size="xs" onClick={() => useUi.getState().openSettings('models')}>
+                    <KeyRound size={14} strokeWidth={1.7} aria-hidden />
+                    Add in Settings
+                  </Button>
+                )}
+              </div>
+            )}
+          </SettingsRow>
+        </div>
+      </Disclosure>
     </>
   );
 }

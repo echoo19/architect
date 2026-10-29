@@ -8,12 +8,10 @@ import type {
 } from '@architect/shared';
 import type { MarkState } from '@architect/ui';
 import { formatBytes } from '../lib/format';
+import { folderName } from './folders';
 
-/** How this computer's own checks are titled wherever they appear: never as the author's result. */
-export const INSTALL_CHECKS_TITLE = 'Install checks on this computer';
-
-/** How the author's locked-test result is titled wherever it appears. */
-export const AUTHOR_RESULT_TITLE = "Evaluated on the author's computer";
+/** How the author's final test result is titled wherever it appears: never as this computer's. */
+export const AUTHOR_RESULT_TITLE = 'Tested by its author';
 
 /** What each install check looks at, named for people. */
 export const CHECK_LABELS: Record<string, string> = {
@@ -27,7 +25,7 @@ export const CHECK_LABELS: Record<string, string> = {
 };
 
 export const STATUS_LABELS: Record<InstallStatus, string> = {
-  ready: 'Ready to run',
+  ready: 'All checks passed',
   needs_attention: 'Needs attention',
   blocked: "Can't run",
   unchecked: 'Not checked yet',
@@ -78,8 +76,8 @@ export function servedWithWeights(context: Pick<CheckContext, 'checks'>): boolea
   return context.checks.some((check) => check.kind === 'adapter_runtime');
 }
 
-/** Where the base model of a version with trained weights comes from, and why that build. */
-export const WEIGHTS_BASE = 'downloaded through Ollama, the exact build its trained weights need';
+/** Which copy of the base model a version with trained weights needs. */
+export const WEIGHTS_BASE = 'the exact copy its trained weights need';
 
 /** The engine's own sentence, said like the rows around it: without a closing full stop. */
 function asRow(detail: string): string {
@@ -128,6 +126,34 @@ export const GRANT_LABELS: Record<ResourceGrant, string> = {
   read: 'Read',
   read_write: 'Read and change',
 };
+
+/**
+ * Whether the way to a trained agent's own program is still shut: llama.cpp, which runs its trained
+ * weights, is missing or too old, so an import waits until it is set up.
+ */
+export function needsLlama(checked: Pick<Installation, 'checks'>): boolean {
+  return checked.checks.some(
+    (check) => check.kind === 'adapter_runtime' && check.status === 'failed',
+  );
+}
+
+/**
+ * The import steps already passed that left something undone: a folder never chosen, or one that
+ * isn't allowed yet, so the pills mark them instead of ticking them. From the folders check's own
+ * list of what is wrong with each folder.
+ */
+export function stepsNeedingAttention(
+  installation: Pick<Installation, 'checks'> | undefined,
+): ('Folders' | 'Permissions')[] {
+  const folders = installation?.checks.find(
+    (check) => check.kind === 'resources_bound' && check.status === 'failed',
+  )?.folders;
+  if (!folders) return [];
+  return [
+    ...(folders.some((entry) => entry.problem !== 'not_allowed') ? (['Folders'] as const) : []),
+    ...(folders.some((entry) => entry.problem === 'not_allowed') ? (['Permissions'] as const) : []),
+  ];
+}
 
 /** Something the user can do about a check that didn't pass. */
 export type Fix =
@@ -217,4 +243,87 @@ export function fixesFor(installation: Installation, manifest: PackageManifest):
   }
   fixes.push({ kind: 'check' });
   return fixes;
+}
+
+/** How this computer's own checks are titled in the agent's settings and on its results. */
+export const WORKS_HERE_TITLE = 'Works on this computer';
+
+/** What stands in the way of an agent here, said plainly, with the engine's sentences kept apart. */
+export interface InstallProblem {
+  /** One plain sentence: what is missing or wrong, with no hashes, builds or file names. */
+  cause: string;
+  /** The engine's own sentences for the checks that failed, for whoever opens Details. */
+  details: string[];
+}
+
+export interface InstallProblemContext {
+  /** The model the agent was made with, as people call it: "Glimmer". */
+  model: string;
+  /** What that model weighs on disk, when the package says. */
+  baseBytes?: number | undefined;
+}
+
+/** What is wrong with the folders: the one folder by what it holds, or that several aren't ready. */
+function foldersSentence(folders: readonly FolderProblem[]): string {
+  if (folders.length > 1) return "Some of the folders it needs aren't ready.";
+  const only = folders[0];
+  if (!only) return "A folder it needs isn't ready.";
+  const folder = folderName({ name: only.name }).toLowerCase();
+  switch (only.problem) {
+    case 'not_chosen':
+      return `Its ${folder} isn't chosen yet.`;
+    case 'not_allowed':
+      return `It isn't allowed to use its ${folder} yet.`;
+    case 'missing':
+      return `Its ${folder} can't be found.`;
+    case 'files':
+      return `Its ${folder} is missing files it needs.`;
+  }
+}
+
+/**
+ * Why an agent isn't ready on this computer, in one plain sentence, from the fields of the check
+ * that failed and never from its words: a model of another build, one not downloaded yet, a
+ * runtime that doesn't answer, llama.cpp missing, a folder not chosen, a tool or the setup that
+ * won't load. Null when no check failed.
+ */
+export function installProblem(
+  installation: Pick<Installation, 'checks'>,
+  { model, baseBytes }: InstallProblemContext,
+): InstallProblem | null {
+  const failed = installation.checks.filter((check) => check.status === 'failed');
+  const first = failed[0];
+  if (!first) return null;
+  const size = baseBytes === undefined ? '' : ` (${formatBytes(baseBytes)})`;
+  const say = (cause: string): InstallProblem => ({
+    cause,
+    details: failed.map((check) => check.detail),
+  });
+  switch (first.kind) {
+    case 'compatibility':
+      return say("This computer can't run it.");
+    case 'harness_valid':
+      return say("Its setup doesn't load.");
+    case 'tools_load':
+      return say("One of its tools doesn't load.");
+    case 'resources_bound':
+      return say(foldersSentence(first.folders ?? []));
+    case 'adapter_runtime':
+      return say('Needs llama.cpp to run its trained weights.');
+    case 'model_available':
+      switch (first.modelProblem) {
+        case 'other_build':
+          return say(`Needs a different copy of ${model}${size}.`);
+        case 'not_downloaded':
+          return say(`${model} isn't downloaded yet${size}.`);
+        case 'wrong_runtime':
+          return say(`Its trained weights need Ollama's copy of ${model}.`);
+        default:
+          return say(`${model} isn't answering.`);
+      }
+    case 'model_responds':
+      return say(`${model} didn't answer a test question.`);
+    default:
+      return say("Something it needs isn't ready.");
+  }
 }

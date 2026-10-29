@@ -6,13 +6,16 @@ import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app
 import { glimmerBuild } from '@architect/shared';
 import {
   EMPTY_ENGINE,
+  ENGINE_RESTARTING,
   OLLAMA_READY,
   SAMPLE,
   SAMPLE_ENGINE,
   stubEngine,
   stubEngineFailure,
 } from './fixtures';
+import { installation } from './fixtures-versions';
 import {
+  asRealComparison,
   lessonCount,
   recordedComparison,
   recordedComparisonReport,
@@ -89,7 +92,8 @@ for (const theme of THEMES) {
     ]);
 
     await goTo(page, '/welcome');
-    await expect(page.getByText('Running · 0.12.6')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
+    await expect(page.getByRole('radio', { name: /Recommended/ })).toBeVisible();
     await capture(page, `welcome-${theme}.png`);
 
     await applySettings(page, { onboarded: true });
@@ -117,8 +121,18 @@ for (const theme of THEMES) {
     await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
     await capture(page, `settings-general-${theme}.png`);
     await page.getByRole('tab', { name: 'Models' }).click();
-    await expect(page.getByText('Running · 0.12.6 · 1 model')).toBeVisible();
+    // The teacher, the agent's model and who it is connected to come first; the runtimes on this
+    // computer and the Hugging Face token wait under Advanced.
+    await expect(page.getByRole('button', { name: 'Teacher', exact: true })).toBeVisible();
+    await expect(page.getByText('Running · 0.12.6 · 1 model')).toBeHidden();
     await capture(page, `settings-models-${theme}.png`);
+    await page.getByRole('button', { name: 'Advanced' }).click();
+    await expect(page.getByText('Running · 0.12.6 · 1 model')).toBeVisible();
+    // What opened is at the end of the tab, so it is scrolled into the picture.
+    await page
+      .getByRole('tabpanel', { name: 'Models' })
+      .evaluate((panel) => panel.scrollTo({ top: panel.scrollHeight }));
+    await capture(page, `settings-models-advanced-${theme}.png`);
     await page.keyboard.press('Escape');
 
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+k' : 'Control+k');
@@ -132,8 +146,13 @@ for (const theme of THEMES) {
 test('captures the empty workspace and a failed action', async () => {
   const page = launched.page;
   await stubEngine(launched.app, EMPTY_ENGINE);
+  // The engine couldn't start, as the main process says it: its message, and the code a screen words.
   await stubEngineFailure(launched.app, {
-    'jobs:createSample': "The engine isn't running, so the sample job can't be created.",
+    'jobs:createSample': {
+      message:
+        "The engine couldn't start: The database is locked. Architect keeps trying in the background.",
+      code: 'process_failed',
+    },
   });
   for (const theme of THEMES) {
     await applySettings(page, { theme });
@@ -171,9 +190,6 @@ test('captures the populated screens with sample engine replies', async () => {
  * shows the same screens empty.
  */
 test.describe('the evidence screens of a recorded run', () => {
-  /** What every call says while the engine process restarts after stopping mid-call. */
-  const ENGINE_RESTARTING =
-    'The engine stopped while it was working on this. It is restarting; try again in a moment.';
   /** Tall enough for the whole training board and the whole report. */
   const BOARD_HEIGHT = 1840;
   const REPORT_HEIGHT = 1700;
@@ -181,8 +197,8 @@ test.describe('the evidence screens of a recorded run', () => {
   const DRAWER_HEIGHT = 2400;
   /** The report without its capabilities and comparisons, when they fail to load. */
   const SHORT_REPORT_HEIGHT = 1300;
-  /** A comparison arm's report, with every arm of the comparison in its table. */
-  const COMPARISON_REPORT_HEIGHT = 2100;
+  /** A comparison arm's report, with its comparisons table and the rest closed. */
+  const COMPARISON_REPORT_HEIGHT = 1800;
 
   let recorded: LaunchedApp;
   let summary: RecordedSummary;
@@ -191,18 +207,23 @@ test.describe('the evidence screens of a recorded run', () => {
     theme: (typeof THEMES)[number],
     from: { data: string } | { comparison: string } = { data: recordedData() },
   ): Promise<LaunchedApp> {
-    const app = await launchApp({ ...from, settings: { onboarded: true, theme } });
+    const app = await launchApp({
+      ...from,
+      settings: { onboarded: true, theme },
+      ...('comparison' in from ? { prepare: asRealComparison } : {}),
+    });
     await expect(app.page.locator('html')).toHaveAttribute('data-theme', theme);
     return app;
   }
 
-  async function resize(height: number): Promise<void> {
+  async function resize(height: number, width: number = SIZE.width): Promise<void> {
     await recorded.app.evaluate(
       ({ BrowserWindow }, size) => {
         BrowserWindow.getAllWindows()[0]?.setContentSize(size.width, size.height);
       },
-      { width: SIZE.width, height },
+      { width, height },
     );
+    await recorded.page.waitForFunction((w) => window.innerWidth === w, width);
     await recorded.page.waitForFunction((h) => window.innerHeight === h, height);
   }
 
@@ -302,10 +323,10 @@ test.describe('the evidence screens of a recorded run', () => {
 
       await resize(REPORT_HEIGHT);
       await goTo(page, `/runs/${summary.runId}/report`);
-      await expect(page.getByRole('table', { name: 'Capabilities by task type' })).toBeVisible();
+      await expect(page.getByRole('table', { name: 'Results by task type' })).toBeVisible();
       await expect(page.getByRole('table', { name: 'Comparisons' })).toBeVisible();
       // The agent's install checks and its model's facts arrive with the agent, a moment later.
-      await expect(page.getByText('Install checks on this computer')).toBeVisible();
+      await expect(page.getByText('Works on this computer')).toBeVisible();
       await shoot(`evidence-report-${theme}.png`);
 
       // An example whose steps can't be read says so, with a way to try again.
@@ -338,13 +359,13 @@ test.describe('the evidence screens of a recorded run', () => {
       await expect(page.getByText("Couldn't load how the rounds ended")).toBeVisible();
       await shoot(`evidence-train-error-${theme}.png`);
       // A round opened while the records still load, and then the load fails.
-      await app.evaluate(({ ipcMain }, message) => {
+      await app.evaluate(({ ipcMain }, error) => {
         ipcMain.removeHandler('mentoring:lessons');
         ipcMain.handle(
           'mentoring:lessons',
           () =>
             new Promise((resolve) => {
-              setTimeout(() => resolve({ ok: false, error: { message } }), 3_000);
+              setTimeout(() => resolve({ ok: false, error }), 3_000);
             }),
         );
       }, ENGINE_RESTARTING);
@@ -363,7 +384,7 @@ test.describe('the evidence screens of a recorded run', () => {
       await resize(SHORT_REPORT_HEIGHT);
       await goTo(page, `/runs/${summary.runId}/report`);
       // Each section says what it couldn't read; the rest of the card stands.
-      await expect(page.getByText("Couldn't load the capabilities")).toBeVisible();
+      await expect(page.getByText("Couldn't load the results by task type")).toBeVisible();
       await expect(page.getByText("Couldn't load the comparisons")).toBeVisible();
       await shoot(`evidence-report-error-${theme}.png`);
     });
@@ -373,11 +394,42 @@ test.describe('the evidence screens of a recorded run', () => {
       const targeted = report.arms.find((arm) => arm.arm === 'targeted');
       if (!targeted?.runId) throw new Error('The recorded comparison has no targeted run.');
       recorded = await open(theme, { comparison: recordedComparison() });
+      const { page, app } = recorded;
       await resize(COMPARISON_REPORT_HEIGHT);
-      await goTo(recorded.page, `/runs/${targeted.runId}/report`);
-      await expect(recorded.page.getByRole('table', { name: 'Comparisons' })).toBeVisible();
-      await expect(recorded.page.getByText('Install checks on this computer')).toBeVisible();
+      await goTo(page, `/runs/${targeted.runId}/report`);
+      await expect(page.getByRole('table', { name: 'Comparisons' })).toBeVisible();
+      await expect(page.getByText('Works on this computer')).toBeVisible();
+      // The agent the dry run made was checked here by the real engine, and its fake setup does
+      // not load: the one verdict says it can't run, and offers the way to put it right.
+      await expect(
+        page.getByRole('heading', { name: "Returns desk can't run on this computer" }),
+      ).toBeVisible();
+      await expect(page.getByRole('button', { name: "See what's wrong" })).toBeVisible();
+      await expect(page.getByText('graduated')).toHaveCount(0);
+      await shoot(`evidence-report-blocked-${theme}.png`);
+
+      // The same agent where its checks pass: what a finished run reads like.
+      const [agent] = (await page.evaluate(() => window.architect.graduates.list())).filter(
+        (item) => item.manifest.runId === targeted.runId,
+      );
+      if (!agent) throw new Error('The recorded comparison made no agent for its targeted run.');
+      await stubEngine(app, { 'graduates:installation': installation(agent.id) });
+      await page.reload();
+      await goTo(page, `/runs/${targeted.runId}/report`);
+      await expect(page.getByRole('heading', { name: 'Returns desk graduated' })).toBeVisible();
+      await expect(page.getByText('Dry run on fakes')).toHaveCount(0);
       await shoot(`evidence-report-comparison-${theme}.png`);
+
+      // The narrowest window the app allows: the table fits, with nothing cut off at the right.
+      await resize(COMPARISON_REPORT_HEIGHT, 960);
+      const table = page.getByRole('table', { name: 'Comparisons' });
+      const box = await table.boundingBox();
+      expect(box).not.toBeNull();
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(960);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+      await shoot(`evidence-report-narrow-${theme}.png`);
     });
   }
 });

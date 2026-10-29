@@ -1,22 +1,17 @@
 import { useState } from 'react';
 import type { GraduateSummary, GraduateVersion } from '@architect/shared';
-import {
-  Button,
-  ErrorState,
-  SettingsRow,
-  SettingsSection,
-  Skeleton,
-  VersionTag,
-} from '@architect/ui';
+import { Button, SettingsRow, SettingsSection, Skeleton, VersionTag } from '@architect/ui';
 import { ArrowUpRight, Undo2 } from 'lucide-react';
 import { useVersions } from '../../api/graduates';
+import { ProblemState } from '../../components/ProblemState';
 import { formatPercent } from '../../lib/format';
 import { LessonsSection } from '../teach/LessonsSection';
 import { MoveDialog } from './MoveDialog';
 import {
-  EVALUATION_LABELS,
   evaluationNote,
+  MOVE_WORDS,
   moveFor,
+  standing,
   versionDate,
   versionOrigin,
   versionScore,
@@ -25,9 +20,9 @@ import {
 
 /**
  * Teaching: what the agent is being taught (flagged answers, teaching it something new, and
- * Improve agent), then its versions, newest first. Each version says whether it is the one
- * chats run on, how its own final test came out, what it was made from and when, and can be
- * promoted or rolled back to after a confirmation that says what changes.
+ * Improve), then its versions, newest first. Each version says whether it is the one in use, how
+ * its own final test came out, what it was made from and when, and can be used, or gone back to,
+ * after a confirmation that says what changes.
  */
 export function TeachingTab({ agent }: { agent: GraduateSummary }) {
   const versions = useVersions(agent.id);
@@ -43,7 +38,7 @@ export function TeachingTab({ agent }: { agent: GraduateSummary }) {
         title="Versions"
         actions={
           // Names the score column: it ends where the scores do, left of the buttons' slot.
-          scored && <span className="mr-[124px] text-sm text-fg-muted">Final test</span>
+          scored && <span className="mr-[184px] text-sm text-fg-muted">Final test</span>
         }
       >
         {list ? (
@@ -52,16 +47,17 @@ export function TeachingTab({ agent }: { agent: GraduateSummary }) {
               <VersionRow
                 key={version.version}
                 version={version}
+                active={active?.version ?? null}
                 move={moveFor(version, active?.version ?? null)}
                 onMove={(kind) => setMove({ version, kind })}
               />
             ))}
           </ul>
         ) : versions.status === 'error' ? (
-          <ErrorState
+          <ProblemState
             layout="inline"
+            error={versions.error}
             title="Couldn't load the versions"
-            message={versions.error.message}
             onRetry={versions.reload}
             className="border-t border-line py-4"
           />
@@ -98,29 +94,23 @@ function VersionSkeleton() {
   );
 }
 
-function statusOf(version: GraduateVersion): string {
-  if (version.active) return 'Active';
-  if (version.state === 'candidate') return 'Candidate';
-  if (version.state === 'rejected') return 'Rejected';
-  return EVALUATION_LABELS[version.evaluation];
-}
-
 function VersionRow({
   version,
+  active,
   move,
   onMove,
 }: {
   version: GraduateVersion;
+  /** The version in use, for what the others are to it. */
+  active: number | null;
   move: VersionMove | null;
   onMove: (kind: VersionMove) => void;
 }) {
   const score = versionScore(version);
-  const status = statusOf(version);
-  // The label says the version's standing; its own test result leads the line under it unless
-  // the label already is that result, and an experimental one says why it is.
-  const note = evaluationNote(version);
+  // The label says what the version is to the agent. A score that fell short, or is missing,
+  // says so under it; one that passed has nothing to add to the score beside it.
   const meta = [
-    status === note ? null : note,
+    version.evaluation === 'ready' ? null : evaluationNote(version),
     versionOrigin(version),
     versionDate(version.createdAt),
   ]
@@ -131,30 +121,28 @@ function VersionRow({
     <li aria-label={`Version ${version.version}`}>
       <SettingsRow
         icon={<VersionTag version={version.version} active={version.active} />}
-        label={status}
+        label={standing(version, active)}
         meta={meta}
       >
         <div className="flex items-center gap-4">
           {score && (
-            <span className="flex items-baseline gap-2 tabular-nums">
+            <span className="flex flex-col items-end tabular-nums">
               <span className="font-mono">{formatPercent(score)}</span>
-              <span className="text-sm text-fg-muted">
+              <span className="text-xs text-fg-muted">
                 {score.pass} of {score.total} passed
               </span>
             </span>
           )}
           {/* The same width on every row, so the scores line up whether or not a row has one. */}
-          <div className="flex w-[108px] justify-end">
-            {move === 'promote' && (
-              <Button size="xs" onClick={() => onMove('promote')}>
-                <ArrowUpRight size={14} strokeWidth={1.8} aria-hidden />
-                Promote
-              </Button>
-            )}
-            {move === 'rollback' && (
-              <Button size="xs" onClick={() => onMove('rollback')}>
-                <Undo2 size={14} strokeWidth={1.8} aria-hidden />
-                Roll back
+          <div className="flex w-[168px] justify-end">
+            {move !== null && (
+              <Button size="xs" onClick={() => onMove(move)}>
+                {move === 'promote' ? (
+                  <ArrowUpRight size={14} strokeWidth={1.8} aria-hidden />
+                ) : (
+                  <Undo2 size={14} strokeWidth={1.8} aria-hidden />
+                )}
+                {MOVE_WORDS[move].action}
               </Button>
             )}
           </div>

@@ -49,9 +49,14 @@ function actedOn(name: string, args: Record<string, JsonValue>): string {
   }
 }
 
+/** The files code reads, as `files.read("data/orders.csv")` names them, each once. */
+export function filesRead(code: string): string[] {
+  return [...new Set([...code.matchAll(FILES_READ)].map((match) => match[2] ?? ''))];
+}
+
 /** The files code reads, or its first line when it reads none. */
 function codeTarget(code: string): string {
-  const read = [...new Set([...code.matchAll(FILES_READ)].map((match) => match[2] ?? ''))];
+  const read = filesRead(code);
   if (read.length > 0) return read.join(', ');
   return code.trim().split('\n')[0] ?? '';
 }

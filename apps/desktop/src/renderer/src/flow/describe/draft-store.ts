@@ -47,7 +47,7 @@ async function ask(text: string, files: string[]): Promise<void> {
       : await flowApi.draftStart(text, files);
     if (asked === generation) dispatch({ type: 'replied', turn });
   } catch (error) {
-    if (asked === generation) dispatch({ type: 'failed', message: toError(error).message });
+    if (asked === generation) dispatch({ type: 'failed', error: toError(error) });
   }
 }
 

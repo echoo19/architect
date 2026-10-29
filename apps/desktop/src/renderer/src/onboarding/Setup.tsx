@@ -1,17 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   DEFAULT_STUDENT,
+  GLIMMER_BUILDS,
   recommendedBuild,
   type AppSettings,
   type ConnectionTest,
 } from '@architect/shared';
 import { Button } from '@architect/ui';
+import { Download } from 'lucide-react';
 import { api } from '../api/client';
 import { queryKeys, useLocalRuntimes, useSecretsStatus } from '../api/hooks';
 import { fetchQuery } from '../api/query';
+import { formatBytes } from '../lib/format';
 import { mentorName, studentName } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
+import { useConnections } from '../settings/models/hooks';
 import { isInstalled } from '../settings/models/StudentRows';
 import { DoneStep } from './DoneStep';
 import { HostedStep } from './HostedStep';
@@ -27,14 +31,15 @@ export interface SetupProps {
   update: (patch: Partial<AppSettings>) => Promise<AppSettings>;
 }
 
-/** First run: the agent's model, a mentor, optionally a hosted copy, then the workspace. */
+/** First run: the agent's model, a teacher, optionally an online copy, then the workspace. */
 export function Setup({ settings, update }: SetupProps) {
-  const [step, setStep] = useState<SetupStep>("Agent's model");
+  const [step, setStep] = useState<SetupStep>('Model');
   const [connection, setConnection] = useState<ConnectionTest | null>(null);
   const [route, setRoute] = useState<MentorRoute>(() => routeOf(settings.defaultMentor));
   const [finishing, setFinishing] = useState(false);
   const local = useLocalRuntimes();
   const secrets = useSecretsStatus();
+  const { connections } = useConnections();
 
   const student = settings.defaultStudent;
   const ollama = local.data?.ollama;
@@ -65,6 +70,8 @@ export function Setup({ settings, update }: SetupProps) {
   const download = async () => {
     if (await pull.start()) await fetchQuery(queryKeys.local, api.localRuntimes);
   };
+  const build = GLIMMER_BUILDS.find((candidate) => candidate.model === student.model);
+  const names = { mentor: mentorName(settings.defaultMentor), student: studentName(student) };
 
   const mentor = settings.defaultMentor;
   const mentorReady =
@@ -82,34 +89,46 @@ export function Setup({ settings, update }: SetupProps) {
   };
 
   const spacer = <div className="flex-1" />;
+  const hostedConnected = connections.some((connection) => connection.provider === 'openrouter');
 
-  if (step === "Agent's model") {
+  if (step === 'Model') {
     return (
       <SetupShell
         step={step}
         footer={
           <>
             {spacer}
-            {!modelReady && !downloading && (
-              <Button variant="ghost" onClick={() => setStep('Mentor')}>
-                Download later
+            {modelReady || downloading ? (
+              <Button variant="primary" onClick={() => setStep('Teacher')}>
+                Continue
               </Button>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => setStep('Teacher')}>
+                  Download later
+                </Button>
+                <Button
+                  variant="primary"
+                  disabled={ollama?.running !== true}
+                  onClick={() => void download()}
+                >
+                  <Download size={15} strokeWidth={1.8} aria-hidden />
+                  {pull.state.phase === 'failed'
+                    ? 'Try again'
+                    : build
+                      ? `Download ${names.student} · ${formatBytes(build.downloadBytes)}`
+                      : `Download ${names.student}`}
+                </Button>
+              </>
             )}
-            <Button
-              variant="primary"
-              disabled={!modelReady && !downloading}
-              onClick={() => setStep('Mentor')}
-            >
-              Continue
-            </Button>
           </>
         }
       >
         <ModelStep
           student={student}
+          names={names}
           local={local}
           pull={pull.state}
-          onDownload={() => void download()}
           onChoose={(next) =>
             void attempt("Couldn't choose the agent's model", () =>
               update({ defaultStudent: next }),
@@ -120,26 +139,27 @@ export function Setup({ settings, update }: SetupProps) {
     );
   }
 
-  if (step === 'Mentor') {
+  if (step === 'Teacher') {
     return (
       <SetupShell
         step={step}
         footer={
           <>
-            <Button onClick={() => setStep("Agent's model")}>Back</Button>
+            <Button onClick={() => setStep('Model')}>Back</Button>
             {spacer}
-            {!mentorUsable && (
-              <Button variant="ghost" onClick={() => setStep('Faster training')}>
-                Skip for now
+            {mentorUsable ? (
+              <Button variant="primary" onClick={() => setStep('Faster training')}>
+                Continue
               </Button>
+            ) : (
+              <>
+                <span className="max-w-[360px] text-right text-sm text-fg-muted text-pretty">
+                  You can connect one later in Settings. Until then, Architect can&apos;t train new
+                  agents.
+                </span>
+                <Button onClick={() => setStep('Faster training')}>Skip for now</Button>
+              </>
             )}
-            <Button
-              variant="primary"
-              disabled={!mentorUsable}
-              onClick={() => setStep('Faster training')}
-            >
-              Continue
-            </Button>
           </>
         }
       >
@@ -148,7 +168,7 @@ export function Setup({ settings, update }: SetupProps) {
           route={route}
           onRoute={setRoute}
           onMentor={(next) =>
-            void attempt("Couldn't save that mentor", () => update({ defaultMentor: next }))
+            void attempt("Couldn't save that teacher", () => update({ defaultMentor: next }))
           }
           secrets={secrets}
           result={connection}
@@ -164,18 +184,19 @@ export function Setup({ settings, update }: SetupProps) {
         step={step}
         footer={
           <>
-            <Button onClick={() => setStep('Mentor')}>Back</Button>
+            <Button onClick={() => setStep('Teacher')}>Back</Button>
             {spacer}
-            <Button variant="ghost" onClick={() => setStep('Done')}>
-              Skip
-            </Button>
-            <Button variant="primary" onClick={() => setStep('Done')}>
-              Continue
-            </Button>
+            {hostedConnected ? (
+              <Button variant="primary" onClick={() => setStep('Done')}>
+                Continue
+              </Button>
+            ) : (
+              <Button onClick={() => setStep('Done')}>Skip</Button>
+            )}
           </>
         }
       >
-        <HostedStep student={studentName(student)} />
+        <HostedStep student={names.student} connected={hostedConnected} />
       </SetupShell>
     );
   }
@@ -195,8 +216,7 @@ export function Setup({ settings, update }: SetupProps) {
     >
       <DoneStep
         mentor={{
-          name: mentorName(mentor),
-          label: mentor.label,
+          name: names.mentor,
           state: connection?.ok
             ? 'connected'
             : !mentorReady
@@ -206,8 +226,7 @@ export function Setup({ settings, update }: SetupProps) {
                 : 'saved',
         }}
         student={{
-          name: studentName(student),
-          model: student.model,
+          name: names.student,
           state: modelReady ? 'ready' : downloading ? 'downloading' : 'missing',
         }}
         percent={pullPercent(pull.state)}

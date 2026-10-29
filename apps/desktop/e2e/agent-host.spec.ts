@@ -359,7 +359,7 @@ test('imports a package with an adapter, opens it, and answers through llama.cpp
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
   await goTo(page, `/agents/${imported.graduate.id}/chats/${chat.id}`);
-  await expect(page.getByText('Stand-in adapter')).toBeVisible();
+  await expect(page.getByText('Stand-in trained weights')).toBeVisible();
 
   // The engine checks the agent again with its model loaded while the workspace's llama-server
   // sits idle: the workspace gives the GPU up first, so no two servers ever ran at once.

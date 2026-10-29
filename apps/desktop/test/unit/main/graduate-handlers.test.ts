@@ -260,7 +260,7 @@ describe('graduate handlers', () => {
       ok: false,
       error: { message: 'Hugging Face has no such repository. Check the names.' },
     });
-    // A commit that holds no package says where to look.
+    // A commit that holds no package says where to look, and is coded so a screen can word it.
     engine.graduates.installFromHub.mockRejectedValueOnce(
       new PackageError('not_a_package', [
         "jake/notes has no graduate.json at c41d8a2, so it isn't an Architect package.",
@@ -271,6 +271,7 @@ describe('graduate handlers', () => {
       error: {
         message:
           "jake/notes has no graduate.json at c41d8a2, so it isn't an Architect package. Check the repository and the commit.",
+        code: 'not_a_package',
       },
     });
     // Any other failure keeps its own words.

@@ -3,7 +3,7 @@ import type { WorkspaceChat, WorkspaceEvent, WorkspaceMessage } from '@architect
 /** A list read over the bridge. A reload or a failed reload keeps the last data it had. */
 export type Loadable<T> =
   | { status: 'loading'; data?: T }
-  | { status: 'error'; error: string; data?: T }
+  | { status: 'error'; error: Error; data?: T }
   | { status: 'ready'; data: T };
 
 export interface WorkspaceState {
@@ -17,10 +17,10 @@ export type WorkspaceAction =
   | WorkspaceEvent
   | { type: 'chats.loading'; graduateId: string }
   | { type: 'chats.loaded'; graduateId: string; chats: WorkspaceChat[] }
-  | { type: 'chats.failed'; graduateId: string; error: string }
+  | { type: 'chats.failed'; graduateId: string; error: Error }
   | { type: 'messages.loading'; chatId: string }
   | { type: 'messages.loaded'; chatId: string; messages: WorkspaceMessage[] }
-  | { type: 'messages.failed'; chatId: string; error: string }
+  | { type: 'messages.failed'; chatId: string; error: Error }
   | { type: 'graduate.removed'; graduateId: string };
 
 export const emptyWorkspace = (): WorkspaceState => ({ chats: {}, messages: {} });
@@ -31,7 +31,7 @@ function loading<T>(entry: Loadable<T> | undefined): Loadable<T> {
     : { status: 'loading', data: entry.data };
 }
 
-function failed<T>(entry: Loadable<T> | undefined, error: string): Loadable<T> {
+function failed<T>(entry: Loadable<T> | undefined, error: Error): Loadable<T> {
   return entry?.data === undefined
     ? { status: 'error', error }
     : { status: 'error', error, data: entry.data };

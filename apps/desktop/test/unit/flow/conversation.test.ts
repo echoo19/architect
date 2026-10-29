@@ -53,10 +53,10 @@ describe('conversationReducer', () => {
   it('keeps a failed message so it can be sent again', () => {
     let state = run(
       { type: 'sent', text: 'Close out the day', files: FILES, at: 1 },
-      { type: 'failed', message: 'The mentor did not answer.' },
+      { type: 'failed', error: new Error('The mentor did not answer.') },
     );
     expect(state.waiting).toBeNull();
-    expect(state.failure?.message).toBe('The mentor did not answer.');
+    expect(state.failure?.error.message).toBe('The mentor did not answer.');
     expect(state.entries).toHaveLength(1);
 
     state = conversationReducer(state, { type: 'retried', at: 5 });
@@ -69,7 +69,7 @@ describe('conversationReducer', () => {
       { type: 'sent', text: 'Close out the day', files: [], at: 1 },
       { type: 'replied', turn: { sessionId: 's1', message: 'Which jobs?', options: [] } },
       { type: 'sent', text: 'Invoces', files: [], at: 2 },
-      { type: 'failed', message: 'Timed out.' },
+      { type: 'failed', error: new Error('Timed out.') },
       { type: 'sent', text: 'Invoices', files: [], at: 3 },
     );
     expect(state.entries.map((entry) => (entry.kind === 'user' ? entry.text : 'mentor'))).toEqual([

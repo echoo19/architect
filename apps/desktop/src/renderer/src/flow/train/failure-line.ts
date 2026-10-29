@@ -1,4 +1,4 @@
-import { clip } from '../format';
+import { taskTitle } from '../format';
 import type { RecentAttempt } from './run-state';
 
 /** Ends a sentence once, whether or not the quoted text already ended it. */
@@ -11,6 +11,6 @@ function endSentence(text: string): string {
  * wrong whatever the task asks for, where an expected value can be a whole record to check.
  */
 export function failureLine(failure: RecentAttempt): string {
-  const request = failure.prompt ? `"${clip(failure.prompt, 90)}"` : `task ${failure.taskId}`;
+  const request = failure.prompt ? `"${taskTitle(failure.prompt)}"` : `task ${failure.taskId}`;
   return endSentence(`Missed ${request}: ${failure.check.reason}`);
 }

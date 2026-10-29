@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { CircleAlert, RotateCw } from 'lucide-react';
 import { cn } from '../lib/cn';
 import { Button } from './button';
+import { Disclosure } from './disclosure';
 
 export interface SkeletonProps {
   className?: string;
@@ -69,8 +70,10 @@ export function EmptyState({
 
 export interface ErrorStateProps {
   title: string;
-  /** The error's own message, written for the person using the app. */
+  /** One plain sentence on what happened and what to do, written for the person using the app. */
   message?: string;
+  /** The precise message, folded under "Details" for whoever needs to quote it. */
+  details?: string;
   onRetry?: () => void;
   retryLabel?: string;
   /** Another way out, such as going back. */
@@ -80,9 +83,21 @@ export interface ErrorStateProps {
   className?: string;
 }
 
+/** The precise message, quiet and selectable, so it can be copied into a report. */
+function ErrorDetails({ details, className }: { details: string; className?: string }) {
+  return (
+    <Disclosure label="Details" className={className}>
+      <p className="m-0 select-text break-words font-mono text-xs leading-5 text-fg-muted">
+        {details}
+      </p>
+    </Disclosure>
+  );
+}
+
 export function ErrorState({
   title,
   message,
+  details,
   onRetry,
   retryLabel = 'Try again',
   secondaryAction,
@@ -106,6 +121,7 @@ export function ErrorState({
               {retryLabel}
             </button>
           )}
+          {details && <ErrorDetails details={details} />}
         </div>
       </div>
     );
@@ -136,6 +152,7 @@ export function ErrorState({
           {secondaryAction}
         </div>
       )}
+      {details && <ErrorDetails details={details} className="max-w-[460px] items-center" />}
     </div>
   );
 }

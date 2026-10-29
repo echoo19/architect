@@ -24,7 +24,8 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBound
       <div className="app-drag flex h-full items-center justify-center bg-ground">
         <ErrorState
           title="Something went wrong"
-          message={error.message || 'This screen stopped working.'}
+          message="This screen stopped working. Reload it to carry on."
+          {...(error.message ? { details: error.message } : {})}
           onRetry={() => window.location.reload()}
           retryLabel="Reload"
         />

@@ -1,5 +1,69 @@
+import { z } from 'zod';
 import type { PackageProblemCode } from './versions';
 import type { ApprovalRequest } from './workspace';
+
+/**
+ * Failures a screen can answer in a plain sentence with the next step that helps, which the
+ * message alone can't say: the thing asked for is gone, a version's files changed after it was
+ * made, a package isn't one or was edited after it was made, the disk is full, or a part of
+ * Architect isn't answering. Every other failure reaches a screen as its message. A guard that
+ * refused a request is one of them, since what it refused says what to do: a text that matches
+ * the final test, or a request that would cost more than its cap.
+ */
+export const ERROR_CODES = [
+  'run_not_found',
+  'job_not_found',
+  'agent_not_found',
+  'chat_not_found',
+  'record_not_found',
+  'version_modified',
+  'not_a_package',
+  'package_changed',
+  'disk_full',
+  'guard_split',
+  'guard_budget',
+  'process_starting',
+  'process_restarting',
+  'process_failed',
+  'process_closing',
+] as const;
+
+export const ErrorCodeSchema = z.enum(ERROR_CODES);
+export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
+
+/** A failure with a code, whose `message` is still the precise sentence for whoever asks. */
+export class CodedError extends Error {
+  readonly code: ErrorCode;
+
+  constructor(code: ErrorCode, message: string, options?: { cause?: unknown }) {
+    super(message, options?.cause === undefined ? undefined : { cause: options.cause });
+    this.name = 'CodedError';
+    this.code = code;
+  }
+}
+
+/**
+ * Electron copies an error across the context bridge with its message alone, so a code travels
+ * as a mark on the end of the message: the code between two invisible separators. `failureFrom`
+ * reads it back into a `CodedError` on the other side.
+ */
+const CODE_MARK = '⁣';
+
+export function messageWithCode(message: string, code: string | undefined): string {
+  return code === undefined ? message : `${message}${CODE_MARK}${code}${CODE_MARK}`;
+}
+
+/** The error behind a message that crossed the bridge: coded when it carries a known code. */
+export function failureFrom(error: Error): Error {
+  const { message } = error;
+  if (!message.endsWith(CODE_MARK)) return error;
+  const start = message.lastIndexOf(CODE_MARK, message.length - 2);
+  if (start < 0) return error;
+  const plain = message.slice(0, start);
+  const code = ErrorCodeSchema.safeParse(message.slice(start + 1, -1));
+  if (!code.success) return new Error(plain, { cause: error });
+  return new CodedError(code.data, plain, { cause: error });
+}
 
 export type AdapterErrorCode =
   | 'auth'

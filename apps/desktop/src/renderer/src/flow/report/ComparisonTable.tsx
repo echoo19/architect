@@ -1,6 +1,5 @@
 import type { ReportCard } from '@architect/shared';
 import {
-  ErrorState,
   Heading,
   Skeleton,
   Table,
@@ -12,6 +11,7 @@ import {
 } from '@architect/ui';
 import { api, flowApi } from '../../api/client';
 import { useQuery, type QueryState } from '../../api/query';
+import { ProblemState } from '../../components/ProblemState';
 import { formatUsd } from '../../lib/format';
 import type { ModelNames } from '../train/phase';
 import {
@@ -57,10 +57,10 @@ export function ComparisonTable({
         </div>
       )}
       {rows.status === 'error' && (
-        <ErrorState
+        <ProblemState
           layout="inline"
+          error={rows.error}
           title="Couldn't load the comparison"
-          message={rows.error.message}
           onRetry={rows.reload}
         />
       )}

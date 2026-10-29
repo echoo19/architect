@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { Job, Method } from '@architect/shared';
-import { Button, ErrorState, Skeleton, toast } from '@architect/ui';
+import { Button, Skeleton, toast } from '@architect/ui';
 import { SlidersHorizontal } from 'lucide-react';
 import { flowApi } from '../api/client';
 import { useJob, useJobs, useSecretsStatus, useSettings } from '../api/hooks';
+import { ProblemState } from '../components/ProblemState';
 import { resetDraft, useDraftStore } from '../flow/describe/draft-store';
 import { AdvancedDialog, tabWithIssue, type AdvancedTab } from '../flow/define/AdvancedDialog';
 import { hostedAvailability, type KeyStatus } from '../flow/define/hosted';
@@ -26,15 +27,11 @@ export function DefineScreen({ jobId }: { jobId: string }) {
         {job.status === 'loading' ? (
           <DefineSkeleton />
         ) : (
-          <ErrorState
+          <ProblemState
+            error={job.error}
             title="Couldn't open this job"
-            message={job.error.message}
             onRetry={job.reload}
-            secondaryAction={
-              <Button size="md" onClick={() => navigate(paths.home())}>
-                Back to agents
-              </Button>
-            }
+            exit={{ label: 'Back to agents', onClick: () => navigate(paths.home()) }}
             className="min-h-[60vh]"
           />
         )}
@@ -156,13 +153,6 @@ function DefineEditor({ initial }: { initial: Job }) {
       <div className="mx-auto box-content flex max-w-[880px] flex-col gap-12 px-8 pb-10 pt-14">
         <JobHeader job={job} />
         <Capabilities job={job} />
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-12">
-          <ReadyWhen job={job} />
-          <FilePermissions
-            job={job}
-            onChange={(permissions) => editor.change((current) => ({ ...current, permissions }))}
-          />
-        </div>
         <TrainingPlace
           job={job}
           hosted={hosted}
@@ -183,6 +173,13 @@ function DefineEditor({ initial }: { initial: Job }) {
               : undefined
           }
         />
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-12 border-t border-line-card pt-10">
+          <ReadyWhen job={job} />
+          <FilePermissions
+            job={job}
+            onChange={(permissions) => editor.change((current) => ({ ...current, permissions }))}
+          />
+        </div>
       </div>
       <AdvancedDialog
         open={advancedOpen}

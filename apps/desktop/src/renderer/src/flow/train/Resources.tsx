@@ -1,11 +1,9 @@
 import type { ReactNode } from 'react';
 import { cn, Meter, Panel } from '@architect/ui';
-import { Lock } from 'lucide-react';
 import type { MentoringRecords } from '../../api/mentoring';
 import { formatDuration, formatUsd } from '../../lib/format';
-import { formatAnswerTime } from '../format';
 import { draftRoundOf } from './draft';
-import { budgetMeters, changeCounts, medianLatencyMs, type LiveRun } from './run-state';
+import { budgetMeters, changeCounts, type LiveRun } from './run-state';
 
 function share(used: number, max: number): number {
   return max === 0 ? 1 : used / max;
@@ -44,7 +42,6 @@ export function Resources({
   recordsFailed: boolean;
 }) {
   const { minutes, usd, rounds } = budgetMeters(live);
-  const speed = medianLatencyMs(live.attempts);
   const changes = recordsFailed ? null : keptChanges(live, records);
   // Training stops at the time limit, and the final test still runs: its time counts here too.
   // An improvement takes no final test, so it says only that the limit was reached.
@@ -77,38 +74,13 @@ export function Resources({
         max={String(rounds.max)}
         fraction={share(rounds.used, rounds.max)}
       />
-      <Fact label="Time per task" className="border-t border-line-row-strong pt-[18px]">
-        {speed === null ? (
-          <span className="text-fg-muted">–</span>
-        ) : (
-          <span className="font-mono">{formatAnswerTime(speed)}</span>
-        )}
-      </Fact>
-      <Fact label="Changes kept">
+      <Fact label="Changes kept" className="border-t border-line-row-strong pt-[18px]">
         {changes === null ? (
           <span className="text-fg-muted">–</span>
         ) : (
           <span className="font-mono tabular-nums">
             {changes.kept} <span className="text-fg-muted">/ {changes.tried}</span>
           </span>
-        )}
-      </Fact>
-      <Fact
-        label={
-          <span className="flex items-center gap-2">
-            <Lock size={13} strokeWidth={1.8} aria-hidden />
-            Final test
-          </span>
-        }
-      >
-        {/* An improvement is scored on the check tasks and never takes the final test. */}
-        {live.improves ? (
-          <span className="text-fg-muted">Not taken</span>
-        ) : (
-          <>
-            <span className="font-mono">{live.job.splits.test}</span>{' '}
-            <span className="text-fg-muted">unseen tasks</span>
-          </>
         )}
       </Fact>
     </Panel>

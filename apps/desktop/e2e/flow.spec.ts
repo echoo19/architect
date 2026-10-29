@@ -136,7 +136,7 @@ for (const theme of THEMES) {
     // The write setting names the files it covers, in the same words as the agent's own setting.
     const permissions = page.getByRole('region', { name: 'Permissions' });
     await expect(permissions).toContainText('invoices.csv, bookings.csv');
-    for (const setting of ['Saving changes to your files', 'Opening files outside the job']) {
+    for (const setting of ['Saving files', 'Opening files outside the job']) {
       await expect(
         permissions
           .getByRole('radiogroup', { name: setting })
@@ -145,23 +145,23 @@ for (const theme of THEMES) {
     }
 
     // Each place says how fast it practices and where the files go; this computer is too slow.
-    const local = page.getByRole('radio', { name: /This computer/ });
-    const hosted = page.getByRole('radio', { name: /Hosted on OpenRouter/ });
+    const local = page.getByRole('radio', { name: /Train on this computer/ });
+    const hosted = page.getByRole('radio', { name: /Train online/ });
     await expect(local).toBeChecked();
     await expect(local).toBeDisabled();
-    await expect(local).toContainText('About 2.5 minutes a task');
-    await expect(local).toContainText('Free · Glimmer practices here');
+    await expect(local).toContainText('Slower: about 2.5 minutes a task');
+    await expect(local).toContainText('Free. Nothing leaves this computer.');
     await expect(local).toContainText('Too slow for the 4-hour limit');
     // A place too slow for the limit offers the setting that would let it train.
-    await page.getByRole('button', { name: 'Raise the time limit' }).click();
+    await page.getByRole('button', { name: 'Allow more time' }).click();
     const limits = page.getByRole('dialog', { name: 'Advanced settings' });
     await expect(limits.getByRole('heading', { name: 'Time and budget' })).toBeVisible();
     await expect(limits.getByRole('textbox', { name: 'Training time' })).toHaveValue('240');
     await page.keyboard.press('Escape');
     await expect(limits).toBeHidden();
     await expect(hosted).toBeEnabled();
-    await expect(hosted).toContainText('About 15 seconds a task');
-    await expect(hosted).toContainText('About $3 · tasks and files go to OpenRouter');
+    await expect(hosted).toContainText('Faster: about 15 seconds a task');
+    await expect(hosted).toContainText('About $3 · sends tasks and files online');
 
     // The plan keeps training apart from the final test, and each dollar under whoever bills it.
     const time = page.getByRole('region', { name: 'Estimated time' });
@@ -169,15 +169,15 @@ for (const theme of THEMES) {
     await expect(time).toContainText('No round fits the 4-hour limit');
     await expect(time).toContainText('60 new tasks on this computer');
     await expect(time).toContainText(/In all\s*6\.5 h/);
-    await expect(cost).not.toContainText('OpenRouter');
-    await expect(cost).toContainText(/Meta\s*Spark\s*\$0\.70/);
+    await expect(cost).not.toContainText('Online practice');
+    await expect(cost).toContainText(/Spark\s*Teaching\s*\$0\.70/);
     // The choices the run below starts with, so every later screen agrees with this one.
     await hosted.click();
     await expect(hosted).toBeChecked();
-    await expect(time).toContainText(/Training\s*5 to 10 rounds on OpenRouter\s*4 h/);
+    await expect(time).toContainText(/Training\s*5 to 10 rounds online\s*4 h/);
     await expect(time).toContainText(/In all\s*6\.5 h/);
-    await expect(cost).toContainText(/OpenRouter\s*Glimmer practice\s*\$3/);
-    await expect(cost).toContainText(/Meta\s*Spark\s*\$0\.60/);
+    await expect(cost).toContainText(/Online practice\s*Glimmer practicing online\s*\$3/);
+    await expect(cost).toContainText(/Spark\s*Teaching\s*\$0\.60/);
     // The total is the figures above it added up.
     await expect(cost).toContainText(/In all\s*\$3\.60/);
     await expect(page.getByText('About $0.60 expected', { exact: true })).toBeVisible();
@@ -209,20 +209,20 @@ for (const theme of THEMES) {
     expect(await recordedCalls(app, 'runs:start')).toEqual([[FLOW.jobId, { method: 'architect' }]]);
 
     await resize(TRAIN_HEIGHT);
-    const success = page.getByRole('region', { name: 'Check tasks right' });
+    const success = page.getByRole('region', { name: 'Score on the check tasks' });
     const rounds = page.getByRole('region', { name: 'Rounds' });
     await expect(success).toContainText('78%');
-    await expect(success).toContainText('31 of 40, average of 2 measurements');
+    await expect(success).toContainText('31 of 40');
     await expect(page.getByRole('list', { name: 'Each round' })).toHaveText(
       'PracticeDiagnoseScore',
     );
     await expect(page.getByRole('status').filter({ hasText: 'Scoring the change' })).toBeVisible();
     await expect(rounds).toContainText('65% → 63%');
     await expect(rounds).toContainText('First draft');
-    await expect(rounds).toContainText('Reverted');
+    await expect(rounds).toContainText('No gain');
     await expect(success.getByRole('img')).toHaveAttribute(
       'aria-label',
-      'Check tasks right by round: 40% at the start, 65% after the first draft, round 2 reverted at 63%, ' +
+      'Score on the check tasks by round: 40% at the start, 65% after the first draft, round 2 undone at 63%, ' +
         '78% after round 3, round 4 in progress. Target 90%.',
     );
     const resources = page.getByRole('region', { name: 'Resources' });
@@ -239,7 +239,7 @@ for (const theme of THEMES) {
     ).toBeVisible();
     // A check task is listed, marked as one the mentor never sees.
     const attempts = page.getByRole('region', { name: 'Latest attempts' });
-    const hidden = attempts.getByText(', never shown to Spark');
+    const hidden = attempts.getByText(', Spark sees only the score');
     await expect(attempts).toContainText('Practice task, round 4');
     await expect(attempts).toContainText('Check task, round 3');
     await expect(hidden).toHaveCount(1);
@@ -291,17 +291,20 @@ for (const theme of THEMES) {
 
     await rounds.getByRole('button', { name: /Cents, not dollars/ }).click();
     const roundDrawer = page.getByRole('dialog', { name: 'Round 3: Cents, not dollars' });
-    await expect(
-      roundDrawer.getByText('Work in integer cents from start to finish.'),
-    ).toBeVisible();
     await expect(roundDrawer).toContainText(
       '6 more check tasks passed (26 → 32 of 40). Measured again to rule out luck: 10 more over ' +
         'both (52 → 62 of 80), and no task type got worse.',
     );
     await expect(roundDrawer).toContainText('Measured within this range');
     await expect(roundDrawer.getByText('Measured again', { exact: true })).toBeVisible();
-    await expect(roundDrawer).not.toContainText('@@');
+    // What changed says so in a sentence; its lines wait under Details.
+    const changed = roundDrawer.getByRole('region', { name: 'What changed' });
+    await expect(changed).toContainText('Its instructions and 1 skill.');
+    await expect(changed.getByText('Work in integer cents from start to finish.')).toBeHidden();
     await capture(page, `flow-round-${theme}`);
+    await changed.getByRole('button', { name: 'Details' }).click();
+    await expect(changed.getByText('Work in integer cents from start to finish.')).toBeVisible();
+    await expect(roundDrawer).not.toContainText('@@');
     await page.keyboard.press('Escape');
     await expect(roundDrawer).toBeHidden();
 
@@ -330,7 +333,7 @@ for (const theme of THEMES) {
     await stop.getByRole('button', { name: 'Keep training' }).click();
     await expect(stop).toBeHidden();
 
-    // The final test, then the report card opens by itself.
+    // The final test, then the results open by themselves.
     await page.locator('main').evaluate((main) => main.scrollTo({ top: 0 }));
     await emitRunEvents(app, finalTest(23));
     await expect(
@@ -340,28 +343,30 @@ for (const theme of THEMES) {
     await emitRunEvents(app, finished());
     await expect(page).toHaveURL(new RegExp(`#/runs/${FLOW.runId}/report$`));
 
-    // Report: met every requirement, with the baselines beside it. The side-by-side table is part
-    // of comparison mode, so the setting goes on for this screen.
-    await updateSettings(page, { comparisonMode: true });
+    // Results: met every requirement, with the baselines beside it. The side-by-side table is part
+    // of comparison mode, a researcher's setting, so it goes on to read it and off to capture.
     await resize(REPORT_HEIGHT);
     await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
     await expect(page.getByText('Ready', { exact: true })).toBeVisible();
     await expect(
       page.getByText(
-        'Final test of 60 unseen tasks, offline on this computer, with Spark disconnected.',
+        'Tested on 60 tasks it had never seen, offline on this computer, with Spark disconnected.',
       ),
     ).toBeVisible();
+    await updateSettings(page, { comparisonMode: true });
     const comparison = page.getByRole('table', { name: 'Compared with simpler methods' });
     await expect(comparison.getByRole('row')).toHaveCount(5);
     const bare = comparison.getByRole('row', { name: /No setup/ });
     await expect(bare).toContainText('40%');
     await expect(bare).toContainText('Glimmer on its own, with no instructions or skills');
-    await expect(page.getByText('Up from 40% with no setup')).toBeVisible();
+    await expect(page.getByText('Up from 40% before training')).toBeVisible();
     await expect(comparison.getByRole('row', { name: /Architect/ })).toContainText('+52 points');
     await expect(page.getByRole('region', { name: 'What helped most' })).toContainText(
-      '+5 check tasks, average of 2 measurements',
+      '+5 check tasks',
     );
     await expect(page.getByRole('heading', { name: "What it won't do" })).toBeVisible();
+    await updateSettings(page, { comparisonMode: false });
+    await expect(comparison).toBeHidden();
     await capture(page, `flow-report-${theme}`);
 
     await page.getByRole('button', { name: 'Start using Service desk' }).click();
@@ -376,7 +381,7 @@ test('trains three simpler versions beside the agent when comparison mode is on'
   await resize(DEFINE_HEIGHT);
   await goTo(page, `/jobs/${FLOW.jobId}/define`);
   await expect(page.getByRole('heading', { name: 'Service desk', level: 1 })).toBeVisible();
-  const hosted = page.getByRole('radio', { name: /Hosted on OpenRouter/ });
+  const hosted = page.getByRole('radio', { name: /Train online/ });
   await hosted.click();
   await expect(hosted).toBeChecked();
 
@@ -386,7 +391,7 @@ test('trains three simpler versions beside the agent when comparison mode is on'
   });
   await expect(compare).not.toBeChecked();
   await expect(
-    page.getByText('Adds 11.5 h · $3 OpenRouter · $0.06 Meta', { exact: true }),
+    page.getByText('Adds 11.5 h · $3 Online practice · $0.06 Spark', { exact: true }),
   ).toBeVisible();
   const time = page.getByRole('region', { name: 'Estimated time' });
   const cost = page.getByRole('region', { name: 'Estimated cost' });
@@ -398,8 +403,8 @@ test('trains three simpler versions beside the agent when comparison mode is on'
   await compare.click();
   await expect(time).toContainText(/Comparison\s*Three simpler versions\s*11\.5 h/);
   await expect(time).toContainText(/In all\s*18 h/);
-  await expect(cost).toContainText(/OpenRouter\s*Glimmer practice\s*\$6/);
-  await expect(cost).toContainText(/Meta\s*Spark\s*\$0\.65/);
+  await expect(cost).toContainText(/Online practice\s*Glimmer practicing online\s*\$6/);
+  await expect(cost).toContainText(/Spark\s*Teaching\s*\$0\.65/);
   await expect(cost).toContainText(/In all\s*\$6\.65/);
 
   // The baselines reuse the agent's seed, so the four runs compare like for like.

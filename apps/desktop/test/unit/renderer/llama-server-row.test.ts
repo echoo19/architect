@@ -16,6 +16,7 @@ describe('the llama.cpp row in Settings', () => {
     expect(llamaServerRowState(onPath, undefined)).toEqual({
       found: { build: 10472, path: null },
       problem: null,
+      details: null,
       tooOld: false,
       canClear: false,
     });
@@ -41,7 +42,8 @@ describe('the llama.cpp row in Settings', () => {
       ),
     ).toEqual({
       found: null,
-      problem:
+      problem: 'Build 9000 is too old. Build 10358 or newer is needed.',
+      details:
         'llama-server is build 9000, older than 10358, the first that runs Muse Glimmer. Update llama.cpp to build 10358 or newer.',
       tooOld: true,
       canClear: false,
@@ -59,7 +61,13 @@ describe('the llama.cpp row in Settings', () => {
     expect(llamaServerRowState(gone, CHOSEN)).toMatchObject({
       found: null,
       canClear: true,
-      problem: expect.stringContaining('clear the setting') as unknown,
+      problem: "The program you chose isn't there anymore.",
+      details: expect.stringContaining('clear the setting') as unknown,
+    });
+    // Nothing chosen and nothing on PATH is plainly not installed, with the engine's words kept.
+    expect(llamaServerRowState(gone, undefined)).toMatchObject({
+      problem: 'Not installed. Agents with trained weights need it.',
+      canClear: false,
     });
   });
 
@@ -67,6 +75,7 @@ describe('the llama.cpp row in Settings', () => {
     expect(llamaServerRowState(undefined, undefined)).toEqual({
       found: null,
       problem: null,
+      details: null,
       tooOld: false,
       canClear: false,
     });

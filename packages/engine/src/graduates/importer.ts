@@ -38,6 +38,7 @@ import {
 import { isoNow } from '../loop/time';
 import { grantsFor, storedFolder } from './bindings';
 import { buildPackage, HARNESS_DIR } from './build';
+import { asDiskFull } from './disk';
 import { readPackageHarness } from './harness';
 import { contractFromManifest, legacyFacts } from './legacy';
 import type { GraduateLibrary } from './library';
@@ -276,7 +277,7 @@ export async function inspectPackage(ctx: ImportContext, path: string): Promise<
       bytes: staged.bytes,
     };
   } catch (error) {
-    if (!(error instanceof PackageError)) throw error;
+    if (!(error instanceof PackageError)) throw asDiskFull(error);
     return { ok: false, code: error.code, problems: [...error.problems] };
   } finally {
     await rm(staging, { recursive: true, force: true });
@@ -370,7 +371,7 @@ export async function previewImport(ctx: ImportContext, path: string): Promise<I
       ...fit,
     };
   } catch (error) {
-    if (!(error instanceof PackageError)) throw error;
+    if (!(error instanceof PackageError)) throw asDiskFull(error);
     return { ok: false, code: error.code, problems: [...error.problems] };
   } finally {
     await rm(staging, { recursive: true, force: true });
@@ -493,6 +494,8 @@ export async function importPackage(
         alreadyInstalled: false,
       };
     });
+  } catch (error) {
+    throw asDiskFull(error);
   } finally {
     await rm(staging, { recursive: true, force: true });
   }

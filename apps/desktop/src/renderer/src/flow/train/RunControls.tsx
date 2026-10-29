@@ -44,7 +44,7 @@ export function RunControls({ live, onStop }: { live: LiveRun; onStop: () => voi
         </Button>
       ) : (
         <Button size="md" variant="primary" onClick={() => navigate(paths.report(run.id))}>
-          See the report card
+          See the results
           <ArrowRight size={15} strokeWidth={2} aria-hidden />
         </Button>
       );

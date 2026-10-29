@@ -2,6 +2,25 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-28 (Tue), the polish pass
+
+**Done** (on a branch; decision 055; no model was called, the GPU stayed off)
+- Phase 1, everything but the welcome, import and new-agent screens, after a blind review of all 114 screens: every failure a screen words has a code (engine, router, bridge and renderer; a plain sentence and what to do, with the precise message under Details), one verdict on Results and in the agent's settings, one set of words for practice tasks, check tasks and the final test and five outcomes for a round, versions in plain states and actions, Spark and Glimmer named alone with their ids and prices in Settings or Details, numbers that agree across the captures, Settings > Models with the teacher and the agent's model first, Define's training place above the fold, and plainer chat states.
+- Phase 2, after merging the ready-made agent (054): the welcome flow (what Architect does in a line, and what Spark and Glimmer are; Model, Teacher, Faster training, Done; "Glimmer · Recommended" and "Glimmer · Smaller" with what each downloads and gives up and whether it runs on the graphics card; Ollama mentioned only when it isn't running; one action in the footer; Spark with a Meta key first and the other three ways under one line), the new-agent screen and the empty workspace ("Try the sample job" a real button beside "Try a ready-made agent", two equal choices), and the import (what the agent does under its name, llama.cpp as its own row that shuts the way on, with a line saying why, until it is set up, folders named by what they hold, "Where are its files?", saving asked once, undone steps marked in the pills, one sentence on the result with the checks under Details, "Not now" until the install is done, a package edited after it was made or not a package said in a sentence, and one field for a Hugging Face address, read as a page address too). A Hub repository that holds no package is coded, in main, and says so in a sentence.
+- Found by the full e2e run after the merge: the status line says "Stand-in trained weights" since phase 1, and the real-engine spec for an imported adapter still looked for "Stand-in adapter".
+- Blind reads, four rounds of readers who saw only images: 30 screens, 18 teaching screens, 25 welcome, new-agent and import screens, and the 11 of those that changed. Each said what every screen was for and what to do next; what they stumbled on was fixed or is listed below. The last two rounds scored 6.6 and 7.5 of 10 on average.
+- Tests: unit tests for the folders' sentences and marks, the stepper's marks, the build names and trade-offs, the repository as typed, when the way on is shut, and the code a Hub repository without a package carries; the e2e specs and their stand-in engines say the new words, the model weighs what the catalog says on every screen, and the stand-in import can say that llama.cpp was set up since the package was first checked.
+- Verified: `pnpm check` exits 0 (190 test files, 2,317 passed, 2 skipped), and the hidden `pnpm e2e` passes (122 passed and 2 skipped in 25 minutes; the skipped ones are the packaging spec, which runs against the built archive, and the real engine's test of a shipped package, which waits for the owner's file). Every capture that changed was looked at in both themes; the old `import-weights-attention-*` captures are gone, since a package that needs llama.cpp can no longer be taken past its first step.
+
+**Next**
+- The owner adds the real ready-made package (054); look at the import's first step once with its own evidence.
+
+**Open issues**
+- In captures made from several fixtures, one run reads differently from the comparison beside it (two example agents with the same name), by the fixtures' design.
+- A teacher skipped in setup is said only in the footer of that step and in Settings.
+- "llama.cpp" and "trained weights" are named as they are, with a row that says what the program is; no size is given for its download.
+- An engine failure that has no code reaches the person in the engine's own words.
+
 ## 2026-10-28 (Tue), a ready-made agent that opens through the import
 
 **Done** (on a branch; decision 054; no model was called, the GPU stayed off)

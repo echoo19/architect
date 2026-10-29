@@ -1,8 +1,7 @@
 import { useMemo, type CSSProperties } from 'react';
 import { cn, Panel } from '@architect/ui';
 import { ChevronRight } from 'lucide-react';
-import { capitalized, MENTOR_ROLE, STUDENT_ROLE } from '../../lib/names';
-import { ROUND_STAGES, STAGE_LABELS, type PhaseView, type Stage } from './phase';
+import { ROUND_STAGES, STAGE_LABELS, type Motion, type PhaseView, type Stage } from './phase';
 import type { EvalProgress } from './run-state';
 import './apprenticeship.css';
 
@@ -63,7 +62,7 @@ export function Apprenticeship({
   return (
     <Panel aria-label={label} className="min-w-0 flex-[7_1_560px]">
       <div
-        className="arch-stage flex min-h-[320px] flex-1 items-center px-11 py-9"
+        className="arch-stage flex min-h-[250px] flex-1 items-center px-11 py-7"
         data-motion={view.motion}
         data-frozen={view.frozen || undefined}
       >
@@ -82,11 +81,7 @@ export function Apprenticeship({
             <circle r={25} fill="none" stroke="currentColor" strokeOpacity={0.25} />
             <circle r={15} fill="currentColor" />
           </svg>
-          <ModelName
-            name={mentor}
-            tone="text-mentor"
-            role={`${capitalized(MENTOR_ROLE)}, in the cloud`}
-          />
+          <ModelName name={mentor} tone="text-mentor" role={mentorRole(view.motion)} />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 px-6 text-center">
@@ -111,7 +106,7 @@ export function Apprenticeship({
           <ModelName
             name={student}
             tone="text-student"
-            role={`${capitalized(STUDENT_ROLE)}, ${studentPlace}`}
+            role={studentRole(view.motion, studentPlace)}
           />
         </div>
       </div>
@@ -150,12 +145,24 @@ export function Apprenticeship({
   );
 }
 
-/** A model's name in its color, and its role and where it runs under it. */
-function ModelName({ name, tone, role }: { name: string; tone: string; role: string }) {
+/** What the teacher is doing under its name: nothing once the run has ended, and cut off in the final test. */
+function mentorRole(motion: Motion): string | null {
+  if (motion === 'still') return null;
+  return motion === 'testing' ? 'Disconnected' : 'Teaching';
+}
+
+/** What the student is doing under its name, and where it runs. */
+function studentRole(motion: Motion, place: string): string | null {
+  if (motion === 'still') return null;
+  return motion === 'testing' ? 'Taking the final test' : `Learning ${place}`;
+}
+
+/** A model's name in its color, and under it what it is doing, while a run is going. */
+function ModelName({ name, tone, role }: { name: string; tone: string; role: string | null }) {
   return (
     <div className="flex max-w-[180px] flex-col items-center gap-0.5 text-center">
       <span className={cn('font-medium', tone)}>{name}</span>
-      <span className="text-sm text-fg-muted text-balance">{role}</span>
+      {role && <span className="text-sm text-fg-muted text-balance">{role}</span>}
     </div>
   );
 }

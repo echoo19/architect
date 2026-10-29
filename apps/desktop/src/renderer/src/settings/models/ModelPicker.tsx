@@ -55,13 +55,13 @@ export function priceText(pricing: TokenPricing): string {
   return `${amount(pricing.inputPerM)} · ${amount(pricing.outputPerM)}`;
 }
 
-/** Whether a local model runs entirely on the GPU, as a dot and a word. */
+/** Whether a local model runs entirely on the graphics card, as a dot and a word: fast or slower. */
 export function GpuMark({ fit }: { fit: GpuFit }) {
   if (fit === 'unknown') return null;
   return (
     <span className="flex items-center gap-1.5">
       <StatusDot tone={fit === 'full' ? 'student' : 'faint'} />
-      {fit === 'full' ? 'GPU' : 'Part CPU'}
+      {fit === 'full' ? 'Fast' : 'Slower'}
     </span>
   );
 }

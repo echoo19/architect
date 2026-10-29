@@ -185,7 +185,7 @@ export function describeCurve(input: CurveInput): string {
       const after = round.index === input.draftRound ? 'the first draft' : `round ${round.index}`;
       parts.push(`${Math.round(rate(round.devAfter))}% after ${after}`);
     } else if (round.decision === 'reverted' && round.devAfter) {
-      parts.push(`round ${round.index} reverted at ${Math.round(rate(round.devAfter))}%`);
+      parts.push(`round ${round.index} undone at ${Math.round(rate(round.devAfter))}%`);
     } else if (round.status === 'failed') {
       parts.push(`round ${round.index} failed`);
     } else {
@@ -193,6 +193,7 @@ export function describeCurve(input: CurveInput): string {
     }
   }
   const target = `Target ${Math.round(input.target * 100)}%.`;
-  if (parts.length === 0) return `Check tasks right by round: nothing measured yet. ${target}`;
-  return `Check tasks right by round: ${parts.join(', ')}. ${target}`;
+  if (parts.length === 0)
+    return `Score on the check tasks by round: nothing measured yet. ${target}`;
+  return `Score on the check tasks by round: ${parts.join(', ')}. ${target}`;
 }

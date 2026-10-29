@@ -3,9 +3,12 @@ import type {
   ImportPreview,
   InstallCheck,
   PackageManifest,
+  PackageProblemCode,
   TestedConfiguration,
 } from '@architect/shared';
 import {
+  DetailList,
+  Disclosure,
   Heading,
   SettingsRow,
   SettingsSection,
@@ -17,14 +20,16 @@ import {
 import { DownloadModelButton, SetUpLlamaButton } from '../install/InstallChecks';
 import {
   AUTHOR_RESULT_TITLE,
+  CHECK_LABELS,
   checkDetail,
   checkMark,
+  installProblem,
   osName,
   runtimeName,
   WEIGHTS_BASE,
 } from '../install/labels';
 import { formatBytes, formatPercent } from '../lib/format';
-import { capitalized } from '../lib/names';
+import { baseModelName, capitalized } from '../lib/names';
 import { useUi } from '../state/ui';
 
 type Previewed = Extract<ImportPreview, { ok: true }>;
@@ -49,9 +54,9 @@ export function testedOn(config: TestedConfiguration): string {
 }
 
 /**
- * The package as checked before anything is installed: that it is whole and safe to install,
- * whether this computer can run it and has its model (and llama.cpp, for trained weights), where
- * it would go, and how it did on the author's computer.
+ * The package as checked before anything is installed: that it is whole and safe to open, whether
+ * this computer can run it and has its model (and llama.cpp, for trained weights), where it would
+ * go, and how it did on its author's computer.
  */
 export function CheckStep({
   preview,
@@ -69,6 +74,15 @@ export function CheckStep({
   const mark = (check: InstallCheck | undefined): MarkState =>
     check ? checkMark(check, status) : 'off';
   const notChecked = "Not checked, since this computer can't run it";
+  const failed = checks.filter((check) => check.status === 'failed');
+  const modelName = baseModelName(model.model);
+  const modelProblem =
+    served?.status === 'failed'
+      ? installProblem(
+          { checks: [served] },
+          { model: modelName, baseBytes: manifest.model.base?.sizeBytes },
+        )?.cause
+      : undefined;
   useRecheckAfterSettings(server?.status === 'failed' ? onRecheck : null);
 
   return (
@@ -77,24 +91,27 @@ export function CheckStep({
         <Heading as="h1" size="display-sm">
           {manifest.identity.name}
         </Heading>
-        <p className="m-0 font-mono text-sm text-fg-muted">{file}</p>
+        <p className="m-0 text-lg text-fg-secondary text-pretty">
+          {manifest.contract.summary ?? manifest.contract.description}
+        </p>
+        <p className="m-0 font-mono text-sm text-fg-muted">
+          Version {manifest.identity.version} · {file}
+        </p>
       </header>
 
       <div className="flex flex-col">
         <SettingsRow
           icon={<StatusMark state="ok" label="Passed" />}
-          label="Package"
+          label="Safe to open"
           meta={`${preview.files} files · ${formatBytes(preview.bytes)} · checked without running any of it${
             preview.migratedFrom === undefined ? '' : ' · converted from an older format'
           }`}
-        >
-          <SettingsValue>Version {manifest.identity.version}</SettingsValue>
-        </SettingsRow>
+        />
         {place.kind === 'version' && (
           <SettingsRow
             icon={<VersionTag version={place.version} />}
             label={`Joins ${place.name} as version ${place.version}`}
-            meta="Waits as a candidate until you promote it; its folders and permissions stay"
+            meta="Waits until you choose to use it; its folders and permissions stay"
           />
         )}
         {place.kind === 'installed' && (
@@ -110,47 +127,57 @@ export function CheckStep({
         <SettingsRow
           icon={<StatusMark state={mark(fit)} />}
           label="This computer"
-          meta={
-            fit?.status !== 'passed'
-              ? fit?.detail
-              : server
-                ? 'Needs llama.cpp for its trained weights'
-                : `Runs it with ${runtimeName(model.runtime)}`
-          }
+          meta={fit?.status === 'passed' ? 'Can run it' : fit?.detail}
         >
           <SettingsValue>
-            {osName(machine.os)} {machine.arch} · {formatBytes(machine.memoryBytes)}
+            {osName(machine.os)} · {formatBytes(machine.memoryBytes)} of memory
           </SettingsValue>
         </SettingsRow>
         {server && (
           <SettingsRow
             icon={<StatusMark state={mark(server)} />}
             label="llama.cpp"
-            meta={server.status === 'skipped' ? notChecked : checkDetail(server, preview)}
+            meta={
+              server.status === 'skipped'
+                ? notChecked
+                : server.status === 'failed'
+                  ? 'A free program that runs its trained weights. One more download.'
+                  : checkDetail(server, preview)
+            }
           >
             {server.status === 'failed' && <SetUpLlamaButton />}
           </SettingsRow>
         )}
         <SettingsRow
           icon={<StatusMark state={mark(served)} />}
-          label="Base model"
+          label="Model it needs"
           meta={
             served?.status === 'passed'
               ? server
                 ? capitalized(WEIGHTS_BASE)
-                : `On this computer, served by ${runtimeName(model.runtime)}`
+                : 'Downloaded'
               : served?.status === 'skipped'
                 ? notChecked
-                : served?.detail
+                : (modelProblem ?? served?.detail)
           }
         >
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <span className="font-mono text-sm text-fg-secondary">{model.model}</span>
+            <SettingsValue>{modelName}</SettingsValue>
             {served?.status === 'failed' && model.runtime === 'ollama' && (
               <DownloadModelButton model={model.model} disabled={false} onDone={onRecheck} />
             )}
           </div>
         </SettingsRow>
+        {failed.length > 0 && (
+          <Disclosure label="Details" className="pt-1">
+            <DetailList
+              items={failed.map((check) => ({
+                label: CHECK_LABELS[check.kind] ?? check.kind,
+                value: check.detail,
+              }))}
+            />
+          </Disclosure>
+        )}
       </SettingsSection>
 
       <AuthorResult manifest={manifest} />
@@ -158,29 +185,36 @@ export function CheckStep({
   );
 }
 
-/** The author's own locked-test result, labelled as theirs. */
+/** Beside a button that waits for llama.cpp: why it does. */
+export function WaitsForLlama() {
+  return <span className="text-sm text-fg-muted">Set up llama.cpp to go on</span>;
+}
+
+/** The author's own final test result, labelled as theirs. */
 export function AuthorResult({ manifest }: { manifest: PackageManifest }) {
   const summary = manifest.evidence.summary;
   const tested = manifest.requirements.tested[0];
   return (
     <SettingsSection title={AUTHOR_RESULT_TITLE} className="pt-0">
       {summary ? (
-        <SettingsRow
-          label="Final test"
-          meta={[
-            `The job asked for ${Math.round(summary.passRate.target * 100)}%`,
-            tested && testedOn(tested),
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-        >
-          <SettingsValue>
-            {summary.passRate.met ? 'Passed' : 'Below its target'}: {summary.score.pass} of{' '}
-            {summary.score.total} ({formatPercent(summary.score)})
-          </SettingsValue>
-        </SettingsRow>
+        <>
+          <SettingsRow
+            label="Final test"
+            meta={`The job needed ${Math.round(summary.passRate.target * 100)}%`}
+          >
+            <SettingsValue>
+              {summary.passRate.met ? 'Passed' : 'Below its target'}: {summary.score.pass} of{' '}
+              {summary.score.total} ({formatPercent(summary.score)})
+            </SettingsValue>
+          </SettingsRow>
+          {tested && (
+            <Disclosure label="Details" className="pt-1">
+              <DetailList items={[{ label: 'Tested on', value: testedOn(tested) }]} />
+            </Disclosure>
+          )}
+        </>
       ) : (
-        <SettingsRow label="Final test" meta="No locked test measured this version">
+        <SettingsRow label="Final test" meta="No final test measured this version">
           <SettingsValue>Not evaluated</SettingsValue>
         </SettingsRow>
       )}
@@ -188,8 +222,37 @@ export function AuthorResult({ manifest }: { manifest: PackageManifest }) {
   );
 }
 
-/** A package the import refused, with every reason; nothing in it was installed or run. */
-export function Refused({ file, problems }: { file: string; problems: string[] }) {
+/**
+ * Why a package was refused, in a sentence with what to do about it. Every refusal says that it
+ * can't be used, and most are the sender's to put right.
+ */
+const REFUSALS: Record<PackageProblemCode, string> = {
+  not_a_package: "This isn't an Architect agent package.",
+  unsafe_path: "This package isn't safe to open. Ask whoever sent it for a new copy.",
+  link: "This package isn't safe to open. Ask whoever sent it for a new copy.",
+  too_large: 'This package is bigger than Architect will open.',
+  too_many_files: 'This package holds more files than Architect will open.',
+  archive: "Architect can't read this file. Ask whoever sent it for a new copy.",
+  unknown_schema:
+    'This package was made by a newer version of Architect. Update Architect to open it.',
+  invalid_manifest: "This package's description is damaged. Ask whoever sent it for a new copy.",
+  checksum: 'This package was edited after it was made. Ask whoever sent it for a new copy.',
+  missing_file: 'This package is missing files it lists. Ask whoever sent it for a new copy.',
+  unlisted_file: "This package holds files it doesn't list. Ask whoever sent it for a new copy.",
+  incompatible: "This agent can't run in this version of Architect.",
+  invalid_harness: "This package's setup is damaged. Ask whoever sent it for a new copy.",
+};
+
+/** A package the import refused: one sentence on why, then the engine's own reasons under Details. */
+export function Refused({
+  file,
+  code,
+  problems,
+}: {
+  file: string;
+  code: PackageProblemCode;
+  problems: string[];
+}) {
   return (
     <>
       <header className="flex flex-col gap-2">
@@ -198,19 +261,22 @@ export function Refused({ file, problems }: { file: string; problems: string[] }
         </Heading>
         <p className="m-0 font-mono text-sm text-fg-muted">{file}</p>
       </header>
-      <ul aria-label="Problems" className="m-0 flex list-none flex-col p-0">
-        {problems.map((problem) => (
-          <li key={problem}>
-            <SettingsRow icon={<StatusMark state="blocked" label="Problem" />} label={problem} />
-          </li>
-        ))}
-        <li>
-          <SettingsRow
-            icon={<StatusMark state="off" />}
-            label="Nothing in it was installed or run"
-          />
-        </li>
-      </ul>
+      <div className="flex flex-col gap-2">
+        <p className="m-0 flex items-start gap-2.5 text-lg text-fg-soft text-pretty">
+          <StatusMark state="blocked" label="Problem" className="mt-1.5" />
+          {REFUSALS[code]}
+        </p>
+        <p className="m-0 pl-[30px] text-fg-secondary">Nothing in it was installed or run.</p>
+        <Disclosure label="Details" className="pl-[30px]">
+          <ul aria-label="Problems" className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm">
+            {problems.map((problem) => (
+              <li key={problem} className="text-fg-secondary text-pretty">
+                {problem}
+              </li>
+            ))}
+          </ul>
+        </Disclosure>
+      </div>
     </>
   );
 }

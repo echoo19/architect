@@ -71,11 +71,11 @@ export function comparisonRows(reports: readonly ReportCard[], runId: string): C
 export function methodExplanation(method: Method, { mentor, student }: ModelNames): string {
   switch (method) {
     case 'architect':
-      return `${mentor} watched ${student} work and kept what helped`;
+      return `${mentor} taught ${student} and kept what helped`;
     case 'one_shot':
       return `${mentor} wrote the setup once, without watching`;
     case 'self_reflection':
-      return `${student} corrected its own setup, with no mentor`;
+      return `${student} corrected its own setup, with no help from ${mentor}`;
     case 'bare':
       return `${student} on its own, with no instructions or skills`;
   }

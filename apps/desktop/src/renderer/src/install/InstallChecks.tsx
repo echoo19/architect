@@ -9,14 +9,15 @@ import { pullPercent } from '../onboarding/pull';
 import { useModelPull } from '../onboarding/useModelPull';
 import { useUi } from '../state/ui';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
+import { folderName } from './folders';
 import { CHECK_LABELS, checkDetail, checkMark, fixesFor, type Fix } from './labels';
 
 const CHECK_OUTCOMES = { passed: 'Passed', failed: 'Failed', skipped: 'Skipped' } as const;
 
-/** This computer's install checks, one row each, with what each found. */
+/** The checks of this computer, one row each, with what each found. */
 export function CheckRows({ installation }: { installation: Installation }) {
   return (
-    <ul aria-label="Install checks" className="m-0 flex list-none flex-col p-0">
+    <ul aria-label="Checks on this computer" className="m-0 flex list-none flex-col p-0">
       {installation.checks.map((check) => (
         <li key={check.id}>
           <SettingsRow
@@ -63,7 +64,7 @@ export function SetUpLlamaButton({ disabled = false }: { disabled?: boolean }) {
       }}
     >
       <Cpu size={14} strokeWidth={1.7} aria-hidden />
-      Set up llama.cpp in Settings
+      Set up llama.cpp
     </Button>
   );
 }
@@ -100,7 +101,7 @@ export function FixButtons({
       case 'choose':
         return (async () => {
           const [folder] = await architect().files.pick({
-            title: `Choose a folder for ${fix.resource}/`,
+            title: `Choose the ${folderName({ name: fix.resource }).toLowerCase()}`,
             directory: true,
           });
           if (!folder) return null;
@@ -174,10 +175,10 @@ function fixLabel(fix: Exclude<Fix, { kind: 'download' | 'llama' | 'model' }>): 
   switch (fix.kind) {
     case 'choose':
       return fix.again
-        ? `Choose another folder for ${fix.resource}/`
-        : `Choose a folder for ${fix.resource}/`;
+        ? `Choose another ${folderName({ name: fix.resource }).toLowerCase()}`
+        : `Choose the ${folderName({ name: fix.resource }).toLowerCase()}`;
     case 'allow':
-      return `Allow ${fix.resource}/`;
+      return `Allow the ${folderName({ name: fix.resource }).toLowerCase()}`;
     case 'check':
       return 'Check again';
   }

@@ -30,6 +30,14 @@ export const VISIBILITY_MEANINGS: Record<HubVisibility, string> = {
   public: 'Anyone can see and download it',
 };
 
+/** "jake/service-desk" from what was typed: that, `hf://jake/service-desk`, or the page's address. */
+export function repositoryOf(typed: string): string {
+  return typed
+    .trim()
+    .replace(/^(?:hf:\/\/|https?:\/\/(?:www\.)?huggingface\.co\/)/, '')
+    .replace(/\/+$/, '');
+}
+
 /** The first characters of a commit, as the Hub shows one. */
 export function shortCommit(commit: string): string {
   return commit.slice(0, 7);

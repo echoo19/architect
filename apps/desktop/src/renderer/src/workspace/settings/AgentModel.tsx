@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { graduateKeys, graduatesApi, refreshAgent, useInstallation } from '../../api/graduates';
 import { setQueryData } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
-import { STATUS_LABELS } from '../../install/labels';
+import { STATUS_LABELS, WORKS_HERE_TITLE } from '../../install/labels';
 import { formatBytes } from '../../lib/format';
 import { capitalized, quantizationLabel, STUDENT_ROLE } from '../../lib/names';
 import { attempt } from '../../lib/notify';
@@ -31,7 +31,7 @@ const onOllama = (connection: Connection) => connection.provider === 'ollama';
 
 /**
  * The agent's model on this computer, chosen from the models here. Choosing one binds it and runs
- * the install checks again, whose outcome the Install checks row shows. A version with trained
+ * the checks on this computer again, whose outcome the General tab shows. A version with trained
  * weights is offered only Ollama's models. A fix that needs another model opens the picker.
  */
 export function AgentModelRow({
@@ -73,8 +73,8 @@ export function AgentModelRow({
     setSaving(false);
     if (bound) {
       toast({
-        title: `${agent.name} now runs on ${localModelName(next.model)}`,
-        description: `Install checks: ${STATUS_LABELS[bound.status]}`,
+        title: `Changed the model of ${agent.name}`,
+        description: `${WORKS_HERE_TITLE}: ${STATUS_LABELS[bound.status]}`,
       });
     }
   };

@@ -12,7 +12,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  ErrorState,
   IconButton,
   LogoMark,
   Skeleton,
@@ -23,8 +22,8 @@ import { Cloud, Ellipsis, PackageOpen, Pause, Plus, Settings } from 'lucide-reac
 import { api, architect } from '../api/client';
 import { queryKeys, useGraduates, useJobs } from '../api/hooks';
 import { fetchQuery } from '../api/query';
+import { ProblemState } from '../components/ProblemState';
 import { chooseFromHub, chooseImport } from '../import/session';
-import { formatPercent } from '../lib/format';
 import { attempt } from '../lib/notify';
 import { isMac } from '../lib/platform';
 import { navigate, paths, type Route } from '../lib/router';
@@ -100,10 +99,10 @@ export function Sidebar({ route }: { route: Route }) {
               <TrainingList jobs={jobs.data} route={route} />
             ) : (
               jobs.status === 'error' && (
-                <ErrorState
+                <ProblemState
                   layout="inline"
+                  error={jobs.error}
                   title="Couldn't load training"
-                  message={jobs.error.message}
                   onRetry={jobs.reload}
                   className="px-2.5"
                 />
@@ -111,10 +110,10 @@ export function Sidebar({ route }: { route: Route }) {
             )}
           </>
         ) : graduates.status === 'error' ? (
-          <ErrorState
+          <ProblemState
             layout="inline"
+            error={graduates.error}
             title="Couldn't load your agents"
-            message={graduates.error.message}
             onRetry={() => {
               graduates.reload();
               jobs.reload();
@@ -178,9 +177,8 @@ function AgentListSkeleton() {
 }
 
 function AgentList({ graduates, route }: { graduates: GraduateSummary[]; route: Route }) {
-  if (graduates.length === 0) {
-    return <p className="m-0 px-2.5 text-sm text-fg-muted">No agents yet</p>;
-  }
+  // With none, the screen beside it says so, and New agent above is the way to make one.
+  if (graduates.length === 0) return null;
   return (
     <div className="flex flex-col gap-3">
       {graduates.map((graduate) => (
@@ -237,10 +235,10 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
         </div>
       )}
       {!list && chats.entry.status === 'error' && (
-        <ErrorState
+        <ProblemState
           layout="inline"
+          error={chats.entry.error}
           title="Couldn't load chats"
-          message={chats.entry.error}
           onRetry={chats.reload}
           className="py-1.5 pl-[38px] pr-2.5"
         />
@@ -266,9 +264,7 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
             <span className="truncate">{chat.title}</span>
             {/* A chat waiting for an answer isn't working; the open one says so in the thread. */}
             {chat.waiting ? (
-              !current && (
-                <span className="shrink-0 text-xs font-medium text-student">Needs you</span>
-              )
+              !current && <span className="shrink-0 text-xs font-medium text-student">Approve</span>
             ) : chat.running ? (
               <Spinner tone="student" label="Working" />
             ) : null}
@@ -301,12 +297,9 @@ function TrainingList({ jobs, route }: { jobs: JobSummary[]; route: Route }) {
               <Spinner tone="mentor" size={16} label="Training" />
             )}
             <span className="flex-1 truncate">{job.name}</span>
-            {run.devCurrent && (
-              <span className="text-xs text-fg-muted">
-                {formatPercent(run.devCurrent)}
-                <span className="sr-only"> of check tasks right so far</span>
-              </span>
-            )}
+            <span className="text-xs text-fg-muted">
+              {run.status === 'paused' ? 'Paused' : 'Training'}
+            </span>
           </button>
         );
       })}
