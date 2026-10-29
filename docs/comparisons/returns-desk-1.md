@@ -1,6 +1,6 @@
 # Comparisons: Returns desk
 
-Made 2026-10-29T01:02:02.276Z at commit 4872821, from stored records only. Splits seed 20261124: 15 calibration, 60 train, 45 dev and 60 locked-test tasks. Mentoring seed 1. Development closed at 2026-10-28T21:56:26.858Z, when the locked tests were released; no arm developed after it.
+Made 2026-10-29T01:05:12.553Z at commit 05f5a52, from stored records only. Splits seed 20261124: 15 calibration, 60 train, 45 dev and 60 locked-test tasks. Mentoring seed 1. Development closed at 2026-10-28T21:56:26.858Z, when the locked tests were released; no arm developed after it.
 
 Locked-test seeds declared in the plan before any arm ran: 101 and 102. Seed 101 ran for Bare student; One-shot draft; Targeted mentoring; and Spark reference, blank harness. Seed 102 was declared for the decoding repeat and was not run, so no result in this report is under it.
 
@@ -132,7 +132,7 @@ Projected for the funded arms: student $4.64 of $15.00, Spark $5.46 of $10.00, c
 - The totals count each dollar once. A graduate's cumulative cost adds what it builds on: Targeted mentoring includes the one-shot draft arm's development (Spark $0.28, student $2.05, compute $0.00 in all).
 - The request journal writes down every hosted request before it is sent, so it also holds requests that no recorded attempt keeps the cost of (an attempt that failed or was cut off and was made again), and it counts a request a crash or a failure cut off at the most it could have cost, since its charge is not known. A restart repeats no recorded attempt, Spark reply or training job; an attempt in flight when a process stopped is made again, and its cut-off requests count in the journal at their worst; a Spark call in flight is paid again.
 - Calibration against the provider's billing: it billed $0.09 where the listed price of the same usage is $0.09 (1.000 times), for 128 of 128 calls. Costs are what it billed wherever it said.
-- Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. A01 is blocked without Hugging Face credentials.
+- Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. A01 is not met: this comparison ran no training job.
 - Local evaluation incomplete: no locked test ran on this computer, so no result here describes muse-glimmer:30b-iq2, the build the agents are set to run on.
 - Hosted results ran on openrouter.ai, pinned to DeepInfra with no fallback (bf16, as DeepInfra's listing on OpenRouter says; not reported per call); this computer runs muse-glimmer:30b-iq2, so hosted and local tables are never compared row to row.
 - Spark's rows are references on the same tasks, tools, limits and seed, not arms, graded by the same checker; Spark judged nothing. The blank-harness row is the primary reference: Spark saw no lesson.
