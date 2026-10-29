@@ -2,6 +2,17 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), release 0.3.5, and the launch film started
+
+**Done**
+- Released 0.3.5 (`e2f5f09`, tag v0.3.5) with the blind read's wording: the question about a mark says when each answer is the right one, the rule shows it in short beside the answer, and the counts say out of how many rows. CI passed on main before the tag and on the release commit, the release workflow attached the Windows installer and both Mac disk images, and the site, deployed after them, names `Architect-Setup-0.3.5.exe`; the three download links answer 302. `docs/HACKATHON.md` names 0.3.5 and the Oct 29 row says so.
+- The launch film, with the product-film skill, in `C:/JakeOS/projects/architect-runs/film/launch/` (outside the repo, so renders and its two packages stay out of the monorepo): `BRIEF.md` (the idea, a first script of about 200 words and 2:10, the picture and the sound), the skill's tools and licensed effects, Geist and the app's tokens copied from `packages/ui`, and four voice samples on ElevenLabs `eleven_v4` (Jon, Eric, Jen, Eliza; a tag such as `[wryly]` is performed, not read, checked by transcription). The pacing takes after Apple's MacBook Pro film of Oct 28 (about 100 words a minute of film, short lines with music between them, a stop before the end and a callback to the first line), without its device or lines.
+- The ElevenLabs key can list voices and make speech and music, but not list models or read the plan. The models, from ElevenLabs' docs: `eleven_v4` for the voice and `music_v2_5` for music, which takes a composition plan timed to the cut.
+
+**Next**
+- The owner picks a voice, says what to change in the script, and whether the logos of the teachers (Meta, OpenAI, Anthropic, Google, OpenRouter, Ollama) and Hugging Face may be downloaded.
+- Then the voiceover, a music plan timed to it, the page and drafts, the critic pass, the mix and the final render (3 workers at most while memory is short).
+
 ## 2026-10-29 (Thu), the blind read's fixes merged, and where Architect fits in the README
 
 **Done** (no model of the product was called; the GPU stayed off)
