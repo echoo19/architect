@@ -517,8 +517,12 @@ export class JobDrafting implements JobDrafter {
   private draftMessage(unresolved: readonly string[], dropped: Built['dropped']): string {
     const parts: string[] = [];
     if (unresolved.length > 0) {
+      const one = unresolved.length === 1;
       parts.push(
-        `${unresolved.length === 1 ? "I couldn't settle this" : "I couldn't settle these"} from your files and answers, so I left ${unresolved.length === 1 ? 'it' : 'them'} open: ${unresolved.map(sentence).join(' ')}`,
+        [
+          `I couldn't settle ${one ? 'this' : 'these'} from your files and answers, so I left ${one ? 'it' : 'them'} open:`,
+          ...unresolved.map(sentence),
+        ].join('\n'),
       );
     }
     for (const type of dropped) {

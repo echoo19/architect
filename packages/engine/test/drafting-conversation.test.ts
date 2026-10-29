@@ -435,7 +435,7 @@ describe('drafting the job', () => {
       unresolved: ['Whether cancelled orders count in totals'],
     });
     expect(turn.message).toBe(
-      "I couldn't settle this from your files and answers, so I left it open: Whether cancelled orders count in totals.\n\nI've drafted the job for you to review.",
+      "I couldn't settle this from your files and answers, so I left it open:\nWhether cancelled orders count in totals.\n\nI've drafted the job for you to review.",
     );
   });
 
