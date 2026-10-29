@@ -119,20 +119,40 @@ describe('the words that put a rule in front of the person', () => {
   });
 
   it('says who read the policy and what rests on the rule, one rule or several', () => {
-    expect(reviewIntro('Spark', 1)).toBe(
-      'Spark turned your policy into this rule. Architect works out every expected answer from it, so what the agent is tested on is only as right as the rule.',
+    expect(reviewIntro('Spark', 'Glimmer', 1)).toBe(
+      'Spark turned your policy into this rule. Architect works out the right answer to every task from this rule and grades Glimmer against those answers, so if the rule is wrong, the grades are wrong too.',
     );
-    expect(reviewIntro('Spark', 2)).toContain('into these rules');
+    expect(reviewIntro('Spark', 'Glimmer', 2)).toBe(
+      'Spark turned your policy into these rules. Architect works out the right answer to every task from these rules and grades Glimmer against those answers, so if the rules are wrong, the grades are wrong too.',
+    );
     expect(confirmLine('Spark', 1)).toContain("Training can't start until you confirm it.");
     expect(confirmLine('Spark', 2)).toContain('until you confirm them.');
   });
 
-  it('says what changing the description keeps, and what it does not', () => {
+  it('names the agent by its short name, once, and the teacher and Architect as who did what', () => {
+    for (const count of [1, 2]) {
+      const intro = reviewIntro('Spark', 'Glimmer', count);
+      // Three things are named, each where it acts: the teacher read, Architect worked out and graded.
+      expect(intro.match(/Spark/g)).toHaveLength(1);
+      expect(intro.match(/Architect/g)).toHaveLength(1);
+      expect(intro.match(/Glimmer/g)).toHaveLength(1);
+      expect(intro).not.toMatch(/the agent|expected answer|tested on/);
+      // A student with another name is called by it.
+      expect(reviewIntro('Spark Open', 'Gleam', count)).toContain('grades Gleam against');
+    }
+  });
+
+  it("says what changing the description keeps, and what it does not, in the screen's own words", () => {
     // Changing the description puts the words and the attached files back, and drafts again: the
     // conversation, with the answers in it, starts over.
     expect(confirmLine('Spark', 1)).toBe(
-      "Check the passages, the rule and the examples against your policy. Training can't start until you confirm it. If it isn't right, change the description. Your words and files come back as you left them, and Spark may ask its questions again.",
+      "Check that the lines from your policy are the right ones, and that the rule and the examples match them. Training can't start until you confirm it. If it isn't right, change the description. Your words and files come back as you left them, and Spark may ask its questions again.",
     );
+    // The section is called "From your policy" and its items are never called passages.
+    for (const count of [1, 2]) {
+      expect(confirmLine('Spark', count)).toContain('the lines from your policy');
+      expect(confirmLine('Spark', count)).not.toMatch(/passage/i);
+    }
     expect(confirmLine('Spark Open', 2)).toContain('and Spark Open may ask its questions again.');
     expect(confirmLine('Spark', 2)).toContain("If they aren't right, change the description.");
     for (const count of [1, 2]) {
@@ -148,7 +168,7 @@ describe('the words that put a rule in front of the person', () => {
     };
     expect(confirmedOn(state)).toBe('Oct 29');
     expect(confirmedOn({ state: 'needed', token: 'abc' })).toBeNull();
-    expect(leftOutLine(DETAILS)).toBe('62 of 180 rows left out');
+    expect(leftOutLine(DETAILS)).toBe('62 of 180 rows left out of the tasks');
     expect(leftOutLine({ ...DETAILS, cases: { total: 118, eligible: 118 } })).toBeNull();
   });
 
@@ -161,7 +181,7 @@ describe('the words that put a rule in front of the person', () => {
       ],
     };
     expect(leftOutLine(one)).toBe(
-      '26 of 160 rows left out: parts_cost says N/A or a dash, which is not the same as empty',
+      '26 of 160 rows left out of the tasks: parts_cost says N/A or a dash, which is not the same as empty',
     );
     // Two reasons are too many for a line: the counts alone, and the reasons when it is opened.
     const two = {
@@ -171,7 +191,7 @@ describe('the words that put a rule in front of the person', () => {
         { reason: 'customer_id has no row in customers.csv', count: 6 },
       ],
     };
-    expect(leftOutLine(two)).toBe('26 of 160 rows left out');
+    expect(leftOutLine(two)).toBe('26 of 160 rows left out of the tasks');
     // One row left out of one.
     expect(
       leftOutLine({
@@ -179,7 +199,7 @@ describe('the words that put a rule in front of the person', () => {
         cases: { total: 1, eligible: 0 },
         excluded: [{ reason: 'ticket_id is empty', count: 1 }],
       }),
-    ).toBe('1 of 1 row left out: ticket_id is empty');
+    ).toBe('1 of 1 row left out of the tasks: ticket_id is empty');
   });
 });
 

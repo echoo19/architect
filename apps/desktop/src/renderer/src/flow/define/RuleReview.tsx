@@ -23,7 +23,7 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
   const { confirmation } = plan;
   const [confirming, setConfirming] = useState(false);
   if (rules.length === 0 || confirmation === undefined) return null;
-  const { mentor } = modelNames(job);
+  const { mentor, student } = modelNames(job);
   const confirmed = confirmation.state === 'confirmed';
   const changed = confirmation.state === 'changed';
 
@@ -71,7 +71,7 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
       </div>
       {confirmation.state === 'needed' && (
         <p className="m-0 max-w-[620px] text-fg-secondary text-pretty">
-          {reviewIntro(mentor, rules.length)}
+          {reviewIntro(mentor, student, rules.length)}
         </p>
       )}
       {changed && (
@@ -174,7 +174,7 @@ function RuleCard({
 
       <div className="flex flex-col gap-1">
         {details.excluded.length > 0 && (
-          <Disclosure label={leftOut ?? 'Rows left out'}>
+          <Disclosure label={leftOut ?? 'Rows left out of the tasks'}>
             <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-fg-secondary">
               {details.excluded.map((item) => (
                 <li key={item.reason} className="text-pretty">

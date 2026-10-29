@@ -242,6 +242,15 @@ for (const theme of THEMES) {
     // Define puts the rule first: the passages, the rule in words, the examples and their working.
     const section = page.getByRole('region', { name: 'Check the rule' });
     await expect(section).toBeVisible();
+    // What rests on the rule is said in the names the screen uses: Spark read the policy, and
+    // Architect grades Glimmer against the answers the rule gives. The lines it quotes are the
+    // section "From your policy", and the screen calls them nothing else.
+    await expect(section).toContainText(
+      'Spark turned your policy into this rule. Architect works out the right answer to every task from this rule and grades Glimmer against those answers, so if the rule is wrong, the grades are wrong too.',
+    );
+    await expect(section).toContainText('Check that the lines from your policy are the right ones');
+    await expect(section.getByText('From your policy', { exact: true })).toBeVisible();
+    await expect(section).not.toContainText(/passage/i);
     const card = section.getByRole('article', { name: 'Ticket totals' });
     await expect(
       card.getByText('Labor is billed at $65 an hour, in half-hour steps.'),
@@ -272,7 +281,7 @@ for (const theme of THEMES) {
     // says how many says why too, when it is the one reason.
     const leftOut = card.getByRole('button', { name: /rows? left out/ });
     await expect(leftOut).toHaveText(
-      /^\d+ of \d+ rows left out: parts_cost says N\/A or a dash, which is not the same as empty$/,
+      /^\d+ of \d+ rows left out of the tasks: parts_cost says N\/A or a dash, which is not the same as empty$/,
     );
     await leftOut.click();
     await expect(

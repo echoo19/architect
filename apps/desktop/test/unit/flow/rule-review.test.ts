@@ -147,8 +147,19 @@ describe('the rule as Define puts it in front of the person', () => {
 
   it('gives the rows left out their reason in the line that says how many, when it is one', () => {
     expect(text(html)).toContain(
-      '26 of 160 rows left out: parts_cost says N/A or a dash, which is not the same as empty',
+      '26 of 160 rows left out of the tasks: parts_cost says N/A or a dash, which is not the same as empty',
     );
+  });
+
+  it('says what the rule is for in the names the screen uses, and checks the lines it quotes', () => {
+    // The agent is Glimmer here as everywhere on the screen, and "passages" is nowhere: the section
+    // is called "From your policy".
+    expect(text(html)).toContain(
+      'Spark turned your policy into this rule. Architect works out the right answer to every task from this rule and grades Glimmer against those answers, so if the rule is wrong, the grades are wrong too.',
+    );
+    expect(text(html)).toContain('Check that the lines from your policy are the right ones');
+    expect(text(html)).toContain('From your policy');
+    expect(text(html)).not.toMatch(/passage|the agent is tested on/i);
   });
 
   it('keeps the version out of the way of the title, in Details, and shows no code up front', () => {
