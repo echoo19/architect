@@ -19,13 +19,14 @@ export function leftOutNote(rule: RuleReport, several: boolean): string | null {
   const out = rule.cases.total - rule.cases.eligible;
   if (out <= 0) return null;
   const used = `${several ? `For ${rule.label}, the tests` : 'The tests'} could use ${count(rule.cases.eligible)} of the ${rows(rule.cases.total)}.`;
+  const other = `The other ${count(out)} ${out === 1 ? 'was' : 'were'} left out`;
   const [only, ...others] = rule.excluded;
-  if (only === undefined) return `${used} The other ${count(out)} were left out.`;
+  if (only === undefined) return `${used} ${other}.`;
   const why =
     others.length === 0
       ? ` because ${only.reason}`
       : `: ${joined(rule.excluded.map((item) => `${count(item.count)} because ${item.reason}`))}`;
-  return `${used} The other ${count(out)} ${out === 1 ? 'was' : 'were'} left out${why}.`;
+  return `${used} ${other}${why}.`;
 }
 
 /** The notes of every rule that left rows out, one sentence each. */

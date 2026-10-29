@@ -72,6 +72,10 @@ describe('what a rule left out of the tests, said under the score', () => {
     expect(leftOutNote(unsaid, false)).toBe(
       'The tests could use 108 of the 160 rows. The other 52 were left out.',
     );
+    const one = rule({ cases: { total: 30, eligible: 29 }, excluded: [] });
+    expect(leftOutNote(one, false)).toBe(
+      'The tests could use 29 of the 30 rows. The other 1 was left out.',
+    );
   });
 
   it('names the rule when a job has several, and not when it has one', () => {

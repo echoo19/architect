@@ -249,9 +249,10 @@ export function ReportView({
             {ruleScoreNote(names.mentor)}
           </p>
         )}
-        {/* What the rule left out of the tests is said where the score is, in the body's own text. */}
+        {/* What the rule left out of the tests qualifies the score as the note above does, so it
+            reads at the note's weight rather than louder than it. */}
         {leftOut.map((line) => (
-          <p key={line} className="m-0 max-w-[660px] text-pretty">
+          <p key={line} className="m-0 max-w-[660px] text-sm text-fg-secondary text-pretty">
             {line}
           </p>
         ))}
