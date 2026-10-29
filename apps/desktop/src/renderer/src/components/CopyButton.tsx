@@ -29,7 +29,7 @@ export function CopyButton({ text, label = 'Copy', className }: CopyButtonProps)
 
   const name = copied ? 'Copied' : label;
   return (
-    <Tooltip content={name}>
+    <Tooltip content={name} side="bottom">
       <IconButton
         label={name}
         size="sm"

@@ -1,8 +1,16 @@
 import type { ImportResult, InstallStatus, Installation, PackageManifest } from '@architect/shared';
-import { Button, ErrorState, Heading, SettingsSection, Spinner, StatusMark } from '@architect/ui';
+import { Button, Disclosure, Heading, SettingsSection, Spinner, StatusMark } from '@architect/ui';
 import { Trash2 } from 'lucide-react';
+import { ProblemState } from '../components/ProblemState';
 import { CheckRows, FixButtons } from '../install/InstallChecks';
-import { INSTALL_CHECKS_TITLE, needsAnotherModel, statusMark } from '../install/labels';
+import {
+  installProblem,
+  needsAnotherModel,
+  statusMark,
+  STATUS_LABELS,
+  WORKS_HERE_TITLE,
+} from '../install/labels';
+import { baseModelName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 
@@ -29,9 +37,10 @@ export interface InstallStepProps {
 }
 
 /**
- * Step four: installing, then this computer's install checks, labelled as this computer's, with
- * the outcome (ready, needs attention or blocked), why, and a way out of each. A fix that needs
- * another model opens the agent's settings on General, with its model picker open.
+ * Step four: installing, then whether it works on this computer, with the outcome (ready, needs
+ * attention or blocked), why in one sentence, and a way out of each. Each check's own row waits
+ * under Details. A fix that needs another model opens the agent's settings on General, with its
+ * model picker open.
  */
 export function InstallStep({
   name,
@@ -50,21 +59,17 @@ export function InstallStep({
     return (
       <div role="status" className="flex min-h-[40vh] flex-col items-center justify-center gap-4">
         <Spinner size={20} tone="student" />
-        <span className="text-fg-secondary">Installing {name} and running its install checks</span>
+        <span className="text-fg-secondary">Installing {name} and checking that it works here</span>
       </div>
     );
   }
   if (error || !result) {
     return (
-      <ErrorState
+      <ProblemState
+        error={error ?? new Error(`${name} wasn't installed.`)}
         title={`Couldn't install ${name}`}
-        message={error?.message}
         onRetry={onRetry}
-        secondaryAction={
-          <Button size="md" onClick={onBack}>
-            Back
-          </Button>
-        }
+        exit={{ label: 'Back', onClick: onBack }}
         className="min-h-[50vh]"
       />
     );
@@ -74,6 +79,15 @@ export function InstallStep({
   const { status } = installation;
   const label = asVersion ? `Version ${result.version} of ${name}` : name;
   const fixable = status === 'needs_attention' || needsAnotherModel(installation);
+  const problem =
+    status === 'ready'
+      ? null
+      : installProblem(installation, {
+          model: baseModelName(installation.model.model),
+          baseBytes: manifest.model.base?.sizeBytes,
+        });
+  // A tool or a setup that doesn't load is the sender's to mend; nothing here can.
+  const sendersFix = status === 'blocked' && !needsAnotherModel(installation);
   return (
     <>
       <header className="flex items-center gap-3">
@@ -82,8 +96,19 @@ export function InstallStep({
           {titleOf(status, label)}
         </Heading>
       </header>
-      <SettingsSection title={INSTALL_CHECKS_TITLE} className="pt-0">
-        <CheckRows installation={installation} />
+      <SettingsSection title={WORKS_HERE_TITLE} className="pt-0">
+        <div className="flex flex-col gap-1.5 pt-1">
+          <p className="m-0 flex items-start gap-2.5 text-lg text-fg-soft text-pretty">
+            <StatusMark state={statusMark(status)} className="mt-1.5" />
+            {problem ? problem.cause : STATUS_LABELS[status]}
+          </p>
+          {sendersFix && (
+            <p className="m-0 pl-[26px] text-fg-secondary">Ask whoever sent it for a fixed copy.</p>
+          )}
+          <Disclosure label="Details" className="pl-[26px]">
+            <CheckRows installation={installation} />
+          </Disclosure>
+        </div>
       </SettingsSection>
       {!asVersion && fixable && (
         <FixButtons

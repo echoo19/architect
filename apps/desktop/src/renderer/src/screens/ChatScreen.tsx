@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { GraduateSummary, InstallStatus, WorkspaceMessage } from '@architect/shared';
-import { Badge, Button, Drawer, EmptyState, ErrorState, Skeleton } from '@architect/ui';
-import { Bot, CircleX, Laptop } from 'lucide-react';
+import { Badge, Button, Drawer, EmptyState, Skeleton } from '@architect/ui';
+import { Bot, CircleX, Laptop, Plus } from 'lucide-react';
 import { architect } from '../api/client';
 import { useGraduates, useSettings } from '../api/hooks';
+import { ProblemState } from '../components/ProblemState';
 import { attempt } from '../lib/notify';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
@@ -54,20 +55,26 @@ export function ChatScreen({ graduateId, chatId }: { graduateId: string; chatId:
       <WorkspaceHeader actions={hereBadge()} />
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-8 pb-14">
         {graduates.status === 'error' ? (
-          <ErrorState
+          <ProblemState
+            error={graduates.error}
             title="Couldn't load your agents"
-            message={graduates.error.message}
             onRetry={graduates.reload}
           />
         ) : graduates.status === 'success' ? (
           <EmptyState
             icon={<Bot aria-hidden />}
-            title="This agent isn't here anymore"
-            description="It may have been deleted. Your other agents are in the sidebar."
+            title="This agent was deleted."
             actions={
-              <Button variant="primary" size="md" onClick={() => navigate(paths.home())}>
-                Go to your agents
-              </Button>
+              graduates.data.length > 0 ? (
+                <Button variant="primary" size="md" onClick={() => navigate(paths.home())}>
+                  Go to your agents
+                </Button>
+              ) : (
+                <Button variant="primary" size="md" onClick={() => navigate(paths.newAgent())}>
+                  <Plus size={16} aria-hidden />
+                  New agent
+                </Button>
+              )
             }
           />
         ) : (
@@ -187,10 +194,11 @@ function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
   if (list === undefined) {
     body =
       messages.entry.status === 'error' ? (
-        <ErrorState
+        <ProblemState
+          error={messages.entry.error}
           title="Couldn't open this chat"
-          message={messages.entry.error}
           onRetry={messages.reload}
+          exit={{ label: 'Back to agents', onClick: () => navigate(paths.home()) }}
           className="min-h-[52vh]"
         />
       ) : (

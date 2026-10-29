@@ -1,6 +1,7 @@
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import {
+  CodedError,
   emptyTotals,
   GuardError,
   newId,
@@ -557,7 +558,7 @@ export class RunController {
 
   private get(runId: string): StoredRun {
     const record = this.options.store.runs.get(runId);
-    if (!record) throw new Error(`There is no run "${runId}".`);
+    if (!record) throw new CodedError('run_not_found', `There is no run "${runId}".`);
     return record;
   }
 

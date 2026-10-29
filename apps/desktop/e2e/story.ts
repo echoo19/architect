@@ -14,6 +14,7 @@ import type {
   Trace,
   TypeResult,
 } from '@architect/shared';
+import { glimmerBuild } from '@architect/shared';
 
 /*
  * One training story that every e2e fixture tells, so the numbers agree from screen to screen:
@@ -32,6 +33,9 @@ import type {
 
 export const AT = '2026-10-27T15:00:00.000Z';
 export const at = (minutes: number) => new Date(Date.parse(AT) + minutes * 60_000).toISOString();
+
+/** What the catalog says the 4-bit Glimmer weighs, so every fixture and screen shows one size. */
+export const GLIMMER_BYTES = glimmerBuild('glimmer-4bit').diskBytes;
 
 export const STORY = {
   jobId: 'job_servicedesk',
@@ -637,7 +641,7 @@ export const graduate: GraduateSummary = {
       baseUrl: 'http://127.0.0.1:11434',
       model: 'muse-glimmer:30b',
       quantization: 'Q4_K_M',
-      sizeBytes: 18 * 1024 ** 3,
+      sizeBytes: GLIMMER_BYTES,
       contextLength: 16_384,
     },
     harness: { version: STORY.version, round: 7, hash: 'sha256-story' },

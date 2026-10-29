@@ -122,12 +122,14 @@ export function registerVersion(
 
 /**
  * Copies a job's data files into a graduate's own folder the first time, so its workspace never
- * writes to the data training used (decision 019). The copy is renamed into place whole.
+ * writes to the data training used (decision 019). A folder already there is kept as it is, and
+ * the copy is renamed into place whole. A ready-made agent's data is copied the same way
+ * (decision 054).
  */
 export async function seedDataFolder(
   folder: string,
   sourceDir: string,
-  files: readonly DataFile[],
+  files: readonly Pick<DataFile, 'name'>[],
 ): Promise<void> {
   if (await exists(folder)) return;
   const staging = `${folder}.${randomUUID()}.partial`;

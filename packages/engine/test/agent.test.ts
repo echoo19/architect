@@ -51,6 +51,23 @@ async function run(
 
 const answer = (json: string): ScriptedTurn => ({ text: `ANSWER: ${json}` });
 
+/** What a caller that shows the model's text, and takes it back when asked to, has on screen. */
+function screen() {
+  const seen = { text: '', retracted: [] as number[] };
+  return {
+    seen,
+    hooks: {
+      onText: (delta: string) => {
+        seen.text += delta;
+      },
+      onRetract: (chars: number) => {
+        seen.retracted.push(chars);
+        seen.text = seen.text.slice(0, seen.text.length - chars);
+      },
+    },
+  };
+}
+
 describe('runAgent', () => {
   it('runs tool calls and feeds their results back until the model answers', async () => {
     const { trace, student, steps } = await run([
@@ -286,8 +303,8 @@ describe('runAgent', () => {
     expect(student.requests).toHaveLength(3);
   });
 
-  it('never asks again once part of the reply was shown', async () => {
-    const shown: string[] = [];
+  it('asks again after part of the reply was shown, and takes the shown text back', async () => {
+    const onScreen = screen();
     const { trace, student } = await run(
       [
         {
@@ -297,26 +314,109 @@ describe('runAgent', () => {
             'The model sent a call that is not JSON.',
           ),
         },
+        { text: 'ANSWER: 3' },
       ],
-      { onText: (delta) => shown.push(delta) },
+      onScreen.hooks,
     );
-    expect(shown.join('')).toBe('Let me add it up.');
-    expect(trace).toMatchObject({
-      stopReason: 'error',
-      error: 'The model sent a call that is not JSON.',
-    });
-    expect(student.requests).toHaveLength(1);
+    expect(onScreen.seen.retracted).toEqual(['Let me add it up.'.length]);
+    // What the person is left with is the turn that was kept.
+    expect(onScreen.seen.text).toBe('ANSWER: 3');
+    expect(trace).toMatchObject({ stopReason: 'answer', finalText: 'ANSWER: 3' });
+    expect(student.requests.map((request) => request.seed)).toEqual([42, 42 + 1_000_003]);
+    expect(trace.steps.map((step) => step.kind)).toEqual(['model']);
   });
 
-  it('ends with a clear error when a reply is cut off by the output-token limit', async () => {
-    const thinking = await run([{ text: '', cutOff: true }]);
+  it('takes back the text of every turn it asks again, and keeps the turns before', async () => {
+    const unreadable = new AdapterError('bad_response', 'The model sent a call that is not JSON.');
+    const onScreen = screen();
+    const { trace, student } = await run(
+      [
+        { text: 'Let me look.', toolCalls: [{ name: 'ls', arguments: {} }] },
+        { text: 'Trying one way. ', failAfterText: unreadable },
+        { text: 'Trying another. ', failAfterText: unreadable },
+        { text: 'ANSWER: 3' },
+      ],
+      onScreen.hooks,
+    );
+    expect(onScreen.seen.retracted).toEqual(['Trying one way. '.length, 'Trying another. '.length]);
+    expect(onScreen.seen.text).toBe('Let me look.ANSWER: 3');
+    expect(trace.stopReason).toBe('answer');
+    expect(student.requests).toHaveLength(4);
+  });
+
+  it('ends on a third unreadable reply and leaves its text, since no turn follows to replace it', async () => {
+    const unreadable = (n: number) => ({
+      text: `Attempt ${n}. `,
+      failAfterText: new AdapterError('bad_response', `The call was not JSON (${n}).`),
+    });
+    const onScreen = screen();
+    const { trace } = await run([unreadable(1), unreadable(2), unreadable(3)], onScreen.hooks);
+    expect(onScreen.seen.retracted).toHaveLength(2);
+    expect(onScreen.seen.text).toBe('Attempt 3. ');
+    expect(trace).toMatchObject({ stopReason: 'error', error: 'The call was not JSON (3).' });
+  });
+
+  it('takes nothing back when nothing was shown', async () => {
+    const onScreen = screen();
+    const unreadable = new AdapterError('bad_response', 'The model sent a call that is not JSON.');
+    await run([{ error: unreadable }, answer('1')], onScreen.hooks);
+    expect(onScreen.seen.retracted).toEqual([]);
+  });
+
+  it('asks again after a reply cut off at its length limit, and pays for the one it threw away', async () => {
+    const onScreen = screen();
+    const { trace, student } = await run(
+      [
+        {
+          text: 'The total is 12',
+          cutOff: true,
+          usage: { inputTokens: 900, outputTokens: 4_096 },
+          costUsd: 0.01,
+        },
+        { text: 'ANSWER: 12', usage: { inputTokens: 910, outputTokens: 20 }, costUsd: 0.002 },
+      ],
+      onScreen.hooks,
+    );
+    expect(trace).toMatchObject({ stopReason: 'answer', finalText: 'ANSWER: 12' });
+    expect(student.requests.map((request) => request.seed)).toEqual([42, 42 + 1_000_003]);
+    expect(onScreen.seen.retracted).toEqual(['The total is 12'.length]);
+    expect(onScreen.seen.text).toBe('ANSWER: 12');
+    // One turn in the trace, whose usage and charge include the reply that was asked for again.
+    const turns = trace.steps.filter((step) => step.kind === 'model');
+    expect(turns).toHaveLength(1);
+    expect(turns[0]).toMatchObject({ usage: { inputTokens: 1_810, outputTokens: 4_116 } });
+    expect(turns[0]?.costUsd).toBeCloseTo(0.012, 10);
+    expect(trace.usage).toMatchObject({ inputTokens: 1_810, outputTokens: 4_116 });
+  });
+
+  it('leaves the charge off a turn when the provider billed only some of its replies', async () => {
+    const { trace } = await run([
+      { text: 'Partway', cutOff: true, costUsd: 0.01 },
+      { text: 'ANSWER: 1' },
+    ]);
+    const turn = trace.steps.find((step) => step.kind === 'model');
+    // The turn is priced by its usage instead, which covers both replies.
+    expect(turn).toMatchObject({ usage: { inputTokens: 200, outputTokens: 40 } });
+    expect(turn && 'costUsd' in turn).toBe(false);
+  });
+
+  it('names a reply that was cut off every time it was asked for as a cut-off, not an unreadable call', async () => {
+    const thinking = await run(Array.from({ length: 3 }, () => ({ text: '', cutOff: true })));
+    expect(thinking.student.requests).toHaveLength(3);
     expect(thinking.trace.stopReason).toBe('error');
+    expect(thinking.trace.error).toContain('was cut off at the 4096-token output limit');
     expect(thinking.trace.error).toContain('while the model was still thinking');
+    expect(thinking.trace.error).toContain('3 times in a row');
     expect(thinking.trace.error).toContain('max_output_tokens');
+    expect(thinking.trace.error).not.toContain('unreadable');
+    // All three were paid for, though only the last is a turn in the trace.
+    expect(thinking.trace.usage).toMatchObject({ inputTokens: 300, outputTokens: 60 });
     job?.remove();
     job = undefined;
 
-    const midAnswer = await run([{ text: 'The total is 12', cutOff: true }]);
+    const midAnswer = await run(
+      Array.from({ length: 3 }, () => ({ text: 'The total is 12', cutOff: true })),
+    );
     expect(midAnswer.trace).toMatchObject({ stopReason: 'error', finalText: 'The total is 12' });
     expect(midAnswer.trace.error).toContain('in the middle of its answer');
   });

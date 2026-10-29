@@ -21,7 +21,7 @@ export {
   type ComparisonConfig,
 } from './projection';
 export { ComparisonFiles, reportBeside } from './records';
-export { armRun, buildReport } from './report';
+export { armRun, buildReport, roundsOf } from './report';
 export {
   probeLocal,
   reportOnly,
@@ -31,4 +31,4 @@ export {
   type ComparisonRequest,
 } from './runner';
 export { CREDIT_REFUSAL, StudentCredit, worstCaseUsd } from './spend';
-export { counted, paired, wilson, Z95 } from './stats';
+export { counted, paired, pairedDifference, wilson, Z95, type PairedDifference } from './stats';

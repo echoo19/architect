@@ -1,0 +1,161 @@
+customer_id,name,email,region,member_since
+C-1001,Orrin Whitlock,orrin.whitlock@example.com,Valley,2024-08-05
+C-1002,Wesley Fairbanks,wesley.fairbanks@example.net,Valley,2025-07-11
+C-1003,Dana Quinlan,dana.quinlan@example.com,Foothills,
+C-1004,Esme Lindqvist,esme.lindqvist@example.com,Valley,
+C-1005,Greta Eckhart,greta.eckhart@example.com,Valley,
+C-1006,Farah Thorne,farah.thorne@example.org,Uplands,
+C-1007,Vera Thorne,vera.thorne@example.net,Lakeshore,
+C-1008,Orrin Dunmore,orrin.dunmore@example.org,Uplands,
+C-1009,Abel Delacroix,ABEL.DELACROIX@EXAMPLE.COM,Foothills,"Mar 4, 2026"
+C-1010,Brigid Galloway,brigid.galloway@example.com,Valley,2026-01-04
+C-1011,Eamon Sandoval,eamon.sandoval@example.org,Valley,2026-09-02
+C-1012,Bianca Okafor, bianca.okafor@example.net,Uplands,
+C-1013,Wesley Ellsworth,wesley.ellsworth@example.org,Foothills,2024-07-08
+C-1014,Farah Kowalczyk,farah.kowalczyk@example.org,Lakeshore,2024-04-17
+C-1015,Bianca Nakamura,BIANCA.NAKAMURA@EXAMPLE.COM,Uplands,
+C-1016,Brigid Lindqvist,brigid.lindqvist@example.org,Valley,
+C-1017,Hollis Fairbanks,hollis.fairbanks@example.net,Valley,
+C-1018,Maren Eckhart,maren.eckhart@example.net,Lakeshore,
+C-1019,Bianca Fairbanks,bianca.fairbanks@example.net,Valley,
+C-1020,Fintan Okafor,fintan.okafor@example.org,Lakeshore,2026-10-01
+C-1021,Umar Crane,umar.crane@example.org,Lakeshore,2026-07-13
+C-1022,Hollis Kowalczyk,hollis.kowalczyk@example.com,Uplands,2024-04-04
+C-1023,Ivo Kowalczyk,IVO.KOWALCZYK@EXAMPLE.ORG,Valley,
+C-1024,Gideon Quinlan,GIDEON.QUINLAN@EXAMPLE.NET,Foothills,
+C-1025,Esme Quinlan,esme.quinlan@example.net,Valley,
+C-1026,Gideon Delacroix,gideon.delacroix@example.org,Valley,2024-12-06
+C-1027,Greta Kowalczyk,Greta.Kowalczyk@example.org,Foothills,
+C-1028,Kenji Rasmussen,kenji.rasmussen@example.net,Valley,2025-08-15
+C-1029,Hollis Rasmussen,hollis.rasmussen@example.org,Foothills,2026-10-10
+C-1030,Quentin Delacroix, quentin.delacroix@example.com,Foothills,
+C-1031,Lena Jessup,lena.jessup@example.org,Uplands,2025-10-25
+C-1032,Silas Okafor,silas.okafor@example.net ,Foothills,
+C-1033,Fintan Quinlan,fintan.quinlan@example.org,Uplands,
+C-1034,Jasper Eckhart,jasper.eckhart@example.org,Lakeshore,
+C-1035,Delphine Pemberton,Delphine.Pemberton@example.org,Lakeshore,2024-03-07
+C-1036,Fintan Dunmore,fintan.dunmore@example.net,Lakeshore,2025-08-29
+C-1037,Rosa Lindqvist,rosa.lindqvist@example.com,Lakeshore,
+C-1038,Gideon Castellanos,gideon.castellanos@example.net,Lakeshore,2024-03-29
+C-1039,Kira Mbeki,kira.mbeki@example.org,Valley,
+C-1040,Cormac Jessup,cormac.jessup@example.com,Lakeshore,
+C-1041,Bianca Hargrove,bianca.hargrove@example.com,Foothills,
+C-1042,Tamsin Galloway,tamsin.galloway@example.com,Lakeshore,2024-04-11
+C-1043,Dana Delacroix,dana.delacroix@example.com ,Foothills,
+C-1044,Orrin Pemberton,orrin.pemberton@example.org,Foothills,
+C-1045,Imogen Yarrow,imogen.yarrow@example.com,Uplands,
+C-1046,Brigid Dunmore,BRIGID.DUNMORE@EXAMPLE.NET,Foothills,
+C-1047,Orrin Lindqvist,orrin.lindqvist@example.org,Valley,
+C-1048,Vera Underhill,vera.underhill@example.org,Lakeshore,
+C-1049,Abel Nakamura,abel.nakamura@example.net ,Valley,
+C-1050,Yusuf Rasmussen,yusuf.rasmussen@example.org,Uplands,
+C-1051,Kira Ingram,kira.ingram@example.org,Foothills,
+C-1052,Priya Rasmussen,priya.rasmussen@example.net,Lakeshore,2024-09-09
+C-1053,Cormac Rasmussen,cormac.rasmussen@example.org,Valley,2025-08-29
+C-1054,Priya Crane,priya.crane@example.net,Uplands,
+C-1055,Rosa Quinlan,rosa.quinlan@example.net,Uplands,2025-11-17
+C-1056,Juno Eckhart,juno.eckhart@example.com,Lakeshore,2026-07-24
+C-1057,Hollis Galloway,hollis.galloway@example.net,Foothills,2026-04-16
+C-1058,Rosa Whitlock,rosa.whitlock@example.org,Lakeshore,
+C-1059,Zelda Mbeki,zelda.mbeki@example.net,Foothills,
+C-1060,Yusuf Pemberton,yusuf.pemberton@example.org,Lakeshore,
+C-1061,Quentin Abernathy,Quentin.Abernathy@example.org,Valley,
+C-1062,Yusuf Nakamura,Yusuf.Nakamura@example.org,Foothills,
+C-1063,Jasper Nakamura,jasper.nakamura@example.org,Foothills,2026-07-26
+C-1064,Juno Jessup,juno.jessup@example.com,Foothills,
+C-1065,Delphine Abernathy,delphine.abernathy@example.com,Valley,
+C-1066,Esme Varga,esme.varga@example.org,Lakeshore,
+C-1067,Lionel Yarrow,lionel.yarrow@example.net,Foothills,
+C-1068,Kira Underhill,kira.underhill@example.org,Valley,2026-06-29
+C-1069,Lionel Mbeki,lionel.mbeki@example.net,Uplands,2026-01-24
+C-1070,Kenji Yarrow,kenji.yarrow@example.com,Lakeshore,
+C-1071,Nadia Hargrove, nadia.hargrove@example.com,Uplands,
+C-1072,Jasper Okafor,jasper.okafor@example.org,Uplands,2025-02-19
+C-1073,Lena Quinlan,lena.quinlan@example.com,Valley,2026-05-07
+C-1074,Farah Zielinski,farah.zielinski@example.net,Lakeshore,2026-09-03
+C-1075,Delphine Eckhart,delphine.eckhart@example.com,Uplands,
+C-1076,Rosa Varga,rosa.varga@example.net,Lakeshore,
+C-1077,Gideon Nakamura,gideon.nakamura@example.com,Foothills,
+C-1078,Wesley Kowalczyk,wesley.kowalczyk@example.net,Valley,
+C-1079,Nico Yarrow,nico.yarrow@example.org,Uplands,
+C-1080,Caleb Ellsworth,caleb.ellsworth@example.org,Lakeshore,
+C-1081,Maren Dunmore,maren.dunmore@example.com,Lakeshore,2025-06-13
+C-1082,Orrin Castellanos,orrin.castellanos@example.com,Valley,
+C-1083,Silas Galloway,silas.galloway@example.net,Foothills,2024-04-11
+C-1084,Nico Ellsworth,nico.ellsworth@example.com,Uplands,
+C-1085,Nadia Ashby, nadia.ashby@example.org,Valley,
+C-1086,Zelda Zielinski,Zelda.Zielinski@example.net,Valley,2026-01-12
+C-1087,Lena Dunmore,lena.dunmore@example.net,Uplands,
+C-1088,Maren Delacroix,maren.delacroix@example.net,Foothills,2024-12-05
+C-1089,Rosa Underhill,rosa.underhill@example.org,Lakeshore,
+C-1090,Fintan Underhill,FINTAN.UNDERHILL@EXAMPLE.ORG,Lakeshore,2025-07-04
+C-1091,Cormac Zielinski,cormac.zielinski@example.com,Lakeshore,
+C-1092,Kira Castellanos,kira.castellanos@example.net,Uplands,
+C-1093,Maren Hargrove,maren.hargrove@example.org,Valley,2025-05-25
+C-1094,Kira Yarrow,kira.yarrow@example.org,Foothills,
+C-1095,Kenji Dunmore,kenji.dunmore@example.org,Foothills,
+C-1096,Hazel Dunmore,hazel.dunmore@example.org,Uplands,
+C-1097,Bianca Galloway,Bianca.Galloway@example.net,Uplands,
+C-1098,Brigid Thorne,brigid.thorne@example.org ,Lakeshore,
+C-1099,Lena Kowalczyk,lena.kowalczyk@example.net,Lakeshore,
+C-1100,Greta Rasmussen,greta.rasmussen@example.org,Valley,2026-10-28
+C-1101,Greta Galloway,greta.galloway@example.net,Uplands,2026-05-23
+C-1102,Wesley Sandoval,wesley.sandoval@example.com,Valley,
+C-1103,Bianca Quinlan,bianca.quinlan@example.net,Lakeshore,
+C-1104,Yusuf Hargrove,yusuf.hargrove@example.com,Valley,2024-05-26
+C-1105,Yusuf Ashby,yusuf.ashby@example.org,Lakeshore,2024-06-25
+C-1106,Imogen Eckhart,imogen.eckhart@example.net,Foothills,2026-05-14
+C-1107,Lionel Abernathy,lionel.abernathy@example.net,Lakeshore,
+C-1108,Nico Blackwood,nico.blackwood@example.org ,Valley,"Apr 8, 2025"
+C-1109,Umar Abernathy,Umar.Abernathy@example.com,Lakeshore,2025-10-15
+C-1110,Lionel Blackwood,lionel.blackwood@example.com,Valley,2026-06-23
+C-1111,Kenji Crane,kenji.crane@example.org,Foothills,
+C-1112,Tamsin Pemberton,tamsin.pemberton@example.org,Lakeshore,
+C-1113,Dana Ellsworth,Dana.Ellsworth@example.com,Foothills,2024-10-03
+C-1114,Lena Eckhart,lena.eckhart@example.org,Valley,
+C-1115,Zelda Ingram,zelda.ingram@example.org,Lakeshore,
+C-1116,Jasper Quinlan,jasper.quinlan@example.com,Foothills,
+C-1117,Farah Eckhart,farah.eckhart@example.com ,Lakeshore,
+C-1118,Orrin Thorne,orrin.thorne@example.com,Uplands,
+C-1119,Ximena Eckhart,XIMENA.ECKHART@EXAMPLE.ORG,Lakeshore,
+C-1120,Rosa Fairbanks,rosa.fairbanks@example.net,Foothills,
+C-1121,Gideon Sandoval, gideon.sandoval@example.org,Foothills,
+C-1122,Arlo Crane,arlo.crane@example.org,Lakeshore,12/29/2024
+C-1123,Delphine Whitlock, delphine.whitlock@example.net,Uplands,2026-10-20
+C-1124,Ivo Castellanos, ivo.castellanos@example.org,Foothills,2026-06-07
+C-1125,Nadia Zielinski,nadia.zielinski@example.com,Uplands,
+C-1126,Arlo Pemberton,arlo.pemberton@example.net ,Valley,2025-07-27
+C-1127,Vera Whitlock,vera.whitlock@example.com,Valley,2026-10-15
+C-1128,Dana Blackwood,Dana.Blackwood@example.com,Lakeshore,
+C-1129,Kenji Quinlan,kenji.quinlan@example.org,Uplands,2026-05-07
+C-1130,Maren Lindqvist,maren.lindqvist@example.org,Uplands,
+C-1131,Zelda Dunmore,zelda.dunmore@example.org,Valley,
+C-1132,Farah Pemberton,FARAH.PEMBERTON@EXAMPLE.NET,Valley,
+C-1133,Delphine Bramwell,delphine.bramwell@example.net,Valley,
+C-1134,Delphine Fairbanks,delphine.fairbanks@example.org,Foothills,
+C-1135,Jasper Pemberton,jasper.pemberton@example.net,Foothills,
+C-1136,Eamon Kowalczyk,eamon.kowalczyk@example.net,Foothills,
+C-1137,Kenji Ashby,kenji.ashby@example.org,Foothills,2024-05-05
+C-1138,Greta Lindqvist,greta.lindqvist@example.com,Uplands,
+C-1139,Zelda Fairbanks,zelda.fairbanks@example.net,Foothills,
+C-1140,Hazel Delacroix,hazel.delacroix@example.net,Lakeshore,
+C-1141,Maren Quinlan,maren.quinlan@example.com,Uplands,
+C-1142,Lionel Varga,lionel.varga@example.net ,Uplands,2024-09-28
+C-1143,Zelda Bramwell,zelda.bramwell@example.net,Valley,
+C-1144,Dana Okafor,dana.okafor@example.com,Lakeshore,
+C-1145,Fintan Ellsworth,fintan.ellsworth@example.net,Foothills,
+C-1146,Abel Dunmore,abel.dunmore@example.net,Valley,
+C-1147,Caleb Rasmussen,caleb.rasmussen@example.com,Uplands,
+C-1148,Delphine Ashby,delphine.ashby@example.org,Foothills,2026-10-01
+C-1149,Rosa Ellsworth,rosa.ellsworth@example.net,Valley,
+C-1150,Rosa Sandoval,rosa.sandoval@example.com,Lakeshore,2024-04-09
+C-1151,Abel Galloway,abel.galloway@example.net,Foothills,2024-06-15
+C-1152,Imogen Sandoval,imogen.sandoval@example.com,Valley,2024-09-29
+C-1153,Ximena Whitlock,ximena.whitlock@example.com,Foothills,
+C-1154,Imogen Okafor,imogen.okafor@example.net,Valley,
+C-1155,Esme Zielinski,esme.zielinski@example.net,Valley,
+C-1156,Jasper Dunmore,jasper.dunmore@example.com,Lakeshore,2026-07-02
+C-1157,Juno Zielinski,juno.zielinski@example.com,Uplands,2026-07-23
+C-1158,Juno Kowalczyk,Juno.Kowalczyk@example.com,Valley,
+C-1159,Hazel Nakamura,hazel.nakamura@example.com,Lakeshore,
+C-1160,Gideon Pemberton,gideon.pemberton@example.net,Foothills,

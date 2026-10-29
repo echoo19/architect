@@ -231,6 +231,8 @@ export interface VersionOptions {
   >;
   /** The local version it derives from. */
   parent?: number;
+  /** The header of each table of the job's data that the package names; the sample tables' when absent. */
+  columns?: Record<string, string[]>;
   /** The context the version was made with; 16K when absent. */
   contextLength?: number;
   /** A model endpoint on this computer for its installation. */
@@ -238,6 +240,8 @@ export interface VersionOptions {
   state?: 'candidate' | 'accepted';
   /** Leave out the locked-test report: a version nothing measured. */
   unevaluated?: boolean;
+  /** Where its locked test ran; on this computer's model when absent. */
+  testedOn?: 'local' | 'hosted';
 }
 
 /** The job a computer's graduates are made for, with its data folder holding the sample tables. */
@@ -304,9 +308,11 @@ export async function addVersion(
     runtime: 'ollama',
     ...(adapter === undefined ? {} : { adapter }),
     harness: { meta: harness.meta, files: harnessToFiles(harness) },
-    report: options.unevaluated ? null : reportFor(job),
+    report: options.unevaluated
+      ? null
+      : { ...reportFor(job), testedOn: options.testedOn ?? 'local' },
     lineage: [],
-    columns: { 'customers.csv': ['customer_id', 'name', 'city', 'terms_days'] },
+    columns: options.columns ?? { 'customers.csv': ['customer_id', 'name', 'city', 'terms_days'] },
     rounds: 0,
     keptChanges: 0,
     // Made on this computer: its locked test ran here.

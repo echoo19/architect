@@ -92,7 +92,11 @@ export function SettingsDialog<T extends string>({
             </div>
             <Tabs.Content
               value={tab}
-              className="min-h-0 flex-1 overflow-y-auto px-7 pb-6 focus-visible:outline-none"
+              className={cn(
+                'min-h-0 flex-1 overflow-y-auto px-7 pb-6 focus-visible:outline-none',
+                // The last lines fade out at the edge, so no row is cut off mid-text.
+                '[mask-image:linear-gradient(to_bottom,black_calc(100%-24px),transparent)]',
+              )}
             >
               {children}
             </Tabs.Content>

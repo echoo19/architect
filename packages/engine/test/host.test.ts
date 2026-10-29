@@ -1,8 +1,9 @@
-import { readFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseReportJson } from '@architect/harness';
 import {
   AdapterError,
+  CodedError,
   GuardError,
   PublishProgressSchema,
   RunEventSchema,
@@ -128,6 +129,34 @@ describe('the engine host', () => {
     expect(types.indexOf('eval.finished')).toBeLessThan(types.indexOf('graduate.ready'));
   });
 
+  it('offers the ready-made agent only where the build ships it, and copies its data once', async () => {
+    const { client } = await connect();
+    expect(await client.graduates.hasSampleAgent()).toBe(false);
+    await expect(client.graduates.prepareSampleAgent()).rejects.toThrow(
+      "The ready-made agent isn't available in this build.",
+    );
+
+    const shipped = join(world.root, 'sample-agent');
+    await mkdir(join(shipped, 'data'), { recursive: true });
+    await writeFile(join(shipped, 'data', 'returns.csv'), 'return_id\nR-1\n', 'utf8');
+    await writeFile(join(shipped, 'returns-desk.architect.zip'), 'a package', 'utf8');
+    world.deps.sampleAgent = {
+      packageFile: join(shipped, 'returns-desk.architect.zip'),
+      dataDir: join(shipped, 'data'),
+    };
+    expect(await client.graduates.hasSampleAgent()).toBe(true);
+
+    const sample = await client.graduates.prepareSampleAgent();
+    expect(sample).toEqual({
+      package: join(shipped, 'returns-desk.architect.zip'),
+      data: join(world.dataDir, 'samples', 'returns-desk', 'data'),
+    });
+    await writeFile(join(sample.data, 'returns.csv'), 'return_id\nR-1\nR-2\n', 'utf8');
+    expect(await client.graduates.prepareSampleAgent()).toEqual(sample);
+    expect(await readFile(join(sample.data, 'returns.csv'), 'utf8')).toBe('return_id\nR-1\nR-2\n');
+    expect(await readdir(sample.data)).toEqual(['returns.csv']);
+  });
+
   it('keeps every event a run sent, in the order sent, beside its records', async () => {
     const { client, events } = await connect();
     const job = await client.jobs.createSample();
@@ -185,6 +214,30 @@ describe('the engine host', () => {
       'There is no run "run_missing".',
     );
     await expect(client.runs.get('run_missing')).rejects.toThrow('There is no run "run_missing".');
+  });
+
+  it('says what is gone with a code a screen can word, on top of the precise message', async () => {
+    const { client } = await connect();
+    const job = await client.jobs.createSample();
+    const graduated = next(client, (event) => event.type === 'graduate.ready');
+    const run = await client.runs.start(job.id, { method: 'bare', seed: 1 });
+    await graduated;
+    const code = async (request: Promise<unknown>) => {
+      const error: unknown = await request.then(
+        () => undefined,
+        (failure: unknown) => failure,
+      );
+      expect(error).toBeInstanceOf(CodedError);
+      return (error as CodedError).code;
+    };
+    expect(await code(client.runs.get('run_missing'))).toBe('run_not_found');
+    expect(await code(client.reports.get('run_missing'))).toBe('run_not_found');
+    expect(await code(client.jobs.get('job_missing'))).toBe('job_not_found');
+    expect(await code(client.mentoring.categories('job_missing'))).toBe('job_not_found');
+    expect(await code(client.graduates.settings('grd_missing'))).toBe('agent_not_found');
+    expect(await code(client.runs.attempt('att_missing'))).toBe('record_not_found');
+    expect(await code(client.mentoring.lessonTrace('les_missing'))).toBe('record_not_found');
+    expect(await code(client.runs.roundDiff(run.id, 99))).toBe('record_not_found');
   });
 
   it('tests a run on the hosted copy when asked, files its card there, and refuses unknown options', async () => {
@@ -426,6 +479,21 @@ describe('the engine host', () => {
     expect(adapter).toMatchObject({ name: 'AdapterError', code: 'rate_limit', retryable: true });
     const plain = fromErrorPayload(toErrorPayload(new TypeError('Nope.')));
     expect(plain).toMatchObject({ name: 'TypeError', message: 'Nope.' });
+  });
+
+  it('carries a coded error across with its code, and drops a code it does not know', () => {
+    const gone = fromErrorPayload(
+      toErrorPayload(new CodedError('run_not_found', 'There is no run "run_1".')),
+    );
+    expect(gone).toBeInstanceOf(CodedError);
+    expect(gone).toMatchObject({ code: 'run_not_found', message: 'There is no run "run_1".' });
+    const unknown = fromErrorPayload({
+      name: 'CodedError',
+      message: 'Newer.',
+      code: 'from_the_future',
+    });
+    expect(unknown).not.toBeInstanceOf(CodedError);
+    expect(unknown.message).toBe('Newer.');
   });
 
   it('resumes a run that was active when the app closed', async () => {

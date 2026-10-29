@@ -373,6 +373,146 @@ describe('chatting with a graduate', () => {
   });
 });
 
+/** What Ollama says when a model's tool call can't be parsed, as it arrives mid-stream. */
+const UNREADABLE = 'parse Glimmer call to run: missing ATEM function_calls wrapper';
+
+describe('asking a turn again', () => {
+  /** Every text a reply showed while it was written, in order. */
+  const shownTexts = (world: World, replyId: string) =>
+    world.events.flatMap((event) =>
+      event.type === 'message.updated' && event.message.id === replyId ? [event.message.text] : [],
+    );
+
+  it('takes back the text of a turn whose call could not be read, so the chat never repeats itself', async () => {
+    const world = await setup([
+      // A pause between pieces, so the text has gone out to listeners before the call fails.
+      { text: 'Let me add it up. ', streamError: UNREADABLE, delayMs: 45 },
+      { text: 'Two invoices are unpaid: INV-2 and INV-3.' },
+    ]);
+    const { reply } = await ask(world, 'Which invoices are unpaid?');
+
+    expect(reply).toMatchObject({
+      status: 'done',
+      text: 'Two invoices are unpaid: INV-2 and INV-3.',
+    });
+    // The reply keeps the work it took: the turn that was kept, and nothing of the other.
+    expect(reply.trace).toEqual([
+      { kind: 'model', text: 'Two invoices are unpaid: INV-2 and INV-3.', calls: [] },
+    ]);
+    expect(world.model.chats()).toHaveLength(2);
+    const [first, second] = world.model.chats();
+    expect(second?.options.seed).not.toBe(first?.options.seed);
+
+    const texts = shownTexts(world, reply.id);
+    // The text was shown, then taken back before any of the new text, and never sat beside it.
+    const shown = texts.findIndex((text) => text.startsWith('Let me'));
+    expect(shown).toBeGreaterThan(-1);
+    const gone = texts.findIndex((text, at) => at > shown && text === '');
+    expect(gone).toBeGreaterThan(shown);
+    expect(texts.slice(gone).some((text) => text.includes('Two invoices'))).toBe(true);
+    expect(texts.some((text) => text.includes('Let me') && text.includes('Two invoices'))).toBe(
+      false,
+    );
+    expect(world.errors).toEqual([]);
+  });
+
+  it('keeps the text of the turns before the one it asks again, with the paragraph between', async () => {
+    const world = await setup([
+      {
+        text: 'Let me check the invoices.',
+        toolCalls: [{ name: 'read', arguments: { path: 'data/invoices.csv' } }],
+      },
+      { text: 'Working it out. ', streamError: UNREADABLE },
+      { text: 'Two invoices are unpaid: INV-2 and INV-3.' },
+    ]);
+    const { reply } = await ask(world, 'Which invoices are unpaid?');
+    expect(reply.text).toBe(
+      'Let me check the invoices.\n\nTwo invoices are unpaid: INV-2 and INV-3.',
+    );
+    expect(shownTexts(world, reply.id)).toContain('Let me check the invoices.');
+  });
+
+  it('asks again after a reply cut off at its length limit, and shows only the new reply', async () => {
+    const world = await setup([
+      {
+        text: 'The unpaid invoices are INV',
+        delayMs: 45,
+        doneReason: 'length',
+        tokens: { prompt: 900, reply: 4_096 },
+      },
+      { text: 'INV-2 and INV-3 are unpaid.' },
+    ]);
+    const { reply } = await ask(world, 'Which invoices are unpaid?');
+    expect(reply).toMatchObject({ status: 'done', text: 'INV-2 and INV-3 are unpaid.' });
+    const texts = shownTexts(world, reply.id);
+    expect(texts.some((text) => text.startsWith('The unpaid'))).toBe(true);
+    expect(texts.some((text) => text.includes('The unpaid') && text.includes('INV-2 and'))).toBe(
+      false,
+    );
+    expect(world.model.chats()).toHaveLength(2);
+  });
+
+  it('ends on the error of the third reply that could not be read, leaving its text', async () => {
+    const world = await setup([
+      { text: 'One. ', streamError: UNREADABLE },
+      { text: 'Two. ', streamError: UNREADABLE },
+      { text: 'Three. ', streamError: UNREADABLE },
+    ]);
+    const { reply } = await ask(world, 'Which invoices are unpaid?');
+    expect(reply.status).toBe('error');
+    expect(reply.text).toBe('Three.');
+    expect(reply.error).toContain("couldn't read");
+    expect(world.model.chats()).toHaveLength(3);
+  });
+});
+
+describe("keeping a conversation inside the student's context", () => {
+  it('clears the oldest results when the prompt Ollama reports nears the end of the context', async () => {
+    // Two hundred orders, read sixty lines at a time. Each reply reports a bigger prompt.
+    const lines = Array.from(
+      { length: 200 },
+      (_, at) => `INV-${1000 + at},C-2,12345,2026-11-02,false`,
+    );
+    const reads = [1, 61, 121, 181].map((offset, at) => ({
+      text: '',
+      toolCalls: [{ name: 'read', arguments: { path: 'data/invoices.csv', offset, limit: 60 } }],
+      tokens: { prompt: 4_000 + at * 3_000, reply: 100 },
+    }));
+    const world = await setup([...reads, { text: 'There are 200 invoices.' }], {
+      harness: { decoding: { maxSteps: 8 } },
+    });
+    await writeFile(
+      join(world.graduate.workspaceDataDir, 'invoices.csv'),
+      `invoice_id,customer_id,total_cents,due_date,paid\n${lines.join('\n')}\n`,
+    );
+    // The agent reads its files when it opens, so it opens again to see the longer table.
+    await world.host.openGraduate(world.graduate.id);
+    const { reply } = await ask(world, 'How many invoices are there?');
+    expect(reply).toMatchObject({ status: 'done', text: 'There are 200 invoices.' });
+
+    const chats = world.model.chats();
+    expect(chats).toHaveLength(5);
+    const results = (at: number) => chats[at]?.messages.filter((m) => m.role === 'tool') ?? [];
+    // The fourth reply said its prompt was 13,000 tokens, over what 16,384 leaves with room for a
+    // reply of 4,096: the fifth prompt went without the oldest result, and had the rest whole.
+    expect(results(3)[0]?.content).toMatch(/^ *1\tinvoice_id,customer_id/);
+    expect(results(4)[0]?.content).toBe(
+      '[Cleared to make room: read data/invoices.csv, lines 1-60. Read it again if you need it.]',
+    );
+    expect(results(4)[3]?.content).toMatch(/^181\tINV-1179/);
+    // The reply, and the steps it shows the person, are unchanged by what the model was sent.
+    expect(reply.steps.map((step) => step.status)).toEqual(['done', 'done', 'done', 'done']);
+    expect(
+      reply.trace?.filter((step) => step.kind === 'tool').map((step) => step.result.slice(0, 20)),
+    ).toEqual([
+      expect.stringContaining('1\tinvoice_id'),
+      expect.stringContaining('61\tINV-1059'),
+      expect.stringContaining('121\tINV-1119'),
+      expect.stringContaining('181\tINV-1179'),
+    ]);
+  });
+});
+
 describe('writes', () => {
   it('asks before writing, and writes the file once the user approves', async () => {
     const world = await setup([addInvoice(), { text: 'Added INV-4.' }]);
@@ -719,7 +859,10 @@ describe('the host', () => {
     await expect(world.host.send(chat.id, 'Second question.')).rejects.toThrow('still answering');
     await done;
     await expect(world.host.send(chat.id, '   ')).rejects.toThrow('Write a message');
-    await expect(world.host.messages('cht_missing')).rejects.toThrow('There is no chat');
+    await expect(world.host.messages('cht_missing')).rejects.toMatchObject({
+      code: 'chat_not_found',
+      message: expect.stringContaining('There is no chat'),
+    });
   });
 });
 

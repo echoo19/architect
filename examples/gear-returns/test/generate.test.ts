@@ -32,6 +32,24 @@ describe('generating the job', () => {
     }
   });
 
+  it("splits another seed's tasks by that seed, and the committed job by its own", () => {
+    expect(buildJobFiles(DEFAULT_SEED).job.splits.seed).toBe(DEFAULT_SEED);
+    for (const seed of [DEFAULT_SEED + 1, 7]) {
+      expect(buildJobFiles(seed).job.splits.seed, String(seed)).toBe(seed);
+    }
+  });
+
+  it("matches the ready-made agent's records, the shop of seed 20261029, byte for byte", async () => {
+    const shipped = join(jobDir, '..', 'graduate', 'data');
+    const fresh = buildJobFiles(20261029).files;
+    const names = (await filesUnder(shipped)).map((name) => `data/${name}`);
+    expect(names).toEqual([...fresh.keys()].filter((path) => path.startsWith('data/')).sort());
+    for (const path of names) {
+      const committed = await readFile(join(shipped, path.slice('data/'.length)), 'utf8');
+      expect(committed, path).toBe(fresh.get(path));
+    }
+  });
+
   it('matches the committed job folder byte for byte', async () => {
     const outDir = await mkdtemp(join(tmpdir(), 'gear-returns-'));
     try {

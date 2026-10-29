@@ -1,6 +1,7 @@
 import { HubError } from '@architect/engine';
 import {
   BindRequestSchema,
+  CodedError,
   ExportPartRequestSchema,
   ExportRequestSchema,
   HubInstallRequestSchema,
@@ -31,7 +32,8 @@ const NOT_A_PACKAGE_HINT = 'Check the repository and the commit.';
 
 /**
  * A Hugging Face failure with what to do about it in one message: only the message crosses to
- * the renderer, and the hint is the way out. A commit with no package gets one too.
+ * the renderer, and the hint is the way out. A commit with no package gets one too, and keeps its
+ * code, so a screen can say in its own words that it isn't an agent.
  */
 async function withHubHint<T>(request: Promise<T>): Promise<T> {
   try {
@@ -41,7 +43,9 @@ async function withHubHint<T>(request: Promise<T>): Promise<T> {
       throw new Error(`${error.message} ${error.hint}`, { cause: error });
     }
     if (error instanceof PackageError && error.code === 'not_a_package') {
-      throw new Error(`${error.message} ${NOT_A_PACKAGE_HINT}`, { cause: error });
+      throw new CodedError('not_a_package', `${error.message} ${NOT_A_PACKAGE_HINT}`, {
+        cause: error,
+      });
     }
     throw error;
   }
@@ -162,6 +166,15 @@ export function registerGraduateHandlers(
         );
         await workspace.open(result.graduate);
         return result;
+      },
+      hasSampleAgent: () => call((api) => api.graduates.hasSampleAgent()),
+      prepareSampleAgent: async () => {
+        const sample = await call((api) => api.graduates.prepareSampleAgent());
+        // Files Architect ships and keeps itself: the import that follows may read them as it
+        // reads what the user chose, and nothing else comes with them.
+        picked.add([sample.package], 'files');
+        picked.add([sample.data], 'folders');
+        return sample;
       },
       reviewPublication: (graduateId, request) =>
         call((api) => api.graduates.reviewPublication(graduateId, request)),

@@ -1,20 +1,27 @@
 import {
   ARM_LABELS,
+  type ArmId,
+  type ArmReport,
   type ArmRow,
   type BackendTable,
   type ComparisonReport,
   type Counted,
-  type Decoding,
+  type PassDifference,
   type PinnedInputs,
   type RuntimeIdentity,
+  type Score,
   type TaskSweep,
 } from '@architect/shared';
 import { percent } from './stats';
 
 /*
  * The report as Markdown for the README: the same object the JSON holds, laid out as tables. No
- * number is computed here that the JSON doesn't carry.
+ * figure is worked out here that the JSON doesn't carry; what is done here is only choosing the
+ * words and showing the dollars so that the figures shown add up.
  */
+
+/** The arms whose graduate carries trained weights. */
+const ADAPTER_ARMS: readonly ArmId[] = ['weights-one-shot', 'weights-targeted'];
 
 function table(header: readonly string[], rows: readonly (readonly string[])[]): string {
   const line = (cells: readonly string[]) =>
@@ -31,8 +38,17 @@ function count(value: Counted): string {
   return `${value.pass}/${value.total}, ${percent(value.rate)}${interval}`;
 }
 
+function score(value: Score): string {
+  return `${value.pass}/${value.total}`;
+}
+
 function usd(value: number | null): string {
   return value === null ? 'unknown' : `$${value.toFixed(2)}`;
+}
+
+/** Dollars to a tenth of a cent, as the money section shows them so they can be added up. */
+function usd4(value: number | null): string {
+  return value === null ? 'unknown' : dollars(tenths(value));
 }
 
 /** A cap, where null means the arm had none of that kind. */
@@ -54,6 +70,33 @@ function short(hash: string | null): string {
   return `\`${hex.slice(0, 12)}\``;
 }
 
+/**
+ * "a", "a and b", "a, b and c". Names that hold commas themselves ("Spark reference, blank
+ * harness") are separated by semicolons, so a reader can tell where one ends.
+ */
+function list(items: readonly string[]): string {
+  if (items.length <= 1) return items.join('');
+  const commas = items.some((item) => item.includes(','));
+  const last = items.at(-1);
+  return commas
+    ? `${items.slice(0, -1).join('; ')}; and ${last}`
+    : `${items.slice(0, -1).join(', ')} and ${last}`;
+}
+
+function plural(n: number, noun: string): string {
+  return `${n.toLocaleString('en-US')} ${noun}${n === 1 ? '' : 's'}`;
+}
+
+/** A share of the scenarios as signed percentage points: +3.3, -10.6, 0.0. */
+function points(share: number): string {
+  const value = Math.round(share * 1000) / 10;
+  return `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
+}
+
+function difference(value: PassDifference): string {
+  return `${points(value.rate)} (${points(value.low)} to ${points(value.high)})`;
+}
+
 function identity(value: RuntimeIdentity): string {
   return [
     `Model ${value.model}`,
@@ -62,13 +105,29 @@ function identity(value: RuntimeIdentity): string {
     `GGUF ${value.ggufSha256 ?? 'none'}`,
     `runtime build ${value.runtimeBuild ?? 'not recorded'}`,
     `chat template ${value.chatTemplate ?? 'not recorded'}`,
-    `context ${value.contextLength === null ? 'not recorded' : value.contextLength.toLocaleString('en-US')} tokens`,
+    `context ${value.contextLength === null ? 'not recorded' : `${value.contextLength.toLocaleString('en-US')} tokens`}`,
   ].join('; ');
 }
 
-function sampling(decoding: Decoding | null): string {
-  if (decoding === null) return 'not recorded';
-  return `temperature ${decoding.temperature}, top_p ${decoding.topP}, top_k ${decoding.topK}, reasoning ${decoding.thinking}, at most ${decoding.maxSteps} model turns and ${decoding.maxOutputTokens} output tokens a turn`;
+/** What each row ran with, from the records of its frozen harness: one row per row of results. */
+function settingsTable(rows: readonly ArmRow[]): string {
+  return table(
+    ['Arm', 'Temperature', 'top_p', 'top_k', 'Reasoning', 'Turn limit', 'Output tokens a turn'],
+    rows.map((row) => {
+      const { sampling } = row;
+      return sampling === null
+        ? [row.label, 'not recorded', '-', '-', '-', '-', '-']
+        : [
+            row.label,
+            String(sampling.temperature),
+            String(sampling.topP),
+            String(sampling.topK),
+            sampling.thinking,
+            String(sampling.maxSteps),
+            sampling.maxOutputTokens.toLocaleString('en-US'),
+          ];
+    }),
+  );
 }
 
 /** The target as observed counts, never as proven reliability. */
@@ -79,7 +138,7 @@ function target(row: ArmRow): string {
   return passTarget.met ? `meets the ${goal}` : `below the ${goal}`;
 }
 
-function rowCells(row: ArmRow): string[] {
+function rowCells(row: ArmRow, adapters: boolean): string[] {
   return [
     row.label,
     `${count(row.scenarios)}${row.complete ? '' : ', partial'}`,
@@ -92,19 +151,22 @@ function rowCells(row: ArmRow): string[] {
       ? '-'
       : `${bytes(row.peakMemory.processBytes)} RAM, ${bytes(row.peakMemory.gpuBytes)} GPU`,
     short(row.harnessHash),
-    short(row.adapterSha256),
+    ...(adapters ? [short(row.adapterSha256)] : []),
   ];
 }
 
-function backendSection(backend: BackendTable): string {
+function backendSection(backend: BackendTable, adapters: boolean): string {
+  const seed = backend.rows[0]?.seed ?? '-';
   const parts = [`### ${backend.label}`, identity(backend.identity)];
-  const samplings = [...new Set(backend.rows.map((row) => sampling(row.sampling)))];
-  parts.push(`Sampling and limits: ${samplings.join('; or ')}.`);
+  parts.push(
+    'Settings each row ran with. The harness sets these, so each row compares a whole configuration: the harness text together with its sampling and limits.',
+  );
+  parts.push(settingsTable(backend.rows));
   parts.push(
     table(
       [
         'Arm',
-        `Locked test, seed ${backend.rows[0]?.seed ?? '-'} (95% Wilson)`,
+        `Locked test, seed ${seed} (95% Wilson)`,
         'Target',
         'By type',
         'Refused',
@@ -112,21 +174,22 @@ function backendSection(backend: BackendTable): string {
         'Cold start',
         'Peak memory',
         'Harness',
-        'Adapter',
+        ...(adapters ? ['Adapter'] : []),
       ],
-      backend.rows.map(rowCells),
+      backend.rows.map((row) => rowCells(row, adapters)),
     ),
   );
   if (backend.paired.length > 0) {
     parts.push(
       table(
         [
-          'Paired, scenario by scenario',
+          `Paired under seed ${seed}, scenario by scenario`,
           'Scenarios',
           'Wins',
           'Losses (regressions)',
           'Both',
           'Neither',
+          'First less second, in percentage points (95% interval)',
           'By type (wins/losses)',
         ],
         backend.paired.map((pair) => [
@@ -136,6 +199,7 @@ function backendSection(backend: BackendTable): string {
           String(pair.bOnly),
           String(pair.both),
           String(pair.neither),
+          difference(pair.difference),
           pair.byType.map((type) => `${type.type} ${type.aOnly}/${type.bOnly}`).join(', '),
         ]),
       ),
@@ -148,7 +212,7 @@ function backendSection(backend: BackendTable): string {
         backend.repeats.map((repeat) => [
           `${repeat.label}${repeat.complete ? '' : ' (partial)'}`,
           repeat.seeds
-            .map((seed) => `seed ${seed.seed}: ${seed.score.pass}/${seed.score.total}`)
+            .map((each) => `seed ${each.seed}: ${each.score.pass}/${each.score.total}`)
             .join(', '),
           `${count(repeat.everySeed)}${repeat.complete ? '' : ', of the scenarios every seed ran'}`,
           String(repeat.flipped),
@@ -166,31 +230,172 @@ function pinnedLine(inputs: NonNullable<ComparisonReport['inputs']>): string {
   return `Pinned when the plan was made, and checked on every run since: ${pin(inputs.job)}${inputs.regression === null ? '' : `; the regression check's ${pin(inputs.regression)}`}.`;
 }
 
-/** Every dollar once, the student's credit as the journal holds it, and calibration's billing. */
-function moneyLines(report: ComparisonReport): string {
-  const { totals, credit, billing } = report;
-  const lines = [
-    `Spent in all, each dollar once: Spark ${usd(totals.sparkUsd)}, student ${usd(totals.studentUsd)}, compute ${usd(totals.computeUsd)}${totals.computeSettled ? '' : ' (at most, a job still running)'}.`,
-  ];
-  if (credit !== null) {
-    lines.push(
-      `Student credit by the request journal: ${usd(credit.settledUsd)} settled and ${usd(credit.uncertainUsd)} uncertain (${credit.uncertainRequests} requests counted at their worst) of ${usd(credit.capUsd)}, over ${credit.requests} requests, ${credit.billedRequests} billed by the provider.`,
-    );
-  }
-  if (billing !== null) {
-    lines.push(
-      `Calibration against billing: ${billing.billedCalls} of ${billing.calls} calls billed, ${usd(billing.billedUsd)} billed against ${usd(billing.listedUsd)} at the listed price${billing.ratio === null ? '' : `, a ratio of ${billing.ratio.toFixed(3)}`}.`,
-    );
-  }
-  return lines.join(' ');
+/**
+ * The money section rounds every figure once, to a tenth of a cent, and takes every difference
+ * between the rounded figures, so the figures it shows add up whatever the rounding was.
+ */
+const tenths = (dollars: number) => Math.round(dollars * 10_000);
+const dollars = (units: number) => `$${(units / 10_000).toFixed(4)}`;
+
+/** How a figure stands against the attempts' recorded costs, by the step between the two. */
+function against(step: number): string {
+  if (step === 0) return 'the same as the attempts record';
+  return `${dollars(Math.abs(step))} ${step > 0 ? 'more' : 'less'} than the attempts record`;
 }
 
-function sweepLine(value: TaskSweep): string {
-  return `${value.label}: ${value.job}, ${count(value.scenarios)} on ${value.tasks} tasks (${value.perType.map((type) => `${type.label} ${type.pass}/${type.total}`).join(', ')}); latency p50 ${value.latencyMs === null ? '-' : seconds(value.latencyMs.p50)}, p95 ${value.latencyMs === null ? '-' : seconds(value.latencyMs.p95)}; ${value.meanUsdPerAttempt === null ? 'price unknown' : `$${value.meanUsdPerAttempt.toFixed(4)} an attempt`}, ${Math.round(value.meanInputTokens).toLocaleString('en-US')} tokens in and ${Math.round(value.meanOutputTokens).toLocaleString('en-US')} out on average.`;
+/** What was spent: Spark and compute from their ledgers, and the student's three counts. */
+function moneySection(report: ComparisonReport): string[] {
+  const { totals, credit, calibration, regression } = report;
+  const { studentUsd, studentParts } = totals;
+  const recorded = studentUsd === null ? null : tenths(studentUsd);
+  const reference = report.arms.some(
+    (arm) => arm.arm.startsWith('reference') && arm.status !== 'not_run',
+  );
+  const parts = [
+    `the arms ${usd4(studentParts.armsUsd)}`,
+    ...(calibration === null ? [] : [`the calibration ${usd4(studentParts.calibrationUsd)}`]),
+    ...(regression === null ? [] : [`the regression check ${usd4(studentParts.regressionUsd)}`]),
+  ];
+  const bullets = [
+    `**Spark: ${usd4(totals.sparkUsd)}.** The cost ledger: every Spark call${reference ? ', and Spark doing the tasks itself as a reference' : ''}. Spark calls are not in the request journal.`,
+    totals.computeSettled
+      ? `**Compute: ${usd4(totals.computeUsd)}.** ${totals.computeUsd === 0 ? 'No training job was paid for.' : 'The training jobs, as they ended.'}`
+      : `**Compute: ${usd4(totals.computeUsd)} at most.** A training job had not ended, so this is its whole authorization and the cost may be lower.`,
+    recorded === null
+      ? '**The hosted student, recorded by its attempts: unknown.** The cost of some attempt was not recorded.'
+      : `**The hosted student, recorded by its attempts: ${dollars(recorded)}.** The cost written down with each attempt, every dollar once: ${list(parts)}.`,
+  ];
+  const lead =
+    'What was spent, from the records. The projection made before the run is further down, apart from this, and none of it is counted here. The three figures for the hosted student count the same requests in different ways, so they are not added together.';
+  const bulleted = () => bullets.map((bullet) => `- ${bullet}`).join('\n');
+  if (credit === null || credit.requests === 0) {
+    return [lead, bulleted(), 'The request journal holds no hosted request.'];
+  }
+  const settled = tenths(credit.settledUsd);
+  const journal = tenths(credit.totalUsd);
+  const settledRequests = credit.requests - credit.uncertainRequests - credit.inFlightRequests;
+  const billed =
+    credit.billedRequests === settledRequests
+      ? 'all of them billed by the provider'
+      : `${credit.billedRequests.toLocaleString('en-US')} of them billed by the provider and the rest at the listed price of the usage reported`;
+  const held = credit.uncertainRequests + credit.inFlightRequests;
+  bullets.push(
+    `**The hosted student, settled by the provider: ${dollars(settled)}.** The request journal's ${plural(settledRequests, 'request')} with a known charge, ${billed}.${
+      recorded === null
+        ? ''
+        : ` That is ${against(settled - recorded)}${settled > recorded ? ': the journal writes down every request before it is sent, so it also holds requests that no recorded attempt keeps the cost of (an attempt that failed or was cut off and was made again)' : ''}.`
+    }`,
+    held === 0
+      ? '**The hosted student, uncertain: $0.0000.** No request was cut off.'
+      : `**The hosted student, uncertain: ${dollars(journal - settled)}.** The journal's ${plural(held, 'request')} that a crash or a failure cut off, whose charge is not known, ${held === 1 ? '' : 'each '}counted at the most it could have cost.`,
+  );
+  return [
+    lead,
+    bulleted(),
+    `The journal counts ${dollars(journal)} in all, settled plus uncertain, of the ${usd(credit.capUsd)} set aside for the hosted student${recorded === null ? '' : `: ${against(journal - recorded)}`}.`,
+  ];
+}
+
+/** A sweep on the bare student outside any arm, with what it was for. */
+function sweepLine(value: TaskSweep, about: string): string {
+  return `${value.label} (${about}): ${value.job}, ${count(value.scenarios)} on ${value.tasks} tasks (${value.perType.map((type) => `${type.label} ${type.pass}/${type.total}`).join(', ')}); latency p50 ${value.latencyMs === null ? '-' : seconds(value.latencyMs.p50)}, p95 ${value.latencyMs === null ? '-' : seconds(value.latencyMs.p95)}; ${value.meanUsdPerAttempt === null ? 'price unknown' : `$${value.meanUsdPerAttempt.toFixed(4)} an attempt`}, ${Math.round(value.meanInputTokens).toLocaleString('en-US')} tokens in and ${Math.round(value.meanOutputTokens).toLocaleString('en-US')} out on average.`;
+}
+
+/**
+ * Which seeds ran and for whom: the plan declared them before any arm ran, and a seed with no
+ * result under it was not run.
+ */
+function seedsParagraph(plan: ComparisonReport['plan'], arms: readonly ArmReport[]): string {
+  const name = (id: ArmId) => arms.find((arm) => arm.arm === id)?.label ?? ARM_LABELS[id];
+  const ran = plan.seedResults.filter((item) => item.arms.length > 0);
+  const declared = `Locked-test seeds declared in the plan before any arm ran: ${list(plan.testSeeds.map(String))}.`;
+  if (ran.length === 0) return `${declared} No locked test has run, so no seed has a result yet.`;
+  const sentences = plan.seedResults.map((item, index) =>
+    item.arms.length > 0
+      ? `Seed ${item.seed} ran for ${list(item.arms.map(name))}.`
+      : `Seed ${item.seed} was declared${index > 0 ? ' for the decoding repeat' : ''} and was not run, so no result in this report is under it.`,
+  );
+  return [declared, ...sentences].join(' ');
+}
+
+/** What each frozen agent is set to run on, and where its numbers come from. */
+function frozenLines(
+  arm: ArmReport,
+  adapters: boolean,
+  backends: readonly BackendTable[],
+): string[] {
+  const { frozen } = arm;
+  if (frozen === null) return [];
+  const runtime =
+    frozen.backend === 'ollama'
+      ? 'Ollama'
+      : frozen.backend === 'llama.cpp'
+        ? 'llama-server'
+        : frozen.backend;
+  const adapter =
+    frozen.adapter === null
+      ? adapters
+        ? ', no adapter'
+        : ''
+      : `, adapter ${frozen.adapter.id} (${short(frozen.adapter.sha256)}) at scale ${frozen.adapter.scale} on base ${frozen.adapter.baseDigest ?? 'not recorded'}${frozen.adapter.standIn ? ', a stand-in' : ''}`;
+  const local = backends.filter(
+    (table) =>
+      (table.backend === 'local-ollama' || table.backend === 'local-llama.cpp') &&
+      arm.measuredOn.includes(table.backend),
+  );
+  const hosted = arm.measuredOn.includes('hosted');
+  const measured =
+    local.length === 0
+      ? hosted
+        ? 'All of its measurements here are from the hosted student; that local build was not measured.'
+        : 'It has no locked-test result here, so that local build was not measured either.'
+      : `Its locked test ${hosted ? 'also ' : ''}ran on this computer; see ${local.length === 1 ? 'the table' : 'the tables'} ${list(local.map((table) => `"${table.label}"`))}.`;
+  return [
+    `Frozen: harness version ${frozen.harnessVersion} (${short(frozen.harnessHash)})${adapter}.`,
+    `Once installed, it is set to run on \`${frozen.localModel}\` on ${runtime}.`,
+    measured,
+  ];
+}
+
+/** How an arm's rounds ended: the rounds it used of the most it was allowed, and why it stopped. */
+function roundsCell(arm: ArmReport): string {
+  if (arm.rounds === null) return '-';
+  const allowed = arm.caps.rounds === null ? '' : ` of ${arm.caps.rounds}`;
+  return `${arm.rounds.used}${allowed}${arm.rounds.ended === null ? '' : `, ${arm.rounds.ended}`}`;
+}
+
+/** The last kept round's own before and after, which are on one scale. */
+function keptCell(arm: ArmReport): string {
+  const { kept } = arm.dev;
+  if (kept === null) return arm.rounds === null || arm.status === 'not_run' ? '-' : 'none kept';
+  const pair =
+    kept.before === null || kept.after === null
+      ? '-'
+      : `${score(kept.before)} to ${score(kept.after)}`;
+  return `round ${kept.round}: ${pair}${kept.kind === 'draft' ? ' (kept without a check)' : ''}`;
+}
+
+/** How to read the development columns of the arms table, for the arms the report has. */
+function devNote(arms: readonly ArmReport[]): string {
+  const sentences = ['The first dev measurement is one run over the dev tasks.'];
+  if (arms.some((arm) => arm.dev.kept !== null && arm.dev.kept.kind !== 'draft')) {
+    sentences.push(
+      "A round that went through the keep rule is decided on its confirmation: the dev tasks again on new seeds, over more than one run, so its before and after are out of a larger total. Compare a round's before with its after, not with the first measurement.",
+    );
+  }
+  if (arms.some((arm) => arm.dev.kept?.kind === 'draft')) {
+    sentences.push(
+      'A one-shot draft is kept without a check, so its before and after are one run each.',
+    );
+  }
+  return sentences.join(' ');
 }
 
 /** The whole report as Markdown. */
 export function renderMarkdown(report: ComparisonReport): string {
+  const adapters = report.arms.some(
+    (arm) => ADAPTER_ARMS.includes(arm.arm) && arm.status !== 'not_run',
+  );
   const parts: string[] = [`# Comparisons: ${report.job.name}`];
   if (report.dryRun) {
     parts.push(
@@ -198,14 +403,42 @@ export function renderMarkdown(report: ComparisonReport): string {
     );
   }
   parts.push(
-    `Made ${report.generatedAt}${report.commit === null ? '' : ` at commit ${report.commit}`}, from stored records only. Splits seed ${report.job.splitsSeed}: ${report.job.counts.calibration} calibration, ${report.job.counts.train} train, ${report.job.counts.dev} dev and ${report.job.counts.test} locked-test tasks. Mentoring seed ${report.plan.mentoringSeed}; locked-test seeds ${report.plan.testSeeds.join(' and ')}. Adapter protocol: ${report.plan.adapterProtocol}. ${report.plan.releasedAt === null ? 'Development is still open: no locked test has been released.' : `Development closed at ${report.plan.releasedAt}, when the locked tests were released; no arm developed after it.`}`,
+    `Made ${report.generatedAt}${report.commit === null ? '' : ` at commit ${report.commit}`}, from stored records only. Splits seed ${report.job.splitsSeed}: ${report.job.counts.calibration} calibration, ${report.job.counts.train} train, ${report.job.counts.dev} dev and ${report.job.counts.test} locked-test tasks. Mentoring seed ${report.plan.mentoringSeed}. ${report.plan.releasedAt === null ? 'Development is still open: no locked test has been released.' : `Development closed at ${report.plan.releasedAt}, when the locked tests were released; no arm developed after it.`}`,
+  );
+  parts.push(seedsParagraph(report.plan, report.arms));
+  // What the plan never asked for is said to be not run, so a reader doesn't look for it.
+  const absent = [
+    ...report.plan.order
+      .filter((id) => !report.arms.some((arm) => arm.arm === id))
+      .map((id) => ARM_LABELS[id]),
+    ...(report.inputs !== null && report.inputs.regression === null
+      ? ['the runtime regression check']
+      : []),
+  ];
+  if (absent.length > 0) parts.push(`Not in this comparison, so not run: ${list(absent)}.`);
+  parts.push(
+    adapters
+      ? `Adapter protocol: ${report.plan.adapterProtocol}.`
+      : 'Every reported agent is harness-only: none has trained weights.',
   );
   if (report.inputs !== null) parts.push(pinnedLine(report.inputs));
-  if (report.calibration !== null) parts.push(sweepLine(report.calibration));
-  if (report.regression !== null) parts.push(sweepLine(report.regression));
+  if (report.calibration !== null)
+    parts.push(
+      sweepLine(
+        report.calibration,
+        'the bare student on the calibration tasks, run first to price an attempt',
+      ),
+    );
+  if (report.regression !== null)
+    parts.push(
+      sweepLine(
+        report.regression,
+        'the bare student on dev tasks of a second job, to check the runtime',
+      ),
+    );
 
   parts.push('## Money');
-  parts.push(moneyLines(report));
+  parts.push(...moneySection(report));
 
   parts.push('## Arms');
   parts.push(
@@ -214,23 +447,38 @@ export function renderMarkdown(report: ComparisonReport): string {
         '#',
         'Arm',
         'Status',
-        'Spark',
-        'Student',
-        'Compute',
-        'Examples / trained tokens',
-        'Dev before, after',
+        'Rounds used of the most allowed, and why training ended',
+        'Dev, first measurement',
+        'Dev, last kept round: before to after',
       ],
       report.arms.map((arm) => [
         String(arm.priority),
         arm.label,
         arm.status === 'not_run' ? 'not run' : arm.status,
+        roundsCell(arm),
+        arm.dev.baseline === null ? '-' : score(arm.dev.baseline),
+        keptCell(arm),
+      ]),
+    ),
+  );
+  parts.push(devNote(report.arms));
+  parts.push(
+    table(
+      [
+        '#',
+        'Arm',
+        'Spark: spent of its cap, tokens',
+        'Student: spent of its cap, attempts',
+        'Compute',
+        'Examples / trained tokens',
+      ],
+      report.arms.map((arm) => [
+        String(arm.priority),
+        arm.label,
         `${usd(arm.spent.sparkUsd)} of ${cap(arm.caps.sparkUsd)}, ${arm.spent.sparkInputTokens.toLocaleString('en-US')} in / ${arm.spent.sparkOutputTokens.toLocaleString('en-US')} out`,
         `${usd(arm.spent.studentUsd)} of ${cap(arm.caps.studentUsd)}, ${arm.spent.studentAttempts} attempts`,
         `${usd(arm.spent.computeUsd)}${arm.spent.computeSettled ? '' : ' (at most)'}, ${arm.spent.computeMinutes.toFixed(0)} min`,
         `${arm.spent.examples} / ${arm.spent.trainedTokens.toLocaleString('en-US')}`,
-        arm.dev.baseline === null
-          ? '-'
-          : `${arm.dev.baseline.pass}/${arm.dev.baseline.total}, ${arm.dev.final === null ? '-' : `${arm.dev.final.pass}/${arm.dev.final.total}`}`,
       ]),
     ),
   );
@@ -245,11 +493,7 @@ export function renderMarkdown(report: ComparisonReport): string {
         : [
             `Its graduate's cumulative development cost, with the ${arm.cumulative.builtOn.map((other) => ARM_LABELS[other].toLowerCase()).join(' and ')} arm's: Spark ${usd(arm.cumulative.sparkUsd)}, student ${usd(arm.cumulative.studentUsd)}, compute ${usd(arm.cumulative.computeUsd)}.`,
           ]),
-      ...(arm.frozen === null
-        ? []
-        : [
-            `Frozen: harness version ${arm.frozen.harnessVersion} (${short(arm.frozen.harnessHash)}) on ${arm.frozen.backend}${arm.frozen.adapter === null ? ', no adapter' : `, adapter ${arm.frozen.adapter.id} (${short(arm.frozen.adapter.sha256)}) at scale ${arm.frozen.adapter.scale} on base ${arm.frozen.adapter.baseDigest ?? 'not recorded'}${arm.frozen.adapter.standIn ? ', a stand-in' : ''}`}; locked-test seeds ${arm.frozen.testSeeds.join(', ')}.`,
-          ]),
+      ...frozenLines(arm, adapters, report.backends),
       ...arm.experiments.map((experiment) => {
         const regressed = experiment.regressions
           .map((item) => `${item.type} (${item.before} to ${item.after})`)
@@ -265,7 +509,7 @@ export function renderMarkdown(report: ComparisonReport): string {
 
   parts.push('## Locked test, one table per backend');
   if (report.backends.length === 0) parts.push('No locked test has run yet.');
-  for (const backend of report.backends) parts.push(backendSection(backend));
+  for (const backend of report.backends) parts.push(backendSection(backend, adapters));
 
   if (report.adapters.length > 0) {
     parts.push('## Development only: adapter configurations on one llama-server');
@@ -304,7 +548,10 @@ export function renderMarkdown(report: ComparisonReport): string {
 
   if (report.projection !== null) {
     const { projection } = report;
-    parts.push('## Measurement model and projection');
+    parts.push('## Projection made before the run, not what was spent');
+    parts.push(
+      'These are estimates, made from the calibration attempts before any arm spent. Nothing here was spent; what was spent is under Money and Arms.',
+    );
     parts.push(
       table(
         ['Input', 'Value', 'Source', 'Note'],
@@ -323,9 +570,9 @@ export function renderMarkdown(report: ComparisonReport): string {
           'Hosted attempts',
           'Local attempts',
           'Spark calls / tasks',
-          'Student',
-          'Spark',
-          'Compute',
+          'Projected student',
+          'Projected Spark',
+          'Projected compute',
           'Local GPU',
           'Wall clock',
           'Funded',
@@ -345,7 +592,7 @@ export function renderMarkdown(report: ComparisonReport): string {
       ),
     );
     parts.push(
-      `Funded: student ${usd(projection.funded.studentUsd)} of ${usd(projection.caps.studentUsd)}, Spark ${usd(projection.funded.sparkUsd)} of ${usd(projection.caps.sparkUsd)}, compute ${usd(projection.funded.computeUsd)} of ${usd(projection.caps.computeUsd)}, local GPU ${Math.ceil(projection.funded.localMinutes)} of ${Math.floor(projection.caps.localMinutes)} minutes, about ${Math.ceil(projection.funded.wallMinutes)} minutes of wall clock.`,
+      `Projected for the funded arms: student ${usd(projection.funded.studentUsd)} of ${usd(projection.caps.studentUsd)}, Spark ${usd(projection.funded.sparkUsd)} of ${usd(projection.caps.sparkUsd)}, compute ${usd(projection.funded.computeUsd)} of ${usd(projection.caps.computeUsd)}, local GPU ${Math.ceil(projection.funded.localMinutes)} of ${Math.floor(projection.caps.localMinutes)} minutes, about ${Math.ceil(projection.funded.wallMinutes)} minutes of wall clock.`,
     );
   }
 

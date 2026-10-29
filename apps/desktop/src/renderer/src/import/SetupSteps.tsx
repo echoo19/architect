@@ -15,6 +15,7 @@ import {
 } from '@architect/ui';
 import { FolderOpen } from 'lucide-react';
 import { architect } from '../api/client';
+import { folderName } from '../install/folders';
 import { GRANT_LABELS } from '../install/labels';
 import { shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
@@ -35,7 +36,7 @@ function folderMeta(resource: PackageResource, manifest: PackageManifest): strin
   return resource.description;
 }
 
-/** Step two: a folder on this computer for each folder the agent works in. */
+/** Step two: where on this computer the files are, for each folder the agent works in. */
 export function FoldersStep({
   manifest,
   bindings,
@@ -48,7 +49,7 @@ export function FoldersStep({
   const choose = (resource: PackageResource) =>
     void attempt("Couldn't choose that folder", async () => {
       const [folder] = await architect().files.pick({
-        title: `Choose a folder for ${resource.name}/`,
+        title: `Choose the ${folderName(resource).toLowerCase()}`,
         directory: true,
       });
       if (folder) onBind(resource.name, folder);
@@ -57,7 +58,7 @@ export function FoldersStep({
   return (
     <>
       <Heading as="h1" size="display-sm">
-        Choose its folders
+        Where are its files?
       </Heading>
       <ul aria-label="Folders" className="m-0 flex list-none flex-col p-0">
         {manifest.resources.map((resource) => {
@@ -69,10 +70,10 @@ export function FoldersStep({
                 ? 'attention'
                 : 'off';
           return (
-            <li key={resource.name} aria-label={`${resource.name}/`}>
+            <li key={resource.name} aria-label={folderName(resource)}>
               <SettingsRow
                 icon={<StatusMark state={state} />}
-                label={`${resource.name}/`}
+                label={folderName(resource)}
                 meta={folderMeta(resource, manifest)}
                 metaFont={resource.files.length > 0 ? 'code' : 'text'}
               >
@@ -109,7 +110,7 @@ function levelsUpTo(asked: PackageResource['access']): { value: ResourceGrant; l
   return levels.map((value) => ({ value, label: GRANT_LABELS[value] }));
 }
 
-/** The helper tools its harness brings, by name. */
+/** The small tools its setup brings, by name. */
 function toolNames(manifest: PackageManifest): string[] {
   const prefix = `${manifest.harness.path}/tools/`;
   return manifest.integrity.files
@@ -140,20 +141,20 @@ export function PermissionsStep({
   onWrites: (mode: PermissionMode) => void;
 }) {
   const tools = toolNames(manifest);
+  // Saving only matters once a folder it may change has been allowed, so the choice comes then.
+  const changes = manifest.resources.some((resource) => grants[resource.name] === 'read_write');
   return (
     <>
       <Heading as="h1" size="display-sm">
-        Choose what it may do
+        What may it do?
       </Heading>
       <div className="flex flex-col">
         {manifest.resources.map((resource) => (
           <SettingsRow
             key={resource.name}
-            label={`${resource.name}/`}
+            label={folderName(resource)}
             meta={
-              resource.access === 'read'
-                ? 'The package asks to read it'
-                : 'The package asks to read and change it'
+              resource.access === 'read' ? 'It needs to read it' : 'It needs to read and change it'
             }
           >
             {bindings[resource.name] === undefined && !resource.bundled ? (
@@ -162,7 +163,7 @@ export function PermissionsStep({
               </SettingsValue>
             ) : (
               <Segmented
-                aria-label={`Access to ${resource.name}/`}
+                aria-label={`Access to the ${folderName(resource).toLowerCase()}`}
                 options={levelsUpTo(resource.access)}
                 value={grants[resource.name] ?? 'none'}
                 onValueChange={(grant) => onGrant(resource.name, grant)}
@@ -170,30 +171,27 @@ export function PermissionsStep({
             )}
           </SettingsRow>
         ))}
-        <SettingsRow label={WRITE_SETTING} meta={WRITE_MODE_MEANINGS[writes]}>
-          <Segmented
-            aria-label={WRITE_SETTING}
-            options={WRITE_CHOICES}
-            value={writes}
-            onValueChange={onWrites}
-          />
-        </SettingsRow>
+        {changes && (
+          <SettingsRow label={WRITE_SETTING} meta={WRITE_MODE_MEANINGS[writes]}>
+            <Segmented
+              aria-label={WRITE_SETTING}
+              options={WRITE_CHOICES}
+              value={writes}
+              onValueChange={onWrites}
+            />
+          </SettingsRow>
+        )}
         <SettingsRow
           label="Internet access"
           meta={`It only talks to the model on ${deviceInSentence(currentPlatform())}`}
         >
           <SettingsValue>Never, by design</SettingsValue>
         </SettingsRow>
-        <SettingsRow
-          label="Tools it brings"
-          meta={tools.length > 0 ? 'They run in a sandbox' : undefined}
-        >
-          {tools.length > 0 ? (
+        {tools.length > 0 && (
+          <SettingsRow label="Small tools it brings" meta="They run in isolation">
             <span className="font-mono text-sm text-fg-secondary">{tools.join(', ')}</span>
-          ) : (
-            <SettingsValue>None</SettingsValue>
-          )}
-        </SettingsRow>
+          </SettingsRow>
+        )}
       </div>
     </>
   );

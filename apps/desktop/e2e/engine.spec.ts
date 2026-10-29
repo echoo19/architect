@@ -1,4 +1,5 @@
-import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { cp, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,6 +16,13 @@ const SAMPLE_DATA = fileURLToPath(
   new URL('../../../examples/home-services/job/data', import.meta.url),
 );
 const WORKSPACE = 'Architect workspace';
+/** The ready-made agent's package where the repository keeps it, and the data it works on. */
+const SAMPLE_AGENT_PACKAGE = fileURLToPath(
+  new URL('../../../examples/gear-returns/graduate/returns-desk.architect.zip', import.meta.url),
+);
+const RETURNS_DESK_DATA = fileURLToPath(
+  new URL('../../../examples/gear-returns/graduate/data', import.meta.url),
+);
 
 let launched: LaunchedApp;
 let jobId: string;
@@ -77,6 +85,67 @@ test('creates the sample job with all of its tasks', async () => {
 
   const again = await page.evaluate(() => window.architect.jobs.createSample());
   expect(again.id).toBe(jobId);
+});
+
+/** Where this build keeps the ready-made agent's package: beside the app once packaged. */
+async function samplePackage(): Promise<string> {
+  const where = await launched.app.evaluate(({ app }) => ({
+    packaged: app.isPackaged,
+    resources: process.resourcesPath,
+  }));
+  return where.packaged
+    ? join(where.resources, 'sample-agent', 'returns-desk.architect.zip')
+    : SAMPLE_AGENT_PACKAGE;
+}
+
+test('offers the ready-made agent exactly when its package comes with the build', async () => {
+  const shipped = existsSync(await samplePackage());
+  expect(await launched.page.evaluate(() => window.architect.graduates.hasSampleAgent())).toBe(
+    shipped,
+  );
+});
+
+test('refuses to open a ready-made agent the build does not ship, and makes nothing', async () => {
+  test.skip(existsSync(await samplePackage()), 'This build ships the ready-made agent.');
+  const { dataPath } = await launched.page.evaluate(() => window.architect.app.info());
+  const message = await launched.page.evaluate(() =>
+    window.architect.graduates.prepareSampleAgent().then(
+      () => 'prepared',
+      (error: Error) => error.message,
+    ),
+  );
+  expect(message).toBe("The ready-made agent isn't available in this build.");
+  expect(existsSync(join(dataPath, 'samples'))).toBe(false);
+});
+
+test('opens the ready-made agent the build ships, with a copy of its data that is kept', async () => {
+  const shipped = await samplePackage();
+  test.skip(!existsSync(shipped), 'This build ships no ready-made agent package yet.');
+  const page = launched.page;
+  const { dataPath } = await page.evaluate(() => window.architect.app.info());
+  const copy = join(dataPath, 'samples', 'returns-desk', 'data');
+  // Nothing is copied before the agent is opened.
+  expect(existsSync(copy)).toBe(false);
+
+  const sample = await page.evaluate(() => window.architect.graduates.prepareSampleAgent());
+  expect(sample).toEqual({ package: shipped, data: copy });
+  expect((await readdir(copy)).sort()).toEqual((await readdir(RETURNS_DESK_DATA)).sort());
+
+  // The shipped package is one an import takes, and is read from where the app keeps it.
+  const preview = await page.evaluate(
+    (path) => window.architect.graduates.previewImport(path),
+    sample.package,
+  );
+  expect(preview).toMatchObject({ ok: true, place: { kind: 'new' } });
+
+  // What the agent wrote there stays when it is opened again.
+  const returns = join(copy, 'returns.csv');
+  const written = `${await readFile(returns, 'utf8')}R-NEW,O-1\n`;
+  await writeFile(returns, written, 'utf8');
+  expect(await page.evaluate(() => window.architect.graduates.prepareSampleAgent())).toEqual(
+    sample,
+  );
+  expect(await readFile(returns, 'utf8')).toBe(written);
 });
 
 test('keeps keys in the main process, encrypted', async () => {

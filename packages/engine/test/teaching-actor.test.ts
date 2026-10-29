@@ -18,6 +18,7 @@ function actorOf(stream: () => AsyncGenerator<StudentStreamEvent>): ActorAdapter
     model: 'spark-test',
     baseUrl: 'https://api.example.com/v1',
     isLocal: false,
+    contextLength: null,
     chat: () => stream(),
     describe: async () => ({ model: 'spark-test' }),
     testConnection: async () => ({ ok: true, latencyMs: 1, detail: 'test' }),

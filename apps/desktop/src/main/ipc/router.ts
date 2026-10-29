@@ -1,4 +1,12 @@
-import type { ArchitectApi } from '@architect/shared';
+import {
+  CodedError,
+  ErrorCodeSchema,
+  GuardError,
+  PackageError,
+  type ArchitectApi,
+  type ErrorCode,
+  type PackageProblemCode,
+} from '@architect/shared';
 import { z } from 'zod';
 import {
   channel,
@@ -54,8 +62,30 @@ export interface IpcRouterOptions {
   targets: () => EventSink[];
 }
 
-function failure(message: string): IpcResult<never> {
-  return { ok: false, error: { message } };
+function failure(message: string, code?: string): IpcResult<never> {
+  return { ok: false, error: code === undefined ? { message } : { message, code } };
+}
+
+/**
+ * The refusals of a package that a screen words on its own: it isn't one, or what it holds isn't
+ * what its manifest lists. Every other refusal reaches a screen as the engine's sentences.
+ */
+const PACKAGE_CODES: Partial<Record<PackageProblemCode, ErrorCode>> = {
+  not_a_package: 'not_a_package',
+  checksum: 'package_changed',
+  missing_file: 'package_changed',
+  unlisted_file: 'package_changed',
+};
+
+/** The code a failure crosses the bridge with: its own, the package's, or the guard that refused it. */
+function codeOf(error: unknown): string | undefined {
+  if (error instanceof CodedError) return error.code;
+  if (error instanceof PackageError) return PACKAGE_CODES[error.code];
+  if (error instanceof GuardError) {
+    const code = `guard_${error.guard}`;
+    return ErrorCodeSchema.safeParse(code).success ? code : undefined;
+  }
+  return undefined;
 }
 
 function messageOf(error: unknown): string {
@@ -116,13 +146,13 @@ export class IpcRouter {
     const handler = this.handlers.get(name);
     if (!handler) {
       const label = name.replace(':', '.');
-      return failure(`The engine isn't connected yet, so ${label} can't run.`);
+      return failure(`The engine isn't connected yet, so ${label} can't run.`, 'process_starting');
     }
     try {
       return { ok: true, value: await handler(...args) };
     } catch (error) {
       if (!(error instanceof ArgumentError)) console.error(`[ipc] ${name} failed:`, error);
-      return failure(messageOf(error));
+      return failure(messageOf(error), codeOf(error));
     }
   }
 }

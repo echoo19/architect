@@ -1,4 +1,9 @@
-import type { PermissionMode, WorkspaceChat, WorkspaceMessage } from '@architect/shared';
+import {
+  CodedError,
+  type PermissionMode,
+  type WorkspaceChat,
+  type WorkspaceMessage,
+} from '@architect/shared';
 import { activeStamp, activeVersion, type ActiveVersion } from '../graduates/open';
 import { isoNow } from '../loop/time';
 import { DataPaths } from '../loop/paths';
@@ -41,7 +46,12 @@ export function workspaceStore(engine: EngineStore, dataDir: string): WorkspaceS
     saveWriteMode(graduateId, mode) {
       engine.transaction(() => {
         const installation = engine.installations.get(graduateId);
-        if (!installation) throw new Error(`There is no graduate "${graduateId}" installed.`);
+        if (!installation) {
+          throw new CodedError(
+            'agent_not_found',
+            `There is no graduate "${graduateId}" installed.`,
+          );
+        }
         engine.installations.put({
           ...installation,
           grants: { ...installation.grants, writes: mode },

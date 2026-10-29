@@ -5,8 +5,8 @@ import { CircleAlert, Layers, LockKeyhole, RotateCcw } from 'lucide-react';
 import { graduatesApi, refreshAgent } from '../../api/graduates';
 import { attempt } from '../../lib/notify';
 import { useGraduateSettings } from '../graduateSettings';
-import { WRITE_MODE_LABELS } from '../labels';
-import { promoteCaution, type VersionMove } from './versions';
+import { WRITE_MODE_LABELS, WRITE_SETTING } from '../labels';
+import { MOVE_WORDS, promoteCaution, type VersionMove } from './versions';
 
 /** One consequence in a confirmation, after an icon that says what kind it is. */
 export function Change({ icon, children }: { icon: ReactNode; children: ReactNode }) {
@@ -48,7 +48,7 @@ export function MoveDialog({
   const confirm = async () => {
     setMoving(true);
     const done = await attempt(
-      promote ? `Couldn't promote version ${number}` : `Couldn't roll back to version ${number}`,
+      promote ? `Couldn't use version ${number}` : `Couldn't go back to version ${number}`,
       async () => {
         if (promote) {
           if (version.state === 'candidate') await graduatesApi.acceptVersion(agent.id, number);
@@ -66,9 +66,7 @@ export function MoveDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent
-        title={promote ? `Promote version ${number}?` : `Roll back to version ${number}?`}
-      >
+      <DialogContent title={MOVE_WORDS[kind].title(number)}>
         <ul className="m-0 flex list-none flex-col gap-3 px-7 pt-4">
           {caution && (
             <Change icon={<CircleAlert size={15} strokeWidth={1.8} aria-hidden />}>
@@ -82,11 +80,11 @@ export function MoveDialog({
           <Change icon={<RotateCcw size={15} strokeWidth={1.8} aria-hidden />}>
             {/* Going back to an earlier version is a rollback; to a later one, a promotion. */}
             Version {active.version} stays, so you can{' '}
-            {active.version < number ? 'roll back to it' : 'promote it again'}.
+            {active.version < number ? 'go back to it' : 'use it again'}.
           </Change>
           {backToAsk && (
             <Change icon={<LockKeyhole size={15} strokeWidth={1.8} aria-hidden />}>
-              Saving changes goes back to {WRITE_MODE_LABELS.ask}, since version {number} came from
+              {WRITE_SETTING} goes back to {WRITE_MODE_LABELS.ask}, since version {number} came from
               another computer.
             </Change>
           )}
@@ -96,7 +94,7 @@ export function MoveDialog({
             <Button size="md">Cancel</Button>
           </DialogClose>
           <Button variant="primary" size="md" loading={moving} onClick={() => void confirm()}>
-            {promote ? 'Promote' : 'Roll back'}
+            {MOVE_WORDS[kind].confirm(number)}
           </Button>
         </DialogFooter>
       </DialogContent>

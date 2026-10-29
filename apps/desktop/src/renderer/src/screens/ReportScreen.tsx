@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ReportCard } from '@architect/shared';
-import { Button, ErrorState, Skeleton } from '@architect/ui';
+import { Button, Skeleton } from '@architect/ui';
 import { ArrowRight } from 'lucide-react';
 import { api, flowApi } from '../api/client';
 import { graduateKeys, graduatesApi } from '../api/graduates';
@@ -14,6 +14,7 @@ import {
   useSettings,
 } from '../api/hooks';
 import { fetchQuery, useQuery } from '../api/query';
+import { ProblemState } from '../components/ProblemState';
 import { useComparison } from '../flow/report/ComparisonTable';
 import {
   useBareReport,
@@ -22,9 +23,12 @@ import {
   useReportEvidence,
 } from '../flow/report/evidence';
 import { ReportView } from '../flow/report/ReportView';
+import { reportVerdict } from '../flow/report/verdict';
+import { shortModelName } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { FlowShell } from '../shell/FlowShell';
+import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 
 /** Step four: how the graduate did on the locked test, and taking it into the workspace. */
 export function ReportScreen({ runId }: { runId: string }) {
@@ -45,32 +49,26 @@ export function ReportScreen({ runId }: { runId: string }) {
 
   return (
     <FlowShell
-      title={report.data?.name ?? 'Report'}
-      step="Report"
+      title={report.data?.name ?? 'Results'}
+      step="Results"
       footer={
         report.status === 'success' && (
-          <div className="mx-auto flex max-w-[860px] flex-wrap justify-end gap-2">
-            <Button onClick={() => navigate(paths.train(runId))}>See all rounds</Button>
-            <Button variant="primary" loading={accepting} onClick={() => void accept(report.data)}>
-              Start using {report.data.name}
-              <ArrowRight size={16} strokeWidth={2} aria-hidden />
-            </Button>
-          </div>
+          <ReportFooter
+            report={report.data}
+            accepting={accepting}
+            onAccept={() => void accept(report.data)}
+          />
         )
       }
     >
       <div className="mx-auto box-content flex max-w-[860px] flex-col gap-11 px-8 pb-8 pt-14">
         {report.status === 'loading' && <ReportSkeleton />}
         {report.status === 'error' && (
-          <ErrorState
-            title="Couldn't load the report card"
-            message={report.error.message}
+          <ProblemState
+            error={report.error}
+            title="Couldn't load the results"
             onRetry={report.reload}
-            secondaryAction={
-              <Button size="md" onClick={() => navigate(paths.train(runId))}>
-                Back to training
-              </Button>
-            }
+            exit={{ label: 'Back to agents', onClick: () => navigate(paths.home()) }}
             className="min-h-[60vh]"
           />
         )}
@@ -80,9 +78,66 @@ export function ReportScreen({ runId }: { runId: string }) {
   );
 }
 
+/**
+ * The agent a run made, once it exists here, with this computer's checks of it and the verdict
+ * the results give from them and the final test together. The footer and the page read the same
+ * cached queries, so they never disagree.
+ */
+function useReportAgent(report: ReportCard) {
+  const graduates = useGraduates();
+  const graduate = graduates.data?.find((item) => item.manifest.runId === report.runId);
+  // Install checks belong to the agent on this computer, once the run has made one.
+  const installation = useQuery(graduateKeys.installation(graduate?.id ?? 'none'), () =>
+    graduate ? graduatesApi.installation(graduate.id) : Promise.resolve(null),
+  );
+  const verdict = reportVerdict(report, installation.data ?? null, {
+    model: shortModelName(report.student.label),
+    baseBytes: graduate?.manifest.student.sizeBytes,
+  });
+  return { graduate, installation: installation.data ?? null, verdict };
+}
+
+/**
+ * What to do next: use the agent when it can be used, else the one thing that puts it right,
+ * which is in its settings.
+ */
+function ReportFooter({
+  report,
+  accepting,
+  onAccept,
+}: {
+  report: ReportCard;
+  accepting: boolean;
+  onAccept: () => void;
+}) {
+  const { graduate, verdict } = useReportAgent(report);
+  const showSettings = useAgentSettingsUi((state) => state.show);
+  return (
+    <div className="mx-auto flex max-w-[860px] flex-wrap justify-end gap-2">
+      <Button onClick={() => navigate(paths.train(report.runId))}>See all rounds</Button>
+      {verdict.usable || !graduate ? (
+        <Button variant="primary" loading={accepting} onClick={onAccept}>
+          Start using {report.name}
+          <ArrowRight size={16} strokeWidth={2} aria-hidden />
+        </Button>
+      ) : (
+        <Button
+          variant="primary"
+          onClick={() => {
+            navigate(paths.home());
+            showSettings(graduate.id, 'general');
+          }}
+        >
+          {verdict.state === 'blocked' ? "See what's wrong" : 'Finish setting up'}
+          <ArrowRight size={16} strokeWidth={2} aria-hidden />
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function LoadedReport({ report }: { report: ReportCard }) {
   const job = useJob(report.jobId);
-  const graduates = useGraduates();
   const settings = useSettings();
   const run = useRunDetail(report.runId);
   const comparison = useComparison(report, settings.data?.comparisonMode === true);
@@ -91,14 +146,11 @@ function LoadedReport({ report }: { report: ReportCard }) {
   const evidence = useReportEvidence(report);
   const comparisonReport = useComparisonReport(report);
   const bare = useBareReport(report, blankStart);
-  const graduate = graduates.data?.find((item) => item.manifest.runId === report.runId);
-  // Install checks belong to the agent on this computer, once the run has made one.
-  const installation = useQuery(graduateKeys.installation(graduate?.id ?? 'none'), () =>
-    graduate ? graduatesApi.installation(graduate.id) : Promise.resolve(null),
-  );
+  const { graduate, installation, verdict } = useReportAgent(report);
   return (
     <ReportView
       report={report}
+      verdict={verdict}
       job={job.status === 'success' ? job.data : null}
       graduate={graduate}
       comparison={comparison}
@@ -106,7 +158,7 @@ function LoadedReport({ report }: { report: ReportCard }) {
       evidence={evidence}
       bare={bare.data ?? null}
       run={run.data?.run ?? null}
-      installation={installation.data ?? null}
+      installation={installation}
       comparisonReport={comparisonReport}
     />
   );
@@ -114,7 +166,7 @@ function LoadedReport({ report }: { report: ReportCard }) {
 
 function ReportSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Loading the report card" className="flex flex-col gap-11">
+    <div aria-busy="true" aria-label="Loading the results" className="flex flex-col gap-11">
       <div className="flex flex-col gap-3">
         <Skeleton shape="pill" className="h-7 w-20" />
         <Skeleton className="h-10 w-80" />

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { Finding, ListedAttempt, ListedLesson, Round, RunStatus } from '@architect/shared';
-import { Button, cn, Drawer, DrawerContent, ErrorState, Skeleton } from '@architect/ui';
+import { cn, Drawer, DrawerContent, Skeleton } from '@architect/ui';
 import { CircleAlert } from 'lucide-react';
 import {
   mentoringApi,
@@ -9,11 +9,11 @@ import {
   type MentoringRecords,
 } from '../api/mentoring';
 import { useQuery, type QueryState } from '../api/query';
+import { ProblemState } from '../components/ProblemState';
 import { rate } from '../flow/format';
 import { modelNames, typeLabel } from '../flow/names';
 import { Apprenticeship } from '../flow/train/Apprenticeship';
 import { CurrentRound } from '../flow/train/CurrentRound';
-import { providerName } from '../flow/define/hosted';
 import { draftRoundOf, setupOf } from '../flow/train/draft';
 import { Examples } from '../flow/train/Examples';
 import { LatestAttempts } from '../flow/train/LatestAttempts';
@@ -94,15 +94,11 @@ export function TrainScreen({ runId }: { runId: string }) {
       >
         {state.status === 'loading' && <TrainSkeleton />}
         {state.status === 'error' && (
-          <ErrorState
+          <ProblemState
+            error={state.error}
             title="Couldn't load this training run"
-            message={state.error.message}
             onRetry={retry}
-            secondaryAction={
-              <Button size="md" onClick={() => navigate(paths.home())}>
-                Back to agents
-              </Button>
-            }
+            exit={{ label: 'Back to agents', onClick: () => navigate(paths.home()) }}
             className="min-h-[60vh]"
           />
         )}
@@ -265,10 +261,10 @@ function FindingAttempt({
         {attempt.status === 'loading' ? (
           <StepsSkeleton />
         ) : (
-          <ErrorState
+          <ProblemState
             layout="inline"
+            error={attempt.error}
             title="Couldn't open this attempt"
-            message={attempt.error.message}
             onRetry={attempt.reload}
           />
         )}
@@ -314,9 +310,7 @@ function useReportWhenFinished(
 /** Where the student is running now: a hosted copy only practices; the final test runs here. */
 function studentPlace({ run, job }: LiveRun): string {
   const testing = run.status === 'testing' || run.phase === 'testing';
-  if (!testing && job.student.trainOn === 'hosted') {
-    return `on ${job.student.hosted ? providerName(job.student.hosted) : 'a hosted copy'}`;
-  }
+  if (!testing && job.student.trainOn === 'hosted') return 'online';
   return `on ${deviceInSentence(currentPlatform())}`;
 }
 
@@ -343,12 +337,12 @@ function TrainBoard({
   if (run.status === 'finished') {
     footer = improves
       ? { label: 'See what changed', onClick: () => navigate(paths.improvement(run.id)) }
-      : { label: 'See the report card', onClick: () => navigate(paths.report(run.id)) };
+      : { label: 'See the results', onClick: () => navigate(paths.report(run.id)) };
   }
   const evidence = records.data ?? null;
   const failure =
     records.status === 'error' && evidence === null
-      ? { message: records.error.message, reload: records.reload }
+      ? { error: records.error, reload: records.reload }
       : null;
   const round = currentRound(live);
   return (
@@ -365,7 +359,7 @@ function TrainBoard({
               {improves ? 'Improving stopped on an error' : 'Training stopped on an error'}
             </span>
             <span className="text-fg-secondary text-pretty">
-              {run.error ?? 'The engine reported a failure without a message.'}
+              {run.error ?? 'It stopped without saying why.'}
             </span>
           </div>
         </div>

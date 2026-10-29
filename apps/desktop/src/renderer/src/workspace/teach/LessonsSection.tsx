@@ -6,7 +6,6 @@ import {
   DialogClose,
   DialogContent,
   DialogFooter,
-  ErrorState,
   SettingsRow,
   SettingsSection,
   Skeleton,
@@ -34,6 +33,7 @@ import {
   useTeachingOverview,
   useTeachingUpdates,
 } from '../../api/teaching';
+import { ProblemState } from '../../components/ProblemState';
 import { errorOf } from '../../components/QueryValue';
 import { formatPercent } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
@@ -43,7 +43,7 @@ import { useAgentSettingsUi } from '../settings/agentSettingsUi';
 import { Change } from '../settings/MoveDialog';
 import { createChat } from '../store';
 import { FlaggedAnswers } from './FlaggedAnswers';
-import { budgetLine, flaggedSummary, lessonCount, runningImprovement } from './lessons';
+import { budgetLine, capsLine, flaggedSummary, lessonCount, runningImprovement } from './lessons';
 import { StopImprovementDialog } from './StopImprovement';
 
 /** An icon in a small tile, at the start of a row. */
@@ -88,10 +88,10 @@ export function LessonsSection({ agent }: { agent: GraduateSummary }) {
     rows = <TeachingRows agent={agent} overview={overview.data} />;
   } else if (overview.status === 'error') {
     rows = (
-      <ErrorState
+      <ProblemState
         layout="inline"
+        error={overview.error}
         title="Couldn't load its lessons"
-        message={overview.error.message}
         onRetry={overview.reload}
         className="border-t border-line py-4"
       />
@@ -234,17 +234,17 @@ function ImproveRow({
       </Button>
     );
   } else if (queued === 0) {
-    meta = 'Nothing in the queue yet';
+    meta = 'Flag an answer to teach it first';
   } else if (overview.improve) {
-    const waits = overview.improve.waits ? ' · waits for a run using the student' : '';
-    meta = `${lessonCount(queued)} · at most ${budgetLine(overview.improve.budget, mentor)}${waits}`;
+    const waits = overview.improve.waits ? ' · waits for the run using it' : '';
+    meta = `${lessonCount(queued)} saved · ${budgetLine(overview.improve.budget)}${waits}`;
     action = (
       <Button size="xs" onClick={() => setConfirming(true)}>
         Improve
       </Button>
     );
   } else {
-    meta = `${lessonCount(queued)} · no version of it can run here to improve`;
+    meta = `${lessonCount(queued)} saved · no version of it can run here to improve`;
   }
 
   return (
@@ -255,7 +255,7 @@ function ImproveRow({
             <TrendingUp {...icon} />
           </Tile>
         }
-        label="Improve agent"
+        label="Improve"
         meta={meta}
       >
         {action}
@@ -340,7 +340,7 @@ function ImproveDialog({
             Version {from} keeps answering meanwhile.
           </Change>
           <Change icon={<Coins size={15} strokeWidth={1.8} aria-hidden />}>
-            At most {budgetLine(improve.budget, mentor)}.
+            {capsLine(improve.budget, mentor)}
           </Change>
           {improve.waits && (
             <Change icon={<Hourglass size={15} strokeWidth={1.8} aria-hidden />}>

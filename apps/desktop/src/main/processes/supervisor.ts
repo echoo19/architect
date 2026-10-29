@@ -1,3 +1,5 @@
+import { CodedError, type ErrorCode } from '@architect/shared';
+
 /** What a process reports about itself: it is serving, or it could not start and why. */
 export type ProcessStatus = { type: 'ready' } | { type: 'failed'; message: string };
 
@@ -81,12 +83,12 @@ export class Supervisor<Client extends Closable> {
    */
   async call<T>(request: (client: Client) => Promise<T>): Promise<T> {
     const link = this.link;
-    if (!link || this.stopRequested) throw new Error(this.unavailable(false));
+    if (!link || this.stopRequested) throw this.unavailable(false);
     try {
       return await request(link.process.client);
     } catch (error) {
       if (!link.lost) throw error;
-      throw new Error(this.unavailable(true), { cause: error });
+      throw this.unavailable(true, error);
     }
   }
 
@@ -99,17 +101,33 @@ export class Supervisor<Client extends Closable> {
     return this.stopped;
   }
 
-  /** Why a request can't be answered; `lost` when the process went away while answering it. */
-  private unavailable(lost: boolean): string {
+  /**
+   * Why a request can't be answered, as an error a screen can word: `lost` when the process went
+   * away while answering it.
+   */
+  private unavailable(lost: boolean, cause?: unknown): CodedError {
     const { name } = this.options;
-    if (this.stopRequested) return `${name} has stopped because Architect is closing.`;
-    if (!this.started) return `${name} is starting. Try again in a moment.`;
+    const say = (code: ErrorCode, message: string) => new CodedError(code, message, { cause });
+    if (this.stopRequested) {
+      return say('process_closing', `${name} has stopped because Architect is closing.`);
+    }
+    if (!this.started)
+      return say('process_starting', `${name} is starting. Try again in a moment.`);
     if (this.startFailure) {
-      return `${name} couldn't start: ${this.startFailure} Architect keeps trying in the background.`;
+      return say(
+        'process_failed',
+        `${name} couldn't start: ${this.startFailure} Architect keeps trying in the background.`,
+      );
     }
     return lost
-      ? `${name} stopped while it was working on this. It is restarting; try again in a moment.`
-      : `${name} stopped unexpectedly and is restarting. Try again in a moment.`;
+      ? say(
+          'process_restarting',
+          `${name} stopped while it was working on this. It is restarting; try again in a moment.`,
+        )
+      : say(
+          'process_restarting',
+          `${name} stopped unexpectedly and is restarting. Try again in a moment.`,
+        );
   }
 
   private launch(): void {

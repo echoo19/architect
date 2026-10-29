@@ -12,15 +12,24 @@ import type {
   Round,
   Score,
 } from '@architect/shared';
-import { cn, DrawerContent, DrawerSection, ErrorState, Skeleton, Spinner } from '@architect/ui';
+import {
+  cn,
+  Disclosure,
+  DrawerContent,
+  DrawerSection,
+  ErrorState,
+  Skeleton,
+  Spinner,
+} from '@architect/ui';
 import { FilePen } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { useQuery } from '../../api/query';
+import { ProblemState } from '../../components/ProblemState';
 import { formatRange, formatRate, signed } from '../format';
-import { typeLabel } from '../names';
+import { modelNames, typeLabel } from '../names';
 import { decisionSentence, harmSentence, predictionCheck } from './decision';
 import { PatchLines } from '../../components/PatchLines';
-import { countChanges, parseUnifiedDiff } from './diff';
+import { changeSummary, countChanges, parseUnifiedDiff } from './diff';
 import {
   checkMeasurements,
   DISPOSITIONS,
@@ -212,11 +221,6 @@ export function RoundDrawerContent({
                 {round.diagnosis}
               </p>
             )}
-            {predicted?.rationale && (
-              <p className="m-0 text-fg-secondary text-pretty">
-                Why it expected that: {predicted.rationale}
-              </p>
-            )}
             {intervention && !draft && <InterventionLine intervention={intervention} />}
           </DrawerSection>
         )}
@@ -232,10 +236,10 @@ export function RoundDrawerContent({
           </div>
         )}
         {evidence.status === 'error' && (
-          <ErrorState
+          <ProblemState
             layout="inline"
+            error={evidence.error}
             title="Couldn't load this round's findings, examples, check tasks and costs"
-            message={evidence.error.message}
             onRetry={evidence.reload}
           />
         )}
@@ -360,8 +364,13 @@ function dispositionReason(
       return scores ? `${scores} But ${gate.charAt(0).toLowerCase()}${gate.slice(1)}` : gate;
     }
     // Neither kind was measured: an invalid change was never made, a stopped one never taken.
-    case 'invalid':
-      return `${sentence(experiment.reason)} Nothing changed.`;
+    case 'invalid': {
+      // Retraining the model is the one change a run can ask for that this computer can't make.
+      const { mentor, student } = modelNames(job);
+      return experiment.kind === 'weights'
+        ? `${mentor} wanted to retrain ${student}'s model, which this computer can't do. Nothing changed.`
+        : `${sentence(experiment.reason)} Nothing changed.`;
+    }
     case 'stopped':
       return `${sentence(experiment.reason)} It isn't in the agent.`;
   }
@@ -388,7 +397,7 @@ function Decision({
       </div>
     );
   }
-  const { label, icon: Icon, tone } = DISPOSITIONS[disposition];
+  const { headline, icon: Icon, tone } = DISPOSITIONS[disposition];
   return (
     <div
       className={cn(
@@ -407,7 +416,7 @@ function Decision({
         )}
       >
         <Icon size={20} strokeWidth={2} aria-hidden />
-        {label}
+        {headline}
       </span>
       <p className="m-0 text-md text-fg-soft text-pretty">{reason}</p>
     </div>
@@ -472,18 +481,18 @@ function Effect({
   );
 }
 
-/** A change that was undone took its files with it, so their heading says so. */
+/** A change that was undone took its files with it, so its heading says so. */
 function filesTitle(draft: boolean, disposition: ExperimentDisposition | undefined): string {
-  if (draft) return 'Files written';
+  if (draft) return 'What was written';
   return disposition === 'reverted' || disposition === 'rejected'
-    ? 'Files changed, then undone'
-    : 'Files changed';
+    ? 'What changed, then was undone'
+    : 'What changed';
 }
 
 /** Why a round that ended before its change was made has no files to show. */
 const NO_FILES: Partial<Record<ExperimentDisposition, string>> = {
-  invalid: 'No files changed: the change was refused before it was made.',
-  stopped: 'No files changed: training stopped before the change was written.',
+  invalid: 'Nothing changed: the change was refused before it was made.',
+  stopped: 'Nothing changed: training stopped before the change was written.',
 };
 
 function RoundFiles({
@@ -509,10 +518,10 @@ function RoundFiles({
   }
   if (diff.status === 'error') {
     return (
-      <ErrorState
+      <ProblemState
         layout="inline"
+        error={diff.error}
         title="Couldn't load the changes"
-        message={diff.error.message}
         onRetry={diff.reload}
       />
     );
@@ -520,15 +529,21 @@ function RoundFiles({
   if (diff.data.length === 0) {
     return (
       <p className="m-0 text-fg-secondary">
-        {(disposition && NO_FILES[disposition]) ?? 'No files changed in this round.'}
+        {(disposition && NO_FILES[disposition]) ?? 'Nothing changed in this round.'}
       </p>
     );
   }
+  // The patches are for whoever wants every line; the summary says what was touched.
   return (
-    <div className="flex flex-col gap-3">
-      {diff.data.map((file) => (
-        <FilePatch key={file.path} file={file} />
-      ))}
+    <div className="flex flex-col gap-2">
+      <p className="m-0 text-md text-fg-soft text-pretty">{sentence(changeSummary(diff.data))}</p>
+      <Disclosure label="Details">
+        <div className="flex flex-col gap-3">
+          {diff.data.map((file) => (
+            <FilePatch key={file.path} file={file} />
+          ))}
+        </div>
+      </Disclosure>
     </div>
   );
 }

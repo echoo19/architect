@@ -26,6 +26,9 @@ export const EngineStartSchema = FollowedSettingsSchema.extend({
   /** The built sandbox child, in a real folder the engine can fork it from. */
   sandboxEntryPath: z.string().min(1),
   sampleJobFile: z.string().min(1),
+  /** The ready-made agent's package and its data, which a build may not have (decision 054). */
+  sampleAgentFile: z.string().min(1),
+  sampleAgentDataDir: z.string().min(1),
   /** The training recipe and its scripts: the repository's trainer/, or the app's resource. */
   trainerDir: z.string().min(1),
   /** A stand-in llama-server for tests (ARCHITECT_LLAMA_SERVER_COMMAND). */

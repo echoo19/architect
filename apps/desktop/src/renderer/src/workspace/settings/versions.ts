@@ -1,16 +1,41 @@
 import type { EvaluationStatus, GraduateVersion } from '@architect/shared';
 import { formatPercent } from '../../lib/format';
 
-/** How a version's own locked test came out, in the words every screen uses. */
+/** How a version's own final test came out, in the words every screen uses. */
 export const EVALUATION_LABELS: Record<EvaluationStatus, string> = {
-  ready: 'Ready',
-  experimental: 'Experimental',
+  ready: 'Passed its final test',
+  experimental: 'Below its target',
   // A version with a score on the check tasks still hasn't taken the final test this names.
   unevaluated: 'No final test yet',
 };
 
 /** What can be done with a version from the list: make it active, or go back to it. */
 export type VersionMove = 'promote' | 'rollback';
+
+/** What each move is called on its button and in its dialog. */
+export const MOVE_WORDS: Record<
+  VersionMove,
+  { action: string; title: (version: number) => string; confirm: (version: number) => string }
+> = {
+  promote: {
+    action: 'Use this version',
+    title: (version) => `Use version ${version}?`,
+    confirm: (version) => `Use version ${version}`,
+  },
+  rollback: {
+    action: 'Go back to this version',
+    title: (version) => `Go back to version ${version}?`,
+    confirm: () => 'Go back',
+  },
+};
+
+/** What a version is to the agent: the one in use, a new one waiting, or an older or newer one. */
+export function standing(version: GraduateVersion, active: number | null): string {
+  if (version.active) return 'In use';
+  if (version.state === 'candidate') return 'New, not in use yet';
+  if (version.state === 'rejected') return 'Set aside';
+  return active !== null && version.version > active ? 'Newer, not in use' : 'Earlier version';
+}
 
 /**
  * Promote for a candidate or an accepted version newer than the active one, Roll back for an
@@ -34,8 +59,8 @@ export function versionDate(iso: string): string {
 export function versionOrigin(version: GraduateVersion): string | null {
   if (version.parent !== undefined) {
     return version.origin === undefined
-      ? `from v${version.parent}`
-      : `from v${version.parent}, imported`;
+      ? `from version ${version.parent}`
+      : `from version ${version.parent}, imported`;
   }
   return version.origin === undefined ? null : 'imported';
 }
@@ -55,7 +80,7 @@ export function evaluationNote(version: GraduateVersion): string {
     return EVALUATION_LABELS[version.evaluation];
   }
   return summary.passRate.met
-    ? 'Tested on a hosted copy'
+    ? 'Final test run online'
     : `Below its ${Math.round(summary.passRate.target * 100)}% target`;
 }
 
@@ -73,5 +98,5 @@ export function promoteCaution(version: GraduateVersion): string | null {
   if (!summary.passRate.met) {
     return `Version ${number} fell short on its final test: ${formatPercent(summary.score)} passed, ${Math.round(summary.passRate.target * 100)}% needed.`;
   }
-  return `Version ${number} took its final test on a hosted copy, not on a computer like this one.`;
+  return `Version ${number} took its final test online, not on a computer like this one.`;
 }

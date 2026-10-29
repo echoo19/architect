@@ -191,11 +191,14 @@ test('lists every connection and picks the mentor from any of them', async () =>
   await open('/', { secrets: { meta: true, openrouter: true }, local: LOCAL });
   await openModelsTab();
   const connections = page.getByRole('region', { name: 'Connections' });
+  // The runtimes on this computer wait under Advanced, which opens when Ollama is down.
+  await expect(connections.getByText('Running · 0.12.6 · 2 models')).toBeHidden();
+  await connections.getByRole('button', { name: 'Advanced' }).click();
   await expect(connections.getByText('Running · 0.12.6 · 2 models')).toBeVisible();
   await expect(connections.getByText('Not found')).toBeVisible();
   await expect(connections.getByText('Build 10472 · on PATH')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Mentor', exact: true }).click();
+  await page.getByRole('button', { name: 'Teacher', exact: true }).click();
   const menu = page.getByRole('listbox');
   await expect(menu.getByRole('option', { name: /Muse Spark 1\.3/ }).first()).toBeVisible();
   const listed = menu.getByRole('option', { name: /Some Model/ });
@@ -218,7 +221,7 @@ test('lists every connection and picks the mentor from any of them', async () =>
   ]);
 
   // A model chosen by its id has no listed price, so the page asks for one.
-  await page.getByRole('button', { name: 'Mentor', exact: true }).click();
+  await page.getByRole('button', { name: 'Teacher', exact: true }).click();
   await page.getByPlaceholder('Search models').fill('maker/unlisted');
   await page
     .getByRole('option', { name: /maker\/unlisted/ })
@@ -235,7 +238,7 @@ test('lists every connection and picks the mentor from any of them', async () =>
     });
 
   // A preset from a provider with no key yet asks for its key.
-  await page.getByRole('button', { name: 'Mentor', exact: true }).click();
+  await page.getByRole('button', { name: 'Teacher', exact: true }).click();
   await page.getByRole('option', { name: /Claude Haiku/ }).click();
   await expect(page.getByLabel('Anthropic API key')).toBeVisible();
   await page.keyboard.press('Escape');
@@ -246,7 +249,7 @@ test('picks the model for new agents on this computer, with whether it fits the 
   await openModelsTab();
   await page.getByRole('button', { name: 'Model for new agents' }).click();
   const menu = page.getByRole('listbox');
-  await expect(menu.getByRole('option', { name: /Muse Glimmer · 2-bit/ })).toContainText('GPU');
+  await expect(menu.getByRole('option', { name: /Muse Glimmer · 2-bit/ })).toContainText('Fast');
   await expect(menu.getByRole('option', { name: /Muse Glimmer · 4-bit/ })).toContainText(
     'Not downloaded',
   );
@@ -278,10 +281,14 @@ test('shows a llama-server too old for Glimmer as too old, with how to fix it', 
   await open('/', { secrets: { meta: true }, local: LOCAL, llamaServer: tooOld });
   await openModelsTab();
   const connections = page.getByRole('region', { name: 'Connections' });
-  await expect(connections.getByText('Too old')).toBeVisible();
+  await connections.getByRole('button', { name: 'Advanced' }).click();
+  await expect(connections.getByText('Too old', { exact: true })).toBeVisible();
+  // One plain sentence leads; the engine's words, which say what to do, wait under Details.
   await expect(connections.getByRole('alert')).toContainText(
-    'Update llama.cpp to build 10358 or newer.',
+    'Build 9000 is too old. Build 10358 or newer is needed.',
   );
+  await connections.getByRole('button', { name: 'Details' }).click();
+  await expect(connections).toContainText('Update llama.cpp to build 10358 or newer.');
   await page.getByRole('button', { name: 'Check again' }).click();
   await expect.poll(() => callsTo(launched.app, 'connections:llamaServer')).toHaveLength(2);
   await page.keyboard.press('Escape');
@@ -321,20 +328,26 @@ test('signs in with OpenRouter through main, without a browser here', async () =
   await page.keyboard.press('Escape');
 });
 
-test('offers four ways to a mentor in setup, and a model here needs no key', async () => {
+test('offers Spark first and three other ways to a teacher in setup, and a model here needs no key', async () => {
   await open('/welcome', { secrets: {}, local: LOCAL }, false);
   await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page.getByRole('heading', { name: 'Choose a mentor' })).toBeVisible();
-  for (const name of [/Muse Spark/, /OpenRouter/, /Another provider/, /On this computer/]) {
+  await expect(page.getByRole('heading', { name: 'Connect a teacher' })).toBeVisible();
+  // Spark with a Meta key comes first; the other ways wait behind one line.
+  await expect(page.getByLabel('Meta API key')).toBeVisible();
+  await expect(page.getByRole('radio')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Other ways to connect a teacher' }).click();
+  for (const name of [/^Spark/, /OpenRouter/, /Another service/, /On this computer/]) {
     await expect(page.getByRole('radio', { name })).toBeVisible();
   }
+  // Nothing to continue with yet: skipping says what that costs.
   const next = page.getByRole('button', { name: 'Continue' });
-  await expect(next).toBeDisabled();
+  await expect(next).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Skip for now' })).toBeVisible();
+  await expect(page.getByText('You can connect one later in Settings.')).toBeVisible();
 
   await page.getByRole('radio', { name: /On this computer/ }).click();
-  await page.getByRole('button', { name: 'Mentor', exact: true }).click();
+  await page.getByRole('button', { name: 'Teacher', exact: true }).click();
   await page.getByRole('option', { name: new RegExp(GRANITE) }).click();
   await expect(next).toBeEnabled();
   await page.getByRole('button', { name: 'Test', exact: true }).click();
@@ -345,25 +358,26 @@ test('offers four ways to a mentor in setup, and a model here needs no key', asy
 
   // OpenRouter's way signs in first, then offers its models.
   await page.getByRole('radio', { name: /OpenRouter/ }).click();
-  await expect(next).toBeDisabled();
+  await expect(next).toHaveCount(0);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await page.getByRole('button', { name: 'Mentor', exact: true }).click();
+  await page.getByRole('button', { name: 'Teacher', exact: true }).click();
   await page.getByRole('option', { name: /Some Model/ }).click();
   await expect(next).toBeEnabled();
 });
 
 test('sizes Glimmer for the GPU in setup and installs the GPU-sized build', async () => {
   await open('/welcome', { secrets: {}, local: { ...OLLAMA_READY, gpu: GPU_12GB } }, false);
-  const twoBit = page.getByRole('radio', { name: /Muse Glimmer 2-bit/ });
-  const fourBit = page.getByRole('radio', { name: /Muse Glimmer 4-bit/ });
+  const recommended = page.getByRole('radio', { name: /Recommended/ });
+  const larger = page.getByRole('radio', { name: /Larger/ });
   // The build that fits this card is chosen while the default isn't downloaded.
-  await expect(twoBit).toHaveAttribute('aria-checked', 'true');
-  await expect(twoBit).toContainText('Runs on your GPU');
-  await expect(twoBit).toContainText('Recommended');
-  await expect(fourBit).toContainText('Part on the CPU');
+  await expect(recommended).toHaveAttribute('aria-checked', 'true');
+  await expect(recommended).toContainText('Runs on your graphics card');
+  await expect(recommended).toContainText('14 GB download · Lighter, but less accurate');
+  await expect(larger).toContainText('Part runs on the processor');
+  await expect(larger).toContainText('17 GB download · Most accurate');
   await expect.poll(async () => (await settings(page)).defaultStudent.model).toBe(GPU_BUILD.model);
 
-  await page.getByRole('button', { name: /^Download ·/ }).click();
+  await page.getByRole('button', { name: /^Download Glimmer ·/ }).click();
   await expect.poll(() => callsTo(launched.app, 'ollama:install')).toEqual([['glimmer-gpu']]);
   await emitPullProgress(launched.app, {
     model: GPU_BUILD.model,
@@ -371,5 +385,5 @@ test('sizes Glimmer for the GPU in setup and installs the GPU-sized build', asyn
     done: false,
   });
   await expect(page.getByText('Preparing it for your GPU').first()).toBeVisible();
-  await expect(fourBit).toBeDisabled();
+  await expect(larger).toBeDisabled();
 });

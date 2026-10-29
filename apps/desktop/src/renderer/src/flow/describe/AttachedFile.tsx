@@ -3,7 +3,7 @@ import { ListChecks } from 'lucide-react';
 import { fileName } from '../format';
 
 /** Files read as example requests with their answers: task lists by name or format. */
-export function isTaskFile(path: string): boolean {
+function isTaskFile(path: string): boolean {
   return /\.jsonl$/i.test(path) || /(^|[\\/])tasks?\.csv$/i.test(path);
 }
 

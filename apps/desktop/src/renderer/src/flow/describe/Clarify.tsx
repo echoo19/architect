@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
-import { Button, cn, ErrorState, ReplyComposer, Spinner } from '@architect/ui';
+import { Button, cn, ReplyComposer, Spinner } from '@architect/ui';
 import { ArrowRight, Check } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { queryKeys, useSettings } from '../../api/hooks';
 import { setQueryData } from '../../api/query';
+import { ProblemState } from '../../components/ProblemState';
 import { mentorName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
@@ -119,10 +120,10 @@ export function Clarify() {
           )}
           {failure && (
             <li className="flex flex-col gap-3">
-              <ErrorState
+              <ProblemState
                 layout="inline"
+                error={failure.error}
                 title={`${mentor} couldn't answer`}
-                message={failure.message}
                 onRetry={retryLastMessage}
               />
               {!sessionId && (

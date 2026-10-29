@@ -34,7 +34,7 @@ The engine and agent hosts are plain Node modules in `packages/engine`. The Elec
 ## The core loop (Architect method)
 
 1. **Setup.** The job file names the data, permissions, tasks, checker, requirements, budget, mentor, student and starting harness. The splitter assigns tasks to train, dev and test by seed, grouped so near-duplicates stay in one split. Test goes straight into the vault.
-2. **Attempt.** A run that starts from a blank harness first has its author write a whole draft from the job setup and the train examples, with no attempts, and keeps it as the starting point (decision 026). After that, each round the runner samples a train batch and runs the student on each task inside the current harness version: AGENTS.md, the skills and examples that the retrieval rules select, the coding-agent tools over the agent's folder (`read`, `ls`, `glob`, `grep`, `write`, `edit`, `append`, `run`; see HARNESS_FORMAT.md) plus harness tools, decoding settings. Each attempt works on a scratch copy of the files, and its trace records what it started from (data hashes, harness hash, tool version, seed, decoding, business date) and the diff of every write.
+2. **Attempt.** A run that starts from a blank harness first has its author write a whole draft from the job setup and the train examples, with no attempts, and keeps it as the starting point (decision 026). After that, each round the runner samples a train batch and runs the student on each task inside the current harness version: AGENTS.md, the skills and examples that the retrieval rules select, the coding-agent tools over the agent's folder (`read`, `ls`, `glob`, `grep`, `write`, `edit`, `append`, `run`; see HARNESS_FORMAT.md) plus harness tools, decoding settings. Each attempt works on a scratch copy of the files, and its trace records what it started from (data hashes, harness hash, tool version, seed, decoding, business date) and the diff of every write. Every prompt is kept inside the student's context, on every backend: when a conversation would pass it, the oldest tool results are replaced, in what the model reads, by a note that names the call and says it was cleared, and the trace keeps them and records which (decision 057).
 3. **Check.** The checker grades each attempt deterministically: pass or fail with a reason.
 4. **Target?** If the dev pass rate meets the requirement, or a budget cap is hit, go to step 7.
 5. **Diagnose.** The mentor receives the failing train traces, the harness, per-type train results, the overall dev pass count (never per-type dev counts or dev traces) and the lineage so far, rejected rounds with their reasons included. It returns one hypothesis: a diagnosis, a change set (files to add or edit), the failures it addresses, and a predicted effect on dev. A reply that isn't a usable hypothesis, a change set the harness refuses, or one with a tool whose code doesn't load in the sandbox (decision 025) goes back to the author once with the reason (decision 023); if the fix can't be used either, the round is rejected before dev sees it: the round ends, the mentor is told why the next round, and two rejected rounds in a row end training. Rejections don't use up patience, which counts changes dev measured and reverted.
@@ -73,6 +73,8 @@ vault/<job>/test.jsonl             locked test split (runner only)
 graduates/<graduate>/versions/v<n>/   one version of a graduate: a package (HARNESS_FORMAT.md)
 workspace/<graduate>/              the graduate's own copy of its job's data, bound to data/
 outputs/<graduate>/                bound to output/
+samples/returns-desk/data/         the ready-made agent's own copy of the data it works on, made the
+                                   first time it is opened and kept after (decision 054)
 staging/                           where imports and exports are unpacked and checked
 training/jobs/<job>/record.json    a training job's durable record (decision 035)
 training/jobs/<job>/inputs/        what the job was sent: job.json, the dataset, the recipe
@@ -95,5 +97,5 @@ local-runtime/gpu-lease.lock       under this lock
 | `@architect/desktop` | Electron main, preload and renderer |
 | `@architect/cli` | the `architect` command (`docs/CLI.md`) |
 | `examples/home-services` | sample job: seeded data generator, task generator, checker |
-| `examples/gear-returns` | second sample job (decision 028): a returns desk whose exports are messier than their first rows |
+| `examples/gear-returns` | second sample job (decision 028): a returns desk whose exports are messier than their first rows; its data and a graduate's package ship as the ready-made agent (decision 054) |
 | `trainer/` | the pinned QLoRA recipe a training job runs: `recipe.json`, `pipeline.py`, `train_qlora.py`, `chat_spans.py`, and `selftest.py` for the span logic |

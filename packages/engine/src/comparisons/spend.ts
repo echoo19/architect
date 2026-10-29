@@ -276,6 +276,7 @@ export class StudentCredit {
       model: student.model,
       baseUrl: student.baseUrl,
       isLocal: student.isLocal,
+      contextLength: student.contextLength,
       chat: (request, signal) => this.chat(student, pricing, request, signal),
       describe: () => student.describe(),
       testConnection: () => student.testConnection(),

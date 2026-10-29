@@ -3,9 +3,7 @@ import { studentPricing, type Job } from '@architect/shared';
 import { Checkbox, cn, Heading, RadioCard, RadioCardGroup, Slider } from '@architect/ui';
 import { ChevronRight, RotateCw } from 'lucide-react';
 import { formatUsd } from '../../lib/format';
-import { capitalized } from '../../lib/names';
 import { currentPlatform, deviceInSentence, deviceLabel } from '../../lib/platform';
-import { mentorProvider } from '../../onboarding/mentor';
 import { modelNames } from '../names';
 import {
   aboutUsd,
@@ -76,29 +74,31 @@ export function TrainingPlace({
   const provider = job.student.hosted ? providerName(job.student.hosted) : null;
   const pricing = job.student.hosted ? (studentPricing(job.student.hosted) ?? null) : null;
   const hostedPrice = pricing ? aboutUsd(practiceUsd(pricing, remote)) : null;
-  const biller = provider ?? 'Host';
-  const mentorBiller = job.mentor.kind === 'model' ? mentorProvider(job.mentor) : mentor;
   const expected = expectedMentorUsd(job, chosen);
 
-  // Every dollar figure sits under whoever bills it; the comparison's share adds in when ticked.
+  // Every dollar figure sits under what it pays for; the comparison's share adds in when ticked.
   const comparing = baselines?.checked === true;
   const bills = planBills(job, chosen, pricing, comparing);
   const billLines = (shares: Bills): PlanLine[] => [
     ...(shares.hostedUsd === null
       ? []
       : [
-          { label: biller, detail: `${student} practice`, value: formatAboutUsd(shares.hostedUsd) },
+          {
+            label: 'Online practice',
+            detail: `${student} practicing online`,
+            value: formatAboutUsd(shares.hostedUsd),
+          },
         ]),
     ...(shares.mentorUsd === null
       ? []
-      : [{ label: mentorBiller, detail: mentor, value: formatAboutUsd(shares.mentorUsd) }]),
+      : [{ label: mentor, detail: 'Teaching', value: formatAboutUsd(shares.mentorUsd) }]),
   ];
   const fits = chosen.rounds.most > 0;
   const time: PlanLine[] = [
     {
       label: 'Training',
       detail: fits ? (
-        `${fittingRounds(job, chosen)} on ${onHost ? (provider ?? 'the hosted copy') : device}`
+        `${fittingRounds(job, chosen)} ${onHost ? 'online' : `on ${device}`}`
       ) : (
         <span className="text-danger">No round fits the {limit} limit</span>
       ),
@@ -127,35 +127,28 @@ export function TrainingPlace({
   ].join(' · ');
 
   return (
-    <section
-      aria-labelledby="train-where"
-      className="flex flex-col gap-[18px] border-t border-line-card pt-10"
-    >
+    <section aria-labelledby="train-where" className="flex flex-col gap-[18px]">
       <Heading id="train-where">Where should it train?</Heading>
       <RadioCardGroup
         aria-label="Where should it train?"
         value={job.student.trainOn}
         onValueChange={onPlaceChange}
       >
-        <RadioCard
-          value="local"
-          title={deviceLabel(currentPlatform())}
-          unavailable={localSlow !== null}
-        >
-          <span>{capitalized(taskTimeText('local'))} a task</span>
-          <span>Free · {student} practices here</span>
+        <RadioCard value="local" title={`Train on ${device}`} unavailable={localSlow !== null}>
+          <span>Slower: {taskTimeText('local')} a task</span>
+          <span>Free. Nothing leaves this computer.</span>
           {localSlow && <span>{localSlow}</span>}
         </RadioCard>
         <RadioCard
           value="hosted"
-          title={provider ? `Hosted on ${provider}` : 'A hosted copy'}
+          title="Train online"
           unavailable={!hosted.available || remoteSlow !== null}
         >
-          <span>{capitalized(taskTimeText('hosted'))} a task</span>
+          <span>Faster: {taskTimeText('hosted')} a task</span>
           {hosted.available ? (
             <>
               <span>
-                {[hostedPrice, `${hostedPrice ? 'tasks' : 'Tasks'} and files go to ${biller}`]
+                {[hostedPrice, `${hostedPrice ? 'sends' : 'Sends'} tasks and files online`]
                   .filter(Boolean)
                   .join(' · ')}
               </span>
@@ -172,7 +165,7 @@ export function TrainingPlace({
           onClick={onRaiseLimit}
           className="-mt-1.5 inline-flex items-center gap-1 self-start rounded-xs text-sm text-fg-secondary transition-colors duration-150 hover:text-fg"
         >
-          Raise the time limit
+          Allow more time
           <ChevronRight size={13} strokeWidth={1.8} aria-hidden />
         </button>
       )}
@@ -258,11 +251,7 @@ export function TrainingPlace({
           <li>
             {deviceLabel(currentPlatform())}: {roundsLine(job, local)}.
           </li>
-          {hosted.available && provider && (
-            <li>
-              {provider}: {roundsLine(job, remote)}.
-            </li>
-          )}
+          {hosted.available && provider && <li>Online: {roundsLine(job, remote)}.</li>}
           <li>A promising change is measured twice, so its round takes longer.</li>
           <li>
             {mentor} works in the cloud and sees the practice attempts and the file samples it

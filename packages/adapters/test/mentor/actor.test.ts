@@ -77,6 +77,8 @@ describe('the mentor acting as the agent', () => {
     expect(server.requests[0]?.headers.authorization).toBe(`Bearer ${API_KEY}`);
     expect(actor.estimateCostUsd({ inputTokens: 1_000_000, outputTokens: 0 })).toBeGreaterThan(0);
     expect(actor.isLocal).toBe(false);
+    // Its window is far beyond a task's, so the agent loop makes no room for it.
+    expect(actor.contextLength).toBeNull();
   });
 
   it('streams text like any student, and counts what the reply used', async () => {

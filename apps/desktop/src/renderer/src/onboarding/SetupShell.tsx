@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { cn, Heading, LogoMark, ProgressStepper } from '@architect/ui';
 import { isMac } from '../lib/platform';
 
-const SETUP_STEPS = ["Agent's model", 'Mentor', 'Faster training', 'Done'] as const;
+const SETUP_STEPS = ['Model', 'Teacher', 'Faster training', 'Done'] as const;
 export type SetupStep = (typeof SETUP_STEPS)[number];
 
 export interface SetupShellProps {
@@ -29,7 +29,8 @@ export function SetupShell({ step, footer, children }: SetupShellProps) {
         <div className="pr-window-controls" />
       </header>
       <main className="min-h-0 flex-1 overflow-y-auto bg-dot-grid">
-        <div className="flex min-h-full flex-col items-center justify-center gap-8 px-6 pb-10 pt-10">
+        {/* From the top, so the heading stays where it is as a step's content comes and goes. */}
+        <div className="flex min-h-full flex-col items-center gap-8 px-6 pb-10 pt-[clamp(40px,14vh,140px)]">
           {children}
         </div>
       </main>

@@ -13,6 +13,7 @@ import {
   sameContractTerms,
   slugify,
   TaskSchema,
+  TraceSchema,
   WorkspaceMessageSchema,
 } from '../src';
 
@@ -158,6 +159,33 @@ describe('schemas', () => {
     expect(
       WorkspaceMessageSchema.safeParse({ ...earlier, trace: [{ kind: 'tool', name: 'read' }] })
         .success,
+    ).toBe(false);
+  });
+
+  it("records the tool results taken out of the model's view, and still reads traces saved without them", () => {
+    const before = {
+      harnessVersion: 1,
+      studentModel: 'muse-glimmer:30b',
+      messages: [{ role: 'user', content: 'Hi' }],
+      steps: [],
+      finalText: 'Hello.',
+      stopReason: 'answer',
+      usage: { inputTokens: 10, outputTokens: 2 },
+      latencyMs: 40,
+    };
+    expect(TraceSchema.parse(before).cleared).toBeUndefined();
+    const cleared = [
+      {
+        turn: 4,
+        callId: 'call_1',
+        name: 'read',
+        stub: '[Cleared to make room: read data/orders.csv, lines 1-119. Read it again if you need it.]',
+      },
+    ];
+    expect(TraceSchema.parse({ ...before, cleared }).cleared).toEqual(cleared);
+    // A turn counts from 1: the model's first prompt is never missing a result.
+    expect(
+      TraceSchema.safeParse({ ...before, cleared: [{ ...cleared[0], turn: 0 }] }).success,
     ).toBe(false);
   });
 });

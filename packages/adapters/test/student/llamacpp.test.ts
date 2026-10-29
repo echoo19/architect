@@ -38,6 +38,7 @@ async function llamaServer(
   const access: LlamaServerAccess = {
     model: options.model ?? 'muse-glimmer:30b-iq2',
     baseUrl: 'http://127.0.0.1',
+    contextLength: 16_384,
     acquire: async () => {
       calls.push('acquire');
       if (options.acquireFails) throw options.acquireFails;
@@ -222,6 +223,8 @@ describe('the llama.cpp student', () => {
       label: 'llama.cpp',
       model: 'muse-glimmer:30b-iq2',
       isLocal: true,
+      // The context the server starts with is the limit the agent loop keeps its prompts under.
+      contextLength: 16_384,
     });
     await expect(student.testConnection()).resolves.toMatchObject({ ok: true });
     await expect(student.describe()).resolves.toMatchObject({ digest: `sha256:${'a'.repeat(64)}` });

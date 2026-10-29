@@ -18,6 +18,10 @@ export interface ProcessResources {
   /** The agent host's entry, started as a utility process. */
   agentHostEntry: string;
   sampleJobFile: string;
+  /** The ready-made agent's package, which a build that doesn't ship it leaves out. */
+  sampleAgentFile: string;
+  /** The data the ready-made agent works on, which comes with its package. */
+  sampleAgentDataDir: string;
   /** The pinned training recipe and its scripts, which the engine's training worker sends. */
   trainerDir: string;
 }
@@ -32,6 +36,21 @@ export function processResources(location: AppLocation): ProcessResources {
     sampleJobFile: location.packaged
       ? join(location.resourcesPath, 'sample-job', 'job.json')
       : join(location.appPath, '..', '..', 'examples', 'home-services', 'job', 'job.json'),
+    // The returns desk's package, and its own data, which the package's agent works on.
+    sampleAgentFile: location.packaged
+      ? join(location.resourcesPath, 'sample-agent', 'returns-desk.architect.zip')
+      : join(
+          location.appPath,
+          '..',
+          '..',
+          'examples',
+          'gear-returns',
+          'graduate',
+          'returns-desk.architect.zip',
+        ),
+    sampleAgentDataDir: location.packaged
+      ? join(location.resourcesPath, 'sample-agent', 'data')
+      : join(location.appPath, '..', '..', 'examples', 'gear-returns', 'graduate', 'data'),
     trainerDir: location.packaged
       ? join(location.resourcesPath, 'trainer')
       : join(location.appPath, '..', '..', 'trainer'),

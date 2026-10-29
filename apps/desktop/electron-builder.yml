@@ -47,6 +47,13 @@ extraResources:
       - tasks.jsonl
       - checker.js
       - data/**
+  # The ready-made agent: its package, and the records of the shop it was taught on. A build
+  # without the package leaves it out (electron-builder only warns), and the app then doesn't
+  # offer the agent.
+  - from: ../../examples/gear-returns/graduate/returns-desk.architect.zip
+    to: sample-agent/returns-desk.architect.zip
+  - from: ../../examples/gear-returns/graduate/data
+    to: sample-agent/data
   # The pinned training recipe and the scripts a training job runs; the engine sends them with
   # each job and reads the recipe to price it.
   - from: ../../trainer

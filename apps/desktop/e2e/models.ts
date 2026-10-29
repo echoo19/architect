@@ -56,10 +56,18 @@ export async function startFakeStudent(): Promise<{ baseUrl: string; server: Ser
   return { baseUrl: `http://127.0.0.1:${port}/v1`, server };
 }
 
+/** What Ollama says when a model's tool call can't be parsed, as it arrives in the middle of a reply. */
+const UNREADABLE_CALL = 'parse Glimmer call to run: missing ATEM function_calls wrapper';
+
 /** What a fake Ollama does with one chat request. */
 export type OllamaTurn =
   | { text: string }
   | { toolCall: { name: string; arguments: Record<string, JsonValue> } }
+  /**
+   * Streams this text in pieces, `pieceMs` apart, and then the error Ollama gives for a tool call
+   * it can't parse: the reply showed text and then cannot be used.
+   */
+  | { unreadableAfter: string; pieceMs?: number }
   /** Sends the caller on to this same server under another name for this computer. */
   | { redirectToHost: string };
 
@@ -139,6 +147,16 @@ export async function startFakeOllama(
     } else if ('redirectToHost' in turn) {
       const location = `http://${turn.redirectToHost}:${port}/api/chat`;
       response.writeHead(307, { location }).end();
+    } else if ('unreadableAfter' in turn) {
+      response.writeHead(200, { 'content-type': 'application/x-ndjson' });
+      for (let at = 0; at < turn.unreadableAfter.length; at += 8) {
+        if (turn.pieceMs) await new Promise((resolve) => setTimeout(resolve, turn.pieceMs));
+        const content = turn.unreadableAfter.slice(at, at + 8);
+        response.write(
+          `${JSON.stringify({ message: { role: 'assistant', content }, done: false })}\n`,
+        );
+      }
+      response.end(`${JSON.stringify({ error: UNREADABLE_CALL })}\n`);
     } else {
       const message =
         'text' in turn

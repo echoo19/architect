@@ -10,7 +10,6 @@ import {
 import {
   Button,
   Checkbox,
-  ErrorState,
   Segmented,
   SettingsRow,
   SettingsSection,
@@ -33,8 +32,10 @@ import {
 import { architect } from '../../api/client';
 import { graduatesApi } from '../../api/graduates';
 import { toError } from '../../api/query';
+import { ProblemState } from '../../components/ProblemState';
 import { formatBytes } from '../../lib/format';
 import { attempt } from '../../lib/notify';
+import { useAgentSettingsUi } from './agentSettingsUi';
 import { PublishPanel } from './PublishPanel';
 import { usePublishing } from './publishing';
 
@@ -81,7 +82,7 @@ function partFile(review: ExportReview, part: ExportPartName): string {
 const PARTS: Record<ExportPartName, { label: string; icon: typeof FolderTree; noun: string }> = {
   harness: { label: 'Setup', icon: FolderTree, noun: 'setup' },
   adapter: { label: 'Trained weights', icon: Puzzle, noun: 'trained weights' },
-  report: { label: 'Evaluation report', icon: FileText, noun: 'evaluation report' },
+  report: { label: 'Results', icon: FileText, noun: 'results' },
 };
 
 /** What stays here, named the way the rest of the app names it. */
@@ -145,10 +146,14 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
 
   if (!review) {
     return error ? (
-      <ErrorState
+      <ProblemState
+        error={error}
         title="Couldn't review the export"
-        message={error.message}
         onRetry={reload}
+        exit={{
+          label: 'See earlier versions',
+          onClick: () => useAgentSettingsUi.getState().setTab('teaching'),
+        }}
         className="py-12"
       />
     ) : (

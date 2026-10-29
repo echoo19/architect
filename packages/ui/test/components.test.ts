@@ -71,6 +71,21 @@ describe('ProgressStepper', () => {
     expect(html).toMatch(/aria-current="step"[^>]*>Define/);
     expect(html).toContain('Describe<span class="sr-only">, done</span>');
   });
+
+  it('says a passed step still needs something, and only a passed one', () => {
+    const html = renderToStaticMarkup(
+      createElement(ProgressStepper, {
+        steps: ['Package', 'Folders', 'Permissions', 'Install'],
+        current: 3,
+        attention: ['Folders', 'Install'],
+      }),
+    );
+    expect(html).toContain('Folders<span class="sr-only">, needs attention</span>');
+    expect(html).toContain('Package<span class="sr-only">, done</span>');
+    expect(html).toContain('Permissions<span class="sr-only">, done</span>');
+    // The step being worked on isn't passed yet, so it says nothing of the sort.
+    expect(html).not.toContain('Install<span');
+  });
 });
 
 describe('Meter', () => {
@@ -150,13 +165,14 @@ describe('EvidenceMeter', () => {
       createElement(EvidenceMeter, { kind: 'check', value: 1, label: 'Refunds', marker: 0.9 }),
     );
     expect(check).toContain('data-marker');
-    expect(check).toContain('left:calc(90% - 1.5px)');
+    expect(check).toContain('left:clamp(0px, calc(90% - 1.5px), calc(100% - 3px))');
   });
 
   it('names each kind with its own mark', () => {
     const html = renderToStaticMarkup(createElement(EvidenceMark, { kind: 'check' }));
-    expect(html).toContain('Check</span>');
-    expect(evidenceLabel('install')).toBe('Install check');
+    expect(html).toContain('Check tasks</span>');
+    expect(evidenceLabel('practice')).toBe('Practice tasks');
+    expect(evidenceLabel('install')).toBe('Works on this computer');
   });
 });
 

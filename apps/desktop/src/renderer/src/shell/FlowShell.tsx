@@ -4,11 +4,11 @@ import { X } from 'lucide-react';
 import { isMac } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 
-const FLOW_STEPS = ['Describe', 'Define', 'Train', 'Report'] as const;
+const FLOW_STEPS = ['Describe', 'Define', 'Train', 'Results'] as const;
 export type FlowStep = (typeof FLOW_STEPS)[number];
 
 /** Improve agent's steps: the lessons it was taught, the improvement, and what it changed. */
-export const IMPROVE_STEPS = ['Lessons', 'Improve', 'Report'] as const;
+export const IMPROVE_STEPS = ['Lessons', 'Improve', 'Results'] as const;
 
 export interface FlowShellProps<Step extends string = FlowStep> {
   /** The job's name once it has one; "New agent" before. */
@@ -16,6 +16,8 @@ export interface FlowShellProps<Step extends string = FlowStep> {
   step: Step;
   /** The steps the pills show: the new-agent flow's unless another flow names its own. */
   steps?: readonly Step[];
+  /** Steps already passed that still need something from the person, marked in the pills. */
+  attention?: readonly Step[];
   /** Header buttons on the right, such as Pause and Stop. */
   actions?: ReactNode;
   /** A bar pinned under the content, such as Back and Start training. */
@@ -30,6 +32,7 @@ export function FlowShell<Step extends string = FlowStep>({
   title,
   step,
   steps,
+  attention,
   actions,
   footer,
   onClose,
@@ -49,10 +52,18 @@ export function FlowShell<Step extends string = FlowStep>({
           </IconButton>
           <span className="min-w-0 truncate font-medium">{title}</span>
         </div>
-        <ProgressStepper steps={pills} current={pills.indexOf(step)} />
+        <ProgressStepper steps={pills} current={pills.indexOf(step)} attention={attention ?? []} />
         <div className="flex min-w-0 justify-end gap-2 pr-window-controls">{actions}</div>
       </header>
-      <main className="min-h-0 flex-1 overflow-y-auto bg-dot-grid">{children}</main>
+      {/* The last lines fade out above the bar, so no line is cut off mid-text. */}
+      <main
+        className={cn(
+          'min-h-0 flex-1 overflow-y-auto bg-dot-grid',
+          footer && '[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]',
+        )}
+      >
+        {children}
+      </main>
       {footer && (
         <footer className="shrink-0 border-t border-line bg-ground-flow px-8 py-4">{footer}</footer>
       )}

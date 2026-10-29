@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import type { Correction, GraduateSummary } from '@architect/shared';
-import { Button, Drawer, DrawerContent, ErrorState, Skeleton } from '@architect/ui';
+import { Button, Drawer, DrawerContent, Skeleton } from '@architect/ui';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useVersions } from '../../api/graduates';
-import { useCorrections, useImprovements, useTeachingOverview } from '../../api/teaching';
+import { useCorrections, useImprovements } from '../../api/teaching';
+import { ProblemState } from '../../components/ProblemState';
 import { versionDate } from '../settings/versions';
 import { KindTile } from './kinds';
 import {
@@ -38,7 +39,6 @@ export function FlaggedAnswers({
   onClose: () => void;
 }) {
   const corrections = useCorrections(agent.id);
-  const overview = useTeachingOverview(agent.id);
   const versions = useVersions(agent.id);
   const improvements = useImprovements(agent.id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -89,12 +89,12 @@ export function FlaggedAnswers({
         }
       >
         {selected ? (
-          <ProposalView correction={selected} capUsd={overview.data?.correctionCapUsd ?? 0.25} />
+          <ProposalView correction={selected} />
         ) : corrections.status === 'error' && !corrections.data ? (
-          <ErrorState
+          <ProblemState
             layout="inline"
+            error={corrections.error}
             title="Couldn't load the flagged answers"
-            message={corrections.error.message}
             onRetry={corrections.reload}
           />
         ) : corrections.data ? (

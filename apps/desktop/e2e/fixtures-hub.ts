@@ -28,7 +28,7 @@ import {
   returnsJob,
   VERSIONS,
 } from './fixtures-versions';
-import { at, graduate, STORY } from './story';
+import { at, GLIMMER_BYTES, graduate, STORY } from './story';
 
 /*
  * Hugging Face for the screens: a publication's review, its progress and its outcome, the
@@ -122,7 +122,7 @@ const RETURNS_MANIFEST = manifestFor({
   version: 1,
   createdAt: at(-3 * 24 * 60),
   status: 'ready',
-  score: { pass: 56, total: 60 },
+  score: { pass: 55, total: 60 },
   tools: ['label_for'],
 });
 
@@ -218,7 +218,7 @@ const HUB_INSTALL: HubInstallResult = HubInstallResultSchema.parse({
 const TRAINED_ON = 'e3b8a7f2c91d4f06b5a8c3e7d2f1a9b04c6e8d2f1a3b5c7d9e0f2a4b6c8d0e1f';
 
 /** What the engine says of a base of another build than the one the trained weights need. */
-export const OTHER_BUILD_REASON = `muse-glimmer:30b on this computer is another build (weights sha256:5c0e17ab92d4) than the one its adapter was trained on (sha256:${TRAINED_ON.slice(0, 12)}). It needs the exact base it was trained on, the build whose weights are sha256:${TRAINED_ON}: add that build to Ollama under a name of its own, then set this agent's model to that name. That build is about 18 GB.`;
+export const OTHER_BUILD_REASON = `muse-glimmer:30b on this computer is another build (weights sha256:5c0e17ab92d4) than the one its adapter was trained on (sha256:${TRAINED_ON.slice(0, 12)}). It needs the exact base it was trained on, the build whose weights are sha256:${TRAINED_ON}: add that build to Ollama under a name of its own, then set this agent's model to that name. That build is about 17 GB.`;
 
 /** Version 2, whose trained weights need a base this computer has under another name. */
 export function otherBuildInstallation(): Installation {
@@ -278,8 +278,8 @@ export const LOCAL_MODELS: LocalRuntimes = {
     baseUrl: OLLAMA_BASE_URL,
     // The sizes the package gives its base, so every screen says the same of a model.
     models: [
-      { id: 'muse-glimmer:30b', sizeBytes: 18 * 1024 ** 3 },
-      { id: EXACT_BUILD, sizeBytes: 18 * 1024 ** 3 },
+      { id: 'muse-glimmer:30b', sizeBytes: GLIMMER_BYTES },
+      { id: EXACT_BUILD, sizeBytes: GLIMMER_BYTES },
       { id: 'muse-glimmer:30b-iq2', sizeBytes: 10_746_373_364 },
     ],
   },

@@ -1,11 +1,13 @@
 import type { GraduateSummary, ReportCard } from '@architect/shared';
-import { ErrorState, Heading, Meter, Skeleton, Stat } from '@architect/ui';
+import { Heading, Meter, Skeleton, Stat } from '@architect/ui';
 import { useVersionReport, useVersions } from '../../api/graduates';
+import { ProblemState } from '../../components/ProblemState';
 import { formatAnswerTime } from '../../flow/format';
 import { AUTHOR_RESULT_TITLE } from '../../install/labels';
 import { formatPercent, formatUsd, percentOf } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
+import { useAgentSettingsUi } from './agentSettingsUi';
 
 /**
  * The report card of the version chats run on, in brief: how it did on its locked test, and
@@ -17,17 +19,21 @@ export function ReportTab({ agent }: { agent: GraduateSummary }) {
   const imported = versions.data?.find((version) => version.active)?.origin !== undefined;
   if (report.status === 'error') {
     return (
-      <ErrorState
-        title="Couldn't load the report card"
-        message={report.error.message}
+      <ProblemState
+        error={report.error}
+        title="Couldn't load the results"
         onRetry={report.reload}
+        exit={{
+          label: 'See earlier versions',
+          onClick: () => useAgentSettingsUi.getState().setTab('teaching'),
+        }}
         className="py-12"
       />
     );
   }
   if (report.status === 'loading') {
     return (
-      <div aria-busy="true" aria-label="Loading the report card" className="flex flex-col gap-7">
+      <div aria-busy="true" aria-label="Loading the results" className="flex flex-col gap-7">
         <Skeleton className="h-[116px] w-full rounded-2xl" />
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-4/5" />

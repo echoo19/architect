@@ -1,3 +1,4 @@
+import { CodedError } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   Supervisor,
@@ -119,6 +120,9 @@ describe('Supervisor', () => {
     await expect(supervisor.call((client) => client.ping())).rejects.toThrow(
       'The workspace is starting. Try again in a moment.',
     );
+    await expect(supervisor.call((client) => client.ping())).rejects.toMatchObject({
+      code: 'process_starting',
+    });
   });
 
   it('fails calls at once while the process is down, then restarts and reconnects it', async () => {
@@ -131,6 +135,7 @@ describe('Supervisor', () => {
     await expect(ping()).rejects.toThrow(
       'The engine stopped unexpectedly and is restarting. Try again in a moment.',
     );
+    await expect(ping()).rejects.toMatchObject({ code: 'process_restarting' });
     await vi.waitFor(() => expect(launched).toHaveLength(2));
     await expect(ping()).resolves.toBe('pong');
     expect(connected).toEqual([processAt(0).client, processAt(1).client]);
@@ -144,6 +149,8 @@ describe('Supervisor', () => {
     await sleep(5);
     processAt(0).exit(1);
     await expect(pending).rejects.toThrow('The engine stopped while it was working on this.');
+    await expect(pending).rejects.toBeInstanceOf(CodedError);
+    await expect(pending).rejects.toMatchObject({ code: 'process_restarting' });
   });
 
   it('waits longer after each failure in a row', async () => {
@@ -173,6 +180,7 @@ describe('Supervisor', () => {
     await expect(ping()).rejects.toThrow(
       "The engine couldn't start: The database is locked. Architect keeps trying in the background.",
     );
+    await expect(ping()).rejects.toMatchObject({ code: 'process_failed' });
     await vi.waitFor(() => expect(launched).toHaveLength(2));
     processAt(1).report({ type: 'ready' });
     await expect(ping()).resolves.toBe('pong');
@@ -200,6 +208,7 @@ describe('Supervisor', () => {
     expect(processAt(0).stopRequested).toBe(true);
     expect(processAt(0).killed).toBe(false);
     await expect(ping()).rejects.toThrow('The engine has stopped because Architect is closing.');
+    await expect(ping()).rejects.toMatchObject({ code: 'process_closing' });
     supervisor.start();
     await sleep(60);
     expect(launched).toHaveLength(1);

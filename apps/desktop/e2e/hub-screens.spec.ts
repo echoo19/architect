@@ -260,6 +260,8 @@ for (const theme of THEMES) {
     const settings = page.getByRole('dialog', { name: 'Settings' });
     await settings.getByRole('tab', { name: 'Models' }).click();
     const connections = settings.getByRole('region', { name: 'Connections' });
+    // The token sits under Advanced, with the runtimes on this computer.
+    await connections.getByRole('button', { name: 'Advanced' }).click();
     await expect(connections).toContainText('Hugging Face');
     await expect(connections).toContainText('Uses HF_TOKEN from this computer');
     await connections.getByText('Hugging Face', { exact: true }).scrollIntoViewIfNeeded();
@@ -274,9 +276,7 @@ for (const theme of THEMES) {
     await add.getByRole('button', { name: 'Save' }).click();
     await expect(add).toBeHidden();
     await expect(connections).toContainText('Token saved');
-    await expect(
-      connections.getByRole('button', { name: 'Remove the Hugging Face token' }),
-    ).toBeVisible();
+    await expect(connections.getByRole('button', { name: 'Remove token' })).toBeVisible();
     // Only the key's name is recorded, never what was typed.
     expect((await callsTo(app, 'secrets:set')).map(([ref]) => ref)).toEqual(['huggingface']);
   });
@@ -293,16 +293,20 @@ for (const theme of THEMES) {
     await expect(
       page.getByRole('heading', { level: 1, name: 'Install from Hugging Face' }),
     ).toBeVisible();
-    await page.getByRole('textbox', { name: 'Repository' }).fill(HUB.returns);
-    await page.getByRole('textbox', { name: 'Commit' }).fill(HUB.returnsCommit);
+    await page.getByRole('textbox', { name: 'Hugging Face address' }).fill(HUB.returns);
     await capture(`import-hub-${theme}.png`);
+    // The commit and the token are rarely needed, so they wait under Advanced.
+    await expect(page.getByRole('textbox', { name: 'Commit' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Advanced' }).click();
+    await expect(page.getByText('Uses HF_TOKEN from this computer')).toBeVisible();
+    await page.getByRole('textbox', { name: 'Commit' }).fill(HUB.returnsCommit);
 
     await page.getByRole('button', { name: 'Download' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
     await expect(
       page.getByText(`${HUB.returns} · commit ${HUB.returnsCommit.slice(0, 7)}`),
     ).toBeVisible();
-    await expect(page.getByText("Evaluated on the author's computer")).toBeVisible();
+    await expect(page.getByText('Tested by its author')).toBeVisible();
     await capture(`import-hub-check-${theme}.png`);
     expect(await callsTo(app, 'graduates:installFromHub')).toEqual([
       [HUB.returns, { revision: HUB.returnsCommit, loadModel: false }],
@@ -311,12 +315,12 @@ for (const theme of THEMES) {
     await page.getByRole('button', { name: 'Continue' }).click();
     await page
       .getByRole('list', { name: 'Folders' })
-      .getByRole('listitem', { name: 'data/' })
+      .getByRole('listitem', { name: 'Records folder' })
       .getByRole('button', { name: 'Choose' })
       .click();
     await page.getByRole('button', { name: 'Continue' }).click();
     await page
-      .getByRole('radiogroup', { name: 'Access to data/' })
+      .getByRole('radiogroup', { name: 'Access to the records folder' })
       .getByRole('radio', { name: 'Read and change' })
       .click();
     await page.getByRole('button', { name: 'Install', exact: true }).click();
@@ -339,20 +343,31 @@ for (const theme of THEMES) {
 for (const theme of THEMES) {
   test(`says why an install from Hugging Face failed, with a way back (${theme})`, async () => {
     await open(theme, chatPath(CHATS.closeout.id));
-    // As main passes it on: the engine's words, and what to check.
+    // As main passes it on: the engine's words and what to check, with the code for a package.
     await stubEngineFailure(launched.app, {
-      'graduates:installFromHub': `${HUB.notes} has no graduate.json at ${HUB.notesCommit}, so it isn't an Architect package. Check the repository and the commit.`,
+      'graduates:installFromHub': {
+        message: `${HUB.notes} has no graduate.json at ${HUB.notesCommit}, so it isn't an Architect package. Check the repository and the commit.`,
+        code: 'not_a_package',
+      },
     });
     await page.getByRole('button', { name: 'Agent menu' }).click();
     await page.getByRole('menuitem', { name: 'Install from Hugging Face' }).click();
-    await page.getByRole('textbox', { name: 'Repository' }).fill(HUB.notes);
+    await page.getByRole('textbox', { name: 'Hugging Face address' }).fill(HUB.notes);
+    await page.getByRole('button', { name: 'Advanced' }).click();
     await page.getByRole('textbox', { name: 'Commit' }).fill(HUB.notesCommit);
     await page.getByRole('button', { name: 'Download' }).click();
     await expect(page.getByText(`Couldn't install from ${HUB.notes}`)).toBeVisible();
-    await expect(page.getByText(/Check the repository and the commit\./)).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+    await expect(
+      page.getByText("That isn't an Architect agent. Check the name and try again."),
+    ).toBeVisible();
+    await expect(page.getByText(/graduate\.json/)).toHaveCount(0);
+    // The same name finds the same thing, so the way out is back to the name, not another try.
+    await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Back' })).toBeVisible();
     await capture(`import-hub-error-${theme}.png`);
+    // The engine's own sentence, with the file and the commit, is under Details.
+    await page.getByRole('button', { name: 'Details' }).click();
+    await expect(page.getByText(/has no graduate\.json at/)).toBeVisible();
   });
 }
 
@@ -364,8 +379,13 @@ for (const theme of THEMES) {
     await expect(page.getByText("Can't run on this computer")).toBeVisible();
     const dialog = await openSettingsTab('General');
     await expect(dialog.getByText("Can't run", { exact: true })).toBeVisible();
-    await expect(dialog.getByText('another build')).toBeVisible();
+    await expect(dialog.getByText('Needs a different copy of Glimmer (17 GB).')).toBeVisible();
     await capture(`agent-model-other-build-${theme}.png`);
+    // The checks' own sentences, with the builds and their digests, wait under Details.
+    await expect(dialog.getByText('another build')).toBeHidden();
+    await dialog.getByRole('button', { name: 'Details' }).click();
+    await expect(dialog.getByText('another build')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Details' }).click();
 
     await dialog.getByRole('button', { name: 'Choose its model' }).click();
     const picker = page.getByRole('listbox', { name: 'Suggestions' });
@@ -377,9 +397,9 @@ for (const theme of THEMES) {
     await picker.getByRole('option', { name: /muse-glimmer-trained:30b/ }).click();
     // Exactly the toast's title: its live region announces the same words for a moment.
     await expect(
-      page.getByText(`Service desk now runs on ${EXACT_BUILD}`, { exact: true }),
+      page.getByText('Changed the model of Service desk', { exact: true }),
     ).toBeVisible();
-    await expect(dialog.getByText('Ready to run')).toBeVisible();
+    await expect(dialog.getByText('All checks passed')).toBeVisible();
     await expect(page.getByText('Running on this computer')).toBeVisible();
     await capture(`agent-model-changed-${theme}.png`);
     expect(await callsTo(app, 'graduates:bind')).toEqual([

@@ -171,10 +171,8 @@ describe('comparison', () => {
       'Spark wrote the setup once, without watching',
     );
     expect(methodExplanation('self_reflection', names)).toBe(
-      'Glimmer corrected its own setup, with no mentor',
+      'Glimmer corrected its own setup, with no help from Spark',
     );
-    expect(methodExplanation('architect', names)).toBe(
-      'Spark watched Glimmer work and kept what helped',
-    );
+    expect(methodExplanation('architect', names)).toBe('Spark taught Glimmer and kept what helped');
   });
 });

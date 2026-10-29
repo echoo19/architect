@@ -7,6 +7,7 @@ import {
   DialogClose,
   DialogContent,
   DialogFooter,
+  Disclosure,
   Segmented,
   SettingsRow,
   SettingsValue,
@@ -26,10 +27,19 @@ import {
 import { queryKeys } from '../../api/hooks';
 import { fetchQuery, setQueryData } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
+import { folderName } from '../../install/folders';
 import { FixButtons } from '../../install/InstallChecks';
-import { fixesFor, osName, STATUS_LABELS, statusMark } from '../../install/labels';
+import {
+  AUTHOR_RESULT_TITLE,
+  fixesFor,
+  installProblem,
+  osName,
+  STATUS_LABELS,
+  statusMark,
+  WORKS_HERE_TITLE,
+} from '../../install/labels';
 import { formatPercent, shortPath } from '../../lib/format';
-import { activeVersionName } from '../../lib/names';
+import { activeVersionName, shortModelName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { navigate, paths, type Route } from '../../lib/router';
@@ -55,7 +65,7 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
   const { manifest } = agent;
   const { score } = manifest.test;
   const { met, target } = manifest.requirements.passRate;
-  const result = `${met ? 'Passed' : 'Below its target'}: ${score.pass} of ${score.total} (${formatPercent(score)})`;
+  const result = `${met ? 'Passed' : `Needs ${Math.round(target * 100)}%`}: ${score.pass} of ${score.total} (${formatPercent(score)})`;
   const contract = active?.manifest.contract;
   const evaluatedHere = active?.origin === undefined;
 
@@ -72,16 +82,12 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
           pending
         )}
       </SettingsRow>
-      <SettingsRow label="Setup" meta="Its instructions, skills and tools">
+      <SettingsRow label="Setup">
         <SettingsValue>{activeVersionName(agent)}</SettingsValue>
       </SettingsRow>
       <SettingsRow
         label="Final test"
-        meta={
-          evaluatedHere
-            ? `Tasks it had never seen. The job asked for ${Math.round(target * 100)}%. Tested on ${versionDate(manifest.createdAt)}. The Report tab has the full results.`
-            : `Evaluated on the author's computer, on tasks it had never seen. The job asked for ${Math.round(target * 100)}%.`
-        }
+        meta={evaluatedHere ? 'Tasks it had never seen' : AUTHOR_RESULT_TITLE}
       >
         <SettingsValue>{result}</SettingsValue>
       </SettingsRow>
@@ -122,15 +128,21 @@ function InstallRow({
   const checked = installation.data;
   const status = checked?.status ?? agent.status;
   const machine = checked?.machine;
+  const problem = checked
+    ? installProblem(checked, {
+        model: shortModelName(agent.manifest.student.label),
+        baseBytes: active?.manifest.model.base.sizeBytes,
+      })
+    : null;
   const meta =
     status === 'ready' && machine && checked?.checkedAt
       ? `${osName(machine.os)} ${machine.arch} · checked ${versionDate(checked.checkedAt)}`
-      : (checked?.reasons ?? agent.reasons).join(' ');
+      : (problem?.cause ?? (checked?.reasons ?? agent.reasons).join(' '));
   const changed = (next: Installation) => setQueryData(graduateKeys.installation(agent.id), next);
 
   return (
     <>
-      <SettingsRow label="Install checks" meta={meta || undefined} error={errorOf(installation)}>
+      <SettingsRow label={WORKS_HERE_TITLE} meta={meta || undefined} error={errorOf(installation)}>
         {installation.status === 'error' ? (
           <RetryButton onClick={installation.reload} />
         ) : (
@@ -144,7 +156,7 @@ function InstallRow({
       </SettingsRow>
       {/* The ways out sit under the reason, which keeps the row's full width. */}
       {checked && active && fixesFor(checked, active.manifest).length > 0 && (
-        <div className="-mt-1 pb-3">
+        <div className="-mt-1 flex flex-col gap-1 pb-3">
           <FixButtons
             graduateId={agent.id}
             installation={checked}
@@ -152,6 +164,17 @@ function InstallRow({
             onChanged={changed}
             onChooseModel={() => chooseModel(true)}
           />
+          {problem && problem.details.length > 0 && (
+            <Disclosure label="Details">
+              <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+                {problem.details.map((line) => (
+                  <li key={line} className="break-words text-xs leading-5 text-fg-muted">
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            </Disclosure>
+          )}
         </div>
       )}
     </>
@@ -223,16 +246,19 @@ function FolderRows({ agent, active }: { agent: GraduateSummary; active: Graduat
   const [choosing, setChoosing] = useState<string | null>(null);
   const choose = async (name: string) => {
     setChoosing(name);
-    const next = await attempt(`Couldn't change the folder for ${name}/`, async () => {
-      const [folder] = await architect().files.pick({
-        title: `Choose a folder for ${name}/`,
-        directory: true,
-      });
-      if (!folder) return null;
-      const bound = await graduatesApi.bind(agent.id, { bindings: { [name]: folder } });
-      await refreshAgent(agent.id);
-      return bound;
-    });
+    const next = await attempt(
+      `Couldn't change the ${folderName({ name }).toLowerCase()}`,
+      async () => {
+        const [folder] = await architect().files.pick({
+          title: `Choose the ${folderName({ name }).toLowerCase()}`,
+          directory: true,
+        });
+        if (!folder) return null;
+        const bound = await graduatesApi.bind(agent.id, { bindings: { [name]: folder } });
+        await refreshAgent(agent.id);
+        return bound;
+      },
+    );
     setChoosing(null);
     if (next) setQueryData(graduateKeys.installation(agent.id), next);
   };
@@ -247,7 +273,7 @@ function FolderRows({ agent, active }: { agent: GraduateSummary; active: Graduat
     return (
       <SettingsRow
         key={resource.name}
-        label={`${resource.name}/`}
+        label={folderName(resource)}
         meta={folder === undefined ? unbound : shortPath(folder)}
         metaFont={folder ? 'code' : 'text'}
         error={errorOf(installation)}
@@ -311,7 +337,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
         <SettingsValue>Never, by design</SettingsValue>
       </SettingsRow>
       <SettingsRow
-        label="Opening a file the job doesn't list"
+        label="Opening files outside the job"
         meta="Set by its job when it was trained"
         error={errorOf(versions)}
       >
@@ -338,8 +364,8 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
         label="Files it can change"
         meta={
           savingNever
-            ? 'Set by its job. Saving is set to Never, so it changes none of them now.'
-            : 'Set by its job, and only as Saving changes allows'
+            ? `Set by its job. ${WRITE_SETTING} is set to Never, so it changes none of them now.`
+            : `Set by its job, and only as ${WRITE_SETTING} allows`
         }
         error={errorOf(versions)}
       >

@@ -11,10 +11,10 @@ import { cn } from '../lib/cn';
 export type EvidenceKind = 'practice' | 'check' | 'final' | 'install';
 
 const EVIDENCE: Record<EvidenceKind, { label: string; icon: LucideIcon; tone: string }> = {
-  practice: { label: 'Practice', icon: Eye, tone: 'text-fg-muted' },
-  check: { label: 'Check', icon: EyeOff, tone: 'text-fg-secondary' },
+  practice: { label: 'Practice tasks', icon: Eye, tone: 'text-fg-muted' },
+  check: { label: 'Check tasks', icon: EyeOff, tone: 'text-fg-secondary' },
   final: { label: 'Final test', icon: Lock, tone: 'text-student' },
-  install: { label: 'Install check', icon: MonitorCheck, tone: 'text-fg-muted' },
+  install: { label: 'Works on this computer', icon: MonitorCheck, tone: 'text-fg-muted' },
 };
 
 /** A kind's own label, for screens that name it in a sentence or a heading. */
@@ -117,7 +117,8 @@ export function EvidenceMeter({
           aria-hidden
           data-marker
           className="absolute -top-[5px] h-4 w-[3px] rounded-full bg-mentor"
-          style={{ left: `calc(${clamp(marker) * 100}% - 1.5px)` }}
+          // A tick at either end stays inside the bar, so it is never cut off or made to scroll.
+          style={{ left: `clamp(0px, calc(${clamp(marker) * 100}% - 1.5px), calc(100% - 3px))` }}
         />
       )}
     </div>

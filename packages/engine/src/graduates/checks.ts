@@ -415,8 +415,11 @@ async function runtimeModelChecks(
     const described = await student.describe();
     // A different build than the author's only needs attention: it may answer differently.
     const pinned = manifest.model.base.digest;
+    // The pinned build took the final test only when the author tested on a local model; a
+    // version tested on a hosted copy was made for this build, not tested on it.
+    const tested = manifest.evidence.provenance?.testedOn === 'local';
     if (pinned !== undefined && described.digest !== undefined && described.digest !== pinned) {
-      const reason = `${model.runtime} serves a different build of ${manifest.model.base.name} (digest ${shortDigest(described.digest)}) than the one tested (${shortDigest(pinned)}).`;
+      const reason = `${model.runtime} serves a different build of ${manifest.model.base.name} (digest ${shortDigest(described.digest)}) than the one ${tested ? 'tested' : 'it was made for'} (${shortDigest(pinned)}).`;
       findings.push({ level: 'needs_attention', reason });
       available = {
         id: 'model-available',
@@ -433,10 +436,10 @@ async function runtimeModelChecks(
         kind: 'model_available',
         status: 'passed',
         detail: same
-          ? `${model.model} on ${model.runtime}, the same build that was tested.`
+          ? `${model.model} on ${model.runtime}, the same build ${tested ? 'that was tested' : 'it was made for'}.`
           : `${model.model} on ${model.runtime}.`,
-        // Unknown unless both the package and the runtime name a build.
-        ...(same ? { sameBuild: true } : {}),
+        // Unknown unless both the package and the runtime name a build, and the test ran on it.
+        ...(same && tested ? { sameBuild: true } : {}),
       };
     }
   } catch (error) {

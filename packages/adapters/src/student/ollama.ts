@@ -227,6 +227,7 @@ export function createOllamaStudent(
     model: endpoint.model,
     baseUrl: endpoint.baseUrl,
     isLocal: isLoopbackUrl(endpoint.baseUrl),
+    contextLength: endpoint.contextLength,
     chat,
     describe,
     testConnection,

@@ -1,0 +1,82 @@
+[
+  {
+    "file": "returns-orders-read.txt",
+    "what": "a read of data/orders.csv, lines 1-60 (the returns desk)",
+    "tokens": 2310
+  },
+  {
+    "file": "returns-order-lines-read.txt",
+    "what": "a read of data/order_lines.csv, lines 346-405",
+    "tokens": 1105
+  },
+  {
+    "file": "returns-returns-read.txt",
+    "what": "a read of data/returns.csv, lines 82-141",
+    "tokens": 3002
+  },
+  {
+    "file": "returns-customers-read.txt",
+    "what": "a read of data/customers.csv, lines 53-112",
+    "tokens": 1513
+  },
+  {
+    "file": "returns-policy-read.txt",
+    "what": "a read of data/policy.md, which is prose",
+    "tokens": 1411
+  },
+  {
+    "file": "returns-orders-grep.txt",
+    "what": "a search of data/orders.csv for 2026-06",
+    "tokens": 2131
+  },
+  {
+    "file": "returns-run-json.txt",
+    "what": "the output of run printing orders as JSON lines",
+    "tokens": 2605
+  },
+  {
+    "file": "returns-system-prompt.txt",
+    "what": "a system prompt for the returns desk",
+    "tokens": 213
+  },
+  {
+    "file": "services-invoices-read.txt",
+    "what": "a read of data/invoices.csv, lines 559-588 (home services)",
+    "tokens": 1383
+  },
+  {
+    "file": "services-jobs-read.txt",
+    "what": "a read of data/jobs.csv, lines 603-632",
+    "tokens": 837
+  },
+  {
+    "file": "services-payments-read.txt",
+    "what": "a read of data/payments.csv, lines 1-30",
+    "tokens": 685
+  },
+  {
+    "file": "builtin-tool-specs.txt",
+    "what": "the eight built-in tools as JSON",
+    "tokens": 787
+  },
+  {
+    "file": "korean.txt",
+    "what": "korean text",
+    "tokens": 296
+  },
+  {
+    "file": "japanese.txt",
+    "what": "japanese text",
+    "tokens": 240
+  },
+  {
+    "file": "accented.txt",
+    "what": "accented text",
+    "tokens": 200
+  },
+  {
+    "file": "padded-listing.txt",
+    "what": "padded text",
+    "tokens": 389
+  }
+]

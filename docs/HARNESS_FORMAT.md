@@ -100,6 +100,8 @@ thinking: low        # low | medium | high reasoning strength
 
 The sampler seed is deliberately absent: the runner chooses it for every evaluation, so a harness change can't re-roll its own results.
 
+`max_output_tokens` also sets how much of the model's context is kept free for each reply, at most a quarter of the context; a prompt may take the rest, and when a conversation would pass it, the oldest tool results are replaced by a note that says what they were (decision 057). With a 16,384-token context and 4,096 here, a prompt has 12,288 tokens.
+
 ### guardrails.yaml
 
 ```yaml

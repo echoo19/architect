@@ -82,6 +82,7 @@ export class GpuWindow {
       model: student.model,
       baseUrl: student.baseUrl,
       isLocal: student.isLocal,
+      contextLength: student.contextLength,
       chat: (request, signal) => this.chat(student, request, signal),
       describe: () => student.describe(),
       testConnection: () => student.testConnection(),

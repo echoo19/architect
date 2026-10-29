@@ -3,6 +3,7 @@ import type { RunDetail, RunImprovement } from '@architect/shared';
 import { Button, EmptyState, ErrorState, Skeleton } from '@architect/ui';
 import { ArrowUpRight, TrendingUp } from 'lucide-react';
 import { useVersions } from '../api/graduates';
+import { ProblemState } from '../components/ProblemState';
 import { useGraduates, useRunDetail } from '../api/hooks';
 import {
   refreshTeaching,
@@ -28,7 +29,7 @@ function Page({
   children: ReactNode;
 }) {
   return (
-    <FlowShell<string> title={title} step="Report" steps={IMPROVE_STEPS} footer={footer}>
+    <FlowShell<string> title={title} step="Results" steps={IMPROVE_STEPS} footer={footer}>
       <div className="mx-auto box-content flex max-w-[860px] flex-col gap-11 px-8 pb-8 pt-14">
         {children}
       </div>
@@ -38,7 +39,7 @@ function Page({
 
 /**
  * What Improve agent changed: its new version against the one it started from, on the check
- * tasks, with whether the new version may be promoted and a way to promote it.
+ * tasks, with whether the new version may be used and a way to use it.
  */
 export function ImprovementScreen({ runId }: { runId: string }) {
   const detail = useRunDetail(runId);
@@ -49,19 +50,20 @@ export function ImprovementScreen({ runId }: { runId: string }) {
       {loaded ? (
         <ErrorState
           title="This run didn't improve an agent"
-          message="It trained a new one, and its report card says how that went."
+          message="It trained a new one, and its results say how that went."
           secondaryAction={
             <Button size="md" onClick={() => navigate(paths.report(runId))}>
-              See the report card
+              See the results
             </Button>
           }
           className="min-h-[60vh]"
         />
       ) : detail.status === 'error' ? (
-        <ErrorState
+        <ProblemState
+          error={detail.error}
           title="Couldn't load what it changed"
-          message={detail.error.message}
           onRetry={detail.reload}
+          exit={{ label: 'Back to agents', onClick: () => navigate(paths.home()) }}
           className="min-h-[60vh]"
         />
       ) : (
@@ -108,10 +110,11 @@ function Loaded({
     return (
       <Page title={name}>
         {improvements.status === 'error' ? (
-          <ErrorState
+          <ProblemState
+            error={improvements.error}
             title="Couldn't load what it changed"
-            message={improvements.error.message}
             onRetry={improvements.reload}
+            exit={{ label: 'Back to agents', onClick: () => navigate(paths.home()) }}
             className="min-h-[60vh]"
           />
         ) : (
@@ -148,7 +151,7 @@ function Loaded({
           {canPromote ? (
             <Button variant="primary" onClick={() => setPromoting(true)}>
               <ArrowUpRight size={16} strokeWidth={1.8} aria-hidden />
-              Promote version {candidate.version}
+              Use version {candidate.version}
             </Button>
           ) : (
             <Button variant="primary" onClick={backToTeaching}>

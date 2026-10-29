@@ -12,7 +12,7 @@ import {
 export const WRITE_MODES = ['ask', 'allow', 'never'] as const satisfies readonly PermissionMode[];
 
 /** What the write choices control, named the same way on every screen. */
-export const WRITE_SETTING = 'Saving changes to your files';
+export const WRITE_SETTING = 'Saving files';
 
 /** The three answers to the write setting, in the same words on every screen. */
 export const WRITE_MODE_LABELS: Record<PermissionMode, string> = {
@@ -55,8 +55,10 @@ const TOOL_WORDS: Record<string, [string, string]> = {
  */
 export function stepWords(step: AgentStep): { action: string; target: string } {
   const working = step.status === 'running';
-  // A reply waiting its turn for the GPU says so, and for whom, in one line.
-  if (step.kind === 'wait') return { action: step.detail, target: '' };
+  // A reply waiting its turn for the GPU says so in one line, and who has it stays in the step.
+  if (step.kind === 'wait') {
+    return { action: 'Waiting: your computer is busy with another job.', target: '' };
+  }
   if (step.kind === 'skill') {
     return { action: working ? 'Loading the skill' : 'Loaded the skill', target: step.detail };
   }

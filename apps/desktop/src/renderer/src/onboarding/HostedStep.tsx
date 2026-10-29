@@ -5,31 +5,36 @@ import { KeyRound } from 'lucide-react';
 import { aboutUsd, typicalPracticeUsd } from '../flow/define/estimates';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { AddKeyDialog } from '../settings/models/AddKeyDialog';
-import { useConnections } from '../settings/models/hooks';
 import { useOpenRouterSignIn } from '../settings/models/useSignIn';
 import { StepIntro } from './SetupShell';
 import { StatusValue } from './StatusValue';
 
-/** The hosted copy first-run setup offers: the one this app's own training runs use. */
+/** The online copy first-run setup offers: the one this app's own training runs use. */
 const PRESET = STUDENT_PRESETS.find((preset) => preset.key === 'openrouter-glimmer');
 
+export interface HostedStepProps {
+  student: string;
+  /** Whether the person has already connected the service that hosts the copy. */
+  connected: boolean;
+}
+
 /**
- * An optional step: OpenRouter for a hosted copy of the agent's model, so practice runs faster.
- * The finished agent never uses it; the final test and every chat run on this computer.
+ * An optional step: an online copy of the agent's model, so practice runs faster. The finished
+ * agent never uses it; the final test and every chat run on this computer.
  */
-export function HostedStep({ student }: { student: string }) {
+export function HostedStep({ student, connected }: HostedStepProps) {
   const device = deviceInSentence(currentPlatform());
-  const { connections } = useConnections();
   const signIn = useOpenRouterSignIn();
   const [adding, setAdding] = useState(false);
-  const connected = connections.some((connection) => connection.provider === 'openrouter');
   const waiting = signIn.state.phase === 'waiting';
   const host = PROVIDERS.openrouter.label;
+  const price = PRESET?.pricing ? aboutUsd(typicalPracticeUsd(PRESET.pricing)) : null;
 
   return (
     <>
       <StepIntro title="Faster training">
-        {student} can practice on a hosted copy about ten times faster. The finished agent still
+        Optional: {student} can practice on an online copy of itself about ten times faster
+        {price === null ? '' : `, for ${price.toLowerCase()} an agent`}. The finished agent still
         runs only on {device}.
       </StepIntro>
       <Panel
@@ -39,11 +44,7 @@ export function HostedStep({ student }: { student: string }) {
         <SettingsRow
           icon={<ProviderMark name={host} />}
           label={host}
-          meta={
-            PRESET?.pricing
-              ? `${aboutUsd(typicalPracticeUsd(PRESET.pricing))} per agent`
-              : undefined
-          }
+          meta="Runs the online copy and bills your account"
           error={signIn.state.phase === 'failed' ? signIn.state.message : undefined}
         >
           {connected ? (
@@ -55,7 +56,7 @@ export function HostedStep({ student }: { student: string }) {
                   Cancel
                 </Button>
               ) : (
-                <Button size="xs" variant="ghost" onClick={() => setAdding(true)}>
+                <Button size="xs" onClick={() => setAdding(true)}>
                   Use a key
                 </Button>
               )}

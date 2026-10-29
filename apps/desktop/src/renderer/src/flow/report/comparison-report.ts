@@ -54,15 +54,15 @@ export function armLabel(arm: ArmId, { mentor, student }: ModelNames): string {
     case 'draft':
       return `${student} with a setup ${mentor} wrote in one go`;
     case 'targeted':
-      return `${student} mentored by ${mentor}`;
+      return `${student} taught by ${mentor}`;
     case 'reference':
       return `${mentor} doing the tasks itself, no setup`;
     case 'reference-targeted':
-      return `${mentor} doing the tasks itself, with the mentored setup`;
+      return `${mentor} doing the tasks itself, with ${student}'s final setup`;
     case 'repeat':
       return 'The first three, tested a second time';
     case 'fixed':
-      return `${student} mentored with procedures only`;
+      return `${student} taught with written rules only`;
     case 'weights-one-shot':
       return `${student} with weights trained once on sample tasks`;
     case 'weights-targeted':

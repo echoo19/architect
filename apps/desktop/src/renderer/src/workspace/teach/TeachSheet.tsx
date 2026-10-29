@@ -23,6 +23,7 @@ import {
   useFreshTeaching,
   useTeachingOverview,
 } from '../../api/teaching';
+import { ProblemState } from '../../components/ProblemState';
 import { formatUsd } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
 import { useAgentSettingsUi } from '../settings/agentSettingsUi';
@@ -101,7 +102,7 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
       void refreshTeaching(agent.id);
       setStage({ kind: 'proposed', correction });
     } catch (failure) {
-      setError(proposeFailure(toError(failure).message, mentor));
+      setError(proposeFailure(toError(failure), mentor, ready.correctionCapUsd));
       setStage({ kind: 'write' });
     }
   };
@@ -115,10 +116,10 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
   let footer: ReactNode;
   if (overview.status === 'error' && !ready) {
     body = (
-      <ErrorState
+      <ProblemState
         layout="inline"
+        error={overview.error}
         title="Couldn't check whether it can be taught here"
-        message={overview.error.message}
         onRetry={overview.reload}
       />
     );
@@ -140,7 +141,6 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
     body = (
       <ProposalView
         correction={stage.correction}
-        capUsd={ready.correctionCapUsd}
         // A lesson that can be taught can still be said better; the footer offers it otherwise.
         {...(canQueue(stage.correction.proposal.kind) ? { onEdit: editWrite } : {})}
       />
@@ -165,16 +165,16 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
           <span>It hasn&apos;t taken a final test.</span>
           {active !== null && (
             <span>
-              Version {active} keeps answering until you promote version{' '}
+              Version {active} keeps answering until you use version{' '}
               {stage.correction.candidateVersion}.
             </span>
           )}
         </Settled>
       ) : (
-        <Settled title="Added to the teaching queue">
+        <Settled title="Saved for Improve">
           <span>
-            {lessonCount(Math.max(queued, 1))} {queued === 1 ? 'waits' : 'wait'} until you start
-            Improve agent.
+            {lessonCount(Math.max(queued, 1))} saved. Improve teaches {queued > 1 ? 'them' : 'it'}{' '}
+            when you run it.
           </span>
         </Settled>
       );
@@ -220,11 +220,9 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
     // What leaves this computer, beside the one button that sends it.
     footer = (
       <>
-        <p className="m-0 mr-auto flex flex-col text-sm">
-          <span className="text-fg-secondary">
-            Only this exchange, its steps and what you add go to {mentor}.
-          </span>
-          <span className="font-mono text-fg-muted">Up to {formatUsd(ready.correctionCapUsd)}</span>
+        <p className="m-0 mr-auto max-w-[260px] text-sm text-fg-secondary text-pretty">
+          Only this exchange, its steps and your notes go to {mentor}, for up to{' '}
+          {formatUsd(ready.correctionCapUsd)}.
         </p>
         <Button
           size="md"
@@ -316,6 +314,7 @@ function CorrectionForm({
           rows={3}
           disabled={disabled}
           autoFocus
+          placeholder="Say what it got wrong"
           onChange={(event) => onWrong(event.target.value)}
         />
       </Field>
@@ -359,7 +358,14 @@ function CorrectionForm({
           onChange={(event) => onRows(event.target.value)}
         />
       </Field>
-      {error && <ErrorState layout="inline" title={error.title} message={error.text} />}
+      {error && (
+        <ErrorState
+          layout="inline"
+          title={error.title}
+          message={error.text}
+          {...(error.details === undefined ? {} : { details: error.details })}
+        />
+      )}
     </div>
   );
 }

@@ -1,16 +1,10 @@
-import type { Experiment, Intervention, Job, Round, RunStopReason } from '@architect/shared';
-import { cn, ErrorState, Panel, PanelHeader, PanelRow, Spinner } from '@architect/ui';
+import type { Experiment, Job, Round, RunStopReason } from '@architect/shared';
+import { cn, Panel, PanelHeader, PanelRow, Spinner } from '@architect/ui';
 import { ArrowRight } from 'lucide-react';
+import { ProblemState } from '../../components/ProblemState';
 import { percent } from '../format';
 import { outcomeNote } from './decision';
-import {
-  DISPOSITIONS,
-  FIRST_DRAFT,
-  INTERVENTIONS,
-  TRAINING_END_ICONS,
-  trainingEnd,
-  type Named,
-} from './evidence-words';
+import { DISPOSITIONS, TRAINING_END_ICONS, trainingEnd } from './evidence-words';
 
 /** What a round is doing before the mentor has named its change. */
 function untitled(round: Round): string {
@@ -41,7 +35,6 @@ export interface RoundsFooter {
 /** What the mentoring records say about each round, when there are any. */
 export interface RoundRecords {
   experiments: readonly Experiment[];
-  interventions: readonly Intervention[];
 }
 
 /**
@@ -68,7 +61,7 @@ export function Rounds({
   draftRound: number | null;
   records: RoundRecords | null;
   /** The mentoring records couldn't be read: the rounds can't say how they ended. */
-  failure: { message: string; reload: () => void } | null;
+  failure: { error: Error; reload: () => void } | null;
   /** Why training ended, once it has. */
   stopReason: RunStopReason | undefined;
   onOpen: (round: Round) => void;
@@ -80,10 +73,10 @@ export function Rounds({
       <PanelHeader title="Rounds" />
       {failure ? (
         <PanelRow className="py-3">
-          <ErrorState
+          <ProblemState
             layout="inline"
+            error={failure.error}
             title="Couldn't load how the rounds ended"
-            message={failure.message}
             onRetry={failure.reload}
           />
         </PanelRow>
@@ -107,7 +100,6 @@ export function Rounds({
                 draft={round.index === draftRound}
                 running={running}
                 experiment={records?.experiments.find((item) => item.round === round.index)}
-                intervention={records?.interventions.find((item) => item.round === round.index)}
                 onOpen={() => onOpen(round)}
               />
             </li>
@@ -136,7 +128,6 @@ function RoundRow({
   draft,
   running,
   experiment,
-  intervention,
   onOpen,
 }: {
   job: Job;
@@ -144,19 +135,13 @@ function RoundRow({
   draft: boolean;
   running: boolean;
   experiment: Experiment | undefined;
-  intervention: Intervention | undefined;
   onOpen: () => void;
 }) {
   const disposition = experiment?.disposition ?? round.decision;
-  const struck = disposition !== undefined && disposition !== 'kept';
-  const kind: Named | null = draft
-    ? FIRST_DRAFT
-    : intervention
-      ? INTERVENTIONS[intervention.type]
-      : null;
-  // A draft is the whole first setup, so its kind says how it came about.
+  // A change that isn't in the agent reads quieter than one that is, and is never struck out.
+  const quiet = disposition !== undefined && disposition !== 'kept';
+  // A draft is the whole first setup, so it says how it came about.
   const note = draft ? 'Written from the job' : experiment ? outcomeNote(experiment, job) : null;
-  const line = [draft ? null : kind?.label, note].filter(Boolean).join(' · ');
   return (
     <button
       type="button"
@@ -164,30 +149,15 @@ function RoundRow({
       className={cn(
         'grid min-h-[62px] w-full grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3.5 border-t border-line-row px-7 py-2 text-left',
         'transition-colors duration-150 hover:bg-row-hover',
-        struck && 'text-fg-muted',
+        quiet && 'text-fg-muted',
       )}
     >
-      <span className={cn('font-mono', !struck && 'text-fg-secondary')}>
+      <span className={cn('font-mono', !quiet && 'text-fg-secondary')}>
         {String(round.index).padStart(2, '0')}
       </span>
       <span className="flex min-w-0 flex-col gap-1">
-        <span className={cn('truncate', struck && 'line-through decoration-fg-ghost')}>
-          {round.title ?? untitled(round)}
-        </span>
-        {kind && line !== '' && (
-          <span
-            title={intervention && `${kind.label}: ${INTERVENTIONS[intervention.type].meaning}`}
-            className="flex min-w-0 items-center gap-1.5 text-sm text-fg-muted"
-          >
-            <kind.icon
-              size={13}
-              strokeWidth={1.8}
-              aria-hidden
-              className={cn('shrink-0', struck ? 'text-fg-faint' : 'text-mentor')}
-            />
-            <span className="truncate">{line}</span>
-          </span>
-        )}
+        <span className="truncate">{round.title ?? untitled(round)}</span>
+        {note && <span className="truncate text-sm text-fg-muted">{note}</span>}
       </span>
       <RoundResult round={round} draft={draft} running={running} experiment={experiment} />
     </button>
@@ -220,8 +190,8 @@ function RoundResult({
         <span
           title={draft ? undefined : words.meaning}
           className={cn(
-            'w-[74px] text-sm',
-            draft ? 'text-student' : disposition === 'reverted' ? 'text-fg-muted' : words.tone,
+            'min-w-[84px] whitespace-nowrap text-right text-sm',
+            draft ? 'text-student' : words.tone,
           )}
         >
           {draft ? 'First draft' : words.label}

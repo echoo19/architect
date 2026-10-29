@@ -1,5 +1,6 @@
 import type { Score } from '@architect/shared';
 import {
+  Disclosure,
   EvidenceMark,
   Heading,
   Table,
@@ -12,7 +13,7 @@ import {
 import { formatBytes } from '../../lib/format';
 import { formatCost, formatRate } from '../format';
 import type { ModelNames } from '../train/phase';
-import { notRunReason, wasRun, type Arm, type ArmKey } from './arms';
+import { armCost, notRunReason, wasRun, type Arm, type ArmKey } from './arms';
 
 /**
  * Each comparison named for what the student ran with, in the job's own model names. Without a
@@ -34,8 +35,8 @@ function armLabel(key: ArmKey, { mentor, student }: ModelNames, blankStart: bool
 }
 
 /**
- * "78%" over "14 of 18, 2 runs": rates compare across rows, the counts say what each rests on.
- * A score over more than one run of the check tasks says how many.
+ * "78%" over "14 of 18": rates compare across rows, the counts say what each rests on. A score
+ * over more than one run of the check tasks says how many.
  */
 function ScoreCell({ score, perRun }: { score: Score | null; perRun?: number | undefined }) {
   if (score === null) return <span className="text-fg-faint">Not run</span>;
@@ -43,7 +44,7 @@ function ScoreCell({ score, perRun }: { score: Score | null; perRun?: number | u
   return (
     <span className="flex flex-col items-end">
       <span className="font-mono tabular-nums text-fg">{formatRate(score)}</span>
-      <span className="text-xs tabular-nums text-fg-muted">
+      <span className="whitespace-nowrap text-xs tabular-nums text-fg-muted">
         {score.pass} of {score.total}
         {runs > 1 && `, ${runs} runs`}
       </span>
@@ -51,35 +52,20 @@ function ScoreCell({ score, perRun }: { score: Score | null; perRun?: number | u
   );
 }
 
-/** The most memory a meter saw over a final test here, process and GPU; nothing where none ran. */
-export function PeakMemory({
-  processBytes,
-  gpuBytes,
-}: {
-  processBytes: number | null;
-  gpuBytes: number | null;
-}) {
-  if (processBytes === null && gpuBytes === null) return null;
-  // Two different memories, each named: the model server's own, and the graphics card's.
-  return (
-    <span className="flex flex-col items-end gap-0.5 text-xs tabular-nums text-fg-muted">
-      {processBytes !== null && (
-        <span className="whitespace-nowrap">
-          RAM <span className="font-mono text-sm text-fg">{formatBytes(processBytes)}</span>
-        </span>
-      )}
-      {gpuBytes !== null && (
-        <span className="whitespace-nowrap">
-          GPU <span className="font-mono text-sm text-fg">{formatBytes(gpuBytes)}</span>
-        </span>
-      )}
-    </span>
-  );
+/** The most memory a meter saw over a final test here, process and GPU, in a few words. */
+function memoryLine(processBytes: number | null, gpuBytes: number | null): string {
+  return [
+    processBytes !== null && `${formatBytes(processBytes)} of RAM`,
+    gpuBytes !== null && `${formatBytes(gpuBytes)} of GPU memory`,
+  ]
+    .filter(Boolean)
+    .join(' and ');
 }
 
 /**
- * The student with and without the setup and trained weights, and Spark on the same tasks,
- * where their records exist. A comparison that wasn't run says so and shows nothing else.
+ * The student untouched, with the setup and trained weights it has, and Spark on the same tasks,
+ * where their records exist: three rows and a cost for each that adds up. A comparison that has
+ * no record is named under "Not measured" with what its records lack, never inferred.
  */
 export function Comparisons({
   arms,
@@ -94,8 +80,9 @@ export function Comparisons({
   /** How many check tasks one run has, to say when a score adds up more than one. */
   checkTasks: number | undefined;
 }) {
-  // Memory has a column only once a meter read some arm's final test here.
-  const metered = arms.some((arm) => arm.memory !== null);
+  const measured = arms.filter(wasRun);
+  const unmeasured = arms.filter((arm) => !wasRun(arm));
+  const metered = measured.filter((arm) => arm.memory !== null);
   return (
     <section aria-labelledby="comparisons" className="flex flex-col gap-[18px]">
       <Heading id="comparisons">Comparisons</Heading>
@@ -114,68 +101,53 @@ export function Comparisons({
                   Final test
                 </EvidenceMark>
               </TableHead>
-              {metered && (
-                <TableHead className="whitespace-nowrap text-right">Peak memory</TableHead>
-              )}
-              <TableHead className="whitespace-nowrap text-right">
-                {names.mentor}&apos;s cost
-              </TableHead>
-              <TableHead className="whitespace-nowrap text-right">Compute cost</TableHead>
+              <TableHead className="whitespace-nowrap text-right">Cost</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {arms.map((arm) => {
-              const run = wasRun(arm);
-              return (
-                <TableRow key={arm.key} aria-current={arm.current ? 'true' : undefined}>
-                  <TableCell>
-                    <span className={arm.current ? 'font-medium' : undefined}>
-                      {armLabel(arm.key, names, blankStart)}
-                    </span>
-                    {arm.current && (
-                      <span className="whitespace-nowrap text-fg-muted"> · this agent</span>
-                    )}
-                  </TableCell>
-                  {run ? (
-                    <>
-                      <TableCell className="text-right">
-                        <ScoreCell score={arm.check} perRun={checkTasks} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <ScoreCell score={arm.final} />
-                      </TableCell>
-                      {metered && (
-                        <TableCell className="text-right">
-                          {arm.memory && (
-                            <PeakMemory
-                              processBytes={arm.memory.peakProcessBytes}
-                              gpuBytes={arm.memory.peakGpuBytes}
-                            />
-                          )}
-                        </TableCell>
-                      )}
-                      <TableCell className="text-right font-mono tabular-nums">
-                        {arm.budget ? formatCost(arm.budget.mentorUsd) : '–'}
-                      </TableCell>
-                      <TableCell className="text-right font-mono tabular-nums">
-                        {arm.budget
-                          ? `${formatCost(arm.budget.computeUsd)}${arm.budget.computeMinutes > 0 ? ` · ${Math.round(arm.budget.computeMinutes)} min` : ''}`
-                          : '–'}
-                      </TableCell>
-                    </>
-                  ) : (
-                    <TableCell colSpan={metered ? 5 : 4} className="text-fg-faint text-pretty">
-                      Not run
-                      {notRunReason(arm.key, names.mentor) &&
-                        `: ${notRunReason(arm.key, names.mentor)}`}
-                    </TableCell>
+            {measured.map((arm) => (
+              <TableRow key={arm.key} aria-current={arm.current ? 'true' : undefined}>
+                <TableCell>
+                  <span className={arm.current ? 'font-medium' : undefined}>
+                    {armLabel(arm.key, names, blankStart)}
+                  </span>
+                  {arm.current && (
+                    <span className="whitespace-nowrap text-fg-muted"> · this agent</span>
                   )}
-                </TableRow>
-              );
-            })}
+                </TableCell>
+                <TableCell className="text-right align-top">
+                  <ScoreCell score={arm.check} perRun={checkTasks} />
+                </TableCell>
+                <TableCell className="text-right align-top">
+                  <ScoreCell score={arm.final} />
+                </TableCell>
+                <TableCell className="text-right align-top font-mono tabular-nums">
+                  {arm.budget ? formatCost(armCost(arm.budget)) : '–'}
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </div>
+      {(unmeasured.length > 0 || metered.length > 0) && (
+        <Disclosure label="Details">
+          <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-fg-secondary">
+            {metered.map((arm) => (
+              <li key={arm.key} className="text-pretty">
+                {armLabel(arm.key, names, blankStart)} used at most{' '}
+                {memoryLine(arm.memory?.peakProcessBytes ?? null, arm.memory?.peakGpuBytes ?? null)}{' '}
+                in its final test.
+              </li>
+            ))}
+            {unmeasured.map((arm) => (
+              <li key={arm.key} className="text-pretty text-fg-muted">
+                {armLabel(arm.key, names, blankStart)} wasn&apos;t measured
+                {notRunReason(arm.key, names.mentor) && `: ${notRunReason(arm.key, names.mentor)}`}.
+              </li>
+            ))}
+          </ul>
+        </Disclosure>
+      )}
     </section>
   );
 }

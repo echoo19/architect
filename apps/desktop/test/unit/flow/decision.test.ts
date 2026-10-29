@@ -144,11 +144,10 @@ describe('outcomeNote', () => {
   const ended = (disposition: Experiment['disposition']) =>
     ({ ...rejected([], 7, 7), disposition }) as Experiment;
 
-  it('says in a few words why a change is not in the agent', () => {
-    expect(outcomeNote(ended('kept'), job)).toBeNull();
-    expect(outcomeNote(ended('reverted'), job)).toBe('Gain too small to keep');
-    expect(outcomeNote(ended('invalid'), job)).toBe("Couldn't be tried");
-    expect(outcomeNote(ended('stopped'), job)).toBe('Not scored');
+  it('adds nothing where the outcome says it all', () => {
+    for (const disposition of ['kept', 'reverted', 'invalid', 'stopped'] as const) {
+      expect(outcomeNote(ended(disposition), job)).toBeNull();
+    }
   });
 
   it('names what a rejected change harmed, or the check it failed', () => {

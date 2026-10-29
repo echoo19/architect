@@ -21,8 +21,15 @@ export const ARM_ORDER: readonly ArmKey[] = ['untouched', 'setup', 'weights', 'b
 
 export interface ArmBudget {
   mentorUsd: number;
+  /** What training the student online cost, where a hosted copy of it was paid for. */
+  onlineUsd: number;
   computeUsd: number;
   computeMinutes: number;
+}
+
+/** What a configuration cost in all: its parts, each counted once, as the stats above add them. */
+export function armCost(budget: ArmBudget): number {
+  return budget.mentorUsd + budget.onlineUsd + budget.computeUsd;
 }
 
 export interface Arm {
@@ -82,6 +89,7 @@ export function comparisonArms(inputs: ArmInputs): Arm[] {
     (weights && onCheckTasks(weights).find((item) => item.label === label)?.score) ?? null;
   const weightsBudget: ArmBudget | null = weights && {
     mentorUsd: weights.budget.mentorUsd,
+    onlineUsd: 0,
     computeUsd: weights.budget.computeUsd,
     computeMinutes: weights.budget.computeMinutes,
   };
@@ -93,6 +101,7 @@ export function comparisonArms(inputs: ArmInputs): Arm[] {
     final: report.test.score,
     budget: {
       mentorUsd: report.cost.mentorUsd,
+      onlineUsd: report.cost.studentUsd ?? 0,
       computeUsd: progress?.spent.computeUsd ?? 0,
       computeMinutes: progress?.spent.computeMinutes ?? 0,
     },
@@ -106,7 +115,7 @@ export function comparisonArms(inputs: ArmInputs): Arm[] {
       key: 'untouched',
       check: weights ? measured('H0/A0') : (progress?.dev.baseline ?? run.devBaseline),
       final: bare?.test.score ?? null,
-      budget: { mentorUsd: 0, computeUsd: 0, computeMinutes: 0 },
+      budget: { mentorUsd: 0, onlineUsd: 0, computeUsd: 0, computeMinutes: 0 },
       memory: null,
       current: false,
     },
@@ -148,6 +157,7 @@ export function comparisonArms(inputs: ArmInputs): Arm[] {
         dev || test
           ? {
               mentorUsd: (dev?.spentUsd ?? 0) + (test?.spentUsd ?? 0),
+              onlineUsd: 0,
               computeUsd: 0,
               computeMinutes: 0,
             }

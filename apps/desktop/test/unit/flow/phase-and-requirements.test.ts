@@ -77,7 +77,10 @@ describe('missedRequirements', () => {
           p95LatencyMs: { target: 8000, actual: 9100, met: false },
         }),
       ),
-    ).toEqual(['task success (84%, needs 90%)', 'answer time (slowest 9.1 s, needs under 8.0 s)']);
+    ).toEqual([
+      '84% right, and the job needs 90%',
+      'its slowest answers took 9.1 s, and the job wants them under 8.0 s',
+    ]);
   });
 
   it('says how many tasks a target needs on the test it reports', () => {
@@ -86,7 +89,14 @@ describe('missedRequirements', () => {
       test: { score: { pass: 5, total: 6 } },
     } as ReportCard;
     expect(missedRequirements(short)).toEqual([
-      'task success (5 of 6, 83%; needs 95%, which is 6 of 6)',
+      '5 of 6 right, and the job needs 95%, which is all 6',
+    ]);
+    const long = {
+      ...requirements({ passRate: { target: 0.95, actual: 55 / 60, met: false } }),
+      test: { score: { pass: 55, total: 60 } },
+    } as ReportCard;
+    expect(missedRequirements(long)).toEqual([
+      '55 of 60 right, and the job needs 95%, which is 57 of 60',
     ]);
   });
 });

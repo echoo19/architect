@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { readPackage } from '@architect/harness';
 import {
+  CodedError,
   GuardError,
   PackageError,
   type Grants,
@@ -113,7 +114,9 @@ export async function activeVersion(
   graduateId: string,
 ): Promise<ActiveVersion> {
   const agent = store.graduates.get(graduateId);
-  if (!agent) throw new Error(`There is no graduate "${graduateId}" in Architect.`);
+  if (!agent) {
+    throw new CodedError('agent_not_found', `There is no graduate "${graduateId}" in Architect.`);
+  }
   if (agent.activeVersion === null) {
     throw new Error(`${agent.name} has no version that can run yet.`);
   }

@@ -51,10 +51,14 @@ export function Steps({ message, startOpen, waiting, onOpenPanel }: StepsProps) 
   const open = choice ?? startOpen;
   const step = working ? currentStep(message.steps) : undefined;
 
-  // While a write waits for an answer, the line under the reply says so; this one just counts.
+  // Closed, the header says what the work was, with how many steps it took. While a write waits
+  // for an answer, the line under the reply says so; this one just counts.
+  const count = stepCount(message.steps.length);
+  const several = message.steps.length > 1;
   let header = workedLabel(message);
-  if (working && waiting) header = `${stepCount(message.steps.length)} so far`;
-  else if (step) header = stepLine(step);
+  if (several && header !== count) header = `${header} · ${count}`;
+  if (working && waiting) header = `${count} so far`;
+  else if (step) header = several ? `${stepLine(step)} · ${count}` : stepLine(step);
 
   return (
     <div className="flex flex-col gap-2">

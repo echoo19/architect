@@ -15,9 +15,11 @@ import {
   type ScanOptions,
 } from '@architect/harness';
 import {
+  CodedError,
   ExportPartRequestSchema,
   ExportRequestSchema,
   GuardError,
+  PackageError,
   SECRET_REFS,
   slugify,
   type ExportFinding,
@@ -107,12 +109,15 @@ async function planExport(
   if (number === null) throw new Error(`${agent.name} has no version to export.`);
   const stored = library.version(graduateId, number);
   const dir = library.ctx.paths.fromStored(stored.path);
-  const read = await readPackage(dir);
-  if (read.digest !== stored.digest) {
-    throw new Error(
-      `Version ${number} of ${agent.name} changed on disk after it was made, so it won't be exported.`,
-    );
-  }
+  const changed = `Version ${number} of ${agent.name} changed on disk after it was made, so it won't be exported.`;
+  const read = await readPackage(dir).catch((error: unknown) => {
+    // A file that no longer matches the checksum its package lists says the same thing.
+    if (!(error instanceof PackageError)) throw error;
+    throw new CodedError('version_modified', [changed, ...error.problems].join(' '), {
+      cause: error,
+    });
+  });
+  if (read.digest !== stored.digest) throw new CodedError('version_modified', changed);
   const shareable = await shareableResources(ctx, graduateId, read.manifest);
   const chosen = new Set<string>();
   for (const id of include) {

@@ -2,6 +2,130 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-28 (Tue), night: comparison 2 shows a gain, and the agent it made ships
+
+**Done**
+- Comparison 1 read with GPT-6 Astra: two rounds of teaching showed no gain on the final test (+3.3 points, -11.5 to +18.0). Astra advised one more comparison, planned and published before it ran, then delivery.
+- Comparison 2, planned in `docs/comparisons/returns-desk-2-plan.md` before anything was generated or measured: a new returns desk from generator seed 20261029 (the split now follows the generator's seed, and the committed job is byte for byte the same), Glimmer on its own against teaching with the job's own budget (the runner took `--rounds`), the one-shot draft as a secondary checkpoint, and a gain counted only if the paired 95% interval is above zero.
+- Its first run was set aside: when attempts cost more than calibration said, the runner dropped the teaching arm, as it is built to, and opened the other two arms' final tests. It was stopped 84 seconds later, unread, and ran again with a wider total cap (each arm's own share still bounds what it spends). Both amendments are in the plan.
+- Results (hosted bf16 Glimmer, 60 final-test requests, seed 101): on its own 44, one-shot draft 38, taught 58. Teaching against Glimmer on its own: 15 won, 1 lost, +23.3 points (+10.9 to +35.9), a gain by the plan's rule; against the draft, 20 won and 0 lost. Teaching met the 95% target on the check tasks after 4 rounds (two kept, both tool changes that read messy money and quoted values), so it stopped there. Typical answer 3.5 s against 17.7 s. Spent: Spark $0.42, hosted Glimmer $3.38.
+- The taught agent ships as the ready-made agent: `examples/gear-returns/graduate/returns-desk.architect.zip`, with its shop's records in `graduate/data` (a test holds them to seed 20261029 byte for byte). It is marked experimental, since the 2-bit build it runs on locally hasn't taken the final test (decision 009).
+- Both reports are published in `docs/comparisons`, with an index; the README's Results section now reports both comparisons and the earlier service desk result, in plain words. Its images are now captures of comparison 2's real run, opened in the app from its own records (`docs/comparisons/screens`), not fixtures.
+- A one-request check of a comparison 1 agent on this computer's 2-bit Glimmer failed after 13 steps: seven file reads filled the 16K context, and Ollama cut the reply off inside a tool call. Online runs have far more room, so nothing had shown it. A context budget keeps every prompt inside the student's context (decision 057, merged).
+- EXPANSION rows A01 (not done, by the owner's choice of hosted inference only) and A12 (a Hugging Face token now exists; a live private test waits for the owner) say where they stand.
+
+- The shipped agent, installed through the CLI into a fresh data folder on this computer: every installation check passed (it answered in 8.2 s with loading), and one order question on the 2-bit Glimmer with the context budget merged came back right, every order and line, in 96.9 s and 12 steps. The model was unloaded afterwards. Two small fixes came out of it: the model check no longer calls the local build "the build that was tested" for an agent whose final test ran online, and installing into a data folder that doesn't exist yet now starts it.
+
+**Next**
+- Merge the website, rebuild the installer for the owner to try, and update the demo script for the returns desk.
+
+**Open issues**
+- The owner's go-ahead is needed for a live private Hugging Face test, a GitHub release and where the website goes.
+
+## 2026-10-28 (Tue), the student's prompt kept inside its context
+
+**Done** (on a branch; decision 057; no model was called, the GPU stayed off)
+- The cause of the failed local run, found in the code: nothing kept a conversation inside the model's context, and a turn that had shown text was never asked again (053 asked again only before any text was shown, and the agent host always streams text). Hosted runs have a 131K context and never met either.
+- A budget for every turn, on every backend: students say the context they run under (`StudentAdapter.contextLength`: Ollama, llama.cpp, OpenAI-compatible hosted or local; the mentor's model as the agent says `null`). A prompt may take the context less the reply's room, which is the harness's output limit but at most a quarter: 12,288 of 16,384 by default.
+- An estimate from the usage the adapter reported for the turn before (prompt and output) plus what came after, counted by characters the way Glimmer's tokenizer spends them (a digit costs a token, so a table runs near 1.7 characters a token and prose near 3.8). The constants were fitted to 143 samples of the two sample jobs' files counted with Glimmer's own vocabulary (`llama-tokenize` on the 2-bit blob, vocabulary only, GPU hidden): none came out under; of the 127 over 100 characters the typical one is 34% high and the highest 68%, where the lowest flat ratio that never undercounts is 112% high at the 90th percentile. In a closed loop on the returns desk's files with real counts (twelve reads, 16,384 context), the prompt without a budget went from 1,384 tokens at turn 1 to 40,419 at turn 13; with it, eight results were cleared oldest first and no prompt passed 10,728 of 12,288. The estimate was 1.48 times the real count at turn 1 and 1.04 to 1.30 after, never below.
+- Clearing: the oldest tool results become `[Cleared to make room: read data/orders.csv, lines 1-119. Read it again if you need it.]` until the prompt fits; the system prompt, the person's messages, the model's own messages, the latest results and a result no longer than its note are never touched. The trace keeps every message whole and records each clearing (`Trace.cleared`); the mentor's compact trace marks the results the student no longer had. If the request, the instructions and the latest results don't fit, the attempt ends before the model is called with "This task needs more room than the model's context allows." and the figures.
+- A reply cut off at its length limit is named as one and asked again with the prompt sized again (the cut-off call shows how big it really was) and the whole output limit kept free; an OpenAI-compatible reply cut inside a call comes back as a cut-off, not as bad JSON. The replies thrown away are paid for in the turn that follows.
+- A turn asked again after text was shown: `runAgent` takes `onRetract(chars)` beside `onText`. The agent host's reply goes back to how its text stood, published at once, so the app's chat shows only the retried turn's text; the CLI conversation prints `(asked again)` on its own line and then the new text; a JSON result's answer holds only the final text. 053's limits stand.
+- Tests: `token-estimate` (16 fixtures with their real Glimmer counts: never under), `context-window` (budget, clearing order, protected messages, stubs for each tool, usage-based sizing and the scaling after a clearing, the cut-off, can't fit), `agent-context` (the loop on a 600-row table in an 8,192 context with an independent token rule: every prompt inside the room, the trace whole, the turn of each clearing, the cut-off retry's room), `agent` (taking text back, a cut-off named and paid for), `agent-host` (text taken back in the reply, and a prompt that Ollama's reported usage says is near the end cleared), the CLI conversation and JSON answer, the OpenAI-compatible stream, and the schema. Each new test was checked by taking its code out (11 changes, all caught). Hidden e2e `agent-host.spec.ts`: a turn whose call can't be read shows its words and then takes them back, and the chat never holds both; with the host's retract taken out it fails.
+- Verified: `pnpm check` exits 0 (193 test files, 2,397 passed, 2 skipped), and the hidden e2e specs that use the model stand-ins pass: `agent-host.spec.ts` (5 passed), `engine.spec.ts` and `hub.spec.ts`.
+
+**Next**
+- Try it on the real local model after merging. A 16K context holds about two full reads of a table beside the instructions and the tool list, so the agent will read again what it cleared; watch the turn times (changing an old message makes the runtime read the prompt again from there) and whether it loops on re-reads. A tool-heavy job is better with 32K (about 0.2 GiB more here) or a smaller tool result.
+- Decide whether the Spark reference and corrections should run under the student's limit too; they are unbudgeted now.
+
+**Open issues**
+- Ollama reports a call cut off by the end of the context as one it could not parse, with no usage, so that case is asked again as in 053 and can't be named; with the budget it should not come from a full context.
+- Ollama's `prompt_eval_count` is taken as the whole prompt. That is unverified live on 0.40.9; a report under 40% of the character count isn't believed.
+- A long chat's earlier messages (up to a quarter of the context) are never cleared, so a long chat with a long harness can end with "needs more room".
+- The estimate errs high by the reasoning of the turn before, which the template does not send back.
+- The CLI prints a step's line before the text that arrived with it (as before), so a short text can be split by a step line.
+
+## 2026-10-28 (Tue), night: comparison 1's report says what it measured
+
+**Done** (on a branch; decision 056; no model was called, the GPU stayed off, and nothing of comparison 2 was read, run or changed)
+- A reviewer read comparison 1's report as an outsider and found eight faults. Each is fixed in the code that writes the report (`packages/engine/src/comparisons/report.ts` and `markdown.ts`), never in its output. The report's format is now `architect.comparisons/3`.
+  - Seeds: it says which declared seeds ran and for whom, and that a declared seed with no result (102 here) was not run. The seeds and the adapter protocol come from the confirmed plan, not from the flags of the command that asks for the report.
+  - Settings: a row of temperature, top_p, top_k, reasoning, turn limit and output tokens for every row of results, and the sentence that the harness sets them.
+  - Where it was measured: each frozen agent is "set to run on `muse-glimmer:30b-iq2` on Ollama once installed". All its numbers are from the hosted student, and the local build was not measured, unless a local table has the arm.
+  - Money: the attempts' recorded costs ($3.7630), what the provider settled ($3.8075) and the uncertain requests at their worst ($0.1359) are named for what they are and shown to a tenth of a cent, so they add up ($3.9434 in the journal, $0.1804 more than the attempts record). The projection is a section of its own.
+  - Development: the first dev measurement and the last kept round's own before and after (60/90 to 73/90), beside the rounds used of the most allowed and why training ended (2 of 2, cap reached).
+  - Words: an arrow reads "to", and typographic marks are ASCII.
+  - Adapters: the protocol is printed only when an adapter arm ran; otherwise one sentence says every reported agent is harness-only. Arms the plan never asked for are listed as not run.
+  - Pairs: the difference in pass rate with Newcombe's hybrid score interval (his method 10), from the wins, losses, both and neither counts.
+- Comparison 1's report was made again from its records with the `report` command and published as `docs/comparisons/returns-desk-1.md`, with no path, user folder or key in it. Nothing was spent, and its database, request journal and plan are byte for byte as they were (the old `report.md` and `report.json` sit beside the new ones as `.bak`). Targeted mentoring against the bare student is +3.3 points (-11.5 to +18.0), and the draft against the bare student +6.7 (-8.8 to +21.8): no gain was shown.
+- Tests: Newcombe's interval against the 18 intervals of Table III of his paper (the same limits to four decimals, but for one lower limit the paper prints as 0.8736 for 0.87367), two cases worked by hand, and the mirror image; the Markdown on a report shaped like the first real one; how each run's rounds ended; the plain-text pass; and the dry run and the runner through the store (seeds, pairs, rounds, where each arm was measured, money, no arrow, no folder name). The tests of the logic (the interval, the seeds, the rounding of the money, the plan's settings over the request's, the plain-text pass) were each checked to fail with their fix taken out.
+- Verified: `pnpm check` exits 0 (192 test files, 2,384 passed, 2 skipped).
+
+**Next**
+- Comparison 2 runs from `docs/comparisons/returns-desk-2-plan.md`; its report will be made by this code once it is merged.
+
+**Open issues**
+- "A01" in 037's statement is the owner's own label and is not explained in the report; the statement stays among the disclosures, beside the opening's "harness-only".
+- The identity line of a backend still prints fields that do not apply to a hosted copy ("GGUF none").
+- Ollama reports the local build's quantization as Q4_K_M though its name says iq2; the report names the build by its name and says nothing of its bits.
+- The app does not read a report in the earlier format, so a `report.json` made before this change shows nothing until `report` makes it again.
+
+## 2026-10-28 (Tue), the polish pass
+
+**Done** (on a branch; decision 055; no model was called, the GPU stayed off)
+- Phase 1, everything but the welcome, import and new-agent screens, after a blind review of all 114 screens: every failure a screen words has a code (engine, router, bridge and renderer; a plain sentence and what to do, with the precise message under Details), one verdict on Results and in the agent's settings, one set of words for practice tasks, check tasks and the final test and five outcomes for a round, versions in plain states and actions, Spark and Glimmer named alone with their ids and prices in Settings or Details, numbers that agree across the captures, Settings > Models with the teacher and the agent's model first, Define's training place above the fold, and plainer chat states.
+- Phase 2, after merging the ready-made agent (054): the welcome flow (what Architect does in a line, and what Spark and Glimmer are; Model, Teacher, Faster training, Done; "Glimmer · Recommended" and "Glimmer · Smaller" with what each downloads and gives up and whether it runs on the graphics card; Ollama mentioned only when it isn't running; one action in the footer; Spark with a Meta key first and the other three ways under one line), the new-agent screen and the empty workspace ("Try the sample job" a real button beside "Try a ready-made agent", two equal choices), and the import (what the agent does under its name, llama.cpp as its own row that shuts the way on, with a line saying why, until it is set up, folders named by what they hold, "Where are its files?", saving asked once, undone steps marked in the pills, one sentence on the result with the checks under Details, "Not now" until the install is done, a package edited after it was made or not a package said in a sentence, and one field for a Hugging Face address, read as a page address too). A Hub repository that holds no package is coded, in main, and says so in a sentence.
+- Found by the full e2e run after the merge: the status line says "Stand-in trained weights" since phase 1, and the real-engine spec for an imported adapter still looked for "Stand-in adapter".
+- Blind reads, four rounds of readers who saw only images: 30 screens, 18 teaching screens, 25 welcome, new-agent and import screens, and the 11 of those that changed. Each said what every screen was for and what to do next; what they stumbled on was fixed or is listed below. The last two rounds scored 6.6 and 7.5 of 10 on average.
+- Tests: unit tests for the folders' sentences and marks, the stepper's marks, the build names and trade-offs, the repository as typed, when the way on is shut, and the code a Hub repository without a package carries; the e2e specs and their stand-in engines say the new words, the model weighs what the catalog says on every screen, and the stand-in import can say that llama.cpp was set up since the package was first checked.
+- Verified: `pnpm check` exits 0 (190 test files, 2,317 passed, 2 skipped), and the hidden `pnpm e2e` passes (122 passed and 2 skipped in 25 minutes; the skipped ones are the packaging spec, which runs against the built archive, and the real engine's test of a shipped package, which waits for the owner's file). Every capture that changed was looked at in both themes; the old `import-weights-attention-*` captures are gone, since a package that needs llama.cpp can no longer be taken past its first step.
+
+**Next**
+- The owner adds the real ready-made package (054); look at the import's first step once with its own evidence.
+
+**Open issues**
+- In captures made from several fixtures, one run reads differently from the comparison beside it (two example agents with the same name), by the fixtures' design.
+- A teacher skipped in setup is said only in the footer of that step and in Settings.
+- "llama.cpp" and "trained weights" are named as they are, with a row that says what the program is; no size is given for its download.
+- An engine failure that has no code reaches the person in the engine's own words.
+
+## 2026-10-28 (Tue), a ready-made agent that opens through the import
+
+**Done** (on a branch; decision 054; no model was called, the GPU stayed off)
+- The app ships a ready-made agent. `sample-agent/` in its resources holds the returns desk's own data (`examples/gear-returns/job/data`) and, when the repository has it, the agent's package, `examples/gear-returns/graduate/returns-desk.architect.zip`. The owner adds that file from the real comparison run; none is committed here, and the tests make their own package from the returns desk job. Main finds both the way it finds the sample job (`processResources`, in development and packaged) and gives them to the engine; electron-builder only warns about a package that isn't there, so a build without it still builds and the app doesn't offer the agent.
+- Engine, additive with zod schemas: `graduates.hasSampleAgent` (the package is a file and the data folder holds a file; changes nothing) and `graduates.prepareSampleAgent`, which copies the data to `samples/returns-desk/data` of the app's data folder the first time, as a graduate made here gets its own copy of its job's data, keeps a copy already there as it is, and returns the package's path and the copy's. A copy that can't be made says why. Main allows exactly those two paths for the import that follows.
+- "Try a ready-made agent", with a package icon, sits beside "Try the sample job" on the new-agent screen and on the empty workspace, and the welcome flow's last line names it when the build has it. It opens the import on the package with `data/` already chosen: the person still sees Package, Folders (data/ shown as chosen, still theirs to change), Permissions (nothing granted until they choose) and the install checks. A build without the package or its data shows no entry and says nothing of it, and so does an engine that can't answer.
+- The sample job's link on the new-agent screen is now a ghost button of the UI package like the new one, so `describe-*` moved by two pixels.
+- Tests: engine `sample-agent.test.ts` (whether a build has it; the first copy; a copy kept after the agent changed it; a copy that can't be made; a package made from the returns desk job installing ready from its own data once allowed to open it, and with nothing granted before) and `host.test.ts` over the port; desktop unit tests for the paths in development and packaged, the engine's start message, the paths main allows and the import session's start (the copy that is kept and the allowed paths were each checked to fail without their code); hidden e2e `sample-agent.spec.ts` on a stand-in engine (from the new-agent screen through folders and permissions to a ready install, the welcome flow and the empty workspace, a build without the agent, a copy that fails; captures `sample-agent-*` in both themes) and, on the real engine, `engine.spec.ts` (hidden when the build has no package; when it has one, its data is copied once and kept and the package previews), which also runs against the packaged app. The existing stand-in engines now say the build ships no agent, so their captures never depend on whether the repository holds the file.
+- Tried by hand with a throwaway package made from the returns desk job (never committed): the built app copied the 8 data files on first use, its import found `data/` satisfied, edits to the copy survived removing the agent and opening it again, other paths stayed refused, and deleting the package hid the entry; `electron-builder --dir` carried both into `resources/sample-agent`, and the packaged app did the same, and without the package only warned and hid the entry. The model was never loaded (Install wasn't pressed against the running Ollama; the import was made with `loadModel: false`).
+- Verified: `pnpm check` exits 0 (186 test files, 2,279 passed, 2 skipped), and the hidden `pnpm e2e` passes (122 passed, 2 skipped, 24 minutes: the packaging spec, and the real engine's test of a shipped package, which waits for the owner's file). Every new capture was looked at in both themes. Four captures of other screens came out 2 to 8 pixels different (timing and anti-aliasing), so main's copies stay; `describe-*` changed because the sample job's link is now a ghost button.
+
+**Next**
+- The owner adds the package at `examples/gear-returns/graduate/returns-desk.architect.zip`. From then the real engine's test in `engine.spec.ts` opens it without any other change, `pnpm package` carries it, and the entry shows in the app. Look at the import's first step once with the real package's own evidence.
+
+**Open issues**
+- The Package step names the bundled file (`returns-desk.architect.zip`) under the agent's name, as it names any package; it could say the agent comes with Architect.
+- The data the agent writes stays through removing and opening the agent again, by design (a copy already there is kept), and nothing on screen resets it.
+- The entry appears a moment after its screen, since it asks the engine whether the build has the agent; it never shows an offer that can't be taken up.
+
+## 2026-10-28 (Tue), afternoon: merges, three bugs the real run found, and the comparison started
+
+**Done**
+- Merged the evidence screens (decision 049), the GPU lease (046), Teach this on screen (048), Hugging Face on screen (050) and the comparisons runner's safeguards (051). GitHub CI had failed on Linux since fe07109 while local checks passed on Windows; package tests now state the computers they depend on, and CI is green again.
+- Every run keeps the events it sent in `events.jsonl` beside its records (decision 052), so a paid run can be shown again for the demo and screenshots without running it again.
+- Three bugs found while preparing the real run, each fixed with a test: llama-server's build read as 0 from its newer version line; a command exited with code 0 in the middle of a 30-second retry wait (`AbortSignal.timeout` doesn't hold Node open; `waitOnClock` does); and a tool call Ollama couldn't parse counted as an outage instead of the model's unreadable reply (decision 053: such a turn is asked for again, twice, with seeds derived from its own).
+- The owner chose remote inference only, spent sparingly, with development as the must and one graduate to test. The comparison runs hosted with four arms (Glimmer alone, Spark's one-shot draft, targeted mentoring, Spark as a reference), capped at $15 of OpenRouter and $10 of Spark, in `C:/JakeOS/projects/architect-runs/comparison-1`. Calibration measured $0.0062 an attempt, 31.7 s p50, 11 of 15 passed. The trained-weights arm and local tests are out of this comparison.
+- A short local probe (owner-approved) measured the 2-bit build at about 90 s an attempt, 6 s a model call, 230 to 250 W; the bare student failed all 3 tasks locally while the hosted bf16 copy passes 11 of 15 on calibration.
+- The Windows installer builds (`apps/desktop/release/Architect-Setup-0.1.0.exe`) and the packaged app passes its 21 hidden e2e specs.
+
+**Next**
+- When the comparison finishes: the report, the README's results, and the targeted arm's graduate exported as the shipped sample agent.
+- Merging the running passes: a ready-made sample agent in the app, a polish pass from a blind review of all 114 screens, and a public website in `site/`.
+
+**Open issues**
+- Local inference on a 12 GB card (the 2-bit build) is much weaker than the hosted copy and unmeasured on the final test; the README must say so.
+- Trained weights are built and tested against stand-ins but have never run end to end.
+
 ## 2026-10-28 (Tue), the evidence screens
 
 **Done** (on a branch; decision 049)

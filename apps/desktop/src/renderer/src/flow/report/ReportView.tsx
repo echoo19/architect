@@ -7,13 +7,13 @@ import type {
   ReportCard,
   Run,
 } from '@architect/shared';
-import { Badge, ErrorState, Heading, Stat } from '@architect/ui';
-import { Check, CircleMinus } from 'lucide-react';
+import { Badge, DetailList, Disclosure, Heading, Stat, type BadgeTone } from '@architect/ui';
+import { Check, CircleAlert, CircleMinus, CircleX } from 'lucide-react';
 import type { QueryState } from '../../api/query';
+import { ProblemState } from '../../components/ProblemState';
 import { formatBytes, formatDuration, formatUsd } from '../../lib/format';
-import { quantizationLabel, shortModelName } from '../../lib/names';
+import { shortModelName } from '../../lib/names';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
-import { providerName } from '../define/hosted';
 import { formatAnswerTime, formatRate, percent, signed } from '../format';
 import type { ModelNames } from '../train/phase';
 import { comparisonArms } from './arms';
@@ -28,16 +28,18 @@ import {
   type ReportEvidence,
   type RuntimeFigures,
 } from './evidence';
-import { missedRequirements } from './requirements';
+import type { Verdict, VerdictState } from './verdict';
 
-/** How the report names the runtime the final test ran on. */
+/** How the report names the runtime the final test ran on, behind Details. */
 const RUNTIMES: Record<string, string> = {
   ollama: 'Ollama',
-  openai_compatible: 'Hosted endpoint',
+  openai_compatible: 'a hosted endpoint',
 };
 
 interface ReportViewProps {
   report: ReportCard;
+  /** What the results say, once: from the final test and this computer's checks together. */
+  verdict: Verdict;
   /** The job, for what the agent was never meant to do; null while it loads or if it failed. */
   job: Job | null;
   graduate: GraduateSummary | undefined;
@@ -57,14 +59,14 @@ interface ReportViewProps {
   comparisonReport: QueryState<ComparisonReport | null>;
 }
 
-/** The meter's memory figures for the model's stat, where a meter read the final test here. */
-function memoryLines(figures: RuntimeFigures | null): string[] {
-  if (figures === null) return [];
-  return [
-    figures.peakProcessBytes !== null &&
-      `Up to ${formatBytes(figures.peakProcessBytes)} of RAM in the final test`,
-    figures.peakGpuBytes !== null && `Up to ${formatBytes(figures.peakGpuBytes)} of GPU memory`,
-  ].filter((line): line is string => typeof line === 'string');
+/** The meter's memory figures, where a meter read the final test here, for Details. */
+function memoryFact(figures: RuntimeFigures | null): string | null {
+  if (figures === null) return null;
+  const parts = [
+    figures.peakProcessBytes !== null && `${formatBytes(figures.peakProcessBytes)} of RAM`,
+    figures.peakGpuBytes !== null && `${formatBytes(figures.peakGpuBytes)} of GPU memory`,
+  ].filter(Boolean);
+  return parts.length > 0 ? `Up to ${parts.join(' and ')}` : null;
 }
 
 /**
@@ -82,7 +84,7 @@ function beforeTraining(
   if (before === null) return undefined;
   const now = percent(report.test.score);
   const change = now > before ? 'Up from' : now < before ? 'Down from' : 'Same as';
-  return `${change} ${before}% with no setup`;
+  return `${change} ${before}% before training`;
 }
 
 /** Whether training began with a first full draft rather than a setup (decision 026). */
@@ -97,16 +99,29 @@ function cents(amount: number): string {
   return formatUsd(Math.round(amount * 100) / 100);
 }
 
-/** Each bill on its own, "Spark $0.41" and "OpenRouter $3.20", when a hosted copy was paid for. */
-function costParts(report: ReportCard, mentor: string, job: Job | null): string[] {
+/**
+ * What training cost in all, and each bill it is made of: Spark, the student trained online and
+ * training weights, so the total is always the sum of the parts beside it.
+ */
+function costParts(
+  report: ReportCard,
+  mentor: string,
+  computeUsd: number,
+): { total: number; parts: string[] } {
   const { mentorUsd, studentUsd } = report.cost;
-  if (!studentUsd) return [];
-  const host = job?.student.hosted ? providerName(job.student.hosted) : 'Hosted copy';
-  return [`${mentor} ${cents(mentorUsd)}`, `${host} ${cents(studentUsd)}`];
+  const parts = [
+    `${mentor} ${cents(mentorUsd)}`,
+    studentUsd ? `Training online ${cents(studentUsd)}` : null,
+    computeUsd > 0 ? `Training weights ${cents(computeUsd)}` : null,
+  ].filter((part): part is string => part !== null);
+  return {
+    total: mentorUsd + (studentUsd ?? 0) + computeUsd,
+    parts: parts.length > 1 ? parts : [],
+  };
 }
 
 /** Short facts stacked one per line under a stat. */
-function Lines({ lines }: { lines: readonly (string | false | undefined)[] }) {
+function Lines({ lines }: { lines: readonly (string | false | undefined | null)[] }) {
   return (
     <span className="flex flex-col">
       {lines.filter(Boolean).map((line) => (
@@ -125,8 +140,16 @@ function trainingNote(report: ReportCard, job: Job | null): string {
   return `${count} · ${formatDuration(wallMs)}`;
 }
 
+const PILL: Record<VerdictState, { tone: BadgeTone; icon: ReactNode }> = {
+  ready: { tone: 'student', icon: <Check size={14} strokeWidth={2} aria-hidden /> },
+  below_target: { tone: 'alert', icon: <CircleAlert size={14} strokeWidth={2} aria-hidden /> },
+  needs_attention: { tone: 'alert', icon: <CircleAlert size={14} strokeWidth={2} aria-hidden /> },
+  blocked: { tone: 'alert', icon: <CircleX size={14} strokeWidth={2} aria-hidden /> },
+};
+
 export function ReportView({
   report,
+  verdict,
   job,
   graduate,
   comparison,
@@ -137,138 +160,132 @@ export function ReportView({
   bare,
   comparisonReport,
 }: ReportViewProps) {
-  const { test, cost } = report;
+  const { test } = report;
   const figures = evidence.data ? runtimeFigures(evidence.data.measurements, report) : null;
   const names: ModelNames = {
     mentor: shortModelName(report.mentor.label),
     student: shortModelName(report.student.label),
   };
-  const missed = missedRequirements(report);
   const device = deviceInSentence(currentPlatform());
-  const where = test.ranOffline ? `offline on ${device}` : 'on a hosted copy';
-  const spent = costParts(report, names.mentor, job);
+  const where = test.ranOffline ? `offline on ${device}` : `on an online copy of ${names.student}`;
+  const bill = costParts(report, names.mentor, evidence.data?.progress.spent.computeUsd ?? 0);
   const before = beforeTraining(report, comparison, bare);
-  const pinned = graduate?.manifest.student;
-  const pinnedFacts = [
-    pinned?.quantization && quantizationLabel(pinned.quantization),
-    pinned?.sizeBytes ? formatBytes(pinned.sizeBytes) : undefined,
-  ].filter(Boolean);
-  const modelFacts =
-    pinnedFacts.length > 0
-      ? pinnedFacts.join(' · ')
-      : (RUNTIMES[report.student.runtime] ?? report.student.runtime);
+  const size = graduate?.manifest.student.sizeBytes;
+  const memory = memoryFact(figures);
+  const pill = PILL[verdict.state];
 
   return (
     <>
       <div className="flex flex-col gap-3">
-        {missed.length === 0 ? (
-          <Badge
-            tone="student"
-            icon={<Check size={14} strokeWidth={2} aria-hidden />}
-            className="self-start"
-          >
-            Ready
-          </Badge>
-        ) : (
-          <Badge className="self-start">Below target</Badge>
-        )}
+        <Badge tone={pill.tone} icon={pill.icon} className="self-start">
+          {verdict.pill}
+        </Badge>
         <Heading as="h1" size="display">
-          {/* It graduates by meeting the job's targets on the final test; short of them it's
-              finished training, and still there to use. */}
-          {missed.length === 0 ? `${report.name} graduated` : `${report.name} finished training`}
+          {verdict.title}
         </Heading>
         <p className="m-0 max-w-[660px] text-lg text-fg-secondary text-pretty">
-          Final test of {test.score.total} unseen tasks, {where}, with {names.mentor} disconnected.
+          Tested on {test.score.total} tasks it had never seen, {where}, with {names.mentor}{' '}
+          disconnected.
         </p>
-        {missed.length > 0 && (
+        {verdict.because.length > 0 && (
           <p className="m-0 max-w-[620px] text-fg-secondary text-pretty">
-            Missed the target on {missed.join(' and ')}. You can still use it, or train again.
+            {verdict.because.join(' ')}
           </p>
         )}
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(180px,100%),1fr))] gap-px overflow-hidden rounded-2xl border border-line-card bg-line-card">
-        <Stat
-          className="bg-panel p-[22px]"
-          value={formatRate(test.score)}
-          label="of new tasks right"
-          note={<Lines lines={[`${test.score.pass} of ${test.score.total}`, before]} />}
-          noteFont="text"
-        />
-        <Stat
-          className="bg-panel p-[22px]"
-          value={formatAnswerTime(test.latencyMs.p50)}
-          label="Typical answer"
-          note={
-            <Lines
-              lines={[
-                `95% within ${formatAnswerTime(test.latencyMs.p95)}`,
-                figures !== null &&
-                  figures.coldStartMs !== null &&
-                  `First answer in ${formatAnswerTime(figures.coldStartMs)}, the model loading first`,
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(180px,100%),1fr))] gap-px overflow-hidden rounded-2xl border border-line-card bg-line-card">
+          <Stat
+            className="bg-panel p-[22px]"
+            value={formatRate(test.score)}
+            label="of new tasks right"
+            note={<Lines lines={[`${test.score.pass} of ${test.score.total}`, before]} />}
+            noteFont="text"
+          />
+          <Stat
+            className="bg-panel p-[22px]"
+            value={formatAnswerTime(test.latencyMs.p50)}
+            label="Typical answer"
+            note={<Lines lines={[`95% within ${formatAnswerTime(test.latencyMs.p95)}`]} />}
+            noteFont="text"
+          />
+          <Stat
+            className="bg-panel p-[22px]"
+            value={names.student}
+            label="Model"
+            note={size ? formatBytes(size) : undefined}
+            noteFont="text"
+          />
+          <Stat
+            className="bg-panel p-[22px]"
+            value={cents(bill.total)}
+            label="Training cost"
+            note={<Lines lines={[...bill.parts, trainingNote(report, job)]} />}
+            noteFont="text"
+          />
+        </div>
+        {evidence.status === 'error' && evidence.data === undefined ? (
+          // Readings that couldn't be read say so, with a way to read them again, rather than
+          // vanish as if none were taken.
+          <ProblemState
+            layout="inline"
+            error={evidence.error}
+            title="Some of these figures couldn't be loaded"
+            onRetry={evidence.reload}
+          />
+        ) : (
+          <Disclosure label="Details">
+            <DetailList
+              items={[
+                {
+                  label: 'Model',
+                  value: `${report.student.model} on ${RUNTIMES[report.student.runtime] ?? report.student.runtime}`,
+                },
+                ...(memory ? [{ label: 'Memory in the final test', value: memory }] : []),
+                ...(figures !== null && figures.coldStartMs !== null
+                  ? [
+                      {
+                        label: 'First answer',
+                        value: `${formatAnswerTime(figures.coldStartMs)}, the model loading first`,
+                      },
+                    ]
+                  : []),
               ]}
             />
-          }
-          noteFont="text"
-        />
-        <Stat
-          className="bg-panel p-[22px]"
-          value={names.student}
-          label="Model"
-          note={
-            evidence.status === 'error' && evidence.data === undefined ? (
-              // Readings that couldn't be read say so, with a way to read them again, rather
-              // than vanish as if none were taken.
-              <span className="flex flex-col gap-1.5">
-                <span>{modelFacts}</span>
-                <ErrorState
-                  layout="inline"
-                  title="Its memory readings couldn't be read"
-                  onRetry={evidence.reload}
-                />
-              </span>
-            ) : (
-              <Lines lines={[modelFacts, ...memoryLines(figures)]} />
-            )
-          }
-          noteFont="text"
-        />
-        <Stat
-          className="bg-panel p-[22px]"
-          value={cents(cost.mentorUsd + (cost.studentUsd ?? 0))}
-          label={cost.studentUsd ? 'Training cost' : `${names.mentor} mentoring`}
-          note={<Lines lines={[...spent, trainingNote(report, job)]} />}
-          noteFont="text"
-        />
+          </Disclosure>
+        )}
       </div>
 
       <Capabilities evidence={capabilities} installation={installation} names={names} />
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(360px,100%),1fr))] gap-x-14 gap-y-10">
-        <section aria-labelledby="does-not" className="flex flex-col gap-3.5">
-          <Heading id="does-not">Task types it turns down</Heading>
-          <Refused report={report} />
+      {((job && job.doesNot.length > 0) || report.refusedTypes.length > 0) && (
+        <section aria-labelledby="wont-do" className="flex flex-col gap-3.5">
+          <Heading id="wont-do">What it won&apos;t do</Heading>
+          <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-md text-fg-secondary">
+            {report.refusedTypes.map((type) => (
+              <Limit key={type.type}>
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-fg">{type.label}</span>
+                  <span className="text-sm text-fg-muted text-pretty">{type.reason}</span>
+                </span>
+              </Limit>
+            ))}
+            {job?.doesNot.map((limit) => (
+              <Limit key={limit}>{limit}</Limit>
+            ))}
+          </ul>
         </section>
-        {job && job.doesNot.length > 0 && (
-          <section aria-labelledby="wont-do" className="flex flex-col gap-3.5">
-            <Heading id="wont-do">What it won&apos;t do</Heading>
-            <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-md text-fg-secondary">
-              {job.doesNot.map((limit) => (
-                <Limit key={limit}>{limit}</Limit>
-              ))}
-            </ul>
-          </section>
-        )}
-      </div>
+      )}
 
       {/* A comparison's own report, when this run is one of its arms; else the run's records. */}
       {comparisonReport.status === 'error' && comparisonReport.data === undefined && (
         <section aria-labelledby="comparisons" className="flex flex-col gap-3.5">
           <Heading id="comparisons">Comparisons</Heading>
-          <ErrorState
+          <ProblemState
             layout="inline"
-            title="Couldn't read the comparisons report"
-            message={comparisonReport.error.message}
+            error={comparisonReport.error}
+            title="Couldn't read the comparisons"
             onRetry={comparisonReport.reload}
           />
         </section>
@@ -278,7 +295,7 @@ export function ReportView({
           report={comparisonReport.data}
           runId={report.runId}
           names={names}
-          host={job?.student.hosted ? providerName(job.student.hosted) : 'Hosted copy'}
+          testedOn={report.testedOn}
         />
       )}
       {comparisonReport.data === null &&
@@ -286,10 +303,10 @@ export function ReportView({
         evidence.data === undefined && (
           <section aria-labelledby="comparisons" className="flex flex-col gap-3.5">
             <Heading id="comparisons">Comparisons</Heading>
-            <ErrorState
+            <ProblemState
               layout="inline"
+              error={evidence.error}
               title="Couldn't load the comparisons"
-              message={evidence.error.message}
               onRetry={evidence.reload}
             />
           </section>
@@ -328,10 +345,7 @@ export function ReportView({
                 <span className="truncate">{change.title}</span>
                 <span className="font-mono text-sm tabular-nums">
                   {signed(change.runs ? change.delta / change.runs : change.delta)}{' '}
-                  <span className="font-sans text-fg-muted">
-                    check tasks
-                    {change.runs ? `, average of ${change.runs} measurements` : null}
-                  </span>
+                  <span className="font-sans text-fg-muted">check tasks</span>
                 </span>
               </li>
             ))}
@@ -341,29 +355,6 @@ export function ReportView({
 
       <ComparisonTable rows={comparison} names={names} />
     </>
-  );
-}
-
-/** Task types the agent refuses, each with the reason from its guardrails. */
-function Refused({ report }: { report: ReportCard }) {
-  if (report.refusedTypes.length === 0) {
-    return (
-      <p className="m-0 text-md text-fg-secondary">
-        None. It takes on every task type it trained on.
-      </p>
-    );
-  }
-  return (
-    <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-md text-fg-secondary">
-      {report.refusedTypes.map((type) => (
-        <Limit key={type.type}>
-          <span className="flex flex-col gap-0.5">
-            <span className="text-fg">{type.label}</span>
-            <span className="text-sm text-fg-muted text-pretty">{type.reason}</span>
-          </span>
-        </Limit>
-      ))}
-    </ul>
   );
 }
 

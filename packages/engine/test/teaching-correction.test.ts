@@ -68,6 +68,10 @@ const answer = (json: string): ScriptedTurn => ({ text: `ANSWER: ${json}` });
 
 /** A scripted model that prices its own calls, as the mentor's model acting as the agent does. */
 class ScriptedActor extends ScriptedStudent implements ActorAdapter {
+  constructor(script: ConstructorParameters<typeof ScriptedStudent>[0]) {
+    super(script, null);
+  }
+
   estimateCostUsd(usage: Usage): number {
     return (usage.inputTokens + usage.outputTokens) / 1_000_000;
   }

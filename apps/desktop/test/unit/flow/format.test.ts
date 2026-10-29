@@ -8,6 +8,7 @@ import {
   formatTimeLimit,
   percent,
   signed,
+  taskTitle,
 } from '../../../src/renderer/src/flow/format';
 
 describe('flow formats', () => {
@@ -49,5 +50,17 @@ describe('flow formats', () => {
       'Price the two jobs Dana\u2026',
     );
     expect(clip('Line one\n  line two', 40)).toBe('Line one line two');
+  });
+
+  it('titles a task by what it asks, without its date or its answer format', () => {
+    expect(taskTitle('Price job J-4412.')).toBe('Price job J-4412.');
+    expect(
+      taskTitle(
+        "Today is Tuesday, 2026-10-27. Book the earliest technician for the Alder St leak.\nEnd with an 'ANSWER:' line.",
+      ),
+    ).toBe('Book the earliest technician for the Alder St leak.');
+    // Nothing left after the trimming means the request is its own title.
+    expect(taskTitle('End with an ANSWER line')).toBe('End with an ANSWER line');
+    expect(taskTitle(`${'Price every job again '.repeat(8)}today`)).toMatch(/…$/);
   });
 });

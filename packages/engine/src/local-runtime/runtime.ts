@@ -276,6 +276,7 @@ export class LocalAdapterRuntime implements AdapterServing {
     return {
       model: request.model,
       baseUrl: 'http://127.0.0.1',
+      contextLength: this.contextLength(request),
       acquire: async (signal) => {
         let gpu: GpuHold | null = null;
         try {

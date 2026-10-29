@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { PROVIDERS } from '@architect/shared';
-import { Button, IconButton, ProviderMark, SettingsRow, Spinner } from '@architect/ui';
-import { Cpu, ExternalLink, KeyRound, Plus, Trash2 } from 'lucide-react';
+import { Button, Disclosure, ProviderMark, SettingsRow, Spinner } from '@architect/ui';
+import { Cpu, ExternalLink, KeyRound, Plus } from 'lucide-react';
 import { api, architect } from '../../api/client';
 import { queryKeys } from '../../api/hooks';
 import { fetchQuery } from '../../api/query';
@@ -46,9 +46,10 @@ export interface ConnectionsSectionProps {
 }
 
 /**
- * Where models come from: keys and sign-ins for hosted providers, endpoints added by address,
- * and the runtimes on this computer, llama.cpp's among them. Adding is two buttons; each row can
- * be removed.
+ * Where models come from: keys and sign-ins for hosted providers and endpoints added by address,
+ * up front, each with a Disconnect. The runtimes on this computer (llama.cpp's among them) and
+ * the Hugging Face token are for few people, so they wait under Advanced, which opens itself when
+ * Ollama isn't running, since that is what a local model needs.
  */
 export function ConnectionsSection({ connections, detecting }: ConnectionsSectionProps) {
   const [adding, setAdding] = useState(false);
@@ -56,23 +57,16 @@ export function ConnectionsSection({ connections, detecting }: ConnectionsSectio
   const signedIn = connections.some((connection) => connection.provider === 'openrouter');
   const waiting = signIn.state.phase === 'waiting';
 
-  // Hugging Face's token sits with the keys, before the runtimes on this computer.
   const keyed = connections.filter((connection) => !connection.local);
   const here = connections.filter((connection) => connection.local);
+  const ollamaDown = here.some(
+    (connection) => connection.provider === 'ollama' && connection.runtime?.running === false,
+  );
 
   return (
     <section aria-label="Connections" className="flex flex-col">
       <h3 className="m-0 border-t border-line pb-2 pt-6 text-md font-medium">Connections</h3>
       {keyed.map(row)}
-      <HuggingFaceRow />
-      {here.map(row)}
-      <LlamaServerRow />
-      {detecting && (
-        <div className="flex min-h-[60px] items-center gap-2.5 border-t border-line text-fg-muted">
-          <Spinner size={13} />
-          Looking for models on this computer
-        </div>
-      )}
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
         {!signedIn && (
           <Button size="sm" loading={waiting} onClick={() => void signIn.start()}>
@@ -95,6 +89,19 @@ export function ConnectionsSection({ connections, detecting }: ConnectionsSectio
           {signIn.state.message}
         </p>
       )}
+      <Disclosure label="Advanced" defaultOpen={ollamaDown} className="pt-5">
+        <div className="flex flex-col">
+          <HuggingFaceRow />
+          {here.map(row)}
+          <LlamaServerRow />
+          {detecting && (
+            <div className="flex min-h-[60px] items-center gap-2.5 border-t border-line text-fg-muted">
+              <Spinner size={13} />
+              Looking for models on this computer
+            </div>
+          )}
+        </div>
+      </Disclosure>
       <AddKeyDialog open={adding} onOpenChange={setAdding} />
     </section>
   );
@@ -132,15 +139,15 @@ function row(connection: Connection) {
           </Button>
         )
       ) : (
-        <IconButton
-          label={`Remove ${connection.label}`}
-          size="sm"
+        <Button
+          size="xs"
+          variant="ghost"
           onClick={() =>
-            void attempt(`Couldn't remove ${connection.label}`, () => forget(connection))
+            void attempt(`Couldn't disconnect ${connection.label}`, () => forget(connection))
           }
         >
-          <Trash2 size={15} strokeWidth={1.7} aria-hidden />
-        </IconButton>
+          {connection.provider === 'other' ? 'Remove' : 'Disconnect'}
+        </Button>
       )}
     </SettingsRow>
   );
