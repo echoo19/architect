@@ -13,6 +13,7 @@ import {
   type MentorAdapter,
   type MentorCompletionRequest,
   type MentorConfig,
+  type PlaceholderAnswer,
   type RuleDetails,
   type Task,
   type TaskSpec,
@@ -69,7 +70,8 @@ import {
   settledMessage,
   systemPrompt,
 } from './prompts';
-import type { BlankAsked, TableBlank } from './rule-reply';
+import { markWords } from './rule/placeholders';
+import type { BlankAsked, MarkAsked, TableBlank, TableMark } from './rule-reply';
 import { foldKey } from './values';
 
 /** The most a drafting conversation may cost the teacher, in dollars. */
@@ -93,18 +95,53 @@ interface Spend {
 }
 
 /**
+ * The reply of the teacher that Architect is holding while it asks about marks. Its rule does not
+ * change with the answers, which Architect applies itself, so it is checked again with them and
+ * the teacher is not called a second time for it.
+ */
+interface Parked {
+  /** What the teacher was sent for this reply. */
+  messages: ChatMessage[];
+  reply: { text: string; json: unknown };
+  mustDraft: boolean;
+}
+
+/**
  * An open question about a rule that changes an answer, which waits for the person. One about an
  * empty cell names the column and its table, and is answered with one of the two choices a rule
  * can do.
  */
-interface Settling {
+interface RuleQuestion {
   question: string;
   options: string[];
   blank?: BlankAsked;
 }
 
-/** Questions about a rule Architect puts to the person in all, after which the draft ends. */
+/**
+ * Architect's own question about a mark such as N/A or a dash in a column of the records, with the
+ * teacher's reply it is held against. It is answered with the same two choices.
+ */
+interface MarkQuestion {
+  question: string;
+  options: string[];
+  mark: MarkAsked;
+  parked: Parked;
+}
+
+type Settling = RuleQuestion | MarkQuestion;
+
+/**
+ * Questions about a rule that the teacher raised, which Architect puts to the person in all, after
+ * which the draft ends.
+ */
 export const MAX_RULE_QUESTIONS = 3;
+
+/**
+ * Questions Architect asks about marks such as N/A or a dash, in all. They are its own, from the
+ * records, so they do not count against the teacher's. Past this it asks no more: a mark it did not
+ * ask about leaves its row out, as before, and the draft says so. It never counts as zero.
+ */
+export const MAX_MARK_QUESTIONS = 6;
 
 interface Session {
   id: string;
@@ -114,13 +151,23 @@ interface Session {
   /** The messages both sides have kept: the person's, and the teacher's questions. */
   history: ChatMessage[];
   questions: number;
-  /** What the person answered, exactly as they wrote it, which a rule may rest on. */
-  answers: { question: string; answer: string; blank?: TableBlank }[];
+  /**
+   * What the person answered, exactly as they wrote it, which a rule may rest on. An answer about
+   * an empty cell or about a mark says which table and column it was about and what they chose.
+   */
+  answers: {
+    question: string;
+    answer: string;
+    blank?: TableBlank;
+    placeholder?: PlaceholderAnswer;
+  }[];
   /** The last question the teacher asked, which the next reply answers. */
   asking: string | null;
   /** A question about a rule that must be answered before any job is drafted, and how many so far. */
   settling: Settling | null;
   ruleQuestions: number;
+  /** Questions about marks Architect has put to the person. */
+  markQuestions: number;
   spend: Spend;
   gate: MentorGate;
   busy: boolean;
@@ -169,7 +216,11 @@ function tooLittle(attached: Attached): string | null {
     : `Your files hold only ${rows} ${rows === 1 ? 'row' : 'rows'} between them, too few to make ${MIN_TASKS} different tasks to train and test on. Attach more of the records, or a tasks.jsonl file with example requests and their answers, and describe the job again.`;
 }
 
-/** Which of the two answers about an empty cell a reply is, or null when it is neither. */
+/**
+ * Which of the two answers about an empty cell, or about a mark such as N/A, a reply is, or null
+ * when it is neither. Only these two words answer: nothing else, "Draft it now" included, is read
+ * as a choice, and no answer is ever taken for zero.
+ */
 function blankMeaning(text: string): BlankAnswer['means'] | null {
   const said = foldKey(text);
   if (said === foldKey(BLANK_ANSWERS.zero)) return 'zero';
@@ -243,6 +294,24 @@ export class JobDrafting implements JobDrafter {
           options: open.options,
         };
       }
+      if ('mark' in open) {
+        const means = blankMeaning(text);
+        if (means === null) {
+          return {
+            sessionId: session.id,
+            message: `${open.question}\n\nChoose one of the answers: it decides what ${markWords(open.mark.mark)} counts as in ${open.mark.column} of ${open.mark.table}, in every row.`,
+            options: open.options,
+          };
+        }
+        session.answers.push({
+          question: open.question,
+          answer: BLANK_ANSWERS[means],
+          placeholder: { ...open.mark, means },
+        });
+        session.settling = null;
+        // The teacher's rule is as it was: Architect applies the answer to it, without a call.
+        return this.run(session, teacher, '', open.parked.mustDraft, open.parked);
+      }
       let answer = text;
       let blank: TableBlank | undefined;
       if (open.blank !== undefined) {
@@ -295,6 +364,7 @@ export class JobDrafting implements JobDrafter {
       asking: null,
       settling: null,
       ruleQuestions: 0,
+      markQuestions: 0,
       spend,
       gate: new MentorGate({
         leakDetector: NOTHING_SEALED,
@@ -331,14 +401,19 @@ export class JobDrafting implements JobDrafter {
     teacher: MentorConfig,
     message: string,
     mustDraft: boolean,
+    parked: Parked | null = null,
   ): Promise<DraftTurn> {
     if (session.busy) {
       throw new Error('The teacher is still working on the last message. Wait for its answer.');
     }
     session.busy = true;
     try {
-      const mentor = await connectTeacher(this.options.deps, teacher);
-      return await this.converse(session, mentor, teacher, message, mustDraft);
+      // The teacher is reached when it is first asked something. A reply Architect is holding is
+      // checked again without it, so an answer about a mark makes no call.
+      let mentor: MentorAdapter | undefined;
+      const connect = async (): Promise<MentorAdapter> =>
+        (mentor ??= await connectTeacher(this.options.deps, teacher));
+      return await this.converse(session, connect, teacher, message, mustDraft, parked);
     } finally {
       session.busy = false;
       session.touched = this.options.clock.now();
@@ -352,16 +427,23 @@ export class JobDrafting implements JobDrafter {
    */
   private async converse(
     session: Session,
-    mentor: MentorAdapter,
+    connect: () => Promise<MentorAdapter>,
     teacher: MentorConfig,
     message: string,
     mustDraft: boolean,
+    parked: Parked | null,
   ): Promise<DraftTurn> {
-    const messages: ChatMessage[] = [...session.history, { role: 'user', content: message }];
+    const messages: ChatMessage[] = parked?.messages ?? [
+      ...session.history,
+      { role: 'user', content: message },
+    ];
     let sent = messages;
     for (let attempt = 1; ; attempt += 1) {
       const final = attempt === 2;
-      const reply = await this.exchange(session, mentor, sent, mustDraft);
+      const reply =
+        attempt === 1 && parked !== null
+          ? parked.reply
+          : await this.exchange(session, await connect(), sent, mustDraft);
       const checked = checkReply(reply.json, {
         mustDraft,
         attached: session.attached,
@@ -369,6 +451,11 @@ export class JobDrafting implements JobDrafter {
           description: session.description,
           answers: session.answers.map((item) => item.answer).join('\n'),
           blanks: session.answers.flatMap((item) => (item.blank === undefined ? [] : [item.blank])),
+          marks: session.answers.flatMap((item): TableMark[] =>
+            item.placeholder === undefined
+              ? []
+              : [{ ...item.placeholder, question: item.question }],
+          ),
         },
       });
       // What the teacher is told is wrong, and what the person is told when it stays wrong, which
@@ -382,11 +469,19 @@ export class JobDrafting implements JobDrafter {
         return this.asked(session, messages, reply.text, checked.reply);
       } else {
         // A rule that depends on something the policy leaves open is not made: the person is
-        // asked, whether or not they chose to draft now.
-        const open = checked.reply.job.types.flatMap((type) => type.ambiguities ?? [])[0];
-        if (open !== undefined) return this.settle(session, messages, reply.text, open);
+        // asked, whether or not they chose to draft now. What the teacher raised comes first, then
+        // what Architect itself found in the records: a mark that may mean none. Past the number
+        // of questions it asks about marks, the rest are not asked, and their rows stay out.
+        const blocking = checked.reply.job.types.flatMap((type) => type.ambiguities ?? []);
+        const open = blocking.find(
+          (item) => item.mark === undefined || session.markQuestions < MAX_MARK_QUESTIONS,
+        );
+        if (open !== undefined) return this.settle(session, messages, reply, mustDraft, open);
         const made = this.build(session, checked.reply.job, final);
-        if ('built' in made) return await this.drafted(session, teacher, made.built);
+        if ('built' in made) {
+          const unasked = blocking.flatMap((item) => (item.mark === undefined ? [] : [item.mark]));
+          return await this.drafted(session, teacher, made.built, unasked);
+        }
         problems = made.problems;
         shown = made.shown ?? made.problems;
       }
@@ -446,16 +541,30 @@ export class JobDrafting implements JobDrafter {
 
   /**
    * Puts to the person a question about a rule that changes what the answers are. It offers no way
-   * to draft anyway, and after a few that stay open the conversation ends: a rule that rests on
-   * something nobody settled would give a score that means nothing.
+   * to draft anyway, and after a few of the teacher's that stay open the conversation ends: a rule
+   * that rests on something nobody settled would give a score that means nothing. Architect's own,
+   * about a mark such as N/A, holds the teacher's reply until it is answered.
    */
   private settle(
     session: Session,
     messages: ChatMessage[],
-    text: string,
-    open: Settling,
+    reply: { text: string; json: unknown },
+    mustDraft: boolean,
+    open: RuleQuestion & { mark?: MarkAsked },
   ): DraftTurn {
-    session.history = [...messages, { role: 'assistant', content: text }];
+    session.history = [...messages, { role: 'assistant', content: reply.text }];
+    if (open.mark !== undefined) {
+      // Architect's own question about a mark. The teacher's rule waits for the answer.
+      session.markQuestions += 1;
+      session.settling = {
+        question: open.question,
+        options: open.options,
+        mark: open.mark,
+        parked: { messages, reply, mustDraft },
+      };
+      session.asking = null;
+      return { sessionId: session.id, message: open.question, options: open.options };
+    }
     if (session.ruleQuestions >= MAX_RULE_QUESTIONS) {
       this.sessions.delete(session.id);
       return {
@@ -567,8 +676,16 @@ export class JobDrafting implements JobDrafter {
     );
   }
 
-  /** Records the drafted job, or ends the conversation when the files can't train one. */
-  private async drafted(session: Session, teacher: MentorConfig, built: Built): Promise<DraftTurn> {
+  /**
+   * Records the drafted job, or ends the conversation when the files can't train one. `unasked`
+   * are the marks it did not ask about, whose rows are left out and which the person is told of.
+   */
+  private async drafted(
+    session: Session,
+    teacher: MentorConfig,
+    built: Built,
+    unasked: readonly MarkAsked[],
+  ): Promise<DraftTurn> {
     const fitted = built.divided;
     if (fitted === null) {
       this.sessions.delete(session.id);
@@ -638,6 +755,13 @@ export class JobDrafting implements JobDrafter {
       ),
     ];
     const { spend } = session;
+    const unresolved = [
+      ...drafted.unresolved,
+      ...unasked.map(
+        (item) =>
+          `${item.column} in ${item.table} also holds ${markWords(item.mark)}. I did not ask what it means, so those rows are left out.`,
+      ),
+    ];
     const specs = new Map<string, { rule: string; spec: TaskSpec; details?: RuleDetails }>(
       (built.generation?.types ?? []).map((type) => [
         type.id,
@@ -663,7 +787,7 @@ export class JobDrafting implements JobDrafter {
         usd: spend.usd,
       },
       types: types.map((type) => ({ id: type.id, ...(specs.get(type.id) ?? {}) })),
-      unresolved: drafted.unresolved,
+      unresolved,
       notes,
       ...(session.answers.length > 0 ? { answers: session.answers } : {}),
       files: hashesOf(session.attached),
@@ -677,7 +801,7 @@ export class JobDrafting implements JobDrafter {
     this.sessions.delete(session.id);
     return {
       sessionId: session.id,
-      message: this.draftMessage(drafted.unresolved, built.dropped),
+      message: this.draftMessage(unresolved, built.dropped),
       options: [],
       draft: created,
     };

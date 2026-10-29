@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { MentorConfig } from '@architect/shared';
+import { BLANK_ANSWERS, type DraftTurn, type MentorConfig } from '@architect/shared';
 import { JobDrafting } from '../../src/drafting/drafter';
 import { createEngineDeps } from '../../src/host/wiring';
 import type { EngineHostDeps } from '../../src/loop/deps';
@@ -32,7 +32,13 @@ export interface DraftingWorld {
   deps: EngineHostDeps;
   mentor: FakeMentor;
   clock: ManualClock;
-  drafting: JobDrafting;
+  /**
+   * The conversation as the app holds it. By default the person who holds it answers every question
+   * Architect asks about a mark such as N/A or a dash with "Leave those rows out", which is what a
+   * rule did with one before the question was asked, so a test that is about something else reads
+   * as it always did. `marks: 'ask'` gives the conversation as it is, question and all.
+   */
+  drafting: Pick<JobDrafting, 'start' | 'reply'>;
   /** The teachers the conversation created a mentor for, one per call. */
   teachers: MentorConfig[];
   /** Writes a file the person attaches and returns where it is. */
@@ -40,11 +46,44 @@ export interface DraftingWorld {
   cleanup(): void;
 }
 
+/** Whether a turn is Architect asking what a mark such as N/A or a dash in a column means. */
+export function isMarkQuestion(turn: DraftTurn): boolean {
+  return (
+    turn.draft === undefined &&
+    turn.ended !== true &&
+    /^In \S+, \S+ sometimes (?:says|has) /.test(turn.message)
+  );
+}
+
+/** A person who answers each question about a mark the same way, whatever the mark. */
+class AnsweringMarks implements Pick<JobDrafting, 'start' | 'reply'> {
+  constructor(
+    private readonly real: JobDrafting,
+    private readonly answer: string,
+  ) {}
+
+  async start(description: string, files: string[], teacher: MentorConfig): Promise<DraftTurn> {
+    return this.answered(await this.real.start(description, files, teacher), teacher);
+  }
+
+  async reply(sessionId: string, text: string, teacher: MentorConfig): Promise<DraftTurn> {
+    return this.answered(await this.real.reply(sessionId, text, teacher), teacher);
+  }
+
+  private async answered(first: DraftTurn, teacher: MentorConfig): Promise<DraftTurn> {
+    let turn = first;
+    while (isMarkQuestion(turn)) turn = await this.real.reply(turn.sessionId, this.answer, teacher);
+    return turn;
+  }
+}
+
 /**
  * The real splitter, vault and job library over a temporary data folder, with a scripted teacher
  * in place of the model: the drafting conversation as the app runs it, with nothing else faked.
  */
-export function draftingWorld(options: { capUsd?: number } = {}): DraftingWorld {
+export function draftingWorld(
+  options: { capUsd?: number; marks?: 'ask' | 'leave_out' | 'zero' } = {},
+): DraftingWorld {
   const root = mkdtempSync(join(tmpdir(), 'architect-drafting-'));
   const dataDir = join(root, 'data');
   const filesDir = join(root, 'attached');
@@ -52,6 +91,7 @@ export function draftingWorld(options: { capUsd?: number } = {}): DraftingWorld 
   mkdirSync(filesDir, { recursive: true });
   const mentor = new FakeMentor();
   const teachers: MentorConfig[] = [];
+  const { marks = 'leave_out', ...rest } = options;
   const real = createEngineDeps({ dataDir, getSecret: async () => undefined });
   const deps: EngineHostDeps = {
     ...real,
@@ -67,6 +107,7 @@ export function draftingWorld(options: { capUsd?: number } = {}): DraftingWorld 
   const store = openEngineStore(paths.database);
   const clock = new ManualClock();
   const jobs = new JobLibrary(store, paths, deps, clock);
+  const drafting = new JobDrafting({ jobs, deps, clock, ...rest });
   return {
     root,
     dataDir,
@@ -77,7 +118,13 @@ export function draftingWorld(options: { capUsd?: number } = {}): DraftingWorld 
     deps,
     mentor,
     clock,
-    drafting: new JobDrafting({ jobs, deps, clock, ...options }),
+    drafting:
+      marks === 'ask'
+        ? drafting
+        : new AnsweringMarks(
+            drafting,
+            marks === 'zero' ? BLANK_ANSWERS.zero : BLANK_ANSWERS.leave_out,
+          ),
     teachers,
     attach(name, content) {
       const path = join(filesDir, name);
