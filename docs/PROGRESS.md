@@ -2,7 +2,7 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
-## 2026-10-29 (Wed), a cut value and the person's own words, kept as they are
+## 2026-10-29 (Thu), a cut value and the person's own words, kept as they are
 
 **Done** (on `rule-fixes-5`, from main at `cf56da3`, the 0.3.0 release; decision 061 amended; no model was called, the GPU stayed off, and every run used stand-ins only)
 - Two findings of GPT-6 Sol's read of the fourth round, each with a test that fails without its fix:
