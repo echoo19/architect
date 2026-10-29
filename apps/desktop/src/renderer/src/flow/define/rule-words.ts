@@ -14,6 +14,22 @@ export function waitsForRule(plan: TaskPlan | undefined): boolean {
   return plan?.confirmation !== undefined && plan.confirmation.state !== 'confirmed';
 }
 
+/**
+ * What the footer says in place of "Keep Architect open" while training has to wait: that the
+ * rule needs confirming, or, when the records changed under it, that the job must be described
+ * again, since confirming can't bring the old tasks back.
+ */
+export function waitLine(plan: TaskPlan | undefined): string | null {
+  switch (plan?.confirmation?.state) {
+    case 'needed':
+      return 'Confirm the rule first';
+    case 'changed':
+      return 'Describe the job again first';
+    default:
+      return null;
+  }
+}
+
 /** What the section says first: who read the policy, and what rests on the rule. */
 export function reviewIntro(teacher: string, count: number): string {
   return count === 1
@@ -24,8 +40,8 @@ export function reviewIntro(teacher: string, count: number): string {
 /** The line beside the button that confirms. */
 export function confirmLine(count: number): string {
   return count === 1
-    ? "Check the passages, the rule and the examples against your policy. Training can't start until you confirm it."
-    : "Check the passages, the rules and the examples against your policy. Training can't start until you confirm them.";
+    ? "Check the passages, the rule and the examples against your policy. Training can't start until you confirm it. If it isn't right, describe the job again with what is missing."
+    : "Check the passages, the rules and the examples against your policy. Training can't start until you confirm them. If they aren't right, describe the job again with what is missing.";
 }
 
 /** When the person confirmed, as a short date: "Oct 29". */

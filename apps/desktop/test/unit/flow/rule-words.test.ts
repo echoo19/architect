@@ -1,4 +1,5 @@
 import {
+  passageSource,
   ruleScoreNote,
   teachingLine,
   type RuleConfirmationState,
@@ -12,6 +13,7 @@ import {
   leftOutLine,
   reviewIntro,
   ruleTypesOf,
+  waitLine,
   waitsForRule,
 } from '../../../src/renderer/src/flow/define/rule-words';
 
@@ -70,6 +72,24 @@ describe('the words that put a rule in front of the person', () => {
         plan({ state: 'confirmed', token: 'abc', confirmedAt: '2026-10-29T10:00:00.000Z' }),
       ),
     ).toBe(false);
+  });
+
+  it('says in the footer why training waits: to confirm, or to describe the job again', () => {
+    expect(waitLine(undefined)).toBeNull();
+    expect(waitLine(plan(undefined, false))).toBeNull();
+    expect(waitLine(plan({ state: 'needed', token: 'abc' }))).toBe('Confirm the rule first');
+    expect(waitLine(plan({ state: 'changed', token: 'abc', problem: 'It changed.' }))).toBe(
+      'Describe the job again first',
+    );
+    expect(
+      waitLine(plan({ state: 'confirmed', token: 'abc', confirmedAt: '2026-10-29T12:00:00.000Z' })),
+    ).toBeNull();
+  });
+
+  it('names a passage by whose words it is, when it is the person who wrote it', () => {
+    expect(passageSource('policy.md')).toBe('policy.md');
+    expect(passageSource('answers')).toBe('your answer');
+    expect(passageSource('description')).toBe('your description');
   });
 
   it('says who read the policy and what rests on the rule, one rule or several', () => {

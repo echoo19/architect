@@ -10,7 +10,7 @@ import { AdvancedDialog, tabWithIssue, type AdvancedTab } from '../flow/define/A
 import { hostedAvailability, type KeyStatus } from '../flow/define/hosted';
 import { Capabilities, FilePermissions, JobHeader, ReadyWhen } from '../flow/define/JobOverview';
 import { RuleReview } from '../flow/define/RuleReview';
-import { waitsForRule } from '../flow/define/rule-words';
+import { waitLine, waitsForRule } from '../flow/define/rule-words';
 import { TrainingPlace } from '../flow/define/TrainingPlace';
 import { useJobEditor } from '../flow/define/use-job-editor';
 import { attempt } from '../lib/notify';
@@ -149,7 +149,7 @@ function DefineEditor({ initial }: { initial: Job }) {
           </Button>
           <div className="flex items-center gap-2">
             <span className="mr-2 text-sm text-fg-muted">
-              {waitingForRule ? 'Confirm the rule first' : 'Keep Architect open while it trains'}
+              {waitLine(taskPlan.data) ?? 'Keep Architect open while it trains'}
             </span>
             <Button onClick={() => navigate(paths.newAgent())}>Back</Button>
             <Button

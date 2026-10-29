@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import type { Job, RuleDetails, RuleExample, TaskPlan } from '@architect/shared';
+import {
+  passageSource,
+  type Job,
+  type RuleDetails,
+  type RuleExample,
+  type TaskPlan,
+} from '@architect/shared';
 import { Badge, Button, cn, Disclosure, Heading } from '@architect/ui';
 import { Check, CircleAlert, ScrollText } from 'lucide-react';
 import { flowApi } from '../../api/client';
@@ -34,6 +40,13 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
     if (state) setQueryData(queryKeys.taskPlan(job.id), { ...plan, confirmation: state });
   };
 
+  // A rule that isn't right is mended by describing the job again with what was missing, so the
+  // same words come back to edit.
+  const describeAgain = () => {
+    resetDraft({ keepFirstMessage: true });
+    navigate(paths.newAgent());
+  };
+
   const cards = rules.map((type) => (
     <RuleCard
       key={type.id}
@@ -60,7 +73,7 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
           </Badge>
         )}
       </div>
-      {!confirmed && (
+      {confirmation.state === 'needed' && (
         <p className="m-0 max-w-[620px] text-fg-secondary text-pretty">
           {reviewIntro(mentor, rules.length)}
         </p>
@@ -71,32 +84,40 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
           className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-danger-line px-6 py-5"
         >
           <p className="m-0 max-w-[560px] text-pretty">{confirmation.problem}</p>
-          <Button
-            onClick={() => {
-              resetDraft({ keepFirstMessage: true });
-              navigate(paths.newAgent());
-            }}
-          >
-            Describe the job again
-          </Button>
+          <Button onClick={describeAgain}>Describe the job again</Button>
         </div>
       )}
-      {confirmed ? (
-        <Disclosure label={rules.length === 1 ? 'Show the rule' : 'Show the rules'}>
+      {confirmation.state === 'needed' ? (
+        <div className="flex flex-col gap-5">{cards}</div>
+      ) : (
+        <Disclosure
+          label={
+            confirmed
+              ? rules.length === 1
+                ? 'Show the rule'
+                : 'Show the rules'
+              : rules.length === 1
+                ? 'Show the rule it was confirmed with'
+                : 'Show the rules they were confirmed with'
+          }
+        >
           <div className="flex flex-col gap-5">{cards}</div>
         </Disclosure>
-      ) : (
-        <div className="flex flex-col gap-5">{cards}</div>
       )}
       {confirmation.state === 'needed' && (
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-list px-6 py-5">
           <p className="m-0 max-w-[520px] text-fg-secondary text-pretty">
             {confirmLine(rules.length)}
           </p>
-          <Button variant="primary" loading={confirming} onClick={() => void confirm()}>
-            <Check size={16} strokeWidth={2} aria-hidden />
-            {rules.length === 1 ? 'Confirm the rule' : 'Confirm the rules'}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="ghost" onClick={describeAgain}>
+              Describe the job again
+            </Button>
+            <Button variant="primary" loading={confirming} onClick={() => void confirm()}>
+              <Check size={16} strokeWidth={2} aria-hidden />
+              {rules.length === 1 ? 'Confirm the rule' : 'Confirm the rules'}
+            </Button>
+          </div>
         </div>
       )}
     </section>
@@ -135,7 +156,7 @@ function RuleCard({
               className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-l-2 border-line-control pl-4"
             >
               <span className="min-w-0 max-w-[560px] text-pretty">{passage.passage}</span>
-              <span className="font-mono text-xs text-fg-muted">{passage.file}</span>
+              <span className="font-mono text-xs text-fg-muted">{passageSource(passage.file)}</span>
             </li>
           ))}
         </ul>
