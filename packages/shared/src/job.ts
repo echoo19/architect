@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { CheckerConfigSchema } from './checker';
 import { DataFileSchema } from './data';
+import { AllowedInterventionsSchema } from './interventions';
 import {
   DEFAULT_MENTOR_PRESET,
   DEFAULT_STUDENT,
@@ -211,6 +212,12 @@ export const JobSchema = z.object({
   splits: SplitConfigSchema,
   evaluation: EvaluationConfigSchema,
   sharing: DataSharingSchema.optional(),
+  /**
+   * The kinds of change the mentor may choose from each round (decision 063). Absent means all
+   * five, which is how every job from before this setting reads. It is a training setting like
+   * the mentor and the budget, so a graduate's contract and package don't carry it.
+   */
+  interventions: AllowedInterventionsSchema.optional(),
 });
 export type Job = z.infer<typeof JobSchema>;
 

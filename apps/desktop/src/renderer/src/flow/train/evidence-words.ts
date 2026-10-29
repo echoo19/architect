@@ -26,11 +26,13 @@ import {
   Square,
   Target,
   TimerOff,
+  ToggleLeft,
   Undo2,
   Wallet,
   Wrench,
   type LucideIcon,
 } from 'lucide-react';
+import { modelNames } from '../names';
 
 /*
  * The words and icons the evidence screens use for mentoring records, in one place, so a
@@ -160,6 +162,7 @@ export const TRAINING_END_ICONS: Record<RunStopReason, LucideIcon> = {
   user: Square,
   error: CircleAlert,
   contract: FileWarning,
+  nothing_to_try: ToggleLeft,
 };
 
 /** Why training ended, as it happened, for the line after the last round. */
@@ -185,6 +188,8 @@ export function trainingEnd(reason: RunStopReason, job: Job): string {
       return 'Stopped on an error';
     case 'contract':
       return 'Your answer changed what counts as success';
+    case 'nothing_to_try':
+      return `${modelNames(job).mentor} had nothing it may change`;
   }
 }
 

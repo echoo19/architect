@@ -595,6 +595,7 @@ const CUT_SHORT: ReadonlySet<keyof typeof TRAINING_ENDED> = new Set([
   'rejected',
   'error',
   'contract',
+  'nothing_to_try',
 ]);
 
 /** The status of an arm and why, from its records and the runner's decisions. */
@@ -848,6 +849,7 @@ const TRAINING_ENDED_SHORT: Record<RunStopReason | 'complete', string> = {
   user: 'stopped',
   error: 'stopped by an error',
   contract: 'the job contract changed',
+  nothing_to_try: 'the mentor had nothing it may change',
 };
 
 /** Statuses of a run whose training is over, successfully or not. */

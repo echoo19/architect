@@ -27,7 +27,7 @@ import { useQuery } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
 import { formatRange, formatRate, signed } from '../format';
 import { modelNames, typeLabel } from '../names';
-import { decisionSentence, harmSentence, predictionCheck } from './decision';
+import { decisionSentence, harmSentence, predictionCheck, refusalSentence } from './decision';
 import { PatchLines } from '../../components/PatchLines';
 import { changeSummary, countChanges, parseUnifiedDiff } from './diff';
 import {
@@ -176,7 +176,13 @@ export function RoundDrawerContent({
         ) : question && experiment === undefined && round.status !== 'failed' ? (
           <QuestionDecision round={round} question={question} names={names} runEnded={runEnded} />
         ) : (
-          <Decision round={round} job={job} lineage={lineage} experiment={experiment} />
+          <Decision
+            round={round}
+            job={job}
+            lineage={lineage}
+            experiment={experiment}
+            intervention={intervention}
+          />
         )}
         {round.error && experiment === undefined && (
           <ErrorState layout="inline" title="This round failed" message={round.error} />
@@ -399,6 +405,7 @@ function QuestionDecision({
  */
 function dispositionReason(
   experiment: Experiment | undefined,
+  intervention: Intervention | undefined,
   round: Round,
   lineage: LineageEntry | undefined,
   job: Job,
@@ -417,6 +424,9 @@ function dispositionReason(
     }
     // Neither kind was measured: an invalid change was never made, a stopped one never taken.
     case 'invalid': {
+      // A kind of change the person turned off is theirs to be told of, whatever else refused it.
+      const theirs = refusalSentence(intervention, job);
+      if (theirs !== null) return theirs;
       // Retraining the model is the one change a run can ask for that this computer can't make.
       const { mentor, student } = modelNames(job);
       return experiment.kind === 'weights'
@@ -433,14 +443,16 @@ function Decision({
   job,
   lineage,
   experiment,
+  intervention,
 }: {
   round: Round;
   job: Job;
   lineage: LineageEntry | undefined;
   experiment: Experiment | undefined;
+  intervention: Intervention | undefined;
 }) {
   const disposition = experiment?.disposition ?? round.decision;
-  const reason = dispositionReason(experiment, round, lineage, job);
+  const reason = dispositionReason(experiment, intervention, round, lineage, job);
   if (!disposition || !reason) {
     return (
       <div className="flex items-center gap-3 rounded-xl border border-line-card bg-well px-4 py-3.5">

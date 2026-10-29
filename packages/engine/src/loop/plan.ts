@@ -165,6 +165,11 @@ export function planNextStep(input: PlanInput): Step {
 
   if (input.phase === 'testing') {
     if (input.pauseRequested) return { kind: 'park' };
+    // An improvement that kept nothing has no candidate to freeze, and freezing asks the model on
+    // this computer for its build, which may be stopped: it only hands its lessons back.
+    if (input.improves === true && !input.rounds.some(({ decision }) => decision === 'kept')) {
+      return { kind: 'propose_version' };
+    }
     if (!input.frozen) return { kind: 'freeze' };
     if (input.held === true) return { kind: 'park' };
     return input.improves === true ? { kind: 'propose_version' } : { kind: 'locked_test' };

@@ -2,6 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
+import type { Job } from '@architect/shared';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { NOTHING_LOCAL, OLLAMA_READY, stubEngine, stubEngineFailure } from './fixtures';
 import {
@@ -820,6 +821,83 @@ for (const theme of THEMES) {
     expect(await recordedCalls(app, 'runs:start')).toEqual([
       [FLOW.jobId, { method: 'architect', lockedTestOn: 'hosted', interactive: true }],
     ]);
+  });
+}
+
+for (const theme of THEMES) {
+  test(`chooses what the teacher may change, and keeps the last way to change the agent on (${theme})`, async () => {
+    const { app, page } = launched;
+    await stubFlow();
+    // The job is saved as it is sent, and no Hugging Face token comes from anywhere.
+    await stubRecorded(app, 'jobs:save', job);
+    await stubEngine(app, { 'connections:huggingFace': { source: null } });
+    await applySettings(page, { theme, onboarded: true, comparisonMode: false });
+    await resize(DEFINE_HEIGHT);
+    await goTo(page, `/jobs/${FLOW.jobId}/define`);
+    await page.getByRole('button', { name: 'Advanced settings' }).click();
+    const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+    await advanced.getByRole('tab', { name: 'Teacher' }).click();
+    const section = advanced.getByRole('region', { name: 'What Spark may change' });
+    const kinds = [
+      'Instructions and steps',
+      'What it reads when',
+      'Small tools',
+      'Its weights',
+      'Questions for you',
+    ];
+    // A job that never chose has every kind on, and the weights say what they need.
+    for (const kind of kinds) {
+      await expect(section.getByRole('switch', { name: kind })).toBeChecked();
+    }
+    await expect(section).toContainText('Needs a Hugging Face token, added in Settings');
+    await expect(section.getByRole('switch', { name: 'Its weights' })).toBeEnabled();
+
+    await section.getByRole('switch', { name: 'Small tools' }).click();
+    await section.getByRole('switch', { name: 'Questions for you' }).click();
+    await expect(advanced.getByRole('status')).toContainText('Saved');
+    const saved = (await recordedCalls(app, 'jobs:save')).map(([sent]) => sent as Job);
+    expect(saved.at(-1)?.interventions).toEqual(['procedure', 'retrieval', 'weights']);
+    const toBottom = () =>
+      section.evaluate((element) => {
+        const panel = element.closest('[role="tabpanel"]');
+        if (panel) panel.scrollTop = panel.scrollHeight;
+      });
+    await toBottom();
+    await capture(page, `flow-advanced-teacher-${theme}`);
+
+    // Leave only the weights, which the app knows can't be trained here: the switch holds, and
+    // says why, and Start training says there is nothing for the teacher to do.
+    await section.getByRole('switch', { name: 'Instructions and steps' }).click();
+    await section.getByRole('switch', { name: 'What it reads when' }).click();
+    await expect(section.getByRole('switch', { name: 'Its weights' })).toBeDisabled();
+    await expect(section.getByRole('switch', { name: 'Its weights' })).toBeChecked();
+    await expect(section).toContainText(
+      'Stays on: the only way left to change the agent. Its weights need a Hugging Face token, added in Settings.',
+    );
+    await expect(advanced.getByRole('status')).toContainText('Saved');
+    expect(((await recordedCalls(app, 'jobs:save')).at(-1)?.[0] as Job).interventions).toEqual([
+      'weights',
+    ]);
+    await toBottom();
+    await capture(page, `flow-advanced-teacher-last-${theme}`);
+
+    await page.keyboard.press('Escape');
+    await expect(advanced).toBeHidden();
+    const needs = page.getByRole('region', { name: 'Before it can start' });
+    await expect(needs).toContainText('Spark has nothing it may change');
+    await expect(needs).toContainText(
+      'Only its weights are on, and they need a Hugging Face token, added in Settings. Turn something else on, or put that right.',
+    );
+    await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
+    expect(await recordedCalls(app, 'runs:start')).toEqual([]);
+
+    // Its button opens the Teacher tab, where a kind is turned on again and the hold lifts.
+    await needs.getByRole('button', { name: "Open Spark's settings" }).click();
+    await expect(advanced.getByRole('region', { name: 'What Spark may change' })).toBeVisible();
+    await advanced.getByRole('switch', { name: 'Instructions and steps' }).click();
+    await page.keyboard.press('Escape');
+    await expect(needs).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
   });
 }
 

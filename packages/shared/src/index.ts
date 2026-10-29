@@ -13,6 +13,7 @@ export * from './events';
 export * from './graduate';
 export * from './harness';
 export * from './ids';
+export * from './interventions';
 export * from './ipc';
 export * from './ipc-schemas';
 export * from './job';

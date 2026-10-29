@@ -11,6 +11,25 @@ describe('validateJob', () => {
     expect(validateJob(makeJob(), 170)).toEqual({});
   });
 
+  it('accepts any choice of what the teacher may change that keeps a way to change the agent', () => {
+    for (const interventions of [['procedure'], ['weights', 'clarification'], undefined] as const) {
+      const job = makeJob(interventions === undefined ? {} : { interventions: [...interventions] });
+      expect(validateJob(job, 170)).toEqual({});
+    }
+  });
+
+  it('says in plain words when a choice would leave the teacher nothing that changes the agent', () => {
+    // The Teacher tab can't make this, but a job from elsewhere can hold one.
+    const job = { ...makeJob(), interventions: ['clarification' as const] };
+    expect(validateJob(job, 170)).toEqual({
+      interventions:
+        'Keep at least one way to change the agent: instructions and steps, what it reads when, small tools or its weights. Questions alone teach nothing.',
+    });
+    expect(validateJob({ ...makeJob(), interventions: [] }, 170).interventions).toMatch(
+      /^Keep at least one way/,
+    );
+  });
+
   it('checks the splits against the tasks the job has', () => {
     const issues = validateJob(makeJob(), 150);
     expect(issues.splits).toBe('These add up to 170 tasks, but the job has 150.');

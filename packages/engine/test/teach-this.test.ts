@@ -1,7 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { currentDigest } from '@architect/harness';
-import type { Correction, CorrectionRequest, WorkspaceMessage } from '@architect/shared';
+import type {
+  Correction,
+  CorrectionRequest,
+  InterventionType,
+  WorkspaceMessage,
+} from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { KeyedLock } from '../src/graduates/library';
 import { improvementsOf } from '../src/improve/improvement';
@@ -11,6 +16,7 @@ import { hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
 import { task } from './fakes/job';
 import { createWorld, openEngine, type Engine, type World } from './fakes/world';
+import { withStandInTraining } from './support/training-world';
 
 let world: World;
 const engines: Engine[] = [];
@@ -59,11 +65,12 @@ function reading(kind: string, extra: Record<string, string> = {}) {
  * and the reply, with its work kept. `request` is what the person asked.
  */
 async function graduateWithChat(
-  options: { sharing?: boolean; request?: string } = {},
+  options: { sharing?: boolean; request?: string; interventions?: InterventionType[] } = {},
 ): Promise<{ engine: Engine; graduateId: string; runId: string }> {
   world = await createWorld({
     job: {
       budget: { maxRounds: 1, maxMentorUsd: 5, maxWallMinutes: 60 },
+      ...(options.interventions === undefined ? {} : { interventions: options.interventions }),
       ...(options.sharing === false
         ? {}
         : { sharing: { remoteTraining: false, corrections: true } }),
@@ -349,6 +356,60 @@ describe('Teach this', () => {
   });
 });
 
+describe('Teach this on a job that limits what the mentor may do', () => {
+  const NO_QUESTIONS: InterventionType[] = ['procedure', 'retrieval', 'helper', 'weights'];
+  const kinds = (request: { json?: { schema: Record<string, unknown> } }): string[] =>
+    (request.json?.schema as { properties: { kind: { enum: string[] } } }).properties.kind.enum;
+
+  it('asks for a question about an unclear request only when the job lets the mentor ask', async () => {
+    const asking = await graduateWithChat();
+    world.mentor.script = (request) =>
+      request.json?.name === 'correction' ? reading('ambiguous') : hypothesis('x', 'y');
+    const proposed = await teachThis(asking.engine).propose('cht_1', 'msg_2', correction);
+    const request = world.mentor.requests.at(-1);
+    expect(kinds(request ?? {})).toContain('ambiguous');
+    expect(request?.system).toContain('- ambiguous:');
+    expect(proposed.proposal).toMatchObject({
+      kind: 'ambiguous',
+      question: 'Overdue as of today, or as of the end of the month?',
+    });
+  });
+
+  it('puts no question to the person when the job turned questions off', async () => {
+    const { engine } = await graduateWithChat({ interventions: NO_QUESTIONS });
+    // The mentor is not offered the kind, and is told why.
+    world.mentor.script = (request) =>
+      request.json?.name === 'correction' ? reading('procedure') : hypothesis('x', 'y');
+    await teachThis(engine).propose('cht_1', 'msg_2', correction);
+    const request = world.mentor.requests.at(-1);
+    expect(kinds(request ?? {})).not.toContain('ambiguous');
+    expect(request?.system).not.toContain('- ambiguous:');
+    expect(request?.system).toContain('asked not to be asked questions');
+
+    // A reading that calls it unclear anyway is kept as one that can't be checked, with no question.
+    world.mentor.script = () => reading('ambiguous');
+    const unclear = await teachThis(engine).propose('cht_1', 'msg_2', correction);
+    expect(unclear.proposal.kind).toBe('invalid');
+    expect(unclear.proposal.question).toBeUndefined();
+    expect(() => teachThis(engine).queue(unclear.id)).toThrow(
+      "The mentor couldn't check this correction against the exchange, so it can't be taught.",
+    );
+  });
+
+  it('says an improvement trains weights only when the job lets the mentor train them', async () => {
+    const { engine, graduateId } = await graduateWithChat();
+    withStandInTraining(world);
+    const teach = teachThis(engine);
+    expect((await teach.overview(graduateId, false)).improve?.training).toBe(true);
+
+    await engine.jobs.save({
+      ...(await engine.jobs.get('service-desk')),
+      interventions: ['procedure', 'retrieval', 'helper', 'clarification'],
+    });
+    expect((await teach.overview(graduateId, false)).improve?.training).toBe(false);
+  });
+});
+
 describe('Improve agent', () => {
   /** The improvement's mentor adds the overdue rule the person taught. */
   function improvingMentor() {
@@ -490,6 +551,51 @@ describe('Improve agent', () => {
       allowed: false,
       reason: 'No change was kept, so there is nothing to promote.',
     });
+  });
+
+  it('ends an improvement whose mentor may change nothing, with its lessons still queued', async () => {
+    const { engine, graduateId } = await graduateWithChat();
+    world.mentor.script = (request) => {
+      if (request.json?.name === 'correction') return reading('weakness');
+      throw new Error('The mentor was asked for a change it may not make.');
+    };
+    const lesson = await queued(engine);
+    // Only weights and questions are on now, and this copy has no trainer. The model on this
+    // computer is stopped too: an improvement with no candidate has no build of it to ask for.
+    await engine.jobs.save({
+      ...(await engine.jobs.get('service-desk')),
+      interventions: ['weights', 'clarification'],
+    });
+    Object.defineProperty(world, 'localDigest', {
+      get: () => {
+        throw new Error('Ollama is not running.');
+      },
+    });
+    const asked = world.mentor.requests.length;
+    const start = await engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 });
+    await engine.controller.idle();
+
+    // It finished, not paused on a model that nothing needed: no freeze, and no error to resume.
+    expect(engine.errors).toEqual([]);
+    expect(engine.store.runs.get(start.runId)).toMatchObject({
+      freeze: null,
+      run: { status: 'finished', phase: 'done', stopReason: 'nothing_to_try' },
+    });
+    expect(engine.store.runs.get(start.runId)?.run.error).toContain(
+      'The mentor has nothing it may change in this run.',
+    );
+    expect(world.mentor.requests).toHaveLength(asked);
+    expect(engine.store.rounds.list(start.runId)).toEqual([]);
+    expect(engine.store.versions.list(graduateId)).toHaveLength(1);
+    const back = engine.store.corrections.get(lesson.id);
+    expect(back?.status).toBe('queued');
+    expect(back?.runId).toBeUndefined();
+    // The improvement says why it made no version in the sentence the run keeps.
+    const [improvement] = await improvementsOf(engine.store, engine.jobs, graduateId);
+    expect(improvement?.promotion.allowed).toBe(false);
+    expect(improvement?.promotion.reason).toContain(
+      "Instructions and steps, What it reads when and Small tools are turned off for this job in the teacher's settings.",
+    );
   });
 
   it('waits its turn while another run holds the student, and says so', async () => {

@@ -16,6 +16,7 @@ import { Apprenticeship } from '../flow/train/Apprenticeship';
 import { CurrentRound } from '../flow/train/CurrentRound';
 import { draftRoundOf, setupOf } from '../flow/train/draft';
 import { Examples } from '../flow/train/Examples';
+import { IdleNotice } from '../flow/train/IdleNotice';
 import { LatestAttempts } from '../flow/train/LatestAttempts';
 import { findingNotes, lessonNotes, type StepNote } from '../flow/train/lesson-steps';
 import { LessonDrawerContent } from '../flow/train/LessonView';
@@ -375,6 +376,9 @@ function TrainBoard({
         </div>
       )}
       {run.status === 'paused' && run.error !== undefined && <PausedNotice live={live} />}
+      {run.status === 'stopped' && run.stopReason === 'nothing_to_try' && (
+        <IdleNotice live={live} />
+      )}
       <div className="flex flex-wrap gap-5">
         <Apprenticeship
           mentor={names.mentor}

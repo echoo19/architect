@@ -3,14 +3,13 @@ import { ChatMessageSchema } from './chat';
 import { CheckResultSchema } from './checker';
 import { DecodingSchema } from './harness';
 import { ScoreSchema } from './lineage';
+import { InterventionTypeSchema, type InterventionType } from './interventions';
 import {
   CostEstimateSchema,
   EvidenceSchema,
   FileEditSchema,
-  InterventionTypeSchema,
   PredictionSchema,
   TypeScoreSchema,
-  type InterventionType,
 } from './mentor';
 import { EpisodeKindSchema, VerifiedEpisodeSchema } from './training';
 

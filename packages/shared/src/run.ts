@@ -65,6 +65,8 @@ export const StopReasonRunSchema = z.enum([
   'error',
   /** An answer changed what counts as success, which needs a new job contract and a new run. */
   'contract',
+  /** The mentor may change nothing in this run: what the job allows is off or can't run here. */
+  'nothing_to_try',
 ]);
 export type RunStopReason = z.infer<typeof StopReasonRunSchema>;
 

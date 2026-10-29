@@ -1,9 +1,12 @@
-import type {
-  EvaluationConfig,
-  InterventionType,
-  MentorCompletionRequest,
-  MentorView,
-  ReasoningEffort,
+import {
+  fileOffLimits,
+  HARNESS_INTERVENTIONS,
+  INTERVENTION_LABELS,
+  type EvaluationConfig,
+  type InterventionType,
+  type MentorCompletionRequest,
+  type MentorView,
+  type ReasoningEffort,
 } from '@architect/shared';
 import { diagnosisJsonSchema, HYPOTHESIS_JSON_SCHEMA } from './reply';
 import type { OneShotView } from './view';
@@ -16,6 +19,8 @@ export const ONE_SHOT_MAX_OUTPUT_TOKENS = 24_000;
 export interface PromptSettings {
   evaluation: Pick<EvaluationConfig, 'minDevGain' | 'maxTypeRegression' | 'devRepeats'>;
   reasoningEffort?: ReasoningEffort;
+  /** What the job lets the author change; absent means everything. */
+  allowed?: readonly InterventionType[];
 }
 
 const HARNESS_SURFACE = `## The harness
@@ -52,6 +57,58 @@ The student runs inside a harness: a folder of plain files. You change the stude
   A refused task counts as a failure, so refuse a type only when no fix works within the budget. The user then gets an honest refusal instead of a wrong answer.
 
 harness.yaml belongs to the runner. The checker, the data, the task splits, the tool permissions and the student's weights are fixed.`;
+
+/** The parts of a harness, each with a file the job's choice is asked about and what a draft holds. */
+const HARNESS_PARTS: readonly { files: string; sample: string; draft: string }[] = [
+  { files: 'AGENTS.md', sample: 'AGENTS.md', draft: 'AGENTS.md with the operating rules' },
+  {
+    files: 'skills/',
+    sample: 'skills/x/SKILL.md',
+    draft: 'a skill for each task type with the exact procedure',
+  },
+  {
+    files: 'tools/',
+    sample: 'tools/x.js',
+    draft: 'tools for computations that are easy to get wrong by hand',
+  },
+  {
+    files: 'examples/',
+    sample: 'examples/x.json',
+    draft: 'worked examples where the format is subtle',
+  },
+  {
+    files: 'retrieval.yaml',
+    sample: 'retrieval.yaml',
+    draft: 'retrieval rules that load the right skill for each request',
+  },
+];
+
+/** The parts of a harness the job lets the author write, or all of them when it says nothing. */
+function writable(settings: PromptSettings): typeof HARNESS_PARTS {
+  const { allowed } = settings;
+  if (allowed === undefined) return HARNESS_PARTS;
+  return HARNESS_PARTS.filter(
+    ({ sample }) => fileOffLimits([sample], { interventions: allowed }) === null,
+  );
+}
+
+/**
+ * The harness, and what of it the person turned off for this job (decision 063). The runner
+ * refuses a change set that writes or deletes a file of a kind that is off, whatever the change is
+ * called, so the author is told which, with the first draft as much as any later round.
+ */
+function harnessSurface(settings: PromptSettings): string {
+  const open = writable(settings);
+  const { allowed } = settings;
+  if (allowed === undefined || open.length === HARNESS_PARTS.length) return HARNESS_SURFACE;
+  const barred = HARNESS_PARTS.filter((part) => !open.includes(part)).map(({ files }) => files);
+  const off = HARNESS_INTERVENTIONS.filter((type) => !allowed.includes(type)).map(
+    (type) => INTERVENTION_LABELS[type],
+  );
+  return `${HARNESS_SURFACE}
+
+The person turned off part of what you may change for this job, in the teacher's settings: ${off.join(', ')}. Do not write or delete ${barred.join(', ')}. The runner refuses a change set that does, whatever you call the change.`;
+}
 
 const BUILT_IN_TOOLS = `## The student's folder and tools
 
@@ -174,6 +231,14 @@ The student is small: every line of AGENTS.md and every loaded skill costs it at
 Set readyClaim to true only if you expect the harness after this change to meet the job's requirement on tasks you haven't seen. The claim is recorded and checked against the locked test.`;
 }
 
+/** What a first draft holds, less whatever of it the person turned off for this job. */
+function whatToWrite(settings: PromptSettings): string {
+  const kept = writable(settings).map(({ draft }) => draft);
+  const last = kept.at(-1);
+  if (kept.length < 2 || last === undefined) return kept.join('');
+  return kept.length === 2 ? kept.join(' and ') : `${kept.slice(0, -1).join(', ')}, and ${last}`;
+}
+
 function oneShotInstructions(
   view: OneShotView,
   settings: PromptSettings,
@@ -189,7 +254,7 @@ function oneShotInstructions(
     : "You won't see the student attempt anything, and you get one reply.";
   return `You are the mentor for a small local model, the student. Write its whole harness in one go from the job setup and the train examples with their expected answers. ${after}
 
-Write a complete harness: AGENTS.md with the operating rules, a skill for each task type with the exact procedure, tools for computations that are easy to get wrong by hand, worked examples where the format is subtle, and retrieval rules that load the right skill for each request. Base everything on the job description, the data and any policy text. The examples show what correct answers look like; dev and test tasks are different tasks of the same types, so don't hard-code answers.
+Write a complete harness: ${whatToWrite(settings)}. Base everything on the job description, the data and any policy text. The examples show what correct answers look like; dev and test tasks are different tasks of the same types, so don't hard-code answers.
 
 The student is small: keep AGENTS.md short and put procedures in skills.
 
@@ -312,10 +377,10 @@ export function renderOneShotView(view: OneShotView): string {
   ].join('\n\n');
 }
 
-function systemPrompt(instructions: string): string {
+function systemPrompt(instructions: string, settings: PromptSettings): string {
   return [
     instructions,
-    HARNESS_SURFACE,
+    harnessSurface(settings),
     BUILT_IN_TOOLS,
     TOOL_RULES,
     ANSWER_FORMAT,
@@ -334,7 +399,7 @@ export function diagnoseRequest(
   const { mentoring } = view;
   if (mentoring === undefined) {
     return {
-      system: systemPrompt(diagnoseInstructions(settings)),
+      system: systemPrompt(diagnoseInstructions(settings), settings),
       messages: [{ role: 'user', content: renderMentorView(view) }],
       json: { name: 'hypothesis', schema: HYPOTHESIS_JSON_SCHEMA },
       reasoningEffort: settings.reasoningEffort,
@@ -344,7 +409,7 @@ export function diagnoseRequest(
   const system = [
     diagnoseInstructions(settings),
     menuInstructions(mentoring),
-    HARNESS_SURFACE,
+    harnessSurface(settings),
     BUILT_IN_TOOLS,
     TOOL_RULES,
     ANSWER_FORMAT,
@@ -372,7 +437,7 @@ export function oneShotRequest(
   refinedLater = false,
 ): MentorCompletionRequest {
   return {
-    system: systemPrompt(oneShotInstructions(view, settings, refinedLater)),
+    system: systemPrompt(oneShotInstructions(view, settings, refinedLater), settings),
     messages: [{ role: 'user', content: renderOneShotView(view) }],
     json: { name: 'hypothesis', schema: HYPOTHESIS_JSON_SCHEMA },
     reasoningEffort: settings.reasoningEffort,
