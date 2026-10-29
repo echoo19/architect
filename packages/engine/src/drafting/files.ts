@@ -309,14 +309,15 @@ export function describeTable(file: Attachment, budget: number): string {
 }
 
 /**
- * What the teacher is told of a text file: all of it. A rule read from part of a policy can leave
- * out the exception that matters, so a text is given whole or the job isn't drafted
- * (`textTooLong`).
+ * What the teacher is told of a text file: all of it, as the person wrote it. A rule read from
+ * part of a policy can leave out the exception that matters, so a text is given whole or the job
+ * isn't drafted (`textTooLong`). The spaces that open a line are kept: four of them make a code
+ * block in Markdown.
  */
 export function describeText(file: Attachment): string {
   const text = file.text ?? '';
   const header = `### ${file.name} (text, ${text.length.toLocaleString('en-US')} characters)`;
-  return `${header}\n${text.trim()}`;
+  return `${header}\n${text}`;
 }
 
 /**

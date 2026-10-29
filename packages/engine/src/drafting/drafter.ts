@@ -108,12 +108,13 @@ export const MAX_RULE_QUESTIONS = 3;
 
 interface Session {
   id: string;
+  /** The description exactly as the person wrote it. */
   description: string;
   attached: Attached;
   /** The messages both sides have kept: the person's, and the teacher's questions. */
   history: ChatMessage[];
   questions: number;
-  /** What the person answered, which a rule may rest on. */
+  /** What the person answered, exactly as they wrote it, which a rule may rest on. */
   answers: { question: string; answer: string; blank?: TableBlank }[];
   /** The last question the teacher asked, which the next reply answers. */
   asking: string | null;
@@ -242,7 +243,7 @@ export class JobDrafting implements JobDrafter {
           options: open.options,
         };
       }
-      let answer = text.trim();
+      let answer = text;
       let blank: TableBlank | undefined;
       if (open.blank !== undefined) {
         // Only two things can be done with an empty cell, so only one of the two is an answer.
@@ -266,7 +267,7 @@ export class JobDrafting implements JobDrafter {
       return this.run(session, teacher, settledMessage(open.question, answer, blank), true);
     }
     if (!draftNow && session.asking !== null) {
-      session.answers.push({ question: session.asking, answer: text.trim() });
+      session.answers.push({ question: session.asking, answer: text });
     }
     const mustDraft = draftNow || session.questions >= MAX_QUESTIONS;
     return this.run(session, teacher, answerMessage(text, draftNow, mustDraft), mustDraft);
@@ -286,7 +287,7 @@ export class JobDrafting implements JobDrafter {
     const spend: Spend = { calls: 0, inputTokens: 0, outputTokens: 0, usd: 0 };
     const session: Session = {
       id: newId('drf'),
-      description: description.trim(),
+      description,
       attached,
       history: [],
       questions: 0,
