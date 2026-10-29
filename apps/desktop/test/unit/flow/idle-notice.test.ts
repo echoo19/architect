@@ -28,7 +28,7 @@ function live(error?: string): LiveRun {
 }
 
 describe('the notice of a run whose teacher had nothing it may change', () => {
-  it("names the teacher, gives the engine's reason and a way back to the job", () => {
+  it("names the teacher and gives the engine's reason", () => {
     const html = renderToStaticMarkup(
       createElement(IdleNotice, {
         live: live(
@@ -41,7 +41,8 @@ describe('the notice of a run whose teacher had nothing it may change', () => {
     expect(html).toContain(
       'The mentor has nothing it may change in this run. Small tools is turned off for this job in the teacher&#x27;s settings.',
     );
-    expect(html).toContain('Back to the job');
+    // The run's own controls lead back to the job, so the notice doesn't add a second way.
+    expect(html).not.toContain('<button');
   });
 
   it('still says something when a run from before the sentence was kept has none', () => {
