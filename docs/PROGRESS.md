@@ -2,6 +2,19 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Wed), the first real drafted job, end to end
+
+**Done**
+- A fresh dataset nobody had seen (a made-up bike repair shop: 40 customers, 180 tickets with messy hours and costs, a short policy) went through the whole journey with real models, using the new `scripts/draft.ts` and `scripts/run.ts --job`:
+  - Spark drafted it in one call ($0.02) from one sentence and three files, with no unresolved rules: contact lookups, a customer's open tickets (the policy's "Open, Waiting on parts or Ready", which Spark turned into "status is not Picked up"), and a mechanic's labor hours over a date range.
+  - Architect made 90 tasks (8 calibration, 29 practice, 23 check, 30 final test). Six expected answers recomputed by hand from the raw files all matched, including totals over values like " 0.5 " and "$1,204.00".
+  - Trained with Glimmer served online: it passed 22 of 23 check tasks before any teaching, above the 90% target, so no round ran, and passed 28 of 30 on the final test (contacts 14/14, open tickets 11/12, labor hours 3/4), typical answer 9.3 s, $0.18 of online Glimmer.
+- The Train screen now says when no teaching was needed, instead of waiting for a first round that never comes.
+- Merged: getting back to a run (decision 060).
+
+**What it shows**
+- The drafted task types are retrieval and arithmetic over the records, which Glimmer already handles well. Teaching earns its keep where a job has rules to learn, as the returns desk's policy showed in comparison 2; the catalog doesn't make such tasks yet.
+
 ## 2026-10-29 (Wed), getting back to a run
 
 **Done** (on a branch; decision 060; no model was called, the GPU stayed off)
