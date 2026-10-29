@@ -96,6 +96,22 @@ export function kindOf(cells: readonly (string | null)[]): ColumnKind {
   return 'text';
 }
 
+/**
+ * Whether the filled cells of a column named as holding dates read as dates, nine in ten at least
+ * (the rest is the file's mess, which the caller treats cell by cell). It looks at the cells as
+ * dates and nothing else, since `kindOf` takes a column of 20260131 and the like for numbers.
+ */
+export function readsAsDates(cells: readonly (string | null)[]): boolean {
+  let filled = 0;
+  let dates = 0;
+  for (const cell of cells) {
+    if (isBlank(cell)) continue;
+    filled += 1;
+    if (parseDay(cell, 'month_first') !== null || parseDay(cell, 'day_first') !== null) dates += 1;
+  }
+  return filled > 0 && dates / filled >= KIND_SHARE;
+}
+
 export interface ColumnProfile {
   name: string;
   kind: ColumnKind;

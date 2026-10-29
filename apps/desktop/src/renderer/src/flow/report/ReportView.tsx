@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
-import type {
-  ComparisonReport,
-  GraduateSummary,
-  Installation,
-  Job,
-  ReportCard,
-  Run,
+import {
+  ruleScoreNote,
+  type ComparisonReport,
+  type GraduateSummary,
+  type Installation,
+  type Job,
+  type ReportCard,
+  type Run,
 } from '@architect/shared';
 import { Badge, DetailList, Disclosure, Heading, Stat, type BadgeTone } from '@architect/ui';
 import { Check, CircleAlert, CircleMinus, CircleX, Cloud } from 'lucide-react';
@@ -29,6 +30,7 @@ import {
   type RuntimeFigures,
 } from './evidence';
 import { LocalTest } from './LocalTest';
+import { RuleNotes } from './RuleNotes';
 import { testSourceNote } from './test-source';
 import type { Verdict, VerdictState } from './verdict';
 
@@ -240,6 +242,11 @@ export function ReportView({
             noteFont="text"
           />
         </div>
+        {report.tasks?.rules !== undefined && (
+          <p className="m-0 max-w-[660px] text-sm text-fg-secondary text-pretty">
+            {ruleScoreNote(names.mentor)}
+          </p>
+        )}
         {evidence.status === 'error' && evidence.data === undefined && (
           // Readings that couldn't be read say so, with a way to read them again, rather than
           // vanish as if none were taken.
@@ -278,6 +285,9 @@ export function ReportView({
           />
           {source && (
             <p className="m-0 mt-3 max-w-[620px] text-sm text-fg-secondary text-pretty">{source}</p>
+          )}
+          {report.tasks?.rules && (
+            <RuleNotes rules={report.tasks.rules} rounds={report.cost.rounds} />
           )}
         </Disclosure>
       </div>

@@ -1,4 +1,10 @@
 import { z } from 'zod';
+import {
+  BlankAnswerSchema,
+  RuleConfirmationStateSchema,
+  RuleDetailsSchema,
+  RuleSpecSchema,
+} from './rules';
 
 /*
  * Drafting a job from the person's own files (decision 058). The teacher decides what the job is
@@ -6,20 +12,43 @@ import { z } from 'zod';
  * out every expected answer itself, so the teacher never writes an answer or code that decides one.
  */
 
+/**
+ * What drafting reads and needs, in one place so the engine and the screens say the same numbers
+ * (decisions 058 and 061).
+ */
+export const DRAFTING_LIMITS = {
+  /** The fewest tasks a job can be trained on, so the fewest rows of records in all. */
+  minTasks: 30,
+  /** The longest text file Architect reads, in characters. It reads a text whole or not at all. */
+  maxTextChars: 30_000,
+  /** The most characters of text across all the text files. */
+  maxTotalTextChars: 60_000,
+} as const;
+
 /** The kinds of request Architect knows how to make from a table. */
-export const TASK_TEMPLATES = ['lookup', 'filtered_list', 'group_total'] as const;
+export const TASK_TEMPLATES = ['lookup', 'filtered_list', 'group_total', 'rule'] as const;
 export const TaskTemplateSchema = z.enum(TASK_TEMPLATES);
 export type TaskTemplate = z.infer<typeof TaskTemplateSchema>;
 
-/** A condition on one column's text, compared without regard to case, spacing or quotes. */
-export const FilterOpSchema = z.enum(['equals', 'not_equals', 'empty', 'not_empty']);
+/**
+ * A condition on one column's text, compared without regard to case, spacing or quotes. `in`
+ * keeps the rows whose value is one of a set the teacher states in full. `not_equals` is what
+ * older drafts used; it also admits empty and unfamiliar values, so a new draft never has one
+ * (decision 061).
+ */
+export const FilterOpSchema = z.enum(['equals', 'in', 'not_equals', 'empty', 'not_empty']);
 export type FilterOp = z.infer<typeof FilterOpSchema>;
+
+/** The most values a membership filter may list. */
+export const MAX_FILTER_VALUES = 12;
 
 export const FilterSpecSchema = z.object({
   column: z.string().min(1),
   op: FilterOpSchema,
   /** What `equals` and `not_equals` compare with. Absent for the others and for a varying filter. */
   value: z.string().min(1).optional(),
+  /** The values `in` keeps: every one the row may have to count, stated in full. */
+  values: z.array(z.string().min(1)).min(1).max(MAX_FILTER_VALUES).optional(),
   /** The filter takes each of the column's values in turn, one request apiece. */
   varies: z.boolean(),
 });
@@ -28,12 +57,17 @@ export type FilterSpec = z.infer<typeof FilterSpecSchema>;
 /** The words of a request, with `{name}` where a value goes. */
 const RequestSchema = z.string().min(1);
 
+export const DateOrderSchema = z.enum(['month_first', 'day_first']);
+export type DateOrder = z.infer<typeof DateOrderSchema>;
+
 /** The values of one to three columns for the row with a given key. */
 export const LookupSpecSchema = z.object({
   template: z.literal('lookup'),
   table: z.string().min(1),
   keyColumn: z.string().min(1),
   columns: z.array(z.string().min(1)).min(1).max(3),
+  /** How `03/04/2026` reads in the date columns asked for, when the file doesn't settle it. */
+  dateOrder: DateOrderSchema.optional(),
   request: RequestSchema,
 });
 export type LookupSpec = z.infer<typeof LookupSpecSchema>;
@@ -47,9 +81,6 @@ export const FilteredListSpecSchema = z.object({
   request: RequestSchema,
 });
 export type FilteredListSpec = z.infer<typeof FilteredListSpecSchema>;
-
-export const DateOrderSchema = z.enum(['month_first', 'day_first']);
-export type DateOrder = z.infer<typeof DateOrderSchema>;
 
 /** The sum, or the count, of a column for one value of a grouping column, maybe within dates. */
 export const GroupTotalSpecSchema = z.object({
@@ -73,6 +104,7 @@ export const TaskSpecSchema = z.discriminatedUnion('template', [
   LookupSpecSchema,
   FilteredListSpecSchema,
   GroupTotalSpecSchema,
+  RuleSpecSchema,
 ]);
 export type TaskSpec = z.infer<typeof TaskSpecSchema>;
 
@@ -102,12 +134,29 @@ export const DraftRecordSchema = z.object({
       id: z.string().min(1),
       rule: z.string().min(1).optional(),
       spec: TaskSpecSchema.optional(),
+      /** For a rule: its statement, passages, examples and what Architect checked (decision 061). */
+      details: RuleDetailsSchema.optional(),
     }),
   ),
   /** Rules the files and the person's answers didn't settle, as the teacher listed them. */
   unresolved: z.array(z.string()),
   /** What Architect assumed or left out where the files didn't say, in plain words. */
   notes: z.array(z.string()),
+  /**
+   * What the person answered to the teacher's questions, which the rules may rest on. An answer to
+   * a question about an empty cell says which column it was about and what the person chose.
+   */
+  answers: z
+    .array(
+      z.object({
+        question: z.string(),
+        answer: z.string(),
+        blank: BlankAnswerSchema.optional(),
+      }),
+    )
+    .optional(),
+  /** The records the tasks were made from: each file's name and the hash of its bytes. */
+  files: z.array(z.object({ name: z.string().min(1), sha256: z.string().min(1) })).optional(),
 });
 export type DraftRecord = z.infer<typeof DraftRecordSchema>;
 
@@ -138,6 +187,8 @@ export const TaskPlanSchema = z.object({
       description: z.string().optional(),
       /** What Architect understood the type to be, for tasks it made. */
       rule: z.string().optional(),
+      /** For a rule type: the rule in plain words, its passages and examples with their working. */
+      details: RuleDetailsSchema.optional(),
       counts: SplitCountsSchema,
       examples: z.array(z.object({ request: z.string(), answer: z.string().optional() })).max(3),
     }),
@@ -145,5 +196,7 @@ export const TaskPlanSchema = z.object({
   /** Rules the files and answers didn't settle. */
   unresolved: z.array(z.string()),
   notes: z.array(z.string()),
+  /** Present when the job has a rule: whether the person has confirmed it over these records. */
+  confirmation: RuleConfirmationStateSchema.optional(),
 });
 export type TaskPlan = z.infer<typeof TaskPlanSchema>;

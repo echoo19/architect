@@ -6,6 +6,19 @@ import { cleanText } from '../values';
 export interface Candidate {
   /** Requests with the same family land in the same split. */
   family: string;
+  /**
+   * The business question the request asks, in one text that doesn't depend on how the kind of
+   * task was configured. Two requests with the same identity ask the same thing, whatever order
+   * their conditions were written in and whichever kind of task made them, so only one is kept:
+   * a question in the practice tasks and again in the final test would give the answer away.
+   */
+  identity: string;
+  /**
+   * The rows of the table, by position, that the answer is worked out from. When the teacher was
+   * shown every one of them while drafting, the request is left out, since nothing may be asked
+   * whose answer the teacher has already read.
+   */
+  rows?: readonly number[];
   /** The request, ending with the line that states the answer's shape. */
   prompt: string;
   expected: Expected;
@@ -153,10 +166,10 @@ export function spellings(cells: Iterable<string | null>): Map<string, string> {
   return chosen;
 }
 
-/** A list in words: `a`, `a and b`, `a, b and c`. */
-export function inWords(items: readonly string[]): string {
+/** A list in words: `a`, `a and b`, `a, b and c`; with `or`, `a, b or c`. */
+export function inWords(items: readonly string[], joiner: 'and' | 'or' = 'and'): string {
   if (items.length <= 1) return items.join('');
-  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+  return `${items.slice(0, -1).join(', ')} ${joiner} ${items[items.length - 1]}`;
 }
 
 /** One canonical text for a JSON value, with object keys in order. */

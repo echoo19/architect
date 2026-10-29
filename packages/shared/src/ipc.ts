@@ -9,6 +9,7 @@ import type {
   TeachingOverview,
 } from './corrections';
 import type { TaskPlan } from './drafting';
+import type { RuleConfirmationState } from './rules';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
 import type { Job, MentorConfig, PermissionMode, StudentEndpoint, StudentTarget } from './job';
@@ -455,6 +456,11 @@ export interface ArchitectApi {
      * from the final test.
      */
     taskPlan(jobId: string): Promise<TaskPlan>;
+    /**
+     * Records that the person confirmed the job's rules over its records. `token` is the one the
+     * task plan showed them: a rule or a record that changed since is refused, not confirmed.
+     */
+    confirmRules(jobId: string, token: string): Promise<RuleConfirmationState>;
   };
   runs: {
     start(jobId: string, options: RunStartOptions): Promise<Run>;

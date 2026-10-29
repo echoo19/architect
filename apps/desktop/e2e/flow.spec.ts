@@ -22,6 +22,7 @@ import {
   stubByKey,
   stubRecorded,
   stubSequence,
+  taskPlan,
   turns,
 } from './fixtures-flow';
 import { job, trainedJob } from './story';
@@ -102,8 +103,14 @@ for (const theme of THEMES) {
     await resize(900);
     await goTo(page, '/new');
     await expect(page.getByRole('heading', { name: 'What should your agent do?' })).toBeVisible();
+    // Before anything is attached, one quiet line says what drafting reads and the least it needs.
+    const needs = page.getByText(
+      'CSV, text and Markdown files, with at least 30 rows of records in all',
+    );
+    await expect(needs).toBeVisible();
     await page.getByRole('textbox', { name: 'Describe the job' }).fill(DESCRIPTION);
     await page.getByRole('button', { name: 'Attach files' }).click();
+    await expect(needs).toHaveCount(0);
     const chips = page.getByRole('list', { name: 'Attached files' }).getByRole('listitem');
     await expect(chips).toHaveCount(6);
     await expect(chips.first()).toHaveText('jobs.csv');
@@ -440,6 +447,132 @@ for (const theme of THEMES) {
       ),
     ).toBeVisible();
     await capture(page, `flow-report-drafted-${theme}`);
+  });
+}
+
+for (const theme of THEMES) {
+  test(`says beside the score that a confirmed rule made the expected answers, with the rule under Details (${theme})`, async () => {
+    const { app, page } = launched;
+    await stubFlow();
+    const ruled = {
+      ...reports[FLOW.runId]!,
+      tasks: {
+        source: 'generated' as const,
+        draftingUsd: 0.04,
+        rules: [
+          {
+            typeId: 'cost',
+            label: 'Ticket totals',
+            version: '2a3e028da93a',
+            statement:
+              'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up.',
+            passages: [
+              { file: 'policy.md', passage: 'Labor is billed at $65 an hour, in half-hour steps.' },
+              { file: 'policy.md', passage: 'Members get 10% off labor, never off parts.' },
+              { file: 'answers', passage: 'No, labor only' },
+            ],
+            conventions: [
+              'Numbers are read as written. A cell that is empty, N/A or not a number leaves its row out; it is never counted as zero.',
+              'All arithmetic is exact until a rounding step.',
+            ],
+            cases: { total: 160, eligible: 108 },
+            excluded: [{ reason: 'parts_cost is empty or N/A', count: 52, example: 'T-2001' }],
+            branches: [
+              { label: 'member (customers.csv) is yes', cases: 40, changes: 40 },
+              { label: 'member (customers.csv) is no', cases: 68, changes: 68 },
+            ],
+            flags: [
+              'The rounding step (to the nearest cent, halves going up) never changed a value in your records, so no task shows it at work.',
+            ],
+            confirmedAt: '2026-10-29T12:00:00.000Z',
+            expression: {
+              op: 'round' as const,
+              arg: { op: 'col' as const, column: 'parts_cost', from: 'row' as const },
+              increment: '0.01',
+              mode: 'half_up' as const,
+            },
+          },
+        ],
+      },
+    };
+    await stubByKey(app, 'reports:get', { ...reports, [FLOW.runId]: ruled });
+    await applySettings(page, { theme, onboarded: true, comparisonMode: false });
+    await resize(REPORT_HEIGHT);
+    await goTo(page, `/runs/${FLOW.runId}/report`);
+    await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
+
+    // Right under the score, where it is read: the expected answers follow a rule that was
+    // confirmed, and the score doesn't say the rule matches the business.
+    const note =
+      "Expected answers were calculated by Architect using Spark's interpretation of your policy, which you confirmed. This score measures agreement with that rule on held-out cases; it does not independently establish that the rule matches your business policy.";
+    await expect(page.getByText(note)).toBeVisible();
+    await expect(page.getByRole('region', { name: 'The rule for Ticket totals' })).toHaveCount(0);
+
+    // Behind Details: the rule and its version, where it came from, how it was read, what was left
+    // out, what each side did, and whether teaching ran.
+    await page.getByRole('button', { name: 'Details' }).first().click();
+    const rule = page.getByRole('region', { name: 'The rule for Ticket totals' });
+    await expect(rule).toContainText('Start with (labor hours rounded up to a multiple of 0.5)');
+    await expect(rule).toContainText('2a3e028da93a');
+    await expect(rule).toContainText('2026-10-29');
+    await expect(rule).toContainText('108 of 160');
+    await expect(rule).toContainText('Members get 10% off labor, never off parts.');
+    await expect(rule).toContainText('your answer');
+    await expect(rule).toContainText('52 rows: parts_cost is empty or N/A, such as T-2001');
+    await expect(rule).toContainText(
+      'member (customers.csv) is yes: 40 cases, 40 where it changed',
+    );
+    await expect(page.getByText(/^Teaching (ran for|did not run)/)).toBeVisible();
+    await rule.getByRole('button', { name: 'The rule exactly as Architect evaluates it' }).click();
+    await expect(rule).toContainText('"column": "parts_cost"');
+    await capture(page, `flow-report-rule-${theme}`);
+  });
+}
+
+for (const theme of THEMES) {
+  test(`keeps Start training off until the job's plan is known, and says so when it cannot be read (${theme})`, async () => {
+    const { app, page } = launched;
+    await stubFlow();
+    await applySettings(page, { theme, onboarded: true, comparisonMode: false });
+    await resize(DEFINE_HEIGHT);
+    const start = page.getByRole('button', { name: 'Start training' });
+    // Away from the job first, so that opening it reads its plan again.
+    await goTo(page, '/');
+
+    // The plan says whether the job has a rule to confirm. Until it is read, nothing says there is none.
+    await app.evaluate(({ ipcMain }, plan) => {
+      ipcMain.removeHandler('jobs:taskPlan');
+      ipcMain.handle(
+        'jobs:taskPlan',
+        () => new Promise((resolve) => setTimeout(() => resolve({ ok: true, value: plan }), 2_500)),
+      );
+    }, taskPlan);
+    await goTo(page, `/jobs/${FLOW.jobId}/define`);
+    await expect(page.getByRole('heading', { name: 'Service desk', level: 1 })).toBeVisible();
+    await expect(page.getByText('Checking the job', { exact: true })).toBeVisible();
+    await expect(start).toBeDisabled();
+    await expect(page.getByText('Keep Architect open while it trains')).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(start).toBeEnabled();
+
+    // A plan that can't be read leaves it off, with the reason and a way to try again.
+    await stubEngineFailure(app, { 'jobs:taskPlan': 'The engine did not answer.' });
+    await page.reload();
+    await page.waitForLoadState('domcontentloaded');
+    const alert = page.getByRole('alert').filter({ hasText: "Couldn't check whether this job" });
+    await expect(alert).toContainText('The engine did not answer.');
+    await expect(alert).toContainText("Training can't start until it is checked.");
+    await expect(page.getByText("Couldn't check the job", { exact: true })).toBeVisible();
+    await expect(start).toBeDisabled();
+    await capture(page, `flow-define-unreadable-${theme}`);
+
+    // Read at last, the job has no rule to wait for, and training may start.
+    await stubEngine(app, { 'jobs:taskPlan': taskPlan });
+    await alert.getByRole('button', { name: 'Try again' }).click();
+    await expect(alert).toHaveCount(0);
+    await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
+    await expect(start).toBeEnabled();
   });
 }
 

@@ -1,5 +1,5 @@
-import type { ReportCard, Score } from '@architect/shared';
-import { METHOD_LABELS } from '@architect/shared';
+import type { ReportCard, RuleReport, Score } from '@architect/shared';
+import { METHOD_LABELS, passageSource, ruleScoreNote, teachingLine } from '@architect/shared';
 
 const percent = (fraction: number): string => `${Number((fraction * 100).toFixed(1))}%`;
 
@@ -65,6 +65,7 @@ export function renderReportMarkdown(report: ReportCard): string {
   sections.push(
     `# ${report.name}: report card`,
     headline,
+    ...(report.tasks?.rules === undefined ? [] : [ruleScoreNote(report.mentor.label)]),
     [
       studentLine(report),
       `- Mentor: ${report.mentor.label} (${report.mentor.model})`,
@@ -165,8 +166,57 @@ export function renderReportMarkdown(report: ReportCard): string {
 
   if (report.tasks !== undefined)
     sections.push('## Where the test tasks came from', taskSource(report));
+  if (report.tasks?.rules !== undefined) {
+    sections.push(
+      '## The rule behind the expected answers',
+      ruleDetails(report, report.tasks.rules),
+    );
+  }
 
   return `${sections.join('\n\n')}\n`;
+}
+
+/**
+ * The rules the expected answers were calculated by, in full: each in words with its version,
+ * the passages it rests on, when the person confirmed it, how numbers and rounding were read,
+ * which rows were left out, what each side of a condition did, and whether teaching ran.
+ */
+function ruleDetails(report: ReportCard, rules: readonly RuleReport[]): string {
+  const teaching = teachingLine(report.cost.rounds);
+  const parts = rules.map((rule) =>
+    [
+      `### ${rule.label} (version ${rule.version})`,
+      `The rule in words: ${rule.statement}`,
+      `The rule exactly as Architect evaluates it:\n\n\`\`\`json\n${JSON.stringify(rule.expression, null, 2)}\n\`\`\``,
+      `The person confirmed this rule on ${rule.confirmedAt.slice(0, 10)}, over the records the tasks were made from.`,
+      `It rests on these passages:\n${rule.passages.map((item) => `- ${passageSource(item.file)}: "${item.passage}"`).join('\n')}`,
+      `How numbers, words and rounding were read:\n${rule.conventions.map((item) => `- ${item}`).join('\n')}`,
+      `Rows of the table that could be worked out: ${count(rule.cases.eligible)} of ${count(rule.cases.total)}.${
+        rule.excluded.length === 0
+          ? ' None were left out.'
+          : `\n${rule.excluded
+              .map(
+                (item) =>
+                  `- ${count(item.count)} ${plural(item.count, 'row', 'rows')} left out because ${item.reason}${item.example === undefined ? '' : `, such as ${item.example}`}`,
+              )
+              .join('\n')}`
+      }`,
+      ...(rule.branches.length === 0
+        ? []
+        : [
+            `What each side of the rule did:\n${rule.branches
+              .map(
+                (item) =>
+                  `- ${item.label}: ${count(item.cases)} ${plural(item.cases, 'case', 'cases')}, ${count(item.changes)} where it changed the answer`,
+              )
+              .join('\n')}`,
+          ]),
+      ...(rule.flags.length === 0
+        ? []
+        : [`Worth knowing:\n${rule.flags.map((item) => `- ${item}`).join('\n')}`]),
+    ].join('\n\n'),
+  );
+  return [...parts, teaching].join('\n\n');
 }
 
 /**

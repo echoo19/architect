@@ -89,7 +89,7 @@ export class RetestSession {
     if (!record || store.retests.get(runId, this.target)?.status !== 'testing') return;
     let state: RunState | undefined;
     try {
-      state = new RunState(this.ctx, this.control, await jobs.forRun(record));
+      state = new RunState(this.ctx, this.control, await jobs.forWork(record));
       await retestGraduate(state, this.target);
     } catch (error) {
       if (this.control.abort.signal.aborted || isAbort(error)) return;

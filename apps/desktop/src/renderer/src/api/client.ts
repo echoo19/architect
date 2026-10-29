@@ -13,6 +13,7 @@ import {
   ModelEntrySchema,
   OllamaStatusSchema,
   ReportCardSchema,
+  RuleConfirmationStateSchema,
   RunDetailSchema,
   RunSchema,
   SecretStatusSchema,
@@ -109,6 +110,12 @@ export const flowApi = {
   draftReply: (sessionId: string, text: string) =>
     read('jobs.draftReply', DraftTurnSchema, bridge().jobs.draftReply(sessionId, text)),
   saveJob: (job: Job) => read('jobs.save', JobSchema, bridge().jobs.save(job)),
+  confirmRules: (jobId: string, token: string) =>
+    read(
+      'jobs.confirmRules',
+      RuleConfirmationStateSchema,
+      bridge().jobs.confirmRules(jobId, token),
+    ),
   /** Imports a job file picked in a dialog, as a new job. */
   importJob: (path: string) => read('jobs.importFile', JobSchema, bridge().jobs.importFile(path)),
   /** Writes the job's settings to a file chosen in a save dialog. */

@@ -147,6 +147,79 @@ describe('renderReportMarkdown', () => {
     expect(attached).not.toContain('independently certified');
   });
 
+  it('says beside the score that the expected answers follow a rule the person confirmed, and shows the rule', () => {
+    const report = sampleReport();
+    report.tasks = {
+      source: 'generated',
+      draftingUsd: 0.02,
+      rules: [
+        {
+          typeId: 'cost',
+          label: 'Ticket totals',
+          version: 'db5fc3156380',
+          statement:
+            'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up.',
+          passages: [
+            { file: 'policy.md', passage: 'Labor is billed at $65 an hour, in half-hour steps.' },
+            { file: 'answers', passage: 'No, labor only' },
+          ],
+          conventions: ['A cell that is empty, N/A or not a number leaves its row out.'],
+          cases: { total: 180, eligible: 118 },
+          excluded: [{ reason: 'parts_cost is empty or N/A', count: 62, example: 'T-2002' }],
+          branches: [
+            { label: 'member (customers.csv) is yes', cases: 44, changes: 44 },
+            { label: 'member (customers.csv) is no', cases: 74, changes: 74 },
+          ],
+          flags: [
+            'The rounding step (up to a multiple of 0.5) never changed a value in your records, so no task shows it at work.',
+          ],
+          confirmedAt: '2026-10-29T10:00:00.000Z',
+          expression: {
+            op: 'round',
+            arg: { op: 'col', column: 'parts_cost', from: 'row' },
+            increment: '0.01',
+            mode: 'half_up',
+          },
+        },
+      ],
+    };
+    report.cost = { ...report.cost, rounds: 0 };
+    const text = renderReportMarkdown(report);
+    const note =
+      "Expected answers were calculated by Architect using Spark's interpretation of your policy, which you confirmed. This score measures agreement with that rule on held-out cases; it does not independently establish that the rule matches your business policy.";
+    expect(text).toContain(note);
+    // Beside the score: right after the line that says it, before anything else.
+    expect(text.indexOf(note)).toBeGreaterThan(text.indexOf('locked test tasks passed'));
+    expect(text.indexOf(note)).toBeLessThan(text.indexOf('- Student:'));
+    expect(text).toContain('## The rule behind the expected answers');
+    expect(text).toContain('### Ticket totals (version db5fc3156380)');
+    expect(text).toContain('The rule in words: Start with (labor hours rounded up');
+    expect(text).toContain('The rule exactly as Architect evaluates it:');
+    expect(text).toContain('```json\n{\n  "op": "round",\n  "arg": {\n    "op": "col",');
+    expect(text).toContain('The person confirmed this rule on 2026-10-29');
+    expect(text).toContain('- policy.md: "Labor is billed at $65 an hour, in half-hour steps."');
+    expect(text).toContain('- your answer: "No, labor only"');
+    expect(text).toContain('Rows of the table that could be worked out: 118 of 180.');
+    expect(text).toContain('- 62 rows left out because parts_cost is empty or N/A, such as T-2002');
+    expect(text).toContain(
+      '- member (customers.csv) is yes: 44 cases, 44 where it changed the answer',
+    );
+    expect(text).toContain('Worth knowing:');
+    expect(
+      text
+        .trimEnd()
+        .endsWith(
+          'Teaching did not run: the student met the target on the check tasks before any round.',
+        ),
+    ).toBe(true);
+    expect(text).not.toMatch(/[\u{2013}\u{2014}\u{2018}\u{2019}\u{201c}\u{201d}]/u);
+
+    report.cost = { ...report.cost, rounds: 3 };
+    expect(renderReportMarkdown(report)).toContain('Teaching ran for 3 rounds.');
+    delete report.tasks.rules;
+    expect(renderReportMarkdown(report)).not.toContain(note);
+  });
+
   it('formats small amounts and durations', () => {
     const report = sampleReport();
     report.cost = { ...report.cost, mentorUsd: 0.0043, wallMs: 45_000 };
@@ -162,6 +235,6 @@ describe('renderReportMarkdown', () => {
     expect(text).not.toContain('\r');
     expect(text.endsWith('.\n')).toBe(true);
     expect(text.endsWith('\n\n')).toBe(false);
-    expect(text).not.toMatch(/—|–/);
+    expect(text).not.toMatch(/[\u{2013}\u{2014}]/u);
   });
 });

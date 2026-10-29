@@ -38,6 +38,14 @@ const PROBLEMS: Record<ErrorCode, Problem> = {
   },
   guard_split: { cause: 'This matches a question from the final test.' },
   guard_budget: { cause: 'That would cost more than the limit allows.' },
+  rule_unconfirmed: {
+    cause: "The rule for this job isn't confirmed yet.",
+    next: 'Check it on the job page, confirm it, then start training.',
+  },
+  rule_changed: {
+    cause: 'The records or the rule changed after the rule was confirmed.',
+    next: 'Describe the job again, so the tasks are made from the records as they are now.',
+  },
   process_starting: {
     cause: 'Architect is still starting up.',
     next: 'Try again in a moment.',

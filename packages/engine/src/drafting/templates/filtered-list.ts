@@ -1,4 +1,4 @@
-import type { FilteredListSpec, FilterSpec } from '@architect/shared';
+import type { FilteredListSpec, FilterSpec, JsonValue } from '@architect/shared';
 import type { Table } from '../table';
 import { cleanText, foldKey } from '../values';
 import {
@@ -20,10 +20,25 @@ export const MAX_LISTED = 20;
 const MAX_VARYING = 2;
 const MAX_FIXED = 2;
 
+/** The values a membership filter keeps, cleaned and without repeats. */
+function keptValues(filter: FilterSpec): string[] {
+  const seen = new Set<string>();
+  const kept: string[] = [];
+  for (const value of filter.values ?? []) {
+    const text = cleanText(value);
+    if (text === '' || seen.has(text.toLowerCase())) continue;
+    seen.add(text.toLowerCase());
+    kept.push(text);
+  }
+  return kept;
+}
+
 function describeFixed(filter: FilterSpec): string {
   switch (filter.op) {
     case 'equals':
       return `${filter.column} is ${cleanText(filter.value)}`;
+    case 'in':
+      return `${filter.column} is ${inWords(keptValues(filter), 'or')}`;
     case 'not_equals':
       return `${filter.column} is not ${cleanText(filter.value)}`;
     case 'empty':
@@ -43,9 +58,84 @@ function meets(filter: FilterSpec, cell: string | null): boolean {
       return !empty;
     case 'equals':
       return !empty && foldKey(cell) === foldKey(filter.value);
+    case 'in':
+      return !empty && keptValues(filter).some((value) => foldKey(value) === foldKey(cell));
     case 'not_equals':
       return foldKey(cell) !== foldKey(filter.value);
   }
+}
+
+/**
+ * A fixed condition as a question is identified by it: the column, how it is compared and the
+ * values, in folded text. A set of one value is the same condition as an equals.
+ */
+function conditionOf(filter: FilterSpec): JsonValue {
+  const column = foldKey(filter.column);
+  switch (filter.op) {
+    case 'equals':
+      return [column, 'equals', [foldKey(filter.value)]];
+    case 'in': {
+      const values = [...new Set(keptValues(filter).map(foldKey))].sort();
+      return values.length === 1 ? [column, 'equals', values] : [column, 'in', values];
+    }
+    case 'not_equals':
+      return [column, 'not_equals', [foldKey(filter.value)]];
+    case 'empty':
+      return [column, 'empty', []];
+    case 'not_empty':
+      return [column, 'not_empty', []];
+  }
+}
+
+/**
+ * The varying column a request is about: the one with the most different values, and the first by
+ * name when two tie. It does not depend on the order the filters were written in, so two ways of
+ * writing the same question give it the same family.
+ */
+function entityOf(
+  varying: readonly { column: string }[],
+  forms: readonly ReadonlyMap<string, string>[],
+): { column: string; at: number } {
+  let best = 0;
+  for (let at = 1; at < varying.length; at += 1) {
+    const size = forms[at]?.size ?? 0;
+    const most = forms[best]?.size ?? 0;
+    const sooner = foldKey(varying[at]?.column) < foldKey(varying[best]?.column);
+    if (size > most || (size === most && sooner)) best = at;
+  }
+  return { column: varying[best]?.column ?? '', at: best };
+}
+
+/**
+ * What else a membership filter's column holds, so the person can see which rows are left out
+ * and say so if one of those values should count.
+ */
+function leftOutValues(table: Table, filter: FilterSpec): string[] {
+  const kept = new Set(keptValues(filter).map((value) => value.toLowerCase()));
+  const shown = spellings(table.rows.map((row) => row[filter.column] ?? null));
+  const counts = new Map<string, number>();
+  let empty = 0;
+  for (const row of table.rows) {
+    const key = cleanText(row[filter.column]).toLowerCase();
+    if (key === '') empty += 1;
+    else if (!kept.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  const others = [...counts].sort((a, b) => b[1] - a[1]);
+  const notes: string[] = [];
+  if (others.length > 0) {
+    const named = others
+      .slice(0, 6)
+      .map(([key, rows]) => `${shown.get(key) ?? key} (${rows} ${rows === 1 ? 'row' : 'rows'})`);
+    notes.push(
+      `${filter.column} also holds ${inWords(named)}${others.length > 6 ? ' and more' : ''}. ${others.length === 1 ? 'Those rows are' : 'Rows with those values are'} not listed, because only ${inWords(keptValues(filter), 'or')} count.`,
+    );
+  }
+  if (empty > 0) {
+    notes.push(
+      `${empty} ${empty === 1 ? 'row has' : 'rows have'} no ${filter.column}, so ${empty === 1 ? 'it is' : 'they are'} not listed.`,
+    );
+  }
+  return notes;
 }
 
 /**
@@ -98,6 +188,9 @@ export function runFilteredList(
     if (needsValue && filter.value === undefined) {
       problems.push(`The filter on ${filter.column} needs the value it compares with.`);
     }
+    if (filter.op === 'in' && keptValues(filter).length === 0) {
+      problems.push(`The filter on ${filter.column} needs the values it keeps.`);
+    }
   }
   const columns = filters.map((filter) => filter.column);
   if (new Set(columns).size !== columns.length) {
@@ -116,48 +209,69 @@ export function runFilteredList(
     return { spec: resolved, candidates: [], problems, notes, rule };
   }
 
-  // A condition that no row can meet would leave every list empty.
+  // A condition that no row can meet would leave every list empty. A set of values to keep must
+  // be values the column really holds, so a misspelled one can't quietly drop rows.
   for (const filter of fixed) {
-    if (!table.rows.some((row) => meets(filter, row[filter.column] ?? null))) {
-      const values = [...spellings(table.rows.map((row) => row[filter.column] ?? null)).values()];
+    const held = spellings(table.rows.map((row) => row[filter.column] ?? null));
+    const holds = (): string => {
+      const values = [...held.values()];
       const some = values.slice(0, 12).join(', ');
-      problems.push(
-        `No row of ${table.name} meets "${describeFixed(filter)}". ${filter.column} holds ${some === '' ? 'nothing' : some}${values.length > 12 ? ' and more' : ''}.`,
-      );
+      return `${filter.column} holds ${some === '' ? 'nothing' : some}${values.length > 12 ? ' and more' : ''}.`;
+    };
+    if (filter.op === 'in') {
+      const unseen = keptValues(filter).filter((value) => !held.has(value.toLowerCase()));
+      if (unseen.length > 0) {
+        problems.push(
+          `No row of ${table.name} has ${inWords(
+            unseen.map((value) => `"${value}"`),
+            'or',
+          )} in ${filter.column}. ${holds()}`,
+        );
+      }
+    } else if (!table.rows.some((row) => meets(filter, row[filter.column] ?? null))) {
+      problems.push(`No row of ${table.name} meets "${describeFixed(filter)}". ${holds()}`);
     }
   }
   if (problems.length > 0) return { spec: resolved, candidates: [], problems, notes, rule };
+  for (const filter of fixed) {
+    if (filter.op === 'in') notes.push(...leftOutValues(table, filter));
+  }
 
   const forms = varying.map((filter) =>
     spellings(table.rows.map((row) => row[filter.column] ?? null)),
   );
+  // The varying column that tells the most requests apart names the entity a request is about, so
+  // that a family doesn't depend on the order the conditions were written in.
+  const entity = entityOf(varying, forms);
   // Each combination of values the varying columns take together, with the keys of the rows that
   // meet every fixed condition. A combination no row meets has an empty list.
-  const lists = new Map<string, Map<string, string>>();
+  const lists = new Map<string, { keys: Map<string, string>; rows: number[] }>();
   let rowsWithoutKey = 0;
-  for (const row of table.rows) {
+  for (const [at, row] of table.rows.entries()) {
     const values = varying.map((filter) => foldKey(row[filter.column]));
     if (values.some((value) => value === '')) continue;
     const combination = JSON.stringify(values);
-    const list = lists.get(combination) ?? new Map<string, string>();
+    const list = lists.get(combination) ?? { keys: new Map<string, string>(), rows: [] };
     lists.set(combination, list);
+    list.rows.push(at);
     if (!fixed.every((filter) => meets(filter, row[filter.column] ?? null))) continue;
     const key = cleanText(row[keyColumn]);
     if (key === '') {
       rowsWithoutKey += 1;
       continue;
     }
-    list.set(key.toLowerCase(), key);
+    list.keys.set(key.toLowerCase(), key);
   }
   if (rowsWithoutKey > 0) {
     notes.push(`${rowsWithoutKey} rows have no ${keyColumn}, so they are never listed.`);
   }
 
+  const asked = [...fixed.map(conditionOf)];
   const candidates: Candidate[] = [];
   let tooLong = 0;
   for (const [combination, list] of lists) {
     const folded = JSON.parse(combination) as string[];
-    const keys = [...list.values()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    const keys = [...list.keys.values()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
     if (keys.length > MAX_LISTED) {
       tooLong += 1;
       continue;
@@ -167,8 +281,18 @@ export function runFilteredList(
       varying.map((filter, index) => [filter.column, shown[index]]),
     );
     const question = fillRequest(spec.request, values as Record<string, string>);
+    // Whatever way the conditions were split into fixed and varying, the question is the same
+    // when the same values of the same columns are asked for.
+    const conditions = [
+      ...asked,
+      ...varying.map((filter, index) => [foldKey(filter.column), 'equals', [folded[index] ?? '']]),
+    ]
+      .map((condition) => canonicalJson(condition as JsonValue))
+      .sort();
     candidates.push({
-      family: `list:${table.name}:${varying[0]?.column ?? ''}=${folded[0] ?? ''}`,
+      family: `list:${table.name}:${entity.column}=${folded[entity.at] ?? ''}`,
+      identity: canonicalJson(['list', foldKey(table.name), foldKey(keyColumn), conditions]),
+      rows: list.rows,
       prompt: [
         question,
         `List each ${resolved.keyColumn} once, in any order, and use [] if there are none.`,

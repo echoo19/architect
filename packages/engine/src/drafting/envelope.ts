@@ -1,6 +1,13 @@
-import type { JsonSchemaObject, TaskSpec } from '@architect/shared';
+import {
+  MAX_FILTER_VALUES,
+  type JsonSchemaObject,
+  type RuleFrom,
+  type TaskSpec,
+} from '@architect/shared';
 import { z } from 'zod';
 import type { Attached } from './files';
+import { list, objectOf, text } from './json-parts';
+import { RuleReplySchema, ruleSchema, settleRule, type Said, type Settled } from './rule-reply';
 import { cleanText, foldKey } from './values';
 
 /*
@@ -17,8 +24,10 @@ export const MAX_QUESTIONS = 3;
 
 const FilterReplySchema = z.object({
   column: z.string(),
-  op: z.enum(['equals', 'not_equals', 'empty', 'not_empty', '']),
+  // `not_equals` is read so that it can be refused with the reason, never to be used.
+  op: z.enum(['equals', 'in', 'not_equals', 'empty', 'not_empty', '']),
   value: z.string(),
+  values: z.array(z.string()).optional(),
   varies: z.boolean(),
 });
 
@@ -26,7 +35,7 @@ const TypeReplySchema = z.object({
   id: z.string(),
   label: z.string(),
   description: z.string(),
-  template: z.enum(['lookup', 'filtered_list', 'group_total', '']),
+  template: z.enum(['lookup', 'filtered_list', 'group_total', 'rule', '']),
   table: z.string(),
   keyColumn: z.string(),
   columns: z.array(z.string()),
@@ -38,6 +47,7 @@ const TypeReplySchema = z.object({
   dateOrder: z.enum(['month_first', 'day_first', '']),
   unit: z.enum(['as_written', 'cents', '']),
   request: z.string(),
+  rule: RuleReplySchema.optional(),
 });
 
 const FileReplySchema = z.object({
@@ -67,29 +77,14 @@ export const ReplySchema = z.object({
 });
 export type Reply = z.infer<typeof ReplySchema>;
 
-const text = (description: string) => ({ type: 'string', description });
-const list = (description: string, items: object = { type: 'string' }) => ({
-  type: 'array',
-  description,
-  items,
-});
-
-function objectOf(properties: Record<string, object>): JsonSchemaObject {
-  return {
-    type: 'object',
-    additionalProperties: false,
-    required: Object.keys(properties),
-    properties,
-  };
-}
-
 /** The reply format, as a JSON Schema. A reply that must draft cannot ask. */
 export function replyJsonSchema(mustDraft: boolean): JsonSchemaObject {
   const filter = objectOf({
     column: text('The column, spelled as the table spells it.'),
-    op: { type: 'string', enum: ['equals', 'not_equals', 'empty', 'not_empty', ''] },
-    value: text(
-      'What equals and not_equals compare with. Empty for the others and when varies is true.',
+    op: { type: 'string', enum: ['equals', 'in', 'empty', 'not_empty', ''] },
+    value: text('What equals compares with. Empty for the others and when varies is true.'),
+    values: list(
+      'in: every value that makes a row count, spelled as the table spells it. Else empty.',
     ),
     varies: {
       type: 'boolean',
@@ -100,10 +95,10 @@ export function replyJsonSchema(mustDraft: boolean): JsonSchemaObject {
     id: text('A short id: lowercase letters, digits and underscores, starting with a letter.'),
     label: text('A short plain name, such as "Customer emails".'),
     description: text('One plain sentence on what this kind of request is.'),
-    template: { type: 'string', enum: ['lookup', 'filtered_list', 'group_total', ''] },
+    template: { type: 'string', enum: ['lookup', 'filtered_list', 'group_total', 'rule', ''] },
     table: text('The CSV file the requests are made from, by its name.'),
     keyColumn: text(
-      'lookup: the column that identifies a row. filtered_list: the column listed. Else empty.',
+      'lookup and rule: the column that identifies a row. filtered_list: the column listed. Else empty.',
     ),
     columns: list('lookup: the one to three columns asked for. Else empty.'),
     filters: list('filtered_list: the conditions. Else empty.', filter),
@@ -113,11 +108,17 @@ export function replyJsonSchema(mustDraft: boolean): JsonSchemaObject {
       'group_total: the column added up (or counted when it has a value). Else empty.',
     ),
     dateColumn: text('group_total: a date column to total within ranges of dates. Empty for none.'),
-    dateOrder: { type: 'string', enum: ['month_first', 'day_first', ''] },
+    dateOrder: {
+      type: 'string',
+      enum: ['month_first', 'day_first', ''],
+      description:
+        'lookup and group_total: how a date like 03/04/2026 reads, only if the person said. Else empty.',
+    },
     unit: { type: 'string', enum: ['as_written', 'cents', ''] },
     request: text(
       'The question, with {key}, {column name}, {group}, {from} and {to} where values go.',
     ),
+    rule: ruleSchema(),
   });
   return objectOf({
     action: { type: 'string', enum: mustDraft ? ['draft'] : ['ask', 'draft'] },
@@ -166,7 +167,21 @@ export interface DraftedJob {
   passRate: number;
   files: { name: string; description: string; access: 'read' | 'write' }[];
   unresolved: string[];
-  types: { id: string; label: string; description: string; spec?: TaskSpec }[];
+  types: {
+    id: string;
+    label: string;
+    description: string;
+    spec?: TaskSpec;
+    /**
+     * For a rule: what the policy leaves open that changes an answer, which must be asked. A
+     * question about an empty cell says which column, since only two answers can be put to it.
+     */
+    ambiguities?: {
+      question: string;
+      options: string[];
+      blank?: { column: string; from: RuleFrom };
+    }[];
+  }[];
 }
 
 export interface Drafted {
@@ -204,16 +219,24 @@ function titled(id: string): string {
   return words === '' ? id : `${words.charAt(0).toUpperCase()}${words.slice(1)}`;
 }
 
+/** What a rule is held to besides its shape: the policy it quotes and where it reports back. */
+interface RuleContext {
+  attached: Attached;
+  said: Said;
+  found(settled: Settled): void;
+}
+
 /** The kind of task a reply's type asks for, as a specification, or what is missing from it. */
 function specOf(
   type: z.infer<typeof TypeReplySchema>,
   tables: ReadonlySet<string>,
   tableNames: readonly string[],
   problems: string[],
+  rules: RuleContext,
 ): TaskSpec | undefined {
   const who = `Task type "${type.id}"`;
   if (type.template === '') {
-    problems.push(`${who} needs a template: lookup, filtered_list or group_total.`);
+    problems.push(`${who} needs a template: lookup, filtered_list, group_total or rule.`);
     return undefined;
   }
   const table = tableNames.find(
@@ -237,7 +260,14 @@ function specOf(
         problems.push(`${who} is a lookup: it needs a keyColumn and 1 to 3 columns.`);
         return undefined;
       }
-      return { template: 'lookup', table, keyColumn: cleanText(type.keyColumn), columns, request };
+      return {
+        template: 'lookup',
+        table,
+        keyColumn: cleanText(type.keyColumn),
+        columns,
+        request,
+        ...(type.dateOrder === '' ? {} : { dateOrder: type.dateOrder }),
+      };
     }
     case 'filtered_list': {
       const filters = type.filters.filter(
@@ -247,6 +277,13 @@ function specOf(
         problems.push(`${who} is a filtered_list: it needs a keyColumn and 1 to 4 filters.`);
         return undefined;
       }
+      for (const filter of filters) {
+        if (filter.op === 'not_equals') {
+          problems.push(
+            `${who}: the filter on ${cleanText(filter.column)} says what a row is not. That also keeps rows where it is empty or has a value nobody expected. Use op "in" and list every value that makes a row count, as the policy or the person names them.`,
+          );
+        }
+      }
       return {
         template: 'filtered_list',
         table,
@@ -255,13 +292,17 @@ function specOf(
         filters: filters.map((filter) => {
           const value = cleanText(filter.value);
           const op = filter.op === '' ? 'equals' : filter.op;
+          const values = distinct((filter.values ?? []).map(cleanText));
           return {
             column: cleanText(filter.column),
             op,
             varies: filter.varies,
-            ...(value === '' || filter.varies || op === 'empty' || op === 'not_empty'
+            ...(value === '' || filter.varies || (op !== 'equals' && op !== 'not_equals')
               ? {}
               : { value }),
+            ...(op === 'in' && !filter.varies && values.length > 0
+              ? { values: values.slice(0, MAX_FILTER_VALUES) }
+              : {}),
           };
         }),
       };
@@ -285,6 +326,23 @@ function specOf(
         ...(type.dateOrder === '' ? {} : { dateOrder: type.dateOrder }),
       };
     }
+    case 'rule': {
+      if (cleanText(type.keyColumn) === '') {
+        problems.push(`${who} is a rule: it needs a keyColumn.`);
+        return undefined;
+      }
+      const settled = settleRule(
+        type.rule,
+        { table, keyColumn: cleanText(type.keyColumn), request },
+        tableNames,
+        rules,
+        who,
+        problems,
+      );
+      if (settled === undefined) return undefined;
+      rules.found(settled);
+      return settled.spec;
+    }
   }
 }
 
@@ -296,7 +354,7 @@ function specOf(
  */
 export function checkReply(
   raw: unknown,
-  context: { mustDraft: boolean; attached: Attached },
+  context: { mustDraft: boolean; attached: Attached; said?: Said },
 ): Checked {
   const parsed = ReplySchema.safeParse(raw);
   if (!parsed.success) {
@@ -371,6 +429,8 @@ export function checkReply(
   );
   const tableNames = [...tables];
   const types: DraftedJob['types'] = [];
+  const left: string[] = [];
+  const said = context.said ?? { description: '', answers: '' };
   if (context.attached.tasks !== null) {
     // The tasks came with the files, so the teacher only names and describes their types.
     const given = new Map(job.taskTypes.map((type) => [cleanText(type.id), type]));
@@ -402,12 +462,23 @@ export function checkReply(
       seen.add(id);
       const label = fit(type.label, 60);
       if (label === '') problems.push(`Task type "${id}" needs a label.`);
-      const spec = specOf(type, tables, tableNames, problems);
+      const rule: { settled?: Settled } = {};
+      const spec = specOf(type, tables, tableNames, problems, {
+        attached: context.attached,
+        said,
+        found: (settled) => {
+          rule.settled = settled;
+        },
+      });
+      left.push(...(rule.settled?.left ?? []));
       types.push({
         id,
         label: label || titled(id),
         description: fit(type.description, 200),
         ...(spec === undefined ? {} : { spec }),
+        ...(rule.settled && rule.settled.blocking.length > 0
+          ? { ambiguities: rule.settled.blocking }
+          : {}),
       });
     }
   }
@@ -430,7 +501,7 @@ export function checkReply(
           description: described.get(file.name)?.description ?? '',
           access: described.get(file.name)?.access ?? 'read',
         })),
-        unresolved,
+        unresolved: distinct([...unresolved, ...left.map((item) => fit(item, 200))]).slice(0, 6),
         types,
       },
     },

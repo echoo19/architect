@@ -273,8 +273,17 @@ export class RunController {
       await active.done;
     }
     if (this.get(runId).run.status !== 'paused') return;
+    // Going on is working on the job's records as they are now, so a rule that is no longer
+    // confirmed over them is said at once, to whoever asked, and the run stays paused.
+    await this.requireRules(runId);
     this.update(runId, { status: 'queued', error: undefined });
     this.enqueue(runId);
+  }
+
+  /** Refuses, with the reason, work on a run's job whose rules are not confirmed over its records. */
+  private async requireRules(runId: string): Promise<void> {
+    const { jobs } = this.options;
+    await jobs.requireConfirmedRules(await jobs.forRun(this.get(runId)));
   }
 
   /**
@@ -363,7 +372,7 @@ export class RunController {
    * again only resumes a re-test that an error paused.
    */
   async retest(runId: string, target: StudentTarget): Promise<void> {
-    const job = await this.options.jobs.forRun(this.get(runId));
+    const job = await this.options.jobs.forWork(this.get(runId));
     const refusal = retestRefusal(this.get(runId), job, target);
     if (refusal !== null) throw new Error(refusal);
     const { store } = this.options;
@@ -422,7 +431,7 @@ export class RunController {
    */
   async repeat(runId: string, target: StudentTarget): Promise<void> {
     const record = this.get(runId);
-    const job = await this.options.jobs.forRun(record);
+    const job = await this.options.jobs.forWork(record);
     const { store } = this.options;
     const refusal = repeatRefusal(store, record, job, target);
     if (refusal !== null) throw new Error(refusal);
@@ -472,7 +481,7 @@ export class RunController {
    */
   async reference(runId: string, split: ReferenceRecord['split'], maxUsd: number): Promise<void> {
     const record = this.get(runId);
-    const job = await this.options.jobs.forRun(record);
+    const job = await this.options.jobs.forWork(record);
     const refusal = referenceRefusal(record, job, split);
     if (refusal !== null) throw new Error(refusal);
     const { store } = this.options;
@@ -554,6 +563,9 @@ export class RunController {
     if (needsHosted && !job.student.hosted) {
       throw new Error(`"${job.name}" has no hosted student endpoint.`);
     }
+    // A rule the person hasn't confirmed over these records would make the final test a measure of
+    // nothing anyone agreed to (decision 061).
+    await jobs.requireConfirmedRules(job);
   }
 
   private get(runId: string): StoredRun {

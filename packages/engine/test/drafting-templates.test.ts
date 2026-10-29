@@ -2,7 +2,7 @@ import type { FilteredListSpec, GroupTotalSpec, LookupSpec } from '@architect/sh
 import { describe, expect, it } from 'vitest';
 import { compareAnswer, checkFacts } from '../src/checker/compare';
 import { seededRandom } from '../src/splits/random';
-import { readTable } from '../src/drafting/table';
+import { cellsOf, kindOf, readTable } from '../src/drafting/table';
 import { runFilteredList } from '../src/drafting/templates/filtered-list';
 import { runGroupTotal } from '../src/drafting/templates/group-total';
 import { runLookup } from '../src/drafting/templates/lookup';
@@ -94,6 +94,46 @@ describe('the lookup template', () => {
       'Write numbers as plain digits, without currency signs or commas.',
     );
     expect(amounts.candidates[0]?.prompt).toContain('{"amount": <number>}');
+  });
+
+  it('reads a date the way the person said it reads, and only assumes month first when nobody said', () => {
+    // Every date here could be read either way: 01/04/2026 is the 1st of April or the 4th of January.
+    const events = readTable(
+      'events.csv',
+      [
+        'event_id,happened_on',
+        ...Array.from(
+          { length: 12 },
+          (_, i) => `E-${i + 1},0${(i % 9) + 1}/0${((i + 3) % 9) + 1}/2026`,
+        ),
+      ].join('\n'),
+    );
+    const spec = (overrides: Partial<LookupSpec>): LookupSpec =>
+      lookup({
+        table: 'events.csv',
+        keyColumn: 'event_id',
+        columns: ['happened_on'],
+        request: 'When did event {key} happen?',
+        ...overrides,
+      });
+    const answerFor = (run: ReturnType<typeof runLookup>, key: string): unknown => {
+      const found = run.candidates.find((candidate) => candidate.meta['key'] === key);
+      return found?.expected.kind === 'facts' ? found.expected.facts[0]?.value : undefined;
+    };
+
+    const unsaid = runLookup(spec({}), events);
+    expect(answerFor(unsaid, 'E-1')).toBe('2026-01-04');
+    expect(unsaid.notes.join(' ')).toContain('could be read either way');
+
+    const dayFirst = runLookup(spec({ dateOrder: 'day_first' }), events);
+    expect(dayFirst.problems).toEqual([]);
+    expect(answerFor(dayFirst, 'E-1')).toBe('2026-04-01');
+    expect(answerFor(dayFirst, 'E-4')).toBe('2026-07-04');
+    expect(dayFirst.notes.join(' ')).not.toContain('either way');
+
+    const monthFirst = runLookup(spec({ dateOrder: 'month_first' }), events);
+    expect(answerFor(monthFirst, 'E-1')).toBe('2026-01-04');
+    expect(monthFirst.notes.join(' ')).not.toContain('either way');
   });
 
   it('leaves out a row whose key another row shares', () => {
@@ -239,6 +279,74 @@ describe('the filtered list template', () => {
     expect(tooLong.problems[0]).toContain('Every list is longer than 20');
   });
 
+  it('gives a request the same family and the same question whatever order its conditions were written in', () => {
+    const small = readTable('orders.csv', shopData('canonical', 200, 40).ordersCsv);
+    const order = (first: string, second: string) =>
+      runFilteredList(
+        list({
+          filters: [
+            { column: first, op: 'equals', varies: true },
+            { column: second, op: 'equals', varies: true },
+          ],
+          request: 'Which orders did customer {customer_id} place in the {region} region?',
+        }),
+        small,
+      );
+    const forward = order('customer_id', 'region');
+    const backward = order('region', 'customer_id');
+    expect(forward.problems).toEqual([]);
+    expect(backward.problems).toEqual([]);
+    const familyOf = (run: typeof forward) =>
+      new Map(run.candidates.map((item) => [item.identity, item.family] as const));
+    expect(familyOf(forward).size).toBe(forward.candidates.length);
+    expect([...familyOf(backward)].sort()).toEqual([...familyOf(forward)].sort());
+    // The family is the customer, the column that tells the most requests apart.
+    for (const family of familyOf(forward).values()) {
+      expect(family).toMatch(/^list:orders\.csv:customer_id=c-\d+$/);
+    }
+  });
+
+  it('asks the same question whether a value is fixed in the conditions or taken in turn', () => {
+    const small = readTable('orders.csv', shopData('fixed', 200, 40).ordersCsv);
+    const taken = runFilteredList(
+      list({
+        filters: [
+          { column: 'customer_id', op: 'equals', varies: true },
+          { column: 'region', op: 'equals', varies: true },
+        ],
+        request: 'Which orders did customer {customer_id} place in the {region} region?',
+      }),
+      small,
+    );
+    const fixed = runFilteredList(
+      list({
+        filters: [
+          { column: 'region', op: 'equals', value: ' north ', varies: false },
+          { column: 'customer_id', op: 'equals', varies: true },
+        ],
+        request: 'Which orders did customer {customer_id} place in the North region?',
+      }),
+      small,
+    );
+    const inOne = runFilteredList(
+      list({
+        filters: [
+          { column: 'region', op: 'in', values: ['North'], varies: false },
+          { column: 'customer_id', op: 'equals', varies: true },
+        ],
+        request: 'Which orders did customer {customer_id} place in the North region?',
+      }),
+      small,
+    );
+    const north = taken.candidates
+      .filter((item) => String(item.meta['region']).replace(/["\s]/g, '').toLowerCase() === 'north')
+      .map((item) => item.identity);
+    expect(north.length).toBeGreaterThan(3);
+    const fixedQuestions = new Set(fixed.candidates.map((item) => item.identity));
+    expect(north.filter((question) => !fixedQuestions.has(question))).toEqual([]);
+    expect(new Set(inOne.candidates.map((item) => item.identity))).toEqual(fixedQuestions);
+  });
+
   it('understands empty, filled and "is not" conditions', () => {
     const unshipped = runFilteredList(
       list({
@@ -278,6 +386,114 @@ describe('the filtered list template', () => {
         .sort(),
     });
     expect(notCancelled.rule).toContain('where status is not cancelled, for each customer_id');
+  });
+
+  it('keeps the rows whose value is in a set it is told, and no row with an empty or unexpected one', () => {
+    const kept = ['Pending', 'Shipped'];
+    const open = runFilteredList(
+      list({
+        filters: [
+          { column: 'status', op: 'in', values: kept, varies: false },
+          { column: 'customer_id', op: 'equals', varies: true },
+        ],
+      }),
+      orders,
+    );
+    expect(open.problems).toEqual([]);
+    expect(open.rule).toContain('where status is Pending or Shipped, for each customer_id');
+    const first = open.candidates[0];
+    const customer = String(first?.meta['customer_id']);
+    expect(first?.expected).toMatchObject({
+      value: data.orders
+        .filter((order) => order.customerId === customer && kept.includes(order.status))
+        .map((order) => order.id)
+        .sort(),
+    });
+    // The answers never hold a cancelled order, whatever the customer's other orders are.
+    for (const candidate of open.candidates) {
+      if (candidate.expected.kind !== 'answer') throw new Error('Expected an answer.');
+      const ids = new Set(candidate.expected.value as string[]);
+      const cancelled = data.orders.filter((order) => order.status === 'Cancelled');
+      expect(cancelled.some((order) => ids.has(order.id))).toBe(false);
+    }
+    expect(open.notes.join(' ')).toContain('status also holds Cancelled (');
+    expect(open.notes.join(' ')).toContain('only Pending or Shipped count');
+  });
+
+  it('keeps a row out of a set when its value is blank or one nobody listed, which "is not" does not', () => {
+    const rows = [
+      'ticket_id,customer_id,status',
+      ...Array.from(
+        { length: 12 },
+        (_, i) => `T-${i},C-${i % 3},${i % 4 === 0 ? 'Open' : 'Ready'}`,
+      ),
+      'T-90,C-0,Picked up',
+      'T-91,C-0,',
+      'T-92,C-0,Mystery',
+    ].join('\n');
+    const tickets = readTable('tickets.csv', rows);
+    const set = (filter: object) =>
+      runFilteredList(
+        list({
+          table: 'tickets.csv',
+          keyColumn: 'ticket_id',
+          filters: [filter as never, { column: 'customer_id', op: 'equals', varies: true }],
+          request: 'Which tickets of {customer_id} are still open?',
+        }),
+        tickets,
+      );
+    const listed = (run: ReturnType<typeof set>): string[] => {
+      const zero = run.candidates.find((candidate) => candidate.meta['customer_id'] === 'C-0');
+      if (zero?.expected.kind !== 'answer') throw new Error('Expected an answer.');
+      return zero.expected.value as string[];
+    };
+    const complement = set({
+      column: 'status',
+      op: 'not_equals',
+      value: 'Picked up',
+      varies: false,
+    });
+    expect(listed(complement)).toEqual(expect.arrayContaining(['T-91', 'T-92']));
+    const members = set({
+      column: 'status',
+      op: 'in',
+      values: ['Open', 'Ready'],
+      varies: false,
+    });
+    expect(members.problems).toEqual([]);
+    expect(listed(members)).not.toContain('T-90');
+    expect(listed(members)).not.toContain('T-91');
+    expect(listed(members)).not.toContain('T-92');
+    expect(members.notes.join(' ')).toContain(
+      'status also holds Picked up (1 row) and Mystery (1 row). Rows with those values are not listed, because only Open or Ready count.',
+    );
+    expect(members.notes.join(' ')).toContain('1 row has no status, so it is not listed.');
+  });
+
+  it('refuses a set that names a value the column does not hold, or no values at all', () => {
+    const wrong = runFilteredList(
+      list({
+        filters: [
+          { column: 'status', op: 'in', values: ['Pending', 'Waiting'], varies: false },
+          { column: 'customer_id', op: 'equals', varies: true },
+        ],
+      }),
+      orders,
+    );
+    expect(wrong.candidates).toEqual([]);
+    expect(wrong.problems).toEqual([
+      'No row of orders.csv has "Waiting" in status. status holds Pending, Shipped, Cancelled.',
+    ]);
+    const none = runFilteredList(
+      list({
+        filters: [
+          { column: 'status', op: 'in', varies: false },
+          { column: 'customer_id', op: 'equals', varies: true },
+        ],
+      }),
+      orders,
+    );
+    expect(none.problems).toContain('The filter on status needs the values it keeps.');
   });
 
   it('says what is wrong with a specification instead of guessing', () => {
@@ -508,6 +724,86 @@ describe('the group total template', () => {
       expect(candidate.expected).toMatchObject({ value: { count: expected } });
     }
     expect(run.rule).toBe('Number of rows with a amount for each region, from orders.csv');
+  });
+
+  it('counts the rows that have a value in a column of words by whether the cell is filled in', () => {
+    // An email is no number: counting the customers who have one only asks whether it is there.
+    const people = readTable(
+      'people.csv',
+      [
+        'region,email',
+        ...Array.from({ length: 48 }, (_, i) => {
+          const email = i % 4 === 0 ? '' : i % 4 === 1 ? 'N/A' : `someone${i}@example.com`;
+          return `${i % 2 === 0 ? 'North' : 'South'},${email}`;
+        }),
+      ].join('\n'),
+    );
+    const run = runGroupTotal(
+      total({
+        measure: 'count',
+        valueColumn: 'email',
+        dateColumn: undefined,
+        request: 'How many {group} customers have an email?',
+      }),
+      people,
+      seededRandom('emails'),
+    );
+    expect(run.problems).toEqual([]);
+    expect(run.rule).toBe('Number of rows with a email for each region, from people.csv');
+    const filled = (region: string) =>
+      Array.from({ length: 48 }, (_, i) => i).filter(
+        (i) => (i % 2 === 0 ? 'North' : 'South') === region && i % 4 >= 2,
+      ).length;
+    expect(run.candidates.map((candidate) => candidate.expected)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ value: { count: filled('North') } }),
+        expect.objectContaining({ value: { count: filled('South') } }),
+      ]),
+    );
+    // A total of the same column is still refused: its cells are words.
+    const summed = runGroupTotal(
+      total({ valueColumn: 'email', dateColumn: undefined, request: 'Total for {group}?' }),
+      people,
+      seededRandom('emails'),
+    );
+    expect(summed.problems.join(' ')).toContain("can't read as numbers");
+  });
+
+  it('takes a column named as the date column for dates when its cells are written 20261001', () => {
+    const rows = Array.from({ length: 120 }, (_, i) => ({
+      region: i % 2 === 0 ? 'North' : 'South',
+      amount: i + 1,
+      month: String(9 + Math.floor(i / 30)).padStart(2, '0'),
+      day: String((i % 28) + 1).padStart(2, '0'),
+    }));
+    const compact = readTable(
+      'orders.csv',
+      [
+        'region,amount,order_date',
+        ...rows.map((row) => `${row.region},${row.amount},2026${row.month}${row.day}`),
+      ].join('\n'),
+    );
+    // Read as numbers first, which is what a column of these is called until it is named a date.
+    expect(kindOf(cellsOf(compact, 'order_date'))).toBe('number');
+    const run = runGroupTotal(total(), compact, seededRandom('compact'));
+    expect(run.problems).toEqual([]);
+    expect(run.candidates.length).toBeGreaterThan(2);
+    for (const candidate of run.candidates) {
+      const from = String(candidate.meta['from']);
+      const to = String(candidate.meta['to']);
+      const group = String(candidate.meta['group']);
+      const sum = rows
+        .filter((row) => row.region === group)
+        .filter((row) => {
+          const day = `2026-${row.month}-${row.day}`;
+          return day >= from && day <= to;
+        })
+        .reduce((all, row) => all + row.amount, 0);
+      expect(candidate.expected).toMatchObject({ value: { total: sum } });
+    }
+    // A column that is no date column is still refused when it is named as one.
+    const wrong = runGroupTotal(total({ dateColumn: 'amount' }), compact, seededRandom('compact'));
+    expect(wrong.problems.join(' ')).toContain("amount doesn't read as dates");
   });
 
   it('stops at a cell it cannot read instead of making a total from a guess', () => {

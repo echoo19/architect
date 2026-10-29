@@ -3,13 +3,21 @@ import { shuffle } from '../../splits/random';
 import {
   cellsOf,
   dayCell,
-  kindOf,
   numberCell,
   profileColumn,
+  readsAsDates,
   resolveDateOrder,
   type Table,
 } from '../table';
-import { addDays, dayNumber, decimalToNumber, foldKey, sumDecimals, type Decimal } from '../values';
+import {
+  addDays,
+  dayNumber,
+  decimalToNumber,
+  foldKey,
+  isBlank,
+  sumDecimals,
+  type Decimal,
+} from '../values';
 import {
   canonicalJson,
   checkRequest,
@@ -35,6 +43,8 @@ const CANDIDATE_LIMIT = 1_200;
 const EXAMPLES = 3;
 
 interface Entry {
+  /** The row's position in the table. */
+  row: number;
   day: string | null;
   amount: Decimal | null;
   /** Whether the row counts when rows are counted. */
@@ -122,7 +132,9 @@ export function runGroupTotal(
         `${dateColumn} writes dates like 03/04/2026 that could be read either way. Architect read them month first, so that is March 4.`,
       );
     }
-    if (kindOf(cells) !== 'date') {
+    // A column named as the date column is held to reading as dates, whatever else its cells look
+    // like: 20260131 reads as a number first, and is a day all the same.
+    if (!readsAsDates(cells)) {
       problems.push(`${dateColumn} doesn't read as dates.`);
     }
   }
@@ -130,12 +142,16 @@ export function runGroupTotal(
   const badAmounts: string[] = [];
   const badDays: string[] = [];
   let missingDays = 0;
-  for (const row of table.rows) {
+  for (const [at, row] of table.rows.entries()) {
     const group = foldKey(row[groupColumn]);
     if (group === '') continue;
     let amount: Decimal | null = null;
     let counted = true;
-    if (valueColumn !== null) {
+    if (valueColumn !== null && spec.measure === 'count') {
+      // Counting the rows that have a value asks only whether the cell is filled in, whatever it
+      // holds: an email is no number.
+      counted = !isBlank(row[valueColumn] ?? null);
+    } else if (valueColumn !== null) {
       const cell = numberCell(row[valueColumn] ?? null);
       if ('bad' in cell) badAmounts.push(cell.bad);
       else if (cell.empty) counted = false;
@@ -149,7 +165,7 @@ export function runGroupTotal(
       else day = cell.day;
     }
     const list = entries.get(group) ?? [];
-    list.push({ day, amount, counted });
+    list.push({ row: at, day, amount, counted });
     entries.set(group, list);
   }
   if (valueColumn !== null && badAmounts.length > 0) {
@@ -241,6 +257,19 @@ export function runGroupTotal(
     candidates.push({
       // Ranges of one group never overlap, so two of them share no rows and are no near-duplicates.
       family: `total:${table.name}:${groupColumn}=${group}${range === null ? '' : `:${range.from}`}`,
+      identity: canonicalJson([
+        'total',
+        foldKey(table.name),
+        foldKey(groupColumn),
+        group,
+        spec.measure,
+        valueColumn === null ? null : foldKey(valueColumn),
+        spec.unit,
+        dateColumn === null ? null : foldKey(dateColumn),
+        range?.from ?? null,
+        range?.to ?? null,
+      ]),
+      rows: rows.map((entry) => entry.row),
       prompt: [question, hint, `End with: ANSWER: {"${key}": <number>}`].join('\n'),
       expected: {
         kind: 'answer',

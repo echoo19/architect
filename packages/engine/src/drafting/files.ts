@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { basename, extname, resolve } from 'node:path';
-import { TaskSchema, type DataFile, type Task } from '@architect/shared';
+import { DRAFTING_LIMITS, TaskSchema, type DataFile, type Task } from '@architect/shared';
 import { profileColumn, readTable, type ColumnProfile, type Table } from './table';
 import { cleanText } from './values';
 
@@ -183,12 +183,18 @@ export async function readAttachments(paths: readonly string[]): Promise<Attache
   return { files, tasks };
 }
 
+/** Each attached file's name and the hash of its bytes. */
+export function hashesOf(attached: Attached): { name: string; sha256: string }[] {
+  return attached.files.map((file) => ({
+    name: file.name,
+    sha256: createHash('sha256').update(file.bytes).digest('hex'),
+  }));
+}
+
 /** The hash of everything attached, for a seed that follows from the files. */
 export function digestOf(attached: Attached): string[] {
   return [
-    ...attached.files.map(
-      (file) => `${file.name}:${createHash('sha256').update(file.bytes).digest('hex')}`,
-    ),
+    ...hashesOf(attached).map(({ name, sha256 }) => `${name}:${sha256}`),
     ...(attached.tasks === null
       ? []
       : [
@@ -206,6 +212,21 @@ const FIRST_ROWS = 5;
 const CELL_WIDTH = 40;
 const WIDE_PROFILE = 30;
 const WIDE_ROWS = 12;
+
+/**
+ * The rows of each table the teacher is shown: the first few, by position. The tasks are made
+ * without any request whose answer comes only from these rows, so nothing in the practice tasks or
+ * the final test is something the teacher has already read the answer to.
+ */
+export function shownRowsOf(attached: Attached): Map<string, Set<number>> {
+  return new Map(
+    attached.files.flatMap((file) =>
+      file.table === undefined
+        ? []
+        : [[file.name, new Set(file.table.rows.slice(0, FIRST_ROWS).keys())] as const],
+    ),
+  );
+}
 
 function clip(text: string, width: number): string {
   return text.length > width ? `${text.slice(0, width - 3)}...` : text;
@@ -258,15 +279,36 @@ export function describeTable(file: Attachment, budget: number): string {
   return text.length > budget ? `${text.slice(0, budget - 40)}\n[The rest is left out.]` : text;
 }
 
-/** What the teacher is told of a text file: its start, cut at a line. */
-export function describeText(file: Attachment, budget: number): string {
+/**
+ * What the teacher is told of a text file: all of it. A rule read from part of a policy can leave
+ * out the exception that matters, so a text is given whole or the job isn't drafted
+ * (`textTooLong`).
+ */
+export function describeText(file: Attachment): string {
   const text = file.text ?? '';
   const header = `### ${file.name} (text, ${text.length.toLocaleString('en-US')} characters)`;
-  if (text.length <= budget) return `${header}\n${text.trim()}`;
-  const cut = text.slice(0, budget);
-  const line = cut.lastIndexOf('\n');
-  const start = (line > budget / 2 ? cut.slice(0, line) : cut).trim();
-  return `${header}\n${start}\n[The rest of the file is not shown.]`;
+  return `${header}\n${text.trim()}`;
+}
+
+/**
+ * Why the text files can't be given to the teacher whole, or null when they can. Nothing is cut
+ * to fit: the person is asked for the section that matters instead.
+ */
+export function textTooLong(attached: Attached): string | null {
+  const { maxTextChars, maxTotalTextChars } = DRAFTING_LIMITS;
+  const number = (value: number) => value.toLocaleString('en-US');
+  const texts = attached.files.filter((file) => file.kind === 'text');
+  for (const file of texts) {
+    const length = file.text?.length ?? 0;
+    if (length > maxTextChars) {
+      return `${file.name} is ${number(length)} characters long, more than the ${number(maxTextChars)} Architect reads from one text file. A rule read from part of a policy can leave out the exception that matters, so Architect won't use part of it. Attach just the section the job needs, such as the part on pricing, and describe the job again.`;
+    }
+  }
+  const total = texts.reduce((sum, file) => sum + (file.text?.length ?? 0), 0);
+  if (total > maxTotalTextChars) {
+    return `Your text files add up to ${number(total)} characters, more than the ${number(maxTotalTextChars)} Architect reads in all. Attach only the sections the job needs, and describe the job again.`;
+  }
+  return null;
 }
 
 /** What the teacher is told of a tasks file: only how many tasks and of which types. */
@@ -279,19 +321,19 @@ export function describeTasks(file: TasksFile): string {
   ].join('\n');
 }
 
-/** Characters of table descriptions and of text the teacher is sent in all, at most. */
+/** Characters of table descriptions the teacher is sent in all, at most. */
 const TABLES_BUDGET = 40_000;
-const TEXT_BUDGET = 16_000;
 
-/** Everything the teacher is told of the attached files, within a size that keeps its answer quick. */
+/**
+ * Everything the teacher is told of the attached files: a profile and the first rows of each
+ * table within a size that keeps its answer quick, and every text whole.
+ */
 export function describeAttached(attached: Attached): string {
   const tables = attached.files.filter((file) => file.kind === 'table');
-  const texts = attached.files.filter((file) => file.kind === 'text');
   const perTable = Math.max(2_500, Math.floor(TABLES_BUDGET / Math.max(1, tables.length)));
-  const perText = Math.min(4_000, Math.floor(TEXT_BUDGET / Math.max(1, texts.length)));
   return [
     ...attached.files.map((file) =>
-      file.kind === 'table' ? describeTable(file, perTable) : describeText(file, perText),
+      file.kind === 'table' ? describeTable(file, perTable) : describeText(file),
     ),
     ...(attached.tasks === null ? [] : [describeTasks(attached.tasks)]),
   ].join('\n\n');

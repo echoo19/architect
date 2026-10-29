@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { copyFile, cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 import {
   CodedError,
@@ -7,15 +7,20 @@ import {
   isBaselineMethod,
   JobSchema,
   newId,
+  RuleConfirmationSchema,
   TaskSchema,
   type DraftRecord,
   type Job,
   type JobRun,
   type JobSummary,
+  type RuleConfirmation,
+  type RuleConfirmationState,
+  type RuleReport,
   type Task,
   type TaskPlan,
 } from '@architect/shared';
 import { z } from 'zod';
+import { bindingOf, reportsOf, ruleTypesOf, stateOf, type Binding } from '../drafting/confirmation';
 import { buildTaskPlan } from '../drafting/plan';
 import { ContractBook } from '../graduates/contracts';
 import type { EngineStore } from '../store/engine-store';
@@ -44,6 +49,10 @@ function checkTasks(job: Job, tasks: readonly Task[]): void {
       throw new Error(`Task "${task.id}" has type "${task.type}", which the job doesn't declare.`);
     }
   }
+}
+
+async function exists(path: string): Promise<boolean> {
+  return (await stat(path).catch(() => null)) !== null;
 }
 
 /** The first thing a schema found wrong, in a few words: `format: Invalid input`. */
@@ -128,6 +137,8 @@ export interface NewJob {
  */
 export class JobLibrary {
   private readonly taskCache = new Map<string, Task[]>();
+  /** The jobs being made now in this process, which an interrupted one is told apart from. */
+  private readonly finalizing = new Set<string>();
 
   constructor(
     private readonly store: EngineStore,
@@ -187,6 +198,17 @@ export class JobLibrary {
   }
 
   /**
+   * The job as it was when the run started, for work that is about to use the job's records as
+   * they are now: refused, with the reason, unless its rules are confirmed over them (decision
+   * 061). A re-test or a measure of a finished run is such work too.
+   */
+  async forWork(record: StoredRun): Promise<Job> {
+    const job = await this.forRun(record);
+    await this.requireConfirmedRules(job);
+    return job;
+  }
+
+  /**
    * Saves the editable job. When its scope or success criteria differ from every contract
    * version it had, that makes a new version; earlier versions, and the graduation results
    * measured against them, stay as they were. A checker file chosen from elsewhere on this
@@ -236,36 +258,110 @@ export class JobLibrary {
     const tasks = await readTasks(join(source, 'tasks.jsonl'));
     checkTasks(job, tasks);
 
-    for (const data of job.data.files) {
-      await copyInto(
-        join(source, 'data', data.name),
-        join(this.paths.dataDir(job.id), data.name),
-        `The data file "${data.name}" is missing; it belongs in a data folder next to the job file.`,
-      );
-    }
-    if (job.checker.kind === 'module') {
-      const checker = insidePath(job.checker.path);
-      await copyInto(
-        join(source, checker),
-        join(this.paths.jobDir(job.id), checker),
-        `The checker "${job.checker.path}" is missing next to the job file.`,
-      );
-    }
-    if (job.startingHarness.kind === 'import') {
-      const folder = insidePath(job.startingHarness.path);
-      const from = join(source, folder);
-      if (!(await stat(from).catch(() => null))?.isDirectory()) {
-        throw new Error(
-          `The starting harness folder "${job.startingHarness.path}" is missing next to the job file.`,
+    return this.finalize(job, async () => {
+      for (const data of job.data.files) {
+        await copyInto(
+          join(source, 'data', data.name),
+          join(this.paths.dataDir(job.id), data.name),
+          `The data file "${data.name}" is missing; it belongs in a data folder next to the job file.`,
         );
       }
-      await cp(from, join(this.paths.jobDir(job.id), folder), { recursive: true });
-    }
-    if (tasks.length > 0) await this.installTasks(job, tasks);
+      if (job.checker.kind === 'module') {
+        const checker = insidePath(job.checker.path);
+        await copyInto(
+          join(source, checker),
+          join(this.paths.jobDir(job.id), checker),
+          `The checker "${job.checker.path}" is missing next to the job file.`,
+        );
+      }
+      if (job.startingHarness.kind === 'import') {
+        const folder = insidePath(job.startingHarness.path);
+        const from = join(source, folder);
+        if (!(await stat(from).catch(() => null))?.isDirectory()) {
+          throw new Error(
+            `The starting harness folder "${job.startingHarness.path}" is missing next to the job file.`,
+          );
+        }
+        await cp(from, join(this.paths.jobDir(job.id), folder), { recursive: true });
+      }
+      if (tasks.length > 0) await this.installTasks(job, tasks);
 
-    await writeJsonFile(this.paths.jobFile(job.id), job);
-    this.record(job, tasks.length);
-    return job;
+      await writeJsonFile(this.paths.jobFile(job.id), job);
+      this.record(job, tasks.length);
+      return job;
+    });
+  }
+
+  /**
+   * Makes a job all at once or not at all: its folder, its tasks, its sealed final test and its
+   * place in the library. A step that fails takes back the others, the seal and the folder, and
+   * says why, so a second try finds nothing of the first and keeps the job's id. A mark in the
+   * folder, there from the first file to the last step, tells the next start that the app closed
+   * in the middle (`recoverInterrupted`). `work` ends with the job's place in the library.
+   */
+  private async finalize(job: Job, work: () => Promise<Job>): Promise<Job> {
+    const { id } = job;
+    this.finalizing.add(id);
+    let made: Job;
+    try {
+      // What an earlier try left under this id is not part of this one.
+      if (await exists(this.paths.finalizingMark(id))) await this.takeBack(id);
+      await mkdir(this.paths.jobDir(id), { recursive: true });
+      await writeFile(this.paths.finalizingMark(id), '');
+      made = await work();
+    } catch (error) {
+      // Should taking back fail too, the mark stays and the next start finishes it, and says so.
+      await this.takeBack(id).catch(() => undefined);
+      throw error;
+    } finally {
+      this.finalizing.delete(id);
+    }
+    // The job is whole and in the library. A mark that can't be removed now only says it wasn't
+    // yet, and the next start clears it.
+    await rm(this.paths.finalizingMark(id), { force: true }).catch(() => undefined);
+    return made;
+  }
+
+  /** Takes back what making a job wrote: its seal first, so a folder never outlives it unmarked. */
+  private async takeBack(jobId: string): Promise<void> {
+    await this.deps.vault.discard(jobId);
+    await rm(this.paths.jobDir(jobId), { recursive: true, force: true });
+  }
+
+  /**
+   * Finishes what an app that closed in the middle of making a job left behind: the folder, its
+   * tasks and its seal of a job that never reached the library are taken back, and the mark of one
+   * that did is cleared. A job being made now is left alone. Returns the jobs taken back. A job
+   * that can't be taken back is reported through `onError` and tried again at the next start.
+   */
+  async recoverInterrupted(onError?: (error: unknown) => void): Promise<string[]> {
+    let names: string[];
+    try {
+      names = await readdir(this.paths.jobs);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+      throw error;
+    }
+    const taken: string[] = [];
+    for (const id of names) {
+      if (!isSafeId(id) || this.finalizing.has(id)) continue;
+      if (!(await exists(this.paths.finalizingMark(id)))) continue;
+      try {
+        if (this.store.jobs.get(id) === null) {
+          await this.takeBack(id);
+          taken.push(id);
+        } else {
+          await rm(this.paths.finalizingMark(id), { force: true });
+        }
+      } catch (error) {
+        onError?.(
+          new Error(`The job "${id}" was left half made and could not be cleared away.`, {
+            cause: error,
+          }),
+        );
+      }
+    }
+    return taken;
   }
 
   /**
@@ -279,8 +375,7 @@ export class JobLibrary {
     const tasks = [...input.tasks];
     checkTasks(job, tasks);
     this.deps.runtime.splitTasks(tasks, job.splits);
-    const folder = this.paths.jobDir(job.id);
-    try {
+    return this.finalize(job, async () => {
       for (const file of input.files) {
         const target = join(this.paths.dataDir(job.id), file.name);
         await mkdir(dirname(target), { recursive: true });
@@ -289,12 +384,9 @@ export class JobLibrary {
       await writeJsonFile(this.paths.draftingFile(job.id), DraftRecordSchema.parse(input.drafting));
       await writeJsonFile(this.paths.jobFile(job.id), job);
       await this.installTasks(job, tasks);
-    } catch (error) {
-      await rm(folder, { recursive: true, force: true });
-      throw error;
-    }
-    this.record(job, tasks.length);
-    return job;
+      this.record(job, tasks.length);
+      return job;
+    });
   }
 
   /** What drafting a job left beside it, or null for a job whose tasks came with it. */
@@ -312,7 +404,8 @@ export class JobLibrary {
   /**
    * What a job's tasks are: where they came from, the rule behind each type, a few examples with
    * their expected answers, and how many sit in each set. The examples come from the practice and
-   * starting sets; the final test is only counted.
+   * starting sets; the final test is only counted. A job with a rule also says whether the person
+   * has confirmed it over these records.
    */
   async taskPlan(jobId: string): Promise<TaskPlan> {
     const job = await this.get(jobId);
@@ -324,12 +417,110 @@ export class JobLibrary {
     const sealed = (await this.deps.vault.isSealed(jobId))
       ? await this.deps.vault.typeCounts(jobId)
       : {};
-    return buildTaskPlan({
-      job,
-      draft: await this.drafting(jobId),
-      visible: { calibration, train, dev },
-      sealed,
-    });
+    const confirmation = await this.ruleState(jobId);
+    return {
+      ...buildTaskPlan({
+        job,
+        draft: await this.drafting(jobId),
+        visible: { calibration, train, dev },
+        sealed,
+      }),
+      ...(confirmation === null ? {} : { confirmation }),
+    };
+  }
+
+  /** What the person confirmed about a job's rules, or null while nothing is confirmed. */
+  private async confirmation(jobId: string): Promise<RuleConfirmation | null> {
+    try {
+      return RuleConfirmationSchema.parse(await readJsonFile(this.paths.confirmationFile(jobId)));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw error;
+    }
+  }
+
+  /** The rules and the records as they are now, hashed, for comparing with what was confirmed. */
+  private async binding(job: Job, draft: DraftRecord): Promise<Binding> {
+    return bindingOf(
+      draft,
+      job.data.files.map((file) => file.name),
+      async (name) => {
+        try {
+          return await readFile(join(this.paths.dataDir(job.id), name));
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+          throw error;
+        }
+      },
+    );
+  }
+
+  /**
+   * Whether a job's rules are confirmed over the records the tasks were made from. Null for a
+   * job with no rule, which has nothing to confirm.
+   */
+  async ruleState(jobId: string): Promise<RuleConfirmationState | null> {
+    const draft = await this.drafting(jobId);
+    if (draft === null || ruleTypesOf(draft).length === 0) return null;
+    const job = await this.get(jobId);
+    return stateOf(draft, await this.confirmation(jobId), await this.binding(job, draft));
+  }
+
+  /**
+   * Records that the person confirmed the job's rules over these records. `token` is what the
+   * screen showed them (`ruleState`'s), so a rule or a file that changed since is refused rather
+   * than confirmed unseen.
+   */
+  async confirmRules(jobId: string, token: string): Promise<RuleConfirmationState> {
+    const draft = await this.drafting(jobId);
+    if (draft === null || ruleTypesOf(draft).length === 0) {
+      throw new Error('This job has no rule to confirm.');
+    }
+    const job = await this.get(jobId);
+    const now = await this.binding(job, draft);
+    const state = stateOf(draft, null, now);
+    if (state.state === 'changed') {
+      throw new CodedError('rule_changed', state.problem ?? 'The records changed.');
+    }
+    if (token !== now.token) {
+      throw new CodedError(
+        'rule_changed',
+        'The rule or the records changed since you looked at them. Look at the rule again, then confirm it.',
+      );
+    }
+    const confirmedAt = isoNow(this.clock);
+    await writeJsonFile(this.paths.confirmationFile(jobId), {
+      format: 1,
+      confirmedAt,
+      rules: now.rules,
+      files: now.files,
+    } satisfies RuleConfirmation);
+    return { state: 'confirmed', token: now.token, confirmedAt };
+  }
+
+  /** Refuses a run on a job whose rules the person has not confirmed over these records. */
+  async requireConfirmedRules(job: Job): Promise<void> {
+    const state = await this.ruleState(job.id);
+    if (state === null || state.state === 'confirmed') return;
+    if (state.state === 'needed') {
+      throw new CodedError(
+        'rule_unconfirmed',
+        `The rule for "${job.name}" isn't confirmed yet. Open the job, check the rule against your policy and confirm it before training.`,
+      );
+    }
+    throw new CodedError('rule_changed', state.problem ?? 'The records changed.');
+  }
+
+  /** The job's rules as the report says them, each with when the person confirmed it. */
+  async ruleReports(jobId: string): Promise<RuleReport[]> {
+    const draft = await this.drafting(jobId);
+    if (draft === null) return [];
+    const job = await this.get(jobId);
+    return reportsOf(
+      draft,
+      new Map(job.taskTypes.map((type) => [type.id, type.label])),
+      await this.confirmation(jobId),
+    );
   }
 
   private record(job: Job, taskCount: number): void {

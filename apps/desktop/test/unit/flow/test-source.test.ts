@@ -12,6 +12,26 @@ describe('where the final test came from', () => {
     );
   });
 
+  it('leaves the caveat to the sentence beside the score when the answers follow a rule', () => {
+    const rule = {
+      typeId: 'cost',
+      label: 'Ticket totals',
+      version: 'db5fc3156380',
+      statement: 'Add parts cost.',
+      passages: [],
+      conventions: [],
+      cases: { total: 10, eligible: 10 },
+      excluded: [],
+      branches: [],
+      flags: [],
+      confirmedAt: '2026-10-29T12:00:00.000Z',
+      expression: { op: 'num' as const, value: '1' },
+    };
+    expect(testSourceNote({ source: 'generated', rules: [rule] }, 'Spark')).toBe(
+      "The final test's requests were made by Architect from your files, following a job Spark drafted.",
+    );
+  });
+
   it('says a final test taken from attached tasks has the answers they came with, and no more', () => {
     const note = testSourceNote({ source: 'attached' }, 'Spark');
     expect(note).toBe(

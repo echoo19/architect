@@ -74,6 +74,7 @@ const totals: TypeInput = {
 function candidate(family: string, answerKey: string, n: number): Candidate {
   return {
     family,
+    identity: `question ${n}`,
     prompt: `Request ${n}`,
     expected: { kind: 'answer', value: n, compare: { mode: 'exact' } },
     answerKey,
@@ -273,6 +274,165 @@ describe('making the tasks of a job', () => {
       expect(splits.test.some((task) => task.type === type)).toBe(true);
       expect(splits.train.some((task) => task.type === type)).toBe(true);
     }
+  });
+});
+
+/** A list of orders for each pair of a customer and a region, with the two named in this order. */
+function ordersBy(id: string, first: string, second: string, request: string): TypeInput {
+  return {
+    id,
+    label: `Orders of ${first} and ${second} (${id})`,
+    description: 'List the orders of a customer in a region.',
+    spec: {
+      template: 'filtered_list',
+      table: 'orders.csv',
+      keyColumn: 'order_id',
+      filters: [
+        { column: first, op: 'equals', varies: true },
+        { column: second, op: 'equals', varies: true },
+      ],
+      request,
+    },
+  };
+}
+
+/** What a task asks, apart from how its type worded it. */
+const askedOf = (task: { meta?: Record<string, unknown> }): string =>
+  JSON.stringify([task.meta?.['customer_id'], task.meta?.['region']]);
+
+describe('asking one question once', () => {
+  // Reordering the two conditions of a list makes the same questions with the same answers, which
+  // used to be given different families: one could be a practice task and the other a final test.
+  const crowd = readTable('orders.csv', shopData('twice', 200, 40).ordersCsv);
+  const small = new Map([['orders.csv', crowd]]);
+  const forward = ordersBy(
+    'forward',
+    'customer_id',
+    'region',
+    'Which orders did customer {customer_id} place in the {region} region?',
+  );
+
+  it('leaves out a kind of task that asks what an earlier one asks with its conditions reordered', () => {
+    const backward = ordersBy(
+      'backward',
+      'region',
+      'customer_id',
+      'Which orders did customer {customer_id} place in the {region} region?',
+    );
+    const made = generateTasks([forward, backward], small, 5);
+    expect(made.types.map((type) => type.id)).toEqual(['forward']);
+    expect(made.rejected).toHaveLength(1);
+    expect(made.rejected[0]?.id).toBe('backward');
+    expect(made.rejected[0]?.problems[0]).toContain(
+      `asks what "${forward.label}" already asks, in other words`,
+    );
+    const prompts = made.tasks.map((task) => task.prompt);
+    expect(new Set(prompts).size).toBe(prompts.length);
+  });
+
+  it('knows the same question when it is worded differently', () => {
+    const reworded = ordersBy(
+      'reworded',
+      'region',
+      'customer_id',
+      'In the {region} region, list the orders of {customer_id}.',
+    );
+    const made = generateTasks([forward, reworded], small, 5);
+    expect(made.rejected.map((item) => item.id)).toEqual(['reworded']);
+    expect(made.tasks.every((task) => task.type === 'forward')).toBe(true);
+  });
+
+  it('never lets the same question land in the practice tasks and in the final test', () => {
+    const swapped = ordersBy(
+      'swapped',
+      'region',
+      'customer_id',
+      'Which orders did customer {customer_id} place in the {region} region?',
+    );
+    // The reproduction: two kinds of list over the same two conditions, ordered each way, beside
+    // a lookup and a total, split as a job is. Before, some final-test questions were also
+    // practice tasks, since the two kinds gave the same question different families.
+    const made = generateTasks([forward, swapped, emails, totals], tables, 3);
+    const lists = (names: readonly ('calibration' | 'train' | 'dev' | 'test')[]) =>
+      names.flatMap((name) =>
+        splits[name]
+          .filter((task) => task.type === 'forward' || task.type === 'swapped')
+          .map((task) => askedOf(task)),
+      );
+    const sizes = splitSizes(made.tasks.length);
+    const splits = splitTasks(made.tasks, { seed: 3, ...sizes });
+    const visible = new Set(lists(['calibration', 'train', 'dev']));
+    const heldOut = lists(['test']);
+    expect(heldOut.length).toBeGreaterThan(0);
+    expect(heldOut.filter((question) => visible.has(question))).toEqual([]);
+    expect(made.tasks.filter((task) => task.type === 'swapped')).toEqual([]);
+  });
+
+  it('knows a question asked with a value fixed from the same question with the value taken in turn', () => {
+    const northOnly: TypeInput = {
+      id: 'north',
+      label: 'North orders',
+      description: 'List the orders of a customer in the North region.',
+      spec: {
+        template: 'filtered_list',
+        table: 'orders.csv',
+        keyColumn: 'order_id',
+        filters: [
+          { column: 'region', op: 'equals', value: 'North', varies: false },
+          { column: 'customer_id', op: 'equals', varies: true },
+        ],
+        request: 'Which orders did customer {customer_id} place in the North region?',
+      },
+    };
+    const made = generateTasks([forward, northOnly], small, 5);
+    const asked = made.tasks
+      .filter((task) => task.type === 'forward')
+      .filter((task) => task.meta?.['region'] === 'North')
+      .map((task) => task.meta?.['customer_id']);
+    const alsoAsked = made.tasks
+      .filter((task) => task.type === 'north')
+      .map((task) => task.meta?.['customer_id']);
+    expect(alsoAsked.filter((customer) => asked.includes(customer))).toEqual([]);
+  });
+});
+
+describe('leaving out what the teacher was shown', () => {
+  it('asks nothing whose answer is a row the teacher was shown, and the rest as before', () => {
+    const shown = new Map([['customers.csv', new Set([0, 1, 2, 3, 4])]]);
+    const hidden = generateTasks([emails], tables, 7, { shown });
+    const first = tables
+      .get('customers.csv')
+      ?.rows.slice(0, 5)
+      .map((row) => row['customer_id']);
+    expect(first).toHaveLength(5);
+    const keys = hidden.tasks.map((task) => task.meta?.['key']);
+    for (const key of first ?? []) expect(keys).not.toContain(key);
+    expect(keys.length).toBeGreaterThan(30);
+    expect(hidden.types[0]?.notes.join(' ')).toContain(
+      '5 requests were left out of customers.csv: the teacher read the rows they are about while drafting',
+    );
+    // Showing no rows leaves every row to ask about.
+    const everything = generateTasks([emails], tables, 7);
+    expect(everything.tasks.map((task) => task.meta?.['key'])).toContain(first?.[0]);
+  });
+
+  it('leaves out a list only when every row it is worked out from was shown', () => {
+    const orders = tables.get('orders.csv');
+    if (orders === undefined) throw new Error('Expected the orders.');
+    const rows = (customer: string): number[] =>
+      orders.rows.flatMap((row, at) => (row['customer_id']?.trim() === customer ? [at] : []));
+    const owners = data.orders.map((order) => order.customerId);
+    const alone = owners.find((id) => owners.filter((other) => other === id).length === 1);
+    const several = owners.find((id) => owners.filter((other) => other === id).length >= 2);
+    expect(alone).toBeDefined();
+    expect(several).toBeDefined();
+    const shown = new Map([
+      ['orders.csv', new Set([...rows(alone ?? ''), ...(rows(several ?? '').slice(0, 1) ?? [])])],
+    ]);
+    const made = generateTasks([pending], tables, 7, { shown });
+    const asked = made.tasks.map((task) => task.meta?.['customer_id']);
+    expect(asked).not.toContain(alone);
+    expect(asked).toContain(several);
   });
 });
 

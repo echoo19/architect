@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { StudentTargetSchema } from './job';
 import { ScoreSchema } from './lineage';
+import { RuleReportSchema } from './rules';
 import { MethodSchema } from './run';
 
 export const TypeResultSchema = z.object({
@@ -101,6 +102,11 @@ export const ReportCardSchema = z.object({
       source: z.enum(['generated', 'attached']),
       /** What drafting the job cost the mentor, when every call had a price. */
       draftingUsd: z.number().nonnegative().optional(),
+      /**
+       * The rules the expected answers were calculated by, as the person confirmed them
+       * (decision 061). Absent for a job with none.
+       */
+      rules: z.array(RuleReportSchema).min(1).optional(),
     })
     .optional(),
 });

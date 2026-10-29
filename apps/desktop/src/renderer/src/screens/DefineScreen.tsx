@@ -9,12 +9,14 @@ import {
 import { Button, Skeleton, toast } from '@architect/ui';
 import { SlidersHorizontal } from 'lucide-react';
 import { flowApi } from '../api/client';
-import { useJob, useJobs, useSettings } from '../api/hooks';
+import { useJob, useJobs, useSettings, useTaskPlan } from '../api/hooks';
 import { ProblemState } from '../components/ProblemState';
 import { resetDraft, useDraftStore } from '../flow/describe/draft-store';
 import { AdvancedDialog, tabWithIssue, type AdvancedTab } from '../flow/define/AdvancedDialog';
 import { hostedAvailability } from '../flow/define/hosted';
 import { Capabilities, FilePermissions, JobHeader, ReadyWhen } from '../flow/define/JobOverview';
+import { RuleReview } from '../flow/define/RuleReview';
+import { trainingWait, waitLine } from '../flow/define/rule-words';
 import { RunNeeds } from '../flow/define/RunNeeds';
 import { TrainingPlace } from '../flow/define/TrainingPlace';
 import { useJobEditor } from '../flow/define/use-job-editor';
@@ -76,6 +78,9 @@ function DefineEditor({ initial }: { initial: Job }) {
   useEffect(() => reloadJobs(), [reloadJobs]);
   const taskCount = summaries.data?.find((summary) => summary.id === initial.id)?.taskCount ?? null;
   const editor = useJobEditor(initial, taskCount);
+  const taskPlan = useTaskPlan(initial.id);
+  // Whether the job has a rule to confirm is in its plan, so training waits until it is read.
+  const wait = trainingWait(taskPlan);
   const { job } = editor;
   const settings = useSettings();
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -100,6 +105,10 @@ function DefineEditor({ initial }: { initial: Job }) {
     if (!hasCopy) setTestPlace('local');
   }, [hasCopy]);
 
+  // The records can change under a confirmed rule, so read the plan again whenever a job opens.
+  const { reload: reloadPlan } = taskPlan;
+  useEffect(() => reloadPlan(), [reloadPlan]);
+
   // A conversation that didn't draft this job is abandoned once another job is open.
   useEffect(() => {
     const { saved, entries } = useDraftStore.getState().conversation;
@@ -107,7 +116,7 @@ function DefineEditor({ initial }: { initial: Job }) {
   }, [initial.id]);
 
   const start = async () => {
-    if (preflight.blocked) return;
+    if (preflight.blocked || wait !== null) return;
     setStarting(true);
     // The online copy is asked now, so a run that can't reach it stops here and says so, instead
     // of failing hours into its training.
@@ -163,15 +172,16 @@ function DefineEditor({ initial }: { initial: Job }) {
           </Button>
           <div className="flex items-center gap-2">
             <span className="mr-2 text-sm text-fg-muted">
-              {preflight.needs.length > 0
-                ? preflight.summary
-                : 'Keep Architect open while it trains'}
+              {waitLine(wait) ??
+                (preflight.needs.length > 0
+                  ? preflight.summary
+                  : 'Keep Architect open while it trains')}
             </span>
             <Button onClick={() => navigate(paths.newAgent())}>Back</Button>
             <Button
               variant="primary"
               loading={starting}
-              disabled={preflight.blocked}
+              disabled={preflight.blocked || wait !== null}
               onClick={() => void start()}
             >
               Start training
@@ -184,6 +194,20 @@ function DefineEditor({ initial }: { initial: Job }) {
         <JobHeader job={job} />
         <Capabilities job={job} />
         <RunNeeds needs={preflight.needs} onAction={preflight.act} busyId={preflight.busyId} />
+        {taskPlan.status === 'error' && (
+          <div
+            role="alert"
+            className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-danger-line px-6 py-5"
+          >
+            <p className="m-0 max-w-[560px] text-pretty">
+              {`Couldn't check whether this job has a rule to confirm: ${taskPlan.error.message} Training can't start until it is checked.`}
+            </p>
+            <Button onClick={taskPlan.reload}>Try again</Button>
+          </div>
+        )}
+        {taskPlan.data && taskPlan.status !== 'error' && (
+          <RuleReview job={job} plan={taskPlan.data} />
+        )}
         <TrainingPlace
           job={job}
           hosted={hosted}

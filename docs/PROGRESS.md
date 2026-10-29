@@ -2,6 +2,41 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Wed), main merged into the rule branch, three times
+
+**Done** (on the rule branch; nothing pushed; no model was called, the GPU stayed off)
+- Main moved a lot while the branch waited, so it was merged in three times: the job files with the final-test choice and the pre-flight, then the four fixes from the review of the app (decision 062), then the demo's scenes. Wherever the two sides met, both were kept:
+  - Define keeps main's rows for what a run needs, its choice of where the final test runs, "Up to N rounds" and the dialog for adding a key. The rule review sits between them and the training place. Start training stays off until the plan is read and the rule is confirmed, and the footer says which ("Couldn't check the job", "Confirm the rule first"). The plan is read again whenever a job opens.
+  - Results keeps main's verdict for an agent tested online and adds the note on what the score is, with the rule under Details.
+  - A job imported from a file reads it the way main does (`readJobFile`, `readTasks`) and, like a job made from a draft, is then made all at once or not at all. Saving a job still keeps its checker (`keepChecker`).
+  - README is main's short one with a single line about the rule. Architecture, the expansion checklist and the decisions say both: decision 061 (the rule) and main's 062.
+- Define now asks for the job's plan to know whether a rule waits, so a stand-in engine that shows Define has to answer for it. The shared sample replies (`SAMPLE_ENGINE`, used by the populated-screens test and by the demo recorder's second scene) did not, and the sample job's Define said it couldn't check for a rule. They answer with a plan that has no rule.
+- Captures made again and looked at in both themes: `describe` and `sample-agent-new` (the quiet line about the files drafting reads), `drafting-examples` and `drafting-tasks` (examples picked to show the variety), `rule-confirmed` and `rule-changed-dark` (they follow main's Define: the estimate for this small job is under a cent, and there is no setting for opening files outside a job that has none). `rule-define`, `flow-define-unreadable`, `define-sample` and the others that came out a few pixels different (a scrollbar, the edge of a letter) were put back.
+- Verified: `pnpm check` exits 0 (229 test files, 2,934 tests passed, 2 skipped). Hidden e2e on the app after the second merge: `rule`, `flow`, `drafting`, `retest`, `runs`, `runs-engine`, `sample-agent` and `job-files`, 76 passed; the screenshots spec, 3 passed once the sample plan was answered. The third merge touched only the demo recorder, which `pnpm e2e` does not run.
+
+**Next**
+- Merge the branch into main. The next test of the rule is still the owner's real training run on the bike shop with the answer Zero (the entry below).
+
+**Open issues**
+- A new channel that Define reads has to be answered in `SAMPLE_ENGINE` too, or the populated-screens test and the demo's second scene show an error where the sample job's Define should be.
+- `gpu-lease.test.ts` ("keeps a busy holder that goes on saying it is there") failed once in a full run while the machine was busy, and passed alone and in the next full run. It depends on the timing of other processes.
+
+## 2026-10-29 (Wed), the first real session on the rule, and fourteen fixes from it and two reviews
+
+**Done** (on the same branch; decision 061 amended; no model was called, the GPU stayed off)
+- From the real session on the bike shop (Spark, three calls, $0.09, every step of the rule right the first time): Spark asked what a ticket with no parts cost counts as, the person answered Zero, and the rule left all 62 of those tickets out anyway. An empty cell now counts as 0 when the person chooses it, and only then. The question names its column, Architect puts the two answers a rule can do (Count it as zero, Leave those rows out) whatever the teacher wrote, and sets the rule from the answer. N/A and words still leave their row out, "Leave those rows out" keeps the old behavior, and Define says it in the rule in words, in how numbers are read, in how many rows it reaches and in an example.
+- From GPT-6 Sol's review of the rule: a rule whose answers need more than 13 digits is refused (a checker that compares numbers would take two answers one step apart for the same); a branch counts as changing an answer only when the final answer changes; a rule is a copy at the job's own pass rate, not only at nine in ten; one list of currency codes (KRW and RUB were refused as not numbers); a file added to a job asks for the confirmation again, by name as well as by hash; every way a run goes on (resume, restart, released hold, stop for the final test) meets the confirmation check, and so do a re-test, a repeat and a reference; the rows the teacher is shown are left out of every set, the final test included; Start training stays off until the plan is read, and says so when it can't be.
+- From GPT-6 Astra's review of the drafter on main: two orders of the same list conditions made the same questions with different families, so the same question could be a practice task and a final-test task (23 in a reproduction, five of them review examples). Every request now carries the question it asks; a later kind of task that asks what an earlier one asks is left out or sent back with the reason; a list's family is the varying column that tells the most requests apart. A lookup keeps the day-first or month-first the person said, a count of filled cells no longer needs them to be numbers, a column named as the date column may be written 20260131, and a job is made all at once or not at all, with the engine taking back one the app left half made.
+- Verified: `pnpm check` exits 0 (219 test files, 2,782 passed, 2 skipped). Hidden e2e on the rebuilt app: `rule.spec.ts` (3, with the scripted teacher now asking what an empty parts cost counts as), `flow.spec.ts` (15, with a new test of Start training staying off while the plan is read and when it can't be) and `drafting.spec.ts` (5) pass. Each fix has a test that fails without it: the reproduction of the P1 (a list's conditions in two orders, split as a job is, with no question in both a practice set and the final test), the 13-digit answers, the final-answer branches, the pass-rate copy, KRW and RUB, a file added, every way a run goes on (the tests never give the student a chance to be reached), a failing database at the last step of making a job, the empty cell in the conversation and in the examples. Looked at in both themes: `rule-empty`, `flow-define-unreadable` and `rule-define` (the rule in words with the empty cell, how many rows it reaches, and an example whose parts cost is empty); `drafting-examples` and `drafting-tasks` were made again since the tasks differ.
+
+**Next**
+- The owner's real training run on the bike shop with the answer Zero: 62 more tickets are tasks, so the final test and the examples change.
+- The two other findings of the Astra review that are not the drafter's (a fully online run needing the local model to pin at the end, and three screens that read stale data when left and entered again) are not in this branch.
+
+**Open issues**
+- An empty cell the policy itself says counts as zero still has the question asked once: only the person's own answer declares it.
+- The first five rows of each table are left out of the tasks even when a very wide table's description is cut before it shows them, which errs on the side of caution.
+
 ## 2026-10-29 (Wed): four things a review found in the app, fixed
 
 **Done** (on a branch; decision 062; no model was called, the GPU stayed off)
@@ -28,6 +63,42 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Done**
 - A developer tool in `apps/desktop/demo`, written by GPT-6 Sol through Codex and checked here: a scene script (routes, clicks, typing at a human pace, waits, scrolls, the native file dialog, window size), frames captured from the hidden window with their real timestamps, a drawn pointer and click ripple, title cards in Architect's look, a speed-up mark for long waits, and ffmpeg assembly into a 1440x900, 30 fps H.264 video with cross-fades. It has its own Playwright config, so `pnpm e2e` never runs it, and it never writes a key.
 - Its sample, on the stand-in engine, recorded a 10.6 s video in 16 s; frames from it show the cards, the pointer and the screens cleanly. Codex's sandbox couldn't launch Electron or commit from a worktree, so the run and the commit were done outside it.
+
+## 2026-10-29 (Wed), a rule a person can confirm, and the first things a reviewer meets
+
+**Done** (on a branch; decision 061; no model was called, the GPU stayed off)
+- The four things a reviewer meets first, each fixed and tested:
+  - A list keeps rows by a set the teacher states ("status is one of Open, Waiting on parts, Ready"), never by what a row is not. A reply with "is not" is sent back with the reason, and the notes say what else the column holds. Older drafts still read.
+  - A text file goes to the teacher whole, up to 30,000 characters (60,000 in all), not cut at 4,000. A longer one ends the conversation before the teacher is asked and says to attach the section that matters.
+  - The Describe screen says, before anything is attached, that drafting reads CSV, text and Markdown files with at least 30 rows of records in all.
+  - The examples of a type show its variety: an empty or zero answer when there is one, then small, middle and large answers, each of a different size, not the first three requests.
+- A fourth template, a rule: one numeric answer per row, worked out from a policy.
+  - The teacher configures a small typed expression: exact decimals, columns of the row or of one looked-up row, plus, minus, times, division by a number, smallest, largest, rounding to a stated step (up, down or half up), and if over a category or a threshold. Architect checks it against limits (32 parts, 6 nested, 2 ifs), evaluates it with exact fractions, and writes the rule in words and the working of every example itself.
+  - It is written as a list of steps that name each other by id, not a tree inside a tree, which a provider that limits a schema's depth would refuse. A step that is wrong is named by its id.
+  - A blank, N/A or unreadable input leaves its row out, counted with its reason, never read as zero. Currency is declared, and a column that mixes currencies refuses the rule. A rule is refused when its answers are one constant, the key, or a copy of a column, or when a side of an if never changes an answer.
+  - What the policy leaves open and would change a number is asked of the person, up to three questions, and "Draft it now" doesn't skip it.
+  - The holdout stays: the rule is written from the policy and the person's answers, never from the rows, and the examples come only from practice and starting tasks.
+- Define shows the rule before anything trains: the passages of the policy it rests on, the rule in words, examples that take every side of every condition and a rounding edge (made-up numbers, said so, when no record needs rounding), the rows left out, and how numbers are read. Start training waits for Confirm the rule, and "Describe the job again" is beside it for a rule that isn't right.
+- The confirmation binds. It holds the rule's version and the hash of every data file. A changed file or rule makes the state changed and sends the person to describe the job again (a new job, new tasks); the controller refuses every kind of run on a rule that isn't confirmed, not only the button.
+- The score says what it is, beside it on Results and right after the score in the report: the expected answers follow a rule Architect calculated from Spark's reading of the policy and the person confirmed, and the score does not establish that the rule matches the business. Under Details: the rule in words and exactly as evaluated, passages, confirmation date, how numbers are read, rows left out, what each side of an if did, and whether teaching ran.
+- `scripts/draft.ts` prints the rule with its passages and examples, and `--confirm-rules` on it and on `scripts/run.ts` is the person's say-so for a headless run.
+- The owner's bike shop files through the template, with a hand-written rule and no model: 118 of the 180 tickets can be worked out, and the 62 with no parts cost are left out and counted. No real record needs rounding (the hours are already half hours and the amounts already cents), so both roundings are shown with made-up numbers.
+
+**Next**
+- The owner's real session on the bike shop: `scripts/draft.ts "<description>" customers.csv tickets.csv policy.md`, read the rule it prints (labor $65 an hour in half-hour steps, members 10% off labor and never parts), then `--confirm-rules` and `scripts/run.ts --job <id> --confirm-rules`. Watch how often the steps come back wrong and how many fixes that takes, whether Spark asks if the discount also applies to parts, what the conversation costs against its $1 cap, and whether Glimmer needs any teaching on the rule. Calibration decides that, and nothing here promises it.
+- Merge, then look at a drafted rule in the app once with a real Spark reply.
+
+**Open issues**
+- The prompt and the reply format have been tried only on a scripted teacher.
+- A blank that means zero can't be declared: those rows are left out and counted.
+- A record that changes after confirming needs a new job, and the old one stays in the library.
+- The statement of a deep rule is mechanical and its parentheses nest.
+- The made-up rounding examples go through the same evaluator as everything else, so they show what the rule does, not that the evaluator is right. That rests on the unit tests with hand-worked values.
+- Only the dark theme has a capture of the changed state (`rule-changed`).
+
+**Verified**
+- `pnpm check` exits 0 (217 test files, 2,729 passed, 2 skipped). The new unit tests: `rule-expression` (20), `rule-template` (20), `rule-examples` (5), `drafting-rule-reply` (11) and `drafting-rules` (20), `drafting-plan` (5), plus more in `drafting-templates`, `drafting-envelope`, `drafting-conversation`, the harness report and the desktop's words for the screens. Taking out the controller's confirmation check, the file-hash check, the dead-branch guard and half-up rounding each made a test fail; each was put back.
+- Hidden e2e on the rebuilt app: `rule.spec.ts` (3, the real engine with a scripted teacher: the question, the rule and its examples, training waiting, confirming, starting in both themes; a changed record and a second drafting asking for confirmation again), `flow.spec.ts` (13) and `drafting.spec.ts` (5) all pass, 21 in 5 minutes. The captures `rule-question`, `rule-define`, `rule-confirmed`, `rule-changed` and `flow-report-rule`, and the changed `describe` and `drafting-examples`, were looked at in both themes.
 
 ## 2026-10-29 (Wed): new jobs take your choices, and a run says what it needs
 
@@ -56,6 +127,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - An exported job file holds the job's settings, not its tasks or data; to give a job away, hand over its folder.
 - `permissions.unseenFiles` stays in the job and its package contract, where the package format carries it, though no screen shows it.
 - A drafted job is saved twice, once as the engine makes it and once with the person's choices; nothing runs between.
+
 
 ## 2026-10-29 (Wed), the first real drafted job, end to end
 

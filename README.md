@@ -32,6 +32,7 @@ Then describe a job of your own, try the sample job, or open the returns desk ag
 ## More
 
 - Spark and Glimmer are the defaults, not requirements. The teacher can be a model from OpenAI, Anthropic, Google or OpenRouter, or a local one in Ollama or LM Studio, and the training settings sit under Advanced. See [docs/MODELS.md](docs/MODELS.md).
+- If your files include a policy with prices, discounts or rounding, Architect shows you the rule it made from it, with worked examples, and trains only after you confirm it.
 - An agent exports as one file, or publishes to Hugging Face, private by default.
 - The `architect` command does the same from a terminal: [docs/CLI.md](docs/CLI.md).
 - How it fits together, and why: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/DECISIONS.md](docs/DECISIONS.md).

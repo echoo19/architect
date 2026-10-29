@@ -171,6 +171,9 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
   });
   // Graduates from before versions become version 1 before anyone can open them.
   await graduates.upgrade();
+  // A job that was being made when the app closed is taken back whole, with its sealed test, so
+  // nothing is left that no job owns and the job's id is free to be made again.
+  await jobs.recoverInterrupted(onError);
   // Training jobs left unfinished when the app closed are checked again, never sent again.
   options.deps.training?.worker.resume();
   controller.recover();

@@ -51,6 +51,7 @@ function setup(choices: JobChoices = CHOSEN) {
       draftStart: vi.fn(async () => turn),
       draftReply: vi.fn(async () => turn),
       taskPlan: vi.fn(async () => ({ source: 'generated' })),
+      confirmRules: vi.fn(async () => ({ state: 'confirmed', token: 'abc' })),
     },
     runs: { retest: vi.fn(async () => undefined) },
     reports: {
@@ -145,6 +146,15 @@ describe('engine handlers', () => {
       value: { source: 'generated' },
     });
     expect(engine.jobs.taskPlan).toHaveBeenCalledWith('job_1');
+  });
+
+  it("pass the person's confirmation of a job's rules on to the engine, with what they saw", async () => {
+    const { engine, call } = setup();
+    expect(await call('jobs:confirmRules', 'job_1', 'abc')).toEqual({
+      ok: true,
+      value: { state: 'confirmed', token: 'abc' },
+    });
+    expect(engine.jobs.confirmRules).toHaveBeenCalledWith('job_1', 'abc');
   });
 
   it('check the shape of path arguments before anything else', async () => {

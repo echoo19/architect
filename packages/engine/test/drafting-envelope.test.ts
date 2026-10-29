@@ -127,6 +127,28 @@ describe('a draft', () => {
     expect(job.types[1]?.spec).not.toMatchObject({ filters: [{}, { value: '' }] });
   });
 
+  it("carries the person's date order through a lookup, as it does for a total", () => {
+    const lookupOf = (dateOrder: 'day_first' | 'month_first' | '') =>
+      jobOf(
+        (
+          check(
+            draft({
+              taskTypes: [
+                { ...EMAIL_TYPE, id: 'when', columns: ['member_since'], dateOrder },
+                { ...TOTAL_TYPE, dateOrder },
+              ],
+            } as never),
+          ) as { reply: Understood }
+        ).reply,
+      ).types.map((type) => type.spec);
+    const [dayFirst, totalDayFirst] = lookupOf('day_first');
+    expect(dayFirst).toMatchObject({ template: 'lookup', dateOrder: 'day_first' });
+    expect(totalDayFirst).toMatchObject({ template: 'group_total', dateOrder: 'day_first' });
+    expect(lookupOf('month_first')[0]).toMatchObject({ dateOrder: 'month_first' });
+    // Said by nobody, it is left for the file to settle.
+    expect(lookupOf('')[0]).not.toHaveProperty('dateOrder');
+  });
+
   it('reads a pass rate written as a percentage, and refuses one that is out of range', () => {
     const rate = (passRate: number) => check(draft({ passRate } as never));
     expect(jobOf((rate(90) as { reply: Understood }).reply).passRate).toBe(0.9);
@@ -175,7 +197,7 @@ describe('a draft', () => {
     ]);
     expect(problems([EMAIL_TYPE, EMAIL_TYPE])).toEqual(['The task type id "email" is used twice.']);
     expect(problems([{ ...EMAIL_TYPE, template: '' }])).toEqual([
-      'Task type "email" needs a template: lookup, filtered_list or group_total.',
+      'Task type "email" needs a template: lookup, filtered_list, group_total or rule.',
     ]);
     expect(problems([{ ...EMAIL_TYPE, table: 'policy.md' }])[0]).toContain(
       'names the table "policy.md", which isn\'t one of the attached CSV files (customers.csv, orders.csv)',
@@ -204,6 +226,68 @@ describe('a draft', () => {
         },
       ])[0],
     ).toContain('is a lookup');
+  });
+
+  it('takes a set of values to keep, and refuses a filter that says what a row is not', () => {
+    const filters = (kept: object) => [
+      kept,
+      { column: 'customer_id', op: 'equals', value: '', varies: true },
+    ];
+    const status = { column: 'status', value: '', varies: false };
+    const set = check(
+      draft({
+        taskTypes: [
+          {
+            ...PENDING_TYPE,
+            filters: filters({ ...status, op: 'in', values: [' Open ', 'open', 'Ready'] }),
+          },
+        ],
+      }),
+    );
+    const job = jobOf(set.ok ? set.reply : undefined);
+    expect(job.types[0]?.spec).toMatchObject({
+      template: 'filtered_list',
+      filters: [{ column: 'status', op: 'in', values: ['Open', 'Ready'], varies: false }, {}],
+    });
+
+    const complement = check(
+      draft({
+        taskTypes: [
+          {
+            ...PENDING_TYPE,
+            filters: filters({ ...status, op: 'not_equals', value: 'Picked up' }),
+          },
+        ],
+      }),
+    );
+    expect(complement.ok).toBe(false);
+    if (!complement.ok) {
+      expect(complement.problems).toEqual([
+        'Task type "pending": the filter on status says what a row is not. That also keeps rows where it is empty or has a value nobody expected. Use op "in" and list every value that makes a row count, as the policy or the person names them.',
+      ]);
+    }
+
+    // The format the teacher is held to offers the set and no longer offers "is not".
+    const schema = replyJsonSchema(false) as unknown as {
+      properties: {
+        job: {
+          properties: {
+            taskTypes: {
+              items: {
+                properties: {
+                  filters: {
+                    items: { properties: { op: { enum: string[] }; values: { type: string } } };
+                  };
+                };
+              };
+            };
+          };
+        };
+      };
+    };
+    const filter = schema.properties.job.properties.taskTypes.items.properties.filters.items;
+    expect(filter.properties.op.enum).toEqual(['equals', 'in', 'empty', 'not_empty', '']);
+    expect(filter.properties.values.type).toBe('array');
   });
 
   it('takes the types of an attached tasks file as they are, and only names and describes them', () => {

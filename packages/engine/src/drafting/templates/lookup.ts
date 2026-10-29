@@ -59,7 +59,8 @@ export function runLookup(spec: LookupSpec, table: Table): TemplateRun<LookupSpe
   const kinds = asked.map((column) => kindOf(cellsOf(table, column)));
   const dayOrders = asked.map((column, index) => {
     if (kinds[index] !== 'date') return null;
-    const order = resolveDateOrder(cellsOf(table, column), column, undefined);
+    // What the person said about how a date like 03/04/2026 reads wins whenever the cells allow it.
+    const order = resolveDateOrder(cellsOf(table, column), column, spec.dateOrder);
     if (order.problem) problems.push(order.problem);
     if (order.assumed) {
       notes.push(
@@ -99,7 +100,8 @@ export function runLookup(spec: LookupSpec, table: Table): TemplateRun<LookupSpe
   const candidates: Candidate[] = [];
   let unreadable = 0;
   let missing = 0;
-  for (const row of table.rows) {
+  const askedAbout = asked.map(foldKey).sort();
+  for (const [at, row] of table.rows.entries()) {
     const keyText = cleanText(row[keyColumn]);
     if (keyText === '' || (keys.get(keyText.toLowerCase()) ?? 0) !== 1) continue;
     const values: JsonValue[] = [];
@@ -148,6 +150,14 @@ export function runLookup(spec: LookupSpec, table: Table): TemplateRun<LookupSpe
     const question = fillRequest(spec.request, { key: keyText });
     candidates.push({
       family: `row:${table.name}:${keyColumn}=${keyText.toLowerCase()}`,
+      identity: canonicalJson([
+        'lookup',
+        foldKey(table.name),
+        foldKey(keyColumn),
+        foldKey(keyText),
+        askedAbout,
+      ]),
+      rows: [at],
       prompt: [question, ...hints, `End with: ANSWER: ${shape}`].join('\n'),
       expected: {
         kind: 'facts',

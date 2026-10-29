@@ -1,21 +1,25 @@
 import {
+  BLANK_ANSWERS,
   CodedError,
   GuardError,
   JobSchema,
   newId,
   shippedModels,
   slugify,
+  type BlankAnswer,
   type ChatMessage,
   type DraftRecord,
   type DraftTurn,
   type MentorAdapter,
   type MentorCompletionRequest,
   type MentorConfig,
+  type RuleDetails,
+  type RuleFrom,
   type Task,
   type TaskSpec,
 } from '@architect/shared';
 import { MentorGate } from '../mentor/gate';
-import type { Clock, JobDrafter, LoopDeps } from '../loop/deps';
+import type { Clock, JobDrafter, LoopDeps, TaskSplits } from '../loop/deps';
 import type { JobLibrary } from '../loop/jobs';
 import { connectTeacher } from '../loop/setup';
 import { isoNow } from '../loop/time';
@@ -29,7 +33,19 @@ import {
   type DraftedJob,
   type Question,
 } from './envelope';
-import { describeAttached, digestOf, readAttachments, totalRows, type Attached } from './files';
+import {
+  describeAttached,
+  digestOf,
+  hashesOf,
+  readAttachments,
+  shownRowsOf,
+  textTooLong,
+  totalRows,
+  type Attached,
+} from './files';
+import type { RuleCase } from './rule/cases';
+import { chooseExamples } from './rule/examples';
+import type { RuleOutcome } from './rule/outcome';
 import {
   generateTasks,
   MIN_PER_TYPE,
@@ -44,6 +60,7 @@ import {
   DRAFT_MAX_OUTPUT_TOKENS,
   fixMessage,
   openingMessage,
+  settledMessage,
   systemPrompt,
 } from './prompts';
 import { foldKey } from './values';
@@ -68,6 +85,19 @@ interface Spend {
   usd: number;
 }
 
+/**
+ * An open question about a rule that changes an answer, which waits for the person. One about an
+ * empty cell names the column, and is answered with one of the two choices a rule can do.
+ */
+interface Settling {
+  question: string;
+  options: string[];
+  blank?: { column: string; from: RuleFrom };
+}
+
+/** Questions about a rule Architect puts to the person in all, after which the draft ends. */
+export const MAX_RULE_QUESTIONS = 3;
+
 interface Session {
   id: string;
   description: string;
@@ -75,6 +105,13 @@ interface Session {
   /** The messages both sides have kept: the person's, and the teacher's questions. */
   history: ChatMessage[];
   questions: number;
+  /** What the person answered, which a rule may rest on. */
+  answers: { question: string; answer: string; blank?: BlankAnswer }[];
+  /** The last question the teacher asked, which the next reply answers. */
+  asking: string | null;
+  /** A question about a rule that must be answered before any job is drafted, and how many so far. */
+  settling: Settling | null;
+  ruleQuestions: number;
   spend: Spend;
   gate: MentorGate;
   busy: boolean;
@@ -121,6 +158,14 @@ function tooLittle(attached: Attached): string | null {
     : `Your files hold only ${rows} ${rows === 1 ? 'row' : 'rows'} between them, too few to make ${MIN_TASKS} different tasks to train and test on. Attach more of the records, or a tasks.jsonl file with example requests and their answers, and describe the job again.`;
 }
 
+/** Which of the two answers about an empty cell a reply is, or null when it is neither. */
+function blankMeaning(text: string): BlankAnswer['means'] | null {
+  const said = foldKey(text);
+  if (said === foldKey(BLANK_ANSWERS.zero)) return 'zero';
+  if (said === foldKey(BLANK_ANSWERS.leave_out)) return 'leave_out';
+  return null;
+}
+
 /** Spark's draft was refused, with the reasons, even after it was asked again. */
 function unusable(problems: readonly string[]): Error {
   return new Error(
@@ -147,7 +192,7 @@ export class JobDrafting implements JobDrafter {
   async start(description: string, files: string[], teacher: MentorConfig): Promise<DraftTurn> {
     if (description.trim() === '') throw new Error('Describe the job first.');
     const attached = await readAttachments(files);
-    const stop = tooLittle(attached);
+    const stop = textTooLong(attached) ?? tooLittle(attached);
     if (stop !== null) return { sessionId: newId('drf'), message: stop, options: [], ended: true };
     const session = this.open(description, attached);
     return this.run(
@@ -167,6 +212,43 @@ export class JobDrafting implements JobDrafter {
       );
     }
     const draftNow = foldKey(text) === foldKey(DRAFT_NOW);
+    const open = session.settling;
+    if (open !== null) {
+      // A question about a rule changes the numbers every answer is checked against, so it needs
+      // an answer: "Draft it now" doesn't stand in for one.
+      if (draftNow) {
+        return {
+          sessionId: session.id,
+          message: `${open.question}\n\nThis changes the numbers the agent is tested on, so it needs an answer before I can draft the job.`,
+          options: open.options,
+        };
+      }
+      let answer = text.trim();
+      let blank: BlankAnswer | undefined;
+      if (open.blank !== undefined) {
+        // Only two things can be done with an empty cell, so only one of the two is an answer.
+        const means = blankMeaning(text);
+        if (means === null) {
+          return {
+            sessionId: session.id,
+            message: `${open.question}\n\nChoose one of the answers: it decides what an empty ${open.blank.column} counts as in every row.`,
+            options: open.options,
+          };
+        }
+        answer = BLANK_ANSWERS[means];
+        blank = { ...open.blank, means };
+      }
+      session.answers.push({
+        question: open.question,
+        answer,
+        ...(blank === undefined ? {} : { blank }),
+      });
+      session.settling = null;
+      return this.run(session, teacher, settledMessage(open.question, answer, blank), true);
+    }
+    if (!draftNow && session.asking !== null) {
+      session.answers.push({ question: session.asking, answer: text.trim() });
+    }
     const mustDraft = draftNow || session.questions >= MAX_QUESTIONS;
     return this.run(session, teacher, answerMessage(text, draftNow, mustDraft), mustDraft);
   }
@@ -189,6 +271,10 @@ export class JobDrafting implements JobDrafter {
       attached,
       history: [],
       questions: 0,
+      answers: [],
+      asking: null,
+      settling: null,
+      ruleQuestions: 0,
       spend,
       gate: new MentorGate({
         leakDetector: NOTHING_SEALED,
@@ -256,13 +342,25 @@ export class JobDrafting implements JobDrafter {
     for (let attempt = 1; ; attempt += 1) {
       const final = attempt === 2;
       const reply = await this.exchange(session, mentor, sent, mustDraft);
-      const checked = checkReply(reply.json, { mustDraft, attached: session.attached });
+      const checked = checkReply(reply.json, {
+        mustDraft,
+        attached: session.attached,
+        said: {
+          description: session.description,
+          answers: session.answers.map((item) => item.answer).join('\n'),
+          blanks: session.answers.flatMap((item) => (item.blank === undefined ? [] : [item.blank])),
+        },
+      });
       let problems: string[];
       if (!checked.ok) {
         problems = checked.problems;
       } else if (checked.reply.action === 'ask') {
         return this.asked(session, messages, reply.text, checked.reply);
       } else {
+        // A rule that depends on something the policy leaves open is not made: the person is
+        // asked, whether or not they chose to draft now.
+        const open = checked.reply.job.types.flatMap((type) => type.ambiguities ?? [])[0];
+        if (open !== undefined) return this.settle(session, messages, reply.text, open);
         const made = this.build(session, checked.reply.job, final);
         if ('built' in made) return await this.drafted(session, teacher, made.built);
         problems = made.problems;
@@ -313,11 +411,39 @@ export class JobDrafting implements JobDrafter {
   ): DraftTurn {
     session.history = [...messages, { role: 'assistant', content: text }];
     session.questions += 1;
+    session.asking = question.message;
     return {
       sessionId: session.id,
       message: question.message,
       options: [...question.options, DRAFT_NOW],
     };
+  }
+
+  /**
+   * Puts to the person a question about a rule that changes what the answers are. It offers no way
+   * to draft anyway, and after a few that stay open the conversation ends: a rule that rests on
+   * something nobody settled would give a score that means nothing.
+   */
+  private settle(
+    session: Session,
+    messages: ChatMessage[],
+    text: string,
+    open: Settling,
+  ): DraftTurn {
+    session.history = [...messages, { role: 'assistant', content: text }];
+    if (session.ruleQuestions >= MAX_RULE_QUESTIONS) {
+      this.sessions.delete(session.id);
+      return {
+        sessionId: session.id,
+        message: `I still can't settle this from your policy: ${open.question} A rule that depends on it would be tested against numbers nobody confirmed, so I haven't drafted one. Say it in your policy or in your description, then describe the job again.`,
+        options: [],
+        ended: true,
+      };
+    }
+    session.ruleQuestions += 1;
+    session.settling = open;
+    session.asking = null;
+    return { sessionId: session.id, message: open.question, options: open.options };
   }
 
   /**
@@ -357,7 +483,10 @@ export class JobDrafting implements JobDrafter {
       ...digestOf(attached),
       ...inputs.map((input) => JSON.stringify([input.id, input.spec])),
     ]);
-    const generation = generateTasks(inputs, tables, seed);
+    const generation = generateTasks(inputs, tables, seed, {
+      shown: shownRowsOf(attached),
+      passRate: job.passRate,
+    });
     const problems = generation.rejected.flatMap((type) =>
       type.problems.map((problem) => `Task type "${type.id}" (${type.label}): ${problem}`),
     );
@@ -383,8 +512,8 @@ export class JobDrafting implements JobDrafter {
 
   /** Records the drafted job, or ends the conversation when the files can't train one. */
   private async drafted(session: Session, teacher: MentorConfig, built: Built): Promise<DraftTurn> {
-    const tasks = this.fitToSplits(built);
-    if (tasks === null) {
+    const fitted = this.fitToSplits(built);
+    if (fitted === null) {
       this.sessions.delete(session.id);
       return {
         sessionId: session.id,
@@ -396,6 +525,7 @@ export class JobDrafting implements JobDrafter {
         ended: true,
       };
     }
+    const { tasks, splits } = fitted;
     const sizes = splitSizes(tasks.length);
     const { job: drafted } = built;
     const kept = new Set(tasks.map((task) => task.type));
@@ -450,10 +580,16 @@ export class JobDrafting implements JobDrafter {
       ),
     ];
     const { spend } = session;
-    const specs = new Map<string, { rule: string; spec: TaskSpec }>(
+    const specs = new Map<string, { rule: string; spec: TaskSpec; details?: RuleDetails }>(
       (built.generation?.types ?? []).map((type) => [
         type.id,
-        { rule: type.rule, spec: type.spec },
+        {
+          rule: type.rule,
+          spec: type.spec,
+          ...(type.outcome === undefined
+            ? {}
+            : { details: this.detailsOf(type.id, type.outcome, splits) }),
+        },
       ]),
     );
     const record: DraftRecord = {
@@ -471,6 +607,8 @@ export class JobDrafting implements JobDrafter {
       types: types.map((type) => ({ id: type.id, ...(specs.get(type.id) ?? {}) })),
       unresolved: drafted.unresolved,
       notes,
+      ...(session.answers.length > 0 ? { answers: session.answers } : {}),
+      files: hashesOf(session.attached),
     };
     const created = await this.options.jobs.create({
       job,
@@ -492,16 +630,16 @@ export class JobDrafting implements JobDrafter {
    * tasks can't be divided loses its last tasks, one at a time from its largest kind, until they
    * can; one left with too few to train on is null.
    */
-  private fitToSplits(built: Built): Task[] | null {
+  private fitToSplits(built: Built): { tasks: Task[]; splits: TaskSplits } | null {
     const tasks = [...built.tasks];
     for (;;) {
       if (!trainable(tasks.length)) return null;
       try {
-        this.options.deps.runtime.splitTasks(tasks, {
+        const splits = this.options.deps.runtime.splitTasks(tasks, {
           seed: built.seed,
           ...splitSizes(tasks.length),
         });
-        return tasks;
+        return { tasks, splits };
       } catch (error) {
         if (!(error instanceof SplitError)) throw error;
         const counts = new Map<string, number>();
@@ -512,6 +650,25 @@ export class JobDrafting implements JobDrafter {
         tasks.splice(at, 1);
       }
     }
+  }
+
+  /**
+   * What a rule came to, with the examples a person confirms it by. They are chosen from the
+   * practice and starting tasks of the job's own split, never the check tasks or the final test.
+   */
+  private detailsOf(id: string, outcome: RuleOutcome, splits: TaskSplits): RuleDetails {
+    const visible = [...splits.train, ...splits.calibration].filter((task) => task.type === id);
+    const byKey = new Map(outcome.cases.map((item) => [item.key, item]));
+    const taskOf = new Map<string, string>();
+    const cases: RuleCase[] = [];
+    for (const task of visible) {
+      const key = task.meta?.['key'];
+      const found = typeof key === 'string' ? byKey.get(key) : undefined;
+      if (found === undefined || typeof key !== 'string') continue;
+      taskOf.set(key, task.id);
+      cases.push(found);
+    }
+    return { ...outcome.details, ...chooseExamples(outcome, cases, taskOf) };
   }
 
   private draftMessage(unresolved: readonly string[], dropped: Built['dropped']): string {

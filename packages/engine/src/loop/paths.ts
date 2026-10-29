@@ -41,8 +41,21 @@ export class DataPaths {
     return join(this.root, 'jobs', safe(jobId));
   }
 
+  /** Every job's folder is in this one. */
+  get jobs(): string {
+    return join(this.root, 'jobs');
+  }
+
   jobFile(jobId: string): string {
     return join(this.jobDir(jobId), 'job.json');
+  }
+
+  /**
+   * Present while a job is being made, from its folder's first file to its place in the library.
+   * A folder that has it and no place in the library is what an interrupted job leaves.
+   */
+  finalizingMark(jobId: string): string {
+    return join(this.jobDir(jobId), 'finalizing');
   }
 
   dataDir(jobId: string): string {
@@ -52,6 +65,11 @@ export class DataPaths {
   /** What drafting the job left: where its tasks came from, and what drafting cost. */
   draftingFile(jobId: string): string {
     return join(this.jobDir(jobId), 'drafting.json');
+  }
+
+  /** What the person confirmed about a job's rules, and over which records (decision 061). */
+  confirmationFile(jobId: string): string {
+    return join(this.jobDir(jobId), 'confirmation.json');
   }
 
   tasksFile(jobId: string, split: VisibleSplit): string {
