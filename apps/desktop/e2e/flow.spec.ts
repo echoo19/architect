@@ -590,6 +590,50 @@ test('asks the online copy before it starts, and stays when it does not answer',
   ]);
 });
 
+test('still asks for the model on this computer when practice and the final test both run online', async () => {
+  const { app, page } = launched;
+  await stubFlow();
+  // Everything is online and saved, and Ollama runs without the model.
+  await stubEngine(app, {
+    'jobs:get': trainedJob,
+    'connections:detectLocal': OLLAMA_READY,
+    'connections:testStudent': COPY_ANSWERS,
+  });
+  await applySettings(page, { theme: 'dark', onboarded: true, comparisonMode: false });
+  await resize(DEFINE_HEIGHT);
+  await goTo(page, `/jobs/${FLOW.jobId}/define`);
+  await expect(page.getByRole('radio', { name: /Train online/ })).toBeChecked();
+  await page.getByRole('button', { name: 'Advanced settings' }).click();
+  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+  await advanced.getByRole('tab', { name: 'Ready when' }).click();
+  const where = advanced.getByRole('radiogroup', { name: 'Where the final test runs' });
+  await where.getByRole('radio', { name: /On the online copy/ }).click();
+  await page.keyboard.press('Escape');
+  await expect(advanced).toBeHidden();
+
+  // Nothing in the run itself uses this computer now, but the finished agent runs on it, so the
+  // run says so before it starts instead of after hours of training and a bill.
+  const needs = page.getByRole('region', { name: 'Before it can start' });
+  await expect(needs).toContainText("Glimmer isn't on this computer yet");
+  await expect(needs).toContainText(
+    'The finished agent runs on it, so it has to be here when training ends.',
+  );
+  const start = page.getByRole('button', { name: 'Start training' });
+  await expect(start).toBeDisabled();
+  expect(await recordedCalls(app, 'runs:start')).toEqual([]);
+
+  // With the model downloaded the list is gone, and the run starts with both ends online.
+  await stubEngine(app, { 'ollama:install': null, 'connections:detectLocal': FLOW_LOCAL });
+  await needs.getByRole('button', { name: 'Download · 17 GB' }).click();
+  await expect(page.getByRole('heading', { name: 'Before it can start' })).toHaveCount(0);
+  await expect(start).toBeEnabled();
+  await start.click();
+  await expect(page).toHaveURL(new RegExp(`#/runs/${FLOW.runId}/train$`));
+  expect(await recordedCalls(app, 'runs:start')).toEqual([
+    [FLOW.jobId, { method: 'architect', lockedTestOn: 'hosted', interactive: true }],
+  ]);
+});
+
 for (const theme of THEMES) {
   test(`takes the final test on the online copy when asked (${theme})`, async () => {
     const { app, page } = launched;
