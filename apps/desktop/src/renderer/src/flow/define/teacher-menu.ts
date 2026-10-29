@@ -72,19 +72,17 @@ export function isLastChange(job: Job, type: InterventionType): boolean {
   return left.length === 1 && left[0] === type;
 }
 
-/** The job with the kinds the person left on. A job that allows everything holds no list. */
-export function withInterventions(job: Job, allowed: Iterable<InterventionType>): Job {
-  const { interventions: _before, ...rest } = job;
-  const list = storedInterventions(allowed);
-  return list === undefined ? rest : { ...rest, interventions: list };
-}
-
-/** The job with one kind turned on or off. */
+/**
+ * The job with one kind turned on or off. A job that allows everything holds no list, so one the
+ * person turned back on is as it was before they began.
+ */
 export function withIntervention(job: Job, type: InterventionType, on: boolean): Job {
   const allowed = new Set(allowedInterventions(job));
   if (on) allowed.add(type);
   else allowed.delete(type);
-  return withInterventions(job, allowed);
+  const { interventions: _before, ...rest } = job;
+  const list = storedInterventions(allowed);
+  return list === undefined ? rest : { ...rest, interventions: list };
 }
 
 /**

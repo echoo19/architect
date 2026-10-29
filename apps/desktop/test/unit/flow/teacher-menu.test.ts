@@ -2,6 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { JobSchema, type InterventionType, type Job } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
+import { tabWithIssue } from '../../../src/renderer/src/flow/define/AdvancedDialog';
 import { TeacherMenu } from '../../../src/renderer/src/flow/define/TeacherMenu';
 import {
   agentChanges,
@@ -12,6 +13,7 @@ import {
   withIntervention,
   type WeightsFacts,
 } from '../../../src/renderer/src/flow/define/teacher-menu';
+import { validateJob } from '../../../src/renderer/src/flow/define/validate';
 import { makeJob } from './factories';
 
 /** Everything the app can see says weights could be trained. */
@@ -198,5 +200,13 @@ describe("the Teacher tab's section", () => {
     );
     expect(html).toContain('role="alert"');
     expect(html).toContain('Keep at least one way to change the agent.');
+  });
+});
+
+describe('a choice the engine would refuse', () => {
+  it('is marked in the Teacher tab, which Start training opens', () => {
+    const issues = validateJob({ ...makeJob(), interventions: ['clarification'] }, 170);
+    expect(Object.keys(issues)).toEqual(['interventions']);
+    expect(tabWithIssue(issues)).toBe('mentor');
   });
 });
