@@ -1,6 +1,7 @@
 import {
   AppInfoSchema,
   AppSettingsSchema,
+  ConnectionTestSchema,
   DraftTurnSchema,
   FileDiffSchema,
   GraduateSummarySchema,
@@ -22,6 +23,7 @@ import {
   type Job,
   type ModelSource,
   type RunStartOptions,
+  type StudentEndpoint,
 } from '@architect/shared';
 import { z } from 'zod';
 import { withTypedFailures } from '../../../common/bridge';
@@ -103,6 +105,13 @@ export const flowApi = {
     read('jobs.draftReply', DraftTurnSchema, bridge().jobs.draftReply(sessionId, text)),
   saveJob: (job: Job) => read('jobs.save', JobSchema, bridge().jobs.save(job)),
   createSample: () => read('jobs.createSample', JobSchema, bridge().jobs.createSample()),
+  /** Whether a model's server answers and has the model, without running it. */
+  testStudent: (endpoint: StudentEndpoint) =>
+    read(
+      'connections.testStudent',
+      ConnectionTestSchema,
+      bridge().connections.testStudent(endpoint),
+    ),
   startRun: (jobId: string, options: RunStartOptions) =>
     read('runs.start', RunSchema, bridge().runs.start(jobId, options)),
   runs: (jobId: string) => read('runs.list', z.array(RunSchema), bridge().runs.list(jobId)),

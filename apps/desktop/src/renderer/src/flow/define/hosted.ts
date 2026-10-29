@@ -29,6 +29,11 @@ export function providerName(endpoint: StudentEndpoint): string {
   }
 }
 
+/** "a Meta key", "an OpenRouter key": the article follows the first sound of the name. */
+export function aKey(provider: string): string {
+  return `${/^[aeiou]/i.test(provider) ? 'an' : 'a'} ${provider} key`;
+}
+
 /** Which keys are saved, as far as the app knows yet. */
 export type KeyStatus = Record<string, boolean> | 'loading' | 'error';
 
@@ -54,7 +59,7 @@ export function hostedAvailability(student: StudentConfig, keys: KeyStatus): Hos
   if (!keys[hosted.secretRef]) {
     return {
       available: false,
-      reason: `Add a ${providerName(hosted)} key in Advanced settings`,
+      reason: `Add ${aKey(providerName(hosted))} in Advanced settings`,
       why: 'no_key',
     };
   }
