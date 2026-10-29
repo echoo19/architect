@@ -1,5 +1,5 @@
-import { teachingLine, type RuleReport } from '@architect/shared';
-import { DetailList } from '@architect/ui';
+import { passageSource, teachingLine, type RuleReport } from '@architect/shared';
+import { DetailList, Disclosure } from '@architect/ui';
 
 /**
  * Everything the final test's expected answers rest on, for a job with a rule: the rule and its
@@ -19,6 +19,11 @@ export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rou
           <p className="m-0 max-w-[620px] text-sm text-fg-secondary text-pretty">
             {rule.statement}
           </p>
+          <Disclosure label="The rule exactly as Architect evaluates it">
+            <pre className="m-0 max-h-72 overflow-auto rounded-xl bg-list p-4 font-mono text-xs leading-5 text-fg-secondary">
+              {JSON.stringify(rule.expression, null, 2)}
+            </pre>
+          </Disclosure>
           <DetailList
             items={[
               { label: 'Version', value: rule.version },
@@ -32,7 +37,8 @@ export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rou
           <Facts title="From your policy">
             {rule.passages.map((passage) => (
               <li key={`${passage.file}:${passage.passage}`}>
-                {passage.passage} <span className="font-mono text-xs">{passage.file}</span>
+                {passage.passage}{' '}
+                <span className="font-mono text-xs">{passageSource(passage.file)}</span>
               </li>
             ))}
           </Facts>
