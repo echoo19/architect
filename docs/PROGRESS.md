@@ -2,6 +2,18 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), release 0.3.1
+
+**Done**
+- Merged the pass after the blind read and the review's fixes (2c8b2f7). `pnpm check` exits 0 on main (241 test files, 3,156 tests passed, 2 skipped) and CI passed on the merge and on the release commit.
+- Released 0.3.1 (1ad4249, tag v0.3.1) with plain notes: the screens the blind read named, in plain words; the callout's one-click time limit; and the fifth round of rule fixes (a cut value that could spell another row's id, and the person's words sent as written). The release workflow built and attached the Windows installer and both Mac disk images. The website's deploy for the version commit was cancelled before it ran and run again once the installers were attached, so its Windows link never pointed at a missing file; it links 0.3.1, and each download resolves.
+- A second blind read of the seven updated screens was started, by a reader that sees only the captures.
+
+**Next**
+- What the second blind read finds.
+- The offline-chat scene of the film, when the owner allows about ten minutes of the GPU; then the full film, under three minutes.
+- The Oct 29 row of "What was built when" in `docs/HACKATHON.md`, at the end of the day.
+
 ## 2026-10-29 (Thu), that pass reviewed, three more lines in plain words, and a time limit in one click
 
 **Done** (on the same branch; decisions 061 and 064 amended; no model was called, the GPU stayed off, and every run used stand-ins only)
