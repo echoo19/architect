@@ -333,10 +333,14 @@ for (const theme of THEMES) {
     ]);
     await expect(card.getByText(/^Start with \(labor hours rounded up/)).toHaveCount(0);
     await expect(
-      card.getByText(/^\d+ rows have an empty parts cost, which counts as 0, as you said\.$/),
+      card.getByText(
+        /^\d+ of \d+ rows have an empty parts cost, which counts as 0, as you said\.$/,
+      ),
     ).toBeVisible();
     await expect(
-      card.getByText(/^\d+ rows have "N\/A" in parts cost, which counts as 0, as you said\.$/),
+      card.getByText(
+        /^\d+ of \d+ rows have "N\/A" in parts cost, which counts as 0, as you said\.$/,
+      ),
     ).toBeVisible();
     // The empty cell and the N/A both count, and nothing else in these records is wrong, so no row
     // is left out and the screen says nothing of any.
