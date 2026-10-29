@@ -53,6 +53,7 @@ export class OllamaUse {
       model: student.model,
       baseUrl: student.baseUrl,
       isLocal: student.isLocal,
+      contextLength: student.contextLength,
       chat: (request, signal) => this.chat(student, key, model, purpose, request, signal),
       describe: () => student.describe(),
       testConnection: () => student.testConnection(),

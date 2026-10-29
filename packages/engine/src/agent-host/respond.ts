@@ -63,6 +63,8 @@ export async function respond(input: ReplyRequest): Promise<void> {
       seed: input.seed,
       onStep: (step) => record(reply, graduate.harness, step),
       onText: (delta) => reply.appendText(delta),
+      // A turn asked for again shows only its new text, so the chat never repeats itself.
+      onRetract: () => reply.retract(),
       approveWrite: input.approveWrite,
       signal: input.signal,
     });

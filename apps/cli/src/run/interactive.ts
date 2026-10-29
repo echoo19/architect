@@ -15,6 +15,8 @@ import { outcomeOf } from './result';
 import { ask, openSession, type ApprovalAnswer, type ApprovalBlock } from './session';
 
 const END_KEY = process.platform === 'win32' ? 'Ctrl+Z then Enter' : 'Ctrl+D';
+/** What the conversation prints, on its own line, when the model's reply is asked for again. */
+const ASKED_AGAIN = '(asked again)';
 
 /**
  * `architect run <agent>` with no request file: a conversation, one request per line, in one
@@ -44,11 +46,24 @@ export async function runInteractive(
       : `A change that needs approval fails its reply: nobody can answer here. ${END_KEY} ends.`,
   );
   let atLineStart = true;
+  /** The marker for a turn asked again was just written; its new text follows it directly. */
+  let afterMarker = false;
   const write = (text: string) => {
-    // A new paragraph after a line already ended gets one blank line, not two.
-    const shown = atLineStart ? text.replace(/^\n{2,}/, '\n') : text;
+    // A new paragraph after a line already ended gets one blank line, not two; after the marker,
+    // none.
+    const lead = afterMarker ? text.replace(/^\n+/, '') : text;
+    if (lead === '') return;
+    afterMarker = false;
+    const shown = atLineStart ? lead.replace(/^\n{2,}/, '\n') : lead;
     io.stdout.write(shown);
     if (shown !== '') atLineStart = shown.endsWith('\n');
+  };
+  /** Text already printed can't be taken back, so the conversation says the turn started over. */
+  const askedAgain = () => {
+    if (!atLineStart) write('\n');
+    io.stdout.write(`${ASKED_AGAIN}\n`);
+    atLineStart = true;
+    afterMarker = true;
   };
   const reader = createInterface({
     input: io.stdin,
@@ -106,6 +121,7 @@ export async function runInteractive(
             line(io.stderr, stepLine(step));
           },
           onText: write,
+          onRetract: askedAgain,
           signal: AbortSignal.any([stop.signal, signal]),
         })
           .then((reply) => {

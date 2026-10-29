@@ -697,6 +697,11 @@ describe('identity', () => {
     expect(lan.isLocal).toBe(false);
   });
 
+  it('holds the context size it asks Ollama for as the limit an agent runs under', () => {
+    const asked = createOllamaStudent(studentEndpoint('ollama-glimmer', { contextLength: 32_768 }));
+    expect(asked.contextLength).toBe(32_768);
+  });
+
   it('describes itself', () => {
     const endpoint = studentEndpoint('ollama-glimmer');
     expect(createOllamaStudent(endpoint)).toMatchObject({

@@ -80,6 +80,7 @@ export function gatedActor(
     model: actor.model,
     baseUrl: actor.baseUrl,
     isLocal: actor.isLocal,
+    contextLength: actor.contextLength,
     chat,
     describe: () => actor.describe(),
     testConnection: () => actor.testConnection(),

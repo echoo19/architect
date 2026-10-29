@@ -403,6 +403,43 @@ describe('the reply', () => {
     });
   });
 
+  it('reports a reply cut off in the middle of a call as cut off, with the usage and no call', async () => {
+    // The limit fell inside the arguments: what arrived is not JSON, and it is not the model's mistake.
+    const { student } = await hostedOn('together-glimmer', (_request, res) =>
+      sendEventStream(res, [
+        deltaChunk({ content: 'I will read the orders.' }),
+        deltaChunk({
+          tool_calls: [
+            { index: 0, id: 'call_1', function: { name: 'read', arguments: '{"path": "da' } },
+          ],
+        }),
+        deltaChunk({}, 'length'),
+        usageChunk({ prompt_tokens: 15800, completion_tokens: 583 }),
+        '[DONE]',
+      ]),
+    );
+    expect(await collect(student.chat(studentRequest()))).toEqual([
+      { type: 'text', delta: 'I will read the orders.' },
+      { type: 'done', usage: { inputTokens: 15800, outputTokens: 583 }, finish: 'length' },
+    ]);
+  });
+
+  it('still reports a call whose arguments are broken, when the reply did not hit its limit', async () => {
+    const { student } = await hostedOn('together-glimmer', (_request, res) =>
+      sendEventStream(res, [
+        deltaChunk({
+          tool_calls: [
+            { index: 0, id: 'call_1', function: { name: 'read', arguments: '{"path": "da' } },
+          ],
+        }),
+        deltaChunk({}, 'tool_calls'),
+        usageChunk({ prompt_tokens: 20, completion_tokens: 9 }),
+        '[DONE]',
+      ]),
+    );
+    expect((await failure(collect(student.chat(studentRequest())))).code).toBe('bad_response');
+  });
+
   it('raises "blocked" when the host’s filter stops the reply', async () => {
     const { student } = await hostedOn('together-glimmer', (_request, res) =>
       sendEventStream(res, textReply('', undefined, 'content_filter')),
@@ -581,6 +618,20 @@ describe('identity', () => {
     );
     expect(hosted.isLocal).toBe(false);
     expect(local.isLocal).toBe(true);
+  });
+
+  it("holds the job's context size, hosted or not, as the limit an agent runs under", () => {
+    const hosted = createOpenAICompatibleStudent(
+      studentEndpoint('openrouter-glimmer', { contextLength: 16_384 }),
+    );
+    const local = createOpenAICompatibleStudent(
+      studentEndpoint('together-glimmer', {
+        baseUrl: 'http://127.0.0.1:8080/v1',
+        contextLength: 32_768,
+      }),
+    );
+    expect(hosted.contextLength).toBe(16_384);
+    expect(local.contextLength).toBe(32_768);
   });
 
   it('is labelled by its host unless told otherwise, and describes only the model', async () => {

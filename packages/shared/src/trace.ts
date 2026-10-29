@@ -83,6 +83,21 @@ export const ReplaySetupSchema = z.object({
 });
 export type ReplaySetup = z.infer<typeof ReplaySetupSchema>;
 
+/**
+ * A tool result the agent loop took out of the model's view to make room in its context. The
+ * trace's messages still hold the result whole; the model read the stub in its place.
+ */
+export const ClearedResultSchema = z.object({
+  /** The model turn, counting from 1, whose prompt first went without the result. */
+  turn: z.number().int().positive(),
+  /** The tool call whose result it was. */
+  callId: z.string(),
+  name: z.string(),
+  /** What the model read instead: the call, and that the result was cleared. */
+  stub: z.string(),
+});
+export type ClearedResult = z.infer<typeof ClearedResultSchema>;
+
 export const TraceSchema = z.object({
   taskId: z.string().optional(),
   harnessVersion: z.number().int().nonnegative(),
@@ -98,6 +113,8 @@ export const TraceSchema = z.object({
   replay: ReplaySetupSchema.optional(),
   /** Every file the attempt changed, each as a diff from how it started. */
   changes: z.array(FileChangeSchema).optional(),
+  /** The tool results taken out of the model's view to make room, oldest first; absent if none. */
+  cleared: z.array(ClearedResultSchema).optional(),
 });
 export type Trace = z.infer<typeof TraceSchema>;
 

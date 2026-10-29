@@ -17,6 +17,9 @@ const ADD_INVOICE = {
   ],
 };
 
+/** What Ollama says when a model's tool call can't be parsed. */
+const UNREADABLE_CALL = 'parse Glimmer call to run: missing ATEM function_calls wrapper';
+
 const READ_THEN_ANSWER = [
   { toolCalls: [{ name: 'read', arguments: { path: 'data/invoices.csv' } }] },
   { text: 'There are 3 invoices on file.' },
@@ -89,6 +92,17 @@ describe('A11: a batch run reads a JSON request and always writes a JSON result'
     expect(result.agent?.digest).toMatch(/^[0-9a-f]{64}$/);
     // The network guard went up before the graduate loaded.
     expect(guards).toBe(1);
+  });
+
+  it('answers with the final text only when a turn was asked again on the way', async () => {
+    const machine = await machineWith([
+      { text: 'Let me add it up. ', streamError: UNREADABLE_CALL, delayMs: 45 },
+      { text: 'There are 3 invoices on file.' },
+    ]);
+    const { code, result } = await batch(machine, task('How many invoices are there?'));
+    expect(code).toBe(0);
+    expect(result).toMatchObject({ status: 'succeeded', answer: 'There are 3 invoices on file.' });
+    expect(machine.model.chats()).toHaveLength(2);
   });
 
   it('writes to stdout when no output file is named, and nothing else goes there', async () => {
@@ -289,6 +303,55 @@ describe('a conversation in the terminal', () => {
       'assistant',
       'user',
     ]);
+  });
+
+  it("says on its own line when the model's turn is asked again, since printed text cannot be taken back", async () => {
+    const machine = await machineWith([
+      // A pause between pieces, so some of the text is printed before the call fails.
+      { text: 'Let me add it up. ', streamError: UNREADABLE_CALL, delayMs: 45 },
+      { text: 'There are 3 invoices on file.' },
+    ]);
+    const run = await cli(['run', 'service-desk'], {
+      env: machine.env,
+      stdin: 'How many invoices are there?\n',
+    });
+    expect(run.code).toBe(0);
+    expect(run.stdout).toMatch(/^Let me[^\n]*\n\(asked again\)\nThere are 3 invoices on file\.\n$/);
+    expect(machine.model.chats()).toHaveLength(2);
+  });
+
+  it("keeps the earlier turns' text above the marker, and the new text after it", async () => {
+    const machine = await machineWith([
+      {
+        text: 'Let me look.',
+        chunk: 64,
+        toolCalls: [{ name: 'read', arguments: { path: 'data/invoices.csv' } }],
+      },
+      // Long enough after the step above that the reply publishes this text at once.
+      { text: 'Working it out. ', chunk: 64, streamError: UNREADABLE_CALL, delayMs: 100 },
+      { text: 'There are 3 invoices on file.' },
+    ]);
+    const run = await cli(['run', 'service-desk'], {
+      env: machine.env,
+      stdin: 'How many invoices are there?\n',
+    });
+    expect(run.code).toBe(0);
+    expect(run.stdout).toBe(
+      'Let me look.\n\nWorking it out. \n(asked again)\nThere are 3 invoices on file.\n',
+    );
+  });
+
+  it('prints no marker when nothing had been shown for the turn that is asked again', async () => {
+    const machine = await machineWith([
+      { status: 500, error: UNREADABLE_CALL },
+      { text: 'There are 3 invoices on file.' },
+    ]);
+    const run = await cli(['run', 'service-desk'], {
+      env: machine.env,
+      stdin: 'How many invoices are there?\n',
+    });
+    expect(run.code).toBe(0);
+    expect(run.stdout).toBe('There are 3 invoices on file.\n');
   });
 
   it('asks about a change on a terminal, and writes it once allowed', async () => {

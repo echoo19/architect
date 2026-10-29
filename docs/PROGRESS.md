@@ -11,15 +11,38 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Results (hosted bf16 Glimmer, 60 final-test requests, seed 101): on its own 44, one-shot draft 38, taught 58. Teaching against Glimmer on its own: 15 won, 1 lost, +23.3 points (+10.9 to +35.9), a gain by the plan's rule; against the draft, 20 won and 0 lost. Teaching met the 95% target on the check tasks after 4 rounds (two kept, both tool changes that read messy money and quoted values), so it stopped there. Typical answer 3.5 s against 17.7 s. Spent: Spark $0.42, hosted Glimmer $3.38.
 - The taught agent ships as the ready-made agent: `examples/gear-returns/graduate/returns-desk.architect.zip`, with its shop's records in `graduate/data` (a test holds them to seed 20261029 byte for byte). It is marked experimental, since the 2-bit build it runs on locally hasn't taken the final test (decision 009).
 - Both reports are published in `docs/comparisons`, with an index; the README's Results section now reports both comparisons and the earlier service desk result, in plain words.
-- A one-request check of a comparison 1 agent on this computer's 2-bit Glimmer failed after 13 steps: seven file reads filled the 16K context, and Ollama cut the reply off inside a tool call. Online runs have far more room, so nothing had shown it. A context budget is on a branch (decision 057).
+- A one-request check of a comparison 1 agent on this computer's 2-bit Glimmer failed after 13 steps: seven file reads filled the 16K context, and Ollama cut the reply off inside a tool call. Online runs have far more room, so nothing had shown it. A context budget keeps every prompt inside the student's context (decision 057, merged).
 - EXPANSION rows A01 (not done, by the owner's choice of hosted inference only) and A12 (a Hugging Face token now exists; a live private test waits for the owner) say where they stand.
 
 **Next**
-- Merge the context budget, then check the shipped agent on this computer's 2-bit Glimmer, briefly, unloading the model afterwards.
+- Check the shipped agent on this computer's 2-bit Glimmer, briefly, unloading the model afterwards.
 - Merge the website, rebuild the installer for the owner to try, and update the demo script for the returns desk.
 
 **Open issues**
 - The owner's go-ahead is needed for a live private Hugging Face test, a GitHub release and where the website goes.
+
+## 2026-10-28 (Tue), the student's prompt kept inside its context
+
+**Done** (on a branch; decision 057; no model was called, the GPU stayed off)
+- The cause of the failed local run, found in the code: nothing kept a conversation inside the model's context, and a turn that had shown text was never asked again (053 asked again only before any text was shown, and the agent host always streams text). Hosted runs have a 131K context and never met either.
+- A budget for every turn, on every backend: students say the context they run under (`StudentAdapter.contextLength`: Ollama, llama.cpp, OpenAI-compatible hosted or local; the mentor's model as the agent says `null`). A prompt may take the context less the reply's room, which is the harness's output limit but at most a quarter: 12,288 of 16,384 by default.
+- An estimate from the usage the adapter reported for the turn before (prompt and output) plus what came after, counted by characters the way Glimmer's tokenizer spends them (a digit costs a token, so a table runs near 1.7 characters a token and prose near 3.8). The constants were fitted to 143 samples of the two sample jobs' files counted with Glimmer's own vocabulary (`llama-tokenize` on the 2-bit blob, vocabulary only, GPU hidden): none came out under; of the 127 over 100 characters the typical one is 34% high and the highest 68%, where the lowest flat ratio that never undercounts is 112% high at the 90th percentile. In a closed loop on the returns desk's files with real counts (twelve reads, 16,384 context), the prompt without a budget went from 1,384 tokens at turn 1 to 40,419 at turn 13; with it, eight results were cleared oldest first and no prompt passed 10,728 of 12,288. The estimate was 1.48 times the real count at turn 1 and 1.04 to 1.30 after, never below.
+- Clearing: the oldest tool results become `[Cleared to make room: read data/orders.csv, lines 1-119. Read it again if you need it.]` until the prompt fits; the system prompt, the person's messages, the model's own messages, the latest results and a result no longer than its note are never touched. The trace keeps every message whole and records each clearing (`Trace.cleared`); the mentor's compact trace marks the results the student no longer had. If the request, the instructions and the latest results don't fit, the attempt ends before the model is called with "This task needs more room than the model's context allows." and the figures.
+- A reply cut off at its length limit is named as one and asked again with the prompt sized again (the cut-off call shows how big it really was) and the whole output limit kept free; an OpenAI-compatible reply cut inside a call comes back as a cut-off, not as bad JSON. The replies thrown away are paid for in the turn that follows.
+- A turn asked again after text was shown: `runAgent` takes `onRetract(chars)` beside `onText`. The agent host's reply goes back to how its text stood, published at once, so the app's chat shows only the retried turn's text; the CLI conversation prints `(asked again)` on its own line and then the new text; a JSON result's answer holds only the final text. 053's limits stand.
+- Tests: `token-estimate` (16 fixtures with their real Glimmer counts: never under), `context-window` (budget, clearing order, protected messages, stubs for each tool, usage-based sizing and the scaling after a clearing, the cut-off, can't fit), `agent-context` (the loop on a 600-row table in an 8,192 context with an independent token rule: every prompt inside the room, the trace whole, the turn of each clearing, the cut-off retry's room), `agent` (taking text back, a cut-off named and paid for), `agent-host` (text taken back in the reply, and a prompt that Ollama's reported usage says is near the end cleared), the CLI conversation and JSON answer, the OpenAI-compatible stream, and the schema. Each new test was checked by taking its code out (11 changes, all caught). Hidden e2e `agent-host.spec.ts`: a turn whose call can't be read shows its words and then takes them back, and the chat never holds both; with the host's retract taken out it fails.
+- Verified: `pnpm check` exits 0 (193 test files, 2,397 passed, 2 skipped), and the hidden e2e specs that use the model stand-ins pass: `agent-host.spec.ts` (5 passed), `engine.spec.ts` and `hub.spec.ts`.
+
+**Next**
+- Try it on the real local model after merging. A 16K context holds about two full reads of a table beside the instructions and the tool list, so the agent will read again what it cleared; watch the turn times (changing an old message makes the runtime read the prompt again from there) and whether it loops on re-reads. A tool-heavy job is better with 32K (about 0.2 GiB more here) or a smaller tool result.
+- Decide whether the Spark reference and corrections should run under the student's limit too; they are unbudgeted now.
+
+**Open issues**
+- Ollama reports a call cut off by the end of the context as one it could not parse, with no usage, so that case is asked again as in 053 and can't be named; with the budget it should not come from a full context.
+- Ollama's `prompt_eval_count` is taken as the whole prompt. That is unverified live on 0.40.9; a report under 40% of the character count isn't believed.
+- A long chat's earlier messages (up to a quarter of the context) are never cleared, so a long chat with a long harness can end with "needs more room".
+- The estimate errs high by the reasoning of the turn before, which the template does not send back.
+- The CLI prints a step's line before the text that arrived with it (as before), so a short text can be split by a step line.
 
 ## 2026-10-28 (Tue), night: comparison 1's report says what it measured
 

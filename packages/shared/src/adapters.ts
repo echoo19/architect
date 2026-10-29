@@ -40,6 +40,14 @@ export interface StudentAdapter {
   readonly baseUrl: string;
   /** True only when every request goes to a loopback address. */
   readonly isLocal: boolean;
+  /**
+   * The context window, in tokens, the student runs under: what the runtime is asked for (Ollama's
+   * `num_ctx`, llama-server's `--ctx-size`) or the job's setting for a hosted copy, so an agent
+   * is developed under the limit it later runs under. The agent loop keeps every prompt, with
+   * room for the reply, inside it. Null for the mentor's model acting as the agent, whose window
+   * is far beyond any task here.
+   */
+  readonly contextLength: number | null;
   chat(request: StudentChatRequest, signal?: AbortSignal): AsyncIterable<StudentStreamEvent>;
   describe(): Promise<StudentModelInfo>;
   testConnection(): Promise<ConnectionTest>;
@@ -73,6 +81,8 @@ export interface LlamaServerAccess {
   readonly model: string;
   /** Loopback. The port changes each time the server starts. */
   readonly baseUrl: string;
+  /** The context size the server starts with, in tokens. */
+  readonly contextLength: number;
   /** Starts the server if it isn't running, and keeps it from stopping until `release`. */
   acquire(signal?: AbortSignal): Promise<LlamaServerLease>;
   /** Checks what loading needs: the server program, the model's file and every adapter. Loads nothing. */

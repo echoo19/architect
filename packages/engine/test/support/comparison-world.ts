@@ -374,6 +374,7 @@ class DryRunStudent implements StudentAdapter {
   readonly model: string;
   readonly baseUrl: string;
   readonly isLocal: boolean;
+  readonly contextLength: number;
 
   constructor(
     endpoint: StudentEndpoint,
@@ -385,6 +386,7 @@ class DryRunStudent implements StudentAdapter {
     this.model = endpoint.model;
     this.baseUrl = endpoint.baseUrl;
     this.isLocal = new URL(endpoint.baseUrl).hostname === '127.0.0.1';
+    this.contextLength = endpoint.contextLength;
   }
 
   async *chat(
@@ -436,6 +438,7 @@ function labeled(student: StudentAdapter, request: AdapterServeRequest): Student
     model: `${request.model}+${applied.join(',') || 'base'}`,
     baseUrl: student.baseUrl,
     isLocal: student.isLocal,
+    contextLength: student.contextLength,
     chat: (chat, signal) => student.chat(chat, signal),
     describe: () => student.describe(),
     testConnection: () => student.testConnection(),

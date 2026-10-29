@@ -110,6 +110,7 @@ export function createLlamaCppStudent(
     model: server.model,
     baseUrl: server.baseUrl,
     isLocal: isLoopbackUrl(server.baseUrl),
+    contextLength: server.contextLength,
     chat,
     describe: () => server.describe(),
     testConnection: () => server.check(),

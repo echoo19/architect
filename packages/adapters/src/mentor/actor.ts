@@ -116,6 +116,8 @@ export function createMentorActor(config: MentorConfig, deps: MentorDeps = {}): 
     model: model.model,
     baseUrl: traits.baseUrl,
     isLocal: isLoopbackUrl(traits.baseUrl),
+    // The mentor's model has a window far beyond any task here, so the loop makes no room for it.
+    contextLength: null,
     chat,
     estimateCostUsd: price,
     describe: async () => ({ model: model.model }),

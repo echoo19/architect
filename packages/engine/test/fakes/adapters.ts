@@ -123,6 +123,7 @@ export class FakeStudent implements StudentAdapter {
   readonly model: string;
   readonly baseUrl: string;
   readonly isLocal: boolean;
+  readonly contextLength: number | null;
   readonly chats: StudentChatRequest[] = [];
   released = 0;
 
@@ -136,6 +137,7 @@ export class FakeStudent implements StudentAdapter {
     this.model = endpoint.model;
     this.baseUrl = endpoint.baseUrl;
     this.isLocal = new URL(endpoint.baseUrl).hostname === '127.0.0.1';
+    this.contextLength = endpoint.contextLength;
   }
 
   async *chat(request: StudentChatRequest): AsyncIterable<StudentStreamEvent> {
@@ -170,6 +172,7 @@ export class FakeStudent implements StudentAdapter {
  */
 export class FakeActor extends FakeStudent implements ActorAdapter {
   priceScale = 1;
+  override readonly contextLength = null;
 
   estimateCostUsd(usage: Usage): number {
     return (this.priceScale * (usage.inputTokens * 1.25 + usage.outputTokens * 4.25)) / 1_000_000;

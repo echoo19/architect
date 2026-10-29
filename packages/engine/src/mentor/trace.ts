@@ -28,7 +28,13 @@ function describeValue(value: JsonValue | null, max: number): string {
  * One step's lines. A model step is one turn, numbered from 1, so a diagnosis can point at the
  * turn that went wrong; its tool results follow it, indented.
  */
-function stepLines(step: TraceStep, turn: number, limits: TraceLimits): string[] {
+function stepLines(
+  step: TraceStep,
+  turn: number,
+  limits: TraceLimits,
+  /** The turn from which the model read a note in place of this tool step's result, if it did. */
+  clearedFrom: number | undefined,
+): string[] {
   switch (step.kind) {
     case 'skill':
       return [
@@ -50,6 +56,11 @@ function stepLines(step: TraceStep, turn: number, limits: TraceLimits): string[]
         step.error === undefined
           ? `  ${step.name} → ${describeValue(step.result, limits.result)}`
           : `  ${step.name} failed: ${clip(step.error, limits.result)}`,
+        ...(clearedFrom === undefined
+          ? []
+          : [
+              `  (cleared to make room: from turn ${clearedFrom} the model read a note here, not this result)`,
+            ]),
       ];
     case 'refusal':
       return [`refused as ${step.taskType}: ${step.reason}`];
@@ -86,9 +97,15 @@ function bound(body: string[], closing: string[], max: number): string {
  */
 export function renderCompactTrace(trace: Trace, limits: TraceLimits = TRACE_LIMITS): string {
   let turn = 0;
+  const cleared = new Map((trace.cleared ?? []).map((result) => [result.callId, result.turn]));
   const body = trace.steps.flatMap((step) => {
     if (step.kind === 'model') turn += 1;
-    return stepLines(step, turn, limits);
+    return stepLines(
+      step,
+      turn,
+      limits,
+      step.kind === 'tool' ? cleared.get(step.callId) : undefined,
+    );
   });
   const modelSteps = trace.steps.filter((step) => step.kind === 'model').length;
   const tokens = `${trace.usage.inputTokens} in / ${trace.usage.outputTokens} out tokens`;

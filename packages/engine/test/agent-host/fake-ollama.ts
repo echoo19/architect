@@ -16,6 +16,15 @@ export interface ScriptedTurn {
   /** Answers with this HTTP status and Ollama's error body instead of a stream. */
   status?: number;
   error?: string;
+  /**
+   * Ends the stream with this error line after its text, as Ollama does when the model's tool
+   * call can't be parsed: the text was already sent, and no call or final line follows.
+   */
+  streamError?: string;
+  /** Why the final line says the reply ended. Default `stop`. */
+  doneReason?: 'stop' | 'length';
+  /** The prompt and reply sizes the final line reports. Default 120 and 30. */
+  tokens?: { prompt: number; reply: number };
 }
 
 export interface OllamaChatBody {
@@ -144,6 +153,11 @@ async function stream(response: ServerResponse, turn: ScriptedTurn): Promise<voi
     if (!open) return;
     line({ message: { role: 'assistant', content: text.slice(at, at + size) }, done: false });
   }
+  if (turn.streamError !== undefined) {
+    response.write(`${JSON.stringify({ error: turn.streamError })}\n`);
+    response.end();
+    return;
+  }
   if (turn.toolCalls?.length) {
     line({
       message: {
@@ -159,9 +173,9 @@ async function stream(response: ServerResponse, turn: ScriptedTurn): Promise<voi
   line({
     message: { role: 'assistant', content: '' },
     done: true,
-    done_reason: 'stop',
-    prompt_eval_count: 120,
-    eval_count: 30,
+    done_reason: turn.doneReason ?? 'stop',
+    prompt_eval_count: turn.tokens?.prompt ?? 120,
+    eval_count: turn.tokens?.reply ?? 30,
   });
   response.end();
 }

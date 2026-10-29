@@ -27,6 +27,9 @@ export interface ScriptedTurn {
 type Script =
   readonly ScriptedTurn[] | ((request: StudentChatRequest, turn: number) => ScriptedTurn);
 
+/** A window far beyond what a scripted conversation takes, so the agent loop never clears a thing. */
+export const ROOMY_CONTEXT = 131_072;
+
 /** A student that plays back scripted turns in order and records every request it gets. */
 export class ScriptedStudent implements StudentAdapter {
   readonly label = 'Scripted';
@@ -36,7 +39,10 @@ export class ScriptedStudent implements StudentAdapter {
   readonly requests: StudentChatRequest[] = [];
   private turn = 0;
 
-  constructor(private readonly script: Script) {}
+  constructor(
+    private readonly script: Script,
+    readonly contextLength: number | null = ROOMY_CONTEXT,
+  ) {}
 
   async *chat(
     request: StudentChatRequest,

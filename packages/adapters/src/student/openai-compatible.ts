@@ -178,6 +178,9 @@ export function createOpenAICompatibleStudent(
     model: endpoint.model,
     baseUrl: endpoint.baseUrl,
     isLocal: isLoopbackUrl(endpoint.baseUrl),
+    // A hosted endpoint takes no per-request window; the job's setting is still the limit the
+    // agent is developed under, the same one it later runs under on this computer.
+    contextLength: endpoint.contextLength,
     chat: (request, signal) => events(request, signal, true),
     describe: async () => ({ model: endpoint.model }),
     testConnection,

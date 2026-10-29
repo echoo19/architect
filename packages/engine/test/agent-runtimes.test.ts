@@ -91,6 +91,7 @@ async function llamaRig(
   const access: LlamaServerAccess = {
     model: 'muse-glimmer:30b-iq2',
     baseUrl: fake.url,
+    contextLength: 16_384,
     acquire: acquire ?? lease,
     check: () => Promise.resolve({ ok: true, latencyMs: 0, detail: 'A fake llama-server.' }),
     describe: () => Promise.resolve({ model: 'muse-glimmer:30b-iq2' }),
