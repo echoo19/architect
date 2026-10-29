@@ -506,7 +506,12 @@ function marksOf(
       context.attached,
     );
     if (found === undefined) continue;
-    const item = { ref, counted: [] as TableMark[], tokens: [] as string[], open: [] as MarkAsked[] };
+    const item = {
+      ref,
+      counted: [] as TableMark[],
+      tokens: [] as string[],
+      open: [] as MarkAsked[],
+    };
     for (const mark of placeholdersIn(found.cells)) {
       const answer = markFor(context.said.marks, found, mark.spelling);
       if (answer === undefined) {
@@ -522,7 +527,7 @@ function marksOf(
   const roomy = new Set<(typeof read)[number]>();
   for (const counting of [true, false]) {
     for (const item of read) {
-      if (roomy.size < RULE_LIMITS.maxEmptyZero && (item.tokens.length > 0) === counting) {
+      if (roomy.size < RULE_LIMITS.maxEmptyZero && item.tokens.length > 0 === counting) {
         roomy.add(item);
       }
     }

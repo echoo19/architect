@@ -560,11 +560,14 @@ describe('what the person chose for a mark such as N/A, mark by mark and table b
           ]
         : [step('sum', 'add', { args: [...columns] })]),
     ];
-    const checked = checkReply(bikeDraft([costType(alone(steps, 'sum'), { table: 'amounts.csv' })]), {
-      mustDraft: false,
-      attached: files,
-      said: { description: '', answers: '', marks },
-    });
+    const checked = checkReply(
+      bikeDraft([costType(alone(steps, 'sum'), { table: 'amounts.csv' })]),
+      {
+        mustDraft: false,
+        attached: files,
+        said: { description: '', answers: '', marks },
+      },
+    );
     if (!checked.ok || checked.reply.action !== 'draft') {
       throw new Error(checked.ok ? 'Expected a draft.' : checked.problems.join(' '));
     }
@@ -594,10 +597,11 @@ describe('what the person chose for a mark such as N/A, mark by mark and table b
     ]);
     expect(counted.left).toContain(notAsked('a', '"null"'));
     // One whose rows are left out makes room for the fifth.
-    const freed = summed(files, ['a', 'b'], [
-      answer('amounts.csv', 'N/A', 'leave_out', 'a'),
-      ...['-', '--', '?'].map(zero),
-    ]);
+    const freed = summed(
+      files,
+      ['a', 'b'],
+      [answer('amounts.csv', 'N/A', 'leave_out', 'a'), ...['-', '--', '?'].map(zero)],
+    );
     expect(freed.asked?.map((item) => item?.mark)).toEqual(['null']);
     expect(freed.left).not.toContain(notAsked('a', '"null"'));
   });
@@ -616,9 +620,11 @@ describe('what the person chose for a mark such as N/A, mark by mark and table b
 
   it('never takes an answer about one column for another that differs only in case', () => {
     const files = amounts({ Cost: ['N/A'], cost: ['N/A'] }, ['Cost', 'cost', 'b']);
-    const { asked, spec } = summed(files, ['cost', 'b'], [
-      answer('amounts.csv', 'N/A', 'zero', 'Cost'),
-    ]);
+    const { asked, spec } = summed(
+      files,
+      ['cost', 'b'],
+      [answer('amounts.csv', 'N/A', 'zero', 'Cost')],
+    );
     expect(tokensOf(spec)).toBeUndefined();
     expect(asked).toEqual([{ table: 'amounts.csv', column: 'cost', mark: 'N/A' }]);
   });

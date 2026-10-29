@@ -644,7 +644,12 @@ describe('the room a rule has for marks', () => {
       asked.push(turn.message);
       turn = await world.drafting.reply(turn.sessionId, ZERO, TEACHER);
     }
-    expect(asked).toEqual([NA_QUESTION, dashQuestion('-'), dashQuestion('--'), dashQuestion('---')]);
+    expect(asked).toEqual([
+      NA_QUESTION,
+      dashQuestion('-'),
+      dashQuestion('--'),
+      dashQuestion('---'),
+    ]);
     const record = recordOf(jobOf(turn).id);
     expect(tokensOf(record)).toEqual(['N/A', '-', '--', '---']);
     expect(record.unresolved).toContain(
