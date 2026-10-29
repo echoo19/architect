@@ -39,6 +39,17 @@ describe('generating the job', () => {
     }
   });
 
+  it("matches the ready-made agent's records, the shop of seed 20261029, byte for byte", async () => {
+    const shipped = join(jobDir, '..', 'graduate', 'data');
+    const fresh = buildJobFiles(20261029).files;
+    const names = (await filesUnder(shipped)).map((name) => `data/${name}`);
+    expect(names).toEqual([...fresh.keys()].filter((path) => path.startsWith('data/')).sort());
+    for (const path of names) {
+      const committed = await readFile(join(shipped, path.slice('data/'.length)), 'utf8');
+      expect(committed, path).toBe(fresh.get(path));
+    }
+  });
+
   it('matches the committed job folder byte for byte', async () => {
     const outDir = await mkdtemp(join(tmpdir(), 'gear-returns-'));
     try {

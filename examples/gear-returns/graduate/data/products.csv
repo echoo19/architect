@@ -1,0 +1,65 @@
+sku,name,category,list_price,final_sale,bulky
+AK-2476,Fuel Canister 230g,kitchen,8.95,yes,no
+AK-3746,Quickdraw Set (6),climbing,129.95,no,no
+AK-6746,Rolling Cooler 50qt,kitchen,279.95,no,yes
+AK-9340,Hydration Vest,packs,129.95,no,no
+BR-5572,Climbing Helmet,climbing,79.95,no,no
+BR-5624,Rolling Duffel 90L,packs,179.95,no,no
+BR-6369,Four-Person Dome Tent,D42,459.95,no,no
+CM-1784 ,Pack Rain Cover,packs,29.95,no,no
+CM-3271,Insulated Mug,kitchen,29.95,no,no
+CM-6373 ,Climbing Harness,climbing,74.95,yes,no
+CM-7200 ,Insulated Sleeping Pad,sleeping,189.95,no,no
+CM-7661,Fleece Quarter-Zip,clothing,79.95,no,no
+DV-4910,Wool Beanie,clothing,29.95,yes,no
+DV-5678,Utensil Kit,kitchen,19.95,no,no
+DV-6382,Ultralight Tarp,tents,149.95,no,no
+ fn-1257,Softshell Trail Pant,D20,119.95,no,no
+FN-2301,Dynamic Rope 60m,climbing,219.95,yes,no
+FN-2419,Camp Lantern,electronics,49.50,no,no
+FN-2657,Merino Base Layer Top,clothing,89.00,no,no
+FN-3028 ,Rechargeable Headlamp,electronics,59.95,no,no
+FN-6517,Dry Bag 20L,packs,34.95,no,no
+FN-9608,Down Sleeping Bag 20F,sleeping,349.95,no,no
+HL-1967,Two-Burner Camp Stove,kitchen,169.95,no,yes
+HL-2648,Six-Person Cabin Tent,tents,649.95,no,yes
+KS-6125,Power Bank 20000mAh,electronics,69.95,no,no
+KS-9868 ,River Sandal,footwear,69.95,no,no
+LT-4072,Titanium Pot Set,kitchen,89.95,no,no
+LT-6134,GPS Handheld,electronics,349.95,no,no
+LT-6570,Camp Slip-On,footwear,54.95,no,no
+LT-7739,Canister Stove,kitchen,79.95,no,no
+LT-7840,Locking Carabiner,climbing,14.95,no,no
+LT-9829,Overnight Pack 45L,packs,219.95,no,no
+MW-5415,Solar Panel Charger,electronics,129.95,no,no
+NR-1424,Winter Pac Boot,footwear,184.95,no,no
+NR-1533,Bivy Sack,tents,179.50,no,no
+NR-2150,Two-Way Radio Pair,electronics,89.95,no,no
+NR-6415,Sun Hoody,clothing,54.95,no,no
+NR-9422,Synthetic Sleeping Bag 30F,sleeping,159.95,no,no
+NR-9441,Expedition Down Bag -20F,sleeping,1049.95,no,no
+NR-9517,Tent Footprint,tents,54.95,no,no
+PX-1281,Trailhead Mid Hiking Boot,footwear,159.95,no,no
+PX-2721,Hip Pack,packs,44.00,no,no
+PX-5299,Approach Shoe,footwear,139.50,no,no
+PX-5554,Expedition Pack 70L,packs,329.95,no,no
+PX-9880,Alpine Leather Boot,footwear,229.95,no,no
+SQ-1477,Camp Pillow,sleeping,34.95,no,no
+SQ-2705,Chalk Bag,climbing,24.95,no,no
+SQ-5598,Two-Person Backpacking Tent,tents,389.95 USD,no,no
+SQ-8556,Belay Device,climbing,34.95,no,no
+SQ-8672,Rain Shell Jacket,clothing,189.95,no,no
+SQ-9107,Ridgeback Trail Runner,footwear,134,no,no
+SQ-9492,Gravity Water Filter,kitchen,119.95,no,no
+TW-2557,Weather Radio,electronics,64.50,no,no
+TW-7734,Double Camp Cot,sleeping,229.95,no,yes
+VB-1481,Insulated Mittens,clothing,49.95,no,no
+VB-1495,Daypack 22L,packs,99.95,no,no
+VB-2996,Merino Hiking Socks (2 pack),footwear,24.50,yes,no
+VB-3534,Down Puffy Jacket,clothing,249.95,no,no
+VB-3808,Four-Season Expedition Tent,tents,1189.95,no,no
+WD-5602,Climbing Shoe,climbing,149.95,no,no
+WD-6432,Self-Inflating Pad,D51,99.95,no,no
+WD-6810,Sleeping Bag Liner,sleeping,59.95,yes,no
+WD-7026,Satellite Messenger,D72,299.95,no,no
+ WD-8055,Hammock with Bug Net,tents,119.95,no,no

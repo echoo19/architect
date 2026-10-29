@@ -21,7 +21,7 @@ const SAMPLE_AGENT_PACKAGE = fileURLToPath(
   new URL('../../../examples/gear-returns/graduate/returns-desk.architect.zip', import.meta.url),
 );
 const RETURNS_DESK_DATA = fileURLToPath(
-  new URL('../../../examples/gear-returns/job/data', import.meta.url),
+  new URL('../../../examples/gear-returns/graduate/data', import.meta.url),
 );
 
 let launched: LaunchedApp;

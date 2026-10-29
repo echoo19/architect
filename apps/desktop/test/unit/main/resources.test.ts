@@ -26,7 +26,7 @@ describe('processResources', () => {
         'graduate',
         'returns-desk.architect.zip',
       ),
-      sampleAgentDataDir: join(ROOT, 'architect', 'examples', 'gear-returns', 'job', 'data'),
+      sampleAgentDataDir: join(ROOT, 'architect', 'examples', 'gear-returns', 'graduate', 'data'),
       trainerDir: join(ROOT, 'architect', 'trainer'),
     });
   });

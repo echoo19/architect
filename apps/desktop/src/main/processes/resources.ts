@@ -50,7 +50,7 @@ export function processResources(location: AppLocation): ProcessResources {
         ),
     sampleAgentDataDir: location.packaged
       ? join(location.resourcesPath, 'sample-agent', 'data')
-      : join(location.appPath, '..', '..', 'examples', 'gear-returns', 'job', 'data'),
+      : join(location.appPath, '..', '..', 'examples', 'gear-returns', 'graduate', 'data'),
     trainerDir: location.packaged
       ? join(location.resourcesPath, 'trainer')
       : join(location.appPath, '..', '..', 'trainer'),
