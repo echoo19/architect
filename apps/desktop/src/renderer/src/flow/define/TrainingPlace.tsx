@@ -27,8 +27,10 @@ import {
   shortSpan,
   shownTotalUsd,
   taskTimeText,
+  teacherWorks,
   testSeconds,
   tooSlow,
+  trainHereLine,
   wontTeachBody,
   wontTeachTitle,
 } from './estimates';
@@ -193,7 +195,7 @@ export function TrainingPlace({
       >
         <RadioCard value="local" title={`Train on ${device}`} unavailable={localSlow !== null}>
           <span>Slower: {taskTimeText('local')} a task</span>
-          <span>Free. Nothing leaves this computer.</span>
+          <span>{trainHereLine(job, { mentor, student }, device)}</span>
           {/* The callout says it for the place chosen, so the card does not say it again. */}
           {localSlow && onHost && <span>{localSlow}</span>}
         </RadioCard>
@@ -328,8 +330,8 @@ export function TrainingPlace({
           {hosted.available && provider && <li>Online: {roundsLine(job, remote)}.</li>}
           <li>A promising change is measured twice, so its round takes longer.</li>
           <li>
-            {mentor} works in the cloud and sees the practice attempts and the file samples it
-            needs.
+            {mentor} {teacherWorks(job, device)} and sees the practice attempts and the file samples
+            it needs.
           </li>
           {baselines && (
             <li>

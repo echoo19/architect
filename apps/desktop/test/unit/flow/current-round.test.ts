@@ -37,13 +37,16 @@ function panel(run: LiveRun): string {
   );
 }
 
-describe('a run whose teacher had nothing it may change', () => {
+describe('a run whose teacher could change nothing', () => {
   it('says so, in place of waiting for a first round that will not come', () => {
     const html = panel(
       live({ status: 'stopped', phase: 'done', stopReason: 'nothing_to_try', devBaseline: null }),
     );
     expect(html).toContain('Before the first round');
-    expect(html).toContain('Has nothing it may change in this run.');
+    // What the teacher was able to do, as the footer before the run says it: the notice above says
+    // which kind of change may still be made, so the line beside it never says nothing may be.
+    expect(html).toContain('Couldn&#x27;t change anything in this run.');
+    expect(html).not.toContain('nothing it may change');
     expect(html).toContain('No practice ran.');
     expect(html).not.toContain('Waiting for the first round');
     expect(html).not.toContain('Starts teaching once');

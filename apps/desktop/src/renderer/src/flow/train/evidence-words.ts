@@ -189,7 +189,7 @@ export function trainingEnd(reason: RunStopReason, job: Job): string {
     case 'contract':
       return 'Your answer changed what counts as success';
     case 'nothing_to_try':
-      return `${modelNames(job).mentor} had nothing it may change`;
+      return `${modelNames(job).mentor} couldn't change anything`;
   }
 }
 

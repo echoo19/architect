@@ -72,7 +72,7 @@ function mentorLine(live: LiveRun, round: Round | null, names: ModelNames, draft
   if (metUnaided(live, round)) {
     return `Had nothing to change: ${names.student} already met the target.`;
   }
-  if (idle(live, round)) return 'Has nothing it may change in this run.';
+  if (idle(live, round)) return "Couldn't change anything in this run.";
   if (!round) return `Starts teaching once ${names.student} has taken the check tasks.`;
   if (round.diagnosis) return round.diagnosis;
   if (draft) {

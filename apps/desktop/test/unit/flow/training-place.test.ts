@@ -8,6 +8,7 @@ import {
   capText,
   estimateTime,
   minutesForOneRound,
+  trainHereLine,
 } from '../../../src/renderer/src/flow/define/estimates';
 import { TrainingPlace } from '../../../src/renderer/src/flow/define/TrainingPlace';
 import { makeJob } from './factories';
@@ -70,9 +71,9 @@ function text(html: string): string {
 
 const TITLE = 'Not even one round of teaching fits in 3 hours on this computer';
 const BODY =
-  "Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once, and at least 3 h 50 min more for each round of practice and fixing. That doesn't fit in the 3 hours allowed, so Spark would run out of time before it changed anything.";
+  "Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once, then 3 h 50 min to 7 h 10 min for each round of teaching. That doesn't fit in the 3 hours allowed, so Spark would run out of time before it changed anything.";
 /** What the button that sets a longer limit gives: the limit `minutesForOneRound` found. */
-const GIVES = 'Allowing 9 hours leaves room for one round.';
+const GIVES = 'Allowing 9 hours leaves room for one round of teaching.';
 
 /** The words of the callout alone, apart from the cards and the plan around it. */
 function callout(html: string): string {
@@ -122,7 +123,7 @@ describe('a place that cannot fit a round', () => {
 
   it('says it in the unit the time is in, for a job that trains online', () => {
     const html = render(jobOf('hosted', 20));
-    expect(callout(html)).toContain('Allowing 1 hour leaves room for one round.');
+    expect(callout(html)).toContain('Allowing 1 hour leaves room for one round of teaching.');
   });
 
   it('is loud: a tinted box with an alert mark, not a pale line', () => {
@@ -224,6 +225,71 @@ describe('the card of the place that is chosen', () => {
     // The quiet title is for a card that is not chosen; a chosen one keeps the color of its text.
     expect(chosen).toContain('group-data-[state=unchecked]:text-fg-muted');
     expect(chosen).not.toMatch(/(?:^|[\s"])text-fg-muted/);
+  });
+});
+
+describe('what leaves this computer when training here', () => {
+  /** The card of the place that trains on this computer: its title down to its last line. */
+  const here = (job: Job) => {
+    const html = render(job);
+    const at = html.indexOf('Train on this computer');
+    return text(html.slice(html.lastIndexOf('<button', at), html.indexOf('</button>', at)));
+  };
+  const withTeacher = (mentor: Job['mentor']): Job => ({ ...jobOf('local', 2000), mentor });
+  const ollama = {
+    kind: 'model',
+    provider: 'ollama',
+    label: 'Muse Spark Open on this computer',
+    baseUrl: 'http://127.0.0.1:11434/v1',
+    model: 'spark-open',
+    reasoningEffort: 'medium',
+  } as const;
+
+  it('says nothing leaves it only when the teacher runs here too', () => {
+    // Training always sends the teacher its view of the practice attempts, so this is the one
+    // case in which the claim is true.
+    expect(here(withTeacher(ollama))).toContain('Free. Nothing leaves this computer.');
+    for (const baseUrl of ['http://localhost:1234/v1', 'http://[::1]:11434/v1']) {
+      expect(here(withTeacher({ ...ollama, baseUrl }))).toContain(
+        'Free. Nothing leaves this computer.',
+      );
+    }
+  });
+
+  it('says what goes online when the teacher is online, which is what it reads to teach', () => {
+    // The default teacher is Meta's online API.
+    const words = here(jobOf('local', 2000));
+    expect(words).toContain('Free. Glimmer runs here; only what Spark reads to teach goes online.');
+    expect(words).not.toContain('Nothing leaves');
+  });
+
+  it('counts a coding agent as online, and a local runtime at another machine as online', () => {
+    const agent = withTeacher({ kind: 'coding_agent', agent: 'claude_code', label: 'Claude Code' });
+    expect(here(agent)).toContain(
+      'Free. Glimmer runs here; only what Claude Code reads to teach goes online.',
+    );
+    // A runtime that is local by kind, pointed at another machine's address, is not this computer.
+    const lan = withTeacher({ ...ollama, baseUrl: 'http://192.168.1.20:11434/v1' });
+    expect(here(lan)).toContain('only what');
+    expect(here(lan)).not.toContain('Nothing leaves');
+  });
+
+  it("says where the teacher works in the estimate's notes, and says it as the card does", () => {
+    expect(text(render(jobOf('local', 2000)))).toContain(
+      'Spark works in the cloud and sees the practice attempts',
+    );
+    const words = text(render(withTeacher(ollama)));
+    expect(words).toContain('Spark Open runs on this computer and sees the practice attempts');
+    expect(words).not.toContain('works in the cloud');
+  });
+
+  it('says the same on a Mac, where the card is named for it', () => {
+    expect(trainHereLine(jobOf('local'), { mentor: 'Spark', student: 'Glimmer' }, 'this Mac')).toBe(
+      'Free. Glimmer runs here; only what Spark reads to teach goes online.',
+    );
+    expect(
+      trainHereLine(withTeacher(ollama), { mentor: 'Spark', student: 'Glimmer' }, 'this Mac'),
+    ).toBe('Free. Nothing leaves this Mac.');
   });
 });
 

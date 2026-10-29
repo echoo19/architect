@@ -53,11 +53,15 @@ export function waitLine(wait: TrainingWait | null): string | null {
   }
 }
 
-/** What the section says first: who read the policy, and what rests on the rule. */
-export function reviewIntro(teacher: string, count: number): string {
+/**
+ * What the section says first: who read the policy, and what rests on the rule. The agent is
+ * called by its short name, as everywhere else on the screen, and the sentence says what happens
+ * in the order it happens: the right answers come from the rule, the agent is graded against them.
+ */
+export function reviewIntro(teacher: string, student: string, count: number): string {
   return count === 1
-    ? `${teacher} turned your policy into this rule. Architect works out every expected answer from it, so what the agent is tested on is only as right as the rule.`
-    : `${teacher} turned your policy into these rules. Architect works out every expected answer from them, so what the agent is tested on is only as right as the rules.`;
+    ? `${teacher} turned your policy into this rule. Architect works out the right answer to every task from this rule and grades ${student} against those answers, so if the rule is wrong, the grades are wrong too.`
+    : `${teacher} turned your policy into these rules. Architect works out the right answer to every task from these rules and grades ${student} against those answers, so if the rules are wrong, the grades are wrong too.`;
 }
 
 /**
@@ -68,8 +72,8 @@ export function reviewIntro(teacher: string, count: number): string {
 export function confirmLine(teacher: string, count: number): string {
   const kept = `Your words and files come back as you left them, and ${teacher} may ask its questions again.`;
   return count === 1
-    ? `Check the passages, the rule and the examples against your policy. Training can't start until you confirm it. If it isn't right, change the description. ${kept}`
-    : `Check the passages, the rules and the examples against your policy. Training can't start until you confirm them. If they aren't right, change the description. ${kept}`;
+    ? `Check that the lines from your policy are the right ones, and that the rule and the examples match them. Training can't start until you confirm it. If it isn't right, change the description. ${kept}`
+    : `Check that the lines from your policy are the right ones, and that the rules and the examples match them. Training can't start until you confirm them. If they aren't right, change the description. ${kept}`;
 }
 
 /** When the person confirmed, as a short date: "Oct 29". */
@@ -78,13 +82,14 @@ export function confirmedOn(state: RuleConfirmationState): string | null {
 }
 
 /**
- * "62 of 180 rows left out" for the rows that couldn't be worked out, and why when there is one
- * reason for all of them: "62 of 180 rows left out: parts_cost is empty or N/A".
+ * "62 of 180 rows left out of the tasks" for the rows that couldn't be worked out, and why when
+ * there is one reason for all of them: "62 of 180 rows left out of the tasks: parts_cost is empty
+ * or N/A". It says what they were left out of, which is the tasks this job is made of.
  */
 export function leftOutLine(details: RuleDetails): string | null {
   const out = details.cases.total - details.cases.eligible;
   if (out <= 0) return null;
-  const rows = `${out} of ${details.cases.total} ${details.cases.total === 1 ? 'row' : 'rows'} left out`;
+  const rows = `${out} of ${details.cases.total} ${details.cases.total === 1 ? 'row' : 'rows'} left out of the tasks`;
   const [only, ...others] = details.excluded;
   return only !== undefined && others.length === 0 ? `${rows}: ${only.reason}` : rows;
 }

@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Job, MentorConfig, Task } from '@architect/shared';
 import { allowMoreTime, goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { bikeDraft, bikeShop, EMPTY_QUESTION, OPEN_QUESTION, POLICY, type BikeShop } from './bike';
@@ -242,6 +242,15 @@ for (const theme of THEMES) {
     // Define puts the rule first: the passages, the rule in words, the examples and their working.
     const section = page.getByRole('region', { name: 'Check the rule' });
     await expect(section).toBeVisible();
+    // What rests on the rule is said in the names the screen uses: Spark read the policy, and
+    // Architect grades Glimmer against the answers the rule gives. The lines it quotes are the
+    // section "From your policy", and the screen calls them nothing else.
+    await expect(section).toContainText(
+      'Spark turned your policy into this rule. Architect works out the right answer to every task from this rule and grades Glimmer against those answers, so if the rule is wrong, the grades are wrong too.',
+    );
+    await expect(section).toContainText('Check that the lines from your policy are the right ones');
+    await expect(section.getByText('From your policy', { exact: true })).toBeVisible();
+    await expect(section).not.toContainText(/passage/i);
     const card = section.getByRole('article', { name: 'Ticket totals' });
     await expect(
       card.getByText('Labor is billed at $65 an hour, in half-hour steps.'),
@@ -260,7 +269,7 @@ for (const theme of THEMES) {
     await expect(card.locator('ol').first().locator('> li')).toHaveText([
       '1.Round labor hours up to a multiple of 0.5.',
       '2.Multiply by 65.',
-      '3.When member (customers.csv) is yes, multiply by 0.9.',
+      '3.When member (customers.csv) is yes, take 10% off.',
       '4.Add parts cost. An empty parts cost counts as 0, as you said.',
       '5.Round the result to the nearest cent; half a cent rounds up.',
     ]);
@@ -272,7 +281,7 @@ for (const theme of THEMES) {
     // says how many says why too, when it is the one reason.
     const leftOut = card.getByRole('button', { name: /rows? left out/ });
     await expect(leftOut).toHaveText(
-      /^\d+ of \d+ rows left out: parts_cost says N\/A or a dash, which is not the same as empty$/,
+      /^\d+ of \d+ rows left out of the tasks: parts_cost says N\/A or a dash, which is not the same as empty$/,
     );
     await leftOut.click();
     await expect(
@@ -301,8 +310,21 @@ for (const theme of THEMES) {
     ).toBeVisible();
     await expect(card.getByText(/never changed a value in your records/)).toHaveCount(0);
     // A rounding the records never need is shown with numbers that are not theirs, and says so.
-    await expect(card.getByText('Not from your records', { exact: true })).toBeVisible();
+    const notRecord = card.getByText('Not from your records', { exact: true });
+    await expect(notRecord).toBeVisible();
     await expect(card.getByText('Made-up numbers')).toHaveCount(0);
+    // Its tag comes before what the example shows, and in a warning tone and not the quiet one of
+    // the tags beside it, so "Like T-2144, but with parts cost 0.005" is not taken for a ticket
+    // whose price changed.
+    const made = card
+      .getByRole('listitem')
+      .filter({ has: page.getByText('Not from your records', { exact: true }) });
+    const shows = made.getByText(/^Shows how the rule rounds /);
+    const [tagBox, showsBox] = await Promise.all([notRecord.boundingBox(), shows.boundingBox()]);
+    expect(tagBox && showsBox).toBeTruthy();
+    expect(tagBox!.x).toBeLessThan(showsBox!.x);
+    const color = (tag: Locator) => tag.evaluate((node) => getComputedStyle(node).color);
+    expect(await color(notRecord)).not.toBe(await color(shows));
     // The version is not beside the title: it waits under Details, for whoever wants to quote it.
     await expect(card.getByText(/^version [0-9a-f]{12}$/)).toHaveCount(0);
     await card.getByRole('button', { name: 'Details' }).click();
@@ -324,6 +346,16 @@ for (const theme of THEMES) {
       checked += 1;
     }
     expect(checked).toBeGreaterThanOrEqual(3);
+
+    // The agent only reads these files and has no folder to make files in, so nothing is offered
+    // about saving them: a choice about something that cannot happen, and no line that says there
+    // is no file while asking what to do about files.
+    const permissions = page.getByRole('region', { name: 'Permissions' });
+    await expect(permissions).toContainText('Files it can change');
+    await expect(permissions).toContainText('None');
+    await expect(permissions.getByRole('radiogroup')).toHaveCount(0);
+    await expect(permissions).not.toContainText('Saving files');
+    await expect(page.getByText('No file it can change')).toHaveCount(0);
 
     // Not confirmed: training can't start, and the screen says why.
     const start = page.getByRole('button', { name: 'Start training' });
@@ -366,7 +398,11 @@ for (const theme of THEMES) {
       'Not even one round of teaching fits in 4 hours on this computer',
     );
     await expect(slow.getByRole('button', { name: 'Allow 7 hours' })).toBeVisible();
-    await expect(slow).toContainText('Allowing 7 hours leaves room for one round.');
+    await expect(slow).toContainText('Allowing 7 hours leaves room for one round of teaching.');
+    // The round's time is said as a range, which the limit the button names is made from.
+    await expect(slow).toContainText(
+      /to score the check tasks once, then \d+ h( \d+ min)? to \d+ h( \d+ min)? for each round of teaching\./,
+    );
     await capture(page, `rule-confirmed-${theme}`);
     await allowMoreTime(page);
     await expect(slow).toHaveCount(0);

@@ -3,7 +3,6 @@ import {
   GLIMMER_BUILDS,
   STUDENT_PRESETS,
   isLoopbackUrl,
-  providerInfo,
   type MentorConfig,
   type StudentEndpoint,
 } from '@architect/shared';
@@ -26,10 +25,14 @@ export function mentorName(mentor: MentorConfig): string {
   return shortModelName(mentor.label);
 }
 
-/** The mentor runs on this computer: a local runtime, or an address on this machine. */
+/**
+ * The mentor runs on this computer: a model at an address on this machine, whatever runtime
+ * serves it. A runtime that is local by kind but is pointed at another machine's address is
+ * online, and so is a coding agent, so this is the one answer to "does the teacher leave this
+ * computer" for every screen that says so.
+ */
 export function mentorIsLocal(mentor: MentorConfig): boolean {
-  if (mentor.kind !== 'model') return false;
-  return providerInfo(mentor.provider).local || isLoopbackUrl(mentor.baseUrl);
+  return mentor.kind === 'model' && isLoopbackUrl(mentor.baseUrl);
 }
 
 /**

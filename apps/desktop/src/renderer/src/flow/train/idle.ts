@@ -30,7 +30,16 @@ export interface IdleView {
    * when a kind is on already and the reason is the engine's to give, under Details.
    */
   turnOn: boolean;
+  /**
+   * What to do after the button, in a few words, since this screen has no Start button: the button
+   * takes the person to the job, where a change is turned on and training is started again. Null
+   * where that is not what the button does or has been said already.
+   */
+  next: string | null;
 }
+
+/** The way on from the button that turns a change back on: it opens the job, which has Start. */
+const START_AGAIN = 'Turn one on, then start training again from the job.';
 
 /** Whether the run had begun: a round was started or a check task attempted. */
 export function hadStarted(live: LiveRun): boolean {
@@ -51,18 +60,19 @@ export function idleView(live: LiveRun, facts: IdleFacts): IdleView {
   const harness = HARNESS_INTERVENTIONS.some((kind) => mayIntervene(job, kind));
   const view = (
     reason: string,
-    how: { missingKey?: boolean; turnOn?: boolean } = {},
+    how: { missingKey?: boolean; turnOn?: boolean; next?: boolean } = {},
   ): IdleView => ({
     title,
     body: [reason, ...spent].join(' '),
     missingKey: how.missingKey ?? false,
     turnOn: how.turnOn ?? false,
+    next: how.next === true ? START_AGAIN : null,
   });
 
   // The simpler versions of a comparison change nothing but the harness, and never the weights.
   if (run.method !== 'architect') {
     return harness
-      ? view(`${mentor} had nothing it may change in this run. The reason is under Details.`)
+      ? view(`${mentor} couldn't change anything in this run. The reason is under Details.`)
       : view(
           'This simpler version can only change instructions, what it reads and small tools, and every one of them is turned off for this job.',
           { turnOn: true },
@@ -71,7 +81,7 @@ export function idleView(live: LiveRun, facts: IdleFacts): IdleView {
   // A job always keeps one kind of change that changes the agent, so with the harness's three
   // off the weights are on. Anything else is for the engine's sentence to explain.
   if (harness || !mayIntervene(job, 'weights')) {
-    return view(`${mentor} had nothing it may change in this run. The reason is under Details.`);
+    return view(`${mentor} couldn't change anything in this run. The reason is under Details.`);
   }
 
   const block = weightsBlock(job, { token: facts.token, testPlace: live.lockedTestOn });
@@ -80,13 +90,18 @@ export function idleView(live: LiveRun, facts: IdleFacts): IdleView {
     return view(`${except}, which ${BLOCK_REASONS[block]}.${keyHint(block)}`, {
       missingKey: block === 'no_token',
       turnOn: true,
+      next: true,
     });
   }
+  // The key was added from the notice: the body says to start again, so the next step is said.
   if (facts.keyAdded) {
     return view(
       `${except}, which needed a Hugging Face key. The key is saved now, so start again from the job.`,
       { turnOn: true },
     );
   }
-  return view(`${except}, which couldn't ${started ? 'go on' : 'run here'}.`, { turnOn: true });
+  return view(`${except}, which couldn't ${started ? 'go on' : 'run here'}.`, {
+    turnOn: true,
+    next: true,
+  });
 }

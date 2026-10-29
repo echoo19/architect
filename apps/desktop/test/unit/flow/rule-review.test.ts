@@ -18,7 +18,7 @@ const DETAILS: RuleDetails = {
   steps: [
     { text: 'Round labor hours up to a multiple of 0.5.' },
     { text: 'Multiply by 65.' },
-    { text: 'When member (customers.csv) is yes, multiply by 0.9.', files: ['customers.csv'] },
+    { text: 'When member (customers.csv) is yes, take 10% off.', files: ['customers.csv'] },
     { text: 'Add parts cost.', note: 'An empty parts cost counts as 0, as you said.' },
     { text: 'Round the result to the nearest cent; half a cent rounds up.' },
   ],
@@ -95,6 +95,29 @@ describe('the rule as Define puts it in front of the person', () => {
     expect(text(html)).not.toContain('Made-up numbers');
   });
 
+  it('puts the tag of an example that is not a record first and loud, and on no other', () => {
+    // "Like T-2144, but with parts cost 0.005" was taken for T-2144 with a new price, so the tag
+    // is the first thing under the request, in the tone this screen gives what must not be missed.
+    const [real, made] = html
+      .split('<li class="flex flex-col gap-3.5 rounded-2xl border border-line-card bg-panel')
+      .slice(1);
+    if (real === undefined || made === undefined) throw new Error('There are two examples.');
+    expect(real).toContain('What does ticket T-2148 cost the customer?');
+    expect(real).not.toContain('Not from your records');
+    expect(made).toContain('Like T-2144, but with parts cost 0.005');
+    expect(made.indexOf('Not from your records')).toBeGreaterThan(-1);
+    expect(made.indexOf('Not from your records')).toBeLessThan(
+      made.indexOf('Shows how the rule rounds the total'),
+    );
+    // A filled warning with its mark, the one the changed rule wears, and not a quiet outline.
+    expect(made).toMatch(
+      /<span class="[^"]*bg-danger-tint[^"]*text-danger[^"]*"[^>]*><svg[^>]*lucide-circle-alert[^>]*aria-hidden="true"[^>]*>[\s\S]*?<\/svg>Not from your records<\/span>/,
+    );
+    expect(made).not.toMatch(/border-line-control text-fg-secondary[^"]*"[^>]*>Not from/);
+    // What the example shows stays the quiet tag it was.
+    expect(made).toMatch(/bg-card text-fg-soft[^"]*"[^>]*>Shows how the rule rounds the total</);
+  });
+
   it('says what an example shows, not what it is called, and without brackets', () => {
     expect(text(html)).toContain('Shows how the rule rounds labor hours');
     expect(text(html)).toContain('Shows how the rule rounds the total');
@@ -115,7 +138,7 @@ describe('the rule as Define puts it in front of the person', () => {
     expect(steps).toEqual([
       '1. Round labor hours up to a multiple of 0.5.',
       '2. Multiply by 65.',
-      '3. When member (customers.csv) is yes, multiply by 0.9.',
+      '3. When member (customers.csv) is yes, take 10% off.',
       '4. Add parts cost. An empty parts cost counts as 0, as you said.',
       '5. Round the result to the nearest cent; half a cent rounds up.',
     ]);
@@ -147,8 +170,19 @@ describe('the rule as Define puts it in front of the person', () => {
 
   it('gives the rows left out their reason in the line that says how many, when it is one', () => {
     expect(text(html)).toContain(
-      '26 of 160 rows left out: parts_cost says N/A or a dash, which is not the same as empty',
+      '26 of 160 rows left out of the tasks: parts_cost says N/A or a dash, which is not the same as empty',
     );
+  });
+
+  it('says what the rule is for in the names the screen uses, and checks the lines it quotes', () => {
+    // The agent is Glimmer here as everywhere on the screen, and "passages" is nowhere: the section
+    // is called "From your policy".
+    expect(text(html)).toContain(
+      'Spark turned your policy into this rule. Architect works out the right answer to every task from this rule and grades Glimmer against those answers, so if the rule is wrong, the grades are wrong too.',
+    );
+    expect(text(html)).toContain('Check that the lines from your policy are the right ones');
+    expect(text(html)).toContain('From your policy');
+    expect(text(html)).not.toMatch(/passage|the agent is tested on/i);
   });
 
   it('keeps the version out of the way of the title, in Details, and shows no code up front', () => {

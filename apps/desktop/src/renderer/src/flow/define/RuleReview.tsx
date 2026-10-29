@@ -23,7 +23,7 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
   const { confirmation } = plan;
   const [confirming, setConfirming] = useState(false);
   if (rules.length === 0 || confirmation === undefined) return null;
-  const { mentor } = modelNames(job);
+  const { mentor, student } = modelNames(job);
   const confirmed = confirmation.state === 'confirmed';
   const changed = confirmation.state === 'changed';
 
@@ -71,7 +71,7 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
       </div>
       {confirmation.state === 'needed' && (
         <p className="m-0 max-w-[620px] text-fg-secondary text-pretty">
-          {reviewIntro(mentor, rules.length)}
+          {reviewIntro(mentor, student, rules.length)}
         </p>
       )}
       {changed && (
@@ -174,7 +174,7 @@ function RuleCard({
 
       <div className="flex flex-col gap-1">
         {details.excluded.length > 0 && (
-          <Disclosure label={leftOut ?? 'Rows left out'}>
+          <Disclosure label={leftOut ?? 'Rows left out of the tasks'}>
             <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-fg-secondary">
               {details.excluded.map((item) => (
                 <li key={item.reason} className="text-pretty">
@@ -207,6 +207,11 @@ function RuleCard({
   );
 }
 
+/**
+ * One worked example. One that is not a record reads like one ("Like T-2144, but with parts cost
+ * 0.005" was taken for T-2144 with a new price), so its tag comes first, in the tone this screen
+ * uses for what the person must not miss, before what the example shows.
+ */
 function Example({ example }: { example: RuleExample }) {
   return (
     <li className="flex flex-col gap-3.5 rounded-2xl border border-line-card bg-panel px-5 py-[18px]">
@@ -216,12 +221,16 @@ function Example({ example }: { example: RuleExample }) {
       </div>
       {(example.covers.length > 0 || example.madeUp === true) && (
         <div className="flex flex-wrap gap-2">
+          {example.madeUp === true && (
+            <Badge tone="alert" icon={<CircleAlert size={14} strokeWidth={2} aria-hidden />}>
+              Not from your records
+            </Badge>
+          )}
           {example.covers.map((cover) => (
             <Badge key={cover} tone="neutral">
               {cover}
             </Badge>
           ))}
-          {example.madeUp === true && <Badge tone="outline">Not from your records</Badge>}
         </div>
       )}
       <dl className="m-0 flex flex-wrap gap-x-6 gap-y-1 text-sm">

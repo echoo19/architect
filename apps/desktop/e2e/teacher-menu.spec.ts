@@ -181,6 +181,11 @@ test("a kind switched off in the teacher's tab is still off when the job is open
   } satisfies Job);
 
   await goTo(page, `/jobs/${jobId}/define`);
+  // The teacher runs on this computer as well, so the card for training here can say that nothing
+  // leaves it; with an online teacher it says what goes online (`flow.spec.ts`).
+  await expect(page.getByRole('radio', { name: /Train on this computer/ })).toContainText(
+    'Free. Nothing leaves this computer.',
+  );
   const { advanced, section } = await openTeacherTab(page);
   const small = section.getByRole('switch', { name: 'Small tools' });
   const questions = section.getByRole('switch', { name: 'Questions for you' });
@@ -229,13 +234,15 @@ test('the last switch that changes the agent stays on, and Start training says w
   expect((await savedJob(page)).interventions).toEqual(['weights']);
 
   const needs = page.getByRole('region', { name: 'Before it can start' });
-  await expect(needs).toContainText('Spark has nothing it may change');
+  await expect(needs).toContainText("Spark can't change anything yet");
   await expect(needs).toContainText(
     'Only retraining Glimmer itself is on, and it needs a Hugging Face key. A free Hugging Face account gives you one.',
   );
   await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
   // The footer says the same, beside the button that is held.
-  await expect(page.getByText('Spark has nothing it may change')).toHaveCount(2);
+  await expect(page.getByText("Spark can't change anything yet")).toHaveCount(2);
+  // Nowhere does it say that nothing is permitted: the switch for the weights is on, and held.
+  await expect(page.getByText('has nothing it may change')).toHaveCount(0);
 });
 
 test('a run whose teacher may change nothing ends at once, with the reason and no spend', async () => {
@@ -281,6 +288,8 @@ test('a run whose teacher may change nothing ends at once, with the reason and n
       'Every kind of change Spark may make is turned off for this job, except retraining Glimmer itself, which needs a Hugging Face key. A free Hugging Face account gives you one. Nothing was spent.',
     );
     await expect(notice).not.toContainText(/mentor|stand-in|adapter|backend/i);
+    // This screen has no Start button, so the notice says what to do after its button.
+    await expect(notice).toContainText('Turn one on, then start training again from the job.');
     await capture(page, `teacher-idle-${theme}`);
   }
 
@@ -302,8 +311,18 @@ test('a run whose teacher may change nothing ends at once, with the reason and n
   await expect(page).toHaveURL(new RegExp(`#/jobs/${jobId}/define$`));
   const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
   await expect(advanced.getByRole('region', { name: 'What Spark may change' })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(advanced).toBeHidden();
+  // What the notice says to do next is what the job offers: turn one on, and Start training is
+  // there, no longer held. Then it is put back as the next test finds it.
+  await advanced
+    .getByRole('region', { name: 'What Spark may change' })
+    .getByRole('switch', { name: 'Instructions and steps' })
+    .click();
+  await closeAdvanced(page, advanced);
+  await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
+  const back = await openTeacherTab(page);
+  await back.section.getByRole('switch', { name: 'Instructions and steps' }).click();
+  await closeAdvanced(page, back.advanced);
+  await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
 
   // The run's own controls lead back to the job too, without opening anything.
   await goTo(page, `/runs/${started.id}/train`);

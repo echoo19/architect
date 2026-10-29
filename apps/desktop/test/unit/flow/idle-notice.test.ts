@@ -61,7 +61,55 @@ describe('what a run that had nothing it may change says to the person', () => {
       body: 'Every kind of change Spark may make is turned off for this job, except retraining Glimmer itself, which needs a Hugging Face key. A free Hugging Face account gives you one. Nothing was spent.',
       missingKey: true,
       turnOn: true,
+      next: 'Turn one on, then start training again from the job.',
     });
+  });
+
+  it('says what to do after the button, since this screen has no Start button', () => {
+    const NEXT = 'Turn one on, then start training again from the job.';
+    // Where the button turns a change back on, the person is taken to the job, where one is turned
+    // on and Start training is, so those words are true of it: for whatever keeps the weights from
+    // running, and for a cause the app can't see.
+    for (const [run, facts] of [
+      [live(), NO_KEY],
+      [live(), HAS_KEY],
+      [live(WEIGHTS_ONLY, {}, { lockedTestOn: 'hosted' }), NO_KEY],
+      [live({ ...WEIGHTS_ONLY, budget: FUNDED }), HAS_KEY],
+      [live({ ...WEIGHTS_ONLY, budget: FUNDED }), { token: 'unknown', keyAdded: false }],
+      [live(WEIGHTS_ONLY, {}, { rounds: [makeRound(1, { decision: 'reverted' })] }), NO_KEY],
+    ] as [LiveRun, IdleFacts][]) {
+      const view = idleView(run, facts);
+      expect(view.turnOn).toBe(true);
+      expect(view.next).toBe(NEXT);
+    }
+    // Not where it has been said already: the key was added, and the body says to start again.
+    const added = idleView(live({ ...WEIGHTS_ONLY, budget: FUNDED }), {
+      token: 'found',
+      keyAdded: true,
+    });
+    expect(added.next).toBeNull();
+    expect(added.body).toContain('start again from the job');
+    // Nor where the button does not turn a change on: there is none to turn on, or it is a
+    // simpler version of a comparison, which Start training does not run by itself.
+    expect(idleView(live({ interventions: ['procedure', 'weights'] }), NO_KEY).next).toBeNull();
+    expect(idleView(live(WEIGHTS_ONLY, { method: 'self_reflection' }), NO_KEY).next).toBeNull();
+  });
+
+  it('only says to turn one on where the button turns one on, in the same words as the button', () => {
+    for (const [run, facts] of [
+      [live(), NO_KEY],
+      [live(), HAS_KEY],
+      [live({ ...WEIGHTS_ONLY, budget: FUNDED }), { token: 'found', keyAdded: true }],
+      [live({ interventions: ['procedure', 'weights'] }), NO_KEY],
+      [live(WEIGHTS_ONLY, { method: 'one_shot' }), NO_KEY],
+      [live(WEIGHTS_ONLY, { method: 'self_reflection' }), NO_KEY],
+    ] as [LiveRun, IdleFacts][]) {
+      const view = idleView(run, facts);
+      if (view.next === null) continue;
+      expect(view.turnOn).toBe(true);
+      expect(view.next).toMatch(/^Turn one on, then start training again from the job\.$/);
+      expect(`${view.title} ${view.body} ${view.next}`).not.toMatch(ENGINE_WORDS);
+    }
   });
 
   it('says where the key comes from once, and only while the key is what is missing', () => {
@@ -166,7 +214,7 @@ describe('what a run that had nothing it may change says to the person', () => {
   it("leaves it to Details when a harness change is on, so the person's choice isn't why", () => {
     const odd = idleView(live({ interventions: ['procedure', 'weights'] }), NO_KEY);
     expect(odd.body).toBe(
-      'Spark had nothing it may change in this run. The reason is under Details. Nothing was spent.',
+      "Spark couldn't change anything in this run. The reason is under Details. Nothing was spent.",
     );
     expect(odd.missingKey).toBe(false);
     expect(odd.turnOn).toBe(false);
@@ -236,6 +284,25 @@ describe('the notice as it is shown', () => {
     );
     expect(markup).toContain('Add the Hugging Face key');
     expect(markup.match(/<button/g)).toHaveLength(3);
+  });
+
+  it('says the way on under what is off and before the buttons it is about', () => {
+    const markup = html();
+    expect(markup).toContain('Turn one on, then start training again from the job.');
+    const words = markup.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
+    expect(words.indexOf('Nothing was spent.')).toBeLessThan(
+      words.indexOf('Turn one on, then start training again from the job.'),
+    );
+    expect(markup.indexOf('Turn one on, then start')).toBeLessThan(
+      markup.indexOf('Turn a change back on'),
+    );
+    // It is a line of its own in the secondary text, like what is off, and not a button.
+    expect(markup).toMatch(
+      /<span class="[^"]*text-fg-secondary[^"]*">Turn one on, then start training again from the job\.<\/span>/,
+    );
+    // Where it is not true of the button, it is not there.
+    const odd = html(idleView(live({ interventions: ['procedure', 'weights'] }), NO_KEY));
+    expect(odd).not.toContain('start training again');
   });
 
   it('names what the first button does, which is to turn a change back on', () => {

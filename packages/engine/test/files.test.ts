@@ -301,6 +301,32 @@ describe('changing files', () => {
     expect(guardOf(() => files.plan('write', '../../escape.md', 'x')).guard).toBe('permission');
   });
 
+  it('has nothing it can change when no data file is writable and there is no output/, so no write is ever asked about', async () => {
+    // The desktop offers the saving setting only where the agent can change something: a writable
+    // data file, or the output folder. Every write is planned before it is put to the person, and
+    // a plan for anything else is refused, so with neither there is nothing the setting could ask.
+    const readOnly = SAMPLE_FILES.map((file): DataFile => ({ ...file, access: 'read' }));
+    const files = await open({ files: readOnly });
+    expect(files.writable).toBe(false);
+    expect(files.hasOutput).toBe(false);
+    expect(files.list().some((file) => file.writable)).toBe(false);
+    for (const path of [
+      'data/customers.csv',
+      'data/invoices.csv',
+      'data/new.csv',
+      'output/report.md',
+      'report.md',
+      'skills/price-a-job/SKILL.md',
+    ]) {
+      expect(guardOf(() => files.plan('write', path, 'x')).guard, path).toBe('permission');
+    }
+    // One writable file, or the output folder alone, is enough for the setting to matter.
+    expect((await open()).writable).toBe(true);
+    expect((await open({ files: readOnly, output: { description: 'Reports.' } })).writable).toBe(
+      true,
+    );
+  });
+
   it('creates files in output/ when the job has it, with safe names only', async () => {
     const files = await open({ output: { description: 'Reports.' } });
     expect(files.hasOutput).toBe(true);

@@ -163,9 +163,10 @@ for (const theme of THEMES) {
     await expect(page.getByRole('region', { name: "What it won't do" })).toContainText(
       'Issues refunds or credits',
     );
-    // The write setting names the files it covers, in the same words as the agent's own setting.
+    // The write setting names the files it covers, in the same words as the agent's own setting,
+    // and the output folder the job gives the agent, which it covers as well.
     const permissions = page.getByRole('region', { name: 'Permissions' });
-    await expect(permissions).toContainText('invoices.csv, bookings.csv');
+    await expect(permissions).toContainText('invoices.csv, bookings.csv and its output folder');
     await expect(
       permissions
         .getByRole('radiogroup', { name: 'Saving files' })
@@ -183,18 +184,27 @@ for (const theme of THEMES) {
     await expect(local).toBeChecked();
     await expect(local).toBeDisabled();
     await expect(local).toContainText('Slower: about 2.5 minutes a task');
-    await expect(local).toContainText('Free. Nothing leaves this computer.');
+    // Training always sends the teacher what it reads to teach, and the story's teacher is
+    // Spark through Meta's API, so the card says what goes online instead of that nothing does.
+    await expect(local).toContainText(
+      'Free. Glimmer runs here; only what Spark reads to teach goes online.',
+    );
+    await expect(local).not.toContainText('Nothing leaves');
     // The place chosen can't fit a round, so one callout by the choice says so in plain words,
     // Start training waits, and the footer says why. The card does not say it again right above.
     await expect(local).not.toContainText('Too slow');
     const wont = 'Not even one round of teaching fits in 4 hours on this computer';
     const callout = page.getByRole('status').filter({ hasText: wont });
+    // A round is said as a range, from the shortest it takes to the longest, so that the limit the
+    // button names adds up: 1 h 40 min of check tasks and a round of at most 7 h 10 min is 8 h 50.
     await expect(callout).toContainText(
-      'Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once',
+      'Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once, then 3 h 50 min to 7 h 10 min for each round of teaching.',
     );
     await expect(callout).toContainText("That doesn't fit in the 4 hours allowed");
     // What the time button gives is said beside it, and it is the limit the button names.
-    await expect(callout).toContainText('Allowing 9 hours leaves room for one round.');
+    await expect(callout).toContainText('Allowing 9 hours leaves room for one round of teaching.');
+    // A round has one name in the box, the one its title has.
+    await expect(callout).not.toContainText('practice and fixing');
     // The chosen card keeps its title in the normal color, so it does not look switched off.
     const titleColor = (card: Locator) =>
       card
@@ -507,7 +517,7 @@ for (const theme of THEMES) {
               { text: 'Round labor hours up to a multiple of 0.5.' },
               { text: 'Multiply by 65.' },
               {
-                text: 'When member (customers.csv) is yes, multiply by 0.9.',
+                text: 'When member (customers.csv) is yes, take 10% off.',
                 files: ['customers.csv'],
               },
               { text: 'Add parts cost.' },
@@ -589,7 +599,7 @@ for (const theme of THEMES) {
 
     // What the rule left out of the tests is said right under it, with how many rows the tests
     // could use. It qualifies the score as the note does, so it is set at the note's size, not
-    // louder than the note it follows.
+    // louder than the note it follows, and the two are one block under the tiles.
     const leftOut = page.getByText(
       'The tests could use 108 of the 160 rows. The other 52 were left out because parts_cost is empty or N/A.',
     );
@@ -597,6 +607,23 @@ for (const theme of THEMES) {
     const sizeOf = (line: Locator) =>
       line.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
     expect(await sizeOf(leftOut)).toBe(await sizeOf(page.getByText(note)));
+    expect(
+      await page
+        .getByText(note)
+        .evaluate(
+          (first, second) => first.parentElement === second?.parentElement,
+          await leftOut.elementHandle(),
+        ),
+    ).toBe(true);
+    // A reader called the note the most important sentence on the page and read the score as
+    // "92% of my bills right", so it is read at the size of the page's own text, not smaller,
+    // and not in the small print of the notes inside the tiles above it.
+    const body = await page
+      .locator('body')
+      .evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+    const noteSize = await sizeOf(page.getByText(note));
+    expect(noteSize).toBeGreaterThanOrEqual(body);
+    expect(noteSize).toBeGreaterThan(await sizeOf(page.getByText('Up from 40% before training')));
     const [noteBox, leftBox, detailsBox] = await Promise.all([
       page.getByText(note).boundingBox(),
       leftOut.boundingBox(),
@@ -617,7 +644,7 @@ for (const theme of THEMES) {
     const told = rule.locator('ol > li');
     await expect(told).toHaveCount(5);
     await expect(told.nth(0)).toHaveText('1.Round labor hours up to a multiple of 0.5.');
-    await expect(told.nth(2)).toHaveText('3.When member (customers.csv) is yes, multiply by 0.9.');
+    await expect(told.nth(2)).toHaveText('3.When member (customers.csv) is yes, take 10% off.');
     await expect(told.nth(4)).toHaveText(
       '5.Round the result to the nearest cent; half a cent rounds up.',
     );
@@ -1038,7 +1065,10 @@ for (const theme of THEMES) {
     await page.keyboard.press('Escape');
     await expect(settings).toBeHidden();
     const needs = page.getByRole('region', { name: 'Before it can start' });
-    await expect(needs).toContainText('Spark has nothing it may change');
+    // Said as what Spark can't do yet, since the tab above shows its one way to change Glimmer
+    // switched on: a title that said nothing is permitted would contradict it.
+    await expect(needs).toContainText("Spark can't change anything yet");
+    await expect(page.getByText('nothing it may change')).toHaveCount(0);
     await expect(needs).toContainText(
       'Only retraining Glimmer itself is on, and it needs a Hugging Face key. A free Hugging Face account gives you one. Turn something else on, or add the key.',
     );

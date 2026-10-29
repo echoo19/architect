@@ -6,11 +6,11 @@ import { RuleSteps, stepPieces } from '../../../src/renderer/src/flow/RuleSteps'
 describe('the files a step names', () => {
   it('are cut out of the words, so each can be set quietly', () => {
     expect(
-      stepPieces('When member (customers.csv) is yes, multiply by 0.9.', ['customers.csv']),
+      stepPieces('When member (customers.csv) is yes, take 10% off.', ['customers.csv']),
     ).toEqual([
       { text: 'When member ', file: false },
       { text: '(customers.csv)', file: true },
-      { text: ' is yes, multiply by 0.9.', file: false },
+      { text: ' is yes, take 10% off.', file: false },
     ]);
   });
 

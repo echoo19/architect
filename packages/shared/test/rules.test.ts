@@ -21,7 +21,7 @@ describe('a rule told as steps', () => {
     expect(RuleStepSchema.parse({ text: 'Multiply by 65.' })).toEqual({ text: 'Multiply by 65.' });
     expect(
       RuleStepSchema.parse({
-        text: 'When member (customers.csv) is yes, multiply by 0.9.',
+        text: 'When member (customers.csv) is yes, take 10% off.',
         files: ['customers.csv'],
         note: 'An empty parts cost counts as 0, as you said.',
       }),

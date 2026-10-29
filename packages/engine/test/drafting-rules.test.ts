@@ -51,7 +51,7 @@ const TEXT = (request: MentorCompletionRequest): string =>
 const SHOP_STEPS = [
   'Round labor hours up to a multiple of 0.5.',
   'Multiply by 65.',
-  'When member (customers.csv) is yes, multiply by 0.9.',
+  'When member (customers.csv) is yes, take 10% off.',
   'Add parts cost.',
   'Round the result to the nearest cent; half a cent rounds up.',
 ];

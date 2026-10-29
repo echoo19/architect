@@ -48,6 +48,23 @@ describe('model names', () => {
     ).toBe(false);
   });
 
+  it('does not take a local runtime at another machine, or a coding agent, for this computer', () => {
+    const model = {
+      kind: 'model' as const,
+      provider: 'ollama' as const,
+      label: 'Muse Spark Open on this computer',
+      baseUrl: 'http://192.168.1.20:11434/v1',
+      model: 'spark-open',
+      reasoningEffort: 'medium' as const,
+    };
+    // A runtime that is local by kind but answers at a machine on the network sends data there.
+    expect(mentorIsLocal(model)).toBe(false);
+    expect(mentorIsLocal({ ...model, baseUrl: 'http://127.0.0.1:11434/v1' })).toBe(true);
+    expect(
+      mentorIsLocal({ kind: 'coding_agent', agent: 'claude_code', label: 'Claude Code' }),
+    ).toBe(false);
+  });
+
   it('shortens preset labels to the names the UI uses', () => {
     expect(shortModelName('Muse Spark 1.3')).toBe('Spark');
     expect(shortModelName('Muse Spark 1.3, contributor tier')).toBe('Spark');
