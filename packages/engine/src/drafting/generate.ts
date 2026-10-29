@@ -1,5 +1,11 @@
 import { createHash } from 'node:crypto';
-import { TaskSchema, type SplitConfig, type Task, type TaskSpec } from '@architect/shared';
+import {
+  DRAFTING_LIMITS,
+  TaskSchema,
+  type SplitConfig,
+  type Task,
+  type TaskSpec,
+} from '@architect/shared';
 import { seededRandom, shuffle } from '../splits/random';
 import { runFilteredList } from './templates/filtered-list';
 import { runGroupTotal } from './templates/group-total';
@@ -21,7 +27,7 @@ export const MAX_TASKS = 120;
  * practice tasks. With fewer, the check tasks can't tell the two-task gain the keep rule asks
  * for from luck, and a final test under 8 can't tell a 90% agent from a 70% one.
  */
-export const MIN_TASKS = 30;
+export const MIN_TASKS = DRAFTING_LIMITS.minTasks;
 export const MIN_FINAL_TEST = 8;
 
 /** The fewest requests a kind of task must support to be worth a place in the job. */

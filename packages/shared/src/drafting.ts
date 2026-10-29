@@ -6,6 +6,19 @@ import { z } from 'zod';
  * out every expected answer itself, so the teacher never writes an answer or code that decides one.
  */
 
+/**
+ * What drafting reads and needs, in one place so the engine and the screens say the same numbers
+ * (decisions 058 and 061).
+ */
+export const DRAFTING_LIMITS = {
+  /** The fewest tasks a job can be trained on, so the fewest rows of records in all. */
+  minTasks: 30,
+  /** The longest text file Architect reads, in characters. It reads a text whole or not at all. */
+  maxTextChars: 30_000,
+  /** The most characters of text across all the text files. */
+  maxTotalTextChars: 60_000,
+} as const;
+
 /** The kinds of request Architect knows how to make from a table. */
 export const TASK_TEMPLATES = ['lookup', 'filtered_list', 'group_total'] as const;
 export const TaskTemplateSchema = z.enum(TASK_TEMPLATES);

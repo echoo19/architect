@@ -29,7 +29,14 @@ import {
   type DraftedJob,
   type Question,
 } from './envelope';
-import { describeAttached, digestOf, readAttachments, totalRows, type Attached } from './files';
+import {
+  describeAttached,
+  digestOf,
+  readAttachments,
+  textTooLong,
+  totalRows,
+  type Attached,
+} from './files';
 import {
   generateTasks,
   MIN_PER_TYPE,
@@ -147,7 +154,7 @@ export class JobDrafting implements JobDrafter {
   async start(description: string, files: string[], teacher: MentorConfig): Promise<DraftTurn> {
     if (description.trim() === '') throw new Error('Describe the job first.');
     const attached = await readAttachments(files);
-    const stop = tooLittle(attached);
+    const stop = textTooLong(attached) ?? tooLittle(attached);
     if (stop !== null) return { sessionId: newId('drf'), message: stop, options: [], ended: true };
     const session = this.open(description, attached);
     return this.run(

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import {
   CodedError,
+  DRAFTING_LIMITS,
   GuardError,
   shippedModels,
   type MentorCompletionRequest,
@@ -68,8 +69,8 @@ function recordOf(jobId: string): Record<string, unknown> {
 }
 
 describe('starting the conversation', () => {
-  it('tells the teacher what the files hold, and only the start of each', async () => {
-    const long = `# Handbook\n\n${'A rule that goes on. '.repeat(400)}\nTAIL-MARKER-9921`;
+  it('tells the teacher what the tables hold in brief, and a text whole', async () => {
+    const long = `# Handbook\n\n${'A rule that goes on. '.repeat(400)}\nEXCEPTION-AT-THE-END-9921`;
     world.mentor.script = () => question('Which region matters most?', ['North', 'South']);
     const turn = await world.drafting.start(
       'A desk for our small online shop',
@@ -99,12 +100,59 @@ describe('starting the conversation', () => {
     expect(opening).toContain('numbers, some written with currency signs or separators');
     expect(opening).toContain('### policy.md (text, ');
     expect(opening).toContain('Returns are accepted for 30 days.');
-    // A table gives its first rows and a few examples, not all of it; a text file gives its start.
+    // A table gives its first rows and a few examples, not all of it; a text file is given whole,
+    // down to the exception at its end that a rule must not miss.
     expect(opening).not.toContain(data.customers[149]?.email);
     expect(opening).not.toContain(data.orders[399]?.id);
-    expect(opening).toContain('[The rest of the file is not shown.]');
-    expect(opening).not.toContain('TAIL-MARKER-9921');
-    expect(opening.length).toBeLessThan(40_000);
+    expect(opening).toContain('### handbook.md (text, 8,');
+    expect(opening).toContain('EXCEPTION-AT-THE-END-9921');
+    expect(opening).not.toContain('The rest of the file is not shown');
+    expect(opening.length).toBeLessThan(60_000);
+  });
+
+  it('will not read part of a long policy: it asks for the section that matters instead', async () => {
+    const policy = `# Policy\n\n${'A rule that goes on. '.repeat(1_600)}\nEXCEPTION-AT-THE-END-4417`;
+    expect(policy.length).toBeGreaterThan(DRAFTING_LIMITS.maxTextChars);
+    const turn = await world.drafting.start(
+      'A desk for our small online shop',
+      [...attachShop(), world.attach('big-policy.md', policy)],
+      TEACHER,
+    );
+    expect(turn).toMatchObject({ ended: true, options: [] });
+    expect(turn.message).toContain(
+      `big-policy.md is ${policy.length.toLocaleString('en-US')} characters`,
+    );
+    expect(turn.message).toContain('more than the 30,000 Architect reads from one text file');
+    expect(turn.message).toContain("so Architect won't use part of it");
+    expect(turn.message).toContain('Attach just the section the job needs');
+    // The teacher was not asked, and nothing of the policy went anywhere.
+    expect(world.mentor.requests).toEqual([]);
+    await expect(world.drafting.reply(turn.sessionId, 'Hello', TEACHER)).rejects.toMatchObject({
+      code: 'draft_not_found',
+    });
+  });
+
+  it('reads a policy right up to the limit, and counts every text file toward a total', async () => {
+    world.mentor.script = () => question('Which region?', ['North', 'South']);
+    const atLimit = `${'x'.repeat(DRAFTING_LIMITS.maxTextChars - 11)}\nAT-THE-END`;
+    expect(atLimit.length).toBe(DRAFTING_LIMITS.maxTextChars);
+    const fits = await world.drafting.start(
+      'A desk',
+      [...attachShop(), world.attach('limit.md', atLimit)],
+      TEACHER,
+    );
+    expect(fits.ended).toBeUndefined();
+    expect(world.mentor.requests[0]?.messages[0]?.content).toContain('AT-THE-END');
+
+    const many = Array.from({ length: 3 }, (_, i) =>
+      world.attach(`part-${i}.md`, 'y'.repeat(DRAFTING_LIMITS.maxTextChars - 100)),
+    );
+    const before = world.mentor.requests.length;
+    const total = await world.drafting.start('A desk', [...attachShop(), ...many], TEACHER);
+    expect(total).toMatchObject({ ended: true });
+    expect(total.message).toContain('Your text files add up to 89,');
+    expect(total.message).toContain('more than the 60,000 Architect reads in all');
+    expect(world.mentor.requests.length).toBe(before);
   });
 
   it('asks for a reply in the format, with the three kinds of task and the rules against inventing', async () => {

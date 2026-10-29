@@ -44,7 +44,7 @@ export function systemPrompt(): string {
 
 ## What you receive
 
-The person's description, then each attached file: a table (its row count, each column with a profile, and its first rows) or a text file (its start). Sometimes a tasks file too, of which you only see how many tasks it has and their types.
+The person's description, then each attached file: a table (its row count, each column with a profile, and its first rows) or a text file (all of it). Sometimes a tasks file too, of which you only see how many tasks it has and their types.
 
 ## What you reply
 
