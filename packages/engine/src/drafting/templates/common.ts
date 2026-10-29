@@ -159,11 +159,6 @@ export function inWords(items: readonly string[]): string {
   return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 }
 
-/** Whether a cell is empty once cleaned. */
-export function isEmpty(cell: string | null): boolean {
-  return cleanText(cell) === '';
-}
-
 /** One canonical text for a JSON value, with object keys in order. */
 export function canonicalJson(value: JsonValue): string {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
