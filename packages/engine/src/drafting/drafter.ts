@@ -42,7 +42,14 @@ import {
   type Attached,
 } from './files';
 import type { RuleCase } from './rule/cases';
-import { auditSplits, divide, type Division } from './division';
+import {
+  auditSplits,
+  divide,
+  faultsToPerson,
+  faultsToTeacher,
+  type Division,
+  type Fault,
+} from './division';
 import { chooseExamples } from './rule/examples';
 import type { RuleOutcome } from './rule/outcome';
 import {
@@ -167,6 +174,15 @@ function blankMeaning(text: string): BlankAnswer['means'] | null {
   if (said === foldKey(BLANK_ANSWERS.zero)) return 'zero';
   if (said === foldKey(BLANK_ANSWERS.leave_out)) return 'leave_out';
   return null;
+}
+
+/**
+ * A draft whose sets could be passed by a copy however they were divided. The teacher is told that
+ * a copy could pass and which kind of task, and nothing of the sets as they were proposed, which
+ * are the final test's before it is sealed. The person, who may know the final test, gets the rest.
+ */
+function refusal(faults: readonly Fault[]): { problems: string[]; shown: string[] } {
+  return { problems: faultsToTeacher(faults), shown: faultsToPerson(faults) };
 }
 
 /** Spark's draft was refused, with the reasons, even after it was asked again. */
@@ -354,9 +370,13 @@ export class JobDrafting implements JobDrafter {
           blanks: session.answers.flatMap((item) => (item.blank === undefined ? [] : [item.blank])),
         },
       });
+      // What the teacher is told is wrong, and what the person is told when it stays wrong, which
+      // is the same unless the teacher must not know the reason in full.
       let problems: string[];
+      let shown: string[];
       if (!checked.ok) {
         problems = checked.problems;
+        shown = problems;
       } else if (checked.reply.action === 'ask') {
         return this.asked(session, messages, reply.text, checked.reply);
       } else {
@@ -367,8 +387,9 @@ export class JobDrafting implements JobDrafter {
         const made = this.build(session, checked.reply.job, final);
         if ('built' in made) return await this.drafted(session, teacher, made.built);
         problems = made.problems;
+        shown = made.shown ?? made.problems;
       }
-      if (final) throw unusable(problems);
+      if (final) throw unusable(shown);
       sent = [
         ...messages,
         { role: 'assistant', content: reply.text },
@@ -458,12 +479,12 @@ export class JobDrafting implements JobDrafter {
     session: Session,
     job: DraftedJob,
     final: boolean,
-  ): { built: Built } | { problems: string[] } {
+  ): { built: Built } | { problems: string[]; shown?: string[] } {
     const { attached } = session;
     if (attached.tasks !== null) {
       const seed = seedFrom([...digestOf(attached), 'attached']);
       const division = this.divideTasks(attached.tasks.tasks, seed, null, job.passRate);
-      if (division.kind === 'unsafe') return { problems: division.problems };
+      if (division.kind === 'unsafe') return refusal(division.faults);
       return {
         built: {
           job,
@@ -508,7 +529,7 @@ export class JobDrafting implements JobDrafter {
     // The sets as they are divided are held to the guard a rule is held to over all its cases, so
     // that what a copy could pass is known before the final test is sealed.
     const division = this.divideTasks(generation.tasks, seed, generation, job.passRate);
-    if (division.kind === 'unsafe') return { problems: division.problems };
+    if (division.kind === 'unsafe') return refusal(division.faults);
     return {
       built: {
         job,
