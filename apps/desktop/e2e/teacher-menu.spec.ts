@@ -270,14 +270,42 @@ test('a run whose teacher may change nothing ends at once, with the reason and n
       { width: WIDTH, height: TRAIN_HEIGHT },
     );
     await goTo(page, `/runs/${started.id}/train`);
-    const notice = page.getByRole('status', { name: 'Spark had nothing it may change' });
+    const notice = page.getByRole('status', { name: "Training didn't start" });
     await expect(notice).toBeVisible();
-    await expect(notice).toContainText('The mentor has nothing it may change in this run.');
+    // In plain words, from the job and what the app knows: what is off, what is missing, and that
+    // nothing was spent. None of the engine's words for its own parts.
+    await expect(notice).toContainText(
+      'Every kind of change Spark may make is turned off for this job, except retraining Glimmer itself, which needs a Hugging Face key. Nothing was spent.',
+    );
+    await expect(notice).not.toContainText(/mentor|stand-in|adapter|backend/i);
     await capture(page, `teacher-idle-${theme}`);
   }
-  // The run's controls lead back to the job, where the teacher's tab is.
+
+  // The engine's own sentence is kept under Details.
+  const notice = page.getByRole('status', { name: "Training didn't start" });
+  await notice.getByRole('button', { name: 'Details' }).click();
+  await expect(notice).toContainText('The mentor has nothing it may change in this run.');
+
+  // The way to add the key is Settings, open on the Hugging Face row.
+  await notice.getByRole('button', { name: 'Add the Hugging Face key' }).click();
+  const settings = page.getByRole('dialog', { name: 'Settings' });
+  await expect(settings.getByRole('button', { name: 'Add token' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(settings).toBeHidden();
+
+  // Its other button goes to the job with the teacher's tab open.
+  await notice.getByRole('button', { name: "Open Spark's settings" }).click();
+  await expect(page).toHaveURL(new RegExp(`#/jobs/${jobId}/define$`));
+  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+  await expect(advanced.getByRole('region', { name: 'What Spark may change' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(advanced).toBeHidden();
+
+  // The run's own controls lead back to the job too, without opening anything.
+  await goTo(page, `/runs/${started.id}/train`);
   await page.getByRole('button', { name: 'Back to the job' }).click();
   await expect(page).toHaveURL(new RegExp(`#/jobs/${jobId}/define$`));
+  await expect(advanced).toBeHidden();
 });
 
 test('the first draft and the rounds after it keep to the choice, and a refused round says whose it was', async () => {

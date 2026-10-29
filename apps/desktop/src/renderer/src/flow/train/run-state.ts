@@ -232,6 +232,11 @@ export function hasEnded(run: Run): boolean {
   return run.status === 'finished' || run.status === 'stopped' || run.status === 'failed';
 }
 
+/** Whether the run ended without ever starting a round or attempting a task. */
+export function neverStarted(run: Run): boolean {
+  return run.totals.rounds === 0 && run.totals.attempts === 0;
+}
+
 export function hasKeptChange(rounds: readonly Round[]): boolean {
   return rounds.some((round) => round.decision === 'kept');
 }

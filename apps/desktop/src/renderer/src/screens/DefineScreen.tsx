@@ -12,6 +12,7 @@ import { flowApi } from '../api/client';
 import { useJob, useJobs, useSettings, useTaskPlan } from '../api/hooks';
 import { ProblemState } from '../components/ProblemState';
 import { resetDraft, useDraftStore } from '../flow/describe/draft-store';
+import { takeAdvanced } from '../flow/define/advanced-request';
 import { AdvancedDialog, tabWithIssue, type AdvancedTab } from '../flow/define/AdvancedDialog';
 import { hostedAvailability } from '../flow/define/hosted';
 import { Capabilities, FilePermissions, JobHeader, ReadyWhen } from '../flow/define/JobOverview';
@@ -96,6 +97,16 @@ function DefineEditor({ initial }: { initial: Job }) {
     setTab(at);
     setAdvancedOpen(true);
   };
+
+  // Another screen may have sent the person here to change something in this job's settings.
+  const { id: jobId } = initial;
+  useEffect(() => {
+    const asked = takeAdvanced(jobId);
+    if (asked !== null) {
+      setTab(asked);
+      setAdvancedOpen(true);
+    }
+  }, [jobId]);
   const preflight = usePreflight(job, testPlace, openAdvanced);
   const hosted = hostedAvailability(job.student, preflight.keys);
 

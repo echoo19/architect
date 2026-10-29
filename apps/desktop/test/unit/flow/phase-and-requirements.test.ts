@@ -51,6 +51,19 @@ describe('phaseView', () => {
     }
   });
 
+  it('says a run that ended with nothing to try never started, as the notice under it does', () => {
+    const idle = { status: 'stopped', phase: 'done', stopReason: 'nothing_to_try' } as const;
+    expect(phaseView(makeRun(idle), NAMES).text).toBe("Training didn't start");
+    // One that had begun, or was stopped for another reason, only stopped.
+    const begun = makeRun({ ...idle, totals: { ...makeRun().totals, rounds: 2 } });
+    expect(phaseView(begun, NAMES).text).toBe('Training stopped');
+    const attempted = makeRun({ ...idle, totals: { ...makeRun().totals, attempts: 40 } });
+    expect(phaseView(attempted, NAMES).text).toBe('Training stopped');
+    expect(
+      phaseView(makeRun({ status: 'stopped', phase: 'done', stopReason: 'user' }), NAMES).text,
+    ).toBe('Training stopped');
+  });
+
   it('says a run that asked a question waits for the person, rather than that it is paused', () => {
     const asking = makeRun({ status: 'paused', phase: 'clarifying' });
     expect(phaseView(asking, NAMES)).toMatchObject({

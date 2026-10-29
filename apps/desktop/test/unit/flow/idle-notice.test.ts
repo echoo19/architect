@@ -1,19 +1,38 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
-import { IdleNotice } from '../../../src/renderer/src/flow/train/IdleNotice';
+import { emptyTotals, type Job, type Run, type StudentTarget } from '@architect/shared';
+import { beforeEach, describe, expect, it } from 'vitest';
+import {
+  askForAdvanced,
+  takeAdvanced,
+} from '../../../src/renderer/src/flow/define/advanced-request';
+import { IdleNoticeView } from '../../../src/renderer/src/flow/train/IdleNotice';
+import { hadStarted, idleView, type IdleFacts } from '../../../src/renderer/src/flow/train/idle';
 import type { LiveRun } from '../../../src/renderer/src/flow/train/run-state';
-import { makeJob, makeRun } from './factories';
+import { makeJob, makeRound, makeRun } from './factories';
 
-function live(error?: string): LiveRun {
+/** The sentence the engine keeps on the run, in its own words. */
+const ENGINE =
+  "The mentor has nothing it may change in this run. Instructions and steps, What it reads when and Small tools are turned off for this job in the teacher's settings. Its weights: Only the stand-in backend is set up here, and it trains nothing. Add a Hugging Face token to train an adapter. Change what it may change in the job's advanced settings, under Teacher, or set up what is missing, then start a new run.";
+
+/** Only retraining the student is left on. */
+const WEIGHTS_ONLY: Partial<Job> = { interventions: ['weights'] };
+const FUNDED = { ...makeJob().budget, maxComputeUsd: 5 };
+
+function live(
+  job: Partial<Job> = WEIGHTS_ONLY,
+  run: Partial<Run> = {},
+  rest: Partial<LiveRun> = {},
+): LiveRun {
   return {
     run: makeRun({
       status: 'stopped',
       phase: 'done',
       stopReason: 'nothing_to_try',
-      ...(error === undefined ? {} : { error }),
+      error: ENGINE,
+      ...run,
     }),
-    job: makeJob(),
+    job: makeJob(job),
     lockedTestOn: 'local',
     rounds: [],
     attempts: [],
@@ -24,29 +43,197 @@ function live(error?: string): LiveRun {
     notice: null,
     graduateId: null,
     improves: null,
+    ...rest,
   };
 }
 
-describe('the notice of a run whose teacher had nothing it may change', () => {
-  it("names the teacher and gives the engine's reason", () => {
-    const html = renderToStaticMarkup(
-      createElement(IdleNotice, {
-        live: live(
-          "The mentor has nothing it may change in this run. Small tools is turned off for this job in the teacher's settings.",
-        ),
-      }),
-    );
-    expect(html).toContain('role="status"');
-    expect(html).toContain('Spark had nothing it may change');
-    expect(html).toContain(
-      'The mentor has nothing it may change in this run. Small tools is turned off for this job in the teacher&#x27;s settings.',
-    );
-    // The run's own controls lead back to the job, so the notice doesn't add a second way.
-    expect(html).not.toContain('<button');
+const NO_KEY: IdleFacts = { token: 'none', keyAdded: false };
+const HAS_KEY: IdleFacts = { token: 'found', keyAdded: false };
+
+/** What a person must never meet on this notice: the engine's words for its own parts. */
+const ENGINE_WORDS = /mentor|stand-in|adapter|backend|token|weights/i;
+
+describe('what a run that had nothing it may change says to the person', () => {
+  it('says what is off and what is missing, and that nothing was spent', () => {
+    const view = idleView(live(), NO_KEY);
+    expect(view).toEqual({
+      title: "Training didn't start",
+      body: 'Every kind of change Spark may make is turned off for this job, except retraining Glimmer itself, which needs a Hugging Face key. Nothing was spent.',
+      missingKey: true,
+    });
   });
 
-  it('still says something when a run from before the sentence was kept has none', () => {
-    const html = renderToStaticMarkup(createElement(IdleNotice, { live: live() }));
-    expect(html).toContain('Every way to change the agent was off for this run.');
+  it('names whatever else keeps the retraining from running, as the Define screen does', () => {
+    // No budget for training, the key being there.
+    expect(idleView(live(), HAS_KEY).body).toContain(
+      'except retraining Glimmer itself, which needs a training budget, and this job has none.',
+    );
+    expect(idleView(live(), HAS_KEY).missingKey).toBe(false);
+    // The final test online, whatever the key and the budget.
+    expect(
+      idleView(live({ ...WEIGHTS_ONLY, budget: FUNDED }, {}, { lockedTestOn: 'hosted' }), HAS_KEY)
+        .body,
+    ).toContain("which can't be done while the final test runs online.");
+    // The order is the engine's: the final test first, then the key, then the budget.
+    expect(idleView(live(WEIGHTS_ONLY, {}, { lockedTestOn: 'hosted' }), NO_KEY).missingKey).toBe(
+      false,
+    );
+  });
+
+  it('claims nothing about the key before it has been read, or about a cause it cannot see', () => {
+    const funded = live({ ...WEIGHTS_ONLY, budget: FUNDED });
+    const unread = idleView(funded, { token: 'unknown', keyAdded: false });
+    expect(unread.body).toContain("which couldn't run here.");
+    expect(unread.missingKey).toBe(false);
+    expect(idleView(funded, HAS_KEY).body).toContain("which couldn't run here.");
+  });
+
+  it('says the key is saved once the person added it from the notice', () => {
+    const funded = live({ ...WEIGHTS_ONLY, budget: FUNDED });
+    const view = idleView(funded, { token: 'found', keyAdded: true });
+    expect(view.body).toBe(
+      'Every kind of change Spark may make is turned off for this job, except retraining Glimmer itself, which needed a Hugging Face key. The key is saved now, so start again from the job. Nothing was spent.',
+    );
+    expect(view.missingKey).toBe(false);
+    // Only for the cause it was added for: a budget the job lacks is still said.
+    expect(idleView(live(), { token: 'found', keyAdded: true }).body).toContain(
+      'needs a training budget',
+    );
+  });
+
+  it('says "stopped", and not that nothing was spent, for a run that had begun', () => {
+    const begun = live(WEIGHTS_ONLY, {}, { rounds: [makeRound(1, { decision: 'reverted' })] });
+    const view = idleView(begun, NO_KEY);
+    expect(view.title).toBe('Training stopped');
+    expect(view.body).not.toContain('Nothing was spent');
+    expect(view.body).toContain('which needs a Hugging Face key.');
+    expect(
+      idleView(live(WEIGHTS_ONLY, { totals: { ...emptyTotals(), attempts: 40 } }), NO_KEY).title,
+    ).toBe('Training stopped');
+    expect(hadStarted(live())).toBe(false);
+    expect(hadStarted(begun)).toBe(true);
+    expect(
+      idleView(live({ ...WEIGHTS_ONLY, budget: FUNDED }, {}, { rounds: [makeRound(1)] }), HAS_KEY)
+        .body,
+    ).toContain("which couldn't go on.");
+  });
+
+  it('does not say nothing was spent when the run spent something', () => {
+    const spent = live(WEIGHTS_ONLY, { totals: { ...emptyTotals(), mentorUsd: 0.2 } });
+    expect(idleView(spent, NO_KEY).body).not.toContain('Nothing was spent');
+  });
+
+  it("leaves it to Details when a harness change is on, so the person's choice isn't why", () => {
+    const odd = idleView(live({ interventions: ['procedure', 'weights'] }), NO_KEY);
+    expect(odd.body).toBe(
+      'Spark had nothing it may change in this run. The reason is under Details. Nothing was spent.',
+    );
+    expect(odd.missingKey).toBe(false);
+  });
+
+  it('speaks of the simpler versions of a comparison as they are, with no weights in them', () => {
+    const simpler = live(WEIGHTS_ONLY, { method: 'self_reflection' });
+    expect(idleView(simpler, NO_KEY)).toMatchObject({
+      body: expect.stringContaining('This simpler version can only change instructions'),
+      missingKey: false,
+    });
+  });
+
+  it('names the teacher and the student by their short names, whoever they are', () => {
+    const named = makeJob(WEIGHTS_ONLY);
+    const view = idleView(
+      live({
+        ...WEIGHTS_ONLY,
+        mentor: { ...named.mentor, label: 'Muse Spark Open on Baseten' },
+        student: { ...named.student, label: 'Muse Glimmer on this computer' },
+      }),
+      NO_KEY,
+    );
+    expect(view.body).toContain('Every kind of change Spark Open may make');
+    expect(view.body).toContain('retraining Glimmer itself');
+  });
+
+  it("never says the engine's words, and never repeats its sentence", () => {
+    const cases: [LiveRun, IdleFacts][] = [
+      [live(), NO_KEY],
+      [live(), HAS_KEY],
+      [live(WEIGHTS_ONLY, {}, { lockedTestOn: 'hosted' as StudentTarget }), NO_KEY],
+      [live({ ...WEIGHTS_ONLY, budget: FUNDED }), HAS_KEY],
+      [live({ ...WEIGHTS_ONLY, budget: FUNDED }), { token: 'found', keyAdded: true }],
+      [live({ interventions: ['procedure', 'weights'] }), NO_KEY],
+      [live(WEIGHTS_ONLY, { method: 'one_shot' }), NO_KEY],
+    ];
+    for (const [run, facts] of cases) {
+      const { title, body } = idleView(run, facts);
+      expect(`${title} ${body}`).not.toMatch(ENGINE_WORDS);
+      expect(body).not.toContain(ENGINE);
+    }
+  });
+});
+
+describe('the notice as it is shown', () => {
+  const noop = () => undefined;
+  /** The notice for a run that ended with the engine's sentence, or with none when `reason` is null. */
+  const html = (view = idleView(live(), NO_KEY), reason: string | null = ENGINE) =>
+    renderToStaticMarkup(
+      createElement(IdleNoticeView, {
+        view,
+        teacher: 'Spark',
+        reason: reason ?? undefined,
+        onOpenTeacher: noop,
+        onAddKey: noop,
+      }),
+    );
+
+  it('is a status headed by what happened, with the two things the person can do', () => {
+    const markup = html();
+    expect(markup).toContain('role="status"');
+    expect(markup).toContain('aria-label="Training didn&#x27;t start"');
+    expect(markup).toContain('Training didn&#x27;t start');
+    expect(markup).toContain('which needs a Hugging Face key. Nothing was spent.');
+    expect(markup).toContain('Open Spark&#x27;s settings');
+    expect(markup).toContain('Add the Hugging Face key');
+    expect(markup.match(/<button/g)).toHaveLength(3);
+  });
+
+  it('offers the key only while the key is what is missing', () => {
+    const markup = html(idleView(live(), HAS_KEY));
+    expect(markup).toContain('Open Spark&#x27;s settings');
+    expect(markup).not.toContain('Add the Hugging Face key');
+  });
+
+  it("keeps the engine's sentence folded under Details, and shows none of it until asked", () => {
+    const markup = html();
+    expect(markup).toMatch(/aria-expanded="false"[^>]*>[\s\S]*Details/);
+    const words = markup.replace(/<[^>]*>/g, ' ');
+    expect(words).not.toContain('stand-in');
+    expect(words).not.toMatch(/mentor/i);
+    // A run kept from before the sentence existed has nothing to put there.
+    expect(html(idleView(live(), NO_KEY), null)).not.toContain('Details');
+  });
+});
+
+describe("a way into the job's settings from another screen", () => {
+  beforeEach(() => {
+    // Whatever an earlier test asked for and nobody took.
+    takeAdvanced('job_desk');
+    takeAdvanced('job_other');
+  });
+
+  it('is answered once, by the job it was asked for', () => {
+    askForAdvanced('job_desk', 'mentor');
+    expect(takeAdvanced('job_other')).toBeNull();
+    expect(takeAdvanced('job_desk')).toBe('mentor');
+    expect(takeAdvanced('job_desk')).toBeNull();
+  });
+
+  it('keeps only the latest ask', () => {
+    askForAdvanced('job_desk', 'budget');
+    askForAdvanced('job_desk', 'mentor');
+    expect(takeAdvanced('job_desk')).toBe('mentor');
+  });
+
+  it('is empty when nobody asked', () => {
+    expect(takeAdvanced('job_desk')).toBeNull();
   });
 });

@@ -1,4 +1,5 @@
 import type { Run } from '@architect/shared';
+import { neverStarted } from './run-state';
 
 /** The three steps of a round, shown in the panel's phase strip. */
 export const ROUND_STAGES = ['attempting', 'diagnosing', 'evaluating'] as const;
@@ -96,7 +97,16 @@ export function phaseView(
         text: `Training is done, and ${student} took the final test`,
       };
     case 'stopped':
-      return { stage: null, motion: 'still', frozen: true, text: 'Training stopped' };
+      return {
+        stage: null,
+        motion: 'still',
+        frozen: true,
+        // A teacher with nothing it may change ends the run before it begins: it never started.
+        text:
+          run.stopReason === 'nothing_to_try' && neverStarted(run)
+            ? "Training didn't start"
+            : 'Training stopped',
+      };
     case 'failed':
       return { stage: null, motion: 'still', frozen: true, text: 'Training stopped on an error' };
     case 'testing':
