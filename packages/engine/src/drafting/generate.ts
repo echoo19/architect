@@ -190,9 +190,10 @@ export interface GenerationContext {
 }
 
 /**
- * The requests left once the ones worked out only from rows the teacher was shown are taken out.
- * What the teacher has read the answer to must not come up again as a practice task or in the
- * final test.
+ * The requests left once the ones whose answer the rows the teacher was shown decide are taken
+ * out: every row a request is worked out from (`Candidate.rows`) was shown. What the teacher has
+ * read the answer to must not come up again as a practice task or in the final test. A request
+ * with a row the teacher was not shown stays, since the answer is still the teacher's to work out.
  */
 function exceptShown(
   candidates: readonly Candidate[],
@@ -324,8 +325,8 @@ function choose(kinds: readonly Asking[], shares: readonly number[]): Candidate[
  * ordered or which template wrote it, is left out, so that one question is never a practice task
  * and a final-test task at once. So is a request that puts an earlier one's words to the same
  * row, whatever rule is behind it: two rules that work out the same number in another order, or
- * differently, still ask one question in those words. So are the requests whose answer comes only
- * from rows the teacher was shown (`shown`). A kind whose requests read exactly like an earlier
+ * differently, still ask one question in those words. So are the requests whose answer the rows
+ * the teacher was shown decide (`shown`). A kind whose requests read exactly like an earlier
  * kind's about another table is rejected: the agent is not told the table, so it would be given
  * one prompt with two answers. `passRate` is the share of tasks the job asks to get right, which
  * a rule that is a copy in that many cases must not reach.

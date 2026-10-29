@@ -214,10 +214,11 @@ const WIDE_PROFILE = 30;
 const WIDE_ROWS = 12;
 
 /**
- * The rows of a table the teacher is shown, by position: the first few. They are the only rows
- * any value of which reaches the teacher, in the first rows themselves and in the examples of a
- * column (`examplesOf`), so the tasks, made without any request whose answer comes only from
- * these rows, have nothing in the practice tasks or the final test that the teacher has read.
+ * The rows of a table the teacher is shown, by position: the first few. They are the rows whose
+ * own values reach the teacher, in the first rows themselves and in the examples of a column
+ * (`examplesOf`); a value that two rows or more write alike names none of them. So no request is
+ * made whose answer the shown rows decide (`exceptShown`), and the practice tasks and the final
+ * test have no task about a row alone that the teacher has read.
  */
 export function shownRowsOfTable(table: Table): Set<number> {
   return new Set(table.rows.slice(0, FIRST_ROWS).keys());

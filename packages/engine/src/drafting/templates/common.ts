@@ -14,9 +14,11 @@ export interface Candidate {
    */
   identity: string;
   /**
-   * The rows of the table, by position, that the answer is worked out from. When the teacher was
-   * shown every one of them while drafting, the request is left out, since nothing may be asked
-   * whose answer the teacher has already read.
+   * The rows of the table, by position, that decide the answer: the one a request is about, or the
+   * ones a list names or a total adds up (all the rows it looked at, when none of them counts).
+   * When the teacher was shown every one of them while drafting, the shown rows decide the answer
+   * and the request is left out, since nothing may be asked whose answer the teacher has already
+   * read. With one of them unshown the answer is still the teacher's to work out, and it is kept.
    */
   rows?: readonly number[];
   /** The request, ending with the line that states the answer's shape. */

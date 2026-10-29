@@ -724,6 +724,208 @@ describe('leaving out what the teacher was shown', () => {
   });
 });
 
+describe('leaving out what the rows the teacher read decide', () => {
+  // The teacher read the first five rows. A total or a list is left out when those rows alone
+  // decide its answer, which they have all of; when a row it rests on was not shown, the answer is
+  // still the teacher's to work out, and the request stays whether or not it read another row.
+  const shown = (name: string): Map<string, Set<number>> =>
+    new Map([[name, new Set([0, 1, 2, 3, 4])]]);
+
+  it('leaves out a total whose counted rows were all shown, and keeps one with a row it was not', () => {
+    // A has a row shown and one not; B is a group of one, shown; C has a shown row and a row with
+    // no amount, which adds nothing; D has two rows, both shown.
+    const sales = readTable(
+      'sales.csv',
+      [
+        'team,amount',
+        'A,10',
+        'B,20',
+        'C,5',
+        'D,7',
+        'D,8',
+        'A,30',
+        'C,',
+        ...Array.from({ length: 40 }, (_, i) => `G${i},${100 + i * 3}\nG${i},${200 + i * 7}`),
+      ].join('\n'),
+    );
+    const totalsBy: TypeInput = {
+      id: 'team',
+      label: 'Team totals',
+      description: 'Add up the amounts of a team.',
+      spec: {
+        template: 'group_total',
+        table: 'sales.csv',
+        groupColumn: 'team',
+        measure: 'sum',
+        valueColumn: 'amount',
+        unit: 'as_written',
+        request: 'What is the total of the amounts of team {group}?',
+      },
+    };
+    const everyone = generateTasks([totalsBy], new Map([['sales.csv', sales]]), 3);
+    const asked = (made: typeof everyone) => made.tasks.map((task) => task.meta?.['group']);
+    expect(asked(everyone)).toEqual(expect.arrayContaining(['A', 'B', 'C', 'D']));
+
+    const made = generateTasks([totalsBy], new Map([['sales.csv', sales]]), 3, {
+      shown: shown('sales.csv'),
+    });
+    // B, C and D are what the first five rows come to; A also rests on a row the teacher did not read.
+    expect(asked(made)).toContain('A');
+    for (const group of ['B', 'C', 'D']) expect(asked(made), group).not.toContain(group);
+    expect(made.types[0]?.notes.join(' ')).toContain('3 requests were left out of sales.csv');
+    // The groups of two hidden rows are all asked.
+    expect(asked(made)).toEqual(expect.arrayContaining(['G0', 'G17', 'G39']));
+  });
+
+  it('counts only the rows that give a value, so a count the shown rows decide is left out', () => {
+    // A: one amount, shown, and a row with none that was not. B: three amounts, all shown, and a
+    // row with none that was not. C: two amounts, one shown and one not.
+    const given = [
+      ...['A,10', 'B,5', 'B,6', 'B,7', 'C,9'],
+      ...['A,', 'C,12', 'B,'],
+      ...Array.from({ length: 30 }, (_, i) =>
+        Array.from({ length: [1, 3, 4, 5, 6, 7][i % 6] ?? 1 }, (_, n) => `H${i},${n + 1}`).join(
+          '\n',
+        ),
+      ),
+    ];
+    const book = readTable('book.csv', ['team,amount', ...given].join('\n'));
+    const counted: TypeInput = {
+      id: 'counted',
+      label: 'Amounts given',
+      description: 'Count the rows of a team that give an amount.',
+      spec: {
+        template: 'group_total',
+        table: 'book.csv',
+        groupColumn: 'team',
+        measure: 'count',
+        valueColumn: 'amount',
+        unit: 'as_written',
+        request: 'How many amounts were given for team {group}?',
+      },
+    };
+    const made = generateTasks([counted], new Map([['book.csv', book]]), 4, {
+      shown: shown('book.csv'),
+    });
+    const groups = made.tasks.map((task) => task.meta?.['group']);
+    expect(groups).toContain('C');
+    expect(groups.length).toBeGreaterThan(10);
+    for (const group of ['A', 'B']) expect(groups, group).not.toContain(group);
+  });
+
+  it('asks no total within dates that the rows the teacher read decide', () => {
+    // A has two rows in January, shown, and one in March, not. B has three rows, all shown.
+    const rows = [
+      'team,amount,placed',
+      ...[
+        'A,10,2026-01-03',
+        'A,20,2026-01-05',
+        'B,5,2026-01-10',
+        'B,6,2026-02-20',
+        'B,7,2026-03-30',
+      ],
+      'A,40,2026-03-15',
+      ...Array.from({ length: 40 }, (_, i) =>
+        [
+          `H${i},${10 + i},2026-01-${String((i % 27) + 1).padStart(2, '0')}`,
+          `H${i},${60 + 2 * i},2026-02-${String(((i + 7) % 27) + 1).padStart(2, '0')}`,
+          `H${i},${200 + 3 * i},2026-03-${String(((i + 13) % 27) + 1).padStart(2, '0')}`,
+        ].join('\n'),
+      ),
+    ];
+    const book = readTable('book.csv', rows.join('\n'));
+    const ranged: TypeInput = {
+      id: 'ranged',
+      label: 'Team totals in a range',
+      description: 'Add up the amounts of a team between two dates.',
+      spec: {
+        template: 'group_total',
+        table: 'book.csv',
+        groupColumn: 'team',
+        measure: 'sum',
+        valueColumn: 'amount',
+        dateColumn: 'placed',
+        unit: 'as_written',
+        request: 'What is the total of team {group} from {from} to {to}?',
+      },
+    };
+    const read = new Set([0, 1, 2, 3, 4]);
+    /** The rows a total adds up, from the group and the days it names. */
+    const addedUp = (task: { meta?: Record<string, unknown> }): number[] =>
+      book.rows.flatMap((row, at) => {
+        const day = row['placed'] ?? '';
+        return row['team'] === task.meta?.['group'] &&
+          day >= String(task.meta?.['from']) &&
+          day <= String(task.meta?.['to']) &&
+          (row['amount'] ?? '') !== ''
+          ? [at]
+          : [];
+      });
+    const tablesOf = new Map([['book.csv', book]]);
+    // Asked of every row, some totals rest on the rows read alone, so the test has something to leave out.
+    const everyone = generateTasks([ranged], tablesOf, 6);
+    expect(everyone.tasks.filter((task) => addedUp(task).every((at) => read.has(at)))).not.toEqual(
+      [],
+    );
+    const made = generateTasks([ranged], tablesOf, 6, { shown: new Map([['book.csv', read]]) });
+    expect(made.tasks.length).toBeGreaterThan(40);
+    for (const task of made.tasks) {
+      expect(
+        addedUp(task).some((at) => !read.has(at)),
+        String(task.prompt),
+      ).toBe(true);
+    }
+  });
+
+  it('leaves out a list whose rows were all shown, the ones that make it or, for an empty list, all it looked at', () => {
+    // Pending orders of each customer. A: its one pending order was shown, and its other order was
+    // not. B: one pending order shown and one not. C: one shown, and one of another status not.
+    // D: no pending order, and one of its two rows not shown.
+    const orders = readTable(
+      'orders.csv',
+      [
+        'order_id,customer,status',
+        'O-1,A,Pending',
+        'O-2,B,Pending',
+        'O-3,B,Shipped',
+        'O-4,C,Pending',
+        'O-5,D,Shipped',
+        'O-6,A,Shipped',
+        'O-7,B,Pending',
+        'O-8,C,Cancelled',
+        'O-9,D,Shipped',
+        ...Array.from({ length: 40 }, (_, i) => `P-${i},E${i},Pending`),
+      ].join('\n'),
+    );
+    const pendingBy: TypeInput = {
+      id: 'pending',
+      label: 'Pending orders',
+      description: 'List the pending orders of a customer.',
+      spec: {
+        template: 'filtered_list',
+        table: 'orders.csv',
+        keyColumn: 'order_id',
+        filters: [
+          { column: 'status', op: 'equals', value: 'Pending', varies: false },
+          { column: 'customer', op: 'equals', varies: true },
+        ],
+        request: 'Which orders of customer {customer} are still pending?',
+      },
+    };
+    const tablesOf = new Map([['orders.csv', orders]]);
+    const everyone = generateTasks([pendingBy], tablesOf, 3);
+    const asked = (made: typeof everyone) => made.tasks.map((task) => task.meta?.['customer']);
+    expect(asked(everyone)).toEqual(expect.arrayContaining(['A', 'B', 'C', 'D']));
+
+    const made = generateTasks([pendingBy], tablesOf, 3, { shown: shown('orders.csv') });
+    // A and C: the pending orders are all read, whatever else those customers ordered.
+    for (const customer of ['A', 'C']) expect(asked(made), customer).not.toContain(customer);
+    // B has a pending order not shown. D has none, which its row not shown could have changed.
+    for (const customer of ['B', 'D']) expect(asked(made), customer).toContain(customer);
+    expect(asked(made)).toEqual(expect.arrayContaining(['E0', 'E39']));
+  });
+});
+
 describe('asking about rows the teacher has not read', () => {
   // Ids and amounts that each name one row. The teacher is told the first rows and, of the rest,
   // only what several rows share, so what it reads of a row is something no task is about.

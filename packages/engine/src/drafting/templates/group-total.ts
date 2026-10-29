@@ -257,6 +257,12 @@ export function runGroupTotal(
     range: { from: string; to: string } | null,
   ) => {
     const answer = measured(rows);
+    // The rows the answer is worked out from are those that add to a total or are counted, so a row
+    // of the group with nothing in the column decides nothing. A group none of whose rows count is
+    // decided by every row looked at.
+    const counting = rows.filter((entry) =>
+      spec.measure === 'count' ? entry.counted : entry.amount !== null,
+    );
     const asked = fillRequest(spec.request, {
       group: names.get(group) ?? group,
       ...(range === null ? {} : { from: range.from, to: range.to }),
@@ -277,7 +283,7 @@ export function runGroupTotal(
         range?.from ?? null,
         range?.to ?? null,
       ]),
-      rows: rows.map((entry) => entry.row),
+      rows: (counting.length > 0 ? counting : rows).map((entry) => entry.row),
       prompt: [question, hint, `End with: ANSWER: {"${key}": <number>}`].join('\n'),
       expected: {
         kind: 'answer',

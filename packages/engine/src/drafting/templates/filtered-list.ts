@@ -263,14 +263,19 @@ export function runFilteredList(
   // that a family doesn't depend on the order the conditions were written in.
   const entity = entityOf(varying, forms);
   // Each combination of values the varying columns take together, with the keys of the rows that
-  // meet every fixed condition. A combination no row meets has an empty list.
-  const lists = new Map<string, { keys: Map<string, string>; rows: number[] }>();
+  // meet every fixed condition, and the rows those keys are from. A combination no row meets has
+  // an empty list, which every one of its rows is looked at to make.
+  const lists = new Map<string, { keys: Map<string, string>; listed: number[]; rows: number[] }>();
   let rowsWithoutKey = 0;
   for (const [at, row] of table.rows.entries()) {
     const values = varying.map((filter) => foldKey(row[filter.column]));
     if (values.some((value) => value === '')) continue;
     const combination = JSON.stringify(values);
-    const list = lists.get(combination) ?? { keys: new Map<string, string>(), rows: [] };
+    const list = lists.get(combination) ?? {
+      keys: new Map<string, string>(),
+      listed: [],
+      rows: [],
+    };
     lists.set(combination, list);
     list.rows.push(at);
     if (!fixed.every((filter) => meets(filter, row[filter.column] ?? null))) continue;
@@ -280,6 +285,7 @@ export function runFilteredList(
       continue;
     }
     list.keys.set(key.toLowerCase(), key);
+    list.listed.push(at);
   }
   if (rowsWithoutKey > 0) {
     notes.push(`${rowsWithoutKey} rows have no ${keyColumn}, so they are never listed.`);
@@ -311,7 +317,8 @@ export function runFilteredList(
     candidates.push({
       family: `list:${table.name}:${entity.column}=${folded[entity.at] ?? ''}`,
       identity: canonicalJson(['list', foldKey(table.name), foldKey(keyColumn), conditions]),
-      rows: list.rows,
+      // The rows the keys are from decide the list; an empty list is decided by every row looked at.
+      rows: list.listed.length > 0 ? list.listed : list.rows,
       prompt: [
         question,
         `List each ${resolved.keyColumn} once, in any order, and use [] if there are none.`,
