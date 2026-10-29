@@ -7,6 +7,8 @@ import { draftRoundOf } from './draft';
 import { DISPOSITIONS } from './evidence-words';
 import { failureLine } from './failure-line';
 import type { ModelNames } from './phase';
+import { Question } from './Question';
+import { answerEffect, isOpen, type QuestionView } from './questions';
 import { latestFailure, roundAttempts, type LiveRun, type RecentAttempt } from './run-state';
 
 const ACTIVE = new Set(['running', 'testing', 'stopping']);
@@ -76,6 +78,7 @@ export function CurrentRound({
   round,
   names,
   experiment,
+  question,
   recordsFailed,
 }: {
   live: LiveRun;
@@ -83,6 +86,8 @@ export function CurrentRound({
   names: ModelNames;
   /** The round's experiment record, once it has one. */
   experiment: Experiment | undefined;
+  /** The question the round put to the person, when it was one. */
+  question: QuestionView | null;
   /** The mentoring records couldn't be read, so an ended round's result is unknown here. */
   recordsFailed: boolean;
 }) {
@@ -94,6 +99,12 @@ export function CurrentRound({
   const over = round !== null && (round.status === 'decided' || round.status === 'failed');
   // A run paused on an error says so, with what to do, in a notice of its own above.
   const pausedOnError = live.run.status === 'paused' && live.run.error !== undefined;
+  // A question round waits for its answer here, then says what the mentor did with it.
+  const asking =
+    round !== null &&
+    question !== null &&
+    (question.state !== 'ready' || isOpen(round, question.intervention));
+  const answered = question?.state === 'ready' ? question.intervention : undefined;
   return (
     <Panel padded aria-label="Current round" className="min-w-0 flex-[5_1_360px]">
       <div className="flex items-center justify-between gap-3">
@@ -106,12 +117,27 @@ export function CurrentRound({
           {studentLine(live, round, failure, draft)}
         </p>
       </div>
-      <div className="flex flex-col gap-2">
-        <span className="text-mentor">{names.mentor}</span>
-        <p className="m-0 text-md text-fg-soft text-pretty">
-          {mentorLine(live, round, names, draft)}
-        </p>
-      </div>
+      {asking && round !== null && question !== null ? (
+        <Question runId={live.run.id} round={round} view={question} names={names} />
+      ) : (
+        <div className="flex flex-col gap-2">
+          <span className="text-mentor">{names.mentor}</span>
+          {answered?.answer ? (
+            <>
+              <p className="m-0 text-md text-fg-soft text-pretty">
+                You answered: {answered.answer.text}
+              </p>
+              <p className="m-0 text-md text-fg-soft text-pretty">
+                {answerEffect(answered, names)}
+              </p>
+            </>
+          ) : (
+            <p className="m-0 text-md text-fg-soft text-pretty">
+              {mentorLine(live, round, names, draft)}
+            </p>
+          )}
+        </div>
+      )}
       {live.notice && !pausedOnError && (
         <p role="status" className="m-0 flex items-start gap-2 text-sm text-fg-muted">
           <CircleAlert
@@ -124,35 +150,37 @@ export function CurrentRound({
           {live.notice.message}
         </p>
       )}
-      <div className="mt-auto flex flex-col gap-3 border-t border-line-row-strong pt-[18px]">
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="text-fg-secondary">
-            {names.mentor} {ended || over ? 'expected' : 'expects'}
-          </span>
-          {predicted ? (
-            <span>
-              <span className="font-mono tabular-nums">
-                {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)}
-              </span>{' '}
-              <span className="text-fg-secondary">check tasks</span>
+      {question === null && (
+        <div className="mt-auto flex flex-col gap-3 border-t border-line-row-strong pt-[18px]">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-fg-secondary">
+              {names.mentor} {ended || over ? 'expected' : 'expects'}
             </span>
+            {predicted ? (
+              <span>
+                <span className="font-mono tabular-nums">
+                  {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)}
+                </span>{' '}
+                <span className="text-fg-secondary">check tasks</span>
+              </span>
+            ) : (
+              <span className="text-fg-muted">–</span>
+            )}
+          </div>
+          {ended ? (
+            <Outcome experiment={ended} live={live} />
           ) : (
-            <span className="text-fg-muted">–</span>
+            over &&
+            !draft &&
+            recordsFailed && (
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-fg-secondary">Result</span>
+                <span className="text-fg-muted">–</span>
+              </div>
+            )
           )}
         </div>
-        {ended ? (
-          <Outcome experiment={ended} live={live} />
-        ) : (
-          over &&
-          !draft &&
-          recordsFailed && (
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-fg-secondary">Result</span>
-              <span className="text-fg-muted">–</span>
-            </div>
-          )
-        )}
-      </div>
+      )}
     </Panel>
   );
 }

@@ -21,6 +21,7 @@ import { findingNotes, lessonNotes, type StepNote } from '../flow/train/lesson-s
 import { LessonDrawerContent } from '../flow/train/LessonView';
 import { PausedNotice } from '../flow/train/PausedNotice';
 import { phaseView } from '../flow/train/phase';
+import { questionView } from '../flow/train/questions';
 import { Resources } from '../flow/train/Resources';
 import { RoundDrawerContent, type RoundEvidence } from '../flow/train/RoundDrawer';
 import { Rounds, type RoundsFooter } from '../flow/train/Rounds';
@@ -346,6 +347,7 @@ function TrainBoard({
       ? { error: records.error, reload: records.reload }
       : null;
   const round = currentRound(live);
+  const question = questionView(round, records);
   return (
     <>
       {improves && <TaughtLessons improves={improves} />}
@@ -381,6 +383,7 @@ function TrainBoard({
           round={round}
           names={names}
           experiment={evidence?.experiments.find((item) => item.round === round?.index)}
+          question={question}
           recordsFailed={failure !== null}
         />
       </div>

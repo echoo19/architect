@@ -47,6 +47,7 @@ import {
   RoundExamples,
 } from './ExperimentSections';
 import type { ModelNames } from './phase';
+import { answerEffect } from './questions';
 
 const STATUS_TEXT: Record<Round['status'], string> = {
   attempting: 'Working through practice tasks',
@@ -158,6 +159,8 @@ export function RoundDrawerContent({
   // A round refused or cut short keeps its prediction on the intervention alone.
   const predicted = round.predicted ?? intervention?.predicted;
   const unmeasured = experiment?.disposition === 'invalid' || experiment?.disposition === 'stopped';
+  // A question tries no change, so there is nothing to measure, no file to show and no gate to pass.
+  const question = intervention?.type === 'clarification' ? intervention : undefined;
   return (
     <DrawerContent
       title={title}
@@ -167,6 +170,8 @@ export function RoundDrawerContent({
       <div className="flex flex-col gap-7">
         {draft ? (
           <DraftDecision round={round} names={names} />
+        ) : question && experiment === undefined && round.status !== 'failed' ? (
+          <QuestionDecision round={round} question={question} names={names} />
         ) : (
           <Decision round={round} job={job} lineage={lineage} experiment={experiment} />
         )}
@@ -174,42 +179,44 @@ export function RoundDrawerContent({
           <ErrorState layout="inline" title="This round failed" message={round.error} />
         )}
 
-        <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line-card bg-line-card">
-          <Effect
-            label={`${names.mentor} expected`}
-            note={
-              predicted && firstMeasured !== null && !unmeasured
-                ? predictionCheck(predicted, firstMeasured)
-                : undefined
-            }
-            /* Measured twice, the prediction heads both measurements on a row of its own. */
-            wide={second !== null}
-          >
-            {predicted ? (
-              <>
-                {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)}
-                <Unit>check tasks</Unit>
-              </>
-            ) : (
-              '–'
-            )}
-          </Effect>
-          <Effect
-            label={first ? 'First measurement' : 'Measured'}
-            note={rateChange(first ?? round)}
-          >
-            {unmeasured ? (
-              <span className="font-sans text-md text-fg-muted">Not measured</span>
-            ) : (
-              <TaskCount delta={firstMeasured} />
-            )}
-          </Effect>
-          {second && (
-            <Effect label="Measured again" note={rateChange(second)}>
-              <TaskCount delta={second.devAfter.pass - second.devBefore.pass} />
+        {question === undefined && (
+          <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line-card bg-line-card">
+            <Effect
+              label={`${names.mentor} expected`}
+              note={
+                predicted && firstMeasured !== null && !unmeasured
+                  ? predictionCheck(predicted, firstMeasured)
+                  : undefined
+              }
+              /* Measured twice, the prediction heads both measurements on a row of its own. */
+              wide={second !== null}
+            >
+              {predicted ? (
+                <>
+                  {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)}
+                  <Unit>check tasks</Unit>
+                </>
+              ) : (
+                '–'
+              )}
             </Effect>
-          )}
-        </dl>
+            <Effect
+              label={first ? 'First measurement' : 'Measured'}
+              note={rateChange(first ?? round)}
+            >
+              {unmeasured ? (
+                <span className="font-sans text-md text-fg-muted">Not measured</span>
+              ) : (
+                <TaskCount delta={firstMeasured} />
+              )}
+            </Effect>
+            {second && (
+              <Effect label="Measured again" note={rateChange(second)}>
+                <TaskCount delta={second.devAfter.pass - second.devBefore.pass} />
+              </Effect>
+            )}
+          </dl>
+        )}
 
         {(round.diagnosis || intervention) && (
           <DrawerSection
@@ -274,14 +281,16 @@ export function RoundDrawerContent({
         {experiment && <Gates experiment={experiment} />}
         {experiment && <RoundCost experiment={experiment} names={names} />}
 
-        <DrawerSection title={filesTitle(draft, experiment?.disposition)}>
-          <RoundFiles
-            runId={runId}
-            round={round}
-            // Trained weights change no files, so only a change to the setup says why it has none.
-            disposition={intervention?.type === 'weights' ? undefined : experiment?.disposition}
-          />
-        </DrawerSection>
+        {question === undefined && (
+          <DrawerSection title={filesTitle(draft, experiment?.disposition)}>
+            <RoundFiles
+              runId={runId}
+              round={round}
+              // Trained weights change no files, so only a change to the setup says why it has none.
+              disposition={intervention?.type === 'weights' ? undefined : experiment?.disposition}
+            />
+          </DrawerSection>
+        )}
         {experiment && <ExperimentDetails experiment={experiment} intervention={intervention} />}
       </div>
     </DrawerContent>
@@ -336,6 +345,41 @@ function DraftDecision({ round, names }: { round: Round; names: ModelNames }) {
         {names.mentor} wrote it from the job and its example tasks, before watching {names.student}{' '}
         work. It is the starting point; later rounds keep only measured gains.
       </p>
+    </div>
+  );
+}
+
+/**
+ * A round that asked a question: waiting for the person's answer, or answered, with what the
+ * mentor did with it. A question tries no change, so it is neither kept nor undone.
+ */
+function QuestionDecision({
+  round,
+  question,
+  names,
+}: {
+  round: Round;
+  question: Intervention;
+  names: ModelNames;
+}) {
+  const { icon: Icon } = INTERVENTIONS.clarification;
+  const { answer } = question;
+  return (
+    <div className="flex flex-col gap-1.5 rounded-xl border border-line-card bg-well px-4 py-3.5">
+      <span className="flex items-center gap-2.5 text-2xl font-medium text-fg-secondary">
+        <Icon size={20} strokeWidth={2} aria-hidden />
+        {answer ? 'Answered' : 'Waiting for your answer'}
+      </span>
+      {answer ? (
+        <p className="m-0 text-md text-fg-soft text-pretty">
+          You answered: {answer.text} {answerEffect(question, names)}
+        </p>
+      ) : (
+        <p className="m-0 text-md text-fg-soft text-pretty">
+          {names.mentor} asked: {question.question}{' '}
+          {round.status === 'clarifying' ? 'Close this and answer it in the current round.' : ''}
+        </p>
+      )}
     </div>
   );
 }

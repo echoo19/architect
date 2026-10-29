@@ -1,10 +1,11 @@
-import type { Experiment, Job, Round, RunStopReason } from '@architect/shared';
+import type { Experiment, Intervention, Job, Round, RunStopReason } from '@architect/shared';
 import { cn, Panel, PanelHeader, PanelRow, Spinner } from '@architect/ui';
 import { ArrowRight } from 'lucide-react';
 import { ProblemState } from '../../components/ProblemState';
 import { percent } from '../format';
 import { outcomeNote } from './decision';
 import { DISPOSITIONS, TRAINING_END_ICONS, trainingEnd } from './evidence-words';
+import { questionOfRound } from './questions';
 
 /** What a round is doing before the mentor has named its change. */
 function untitled(round: Round): string {
@@ -35,6 +36,7 @@ export interface RoundsFooter {
 /** What the mentoring records say about each round, when there are any. */
 export interface RoundRecords {
   experiments: readonly Experiment[];
+  interventions: readonly Intervention[];
 }
 
 /**
@@ -100,6 +102,7 @@ export function Rounds({
                 draft={round.index === draftRound}
                 running={running}
                 experiment={records?.experiments.find((item) => item.round === round.index)}
+                asked={records ? questionOfRound(round, records.interventions) : undefined}
                 onOpen={() => onOpen(round)}
               />
             </li>
@@ -128,6 +131,7 @@ function RoundRow({
   draft,
   running,
   experiment,
+  asked,
   onOpen,
 }: {
   job: Job;
@@ -135,13 +139,23 @@ function RoundRow({
   draft: boolean;
   running: boolean;
   experiment: Experiment | undefined;
+  /** The question the round put to the person, when it was one. */
+  asked: Intervention | undefined;
   onOpen: () => void;
 }) {
   const disposition = experiment?.disposition ?? round.decision;
   // A change that isn't in the agent reads quieter than one that is, and is never struck out.
   const quiet = disposition !== undefined && disposition !== 'kept';
-  // A draft is the whole first setup, so it says how it came about.
-  const note = draft ? 'Written from the job' : experiment ? outcomeNote(experiment, job) : null;
+  // A draft is the whole first setup, so it says how it came about; a question, what was asked.
+  const note = draft
+    ? 'Written from the job'
+    : asked
+      ? asked.answer
+        ? `Your answer: ${asked.answer.text}`
+        : asked.question
+      : experiment
+        ? outcomeNote(experiment, job)
+        : null;
   return (
     <button
       type="button"
@@ -159,7 +173,13 @@ function RoundRow({
         <span className="truncate">{round.title ?? untitled(round)}</span>
         {note && <span className="truncate text-sm text-fg-muted">{note}</span>}
       </span>
-      <RoundResult round={round} draft={draft} running={running} experiment={experiment} />
+      <RoundResult
+        round={round}
+        draft={draft}
+        running={running}
+        experiment={experiment}
+        asked={asked}
+      />
     </button>
   );
 }
@@ -169,11 +189,13 @@ function RoundResult({
   draft,
   running,
   experiment,
+  asked,
 }: {
   round: Round;
   draft: boolean;
   running: boolean;
   experiment: Experiment | undefined;
+  asked: Intervention | undefined;
 }) {
   const disposition = experiment?.disposition ?? round.decision;
   const before = experiment?.devBefore ?? round.devBefore;
@@ -196,6 +218,14 @@ function RoundResult({
         >
           {draft ? 'First draft' : words.label}
         </span>
+      </span>
+    );
+  }
+  // A question tries no change, so it has no result to measure: it is waiting, or it was answered.
+  if (asked) {
+    return (
+      <span className="min-w-[84px] whitespace-nowrap text-right text-sm text-mentor">
+        {asked.answer ? 'Answered' : 'Needs you'}
       </span>
     );
   }

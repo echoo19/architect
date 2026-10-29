@@ -50,6 +50,18 @@ describe('phaseView', () => {
       });
     }
   });
+
+  it('says a run that asked a question waits for the person, rather than that it is paused', () => {
+    const asking = makeRun({ status: 'paused', phase: 'clarifying' });
+    expect(phaseView(asking, NAMES)).toMatchObject({
+      frozen: true,
+      text: 'Spark has a question for you',
+    });
+    // The moment after the answer, before the round moves on, it still reads as asking.
+    expect(phaseView(makeRun({ status: 'running', phase: 'clarifying' }), NAMES).text).toBe(
+      'Spark has a question for you',
+    );
+  });
 });
 
 function requirements(overrides: Partial<ReportCard['requirements']>): ReportCard {
