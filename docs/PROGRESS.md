@@ -2,6 +2,17 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-28 (Tue), late night: published, and an audit of what doesn't work end to end
+
+**Done**
+- With the owner's go-ahead: release v0.1.0 (the Windows installer and the macOS disk images for Apple silicon and Intel, built by the release workflow from the tag, with plain notes), and the ready-made agent published privately to Hugging Face (`jke-kang/architect-returns-desk`) and installed again by its commit into a fresh data folder (A12 done).
+- An audit of the real app, tracing every call a screen makes to the engine, found that describing your own job was never built: `JobDrafter` has no implementation, so the Describe screen ends in an error, and the e2e passed only on stubs. It also found that setup's choice of teacher and model never reaches a job, so the sample job asks for the 4-bit model and has no hosted copy; that finished runs can't be reached again; that a paused run doesn't say why; that the engine can test on the hosted copy and test again later, but no screen offers it; and three Define settings that do nothing.
+- GPT-6 Astra reviewed the drafting design: Spark configures templates from a catalog Architect owns (a lookup, a filtered list, a group total) and Architect computes every expected answer; review examples never come from the final test; an attached tasks file never reaches Spark; the report says the tasks came from a Spark-drafted specification.
+
+**Next**
+- Three branches: the drafter (decision 058), new jobs and Define (059), and runs you can always get back to (060). Then one real drafting session with Spark on a fresh dataset, through training.
+- The website, rebuilt on comparison 2's real run, published on GitHub Pages after the next release.
+
 ## 2026-10-28 (Tue), night: comparison 2 shows a gain, and the agent it made ships
 
 **Done**
