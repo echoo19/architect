@@ -330,6 +330,94 @@ describe('the rule template on the bike shop', () => {
   });
 });
 
+describe('an empty cell the person said counts as zero', () => {
+  // The bike shop's export writes a ticket with no parts as an empty cell, or as N/A, by turns.
+  const withoutParts = bike.tickets.filter((ticket) => ticket.partsCents === null);
+  const empty = withoutParts.filter((ticket) => bike.tickets.indexOf(ticket) % 2 === 1);
+  const notApplicable = withoutParts.filter((ticket) => bike.tickets.indexOf(ticket) % 2 === 0);
+  const zero = (extra: Partial<RuleSpec> = {}) =>
+    bikeRule({ emptyMeansZero: [{ column: 'parts_cost', from: 'row' }], ...extra });
+
+  it('counts an empty cell as zero in the column named, and no other blank', () => {
+    expect(empty.length).toBeGreaterThan(5);
+    expect(notApplicable.length).toBeGreaterThan(5);
+    const result = run(zero());
+    expect(result.problems).toEqual([]);
+    const members = new Map(bike.customers.map((c) => [c.id, c.member]));
+    const worked = new Map(
+      result.candidates.map((candidate) => [candidate.meta['key'], candidate]),
+    );
+    for (const ticket of empty) {
+      const candidate = worked.get(ticket.id);
+      expect(candidate, ticket.id).toBeDefined();
+      expect(candidate?.expected).toMatchObject({
+        value: { total: truth(ticket, members.get(ticket.customerId) ?? false) / 100 },
+      });
+    }
+    // N/A is not nothing: nobody knows what was spent, so the ticket has no answer.
+    for (const ticket of notApplicable) expect(worked.has(ticket.id), ticket.id).toBe(false);
+    const reasons = result.outcome?.details.excluded.map((item) => item.reason) ?? [];
+    expect(reasons).toEqual(['parts_cost says N/A or a dash, which is not the same as empty']);
+    expect(result.outcome?.details.excluded[0]?.count).toBe(notApplicable.length);
+    expect(result.outcome?.details.cases.eligible).toBe(bike.tickets.length - notApplicable.length);
+  });
+
+  it('never does it by default: a rule that was not told leaves the empty rows out', () => {
+    const result = run();
+    const worked = new Set(result.candidates.map((candidate) => candidate.meta['key']));
+    for (const ticket of empty) expect(worked.has(ticket.id), ticket.id).toBe(false);
+    expect(result.outcome?.details.excluded.map((item) => item.reason)).toEqual([
+      'parts_cost is empty or N/A',
+    ]);
+    expect(result.outcome?.details.statement).not.toContain('counts as 0');
+  });
+
+  it('says so in the rule in words, in how numbers are read and in what it reaches', () => {
+    const result = run(zero());
+    const details = result.outcome?.details;
+    expect(details?.statement).toBe(
+      'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, halves going up. An empty parts cost counts as 0, as you said.',
+    );
+    expect(details?.conventions).toContain(
+      'An empty parts_cost counts as 0, as you said. N/A or words in it still leave the row out.',
+    );
+    expect(details?.conventions[0]).toContain('Nothing is counted as zero unless you said so.');
+    expect(details?.conventions[0]).not.toContain('it is never counted as zero');
+    expect(details?.flags).toContain(
+      `${empty.length} rows have an empty parts cost, which counts as 0, as you said.`,
+    );
+    expect(result.notes).toContain(
+      `${empty.length} rows have an empty parts cost, which counts as 0, as you said.`,
+    );
+    // A different rule: confirming one is not confirming the other.
+    expect(ruleVersion(zero())).not.toBe(ruleVersion(bikeRule()));
+    // A column that is read and has no empty cell has nothing to say.
+    const none = runRule(
+      zero({ emptyMeansZero: [{ column: 'labor_hours', from: 'row' }] }),
+      bikeTables(bike),
+    );
+    expect(none.problems).toEqual([]);
+    expect(none.outcome?.details.flags.join(' ')).not.toContain('counts as 0');
+  });
+
+  it('refuses a column the rule does not read, and one the table lacks', () => {
+    const unread = run(zero({ emptyMeansZero: [{ column: 'status', from: 'row' }] }));
+    expect(unread.candidates).toEqual([]);
+    expect(unread.problems).toEqual([
+      "status is said to count as zero when it is empty, but the rule doesn't read it.",
+    ]);
+    const lacking = run(zero({ emptyMeansZero: [{ column: 'discount', from: 'row' }] }));
+    expect(lacking.problems[0]).toContain('The column "discount" isn\'t a column of tickets.csv.');
+  });
+
+  it('tells the answers apart by it, so the same questions asked with and without it are two rules', () => {
+    const asked = (spec: RuleSpec) => run(spec).candidates.map((candidate) => candidate.identity);
+    const plain = new Set(asked(bikeRule()));
+    const counted = asked(zero());
+    expect(counted.filter((identity) => plain.has(identity))).toEqual([]);
+  });
+});
+
 describe('the version of a rule', () => {
   it('names a rule by its content, however its keys were ordered, and changes with any part of it', () => {
     const rule = bikeRule();

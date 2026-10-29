@@ -30,7 +30,14 @@ export interface WireRule {
   familyColumn: string;
   categories: { column: string; from: string; values: string[] }[];
   sources: { file: string; passage: string }[];
-  ambiguities: { question: string; options: string[]; changesAnswers: boolean }[];
+  ambiguities: {
+    question: string;
+    options: string[];
+    changesAnswers: boolean;
+    /** A question about an empty cell names the column, and Architect gives the answers. */
+    blankColumn?: string;
+    blankFrom?: string;
+  }[];
   steps: Step[];
   result: string;
 }

@@ -15,6 +15,8 @@ export interface WordsContext {
   lookupTable?: string;
   currency?: string;
   categories: readonly RuleCategory[];
+  /** The columns whose empty cell counts as zero, because the person said it should. */
+  emptyMeansZero?: readonly ColumnRef[];
 }
 
 const CURRENCY_SIGNS: Readonly<Record<string, string>> = {
@@ -253,6 +255,10 @@ export function statementOf(root: RuleNode, ctx: WordsContext): string {
       `The result is rounded ${roundingText(root.mode, root.increment, ctx.currency)}.`,
     );
   }
+  // What an empty cell counts as is part of the rule, and said where the person reads it.
+  for (const ref of ctx.emptyMeansZero ?? []) {
+    sentences.push(`An empty ${nameOf(ref, ctx)} counts as 0, as you said.`);
+  }
   return sentences.join(' ');
 }
 
@@ -264,7 +270,10 @@ export interface Step {
 
 /** How an operand shows in a step: a column with its value, a number as written, a result as is. */
 function operand(run: Run, ctx: WordsContext): string {
-  if (run.node.op === 'col') return `${nameOf(run.node, ctx)} (${numberText(run.value)})`;
+  if (run.node.op === 'col') {
+    const shown = run.zeroed === true ? 'empty, so 0' : numberText(run.value);
+    return `${nameOf(run.node, ctx)} (${shown})`;
+  }
   if (run.node.op === 'num') return literalText(run.node.value);
   return numberText(run.value);
 }

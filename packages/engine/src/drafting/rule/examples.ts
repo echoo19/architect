@@ -28,6 +28,9 @@ import { money, nameOf, numberText, phrase, sideLabel, stepsOf, type WordsContex
 const WANTED = 3;
 const MOST = RULE_LIMITS.maxExamples - 1;
 
+/** What starts the name of a thing a case shows that is not a side of a condition. */
+const ZERO = 'zero|';
+
 type RoundNode = Extract<RuleNode, { op: 'round' }>;
 
 /** The rounding edge of a step in a case: whether it changed the value, and how near an edge. */
@@ -74,6 +77,10 @@ function describedInput(
   item: RuleCase,
   words: WordsContext,
 ): { label: string; value: string } {
+  // An empty cell has nothing to show but what the person said it counts as.
+  if (item.zeroed.has(refKey(ref))) {
+    return { label: nameOf(ref, words), value: 'empty (counted as 0)' };
+  }
   const raw = item.cells.get(refKey(ref)) ?? '';
   const number = item.numbers.get(refKey(ref));
   const read = number === undefined ? null : numberText(number);
@@ -108,7 +115,8 @@ function exampleOf(
  * case shows a side only if the answer would be different on the other one, after the rounding.
  */
 function coverage(item: RuleCase, ids: ReadonlyMap<RuleNode, number>, root: RuleNode): Set<string> {
-  const covered = new Set<string>();
+  // An empty cell that counted as zero is something a case shows, since the person decided it.
+  const covered = new Set<string>([...item.zeroed].map((key) => `${ZERO}${key}`));
   reached(item.run, (run) => {
     const id = ids.get(run.node);
     if (id === undefined) return;
@@ -153,10 +161,13 @@ function illustrate(
   for (const ref of numberRefs(node.arg)) {
     const start = base.numbers.get(refKey(ref));
     if (start === undefined) continue;
+    // The input moved is a number now, even where the case had it empty.
+    const zeroed = new Set(base.zeroed);
+    zeroed.delete(refKey(ref));
     const at = (value: q.Q): Run => {
       const numbers = new Map(base.numbers);
       numbers.set(refKey(ref), value);
-      return evaluate(node, inputsOf(numbers, base.categories));
+      return evaluate(node, inputsOf(numbers, base.categories, zeroed));
     };
     // How far the step's value moves when this input moves by one step: the input's scale.
     const slope = q.div(
@@ -174,8 +185,13 @@ function illustrate(
         numbers.set(refKey(ref), value);
         const cells = new Map(base.cells);
         cells.set(refKey(ref), numberText(value));
-        const run = evaluate(spec.expression, inputsOf(numbers, base.categories));
-        best = { item: { ...base, numbers, cells, run, answer: run.value }, edge, ref, value };
+        const run = evaluate(spec.expression, inputsOf(numbers, base.categories, zeroed));
+        best = {
+          item: { ...base, numbers, cells, zeroed, run, answer: run.value },
+          edge,
+          ref,
+          value,
+        };
       }
     }
   }
@@ -217,6 +233,14 @@ export function chooseExamples(
     .map((branch) => branch.label)
     .filter((label) => !visible.some((item) => coverageLabels(item, ids, outcome).includes(label)));
   for (const label of unseen) uncovered.push(`No practice task shows ${label}.`);
+  for (const ref of spec.emptyMeansZero ?? []) {
+    const used = outcome.cases.some((item) => item.zeroed.has(refKey(ref)));
+    if (used && !visible.some((item) => item.zeroed.has(refKey(ref)))) {
+      uncovered.push(
+        `No practice task has an empty ${nameOf(ref, words)}, so none shows it counted as 0.`,
+      );
+    }
+  }
 
   // The best case for each rounding step that any visible case rounds.
   const edges = new Map(visible.map((item) => [item, edgesOf(item)] as const));
@@ -255,6 +279,10 @@ export function chooseExamples(
     const covers: string[] = [];
     for (const id of showing.get(best.item) ?? []) {
       if (!left.delete(id)) continue;
+      if (id.startsWith(ZERO)) {
+        covers.push(zeroLabel(id, spec, words));
+        continue;
+      }
       const [index, side = ''] = id.split(':');
       const node = nodes[Number(index)];
       if (node !== undefined) covers.push(sideLabel(node, side, words));
@@ -312,6 +340,13 @@ export function chooseExamples(
   return { examples, uncovered };
 }
 
+/** What an example of an empty cell counted as zero is called: "An empty parts cost counts as 0". */
+function zeroLabel(id: string, spec: RuleSpec, words: WordsContext): string {
+  const key = id.slice(ZERO.length);
+  const ref = (spec.emptyMeansZero ?? []).find((item) => refKey(item) === key);
+  return `An empty ${ref === undefined ? key : nameOf(ref, words)} counts as 0`;
+}
+
 /** The labels of the branches a case shows, to find the ones no visible case shows. */
 function coverageLabels(
   item: RuleCase,
@@ -320,6 +355,7 @@ function coverageLabels(
 ): string[] {
   const nodes = nodesOf(outcome.spec.expression);
   return [...coverage(item, ids, outcome.spec.expression)].flatMap((id) => {
+    if (id.startsWith(ZERO)) return [];
     const [index, side = ''] = id.split(':');
     const node = nodes[Number(index)];
     return node === undefined ? [] : [sideLabel(node, side, outcome.words)];

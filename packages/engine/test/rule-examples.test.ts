@@ -140,6 +140,63 @@ describe('the examples a rule is confirmed by', () => {
     }
   });
 
+  it('shows an empty cell counted as zero, working and all, and says when no practice task has one', () => {
+    const bike = bikeShop({ offGrid: true });
+    const result = runRule(
+      bikeRule({ emptyMeansZero: [{ column: 'parts_cost', from: 'row' }] }),
+      bikeTables(bike),
+    );
+    const outcome = result.outcome;
+    if (outcome === null) throw new Error(result.problems.join(' '));
+    const zeroed = outcome.cases.filter((item) => item.zeroed.size > 0);
+    expect(zeroed.length).toBeGreaterThan(5);
+    const members = new Map(bike.customers.map((c) => [c.id, c.member]));
+    const tickets = new Map(bike.tickets.map((t) => [t.id, t]));
+
+    const visible = outcome.cases.slice(0, 60);
+    expect(visible.some((item) => item.zeroed.size > 0)).toBe(true);
+    const { examples, uncovered } = chooseExamples(
+      outcome,
+      visible,
+      ids(
+        outcome,
+        visible.map((item) => item.key),
+      ),
+    );
+    expect(uncovered).toEqual([]);
+    const shown = examples.find((example) =>
+      example.covers.includes('An empty parts cost counts as 0'),
+    );
+    if (shown === undefined) throw new Error('No example shows an empty parts cost.');
+    expect(shown.inputs.find((input) => input.label === 'parts cost')?.value).toBe(
+      'empty (counted as 0)',
+    );
+    expect(shown.steps.map((step) => step.text).join(' | ')).toContain('parts cost (empty, so 0)');
+    const key = /T-\d+/.exec(shown.request)?.[0] ?? '';
+    const ticket = tickets.get(key);
+    if (ticket === undefined) throw new Error(`No ticket ${key}`);
+    expect(shown.answer).toBe(
+      `$${(truth(ticket, members.get(ticket.customerId) ?? false) / 100).toFixed(2)}`,
+    );
+
+    // Practice tasks that have every cell filled show nothing of it, and that is said.
+    const filled = outcome.cases.filter((item) => item.zeroed.size === 0).slice(0, 40);
+    const none = chooseExamples(
+      outcome,
+      filled,
+      ids(
+        outcome,
+        filled.map((item) => item.key),
+      ),
+    );
+    expect(none.uncovered).toContain(
+      'No practice task has an empty parts cost, so none shows it counted as 0.',
+    );
+    expect(none.examples.flatMap((example) => example.covers).join(' ')).not.toContain(
+      'counts as 0',
+    );
+  });
+
   it('never gives the same case twice, and gives at most five', () => {
     const outcome = outcomeOf(true);
     const { examples } = chooseExamples(outcome, outcome.cases, new Map());

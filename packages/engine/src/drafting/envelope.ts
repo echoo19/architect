@@ -1,4 +1,9 @@
-import { MAX_FILTER_VALUES, type JsonSchemaObject, type TaskSpec } from '@architect/shared';
+import {
+  MAX_FILTER_VALUES,
+  type JsonSchemaObject,
+  type RuleFrom,
+  type TaskSpec,
+} from '@architect/shared';
 import { z } from 'zod';
 import type { Attached } from './files';
 import { list, objectOf, text } from './json-parts';
@@ -167,8 +172,15 @@ export interface DraftedJob {
     label: string;
     description: string;
     spec?: TaskSpec;
-    /** For a rule: what the policy leaves open that changes an answer, which must be asked. */
-    ambiguities?: { question: string; options: string[] }[];
+    /**
+     * For a rule: what the policy leaves open that changes an answer, which must be asked. A
+     * question about an empty cell says which column, since only two answers can be put to it.
+     */
+    ambiguities?: {
+      question: string;
+      options: string[];
+      blank?: { column: string; from: RuleFrom };
+    }[];
   }[];
 }
 

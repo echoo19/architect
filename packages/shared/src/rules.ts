@@ -22,6 +22,8 @@ export const RULE_LIMITS = {
   maxPlaces: 8,
   maxCategories: 4,
   maxCategoryValues: 24,
+  /** Columns whose empty cell may count as zero, when the person said so. */
+  maxEmptyZero: 4,
   maxPassages: 8,
   /** The width of the longest passage kept, in characters. */
   maxPassageChars: 600,
@@ -137,6 +139,24 @@ export const RuleLookupSchema = z.object({
 export type RuleLookup = z.infer<typeof RuleLookupSchema>;
 
 /**
+ * What the person said an empty cell of a numeric column should mean when the policy doesn't say:
+ * it counts as zero, or its row is left out. Only the person's own answer to a question Architect
+ * put to them sets it, never the teacher.
+ */
+export const BlankAnswerSchema = z.object({
+  column: Column,
+  from: RuleFromSchema,
+  means: z.enum(['zero', 'leave_out']),
+});
+export type BlankAnswer = z.infer<typeof BlankAnswerSchema>;
+
+/** The two answers to a question about an empty cell, which are all a rule can do with one. */
+export const BLANK_ANSWERS = {
+  zero: 'Count it as zero',
+  leave_out: 'Leave those rows out',
+} as const;
+
+/**
  * One numeric answer per row of a table, as an expression. The rule's text comes from the policy
  * and the person's confirmed answers only, which `sources` quotes.
  */
@@ -157,6 +177,14 @@ export const RuleSpecSchema = z.object({
   lookup: RuleLookupSchema.optional(),
   categories: z.array(RuleCategorySchema).max(RULE_LIMITS.maxCategories),
   expression: RuleNodeSchema,
+  /**
+   * The numeric columns whose empty cell counts as zero, because the person answered that it
+   * should. Absent for every other column: an empty cell leaves its row out, N/A and words too.
+   */
+  emptyMeansZero: z
+    .array(z.object({ column: Column, from: RuleFromSchema }))
+    .max(RULE_LIMITS.maxEmptyZero)
+    .optional(),
   sources: z.array(RulePassageSchema).min(1).max(RULE_LIMITS.maxPassages),
   /**
    * The column naming the business entity whose reuse would reveal an answer, such as the

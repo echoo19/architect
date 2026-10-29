@@ -37,6 +37,8 @@ export interface RuleCase {
   cells: Map<string, string>;
   numbers: Map<string, q.Q>;
   categories: Map<string, string>;
+  /** The columns whose cell was empty and counted as zero, because the person said it should. */
+  zeroed: ReadonlySet<string>;
   run: Run;
   answer: q.Q;
 }
@@ -61,10 +63,12 @@ export interface Tables {
 export function inputsOf(
   numbers: ReadonlyMap<string, q.Q>,
   categories: ReadonlyMap<string, string>,
+  zeroed: ReadonlySet<string> = new Set(),
 ): CaseInputs {
   return {
     number: (ref) => numbers.get(refKey(ref)) ?? q.ZERO,
     category: (ref) => categories.get(refKey(ref)) ?? '',
+    zeroed: (ref) => zeroed.has(refKey(ref)),
   };
 }
 
@@ -95,6 +99,8 @@ export function makeCases(spec: RuleSpec, tables: Tables): Cases {
   );
   const where = (ref: ColumnRef): string =>
     ref.from === 'lookup' && spec.lookup ? `${ref.column} (${spec.lookup.table})` : ref.column;
+  // Only a cell with nothing in it, and only in a column the person said so for, counts as zero.
+  const emptyIsZero = new Set((spec.emptyMeansZero ?? []).map(refKey));
 
   const keyCounts = new Map<string, number>();
   for (const row of source.rows) {
@@ -151,9 +157,23 @@ export function makeCases(spec: RuleSpec, tables: Tables): Cases {
       const numbers = new Map<string, q.Q>();
       const categories = new Map<string, string>();
       const cells = new Map<string, string>();
+      const zeroed = new Set<string>();
       for (const ref of numberColumns) {
         const cell = cellOf(ref, row, lookupRow);
-        if (isBlank(cell)) throw new Skip(`${where(ref)} is empty or N/A`, key);
+        if (isBlank(cell)) {
+          if (!emptyIsZero.has(refKey(ref))) throw new Skip(`${where(ref)} is empty or N/A`, key);
+          // N/A and a dash say nothing was known, which is not the same as nothing was bought.
+          if (cleanText(cell) !== '') {
+            throw new Skip(
+              `${where(ref)} says N/A or a dash, which is not the same as empty`,
+              `${cleanText(cell)} in ${key}`,
+            );
+          }
+          numbers.set(refKey(ref), q.ZERO);
+          cells.set(refKey(ref), '');
+          zeroed.add(refKey(ref));
+          continue;
+        }
         const value = parseDecimal(cell);
         if (value === null) {
           throw new Skip(`${where(ref)} can't be read as a number`, `${cleanText(cell)} in ${key}`);
@@ -185,7 +205,7 @@ export function makeCases(spec: RuleSpec, tables: Tables): Cases {
         categories.set(refKey(ref), value);
         cells.set(refKey(ref), cleanText(cell));
       }
-      const inputs = inputsOf(numbers, categories);
+      const inputs = inputsOf(numbers, categories, zeroed);
       const run = evaluate(spec.expression, inputs);
       if (q.isNegative(run.value)) throw new Skip('the answer comes out below zero', key);
       if (q.compare(run.value, LARGEST) > 0) {
@@ -203,6 +223,7 @@ export function makeCases(spec: RuleSpec, tables: Tables): Cases {
         cells,
         numbers,
         categories,
+        zeroed,
         run,
         answer: run.value,
       });

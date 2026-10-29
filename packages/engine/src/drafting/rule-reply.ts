@@ -1,15 +1,20 @@
 import {
+  BLANK_ANSWERS,
   RULE_LIMITS,
   RuleSpecSchema,
+  type BlankAnswer,
   type JsonSchemaObject,
   type RuleCategory,
   type RuleFrom,
+  type RuleNode,
   type RuleSpec,
 } from '@architect/shared';
 import { z } from 'zod';
 import type { Attached } from './files';
 import { list, objectOf, text } from './json-parts';
+import { numberRefs } from './rule/expression';
 import { expandSteps, stepSchema, WireStepSchema } from './rule-steps';
+import { cellsOf, findColumn } from './table';
 import { cleanText, foldKey } from './values';
 
 /*
@@ -31,7 +36,14 @@ export const RuleReplySchema = z.object({
   ),
   sources: z.array(z.object({ file: z.string(), passage: z.string() })),
   ambiguities: z.array(
-    z.object({ question: z.string(), options: z.array(z.string()), changesAnswers: z.boolean() }),
+    z.object({
+      question: z.string(),
+      options: z.array(z.string()),
+      changesAnswers: z.boolean(),
+      // Set for a question about what an empty cell of a column should count as.
+      blankColumn: z.string().optional(),
+      blankFrom: z.string().optional(),
+    }),
   ),
   steps: z.array(WireStepSchema),
   result: z.string(),
@@ -78,10 +90,20 @@ export function ruleSchema(): JsonSchemaObject {
       'rule: things the policy leaves open that would change an answer. Empty if none.',
       objectOf({
         question: text('A plain question for the person.'),
-        options: list('Two to four short answers.'),
+        options: list(
+          'Two to four short answers, each one the rule can do. Empty for a question about an empty cell.',
+        ),
         changesAnswers: {
           type: 'boolean',
           description: 'True when different answers would give different numbers.',
+        },
+        blankColumn: text(
+          'Only for a question about what an empty cell of a number column should count as: that column, spelled as the table spells it. Architect then puts the two answers it can do. Else empty.',
+        ),
+        blankFrom: {
+          type: 'string',
+          enum: ['row', 'lookup', ''],
+          description: 'With blankColumn: the cases table (row) or the looked-up table (lookup).',
         },
       }),
     ),
@@ -101,6 +123,8 @@ function fromOf(value: string | undefined): RuleFrom {
 export interface Said {
   description: string;
   answers: string;
+  /** What they chose for each empty cell they were asked about, which the rule has to follow. */
+  blanks?: readonly BlankAnswer[];
 }
 
 /** Text as it is compared for a quotation: spaces, quotes and emphasis marks set aside. */
@@ -169,8 +193,15 @@ export function checkSources(
 
 export interface Settled {
   spec: RuleSpec;
-  /** Open questions that change an answer, which Architect puts to the person before any task. */
-  blocking: { question: string; options: string[] }[];
+  /**
+   * Open questions that change an answer, which Architect puts to the person before any task. One
+   * about an empty cell says which column, and has the two answers a rule can do, not the teacher's.
+   */
+  blocking: {
+    question: string;
+    options: string[];
+    blank?: { column: string; from: RuleFrom };
+  }[];
   /** Open questions that don't change an answer, which are told as left open. */
   left: string[];
 }
@@ -241,9 +272,13 @@ export function settleRule(
     question: cleanText(item.question),
     options: distinct(item.options.map(cleanText)).slice(0, 4),
     changesAnswers: item.changesAnswers,
+    blankColumn: cleanText(item.blankColumn),
+    blankFrom: fromOf(item.blankFrom),
   }));
   for (const item of ambiguities) {
-    if (item.question === '' || (item.changesAnswers && item.options.length < 2)) {
+    // A question about an empty cell has its answers from Architect, so none are asked of the teacher.
+    const needsOptions = item.changesAnswers && item.blankColumn === '';
+    if (item.question === '' || (needsOptions && item.options.length < 2)) {
       problems.push(
         `${who}: an open question that changes an answer needs the question and 2 to 4 different options.`,
       );
@@ -251,8 +286,29 @@ export function settleRule(
   }
   if (expression === null || problems.length > before) return undefined;
 
+  // What the person chose for an empty cell is the rule's: the teacher only asks, and Architect
+  // writes it into the rule from the person's own answer.
+  const asked = blankQuestions(
+    ambiguities,
+    expression,
+    { row: base.table, lookup: lookupTable },
+    context,
+    who,
+    problems,
+  );
+  const emptyMeansZero = (context.said.blanks ?? []).flatMap((answer) => {
+    if (answer.means !== 'zero') return [];
+    const ref = numberRefs(expression).find(
+      (item) => item.from === answer.from && foldKey(item.column) === foldKey(answer.column),
+    );
+    return ref === undefined ? [] : [{ column: ref.column, from: ref.from }];
+  });
+  if (problems.length > before) return undefined;
+
   const currency = cleanText(reply.currency).toUpperCase();
   const family = cleanText(reply.familyColumn);
+  // The person's answer is a passage the rule rests on, whether or not the teacher quoted it.
+  const rests = emptyMeansZero.length > 0 && sources.length < RULE_LIMITS.maxPassages;
   const spec = {
     template: 'rule' as const,
     table: base.table,
@@ -271,7 +327,12 @@ export function settleRule(
         }),
     categories,
     expression,
-    sources,
+    ...(emptyMeansZero.length === 0 ? {} : { emptyMeansZero }),
+    sources:
+      rests &&
+      !sources.some((item) => item.file === 'answers' && item.passage === BLANK_ANSWERS.zero)
+        ? [...sources, { file: 'answers', passage: BLANK_ANSWERS.zero }]
+        : sources,
     ...(family === '' ? {} : { familyColumn: family }),
   };
   const parsed = RuleSpecSchema.safeParse(spec);
@@ -284,9 +345,75 @@ export function settleRule(
   }
   return {
     spec: parsed.data,
-    blocking: ambiguities
-      .filter((item) => item.changesAnswers)
-      .map(({ question, options }) => ({ question, options })),
-    left: ambiguities.filter((item) => !item.changesAnswers).map((item) => item.question),
+    blocking: [
+      ...ambiguities
+        .filter((item) => item.changesAnswers && item.blankColumn === '')
+        .map(({ question, options }) => ({ question, options })),
+      ...asked,
+    ],
+    left: ambiguities
+      .filter((item) => !item.changesAnswers && item.blankColumn === '')
+      .map((item) => item.question),
   };
+}
+
+/** The ways an empty cell can be dealt with, as the person is offered them. */
+const BLANK_OPTIONS = [BLANK_ANSWERS.zero, BLANK_ANSWERS.leave_out];
+
+type BlankQuestion = {
+  question: string;
+  options: string[];
+  blank: { column: string; from: RuleFrom };
+};
+
+/**
+ * The questions about an empty cell that the person has to answer. The column must be one the rule
+ * adds up and must have an empty cell somewhere, or there is nothing to ask, and a column the
+ * person already answered for is not asked about again.
+ */
+function blankQuestions(
+  ambiguities: readonly {
+    question: string;
+    blankColumn: string;
+    blankFrom: RuleFrom;
+  }[],
+  expression: RuleNode,
+  tables: { row: string; lookup: string | undefined },
+  context: { attached: Attached; said: Said },
+  who: string,
+  problems: string[],
+): BlankQuestion[] {
+  const asked: BlankQuestion[] = [];
+  for (const item of ambiguities) {
+    if (item.blankColumn === '') continue;
+    const name = item.blankFrom === 'lookup' ? tables.lookup : tables.row;
+    const table = context.attached.files.find((candidate) => candidate.name === name)?.table;
+    const column = table === undefined ? null : findColumn(table, item.blankColumn);
+    if (table === undefined || column === null) {
+      problems.push(
+        `${who}: the question about an empty ${item.blankColumn} names a column that isn't in the table.`,
+      );
+      continue;
+    }
+    const read = numberRefs(expression).some(
+      (ref) => ref.from === item.blankFrom && foldKey(ref.column) === foldKey(column),
+    );
+    if (!read) {
+      problems.push(
+        `${who}: ${column} is not a number the rule adds up, so what an empty one counts as is not a question for it.`,
+      );
+      continue;
+    }
+    const answered = (context.said.blanks ?? []).some(
+      (answer) => answer.from === item.blankFrom && foldKey(answer.column) === foldKey(column),
+    );
+    const empty = cellsOf(table, column).some((cell) => cleanText(cell) === '');
+    if (answered || !empty || item.question === '') continue;
+    asked.push({
+      question: item.question,
+      options: BLANK_OPTIONS,
+      blank: { column, from: item.blankFrom },
+    });
+  }
+  return asked;
 }

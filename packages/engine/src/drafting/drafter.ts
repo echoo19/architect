@@ -1,10 +1,12 @@
 import {
+  BLANK_ANSWERS,
   CodedError,
   GuardError,
   JobSchema,
   newId,
   shippedModels,
   slugify,
+  type BlankAnswer,
   type ChatMessage,
   type DraftRecord,
   type DraftTurn,
@@ -12,6 +14,7 @@ import {
   type MentorCompletionRequest,
   type MentorConfig,
   type RuleDetails,
+  type RuleFrom,
   type Task,
   type TaskSpec,
 } from '@architect/shared';
@@ -82,10 +85,14 @@ interface Spend {
   usd: number;
 }
 
-/** An open question about a rule that changes an answer, which waits for the person. */
+/**
+ * An open question about a rule that changes an answer, which waits for the person. One about an
+ * empty cell names the column, and is answered with one of the two choices a rule can do.
+ */
 interface Settling {
   question: string;
   options: string[];
+  blank?: { column: string; from: RuleFrom };
 }
 
 /** Questions about a rule Architect puts to the person in all, after which the draft ends. */
@@ -99,7 +106,7 @@ interface Session {
   history: ChatMessage[];
   questions: number;
   /** What the person answered, which a rule may rest on. */
-  answers: { question: string; answer: string }[];
+  answers: { question: string; answer: string; blank?: BlankAnswer }[];
   /** The last question the teacher asked, which the next reply answers. */
   asking: string | null;
   /** A question about a rule that must be answered before any job is drafted, and how many so far. */
@@ -149,6 +156,14 @@ function tooLittle(attached: Attached): string | null {
   return rows >= MIN_TASKS
     ? null
     : `Your files hold only ${rows} ${rows === 1 ? 'row' : 'rows'} between them, too few to make ${MIN_TASKS} different tasks to train and test on. Attach more of the records, or a tasks.jsonl file with example requests and their answers, and describe the job again.`;
+}
+
+/** Which of the two answers about an empty cell a reply is, or null when it is neither. */
+function blankMeaning(text: string): BlankAnswer['means'] | null {
+  const said = foldKey(text);
+  if (said === foldKey(BLANK_ANSWERS.zero)) return 'zero';
+  if (said === foldKey(BLANK_ANSWERS.leave_out)) return 'leave_out';
+  return null;
 }
 
 /** Spark's draft was refused, with the reasons, even after it was asked again. */
@@ -208,9 +223,28 @@ export class JobDrafting implements JobDrafter {
           options: open.options,
         };
       }
-      session.answers.push({ question: open.question, answer: text.trim() });
+      let answer = text.trim();
+      let blank: BlankAnswer | undefined;
+      if (open.blank !== undefined) {
+        // Only two things can be done with an empty cell, so only one of the two is an answer.
+        const means = blankMeaning(text);
+        if (means === null) {
+          return {
+            sessionId: session.id,
+            message: `${open.question}\n\nChoose one of the answers: it decides what an empty ${open.blank.column} counts as in every row.`,
+            options: open.options,
+          };
+        }
+        answer = BLANK_ANSWERS[means];
+        blank = { ...open.blank, means };
+      }
+      session.answers.push({
+        question: open.question,
+        answer,
+        ...(blank === undefined ? {} : { blank }),
+      });
       session.settling = null;
-      return this.run(session, teacher, settledMessage(open.question, text), true);
+      return this.run(session, teacher, settledMessage(open.question, answer, blank), true);
     }
     if (!draftNow && session.asking !== null) {
       session.answers.push({ question: session.asking, answer: text.trim() });
@@ -314,6 +348,7 @@ export class JobDrafting implements JobDrafter {
         said: {
           description: session.description,
           answers: session.answers.map((item) => item.answer).join('\n'),
+          blanks: session.answers.flatMap((item) => (item.blank === undefined ? [] : [item.blank])),
         },
       });
       let problems: string[];

@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { RuleConfirmationStateSchema, RuleDetailsSchema, RuleSpecSchema } from './rules';
+import {
+  BlankAnswerSchema,
+  RuleConfirmationStateSchema,
+  RuleDetailsSchema,
+  RuleSpecSchema,
+} from './rules';
 
 /*
  * Drafting a job from the person's own files (decision 058). The teacher decides what the job is
@@ -137,8 +142,19 @@ export const DraftRecordSchema = z.object({
   unresolved: z.array(z.string()),
   /** What Architect assumed or left out where the files didn't say, in plain words. */
   notes: z.array(z.string()),
-  /** What the person answered to the teacher's questions, which the rules may rest on. */
-  answers: z.array(z.object({ question: z.string(), answer: z.string() })).optional(),
+  /**
+   * What the person answered to the teacher's questions, which the rules may rest on. An answer to
+   * a question about an empty cell says which column it was about and what the person chose.
+   */
+  answers: z
+    .array(
+      z.object({
+        question: z.string(),
+        answer: z.string(),
+        blank: BlankAnswerSchema.optional(),
+      }),
+    )
+    .optional(),
   /** The records the tasks were made from: each file's name and the hash of its bytes. */
   files: z.array(z.object({ name: z.string().min(1), sha256: z.string().min(1) })).optional(),
 });

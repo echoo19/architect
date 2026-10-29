@@ -439,6 +439,174 @@ describe('a question the policy leaves open', () => {
   });
 });
 
+describe('a question about an empty cell', () => {
+  // What Spark asked when it was run on the bike shop's records, with its answers replaced by the
+  // two Architect can do: a rule can count an empty cell as zero or leave its row out, nothing else.
+  const EMPTY = {
+    question: 'What parts amount should be used when a ticket lists no parts cost?',
+    options: ['Zero', 'Leave those tickets out'],
+    changesAnswers: true,
+    blankColumn: 'parts_cost',
+    blankFrom: 'row',
+  };
+  const ZERO = 'Count it as zero';
+  const LEAVE = 'Leave those rows out';
+
+  /**
+   * The teacher asks, and when it is asked to draft again it writes the same rule, still listing
+   * the question: what the person chose is not a change to the steps.
+   */
+  function asksThenDrafts() {
+    world.mentor.script = () => bikeDraft([costType({ ambiguities: [EMPTY] }), CONTACT_TYPE]);
+  }
+
+  it("puts the two answers a rule can do, not the teacher's, and nothing is made until it is answered", async () => {
+    asksThenDrafts();
+    const first = await world.drafting.start('A repair desk', attachBike(), TEACHER);
+    expect(first.draft).toBeUndefined();
+    expect(first.message).toBe(EMPTY.question);
+    expect(first.options).toEqual([ZERO, LEAVE]);
+    expect(first.options).not.toContain(DRAFT_NOW);
+    expect(world.store.jobs.list()).toEqual([]);
+
+    // "Draft it now" doesn't answer it, and neither does a reply that is neither of the two.
+    const before = world.mentor.requests.length;
+    const now = await world.drafting.reply(first.sessionId, 'Draft it now', TEACHER);
+    expect(now.options).toEqual([ZERO, LEAVE]);
+    const other = await world.drafting.reply(first.sessionId, 'Use the average', TEACHER);
+    expect(other.draft).toBeUndefined();
+    expect(other.message).toContain(EMPTY.question);
+    expect(other.message).toContain('Choose one of the answers');
+    expect(other.options).toEqual([ZERO, LEAVE]);
+    expect(world.mentor.requests.length).toBe(before);
+  });
+
+  it('counts an empty cell as zero when the person chose it, and says so in the rule and in the record', async () => {
+    asksThenDrafts();
+    const first = await world.drafting.start('A repair desk', attachBike(), TEACHER);
+    // The words of the option, in any case and spacing, are the answer.
+    const second = await world.drafting.reply(first.sessionId, ' count it AS zero ', TEACHER);
+    const job = second.draft;
+    if (job === undefined) throw new Error(second.message);
+
+    const told = world.mentor.requests[1]?.messages.at(-1)?.content ?? '';
+    expect(told).toContain(`Question: ${EMPTY.question}`);
+    expect(told).toContain(`Answer: ${ZERO}`);
+    expect(told).toContain('Architect counts an empty parts_cost as 0 itself');
+
+    const record = recordOf(job.id);
+    expect(record.answers).toEqual([
+      {
+        question: EMPTY.question,
+        answer: ZERO,
+        blank: { column: 'parts_cost', from: 'row', means: 'zero' },
+      },
+    ]);
+    const cost = record.types.find((type) => type.id === 'cost');
+    expect(cost?.spec).toMatchObject({
+      template: 'rule',
+      emptyMeansZero: [{ column: 'parts_cost', from: 'row' }],
+    });
+    expect(cost?.details?.statement).toMatch(/ An empty parts cost counts as 0, as you said\.$/);
+    expect(cost?.details?.passages).toContainEqual({ file: 'answers', passage: ZERO });
+    expect(cost?.details?.flags.join(' ')).toMatch(
+      /\d+ rows have an empty parts cost, which counts as 0, as you said\./,
+    );
+    // The tickets with no parts have a task now: nothing was left out for being empty.
+    expect(cost?.details?.excluded.map((item) => item.reason)).toEqual([
+      'parts_cost says N/A or a dash, which is not the same as empty',
+    ]);
+    expect(await world.jobs.ruleReports(job.id)).toEqual([]);
+    const plan = await world.jobs.taskPlan(job.id);
+    expect(plan.types.find((type) => type.id === 'cost')?.details?.statement).toBe(
+      cost?.details?.statement,
+    );
+  });
+
+  it('leaves the rows with an empty cell out when the person chose that, as it did before', async () => {
+    asksThenDrafts();
+    const first = await world.drafting.start('A repair desk', attachBike(), TEACHER);
+    const second = await world.drafting.reply(first.sessionId, LEAVE, TEACHER);
+    const job = second.draft;
+    if (job === undefined) throw new Error(second.message);
+    const record = recordOf(job.id);
+    expect(record.answers).toEqual([
+      {
+        question: EMPTY.question,
+        answer: LEAVE,
+        blank: { column: 'parts_cost', from: 'row', means: 'leave_out' },
+      },
+    ]);
+    const cost = record.types.find((type) => type.id === 'cost');
+    expect(cost?.spec).not.toHaveProperty('emptyMeansZero');
+    expect(cost?.details?.statement).not.toContain('counts as 0');
+    expect(cost?.details?.excluded.map((item) => item.reason)).toEqual([
+      'parts_cost is empty or N/A',
+    ]);
+  });
+
+  it('does not ask again about a column the person answered, or one with nothing empty in it', async () => {
+    // Asked about the hours, which every ticket has, there is nothing to decide.
+    world.mentor.script = () =>
+      bikeDraft([
+        costType({ ambiguities: [{ ...EMPTY, blankColumn: 'labor_hours' }] }),
+        CONTACT_TYPE,
+      ]);
+    const drafted = await world.drafting.start('A repair desk', attachBike(), TEACHER);
+    expect(drafted.draft).toBeDefined();
+    expect(world.mentor.requests).toHaveLength(1);
+  });
+
+  it('is not asked a second time when the teacher lists it again after the answer', async () => {
+    asksThenDrafts();
+    const first = await world.drafting.start('A repair desk', attachBike(), TEACHER);
+    const second = await world.drafting.reply(first.sessionId, ZERO, TEACHER);
+    expect(second.draft).toBeDefined();
+    expect(second.message).not.toContain(EMPTY.question);
+  });
+
+  it('sends back a question about a column the rule does not add up, and one the table lacks', async () => {
+    world.mentor.script = (_request, call) =>
+      call === 1
+        ? bikeDraft([
+            costType({ ambiguities: [{ ...EMPTY, blankColumn: 'status' }] }),
+            CONTACT_TYPE,
+          ])
+        : bikeDraft();
+    await world.drafting.start('A repair desk', attachBike(), TEACHER);
+    const fix = world.mentor.requests[1]?.messages.at(-1)?.content ?? '';
+    expect(fix).toContain(
+      'status is not a number the rule adds up, so what an empty one counts as is not a question for it.',
+    );
+    world.mentor.requests.length = 0;
+    world.mentor.script = (_request, call) =>
+      call === 1
+        ? bikeDraft([
+            costType({ ambiguities: [{ ...EMPTY, blankColumn: 'discount' }] }),
+            CONTACT_TYPE,
+          ])
+        : bikeDraft();
+    await world.drafting.start('A repair desk', attachBike(), TEACHER);
+    expect(world.mentor.requests[1]?.messages.at(-1)?.content).toContain(
+      "the question about an empty discount names a column that isn't in the table.",
+    );
+  });
+
+  it('keeps the teacher from declaring a zero itself: only an answer does', async () => {
+    // A rule that already says what an empty cell is has no field for it in the reply format.
+    const request = (await (async () => {
+      world.mentor.script = () => question('Which ticket?', ['A', 'B']);
+      await world.drafting.start('A repair desk', attachBike(), TEACHER);
+      return world.mentor.requests[0];
+    })()) as MentorCompletionRequest;
+    const schema = JSON.stringify(request.json?.schema);
+    expect(schema).toContain('"blankColumn"');
+    expect(schema).not.toContain('emptyMeansZero');
+    expect(request.system).toContain('Offer only answers the steps above can do');
+    expect(request.system).toContain('blankColumn');
+  });
+});
+
 describe('holding a rule to the policy and to the guards', () => {
   it('sends back a passage that is not in the policy word for word, once, with the reason', async () => {
     const wrong = costType({

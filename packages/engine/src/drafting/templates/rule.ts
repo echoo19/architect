@@ -11,11 +11,11 @@ import { cellsOf, findColumn, kindOf, type Table } from '../table';
 import { cleanText, foldKey, isBlank } from '../values';
 import { makeCases, type Tables } from '../rule/cases';
 import { agreed, currencyName, marksIn } from '../rule/currency';
-import { checkExpression, numberRefs } from '../rule/expression';
+import { checkExpression, numberRefs, refKey } from '../rule/expression';
 import { auditCases, DEFAULT_PASS_RATE } from '../rule/guards';
 import type { RuleOutcome } from '../rule/outcome';
 import * as q from '../rule/rational';
-import { statementOf, type WordsContext } from '../rule/words';
+import { nameOf, statementOf, type WordsContext } from '../rule/words';
 import {
   answerKeyName,
   canonicalJson,
@@ -46,14 +46,23 @@ export function ruleVersion(spec: RuleSpec): string {
  * the words of the request and the passages quoted.
  */
 function semanticsOf(spec: RuleSpec): JsonValue {
-  const { expression, lookup, categories, currency } = spec;
-  return JSON.parse(JSON.stringify({ expression, lookup, categories, currency })) as JsonValue;
+  const { expression, lookup, categories, currency, emptyMeansZero } = spec;
+  return JSON.parse(
+    JSON.stringify({ expression, lookup, categories, currency, emptyMeansZero }),
+  ) as JsonValue;
 }
 
 /** How numbers, words and rounding are read, in plain words, for the person and the report. */
 export function conventionsOf(spec: RuleSpec): string[] {
+  const zero = spec.emptyMeansZero ?? [];
   const conventions = [
-    'Numbers are read as written: a currency sign, thousands separators and brackets or a minus sign for a negative are understood. A cell that is empty, N/A or not a number leaves its row out; it is never counted as zero.',
+    zero.length === 0
+      ? 'Numbers are read as written: a currency sign, thousands separators and brackets or a minus sign for a negative are understood. A cell that is empty, N/A or not a number leaves its row out; it is never counted as zero.'
+      : 'Numbers are read as written: a currency sign, thousands separators and brackets or a minus sign for a negative are understood. A cell that is N/A or not a number leaves its row out. Nothing is counted as zero unless you said so.',
+    ...zero.map(
+      (ref) =>
+        `An empty ${ref.column}${ref.from === 'lookup' && spec.lookup ? ` (${spec.lookup.table})` : ''} counts as 0, as you said. N/A or words in it still leave the row out.`,
+    ),
   ];
   if (spec.currency !== undefined) {
     conventions.push(
@@ -198,6 +207,10 @@ export function runRule(
     from: category.from,
     values: distinctValues(category.values),
   }));
+  const emptyMeansZero = (spec.emptyMeansZero ?? []).map((ref) => ({
+    column: found(inTable(ref.from), ref.column, 'The column'),
+    from: ref.from,
+  }));
   const resolved: RuleSpec = {
     ...spec,
     keyColumn,
@@ -205,16 +218,27 @@ export function runRule(
     ...(lookup === undefined ? {} : { lookup }),
     categories,
     expression,
+    ...(emptyMeansZero.length === 0 ? {} : { emptyMeansZero }),
   };
   const words: WordsContext = {
     ...(lookup === undefined ? {} : { lookupTable: lookup.table }),
     ...(spec.currency === undefined ? {} : { currency: spec.currency }),
     categories,
+    ...(emptyMeansZero.length === 0 ? {} : { emptyMeansZero }),
   };
   const rule = `Work out ${spec.answerName.replace(/_/g, ' ')} for each ${keyColumn} of ${source.name}`;
 
   checkRequest(spec.request, ['key'], ['key'], problems);
   checkExpression(expression, { categories, lookup: lookup !== undefined }, problems);
+  // An empty cell can count as zero only in a column the rule adds up.
+  const added = new Set(numberRefs(expression).map(refKey));
+  for (const ref of emptyMeansZero) {
+    if (!added.has(refKey(ref))) {
+      problems.push(
+        `${ref.column} is said to count as zero when it is empty, but the rule doesn't read it.`,
+      );
+    }
+  }
   if (!/^[a-z]/i.test(spec.answerName))
     problems.push('The name of the answer must start with a letter.');
   if (problems.length > 0) return refused(resolved, rule);
@@ -279,6 +303,16 @@ export function runRule(
   if (problems.length > 0) return refused(resolved, rule);
 
   const statement = statementOf(expression, words);
+  // How far an empty cell counted as zero reaches, so the person sees what their answer decided.
+  const zeroed = emptyMeansZero.flatMap((ref) => {
+    const count = made.cases.filter((item) => item.zeroed.has(refKey(ref))).length;
+    return count === 0
+      ? []
+      : [
+          `${count} ${count === 1 ? 'row has' : 'rows have'} an empty ${nameOf(ref, words)}, which counts as 0, as you said.`,
+        ];
+  });
+  const flags = [...audit.flags, ...zeroed];
   const details: RuleOutcome['details'] = {
     version: ruleVersion(resolved),
     statement,
@@ -287,7 +321,7 @@ export function runRule(
     cases: { total: source.rows.length, eligible: made.cases.length },
     excluded: made.excluded.map(({ reason, count, example }) => ({ reason, count, example })),
     branches: audit.branches,
-    flags: audit.flags,
+    flags,
   };
   const outcome: RuleOutcome = {
     spec: resolved,
@@ -329,7 +363,7 @@ export function runRule(
       `${item.count} ${item.count === 1 ? 'row' : 'rows'} of ${source.name} left out because ${item.reason}, such as ${item.example}.`,
     );
   }
-  for (const flag of audit.flags) notes.push(flag);
+  for (const flag of flags) notes.push(flag);
   return {
     spec: resolved,
     candidates,
