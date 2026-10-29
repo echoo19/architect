@@ -2,6 +2,31 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-28 (Tue), night: comparison 1's report says what it measured
+
+**Done** (on a branch; decision 056; no model was called, the GPU stayed off, and nothing of comparison 2 was read, run or changed)
+- A reviewer read comparison 1's report as an outsider and found eight faults. Each is fixed in the code that writes the report (`packages/engine/src/comparisons/report.ts` and `markdown.ts`), never in its output. The report's format is now `architect.comparisons/3`.
+  - Seeds: it says which declared seeds ran and for whom, and that a declared seed with no result (102 here) was not run. The seeds and the adapter protocol come from the confirmed plan, not from the flags of the command that asks for the report.
+  - Settings: a row of temperature, top_p, top_k, reasoning, turn limit and output tokens for every row of results, and the sentence that the harness sets them.
+  - Where it was measured: each frozen agent is "set to run on `muse-glimmer:30b-iq2` on Ollama once installed". All its numbers are from the hosted student, and the local build was not measured, unless a local table has the arm.
+  - Money: the attempts' recorded costs ($3.7630), what the provider settled ($3.8075) and the uncertain requests at their worst ($0.1359) are named for what they are and shown to a tenth of a cent, so they add up ($3.9434 in the journal, $0.1804 more than the attempts record). The projection is a section of its own.
+  - Development: the first dev measurement and the last kept round's own before and after (60/90 to 73/90), beside the rounds used of the most allowed and why training ended (2 of 2, cap reached).
+  - Words: an arrow reads "to", and typographic marks are ASCII.
+  - Adapters: the protocol is printed only when an adapter arm ran; otherwise one sentence says every reported agent is harness-only. Arms the plan never asked for are listed as not run.
+  - Pairs: the difference in pass rate with Newcombe's hybrid score interval (his method 10), from the wins, losses, both and neither counts.
+- Comparison 1's report was made again from its records with the `report` command and published as `docs/comparisons/returns-desk-1.md`, with no path, user folder or key in it. Nothing was spent, and its database, request journal and plan are byte for byte as they were (the old `report.md` and `report.json` sit beside the new ones as `.bak`). Targeted mentoring against the bare student is +3.3 points (-11.5 to +18.0), and the draft against the bare student +6.7 (-8.8 to +21.8): no gain was shown.
+- Tests: Newcombe's interval against the 18 intervals of Table III of his paper (the same limits to four decimals, but for one lower limit the paper prints as 0.8736 for 0.87367), two cases worked by hand, and the mirror image; the Markdown on a report shaped like the first real one; how each run's rounds ended; the plain-text pass; and the dry run and the runner through the store (seeds, pairs, rounds, where each arm was measured, money, no arrow, no folder name). The tests of the logic (the interval, the seeds, the rounding of the money, the plan's settings over the request's, the plain-text pass) were each checked to fail with their fix taken out.
+- Verified: `pnpm check` exits 0 (192 test files, 2,384 passed, 2 skipped).
+
+**Next**
+- Comparison 2 runs from `docs/comparisons/returns-desk-2-plan.md`; its report will be made by this code once it is merged.
+
+**Open issues**
+- "A01" in 037's statement is the owner's own label and is not explained in the report; the statement stays among the disclosures, beside the opening's "harness-only".
+- The identity line of a backend still prints fields that do not apply to a hosted copy ("GGUF none").
+- Ollama reports the local build's quantization as Q4_K_M though its name says iq2; the report names the build by its name and says nothing of its bits.
+- The app does not read a report in the earlier format, so a `report.json` made before this change shows nothing until `report` makes it again.
+
 ## 2026-10-28 (Tue), the polish pass
 
 **Done** (on a branch; decision 055; no model was called, the GPU stayed off)
