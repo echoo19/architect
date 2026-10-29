@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { registerSecretsHandlers } from '../../../src/main/handlers/secrets';
 import type { Cipher } from '../../../src/main/secrets/store';
+import { environmentKeys } from '../../../src/main/secrets/environment';
 import { SecretStore } from '../../../src/main/secrets/store';
 import { routerHarness } from './router-harness';
 
@@ -34,6 +35,29 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await rm(dir, { recursive: true, force: true });
+});
+
+describe('keys from the environment, for development', () => {
+  const env = { ARCHITECT_KEYS_FROM_ENV: '1', META_API_TOKEN: ' from-env ' };
+
+  it('are read only by an unpackaged build that asks for them', () => {
+    expect(environmentKeys(env, true)).toBeUndefined();
+    expect(environmentKeys({ META_API_TOKEN: 'from-env' }, false)).toBeUndefined();
+    expect(environmentKeys(env, false)?.('meta')).toBe('from-env');
+    expect(environmentKeys(env, false)?.('openai')).toBeUndefined();
+  });
+
+  it('count as saved and are read, never written, and a saved key wins', async () => {
+    const store = await SecretStore.open(file, fakeCipher(), environmentKeys(env, false));
+    expect(store.status()).toMatchObject({ meta: true, openai: false });
+    expect(await store.get('meta')).toBe('from-env');
+    await store.set('openai', 'sk-saved');
+    expect(Object.keys(JSON.parse(await readFile(file, 'utf8')) as object)).toEqual(['openai']);
+    await store.set('meta', 'saved-meta');
+    expect(await store.get('meta')).toBe('saved-meta');
+    await store.clear('meta');
+    expect(await store.get('meta')).toBe('from-env');
+  });
 });
 
 describe('SecretStore', () => {

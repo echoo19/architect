@@ -26,6 +26,7 @@ import { ModelPulls } from './ollama/pulls';
 import { processResources } from './processes/resources';
 import { Supervisor } from './processes/supervisor';
 import { safeStorageCipher } from './secrets/cipher';
+import { environmentKeys } from './secrets/environment';
 import { SecretStore } from './secrets/store';
 import { hardenContents, hardenSession, isAppUrl, type AppOrigin } from './security';
 import { quietCooldown, quietThreads } from './settings/quiet';
@@ -89,7 +90,11 @@ async function start(): Promise<void> {
 
   const dataDir = app.getPath('userData');
   const settings = await SettingsStore.open(join(dataDir, 'settings.json'));
-  const secrets = await SecretStore.open(join(dataDir, 'secrets.json'), safeStorageCipher);
+  const secrets = await SecretStore.open(
+    join(dataDir, 'secrets.json'),
+    safeStorageCipher,
+    environmentKeys(process.env, app.isPackaged),
+  );
   applyTheme(settings.get().theme);
   settings.onChange((next) => applyTheme(next.theme));
 
