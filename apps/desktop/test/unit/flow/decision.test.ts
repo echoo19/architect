@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { Experiment, LineageEntry, Round } from '@architect/shared';
+import type { Experiment, Intervention, LineageEntry, Round } from '@architect/shared';
 import {
   decisionSentence,
   harmSentence,
   outcomeNote,
   predictionCheck,
+  refusalSentence,
 } from '../../../src/renderer/src/flow/train/decision';
-import { decided, makeJob, makeRound } from './factories';
+import { AT, decided, makeJob, makeRound } from './factories';
 
 const job = makeJob();
 
@@ -176,5 +177,48 @@ describe('predictionCheck', () => {
     expect(predictionCheck(predicted, 5)).toBe('Measured within this range');
     expect(predictionCheck(predicted, 3)).toBe('Measured below this range');
     expect(predictionCheck(predicted, 11)).toBe('Measured above this range');
+  });
+});
+
+function chosen(type: Intervention['type']): Intervention {
+  return {
+    id: 'itv_1',
+    runId: 'run_1',
+    round: 2,
+    type,
+    title: 'Count with a tool',
+    hypothesis: 'The sums are done by hand.',
+    findings: [],
+    setAside: [],
+    edits: [],
+    workedExamples: [],
+    practicePerFinding: 0,
+    predicted: { devDeltaMin: 1, devDeltaMax: 3, rationale: 'Three check tasks.' },
+    estimatedCost: { mentorUsd: 0, computeUsd: 0, minutes: 0 },
+    verificationPlan: '',
+    parent: { harnessVersion: 1, adapter: null },
+    status: 'invalid',
+    createdAt: AT,
+  };
+}
+
+describe('refusalSentence', () => {
+  it('names a kind the person turned off as theirs, and says where to turn it on', () => {
+    const noTools = makeJob({ interventions: ['procedure', 'retrieval', 'weights'] });
+    expect(refusalSentence(chosen('helper'), noTools)).toBe(
+      'Spark chose "Small tools", which is turned off for this job under Teacher in Advanced settings. Nothing changed.',
+    );
+    // Weights get the same words, not the line for what this computer can't do.
+    const noWeights = makeJob({ interventions: ['procedure', 'clarification'] });
+    expect(refusalSentence(chosen('weights'), noWeights)).toContain('"Its weights"');
+    expect(
+      refusalSentence(chosen('clarification'), makeJob({ interventions: ['helper'] })),
+    ).toContain('"Questions for you"');
+  });
+
+  it("says nothing of a refusal that was not the person's choice", () => {
+    expect(refusalSentence(chosen('helper'), makeJob())).toBeNull();
+    expect(refusalSentence(chosen('weights'), makeJob({ interventions: ['weights'] }))).toBeNull();
+    expect(refusalSentence(undefined, makeJob({ interventions: ['procedure'] }))).toBeNull();
   });
 });

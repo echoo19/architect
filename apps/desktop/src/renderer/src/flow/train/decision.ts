@@ -1,5 +1,15 @@
-import type { Experiment, Job, LineageEntry, Prediction, Round, Score } from '@architect/shared';
-import { typeLabel } from '../names';
+import {
+  INTERVENTION_LABELS,
+  mayIntervene,
+  type Experiment,
+  type Intervention,
+  type Job,
+  type LineageEntry,
+  type Prediction,
+  type Round,
+  type Score,
+} from '@architect/shared';
+import { modelNames, typeLabel } from '../names';
 import { GATES } from './evidence-words';
 
 const NUMBER_WORDS = [
@@ -151,6 +161,19 @@ function measuredTwice(
     return `${opening}. ${again}, but ${lossPhrase(worst)}. ${rule}.`;
   }
   return `${opening}. ${again}.`;
+}
+
+/**
+ * Why a change that could not be tried was not, when the person turned off that kind of change
+ * for the job (decision 063), said as theirs, with where to turn it on. Null when it was not their
+ * choice. It looks at the job and the kind, not at the engine's sentence, and the person's choice
+ * is the reason whatever else would have refused it.
+ */
+export function refusalSentence(intervention: Intervention | undefined, job: Job): string | null {
+  if (intervention === undefined || mayIntervene(job, intervention.type)) return null;
+  const { mentor } = modelNames(job);
+  const kind = INTERVENTION_LABELS[intervention.type];
+  return `${mentor} chose "${kind}", which is turned off for this job under Teacher in Advanced settings. Nothing changed.`;
 }
 
 /**
