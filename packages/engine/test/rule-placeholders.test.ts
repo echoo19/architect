@@ -123,13 +123,13 @@ describe('the words that name a mark', () => {
 describe('the question asked about a mark', () => {
   it('names the file, the column and the mark, says what each answer does, and when to leave it out', () => {
     expect(markQuestion('tickets.csv', 'parts_cost', 'N/A')).toBe(
-      'In tickets.csv, parts_cost sometimes says "N/A". Does "N/A" mean no parts cost? If it can also mean "not known yet", leave those rows out.',
+      'In tickets.csv, parts_cost sometimes says "N/A". If "N/A" means no parts cost, count it as zero. If it can also mean "not known yet", leave those rows out.',
     );
     expect(markQuestion('tickets.csv', 'parts_cost', '-')).toBe(
-      'In tickets.csv, parts_cost sometimes has a dash ("-") where a number should be. Does a dash mean no parts cost? If it can also mean "not known yet", leave those rows out.',
+      'In tickets.csv, parts_cost sometimes has a dash ("-") where a number should be. If a dash means no parts cost, count it as zero. If it can also mean "not known yet", leave those rows out.',
     );
     expect(markQuestion('orders.csv', 'labor_hours', '?')).toBe(
-      'In orders.csv, labor_hours sometimes has a question mark ("?") where a number should be. Does a question mark mean no labor hours? If it can also mean "not known yet", leave those rows out.',
+      'In orders.csv, labor_hours sometimes has a question mark ("?") where a number should be. If a question mark means no labor hours, count it as zero. If it can also mean "not known yet", leave those rows out.',
     );
   });
 

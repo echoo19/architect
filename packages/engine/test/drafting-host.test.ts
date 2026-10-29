@@ -77,7 +77,7 @@ async function draftRepairDesk(): Promise<DraftTurn> {
   expect(DraftTurnSchema.safeParse(asked).success).toBe(true);
   expect(asked.draft).toBeUndefined();
   expect(asked.message).toBe(
-    'In tickets.csv, parts_cost sometimes says "N/A". Does "N/A" mean no parts cost? If it can also mean "not known yet", leave those rows out.',
+    'In tickets.csv, parts_cost sometimes says "N/A". If "N/A" means no parts cost, count it as zero. If it can also mean "not known yet", leave those rows out.',
   );
   expect(asked.options).toEqual(['Count it as zero', 'Leave those rows out']);
   const turn = await client.jobs.draftReply(asked.sessionId, 'Leave those rows out', TEACHER);

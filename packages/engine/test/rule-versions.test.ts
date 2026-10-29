@@ -109,7 +109,7 @@ describe('the version of a rule that says nothing of a placeholder', () => {
     ]);
     expect(zero?.flags).toEqual([
       'None of your records needed rounding to the nearest cent, so no task tests it.',
-      '19 rows have an empty parts cost, which counts as 0, as you said.',
+      '19 of 160 rows have an empty parts cost, which counts as 0, as you said.',
     ]);
     expect(zero?.statement).toBe(
       'Start with (labor hours rounded up to a multiple of 0.5) times 65 times 0.9 when member (customers.csv) is yes. Add parts cost. The result is rounded to the nearest cent, half a cent rounds up. An empty parts cost counts as 0, as you said.',

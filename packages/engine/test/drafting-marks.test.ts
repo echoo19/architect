@@ -31,11 +31,16 @@ const ZERO = 'Count it as zero';
 const LEAVE = 'Leave those rows out';
 
 const NA_QUESTION =
-  'In tickets.csv, parts_cost sometimes says "N/A". Does "N/A" mean no parts cost? If it can also mean "not known yet", leave those rows out.';
+  'In tickets.csv, parts_cost sometimes says "N/A". If "N/A" means no parts cost, count it as zero. If it can also mean "not known yet", leave those rows out.';
 const dashQuestion = (mark: string) =>
-  `In tickets.csv, parts_cost sometimes has a dash ("${mark}") where a number should be. Does a dash mean no parts cost? If it can also mean "not known yet", leave those rows out.`;
+  `In tickets.csv, parts_cost sometimes has a dash ("${mark}") where a number should be. If a dash means no parts cost, count it as zero. If it can also mean "not known yet", leave those rows out.`;
 const QUESTION_MARK_QUESTION =
-  'In tickets.csv, parts_cost sometimes has a question mark ("?") where a number should be. Does a question mark mean no parts cost? If it can also mean "not known yet", leave those rows out.';
+  'In tickets.csv, parts_cost sometimes has a question mark ("?") where a number should be. If a question mark means no parts cost, count it as zero. If it can also mean "not known yet", leave those rows out.';
+
+/** The question in short, as the rule shows it beside the answer it rests on. */
+const NA_PASSAGE = 'What should "N/A" in parts_cost (tickets.csv) count as?';
+const dashPassage = (mark: string) =>
+  `What should a dash ("${mark}") in parts_cost (tickets.csv) count as?`;
 
 const bike = bikeShop({ offGrid: true });
 let world: DraftingWorld;
@@ -199,7 +204,7 @@ describe('the question about a mark', () => {
     expect(cost?.details?.cases).toEqual({ total: 160, eligible: 160 - empty.length });
     expect(cost?.details?.statement).toMatch(/ "N\/A" in parts cost counts as 0, as you said\.$/);
     expect(cost?.details?.flags).toContain(
-      `${notApplicable.length} rows have "N/A" in parts cost, which counts as 0, as you said.`,
+      `${notApplicable.length} of ${bike.tickets.length} rows have "N/A" in parts cost, which counts as 0, as you said.`,
     );
     // The tickets that said N/A are tasks now.
     const keys = new Set<string>();
@@ -222,7 +227,7 @@ describe('the question about a mark', () => {
     expect(details?.passages).toEqual([
       { file: 'policy.md', passage: 'Labor is billed at $65 an hour, in half-hour steps.' },
       { file: 'policy.md', passage: 'Members get 10% off labor, never off parts.' },
-      { file: 'answers', passage: ZERO, question: NA_QUESTION },
+      { file: 'answers', passage: ZERO, question: NA_PASSAGE },
     ]);
     expect(details?.steps?.map((item) => [item.text, item.note])).toEqual([
       ['Round labor hours up to a multiple of 0.5.', undefined],
@@ -261,7 +266,7 @@ describe('the question about a mark', () => {
     const details = plan.types.find((type) => type.id === 'cost')?.details;
     expect(details?.passages.filter((item) => item.file === 'answers')).toEqual([
       { file: 'answers', passage: ZERO, question: EMPTY.question },
-      { file: 'answers', passage: ZERO, question: NA_QUESTION },
+      { file: 'answers', passage: ZERO, question: NA_PASSAGE },
     ]);
     expect(details?.steps?.find((item) => item.note !== undefined)?.note).toBe(
       'An empty parts cost or "N/A" counts as 0, as you said.',
@@ -356,8 +361,8 @@ describe('a question for each mark', () => {
     );
     // One passage for each answer that counts, each beside the question it answered.
     expect(cost?.details?.passages.filter((item) => item.file === 'answers')).toEqual([
-      { file: 'answers', passage: ZERO, question: NA_QUESTION },
-      { file: 'answers', passage: ZERO, question: dashQuestion('\u2014') },
+      { file: 'answers', passage: ZERO, question: NA_PASSAGE },
+      { file: 'answers', passage: ZERO, question: dashPassage('\u2014') },
     ]);
   });
 
@@ -460,7 +465,7 @@ describe('a question for each table and each column', () => {
 
   const SAID = 'Tickets and invoices. Both carry a ten percent surcharge.';
   const questionOf = (file: string, column: string) =>
-    `In ${file}, ${column} sometimes says "N/A". Does "N/A" mean no ${column}? If it can also mean "not known yet", leave those rows out.`;
+    `In ${file}, ${column} sometimes says "N/A". If "N/A" means no ${column}, count it as zero. If it can also mean "not known yet", leave those rows out.`;
 
   it("asks about each table's column on its own, and keeps each answer for the table it was about", async () => {
     world.mentor.script = () =>
@@ -802,7 +807,7 @@ describe('the confirmation of a rule that names a mark', () => {
     expect(report?.passages).toContainEqual({
       file: 'answers',
       passage: ZERO,
-      question: NA_QUESTION,
+      question: NA_PASSAGE,
     });
     expect(report?.conventions[1]).toContain('"N/A" in parts_cost counts as 0, as you said.');
   });

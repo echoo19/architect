@@ -15,7 +15,13 @@ import { z } from 'zod';
 import type { Attached } from './files';
 import { list, objectOf, text } from './json-parts';
 import { numberRefs, type ColumnRef } from './rule/expression';
-import { markQuestion, placeholdersIn, sameMark, unaskedLine } from './rule/placeholders';
+import {
+  markPassageQuestion,
+  markQuestion,
+  placeholdersIn,
+  sameMark,
+  unaskedLine,
+} from './rule/placeholders';
 import { expandSteps, stepSchema, WireStepSchema } from './rule-steps';
 import { cellsOf, findColumn, kindOf, type Table } from './table';
 import { briefly, cleanText, foldKey } from './values';
@@ -393,12 +399,15 @@ export function settleRule(
   // passages Architect adds have a room of their own, so the teacher quoting a full eight leaves
   // none of them out.
   const rests = emptyMeansZero.length > 0;
-  // So is each answer that a mark counts as zero, with the question it was given to: one answer
-  // reads the same whichever mark it was about, so the question is what tells them apart.
+  // So is each answer that a mark counts as zero, with its question in short: one answer reads the
+  // same whichever mark it was about, so the question is what tells them apart.
   const answered: RulePassage[] = marked.zero.map((answer) => ({
     file: 'answers',
     passage: BLANK_ANSWERS.zero,
-    question: briefly(answer.question, RULE_LIMITS.maxQuestionChars),
+    question: briefly(
+      markPassageQuestion(answer.table, answer.column, answer.mark),
+      RULE_LIMITS.maxQuestionChars,
+    ),
   }));
   const spec = {
     template: 'rule' as const,

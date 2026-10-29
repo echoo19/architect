@@ -392,10 +392,10 @@ describe('an empty cell the person said counts as zero', () => {
     expect(details?.conventions[0]).toContain('Nothing is counted as zero unless you said so.');
     expect(details?.conventions[0]).not.toContain('it is never counted as zero');
     expect(details?.flags).toContain(
-      `${empty.length} rows have an empty parts cost, which counts as 0, as you said.`,
+      `${empty.length} of ${bike.tickets.length} rows have an empty parts cost, which counts as 0, as you said.`,
     );
     expect(result.notes).toContain(
-      `${empty.length} rows have an empty parts cost, which counts as 0, as you said.`,
+      `${empty.length} of ${bike.tickets.length} rows have an empty parts cost, which counts as 0, as you said.`,
     );
     // A different rule: confirming one is not confirming the other.
     expect(ruleVersion(zero())).not.toBe(ruleVersion(bikeRule()));

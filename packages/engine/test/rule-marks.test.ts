@@ -269,10 +269,10 @@ describe('a mark the person said counts as zero', () => {
     );
     const flags = result.outcome?.details.flags ?? [];
     expect(flags).toContain(
-      `${notApplicable.length - 2} rows have "N/A" in parts cost, which counts as 0, as you said.`,
+      `${notApplicable.length - 2} of ${bike.tickets.length} rows have "N/A" in parts cost, which counts as 0, as you said.`,
     );
     expect(flags).toContain(
-      '1 row has a dash ("-") in parts cost, which counts as 0, as you said.',
+      `1 of ${bike.tickets.length} rows has a dash ("-") in parts cost, which counts as 0, as you said.`,
     );
     expect(result.notes).toEqual(
       expect.arrayContaining(flags.filter((flag) => /counts as 0/.test(flag))),
@@ -292,8 +292,8 @@ describe('a mark the person said counts as zero', () => {
     // An empty cell and a mark are counted apart, each with its own rows.
     expect(none.outcome?.details.flags).toEqual(
       expect.arrayContaining([
-        `${empty.length} rows have an empty parts cost, which counts as 0, as you said.`,
-        `${notApplicable.length} rows have "N/A" in parts cost, which counts as 0, as you said.`,
+        `${empty.length} of ${bike.tickets.length} rows have an empty parts cost, which counts as 0, as you said.`,
+        `${notApplicable.length} of ${bike.tickets.length} rows have "N/A" in parts cost, which counts as 0, as you said.`,
       ]),
     );
   });

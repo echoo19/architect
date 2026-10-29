@@ -92,7 +92,7 @@ export function columnWords(column: string): string {
 
 /**
  * What Architect asks the person about a mark, in plain words. It names the file, the column and
- * the mark, says what each answer does, and says when the second is the right one: a mark that
+ * the mark, and says when each of the two answers is the right one, in their own words: a mark that
  * sometimes means "not known yet" must not be counted as none. It carries no count and nothing of
  * any row, only the choice.
  */
@@ -101,7 +101,15 @@ export function markQuestion(table: string, column: string, spelling: string): s
     kindOf(spelling) === 'word'
       ? `says ${markWords(spelling)}`
       : `has ${markWords(spelling)} where a number should be`;
-  return `In ${table}, ${column} sometimes ${holds}. Does ${markName(spelling)} mean no ${columnWords(column)}? If it can also mean "not known yet", leave those rows out.`;
+  return `In ${table}, ${column} sometimes ${holds}. If ${markName(spelling)} means no ${columnWords(column)}, count it as zero. If it can also mean "not known yet", leave those rows out.`;
+}
+
+/**
+ * The question as the rule shows it beside the answer it rests on: short, and asked the way an
+ * empty cell's is, so that "Count it as zero" after it reads as the answer it is.
+ */
+export function markPassageQuestion(table: string, column: string, spelling: string): string {
+  return `What should ${markWords(spelling)} in ${column} (${table}) count as?`;
 }
 
 /** What a draft says of a mark Architect did not ask about: its rows are left out. */
