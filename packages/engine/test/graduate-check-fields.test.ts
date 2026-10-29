@@ -119,6 +119,28 @@ describe('install checks carry what the screens need beside their sentences', ()
     expect(unknown.sameBuild).toBeUndefined();
   });
 
+  it('never calls a build the tested one when the final test ran on a hosted copy', async () => {
+    const here = await computer();
+    await addVersion(here, { graduateId: 'grd_desk', testedOn: 'hosted' });
+    const listed = await here.library.verify('grd_desk', { loadModel: false });
+    const check = checkOf(listed, 'model_available');
+    expect(check.status).toBe('passed');
+    expect(check.detail).toMatch(/, the same build it was made for\.$/);
+    expect(check.sameBuild).toBeUndefined();
+
+    studentDescribing(here, async () => ({ digest: 'sha256:another-build' }));
+    const other = checkOf(
+      await here.library.verify('grd_desk', { loadModel: false }),
+      'model_available',
+    );
+    expect(other).toMatchObject({
+      status: 'failed',
+      sameBuild: false,
+      modelProblem: 'other_build',
+    });
+    expect(other.detail).toMatch(/than the one it was made for \(/);
+  });
+
   it("tells a model that isn't downloaded from a runtime that can't serve it", async () => {
     const here = await computer();
     await addVersion(here, { graduateId: 'grd_desk' });
