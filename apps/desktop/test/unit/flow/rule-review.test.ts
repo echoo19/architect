@@ -95,6 +95,29 @@ describe('the rule as Define puts it in front of the person', () => {
     expect(text(html)).not.toContain('Made-up numbers');
   });
 
+  it('puts the tag of an example that is not a record first and loud, and on no other', () => {
+    // "Like T-2144, but with parts cost 0.005" was taken for T-2144 with a new price, so the tag
+    // is the first thing under the request, in the tone this screen gives what must not be missed.
+    const [real, made] = html
+      .split('<li class="flex flex-col gap-3.5 rounded-2xl border border-line-card bg-panel')
+      .slice(1);
+    if (real === undefined || made === undefined) throw new Error('There are two examples.');
+    expect(real).toContain('What does ticket T-2148 cost the customer?');
+    expect(real).not.toContain('Not from your records');
+    expect(made).toContain('Like T-2144, but with parts cost 0.005');
+    expect(made.indexOf('Not from your records')).toBeGreaterThan(-1);
+    expect(made.indexOf('Not from your records')).toBeLessThan(
+      made.indexOf('Shows how the rule rounds the total'),
+    );
+    // A filled warning with its mark, the one the changed rule wears, and not a quiet outline.
+    expect(made).toMatch(
+      /<span class="[^"]*bg-danger-tint[^"]*text-danger[^"]*"[^>]*><svg[^>]*lucide-circle-alert[^>]*aria-hidden="true"[^>]*>[\s\S]*?<\/svg>Not from your records<\/span>/,
+    );
+    expect(made).not.toMatch(/border-line-control text-fg-secondary[^"]*"[^>]*>Not from/);
+    // What the example shows stays the quiet tag it was.
+    expect(made).toMatch(/bg-card text-fg-soft[^"]*"[^>]*>Shows how the rule rounds the total</);
+  });
+
   it('says what an example shows, not what it is called, and without brackets', () => {
     expect(text(html)).toContain('Shows how the rule rounds labor hours');
     expect(text(html)).toContain('Shows how the rule rounds the total');

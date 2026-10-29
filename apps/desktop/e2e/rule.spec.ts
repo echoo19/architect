@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Job, MentorConfig, Task } from '@architect/shared';
 import { allowMoreTime, goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { bikeDraft, bikeShop, EMPTY_QUESTION, OPEN_QUESTION, POLICY, type BikeShop } from './bike';
@@ -310,8 +310,21 @@ for (const theme of THEMES) {
     ).toBeVisible();
     await expect(card.getByText(/never changed a value in your records/)).toHaveCount(0);
     // A rounding the records never need is shown with numbers that are not theirs, and says so.
-    await expect(card.getByText('Not from your records', { exact: true })).toBeVisible();
+    const notRecord = card.getByText('Not from your records', { exact: true });
+    await expect(notRecord).toBeVisible();
     await expect(card.getByText('Made-up numbers')).toHaveCount(0);
+    // Its tag comes before what the example shows, and in a warning tone and not the quiet one of
+    // the tags beside it, so "Like T-2144, but with parts cost 0.005" is not taken for a ticket
+    // whose price changed.
+    const made = card
+      .getByRole('listitem')
+      .filter({ has: page.getByText('Not from your records', { exact: true }) });
+    const shows = made.getByText(/^Shows how the rule rounds /);
+    const [tagBox, showsBox] = await Promise.all([notRecord.boundingBox(), shows.boundingBox()]);
+    expect(tagBox && showsBox).toBeTruthy();
+    expect(tagBox!.x).toBeLessThan(showsBox!.x);
+    const color = (tag: Locator) => tag.evaluate((node) => getComputedStyle(node).color);
+    expect(await color(notRecord)).not.toBe(await color(shows));
     // The version is not beside the title: it waits under Details, for whoever wants to quote it.
     await expect(card.getByText(/^version [0-9a-f]{12}$/)).toHaveCount(0);
     await card.getByRole('button', { name: 'Details' }).click();
