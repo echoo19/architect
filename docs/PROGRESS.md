@@ -16,8 +16,6 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Open issues**
 - A message typed in the Describe or reply box loses the spaces at its very start and end on the screen. Sending it whole would also change the workspace chat, which uses `Composer`, so it was not changed here.
 
-## 2026-10-29 (Wed), what the teacher is told of the records, said exactly
-
 ## 2026-10-29 (Thu), release 0.3.0
 
 **Done**
@@ -29,9 +27,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Merge the small fifth round of rule fixes and release 0.3.1 with it.
 - The offline-chat scene of the film, when the owner allows the GPU; then the full film.
 
-
 ## 2026-10-29 (Thu), what the teacher is told of the records, said exactly
-
 
 **Done** (on `rule-fixes-4`, from main at `0f86c10`; decision 061 amended; no model was called, the GPU stayed off, and every run used stand-ins only)
 - Four findings of GPT-6 Sol's read of the third round, each decided by the owner and each with a test that fails without its fix:
