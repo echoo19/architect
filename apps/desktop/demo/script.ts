@@ -29,6 +29,8 @@ export interface DemoScene {
     data?: string;
     comparison?: string;
     env?: Record<string, string>;
+    /** Changes the throwaway copy of `data` before the app starts; `data` itself is never changed. */
+    prepare?: (userData: string) => Promise<void>;
   };
   /** Install stand-in replies after launch. No production code is changed. */
   setup?: (launched: LaunchedApp) => Promise<void>;

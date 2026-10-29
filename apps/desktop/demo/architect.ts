@@ -1,6 +1,10 @@
+import { readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { glimmerBuild, type LocalRuntimes } from '@architect/shared';
 import { expect, type Locator, type Page } from '@playwright/test';
+import { goTo } from '../e2e/app';
+import { LOCAL_WITH_GLIMMER, stubEngine } from '../e2e/fixtures';
 import type { DemoScene, DemoScript, StepContext } from './script';
 
 /**
@@ -15,7 +19,9 @@ import type { DemoScene, DemoScript, StepContext } from './script';
  *   records bound to a scratch copy (it runs on this computer's model, so the GPU is used).
  * Record the drafting scene alone first (ARCHITECT_DEMO_ONLY), train its job, then record the
  * rest with that scene reused (ARCHITECT_DEMO_REUSE). Run it with ARCHITECT_DEMO_SCRIPT pointing
- * here; see README.md in this folder.
+ * here; see README.md in this folder. The rule is checked and confirmed in a scene of its own, on
+ * a copy of the drafted job with its confirmation taken out, so it can be recorded again as the
+ * screen changes without asking the teacher again.
  */
 function required(name: string): string {
   const value = process.env[name];
@@ -259,17 +265,75 @@ const describe: DemoScene = {
     untilTeacher('the third reply'),
     answerTeacher('the third answer'),
     untilTeacher('the draft'),
-    { kind: 'wait', ms: 1600 },
-    { kind: 'click', role: 'button', name: 'Review the job' },
+    { kind: 'wait', ms: 2800 },
+  ],
+  // The teacher takes half a minute or so per reply: shown four times faster.
+  speedups: [
+    { fromStep: 6, throughStep: 6, factor: 4 },
+    { fromStep: 8, throughStep: 8, factor: 4 },
+    { fromStep: 10, throughStep: 10, factor: 4 },
+    { fromStep: 12, throughStep: 12, factor: 4 },
+  ],
+  tailMs: 400,
+};
+
+/** The job the drafting scene made, found in the copy of its data when the next scene starts. */
+let draftedJob = '';
+
+/**
+ * This computer as the film was made on it, told by a stand-in so that no local model runtime is
+ * asked: Ollama with both of Glimmer's builds, and a 12 GB graphics card.
+ */
+const THIS_COMPUTER: LocalRuntimes = {
+  ...LOCAL_WITH_GLIMMER,
+  ollama: {
+    ...LOCAL_WITH_GLIMMER.ollama,
+    models: [
+      {
+        id: glimmerBuild('glimmer-4bit').model,
+        sizeBytes: glimmerBuild('glimmer-4bit').diskBytes,
+      },
+      ...LOCAL_WITH_GLIMMER.ollama.models,
+    ],
+  },
+};
+
+const rule: DemoScene = {
+  name: 'Check the rule',
+  launch: {
+    settings: SETTINGS,
+    data: DRAFTED,
+    env: { ARCHITECT_KEYS_FROM_ENV: '1' },
+    // The copy is the job as drafted, before its rule was confirmed.
+    prepare: async (userData) => {
+      const jobs = await readdir(join(userData, 'jobs'));
+      if (jobs.length !== 1) throw new Error(`Expected the one drafted job, found ${jobs.length}`);
+      draftedJob = jobs[0] ?? '';
+      await rm(join(userData, 'jobs', draftedJob, 'confirmation.json'), { force: true });
+    },
+  },
+  setup: (launched) => stubEngine(launched.app, { 'connections:detectLocal': THIS_COMPUTER }),
+  prepare: [
+    { kind: 'resize', width: 1440, height: 900 },
     {
       kind: 'run',
-      label: 'the rule',
+      label: 'open the drafted job',
       run: async ({ page }) => {
+        await goTo(page, `/jobs/${encodeURIComponent(draftedJob)}/define`);
         await expect(RULE(page)).toBeVisible({ timeout: MINUTES });
       },
     },
-    { kind: 'wait', ms: 2400 },
+  ],
+  title: {
+    eyebrow: 'Before it trains',
+    heading: 'Nothing trains until you confirm the rule',
+    seconds: 2.4,
+  },
+  steps: [
+    { kind: 'wait', ms: 1600 },
     glideTo('to the rule', (page) => RULE(page)),
+    { kind: 'wait', ms: 4200 },
+    glideTo('to the steps', (page) => RULE(page).getByText('The rule, in words', { exact: true })),
     { kind: 'wait', ms: 4200 },
     glideTo('to an example', (page) => RULE(page).getByText('Examples', { exact: true })),
     { kind: 'wait', ms: 4200 },
@@ -284,13 +348,6 @@ const describe: DemoScene = {
     { kind: 'wait', ms: 900 },
     glideTo('back to the top', (page) => page.getByRole('heading', { level: 1 })),
     { kind: 'wait', ms: 2600 },
-  ],
-  // The teacher takes half a minute or so per reply: shown four times faster.
-  speedups: [
-    { fromStep: 6, throughStep: 6, factor: 4 },
-    { fromStep: 8, throughStep: 8, factor: 4 },
-    { fromStep: 10, throughStep: 10, factor: 4 },
-    { fromStep: 12, throughStep: 12, factor: 4 },
   ],
   tailMs: 400,
 };
@@ -437,7 +494,7 @@ const script: DemoScript = {
   height: 900,
   fps: 30,
   crossfadeSeconds: 0.4,
-  scenes: [opening, describe, learn, test, local, measured, closing],
+  scenes: [opening, describe, rule, learn, test, local, measured, closing],
 };
 
 export default script;
