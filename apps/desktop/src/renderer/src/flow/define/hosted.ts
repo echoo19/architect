@@ -32,17 +32,31 @@ export function providerName(endpoint: StudentEndpoint): string {
 /** Which keys are saved, as far as the app knows yet. */
 export type KeyStatus = Record<string, boolean> | 'loading' | 'error';
 
-export type HostedAvailability = { available: true } | { available: false; reason: string };
+/** Why the hosted copy can't be used: no host chosen, keys not read yet or unreadable, no key. */
+export type HostedWhy = 'no_host' | 'checking' | 'unreadable' | 'no_key';
 
-/** Training on a hosted copy needs an endpoint and, when it asks for one, a saved key. */
+export type HostedAvailability =
+  { available: true } | { available: false; reason: string; why: HostedWhy };
+
+/** The online copy needs an endpoint and, when it asks for one, a saved key. */
 export function hostedAvailability(student: StudentConfig, keys: KeyStatus): HostedAvailability {
   const { hosted } = student;
-  if (!hosted) return { available: false, reason: 'Choose a host in Advanced settings' };
+  if (!hosted) {
+    return { available: false, reason: 'Choose a host in Advanced settings', why: 'no_host' };
+  }
   if (!hosted.secretRef) return { available: true };
-  if (keys === 'loading') return { available: false, reason: 'Checking for a saved key' };
-  if (keys === 'error') return { available: false, reason: "Couldn't check for a saved key" };
+  if (keys === 'loading') {
+    return { available: false, reason: 'Checking for a saved key', why: 'checking' };
+  }
+  if (keys === 'error') {
+    return { available: false, reason: "Couldn't check for a saved key", why: 'unreadable' };
+  }
   if (!keys[hosted.secretRef]) {
-    return { available: false, reason: `Add a ${providerName(hosted)} key in Advanced settings` };
+    return {
+      available: false,
+      reason: `Add a ${providerName(hosted)} key in Advanced settings`,
+      why: 'no_key',
+    };
   }
   return { available: true };
 }

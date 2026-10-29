@@ -20,8 +20,8 @@ import {
   WorkspaceMessageSchema,
   type ArchitectApi,
   type Job,
-  type Method,
   type ModelSource,
+  type RunStartOptions,
 } from '@architect/shared';
 import { z } from 'zod';
 import { withTypedFailures } from '../../../common/bridge';
@@ -103,7 +103,7 @@ export const flowApi = {
     read('jobs.draftReply', DraftTurnSchema, bridge().jobs.draftReply(sessionId, text)),
   saveJob: (job: Job) => read('jobs.save', JobSchema, bridge().jobs.save(job)),
   createSample: () => read('jobs.createSample', JobSchema, bridge().jobs.createSample()),
-  startRun: (jobId: string, options: { method: Method; seed?: number }) =>
+  startRun: (jobId: string, options: RunStartOptions) =>
     read('runs.start', RunSchema, bridge().runs.start(jobId, options)),
   runs: (jobId: string) => read('runs.list', z.array(RunSchema), bridge().runs.list(jobId)),
   trace: (attemptId: string) => read('runs.trace', TraceSchema, bridge().runs.trace(attemptId)),

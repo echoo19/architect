@@ -5,6 +5,7 @@ import {
   type JobSummary,
   type ReasoningEffort,
   type StartingHarness,
+  type StudentTarget,
   type TokenPricing,
 } from '@architect/shared';
 import {
@@ -35,7 +36,8 @@ import { PriceRow } from '../../settings/models/PriceRow';
 import { modelNames } from '../names';
 import { aboutUsd, estimateMentorUsd, mentorPresetOf, mentorPriceOf } from './estimates';
 import { NumberField, PathField, TabNote } from './fields';
-import { presetOf, providerName } from './hosted';
+import { FinalTestChoice } from './FinalTestChoice';
+import { presetOf, providerName, type HostedAvailability } from './hosted';
 import { TYPING_PAUSE_MS, type JobEditor } from './use-job-editor';
 import type { JobIssues } from './validate';
 
@@ -95,6 +97,15 @@ interface AdvancedDialogProps {
   onTabChange: (tab: AdvancedTab) => void;
   editor: JobEditor;
   summaries: QueryState<JobSummary[]>;
+  /** Where the final test runs: the run's own choice, which the job doesn't keep. */
+  finalTest: FinalTestState;
+}
+
+/** Where the final test runs, and whether the online copy can take it. */
+export interface FinalTestState {
+  place: StudentTarget;
+  onPlaceChange: (place: StudentTarget) => void;
+  hosted: HostedAvailability;
 }
 
 /** Every field of the job, in the settings modal's layout. Changes save as they're made. */
@@ -105,6 +116,7 @@ export function AdvancedDialog({
   onTabChange,
   editor,
   summaries,
+  finalTest,
 }: AdvancedDialogProps) {
   return (
     <SettingsDialog
@@ -125,7 +137,7 @@ export function AdvancedDialog({
         </>
       }
     >
-      <TabContent tab={tab} editor={editor} summaries={summaries} />
+      <TabContent tab={tab} editor={editor} summaries={summaries} finalTest={finalTest} />
     </SettingsDialog>
   );
 }
@@ -189,10 +201,12 @@ function TabContent({
   tab,
   editor,
   summaries,
+  finalTest,
 }: {
   tab: AdvancedTab;
   editor: JobEditor;
   summaries: QueryState<JobSummary[]>;
+  finalTest: FinalTestState;
 }) {
   switch (tab) {
     case 'tasks':
@@ -200,7 +214,7 @@ function TabContent({
     case 'checker':
       return <CheckerTab editor={editor} />;
     case 'requirements':
-      return <RequirementsTab editor={editor} />;
+      return <RequirementsTab editor={editor} finalTest={finalTest} />;
     case 'budget':
       return <BudgetTab editor={editor} />;
     case 'mentor':
@@ -295,7 +309,7 @@ function CheckerTab({ editor }: TabProps) {
   );
 }
 
-function RequirementsTab({ editor }: TabProps) {
+function RequirementsTab({ editor, finalTest }: TabProps & { finalTest: FinalTestState }) {
   const { job, issues, change } = editor;
   const set = typed(editor);
   const { p95LatencyMs } = job.requirements;
@@ -342,6 +356,12 @@ function RequirementsTab({ editor }: TabProps) {
           }
         />
       )}
+      <FinalTestChoice
+        job={job}
+        place={finalTest.place}
+        onPlaceChange={finalTest.onPlaceChange}
+        hosted={finalTest.hosted}
+      />
     </>
   );
 }

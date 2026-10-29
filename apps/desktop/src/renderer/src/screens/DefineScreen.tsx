@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Job, Method } from '@architect/shared';
+import type { Job, Method, StudentTarget } from '@architect/shared';
 import { Button, Skeleton, toast } from '@architect/ui';
 import { SlidersHorizontal } from 'lucide-react';
 import { flowApi } from '../api/client';
@@ -74,9 +74,17 @@ function DefineEditor({ initial }: { initial: Job }) {
   const [tab, setTab] = useState<AdvancedTab>('tasks');
   const [withBaselines, setWithBaselines] = useState(false);
   const [starting, setStarting] = useState(false);
+  // Where the final test runs belongs to the run, not to the job: on this computer unless chosen.
+  const [testPlace, setTestPlace] = useState<StudentTarget>('local');
 
   const comparisonMode = settings.data?.comparisonMode === true;
   const hosted = hostedAvailability(job.student, keyStatus(secrets));
+
+  // With no online copy there is nothing for the final test to run on.
+  const hasCopy = job.student.hosted !== undefined;
+  useEffect(() => {
+    if (!hasCopy) setTestPlace('local');
+  }, [hasCopy]);
 
   // Keys can be added in Settings at any time, so check again whenever a job opens.
   const { reload: reloadKeys } = secrets;
@@ -94,10 +102,10 @@ function DefineEditor({ initial }: { initial: Job }) {
   };
 
   const start = async () => {
-    if (job.student.trainOn === 'hosted' && !hosted.available) {
+    if ((job.student.trainOn === 'hosted' || testPlace === 'hosted') && !hosted.available) {
       toast({
         tone: 'danger',
-        title: "Can't train on the hosted copy yet",
+        title: "Can't use the online copy yet",
         description: hosted.reason,
       });
       return;
@@ -113,14 +121,22 @@ function DefineEditor({ initial }: { initial: Job }) {
       }
       return;
     }
+    // Someone is here to answer, so Spark may stop to ask one question while it teaches.
     const run = await attempt("Couldn't start training", () =>
-      flowApi.startRun(saved.id, { method: 'architect' }),
+      flowApi.startRun(saved.id, {
+        method: 'architect',
+        lockedTestOn: testPlace,
+        interactive: true,
+      }),
     );
     if (run && comparisonMode && withBaselines) {
-      // The baselines reuse the Architect run's seed, so the four runs compare like for like.
+      // The baselines reuse the Architect run's seed and take the final test in the same place, so
+      // the four runs compare like for like.
       await attempt("Couldn't start the comparison baselines", () =>
         Promise.all(
-          BASELINES.map((method) => flowApi.startRun(saved.id, { method, seed: run.seed })),
+          BASELINES.map((method) =>
+            flowApi.startRun(saved.id, { method, seed: run.seed, lockedTestOn: testPlace }),
+          ),
         ),
       );
     }
@@ -156,6 +172,7 @@ function DefineEditor({ initial }: { initial: Job }) {
         <TrainingPlace
           job={job}
           hosted={hosted}
+          testPlace={testPlace}
           onPlaceChange={(trainOn) =>
             editor.change((current) => ({ ...current, student: { ...current.student, trainOn } }))
           }
@@ -191,6 +208,7 @@ function DefineEditor({ initial }: { initial: Job }) {
         onTabChange={setTab}
         editor={editor}
         summaries={summaries}
+        finalTest={{ place: testPlace, onPlaceChange: setTestPlace, hosted }}
       />
     </FlowShell>
   );
