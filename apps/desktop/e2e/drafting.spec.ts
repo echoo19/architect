@@ -189,10 +189,12 @@ test.beforeAll(async () => {
     model: 'scripted-spark',
     reasoningEffort: 'medium',
   };
+  // The stand-in answers to Glimmer's name, so the job's student is called Glimmer, as a person
+  // sees it, on the screens this spec captures.
   defaultStudent = {
     runtime: 'openai_compatible',
     baseUrl: student.baseUrl,
-    model: 'fake-student',
+    model: 'muse-glimmer:30b',
     contextLength: 16_384,
   };
   launched = await launchApp({

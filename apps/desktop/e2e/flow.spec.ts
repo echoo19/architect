@@ -195,6 +195,7 @@ for (const theme of THEMES) {
     await expect(callout).toContainText("That doesn't fit in the 4 hours allowed");
     await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
     await expect(page.getByText(wont, { exact: true })).toHaveCount(2);
+    await capture(page, `flow-define-slow-${theme}`);
     // Its first button is the setting that would let it train.
     await callout.getByRole('button', { name: 'Allow more time' }).click();
     const limits = page.getByRole('dialog', { name: 'Advanced settings' });
