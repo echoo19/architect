@@ -95,16 +95,23 @@ export function TrainingTab({ settings, update }: TabProps) {
 
 export function PrivacyTab({ settings }: TabProps) {
   const device = deviceInSentence(currentPlatform());
+  const teacher = mentorName(settings.defaultMentor);
   return (
     <>
       <SettingsRow label="Agents" meta={`An agent only talks to the model on ${device}`}>
         <SettingsValue>Never online</SettingsValue>
       </SettingsRow>
       <SettingsRow
-        label={mentorName(settings.defaultMentor)}
-        meta="Sees training attempts, never the final test or your chats"
+        label={teacher}
+        meta="Sees practice attempts and samples of your files while it trains, never the final test"
       >
-        <SettingsValue>During training only</SettingsValue>
+        <SettingsValue>During training</SettingsValue>
+      </SettingsRow>
+      <SettingsRow
+        label="Your chats"
+        meta={`${teacher} never sees them. The one exception is Teach this: after you confirm, it sends the one exchange you flag, with its steps and your notes.`}
+      >
+        <SettingsValue>Only what you share</SettingsValue>
       </SettingsRow>
       <SettingsRow label="API keys">
         <SettingsValue>Encrypted on {device}</SettingsValue>

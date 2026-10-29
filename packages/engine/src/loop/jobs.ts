@@ -1,5 +1,6 @@
+import { createHash } from 'node:crypto';
 import { copyFile, cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
-import { dirname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
+import { basename, dirname, extname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 import {
   CodedError,
   DraftRecordSchema,
@@ -14,6 +15,7 @@ import {
   type Task,
   type TaskPlan,
 } from '@architect/shared';
+import { z } from 'zod';
 import { buildTaskPlan } from '../drafting/plan';
 import { ContractBook } from '../graduates/contracts';
 import type { EngineStore } from '../store/engine-store';
@@ -42,6 +44,58 @@ function checkTasks(job: Job, tasks: readonly Task[]): void {
       throw new Error(`Task "${task.id}" has type "${task.type}", which the job doesn't declare.`);
     }
   }
+}
+
+/** The first thing a schema found wrong, in a few words: `format: Invalid input`. */
+function firstIssue(error: z.ZodError): string {
+  const [issue] = error.issues;
+  if (issue === undefined) return 'it has values a job file does not hold';
+  const path = issue.path.map(String).join('.');
+  return path === '' ? issue.message : `${path}: ${issue.message}`;
+}
+
+/**
+ * The job a job file holds. A file that is not JSON, or whose JSON is not a job, is not a job
+ * file, which a screen says in its own words (`not_a_job`).
+ */
+async function readJobFile(file: string): Promise<Job> {
+  const name = basename(file);
+  const text = await readFile(file, 'utf8');
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch (error) {
+    throw new CodedError('not_a_job', `${name} isn't a job file: it isn't valid JSON.`, {
+      cause: error,
+    });
+  }
+  const parsed = JobSchema.safeParse(json);
+  if (!parsed.success) {
+    throw new CodedError('not_a_job', `${name} isn't a job file: ${firstIssue(parsed.error)}.`, {
+      cause: parsed.error,
+    });
+  }
+  return parsed.data;
+}
+
+/** The tasks of a `tasks.jsonl`, with the line named when one isn't a task. None for no file. */
+async function readTasks(file: string): Promise<Task[]> {
+  let text: string;
+  try {
+    text = await readFile(file, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw error;
+  }
+  return text.split(/\r?\n/).flatMap((line, index) => {
+    if (line.trim() === '') return [];
+    try {
+      return [TaskSchema.parse(JSON.parse(line))];
+    } catch (error) {
+      const why = error instanceof z.ZodError ? firstIssue(error) : "it isn't valid JSON";
+      throw new Error(`Line ${index + 1} of tasks.jsonl isn't a task: ${why}.`, { cause: error });
+    }
+  });
 }
 
 async function copyInto(from: string, to: string, missing: string): Promise<void> {
@@ -135,11 +189,14 @@ export class JobLibrary {
   /**
    * Saves the editable job. When its scope or success criteria differ from every contract
    * version it had, that makes a new version; earlier versions, and the graduation results
-   * measured against them, stay as they were.
+   * measured against them, stay as they were. A checker file chosen from elsewhere on this
+   * computer (an absolute path) is copied into the job's folder first, and the saved job points
+   * at the copy.
    */
   async save(job: Job): Promise<Job> {
-    const parsed = JobSchema.parse(job);
-    if (!isSafeId(parsed.id)) throw new Error(`"${parsed.id}" isn't a valid job id.`);
+    const chosen = JobSchema.parse(job);
+    if (!isSafeId(chosen.id)) throw new Error(`"${chosen.id}" isn't a valid job id.`);
+    const parsed = await this.keepChecker(chosen);
     const now = isoNow(this.clock);
     const existing = this.store.jobs.get(parsed.id);
     await writeJsonFile(this.paths.jobFile(parsed.id), parsed);
@@ -174,11 +231,9 @@ export class JobLibrary {
    */
   async importFile(file: string): Promise<Job> {
     const source = dirname(resolve(file));
-    const parsed = JobSchema.parse(await readJsonFile(file));
+    const parsed = await readJobFile(file);
     const job: Job = { ...parsed, id: await this.freshId(parsed.id) };
-    const tasks = (await readJsonLines(join(source, 'tasks.jsonl'))).map((line) =>
-      TaskSchema.parse(line),
-    );
+    const tasks = await readTasks(join(source, 'tasks.jsonl'));
     checkTasks(job, tasks);
 
     for (const data of job.data.files) {
@@ -290,6 +345,38 @@ export class JobLibrary {
       });
       this.contracts.ensure(job);
     });
+  }
+
+  /**
+   * Copies a checker file chosen from elsewhere into the job's folder, under a name that follows
+   * what is in it (`checks-3f9a2c1b4d5e.js`), and points the job at the copy. A checker the
+   * engine loads must sit inside the job's folder, so a path outside it never worked; and a name
+   * that follows the content means a different file is a new file, so the runs graded with the
+   * old one keep it. A checker already inside the folder is left as it is.
+   */
+  private async keepChecker(job: Job): Promise<Job> {
+    if (job.checker.kind !== 'module' || !isAbsolute(job.checker.path)) return job;
+    const from = job.checker.path;
+    let content: Buffer;
+    try {
+      content = await readFile(from);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        throw new Error(`The checker file ${basename(from)} isn't there any more.`, {
+          cause: error,
+        });
+      }
+      throw error;
+    }
+    const extension = extname(from) || '.js';
+    const stem = basename(from, extname(from))
+      .replace(/[^A-Za-z0-9_-]+/g, '-')
+      .slice(0, 60);
+    const digest = createHash('sha256').update(content).digest('hex').slice(0, 12);
+    const kept = `${stem || 'checker'}-${digest}${extension}`;
+    await mkdir(this.paths.jobDir(job.id), { recursive: true });
+    await writeFile(join(this.paths.jobDir(job.id), kept), content);
+    return { ...job, checker: { kind: 'module', path: kept } };
   }
 
   /** Writes the job file as-is. Tasks stay behind: the test split never leaves the vault. */

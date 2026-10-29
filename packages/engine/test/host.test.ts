@@ -342,6 +342,51 @@ describe('the engine host', () => {
     expect(invalid).toMatchObject({ ok: false, error: { name: 'ValidationError' } });
   });
 
+  it('lists the re-tests of a run with where each stands, a paused one with why', async () => {
+    const { client } = await connect();
+    const job = await client.jobs.createSample();
+    const graduated = next(client, (event) => event.type === 'graduate.ready');
+    const run = await client.runs.start(job.id, {
+      method: 'bare',
+      seed: 1,
+      lockedTestOn: 'hosted',
+    });
+    await graduated;
+    // A run nobody has put through its test again lists none.
+    expect((await client.runs.get(run.id)).retests).toBeUndefined();
+
+    // The computer's model is no longer the frozen build, so the re-test stops and says why.
+    world.localDigest = 'sha256:newer';
+    const stopped = next(client, (event) => event.type === 'log' && event.level === 'error');
+    await client.runs.retest(run.id, 'local');
+    await stopped;
+    const [paused, ...others] = (await client.runs.get(run.id)).retests ?? [];
+    expect(others).toEqual([]);
+    expect(paused).toMatchObject({
+      target: 'local',
+      status: 'paused',
+      error: expect.stringContaining("isn't the model this graduate was frozen with"),
+    });
+    expect(paused?.endedAt).toBeUndefined();
+
+    // Asked again with the right model, it finishes and no longer carries the error.
+    world.localDigest = 'sha256:fake';
+    const finished = next(
+      client,
+      (event) => event.type === 'eval.finished' && event.split === 'test',
+    );
+    await client.runs.retest(run.id, 'local');
+    await finished;
+    expect((await client.runs.get(run.id)).retests).toEqual([
+      {
+        target: 'local',
+        status: 'finished',
+        startedAt: expect.any(String),
+        endedAt: expect.any(String),
+      },
+    ]);
+  });
+
   it('keeps settings per graduate, starting from the job’s write permission', async () => {
     const { client, port } = await connect();
     const job = await client.jobs.createSample();

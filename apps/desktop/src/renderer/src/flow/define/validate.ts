@@ -49,7 +49,8 @@ export function validateJob(job: Job, taskCount: number | null): JobIssues {
   }
   if (!wholeNumber(splits.seed)) add('splits.seed', 'Use a whole number.');
   const used = splits.calibration + splits.train + splits.dev + splits.test;
-  if (taskCount !== null && used > taskCount) {
+  // A job with no tasks yet has nothing to be short of: its sets are used when they arrive.
+  if (taskCount !== null && taskCount > 0 && used > taskCount) {
     add('splits', `These add up to ${used} tasks, but the job has ${taskCount}.`);
   }
 
@@ -112,6 +113,16 @@ export function validateJob(job: Job, taskCount: number | null): JobIssues {
     }
   }
   return issues;
+}
+
+/**
+ * Whether the job's tasks were already split into practice, check and final-test sets. They are
+ * split once, when the tasks are added, and nothing splits them again, so the sets can't change
+ * from then on. A count that isn't known yet counts as split: better not to offer a change that
+ * might do nothing.
+ */
+export function tasksSplit(taskCount: number | null): boolean {
+  return taskCount === null || taskCount > 0;
 }
 
 /** Issues for the fields that start with a prefix, such as every `splits.` field. */

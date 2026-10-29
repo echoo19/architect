@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
-import type { Job, MentorConfig, Task } from '@architect/shared';
+import type { MentorConfig, StudentEndpoint, Task } from '@architect/shared';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import {
   startFakeStudent,
@@ -30,6 +30,9 @@ test.describe.configure({ mode: 'serial' });
 let launched: LaunchedApp;
 let mentor: ScriptedMentor;
 let student: Awaited<ReturnType<typeof startFakeStudent>>;
+/** The teacher and model the person set up, which every job they describe starts from. */
+let defaultMentor: MentorConfig;
+let defaultStudent: StudentEndpoint;
 let scratch: string;
 let files: string[];
 let records: Shop;
@@ -178,7 +181,7 @@ test.beforeAll(async () => {
   await writeFile(files[2] as string, '# Shop policy\n\nReturns are accepted for 30 days.\n');
   mentor = await startScriptedMentor(reply);
   student = await startFakeStudent();
-  const defaultMentor: MentorConfig = {
+  defaultMentor = {
     kind: 'model',
     provider: 'lmstudio',
     label: 'Muse Spark 1.3',
@@ -186,8 +189,14 @@ test.beforeAll(async () => {
     model: 'scripted-spark',
     reasoningEffort: 'medium',
   };
+  defaultStudent = {
+    runtime: 'openai_compatible',
+    baseUrl: student.baseUrl,
+    model: 'fake-student',
+    contextLength: 16_384,
+  };
   launched = await launchApp({
-    settings: { onboarded: true, comparisonMode: false, defaultMentor },
+    settings: { onboarded: true, comparisonMode: false, defaultMentor, defaultStudent },
   });
   // The system file dialog is answered in main, so nothing appears on screen.
   await launched.app.evaluate(({ dialog }, picked) => {
@@ -385,30 +394,13 @@ for (const theme of THEMES) {
     const sent = sentTo(mentor.requests);
     for (const task of test) expect(sent).not.toContain(task.prompt.split('\n')[0]);
 
-    // The app puts the person's own models on a new job when it arrives; this stands in for that,
-    // so training runs on this computer's stand-ins and never reaches the network.
+    // The job arrived with the teacher and model the person set up, not the ones it was drafted
+    // with, so training runs on this computer's stand-ins and never reaches the network.
     const job = await page.evaluate((id) => window.architect.jobs.get(id), jobId);
-    const models: Pick<Job, 'mentor' | 'student'> = {
-      mentor: {
-        kind: 'model',
-        provider: 'lmstudio',
-        label: 'Muse Spark 1.3',
-        baseUrl: mentor.baseUrl,
-        model: 'scripted-spark',
-        reasoningEffort: 'medium',
-      },
-      student: {
-        label: 'Glimmer',
-        local: {
-          runtime: 'openai_compatible',
-          baseUrl: student.baseUrl,
-          model: 'fake-student',
-          contextLength: 16_384,
-        },
-        trainOn: 'local',
-      },
-    };
-    await page.evaluate((next) => window.architect.jobs.save(next), { ...job, ...models });
+    expect(job.mentor).toEqual(defaultMentor);
+    expect(job.student.local).toEqual(defaultStudent);
+    expect(job.student.trainOn).toBe('local');
+    expect(job.student.hosted).toBeUndefined();
 
     // Start training: the run works on the tasks Architect made, and the checker grades them.
     await page.getByRole('button', { name: 'Start training' }).click();

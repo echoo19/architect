@@ -1,6 +1,8 @@
 import type {
+  ConnectionTest,
   DraftTurn,
   JobSummary,
+  LocalRuntimes,
   Method,
   Round,
   Run,
@@ -9,12 +11,13 @@ import type {
   WorkspaceChat,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
-import { STORY_EVIDENCE, type EngineReplies } from './fixtures';
+import { LOCAL_WITH_GLIMMER, STORY_EVIDENCE, type EngineReplies } from './fixtures';
 import {
   at,
   AT,
   DESCRIPTION,
   detail,
+  GLIMMER_BYTES,
   graduate,
   job,
   makeRun,
@@ -181,9 +184,27 @@ const chat: WorkspaceChat = {
   waiting: false,
 };
 
+/** Ollama running with Glimmer's 4-bit build, the model the story's job runs on, downloaded. */
+export const FLOW_LOCAL: LocalRuntimes = {
+  ...LOCAL_WITH_GLIMMER,
+  ollama: {
+    ...LOCAL_WITH_GLIMMER.ollama,
+    models: [{ id: 'muse-glimmer:30b', sizeBytes: GLIMMER_BYTES }],
+  },
+};
+
+/** The online copy answering when a run asks before it starts. */
+export const COPY_ANSWERS: ConnectionTest = {
+  ok: true,
+  latencyMs: 180,
+  detail: 'Connected to OpenRouter. meta/muse-glimmer-30b is available.',
+};
+
 /** Replies that never change during the walk; the rest are stubbed by the helpers below. */
 export const FLOW_ENGINE: EngineReplies = {
   ...STORY_EVIDENCE,
+  'connections:detectLocal': FLOW_LOCAL,
+  'connections:testStudent': COPY_ANSWERS,
   'files:pick': ATTACHED,
   'jobs:draftStart': turns.start,
   'jobs:save': job,

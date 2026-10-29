@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { issuesUnder, validateJob } from '../../../src/renderer/src/flow/define/validate';
+import {
+  issuesUnder,
+  tasksSplit,
+  validateJob,
+} from '../../../src/renderer/src/flow/define/validate';
 import { makeJob } from './factories';
 
 describe('validateJob', () => {
@@ -11,6 +15,10 @@ describe('validateJob', () => {
     const issues = validateJob(makeJob(), 150);
     expect(issues.splits).toBe('These add up to 170 tasks, but the job has 150.');
     expect(validateJob(makeJob(), null)).toEqual({});
+  });
+
+  it('holds a job with no tasks yet to nothing about its sets, which are used when tasks arrive', () => {
+    expect(validateJob(makeJob(), 0)).toEqual({});
   });
 
   it('keeps the practice batch within the practice split', () => {
@@ -108,5 +116,20 @@ describe('issuesUnder', () => {
     const issues = { splits: 'Too many', 'splits.dev': 'Too few', 'budget.maxRounds': 'No' };
     expect(issuesUnder(issues, 'splits')).toEqual(['Too many', 'Too few']);
     expect(issuesUnder(issues, 'evaluation')).toEqual([]);
+  });
+});
+
+describe('tasksSplit', () => {
+  it('is true once the job has tasks, since they were split when they were added', () => {
+    expect(tasksSplit(170)).toBe(true);
+    expect(tasksSplit(1)).toBe(true);
+  });
+
+  it('is false for a job with no tasks yet', () => {
+    expect(tasksSplit(0)).toBe(false);
+  });
+
+  it('counts a task count that is not known yet as split, so no change is offered that might do nothing', () => {
+    expect(tasksSplit(null)).toBe(true);
   });
 });

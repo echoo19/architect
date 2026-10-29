@@ -44,8 +44,8 @@ export interface TimeEstimate {
  * then every round attempts a practice batch and measures the current version and the change on
  * the check tasks, once per repeat. A change that clears the keep limits has both measured again
  * on new seeds (decision 022), so a round measures twice or four times. All of it stops at the
- * time cap. The locked test is separate: it runs afterwards on this computer (decision 009),
- * outside the cap, and `testSeconds` times it.
+ * time cap. The final test is separate: it runs afterwards, on this computer unless the person
+ * chose the online copy (decision 009), outside the cap, and `testSeconds` times it.
  */
 export function estimateTime(job: Job, place: TrainPlace): TimeEstimate {
   const perTask = SECONDS_PER_TASK[place];
@@ -65,9 +65,12 @@ export function estimateTime(job: Job, place: TrainPlace): TimeEstimate {
   };
 }
 
-/** The locked test, which always runs on this computer, whatever trained the agent. */
-export function testSeconds(job: Job): number {
-  return job.splits.test * SECONDS_PER_TASK.local;
+/**
+ * The final test, on this computer unless the run takes it on the online copy. Where it runs
+ * doesn't depend on what trained the agent.
+ */
+export function testSeconds(job: Job, place: TrainPlace = 'local'): number {
+  return job.splits.test * SECONDS_PER_TASK[place];
 }
 
 /** A time cap as a number and its unit: 240 is 4 hours, 90 is 90 minutes, 150 is 2.5 hours. */
@@ -171,14 +174,35 @@ export function typicalPracticeUsd(pricing: TokenPricing): number {
 }
 
 /** What the three simpler versions add: a final test each, and self-correction's own training. */
-export function comparisonSeconds(job: Job, estimate: TimeEstimate): number {
-  return 3 * testSeconds(job) + estimate.trainingSeconds.most;
+export function comparisonSeconds(
+  job: Job,
+  estimate: TimeEstimate,
+  testPlace: TrainPlace = 'local',
+): number {
+  return 3 * testSeconds(job, testPlace) + estimate.trainingSeconds.most;
+}
+
+/** What the final test costs on a hosted copy at its price, billed by the host. */
+export function testUsd(job: Job, pricing: TokenPricing): number {
+  return job.splits.test * costUsd(pricing, STUDENT_TOKENS_PER_TASK);
+}
+
+/** `tests` final tests on the hosted copy, or null when they run here or the copy has no price. */
+function hostedTestUsd(
+  job: Job,
+  hostedPricing: TokenPricing | null | undefined,
+  testPlace: TrainPlace,
+  tests: number,
+): number | null {
+  return testPlace === 'hosted' && hostedPricing ? tests * testUsd(job, hostedPricing) : null;
 }
 
 /** Dollars by whoever bills them; each is null when that bill has no price. */
 export interface Bills {
   /** Practice on the hosted copy; null when it trains here. */
   hostedUsd: number | null;
+  /** The final test on the hosted copy; null when it runs here. */
+  testUsd: number | null;
   /** The mentor's calls. */
   mentorUsd: number | null;
 }
@@ -191,17 +215,26 @@ export function comparisonCost(
   job: Job,
   estimate: TimeEstimate,
   hostedPricing: TokenPricing | null | undefined,
+  testPlace: TrainPlace = 'local',
 ): Bills {
   const pricing = mentorPriceOf(job);
   return {
     hostedUsd: hostedPracticeUsd(job, estimate, hostedPricing),
+    testUsd: hostedTestUsd(job, hostedPricing, testPlace, 3),
     mentorUsd: pricing ? mentorUsdFor(pricing, 1) : null,
   };
 }
 
 /** Training, the final test and, when asked for, the comparison runs, for the "In all" line. */
-export function planSeconds(job: Job, estimate: TimeEstimate, withComparison: boolean): Span {
-  const after = testSeconds(job) + (withComparison ? comparisonSeconds(job, estimate) : 0);
+export function planSeconds(
+  job: Job,
+  estimate: TimeEstimate,
+  withComparison: boolean,
+  testPlace: TrainPlace = 'local',
+): Span {
+  const after =
+    testSeconds(job, testPlace) +
+    (withComparison ? comparisonSeconds(job, estimate, testPlace) : 0);
   return {
     least: estimate.trainingSeconds.least + after,
     most: estimate.trainingSeconds.most + after,
@@ -219,33 +252,36 @@ function sumKnown(amounts: readonly (number | null)[]): number | null {
  * when none has a price.
  */
 export function shownTotalUsd(bills: Bills): number | null {
-  const shown = [bills.hostedUsd, bills.mentorUsd].map((amount) =>
+  const shown = [bills.hostedUsd, bills.testUsd, bills.mentorUsd].map((amount) =>
     amount === null ? null : roughUsd(amount),
   );
   return sumKnown(shown);
 }
 
 /**
- * The money in the plan, by who bills it: the hosted practice, and the mentor's expected spend,
- * which can't come to more than its cap. `total` adds the comparison runs when asked for;
- * `comparison` is their share alone.
+ * The money in the plan, by who bills it: the hosted practice, the final test when it is taken on
+ * the hosted copy, and the mentor's expected spend, which can't come to more than its cap.
+ * `total` adds the comparison runs when asked for; `comparison` is their share alone.
  */
 export function planBills(
   job: Job,
   estimate: TimeEstimate,
   hostedPricing: TokenPricing | null | undefined,
   withComparison: boolean,
+  testPlace: TrainPlace = 'local',
 ): { total: Bills; comparison: Bills } {
-  const comparison = comparisonCost(job, estimate, hostedPricing);
+  const comparison = comparisonCost(job, estimate, hostedPricing, testPlace);
   const expected = expectedMentorUsd(job, estimate);
   const own: Bills = {
     hostedUsd: hostedPracticeUsd(job, estimate, hostedPricing),
+    testUsd: hostedTestUsd(job, hostedPricing, testPlace, 1),
     mentorUsd: expected === null ? null : Math.min(expected, job.budget.maxMentorUsd),
   };
   if (!withComparison) return { total: own, comparison };
   return {
     total: {
       hostedUsd: sumKnown([own.hostedUsd, comparison.hostedUsd]),
+      testUsd: sumKnown([own.testUsd, comparison.testUsd]),
       mentorUsd: sumKnown([own.mentorUsd, comparison.mentorUsd]),
     },
     comparison,
