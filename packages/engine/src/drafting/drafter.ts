@@ -515,17 +515,24 @@ export class JobDrafting implements JobDrafter {
       shown: shownRowsOf(attached),
       passRate: job.passRate,
     });
+    // What the teacher is told of each kind of task names columns and counts and says no value of
+    // a row it was not shown; what the person is told of it, when it stays wrong, says them.
+    const named = (type: { id: string; label: string }, text: string): string =>
+      `Task type "${type.id}" (${type.label}): ${text}`;
     const problems = generation.rejected.flatMap((type) =>
-      type.problems.map((problem) => `Task type "${type.id}" (${type.label}): ${problem}`),
+      type.problems.map((problem) => named(type, problem)),
+    );
+    const shown = generation.rejected.flatMap((type) =>
+      type.problems.map((problem) => named(type, type.inFull.get(problem) ?? problem)),
     );
     if (!final) {
       for (const type of generation.thin) {
-        problems.push(
-          `Task type "${type.id}" (${type.label}) supports only ${type.available} different ${type.available === 1 ? 'request' : 'requests'}, and at least ${MIN_PER_TYPE} are needed. Use a column with more different values, or drop this type.`,
-        );
+        const thin = `Task type "${type.id}" (${type.label}) supports only ${type.available} different ${type.available === 1 ? 'request' : 'requests'}, and at least ${MIN_PER_TYPE} are needed. Use a column with more different values, or drop this type.`;
+        problems.push(thin);
+        shown.push(thin);
       }
     }
-    if (problems.length > 0) return { problems };
+    if (problems.length > 0) return { problems, shown };
     // The sets as they are divided are held to the guard a rule is held to over all its cases, so
     // that what a copy could pass is known before the final test is sealed.
     const division = this.divideTasks(generation.tasks, seed, generation, job.passRate);

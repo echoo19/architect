@@ -982,10 +982,31 @@ describe('holding a rule to the policy and to the guards', () => {
     const turn = await world.drafting.start('A repair desk', attachBike(), TEACHER);
     expect(turn.draft).toBeDefined();
     const fix = world.mentor.requests[1]?.messages.at(-1)?.content ?? '';
-    expect(fix).toContain('comes to the same total, 65');
+    // The teacher is told the answers are all one, and not which: that is the answer of rows.
+    expect(fix).toContain('comes to the same total, so an agent could pass');
+    expect(fix).not.toContain('comes to the same total, 65');
     expect(TEXT(world.mentor.requests[0] as MentorCompletionRequest)).not.toContain(
       'comes to the same total',
     );
+  });
+
+  it('tells the person the answer the teacher was not told, when the rule stays refused', async () => {
+    const constant = costType({
+      steps: [
+        step('rate', 'num', { value: '65' }),
+        step('total', 'round', { value: '0.01', mode: 'half_up', args: ['rate'] }),
+      ],
+      lookupTable: '',
+      lookupKey: '',
+      matchColumn: '',
+      categories: [],
+    });
+    world.mentor.script = () => bikeDraft([constant, CONTACT_TYPE]);
+    await expect(world.drafting.start('A repair desk', attachBike(), TEACHER)).rejects.toThrow(
+      /The draft couldn't be used: Task type "cost" \(Ticket totals\): Every row of tickets\.csv that can be worked out comes to the same total, 65, so an agent/,
+    );
+    const sent = world.mentor.requests.map(TEXT).join('\n');
+    expect(sent).not.toContain('comes to the same total, 65');
   });
 
   it("holds a rule to the job's own pass rate: a copy of a column that would pass it is refused", async () => {

@@ -194,13 +194,20 @@ describe('making the tasks of a job', () => {
     );
     const made = generateTasks([constant], new Map([['customers.csv', same]]), 1);
     expect(made.tasks).toEqual([]);
+    // The teacher is told the answers are all one, and the person which: it is a value of rows.
+    const problem =
+      'Every request would have the same answer, so an agent could pass without reading the data.';
     expect(made.rejected).toEqual([
       {
         id: 'constant',
         label: 'Constant',
-        problems: [
-          'Every request would have the same answer, {"region":"North"}, so an agent could pass without reading the data.',
-        ],
+        problems: [problem],
+        inFull: new Map([
+          [
+            problem,
+            'Every request would have the same answer, {"region":"North"}, so an agent could pass without reading the data.',
+          ],
+        ]),
       },
     ]);
   });

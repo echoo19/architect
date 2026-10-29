@@ -751,8 +751,9 @@ describe('drafting the job', () => {
     expect(turn.draft?.taskTypes.map((type) => type.id)).toEqual(['email', 'pending']);
     expect(world.mentor.requests).toHaveLength(2);
     const fix = world.mentor.requests[1]?.messages.at(-1)?.content ?? '';
+    // The values it names are the ones the profile already told it, said as many and as examples.
     expect(fix).toMatch(
-      /Task type "pending" \(Pending orders\): No row of orders\.csv meets "status is Unshipped"\. status holds (Cancelled|Pending|Shipped), /,
+      /Task type "pending" \(Pending orders\): No row of orders\.csv meets "status is Unshipped"\. status has 3 different values, such as (Cancelled|Pending|Shipped), /,
     );
     expect(fix).toContain('Pending');
     expect(fix).toContain('Shipped');

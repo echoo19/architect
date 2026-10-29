@@ -17,6 +17,7 @@ import type { RuleOutcome } from '../rule/outcome';
 import * as q from '../rule/rational';
 import { nameOf, statementOf, type WordsContext } from '../rule/words';
 import {
+  addProblem,
   answerKeyName,
   canonicalJson,
   checkRequest,
@@ -155,11 +156,13 @@ export function runRule(
   passRate: number = DEFAULT_PASS_RATE,
 ): RuleRun {
   const problems: string[] = [];
+  const inFull = new Map<string, string>();
   const notes: string[] = [];
   const refused = (resolved: RuleSpec, rule: string): RuleRun => ({
     spec: resolved,
     candidates: [],
     problems,
+    inFull,
     notes,
     rule,
     outcome: null,
@@ -281,9 +284,8 @@ export function runRule(
     if (withKey === 0) problems.push(`${lookup.keyColumn} has no values in ${lookup.table}.`);
     else if (shared / withKey > MAX_SHARED_KEYS) {
       const example = [...counts].find(([, count]) => count > 1)?.[0] ?? '';
-      problems.push(
-        `${lookup.keyColumn} isn't a key in ${lookup.table}: ${shared} of ${withKey} rows share their value with another row, such as "${example}".`,
-      );
+      const sharing = `${lookup.keyColumn} isn't a key in ${lookup.table}: ${shared} of ${withKey} rows share their value with another row`;
+      addProblem(problems, inFull, `${sharing}.`, `${sharing}, such as "${example}".`);
     }
   }
   if (problems.length > 0) return refused(resolved, rule);
@@ -300,6 +302,7 @@ export function runRule(
   }
   const audit = auditCases(resolved, caseTables, made.cases, words, passRate);
   problems.push(...audit.problems);
+  for (const [teacher, person] of audit.inFull) inFull.set(teacher, person);
   if (problems.length > 0) return refused(resolved, rule);
 
   const statement = statementOf(expression, words);

@@ -13,7 +13,7 @@ import { runFilteredList } from './templates/filtered-list';
 import { runGroupTotal } from './templates/group-total';
 import { runLookup } from './templates/lookup';
 import { runRule } from './templates/rule';
-import type { Candidate, TemplateRun } from './templates/common';
+import { addProblem, type Candidate, type TemplateRun } from './templates/common';
 import type { Table } from './table';
 import { foldKey } from './values';
 
@@ -75,8 +75,16 @@ export interface Generation {
   tasks: Task[];
   /** The kinds of task that made tasks, in the order they were given. */
   types: GeneratedType[];
-  /** Kinds of task that can't be used, each with its reasons. */
-  rejected: { id: string; label: string; problems: string[] }[];
+  /**
+   * Kinds of task that can't be used, each with its reasons in the words the teacher is told, and
+   * the reasons again with the values of the records in them for the person (`inFull`).
+   */
+  rejected: {
+    id: string;
+    label: string;
+    problems: string[];
+    inFull: ReadonlyMap<string, string>;
+  }[];
   /** Kinds of task whose table supports fewer than `MIN_PER_TYPE` requests. */
   thin: { id: string; label: string; available: number }[];
 }
@@ -87,12 +95,13 @@ function runTemplate(
   tables: ReadonlyMap<string, Table>,
   random: () => number,
   passRate: number,
+  rowsShown: ReadonlySet<number> | undefined,
 ): TemplateRun<TaskSpec> & { outcome?: RuleOutcome | null } {
   switch (spec.template) {
     case 'lookup':
       return runLookup(spec, table);
     case 'filtered_list':
-      return runFilteredList(spec, table);
+      return runFilteredList(spec, table, rowsShown);
     case 'group_total':
       return runGroupTotal(spec, table, random);
     case 'rule':
@@ -199,21 +208,28 @@ function exceptShown(
   return { kept, left: candidates.length - kept.length };
 }
 
-/**
- * A request as it reads, with case, spacing and punctuation set aside, and the table it is put
- * to: what two kinds of task ask when they put the same words to the same table, however their
- * rules were written. The same words put to two tables are two questions, since they read other
- * rows and have other answers.
- */
-function wordsOf(table: string, candidate: Candidate): string {
+/** The request of a candidate as the agent reads it, without the lines that state the answer. */
+function requestOf(candidate: Candidate): string {
   const request = candidate.meta['request'];
-  const text = typeof request === 'string' ? request : (candidate.prompt.split('\n')[0] ?? '');
-  const words = text
+  return typeof request === 'string' ? request : (candidate.prompt.split('\n')[0] ?? '');
+}
+
+/** Text as it reads, with case, spacing and punctuation set aside. */
+function plainWords(text: string): string {
+  return text
     .normalize('NFKC')
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
-  return `${foldKey(table)}\n${words}`;
+}
+
+/**
+ * A request as it reads, with case, spacing and punctuation set aside, and the table it is put
+ * to: what two kinds of task ask when they put the same words to the same table, however their
+ * rules were written.
+ */
+function wordsOf(table: string, candidate: Candidate): string {
+  return `${foldKey(table)}\n${plainWords(requestOf(candidate))}`;
 }
 
 /** Kinds of task whose every request is about one row of one table. */
@@ -330,11 +346,20 @@ export function generateTasks(
         id: input.id,
         label: input.label,
         problems: [`There is no table called ${input.spec.table}.`],
+        inFull: new Map(),
       });
       continue;
     }
-    const run = runTemplate(input.spec, table, tables, random, passRate);
+    const run = runTemplate(
+      input.spec,
+      table,
+      tables,
+      random,
+      passRate,
+      shownRows.get(input.spec.table),
+    );
     const problems = [...run.problems];
+    const inFull = new Map(run.inFull);
     let candidates = run.candidates;
     if (problems.length === 0) {
       const unshown = exceptShown(candidates, shownRows.get(input.spec.table));
@@ -370,13 +395,18 @@ export function generateTasks(
     if (problems.length === 0 && candidates.length > 0) {
       const answers = new Set(candidates.map((candidate) => candidate.answerKey));
       if (answers.size < 2) {
-        problems.push(
-          `Every request would have the same answer${answers.size === 1 ? `, ${shown([...answers][0] ?? '')}` : ''}, so an agent could pass without reading the data.`,
+        const same = 'Every request would have the same answer';
+        const agent = 'so an agent could pass without reading the data.';
+        addProblem(
+          problems,
+          inFull,
+          `${same}, ${agent}`,
+          `${same}${answers.size === 1 ? `, ${shown([...answers][0] ?? '')}` : ''}, ${agent}`,
         );
       }
     }
     if (problems.length > 0) {
-      rejected.push({ id: input.id, label: input.label, problems });
+      rejected.push({ id: input.id, label: input.label, problems, inFull });
       continue;
     }
     // Every question this kind could ask is its own, whichever of them it ends up choosing, so a

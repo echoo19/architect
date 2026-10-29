@@ -9,6 +9,7 @@ import {
 } from '../table';
 import { cleanText, decimalToNumber, foldKey, isBlank, parseDay, parseDecimal } from '../values';
 import {
+  addProblem,
   answerKeyNames,
   canonicalJson,
   checkRequest,
@@ -83,11 +84,13 @@ export function runLookup(spec: LookupSpec, table: Table): TemplateRun<LookupSpe
     return { spec: resolved, candidates: [], problems, notes, rule };
   }
   if (shared / withKey > MAX_SHARED_KEYS) {
+    // The teacher is told how many rows share a value, and the person which value, since a value
+    // that one row spells in its own way is that row's.
     const example = [...keys].find(([, count]) => count > 1)?.[0] ?? '';
-    problems.push(
-      `${keyColumn} isn't a key: ${shared} of ${withKey} rows share their value with another row, such as "${example}".`,
-    );
-    return { spec: resolved, candidates: [], problems, notes, rule };
+    const sharing = `${keyColumn} isn't a key: ${shared} of ${withKey} rows share their value with another row`;
+    const inFull = new Map<string, string>();
+    addProblem(problems, inFull, `${sharing}.`, `${sharing}, such as "${example}".`);
+    return { spec: resolved, candidates: [], problems, inFull, notes, rule };
   }
   if (shared > 0) {
     notes.push(

@@ -32,12 +32,35 @@ export interface TemplateRun<S> {
   /** The specification with its columns spelled as the table's header spells them. */
   spec: S;
   candidates: Candidate[];
-  /** Why the specification can't be used. Empty when it can. */
+  /**
+   * Why the specification can't be used, in the words the teacher is told. Empty when it can. They
+   * name columns and give counts, and never say a value of a row the teacher was not shown: any
+   * row a set is made from may be the subject of a check or final-test task.
+   */
   problems: string[];
+  /**
+   * A problem again with the values of the records in it, by the words the teacher is told. Only
+   * the person reads these, who knows the records.
+   */
+  inFull?: ReadonlyMap<string, string>;
   /** What was assumed or skipped, in plain words. */
   notes: string[];
   /** The rule behind the requests, in words. */
   rule: string;
+}
+
+/**
+ * Adds a problem in the two voices it is told in: `teacher` names columns and gives counts, and
+ * `person` is the same with the values of the records that the teacher must not be told.
+ */
+export function addProblem(
+  problems: string[],
+  inFull: Map<string, string>,
+  teacher: string,
+  person: string,
+): void {
+  problems.push(teacher);
+  inFull.set(teacher, person);
 }
 
 /** The longest request a teacher may write, in characters. */
