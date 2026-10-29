@@ -49,7 +49,7 @@ export function buildJobFiles(seed: number): GeneratedJob {
     ...buildOrderTasks(random.fork('order tasks'), index, data),
     ...buildPickupTasks(random.fork('pickup tasks'), index, data, awaitingPickup),
   ].map((task) => TaskSchema.parse(task));
-  const job = buildJob();
+  const job = buildJob(seed);
 
   const files = new Map<string, string>();
   files.set('job.json', formatJson(job));

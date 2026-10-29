@@ -58,8 +58,11 @@ const DATA_FILES: readonly DataFile[] = [
   },
 ];
 
-/** The sample job's settings: the first job's bar, budget and evaluation, and the shared presets. */
-export function buildJob(): Job {
+/**
+ * The sample job's settings: the first job's bar, budget and evaluation, and the shared presets.
+ * Its tasks split by the generator's seed, so another seed's business gets splits of its own.
+ */
+export function buildJob(splitSeed: number): Job {
   const mentor = mentorPreset('meta-spark');
   return JobSchema.parse({
     format: JOB_FORMAT,
@@ -126,7 +129,7 @@ export function buildJob(): Job {
       trainOn: 'local',
     },
     startingHarness: { kind: 'blank' },
-    splits: { seed: 20261124, calibration: 15, train: 60, dev: 45, test: 60 },
+    splits: { seed: splitSeed, calibration: 15, train: 60, dev: 45, test: 60 },
     // The first job's keep rule and patience (decision 022).
     evaluation: { trainBatch: 12, minDevGain: 2, maxTypeRegression: 1, patience: 4 },
   });

@@ -32,6 +32,13 @@ describe('generating the job', () => {
     }
   });
 
+  it("splits another seed's tasks by that seed, and the committed job by its own", () => {
+    expect(buildJobFiles(DEFAULT_SEED).job.splits.seed).toBe(DEFAULT_SEED);
+    for (const seed of [DEFAULT_SEED + 1, 7]) {
+      expect(buildJobFiles(seed).job.splits.seed, String(seed)).toBe(seed);
+    }
+  });
+
   it('matches the committed job folder byte for byte', async () => {
     const outDir = await mkdtemp(join(tmpdir(), 'gear-returns-'));
     try {
