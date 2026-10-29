@@ -33,7 +33,7 @@ The engine and agent hosts are plain Node modules in `packages/engine`. The Elec
 
 ## The core loop (Architect method)
 
-1. **Setup.** A job is imported with its tasks, or drafted from the person's own files: the teacher chosen in Settings reads each file's shape and asks up to three questions, then picks one to three kinds of request from the three templates Architect owns (a lookup, a filtered list, a group total), and Architect makes every request and works out every expected answer itself (decision 058). The job file names the data, permissions, tasks, checker, requirements, budget, mentor, student and starting harness. The splitter assigns tasks to train, dev and test by seed, grouped so near-duplicates stay in one split. Test goes straight into the vault.
+1. **Setup.** A job is imported with its tasks, or drafted from the person's own files: the teacher chosen in Settings reads each file's shape and asks up to three questions, then picks one to three kinds of request from the four templates Architect owns (a lookup, a filtered list, a group total and a rule), and Architect makes every request and works out every expected answer itself (decision 058). A rule is a small typed expression over a row, evaluated with exact arithmetic, that the person confirms on Define over these records before anything trains (decision 061). The job file names the data, permissions, tasks, checker, requirements, budget, mentor, student and starting harness. The splitter assigns tasks to train, dev and test by seed, grouped so near-duplicates stay in one split. Test goes straight into the vault.
 2. **Attempt.** A run that starts from a blank harness first has its author write a whole draft from the job setup and the train examples, with no attempts, and keeps it as the starting point (decision 026). After that, each round the runner samples a train batch and runs the student on each task inside the current harness version: AGENTS.md, the skills and examples that the retrieval rules select, the coding-agent tools over the agent's folder (`read`, `ls`, `glob`, `grep`, `write`, `edit`, `append`, `run`; see HARNESS_FORMAT.md) plus harness tools, decoding settings. Each attempt works on a scratch copy of the files, and its trace records what it started from (data hashes, harness hash, tool version, seed, decoding, business date) and the diff of every write. Every prompt is kept inside the student's context, on every backend: when a conversation would pass it, the oldest tool results are replaced, in what the model reads, by a note that names the call and says it was cleared, and the trace keeps them and records which (decision 057).
 3. **Check.** The checker grades each attempt deterministically: pass or fail with a reason.
 4. **Target?** If the dev pass rate meets the requirement, or a budget cap is hit, go to step 7.
@@ -66,7 +66,10 @@ jobs/<job>/job.json                the job file (export and import as-is)
 jobs/<job>/data/                   snapshot of the job's data files
 jobs/<job>/drafting.json           for a job drafted from the person's files: where its tasks came
                                    from, the rule behind each type, what the teacher left open, and
-                                   what drafting cost (decision 058)
+                                   what drafting cost (decision 058), and for a rule its words,
+                                   passages and examples (decision 061)
+jobs/<job>/confirmation.json       what the person confirmed about a job's rules: each rule's
+                                   version and the hash of every data file (decision 061)
 jobs/<job>/tasks/train.jsonl       mentor-visible splits
 jobs/<job>/tasks/dev.jsonl
 jobs/<job>/runs/<run>/harness/v<n>/   every harness version, full folder

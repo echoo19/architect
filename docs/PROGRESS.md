@@ -2,6 +2,42 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Wed), a rule a person can confirm, and the first things a reviewer meets
+
+**Done** (on a branch; decision 061; no model was called, the GPU stayed off)
+- The four things a reviewer meets first, each fixed and tested:
+  - A list keeps rows by a set the teacher states ("status is one of Open, Waiting on parts, Ready"), never by what a row is not. A reply with "is not" is sent back with the reason, and the notes say what else the column holds. Older drafts still read.
+  - A text file goes to the teacher whole, up to 30,000 characters (60,000 in all), not cut at 4,000. A longer one ends the conversation before the teacher is asked and says to attach the section that matters.
+  - The Describe screen says, before anything is attached, that drafting reads CSV, text and Markdown files with at least 30 rows of records in all.
+  - The examples of a type show its variety: an empty or zero answer when there is one, then small, middle and large answers, each of a different size, not the first three requests.
+- A fourth template, a rule: one numeric answer per row, worked out from a policy.
+  - The teacher configures a small typed expression: exact decimals, columns of the row or of one looked-up row, plus, minus, times, division by a number, smallest, largest, rounding to a stated step (up, down or half up), and if over a category or a threshold. Architect checks it against limits (32 parts, 6 nested, 2 ifs), evaluates it with exact fractions, and writes the rule in words and the working of every example itself.
+  - It is written as a list of steps that name each other by id, not a tree inside a tree, which a provider that limits a schema's depth would refuse. A step that is wrong is named by its id.
+  - A blank, N/A or unreadable input leaves its row out, counted with its reason, never read as zero. Currency is declared, and a column that mixes currencies refuses the rule. A rule is refused when its answers are one constant, the key, or a copy of a column, or when a side of an if never changes an answer.
+  - What the policy leaves open and would change a number is asked of the person, up to three questions, and "Draft it now" doesn't skip it.
+  - The holdout stays: the rule is written from the policy and the person's answers, never from the rows, and the examples come only from practice and starting tasks.
+- Define shows the rule before anything trains: the passages of the policy it rests on, the rule in words, examples that take every side of every condition and a rounding edge (made-up numbers, said so, when no record needs rounding), the rows left out, and how numbers are read. Start training waits for Confirm the rule, and "Describe the job again" is beside it for a rule that isn't right.
+- The confirmation binds. It holds the rule's version and the hash of every data file. A changed file or rule makes the state changed and sends the person to describe the job again (a new job, new tasks); the controller refuses every kind of run on a rule that isn't confirmed, not only the button.
+- The score says what it is, beside it on Results and right after the score in the report: the expected answers follow a rule Architect calculated from Spark's reading of the policy and the person confirmed, and the score does not establish that the rule matches the business. Under Details: the rule in words and exactly as evaluated, passages, confirmation date, how numbers are read, rows left out, what each side of an if did, and whether teaching ran.
+- `scripts/draft.ts` prints the rule with its passages and examples, and `--confirm-rules` on it and on `scripts/run.ts` is the person's say-so for a headless run.
+- The owner's bike shop files through the template, with a hand-written rule and no model: 118 of the 180 tickets can be worked out, and the 62 with no parts cost are left out and counted. No real record needs rounding (the hours are already half hours and the amounts already cents), so both roundings are shown with made-up numbers.
+
+**Next**
+- The owner's real session on the bike shop: `scripts/draft.ts "<description>" customers.csv tickets.csv policy.md`, read the rule it prints (labor $65 an hour in half-hour steps, members 10% off labor and never parts), then `--confirm-rules` and `scripts/run.ts --job <id> --confirm-rules`. Watch how often the steps come back wrong and how many fixes that takes, whether Spark asks if the discount also applies to parts, what the conversation costs against its $1 cap, and whether Glimmer needs any teaching on the rule. Calibration decides that, and nothing here promises it.
+- Merge, then look at a drafted rule in the app once with a real Spark reply.
+
+**Open issues**
+- The prompt and the reply format have been tried only on a scripted teacher.
+- A blank that means zero can't be declared: those rows are left out and counted.
+- A record that changes after confirming needs a new job, and the old one stays in the library.
+- The statement of a deep rule is mechanical and its parentheses nest.
+- The made-up rounding examples go through the same evaluator as everything else, so they show what the rule does, not that the evaluator is right. That rests on the unit tests with hand-worked values.
+- Only the dark theme has a capture of the changed state (`rule-changed`).
+
+**Verified**
+- `pnpm check` exits 0 (217 test files, 2,729 passed, 2 skipped). The new unit tests: `rule-expression` (20), `rule-template` (20), `rule-examples` (5), `drafting-rule-reply` (11) and `drafting-rules` (20), `drafting-plan` (5), plus more in `drafting-templates`, `drafting-envelope`, `drafting-conversation`, the harness report and the desktop's words for the screens. Taking out the controller's confirmation check, the file-hash check, the dead-branch guard and half-up rounding each made a test fail; each was put back.
+- Hidden e2e on the rebuilt app: `rule.spec.ts` (3, the real engine with a scripted teacher: the question, the rule and its examples, training waiting, confirming, starting in both themes; a changed record and a second drafting asking for confirmation again), `flow.spec.ts` (13) and `drafting.spec.ts` (5) all pass, 21 in 5 minutes. The captures `rule-question`, `rule-define`, `rule-confirmed`, `rule-changed` and `flow-report-rule`, and the changed `describe` and `drafting-examples`, were looked at in both themes.
+
 ## 2026-10-29 (Wed), the first real drafted job, end to end
 
 **Done**
