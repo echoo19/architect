@@ -123,14 +123,15 @@ export function makeCases(spec: RuleSpec, tables: Tables): Cases {
   /**
    * Why a cell with nothing readable in it leaves its row out. Where the person named marks for
    * the column, each other cell is said for what it holds, since "N/A or a dash" would name a mark
-   * they have just said counts. Everywhere else it is said as it always was.
+   * they have just said counts, and N/A and n/a are one mark and one reason. Everywhere else it is
+   * said as it always was.
    */
   const blankSkip = (ref: ColumnRef, mark: string | null, rowKey: string): Skip => {
     if (markIsZero.has(refKey(ref))) {
       return mark === null
         ? new Skip(`${where(ref)} is empty`, rowKey)
         : new Skip(
-            `${where(ref)} says ${markWords(mark)}, which is not counted as 0`,
+            `${where(ref)} says ${markWords(foldKey(mark))}, which is not counted as 0`,
             `${mark} in ${rowKey}`,
           );
     }

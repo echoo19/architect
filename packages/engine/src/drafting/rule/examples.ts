@@ -1,4 +1,5 @@
 import { RULE_LIMITS, type RuleExample, type RuleNode, type RuleSpec } from '@architect/shared';
+import { foldKey } from '../values';
 import type { RuleCase } from './cases';
 import { inputsOf } from './cases';
 import {
@@ -13,7 +14,6 @@ import {
   type ColumnRef,
   type Run,
 } from './expression';
-import { foldKey } from '../values';
 import type { RuleOutcome } from './outcome';
 import { markWords, sameMark } from './placeholders';
 import * as q from './rational';
@@ -26,6 +26,7 @@ import {
   showsRounding,
   sideLabel,
   stepsOf,
+  upper,
   type WordsContext,
 } from './words';
 
@@ -388,8 +389,7 @@ function zeroLabel(id: string, spec: RuleSpec, words: WordsContext): string {
     spec.placeholderMeansZero
       ?.find((item) => refKey(item) === key)
       ?.tokens.find((named) => sameMark(named, held)) ?? held;
-  const mark = markWords(token);
-  return `${mark.charAt(0).toUpperCase()}${mark.slice(1)} in ${name} counts as 0`;
+  return `${upper(markWords(token))} in ${name} counts as 0`;
 }
 
 /** The labels of the branches a case shows, to find the ones no visible case shows. */

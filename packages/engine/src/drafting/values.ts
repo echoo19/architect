@@ -1,4 +1,4 @@
-import type { DateOrder } from '@architect/shared';
+import { PLACEHOLDER_MARK, type DateOrder } from '@architect/shared';
 
 /*
  * Reading the cells of a messy export the same way every time: stray spaces, quotes, letter case,
@@ -60,13 +60,10 @@ export function briefly(text: string, width: number): string {
   return `${(space > width / 2 ? cut.slice(0, space) : cut).trim()}...`;
 }
 
-/** Marks that files put where a number or a date is missing: n/a, null, a dash, a question mark. */
-const BLANK_MARKS = /^(?:n\/a|n\.a\.|na|nan|null|nil|none|-+|\?+|\u{2013}|\u{2014})$/iu;
-
 /** A cell with nothing in it, or only a mark that stands for nothing, in a column of numbers or dates. */
 export function isBlank(cell: string | null | undefined): boolean {
   const text = cleanText(cell);
-  return text === '' || BLANK_MARKS.test(text);
+  return text === '' || PLACEHOLDER_MARK.test(text);
 }
 
 /**
@@ -77,7 +74,7 @@ export function isBlank(cell: string | null | undefined): boolean {
  */
 export function markOf(cell: string | null | undefined): string | null {
   const text = cleanText(cell);
-  return text !== '' && BLANK_MARKS.test(text) ? text : null;
+  return text !== '' && PLACEHOLDER_MARK.test(text) ? text : null;
 }
 
 /** A number written out exactly: `units` hundredths when `places` is 2. */

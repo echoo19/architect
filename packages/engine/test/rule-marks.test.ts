@@ -76,6 +76,54 @@ describe('the field that names the marks that count as zero', () => {
     ]);
   });
 
+  it('holds only the forms the reading of cells knows as standing for nothing, never a number', () => {
+    const accepted = (...tokens: string[]) =>
+      RuleSpecSchema.safeParse(bikeRule(named(...tokens))).success;
+    for (const token of [
+      'N/A',
+      'n/a',
+      'n.a.',
+      'NA',
+      'nan',
+      'null',
+      'nil',
+      'None',
+      '-',
+      '---',
+      '?',
+      '??',
+      '\u{2013}',
+      '\u{2014}',
+      ' N/A ',
+    ]) {
+      expect(accepted(token), token).toBe(true);
+    }
+    for (const token of ['0', '12.50', 'maybe', ' ', '$', '1-2', 'N/A?', 'unknown', '--1', '-1']) {
+      expect(accepted(token), token).toBe(false);
+    }
+    // A hyphen and a longer dash are two marks, so naming both is no repeat.
+    expect(accepted('-', '--')).toBe(true);
+    expect(accepted('-', '\u{2014}')).toBe(true);
+  });
+
+  it('names a mark once for a column, and a column once for a place it is read from', () => {
+    const accepted = (...tokens: string[]) =>
+      RuleSpecSchema.safeParse(bikeRule(named(...tokens))).success;
+    expect(accepted('N/A', 'n/a')).toBe(false);
+    expect(accepted('N/A', ' N/A ')).toBe(false);
+    expect(accepted('-', '-')).toBe(false);
+    const column = (name: string, from: 'row' | 'lookup', tokens: string[]) => ({
+      column: name,
+      from,
+      tokens,
+    });
+    const twice = [column('parts_cost', 'row', ['N/A']), column('Parts_Cost', 'row', ['-'])];
+    expect(RuleSpecSchema.safeParse(bikeRule({ placeholderMeansZero: twice })).success).toBe(false);
+    // The same column of the cases' table and of the looked-up table are two columns.
+    const apart = [column('fee', 'row', ['N/A']), column('fee', 'lookup', ['N/A'])];
+    expect(RuleSpecSchema.safeParse(bikeRule({ placeholderMeansZero: apart })).success).toBe(true);
+  });
+
   it('is bounded: so many columns, so many marks, so long a mark', () => {
     const tokens = (count: number) => Array.from({ length: count }, (_, i) => '-'.repeat(i + 1));
     const ok = RULE_LIMITS.maxPlaceholderMarks;
@@ -181,7 +229,7 @@ describe('a mark the person said counts as zero', () => {
         ['parts_cost says a dash ("--"), which is not counted as 0', 1],
         ['parts_cost says a dash ("\u2014"), which is not counted as 0', 1],
         ['parts_cost says a dash ("\u2013"), which is not counted as 0', 1],
-        ['parts_cost says "NA", which is not counted as 0', 1],
+        ['parts_cost says "na", which is not counted as 0', 1],
         ['parts_cost says "none", which is not counted as 0', 1],
         ['parts_cost says a question mark ("?"), which is not counted as 0', 1],
       ]),
@@ -195,6 +243,19 @@ describe('a mark the person said counts as zero', () => {
       expect(asked.has(ticket.id), ticket.id).toBe(false);
     }
     expect(result.candidates).toHaveLength(160 - empty.length - dashes.length);
+  });
+
+  it('says one reason for a mark however it is cased, since N/A and n/a are one mark', () => {
+    const result = run(named('-'), written(['n/a', 'N/a', ' N/A ']));
+    expect(reasonsOf(result)).toEqual(
+      new Map([
+        ['parts_cost is empty', empty.length],
+        ['parts_cost says "n/a", which is not counted as 0', notApplicable.length],
+      ]),
+    );
+    // The example is the cell as the file wrote it.
+    const shown = result.outcome?.details.excluded.map((item) => item.example) ?? [];
+    expect(shown.some((example) => /^(?:n\/a|N\/a|N\/A) in T-\d+$/.test(example ?? ''))).toBe(true);
   });
 
   it('counts every mark they named, and a column of marks alone says nothing of an empty cell', () => {

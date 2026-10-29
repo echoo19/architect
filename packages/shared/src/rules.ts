@@ -188,6 +188,23 @@ export const BLANK_ANSWERS = {
 } as const;
 
 /**
+ * The marks a messy export writes where a number or a date is missing: n/a, null, a dash, a
+ * question mark. It is one list, so that the reading of a cell and the check of a rule's marks
+ * can't disagree about what a mark is. The en dash and the em dash are written as code point
+ * escapes, so they can be seen here.
+ */
+export const PLACEHOLDER_MARK = /^(?:n\/a|n\.a\.|na|nan|null|nil|none|-+|\?+|\u{2013}|\u{2014})$/iu;
+
+/** A mark a person is asked about, as a column spells it: one of those forms, and never a number. */
+const MarkText = z
+  .string()
+  .min(1)
+  .max(RULE_LIMITS.maxMarkChars)
+  .refine((mark) => PLACEHOLDER_MARK.test(mark.trim()), {
+    message: 'A mark is N/A, a dash or another form that stands where a number should be.',
+  });
+
+/**
  * What the person chose for one mark a number column holds where a number should be: N/A, a dash
  * and the like (decision 061). Only Architect asks, and only the person's answer sets it, never
  * the teacher. It is about one mark in one column of one table: an N/A in one file says nothing of
@@ -199,7 +216,7 @@ export const PlaceholderAnswerSchema = z.object({
   table: z.string().min(1),
   column: Column,
   /** The mark as the column spells it most often. N/A and n/a are one mark. */
-  mark: z.string().min(1).max(RULE_LIMITS.maxMarkChars),
+  mark: MarkText,
   means: z.enum(['zero', 'leave_out']),
 });
 export type PlaceholderAnswer = z.infer<typeof PlaceholderAnswerSchema>;
@@ -246,14 +263,38 @@ export const RuleSpecSchema = z.object({
         column: Column,
         from: RuleFromSchema,
         /** The marks as the column spells them, each compared without regard to case or spacing. */
-        tokens: z
-          .array(z.string().min(1).max(RULE_LIMITS.maxMarkChars))
-          .min(1)
-          .max(RULE_LIMITS.maxPlaceholderMarks),
+        tokens: z.array(MarkText).min(1).max(RULE_LIMITS.maxPlaceholderMarks),
       }),
     )
     .min(1)
     .max(RULE_LIMITS.maxEmptyZero)
+    .superRefine((columns, context) => {
+      // A column is named once for each table it is read from, and a mark once for a column.
+      const seen = new Set<string>();
+      for (const [at, item] of columns.entries()) {
+        const key = `${item.from}:${item.column.trim().toLowerCase()}`;
+        if (seen.has(key)) {
+          context.addIssue({
+            code: 'custom',
+            path: [at, 'column'],
+            message: `${item.column} is named twice.`,
+          });
+        }
+        seen.add(key);
+        const marks = new Set<string>();
+        for (const [index, token] of item.tokens.entries()) {
+          const mark = token.trim().toLowerCase();
+          if (marks.has(mark)) {
+            context.addIssue({
+              code: 'custom',
+              path: [at, 'tokens', index],
+              message: `${token} is named twice for ${item.column}.`,
+            });
+          }
+          marks.add(mark);
+        }
+      }
+    })
     .optional(),
   sources: z
     .array(RulePassageSchema)

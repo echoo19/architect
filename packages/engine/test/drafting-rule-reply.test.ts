@@ -539,6 +539,42 @@ describe('what the person chose for a mark such as N/A, mark by mark and table b
     expect(asked).toBeUndefined();
   });
 
+  it('asks nothing about a column of numbers the rule does not add up', () => {
+    // The rule reads the hours only. The parts cost says N/A in places, but it is not in the rule.
+    const hoursOnly = alone(
+      [
+        step('hours', 'col', { column: 'labor_hours', from: 'row' }),
+        step('rate', 'num', { value: '65' }),
+        step('price', 'mul', { args: ['hours', 'rate'] }),
+        step('total', 'round', { value: '0.01', mode: 'half_up', args: ['price'] }),
+      ],
+      'total',
+    );
+    const { asked, spec } = made('tickets.csv', [], hoursOnly);
+    expect(asked).toBeUndefined();
+    expect(tokensOf(spec)).toBeUndefined();
+  });
+
+  it('asks nothing about a column that holds words, even when the rule reads it as a number', () => {
+    // The rule is wrong to add up a status, and runRule says so. The person is not asked about it.
+    const sheet = bike.ticketsCsv.replace(/,Open,/g, ',N/A,');
+    const files = attached();
+    const tickets = files.files.find((file) => file.name === 'tickets.csv');
+    if (tickets === undefined) throw new Error('No tickets.');
+    tickets.table = readTable('tickets.csv', sheet);
+    const status = alone(
+      [
+        step('hours', 'col', { column: 'labor_hours', from: 'row' }),
+        step('state', 'col', { column: 'status', from: 'row' }),
+        step('sum', 'add', { args: ['hours', 'state'] }),
+        step('total', 'round', { value: '0.01', mode: 'half_up', args: ['sum'] }),
+      ],
+      'total',
+    );
+    const { asked } = made('tickets.csv', [], status, files);
+    expect(asked).toBeUndefined();
+  });
+
   it('holds the teacher to eight passages, so that the answers Architect adds always have room', () => {
     const passages = [
       'Labor is billed',
