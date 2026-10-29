@@ -2,6 +2,18 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu morning ET), release 0.3.0
+
+**Done**
+- Merged the change menu (79fcf11, decision 063, after GPT-6 Astra's two findings were fixed) and the fourth round of rule fixes (40e763f). `pnpm check` exits 0 on main (236 test files, 3,082 passed, 2 skipped) and CI passed on the release commit.
+- GPT-6 Sol read the fourth round against the principle decision 061 now states: every earlier finding is fixed. Two small ones remain for a 0.3.1 and are with the rule's builder: a value clipped for display could equal another row's literal key, and the person's words lose leading spaces before the teacher reads them.
+- Released 0.3.0 (cf56da3, tag v0.3.0): installers for Windows and both Macs, built and checked by the release workflow, with plain notes. The website's deploy was held until the installers were attached, so its Windows link never pointed at a missing file; it now links 0.3.0. The 0.2.0 notes point to the fix for their known issue.
+
+**Next**
+- Merge the small fifth round of rule fixes and release 0.3.1 with it.
+- The offline-chat scene of the film, when the owner allows the GPU; then the full film.
+
+
 ## 2026-10-29 (Wed), what the teacher is told of the records, said exactly
 
 **Done** (on `rule-fixes-4`, from main at `0f86c10`; decision 061 amended; no model was called, the GPU stayed off, and every run used stand-ins only)
