@@ -25,6 +25,7 @@ export * from './models';
 export * from './net';
 export * from './package';
 export * from './report';
+export * from './rules';
 export * from './run';
 export * from './secrets';
 export * from './steps';

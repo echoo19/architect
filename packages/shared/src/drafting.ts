@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { RuleConfirmationStateSchema, RuleDetailsSchema, RuleSpecSchema } from './rules';
 
 /*
  * Drafting a job from the person's own files (decision 058). The teacher decides what the job is
@@ -20,7 +21,7 @@ export const DRAFTING_LIMITS = {
 } as const;
 
 /** The kinds of request Architect knows how to make from a table. */
-export const TASK_TEMPLATES = ['lookup', 'filtered_list', 'group_total'] as const;
+export const TASK_TEMPLATES = ['lookup', 'filtered_list', 'group_total', 'rule'] as const;
 export const TaskTemplateSchema = z.enum(TASK_TEMPLATES);
 export type TaskTemplate = z.infer<typeof TaskTemplateSchema>;
 
@@ -96,6 +97,7 @@ export const TaskSpecSchema = z.discriminatedUnion('template', [
   LookupSpecSchema,
   FilteredListSpecSchema,
   GroupTotalSpecSchema,
+  RuleSpecSchema,
 ]);
 export type TaskSpec = z.infer<typeof TaskSpecSchema>;
 
@@ -125,12 +127,16 @@ export const DraftRecordSchema = z.object({
       id: z.string().min(1),
       rule: z.string().min(1).optional(),
       spec: TaskSpecSchema.optional(),
+      /** For a rule: its statement, passages, examples and what Architect checked (decision 061). */
+      details: RuleDetailsSchema.optional(),
     }),
   ),
   /** Rules the files and the person's answers didn't settle, as the teacher listed them. */
   unresolved: z.array(z.string()),
   /** What Architect assumed or left out where the files didn't say, in plain words. */
   notes: z.array(z.string()),
+  /** What the person answered to the teacher's questions, which the rules may rest on. */
+  answers: z.array(z.object({ question: z.string(), answer: z.string() })).optional(),
 });
 export type DraftRecord = z.infer<typeof DraftRecordSchema>;
 
@@ -161,6 +167,8 @@ export const TaskPlanSchema = z.object({
       description: z.string().optional(),
       /** What Architect understood the type to be, for tasks it made. */
       rule: z.string().optional(),
+      /** For a rule type: the rule in plain words, its passages and examples with their working. */
+      details: RuleDetailsSchema.optional(),
       counts: SplitCountsSchema,
       examples: z.array(z.object({ request: z.string(), answer: z.string().optional() })).max(3),
     }),
@@ -168,5 +176,7 @@ export const TaskPlanSchema = z.object({
   /** Rules the files and answers didn't settle. */
   unresolved: z.array(z.string()),
   notes: z.array(z.string()),
+  /** Present when the job has a rule: whether the person has confirmed it over these records. */
+  confirmation: RuleConfirmationStateSchema.optional(),
 });
 export type TaskPlan = z.infer<typeof TaskPlanSchema>;

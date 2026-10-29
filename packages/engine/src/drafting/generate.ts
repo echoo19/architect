@@ -7,9 +7,11 @@ import {
   type TaskSpec,
 } from '@architect/shared';
 import { seededRandom, shuffle } from '../splits/random';
+import type { RuleOutcome } from './rule/outcome';
 import { runFilteredList } from './templates/filtered-list';
 import { runGroupTotal } from './templates/group-total';
 import { runLookup } from './templates/lookup';
+import { runRule } from './templates/rule';
 import type { Candidate, TemplateRun } from './templates/common';
 import type { Table } from './table';
 
@@ -58,6 +60,8 @@ export interface GeneratedType {
   rule: string;
   /** The specification with its columns spelled as the table spells them. */
   spec: TaskSpec;
+  /** For a rule: every case worked out, from which the examples are chosen. */
+  outcome?: RuleOutcome;
   notes: string[];
   /** Different requests the table supports, once repeated answers and families are held to their limits. */
   available: number;
@@ -75,7 +79,12 @@ export interface Generation {
   thin: { id: string; label: string; available: number }[];
 }
 
-function runTemplate(spec: TaskSpec, table: Table, random: () => number): TemplateRun<TaskSpec> {
+function runTemplate(
+  spec: TaskSpec,
+  table: Table,
+  tables: ReadonlyMap<string, Table>,
+  random: () => number,
+): TemplateRun<TaskSpec> & { outcome?: RuleOutcome | null } {
   switch (spec.template) {
     case 'lookup':
       return runLookup(spec, table);
@@ -83,6 +92,8 @@ function runTemplate(spec: TaskSpec, table: Table, random: () => number): Templa
       return runFilteredList(spec, table);
     case 'group_total':
       return runGroupTotal(spec, table, random);
+    case 'rule':
+      return runRule(spec, tables);
   }
 }
 
@@ -172,7 +183,7 @@ export function generateTasks(
   const thin: Generation['thin'] = [];
   const usable: {
     input: TypeInput;
-    run: TemplateRun<TaskSpec>;
+    run: ReturnType<typeof runTemplate>;
     candidates: Candidate[];
     random: () => number;
   }[] = [];
@@ -188,7 +199,7 @@ export function generateTasks(
       });
       continue;
     }
-    const run = runTemplate(input.spec, table, random);
+    const run = runTemplate(input.spec, table, tables, random);
     const problems = [...run.problems];
     if (problems.length === 0) {
       const answers = new Set(run.candidates.map((candidate) => candidate.answerKey));
@@ -236,6 +247,7 @@ export function generateTasks(
       description: entry.input.description,
       rule: entry.run.rule,
       spec: entry.run.spec,
+      ...(entry.run.outcome ? { outcome: entry.run.outcome } : {}),
       notes: entry.run.notes,
       available: entry.candidates.length,
       chosen: chosen.length,
