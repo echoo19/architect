@@ -23,6 +23,12 @@ You describe the job and attach the files it works from. Muse Spark, a large mod
 
 Those numbers come from 1,956 real attempts. Glimmer read 78 million tokens and wrote 2.7 million through OpenRouter ($7.92), and Spark used 4.7 million ($3.06). The full reports are in [docs/comparisons](docs/comparisons).
 
+## Where it fits
+
+<img align="right" width="64" alt="Y Combinator" src="docs/images/yc-logo.svg">
+
+Y Combinator's [Requests for Startups for Winter 2027](https://www.ycombinator.com/rfs) asks for vertical models: specialized ones "matching or beating general-purpose models at orders of magnitude less inference compute". It names the hard part as high-quality rewards that are specific to the field and can be verified. Architect is that idea at the size of one job. It turns a business's own records and policy into requests with exact answers, and a large model teaches a small one until it passes them on its own, on the business's own computer. For people building vertical models, it's a way to find out whether a small model can do the work, and to make it better at it.
+
 ## Get it
 
 Download it for Windows or macOS from the [latest release](https://github.com/echoo19/architect/releases/latest). You'll need [Ollama](https://ollama.com). The first screens download Glimmer (17 GB, or 14 GB for a 12 GB graphics card) and connect Spark with an API key from Meta. The app isn't signed yet: on Windows choose More info, then Run anyway; on a Mac, right-click it and choose Open.

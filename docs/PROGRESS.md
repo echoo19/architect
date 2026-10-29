@@ -2,6 +2,16 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), the blind read's fixes merged, and where Architect fits in the README
+
+**Done** (no model of the product was called; the GPU stayed off)
+- `wording-after-blind-read` is merged (`66b883e`) after the hidden `rule.spec.ts` passed on it (5 tests) and its captures were looked at: the question says when each answer is the right one, the rule shows "What should "N/A" in parts_cost (tickets.csv) count as? Count it as zero", and the counts say "26 of 160 rows". The run's one failure before that was the spec's own old pattern for the count lines.
+- The README has a short "Where it fits": Y Combinator's Requests for Startups for Winter 2027 asks for vertical models ("Vertical Foundation Models", Diana Hu), and names verifiable, field-specific rewards as the hard part, which is what Architect does for one job. The YC logo is the public-domain text logo from Wikimedia Commons (`docs/images/yc-logo.svg`, with a note in the file that it implies no endorsement).
+
+**Next**
+- Release 0.3.5 with the blind read's wording.
+- The launch film, made with the product-film skill: mockups rebuilt from the app with real recordings, an ElevenLabs voice and generated music.
+
 ## 2026-10-29 (Thu), a blind read of the N/A screens, and its fixes waiting on a branch
 
 **Done** (no model of the product was called; the GPU stayed off)
