@@ -1,7 +1,10 @@
+import { isDeepStrictEqual } from 'node:util';
 import type { EngineApi } from '@architect/engine';
+import type { DraftTurn, Job } from '@architect/shared';
 import { z } from 'zod';
 import type { PickedPaths } from '../files/picked';
 import type { IpcRouter } from '../ipc/router';
+import { applyChoices, type JobChoices } from '../jobs/choices';
 
 /** Sends one request to the engine process. */
 export type EngineCall = <T>(request: (api: EngineApi) => Promise<T>) => Promise<T>;
@@ -10,33 +13,51 @@ const text = z.string().min(1);
 
 /**
  * The jobs, runs and reports domains, forwarded to the engine process, which checks every
- * argument it gets. A path from the renderer must be one the user picked in a file dialog.
+ * argument it gets. A path from the renderer must be one the user picked in a file dialog. A job
+ * that is new, whether the sample job, a job file or a drafted job, starts from the teacher and
+ * model the person chose (`choices`); a job that already exists keeps what it has.
  */
 export function registerEngineHandlers(
   router: IpcRouter,
   call: EngineCall,
   picked: PickedPaths,
+  choices: () => Promise<JobChoices>,
 ): void {
+  /** A job just made, saved again with the person's choices unless it already has them. */
+  const chosenFor = async (job: Job): Promise<Job> => {
+    const chosen = applyChoices(job, await choices());
+    return isDeepStrictEqual(chosen, job) ? job : call((api) => api.jobs.save(chosen));
+  };
+  /** A drafted job, which isn't saved yet, as it will be reviewed. */
+  const draftedWith = async (turn: DraftTurn): Promise<DraftTurn> =>
+    turn.draft === undefined ? turn : { ...turn, draft: applyChoices(turn.draft, await choices()) };
+
   router.registerHandlers(
     'jobs',
     {
       list: () => call((api) => api.jobs.list()),
       get: (jobId) => call((api) => api.jobs.get(jobId)),
       save: (job) => call((api) => api.jobs.save(job)),
-      createSample: () => call((api) => api.jobs.createSample()),
-      importFile: (file) => {
+      createSample: async () => {
+        // The sample job is made once; asking again opens it as it is.
+        const known = new Set((await call((api) => api.jobs.list())).map(({ id }) => id));
+        const job = await call((api) => api.jobs.createSample());
+        return known.has(job.id) ? job : chosenFor(job);
+      },
+      importFile: async (file) => {
         const chosen = picked.check(file);
-        return call((api) => api.jobs.importFile(chosen));
+        return chosenFor(await call((api) => api.jobs.importFile(chosen)));
       },
       exportFile: (jobId, file) => {
         const chosen = picked.check(file);
         return call((api) => api.jobs.exportFile(jobId, chosen));
       },
-      draftStart: (description, files) => {
+      draftStart: async (description, files) => {
         const chosen = files.map((file) => picked.check(file));
-        return call((api) => api.jobs.draftStart(description, chosen));
+        return draftedWith(await call((api) => api.jobs.draftStart(description, chosen)));
       },
-      draftReply: (sessionId, reply) => call((api) => api.jobs.draftReply(sessionId, reply)),
+      draftReply: async (sessionId, reply) =>
+        draftedWith(await call((api) => api.jobs.draftReply(sessionId, reply))),
     },
     {
       importFile: z.tuple([text]),
