@@ -2,6 +2,30 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Wed), the person chooses what the teacher may change
+
+**Done** (on a branch from main; decision 063; no model was called or loaded)
+- Each round Spark picks one of five kinds of change: a procedure, retrieval, a helper, weights or a question for the person. A job can now say which of them it may use, with an optional `interventions` list. It reads as all five when absent, so every job file, package and saved job is as it was. The list has to keep one kind that changes the agent, since a teacher that may only ask teaches nothing, and it names each kind once. The types moved to `packages/shared/src/interventions.ts`: `job.ts` holds the choice and `mentor.ts` already imports from `job.ts`, so they could not stay in `mentor.ts` without a cycle.
+- Where it travels, decided for each place a job crosses: job files, `jobs.save` and every job route over IPC carry it, as a setting of the job like the budget; a run reads its own copy from its start, so a change applies to the next run; a graduate's contract and package leave it out, since training settings aren't part of what an agent promises and the manifest's schemas are strict. Both ends are tested.
+- The engine refuses each kind the job turned off with "Turned off for this job in the teacher's settings.", ahead of every other reason (the backend isn't even asked about weights the person turned off). The teacher is told which are off, its reply format offers only the rest, a plan outside them is rejected, and a comparison's fixed menu still applies on top. The label of a change is the teacher's word, so a change set is also held to the choice by the files it writes: a procedure that writes `tools/sum.js` is refused when small tools are off. The first draft of a job that starts blank, which is the sample job and every drafted job and which no menu is asked about, is told what is off and goes back with the reason once. Worked examples need retrieval, since a retrieval rule loads them.
+- A teacher that may change nothing, because only questions are on or the rest can't run here, ends its run before it asks for anything: before the baseline and before each round, with the new stop reason `nothing_to_try` and a sentence that names what is off and what can't run. No mentor call, round or attempt is spent. With nothing kept the run ends stopped, as a stop before any change does; an improvement hands its lessons back and gives the sentence as the reason nothing can be promoted.
+- Teach this trains no weights and puts no question to the person when the job turned them off.
+- Teacher tab: the section "What Spark may change" has an icon, a name, one short line and a switch for each kind. The last switch that changes the agent stays on and says why. The weights row says what the app already knows keeps them from running here: the final test online, no Hugging Face token, no training budget. Define says before Start training when only weights are left and can't run ("Spark has nothing it may change", with a button to the tab). A round that asked for a turned-off kind says in its page that it was the person's choice. A run that ended with nothing to try says so on the Train screen.
+- Captures looked at in both themes: `flow-advanced-teacher`, `flow-advanced-teacher-last` (the held switch, wrapped note and dimmed switch read fine in both) and `teacher-idle`. The captures flow.spec rewrote that came out a few pixels different were put back.
+- Verified: `pnpm check` exits 0 (233 test files, 2,994 tests passed, 2 skipped). Hidden e2e: `teacher-menu.spec.ts` (4, the real engine with a scripted teacher and a stand-in student; local runtime detection stubbed) and `flow.spec.ts` (27) pass. Each rule was checked by taking its code out and watching a test fail: 22 in the unit tests (the menu, the worked examples, the file check, the draft's prompt and its hold, the check before the baseline and before a round, the improvement's ending, Teach this's three, the switch that holds, the order of what blocks weights, the need, the person's-choice sentence, the validation and its tab, the panel's lines, the words and the stored form) and the two screens in the e2e.
+
+**Next**
+- Merge the branch into main. Main has moved on three commits (the demo recorder, a test's timing and its own entry at the top of this file), so this entry will meet that one at the top.
+- Look at the Teacher tab once with a real Spark on a drafted job: turn small tools off and watch the first draft leave them out.
+
+**Open issues**
+- A job made in the app can't train weights: nothing in it gives a job a training budget (`maxComputeUsd` has no field), so the weights row says "This job has no budget for training" once a token is added. A field for it is a spending decision, so it was left.
+- The pre-flight sees the final test, the token and the budget. It can't see the adapter runtime or whether the teacher can act as the agent, which the engine still checks when a round begins, so a run can still stop there for those.
+- The files are placed by their names. Decoding and guardrails belong to no kind, so they stay open whenever any change to the harness is.
+- A lesson the person applies with Teach this is their own act, so a turned-off instruction doesn't stop it.
+- A new job has everything on. There is no default for new jobs in Settings.
+- The first runs of the real-engine spec, before the rule against using the graphics card arrived, let Define's pre-flight ask this computer's local runtimes which models they hold and ask `nvidia-smi` for the card's name and memory. Those are reads, and nothing was loaded. The spec now answers that call itself, so nothing in it reaches a runtime or the card.
+
 ## 2026-10-29 (Wed), main merged into the rule branch, three times
 
 **Done** (on the rule branch; nothing pushed; no model was called, the GPU stayed off)
