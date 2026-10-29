@@ -64,7 +64,7 @@ function say(view: RetestView, local: ReportCard | null, report: ReportCard, dev
       return {
         mark: <StatusMark state={passed ? 'ok' : 'attention'} size={18} />,
         title: passed ? `Passed on ${device}` : `Below the target on ${device}`,
-        lines: `${score.pass} of ${score.total} right (${formatRate(score)}). Typical answer ${formatAnswerTime(latencyMs.p50)}, 95% within ${formatAnswerTime(latencyMs.p95)}. Online it got ${report.test.score.pass} of ${report.test.score.total}.`,
+        lines: `${score.pass} of ${score.total} right (${formatRate(score)}). Typical answer time ${formatAnswerTime(latencyMs.p50)}, 95% within ${formatAnswerTime(latencyMs.p95)}. Online it got ${report.test.score.pass} of ${report.test.score.total}.`,
       };
     }
   }
