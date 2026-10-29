@@ -18,7 +18,7 @@ const DETAILS: RuleDetails = {
   steps: [
     { text: 'Round labor hours up to a multiple of 0.5.' },
     { text: 'Multiply by 65.' },
-    { text: 'When member (customers.csv) is yes, multiply by 0.9.', files: ['customers.csv'] },
+    { text: 'When member (customers.csv) is yes, take 10% off.', files: ['customers.csv'] },
     { text: 'Add parts cost.', note: 'An empty parts cost counts as 0, as you said.' },
     { text: 'Round the result to the nearest cent; half a cent rounds up.' },
   ],
@@ -115,7 +115,7 @@ describe('the rule as Define puts it in front of the person', () => {
     expect(steps).toEqual([
       '1. Round labor hours up to a multiple of 0.5.',
       '2. Multiply by 65.',
-      '3. When member (customers.csv) is yes, multiply by 0.9.',
+      '3. When member (customers.csv) is yes, take 10% off.',
       '4. Add parts cost. An empty parts cost counts as 0, as you said.',
       '5. Round the result to the nearest cent; half a cent rounds up.',
     ]);

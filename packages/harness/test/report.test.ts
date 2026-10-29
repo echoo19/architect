@@ -242,7 +242,7 @@ describe('renderReportMarkdown', () => {
           steps: [
             { text: 'Round labor hours up to a multiple of 0.5.' },
             {
-              text: 'When member (customers.csv) is yes, multiply by 0.9.',
+              text: 'When member (customers.csv) is yes, take 10% off.',
               files: ['customers.csv'],
             },
             { text: 'Add parts cost.', note: 'An empty parts cost counts as 0, as you said.' },
@@ -260,7 +260,7 @@ describe('renderReportMarkdown', () => {
     };
     const text = renderReportMarkdown(report);
     expect(text).toContain(
-      'The rule in words:\n1. Round labor hours up to a multiple of 0.5.\n2. When member (customers.csv) is yes, multiply by 0.9.\n3. Add parts cost. An empty parts cost counts as 0, as you said.\n',
+      'The rule in words:\n1. Round labor hours up to a multiple of 0.5.\n2. When member (customers.csv) is yes, take 10% off.\n3. Add parts cost. An empty parts cost counts as 0, as you said.\n',
     );
     // The sentence is for a report made before the steps existed.
     expect(text).not.toContain('Start with labor.');

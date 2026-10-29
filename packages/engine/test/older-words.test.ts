@@ -29,7 +29,7 @@ const NEW_FLAG = 'None of your records needed rounding to the nearest cent, so n
 const STEPS = [
   { text: 'Round labor hours up to a multiple of 0.5.' },
   { text: 'Multiply by 65.' },
-  { text: 'When member (customers.csv) is yes, multiply by 0.9.', files: ['customers.csv'] },
+  { text: 'When member (customers.csv) is yes, take 10% off.', files: ['customers.csv'] },
   { text: 'Add parts cost.' },
   { text: 'Round the result to the nearest cent; half a cent rounds up.' },
 ];

@@ -269,7 +269,7 @@ for (const theme of THEMES) {
     await expect(card.locator('ol').first().locator('> li')).toHaveText([
       '1.Round labor hours up to a multiple of 0.5.',
       '2.Multiply by 65.',
-      '3.When member (customers.csv) is yes, multiply by 0.9.',
+      '3.When member (customers.csv) is yes, take 10% off.',
       '4.Add parts cost. An empty parts cost counts as 0, as you said.',
       '5.Round the result to the nearest cent; half a cent rounds up.',
     ]);

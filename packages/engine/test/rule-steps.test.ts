@@ -37,7 +37,7 @@ describe("a rule told as steps, the shop's rule first", () => {
       { text: 'Round labor hours up to a multiple of 0.5.' },
       { text: 'Multiply by 65.' },
       {
-        text: 'When member (customers.csv) is yes, multiply by 0.9.',
+        text: 'When member (customers.csv) is yes, take 10% off.',
         files: ['customers.csv'],
       },
       { text: 'Add parts cost.', note: 'An empty parts cost counts as 0, as you said.' },
@@ -48,7 +48,7 @@ describe("a rule told as steps, the shop's rule first", () => {
   it('says only the part that differs under the test, and nothing of a side that does nothing', () => {
     // The member price is the other price with something more done to it, in either order.
     const steps = textOf(bikeExpression());
-    expect(steps).toContain('When member (customers.csv) is yes, multiply by 0.9.');
+    expect(steps).toContain('When member (customers.csv) is yes, take 10% off.');
     expect(steps.some((step) => step.includes('no'))).toBe(false);
     // The other way round: the discount is for those the test is not true of.
     const reversed = rounded(
@@ -59,7 +59,7 @@ describe("a rule told as steps, the shop's rule first", () => {
     );
     expect(textOf(reversed)).toEqual([
       'Multiply hours by 65.',
-      'When member (customers.csv) is no, multiply by 0.9.',
+      'When member (customers.csv) is no, take 10% off.',
       'Round the result to the nearest cent; half a cent rounds up.',
     ]);
   });
@@ -73,7 +73,7 @@ describe("a rule told as steps, the shop's rule first", () => {
     );
     expect(textOf(both)).toEqual([
       'Multiply hours by 65.',
-      'When member (customers.csv) is yes, multiply by 0.9. Otherwise, add 5.',
+      'When member (customers.csv) is yes, take 10% off. Otherwise, add 5.',
       'Round the result to the nearest cent; half a cent rounds up.',
     ]);
   });
@@ -89,7 +89,7 @@ describe("a rule told as steps, the shop's rule first", () => {
       textOf(rounded(whenMember(roundedUp(hours('65', '0.9')), roundedUp(hours('65'))))),
     ).toEqual([
       'Multiply hours by 65.',
-      'When member (customers.csv) is yes, multiply by 0.9.',
+      'When member (customers.csv) is yes, take 10% off.',
       'Round the result up to a multiple of 5.',
       'Round the result to the nearest cent; half a cent rounds up.',
     ]);
@@ -117,14 +117,16 @@ describe("a rule told as steps, the shop's rule first", () => {
       });
     expect(textOf(factor('0.9', '1'))).toEqual([
       'Multiply hours by 65.',
-      'When member (customers.csv) is yes, multiply by 0.9.',
+      'When member (customers.csv) is yes, take 10% off.',
       'Round the result to the nearest cent; half a cent rounds up.',
     ]);
-    expect(textOf(factor('1', '0.9'))[1]).toBe(
-      'When member (customers.csv) is no, multiply by 0.9.',
-    );
+    expect(textOf(factor('1', '0.9'))[1]).toBe('When member (customers.csv) is no, take 10% off.');
     expect(textOf(factor('0.9', '0.8'))[1]).toBe(
-      'When member (customers.csv) is yes, multiply by 0.9. Otherwise, multiply by 0.8.',
+      'When member (customers.csv) is yes, take 10% off. Otherwise, take 20% off.',
+    );
+    // A side that is not a discount is said as the multiplication it is, beside one that is.
+    expect(textOf(factor('0.9', '2'))[1]).toBe(
+      'When member (customers.csv) is yes, take 10% off. Otherwise, multiply by 2.',
     );
     // Adding nothing is no more a step than multiplying by one.
     const fee = rounded({
@@ -295,10 +297,113 @@ describe("a rule told as steps, the shop's rule first", () => {
     const steps = ruleSteps(bikeExpression(), ZERO_PARTS)
       .map((step) => step.text)
       .join(' ');
-    for (const part of ['65', '0.9', '0.5', 'parts cost', 'labor hours', 'member']) {
+    for (const part of ['65', '10% off', '0.5', 'parts cost', 'labor hours', 'member']) {
       expect(steps).toContain(part);
     }
     expect(steps).not.toMatch(/undefined|NaN|\[object|—|–|[‘’“”]/);
+  });
+});
+
+describe('a discount, said as the discount a person gave', () => {
+  /** The steps of "hours times 65 times a factor", rounded: the factor's own step is the second. */
+  const factorStep = (factor: string): string | undefined =>
+    textOf(rounded({ op: 'mul', args: [col('hours'), num('65'), num(factor)] }))[1];
+
+  it('says "take 10% off" where the rule multiplies by 0.9, and the same for any clean percentage', () => {
+    expect(factorStep('0.9')).toBe('Take 10% off.');
+    expect(factorStep('0.85')).toBe('Take 15% off.');
+    expect(factorStep('0.875')).toBe('Take 12.5% off.');
+    expect(factorStep('0.95')).toBe('Take 5% off.');
+    expect(factorStep('0.99')).toBe('Take 1% off.');
+    expect(factorStep('0.995')).toBe('Take 0.5% off.');
+    // However the number is written, and at the edge of what reads as a discount: half off.
+    expect(factorStep('0.90')).toBe('Take 10% off.');
+    expect(factorStep('0.5')).toBe('Take 50% off.');
+  });
+
+  it('says it where a discount is the first thing done to a column, and where a test holds it', () => {
+    expect(textOf(rounded({ op: 'mul', args: [col('total'), num('0.9')] }))).toEqual([
+      'Take 10% off total.',
+      'Round the result to the nearest cent; half a cent rounds up.',
+    ]);
+    expect(textOf(rounded({ op: 'mul', args: [col('total'), num('0.25')] }))[0]).toBe(
+      'Multiply total by 0.25.',
+    );
+    // The shop's own rule: the discount is one step, for a member, and the parts are not in it.
+    expect(textOf(bikeExpression())[2]).toBe('When member (customers.csv) is yes, take 10% off.');
+    // Two discounts, one after the other, are two steps, each off what the step before came to.
+    expect(
+      textOf(rounded({ op: 'mul', args: [col('hours'), num('0.9'), num('0.95')] })).slice(0, 2),
+    ).toEqual(['Take 10% off hours.', 'Take 5% off.']);
+  });
+
+  it('leaves every other multiplier as the multiplication it is', () => {
+    for (const factor of ['1', '1.1', '2', '65', '0']) {
+      expect(factorStep(factor)).toBe(`Multiply by ${factor}.`);
+    }
+    // Under half off a factor is a share, as likely a fee of 5% as 95% off, and a tenth is no 90%.
+    for (const factor of ['0.25', '0.1', '0.05', '0.01', '0.4999']) {
+      expect(factorStep(factor)).toBe(`Multiply by ${factor}.`);
+    }
+    // No clean percentage, however near a discount it is.
+    for (const factor of ['0.8333', '0.9975', '0.99999', '0.91234']) {
+      expect(factorStep(factor)).toBe(`Multiply by ${factor}.`);
+    }
+    // Only a number is a discount: a column a rule multiplies by, and every other operation, are not.
+    expect(textOf(rounded({ op: 'mul', args: [col('hours'), col('factor')] }))[0]).toBe(
+      'Multiply hours by factor.',
+    );
+    expect(textOf(rounded({ op: 'add', args: [col('hours'), num('0.9')] }))[1]).toBe('Add 0.9.');
+    expect(textOf(rounded({ op: 'sub', args: [col('hours'), num('0.9')] }))[1]).toBe(
+      'Subtract 0.9.',
+    );
+    expect(textOf(rounded({ op: 'div', arg: col('hours'), by: '0.9' }))[0]).toBe(
+      'Divide hours by 0.9.',
+    );
+  });
+
+  it('never says a percentage that is not what the factor takes off, and never misses one that is', () => {
+    // Every factor of up to four decimals, from nothing to two: the words and the number agree.
+    let said = 0;
+    for (let tenThousandths = 0; tenThousandths <= 20_000; tenThousandths += 1) {
+      const factor = q.fraction(BigInt(tenThousandths), 10_000n);
+      const text = q.toText(factor, 4).text;
+      const step = factorStep(text) ?? '';
+      const off = /^Take (\d+(?:\.\d+)?)% off\.$/.exec(step)?.[1];
+      // A discount is exactly what its words say: one minus the percentage over a hundred.
+      if (off !== undefined) {
+        const taken = q.fromText(off);
+        expect(taken, step).not.toBeNull();
+        expect(q.equal(q.sub(q.ONE, q.div(taken ?? q.ZERO, q.fraction(100n))), factor), step).toBe(
+          true,
+        );
+        said += 1;
+      }
+      // And it is said for every factor that reads as one: from half up to one, with a percentage
+      // off of at most one decimal place (a hundredth of a percent is the fourth decimal).
+      const reads = tenThousandths >= 5000 && tenThousandths < 10_000;
+      const clean = (10_000 - tenThousandths) % 10 === 0;
+      expect(off !== undefined, `${text}: ${step}`).toBe(reads && clean);
+      if (off === undefined) expect(step).toBe(`Multiply by ${text}.`);
+    }
+    // 5,000 factors from one half to just under one, and one in ten has a clean percentage.
+    expect(said).toBe(500);
+  });
+
+  it('does not change what the rule works out, only how its step is said', () => {
+    const rule = (factor: string): RuleNode =>
+      rounded({ op: 'mul', args: [col('hours'), num('65'), num(factor)] });
+    const inputs: CaseInputs = {
+      number: (ref) => (ref.column === 'hours' ? q.fraction(35n, 10n) : q.ZERO),
+      category: () => foldKey('yes'),
+    };
+    // 3.5 hours at 65 is 227.5; a tenth off is 204.75, and the steps still lead to that answer.
+    expect(q.toText(evaluate(rule('0.9'), inputs).value).text).toBe('204.75');
+    expect(textOf(rule('0.9'))).toEqual([
+      'Multiply hours by 65.',
+      'Take 10% off.',
+      'Round the result to the nearest cent; half a cent rounds up.',
+    ]);
   });
 });
 

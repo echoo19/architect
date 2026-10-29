@@ -221,11 +221,39 @@ const VERBS: Record<Arithmetic, string> = {
   div: 'divide by',
 };
 
-/** What a link does to the amount so far, as the middle of a sentence: "multiply by 0.9". */
+/** The smallest factor that reads as a discount, which is half off. Under it a factor is a share. */
+const SMALLEST_DISCOUNT_FACTOR = q.fraction(1n, 2n);
+
+/**
+ * How much a factor takes off, when it is a discount as a person gives one: from one half up to
+ * but not including one, with a percentage off of at most one decimal place. 0.9 is 10% off, 0.85
+ * is 15% and 0.875 is 12.5%. Null for any other factor, which is said as the multiplication it
+ * is: 1.1 is no discount, 0.8333 is no clean percentage, and 0.05 is as likely a fee of 5% as it
+ * is 95% off. Only the words differ; what the rule works out is the same.
+ */
+function percentOff(operand: RuleNode): string | null {
+  if (operand.op !== 'num') return null;
+  const factor = q.fromText(operand.value);
+  if (
+    factor === null ||
+    q.compare(factor, SMALLEST_DISCOUNT_FACTOR) < 0 ||
+    q.compare(factor, q.ONE) >= 0
+  ) {
+    return null;
+  }
+  const off = q.mul(q.sub(q.ONE, factor), q.fraction(100n));
+  return q.mul(off, q.fraction(10n)).d === 1n ? q.toText(off).text : null;
+}
+
+/** What a link does to the amount so far, as the middle of a sentence: "multiply by 65". */
 function doing(link: Doing, ctx: WordsContext): string {
   switch (link.kind) {
-    case 'do':
-      return `${VERBS[link.op]} ${operandOf(link.operand, ctx)}`;
+    case 'do': {
+      const off = link.op === 'mul' ? percentOff(link.operand) : null;
+      return off === null
+        ? `${VERBS[link.op]} ${operandOf(link.operand, ctx)}`
+        : `take ${off}% off`;
+    }
     case 'best':
       return `take the ${comparative(link.op)} of ${inWords([
         'the result',
@@ -276,6 +304,8 @@ function together(start: RuleNode, next: Link, ctx: WordsContext): string | null
   const what = phrase(start, ctx).text;
   if (next.kind === 'round') return `Round ${what} ${roundedHow(next, ctx)}.`;
   if (next.kind === 'do' && (next.op === 'mul' || next.op === 'div')) {
+    const off = next.op === 'mul' ? percentOff(next.operand) : null;
+    if (off !== null) return `Take ${off}% off ${what}.`;
     const verb = next.op === 'mul' ? 'Multiply' : 'Divide';
     return `${verb} ${what} by ${operandOf(next.operand, ctx)}.`;
   }

@@ -516,7 +516,7 @@ for (const theme of THEMES) {
               { text: 'Round labor hours up to a multiple of 0.5.' },
               { text: 'Multiply by 65.' },
               {
-                text: 'When member (customers.csv) is yes, multiply by 0.9.',
+                text: 'When member (customers.csv) is yes, take 10% off.',
                 files: ['customers.csv'],
               },
               { text: 'Add parts cost.' },
@@ -643,7 +643,7 @@ for (const theme of THEMES) {
     const told = rule.locator('ol > li');
     await expect(told).toHaveCount(5);
     await expect(told.nth(0)).toHaveText('1.Round labor hours up to a multiple of 0.5.');
-    await expect(told.nth(2)).toHaveText('3.When member (customers.csv) is yes, multiply by 0.9.');
+    await expect(told.nth(2)).toHaveText('3.When member (customers.csv) is yes, take 10% off.');
     await expect(told.nth(4)).toHaveText(
       '5.Round the result to the nearest cent; half a cent rounds up.',
     );
