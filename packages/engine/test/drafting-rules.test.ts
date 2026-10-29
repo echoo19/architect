@@ -490,6 +490,42 @@ describe('holding a rule to the policy and to the guards', () => {
     );
   });
 
+  it("holds a rule to the job's own pass rate: a copy of a column that would pass it is refused", async () => {
+    // Members pay five more than the parts cost as written, so the others' tickets are a copy.
+    const mostlyCopy = costType({
+      steps: [
+        step('parts', 'col', { column: 'parts_cost', from: 'row' }),
+        step('five', 'num', { value: '5' }),
+        step('more', 'add', { args: ['parts', 'five'] }),
+        step('is_member', 'equals', { column: 'member', from: 'lookup', value: 'yes' }),
+        step('pick', 'if', { args: ['is_member', 'more', 'parts'] }),
+        step('total', 'round', { value: '0.01', mode: 'half_up', args: ['pick'] }),
+      ],
+    });
+    const lax = bikeDraft([mostlyCopy, CONTACT_TYPE]);
+    // Nine in ten right is asked: a copy right in about three in five rows doesn't pass.
+    const strict = await draftedJob(lax);
+    expect(world.mentor.requests).toHaveLength(1);
+    expect(
+      recordOf(strict.id).types.find((type) => type.id === 'cost')?.details?.flags,
+    ).toContainEqual(
+      expect.stringMatching(/^In \d+% of the rows the answer is already written in parts_cost/),
+    );
+
+    // Half right is asked: the copy would pass, so the rule is sent back with the reason.
+    world.mentor.requests.length = 0;
+    world.mentor.script = (_request, call) =>
+      call === 1
+        ? { ...lax, job: { ...lax.job, passRate: 0.5 } }
+        : { ...bikeDraft(), job: { ...bikeDraft().job, passRate: 0.5 } };
+    const turn = await world.drafting.start('A repair desk', attachBike(), TEACHER);
+    expect(turn.draft).toBeDefined();
+    const fix = world.mentor.requests[1]?.messages.at(-1)?.content ?? '';
+    expect(fix).toMatch(
+      /The answer is the value of parts_cost in \d+% of the rows, and the job asks for 50% right, so an agent that copies it would pass/,
+    );
+  });
+
   it('says what is wrong with a step it cannot read', async () => {
     const bad = costType({
       steps: bikeSteps().map((item) => (item.id === 'sum' ? { ...item, op: 'blend' } : item)),

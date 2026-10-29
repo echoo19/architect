@@ -12,7 +12,7 @@ import { cleanText, foldKey, isBlank } from '../values';
 import { makeCases, type Tables } from '../rule/cases';
 import { agreed, currencyName, marksIn } from '../rule/currency';
 import { checkExpression, numberRefs } from '../rule/expression';
-import { auditCases } from '../rule/guards';
+import { auditCases, DEFAULT_PASS_RATE } from '../rule/guards';
 import type { RuleOutcome } from '../rule/outcome';
 import * as q from '../rule/rational';
 import { statementOf, type WordsContext } from '../rule/words';
@@ -140,7 +140,11 @@ export type RuleRun = TemplateRun<RuleSpec> & { outcome: RuleOutcome | null };
  * expression. A rule that is wrongly made, or that a guard refuses, comes back with its reasons
  * and no tasks.
  */
-export function runRule(spec: RuleSpec, tables: ReadonlyMap<string, Table>): RuleRun {
+export function runRule(
+  spec: RuleSpec,
+  tables: ReadonlyMap<string, Table>,
+  passRate: number = DEFAULT_PASS_RATE,
+): RuleRun {
   const problems: string[] = [];
   const notes: string[] = [];
   const refused = (resolved: RuleSpec, rule: string): RuleRun => ({
@@ -270,7 +274,7 @@ export function runRule(spec: RuleSpec, tables: ReadonlyMap<string, Table>): Rul
     problems.push(`No row of ${source.name} can be worked out${why === '' ? '' : `: ${why}`}.`);
     return refused(resolved, rule);
   }
-  const audit = auditCases(resolved, caseTables, made.cases, words);
+  const audit = auditCases(resolved, caseTables, made.cases, words, passRate);
   problems.push(...audit.problems);
   if (problems.length > 0) return refused(resolved, rule);
 

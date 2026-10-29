@@ -448,7 +448,10 @@ export class JobDrafting implements JobDrafter {
       ...digestOf(attached),
       ...inputs.map((input) => JSON.stringify([input.id, input.spec])),
     ]);
-    const generation = generateTasks(inputs, tables, seed, shownRowsOf(attached));
+    const generation = generateTasks(inputs, tables, seed, {
+      shown: shownRowsOf(attached),
+      passRate: job.passRate,
+    });
     const problems = generation.rejected.flatMap((type) =>
       type.problems.map((problem) => `Task type "${type.id}" (${type.label}): ${problem}`),
     );

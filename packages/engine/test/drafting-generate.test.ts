@@ -399,7 +399,7 @@ describe('asking one question once', () => {
 describe('leaving out what the teacher was shown', () => {
   it('asks nothing whose answer is a row the teacher was shown, and the rest as before', () => {
     const shown = new Map([['customers.csv', new Set([0, 1, 2, 3, 4])]]);
-    const hidden = generateTasks([emails], tables, 7, shown);
+    const hidden = generateTasks([emails], tables, 7, { shown });
     const first = tables
       .get('customers.csv')
       ?.rows.slice(0, 5)
@@ -429,7 +429,7 @@ describe('leaving out what the teacher was shown', () => {
     const shown = new Map([
       ['orders.csv', new Set([...rows(alone ?? ''), ...(rows(several ?? '').slice(0, 1) ?? [])])],
     ]);
-    const made = generateTasks([pending], tables, 7, shown);
+    const made = generateTasks([pending], tables, 7, { shown });
     const asked = made.tasks.map((task) => task.meta?.['customer_id']);
     expect(asked).not.toContain(alone);
     expect(asked).toContain(several);

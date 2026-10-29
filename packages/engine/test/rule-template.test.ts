@@ -424,6 +424,44 @@ describe('what a rule must not be', () => {
     );
   });
 
+  it('refuses a rule that copies a column in as many cases as the job asks to get right, not only in nine in ten', () => {
+    // Non-members' tickets are the parts cost as it is written, members' have five more.
+    const mostly = bikeRule({
+      expression: rounded({
+        op: 'if',
+        when: { test: 'equals', column: 'member', from: 'lookup', value: 'yes' },
+        then: { op: 'add', args: [col('parts_cost'), num('5')] },
+        else: col('parts_cost'),
+      }),
+    });
+    const tables = bikeTables(bike);
+    const usual = runRule(mostly, tables);
+    expect(usual.problems).toEqual([]);
+    const flag = usual.outcome?.details.flags.join(' ') ?? '';
+    const share = Number(/In (\d+)% of the rows/.exec(flag)?.[1]);
+    expect(share).toBeGreaterThan(50);
+    expect(share).toBeLessThan(90);
+
+    // A job that needs fewer right than the copy gets right would pass a copy.
+    const lax = (share - 5) / 100;
+    const refused = runRule(mostly, tables, lax);
+    expect(refused.candidates).toEqual([]);
+    expect(refused.problems).toEqual([
+      `The answer is the value of parts_cost in ${share}% of the rows, and the job asks for ${share - 5}% right, so an agent that copies it would pass without working anything out. A rule has to work something out.`,
+    ]);
+    // One that needs more right than that is not passed by the copy, as before.
+    expect(runRule(mostly, tables, (share + 5) / 100).problems).toEqual([]);
+    // And a copy in nine in ten is still the old, plainer refusal at any pass rate.
+    const copy = runRule(
+      bikeRule({ lookup: undefined, categories: [], expression: rounded(col('parts_cost')) }),
+      tables,
+      0.6,
+    );
+    expect(copy.problems).toEqual([
+      'The answer is just the value of parts_cost, which needs no rule. A rule has to work something out.',
+    ]);
+  });
+
   it('refuses a condition whose side no row takes, and one that never changes an answer', () => {
     const noMembers = edited((_tickets, customers) => {
       for (const row of customers.slice(1)) row[3] = 'no';

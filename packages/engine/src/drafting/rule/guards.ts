@@ -87,12 +87,20 @@ function copiesOf(
   return found;
 }
 
-/** Holds the cases of a rule to the guards and counts what each branch does. */
+/** The share of the final test a job asks to get right, when nobody said. */
+export const DEFAULT_PASS_RATE = 0.9;
+
+/**
+ * Holds the cases of a rule to the guards and counts what each branch does. `passRate` is the
+ * share of tasks the job asks to get right: a rule that copies a value in that many cases lets a
+ * copy pass.
+ */
 export function auditCases(
   spec: RuleSpec,
   tables: Tables,
   cases: readonly RuleCase[],
   words: WordsContext,
+  passRate: number = DEFAULT_PASS_RATE,
 ): Audit {
   const problems: string[] = [];
   const flags: string[] = [];
@@ -118,21 +126,25 @@ export function auditCases(
     );
   }
 
+  // An agent that copies a value passes as soon as the copy is right in as many cases as the job
+  // asks to get right, so a rule that is a copy in that many is no test at all.
+  const copyShare = Math.min(COPY_SHARE, passRate);
+  const copying = (what: string, why: string, matches: number): string =>
+    matches / eligible >= COPY_SHARE
+      ? `The answer is just ${what}, ${why}. A rule has to work something out.`
+      : `The answer is ${what} in ${percent(matches, eligible)} of the rows, and the job asks for ${percent(passRate, 1)} right, so an agent that copies it would pass without working anything out. A rule has to work something out.`;
+
   const echoes = cases.filter((item) => {
     const key = parseDecimal(item.key);
     return key !== null && q.equal(q.fromDecimal(key), item.answer);
   }).length;
-  if (echoes / eligible >= COPY_SHARE) {
-    problems.push(
-      `The answer is just the ${spec.keyColumn}, which the request already gives. A rule has to work something out.`,
-    );
+  if (echoes / eligible >= copyShare) {
+    problems.push(copying(`the ${spec.keyColumn}`, 'which the request already gives', echoes));
   }
 
   for (const copy of copiesOf(tables, spec, cases)) {
-    if (copy.matches / eligible >= COPY_SHARE) {
-      problems.push(
-        `The answer is just the value of ${copy.name}, which needs no rule. A rule has to work something out.`,
-      );
+    if (copy.matches / eligible >= copyShare) {
+      problems.push(copying(`the value of ${copy.name}`, 'which needs no rule', copy.matches));
     } else if (copy.matches / eligible >= MENTION_SHARE) {
       flags.push(
         `In ${percent(copy.matches, eligible)} of the rows the answer is already written in ${copy.name}, so an agent could read it instead of working it out.`,

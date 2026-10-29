@@ -7,6 +7,7 @@ import {
   type TaskSpec,
 } from '@architect/shared';
 import { seededRandom, shuffle } from '../splits/random';
+import { DEFAULT_PASS_RATE } from './rule/guards';
 import type { RuleOutcome } from './rule/outcome';
 import { runFilteredList } from './templates/filtered-list';
 import { runGroupTotal } from './templates/group-total';
@@ -84,6 +85,7 @@ function runTemplate(
   table: Table,
   tables: ReadonlyMap<string, Table>,
   random: () => number,
+  passRate: number,
 ): TemplateRun<TaskSpec> & { outcome?: RuleOutcome | null } {
   switch (spec.template) {
     case 'lookup':
@@ -93,7 +95,7 @@ function runTemplate(
     case 'group_total':
       return runGroupTotal(spec, table, random);
     case 'rule':
-      return runRule(spec, tables);
+      return runRule(spec, tables, passRate);
   }
 }
 
@@ -171,6 +173,12 @@ function taskId(type: string, index: number): string {
 /** The rows of each table, by position, that the teacher was shown while drafting. */
 export type ShownRows = ReadonlyMap<string, ReadonlySet<number>>;
 
+/** What the tasks are made with besides the kinds of task: what was shown, and what is asked. */
+export interface GenerationContext {
+  shown?: ShownRows;
+  passRate?: number;
+}
+
 /**
  * The requests left once the ones worked out only from rows the teacher was shown are taken out.
  * What the teacher has read the answer to must not come up again as a practice task or in the
@@ -199,13 +207,14 @@ function exceptShown(
  * A request that asks what an earlier kind of task already asks, however its conditions are
  * ordered or which template wrote it, is left out, so that one question is never a practice task
  * and a final-test task at once. So are the requests whose answer comes only from rows the teacher
- * was shown (`shownRows`).
+ * was shown (`shown`). `passRate` is the share of tasks the job asks to get right, which a rule
+ * that is a copy in that many cases must not reach.
  */
 export function generateTasks(
   inputs: readonly TypeInput[],
   tables: ReadonlyMap<string, Table>,
   seed: number,
-  shownRows: ShownRows = new Map(),
+  { shown: shownRows = new Map(), passRate = DEFAULT_PASS_RATE }: GenerationContext = {},
 ): Generation {
   const rejected: Generation['rejected'] = [];
   const thin: Generation['thin'] = [];
@@ -229,7 +238,7 @@ export function generateTasks(
       });
       continue;
     }
-    const run = runTemplate(input.spec, table, tables, random);
+    const run = runTemplate(input.spec, table, tables, random, passRate);
     const problems = [...run.problems];
     let candidates = run.candidates;
     if (problems.length === 0) {
