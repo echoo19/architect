@@ -95,9 +95,9 @@ describe('the rule as Define puts it in front of the person', () => {
     expect(text(html)).not.toContain('Made-up numbers');
   });
 
-  it('puts the tag of an example that is not a record first and loud, and on no other', () => {
+  it('puts the tag of an example that is not a record first and set apart, and on no other', () => {
     // "Like T-2144, but with parts cost 0.005" was taken for T-2144 with a new price, so the tag
-    // is the first thing under the request, in the tone this screen gives what must not be missed.
+    // is the first thing under the request, set apart from the quiet tags beside it.
     const [real, made] = html
       .split('<li class="flex flex-col gap-3.5 rounded-2xl border border-line-card bg-panel')
       .slice(1);
@@ -109,10 +109,12 @@ describe('the rule as Define puts it in front of the person', () => {
     expect(made.indexOf('Not from your records')).toBeLessThan(
       made.indexOf('Shows how the rule rounds the total'),
     );
-    // A filled warning with its mark, the one the changed rule wears, and not a quiet outline.
+    // Set apart in the body's own ink with its mark, and not in the red the changed rule wears:
+    // a made-up example is not bad news.
     expect(made).toMatch(
-      /<span class="[^"]*bg-danger-tint[^"]*text-danger[^"]*"[^>]*><svg[^>]*lucide-circle-alert[^>]*aria-hidden="true"[^>]*>[\s\S]*?<\/svg>Not from your records<\/span>/,
+      /<span class="[^"]*border-line-strong[^"]*text-fg[" ][^>]*><svg[^>]*lucide-info[^>]*aria-hidden="true"[^>]*>[\s\S]*?<\/svg>Not from your records<\/span>/,
     );
+    expect(made).not.toMatch(/text-danger[^"]*"[^>]*><svg[^>]*>[\s\S]*?<\/svg>Not from/);
     expect(made).not.toMatch(/border-line-control text-fg-secondary[^"]*"[^>]*>Not from/);
     // What the example shows stays the quiet tag it was.
     expect(made).toMatch(/bg-card text-fg-soft[^"]*"[^>]*>Shows how the rule rounds the total</);

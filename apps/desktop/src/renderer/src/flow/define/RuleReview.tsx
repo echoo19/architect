@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { type Job, type RuleDetails, type RuleExample, type TaskPlan } from '@architect/shared';
 import { Badge, Button, cn, DetailList, Disclosure, Heading } from '@architect/ui';
-import { Check, CircleAlert, ScrollText } from 'lucide-react';
+import { Check, CircleAlert, Info, ScrollText } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { queryKeys } from '../../api/hooks';
 import { setQueryData } from '../../api/query';
@@ -209,8 +209,9 @@ function RuleCard({
 
 /**
  * One worked example. One that is not a record reads like one ("Like T-2144, but with parts cost
- * 0.005" was taken for T-2144 with a new price), so its tag comes first, in the tone this screen
- * uses for what the person must not miss, before what the example shows.
+ * 0.005" was taken for T-2144 with a new price), so its tag comes first, set apart from the quiet
+ * tags beside it, before what the example shows. It is not bad news, so it does not wear the red
+ * of a rule that changed since it was confirmed.
  */
 function Example({ example }: { example: RuleExample }) {
   return (
@@ -222,7 +223,7 @@ function Example({ example }: { example: RuleExample }) {
       {(example.covers.length > 0 || example.madeUp === true) && (
         <div className="flex flex-wrap gap-2">
           {example.madeUp === true && (
-            <Badge tone="alert" icon={<CircleAlert size={14} strokeWidth={2} aria-hidden />}>
+            <Badge tone="emphasis" icon={<Info size={14} strokeWidth={2} aria-hidden />}>
               Not from your records
             </Badge>
           )}

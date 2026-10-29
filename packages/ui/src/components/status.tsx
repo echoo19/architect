@@ -30,11 +30,17 @@ export function StatusDot({ tone = 'student', label, size = 7, className }: Stat
   );
 }
 
-export type BadgeTone = 'outline' | 'neutral' | 'student' | 'danger' | 'alert';
+export type BadgeTone = 'outline' | 'neutral' | 'emphasis' | 'student' | 'danger' | 'alert';
 
 const badgeTone: Record<BadgeTone, string> = {
   outline: 'border border-line-control text-fg-secondary',
   neutral: 'border border-line-control bg-card text-fg-soft',
+  /**
+   * What must not be missed but is not bad news, such as an example made up to show a step: the
+   * body's own ink and a stronger edge, so it stands out among quiet tags without the red of a
+   * warning.
+   */
+  emphasis: 'border border-line-strong font-medium text-fg',
   student: 'bg-student-tint font-medium text-student',
   danger: 'border border-danger-line text-danger',
   /** Bad news as loud as the good: a filled tint where `student` is a filled blue. */

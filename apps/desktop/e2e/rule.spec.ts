@@ -313,8 +313,8 @@ for (const theme of THEMES) {
     const notRecord = card.getByText('Not from your records', { exact: true });
     await expect(notRecord).toBeVisible();
     await expect(card.getByText('Made-up numbers')).toHaveCount(0);
-    // Its tag comes before what the example shows, and in a warning tone and not the quiet one of
-    // the tags beside it, so "Like T-2144, but with parts cost 0.005" is not taken for a ticket
+    // Its tag comes before what the example shows, and in the body's own ink and not the quiet one
+    // of the tags beside it, so "Like T-2144, but with parts cost 0.005" is not taken for a ticket
     // whose price changed.
     const made = card
       .getByRole('listitem')
