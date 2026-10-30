@@ -245,6 +245,27 @@ describe('the mentor gate', () => {
     ]);
   });
 
+  it('charges a call that ran without saying what it used at the most it was allowed', async () => {
+    const mentor = new FakeMentor();
+    mentor.script = () => {
+      throw Object.assign(new AdapterError('bad_response', 'No token usage.'), {
+        usage: { inputTokens: 0, outputTokens: 0 },
+        costUsd: null,
+        uncounted: true,
+      });
+    };
+    const asked: (number | null)[] = [];
+    const charges: MentorCharge[] = [];
+    const call = recordingGate(asked).complete(mentor, request('Fine.'), {
+      onSpent: (charge) => charges.push(charge),
+    });
+    await expect(call).rejects.toMatchObject({ code: 'bad_response' });
+    expect(asked[0]).toBeGreaterThan(0);
+    expect(charges).toEqual([
+      { model: 'fake-mentor-1', usage: { inputTokens: 0, outputTokens: 0 }, costUsd: asked[0] },
+    ]);
+  });
+
   it('passes a clean call through and charges what it cost', async () => {
     const mentor = new FakeMentor();
     mentor.script = () => hypothesis('A', 'fix:invoice');

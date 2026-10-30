@@ -97,3 +97,7 @@ The Meta docs call the key `MODEL_API_KEY`, and the OpenAI SDK does not read it 
 ## Running the app with real keys while developing
 
 A packaged app reads keys only from Settings. An unpackaged build started with `ARCHITECT_KEYS_FROM_ENV=1` also reads them from the environment, by the names the developer scripts use (`META_API_TOKEN`, `OPENROUTER_API_KEY`, and so on), so it can be run or recorded with real models without typing a key into it. The environment is only read: a key saved in Settings wins, and nothing from the environment is ever saved.
+
+## Meta's stream can end without its usage
+
+About one streamed reply in three from Meta's API ends without the usage chunk, though Meta bills the call (seen Oct 30). Architect asks Meta for whole replies (`unstreamed` in `chatTraits`), which always carry their usage. A reply from any provider that still comes without usage is refused and charged the most the gate allowed it to cost, so the dollar cap holds.
