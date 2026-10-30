@@ -2,6 +2,16 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-31 (Sat), a Lab field from several organizations' folders (branch `lab/own-field`)
+
+**Done** (no model was called, no GPU, no spend)
+- `docs/JOB_FORMAT.md`: the job folder format with a worked example, linked from the README and from a failed import.
+- Architect Lab: "Several organizations" on Describe and New field on Fields. Describe the job once, add each organization's folder, name it, Taught on or Never seen. The teacher drafts the specification once from the taught organizations' files; Architect makes each organization's tasks with the existing template step, writes a job folder and imports it, which seals the never-seen ones (decision 083). The personal edition is unchanged.
+- Tests: engine `drafting-field.test.ts` (scripted teacher, leak test), hidden e2e `new-field.spec.ts`, screenshot `new-field-orgs-dark.png`.
+
+**Next**
+- A field with a policy rule, or with end-state tasks, still needs a hand-written folder.
+
 ## 2026-10-31 (Sat, morning), in flight: the third tutor run, post-hoc certification, serve, runner fix, the Tutor rename, a platform audit (start the next session here)
 
 **Rules learned today**
