@@ -38,7 +38,7 @@ export function Organizations({ grid }: { grid: OrgGrid }) {
       <div className="overflow-x-auto border-b border-line">
         <table
           aria-label="Final test by organization"
-          className="w-full min-w-[640px] border-collapse text-ui"
+          className="w-full min-w-[640px] table-fixed border-collapse text-ui"
         >
           <thead>
             <tr>
