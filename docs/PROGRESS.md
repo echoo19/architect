@@ -27,6 +27,16 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Next**
 - Streaming, if a client needs it.
 
+## 2026-10-30 (Fri, night), a comparison pauses instead of dropping an arm (branch `runner/no-silent-drop`)
+
+**Done** (no model was called, no GPU, no spend)
+- The runner no longer drops an arm for money. When an arm can't be paid for at the measured price, before it starts or before its locked test is released, the comparison stops as `needs_funding`, with the arm, what it needs, what is left and the cap, and releases nothing (decision 081). This is what lost the targeted arm in phil-2's second halt.
+- The person answers with `--raise-student-usd` or `--drop-arms` (in the app: `resume` with `studentCapUsd` or `dropArms`), only before the release. A raise is recorded as an amendment with both caps and the price; a drop is recorded as the person's decision.
+- The Experiments screen shows the sentence with Raise the cap and Drop the arm, each behind the existing confirm dialog.
+
+**Next**
+- A hidden e2e for the funding card on the experiments stand-in.
+
 ## 2026-10-31 (Sat), Sol's review of the centerpiece (branch `certify/sol-fixes`)
 
 **Done** (no model was called, no GPU, no spend)

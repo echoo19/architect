@@ -510,6 +510,57 @@ export const TaskSweepSchema = z.object({
 });
 export type TaskSweep = z.infer<typeof TaskSweepSchema>;
 
+/**
+ * A comparison paused because an arm can't be paid for at what an attempt has really cost
+ * (decision 081). Nothing is released while it stands: the person raises the student cap or
+ * drops the arm.
+ */
+export const FundingPauseSchema = z.object({
+  arm: ArmIdSchema,
+  /** `start`: the arm hasn't started; `test`: it froze, and its locked test can't be paid for. */
+  stage: z.enum(['start', 'test']),
+  /** What a hosted attempt has cost so far. */
+  priceUsd: z.number().nonnegative(),
+  /** What the arm needs at that price, with the runner's headroom. */
+  needUsd: z.number().nonnegative(),
+  /** What is left under the cap after what was paid and what the arms before it hold. */
+  leftUsd: z.number(),
+  /** The student cap it is held to now. */
+  capUsd: z.number().nonnegative(),
+  at: z.iso.datetime(),
+});
+export type FundingPause = z.infer<typeof FundingPauseSchema>;
+
+/** The least student cap that pays for the paused arm, rounded up to the cent. */
+export function capToFund(pause: FundingPause): number {
+  return Math.ceil((pause.capUsd + pause.needUsd - Math.max(0, pause.leftUsd)) * 100) / 100;
+}
+
+/** The pause said plainly: which arm, what it needs, what is left, and the two ways on. */
+export function fundingMessage(pause: FundingPause): string {
+  const usd = (value: number) => `$${value.toFixed(2)}`;
+  const what =
+    pause.stage === 'start'
+      ? `${ARM_LABELS[pause.arm]} can't be paid for`
+      : `${ARM_LABELS[pause.arm]}'s final test can't be paid for`;
+  return `${what} at what an attempt has really cost ($${pause.priceUsd.toFixed(4)}): it needs ${usd(pause.needUsd)} of the hosted student's budget, and ${usd(Math.max(0, pause.leftUsd))} is left under the ${usd(pause.capUsd)} cap. It waits for you, and no final test is released: raise the cap to at least ${usd(capToFund(pause))}, or drop the arm.`;
+}
+
+/** The person raised the student cap before any locked test was released (decision 081). */
+export const CapAmendmentSchema = z.object({
+  /** The arm the comparison paused for, when it paused. */
+  arm: ArmIdSchema.nullable(),
+  fromUsd: z.number().nonnegative(),
+  toUsd: z.number().nonnegative(),
+  /** The arm's own student cap, raised to what it needs at the measured price; null if unchanged. */
+  armFromUsd: z.number().nonnegative().nullable(),
+  armToUsd: z.number().nonnegative().nullable(),
+  /** What a hosted attempt had cost when the cap was raised. */
+  priceUsd: z.number().nonnegative(),
+  at: z.iso.datetime(),
+});
+export type CapAmendment = z.infer<typeof CapAmendmentSchema>;
+
 export const ComparisonReportSchema = z.object({
   format: z.literal(COMPARISON_REPORT_FORMAT),
   generatedAt: z.iso.datetime(),
@@ -540,6 +591,10 @@ export const ComparisonReportSchema = z.object({
     adapterProtocol: AdapterProtocolSchema,
     /** When development closed and the locked tests were released; no arm developed after it. */
     releasedAt: z.iso.datetime().nullable(),
+    /** Why it waits for the person before any locked test is released, when it does. */
+    funding: FundingPauseSchema.nullable().default(null),
+    /** Each raise of the student cap the person made before the release. */
+    amendments: z.array(CapAmendmentSchema).default([]),
   }),
   /** The job and the regression check's job, pinned when the plan was made. */
   inputs: z

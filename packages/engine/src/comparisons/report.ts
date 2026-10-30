@@ -707,8 +707,10 @@ function statusOf(
     case 'failed':
       return { status: 'incomplete', reason: run.run.error ?? 'The run failed.' };
     default:
-      // Its locked test stayed held for money: frozen, and never tested.
-      if (decision?.kind === 'held') return { status: 'stopped', reason: decision.reason };
+      // Its locked test stayed held for money, or the person dropped it: frozen, and never tested.
+      if (decision?.kind === 'held' || decision?.kind === 'dropped') {
+        return { status: 'stopped', reason: decision.reason };
+      }
       if (isHeld(run)) {
         if (stopped !== null) return { status: 'stopped', reason: stopped };
         return {
@@ -1104,6 +1106,11 @@ function disclosures(
     'Claims rest on the locked test alone. Dev gains were picked by the keep rule, so they lean upward and are not claimed.',
   );
   lines.push(seedsDisclosure(plan));
+  for (const amendment of plan.amendments) {
+    lines.push(
+      `Before any locked test was released, the hosted student's cap was raised from $${amendment.fromUsd.toFixed(2)} to $${amendment.toUsd.toFixed(2)} (${amendment.at}), when an attempt had cost $${amendment.priceUsd.toFixed(4)}${amendment.arm === null ? '' : `, to pay for ${ARM_LABELS[amendment.arm].toLowerCase()}`}${amendment.armToUsd === null ? '' : `, whose own cap went from $${(amendment.armFromUsd ?? 0).toFixed(2)} to $${amendment.armToUsd.toFixed(2)}`}.`,
+    );
+  }
   lines.push(...fieldDisclosures(input));
   if (backends.some((table) => table.paired.length > 0)) {
     lines.push(
@@ -1310,6 +1317,8 @@ export async function buildReport(input: ReportInput): Promise<ComparisonReport>
     order: [...ARM_ORDER],
     adapterProtocol: settings.adapterProtocol,
     releasedAt: input.plan?.releasedAt ?? null,
+    funding: input.plan?.funding ?? null,
+    amendments: input.plan?.amendments ?? [],
   };
   const report: ComparisonReport = {
     format: COMPARISON_REPORT_FORMAT,

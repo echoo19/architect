@@ -90,6 +90,8 @@ export async function installExperimentsFake(
       calibration: data.calibration,
       study: null,
       released: released(record),
+      funding: null,
+      amendments: [],
       report: released(record) ? data.released : record.status === 'draft' ? null : data.held,
     });
     const handle = (channel: string, reply: (...args: never[]) => unknown) => {
@@ -165,7 +167,9 @@ export async function installExperimentsFake(
       });
     };
     handle('experiments:start', (id: string) => run(id, ['preregistered']));
-    handle('experiments:resume', (id: string) => run(id, ['paused', 'waiting', 'incomplete']));
+    handle('experiments:resume', (id: string) =>
+      run(id, ['paused', 'waiting', 'needs_funding', 'incomplete']),
+    );
     handle('experiments:pause', (id: string) => {
       const record = find(id);
       if (record.status !== 'running') throw coded('experiment_state', `It is ${record.status}.`);
