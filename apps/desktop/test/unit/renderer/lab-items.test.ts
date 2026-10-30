@@ -87,15 +87,22 @@ describe('what needs the person', () => {
       ({
         runId: 'run_i',
         status: 'finished',
+        fromVersion: 1,
         candidateVersion: 2,
+        dev: { before: { pass: 75, total: 80 }, after: { pass: 70, total: 80 } },
         promotion: { allowed: true, reason: '' },
         ...patch,
       }) as Improvement;
     const needs = teachingNeeds(agent(), corrections, [improvement({})]);
+    // Both scores, so a version that scored lower is never offered as the better one.
     expect(needs.map((need) => [need.kind, need.detail])).toEqual([
       ['lessons', '2 lessons to review'],
-      ['promote', 'Version 2 is ready to promote'],
+      ['promote', 'Version 2: 88% on check tasks, active version 1: 94%'],
     ]);
+    // Started from another version: the active one's score isn't in this record.
+    expect(
+      teachingNeeds(agent({ activeVersion: 3 }), [], [improvement({ fromVersion: 1 })])[0]?.detail,
+    ).toBe('Version 2: 88% on check tasks');
     expect(needs[0]?.target).toEqual({ teaching: 'grd_1' });
     for (const held of [
       improvement({ promotion: { allowed: false, reason: 'It lost a skill' } }),

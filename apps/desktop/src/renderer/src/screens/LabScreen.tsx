@@ -1,5 +1,5 @@
 import type { GraduateSummary, JobSummary } from '@architect/shared';
-import { Button, CardGrid, cn, EmptyState, Skeleton } from '@architect/ui';
+import { Button, EmptyState, Skeleton, Stagger } from '@architect/ui';
 import { LayoutGrid } from 'lucide-react';
 import { useGraduates, useJobs, useSettings } from '../api/hooks';
 import { ProblemState } from '../components/ProblemState';
@@ -64,9 +64,12 @@ export function LabScreen() {
   );
 }
 
-/** Both rows share one set of columns, so their edges line up: a wide one and a narrower one. */
-const COLUMNS =
-  'lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] 2xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]';
+/**
+ * Two columns, a wide one and a narrower one, each a stack of cards at its own height: what needs
+ * the person, what finished and the fields at the left; what runs, what it cost and the agents at
+ * the right. A short card never stretches to match the one beside it.
+ */
+const COLUMN = 'flex min-w-0 flex-col gap-4';
 
 function LabBoard({
   jobs,
@@ -78,17 +81,17 @@ function LabBoard({
   const running = runningRuns(jobs);
   const finished = finishedRuns(jobs);
   return (
-    <div className="flex flex-col gap-4">
-      <CardGrid className={cn(COLUMNS, 'items-stretch')}>
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <Stagger className={COLUMN}>
         <NeedsYouCard jobs={jobs} graduates={graduates} />
-        <RunningCard rows={running} />
-      </CardGrid>
-      <CardGrid className={COLUMNS}>
         <FinishedCard rows={finished} />
-        <SpendCard rows={[...running, ...finished].slice(0, 3)} />
         <FieldsCard jobs={jobs} />
+      </Stagger>
+      <Stagger className={COLUMN}>
+        <RunningCard rows={running} />
+        <SpendCard rows={[...running, ...finished].slice(0, 3)} />
         <AgentsCard graduates={graduates} />
-      </CardGrid>
+      </Stagger>
     </div>
   );
 }
@@ -108,15 +111,20 @@ function LabSkeleton() {
   );
 }
 
-/** A fresh install: nothing made, nothing running. Each way in starts the flow. */
+/**
+ * A fresh install: nothing made, nothing running. One line says what a field is and who the two
+ * models are; each way in starts the flow.
+ */
 function NothingYet() {
   const settings = useSettings();
   const pitch =
     settings.status === 'success'
-      ? `Describe a field, and ${mentorName(settings.data.defaultMentor)} teaches ${studentName(
+      ? `A field is one kind of work that many organizations do, like tutoring at academies. ${mentorName(
+          settings.data.defaultMentor,
+        )}, the teacher model, teaches ${studentName(
           settings.data.defaultStudent,
-        )} to work in it, then tests it on organizations it never saw.`
-      : 'Describe a field, and Architect teaches an agent to work in it.';
+        )}, the small model on this computer, to do it, then tests it on organizations it never saw.`
+      : 'A field is one kind of work that many organizations do. Architect teaches an agent to do it, then tests it on organizations it never saw.';
   return (
     <EmptyState
       icon={<LayoutGrid aria-hidden />}

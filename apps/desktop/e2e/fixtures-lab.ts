@@ -13,24 +13,42 @@ import { LLAMA_SERVER_READY, LOCAL_WITH_GLIMMER, type EngineReplies, stubEngine 
 import { FIELD_AGENT, FIELD_CHAT, FIELD_JOB, FIELD_REPORT } from './fixtures-field';
 import { stubByKey } from './fixtures-flow';
 import { FINISHED, FLAGGED } from './fixtures-teaching';
+import { AGENT_WITH_VERSIONS } from './fixtures-versions';
 import { CHATS } from './fixtures-workspace';
-import { AT, at, detail, graduate, makeRun, STORY, storyReport, trainedJob } from './story';
+import { AT, at, detail, makeRun, STORY, storyReport, trainedJob } from './story';
 
 /*
  * The Lab against the stand-in engine: Phil's field job finished and qualified, the service desk
  * training, the returns desk asking a question, the clinic intake's results waiting, and the
- * service desk agent with a chat to approve, a lesson to review and a version to promote. Every
- * figure is one of the shared story's, so the Lab agrees with the screens it opens.
+ * service desk agent with a chat to approve, a lesson to review and a version to weigh. Every
+ * figure is one of the shared story's, and the agents are the ones Models lists (version 2 active
+ * for the service desk and for Phil), so the Lab agrees with the screens it opens.
  */
 
 export const PHIL_ID = 'grd_phil';
+export const MINI_ID = 'grd_phil_mini';
 
-const PHIL: GraduateSummary = {
+export const PHIL_AGENT: GraduateSummary = {
   ...FIELD_AGENT,
   id: PHIL_ID,
   path: 'graduates/phil',
-  manifest: { ...FIELD_AGENT.manifest, id: PHIL_ID },
+  activeVersion: 2,
+  versions: 2,
+  manifest: { ...FIELD_AGENT.manifest, id: PHIL_ID, jobId: 'job_phil' },
 };
+
+export const MINI_AGENT: GraduateSummary = {
+  ...PHIL_AGENT,
+  id: MINI_ID,
+  name: 'Phil Mini',
+  path: 'graduates/phil-mini',
+  activeVersion: 1,
+  versions: 1,
+  manifest: { ...PHIL_AGENT.manifest, id: MINI_ID, name: 'Phil Mini' },
+};
+
+/** Every agent, as Models lists them. */
+export const LAB_AGENTS: GraduateSummary[] = [AGENT_WITH_VERSIONS, PHIL_AGENT, MINI_AGENT];
 
 interface Entry {
   name: string;
@@ -130,19 +148,23 @@ const JOBS = Object.fromEntries(
   ]),
 );
 
-/** The service desk's improvement: version 3 made, measured, and allowed to be promoted. */
+/**
+ * The service desk's improvement from the active version 2: version 3 made and measured, and
+ * allowed to be promoted though it passed fewer check tasks (70 of 80 against 75), as Models shows.
+ */
 const IMPROVEMENT: Improvement = ImprovementSchema.parse({
   ...FINISHED,
+  dev: { before: { pass: 75, total: 80 }, after: { pass: 70, total: 80 } },
   runId: 'run_improve_1',
   graduateId: STORY.graduateId,
-  fromVersion: 1,
+  fromVersion: 2,
   corrections: ['cor_payments'],
   budget: { maxRounds: 3, maxMentorUsd: 1 },
   candidateVersion: 3,
 });
 
 const BASE: EngineReplies = {
-  'graduates:list': [graduate, PHIL],
+  'graduates:list': LAB_AGENTS,
   'jobs:list': LAB_JOBS,
   'connections:detectLocal': LOCAL_WITH_GLIMMER,
   'connections:llamaServer': LLAMA_SERVER_READY,
@@ -158,11 +180,17 @@ export async function stubLab(app: ElectronApplication): Promise<void> {
   await stubByKey(app, 'workspace:listChats', {
     [STORY.graduateId]: Object.values(CHATS),
     [PHIL_ID]: [{ ...FIELD_CHAT, graduateId: PHIL_ID, updatedAt: at(600) }],
+    [MINI_ID]: [],
   });
-  await stubByKey(app, 'teach:list', { [STORY.graduateId]: FLAGGED, [PHIL_ID]: [] });
+  await stubByKey(app, 'teach:list', {
+    [STORY.graduateId]: FLAGGED,
+    [PHIL_ID]: [],
+    [MINI_ID]: [],
+  });
   await stubByKey(app, 'teach:improvements', {
     [STORY.graduateId]: [IMPROVEMENT],
     [PHIL_ID]: [],
+    [MINI_ID]: [],
   });
 }
 
