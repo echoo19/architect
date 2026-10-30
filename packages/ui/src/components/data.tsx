@@ -63,7 +63,8 @@ export interface MeterProps {
   label: string;
   /** Read out instead of a percentage, e.g. "$2.40 of $5". */
   valueText?: string;
-  tone?: 'fg' | 'student';
+  /** Whose it is: the student's blue, the mentor's amber, or plain. */
+  tone?: 'fg' | 'student' | 'mentor';
   /** 3px for budgets, 4px for per-skill scores. */
   thickness?: 3 | 4;
   /** A mentor-colored tick, 0 to 1, for comparing against the mentor's own score. */
@@ -72,6 +73,8 @@ export interface MeterProps {
 }
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
+
+const METER_TONES = { fg: 'bg-fg', student: 'bg-student', mentor: 'bg-mentor' } as const;
 
 export function Meter({
   value,
@@ -103,10 +106,7 @@ export function Meter({
         initial={false}
         animate={{ width: `${fill * 100}%` }}
         transition={springs.smooth}
-        className={cn(
-          'h-full rounded-full',
-          over ? 'bg-danger' : tone === 'fg' ? 'bg-fg' : 'bg-student',
-        )}
+        className={cn('h-full rounded-full', over ? 'bg-danger' : METER_TONES[tone])}
       />
       {marker !== undefined && (
         <div
@@ -129,6 +129,7 @@ export interface CapMeterProps {
   cap?: number | undefined;
   /** Writes an amount, such as `$2.40`. */
   format: (amount: number) => string;
+  tone?: MeterProps['tone'];
   className?: string;
 }
 
@@ -136,7 +137,15 @@ export interface CapMeterProps {
  * An amount against its cap: the label, "used of cap" in tabular figures, and a thin meter under
  * them. Over the cap, the figures and the meter turn red.
  */
-export function CapMeter({ label, name, used, cap, format, className }: CapMeterProps) {
+export function CapMeter({
+  label,
+  name,
+  used,
+  cap,
+  format,
+  tone = 'fg',
+  className,
+}: CapMeterProps) {
   const over = cap !== undefined && used > cap;
   const reading = cap === undefined ? format(used) : `${format(used)} of ${format(cap)}`;
   const accessible = name ?? (typeof label === 'string' ? label : 'Spending');
@@ -157,6 +166,7 @@ export function CapMeter({ label, name, used, cap, format, className }: CapMeter
       {cap !== undefined && (
         <Meter
           label={accessible}
+          tone={tone}
           value={cap === 0 ? (used > 0 ? 2 : 0) : used / cap}
           valueText={over ? `${reading}, over the cap` : reading}
         />

@@ -2,7 +2,15 @@ import { useSyncExternalStore } from 'react';
 
 /** Every screen the app can show. The hash holds the path, e.g. `#/runs/run_1/train`. */
 export type Route =
+  /** The Lab: what needs the person, what runs, what just finished and what it cost. */
   | { name: 'home' }
+  | { name: 'fields' }
+  | { name: 'field'; jobId: string }
+  | { name: 'experiments' }
+  | { name: 'experiment-new' }
+  | { name: 'experiment'; experimentId: string }
+  | { name: 'models' }
+  | { name: 'compute' }
   | { name: 'welcome' }
   | { name: 'chat'; graduateId: string; chatId: string }
   | { name: 'new' }
@@ -18,6 +26,13 @@ const segment = (value: string) => encodeURIComponent(value);
 
 export const paths = {
   home: () => '/',
+  fields: () => '/fields',
+  field: (jobId: string) => `/fields/${segment(jobId)}`,
+  experiments: () => '/experiments',
+  newExperiment: () => '/experiments/new',
+  experiment: (experimentId: string) => `/experiments/${segment(experimentId)}`,
+  models: () => '/models',
+  compute: () => '/compute',
   welcome: () => '/welcome',
   chat: (graduateId: string, chatId: string) =>
     `/agents/${segment(graduateId)}/chats/${segment(chatId)}`,
@@ -48,6 +63,15 @@ export function parsePath(path: string): Route {
   if (first === 'welcome' && exactly(1)) return { name: 'welcome' };
   if (first === 'new' && exactly(1)) return { name: 'new' };
   if (first === 'import' && exactly(1)) return { name: 'import' };
+  if (first === 'fields' && exactly(1)) return { name: 'fields' };
+  if (first === 'fields' && id && exactly(2)) return { name: 'field', jobId: id };
+  if (first === 'experiments' && exactly(1)) return { name: 'experiments' };
+  if (first === 'experiments' && id === 'new' && exactly(2)) return { name: 'experiment-new' };
+  if (first === 'experiments' && id && exactly(2)) {
+    return { name: 'experiment', experimentId: id };
+  }
+  if (first === 'models' && exactly(1)) return { name: 'models' };
+  if (first === 'compute' && exactly(1)) return { name: 'compute' };
   if (first === 'agents' && third === 'chats' && id && fourth && exactly(4)) {
     return { name: 'chat', graduateId: id, chatId: fourth };
   }

@@ -24,10 +24,10 @@ export interface CardProps {
 export function Card({ title, icon, action, wide, flush, children, className }: CardProps) {
   // In a CardGrid the card takes its turn to rise in; on its own it simply rises in.
   return (
-    <StaggerItem className={cn('min-w-0', wide && 'lg:col-span-2')}>
+    <StaggerItem className={cn('flex min-w-0 flex-col', wide && 'lg:col-span-2')}>
       <section
         aria-label={title}
-        className={cn('flex min-w-0 flex-col rounded-card bg-card shadow-edge', className)}
+        className={cn('flex min-w-0 flex-1 flex-col rounded-card bg-card shadow-edge', className)}
       >
         <div className="flex min-h-14 items-center gap-2.5 pl-6 pr-4 pt-1">
           {icon && <span className="flex shrink-0 [&_svg]:size-4">{icon}</span>}
