@@ -57,7 +57,7 @@ export function Stat({
 }
 
 export interface MeterProps {
-  /** Fill from 0 to 1. */
+  /** Fill from 0 to 1. Past 1 the meter is full and red: what it measures went over its cap. */
   value: number;
   /** Accessible name, e.g. "Spark spending". */
   label: string;
@@ -83,10 +83,12 @@ export function Meter({
   className,
 }: MeterProps) {
   const fill = clamp(value);
+  const over = value > 1;
   return (
     <div
       role="meter"
       aria-label={label}
+      data-over={over || undefined}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(fill * 100)}
@@ -101,13 +103,62 @@ export function Meter({
         initial={false}
         animate={{ width: `${fill * 100}%` }}
         transition={springs.smooth}
-        className={cn('h-full rounded-full', tone === 'fg' ? 'bg-fg' : 'bg-student')}
+        className={cn(
+          'h-full rounded-full',
+          over ? 'bg-danger' : tone === 'fg' ? 'bg-fg' : 'bg-student',
+        )}
       />
       {marker !== undefined && (
         <div
           aria-hidden
           className="absolute -top-1 h-3 w-0.5 rounded-mark bg-mentor"
           style={{ left: `clamp(0px, calc(${clamp(marker) * 100}% - 1px), calc(100% - 2px))` }}
+        />
+      )}
+    </div>
+  );
+}
+
+export interface CapMeterProps {
+  /** What is measured, such as "Spark". Also the meter's accessible name. */
+  label: ReactNode;
+  /** Plain-text name for assistive tech when `label` is not a string. */
+  name?: string;
+  used: number;
+  /** The hard cap. Absent when none was recorded: the amount stands alone, with no meter. */
+  cap?: number | undefined;
+  /** Writes an amount, such as `$2.40`. */
+  format: (amount: number) => string;
+  className?: string;
+}
+
+/**
+ * An amount against its cap: the label, "used of cap" in tabular figures, and a thin meter under
+ * them. Over the cap, the figures and the meter turn red.
+ */
+export function CapMeter({ label, name, used, cap, format, className }: CapMeterProps) {
+  const over = cap !== undefined && used > cap;
+  const reading = cap === undefined ? format(used) : `${format(used)} of ${format(cap)}`;
+  const accessible = name ?? (typeof label === 'string' ? label : 'Spending');
+  return (
+    <div className={cn('flex flex-col gap-2', className)}>
+      <div className="flex items-baseline justify-between gap-3 text-ui">
+        <span className="min-w-0 truncate">{label}</span>
+        <span className={cn('shrink-0 tabular-nums', over && 'text-danger')}>
+          {cap === undefined ? (
+            format(used)
+          ) : (
+            <>
+              <span className="font-medium">{format(used)}</span> of {format(cap)}
+            </>
+          )}
+        </span>
+      </div>
+      {cap !== undefined && (
+        <Meter
+          label={accessible}
+          value={cap === 0 ? (used > 0 ? 2 : 0) : used / cap}
+          valueText={over ? `${reading}, over the cap` : reading}
         />
       )}
     </div>
