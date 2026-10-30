@@ -11,9 +11,9 @@ import type {
   WriteRecord,
 } from '@architect/shared';
 import { openAgentFiles, type AgentFiles } from '../files/agent-files';
-import type { Sandbox } from '../sandbox/types';
+import type { Sandbox, SandboxData } from '../sandbox/types';
 import { TOOL_RUNTIME } from '../tools/specs';
-import { createToolbox } from '../tools/toolbox';
+import { createToolbox, type Toolbox } from '../tools/toolbox';
 
 type ModelStep = Extract<TraceStep, { kind: 'model' }>;
 type ToolStep = Extract<TraceStep, { kind: 'tool' }>;
@@ -76,7 +76,7 @@ export interface CheckpointInput {
   turn: number;
 }
 
-function diverged(reason: string): CheckpointResult {
+function diverged(reason: string): { ok: false; reason: string } {
   return { ok: false, reason };
 }
 
@@ -108,26 +108,28 @@ function sameChange(a: WriteRecord | undefined, b: WriteRecord | undefined): boo
   return a.path === b.path && a.patch === b.patch && a.applied === b.applied && a.op === b.op;
 }
 
+/** A recorded attempt opened again on a fresh scratch copy of its data, checked against the record. */
+interface OpenedReplay {
+  files: AgentFiles;
+  startTexts: Record<string, string>;
+  toolbox: Toolbox;
+  /** Each call's recorded result text, by call id. */
+  results: Map<string, string>;
+  turns: TraceTurn[];
+  replay: ReplaySetup;
+}
+
+type ReplayInput = Omit<CheckpointInput, 'turn'>;
+
 /**
- * Rebuilds the state before model turn `turn` of a recorded attempt. It starts from a fresh
- * scratch copy of the original data and checks it is what the attempt began with: the data's
- * hashes, the harness hash, the tools' version and the working date. Then it replays every
- * recorded tool call before the turn through the same tools and checks each result's text and
- * each file change against the record. Any difference ends the replay with the reason; nothing
- * is repaired to make it match.
+ * Opens a fresh scratch copy of the original data after checking the attempt's record holds
+ * here: the harness hash, the tools' version, the working date, and then the data's hashes.
  */
-export async function rebuildCheckpoint(input: CheckpointInput): Promise<CheckpointResult> {
-  const { trace, job, harness, turn } = input;
-  const setup = trace.replay;
-  if (setup === undefined) {
-    return diverged("The attempt's trace has no record of what it started from.");
-  }
-  const turns = traceTurns(trace);
-  if (turn < 2 || turn > turns.length) {
-    return diverged(
-      `Turn ${turn} isn't a point to resume from: the attempt took ${turns.length} model turns, and turn 1 is the whole task.`,
-    );
-  }
+async function openReplay(
+  input: ReplayInput,
+  setup: ReplaySetup,
+): Promise<{ ok: true; opened: OpenedReplay } | { ok: false; reason: string }> {
+  const { trace, job, harness } = input;
   if (setup.harnessHash !== harness.meta.hash) {
     return diverged('The harness changed since the attempt: its hash differs from the record.');
   }
@@ -139,11 +141,6 @@ export async function rebuildCheckpoint(input: CheckpointInput): Promise<Checkpo
   if (setup.today !== input.today) {
     return diverged(`The attempt worked as of ${setup.today}, not ${input.today}.`);
   }
-  const at = turnIndex(trace.messages, turn);
-  if (at < 0 || trace.messages[0]?.role !== 'system') {
-    return diverged("The attempt's conversation doesn't hold its turns as recorded.");
-  }
-
   const files = await openAgentFiles({
     dataDir: taskDataDir(input.jobDir, input),
     files: job.data.files,
@@ -160,26 +157,65 @@ export async function rebuildCheckpoint(input: CheckpointInput): Promise<Checkpo
       message.role === 'tool' ? [[message.toolCallId, message.content] as const] : [],
     ),
   );
+  return {
+    ok: true,
+    opened: { files, startTexts, toolbox, results, turns: traceTurns(trace), replay: setup },
+  };
+}
 
+/** Replays one recorded call; why its text or file change differs from the record, or null. */
+async function replayCall(
+  opened: OpenedReplay,
+  turn: TraceTurn,
+  call: ToolCall,
+): Promise<string | null> {
+  const step = turn.tools.find((tool) => tool.callId === call.id);
+  const content = opened.results.get(call.id);
+  if (step === undefined || content === undefined) {
+    return `Turn ${turn.number}'s ${call.name} call has no recorded result.`;
+  }
+  const outcome = await opened.toolbox.run(call);
+  if (outcome.content !== content) {
+    return `Turn ${turn.number}: ${call.name} returned different text than it did in the attempt.`;
+  }
+  if (!sameChange(outcome.change, step.change)) {
+    return `Turn ${turn.number}: ${call.name} changed ${step.change?.path ?? outcome.change?.path ?? 'a file'} differently than it did in the attempt.`;
+  }
+  return null;
+}
+
+/**
+ * Rebuilds the state before model turn `turn` of a recorded attempt. It starts from a fresh
+ * scratch copy of the original data and checks it is what the attempt began with: the data's
+ * hashes, the harness hash, the tools' version and the working date. Then it replays every
+ * recorded tool call before the turn through the same tools and checks each result's text and
+ * each file change against the record. Any difference ends the replay with the reason; nothing
+ * is repaired to make it match.
+ */
+export async function rebuildCheckpoint(input: CheckpointInput): Promise<CheckpointResult> {
+  const { trace, turn } = input;
+  const setup = trace.replay;
+  if (setup === undefined) {
+    return diverged("The attempt's trace has no record of what it started from.");
+  }
+  const turns = traceTurns(trace);
+  if (turn < 2 || turn > turns.length) {
+    return diverged(
+      `Turn ${turn} isn't a point to resume from: the attempt took ${turns.length} model turns, and turn 1 is the whole task.`,
+    );
+  }
+  const at = turnIndex(trace.messages, turn);
+  const opening = await openReplay(input, setup);
+  if (!opening.ok) return opening;
+  if (at < 0 || trace.messages[0]?.role !== 'system') {
+    return diverged("The attempt's conversation doesn't hold its turns as recorded.");
+  }
+  const { opened } = opening;
   const calls: ToolCall[] = [];
-  for (const recorded of turns.slice(0, turn - 1)) {
+  for (const recorded of opened.turns.slice(0, turn - 1)) {
     for (const call of recorded.model.toolCalls) {
-      const step = recorded.tools.find((tool) => tool.callId === call.id);
-      const content = results.get(call.id);
-      if (step === undefined || content === undefined) {
-        return diverged(`Turn ${recorded.number}'s ${call.name} call has no recorded result.`);
-      }
-      const outcome = await toolbox.run(call);
-      if (outcome.content !== content) {
-        return diverged(
-          `Turn ${recorded.number}: ${call.name} returned different text than it did in the attempt.`,
-        );
-      }
-      if (!sameChange(outcome.change, step.change)) {
-        return diverged(
-          `Turn ${recorded.number}: ${call.name} changed ${step.change?.path ?? outcome.change?.path ?? 'a file'} differently than it did in the attempt.`,
-        );
-      }
+      const problem = await replayCall(opened, recorded, call);
+      if (problem !== null) return diverged(problem);
       calls.push(call);
     }
   }
@@ -188,11 +224,47 @@ export async function rebuildCheckpoint(input: CheckpointInput): Promise<Checkpo
     checkpoint: {
       turn,
       messages: trace.messages.slice(0, at),
-      files,
-      startTexts,
-      replay: setup,
+      files: opened.files,
+      startTexts: opened.startTexts,
+      replay: opened.replay,
       replayedCalls: calls.length,
       calls,
     },
   };
+}
+
+/** One call of a recorded attempt, replayed: the call and the data it was given. */
+export interface ReplayedCall {
+  call: ToolCall;
+  /** The files just before the call, as the sandbox hands them to a helper. */
+  data: SandboxData;
+}
+
+export type ReplayedCallResult =
+  { ok: true; replayed: ReplayedCall } | { ok: false; reason: string };
+
+/**
+ * Replays a recorded attempt up to and including one of its calls, checked call by call as a
+ * checkpoint is, and returns the data that call was given. The call's own text must match the
+ * record too, so the inputs are the ones the attempt really used.
+ */
+export async function replayToCall(
+  input: ReplayInput & { callId: string },
+): Promise<ReplayedCallResult> {
+  const setup = input.trace.replay;
+  if (setup === undefined) {
+    return diverged("The attempt's trace has no record of what it started from.");
+  }
+  const opening = await openReplay(input, setup);
+  if (!opening.ok) return opening;
+  const { opened } = opening;
+  for (const turn of opened.turns) {
+    for (const call of turn.model.toolCalls) {
+      const data = call.id === input.callId ? opened.files.sandboxData() : null;
+      const problem = await replayCall(opened, turn, call);
+      if (problem !== null) return diverged(problem);
+      if (data !== null) return { ok: true, replayed: { call, data } };
+    }
+  }
+  return diverged(`The attempt has no call ${input.callId}.`);
 }
