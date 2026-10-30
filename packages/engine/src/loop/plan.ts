@@ -148,7 +148,11 @@ function nextTrainingStep(input: PlanInput): Step {
         }
         return finish('rounds');
       }
-      if (targetMet(input)) return finish('target_met');
+      // An improvement is there to teach its lessons, so an agent already at its target on dev
+      // still gets a round to learn them in (decision 066).
+      if (targetMet(input) && !(input.improves === true && input.rounds.length === 0)) {
+        return finish('target_met');
+      }
       if (rejectedInARow(input.rounds) >= MAX_REJECTED_IN_A_ROW) return finish('rejected');
       if (revertedSinceKept(input.rounds) >= input.patience) return finish('patience');
       if (input.rounds.length >= input.maxRounds) return finish('rounds');

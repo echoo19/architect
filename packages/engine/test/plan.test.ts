@@ -53,6 +53,13 @@ describe('planNextStep', () => {
     });
   });
 
+  it('gives an improvement of an agent already at its target one round before it stops', () => {
+    const met = { devCurrent: { pass: 8, total: 10 }, improves: true };
+    expect(plan(met)).toEqual({ kind: 'start_round', round: 1 });
+    const rounds = [{ index: 1, status: 'decided' as const, decision: 'reverted' as const }];
+    expect(plan({ ...met, rounds })).toEqual({ kind: 'finish_training', reason: 'target_met' });
+  });
+
   it('stops after patience changes in a row are measured and reverted', () => {
     const rounds = [
       { index: 1, status: 'decided' as const, decision: 'kept' as const },
