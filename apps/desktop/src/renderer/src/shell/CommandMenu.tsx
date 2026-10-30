@@ -35,7 +35,7 @@ export function CommandMenu() {
 
   return (
     <CommandPalette open={open} onOpenChange={setOpen}>
-      <CommandGroup heading="Agents">
+      <CommandGroup heading="Actions">
         <CommandItem
           icon={<Plus aria-hidden />}
           shortcut={<Shortcut keys={SHORTCUT_KEYS['new-agent']} mac={mac} />}
@@ -61,8 +61,6 @@ export function CommandMenu() {
               Open {graduate.name}
             </CommandItem>
           ))}
-      </CommandGroup>
-      <CommandGroup heading="App">
         <CommandItem
           icon={<Settings aria-hidden />}
           shortcut={<Shortcut keys={SHORTCUT_KEYS.settings} mac={mac} />}
