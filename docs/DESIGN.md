@@ -127,6 +127,9 @@ and the wordmark reads "Architect" instead of "Architect Lab".
 - **IntervalPlot.** A dot for each measured value and a line for its 95% interval, rows grouped
   under a name, faint guides at the ticks, figures at the right. A value not measured shows a dash
   and draws nothing. Each row reads out as its label, value and interval.
+- **RiskCoveragePlot.** A certificate's curve (decision 077): the share answered across, the error
+  up; the bound as a white line, the error measured as small dots, the target as a stronger
+  hairline, the certified point in the student's blue, with a three-item key under it.
 - **DataTable.** A table of records on the card surface: sortable headers with an arrow on the
   sorted one, a header that stays in place while the body scrolls, rows that open on click or
   Enter. An empty cell is a dash read out as "None", never a zero.
