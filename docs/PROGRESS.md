@@ -4,15 +4,37 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 
 ## 2026-10-30 (Fri), the film in the site's hero, a download page, the results page as a paper, and the guide refreshed
 
+**Where things stand (start the next session here)**
+- *Product.* Release 0.4.0 is out, with signed and notarized Mac disk images and an unsigned Windows installer. `main` is green. The owner will try the app and keep developing it: more capabilities, a stronger loop, more polish. Expect the film and the site to change with it.
+- *Site* (https://echoo19.github.io/architect/). It deploys on every push to `main` that touches `site/` (`.github/workflows/site.yml`). There are three pages:
+  - Home: the claim, two lines, the downloads and the film.
+  - `/results/`: a short paper; every number is in `site/src/evidence.ts`, taken from `docs/comparisons`.
+  - `/download/`: one card for each system.
+  The mocks in `site/src/mock/` are no longer on the home page. They make up the film's page (`site/film/`, a dev-only entry, `pnpm -C site exec vite --config vite.film.config.ts`).
+- *Film.* The renderer, the soundtrack and the narration live outside the repo, in `C:\JakeOS\projects\architect-runs\film\launch` (`render.mjs`, `research/sound-v4.mjs`, `audio/`, `renders/`). The final cut is `renders/architect-walkthrough.mp4`. To change the film:
+  1. Edit the mocks or `site/film/`.
+  2. Build `site/dist-film`.
+  3. Render it with `node render.mjs --film <dist-film/index.html> --out <name> --workers 3 --audio audio/mix-v5.wav`, then check it with `research/glitch.mjs`.
+  4. Replace the site's copies: `ffmpeg -i <render> -c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p -movflags +faststart -c:a aac -b:a 160k site/public/architect-film.mp4`, and a still at 66 s for `site/public/film-poster.jpg`.
+  New narration needs new ElevenLabs lines; the owner wants to see the picture before any voice is generated.
+- *Guide.* Run `node docs/guide/build.mjs` after recapturing `docs/screenshots`. The figures come from the fake-engine specs: screenshots, flow, workspace, rule, teaching, versions and hub-screens, all run with `ARCHITECT_HIDDEN=1`.
+
 **Done**
+- *Home page.* At the owner's word, it is trimmed to the claim, two lines ("Spark, a large model, teaches your job to Glimmer, a small one. Once Glimmer passes a test it has never seen, it runs offline on your files."), the downloads and the film. The chapters of mocks, the closing section and the measured results below it are gone.
 - *The film.* The final walkthrough rendered at 1080p and 60 frames a second, 2 min 50 s, with no one-frame pops or jumps in the frame scan. A 21 MB web copy is the site's hero (`site/public/architect-film.mp4`), shown as a still of training with one play button. Nothing loads until it is pressed.
 - *Download page.* `/download/` holds one card for each system under its mark: the Mac disk image for Apple silicon with the Intel one beside it, and the Windows installer. The bar's Download button and the home page's macOS button lead there.
 - *Results page.* At the owner's word ("hard to read", then "almost like a paper"), it is one 760 px column set out as a short paper. It has an abstract, numbered sections, seven figures and seven tables, each in its own panel with a numbered caption, and numbered citations to the reports.
 - *The guide.* Every app screenshot was recaptured from the redesigned screens with the fake-engine specs. The guide's crops and text were matched to the new screens and the PDF rebuilt (45 pages). Two specs were stale after the workspace redesign: one still expected the "· N steps" count the redesign removed, and the other had a race with the home screen's redirect. Both were fixed in the tests, not the app.
 
 **Next**
-- The owner tries 0.4.0 and redirects if needed.
-- Submission by Nov 4, 9 PM ET: upload the film, fill in the form, and an optional post.
+- The owner tries 0.4.0 and redirects if needed, then the next round of development.
+- Submission by Wed Nov 4, 9 PM ET (see the checklist in `docs/HACKATHON.md`): upload the film and check its link, make the submission, and optionally post on X. If the app changes before then, cut a new release and update the film if its screens are out of date.
+- How to cut a release:
+  1. Bump the version in `apps/desktop/package.json`, `apps/cli/package.json`, `docs/CLI.md` and `site/src/content.ts`. A site test checks the last against the app.
+  2. Commit `chore(release): X.Y.Z` and push.
+  3. Tag `vX.Y.Z` and run `gh release create vX.Y.Z --verify-tag`. The tag runs `.github/workflows/release.yml`, which builds the Windows installer and the Mac disk images, signs and notarizes the Mac ones with the five signing secrets, and attaches all three.
+  4. Check that the download links on `/download/` return 302.
+- Open: the Windows installer is unsigned. Settings and first run kept their old structure in the redesign.
 
 ## 2026-10-30 (Fri), the redesign merged, release 0.4.0 signed for Mac, the new site, and the walkthrough film
 

@@ -36,7 +36,7 @@ From the event page and the participants' event guide:
 - [x] Installers attached to a GitHub release (0.4.0, Oct 30, the first with a signed and notarized Mac app; after 0.3.0 to 0.3.5 on Oct 29)
 - [x] Sample job and one shipped graduate in the repo
 - [x] README results filled from real runs
-- [ ] Demo video (3 minutes or less) uploaded and link checked
+- [ ] Demo video (3 minutes or less) uploaded and link checked. The final cut, 2 min 50 s, is rendered (`renders/architect-walkthrough.mp4` in the film folder outside the repo, see PROGRESS) and plays on the site's home page; it still needs uploading where the platform can link to it
 - [ ] Submission made on the Cerebral Valley platform by Wed Nov 4, 9:00 PM ET, with the problem statement, the track (indie), the repository and video links, and everyone who contributed listed
 - [ ] Optional: the demo posted on X, its link added on the platform
 
