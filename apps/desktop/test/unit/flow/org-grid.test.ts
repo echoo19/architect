@@ -31,7 +31,7 @@ describe('organizationGrid', () => {
       result('b', 'east', UNSEEN, 2, 2),
     ]);
     expect(grid?.groups.map((group) => [group.label, group.columns.map((c) => c.org)])).toEqual([
-      ['Trained with', ['north']],
+      ['Taught on', ['north']],
       ['Never seen', ['east']],
       ['Never seen, real', ['real']],
     ]);

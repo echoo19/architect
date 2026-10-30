@@ -97,6 +97,7 @@ export const STORY_EVIDENCE: EngineReplies = {
   'mentoring:lessons': [],
   'mentoring:interventions': [],
   'mentoring:experiments': [],
+  'mentoring:counterexamples': [],
   'mentoring:progress': storyProgress,
   'mentoring:categories': [],
   'mentoring:capabilities': storyCapabilities,

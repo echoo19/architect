@@ -17,12 +17,15 @@ import type {
   StudentAdapter,
   StudentEndpoint,
   StudentTarget,
+  SuiteResult,
   Task,
   Trace,
   TrainingBackendKind,
   TrainingJobRecord,
   TypeScore,
 } from '@architect/shared';
+import type { CounterexampleSearch, FoundCounterexample } from '../counterexamples/find';
+import type { SuiteCase, SuiteContext } from '../counterexamples/suite';
 import type { LeakDetector } from '../mentor/gate';
 import type { OpenedTransfer, TransferOrganization } from '../vault/vault';
 import type {
@@ -46,6 +49,8 @@ export interface TaskSplits {
   train: Task[];
   dev: Task[];
   test: Task[];
+  /** The sealed calibration split of a certified job (decision 077). */
+  certify?: Task[];
 }
 
 /** The tool sandbox. The loop only creates it, hands it to the runtime, and disposes it. */
@@ -109,7 +114,7 @@ export interface MentorSession {
 }
 
 export interface RuntimeDeps {
-  splitTasks(tasks: Task[], config: SplitConfig): TaskSplits;
+  splitTasks(tasks: Task[], config: SplitConfig & { certify?: number }): TaskSplits;
   /**
    * The date a run's tasks are evaluated against, `YYYY-MM-DD`: the job's `businessDate` when it
    * has one, otherwise the date at `now`. A run fixes it when it starts.
@@ -146,6 +151,19 @@ export interface RuntimeDeps {
   ): Promise<CorrectionResult>;
   /** Issues the release proof. The loop calls it after closing its gate and dropping the adapter. */
   releaseMentor(session: MentorSession): Promise<MentorReleased>;
+  /**
+   * Counterexamples from the helper calls of failed train attempts (decision 078): each call
+   * replayed, run again in the sandbox and reduced while the same failure holds. No model call.
+   */
+  findCounterexamples(
+    search: Omit<CounterexampleSearch, 'sandbox'> & { sandbox: ToolSandbox },
+  ): Promise<FoundCounterexample[]>;
+  /** Runs a changed helper on counterexamples in the sandbox. No model call. */
+  runSuite(
+    ctx: Omit<SuiteContext, 'sandbox'> & { sandbox: ToolSandbox },
+    tool: Pick<HarnessTool, 'name' | 'code'>,
+    cases: readonly SuiteCase[],
+  ): Promise<SuiteResult[]>;
 }
 
 /** The locked test split. Only the runner holds this; the mentor side never sees it. */
@@ -154,7 +172,8 @@ export interface VaultDeps {
    * Seals the test tasks. `others` are every other task of the job and `data` the text of its
    * data files: wording and values they share with test tasks are left out of the leak
    * fingerprint. `transfer` are the organizations the job never trains on, with their files,
-   * sealed with it (decision 068); their tasks are among `tests`.
+   * sealed with it (decision 068); their tasks are among `tests`. `certify` is a certified job's
+   * calibration split, sealed beside the test (decision 077).
    */
   seal(
     jobId: string,
@@ -162,6 +181,7 @@ export interface VaultDeps {
     others: Task[],
     data: string[],
     transfer?: TransferOrganization[],
+    certify?: Task[],
   ): Awaitable<void>;
   /**
    * Takes back a seal, for a job whose making failed or was interrupted before it was in the
@@ -178,6 +198,8 @@ export interface VaultDeps {
   openForLockedTest(jobId: string, proof: MentorReleased): Awaitable<Task[]>;
   /** The sealed organizations and each one's folder, on the same proof as the locked test. */
   openTransfer(jobId: string, proof: MentorReleased): Awaitable<OpenedTransfer>;
+  /** A certified job's calibration split, on the same proof; none for a job without one. */
+  openCalibration(jobId: string, proof: MentorReleased): Awaitable<Task[]>;
 }
 
 /** One run's harness versions (`new HarnessVersions(dir)`). */

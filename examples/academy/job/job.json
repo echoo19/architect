@@ -172,8 +172,8 @@
   "splits": {
     "seed": 20261116,
     "calibration": 12,
-    "train": 48,
-    "dev": 36,
+    "train": 84,
+    "dev": 48,
     "test": 48
   },
   "evaluation": {
@@ -181,7 +181,13 @@
     "minDevGain": 2,
     "maxTypeRegression": 1,
     "devRepeats": 1,
-    "patience": 4
+    "patience": 4,
+    "certify": {
+      "k": 5,
+      "epsilon": 0.1,
+      "delta": 0.05,
+      "calibration": 60
+    }
   },
   "organizations": [
     {

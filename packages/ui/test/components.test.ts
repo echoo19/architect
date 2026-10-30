@@ -9,10 +9,13 @@ import {
   EvidenceMeter,
   evidenceLabel,
   Meter,
+  PageTabs,
   ProgressStepper,
   ProviderMark,
   RadioCard,
   RadioCardGroup,
+  RiskCoveragePlot,
+  riskTop,
   SettingsRow,
   Shortcut,
   shortcutLabel,
@@ -300,5 +303,64 @@ describe('RadioCard', () => {
     // And a card that can be chosen is never quiet.
     const other = html.slice(html.lastIndexOf('<button'));
     expect(other).not.toContain('text-fg-dim');
+  });
+});
+
+describe('PageTabs', () => {
+  it("names its tabs, marks the open one, and shows only the open one's content", () => {
+    const html = renderToStaticMarkup(
+      createElement(PageTabs<'overview' | 'assets'>, {
+        'aria-label': 'Field',
+        tabs: [
+          { value: 'overview', label: 'Overview' },
+          { value: 'assets', label: 'Assets' },
+        ],
+        value: 'assets',
+        onValueChange: () => undefined,
+        children: 'The export',
+      }),
+    );
+    expect(html).toContain('role="tablist"');
+    expect(html).toContain('aria-label="Field"');
+    const assets = html.slice(html.lastIndexOf('<button'), html.lastIndexOf('</button>'));
+    expect(assets).toContain('aria-selected="true"');
+    expect(assets).toContain('Assets');
+    expect(html).toContain('The export');
+    expect(html.match(/role="tabpanel"/g)).toHaveLength(1);
+  });
+});
+
+describe('RiskCoveragePlot', () => {
+  it('names itself, marks the certified point and the target, and keeps the top above the target', () => {
+    const html = renderToStaticMarkup(
+      createElement(RiskCoveragePlot, {
+        'aria-label': 'Risk and coverage',
+        points: [
+          { coverage: 0.5, bound: 0.06, risk: 0 },
+          { coverage: 0.8, bound: 0.09, risk: 0.02 },
+          { coverage: 1, bound: 0.3, risk: 0.2 },
+        ],
+        chosen: 1,
+        target: 0.1,
+      }),
+    );
+    expect(html).toContain('aria-label="Risk and coverage"');
+    expect(html).toContain('Certified');
+    expect(html).toContain('Target');
+    expect(html).toContain('bg-student');
+    expect(riskTop(0.1)).toBe(0.3);
+    expect(riskTop(0.5)).toBe(1);
+  });
+
+  it('draws no certified point without one', () => {
+    const html = renderToStaticMarkup(
+      createElement(RiskCoveragePlot, {
+        'aria-label': 'Risk and coverage',
+        points: [{ coverage: 0, bound: 1, risk: null }],
+        target: 0.1,
+      }),
+    );
+    expect(html).not.toContain('bg-student');
+    expect(html).not.toContain('Certified');
   });
 });

@@ -230,6 +230,11 @@ export const StoredAttemptSchema = AttemptSchema.extend({
   config: z.string().min(1).optional(),
   /** The evaluation seed handed to the runtime. */
   seed: z.number().int(),
+  /**
+   * For a sealed attempt of a certified run: a hash of its answer and file changes, salted by the
+   * run, which attempts at the same task share when they agree (decision 077).
+   */
+  answerKey: z.string().optional(),
   stopReason: StopReasonSchema,
   /** Relative to the data folder. Null for locked-test attempts, whose traces aren't kept. */
   tracePath: z.string().nullable(),

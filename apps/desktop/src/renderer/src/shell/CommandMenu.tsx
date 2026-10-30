@@ -8,6 +8,7 @@ import { isMac } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 import { SHORTCUT_KEYS } from '../lib/shortcuts';
 import { useUi } from '../state/ui';
+import { placesOf, useEdition } from './edition';
 
 /** Opens an agent at its most recent chat, starting one if it has none. */
 async function openAgent(graduateId: string): Promise<void> {
@@ -26,6 +27,8 @@ export function CommandMenu() {
     })),
   );
   const graduates = useGraduates();
+  const edition = useEdition();
+  const places = edition ? placesOf(edition) : [];
   const mac = isMac();
 
   const run = (action: () => void) => {
@@ -70,6 +73,21 @@ export function CommandMenu() {
           Settings
         </CommandItem>
       </CommandGroup>
+      {places.length > 0 && (
+        <CommandGroup heading="Places">
+          {places.map(({ id, label, Icon, path, keywords }) => (
+            <CommandItem
+              key={id}
+              value={`place-${id}`}
+              keywords={[label, 'go', ...keywords]}
+              icon={<Icon aria-hidden />}
+              onSelect={() => run(() => navigate(path))}
+            >
+              {label}
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      )}
     </CommandPalette>
   );
 }

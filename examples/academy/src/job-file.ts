@@ -164,9 +164,16 @@ export function buildJob(organizations: readonly Organization[]): Job {
       trainOn: 'local',
     },
     startingHarness: { kind: 'blank' },
-    // The train academies' 144 tasks; the transfer academy's are test-only.
-    splits: { seed: 20261116, calibration: 12, train: 48, dev: 36, test: 48 },
-    evaluation: { trainBatch: 12, minDevGain: 2, maxTypeRegression: 1, patience: 4 },
+    // The train academies' 252 tasks: 12 + 84 + 48 + 48, and the 60 sealed for the certificate.
+    // The transfer academy's are test-only.
+    splits: { seed: 20261116, calibration: 12, train: 84, dev: 48, test: 48 },
+    evaluation: {
+      trainBatch: 12,
+      minDevGain: 2,
+      maxTypeRegression: 1,
+      patience: 4,
+      certify: { k: 5, epsilon: 0.1, delta: 0.05, calibration: 60 },
+    },
     organizations,
   });
 }

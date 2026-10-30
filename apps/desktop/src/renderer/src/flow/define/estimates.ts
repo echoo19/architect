@@ -1,6 +1,7 @@
 import { formatDuration, formatUsd } from '../../lib/format';
 import { mentorIsLocal } from '../../lib/names';
 import {
+  allowedInterventions,
   costUsd,
   MENTOR_PRESETS,
   mentorPricing,
@@ -72,7 +73,29 @@ export function estimateTime(job: Job, place: TrainPlace): TimeEstimate {
  * doesn't depend on what trained the agent.
  */
 export function testSeconds(job: Job, place: TrainPlace = 'local'): number {
-  return job.splits.test * SECONDS_PER_TASK[place];
+  return finalTestAttempts(job) * SECONDS_PER_TASK[place];
+}
+
+/**
+ * The calibration tasks a certificate is planned with before the tasks are split: the size the
+ * job sets, else the least the default takes when there are that many (decision 077).
+ */
+export const PLANNED_CALIBRATION = 30;
+
+/** The calibration tasks a certified job sets aside, or the planned size when it doesn't say. */
+export function calibrationTasks(job: Job): number {
+  const certify = job.evaluation.certify;
+  return certify === undefined ? 0 : (certify.calibration ?? PLANNED_CALIBRATION);
+}
+
+/**
+ * The attempts the final test makes: one at each task, and for a certified job k at each final
+ * test and calibration task (decision 077).
+ */
+export function finalTestAttempts(job: Job): number {
+  const certify = job.evaluation.certify;
+  if (certify === undefined) return job.splits.test;
+  return certify.k * (job.splits.test + calibrationTasks(job));
 }
 
 /** A time cap as a number and its unit: 240 is 4 hours, 90 is 90 minutes, 150 is 2.5 hours. */
@@ -229,6 +252,65 @@ export function minutesForOneRound(job: Job, place: TrainPlace): number | null {
 }
 
 /**
+ * Training with every round at its longest, as if there were no time limit: what the limit is
+ * measured against, so a meter can show when the limit cuts training short.
+ */
+export function fullTrainingSeconds(job: Job, estimate: TimeEstimate): number {
+  return estimate.startSeconds + job.budget.maxRounds * estimate.roundSeconds.most;
+}
+
+/** The time limit, in whole hours, that fits every round at its longest; null past a week. */
+export function minutesForAllRounds(job: Job, place: TrainPlace): number | null {
+  const minutes = Math.ceil(fullTrainingSeconds(job, estimateTime(job, place)) / 3600) * 60;
+  return minutes <= MOST_MINUTES ? minutes : null;
+}
+
+/** A cap the plan doesn't fit in, said plainly, and the fix. */
+export interface CapShortfall {
+  what: 'time' | 'compute';
+  /** A few words for beside Start training. */
+  short: string;
+  /** The whole of it, for the Budget tab. */
+  line: string;
+  /** For the time limit: the limit that fits every round. */
+  allowMinutes?: number;
+}
+
+/**
+ * Where the caps can't hold what the job asks for: a time limit that cuts training to fewer than
+ * half its rounds even at best (training often ends early at its target, so a limit that only
+ * trims the last few rounds is normal; one where not even a round fits is the callout's, not
+ * this), and retraining the student turned on with no compute to spend on it. Empty when the
+ * caps hold the plan.
+ */
+export function capShortfalls(job: Job, names: ModelNames): CapShortfall[] {
+  const shortfalls: CapShortfall[] = [];
+  const place = job.student.trainOn;
+  const estimate = estimateTime(job, place);
+  const { maxRounds, maxWallMinutes } = job.budget;
+  if (estimate.rounds.most > 0 && estimate.rounds.most < maxRounds / 2) {
+    const all = minutesForAllRounds(job, place);
+    const fit = `${countRange(estimate.rounds)} of ${maxRounds} rounds`;
+    shortfalls.push({
+      what: 'time',
+      short: `The ${limitText(maxWallMinutes)} limit fits ${fit}`,
+      line: `The ${limitText(maxWallMinutes)} time limit may stop training after ${fit}.${
+        all === null ? '' : ` Allowing ${capText(all)} fits all of them.`
+      }`,
+      ...(all === null ? {} : { allowMinutes: all }),
+    });
+  }
+  if (allowedInterventions(job).includes('weights') && (job.budget.maxComputeUsd ?? 0) <= 0) {
+    shortfalls.push({
+      what: 'compute',
+      short: `Retraining ${names.student} has a $0 cap`,
+      line: `Retraining ${names.student} is on, but its compute cap is $0, so it won't run. Set a cap below, or turn it off in Teaching.`,
+    });
+  }
+  return shortfalls;
+}
+
+/**
  * What it comes to, in a line: the callout's headline, and what the footer says beside a Start
  * training that waits for it. A round is one go at teaching, so not one fitting is plain to say.
  */
@@ -305,7 +387,7 @@ export function comparisonSeconds(
 
 /** What the final test costs on a hosted copy at its price, billed by the host. */
 export function testUsd(job: Job, pricing: TokenPricing): number {
-  return job.splits.test * costUsd(pricing, STUDENT_TOKENS_PER_TASK);
+  return finalTestAttempts(job) * costUsd(pricing, STUDENT_TOKENS_PER_TASK);
 }
 
 /** `tests` final tests on the hosted copy, or null when they run here or the copy has no price. */
@@ -363,7 +445,7 @@ export function planSeconds(
 }
 
 /** The sum of the amounts that have a price, or null when none does. */
-function sumKnown(amounts: readonly (number | null)[]): number | null {
+export function sumKnown(amounts: readonly (number | null)[]): number | null {
   const known = amounts.filter((amount): amount is number => amount !== null);
   return known.length === 0 ? null : known.reduce((total, amount) => total + amount, 0);
 }

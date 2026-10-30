@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import {
   CapabilityBreakdownSchema,
   CategorySchema,
+  CounterexampleSchema,
   ExperimentSchema,
   InterventionSchema,
   ListedLessonSchema,
@@ -11,6 +12,7 @@ import {
   RunEventSchema,
   TraceSchema,
   type Category,
+  type Counterexample,
   type Experiment,
   type Intervention,
   type ListedLesson,
@@ -63,6 +65,18 @@ export const mentoringApi = {
     read('runs.attempt', ListedAttemptSchema, architect().runs.attempt(attemptId)),
   categories: (jobId: string) =>
     read('mentoring.categories', z.array(CategorySchema), architect().mentoring.categories(jobId)),
+  counterexamples: (runId: string) =>
+    read(
+      'mentoring.counterexamples',
+      z.array(CounterexampleSchema),
+      architect().mentoring.counterexamples(runId),
+    ),
+  fieldCounterexamples: (jobId: string) =>
+    read(
+      'mentoring.fieldCounterexamples',
+      z.array(CounterexampleSchema),
+      architect().mentoring.fieldCounterexamples(jobId),
+    ),
 };
 
 /** A run's lessons, interventions, experiments and progress, and its job's categories. */
@@ -72,17 +86,20 @@ export interface MentoringRecords {
   experiments: Experiment[];
   progress: MentoringProgress;
   categories: Category[];
+  counterexamples: Counterexample[];
 }
 
 async function loadRecords(runId: string, jobId: string): Promise<MentoringRecords> {
-  const [lessons, interventions, experiments, progress, categories] = await Promise.all([
-    mentoringApi.lessons(runId),
-    mentoringApi.interventions(runId),
-    mentoringApi.experiments(runId),
-    mentoringApi.progress(runId),
-    mentoringApi.categories(jobId),
-  ]);
-  return { lessons, interventions, experiments, progress, categories };
+  const [lessons, interventions, experiments, progress, categories, counterexamples] =
+    await Promise.all([
+      mentoringApi.lessons(runId),
+      mentoringApi.interventions(runId),
+      mentoringApi.experiments(runId),
+      mentoringApi.progress(runId),
+      mentoringApi.categories(jobId),
+      mentoringApi.counterexamples(runId),
+    ]);
+  return { lessons, interventions, experiments, progress, categories, counterexamples };
 }
 
 export const mentoringKeys = {

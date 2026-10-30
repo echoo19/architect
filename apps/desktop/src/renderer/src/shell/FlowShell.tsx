@@ -24,6 +24,8 @@ export interface FlowShellProps<Step extends string = FlowStep> {
   footer?: ReactNode;
   /** What the close button does; going home when absent. */
   onClose?: () => void;
+  /** A panel at the content's right, such as an inspector, between the header and the footer. */
+  aside?: ReactNode;
   children: ReactNode;
 }
 
@@ -36,6 +38,7 @@ export function FlowShell<Step extends string = FlowStep>({
   actions,
   footer,
   onClose,
+  aside,
   children,
 }: FlowShellProps<Step>) {
   const pills: readonly string[] = steps ?? FLOW_STEPS;
@@ -55,7 +58,10 @@ export function FlowShell<Step extends string = FlowStep>({
         <ProgressStepper steps={pills} current={pills.indexOf(step)} attention={attention ?? []} />
         <div className="flex min-w-0 justify-end gap-2 pr-window-controls">{actions}</div>
       </header>
-      <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+      <div className="flex min-h-0 flex-1">
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</main>
+        {aside}
+      </div>
       {footer && (
         <footer className="shrink-0 border-t border-line bg-ground px-8 py-4">{footer}</footer>
       )}

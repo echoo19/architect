@@ -5,26 +5,82 @@ import { useEngineUpdates } from '../api/updates';
 import { ImportScreen } from '../import/ImportScreen';
 import { navigate, paths, useRoute, type Route } from '../lib/router';
 import { ChatScreen } from '../screens/ChatScreen';
+import { ComputeScreen } from '../screens/ComputeScreen';
 import { DefineScreen } from '../screens/DefineScreen';
 import { DescribeScreen } from '../screens/DescribeScreen';
+import {
+  ExperimentScreen,
+  ExperimentsScreen,
+  NewExperimentScreen,
+} from '../screens/ExperimentsScreen';
+import { FieldScreen, FieldsScreen } from '../screens/FieldsScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { ImprovementScreen } from '../screens/ImprovementScreen';
+import { LabScreen } from '../screens/LabScreen';
+import { ModelsScreen } from '../screens/ModelsScreen';
 import { NotFoundScreen } from '../screens/NotFoundScreen';
 import { ReportScreen } from '../screens/ReportScreen';
 import { TrainScreen } from '../screens/TrainScreen';
 import { WelcomeScreen } from '../screens/WelcomeScreen';
 import { SettingsModal } from '../settings/SettingsModal';
 import { CommandMenu } from '../shell/CommandMenu';
+import { EDITIONS, isLabOnly, useEdition } from '../shell/edition';
 import { WorkspaceShell } from '../shell/WorkspaceShell';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
 
 function Screen({ route }: { route: Route }) {
+  const edition = useEdition();
+  // The personal edition has none of the Lab's places; it is sent home (useEditionShell).
+  if (edition === 'personal' && isLabOnly(route)) return null;
   switch (route.name) {
     case 'home':
       return (
         <WorkspaceShell route={route}>
-          <HomeScreen />
+          {edition === 'lab' && <LabScreen />}
+          {edition === 'personal' && <HomeScreen />}
+        </WorkspaceShell>
+      );
+    case 'fields':
+      return (
+        <WorkspaceShell route={route}>
+          <FieldsScreen />
+        </WorkspaceShell>
+      );
+    case 'field':
+      return (
+        <WorkspaceShell route={route}>
+          <FieldScreen key={route.jobId} jobId={route.jobId} />
+        </WorkspaceShell>
+      );
+    case 'experiments':
+      return (
+        <WorkspaceShell route={route}>
+          <ExperimentsScreen />
+        </WorkspaceShell>
+      );
+    case 'experiment-new':
+      return (
+        <WorkspaceShell route={route}>
+          <NewExperimentScreen />
+        </WorkspaceShell>
+      );
+    case 'experiment':
+      return (
+        <WorkspaceShell route={route}>
+          <ExperimentScreen key={route.experimentId} experimentId={route.experimentId} />
+        </WorkspaceShell>
+      );
+    case 'models':
+      return (
+        <WorkspaceShell route={route}>
+          <ModelsScreen />
+        </WorkspaceShell>
+      );
+    case 'compute':
+      return (
+        <WorkspaceShell route={route}>
+          <ComputeScreen />
         </WorkspaceShell>
       );
     case 'chat':
@@ -61,11 +117,24 @@ function useFirstRunRedirect(route: Route): void {
   }, [needsSetup, route.name]);
 }
 
+/** Sends a Lab place home in the personal edition, which doesn't have it, and names the window. */
+function useEditionShell(route: Route): void {
+  const edition = useEdition();
+  const away = edition === 'personal' && isLabOnly(route);
+  useEffect(() => {
+    if (away) navigate(paths.home(), { replace: true });
+  }, [away]);
+  useEffect(() => {
+    if (edition) document.title = EDITIONS[edition].name;
+  }, [edition]);
+}
+
 export function App() {
   const route = useRoute();
   useGlobalShortcuts();
   useEngineUpdates();
   useFirstRunRedirect(route);
+  useEditionShell(route);
 
   return (
     <TooltipProvider>

@@ -1,5 +1,7 @@
 import { mkdir } from 'node:fs/promises';
-import { PublishProgressSchema, RunEventSchema } from '@architect/shared';
+import { join } from 'node:path';
+import { ExperimentEventSchema, PublishProgressSchema, RunEventSchema } from '@architect/shared';
+import { ExperimentService, type ExperimentEnvironment } from '../experiments/service';
 import {
   CHECK_PURPOSE,
   hostAdapterRuntime,
@@ -59,6 +61,16 @@ export interface EngineHostOptions {
    * key saved in the app, else HF_TOKEN, else Hugging Face's token file.
    */
   hub?: HubClient;
+  /**
+   * The comparisons runner's environment on an experiment's data folder (decision 074): its
+   * models, keys and training compute. Without it experiments can be planned and read, not run.
+   */
+  experimentEnvironment?: (dataDir: string, log: (line: string) => void) => ExperimentEnvironment;
+  /**
+   * The repository's trainer folder, which training bundles carry pins and the experimental
+   * script from (decision 072). Without it plans can be sized, not bundled.
+   */
+  trainerDir?: string;
 }
 
 export interface EngineHost {
@@ -141,6 +153,14 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     new HubClient({
       token: hubTokenResolver({ saved: () => options.deps.secrets.get('huggingface') }),
     });
+  const experiments = new ExperimentService({
+    dir: join(paths.root, 'experiments'),
+    clock,
+    onError,
+    ...(options.experimentEnvironment === undefined
+      ? {}
+      : { environment: options.experimentEnvironment }),
+  });
   const api = createEngineApi({
     store,
     paths,
@@ -150,12 +170,18 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     deps,
     clock,
     hub,
+    experiments,
+    ...(options.trainerDir === undefined ? {} : { trainerDir: options.trainerDir }),
   });
   const ports = new Set<EnginePort>();
   let closed = false;
 
   controller.onEvent((event) => {
     const message = { kind: 'event', event: RunEventSchema.parse(event) };
+    for (const port of ports) port.postMessage(message);
+  });
+  experiments.onEvent((event) => {
+    const message = { kind: 'experiment.event', event: ExperimentEventSchema.parse(event) };
     for (const port of ports) port.postMessage(message);
   });
   // A publication's progress goes to every port, like run events; a malformed one is reported,
@@ -189,6 +215,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     async close() {
       closed = true;
       ports.clear();
+      await experiments.close();
       await Promise.all([controller.close(), adapterRuntime.stop()]);
       options.deps.training?.worker.close();
       store.close();

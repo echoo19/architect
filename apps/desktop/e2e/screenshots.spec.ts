@@ -95,6 +95,8 @@ test('captures every screen', async () => {
 
   await goTo(page, '/welcome');
   await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
+  await expect(page.getByRole('radio', { name: /Architect Lab/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByRole('radio', { name: /Recommended/ })).toBeVisible();
   await capture(page, 'welcome-dark.png');
 

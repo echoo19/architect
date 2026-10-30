@@ -28,6 +28,8 @@ export interface SweepOptions {
   deps: LoopDeps;
   clock: Clock;
   files: ComparisonFiles;
+  /** Stops it between attempts: no attempt starts once it aborts. */
+  signal?: AbortSignal;
   /** Watches the runtime on this computer, for the local probe. */
   onStudent?(student: StudentAdapter): Promise<(() => Promise<MeterReading>) | null>;
   log(line: string): void;
@@ -112,6 +114,7 @@ export async function sweep(options: SweepOptions): Promise<{
         await deps.runtime.evaluateTasks(tasks, context, {
           seed: options.seed,
           concurrency: options.concurrency,
+          ...(options.signal === undefined ? {} : { signal: options.signal }),
           onAttempt: (item) => {
             const attempt: SweepAttempt = {
               taskId: item.task.id,

@@ -139,19 +139,31 @@ async function savedJob(page: Page): Promise<Job> {
   return page.evaluate((id) => window.architect.jobs.get(id), jobId);
 }
 
+/** The inspector at Define's right, and the footer button that opens and closes it. */
+function inspector(page: Page) {
+  return {
+    advanced: page.getByRole('complementary', { name: 'Advanced settings' }),
+    toggle: page.getByRole('button', { name: 'Advanced settings', exact: true }),
+  };
+}
+
 async function openTeacherTab(page: Page) {
-  await page.getByRole('button', { name: 'Advanced settings' }).click();
-  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-  await advanced.getByRole('tab', { name: 'Spark' }).click();
+  const { advanced, toggle } = inspector(page);
+  if ((await advanced.count()) === 0) await toggle.click();
+  await advanced.getByRole('tab', { name: 'Teaching' }).click();
   const section = advanced.getByRole('region', { name: 'What Spark may change' });
   await section.scrollIntoViewIfNeeded();
   return { advanced, section };
 }
 
-/** Waits for the dialog to say the last edit is saved, then closes it. */
-async function closeAdvanced(page: Page, advanced: ReturnType<Page['getByRole']>): Promise<void> {
-  await expect(advanced.getByRole('status')).toContainText('Saved');
-  await page.keyboard.press('Escape');
+/**
+ * Waits for the last edit, the switch named `last`, to be saved, which the toast with its Undo
+ * says, then closes the inspector.
+ */
+async function closeAdvanced(page: Page, last: string): Promise<void> {
+  await expect(page.getByText(`${last} saved`, { exact: true })).toBeVisible();
+  const { advanced, toggle } = inspector(page);
+  await toggle.click();
   await expect(advanced).toBeHidden();
 }
 
@@ -183,7 +195,7 @@ test("a kind switched off in the teacher's tab is still off when the job is open
   // The teacher runs on this computer as well, so the note under the choice of a place can say
   // that nothing leaves it; with an online teacher it says what goes online (`flow.spec.ts`).
   await expect(page.getByText('Nothing leaves this computer.')).toBeVisible();
-  const { advanced, section } = await openTeacherTab(page);
+  const { section } = await openTeacherTab(page);
   const small = section.getByRole('switch', { name: 'Small tools' });
   const questions = section.getByRole('switch', { name: 'Questions for you' });
   for (const name of [
@@ -199,7 +211,7 @@ test("a kind switched off in the teacher's tab is still off when the job is open
   await questions.click();
   await expect(small).not.toBeChecked();
   await expect(questions).not.toBeChecked();
-  await closeAdvanced(page, advanced);
+  await closeAdvanced(page, 'Questions for you');
   expect((await savedJob(page)).interventions).toEqual(['procedure', 'retrieval', 'weights']);
 
   // The app, closed and opened again on the same job, finds the choice where it was left.
@@ -210,13 +222,13 @@ test("a kind switched off in the teacher's tab is still off when the job is open
   await expect(again.section.getByRole('switch', { name: 'Small tools' })).not.toBeChecked();
   await expect(again.section.getByRole('switch', { name: 'Questions for you' })).not.toBeChecked();
   await expect(again.section.getByRole('switch', { name: 'Instructions and steps' })).toBeChecked();
-  await page.keyboard.press('Escape');
+  await inspector(page).toggle.click();
 });
 
 test('the last switch that changes the agent stays on, and Start training says when nothing can run', async () => {
   const { page } = launched;
   await goTo(page, `/jobs/${jobId}/define`);
-  const { advanced, section } = await openTeacherTab(page);
+  const { section } = await openTeacherTab(page);
   await section.getByRole('switch', { name: 'Instructions and steps' }).click();
   await section.getByRole('switch', { name: 'What it reads, and when' }).click();
 
@@ -227,7 +239,7 @@ test('the last switch that changes the agent stays on, and Start training says w
   await expect(section).toContainText(
     'Stays on: Spark needs at least one way to change Glimmer. Retraining Glimmer itself needs a Hugging Face key. A free Hugging Face account gives you one.',
   );
-  await closeAdvanced(page, advanced);
+  await closeAdvanced(page, 'What it reads, and when');
   expect((await savedJob(page)).interventions).toEqual(['weights']);
 
   const needs = page.getByRole('region', { name: 'Before it can start' });
@@ -302,7 +314,7 @@ test('a run whose teacher may change nothing ends at once, with the reason and n
   await expect(notice.getByRole('button', { name: "Open Spark's settings" })).toHaveCount(0);
   await notice.getByRole('button', { name: 'Turn a change back on' }).click();
   await expect(page).toHaveURL(new RegExp(`#/jobs/${jobId}/define$`));
-  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+  const { advanced } = inspector(page);
   await expect(advanced.getByRole('region', { name: 'What Spark may change' })).toBeVisible();
   // What the notice says to do next is what the job offers: turn one on, and Start training is
   // there, no longer held. Then it is put back as the next test finds it.
@@ -310,11 +322,11 @@ test('a run whose teacher may change nothing ends at once, with the reason and n
     .getByRole('region', { name: 'What Spark may change' })
     .getByRole('switch', { name: 'Instructions and steps' })
     .click();
-  await closeAdvanced(page, advanced);
+  await closeAdvanced(page, 'Instructions and steps');
   await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
   const back = await openTeacherTab(page);
   await back.section.getByRole('switch', { name: 'Instructions and steps' }).click();
-  await closeAdvanced(page, back.advanced);
+  await closeAdvanced(page, 'Instructions and steps');
   await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
 
   // The run's own controls lead back to the job too, without opening anything.
@@ -328,11 +340,11 @@ test('the first draft and the rounds after it keep to the choice, and a refused 
   test.setTimeout(240_000);
   const { page } = launched;
   await goTo(page, `/jobs/${jobId}/define`);
-  const { advanced, section } = await openTeacherTab(page);
+  const { section } = await openTeacherTab(page);
   await section.getByRole('switch', { name: 'Instructions and steps' }).click();
   await section.getByRole('switch', { name: 'What it reads, and when' }).click();
   await expect(section.getByRole('switch', { name: 'Retrain Glimmer itself' })).toBeEnabled();
-  await closeAdvanced(page, advanced);
+  await closeAdvanced(page, 'What it reads, and when');
   expect((await savedJob(page)).interventions).toEqual(['procedure', 'retrieval', 'weights']);
   await expect(page.getByRole('region', { name: 'Before it can start' })).toHaveCount(0);
 
@@ -384,7 +396,7 @@ test('the first draft and the rounds after it keep to the choice, and a refused 
   await row.click();
   const drawer = page.getByRole('dialog').last();
   await expect(drawer).toContainText(
-    'Spark chose "Small tools", which is turned off for this job under Spark in Advanced settings. Nothing changed.',
+    'Spark chose "Small tools", which is turned off for this job under Teaching in Advanced settings. Nothing changed.',
   );
   await page.evaluate((id) => window.architect.runs.stop(id), runId).catch(() => undefined);
 });

@@ -1,14 +1,17 @@
 import type { Job, StudentTarget } from '@architect/shared';
 import { RadioCard, RadioCardGroup, SettingsSection } from '@architect/ui';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
+import { modelNames } from '../names';
 import { finalTestFacts, FINAL_TEST_MARKS } from './final-test';
 import { aKey, providerName, type HostedAvailability } from './hosted';
 
 /** Why the online copy can't take the final test, said from inside Advanced settings. */
 function unavailableReason(job: Job, hosted: Exclude<HostedAvailability, { available: true }>) {
-  if (hosted.why === 'no_host') return "Choose an online copy under Agent's model first";
+  // The agent's model has its own tab, named for the model.
+  const tab = modelNames(job).student;
+  if (hosted.why === 'no_host') return `Choose an online copy under ${tab} first`;
   if (hosted.why === 'no_key' && job.student.hosted) {
-    return `Add ${aKey(providerName(job.student.hosted))} under Agent's model first`;
+    return `Add ${aKey(providerName(job.student.hosted))} under ${tab} first`;
   }
   return hosted.reason;
 }

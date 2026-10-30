@@ -22,7 +22,7 @@ describe('whether the online copy can be used', () => {
     expect(hostedAvailability(student, { openrouter: true })).toMatchObject({
       available: false,
       why: 'no_host',
-      reason: "Pick an online service under Agent's model in Advanced settings",
+      reason: 'Pick an online service under Glimmer in Advanced settings',
     });
   });
 

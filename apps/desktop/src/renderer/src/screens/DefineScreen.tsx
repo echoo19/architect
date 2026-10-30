@@ -22,9 +22,12 @@ import { useJob, useJobs, useSettings, useTaskPlan } from '../api/hooks';
 import { ProblemState } from '../components/ProblemState';
 import { resetDraft, useDraftStore } from '../flow/describe/draft-store';
 import { takeAdvanced } from '../flow/define/advanced-request';
-import { AdvancedDialog, tabWithIssue, type AdvancedTab } from '../flow/define/AdvancedDialog';
-import { trainsTooSlow, wontTeachTitle } from '../flow/define/estimates';
+import { DefineInspector } from '../flow/define/DefineInspector';
+import { capShortfalls, capText, trainsTooSlow, wontTeachTitle } from '../flow/define/estimates';
+import { ExportJobFile } from '../flow/define/ExportJobFile';
 import { hostedAvailability } from '../flow/define/hosted';
+import { INSPECTOR_NAME, tabWithIssue, type DefineTab } from '../flow/define/inspector-tabs';
+import { modelNames } from '../flow/names';
 import { Capabilities, FilePermissions, JobHeader, ReadyWhen } from '../flow/define/JobOverview';
 import { RuleReview } from '../flow/define/RuleReview';
 import { ruleTypesOf, trainingWait, waitLine } from '../flow/define/rule-words';
@@ -104,7 +107,8 @@ function DefineEditor({ initial }: { initial: Job }) {
   const { job } = editor;
   const settings = useSettings();
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [tab, setTab] = useState<AdvancedTab>('tasks');
+  // Undefined until something here picks a tab: the inspector opens on the one it kept.
+  const [tab, setTab] = useState<DefineTab | undefined>(undefined);
   const [withBaselines, setWithBaselines] = useState(false);
   const [starting, setStarting] = useState(false);
   // Where the final test runs belongs to the run, not to the job: on this computer unless chosen.
@@ -122,7 +126,7 @@ function DefineEditor({ initial }: { initial: Job }) {
   // A field job's study is put in front of the person likewise, before its rules.
   const hasStudy = taskPlan.status !== 'error' && taskPlan.data?.study !== undefined;
 
-  const openAdvanced = (at: AdvancedTab) => {
+  const openAdvanced = (at: DefineTab) => {
     setTab(at);
     setAdvancedOpen(true);
   };
@@ -141,6 +145,9 @@ function DefineEditor({ initial }: { initial: Job }) {
   // Training where the job trains would run out of time before the teacher changed anything. It
   // waits like any other need, and the way out is on the page: more time, or the other place.
   const wontTeach = trainsTooSlow(job);
+  // A time limit that stops training early is said beside Start training, with its fix.
+  // Retraining with no compute is said in Budget only: jobs allow it by default and skip it.
+  const shortfall = capShortfalls(job, modelNames(job)).find((cap) => cap.what === 'time');
 
   // With no online copy there is nothing for the final test to run on.
   const hasCopy = job.student.hosted !== undefined;
@@ -173,7 +180,7 @@ function DefineEditor({ initial }: { initial: Job }) {
       setStarting(false);
       const problem = tabWithIssue(editor.issues);
       if (problem) {
-        toast({ tone: 'danger', title: 'Fix the marked fields in Advanced settings first' });
+        toast({ tone: 'danger', title: `Fix the marked fields in ${INSPECTOR_NAME} first` });
         openAdvanced(problem);
       }
       return;
@@ -207,26 +214,73 @@ function DefineEditor({ initial }: { initial: Job }) {
     <FlowShell
       title={job.name}
       step="Define"
+      aside={
+        <DefineInspector
+          open={advancedOpen}
+          tab={tab}
+          onTabChange={setTab}
+          editor={editor}
+          taskCount={taskCount}
+          finalTest={{ place: testPlace, onPlaceChange: setTestPlace, hosted }}
+        />
+      }
       footer={
         <div className="mx-auto flex max-w-[880px] flex-wrap items-center justify-between gap-3">
-          <Tooltip content="Advanced settings">
-            <IconButton
-              label="Advanced settings"
-              className="-ml-2.5"
-              onClick={() => openAdvanced(tab)}
-            >
-              <SlidersHorizontal size={18} strokeWidth={1.8} aria-hidden />
-            </IconButton>
-          </Tooltip>
+          <div className="-ml-2.5 flex items-center gap-1">
+            <Tooltip content={INSPECTOR_NAME}>
+              <IconButton
+                label={INSPECTOR_NAME}
+                aria-expanded={advancedOpen}
+                variant={advancedOpen ? 'secondary' : 'ghost'}
+                onClick={() => {
+                  // Folding it away saves an edit still waiting for a pause in typing.
+                  if (advancedOpen) void editor.flush();
+                  setAdvancedOpen(!advancedOpen);
+                }}
+              >
+                <SlidersHorizontal size={18} strokeWidth={1.8} aria-hidden />
+              </IconButton>
+            </Tooltip>
+            <ExportJobFile editor={editor} />
+          </div>
           <div className="flex items-center gap-2">
-            <span className="mr-2 text-small">
-              {waitLine(wait) ??
+            {(() => {
+              const said =
+                waitLine(wait) ??
                 (preflight.needs.length > 0
                   ? preflight.summary
                   : wontTeach
                     ? wontTeachTitle(job, job.student.trainOn, deviceInSentence(currentPlatform()))
-                    : 'Keep Architect open while it trains')}
-            </span>
+                    : null);
+              if (said !== null || !shortfall) {
+                return (
+                  <span className="mr-2 text-small">
+                    {said ?? 'Keep Architect open while it trains'}
+                  </span>
+                );
+              }
+              const allow = shortfall.allowMinutes;
+              return (
+                <>
+                  <span className="text-small">{shortfall.short}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mr-1"
+                    onClick={() =>
+                      allow === undefined
+                        ? openAdvanced('budget')
+                        : editor.change((current) => ({
+                            ...current,
+                            budget: { ...current.budget, maxWallMinutes: allow },
+                          }))
+                    }
+                  >
+                    {allow === undefined ? 'Open Budget' : `Allow ${capText(allow)}`}
+                  </Button>
+                </>
+              );
+            })()}
             <Button onClick={() => navigate(paths.newAgent())}>Back</Button>
             <Button
               variant="primary"
@@ -303,18 +357,7 @@ function DefineEditor({ initial }: { initial: Job }) {
           />
         </StaggerItem>
         <StaggerItem className="flex flex-col">
-          <TrainingRows
-            job={job}
-            hosted={hosted}
-            testPlace={testPlace}
-            onCapChange={(maxMentorUsd) =>
-              editor.change(
-                (current) => ({ ...current, budget: { ...current.budget, maxMentorUsd } }),
-                400,
-              )
-            }
-            baselines={baselines}
-          />
+          <TrainingRows job={job} hosted={hosted} testPlace={testPlace} baselines={baselines} />
           <ReadyWhen job={job} />
           <FilePermissions
             job={job}
@@ -322,18 +365,6 @@ function DefineEditor({ initial }: { initial: Job }) {
           />
         </StaggerItem>
       </Stagger>
-      <AdvancedDialog
-        open={advancedOpen}
-        onOpenChange={(open) => {
-          setAdvancedOpen(open);
-          if (!open) void editor.flush();
-        }}
-        tab={tab}
-        onTabChange={setTab}
-        editor={editor}
-        taskCount={taskCount}
-        finalTest={{ place: testPlace, onPlaceChange: setTestPlace, hosted }}
-      />
       {preflight.adding !== null && (
         <AddKeyDialog
           key={preflight.adding}

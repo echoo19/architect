@@ -256,7 +256,6 @@ test('walks from a description to a graduate', async () => {
   await expect(cost).toContainText(/Spark teaching\s*\$0\.60/);
   // The total is the figures under it added up.
   await expect(estimate.getByRole('img', { name: '$3.60' })).toBeVisible();
-  await expect(page.getByText('About $0.60 expected', { exact: true })).toBeVisible();
   await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
   // Comparison mode is off, so nothing on the screen offers or mentions a comparison.
   await expect(page.getByText(/comparison|simpler versions/i)).toHaveCount(0);
@@ -264,12 +263,16 @@ test('walks from a description to a graduate', async () => {
   await expect(time).toHaveCount(0);
   await capture(page, 'flow-define-dark');
 
-  await page.getByRole('button', { name: 'Advanced settings' }).click();
-  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+  await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
+  const advanced = page.getByRole('complementary', { name: 'Advanced settings' });
   await expect(advanced).toBeVisible();
+  // The teacher's cap, and what it is expected to cost under it.
+  await advanced.getByRole('tab', { name: 'Spark' }).click();
+  await expect(advanced.getByText('About $0.60 expected', { exact: true })).toBeVisible();
   // The example tasks: where they came from, then each type with the rule behind it, its
   // tasks in each set and three examples with their expected answers.
-  await advanced.getByRole('tab', { name: 'Example tasks' }).click();
+  await advanced.getByRole('tab', { name: 'Evaluation' }).click();
+  await advanced.getByRole('button', { name: 'Example tasks' }).click();
   await expect(advanced.getByText('From the tasks you attached.')).toBeVisible();
   await expect(advanced.getByText('170 tasks', { exact: true })).toBeVisible();
   await expect(
@@ -283,31 +286,27 @@ test('walks from a description to a graduate', async () => {
   await capture(page, 'flow-advanced-tasks-dark');
   // The tasks were split when they were added and nothing splits them again, so the sets
   // show what they are and say why they can't change.
-  await advanced.getByRole('tab', { name: 'Task sets' }).click();
   await expect(
-    advanced.getByText(
-      "The tasks were split into these sets when they were added, so the sets can't change now.",
-    ),
+    advanced.getByText("The tasks were split when they were added, so the sets can't change now."),
   ).toBeVisible();
-  await expect(advanced.getByRole('textbox', { name: 'Practice tasks' })).toHaveCount(0);
-  await expect(advanced).toContainText(/Practice tasks[\s\S]*60 tasks/);
-  await expect(advanced).toContainText(/Check tasks[\s\S]*40 tasks/);
-  await expect(advanced).toContainText(/Final test[\s\S]*60 tasks/);
+  const sets = advanced.getByRole('region', { name: 'Task sets' });
+  await expect(sets.getByRole('textbox')).toHaveCount(0);
+  await expect(sets).toContainText(/Practice\s*60 tasks/);
+  await expect(sets).toContainText(/Check, Spark sees only the score\s*40 tasks/);
+  await expect(sets).toContainText(/Final test, opened once\s*60 tasks/);
   await capture(page, 'flow-advanced-dark');
-  // A field that can change is held to its limits, and says so until it is put right.
-  await advanced.getByRole('tab', { name: 'Time and budget' }).click();
+  // A field that can change is held to its limits, says so where it is typed, and isn't saved
+  // until it is put right.
+  await advanced.getByRole('tab', { name: 'Budget' }).click();
   const minutes = advanced.getByRole('textbox', { name: 'Training time' });
   await minutes.fill('0');
   await expect(
     advanced.getByText('Use whole minutes, from 1 up to a week (10,080).'),
   ).toBeVisible();
-  await expect(advanced.getByRole('status')).toContainText(
-    'Not saved: fix the marked field in Time and budget',
-  );
   await minutes.fill('240');
   await expect(advanced.getByRole('alert')).toHaveCount(0);
-  await expect(advanced.getByRole('status')).toContainText('Saved');
-  await page.keyboard.press('Escape');
+  await expect(page.getByText('Time limit saved', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
   await expect(advanced).toBeHidden();
   await page.getByRole('button', { name: 'Start training' }).click();
 
@@ -720,7 +719,8 @@ test("keeps Start training off until the job's plan is known, and says so when i
   await expect(page.getByRole('heading', { name: 'Service desk', level: 1 })).toBeVisible();
   await expect(page.getByText('Checking the job', { exact: true })).toBeVisible();
   await expect(start).toBeDisabled();
-  await expect(page.getByText('Keep Architect open while it trains')).toBeVisible({
+  // Read, the footer says what is left to know: the time limit cuts training short.
+  await expect(page.getByText(/^The 20-hour limit fits .* of 12 rounds$/)).toBeVisible({
     timeout: 10_000,
   });
   await expect(start).toBeEnabled();
@@ -740,7 +740,7 @@ test("keeps Start training off until the job's plan is known, and says so when i
   await stubEngine(app, { 'jobs:taskPlan': taskPlan });
   await alert.getByRole('button', { name: 'Try again' }).click();
   await expect(alert).toHaveCount(0);
-  await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
+  await expect(page.getByText(/^The 20-hour limit fits .* of 12 rounds$/)).toBeVisible();
   await expect(start).toBeEnabled();
 });
 
@@ -835,7 +835,7 @@ test('says what a run needs before it starts, with one action for each', async (
   await needs.getByRole('button', { name: 'Download · 17 GB' }).click();
   await expect(page.getByRole('region', { name: 'Before it can start' })).toHaveCount(0);
   await expect(start).toBeEnabled();
-  await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
+  await expect(page.getByText(/^The 20-hour limit fits .* of 12 rounds$/)).toBeVisible();
 });
 
 test('says when Ollama is not running, and looks again when asked', async () => {
@@ -905,12 +905,12 @@ test('still asks for the model on this computer when practice and the final test
   await resize(DEFINE_HEIGHT);
   await goTo(page, `/jobs/${FLOW.jobId}/define`);
   await expect(page.getByRole('radio', { name: /Train online/ })).toBeChecked();
-  await page.getByRole('button', { name: 'Advanced settings' }).click();
-  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-  await advanced.getByRole('tab', { name: 'Ready when' }).click();
+  await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
+  const advanced = page.getByRole('complementary', { name: 'Advanced settings' });
+  await advanced.getByRole('tab', { name: 'Evaluation' }).click();
   const where = advanced.getByRole('radiogroup', { name: 'Where the final test runs' });
   await where.getByRole('radio', { name: /On the online copy/ }).click();
-  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
   await expect(advanced).toBeHidden();
 
   // Nothing in the run itself uses this computer now, but the finished agent runs on it, so the
@@ -954,9 +954,9 @@ test('takes the final test on the online copy when asked', async () => {
   await expect(time).toContainText(/Final test\s*60 new tasks on this computer\s*2\.5 h/);
   await expect(cost).not.toContainText('Online final test');
 
-  await page.getByRole('button', { name: 'Advanced settings' }).click();
-  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-  await advanced.getByRole('tab', { name: 'Ready when' }).click();
+  await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
+  const advanced = page.getByRole('complementary', { name: 'Advanced settings' });
+  await advanced.getByRole('tab', { name: 'Evaluation' }).click();
   const where = advanced.getByRole('radiogroup', { name: 'Where the final test runs' });
   const here = where.getByRole('radio', { name: /On this computer/ });
   const online = where.getByRole('radio', { name: /On the online copy/ });
@@ -970,7 +970,7 @@ test('takes the final test on the online copy when asked', async () => {
   await online.click();
   await expect(online).toBeChecked();
   await capture(page, 'flow-advanced-final-test-dark');
-  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
   await expect(advanced).toBeHidden();
 
   // The plan follows the choice: a quarter of an hour, and a line on the host's bill.
@@ -993,11 +993,12 @@ test('chooses what the teacher may change, and keeps the last way to change the 
   await applySettings(page, { onboarded: true, comparisonMode: false });
   await resize(DEFINE_HEIGHT);
   await goTo(page, `/jobs/${FLOW.jobId}/define`);
-  await page.getByRole('button', { name: 'Advanced settings' }).click();
-  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-  // The teacher's tab is named for the teacher.
-  await advanced.getByRole('tab', { name: 'Spark' }).click();
+  await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
+  const advanced = page.getByRole('complementary', { name: 'Advanced settings' });
+  // The teacher's tab is named for the teacher, and what it may change is under Teaching.
+  await expect(advanced.getByRole('tab', { name: 'Spark' })).toBeVisible();
   await expect(advanced.getByRole('tab', { name: 'Teacher' })).toHaveCount(0);
+  await advanced.getByRole('tab', { name: 'Teaching' }).click();
   const section = advanced.getByRole('region', { name: 'What Spark may change' });
   const kinds = [
     'Instructions and steps',
@@ -1017,7 +1018,7 @@ test('chooses what the teacher may change, and keeps the last way to change the 
 
   await section.getByRole('switch', { name: 'Small tools' }).click();
   await section.getByRole('switch', { name: 'Questions for you' }).click();
-  await expect(advanced.getByRole('status')).toContainText('Saved');
+  await expect(page.getByText('Questions for you saved', { exact: true })).toBeVisible();
   const saved = (await recordedCalls(app, 'jobs:save')).map(([sent]) => sent as Job);
   expect(saved.at(-1)?.interventions).toEqual(['procedure', 'retrieval', 'weights']);
   const toBottom = () =>
@@ -1037,17 +1038,16 @@ test('chooses what the teacher may change, and keeps the last way to change the 
   await expect(section).toContainText(
     'Stays on: Spark needs at least one way to change Glimmer. Retraining Glimmer itself needs a Hugging Face key. A free Hugging Face account gives you one.',
   );
-  await expect(advanced.getByRole('status')).toContainText('Saved');
+  await expect(page.getByText('What it reads, and when saved', { exact: true })).toBeVisible();
   expect(((await recordedCalls(app, 'jobs:save')).at(-1)?.[0] as Job).interventions).toEqual([
     'weights',
   ]);
   await toBottom();
   await capture(page, 'flow-advanced-teacher-last-dark');
 
-  // The row that needs the key has the way to add it: this dialog closes, and Settings opens on
-  // the Hugging Face row, which is not folded away under Advanced.
+  // The row that needs the key has the way to add it: Settings opens on the Hugging Face row,
+  // which is not folded away under Advanced.
   await section.getByRole('button', { name: 'Add the key' }).click();
-  await expect(advanced).toBeHidden();
   const settings = page.getByRole('dialog', { name: 'Settings' });
   await expect(settings.getByRole('button', { name: 'Add token' })).toBeVisible();
   // The row says where a key comes from, with the address of the page that makes one.
@@ -1080,7 +1080,6 @@ test('chooses what the teacher may change, and keeps the last way to change the 
   await needs.getByRole('button', { name: "Open Spark's settings" }).click();
   await expect(advanced.getByRole('region', { name: 'What Spark may change' })).toBeVisible();
   await advanced.getByRole('switch', { name: 'Instructions and steps' }).click();
-  await page.keyboard.press('Escape');
   await expect(needs).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
 });
@@ -1099,20 +1098,23 @@ test('cannot take the final test online without an online copy to take it on', a
   // for training online says what it needs.
   const callout = page.getByRole('status').filter({ hasText: 'Not even one round of teaching' });
   await expect(callout).not.toContainText("Online training isn't");
-  await expect(callout).not.toContainText("Pick an online service under Agent's model");
+  await expect(callout).not.toContainText('Pick an online service under Glimmer');
   await expect(page.getByRole('radio', { name: /Train online/ })).toContainText(
-    "Pick an online service under Agent's model in Advanced settings",
+    'Pick an online service under Glimmer in Advanced settings',
   );
   await expect(callout.getByRole('button', { name: 'Train online instead' })).toHaveCount(0);
   await callout.getByRole('button', { name: 'Set up online training' }).click();
-  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-  await expect(advanced.getByRole('heading', { name: "Agent's model" })).toBeVisible();
+  const advanced = page.getByRole('complementary', { name: 'Advanced settings' });
+  await expect(advanced.getByRole('tab', { name: 'Glimmer' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
 
-  await advanced.getByRole('tab', { name: 'Ready when' }).click();
+  await advanced.getByRole('tab', { name: 'Evaluation' }).click();
   const where = advanced.getByRole('radiogroup', { name: 'Where the final test runs' });
   const online = where.getByRole('radio', { name: /On the online copy/ });
   await expect(online).toBeDisabled();
-  await expect(online).toContainText("Choose an online copy under Agent's model first");
+  await expect(online).toContainText('Choose an online copy under Glimmer first');
   await expect(where.getByRole('radio', { name: /On this computer/ })).toBeChecked();
 });
 
@@ -1144,9 +1146,9 @@ test('keeps a checker file chosen from elsewhere inside the job, and saves that 
   await applySettings(page, { onboarded: true, comparisonMode: false });
   await resize(DEFINE_HEIGHT);
   await goTo(page, `/jobs/${FLOW.jobId}/define`);
-  await page.getByRole('button', { name: 'Advanced settings' }).click();
-  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-  await advanced.getByRole('tab', { name: 'Grading' }).click();
+  await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
+  const advanced = page.getByRole('complementary', { name: 'Advanced settings' });
+  await advanced.getByRole('tab', { name: 'Evaluation' }).click();
   await expect(advanced.getByText('checker.js', { exact: true }).first()).toBeVisible();
   await expect(
     advanced.getByText(
@@ -1159,9 +1161,9 @@ test('keeps a checker file chosen from elsewhere inside the job, and saves that 
   expect(await savedCheckers()).toEqual([{ kind: 'module', path: 'D:/Downloads/my-checks.js' }]);
 
   // The next save, of another field, names the copy: the original is never looked for again.
-  await advanced.getByRole('tab', { name: 'Time and budget' }).click();
-  await advanced.getByRole('textbox', { name: 'Rounds' }).fill('10');
-  await expect(advanced.getByRole('status')).toContainText('Saved');
+  await advanced.getByRole('tab', { name: 'Teaching' }).click();
+  await advanced.getByRole('textbox', { name: 'Rounds at most' }).fill('10');
+  await expect(page.getByText('Rounds saved', { exact: true })).toBeVisible();
   expect((await savedCheckers()).at(-1)).toEqual({
     kind: 'module',
     path: 'my-checks-3f9a2c1b4d5e.js',
@@ -1176,10 +1178,8 @@ test('exports the job file where the person chooses, and says what stays behind'
   await applySettings(page, { onboarded: true, comparisonMode: false });
   await resize(DEFINE_HEIGHT);
   await goTo(page, `/jobs/${FLOW.jobId}/define`);
-  await page.getByRole('button', { name: 'Advanced settings' }).click();
-  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-
-  await advanced.getByRole('button', { name: 'Export the job file' }).click();
+  const exportFile = page.getByRole('button', { name: 'Export the job file' });
+  await exportFile.click();
   await expect(
     page.getByText('service-desk.job.json. Its tasks and data files stay on this computer.'),
   ).toBeVisible();
@@ -1199,7 +1199,7 @@ test('exports the job file where the person chooses, and says what stays behind'
   // Closing the save dialog without choosing a file writes nothing.
   await stubRecorded(app, 'files:save', null);
   await stubRecorded(app, 'jobs:exportFile', null);
-  await advanced.getByRole('button', { name: 'Export the job file' }).click();
+  await exportFile.click();
   await expect.poll(() => recordedCalls(app, 'files:save')).toHaveLength(1);
   expect(await recordedCalls(app, 'jobs:exportFile')).toEqual([]);
 });

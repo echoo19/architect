@@ -22,7 +22,7 @@ export type NeedAction =
   /** Saves a provider's key. */
   | { kind: 'add_key'; provider: ProviderId }
   /** Opens the settings where the teacher or the online copy is chosen and its key is saved. */
-  | { kind: 'open'; tab: 'mentor' | 'student' }
+  | { kind: 'open'; tab: 'teacher' | 'student' | 'teaching' }
   | { kind: 'download'; model: string }
   /** Looks again: for the saved keys, for the model on this computer, or for the online copy. */
   | { kind: 'recheck'; what: 'keys' | 'local' | 'host' };
@@ -85,7 +85,7 @@ function teacherNeed(job: Job, teacher: string, keys: Record<string, boolean>): 
   };
   // A key for an endpoint the user added is saved in the teacher's settings, with its address.
   if (mentor.provider === 'other') {
-    return { ...missing, label: 'Add its key', action: { kind: 'open', tab: 'mentor' } };
+    return { ...missing, label: 'Add its key', action: { kind: 'open', tab: 'teacher' } };
   }
   return {
     ...missing,
@@ -217,7 +217,7 @@ function idleNeed(
     title: `${names.mentor} can't change anything yet`,
     detail: `Only retraining ${names.student} itself is on, and it ${BLOCK_REASONS[block]}.${keyHint(block)} ${blockFix(block, device)}`,
     label: `Open ${names.mentor}'s settings`,
-    action: { kind: 'open', tab: 'mentor' },
+    action: { kind: 'open', tab: 'teaching' },
   };
 }
 

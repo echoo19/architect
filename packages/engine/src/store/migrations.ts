@@ -423,4 +423,30 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX runtime_measurements_by_run ON runtime_measurements (run_id, started_at);
     `,
   },
+  {
+    version: 17,
+    name: 'answer keys for certified answers',
+    sql: `
+      -- A hash of a sealed attempt's answer and file changes, salted by its run, so attempts at
+      -- one task can be compared for agreement without keeping what they answered.
+      ALTER TABLE attempts ADD COLUMN answer_key TEXT;
+    `,
+  },
+  {
+    version: 18,
+    name: 'counterexamples',
+    sql: `
+      -- A failing helper call reduced to a small case, kept as the field's regression suite.
+      CREATE TABLE counterexamples (
+        id TEXT PRIMARY KEY,
+        job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+        run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+        round INTEGER NOT NULL,
+        body TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX counterexamples_by_job ON counterexamples (job_id, created_at);
+      CREATE INDEX counterexamples_by_run ON counterexamples (run_id, round);
+    `,
+  },
 ];

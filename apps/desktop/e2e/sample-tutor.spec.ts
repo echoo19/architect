@@ -83,12 +83,12 @@ test('starts Phil from a fresh install and reaches the brief to confirm', async 
     },
   });
   await stubRecorded(app, 'jobs:createSample', phil);
-  await updateSettings(page, { onboarded: true, comparisonMode: false });
+  await updateSettings(page, { onboarded: true, comparisonMode: false, edition: 'lab' });
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
   await goTo(page, '/');
 
-  await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Nothing in the lab yet' })).toBeVisible();
   const offer = page.getByRole('button', { name: 'Try the tutor' });
   await expect(page.getByRole('button', { name: 'Try the sample job' })).toBeVisible();
   await offer.hover();

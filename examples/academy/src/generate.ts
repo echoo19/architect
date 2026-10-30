@@ -10,7 +10,7 @@ import { buildJob } from './job-file';
 import { formatJson } from './lib/json-format';
 import { Random } from './lib/random';
 import { JobFiles } from './reference/tools';
-import { buildTasks } from './tasks/build';
+import { buildTasks, TRAINED_PER_SKILL, TRANSFER_PER_SKILL } from './tasks/build';
 
 /** The academies of the committed job: three to train on and one kept for transfer. */
 export const ACADEMY_SEEDS: readonly { seed: number; role: Organization['role'] }[] = [
@@ -44,6 +44,7 @@ export function buildAcademy(seed: number, options: BuildOptions = {}): Generate
   const files = academyFiles(academy, random.fork('export'));
   const tasks = buildTasks(random.fork('tasks'), academy, new JobFiles(files), {
     demoEscalates: options.demoEscalates ?? false,
+    perSkill: options.role === 'transfer' ? TRANSFER_PER_SKILL : TRAINED_PER_SKILL,
   }).map((task) => TaskSchema.parse(task));
   return {
     organization: {

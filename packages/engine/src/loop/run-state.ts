@@ -327,7 +327,7 @@ export class RunState {
 
   /** Tells listeners a mentoring record changed, so they read it back. */
   announce(
-    record: 'lesson' | 'intervention' | 'experiment' | 'reference',
+    record: 'lesson' | 'intervention' | 'experiment' | 'reference' | 'counterexample',
     id: string,
     round: number | null,
   ): void {

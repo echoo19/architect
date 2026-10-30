@@ -687,6 +687,102 @@ describe('writes', () => {
   });
 });
 
+describe('a certified version (decision 077)', () => {
+  const certificate = {
+    issued: true as const,
+    n: 60,
+    k: 3,
+    delta: 0.05,
+    epsilon: 0.1,
+    curve: [],
+    assumption: 'Requests like the calibration ones.',
+    threshold: { votes: 2, answered: 50, errors: 1, coverage: 50 / 60, bound: 0.09 },
+    checks: [],
+  };
+  const answer = (value: number): ScriptedTurn => ({
+    text: `The total is ${value}.\nANSWER: {"total": ${value}}`,
+  });
+
+  it('answers with the most common of k attempts when enough agree, each attempt a step', async () => {
+    const world = await setup([answer(5000), answer(4000), answer(5000)], { certificate });
+    const { reply } = await ask(world, 'What does Ruiz, Ben owe?');
+    expect(reply.status).toBe('done');
+    expect(reply.text).toBe('The total is 5000.\nANSWER: {"total": 5000}');
+    expect(reply.steps).toMatchObject([
+      { kind: 'attempt', name: 'Attempt 1 of 3', detail: '{"total":5000}', meta: 'agrees' },
+      { kind: 'attempt', name: 'Attempt 2 of 3', detail: '{"total":4000}', meta: 'differs' },
+      { kind: 'attempt', name: 'Attempt 3 of 3', detail: '{"total":5000}', meta: 'agrees' },
+    ]);
+    expect(world.model.chats()).toHaveLength(3);
+  });
+
+  it('says it is not sure and hands the request to a person when too few agree', async () => {
+    const world = await setup([answer(1), answer(2), answer(3)], { certificate });
+    const { reply } = await ask(world, 'What does Ruiz, Ben owe?');
+    expect(reply.status).toBe('done');
+    expect(reply.text).toContain("I'm not sure about this one");
+    expect(reply.text).toContain('hand it to a person');
+    expect(reply.steps.map((step) => step.meta)).toEqual(['agrees', 'differs', 'differs']);
+  });
+
+  it('hands off replies in words that say different things, and answers ones that say the same', async () => {
+    const differing = await setup(
+      [{ text: 'Ruiz owes 5000.' }, { text: 'Ruiz owes 4000.' }, { text: 'Nothing is owed.' }],
+      { certificate },
+    );
+    const handed = (await ask(differing, 'What does Ruiz, Ben owe?')).reply;
+    expect(handed.text).toContain("I'm not sure about this one");
+    expect(handed.steps.map((step) => step.meta)).toEqual(['agrees', 'differs', 'differs']);
+
+    const same = await setup(
+      [{ text: 'Ruiz owes 5,000.00' }, { text: 'ruiz owes  5000' }, { text: 'Ruiz owes 4000.' }],
+      { certificate },
+    );
+    const answered = (await ask(same, 'What does Ruiz, Ben owe?')).reply;
+    expect(answered.text).toBe('Ruiz owes 5,000.00');
+    expect(answered.steps.map((step) => step.meta)).toEqual(['agrees', 'agrees', 'differs']);
+  });
+
+  it("proposes only the chosen answer's writes, after every attempt, for approval", async () => {
+    const other = 'INV-5,C-2,9000,2026-12-05,false';
+    const world = await setup(
+      [
+        addInvoice(),
+        { text: 'Added INV-4.' },
+        addInvoice(other),
+        { text: 'Added INV-5.' },
+        addInvoice(),
+        { text: 'Added INV-4.' },
+      ],
+      { certificate },
+    );
+    const chat = await world.host.createChat(world.graduate.id);
+    const waiting = pendingApproval(world, chat.id);
+    const done = settled(world, chat.id);
+    await world.host.send(chat.id, 'Add an invoice for Ruiz, Ben: $50 due Dec 5.');
+    const approval = await waiting;
+    expect(approval).toMatchObject({
+      op: 'write',
+      file: 'data/invoices.csv',
+      diff: { added: [['INV-4', 'C-2', '5000', '2026-12-05', 'false']], removed: [], changed: [] },
+    });
+    expect(await invoicesFile(world)).toBe(SAMPLE_CONTENT['invoices.csv']);
+    await world.host.decide(approval.changeId, 'approve');
+    const reply = await done;
+    expect(reply.blocks.filter((block) => block.kind === 'approval')).toHaveLength(1);
+    const written = await invoicesFile(world);
+    expect(written).toContain(NEW_INVOICE);
+    expect(written).not.toContain('INV-5');
+  });
+
+  it('answers once, as before, for a version without a certificate', async () => {
+    const world = await setup([answer(5000)]);
+    const { reply } = await ask(world, 'What does Ruiz, Ben owe?');
+    expect(reply.steps).toEqual([]);
+    expect(world.model.chats()).toHaveLength(1);
+  });
+});
+
 describe('stopping', () => {
   it('stops a reply mid-stream and marks it stopped', async () => {
     const text = 'Here is a long answer that streams slowly, one small piece at a time.';

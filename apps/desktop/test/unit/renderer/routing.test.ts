@@ -20,6 +20,20 @@ describe('parsePath', () => {
     expect(parsePath(paths.improvement('run_1'))).toEqual({ name: 'improvement', runId: 'run_1' });
   });
 
+  it("reads Architect's places", () => {
+    expect(parsePath(paths.home())).toEqual({ name: 'home' });
+    expect(parsePath(paths.fields())).toEqual({ name: 'fields' });
+    expect(parsePath(paths.field('job_1'))).toEqual({ name: 'field', jobId: 'job_1' });
+    expect(parsePath(paths.experiments())).toEqual({ name: 'experiments' });
+    expect(parsePath(paths.newExperiment())).toEqual({ name: 'experiment-new' });
+    expect(parsePath(paths.experiment('exp_1'))).toEqual({
+      name: 'experiment',
+      experimentId: 'exp_1',
+    });
+    expect(parsePath(paths.models())).toEqual({ name: 'models' });
+    expect(parsePath(paths.compute())).toEqual({ name: 'compute' });
+  });
+
   it('round-trips ids through the path builders', () => {
     const id = 'job with/odd #chars';
     expect(parsePath(paths.define(id))).toEqual({ name: 'define', jobId: id });
@@ -31,7 +45,15 @@ describe('parsePath', () => {
   });
 
   it('sends anything else to not found', () => {
-    for (const path of ['/runs/run_1', '/runs/run_1/train/extra', '/agents/g/chats', '/%E0%A4%A']) {
+    for (const path of [
+      '/runs/run_1',
+      '/runs/run_1/train/extra',
+      '/agents/g/chats',
+      '/%E0%A4%A',
+      '/fields/job_1/extra',
+      '/models/m_1',
+      '/compute/x',
+    ]) {
       expect(parsePath(path)).toEqual({ name: 'not-found', path });
     }
   });

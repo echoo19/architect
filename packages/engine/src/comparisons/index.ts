@@ -26,9 +26,11 @@ export {
   probeLocal,
   reportOnly,
   runComparison,
+  type ComparisonControl,
   type ComparisonEnvironment,
   type ComparisonOutcome,
   type ComparisonRequest,
+  type ComparisonView,
 } from './runner';
 export { CREDIT_REFUSAL, StudentCredit, worstCaseUsd } from './spend';
 export { counted, paired, pairedDifference, wilson, Z95, type PairedDifference } from './stats';

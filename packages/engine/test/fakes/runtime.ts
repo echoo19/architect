@@ -4,10 +4,13 @@ import {
   type Harness,
   type HarnessTool,
   type Job,
+  type SuiteResult,
   type Task,
   type Trace,
   type Usage,
 } from '@architect/shared';
+import type { FoundCounterexample } from '../../src/counterexamples/find';
+import type { SuiteCase } from '../../src/counterexamples/suite';
 import type {
   Evaluation,
   EvaluationContext,
@@ -165,7 +168,13 @@ export class FakeRuntime implements RuntimeDeps {
 
   splitTasks(tasks: Task[]): TaskSplits {
     const of = (prefix: string) => tasks.filter((task) => task.id.startsWith(prefix));
-    return { calibration: of('cal-'), train: of('train-'), dev: of('dev-'), test: of('test-') };
+    return {
+      calibration: of('cal-'),
+      train: of('train-'),
+      dev: of('dev-'),
+      test: of('test-'),
+      certify: of('cert-'),
+    };
   }
 
   today(job: Job, now: Date): string {
@@ -275,6 +284,44 @@ export class FakeRuntime implements RuntimeDeps {
     return correctionResult(task, ctx, start, this.correction(task, start));
   }
 
+  /** Every counterexample search: the failed attempts' task ids. */
+  readonly searches: string[][] = [];
+  /** What a search finds for the failed attempts it is given: nothing unless a test says. */
+  counterexamples: (
+    search: Parameters<RuntimeDeps['findCounterexamples']>[0],
+  ) => FoundCounterexample[] = () => [];
+  /** Every suite run: the helper's name and the cases it ran, `<id>:reduced` or `<id>:original`. */
+  readonly suites: { tool: string; cases: string[] }[] = [];
+
+  async findCounterexamples(search: Parameters<RuntimeDeps['findCounterexamples']>[0]) {
+    this.searches.push(search.attempts.map((attempt) => attempt.task.id));
+    return this.counterexamples(search);
+  }
+
+  /** A helper passes every case unless its code says it is still broken. */
+  async runSuite(
+    _ctx: Parameters<RuntimeDeps['runSuite']>[0],
+    tool: Pick<HarnessTool, 'name' | 'code'>,
+    cases: readonly SuiteCase[],
+  ): Promise<SuiteResult[]> {
+    const passed = !tool.code.includes('still broken');
+    const results: SuiteResult[] = cases.flatMap(({ counterexample, original }) =>
+      (original === undefined ? (['reduced'] as const) : (['reduced', 'original'] as const)).map(
+        (kind) => ({
+          counterexampleId: counterexample.id,
+          case: kind,
+          passed,
+          detail: passed ? 'No longer fails.' : 'Still fails.',
+        }),
+      ),
+    );
+    this.suites.push({
+      tool: tool.name,
+      cases: results.map((result) => `${result.counterexampleId}:${result.case}`),
+    });
+    return results;
+  }
+
   async releaseMentor(session: MentorSession) {
     this.releases.push(session);
     this.sequence.push(`release:${session.runId}`);
@@ -289,6 +336,8 @@ export class FakeVault implements VaultDeps {
   private readonly sealed = new Map<string, Task[]>();
   /** The organizations sealed with each job, with their files, which only a proof opens. */
   readonly transfer = new Map<string, TransferOrganization[]>();
+  /** Each certified job's calibration split, which only a proof opens. */
+  readonly calibration = new Map<string, Task[]>();
   readonly opened: string[] = [];
 
   constructor(private readonly runtime: FakeRuntime) {}
@@ -299,14 +348,17 @@ export class FakeVault implements VaultDeps {
     _others?: Task[],
     _data?: string[],
     transfer: TransferOrganization[] = [],
+    certify: Task[] = [],
   ): void {
     if (this.sealed.has(jobId)) throw new Error(`${jobId} is already sealed.`);
     this.sealed.set(jobId, structuredClone(tests));
     this.transfer.set(jobId, transfer);
+    this.calibration.set(jobId, structuredClone(certify));
   }
 
   discard(jobId: string): void {
     this.sealed.delete(jobId);
+    this.calibration.delete(jobId);
     this.transfer.delete(jobId);
   }
 
@@ -330,7 +382,7 @@ export class FakeVault implements VaultDeps {
   }
 
   leakDetector(jobId: string) {
-    const tests = this.sealed.get(jobId) ?? [];
+    const tests = [...(this.sealed.get(jobId) ?? []), ...(this.calibration.get(jobId) ?? [])];
     return {
       scan: (text: string) => {
         const matchedIds = tests
@@ -347,6 +399,17 @@ export class FakeVault implements VaultDeps {
     }
     this.opened.push(jobId);
     return structuredClone(this.sealed.get(jobId) ?? []);
+  }
+
+  openCalibration(jobId: string, proof: unknown): Task[] {
+    if (typeof proof !== 'object' || proof === null || !this.runtime.proofs.has(proof)) {
+      throw new GuardError(
+        'split',
+        'The calibration split opens only after the mentor is released.',
+      );
+    }
+    this.opened.push(`${jobId}:calibration`);
+    return structuredClone(this.calibration.get(jobId) ?? []);
   }
 
   /** Each sealed organization with a stand-in folder, `sealed:<job>/<org>`. */

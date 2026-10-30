@@ -85,10 +85,17 @@ export function registerEngineHandlers(
       confirmRules: (jobId, token) => call((api) => api.jobs.confirmRules(jobId, token)),
       study: (jobId) => call((api) => api.jobs.study(jobId)),
       confirmStudy: (jobId, token) => call((api) => api.jobs.confirmStudy(jobId, token)),
+      field: (jobId) => call((api) => api.jobs.field(jobId)),
+      fieldAssets: (jobId) => call((api) => api.jobs.fieldAssets(jobId)),
+      exportField: (jobId, directory) => {
+        const chosen = picked.check(directory);
+        return call((api) => api.jobs.exportField(jobId, chosen));
+      },
     },
     {
       importFile: z.tuple([text]),
       exportFile: z.tuple([text, text]),
+      exportField: z.tuple([text, text]),
       draftStart: z.tuple([text, z.array(text)]),
     },
   );
@@ -120,6 +127,44 @@ export function registerEngineHandlers(
       call((api) => api.teach.shareCorrections(graduateId, allowed)),
   });
 
+  // An experiment runs on a job folder the person chose in a file dialog.
+  const chosenJob = <T extends { jobDir: string }>(input: T): T => ({
+    ...input,
+    jobDir: picked.check(input.jobDir),
+  });
+  router.registerHandlers('experiments', {
+    plan: (input) => call((api) => api.experiments.plan(chosenJob(input))),
+    revise: (experimentId, input) =>
+      call((api) => api.experiments.revise(experimentId, chosenJob(input))),
+    calibrate: (experimentId) => call((api) => api.experiments.calibrate(experimentId)),
+    preregister: (experimentId) => call((api) => api.experiments.preregister(experimentId)),
+    start: (experimentId, options) => call((api) => api.experiments.start(experimentId, options)),
+    pause: (experimentId) => call((api) => api.experiments.pause(experimentId)),
+    resume: (experimentId, options) => call((api) => api.experiments.resume(experimentId, options)),
+    stop: (experimentId) => call((api) => api.experiments.stop(experimentId)),
+    list: () => call((api) => api.experiments.list()),
+    get: (experimentId) => call((api) => api.experiments.get(experimentId)),
+  });
+
+  // A config.json, a field export and the folder a bundle goes in are ones the person chose.
+  router.registerHandlers('compute', {
+    readConfig: (source) =>
+      call((api) =>
+        api.compute.readConfig(
+          source.kind === 'file' ? { ...source, path: picked.check(source.path) } : source,
+        ),
+      ),
+    plan: (request) => call((api) => api.compute.plan(request)),
+    bundle: (request) =>
+      call((api) =>
+        api.compute.bundle({
+          ...request,
+          exportDir: picked.check(request.exportDir),
+          parentDir: picked.check(request.parentDir),
+        }),
+      ),
+  });
+
   router.registerHandlers('reports', {
     get: (runId, target) => call((api) => api.reports.get(runId, target)),
     list: (runId) => call((api) => api.reports.list(runId)),
@@ -134,6 +179,8 @@ export function registerEngineHandlers(
     progress: (runId) => call((api) => api.mentoring.progress(runId)),
     capabilities: (runId) => call((api) => api.mentoring.capabilities(runId)),
     categories: (jobId) => call((api) => api.mentoring.categories(jobId)),
+    counterexamples: (runId) => call((api) => api.mentoring.counterexamples(runId)),
+    fieldCounterexamples: (jobId) => call((api) => api.mentoring.fieldCounterexamples(jobId)),
     answer: (runId, round, reply) => call((api) => api.mentoring.answer(runId, round, reply)),
     reference: (runId, options) => call((api) => api.mentoring.reference(runId, options)),
     references: (runId) => call((api) => api.mentoring.references(runId)),

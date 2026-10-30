@@ -13,6 +13,7 @@ import {
   type Harness,
   type Job,
   type PinnedInputs,
+  type RunEvent,
   type RuntimeIdentity,
   type StudentAdapter,
 } from '@architect/shared';
@@ -29,7 +30,13 @@ import type { StoredRun } from '../store/records';
 import { armStart, comparisonJob, stageFolder, type ComparisonModels } from './arms';
 import { Credit } from './credit';
 import { openComparisonEngine, type ComparisonEngine } from './engine';
-import { fieldOf, lockedTestsOf, type Field } from './field';
+import {
+  fieldOf,
+  finalTestAttemptsLeft,
+  finalTestAttemptsOf,
+  lockedTestsOf,
+  type Field,
+} from './field';
 import { GpuWindow } from './gpu';
 import { guardAllows, guardedDeps, isGuardRefusal, type Guards } from './guards';
 import { inputsChanged, pinInputs } from './inputs';
@@ -99,6 +106,23 @@ export interface ComparisonRequest {
 }
 
 export type ComparisonOutcome = 'planned' | 'needs_confirmation' | 'finished' | 'incomplete';
+
+/** A comparison as a caller sees it while it runs: its report from the records, its runs' events. */
+export interface ComparisonView {
+  report(): Promise<ComparisonReport>;
+  onEvent(listener: (event: RunEvent) => void): () => void;
+}
+
+/**
+ * How a caller in the same process holds a command (decision 074). Aborting `signal` ends it the
+ * way a closed process would: active runs stop where they are and resume when the comparison runs
+ * again, no arm starts, no locked test is released, and the outcome is `incomplete`.
+ */
+export interface ComparisonControl {
+  signal?: AbortSignal;
+  /** Called once the comparison's engine is open and its job imported. */
+  onOpen?(view: ComparisonView): void;
+}
 
 /** Times in a row a run an error paused is resumed before it is left paused. */
 const MAX_RESUMES = 5;
@@ -401,7 +425,9 @@ function asksForGpu(config: ComparisonConfig): boolean {
 export async function runComparison(
   asked: ComparisonRequest,
   env: ComparisonEnvironment,
+  control: ComparisonControl = {},
 ): Promise<{ outcome: ComparisonOutcome; report: ComparisonReport }> {
+  const aborted = () => control.signal?.aborted === true;
   const unlock = lockFolder(asked.out);
   const files = new ComparisonFiles(asked.out);
   const now = () => new Date(env.clock.now()).toISOString();
@@ -450,6 +476,14 @@ export async function runComparison(
     );
     requirePrice(base);
     await preflight(deps, base);
+    // Stopping closes the controller, as a closed process would: its runs resume next time.
+    const closeOnAbort = () => void engine.controller.close();
+    if (aborted()) closeOnAbort();
+    else control.signal?.addEventListener('abort', closeOnAbort, { once: true });
+    control.onOpen?.({
+      report: () => composeReport(request, env, engine, files, base, guards),
+      onEvent: (listener) => engine.controller.onEvent(listener),
+    });
 
     // Cost first: the calibration tasks price an attempt before any arm spends.
     env.log('Calibration: the bare student on the calibration tasks, on the hosted copy.');
@@ -466,6 +500,7 @@ export async function runComparison(
         clock: env.clock,
         files,
         log: env.log,
+        ...(control.signal === undefined ? {} : { signal: control.signal }),
       })
     ).attempts;
     const billing = billingOf(calibration);
@@ -575,6 +610,7 @@ export async function runComparison(
         for (const wave of DEVELOPMENT_WAVES) {
           const arms = wave.filter((arm) => development.includes(arm));
           for (const arm of arms) {
+            if (aborted()) break;
             if (armRun(engine.store, arm) !== null) continue;
             // A decision is final: an arm dropped once is never reconsidered.
             if ((files.readPlan() ?? confirmed).decisions.some((item) => item.arm === arm)) {
@@ -601,7 +637,7 @@ export async function runComparison(
               study,
             );
           }
-          await settle(engine, env, guards, arms);
+          await settle(engine, env, guards, arms, aborted);
         }
 
         // Every arm is frozen, or ended without a graduate, before any locked result exists.
@@ -609,7 +645,7 @@ export async function runComparison(
           const run = armRun(engine.store, arm);
           return run !== null && run.freeze === null && !isTerminal(run.run.status);
         });
-        if (waiting.length > 0) {
+        if (aborted() || waiting.length > 0) {
           env.log(
             `Not every arm froze (${waiting.map((arm) => ARM_LABELS[arm]).join(', ')}), so every locked test stays held. Run again once they can finish.`,
           );
@@ -620,11 +656,17 @@ export async function runComparison(
         }
         markReleased(files, now());
       }
+      if (aborted()) {
+        return {
+          outcome: 'incomplete',
+          report: await report(request, env, engine, files, base, guards),
+        };
+      }
       const released = release(engine, files, credit, base, config, decide);
       env.log(
         `Every arm is frozen; ${released.length} locked test${released.length === 1 ? ' is' : 's are'} released.`,
       );
-      await settle(engine, env, guards, released);
+      await settle(engine, env, guards, released, aborted);
 
       await measureAfterRelease(
         request,
@@ -636,6 +678,7 @@ export async function runComparison(
         guards,
         base,
         decide,
+        aborted,
       );
     } finally {
       stopWatching();
@@ -660,7 +703,14 @@ export async function runComparison(
 
 /** The request with the locked test's size the job's folder sets. */
 function withLockedTests(request: ComparisonRequest, field: Field): ComparisonRequest {
-  return { ...request, config: { ...request.config, lockedTests: field.lockedTests } };
+  return {
+    ...request,
+    config: {
+      ...request.config,
+      lockedTests: field.lockedTests,
+      certifyAttempts: field.certifyAttempts,
+    },
+  };
 }
 
 /** Spark's study of a field job for the whole comparison, and whether the person confirmed it. */
@@ -763,20 +813,21 @@ async function holdBackAfterRelease(
   }
 }
 
-/** Locked-test attempts a released run still has to make under its first seed. */
+/**
+ * Attempts a released run's final test still has to make under its frozen configuration: the
+ * locked test's first seed and, for a certified job, every agreement attempt at each locked-test
+ * and calibration task.
+ */
 function testsLeft(
   engine: ComparisonEngine,
   run: StoredRun,
   base: Job,
   config: ComparisonConfig,
 ): number {
-  const first = run.freeze?.testSeeds?.[0];
-  const done = engine.store.attempts
-    .list({ runId: run.run.id, split: 'test' })
-    .filter(
-      (attempt) => attempt.seed === first && attempt.config?.startsWith('reference/') !== true,
-    );
-  return Math.max(0, lockedTestsOf(base, config) - done.length);
+  const made = engine.store.attempts
+    .list({ runId: run.run.id })
+    .filter((attempt) => attempt.config?.startsWith('reference/') !== true);
+  return finalTestAttemptsLeft(base, config, run.freeze?.testSeeds?.[0], made);
 }
 
 /** What each backend the plan uses is, read without loading a model. */
@@ -880,7 +931,7 @@ function watchRounds(
           ? base.evaluation.trainBatch
           : 0
         : base.evaluation.trainBatch + 4 * dev;
-    const test = record.lockedTestOn === 'hosted' ? lockedTestsOf(base, config) : 0;
+    const test = record.lockedTestOn === 'hosted' ? finalTestAttemptsOf(base, config) : 0;
     const spent = credit.development(record.run.id);
     const ahead = (hostedRound + test) * price;
     if (spent + ahead <= cap + 1e-9) return;
@@ -1028,10 +1079,12 @@ async function settle(
   env: ComparisonEnvironment,
   guards: Guards,
   arms: readonly ArmId[],
+  aborted: () => boolean,
 ): Promise<void> {
   const resumes = new Map<string, number>();
   for (;;) {
     await engine.controller.idle();
+    if (aborted()) return;
     const paused = arms
       .map((arm) => armRun(engine.store, arm))
       .filter((run): run is StoredRun => {
@@ -1086,6 +1139,7 @@ async function measureAfterRelease(
   guards: Guards,
   base: Job,
   decide: Decide,
+  aborted: () => boolean,
 ): Promise<void> {
   const { controller } = engine;
   const finished = (arm: ArmId) => {
@@ -1105,6 +1159,7 @@ async function measureAfterRelease(
     return true;
   };
   for (let attempt = 0; attempt <= MAX_RESUMES; attempt += 1) {
+    if (aborted()) return;
     for (const { arm, on } of REFERENCES) {
       if (!plan.funded.includes(arm) || decided(arm)) continue;
       const run = finished(on);
@@ -1171,6 +1226,7 @@ async function measureAfterRelease(
       }
     }
     await controller.idle();
+    if (aborted()) return;
     const pausedSide = [
       ...engine.store.references.withStatus('paused'),
       ...engine.store.retests.withStatus('paused'),
@@ -1235,6 +1291,21 @@ async function report(
   base: Job,
   guards: Pick<Guards, 'credit'> | null,
 ): Promise<ComparisonReport> {
+  const built = await composeReport(request, env, engine, files, base, guards);
+  await writeFile(files.reportJson, `${JSON.stringify(built, null, 2)}\n`);
+  await writeFile(files.reportMarkdown, renderMarkdown(built));
+  return built;
+}
+
+/** The report from the records as they stand, written nowhere. */
+async function composeReport(
+  request: ComparisonRequest,
+  env: ComparisonEnvironment,
+  engine: ComparisonEngine,
+  files: ComparisonFiles,
+  base: Job,
+  guards: Pick<Guards, 'credit'> | null,
+): Promise<ComparisonReport> {
   let regression: { job: Job; attempts: SweepAttempt[] } | null = null;
   if (request.regressionJobDir !== undefined) {
     const attempts = files.readSweep('regression');
@@ -1244,7 +1315,7 @@ async function report(
   const plan = files.readPlan();
   const source = readJob(request.jobDir);
   const field = fieldOf(request.jobDir, source);
-  const built = await buildReport({
+  return buildReport({
     engine,
     deps: env.deps,
     config: withLockedTests(request, field).config,
@@ -1260,9 +1331,6 @@ async function report(
     commit: env.commit,
     now: new Date(env.clock.now()).toISOString(),
   });
-  await writeFile(files.reportJson, `${JSON.stringify(built, null, 2)}\n`);
-  await writeFile(files.reportMarkdown, renderMarkdown(built));
-  return built;
 }
 
 /**

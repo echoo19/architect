@@ -203,6 +203,8 @@ test('shows what the teacher understood, and trains only once the person confirm
   await section.getByRole('button', { name: 'Confirm and continue' }).click();
   await expect(section.getByText('Confirmed on Oct 30')).toBeVisible();
   await expect(section.getByRole('button', { name: 'Confirm and continue' })).toHaveCount(0);
-  await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
+  // Nothing waits now; what is said beside Start training is that the time limit cuts it short.
+  await expect(start).toBeEnabled();
+  await expect(page.getByText(/^The 20-hour limit fits .* of 12 rounds$/)).toBeVisible();
   await expect(start).toBeEnabled();
 });

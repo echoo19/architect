@@ -3,6 +3,7 @@ import {
   BindRequestSchema,
   CapabilityBreakdownSchema,
   CategorySchema,
+  CounterexampleSchema,
   ComparisonReportSchema,
   CorrectionRequestSchema,
   CorrectionSchema,
@@ -10,7 +11,12 @@ import {
   CodedError,
   DraftTurnSchema,
   ErrorCodeSchema,
+  ExperimentDetailSchema,
+  ExperimentEventSchema,
+  ExperimentInputSchema,
+  ExperimentRecordSchema,
   ExperimentSchema,
+  ExperimentStartSchema,
   ImprovementSchema,
   ImprovementStartSchema,
   ImproveOptionsSchema,
@@ -19,6 +25,8 @@ import {
   ExportRequestSchema,
   ExportResultSchema,
   ExportReviewSchema,
+  FieldExportManifestSchema,
+  FieldViewSchema,
   FileDiffSchema,
   FolderFitSchema,
   GraduateSettingsSchema,
@@ -38,6 +46,8 @@ import {
   ListedLessonSchema,
   MentorConfigSchema,
   MentoringProgressSchema,
+  ModelConfigReadSchema,
+  ModelConfigSourceSchema,
   PackageError,
   PackageInspectionSchema,
   PackageProblemCodeSchema,
@@ -62,7 +72,12 @@ import {
   TaskPlanSchema,
   TeachingOverviewSchema,
   TraceSchema,
+  TrainBundleRequestSchema,
+  TrainingPlanRequestSchema,
+  TrainingPlanSchema,
   VersionEventSchema,
+  VersionPickSchema,
+  WrittenTrainBundleSchema,
   type AdapterErrorCode,
   type ArchitectApi,
   type DraftTurn,
@@ -78,7 +93,7 @@ import { HubError, type HubErrorCode } from '../hub';
  */
 export type EngineApi = Pick<
   ArchitectApi,
-  'runs' | 'mentoring' | 'teach' | 'reports' | 'graduates'
+  'runs' | 'mentoring' | 'teach' | 'experiments' | 'compute' | 'reports' | 'graduates'
 > & {
   jobs: Omit<ArchitectApi['jobs'], 'draftStart' | 'draftReply'> & {
     draftStart(description: string, files: string[], teacher: MentorConfig): Promise<DraftTurn>;
@@ -137,6 +152,13 @@ export const ENGINE_ROUTES = {
   'jobs.confirmStudy': route(z.tuple([id, id]), StudyStateSchema, (api, [jobId, token]) =>
     api.jobs.confirmStudy(jobId, token),
   ),
+  'jobs.field': route(z.tuple([id]), FieldViewSchema, (api, [jobId]) => api.jobs.field(jobId)),
+  'jobs.fieldAssets': route(z.tuple([id]), FieldExportManifestSchema, (api, [jobId]) =>
+    api.jobs.fieldAssets(jobId),
+  ),
+  'jobs.exportField': route(z.tuple([id, path]), FieldExportManifestSchema, (api, [jobId, dir]) =>
+    api.jobs.exportField(jobId, dir),
+  ),
   'runs.start': route(z.tuple([id, RunStartOptionsSchema]), RunSchema, (api, [jobId, options]) =>
     api.runs.start(jobId, options),
   ),
@@ -185,6 +207,14 @@ export const ENGINE_ROUTES = {
   'mentoring.categories': route(z.tuple([id]), z.array(CategorySchema), (api, [jobId]) =>
     api.mentoring.categories(jobId),
   ),
+  'mentoring.counterexamples': route(z.tuple([id]), z.array(CounterexampleSchema), (api, [runId]) =>
+    api.mentoring.counterexamples(runId),
+  ),
+  'mentoring.fieldCounterexamples': route(
+    z.tuple([id]),
+    z.array(CounterexampleSchema),
+    (api, [jobId]) => api.mentoring.fieldCounterexamples(jobId),
+  ),
   'mentoring.answer': route(
     z.tuple([id, z.number().int().positive(), ClarificationReplySchema]),
     z.void(),
@@ -228,6 +258,59 @@ export const ENGINE_ROUTES = {
     TeachingOverviewSchema,
     (api, [graduateId, allowed]) => api.teach.shareCorrections(graduateId, allowed),
   ),
+  'experiments.plan': route(
+    z.tuple([ExperimentInputSchema]),
+    ExperimentDetailSchema,
+    (api, [input]) => api.experiments.plan(input),
+  ),
+  'experiments.revise': route(
+    z.tuple([id, ExperimentInputSchema]),
+    ExperimentDetailSchema,
+    (api, [experimentId, input]) => api.experiments.revise(experimentId, input),
+  ),
+  'experiments.calibrate': route(z.tuple([id]), ExperimentRecordSchema, (api, [experimentId]) =>
+    api.experiments.calibrate(experimentId),
+  ),
+  'experiments.preregister': route(z.tuple([id]), ExperimentRecordSchema, (api, [experimentId]) =>
+    api.experiments.preregister(experimentId),
+  ),
+  'experiments.start': route(
+    z.tuple([id, ExperimentStartSchema]),
+    ExperimentRecordSchema,
+    (api, [experimentId, options]) => api.experiments.start(experimentId, options),
+  ),
+  'experiments.pause': route(z.tuple([id]), ExperimentRecordSchema, (api, [experimentId]) =>
+    api.experiments.pause(experimentId),
+  ),
+  'experiments.resume': route(
+    z.tuple([id, ExperimentStartSchema]),
+    ExperimentRecordSchema,
+    (api, [experimentId, options]) => api.experiments.resume(experimentId, options),
+  ),
+  'experiments.stop': route(z.tuple([id]), ExperimentRecordSchema, (api, [experimentId]) =>
+    api.experiments.stop(experimentId),
+  ),
+  'experiments.list': route(z.tuple([]), z.array(ExperimentRecordSchema), (api) =>
+    api.experiments.list(),
+  ),
+  'experiments.get': route(z.tuple([id]), ExperimentDetailSchema, (api, [experimentId]) =>
+    api.experiments.get(experimentId),
+  ),
+  'compute.readConfig': route(
+    z.tuple([ModelConfigSourceSchema]),
+    ModelConfigReadSchema,
+    (api, [source]) => api.compute.readConfig(source),
+  ),
+  'compute.plan': route(
+    z.tuple([TrainingPlanRequestSchema]),
+    TrainingPlanSchema,
+    (api, [request]) => api.compute.plan(request),
+  ),
+  'compute.bundle': route(
+    z.tuple([TrainBundleRequestSchema]),
+    WrittenTrainBundleSchema,
+    (api, [request]) => api.compute.bundle(request),
+  ),
   'reports.get': route(
     z.tuple([id, StudentTargetSchema.nullable()]),
     ReportCardSchema,
@@ -255,6 +338,11 @@ export const ENGINE_ROUTES = {
     z.tuple([id, versionNumber.nullable()]),
     ReportCardSchema,
     (api, [graduateId, version]) => api.graduates.report(graduateId, version ?? undefined),
+  ),
+  'graduates.harnessDiff': route(
+    z.tuple([VersionPickSchema, VersionPickSchema]),
+    z.array(FileDiffSchema),
+    (api, [from, to]) => api.graduates.harnessDiff(from, to),
   ),
   'graduates.acceptVersion': route(
     z.tuple([id, versionNumber]),
@@ -413,6 +501,12 @@ export const ResponseMessageSchema = z.discriminatedUnion('ok', [
 ]);
 
 export const EventMessageSchema = z.object({ kind: z.literal('event'), event: RunEventSchema });
+
+/** An experiment moved: sent beside run events, so a screen reads it again. */
+export const ExperimentEventMessageSchema = z.object({
+  kind: z.literal('experiment.event'),
+  event: ExperimentEventSchema,
+});
 
 /** A publication on its way to Hugging Face: sent beside run events while `publish` waits. */
 export const PublishProgressMessageSchema = z.object({

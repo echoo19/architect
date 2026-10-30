@@ -4,7 +4,7 @@ import type { OrgTypeResult, Score } from '@architect/shared';
 export type OrgGroup = 'seen' | 'unseen' | 'real';
 
 export const ORG_GROUPS: { group: OrgGroup; label: string }[] = [
-  { group: 'seen', label: 'Trained with' },
+  { group: 'seen', label: 'Taught on' },
   { group: 'unseen', label: 'Never seen' },
   { group: 'real', label: 'Never seen, real' },
 ];

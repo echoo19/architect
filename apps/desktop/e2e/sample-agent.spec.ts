@@ -84,6 +84,8 @@ async function open(
 async function walkToTheEndOfSetup(): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByRole('heading', { name: "Your agent's model" })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByRole('heading', { name: 'Connect a teacher' })).toBeVisible();
   await page.getByLabel('Meta API key').fill('not-a-real-key');
   await page.getByRole('button', { name: 'Test connection' }).click();

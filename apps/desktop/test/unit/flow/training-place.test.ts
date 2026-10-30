@@ -5,12 +5,10 @@ import { TooltipProvider } from '@architect/ui';
 import { describe, expect, it } from 'vitest';
 import type { HostedAvailability } from '../../../src/renderer/src/flow/define/hosted';
 import {
-  aboutUsd,
   allowingLine,
   capText,
   estimateNotes,
   estimateTime,
-  expectedMentorUsd,
   minutesForOneRound,
   trainHereLine,
 } from '../../../src/renderer/src/flow/define/estimates';
@@ -29,7 +27,7 @@ const READY: HostedAvailability = { available: true };
 const NO_SERVICE: HostedAvailability = {
   available: false,
   why: 'no_host',
-  reason: "Pick an online service under Agent's model in Advanced settings",
+  reason: 'Pick an online service under Glimmer in Advanced settings',
 };
 const NO_KEY: HostedAvailability = {
   available: false,
@@ -68,14 +66,13 @@ function render(job: Job, hosted: HostedAvailability = READY): string {
   );
 }
 
-/** The figures under the choice: the estimate, the cap, and the comparison when it is offered. */
+/** The figures under the choice: the estimate, and the comparison when it is offered. */
 function renderRows(job: Job, withComparison = false): string {
   return renderToStaticMarkup(
     createElement(TrainingRows, {
       job,
       hosted: READY,
       testPlace: 'local',
-      onCapChange: noop,
       baselines: withComparison ? { checked: false, onCheckedChange: noop } : undefined,
     }),
   );
@@ -161,7 +158,7 @@ describe('a place that cannot fit a round', () => {
     const none = render(jobOf('local'), NO_SERVICE);
     expect(none).not.toContain('Train online instead');
     expect(callout(none)).not.toContain("Online training isn't");
-    expect(callout(none)).not.toContain("Pick an online service under Agent's model");
+    expect(callout(none)).not.toContain('Pick an online service under Glimmer');
     expect(none).toContain('Set up online training');
     // Its key isn't saved: the same, and the card says which key.
     const key = render(jobOf('local'), NO_KEY);
@@ -372,13 +369,8 @@ describe('the rows of the plan', () => {
     expect(text(html)).not.toContain('Final test');
   });
 
-  it("says the teacher's cap and what is expected of it, in the teacher's name", () => {
-    const job = jobOf('hosted');
-    const html = renderRows(job);
-    expect(text(html)).toContain('Spark spending cap');
-    const expected = expectedMentorUsd(job, estimateTime(job, 'hosted')) ?? 0;
-    expect(text(html)).toContain(`${aboutUsd(expected)} expected`);
-    expect(html).toContain('aria-valuetext="$5"');
+  it("leaves the teacher's cap to the inspector, so the page keeps one focal point", () => {
+    expect(text(renderRows(jobOf('hosted')))).not.toContain('spending cap');
   });
 
   it('offers the comparison only when comparison mode is on, and says what it adds', () => {
@@ -408,7 +400,7 @@ describe('the online place', () => {
     const base = makeJob();
     const { hosted: _none, ...student } = jobOf('local').student;
     const words = text(render({ ...base, student: { ...student, trainOn: 'local' } }, NO_SERVICE));
-    expect(words).toContain("Pick an online service under Agent's model in Advanced settings");
+    expect(words).toContain('Pick an online service under Glimmer in Advanced settings');
     expect(words).not.toMatch(/\bhost\b/i);
   });
 });

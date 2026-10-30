@@ -15,6 +15,7 @@ import { useSettings } from '../../api/hooks';
 import { ReadyMadeAgentButton } from '../../import/ReadyMadeAgentButton';
 import { mentorIsLocal, mentorName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
+import { useEdition } from '../../shell/edition';
 import { AttachedFile } from './AttachedFile';
 import { sendToMentor, useDraftStore } from './draft-store';
 import { ImportJobButton } from './ImportJobButton';
@@ -44,6 +45,7 @@ export function DescribeHero() {
     })),
   );
   const settings = useSettings();
+  const edition = useEdition();
   const mentor =
     settings.status === 'success'
       ? {
@@ -111,7 +113,7 @@ export function DescribeHero() {
           <Collapse open={empty}>
             <div className="flex flex-wrap items-center gap-2">
               <SampleJobButton size="sm" />
-              <SampleJobButton size="sm" sample="academy" />
+              {edition === 'lab' && <SampleJobButton size="sm" sample="academy" />}
               <ReadyMadeAgentButton size="sm" />
               <ImportJobButton size="sm" />
             </div>

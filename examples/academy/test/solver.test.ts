@@ -25,7 +25,7 @@ const attempts = allAttempts();
 
 describe('the reference solutions', () => {
   it(`fit every task in ${MAX_STEPS} turns, the answer included`, () => {
-    expect(attempts).toHaveLength(192);
+    expect(attempts).toHaveLength(300);
     for (const { task, tools } of attempts) {
       expect(tools.calls.length + 1, task.id).toBeLessThanOrEqual(MAX_STEPS);
     }

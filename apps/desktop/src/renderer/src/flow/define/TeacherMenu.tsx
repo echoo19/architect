@@ -4,10 +4,9 @@ import {
   type InterventionType,
   type Job,
 } from '@architect/shared';
-import { Button, SettingsRow, SettingsSection, Switch } from '@architect/ui';
-import { CircleAlert } from 'lucide-react';
-import { kindLabel, modelNames } from '../names';
-import { INTERVENTIONS } from '../train/evidence-words';
+import { Button, ToggleRow } from '@architect/ui';
+import { modelNames, kindLabel } from '../names';
+import { Issue } from './fields';
 import {
   BLOCK_NOTES,
   BLOCK_REASONS,
@@ -59,6 +58,15 @@ export function rowNote(
   return blocked ? BLOCK_NOTES[block] : explanation(type, teacher);
 }
 
+/** What each kind of change is made of, at the right of its switch. */
+const KIND_TYPES: Record<InterventionType, string> = {
+  procedure: 'Text',
+  retrieval: 'Notes',
+  helper: 'Code',
+  weights: 'Weights',
+  clarification: 'Question',
+};
+
 interface TeacherMenuProps {
   job: Job;
   /** What the app knows of whether weights can be trained here. */
@@ -72,55 +80,46 @@ interface TeacherMenuProps {
 }
 
 /**
- * What the teacher may change on this job, a switch for each kind of change it can make. At least
- * one that changes the agent stays on, since a teacher that only asks questions teaches nothing.
+ * What the teacher may change on this job, a switch for each kind of change it can make and what
+ * the kind is made of at its right. At least one that changes the agent stays on, since a teacher
+ * that only asks questions teaches nothing.
  */
 export function TeacherMenu({ job, facts, issue, onToggle, onAddKey }: TeacherMenuProps) {
   const { mentor: teacher, student } = modelNames(job);
   const allowed = allowedInterventions(job);
   const block = weightsBlock(job, facts);
+  const title = `What ${teacher} may change`;
   return (
-    <SettingsSection title={`What ${teacher} may change`}>
+    <section aria-label={title} className="flex flex-col">
+      <h3 className="m-0 pb-1 text-small font-medium">{title}</h3>
       {InterventionTypeSchema.options.map((type) => {
         const on = allowed.includes(type);
         const last = on && isLastChange(job, type);
-        const Icon = INTERVENTIONS[type].icon;
-        const label = kindLabel(type, student);
         const needsKey = type === 'weights' && on && block === 'no_token' && onAddKey !== undefined;
-        const toggle = (
-          <Switch
-            aria-label={label}
-            checked={on}
-            disabled={last}
-            onCheckedChange={(next) => onToggle(type, next)}
-          />
-        );
         return (
-          <SettingsRow
+          <div
             key={type}
-            icon={<Icon size={16} strokeWidth={1.7} aria-hidden className="text-fg" />}
-            label={label}
-            meta={rowNote(type, { on, last, block, teacher, student })}
+            className="flex flex-col gap-0.5 border-t border-line pb-2.5 first-of-type:border-t-0"
           >
-            {needsKey ? (
-              <div className="flex items-center gap-3">
-                <Button size="xs" onClick={onAddKey}>
-                  Add the key
-                </Button>
-                {toggle}
-              </div>
-            ) : (
-              toggle
+            <ToggleRow
+              label={kindLabel(type, student)}
+              type={KIND_TYPES[type]}
+              checked={on}
+              disabled={last}
+              onCheckedChange={(next) => onToggle(type, next)}
+            />
+            <p className="m-0 pl-[52px] text-small text-pretty">
+              {rowNote(type, { on, last, block, teacher, student })}
+            </p>
+            {needsKey && (
+              <Button size="xs" className="ml-[52px] mt-1.5 self-start" onClick={onAddKey}>
+                Add the key
+              </Button>
             )}
-          </SettingsRow>
+          </div>
         );
       })}
-      {issue && (
-        <p role="alert" className="m-0 flex items-start gap-1.5 pb-2 text-small text-fg">
-          <CircleAlert size={13} className="mt-[3px] shrink-0 text-danger" aria-hidden />
-          {issue}
-        </p>
-      )}
-    </SettingsSection>
+      <Issue error={issue} />
+    </section>
   );
 }

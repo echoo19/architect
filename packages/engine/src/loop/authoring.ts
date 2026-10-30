@@ -33,6 +33,12 @@ import {
   type TrainResult,
 } from '../mentor/view';
 import type { AuthorReply, StoredRound } from '../store/records';
+import {
+  counterexampleView,
+  roundCounterexamples,
+  suiteProblem,
+  type FailedAttempt,
+} from './counterexamples';
 import { HARNESS_VALIDATION_ERROR } from './deps';
 import { must } from './errors';
 import { readJsonFile, writeJsonFile } from './files';
@@ -120,12 +126,15 @@ async function roundRequest(state: RunState, stored: StoredRound): Promise<Autho
       .map((attempt) => [attempt.taskId, attempt]),
   );
   const train: TrainResult[] = [];
+  const failed: FailedAttempt[] = [];
   for (const task of await state.trainBatch(index)) {
     const attempt = must(attempts.get(task.id), `The train attempt at ${task.id}`);
     const tracePath = must(attempt.tracePath, `The trace of ${attempt.id}`);
     const trace = TraceSchema.parse(await readJsonFile(state.ctx.paths.fromStored(tracePath)));
     train.push({ task, pass: attempt.check.pass, reason: attempt.check.reason, trace });
+    if (!attempt.check.pass) failed.push({ attemptId: attempt.id, task, trace });
   }
+  const counterexamples = await roundCounterexamples(state, stored, failed);
   const view = buildMentorView({
     job: state.job,
     dataFiles: await state.resources.dataFiles(),
@@ -136,7 +145,12 @@ async function roundRequest(state: RunState, stored: StoredRound): Promise<Autho
     dev: must(state.run.devCurrent, 'The dev score'),
     lineage: await state.lineage.read(),
     rejected: rejectedRounds(state),
-    ...(state.run.method === 'architect' ? { mentoring: await mentoringView(state) } : {}),
+    ...(state.run.method === 'architect'
+      ? {
+          mentoring: await mentoringView(state),
+          counterexamples: counterexampleView(state, counterexamples),
+        }
+      : {}),
   });
   return { request: diagnoseRequest(view, promptSettings(state)), parts: mentorViewParts(view) };
 }
@@ -408,6 +422,10 @@ async function candidateOf(
   }
   const problem = await toolLoadProblem(state, candidate, hypothesis);
   if (problem !== null) return { reason: problem };
+  if (!state.drafts(stored.round.index)) {
+    const suite = await suiteProblem(state, stored, candidate, hypothesis);
+    if (suite !== null) return { reason: suite };
+  }
   if (!state.drafts(stored.round.index)) {
     const table = answerTableProblem(
       hypothesis.edits,

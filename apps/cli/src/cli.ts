@@ -8,11 +8,14 @@ import {
   type Parsed,
 } from './args';
 import { exportCommand } from './commands/export';
+import { field } from './commands/field';
 import { inspect } from './commands/inspect';
 import { install } from './commands/install';
 import { list } from './commands/list';
 import { publish } from './commands/publish';
+import { reward } from './commands/reward';
 import { run } from './commands/run';
+import { train } from './commands/train';
 import { verify } from './commands/verify';
 import { CliContext } from './context';
 import { exitCodeOf, failureOf } from './exit';
@@ -30,6 +33,9 @@ const HANDLERS: Readonly<Record<CommandName, Command>> = {
   verify,
   export: exportCommand,
   publish,
+  field,
+  reward,
+  train,
 };
 
 /**

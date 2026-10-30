@@ -5,6 +5,7 @@ import {
   GpuLease,
   hostAdapterRuntime,
   hubTokenResolver,
+  realEnvironment,
   RUN_PURPOSE,
   type EngineHost,
 } from '@architect/engine';
@@ -89,6 +90,21 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
     }),
     adapterRuntime,
     gpu: lease,
+    trainerDir: message.trainerDir,
+    // An experiment runs the comparisons runner on a data folder of its own, with the app's keys;
+    // nothing of it runs on this computer's GPU (decision 074).
+    experimentEnvironment: (dataDir, log) =>
+      realEnvironment({
+        dataDir,
+        appDataDir: message.dataDir,
+        trainerDir: message.trainerDir,
+        meter: false,
+        parallel: 2,
+        commit: null,
+        log,
+        getSecret,
+        huggingFaceToken: hubTokenResolver({ saved: savedHubKey }),
+      }),
   });
   host.serve(asEnginePort(requests));
   return host;

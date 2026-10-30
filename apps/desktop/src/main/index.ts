@@ -173,6 +173,7 @@ async function start(): Promise<void> {
       )),
     onConnect: (client) => {
       client.runs.onEvent((event) => router.emit('runs', 'onEvent', event));
+      client.experiments.onEvent((event) => router.emit('experiments', 'onEvent', event));
       client.graduates.onPublishProgress((progress) =>
         router.emit('graduates', 'onPublishProgress', progress),
       );

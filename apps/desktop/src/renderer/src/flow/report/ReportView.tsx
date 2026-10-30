@@ -19,6 +19,7 @@ import { Section } from '../ledger';
 import type { ModelNames } from '../train/phase';
 import { comparisonArms } from './arms';
 import { Capabilities } from './Capabilities';
+import { Certificate } from './Certificate';
 import type { ComparisonRow } from './comparison';
 import { ComparisonArms } from './ComparisonArms';
 import { Comparisons } from './Comparisons';
@@ -251,6 +252,12 @@ export function ReportView({
           />
         )}
       </StaggerItem>
+
+      {report.certificate && (
+        <StaggerItem>
+          <Certificate certificate={report.certificate} name={report.name} />
+        </StaggerItem>
+      )}
 
       {grid && (
         <StaggerItem>

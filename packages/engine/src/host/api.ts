@@ -16,8 +16,10 @@ import {
   type RunDetail,
   type StudentTarget,
   type Trace,
+  type VersionPick,
 } from '@architect/shared';
 import { reportBeside } from '../comparisons/records';
+import { buildFieldExport, exportField, fieldSource, fieldView } from '../field';
 import { exportPackage, exportPart, reviewExport } from '../graduates/exporter';
 import { installFromHub } from '../graduates/hub-install';
 import { importPackage, inspectPackage, previewImport } from '../graduates/importer';
@@ -30,6 +32,8 @@ import { TeachThis } from '../improve/teach-this';
 import { isReferenceAttempt } from '../loop/configuration';
 import { JobDrafting } from '../drafting/drafter';
 import { JobStudy } from '../drafting/studying';
+import type { ExperimentService } from '../experiments/service';
+import { bundleFromRequest, planFromRequest, readModelConfig } from '../training-plan/requests';
 import type { Clock, EngineHostDeps, JobDrafter } from '../loop/deps';
 import { readJsonFile } from '../loop/files';
 import type { JobLibrary } from '../loop/jobs';
@@ -66,11 +70,14 @@ export interface EngineApiContext {
   clock: Clock;
   /** Hugging Face, for publishing and installing versions. */
   hub: HubClient;
+  experiments: ExperimentService;
+  /** The repository's trainer folder, whose pins and experimental script a bundle carries. */
+  trainerDir?: string;
 }
 
 /** The engine API for callers in the host's own process; `serve` exposes it over a port. */
 export function createEngineApi(ctx: EngineApiContext): EngineApi {
-  const { store, paths, jobs, controller, graduates, deps } = ctx;
+  const { store, paths, jobs, controller, graduates, deps, experiments } = ctx;
 
   const run = (runId: string): StoredRun =>
     found(store.runs.get(runId), `There is no run "${runId}".`, 'run_not_found');
@@ -160,7 +167,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       `There is no attempt "${attemptId}".`,
       'record_not_found',
     );
-    if (stored.split === 'test') {
+    if (stored.split === 'test' || stored.split === 'certify') {
       throw new Error("A final-test attempt isn't shown on its own; the report card counts it.");
     }
     const record = run(stored.runId);
@@ -265,6 +272,12 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     );
   }
 
+  /** A version's harness from its own folder, held to the hash its manifest records. */
+  const packagedHarness = ({ graduateId, version }: VersionPick) => {
+    const stored = graduates.version(graduateId, version);
+    return deps.harness.readPackaged(paths.fromStored(stored.path), stored.manifest);
+  };
+
   return {
     jobs: {
       list: async () => jobs.summaries(),
@@ -286,6 +299,15 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       confirmRules: (jobId, token) => jobs.confirmRules(jobId, token),
       study: (jobId) => studying.study(jobId),
       confirmStudy: (jobId, token) => jobs.confirmStudy(jobId, token),
+      field: async (jobId) => fieldView(await jobs.get(jobId), paths),
+      fieldAssets: async (jobId) => {
+        await jobs.get(jobId);
+        return buildFieldExport(await fieldSource(store, paths, jobId)).manifest;
+      },
+      exportField: async (jobId, directory) => {
+        await jobs.get(jobId);
+        return exportField(await fieldSource(store, paths, jobId), directory);
+      },
     },
     runs: {
       start: (jobId, { method, seed, lockedTestOn, interactive }) =>
@@ -324,6 +346,11 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
         found(store.jobs.get(jobId), `There is no job "${jobId}".`, 'job_not_found');
         return store.categories.list(jobId);
       },
+      counterexamples: async (runId) => store.counterexamples.list({ runId: run(runId).run.id }),
+      fieldCounterexamples: async (jobId) => {
+        found(store.jobs.get(jobId), `There is no job "${jobId}".`, 'job_not_found');
+        return store.counterexamples.list({ jobId });
+      },
       answer: (runId, round, reply) => answerClarification(runId, round, reply),
       reference: (runId, { split, maxUsd }) => controller.reference(runId, split, maxUsd),
       references: async (runId) => store.references.list(run(runId).run.id),
@@ -341,6 +368,24 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
         return teachThis.overview(graduateId, controller.studentBusy());
       },
     },
+    experiments: {
+      plan: (input) => experiments.plan(input),
+      revise: (experimentId, input) => experiments.revise(experimentId, input),
+      calibrate: (experimentId) => experiments.calibrate(experimentId),
+      preregister: (experimentId) => experiments.preregister(experimentId),
+      start: (experimentId, options) => experiments.start(experimentId, options),
+      pause: (experimentId) => experiments.pause(experimentId),
+      resume: (experimentId, options) => experiments.resume(experimentId, options),
+      stop: (experimentId) => experiments.stop(experimentId),
+      list: () => experiments.list(),
+      get: (experimentId) => experiments.get(experimentId),
+      onEvent: (listener) => experiments.onEvent(listener),
+    },
+    compute: {
+      readConfig: (source) => readModelConfig(ctx.hub, source),
+      plan: async (request) => planFromRequest(request),
+      bundle: async (request) => bundleFromRequest(request, ctx.trainerDir),
+    },
     reports: {
       get: async (runId, target) => reportOf(run(runId), target),
       list: async (runId) => store.reports.targets(run(runId).run.id),
@@ -354,6 +399,8 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       versions: async (graduateId) => graduates.versions(graduateId),
       history: async (graduateId) => graduates.history(graduateId),
       report: (graduateId, version) => graduates.report(graduateId, version),
+      harnessDiff: async (from, to) =>
+        deps.harness.diffHarness(await packagedHarness(from), await packagedHarness(to)),
       acceptVersion: async (graduateId, version) => graduates.acceptVersion(graduateId, version),
       rejectVersion: async (graduateId, version) => graduates.rejectVersion(graduateId, version),
       promote: async (graduateId, version) => checked(graduates.promote(graduateId, version).id),

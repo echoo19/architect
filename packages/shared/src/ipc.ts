@@ -8,9 +8,11 @@ import type {
   RunImprovement,
   TeachingOverview,
 } from './corrections';
+import type { Counterexample } from './counterexamples';
 import type { TaskPlan } from './drafting';
 import type { RuleConfirmationState } from './rules';
 import type { StudyState } from './study';
+import type { FieldExportManifest, FieldView } from './field-export';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
 import type {
@@ -33,7 +35,22 @@ import type {
 } from './mentoring';
 import type { GpuInfo, ProviderId, StudentBuild, TokenPricing } from './models';
 import type { ComparisonReport } from './comparisons';
+import type {
+  ExperimentDetail,
+  ExperimentEvent,
+  ExperimentInput,
+  ExperimentRecord,
+  ExperimentStart,
+} from './experiments';
 import type { RuntimeMeasurement } from './measurements';
+import type {
+  ModelConfigRead,
+  ModelConfigSource,
+  TrainBundleRequest,
+  TrainingPlan,
+  TrainingPlanRequest,
+  WrittenTrainBundle,
+} from './training-plan';
 import type { ReportCard } from './report';
 import type { Method, Round, Run } from './run';
 import type { Attempt, Trace } from './trace';
@@ -58,13 +75,22 @@ import type {
   PublishRequest,
   PublishResult,
   VersionEvent,
+  VersionPick,
   VersionSource,
 } from './versions';
 import type { WorkspaceChat, WorkspaceEvent, WorkspaceMessage } from './workspace';
 
 export type Unsubscribe = () => void;
 
+/**
+ * Which app Architect is: the personal one that teaches an agent one job, or Architect Lab with
+ * fields, experiments, models and compute (decision 076).
+ */
+export type Edition = 'personal' | 'lab';
+
 export interface AppSettings {
+  /** The personal app or the Lab; an install from before the Lab is the personal one. */
+  edition: Edition;
   /** Tool steps in chat start collapsed or expanded. */
   steps: 'collapsed' | 'expanded';
   /** Shows the baselines comparison on report cards and the run menu. */
@@ -483,6 +509,18 @@ export interface ArchitectApi {
     study(jobId: string): Promise<StudyState>;
     /** Records that the person confirmed the brief. `token` is the one the brief came with. */
     confirmStudy(jobId: string, token: string): Promise<StudyState>;
+    /**
+     * What the job's field is made of, for the person's own page: the organizations it trains on
+     * with their files, and the sealed ones by name and kind only (decision 075).
+     */
+    field(jobId: string): Promise<FieldView>;
+    /**
+     * The field export as it would be written now (decision 071), built and checked in memory
+     * with nothing written: its counts and what it leaves out.
+     */
+    fieldAssets(jobId: string): Promise<FieldExportManifest>;
+    /** Writes the field export into an empty folder the person picked, and returns its manifest. */
+    exportField(jobId: string, directory: string): Promise<FieldExportManifest>;
   };
   runs: {
     start(jobId: string, options: RunStartOptions): Promise<Run>;
@@ -533,6 +571,10 @@ export interface ArchitectApi {
     capabilities(runId: string): Promise<CapabilityBreakdown>;
     /** The job's failure vocabulary. */
     categories(jobId: string): Promise<Category[]>;
+    /** A run's counterexamples from failing helpers (decision 078), oldest first. */
+    counterexamples(runId: string): Promise<Counterexample[]>;
+    /** Every counterexample of a field: its regression suite, oldest first. */
+    fieldCounterexamples(jobId: string): Promise<Counterexample[]>;
     /** Answers the question a paused run asked, and resumes it. */
     answer(runId: string, round: number, reply: ClarificationReply): Promise<void>;
     /**
@@ -583,6 +625,46 @@ export interface ArchitectApi {
      */
     comparisons(runId: string): Promise<ComparisonReport | null>;
   };
+  /**
+   * Comparisons the app plans, preregisters, runs and reads, through the comparisons runner
+   * (decision 074). Every number comes from its stored records; no locked result is shown before
+   * every arm is frozen and the tests are released.
+   */
+  experiments: {
+    /** Plans one: projects every arm at assumed prices, and says what calibration would cost. */
+    plan(input: ExperimentInput): Promise<ExperimentDetail>;
+    /** Changes a plan not yet preregistered; the job stays the one it was planned on. */
+    revise(experimentId: string, input: ExperimentInput): Promise<ExperimentDetail>;
+    /**
+     * Prices an attempt on the calibration tasks, and for a job with organizations has Spark
+     * study them once, within the caps `plan` showed. Spends; returns at once, and an event says
+     * when it is done.
+     */
+    calibrate(experimentId: string): Promise<ExperimentRecord>;
+    /** Freezes the plan: stored, hashed and timestamped; nothing in it changes after this. */
+    preregister(experimentId: string): Promise<ExperimentRecord>;
+    start(experimentId: string, options: ExperimentStart): Promise<ExperimentRecord>;
+    pause(experimentId: string): Promise<ExperimentRecord>;
+    resume(experimentId: string, options: ExperimentStart): Promise<ExperimentRecord>;
+    /** Stops it for good; what it measured is kept. */
+    stop(experimentId: string): Promise<ExperimentRecord>;
+    /** Newest first. */
+    list(): Promise<ExperimentRecord[]>;
+    get(experimentId: string): Promise<ExperimentDetail>;
+    onEvent(listener: (event: ExperimentEvent) => void): Unsubscribe;
+  };
+  /**
+   * Training plans and cluster bundles (decision 072), experimental: a plan is an estimate, and a
+   * bundle is written for the person to submit with their own tools, never submitted here.
+   */
+  compute: {
+    /** Reads a model's config.json: from the Hub, its revision resolved to a commit, or a file. */
+    readConfig(source: ModelConfigSource): Promise<ModelConfigRead>;
+    /** Sizes a training job from a config. A config it can't size is refused with the reason. */
+    plan(request: TrainingPlanRequest): Promise<TrainingPlan>;
+    /** Sizes the plan again and writes its bundle, with the command that submits it. */
+    bundle(request: TrainBundleRequest): Promise<WrittenTrainBundle>;
+  };
   graduates: {
     list(): Promise<GraduateSummary[]>;
     /**
@@ -599,6 +681,11 @@ export interface ArchitectApi {
      * its folder, wherever it was made. The author's result, never this computer's checks.
      */
     report(graduateId: string, version?: number): Promise<ReportCard>;
+    /**
+     * What changed in the harness from one version to another, of one agent or of two: each
+     * version's harness read from its folder (never run) and held to its manifest's hash.
+     */
+    harnessDiff(from: VersionPick, to: VersionPick): Promise<FileDiff[]>;
     acceptVersion(graduateId: string, version: number): Promise<GraduateVersion>;
     rejectVersion(graduateId: string, version: number): Promise<GraduateVersion>;
     /** Makes an accepted version the active one, in one step. Chats already answering finish first. */

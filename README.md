@@ -1,6 +1,6 @@
 # Architect
 
-Architect turns an organization's own material into a specialist that runs on its own computer. A large model studies the material and teaches a small one. The small model is then tested on organizations it never saw, one of them real. [See it on the website](https://echoo19.github.io/architect/).
+Architect turns an organization's own material into a specialist that runs on its own computer. A large model studies the material and teaches a small one. The small model is then tested on work it never saw; for a whole field, that means organizations it never saw, one of them real. [See it on the website](https://echoo19.github.io/architect/).
 
 The main example is Phil, a tutor for test-prep academies. A student misses a practice question and someone asks Phil what to do. Phil answers from that academy's own files: its topics, question bank, lessons, the student's history and its tutoring policy. Two academies with different policies get different correct actions from the same Phil.
 
@@ -12,6 +12,44 @@ The main example is Phil, a tutor for test-prep academies. A student misses a pr
 4. **Qualify.** A final test runs once, after everything is frozen. A program scores it for each skill at each organization, and never scores wording.
 
 The result is a specialist that works on an organization's files, asks before it changes one, and talks to nothing but the model on your machine. The same steps work on a single job, like the returns desk below.
+
+## Certified answers
+
+A specialist should know when not to answer. After qualification, Architect can state a certificate that a buyer can read:
+
+> When Phil answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to staff.
+
+The 8% and 22% show the form of the sentence. They are not a measurement of Phil.
+
+How it is computed:
+
+1. **A sealed calibration set.** It is drawn from the taught organizations, kept apart from every other split, and the teacher never sees it. It opens once, after the specialist is frozen.
+2. **Agreement.** Phil attempts each calibration request k times (five by default). The share of attempts that agree with the most common answer is its agreement. When agreement reaches a threshold, Phil answers. Below it, Phil says it isn't sure and hands the request to a person.
+3. **A bound.** For each threshold, the error rate among the requests Phil answered gets an exact one-sided Clopper-Pearson upper bound. Thresholds are tried from strictest to loosest, and the loosest one whose bound stays under the target is chosen. If none qualifies, no certificate is issued, and the report says why.
+4. **A check on organizations it never saw.** The same frozen threshold runs on the sealed test and on each unseen organization, and the report shows whether the bound held there. The guarantee assumes requests like the calibration ones, so an unseen organization tests that assumption.
+
+A small calibration set gives a wide bound, and the report shows it wide.
+
+<img alt="The report's Certified answers section on stand-in data: the certificate sentence, the risk-coverage curve, and for each organization the models never saw whether the bound held" src="docs/screenshots/report-certificate-dark.png">
+
+## Counterexample-guided repair
+
+When a helper that Spark wrote gives a wrong result on practice data, Architect shrinks the failing case until little is left. On a generated academy's practice data, a question lookup that crashed on tests laid out as "Full" went from 2,312 rows to 4. Spark repairs the helper against that small case, the repair must also pass the original case and every earlier one, and the case stays in the field's regression suite so a later change can't break the helper again.
+
+<img alt="A counterexample in the round's drawer, on stand-in data: the failing helper's input reduced from 1,212 rows to 1 row, the failure in plain words, and the repair" src="docs/screenshots/counterexample-dark.png">
+
+What this shows is a reproducible defect in a helper, not why the model reasoned as it did.
+
+Both are built and tested, with stand-in models and on the academy's practice data. The screenshots above use stand-in data too. A certificate for Phil from a live run has not been measured yet, because it needs five attempts per task. Neither idea is new. We build on conformal risk control ([arXiv 2208.02814](https://arxiv.org/abs/2208.02814)), Learn-then-Test ([arXiv 2110.01052](https://arxiv.org/abs/2110.01052)), conformal abstention ([arXiv 2405.01563](https://arxiv.org/abs/2405.01563)) and delta debugging (Zeller and Hildebrandt, 2002). What is new here is the pipeline in a product: a deterministic checker, sealed sets the teacher never saw, and a check on organizations it never saw. The plan is [docs/CERTIFY.md](docs/CERTIFY.md).
+
+## Two editions
+
+Architect is one app in two editions. You choose one on the first screen and can switch in Settings. One download includes both.
+
+- **Architect** teaches an agent one job. You describe the job, Spark teaches Glimmer, a sealed test checks it, and the agent runs offline. The returns desk below is this edition.
+- **Architect Lab** is a workbench for founders and researchers who build models for a field. It adds fields, with the organizations a model is taught on and the ones it never sees; experiments that are preregistered before they run; a registry of every model version with its scores; and compute plans for training.
+
+<img alt="Architect's first screen, where you choose between Architect, which teaches an agent one job, and Architect Lab, with fields, experiments, models and compute" src="docs/screenshots/welcome-editions-dark.png">
 
 ## Results
 
@@ -32,9 +70,24 @@ Phil is Glimmer with the instructions and tools Spark built for it. Spark studie
 - The one-shot setup showed no gain over a blank setup in any group.
 - Teaching took three rounds, about 15 minutes. Two changes were kept and one was reverted. The run cost about $0.58 of Spark and $4.26 of hosted Glimmer.
 
-Limits: the numbers come from full-precision Glimmer hosted through OpenRouter, under one seed, and the build that runs on your computer was not measured. The real academy gave 24 tasks from 16 students, and its policy was drafted for this test and awaits the academy's confirmation. A script confirmed the study, not a person. The settings differ by arm: the blank setup ran at temperature 1 with 16 turns, and the other two at temperature 0 with 30 turns. The full report is [docs/comparisons/phil-1.md](docs/comparisons/phil-1.md).
+Limits: the numbers come from full-precision Glimmer hosted through OpenRouter, under one seed, and the build that runs on your computer was measured afterward, as the next section shows. The real academy gave 24 tasks from 16 students, and its policy was drafted for this test and awaits the academy's confirmation. A script confirmed the study, not a person. The settings differ by arm: the blank setup ran at temperature 1 with 16 turns, and the other two at temperature 0 with 30 turns. The full report is [docs/comparisons/phil-1.md](docs/comparisons/phil-1.md).
 
-<!-- A second field run's numbers go here, in the same form: the setups by group, the paired results, the misses and the limits. -->
+### Phil on this computer
+
+Phil was then frozen as it was and took the same 120 tasks again on the 2-bit build of Glimmer that runs on an RTX 4070 Ti with 12 GB, through Ollama. Nothing was taught or tuned for this check, and the test had already been opened.
+
+| Passed, out of tasks | Phil, local | Phil, hosted |
+| --- | --- | --- |
+| Taught academies (48) | 45 | 44 |
+| Harborview Prep, unseen (48) | 41 | 43 |
+| Real academy, unseen (24) | 17 | 12 |
+| All (120) | 103 | 99 |
+
+- Over all 120 tasks the difference is +3.3 points with a 95% interval of -4.3 to +11.0. No group shows a difference.
+- A typical task took 38 seconds locally and 9 hosted, about four times as long. Eleven tasks hit the step limit locally and seven hosted.
+- The untaught Glimmer did not finish on the Real academy locally: that run stopped after 2 of 24 tasks when the system ran low on memory. So this does not show how the build does without Phil's setup. It is one seed. The report is [docs/comparisons/phil-1-local.md](docs/comparisons/phil-1-local.md).
+
+A second field run is prepared and has not been run yet.
 
 ### The returns desk, one job
 
@@ -57,6 +110,20 @@ This run came before Phil's. It is the simpler case: one job and one business's 
 
 Those numbers were measured on full-precision Glimmer, hosted through OpenRouter. The gain came from changes to Glimmer's instructions and tools; no weights were trained. The smaller 4-bit build that runs on your computer has not been measured on this test. The numbers come from 1,956 real attempts. Glimmer read 78 million tokens and wrote 2.7 million through OpenRouter ($7.92), and Spark used 4.7 million ($3.06). The full reports are in [docs/comparisons](docs/comparisons).
 
+## From a specialist to a field model
+
+Each field Architect works on leaves behind three things besides the specialist:
+
+- **Verified demonstrations.** Worked examples from train tasks that the checker confirmed, as chat-format files, each with its source and what it may be used for. Nothing comes from a sealed organization.
+- **An outcome scorer.** The field's train tasks and checker, packaged so an outside training framework can ask for a score: one request in, one score out. Fields whose results can be checked suit this best.
+- **Sealed evaluations.** Organizations a model never trained on, opened once for a frozen candidate.
+
+From a chosen model's own configuration on Hugging Face, Architect also sizes a training job: the memory for weights, gradients, optimizer state and activations, then the GPUs and nodes, with the arithmetic shown as an estimate. For a Slurm cluster or Kubernetes it writes an experimental launch bundle and the command to submit it with your own tools. Architect never holds cluster credentials.
+
+<img alt="A training plan in Architect Lab for a 235-billion-parameter mixture-of-experts model: 16 GPUs on 2 nodes of 8, with each memory term and its arithmetic" src="docs/screenshots/compute-plan-dark.png">
+
+Architect develops and evaluates field-specific agent harnesses and exports checker-verified training examples. Experimental cluster templates are validated structurally and against simulated schedulers; GPU execution, large-model compatibility and training gains remain unverified. What is measured is the harness (Phil, above). The single-GPU adapter path and the cluster launch are built and tested against stand-ins. A model trained on a field is a direction, and none has been trained. The plan is [docs/SCALE.md](docs/SCALE.md).
+
 ## Where it fits
 
 <img align="right" width="64" alt="Y Combinator" src="docs/images/yc-logo.svg">
@@ -69,7 +136,7 @@ Improving an agent from its failures already has published work, such as GEPA ([
 
 ## Get it
 
-Download it for Windows or macOS from the [website](https://echoo19.github.io/architect/download/) or the [latest release](https://github.com/echoo19/architect/releases/latest). You'll need [Ollama](https://ollama.com). The first screens download Glimmer (17 GB, or 14 GB for a 12 GB graphics card) and connect Spark with an API key from Meta. The Mac app is signed and notarized by Apple. The Windows installer isn't signed yet, so the first time Windows warns you: choose More info, then Run anyway.
+Download it for Windows or macOS from the [website](https://echoo19.github.io/architect/download/) or the [latest release](https://github.com/echoo19/architect/releases/latest). One download includes both editions. You'll need [Ollama](https://ollama.com). The first screens download Glimmer (17 GB, or 14 GB for a 12 GB graphics card) and connect Spark with an API key from Meta. The Mac app is signed and notarized by Apple. The Windows installer isn't signed yet, so the first time Windows warns you: choose More info, then Run anyway.
 
 Then describe a job of your own, try the sample job, or open the returns desk agent from the results above. [The user guide](docs/Architect-Guide.pdf) walks through each step.
 

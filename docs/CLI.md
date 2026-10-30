@@ -1,6 +1,6 @@
 # The architect command
 
-`architect` lets you list, install, run, check, export and publish your agents from a terminal, without opening the app. It works on the same agents as the app, in the same folder, with the same rules: an agent sees only the folders you gave it, asks before it changes a file unless you allow it, and runs only on a model on your computer. While an agent runs, it can reach nothing but the model on your computer, and the teacher model is never contacted. Only `publish`, and `install` from Hugging Face, go online, to Hugging Face itself.
+`architect` lets you list, install, run, check, export and publish your agents from a terminal, without opening the app. It works on the same agents as the app, in the same folder, with the same rules: an agent sees only the folders you gave it, asks before it changes a file unless you allow it, and runs only on a model on your computer. While an agent runs, it can reach nothing but the model on your computer, and the teacher model is never contacted. Only `publish`, `install` from Hugging Face and `train plan --model`, which reads a model's `config.json`, go online, to Hugging Face itself.
 
 Scripts can use it too: give it a request as a JSON file and it writes the result as JSON, with exit codes that say what happened.
 
@@ -145,6 +145,52 @@ Install it with: architect install hf://jake/service-desk --revision 3f1c9e2a...
 ```
 
 `--dry-run` shows what would go and sends nothing. `--version`, `--include` and `--accept-findings` work as for `export`. Publishing the same version to the same repository again finishes a publication that failed; when one of another version didn't finish, the command says so, and `--version` finishes that one. See "Hugging Face" below.
+
+### field export
+
+```bash
+architect field export Phil --out ./phil-field [--json]
+```
+
+Writes what a field job has taught so far into one new folder, for training a model elsewhere (`docs/SCALE.md`). The job is named by its id or its name.
+
+- `sft/demonstrations.jsonl`: worked examples from train tasks that the job's checker passed, in chat format, each with where it came from, the verdict and what it may be used for. One whose data may not leave this computer is left out.
+- `env/`: the train tasks, the files of the organizations the job trains on, the checker, and `score_client.py` (below).
+- `eval/manifest.json`: the locked test and the organizations the job never trains on, by hash only. A trained model is qualified on them through Architect's runner.
+- `MANIFEST.json`: the job and its version, counts, every file's sha256, permitted uses, and what was left out and why.
+
+Nothing of the locked test or of an organization the job never trains on goes in. A file that would carry any stops the export with nothing written, and the command exits 3.
+
+### reward score
+
+```bash
+architect reward score --env ./phil-field/env < attempts.jsonl > scores.jsonl
+```
+
+Scores attempts at the field's train tasks with the job's own checker, for a training framework that runs its own rollouts. It reads one JSON request per line on stdin and writes one score per line on stdout, in order, until stdin ends. It makes no network calls and starts no server.
+
+A request: `task_id`, `final_text` (the agent's last reply, with its `ANSWER:` line), `changes` (each changed file's whole new text, as `{ "path": "data/assignments.csv", "text": "..." }`), `tool_calls` (`{ "name", "arguments" }`), `stop_reason` (`answer` by default) and an optional `id` that the score repeats. Each attempt is graded as the runner grades one: a fresh copy of its organization's files with the changes applied through the same checks the agent's write tools use, then the full checker, which also fails a refused or cut-off attempt and a write the task didn't ask for.
+
+A score: `{ "id", "reward": 1 | 0, "reason" }`. A score with `error` (`bad_request`, `unknown_task`, `checker`, `internal`) is not a judgment of the attempt; leave that sample out. `env/score_client.py` (Python, standard library only) starts the command and exchanges lines with it:
+
+```python
+from score_client import Scorer
+with Scorer() as scorer:
+    score = scorer.score(task_id, final_text, changes=[{"path": "data/assignments.csv", "text": csv}])
+```
+
+### train (experimental)
+
+```bash
+architect train plan --model owner/name [--revision main] [--method lora|qlora|full] [--gpu h100-80gb] [--seq-len 4096] [--micro-batch 1]
+architect train bundle --target slurm|kubernetes --model owner/name --output ./bundle [--export ./field-export] [plan options]
+```
+
+`plan` sizes a training job for a cluster from the model's own `config.json`, read once from the Hub at the revision you name (resolved to its commit), or from a file with `--config`. It prints each memory term with its arithmetic: the resident weights (every expert of a mixture, not only the active ones; LoRA freezes weights, it doesn't remove them), the adapter with its gradients and Adam state, or for a full fine-tune the gradients and optimizer state for every parameter, the activations of one micro-batch (an approximation, stated), FSDP's peak (the largest wrapped unit, such as a whole expert layer, gathered on each GPU), the runtime's own memory, and the headroom kept back. From those it gives the fewest GPUs and nodes that fit. Every number is an estimate and is labeled one. A configuration it can't count (a state-space or encoder-decoder model, or one missing the hidden size, layers, heads or vocabulary) is refused with what is missing; exit code 2. `--gpu` takes h100-80gb, h200, a100-80gb, a100-40gb, l40s or b200, or `--gpu-memory <GB>` for any other. `--json` prints the plan as `architect.training-plan/1`.
+
+`bundle` writes a launch folder for that plan and prints the command that submits it with your own tools: `sbatch submit.sbatch` for Slurm (one `torchrun` per node, meeting at the allocation's first node), `kubectl apply -f pytorchjob.yaml` for Kubernetes (a Kubeflow PyTorchJob that mounts the folder from a claim named `architect-bundle`). The folder holds the experimental distributed trainer (`train_fsdp.py`: LoRA, QLoRA or full fine-tuning with FSDP, LoRA on attention and every MLP or expert projection), its settings and FSDP config, the pinned packages, the plan, a README with the steps, and `bundle.json`, which records the base model and its commit, the field export's `MANIFEST.json` hash, and the recipe's hash, so trained weights trace back to the field. With `--export`, the export's `sft/*.jsonl` become the bundle's data; nothing else of the export goes in. The revision must be a commit (it is when the config comes from the Hub).
+
+Architect never submits a bundle and never holds cluster credentials. Experimental cluster templates are validated structurally and against simulated schedulers; GPU execution, large-model compatibility and training gains remain unverified. Decision 072 says what is checked.
 
 ## Run requests and results
 

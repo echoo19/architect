@@ -57,13 +57,14 @@ export function Stat({
 }
 
 export interface MeterProps {
-  /** Fill from 0 to 1. */
+  /** Fill from 0 to 1. Past 1 the meter is full and red: what it measures went over its cap. */
   value: number;
   /** Accessible name, e.g. "Spark spending". */
   label: string;
   /** Read out instead of a percentage, e.g. "$2.40 of $5". */
   valueText?: string;
-  tone?: 'fg' | 'student';
+  /** Whose it is: the student's blue, the mentor's amber, or plain. */
+  tone?: 'fg' | 'student' | 'mentor';
   /** 3px for budgets, 4px for per-skill scores. */
   thickness?: 3 | 4;
   /** A mentor-colored tick, 0 to 1, for comparing against the mentor's own score. */
@@ -72,6 +73,8 @@ export interface MeterProps {
 }
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
+
+const METER_TONES = { fg: 'bg-fg', student: 'bg-student', mentor: 'bg-mentor' } as const;
 
 export function Meter({
   value,
@@ -83,10 +86,12 @@ export function Meter({
   className,
 }: MeterProps) {
   const fill = clamp(value);
+  const over = value > 1;
   return (
     <div
       role="meter"
       aria-label={label}
+      data-over={over || undefined}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(fill * 100)}
@@ -101,13 +106,69 @@ export function Meter({
         initial={false}
         animate={{ width: `${fill * 100}%` }}
         transition={springs.smooth}
-        className={cn('h-full rounded-full', tone === 'fg' ? 'bg-fg' : 'bg-student')}
+        className={cn('h-full rounded-full', over ? 'bg-danger' : METER_TONES[tone])}
       />
       {marker !== undefined && (
         <div
           aria-hidden
           className="absolute -top-1 h-3 w-0.5 rounded-mark bg-mentor"
           style={{ left: `clamp(0px, calc(${clamp(marker) * 100}% - 1px), calc(100% - 2px))` }}
+        />
+      )}
+    </div>
+  );
+}
+
+export interface CapMeterProps {
+  /** What is measured, such as "Spark". Also the meter's accessible name. */
+  label: ReactNode;
+  /** Plain-text name for assistive tech when `label` is not a string. */
+  name?: string;
+  used: number;
+  /** The hard cap. Absent when none was recorded: the amount stands alone, with no meter. */
+  cap?: number | undefined;
+  /** Writes an amount, such as `$2.40`. */
+  format: (amount: number) => string;
+  tone?: MeterProps['tone'];
+  className?: string;
+}
+
+/**
+ * An amount against its cap: the label, "used of cap" in tabular figures, and a thin meter under
+ * them. Over the cap, the figures and the meter turn red.
+ */
+export function CapMeter({
+  label,
+  name,
+  used,
+  cap,
+  format,
+  tone = 'fg',
+  className,
+}: CapMeterProps) {
+  const over = cap !== undefined && used > cap;
+  const reading = cap === undefined ? format(used) : `${format(used)} of ${format(cap)}`;
+  const accessible = name ?? (typeof label === 'string' ? label : 'Spending');
+  return (
+    <div className={cn('flex flex-col gap-2', className)}>
+      <div className="flex items-baseline justify-between gap-3 text-ui">
+        <span className="min-w-0 truncate">{label}</span>
+        <span className={cn('shrink-0 tabular-nums', over && 'text-danger')}>
+          {cap === undefined ? (
+            format(used)
+          ) : (
+            <>
+              <span className="font-medium">{format(used)}</span> of {format(cap)}
+            </>
+          )}
+        </span>
+      </div>
+      {cap !== undefined && (
+        <Meter
+          label={accessible}
+          tone={tone}
+          value={cap === 0 ? (used > 0 ? 2 : 0) : used / cap}
+          valueText={over ? `${reading}, over the cap` : reading}
         />
       )}
     </div>

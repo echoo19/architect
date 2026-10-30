@@ -73,6 +73,7 @@ test('walks through first-run setup while the model downloads', async () => {
     seed: engineSeed({ graduates: [], chats: [], messages: [] }),
   });
   await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue' }).click();
   // Ollama is running, so it isn't mentioned; the sizes are named by how they differ here.
   await expect(page.getByText(/Ollama/)).toHaveCount(0);
   const recommended = page.getByRole('radio', { name: /Recommended/ });

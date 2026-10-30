@@ -81,6 +81,59 @@ Nothing below 13px except keyboard hints.
 - Spacing is on a 4px grid. Cards pad 24; rows are 48 tall; page gutters are 40, content max
   width 1120 for reading pages.
 
+## Places and their parts
+
+The sidebar leads with Architect's places, an icon and a word each: Lab, Fields, Experiments,
+Models, Compute (decision 073). The agents and their chats follow under a hairline. A place's page
+has a 40px title and nothing under it; its one primary action, if it has one, sits at the title's
+right. In the personal edition (decision 076) there are no places: New agent and the agents lead,
+and the wordmark reads "Architect" instead of "Architect Lab".
+
+- **Card and CardGrid.** A card is the flat card surface with a title row: the title at 15px Inter
+  Tight, an optional 16px icon before it and one optional control after it. Rows inside a card
+  (`CardRow`) run edge to edge, split by hairlines, with a 36px icon tile or an avatar at the left
+  and a figure, a status word or a chevron at the right. A grid holds one column on a narrow
+  window and two or three on a wide one; rows of cards on one page share their columns so their
+  edges line up. The cards rise in one after another on first mount.
+- **The Lab** has one focal point: Needs you and Running side by side at the top of two columns,
+  each column a stack of cards at its own height, so a short card never stretches into an empty
+  one. Needs you groups what waits by kind (questions, results, approvals, lessons, versions). What
+  a card lacks is said in a few words on a quiet line ("Nothing is running"), never with a
+  placeholder illustration.
+- **One word per concept.** Organizations are "Taught on" or "Never seen" ("sealed" only where a
+  line explains what never seen means); the models go by their short names (Spark, Glimmer), never
+  "Teacher" and "Student". A new version is shown beside the one in use with both scores, never
+  as simply "ready". A change in a score carries its unit ("+25 points"), and a count agrees
+  with its number ("1 task").
+- **Inspector.** The panel at a screen's right with the settings of what the screen shows (the
+  teacher, the student, teaching, evaluation, budget). Its tabs are a segmented strip whose
+  selected fill slides between them; a button folds it to a 56px rail of the tabs' icons, and
+  opening it there lands on that tab. It is 400px wide, room for up to five tabs by name, so no
+  name is cut and none is reduced to an icon. A screen may head it with what it is about (a
+  model's name) and may open it on a tab, such as Budget from a line that sends the person there.
+  It remembers its tab and whether it was folded, per screen.
+  Width changes with the `smooth` spring. It never holds a control that would break an invariant.
+- **PageTabs.** A place's page in sections: a segmented strip under the title, an icon and a word
+  each, whose selected fill slides between them; the open tab's content below. A click opens a
+  tab without drawing the keyboard ring; arrow keys move between tabs.
+- **ChoiceTiles.** A choice among a few things shown as icon tiles (an icon at the top left, the
+  name under it), three to a row in an inspector. One or several may be chosen; the chosen tile
+  takes the selected fill and a light edge. Arrow keys move between tiles.
+- **ToggleRow.** A switch, its label, and at the far right the kind of value it governs ("Text",
+  "USD", "Rounds"). The label flips the switch too.
+- **Meter and CapMeter.** A meter fills to its share and springs to a new value; past its cap it
+  is full and red. CapMeter adds the label and "used of cap" in tabular figures; Spark's meters are
+  amber and the student's blue. An amount with no recorded cap stands alone, with no meter.
+- **IntervalPlot.** A dot for each measured value and a line for its 95% interval, rows grouped
+  under a name, faint guides at the ticks, figures at the right. A value not measured shows a dash
+  and draws nothing. Each row reads out as its label, value and interval.
+- **RiskCoveragePlot.** A certificate's curve (decision 077): the share answered across, the error
+  up; the bound as a white line, the error measured as small dots, the target as a stronger
+  hairline, the certified point in the student's blue, with a three-item key under it.
+- **DataTable.** A table of records on the card surface: sortable headers with an arrow on the
+  sorted one, a header that stays in place while the body scrolls, rows that open on click or
+  Enter. An empty cell is a dash read out as "None", never a zero.
+
 ## Motion
 
 The app uses the `motion` library through `@architect/ui` (screens import the wrappers, not

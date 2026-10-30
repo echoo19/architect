@@ -2,6 +2,174 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-31 (Sat), Sol's review of the centerpiece (branch `certify/sol-fixes`)
+
+**Done** (no model was called, no GPU, no spend)
+- Chat agreement: replies with no ANSWER line and no change were all keyed alike, so five different replies in words agreed 5/5. They now vote on their normalized words; the certificate's assumption says the bound doesn't cover them (decision 077).
+- Comparison funding: the release reserve and the per-round cap check now count every certified test and calibration attempt (k seeds), not only the first seed's test.
+- Counterexamples: a reduced case passes only on a clean run (no error, no value contradicting the recorded expected one), so a crash repaired into another crash fails (decision 078).
+
+## 2026-10-31 (Sat, early), Architect Lab, two editions, and the technical centerpiece (start the next session here)
+
+**Where things stand**
+- *Branches.* `main` holds the field work and release 0.5.0. Everything below is on `field/main` (green, pushed) and goes to `main` by PR once the centerpiece is reviewed, then release 0.6.0. The one-job product is kept at `base/one-job` / `base-one-job`.
+- *Two editions of one app* (decision 076): Architect (the pre-pivot one-job product, chosen by default on existing installs) and Architect Lab (the R&D platform), chosen on the welcome screen and switchable in Settings.
+- *Architect Lab* (`docs/PLATFORM.md`, decisions 073 to 075): the Lab home (Needs you, Running, Recently finished, Spend), Fields (skills, organizations, candidates, assets and export), Experiments (design, preregister, run and read comparisons in the app through the same runner, decision 074), Models (registry, panel, compare with harness diffs), Compute (targets, training plans with every memory term, experimental Slurm and Kubernetes bundles), and an inspector on Define. A blind read of every screen led to a polish pass (one word per idea, numbers that agree, answers before arithmetic).
+- *From a specialist to a field model* (`docs/SCALE.md`, decisions 071, 072): field export (train-only verified demonstrations, a JSONL outcome scorer with a Python client, a sealed-evaluation manifest), training plans sized from a model's `config.json` with every expert resident and FSDP's peak, and bundles that are written and never submitted. Wording: GPU execution, large-model compatibility and training gains remain unverified.
+- *The technical centerpiece* (`docs/CERTIFY.md`, decisions 077, 078): certified answers (a sealed calibration split, k-attempt agreement, an exact Clopper-Pearson bound with a fixed-sequence threshold; the graduate answers or hands off; the certificate is checked on never-seen organizations) and counterexample-guided repair (a failing helper is shrunk by delta debugging to a minimal case, e.g. 2,312 rows to 4, Spark repairs against it, and it stays as a regression test). Both built and tested; no live certificate has been measured yet (it needs k = 5 attempts per task).
+- *Measured on the owner's GPU* (with permission, Oct 30 night): the frozen Phil from phil-1 on the local 2-bit Glimmer passed 103/120 against 99/120 hosted, no difference shown, about 4x slower (`docs/comparisons/phil-1-local.md`).
+- Sol reviewed every lane; each finding was fixed before merging.
+
+**Next**
+- Merge the running lanes (Sol's review of the centerpiece, more academy tasks so Phil can be certified, README and paper sections for the centerpiece), the full stand-in e2e suite, the PR to `main`, release 0.6.0.
+- Owner: raise the OpenRouter workspace budget (Phil 2, and a live certificate for Phil at about $5); confirm the real academy's drafted policy; new film narration for the Lab.
+
+## 2026-10-30 (Fri, night), academy job made certifiable (branch `academy/more-tasks`)
+
+**Done** (no model, no GPU, no spend)
+- The academy generator writes 14 tasks of each skill at each train academy (84) and 8 at the transfer academy (48): 300 tasks. The committed job splits the 252 taught tasks into 12 calibration, 84 train, 48 dev, 48 test and 60 sealed for the certificate (`evaluation.certify`: k 5, epsilon 0.10, delta 0.05, calibration 60). A test splits the committed job with the engine's splitter and checks the sizes and that families stay whole.
+- The academies' files and `record-tasks` are unchanged; the reference tutor passes all 300 tasks through the engine's tools and checker.
+
+## 2026-10-30 (Fri, night), certify lane "Certified answers" (branch `certify/answers`)
+
+**Done** (no model was called, no GPU, no spend; decision 077)
+- `certify/stats.ts`: exact one-sided Clopper-Pearson bound, fixed-sequence threshold choice, the risk-coverage curve, the tasks needed; tested on closed forms and the binomial identity.
+- A sealed calibration split (`certify`) drawn from the taught organizations, opened only on the release proof; k-attempt agreement on calibration and locked-test tasks with hashed answer keys; the certificate on the report card with Held / Not held per never-seen organization.
+- The graduate answers by agreement or hands the request to a person, attempts as steps, only the chosen writes proposed.
+- Report section with `RiskCoveragePlot`, Models column, Lab figure, new-chat sentence, inspector settings with the cost. Hidden e2e `certify.spec.ts`; screenshots `report-certificate-dark.png`, `chat-handoff-dark.png`.
+
+**Next**
+- The academy sample has no spare tasks for a calibration split: generate more per academy before certifying Phil in a real run.
+
+## 2026-10-30 (Fri, night), certify lane "Counterexamples" (branch `certify/counterexamples`)
+
+**Done** (no model was called, no GPU, no spend; the loop runs on the scripted mentor)
+- `docs/CERTIFY.md` section 2, decision 078. A helper call that failed in a failed train attempt is replayed faithfully (`replayToCall`, sharing the checkpoint's replay), run again in the sandbox, judged by an explicit predicate (`threw`, or `contradicts` a value the checker's expected values hold) and reduced by delta debugging over its tables, rows then columns, keeping the rows the call points at and every row they reference by id. On the academy's Copperfield data the "Full"-layout lookup goes from 2,312 rows to 4, 1-minimal.
+- `CounterexampleSchema` in shared; `counterexamples` table (migration 17); `mentoring.counterexamples` and `mentoring.fieldCounterexamples` over IPC.
+- The mentor's request holds the round's reduced cases. A change that writes a helper must pass all of that helper's counterexamples in the sandbox (reduced cases, and this round's original attempt), or it is refused with the reason for the one fix; then keep or revert on dev as before.
+- The round drawer shows the reduction, the failure in words, the call, the tables and the repair; Fields → Assets lists the field's counterexamples. Hidden e2e `counterexamples.spec.ts`, screenshot `counterexample-dark.png`; `field-assets-dark.png` recaptured. `fields.spec.ts` now sets the Lab edition (it failed on the personal default before this branch).
+
+**Next**
+- Merge with `certify/answers`: both may add migration 17; renumber whichever lands second.
+- A real run on the academy to see how often helpers fail on train and whether repairs against the cases carry to dev.
+
+**Open**
+- The anchors (rows the call points at) are a heuristic of the call's values; a call whose values don't appear in the data keeps none, and a crash can reduce to almost nothing. The original case is the stronger check (every expected field), available only in the round that found it.
+
+## 2026-10-30 (Fri, night), platform lane "Editions" (branch `platform/editions`)
+
+**Done** (no model was called, no GPU, no spend)
+- `edition: 'personal' | 'lab'` in settings; an older file reads as personal (decision 076).
+- Welcome starts with the choice (Architect or Architect Lab), saved as it is made; Settings, General, switches it at once.
+- Personal: the chat-first home of `base-one-job` again, the agents-only sidebar, no places in the palette, no tutor on Describe, Lab routes go home. Lab: as before. The sidebar wordmark and the window title name the edition.
+- Pre-pivot e2e specs run in the personal edition and expect its home; Lab specs set `edition: 'lab'`. New `editions.spec.ts`, unit tests for the setting and the redirects. Screenshots `welcome-editions-dark.png`, `settings-edition-dark.png`, `home-personal-dark.png`.
+
+**Next**
+- The site's download page offers both editions. The Fields lane's merge keeps `/fields` behind `isLabOnly` (it already is).
+
+## 2026-10-30 (Fri, late night), Lab screens polish after a blind read (branch `platform/polish`)
+
+**Done** (stand-in engine only: no model was called, no GPU, no spend)
+- One term per concept across Lab, Fields, Models, Experiments and the Define inspector: "Taught on" and "Never seen" (sealed only in the one line that explains it), Spark and Glimmer in place of Teacher and Student. The empty Lab says in one line what a field is and who Spark and Glimmer are.
+- Lab: Needs you groups its rows by kind; the two columns stack at their own heights, so Running no longer leaves an empty card. A new version is shown beside the active one with both check-task scores ("Version 3: 88% on check tasks, active version 2: 94%"). The Lab's stand-in agents are the ones Models lists (version 2 active for the service desk and Phil, Phil Mini too).
+- Define: a time limit that stops training before its last round is said in Budget and beside Start training, with the fix ("The 20-hour limit fits 2 to 4 of 12 rounds", Allow 88 hours); retraining Glimmer with a $0 compute cap is said in Budget only, since every job allows retraining by default and the engine simply skips it. The time meter measures training with every round, so a binding limit reads past its cap. The online price was one source all along; the e2e no longer changes the rounds between captures.
+- Experiments: no spend before a run starts ("Up to $6.00"); compute with a $0 cap reads "Not used"; arms that never call a model show nothing for it; "Done teaching" in place of Frozen; a simulation is marked as one, in the badge and the summary; arms are explained once and each tile has a one-line description; Funded is gone.
+- Compute: the plan leads with its answer ("Fits on 16 GPUs in 2 nodes, 52.1 GB each of 72.0 GB usable"), the hardware it was sized for with Change hardware, and the arithmetic under "How this is worked out". Slurm and Kubernetes read "Bundle only" beside Hugging Face Jobs' "Ready"; the bundle says the SCALE.md wording once, short; paths show as their last two folders.
+- Models: harness and adapter hashes on hover; Check tasks explained on hover; deltas with units. Units agree with their numbers in the inspector. Screenshots recaptured, plus `compute-plan-terms-dark.png`.
+
+## 2026-10-30 (Fri, night), platform lane "Compute" (branch `platform/compute`)
+
+**Done** (no model was called, no GPU, no cluster, no spend; the Hub in tests is the fake one)
+- `/compute` shows the targets as cards: this computer (its GPU, Ollama and llama-server as the app already finds them), Hugging Face Jobs (Ready with a token, else Add token), Slurm and Kubernetes (Experimental, with the command each bundle is submitted with).
+- A training plan reads a model's `config.json` from the Hub at a revision (resolved to its commit) or from a chosen file, and sizes it for LoRA, QLoRA or a full fine-tune; GPU type, GPUs per node and precision, tokens per sequence, micro-batch and LoRA rank sit in the inspector. The focal card is the memory on each GPU: GPUs, nodes and memory per GPU, then every term with its arithmetic, sharded or on each GPU, the usable memory and the fit's arithmetic, labeled an estimate, with the assumptions folded. A config the sizing refuses says why in its own words.
+- A bundle for Slurm or Kubernetes is written from a chosen field export into a new folder inside the one chosen (`<model>-<target>`, then `-2`), and shows the `cd` and submit command with a copy button and the SCALE.md wording. A model read from a file can be planned, not bundled.
+- Engine host routes `compute.readConfig`, `compute.plan`, `compute.bundle` over the same functions as `architect train` (`training-plan/requests.ts`); schemas in `packages/shared/src/training-plan.ts`; main checks every path was chosen in a dialog. `GPU_TYPES` moved to the shared contracts.
+- Engine `training-requests.test.ts`; hidden e2e `compute.spec.ts` on the real engine against the fake Hub (only `config.json` is fetched, no job, no upload); screenshots `compute-dark.png`, `compute-plan-dark.png`, `compute-bundle-dark.png`, and `places-compute-dark.png` again.
+
+**Open**
+- Field exports aren't listed: the person chooses the folder that `architect field export` (or the Fields lane's export) wrote. A GPU not in the list can't be named by its memory from the screen yet, as `--gpu-memory` can.
+
+## 2026-10-30 (Fri, night), platform lane "Inspector on Define" (branch `platform/inspector`)
+
+**Done** (stand-in engine only: no model was called, no GPU, no spend)
+- Define's Advanced settings dialog is gone; its fields live in the inspector at the page's right, opened by the footer's settings button (which also folds it away) and remembering its tab. Tabs: Spark (the teacher's models as tiles from `models.ts`, any other model a click away, how hard it thinks, the spending cap), Glimmer (the model here, where it practices, the online copy, context), Teaching (what Spark may change as ToggleRows, rounds, patience, the keep rule: gain on check tasks, the most a skill may lose, measured again on new seeds; the starting instructions), Evaluation (ready when, where the final test runs and its seeds, the task sets and their seed, the organizations with the sealed ones only counted, grading, the example tasks), Budget (expected against each cap with meters, then the caps: Spark dollars, training compute dollars, time).
+- Every control writes an existing field of the job schema through the same `jobs.save` path; problems are said under the field and nothing is saved until they are fixed; each saved change raises one Undo toast (`toast({ key })` replaces the last). There is no control for the sealed organizations, the checker's contents, permissions beyond what Define already had, or the student's weights.
+- The page lost its Spark cap slider (now in Spark and Budget) and the export button became an icon in the footer, so the page is the job, where it trains and the estimate.
+- No temperature control: the job schema has no decoding field, and no student dollar cap: the online copy's expected bill is shown alone.
+- `packages/ui`: the Inspector takes a tab from the screen and an `open` state that slides it shut; it is 400 wide everywhere, so up to five tabs show their names (the icon-only fallback from the experiments lane is gone), and Models' `header` stays. ChoiceTiles wrap a long name to two lines. Hidden e2e `define-inspector.spec.ts`; Define's existing specs follow the inspector. Screenshots `define-inspector-{teacher,student,teaching,evaluation,budget}-dark.png`.
+
+**Next**
+- The experiments design screen and the model page can reuse the tab components where their settings are the job's.
+
+## 2026-10-30 (Fri, night), platform lane "Fields" (branch `platform/fields`)
+
+**Done** (stand-in engine only: no model was called, no GPU, no spend)
+- Engine: `jobs.field`, `jobs.fieldAssets` and `jobs.exportField` (decision 075). A field's train organizations with their files and rows; sealed ones by name, kind and file count only; the field export's manifest built in memory with nothing written; the export written to a picked, empty folder.
+- `/fields` lists every job as a field (one-organization jobs too): taught on, sealed, real organizations, the best candidate's seen, unseen and real scores, last activity. New field opens Describe.
+- `/fields/:jobId` has Overview (the best candidate's skill by organization grid, skills, the study brief with Open), Organizations (each one's files beside the list), Candidates (every tested run, the best marked, Open Models) and Assets (counts, what is left out, decision 071's wording, Export).
+- `packages/ui`: PageTabs, and CardRow's `selected`.
+- Engine `field-view.test.ts`; hidden e2e `fields.spec.ts`; `lab.spec.ts` follows the new Fields screens. Screenshots `fields-dark.png`, `field-overview-dark.png`, `field-orgs-dark.png`, `field-assets-dark.png`; `places-field(s)-dark.png` removed.
+
+**Open**
+- Adding an organization (a generated academy from a seed, or a folder of your own as sealed) is not offered: it needs resealing the vault and building tasks for a new organization, which the engine doesn't do. Left out on purpose.
+- The list reads every finished run's card of every job on open; fine for tens of runs, slow for hundreds.
+
+## 2026-10-30 (Fri, night), platform lane "Experiments screens" (branch `platform/experiments`)
+
+**Done** (stand-in engine only: no model was called, no GPU, no spend)
+- `/experiments` lists every experiment in a sortable table: status, field, arms, Spark and student spent of their caps (absent before anything ran), created. One primary action, New experiment.
+- `/experiments/new` and a draft at `/experiments/:id` are one design page: the field's folder (planning spends nothing), the arms as tiles (the weights arms held, with the reason), seeds and rounds, and the estimate with each total against its cap, each arm's estimate and whether it is funded, labeled assumed or measured prices, and what calibration costs before it runs. The inspector holds what the engine takes: Spark's and the student's cap per arm, rounds and the teaching seed, the final-test seeds, and the total caps. Preregister confirms what freezes; Start confirms what it may spend and goes through Spark's brief when the runner waits for it.
+- A preregistered experiment shows its spend against the caps, each arm's status, rounds and spend, and pause, resume and stop. Before the release it says nothing about the final test or the organizations kept back. After it, the results read like a short paper: a summary, Figure 1 (each arm on each group: taught on, each never seen, real), Table 1 (pairs with Newcombe intervals and the gain rule's verdict), Table 2 (skill by organization per arm), Table 3 (spend and latency), the report's notes; a switch picks where the student ran.
+- `packages/ui` Inspector: with more than three tabs, the ones not open showed their icon alone (replaced since by a 400-wide inspector with every name, see the inspector lane above).
+- Hidden e2e `experiments-screens.spec.ts`; screenshots `experiments-list-dark.png`, `experiment-new-dark.png`, `experiment-new-estimate-dark.png`, `experiment-running-dark.png`, `experiment-results-dark.png`, `experiment-results-tables-dark.png`.
+
+**Open**
+- Self-reflection isn't an arm the runner takes, so it isn't offered. The report has no paired difference per organization, so Table 1 pairs over the whole final test.
+- The e2e splits the recorded comparison's counts over four made-up organizations to show the groups; a recorded field comparison would be a better stand-in.
+
+## 2026-10-30 (Fri), platform lane "Models" (branch `platform/models`)
+
+**Done** (stand-in engine only: no model was called, no GPU, no spend)
+- `/models` is a registry of every agent and version: agent and field, base model with its quantization and runtime, method (harness or adapter, with the adapter's hash), harness hash, the final test seen, unseen and real under one "Final test" heading, the check tasks apart, status (Active, Candidate, Imported, Experimental, Kept, Set aside) and created. Filters All, Active, Candidates, Imported; search; every column sorts, unmeasured last.
+- A row opens the model's panel (the Inspector, with a header): Report (final test figures, check tasks, model, harness, adapter, how it was tested) and Lineage (the version it was made from, what changed in the harness, its kept changes, its history). Promote and roll back go through the existing confirmation (`MoveDialog`); Export opens the agent's Export tab.
+- Compare: two versions of one agent, or two agents of one job, skill by organization in percentage points wherever both took the same tasks (otherwise it says they weren't measured on the same tasks), each version's facts and check tasks, and the harness diff. New engine call `graduates.harnessDiff(from, to)` reads each version's harness from its folder, held to its manifest's hash.
+- `packages/ui`: DataTable column groups, a selected row and slightly tighter cells; Inspector `header`. `FilePatch` moved to `components/` for reuse.
+- Tests: engine host test of the diff, unit tests of the registry logic, hidden e2e `models.spec.ts` against `fixtures-models.ts`. Screenshots `models-dark.png`, `model-panel-dark.png`, `models-compare-dark.png`.
+
+**Next**
+- A blind read of the three screens. Export from the panel exports the active version only, as the Export tab does.
+
+## 2026-10-30 (Fri), scale lane "Training plan and targets" (branch `scale/targets`)
+
+**Done** (no model, GPU, cluster or cloud spend; schedulers are stand-ins)
+- `architect train plan` sizes a training job from a model's `config.json` (read from the Hub at a commit, or a file): every memory term with its arithmetic, every expert resident, FSDP's peak, activations, headroom, and the fewest GPUs and nodes; labeled an estimate. `architect train bundle --target slurm|kubernetes` writes a launch folder with the experimental `trainer/experimental/train_fsdp.py`, its FSDP config, the field export's `sft/` data, and the command to submit it with the user's own tools. Decision 072; `docs/CLI.md`.
+
+**Next**
+- The Scale page (`scale/ui`) on top of `@architect/engine/training-plan`. A real export from `scale/export` should be tried against `--export` once that lane lands (the bundle reads only `MANIFEST.json` and `sft/*.jsonl`).
+
+## 2026-10-30 (Fri, night), platform lane "Experiments engine" (branch `platform/experiments-api`)
+
+**Where things stand**
+- The app can plan, calibrate, preregister, start, pause, resume, stop, list and read experiments through the engine host (`experiments.*`, decision 074). Each one runs the existing comparisons runner on a folder of its own under `<data>/experiments/<id>/`, so its caps, study step and release barrier are the runner's. The runner gained only an abort signal and a live view of its records.
+- Results come from the runner's report; before the release `get` shows no locked result and no sentence naming a sealed organization. Events reach the renderer as `experiments:onEvent`.
+- The stand-in for screens is `apps/desktop/e2e/fixtures-experiments.ts` (`installExperimentsFake`, `finishExperiments`). Engine `experiments.test.ts` and hidden e2e `experiments.spec.ts` pass on fakes; no model was called and nothing was spent.
+
+**Next**
+- The experiments screens lane builds list, design, live status and results against the stand-in, and a renderer client for the new channels.
+- Not offered from the app yet: the regression job, local re-tests, a per-arm wall cap. A pause during calibration waits for it to finish.
+
+## 2026-10-30 (Fri, night), platform lane "Foundation": the places and the Lab (branch `platform/foundation`)
+
+**Done** (stand-in engine only: no model was called, no GPU, no spend)
+- *Places* (decision 073): the sidebar leads with Lab, Fields, Experiments, Models and Compute, icon-led, above the agents; the command palette lists them. New routes `/fields`, `/fields/:jobId`, `/experiments`, `/experiments/new`, `/experiments/:id`, `/models`, `/compute`, each a real page with one way on, for the other lanes to fill. The guided flow and its stepper are unchanged.
+- *The Lab* at `/` replaces the home that jumped to the last chat: Needs you and Running side by side as the focal point, then Recently finished (seen, unseen and real where the report has organizations), Spend (Spark against each run's cap, the student where recorded), Fields and Agents, all from records the engine already keeps. A fresh install sees one empty state with Describe a field, Try the tutor and Try the sample job.
+- *`packages/ui`*: Card, CardGrid, CardRow, ChoiceTiles, ToggleRow, CapMeter (and a Meter that turns red past its cap), Inspector, IntervalPlot and DataTable, with tests; `docs/DESIGN.md` describes them and the inspector pattern.
+- *Tests*: hidden e2e `lab.spec.ts`; specs that expected "No agents yet" or the jump to the last chat now expect the Lab. Screenshots `lab-dark.png`, `lab-lower-dark.png`, `lab-empty-dark.png`, `places-*.png`.
+
+**Next**
+- The other platform lanes fill Experiments, Models, Fields, Compute and the inspector on Define from these parts.
+- A study brief waiting to be confirmed isn't in Needs you: the only read of it may start a study. A read-only state call in the engine would let the Lab list it.
+
 ## 2026-10-30 (Fri, evening), field specialists on main, Phil 2 waiting on budget (start the next session here)
 
 **Where things stand**
