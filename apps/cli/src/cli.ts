@@ -13,6 +13,7 @@ import { install } from './commands/install';
 import { list } from './commands/list';
 import { publish } from './commands/publish';
 import { run } from './commands/run';
+import { train } from './commands/train';
 import { verify } from './commands/verify';
 import { CliContext } from './context';
 import { exitCodeOf, failureOf } from './exit';
@@ -30,6 +31,7 @@ const HANDLERS: Readonly<Record<CommandName, Command>> = {
   verify,
   export: exportCommand,
   publish,
+  train,
 };
 
 /**
