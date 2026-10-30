@@ -346,6 +346,11 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
         found(store.jobs.get(jobId), `There is no job "${jobId}".`, 'job_not_found');
         return store.categories.list(jobId);
       },
+      counterexamples: async (runId) => store.counterexamples.list({ runId: run(runId).run.id }),
+      fieldCounterexamples: async (jobId) => {
+        found(store.jobs.get(jobId), `There is no job "${jobId}".`, 'job_not_found');
+        return store.counterexamples.list({ jobId });
+      },
       answer: (runId, round, reply) => answerClarification(runId, round, reply),
       reference: (runId, { split, maxUsd }) => controller.reference(runId, split, maxUsd),
       references: async (runId) => store.references.list(run(runId).run.id),

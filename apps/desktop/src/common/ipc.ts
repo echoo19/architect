@@ -92,6 +92,8 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     progress: true,
     capabilities: true,
     categories: true,
+    counterexamples: true,
+    fieldCounterexamples: true,
     answer: true,
     reference: true,
     references: true,

@@ -179,6 +179,8 @@ export function registerEngineHandlers(
     progress: (runId) => call((api) => api.mentoring.progress(runId)),
     capabilities: (runId) => call((api) => api.mentoring.capabilities(runId)),
     categories: (jobId) => call((api) => api.mentoring.categories(jobId)),
+    counterexamples: (runId) => call((api) => api.mentoring.counterexamples(runId)),
+    fieldCounterexamples: (jobId) => call((api) => api.mentoring.fieldCounterexamples(jobId)),
     answer: (runId, round, reply) => call((api) => api.mentoring.answer(runId, round, reply)),
     reference: (runId, options) => call((api) => api.mentoring.reference(runId, options)),
     references: (runId) => call((api) => api.mentoring.references(runId)),

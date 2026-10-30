@@ -3,6 +3,7 @@ import {
   BindRequestSchema,
   CapabilityBreakdownSchema,
   CategorySchema,
+  CounterexampleSchema,
   ComparisonReportSchema,
   CorrectionRequestSchema,
   CorrectionSchema,
@@ -205,6 +206,14 @@ export const ENGINE_ROUTES = {
   ),
   'mentoring.categories': route(z.tuple([id]), z.array(CategorySchema), (api, [jobId]) =>
     api.mentoring.categories(jobId),
+  ),
+  'mentoring.counterexamples': route(z.tuple([id]), z.array(CounterexampleSchema), (api, [runId]) =>
+    api.mentoring.counterexamples(runId),
+  ),
+  'mentoring.fieldCounterexamples': route(
+    z.tuple([id]),
+    z.array(CounterexampleSchema),
+    (api, [jobId]) => api.mentoring.fieldCounterexamples(jobId),
   ),
   'mentoring.answer': route(
     z.tuple([id, z.number().int().positive(), ClarificationReplySchema]),
