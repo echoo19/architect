@@ -146,6 +146,39 @@ Install it with: architect install hf://jake/service-desk --revision 3f1c9e2a...
 
 `--dry-run` shows what would go and sends nothing. `--version`, `--include` and `--accept-findings` work as for `export`. Publishing the same version to the same repository again finishes a publication that failed; when one of another version didn't finish, the command says so, and `--version` finishes that one. See "Hugging Face" below.
 
+### field export
+
+```bash
+architect field export Phil --out ./phil-field [--json]
+```
+
+Writes what a field job has taught so far into one new folder, for training a model elsewhere (`docs/SCALE.md`). The job is named by its id or its name.
+
+- `sft/demonstrations.jsonl`: worked examples from train tasks that the job's checker passed, in chat format, each with where it came from, the verdict and what it may be used for. One whose data may not leave this computer is left out.
+- `env/`: the train tasks, the files of the organizations the job trains on, the checker, and `score_client.py` (below).
+- `eval/manifest.json`: the locked test and the organizations the job never trains on, by hash only. A trained model is qualified on them through Architect's runner.
+- `MANIFEST.json`: the job and its version, counts, every file's sha256, permitted uses, and what was left out and why.
+
+Nothing of the locked test or of an organization the job never trains on goes in. A file that would carry any stops the export with nothing written, and the command exits 3.
+
+### reward score
+
+```bash
+architect reward score --env ./phil-field/env < attempts.jsonl > scores.jsonl
+```
+
+Scores attempts at the field's train tasks with the job's own checker, for a training framework that runs its own rollouts. It reads one JSON request per line on stdin and writes one score per line on stdout, in order, until stdin ends. It makes no network calls and starts no server.
+
+A request: `task_id`, `final_text` (the agent's last reply, with its `ANSWER:` line), `changes` (each changed file's whole new text, as `{ "path": "data/assignments.csv", "text": "..." }`), `tool_calls` (`{ "name", "arguments" }`), `stop_reason` (`answer` by default) and an optional `id` that the score repeats. Each attempt is graded as the runner grades one: a fresh copy of its organization's files with the changes applied through the same checks the agent's write tools use, then the full checker, which also fails a refused or cut-off attempt and a write the task didn't ask for.
+
+A score: `{ "id", "reward": 1 | 0, "reason" }`. A score with `error` (`bad_request`, `unknown_task`, `checker`, `internal`) is not a judgment of the attempt; leave that sample out. `env/score_client.py` (Python, standard library only) starts the command and exchanges lines with it:
+
+```python
+from score_client import Scorer
+with Scorer() as scorer:
+    score = scorer.score(task_id, final_text, changes=[{"path": "data/assignments.csv", "text": csv}])
+```
+
 ## Run requests and results
 
 ### The request: `architect.run-request/1`

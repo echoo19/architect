@@ -9,6 +9,7 @@ export * from './corrections';
 export * from './data';
 export * from './drafting';
 export * from './errors';
+export * from './field-export';
 export * from './events';
 export * from './graduate';
 export * from './harness';
