@@ -64,7 +64,7 @@ const STEPS: readonly Step[] = [
 
 export function RoundDiagram() {
   return (
-    <div className="flex flex-col gap-12">
+    <div className="@container flex flex-col gap-12">
       <div
         role="img"
         aria-label="The job's tasks are cut once into 15 calibration, 60 practice, 45 check and 60 final-test tasks."
@@ -78,7 +78,7 @@ export function RoundDiagram() {
             />
           ))}
         </div>
-        <ul className="m-0 mt-5 grid list-none gap-x-6 gap-y-5 p-0 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="m-0 mt-5 grid list-none gap-x-6 gap-y-5 p-0 @md:grid-cols-2 @4xl:grid-cols-4">
           {PARTS.map((part) => (
             <li key={part.name} className="flex flex-col gap-1.5">
               <span className="flex items-center gap-2 font-medium">
@@ -94,7 +94,7 @@ export function RoundDiagram() {
         </ul>
       </div>
 
-      <ol className="m-0 grid list-none gap-x-6 gap-y-8 p-0 sm:grid-cols-2 lg:grid-cols-5">
+      <ol className="m-0 grid list-none gap-x-6 gap-y-8 p-0 @md:grid-cols-2 @4xl:grid-cols-5">
         {STEPS.map((step, index) => (
           <li key={step.name} className="flex flex-col gap-3 border-t border-line-strong pt-4">
             <span className="flex items-center gap-2.5 font-medium">
@@ -107,7 +107,7 @@ export function RoundDiagram() {
         ))}
       </ol>
 
-      <div className="flex flex-col gap-2 border-t border-line pt-5 lg:flex-row lg:justify-between lg:gap-12">
+      <div className="flex flex-col gap-2 border-t border-line pt-5 @4xl:flex-row @4xl:justify-between @4xl:gap-12">
         <p className="m-0 max-w-[52ch] text-pretty">
           Rounds repeat until the target is reached, 4 rounds in a row keep nothing, or the money
           runs out.

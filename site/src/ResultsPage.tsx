@@ -16,11 +16,11 @@ import {
   TYPES,
   type Arm,
   type Comparison,
+  type Pair,
   type Round,
   type SourceKey,
 } from './evidence';
 import { Actors } from './components/Actors';
-import { Chapter, type SectionCopy } from './components/Chapter';
 import { Footer } from './components/Footer';
 import { Forest, type ForestRow } from './components/Forest';
 import { Header } from './components/Header';
@@ -29,10 +29,11 @@ import { RoundDiagram } from './components/RoundDiagram';
 import { ScoreChart } from './mock/score-chart';
 
 /**
- * The results page: the evidence that is in the README and in docs/comparisons, set out so it can
- * be read: the same sealed final test taken three ways, the score round by round, answer time and
- * cost, how a round works, and what none of it shows. Every number is in `evidence.ts`, with the
- * document it comes from, and each block says which.
+ * The results page: the evidence that is in the README and in docs/comparisons, set out as one
+ * column to read: the same sealed final test taken three ways, the score round by round, answer
+ * time and cost, how a round works, and what none of it shows. Each chart or table sits in its own
+ * panel under its own title. Every number is in `evidence.ts`, with the document it comes from,
+ * and each section says which.
  */
 
 const dollars = (value: number) => `$${value.toFixed(2)}`;
@@ -41,7 +42,7 @@ const signed = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
 /** The documents a block rests on, each a link to the file. */
 function Sources({ from }: { from: readonly SourceKey[] }) {
   return (
-    <p className="t-small m-0 mt-8">
+    <p className="t-small m-0">
       Sources:{' '}
       {from.map((key, index) => (
         <span key={key}>
@@ -56,9 +57,65 @@ function Sources({ from }: { from: readonly SourceKey[] }) {
   );
 }
 
-function SubHeading({ children }: { children: ReactNode }) {
-  return <h3 className="m-0 mb-5 font-display text-h2 font-semibold">{children}</h3>;
+/** A chart or a table with its title, set apart from the text around it. */
+function Panel({ title, children, note }: { title: string; children: ReactNode; note?: string }) {
+  return (
+    <Reveal className="rounded-card bg-card px-7 pb-6 pt-6 shadow-edge max-sm:px-4 max-sm:pb-5">
+      <h3 className="m-0 mb-5 font-display text-h2 font-semibold">{title}</h3>
+      {children}
+      {note && <p className="t-small m-0 mt-4 text-pretty">{note}</p>}
+    </Reveal>
+  );
 }
+
+/** A section of the page: its claim as a heading, then its text and panels, then its sources. */
+function Part({
+  id,
+  title,
+  from,
+  children,
+}: {
+  id: string;
+  title: string;
+  from: readonly SourceKey[];
+  children: ReactNode;
+}) {
+  return (
+    <section
+      id={id}
+      aria-labelledby={`${id}-title`}
+      className="article scroll-mt-16 pb-16 sm:pb-20"
+    >
+      <div className="flex flex-col gap-7 border-t border-line pt-12 sm:pt-14">
+        <h2 id={`${id}-title`} className="t-title">
+          {title}
+        </h2>
+        {children}
+        <Sources from={from} />
+      </div>
+    </section>
+  );
+}
+
+function Text({ children }: { children: ReactNode }) {
+  return <p className="t-read">{children}</p>;
+}
+
+/** One pair of arms from a comparison, by its label. */
+function pair(comparison: Comparison, label: string): Pair {
+  const found = comparison.pairs.find((each) => each.label === label);
+  if (!found) throw new Error(`The ${comparison.id} comparison has no pair "${label}".`);
+  return found;
+}
+
+/** One arm of a comparison, by its name. */
+function arm(comparison: Comparison, name: string): Arm {
+  const found = comparison.arms.find((each) => each.name === name);
+  if (!found) throw new Error(`The ${comparison.id} comparison has no arm "${name}".`);
+  return found;
+}
+
+const interval = (p: Pair) => `${signed(p.low)} to ${signed(p.high)}`;
 
 /** A hairline table: a header row, then rows whose numbers line up. */
 function Table({
@@ -101,7 +158,7 @@ function Table({
               {row.map((cell, cellIndex) => (
                 <td
                   key={cellIndex}
-                  className={`py-3 pr-4 ${cellIndex === 0 ? 'font-medium' : ''} ${left.includes(cellIndex) ? '' : 'whitespace-nowrap text-right'}`}
+                  className={`py-3 pr-4 ${cellIndex === 0 ? 'min-w-[10rem] font-medium' : ''} ${left.includes(cellIndex) ? '' : 'whitespace-nowrap text-right'}`}
                 >
                   {cell}
                 </td>
@@ -129,9 +186,14 @@ function PassRates({ comparison }: { comparison: Comparison }) {
     high: arm.high,
     tone: arm.tone,
     figure: (
-      <span className="font-display text-h2 font-semibold">
-        {arm.passed}
-        <span className="t-body ml-1.5"> of {TEST_SIZE}</span>
+      <span className="flex flex-col items-end">
+        <span className="font-display text-h2 font-semibold">
+          {arm.passed}
+          <span className="t-body ml-1.5"> of {TEST_SIZE}</span>
+        </span>
+        <span className="t-small">
+          {arm.low.toFixed(1)}% to {arm.high.toFixed(1)}%
+        </span>
       </span>
     ),
     summary: `${arm.name}: ${arm.passed} of ${TEST_SIZE}, 95% interval ${arm.low} to ${arm.high} percent.`,
@@ -149,17 +211,14 @@ function PassRates({ comparison }: { comparison: Comparison }) {
   );
 }
 
+/** Each arm's passes by kind of request. */
 function ArmTable({ comparison }: { comparison: Comparison }) {
   return (
     <Table
-      label={`Final test by arm, ${comparison.title}`}
-      columns={['', 'Passed', '95% interval', ...TYPES.map((type) => `${type}, of ${PER_TYPE}`)]}
-      rows={comparison.arms.map((arm) => [
-        armLabel(arm),
-        `${arm.passed} of ${TEST_SIZE}`,
-        `${arm.low.toFixed(1)}% to ${arm.high.toFixed(1)}%`,
-        ...arm.byType.map(String),
-      ])}
+      label={`Final-test passes by kind of request, ${comparison.title}`}
+      fit
+      columns={['', ...TYPES.map((type) => `${type}, of ${PER_TYPE}`)]}
+      rows={comparison.arms.map((arm) => [armLabel(arm), ...arm.byType.map(String)])}
     />
   );
 }
@@ -216,98 +275,95 @@ function Pairs({
   );
 }
 
-const SECTIONS = {
-  second: {
-    id: 'second',
-    title: 'On a new returns desk, teaching raised the score.',
-    body: "Glimmer passed 58 of 60 requests it had never seen, against 44 on its own. Spark's one-shot setup did worse than Glimmer alone.",
-  },
-  first: {
-    id: 'first',
-    title: 'On the first returns desk, it did not.',
-    body: 'With teaching held to two rounds, Glimmer passed 45 of 60 against 43 on its own. The interval around that difference crosses zero.',
-  },
-  rounds: {
-    id: 'rounds',
-    title: 'The score rose a round at a time.',
-    body: 'Each change was scored on check tasks Spark never sees, and kept only if it cleared the margin. Two of the four rounds were reverted.',
-  },
-  time: {
-    id: 'time',
-    title: 'Faster answers, for cents.',
-    body: 'The dot is a typical answer; the line runs to the slowest 5%. Teaching cost 42 cents of Spark.',
-  },
-  how: {
-    id: 'how',
-    title: 'Why the final test can be trusted.',
-    body: 'Nothing Spark does can touch it. It is opened once, after every setup is frozen, and a program grades it.',
-  },
-  limits: {
-    id: 'limits',
-    title: 'What this does not show.',
-    body: 'Two made-up businesses, one seed, and a build of Glimmer that is not the one on your computer.',
-  },
-} satisfies Record<string, SectionCopy>;
-
-function RoundTable({ rounds, label }: { rounds: readonly Round[]; label: string }) {
+/** The rounds as rows: the change, its check-task scores, and whether it was kept. */
+function RoundList({ rounds, label }: { rounds: readonly Round[]; label: string }) {
   return (
-    <Table
-      label={label}
-      left={[0, 1]}
-      columns={['Round', 'Change', 'Check tasks, of 45', 'Measured again, of 90', 'Result']}
-      rows={rounds.map((round) => [
-        round.n,
-        <span key="c" className="font-normal text-pretty">
-          {round.change}
-        </span>,
-        `${round.before} to ${round.after}`,
-        round.again ? `${round.again[0]} to ${round.again[1]}` : '',
-        round.kept ? (
-          <span key="r" className="font-medium text-student">
-            Kept
+    <ol aria-label={label} className="m-0 list-none p-0">
+      {rounds.map((round) => (
+        <li
+          key={round.n}
+          className="grid grid-cols-[2rem_minmax(0,1fr)_auto] gap-x-4 border-t border-line py-4"
+        >
+          <span className="tabular-nums">{String(round.n).padStart(2, '0')}</span>
+          <span className="flex flex-col gap-1">
+            <span className="font-medium text-pretty">{round.change}</span>
+            <span className="t-small tabular-nums">
+              Check tasks {round.before} to {round.after} of 45
+              {round.again && `, measured again ${round.again[0]} to ${round.again[1]} of 90`}
+              {round.why && `. ${round.why}.`}
+            </span>
           </span>
-        ) : (
-          <span key="r">Reverted{round.why ? `: ${round.why.toLowerCase()}` : ''}</span>
-        ),
-      ])}
-    />
+          {round.kept ? (
+            <span className="font-medium text-student">Kept</span>
+          ) : (
+            <span>Reverted</span>
+          )}
+        </li>
+      ))}
+    </ol>
   );
 }
 
-const LIMITS: readonly { figure: string; text: string; from: SourceKey }[] = [
+const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
   {
-    figure: 'No gain',
-    text: 'The first comparison showed none. Teaching won 11 requests and lost 9 against Glimmer alone, and its interval, -11.5 to +18.0 points, includes zero. The second was designed after seeing it, with the budget the job gives teaching, and its plan was published before it ran.',
+    title: 'The first comparison showed no gain.',
+    text: 'Teaching won 11 requests and lost 9 against Glimmer alone, and its interval, -11.5 to +18.0 points, includes zero. The second was designed after seeing it, with the budget the job gives teaching, and its plan was published before it ran.',
     from: 'plan',
   },
   {
-    figure: '2 desks',
-    text: 'Both are returns desks of the same kind, made by the same generator for a made-up shop. They test one kind of job, not other businesses.',
+    title: 'Two desks of one kind.',
+    text: 'Both are returns desks, made by the same generator for a made-up shop. They test one kind of job, not other businesses.',
     from: 'plan',
   },
   {
-    figure: 'Seed 101',
-    text: 'Each final test was taken under one seed. A second seed, 102, was declared and not run, so no result here is under it. Self-reflection, where the student refines the setup itself, was not one of the arms in either comparison.',
+    title: 'One seed.',
+    text: 'Each final test was taken under seed 101. A second seed, 102, was declared and not run, so no result here is under it. Self-reflection, where the student refines the setup itself, was not one of the arms in either comparison.',
     from: 'second',
   },
   {
-    figure: 'Online',
+    title: 'Glimmer served online.',
     text: 'Every figure is from Glimmer served online. The smaller build that runs on your computer has not taken the final test, and none of these agents has trained weights.',
     from: 'second',
   },
   {
-    figure: '57 of 60',
+    title: 'A target met is not proof.',
     text: 'Meeting the 95% target as observed is not proof of 95% reliability. The interval around 58 of 60 runs from 88.6% to 99.1%. Gains seen while developing lean upward, so only the final test is claimed.',
     from: 'second',
   },
   {
-    figure: '1 run',
-    text: `The repair shop's job went from ${REPAIR.checkBefore} of ${REPAIR.checkTotal} check tasks to ${REPAIR.checkAfter} of ${REPAIR.checkTotal} after one round, and passed ${REPAIR.finalPassed} of ${REPAIR.finalTotal} on its final test. It was a single run, not a planned comparison, and a rule graded it.`,
+    title: 'The repair shop ran once.',
+    text: `Its job went from ${REPAIR.checkBefore} of ${REPAIR.checkTotal} check tasks to ${REPAIR.checkAfter} of ${REPAIR.checkTotal} after one round, and passed ${REPAIR.finalPassed} of ${REPAIR.finalTotal} on its final test. It was a single run, not a planned comparison, and a rule graded it.`,
     from: 'hackathon',
   },
 ];
 
+/** Three figures side by side, each with what it counts. */
+function Figures({ items }: { items: readonly { figure: string; text: string }[] }) {
+  return (
+    <ul className="m-0 grid list-none gap-x-8 gap-y-5 p-0 sm:grid-cols-3">
+      {items.map((item) => (
+        <li key={item.figure} className="flex flex-col gap-2.5">
+          <span className="t-h1 leading-none tabular-nums">{item.figure}</span>
+          <span className="text-pretty">
+            <Actors text={item.text} />
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+const TAUGHT = "Glimmer after Spark's teaching";
+const ALONE = 'Glimmer on its own';
+
 export function ResultsPage() {
+  const second = {
+    alone: pair(SECOND, 'Teaching against Glimmer on its own'),
+    oneShot: pair(SECOND, 'Teaching against the one-shot setup'),
+  };
+  const first = pair(FIRST, 'Teaching against Glimmer on its own');
+  const taught = arm(SECOND, TAUGHT);
+  const alone = arm(SECOND, ALONE);
   return (
     <div id="top">
       <a
@@ -318,209 +374,216 @@ export function ResultsPage() {
       </a>
       <Header page="results" />
       <main id="main">
-        <section aria-labelledby="results-title" className="page pb-14 pt-12 sm:pb-16 sm:pt-16">
-          <h1 id="results-title" className="t-hero max-w-[14em]">
+        <section aria-labelledby="results-title" className="article pb-16 pt-12 sm:pb-20 sm:pt-16">
+          <h1 id="results-title" className="t-hero">
             What teaching changed.
           </h1>
-          <p className="t-lead mt-5 max-w-[60ch]">
+          <p className="t-read mt-6">
             <Actors text="The same final test, sealed until the end, taken three ways: by Glimmer alone, with a one-shot setup from Spark, and after Spark watched it fail and taught it." />
           </p>
-          <ul className="m-0 mt-10 grid list-none gap-x-10 p-0 sm:grid-cols-3">
-            {[
-              {
-                figure: '44 to 58',
-                text: 'of 60 requests Glimmer had never seen, on a new returns desk.',
-              },
-              {
-                figure: '+23.3 points',
-                text: 'against Glimmer on its own, with a 95% interval of +10.9 to +35.9.',
-              },
-              { figure: '42 cents', text: "of Spark's money paid for the teaching." },
-            ].map((item) => (
-              <li key={item.figure} className="flex flex-col gap-3 border-t border-line py-5">
-                <span className="t-h1 leading-none tabular-nums">{item.figure}</span>
-                <span className="max-w-[32ch] text-pretty">
-                  <Actors text={item.text} />
-                </span>
+          <div className="mt-9 rounded-card bg-card px-7 py-6 shadow-edge max-sm:px-4">
+            <Figures
+              items={[
+                {
+                  figure: '44 to 58',
+                  text: 'of 60 requests Glimmer had never seen, on a new returns desk.',
+                },
+                {
+                  figure: '+23.3 points',
+                  text: 'against Glimmer on its own, with a 95% interval of +10.9 to +35.9.',
+                },
+                { figure: '42 cents', text: "of Spark's money paid for the teaching." },
+              ]}
+            />
+          </div>
+        </section>
+
+        <Part
+          id="second"
+          title="On a new returns desk, teaching raised the score."
+          from={['second', 'plan', 'readme']}
+        >
+          <Text>
+            <Actors
+              text={`Glimmer passed ${taught.passed} of ${TEST_SIZE} requests it had never seen, against ${alone.passed} on its own. Spark's one-shot setup did worse than Glimmer alone.`}
+            />
+          </Text>
+          <Text>
+            <Actors
+              text={`All three took the same final test: ${TEST_SIZE} requests, ${PER_TYPE} of each kind, sealed until every setup was frozen. Teaching could run up to 8 rounds.`}
+            />
+          </Text>
+          <Panel title="Final test, of 60">
+            <div className="flex flex-col gap-8">
+              <PassRates comparison={SECOND} />
+              <ArmTable comparison={SECOND} />
+            </div>
+          </Panel>
+          <Text>
+            <Actors
+              text={`Matched request by request, the taught Glimmer won ${second.alone.wins} requests that Glimmer alone failed and lost ${second.alone.losses}: ${signed(second.alone.diff)} points, with a 95% interval of ${interval(second.alone)}. Against the one-shot setup it won ${second.oneShot.wins} and lost ${second.oneShot.losses}.`}
+            />
+          </Text>
+          <Panel title="Request by request, in points">
+            <Pairs comparison={SECOND} min={-40} max={50} ticks={[-40, -20, 0, 20, 40]} />
+          </Panel>
+        </Part>
+
+        <Part id="first" title="On the first returns desk, it did not." from={['first', 'plan']}>
+          <Text>
+            <Actors
+              text={`With teaching held to two rounds, Glimmer passed ${arm(FIRST, TAUGHT).passed} of ${TEST_SIZE} against ${arm(FIRST, ALONE).passed} on its own. Spark answering every request itself passed ${arm(FIRST, 'Spark doing the job itself').passed}.`}
+            />
+          </Text>
+          <Panel title="Final test, of 60">
+            <div className="flex flex-col gap-8">
+              <PassRates comparison={FIRST} />
+              <ArmTable comparison={FIRST} />
+            </div>
+          </Panel>
+          <Text>
+            <Actors
+              text={`Request by request, teaching won ${first.wins} and lost ${first.losses} against Glimmer alone. The interval around that difference, ${interval(first)} points, crosses zero.`}
+            />
+          </Text>
+          <Panel title="Request by request, in points">
+            <Pairs comparison={FIRST} min={-40} max={50} ticks={[-40, -20, 0, 20, 40]} />
+          </Panel>
+        </Part>
+
+        <Part
+          id="rounds"
+          title="The score rose a round at a time."
+          from={['second', 'first', 'hackathon', 'readme']}
+        >
+          <Text>
+            <Actors text="Each change was scored on check tasks Spark never sees, and kept only if it cleared the margin. Two of the four rounds on the new returns desk were reverted." />
+          </Text>
+          <Text>
+            A change counts only if check-task passes rise by at least 2 per run, measured again on
+            new seeds over 2 runs, so +4 of 90, and no kind of task loses more than 1 per run.
+          </Text>
+          <Panel title="Check tasks, new returns desk">
+            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <span className="font-display text-hero font-semibold leading-none tabular-nums max-sm:text-title">
+                98%
+              </span>
+              <span className="tabular-nums">44 of 45, from 31 of 45 to start</span>
+            </div>
+            <ScoreChart className="mb-8" times={{ rise1: 0, hollow2: 0, hollow3: 0, rise4: 0 }} />
+          </Panel>
+          <Panel title="Each round, new returns desk">
+            <RoundList rounds={ROUNDS_SECOND} label="Rounds of teaching on the new returns desk" />
+          </Panel>
+          <Text>
+            Teaching stopped after round 4 because the target was reached. On the first returns desk
+            it was held to 2 rounds after the draft, and stopped there with the cap reached.
+          </Text>
+          <Panel title="Each round, first returns desk">
+            <RoundList rounds={ROUNDS_FIRST} label="Rounds of teaching on the first returns desk" />
+          </Panel>
+          <Panel title="A repair shop, one round">
+            <Figures
+              items={[
+                {
+                  figure: `${REPAIR.checkBefore} of ${REPAIR.checkTotal}`,
+                  text: 'check tasks before teaching.',
+                },
+                {
+                  figure: `${REPAIR.checkAfter} of ${REPAIR.checkTotal}`,
+                  text: "after round 1, Spark's first draft: a ticket-cost tool and a lookup.",
+                },
+                {
+                  figure: `${REPAIR.finalPassed} of ${REPAIR.finalTotal}`,
+                  text: `on its final test, graded by the rule the shop confirmed, for ${REPAIR.cents} cents in all.`,
+                },
+              ]}
+            />
+          </Panel>
+        </Part>
+
+        <Part id="time" title="Faster answers, for cents." from={['second', 'readme']}>
+          <Text>
+            <Actors
+              text={`After teaching, Glimmer's typical answer took ${taught.p50} s, and its slowest 5% finished within ${taught.p95} s. On its own, its typical answer took ${alone.p50} s.`}
+            />
+          </Text>
+          <Panel
+            title="Time to answer, new returns desk"
+            note="The dot is a typical answer; the line runs to the slowest 5%."
+          >
+            <Forest
+              name="Median and slowest 5% of answer times, by arm"
+              rows={SECOND.arms.map((each) => ({
+                label: armLabel(each),
+                value: each.p50,
+                low: each.p50,
+                high: each.p95,
+                tone: each.tone,
+                figure: (
+                  <span className="whitespace-nowrap">
+                    <span className="font-display text-h2 font-semibold">
+                      {each.p50.toFixed(1)} s
+                    </span>
+                    <span className="t-body ml-2">to {each.p95.toFixed(1)} s</span>
+                  </span>
+                ),
+                summary: `${each.name}: typical answer ${each.p50} seconds, slowest 5 percent within ${each.p95}.`,
+              }))}
+              min={0}
+              max={60}
+              figureWidth="10.5rem"
+              ticks={[0, 15, 30, 45, 60]}
+              formatTick={(value) => `${value} s`}
+            />
+          </Panel>
+          <Text>
+            The whole run cost Spark ${MONEY.spark.toFixed(4)} and the hosted Glimmer $
+            {MONEY.glimmer.toFixed(4)} as its attempts recorded it. Teaching cost 42 cents of Spark:
+            34 for the rounds and 8 for its first setup.
+          </Text>
+          <Panel title="What each arm cost">
+            <Table
+              fit
+              label="What each arm cost on the new returns desk"
+              columns={['', 'Spark', 'Glimmer, hosted']}
+              rows={SECOND.arms.map((each) => [
+                armLabel(each),
+                dollars(each.spark),
+                each.glimmer === null ? '' : dollars(each.glimmer),
+              ])}
+            />
+          </Panel>
+        </Part>
+
+        <Part id="how" title="Why the final test can be trusted." from={['plan', 'second']}>
+          <Text>
+            <Actors text="Nothing Spark does can touch it. It is opened once, after every setup is frozen, and a program grades it." />
+          </Text>
+          <Panel title="How a round works">
+            <RoundDiagram />
+          </Panel>
+        </Part>
+
+        <Part id="limits" title="What this does not show." from={['plan', 'second', 'hackathon']}>
+          <Text>
+            <Actors text="Two made-up businesses, one seed, and a build of Glimmer that is not the one on your computer." />
+          </Text>
+          <ul className="m-0 flex list-none flex-col gap-6 p-0">
+            {LIMITS.map((limit) => (
+              <li key={limit.title} className="flex flex-col gap-2">
+                <h3 className="m-0 font-display text-h2 font-semibold">{limit.title}</h3>
+                <p className="t-read">
+                  <Actors text={limit.text} />
+                </p>
               </li>
             ))}
           </ul>
-        </section>
-
-        <Chapter copy={SECTIONS.second}>
-          <Reveal className="flex flex-col gap-14">
-            <div>
-              <SubHeading>{SECOND.title}</SubHeading>
-              <PassRates comparison={SECOND} />
-            </div>
-            <ArmTable comparison={SECOND} />
-            <div>
-              <SubHeading>Request by request</SubHeading>
-              <Pairs comparison={SECOND} min={-40} max={50} ticks={[-40, -20, 0, 20, 40]} />
-            </div>
-          </Reveal>
-          <Sources from={['second', 'plan', 'readme']} />
-        </Chapter>
-
-        <Chapter copy={SECTIONS.first}>
-          <Reveal className="flex flex-col gap-14">
-            <div>
-              <SubHeading>{FIRST.title}</SubHeading>
-              <PassRates comparison={FIRST} />
-            </div>
-            <ArmTable comparison={FIRST} />
-            <div>
-              <SubHeading>Request by request</SubHeading>
-              <Pairs comparison={FIRST} min={-40} max={50} ticks={[-40, -20, 0, 20, 40]} />
-            </div>
-          </Reveal>
-          <Sources from={['first', 'plan']} />
-        </Chapter>
-
-        <Chapter copy={SECTIONS.rounds}>
-          <Reveal className="flex flex-col gap-14">
-            <div className="rounded-card bg-card px-7 pb-6 pt-6 shadow-edge max-sm:px-4">
-              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                <span className="font-display text-hero font-semibold leading-none tabular-nums max-sm:text-title">
-                  98%
-                </span>
-                <span className="tabular-nums">44 of 45 check tasks, from 31 of 45 to start</span>
-              </div>
-              <ScoreChart times={{ rise1: 0, hollow2: 0, hollow3: 0, rise4: 0 }} />
-            </div>
-            <div>
-              <SubHeading>The new returns desk</SubHeading>
-              <RoundTable
-                rounds={ROUNDS_SECOND}
-                label="Rounds of teaching on the new returns desk"
-              />
-              <p className="m-0 mt-4 max-w-[70ch] text-pretty">
-                A change counts only if check-task passes rise by at least 2 per run, measured again
-                on new seeds over 2 runs, so +4 of 90, and no kind of task loses more than 1 per
-                run. Teaching stopped after round 4 because the target was reached.
-              </p>
-            </div>
-            <div>
-              <SubHeading>The first returns desk</SubHeading>
-              <RoundTable
-                rounds={ROUNDS_FIRST}
-                label="Rounds of teaching on the first returns desk"
-              />
-              <p className="m-0 mt-4 max-w-[70ch] text-pretty">
-                Teaching was held to 2 rounds after the draft and stopped there, with the cap
-                reached.
-              </p>
-            </div>
-            <div>
-              <SubHeading>A repair shop, one round</SubHeading>
-              <div className="grid gap-x-10 sm:grid-cols-3">
-                {[
-                  {
-                    figure: `${REPAIR.checkBefore} of ${REPAIR.checkTotal}`,
-                    text: 'check tasks before teaching.',
-                  },
-                  {
-                    figure: `${REPAIR.checkAfter} of ${REPAIR.checkTotal}`,
-                    text: "after round 1, Spark's first draft: a ticket-cost tool and a lookup.",
-                  },
-                  {
-                    figure: `${REPAIR.finalPassed} of ${REPAIR.finalTotal}`,
-                    text: `on its final test, graded by the rule the shop confirmed, for ${REPAIR.cents} cents in all.`,
-                  },
-                ].map((item) => (
-                  <div key={item.figure} className="flex flex-col gap-3 border-t border-line py-5">
-                    <span className="t-h1 leading-none tabular-nums">{item.figure}</span>
-                    <span className="max-w-[32ch] text-pretty">{item.text}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Reveal>
-          <Sources from={['second', 'first', 'hackathon', 'readme']} />
-        </Chapter>
-
-        <Chapter copy={SECTIONS.time}>
-          <Reveal className="flex flex-col gap-14">
-            <div>
-              <SubHeading>Time to answer, on the new returns desk</SubHeading>
-              <Forest
-                name="Median and slowest 5% of answer times, by arm"
-                rows={SECOND.arms.map((arm) => ({
-                  label: armLabel(arm),
-                  value: arm.p50,
-                  low: arm.p50,
-                  high: arm.p95,
-                  tone: arm.tone,
-                  figure: (
-                    <span className="whitespace-nowrap">
-                      <span className="font-display text-h2 font-semibold">
-                        {arm.p50.toFixed(1)} s
-                      </span>
-                      <span className="t-body ml-2">to {arm.p95.toFixed(1)} s</span>
-                    </span>
-                  ),
-                  summary: `${arm.name}: typical answer ${arm.p50} seconds, slowest 5 percent within ${arm.p95}.`,
-                }))}
-                min={0}
-                max={60}
-                figureWidth="11.5rem"
-                ticks={[0, 15, 30, 45, 60]}
-                formatTick={(value) => `${value} s`}
-              />
-            </div>
-            <div>
-              <SubHeading>What each arm cost</SubHeading>
-              <Table
-                fit
-                label="What each arm cost on the new returns desk"
-                columns={['', 'Spark', 'Glimmer, hosted']}
-                rows={SECOND.arms.map((arm) => [
-                  armLabel(arm),
-                  dollars(arm.spark),
-                  arm.glimmer === null ? '' : dollars(arm.glimmer),
-                ])}
-              />
-              <p className="m-0 mt-4 max-w-[70ch] text-pretty">
-                The whole run cost Spark ${MONEY.spark.toFixed(4)} and the hosted Glimmer $
-                {MONEY.glimmer.toFixed(4)} as its attempts recorded it. Teaching cost 42 cents of
-                Spark: 34 for the rounds and 8 for its first setup.
-              </p>
-            </div>
-          </Reveal>
-          <Sources from={['second', 'readme']} />
-        </Chapter>
-
-        <Chapter copy={SECTIONS.how}>
-          <Reveal>
-            <RoundDiagram />
-          </Reveal>
-          <Sources from={['plan', 'second']} />
-        </Chapter>
-
-        <Chapter copy={SECTIONS.limits}>
-          <Reveal>
-            <ul className="m-0 grid list-none grid-cols-1 gap-x-10 p-0 sm:grid-cols-2 lg:grid-cols-3">
-              {LIMITS.map((limit) => (
-                <li
-                  key={limit.figure}
-                  className="flex flex-col gap-3 border-t border-line pb-9 pt-5"
-                >
-                  <span className="t-h1 leading-none tabular-nums">{limit.figure}</span>
-                  <span className="max-w-[44ch] text-pretty">
-                    <Actors text={limit.text} />
-                  </span>
-                  <a className="link-quiet t-small" href={sourceUrl(limit.from)}>
-                    {SOURCES[limit.from].name}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </Reveal>
-          <a className="link-quiet mt-4 inline-flex items-center gap-1.5" href={REPORTS}>
+          <a className="link-quiet inline-flex items-center gap-1.5" href={REPORTS}>
             The full reports on GitHub
             <ArrowUpRight size={16} strokeWidth={1.8} aria-hidden />
           </a>
-        </Chapter>
+        </Part>
       </main>
       <Footer page="results" />
     </div>
