@@ -16,7 +16,7 @@ import type { OpenedTransfer } from '../vault/vault';
 
 /** What every certificate assumes, in the words the report shows. */
 export const CERTIFICATE_ASSUMPTION =
-  'Requests like the calibration ones, drawn the same way from the organizations it was taught on. An organization it never saw tests this assumption rather than inheriting the guarantee.';
+  'Requests like the calibration ones, drawn the same way from the organizations it was taught on, answered with a checked answer or file changes. An organization it never saw tests this assumption rather than inheriting the guarantee. A chat reply in words alone is given only when its attempts say the same thing, and the bound does not cover it.';
 
 /** One task's k attempts as a certificate reads them: the votes for the most common answer. */
 export function scoreTask(attempts: readonly StoredAttempt[], seeds: readonly number[]): Scored {

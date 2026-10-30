@@ -162,7 +162,10 @@ type Settled = Pick<Trace, 'stopReason' | 'error'>;
 interface Attempt {
   trace: Trace;
   files: AgentFiles;
-  /** The canonical answer: its ANSWER line and its file changes (decision 077). */
+  /**
+   * The canonical answer: its ANSWER line and its file changes, or, with neither, its reply in
+   * words normalized (decision 077).
+   */
   key: string;
 }
 
@@ -198,7 +201,11 @@ async function byAgreement(input: ReplyRequest, agreement: Agreement): Promise<S
     attempts.push({
       trace,
       files,
-      key: canonicalAnswer({ answer, stopReason: trace.stopReason }, trace.changes),
+      key: canonicalAnswer(
+        { answer, stopReason: trace.stopReason },
+        trace.changes,
+        trace.finalText,
+      ),
     });
   }
   const best = vote(attempts, (attempt) => attempt.key);
