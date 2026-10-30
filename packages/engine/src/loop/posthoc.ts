@@ -131,8 +131,11 @@ async function seenBy(
     }
   }
   for (const record of runs) {
-    for (const attempt of store.attempts.list({ runId: record.run.id }))
+    for (const attempt of store.attempts.list({ runId: record.run.id })) {
+      // An earlier certification's tasks were never the run's; they may be drawn again.
+      if (attempt.split === 'certify' && attempt.round !== null) continue;
       seen.ids.add(attempt.taskId);
+    }
   }
   return seen;
 }

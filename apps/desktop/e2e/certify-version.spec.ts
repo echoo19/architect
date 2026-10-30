@@ -132,7 +132,7 @@ async function installCertifyFake(): Promise<void> {
         id: string;
         status: string;
         done: number;
-        plan: { attempts: number };
+        plan: Record<string, unknown> & { attempts: number };
       };
       let certifications: Stored[] = [];
       handle('jobs:list', () => data.jobs);

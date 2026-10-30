@@ -340,6 +340,9 @@ describe('certifying a version after the fact (decision 079)', () => {
     expect(engine.store.certifications.get(planned.id)).toEqual(done);
     // The version keeps its state.
     expect(engine.store.versions.get(graduateId, 1)?.state).toBe('candidate');
+    // A certification's tasks were never the run's: certifying again may draw every one of them.
+    const again = await planCertification(context(), request(graduateId, newer.id, { size: 24 }));
+    expect(again.plan.calibration).toBe(24);
   });
 
   it('replaces a plan that never started, and takes back its sealed tasks', async () => {
