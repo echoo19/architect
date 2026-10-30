@@ -2,6 +2,35 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri), the proposal weighed: Teach this now proves the student learned, stale approvals refused, honest copy
+
+**Done** (no model of the product was called; the GPU stayed off; no money spent)
+- *The proposal weighed.* The owner asked which ideas in `docs/SPEC_FIELD_SPECIALIZATION.md` and the strategy notes make Architect more cohesive without spreading it wider. GPT-6 Astra and Claude agreed on a narrow set; the field research stage, five competency families, the 150-scenario contract, cross-organization suites, a new flagship job, a transactional record store and extra students were not adopted. The spec stays a proposal.
+- *Teach this proves the student learned* (decision 066, branch `teach/student-learned`, reviewed by GPT-6 Sol, its two findings fixed). An improvement gets a round even when the agent already meets its target. It keeps a change only when the student, with the change, passes the practice tasks of the lesson's type that it had failed, and its check tasks aren't harmed (`isHarmful`). Only lessons learned in a kept round are marked used; the rest go back to the queue with a note. "Save as version N", which made a version nothing measured, is gone: every lesson goes through Improve agent. The improvement report says Learned, Not learned or Not verified for each lesson. Improvements made before 066 show their old scores with no verdict. The guide PDF is rebuilt.
+- *Stale approvals refused* (decision 067). An approved workspace write is refused, with nothing written, when its file changed on disk after the change was proposed.
+- *Honest copy.* The README says beside the numbers that they were measured on hosted full-precision Glimmer and came from instruction and tool changes, and that the local 4-bit build wasn't measured. The YC paragraph reads as our interpretation. A short related-work note (GEPA, ACE, tau-bench) is in the README and the results paper; the paper cites them by arXiv number, since the site links only to the repository.
+- `pnpm check` exits 0 on main (3,425 tests); the hidden teaching e2e passes (6).
+
+**Next**
+- Owner: optional, a capped (~$3) hosted run of the shipped agent, unchanged, on a different seeded business's unseen records, reported as that and nothing more. Not started without the owner's OK on spend.
+- Still blocked on the owner: a local qualification (GPU rule), a real adapter (paid compute), a real operator.
+- A release after the owner looks: the Teach this screens changed (no "Save as version"). The site's mocks and the film never showed that button, so neither is out of date.
+
+**Open issues**
+- A lesson only counts when the student failed practice tasks of its type in that round. An agent near its ceiling may fail none, so its lesson comes back "Not verified". That is honest, but it can make a demo of Teach this on a strong agent end with no new version.
+- Improvements no longer re-measure a kept change on new seeds.
+
+## 2026-10-30 (Fri), proposed field-specialization direction
+
+**Done**
+- At the owner's request, wrote `docs/SPEC_FIELD_SPECIALIZATION.md`: a proposed expansion from one job to a researched field with related competencies, verified curricula, organization profiles, controlled model adaptation, cross-organization evaluation, and an owned local specialist.
+- The proposed first field is maintenance and repair operations across intake, policy, estimation, planning, and reconciliation. The spec includes an incremental architecture, parallel work boundaries, acceptance scenarios, and a path toward larger field-specific model programs.
+- Completed a fresh-reader review and resolved its six material gaps: transfer-test isolation, derivative source permissions, evaluator-owned templates, reduced-scope qualification, bounded local transactions, and private-resource installation.
+- This was documentation work only. No application changes, model runs, paid training, or publication occurred. The existing hosted comparisons do not establish the new field/local/adapter claims.
+
+**Next**
+- Owner review of the proposal. Current implementation guidance remains in `docs/SPEC_EXPANSION.md` and `docs/EXPANSION.md` until this expansion is adopted; do not treat this progress entry as authorization to start training or replace the existing plan.
+
 ## 2026-10-30 (Fri), the film in the site's hero, a download page, the results page as a paper, and the guide refreshed
 
 **Where things stand (start the next session here)**
