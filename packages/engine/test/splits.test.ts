@@ -112,6 +112,33 @@ describe('splitTasks', () => {
     expect(SPLITS.map((split) => splits[split].length)).toEqual([1, 4, 2, 1]);
   });
 
+  it('draws a calibration split from the spare tasks, disjoint, families whole, the rest unchanged', () => {
+    const spare = [
+      ...sample,
+      ...makeTasks({ invoice: cycle(10, [1, 2]), overdue: cycle(10, [2, 1]) }).map((task) => ({
+        ...task,
+        id: `x-${task.id}`,
+        family: `x-${task.family}`,
+      })),
+    ];
+    const plain = splitTasks(spare, sampleConfig);
+    const certified = splitTasks(spare, { ...sampleConfig, certify: 30 });
+    expect(plain.certify).toEqual([]);
+    expect(certified.certify).toHaveLength(30);
+    expect(SPLITS.map((split) => certified[split].length)).toEqual([15, 60, 30, 60]);
+    const families = (tasks: Task[]) => new Set(tasks.map((task) => task.family));
+    const held = families(certified.certify);
+    for (const split of SPLITS) {
+      expect([...families(certified[split])].some((family) => held.has(family))).toBe(false);
+    }
+    expect(splitTasks(sample, { ...sampleConfig, certify: 0 }).test.map((task) => task.id)).toEqual(
+      splitTasks(sample, sampleConfig).test.map((task) => task.id),
+    );
+    expect(() => splitTasks(sample, { ...sampleConfig, certify: 1 })).toThrow(
+      'The splits ask for 166 tasks (calibration 15, train 60, dev 30, test 60, certification 1), but there are only 165.',
+    );
+  });
+
   it('explains requests it cannot meet', () => {
     const tasks = makeTasks({ invoice: [1, 1, 1] });
     expect(() => splitTasks(tasks, { seed: 1, calibration: 0, train: 2, dev: 1, test: 1 })).toThrow(

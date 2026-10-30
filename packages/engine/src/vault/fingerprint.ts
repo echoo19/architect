@@ -11,29 +11,35 @@ export const MIN_ID_CHARS = 5;
 /** Digits an amount needs; shorter numbers turn up by chance in the student's own arithmetic. */
 export const MIN_AMOUNT_DIGITS = 6;
 
+const TaskPrintSchema = z.object({
+  id: z.string(),
+  /** The prompt's words, when no other split's prompt contains them all in a row. */
+  prompt: z.string().nullable(),
+  /**
+   * Hashes of the word 8-grams of the prompt and of the expected result, as the task states
+   * it and with its keys sorted, that no other task's prompt or expected result contains.
+   */
+  grams: z.array(z.string()),
+  /**
+   * The words of the task's id and of the long ids and amounts its expected result holds,
+   * when no other task and none of the job's data contains them. Older fingerprints have none.
+   */
+  values: z.array(z.string()).default([]),
+});
+
 export const FingerprintSchema = z.object({
   format: z.literal(1),
   jobId: z.string(),
   /** sha256 of test.jsonl, checked every time the locked test is opened. */
   testFileSha256: z.string(),
   gramWords: z.literal(GRAM_WORDS),
-  tasks: z.array(
-    z.object({
-      id: z.string(),
-      /** The prompt's words, when no other split's prompt contains them all in a row. */
-      prompt: z.string().nullable(),
-      /**
-       * Hashes of the word 8-grams of the prompt and of the expected result, as the task states
-       * it and with its keys sorted, that no other task's prompt or expected result contains.
-       */
-      grams: z.array(z.string()),
-      /**
-       * The words of the task's id and of the long ids and amounts its expected result holds,
-       * when no other task and none of the job's data contains them. Older fingerprints have none.
-       */
-      values: z.array(z.string()).default([]),
-    }),
-  ),
+  tasks: z.array(TaskPrintSchema),
+  /**
+   * The sealed calibration split of a certified job (decision 077): its file's sha256, checked
+   * when it is opened, and its tasks' prints, which the leak detector holds a mentor to like the
+   * test's. Absent for a job without one.
+   */
+  certify: z.object({ fileSha256: z.string(), tasks: z.array(TaskPrintSchema) }).optional(),
   /**
    * The organizations the job never trains on (decision 068): each with its files' sha256,
    * checked whenever they are opened for the locked test. Absent for a job without them.
@@ -114,11 +120,12 @@ export function fingerprintTests(
 }
 
 export function createLeakDetector(fingerprint: Fingerprint): LeakDetector {
+  const prints = [...fingerprint.tasks, ...(fingerprint.certify?.tasks ?? [])];
   const byGram = new Map<string, string[]>();
-  for (const task of fingerprint.tasks) {
+  for (const task of prints) {
     for (const gram of task.grams) byGram.set(gram, [...(byGram.get(gram) ?? []), task.id]);
   }
-  const wholes = fingerprint.tasks.flatMap((task) =>
+  const wholes = prints.flatMap((task) =>
     [...(task.prompt === null ? [] : [task.prompt]), ...task.values].map((text) => ({
       id: task.id,
       text: ` ${text} `,

@@ -165,7 +165,13 @@ export class FakeRuntime implements RuntimeDeps {
 
   splitTasks(tasks: Task[]): TaskSplits {
     const of = (prefix: string) => tasks.filter((task) => task.id.startsWith(prefix));
-    return { calibration: of('cal-'), train: of('train-'), dev: of('dev-'), test: of('test-') };
+    return {
+      calibration: of('cal-'),
+      train: of('train-'),
+      dev: of('dev-'),
+      test: of('test-'),
+      certify: of('cert-'),
+    };
   }
 
   today(job: Job, now: Date): string {
@@ -289,6 +295,8 @@ export class FakeVault implements VaultDeps {
   private readonly sealed = new Map<string, Task[]>();
   /** The organizations sealed with each job, with their files, which only a proof opens. */
   readonly transfer = new Map<string, TransferOrganization[]>();
+  /** Each certified job's calibration split, which only a proof opens. */
+  readonly calibration = new Map<string, Task[]>();
   readonly opened: string[] = [];
 
   constructor(private readonly runtime: FakeRuntime) {}
@@ -299,14 +307,17 @@ export class FakeVault implements VaultDeps {
     _others?: Task[],
     _data?: string[],
     transfer: TransferOrganization[] = [],
+    certify: Task[] = [],
   ): void {
     if (this.sealed.has(jobId)) throw new Error(`${jobId} is already sealed.`);
     this.sealed.set(jobId, structuredClone(tests));
     this.transfer.set(jobId, transfer);
+    this.calibration.set(jobId, structuredClone(certify));
   }
 
   discard(jobId: string): void {
     this.sealed.delete(jobId);
+    this.calibration.delete(jobId);
     this.transfer.delete(jobId);
   }
 
@@ -330,7 +341,7 @@ export class FakeVault implements VaultDeps {
   }
 
   leakDetector(jobId: string) {
-    const tests = this.sealed.get(jobId) ?? [];
+    const tests = [...(this.sealed.get(jobId) ?? []), ...(this.calibration.get(jobId) ?? [])];
     return {
       scan: (text: string) => {
         const matchedIds = tests
@@ -347,6 +358,14 @@ export class FakeVault implements VaultDeps {
     }
     this.opened.push(jobId);
     return structuredClone(this.sealed.get(jobId) ?? []);
+  }
+
+  openCalibration(jobId: string, proof: unknown): Task[] {
+    if (typeof proof !== 'object' || proof === null || !this.runtime.proofs.has(proof)) {
+      throw new GuardError('split', 'The calibration split opens only after the mentor is released.');
+    }
+    this.opened.push(`${jobId}:calibration`);
+    return structuredClone(this.calibration.get(jobId) ?? []);
   }
 
   /** Each sealed organization with a stand-in folder, `sealed:<job>/<org>`. */

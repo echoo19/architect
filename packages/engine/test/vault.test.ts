@@ -242,3 +242,52 @@ describe('the locked test', () => {
     );
   });
 });
+
+describe('the calibration split of a certified job (decision 077)', () => {
+  const calibration = [
+    invoiceTask('inv-cal-1', 'W-4410', 'Priya Natarajan'),
+    overdueTask('ovd-cal-1', 'C-0917'),
+  ];
+  beforeEach(() => vault.seal('job_certified', tests, others, [], [], calibration));
+
+  it('is sealed beside the test, and counted apart from it', () => {
+    expect(vault.count('job_certified')).toBe(5);
+    expect(vault.calibrationCount('job_certified')).toBe(2);
+    expect(vault.calibrationCount('job_sample')).toBe(0);
+  });
+
+  it('refuses a calibration task that is in another split', () => {
+    expect(() => vault.seal('job_crossed', tests, others, [], [], [others[0] as Task])).toThrow(
+      'Task inv-train-1 is in the calibration split and in another split.',
+    );
+    expect(() => vault.seal('job_crossed', tests, others, [], [], [tests[0] as Task])).toThrow(
+      GuardError,
+    );
+  });
+
+  it('holds text bound for the mentor to not quoting it', () => {
+    const scan = vault.leakDetector('job_certified');
+    const payload = JSON.stringify({ traces: [{ prompt: calibration[0]?.prompt }] });
+    expect(scan.scan(payload)).toEqual({ leaked: true, matchedIds: ['inv-cal-1'] });
+    expect(scan.scan('the customer C-0917 owes').matchedIds).toEqual(['ovd-cal-1']);
+    expect(scan.scan(others[0]?.prompt ?? '').leaked).toBe(false);
+  });
+
+  it('opens only on the release proof, and is empty for a job without one', async () => {
+    expect(() => vault.openCalibration('job_certified', {} as MentorReleased)).toThrow(
+      'The calibration split opens only after the mentor has been released.',
+    );
+    const proof = await releaseMentor(session());
+    expect(vault.openCalibration('job_certified', proof)).toEqual(calibration);
+    expect(vault.openCalibration('job_sample', proof)).toEqual([]);
+  });
+
+  it('refuses a calibration file that changed after sealing', async () => {
+    const file = join(root, 'vault', 'job_certified', 'certify.jsonl');
+    writeFileSync(file, readFileSync(file, 'utf8').replace('W-4410', 'W-4411'));
+    const proof = await releaseMentor(session());
+    expect(() => vault.openCalibration('job_certified', proof)).toThrow(
+      'The calibration split of job job_certified changed after it was sealed.',
+    );
+  });
+});

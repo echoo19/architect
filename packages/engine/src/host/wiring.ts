@@ -183,8 +183,8 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       releaseMentor: () => releaseMentor({ dispose: () => undefined }),
     },
     vault: {
-      seal: (jobId, tests, others, data, transfer) =>
-        vault.seal(jobId, tests, others, data, transfer),
+      seal: (jobId, tests, others, data, transfer, certify) =>
+        vault.seal(jobId, tests, others, data, transfer, certify),
       discard: (jobId) => vault.reset(jobId),
       isSealed: (jobId) => vault.isSealed(jobId),
       count: (jobId) => vault.count(jobId),
@@ -193,6 +193,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       leakDetector: (jobId) => vault.leakDetector(jobId),
       openForLockedTest: (jobId, proof) => vault.openForLockedTest(jobId, proof as MentorReleased),
       openTransfer: (jobId, proof) => vault.openTransfer(jobId, proof as MentorReleased),
+      openCalibration: (jobId, proof) => vault.openCalibration(jobId, proof as MentorReleased),
     },
     harness: {
       versions: (dir) => new HarnessVersions(dir),
