@@ -17,7 +17,7 @@ import {
   type StudentAdapter,
 } from '@architect/shared';
 import { isStudied } from '../drafting/study';
-import { JobStudy } from '../drafting/studying';
+import { JobStudy, STUDY_CAP_USD } from '../drafting/studying';
 import type { Clock, LoopDeps, MeterReading, RuntimeMeter } from '../loop/deps';
 import { errorMessage } from '../loop/errors';
 import { isTerminal } from '../loop/plan';
@@ -694,6 +694,8 @@ async function studyOnce(
       paths: engine.paths,
       deps,
       clock: env.clock,
+      // Its own cap, and never more than Spark's budget for the whole comparison.
+      capUsd: Math.min(STUDY_CAP_USD, request.config.caps.sparkUsd),
     }).study(base.id);
   }
   if (state.state === 'needed' && request.studyToken !== undefined) {
