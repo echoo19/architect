@@ -2,6 +2,15 @@
 
 Adopted on Oct 30 at the owner's word: Architect becomes a full research and development platform for founders, researchers and scientists who build field-specific models. It keeps one clear flow, adds the controls such people expect, and stays beautiful and smooth. Its visual language extends `docs/DESIGN.md` and takes after Hestia (`C:/JakeOS/projects/hestia`): a calm home of cards with a "Needs you" panel, a side inspector with tabs, icon tiles for choices, toggles with their type on the right, Undo toasts. No signs of generated design: no gradients, glows, emoji, sparkle icons, pill clouds, eyebrows, captions that repeat the layout, or stacks of identical cards.
 
+## Two editions (owner, Oct 30)
+
+Architect ships as two versions of one app:
+
+- **Architect** (personal, for consumers and hobbyists): the pre-pivot product, the one-job flow of `base-one-job` (describe a job, Spark teaches Glimmer, a sealed test, use the agent offline), with the returns desk sample and the chat-first home. It keeps the fixes that make that flow sounder (decisions 066 and 067) and shows none of the places below.
+- **Architect Lab** (R&D, for founders, researchers and scientists): everything on this page, `docs/FIELD.md` and `docs/SCALE.md`.
+
+One codebase, one installer and one test suite. The edition is a setting chosen on the welcome screen ("Teach an agent one job" or "Run a lab") and switchable in Settings; the shell, the home, the sidebar, the command palette and the Describe screen's offers follow it. The engine and the CLI are the same in both. The site's download page offers both. Every change keeps both editions working: the personal edition's screens and specs are the regression guard for the pre-pivot product.
+
 ## The flow stays the spine
 
 Describe a field → Study and define it → Teach → Qualify → Use. Everything new hangs off that line. A newcomer can follow it without opening anything else; an expert finds every control one step away, in an inspector or on a page of its own.
@@ -49,5 +58,6 @@ Every control maps to a field the engine already validates (`packages/shared` jo
 | Fields | `platform/fields` | field page: skills, organizations (add a generated or real one as sealed), study, candidates, assets and export | foundation, `scale/export` |
 | Compute | `platform/compute` | targets, training plans with the sizing breakdown, bundles and commands, labeled experimental | foundation, `scale/targets` |
 | Inspector on Define | `platform/inspector` | the inspector wired to the job's settings | foundation |
+| Editions | `platform/editions` | the edition setting, welcome choice, Settings switch, and the shell, home, sidebar, palette and Describe offers following it | the screen lanes |
 
 Then: a blind read of every new screen, a GPT-6 Sol review, the guide, the site and the film.
