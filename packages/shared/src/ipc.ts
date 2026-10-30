@@ -33,6 +33,13 @@ import type {
 } from './mentoring';
 import type { GpuInfo, ProviderId, StudentBuild, TokenPricing } from './models';
 import type { ComparisonReport } from './comparisons';
+import type {
+  ExperimentDetail,
+  ExperimentEvent,
+  ExperimentInput,
+  ExperimentRecord,
+  ExperimentStart,
+} from './experiments';
 import type { RuntimeMeasurement } from './measurements';
 import type { ReportCard } from './report';
 import type { Method, Round, Run } from './run';
@@ -582,6 +589,34 @@ export interface ArchitectApi {
      * Null otherwise.
      */
     comparisons(runId: string): Promise<ComparisonReport | null>;
+  };
+  /**
+   * Comparisons the app plans, preregisters, runs and reads, through the comparisons runner
+   * (decision 074). Every number comes from its stored records; no locked result is shown before
+   * every arm is frozen and the tests are released.
+   */
+  experiments: {
+    /** Plans one: projects every arm at assumed prices, and says what calibration would cost. */
+    plan(input: ExperimentInput): Promise<ExperimentDetail>;
+    /** Changes a plan not yet preregistered; the job stays the one it was planned on. */
+    revise(experimentId: string, input: ExperimentInput): Promise<ExperimentDetail>;
+    /**
+     * Prices an attempt on the calibration tasks, and for a job with organizations has Spark
+     * study them once, within the caps `plan` showed. Spends; returns at once, and an event says
+     * when it is done.
+     */
+    calibrate(experimentId: string): Promise<ExperimentRecord>;
+    /** Freezes the plan: stored, hashed and timestamped; nothing in it changes after this. */
+    preregister(experimentId: string): Promise<ExperimentRecord>;
+    start(experimentId: string, options: ExperimentStart): Promise<ExperimentRecord>;
+    pause(experimentId: string): Promise<ExperimentRecord>;
+    resume(experimentId: string, options: ExperimentStart): Promise<ExperimentRecord>;
+    /** Stops it for good; what it measured is kept. */
+    stop(experimentId: string): Promise<ExperimentRecord>;
+    /** Newest first. */
+    list(): Promise<ExperimentRecord[]>;
+    get(experimentId: string): Promise<ExperimentDetail>;
+    onEvent(listener: (event: ExperimentEvent) => void): Unsubscribe;
   };
   graduates: {
     list(): Promise<GraduateSummary[]>;

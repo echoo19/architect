@@ -10,5 +10,11 @@ export * from './local-runtime';
 export * from './training';
 export * from './hub';
 export { createEngineDeps, type EngineWiringOptions } from './host/wiring';
+export { realEnvironment, type RealEnvironmentOptions } from './comparisons/environment';
+export {
+  ExperimentService,
+  type ExperimentEnvironment,
+  type ExperimentServiceOptions,
+} from './experiments/service';
 // Both the runtime and the loop name these; the runtime's are the real types.
 export type { LeakDetector, LeakScan, MentorReleased, TaskSplits } from './runtime';

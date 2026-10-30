@@ -50,6 +50,15 @@ const PROBLEMS: Record<ErrorCode, Problem> = {
     cause: "The study of this job's organizations isn't confirmed yet.",
     next: 'Read the brief on the job page, confirm it, then start training.',
   },
+  experiment_not_found: { cause: 'This experiment is gone.' },
+  experiment_frozen: {
+    cause: 'This experiment is preregistered, so its arms, seeds and caps stay as they are.',
+    next: 'Plan a new experiment to try other settings.',
+  },
+  experiment_state: {
+    cause: "This experiment can't do that right now.",
+    next: 'Wait for what it is doing to finish, then try again.',
+  },
   process_starting: {
     cause: 'Architect is still starting up.',
     next: 'Try again in a moment.',

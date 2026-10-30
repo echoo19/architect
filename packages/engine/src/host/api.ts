@@ -30,6 +30,7 @@ import { TeachThis } from '../improve/teach-this';
 import { isReferenceAttempt } from '../loop/configuration';
 import { JobDrafting } from '../drafting/drafter';
 import { JobStudy } from '../drafting/studying';
+import type { ExperimentService } from '../experiments/service';
 import type { Clock, EngineHostDeps, JobDrafter } from '../loop/deps';
 import { readJsonFile } from '../loop/files';
 import type { JobLibrary } from '../loop/jobs';
@@ -66,11 +67,12 @@ export interface EngineApiContext {
   clock: Clock;
   /** Hugging Face, for publishing and installing versions. */
   hub: HubClient;
+  experiments: ExperimentService;
 }
 
 /** The engine API for callers in the host's own process; `serve` exposes it over a port. */
 export function createEngineApi(ctx: EngineApiContext): EngineApi {
-  const { store, paths, jobs, controller, graduates, deps } = ctx;
+  const { store, paths, jobs, controller, graduates, deps, experiments } = ctx;
 
   const run = (runId: string): StoredRun =>
     found(store.runs.get(runId), `There is no run "${runId}".`, 'run_not_found');
@@ -340,6 +342,19 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
         await teachThis.shareCorrections(graduateId, allowed);
         return teachThis.overview(graduateId, controller.studentBusy());
       },
+    },
+    experiments: {
+      plan: (input) => experiments.plan(input),
+      revise: (experimentId, input) => experiments.revise(experimentId, input),
+      calibrate: (experimentId) => experiments.calibrate(experimentId),
+      preregister: (experimentId) => experiments.preregister(experimentId),
+      start: (experimentId, options) => experiments.start(experimentId, options),
+      pause: (experimentId) => experiments.pause(experimentId),
+      resume: (experimentId, options) => experiments.resume(experimentId, options),
+      stop: (experimentId) => experiments.stop(experimentId),
+      list: () => experiments.list(),
+      get: (experimentId) => experiments.get(experimentId),
+      onEvent: (listener) => experiments.onEvent(listener),
     },
     reports: {
       get: async (runId, target) => reportOf(run(runId), target),

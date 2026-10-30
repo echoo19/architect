@@ -103,6 +103,18 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     overview: true,
     shareCorrections: true,
   },
+  experiments: {
+    plan: true,
+    revise: true,
+    calibrate: true,
+    preregister: true,
+    start: true,
+    pause: true,
+    resume: true,
+    stop: true,
+    list: true,
+    get: true,
+  },
   reports: { get: true, list: true, comparisons: true },
   graduates: {
     list: true,
@@ -150,6 +162,7 @@ const EVENT_METHODS: { [D in EventDomain]: Record<EventMethod<D>, true> } = {
   settings: { onChange: true },
   ollama: { onPullProgress: true },
   runs: { onEvent: true },
+  experiments: { onEvent: true },
   graduates: { onPublishProgress: true },
   workspace: { onEvent: true },
 };
