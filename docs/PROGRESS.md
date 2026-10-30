@@ -2,6 +2,18 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri), field lane "Report and workspace" (branch `field/report`, from `field/orgs-engine`)
+
+**Done** (no model was called; the GPU stayed off; no money spent)
+- *Judged on the trained organizations* (decision 070). For a job with organizations, the score, per-type results, latency and the required pass rate count only the organizations it trained with; each one it never saw is reported in `perOrg` alone. One-organization jobs are unchanged.
+- *The report's "By organization" grid*: skills by organizations, grouped Trained with, Never seen and Never seen, real, pass/total per cell, empty where a skill wasn't tested there, each organization's own total in the last row. Practice and check tasks stay in "By task type". Screenshot `report-field-dark.png`.
+- *The workspace* names the organization an agent works on in the chat header; that name is the one menu that moves it to another by rebinding `data`. Another organization's folder is refused. Writes still ask. Screenshot `workspace-org-dark.png`.
+- Hidden e2e `field.spec.ts` (4) passes against the stand-in engine.
+
+**Open issues**
+- The workspace knows an organization by its folder's place (`orgs/<id>/data`). The real academy's snapshot should sit in that layout, or the header shows the folder's name.
+- The menu lists the organizations from the agent's report card, so an organization it was never tested on can't be chosen from it; the settings' folder row still binds any folder.
+
 ## 2026-10-30 (Fri), the proposal weighed: Teach this now proves the student learned, stale approvals refused, honest copy
 
 **Done** (no model of the product was called; the GPU stayed off; no money spent)
