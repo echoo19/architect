@@ -20,17 +20,29 @@ const TEXT_MAX = 60_000;
 
 const JsonRowSchema = z.record(z.string(), JsonValueSchema);
 
+/** A data file's text, or null when the job marks it optional and the folder lacks it. */
+export async function readDataFile(dataDir: string, file: DataFile): Promise<string | null> {
+  try {
+    return await readFile(join(dataDir, file.name), 'utf8');
+  } catch (error) {
+    if (file.optional === true && (error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
 /**
  * What the mentor sees of the job's data: each table's shape and a few rows, and every text file,
- * each by its name in the job (the student sees it as `data/<name>`).
+ * each by its name in the job (the student sees it as `data/<name>`). An optional file the folder
+ * lacks isn't there to describe.
  */
 export async function describeDataFiles(
   files: readonly DataFile[],
   dataDir: string,
 ): Promise<MentorDataFile[]> {
-  return Promise.all(
-    files.map(async (file): Promise<MentorDataFile> => {
-      const content = await readFile(join(dataDir, file.name), 'utf8');
+  const described = await Promise.all(
+    files.map(async (file): Promise<MentorDataFile | null> => {
+      const content = await readDataFile(dataDir, file);
+      if (content === null) return null;
       const base = { name: file.name, kind: file.kind, access: file.access };
       if (file.kind === 'text') return { ...base, text: clip(content, TEXT_MAX) };
       const table = Papa.parse<Record<string, unknown>>(content, {
@@ -48,6 +60,7 @@ export async function describeDataFiles(
       };
     }),
   );
+  return described.filter((file) => file !== null);
 }
 
 /**
@@ -87,11 +100,11 @@ export async function organizationTexts(
       org: org.id,
       text: (
         await Promise.all(
-          job.data.files.map((file) =>
-            readFile(join(orgDataDir(jobDir, org.id), file.name), 'utf8'),
-          ),
+          job.data.files.map((file) => readDataFile(orgDataDir(jobDir, org.id), file)),
         )
-      ).join('\n'),
+      )
+        .filter((text) => text !== null)
+        .join('\n'),
     })),
   );
 }

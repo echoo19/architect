@@ -1,7 +1,8 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   CodedError,
   GuardError,
@@ -12,6 +13,7 @@ import {
 } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { JobStudy } from '../src/drafting/studying';
+import { openAgentFiles } from '../src/files/agent-files';
 import { exportPackage } from '../src/graduates/exporter';
 import { orgFactsProblem } from '../src/loop/lookup';
 import { organizationProblem, taskDataDir } from '../src/loop/organizations';
@@ -30,6 +32,12 @@ import {
   orgTasks,
   writeOrgJobFolder,
 } from './support/organizations';
+
+const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+/** The tutor's job as it ships: its academies, tasks and checker, read-only. */
+const ACADEMY_JOB = join(REPO, 'examples', 'academy', 'job');
+/** An academy export with records only: no question text, errors, hints, staff or videos. */
+const STEMLESS_ACADEMY = join(REPO, 'examples', 'academy', 'test', 'fixtures', 'records');
 
 let world: World;
 let engine: Engine;
@@ -113,6 +121,67 @@ describe('a job with organizations, when it is made', () => {
       code: 'not_a_job',
       message: expect.stringContaining('nothing would test it'),
     });
+  });
+
+  it('seals an unseen academy whose export lacks the optional files, and opens its folder', async () => {
+    world = await createWorld();
+    engine = openEngine(world);
+    opened.push({ engine, world });
+    // The tutor's job, with a real-style academy that has records but no question text, errors,
+    // hints, staff, topics, videos or staff notes, and a policy without the optional rows.
+    const dir = join(world.root, 'academy');
+    cpSync(ACADEMY_JOB, dir, { recursive: true });
+    const fixture = join(dir, 'orgs', 'fixture', 'data');
+    cpSync(STEMLESS_ACADEMY, fixture, { recursive: true });
+    const policy = readFileSync(join(fixture, 'policy.md'), 'utf8')
+      .split('\n')
+      .filter((line) => !/^\| (Days those wrong answers|First hint) /.test(line))
+      .join('\n');
+    writeFileSync(join(fixture, 'policy.md'), policy);
+    const source = JSON.parse(readFileSync(join(dir, 'job.json'), 'utf8')) as Job;
+    const academy: Organization = {
+      id: 'fixture',
+      name: 'Fixture Academy',
+      synthetic: false,
+      role: 'transfer',
+    };
+    writeFileSync(
+      join(dir, 'job.json'),
+      JSON.stringify({ ...source, organizations: [...(source.organizations ?? []), academy] }),
+    );
+    const extra: Task = {
+      id: 'fixture-history-01',
+      type: 'history',
+      family: 'fixture:P1:Transitions',
+      org: 'fixture',
+      prompt: 'How is P1 doing on Transitions?',
+      expected: { kind: 'facts', facts: [{ path: 'attempts', value: 2 }] },
+    };
+    writeFileSync(
+      join(dir, 'tasks.jsonl'),
+      `${readFileSync(join(dir, 'tasks.jsonl'), 'utf8').trimEnd()}\n${JSON.stringify(extra)}\n`,
+    );
+
+    const job = await engine.jobs.importFile(join(dir, 'job.json'));
+    const sealed = (world.vault.transfer.get(job.id) ?? []).find(
+      (item) => item.org.id === 'fixture',
+    );
+    const present = readdirSync(STEMLESS_ACADEMY).sort();
+    const declared = job.data.files.map((file) => file.name);
+    expect(sealed?.files.map((file) => file.name).sort()).toEqual(
+      present.filter((name) => declared.includes(name)),
+    );
+    // The agent's folder opens on it with every file the job declares, the absent optional ones
+    // simply not there.
+    const files = await openAgentFiles({
+      dataDir: fixture,
+      files: job.data.files,
+      mode: 'scratch',
+    });
+    const paths = files.list().map((file) => file.path);
+    expect(paths).toContain('data/attempts.csv');
+    expect(paths).not.toContain('data/hints.csv');
+    expect(paths).not.toContain('data/errors.csv');
   });
 
   it('does not name the unseen organization when one of its files is missing', async () => {
