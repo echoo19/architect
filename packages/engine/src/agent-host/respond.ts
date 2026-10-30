@@ -6,12 +6,15 @@ import {
   type Trace,
   type TraceStep,
 } from '@architect/shared';
+import { parseAnswerLine } from '../agent/answer';
 import { runAgent } from '../agent/loop';
 import { matchGuardrail } from '../agent/retrieval';
+import { agreementSeeds, canonicalAnswer, vote } from '../certify/agreement';
+import type { AgentFiles } from '../files/agent-files';
 import { LocalRuntimeError, type GpuHold } from '../local-runtime';
 import type { Sandbox } from '../sandbox/types';
 import type { ApproveWrite } from '../tools/builtins';
-import type { GraduateSession } from './graduate';
+import type { Agreement, GraduateSession } from './graduate';
 import type { ReplyOutcome } from './messages';
 import type { LiveReply } from './reply';
 import { finishedStep, ruleSkillStep, startedStep, type NewStep } from './steps';
@@ -47,9 +50,11 @@ export interface ReplyRequest {
  */
 export async function respond(input: ReplyRequest): Promise<void> {
   const { graduate, reply } = input;
-  let trace: Trace;
+  let trace: Settled;
   let gpu: GpuHold | null = null;
-  const answer = () =>
+  const refused = matchGuardrail(graduate.harness, input.request) !== null;
+  const { agreement } = graduate;
+  const once = () =>
     runAgent({
       harness: graduate.harness,
       job: graduate.job,
@@ -68,8 +73,10 @@ export async function respond(input: ReplyRequest): Promise<void> {
       approveWrite: input.approveWrite,
       signal: input.signal,
     });
+  // A certified version answers by agreement; a refusal needs no attempts.
+  const answer = agreement === null || refused ? once : () => byAgreement(input, agreement);
   try {
-    if (matchGuardrail(graduate.harness, input.request) === null) gpu = await input.holdGpu();
+    if (!refused) gpu = await input.holdGpu();
     // The reply's model turns run inside its hold, so each joins it rather than waiting in line.
     trace = gpu === null ? await answer() : await gpu.run(answer);
   } catch (error) {
@@ -148,7 +155,115 @@ function record(reply: LiveReply, harness: Harness, step: TraceStep): void {
   }
 }
 
-function outcomeOf(trace: Trace): ReplyOutcome {
+/** How a reply's work ended: one attempt's trace, or what a certified reply settled on. */
+type Settled = Pick<Trace, 'stopReason' | 'error'>;
+
+/** One attempt of a certified reply, on its own copy of the files. */
+interface Attempt {
+  trace: Trace;
+  files: AgentFiles;
+  /** The canonical answer: its ANSWER line and its file changes (decision 077). */
+  key: string;
+}
+
+/**
+ * A certified version's reply (decision 077): k attempts at the request, each on its own copy of
+ * the files and none shown as it runs, then the most common answer when at least the certified
+ * number agree. Its steps are shown, and only its changes are proposed, each for approval as a
+ * write would be. Otherwise the reply says it isn't sure and suggests a person take it. Each
+ * attempt is a step, saying whether it agreed, so the disagreement can be looked at.
+ */
+async function byAgreement(input: ReplyRequest, agreement: Agreement): Promise<Settled> {
+  const { graduate, reply } = input;
+  const attempts: Attempt[] = [];
+  for (const [index, seed] of agreementSeeds(input.seed, agreement.k).entries()) {
+    const name = `Attempt ${index + 1} of ${agreement.k}`;
+    reply.addStep({ kind: 'attempt', name, detail: name, status: 'running' }, `attempt-${index}`);
+    const files = await graduate.scratchFiles();
+    const trace = await runAgent({
+      harness: graduate.harness,
+      job: graduate.job,
+      student: graduate.student,
+      files,
+      sandbox: input.sandbox,
+      request: input.request,
+      history: input.history,
+      mode: 'chat',
+      now: input.now,
+      seed,
+      signal: input.signal,
+    });
+    if (trace.stopReason === 'aborted' || trace.stopReason === 'error') return trace;
+    const { answer } = parseAnswerLine(trace.finalText);
+    attempts.push({
+      trace,
+      files,
+      key: canonicalAnswer({ answer, stopReason: trace.stopReason }, trace.changes),
+    });
+  }
+  const best = vote(attempts, (attempt) => attempt.key);
+  const agreed = best !== null && best.votes >= agreement.votes;
+  attempts.forEach((attempt, index) => {
+    const same = attempt.key === best?.mode;
+    reply.finishCall(`attempt-${index}`, (step) => ({
+      ...step,
+      detail: answerText(attempt.trace),
+      meta: same ? 'agrees' : 'differs',
+      status: 'done',
+      ms: attempt.trace.latencyMs,
+    }));
+  });
+  if (!agreed || best === null) {
+    reply.appendText(
+      `I'm not sure about this one: ${best?.votes ?? 0} of my ${agreement.k} attempts gave the same answer, and I answer only when at least ${agreement.votes} do. Please hand it to a person.`,
+    );
+    return { stopReason: 'answer' };
+  }
+  const chosen = best.chosen.trace;
+  for (const step of chosen.steps) record(reply, graduate.harness, step);
+  reply.appendText(chosen.finalText);
+  await proposeChanges(input, best.chosen.files);
+  return chosen;
+}
+
+/** The answer an attempt gave, in a few words, for its step. */
+function answerText(trace: Trace): string {
+  const { answer } = parseAnswerLine(trace.finalText);
+  const changed = trace.changes?.length ?? 0;
+  const said =
+    answer !== null
+      ? JSON.stringify(answer)
+      : (trace.finalText.trim().split('\n')[0] ?? '').slice(0, 80) || 'No answer';
+  return changed === 0 ? said : `${said}, ${changed} ${changed === 1 ? 'file' : 'files'} changed`;
+}
+
+/**
+ * Proposes the chosen attempt's changes to the agent's own files, each file as one write the
+ * person approves or declines, under the version's write mode. Nothing else is written.
+ */
+async function proposeChanges(input: ReplyRequest, chosen: AgentFiles): Promise<void> {
+  const live = input.graduate.files;
+  const before = live.texts();
+  const after = chosen.texts();
+  for (const path of Object.keys(after).sort()) {
+    if (after[path] === before[path]) continue;
+    const plan = live.plan('write', path, after[path] as string);
+    if (!plan.changes) continue;
+    const decision = await input.approveWrite(
+      {
+        tool: 'write',
+        path: plan.path,
+        summary: plan.summary,
+        patch: plan.patch,
+        ...(plan.rows === undefined ? {} : { rows: plan.rows }),
+      },
+      input.signal,
+    );
+    if (decision === 'approve') await live.apply(plan);
+  }
+}
+
+function outcomeOf(trace: Settled): ReplyOutcome {
   switch (trace.stopReason) {
     case 'answer':
     case 'refused':
