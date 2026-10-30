@@ -12,7 +12,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 ## 2026-10-31 (Sat, early), Architect Lab, two editions, and the technical centerpiece (start the next session here)
 
 **Where things stand**
-- *Branches.* `main` holds the field work and release 0.5.0. Everything below is on `field/main` (green, pushed) and goes to `main` by PR once the centerpiece is reviewed, then release 0.6.0. The one-job product is kept at `base/one-job` / `base-one-job`.
+- *Released.* PR #2 merged everything below into `main`; release 0.6.1 is out with all three installers (0.6.0's installers did not build: a packaging spec compared a picked folder with its unresolved path; its notes say it was superseded). `field/main` is level with `main` and stays the integration branch. The one-job product is kept at `base/one-job` / `base-one-job`. The one-job product is kept at `base/one-job` / `base-one-job`.
 - *Two editions of one app* (decision 076): Architect (the pre-pivot one-job product, chosen by default on existing installs) and Architect Lab (the R&D platform), chosen on the welcome screen and switchable in Settings.
 - *Architect Lab* (`docs/PLATFORM.md`, decisions 073 to 075): the Lab home (Needs you, Running, Recently finished, Spend), Fields (skills, organizations, candidates, assets and export), Experiments (design, preregister, run and read comparisons in the app through the same runner, decision 074), Models (registry, panel, compare with harness diffs), Compute (targets, training plans with every memory term, experimental Slurm and Kubernetes bundles), and an inspector on Define. A blind read of every screen led to a polish pass (one word per idea, numbers that agree, answers before arithmetic).
 - *From a specialist to a field model* (`docs/SCALE.md`, decisions 071, 072): field export (train-only verified demonstrations, a JSONL outcome scorer with a Python client, a sealed-evaluation manifest), training plans sized from a model's `config.json` with every expert resident and FSDP's peak, and bundles that are written and never submitted. Wording: GPU execution, large-model compatibility and training gains remain unverified.
@@ -21,7 +21,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Sol reviewed every lane; each finding was fixed before merging.
 
 **Next**
-- Merge the running lanes (Sol's review of the centerpiece, more academy tasks so Phil can be certified, README and paper sections for the centerpiece), the full stand-in e2e suite, the PR to `main`, release 0.6.0.
+- Gate lesson: run `engine.spec.ts` and `hub.spec.ts` (fake models, no GPU) before a release; the packaged specs run in the release workflow on short and linked temp paths.
 - Owner: raise the OpenRouter workspace budget (Phil 2, and a live certificate for Phil at about $5); confirm the real academy's drafted policy; new film narration for the Lab.
 
 ## 2026-10-30 (Fri, night), academy job made certifiable (branch `academy/more-tasks`)
