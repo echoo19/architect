@@ -143,7 +143,9 @@ function judgedResults(
   organizations: readonly Organization[],
   test: readonly TestResult[],
 ): TestResult[] {
-  const unseen = new Set(organizations.filter((org) => org.role === 'transfer').map((org) => org.id));
+  const unseen = new Set(
+    organizations.filter((org) => org.role === 'transfer').map((org) => org.id),
+  );
   return test.filter((result) => result.org === undefined || !unseen.has(result.org));
 }
 
