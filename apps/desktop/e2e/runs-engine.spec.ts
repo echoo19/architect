@@ -21,7 +21,7 @@ test('lists the results of a run nobody has taken the agent of, and opens them',
   const summary = await recordedSummary();
   const launched = await launchApp({
     data: recordedData(),
-    settings: { onboarded: true, theme: 'dark' },
+    settings: { onboarded: true },
   });
   try {
     const { page } = launched;
@@ -54,7 +54,7 @@ test('lists the results of a run nobody has taken the agent of, and opens them',
 });
 
 test('lists the agent a run made the moment it ended, without a restart or a reload', async () => {
-  const launched = await launchApp({ settings: { onboarded: true, theme: 'dark' } });
+  const launched = await launchApp({ settings: { onboarded: true } });
   const student = await startFakeStudent();
   try {
     const { page } = launched;

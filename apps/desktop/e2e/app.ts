@@ -98,7 +98,7 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
   });
   const page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
-  // No animation mid-capture. The color scheme stays real: the app's theme setting drives it.
+  // Nothing may animate mid-capture.
   await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: null });
   return {
     app,

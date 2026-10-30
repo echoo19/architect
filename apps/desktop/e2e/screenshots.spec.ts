@@ -28,7 +28,6 @@ import {
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const SIZE = { width: 1440, height: 900 };
-const THEMES = ['dark', 'light'] as const;
 
 /** Every route, with ids the engine doesn't know, so each shows its real empty or error state. */
 const ROUTES = [
@@ -81,68 +80,65 @@ async function applySettings(page: Page, patch: Parameters<typeof updateSettings
   await page.waitForLoadState('domcontentloaded');
 }
 
-for (const theme of THEMES) {
-  test(`captures every screen in the ${theme} theme`, async () => {
-    const page = launched.page;
-    await stubEngine(launched.app, { ...EMPTY_ENGINE, 'connections:detectLocal': OLLAMA_READY });
-    await applySettings(page, { theme, onboarded: false });
-    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-    expect(await page.evaluate(() => [window.innerWidth, window.innerHeight])).toEqual([
-      SIZE.width,
-      SIZE.height,
-    ]);
+test('captures every screen', async () => {
+  const page = launched.page;
+  await stubEngine(launched.app, { ...EMPTY_ENGINE, 'connections:detectLocal': OLLAMA_READY });
+  await applySettings(page, { onboarded: false });
+  expect(await page.evaluate(() => [window.innerWidth, window.innerHeight])).toEqual([
+    SIZE.width,
+    SIZE.height,
+  ]);
 
-    await goTo(page, '/welcome');
-    await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
-    await expect(page.getByRole('radio', { name: /Recommended/ })).toBeVisible();
-    await capture(page, `welcome-${theme}.png`);
+  await goTo(page, '/welcome');
+  await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
+  await expect(page.getByRole('radio', { name: /Recommended/ })).toBeVisible();
+  await capture(page, 'welcome-dark.png');
 
-    await applySettings(page, { onboarded: true });
-    for (const route of ROUTES) {
-      await goTo(page, route.path);
-      await capture(page, `${route.name}-${theme}.png`);
-    }
+  await applySettings(page, { onboarded: true });
+  for (const route of ROUTES) {
+    await goTo(page, route.path);
+    await capture(page, `${route.name}-dark.png`);
+  }
 
-    // Settings and the palette over a workspace that has an agent, a saved mentor key, and
-    // Glimmer's GPU-sized build as the agent's model.
-    await stubEngine(launched.app, {
-      ...SAMPLE_ENGINE,
-      'secrets:status': { meta: true, openrouter: true },
-    });
-    const gpuBuild = glimmerBuild('glimmer-gpu');
-    const defaultStudent = await page.evaluate(() =>
-      window.architect.settings.get().then((current) => current.defaultStudent),
-    );
-    await applySettings(page, {
-      onboarded: true,
-      defaultStudent: { ...defaultStudent, model: gpuBuild.model },
-    });
-    await goTo(page, `/agents/${SAMPLE.graduateId}/chats/${SAMPLE.chatId}`);
-    await page.getByRole('button', { name: 'Settings', exact: true }).click();
-    await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
-    await capture(page, `settings-general-${theme}.png`);
-    await page.getByRole('tab', { name: 'Models' }).click();
-    // The teacher, the agent's model and who it is connected to come first; the runtimes on this
-    // computer and the Hugging Face token wait under Advanced.
-    await expect(page.getByRole('button', { name: 'Teacher', exact: true })).toBeVisible();
-    await expect(page.getByText('Running · 0.12.6 · 1 model')).toBeHidden();
-    await capture(page, `settings-models-${theme}.png`);
-    await page.getByRole('button', { name: 'Advanced' }).click();
-    await expect(page.getByText('Running · 0.12.6 · 1 model')).toBeVisible();
-    // What opened is at the end of the tab, so it is scrolled into the picture.
-    await page
-      .getByRole('tabpanel', { name: 'Models' })
-      .evaluate((panel) => panel.scrollTo({ top: panel.scrollHeight }));
-    await capture(page, `settings-models-advanced-${theme}.png`);
-    await page.keyboard.press('Escape');
-
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+k' : 'Control+k');
-    await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible();
-    await capture(page, `palette-${theme}.png`);
-    await page.keyboard.press('Escape');
-    await updateSettings(page, { defaultStudent });
+  // Settings and the palette over a workspace that has an agent, a saved mentor key, and
+  // Glimmer's GPU-sized build as the agent's model.
+  await stubEngine(launched.app, {
+    ...SAMPLE_ENGINE,
+    'secrets:status': { meta: true, openrouter: true },
   });
-}
+  const gpuBuild = glimmerBuild('glimmer-gpu');
+  const defaultStudent = await page.evaluate(() =>
+    window.architect.settings.get().then((current) => current.defaultStudent),
+  );
+  await applySettings(page, {
+    onboarded: true,
+    defaultStudent: { ...defaultStudent, model: gpuBuild.model },
+  });
+  await goTo(page, `/agents/${SAMPLE.graduateId}/chats/${SAMPLE.chatId}`);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
+  await capture(page, 'settings-general-dark.png');
+  await page.getByRole('tab', { name: 'Models' }).click();
+  // The teacher, the agent's model and who it is connected to come first; the runtimes on this
+  // computer and the Hugging Face token wait under Advanced.
+  await expect(page.getByRole('button', { name: 'Teacher', exact: true })).toBeVisible();
+  await expect(page.getByText('Running · 0.12.6 · 1 model')).toBeHidden();
+  await capture(page, 'settings-models-dark.png');
+  await page.getByRole('button', { name: 'Advanced' }).click();
+  await expect(page.getByText('Running · 0.12.6 · 1 model')).toBeVisible();
+  // What opened is at the end of the tab, so it is scrolled into the picture.
+  await page
+    .getByRole('tabpanel', { name: 'Models' })
+    .evaluate((panel) => panel.scrollTo({ top: panel.scrollHeight }));
+  await capture(page, 'settings-models-advanced-dark.png');
+  await page.keyboard.press('Escape');
+
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+k' : 'Control+k');
+  await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible();
+  await capture(page, 'palette-dark.png');
+  await page.keyboard.press('Escape');
+  await updateSettings(page, { defaultStudent });
+});
 
 test('captures the empty workspace and a failed action', async () => {
   const page = launched.page;
@@ -155,19 +151,16 @@ test('captures the empty workspace and a failed action', async () => {
       code: 'process_failed',
     },
   });
-  for (const theme of THEMES) {
-    await applySettings(page, { theme });
-    await goTo(page, '/');
-    await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
-    await capture(page, `workspace-empty-${theme}.png`);
+  await goTo(page, '/');
+  await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
+  await capture(page, 'workspace-empty-dark.png');
 
-    // With creating the sample job made to fail, the app says why in a toast.
-    await page.getByRole('button', { name: 'Try the sample job' }).click();
-    // Exact, so the toast's screen-reader announcement doesn't also match.
-    await expect(page.getByText("Couldn't create the sample job", { exact: true })).toBeVisible();
-    await capture(page, `toast-${theme}.png`);
-    await page.getByRole('button', { name: 'Dismiss' }).click();
-  }
+  // With creating the sample job made to fail, the app says why in a toast.
+  await page.getByRole('button', { name: 'Try the sample job' }).click();
+  // Exact, so the toast's screen-reader announcement doesn't also match.
+  await expect(page.getByText("Couldn't create the sample job", { exact: true })).toBeVisible();
+  await capture(page, 'toast-dark.png');
+  await page.getByRole('button', { name: 'Dismiss' }).click();
 });
 
 test('captures the populated screens with sample engine replies', async () => {
@@ -178,14 +171,10 @@ test('captures the populated screens with sample engine replies', async () => {
     'secrets:status': { meta: true, openrouter: true },
     'connections:detectLocal': FLOW_LOCAL,
   });
-  for (const theme of THEMES) {
-    await applySettings(page, { theme });
-    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-    for (const route of SAMPLE_ROUTES) {
-      await goTo(page, route.path);
-      await expect(page.getByRole('alert')).toHaveCount(0);
-      await capture(page, `${route.name}-${theme}.png`);
-    }
+  for (const route of SAMPLE_ROUTES) {
+    await goTo(page, route.path);
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await capture(page, `${route.name}-dark.png`);
   }
 });
 
@@ -210,15 +199,13 @@ test.describe('the evidence screens of a recorded run', () => {
   let summary: RecordedSummary;
 
   async function open(
-    theme: (typeof THEMES)[number],
     from: { data: string } | { comparison: string } = { data: recordedData() },
   ): Promise<LaunchedApp> {
     const app = await launchApp({
       ...from,
-      settings: { onboarded: true, theme },
+      settings: { onboarded: true },
       ...('comparison' in from ? { prepare: asRealComparison } : {}),
     });
-    await expect(app.page.locator('html')).toHaveAttribute('data-theme', theme);
     return app;
   }
 
@@ -263,179 +250,176 @@ test.describe('the evidence screens of a recorded run', () => {
     await recorded?.close();
   });
 
-  for (const theme of THEMES) {
-    test(`captures lessons, experiments, playback and the report (${theme})`, async () => {
-      recorded = await open(theme);
-      const { page } = recorded;
-      await resize(BOARD_HEIGHT);
-      await goTo(page, `/runs/${summary.runId}/train`);
-      await expect(
-        page.getByRole('region', { name: 'Worked examples' }).getByRole('listitem'),
-      ).toHaveCount(lessonCount(summary));
-      await shoot(`evidence-train-${theme}.png`);
+  test('captures lessons, experiments, playback and the report', async () => {
+    recorded = await open();
+    const { page } = recorded;
+    await resize(BOARD_HEIGHT);
+    await goTo(page, `/runs/${summary.runId}/train`);
+    await expect(
+      page.getByRole('region', { name: 'Worked examples' }).getByRole('listitem'),
+    ).toHaveCount(lessonCount(summary));
+    await shoot('evidence-train-dark.png');
 
-      // Each way a round can end, its drawer whole.
-      await resize(DRAWER_HEIGHT);
-      for (const disposition of ['kept', 'reverted', 'rejected', 'invalid', 'stopped'] as const) {
-        await openRound(roundWith(summary, disposition));
-        await shoot(`evidence-round-${disposition}-${theme}.png`);
-        await closeDrawer();
-      }
-
-      // Round 1's verified repair, played from its checkpoint, then the attempt it repaired,
-      // opened at the step the finding points to.
-      const kept = await openRound(roundWith(summary, 'kept'));
-      await kept
-        .getByRole('region', { name: 'Worked examples' })
-        .getByRole('button')
-        .filter({ hasText: 'Replayed from step' })
-        .first()
-        .click();
-      const lesson = page.getByRole('dialog');
-      await expect(lesson.getByRole('list', { name: "Spark's correction" })).toBeVisible();
-      await shoot(`evidence-lesson-${theme}.png`);
-      // In a window of the usual size: the correction itself, from where Spark took over.
-      await resize(SIZE.height);
-      await lesson
-        .locator('.overflow-y-auto')
-        .first()
-        .evaluate((body) => {
-          const step = body.querySelector('[aria-current="step"]');
-          if (!step) throw new Error('No current step');
-          body.scrollTop +=
-            step.getBoundingClientRect().top - body.getBoundingClientRect().top - 240;
-        });
-      await shoot(`evidence-lesson-steps-${theme}.png`);
-      await resize(DRAWER_HEIGHT);
-      await lesson
-        .getByRole('button', {
-          name: `Open Glimmer's attempt at step ${summary.repair.failureTurn}`,
-        })
-        .click();
-      await expect(page.getByRole('dialog')).toContainText('Spark suspects this step');
-      await shoot(`evidence-attempt-${theme}.png`);
+    // Each way a round can end, its drawer whole.
+    await resize(DRAWER_HEIGHT);
+    for (const disposition of ['kept', 'reverted', 'rejected', 'invalid', 'stopped'] as const) {
+      await openRound(roundWith(summary, disposition));
+      await shoot(`evidence-round-${disposition}-dark.png`);
       await closeDrawer();
+    }
 
-      // Round 2's repair had to start over: a full-task demonstration, labelled as one.
-      const rejected = await openRound(roundWith(summary, 'rejected'));
-      await rejected
-        .getByRole('region', { name: 'Worked examples' })
-        .getByRole('button')
-        .filter({ hasText: 'Full-task demonstration' })
-        .click();
-      await expect(page.getByRole('dialog')).toContainText('Spark does the whole task');
-      await shoot(`evidence-lesson-full-task-${theme}.png`);
-      await closeDrawer();
-
-      await resize(REPORT_HEIGHT);
-      await goTo(page, `/runs/${summary.runId}/report`);
-      await expect(page.getByRole('table', { name: 'Results by task type' })).toBeVisible();
-      await expect(page.getByRole('table', { name: 'Comparisons' })).toBeVisible();
-      // The agent's install checks and its model's facts arrive with the agent, a moment later.
-      await expect(page.getByText('Works on this computer')).toBeVisible();
-      await shoot(`evidence-report-${theme}.png`);
-
-      // An example whose steps can't be read says so, with a way to try again.
-      await stubEngineFailure(recorded.app, {
-        'mentoring:lessonTrace': ENGINE_RESTARTING,
+    // Round 1's verified repair, played from its checkpoint, then the attempt it repaired,
+    // opened at the step the finding points to.
+    const kept = await openRound(roundWith(summary, 'kept'));
+    await kept
+      .getByRole('region', { name: 'Worked examples' })
+      .getByRole('button')
+      .filter({ hasText: 'Replayed from step' })
+      .first()
+      .click();
+    const lesson = page.getByRole('dialog');
+    await expect(lesson.getByRole('list', { name: "Spark's correction" })).toBeVisible();
+    await shoot('evidence-lesson-dark.png');
+    // In a window of the usual size: the correction itself, from where Spark took over.
+    await resize(SIZE.height);
+    await lesson
+      .locator('.overflow-y-auto')
+      .first()
+      .evaluate((body) => {
+        const step = body.querySelector('[aria-current="step"]');
+        if (!step) throw new Error('No current step');
+        body.scrollTop += step.getBoundingClientRect().top - body.getBoundingClientRect().top - 240;
       });
-      await resize(SIZE.height);
-      await goTo(page, `/runs/${summary.runId}/train`);
-      const reverted = await openRound(roundWith(summary, 'reverted'));
-      await reverted
-        .getByRole('region', { name: 'Worked examples' })
-        .getByRole('button')
-        .first()
-        .click();
-      await expect(page.getByRole('dialog')).toContainText("Couldn't load the steps");
-      await shoot(`evidence-lesson-error-${theme}.png`);
-      await closeDrawer();
+    await shoot('evidence-lesson-steps-dark.png');
+    await resize(DRAWER_HEIGHT);
+    await lesson
+      .getByRole('button', {
+        name: `Open Glimmer's attempt at step ${summary.repair.failureTurn}`,
+      })
+      .click();
+    await expect(page.getByRole('dialog')).toContainText('Spark suspects this step');
+    await shoot('evidence-attempt-dark.png');
+    await closeDrawer();
+
+    // Round 2's repair had to start over: a full-task demonstration, labelled as one.
+    const rejected = await openRound(roundWith(summary, 'rejected'));
+    await rejected
+      .getByRole('region', { name: 'Worked examples' })
+      .getByRole('button')
+      .filter({ hasText: 'Full-task demonstration' })
+      .click();
+    await expect(page.getByRole('dialog')).toContainText('Spark does the whole task');
+    await shoot('evidence-lesson-full-task-dark.png');
+    await closeDrawer();
+
+    await resize(REPORT_HEIGHT);
+    await goTo(page, `/runs/${summary.runId}/report`);
+    await expect(page.getByRole('table', { name: 'Results by task type' })).toBeVisible();
+    await expect(page.getByRole('table', { name: 'Comparisons' })).toBeVisible();
+    // The agent's install checks and its model's facts arrive with the agent, a moment later.
+    await expect(page.getByText('Works on this computer')).toBeVisible();
+    await shoot('evidence-report-dark.png');
+
+    // An example whose steps can't be read says so, with a way to try again.
+    await stubEngineFailure(recorded.app, {
+      'mentoring:lessonTrace': ENGINE_RESTARTING,
     });
+    await resize(SIZE.height);
+    await goTo(page, `/runs/${summary.runId}/train`);
+    const reverted = await openRound(roundWith(summary, 'reverted'));
+    await reverted
+      .getByRole('region', { name: 'Worked examples' })
+      .getByRole('button')
+      .first()
+      .click();
+    await expect(page.getByRole('dialog')).toContainText("Couldn't load the steps");
+    await shoot('evidence-lesson-error-dark.png');
+    await closeDrawer();
+  });
 
-    test(`captures the evidence screens when their records fail to load (${theme})`, async () => {
-      recorded = await open(theme);
-      const { app, page } = recorded;
-      await stubEngineFailure(app, {
-        'mentoring:lessons': ENGINE_RESTARTING,
-        'mentoring:capabilities': ENGINE_RESTARTING,
-      });
-      await resize(BOARD_HEIGHT);
-      await goTo(page, `/runs/${summary.runId}/train`);
-      await expect(page.getByText("Couldn't load the worked examples")).toBeVisible();
-      await expect(page.getByText("Couldn't load how the rounds ended")).toBeVisible();
-      await shoot(`evidence-train-error-${theme}.png`);
-      // A round opened while the records still load, and then the load fails.
-      await app.evaluate(({ ipcMain }, error) => {
-        ipcMain.removeHandler('mentoring:lessons');
-        ipcMain.handle(
-          'mentoring:lessons',
-          () =>
-            new Promise((resolve) => {
-              setTimeout(() => resolve({ ok: false, error }), 3_000);
-            }),
-        );
-      }, ENGINE_RESTARTING);
-      await resize(DRAWER_HEIGHT);
-      await page.reload();
-      const opened = await openRound(roundWith(summary, 'kept'));
-      await expect(opened).toContainText(
-        "Couldn't load this round's findings, examples, check tasks and costs",
+  test('captures the evidence screens when their records fail to load', async () => {
+    recorded = await open();
+    const { app, page } = recorded;
+    await stubEngineFailure(app, {
+      'mentoring:lessons': ENGINE_RESTARTING,
+      'mentoring:capabilities': ENGINE_RESTARTING,
+    });
+    await resize(BOARD_HEIGHT);
+    await goTo(page, `/runs/${summary.runId}/train`);
+    await expect(page.getByText("Couldn't load the worked examples")).toBeVisible();
+    await expect(page.getByText("Couldn't load how the rounds ended")).toBeVisible();
+    await shoot('evidence-train-error-dark.png');
+    // A round opened while the records still load, and then the load fails.
+    await app.evaluate(({ ipcMain }, error) => {
+      ipcMain.removeHandler('mentoring:lessons');
+      ipcMain.handle(
+        'mentoring:lessons',
+        () =>
+          new Promise((resolve) => {
+            setTimeout(() => resolve({ ok: false, error }), 3_000);
+          }),
       );
-      await shoot(`evidence-round-error-${theme}.png`);
-      await closeDrawer();
+    }, ENGINE_RESTARTING);
+    await resize(DRAWER_HEIGHT);
+    await page.reload();
+    const opened = await openRound(roundWith(summary, 'kept'));
+    await expect(opened).toContainText(
+      "Couldn't load this round's findings, examples, check tasks and costs",
+    );
+    await shoot('evidence-round-error-dark.png');
+    await closeDrawer();
 
-      await stubEngineFailure(app, {
-        'mentoring:experiments': ENGINE_RESTARTING,
-      });
-      await resize(SHORT_REPORT_HEIGHT);
-      await goTo(page, `/runs/${summary.runId}/report`);
-      // Each section says what it couldn't read; the rest of the card stands.
-      await expect(page.getByText("Couldn't load the results by task type")).toBeVisible();
-      await expect(page.getByText("Couldn't load the comparisons")).toBeVisible();
-      await shoot(`evidence-report-error-${theme}.png`);
+    await stubEngineFailure(app, {
+      'mentoring:experiments': ENGINE_RESTARTING,
     });
+    await resize(SHORT_REPORT_HEIGHT);
+    await goTo(page, `/runs/${summary.runId}/report`);
+    // Each section says what it couldn't read; the rest of the card stands.
+    await expect(page.getByText("Couldn't load the results by task type")).toBeVisible();
+    await expect(page.getByText("Couldn't load the comparisons")).toBeVisible();
+    await shoot('evidence-report-error-dark.png');
+  });
 
-    test(`captures a comparison's own report on one of its arms (${theme})`, async () => {
-      const report = await recordedComparisonReport();
-      const targeted = report.arms.find((arm) => arm.arm === 'targeted');
-      if (!targeted?.runId) throw new Error('The recorded comparison has no targeted run.');
-      recorded = await open(theme, { comparison: recordedComparison() });
-      const { page, app } = recorded;
-      await resize(COMPARISON_REPORT_HEIGHT);
-      await goTo(page, `/runs/${targeted.runId}/report`);
-      await expect(page.getByRole('table', { name: 'Comparisons' })).toBeVisible();
-      await expect(page.getByText('Works on this computer')).toBeVisible();
-      // The agent the dry run made was checked here by the real engine, and its fake setup does
-      // not load: the one verdict says it can't run, and offers the way to put it right.
-      await expect(
-        page.getByRole('heading', { name: "Returns desk can't run on this computer" }),
-      ).toBeVisible();
-      await expect(page.getByRole('button', { name: "See what's wrong" })).toBeVisible();
-      await expect(page.getByText('graduated')).toHaveCount(0);
-      await shoot(`evidence-report-blocked-${theme}.png`);
+  test("captures a comparison's own report on one of its arms", async () => {
+    const report = await recordedComparisonReport();
+    const targeted = report.arms.find((arm) => arm.arm === 'targeted');
+    if (!targeted?.runId) throw new Error('The recorded comparison has no targeted run.');
+    recorded = await open({ comparison: recordedComparison() });
+    const { page, app } = recorded;
+    await resize(COMPARISON_REPORT_HEIGHT);
+    await goTo(page, `/runs/${targeted.runId}/report`);
+    await expect(page.getByRole('table', { name: 'Comparisons' })).toBeVisible();
+    await expect(page.getByText('Works on this computer')).toBeVisible();
+    // The agent the dry run made was checked here by the real engine, and its fake setup does
+    // not load: the one verdict says it can't run, and offers the way to put it right.
+    await expect(
+      page.getByRole('heading', { name: "Returns desk can't run on this computer" }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: "See what's wrong" })).toBeVisible();
+    await expect(page.getByText('graduated')).toHaveCount(0);
+    await shoot('evidence-report-blocked-dark.png');
 
-      // The same agent where its checks pass: what a finished run reads like.
-      const [agent] = (await page.evaluate(() => window.architect.graduates.list())).filter(
-        (item) => item.manifest.runId === targeted.runId,
-      );
-      if (!agent) throw new Error('The recorded comparison made no agent for its targeted run.');
-      await stubEngine(app, { 'graduates:installation': installation(agent.id) });
-      await page.reload();
-      await goTo(page, `/runs/${targeted.runId}/report`);
-      await expect(page.getByRole('heading', { name: 'Returns desk graduated' })).toBeVisible();
-      await expect(page.getByText('Dry run on fakes')).toHaveCount(0);
-      await shoot(`evidence-report-comparison-${theme}.png`);
+    // The same agent where its checks pass: what a finished run reads like.
+    const [agent] = (await page.evaluate(() => window.architect.graduates.list())).filter(
+      (item) => item.manifest.runId === targeted.runId,
+    );
+    if (!agent) throw new Error('The recorded comparison made no agent for its targeted run.');
+    await stubEngine(app, { 'graduates:installation': installation(agent.id) });
+    await page.reload();
+    await goTo(page, `/runs/${targeted.runId}/report`);
+    await expect(page.getByRole('heading', { name: 'Returns desk graduated' })).toBeVisible();
+    await expect(page.getByText('Dry run on fakes')).toHaveCount(0);
+    await shoot('evidence-report-comparison-dark.png');
 
-      // The narrowest window the app allows: the table fits, with nothing cut off at the right.
-      await resize(COMPARISON_REPORT_HEIGHT, 960);
-      const table = page.getByRole('table', { name: 'Comparisons' });
-      const box = await table.boundingBox();
-      expect(box).not.toBeNull();
-      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(960);
-      expect(
-        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-      ).toBe(true);
-      await shoot(`evidence-report-narrow-${theme}.png`);
-    });
-  }
+    // The narrowest window the app allows: the table fits, with nothing cut off at the right.
+    await resize(COMPARISON_REPORT_HEIGHT, 960);
+    const table = page.getByRole('table', { name: 'Comparisons' });
+    const box = await table.boundingBox();
+    expect(box).not.toBeNull();
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(960);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+    await shoot('evidence-report-narrow-dark.png');
+  });
 });

@@ -32,8 +32,6 @@ import {
  */
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
-const THEMES = ['dark', 'light'] as const;
-type Theme = (typeof THEMES)[number];
 
 test.describe.configure({ mode: 'serial' });
 
@@ -210,11 +208,10 @@ function asked(): Promise<unknown[][]> {
   );
 }
 
-async function openResults(theme: Theme): Promise<void> {
-  await updateSettings(page, { theme, onboarded: true, comparisonMode: false });
+async function openResults(): Promise<void> {
+  await updateSettings(page, { onboarded: true, comparisonMode: false });
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
-  await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
   await goTo(page, `/runs/${STORY.runId}/report`);
 }
 
@@ -239,71 +236,67 @@ const testFinished: RunEvent = {
   perType: [],
 };
 
-for (const theme of THEMES) {
-  test(`marks an agent tested online, tests it on this computer, and is ready once it passes (${theme})`, async () => {
-    await installEngine({ detail: withRetests(), own: ONLINE, local: null });
-    await openResults(theme);
+test('marks an agent tested online, tests it on this computer, and is ready once it passes', async () => {
+  await installEngine({ detail: withRetests(), own: ONLINE, local: null });
+  await openResults();
 
-    // Passed online is not ready: the badge says it passed there, and nothing says it graduated.
-    await expect(page.getByText('Passed online', { exact: true })).toBeVisible();
-    await expect(
-      page.getByRole('heading', { name: 'Service desk finished training' }),
-    ).toBeVisible();
-    await expect(
-      page.getByText(/on an online copy of Glimmer, with Spark disconnected/),
-    ).toBeVisible();
-    await expect(
-      page.getByText(/and is marked ready once it passes on this computer too\./),
-    ).toBeVisible();
-    await expect(page.getByText('Ready', { exact: true })).toHaveCount(0);
-    await expect(page.getByText(/graduated/i)).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Start using Service desk' })).toBeEnabled();
+  // Passed online is not ready: the badge says it passed there, and nothing says it graduated.
+  await expect(page.getByText('Passed online', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Service desk finished training' })).toBeVisible();
+  await expect(
+    page.getByText(/on an online copy of Glimmer, with Spark disconnected/),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/and is marked ready once it passes on this computer too\./),
+  ).toBeVisible();
+  await expect(page.getByText('Ready', { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/graduated/i)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Start using Service desk' })).toBeEnabled();
 
-    // The offer says how long it takes and that it uses the graphics card, and sits right under
-    // the badge, before any figure.
-    const offer = page.getByRole('region', { name: 'Test on this computer' });
-    await expect(offer).toContainText(
-      'It takes about 2.5 hours for 60 tasks and uses the graphics card.',
-    );
-    const offerTop = (await offer.boundingBox())?.y ?? Number.POSITIVE_INFINITY;
-    const figuresTop = (await page.getByText('of new tasks right').boundingBox())?.y ?? 0;
-    expect(offerTop).toBeLessThan(figuresTop);
-    await capture(`report-online-${theme}.png`);
+  // The offer says how long it takes and that it uses the graphics card, and sits right under
+  // the badge, before any figure.
+  const offer = page.getByRole('region', { name: 'Test on this computer' });
+  await expect(offer).toContainText(
+    'It takes about 2.5 hours for 60 tasks and uses the graphics card.',
+  );
+  const offerTop = (await offer.boundingBox())?.y ?? Number.POSITIVE_INFINITY;
+  const figuresTop = (await page.getByText('of new tasks right').boundingBox())?.y ?? 0;
+  expect(offerTop).toBeLessThan(figuresTop);
+  await capture('report-online-dark.png');
 
-    await offer.getByRole('button', { name: 'Test on this computer' }).click();
-    expect(await asked()).toEqual([[STORY.runId, 'local']]);
-    await expect(offer).toContainText('Testing on this computer');
-    await expect(offer).toContainText('Waiting for the first answer.');
-    await emitRunEvents(launched.app, [progress(12)]);
-    await expect(offer).toContainText('12 of 60 tasks scored. You can leave this page.');
-    await expect(offer.getByRole('button')).toHaveCount(0);
-    await capture(`report-online-testing-${theme}.png`);
+  await offer.getByRole('button', { name: 'Test on this computer' }).click();
+  expect(await asked()).toEqual([[STORY.runId, 'local']]);
+  await expect(offer).toContainText('Testing on this computer');
+  await expect(offer).toContainText('Waiting for the first answer.');
+  await emitRunEvents(launched.app, [progress(12)]);
+  await expect(offer).toContainText('12 of 60 tasks scored. You can leave this page.');
+  await expect(offer.getByRole('button')).toHaveCount(0);
+  await capture('report-online-testing-dark.png');
 
-    // Its card is filed: the result shows, and the agent is ready, on a pass on this computer.
-    await change({
-      detail: withRetests([{ ...TESTING, status: 'finished', endedAt: at(520) }]),
-      local: onThisComputer(55),
-    });
-    await emitRunEvents(launched.app, [testFinished]);
-    await expect(offer).toContainText('Passed on this computer');
-    await expect(offer).toContainText('55 of 60 right (92%). Typical answer time 1 min 34 s');
-    await expect(offer).toContainText('Online it got 54 of 60.');
-    await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
-    await expect(page.getByText('Ready', { exact: true })).toBeVisible();
-    await expect(page.getByText('It passed on this computer too: 55 of 60')).toBeVisible();
-    await expect(
-      page.getByText(
-        'on an online copy of Glimmer, and again on this computer, with Spark disconnected.',
-      ),
-    ).toBeVisible();
-    await capture(`report-online-done-${theme}.png`);
+  // Its card is filed: the result shows, and the agent is ready, on a pass on this computer.
+  await change({
+    detail: withRetests([{ ...TESTING, status: 'finished', endedAt: at(520) }]),
+    local: onThisComputer(55),
   });
-}
+  await emitRunEvents(launched.app, [testFinished]);
+  await expect(offer).toContainText('Passed on this computer');
+  await expect(offer).toContainText('55 of 60 right (92%). Typical answer time 1 min 34 s');
+  await expect(offer).toContainText('Online it got 54 of 60.');
+  await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
+  await expect(page.getByText('Ready', { exact: true })).toBeVisible();
+  await expect(page.getByText('It passed on this computer too: 55 of 60')).toBeVisible();
+  await expect(
+    page.getByText(
+      'on an online copy of Glimmer, and again on this computer, with Spark disconnected.',
+    ),
+  ).toBeVisible();
+  await capture('report-online-done-dark.png');
+});
 
 /** Starts the test on this computer from Results, then leaves for the home screen. */
 async function startThenLeave() {
   await installEngine({ detail: withRetests(), own: ONLINE, local: null });
-  await openResults('dark');
+  await openResults();
   const offer = page.getByRole('region', { name: 'Test on this computer' });
   await offer.getByRole('button', { name: 'Test on this computer' }).click();
   await expect(offer).toContainText('Testing on this computer');
@@ -370,7 +363,7 @@ const ONLINE_SMALL: ReportCard = {
 
 test('says a small final test passed online the same way, 28 of 30, with the offer beside it', async () => {
   await installEngine({ detail: withRetests(), own: ONLINE_SMALL, local: null });
-  await openResults('dark');
+  await openResults();
 
   await expect(page.getByText('Passed online', { exact: true })).toBeVisible();
   await expect(page.getByText(/It got 28 of 30 there/)).toBeVisible();
@@ -389,7 +382,7 @@ test('says it fell short on this computer when it passed online', async () => {
     own: ONLINE,
     local: onThisComputer(40),
   });
-  await openResults('dark');
+  await openResults();
 
   const offer = page.getByRole('region', { name: 'Test on this computer' });
   await expect(offer).toContainText('Below the target on this computer');
@@ -412,7 +405,7 @@ test('says why the test on this computer stopped, and goes on when asked again',
     own: ONLINE,
     local: null,
   });
-  await openResults('dark');
+  await openResults();
 
   const offer = page.getByRole('region', { name: 'Test on this computer' });
   await expect(offer).toContainText('The test on this computer stopped');
@@ -425,7 +418,7 @@ test('says why the test on this computer stopped, and goes on when asked again',
 
 test('offers no test on this computer for an agent that was tested here', async () => {
   await installEngine({ detail: withRetests(), own: onThisComputer(55), local: null });
-  await openResults('dark');
+  await openResults();
   await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Test on this computer' })).toHaveCount(0);
 });
@@ -441,7 +434,7 @@ const HOSTED_AGENT: GraduateSummary = {
 };
 
 /** The agent's settings on a fake engine: with its run's records here when `run` is given. */
-async function openAgentSettings(theme: Theme, run?: RunDetail) {
+async function openAgentSettings(run?: RunDetail) {
   await installFakeEngine(launched.app, engineSeed({ report: ONLINE, graduates: [HOSTED_AGENT] }));
   if (run) {
     await stubEngine(launched.app, { 'runs:get': run });
@@ -451,7 +444,7 @@ async function openAgentSettings(theme: Theme, run?: RunDetail) {
       'runs:get': { message: `There is no run "${STORY.runId}".`, code: 'run_not_found' },
     });
   }
-  await updateSettings(page, { theme, onboarded: true });
+  await updateSettings(page, { onboarded: true });
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
   await goTo(page, `/agents/${AGENT.id}/chats/${CHATS.closeout.id}`);
@@ -459,27 +452,25 @@ async function openAgentSettings(theme: Theme, run?: RunDetail) {
   return page.getByRole('dialog', { name: 'Service desk', exact: true });
 }
 
-for (const theme of THEMES) {
-  test(`offers the test on this computer in the agent's own Results (${theme})`, async () => {
-    await resize(900);
-    // The agent's run is here, so its records can take the test again.
-    const dialog = await openAgentSettings(theme, withRetests());
-    // Its Final test row says where the test ran.
-    await expect(dialog.getByText('Passed online: 54 of 60 (90%)')).toBeVisible();
-    await expect(dialog.getByText('Tasks it had never seen, on the online copy')).toBeVisible();
-    await dialog.getByRole('tab', { name: 'Results' }).click();
-    await expect(dialog.getByText('Typical answer, on the online copy')).toBeVisible();
-    const offer = dialog.getByRole('region', { name: 'Test on this computer' });
-    await expect(offer).toContainText('uses the graphics card');
-    await expect(offer.getByRole('button', { name: 'Test on this computer' })).toBeVisible();
-    await capture(`workspace-agent-report-online-${theme}.png`);
-  });
-}
+test("offers the test on this computer in the agent's own Results", async () => {
+  await resize(900);
+  // The agent's run is here, so its records can take the test again.
+  const dialog = await openAgentSettings(withRetests());
+  // Its Final test row says where the test ran.
+  await expect(dialog.getByText('Passed online: 54 of 60 (90%)')).toBeVisible();
+  await expect(dialog.getByText('Tasks it had never seen, on the online copy')).toBeVisible();
+  await dialog.getByRole('tab', { name: 'Results' }).click();
+  await expect(dialog.getByText('Typical answer, on the online copy')).toBeVisible();
+  const offer = dialog.getByRole('region', { name: 'Test on this computer' });
+  await expect(offer).toContainText('uses the graphics card');
+  await expect(offer.getByRole('button', { name: 'Test on this computer' })).toBeVisible();
+  await capture('workspace-agent-report-online-dark.png');
+});
 
 test("offers no test for an agent whose records aren't on this computer", async () => {
   await resize(900);
   // No run stands behind this agent here, as the engine says: nothing to test again on.
-  const dialog = await openAgentSettings('dark');
+  const dialog = await openAgentSettings();
   await dialog.getByRole('tab', { name: 'Results' }).click();
   await expect(dialog.getByText('Handles')).toBeVisible();
   await expect(dialog.getByRole('region', { name: 'Test on this computer' })).toHaveCount(0);

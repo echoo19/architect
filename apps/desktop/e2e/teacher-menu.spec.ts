@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import type { Job, MentorConfig } from '@architect/shared';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, launchApp, settle, type LaunchedApp } from './app';
 import { NOTHING_LOCAL, stubEngine } from './fixtures';
 import {
   startFakeStudent,
@@ -23,7 +23,6 @@ import {
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const WIDTH = 1440;
 const TRAIN_HEIGHT = 1270;
-const THEMES = ['dark', 'light'] as const;
 
 test.describe.configure({ mode: 'serial' });
 
@@ -270,31 +269,27 @@ test('a run whose teacher may change nothing ends at once, with the reason and n
 
   // The Train screen says so, and the run's controls lead back to the job.
   await mkdir(OUT_DIR, { recursive: true });
-  for (const theme of THEMES) {
-    await updateSettings(page, { theme });
-    await page.reload();
-    await page.waitForLoadState('domcontentloaded');
-    await launched.app.evaluate(
-      ({ BrowserWindow }, size) =>
-        BrowserWindow.getAllWindows()[0]?.setContentSize(size.width, size.height),
-      { width: WIDTH, height: TRAIN_HEIGHT },
-    );
-    await goTo(page, `/runs/${started.id}/train`);
-    const notice = page.getByRole('status', { name: "Training didn't start" });
-    await expect(notice).toBeVisible();
-    // In plain words, from the job and what the app knows: what is off, what is missing, and that
-    // nothing was spent. None of the engine's words for its own parts.
-    await expect(notice).toContainText(
-      'Every kind of change Spark may make is turned off for this job, except retraining Glimmer itself, which needs a Hugging Face key. A free Hugging Face account gives you one. Nothing was spent.',
-    );
-    await expect(notice).not.toContainText(/mentor|stand-in|adapter|backend/i);
-    // This screen has no Start button, so the notice says what to do after its button.
-    await expect(notice).toContainText('Turn one on, then start training again from the job.');
-    await capture(page, `teacher-idle-${theme}`);
-  }
+  await page.reload();
+  await page.waitForLoadState('domcontentloaded');
+  await launched.app.evaluate(
+    ({ BrowserWindow }, size) =>
+      BrowserWindow.getAllWindows()[0]?.setContentSize(size.width, size.height),
+    { width: WIDTH, height: TRAIN_HEIGHT },
+  );
+  await goTo(page, `/runs/${started.id}/train`);
+  const notice = page.getByRole('status', { name: "Training didn't start" });
+  await expect(notice).toBeVisible();
+  // In plain words, from the job and what the app knows: what is off, what is missing, and that
+  // nothing was spent. None of the engine's words for its own parts.
+  await expect(notice).toContainText(
+    'Every kind of change Spark may make is turned off for this job, except retraining Glimmer itself, which needs a Hugging Face key. A free Hugging Face account gives you one. Nothing was spent.',
+  );
+  await expect(notice).not.toContainText(/mentor|stand-in|adapter|backend/i);
+  // This screen has no Start button, so the notice says what to do after its button.
+  await expect(notice).toContainText('Turn one on, then start training again from the job.');
+  await capture(page, 'teacher-idle-dark');
 
   // The engine's own sentence is kept under Details.
-  const notice = page.getByRole('status', { name: "Training didn't start" });
   await notice.getByRole('button', { name: 'Details' }).click();
   await expect(notice).toContainText('The mentor has nothing it may change in this run.');
 

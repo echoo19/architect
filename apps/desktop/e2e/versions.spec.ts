@@ -28,8 +28,6 @@ import { AT } from './story';
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const SIZE = { width: 1440, height: 900 };
-const THEMES = ['dark', 'light'] as const;
-type Theme = (typeof THEMES)[number];
 
 /** A reply whose allowed change couldn't be saved: it waits for the user to try again. */
 const UNSAVED_CHAT: WorkspaceChat = {
@@ -141,8 +139,8 @@ async function capture(file: string): Promise<void> {
   await page.screenshot({ path: join(OUT_DIR, file), animations: 'disabled', timeout: 15_000 });
 }
 
-/** The fake engines for an agent with versions, the theme, then the app reloaded at `path`. */
-async function open(theme: Theme, path: string): Promise<void> {
+/** The fake engines for an agent with versions, then the app reloaded at `path`. */
+async function open(path: string): Promise<void> {
   await installFakeEngine(
     launched.app,
     engineSeed({
@@ -157,10 +155,9 @@ async function open(theme: Theme, path: string): Promise<void> {
     versions: VERSIONS,
     installation: installation(AGENT.id),
   });
-  await updateSettings(page, { theme, onboarded: true });
+  await updateSettings(page, { onboarded: true });
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
-  await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
   await goTo(page, path);
 }
 
@@ -181,437 +178,408 @@ async function startImport(picks: string[]): Promise<void> {
   await expect(page).toHaveURL(/#\/import$/);
 }
 
-for (const theme of THEMES) {
-  test(`promotes a candidate and rolls back, each after saying what changes (${theme})`, async () => {
-    const app = launched.app;
-    await open(theme, chatPath(CHATS.closeout.id));
-    const dialog = await openSettingsTab('Teaching');
-    const versions = dialog.getByRole('list', { name: 'Versions' });
-    await expect(versions.getByRole('listitem')).toHaveCount(4);
-    const row = (number: number) => versions.getByRole('listitem', { name: `Version ${number}` });
-    // One score for the agent wherever it shows: the versions list agrees with its settings.
-    await expect(row(2)).toContainText('In use');
-    await expect(row(2)).toContainText('95%');
-    await expect(row(2)).toContainText('57 of 60 passed');
-    await expect(row(3)).toContainText('New, not in use yet');
-    await expect(row(3)).toContainText('Below its 90% target · from version 2');
-    await expect(row(4)).toContainText('No final test yet · from version 2, imported');
-    await expect(row(1)).toContainText('Earlier version');
-    await expect(row(1)).toContainText('55 of 60 passed');
-    await expect(dialog.getByRole('region', { name: 'Versions' })).toContainText('Final test');
-    await expect(row(1).getByRole('button', { name: 'Go back to this version' })).toBeVisible();
-    await expect(row(2).getByRole('button')).toHaveCount(0);
-    await capture(`agent-teaching-${theme}.png`);
+test('promotes a candidate and rolls back, each after saying what changes', async () => {
+  const app = launched.app;
+  await open(chatPath(CHATS.closeout.id));
+  const dialog = await openSettingsTab('Teaching');
+  const versions = dialog.getByRole('list', { name: 'Versions' });
+  await expect(versions.getByRole('listitem')).toHaveCount(4);
+  const row = (number: number) => versions.getByRole('listitem', { name: `Version ${number}` });
+  // One score for the agent wherever it shows: the versions list agrees with its settings.
+  await expect(row(2)).toContainText('In use');
+  await expect(row(2)).toContainText('95%');
+  await expect(row(2)).toContainText('57 of 60 passed');
+  await expect(row(3)).toContainText('New, not in use yet');
+  await expect(row(3)).toContainText('Below its 90% target · from version 2');
+  await expect(row(4)).toContainText('No final test yet · from version 2, imported');
+  await expect(row(1)).toContainText('Earlier version');
+  await expect(row(1)).toContainText('55 of 60 passed');
+  await expect(dialog.getByRole('region', { name: 'Versions' })).toContainText('Final test');
+  await expect(row(1).getByRole('button', { name: 'Go back to this version' })).toBeVisible();
+  await expect(row(2).getByRole('button')).toHaveCount(0);
+  await capture('agent-teaching-dark.png');
 
-    // A version no final test measured can be used, after saying so.
-    await row(4).getByRole('button', { name: 'Use this version' }).click();
-    const unmeasured = page.getByRole('dialog', { name: 'Use version 4?' });
-    await expect(unmeasured).toContainText("Version 4 hasn't taken a final test.");
-    await capture(`agent-promote-unevaluated-${theme}.png`);
-    await unmeasured.getByRole('button', { name: 'Cancel' }).click();
-    await expect(unmeasured).toBeHidden();
+  // A version no final test measured can be used, after saying so.
+  await row(4).getByRole('button', { name: 'Use this version' }).click();
+  const unmeasured = page.getByRole('dialog', { name: 'Use version 4?' });
+  await expect(unmeasured).toContainText("Version 4 hasn't taken a final test.");
+  await capture('agent-promote-unevaluated-dark.png');
+  await unmeasured.getByRole('button', { name: 'Cancel' }).click();
+  await expect(unmeasured).toBeHidden();
 
-    // One that fell short says by how much.
-    await row(3).getByRole('button', { name: 'Use this version' }).click();
-    const promote = page.getByRole('dialog', { name: 'Use version 3?' });
-    await expect(promote).toContainText(
-      'Version 3 fell short on its final test: 85% passed, 90% needed.',
-    );
-    await expect(promote).toContainText("New replies use version 3's setup and trained weights.");
-    await expect(promote).toContainText('Version 2 stays, so you can go back to it.');
-    await capture(`agent-promote-${theme}.png`);
-    await promote.getByRole('button', { name: 'Use version 3' }).click();
-    await expect(promote).toBeHidden();
-    await expect(row(3)).toContainText('In use');
-    await expect(row(2)).toContainText('Earlier version');
-    expect(await callsTo(app, 'graduates:acceptVersion')).toEqual([[AGENT.id, 3]]);
-    expect(await callsTo(app, 'graduates:promote')).toEqual([[AGENT.id, 3]]);
+  // One that fell short says by how much.
+  await row(3).getByRole('button', { name: 'Use this version' }).click();
+  const promote = page.getByRole('dialog', { name: 'Use version 3?' });
+  await expect(promote).toContainText(
+    'Version 3 fell short on its final test: 85% passed, 90% needed.',
+  );
+  await expect(promote).toContainText("New replies use version 3's setup and trained weights.");
+  await expect(promote).toContainText('Version 2 stays, so you can go back to it.');
+  await capture('agent-promote-dark.png');
+  await promote.getByRole('button', { name: 'Use version 3' }).click();
+  await expect(promote).toBeHidden();
+  await expect(row(3)).toContainText('In use');
+  await expect(row(2)).toContainText('Earlier version');
+  expect(await callsTo(app, 'graduates:acceptVersion')).toEqual([[AGENT.id, 3]]);
+  expect(await callsTo(app, 'graduates:promote')).toEqual([[AGENT.id, 3]]);
 
-    await row(2).getByRole('button', { name: 'Go back to this version' }).click();
-    const rollback = page.getByRole('dialog', { name: 'Go back to version 2?' });
-    await expect(rollback).toContainText(
-      "New replies use version 2's setup and trained weights again.",
-    );
-    await expect(rollback).toContainText('Version 3 stays, so you can use it again.');
-    await capture(`agent-rollback-${theme}.png`);
-    await rollback.getByRole('button', { name: 'Go back' }).click();
-    await expect(rollback).toBeHidden();
-    await expect(row(2)).toContainText('In use');
-    await expect(row(3).getByRole('button', { name: 'Use this version' })).toBeVisible();
-    expect(await callsTo(app, 'graduates:rollback')).toEqual([[AGENT.id, 2]]);
+  await row(2).getByRole('button', { name: 'Go back to this version' }).click();
+  const rollback = page.getByRole('dialog', { name: 'Go back to version 2?' });
+  await expect(rollback).toContainText(
+    "New replies use version 2's setup and trained weights again.",
+  );
+  await expect(rollback).toContainText('Version 3 stays, so you can use it again.');
+  await capture('agent-rollback-dark.png');
+  await rollback.getByRole('button', { name: 'Go back' }).click();
+  await expect(rollback).toBeHidden();
+  await expect(row(2)).toContainText('In use');
+  await expect(row(3).getByRole('button', { name: 'Use this version' })).toBeVisible();
+  expect(await callsTo(app, 'graduates:rollback')).toEqual([[AGENT.id, 2]]);
+});
+
+test("shows why the versions couldn't load, with a way to try again", async () => {
+  await open(chatPath(CHATS.closeout.id));
+  await stubEngineFailure(launched.app, { 'graduates:versions': ENGINE_RESTARTING });
+  const dialog = await openSettingsTab('Teaching');
+  await expect(dialog.getByText("Couldn't load the versions")).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Try again' })).toBeVisible();
+  await capture('agent-teaching-error-dark.png');
+});
+
+test('reviews an export: what goes in, what stays, the scan and the parts', async () => {
+  const app = launched.app;
+  await open(chatPath(CHATS.closeout.id));
+  const dialog = await openSettingsTab('Export');
+  const included = dialog.getByRole('region', { name: 'In the package' });
+  await expect(included).toContainText('Service desk, version 2');
+  const share = dialog.getByRole('switch', { name: 'Share the files in data/' });
+  await expect(share).toHaveAttribute('aria-checked', 'false');
+  const stays = dialog.getByRole('region', { name: 'Stays on this computer' });
+  await expect(stays).toContainText('4 chats');
+  await expect(stays).toContainText('API keys');
+  await expect(
+    dialog.getByText('Nothing in the package looks like a key or a private path'),
+  ).toBeVisible();
+  await expect(
+    dialog.getByText('Trained weights may retain information from their training data'),
+  ).toBeVisible();
+  const exportPackage = dialog.getByRole('button', {
+    name: 'Export service-desk-v2.architect.zip',
   });
-}
+  await expect(exportPackage).toBeEnabled();
+  await capture('agent-export-dark.png');
+  // Below what stays here: the setup, the trained weights and the report, each on its own.
+  const parts = dialog.getByRole('region', { name: 'Export one part' });
+  const tab = dialog.getByRole('tabpanel');
+  await tab.evaluate((element) => element.scrollTo({ top: element.scrollHeight }));
+  await expect(parts.getByRole('button')).toHaveCount(3);
+  await capture('agent-export-parts-dark.png');
+  await tab.evaluate((element) => element.scrollTo({ top: 0 }));
 
-for (const theme of THEMES) {
-  test(`shows why the versions couldn't load, with a way to try again (${theme})`, async () => {
-    await open(theme, chatPath(CHATS.closeout.id));
-    await stubEngineFailure(launched.app, { 'graduates:versions': ENGINE_RESTARTING });
-    const dialog = await openSettingsTab('Teaching');
-    await expect(dialog.getByText("Couldn't load the versions")).toBeVisible();
-    await expect(dialog.getByRole('button', { name: 'Try again' })).toBeVisible();
-    await capture(`agent-teaching-error-${theme}.png`);
-  });
-}
-
-for (const theme of THEMES) {
-  test(`reviews an export: what goes in, what stays, the scan and the parts (${theme})`, async () => {
-    const app = launched.app;
-    await open(theme, chatPath(CHATS.closeout.id));
-    const dialog = await openSettingsTab('Export');
-    const included = dialog.getByRole('region', { name: 'In the package' });
-    await expect(included).toContainText('Service desk, version 2');
-    const share = dialog.getByRole('switch', { name: 'Share the files in data/' });
-    await expect(share).toHaveAttribute('aria-checked', 'false');
-    const stays = dialog.getByRole('region', { name: 'Stays on this computer' });
-    await expect(stays).toContainText('4 chats');
-    await expect(stays).toContainText('API keys');
-    await expect(
-      dialog.getByText('Nothing in the package looks like a key or a private path'),
-    ).toBeVisible();
-    await expect(
-      dialog.getByText('Trained weights may retain information from their training data'),
-    ).toBeVisible();
-    const exportPackage = dialog.getByRole('button', {
-      name: 'Export service-desk-v2.architect.zip',
-    });
-    await expect(exportPackage).toBeEnabled();
-    await capture(`agent-export-${theme}.png`);
-    // Below what stays here: the setup, the trained weights and the report, each on its own.
-    const parts = dialog.getByRole('region', { name: 'Export one part' });
-    const tab = dialog.getByRole('tabpanel');
-    await tab.evaluate((element) => element.scrollTo({ top: element.scrollHeight }));
-    await expect(parts.getByRole('button')).toHaveCount(3);
-    await capture(`agent-export-parts-${theme}.png`);
-    await tab.evaluate((element) => element.scrollTo({ top: 0 }));
-
-    // Sharing the data folder is opt-in, and the scan's finding in it holds the export back.
-    await share.click();
-    await expect(dialog.getByText('1 line looks like a key or a private path')).toBeVisible();
-    await expect(dialog.getByRole('list', { name: 'Findings' })).toContainText('data/policy.md:14');
-    await expect(exportPackage).toBeDisabled();
-    await expect(dialog.getByText('1 flagged line needs your OK')).toBeVisible();
-    await dialog.getByRole('region', { name: 'Scan' }).scrollIntoViewIfNeeded();
-    await capture(`agent-export-findings-${theme}.png`);
-    await dialog.getByRole('checkbox', { name: 'Export anyway' }).click();
-    await expect(dialog.getByText('1 flagged line needs your OK')).toBeHidden();
-    await queuePicks(app, ['C:\\Users\\dana\\Exports']);
-    await exportPackage.click();
-    await expect(page.getByText('Exported Service desk', { exact: true })).toBeVisible();
-    expect(await callsTo(app, 'graduates:exportPackage')).toEqual([
-      [
-        AGENT.id,
-        {
-          directory: 'C:\\Users\\dana\\Exports',
-          include: ['resource:data'],
-          acknowledgedFindings: exportReview(['resource:data']).findingsDigest,
-        },
-      ],
-    ]);
-
-    await queuePicks(app, ['C:\\Users\\dana\\Exports']);
-    await dialog.getByRole('button', { name: 'Export the setup' }).click();
-    await expect(page.getByText('Exported the setup', { exact: true })).toBeVisible();
-    expect(await callsTo(app, 'graduates:exportPart')).toEqual([
-      [
-        AGENT.id,
-        expect.objectContaining({ part: 'harness', directory: 'C:\\Users\\dana\\Exports' }),
-      ],
-    ]);
-    await expect(dialog.getByRole('button', { name: 'Export the trained weights' })).toBeVisible();
-    await expect(dialog.getByRole('button', { name: 'Export the results' })).toBeVisible();
-  });
-}
-
-for (const theme of THEMES) {
-  test(`says why an export couldn't be reviewed (${theme})`, async () => {
-    await open(theme, chatPath(CHATS.closeout.id));
-    await stubEngineFailure(launched.app, {
-      'graduates:reviewExport': {
-        message:
-          "Version 2 of Service desk changed on disk after it was made, so it won't be exported.",
-        code: 'version_modified',
+  // Sharing the data folder is opt-in, and the scan's finding in it holds the export back.
+  await share.click();
+  await expect(dialog.getByText('1 line looks like a key or a private path')).toBeVisible();
+  await expect(dialog.getByRole('list', { name: 'Findings' })).toContainText('data/policy.md:14');
+  await expect(exportPackage).toBeDisabled();
+  await expect(dialog.getByText('1 flagged line needs your OK')).toBeVisible();
+  await dialog.getByRole('region', { name: 'Scan' }).scrollIntoViewIfNeeded();
+  await capture('agent-export-findings-dark.png');
+  await dialog.getByRole('checkbox', { name: 'Export anyway' }).click();
+  await expect(dialog.getByText('1 flagged line needs your OK')).toBeHidden();
+  await queuePicks(app, ['C:\\Users\\dana\\Exports']);
+  await exportPackage.click();
+  await expect(page.getByText('Exported Service desk', { exact: true })).toBeVisible();
+  expect(await callsTo(app, 'graduates:exportPackage')).toEqual([
+    [
+      AGENT.id,
+      {
+        directory: 'C:\\Users\\dana\\Exports',
+        include: ['resource:data'],
+        acknowledgedFindings: exportReview(['resource:data']).findingsDigest,
       },
-    });
-    const dialog = await openSettingsTab('Export');
-    // A version changed after it was made can't be tried again; the way out is an earlier one.
-    await expect(dialog.getByText('This version was changed after it was made.')).toBeVisible();
-    await expect(dialog.getByRole('button', { name: 'Try again' })).toHaveCount(0);
-    await expect(dialog.getByRole('button', { name: 'See earlier versions' })).toBeVisible();
-    await capture(`agent-export-error-${theme}.png`);
+    ],
+  ]);
+
+  await queuePicks(app, ['C:\\Users\\dana\\Exports']);
+  await dialog.getByRole('button', { name: 'Export the setup' }).click();
+  await expect(page.getByText('Exported the setup', { exact: true })).toBeVisible();
+  expect(await callsTo(app, 'graduates:exportPart')).toEqual([
+    [AGENT.id, expect.objectContaining({ part: 'harness', directory: 'C:\\Users\\dana\\Exports' })],
+  ]);
+  await expect(dialog.getByRole('button', { name: 'Export the trained weights' })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Export the results' })).toBeVisible();
+});
+
+test("says why an export couldn't be reviewed", async () => {
+  await open(chatPath(CHATS.closeout.id));
+  await stubEngineFailure(launched.app, {
+    'graduates:reviewExport': {
+      message:
+        "Version 2 of Service desk changed on disk after it was made, so it won't be exported.",
+      code: 'version_modified',
+    },
   });
-}
+  const dialog = await openSettingsTab('Export');
+  // A version changed after it was made can't be tried again; the way out is an earlier one.
+  await expect(dialog.getByText('This version was changed after it was made.')).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Try again' })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: 'See earlier versions' })).toBeVisible();
+  await capture('agent-export-error-dark.png');
+});
 
-for (const theme of THEMES) {
-  test(`imports a package through its folders and permissions to a ready install (${theme})`, async () => {
-    const app = launched.app;
-    await open(theme, chatPath(CHATS.closeout.id));
-    await startImport([PACKAGES.ready, FOLDERS.records]);
+test('imports a package through its folders and permissions to a ready install', async () => {
+  const app = launched.app;
+  await open(chatPath(CHATS.closeout.id));
+  await startImport([PACKAGES.ready, FOLDERS.records]);
 
-    await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
-    await expect(page.getByText('returns-desk-v1.architect.zip')).toBeVisible();
-    await expect(page.getByText('Tested by its author')).toBeVisible();
-    await expect(page.getByText('Passed: 55 of 60 (92%)')).toBeVisible();
-    await expect(page.getByText('On this computer', { exact: true })).toBeVisible();
-    await capture(`import-check-${theme}.png`);
+  await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
+  await expect(page.getByText('returns-desk-v1.architect.zip')).toBeVisible();
+  await expect(page.getByText('Tested by its author')).toBeVisible();
+  await expect(page.getByText('Passed: 55 of 60 (92%)')).toBeVisible();
+  await expect(page.getByText('On this computer', { exact: true })).toBeVisible();
+  await capture('import-check-dark.png');
 
-    await page.getByRole('button', { name: 'Continue' }).click();
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Where are its files?' }),
-    ).toBeVisible();
-    const folders = page.getByRole('list', { name: 'Folders' });
-    const records = folders.getByRole('listitem', { name: 'Records folder' });
-    await expect(records).toContainText('Not chosen');
-    await expect(records).toContainText('orders.csv, returns.csv, pickups.csv, policy.md');
-    await records.getByRole('button', { name: 'Choose' }).click();
-    await expect(records).toContainText('…\\Larchwood\\Records');
-    await capture(`import-folders-${theme}.png`);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Where are its files?' })).toBeVisible();
+  const folders = page.getByRole('list', { name: 'Folders' });
+  const records = folders.getByRole('listitem', { name: 'Records folder' });
+  await expect(records).toContainText('Not chosen');
+  await expect(records).toContainText('orders.csv, returns.csv, pickups.csv, policy.md');
+  await records.getByRole('button', { name: 'Choose' }).click();
+  await expect(records).toContainText('…\\Larchwood\\Records');
+  await capture('import-folders-dark.png');
 
-    await page.getByRole('button', { name: 'Continue' }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'What may it do?' })).toBeVisible();
-    const access = page.getByRole('radiogroup', { name: 'Access to the records folder' });
-    // Nothing it asks for is granted until it is chosen here, and saving comes up once it may change one.
-    await expect(access.getByRole('radio', { name: 'Not allowed' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
-    await expect(page.getByRole('radiogroup', { name: 'Saving files' })).toHaveCount(0);
-    await access.getByRole('radio', { name: 'Read and change' }).click();
-    await expect(page.getByRole('radiogroup', { name: 'Saving files' })).toBeVisible();
-    await expect(page.getByText('label_for')).toBeVisible();
-    await capture(`import-permissions-${theme}.png`);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'What may it do?' })).toBeVisible();
+  const access = page.getByRole('radiogroup', { name: 'Access to the records folder' });
+  // Nothing it asks for is granted until it is chosen here, and saving comes up once it may change one.
+  await expect(access.getByRole('radio', { name: 'Not allowed' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await expect(page.getByRole('radiogroup', { name: 'Saving files' })).toHaveCount(0);
+  await access.getByRole('radio', { name: 'Read and change' }).click();
+  await expect(page.getByRole('radiogroup', { name: 'Saving files' })).toBeVisible();
+  await expect(page.getByText('label_for')).toBeVisible();
+  await capture('import-permissions-dark.png');
 
-    await page.getByRole('button', { name: 'Install', exact: true }).click();
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Returns desk is ready' }),
-    ).toBeVisible();
-    await expect(page.getByText('Works on this computer', { exact: true })).toBeVisible();
-    await expect(page.getByText('All checks passed')).toBeVisible();
-    await capture(`import-ready-${theme}.png`);
-    // The checks behind that one sentence wait under Details.
-    await page.getByRole('button', { name: 'Details' }).click();
-    await expect(
-      page.getByRole('list', { name: 'Checks on this computer' }).getByRole('listitem'),
-    ).toHaveCount(6);
-    expect(await callsTo(app, 'graduates:importPackage')).toEqual([
-      [
-        PACKAGES.ready,
-        {
-          bindings: { data: FOLDERS.records },
-          grants: { writes: 'ask', resources: { data: 'read_write' } },
-          loadModel: true,
-        },
-      ],
-    ]);
-
-    await page.getByRole('button', { name: 'Start a chat' }).click();
-    await expect(page).toHaveURL(/#\/agents\/grd_returns\/chats\/cht_imported_1$/);
-    await expect(page.getByRole('navigation', { name: 'Agents' })).toContainText('Returns desk');
-  });
-}
-
-for (const theme of THEMES) {
-  test(`imports a package with trained weights once llama.cpp is set up (${theme})`, async () => {
-    const app = launched.app;
-    await open(theme, chatPath(CHATS.closeout.id));
-    await startImport([PACKAGES.weights, FOLDERS.records]);
-
-    await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
-    await expect(
-      page.getByText('A free program that runs its trained weights. One more download.'),
-    ).toBeVisible();
-    await expect(page.getByText('The exact copy its trained weights need')).toBeVisible();
-    // Trained weights run on llama.cpp, so the way on waits until it is set up, and says so.
-    await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled();
-    await expect(page.getByText('Set up llama.cpp to go on')).toBeVisible();
-    await capture(`import-check-weights-${theme}.png`);
-    // The first of the two: what this computer lacks, before how the author's test went.
-    await page.getByRole('button', { name: 'Details' }).first().click();
-    await expect(page.getByText("llama-server isn't installed, or isn't on PATH.")).toBeVisible();
-
-    // Settings opens on Models, where llama.cpp is set up; closing it checks the package again.
-    await page.getByRole('button', { name: 'Set up llama.cpp' }).click();
-    const settings = page.getByRole('dialog', { name: 'Settings' });
-    await expect(settings.getByRole('tab', { name: 'Models' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-    await setUpLlama(app);
-    await page.keyboard.press('Escape');
-    await expect(settings).toBeHidden();
-    await expect.poll(async () => (await callsTo(app, 'graduates:previewImport')).length).toBe(2);
-    await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled();
-
-    await page.getByRole('button', { name: 'Continue' }).click();
-    await page
-      .getByRole('list', { name: 'Folders' })
-      .getByRole('listitem', { name: 'Records folder' })
-      .getByRole('button', { name: 'Choose' })
-      .click();
-    await page.getByRole('button', { name: 'Continue' }).click();
-    await page
-      .getByRole('radiogroup', { name: 'Access to the records folder' })
-      .getByRole('radio', { name: 'Read and change' })
-      .click();
-    await page.getByRole('button', { name: 'Install', exact: true }).click();
-
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Returns desk is ready' }),
-    ).toBeVisible();
-    await page.getByRole('button', { name: 'Details' }).click();
-    const checks = page.getByRole('list', { name: 'Checks on this computer' });
-    await expect(checks).toContainText('llama.cpp');
-    await expect(checks).toContainText('muse-glimmer:30b, the exact copy its trained weights need');
-    await capture(`import-weights-ready-${theme}.png`);
-  });
-}
-
-for (const theme of THEMES) {
-  test(`imports a package through its folders to a blocked install, with a way out (${theme})`, async () => {
-    const app = launched.app;
-    await open(theme, chatPath(CHATS.closeout.id));
-    await startImport([PACKAGES.blocked, FOLDERS.records]);
-    await expect(page.getByRole('heading', { level: 1, name: 'Front desk' })).toBeVisible();
-    await page.getByRole('button', { name: 'Continue' }).click();
-    await page
-      .getByRole('list', { name: 'Folders' })
-      .getByRole('listitem', { name: 'Records folder' })
-      .getByRole('button', { name: 'Choose' })
-      .click();
-    await page.getByRole('button', { name: 'Continue' }).click();
-    await page
-      .getByRole('radiogroup', { name: 'Access to the records folder' })
-      .getByRole('radio', { name: 'Read and change' })
-      .click();
-    await page.getByRole('button', { name: 'Install', exact: true }).click();
-
-    await expect(
-      page.getByRole('heading', { level: 1, name: "Front desk can't run" }),
-    ).toBeVisible();
-    // One sentence on why, and whose to mend; the check behind it waits under Details.
-    await expect(page.getByText("One of its tools doesn't load.")).toBeVisible();
-    await expect(page.getByText('Ask whoever sent it for a fixed copy.')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Start a chat' })).toHaveCount(0);
-    await capture(`import-blocked-${theme}.png`);
-    await page.getByRole('button', { name: 'Details' }).click();
-    const checks = page.getByRole('list', { name: 'Checks on this computer' });
-    await expect(checks).toContainText("Its tool lookup_order doesn't load");
-    await expect(checks).toContainText('Not tried, since a check above failed');
-
-    await page.getByRole('button', { name: 'Remove it from this computer' }).click();
-    await expect(page).not.toHaveURL(/#\/import$/);
-    expect(await callsTo(app, 'graduates:remove')).toEqual([['grd_front']]);
-  });
-}
-
-for (const theme of THEMES) {
-  test(`installs without a folder as needing attention, and fixes it from the result (${theme})`, async () => {
-    const app = launched.app;
-    await open(theme, chatPath(CHATS.closeout.id));
-    await startImport([PACKAGES.ready]);
-    await page.getByRole('button', { name: 'Continue' }).click();
-    await page.getByRole('button', { name: 'Continue' }).click();
-    // A folder that wasn't chosen has nothing to allow yet.
-    await expect(
-      page.getByRole('radiogroup', { name: 'Access to the records folder' }),
-    ).toHaveCount(0);
-    await expect(page.getByText('No folder chosen').first()).toBeVisible();
-    await page.getByRole('button', { name: 'Install', exact: true }).click();
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Returns desk needs attention' }),
-    ).toBeVisible();
-    // The step that left it undone is marked, and the result leads with the one thing to do.
-    await expect(page.getByText('Folders, needs attention')).toBeVisible();
-    await expect(page.getByText("Its records folder isn't chosen yet.")).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Done' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Not now' })).toBeVisible();
-    await capture(`import-attention-${theme}.png`);
-
-    await queuePicks(app, [FOLDERS.records]);
-    await page.getByRole('button', { name: 'Choose the records folder' }).click();
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Returns desk is ready' }),
-    ).toBeVisible();
-    expect(await callsTo(app, 'graduates:bind')).toEqual([
-      ['grd_returns', { bindings: { data: FOLDERS.records } }],
-    ]);
-  });
-}
-
-for (const theme of THEMES) {
-  test(`says why an install failed, with a way to try again (${theme})`, async () => {
-    await open(theme, chatPath(CHATS.closeout.id));
-    await startImport([PACKAGES.ready]);
-    await page.getByRole('button', { name: 'Continue' }).click();
-    await page.getByRole('button', { name: 'Continue' }).click();
-    await stubEngineFailure(launched.app, {
-      'graduates:importPackage': {
-        message: 'There is not enough free disk space to install it (it needs 61 KB).',
-        code: 'disk_full',
+  await page.getByRole('button', { name: 'Install', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Returns desk is ready' }),
+  ).toBeVisible();
+  await expect(page.getByText('Works on this computer', { exact: true })).toBeVisible();
+  await expect(page.getByText('All checks passed')).toBeVisible();
+  await capture('import-ready-dark.png');
+  // The checks behind that one sentence wait under Details.
+  await page.getByRole('button', { name: 'Details' }).click();
+  await expect(
+    page.getByRole('list', { name: 'Checks on this computer' }).getByRole('listitem'),
+  ).toHaveCount(6);
+  expect(await callsTo(app, 'graduates:importPackage')).toEqual([
+    [
+      PACKAGES.ready,
+      {
+        bindings: { data: FOLDERS.records },
+        grants: { writes: 'ask', resources: { data: 'read_write' } },
+        loadModel: true,
       },
-    });
-    await page.getByRole('button', { name: 'Install', exact: true }).click();
-    await expect(page.getByText("Couldn't install Returns desk")).toBeVisible();
-    await expect(
-      page.getByText(
-        "There isn't enough free space on this computer. Free some space, then try again.",
-      ),
-    ).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Back' })).toBeVisible();
-    await capture(`import-error-${theme}.png`);
-    // The engine's own sentence, with the sizes, is under Details.
-    await page.getByRole('button', { name: 'Details' }).click();
-    await expect(page.getByText('it needs 61 KB')).toBeVisible();
-  });
-}
+    ],
+  ]);
 
-for (const theme of THEMES) {
-  test(`refuses a package that was changed, before any of it runs (${theme})`, async () => {
-    await open(theme, chatPath(CHATS.closeout.id));
-    await startImport([PACKAGES.broken]);
-    await expect(
-      page.getByRole('heading', { level: 1, name: "This package can't be imported" }),
-    ).toBeVisible();
-    await expect(
-      page.getByText(
-        'This package was edited after it was made. Ask whoever sent it for a new copy.',
-      ),
-    ).toBeVisible();
-    await expect(page.getByText('Nothing in it was installed or run.')).toBeVisible();
-    await capture(`import-refused-${theme}.png`);
-    // What was found, file by file, waits under Details.
-    await page.getByRole('button', { name: 'Details' }).click();
-    await expect(page.getByRole('list', { name: 'Problems' })).toContainText(
-      'harness/AGENTS.md has a different checksum',
-    );
-  });
+  await page.getByRole('button', { name: 'Start a chat' }).click();
+  await expect(page).toHaveURL(/#\/agents\/grd_returns\/chats\/cht_imported_1$/);
+  await expect(page.getByRole('navigation', { name: 'Agents' })).toContainText('Returns desk');
+});
 
-  test(`asks for a package when Import opens without one (${theme})`, async () => {
-    await open(theme, '/import');
-    await expect(page.getByRole('heading', { name: 'Import an agent' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Choose a file' })).toBeVisible();
-    await capture(`import-empty-${theme}.png`);
-  });
-}
+test('imports a package with trained weights once llama.cpp is set up', async () => {
+  const app = launched.app;
+  await open(chatPath(CHATS.closeout.id));
+  await startImport([PACKAGES.weights, FOLDERS.records]);
 
-for (const theme of THEMES) {
-  test(`shows an allowed change that couldn't be saved, and tries again (${theme})`, async () => {
-    const app = launched.app;
-    await open(theme, chatPath(UNSAVED_CHAT.id));
-    const card = page.getByRole('group', { name: 'Write to data/invoices.csv' });
-    await expect(card.getByRole('alert')).toContainText(
-      "couldn't be saved, so nothing was written: invoices.csv is open in another program.",
-    );
-    await expect(card).not.toContainText('Allowed');
-    await expect(page.getByRole('status').filter({ hasText: 'Waiting for you' })).toBeVisible();
-    await page.getByRole('button', { name: '3 steps so far' }).click();
-    const steps = page.getByRole('list', { name: 'Steps' });
-    await expect(steps).toContainText('5 rows');
-    await expect(steps).toContainText('Answered by version 2');
-    await capture(`workspace-unsaved-${theme}.png`);
+  await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
+  await expect(
+    page.getByText('A free program that runs its trained weights. One more download.'),
+  ).toBeVisible();
+  await expect(page.getByText('The exact copy its trained weights need')).toBeVisible();
+  // Trained weights run on llama.cpp, so the way on waits until it is set up, and says so.
+  await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled();
+  await expect(page.getByText('Set up llama.cpp to go on')).toBeVisible();
+  await capture('import-check-weights-dark.png');
+  // The first of the two: what this computer lacks, before how the author's test went.
+  await page.getByRole('button', { name: 'Details' }).first().click();
+  await expect(page.getByText("llama-server isn't installed, or isn't on PATH.")).toBeVisible();
 
-    await card.getByRole('button', { name: 'Try again' }).click();
-    await expect(card).toContainText('Allowed');
-    expect(await callsTo(app, 'workspace:decide')).toEqual([['chg_unsaved', 'approve']]);
+  // Settings opens on Models, where llama.cpp is set up; closing it checks the package again.
+  await page.getByRole('button', { name: 'Set up llama.cpp' }).click();
+  const settings = page.getByRole('dialog', { name: 'Settings' });
+  await expect(settings.getByRole('tab', { name: 'Models' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await setUpLlama(app);
+  await page.keyboard.press('Escape');
+  await expect(settings).toBeHidden();
+  await expect.poll(async () => (await callsTo(app, 'graduates:previewImport')).length).toBe(2);
+  await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled();
+
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page
+    .getByRole('list', { name: 'Folders' })
+    .getByRole('listitem', { name: 'Records folder' })
+    .getByRole('button', { name: 'Choose' })
+    .click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page
+    .getByRole('radiogroup', { name: 'Access to the records folder' })
+    .getByRole('radio', { name: 'Read and change' })
+    .click();
+  await page.getByRole('button', { name: 'Install', exact: true }).click();
+
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Returns desk is ready' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Details' }).click();
+  const checks = page.getByRole('list', { name: 'Checks on this computer' });
+  await expect(checks).toContainText('llama.cpp');
+  await expect(checks).toContainText('muse-glimmer:30b, the exact copy its trained weights need');
+  await capture('import-weights-ready-dark.png');
+});
+
+test('imports a package through its folders to a blocked install, with a way out', async () => {
+  const app = launched.app;
+  await open(chatPath(CHATS.closeout.id));
+  await startImport([PACKAGES.blocked, FOLDERS.records]);
+  await expect(page.getByRole('heading', { level: 1, name: 'Front desk' })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page
+    .getByRole('list', { name: 'Folders' })
+    .getByRole('listitem', { name: 'Records folder' })
+    .getByRole('button', { name: 'Choose' })
+    .click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page
+    .getByRole('radiogroup', { name: 'Access to the records folder' })
+    .getByRole('radio', { name: 'Read and change' })
+    .click();
+  await page.getByRole('button', { name: 'Install', exact: true }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: "Front desk can't run" })).toBeVisible();
+  // One sentence on why, and whose to mend; the check behind it waits under Details.
+  await expect(page.getByText("One of its tools doesn't load.")).toBeVisible();
+  await expect(page.getByText('Ask whoever sent it for a fixed copy.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start a chat' })).toHaveCount(0);
+  await capture('import-blocked-dark.png');
+  await page.getByRole('button', { name: 'Details' }).click();
+  const checks = page.getByRole('list', { name: 'Checks on this computer' });
+  await expect(checks).toContainText("Its tool lookup_order doesn't load");
+  await expect(checks).toContainText('Not tried, since a check above failed');
+
+  await page.getByRole('button', { name: 'Remove it from this computer' }).click();
+  await expect(page).not.toHaveURL(/#\/import$/);
+  expect(await callsTo(app, 'graduates:remove')).toEqual([['grd_front']]);
+});
+
+test('installs without a folder as needing attention, and fixes it from the result', async () => {
+  const app = launched.app;
+  await open(chatPath(CHATS.closeout.id));
+  await startImport([PACKAGES.ready]);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  // A folder that wasn't chosen has nothing to allow yet.
+  await expect(page.getByRole('radiogroup', { name: 'Access to the records folder' })).toHaveCount(
+    0,
+  );
+  await expect(page.getByText('No folder chosen').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Install', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Returns desk needs attention' }),
+  ).toBeVisible();
+  // The step that left it undone is marked, and the result leads with the one thing to do.
+  await expect(page.getByText('Folders, needs attention')).toBeVisible();
+  await expect(page.getByText("Its records folder isn't chosen yet.")).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Done' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Not now' })).toBeVisible();
+  await capture('import-attention-dark.png');
+
+  await queuePicks(app, [FOLDERS.records]);
+  await page.getByRole('button', { name: 'Choose the records folder' }).click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Returns desk is ready' }),
+  ).toBeVisible();
+  expect(await callsTo(app, 'graduates:bind')).toEqual([
+    ['grd_returns', { bindings: { data: FOLDERS.records } }],
+  ]);
+});
+
+test('says why an install failed, with a way to try again', async () => {
+  await open(chatPath(CHATS.closeout.id));
+  await startImport([PACKAGES.ready]);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await stubEngineFailure(launched.app, {
+    'graduates:importPackage': {
+      message: 'There is not enough free disk space to install it (it needs 61 KB).',
+      code: 'disk_full',
+    },
   });
-}
+  await page.getByRole('button', { name: 'Install', exact: true }).click();
+  await expect(page.getByText("Couldn't install Returns desk")).toBeVisible();
+  await expect(
+    page.getByText(
+      "There isn't enough free space on this computer. Free some space, then try again.",
+    ),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Back' })).toBeVisible();
+  await capture('import-error-dark.png');
+  // The engine's own sentence, with the sizes, is under Details.
+  await page.getByRole('button', { name: 'Details' }).click();
+  await expect(page.getByText('it needs 61 KB')).toBeVisible();
+});
+
+test('refuses a package that was changed, before any of it runs', async () => {
+  await open(chatPath(CHATS.closeout.id));
+  await startImport([PACKAGES.broken]);
+  await expect(
+    page.getByRole('heading', { level: 1, name: "This package can't be imported" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      'This package was edited after it was made. Ask whoever sent it for a new copy.',
+    ),
+  ).toBeVisible();
+  await expect(page.getByText('Nothing in it was installed or run.')).toBeVisible();
+  await capture('import-refused-dark.png');
+  // What was found, file by file, waits under Details.
+  await page.getByRole('button', { name: 'Details' }).click();
+  await expect(page.getByRole('list', { name: 'Problems' })).toContainText(
+    'harness/AGENTS.md has a different checksum',
+  );
+});
+
+test('asks for a package when Import opens without one', async () => {
+  await open('/import');
+  await expect(page.getByRole('heading', { name: 'Import an agent' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Choose a file' })).toBeVisible();
+  await capture('import-empty-dark.png');
+});
+
+test("shows an allowed change that couldn't be saved, and tries again", async () => {
+  const app = launched.app;
+  await open(chatPath(UNSAVED_CHAT.id));
+  const card = page.getByRole('group', { name: 'Write to data/invoices.csv' });
+  await expect(card.getByRole('alert')).toContainText(
+    "couldn't be saved, so nothing was written: invoices.csv is open in another program.",
+  );
+  await expect(card).not.toContainText('Allowed');
+  await expect(page.getByRole('status').filter({ hasText: 'Waiting for you' })).toBeVisible();
+  await page.getByRole('button', { name: '3 steps so far' }).click();
+  const steps = page.getByRole('list', { name: 'Steps' });
+  await expect(steps).toContainText('5 rows');
+  await expect(steps).toContainText('Answered by version 2');
+  await capture('workspace-unsaved-dark.png');
+
+  await card.getByRole('button', { name: 'Try again' }).click();
+  await expect(card).toContainText('Allowed');
+  expect(await callsTo(app, 'workspace:decide')).toEqual([['chg_unsaved', 'approve']]);
+});

@@ -17,8 +17,6 @@ import { GLIMMER_BYTES } from './story';
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const SIZE = { width: 1440, height: 900 };
-const THEMES = ['dark', 'light'] as const;
-type Theme = (typeof THEMES)[number];
 
 test.describe.configure({ mode: 'serial' });
 
@@ -51,10 +49,9 @@ async function capture(file: string): Promise<void> {
 
 /**
  * A computer with no agent yet and Glimmer downloaded, whose build ships the ready-made agent
- * unless `sampleAgent` is false; the theme, then the app reloaded at `path`.
+ * unless `sampleAgent` is false; then the app reloaded at `path`.
  */
 async function open(
-  theme: Theme,
   path: string,
   options: { sampleAgent?: boolean; onboarded?: boolean } = {},
 ): Promise<void> {
@@ -77,10 +74,9 @@ async function open(
     agents: [],
     sampleAgent: options.sampleAgent ?? true,
   });
-  await updateSettings(page, { theme, onboarded: options.onboarded ?? true });
+  await updateSettings(page, { onboarded: options.onboarded ?? true });
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
-  await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
   await goTo(page, path);
 }
 
@@ -100,101 +96,97 @@ async function walkToTheEndOfSetup(): Promise<void> {
 const readyMade = () => page.getByRole('button', { name: 'Try a ready-made agent' });
 const sampleJob = () => page.getByRole('button', { name: 'Try the sample job' });
 
-for (const theme of THEMES) {
-  test(`opens the ready-made agent from the new-agent screen, with its data chosen, to a ready install (${theme})`, async () => {
-    const app = launched.app;
-    await open(theme, '/new');
+test('opens the ready-made agent from the new-agent screen, with its data chosen, to a ready install', async () => {
+  const app = launched.app;
+  await open('/new');
 
-    // Beside the sample job, which is still offered.
-    await expect(sampleJob()).toBeVisible();
-    await expect(readyMade()).toBeVisible();
-    await capture(`sample-agent-new-${theme}.png`);
+  // Beside the sample job, which is still offered.
+  await expect(sampleJob()).toBeVisible();
+  await expect(readyMade()).toBeVisible();
+  await capture('sample-agent-new-dark.png');
 
-    await readyMade().click();
-    await expect(page).toHaveURL(/#\/import$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
-    await expect(page.getByText('returns-desk.architect.zip')).toBeVisible();
-    await expect(page.getByText('Tested by its author')).toBeVisible();
-    await expect(page.getByText('On this computer', { exact: true })).toBeVisible();
-    await capture(`sample-agent-import-${theme}.png`);
-    // Its data was made this computer's own once, and no dialog asked for a package or a folder.
-    expect(await callsTo(app, 'graduates:prepareSampleAgent')).toEqual([[]]);
-    expect(await callsTo(app, 'graduates:previewImport')).toEqual([[PACKAGES.sample]]);
-    expect(await callsTo(app, 'files:pick')).toEqual([]);
+  await readyMade().click();
+  await expect(page).toHaveURL(/#\/import$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
+  await expect(page.getByText('returns-desk.architect.zip')).toBeVisible();
+  await expect(page.getByText('Tested by its author')).toBeVisible();
+  await expect(page.getByText('On this computer', { exact: true })).toBeVisible();
+  await capture('sample-agent-import-dark.png');
+  // Its data was made this computer's own once, and no dialog asked for a package or a folder.
+  expect(await callsTo(app, 'graduates:prepareSampleAgent')).toEqual([[]]);
+  expect(await callsTo(app, 'graduates:previewImport')).toEqual([[PACKAGES.sample]]);
+  expect(await callsTo(app, 'files:pick')).toEqual([]);
 
-    // The folders are still shown, with the records already chosen and still the person's to change.
-    await page.getByRole('button', { name: 'Continue' }).click();
-    const records = page
-      .getByRole('list', { name: 'Folders' })
-      .getByRole('listitem', { name: 'Records folder' });
-    await expect(records).toContainText('…\\returns-desk\\data');
-    await expect(records.getByRole('button', { name: 'Change' })).toBeVisible();
-    await capture(`sample-agent-folders-${theme}.png`);
+  // The folders are still shown, with the records already chosen and still the person's to change.
+  await page.getByRole('button', { name: 'Continue' }).click();
+  const records = page
+    .getByRole('list', { name: 'Folders' })
+    .getByRole('listitem', { name: 'Records folder' });
+  await expect(records).toContainText('…\\returns-desk\\data');
+  await expect(records.getByRole('button', { name: 'Change' })).toBeVisible();
+  await capture('sample-agent-folders-dark.png');
 
-    // Nothing it asks for is granted until it is chosen here.
-    await page.getByRole('button', { name: 'Continue' }).click();
-    const access = page.getByRole('radiogroup', { name: 'Access to the records folder' });
-    await expect(access.getByRole('radio', { name: 'Not allowed' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
-    await access.getByRole('radio', { name: 'Read and change' }).click();
-    await page.getByRole('button', { name: 'Install', exact: true }).click();
+  // Nothing it asks for is granted until it is chosen here.
+  await page.getByRole('button', { name: 'Continue' }).click();
+  const access = page.getByRole('radiogroup', { name: 'Access to the records folder' });
+  await expect(access.getByRole('radio', { name: 'Not allowed' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await access.getByRole('radio', { name: 'Read and change' }).click();
+  await page.getByRole('button', { name: 'Install', exact: true }).click();
 
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Returns desk is ready' }),
-    ).toBeVisible();
-    await expect(page.getByText('Works on this computer', { exact: true })).toBeVisible();
-    expect(await callsTo(app, 'graduates:importPackage')).toEqual([
-      [
-        PACKAGES.sample,
-        {
-          bindings: { data: FOLDERS.sample },
-          grants: { writes: 'ask', resources: { data: 'read_write' } },
-          loadModel: true,
-        },
-      ],
-    ]);
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Returns desk is ready' }),
+  ).toBeVisible();
+  await expect(page.getByText('Works on this computer', { exact: true })).toBeVisible();
+  expect(await callsTo(app, 'graduates:importPackage')).toEqual([
+    [
+      PACKAGES.sample,
+      {
+        bindings: { data: FOLDERS.sample },
+        grants: { writes: 'ask', resources: { data: 'read_write' } },
+        loadModel: true,
+      },
+    ],
+  ]);
 
-    await page.getByRole('button', { name: 'Start a chat' }).click();
-    await expect(page).toHaveURL(/#\/agents\/grd_returns\/chats\/cht_imported_1$/);
-    await expect(page.getByRole('navigation', { name: 'Agents' })).toContainText('Returns desk');
-  });
-}
+  await page.getByRole('button', { name: 'Start a chat' }).click();
+  await expect(page).toHaveURL(/#\/agents\/grd_returns\/chats\/cht_imported_1$/);
+  await expect(page.getByRole('navigation', { name: 'Agents' })).toContainText('Returns desk');
+});
 
-for (const theme of THEMES) {
-  test(`offers it on the last screen of setup and on the screen after it (${theme})`, async () => {
-    const app = launched.app;
-    await open(theme, '/welcome', { onboarded: false });
-    await walkToTheEndOfSetup();
-    await expect(
-      page.getByText(
-        'On the next screen you can try the sample job or a ready-made agent first, if you like.',
-      ),
-    ).toBeVisible();
-    await capture(`sample-agent-welcome-${theme}.png`);
+test('offers it on the last screen of setup and on the screen after it', async () => {
+  const app = launched.app;
+  await open('/welcome', { onboarded: false });
+  await walkToTheEndOfSetup();
+  await expect(
+    page.getByText(
+      'On the next screen you can try the sample job or a ready-made agent first, if you like.',
+    ),
+  ).toBeVisible();
+  await capture('sample-agent-welcome-dark.png');
 
-    await page.getByRole('button', { name: 'Get started' }).click();
-    await expect(page).toHaveURL(/#\/$/);
-    await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
-    await expect(sampleJob()).toBeVisible();
-    await expect(readyMade()).toBeVisible();
-    await capture(`sample-agent-empty-${theme}.png`);
+  await page.getByRole('button', { name: 'Get started' }).click();
+  await expect(page).toHaveURL(/#\/$/);
+  await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
+  await expect(sampleJob()).toBeVisible();
+  await expect(readyMade()).toBeVisible();
+  await capture('sample-agent-empty-dark.png');
 
-    // From here it opens the same import, with the records folder chosen.
-    await readyMade().click();
-    await expect(page).toHaveURL(/#\/import$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
-    expect(await callsTo(app, 'graduates:prepareSampleAgent')).toEqual([[]]);
-    await page.getByRole('button', { name: 'Continue' }).click();
-    await expect(
-      page.getByRole('list', { name: 'Folders' }).getByRole('listitem', { name: 'Records folder' }),
-    ).toContainText('…\\returns-desk\\data');
-  });
-}
+  // From here it opens the same import, with the records folder chosen.
+  await readyMade().click();
+  await expect(page).toHaveURL(/#\/import$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
+  expect(await callsTo(app, 'graduates:prepareSampleAgent')).toEqual([[]]);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(
+    page.getByRole('list', { name: 'Folders' }).getByRole('listitem', { name: 'Records folder' }),
+  ).toContainText('…\\returns-desk\\data');
+});
 
 test('offers nothing, and says nothing of it, in a build that does not ship the agent', async () => {
-  await open('dark', '/welcome', { onboarded: false, sampleAgent: false });
+  await open('/welcome', { onboarded: false, sampleAgent: false });
   await walkToTheEndOfSetup();
   await expect(
     page.getByText('On the next screen you can try the sample job first, if you like.'),
@@ -220,7 +212,7 @@ test('offers nothing, and says nothing of it, in a build that does not ship the 
 });
 
 test('says why the ready-made agent could not be opened, and stays where it is', async () => {
-  await open('dark', '/new');
+  await open('/new');
   await expect(readyMade()).toBeVisible();
   await stubEngineFailure(launched.app, {
     'graduates:prepareSampleAgent': `The ready-made agent's data couldn't be copied to ${FOLDERS.sample}. There is not enough free disk space.`,

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import type { MentorConfig, StudentEndpoint, Task } from '@architect/shared';
-import { allowMoreTime, goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { allowMoreTime, goTo, launchApp, settle, type LaunchedApp } from './app';
 import { stubEngine } from './fixtures';
 import { FLOW_LOCAL } from './fixtures-flow';
 import {
@@ -25,7 +25,6 @@ import { shop, type Shop } from './shop';
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const WIDTH = 1440;
 const DEFINE_HEIGHT = 1580;
-const THEMES = ['dark', 'light'] as const;
 
 test.describe.configure({ mode: 'serial' });
 
@@ -243,10 +242,9 @@ async function capture(page: Page, name: string): Promise<void> {
 }
 
 /** Describe the job, attach the shop's files, and get to the teacher's first reply. */
-async function describe(page: Page, theme: (typeof THEMES)[number]): Promise<void> {
+async function describe(page: Page): Promise<void> {
   drafting = 0;
   mentor.requests.length = 0;
-  await updateSettings(page, { theme });
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
   await resize(900);
@@ -282,198 +280,193 @@ function sentTo(requests: readonly MentorChatBody[]): string {
   return requests.map((request) => JSON.stringify(request)).join('\n');
 }
 
-for (const theme of THEMES) {
-  test(`describes a job, answers a question and trains on the tasks it made (${theme})`, async () => {
-    const { page } = launched;
-    path = 'answer';
-    await describe(page, theme);
+test('describes a job, answers a question and trains on the tasks it made', async () => {
+  const { page } = launched;
+  path = 'answer';
+  await describe(page);
 
-    // Clarify: the teacher read the files and asks one question, and the app adds a way out.
-    const question = page.getByText('Should cancelled orders count in what a region ordered?');
-    await expect(question).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Yes, count them' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Draft it now' })).toBeVisible();
-    await capture(page, `drafting-ask-${theme}`);
+  // Clarify: the teacher read the files and asks one question, and the app adds a way out.
+  const question = page.getByText('Should cancelled orders count in what a region ordered?');
+  await expect(question).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Yes, count them' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Draft it now' })).toBeVisible();
+  await capture(page, 'drafting-ask-dark');
 
-    const opening =
-      mentor.requests[0]?.messages.find((message) => message.role === 'user')?.content ?? '';
-    expect(opening).toContain(DESCRIPTION);
-    expect(opening).toContain('### customers.csv (a table)');
-    expect(opening).toContain('150 rows, 4 columns.');
-    expect(opening).toContain('### orders.csv (a table)');
-    expect(opening).toContain('400 rows, 6 columns.');
-    expect(opening).toContain('Returns are accepted for 30 days.');
-    expect(opening).not.toContain(records.customers[149]?.email);
+  const opening =
+    mentor.requests[0]?.messages.find((message) => message.role === 'user')?.content ?? '';
+  expect(opening).toContain(DESCRIPTION);
+  expect(opening).toContain('### customers.csv (a table)');
+  expect(opening).toContain('150 rows, 4 columns.');
+  expect(opening).toContain('### orders.csv (a table)');
+  expect(opening).toContain('400 rows, 6 columns.');
+  expect(opening).toContain('Returns are accepted for 30 days.');
+  expect(opening).not.toContain(records.customers[149]?.email);
 
-    // Answering drafts the job. A drafted job is reviewed on the next screen, not replied to.
-    await page.getByRole('button', { name: 'No, leave them out' }).click();
-    const review = page.getByRole('button', { name: 'Review the job' });
-    await expect(review).toBeFocused();
-    await expect(
-      page.getByText("That's everything I need. I've drafted the job for you to review."),
-    ).toBeVisible();
-    await expect(page.getByRole('textbox', { name: 'Reply' })).toHaveCount(0);
-    expect(drafting).toBe(2);
-    await review.click();
+  // Answering drafts the job. A drafted job is reviewed on the next screen, not replied to.
+  await page.getByRole('button', { name: 'No, leave them out' }).click();
+  const review = page.getByRole('button', { name: 'Review the job' });
+  await expect(review).toBeFocused();
+  await expect(
+    page.getByText("That's everything I need. I've drafted the job for you to review."),
+  ).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Reply' })).toHaveCount(0);
+  expect(drafting).toBe(2);
+  await review.click();
 
-    // Define: the drafted job, and what its tasks are.
-    await expect(page).toHaveURL(/#\/jobs\/[^/]+\/define$/);
-    const jobId = jobIdOf(page);
-    await resize(DEFINE_HEIGHT);
-    await expect(page.getByRole('heading', { name: 'Shop desk', level: 1 })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'What it does' })).toContainText(
-      "Lists a customer's pending orders",
-    );
-    await capture(page, `drafting-define-${theme}`);
+  // Define: the drafted job, and what its tasks are.
+  await expect(page).toHaveURL(/#\/jobs\/[^/]+\/define$/);
+  const jobId = jobIdOf(page);
+  await resize(DEFINE_HEIGHT);
+  await expect(page.getByRole('heading', { name: 'Shop desk', level: 1 })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'What it does' })).toContainText(
+    "Lists a customer's pending orders",
+  );
+  await capture(page, 'drafting-define-dark');
 
-    await page.getByRole('button', { name: 'Advanced settings' }).click();
-    const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-    await advanced.getByRole('tab', { name: 'Example tasks' }).click();
-    await expect(
-      advanced.getByText('Made by Architect from your files, following the job Spark drafted.'),
-    ).toBeVisible();
-    await expect(advanced.getByText('120 tasks', { exact: true })).toBeVisible();
-    await expect(
-      advanced.getByText('40 practice, 30 check, 40 final test, 10 set aside', { exact: true }),
-    ).toBeVisible();
-    await expect(
-      advanced.getByText(
-        'Answers are checked against what Spark drafted from your files, not independently certified as right for your business.',
-      ),
-    ).toBeVisible();
-    await expect(advanced.getByRole('region', { name: 'Left open' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Advanced settings' }).click();
+  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+  await advanced.getByRole('tab', { name: 'Example tasks' }).click();
+  await expect(
+    advanced.getByText('Made by Architect from your files, following the job Spark drafted.'),
+  ).toBeVisible();
+  await expect(advanced.getByText('120 tasks', { exact: true })).toBeVisible();
+  await expect(
+    advanced.getByText('40 practice, 30 check, 40 final test, 10 set aside', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    advanced.getByText(
+      'Answers are checked against what Spark drafted from your files, not independently certified as right for your business.',
+    ),
+  ).toBeVisible();
+  await expect(advanced.getByRole('region', { name: 'Left open' })).toHaveCount(0);
 
-    // Each type says the rule Architect understood and shows three examples with their answers.
-    const emails = advanced.getByRole('region', { name: 'Customer emails' });
-    await expect(emails).toContainText('Look up email by customer_id, from customers.csv');
-    await expect(emails.getByText(/^Expected answer:/)).toHaveCount(3);
-    const pending = advanced.getByRole('region', { name: 'Pending orders' });
-    await expect(pending).toContainText(
-      'List the order_id in orders.csv where status is Pending, for each customer_id',
-    );
-    const totals = advanced.getByRole('region', { name: 'Region totals' });
-    await expect(totals).toContainText(
-      'Total of amount for each region, within a range of dates in order_date, from orders.csv',
-    );
-    await capture(page, `drafting-tasks-${theme}`);
-    await pending.evaluate((element) => element.scrollIntoView({ block: 'start' }));
-    await capture(page, `drafting-examples-${theme}`);
+  // Each type says the rule Architect understood and shows three examples with their answers.
+  const emails = advanced.getByRole('region', { name: 'Customer emails' });
+  await expect(emails).toContainText('Look up email by customer_id, from customers.csv');
+  await expect(emails.getByText(/^Expected answer:/)).toHaveCount(3);
+  const pending = advanced.getByRole('region', { name: 'Pending orders' });
+  await expect(pending).toContainText(
+    'List the order_id in orders.csv where status is Pending, for each customer_id',
+  );
+  const totals = advanced.getByRole('region', { name: 'Region totals' });
+  await expect(totals).toContainText(
+    'Total of amount for each region, within a range of dates in order_date, from orders.csv',
+  );
+  await capture(page, 'drafting-tasks-dark');
+  await pending.evaluate((element) => element.scrollIntoView({ block: 'start' }));
+  await capture(page, 'drafting-examples-dark');
 
-    // The examples are right: worked out from the records, not from the mess in them. The first
-    // request and the first answer of a type are the same example's.
-    const asked = await emails
-      .getByText(/^What is the email of customer C-\d+\?$/)
+  // The examples are right: worked out from the records, not from the mess in them. The first
+  // request and the first answer of a type are the same example's.
+  const asked = await emails
+    .getByText(/^What is the email of customer C-\d+\?$/)
+    .first()
+    .innerText();
+  const customer = /customer (C-\d+)\?/.exec(asked)?.[1];
+  const mail = records.customers.find((item) => item.id === customer)?.email;
+  expect(mail).toBeDefined();
+  expect(
+    await emails
+      .getByText(/^Expected answer:/)
       .first()
-      .innerText();
-    const customer = /customer (C-\d+)\?/.exec(asked)?.[1];
-    const mail = records.customers.find((item) => item.id === customer)?.email;
-    expect(mail).toBeDefined();
-    expect(
-      await emails
-        .getByText(/^Expected answer:/)
-        .first()
-        .innerText(),
-    ).toBe(`Expected answer: email: ${mail}`);
-    const range = await totals
-      .getByText(/^What is the total of orders in the \w+ region from/)
+      .innerText(),
+  ).toBe(`Expected answer: email: ${mail}`);
+  const range = await totals
+    .getByText(/^What is the total of orders in the \w+ region from/)
+    .first()
+    .innerText();
+  const [, region, from, to] = /in the (\w+) region from (\S+) to (\S+)\?/.exec(range) ?? [];
+  expect(region).toBeDefined();
+  const cents = records.orders
+    .filter(
+      (order) => order.region === region && order.date >= (from ?? '') && order.date <= (to ?? ''),
+    )
+    .reduce((sum, order) => sum + (order.cents ?? 0), 0);
+  expect(
+    await totals
+      .getByText(/^Expected answer:/)
       .first()
-      .innerText();
-    const [, region, from, to] = /in the (\w+) region from (\S+) to (\S+)\?/.exec(range) ?? [];
-    expect(region).toBeDefined();
-    const cents = records.orders
-      .filter(
-        (order) =>
-          order.region === region && order.date >= (from ?? '') && order.date <= (to ?? ''),
-      )
-      .reduce((sum, order) => sum + (order.cents ?? 0), 0);
-    expect(
-      await totals
-        .getByText(/^Expected answer:/)
-        .first()
-        .innerText(),
-    ).toBe(`Expected answer: total: ${cents / 100}`);
-    await page.keyboard.press('Escape');
-    await expect(advanced).toBeHidden();
+      .innerText(),
+  ).toBe(`Expected answer: total: ${cents / 100}`);
+  await page.keyboard.press('Escape');
+  await expect(advanced).toBeHidden();
 
-    // The final test is sealed apart: the teacher never saw any of it, and no example is from it.
-    const test = await finalTest(page, jobId);
-    expect(test).toHaveLength(40);
-    const sent = sentTo(mentor.requests);
-    for (const task of test) expect(sent).not.toContain(task.prompt.split('\n')[0]);
+  // The final test is sealed apart: the teacher never saw any of it, and no example is from it.
+  const test = await finalTest(page, jobId);
+  expect(test).toHaveLength(40);
+  const sent = sentTo(mentor.requests);
+  for (const task of test) expect(sent).not.toContain(task.prompt.split('\n')[0]);
 
-    // The job arrived with the teacher and model the person set up, not the ones it was drafted
-    // with, so training runs on this computer's stand-ins and never reaches the network.
-    const job = await page.evaluate((id) => window.architect.jobs.get(id), jobId);
-    expect(job.mentor).toEqual(defaultMentor);
-    expect(job.student.local).toEqual(defaultStudent);
-    expect(job.student.trainOn).toBe('local');
-    expect(job.student.hosted).toBeUndefined();
+  // The job arrived with the teacher and model the person set up, not the ones it was drafted
+  // with, so training runs on this computer's stand-ins and never reaches the network.
+  const job = await page.evaluate((id) => window.architect.jobs.get(id), jobId);
+  expect(job.mentor).toEqual(defaultMentor);
+  expect(job.student.local).toEqual(defaultStudent);
+  expect(job.student.trainOn).toBe('local');
+  expect(job.student.hosted).toBeUndefined();
 
-    // This computer can't fit a round in the four hours a drafted job allows, so Start training
-    // waits and says why, with more time one button away.
-    await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
-    await allowMoreTime(page);
+  // This computer can't fit a round in the four hours a drafted job allows, so Start training
+  // waits and says why, with more time one button away.
+  await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
+  await allowMoreTime(page);
 
-    // Start training: the run works on the tasks Architect made, and the checker grades them.
-    await page.getByRole('button', { name: 'Start training' }).click();
-    await expect(page).toHaveURL(/#\/runs\/[^/]+\/train$/);
-    const runId = /#\/runs\/([^/]+)\/train$/.exec(page.url())?.[1] ?? '';
-    await expect
-      .poll(
-        async () =>
-          (await page.evaluate((id) => window.architect.runs.get(id), runId)).recentAttempts.length,
-        { timeout: 90_000 },
-      )
-      .toBeGreaterThan(0);
-    const { recentAttempts } = await page.evaluate((id) => window.architect.runs.get(id), runId);
-    const requests = recentAttempts.map((attempt) => attempt.prompt ?? '');
-    expect(
-      requests.every((text) =>
-        /^(What is the email of customer|Which orders of customer|What is the total of orders)/.test(
-          text,
-        ),
+  // Start training: the run works on the tasks Architect made, and the checker grades them.
+  await page.getByRole('button', { name: 'Start training' }).click();
+  await expect(page).toHaveURL(/#\/runs\/[^/]+\/train$/);
+  const runId = /#\/runs\/([^/]+)\/train$/.exec(page.url())?.[1] ?? '';
+  await expect
+    .poll(
+      async () =>
+        (await page.evaluate((id) => window.architect.runs.get(id), runId)).recentAttempts.length,
+      { timeout: 90_000 },
+    )
+    .toBeGreaterThan(0);
+  const { recentAttempts } = await page.evaluate((id) => window.architect.runs.get(id), runId);
+  const requests = recentAttempts.map((attempt) => attempt.prompt ?? '');
+  expect(
+    requests.every((text) =>
+      /^(What is the email of customer|Which orders of customer|What is the total of orders)/.test(
+        text,
       ),
-    ).toBe(true);
-    expect(recentAttempts.some((attempt) => attempt.check.reason.includes('expected'))).toBe(true);
-    const finalPrompts = new Set(test.map((task) => task.prompt.split('\n')[0]));
-    expect(requests.some((text) => finalPrompts.has(text.split('\n')[0] ?? ''))).toBe(false);
-    expect(sentTo(mentor.requests)).not.toContain(test[0]?.prompt.split('\n')[0] ?? 'x');
-    await page.evaluate((id) => window.architect.runs.stop(id), runId).catch(() => undefined);
-  });
+    ),
+  ).toBe(true);
+  expect(recentAttempts.some((attempt) => attempt.check.reason.includes('expected'))).toBe(true);
+  const finalPrompts = new Set(test.map((task) => task.prompt.split('\n')[0]));
+  expect(requests.some((text) => finalPrompts.has(text.split('\n')[0] ?? ''))).toBe(false);
+  expect(sentTo(mentor.requests)).not.toContain(test[0]?.prompt.split('\n')[0] ?? 'x');
+  await page.evaluate((id) => window.architect.runs.stop(id), runId).catch(() => undefined);
+});
 
-  test(`drafts at once when asked to, and says what it left open (${theme})`, async () => {
-    const { page } = launched;
-    path = 'now';
-    await describe(page, theme);
-    await expect(
-      page.getByText('Should cancelled orders count in what a region ordered?'),
-    ).toBeVisible();
+test('drafts at once when asked to, and says what it left open', async () => {
+  const { page } = launched;
+  path = 'now';
+  await describe(page);
+  await expect(
+    page.getByText('Should cancelled orders count in what a region ordered?'),
+  ).toBeVisible();
 
-    await page.getByRole('button', { name: 'Draft it now' }).click();
-    const review = page.getByRole('button', { name: 'Review the job' });
-    await expect(review).toBeFocused();
-    // The teacher is told it must draft, and that it may leave rules open.
-    const last = mentor.requests.at(-1);
-    expect(last?.messages.at(-1)?.content).toContain('Draft the job now from what you have');
-    await expect(
-      page.getByText("I couldn't settle this from your files and answers"),
-    ).toBeVisible();
-    await expect(page.getByText(OPEN_RULE)).toBeVisible();
-    await expect(page.getByText("That's everything I need.")).toHaveCount(0);
-    await capture(page, `drafting-open-${theme}`);
+  await page.getByRole('button', { name: 'Draft it now' }).click();
+  const review = page.getByRole('button', { name: 'Review the job' });
+  await expect(review).toBeFocused();
+  // The teacher is told it must draft, and that it may leave rules open.
+  const last = mentor.requests.at(-1);
+  expect(last?.messages.at(-1)?.content).toContain('Draft the job now from what you have');
+  await expect(page.getByText("I couldn't settle this from your files and answers")).toBeVisible();
+  await expect(page.getByText(OPEN_RULE)).toBeVisible();
+  await expect(page.getByText("That's everything I need.")).toHaveCount(0);
+  await capture(page, 'drafting-open-dark');
 
-    await review.click();
-    await resize(DEFINE_HEIGHT);
-    await expect(page.getByRole('heading', { name: 'Shop desk', level: 1 })).toBeVisible();
-    await page.getByRole('button', { name: 'Advanced settings' }).click();
-    const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-    await advanced.getByRole('tab', { name: 'Example tasks' }).click();
-    const open = advanced.getByRole('region', { name: 'Left open' });
-    await expect(open).toContainText(OPEN_RULE);
-    await expect(open).toContainText("Spark couldn't settle these from your files and answers.");
-    await capture(page, `drafting-tasks-open-${theme}`);
-  });
-}
+  await review.click();
+  await resize(DEFINE_HEIGHT);
+  await expect(page.getByRole('heading', { name: 'Shop desk', level: 1 })).toBeVisible();
+  await page.getByRole('button', { name: 'Advanced settings' }).click();
+  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
+  await advanced.getByRole('tab', { name: 'Example tasks' }).click();
+  const open = advanced.getByRole('region', { name: 'Left open' });
+  await expect(open).toContainText(OPEN_RULE);
+  await expect(open).toContainText("Spark couldn't settle these from your files and answers.");
+  await capture(page, 'drafting-tasks-open-dark');
+});
 
 test('says what to attach when the files cannot make a job, and puts the description back', async () => {
   const { page, app } = launched;
@@ -486,7 +479,6 @@ test('says what to attach when the files cannot make a job, and puts the descrip
     [tiny],
   );
   const before = mentor.requests.length;
-  await updateSettings(page, { theme: 'dark' });
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
   await resize(900);

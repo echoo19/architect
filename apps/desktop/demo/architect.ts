@@ -35,7 +35,7 @@ const AGENT_DATA = required('ARCHITECT_DEMO_AGENT_DATA');
 /** Read when a scene that replays the run starts, so the drafting scene can run before it exists. */
 const RUN = process.env.ARCHITECT_DEMO_RUN ?? '';
 
-const SETTINGS = { onboarded: true, theme: 'dark' as const };
+const SETTINGS = { onboarded: true };
 const MINUTES = 60_000;
 
 /** Opens a round's drawer from the Rounds list, holds it, and closes it again. */

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Job, MentorConfig, Task } from '@architect/shared';
-import { allowMoreTime, goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { allowMoreTime, goTo, launchApp, settle, type LaunchedApp } from './app';
 import { bikeDraft, bikeShop, EMPTY_QUESTION, OPEN_QUESTION, POLICY, type BikeShop } from './bike';
 import { stubEngine } from './fixtures';
 import { FLOW_LOCAL } from './fixtures-flow';
@@ -27,7 +27,6 @@ import {
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const WIDTH = 1440;
 const DEFINE_HEIGHT = 2800;
-const THEMES = ['dark', 'light'] as const;
 
 test.describe.configure({ mode: 'serial' });
 
@@ -135,10 +134,9 @@ async function capture(page: Page, name: string): Promise<void> {
 }
 
 /** Describe the job with the shop's files and wait for the teacher's first answer. */
-async function describe(page: Page, theme: (typeof THEMES)[number]): Promise<void> {
+async function describe(page: Page): Promise<void> {
   drafting = 0;
   mentor.requests.length = 0;
-  await updateSettings(page, { theme });
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
   await resize(900);
@@ -253,281 +251,273 @@ async function reviewTheJob(
   return jobIdOf(page);
 }
 
-for (const theme of THEMES) {
-  test(`asks what the policy leaves open, shows the rule, and trains only after it is confirmed (${theme})`, async () => {
-    const { page } = launched;
-    labor = '$65';
-    await describe(page, theme);
+test('asks what the policy leaves open, shows the rule, and trains only after it is confirmed', async () => {
+  const { page } = launched;
+  labor = '$65';
+  await describe(page);
 
-    // The teacher found something the policy doesn't say, and that changes the numbers, so the
-    // person is asked, with no way to draft anyway.
-    await expect(page.getByText(OPEN_QUESTION.question)).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Yes, parts too' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Draft it now' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Review the job' })).toHaveCount(0);
-    await capture(page, `rule-question-${theme}`);
-    const told = mentor.requests[0]?.messages.find((message) => message.role === 'user')?.content;
-    expect(told).toContain('Labor is billed at $65 an hour, in half-hour steps.');
-    expect(told).toContain('Members get 10% off labor, never off parts.');
+  // The teacher found something the policy doesn't say, and that changes the numbers, so the
+  // person is asked, with no way to draft anyway.
+  await expect(page.getByText(OPEN_QUESTION.question)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Yes, parts too' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Draft it now' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Review the job' })).toHaveCount(0);
+  await capture(page, 'rule-question-dark');
+  const told = mentor.requests[0]?.messages.find((message) => message.role === 'user')?.content;
+  expect(told).toContain('Labor is billed at $65 an hour, in half-hour steps.');
+  expect(told).toContain('Members get 10% off labor, never off parts.');
 
-    const jobId = await reviewTheJob(page, `rule-empty-${theme}`, {
-      markShot: `rule-mark-${theme}`,
-    });
-    // The teacher drafted three times, for the discount, for the empty cell and for the rule. What
-    // N/A means is Architect's question and answer: the teacher was not called again for it, and
-    // was told nothing of it.
-    expect(drafting).toBe(3);
-    expect(mentor.requests).toHaveLength(3);
-    const sentToTeacher = mentor.requests.map((item) => JSON.stringify(item)).join('\n');
-    expect(sentToTeacher).not.toContain('sometimes says');
-    expect(sentToTeacher).not.toContain('"N/A" mean');
-    const answered = mentor.requests[1]?.messages.at(-1)?.content ?? '';
-    expect(answered).toContain('Answer: No, labor only');
-    // What the person chose for an empty parts cost went to the teacher as what Architect does with
-    // it, in the words of the choice and not of the options the teacher wrote.
-    const emptied = mentor.requests[2]?.messages.at(-1)?.content ?? '';
-    expect(emptied).toContain('Answer: Count it as zero');
-    expect(emptied).toContain('Architect counts an empty parts_cost in tickets.csv as 0 itself');
-
-    // Define puts the rule first: the passages, the rule in words, the examples and their working.
-    const section = page.getByRole('region', { name: 'Check the rule' });
-    await expect(section).toBeVisible();
-    // What rests on the rule is said in the names the screen uses: Spark read the policy, and
-    // Architect grades Glimmer against the answers the rule gives. The lines it quotes are the
-    // section "From your policy", and the screen calls them nothing else.
-    await expect(section).toContainText(
-      'Spark turned your policy into this rule. Architect works out the right answer to every task from this rule and grades Glimmer against those answers, so if the rule is wrong, the grades are wrong too.',
-    );
-    await expect(section).toContainText('Check that the lines from your policy are the right ones');
-    await expect(section.getByText('From your policy', { exact: true })).toBeVisible();
-    await expect(section).not.toContainText(/passage/i);
-    const card = section.getByRole('article', { name: 'Ticket totals' });
-    await expect(
-      card.getByText('Labor is billed at $65 an hour, in half-hour steps.'),
-    ).toBeVisible();
-    await expect(card.getByText('Members get 10% off labor, never off parts.')).toBeVisible();
-    await expect(card.getByText('No, labor only', { exact: true })).toBeVisible();
-    await expect(card.getByText('Count it as zero', { exact: true })).toHaveCount(2);
-    await expect(card.getByText('your answer', { exact: true })).toHaveCount(3);
-    // An answer is read with the question it answered, which the draft kept beside it.
-    const discount = card.getByRole('listitem').filter({ hasText: 'No, labor only' });
-    await expect(discount.getByText(OPEN_QUESTION.question, { exact: true })).toBeVisible();
-    const empty = card
-      .getByRole('listitem')
-      .filter({ has: page.getByText(EMPTY_QUESTION.question, { exact: true }) });
-    await expect(empty.getByText('Count it as zero', { exact: true })).toBeVisible();
-    // So is the answer about the N/A, beside the question Architect put.
-    const mark = card
-      .getByRole('listitem')
-      .filter({ has: page.getByText(NA_PASSAGE, { exact: true }) });
-    await expect(mark.getByText('Count it as zero', { exact: true })).toBeVisible();
-    await expect(mark.getByText('your answer', { exact: true })).toBeVisible();
-    // The rule in words is a short list of steps, and what the person said an empty parts cost
-    // counts as is part of the step that adds it, as the rule they confirm.
-    await expect(card.locator('ol').first().locator('> li')).toHaveText([
-      '1.Round labor hours up to a multiple of 0.5.',
-      '2.Multiply by 65.',
-      '3.When member (customers.csv) is yes, take 10% off.',
-      '4.Add parts cost. An empty parts cost or "N/A" counts as 0, as you said.',
-      '5.Round the result to the nearest cent; half a cent rounds up.',
-    ]);
-    await expect(card.getByText(/^Start with \(labor hours rounded up/)).toHaveCount(0);
-    await expect(
-      card.getByText(
-        /^\d+ of \d+ rows have an empty parts cost, which counts as 0, as you said\.$/,
-      ),
-    ).toBeVisible();
-    await expect(
-      card.getByText(
-        /^\d+ of \d+ rows have "N\/A" in parts cost, which counts as 0, as you said\.$/,
-      ),
-    ).toBeVisible();
-    // The empty cell and the N/A both count, and nothing else in these records is wrong, so no row
-    // is left out and the screen says nothing of any.
-    await expect(card.getByRole('button', { name: /rows? left out/ })).toHaveCount(0);
-    const examples = card.locator('ul > li').filter({ hasText: /What does ticket|Like T-/ });
-    expect(await examples.count()).toBeGreaterThanOrEqual(3);
-    await expect(
-      card.getByText('member (customers.csv) is yes', { exact: true }).first(),
-    ).toBeVisible();
-    await expect(
-      card.getByText('member (customers.csv) is no', { exact: true }).first(),
-    ).toBeVisible();
-    await expect(card.getByText(/^Shows how the rule rounds /).first()).toBeVisible();
-    await expect(
-      card.getByText(/A rounding edge|halves going up|Shows the rounding \(/),
-    ).toHaveCount(0);
-    // A rounding no record needed is said plainly, beside the example with numbers made up for it.
-    await expect(
-      card.getByText(
-        'None of your records needed rounding to the nearest cent, so no task tests it.',
-      ),
-    ).toBeVisible();
-    await expect(card.getByText(/never changed a value in your records/)).toHaveCount(0);
-    // A rounding the records never need is shown with numbers that are not theirs, and says so.
-    const notRecord = card.getByText('Not from your records', { exact: true });
-    await expect(notRecord).toBeVisible();
-    await expect(card.getByText('Made-up numbers')).toHaveCount(0);
-    // Its tag comes before what the example shows, and in the body's own ink and not the quiet one
-    // of the tags beside it, so "Like T-2144, but with parts cost 0.005" is not taken for a ticket
-    // whose price changed.
-    const made = card
-      .getByRole('listitem')
-      .filter({ has: page.getByText('Not from your records', { exact: true }) });
-    const shows = made.getByText(/^Shows how the rule rounds /);
-    const [tagBox, showsBox] = await Promise.all([notRecord.boundingBox(), shows.boundingBox()]);
-    expect(tagBox && showsBox).toBeTruthy();
-    expect(tagBox!.x).toBeLessThan(showsBox!.x);
-    const color = (tag: Locator) => tag.evaluate((node) => getComputedStyle(node).color);
-    expect(await color(notRecord)).not.toBe(await color(shows));
-    // The version is not beside the title: it waits under Details, for whoever wants to quote it.
-    await expect(card.getByText(/^version [0-9a-f]{12}$/)).toHaveCount(0);
-    await card.getByRole('button', { name: 'Details' }).click();
-    await expect(card.getByText('Rule version')).toBeVisible();
-    await expect(card.getByText(/^[0-9a-f]{12}$/)).toBeVisible();
-    await card.getByRole('button', { name: 'Details' }).click();
-    // One example is a ticket with no parts cost, shown as nothing and counted as 0, and one is a
-    // ticket whose parts cost says N/A, shown as the file wrote it and counted as 0.
-    await expect(card.getByText('An empty parts cost counts as 0', { exact: true })).toBeVisible();
-    await expect(card.getByText('empty (counted as 0)').first()).toBeVisible();
-    await expect(card.getByText('"N/A" in parts cost counts as 0', { exact: true })).toBeVisible();
-    await expect(card.getByText('N/A (counted as 0)').first()).toBeVisible();
-
-    // Each example is right: worked out again from the records, not from the mess in them.
-    let checked = 0;
-    for (const example of await examples.all()) {
-      const request = await example.locator('span').first().innerText();
-      const ticket = /ticket (T-\d+)\b/.exec(request)?.[1];
-      if (ticket === undefined) continue;
-      const shown = await example.locator('span.tabular-nums').first().innerText();
-      expect(shown).toBe(`$${(cost(ticket) / 100).toFixed(2)}`);
-      checked += 1;
-    }
-    expect(checked).toBeGreaterThanOrEqual(3);
-
-    // The agent only reads these files and has no folder to make files in, so nothing is offered
-    // about saving them: a choice about something that cannot happen, and no line that says there
-    // is no file while asking what to do about files.
-    const permissions = page.getByRole('region', { name: 'Permissions' });
-    await expect(permissions).toContainText('Files it can change');
-    await expect(permissions).toContainText('None');
-    await expect(permissions.getByRole('radiogroup')).toHaveCount(0);
-    await expect(permissions).not.toContainText('Saving files');
-    await expect(page.getByText('No file it can change')).toHaveCount(0);
-
-    // Not confirmed: training can't start, and the screen says why.
-    const start = page.getByRole('button', { name: 'Start training' });
-    await expect(start).toBeDisabled();
-    await expect(page.getByText('Confirm the rule first')).toBeVisible();
-    // A rule that isn't right has a way out: change the description, which comes back as it was
-    // with its files, and the line beside the button says so.
-    await expect(section.getByRole('button', { name: 'Change the description' })).toBeVisible();
-    await expect(section.getByRole('button', { name: 'Describe the job again' })).toHaveCount(0);
-    await expect(section).toContainText(
-      'Your words and files come back as you left them, and Spark may ask its questions again.',
-    );
-    await capture(page, `rule-define-${theme}`);
-
-    // The examples are practice or starting tasks: none is a ticket of the final test.
-    const test = await finalTest(page, jobId);
-    const sealed = new Set(
-      test.flatMap((task) => (task.type === 'cost' ? [String(task.meta?.['key'])] : [])),
-    );
-    expect(sealed.size).toBeGreaterThan(10);
-    for (const example of await examples.all()) {
-      const request = await example.locator('span').first().innerText();
-      const ticket = /ticket (T-\d+)\b/.exec(request)?.[1];
-      if (ticket !== undefined) expect(sealed.has(ticket), ticket).toBe(false);
-    }
-    const sent = mentor.requests.map((item) => JSON.stringify(item)).join('\n');
-    for (const task of test) expect(sent).not.toContain(task.prompt.split('\n')[0]);
-
-    // Confirming it is the person's, once, over these records.
-    // In a window shorter than the page, as on a laptop.
-    await resize(900);
-    const confirmButton = section.getByRole('button', { name: 'Confirm the rule' });
-    await confirmButton.scrollIntoViewIfNeeded();
-    const ruleHeading = section.getByRole('heading', { name: 'Check the rule' });
-    await expect(ruleHeading).not.toBeInViewport();
-    await confirmButton.click();
-    await expect(section.getByText(/^Confirmed on /)).toBeVisible();
-    await expect(confirmButton).toHaveCount(0);
-    // The rule folds away, and the heading with its badge is what the person then sees, with the
-    // focus the button had.
-    await expect(ruleHeading).toBeInViewport();
-    await expect(section.getByText(/^Confirmed on /)).toBeInViewport();
-    await expect(ruleHeading).toBeFocused();
-    await resize(DEFINE_HEIGHT);
-    // The rule is no longer what holds training back. Time is: this computer can't fit a round in
-    // four hours, so one callout by the choice says so, with the way out, and Start training waits.
-    await expect(page.getByText('Confirm the rule first')).toHaveCount(0);
-    await expect(start).toBeDisabled();
-    const slow = page.getByRole('status').filter({ hasText: 'Not even one round of teaching' });
-    await expect(slow).toContainText(
-      'Not even one round of teaching fits in 4 hours on this computer',
-    );
-    await expect(slow.getByRole('button', { name: 'Allow 7 hours' })).toBeVisible();
-    await expect(slow).toContainText('Allowing 7 hours leaves room for one round of teaching.');
-    // The round's time is said as a range, which the limit the button names is made from.
-    await expect(slow).toContainText(
-      /to score the check tasks once, then \d+ h( \d+ min)? to \d+ h( \d+ min)? for each round of teaching\./,
-    );
-    await capture(page, `rule-confirmed-${theme}`);
-    await allowMoreTime(page);
-    await expect(slow).toHaveCount(0);
-    await expect(start).toBeEnabled();
-    await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
-
-    // The app puts the person's own models on a new job when it arrives; this stands in for that.
-    const job = await page.evaluate((id) => window.architect.jobs.get(id), jobId);
-    const models: Pick<Job, 'mentor' | 'student'> = {
-      mentor: {
-        kind: 'model',
-        provider: 'lmstudio',
-        label: 'Muse Spark 1.3',
-        baseUrl: mentor.baseUrl,
-        model: 'scripted-spark',
-        reasoningEffort: 'medium',
-      },
-      student: {
-        label: 'Glimmer',
-        local: {
-          runtime: 'openai_compatible',
-          baseUrl: student.baseUrl,
-          model: 'fake-student',
-          contextLength: 16_384,
-        },
-        trainOn: 'local',
-      },
-    };
-    await page.evaluate((next) => window.architect.jobs.save(next), { ...job, ...models });
-
-    await start.click();
-    await expect(page).toHaveURL(/#\/runs\/[^/]+\/train$/);
-    const runId = /#\/runs\/([^/]+)\/train$/.exec(page.url())?.[1] ?? '';
-    await expect
-      .poll(
-        async () =>
-          (await page.evaluate((id) => window.architect.runs.get(id), runId)).recentAttempts.length,
-        { timeout: 90_000 },
-      )
-      .toBeGreaterThan(0);
-    const { recentAttempts } = await page.evaluate((id) => window.architect.runs.get(id), runId);
-    expect(
-      recentAttempts.every((attempt) =>
-        /^(What does ticket T-\d+ cost the customer\?|What is the email of customer)/.test(
-          attempt.prompt ?? '',
-        ),
-      ),
-    ).toBe(true);
-    await page.evaluate((id) => window.architect.runs.stop(id), runId).catch(() => undefined);
+  const jobId = await reviewTheJob(page, 'rule-empty-dark', {
+    markShot: 'rule-mark-dark',
   });
-}
+  // The teacher drafted three times, for the discount, for the empty cell and for the rule. What
+  // N/A means is Architect's question and answer: the teacher was not called again for it, and
+  // was told nothing of it.
+  expect(drafting).toBe(3);
+  expect(mentor.requests).toHaveLength(3);
+  const sentToTeacher = mentor.requests.map((item) => JSON.stringify(item)).join('\n');
+  expect(sentToTeacher).not.toContain('sometimes says');
+  expect(sentToTeacher).not.toContain('"N/A" mean');
+  const answered = mentor.requests[1]?.messages.at(-1)?.content ?? '';
+  expect(answered).toContain('Answer: No, labor only');
+  // What the person chose for an empty parts cost went to the teacher as what Architect does with
+  // it, in the words of the choice and not of the options the teacher wrote.
+  const emptied = mentor.requests[2]?.messages.at(-1)?.content ?? '';
+  expect(emptied).toContain('Answer: Count it as zero');
+  expect(emptied).toContain('Architect counts an empty parts_cost in tickets.csv as 0 itself');
+
+  // Define puts the rule first: the passages, the rule in words, the examples and their working.
+  const section = page.getByRole('region', { name: 'Check the rule' });
+  await expect(section).toBeVisible();
+  // What rests on the rule is said in the names the screen uses: Spark read the policy, and
+  // Architect grades Glimmer against the answers the rule gives. The lines it quotes are the
+  // section "From your policy", and the screen calls them nothing else.
+  await expect(section).toContainText(
+    'Spark turned your policy into this rule. Architect works out the right answer to every task from this rule and grades Glimmer against those answers, so if the rule is wrong, the grades are wrong too.',
+  );
+  await expect(section).toContainText('Check that the lines from your policy are the right ones');
+  await expect(section.getByText('From your policy', { exact: true })).toBeVisible();
+  await expect(section).not.toContainText(/passage/i);
+  const card = section.getByRole('article', { name: 'Ticket totals' });
+  await expect(card.getByText('Labor is billed at $65 an hour, in half-hour steps.')).toBeVisible();
+  await expect(card.getByText('Members get 10% off labor, never off parts.')).toBeVisible();
+  await expect(card.getByText('No, labor only', { exact: true })).toBeVisible();
+  await expect(card.getByText('Count it as zero', { exact: true })).toHaveCount(2);
+  await expect(card.getByText('your answer', { exact: true })).toHaveCount(3);
+  // An answer is read with the question it answered, which the draft kept beside it.
+  const discount = card.getByRole('listitem').filter({ hasText: 'No, labor only' });
+  await expect(discount.getByText(OPEN_QUESTION.question, { exact: true })).toBeVisible();
+  const empty = card
+    .getByRole('listitem')
+    .filter({ has: page.getByText(EMPTY_QUESTION.question, { exact: true }) });
+  await expect(empty.getByText('Count it as zero', { exact: true })).toBeVisible();
+  // So is the answer about the N/A, beside the question Architect put.
+  const mark = card
+    .getByRole('listitem')
+    .filter({ has: page.getByText(NA_PASSAGE, { exact: true }) });
+  await expect(mark.getByText('Count it as zero', { exact: true })).toBeVisible();
+  await expect(mark.getByText('your answer', { exact: true })).toBeVisible();
+  // The rule in words is a short list of steps, and what the person said an empty parts cost
+  // counts as is part of the step that adds it, as the rule they confirm.
+  await expect(card.locator('ol').first().locator('> li')).toHaveText([
+    '1.Round labor hours up to a multiple of 0.5.',
+    '2.Multiply by 65.',
+    '3.When member (customers.csv) is yes, take 10% off.',
+    '4.Add parts cost. An empty parts cost or "N/A" counts as 0, as you said.',
+    '5.Round the result to the nearest cent; half a cent rounds up.',
+  ]);
+  await expect(card.getByText(/^Start with \(labor hours rounded up/)).toHaveCount(0);
+  await expect(
+    card.getByText(/^\d+ of \d+ rows have an empty parts cost, which counts as 0, as you said\.$/),
+  ).toBeVisible();
+  await expect(
+    card.getByText(/^\d+ of \d+ rows have "N\/A" in parts cost, which counts as 0, as you said\.$/),
+  ).toBeVisible();
+  // The empty cell and the N/A both count, and nothing else in these records is wrong, so no row
+  // is left out and the screen says nothing of any.
+  await expect(card.getByRole('button', { name: /rows? left out/ })).toHaveCount(0);
+  const examples = card.locator('ul > li').filter({ hasText: /What does ticket|Like T-/ });
+  expect(await examples.count()).toBeGreaterThanOrEqual(3);
+  await expect(
+    card.getByText('member (customers.csv) is yes', { exact: true }).first(),
+  ).toBeVisible();
+  await expect(
+    card.getByText('member (customers.csv) is no', { exact: true }).first(),
+  ).toBeVisible();
+  await expect(card.getByText(/^Shows how the rule rounds /).first()).toBeVisible();
+  await expect(card.getByText(/A rounding edge|halves going up|Shows the rounding \(/)).toHaveCount(
+    0,
+  );
+  // A rounding no record needed is said plainly, beside the example with numbers made up for it.
+  await expect(
+    card.getByText(
+      'None of your records needed rounding to the nearest cent, so no task tests it.',
+    ),
+  ).toBeVisible();
+  await expect(card.getByText(/never changed a value in your records/)).toHaveCount(0);
+  // A rounding the records never need is shown with numbers that are not theirs, and says so.
+  const notRecord = card.getByText('Not from your records', { exact: true });
+  await expect(notRecord).toBeVisible();
+  await expect(card.getByText('Made-up numbers')).toHaveCount(0);
+  // Its tag comes before what the example shows, and in the body's own ink and not the quiet one
+  // of the tags beside it, so "Like T-2144, but with parts cost 0.005" is not taken for a ticket
+  // whose price changed.
+  const made = card
+    .getByRole('listitem')
+    .filter({ has: page.getByText('Not from your records', { exact: true }) });
+  const shows = made.getByText(/^Shows how the rule rounds /);
+  const [tagBox, showsBox] = await Promise.all([notRecord.boundingBox(), shows.boundingBox()]);
+  expect(tagBox && showsBox).toBeTruthy();
+  expect(tagBox!.x).toBeLessThan(showsBox!.x);
+  const color = (tag: Locator) => tag.evaluate((node) => getComputedStyle(node).color);
+  expect(await color(notRecord)).not.toBe(await color(shows));
+  // The version is not beside the title: it waits under Details, for whoever wants to quote it.
+  await expect(card.getByText(/^version [0-9a-f]{12}$/)).toHaveCount(0);
+  await card.getByRole('button', { name: 'Details' }).click();
+  await expect(card.getByText('Rule version')).toBeVisible();
+  await expect(card.getByText(/^[0-9a-f]{12}$/)).toBeVisible();
+  await card.getByRole('button', { name: 'Details' }).click();
+  // One example is a ticket with no parts cost, shown as nothing and counted as 0, and one is a
+  // ticket whose parts cost says N/A, shown as the file wrote it and counted as 0.
+  await expect(card.getByText('An empty parts cost counts as 0', { exact: true })).toBeVisible();
+  await expect(card.getByText('empty (counted as 0)').first()).toBeVisible();
+  await expect(card.getByText('"N/A" in parts cost counts as 0', { exact: true })).toBeVisible();
+  await expect(card.getByText('N/A (counted as 0)').first()).toBeVisible();
+
+  // Each example is right: worked out again from the records, not from the mess in them.
+  let checked = 0;
+  for (const example of await examples.all()) {
+    const request = await example.locator('span').first().innerText();
+    const ticket = /ticket (T-\d+)\b/.exec(request)?.[1];
+    if (ticket === undefined) continue;
+    const shown = await example.locator('span.tabular-nums').first().innerText();
+    expect(shown).toBe(`$${(cost(ticket) / 100).toFixed(2)}`);
+    checked += 1;
+  }
+  expect(checked).toBeGreaterThanOrEqual(3);
+
+  // The agent only reads these files and has no folder to make files in, so nothing is offered
+  // about saving them: a choice about something that cannot happen, and no line that says there
+  // is no file while asking what to do about files.
+  const permissions = page.getByRole('region', { name: 'Permissions' });
+  await expect(permissions).toContainText('Files it can change');
+  await expect(permissions).toContainText('None');
+  await expect(permissions.getByRole('radiogroup')).toHaveCount(0);
+  await expect(permissions).not.toContainText('Saving files');
+  await expect(page.getByText('No file it can change')).toHaveCount(0);
+
+  // Not confirmed: training can't start, and the screen says why.
+  const start = page.getByRole('button', { name: 'Start training' });
+  await expect(start).toBeDisabled();
+  await expect(page.getByText('Confirm the rule first')).toBeVisible();
+  // A rule that isn't right has a way out: change the description, which comes back as it was
+  // with its files, and the line beside the button says so.
+  await expect(section.getByRole('button', { name: 'Change the description' })).toBeVisible();
+  await expect(section.getByRole('button', { name: 'Describe the job again' })).toHaveCount(0);
+  await expect(section).toContainText(
+    'Your words and files come back as you left them, and Spark may ask its questions again.',
+  );
+  await capture(page, 'rule-define-dark');
+
+  // The examples are practice or starting tasks: none is a ticket of the final test.
+  const test = await finalTest(page, jobId);
+  const sealed = new Set(
+    test.flatMap((task) => (task.type === 'cost' ? [String(task.meta?.['key'])] : [])),
+  );
+  expect(sealed.size).toBeGreaterThan(10);
+  for (const example of await examples.all()) {
+    const request = await example.locator('span').first().innerText();
+    const ticket = /ticket (T-\d+)\b/.exec(request)?.[1];
+    if (ticket !== undefined) expect(sealed.has(ticket), ticket).toBe(false);
+  }
+  const sent = mentor.requests.map((item) => JSON.stringify(item)).join('\n');
+  for (const task of test) expect(sent).not.toContain(task.prompt.split('\n')[0]);
+
+  // Confirming it is the person's, once, over these records.
+  // In a window shorter than the page, as on a laptop.
+  await resize(900);
+  const confirmButton = section.getByRole('button', { name: 'Confirm the rule' });
+  await confirmButton.scrollIntoViewIfNeeded();
+  const ruleHeading = section.getByRole('heading', { name: 'Check the rule' });
+  await expect(ruleHeading).not.toBeInViewport();
+  await confirmButton.click();
+  await expect(section.getByText(/^Confirmed on /)).toBeVisible();
+  await expect(confirmButton).toHaveCount(0);
+  // The rule folds away, and the heading with its badge is what the person then sees, with the
+  // focus the button had.
+  await expect(ruleHeading).toBeInViewport();
+  await expect(section.getByText(/^Confirmed on /)).toBeInViewport();
+  await expect(ruleHeading).toBeFocused();
+  await resize(DEFINE_HEIGHT);
+  // The rule is no longer what holds training back. Time is: this computer can't fit a round in
+  // four hours, so one callout by the choice says so, with the way out, and Start training waits.
+  await expect(page.getByText('Confirm the rule first')).toHaveCount(0);
+  await expect(start).toBeDisabled();
+  const slow = page.getByRole('status').filter({ hasText: 'Not even one round of teaching' });
+  await expect(slow).toContainText(
+    'Not even one round of teaching fits in 4 hours on this computer',
+  );
+  await expect(slow.getByRole('button', { name: 'Allow 7 hours' })).toBeVisible();
+  await expect(slow).toContainText('Allowing 7 hours leaves room for one round of teaching.');
+  // The round's time is said as a range, which the limit the button names is made from.
+  await expect(slow).toContainText(
+    /to score the check tasks once, then \d+ h( \d+ min)? to \d+ h( \d+ min)? for each round of teaching\./,
+  );
+  await capture(page, 'rule-confirmed-dark');
+  await allowMoreTime(page);
+  await expect(slow).toHaveCount(0);
+  await expect(start).toBeEnabled();
+  await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
+
+  // The app puts the person's own models on a new job when it arrives; this stands in for that.
+  const job = await page.evaluate((id) => window.architect.jobs.get(id), jobId);
+  const models: Pick<Job, 'mentor' | 'student'> = {
+    mentor: {
+      kind: 'model',
+      provider: 'lmstudio',
+      label: 'Muse Spark 1.3',
+      baseUrl: mentor.baseUrl,
+      model: 'scripted-spark',
+      reasoningEffort: 'medium',
+    },
+    student: {
+      label: 'Glimmer',
+      local: {
+        runtime: 'openai_compatible',
+        baseUrl: student.baseUrl,
+        model: 'fake-student',
+        contextLength: 16_384,
+      },
+      trainOn: 'local',
+    },
+  };
+  await page.evaluate((next) => window.architect.jobs.save(next), { ...job, ...models });
+
+  await start.click();
+  await expect(page).toHaveURL(/#\/runs\/[^/]+\/train$/);
+  const runId = /#\/runs\/([^/]+)\/train$/.exec(page.url())?.[1] ?? '';
+  await expect
+    .poll(
+      async () =>
+        (await page.evaluate((id) => window.architect.runs.get(id), runId)).recentAttempts.length,
+      { timeout: 90_000 },
+    )
+    .toBeGreaterThan(0);
+  const { recentAttempts } = await page.evaluate((id) => window.architect.runs.get(id), runId);
+  expect(
+    recentAttempts.every((attempt) =>
+      /^(What does ticket T-\d+ cost the customer\?|What is the email of customer)/.test(
+        attempt.prompt ?? '',
+      ),
+    ),
+  ).toBe(true);
+  await page.evaluate((id) => window.architect.runs.stop(id), runId).catch(() => undefined);
+});
 
 test('leaves the tickets that say N/A out when the person says so, and says why', async () => {
   const { page } = launched;
   labor = '$65';
-  await describe(page, 'dark');
+  await describe(page);
   await reviewTheJob(page, undefined, { na: 'Leave those rows out' });
   expect(drafting).toBe(3);
   expect(mentor.requests).toHaveLength(3);
@@ -557,7 +547,7 @@ test('leaves the tickets that say N/A out when the person says so, and says why'
 test('does not take a word, "Draft it now" or a zero typed for what N/A means', async () => {
   const { page } = launched;
   labor = '$65';
-  await describe(page, 'dark');
+  await describe(page);
   await expect(page.getByText(OPEN_QUESTION.question)).toBeVisible();
   await page.getByRole('button', { name: 'No, labor only' }).click();
   await expect(page.getByText(EMPTY_QUESTION.question)).toBeVisible();
@@ -591,7 +581,7 @@ test('does not take a word, "Draft it now" or a zero typed for what N/A means', 
 test('asks for the confirmation again when a record changes, or when the files are drafted again', async () => {
   const { page } = launched;
   labor = '$65';
-  await describe(page, 'dark');
+  await describe(page);
   const first = await reviewTheJob(page);
   const section = page.getByRole('region', { name: 'Check the rule' });
   await section.getByRole('button', { name: 'Confirm the rule' }).click();
