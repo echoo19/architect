@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
+import { createEngineDeps, createEngineHost, type EngineHost } from '@architect/engine';
 import { openLocalLibrary, type LocalLibrary } from '@architect/engine/graduates';
 import { HF_ENDPOINT, HubClient, hubTokenResolver } from '@architect/engine/hub';
 import { appDataDir, type LocalRuntimeSettings } from '@architect/engine/local-runtime';
@@ -13,6 +14,7 @@ export class CliContext {
   private opened: LocalLibrary | null = null;
   private hubClient: HubClient | null = null;
   private runtimeSettings: LocalRuntimeSettings | null = null;
+  private engineHost: EngineHost | null = null;
 
   constructor(readonly io: CliIo) {
     this.dataDir = appDataDir(io.env);
@@ -67,6 +69,29 @@ export class CliContext {
     return this.runtimeSettings;
   }
 
+  /**
+   * The engine on the app's data folder, for work on its runs: nothing the app left active
+   * resumes here. A hosted model's key comes from the environment (`<PROVIDER>_API_KEY`).
+   */
+  async engine(): Promise<EngineHost> {
+    if (this.engineHost) return this.engineHost;
+    this.library();
+    const { env } = this.io;
+    this.engineHost = await createEngineHost({
+      dataDir: this.dataDir,
+      recover: false,
+      localRuntime: () => this.localRuntime(),
+      deps: createEngineDeps({
+        dataDir: this.dataDir,
+        getSecret: async (ref) => env[`${ref.toUpperCase()}_API_KEY`] || undefined,
+        ...(this.io.sandboxEntryPath === undefined
+          ? {}
+          : { sandboxEntryPath: this.io.sandboxEntryPath }),
+      }),
+    });
+    return this.engineHost;
+  }
+
   /** The Hub at HF_ENDPOINT (huggingface.co by default), with HF_TOKEN or the token file. */
   hub(): HubClient {
     this.hubClient ??= new HubClient({
@@ -79,7 +104,10 @@ export class CliContext {
   /** Stops this command's llama-server, if it started, so none outlives it; closes the store. */
   async close(): Promise<void> {
     const opened = this.opened;
+    const engine = this.engineHost;
     this.opened = null;
+    this.engineHost = null;
+    await engine?.close();
     await opened?.close();
   }
 }

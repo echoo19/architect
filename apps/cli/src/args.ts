@@ -13,7 +13,8 @@ export type CommandName =
   | 'publish'
   | 'field'
   | 'reward'
-  | 'train';
+  | 'train'
+  | 'certify';
 
 interface CommandSpec {
   usage: string;
@@ -193,6 +194,38 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
       '  --target <t>            bundle: slurm or kubernetes',
       '  --export <folder>       bundle: a field export, whose sft/*.jsonl become the data',
       '  --output <folder>       bundle: an empty or new folder to write it to',
+      JSON_HELP,
+    ],
+  },
+  certify: {
+    usage:
+      'architect certify <agent> --version <n> --job <job> [--k 5] [--epsilon 0.10] [--delta 0.05] [options]',
+    summary: 'Certify a version after the fact, on tasks its run never saw.',
+    args: 1,
+    options: {
+      version: { type: 'string' },
+      job: { type: 'string' },
+      k: { type: 'string' },
+      epsilon: { type: 'string' },
+      delta: { type: 'string' },
+      'calibration-size': { type: 'string' },
+      check: { type: 'string', multiple: true },
+      student: { type: 'string' },
+      'max-usd': { type: 'string' },
+      'max-minutes': { type: 'string' },
+      ...json,
+    },
+    help: [
+      '  --version <n>           the frozen version to certify',
+      '  --job <job>             the job whose taught organizations give the tasks',
+      '  --k <n>                 attempts per task, 1 to 9 (default 5)',
+      '  --epsilon <share>       the most it may be wrong when it answers (default 0.10)',
+      '  --delta <share>         the chance the bound is wrong (default 0.05)',
+      '  --calibration-size <n>  calibration tasks (default 60)',
+      '  --check <org>           an organization to check the bound at; repeat for more',
+      "  --student <preset>      a hosted student preset instead of this computer's model",
+      '  --max-usd <dollars>     the most it may spend (default 0)',
+      '  --max-minutes <n>       the longest it may take (default 1440)',
       JSON_HELP,
     ],
   },
