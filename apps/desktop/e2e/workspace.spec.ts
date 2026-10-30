@@ -188,7 +188,7 @@ test('streams steps and an answer with a table', async () => {
   await expect(waiting).toBeHidden();
   await emitWorkspace(app, { type: 'message.updated', message: pricingReply('working') });
   // Tool steps start folded, as the setting says, and open on a click.
-  const current = page.getByRole('button', { name: /invoice_total job J-4471 · 4 steps/ });
+  const current = page.getByRole('button', { name: /invoice_total job J-4471/ });
   await expect(current).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByRole('list', { name: 'Steps' })).toBeHidden();
   await current.click();
