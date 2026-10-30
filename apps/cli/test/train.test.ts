@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -60,8 +61,29 @@ describe('architect train', () => {
     const env = await testEnv();
     const exported = await tempDir('export');
     await mkdir(join(exported, 'sft'), { recursive: true });
-    await writeFile(join(exported, 'MANIFEST.json'), '{"hash":"h1"}');
-    await writeFile(join(exported, 'sft', 'train.jsonl'), '{"messages":[]}\n');
+    const train = '{"messages":[]}\n';
+    const sha = (text: string) => createHash('sha256').update(text).digest('hex');
+    const stamp = '2026-10-30T00:00:00.000Z';
+    await writeFile(
+      join(exported, 'MANIFEST.json'),
+      JSON.stringify({
+        format: 'architect.field-export/1',
+        created_at: stamp,
+        job: { id: 'j', name: 'J', format: 1, created_at: stamp, sha256: sha('j') },
+        counts: {
+          demonstrations: 1,
+          trained_turns: 1,
+          train_tasks: 1,
+          train_organizations: 1,
+          sealed_organizations: 1,
+          locked_test_tasks: 1,
+        },
+        files: { 'sft/train.jsonl': sha(train) },
+        permitted_uses: { sft: [], env: [], eval: [] },
+        left_out: [],
+      }),
+    );
+    await writeFile(join(exported, 'sft', 'train.jsonl'), train);
     const out = join(await tempDir('out'), 'bundle');
     const result = await cli(
       [
@@ -93,7 +115,7 @@ describe('architect train', () => {
       field_export: { declared_hash: string };
     };
     expect(bundle.base_model.revision).toBe(COMMIT);
-    expect(bundle.field_export.declared_hash).toBe('h1');
+    expect(bundle.field_export.declared_hash).toBe(sha('j'));
   });
 
   it('refuses what it can’t size or trace, with exit code 2', async () => {

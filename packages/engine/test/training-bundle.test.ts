@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   existsSync,
   mkdirSync,
@@ -10,7 +11,13 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { TrainBundleSchema, type ModelConfig, type TrainBundle } from '@architect/shared';
+import {
+  FIELD_EXPORT_FORMAT,
+  TrainBundleSchema,
+  type FieldExportManifest,
+  type ModelConfig,
+  type TrainBundle,
+} from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 import {
@@ -52,24 +59,55 @@ const PLAN_INPUT: TrainingPlanInput = {
   loraRank: 16,
 };
 
+const hash = (text: string) => createHash('sha256').update(text).digest('hex');
+const JOB_HASH = hash('job');
+
+/** A manifest as `architect field export` writes it, listing the given files by path and text. */
+function manifestFor(files: Record<string, string>): FieldExportManifest {
+  return {
+    format: FIELD_EXPORT_FORMAT,
+    created_at: '2026-10-30T00:00:00.000Z',
+    job: {
+      id: 'job',
+      name: 'Job',
+      format: 1,
+      created_at: '2026-10-30T00:00:00.000Z',
+      sha256: JOB_HASH,
+    },
+    counts: {
+      demonstrations: 1,
+      trained_turns: 1,
+      train_tasks: 1,
+      train_organizations: 1,
+      sealed_organizations: 1,
+      locked_test_tasks: 1,
+    },
+    files: Object.fromEntries(Object.entries(files).map(([path, text]) => [path, hash(text)])),
+    permitted_uses: { sft: [], env: [], eval: [] },
+    left_out: [],
+  };
+}
+
+const DEMONSTRATIONS = `${JSON.stringify({
+  messages: [
+    { role: 'user', content: 'hi' },
+    { role: 'assistant', content: 'hello' },
+  ],
+})}\n`;
+
 /** A field export as `architect field export` lays it out, with material that must stay out. */
 function fieldExport(): string {
   const dir = temp();
   mkdirSync(join(dir, 'sft'));
   mkdirSync(join(dir, 'env'));
   mkdirSync(join(dir, 'eval'));
-  writeFileSync(join(dir, 'MANIFEST.json'), JSON.stringify({ hash: 'field-hash-1', counts: {} }));
-  writeFileSync(
-    join(dir, 'sft', 'demonstrations.jsonl'),
-    `${JSON.stringify({
-      messages: [
-        { role: 'user', content: 'hi' },
-        { role: 'assistant', content: 'hello' },
-      ],
-    })}\n`,
-  );
-  writeFileSync(join(dir, 'env', 'tasks.jsonl'), 'train tasks\n');
-  writeFileSync(join(dir, 'eval', 'sealed.json'), '{"sealed":"by hash only"}');
+  const files = {
+    'sft/demonstrations.jsonl': DEMONSTRATIONS,
+    'env/tasks.jsonl': 'train tasks\n',
+    'eval/sealed.json': '{"sealed":"by hash only"}',
+  };
+  for (const [path, text] of Object.entries(files)) writeFileSync(join(dir, path), text);
+  writeFileSync(join(dir, 'MANIFEST.json'), JSON.stringify(manifestFor(files)));
   return dir;
 }
 
@@ -204,7 +242,7 @@ describe('a Slurm bundle', () => {
       gpus_per_node: 8,
       submit: `sbatch ${SBATCH_FILE}`,
     });
-    expect(bundle.field_export?.declared_hash).toBe('field-hash-1');
+    expect(bundle.field_export?.declared_hash).toBe(JOB_HASH);
     expect(bundle.field_export?.manifest_sha256).toMatch(/^[0-9a-f]{64}$/);
     expect(bundle.recipe.files.map((file) => file.name)).toEqual([
       'chat_spans.py',
@@ -335,7 +373,62 @@ describe('what a bundle refuses', () => {
     expect(() => writeTrainBundle({ ...base, plan, outputDir: full })).toThrow(/isn't empty/);
     expect(() =>
       writeTrainBundle({ ...base, plan, exportDir: temp(), outputDir: join(temp(), 'b') }),
+    ).toThrow(/no MANIFEST.json/);
+    const hollow = temp();
+    writeFileSync(join(hollow, 'MANIFEST.json'), JSON.stringify(manifestFor({})));
+    expect(() =>
+      writeTrainBundle({ ...base, plan, exportDir: hollow, outputDir: join(temp(), 'b') }),
     ).toThrow(/no sft/);
+  });
+
+  describe("an export it can't trust", () => {
+    const plan = planTraining(config('moe-235b'), PLAN_INPUT);
+    const bundleFrom = (exportDir: string) => {
+      const outputDir = join(temp(), 'b');
+      const write = () =>
+        writeTrainBundle({ target: 'slurm', plan, trainerDir: TRAINER, exportDir, outputDir });
+      return { outputDir, write };
+    };
+
+    it('refuses a folder with no manifest, writing nothing', () => {
+      const dir = fieldExport();
+      rmSync(join(dir, 'MANIFEST.json'));
+      const { outputDir, write } = bundleFrom(dir);
+      expect(write).toThrow(/no MANIFEST.json/);
+      expect(existsSync(outputDir)).toBe(false);
+    });
+
+    it('refuses a manifest that is not a field export manifest', () => {
+      const dir = fieldExport();
+      writeFileSync(join(dir, 'MANIFEST.json'), JSON.stringify({ hash: 'field-hash-1' }));
+      expect(bundleFrom(dir).write).toThrow(/isn't a field export manifest/);
+      writeFileSync(join(dir, 'MANIFEST.json'), 'not json');
+      expect(bundleFrom(dir).write).toThrow(BundleError);
+    });
+
+    it('refuses a data file changed after the export', () => {
+      const dir = fieldExport();
+      writeFileSync(join(dir, 'sft', 'demonstrations.jsonl'), `${DEMONSTRATIONS}{"extra":1}\n`);
+      const { outputDir, write } = bundleFrom(dir);
+      expect(write).toThrow(/doesn't match the hash/);
+      expect(existsSync(outputDir)).toBe(false);
+    });
+
+    it('refuses a data file the manifest does not list', () => {
+      const dir = fieldExport();
+      writeFileSync(join(dir, 'sft', 'extra.jsonl'), '{"messages":[]}\n');
+      const { outputDir, write } = bundleFrom(dir);
+      expect(write).toThrow(/extra.jsonl isn't listed/);
+      expect(existsSync(outputDir)).toBe(false);
+    });
+
+    it('bundles a valid export', () => {
+      const { outputDir, write } = bundleFrom(fieldExport());
+      expect(write().files).toContain('data/demonstrations.jsonl');
+      expect(readFileSync(join(outputDir, 'data', 'demonstrations.jsonl'), 'utf8')).toBe(
+        DEMONSTRATIONS,
+      );
+    });
   });
 
   it('writes a bundle without an export, recording that it has none', () => {
