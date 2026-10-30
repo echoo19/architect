@@ -719,7 +719,8 @@ test("keeps Start training off until the job's plan is known, and says so when i
   await expect(page.getByRole('heading', { name: 'Service desk', level: 1 })).toBeVisible();
   await expect(page.getByText('Checking the job', { exact: true })).toBeVisible();
   await expect(start).toBeDisabled();
-  await expect(page.getByText('Keep Architect open while it trains')).toBeVisible({
+  // Read, the footer says what is left to know: the time limit cuts training short.
+  await expect(page.getByText(/^The 20-hour limit fits .* of 12 rounds$/)).toBeVisible({
     timeout: 10_000,
   });
   await expect(start).toBeEnabled();
@@ -739,7 +740,7 @@ test("keeps Start training off until the job's plan is known, and says so when i
   await stubEngine(app, { 'jobs:taskPlan': taskPlan });
   await alert.getByRole('button', { name: 'Try again' }).click();
   await expect(alert).toHaveCount(0);
-  await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
+  await expect(page.getByText(/^The 20-hour limit fits .* of 12 rounds$/)).toBeVisible();
   await expect(start).toBeEnabled();
 });
 
@@ -834,7 +835,7 @@ test('says what a run needs before it starts, with one action for each', async (
   await needs.getByRole('button', { name: 'Download · 17 GB' }).click();
   await expect(page.getByRole('region', { name: 'Before it can start' })).toHaveCount(0);
   await expect(start).toBeEnabled();
-  await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
+  await expect(page.getByText(/^The 20-hour limit fits .* of 12 rounds$/)).toBeVisible();
 });
 
 test('says when Ollama is not running, and looks again when asked', async () => {
