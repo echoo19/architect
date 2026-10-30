@@ -1,6 +1,6 @@
 # Architect: rules for agents working in this repo
 
-Start every session by reading, in order: this file, `docs/PROGRESS.md`, `docs/PLAN.md`, `docs/EXPANSION.md`, and `git log -20`. The product spec is `SPEC.md`; since Oct 28 the owner's expanded spec, `docs/SPEC_EXPANSION.md`, governs scope where they differ, and `docs/EXPANSION.md` tracks its requirements with evidence. Design decisions are in `docs/DECISIONS.md`.
+Start every session by reading, in order: this file, `docs/PROGRESS.md`, `docs/PLAN.md`, `docs/EXPANSION.md`, and `git log -20`. The product spec is `SPEC.md`; since Oct 28 the owner's expanded spec, `docs/SPEC_EXPANSION.md`, governs scope where they differ, and `docs/EXPANSION.md` tracks its requirements with evidence. Design decisions are in `docs/DECISIONS.md`; how the product looks and moves is in `docs/DESIGN.md`.
 
 ## What this is
 
@@ -53,7 +53,7 @@ pnpm check          typecheck, lint and tests; run it before every commit and re
 
 - TypeScript strict everywhere. Data that crosses a process or file boundary is parsed with the zod schemas in `packages/shared`.
 - Import other packages by name (`@architect/shared`), never by relative path across packages.
-- UI: build screens only from `packages/ui` components and theme tokens. No one-off hand-styled screens.
+- UI: build screens only from `packages/ui` components and theme tokens, following `docs/DESIGN.md` (dark, white text, no gradients, no needless labels, captions or eyebrows, spring motion). No one-off hand-styled screens.
 - Errors are typed and shown to the user with a way to recover. Never swallow an error.
 - Model ids live only in `docs/MODELS.md` and `packages/shared/src/models.ts`.
 - No dead code, no commented-out blocks, no TODOs in core flows.
