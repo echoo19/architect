@@ -56,6 +56,7 @@ import {
   RuntimeMeasurementSchema,
   SampleAgentSchema,
   StudentTargetSchema,
+  StudyStateSchema,
   TaskPlanSchema,
   TeachingOverviewSchema,
   TraceSchema,
@@ -127,6 +128,10 @@ export const ENGINE_ROUTES = {
     z.tuple([id, id]),
     RuleConfirmationStateSchema,
     (api, [jobId, token]) => api.jobs.confirmRules(jobId, token),
+  ),
+  'jobs.study': route(z.tuple([id]), StudyStateSchema, (api, [jobId]) => api.jobs.study(jobId)),
+  'jobs.confirmStudy': route(z.tuple([id, id]), StudyStateSchema, (api, [jobId, token]) =>
+    api.jobs.confirmStudy(jobId, token),
   ),
   'runs.start': route(z.tuple([id, RunStartOptionsSchema]), RunSchema, (api, [jobId, options]) =>
     api.runs.start(jobId, options),

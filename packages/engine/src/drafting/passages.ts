@@ -82,3 +82,16 @@ export function readable(
   if (details === undefined || spec?.template !== 'rule') return details;
   return { ...details, steps: ruleSteps(spec.expression, wordsOf(spec)) };
 }
+
+/**
+ * A text made ready to find passages in, word for word however they are spaced, quoted or
+ * emphasised: the test a rule's passages are held to (`checkSources`), for any quotation the
+ * teacher makes. The text is made plain once, however many passages are looked for in it.
+ */
+export function quotesFrom(text: string): (passage: string) => boolean {
+  const body = plain(text);
+  return (passage) => {
+    const wanted = plain(passage);
+    return wanted !== '' && body.includes(wanted);
+  };
+}

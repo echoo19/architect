@@ -8,6 +8,7 @@ import {
   JobSchema,
   newId,
   RuleConfirmationSchema,
+  StudyRecordSchema,
   TaskSchema,
   type DraftRecord,
   type Job,
@@ -16,6 +17,8 @@ import {
   type RuleConfirmation,
   type RuleConfirmationState,
   type RuleReport,
+  type StudyRecord,
+  type StudyState,
   type Task,
   type TaskPlan,
 } from '@architect/shared';
@@ -23,6 +26,7 @@ import { z } from 'zod';
 import { bindingOf, reportsOf, ruleTypesOf, stateOf, type Binding } from '../drafting/confirmation';
 import { readInPlainerWords } from '../drafting/older-words';
 import { buildTaskPlan } from '../drafting/plan';
+import { isStudied, materialFiles, studyStateOf } from '../drafting/study';
 import { ContractBook } from '../graduates/contracts';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun } from '../store/records';
@@ -201,7 +205,8 @@ export class JobLibrary {
   /**
    * The job as it was when the run started, for work that is about to use the job's records as
    * they are now: refused, with the reason, unless its rules are confirmed over them (decision
-   * 061). A re-test or a measure of a finished run is such work too.
+   * 061) and its study of its organizations is confirmed (069). A re-test or a measure of a
+   * finished run is such work too.
    */
   async forWork(record: StoredRun): Promise<Job> {
     const job = await this.forRun(record);
@@ -441,6 +446,7 @@ export class JobLibrary {
       ? await this.deps.vault.typeCounts(jobId)
       : {};
     const confirmation = await this.ruleState(jobId);
+    const study = await this.studyState(jobId);
     return {
       ...buildTaskPlan({
         job,
@@ -449,6 +455,7 @@ export class JobLibrary {
         sealed,
       }),
       ...(confirmation === null ? {} : { confirmation }),
+      ...(study === null ? {} : { study }),
     };
   }
 
@@ -521,8 +528,77 @@ export class JobLibrary {
     return { state: 'confirmed', token: now.token, confirmedAt };
   }
 
-  /** Refuses a run on a job whose rules the person has not confirmed over these records. */
+  /** What the teacher's study of a field job left, or null before it was studied. */
+  async studyRecord(jobId: string): Promise<StudyRecord | null> {
+    try {
+      return StudyRecordSchema.parse(await readJsonFile(this.paths.studyFile(jobId)));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw error;
+    }
+  }
+
+  /** Keeps a study's brief beside the job, unconfirmed: a new one replaces the one before. */
+  async writeStudy(jobId: string, record: StudyRecord): Promise<void> {
+    await writeJsonFile(this.paths.studyFile(jobId), StudyRecordSchema.parse(record));
+  }
+
+  /** The train organizations' files as they are now, hashed. */
+  studiedFiles(job: Job): Promise<StudyRecord['files']> {
+    return materialFiles(job, (orgId) => this.paths.orgDataDir(job.id, orgId));
+  }
+
+  /**
+   * Where the study of a job that lists organizations stands (decision 069). Null for any other
+   * job, which has nothing to study.
+   */
+  async studyState(jobId: string): Promise<StudyState | null> {
+    const job = await this.get(jobId);
+    if (!isStudied(job)) return null;
+    return studyStateOf(await this.studyRecord(jobId), await this.studiedFiles(job));
+  }
+
+  /**
+   * Records that the person confirmed the brief. `token` is the one the brief was shown with, so
+   * a brief or material that changed since is refused rather than confirmed unseen.
+   */
+  async confirmStudy(jobId: string, token: string): Promise<StudyState> {
+    const record = await this.studyRecord(jobId);
+    const state = await this.studyState(jobId);
+    if (record === null || state === null || state.state === 'unstudied') {
+      throw new Error('This job has no brief to confirm yet.');
+    }
+    if (state.state === 'changed' || state.token !== token) {
+      throw new CodedError(
+        'study_unconfirmed',
+        state.problem ??
+          'The brief or the material changed since you read it. Read the brief again, then confirm it.',
+      );
+    }
+    if (state.state === 'confirmed') return state;
+    const confirmedAt = isoNow(this.clock);
+    await this.writeStudy(jobId, { ...record, confirmedAt });
+    return { ...state, state: 'confirmed', confirmedAt };
+  }
+
+  /** Refuses a run on a field job whose study the person has not confirmed. */
+  async requireStudied(job: Job): Promise<void> {
+    const state = await this.studyState(job.id);
+    if (state === null || state.state === 'confirmed') return;
+    throw new CodedError(
+      'study_unconfirmed',
+      state.state === 'changed'
+        ? (state.problem ?? "The organizations' files changed since they were studied.")
+        : `${job.mentor.label}'s study of the organizations for "${job.name}" isn't confirmed yet. Open the job, read the brief and confirm it before training.`,
+    );
+  }
+
+  /**
+   * Refuses a run on a job whose rules the person has not confirmed over these records, or whose
+   * study of its organizations they have not confirmed.
+   */
   async requireConfirmedRules(job: Job): Promise<void> {
+    await this.requireStudied(job);
     const state = await this.ruleState(job.id);
     if (state === null || state.state === 'confirmed') return;
     if (state.state === 'needed') {
