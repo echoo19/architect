@@ -25,6 +25,7 @@ export const STATUS_WORDS: Record<ExperimentStatus, string> = {
   running: 'Running',
   paused: 'Paused',
   waiting: 'Waiting',
+  needs_funding: 'Needs funding',
   incomplete: 'Incomplete',
   finished: 'Finished',
   stopped: 'Stopped',

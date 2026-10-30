@@ -13,6 +13,7 @@ import {
   ComparisonReportSchema,
   ExperimentInputSchema,
   ExperimentRecordSchema,
+  fundingMessage,
   JobSchema,
   newId,
   StudyRecordSchema,
@@ -78,7 +79,7 @@ const RECORD = 'experiment.json';
 const PREREGISTRATION = 'preregistration.json';
 
 /** Statuses it may be started or resumed from, and the ones that end it for good. */
-const RESUMABLE = new Set(['paused', 'waiting', 'incomplete', 'failed']);
+const RESUMABLE = new Set(['paused', 'waiting', 'needs_funding', 'incomplete', 'failed']);
 const ENDED = new Set(['finished', 'stopped']);
 
 function readJob(jobDir: string): Job {
@@ -331,6 +332,14 @@ export class ExperimentService {
       throw new CodedError('experiment_state', "Experiments can't run in this build.");
     }
     const { id } = record;
+    // Raising the cap or dropping an arm answers a pause for money (decision 081), and nothing else.
+    const answers = options.studentCapUsd !== undefined || options.dropArms !== undefined;
+    if (answers && record.status !== 'needs_funding') {
+      throw new CodedError(
+        'experiment_state',
+        'The student cap can be raised, or an arm dropped, only while it waits for money.',
+      );
+    }
     const wallLeftMs = record.input.caps.wallMinutes * 60_000 - record.runningMs;
     if (kind === 'run') {
       this.checkFrozen(record);
@@ -378,6 +387,10 @@ export class ExperimentService {
             confirm: options.confirm === true,
             planOnly: kind === 'calibrate',
             ...(options.studyToken === undefined ? {} : { studyToken: options.studyToken }),
+            ...(options.studentCapUsd === undefined
+              ? {}
+              : { studentCapUsd: options.studentCapUsd }),
+            ...(options.dropArms === undefined ? {} : { dropArms: options.dropArms }),
           },
           opened.env,
           {
@@ -428,6 +441,16 @@ export class ExperimentService {
     switch (outcome) {
       case 'finished':
         return { status: 'finished' };
+      case 'needs_funding': {
+        const funding = new ComparisonFiles(this.out(id)).readPlan()?.funding ?? null;
+        return {
+          status: 'needs_funding',
+          reason:
+            funding === null
+              ? 'An arm needs more than the student cap has left.'
+              : fundingMessage(funding),
+        };
+      }
       case 'needs_confirmation':
         return {
           status: 'waiting',
@@ -513,6 +536,8 @@ export class ExperimentService {
           ? null
           : { brief: study.brief, token: study.token, confirmed: study.confirmed },
       released,
+      funding: plan?.funding ?? null,
+      amendments: plan?.amendments ?? [],
       report: withheld(await this.report(record.id, files), released, sealedNames(source)),
     };
   }

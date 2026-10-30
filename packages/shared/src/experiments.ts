@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import {
   ArmIdSchema,
+  CapAmendmentSchema,
   ComparisonReportSchema,
+  FundingPauseSchema,
   PinnedInputsSchema,
   ProjectionSchema,
 } from './comparisons';
@@ -88,6 +90,11 @@ export const ExperimentStatusSchema = z.enum([
   'paused',
   /** Waiting for the person: Spark's brief to confirm, or a plan the caps cut down. */
   'waiting',
+  /**
+   * Waiting for the person before any final test is released: an arm can't be paid for at what
+   * an attempt has really cost. They raise the student cap or drop the arm (decision 081).
+   */
+  'needs_funding',
   /** Stopped short of finishing on its own: a measurement paused, a test held, or a guard hit. */
   'incomplete',
   'finished',
@@ -147,6 +154,10 @@ export const ExperimentDetailSchema = z.object({
     .nullable(),
   /** Whether the locked tests were released: every arm frozen or ended first. */
   released: z.boolean(),
+  /** Why it waits for money before the release, when it does (decision 081). */
+  funding: FundingPauseSchema.nullable(),
+  /** The student cap as the person raised it before the release, each raise in order. */
+  amendments: z.array(CapAmendmentSchema),
   /**
    * The runner's report from stored records: each arm's status, spend, caps and rounds, and once
    * released, results per arm and organization and the paired comparisons. Its `backends` are
@@ -163,6 +174,10 @@ export const ExperimentStartSchema = z
     confirm: z.boolean().optional(),
     /** The token of Spark's brief the person read, as the runner's `--confirm-study`. */
     studyToken: z.string().min(1).optional(),
+    /** A raised student cap, the answer to `needs_funding`; recorded as an amendment. */
+    studentCapUsd: z.number().positive().optional(),
+    /** Arms dropped by the person, the other answer to `needs_funding`. */
+    dropArms: z.array(ArmIdSchema).min(1).optional(),
   })
   .strict();
 export type ExperimentStart = z.infer<typeof ExperimentStartSchema>;
