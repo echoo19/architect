@@ -179,6 +179,7 @@ export function connectEngine(
       versions: (graduateId) => request('graduates.versions', [graduateId]),
       history: (graduateId) => request('graduates.history', [graduateId]),
       report: (graduateId, version) => request('graduates.report', [graduateId, version ?? null]),
+      harnessDiff: (from, to) => request('graduates.harnessDiff', [from, to]),
       acceptVersion: (graduateId, version) =>
         request('graduates.acceptVersion', [graduateId, version]),
       rejectVersion: (graduateId, version) =>

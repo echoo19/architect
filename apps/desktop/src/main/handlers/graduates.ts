@@ -8,6 +8,7 @@ import {
   ImportRequestSchema,
   PackageError,
   PublishRequestSchema,
+  VersionPickSchema,
   type BindRequest,
   type GraduateSummary,
   type HubInstallRequest,
@@ -98,6 +99,7 @@ export function registerGraduateHandlers(
       versions: (graduateId) => call((api) => api.graduates.versions(graduateId)),
       history: (graduateId) => call((api) => api.graduates.history(graduateId)),
       report: (graduateId, number) => call((api) => api.graduates.report(graduateId, number)),
+      harnessDiff: (from, to) => call((api) => api.graduates.harnessDiff(from, to)),
       acceptVersion: (graduateId, number) =>
         call((api) => api.graduates.acceptVersion(graduateId, number)),
       rejectVersion: (graduateId, number) =>
@@ -195,6 +197,7 @@ export function registerGraduateHandlers(
     },
     {
       report: z.union([z.tuple([text]), z.tuple([text, version])]),
+      harnessDiff: z.tuple([VersionPickSchema, VersionPickSchema]),
       acceptVersion: z.tuple([text, version]),
       rejectVersion: z.tuple([text, version]),
       promote: z.tuple([text, version]),

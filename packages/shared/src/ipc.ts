@@ -65,6 +65,7 @@ import type {
   PublishRequest,
   PublishResult,
   VersionEvent,
+  VersionPick,
   VersionSource,
 } from './versions';
 import type { WorkspaceChat, WorkspaceEvent, WorkspaceMessage } from './workspace';
@@ -634,6 +635,11 @@ export interface ArchitectApi {
      * its folder, wherever it was made. The author's result, never this computer's checks.
      */
     report(graduateId: string, version?: number): Promise<ReportCard>;
+    /**
+     * What changed in the harness from one version to another, of one agent or of two: each
+     * version's harness read from its folder (never run) and held to its manifest's hash.
+     */
+    harnessDiff(from: VersionPick, to: VersionPick): Promise<FileDiff[]>;
     acceptVersion(graduateId: string, version: number): Promise<GraduateVersion>;
     rejectVersion(graduateId: string, version: number): Promise<GraduateVersion>;
     /** Makes an accepted version the active one, in one step. Chats already answering finish first. */

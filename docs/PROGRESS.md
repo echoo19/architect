@@ -15,6 +15,18 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Self-reflection isn't an arm the runner takes, so it isn't offered. The report has no paired difference per organization, so Table 1 pairs over the whole final test.
 - The e2e splits the recorded comparison's counts over four made-up organizations to show the groups; a recorded field comparison would be a better stand-in.
 
+## 2026-10-30 (Fri), platform lane "Models" (branch `platform/models`)
+
+**Done** (stand-in engine only: no model was called, no GPU, no spend)
+- `/models` is a registry of every agent and version: agent and field, base model with its quantization and runtime, method (harness or adapter, with the adapter's hash), harness hash, the final test seen, unseen and real under one "Final test" heading, the check tasks apart, status (Active, Candidate, Imported, Experimental, Kept, Set aside) and created. Filters All, Active, Candidates, Imported; search; every column sorts, unmeasured last.
+- A row opens the model's panel (the Inspector, with a header): Report (final test figures, check tasks, model, harness, adapter, how it was tested) and Lineage (the version it was made from, what changed in the harness, its kept changes, its history). Promote and roll back go through the existing confirmation (`MoveDialog`); Export opens the agent's Export tab.
+- Compare: two versions of one agent, or two agents of one job, skill by organization in percentage points wherever both took the same tasks (otherwise it says they weren't measured on the same tasks), each version's facts and check tasks, and the harness diff. New engine call `graduates.harnessDiff(from, to)` reads each version's harness from its folder, held to its manifest's hash.
+- `packages/ui`: DataTable column groups, a selected row and slightly tighter cells; Inspector `header`. `FilePatch` moved to `components/` for reuse.
+- Tests: engine host test of the diff, unit tests of the registry logic, hidden e2e `models.spec.ts` against `fixtures-models.ts`. Screenshots `models-dark.png`, `model-panel-dark.png`, `models-compare-dark.png`.
+
+**Next**
+- A blind read of the three screens. Export from the panel exports the active version only, as the Export tab does.
+
 ## 2026-10-30 (Fri), scale lane "Training plan and targets" (branch `scale/targets`)
 
 **Done** (no model, GPU, cluster or cloud spend; schedulers are stand-ins)

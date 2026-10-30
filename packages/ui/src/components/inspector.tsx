@@ -23,6 +23,8 @@ export interface InspectorProps<T extends string> {
    * as it was left. Without it, it opens on the first tab, unfolded.
    */
   rememberAs?: string;
+  /** Above the tabs while the panel is open: what it is about, such as a model's name. */
+  header?: ReactNode;
   /** What the open tab shows. */
   children: (tab: T) => ReactNode;
   className?: string;
@@ -87,6 +89,7 @@ function keep(name: string | undefined, state: Remembered): void {
 export function Inspector<T extends string>({
   tabs,
   rememberAs,
+  header,
   children,
   className,
   ...props
@@ -154,6 +157,7 @@ export function Inspector<T extends string>({
           }}
           className="flex min-h-0 w-[360px] flex-1 flex-col"
         >
+          {header}
           <div className="flex items-center gap-2 px-3 pb-2 pt-3">
             <Tabs.List
               aria-label={props['aria-label']}

@@ -2,6 +2,7 @@ import {
   ExportPartResultSchema,
   ExportResultSchema,
   ExportReviewSchema,
+  FileDiffSchema,
   FolderFitSchema,
   GraduateSummarySchema,
   GraduateVersionSchema,
@@ -14,12 +15,14 @@ import {
   PublishResultSchema,
   ReportCardSchema,
   SampleAgentSchema,
+  VersionEventSchema,
   type BindRequest,
   type ExportPartRequest,
   type ExportRequest,
   type HubInstallRequest,
   type ImportRequest,
   type PublishRequest,
+  type VersionPick,
 } from '@architect/shared';
 import { z } from 'zod';
 import { api, architect } from './client';
@@ -42,8 +45,22 @@ export const graduatesApi = {
       z.array(GraduateVersionSchema),
       architect().graduates.versions(graduateId),
     ),
-  report: (graduateId: string) =>
-    read('graduates.report', ReportCardSchema, architect().graduates.report(graduateId)),
+  /** The report card a version carries: the active one's unless a version is named. */
+  report: (graduateId: string, version?: number) =>
+    read('graduates.report', ReportCardSchema, architect().graduates.report(graduateId, version)),
+  history: (graduateId: string) =>
+    read(
+      'graduates.history',
+      z.array(VersionEventSchema),
+      architect().graduates.history(graduateId),
+    ),
+  /** What changed in the harness from one version to another, of one agent or of two. */
+  harnessDiff: (from: VersionPick, to: VersionPick) =>
+    read(
+      'graduates.harnessDiff',
+      z.array(FileDiffSchema),
+      architect().graduates.harnessDiff(from, to),
+    ),
   installation: (graduateId: string) =>
     read(
       'graduates.installation',
