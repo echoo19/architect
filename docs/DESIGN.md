@@ -100,7 +100,9 @@ right.
 - **Inspector.** The panel at a screen's right with the settings of what the screen shows (the
   teacher, the student, teaching, evaluation, budget). Its tabs are a segmented strip whose
   selected fill slides between them; a button folds it to a 56px rail of the tabs' icons, and
-  opening it there lands on that tab. It remembers its tab and whether it was folded, per screen.
+  opening it there lands on that tab. With more than three tabs, the ones not open show their icon
+  alone, with the name in a tooltip, so no name is ever cut. It remembers its tab and whether it
+  was folded, per screen.
   Width changes with the `smooth` spring. It never holds a control that would break an invariant.
 - **ChoiceTiles.** A choice among a few things shown as icon tiles (an icon at the top left, the
   name under it), three to a row in an inspector. One or several may be chosen; the chosen tile
