@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 import { createBridge } from '../common/bridge';
+import { runtimeFrom } from '../common/runtime';
 
 const architect = createBridge({
   invoke: (channel, args) => ipcRenderer.invoke(channel, ...args),
@@ -13,3 +14,4 @@ const architect = createBridge({
 });
 
 contextBridge.exposeInMainWorld('architect', architect);
+contextBridge.exposeInMainWorld('architectRuntime', runtimeFrom(process.argv));

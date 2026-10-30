@@ -1,4 +1,4 @@
-import { type ReasoningEffort, type Theme } from '@architect/shared';
+import { type ReasoningEffort } from '@architect/shared';
 import { Segmented, SettingsRow, SettingsValue, Skeleton, Switch } from '@architect/ui';
 import { useAppInfo, useGraduates, useOllamaStatus } from '../api/hooks';
 import { errorOf, QueryValue, RetryButton } from '../components/QueryValue';
@@ -6,12 +6,6 @@ import { formatBytes } from '../lib/format';
 import { mentorName } from '../lib/names';
 import { currentPlatform, deviceInSentence, deviceLabel } from '../lib/platform';
 import type { TabProps } from './SettingsModal';
-
-const THEMES = [
-  { value: 'dark', label: 'Dark' },
-  { value: 'light', label: 'Light' },
-  { value: 'system', label: 'System' },
-] as const satisfies readonly { value: Theme; label: string }[];
 
 const STEPS = [
   { value: 'collapsed', label: 'Collapsed' },
@@ -27,14 +21,6 @@ const EFFORTS = [
 export function GeneralTab({ settings, update }: TabProps) {
   return (
     <>
-      <SettingsRow label="Appearance">
-        <Segmented
-          aria-label="Appearance"
-          options={THEMES}
-          value={settings.theme}
-          onValueChange={(theme) => update({ theme })}
-        />
-      </SettingsRow>
       <SettingsRow
         label="Tool steps"
         meta="Whether the tools and skills a reply used start open or folded in a chat"

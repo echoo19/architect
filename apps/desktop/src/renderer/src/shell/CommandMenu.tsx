@@ -1,20 +1,13 @@
-import type { Theme } from '@architect/shared';
 import { AgentAvatar, CommandGroup, CommandItem, CommandPalette, Shortcut } from '@architect/ui';
-import { Check, Monitor, Moon, Plus, Settings, Sun } from 'lucide-react';
+import { Plus, Settings } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { api } from '../api/client';
-import { createChat, useGraduates, useSettings } from '../api/hooks';
+import { createChat, useGraduates } from '../api/hooks';
 import { attempt } from '../lib/notify';
 import { isMac } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 import { SHORTCUT_KEYS } from '../lib/shortcuts';
 import { useUi } from '../state/ui';
-
-const THEME_ACTIONS: { theme: Theme; label: string; icon: typeof Moon }[] = [
-  { theme: 'dark', label: 'Use the dark theme', icon: Moon },
-  { theme: 'light', label: 'Use the light theme', icon: Sun },
-  { theme: 'system', label: 'Match the system theme', icon: Monitor },
-];
 
 /** Opens an agent at its most recent chat, starting one if it has none. */
 async function openAgent(graduateId: string): Promise<void> {
@@ -33,7 +26,6 @@ export function CommandMenu() {
     })),
   );
   const graduates = useGraduates();
-  const settings = useSettings();
   const mac = isMac();
 
   const run = (action: () => void) => {
@@ -79,23 +71,6 @@ export function CommandMenu() {
         >
           Settings
         </CommandItem>
-        {THEME_ACTIONS.map(({ theme, label, icon: Icon }) => (
-          <CommandItem
-            key={theme}
-            icon={<Icon aria-hidden />}
-            keywords={['theme', 'appearance', theme]}
-            shortcut={
-              settings.status === 'success' && settings.data.theme === theme ? (
-                <Check aria-label="Current" />
-              ) : undefined
-            }
-            onSelect={() =>
-              run(() => void attempt("Couldn't change the theme", () => settings.update({ theme })))
-            }
-          >
-            {label}
-          </CommandItem>
-        ))}
       </CommandGroup>
     </CommandPalette>
   );

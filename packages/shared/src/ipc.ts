@@ -55,10 +55,7 @@ import type { WorkspaceChat, WorkspaceEvent, WorkspaceMessage } from './workspac
 
 export type Unsubscribe = () => void;
 
-export type Theme = 'dark' | 'light' | 'system';
-
 export interface AppSettings {
-  theme: Theme;
   /** Tool steps in chat start collapsed or expanded. */
   steps: 'collapsed' | 'expanded';
   /** Shows the baselines comparison on report cards and the run menu. */

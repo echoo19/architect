@@ -32,7 +32,7 @@ import { hardenContents, hardenSession, isAppUrl, type AppOrigin } from './secur
 import { quietCooldown, quietThreads } from './settings/quiet';
 import { localRuntimeSettings } from './settings/runtime';
 import { SettingsStore } from './settings/store';
-import { applyTheme } from './window/chrome';
+import { forceDarkTheme } from './window/chrome';
 import { createMainWindow } from './window/main-window';
 import { loadWindowState, trackWindowState } from './window/state';
 import { agentHostEnvironment } from './workspace/environment';
@@ -95,8 +95,7 @@ async function start(): Promise<void> {
     safeStorageCipher,
     environmentKeys(process.env, app.isPackaged),
   );
-  applyTheme(settings.get().theme);
-  settings.onChange((next) => applyTheme(next.theme));
+  forceDarkTheme();
 
   const router = new IpcRouter({
     ipcMain,
