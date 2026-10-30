@@ -157,7 +157,6 @@ const COLUMNS: DataColumn<ModelRow>[] = [
     },
   },
   ...SCORES,
-  CERTIFIED,
   STATUS,
   {
     key: 'created',
@@ -169,6 +168,13 @@ const COLUMNS: DataColumn<ModelRow>[] = [
     ),
   },
 ];
+
+/** The columns, with Certified beside the scores once any version has a certificate. */
+function withCertificates(rows: readonly ModelRow[]): DataColumn<ModelRow>[] {
+  if (!rows.some((row) => row.report?.certificate !== undefined)) return COLUMNS;
+  const status = COLUMNS.indexOf(STATUS);
+  return [...COLUMNS.slice(0, status), CERTIFIED, ...COLUMNS.slice(status)];
+}
 
 /** Beside an open panel, which shows the rest: the agent, its scores and its status. */
 const NARROW: DataColumn<ModelRow>[] = [NAME, ...SCORES, STATUS];
@@ -190,7 +196,7 @@ export function RegistryTable({
       aria-label="Models"
       rows={rows}
       rowKey={(row) => row.key}
-      columns={openKey === null ? COLUMNS : NARROW}
+      columns={openKey === null ? withCertificates(rows) : NARROW}
       onRowClick={onOpen}
       initialSort={{ key: 'name', direction: 'ascending' }}
       empty={empty}
