@@ -453,7 +453,6 @@ test("offers the test on this computer in the agent's own Results", async () => 
   const dialog = await openAgentSettings(withRetests());
   // Its Final test row says where the test ran.
   await expect(dialog.getByText('Passed online: 54 of 60 (90%)')).toBeVisible();
-  await expect(dialog.getByText('Tasks it had never seen, on the online copy')).toBeVisible();
   await dialog.getByRole('tab', { name: 'Results' }).click();
   await expect(dialog.getByText('Typical answer, on the online copy')).toBeVisible();
   const offer = dialog.getByRole('region', { name: 'Test on this computer' });

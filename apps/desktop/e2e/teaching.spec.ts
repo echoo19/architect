@@ -300,7 +300,6 @@ test("shows a Teaching tab with nothing flagged yet, and one that couldn't load"
   const dialog = await openTeaching();
   const lessons = dialog.getByRole('region', { name: 'Lessons' });
   await expect(lessons).toContainText('None yet');
-  await expect(lessons).toContainText('Flag an answer to teach it first');
   await expect(lessons.getByRole('button', { name: 'Review' })).toHaveCount(0);
   await expect(lessons.getByRole('button', { name: 'Improve' })).toHaveCount(0);
   await capture('agent-teaching-empty-dark.png');

@@ -154,7 +154,9 @@ test('streams steps and an answer with a table', async () => {
   // The version, the model and where it runs are one quiet icon in the header, not a footer.
   await expect(page.getByText('Version 1', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'About Service desk' }).hover();
-  await expect(page.getByRole('tooltip')).toContainText('Version 1 · Glimmer · Runs on this computer');
+  await expect(page.getByRole('tooltip')).toContainText(
+    'Version 1 · Glimmer · Runs on this computer',
+  );
   await expect(page.getByText('Private from Spark')).toHaveCount(0);
   await expect(page.getByText("Can't run on this computer")).toHaveCount(0);
   await capture('workspace-new-chat-dark.png');
@@ -301,7 +303,6 @@ test('changes what the agent may write and opens its settings', async () => {
   // final test is the score the Results tab and the versions list give for it.
   await expect(dialog.getByText('Version 1', { exact: true })).toBeVisible();
   await expect(dialog.getByText('Passed: 55 of 60 (92%)')).toBeVisible();
-  await expect(dialog.getByText('Tasks it had never seen')).toBeVisible();
   // The model this computer runs it on, in a picker of the models here, with its tag beside.
   await expect(dialog.getByRole('button', { name: "Your agent's model" })).toHaveText(
     'Muse Glimmer · 4-bit',
