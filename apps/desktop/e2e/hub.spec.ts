@@ -1,3 +1,4 @@
+import { realpathSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -226,7 +227,7 @@ test('installs from the Hub by commit, through the same steps as a package file'
     (id) => window.architect.graduates.installation(id),
     AGENT,
   );
-  expect(installation.bindings).toEqual({ data: records });
+  expect(installation.bindings).toEqual({ data: realpathSync.native(records) });
   expect(installation.grants.resources['data']).toBe('read_write');
   expect(
     hub.requests.some(

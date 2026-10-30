@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import { cp, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -314,7 +314,8 @@ test('exports a graduate as a package and imports it again with other folders', 
     );
     expect(imported).toMatchObject({ version: 1, alreadyInstalled: false });
     expect(imported.graduate.id).toBe(graduateId);
-    expect(imported.installation.bindings).toEqual({ data: records });
+    // A picked folder is bound by its real path (a short or linked temp path resolves).
+    expect(imported.installation.bindings).toEqual({ data: realpathSync.native(records) });
     expect(imported.installation.label).toBe('Installation checks on this computer');
     expect(
       await page.evaluate((id) => window.architect.workspace.listChats(id), graduateId),
