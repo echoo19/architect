@@ -63,7 +63,7 @@ On the real academy (no question text): `history` and `assign` fully, and `diagn
 | Organizations | `field/orgs-engine` | shared schemas, runner binding, splits, vault, transfer qualification, per-org scores |
 | Study | `field/study` | the study brief and knowledge writing in drafting, the Define screen |
 | Report and workspace | `field/report` | the skill by organization grid, Phil in the workspace |
-| Real academy | outside the repo | the anonymized CP snapshot in the academy schema, and a check of the reference rules against Lectern's own computed reports |
+| Real academy | outside the repo | the anonymized real academy snapshot in the academy schema, and a check of the reference rules against Lectern's own computed reports |
 
 Integration branch: `field/main`, merged into `main` only when `pnpm check` passes and the app still runs the one-job sample. Runs (hosted, frugal, caps stated first): calibrate, teach on synthetic academies, freeze, qualify on the unseen synthetic academy and on the real academy.
 
