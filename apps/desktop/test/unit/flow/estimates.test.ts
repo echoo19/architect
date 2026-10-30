@@ -224,7 +224,6 @@ describe('what each part of a run takes', () => {
   });
 
   it('says in plain words that not one round of teaching fits in a place, and why', () => {
-    const names = { mentor: 'Spark', student: 'Glimmer' };
     const local = estimateTime(job, 'local');
     expect(wontTeachTitle(job, 'local', 'this computer')).toBe(
       'Not even one round of teaching fits in 3 hours on this computer',
@@ -235,29 +234,28 @@ describe('what each part of a run takes', () => {
     expect(wontTeachTitle(job, 'local', 'this Mac')).toBe(
       'Not even one round of teaching fits in 3 hours on this Mac',
     );
-    expect(wontTeachBody(job, 'local', local, names)).toBe(
-      "Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once, then 3 h 50 min to 7 h 10 min for each round of teaching. That doesn't fit in the 3 hours allowed, so Spark would run out of time before it changed anything.",
+    // The title says what doesn't fit; the body gives the figures it is made from, and no more.
+    expect(wontTeachBody(job, local)).toBe(
+      'Scoring the check tasks once takes about 1 h 40 min, then 3 h 50 min to 7 h 10 min for each round of teaching.',
     );
     // Online, with a limit that leaves room to score the check tasks and not for a round after it.
     const short = makeJob({ budget: { maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: 20 } });
     expect(trainsTooSlow({ ...short, student: { ...short.student, trainOn: 'hosted' } })).toBe(
       true,
     );
-    expect(wontTeachBody(short, 'hosted', estimateTime(short, 'hosted'), names)).toBe(
-      "Glimmer takes about 15 seconds a task online: about 10 min to score the check tasks once, then 23 min to 43 min for each round of teaching. That doesn't fit in the 20 minutes allowed, so Spark would run out of time before it changed anything.",
+    expect(wontTeachBody(short, estimateTime(short, 'hosted'))).toBe(
+      'Scoring the check tasks once takes about 10 min, then 23 min to 43 min for each round of teaching.',
     );
   });
 
   it('says the check tasks alone are too long when they are', () => {
-    const names = { mentor: 'Spark', student: 'Glimmer' };
     const hour = makeJob({ budget: { maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: 60 } });
-    expect(wontTeachBody(hour, 'local', estimateTime(hour, 'local'), names)).toBe(
-      "Glimmer takes about 2.5 minutes a task here, so scoring the check tasks once takes about 1 h 40 min. That doesn't fit in the 1 hour allowed, so Spark would never get to teach.",
+    expect(wontTeachBody(hour, estimateTime(hour, 'local'))).toBe(
+      'Scoring the check tasks once takes about 1 h 40 min.',
     );
   });
 
   it("says a round's range, so the limit the button names adds up from what is said", () => {
-    const names = { mentor: 'Spark', student: 'Glimmer' };
     /** A time as the callout writes it: "1 h 40 min", "23 min" or "9 h". */
     const time = String.raw`\d+ h(?: \d+ min)?|\d+ min`;
     const seconds = (text: string): number =>
@@ -269,9 +267,9 @@ describe('what each part of a run takes', () => {
         budget: { maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: limits[place] },
       });
       const estimate = estimateTime(short, place);
-      const body = wontTeachBody(short, place, estimate, names);
+      const body = wontTeachBody(short, estimate);
       const said = new RegExp(
-        `about (${time}) to score the check tasks once, then (${time}) to (${time}) for each round of teaching\\.`,
+        `takes about (${time}), then (${time}) to (${time}) for each round of teaching\\.`,
       ).exec(body);
       if (said === null) throw new Error(`The body does not say a round's range: ${body}`);
       const [start = '', shortest = '', longest = ''] = said.slice(1);
@@ -279,7 +277,7 @@ describe('what each part of a run takes', () => {
       expect(seconds(shortest)).toBe(estimate.roundSeconds.least);
       expect(seconds(longest)).toBe(estimate.roundSeconds.most);
       // The button's limit is the next whole hour above the check tasks and the longest round
-      // said there, and the line beside it says what that gives, so the two add up.
+      // said there, and what it gives says so, so the two add up.
       const minutes = minutesForOneRound(short, place) ?? 0;
       const needed = seconds(start) + seconds(longest);
       expect(minutes * 60).toBeGreaterThanOrEqual(needed);
@@ -289,11 +287,10 @@ describe('what each part of a run takes', () => {
   });
 
   it('calls a round a round of teaching everywhere in the callout, and by no other name', () => {
-    const names = { mentor: 'Spark', student: 'Glimmer' };
     for (const place of ['local', 'hosted'] as const) {
       const words = [
         wontTeachTitle(job, place, 'this computer'),
-        wontTeachBody(job, place, estimateTime(job, place), names),
+        wontTeachBody(job, estimateTime(job, place)),
         allowingLine(minutesForOneRound(job, place) ?? 0),
       ].join(' ');
       expect(words.match(/\bround\b/g)).toHaveLength(3);
@@ -303,10 +300,9 @@ describe('what each part of a run takes', () => {
   });
 
   it("keeps the engine's words and the host's out of what it says", () => {
-    const names = { mentor: 'Spark', student: 'Glimmer' };
     const words = [
       wontTeachTitle(job, 'local', 'this computer'),
-      wontTeachBody(job, 'local', estimateTime(job, 'local'), names),
+      wontTeachBody(job, estimateTime(job, 'local')),
     ].join(' ');
     expect(words).not.toMatch(/mentor|student|host|adapter/i);
   });

@@ -1,12 +1,15 @@
-import { Button } from '@architect/ui';
+import { Button, Tooltip } from '@architect/ui';
 import { CircleAlert, Settings2 } from 'lucide-react';
 
 /** What else the person can do when training where they chose won't get to teach. */
 export type Alternative =
   /** The other place can train in the time allowed, and is one click away. */
   | { kind: 'switch'; label: string; onSwitch: () => void }
-  /** The other place isn't set up, and what it needs is said. */
-  | { kind: 'missing'; text: string; onSetUp?: (() => void) | undefined };
+  /**
+   * The other place isn't set up. A button takes the person to set it up, which says all there is
+   * to say; where there is none, the text says what it needs.
+   */
+  | { kind: 'missing'; text?: string | undefined; onSetUp?: (() => void) | undefined };
 
 interface WontTeachProps {
   title: string;
@@ -27,24 +30,24 @@ interface WontTeachProps {
  * ways of doing so are here: allow a time that fits a round, or train in the other place.
  */
 export function WontTeach({ title, body, allow, onRaiseLimit, alternative }: WontTeachProps) {
+  const allowButton = (
+    <Button size="sm" onClick={allow?.onAllow ?? onRaiseLimit}>
+      {allow?.label ?? 'Allow more time'}
+    </Button>
+  );
   return (
     <div role="status" className="flex items-start gap-3.5 rounded-card bg-danger-soft px-5 py-4">
       <CircleAlert size={18} className="mt-0.5 shrink-0 text-danger" aria-hidden />
       <div className="flex min-w-0 flex-1 flex-col gap-3.5">
         <div className="flex flex-col gap-1">
           <span className="font-medium">{title}</span>
-          <span className="max-w-[640px] text-fg text-pretty">{body}</span>
-          {allow !== null && (
-            <span className="max-w-[640px] text-fg text-pretty">{allow.gives}</span>
-          )}
-          {alternative?.kind === 'missing' && (
-            <span className="max-w-[640px] text-fg text-pretty">{alternative.text}</span>
+          <span className="max-w-[640px] text-pretty">{body}</span>
+          {alternative?.kind === 'missing' && alternative.text !== undefined && (
+            <span className="max-w-[640px] text-pretty">{alternative.text}</span>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" onClick={allow?.onAllow ?? onRaiseLimit}>
-            {allow?.label ?? 'Allow more time'}
-          </Button>
+          {allow ? <Tooltip content={allow.gives}>{allowButton}</Tooltip> : allowButton}
           {alternative?.kind === 'switch' && (
             <Button size="sm" onClick={alternative.onSwitch}>
               {alternative.label}

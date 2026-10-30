@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import type { Job, PermissionMode } from '@architect/shared';
-import { Badge, cn, Heading, Segmented, SettingsValue, Stat } from '@architect/ui';
-import { Check, CircleMinus, Laptop } from 'lucide-react';
-import { currentPlatform, deviceInSentence } from '../../lib/platform';
+import { Heading, NumberTicker, Segmented, SettingsValue } from '@architect/ui';
+import { Check, X, type LucideIcon } from 'lucide-react';
 import { WRITE_MODE_LABELS, WRITE_MODES, WRITE_SETTING } from '../../workspace/labels';
 import { formatTimeLimit } from '../format';
 import { changeableOf, type Changeable } from './permissions';
+import { SheetRow } from './SheetRow';
 
 /** The same words as the agent's own setting, under its message box. */
 const MODES: readonly { value: PermissionMode; label: string }[] = WRITE_MODES.map((value) => ({
@@ -13,81 +13,50 @@ const MODES: readonly { value: PermissionMode; label: string }[] = WRITE_MODES.m
   label: WRITE_MODE_LABELS[value],
 }));
 
+/** The page's one title: the job, and in a sentence what it is for. */
 export function JobHeader({ job }: { job: Job }) {
   return (
-    <div className="flex flex-col gap-3.5">
+    <header className="flex flex-col gap-3">
       <Heading as="h1" size="display">
         {job.name}
       </Heading>
-      <p className="m-0 max-w-[620px] text-h2 text-fg text-pretty">
-        {job.summary ?? job.description}
-      </p>
-      <Badge
-        tone="neutral"
-        size="lg"
-        icon={<Laptop size={14} strokeWidth={1.6} aria-hidden />}
-        className="self-start"
-      >
-        Once trained, runs offline on {deviceInSentence(currentPlatform())}
-      </Badge>
-    </div>
+      <p className="m-0 max-w-[640px] text-body text-pretty">{job.summary ?? job.description}</p>
+    </header>
   );
 }
 
-/** What the agent will and won't do, side by side under small headings. */
+/** What the agent will and won't do, side by side: a check for each thing it does, a cross for each it won't. */
 export function Capabilities({ job }: { job: Job }) {
   if (job.does.length === 0 && job.doesNot.length === 0) return null;
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(340px,100%),1fr))] overflow-hidden rounded-card bg-card shadow-edge">
-      <CapabilityList
-        id="does"
-        title="What it does"
-        items={job.does}
-        icon={<Check size={18} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden />}
-      />
-      <CapabilityList
-        id="does-not"
-        title="What it won't do"
-        items={job.doesNot}
-        icon={
-          <CircleMinus
-            size={18}
-            strokeWidth={1.8}
-            className="mt-0.5 shrink-0 text-fg"
-            aria-hidden
-          />
-        }
-        className="border-l border-line bg-field text-fg"
-      />
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))] gap-x-12 gap-y-8">
+      <CapabilityList label="What it does" items={job.does} icon={Check} />
+      <CapabilityList label="What it won't do" items={job.doesNot} icon={X} />
     </div>
   );
 }
 
 function CapabilityList({
-  id,
-  title,
+  label,
   items,
-  icon,
-  className,
+  icon: Icon,
 }: {
-  id: string;
-  title: string;
+  label: string;
   items: readonly string[];
-  icon: ReactNode;
-  className?: string;
+  icon: LucideIcon;
 }) {
   return (
-    <section aria-labelledby={id} className={cn('flex flex-col gap-4 px-7 py-[26px]', className)}>
-      <Heading id={id} className="text-small font-normal text-fg">
-        {title}
-      </Heading>
+    <section aria-label={label}>
       {items.length === 0 ? (
-        <p className="m-0 text-body text-fg">Nothing listed</p>
+        <p className="m-0 text-body">Nothing listed</p>
       ) : (
-        <ul className="m-0 flex list-none flex-col gap-3.5 p-0 text-body">
+        <ul className="m-0 flex list-none flex-col p-0 text-body">
           {items.map((item) => (
-            <li key={item} className="flex items-start gap-3">
-              {icon}
+            <li
+              key={item}
+              className="flex items-start gap-3 border-t border-line py-3 first:border-t-0 first:pt-0"
+            >
+              <Icon size={18} strokeWidth={1.8} className="mt-0.5 shrink-0" aria-hidden />
               {item}
             </li>
           ))}
@@ -97,18 +66,35 @@ function CapabilityList({
   );
 }
 
+/** One figure and what it counts: "90%" and "of new tasks right". */
+function Figure({ value, label }: { value: ReactNode; label: string }) {
+  return (
+    <span className="flex items-baseline gap-2">
+      <span className="font-display text-h2 font-semibold tabular-nums">{value}</span>
+      {label}
+    </span>
+  );
+}
+
+/** What the agent must reach before training is done: the share of new tasks it gets right. */
 export function ReadyWhen({ job }: { job: Job }) {
   const { passRate, p95LatencyMs } = job.requirements;
   return (
-    <section aria-labelledby="ready-when" className="flex flex-col gap-[18px]">
-      <Heading id="ready-when">Ready when</Heading>
-      <div className="flex flex-wrap gap-10">
-        <Stat size="lg" value={`${Math.round(passRate * 100)}%`} label="of new tasks right" />
+    <SheetRow label="Ready when">
+      <div className="flex min-h-10 flex-wrap items-center gap-x-8 gap-y-1">
+        <Figure
+          value={
+            <span role="img" aria-label={`${Math.round(passRate * 100)}%`}>
+              <NumberTicker value={Math.round(passRate * 100)} kind="percent" />
+            </span>
+          }
+          label="of new tasks right"
+        />
         {p95LatencyMs !== undefined && (
-          <Stat size="lg" value={formatTimeLimit(p95LatencyMs)} label="per answer" />
+          <Figure value={formatTimeLimit(p95LatencyMs)} label="per answer" />
         )}
       </div>
-    </section>
+    </SheetRow>
   );
 }
 
@@ -121,31 +107,34 @@ interface FilePermissionsProps {
  * What the trained agent may do with files. The one choice is when it must ask first: before it
  * saves a change to a file it works on, a data file the job lets it write or its output folder.
  * It is offered only where the agent can change something (`changeableOf`). Where it can't, the
- * section says so in plain words instead of offering a choice about something that can't happen.
+ * row says so in plain words instead of offering a choice about something that can't happen.
  */
 export function FilePermissions({ job, onChange }: FilePermissionsProps) {
   const { permissions } = job;
   const changeable = changeableOf(job);
-  return (
-    <section aria-labelledby="permissions" className="flex flex-col">
-      <Heading id="permissions" className="mb-2.5">
-        Permissions
-      </Heading>
-      {changeable === null ? (
-        <PermissionRow label="Files it can change">
+  if (changeable === null) {
+    return (
+      <SheetRow label="Files it can change" region="Permissions">
+        <div className="flex min-h-10 items-center">
           <SettingsValue>None</SettingsValue>
-        </PermissionRow>
-      ) : (
-        <PermissionRow label={WRITE_SETTING} detail={<Covers changeable={changeable} />}>
-          <Segmented
-            aria-label={WRITE_SETTING}
-            options={MODES}
-            value={permissions.writes}
-            onValueChange={(writes) => onChange({ ...permissions, writes })}
-          />
-        </PermissionRow>
-      )}
-    </section>
+        </div>
+      </SheetRow>
+    );
+  }
+  return (
+    <SheetRow label={WRITE_SETTING} region="Permissions">
+      <div className="flex flex-col items-start gap-2">
+        <Segmented
+          aria-label={WRITE_SETTING}
+          options={MODES}
+          value={permissions.writes}
+          onValueChange={(writes) => onChange({ ...permissions, writes })}
+        />
+        <span className="text-small text-pretty">
+          <Covers changeable={changeable} />
+        </span>
+      </div>
+    </SheetRow>
   );
 }
 
@@ -158,27 +147,5 @@ function Covers({ changeable }: { changeable: Changeable }) {
       <span className="font-mono">{files.join(', ')}</span>
       {folder && ' and its output folder'}
     </>
-  );
-}
-
-function PermissionRow({
-  label,
-  detail,
-  children,
-}: {
-  label: string;
-  /** A line under the label, such as the files the setting covers. */
-  detail?: ReactNode;
-  /** What is on the right: the choice, or the one fact there is when there is no choice. */
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line py-2 last:border-b-0">
-      <div className="flex min-w-0 flex-[1_1_12rem] flex-col gap-0.5">
-        <span>{label}</span>
-        {detail && <span className="text-small text-fg text-pretty">{detail}</span>}
-      </div>
-      {children}
-    </div>
   );
 }

@@ -1,6 +1,15 @@
 import { useId, type ReactNode } from 'react';
 import { studentPricing, type Job, type StudentTarget } from '@architect/shared';
-import { Checkbox, cn, Heading, RadioCard, RadioCardGroup, Slider } from '@architect/ui';
+import {
+  Button,
+  Checkbox,
+  Collapse,
+  Disclosure,
+  NumberTicker,
+  RadioCard,
+  RadioCardGroup,
+  Slider,
+} from '@architect/ui';
 import { ChevronRight, RotateCw } from 'lucide-react';
 import { formatUsd } from '../../lib/format';
 import { currentPlatform, deviceInSentence, deviceLabel } from '../../lib/platform';
@@ -12,6 +21,7 @@ import {
   capText,
   comparisonSeconds,
   estimateMentorUsd,
+  estimateNotes,
   estimateTime,
   expectedMentorUsd,
   fittingRounds,
@@ -22,28 +32,63 @@ import {
   placePhrase,
   planSeconds,
   practiceUsd,
-  roundsLine,
   shortDuration,
   shortSpan,
   shownTotalUsd,
   taskTimeText,
-  teacherWorks,
   testSeconds,
   tooSlow,
   trainHereLine,
+  TRAIN_ONLINE_LINE,
   wontTeachBody,
   wontTeachTitle,
 } from './estimates';
-import { providerName, type HostedAvailability } from './hosted';
+import type { HostedAvailability } from './hosted';
+import { SheetRow } from './SheetRow';
 import { WontTeach, type Alternative } from './WontTeach';
 
-interface TrainingPlaceProps {
+/** What the plan is made from, for the choice of a place and for the figures under it. */
+interface PlanFacts {
   job: Job;
   hosted: HostedAvailability;
   /** Where the final test runs, which sets its time and who bills it. */
   testPlace: StudentTarget;
+  /** Present when comparison mode is on. */
+  baselines?: { checked: boolean; onCheckedChange: (checked: boolean) => void } | undefined;
+}
+
+function factsOf({ job, hosted, baselines }: PlanFacts) {
+  const names = modelNames(job);
+  const device = deviceInSentence(currentPlatform());
+  const local = estimateTime(job, 'local');
+  const remote = estimateTime(job, 'hosted');
+  const onHost = job.student.trainOn === 'hosted';
+  const chosen = onHost ? remote : local;
+  const pricing = job.student.hosted ? (studentPricing(job.student.hosted) ?? null) : null;
+  return {
+    names,
+    device,
+    local,
+    remote,
+    localSlow: tooSlow(job, local),
+    remoteSlow: tooSlow(job, remote),
+    onHost,
+    chosen,
+    fits: chosen.rounds.most > 0,
+    pricing,
+    comparing: baselines?.checked === true,
+    hostedReady: hosted.available && job.student.hosted !== undefined,
+  };
+}
+
+/** "About 2.5 minutes a task": how fast a place practices. */
+function perTask(place: 'local' | 'hosted'): string {
+  const time = taskTimeText(place);
+  return `${time.charAt(0).toUpperCase()}${time.slice(1)} a task`;
+}
+
+interface TrainingPlaceProps extends PlanFacts {
   onPlaceChange: (place: Job['student']['trainOn']) => void;
-  onCapChange: (usd: number) => void;
   /** Present when checking for the hosted copy's key failed. */
   onRetryKeys?: (() => void) | undefined;
   /** Opens the time limit, for a place too slow to fit a round in it. */
@@ -52,89 +97,152 @@ interface TrainingPlaceProps {
   onAllowTime: (minutes: number) => void;
   /** Opens where the online copy is chosen and its key saved. */
   onSetUpOnline: () => void;
-  /** Present when comparison mode is on. */
-  baselines?: { checked: boolean; onCheckedChange: (checked: boolean) => void } | undefined;
 }
 
-/** One line of the plan: what it is, a detail under it, and its figure on the right. */
+/**
+ * The choice of where it trains: this computer or online, each with how fast it practices and what
+ * it costs, and under it what leaves this computer and, where the place chosen can't fit a round,
+ * the callout with the ways out.
+ */
+export function TrainingPlace(props: TrainingPlaceProps) {
+  const { job, hosted, onPlaceChange, onRetryKeys, onRaiseLimit, onAllowTime, onSetUpOnline } =
+    props;
+  const facts = factsOf(props);
+  const { names, device, remote, localSlow, remoteSlow, onHost, chosen, fits, pricing } = facts;
+  const { mentor, student } = names;
+  const hostedPrice = pricing ? aboutUsd(practiceUsd(pricing, remote)) : null;
+
+  // Where training would run out of time before the teacher changed anything, the two ways out
+  // are said next to the choice: more time, or training online, which is offered when it fits and
+  // otherwise says what it needs. Online is the faster place, so when it is the one that is too
+  // slow, this computer is no better and there is nothing else to offer.
+  let alternative: Alternative | null = null;
+  if (!onHost && !hosted.available) {
+    // Where a button takes the person to set it up, it does the rest and says no more.
+    const setUp = hosted.why === 'no_host' || hosted.why === 'no_key';
+    alternative = setUp
+      ? { kind: 'missing', onSetUp: onSetUpOnline }
+      : { kind: 'missing', text: `Online training isn't ready. ${hosted.reason}.` };
+  } else if (!onHost && remoteSlow === null) {
+    alternative = {
+      kind: 'switch',
+      label: 'Train online instead',
+      onSwitch: () => onPlaceChange('hosted'),
+    };
+  }
+  const roomy = fits ? null : minutesForOneRound(job, job.student.trainOn);
+  return (
+    <div className="flex flex-col gap-3">
+      <RadioCardGroup
+        aria-label="Where should it train?"
+        value={job.student.trainOn}
+        onValueChange={onPlaceChange}
+      >
+        <RadioCard
+          value="local"
+          title={`Train on ${device}`}
+          unavailable={localSlow !== null}
+          className="px-5 py-4"
+        >
+          <span>{perTask('local')}</span>
+          <span>Free</span>
+          {/* The callout says it for the place chosen, so the card does not say it again. */}
+          {localSlow && onHost && <span>{localSlow}</span>}
+        </RadioCard>
+        <RadioCard
+          value="hosted"
+          title="Train online"
+          unavailable={!hosted.available || remoteSlow !== null}
+          className="px-5 py-4"
+        >
+          <span>{perTask('hosted')}</span>
+          {hostedPrice && <span>{hostedPrice}</span>}
+          {hosted.available ? (
+            remoteSlow && !onHost && <span>{remoteSlow}</span>
+          ) : (
+            <span>{hosted.reason}</span>
+          )}
+        </RadioCard>
+      </RadioCardGroup>
+      <p className="m-0 text-small text-pretty">
+        {onHost ? TRAIN_ONLINE_LINE : trainHereLine(job, { mentor, student }, device)}
+      </p>
+      <Collapse open={!fits}>
+        {!fits && (
+          <WontTeach
+            title={wontTeachTitle(job, job.student.trainOn, device)}
+            body={wontTeachBody(job, chosen)}
+            allow={
+              roomy === null
+                ? null
+                : {
+                    label: `Allow ${capText(roomy)}`,
+                    gives: allowingLine(roomy),
+                    onAllow: () => onAllowTime(roomy),
+                  }
+            }
+            onRaiseLimit={onRaiseLimit}
+            alternative={alternative}
+          />
+        )}
+      </Collapse>
+      {fits && (localSlow || remoteSlow) && (
+        <Button variant="ghost" size="xs" className="-ml-3 self-start" onClick={onRaiseLimit}>
+          Allow more time
+          <ChevronRight size={13} strokeWidth={1.8} aria-hidden />
+        </Button>
+      )}
+      {onRetryKeys && (
+        <Button variant="ghost" size="xs" className="-mr-3 self-end" onClick={onRetryKeys}>
+          <RotateCw size={12} aria-hidden />
+          Check for the key again
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/** One line of the breakdown: what it is, a detail beside it, and its figure on the right. */
 interface PlanLine {
   label: string;
-  detail: ReactNode;
+  detail?: ReactNode;
   value: string;
 }
 
-export function TrainingPlace({
-  job,
-  hosted,
-  testPlace,
-  onPlaceChange,
-  onCapChange,
-  onRetryKeys,
-  onRaiseLimit,
-  onAllowTime,
-  onSetUpOnline,
-  baselines,
-}: TrainingPlaceProps) {
+interface TrainingRowsProps extends PlanFacts {
+  onCapChange: (usd: number) => void;
+}
+
+/**
+ * The figures of the plan as rows of the page: what it all takes and costs, with the lines it
+ * adds up from a click away, and how much of the teacher's bill may be spent.
+ */
+export function TrainingRows(props: TrainingRowsProps) {
+  const { job, testPlace, baselines, onCapChange } = props;
   const capId = useId();
-  const { mentor, student } = modelNames(job);
-  const device = deviceInSentence(currentPlatform());
+  const facts = factsOf(props);
+  const { names, device, local, remote, chosen, fits, pricing, comparing, hostedReady } = facts;
+  const { mentor } = names;
   const { maxRounds, maxWallMinutes, maxMentorUsd: cap } = job.budget;
-  const limit = limitText(maxWallMinutes);
   const usual = estimateMentorUsd(job);
   const capMax = Math.max(20, Math.ceil(cap), Math.ceil((usual ?? 0) * 3));
-  const local = estimateTime(job, 'local');
-  const remote = estimateTime(job, 'hosted');
-  const localSlow = tooSlow(job, local);
-  const remoteSlow = tooSlow(job, remote);
-  const onHost = job.student.trainOn === 'hosted';
-  const chosen = onHost ? remote : local;
-  const provider = job.student.hosted ? providerName(job.student.hosted) : null;
-  const pricing = job.student.hosted ? (studentPricing(job.student.hosted) ?? null) : null;
-  const hostedPrice = pricing ? aboutUsd(practiceUsd(pricing, remote)) : null;
   const expected = expectedMentorUsd(job, chosen);
-
-  // Every dollar figure sits under what it pays for; the comparison's share adds in when ticked.
-  const comparing = baselines?.checked === true;
   const bills = planBills(job, chosen, pricing, comparing, testPlace);
-  const billLines = (shares: Bills): PlanLine[] => [
-    ...(shares.hostedUsd === null
-      ? []
-      : [
-          {
-            label: 'Online practice',
-            detail: `${student} practicing online`,
-            value: formatAboutUsd(shares.hostedUsd),
-          },
-        ]),
-    ...(shares.testUsd === null
-      ? []
-      : [
-          {
-            label: 'Online final test',
-            detail: `${student} taking the final test online`,
-            value: formatAboutUsd(shares.testUsd),
-          },
-        ]),
-    ...(shares.mentorUsd === null
-      ? []
-      : [{ label: mentor, detail: 'Teaching', value: formatAboutUsd(shares.mentorUsd) }]),
-  ];
-  const fits = chosen.rounds.most > 0;
   const place = placePhrase(job.student.trainOn, device);
   // When every round fits, the time is a ceiling: training stops once the check tasks reach the
   // target, often well before the last round.
-  const allFit = chosen.rounds.fewest >= job.budget.maxRounds;
+  const allFit = chosen.rounds.fewest >= maxRounds;
   const time: PlanLine[] = [
     {
       label: 'Training',
       detail: fits ? (
         allFit ? (
-          `Up to ${job.budget.maxRounds} rounds ${place}, fewer if it reaches the target first`
+          `Up to ${maxRounds} rounds ${place}, fewer if it reaches the target first`
         ) : (
           `${fittingRounds(job, chosen)} ${place}`
         )
       ) : (
-        <span className="text-danger">No round fits the {limit} limit</span>
+        <span className="text-danger">No round fits the {limitText(maxWallMinutes)} limit</span>
       ),
       value: allFit
         ? `at most ${shortDuration(chosen.trainingSeconds.most)}`
@@ -155,228 +263,124 @@ export function TrainingPlace({
         ]
       : []),
   ];
+  const billLines = (shares: Bills): PlanLine[] => [
+    ...(shares.hostedUsd === null
+      ? []
+      : [{ label: 'Online practice', value: formatAboutUsd(shares.hostedUsd) }]),
+    ...(shares.testUsd === null
+      ? []
+      : [{ label: 'Online final test', value: formatAboutUsd(shares.testUsd) }]),
+    ...(shares.mentorUsd === null
+      ? []
+      : [{ label: `${mentor} teaching`, value: formatAboutUsd(shares.mentorUsd) }]),
+  ];
   const cost = billLines(bills.total);
   const costTotal = shownTotalUsd(bills.total);
   const adds = [
     shortDuration(comparisonSeconds(job, chosen, testPlace)),
     ...billLines(bills.comparison).map((line) => `${line.value} ${line.label}`),
   ].join(' · ');
+  const notes = estimateNotes(job, {
+    names,
+    device: { inSentence: device, label: deviceLabel(currentPlatform()) },
+    local,
+    remote: hostedReady ? remote : null,
+    baselines: baselines !== undefined,
+  });
 
-  // Where training would run out of time before the teacher changed anything, the two ways out
-  // are said next to the choice: more time, or training online, which is offered when it fits and
-  // otherwise says what it needs. Online is the faster place, so when it is the one that is too
-  // slow, this computer is no better and there is nothing else to offer.
-  let alternative: Alternative | null = null;
-  if (!onHost && !hosted.available) {
-    // Where a button takes the person to set it up, it does the rest and the sentence is short.
-    const setUp = hosted.why === 'no_host' || hosted.why === 'no_key';
-    alternative = {
-      kind: 'missing',
-      text: setUp
-        ? "Online training isn't set up yet."
-        : `Online training isn't ready. ${hosted.reason}.`,
-      ...(setUp ? { onSetUp: onSetUpOnline } : {}),
-    };
-  } else if (!onHost && remoteSlow === null) {
-    alternative = {
-      kind: 'switch',
-      label: 'Train online instead',
-      onSwitch: () => onPlaceChange('hosted'),
-    };
-  }
-  const roomy = fits ? null : minutesForOneRound(job, job.student.trainOn);
   return (
-    <section aria-labelledby="train-where" className="flex flex-col gap-[18px]">
-      <Heading id="train-where">Where should it train?</Heading>
-      <RadioCardGroup
-        aria-label="Where should it train?"
-        value={job.student.trainOn}
-        onValueChange={onPlaceChange}
-      >
-        <RadioCard value="local" title={`Train on ${device}`} unavailable={localSlow !== null}>
-          <span>Slower: {taskTimeText('local')} a task</span>
-          <span>{trainHereLine(job, { mentor, student }, device)}</span>
-          {/* The callout says it for the place chosen, so the card does not say it again. */}
-          {localSlow && onHost && <span>{localSlow}</span>}
-        </RadioCard>
-        <RadioCard
-          value="hosted"
-          title="Train online"
-          unavailable={!hosted.available || remoteSlow !== null}
-        >
-          <span>Faster: {taskTimeText('hosted')} a task</span>
-          {/* What it costs and what leaves this computer are said wherever the app knows them. */}
-          <span>
-            {[hostedPrice, `${hostedPrice ? 'sends' : 'Sends'} tasks and files online`]
-              .filter(Boolean)
-              .join(' · ')}
-          </span>
-          {hosted.available ? (
-            remoteSlow && !onHost && <span>{remoteSlow}</span>
-          ) : (
-            <span>{hosted.reason}</span>
-          )}
-        </RadioCard>
-      </RadioCardGroup>
-      {!fits && (
-        <WontTeach
-          title={wontTeachTitle(job, job.student.trainOn, device)}
-          body={wontTeachBody(job, job.student.trainOn, chosen, { mentor, student })}
-          allow={
-            roomy === null
-              ? null
-              : {
-                  label: `Allow ${capText(roomy)}`,
-                  gives: allowingLine(roomy),
-                  onAllow: () => onAllowTime(roomy),
-                }
-          }
-          onRaiseLimit={onRaiseLimit}
-          alternative={alternative}
-        />
-      )}
-      {fits && (localSlow || remoteSlow) && (
-        <button
-          type="button"
-          onClick={onRaiseLimit}
-          className="-mt-1.5 inline-flex items-center gap-1 self-start rounded-mark text-small text-fg transition-colors duration-150"
-        >
-          Allow more time
-          <ChevronRight size={13} strokeWidth={1.8} aria-hidden />
-        </button>
-      )}
-      {onRetryKeys && (
-        <button
-          type="button"
-          onClick={onRetryKeys}
-          className="-mt-1.5 inline-flex items-center gap-1.5 self-end rounded-mark text-small text-fg transition-colors duration-150"
-        >
-          <RotateCw size={12} aria-hidden />
-          Check for the key again
-        </button>
-      )}
-
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(340px,100%),1fr))] overflow-hidden rounded-card bg-card shadow-edge">
-        <PlanColumn
-          title="Estimated time"
-          lines={time}
-          total={shortSpan(planSeconds(job, chosen, comparing, testPlace))}
-        />
-        <PlanColumn
-          title="Estimated cost"
-          lines={cost}
-          total={costTotal === null ? '–' : formatUsd(costTotal)}
-          className="border-l border-line"
-        />
-      </div>
-
-      <div className="flex flex-col gap-2.5 rounded-card bg-card px-[22px] py-5 shadow-edge">
-        <div className="flex items-baseline justify-between gap-4">
-          <label htmlFor={capId} className="text-body">
-            {mentor} spending cap
-          </label>
-          <span className="font-mono text-body tabular-nums">{formatUsd(cap)}</span>
-        </div>
-        <Slider
-          id={capId}
-          min={Math.min(1, Math.floor(cap))}
-          max={capMax}
-          step={1}
-          value={cap}
-          onValueChange={onCapChange}
-          aria-label={`${mentor} spending cap`}
-          aria-valuetext={formatUsd(cap)}
-        />
-        <span className="text-fg text-pretty">
-          {expected === null
-            ? `No price on file for ${mentor}`
-            : expected < cap
-              ? `${aboutUsd(expected)} expected`
-              : `${aboutUsd(expected)} expected, more than the cap, so training may stop early`}
-        </span>
-      </div>
-
-      {baselines && (
+    <>
+      <SheetRow label="Estimate" region="Estimate">
         <div className="flex flex-col gap-1">
-          <Checkbox
-            checked={baselines.checked}
-            onCheckedChange={baselines.onCheckedChange}
-            label="Also train three simpler versions to compare"
-            className="self-start"
-          />
-          <p className="m-0 pl-7 text-small text-fg">Adds {adds}</p>
+          <div className="flex min-h-10 flex-wrap items-center gap-x-8 gap-y-1 font-display text-h2 font-semibold tabular-nums">
+            <span>{shortSpan(planSeconds(job, chosen, comparing, testPlace))}</span>
+            {costTotal === null ? (
+              <span>–</span>
+            ) : (
+              <span role="img" aria-label={formatUsd(costTotal)}>
+                <NumberTicker value={costTotal} kind="currency" />
+              </span>
+            )}
+          </div>
+          <Disclosure label="Breakdown">
+            <div className="flex flex-col gap-6 pb-1 pt-1">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(280px,100%),1fr))] gap-x-10 gap-y-6">
+                <PlanList label="Estimated time" lines={time} />
+                {cost.length > 0 && <PlanList label="Estimated cost" lines={cost} />}
+              </div>
+              <ul className="m-0 flex list-disc flex-col gap-1.5 pl-5 text-small text-pretty">
+                {notes.map((note) => (
+                  <li key={note}>{note}</li>
+                ))}
+              </ul>
+            </div>
+          </Disclosure>
         </div>
+      </SheetRow>
+      <SheetRow label={`${mentor} spending cap`} htmlFor={capId}>
+        <div className="flex flex-col gap-1">
+          <div className="flex min-h-10 items-center gap-5">
+            <Slider
+              id={capId}
+              min={Math.min(1, Math.floor(cap))}
+              max={capMax}
+              step={1}
+              value={cap}
+              onValueChange={onCapChange}
+              aria-label={`${mentor} spending cap`}
+              aria-valuetext={formatUsd(cap)}
+              className="flex-1"
+            />
+            <span
+              aria-hidden
+              className="w-16 shrink-0 text-right font-display text-h2 font-semibold tabular-nums"
+            >
+              <NumberTicker value={cap} kind="currency" />
+            </span>
+          </div>
+          <span className="text-small text-pretty">
+            {expected === null
+              ? `No price on file for ${mentor}`
+              : expected < cap
+                ? `${aboutUsd(expected)} expected`
+                : `${aboutUsd(expected)} expected, more than the cap, so training may stop early`}
+          </span>
+        </div>
+      </SheetRow>
+      {baselines && (
+        <SheetRow label="Comparison">
+          <div className="flex flex-col gap-1 pt-2.5">
+            <Checkbox
+              checked={baselines.checked}
+              onCheckedChange={baselines.onCheckedChange}
+              label="Also train three simpler versions to compare"
+              className="self-start"
+            />
+            <p className="m-0 pl-7 text-small">Adds {adds}</p>
+          </div>
+        </SheetRow>
       )}
-
-      <details className="group text-small text-fg">
-        <summary className="inline-flex cursor-pointer select-none list-none items-center gap-1.5 rounded-mark text-fg transition-colors duration-150 [&::-webkit-details-marker]:hidden">
-          <ChevronRight
-            size={13}
-            strokeWidth={1.8}
-            aria-hidden
-            className="transition-transform duration-200 group-open:rotate-90"
-          />
-          How this is estimated
-        </summary>
-        <ul className="m-0 mt-2.5 flex list-disc flex-col gap-1.5 pl-5 text-pretty">
-          <li>
-            Training stops at the {Math.round(job.requirements.passRate * 100)}% target, after{' '}
-            {maxRounds} rounds or after {capText(maxWallMinutes)}, or sooner once changes stop
-            helping. Paused time doesn&apos;t count.
-          </li>
-          <li>
-            {deviceLabel(currentPlatform())}: {roundsLine(job, local)}.
-          </li>
-          {hosted.available && provider && <li>Online: {roundsLine(job, remote)}.</li>}
-          <li>A promising change is measured twice, so its round takes longer.</li>
-          <li>
-            {mentor} {teacherWorks(job, device)} and sees the practice attempts and the file samples
-            it needs.
-          </li>
-          {baselines && (
-            <li>
-              The three simpler versions are {student} on its own, a setup {mentor} writes in one
-              go, and {student} revising its own. They run after this agent.
-            </li>
-          )}
-          <li>Only {mentor}&apos;s bill has a hard cap.</li>
-        </ul>
-      </details>
-    </section>
+    </>
   );
 }
 
-function PlanColumn({
-  title,
-  lines,
-  total,
-  className,
-}: {
-  title: string;
-  lines: readonly PlanLine[];
-  total: string;
-  className?: string;
-}) {
-  const id = useId();
+/** The lines of one part of the breakdown, a figure to each, split by hairlines. */
+function PlanList({ label, lines }: { label: string; lines: readonly PlanLine[] }) {
   return (
-    <section aria-labelledby={id} className={cn('flex flex-col px-[22px] pb-4 pt-5', className)}>
-      <h3 id={id} className="m-0 mb-1.5 text-small font-normal text-fg">
-        {title}
-      </h3>
-      <dl className="m-0 flex flex-1 flex-col">
+    <section aria-label={label}>
+      <dl className="m-0 flex flex-col">
         {lines.map((line) => (
-          <div key={line.label} className="flex items-baseline justify-between gap-4 py-2">
-            <dt className="flex min-w-0 flex-col gap-0.5">
+          <div
+            key={line.label}
+            className="flex items-baseline justify-between gap-4 border-t border-line py-2.5 first:border-t-0 first:pt-0"
+          >
+            <dt className="flex min-w-0 flex-col">
               <span>{line.label}</span>
-              <span className="text-small text-fg">{line.detail}</span>
+              {line.detail && <span className="text-small text-pretty">{line.detail}</span>}
             </dt>
             <dd className="m-0 shrink-0 tabular-nums">{line.value}</dd>
           </div>
         ))}
-        <div className="mt-auto flex items-baseline justify-between gap-4 border-t border-line pt-3">
-          <dt className="font-medium">In all</dt>
-          <dd className="m-0 font-medium tabular-nums">{total}</dd>
-        </div>
       </dl>
     </section>
   );

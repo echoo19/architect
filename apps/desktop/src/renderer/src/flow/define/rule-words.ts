@@ -54,26 +54,28 @@ export function waitLine(wait: TrainingWait | null): string | null {
 }
 
 /**
- * What the section says first: who read the policy, and what rests on the rule. The agent is
- * called by its short name, as everywhere else on the screen, and the sentence says what happens
- * in the order it happens: the right answers come from the rule, the agent is graded against them.
+ * What the section says first: who wrote the rule, and what rests on it. The agent is called by
+ * its short name, as everywhere else on the screen, and the sentence says what happens in the
+ * order it happens: the rule gives the right answers, and the agent is graded against them.
  */
 export function reviewIntro(teacher: string, student: string, count: number): string {
   return count === 1
-    ? `${teacher} turned your policy into this rule. Architect works out the right answer to every task from this rule and grades ${student} against those answers, so if the rule is wrong, the grades are wrong too.`
-    : `${teacher} turned your policy into these rules. Architect works out the right answer to every task from these rules and grades ${student} against those answers, so if the rules are wrong, the grades are wrong too.`;
+    ? `${teacher} wrote this rule from your policy. Architect grades ${student} against the answers it gives.`
+    : `${teacher} wrote these rules from your policy. Architect grades ${student} against the answers they give.`;
+}
+
+/** The question beside the button that confirms: whether the rule is the one the person meant. */
+export function confirmLine(count: number): string {
+  return count === 1 ? 'Is this the rule you meant?' : 'Are these the rules you meant?';
 }
 
 /**
- * The line beside the button that confirms, and what the way out of it keeps: changing the
- * description puts the person's words and files back as they left them, and drafts again, so the
- * teacher's questions are asked again and the answers to them are not kept.
+ * What the way out of the confirmation keeps: changing the description puts the person's words and
+ * files back as they left them, and drafts again, so the teacher's questions are asked again and
+ * the answers to them are not kept.
  */
-export function confirmLine(teacher: string, count: number): string {
-  const kept = `Your words and files come back as you left them, and ${teacher} may ask its questions again.`;
-  return count === 1
-    ? `Check that the lines from your policy are the right ones, and that the rule and the examples match them. Training can't start until you confirm it. If it isn't right, change the description. ${kept}`
-    : `Check that the lines from your policy are the right ones, and that the rules and the examples match them. Training can't start until you confirm them. If they aren't right, change the description. ${kept}`;
+export function changeHint(teacher: string): string {
+  return `Your words and files come back as you left them, and ${teacher} may ask its questions again.`;
 }
 
 /** When the person confirmed, as a short date: "Oct 29". */

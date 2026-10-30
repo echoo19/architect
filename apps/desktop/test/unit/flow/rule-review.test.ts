@@ -1,6 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { RuleDetails, TaskPlan } from '@architect/shared';
+import { TooltipProvider } from '@architect/ui';
 import { describe, expect, it } from 'vitest';
 import { RuleReview } from '../../../src/renderer/src/flow/define/RuleReview';
 import { makeJob } from './factories';
@@ -75,7 +76,11 @@ function review(
   details: RuleDetails = DETAILS,
 ): string {
   return renderToStaticMarkup(
-    createElement(RuleReview, { job: makeJob(), plan: plan(confirmation, details) }),
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(RuleReview, { job: makeJob(), plan: plan(confirmation, details) }),
+    ),
   );
 }
 
@@ -98,9 +103,7 @@ describe('the rule as Define puts it in front of the person', () => {
   it('puts the tag of an example that is not a record first and set apart, and on no other', () => {
     // "Like T-2144, but with parts cost 0.005" was taken for T-2144 with a new price, so the tag
     // is the first thing under the request, set apart from the quiet tags beside it.
-    const [real, made] = html
-      .split('<li class="flex flex-col gap-3.5 rounded-card bg-card')
-      .slice(1);
+    const [real, made] = html.split('<li class="flex flex-col gap-3 border-t border-line').slice(1);
     if (real === undefined || made === undefined) throw new Error('There are two examples.');
     expect(real).toContain('What does ticket T-2148 cost the customer?');
     expect(real).not.toContain('Not from your records');
@@ -109,15 +112,14 @@ describe('the rule as Define puts it in front of the person', () => {
     expect(made.indexOf('Not from your records')).toBeLessThan(
       made.indexOf('Shows how the rule rounds the total'),
     );
-    // Set apart in a heavier weight with an edge and its mark, and not in the red the changed
-    // rule wears: a made-up example is not bad news.
+    // Set apart in a heavier weight with its mark, and not in the red the changed rule wears: a
+    // made-up example is not bad news.
     expect(made).toMatch(
-      /<span class="[^"]*font-medium shadow-edge-strong[^"]*"[^>]*><svg[^>]*lucide-info[^>]*aria-hidden="true"[^>]*>[\s\S]*?<\/svg>Not from your records<\/span>/,
+      /<span class="[^"]*font-medium[^"]*"[^>]*><svg[^>]*lucide-info[^>]*aria-hidden="true"[^>]*>[\s\S]*?<\/svg>Not from your records<\/span>/,
     );
     expect(made).not.toMatch(/text-danger[^"]*"[^>]*><svg[^>]*>[\s\S]*?<\/svg>Not from/);
-    // What the example shows stays the plain tag it was.
-    expect(made).toMatch(/bg-hover[^"]*"[^>]*>Shows how the rule rounds the total</);
-    expect(made).not.toMatch(/font-medium[^"]*"[^>]*>Shows how the rule rounds the total</);
+    // What the example shows stays the plain tag it was: no heavier than the words around it.
+    expect(made).toMatch(/<span>Shows how the rule rounds the total<\/span>/);
   });
 
   it('says what an example shows, not what it is called, and without brackets', () => {
@@ -134,7 +136,7 @@ describe('the rule as Define puts it in front of the person', () => {
   });
 
   it('tells the rule as numbered steps in plain words, not as one sentence that reads like a formula', () => {
-    const rule = html.slice(html.indexOf('The rule, in words'), html.indexOf('>Examples<'));
+    const rule = html.slice(html.indexOf('>The rule<'), html.indexOf('>Examples<'));
     expect(rule).toContain('<ol');
     const steps = [...rule.matchAll(/<li[\s\S]*?<\/li>/g)].map((item) => text(item[0]).trim());
     expect(steps).toEqual([
@@ -148,7 +150,7 @@ describe('the rule as Define puts it in front of the person', () => {
   });
 
   it('sets a file named in a step in mono, apart from the words of the sentence', () => {
-    const rule = html.slice(html.indexOf('The rule, in words'), html.indexOf('>Examples<'));
+    const rule = html.slice(html.indexOf('>The rule<'), html.indexOf('>Examples<'));
     expect(rule).toContain('<span class="font-mono">(customers.csv)</span>');
     // Only the file is set in mono: the words around it are not.
     expect(rule).toMatch(/When member <span class="font-mono">\(customers\.csv\)<\/span> is yes/);
@@ -158,10 +160,7 @@ describe('the rule as Define puts it in front of the person', () => {
 
   it('says the rule as its one sentence when there are no steps to tell', () => {
     const sentence = review({ state: 'needed', token: 'abc' }, { ...DETAILS, steps: undefined });
-    const rule = sentence.slice(
-      sentence.indexOf('The rule, in words'),
-      sentence.indexOf('>Examples<'),
-    );
+    const rule = sentence.slice(sentence.indexOf('>The rule<'), sentence.indexOf('>Examples<'));
     expect(rule).not.toContain('<ol');
     expect(text(rule)).toContain('Start with (labor hours rounded up to a multiple of 0.5)');
   });
@@ -172,32 +171,32 @@ describe('the rule as Define puts it in front of the person', () => {
     );
   });
 
-  it('says what the rule is for in the names the screen uses, and checks the lines it quotes', () => {
-    // The agent is Glimmer here as everywhere on the screen, and "passages" is nowhere: the section
-    // is called "From your policy".
+  it('says what the rule is for in the names the screen uses, and asks the one question', () => {
+    // The agent is Glimmer here as everywhere on the screen, and "passages" is nowhere: the row is
+    // called "From your policy".
     expect(text(html)).toContain(
-      'Spark turned your policy into this rule. Architect works out the right answer to every task from this rule and grades Glimmer against those answers, so if the rule is wrong, the grades are wrong too.',
+      'Spark wrote this rule from your policy. Architect grades Glimmer against the answers it gives.',
     );
-    expect(text(html)).toContain('Check that the lines from your policy are the right ones');
+    expect(text(html)).toContain('Is this the rule you meant?');
     expect(text(html)).toContain('From your policy');
     expect(text(html)).not.toMatch(/passage|the agent is tested on/i);
   });
 
-  it('keeps the version out of the way of the title, in Details, and shows no code up front', () => {
+  it('keeps the version out of the way of the title, under how the numbers are read, and shows no code up front', () => {
     expect(html).not.toContain('affdb6c549fa');
     expect(text(html)).not.toMatch(/version/i);
     // A fold of its own, which the person opens for what is behind the rule.
-    expect(html).toMatch(/aria-expanded="false"[^>]*>[\s\S]*?Details/);
-    // The title stands alone in the card's header.
-    expect(html).toMatch(/<header><h3[^>]*>[\s\S]*Ticket totals<\/h3><\/header>/);
+    expect(html).toMatch(/aria-expanded="false"[^>]*>[\s\S]*?How numbers are read/);
+    expect(text(html)).not.toMatch(/>\s*Details\s*</);
+    // The title stands alone at the head of the card.
+    expect(html).toMatch(/<h3[^>]*>[\s\S]*?Ticket totals<\/h3>/);
   });
 
-  it('tells the truth about the way out: change the description, and what comes back', () => {
+  it('offers the way out: change the description, which says what comes back when it is asked', () => {
     expect(html).toContain('>Change the description<');
     expect(html).not.toContain('Describe the job again');
-    expect(text(html)).toContain(
-      'Your words and files come back as you left them, and Spark may ask its questions again.',
-    );
+    // What comes back is the button's tooltip, so it is not on the page until it is asked for.
+    expect(text(html)).not.toContain('come back as you left them');
   });
 
   it('reads the question beside each answer in a heavier weight than the answer, not dimmed', () => {

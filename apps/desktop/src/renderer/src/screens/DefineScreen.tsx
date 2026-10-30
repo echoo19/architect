@@ -6,7 +6,16 @@ import {
   type Method,
   type StudentTarget,
 } from '@architect/shared';
-import { Button, Skeleton, toast } from '@architect/ui';
+import {
+  Button,
+  Collapse,
+  IconButton,
+  Skeleton,
+  Stagger,
+  StaggerItem,
+  toast,
+  Tooltip,
+} from '@architect/ui';
 import { SlidersHorizontal } from 'lucide-react';
 import { flowApi } from '../api/client';
 import { useJob, useJobs, useSettings, useTaskPlan } from '../api/hooks';
@@ -18,9 +27,9 @@ import { trainsTooSlow, wontTeachTitle } from '../flow/define/estimates';
 import { hostedAvailability } from '../flow/define/hosted';
 import { Capabilities, FilePermissions, JobHeader, ReadyWhen } from '../flow/define/JobOverview';
 import { RuleReview } from '../flow/define/RuleReview';
-import { trainingWait, waitLine } from '../flow/define/rule-words';
+import { ruleTypesOf, trainingWait, waitLine } from '../flow/define/rule-words';
 import { RunNeeds } from '../flow/define/RunNeeds';
-import { TrainingPlace } from '../flow/define/TrainingPlace';
+import { TrainingPlace, TrainingRows } from '../flow/define/TrainingPlace';
 import { useJobEditor } from '../flow/define/use-job-editor';
 import { usePreflight } from '../flow/define/use-preflight';
 import { AddKeyDialog } from '../settings/models/AddKeyDialog';
@@ -33,12 +42,15 @@ import { FlowShell } from '../shell/FlowShell';
 const BASELINES: readonly Method[] = MethodSchema.options.filter(isBaselineMethod);
 
 /** Step two: the drafted job, what it will and won't do, when it's ready, and where it trains. */
+/** The page's column, as wide as the reading pages are: every block of Define sits in it. */
+const PAGE = 'mx-auto box-content flex max-w-[880px] flex-col px-8 pb-12 pt-12';
+
 export function DefineScreen({ jobId }: { jobId: string }) {
   const job = useJob(jobId);
   if (job.status === 'success') return <DefineEditor key={job.data.id} initial={job.data} />;
   return (
     <FlowShell title="New agent" step="Define">
-      <div className="mx-auto box-content flex max-w-[880px] flex-col gap-12 px-8 pb-10 pt-14">
+      <div className={PAGE}>
         {job.status === 'loading' ? (
           <DefineSkeleton />
         ) : (
@@ -55,20 +67,24 @@ export function DefineScreen({ jobId }: { jobId: string }) {
   );
 }
 
+/** The page as it will be: the title and what it does, the choice of a place, and the rows. */
 function DefineSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Loading the job" className="flex flex-col gap-12">
-      <div className="flex flex-col gap-4">
+    <div aria-busy="true" aria-label="Loading the job" className="flex flex-col gap-10">
+      <div className="flex flex-col gap-3">
         <Skeleton className="h-10 w-56" />
         <Skeleton className="h-4 w-[520px] max-w-full" />
-        <Skeleton shape="pill" className="h-[30px] w-48" />
       </div>
-      <Skeleton className="h-[188px] w-full rounded-card" />
       <div className="grid grid-cols-2 gap-12">
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-24 w-full" />
       </div>
-      <Skeleton className="h-[118px] w-full rounded-card" />
+      <Skeleton className="h-[104px] w-full rounded-card" />
+      <div className="flex flex-col gap-5">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </div>
     </div>
   );
 }
@@ -94,6 +110,14 @@ function DefineEditor({ initial }: { initial: Job }) {
   const [testPlace, setTestPlace] = useState<StudentTarget>('local');
 
   const comparisonMode = settings.data?.comparisonMode === true;
+  const baselines = comparisonMode
+    ? { checked: withBaselines, onCheckedChange: setWithBaselines }
+    : undefined;
+  // The rule is put in front of the person only where the plan has one to confirm.
+  const hasRule =
+    taskPlan.status !== 'error' &&
+    taskPlan.data?.confirmation !== undefined &&
+    ruleTypesOf(taskPlan.data).length > 0;
 
   const openAdvanced = (at: AdvancedTab) => {
     setTab(at);
@@ -182,12 +206,17 @@ function DefineEditor({ initial }: { initial: Job }) {
       step="Define"
       footer={
         <div className="mx-auto flex max-w-[880px] flex-wrap items-center justify-between gap-3">
-          <Button variant="ghost" className="-ml-3" onClick={() => openAdvanced(tab)}>
-            <SlidersHorizontal size={16} strokeWidth={1.8} aria-hidden />
-            Advanced settings
-          </Button>
+          <Tooltip content="Advanced settings">
+            <IconButton
+              label="Advanced settings"
+              className="-ml-2.5"
+              onClick={() => openAdvanced(tab)}
+            >
+              <SlidersHorizontal size={18} strokeWidth={1.8} aria-hidden />
+            </IconButton>
+          </Tooltip>
           <div className="flex items-center gap-2">
-            <span className="mr-2 text-small text-fg">
+            <span className="mr-2 text-small">
               {waitLine(wait) ??
                 (preflight.needs.length > 0
                   ? preflight.summary
@@ -208,60 +237,81 @@ function DefineEditor({ initial }: { initial: Job }) {
         </div>
       }
     >
-      <div className="mx-auto box-content flex max-w-[880px] flex-col gap-12 px-8 pb-10 pt-14">
-        <JobHeader job={job} />
-        <Capabilities job={job} />
+      <Stagger className={PAGE}>
+        <StaggerItem className="pb-10">
+          <JobHeader job={job} />
+        </StaggerItem>
+        {(job.does.length > 0 || job.doesNot.length > 0) && (
+          <StaggerItem className="pb-10">
+            <Capabilities job={job} />
+          </StaggerItem>
+        )}
         <RunNeeds needs={preflight.needs} onAction={preflight.act} busyId={preflight.busyId} />
-        {taskPlan.status === 'error' && (
-          <div
-            role="alert"
-            className="flex flex-wrap items-center justify-between gap-4 rounded-card bg-danger-soft px-6 py-5"
-          >
-            <p className="m-0 max-w-[560px] text-pretty">
-              {`Couldn't check whether this job has a rule to confirm: ${taskPlan.error.message} Training can't start until it is checked.`}
-            </p>
-            <Button onClick={taskPlan.reload}>Try again</Button>
+        <Collapse open={taskPlan.status === 'error'}>
+          <div className="pb-10">
+            {taskPlan.status === 'error' && (
+              <div
+                role="alert"
+                className="flex flex-wrap items-center justify-between gap-4 rounded-card bg-danger-soft px-6 py-5"
+              >
+                <p className="m-0 max-w-[560px] text-pretty">
+                  {`Couldn't check whether this job has a rule to confirm: ${taskPlan.error.message} Training can't start until it is checked.`}
+                </p>
+                <Button onClick={taskPlan.reload}>Try again</Button>
+              </div>
+            )}
           </div>
-        )}
-        {taskPlan.data && taskPlan.status !== 'error' && (
-          <RuleReview job={job} plan={taskPlan.data} />
-        )}
-        <TrainingPlace
-          job={job}
-          hosted={hosted}
-          testPlace={testPlace}
-          onPlaceChange={(trainOn) =>
-            editor.change((current) => ({ ...current, student: { ...current.student, trainOn } }))
-          }
-          onCapChange={(maxMentorUsd) =>
-            editor.change(
-              (current) => ({ ...current, budget: { ...current.budget, maxMentorUsd } }),
-              400,
-            )
-          }
-          onRetryKeys={preflight.keys === 'error' ? preflight.reloadKeys : undefined}
-          onRaiseLimit={() => openAdvanced('budget')}
-          onAllowTime={(maxWallMinutes) =>
-            editor.change((current) => ({
-              ...current,
-              budget: { ...current.budget, maxWallMinutes },
-            }))
-          }
-          onSetUpOnline={() => openAdvanced('student')}
-          baselines={
-            comparisonMode
-              ? { checked: withBaselines, onCheckedChange: setWithBaselines }
-              : undefined
-          }
-        />
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-12 border-t border-line pt-10">
+        </Collapse>
+        <Collapse open={hasRule}>
+          <div className="pb-10">
+            {taskPlan.data && taskPlan.status !== 'error' && (
+              <RuleReview job={job} plan={taskPlan.data} />
+            )}
+          </div>
+        </Collapse>
+        <StaggerItem className="pb-10">
+          <TrainingPlace
+            job={job}
+            hosted={hosted}
+            testPlace={testPlace}
+            onPlaceChange={(trainOn) =>
+              editor.change((current) => ({
+                ...current,
+                student: { ...current.student, trainOn },
+              }))
+            }
+            onRetryKeys={preflight.keys === 'error' ? preflight.reloadKeys : undefined}
+            onRaiseLimit={() => openAdvanced('budget')}
+            onAllowTime={(maxWallMinutes) =>
+              editor.change((current) => ({
+                ...current,
+                budget: { ...current.budget, maxWallMinutes },
+              }))
+            }
+            onSetUpOnline={() => openAdvanced('student')}
+            baselines={baselines}
+          />
+        </StaggerItem>
+        <StaggerItem className="flex flex-col">
+          <TrainingRows
+            job={job}
+            hosted={hosted}
+            testPlace={testPlace}
+            onCapChange={(maxMentorUsd) =>
+              editor.change(
+                (current) => ({ ...current, budget: { ...current.budget, maxMentorUsd } }),
+                400,
+              )
+            }
+            baselines={baselines}
+          />
           <ReadyWhen job={job} />
           <FilePermissions
             job={job}
             onChange={(permissions) => editor.change((current) => ({ ...current, permissions }))}
           />
-        </div>
-      </div>
+        </StaggerItem>
+      </Stagger>
       <AdvancedDialog
         open={advancedOpen}
         onOpenChange={(open) => {
