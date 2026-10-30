@@ -37,7 +37,7 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
         <span
           className={cn(
             'font-display text-hero font-semibold leading-none tabular-nums',
-            !score && 'text-fg',
+            !score && 'text-fg-dim',
           )}
         >
           {score ? formatRate(score) : '–'}
