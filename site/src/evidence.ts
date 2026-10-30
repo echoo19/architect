@@ -10,6 +10,8 @@ import { REPO } from './content';
 /** The documents the figures come from, by the short name used under each block. */
 export const SOURCES = {
   phil: { name: 'phil-1.md', path: 'docs/comparisons/phil-1.md' },
+  local: { name: 'phil-1-local.md', path: 'docs/comparisons/phil-1-local.md' },
+  scale: { name: 'SCALE.md', path: 'docs/SCALE.md' },
   second: { name: 'returns-desk-2.md', path: 'docs/comparisons/returns-desk-2.md' },
   plan: { name: 'returns-desk-2-plan.md', path: 'docs/comparisons/returns-desk-2-plan.md' },
   first: { name: 'returns-desk-1.md', path: 'docs/comparisons/returns-desk-1.md' },
@@ -613,4 +615,78 @@ export const ROUNDS_FIELD: readonly Round[] = [
 export const FIELD_MONEY = {
   spark: 0.58,
   glimmer: 4.26,
+} as const;
+
+/**
+ * Phil, frozen, on the same 120 final-test tasks again on the 2-bit Glimmer that runs on one
+ * 12 GB graphics card, from `phil-1-local.md`. Hosted passes are Phil's in `FIELD_ARMS`. Wins and
+ * losses are local against hosted, task by task; intervals are the report's Newcombe intervals.
+ */
+export interface LocalRow {
+  group: GroupKey | 'all';
+  n: number;
+  local: number;
+  hosted: number;
+  wins: number;
+  losses: number;
+  diff: number;
+  low: number;
+  high: number;
+}
+
+export const LOCAL_ROWS: readonly LocalRow[] = [
+  {
+    group: 'taught',
+    n: 48,
+    local: 45,
+    hosted: 44,
+    wins: 3,
+    losses: 2,
+    diff: 2.1,
+    low: -9.3,
+    high: 13.7,
+  },
+  {
+    group: 'harborview',
+    n: 48,
+    local: 41,
+    hosted: 43,
+    wins: 3,
+    losses: 5,
+    diff: -4.2,
+    low: -17.2,
+    high: 8.7,
+  },
+  {
+    group: 'real',
+    n: 24,
+    local: 17,
+    hosted: 12,
+    wins: 6,
+    losses: 1,
+    diff: 20.8,
+    low: -0.9,
+    high: 39.6,
+  },
+  {
+    group: 'all',
+    n: 120,
+    local: 103,
+    hosted: 99,
+    wins: 12,
+    losses: 8,
+    diff: 3.3,
+    low: -4.3,
+    high: 11.0,
+  },
+];
+
+/** Time per task and tasks stopped at the step limit, local against hosted. */
+export const LOCAL_SPEED = {
+  medianLocal: 38,
+  medianHosted: 9,
+  slowestLocal: 174,
+  slowestHosted: 59,
+  stepLimitLocal: 11,
+  stepLimitHosted: 7,
 } as const;

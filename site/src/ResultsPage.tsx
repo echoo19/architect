@@ -8,6 +8,8 @@ import {
   FIELD_TEST_SIZE,
   FIRST,
   GROUPS,
+  LOCAL_ROWS,
+  LOCAL_SPEED,
   MONEY,
   PER_TYPE,
   REPAIR,
@@ -26,6 +28,7 @@ import {
   type Comparison,
   type FieldPair,
   type GroupKey,
+  type LocalRow,
   type Pair,
   type Round,
   type SourceKey,
@@ -59,11 +62,13 @@ const PAPERS: Partial<Record<RefKey, string>> = {
 
 const REFERENCES: readonly { key: RefKey; what: string }[] = [
   { key: 'phil', what: "The tutor run's report." },
+  { key: 'local', what: "The tutor's check on the build that runs on one graphics card." },
   { key: 'plan', what: "The second comparison's plan, published before it ran." },
   { key: 'second', what: "The second comparison's report." },
   { key: 'first', what: "The first comparison's report." },
   { key: 'hackathon', what: "The repair shop's run." },
   { key: 'readme', what: 'The project overview.' },
+  { key: 'scale', what: 'The plan for going from a specialist to a field model.' },
   { key: 'gepa', what: 'GEPA: improving prompts from failures by reflection.' },
   { key: 'ace', what: 'ACE: agents that grow their own context from experience.' },
   { key: 'taubench', what: 'tau-bench: checking an agent by the final state of its work.' },
@@ -468,11 +473,66 @@ function SkillTable() {
   );
 }
 
+/** Phil's passes on this computer against hosted, group by group, with the paired difference. */
+function LocalTable() {
+  const name = (row: LocalRow) => `${groupName(row.group)} (${row.n})`;
+  return (
+    <Table
+      label="Phil on this computer and hosted, the same final-test tasks"
+      columns={['Group', 'This computer', 'Hosted', 'Won', 'Lost', 'Difference, 95% interval']}
+      rows={LOCAL_ROWS.map((row) => [
+        name(row),
+        `${row.local} of ${row.n}`,
+        `${row.hosted} of ${row.n}`,
+        row.wins,
+        row.losses,
+        `${signed(row.diff)}, ${signed(row.low)} to ${signed(row.high)}`,
+      ])}
+    />
+  );
+}
+
+/** What is measured, what is built and tested on stand-ins, and what has not been done. */
+const SCALE_STATUS: readonly (readonly [string, string, string])[] = [
+  [
+    'Instructions and small tools taught for a field',
+    'Measured',
+    'The tutor run, with sealed organizations, under one seed (sections 1.2 and 1.5).',
+  ],
+  [
+    'Export of verified demonstrations and an outcome scorer',
+    'Built',
+    'Tested on stand-ins. Nothing from a sealed organization goes in.',
+  ],
+  [
+    "Training plans sized from a model's configuration",
+    'Built',
+    'The memory terms are estimates, shown with their arithmetic.',
+  ],
+  [
+    'Launch bundles for Slurm and Kubernetes',
+    'Built, experimental',
+    'Checked structurally and against simulated schedulers. Run by you, with your own tools.',
+  ],
+  ['Adapter training on one rented GPU', 'Built', 'Tested against stand-ins.'],
+  [
+    'GPU execution, large-model compatibility, training gains',
+    'Unverified',
+    'No cluster job has run.',
+  ],
+  ['A model trained on a field', 'Future', 'None has been trained.'],
+];
+
 const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
   {
-    title: 'Hosted Glimmer, one seed, for the tutor.',
-    text: 'Every figure in section 1 is from hosted Glimmer at full precision under seed 101. The build set to run on your computer was not measured. A second seed was declared and not run.',
+    title: 'Mostly hosted Glimmer, one seed, for the tutor.',
+    text: 'Every figure in section 1 except 1.5 is from hosted Glimmer at full precision under seed 101. Section 1.5 is one check of the finished Phil on the build that runs on a computer, also under one seed. A second seed was declared and not run.',
     from: 'phil',
+  },
+  {
+    title: 'The local check is one seed and one setup.',
+    text: 'Phil was the one setup run on this computer. The run of the blank setup on the Real academy stopped after 2 of 24 tasks when the system ran low on memory, so the local result says nothing about how the untaught Glimmer does there. The test had already been opened, and nothing was tuned for it.',
+    from: 'local',
   },
   {
     title: 'A small real sample.',
@@ -506,7 +566,7 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
   },
   {
     title: 'Glimmer served online.',
-    text: 'Every figure is from Glimmer served online. The smaller build that runs on your computer has not taken the final test, and none of these agents has trained weights.',
+    text: 'The returns desk figures are from Glimmer served online. The smaller build that runs on your computer has not taken those final tests, and none of these agents has trained weights.',
     from: 'second',
   },
   {
@@ -573,7 +633,7 @@ export function ResultsPage() {
           <h2 className="m-0 mt-10 font-display text-h2 font-semibold">Abstract</h2>
           <p className="t-read mt-3">
             <Actors
-              text={`Architect turns an organization's own material into a specialist that runs on its own computer. A large model, Spark, studies the material and teaches a small one, Glimmer, by changing its instructions and small tools. A change is kept only if it raises the score on check tasks Spark never sees. In the run on test-prep academies, Spark taught Glimmer to be Phil, a tutor that answers after a student's wrong answer, on three generated academies. A sealed test of ${FIELD_TEST_SIZE} tasks then included a fourth generated academy and a real one that neither model had seen. On the fourth, Phil passed 43 of 48 tasks and Glimmer on a blank setup 24. On the real academy, Phil passed 12 of 24 and the blank setup 9, a difference whose interval includes zero, so no gain is shown there. In an earlier run on one job, a returns desk, teaching took Glimmer from ${second.alone.passed} to ${second.taught.passed} of ${TEST_SIZE} requests for 42 cents of Spark. Every figure is from Glimmer served online under one seed.`}
+              text={`Architect turns an organization's own material into a specialist that runs on its own computer. A large model, Spark, studies the material and teaches a small one, Glimmer, by changing its instructions and small tools. A change is kept only if it raises the score on check tasks Spark never sees. In the run on test-prep academies, Spark taught Glimmer to be Phil, a tutor that answers after a student's wrong answer, on three generated academies. A sealed test of ${FIELD_TEST_SIZE} tasks then included a fourth generated academy and a real one that neither model had seen. On the fourth, Phil passed 43 of 48 tasks and Glimmer on a blank setup 24. On the real academy, Phil passed 12 of 24 and the blank setup 9, a difference whose interval includes zero, so no gain is shown there. In an earlier run on one job, a returns desk, teaching took Glimmer from ${second.alone.passed} to ${second.taught.passed} of ${TEST_SIZE} requests for 42 cents of Spark. Phil was then frozen and taken again on the build of Glimmer that runs on one graphics card, where it passed ${LOCAL_ROWS[3]?.local} of ${FIELD_TEST_SIZE} tasks against ${LOCAL_ROWS[3]?.hosted} hosted, with no difference shown, and took about four times as long. Every figure is under one seed, and all but the local check are from Glimmer served online.`}
             />
           </p>
           <ul className="m-0 mt-8 grid list-none gap-x-8 gap-y-5 border-y border-line p-0 py-6 sm:grid-cols-3">
@@ -692,7 +752,22 @@ export function ResultsPage() {
             records and is not confirmed by them.
           </Text>
 
-          <Subsection number="1.5" title="Direction" />
+          <Subsection number="1.5" title="On this computer" />
+          <Text>
+            <Actors
+              text={`Phil was then frozen as it was and took the same ${FIELD_TEST_SIZE} tasks again on the 2-bit Glimmer that runs on one graphics card with 12 GB, through Ollama. Nothing was taught or tuned for this check, and the test had already been opened. Phil passed ${LOCAL_ROWS[3]?.local} of ${FIELD_TEST_SIZE}, against ${LOCAL_ROWS[3]?.hosted} hosted. The difference is ${signed(LOCAL_ROWS[3]?.diff ?? 0)} points with a 95% interval of ${signed(LOCAL_ROWS[3]?.low ?? 0)} to ${signed(LOCAL_ROWS[3]?.high ?? 0)}, and no group shows a difference (Table 4). The median task took ${LOCAL_SPEED.medianLocal} s here and ${LOCAL_SPEED.medianHosted} s hosted, and the slowest 5% took over ${LOCAL_SPEED.slowestLocal} s here against ${LOCAL_SPEED.slowestHosted} s. Tasks that reached the step limit numbered ${LOCAL_SPEED.stepLimitLocal} here and ${LOCAL_SPEED.stepLimitHosted} hosted. The untaught Glimmer did not finish on the Real academy locally, so the check does not show how that build does without Phil's setup`}
+            />
+            <Cite to={['local']} />.
+          </Text>
+          <Exhibit
+            table
+            label="Table 4"
+            caption="Phil's final-test passes on this computer and hosted, with the tasks won and lost on this computer, and the difference with its 95% interval."
+          >
+            <LocalTable />
+          </Exhibit>
+
+          <Subsection number="1.6" title="Direction" />
           <Text>
             <Actors text="The larger idea is that the same loop, run over many organizations of one field, would give verified curricula and checkable rewards, which models built for a field need. This run does not show that. It covers one field, three taught academies, one unseen generated academy and one real academy with 24 tasks" />
             <Cite to={['phil']} />.
@@ -734,7 +809,7 @@ export function ResultsPage() {
           <Subsection number="3.1" title="A new returns desk" />
           <Text>
             <Actors
-              text={`Teaching could run up to 8 rounds. After it, Glimmer passed ${second.taught.passed} of ${TEST_SIZE}, against ${second.alone.passed} on its own and ${second.oneShot.passed} with Spark's one-shot setup (Figure 4, Table 4)`}
+              text={`Teaching could run up to 8 rounds. After it, Glimmer passed ${second.taught.passed} of ${TEST_SIZE}, against ${second.alone.passed} on its own and ${second.oneShot.passed} with Spark's one-shot setup (Figure 4, Table 5)`}
             />
             <Cite to={['second']} />.
           </Text>
@@ -744,12 +819,12 @@ export function ResultsPage() {
           >
             <PassRates comparison={SECOND} />
           </Exhibit>
-          <Exhibit table label="Table 4" caption="Passes by kind of request, of 20 each.">
+          <Exhibit table label="Table 5" caption="Passes by kind of request, of 20 each.">
             <ArmTable comparison={SECOND} />
           </Exhibit>
           <Text>
             <Actors
-              text={`Matched request by request, the taught Glimmer won ${second.againstAlone.wins} requests that Glimmer alone failed and lost ${second.againstAlone.losses}, a difference of ${signed(second.againstAlone.diff)} points (95% interval ${interval(second.againstAlone)}). Against the one-shot setup it won ${second.againstOneShot.wins} and lost ${second.againstOneShot.losses} (Figure 5, Table 5).`}
+              text={`Matched request by request, the taught Glimmer won ${second.againstAlone.wins} requests that Glimmer alone failed and lost ${second.againstAlone.losses}, a difference of ${signed(second.againstAlone.diff)} points (95% interval ${interval(second.againstAlone)}). Against the one-shot setup it won ${second.againstOneShot.wins} and lost ${second.againstOneShot.losses} (Figure 5, Table 6).`}
             />
           </Text>
           <Exhibit
@@ -760,7 +835,7 @@ export function ResultsPage() {
           </Exhibit>
           <Exhibit
             table
-            label="Table 5"
+            label="Table 6"
             caption="Requests each arm passed and the other failed (won), the reverse (lost), and where they agreed."
           >
             <PairTable comparison={SECOND} />
@@ -769,7 +844,7 @@ export function ResultsPage() {
           <Subsection number="3.2" title="The first returns desk" />
           <Text>
             <Actors
-              text={`On the returns desk that ships with the app, teaching was held to two rounds. Glimmer passed ${first.taught.passed} of ${TEST_SIZE} after teaching against ${first.alone.passed} on its own, and Spark answering every request itself passed ${first.spark.passed} (Figure 6, Table 6)`}
+              text={`On the returns desk that ships with the app, teaching was held to two rounds. Glimmer passed ${first.taught.passed} of ${TEST_SIZE} after teaching against ${first.alone.passed} on its own, and Spark answering every request itself passed ${first.spark.passed} (Figure 6, Table 7)`}
             />
             <Cite to={['first']} />.
           </Text>
@@ -779,12 +854,12 @@ export function ResultsPage() {
           >
             <PassRates comparison={FIRST} />
           </Exhibit>
-          <Exhibit table label="Table 6" caption="Passes by kind of request, of 20 each.">
+          <Exhibit table label="Table 7" caption="Passes by kind of request, of 20 each.">
             <ArmTable comparison={FIRST} />
           </Exhibit>
           <Text>
             <Actors
-              text={`Request by request, teaching won ${first.againstAlone.wins} and lost ${first.againstAlone.losses} against Glimmer alone. The interval around that difference, ${interval(first.againstAlone)} points, includes zero, so this comparison shows no gain (Figure 7, Table 7). The second comparison was designed after seeing it, with the budget the job gives teaching, and its plan was published before it ran`}
+              text={`Request by request, teaching won ${first.againstAlone.wins} and lost ${first.againstAlone.losses} against Glimmer alone. The interval around that difference, ${interval(first.againstAlone)} points, includes zero, so this comparison shows no gain (Figure 7, Table 8). The second comparison was designed after seeing it, with the budget the job gives teaching, and its plan was published before it ran`}
             />
             <Cite to={['plan']} />.
           </Text>
@@ -796,8 +871,8 @@ export function ResultsPage() {
           </Exhibit>
           <Exhibit
             table
-            label="Table 7"
-            caption="Requests won and lost in each pairing, as in Table 5."
+            label="Table 8"
+            caption="Requests won and lost in each pairing, as in Table 6."
           >
             <PairTable comparison={FIRST} />
           </Exhibit>
@@ -805,7 +880,7 @@ export function ResultsPage() {
 
         <Section id="rounds" number={4} title="Teaching, round by round">
           <Text>
-            <Actors text="On the new returns desk the check-task score rose from 31 of 45 to 44 of 45 in four rounds. Two changes were kept and two were reverted, and teaching stopped when the target was reached (Figure 8, Table 8)" />
+            <Actors text="On the new returns desk the check-task score rose from 31 of 45 to 44 of 45 in four rounds. Two changes were kept and two were reverted, and teaching stopped when the target was reached (Figure 8, Table 9)" />
             <Cite to={['second']} />.
           </Text>
           <Exhibit
@@ -822,20 +897,20 @@ export function ResultsPage() {
           </Exhibit>
           <Exhibit
             table
-            label="Table 8"
+            label="Table 9"
             caption="Each round on the new returns desk: the change, check tasks before and after, the same change measured again on new seeds, and the result."
           >
             <RoundList rounds={ROUNDS_SECOND} label="Rounds of teaching on the new returns desk" />
           </Exhibit>
           <Text>
             On the first returns desk, teaching was held to 2 rounds after the draft and stopped
-            there, with the cap reached. One change was kept (Table 9)
+            there, with the cap reached. One change was kept (Table 10)
             <Cite to={['first']} />.
           </Text>
           <Exhibit
             table
-            label="Table 9"
-            caption="Each round on the first returns desk, as in Table 8."
+            label="Table 10"
+            caption="Each round on the first returns desk, as in Table 9."
           >
             <RoundList rounds={ROUNDS_FIRST} label="Rounds of teaching on the first returns desk" />
           </Exhibit>
@@ -886,10 +961,10 @@ export function ResultsPage() {
           <Text>
             Teaching cost 42 cents of Spark: 34 for the rounds and 8 for its first setup. The whole
             run cost Spark ${MONEY.spark.toFixed(4)} and the hosted Glimmer $
-            {MONEY.glimmer.toFixed(4)}, as its attempts recorded it (Table 10)
+            {MONEY.glimmer.toFixed(4)}, as its attempts recorded it (Table 11)
             <Cite to={['second', 'readme']} />.
           </Text>
-          <Exhibit table label="Table 10" caption="What each arm cost on the new returns desk.">
+          <Exhibit table label="Table 11" caption="What each arm cost on the new returns desk.">
             <Table
               fit
               label="What each arm cost on the new returns desk"
@@ -903,7 +978,34 @@ export function ResultsPage() {
           </Exhibit>
         </Section>
 
-        <Section id="limits" number={6} title="Limitations">
+        <Section id="scale" number={6} title="From a specialist to a field model">
+          <Text>
+            <Actors text="A field's work leaves three things besides the specialist. Verified demonstrations are worked examples from train tasks that the checker confirmed, each with its source and what it may be used for. An outcome scorer packages the field's train tasks and checker so an outside training framework can ask for a score. Sealed evaluations are organizations a model never trained on, opened once for a frozen candidate" />
+            <Cite to={['scale']} />.
+          </Text>
+          <Text>
+            <Actors text="From a model's own configuration on Hugging Face, Architect sizes a training job: the memory for weights, gradients, optimizer state and activations, then the GPUs and nodes. For a Slurm cluster or Kubernetes it writes a launch bundle and shows the command to run with your own tools. Architect never holds cluster credentials" />
+            <Cite to={['scale']} />.
+          </Text>
+          <Text>
+            <Actors text="Architect develops and evaluates field-specific agent setups, meaning instructions and small tools, and exports checker-verified training examples. Experimental cluster templates are validated structurally and against simulated schedulers; GPU execution, large-model compatibility and training gains remain unverified" />
+            <Cite to={['scale']} />.
+          </Text>
+          <Exhibit
+            table
+            label="Table 12"
+            caption="Each part of the path from a specialist to a field model, by whether it is measured, built, unverified or future."
+          >
+            <Table
+              label="What is measured, built and future on the path to a field model"
+              left={[0, 1, 2]}
+              columns={['Part', 'Status', 'What backs it']}
+              rows={SCALE_STATUS.map(([part, status, backing]) => [part, status, backing])}
+            />
+          </Exhibit>
+        </Section>
+
+        <Section id="limits" number={7} title="Limitations">
           <Text>
             <Actors text="Glimmer served online and one seed throughout, a small real sample, and made-up businesses elsewhere." />
           </Text>

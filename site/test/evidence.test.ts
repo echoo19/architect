@@ -8,6 +8,8 @@ import {
   FIELD_TEST_SIZE,
   FIRST,
   GROUPS,
+  LOCAL_ROWS,
+  LOCAL_SPEED,
   PER_TYPE,
   REPAIR,
   SECOND,
@@ -74,6 +76,31 @@ describe('the results page', () => {
       expect(pair.low).toBeLessThan(pair.diff);
       expect(pair.high).toBeGreaterThan(pair.diff);
     }
+  });
+
+  it('adds up the local run and gives the report its numbers', () => {
+    const report = readFileSync(join(ROOT, 'docs', 'comparisons', 'phil-1-local.md'), 'utf8');
+    const phil = FIELD_ARMS.find((each) => each.name === 'Phil');
+    for (const row of LOCAL_ROWS) {
+      expect(row.wins + row.losses).toBeLessThanOrEqual(row.n);
+      expect(((row.wins - row.losses) / row.n) * 100).toBeCloseTo(row.diff, 0);
+      expect(row.low).toBeLessThan(row.diff);
+      expect(row.high).toBeGreaterThan(row.diff);
+      expect(report).toContain(`${row.local}/${row.n}`);
+      expect(report).toContain(`${row.hosted}/${row.n}`);
+      const index = GROUPS.findIndex((group) => group.short === row.group);
+      const hosted = index < 0 ? phil?.all.passed : phil?.groups[index]?.passed;
+      expect(row.hosted).toBe(hosted);
+    }
+    expect(LOCAL_ROWS.slice(0, 3).reduce((sum, row) => sum + row.local, 0)).toBe(
+      LOCAL_ROWS[3]?.local,
+    );
+    expect(report).toContain(
+      `${LOCAL_SPEED.medianLocal} s locally and ${LOCAL_SPEED.medianHosted} s hosted`,
+    );
+    expect(report).toContain(
+      `over ${LOCAL_SPEED.slowestLocal} s locally and ${LOCAL_SPEED.slowestHosted} s hosted`,
+    );
   });
 
   it('cites documents that exist', () => {
