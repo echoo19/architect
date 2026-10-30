@@ -2,6 +2,21 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-31 (Sat, early), Architect Lab, two editions, and the technical centerpiece (start the next session here)
+
+**Where things stand**
+- *Branches.* `main` holds the field work and release 0.5.0. Everything below is on `field/main` (green, pushed) and goes to `main` by PR once the centerpiece is reviewed, then release 0.6.0. The one-job product is kept at `base/one-job` / `base-one-job`.
+- *Two editions of one app* (decision 076): Architect (the pre-pivot one-job product, chosen by default on existing installs) and Architect Lab (the R&D platform), chosen on the welcome screen and switchable in Settings.
+- *Architect Lab* (`docs/PLATFORM.md`, decisions 073 to 075): the Lab home (Needs you, Running, Recently finished, Spend), Fields (skills, organizations, candidates, assets and export), Experiments (design, preregister, run and read comparisons in the app through the same runner, decision 074), Models (registry, panel, compare with harness diffs), Compute (targets, training plans with every memory term, experimental Slurm and Kubernetes bundles), and an inspector on Define. A blind read of every screen led to a polish pass (one word per idea, numbers that agree, answers before arithmetic).
+- *From a specialist to a field model* (`docs/SCALE.md`, decisions 071, 072): field export (train-only verified demonstrations, a JSONL outcome scorer with a Python client, a sealed-evaluation manifest), training plans sized from a model's `config.json` with every expert resident and FSDP's peak, and bundles that are written and never submitted. Wording: GPU execution, large-model compatibility and training gains remain unverified.
+- *The technical centerpiece* (`docs/CERTIFY.md`, decisions 077, 078): certified answers (a sealed calibration split, k-attempt agreement, an exact Clopper-Pearson bound with a fixed-sequence threshold; the graduate answers or hands off; the certificate is checked on never-seen organizations) and counterexample-guided repair (a failing helper is shrunk by delta debugging to a minimal case, e.g. 2,312 rows to 4, Spark repairs against it, and it stays as a regression test). Both built and tested; no live certificate has been measured yet (it needs k = 5 attempts per task).
+- *Measured on the owner's GPU* (with permission, Oct 30 night): the frozen Phil from phil-1 on the local 2-bit Glimmer passed 103/120 against 99/120 hosted, no difference shown, about 4x slower (`docs/comparisons/phil-1-local.md`).
+- Sol reviewed every lane; each finding was fixed before merging.
+
+**Next**
+- Merge the running lanes (Sol's review of the centerpiece, more academy tasks so Phil can be certified, README and paper sections for the centerpiece), the full stand-in e2e suite, the PR to `main`, release 0.6.0.
+- Owner: raise the OpenRouter workspace budget (Phil 2, and a live certificate for Phil at about $5); confirm the real academy's drafted policy; new film narration for the Lab.
+
 ## 2026-10-30 (Fri, night), certify lane "Certified answers" (branch `certify/answers`)
 
 **Done** (no model was called, no GPU, no spend; decision 077)
