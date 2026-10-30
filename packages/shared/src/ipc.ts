@@ -41,6 +41,14 @@ import type {
   ExperimentStart,
 } from './experiments';
 import type { RuntimeMeasurement } from './measurements';
+import type {
+  ModelConfigRead,
+  ModelConfigSource,
+  TrainBundleRequest,
+  TrainingPlan,
+  TrainingPlanRequest,
+  WrittenTrainBundle,
+} from './training-plan';
 import type { ReportCard } from './report';
 import type { Method, Round, Run } from './run';
 import type { Attempt, Trace } from './trace';
@@ -618,6 +626,18 @@ export interface ArchitectApi {
     list(): Promise<ExperimentRecord[]>;
     get(experimentId: string): Promise<ExperimentDetail>;
     onEvent(listener: (event: ExperimentEvent) => void): Unsubscribe;
+  };
+  /**
+   * Training plans and cluster bundles (decision 072), experimental: a plan is an estimate, and a
+   * bundle is written for the person to submit with their own tools, never submitted here.
+   */
+  compute: {
+    /** Reads a model's config.json: from the Hub, its revision resolved to a commit, or a file. */
+    readConfig(source: ModelConfigSource): Promise<ModelConfigRead>;
+    /** Sizes a training job from a config. A config it can't size is refused with the reason. */
+    plan(request: TrainingPlanRequest): Promise<TrainingPlan>;
+    /** Sizes the plan again and writes its bundle, with the command that submits it. */
+    bundle(request: TrainBundleRequest): Promise<WrittenTrainBundle>;
   };
   graduates: {
     list(): Promise<GraduateSummary[]>;

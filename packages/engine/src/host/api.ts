@@ -32,6 +32,7 @@ import { isReferenceAttempt } from '../loop/configuration';
 import { JobDrafting } from '../drafting/drafter';
 import { JobStudy } from '../drafting/studying';
 import type { ExperimentService } from '../experiments/service';
+import { bundleFromRequest, planFromRequest, readModelConfig } from '../training-plan/requests';
 import type { Clock, EngineHostDeps, JobDrafter } from '../loop/deps';
 import { readJsonFile } from '../loop/files';
 import type { JobLibrary } from '../loop/jobs';
@@ -69,6 +70,8 @@ export interface EngineApiContext {
   /** Hugging Face, for publishing and installing versions. */
   hub: HubClient;
   experiments: ExperimentService;
+  /** The repository's trainer folder, whose pins and experimental script a bundle carries. */
+  trainerDir?: string;
 }
 
 /** The engine API for callers in the host's own process; `serve` exposes it over a port. */
@@ -362,6 +365,11 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       list: () => experiments.list(),
       get: (experimentId) => experiments.get(experimentId),
       onEvent: (listener) => experiments.onEvent(listener),
+    },
+    compute: {
+      readConfig: (source) => readModelConfig(ctx.hub, source),
+      plan: async (request) => planFromRequest(request),
+      bundle: async (request) => bundleFromRequest(request, ctx.trainerDir),
     },
     reports: {
       get: async (runId, target) => reportOf(run(runId), target),

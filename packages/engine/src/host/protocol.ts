@@ -43,6 +43,8 @@ import {
   ListedLessonSchema,
   MentorConfigSchema,
   MentoringProgressSchema,
+  ModelConfigReadSchema,
+  ModelConfigSourceSchema,
   PackageError,
   PackageInspectionSchema,
   PackageProblemCodeSchema,
@@ -67,8 +69,12 @@ import {
   TaskPlanSchema,
   TeachingOverviewSchema,
   TraceSchema,
+  TrainBundleRequestSchema,
+  TrainingPlanRequestSchema,
+  TrainingPlanSchema,
   VersionEventSchema,
   VersionPickSchema,
+  WrittenTrainBundleSchema,
   type AdapterErrorCode,
   type ArchitectApi,
   type DraftTurn,
@@ -84,7 +90,7 @@ import { HubError, type HubErrorCode } from '../hub';
  */
 export type EngineApi = Pick<
   ArchitectApi,
-  'runs' | 'mentoring' | 'teach' | 'experiments' | 'reports' | 'graduates'
+  'runs' | 'mentoring' | 'teach' | 'experiments' | 'compute' | 'reports' | 'graduates'
 > & {
   jobs: Omit<ArchitectApi['jobs'], 'draftStart' | 'draftReply'> & {
     draftStart(description: string, files: string[], teacher: MentorConfig): Promise<DraftTurn>;
@@ -271,6 +277,21 @@ export const ENGINE_ROUTES = {
   ),
   'experiments.get': route(z.tuple([id]), ExperimentDetailSchema, (api, [experimentId]) =>
     api.experiments.get(experimentId),
+  ),
+  'compute.readConfig': route(
+    z.tuple([ModelConfigSourceSchema]),
+    ModelConfigReadSchema,
+    (api, [source]) => api.compute.readConfig(source),
+  ),
+  'compute.plan': route(
+    z.tuple([TrainingPlanRequestSchema]),
+    TrainingPlanSchema,
+    (api, [request]) => api.compute.plan(request),
+  ),
+  'compute.bundle': route(
+    z.tuple([TrainBundleRequestSchema]),
+    WrittenTrainBundleSchema,
+    (api, [request]) => api.compute.bundle(request),
   ),
   'reports.get': route(
     z.tuple([id, StudentTargetSchema.nullable()]),

@@ -2,6 +2,18 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri, night), platform lane "Compute" (branch `platform/compute`)
+
+**Done** (no model was called, no GPU, no cluster, no spend; the Hub in tests is the fake one)
+- `/compute` shows the targets as cards: this computer (its GPU, Ollama and llama-server as the app already finds them), Hugging Face Jobs (Ready with a token, else Add token), Slurm and Kubernetes (Experimental, with the command each bundle is submitted with).
+- A training plan reads a model's `config.json` from the Hub at a revision (resolved to its commit) or from a chosen file, and sizes it for LoRA, QLoRA or a full fine-tune; GPU type, GPUs per node and precision, tokens per sequence, micro-batch and LoRA rank sit in the inspector. The focal card is the memory on each GPU: GPUs, nodes and memory per GPU, then every term with its arithmetic, sharded or on each GPU, the usable memory and the fit's arithmetic, labeled an estimate, with the assumptions folded. A config the sizing refuses says why in its own words.
+- A bundle for Slurm or Kubernetes is written from a chosen field export into a new folder inside the one chosen (`<model>-<target>`, then `-2`), and shows the `cd` and submit command with a copy button and the SCALE.md wording. A model read from a file can be planned, not bundled.
+- Engine host routes `compute.readConfig`, `compute.plan`, `compute.bundle` over the same functions as `architect train` (`training-plan/requests.ts`); schemas in `packages/shared/src/training-plan.ts`; main checks every path was chosen in a dialog. `GPU_TYPES` moved to the shared contracts.
+- Engine `training-requests.test.ts`; hidden e2e `compute.spec.ts` on the real engine against the fake Hub (only `config.json` is fetched, no job, no upload); screenshots `compute-dark.png`, `compute-plan-dark.png`, `compute-bundle-dark.png`, and `places-compute-dark.png` again.
+
+**Open**
+- Field exports aren't listed: the person chooses the folder that `architect field export` (or the Fields lane's export) wrote. A GPU not in the list can't be named by its memory from the screen yet, as `--gpu-memory` can.
+
 ## 2026-10-30 (Fri, night), platform lane "Experiments screens" (branch `platform/experiments`)
 
 **Done** (stand-in engine only: no model was called, no GPU, no spend)

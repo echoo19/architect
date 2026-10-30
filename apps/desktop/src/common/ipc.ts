@@ -115,6 +115,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     list: true,
     get: true,
   },
+  compute: { readConfig: true, plan: true, bundle: true },
   reports: { get: true, list: true, comparisons: true },
   graduates: {
     list: true,

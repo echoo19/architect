@@ -1,5 +1,6 @@
 import {
   CLUSTER_TEMPLATE_WORDING,
+  GPU_TYPES,
   TRAINING_PLAN_FORMAT,
   TrainingPlanSchema,
   type MemoryTerm,
@@ -10,15 +11,8 @@ import {
 } from '@architect/shared';
 import { sizeModel } from './size';
 
-/** GPU memory by type, in GB (10^9 bytes) as each is sold. `--gpu-memory` covers any other. */
-export const GPU_TYPES: Readonly<Record<string, number>> = {
-  'h100-80gb': 80,
-  h200: 141,
-  'a100-80gb': 80,
-  'a100-40gb': 40,
-  l40s: 48,
-  b200: 180,
-};
+/** GPU memory by type, kept with the contracts so the app's screens list the same types. */
+export { GPU_TYPES };
 
 export const GB = 1e9;
 /** Kept back on each GPU for the allocator's fragmentation and anything this sizing misses. */

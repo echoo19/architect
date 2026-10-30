@@ -6,8 +6,8 @@ export interface NumberRowProps {
   /** Absent when the setting is left to the runner's own value. */
   value: number | undefined;
   onChange: (value: number | undefined) => void;
-  /** What the number is in, at the row's right: "USD", "h", "Seed". */
-  unit: ReactNode;
+  /** What the number is in, at the row's right: "USD", "h", "Seed". None where the label says. */
+  unit?: ReactNode;
   /** Empty means the runner's own value, which the placeholder names. */
   optional?: boolean;
   placeholder?: string;
@@ -63,7 +63,7 @@ export function NumberRow({
           if (ok) onChange(number);
         }}
       />
-      <span className="w-9 shrink-0 text-small">{unit}</span>
+      {unit !== undefined && <span className="w-9 shrink-0 text-small">{unit}</span>}
     </div>
   );
 }

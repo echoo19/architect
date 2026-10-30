@@ -168,6 +168,11 @@ export function connectEngine(
         };
       },
     },
+    compute: {
+      readConfig: (source) => request('compute.readConfig', [source]),
+      plan: (planRequest) => request('compute.plan', [planRequest]),
+      bundle: (bundleRequest) => request('compute.bundle', [bundleRequest]),
+    },
     reports: {
       get: (runId, target) => request('reports.get', [runId, target ?? null]),
       list: (runId) => request('reports.list', [runId]),

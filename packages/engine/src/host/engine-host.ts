@@ -66,6 +66,11 @@ export interface EngineHostOptions {
    * models, keys and training compute. Without it experiments can be planned and read, not run.
    */
   experimentEnvironment?: (dataDir: string, log: (line: string) => void) => ExperimentEnvironment;
+  /**
+   * The repository's trainer folder, which training bundles carry pins and the experimental
+   * script from (decision 072). Without it plans can be sized, not bundled.
+   */
+  trainerDir?: string;
 }
 
 export interface EngineHost {
@@ -166,6 +171,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     clock,
     hub,
     experiments,
+    ...(options.trainerDir === undefined ? {} : { trainerDir: options.trainerDir }),
   });
   const ports = new Set<EnginePort>();
   let closed = false;
