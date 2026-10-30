@@ -14,8 +14,6 @@ export type VerdictState =
 
 export interface Verdict {
   state: VerdictState;
-  /** The pill's words. */
-  pill: string;
   title: string;
   /** What lies behind it, a plain sentence each, in the order to read them. */
   because: string[];
@@ -59,7 +57,6 @@ export function reportVerdict(
   if (installation?.status === 'blocked') {
     return {
       state: 'blocked',
-      pill: "Can't run",
       title: `${name} can't run on this computer`,
       because: [
         problem?.cause ?? "One of this computer's checks failed.",
@@ -73,7 +70,6 @@ export function reportVerdict(
   if (missed.length > 0) {
     return {
       state: 'below_target',
-      pill: 'Not ready',
       title: `${name} finished training`,
       because: [
         `It missed the job's target${where}: ${missed.join(', and ')}.`,
@@ -87,7 +83,6 @@ export function reportVerdict(
   if (installation?.status === 'needs_attention') {
     return {
       state: 'needs_attention',
-      pill: 'Needs attention',
       title: `${name} needs one more step`,
       because: [problem?.cause ?? "One of this computer's checks needs you."],
       usable: false,
@@ -97,7 +92,6 @@ export function reportVerdict(
     const { pass, total } = report.test.score;
     return {
       state: 'tested_online',
-      pill: 'Passed online',
       title: `${name} finished training`,
       because: [
         `It got ${pass} of ${total} there, and is marked ready once it passes on this computer too.`,
@@ -107,7 +101,6 @@ export function reportVerdict(
   }
   return {
     state: 'ready',
-    pill: 'Ready',
     title: `${name} graduated`,
     because: online ? [`It passed on this computer too: ${testResult(local)}.`] : [],
     usable: true,

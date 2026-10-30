@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
 import { CodedError, type ReportCard } from '@architect/shared';
-import { Button, Heading, Skeleton, StatusMark } from '@architect/ui';
+import { Button, Heading, NumberTicker, Skeleton, StatusMark } from '@architect/ui';
 import { Laptop } from 'lucide-react';
 import { ProblemState } from '../../components/ProblemState';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
+import { Counted } from '../counted';
 import { formatAnswerTime, formatRate } from '../format';
 import { localTestTime, type RetestView } from './retest';
 import { missedRequirements } from './requirements';
@@ -23,7 +24,7 @@ function isGone(error: Error): boolean {
 interface Say {
   mark: ReactNode;
   title: string;
-  lines: string;
+  lines: ReactNode;
 }
 
 function say(view: RetestView, local: ReportCard | null, report: ReportCard, device: string): Say {
@@ -36,13 +37,20 @@ function say(view: RetestView, local: ReportCard | null, report: ReportCard, dev
       };
     case 'testing': {
       const far =
-        view.done === null || view.total === null
-          ? 'Waiting for the first answer.'
-          : `${view.done} of ${view.total} tasks scored.`;
+        view.done === null || view.total === null ? (
+          'Waiting for the first answer.'
+        ) : (
+          <>
+            <Counted said={`${view.done} of ${view.total}`}>
+              <NumberTicker value={view.done} /> of <NumberTicker value={view.total} />
+            </Counted>{' '}
+            tasks scored.
+          </>
+        );
       return {
         mark: <StatusMark state="working" size={18} label="Testing" />,
         title: `Testing on ${device}`,
-        lines: `${far} You can leave this page. The test keeps going.`,
+        lines: <>{far} You can leave this page. The test keeps going.</>,
       };
     }
     case 'paused':
@@ -98,7 +106,7 @@ export function LocalTest({ report }: { report: ReportCard }) {
   return (
     <section
       aria-label={`Test on ${device}`}
-      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-card bg-card px-[22px] py-5 shadow-edge"
+      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-card bg-card p-6 shadow-edge"
     >
       <div className="flex min-w-0 flex-[1_1_360px] items-start gap-3.5">
         <span className="mt-0.5 flex shrink-0">{mark}</span>

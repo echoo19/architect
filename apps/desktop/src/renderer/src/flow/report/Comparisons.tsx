@@ -1,17 +1,8 @@
 import type { Score } from '@architect/shared';
-import {
-  Disclosure,
-  EvidenceMark,
-  Heading,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@architect/ui';
+import { Disclosure, EvidenceMark } from '@architect/ui';
 import { formatBytes } from '../../lib/format';
 import { formatCost, formatRate } from '../format';
+import { Section } from '../ledger';
 import type { ModelNames } from '../train/phase';
 import { armCost, notRunReason, wasRun, type Arm, type ArmKey } from './arms';
 
@@ -35,16 +26,16 @@ function armLabel(key: ArmKey, { mentor, student }: ModelNames, blankStart: bool
 }
 
 /**
- * "78%" over "14 of 18": rates compare across rows, the counts say what each rests on. A score
- * over more than one run of the check tasks says how many.
+ * "78%" and "14 of 18" on one line: rates compare across rows, the counts say what each rests on.
+ * A score over more than one run of the check tasks says how many.
  */
 function ScoreCell({ score, perRun }: { score: Score | null; perRun?: number | undefined }) {
-  if (score === null) return <span className="text-fg">Not run</span>;
+  if (score === null) return <span>Not run</span>;
   const runs = perRun && score.total > perRun ? Math.round(score.total / perRun) : 1;
   return (
-    <span className="flex flex-col items-end">
-      <span className="font-mono tabular-nums text-fg">{formatRate(score)}</span>
-      <span className="whitespace-nowrap text-small tabular-nums text-fg">
+    <span className="inline-flex items-baseline justify-end gap-3 whitespace-nowrap tabular-nums">
+      <span className="font-mono font-medium">{formatRate(score)}</span>
+      <span className="text-small">
         {score.pass} of {score.total}
         {runs > 1 && `, ${runs} runs`}
       </span>
@@ -84,52 +75,55 @@ export function Comparisons({
   const unmeasured = arms.filter((arm) => !wasRun(arm));
   const metered = measured.filter((arm) => arm.memory !== null);
   return (
-    <section aria-labelledby="comparisons" className="flex flex-col gap-[18px]">
-      <Heading id="comparisons">Comparisons</Heading>
-      <div className="rounded-control bg-card">
-        <Table aria-label="Comparisons">
-          <TableHeader>
-            <TableRow>
-              <TableHead />
-              <TableHead className="whitespace-nowrap text-right">
+    <Section title="Comparisons" id="comparisons">
+      <div className="overflow-x-auto border-b border-line">
+        <table aria-label="Comparisons" className="w-full min-w-[560px] border-collapse text-ui">
+          <thead>
+            <tr className="text-small">
+              <th className="pb-3" />
+              <th className="whitespace-nowrap pb-3 pl-6 text-right font-normal">
                 <EvidenceMark kind="check" className="justify-end">
                   Check tasks
                 </EvidenceMark>
-              </TableHead>
-              <TableHead className="whitespace-nowrap text-right">
+              </th>
+              <th className="whitespace-nowrap pb-3 pl-6 text-right font-normal">
                 <EvidenceMark kind="final" className="justify-end">
                   Final test
                 </EvidenceMark>
-              </TableHead>
-              <TableHead className="whitespace-nowrap text-right">Cost</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+              </th>
+              <th className="whitespace-nowrap pb-3 pl-6 text-right font-normal">Cost</th>
+            </tr>
+          </thead>
+          <tbody>
             {measured.map((arm) => (
-              <TableRow key={arm.key} aria-current={arm.current ? 'true' : undefined}>
-                <TableCell>
+              <tr
+                key={arm.key}
+                aria-current={arm.current ? 'true' : undefined}
+                className="border-t border-line"
+              >
+                <th scope="row" className="py-3.5 pr-4 text-left font-normal">
                   <span className={arm.current ? 'font-medium' : undefined}>
                     {armLabel(arm.key, names, blankStart)}
                   </span>
-                  {arm.current && <span className="whitespace-nowrap text-fg"> · this agent</span>}
-                </TableCell>
-                <TableCell className="text-right align-top">
+                  {arm.current && <span className="whitespace-nowrap"> · this agent</span>}
+                </th>
+                <td className="py-3.5 pl-6 text-right align-middle">
                   <ScoreCell score={arm.check} perRun={checkTasks} />
-                </TableCell>
-                <TableCell className="text-right align-top">
+                </td>
+                <td className="py-3.5 pl-6 text-right align-middle">
                   <ScoreCell score={arm.final} />
-                </TableCell>
-                <TableCell className="text-right align-top font-mono tabular-nums">
+                </td>
+                <td className="py-3.5 pl-6 text-right align-middle font-mono tabular-nums">
                   {arm.budget ? formatCost(armCost(arm.budget)) : '–'}
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
       {(unmeasured.length > 0 || metered.length > 0) && (
-        <Disclosure label="Details">
-          <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small text-fg">
+        <Disclosure label="Details" className="pt-2">
+          <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small">
             {metered.map((arm) => (
               <li key={arm.key} className="text-pretty">
                 {armLabel(arm.key, names, blankStart)} used at most{' '}
@@ -138,7 +132,7 @@ export function Comparisons({
               </li>
             ))}
             {unmeasured.map((arm) => (
-              <li key={arm.key} className="text-pretty text-fg">
+              <li key={arm.key} className="text-pretty">
                 {armLabel(arm.key, names, blankStart)} wasn&apos;t measured
                 {notRunReason(arm.key, names.mentor) && `: ${notRunReason(arm.key, names.mentor)}`}.
               </li>
@@ -146,6 +140,6 @@ export function Comparisons({
           </ul>
         </Disclosure>
       )}
-    </section>
+    </Section>
   );
 }

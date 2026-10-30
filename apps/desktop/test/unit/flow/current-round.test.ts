@@ -3,11 +3,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { CurrentRound } from '../../../src/renderer/src/flow/train/CurrentRound';
 import type { LiveRun } from '../../../src/renderer/src/flow/train/run-state';
-import { makeJob, makeRun } from './factories';
+import { makeAttempt, makeJob, makeRound, makeRun } from './factories';
 
 const NAMES = { mentor: 'Spark', student: 'Glimmer' };
 
-function live(overrides: Partial<LiveRun['run']>): LiveRun {
+function live(overrides: Partial<LiveRun['run']>, extra: Partial<LiveRun> = {}): LiveRun {
   return {
     run: makeRun(overrides),
     job: makeJob(),
@@ -21,57 +21,67 @@ function live(overrides: Partial<LiveRun['run']>): LiveRun {
     notice: null,
     graduateId: null,
     improves: null,
+    ...extra,
   };
 }
 
-function panel(run: LiveRun): string {
-  return renderToStaticMarkup(
+function panel(run: LiveRun, round = makeRound(2, { status: 'attempting' })): string {
+  const html = renderToStaticMarkup(
     createElement(CurrentRound, {
-      live: run,
-      round: null,
+      live: { ...run, rounds: [round] },
+      round,
       names: NAMES,
-      experiment: undefined,
       question: null,
-      recordsFailed: false,
     }),
   );
+  return html.replace(/&#x27;/g, "'");
 }
 
-describe('a run whose teacher could change nothing', () => {
-  it('says so, in place of waiting for a first round that will not come', () => {
-    const html = panel(
-      live({ status: 'stopped', phase: 'done', stopReason: 'nothing_to_try', devBaseline: null }),
-    );
-    expect(html).toContain('Before the first round');
-    // What the teacher was able to do, as the footer before the run says it: the notice above says
-    // which kind of change may still be made, so the line beside it never says nothing may be.
-    expect(html).toContain('Couldn&#x27;t change anything in this run.');
-    expect(html).not.toContain('nothing it may change');
-    expect(html).toContain('No practice ran.');
-    expect(html).not.toContain('Waiting for the first round');
-    expect(html).not.toContain('Starts teaching once');
-  });
-});
-
-describe('a run that needed no rounds', () => {
-  it('says the student met the target before any teaching, with its real score', () => {
-    const html = panel(
-      live({
-        status: 'finished',
-        phase: 'done',
-        stopReason: 'target_met',
-        devBaseline: { pass: 22, total: 23 },
-      }),
-    );
-    expect(html).toContain('No teaching needed');
-    expect(html).toContain('Got 22 of 23 check tasks right before any teaching');
-    expect(html).toContain('Had nothing to change: Glimmer already met the target.');
-    expect(html).not.toContain('Waiting for the first round');
+describe('the newest round, open under its line', () => {
+  it('says what the student is working through and what the mentor waits for', () => {
+    const html = panel(live({ status: 'running', phase: 'attempting' }));
+    expect(html).toContain('aria-label="Current round"');
+    expect(html).toContain('Working through 12 practice tasks.');
+    expect(html).toContain('Waits for Glimmer to finish the practice tasks.');
   });
 
-  it('still waits for the first round while a run is under way', () => {
-    const html = panel(live({ status: 'running', phase: 'training', devBaseline: null }));
-    expect(html).toContain('Before the first round');
-    expect(html).not.toContain('No teaching needed');
+  it('says one practice task in the singular', () => {
+    const round = makeRound(2, { status: 'attempting' });
+    const attempt = makeAttempt('att_1', { round: 2, split: 'train' });
+    const html = panel(
+      live({ status: 'running', phase: 'attempting' }, { attempts: [attempt] }),
+      round,
+    );
+    expect(html).toContain('Got all 1 practice task right so far this round.');
+  });
+
+  it("gives the mentor's diagnosis and what it expects once it has one", () => {
+    const round = makeRound(2, {
+      status: 'evaluating',
+      diagnosis: 'Bookings start too early.',
+      predicted: { devDeltaMin: 3, devDeltaMax: 6, rationale: 'Dates are read late.' },
+    });
+    const html = panel(live({ status: 'running', phase: 'evaluating' }), round);
+    expect(html).toContain('Bookings start too early.');
+    expect(html).toMatch(/Expects<\/dt><dd[^>]*><span[^>]*>\+3 to \+6 check tasks<\/span>/);
+  });
+
+  it('keeps only the diagnosis and the result once the run has moved on to its final test', () => {
+    const round = makeRound(2, { status: 'decided', diagnosis: 'Bookings start too early.' });
+    const html = panel(live({ status: 'testing', phase: 'testing' }), round);
+    expect(html).toContain('Bookings start too early.');
+    expect(html).not.toContain('Glimmer');
+    expect(html).not.toContain('Waits for');
+    expect(html).not.toContain('practice tasks');
+  });
+
+  it('says a round that never practiced is waiting for its first setup', () => {
+    const run = live({ status: 'running', phase: 'diagnosing' });
+    const round = makeRound(1, { status: 'diagnosing', train: { pass: 0, total: 0 } });
+    const html = panel(run, round);
+    expect(html).toContain('No practice this round. It waits for its first setup.');
+    expect(html).toContain(
+      "Writing Glimmer's first full setup from the job and its example tasks.",
+    );
   });
 });

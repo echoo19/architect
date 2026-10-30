@@ -240,8 +240,7 @@ test('marks an agent tested online, tests it on this computer, and is ready once
   await installEngine({ detail: withRetests(), own: ONLINE, local: null });
   await openResults();
 
-  // Passed online is not ready: the badge says it passed there, and nothing says it graduated.
-  await expect(page.getByText('Passed online', { exact: true })).toBeVisible();
+  // Passed online is not ready: the title says it finished training, and nothing says it graduated.
   await expect(page.getByRole('heading', { name: 'Service desk finished training' })).toBeVisible();
   await expect(
     page.getByText(/on an online copy of Glimmer, with Spark disconnected/),
@@ -249,7 +248,6 @@ test('marks an agent tested online, tests it on this computer, and is ready once
   await expect(
     page.getByText(/and is marked ready once it passes on this computer too\./),
   ).toBeVisible();
-  await expect(page.getByText('Ready', { exact: true })).toHaveCount(0);
   await expect(page.getByText(/graduated/i)).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Start using Service desk' })).toBeEnabled();
 
@@ -283,7 +281,6 @@ test('marks an agent tested online, tests it on this computer, and is ready once
   await expect(offer).toContainText('55 of 60 right (92%). Typical answer time 1 min 34 s');
   await expect(offer).toContainText('Online it got 54 of 60.');
   await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
-  await expect(page.getByText('Ready', { exact: true })).toBeVisible();
   await expect(page.getByText('It passed on this computer too: 55 of 60')).toBeVisible();
   await expect(
     page.getByText(
@@ -318,7 +315,6 @@ test('shows the result of a test on this computer that finished while the person
   await expect(offer).toContainText('55 of 60 right (92%).');
   await expect(offer).not.toContainText('Testing on this computer');
   await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
-  await expect(page.getByText('Ready', { exact: true })).toBeVisible();
 });
 
 test('offers to try again a test on this computer that stopped while the person was elsewhere', async () => {
@@ -365,9 +361,8 @@ test('says a small final test passed online the same way, 28 of 30, with the off
   await installEngine({ detail: withRetests(), own: ONLINE_SMALL, local: null });
   await openResults();
 
-  await expect(page.getByText('Passed online', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Service desk finished training' })).toBeVisible();
   await expect(page.getByText(/It got 28 of 30 there/)).toBeVisible();
-  await expect(page.getByText('Ready', { exact: true })).toHaveCount(0);
   await expect(page.getByText(/graduated/i)).toHaveCount(0);
   const offer = page.getByRole('region', { name: 'Test on this computer' });
   await expect(offer).toContainText(

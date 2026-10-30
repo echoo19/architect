@@ -30,7 +30,7 @@ function Page({
 }) {
   return (
     <FlowShell<string> title={title} step="Results" steps={IMPROVE_STEPS} footer={footer}>
-      <div className="mx-auto box-content flex max-w-[860px] flex-col gap-11 px-8 pb-8 pt-14">
+      <div className="mx-auto box-content flex max-w-[1120px] flex-col px-10 pb-12 pt-12">
         {children}
       </div>
     </FlowShell>
@@ -146,7 +146,7 @@ function Loaded({
     <Page
       title={name}
       footer={
-        <div className="mx-auto flex max-w-[860px] flex-wrap justify-end gap-2">
+        <div className="mx-auto flex max-w-[1120px] flex-wrap justify-end gap-2">
           <Button onClick={watch}>See all rounds</Button>
           {canPromote ? (
             <Button variant="primary" onClick={() => setPromoting(true)}>
@@ -188,17 +188,13 @@ function Loaded({
 
 function ImprovementSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Loading what it changed" className="flex flex-col gap-11">
+    <div aria-busy="true" aria-label="Loading what it changed" className="flex flex-col gap-12">
       <div className="flex flex-col gap-3">
-        <Skeleton shape="pill" className="h-7 w-24" />
         <Skeleton className="h-10 w-96" />
-        <Skeleton className="h-4 w-80" />
+        <Skeleton className="h-4 w-[420px]" />
       </div>
-      <Skeleton className="h-[136px] w-full rounded-card" />
-      <div className="grid grid-cols-2 gap-14">
-        <Skeleton className="h-36 w-full" />
-        <Skeleton className="h-36 w-full" />
-      </div>
+      <Skeleton className="h-[136px] w-full" />
+      <Skeleton className="h-36 w-full" />
     </div>
   );
 }

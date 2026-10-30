@@ -3,9 +3,9 @@ import {
   Disclosure,
   EvidenceMark,
   EvidenceMeter,
-  Heading,
   Skeleton,
   StatusMark,
+  Tooltip,
   type EvidenceKind,
 } from '@architect/ui';
 import type { QueryState } from '../../api/query';
@@ -13,6 +13,7 @@ import { ProblemState } from '../../components/ProblemState';
 import { CheckRows } from '../../install/InstallChecks';
 import { STATUS_LABELS, statusMark, WORKS_HERE_TITLE } from '../../install/labels';
 import { rate } from '../format';
+import { Section } from '../ledger';
 import type { ModelNames } from '../train/phase';
 import type { CapabilityEvidence } from './evidence';
 
@@ -20,7 +21,7 @@ import type { CapabilityEvidence } from './evidence';
 const COLUMNS: {
   kind: Exclude<EvidenceKind, 'install'>;
   label: string;
-  /** What the column's tasks are, under its name, so each kind of bar says what it counts. */
+  /** What the column's tasks are, said when its name is hovered or focused. */
   what: (mentor: string) => string;
   pick: (c: Capability) => Score | null;
 }[] = [
@@ -86,8 +87,7 @@ export function Capabilities({
     breakdown?.capabilities.some((capability) => column.pick(capability) !== null),
   );
   return (
-    <section aria-labelledby="capabilities" className="flex flex-col gap-[18px]">
-      <Heading id="capabilities">By task type</Heading>
+    <Section title="By task type" id="capabilities">
       {evidence.status === 'loading' && breakdown === undefined && (
         <div aria-busy="true" aria-label="Loading the results by task type">
           <Skeleton className="h-40 w-full rounded-control" />
@@ -102,38 +102,39 @@ export function Capabilities({
         />
       )}
       {breakdown && columns.length === 0 && (
-        <p className="m-0 text-fg">No task type has a result yet.</p>
+        <p className="m-0 border-y border-line py-3.5">No task type has a result yet.</p>
       )}
       {breakdown && columns.length > 0 && (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto border-b border-line">
           <table
             aria-label="Results by task type"
             className="w-full min-w-[640px] border-collapse text-left"
           >
             <thead>
               <tr>
-                <th className="w-[28%] pb-3 font-normal" />
+                <th className="w-[26%] pb-3" />
                 {columns.map((column) => (
-                  <th key={column.kind} scope="col" className="pb-3 pl-6 font-normal">
-                    <span className="flex flex-col gap-0.5">
-                      <EvidenceMark kind={column.kind}>{column.label}</EvidenceMark>
-                      <span className="text-small text-fg">{column.what(names.mentor)}</span>
-                    </span>
+                  <th key={column.kind} scope="col" className="pb-3 pl-8 font-normal">
+                    <Tooltip content={column.what(names.mentor)}>
+                      <span tabIndex={0} className="inline-flex cursor-help rounded-mark">
+                        <EvidenceMark kind={column.kind}>{column.label}</EvidenceMark>
+                      </span>
+                    </Tooltip>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {breakdown.capabilities.map((capability) => (
-                <tr key={capability.type} className="border-t border-line align-top">
-                  <th scope="row" className="py-3.5 pr-4 font-normal">
+                <tr key={capability.type} className="border-t border-line">
+                  <th scope="row" className="py-3.5 pr-4 align-middle font-normal">
                     <span className="flex flex-col gap-1">
                       <span>{capability.label}</span>
                       {capability.categories.map((category) => {
                         const line = stoppedLine(category, names.mentor);
                         return (
                           line && (
-                            <span key={category.id} className="text-small text-fg text-pretty">
+                            <span key={category.id} className="text-small text-pretty">
                               {line}
                             </span>
                           )
@@ -142,7 +143,7 @@ export function Capabilities({
                     </span>
                   </th>
                   {columns.map((column) => (
-                    <td key={column.kind} className="py-3.5 pl-6">
+                    <td key={column.kind} className="py-3.5 pl-8 align-middle">
                       <ScoreBar
                         kind={column.kind}
                         label={`${capability.label}, ${column.label.toLowerCase()}`}
@@ -159,22 +160,32 @@ export function Capabilities({
         </div>
       )}
       {installation && (
-        <div className="flex flex-col gap-1 border-t border-line pt-3.5">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <EvidenceMark kind="install">{WORKS_HERE_TITLE}</EvidenceMark>
-            <span className="flex items-center gap-2 text-small text-fg">
-              <StatusMark state={statusMark(installation.status)} size={14} />
-              {STATUS_LABELS[installation.status]}
-            </span>
-          </div>
-          {installation.checks.length > 0 && (
-            <Disclosure label="Details">
+        <div className="border-b border-line py-2">
+          {installation.checks.length > 0 ? (
+            <Disclosure label={<InstallLine installation={installation} />}>
               <CheckRows installation={installation} />
             </Disclosure>
+          ) : (
+            <div className="flex h-8 items-center pl-0.5">
+              <InstallLine installation={installation} />
+            </div>
           )}
         </div>
       )}
-    </section>
+    </Section>
+  );
+}
+
+/** This computer's checks of the agent in one line: that it works here, and how the checks came out. */
+function InstallLine({ installation }: { installation: Installation }) {
+  return (
+    <span className="flex items-center gap-4">
+      <EvidenceMark kind="install">{WORKS_HERE_TITLE}</EvidenceMark>
+      <span className="flex items-center gap-2 font-normal">
+        <StatusMark state={statusMark(installation.status)} size={14} />
+        {STATUS_LABELS[installation.status]}
+      </span>
+    </span>
   );
 }
 
@@ -192,13 +203,21 @@ function ScoreBar({
   mentor: string;
 }) {
   if (score === null) {
-    return <span className="text-small text-fg">Not measured</span>;
+    return <span className="text-small">Not measured</span>;
   }
   const sparkText = spark ? `; ${mentor} ${spark.pass} of ${spark.total} passed` : '';
   return (
-    <span className="flex flex-col gap-2">
-      <span className="font-mono text-small tabular-nums text-fg">
-        <span className="text-fg">{score.pass}</span> of {score.total}
+    <span className="flex items-center gap-4">
+      <EvidenceMeter
+        kind={kind}
+        value={score.total === 0 ? 0 : rate(score) / 100}
+        label={label}
+        valueText={`${score.pass} of ${score.total} passed${sparkText}`}
+        className="min-w-16 flex-1"
+        {...(spark ? { marker: spark.total === 0 ? 0 : rate(spark) / 100 } : {})}
+      />
+      <span className="shrink-0 whitespace-nowrap font-mono text-small tabular-nums">
+        {score.pass} of {score.total}
         {spark && (
           <span className="font-sans text-mentor">
             {' · '}
@@ -206,13 +225,6 @@ function ScoreBar({
           </span>
         )}
       </span>
-      <EvidenceMeter
-        kind={kind}
-        value={score.total === 0 ? 0 : rate(score) / 100}
-        label={label}
-        valueText={`${score.pass} of ${score.total} passed${sparkText}`}
-        {...(spark ? { marker: spark.total === 0 ? 0 : rate(spark) / 100 } : {})}
-      />
     </span>
   );
 }

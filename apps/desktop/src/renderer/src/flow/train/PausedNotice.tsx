@@ -81,10 +81,10 @@ export function PausedNotice({ live }: { live: LiveRun }) {
             })}
           </ul>
         )}
-        <p className="m-0 text-small text-fg text-pretty">
+        <p className="m-0 text-small text-pretty">
           {problems.length > 0
-            ? `When that is put right, press Resume. ${what} carries on from where it stopped.`
-            : `Press Resume to try again. ${what} carries on from where it stopped.`}
+            ? 'When that is put right, press Resume.'
+            : 'Press Resume to try again.'}
         </p>
         {problems.length > 0 && (
           <Disclosure label="Details">

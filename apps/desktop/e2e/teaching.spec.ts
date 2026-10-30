@@ -363,9 +363,9 @@ test('improves the agent into a new version while the active one keeps answering
   );
   await expect(taught).toContainText('Improving from version 2');
   await capture('improve-train-dark.png');
-  // The evidence views work in an improvement as in any run: its worked examples, and a
-  // round's drawer from the rounds list.
-  await expect(page.getByRole('region', { name: 'Worked examples' })).toBeVisible();
+  // The evidence views work in an improvement as in any run: a round's drawer from the rounds
+  // list, and no worked examples section until it has an example to list.
+  await expect(page.getByRole('region', { name: 'Worked examples' })).toHaveCount(0);
   await page
     .getByRole('region', { name: 'Rounds' })
     .getByRole('button')

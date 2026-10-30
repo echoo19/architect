@@ -1,18 +1,10 @@
 import type { ReportCard } from '@architect/shared';
-import {
-  Heading,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@architect/ui';
+import { Skeleton } from '@architect/ui';
 import { api, flowApi } from '../../api/client';
 import { useQuery, type QueryState } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
 import { formatUsd } from '../../lib/format';
+import { Section } from '../ledger';
 import type { ModelNames } from '../train/phase';
 import {
   comparisonPeers,
@@ -49,8 +41,7 @@ export function ComparisonTable({
 }) {
   if (rows.status === 'success' && rows.data.length === 0) return null;
   return (
-    <section aria-labelledby="comparison" className="flex flex-col gap-[18px]">
-      <Heading id="comparison">Compared with simpler methods</Heading>
+    <Section title="Compared with simpler methods" id="comparison">
       {rows.status === 'loading' && (
         <div aria-busy="true" aria-label="Loading the comparison">
           <Skeleton className="h-[188px] w-full rounded-control" />
@@ -65,45 +56,54 @@ export function ComparisonTable({
         />
       )}
       {rows.status === 'success' && (
-        <div className="rounded-control bg-card">
-          <Table aria-label="Compared with simpler methods">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Method</TableHead>
-                <TableHead className="text-right">Final test</TableHead>
-                <TableHead className="text-right">vs. no setup</TableHead>
-                <TableHead className="text-right">{names.mentor} cost</TableHead>
-                <TableHead className="text-right">Rounds</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <div className="overflow-x-auto border-b border-line">
+          <table
+            aria-label="Compared with simpler methods"
+            className="w-full min-w-[640px] border-collapse text-ui"
+          >
+            <thead>
+              <tr className="text-small">
+                <th className="pb-3 text-left font-normal">Method</th>
+                <th className="pb-3 pl-6 text-right font-normal">Final test</th>
+                <th className="pb-3 pl-6 text-right font-normal">vs. no setup</th>
+                <th className="pb-3 pl-6 text-right font-normal">{names.mentor} cost</th>
+                <th className="pb-3 pl-6 text-right font-normal">Rounds</th>
+              </tr>
+            </thead>
+            <tbody>
               {rows.data.map((row) => (
-                <TableRow key={row.runId} aria-current={row.current ? 'true' : undefined}>
-                  <TableCell>
+                <tr
+                  key={row.runId}
+                  aria-current={row.current ? 'true' : undefined}
+                  className="border-t border-line"
+                >
+                  <th scope="row" className="py-3.5 pr-4 text-left font-normal">
                     <span className="flex flex-col gap-0.5">
                       <span className={row.current ? 'font-medium' : undefined}>
                         {row.label}
-                        {row.current && <span className="text-fg"> · this run</span>}
+                        {row.current && <span> · this run</span>}
                       </span>
-                      <span className="text-small text-fg">
-                        {methodExplanation(row.method, names)}
-                      </span>
+                      <span className="text-small">{methodExplanation(row.method, names)}</span>
                     </span>
-                  </TableCell>
-                  <TableCell className="text-right font-mono font-medium text-fg">
+                  </th>
+                  <td className="py-3.5 pl-6 text-right align-middle font-mono font-medium tabular-nums">
                     {Math.round(row.testRate)}%
-                  </TableCell>
-                  <TableCell className="text-right font-mono">
+                  </td>
+                  <td className="py-3.5 pl-6 text-right align-middle font-mono tabular-nums">
                     {row.vsBare === null || row.method === 'bare' ? '–' : formatPoints(row.vsBare)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono">{formatUsd(row.mentorUsd)}</TableCell>
-                  <TableCell className="text-right font-mono">{row.rounds}</TableCell>
-                </TableRow>
+                  </td>
+                  <td className="py-3.5 pl-6 text-right align-middle font-mono tabular-nums">
+                    {formatUsd(row.mentorUsd)}
+                  </td>
+                  <td className="py-3.5 pl-6 text-right align-middle font-mono tabular-nums">
+                    {row.rounds}
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
       )}
-    </section>
+    </Section>
   );
 }
