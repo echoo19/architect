@@ -1,5 +1,5 @@
 import { Button, cn } from '@architect/ui';
-import { CirclePause, FilePlus } from 'lucide-react';
+import { ChevronDown, CirclePause, FilePlus } from 'lucide-react';
 import { KeepIds, P, Reply, Steps, UserBubble } from './chat';
 import { AppWindow, ChatComposer, ChatHeader, Sidebar } from './frame';
 import { CHATS, DESK, deskSidebar } from './jobs';
@@ -50,6 +50,7 @@ function Header({ file, summary }: { file: string; summary: string }) {
       <span className="flex min-w-0 flex-col">
         <span className="truncate font-medium">
           Add to <span className="font-mono text-ui">{file}</span>
+          <ChevronDown size={14} strokeWidth={1.8} aria-hidden className="ml-1.5 inline" />
         </span>
         <span className="text-small">{summary}</span>
       </span>
@@ -85,6 +86,7 @@ function Approval() {
         <table className="w-full border-collapse font-mono text-small">
           <thead>
             <tr>
+              <th aria-hidden className="w-6" />
               {COLUMNS.map((column, index) => (
                 <th key={column} className={cn(cell(index), 'font-medium')}>
                   {column}
@@ -94,6 +96,7 @@ function Approval() {
           </thead>
           <tbody>
             <tr className="bg-student-soft">
+              <td className="w-6 pl-4 text-student">+</td>
               {ROW.map((value, index) => (
                 <td key={COLUMNS[index]} className={cell(index)}>
                   {value}
@@ -125,7 +128,7 @@ export function UseMock() {
               </UserBubble>
               <Reply>
                 <Steps
-                  header="3 steps"
+                  header="3 steps so far"
                   steps={STEPS}
                   headerClassName="a a-up"
                   headerStyle={at(WORK - 150, { dy: 8 })}

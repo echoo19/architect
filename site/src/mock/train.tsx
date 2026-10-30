@@ -181,10 +181,11 @@ export function TrainMock() {
             >
               <Score />
               <ScoreChart times={TIMES} />
-              <div className="mt-8 grid grid-cols-[auto_auto_auto] justify-between gap-4 border-t border-line pt-5">
+              <div className="mt-8 grid grid-cols-[repeat(4,auto)] justify-between gap-x-4 gap-y-4 border-t border-line pt-5 narrow:grid-cols-2">
                 <Limit label="Time" used="28 min" max="12 h" />
-                <Limit label="Spark" used="$0.34" max="$4.92" />
+                <Limit label="Spark's cost" used="$0.34" max="$4.92" />
                 <Limit label="Rounds" used="4" max="7" />
+                <Limit label="Changes kept" used="2" max="4" />
               </div>
             </section>
             <section

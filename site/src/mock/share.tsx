@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { Button, cn, IconButton } from '@architect/ui';
-import { Check, ExternalLink, X } from 'lucide-react';
+import { AgentAvatar, Button, cn, IconButton } from '@architect/ui';
+import { Check, CloudUpload, ExternalLink, X } from 'lucide-react';
 import { Insert, Swap, Typed } from './kit';
 import { at } from './motion';
 import { ChapterStage } from './stage';
@@ -101,86 +101,130 @@ function Segment({
   );
 }
 
-function Row({ label, start, children }: { label: string; start: number; children: ReactNode }) {
+function Row({
+  label,
+  meta,
+  start,
+  children,
+}: {
+  label: string;
+  meta?: string;
+  start: number;
+  children: ReactNode;
+}) {
   return (
     <li
       className="a a-up flex min-h-14 items-center justify-between gap-4 border-t border-line"
       style={at(start, { dy: 10, dur: 560 })}
     >
-      <span>{label}</span>
+      <span className="flex min-w-0 flex-col">
+        <span className="font-medium">{label}</span>
+        {meta && <span className="text-small text-pretty">{meta}</span>}
+      </span>
       {children}
     </li>
   );
 }
 
+const NAV = ['General', 'Permissions', 'Teaching', 'Results', 'Export'] as const;
+
 function Dialog() {
   return (
     <section
       aria-label="Export"
-      className="a a-pop flex min-w-0 flex-col rounded-card bg-raised shadow-float"
+      className="a a-pop grid min-w-0 grid-cols-[168px_minmax(0,1fr)] rounded-card bg-raised shadow-float narrow:grid-cols-1"
       style={at(150, { dur: 500 })}
     >
-      <div className="flex min-h-16 items-center justify-between px-6">
-        <h3 className="m-0 font-display text-h2 font-semibold">Export</h3>
-        <IconButton label="Close" size="sm" tabIndex={-1}>
-          <X size={16} strokeWidth={1.8} aria-hidden />
-        </IconButton>
-      </div>
-      <div className="flex flex-col gap-1 px-6 pb-2">
-        <span className="pb-3">
-          <Segment options={['Package file', 'Hugging Face']} selected={1} from={0} pickAt={PICK} />
+      <nav
+        aria-label="Settings"
+        className="flex flex-col gap-1 border-r border-line p-3 narrow:hidden"
+      >
+        <span className="flex h-12 items-center gap-2.5 px-2 font-medium">
+          <AgentAvatar name="Returns desk" />
+          Returns desk
         </span>
-        <ul className="m-0 flex list-none flex-col p-0">
-          <Row label="Name" start={FIELDS}>
-            <span className="min-w-0 rounded-control bg-field px-3.5 py-2 font-mono text-ui shadow-edge-strong">
-              <Typed text={REPO} start={NAME} step={1} />
-            </span>
-          </Row>
-          <Row label="Visibility" start={FIELDS + 140}>
-            <Segment options={['Private', 'Public']} selected={0} />
-          </Row>
-          <Row label="Token" start={FIELDS + 280}>
-            <span className="flex items-center gap-1.5">
-              <Check size={15} strokeWidth={2} aria-hidden />
-              Saved
-            </span>
-          </Row>
-        </ul>
-        <Insert start={PUBLISHED} dur={600}>
-          <div className="flex min-h-[72px] items-center justify-between gap-3 border-t border-line">
-            <span className="flex min-w-0 items-center gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-student-soft text-student">
-                <Check size={17} strokeWidth={2} aria-hidden />
+        {NAV.map((item) => (
+          <span
+            key={item}
+            className={cn(
+              'flex h-9 items-center rounded-control px-2.5',
+              item === 'Export' && 'bg-selected',
+            )}
+          >
+            {item}
+          </span>
+        ))}
+      </nav>
+      <div className="flex min-w-0 flex-col">
+        <div className="flex min-h-16 items-center justify-between px-6">
+          <h3 className="m-0 font-display text-h2 font-semibold">Export</h3>
+          <IconButton label="Close" size="sm" tabIndex={-1}>
+            <X size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </div>
+        <div className="flex flex-col gap-1 px-6 pb-2">
+          <span className="pb-3">
+            <Segment
+              options={['Package file', 'Hugging Face']}
+              selected={1}
+              from={0}
+              pickAt={PICK}
+            />
+          </span>
+          <ul className="m-0 flex list-none flex-col p-0">
+            <Row label="Name" start={FIELDS}>
+              <span className="min-w-0 rounded-control bg-field px-3.5 py-2 font-mono text-ui shadow-edge-strong">
+                <Typed text={REPO} start={NAME} step={1} />
               </span>
-              <span className="flex min-w-0 flex-col">
-                <span className="font-medium">Version 1 is on Hugging Face</span>
-                <span className="text-small">Commit {COMMIT}, private</span>
+            </Row>
+            <Row
+              label="Visibility"
+              meta="Only accounts you allow on Hugging Face can see it"
+              start={FIELDS + 140}
+            >
+              <Segment options={['Private', 'Public']} selected={0} />
+            </Row>
+            <Row label="Token" start={FIELDS + 280}>
+              <span>Uses HF_TOKEN from this computer</span>
+            </Row>
+          </ul>
+          <Insert start={PUBLISHED} dur={600}>
+            <div className="flex min-h-[72px] items-center justify-between gap-3 border-t border-line">
+              <span className="flex min-w-0 items-center gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-student-soft text-student">
+                  <Check size={17} strokeWidth={2} aria-hidden />
+                </span>
+                <span className="flex min-w-0 flex-col">
+                  <span className="font-medium">Version 1 is on Hugging Face</span>
+                  <span className="text-small">Commit {COMMIT}, private</span>
+                </span>
               </span>
-            </span>
-            <Button variant="secondary" size="sm" tabIndex={-1} className="narrow:hidden">
-              <ExternalLink size={14} strokeWidth={1.7} aria-hidden />
-              {REPO}
-            </Button>
-          </div>
-        </Insert>
-      </div>
-      <div className="flex min-h-[76px] items-center justify-end border-t border-line px-6">
-        <span className="a a-press inline-flex" style={at(PUBLISH, { dur: 360 })}>
-          <Swap
-            at={PUBLISHED}
-            before={
-              <Button variant="primary" size="md" tabIndex={-1}>
-                Publish
+              <Button variant="secondary" size="sm" tabIndex={-1} className="narrow:hidden">
+                <ExternalLink size={14} strokeWidth={1.7} aria-hidden />
+                {REPO}
               </Button>
-            }
-            after={
-              <Button variant="secondary" size="md" tabIndex={-1}>
-                <Check size={15} strokeWidth={2} aria-hidden />
-                Published
-              </Button>
-            }
-          />
-        </span>
+            </div>
+          </Insert>
+        </div>
+        <div className="flex min-h-[76px] items-center justify-end border-t border-line px-6">
+          <span className="a a-press inline-flex" style={at(PUBLISH, { dur: 360 })}>
+            <Swap
+              at={PUBLISHED}
+              before={
+                <Button variant="primary" size="md" tabIndex={-1}>
+                  <CloudUpload size={15} strokeWidth={1.8} aria-hidden />
+                  Publish version 1
+                </Button>
+              }
+              after={
+                <Button variant="secondary" size="md" tabIndex={-1}>
+                  <Check size={15} strokeWidth={2} aria-hidden />
+                  Published
+                </Button>
+              }
+            />
+          </span>
+        </div>
       </div>
     </section>
   );
@@ -221,9 +265,9 @@ export function ShareMock() {
     <ChapterStage
       id="share"
       label="Two panels. On the left, the Architect Export dialog set to Hugging Face, with the repository name larchwood/returns, private visibility and a saved token, after publishing: version 1 is on Hugging Face at commit 3f9a2c1 and private. On the right, a terminal where the architect command installs that commit, runs the returns desk, shows the row it wants to add to pickups.csv, asks to allow the change, and after the answer yes books the pickup."
-      heightWide={560}
+      heightWide={510}
     >
-      <div className="absolute inset-0 grid grid-cols-[minmax(0,5fr)_minmax(0,6fr)] items-start gap-6 p-7 narrow:relative narrow:inset-auto narrow:grid-cols-1 narrow:gap-4 narrow:p-4">
+      <div className="absolute inset-0 grid grid-cols-[minmax(0,6fr)_minmax(0,5fr)] items-start gap-6 p-7 narrow:relative narrow:inset-auto narrow:grid-cols-1 narrow:gap-4 narrow:p-4">
         <Dialog />
         <Terminal />
       </div>

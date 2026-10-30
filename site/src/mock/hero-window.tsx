@@ -55,7 +55,7 @@ export function HeroWindow() {
               </UserBubble>
               <Reply>
                 <WorkedFor className="a a-up" style={at(WORKED, { dy: 10 })}>
-                  Worked for 1 min 31 s, 4 steps
+                  Worked for 1 min 31 s · 4 steps
                 </WorkedFor>
                 <P className="a a-wipe" style={at(LEAD, { dur: 1300 })}>
                   Yes. The tent was delivered 23 days ago, inside the 30 day window, and Nico gets{' '}

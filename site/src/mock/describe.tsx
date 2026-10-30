@@ -36,7 +36,7 @@ export function DescribeMock() {
     <ChapterStage
       id="describe"
       label="The Architect Describe screen. Under the question what should your agent do, the person has written that they want questions answered about the tickets of their bike repair shop, what a ticket costs under their policy and who a customer is. They have attached three files, customers.csv, tickets.csv and policy.md, and the teacher is Spark."
-      heightWide={500}
+      heightWide={460}
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 flex flex-col wide:inset-x-7 wide:top-6">
         <FlowBar title="New agent" current={0} />
@@ -58,7 +58,7 @@ export function DescribeMock() {
                 <div className="flex items-center gap-3">
                   <span className="flex items-center gap-1.5 text-small">
                     <Cloud size={14} strokeWidth={1.6} aria-hidden />
-                    <Model name="Spark" />
+                    Teacher: <Model name="Spark" />
                     <ChevronDown size={13} strokeWidth={1.8} aria-hidden />
                   </span>
                   <span className="a a-press inline-flex" style={at(SEND, { dur: 320 })}>

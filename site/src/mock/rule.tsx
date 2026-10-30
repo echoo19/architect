@@ -128,26 +128,32 @@ export function RuleMock() {
           <Button variant="secondary" size="md" tabIndex={-1} className="narrow:hidden">
             Change the description
           </Button>
-          <Swap
-            at={CONFIRM}
-            className="ml-auto justify-items-end"
-            before={
-              <Button variant="primary" size="md" tabIndex={-1}>
-                Confirm the rule
-              </Button>
-            }
-            after={
-              <span className="flex items-center gap-4">
-                <span className="flex items-center gap-1.5 text-student">
-                  <Check size={16} strokeWidth={2} aria-hidden />
-                  Confirmed
-                </span>
+          <div className="ml-auto flex items-center gap-3">
+            <Button variant="secondary" size="md" tabIndex={-1} className="narrow:hidden">
+              Back
+            </Button>
+            <Swap
+              at={CONFIRM}
+              className="justify-items-end"
+              before={
                 <Button variant="primary" size="md" tabIndex={-1}>
-                  Start training
+                  <Check size={15} strokeWidth={2} aria-hidden />
+                  Confirm the rule
                 </Button>
-              </span>
-            }
-          />
+              }
+              after={
+                <span className="flex items-center gap-4">
+                  <span className="flex items-center gap-1.5 text-student">
+                    <Check size={16} strokeWidth={2} aria-hidden />
+                    Confirmed
+                  </span>
+                  <Button variant="primary" size="md" tabIndex={-1}>
+                    Start training
+                  </Button>
+                </span>
+              }
+            />
+          </div>
         </div>
       </AppWindow>
     </ChapterStage>
