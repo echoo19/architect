@@ -2,6 +2,21 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri, night), certify lane "Counterexamples" (branch `certify/counterexamples`)
+
+**Done** (no model was called, no GPU, no spend; the loop runs on the scripted mentor)
+- `docs/CERTIFY.md` section 2, decision 078. A helper call that failed in a failed train attempt is replayed faithfully (`replayToCall`, sharing the checkpoint's replay), run again in the sandbox, judged by an explicit predicate (`threw`, or `contradicts` a value the checker's expected values hold) and reduced by delta debugging over its tables, rows then columns, keeping the rows the call points at and every row they reference by id. On the academy's Copperfield data the "Full"-layout lookup goes from 2,312 rows to 4, 1-minimal.
+- `CounterexampleSchema` in shared; `counterexamples` table (migration 17); `mentoring.counterexamples` and `mentoring.fieldCounterexamples` over IPC.
+- The mentor's request holds the round's reduced cases. A change that writes a helper must pass all of that helper's counterexamples in the sandbox (reduced cases, and this round's original attempt), or it is refused with the reason for the one fix; then keep or revert on dev as before.
+- The round drawer shows the reduction, the failure in words, the call, the tables and the repair; Fields → Assets lists the field's counterexamples. Hidden e2e `counterexamples.spec.ts`, screenshot `counterexample-dark.png`; `field-assets-dark.png` recaptured. `fields.spec.ts` now sets the Lab edition (it failed on the personal default before this branch).
+
+**Next**
+- Merge with `certify/answers`: both may add migration 17; renumber whichever lands second.
+- A real run on the academy to see how often helpers fail on train and whether repairs against the cases carry to dev.
+
+**Open**
+- The anchors (rows the call points at) are a heuristic of the call's values; a call whose values don't appear in the data keeps none, and a crash can reduce to almost nothing. The reduced case's pass condition is weak by design; the original case is the strong one, available only in the round that found it.
+
 ## 2026-10-30 (Fri, night), platform lane "Editions" (branch `platform/editions`)
 
 **Done** (no model was called, no GPU, no spend)
