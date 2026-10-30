@@ -41,7 +41,9 @@ test('opens a hidden, sandboxed window', async () => {
     process: 'undefined',
     bridge: [
       'app',
+      'compute',
       'connections',
+      'experiments',
       'files',
       'graduates',
       'jobs',
@@ -142,6 +144,7 @@ test('finishes setup and shows an error state with a retry when agents fail to l
   await stubEngine(launched.app, { 'connections:detectLocal': NOTHING_LOCAL });
   await page.reload();
   await settle(page);
+  await page.getByRole('button', { name: 'Continue' }).click();
   // Both setup steps can wait; the model and the teacher can be set up later.
   await expect(page.getByText("Ollama isn't running")).toBeVisible();
   await page.getByRole('button', { name: 'Download later' }).click();

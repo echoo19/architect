@@ -53,7 +53,7 @@ test.beforeAll(async () => {
   }, SIZE);
   expect(visible).toBe(false);
   await mkdir(OUT_DIR, { recursive: true });
-  await updateSettings(page, { onboarded: true });
+  await updateSettings(page, { onboarded: true, edition: 'lab' });
   // This computer's GPU and runtimes as stand-ins: no nvidia-smi, no Ollama of the developer's.
   await stubEngine(launched.app, {
     'connections:detectLocal': { ...OLLAMA_READY, gpu: GPU_12GB },

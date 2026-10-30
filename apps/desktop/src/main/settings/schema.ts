@@ -13,6 +13,7 @@ import { z } from 'zod';
 export function defaultSettings(): AppSettings {
   const mentor = mentorPreset('meta-spark');
   return {
+    edition: 'personal',
     steps: 'collapsed',
     comparisonMode: false,
     quietLocalModels: false,
@@ -50,10 +51,11 @@ const StoredEndpointsSchema = z
 /**
  * Reads a settings file leniently: a field that is missing or no longer valid falls back to its
  * default instead of discarding the rest of the user's choices. Files from before endpoints could
- * be added simply have none, and a choice a later version no longer offers, such as the theme
+ * be added simply have none, a file from before the Lab is the personal edition, and a choice a later version no longer offers, such as the theme
  * (Architect is always dark), is read past and left out.
  */
 const StoredSettingsSchema = z.object({
+  edition: AppSettingsSchema.shape.edition.catch(() => defaultSettings().edition),
   steps: AppSettingsSchema.shape.steps.catch(() => defaultSettings().steps),
   comparisonMode: z.boolean().catch(() => defaultSettings().comparisonMode),
   quietLocalModels: z.boolean().catch(() => defaultSettings().quietLocalModels),

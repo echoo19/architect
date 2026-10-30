@@ -332,6 +332,8 @@ test('offers Spark first and three other ways to a teacher in setup, and a model
   await open('/welcome', { secrets: {}, local: LOCAL }, false);
   await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByRole('heading', { name: "Your agent's model" })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByRole('heading', { name: 'Connect a teacher' })).toBeVisible();
   // Spark with a Meta key comes first; the other ways wait behind one line.
   await expect(page.getByLabel('Meta API key')).toBeVisible();
@@ -367,6 +369,7 @@ test('offers Spark first and three other ways to a teacher in setup, and a model
 
 test('sizes Glimmer for the GPU in setup and installs the GPU-sized build', async () => {
   await open('/welcome', { secrets: {}, local: { ...OLLAMA_READY, gpu: GPU_12GB } }, false);
+  await page.getByRole('button', { name: 'Continue' }).click();
   const recommended = page.getByRole('radio', { name: /Recommended/ });
   const larger = page.getByRole('radio', { name: /Larger/ });
   // The build that fits this card is chosen while the default isn't downloaded.

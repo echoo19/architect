@@ -2,6 +2,17 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri, night), platform lane "Editions" (branch `platform/editions`)
+
+**Done** (no model was called, no GPU, no spend)
+- `edition: 'personal' | 'lab'` in settings; an older file reads as personal (decision 076).
+- Welcome starts with the choice (Architect or Architect Lab), saved as it is made; Settings, General, switches it at once.
+- Personal: the chat-first home of `base-one-job` again, the agents-only sidebar, no places in the palette, no tutor on Describe, Lab routes go home. Lab: as before. The sidebar wordmark and the window title name the edition.
+- Pre-pivot e2e specs run in the personal edition and expect its home; Lab specs set `edition: 'lab'`. New `editions.spec.ts`, unit tests for the setting and the redirects. Screenshots `welcome-editions-dark.png`, `settings-edition-dark.png`, `home-personal-dark.png`.
+
+**Next**
+- The site's download page offers both editions. The Fields lane's merge keeps `/fields` behind `isLabOnly` (it already is).
+
 ## 2026-10-30 (Fri, night), platform lane "Compute" (branch `platform/compute`)
 
 **Done** (no model was called, no GPU, no cluster, no spend; the Hub in tests is the fake one)

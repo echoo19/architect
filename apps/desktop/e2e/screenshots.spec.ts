@@ -95,6 +95,8 @@ test('captures every screen', async () => {
 
   await goTo(page, '/welcome');
   await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
+  await expect(page.getByRole('radio', { name: /Architect Lab/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByRole('radio', { name: /Recommended/ })).toBeVisible();
   await capture(page, 'welcome-dark.png');
 
@@ -157,7 +159,7 @@ test('captures the empty workspace and a failed action', async () => {
   });
   await reload(page);
   await goTo(page, '/');
-  await expect(page.getByRole('heading', { name: 'Nothing in the lab yet' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
   await capture(page, 'workspace-empty-dark.png');
 
   // With creating the sample job made to fail, the app says why in a toast.
