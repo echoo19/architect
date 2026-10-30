@@ -101,8 +101,15 @@ async function playEverything(context, page) {
     );
     await page.waitForTimeout(900);
   }
+  // The page's words rise into place as they come into view, so the way down is walked once more.
+  const total = await page.evaluate(() => document.documentElement.scrollHeight);
+  const view = page.viewportSize()?.height ?? 800;
+  for (let y = 0; y < total; y += Math.round(view * 0.6)) {
+    await page.evaluate((top) => window.scrollTo({ top, behavior: 'instant' }), y);
+    await page.waitForTimeout(120);
+  }
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(1200);
 }
 
 async function save(page, name, options = {}) {
@@ -119,7 +126,7 @@ if (args.selector) {
     // The bar that follows the page would sit over the top of an element.
     await page.addStyleTag({ content: 'header.sticky { position: static !important; }' });
     await target.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(Number(args.wait ?? 6000));
+    await page.waitForTimeout(Number(args.wait ?? 11000));
     await target.screenshot({ path: path.join(outDir, `${args.name ?? 'element'}-${width}.png`) });
     console.log(path.join(outDir, `${args.name ?? 'element'}-${width}.png`));
     await context.close();
@@ -128,7 +135,7 @@ if (args.selector) {
   for (const width of widths) {
     if (wanted('hero')) {
       const { context, page } = await open(width);
-      await page.waitForTimeout(Number(args.wait ?? 3500));
+      await page.waitForTimeout(Number(args.wait ?? 7500));
       await save(page, `hero-${width}`);
       await context.close();
     }
