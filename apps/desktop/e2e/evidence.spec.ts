@@ -144,16 +144,14 @@ test('reconciles the training screen with the stored records (A05)', async () =>
     summary.runId,
   );
   const changes = stored.filter((item) => item.kind !== 'draft');
-  const resources = page.getByRole('region', { name: 'Resources' });
-  await expect(resources).toContainText(
-    new RegExp(
-      `Changes kept\\s*${changes.filter((item) => item.disposition === 'kept').length}\\s*/\\s*${changes.length}`,
-    ),
+  const changesKept = changes.filter((item) => item.disposition === 'kept').length;
+  await expect(page.getByRole('region', { name: 'Rounds' })).toContainText(
+    `${changesKept} of ${changes.length} kept`,
   );
   // Every example is listed, and the count over them adds up to the ticks in the list.
   const verified = lessons.filter((lesson) => lesson.status === 'verified').length;
   const examples = page.getByRole('region', { name: 'Worked examples' });
-  await expect(examples).toContainText(`${verified} of ${lessons.length} passed the checker`);
+  await expect(examples).toContainText(`${verified} of ${lessons.length} passed`);
   const rows = examples.getByRole('listitem');
   await expect(rows).toHaveCount(lessons.length);
   await expect(rows.getByRole('img', { name: 'Passed the checker' })).toHaveCount(verified);
@@ -314,8 +312,8 @@ test('shows the memory a meter read over the final test, and nothing where it re
   );
   expect(others).toEqual([]);
   expect(reading?.peakProcessBytes).not.toBeNull();
-  // The figures are for whoever asks: behind the stats' Details.
-  await page.getByRole('button', { name: 'Details' }).first().click();
+  // The figures are for whoever asks: behind the run's details.
+  await page.getByRole('button', { name: 'Run details' }).click();
   await expect(
     page.getByText(/^Up to [\d.]+ GB of RAM and [\d.]+ GB of GPU memory$/),
   ).toBeVisible();

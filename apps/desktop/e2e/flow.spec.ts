@@ -32,7 +32,7 @@ const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.
 const WIDTH = 1440;
 /** Tall enough for each screen's whole page, so a screenshot shows everything on it. */
 const DEFINE_HEIGHT = 1580;
-const TRAIN_HEIGHT = 1270;
+const TRAIN_HEIGHT = 1420;
 const REPORT_HEIGHT = 2060;
 /** The results with a rule's whole expression open, which runs a hundred lines down the page. */
 const RULE_REPORT_HEIGHT = 3600;
@@ -309,28 +309,28 @@ test('walks from a description to a graduate', async () => {
   await expect(rounds).toContainText('65% → 63%');
   await expect(rounds).toContainText('First draft');
   await expect(rounds).toContainText('No gain');
+  await expect(rounds).toContainText('1 of 2 kept');
   await expect(success.getByRole('img')).toHaveAttribute(
     'aria-label',
     'Score on the check tasks by round: 40% at the start, 65% after the first draft, round 2 undone at 63%, ' +
       '78% after round 3, round 4 in progress. Target 90%.',
   );
-  const resources = page.getByRole('region', { name: 'Resources' });
-  await expect(resources).toContainText('1 h 46 min / 4 h');
-  await expect(resources.getByRole('meter', { name: 'Time' })).toHaveAttribute(
+  const budget = page.getByRole('region', { name: 'Budget' });
+  await expect(budget).toContainText('/ 4 h');
+  await expect(budget.getByRole('meter', { name: 'Time' })).toHaveAttribute(
     'aria-valuetext',
     '1 h 46 min of 4 h',
   );
-  await expect(page.getByRole('region', { name: 'Current round' })).toContainText(
-    /Spark expects\s*\+3 to \+6 check tasks/,
-  );
-  await expect(
-    page.getByRole('heading', { name: 'Round 4: Allow for zone travel time' }),
-  ).toBeVisible();
+  // The newest round is open under its line: what Glimmer missed, what Spark makes of it, and
+  // what Spark expects to gain.
+  const current = page.getByRole('region', { name: 'Current round' });
+  await expect(current).toContainText(/Expects\s*\+3 to \+6 check tasks/);
+  await expect(rounds.getByRole('button', { name: /Allow for zone travel time/ })).toBeVisible();
   // A check task is listed, marked as one the mentor never sees.
   const attempts = page.getByRole('region', { name: 'Latest attempts' });
-  const hidden = attempts.getByText(', Spark sees only the score');
-  await expect(attempts).toContainText('Practice task, round 4');
-  await expect(attempts).toContainText('Check task, round 3');
+  const hidden = attempts.getByRole('img', { name: /Spark sees only the score/ });
+  await expect(attempts.getByRole('img', { name: 'Practice task, round 4' }).first()).toBeVisible();
+  await expect(attempts.getByRole('img', { name: /^Check task, round 3/ })).toHaveCount(1);
   await expect(hidden).toHaveCount(1);
   await capture(page, 'flow-train-dark');
 
@@ -338,10 +338,10 @@ test('walks from a description to a graduate', async () => {
   await emitRunEvents(app, roundFourKept());
   await expect(success).toContainText('85%');
   await expect(rounds).toContainText('78% → 85%');
-  await expect(page.getByRole('region', { name: 'Current round' })).toContainText('Round 5');
+  await expect(rounds.getByRole('button').first()).toContainText('05');
   await expect(attempts.getByRole('button').first()).toContainText('9 Birch Ln');
   // The check task has scrolled out of the five latest, and its mark goes with it.
-  await expect(attempts).not.toContainText('Check task');
+  await expect(attempts.getByRole('img', { name: /^Check task/ })).toHaveCount(0);
   await expect(hidden).toHaveCount(0);
 
   // An attempt's trace, then a round's changes, each in a drawer that Escape closes.
@@ -436,7 +436,6 @@ test('walks from a description to a graduate', async () => {
   // of comparison mode, a researcher's setting, so it goes on to read it and off to capture.
   await resize(REPORT_HEIGHT);
   await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
-  await expect(page.getByText('Ready', { exact: true })).toBeVisible();
   await expect(
     page.getByText(
       'Tested on 60 tasks it had never seen, offline on this computer, with Spark disconnected.',
@@ -450,9 +449,7 @@ test('walks from a description to a graduate', async () => {
   await expect(bare).toContainText('Glimmer on its own, with no instructions or skills');
   await expect(page.getByText('Up from 40% before training')).toBeVisible();
   await expect(comparison.getByRole('row', { name: /Architect/ })).toContainText('+52 points');
-  await expect(page.getByRole('region', { name: 'What helped most' })).toContainText(
-    '+5 check tasks',
-  );
+  await expect(page.getByRole('region', { name: 'What helped most' })).toContainText('+5');
   await expect(page.getByRole('heading', { name: "What it won't do" })).toBeVisible();
   await updateSettings(page, { comparisonMode: false });
   await expect(comparison).toBeHidden();
@@ -475,9 +472,9 @@ test("says in the results' details where a drafted job's final test came from", 
   await goTo(page, `/runs/${FLOW.runId}/report`);
   await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
 
-  // Behind the stats' Details: what drafting cost, and what the final test's answers rest on.
+  // Behind the run's details: what drafting cost, and what the final test's answers rest on.
   await expect(page.getByText(/independently certified/)).toHaveCount(0);
-  await page.getByRole('button', { name: 'Details' }).first().click();
+  await page.getByRole('button', { name: 'Run details' }).click();
   await expect(page.getByText('Drafting the job')).toBeVisible();
   await expect(page.getByText('$0.04, before training')).toBeVisible();
   await expect(
@@ -488,7 +485,7 @@ test("says in the results' details where a drafted job's final test came from", 
   await capture(page, 'flow-report-drafted-dark');
 });
 
-test('says beside the score that a confirmed rule made the expected answers, with the rule under Details', async () => {
+test('says beside the score that a confirmed rule made the expected answers, with the rule under Run details', async () => {
   const { app, page } = launched;
   await stubFlow();
   const ruled = {
@@ -616,7 +613,7 @@ test('says beside the score that a confirmed rule made the expected answers, wit
   const [noteBox, leftBox, detailsBox] = await Promise.all([
     page.getByText(note).boundingBox(),
     leftOut.boundingBox(),
-    page.getByRole('button', { name: 'Details' }).first().boundingBox(),
+    page.getByRole('button', { name: 'Run details' }).boundingBox(),
   ]);
   expect(leftBox!.y).toBeGreaterThanOrEqual(noteBox!.y + noteBox!.height);
   expect(leftBox!.y + leftBox!.height).toBeLessThanOrEqual(detailsBox!.y);
@@ -625,9 +622,9 @@ test('says beside the score that a confirmed rule made the expected answers, wit
   await expect(page.getByText('Typical answer time', { exact: true })).toBeVisible();
   await expect(page.getByText(/^\d+(\.\d)? GB on disk$/)).toBeVisible();
 
-  // Behind Details: the rule and its version, where it came from, how it was read, what was left
-  // out, what each side did, and whether teaching ran.
-  await page.getByRole('button', { name: 'Details' }).first().click();
+  // Behind the run's details: the rule and its version, where it came from, how it was read, what
+  // was left out, what each side did, and whether teaching ran.
+  await page.getByRole('button', { name: 'Run details' }).click();
   const rule = page.getByRole('region', { name: 'The rule for Ticket totals' });
   // The rule in words is a short numbered list, the file named in a step set in mono.
   const told = rule.locator('ol > li');

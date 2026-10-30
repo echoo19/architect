@@ -42,7 +42,7 @@ import { at, graduate, makeRun, reports, STORY } from './story';
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const WIDTH = 1440;
-const TRAIN_HEIGHT = 1270;
+const TRAIN_HEIGHT = 1420;
 
 test.describe.configure({ mode: 'serial' });
 
@@ -320,7 +320,6 @@ test("asks Spark's question inside the round, and shows what became of the answe
   await expect(page.getByText('Spark has a question for you')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Resume' })).toBeDisabled();
   const round = page.getByRole('region', { name: 'Current round' });
-  await expect(round).toContainText('Round 4: Ask about due dates');
   const form = round.getByRole('form', { name: "Spark's question" });
   await expect(form).toContainText(QUESTION);
   const send = form.getByRole('button', { name: 'Send answer', exact: true });
@@ -356,9 +355,6 @@ test("asks Spark's question inside the round, and shows what became of the answe
   await expect(round).toContainText('Spark kept it as what you meant');
   await expect(rounds.getByRole('button', { name: /Ask about due dates/ })).toContainText(
     'Answered',
-  );
-  await expect(rounds.getByRole('button', { name: /Ask about due dates/ })).toContainText(
-    `Your answer: ${ANSWER}`,
   );
   await capture(page, 'train-answered-dark');
 
@@ -396,7 +392,7 @@ test('shows the question Spark asked while the person was on another screen', as
   await resize(TRAIN_HEIGHT);
   await goTo(page, `/runs/${STORY.runId}/train`);
   const round = page.getByRole('region', { name: 'Current round' });
-  await expect(round).toContainText('Round 4');
+  await expect(round).toBeVisible();
   await expect(round.getByRole('form', { name: "Spark's question" })).toHaveCount(0);
 
   // The person leaves, and Spark asks while the training screen is not open.
@@ -423,13 +419,14 @@ test("reads a run's records again each time its training screen opens", async ()
   await stubRecorded(app, 'mentoring:interventions', []);
   await applySettings(page, { onboarded: true });
   await goTo(page, `/runs/${STORY.runId}/train`);
-  await expect(page.getByRole('region', { name: 'Current round' })).toContainText('Round 4');
+  const fourth = page.getByRole('region', { name: 'Rounds' }).getByRole('button', { name: /^04/ });
+  await expect(fourth).toBeVisible();
   const first = (await recordedCalls(app, 'mentoring:interventions')).length;
   expect(first).toBeGreaterThan(0);
 
   await goTo(page, '/');
   await goTo(page, `/runs/${STORY.runId}/train`);
-  await expect(page.getByRole('region', { name: 'Current round' })).toContainText('Round 4');
+  await expect(fourth).toBeVisible();
   expect((await recordedCalls(app, 'mentoring:interventions')).length).toBeGreaterThan(first);
 });
 
