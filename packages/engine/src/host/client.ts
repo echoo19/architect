@@ -137,6 +137,8 @@ export function connectEngine(
       progress: (runId) => request('mentoring.progress', [runId]),
       capabilities: (runId) => request('mentoring.capabilities', [runId]),
       categories: (jobId) => request('mentoring.categories', [jobId]),
+      counterexamples: (runId) => request('mentoring.counterexamples', [runId]),
+      fieldCounterexamples: (jobId) => request('mentoring.fieldCounterexamples', [jobId]),
       answer: (runId, round, reply) => request('mentoring.answer', [runId, round, reply]),
       reference: (runId, options) => request('mentoring.reference', [runId, options]),
       references: (runId) => request('mentoring.references', [runId]),

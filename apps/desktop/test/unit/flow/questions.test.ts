@@ -63,7 +63,14 @@ const progress: MentoringProgress = {
 function records(...interventions: Intervention[]): QueryState<MentoringRecords> {
   return {
     status: 'success',
-    data: { lessons: [], interventions, experiments: [], progress, categories: [] },
+    data: {
+      lessons: [],
+      interventions,
+      experiments: [],
+      progress,
+      categories: [],
+      counterexamples: [],
+    },
     error: undefined,
     reload: () => undefined,
   };

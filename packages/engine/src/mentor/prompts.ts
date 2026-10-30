@@ -365,6 +365,35 @@ function renderTrain(train: MentorView['train']): string {
   ].join('\n\n');
 }
 
+function renderCounterexamples(
+  counterexamples: NonNullable<MentorView['counterexamples']>,
+): string {
+  const suite = Object.entries(counterexamples.suite)
+    .map(([helper, count]) => `tools/${helper}.js: ${count}`)
+    .join(', ');
+  const cases = counterexamples.cases.map((example) =>
+    [
+      `## ${example.helper}, from ${example.taskId}: ${example.originalRows} rows reduced to ${example.reducedRows}`,
+      `Failure: ${example.failure}.`,
+      `Arguments:\n${fenced(JSON.stringify(example.arguments))}`,
+      `Tables it still fails on:\n${fenced(JSON.stringify(example.tables, null, 2))}`,
+      example.texts.length === 0
+        ? ''
+        : `Text files it was given whole: ${example.texts.join(', ')}`,
+    ]
+      .filter((line) => line !== '')
+      .join('\n'),
+  );
+  return [
+    '# Counterexamples',
+    'A helper you wrote failed on these train attempts. Each call was replayed in the sandbox and its tables cut down while it still fails the same way. A change to a helper is kept only if it passes every case of that helper: the reduced case, the original attempt, and every earlier counterexample of this field.',
+    suite === '' ? '' : `Cases per helper: ${suite}.`,
+    ...cases,
+  ]
+    .filter((line) => line !== '')
+    .join('\n\n');
+}
+
 export function renderMentorView(view: MentorView): string {
   return [
     renderJob(view.job),
@@ -372,6 +401,11 @@ export function renderMentorView(view: MentorView): string {
     `# Round ${view.round}\n${renderBudget(view.budgetLeft)}\nDev with the current harness: ${view.dev.pass}/${view.dev.total} passed.`,
     renderLineage(view.lineage),
     renderTrain(view.train),
+    ...(view.counterexamples === undefined ||
+    (view.counterexamples.cases.length === 0 &&
+      Object.keys(view.counterexamples.suite).length === 0)
+      ? []
+      : [renderCounterexamples(view.counterexamples)]),
   ].join('\n\n');
 }
 

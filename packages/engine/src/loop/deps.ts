@@ -17,12 +17,15 @@ import type {
   StudentAdapter,
   StudentEndpoint,
   StudentTarget,
+  SuiteResult,
   Task,
   Trace,
   TrainingBackendKind,
   TrainingJobRecord,
   TypeScore,
 } from '@architect/shared';
+import type { CounterexampleSearch, FoundCounterexample } from '../counterexamples/find';
+import type { SuiteCase, SuiteContext } from '../counterexamples/suite';
 import type { LeakDetector } from '../mentor/gate';
 import type { OpenedTransfer, TransferOrganization } from '../vault/vault';
 import type {
@@ -148,6 +151,19 @@ export interface RuntimeDeps {
   ): Promise<CorrectionResult>;
   /** Issues the release proof. The loop calls it after closing its gate and dropping the adapter. */
   releaseMentor(session: MentorSession): Promise<MentorReleased>;
+  /**
+   * Counterexamples from the helper calls of failed train attempts (decision 078): each call
+   * replayed, run again in the sandbox and reduced while the same failure holds. No model call.
+   */
+  findCounterexamples(
+    search: Omit<CounterexampleSearch, 'sandbox'> & { sandbox: ToolSandbox },
+  ): Promise<FoundCounterexample[]>;
+  /** Runs a changed helper on counterexamples in the sandbox. No model call. */
+  runSuite(
+    ctx: Omit<SuiteContext, 'sandbox'> & { sandbox: ToolSandbox },
+    tool: Pick<HarnessTool, 'name' | 'code'>,
+    cases: readonly SuiteCase[],
+  ): Promise<SuiteResult[]>;
 }
 
 /** The locked test split. Only the runner holds this; the mentor side never sees it. */

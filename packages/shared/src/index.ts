@@ -6,6 +6,7 @@ export * from './cli';
 export * from './comparisons';
 export * from './contract';
 export * from './corrections';
+export * from './counterexamples';
 export * from './data';
 export * from './drafting';
 export * from './errors';

@@ -8,6 +8,7 @@ import type {
   RunImprovement,
   TeachingOverview,
 } from './corrections';
+import type { Counterexample } from './counterexamples';
 import type { TaskPlan } from './drafting';
 import type { RuleConfirmationState } from './rules';
 import type { StudyState } from './study';
@@ -570,6 +571,10 @@ export interface ArchitectApi {
     capabilities(runId: string): Promise<CapabilityBreakdown>;
     /** The job's failure vocabulary. */
     categories(jobId: string): Promise<Category[]>;
+    /** A run's counterexamples from failing helpers (decision 078), oldest first. */
+    counterexamples(runId: string): Promise<Counterexample[]>;
+    /** Every counterexample of a field: its regression suite, oldest first. */
+    fieldCounterexamples(jobId: string): Promise<Counterexample[]>;
     /** Answers the question a paused run asked, and resumes it. */
     answer(runId: string, round: number, reply: ClarificationReply): Promise<void>;
     /**

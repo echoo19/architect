@@ -37,6 +37,8 @@ import type {
   TrainingDeps,
 } from '../loop/deps';
 import { runCorrection } from '../teaching/correction';
+import { findCounterexamples } from '../counterexamples/find';
+import { runSuite } from '../counterexamples/suite';
 import {
   createChecker,
   createSandbox,
@@ -177,6 +179,10 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
           correction,
         ),
       toolLoadProblem: (sandbox, tool) => toolLoadProblem(asSandbox(sandbox), tool),
+      findCounterexamples: (search) =>
+        findCounterexamples({ ...search, sandbox: asSandbox(search.sandbox) }),
+      runSuite: (ctx, tool, cases) =>
+        runSuite({ ...ctx, sandbox: asSandbox(ctx.sandbox) }, tool, cases),
       // Nothing is disposed here, because nothing is left to dispose: before it asks, the loop
       // has closed its mentor gate, so no mentor call can start, and dropped its reference to
       // the adapter. All that remains is to issue the proof the vault asks for.

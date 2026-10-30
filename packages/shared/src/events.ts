@@ -63,7 +63,7 @@ export const RunEventSchema = z.discriminatedUnion('type', [
   z.object({
     ...base,
     type: z.literal('mentoring.updated'),
-    record: z.enum(['lesson', 'intervention', 'experiment', 'reference']),
+    record: z.enum(['lesson', 'intervention', 'experiment', 'reference', 'counterexample']),
     id: z.string(),
     round: z.number().int().positive().nullable(),
   }),
