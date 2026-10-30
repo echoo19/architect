@@ -63,12 +63,12 @@ function DefineSkeleton() {
         <Skeleton className="h-4 w-[520px] max-w-full" />
         <Skeleton shape="pill" className="h-[30px] w-48" />
       </div>
-      <Skeleton className="h-[188px] w-full rounded-3xl" />
+      <Skeleton className="h-[188px] w-full rounded-card" />
       <div className="grid grid-cols-2 gap-12">
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-24 w-full" />
       </div>
-      <Skeleton className="h-[118px] w-full rounded-2xl" />
+      <Skeleton className="h-[118px] w-full rounded-card" />
     </div>
   );
 }
@@ -187,7 +187,7 @@ function DefineEditor({ initial }: { initial: Job }) {
             Advanced settings
           </Button>
           <div className="flex items-center gap-2">
-            <span className="mr-2 text-sm text-fg-muted">
+            <span className="mr-2 text-small text-fg">
               {waitLine(wait) ??
                 (preflight.needs.length > 0
                   ? preflight.summary
@@ -215,7 +215,7 @@ function DefineEditor({ initial }: { initial: Job }) {
         {taskPlan.status === 'error' && (
           <div
             role="alert"
-            className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-danger-line px-6 py-5"
+            className="flex flex-wrap items-center justify-between gap-4 rounded-card bg-danger-soft px-6 py-5"
           >
             <p className="m-0 max-w-[560px] text-pretty">
               {`Couldn't check whether this job has a rule to confirm: ${taskPlan.error.message} Training can't start until it is checked.`}
@@ -254,7 +254,7 @@ function DefineEditor({ initial }: { initial: Job }) {
               : undefined
           }
         />
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-12 border-t border-line-card pt-10">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-12 border-t border-line pt-10">
           <ReadyWhen job={job} />
           <FilePermissions
             job={job}

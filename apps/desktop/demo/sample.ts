@@ -12,7 +12,7 @@ const script: DemoScript = {
   scenes: [
     {
       name: 'Describe a job',
-      launch: { settings: { onboarded: true, theme: 'dark' } },
+      launch: { settings: { onboarded: true } },
       setup: async ({ app }) => stubEngine(app, SAMPLE_ENGINE),
       title: { eyebrow: '01 / DESCRIBE', heading: 'Start with the work', seconds: 1.2 },
       steps: [
@@ -35,7 +35,7 @@ const script: DemoScript = {
     },
     {
       name: 'Review the job',
-      launch: { settings: { onboarded: true, theme: 'dark' } },
+      launch: { settings: { onboarded: true } },
       setup: async ({ app }) => stubEngine(app, SAMPLE_ENGINE),
       title: { eyebrow: '02 / DEFINE', heading: 'Make the scope clear', seconds: 1.2 },
       steps: [

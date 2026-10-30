@@ -27,14 +27,14 @@ export function EmptyChat({ agent, onPick }: EmptyChatProps) {
         <div
           role="group"
           aria-label={`Things to ask ${agent.name}`}
-          className="flex flex-wrap justify-center gap-2 text-base"
+          className="flex flex-wrap justify-center gap-2 text-ui"
         >
           {suggestions.map((suggestion) => (
             <button
               key={suggestion}
               type="button"
               onClick={() => onPick(suggestion)}
-              className="h-10 rounded-lg border border-line-control px-4 text-fg-soft transition-colors duration-150 hover:border-fg-ghost hover:text-fg"
+              className="h-10 rounded-control px-4 text-fg transition-colors duration-150 shadow-edge-strong"
             >
               {suggestion}
             </button>

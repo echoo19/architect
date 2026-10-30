@@ -18,8 +18,8 @@ function costLabel(usd: number): string {
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-4 border-t border-line py-3.5">
-      <dt className="text-fg-muted">{label}</dt>
-      <dd className="m-0 flex flex-col gap-2 text-fg-soft text-pretty">{children}</dd>
+      <dt className="text-fg">{label}</dt>
+      <dd className="m-0 flex flex-col gap-2 text-fg text-pretty">{children}</dd>
     </div>
   );
 }
@@ -43,16 +43,14 @@ export function ProposalView({
     <div className="flex flex-col gap-7">
       <div className="flex flex-col gap-3">
         <KindLabel kind={proposal.kind} />
-        <p className="m-0 text-2xl text-fg text-pretty">{proposal.lesson}</p>
+        <p className="m-0 text-h2 text-fg text-pretty">{proposal.lesson}</p>
       </div>
       <dl aria-label="Proposed lesson" className="m-0 flex flex-col">
         <Fact label="You said">{correction.wrong}</Fact>
         <Fact label="Change">
           <span className="text-fg">{change.title}</span>
           {change.detail && (
-            <span className="border-l-2 border-line-control pl-3 text-fg-secondary">
-              {change.detail}
-            </span>
+            <span className="border-l-2 border-line-strong pl-3 text-fg">{change.detail}</span>
           )}
         </Fact>
         <Fact label="Practice needed">{TRAINING_NEED[proposal.kind]}</Fact>

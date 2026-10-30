@@ -99,7 +99,7 @@ describe('the rule as Define puts it in front of the person', () => {
     // "Like T-2144, but with parts cost 0.005" was taken for T-2144 with a new price, so the tag
     // is the first thing under the request, set apart from the quiet tags beside it.
     const [real, made] = html
-      .split('<li class="flex flex-col gap-3.5 rounded-2xl border border-line-card bg-panel')
+      .split('<li class="flex flex-col gap-3.5 rounded-card bg-card')
       .slice(1);
     if (real === undefined || made === undefined) throw new Error('There are two examples.');
     expect(real).toContain('What does ticket T-2148 cost the customer?');
@@ -109,15 +109,15 @@ describe('the rule as Define puts it in front of the person', () => {
     expect(made.indexOf('Not from your records')).toBeLessThan(
       made.indexOf('Shows how the rule rounds the total'),
     );
-    // Set apart in the body's own ink with its mark, and not in the red the changed rule wears:
-    // a made-up example is not bad news.
+    // Set apart in a heavier weight with an edge and its mark, and not in the red the changed
+    // rule wears: a made-up example is not bad news.
     expect(made).toMatch(
-      /<span class="[^"]*border-line-strong[^"]*text-fg[" ][^>]*><svg[^>]*lucide-info[^>]*aria-hidden="true"[^>]*>[\s\S]*?<\/svg>Not from your records<\/span>/,
+      /<span class="[^"]*font-medium shadow-edge-strong[^"]*"[^>]*><svg[^>]*lucide-info[^>]*aria-hidden="true"[^>]*>[\s\S]*?<\/svg>Not from your records<\/span>/,
     );
     expect(made).not.toMatch(/text-danger[^"]*"[^>]*><svg[^>]*>[\s\S]*?<\/svg>Not from/);
-    expect(made).not.toMatch(/border-line-control text-fg-secondary[^"]*"[^>]*>Not from/);
-    // What the example shows stays the quiet tag it was.
-    expect(made).toMatch(/bg-card text-fg-soft[^"]*"[^>]*>Shows how the rule rounds the total</);
+    // What the example shows stays the plain tag it was.
+    expect(made).toMatch(/bg-hover[^"]*"[^>]*>Shows how the rule rounds the total</);
+    expect(made).not.toMatch(/font-medium[^"]*"[^>]*>Shows how the rule rounds the total</);
   });
 
   it('says what an example shows, not what it is called, and without brackets', () => {
@@ -147,17 +147,13 @@ describe('the rule as Define puts it in front of the person', () => {
     expect(text(rule)).not.toContain('Start with (labor hours rounded up');
   });
 
-  it('sets a file named in a step quietly, apart from the weight of the sentence', () => {
+  it('sets a file named in a step in mono, apart from the words of the sentence', () => {
     const rule = html.slice(html.indexOf('The rule, in words'), html.indexOf('>Examples<'));
-    expect(rule).toContain('<span class="text-fg-muted">(customers.csv)</span>');
-    // Only the file is quiet: the words around it are not.
-    expect(rule).toMatch(
-      /When member <span class="text-fg-muted">\(customers\.csv\)<\/span> is yes/,
-    );
-    // What the person said a step rests on follows it, quietly too.
-    expect(rule).toContain(
-      '<span class="text-fg-muted"> An empty parts cost counts as 0, as you said.</span>',
-    );
+    expect(rule).toContain('<span class="font-mono">(customers.csv)</span>');
+    // Only the file is set in mono: the words around it are not.
+    expect(rule).toMatch(/When member <span class="font-mono">\(customers\.csv\)<\/span> is yes/);
+    // What the person said a step rests on follows it, as a sentence of its own.
+    expect(rule).toContain('<span> An empty parts cost counts as 0, as you said.</span>');
   });
 
   it('says the rule as its one sentence when there are no steps to tell', () => {
@@ -204,10 +200,10 @@ describe('the rule as Define puts it in front of the person', () => {
     );
   });
 
-  it('reads the question beside each answer in the secondary text, not the faintest', () => {
+  it('reads the question beside each answer in a heavier weight than the answer, not dimmed', () => {
     const answer = html.slice(html.indexOf(QUESTION) - 80, html.indexOf('No, labor only') + 20);
-    expect(answer).toContain('text-fg-secondary');
-    expect(answer).not.toContain('text-fg-muted');
+    expect(answer).toContain('<span class="font-medium">');
+    expect(answer).not.toContain('text-fg-dim');
   });
 
   it("keeps 'Describe the job again' where the records changed under the rule", () => {

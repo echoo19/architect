@@ -1,3 +1,5 @@
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { NOTHING_LOCAL, stubEngine, stubEngineFailure } from './fixtures';
@@ -59,6 +61,16 @@ test('opens a hidden, sandboxed window', async () => {
   expect(csp).toContain("script-src 'self'");
 });
 
+test('tells the page it runs hidden, so nothing in it animates', async () => {
+  const page = launched.page;
+  expect(await page.evaluate(() => window.architectRuntime)).toEqual({ hidden: true });
+  // It is dark whatever the system says: the window, the page and what the page reports.
+  expect(await page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(true);
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(
+    'rgb(7, 7, 7)',
+  );
+});
+
 test('sends a first run to the welcome screen', async () => {
   const page = launched.page;
   await settle(page);
@@ -70,7 +82,6 @@ test('reads and persists settings over the bridge', async () => {
   const page = launched.page;
   const defaults = await page.evaluate(() => window.architect.settings.get());
   expect(defaults).toMatchObject({
-    theme: 'system',
     steps: 'collapsed',
     comparisonMode: false,
     onboarded: false,
@@ -86,7 +97,7 @@ test('reads and persists settings over the bridge', async () => {
 
   const invalid = await page.evaluate(() =>
     window.architect.settings
-      .update({ theme: 'sepia' } as never)
+      .update({ steps: 'sepia' } as never)
       .then(() => 'accepted')
       .catch((error: Error) => error.message),
   );
@@ -98,12 +109,25 @@ test('reaches the real engine, which has no agents on a fresh profile', async ()
   expect(graduates).toEqual([]);
 });
 
-test('switches the theme from settings', async () => {
-  const page = launched.page;
-  await updateSettings(page, { theme: 'light' });
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await updateSettings(page, { theme: 'dark' });
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+test('ignores a theme left in an older settings file', async () => {
+  const older = await launchApp({
+    prepare: (userData) =>
+      writeFile(
+        join(userData, 'settings.json'),
+        JSON.stringify({ theme: 'light', onboarded: true }),
+      ),
+  });
+  try {
+    const page = older.page;
+    await settle(page);
+    await expect(page).not.toHaveURL(/#\/welcome$/);
+    const settings = await page.evaluate(() => window.architect.settings.get());
+    expect(settings).toMatchObject({ onboarded: true });
+    expect(settings).not.toHaveProperty('theme');
+    expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBeUndefined();
+  } finally {
+    await older.close();
+  }
 });
 
 test('finishes setup and shows an error state with a retry when agents fail to load', async () => {

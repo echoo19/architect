@@ -50,7 +50,7 @@ export function Examples({
         title="Worked examples"
         actions={
           lessons.length > 0 && (
-            <span className="text-sm tabular-nums text-fg-muted">
+            <span className="text-small tabular-nums text-fg">
               {passed} of {lessons.length} passed the checker
             </span>
           )
@@ -74,7 +74,7 @@ export function Examples({
           ))}
         </div>
       ) : lessons.length === 0 ? (
-        <PanelRow className="text-fg-muted">
+        <PanelRow className="text-fg">
           {ended ? 'No worked examples' : 'No worked examples yet'}
         </PanelRow>
       ) : (
@@ -97,7 +97,7 @@ export function Examples({
         <button
           type="button"
           onClick={() => setAll((open) => !open)}
-          className="mt-auto flex min-h-[54px] items-center justify-end border-t border-line-row px-7 text-fg-secondary transition-colors duration-150 hover:text-fg"
+          className="mt-auto flex min-h-[54px] items-center justify-end border-t border-line px-7 text-fg transition-colors duration-150"
         >
           {all ? `Show the newest ${SHOWN}` : `Show all ${lessons.length}`}
         </button>
@@ -123,7 +123,7 @@ function ExampleRow({
     <button
       type="button"
       onClick={onOpen}
-      className="group grid min-h-[62px] w-full grid-cols-[20px_minmax(0,1fr)_190px_120px_14px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left transition-colors duration-150 hover:bg-row-hover"
+      className="group grid min-h-[62px] w-full grid-cols-[20px_minmax(0,1fr)_190px_120px_14px] items-center gap-x-4 border-t border-line px-7 py-2 text-left transition-colors duration-150 hover:bg-hover"
     >
       {passed ? (
         <Check
@@ -137,32 +137,28 @@ function ExampleRow({
         <X
           size={15}
           strokeWidth={2.2}
-          className="text-fg-faint"
+          className="text-fg"
           role="img"
           aria-label="Failed the checker"
         />
       )}
       <span className="flex min-w-0 flex-col gap-1">
-        <span className={passed ? 'truncate text-fg-soft' : 'truncate text-fg-muted'}>
-          {lessonVerdict(lesson)}
-        </span>
-        <span className="truncate text-xs text-fg-muted">
+        <span className="truncate">{lessonVerdict(lesson)}</span>
+        <span className="truncate text-small text-fg">
           {lesson.prompt ? taskTitle(lesson.prompt) : lesson.taskType}
         </span>
       </span>
       <span className="flex min-w-0 flex-col">
-        <span className={passed ? 'truncate text-fg-secondary' : 'truncate text-fg-muted'}>
-          {lessonOrigin(lesson)}
-        </span>
+        <span className="truncate">{lessonOrigin(lesson)}</span>
         <span
-          className={passed ? 'truncate text-xs text-student' : 'truncate text-xs text-fg-muted'}
+          className={passed ? 'truncate text-small text-student' : 'truncate text-small text-fg'}
         >
           {passed ? 'Checker passed it' : 'Checker failed it'}
         </span>
       </span>
       <span className="flex min-w-0 flex-col">
-        <span className="truncate text-fg-secondary">{type}</span>
-        <span className="truncate text-xs text-fg-muted">
+        <span className="truncate text-fg">{type}</span>
+        <span className="truncate text-small text-fg">
           {lesson.round === null
             ? 'Example'
             : kept
@@ -174,7 +170,7 @@ function ExampleRow({
         size={14}
         strokeWidth={1.8}
         aria-hidden
-        className="text-fg-faint opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+        className="text-fg opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
       />
     </button>
   );

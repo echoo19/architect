@@ -3,48 +3,21 @@ import { Check, CircleAlert, CircleCheck, CircleMinus, CircleX } from 'lucide-re
 import { cn } from '../lib/cn';
 import { Spinner } from './spinner';
 
-export type StatusTone = 'student' | 'mentor' | 'neutral' | 'faint';
-
-const dotTone: Record<StatusTone, string> = {
-  student: 'bg-student',
-  mentor: 'bg-mentor',
-  neutral: 'bg-fg-secondary',
-  faint: 'bg-fg-faint',
-};
-
-export interface StatusDotProps {
-  tone?: StatusTone;
-  /** Announced to assistive tech, e.g. "Needs you". Without it the dot is decorative. */
-  label?: string;
-  size?: 6 | 7 | 10;
-  className?: string;
-}
-
-export function StatusDot({ tone = 'student', label, size = 7, className }: StatusDotProps) {
-  return (
-    <span
-      {...(label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true })}
-      style={{ width: size, height: size }}
-      className={cn('inline-block shrink-0 rounded-full', dotTone[tone], className)}
-    />
-  );
-}
-
 export type BadgeTone = 'outline' | 'neutral' | 'emphasis' | 'student' | 'danger' | 'alert';
 
 const badgeTone: Record<BadgeTone, string> = {
-  outline: 'border border-line-control text-fg-secondary',
-  neutral: 'border border-line-control bg-card text-fg-soft',
+  outline: 'shadow-edge-strong',
+  neutral: 'bg-hover',
   /**
-   * What must not be missed but is not bad news, such as an example made up to show a step: the
-   * body's own ink and a stronger edge, so it stands out among quiet tags without the red of a
+   * What must not be missed but is not bad news, such as an example made up to show a step: a
+   * stronger edge and a heavier weight, so it stands out among plain tags without the red of a
    * warning.
    */
-  emphasis: 'border border-line-strong font-medium text-fg',
-  student: 'bg-student-tint font-medium text-student',
-  danger: 'border border-danger-line text-danger',
+  emphasis: 'font-medium shadow-edge-strong',
+  student: 'bg-student-soft font-medium text-student',
+  danger: 'text-danger inset-ring-1 inset-ring-danger/40',
   /** Bad news as loud as the good: a filled tint where `student` is a filled blue. */
-  alert: 'bg-danger-tint font-medium text-danger',
+  alert: 'bg-danger-soft font-medium text-danger',
 };
 
 export type MarkState = 'ok' | 'attention' | 'blocked' | 'off' | 'working';
@@ -58,9 +31,9 @@ const markIcon = {
 
 const markTone: Record<Exclude<MarkState, 'working'>, string> = {
   ok: 'text-student',
-  attention: 'text-fg-soft',
+  attention: 'text-fg',
   blocked: 'text-danger',
-  off: 'text-fg-faint',
+  off: 'text-fg',
 };
 
 export interface StatusMarkProps {
@@ -74,7 +47,7 @@ export interface StatusMarkProps {
 
 /**
  * A check's outcome at the start of a row: passed, needs attention, blocked, left out or skipped,
- * or still running.
+ * or still running. An icon, never a dot.
  */
 export function StatusMark({ state, label, size = 16, className }: StatusMarkProps) {
   if (state === 'working') return <Spinner size={size} label={label} className={className} />;
@@ -91,7 +64,7 @@ export function StatusMark({ state, label, size = 16, className }: StatusMarkPro
 
 export interface VersionTagProps {
   version: number;
-  /** The version chats run on, set in the student's tint. */
+  /** The version chats run on, set in the student's color. */
   active?: boolean;
   className?: string;
 }
@@ -102,8 +75,8 @@ export function VersionTag({ version, active = false, className }: VersionTagPro
     <span
       aria-hidden
       className={cn(
-        'inline-flex h-7 min-w-9 shrink-0 items-center justify-center rounded-md px-1.5 font-mono text-sm',
-        active ? 'bg-student-tint text-student' : 'bg-hover text-fg-secondary',
+        'inline-flex h-7 min-w-9 shrink-0 items-center justify-center rounded-mark px-1.5 font-mono text-small',
+        active ? 'bg-student-soft text-student' : 'bg-hover',
         className,
       )}
     >
@@ -114,9 +87,9 @@ export function VersionTag({ version, active = false, className }: VersionTagPro
 
 export interface BadgeProps {
   tone?: BadgeTone;
-  /** `md` is 28px, `lg` is 30px. */
+  /** `md` is 28px, `lg` is 32px. */
   size?: 'md' | 'lg';
-  /** A leading StatusDot or 14px icon. */
+  /** A leading 14px icon. */
   icon?: ReactNode;
   children: ReactNode;
   className?: string;
@@ -127,8 +100,8 @@ export function Badge({ tone = 'outline', size = 'md', icon, children, className
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-3 text-sm',
-        size === 'md' ? 'h-7' : 'h-[30px]',
+        'inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-3 text-small',
+        size === 'md' ? 'h-7' : 'h-8',
         icon && (tone === 'student' || tone === 'alert' ? 'gap-1.5 pl-2.5' : 'gap-2'),
         badgeTone[tone],
         className,
@@ -161,7 +134,7 @@ export function ProgressStepper({
   return (
     <ol
       aria-label={props['aria-label'] ?? 'Progress'}
-      className={cn('m-0 flex list-none flex-wrap gap-1 p-0 text-sm', className)}
+      className={cn('m-0 flex list-none flex-wrap gap-1 p-0 text-small', className)}
     >
       {steps.map((step, index) => {
         const state = index < current ? 'done' : index === current ? 'current' : 'next';
@@ -171,17 +144,16 @@ export function ProgressStepper({
             key={step}
             aria-current={state === 'current' ? 'step' : undefined}
             className={cn(
-              'flex h-[30px] items-center px-3.5',
-              state === 'done' && 'gap-1.5 text-fg-secondary',
-              state === 'current' && 'rounded-full bg-selected text-fg',
-              state === 'next' && 'text-fg-muted',
+              'flex h-8 items-center px-3.5',
+              state === 'done' && 'gap-1.5',
+              state === 'current' && 'rounded-full bg-selected font-medium',
             )}
           >
             {state === 'done' &&
               (needs ? (
-                <CircleAlert size={12} strokeWidth={2.2} aria-hidden />
+                <CircleAlert size={13} strokeWidth={2.2} aria-hidden />
               ) : (
-                <Check size={12} strokeWidth={2.2} aria-hidden />
+                <Check size={13} strokeWidth={2.2} aria-hidden />
               ))}
             {step}
             {state === 'done' && (

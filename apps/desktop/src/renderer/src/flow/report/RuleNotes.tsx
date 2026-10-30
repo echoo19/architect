@@ -18,7 +18,7 @@ export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rou
           aria-label={`The rule for ${rule.label}`}
           className="flex flex-col gap-3"
         >
-          <h4 className="m-0 text-md font-medium">{rule.label}</h4>
+          <h4 className="m-0 text-body font-medium">{rule.label}</h4>
           <RuleSteps steps={rule.steps} statement={rule.statement} size="sm" />
           <Disclosure label="The rule exactly as Architect evaluates it">
             {/* All of it, down the page: a rule cut off at a height is not the rule it says it is.
@@ -27,7 +27,7 @@ export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rou
               tabIndex={0}
               role="region"
               aria-label="Rule expression"
-              className="m-0 overflow-x-auto rounded-xl bg-list p-4 font-mono text-xs leading-5 text-fg-secondary"
+              className="m-0 overflow-x-auto rounded-control bg-field p-4 font-mono text-small leading-5 text-fg"
             >
               {JSON.stringify(rule.expression, null, 2)}
             </pre>
@@ -46,8 +46,8 @@ export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rou
             ]}
           />
           <div className="flex flex-col gap-1.5">
-            <h5 className="m-0 text-sm font-normal text-fg-muted">From your policy</h5>
-            <PassageList passages={rule.passages} className="text-sm" />
+            <h5 className="m-0 text-small font-normal text-fg">From your policy</h5>
+            <PassageList passages={rule.passages} className="text-small" />
           </div>
           <Facts title="How numbers and rounding were read">
             {rule.conventions.map((line) => (
@@ -80,9 +80,7 @@ export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rou
           )}
         </section>
       ))}
-      <p className="m-0 max-w-[620px] text-sm text-fg-secondary text-pretty">
-        {teachingLine(rounds)}
-      </p>
+      <p className="m-0 max-w-[620px] text-small text-fg text-pretty">{teachingLine(rounds)}</p>
     </div>
   );
 }
@@ -90,10 +88,8 @@ export function RuleNotes({ rules, rounds }: { rules: readonly RuleReport[]; rou
 function Facts({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <h5 className="m-0 text-sm font-normal text-fg-muted">{title}</h5>
-      <ul className="m-0 flex list-none flex-col gap-1 p-0 text-sm text-fg-secondary">
-        {children}
-      </ul>
+      <h5 className="m-0 text-small font-normal text-fg">{title}</h5>
+      <ul className="m-0 flex list-none flex-col gap-1 p-0 text-small text-fg">{children}</ul>
     </div>
   );
 }

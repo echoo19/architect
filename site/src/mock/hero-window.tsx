@@ -47,7 +47,7 @@ function Conversation({ job, phase }: { job: JobChat; phase: Phase }) {
   const intro = turn(phase, 6);
   const card = turn(phase, 7);
   return (
-    <div className="mx-auto flex max-w-[720px] flex-col gap-10 text-chat">
+    <div className="mx-auto flex max-w-[720px] flex-col gap-10 text-body">
       <UserBubble className={ask.className} style={ask.style}>
         <KeepIds text={job.ask} />
       </UserBubble>

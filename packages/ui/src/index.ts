@@ -1,5 +1,35 @@
 export { cn } from './lib/cn';
 export { WINDOW_CHROME, type WindowChrome } from './chrome';
+export {
+  Collapse,
+  FLOAT_SCALE,
+  MotionProvider,
+  NumberTicker,
+  PRESS_SCALE,
+  Reveal,
+  Stagger,
+  StaggerItem,
+  StepTransition,
+  durationParts,
+  motionSettings,
+  numberDisplay,
+  springs,
+  staggerDelay,
+  stepOffset,
+  useInstantMotion,
+  type CollapseProps,
+  type DurationPart,
+  type MotionProviderProps,
+  type MotionSettings,
+  type NumberDisplay,
+  type NumberKind,
+  type NumberTickerProps,
+  type RevealProps,
+  type StaggerItemProps,
+  type StaggerProps,
+  type StepDirection,
+  type StepTransitionProps,
+} from './motion';
 
 export {
   AgentAvatar,
@@ -161,16 +191,13 @@ export { Spinner, type SpinnerProps, type SpinnerTone } from './components/spinn
 export {
   Badge,
   ProgressStepper,
-  StatusDot,
   StatusMark,
   VersionTag,
   type BadgeProps,
   type BadgeTone,
   type MarkState,
   type ProgressStepperProps,
-  type StatusDotProps,
   type StatusMarkProps,
-  type StatusTone,
   type VersionTagProps,
 } from './components/status';
 export { Switch, type SwitchProps } from './components/switch';

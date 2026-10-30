@@ -48,13 +48,13 @@ function Score() {
         const last = index === SCORE_STEPS.length - 1;
         const row = (
           <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="text-hero font-medium leading-none tracking-tightest tabular-nums narrow:text-display">
+            <span className="font-display text-hero font-semibold leading-none tabular-nums narrow:text-title">
               {step.value}
             </span>
-            <EvidenceMark kind="check" className="text-md text-fg-secondary">
+            <EvidenceMark kind="check" className="text-body text-fg">
               on check tasks
             </EvidenceMark>
-            <span className="text-sm tabular-nums text-fg-muted">{step.count}</span>
+            <span className="text-small tabular-nums text-fg">{step.count}</span>
           </span>
         );
         return (
@@ -123,7 +123,7 @@ function Tile() {
   return (
     <span
       aria-hidden
-      className="flex size-[76px] shrink-0 items-center justify-center rounded-[20px] border border-student-tile-line bg-student-tile"
+      className="flex size-[76px] shrink-0 items-center justify-center rounded-card bg-field shadow-edge"
     >
       <span className="grid grid-cols-[repeat(9,4px)] gap-[2.6px]">
         {cells.map((alpha, index) => (
@@ -146,7 +146,7 @@ function Status({ className }: { className?: string }) {
     <span
       role="status"
       className={cn(
-        'relative grid justify-items-center text-center text-lg text-pretty',
+        'relative grid justify-items-center text-center text-body text-pretty',
         className,
       )}
     >
@@ -178,7 +178,7 @@ function Status({ className }: { className?: string }) {
 function Role({ children }: { children: string }) {
   return (
     <span
-      className="a a-exit-up motion-only text-sm text-fg-muted"
+      className="a a-exit-up motion-only text-small text-fg"
       style={at(DONE_AT - 100, { dur: 240, dy: 0 })}
     >
       {children}
@@ -207,10 +207,10 @@ function Apprenticeship() {
           </span>
         </div>
       </div>
-      <div className="flex min-h-12 items-center gap-4 border-t border-line-row-strong bg-aside px-7 py-2 text-sm">
-        <span aria-hidden className="flex items-center gap-4 text-fg-faint">
+      <div className="flex min-h-12 items-center gap-4 border-t border-line bg-card px-7 py-2 text-small">
+        <span aria-hidden className="flex items-center gap-4 text-fg">
           Each round
-          <span className="h-4 w-px bg-line-row-strong" />
+          <span className="h-4 w-px bg-line" />
         </span>
         <ol aria-label="Each round" className="m-0 flex list-none items-center gap-2 p-0">
           {STAGES.map((stage, index) => {
@@ -219,9 +219,9 @@ function Apprenticeship() {
             return (
               <li key={stage} className="flex items-center gap-2">
                 {index > 0 && (
-                  <ChevronRight size={13} strokeWidth={1.8} aria-hidden className="text-fg-ghost" />
+                  <ChevronRight size={13} strokeWidth={1.8} aria-hidden className="text-fg" />
                 )}
-                <span className="relative pb-0.5 text-fg-muted">
+                <span className="relative pb-0.5 text-fg">
                   {stage}
                   {/* The line under the step the round is on, passed from one step to the next. */}
                   {index === 0 && (
@@ -265,19 +265,19 @@ function RoundCard() {
       <div className="flex flex-col gap-1.5">
         <span className="text-mentor">Spark</span>
         <p
-          className="a a-wipe m-0 text-md text-fg-soft text-pretty"
+          className="a a-wipe m-0 text-body text-fg text-pretty"
           style={at(DIAGNOSIS_AT, { dur: 1300 })}
         >
           Glimmer&apos;s helpers misread money written as &quot;$74.95&quot; or &quot;74.95
           USD&quot;.
         </p>
       </div>
-      <div className="mt-auto flex flex-col gap-3 border-t border-line-row-strong pt-4">
+      <div className="mt-auto flex flex-col gap-3 border-t border-line pt-4">
         <div
           className="a a-up flex items-baseline justify-between gap-3"
           style={at(EXPECTED_AT, { dy: 10 })}
         >
-          <span className="grid text-fg-secondary">
+          <span className="grid text-fg">
             <span
               className="a a-exit-up motion-only [grid-area:1/1]"
               style={at(RESULT_AT - 60, { dur: 200, dy: 0 })}
@@ -293,14 +293,14 @@ function RoundCard() {
           </span>
           <span>
             <span className="font-mono tabular-nums">+2 to +4</span>{' '}
-            <span className="text-fg-secondary">check tasks</span>
+            <span className="text-fg">check tasks</span>
           </span>
         </div>
         <div
           className="a a-unfold flex items-baseline justify-between gap-3"
           style={at(RESULT_AT, { dur: 520 })}
         >
-          <span className="text-fg-secondary">Result</span>
+          <span className="text-fg">Result</span>
           <span className="flex items-center gap-2">
             <Check size={14} strokeWidth={2} aria-hidden className="shrink-0 text-student" />
             <span className="text-student">Kept</span>
@@ -345,9 +345,9 @@ function Budget({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-fg-secondary">{label}</span>
+        <span className="text-fg">{label}</span>
         <span className="font-mono tabular-nums">
-          {used} <span className="text-fg-muted">/ {max}</span>
+          {used} <span className="text-fg">/ {max}</span>
         </span>
       </div>
       <span className="a a-wipe block" style={at(DONE_AT + 300 + order * 160, { dur: 700 })}>
@@ -369,10 +369,10 @@ function Resources() {
       <Budget label="Time" used="28 min" max="12 h" fraction={28 / 720} order={0} />
       <Budget label="Spark's cost" used="$0.34" max="$4.92" fraction={0.34 / 4.92} order={1} />
       <Budget label="Rounds" used="4" max="7" fraction={4 / 7} order={2} />
-      <div className="flex items-baseline justify-between gap-3 border-t border-line-row-strong pt-[18px]">
-        <span className="text-fg-secondary">Changes kept</span>
+      <div className="flex items-baseline justify-between gap-3 border-t border-line pt-[18px]">
+        <span className="text-fg">Changes kept</span>
         <span className="font-mono tabular-nums">
-          2 <span className="text-fg-muted">/ 4</span>
+          2 <span className="text-fg">/ 4</span>
         </span>
       </div>
     </Panel>
@@ -395,9 +395,9 @@ function CompactResources() {
     >
       {facts.map(([label, used, max]) => (
         <div key={label} className="flex flex-col gap-0.5">
-          <span className="text-sm text-fg-secondary">{label}</span>
-          <span className="whitespace-nowrap font-mono text-sm tabular-nums">
-            {used} <span className="text-fg-muted">/ {max}</span>
+          <span className="text-small text-fg">{label}</span>
+          <span className="whitespace-nowrap font-mono text-small tabular-nums">
+            {used} <span className="text-fg">/ {max}</span>
           </span>
         </div>
       ))}
@@ -446,7 +446,7 @@ export function TrainMock() {
             </span>
           }
         />
-        <div className="min-h-0 flex-1 overflow-hidden bg-ground-flow bg-dot-grid p-6 narrow:p-4">
+        <div className="min-h-0 flex-1 overflow-hidden bg-ground p-6 narrow:p-4">
           <div className="flex flex-col gap-4 narrow:gap-4">
             <Status className="hidden narrow:grid" />
             <div className="grid grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-5 narrow:grid-cols-1 narrow:gap-4">

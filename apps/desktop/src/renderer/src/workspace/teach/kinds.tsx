@@ -19,7 +19,7 @@ export function KindTile({ kind, className }: { kind: CorrectionKind; className?
       role="img"
       aria-label={KIND_LABELS[kind]}
       className={cn(
-        'flex size-7 shrink-0 items-center justify-center rounded-md bg-hover text-fg-secondary',
+        'flex size-7 shrink-0 items-center justify-center rounded-control bg-hover text-fg',
         className,
       )}
     >
@@ -32,7 +32,7 @@ export function KindTile({ kind, className }: { kind: CorrectionKind; className?
 export function KindLabel({ kind }: { kind: CorrectionKind }) {
   const Icon = KIND_ICONS[kind];
   return (
-    <span className="flex items-center gap-2 text-sm text-fg-secondary">
+    <span className="flex items-center gap-2 text-small text-fg">
       <Icon size={15} strokeWidth={1.7} aria-hidden />
       {KIND_LABELS[kind]}
     </span>

@@ -2,6 +2,23 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-29 (Thu), the design foundation: one dark theme, Inter, and springs (branch `design/foundation`)
+
+**Done** (phase A of the redesign in `docs/DESIGN.md`; no model of the product was called and the GPU stayed off; every run used hidden windows and stand-ins)
+- *Tokens and type.* `packages/ui/src/styles` now holds the one theme of the design: `ground, card, raised, field, hover, selected, line, line-strong, fg, fg-dim, primary, on-primary, student, mentor, danger, ring`, plus `student-soft`, `danger-soft` and the backdrop. The light theme, the paper tokens, the six grey text levels, the dot grid and every gradient are gone, and so are the old surface, line, shadow, radius and type names: all of `packages/ui`, the renderer and the site's mocks were moved onto the new ones (a codemod, then by hand where a grey had been the only difference, which now reads by weight or by mono). Inter and Inter Tight replace Geist; Geist Mono stays for code. Radii are `mark` 8, `control` 12, `card` 20; a card's edge is an inset hairline (`shadow-edge`); the one shadow is `shadow-float`. `apps/desktop/test/unit/main/design-rules.test.ts` fails on an old name, a grey, a gradient, a dot grid, a color outside the tokens or text under 13px.
+- *Dark only.* `nativeTheme.themeSource` is always dark and the window chrome is one set of colors. The theme choice is gone from Settings, the command palette and the settings schema; a `theme` left in an older `settings.json` is read past and not written back (tested, and by `shell.spec.ts` on a real launch). `<html data-theme>` is no longer set, and the e2e specs capture the dark theme only under the same `-dark` names; the 156 `*-light.png` captures were deleted.
+- *Motion.* `motion` 12.43.0 and `@number-flow/react` 0.6.2, pinned, reached only through `@architect/ui`: `springs` (snappy, smooth, exit), `MotionProvider`, `Reveal`, `Stagger`/`StaggerItem`, `StepTransition`, `Collapse`, `NumberTicker`. Buttons press to 0.97; the segmented indicator and the settings tabs move with a shared `layoutId`; dialogs, drawers, menus, popovers, the palette, tooltips and toasts scale in from 0.97 and leave faster; disclosures animate their height; progress bars and the switch's knob spring. A run for tests and screenshots (`ARCHITECT_HIDDEN=1`) tells the page so through the preload (`window.architectRuntime.hidden`, from a `--architect-hidden` renderer argument), and the provider then completes every transition at once, as it does for a system that asks for reduced motion.
+- *Components.* Every component in `packages/ui` follows the design: white text, the new surfaces and hairlines, a 2px focus ring offset 2px, Inter for the interface and Inter Tight for titles and the numbers that matter. `StatusDot` is gone (its one use, the GPU mark, is an icon now); props are otherwise unchanged. `"sideEffects": false` lets the site drop the components it does not use.
+- *Verified.* `pnpm check` exits 0 (257 test files, 3,403 tests passed, 2 skipped), the site builds and was looked at in headless Chromium, real motion was tried once in a hidden window with a throwaway probe (every dialog, menu, popover, tooltip, toast and disclosure came in, left and unmounted; hidden windows draw very few frames, so those runs were slow but not stuck), and the hidden e2e specs `screenshots` (6), `flow` (18), `shell` (9), `rule` (4), `teacher-menu` (4), `drafting` (3), `connections` (7), `hub` (4) and `runs` (16) pass; their captures were looked at.
+
+**Next**
+- Phase B: take out the labels, captions and eyebrows screen by screen, and wire `StepTransition` and `Reveal`/`Stagger` into the screens. `StepTransition` is not on the routes yet. In a hidden run it is a plain element, so wiring it in changes nothing for the specs; for a person it makes a page wait for the old one to leave (about 0.16 s) before the new one comes in.
+- The specs that named a theme and were not run (`workspace`, `versions`, `teaching`, `retest`, `sample-agent`, `hub-screens`, `evidence`, `job-files`, `runs-engine`) were migrated to dark only and type-check, and their captures are still the old design's until they run where a local runtime may be used.
+
+**Open issues**
+- A dialog that its parent unmounts instead of closing (`<Dialog open>` rendered on demand) cannot animate out; only one that stays mounted and flips `open` does.
+- Where a grey was the only difference between two lines, the lines now differ by size, weight or mono, or not at all; that is the per-screen work of phase B.
+
 ## 2026-10-29 (Thu), release 0.3.5, and the launch film started
 
 **Done**

@@ -92,7 +92,7 @@ describe('the rule in the results', () => {
       '4. Add parts cost. An empty parts cost counts as 0, as you said.',
       '5. Round the result to the nearest cent; half a cent rounds up.',
     ]);
-    expect(html).toContain('<span class="text-fg-muted">(customers.csv)</span>');
+    expect(html).toContain('<span class="font-mono">(customers.csv)</span>');
     expect(words(html)).not.toContain('Start with (labor hours rounded up');
   });
 

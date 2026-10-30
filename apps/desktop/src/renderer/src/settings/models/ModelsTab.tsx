@@ -41,7 +41,7 @@ export function ModelsTab({ settings, update }: TabProps) {
             className="w-72"
           >
             <span className="truncate">{shortModelName(mentor.label)}</span>
-            <span className="shrink-0 text-fg-muted">{mentorProvider(mentor)}</span>
+            <span className="shrink-0 text-fg">{mentorProvider(mentor)}</span>
           </ModelPicker>
         ) : (
           <SettingsValue>{mentor.label}</SettingsValue>
@@ -69,7 +69,7 @@ export function ModelsTab({ settings, update }: TabProps) {
         >
           <span className="truncate">{localModelName(student.model)}</span>
           {installed && (
-            <span className="shrink-0 text-sm text-fg-muted">
+            <span className="shrink-0 text-small text-fg">
               <GpuMark fit={gpuFit(installed, gpu)} />
             </span>
           )}

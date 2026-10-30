@@ -27,7 +27,7 @@ export interface FlowShellProps<Step extends string = FlowStep> {
   children: ReactNode;
 }
 
-/** The "Make" layout: a header with the step pills over a dot-grid ground. */
+/** The "Make" layout: a header with the step pills over the flat ground. */
 export function FlowShell<Step extends string = FlowStep>({
   title,
   step,
@@ -40,12 +40,12 @@ export function FlowShell<Step extends string = FlowStep>({
 }: FlowShellProps<Step>) {
   const pills: readonly string[] = steps ?? FLOW_STEPS;
   return (
-    <div className="flex h-full flex-col bg-ground-flow">
+    <div className="flex h-full flex-col bg-ground">
       {/*
         Two equal grid tracks keep the steps centered in the window. The side columns take the
         insets for the macOS traffic lights and the Windows and Linux window controls.
       */}
-      <header className="app-drag grid min-h-[60px] shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-ground-flow px-4 py-2.5">
+      <header className="app-drag grid min-h-[60px] shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-ground px-4 py-2.5">
         <div className={cn('flex min-w-0 items-center gap-2', isMac() && 'pl-17')}>
           <IconButton label="Close" onClick={onClose ?? (() => navigate(paths.home()))}>
             <X size={18} strokeWidth={1.8} aria-hidden />
@@ -55,17 +55,9 @@ export function FlowShell<Step extends string = FlowStep>({
         <ProgressStepper steps={pills} current={pills.indexOf(step)} attention={attention ?? []} />
         <div className="flex min-w-0 justify-end gap-2 pr-window-controls">{actions}</div>
       </header>
-      {/* The last lines fade out above the bar, so no line is cut off mid-text. */}
-      <main
-        className={cn(
-          'min-h-0 flex-1 overflow-y-auto bg-dot-grid',
-          footer && '[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]',
-        )}
-      >
-        {children}
-      </main>
+      <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
       {footer && (
-        <footer className="shrink-0 border-t border-line bg-ground-flow px-8 py-4">{footer}</footer>
+        <footer className="shrink-0 border-t border-line bg-ground px-8 py-4">{footer}</footer>
       )}
     </div>
   );

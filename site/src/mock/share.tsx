@@ -33,38 +33,25 @@ const PUBLISHED = 7350;
 
 /** The two places an agent can go, as the Export tab's switch shows them. */
 function Destination() {
-  const item = 'relative flex h-[30px] items-center rounded-sm px-3 text-sm';
-  const pill = 'absolute inset-0 rounded-sm bg-segment-active shadow-segment';
+  const item = 'relative flex h-[30px] items-center rounded-mark px-3 text-small';
+  const pill = 'absolute inset-0 rounded-mark bg-raised';
   return (
     <div
       role="group"
       aria-label="Export to"
-      className="mb-3 inline-flex shrink-0 self-start rounded-md bg-hover p-[3px]"
+      className="mb-3 inline-flex shrink-0 self-start rounded-control bg-hover p-[3px]"
     >
-      <span className={cn(item, 'text-fg-secondary')}>
+      <span className={cn(item, 'text-fg')}>
         <span
           aria-hidden
           className={cn(pill, 'a a-unwipe motion-only')}
           style={at(SWITCH, { dur: 360 })}
         />
-        <span
-          className="a a-color relative"
-          style={at(SWITCH, { dur: 360, vars: { '--from-color': 'var(--color-fg)' } })}
-        >
-          Package file
-        </span>
+        <span className="relative">Package file</span>
       </span>
       <span className={cn(item, 'text-fg')}>
         <span aria-hidden className={cn(pill, 'a a-wipe')} style={at(SWITCH + 100, { dur: 360 })} />
-        <span
-          className="a a-color relative"
-          style={at(SWITCH + 100, {
-            dur: 360,
-            vars: { '--from-color': 'var(--color-fg-secondary)' },
-          })}
-        >
-          Hugging Face
-        </span>
+        <span className="relative">Hugging Face</span>
       </span>
     </div>
   );
@@ -141,7 +128,7 @@ function PackageLayer() {
 }
 
 const field =
-  'flex h-[38px] items-center rounded-md border border-line-control bg-well px-3 font-mono text-sm text-fg';
+  'flex h-[38px] items-center rounded-control bg-field px-3 font-mono text-small text-fg shadow-edge-strong';
 
 /** Hugging Face: the repository, private unless chosen, and where it ended up. */
 function HubLayer() {
@@ -169,11 +156,11 @@ function HubLayer() {
               label="Visibility"
               meta="Only accounts you allow on Hugging Face can see it"
             >
-              <div className="inline-flex shrink-0 rounded-md bg-hover p-[3px]">
-                <span className="flex h-[30px] items-center rounded-sm bg-segment-active px-3 text-sm text-fg shadow-segment">
+              <div className="inline-flex shrink-0 rounded-control bg-hover p-[3px]">
+                <span className="flex h-[30px] items-center rounded-mark bg-raised px-3 text-small text-fg">
                   Private
                 </span>
-                <span className="flex h-[30px] items-center rounded-sm px-3 text-sm text-fg-secondary">
+                <span className="flex h-[30px] items-center rounded-mark px-3 text-small text-fg">
                   Public
                 </span>
               </div>
@@ -201,7 +188,7 @@ function HubLayer() {
               </Button>
             </SettingsRow>
             <div className="flex min-h-11 items-center justify-between gap-3 border-t border-line pl-8 narrow:hidden">
-              <code className="min-w-0 truncate font-mono text-xs text-fg-secondary">
+              <code className="min-w-0 truncate font-mono text-small text-fg">
                 architect install hf://{REPO_NAME} --revision {COMMIT}
               </code>
               <IconButton label="Copy the command" size="xs" tabIndex={-1}>
@@ -218,7 +205,7 @@ function HubLayer() {
 /** The bar along the dialog's bottom: the one button that does what the tab shows. */
 function Actions() {
   return (
-    <div className="grid min-h-[68px] shrink-0 border-t border-line-card px-7 py-3.5 [&>*]:[grid-area:1/1]">
+    <div className="grid min-h-[68px] shrink-0 border-t border-line px-7 py-3.5 [&>*]:[grid-area:1/1]">
       <div
         className="a a-exit-up motion-only flex items-center justify-end"
         style={at(SWITCH + 250, { dur: 260, dy: 0 })}
@@ -266,11 +253,11 @@ function Toast() {
       style={at(SWITCH - 300, { dur: 300, dy: 0 })}
     >
       <div
-        className="a a-from-right flex flex-col gap-0.5 rounded-xl border border-line-control bg-modal px-4 py-3 shadow-popover"
+        className="a a-from-right flex flex-col gap-0.5 rounded-control bg-raised px-4 py-3 shadow-float"
         style={at(EXPORT + 250, { dx: 40, dur: 520 })}
       >
         <span className="font-medium">Exported {DESK}</span>
-        <span className="truncate font-mono text-sm text-fg-muted">returns-desk.architect.zip</span>
+        <span className="truncate font-mono text-small text-fg">returns-desk.architect.zip</span>
       </div>
     </div>
   );
@@ -282,22 +269,22 @@ function Dialog() {
     <div
       className={cn(
         'a a-up absolute inset-y-6 inset-x-0 mx-auto flex w-[780px] max-w-[calc(100%-24px)]',
-        'overflow-hidden rounded-3xl border border-line-control bg-modal shadow-modal',
+        'overflow-hidden rounded-card bg-raised shadow-float',
         'narrow:inset-y-3 narrow:w-auto narrow:max-w-none',
       )}
       style={at(DIALOG, { dur: 760, dy: 30 })}
     >
-      <div className="flex w-[196px] shrink-0 flex-col gap-0.5 border-r border-line-card bg-modal-rail px-2.5 py-[18px] narrow:hidden">
-        <div className="mb-2.5 flex h-9 items-center gap-2.5 px-2.5 text-md font-medium">
-          <AgentAvatar name={DESK} className="text-[13px]!" />
+      <div className="flex w-[196px] shrink-0 flex-col gap-0.5 border-r border-line bg-card px-2.5 py-[18px] narrow:hidden">
+        <div className="mb-2.5 flex h-9 items-center gap-2.5 px-2.5 text-body font-medium">
+          <AgentAvatar name={DESK} />
           <span className="truncate">{DESK}</span>
         </div>
         {TABS.map((tab) => (
           <span
             key={tab}
             className={cn(
-              'flex h-9 items-center rounded-[9px] px-2.5',
-              tab === 'Export' ? 'bg-tab-active text-fg' : 'text-fg-secondary',
+              'flex h-9 items-center rounded-control px-2.5',
+              tab === 'Export' && 'bg-selected',
             )}
           >
             {tab}
@@ -306,7 +293,7 @@ function Dialog() {
       </div>
       <div className="relative flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-16 shrink-0 items-center justify-between gap-3 py-2.5 pl-7 pr-3">
-          <h3 className="m-0 text-xl font-medium tracking-tight">Export</h3>
+          <h3 className="m-0 font-display text-h2 font-semibold">Export</h3>
           <IconButton label="Close" tabIndex={-1}>
             <X size={16} strokeWidth={1.8} aria-hidden />
           </IconButton>

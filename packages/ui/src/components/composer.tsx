@@ -26,13 +26,13 @@ export interface ComposerProps {
 }
 
 const shells = {
-  hero: 'max-w-[680px] gap-2 rounded-4xl bg-field pb-3.5 pl-[22px] pr-3.5 pt-[18px] shadow-composer',
-  chat: 'max-w-[720px] gap-1 rounded-6xl bg-composer pb-2.5 pl-[18px] pr-2.5 pt-4 shadow-composer-sm',
+  hero: 'max-w-[680px] gap-2 pb-3.5 pl-[22px] pr-3.5 pt-[18px]',
+  chat: 'max-w-[720px] gap-1 pb-2.5 pl-[18px] pr-2.5 pt-4',
 } as const;
 
 const fields = {
-  hero: 'min-h-[74px] max-h-[240px] pr-2 text-lg leading-[1.55]',
-  chat: 'min-h-7 max-h-[200px] pr-2 text-chat leading-[1.6]',
+  hero: 'min-h-[74px] max-h-[240px] pr-2 text-body',
+  chat: 'min-h-7 max-h-[200px] pr-2 text-body',
 } as const;
 
 export function Composer({
@@ -67,7 +67,8 @@ export function Composer({
     <form
       onSubmit={submit}
       className={cn(
-        'flex w-full flex-col border border-line-control transition-colors duration-150 focus-within:border-fg-faint',
+        'flex w-full flex-col rounded-card bg-raised shadow-edge-strong transition-shadow duration-150',
+        'focus-within:inset-ring-1 focus-within:inset-ring-ring',
         shells[size],
         className,
       )}

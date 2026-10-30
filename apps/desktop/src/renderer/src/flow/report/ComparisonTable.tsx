@@ -53,7 +53,7 @@ export function ComparisonTable({
       <Heading id="comparison">Compared with simpler methods</Heading>
       {rows.status === 'loading' && (
         <div aria-busy="true" aria-label="Loading the comparison">
-          <Skeleton className="h-[188px] w-full rounded-xl" />
+          <Skeleton className="h-[188px] w-full rounded-control" />
         </div>
       )}
       {rows.status === 'error' && (
@@ -65,7 +65,7 @@ export function ComparisonTable({
         />
       )}
       {rows.status === 'success' && (
-        <div className="rounded-xl bg-panel">
+        <div className="rounded-control bg-card">
           <Table aria-label="Compared with simpler methods">
             <TableHeader>
               <TableRow>
@@ -83,9 +83,9 @@ export function ComparisonTable({
                     <span className="flex flex-col gap-0.5">
                       <span className={row.current ? 'font-medium' : undefined}>
                         {row.label}
-                        {row.current && <span className="text-fg-muted"> · this run</span>}
+                        {row.current && <span className="text-fg"> · this run</span>}
                       </span>
-                      <span className="text-sm text-fg-muted">
+                      <span className="text-small text-fg">
                         {methodExplanation(row.method, names)}
                       </span>
                     </span>

@@ -17,7 +17,7 @@ export function Skeleton({ className, shape = 'block' }: SkeletonProps) {
       aria-hidden
       className={cn(
         'block animate-skeleton bg-hover',
-        shape === 'block' && 'rounded-sm',
+        shape === 'block' && 'rounded-mark',
         shape !== 'block' && 'rounded-full',
         className,
       )}
@@ -53,15 +53,15 @@ export function EmptyState({
       )}
     >
       {iconTile ? (
-        <span className="flex size-12 items-center justify-center rounded-xl bg-selected text-fg-secondary [&_svg]:size-5">
+        <span className="flex size-12 items-center justify-center rounded-control bg-selected [&_svg]:size-5">
           {icon}
         </span>
       ) : (
         icon
       )}
       <div className="flex max-w-[440px] flex-col gap-2">
-        <h2 className="m-0 text-2xl font-medium tracking-tight text-balance">{title}</h2>
-        {description && <p className="m-0 text-md text-fg-secondary text-pretty">{description}</p>}
+        <h2 className="m-0 font-display text-h2 font-semibold text-balance">{title}</h2>
+        {description && <p className="m-0 text-body text-pretty">{description}</p>}
       </div>
       {actions && <div className="mt-1 flex flex-wrap justify-center gap-2">{actions}</div>}
     </div>
@@ -83,13 +83,11 @@ export interface ErrorStateProps {
   className?: string;
 }
 
-/** The precise message, quiet and selectable, so it can be copied into a report. */
+/** The precise message, selectable, so it can be copied into a report. */
 function ErrorDetails({ details, className }: { details: string; className?: string }) {
   return (
     <Disclosure label="Details" className={className}>
-      <p className="m-0 select-text break-words font-mono text-xs leading-5 text-fg-muted">
-        {details}
-      </p>
+      <p className="m-0 select-text break-words font-mono text-small leading-5">{details}</p>
     </Disclosure>
   );
 }
@@ -106,16 +104,16 @@ export function ErrorState({
 }: ErrorStateProps) {
   if (layout === 'inline') {
     return (
-      <div role="alert" className={cn('flex items-start gap-2.5 text-sm', className)}>
+      <div role="alert" className={cn('flex items-start gap-2.5 text-small', className)}>
         <CircleAlert size={14} className="mt-[3px] shrink-0 text-danger" aria-hidden />
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <span className="text-fg-soft">{title}</span>
-          {message && <span className="text-fg-muted text-pretty">{message}</span>}
+          <span className="font-medium">{title}</span>
+          {message && <span className="text-pretty">{message}</span>}
           {onRetry && (
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex items-center gap-1.5 self-start rounded-xs text-fg-secondary transition-colors duration-150 hover:text-fg"
+              className="inline-flex items-center gap-1.5 self-start rounded-mark font-medium transition-colors duration-150 hover:bg-hover"
             >
               <RotateCw size={12} aria-hidden />
               {retryLabel}
@@ -134,12 +132,12 @@ export function ErrorState({
         className,
       )}
     >
-      <span className="flex size-12 items-center justify-center rounded-xl bg-danger-tint text-danger">
+      <span className="flex size-12 items-center justify-center rounded-control bg-danger-soft text-danger">
         <CircleAlert size={20} aria-hidden />
       </span>
       <div className="flex max-w-[460px] flex-col gap-2">
-        <h2 className="m-0 text-2xl font-medium tracking-tight text-balance">{title}</h2>
-        {message && <p className="m-0 text-md text-fg-secondary text-pretty">{message}</p>}
+        <h2 className="m-0 font-display text-h2 font-semibold text-balance">{title}</h2>
+        {message && <p className="m-0 text-body text-pretty">{message}</p>}
       </div>
       {(onRetry || secondaryAction) && (
         <div className="mt-1 flex flex-wrap justify-center gap-2">

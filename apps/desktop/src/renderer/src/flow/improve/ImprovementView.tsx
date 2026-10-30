@@ -81,14 +81,14 @@ export function ImprovementView({
         <Heading as="h1" size="display">
           {heading}
         </Heading>
-        <p className="m-0 max-w-[660px] text-lg text-fg-secondary text-pretty">
+        <p className="m-0 max-w-[660px] text-body text-fg text-pretty">
           {made
             ? `Scored on the ${job.splits.dev} check tasks against version ${improvement.fromVersion}. It hasn't taken a final test.`
             : `Version ${improvement.fromVersion} stays as it was, and its lessons are back in the queue.`}
         </p>
       </div>
 
-      <div role="status" className="flex items-start gap-3 border-y border-line-card py-4 text-md">
+      <div role="status" className="flex items-start gap-3 border-y border-line py-4 text-body">
         <StatusMark state={promotion.allowed ? 'ok' : 'off'} size={18} className="mt-0.5" />
         <div className="flex flex-col gap-0.5">
           <span className="text-fg">
@@ -96,7 +96,7 @@ export function ImprovementView({
               ? `You can use version ${candidateVersion}`
               : 'No new version to use'}
           </span>
-          <span className="text-fg-secondary text-pretty">
+          <span className="text-fg text-pretty">
             {promotion.allowed
               ? `Version ${improvement.fromVersion} keeps answering until you do, and stays so you can go back to it.`
               : promotion.reason}
@@ -104,9 +104,9 @@ export function ImprovementView({
         </div>
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(180px,100%),1fr))] gap-px overflow-hidden rounded-2xl border border-line-card bg-line-card">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(180px,100%),1fr))] gap-px overflow-hidden rounded-card bg-line-strong shadow-edge">
         <Stat
-          className="bg-panel p-[22px]"
+          className="bg-card p-[22px]"
           value={dev.after ? formatRate(dev.after) : dev.before ? formatRate(dev.before) : '–'}
           label="right on check tasks"
           note={
@@ -121,21 +121,21 @@ export function ImprovementView({
           noteFont="text"
         />
         <Stat
-          className="bg-panel p-[22px]"
+          className="bg-card p-[22px]"
           value={cents(improvement.spentUsd)}
           label={mentor}
           note={`of ${formatUsd(improvement.budget.maxMentorUsd)}`}
           noteFont="text"
         />
         <Stat
-          className="bg-panel p-[22px]"
+          className="bg-card p-[22px]"
           value={formatDuration(run.totals.wallMs)}
           label="Time"
           note={`of ${formatDuration(job.budget.maxWallMinutes * 60_000)}`}
           noteFont="text"
         />
         <Stat
-          className="bg-panel p-[22px]"
+          className="bg-card p-[22px]"
           value={String(run.totals.rounds)}
           label="Rounds"
           note={`of ${improvement.budget.maxRounds}`}
@@ -171,11 +171,11 @@ export function ImprovementView({
             {lessons.map((lesson) => (
               <li
                 key={lesson.id}
-                className="flex min-h-12 items-center gap-3.5 border-t border-line-card py-2.5 first:border-t-0"
+                className="flex min-h-12 items-center gap-3.5 border-t border-line py-2.5 first:border-t-0"
               >
                 <KindTile kind={lesson.proposal.kind} />
                 <span className="min-w-0 flex-1 text-pretty">{lesson.proposal.lesson}</span>
-                <span className="text-sm text-fg-muted">{KIND_LABELS[lesson.proposal.kind]}</span>
+                <span className="text-small text-fg">{KIND_LABELS[lesson.proposal.kind]}</span>
               </li>
             ))}
           </ul>
@@ -201,15 +201,15 @@ function TypeSection({
     <section aria-label={title} className="flex flex-col gap-[18px]">
       <Heading>{title}</Heading>
       {changes.length === 0 ? (
-        <p className="m-0 text-md text-fg-secondary">{empty}</p>
+        <p className="m-0 text-body text-fg">{empty}</p>
       ) : (
         changes.map((change) => (
           <div key={change.type} className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between gap-3">
               <span>{change.label}</span>
-              <span className="font-mono text-fg-secondary">
+              <span className="font-mono text-fg">
                 {formatRate(change.before)} → {formatRate(change.after)}
-                <span className="text-fg-muted">
+                <span className="text-fg">
                   {' '}
                   · {change.after.pass} of {change.after.total}
                 </span>

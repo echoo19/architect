@@ -1,12 +1,32 @@
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ComponentProps, type ReactNode } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { DropdownMenu as RadixMenu, Popover as RadixPopover } from 'radix-ui';
 import { cn } from '../lib/cn';
+import { useOpenState } from '../lib/open-state';
+import { useFloatingMotion } from '../motion/floating';
 
-const surface =
-  'z-50 rounded-xl border border-line-control bg-modal shadow-popover ' +
-  'data-[state=closed]:animate-fade-out data-[state=open]:animate-pop';
+const MenuOpen = createContext(false);
+const PopoverOpen = createContext(false);
 
-export const DropdownMenu = RadixMenu.Root;
+const surface = 'z-50 bg-raised shadow-float';
+
+export function DropdownMenu({
+  open,
+  defaultOpen,
+  onOpenChange,
+  children,
+  ...props
+}: ComponentProps<typeof RadixMenu.Root>) {
+  const [isOpen, setOpen] = useOpenState({ open, defaultOpen, onOpenChange });
+  return (
+    <MenuOpen.Provider value={isOpen}>
+      <RadixMenu.Root {...props} open={isOpen} onOpenChange={setOpen}>
+        {children}
+      </RadixMenu.Root>
+    </MenuOpen.Provider>
+  );
+}
+
 export const DropdownMenuTrigger = RadixMenu.Trigger;
 
 export interface DropdownMenuContentProps {
@@ -22,16 +42,31 @@ export function DropdownMenuContent({
   children,
   className,
 }: DropdownMenuContentProps) {
+  const open = useContext(MenuOpen);
+  const floating = useFloatingMotion({
+    origin: 'var(--radix-dropdown-menu-content-transform-origin)',
+  });
   return (
-    <RadixMenu.Portal>
-      <RadixMenu.Content
-        align={align}
-        side={side}
-        sideOffset={6}
-        className={cn(surface, 'min-w-48 p-1', className)}
-      >
-        {children}
-      </RadixMenu.Content>
+    <RadixMenu.Portal forceMount>
+      <AnimatePresence>
+        {open && (
+          <RadixMenu.Content
+            key="content"
+            forceMount
+            asChild
+            align={align}
+            side={side}
+            sideOffset={6}
+          >
+            <motion.div
+              {...floating}
+              className={cn(surface, 'min-w-48 rounded-control p-1', className)}
+            >
+              {children}
+            </motion.div>
+          </RadixMenu.Content>
+        )}
+      </AnimatePresence>
     </RadixMenu.Portal>
   );
 }
@@ -62,9 +97,9 @@ export function DropdownMenuItem({
       onSelect={onSelect}
       disabled={disabled}
       className={cn(
-        'flex min-h-[34px] select-none items-center gap-2.5 rounded-sm px-2.5 text-base outline-none',
+        'flex min-h-9 select-none items-center gap-2.5 rounded-mark px-2.5 text-ui outline-none',
         'data-[disabled]:opacity-40 data-[highlighted]:bg-hover [&_svg]:size-4 [&_svg]:shrink-0',
-        tone === 'danger' ? 'text-danger' : 'text-fg [&_svg]:text-fg-secondary',
+        tone === 'danger' ? 'text-danger' : 'text-fg',
         description && 'items-start py-2 [&>svg]:mt-0.5',
       )}
     >
@@ -72,7 +107,7 @@ export function DropdownMenuItem({
       {description ? (
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="truncate">{children}</span>
-          <span className="text-sm text-fg-muted text-pretty">{description}</span>
+          <span className="text-small text-pretty">{description}</span>
         </span>
       ) : (
         <span className="flex-1 truncate">{children}</span>
@@ -88,11 +123,29 @@ export function DropdownMenuSeparator() {
 
 export function DropdownMenuLabel({ children }: { children: ReactNode }) {
   return (
-    <RadixMenu.Label className="px-2.5 pb-1 pt-2 text-xs text-fg-muted">{children}</RadixMenu.Label>
+    <RadixMenu.Label className="px-2.5 pb-1 pt-2 text-small font-medium">
+      {children}
+    </RadixMenu.Label>
   );
 }
 
-export const Popover = RadixPopover.Root;
+export function Popover({
+  open,
+  defaultOpen,
+  onOpenChange,
+  children,
+  ...props
+}: ComponentProps<typeof RadixPopover.Root>) {
+  const [isOpen, setOpen] = useOpenState({ open, defaultOpen, onOpenChange });
+  return (
+    <PopoverOpen.Provider value={isOpen}>
+      <RadixPopover.Root {...props} open={isOpen} onOpenChange={setOpen}>
+        {children}
+      </RadixPopover.Root>
+    </PopoverOpen.Provider>
+  );
+}
+
 export const PopoverTrigger = RadixPopover.Trigger;
 export const PopoverAnchor = RadixPopover.Anchor;
 export const PopoverClose = RadixPopover.Close;
@@ -113,17 +166,30 @@ export function PopoverContent({
   className,
   ...aria
 }: PopoverContentProps) {
+  const open = useContext(PopoverOpen);
+  const floating = useFloatingMotion({ origin: 'var(--radix-popover-content-transform-origin)' });
   return (
-    <RadixPopover.Portal>
-      <RadixPopover.Content
-        align={align}
-        side={side}
-        sideOffset={8}
-        {...aria}
-        className={cn(surface, 'w-72 rounded-2xl p-4 outline-none', className)}
-      >
-        {children}
-      </RadixPopover.Content>
+    <RadixPopover.Portal forceMount>
+      <AnimatePresence>
+        {open && (
+          <RadixPopover.Content
+            key="content"
+            forceMount
+            asChild
+            align={align}
+            side={side}
+            sideOffset={8}
+            {...aria}
+          >
+            <motion.div
+              {...floating}
+              className={cn(surface, 'w-72 rounded-card p-4 outline-none', className)}
+            >
+              {children}
+            </motion.div>
+          </RadixPopover.Content>
+        )}
+      </AnimatePresence>
     </RadixPopover.Portal>
   );
 }

@@ -49,7 +49,7 @@ test.beforeAll(async () => {
   folders = await mkdtemp(join(tmpdir(), 'architect-e2e-hub-'));
   launched = await launchApp({
     env: { HF_ENDPOINT: hub.url, HF_TOKEN: FAKE_HUB_TOKEN },
-    settings: { onboarded: true, theme: 'dark' },
+    settings: { onboarded: true },
     prepare: async (userData) => {
       const store = openEngineStore(new DataPaths(userData).database);
       try {

@@ -53,14 +53,14 @@ describe('ProviderMark', () => {
 
 describe('cn', () => {
   it('resolves conflicts between the theme’s custom tokens', () => {
-    expect(cn('text-sm', 'text-chat')).toBe('text-chat');
-    expect(cn('text-fg', 'text-fg-muted')).toBe('text-fg-muted');
-    expect(cn('shadow-composer', 'shadow-modal')).toBe('shadow-modal');
-    expect(cn('rounded-lg', 'rounded-6xl')).toBe('rounded-6xl');
+    expect(cn('text-small', 'text-body')).toBe('text-body');
+    expect(cn('text-fg', 'text-fg-dim')).toBe('text-fg-dim');
+    expect(cn('shadow-edge', 'shadow-float')).toBe('shadow-float');
+    expect(cn('rounded-control', 'rounded-card')).toBe('rounded-card');
   });
 
   it('keeps a size and a color together', () => {
-    expect(cn('text-fg', 'text-display')).toBe('text-fg text-display');
+    expect(cn('text-fg', 'text-title')).toBe('text-fg text-title');
   });
 });
 
@@ -163,7 +163,8 @@ describe('EvidenceMeter', () => {
     const practice = renderToStaticMarkup(
       createElement(EvidenceMeter, { kind: 'practice', value: 1, label: 'Refunds, practice' }),
     );
-    expect(practice).toContain('repeating-linear-gradient');
+    expect(practice).toContain('bg-fg/60');
+    expect(practice).not.toContain('gradient');
     const check = renderToStaticMarkup(
       createElement(EvidenceMeter, { kind: 'check', value: 1, label: 'Refunds', marker: 0.9 }),
     );
@@ -285,7 +286,7 @@ describe('RadioCard', () => {
       html.indexOf('<span', html.indexOf('>Here<') - 200),
       html.indexOf('>Here<'),
     );
-    expect(title).toContain('group-data-[state=unchecked]:text-fg-muted');
+    expect(title).toContain('group-data-[state=unchecked]:text-fg-dim');
     expect(html).toContain('data-state="unchecked"');
   });
 
@@ -295,9 +296,9 @@ describe('RadioCard', () => {
     expect(chosen).toContain('data-state="checked"');
     expect(chosen).toContain('disabled=""');
     // The quiet color is only for the card that is not chosen: a bare class would grey this one.
-    expect(chosen).not.toMatch(/(?:^|[\s"])text-fg-muted/);
+    expect(chosen).not.toMatch(/(?:^|[\s"])text-fg-dim/);
     // And a card that can be chosen is never quiet.
     const other = html.slice(html.lastIndexOf('<button'));
-    expect(other).not.toContain('text-fg-muted');
+    expect(other).not.toContain('text-fg-dim');
   });
 });

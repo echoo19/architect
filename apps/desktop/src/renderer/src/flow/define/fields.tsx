@@ -40,7 +40,7 @@ export function NumberField({ label, meta, value, onChange, issue, unit }: Numbe
           }}
           className="w-24 text-right font-mono tabular-nums"
         />
-        {unit && <span className="min-w-12 text-fg-muted">{unit}</span>}
+        {unit && <span className="min-w-12 text-fg">{unit}</span>}
       </div>
     </SettingsRow>
   );
@@ -77,7 +77,7 @@ export function PathField({ label, path, kind, extensions, onPick, issue }: Path
       error={issue}
     >
       <div className="flex items-center gap-3">
-        {path && <span className="max-w-40 truncate text-fg-secondary">{fileName(path)}</span>}
+        {path && <span className="max-w-40 truncate text-fg">{fileName(path)}</span>}
         <Button size="xs" onClick={() => void pick()}>
           <FolderOpen size={13} aria-hidden />
           {path ? 'Change' : kind === 'folder' ? 'Choose folder' : 'Choose file'}
@@ -90,8 +90,6 @@ export function PathField({ label, path, kind, extensions, onPick, issue }: Path
 /** A plain line of text inside a tab, between rows. */
 export function TabNote({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <p className={cn('m-0 border-t border-line py-4 text-fg-secondary text-pretty', className)}>
-      {children}
-    </p>
+    <p className={cn('m-0 border-t border-line py-4 text-fg text-pretty', className)}>{children}</p>
   );
 }

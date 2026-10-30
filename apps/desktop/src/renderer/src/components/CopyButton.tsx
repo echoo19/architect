@@ -33,7 +33,7 @@ export function CopyButton({ text, label = 'Copy', className }: CopyButtonProps)
       <IconButton
         label={name}
         size="sm"
-        className={cn('text-fg-muted', className)}
+        className={cn('text-fg', className)}
         onClick={() => void copy()}
       >
         {copied ? (

@@ -42,10 +42,10 @@ export function DataTable({ label, columns, rows }: DataTableProps) {
 }
 
 const MARKS: Record<DiffLine['kind'], { symbol: string; label: string; className: string }> = {
-  added: { symbol: '+', label: 'Added', className: 'bg-student-tint' },
-  after: { symbol: '+', label: 'After', className: 'bg-student-tint' },
-  removed: { symbol: '−', label: 'Removed', className: 'bg-danger-tint' },
-  before: { symbol: '−', label: 'Before', className: 'bg-danger-tint' },
+  added: { symbol: '+', label: 'Added', className: 'bg-student-soft' },
+  after: { symbol: '+', label: 'After', className: 'bg-student-soft' },
+  removed: { symbol: '−', label: 'Removed', className: 'bg-danger-soft' },
+  before: { symbol: '−', label: 'Before', className: 'bg-danger-soft' },
 };
 
 function markTone(kind: DiffLine['kind']): string {
@@ -54,12 +54,11 @@ function markTone(kind: DiffLine['kind']): string {
     : 'text-danger first:text-danger';
 }
 
+/** What changed stands out by weight, or is struck through where it is taken away. */
 function cellTone(line: DiffLine, column: number): string {
   const changed = line.changed[column];
-  if (line.kind === 'added' || line.kind === 'after') {
-    return changed ? 'text-fg' : 'text-fg-secondary';
-  }
-  return changed ? 'text-fg-muted line-through decoration-fg-faint' : 'text-fg-muted';
+  if (line.kind === 'added' || line.kind === 'after') return changed ? 'font-medium' : '';
+  return changed ? 'line-through' : '';
 }
 
 export interface RowDiffTableProps {

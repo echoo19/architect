@@ -170,7 +170,10 @@ export interface StepListItemProps {
   lead?: ReactNode;
   /** Above the step, outside it: a marker such as where a correction began. */
   before?: ReactNode;
-  /** `mentor` for a step the mentor took as the agent, `muted` for one replayed as it was. */
+  /**
+   * `mentor` for a step the mentor took as the agent, with the mentor's color along its edge;
+   * `muted` for one replayed as it was, with a plain hairline along its edge.
+   */
   tone?: StepTone;
   /** What the step showed, under its line while it is the current step. */
   children?: ReactNode;
@@ -191,8 +194,10 @@ export function StepListItem({
       {before}
       <div
         className={cn(
-          'flex min-w-0 flex-col rounded-lg border-l-2 transition-colors duration-150',
-          tone === 'mentor' ? 'border-mentor' : 'border-transparent',
+          'flex min-w-0 flex-col rounded-control border-l-2 transition-colors duration-150',
+          tone === 'mentor' && 'border-mentor',
+          tone === 'muted' && 'border-line-strong',
+          tone === 'default' && 'border-transparent',
           isCurrent && 'bg-selected',
         )}
       >
@@ -203,9 +208,8 @@ export function StepListItem({
           aria-current={isCurrent ? 'step' : undefined}
           onClick={() => select(index, false)}
           className={cn(
-            'flex min-h-9 w-full min-w-0 items-start gap-3 rounded-lg px-3 py-2 text-left text-sm',
-            !isCurrent && 'hover:bg-row-hover',
-            tone === 'muted' && !isCurrent ? 'text-fg-muted' : 'text-fg',
+            'flex min-h-10 w-full min-w-0 items-start gap-3 rounded-control px-3 py-2 text-left text-small',
+            !isCurrent && 'hover:bg-hover',
           )}
         >
           {lead}
@@ -230,7 +234,7 @@ export interface StepListNavProps {
 export function StepListNav({ count, current, onCurrentChange, className }: StepListNavProps) {
   return (
     <div className={cn('flex items-center gap-0.5', className)}>
-      <span className="mr-1.5 text-sm tabular-nums text-fg-muted">
+      <span className="mr-1.5 text-small tabular-nums">
         Step {count === 0 ? 0 : current + 1} of {count}
       </span>
       <IconButton

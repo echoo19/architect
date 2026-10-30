@@ -18,7 +18,7 @@ import { WRITE_MODE_LABELS, WRITE_MODE_MEANINGS, WRITE_MODES, WRITE_SETTING } fr
 import { StatusBar } from './StatusBar';
 
 const modeButton =
-  'flex h-8 items-center gap-1.5 rounded-full border border-line-control px-3 text-sm text-fg-secondary transition-colors duration-150 hover:bg-hover hover:text-fg disabled:opacity-60 [&_svg]:shrink-0';
+  'flex h-8 items-center gap-1.5 rounded-full px-3 text-small text-fg transition-colors duration-150 hover:bg-hover disabled:opacity-60 [&_svg]:shrink-0 shadow-edge-strong';
 
 const MODE_ICONS: Record<PermissionMode, typeof Lock> = {
   ask: Lock,
@@ -113,10 +113,6 @@ export function ChatComposer({
 }: ChatComposerProps) {
   return (
     <div className="relative shrink-0 px-8 pb-2.5">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-10 h-10 bg-linear-to-b from-transparent to-ground"
-      />
       {!pinned && (
         <IconButton
           label="Jump to the latest message"
@@ -124,7 +120,7 @@ export function ChatComposer({
           shape="round"
           size="sm"
           onClick={onJumpToLatest}
-          className="absolute -top-12 left-1/2 z-10 -translate-x-1/2 bg-composer shadow-composer-sm"
+          className="absolute -top-12 left-1/2 z-10 -translate-x-1/2 bg-raised shadow-float"
         >
           <ArrowDown size={16} strokeWidth={1.8} aria-hidden />
         </IconButton>

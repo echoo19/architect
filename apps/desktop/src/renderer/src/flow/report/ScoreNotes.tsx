@@ -19,7 +19,7 @@ export function ScoreNotes({
 }) {
   if (rules === undefined) return null;
   return (
-    <div className="flex max-w-[660px] flex-col gap-2.5 text-md text-fg-secondary">
+    <div className="flex max-w-[660px] flex-col gap-2.5 text-body text-fg">
       {[ruleScoreNote(teacher), ...leftOutNotes(rules)].map((line) => (
         <p key={line} className="m-0 text-pretty">
           {line}

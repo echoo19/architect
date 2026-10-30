@@ -90,7 +90,7 @@ export function Capabilities({
       <Heading id="capabilities">By task type</Heading>
       {evidence.status === 'loading' && breakdown === undefined && (
         <div aria-busy="true" aria-label="Loading the results by task type">
-          <Skeleton className="h-40 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-control" />
         </div>
       )}
       {evidence.status === 'error' && (
@@ -102,7 +102,7 @@ export function Capabilities({
         />
       )}
       {breakdown && columns.length === 0 && (
-        <p className="m-0 text-fg-secondary">No task type has a result yet.</p>
+        <p className="m-0 text-fg">No task type has a result yet.</p>
       )}
       {breakdown && columns.length > 0 && (
         <div className="overflow-x-auto">
@@ -117,7 +117,7 @@ export function Capabilities({
                   <th key={column.kind} scope="col" className="pb-3 pl-6 font-normal">
                     <span className="flex flex-col gap-0.5">
                       <EvidenceMark kind={column.kind}>{column.label}</EvidenceMark>
-                      <span className="text-xs text-fg-muted">{column.what(names.mentor)}</span>
+                      <span className="text-small text-fg">{column.what(names.mentor)}</span>
                     </span>
                   </th>
                 ))}
@@ -125,7 +125,7 @@ export function Capabilities({
             </thead>
             <tbody>
               {breakdown.capabilities.map((capability) => (
-                <tr key={capability.type} className="border-t border-line-card align-top">
+                <tr key={capability.type} className="border-t border-line align-top">
                   <th scope="row" className="py-3.5 pr-4 font-normal">
                     <span className="flex flex-col gap-1">
                       <span>{capability.label}</span>
@@ -133,7 +133,7 @@ export function Capabilities({
                         const line = stoppedLine(category, names.mentor);
                         return (
                           line && (
-                            <span key={category.id} className="text-sm text-fg-muted text-pretty">
+                            <span key={category.id} className="text-small text-fg text-pretty">
                               {line}
                             </span>
                           )
@@ -159,10 +159,10 @@ export function Capabilities({
         </div>
       )}
       {installation && (
-        <div className="flex flex-col gap-1 border-t border-line-card pt-3.5">
+        <div className="flex flex-col gap-1 border-t border-line pt-3.5">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <EvidenceMark kind="install">{WORKS_HERE_TITLE}</EvidenceMark>
-            <span className="flex items-center gap-2 text-sm text-fg-secondary">
+            <span className="flex items-center gap-2 text-small text-fg">
               <StatusMark state={statusMark(installation.status)} size={14} />
               {STATUS_LABELS[installation.status]}
             </span>
@@ -192,12 +192,12 @@ function ScoreBar({
   mentor: string;
 }) {
   if (score === null) {
-    return <span className="text-sm text-fg-faint">Not measured</span>;
+    return <span className="text-small text-fg">Not measured</span>;
   }
   const sparkText = spark ? `; ${mentor} ${spark.pass} of ${spark.total} passed` : '';
   return (
     <span className="flex flex-col gap-2">
-      <span className="font-mono text-sm tabular-nums text-fg-secondary">
+      <span className="font-mono text-small tabular-nums text-fg">
         <span className="text-fg">{score.pass}</span> of {score.total}
         {spark && (
           <span className="font-sans text-mentor">

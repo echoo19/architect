@@ -86,7 +86,7 @@ export function Rounds({
           />
         </PanelRow>
       ) : rounds.length === 0 ? (
-        <PanelRow className="text-fg-muted">
+        <PanelRow className="text-fg">
           {stopReason === 'target_met'
             ? 'No rounds were needed'
             : stopReason === undefined
@@ -97,7 +97,7 @@ export function Rounds({
         <ol className="m-0 max-h-[372px] list-none overflow-y-auto p-0">
           {stopReason && EndIcon && (
             <li>
-              <PanelRow className="grid-cols-[28px_minmax(0,1fr)] text-fg-secondary">
+              <PanelRow className="grid-cols-[28px_minmax(0,1fr)] text-fg">
                 <EndIcon size={14} strokeWidth={1.8} aria-hidden className="justify-self-center" />
                 <span className="truncate">{trainingEnd(stopReason, job)}</span>
               </PanelRow>
@@ -123,9 +123,9 @@ export function Rounds({
         <button
           type="button"
           onClick={footer.onClick}
-          className="group mt-auto flex min-h-[54px] items-center justify-end gap-3 border-t border-line-row px-7 text-left transition-colors duration-150"
+          className="group mt-auto flex min-h-[54px] items-center justify-end gap-3 border-t border-line px-7 text-left transition-colors duration-150"
         >
-          <span className="flex shrink-0 items-center gap-2 text-fg-secondary group-hover:text-fg">
+          <span className="flex shrink-0 items-center gap-2 text-fg">
             {footer.label}
             <ArrowRight size={14} strokeWidth={2} aria-hidden />
           </span>
@@ -155,9 +155,6 @@ function RoundRow({
   asked: Intervention | undefined;
   onOpen: () => void;
 }) {
-  const disposition = experiment?.disposition ?? round.decision;
-  // A change that isn't in the agent reads quieter than one that is, and is never struck out.
-  const quiet = disposition !== undefined && disposition !== 'kept';
   // A draft is the whole first setup, so it says how it came about; a question, what was asked.
   const note = draft
     ? 'Written from the job'
@@ -173,17 +170,14 @@ function RoundRow({
       type="button"
       onClick={onOpen}
       className={cn(
-        'grid min-h-[62px] w-full grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3.5 border-t border-line-row px-7 py-2 text-left',
-        'transition-colors duration-150 hover:bg-row-hover',
-        quiet && 'text-fg-muted',
+        'grid min-h-[62px] w-full grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3.5 border-t border-line px-7 py-2 text-left',
+        'transition-colors duration-150 hover:bg-hover',
       )}
     >
-      <span className={cn('font-mono', !quiet && 'text-fg-secondary')}>
-        {String(round.index).padStart(2, '0')}
-      </span>
+      <span className="font-mono">{String(round.index).padStart(2, '0')}</span>
       <span className="flex min-w-0 flex-col gap-1">
         <span className="truncate">{round.title ?? untitled(round)}</span>
-        {note && <span className="truncate text-sm text-fg-muted">{note}</span>}
+        {note && <span className="truncate text-small text-fg">{note}</span>}
       </span>
       <RoundResult
         round={round}
@@ -220,14 +214,14 @@ function RoundResult({
     return (
       <span className="flex items-baseline gap-3">
         {before && after && (
-          <span className="font-mono text-sm tabular-nums">
+          <span className="font-mono text-small tabular-nums">
             {percent(before)}% → {percent(after)}%
           </span>
         )}
         <span
           title={draft ? undefined : words.meaning}
           className={cn(
-            'min-w-[84px] whitespace-nowrap text-right text-sm',
+            'min-w-[84px] whitespace-nowrap text-right text-small',
             draft ? 'text-student' : words.tone,
           )}
         >
@@ -242,22 +236,22 @@ function RoundResult({
     return (
       <span
         className={cn(
-          'min-w-[84px] whitespace-nowrap text-right text-sm',
-          !asked.answer && ended ? 'text-fg-muted' : 'text-mentor',
+          'min-w-[84px] whitespace-nowrap text-right text-small',
+          !asked.answer && ended ? 'text-fg' : 'text-mentor',
         )}
       >
         {asked.answer ? 'Answered' : ended ? 'Not answered' : 'Needs you'}
       </span>
     );
   }
-  if (round.status === 'failed') return <span className="text-sm text-danger">Failed</span>;
+  if (round.status === 'failed') return <span className="text-small text-danger">Failed</span>;
   if (running) {
     return (
-      <span className="flex items-center gap-2 text-sm text-fg-muted">
+      <span className="flex items-center gap-2 text-small text-fg">
         In progress
         <Spinner tone="mentor" />
       </span>
     );
   }
-  return <span className="text-sm text-fg-muted">Not finished</span>;
+  return <span className="text-small text-fg">Not finished</span>;
 }

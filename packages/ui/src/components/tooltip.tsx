@@ -1,5 +1,8 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Tooltip as RadixTooltip } from 'radix-ui';
+import { useFloatingMotion } from '../motion/floating';
+import { springs } from '../motion/springs';
 
 /** Mount once near the root so every Tooltip shares one open delay. */
 export function TooltipProvider({ children }: { children: ReactNode }) {
@@ -18,17 +21,27 @@ export interface TooltipProps {
 }
 
 export function Tooltip({ content, side = 'top', children }: TooltipProps) {
+  const [open, setOpen] = useState(false);
+  const floating = useFloatingMotion({
+    origin: 'var(--radix-tooltip-content-transform-origin)',
+    transition: springs.snappy,
+  });
   return (
-    <RadixTooltip.Root>
+    <RadixTooltip.Root open={open} onOpenChange={setOpen}>
       <RadixTooltip.Trigger asChild>{children}</RadixTooltip.Trigger>
-      <RadixTooltip.Portal>
-        <RadixTooltip.Content
-          side={side}
-          sideOffset={6}
-          className="z-50 rounded-sm border border-line-control bg-modal px-2 py-1 text-xs text-fg shadow-popover data-[state=closed]:animate-fade-out data-[state=delayed-open]:animate-fade data-[state=instant-open]:animate-fade"
-        >
-          {content}
-        </RadixTooltip.Content>
+      <RadixTooltip.Portal forceMount>
+        <AnimatePresence>
+          {open && (
+            <RadixTooltip.Content key="content" forceMount asChild side={side} sideOffset={6}>
+              <motion.div
+                {...floating}
+                className="z-50 rounded-mark bg-raised px-2.5 py-1.5 text-small shadow-float"
+              >
+                {content}
+              </motion.div>
+            </RadixTooltip.Content>
+          )}
+        </AnimatePresence>
       </RadixTooltip.Portal>
     </RadixTooltip.Root>
   );

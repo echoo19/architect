@@ -35,7 +35,7 @@ export function DoneStep({ mentor, student, percent }: DoneStepProps) {
           {student.state === 'ready' ? (
             <StatusValue done>Ready</StatusValue>
           ) : student.state === 'downloading' ? (
-            <span className="flex items-center gap-2 text-fg-secondary">
+            <span className="flex items-center gap-2 text-fg">
               <Spinner tone="student" size={13} />
               Downloading{percent === null ? '' : ` · ${percent}%`}
             </span>
@@ -55,7 +55,7 @@ export function DoneStep({ mentor, student, percent }: DoneStepProps) {
           )}
         </SettingsRow>
       </Panel>
-      {gaps.length > 0 && <p className="-mt-4 text-sm text-fg-muted">{gaps.join(' ')}</p>}
+      {gaps.length > 0 && <p className="-mt-4 text-small text-fg">{gaps.join(' ')}</p>}
     </>
   );
 }

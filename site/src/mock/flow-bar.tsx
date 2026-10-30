@@ -22,7 +22,7 @@ export function FlowBar({
   return (
     <header
       className={cn(
-        'grid min-h-[60px] shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-ground-flow px-4 py-2.5',
+        'grid min-h-[60px] shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-ground px-4 py-2.5',
         'narrow:grid-cols-1 narrow:justify-items-center narrow:px-2',
         className,
       )}
@@ -33,16 +33,16 @@ export function FlowBar({
         </IconButton>
         <span className="min-w-0 truncate font-medium">{title}</span>
       </div>
-      <ol aria-label="Progress" className="m-0 flex list-none gap-1 p-0 text-sm">
+      <ol aria-label="Progress" className="m-0 flex list-none gap-1 p-0 text-small">
         {FLOW_STEPS.map((step, index) => (
           <li
             key={step}
             aria-current={index === current ? 'step' : undefined}
             className={cn(
               'flex h-[30px] items-center px-3.5 narrow:px-2.5',
-              index < current && 'gap-1.5 text-fg-secondary',
+              index < current && 'gap-1.5 text-fg',
               index === current && 'rounded-full bg-selected text-fg',
-              index > current && 'text-fg-muted',
+              index > current && 'text-fg',
             )}
           >
             {index < current && (

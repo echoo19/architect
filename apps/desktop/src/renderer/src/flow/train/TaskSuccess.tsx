@@ -36,8 +36,8 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span
           className={cn(
-            'text-hero font-medium leading-none tracking-tightest tabular-nums',
-            !score && 'text-fg-muted',
+            'font-display text-hero font-semibold leading-none tabular-nums',
+            !score && 'text-fg-dim',
           )}
         >
           {score ? formatRate(score) : '–'}
@@ -46,13 +46,13 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
           content={`${names.mentor} never practices on these. It sees only the score, and a change stays only if the score goes up.`}
         >
           <span className="cursor-help">
-            <EvidenceMark kind="check" className="text-md text-fg-secondary">
+            <EvidenceMark kind="check" className="text-body text-fg">
               on check tasks
             </EvidenceMark>
           </span>
         </Tooltip>
         {score && (
-          <span className="text-sm tabular-nums text-fg-muted">
+          <span className="text-small tabular-nums text-fg">
             {runs > 1
               ? `${Math.round((score.pass / runs) * 10) / 10} of ${job.splits.dev}`
               : `${score.pass} of ${score.total}`}
@@ -68,7 +68,7 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
 /** What the two kinds of point mean, once a change that wasn't kept has its own. */
 function Legend() {
   return (
-    <span aria-hidden className="ml-auto flex items-center gap-4 text-sm text-fg-muted">
+    <span aria-hidden className="ml-auto flex items-center gap-4 text-small text-fg">
       <span className="flex items-center gap-1.5">
         <svg width={10} height={10} viewBox="0 0 10 10">
           <circle cx={5} cy={5} r={4} className="fill-student" />
@@ -82,11 +82,11 @@ function Legend() {
             x2={17}
             y1={5}
             y2={5}
-            className="stroke-fg-ghost"
+            className="stroke-line-strong"
             strokeWidth={1.5}
             strokeDasharray="3 3"
           />
-          <circle cx={21} cy={5} r={3.5} className="fill-panel stroke-fg-faint" strokeWidth={1.5} />
+          <circle cx={21} cy={5} r={3.5} className="fill-card stroke-fg" strokeWidth={1.5} />
         </svg>
         Not kept
       </span>
@@ -117,18 +117,12 @@ function CurveChart({
     >
       {valueTicks.map((tick) => (
         <Fragment key={tick.value}>
-          <line
-            x1={PLOT.left}
-            x2={PLOT.right}
-            y1={tick.y}
-            y2={tick.y}
-            className="stroke-line-row"
-          />
+          <line x1={PLOT.left} x2={PLOT.right} y1={tick.y} y2={tick.y} className="stroke-line" />
           <text
             x={PLOT.left - 10}
             y={tick.y + 4.4}
             textAnchor="end"
-            className="fill-fg-muted font-mono text-sm"
+            className="fill-fg font-mono text-small"
           >
             {tick.value}%
           </text>
@@ -139,10 +133,10 @@ function CurveChart({
         x2={PLOT.right}
         y1={targetY}
         y2={targetY}
-        className="stroke-fg-faint"
+        className="stroke-fg/40"
         strokeDasharray="2 4"
       />
-      <text x={PLOT.right + 12} y={targetY + 4.4} className="fill-fg-secondary font-mono text-sm">
+      <text x={PLOT.right + 12} y={targetY + 4.4} className="fill-fg font-mono text-small">
         Target {target}%
       </text>
       <line
@@ -150,7 +144,7 @@ function CurveChart({
         x2={PLOT.right}
         y1={PLOT.bottom}
         y2={PLOT.bottom}
-        className="stroke-line-card"
+        className="stroke-line-strong"
       />
       {ticks.map((tick) => (
         <Fragment key={tick.round}>
@@ -159,17 +153,17 @@ function CurveChart({
             x2={tick.x}
             y1={PLOT.gridTop}
             y2={PLOT.bottom}
-            className="stroke-line-row"
+            className="stroke-line"
           />
           <text
             x={tick.x}
             y={PLOT.labelY}
             textAnchor="middle"
             className={cn(
-              'font-mono text-sm',
+              'font-mono text-small',
               tick.round === pending?.round && 'fill-mentor',
-              tick.round !== pending?.round &&
-                (tick.reached ? 'fill-fg-secondary' : 'fill-fg-ghost'),
+              tick.round !== pending?.round && 'fill-fg',
+              tick.reached && 'font-medium',
             )}
           >
             {tick.round === 0 ? 'Start' : tick.round}
@@ -181,7 +175,7 @@ function CurveChart({
           <polyline
             points={`${branch.from.x},${branch.from.y} ${branch.to.x},${branch.to.y}`}
             fill="none"
-            className="stroke-fg-ghost"
+            className="stroke-line-strong"
             strokeWidth={1.5}
             strokeDasharray="3 4"
           />
@@ -189,7 +183,7 @@ function CurveChart({
             cx={branch.to.x}
             cy={branch.to.y}
             r={4}
-            className="fill-panel stroke-fg-faint"
+            className="fill-card stroke-fg"
             strokeWidth={1.5}
           >
             <title>{`Round ${branch.round}, not kept: ${Math.round(branch.to.value)}%`}</title>
@@ -227,7 +221,7 @@ function CurveChart({
           x={(PLOT.left + PLOT.right) / 2}
           y={(PLOT.gridTop + PLOT.bottom) / 2}
           textAnchor="middle"
-          className="fill-fg-muted text-base"
+          className="fill-fg text-ui"
         >
           {ended ? 'Not scored' : 'Not scored yet'}
         </text>

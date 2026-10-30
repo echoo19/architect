@@ -104,14 +104,14 @@ export function FlaggedAnswers({
                 <button
                   type="button"
                   onClick={() => setSelectedId(correction.id)}
-                  className="-mx-2 flex w-[calc(100%+16px)] items-center gap-3.5 rounded-md px-2 py-3 text-left transition-colors duration-150 hover:bg-row-hover"
+                  className="-mx-2 flex w-[calc(100%+16px)] items-center gap-3.5 rounded-control px-2 py-3 text-left transition-colors duration-150 hover:bg-hover"
                 >
                   <KindTile kind={correction.proposal.kind} />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="line-clamp-2 text-fg text-pretty">
                       {correction.proposal.lesson}
                     </span>
-                    <span className="text-sm text-fg-muted">
+                    <span className="text-small text-fg">
                       {KIND_LABELS[correction.proposal.kind]} ·{' '}
                       {correctionStatus(correction, improving)}
                     </span>
@@ -120,7 +120,7 @@ export function FlaggedAnswers({
                     size={16}
                     strokeWidth={1.8}
                     aria-hidden
-                    className="shrink-0 text-fg-faint"
+                    className="shrink-0 text-fg"
                   />
                 </button>
               </li>
@@ -134,7 +134,7 @@ export function FlaggedAnswers({
           >
             {[0, 1].map((row) => (
               <div key={row} className="flex items-center gap-3">
-                <Skeleton className="size-7 rounded-md" />
+                <Skeleton className="size-7 rounded-control" />
                 <Skeleton className="h-3.5 w-72" />
               </div>
             ))}

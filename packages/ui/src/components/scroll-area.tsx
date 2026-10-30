@@ -35,7 +35,7 @@ export function ScrollArea({
         orientation="vertical"
         className="flex w-2.5 touch-none select-none p-[3px] data-[state=hidden]:animate-fade-out data-[state=visible]:animate-fade"
       >
-        <RadixScrollArea.Thumb className="relative flex-1 rounded-full bg-line-card transition-colors duration-150 hover:bg-line-control" />
+        <RadixScrollArea.Thumb className="relative flex-1 rounded-full bg-line-strong transition-colors duration-150 hover:bg-fg/30" />
       </RadixScrollArea.Scrollbar>
     </RadixScrollArea.Root>
   );

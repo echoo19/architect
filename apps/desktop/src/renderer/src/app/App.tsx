@@ -17,7 +17,6 @@ import { SettingsModal } from '../settings/SettingsModal';
 import { CommandMenu } from '../shell/CommandMenu';
 import { WorkspaceShell } from '../shell/WorkspaceShell';
 import { ErrorBoundary } from './ErrorBoundary';
-import { useThemeSync } from './theme';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
 
 function Screen({ route }: { route: Route }) {
@@ -64,7 +63,6 @@ function useFirstRunRedirect(route: Route): void {
 
 export function App() {
   const route = useRoute();
-  useThemeSync();
   useGlobalShortcuts();
   useEngineUpdates();
   useFirstRunRedirect(route);

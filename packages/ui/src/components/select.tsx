@@ -39,15 +39,15 @@ export function Select<T extends string>({
       <RadixSelect.Trigger
         aria-label={props['aria-label']}
         className={cn(
-          'inline-flex h-[38px] min-w-40 items-center justify-between gap-2 rounded-md border',
-          'border-line-control bg-well pl-3 pr-2.5 text-base text-fg transition-colors duration-150',
-          'hover:border-line-strong disabled:opacity-40 data-[placeholder]:text-fg-muted',
+          'inline-flex h-10 min-w-40 items-center justify-between gap-2 rounded-control',
+          'bg-field pl-3.5 pr-3 text-ui text-fg shadow-edge-strong transition-shadow duration-150',
+          'disabled:opacity-40 data-[placeholder]:text-fg-dim',
           className,
         )}
       >
         <RadixSelect.Value placeholder={placeholder} />
         <RadixSelect.Icon>
-          <ChevronDown size={16} className="text-fg-muted" aria-hidden />
+          <ChevronDown size={16} aria-hidden />
         </RadixSelect.Icon>
       </RadixSelect.Trigger>
       <RadixSelect.Portal>
@@ -56,8 +56,8 @@ export function Select<T extends string>({
           sideOffset={6}
           className={cn(
             'z-50 max-h-[var(--radix-select-content-available-height)] min-w-[var(--radix-select-trigger-width)]',
-            'overflow-hidden rounded-xl border border-line-control bg-modal p-1 shadow-popover',
-            'data-[state=open]:animate-pop',
+            'origin-[var(--radix-select-content-transform-origin)] overflow-hidden rounded-control bg-raised p-1 shadow-float',
+            'data-[state=closed]:animate-fade-out data-[state=open]:animate-pop',
           )}
         >
           <RadixSelect.Viewport>
@@ -67,7 +67,7 @@ export function Select<T extends string>({
                 value={option.value}
                 disabled={option.disabled}
                 className={cn(
-                  'relative flex h-[34px] select-none items-center rounded-sm pl-2.5 pr-8 text-base',
+                  'relative flex h-9 select-none items-center rounded-mark pl-2.5 pr-8 text-ui',
                   'text-fg outline-none data-[disabled]:opacity-40 data-[highlighted]:bg-hover',
                 )}
               >

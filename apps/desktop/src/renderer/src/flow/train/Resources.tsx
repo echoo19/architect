@@ -74,12 +74,12 @@ export function Resources({
         max={String(rounds.max)}
         fraction={share(rounds.used, rounds.max)}
       />
-      <Fact label="Changes kept" className="border-t border-line-row-strong pt-[18px]">
+      <Fact label="Changes kept" className="border-t border-line pt-[18px]">
         {changes === null ? (
-          <span className="text-fg-muted">–</span>
+          <span className="text-fg">–</span>
         ) : (
           <span className="font-mono tabular-nums">
-            {changes.kept} <span className="text-fg-muted">/ {changes.tried}</span>
+            {changes.kept} <span className="text-fg">/ {changes.tried}</span>
           </span>
         )}
       </Fact>
@@ -108,13 +108,13 @@ function BudgetMeter({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-fg-secondary">
+        <span className="text-fg">
           {label}
           {/* A cap is checked between steps, so the last step can carry the count past it. */}
-          {fraction >= 1 && <span className="text-fg-muted"> · {reached}</span>}
+          {fraction >= 1 && <span className="text-fg"> · {reached}</span>}
         </span>
         <span className="font-mono tabular-nums">
-          {used} <span className="text-fg-muted">/ {max}</span>
+          {used} <span className="text-fg">/ {max}</span>
         </span>
       </div>
       <Meter label={label} value={fraction} valueText={`${used} of ${max}`} />
@@ -133,7 +133,7 @@ function Fact({
 }) {
   return (
     <div className={cn('flex items-baseline justify-between gap-3', className)}>
-      <span className="text-fg-secondary">{label}</span>
+      <span className="text-fg">{label}</span>
       <span>{children}</span>
     </div>
   );

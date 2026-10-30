@@ -29,9 +29,9 @@ export function LogoMark({ size = 20, className }: LogoMarkProps) {
 export type AgentAvatarSize = 'sm' | 'md' | 'lg';
 
 const avatarSize: Record<AgentAvatarSize, string> = {
-  sm: 'size-[18px] rounded-[5px] text-2xs',
-  md: 'size-5 rounded-[6px] text-2xs',
-  lg: 'size-12 rounded-xl text-2xl',
+  sm: 'size-6 rounded-mark text-small',
+  md: 'size-7 rounded-mark text-small',
+  lg: 'size-12 rounded-control font-display text-h2',
 };
 
 export interface AgentAvatarProps {
@@ -40,14 +40,14 @@ export interface AgentAvatarProps {
   className?: string;
 }
 
-/** A graduate's initial on the student tint. Decorative; the name is always shown beside it. */
+/** A graduate's initial in the student's color. Decorative; the name is always shown beside it. */
 export function AgentAvatar({ name, size = 'sm', className }: AgentAvatarProps) {
   const initial = name.trim().charAt(0).toUpperCase() || 'A';
   return (
     <span
       aria-hidden
       className={cn(
-        'flex shrink-0 items-center justify-center bg-student-tint font-semibold leading-none text-student',
+        'flex shrink-0 items-center justify-center bg-student-soft font-semibold leading-none text-student',
         avatarSize[size],
         className,
       )}

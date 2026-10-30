@@ -19,17 +19,17 @@ export function RunNeeds({ needs, onAction, busyId = null }: RunNeedsProps) {
   return (
     <section aria-labelledby="needs" className="flex flex-col gap-[18px]">
       <Heading id="needs">Before it can start</Heading>
-      <ul className="m-0 flex list-none flex-col overflow-hidden rounded-2xl border border-line-card bg-card p-0">
+      <ul className="m-0 flex list-none flex-col overflow-hidden rounded-card bg-card p-0 shadow-edge">
         {needs.map((need) => (
           <li
             key={need.id}
-            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-line-card px-[22px] py-4 first:border-t-0"
+            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-line px-[22px] py-4 first:border-t-0"
           >
             <div className="flex min-w-0 flex-[1_1_300px] items-start gap-3">
               <StatusMark state="attention" size={18} className="mt-0.5" />
               <div className="flex min-w-0 flex-col gap-0.5">
                 <span>{need.title}</span>
-                <span className="text-sm text-fg-muted text-pretty">{need.detail}</span>
+                <span className="text-small text-fg text-pretty">{need.detail}</span>
               </div>
             </div>
             {need.action.kind === 'download' ? (

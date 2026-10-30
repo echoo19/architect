@@ -9,14 +9,14 @@ export interface ProviderMarkProps {
   className?: string;
 }
 
-/** A model provider's mark: a quiet tile with its initial. Decorative; the name is shown beside it. */
+/** A model provider's mark: a tile with its initial. Decorative; the name is shown beside it. */
 export function ProviderMark({ name, icon, className }: ProviderMarkProps) {
   return (
     <span
       aria-hidden
       className={cn(
-        'flex size-8 shrink-0 items-center justify-center rounded-[9px] border border-line-control',
-        'bg-card text-sm font-medium leading-none text-fg-secondary [&_svg]:size-[15px]',
+        'flex size-8 shrink-0 items-center justify-center rounded-mark bg-hover',
+        'text-small font-medium leading-none [&_svg]:size-[15px]',
         className,
       )}
     >

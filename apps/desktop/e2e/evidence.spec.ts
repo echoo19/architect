@@ -25,7 +25,7 @@ test.beforeAll(async () => {
   summary = await recordedSummary();
   launched = await launchApp({
     data: recordedData(),
-    settings: { onboarded: true, theme: 'dark' },
+    settings: { onboarded: true },
   });
   const visible = await launched.app.evaluate(({ BrowserWindow }) => {
     const [main] = BrowserWindow.getAllWindows();
@@ -338,7 +338,7 @@ test("reads a comparison's own report: each arm as it ended, and one not run wit
   }
   const opened = await launchApp({
     comparison: recordedComparison(),
-    settings: { onboarded: true, theme: 'dark' },
+    settings: { onboarded: true },
   });
   try {
     await goTo(opened.page, `/runs/${targeted.runId}/report`);

@@ -79,7 +79,7 @@ export function FoldersStep({
               >
                 <div className="flex items-center gap-3">
                   {folder !== undefined ? (
-                    <span className="font-mono text-sm text-fg-secondary">{shortPath(folder)}</span>
+                    <span className="font-mono text-small text-fg">{shortPath(folder)}</span>
                   ) : (
                     <SettingsValue>
                       {resource.bundled
@@ -189,7 +189,7 @@ export function PermissionsStep({
         </SettingsRow>
         {tools.length > 0 && (
           <SettingsRow label="Small tools it brings" meta="They run in isolation">
-            <span className="font-mono text-sm text-fg-secondary">{tools.join(', ')}</span>
+            <span className="font-mono text-small text-fg">{tools.join(', ')}</span>
           </SettingsRow>
         )}
       </div>

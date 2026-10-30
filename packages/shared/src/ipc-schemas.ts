@@ -52,15 +52,12 @@ import { InstallationSchema, InstallStatusSchema, VersionSourceSchema } from './
  * interface with `satisfies`, so the two can't drift apart silently.
  */
 
-export const ThemeSchema = z.enum(['dark', 'light', 'system']);
-
 export const CustomEndpointSchema = z.object({
   baseUrl: z.url(),
   label: z.string().min(1).max(200),
 }) satisfies z.ZodType<CustomEndpoint>;
 
 export const AppSettingsSchema = z.object({
-  theme: ThemeSchema,
   steps: z.enum(['collapsed', 'expanded']),
   comparisonMode: z.boolean(),
   quietLocalModels: z.boolean(),

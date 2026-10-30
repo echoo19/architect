@@ -12,7 +12,7 @@ import { FlagButton } from './teach/FlagButton';
 export const UserMessage = memo(function UserMessage({ message }: { message: WorkspaceMessage }) {
   return (
     <article aria-label="You" className="flex max-w-[75%] animate-rise self-end">
-      <p className="m-0 min-w-0 whitespace-pre-wrap break-words rounded-[22px] bg-bubble px-[18px] py-[11px] leading-[1.55]">
+      <p className="m-0 min-w-0 whitespace-pre-wrap break-words rounded-card bg-raised px-5 py-3 leading-[1.55]">
         {message.text}
       </p>
     </article>
@@ -22,7 +22,7 @@ export const UserMessage = memo(function UserMessage({ message }: { message: Wor
 /** Shown while the agent works on a reply that has nothing in it yet. */
 export function Thinking() {
   return (
-    <div role="status" className="flex h-7 items-center gap-2 text-base text-fg-secondary">
+    <div role="status" className="flex h-7 items-center gap-2 text-ui text-fg">
       <Spinner size={13} />
       Thinking
     </div>
@@ -96,7 +96,7 @@ export const AgentMessage = memo(function AgentMessage({
         }
       })}
       {pending > 0 && (
-        <p role="status" className="m-0 flex items-center gap-2 text-base text-fg-secondary">
+        <p role="status" className="m-0 flex items-center gap-2 text-ui text-fg">
           <CirclePause size={15} strokeWidth={1.8} aria-hidden className="shrink-0" />
           {retrying ? 'Waiting for you' : 'Waiting for your approval'}
         </p>

@@ -98,7 +98,7 @@ export function TeacherMenu({ job, facts, issue, onToggle, onAddKey }: TeacherMe
         return (
           <SettingsRow
             key={type}
-            icon={<Icon size={16} strokeWidth={1.7} aria-hidden className="text-fg-secondary" />}
+            icon={<Icon size={16} strokeWidth={1.7} aria-hidden className="text-fg" />}
             label={label}
             meta={rowNote(type, { on, last, block, teacher, student })}
           >
@@ -116,7 +116,7 @@ export function TeacherMenu({ job, facts, issue, onToggle, onAddKey }: TeacherMe
         );
       })}
       {issue && (
-        <p role="alert" className="m-0 flex items-start gap-1.5 pb-2 text-sm text-fg-muted">
+        <p role="alert" className="m-0 flex items-start gap-1.5 pb-2 text-small text-fg">
           <CircleAlert size={13} className="mt-[3px] shrink-0 text-danger" aria-hidden />
           {issue}
         </p>

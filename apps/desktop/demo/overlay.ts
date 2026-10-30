@@ -78,7 +78,7 @@ export async function setSpeedMark(page: Page, factor?: number): Promise<void> {
         borderRadius: '6px',
         color: '#f8f8f8',
         background: '#17191de8',
-        font: '500 14px "Geist Variable", sans-serif',
+        font: '500 14px "Inter Variable", sans-serif',
         pointerEvents: 'none',
       });
       document.body.append(mark);
@@ -110,7 +110,7 @@ export async function showTitle(
           padding: '0 12%',
           background: '#101114',
           color: '#fafafa',
-          fontFamily: '"Geist Variable", sans-serif',
+          fontFamily: '"Inter Variable", sans-serif',
           pointerEvents: 'none',
         });
         const line = document.createElement('div');

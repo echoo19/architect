@@ -217,7 +217,7 @@ export function PublishPanel({ agent }: { agent: GraduateSummary }) {
             disabled={publishing}
             autoComplete="off"
             spellCheck={false}
-            className="w-64 font-mono text-sm"
+            className="w-64 font-mono text-small"
           />
         </SettingsRow>
         <SettingsRow label="Visibility" meta={VISIBILITY_MEANINGS[visibility]}>
@@ -265,9 +265,9 @@ export function PublishPanel({ agent }: { agent: GraduateSummary }) {
       {/* Keeps the bar at the bottom when there is little above it. */}
       <div aria-hidden className="min-h-6 flex-1" />
       {/* Pinned over the tab's bottom padding, so nothing scrolls by beneath it. */}
-      <div className="sticky -bottom-6 -mx-7 -mb-6 flex flex-wrap items-center justify-end gap-x-5 gap-y-3 border-t border-line-card bg-modal px-7 py-4">
+      <div className="sticky -bottom-6 -mx-7 -mb-6 flex flex-wrap items-center justify-end gap-x-5 gap-y-3 border-t border-line bg-raised px-7 py-4">
         {waiting && !publishing && (
-          <p className="m-0 mr-auto flex min-w-0 items-center gap-2 text-sm text-fg-muted">
+          <p className="m-0 mr-auto flex min-w-0 items-center gap-2 text-small text-fg">
             <CircleAlert size={15} strokeWidth={1.8} aria-hidden className="shrink-0" />
             {waiting}
           </p>
@@ -351,14 +351,14 @@ function PublishedSection({ result }: { result: PublishResult }) {
         )}
       </SettingsRow>
       <div className="flex min-h-11 items-center justify-between gap-3 border-t border-line pl-8">
-        <code className="min-w-0 truncate font-mono text-xs text-fg-secondary">{command}</code>
+        <code className="min-w-0 truncate font-mono text-small text-fg">{command}</code>
         <CopyButton text={command} label="Copy the install command" />
       </div>
       {result.notes.map((note) => (
         <SettingsRow
           key={note}
           density="compact"
-          icon={<Info size={16} strokeWidth={1.8} aria-hidden className="text-fg-faint" />}
+          icon={<Info size={16} strokeWidth={1.8} aria-hidden className="text-fg" />}
           label={note}
         />
       ))}
@@ -410,7 +410,7 @@ function ReviewSections({
       <SettingsSection
         title="Files"
         actions={
-          <span className="text-sm text-fg-muted">
+          <span className="text-small text-fg">
             {review.files.length} files · {formatBytes(review.bytes)}
           </span>
         }
@@ -425,19 +425,12 @@ function ReviewSections({
                 className="flex min-h-10 items-center justify-between gap-4 border-t border-line py-1.5"
               >
                 <span className="flex min-w-0 items-center gap-3">
-                  <Icon
-                    size={15}
-                    strokeWidth={1.7}
-                    aria-hidden
-                    className="shrink-0 text-fg-faint"
-                  />
-                  <span className="truncate font-mono text-sm text-fg-secondary">{file.path}</span>
+                  <Icon size={15} strokeWidth={1.7} aria-hidden className="shrink-0 text-fg" />
+                  <span className="truncate font-mono text-small text-fg">{file.path}</span>
                   {card && <Badge>Model card</Badge>}
                 </span>
                 <span className="flex shrink-0 items-center gap-3">
-                  <span className="text-sm tabular-nums text-fg-muted">
-                    {formatBytes(file.bytes)}
-                  </span>
+                  <span className="text-small tabular-nums text-fg">{formatBytes(file.bytes)}</span>
                   {card && (
                     <Button size="xs" variant="ghost" onClick={onPreview}>
                       <Eye size={14} strokeWidth={1.7} aria-hidden />
@@ -470,12 +463,12 @@ function ReviewSections({
               {review.findings.map((finding) => (
                 <li
                   key={`${finding.path}:${finding.line}:${finding.kind}`}
-                  className="flex min-w-0 gap-3 font-mono text-xs"
+                  className="flex min-w-0 gap-3 font-mono text-small"
                 >
-                  <span className="shrink-0 text-fg-secondary">
+                  <span className="shrink-0 text-fg">
                     {finding.path}:{finding.line}
                   </span>
-                  <span className="truncate text-fg-muted">{finding.excerpt}</span>
+                  <span className="truncate text-fg">{finding.excerpt}</span>
                 </li>
               ))}
             </ul>
@@ -487,7 +480,7 @@ function ReviewSections({
           />
         )}
         <SettingsRow
-          icon={<Info size={16} strokeWidth={1.8} aria-hidden className="text-fg-faint" />}
+          icon={<Info size={16} strokeWidth={1.8} aria-hidden className="text-fg" />}
           label={
             weights
               ? 'Trained weights may retain information from their training data'
@@ -495,7 +488,7 @@ function ReviewSections({
           }
         />
         <SettingsRow
-          icon={<Info size={16} strokeWidth={1.8} aria-hidden className="text-fg-faint" />}
+          icon={<Info size={16} strokeWidth={1.8} aria-hidden className="text-fg" />}
           label="It runs with Architect on the computer that installs it, not on Hugging Face"
         />
       </SettingsSection>

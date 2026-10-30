@@ -94,7 +94,7 @@ function escape(text: string): string {
 
 /** A small page for the browser tab, with nothing it could load and no referrer to leak the code. */
 function send(response: ServerResponse, page: Page): Promise<void> {
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${escape(page.title)}</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0c0c0e;color:#ededef;font:15px/1.5 system-ui,sans-serif}main{max-width:420px;padding:24px;text-align:center}h1{font-size:20px;font-weight:500;margin:0 0 8px}p{margin:0;color:#9a9aa2}</style></head><body><main><h1>${escape(page.title)}</h1><p>${escape(page.body)}</p></main></body></html>`;
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${escape(page.title)}</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#070707;color:#f4f4f2;font:15px/1.5 system-ui,sans-serif}main{max-width:420px;padding:24px;text-align:center}h1{font-size:20px;font-weight:500;margin:0 0 8px}p{margin:0}</style></head><body><main><h1>${escape(page.title)}</h1><p>${escape(page.body)}</p></main></body></html>`;
   return new Promise((resolve) => {
     response.once('close', () => resolve());
     response.writeHead(page.status, {

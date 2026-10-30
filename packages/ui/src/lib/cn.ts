@@ -1,14 +1,14 @@
 import { clsx, type ClassValue } from 'clsx';
 import { extendTailwindMerge } from 'tailwind-merge';
 
-/** tailwind-merge needs the theme's custom names, or it mistakes `text-chat` for a color. */
+/** tailwind-merge needs the theme's custom names, or it mistakes `text-ui` for a color. */
 const merge = extendTailwindMerge({
   extend: {
     theme: {
-      text: ['chat', 'stat', 'display-sm', 'display', 'display-lg', 'hero', 'hero-lg'],
-      shadow: ['composer', 'composer-sm', 'modal', 'popover', 'segment'],
-      animate: ['rise', 'pop', 'pop-out', 'fade', 'fade-out', 'skeleton'],
-      tracking: ['tightest'],
+      text: ['hero', 'title', 'h1', 'h2', 'body', 'ui', 'small', 'key'],
+      shadow: ['edge', 'edge-strong', 'float'],
+      radius: ['mark', 'control', 'card'],
+      animate: ['rise', 'pop', 'fade', 'fade-out', 'skeleton'],
       ease: ['out-soft'],
     },
   },

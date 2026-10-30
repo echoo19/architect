@@ -68,12 +68,12 @@ function DescribeScreen() {
       className="a a-exit-up motion-only absolute inset-0 flex flex-col items-center justify-center gap-7 px-6 pb-8"
       style={at(HAND_OVER, { dur: 380, dy: 30 })}
     >
-      <Heading as="h3" size="display-sm" className="text-center narrow:text-[28px]">
+      <Heading as="h3" size="display-sm" className="text-center">
         What should your agent do?
       </Heading>
       <div className="flex w-full max-w-[680px] flex-col gap-3">
-        <div className="flex w-full flex-col gap-2 rounded-4xl border border-line-control bg-field pb-3.5 pl-[22px] pr-3.5 pt-[18px] shadow-composer">
-          <p className="m-0 min-h-[98px] pr-2 text-lg leading-[1.55] narrow:min-h-[230px]">
+        <div className="flex w-full flex-col gap-2 rounded-card bg-raised pb-3.5 pl-[22px] pr-3.5 pt-[18px] shadow-edge-strong">
+          <p className="m-0 min-h-[98px] pr-2 text-body leading-[1.55] narrow:min-h-[230px]">
             <Typed text={JOB} />
           </p>
           <div className="flex items-center justify-between gap-2">
@@ -83,7 +83,7 @@ function DescribeScreen() {
               </IconButton>
             </div>
             <div className="flex items-center gap-2.5">
-              <span className="flex items-center gap-1.5 text-sm text-fg-muted">
+              <span className="flex items-center gap-1.5 text-small text-fg">
                 <Cloud size={14} strokeWidth={1.6} aria-hidden />
                 Teacher: Spark
               </span>
@@ -133,7 +133,7 @@ function DescribeScreen() {
   );
 }
 
-const option = 'inline-flex h-10 items-center rounded-lg border px-4';
+const option = 'inline-flex h-10 items-center rounded-control px-4';
 
 /**
  * The conversation that follows: the description as sent, with its files, then Spark's reply,
@@ -150,7 +150,7 @@ function ClarifyScreen() {
           <li className="flex flex-col">
             <div className="flex max-w-[540px] flex-col items-end gap-2.5 self-end narrow:max-w-full">
               <p
-                className="a a-up m-0 rounded-3xl bg-selected px-4 py-3 text-md text-pretty"
+                className="a a-up m-0 rounded-card bg-selected px-4 py-3 text-body text-pretty"
                 style={at(HAND_OVER + 150, { dy: 90, dur: 800 })}
               >
                 {JOB}
@@ -172,7 +172,7 @@ function ClarifyScreen() {
                   </li>
                 ))}
                 <li
-                  className="a a-from-left hidden self-center text-sm text-fg-muted narrow:block"
+                  className="a a-from-left hidden self-center text-small text-fg narrow:block"
                   style={at(HAND_OVER + 800 + SHOWN_ON_NARROW * 70, { dx: 10, dur: 400 })}
                 >
                   and {FILES.length - SHOWN_ON_NARROW} more
@@ -181,15 +181,15 @@ function ClarifyScreen() {
             </div>
           </li>
           <li className="flex flex-col">
-            <div className="flex flex-col gap-4 text-md">
+            <div className="flex flex-col gap-4 text-body">
               <span
-                className="a a-up text-sm font-medium text-mentor"
+                className="a a-up text-small font-medium text-mentor"
                 style={at(ASKED, { dy: 10 })}
               >
                 Spark
               </span>
               <div
-                className="a a-up flex h-[22px] items-center gap-2 text-sm text-fg-muted"
+                className="a a-up flex h-[22px] items-center gap-2 text-small text-fg"
                 style={at(ASKED + 200, { dy: 10 })}
               >
                 <Check size={14} strokeWidth={1.8} aria-hidden />
@@ -204,21 +204,24 @@ function ClarifyScreen() {
                   <span
                     className={cn(
                       option,
-                      'a a-exit-up motion-only border-line-control bg-card text-fg-secondary [grid-area:1/1]',
+                      'a a-exit-up motion-only bg-card shadow-edge-strong [grid-area:1/1]',
                     )}
                     style={at(CHOSEN - 60, { dur: 140, dy: 0 })}
                   >
                     Ask me first
                   </span>
                   <span
-                    className={cn(option, 'a a-pop border-fg bg-selected text-fg [grid-area:1/1]')}
+                    className={cn(
+                      option,
+                      'a a-pop bg-selected font-medium inset-ring-1 inset-ring-fg [grid-area:1/1]',
+                    )}
                     style={at(CHOSEN, { dur: 260 })}
                   >
                     Ask me first
                   </span>
                 </span>
                 <span
-                  className={cn(option, 'a a-up border-line-control bg-card text-fg-muted')}
+                  className={cn(option, 'a a-up bg-card shadow-edge-strong')}
                   style={at(ASKED + 1500, { dy: 8 })}
                 >
                   Save it right away
@@ -227,7 +230,7 @@ function ClarifyScreen() {
             </div>
           </li>
           <li className="flex flex-col">
-            <div className="flex flex-col gap-4 text-md">
+            <div className="flex flex-col gap-4 text-body">
               <p className="a a-up m-0" style={at(CHOSEN + 400, { dy: 10 })}>
                 That&apos;s everything I need. I&apos;ve drafted the job for you to review.
               </p>
@@ -272,7 +275,7 @@ export function DescribeMock() {
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 flex flex-col wide:inset-x-7 wide:top-6">
         <FlowBar title="New agent" current={0} />
-        <div className="relative min-h-0 flex-1 overflow-hidden bg-ground-flow bg-dot-grid">
+        <div className="relative min-h-0 flex-1 overflow-hidden bg-ground">
           <DescribeScreen />
           <ClarifyScreen />
         </div>

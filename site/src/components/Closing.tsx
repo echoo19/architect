@@ -16,7 +16,7 @@ export function Closing() {
           {CLOSING.title}
         </h2>
         <Downloads className="mt-10 sm:mt-14" />
-        <p className="mb-0 mt-7 max-w-[60ch] text-[16px] leading-relaxed text-fg-secondary text-pretty">
+        <p className="mb-0 mt-7 max-w-[60ch] text-[16px] leading-relaxed text-fg text-pretty">
           <Actors text={CLOSING.needs} />
         </p>
         <a className="link-quiet mt-7 inline-flex items-center gap-1.5 text-[17px]" href={REPO}>

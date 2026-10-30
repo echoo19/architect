@@ -1,7 +1,9 @@
+import { WINDOW_CHROME } from '@architect/ui/chrome';
 import { BrowserWindow, type BrowserWindowConstructorOptions } from 'electron';
+import { HIDDEN_ARGUMENT } from '../../common/runtime';
 import type { AppOrigin } from '../security';
 import { MIN_WINDOW_SIZE, type WindowState } from './bounds';
-import { currentChrome, syncWindowChrome, TITLE_BAR_HEIGHT, usesTitleBarOverlay } from './chrome';
+import { TITLE_BAR_HEIGHT, usesTitleBarOverlay } from './chrome';
 
 export interface MainWindowOptions {
   state: WindowState;
@@ -18,12 +20,11 @@ function titleBar(): BrowserWindowConstructorOptions {
   if (!usesTitleBarOverlay()) {
     return { titleBarStyle: 'hiddenInset', trafficLightPosition: TRAFFIC_LIGHTS };
   }
-  const chrome = currentChrome();
   return {
     titleBarStyle: 'hidden',
     titleBarOverlay: {
-      color: chrome.background,
-      symbolColor: chrome.symbol,
+      color: WINDOW_CHROME.background,
+      symbolColor: WINDOW_CHROME.symbol,
       height: TITLE_BAR_HEIGHT,
     },
   };
@@ -40,7 +41,7 @@ export function createMainWindow({ state, origin, preload, hidden }: MainWindowO
     title: 'Architect',
     show: false,
     paintWhenInitiallyHidden: true,
-    backgroundColor: currentChrome().background,
+    backgroundColor: WINDOW_CHROME.background,
     ...titleBar(),
     webPreferences: {
       preload,
@@ -49,10 +50,10 @@ export function createMainWindow({ state, origin, preload, hidden }: MainWindowO
       nodeIntegration: false,
       webSecurity: true,
       spellcheck: false,
+      // Tells the page it runs for tests and screenshots, so nothing in it animates.
+      additionalArguments: hidden ? [HIDDEN_ARGUMENT] : [],
     },
   });
-
-  syncWindowChrome(window);
 
   if (!hidden) {
     window.once('ready-to-show', () => {

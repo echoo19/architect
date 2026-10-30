@@ -32,7 +32,6 @@ test.beforeAll(async () => {
   launched = await launchApp({
     settings: {
       onboarded: true,
-      theme: 'dark',
       defaultStudent: {
         runtime: 'ollama',
         baseUrl: OLLAMA_BASE_URL,

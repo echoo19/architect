@@ -43,7 +43,6 @@ import { at, graduate, makeRun, reports, STORY } from './story';
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const WIDTH = 1440;
 const TRAIN_HEIGHT = 1270;
-const THEMES = ['dark', 'light'] as const;
 
 test.describe.configure({ mode: 'serial' });
 
@@ -92,36 +91,34 @@ async function applySettings(page: Page, patch: Parameters<typeof updateSettings
 
 const agents = (page: Page) => page.getByRole('navigation', { name: 'Agents' });
 
-for (const theme of THEMES) {
-  test(`lists the runs a person can open beside their agents (${theme})`, async () => {
-    const { app, page } = launched;
-    await stubEngine(app, HOME_ENGINE);
-    await applySettings(page, { theme, onboarded: true, comparisonMode: false });
-    await resize(900);
-    await goTo(page, '/');
-    const nav = agents(page);
+test('lists the runs a person can open beside their agents', async () => {
+  const { app, page } = launched;
+  await stubEngine(app, HOME_ENGINE);
+  await applySettings(page, { onboarded: true, comparisonMode: false });
+  await resize(900);
+  await goTo(page, '/');
+  const nav = agents(page);
 
-    // One row for each job's newest run of its agent, with what it asks of the person.
-    await expect(nav.getByRole('button', { name: /^Training Service desk/ })).toContainText(
-      'Training',
-    );
-    await expect(nav.getByRole('button', { name: /Returns desk/ })).toContainText('Needs you');
-    await expect(nav.getByRole('button', { name: /Parts counter/ })).toContainText('Paused');
-    await expect(nav.getByRole('button', { name: /Clinic intake/ })).toContainText('Results ready');
-    await expect(nav.getByRole('button', { name: /Field notes/ })).toContainText('Stopped');
-    await expect(nav.getByRole('button', { name: /Night audit/ })).toContainText('Error');
-    // A run whose agent is the person's already has no row: the agent is in the list.
-    await expect(nav.getByRole('button', { name: /Front desk/ })).toHaveCount(0);
-    await capture(page, `runs-sidebar-${theme}`);
+  // One row for each job's newest run of its agent, with what it asks of the person.
+  await expect(nav.getByRole('button', { name: /^Training Service desk/ })).toContainText(
+    'Training',
+  );
+  await expect(nav.getByRole('button', { name: /Returns desk/ })).toContainText('Needs you');
+  await expect(nav.getByRole('button', { name: /Parts counter/ })).toContainText('Paused');
+  await expect(nav.getByRole('button', { name: /Clinic intake/ })).toContainText('Results ready');
+  await expect(nav.getByRole('button', { name: /Field notes/ })).toContainText('Stopped');
+  await expect(nav.getByRole('button', { name: /Night audit/ })).toContainText('Error');
+  // A run whose agent is the person's already has no row: the agent is in the list.
+  await expect(nav.getByRole('button', { name: /Front desk/ })).toHaveCount(0);
+  await capture(page, 'runs-sidebar-dark');
 
-    // Results ready opens the results; a stopped run opens the run, to see what happened.
-    await nav.getByRole('button', { name: /Clinic intake/ }).click();
-    await expect(page).toHaveURL(new RegExp(`#/runs/${STORY.runId}/report$`));
-    await goTo(page, '/');
-    await nav.getByRole('button', { name: /Field notes/ }).click();
-    await expect(page).toHaveURL(/#\/runs\/run_5\/train$/);
-  });
-}
+  // Results ready opens the results; a stopped run opens the run, to see what happened.
+  await nav.getByRole('button', { name: /Clinic intake/ }).click();
+  await expect(page).toHaveURL(new RegExp(`#/runs/${STORY.runId}/report$`));
+  await goTo(page, '/');
+  await nav.getByRole('button', { name: /Field notes/ }).click();
+  await expect(page).toHaveURL(/#\/runs\/run_5\/train$/);
+});
 
 test('takes a row away once the person has taken the agent its results were for', async () => {
   const { app, page } = launched;
@@ -133,7 +130,7 @@ test('takes a row away once the person has taken the agent its results were for'
     { before: SIDEBAR_JOBS, after: SIDEBAR_JOBS_AFTER_ACCEPTING },
     'before',
   );
-  await applySettings(page, { theme: 'dark', onboarded: true });
+  await applySettings(page, { onboarded: true });
   await goTo(page, '/');
   await expect(agents(page).getByRole('button', { name: /Clinic intake/ })).toContainText(
     'Results ready',
@@ -170,7 +167,7 @@ test('lists an agent the moment its run ends, wherever the person is', async () 
   await stubSwitch(app, 'graduates:list', { none: [], made: [graduate] }, 'none');
   await stubSwitch(app, 'jobs:list', { training: [running], ready: [ready] }, 'training');
   await stubByKey(app, 'reports:get', reports);
-  await applySettings(page, { theme: 'dark', onboarded: true });
+  await applySettings(page, { onboarded: true });
   await goTo(page, '/');
   await expect(agents(page).getByRole('button', { name: /^New chat with/ })).toHaveCount(0);
 
@@ -193,49 +190,47 @@ test('lists an agent the moment its run ends, wherever the person is', async () 
   ).toBeVisible();
 });
 
-for (const theme of THEMES) {
-  test(`says why a run is paused, and what puts it right, when it is opened later (${theme})`, async () => {
-    const { app, page } = launched;
-    await stubRecorded(app, 'runs:resume', null);
-    await stubEngine(app, pausedEngine({ keys: { meta: false, openrouter: true } }));
-    await applySettings(page, { theme, onboarded: true });
-    await resize(TRAIN_HEIGHT);
-    await goTo(page, `/runs/${STORY.runId}/train`);
+test('says why a run is paused, and what puts it right, when it is opened later', async () => {
+  const { app, page } = launched;
+  await stubRecorded(app, 'runs:resume', null);
+  await stubEngine(app, pausedEngine({ keys: { meta: false, openrouter: true } }));
+  await applySettings(page, { onboarded: true });
+  await resize(TRAIN_HEIGHT);
+  await goTo(page, `/runs/${STORY.runId}/train`);
 
-    // Nothing here was watched live: the reason is read from the run itself.
-    const notice = page.getByRole('status', { name: 'Training is paused' });
-    await expect(notice).toBeVisible();
-    await expect(notice).toContainText('Spark has no key saved.');
-    await expect(notice).toContainText('When that is put right, press Resume.');
-    // The engine's own words wait under Details, and the other lines about the run stay quiet.
-    await expect(notice.getByText(KEY_MISSING)).toBeHidden();
-    await notice.getByRole('button', { name: 'Details' }).click();
-    await expect(notice.getByText(KEY_MISSING)).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Current round' })).not.toContainText(
-      'No key is saved',
-    );
-    await capture(page, `train-paused-${theme}`);
+  // Nothing here was watched live: the reason is read from the run itself.
+  const notice = page.getByRole('status', { name: 'Training is paused' });
+  await expect(notice).toBeVisible();
+  await expect(notice).toContainText('Spark has no key saved.');
+  await expect(notice).toContainText('When that is put right, press Resume.');
+  // The engine's own words wait under Details, and the other lines about the run stay quiet.
+  await expect(notice.getByText(KEY_MISSING)).toBeHidden();
+  await notice.getByRole('button', { name: 'Details' }).click();
+  await expect(notice.getByText(KEY_MISSING)).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Current round' })).not.toContainText(
+    'No key is saved',
+  );
+  await capture(page, 'train-paused-dark');
 
-    // The fix opens the models in Settings, where the key goes; Resume is still there to try again.
-    await notice.getByRole('button', { name: 'Add the key' }).click();
-    const settings = page.getByRole('dialog', { name: 'Settings' });
-    await expect(settings).toBeVisible();
-    await expect(settings.getByRole('tab', { name: 'Models' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-    await page.keyboard.press('Escape');
-    await expect(settings).toBeHidden();
-    await page.getByRole('button', { name: 'Resume' }).click();
-    expect(await recordedCalls(app, 'runs:resume')).toEqual([[STORY.runId]]);
-  });
-}
+  // The fix opens the models in Settings, where the key goes; Resume is still there to try again.
+  await notice.getByRole('button', { name: 'Add the key' }).click();
+  const settings = page.getByRole('dialog', { name: 'Settings' });
+  await expect(settings).toBeVisible();
+  await expect(settings.getByRole('tab', { name: 'Models' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await page.keyboard.press('Escape');
+  await expect(settings).toBeHidden();
+  await page.getByRole('button', { name: 'Resume' }).click();
+  expect(await recordedCalls(app, 'runs:resume')).toEqual([[STORY.runId]]);
+});
 
 test('repeats what the engine said when nothing on this computer explains the pause', async () => {
   const { app, page } = launched;
   const stuck = 'Meta had a problem on its side (HTTP 503). This is usually temporary.';
   await stubEngine(app, pausedEngine({ keys: { meta: true, openrouter: true }, error: stuck }));
-  await applySettings(page, { theme: 'dark', onboarded: true });
+  await applySettings(page, { onboarded: true });
   await goTo(page, `/runs/${STORY.runId}/train`);
   const notice = page.getByRole('status', { name: 'Training is paused' });
   await expect(notice).toContainText(stuck);
@@ -248,7 +243,7 @@ test('offers to check again when Ollama is not running, and lets go once it is',
   await stubEngine(app, {
     ...pausedEngine({ detail: { job: LOCAL_JOB }, keys: { meta: true }, local: NOTHING_LOCAL }),
   });
-  await applySettings(page, { theme: 'dark', onboarded: true });
+  await applySettings(page, { onboarded: true });
   await goTo(page, `/runs/${STORY.runId}/train`);
   const notice = page.getByRole('status', { name: 'Training is paused' });
   await expect(notice).toContainText("Ollama isn't running, so Glimmer can't answer.");
@@ -265,7 +260,7 @@ test('offers to download the model when Ollama is running without it', async () 
   await stubEngine(app, {
     ...pausedEngine({ detail: { job: LOCAL_JOB }, keys: { meta: true }, local: OLLAMA_READY }),
   });
-  await applySettings(page, { theme: 'dark', onboarded: true });
+  await applySettings(page, { onboarded: true });
   await goTo(page, `/runs/${STORY.runId}/train`);
   const notice = page.getByRole('status', { name: 'Training is paused' });
   await expect(notice).toContainText("Glimmer isn't downloaded on this computer.");
@@ -294,7 +289,7 @@ test("names the online copy's key for a final test taken online, and says nothin
   const { app, page } = launched;
   // Ollama is off, but the final test does not use it.
   await stubEngine(app, pausedInTest('hosted'));
-  await applySettings(page, { theme: 'dark', onboarded: true });
+  await applySettings(page, { onboarded: true });
   await goTo(page, `/runs/${STORY.runId}/train`);
   const notice = page.getByRole('status', { name: 'Training is paused' });
   await expect(notice).toContainText('The online Glimmer has no key saved.');
@@ -306,83 +301,79 @@ test("names the online copy's key for a final test taken online, and says nothin
 test('does not blame the online copy for a final test taken on this computer', async () => {
   const { app, page } = launched;
   await stubEngine(app, pausedInTest('local'));
-  await applySettings(page, { theme: 'dark', onboarded: true });
+  await applySettings(page, { onboarded: true });
   await goTo(page, `/runs/${STORY.runId}/train`);
   const notice = page.getByRole('status', { name: 'Training is paused' });
   await expect(notice).toContainText("Ollama isn't running, so Glimmer can't answer.");
   await expect(notice).not.toContainText('no key saved');
 });
 
-for (const theme of THEMES) {
-  test(`asks Spark's question inside the round, and shows what became of the answer (${theme})`, async () => {
-    const { app, page } = launched;
-    await stubRecorded(app, 'mentoring:answer', null);
-    await stubEngine(app, askingEngine());
-    await applySettings(page, { theme, onboarded: true });
-    await resize(TRAIN_HEIGHT);
-    await goTo(page, `/runs/${STORY.runId}/train`);
+test("asks Spark's question inside the round, and shows what became of the answer", async () => {
+  const { app, page } = launched;
+  await stubRecorded(app, 'mentoring:answer', null);
+  await stubEngine(app, askingEngine());
+  await applySettings(page, { onboarded: true });
+  await resize(TRAIN_HEIGHT);
+  await goTo(page, `/runs/${STORY.runId}/train`);
 
-    // The run waits for the person, and says so instead of saying it is paused.
-    await expect(page.getByText('Spark has a question for you')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Resume' })).toBeDisabled();
-    const round = page.getByRole('region', { name: 'Current round' });
-    await expect(round).toContainText('Round 4: Ask about due dates');
-    const form = round.getByRole('form', { name: "Spark's question" });
-    await expect(form).toContainText(QUESTION);
-    const send = form.getByRole('button', { name: 'Send answer', exact: true });
-    await expect(send).toBeDisabled();
-    // The question is in the list of rounds, marked as waiting for the person.
-    const rounds = page.getByRole('region', { name: 'Rounds' });
-    await expect(rounds.getByRole('button', { name: /Ask about due dates/ })).toContainText(
-      'Needs you',
-    );
-    await capture(page, `train-question-${theme}`);
+  // The run waits for the person, and says so instead of saying it is paused.
+  await expect(page.getByText('Spark has a question for you')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Resume' })).toBeDisabled();
+  const round = page.getByRole('region', { name: 'Current round' });
+  await expect(round).toContainText('Round 4: Ask about due dates');
+  const form = round.getByRole('form', { name: "Spark's question" });
+  await expect(form).toContainText(QUESTION);
+  const send = form.getByRole('button', { name: 'Send answer', exact: true });
+  await expect(send).toBeDisabled();
+  // The question is in the list of rounds, marked as waiting for the person.
+  const rounds = page.getByRole('region', { name: 'Rounds' });
+  await expect(rounds.getByRole('button', { name: /Ask about due dates/ })).toContainText(
+    'Needs you',
+  );
+  await capture(page, 'train-question-dark');
 
-    // Saying that the answer changes what counts as success says what that would do.
-    const changes = form.getByRole('checkbox', { name: 'This changes what counts as success' });
-    await changes.click();
-    await expect(form).toContainText('This run stops here.');
-    await expect(
-      form.getByRole('button', { name: 'Send answer and stop this run' }),
-    ).toBeDisabled();
-    await changes.click();
-    await expect(form).not.toContainText('This run stops here.');
+  // Saying that the answer changes what counts as success says what that would do.
+  const changes = form.getByRole('checkbox', { name: 'This changes what counts as success' });
+  await changes.click();
+  await expect(form).toContainText('This run stops here.');
+  await expect(form.getByRole('button', { name: 'Send answer and stop this run' })).toBeDisabled();
+  await changes.click();
+  await expect(form).not.toContainText('This run stops here.');
 
-    // The answer goes through the engine's own route, in the person's words.
-    await form.getByRole('textbox', { name: 'Your answer' }).fill(ANSWER);
-    await send.click();
-    expect(await recordedCalls(app, 'mentoring:answer')).toEqual([
-      [STORY.runId, 4, { text: ANSWER, changesCriteria: false }],
-    ]);
+  // The answer goes through the engine's own route, in the person's words.
+  await form.getByRole('textbox', { name: 'Your answer' }).fill(ANSWER);
+  await send.click();
+  expect(await recordedCalls(app, 'mentoring:answer')).toEqual([
+    [STORY.runId, 4, { text: ANSWER, changesCriteria: false }],
+  ]);
 
-    // The engine takes it up and the run goes on: the round says what Spark did with it.
-    const answer = { text: ANSWER, changesCriteria: false };
-    await stubEngine(app, askingEngine(answer));
-    await emitRunEvents(app, answerTakenUp(answer));
-    await expect(form).toBeHidden();
-    await expect(round).toContainText(`You answered: ${ANSWER}`);
-    await expect(round).toContainText('Spark kept it as what you meant');
-    await expect(rounds.getByRole('button', { name: /Ask about due dates/ })).toContainText(
-      'Answered',
-    );
-    await expect(rounds.getByRole('button', { name: /Ask about due dates/ })).toContainText(
-      `Your answer: ${ANSWER}`,
-    );
-    await capture(page, `train-answered-${theme}`);
+  // The engine takes it up and the run goes on: the round says what Spark did with it.
+  const answer = { text: ANSWER, changesCriteria: false };
+  await stubEngine(app, askingEngine(answer));
+  await emitRunEvents(app, answerTakenUp(answer));
+  await expect(form).toBeHidden();
+  await expect(round).toContainText(`You answered: ${ANSWER}`);
+  await expect(round).toContainText('Spark kept it as what you meant');
+  await expect(rounds.getByRole('button', { name: /Ask about due dates/ })).toContainText(
+    'Answered',
+  );
+  await expect(rounds.getByRole('button', { name: /Ask about due dates/ })).toContainText(
+    `Your answer: ${ANSWER}`,
+  );
+  await capture(page, 'train-answered-dark');
 
-    // The round's own page tells the same, with no measurement of a change that was never tried.
-    await rounds.getByRole('button', { name: /Ask about due dates/ }).click();
-    const drawer = page.getByRole('dialog', { name: 'Round 4: Ask about due dates' });
-    await expect(drawer.getByText('Answered', { exact: true })).toBeVisible();
-    await expect(drawer).toContainText(QUESTION);
-    await expect(drawer).toContainText(`You answered: ${ANSWER}`);
-    await expect(drawer).not.toContainText('Measured');
-    await expect(drawer).not.toContainText('Nothing changed in this round.');
-    await capture(page, `train-question-round-${theme}`);
-    await page.keyboard.press('Escape');
-    await expect(drawer).toBeHidden();
-  });
-}
+  // The round's own page tells the same, with no measurement of a change that was never tried.
+  await rounds.getByRole('button', { name: /Ask about due dates/ }).click();
+  const drawer = page.getByRole('dialog', { name: 'Round 4: Ask about due dates' });
+  await expect(drawer.getByText('Answered', { exact: true })).toBeVisible();
+  await expect(drawer).toContainText(QUESTION);
+  await expect(drawer).toContainText(`You answered: ${ANSWER}`);
+  await expect(drawer).not.toContainText('Measured');
+  await expect(drawer).not.toContainText('Nothing changed in this round.');
+  await capture(page, 'train-question-round-dark');
+  await page.keyboard.press('Escape');
+  await expect(drawer).toBeHidden();
+});
 
 test('shows the question Spark asked while the person was on another screen', async () => {
   const { app, page } = launched;
@@ -401,7 +392,7 @@ test('shows the question Spark asked while the person was on another screen', as
     { before: before['mentoring:interventions'], asked: asked['mentoring:interventions'] },
     'before',
   );
-  await applySettings(page, { theme: 'dark', onboarded: true });
+  await applySettings(page, { onboarded: true });
   await resize(TRAIN_HEIGHT);
   await goTo(page, `/runs/${STORY.runId}/train`);
   const round = page.getByRole('region', { name: 'Current round' });
@@ -430,7 +421,7 @@ test("reads a run's records again each time its training screen opens", async ()
   const { app, page } = launched;
   await stubEngine(app, beforeAskingEngine());
   await stubRecorded(app, 'mentoring:interventions', []);
-  await applySettings(page, { theme: 'dark', onboarded: true });
+  await applySettings(page, { onboarded: true });
   await goTo(page, `/runs/${STORY.runId}/train`);
   await expect(page.getByRole('region', { name: 'Current round' })).toContainText('Round 4');
   const first = (await recordedCalls(app, 'mentoring:interventions')).length;
@@ -452,7 +443,7 @@ test('reads once more, and then says so, when a waiting round has no question in
     [],
     askingEngine()['mentoring:interventions'],
   ]);
-  await applySettings(page, { theme: 'dark', onboarded: true });
+  await applySettings(page, { onboarded: true });
   await resize(TRAIN_HEIGHT);
   await goTo(page, `/runs/${STORY.runId}/train`);
   const round = page.getByRole('region', { name: 'Current round' });
@@ -472,7 +463,7 @@ test('stops the run when the answer changes what counts as success, and says so'
   const { app, page } = launched;
   await stubRecorded(app, 'mentoring:answer', null);
   await stubEngine(app, askingEngine());
-  await applySettings(page, { theme: 'dark', onboarded: true });
+  await applySettings(page, { onboarded: true });
   await resize(TRAIN_HEIGHT);
   await goTo(page, `/runs/${STORY.runId}/train`);
   const round = page.getByRole('region', { name: 'Current round' });
@@ -499,7 +490,7 @@ test('stops the run when the answer changes what counts as success, and says so'
 test('does not offer to answer a question that its run ended without', async () => {
   const { app, page } = launched;
   await stubEngine(app, endedAskingEngine());
-  await applySettings(page, { theme: 'dark', onboarded: true });
+  await applySettings(page, { onboarded: true });
   await resize(TRAIN_HEIGHT);
   await goTo(page, `/runs/${STORY.runId}/train`);
   const round = page.getByRole('region', { name: 'Current round' });
@@ -527,7 +518,7 @@ test('says so, and keeps what was typed, when the answer cannot be sent', async 
       error: { message: "Round 4 isn't waiting for an answer." },
     }));
   });
-  await applySettings(page, { theme: 'dark', onboarded: true });
+  await applySettings(page, { onboarded: true });
   await goTo(page, `/runs/${STORY.runId}/train`);
   const form = page
     .getByRole('region', { name: 'Current round' })

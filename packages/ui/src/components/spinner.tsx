@@ -5,7 +5,7 @@ export type SpinnerTone = 'mentor' | 'student' | 'neutral';
 const arcTone: Record<SpinnerTone, string> = {
   mentor: 'stroke-mentor',
   student: 'stroke-student',
-  neutral: 'stroke-fg-secondary',
+  neutral: 'stroke-fg',
 };
 
 export interface SpinnerProps {
@@ -29,7 +29,7 @@ export function Spinner({ tone = 'neutral', size = 14, label, className }: Spinn
       className={cn('shrink-0 animate-spin', className)}
       {...(label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true })}
     >
-      <circle cx="12" cy="12" r="9" className="stroke-line-control" strokeWidth={stroke} />
+      <circle cx="12" cy="12" r="9" className="stroke-line-strong" strokeWidth={stroke} />
       <path
         d="M21 12a9 9 0 0 0-9-9"
         className={arcTone[tone]}

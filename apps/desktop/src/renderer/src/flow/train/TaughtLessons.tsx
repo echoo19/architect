@@ -20,7 +20,7 @@ export function TaughtLessons({ improves }: { improves: RunImprovement }) {
       <PanelHeader
         title="Lessons from your flagged answers"
         actions={
-          <span className="text-sm text-fg-muted">Improving from version {improves.version}</span>
+          <span className="text-small text-fg">Improving from version {improves.version}</span>
         }
       />
       {corrections.data ? (
@@ -30,7 +30,7 @@ export function TaughtLessons({ improves }: { improves: RunImprovement }) {
               <PanelRow className="grid-cols-[28px_minmax(0,1fr)_auto] py-2.5">
                 <KindTile kind={lesson.proposal.kind} />
                 <span className="text-pretty">{lesson.proposal.lesson}</span>
-                <span className="text-sm text-fg-muted">{KIND_LABELS[lesson.proposal.kind]}</span>
+                <span className="text-small text-fg">{KIND_LABELS[lesson.proposal.kind]}</span>
               </PanelRow>
             </li>
           ))}
@@ -41,13 +41,13 @@ export function TaughtLessons({ improves }: { improves: RunImprovement }) {
           error={corrections.error}
           title="Couldn't load its lessons"
           onRetry={corrections.reload}
-          className="border-t border-line-row px-7 py-4"
+          className="border-t border-line px-7 py-4"
         />
       ) : (
         <div
           aria-busy="true"
           aria-label="Loading its lessons"
-          className="border-t border-line-row px-7 py-4"
+          className="border-t border-line px-7 py-4"
         >
           <Skeleton className="h-3.5 w-80" />
         </div>

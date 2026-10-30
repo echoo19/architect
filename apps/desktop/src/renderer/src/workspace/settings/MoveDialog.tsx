@@ -11,7 +11,7 @@ import { MOVE_WORDS, promoteCaution, type VersionMove } from './versions';
 /** One consequence in a confirmation, after an icon that says what kind it is. */
 export function Change({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <li className="flex items-start gap-3 text-fg-secondary [&_svg]:mt-[3px] [&_svg]:shrink-0">
+    <li className="flex items-start gap-3 text-fg [&_svg]:mt-[3px] [&_svg]:shrink-0">
       {icon}
       <span className="text-pretty">{children}</span>
     </li>

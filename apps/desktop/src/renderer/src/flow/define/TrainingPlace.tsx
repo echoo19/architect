@@ -56,7 +56,7 @@ interface TrainingPlaceProps {
   baselines?: { checked: boolean; onCheckedChange: (checked: boolean) => void } | undefined;
 }
 
-/** One line of the plan: what it is, a quiet detail under it, and its figure on the right. */
+/** One line of the plan: what it is, a detail under it, and its figure on the right. */
 interface PlanLine {
   label: string;
   detail: ReactNode;
@@ -239,7 +239,7 @@ export function TrainingPlace({
         <button
           type="button"
           onClick={onRaiseLimit}
-          className="-mt-1.5 inline-flex items-center gap-1 self-start rounded-xs text-sm text-fg-secondary transition-colors duration-150 hover:text-fg"
+          className="-mt-1.5 inline-flex items-center gap-1 self-start rounded-mark text-small text-fg transition-colors duration-150"
         >
           Allow more time
           <ChevronRight size={13} strokeWidth={1.8} aria-hidden />
@@ -249,14 +249,14 @@ export function TrainingPlace({
         <button
           type="button"
           onClick={onRetryKeys}
-          className="-mt-1.5 inline-flex items-center gap-1.5 self-end rounded-xs text-sm text-fg-secondary transition-colors duration-150 hover:text-fg"
+          className="-mt-1.5 inline-flex items-center gap-1.5 self-end rounded-mark text-small text-fg transition-colors duration-150"
         >
           <RotateCw size={12} aria-hidden />
           Check for the key again
         </button>
       )}
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(340px,100%),1fr))] overflow-hidden rounded-2xl border border-line-card bg-card">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(340px,100%),1fr))] overflow-hidden rounded-card bg-card shadow-edge">
         <PlanColumn
           title="Estimated time"
           lines={time}
@@ -266,16 +266,16 @@ export function TrainingPlace({
           title="Estimated cost"
           lines={cost}
           total={costTotal === null ? '–' : formatUsd(costTotal)}
-          className="border-l border-line-card"
+          className="border-l border-line"
         />
       </div>
 
-      <div className="flex flex-col gap-2.5 rounded-2xl border border-line-card bg-card px-[22px] py-5">
+      <div className="flex flex-col gap-2.5 rounded-card bg-card px-[22px] py-5 shadow-edge">
         <div className="flex items-baseline justify-between gap-4">
-          <label htmlFor={capId} className="text-md">
+          <label htmlFor={capId} className="text-body">
             {mentor} spending cap
           </label>
-          <span className="font-mono text-md tabular-nums">{formatUsd(cap)}</span>
+          <span className="font-mono text-body tabular-nums">{formatUsd(cap)}</span>
         </div>
         <Slider
           id={capId}
@@ -287,7 +287,7 @@ export function TrainingPlace({
           aria-label={`${mentor} spending cap`}
           aria-valuetext={formatUsd(cap)}
         />
-        <span className="text-fg-secondary text-pretty">
+        <span className="text-fg text-pretty">
           {expected === null
             ? `No price on file for ${mentor}`
             : expected < cap
@@ -304,12 +304,12 @@ export function TrainingPlace({
             label="Also train three simpler versions to compare"
             className="self-start"
           />
-          <p className="m-0 pl-7 text-sm text-fg-muted">Adds {adds}</p>
+          <p className="m-0 pl-7 text-small text-fg">Adds {adds}</p>
         </div>
       )}
 
-      <details className="group text-sm text-fg-secondary">
-        <summary className="inline-flex cursor-pointer select-none list-none items-center gap-1.5 rounded-xs text-fg-muted transition-colors duration-150 hover:text-fg-secondary [&::-webkit-details-marker]:hidden">
+      <details className="group text-small text-fg">
+        <summary className="inline-flex cursor-pointer select-none list-none items-center gap-1.5 rounded-mark text-fg transition-colors duration-150 [&::-webkit-details-marker]:hidden">
           <ChevronRight
             size={13}
             strokeWidth={1.8}
@@ -360,7 +360,7 @@ function PlanColumn({
   const id = useId();
   return (
     <section aria-labelledby={id} className={cn('flex flex-col px-[22px] pb-4 pt-5', className)}>
-      <h3 id={id} className="m-0 mb-1.5 text-sm font-normal text-fg-muted">
+      <h3 id={id} className="m-0 mb-1.5 text-small font-normal text-fg">
         {title}
       </h3>
       <dl className="m-0 flex flex-1 flex-col">
@@ -368,12 +368,12 @@ function PlanColumn({
           <div key={line.label} className="flex items-baseline justify-between gap-4 py-2">
             <dt className="flex min-w-0 flex-col gap-0.5">
               <span>{line.label}</span>
-              <span className="text-sm text-fg-muted">{line.detail}</span>
+              <span className="text-small text-fg">{line.detail}</span>
             </dt>
             <dd className="m-0 shrink-0 tabular-nums">{line.value}</dd>
           </div>
         ))}
-        <div className="mt-auto flex items-baseline justify-between gap-4 border-t border-line-card pt-3">
+        <div className="mt-auto flex items-baseline justify-between gap-4 border-t border-line pt-3">
           <dt className="font-medium">In all</dt>
           <dd className="m-0 font-medium tabular-nums">{total}</dd>
         </div>

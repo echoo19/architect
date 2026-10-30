@@ -91,10 +91,10 @@ export function CheckStep({
         <Heading as="h1" size="display-sm">
           {manifest.identity.name}
         </Heading>
-        <p className="m-0 text-lg text-fg-secondary text-pretty">
+        <p className="m-0 text-body text-fg text-pretty">
           {manifest.contract.summary ?? manifest.contract.description}
         </p>
-        <p className="m-0 font-mono text-sm text-fg-muted">
+        <p className="m-0 font-mono text-small text-fg">
           Version {manifest.identity.version} · {file}
         </p>
       </header>
@@ -187,7 +187,7 @@ export function CheckStep({
 
 /** Beside a button that waits for llama.cpp: why it does. */
 export function WaitsForLlama() {
-  return <span className="text-sm text-fg-muted">Set up llama.cpp to go on</span>;
+  return <span className="text-small text-fg">Set up llama.cpp to go on</span>;
 }
 
 /** The author's own final test result, labelled as theirs. */
@@ -259,18 +259,18 @@ export function Refused({
         <Heading as="h1" size="display-sm">
           This package can&apos;t be imported
         </Heading>
-        <p className="m-0 font-mono text-sm text-fg-muted">{file}</p>
+        <p className="m-0 font-mono text-small text-fg">{file}</p>
       </header>
       <div className="flex flex-col gap-2">
-        <p className="m-0 flex items-start gap-2.5 text-lg text-fg-soft text-pretty">
+        <p className="m-0 flex items-start gap-2.5 text-body text-fg text-pretty">
           <StatusMark state="blocked" label="Problem" className="mt-1.5" />
           {REFUSALS[code]}
         </p>
-        <p className="m-0 pl-[30px] text-fg-secondary">Nothing in it was installed or run.</p>
+        <p className="m-0 pl-[30px] text-fg">Nothing in it was installed or run.</p>
         <Disclosure label="Details" className="pl-[30px]">
-          <ul aria-label="Problems" className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm">
+          <ul aria-label="Problems" className="m-0 flex list-none flex-col gap-1.5 p-0 text-small">
             {problems.map((problem) => (
-              <li key={problem} className="text-fg-secondary text-pretty">
+              <li key={problem} className="text-fg text-pretty">
                 {problem}
               </li>
             ))}

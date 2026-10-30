@@ -76,11 +76,6 @@ html.motion .stage .a-fill {
   animation-name: m-fill;
   animation-timing-function: ease-out;
 }
-/* A change of tone: the text starts in --from-color and settles into its own. */
-html.motion .stage .a-color {
-  animation-name: m-color;
-  animation-timing-function: ease-out;
-}
 /* A press: the element dips and comes back. */
 html.motion .stage .a-press {
   animation-name: m-press;
@@ -203,12 +198,6 @@ html.motion .stage[data-finished] .motion-only {
 @keyframes m-fill {
   from {
     background-color: transparent;
-    color: var(--color-fg-muted);
-  }
-}
-@keyframes m-color {
-  from {
-    color: var(--from-color);
   }
 }
 @keyframes m-press {

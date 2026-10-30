@@ -40,7 +40,7 @@ export function CallEvidence({ step }: { step: ToolTraceStep }) {
       />
     );
   } else if (step.error) {
-    body = <span className="whitespace-pre-wrap text-sm text-danger">{step.error}</span>;
+    body = <span className="whitespace-pre-wrap text-small text-danger">{step.error}</span>;
   } else if (step.change) {
     body = <ChangeResult change={step.change} text={resultText(step.result)} />;
   } else if (step.table) {
@@ -54,7 +54,7 @@ export function CallEvidence({ step }: { step: ToolTraceStep }) {
     <div className="flex min-w-0 flex-col gap-1.5">
       {body}
       <Disclosure label="Raw call">
-        <pre className="m-0 overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-well px-3 py-2 font-mono text-xs text-fg-secondary">
+        <pre className="m-0 overflow-x-auto whitespace-pre-wrap break-words rounded-control bg-field px-3 py-2 font-mono text-small text-fg">
           {`${step.name} ${JSON.stringify(step.arguments, null, 2)}`}
         </pre>
       </Disclosure>
@@ -70,7 +70,7 @@ function resultText(result: JsonValue | null): string {
 /** Text a tool gave back, such as a file's numbered lines, as it reads. */
 function TextResult({ text }: { text: string }) {
   return (
-    <pre className="m-0 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-md bg-well px-3 py-2 font-mono text-xs text-fg-secondary">
+    <pre className="m-0 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-control bg-field px-3 py-2 font-mono text-small text-fg">
       {text}
     </pre>
   );
@@ -81,16 +81,16 @@ function ChangeResult({ change, text }: { change: WriteRecord; text: string }) {
   const single = change.rows ? singleRow(change.rows) : null;
   return (
     <div className="flex min-w-0 flex-col gap-2">
-      <span className="text-sm text-fg-secondary">{text}</span>
+      <span className="text-small text-fg">{text}</span>
       {single && change.rows ? (
         // One row's fields are as many as its columns, so all of them stay in view.
-        <div className="rounded-md bg-well px-1 py-1">
+        <div className="rounded-control bg-field px-1 py-1">
           <RowFields columns={change.rows.columns} {...single} />
         </div>
       ) : (
-        <div className="max-h-56 overflow-auto rounded-md bg-well px-1 py-1">
+        <div className="max-h-56 overflow-auto rounded-control bg-field px-1 py-1">
           {change.rows ? (
-            <RowDiffTable diff={change.rows} className="text-xs" />
+            <RowDiffTable diff={change.rows} className="text-small" />
           ) : (
             <PatchLines patch={change.patch} label="Lines this change writes" />
           )}
@@ -123,18 +123,18 @@ function RowFields({
   return (
     <dl
       aria-label={before ? 'The row this change edits' : 'The row this change adds'}
-      className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-0.5 px-2.5 py-1.5 font-mono text-xs"
+      className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-0.5 px-2.5 py-1.5 font-mono text-small"
     >
       {columns.map((column, at) => {
         const now = cellText(after[at] ?? null);
         const was = before ? cellText(before[at] ?? null) : now;
         return (
           <div key={column} className="contents">
-            <dt className="text-fg-muted">{column}</dt>
+            <dt className="text-fg">{column}</dt>
             <dd className="m-0 break-words text-fg">
               {was !== now && (
                 <>
-                  <span className="text-fg-muted line-through decoration-fg-faint">{was}</span>{' '}
+                  <span className="line-through">{was}</span>{' '}
                 </>
               )}
               {now}
@@ -149,8 +149,8 @@ function RowFields({
 /** The rows a table read showed. */
 function TableResult({ table }: { table: TableView }) {
   return (
-    <div className="max-h-56 overflow-auto rounded-md bg-well px-3 py-1">
-      <Table variant="plain" className="text-xs">
+    <div className="max-h-56 overflow-auto rounded-control bg-field px-3 py-1">
+      <Table variant="plain" className="text-small">
         <TableHeader>
           <TableRow>
             {table.columns.map((column) => (
@@ -173,7 +173,7 @@ function TableResult({ table }: { table: TableView }) {
         </TableBody>
       </Table>
       {table.rows.length > ROW_LIMIT && (
-        <p className="m-0 py-2 text-xs text-fg-muted">{table.rows.length - ROW_LIMIT} more rows</p>
+        <p className="m-0 py-2 text-small text-fg">{table.rows.length - ROW_LIMIT} more rows</p>
       )}
     </div>
   );
@@ -199,15 +199,15 @@ function ToolResult({ result }: { result: JsonValue | null }) {
   const rows = asRows(result);
   if (!rows) {
     return (
-      <pre className="m-0 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-md bg-well px-3 py-2 font-mono text-xs text-fg-secondary">
+      <pre className="m-0 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-control bg-field px-3 py-2 font-mono text-small text-fg">
         {result === null ? 'No result' : JSON.stringify(result, null, 2)}
       </pre>
     );
   }
   const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
   return (
-    <div className="max-h-56 overflow-auto rounded-md bg-well px-3 py-1">
-      <Table variant="plain" className="text-xs">
+    <div className="max-h-56 overflow-auto rounded-control bg-field px-3 py-1">
+      <Table variant="plain" className="text-small">
         <TableHeader>
           <TableRow>
             {columns.map((column) => (
@@ -226,7 +226,7 @@ function ToolResult({ result }: { result: JsonValue | null }) {
         </TableBody>
       </Table>
       {rows.length > ROW_LIMIT && (
-        <p className="m-0 py-2 text-xs text-fg-muted">{rows.length - ROW_LIMIT} more rows</p>
+        <p className="m-0 py-2 text-small text-fg">{rows.length - ROW_LIMIT} more rows</p>
       )}
     </div>
   );

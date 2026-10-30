@@ -140,7 +140,7 @@ function Orders() {
                   style={at(TABLE_AT + 250 + index * 300, { dy: 8, dur: 500 })}
                 >
                   <span className="font-mono text-fg">{order.id}</span>
-                  <span className="text-sm text-fg-muted">{order.placed}</span>
+                  <span className="text-small text-fg">{order.placed}</span>
                 </span>
               </TableCell>
               <TableCell className="align-top narrow:px-3!">
@@ -150,9 +150,9 @@ function Orders() {
                 >
                   {order.lines.map(([sku, name, qty, price]) => (
                     <li key={sku} className="flex flex-wrap items-baseline gap-x-3">
-                      <span className="font-mono text-sm text-fg-muted narrow:hidden">{sku}</span>
+                      <span className="font-mono text-small text-fg narrow:hidden">{sku}</span>
                       <span className="text-fg">{name}</span>
-                      <span className="font-mono text-sm tabular-nums text-fg-secondary sm:ml-auto">
+                      <span className="font-mono text-small tabular-nums text-fg sm:ml-auto">
                         {qty} {price}
                       </span>
                     </li>
@@ -162,7 +162,7 @@ function Orders() {
             </TableRow>
           ))}
           <TableRow className="hidden narrow:table-row">
-            <TableCell colSpan={2} className="text-sm text-fg-muted narrow:px-3!">
+            <TableCell colSpan={2} className="text-small text-fg narrow:px-3!">
               <KeepIds
                 text={`${rest.length} more orders: ${rest.map((order) => order.id).join(', ')}`}
               />
@@ -181,7 +181,7 @@ function FirstExchange() {
       className="a a-exit-up motion-only absolute inset-0 px-8 pt-5 narrow:px-4"
       style={at(HAND_OVER, { dur: 420, dy: 40 })}
     >
-      <div className="mx-auto flex max-w-[720px] flex-col gap-6 text-chat">
+      <div className="mx-auto flex max-w-[720px] flex-col gap-6 text-body">
         <UserBubble
           className="a a-up"
           articleClassName="narrow:max-w-full"
@@ -212,7 +212,7 @@ function FirstExchange() {
 function SecondExchange() {
   return (
     <div className="absolute inset-0 flex flex-col justify-end px-8 pb-5 narrow:px-4">
-      <div className="mx-auto flex w-full max-w-[720px] flex-col gap-6 text-chat">
+      <div className="mx-auto flex w-full max-w-[720px] flex-col gap-6 text-body">
         <div className="a a-up narrow:hidden" style={at(HAND_OVER + 150, { dur: 450, dy: 0 })}>
           <Orders />
         </div>

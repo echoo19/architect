@@ -27,10 +27,7 @@ function renderInline(nodes: Inline[]): ReactNode[] {
         return <br key={index} />;
       case 'code':
         return (
-          <code
-            key={index}
-            className="rounded-xs bg-hover px-[5px] py-px font-mono text-[0.86em] text-fg-soft"
-          >
+          <code key={index} className="rounded-mark bg-hover px-1.5 py-px font-mono text-[0.875em]">
             {node.text}
           </code>
         );
@@ -44,7 +41,7 @@ function renderInline(nodes: Inline[]): ReactNode[] {
         return <em key={index}>{renderInline(node.children)}</em>;
       case 'del':
         return (
-          <del key={index} className="text-fg-secondary">
+          <del key={index} className="text-fg">
             {renderInline(node.children)}
           </del>
         );
@@ -52,7 +49,7 @@ function renderInline(nodes: Inline[]): ReactNode[] {
   });
 }
 
-const HEADING_SIZE = ['text-xl', 'text-lg'];
+const HEADING_SIZE = ['text-h2', 'text-body'];
 
 function renderBlock(block: Block, index: number): ReactNode {
   switch (block.type) {
@@ -65,10 +62,7 @@ function renderBlock(block: Block, index: number): ReactNode {
     case 'heading': {
       const Tag = block.level <= 2 ? 'h3' : 'h4';
       return (
-        <Tag
-          key={index}
-          className={cn('m-0 font-semibold tracking-tight', HEADING_SIZE[block.level - 1])}
-        >
+        <Tag key={index} className={cn('m-0 font-semibold', HEADING_SIZE[block.level - 1])}>
           {renderInline(block.children)}
         </Tag>
       );
@@ -79,7 +73,7 @@ function renderBlock(block: Block, index: number): ReactNode {
           <div className="flex flex-col gap-2">{item.map(renderBlock)}</div>
         </li>
       ));
-      const list = 'm-0 space-y-1.5 pl-6 marker:text-fg-muted';
+      const list = 'm-0 space-y-1.5 pl-6 marker:text-fg';
       return block.ordered ? (
         <ol key={index} start={block.start} className={cn(list, 'list-decimal')}>
           {items}
@@ -94,7 +88,7 @@ function renderBlock(block: Block, index: number): ReactNode {
       return (
         <pre
           key={index}
-          className="m-0 overflow-x-auto rounded-xl border border-line-card bg-well px-4 py-3 font-mono text-sm leading-relaxed text-fg-soft"
+          className="m-0 overflow-x-auto rounded-control bg-field px-4 py-3 font-mono text-small leading-relaxed text-fg shadow-edge"
         >
           <code>{block.text}</code>
         </pre>
@@ -128,7 +122,7 @@ function renderBlock(block: Block, index: number): ReactNode {
       return (
         <blockquote
           key={index}
-          className="m-0 flex flex-col gap-2 border-l-2 border-line-strong pl-4 text-fg-secondary"
+          className="m-0 flex flex-col gap-2 border-l-2 border-line-strong pl-4 text-fg"
         >
           {block.children.map(renderBlock)}
         </blockquote>

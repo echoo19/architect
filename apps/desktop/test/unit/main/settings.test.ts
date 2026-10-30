@@ -19,9 +19,8 @@ afterEach(async () => {
 });
 
 describe('default settings', () => {
-  it('use the meta-spark mentor, the default student and the system theme', () => {
+  it('use the meta-spark mentor and the default student', () => {
     expect(defaultSettings()).toEqual({
-      theme: 'system',
       steps: 'collapsed',
       comparisonMode: false,
       quietLocalModels: false,
@@ -56,8 +55,8 @@ describe('SettingsStore', () => {
     const store = await SettingsStore.open(file);
     const listener = vi.fn();
     store.onChange(listener);
-    const next = await store.update({ theme: 'dark', onboarded: true });
-    expect(next).toMatchObject({ theme: 'dark', onboarded: true });
+    const next = await store.update({ steps: 'expanded', onboarded: true });
+    expect(next).toMatchObject({ steps: 'expanded', onboarded: true });
     expect(listener).toHaveBeenCalledWith(next);
 
     const reopened = await SettingsStore.open(file);
@@ -67,9 +66,12 @@ describe('SettingsStore', () => {
 
   it('applies quick successive updates in order', async () => {
     const store = await SettingsStore.open(file);
-    await Promise.all([store.update({ theme: 'dark' }), store.update({ steps: 'expanded' })]);
+    await Promise.all([
+      store.update({ comparisonMode: true }),
+      store.update({ steps: 'expanded' }),
+    ]);
     expect((await SettingsStore.open(file)).get()).toMatchObject({
-      theme: 'dark',
+      comparisonMode: true,
       steps: 'expanded',
     });
   });
@@ -77,22 +79,32 @@ describe('SettingsStore', () => {
   it('keeps valid fields and resets invalid ones from an older file', async () => {
     await writeFile(
       file,
-      JSON.stringify({ theme: 'sepia', steps: 'expanded', defaultMentor: { kind: 'robot' } }),
+      JSON.stringify({ steps: 'sepia', quietLocalModels: true, defaultMentor: { kind: 'robot' } }),
     );
     const store = await SettingsStore.open(file);
     expect(store.get()).toEqual({
       ...defaultSettings(),
-      steps: 'expanded',
+      quietLocalModels: true,
     });
   });
 
+  it('reads past a theme that an earlier version stored, and never writes it back', async () => {
+    for (const theme of ['dark', 'light', 'system', 'sepia']) {
+      await writeFile(file, JSON.stringify({ theme, onboarded: true, steps: 'expanded' }));
+      const store = await SettingsStore.open(file);
+      expect(store.get()).toEqual({ ...defaultSettings(), onboarded: true, steps: 'expanded' });
+      expect(store.get()).not.toHaveProperty('theme');
+      await store.update({ comparisonMode: true });
+      expect(JSON.parse(await readFile(file, 'utf8'))).not.toHaveProperty('theme');
+    }
+  });
+
   it('reads a file from before endpoints could be added, and keeps the good ones of a damaged list', async () => {
-    const old = { ...defaultSettings(), theme: 'dark', onboarded: true } as Record<string, unknown>;
+    const old = { ...defaultSettings(), onboarded: true } as Record<string, unknown>;
     delete old['customEndpoints'];
     await writeFile(file, JSON.stringify(old));
     expect((await SettingsStore.open(file)).get()).toEqual({
       ...defaultSettings(),
-      theme: 'dark',
       onboarded: true,
     });
 
@@ -116,8 +128,8 @@ describe('SettingsStore', () => {
   it('returns copies, so callers cannot change the stored settings', async () => {
     const store = await SettingsStore.open(file);
     const settings = store.get();
-    settings.theme = 'light';
-    expect(store.get().theme).toBe('system');
+    settings.steps = 'expanded';
+    expect(store.get().steps).toBe('collapsed');
   });
 });
 
@@ -130,7 +142,11 @@ describe('settings patches', () => {
 
   it('reject unknown fields and bad values', () => {
     expect(AppSettingsPatchSchema.safeParse({ fontSize: 14 }).success).toBe(false);
-    expect(AppSettingsPatchSchema.safeParse({ theme: 'sepia' }).success).toBe(false);
+    expect(AppSettingsPatchSchema.safeParse({ steps: 'sepia' }).success).toBe(false);
+  });
+
+  it('no longer take a theme: Architect is always dark', () => {
+    expect(AppSettingsPatchSchema.safeParse({ theme: 'light' }).success).toBe(false);
   });
 
   it('never name the program Architect runs: only a file the user picks becomes llama-server', () => {

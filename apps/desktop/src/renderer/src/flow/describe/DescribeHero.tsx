@@ -85,7 +85,7 @@ export function DescribeHero() {
           }
           trailing={
             mentor && (
-              <span className="flex items-center gap-1.5 text-sm text-fg-muted">
+              <span className="flex items-center gap-1.5 text-small text-fg">
                 {mentor.local ? (
                   <Laptop size={14} strokeWidth={1.6} aria-hidden />
                 ) : (
@@ -113,7 +113,7 @@ export function DescribeHero() {
             ))}
           </ul>
         ) : (
-          <p className="m-0 flex items-center justify-center gap-2 text-sm text-fg-muted">
+          <p className="m-0 flex items-center justify-center gap-2 text-small text-fg">
             <FileText size={14} strokeWidth={1.6} aria-hidden />
             {FILES_NEEDED}
           </p>

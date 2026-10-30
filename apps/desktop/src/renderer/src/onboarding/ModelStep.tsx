@@ -151,16 +151,16 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
               value={percent === null ? undefined : percent / 100}
               valueText={bytes ?? undefined}
             />
-            <div className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="text-fg-secondary">
+            <div className="flex items-baseline justify-between gap-3 text-small">
+              <span className="text-fg">
                 {pullStage(pull)}. You can carry on with setup meanwhile.
               </span>
-              {bytes && <span className="font-mono text-fg-muted">{bytes}</span>}
+              {bytes && <span className="font-mono text-fg">{bytes}</span>}
             </div>
           </div>
         )}
         {pull.phase === 'failed' && (
-          <p role="alert" className="m-0 px-1 text-fg-soft text-pretty">
+          <p role="alert" className="m-0 px-1 text-fg text-pretty">
             {pull.error}
           </p>
         )}
@@ -171,7 +171,7 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
         )}
         <Disclosure label="Use a different model" defaultOpen={!build} className="px-1">
           <div className="flex items-center justify-between gap-4 pt-2">
-            <span className="text-fg-secondary">A model already on this computer</span>
+            <span className="text-fg">A model already on this computer</span>
             <ModelPicker
               role="student"
               aria-label="Another model on this computer"
@@ -180,7 +180,7 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
               disabled={downloading}
               className="w-64"
             >
-              <span className="truncate text-fg-muted">{build ? 'Choose a model' : name}</span>
+              <span className="truncate text-fg">{build ? 'Choose a model' : name}</span>
             </ModelPicker>
           </div>
         </Disclosure>

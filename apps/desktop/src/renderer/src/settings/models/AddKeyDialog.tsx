@@ -124,7 +124,7 @@ export function AddKeyDialog({ open, onOpenChange, provider, onAdded }: AddKeyDi
               spellCheck={false}
             />
             {error && (
-              <p role="alert" className="m-0 text-sm text-danger text-pretty">
+              <p role="alert" className="m-0 text-small text-danger text-pretty">
                 {error}
               </p>
             )}

@@ -29,11 +29,7 @@ export function AppWindow({
 }) {
   return (
     <div
-      className={cn(
-        'absolute overflow-hidden rounded-[10px] border border-line-control bg-ground',
-        'shadow-[0_28px_70px_-28px_rgb(0_0_0/0.8)]',
-        className,
-      )}
+      className={cn('absolute overflow-hidden rounded-control bg-ground shadow-float', className)}
       style={style}
     >
       {children}
@@ -54,8 +50,7 @@ export interface SidebarAgent {
   chats: readonly SidebarChat[];
 }
 
-const navRow =
-  'flex h-10 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-fg-secondary';
+const navRow = 'flex h-10 w-full items-center gap-2.5 rounded-control px-2.5 text-left text-fg';
 
 /** The agents sidebar, as the workspace draws it. */
 export function Sidebar({
@@ -68,13 +63,13 @@ export function Sidebar({
   return (
     <nav
       className={cn(
-        'flex h-full w-60 shrink-0 flex-col gap-5 border-r border-line bg-sidebar px-3 pb-3.5',
+        'flex h-full w-60 shrink-0 flex-col gap-5 border-r border-line bg-ground px-3 pb-3.5',
         className,
       )}
     >
       <div className="-mx-3 flex h-12 shrink-0 items-center gap-2.5 px-5.5 pt-5">
         <LogoMark size={20} />
-        <span className="text-md font-semibold tracking-tight">Architect</span>
+        <span className="text-body font-semibold">Architect</span>
       </div>
       <div className="flex items-center gap-0.5">
         <span className={cn(navRow, 'min-w-0 flex-1')}>
@@ -89,7 +84,7 @@ export function Sidebar({
         {agents.map((agent) => (
           <div key={agent.name} className="flex flex-col gap-0.5">
             <div className="flex h-9 items-center gap-2.5 pl-2.5 pr-0.5">
-              <AgentAvatar name={agent.name} className="text-[13px]!" />
+              <AgentAvatar name={agent.name} />
               <span className="min-w-0 flex-1 truncate font-medium">{agent.name}</span>
               <IconButton label={`New chat with ${agent.name}`} size="xs" tabIndex={-1}>
                 <Plus size={14} strokeWidth={1.8} aria-hidden />
@@ -102,13 +97,13 @@ export function Sidebar({
               <span
                 key={chat.title}
                 className={cn(
-                  'flex h-[34px] w-full shrink-0 items-center justify-between gap-2 rounded-md pl-[38px] pr-2.5 transition-colors duration-200',
-                  chat.current ? 'bg-hover text-fg' : 'text-fg-secondary',
+                  'flex h-[34px] w-full shrink-0 items-center justify-between gap-2 rounded-control pl-[38px] pr-2.5 transition-colors duration-200',
+                  chat.current && 'bg-hover',
                 )}
               >
                 <span className="truncate">{chat.title}</span>
                 {chat.awaitsApproval && !chat.current && (
-                  <span className="shrink-0 text-sm font-medium text-student">Approve</span>
+                  <span className="shrink-0 text-small font-medium text-student">Approve</span>
                 )}
               </span>
             ))}
@@ -134,7 +129,7 @@ export function ChatHeader({ title, className }: { title: ReactNode; className?:
         className,
       )}
     >
-      <h3 className="m-0 min-w-0 max-w-full truncate text-md font-medium">{title}</h3>
+      <h3 className="m-0 min-w-0 max-w-full truncate text-body font-medium">{title}</h3>
       <Badge icon={<Laptop size={14} strokeWidth={1.6} aria-hidden />}>
         Running on this computer
       </Badge>
@@ -143,7 +138,7 @@ export function ChatHeader({ title, className }: { title: ReactNode; className?:
 }
 
 const modeButton =
-  'flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-line-control px-3 text-sm text-fg-secondary [&_svg]:shrink-0';
+  'flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-small text-fg [&_svg]:shrink-0 shadow-edge-strong';
 
 /** The composer under a chat, with the write setting beside it. */
 export function ChatComposer({
@@ -191,7 +186,7 @@ export function ChatStatusBar({
   return (
     <p
       className={cn(
-        'mx-auto mb-0 mt-2.5 flex max-w-[720px] flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-fg-muted',
+        'mx-auto mb-0 mt-2.5 flex max-w-[720px] flex-wrap items-center justify-center gap-x-4 gap-y-1 text-small text-fg',
         className,
       )}
     >

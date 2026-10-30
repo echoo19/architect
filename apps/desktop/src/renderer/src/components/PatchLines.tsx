@@ -2,11 +2,11 @@ import { cn } from '@architect/ui';
 import { patchRows, type DiffLine } from '../flow/train/diff';
 
 const LINE_TONE: Record<DiffLine['kind'], string> = {
-  added: 'bg-student-tint',
-  removed: 'bg-danger-tint',
+  added: 'bg-student-soft',
+  removed: 'bg-danger-soft',
   context: '',
   hunk: '',
-  note: 'text-fg-muted italic',
+  note: 'text-fg italic',
 };
 
 const MARK: Record<DiffLine['kind'], string> = {
@@ -21,11 +21,7 @@ function PatchRow({ line }: { line: DiffLine }) {
   if (line.kind === 'hunk') {
     return (
       <tr>
-        <td
-          colSpan={3}
-          className="px-3 py-0.5 text-center text-fg-ghost"
-          aria-label="Lines skipped"
-        >
+        <td colSpan={3} className="px-3 py-0.5 text-center text-fg" aria-label="Lines skipped">
           ⋯
         </td>
       </tr>
@@ -34,7 +30,7 @@ function PatchRow({ line }: { line: DiffLine }) {
   const number = line.kind === 'removed' ? line.oldLine : line.newLine;
   return (
     <tr className={LINE_TONE[line.kind]}>
-      <td className="w-10 select-none px-2 text-right align-top text-fg-ghost">
+      <td className="w-10 select-none px-2 text-right align-top text-fg">
         {line.kind === 'note' ? '' : (number ?? '')}
       </td>
       <td
@@ -71,7 +67,7 @@ export function PatchLines({ patch, limit, label, className }: PatchLinesProps) 
   return (
     <table
       aria-label={label}
-      className={cn('w-full border-collapse font-mono text-xs leading-5', className)}
+      className={cn('w-full border-collapse font-mono text-small leading-5', className)}
     >
       <tbody>
         {shown.map((line, index) => (

@@ -22,7 +22,7 @@ function found({ build, path }: NonNullable<LlamaServerRowState['found']>) {
   if (path === null) return `Build ${build ?? ''} · on PATH`;
   return (
     <>
-      Build {build} · <span className="break-all font-mono text-xs">{path}</span>
+      Build {build} · <span className="break-all font-mono text-small">{path}</span>
     </>
   );
 }
@@ -88,7 +88,7 @@ export function LlamaServerRow() {
       </SettingsRow>
       {row.details && (
         <Disclosure label="Details" className="pb-3 pl-[44px]">
-          <p className="m-0 break-words text-xs leading-5 text-fg-muted">{row.details}</p>
+          <p className="m-0 break-words text-small leading-5 text-fg">{row.details}</p>
         </Disclosure>
       )}
     </>
