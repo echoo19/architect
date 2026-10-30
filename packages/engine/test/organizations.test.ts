@@ -11,6 +11,7 @@ import {
   type Task,
 } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
+import { JobStudy } from '../src/drafting/studying';
 import { exportPackage } from '../src/graduates/exporter';
 import { orgFactsProblem } from '../src/loop/lookup';
 import { organizationProblem, taskDataDir } from '../src/loop/organizations';
@@ -156,9 +157,36 @@ describe('a job with organizations, when it is made', () => {
   });
 });
 
+/** Studies the job's train organizations with a scripted brief and confirms it, as a run needs. */
+async function confirmStudy(job: Job): Promise<void> {
+  world.mentor.script = () => ({
+    skills: job.taskTypes.map((type) => ({
+      taskType: type.id,
+      text: `Answer ${type.label} requests from the organization's own files.`,
+      needs: [],
+      steps: ["Read the organization's files for its facts."],
+      quotes: [],
+    })),
+    connections: [],
+    rules: [],
+    differences: [],
+    questions: [],
+    outOfScope: [],
+  });
+  const study = new JobStudy({
+    jobs: engine.jobs,
+    paths: engine.paths,
+    deps: world.deps,
+    clock: world.clock,
+  });
+  const state = await study.study(job.id);
+  await engine.jobs.confirmStudy(job.id, state.token);
+}
+
 describe('a run of a job with organizations', () => {
   async function graduated() {
     const job = await importOrgJob();
+    await confirmStudy(job);
     world.mentor.script = () =>
       hypothesis('Read the records', 'Branches.\nfix:invoice fix:overdue fix:scheduling');
     const bound: { taskId: string; sealed: string | undefined }[] = [];

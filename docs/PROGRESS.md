@@ -2,6 +2,18 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri), field lane Study: Spark's cited brief of the academies, confirmed before teaching
+
+**Done** (branch `field/study`; no model was called, no GPU, no spend)
+- Decision 069. A field job's train organizations are studied by Spark into a short brief held to a schema: skills by task type, connections, rules, differences between academies, open questions, out of scope. Every passage is checked word for word in the file it names; unfound ones are taken out and counted, and uncited claims are marked as Spark's own. $1 cap, kept in `study.json`, resumable.
+- Transfer organizations never reach the study: their folders are not opened, and their names stop the study before any call (tested).
+- Define shows the brief with one primary action; every run of a field job waits for it. A confirmed brief seeds the first harness with a shared `procedure` skill, with no academy's facts.
+- Minimal `Job.organizations` and `Task.org` added per the contract, since `field/orgs-engine` had not landed on `field/main`.
+
+**Open issues**
+- Importing a field job's `orgs/` folders belongs to `field/orgs-engine`; until then the files must be placed in the job's folder.
+- The step guard (no digits, no organization names) is a heuristic.
+
 ## 2026-10-30 (Fri), the proposal weighed: Teach this now proves the student learned, stale approvals refused, honest copy
 
 **Done** (no model of the product was called; the GPU stayed off; no money spent)

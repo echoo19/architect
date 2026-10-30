@@ -83,6 +83,8 @@ export function registerEngineHandlers(
         ),
       taskPlan: (jobId) => call((api) => api.jobs.taskPlan(jobId)),
       confirmRules: (jobId, token) => call((api) => api.jobs.confirmRules(jobId, token)),
+      study: (jobId) => call((api) => api.jobs.study(jobId)),
+      confirmStudy: (jobId, token) => call((api) => api.jobs.confirmStudy(jobId, token)),
     },
     {
       importFile: z.tuple([text]),

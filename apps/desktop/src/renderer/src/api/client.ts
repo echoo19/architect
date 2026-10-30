@@ -17,6 +17,7 @@ import {
   RunDetailSchema,
   RunSchema,
   SecretStatusSchema,
+  StudyStateSchema,
   TaskPlanSchema,
   TraceSchema,
   WorkspaceChatSchema,
@@ -116,6 +117,9 @@ export const flowApi = {
       RuleConfirmationStateSchema,
       bridge().jobs.confirmRules(jobId, token),
     ),
+  study: (jobId: string) => read('jobs.study', StudyStateSchema, bridge().jobs.study(jobId)),
+  confirmStudy: (jobId: string, token: string) =>
+    read('jobs.confirmStudy', StudyStateSchema, bridge().jobs.confirmStudy(jobId, token)),
   /** Imports a job file picked in a dialog, as a new job. */
   importJob: (path: string) => read('jobs.importFile', JobSchema, bridge().jobs.importFile(path)),
   /** Writes the job's settings to a file chosen in a save dialog. */

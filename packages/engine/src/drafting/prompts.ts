@@ -140,3 +140,50 @@ export function fixMessage(problems: readonly string[]): string {
     'Reply again with the whole JSON object, changing only what these problems need.',
   ].join('\n');
 }
+
+/** Room for reasoning plus a short brief. */
+export const STUDY_MAX_OUTPUT_TOKENS = 8_000;
+
+/** The standing instructions of a study of a field job's material (decision 069). */
+export function studySystemPrompt(): string {
+  return `You help a person set up one AI agent that will work for several organizations of the same field, such as test-prep academies. Each organization keeps its own files: its labels, policy numbers, hints and videos differ. Before the agent is taught, you study the organizations' material and write a short brief of what you understood, which the person reads and confirms.
+
+## What you receive
+
+The job: its name, its description and its task types. Then each organization's files under a heading with its name and id: a table (its row count, each column with a profile, and its first rows) or a text file (all of it).
+
+## What you reply
+
+One JSON object in the schema you are given.
+
+- skills: one for each task type, by its id: what it is, the files it reads (by name; every organization has the same files), and its steps. The steps are the agent's shared procedure, the same for every organization: they say which file to read and what to look for in it, never what it says. Never put a number, a topic label, a hint, a policy value or an organization's name in a step.
+- connections: how the skills connect, such as one turn that uses several of them.
+- rules: the rules the material states, such as a policy's rules.
+- differences: where the organizations differ, such as different practice counts. Quote each organization's own passage.
+- questions: what the material leaves unclear.
+- outOfScope: what the job does not cover.
+
+Back every skill, connection, rule and difference with passages in quotes: each copied word for word from one file of one organization, naming the organization's id and the file. Architect looks for every passage in the file you name, and takes out one that isn't there. Use only what the files and the job say. When nothing in the files says a thing, leave its quotes empty: it is then shown as your own reading.
+
+Write for someone who has never used this app: plain words, short sentences, no jargon.`;
+}
+
+/** The job and each train organization's files, as the study's first message. */
+export function studyMessage(
+  job: {
+    name: string;
+    description: string;
+    taskTypes: readonly { id: string; label: string; description?: string }[];
+  },
+  organizations: readonly { id: string; name: string; files: string }[],
+): string {
+  const types = job.taskTypes.map(
+    (type) => `- ${type.id} (${type.label})${type.description ? `: ${type.description}` : ''}`,
+  );
+  return [
+    `# Job: ${job.name}`,
+    job.description,
+    `Task types:\n${types.join('\n')}`,
+    ...organizations.map((org) => `# Organization: ${org.name} (id: ${org.id})\n\n${org.files}`),
+  ].join('\n\n');
+}

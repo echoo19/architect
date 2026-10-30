@@ -26,6 +26,7 @@ export const ERROR_CODES = [
   'guard_budget',
   'rule_unconfirmed',
   'rule_changed',
+  'study_unconfirmed',
   'process_starting',
   'process_restarting',
   'process_failed',

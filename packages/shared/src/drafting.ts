@@ -6,6 +6,7 @@ import {
   RuleDetailsSchema,
   RuleSpecSchema,
 } from './rules';
+import { StudyStateSchema } from './study';
 
 /*
  * Drafting a job from the person's own files (decision 058). The teacher decides what the job is
@@ -201,5 +202,7 @@ export const TaskPlanSchema = z.object({
   notes: z.array(z.string()),
   /** Present when the job has a rule: whether the person has confirmed it over these records. */
   confirmation: RuleConfirmationStateSchema.optional(),
+  /** Present when the job lists organizations: where the study of their material stands. */
+  study: StudyStateSchema.optional(),
 });
 export type TaskPlan = z.infer<typeof TaskPlanSchema>;

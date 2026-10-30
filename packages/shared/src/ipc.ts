@@ -10,6 +10,7 @@ import type {
 } from './corrections';
 import type { TaskPlan } from './drafting';
 import type { RuleConfirmationState } from './rules';
+import type { StudyState } from './study';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
 import type { Job, MentorConfig, PermissionMode, StudentEndpoint, StudentTarget } from './job';
@@ -463,6 +464,14 @@ export interface ArchitectApi {
      * task plan showed them: a rule or a record that changed since is refused, not confirmed.
      */
     confirmRules(jobId: string, token: string): Promise<RuleConfirmationState>;
+    /**
+     * Has the teacher study the train organizations' material of a job that lists organizations,
+     * and returns the brief for the person to confirm. A brief already made over the same material
+     * is returned as it is, with no call.
+     */
+    study(jobId: string): Promise<StudyState>;
+    /** Records that the person confirmed the brief. `token` is the one the brief came with. */
+    confirmStudy(jobId: string, token: string): Promise<StudyState>;
   };
   runs: {
     start(jobId: string, options: RunStartOptions): Promise<Run>;

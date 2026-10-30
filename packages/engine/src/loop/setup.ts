@@ -1,7 +1,8 @@
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import {
   GuardError,
   keyDestinationProblem,
+  StudyRecordSchema,
   type ActorAdapter,
   type Harness,
   type Job,
@@ -11,7 +12,10 @@ import {
   type StudentEndpoint,
   type StudentTarget,
 } from '@architect/shared';
+import { isStudied, procedureEdit } from '../drafting/study';
 import type { HarnessDeps, LoopDeps } from './deps';
+import { readJsonFile } from './files';
+import { STUDY_FILE } from './paths';
 
 export function studentEndpoint(job: Job, target: StudentTarget): StudentEndpoint {
   if (target === 'local') return job.student.local;
@@ -91,10 +95,39 @@ export async function startingHarness(
   const start = job.startingHarness;
   switch (start.kind) {
     case 'blank':
-      return harness.blankHarness(job.name, job.description);
+      return seeded(job, jobDir, harness, harness.blankHarness(job.name, job.description));
     case 'template':
-      return harness.templateHarness(job.name, job.description, start.template);
+      return seeded(
+        job,
+        jobDir,
+        harness,
+        harness.templateHarness(job.name, job.description, start.template),
+      );
     case 'import':
       return harness.importHarness(resolve(jobDir, start.path));
   }
+}
+
+/**
+ * A field job's first harness with the shared procedure its confirmed study wrote (decision 069):
+ * which of the organization's own files each skill reads, and in what steps. Any other job, and
+ * one whose study isn't confirmed (it can't run), starts from the harness as it was.
+ */
+async function seeded(
+  job: Job,
+  jobDir: string,
+  harness: HarnessDeps,
+  base: Harness,
+): Promise<Harness> {
+  if (!isStudied(job)) return base;
+  let stored: unknown;
+  try {
+    stored = await readJsonFile(join(jobDir, STUDY_FILE));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return base;
+    throw error;
+  }
+  const record = StudyRecordSchema.parse(stored);
+  if (record.confirmedAt === undefined) return base;
+  return harness.applyEdits(base, [procedureEdit(record.brief)]);
 }
