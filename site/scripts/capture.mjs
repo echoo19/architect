@@ -10,6 +10,8 @@
  *   node scripts/capture.mjs --widths 1280        only these widths
  *   node scripts/capture.mjs --height 1200        a taller window than the width's usual one
  *   node scripts/capture.mjs --url <address>      a different address (default: the preview server)
+ *   node scripts/capture.mjs --url <address>/results/ --only page --prefix results
+ *       the results page, whole, as results-page-1280.png
  *   node scripts/capture.mjs --out <folder>       a different folder
  *   node scripts/capture.mjs --selector '[data-stage="train"]' --widths 1280 --name train
  *       one element, scrolled into view and captured after its chapter has played
@@ -46,6 +48,8 @@ const outDir = path.resolve(String(args.out ?? path.join(here, '..', 'screenshot
 const widths = String(args.widths ?? '1280,375')
   .split(',')
   .map(Number);
+/** A word put before every file's name, for a page other than the home page. */
+const prefix = args.prefix ? `${args.prefix}-` : '';
 const only = args.only ? String(args.only).split(',') : null;
 const wanted = (kind) => only === null || only.includes(kind);
 const HEIGHTS = { 375: 812, 768: 1024, 1280: 800, 1920: 1080 };
@@ -113,7 +117,7 @@ async function playEverything(context, page) {
 }
 
 async function save(page, name, options = {}) {
-  const file = path.join(outDir, `${name}.png`);
+  const file = path.join(outDir, `${prefix}${name}.png`);
   // A shot of more than the screen starts the page's animations over, so they are let finish first.
   await page.screenshot({ path: file, animations: 'disabled', ...options });
   console.log(file);
