@@ -2,9 +2,11 @@ import { formatDuration, formatUsd } from '../../lib/format';
 import { mentorIsLocal } from '../../lib/names';
 import {
   allowedInterventions,
+  ATTEMPT_TOKENS,
   costUsd,
   MENTOR_PRESETS,
   mentorPricing,
+  SECONDS_PER_ATTEMPT,
   type Job,
   type MentorPreset,
   type TokenPricing,
@@ -15,7 +17,7 @@ import type { ModelNames } from '../train/phase';
  * Rough seconds per task: Glimmer on this machine takes 2 to 3 minutes per task (measured
  * 2026-10-27, docs/PROGRESS.md); a hosted copy is about ten times faster.
  */
-export const SECONDS_PER_TASK = { local: 150, hosted: 15 } as const;
+export const SECONDS_PER_TASK = SECONDS_PER_ATTEMPT;
 
 /**
  * Rough size of one diagnosis: the mentor reads a batch of failing traces and the harness, then
@@ -348,7 +350,7 @@ export function wontTeachBody(job: Job, estimate: TimeEstimate): string {
 }
 
 /** Rough size of one task for the student: the request, its tool results and an answer. */
-export const STUDENT_TOKENS_PER_TASK = { inputTokens: 9_000, outputTokens: 400 } as const;
+export const STUDENT_TOKENS_PER_TASK = ATTEMPT_TOKENS;
 
 /** What practice on a hosted copy usually costs at its price, billed by the host. */
 export function practiceUsd(pricing: TokenPricing, estimate: TimeEstimate): number {

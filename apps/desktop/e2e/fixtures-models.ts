@@ -306,6 +306,13 @@ const HISTORY: Record<string, VersionEvent[]> = {
 
 export const MODELS = { philId: PHIL_ID, miniId: MINI_ID, deskId: STORY.graduateId };
 
+/** Every agent's versions, by agent. */
+export const MODEL_VERSIONS: Record<string, GraduateVersion[]> = {
+  [STORY.graduateId]: DESK_VERSIONS,
+  [PHIL_ID]: PHIL_VERSIONS,
+  [MINI_ID]: MINI_VERSIONS,
+};
+
 /**
  * The Lab's stand-in, then the registry's channels on top: every agent's versions, each
  * version's report card by agent and number, harness diffs, history, and promotion that moves
@@ -315,11 +322,7 @@ export async function installModelsFake(app: ElectronApplication): Promise<void>
   await stubLab(app);
   const data = {
     agents: AGENTS,
-    versions: {
-      [STORY.graduateId]: DESK_VERSIONS,
-      [PHIL_ID]: PHIL_VERSIONS,
-      [MINI_ID]: MINI_VERSIONS,
-    } as Record<string, GraduateVersion[]>,
+    versions: MODEL_VERSIONS,
     reports: REPORTS,
     diffs: DIFFS,
     history: HISTORY,

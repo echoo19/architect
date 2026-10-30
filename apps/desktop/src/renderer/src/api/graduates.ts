@@ -1,4 +1,5 @@
 import {
+  CertificationSchema,
   ExportPartResultSchema,
   ExportResultSchema,
   ExportReviewSchema,
@@ -17,6 +18,7 @@ import {
   SampleAgentSchema,
   VersionEventSchema,
   type BindRequest,
+  type CertifyRequest,
   type ExportPartRequest,
   type ExportRequest,
   type HubInstallRequest,
@@ -159,6 +161,28 @@ export const graduatesApi = {
       'graduates.publications',
       z.array(PublicationSchema),
       architect().graduates.publications(graduateId),
+    ),
+  /** Draws and seals the tasks a version's certification takes, and what it will cost. */
+  planCertification: (request: CertifyRequest) =>
+    read(
+      'graduates.planCertification',
+      CertificationSchema,
+      architect().graduates.planCertification(request),
+    ),
+  startCertification: (certificationId: string) =>
+    read(
+      'graduates.startCertification',
+      CertificationSchema,
+      architect().graduates.startCertification(certificationId),
+    ),
+  discardCertification: (certificationId: string) =>
+    architect().graduates.discardCertification(certificationId),
+  /** A version's certifications after the fact, newest first. */
+  certifications: (graduateId: string, version: number) =>
+    read(
+      'graduates.certifications',
+      z.array(CertificationSchema),
+      architect().graduates.certifications(graduateId, version),
     ),
 };
 
