@@ -1,6 +1,8 @@
 import type { GraduateSummary } from '@architect/shared';
 import { AgentAvatar, Heading, Reveal } from '@architect/ui';
+import { useVersionReport } from '../api/graduates';
 import { useJob } from '../api/hooks';
+import { certificateSentence } from '../flow/report/certificate-words';
 import { suggestionsFor } from './labels';
 
 export interface EmptyChatProps {
@@ -9,9 +11,13 @@ export interface EmptyChatProps {
   onPick: (text: string) => void;
 }
 
-/** A new chat: the agent and a few ways to start, drawn from what it was trained to do. */
+/**
+ * A new chat: the agent and a few ways to start, drawn from what it was trained to do. A certified
+ * agent says when it answers and when it hands a request to a person (decision 077).
+ */
 export function EmptyChat({ agent, onPick }: EmptyChatProps) {
   const job = useJob(agent.manifest.jobId);
+  const certificate = useVersionReport(agent).data?.certificate;
   // Wait for the job, so the suggestions don't change under the pointer when it arrives.
   const suggestions =
     job.status === 'loading' ? [] : suggestionsFor(agent.manifest, job.data?.taskTypes);
@@ -22,6 +28,11 @@ export function EmptyChat({ agent, onPick }: EmptyChatProps) {
         <Heading as="h2" size="title">
           {agent.name}
         </Heading>
+        {certificate?.issued === true && (
+          <p className="m-0 max-w-[520px] text-center text-ui text-pretty">
+            {certificateSentence(certificate, agent.name)}
+          </p>
+        )}
       </div>
       {suggestions.length > 0 && (
         <div

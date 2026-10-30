@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import type { Job } from '@architect/shared';
+import type { CertifySettings, Job } from '@architect/shared';
 import { Disclosure, Input, Segmented, ToggleRow } from '@architect/ui';
 import { Lock } from 'lucide-react';
 import { modelNames } from '../names';
+import { calibrationTasks, finalTestAttempts, formatAbout, testSeconds } from './estimates';
 import { Group, InspectorRow, Issue, NumberField, PathField } from './fields';
 import { FinalTestChoice } from './FinalTestChoice';
 import type { FinalTestState } from './final-test';
@@ -89,6 +90,7 @@ export function EvaluationTab({ editor, change, taskCount, finalTest }: Evaluati
         <SeedsField editor={editor} change={change} />
       </div>
       <Sets editor={editor} change={change} taskCount={taskCount} />
+      <Certification editor={editor} change={change} taskCount={taskCount} />
       <Organizations job={job} />
       <Group title="Grading">
         <InspectorRow label="Graded by">
@@ -264,6 +266,109 @@ function Sets({ editor, change, taskCount }: InspectorTabProps & { taskCount: nu
         onChange={(value) => splits({ seed: value })}
       />
       <Issue error={issues.splits} />
+    </Group>
+  );
+}
+
+/** A certificate's settings when it is turned on (decision 077). */
+const CERTIFY_DEFAULTS: CertifySettings = { k: 5, epsilon: 0.1, delta: 0.05 };
+
+/**
+ * What the certificate costs: every final-test and calibration task tried k times, said as the
+ * tries and the time on this computer, before any run.
+ */
+function certifyCost(job: Job): string {
+  const tries = finalTestAttempts(job);
+  return `The final test makes ${tries} tries instead of ${job.splits.test}, about ${formatAbout(testSeconds(job, 'local')).toLowerCase()} on this computer.`;
+}
+
+/**
+ * Certified answers (decision 077): whether the final test calibrates when the agent answers and
+ * when it hands a request to a person, with how many tries, the error to bound and how sure.
+ * Its calibration tasks are set aside when the tasks are split, so it is turned on before that.
+ */
+function Certification({
+  editor,
+  change,
+  taskCount,
+}: InspectorTabProps & { taskCount: number | null }) {
+  const { job, issues } = editor;
+  const certify = job.evaluation.certify;
+  const split = tasksSplit(taskCount);
+  const set = (what: string, patch: Partial<CertifySettings>) =>
+    change(
+      what,
+      (current) => ({
+        ...current,
+        evaluation: {
+          ...current.evaluation,
+          certify: { ...(current.evaluation.certify ?? CERTIFY_DEFAULTS), ...patch },
+        },
+      }),
+      TYPING_PAUSE_MS,
+    );
+  return (
+    <Group title="Certified answers">
+      <ToggleRow
+        label="Answer only when sure"
+        type="Calibrated"
+        checked={certify !== undefined}
+        disabled={split}
+        onCheckedChange={(on) =>
+          change('Certified answers', (current) => {
+            const { certify: _before, ...evaluation } = current.evaluation;
+            return {
+              ...current,
+              evaluation: on ? { ...evaluation, certify: CERTIFY_DEFAULTS } : evaluation,
+            };
+          })
+        }
+      />
+      {split && certify === undefined && (
+        <p className="m-0 text-small text-pretty">
+          Set before tasks are added: these tasks were split without calibration tasks.
+        </p>
+      )}
+      {certify && (
+        <>
+          <NumberField
+            label="Tries per request"
+            value={certify.k}
+            issue={issues['evaluation.certify.k']}
+            onChange={(k) => set('Tries per request', { k })}
+          />
+          <NumberField
+            label="Wrong at most"
+            unit="%"
+            value={Math.round(certify.epsilon * 100)}
+            issue={issues['evaluation.certify.epsilon']}
+            onChange={(percent) => set('Wrong at most', { epsilon: percent / 100 })}
+          />
+          <NumberField
+            label="Confidence"
+            unit="%"
+            value={Math.round((1 - certify.delta) * 100)}
+            issue={issues['evaluation.certify.delta']}
+            onChange={(percent) => set('Confidence', { delta: 1 - percent / 100 })}
+          />
+          {split ? (
+            <InspectorRow label="Calibration, sealed">
+              <span className="text-ui tabular-nums">
+                {certify.calibration === undefined ? 'Set aside' : tasksText(certify.calibration)}
+              </span>
+            </InspectorRow>
+          ) : (
+            <NumberField
+              label="Calibration"
+              unit="tasks"
+              value={calibrationTasks(job)}
+              issue={issues['evaluation.certify.calibration']}
+              onChange={(calibration) => set('Calibration', { calibration })}
+            />
+          )}
+          <p className="m-0 pt-1 text-small text-pretty">{certifyCost(job)}</p>
+        </>
+      )}
     </Group>
   );
 }

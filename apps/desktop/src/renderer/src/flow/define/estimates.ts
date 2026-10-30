@@ -73,7 +73,29 @@ export function estimateTime(job: Job, place: TrainPlace): TimeEstimate {
  * doesn't depend on what trained the agent.
  */
 export function testSeconds(job: Job, place: TrainPlace = 'local'): number {
-  return job.splits.test * SECONDS_PER_TASK[place];
+  return finalTestAttempts(job) * SECONDS_PER_TASK[place];
+}
+
+/**
+ * The calibration tasks a certificate is planned with before the tasks are split: the size the
+ * job sets, else the least the default takes when there are that many (decision 077).
+ */
+export const PLANNED_CALIBRATION = 30;
+
+/** The calibration tasks a certified job sets aside, or the planned size when it doesn't say. */
+export function calibrationTasks(job: Job): number {
+  const certify = job.evaluation.certify;
+  return certify === undefined ? 0 : (certify.calibration ?? PLANNED_CALIBRATION);
+}
+
+/**
+ * The attempts the final test makes: one at each task, and for a certified job k at each final
+ * test and calibration task (decision 077).
+ */
+export function finalTestAttempts(job: Job): number {
+  const certify = job.evaluation.certify;
+  if (certify === undefined) return job.splits.test;
+  return certify.k * (job.splits.test + calibrationTasks(job));
 }
 
 /** A time cap as a number and its unit: 240 is 4 hours, 90 is 90 minutes, 150 is 2.5 hours. */
@@ -365,7 +387,7 @@ export function comparisonSeconds(
 
 /** What the final test costs on a hosted copy at its price, billed by the host. */
 export function testUsd(job: Job, pricing: TokenPricing): number {
-  return job.splits.test * costUsd(pricing, STUDENT_TOKENS_PER_TASK);
+  return finalTestAttempts(job) * costUsd(pricing, STUDENT_TOKENS_PER_TASK);
 }
 
 /** `tests` final tests on the hosted copy, or null when they run here or the copy has no price. */

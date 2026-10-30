@@ -59,6 +59,12 @@ export function stepWords(step: AgentStep): { action: string; target: string } {
   if (step.kind === 'wait') {
     return { action: 'Waiting: your computer is busy with another job.', target: '' };
   }
+  // One of a certified agent's attempts (decision 077): its answer once it has one.
+  if (step.kind === 'attempt') {
+    return working
+      ? { action: step.name, target: '' }
+      : { action: `${step.name}:`, target: step.detail };
+  }
   if (step.kind === 'skill') {
     return { action: working ? 'Loading the skill' : 'Loaded the skill', target: step.detail };
   }

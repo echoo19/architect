@@ -3,6 +3,7 @@ import {
   RunEventSchema,
   type GraduateSummary,
   type JobSummary,
+  type ReportCard,
   type Score,
 } from '@architect/shared';
 import {
@@ -35,6 +36,7 @@ import { fetchQuery } from '../api/query';
 import { useCorrections, useImprovements } from '../api/teaching';
 import { ProblemState } from '../components/ProblemState';
 import { formatCost, shortDate } from '../flow/format';
+import { certificateFigure, certificateHint } from '../flow/report/certificate-words';
 import { formatPercent } from '../lib/format';
 import { activeVersionName, agentModelName, mentorName, studentName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
@@ -312,14 +314,31 @@ export function RunningCard({ rows }: { rows: readonly RunRow[] }) {
 /** One figure of a final test: "Never seen 74%", or a dash when that kind wasn't tested. */
 function Figure({ label, score, hint }: { label: string; score: Score | null; hint: string }) {
   return (
+    <Labeled label={label} hint={hint}>
+      {score ? formatPercent(score) : <span aria-label="not tested">–</span>}
+    </Labeled>
+  );
+}
+
+function Labeled({ label, hint, children }: { label: string; hint: string; children: ReactNode }) {
+  return (
     <Tooltip content={hint} side="top">
       <span className="flex flex-col items-end">
         <span className="text-small">{label}</span>
-        <span className="font-display text-body font-semibold tabular-nums">
-          {score ? formatPercent(score) : <span aria-label="not tested">–</span>}
-        </span>
+        <span className="font-display text-body font-semibold tabular-nums">{children}</span>
       </span>
     </Tooltip>
+  );
+}
+
+/** A finished run's certificate (decision 077) as one figure: "Certified ≤ 8%". */
+function Certified({ certificate }: { certificate: ReportCard['certificate'] }) {
+  const figure = certificateFigure(certificate);
+  if (certificate === undefined || figure === null) return null;
+  return (
+    <Labeled label="Certified" hint={certificateHint(certificate)}>
+      {figure}
+    </Labeled>
   );
 }
 
@@ -341,23 +360,26 @@ function FinishedRow({ row }: { row: RunRow }) {
         onClick={() => navigate(paths.report(row.runId))}
         end={
           card ? (
-            scores ? (
-              <span className="flex gap-5">
-                <Figure
-                  label="Taught on"
-                  score={scores.seen}
-                  hint="Organizations it was taught on"
-                />
-                <Figure
-                  label="Never seen"
-                  score={scores.unseen}
-                  hint="Generated ones it never saw"
-                />
-                <Figure label="Real" score={scores.real} hint="Real ones it never saw" />
-              </span>
-            ) : (
-              <Figure label="Passed" score={card.test.score} hint="Final test" />
-            )
+            <span className="flex gap-5">
+              {scores ? (
+                <>
+                  <Figure
+                    label="Taught on"
+                    score={scores.seen}
+                    hint="Organizations it was taught on"
+                  />
+                  <Figure
+                    label="Never seen"
+                    score={scores.unseen}
+                    hint="Generated ones it never saw"
+                  />
+                  <Figure label="Real" score={scores.real} hint="Real ones it never saw" />
+                </>
+              ) : (
+                <Figure label="Passed" score={card.test.score} hint="Final test" />
+              )}
+              <Certified certificate={card.certificate} />
+            </span>
           ) : report.status === 'error' ? (
             <span className="text-small">Couldn't read the report</span>
           ) : (

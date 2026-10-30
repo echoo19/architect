@@ -362,7 +362,10 @@ export class FakeVault implements VaultDeps {
 
   openCalibration(jobId: string, proof: unknown): Task[] {
     if (typeof proof !== 'object' || proof === null || !this.runtime.proofs.has(proof)) {
-      throw new GuardError('split', 'The calibration split opens only after the mentor is released.');
+      throw new GuardError(
+        'split',
+        'The calibration split opens only after the mentor is released.',
+      );
     }
     this.opened.push(`${jobId}:calibration`);
     return structuredClone(this.calibration.get(jobId) ?? []);

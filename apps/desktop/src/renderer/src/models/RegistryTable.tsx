@@ -3,6 +3,7 @@ import type { Score } from '@architect/shared';
 import { AgentAvatar, DataTable, Tooltip, type DataColumn } from '@architect/ui';
 import { CircleAlert } from 'lucide-react';
 import { shortDate } from '../flow/format';
+import { certificateFigure, certificateHint } from '../flow/report/certificate-words';
 import { formatPercent } from '../lib/format';
 import {
   baseModelOf,
@@ -100,6 +101,30 @@ const SCORES = [
   scoreColumn('check', 'Check tasks', undefined, CHECK_HINT),
 ];
 
+/**
+ * The certified bound on its error when it answers (decision 077), lower first; absent for a
+ * version without a certificate.
+ */
+const CERTIFIED: DataColumn<ModelRow> = {
+  key: 'certified',
+  header: 'Certified',
+  align: 'end',
+  hint: 'The most it is wrong when it answers, certified on calibration tasks',
+  sortValue: (row) =>
+    row.report?.certificate?.issued === true ? row.report.certificate.threshold.bound : null,
+  cell: (row) => {
+    const certificate = row.report?.certificate;
+    const figure = certificateFigure(certificate);
+    return certificate === undefined || figure === null ? null : (
+      <Tooltip content={certificateHint(certificate)} side="top">
+        <span tabIndex={0} className="tabular-nums" aria-label={certificateHint(certificate)}>
+          {figure}
+        </span>
+      </Tooltip>
+    );
+  },
+};
+
 const COLUMNS: DataColumn<ModelRow>[] = [
   NAME,
   {
@@ -132,6 +157,7 @@ const COLUMNS: DataColumn<ModelRow>[] = [
     },
   },
   ...SCORES,
+  CERTIFIED,
   STATUS,
   {
     key: 'created',
