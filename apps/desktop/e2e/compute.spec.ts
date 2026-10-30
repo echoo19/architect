@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -6,7 +7,13 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { FAKE_HUB_TOKEN, startFakeHub, type FakeHub } from '@architect/engine/testing';
 import { planTraining } from '@architect/engine/training-plan';
-import { TrainBundleSchema, type ModelConfig, type TrainMethod } from '@architect/shared';
+import {
+  FIELD_EXPORT_FORMAT,
+  TrainBundleSchema,
+  type FieldExportManifest,
+  type ModelConfig,
+  type TrainMethod,
+} from '@architect/shared';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { GPU_12GB, LLAMA_SERVER_READY, OLLAMA_READY, stubEngine } from './fixtures';
 
@@ -24,6 +31,7 @@ const CONFIGS = fileURLToPath(
 const SIZE = { width: 1440, height: 900 };
 const REPO = 'lab/moe-235b';
 const MOE = JSON.parse(readFileSync(join(CONFIGS, 'moe-235b.json'), 'utf8')) as ModelConfig;
+const sha256 = (text: string) => createHash('sha256').update(text).digest('hex');
 
 test.describe.configure({ mode: 'serial' });
 
@@ -197,11 +205,32 @@ test('writes Slurm and Kubernetes bundles from a field export and shows the comm
   // Folders named as a person's would be, so the screen reads as it would for them.
   const exported = join(folders, 'Architect', 'exports', 'phil');
   await mkdir(join(exported, 'sft'), { recursive: true });
-  await writeFile(join(exported, 'MANIFEST.json'), JSON.stringify({ counts: {} }));
-  await writeFile(
-    join(exported, 'sft', 'demonstrations.jsonl'),
-    `${JSON.stringify({ messages: [{ role: 'assistant', content: 'ANSWER: 12' }] })}\n`,
-  );
+  // A bundle takes only a verified export: every sft file listed in the manifest with its hash.
+  const demonstrations = `${JSON.stringify({ messages: [{ role: 'assistant', content: 'ANSWER: 12' }] })}\n`;
+  await writeFile(join(exported, 'sft', 'demonstrations.jsonl'), demonstrations);
+  const manifest: FieldExportManifest = {
+    format: FIELD_EXPORT_FORMAT,
+    created_at: '2026-10-30T00:00:00.000Z',
+    job: {
+      id: 'phil',
+      name: 'Phil',
+      format: 1,
+      created_at: '2026-10-30T00:00:00.000Z',
+      sha256: sha256('job'),
+    },
+    counts: {
+      demonstrations: 1,
+      trained_turns: 1,
+      train_tasks: 1,
+      train_organizations: 1,
+      sealed_organizations: 0,
+      locked_test_tasks: 0,
+    },
+    files: { 'sft/demonstrations.jsonl': sha256(demonstrations) },
+    permitted_uses: { sft: [], env: [], eval: [] },
+    left_out: [],
+  };
+  await writeFile(join(exported, 'MANIFEST.json'), JSON.stringify(manifest));
   const out = join(folders, 'Architect', 'bundles');
   await mkdir(out, { recursive: true });
 
