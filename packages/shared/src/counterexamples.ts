@@ -97,9 +97,14 @@ function shown(value: unknown): string {
   return typeof value === 'string' ? `"${value}"` : JSON.stringify(value);
 }
 
+/** An error's own words, without the `Error: ` its kind puts before them. */
+export function errorWords(message: string): string {
+  return message.replace(/^Error:\s*/, '');
+}
+
 /** The failure in plain words, for the mentor and for the person. */
 export function predicateSentence(helper: string, predicate: CounterexamplePredicate): string {
   return predicate.kind === 'threw'
-    ? `${helper} stops with the error "${predicate.message}"`
+    ? `${helper} stops with the error "${errorWords(predicate.message)}"`
     : `${helper} gives ${predicate.field} ${shown(predicate.got)} where the checker expects ${shown(predicate.expected)}`;
 }

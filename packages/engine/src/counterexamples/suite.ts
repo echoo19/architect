@@ -1,4 +1,5 @@
 import {
+  errorWords,
   predicateSentence,
   type Counterexample,
   type Harness,
@@ -49,7 +50,7 @@ export async function runSuite(
       detail: still
         ? `Still: ${predicateSentence(tool.name, cx.predicate)}.`
         : cx.predicate.kind === 'threw'
-          ? `No longer stops with "${cx.predicate.message}".`
+          ? `No longer stops with "${errorWords(cx.predicate.message)}".`
           : `No longer gives ${cx.predicate.field} ${JSON.stringify(cx.predicate.got)}.`,
     });
     if (original !== undefined) results.push(await originalResult(ctx, tool, cx, original));
