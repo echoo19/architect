@@ -20,7 +20,7 @@ Build 10472 prints `version: 0.1.1-dev (build 10472, commit 60eeeb608)`. Older b
 
 ## A stubbed engine channel stays stubbed for the rest of the spec
 
-`stubEngine` replaces a channel's handler in the main process, and nothing puts the engine's own back, so a later test in the same app gets the earlier stub. In `apps/desktop/e2e/screenshots.spec.ts` the dark theme's run routes ask the engine itself and show "There is no run", while the light theme's run after the sample replies were installed and show the sample run (`train-light`, `report-light`, `improvement-light`). A spec that needs the engine's own answer again stubs that answer itself, or launches a new app.
+`stubEngine` replaces a channel's handler in the main process, and nothing puts the engine's own back, so a later test in the same app gets the earlier stub. In `apps/desktop/e2e/screenshots.spec.ts` the run routes captured first (`train-dark`, `report-dark`, `improvement-dark`) ask the engine itself and show "There is no run", while the sample routes, captured after the sample replies were installed, show the sample run. A spec that needs the engine's own answer again stubs that answer itself, or launches a new app.
 
 ## A reload in an e2e spec keeps the route, and a read that failed stays failed
 
