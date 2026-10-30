@@ -46,6 +46,8 @@ export const TaskSchema = z.object({
   /** The request as the agent sees it. */
   prompt: z.string().min(1),
   expected: ExpectedSchema,
+  /** The organization whose files the task binds to; required when the job lists organizations. */
+  org: z.string().min(1).optional(),
   /** Optional facts for humans reading results (never shown to the student). */
   meta: z.record(z.string(), JsonValueSchema).optional(),
 });

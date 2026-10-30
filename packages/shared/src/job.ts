@@ -176,6 +176,18 @@ export const TaskTypeInfoSchema = z.object({
 });
 export type TaskTypeInfo = z.infer<typeof TaskTypeInfoSchema>;
 
+/**
+ * An organization whose own files a job's tasks bind to (docs/FIELD.md, the contract). Its files
+ * sit at `orgs/<id>/data/` in the job folder. A `transfer` organization is never trained on.
+ */
+export const OrganizationSchema = z.object({
+  id: z.string().regex(/^[a-z][a-z0-9-]{0,39}$/),
+  name: z.string().min(1),
+  synthetic: z.boolean(),
+  role: z.enum(['train', 'transfer']),
+});
+export type Organization = z.infer<typeof OrganizationSchema>;
+
 export const JobSchema = z.object({
   format: z.literal(JOB_FORMAT),
   id: z.string().min(1),
@@ -218,6 +230,8 @@ export const JobSchema = z.object({
    * the mentor and the budget, so a graduate's contract and package don't carry it.
    */
   interventions: AllowedInterventionsSchema.optional(),
+  /** The organizations the tasks bind to. Absent: a one-organization job with its files in data/. */
+  organizations: z.array(OrganizationSchema).min(1).optional(),
 });
 export type Job = z.infer<typeof JobSchema>;
 
