@@ -2,6 +2,16 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri, late night), Lab screens polish after a blind read (branch `platform/polish`)
+
+**Done** (stand-in engine only: no model was called, no GPU, no spend)
+- One term per concept across Lab, Fields, Models, Experiments and the Define inspector: "Taught on" and "Never seen" (sealed only in the one line that explains it), Spark and Glimmer in place of Teacher and Student. The empty Lab says in one line what a field is and who Spark and Glimmer are.
+- Lab: Needs you groups its rows by kind; the two columns stack at their own heights, so Running no longer leaves an empty card. A new version is shown beside the active one with both check-task scores ("Version 3: 88% on check tasks, active version 2: 94%"). The Lab's stand-in agents are the ones Models lists (version 2 active for the service desk and Phil, Phil Mini too).
+- Define: a time limit that stops training before its last round is said in Budget and beside Start training, with the fix ("The 20-hour limit fits 2 to 4 of 12 rounds", Allow 88 hours); retraining Glimmer with a $0 compute cap is said in Budget only, since every job allows retraining by default and the engine simply skips it. The time meter measures training with every round, so a binding limit reads past its cap. The online price was one source all along; the e2e no longer changes the rounds between captures.
+- Experiments: no spend before a run starts ("Up to $6.00"); compute with a $0 cap reads "Not used"; arms that never call a model show nothing for it; "Done teaching" in place of Frozen; a simulation is marked as one, in the badge and the summary; arms are explained once and each tile has a one-line description; Funded is gone.
+- Compute: the plan leads with its answer ("Fits on 16 GPUs in 2 nodes, 52.1 GB each of 72.0 GB usable"), the hardware it was sized for with Change hardware, and the arithmetic under "How this is worked out". Slurm and Kubernetes read "Bundle only" beside Hugging Face Jobs' "Ready"; the bundle says the SCALE.md wording once, short; paths show as their last two folders.
+- Models: harness and adapter hashes on hover; Check tasks explained on hover; deltas with units. Units agree with their numbers in the inspector. Screenshots recaptured, plus `compute-plan-terms-dark.png`.
+
 ## 2026-10-30 (Fri, night), platform lane "Compute" (branch `platform/compute`)
 
 **Done** (no model was called, no GPU, no cluster, no spend; the Hub in tests is the fake one)
