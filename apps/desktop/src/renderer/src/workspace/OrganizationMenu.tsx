@@ -5,10 +5,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
   Tooltip,
 } from '@architect/ui';
-import { Building2, Check, ChevronDown } from 'lucide-react';
+import { Building2, Check, ChevronDown, FolderOpen } from 'lucide-react';
 import { architect } from '../api/client';
 import {
   graduateKeys,
@@ -33,7 +34,10 @@ const trigger =
 /**
  * Which organization's records an agent from a several-organization job works on, and a way to
  * move it to another: choosing one asks for that organization's records folder and binds the
- * agent's records to it, as the settings' folder row does. Writes still ask as they did.
+ * agent's records to it, as the settings' folder row does. "Another academy" binds a folder of
+ * the person's own records once it holds the files and columns the agent was trained with; the
+ * header then says the agent wasn't tested there, since no report number applies to it. Writes
+ * still ask as they did.
  */
 export function OrganizationMenu({ agent }: { agent: GraduateSummary }) {
   const report = useVersionReport(agent);
@@ -62,7 +66,28 @@ export function OrganizationMenu({ agent }: { agent: GraduateSummary }) {
     if (next) setQueryData(graduateKeys.installation(agent.id), next);
   };
 
-  const label = `Organization: ${current?.name ?? 'not chosen'}`;
+  const own = folder !== undefined && current?.org === null;
+  const label = `Organization: ${current?.name ?? 'not chosen'}${own ? ', not tested at this academy' : ''}`;
+  const chooseOwn = async () => {
+    setChoosing(true);
+    const next = await attempt(`Couldn't move ${agent.name} to another academy`, async () => {
+      const [picked] = await architect().files.pick({
+        title: 'Choose the folder that holds your academy’s records',
+        directory: true,
+      });
+      if (!picked) return null;
+      const fit = await graduatesApi.checkFolder(agent.id, 'data', picked);
+      if (fit.problems.length > 0) {
+        throw new Error(`${agent.name} can't work from that folder. ${fit.problems.join(' ')}`);
+      }
+      const bound = await graduatesApi.bind(agent.id, { bindings: { data: picked } });
+      await refreshAgent(agent.id);
+      return bound;
+    });
+    setChoosing(false);
+    if (next) setQueryData(graduateKeys.installation(agent.id), next);
+  };
+
   return (
     <DropdownMenu>
       <Tooltip content={folder ? shortPath(folder) : `${agent.name}'s own copy`} side="bottom">
@@ -70,6 +95,7 @@ export function OrganizationMenu({ agent }: { agent: GraduateSummary }) {
           <button type="button" className={trigger} disabled={choosing} aria-label={label}>
             <Building2 size={15} strokeWidth={1.8} aria-hidden />
             {current?.name ?? 'Choose an organization'}
+            {own && <span className="font-normal text-fg-dim">Not tested at this academy</span>}
             <ChevronDown size={14} strokeWidth={1.8} aria-hidden />
           </button>
         </DropdownMenuTrigger>
@@ -88,6 +114,14 @@ export function OrganizationMenu({ agent }: { agent: GraduateSummary }) {
             {org.name}
           </DropdownMenuItem>
         ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onSelect={() => void chooseOwn()}
+          icon={<FolderOpen strokeWidth={1.8} aria-hidden />}
+          shortcut={own ? <Check strokeWidth={2} aria-label="Current" /> : null}
+        >
+          Another academy…
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

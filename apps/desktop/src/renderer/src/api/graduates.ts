@@ -2,6 +2,7 @@ import {
   ExportPartResultSchema,
   ExportResultSchema,
   ExportReviewSchema,
+  FolderFitSchema,
   GraduateSummarySchema,
   GraduateVersionSchema,
   HubInstallResultSchema,
@@ -72,6 +73,12 @@ export const graduatesApi = {
     read('graduates.verify', InstallationSchema, architect().graduates.verify(graduateId, options)),
   bind: (graduateId: string, request: BindRequest) =>
     read('graduates.bind', InstallationSchema, architect().graduates.bind(graduateId, request)),
+  checkFolder: (graduateId: string, resource: string, folder: string) =>
+    read(
+      'graduates.checkFolder',
+      FolderFitSchema,
+      architect().graduates.checkFolder(graduateId, resource, folder),
+    ),
   reviewExport: (graduateId: string, include: string[]) =>
     read(
       'graduates.reviewExport',
