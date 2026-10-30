@@ -109,6 +109,21 @@ export const SplitConfigSchema = z.object({
 });
 export type SplitConfig = z.infer<typeof SplitConfigSchema>;
 
+export const CertifySettingsSchema = z.object({
+  /** Attempts per request; their agreement decides whether to answer. 1 turns agreement off. */
+  k: z.number().int().min(1).max(9).default(5),
+  /** The selective error the certificate must bound: wrong answers among those given. */
+  epsilon: z.number().gt(0).lt(1).default(0.1),
+  /** One minus the confidence the bound holds with. */
+  delta: z.number().gt(0).max(0.5).default(0.05),
+  /**
+   * Tasks of the organizations the job trains on sealed for calibration. Absent: 15% of them,
+   * at least 30 when there are that many to spare.
+   */
+  calibration: z.number().int().min(1).optional(),
+});
+export type CertifySettings = z.infer<typeof CertifySettingsSchema>;
+
 export const EvaluationConfigSchema = z.object({
   /** Train tasks the student attempts each round before the mentor diagnoses. */
   trainBatch: z.number().int().min(1),
@@ -140,6 +155,13 @@ export const EvaluationConfigSchema = z.object({
       'Each locked-test seed may appear once.',
     )
     .optional(),
+  /**
+   * Certified answers (decision 077): after freezing, the graduate makes k attempts at each task
+   * of a sealed calibration split and of the locked test, answers when enough of them agree and
+   * hands the request to a person otherwise, and the report states a bound on how often an
+   * answer it gives is wrong. Absent: no calibration split and no certificate, as before.
+   */
+  certify: CertifySettingsSchema.optional(),
 });
 export type EvaluationConfig = z.infer<typeof EvaluationConfigSchema>;
 

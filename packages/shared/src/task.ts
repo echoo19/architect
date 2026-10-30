@@ -62,7 +62,11 @@ export const TaskSchema = z.object({
 });
 export type Task = z.infer<typeof TaskSchema>;
 
-export const SplitNameSchema = z.enum(['calibration', 'train', 'dev', 'test']);
+/**
+ * `calibration` prices attempts and is visible; `certify` is the sealed calibration split a
+ * certificate is computed on (decision 077), kept in the vault like `test`.
+ */
+export const SplitNameSchema = z.enum(['calibration', 'train', 'dev', 'test', 'certify']);
 export type SplitName = z.infer<typeof SplitNameSchema>;
 
 /** The line every task answer ends with. */
