@@ -629,7 +629,7 @@ test('says beside the score that a confirmed rule made the expected answers, wit
   // out, what each side did, and whether teaching ran.
   await page.getByRole('button', { name: 'Details' }).first().click();
   const rule = page.getByRole('region', { name: 'The rule for Ticket totals' });
-  // The rule in words is a short numbered list, the file named in a step set quietly.
+  // The rule in words is a short numbered list, the file named in a step set in mono.
   const told = rule.locator('ol > li');
   await expect(told).toHaveCount(5);
   await expect(told.nth(0)).toHaveText('1.Round labor hours up to a multiple of 0.5.');
@@ -639,8 +639,10 @@ test('says beside the score that a confirmed rule made the expected answers, wit
   );
   await expect(rule).not.toContainText('Start with (labor hours rounded up');
   const file = told.nth(2).getByText('(customers.csv)', { exact: true });
-  const quiet = (element: Locator) => element.evaluate((node) => getComputedStyle(node).color);
-  expect(await quiet(file)).not.toBe(await quiet(told.nth(2)));
+  const family = (element: Locator) =>
+    element.evaluate((node) => getComputedStyle(node).fontFamily);
+  expect(await family(file)).toContain('Geist Mono');
+  expect(await family(file)).not.toBe(await family(told.nth(2)));
   await expect(rule).toContainText('2a3e028da93a');
   // The date is said the way Define says it, not as a stamp.
   await expect(rule).toContainText(/Confirmed\s*Oct 29/);

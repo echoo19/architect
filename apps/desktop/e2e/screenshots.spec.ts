@@ -73,11 +73,15 @@ async function capture(page: Page, file: string): Promise<void> {
   await page.screenshot({ path: join(OUT_DIR, file), animations: 'disabled', timeout: 15_000 });
 }
 
-/** Settings changed behind the renderer's back need a reload before its cache sees them. */
-async function applySettings(page: Page, patch: Parameters<typeof updateSettings>[1]) {
-  await updateSettings(page, patch);
+/** The renderer keeps what it has read, so a change made behind its back needs a reload. */
+async function reload(page: Page) {
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
+}
+
+async function applySettings(page: Page, patch: Parameters<typeof updateSettings>[1]) {
+  await updateSettings(page, patch);
+  await reload(page);
 }
 
 test('captures every screen', async () => {
@@ -151,6 +155,7 @@ test('captures the empty workspace and a failed action', async () => {
       code: 'process_failed',
     },
   });
+  await reload(page);
   await goTo(page, '/');
   await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
   await capture(page, 'workspace-empty-dark.png');
@@ -171,6 +176,7 @@ test('captures the populated screens with sample engine replies', async () => {
     'secrets:status': { meta: true, openrouter: true },
     'connections:detectLocal': FLOW_LOCAL,
   });
+  await reload(page);
   for (const route of SAMPLE_ROUTES) {
     await goTo(page, route.path);
     await expect(page.getByRole('alert')).toHaveCount(0);

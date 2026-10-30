@@ -359,8 +359,8 @@ test('asks what the policy leaves open, shows the rule, and trains only after it
   const notRecord = card.getByText('Not from your records', { exact: true });
   await expect(notRecord).toBeVisible();
   await expect(card.getByText('Made-up numbers')).toHaveCount(0);
-  // Its tag comes before what the example shows, and in the body's own ink and not the quiet one
-  // of the tags beside it, so "Like T-2144, but with parts cost 0.005" is not taken for a ticket
+  // Its tag comes before what the example shows, and in a heavier weight than the tags beside it,
+  // so "Like T-2144, but with parts cost 0.005" is not taken for a ticket
   // whose price changed.
   const made = card
     .getByRole('listitem')
@@ -369,8 +369,8 @@ test('asks what the policy leaves open, shows the rule, and trains only after it
   const [tagBox, showsBox] = await Promise.all([notRecord.boundingBox(), shows.boundingBox()]);
   expect(tagBox && showsBox).toBeTruthy();
   expect(tagBox!.x).toBeLessThan(showsBox!.x);
-  const color = (tag: Locator) => tag.evaluate((node) => getComputedStyle(node).color);
-  expect(await color(notRecord)).not.toBe(await color(shows));
+  const weight = (tag: Locator) => tag.evaluate((node) => getComputedStyle(node).fontWeight);
+  expect(Number(await weight(notRecord))).toBeGreaterThan(Number(await weight(shows)));
   // The version is not beside the title: it waits under Details, for whoever wants to quote it.
   await expect(card.getByText(/^version [0-9a-f]{12}$/)).toHaveCount(0);
   await card.getByRole('button', { name: 'Details' }).click();

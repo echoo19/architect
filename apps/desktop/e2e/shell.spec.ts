@@ -61,6 +61,16 @@ test('opens a hidden, sandboxed window', async () => {
   expect(csp).toContain("script-src 'self'");
 });
 
+test('tells the page it runs hidden, so nothing in it animates', async () => {
+  const page = launched.page;
+  expect(await page.evaluate(() => window.architectRuntime)).toEqual({ hidden: true });
+  // It is dark whatever the system says: the window, the page and what the page reports.
+  expect(await page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(true);
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(
+    'rgb(7, 7, 7)',
+  );
+});
+
 test('sends a first run to the welcome screen', async () => {
   const page = launched.page;
   await settle(page);

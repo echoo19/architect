@@ -151,9 +151,7 @@ describe('the rule as Define puts it in front of the person', () => {
     const rule = html.slice(html.indexOf('The rule, in words'), html.indexOf('>Examples<'));
     expect(rule).toContain('<span class="font-mono">(customers.csv)</span>');
     // Only the file is set in mono: the words around it are not.
-    expect(rule).toMatch(
-      /When member <span class="font-mono">\(customers\.csv\)<\/span> is yes/,
-    );
+    expect(rule).toMatch(/When member <span class="font-mono">\(customers\.csv\)<\/span> is yes/);
     // What the person said a step rests on follows it, as a sentence of its own.
     expect(rule).toContain('<span> An empty parts cost counts as 0, as you said.</span>');
   });
