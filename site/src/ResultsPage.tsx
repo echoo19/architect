@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { ArrowUpRight } from 'lucide-react';
 import { REPORTS } from './content';
 import {
@@ -29,71 +29,105 @@ import { RoundDiagram } from './components/RoundDiagram';
 import { ScoreChart } from './mock/score-chart';
 
 /**
- * The results page: the evidence that is in the README and in docs/comparisons, set out as one
- * column to read: the same sealed final test taken three ways, the score round by round, answer
- * time and cost, how a round works, and what none of it shows. Each chart or table sits in its own
- * panel under its own title. Every number is in `evidence.ts`, with the document it comes from,
- * and each section says which.
+ * The results page, set out as a short paper: a title and an abstract, numbered sections, numbered
+ * figures and tables with their captions, and numbered references to the documents the figures
+ * come from. Every number is in `evidence.ts`, with the document it comes from.
  */
 
 const dollars = (value: number) => `$${value.toFixed(2)}`;
 const signed = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
 
-/** The documents a block rests on, each a link to the file. */
-function Sources({ from }: { from: readonly SourceKey[] }) {
+/** The documents cited, in the order the page first cites them, with what each one is. */
+const REFERENCES: readonly { key: SourceKey; what: string }[] = [
+  { key: 'plan', what: "The second comparison's plan, published before it ran." },
+  { key: 'second', what: "The second comparison's report." },
+  { key: 'first', what: "The first comparison's report." },
+  { key: 'hackathon', what: "The repair shop's run." },
+  { key: 'readme', what: 'The project overview.' },
+];
+
+/** Numbered citations, each a link to its entry in the references. */
+function Cite({ to }: { to: readonly SourceKey[] }) {
   return (
-    <p className="t-small m-0">
-      Sources:{' '}
-      {from.map((key, index) => (
-        <span key={key}>
+    <span className="whitespace-nowrap tabular-nums">
+      {' ['}
+      {to.map((key, index) => (
+        <Fragment key={key}>
           {index > 0 && ', '}
-          <a className="link-quiet" href={sourceUrl(key)}>
-            {SOURCES[key].name}
+          <a className="link-quiet" href={`#ref-${key}`}>
+            {REFERENCES.findIndex((reference) => reference.key === key) + 1}
           </a>
-        </span>
+        </Fragment>
       ))}
-      .
-    </p>
+      ]
+    </span>
   );
 }
 
-/** A chart or a table with its title, set apart from the text around it. */
-function Panel({ title, children, note }: { title: string; children: ReactNode; note?: string }) {
+/**
+ * A figure or a table in its own panel, with its number and caption: under a figure, over a
+ * table, as a paper sets them.
+ */
+function Exhibit({
+  label,
+  caption,
+  table = false,
+  children,
+}: {
+  label: string;
+  caption: ReactNode;
+  table?: boolean;
+  children: ReactNode;
+}) {
+  const text = (
+    <figcaption className="text-pretty">
+      <span className="font-semibold">{label}.</span> {caption}
+    </figcaption>
+  );
   return (
-    <Reveal className="rounded-card bg-card px-7 pb-6 pt-6 shadow-edge max-sm:px-4 max-sm:pb-5">
-      <h3 className="m-0 mb-5 font-display text-h2 font-semibold">{title}</h3>
-      {children}
-      {note && <p className="t-small m-0 mt-4 text-pretty">{note}</p>}
+    <Reveal>
+      <figure className="m-0 flex flex-col gap-5 rounded-card bg-card px-7 py-6 shadow-edge max-sm:px-4 max-sm:py-5">
+        {table && text}
+        {children}
+        {!table && text}
+      </figure>
     </Reveal>
   );
 }
 
-/** A section of the page: its claim as a heading, then its text and panels, then its sources. */
-function Part({
+/** A numbered section. */
+function Section({
   id,
+  number,
   title,
-  from,
   children,
 }: {
   id: string;
+  number: number;
   title: string;
-  from: readonly SourceKey[];
   children: ReactNode;
 }) {
   return (
     <section
       id={id}
       aria-labelledby={`${id}-title`}
-      className="article scroll-mt-16 pb-16 sm:pb-20"
+      className="article flex scroll-mt-16 flex-col gap-6 pt-14 sm:pt-16"
     >
-      <div className="flex flex-col gap-7 border-t border-line pt-12 sm:pt-14">
-        <h2 id={`${id}-title`} className="t-title">
-          {title}
-        </h2>
-        {children}
-        <Sources from={from} />
-      </div>
+      <h2 id={`${id}-title`} className="t-h1">
+        <span className="mr-3 tabular-nums">{number}</span>
+        {title}
+      </h2>
+      {children}
     </section>
+  );
+}
+
+function Subsection({ number, title }: { number: string; title: string }) {
+  return (
+    <h3 className="m-0 mt-4 font-display text-h2 font-semibold">
+      <span className="mr-3 tabular-nums">{number}</span>
+      {title}
+    </h3>
   );
 }
 
@@ -217,24 +251,14 @@ function ArmTable({ comparison }: { comparison: Comparison }) {
     <Table
       label={`Final-test passes by kind of request, ${comparison.title}`}
       fit
-      columns={['', ...TYPES.map((type) => `${type}, of ${PER_TYPE}`)]}
+      columns={['', ...TYPES]}
       rows={comparison.arms.map((arm) => [armLabel(arm), ...arm.byType.map(String)])}
     />
   );
 }
 
-/** Each pair of arms, request by request: who won, who lost, and the difference with its interval. */
-function Pairs({
-  comparison,
-  min,
-  max,
-  ticks,
-}: {
-  comparison: Comparison;
-  min: number;
-  max: number;
-  ticks: readonly number[];
-}) {
+/** Each pair of arms, request by request: the difference in points with its interval. */
+function PairForest({ comparison }: { comparison: Comparison }) {
   const rows: ForestRow[] = comparison.pairs.map((pair) => ({
     label: (
       <span className="text-pretty">
@@ -249,29 +273,33 @@ function Pairs({
     summary: `${pair.label}: ${signed(pair.diff)} points, 95% interval ${signed(pair.low)} to ${signed(pair.high)}.`,
   }));
   return (
-    <div className="flex flex-col gap-8">
-      <Forest
-        name={`Difference in final-test pass rate, in percentage points, ${comparison.title}`}
-        rows={rows}
-        min={min}
-        max={max}
-        ticks={ticks}
-        formatTick={(value) => `${value > 0 ? '+' : ''}${value}`}
-        zero="No difference"
-      />
-      <Table
-        label={`Request by request, ${comparison.title}`}
-        columns={['', 'Won', 'Lost', 'Both passed', 'Neither', 'Points (95% interval)']}
-        rows={comparison.pairs.map((pair) => [
-          <Actors key="label" text={pair.label} />,
-          pair.wins,
-          pair.losses,
-          pair.both,
-          pair.neither,
-          `${signed(pair.diff)} (${signed(pair.low)} to ${signed(pair.high)})`,
-        ])}
-      />
-    </div>
+    <Forest
+      name={`Difference in final-test pass rate, in percentage points, ${comparison.title}`}
+      rows={rows}
+      min={-40}
+      max={50}
+      ticks={[-40, -20, 0, 20, 40]}
+      formatTick={(value) => `${value > 0 ? '+' : ''}${value}`}
+      zero="No difference"
+    />
+  );
+}
+
+/** Each pair of arms, request by request: who won, who lost, and where they agreed. */
+function PairTable({ comparison }: { comparison: Comparison }) {
+  return (
+    <Table
+      fit
+      label={`Request by request, ${comparison.title}`}
+      columns={['', 'Won', 'Lost', 'Both passed', 'Neither']}
+      rows={comparison.pairs.map((pair) => [
+        <Actors key="label" text={pair.label} />,
+        pair.wins,
+        pair.losses,
+        pair.both,
+        pair.neither,
+      ])}
+    />
   );
 }
 
@@ -306,11 +334,6 @@ function RoundList({ rounds, label }: { rounds: readonly Round[]; label: string 
 
 const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
   {
-    title: 'The first comparison showed no gain.',
-    text: 'Teaching won 11 requests and lost 9 against Glimmer alone, and its interval, -11.5 to +18.0 points, includes zero. The second was designed after seeing it, with the budget the job gives teaching, and its plan was published before it ran.',
-    from: 'plan',
-  },
-  {
     title: 'Two desks of one kind.',
     text: 'Both are returns desks, made by the same generator for a made-up shop. They test one kind of job, not other businesses.',
     from: 'plan',
@@ -332,38 +355,39 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
   },
   {
     title: 'The repair shop ran once.',
-    text: `Its job went from ${REPAIR.checkBefore} of ${REPAIR.checkTotal} check tasks to ${REPAIR.checkAfter} of ${REPAIR.checkTotal} after one round, and passed ${REPAIR.finalPassed} of ${REPAIR.finalTotal} on its final test. It was a single run, not a planned comparison, and a rule graded it.`,
+    text: 'It was a single run, not a planned comparison, and a rule graded it.',
     from: 'hackathon',
   },
 ];
 
-/** Three figures side by side, each with what it counts. */
-function Figures({ items }: { items: readonly { figure: string; text: string }[] }) {
-  return (
-    <ul className="m-0 grid list-none gap-x-8 gap-y-5 p-0 sm:grid-cols-3">
-      {items.map((item) => (
-        <li key={item.figure} className="flex flex-col gap-2.5">
-          <span className="t-h1 leading-none tabular-nums">{item.figure}</span>
-          <span className="text-pretty">
-            <Actors text={item.text} />
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
+/** The headline figures under the abstract. */
+const HEADLINE: readonly { figure: string; text: string }[] = [
+  { figure: '44 to 58', text: 'of 60 requests Glimmer had never seen, on a new returns desk.' },
+  {
+    figure: '+23.3 points',
+    text: 'against Glimmer on its own, with a 95% interval of +10.9 to +35.9.',
+  },
+  { figure: '42 cents', text: "of Spark's money paid for the teaching." },
+];
 
 const TAUGHT = "Glimmer after Spark's teaching";
 const ALONE = 'Glimmer on its own';
+const ONE_SHOT = "Spark's one-shot setup";
 
 export function ResultsPage() {
   const second = {
-    alone: pair(SECOND, 'Teaching against Glimmer on its own'),
-    oneShot: pair(SECOND, 'Teaching against the one-shot setup'),
+    taught: arm(SECOND, TAUGHT),
+    alone: arm(SECOND, ALONE),
+    oneShot: arm(SECOND, ONE_SHOT),
+    againstAlone: pair(SECOND, 'Teaching against Glimmer on its own'),
+    againstOneShot: pair(SECOND, 'Teaching against the one-shot setup'),
   };
-  const first = pair(FIRST, 'Teaching against Glimmer on its own');
-  const taught = arm(SECOND, TAUGHT);
-  const alone = arm(SECOND, ALONE);
+  const first = {
+    taught: arm(FIRST, TAUGHT),
+    alone: arm(FIRST, ALONE),
+    spark: arm(FIRST, 'Spark doing the job itself'),
+    againstAlone: pair(FIRST, 'Teaching against Glimmer on its own'),
+  };
   return (
     <div id="top">
       <a
@@ -373,97 +397,134 @@ export function ResultsPage() {
         Skip to the content
       </a>
       <Header page="results" />
-      <main id="main">
-        <section aria-labelledby="results-title" className="article pb-16 pt-12 sm:pb-20 sm:pt-16">
-          <h1 id="results-title" className="t-hero">
-            What teaching changed.
+      <main id="main" className="pb-20 sm:pb-24">
+        <section aria-labelledby="results-title" className="article pt-12 sm:pt-16">
+          <h1 id="results-title" className="t-title">
+            What teaching changed
           </h1>
-          <p className="t-read mt-6">
-            <Actors text="The same final test, sealed until the end, taken three ways: by Glimmer alone, with a one-shot setup from Spark, and after Spark watched it fail and taught it." />
-          </p>
-          <div className="mt-9 rounded-card bg-card px-7 py-6 shadow-edge max-sm:px-4">
-            <Figures
-              items={[
-                {
-                  figure: '44 to 58',
-                  text: 'of 60 requests Glimmer had never seen, on a new returns desk.',
-                },
-                {
-                  figure: '+23.3 points',
-                  text: 'against Glimmer on its own, with a 95% interval of +10.9 to +35.9.',
-                },
-                { figure: '42 cents', text: "of Spark's money paid for the teaching." },
-              ]}
+          <p className="m-0 mt-4">Jake Kang · October 2026</p>
+          <h2 className="m-0 mt-10 font-display text-h2 font-semibold">Abstract</h2>
+          <p className="t-read mt-3">
+            <Actors
+              text={`A large model, Spark, taught a small one, Glimmer, a returns desk's job by changing its instructions and small tools, and kept a change only if it raised the score on check tasks Spark never sees. On a sealed final test of ${TEST_SIZE} requests Glimmer had never seen, the taught Glimmer passed ${second.taught.passed}, against ${second.alone.passed} on its own and ${second.oneShot.passed} with a one-shot setup from Spark. The teaching cost 42 cents. On an earlier desk, where teaching was held to two rounds, the gain was not distinguishable from zero. Both desks are made up, each final test ran under one seed, and Glimmer was served online.`}
             />
-          </div>
+          </p>
+          <ul className="m-0 mt-8 grid list-none gap-x-8 gap-y-5 border-y border-line p-0 py-6 sm:grid-cols-3">
+            {HEADLINE.map((item) => (
+              <li key={item.figure} className="flex flex-col gap-2.5">
+                <span className="t-h1 leading-none tabular-nums">{item.figure}</span>
+                <span className="text-pretty">
+                  <Actors text={item.text} />
+                </span>
+              </li>
+            ))}
+          </ul>
         </section>
 
-        <Part
-          id="second"
-          title="On a new returns desk, teaching raised the score."
-          from={['second', 'plan', 'readme']}
-        >
+        <Section id="setup" number={1} title="Setup">
           <Text>
-            <Actors
-              text={`Glimmer passed ${taught.passed} of ${TEST_SIZE} requests it had never seen, against ${alone.passed} on its own. Spark's one-shot setup did worse than Glimmer alone.`}
-            />
+            <Actors text="Glimmer, a small open-weight model, took the same final test three ways: on its own, with a one-shot setup written by Spark, and after Spark watched it fail and taught it" />
+            <Cite to={['plan']} />.
           </Text>
           <Text>
             <Actors
-              text={`All three took the same final test: ${TEST_SIZE} requests, ${PER_TYPE} of each kind, sealed until every setup was frozen. Teaching could run up to 8 rounds.`}
+              text={`Each final test has ${TEST_SIZE} requests Glimmer has never seen, ${PER_TYPE} of each kind: refunds, order questions and pickups. Nothing Spark does can touch it. It is opened once, after every setup is frozen, and a program grades it.`}
             />
           </Text>
-          <Panel title="Final test, of 60">
-            <div className="flex flex-col gap-8">
-              <PassRates comparison={SECOND} />
-              <ArmTable comparison={SECOND} />
-            </div>
-          </Panel>
           <Text>
-            <Actors
-              text={`Matched request by request, the taught Glimmer won ${second.alone.wins} requests that Glimmer alone failed and lost ${second.alone.losses}: ${signed(second.alone.diff)} points, with a 95% interval of ${interval(second.alone)}. Against the one-shot setup it won ${second.oneShot.wins} and lost ${second.oneShot.losses}.`}
-            />
+            <Actors text="Teaching runs in rounds (Figure 1). Spark reads Glimmer's failed practice attempts and makes one change to its instructions or small tools. The change is kept only if check-task passes rise by at least 2 a run, measured again on new seeds over 2 runs, and no kind of task loses more than 1. Spark sees the check-task score, never the tasks" />
+            <Cite to={['plan', 'second']} />.
           </Text>
-          <Panel title="Request by request, in points">
-            <Pairs comparison={SECOND} min={-40} max={50} ticks={[-40, -20, 0, 20, 40]} />
-          </Panel>
-        </Part>
+          <Exhibit
+            label="Figure 1"
+            caption="The job's tasks, cut once into four sets, and the five steps of a round of teaching. The final test stays sealed until every setup is frozen."
+          >
+            <RoundDiagram />
+          </Exhibit>
+        </Section>
 
-        <Part id="first" title="On the first returns desk, it did not." from={['first', 'plan']}>
+        <Section id="results" number={2} title="Final-test results">
+          <Subsection number="2.1" title="A new returns desk" />
           <Text>
             <Actors
-              text={`With teaching held to two rounds, Glimmer passed ${arm(FIRST, TAUGHT).passed} of ${TEST_SIZE} against ${arm(FIRST, ALONE).passed} on its own. Spark answering every request itself passed ${arm(FIRST, 'Spark doing the job itself').passed}.`}
+              text={`Teaching could run up to 8 rounds. After it, Glimmer passed ${second.taught.passed} of ${TEST_SIZE}, against ${second.alone.passed} on its own and ${second.oneShot.passed} with Spark's one-shot setup (Figure 2, Table 1)`}
             />
+            <Cite to={['second']} />.
           </Text>
-          <Panel title="Final test, of 60">
-            <div className="flex flex-col gap-8">
-              <PassRates comparison={FIRST} />
-              <ArmTable comparison={FIRST} />
-            </div>
-          </Panel>
+          <Exhibit
+            label="Figure 2"
+            caption="Final-test passes by arm on the new returns desk, with 95% intervals. The dashed line is the job's target."
+          >
+            <PassRates comparison={SECOND} />
+          </Exhibit>
+          <Exhibit table label="Table 1" caption="Passes by kind of request, of 20 each.">
+            <ArmTable comparison={SECOND} />
+          </Exhibit>
           <Text>
             <Actors
-              text={`Request by request, teaching won ${first.wins} and lost ${first.losses} against Glimmer alone. The interval around that difference, ${interval(first)} points, crosses zero.`}
+              text={`Matched request by request, the taught Glimmer won ${second.againstAlone.wins} requests that Glimmer alone failed and lost ${second.againstAlone.losses}, a difference of ${signed(second.againstAlone.diff)} points (95% interval ${interval(second.againstAlone)}). Against the one-shot setup it won ${second.againstOneShot.wins} and lost ${second.againstOneShot.losses} (Figure 3, Table 2).`}
             />
           </Text>
-          <Panel title="Request by request, in points">
-            <Pairs comparison={FIRST} min={-40} max={50} ticks={[-40, -20, 0, 20, 40]} />
-          </Panel>
-        </Part>
+          <Exhibit
+            label="Figure 3"
+            caption="Differences in final-test pass rate between arms, matched request by request, in percentage points with 95% intervals."
+          >
+            <PairForest comparison={SECOND} />
+          </Exhibit>
+          <Exhibit
+            table
+            label="Table 2"
+            caption="Requests each arm passed and the other failed (won), the reverse (lost), and where they agreed."
+          >
+            <PairTable comparison={SECOND} />
+          </Exhibit>
 
-        <Part
-          id="rounds"
-          title="The score rose a round at a time."
-          from={['second', 'first', 'hackathon', 'readme']}
-        >
+          <Subsection number="2.2" title="The first returns desk" />
           <Text>
-            <Actors text="Each change was scored on check tasks Spark never sees, and kept only if it cleared the margin. Two of the four rounds on the new returns desk were reverted." />
+            <Actors
+              text={`On the returns desk that ships with the app, teaching was held to two rounds. Glimmer passed ${first.taught.passed} of ${TEST_SIZE} after teaching against ${first.alone.passed} on its own, and Spark answering every request itself passed ${first.spark.passed} (Figure 4, Table 3)`}
+            />
+            <Cite to={['first']} />.
           </Text>
+          <Exhibit
+            label="Figure 4"
+            caption="Final-test passes by arm on the first returns desk, with 95% intervals, and Spark answering the requests itself as a fourth arm."
+          >
+            <PassRates comparison={FIRST} />
+          </Exhibit>
+          <Exhibit table label="Table 3" caption="Passes by kind of request, of 20 each.">
+            <ArmTable comparison={FIRST} />
+          </Exhibit>
           <Text>
-            A change counts only if check-task passes rise by at least 2 per run, measured again on
-            new seeds over 2 runs, so +4 of 90, and no kind of task loses more than 1 per run.
+            <Actors
+              text={`Request by request, teaching won ${first.againstAlone.wins} and lost ${first.againstAlone.losses} against Glimmer alone. The interval around that difference, ${interval(first.againstAlone)} points, includes zero, so this comparison shows no gain (Figure 5, Table 4). The second comparison was designed after seeing it, with the budget the job gives teaching, and its plan was published before it ran`}
+            />
+            <Cite to={['plan']} />.
           </Text>
-          <Panel title="Check tasks, new returns desk">
+          <Exhibit
+            label="Figure 5"
+            caption="Differences in final-test pass rate between arms on the first returns desk, in percentage points with 95% intervals."
+          >
+            <PairForest comparison={FIRST} />
+          </Exhibit>
+          <Exhibit
+            table
+            label="Table 4"
+            caption="Requests won and lost in each pairing, as in Table 2."
+          >
+            <PairTable comparison={FIRST} />
+          </Exhibit>
+        </Section>
+
+        <Section id="rounds" number={3} title="Teaching, round by round">
+          <Text>
+            <Actors text="On the new returns desk the check-task score rose from 31 of 45 to 44 of 45 in four rounds. Two changes were kept and two were reverted, and teaching stopped when the target was reached (Figure 6, Table 5)" />
+            <Cite to={['second']} />.
+          </Text>
+          <Exhibit
+            label="Figure 6"
+            caption="Check tasks passed on the new returns desk after each round. Hollow points are changes that were measured and reverted; the line follows what was kept."
+          >
             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
               <span className="font-display text-hero font-semibold leading-none tabular-nums max-sm:text-title">
                 98%
@@ -471,46 +532,44 @@ export function ResultsPage() {
               <span className="tabular-nums">44 of 45, from 31 of 45 to start</span>
             </div>
             <ScoreChart className="mb-8" times={{ rise1: 0, hollow2: 0, hollow3: 0, rise4: 0 }} />
-          </Panel>
-          <Panel title="Each round, new returns desk">
+          </Exhibit>
+          <Exhibit
+            table
+            label="Table 5"
+            caption="Each round on the new returns desk: the change, check tasks before and after, the same change measured again on new seeds, and the result."
+          >
             <RoundList rounds={ROUNDS_SECOND} label="Rounds of teaching on the new returns desk" />
-          </Panel>
+          </Exhibit>
           <Text>
-            Teaching stopped after round 4 because the target was reached. On the first returns desk
-            it was held to 2 rounds after the draft, and stopped there with the cap reached.
+            On the first returns desk, teaching was held to 2 rounds after the draft and stopped
+            there, with the cap reached. One change was kept (Table 6)
+            <Cite to={['first']} />.
           </Text>
-          <Panel title="Each round, first returns desk">
+          <Exhibit
+            table
+            label="Table 6"
+            caption="Each round on the first returns desk, as in Table 5."
+          >
             <RoundList rounds={ROUNDS_FIRST} label="Rounds of teaching on the first returns desk" />
-          </Panel>
-          <Panel title="A repair shop, one round">
-            <Figures
-              items={[
-                {
-                  figure: `${REPAIR.checkBefore} of ${REPAIR.checkTotal}`,
-                  text: 'check tasks before teaching.',
-                },
-                {
-                  figure: `${REPAIR.checkAfter} of ${REPAIR.checkTotal}`,
-                  text: "after round 1, Spark's first draft: a ticket-cost tool and a lookup.",
-                },
-                {
-                  figure: `${REPAIR.finalPassed} of ${REPAIR.finalTotal}`,
-                  text: `on its final test, graded by the rule the shop confirmed, for ${REPAIR.cents} cents in all.`,
-                },
-              ]}
-            />
-          </Panel>
-        </Part>
-
-        <Part id="time" title="Faster answers, for cents." from={['second', 'readme']}>
+          </Exhibit>
           <Text>
             <Actors
-              text={`After teaching, Glimmer's typical answer took ${taught.p50} s, and its slowest 5% finished within ${taught.p95} s. On its own, its typical answer took ${alone.p50} s.`}
+              text={`On a second kind of job, a repair shop's ticket costs, one round took Glimmer from ${REPAIR.checkBefore} of ${REPAIR.checkTotal} check tasks to ${REPAIR.checkAfter} of ${REPAIR.checkTotal}: Spark's first draft, a ticket-cost tool and a lookup. It then passed ${REPAIR.finalPassed} of ${REPAIR.finalTotal} on its final test, graded by the rule the shop confirmed, for ${REPAIR.cents} cents in all`}
             />
+            <Cite to={['hackathon']} />.
           </Text>
-          <Panel
-            title="Time to answer, new returns desk"
-            note="The dot is a typical answer; the line runs to the slowest 5%."
+        </Section>
+
+        <Section id="time" number={4} title="Speed and cost">
+          <Text>
+            <Actors
+              text={`After teaching, Glimmer's median answer took ${second.taught.p50} s, and its slowest 5% finished within ${second.taught.p95} s. On its own, its median answer took ${second.alone.p50} s (Figure 7)`}
+            />
+            <Cite to={['second']} />.
+          </Text>
+          <Exhibit
+            label="Figure 7"
+            caption="Time to answer on the new returns desk. The dot is the median answer; the line runs to the slowest 5%."
           >
             <Forest
               name="Median and slowest 5% of answer times, by arm"
@@ -536,13 +595,14 @@ export function ResultsPage() {
               ticks={[0, 15, 30, 45, 60]}
               formatTick={(value) => `${value} s`}
             />
-          </Panel>
+          </Exhibit>
           <Text>
-            The whole run cost Spark ${MONEY.spark.toFixed(4)} and the hosted Glimmer $
-            {MONEY.glimmer.toFixed(4)} as its attempts recorded it. Teaching cost 42 cents of Spark:
-            34 for the rounds and 8 for its first setup.
+            Teaching cost 42 cents of Spark: 34 for the rounds and 8 for its first setup. The whole
+            run cost Spark ${MONEY.spark.toFixed(4)} and the hosted Glimmer $
+            {MONEY.glimmer.toFixed(4)}, as its attempts recorded it (Table 7)
+            <Cite to={['second', 'readme']} />.
           </Text>
-          <Panel title="What each arm cost">
+          <Exhibit table label="Table 7" caption="What each arm cost on the new returns desk.">
             <Table
               fit
               label="What each arm cost on the new returns desk"
@@ -553,37 +613,55 @@ export function ResultsPage() {
                 each.glimmer === null ? '' : dollars(each.glimmer),
               ])}
             />
-          </Panel>
-        </Part>
+          </Exhibit>
+        </Section>
 
-        <Part id="how" title="Why the final test can be trusted." from={['plan', 'second']}>
-          <Text>
-            <Actors text="Nothing Spark does can touch it. It is opened once, after every setup is frozen, and a program grades it." />
-          </Text>
-          <Panel title="How a round works">
-            <RoundDiagram />
-          </Panel>
-        </Part>
-
-        <Part id="limits" title="What this does not show." from={['plan', 'second', 'hackathon']}>
+        <Section id="limits" number={5} title="Limitations">
           <Text>
             <Actors text="Two made-up businesses, one seed, and a build of Glimmer that is not the one on your computer." />
           </Text>
-          <ul className="m-0 flex list-none flex-col gap-6 p-0">
-            {LIMITS.map((limit) => (
-              <li key={limit.title} className="flex flex-col gap-2">
-                <h3 className="m-0 font-display text-h2 font-semibold">{limit.title}</h3>
-                <p className="t-read">
-                  <Actors text={limit.text} />
-                </p>
+          {LIMITS.map((limit) => (
+            <Text key={limit.title}>
+              <span className="font-semibold">{limit.title}</span>{' '}
+              <Actors text={limit.text.replace(/\.$/, '')} />
+              <Cite to={[limit.from]} />.
+            </Text>
+          ))}
+        </Section>
+
+        <section
+          id="references"
+          aria-labelledby="references-title"
+          className="article flex scroll-mt-16 flex-col gap-5 pt-14 sm:pt-16"
+        >
+          <h2 id="references-title" className="t-h1">
+            References
+          </h2>
+          <ol className="m-0 flex list-none flex-col gap-3 p-0">
+            {REFERENCES.map((reference, index) => (
+              <li
+                key={reference.key}
+                id={`ref-${reference.key}`}
+                className="grid scroll-mt-20 grid-cols-[2.25rem_minmax(0,1fr)]"
+              >
+                <span className="tabular-nums">[{index + 1}]</span>
+                <span className="flex flex-col">
+                  <span className="text-pretty">{reference.what}</span>
+                  <a
+                    className="link-quiet underline [overflow-wrap:anywhere]"
+                    href={sourceUrl(reference.key)}
+                  >
+                    {SOURCES[reference.key].path}
+                  </a>
+                </span>
               </li>
             ))}
-          </ul>
+          </ol>
           <a className="link-quiet inline-flex items-center gap-1.5" href={REPORTS}>
             The full reports on GitHub
             <ArrowUpRight size={16} strokeWidth={1.8} aria-hidden />
           </a>
-        </Part>
+        </section>
       </main>
       <Footer page="results" />
     </div>
