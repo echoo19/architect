@@ -58,7 +58,8 @@ export function Roll({
     <span className={cn('grid overflow-hidden', className)}>
       {steps.map((step, index) => {
         const next = steps[index + 1];
-        const arriving: CSSProperties | undefined = index > 0 ? at(step.at, { dur }) : undefined;
+        const arriving: CSSProperties | undefined =
+          index > 0 ? at(step.at + 80, { dur }) : undefined;
         return (
           <span
             key={index}
@@ -66,7 +67,7 @@ export function Roll({
             style={arriving}
           >
             {next ? (
-              <span className="a a-roll-out block" style={at(next.at - 60, { dur: 300 })}>
+              <span className="a a-roll-out block" style={at(next.at - 140, { dur: 260 })}>
                 {step.content}
               </span>
             ) : (
