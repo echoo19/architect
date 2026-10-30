@@ -26,7 +26,8 @@ import {
   Settings,
   Square,
 } from 'lucide-react';
-import { PLACES, placeOf } from './places';
+import { EDITIONS, placesOf, useEdition } from './edition';
+import { placeOf } from './places';
 import { api } from '../api/client';
 import { queryKeys, useGraduates, useJobs } from '../api/hooks';
 import { fetchQuery } from '../api/query';
@@ -70,6 +71,9 @@ export function Sidebar({ route }: { route: Route }) {
   useTrainingRefresh();
 
   const place = placeOf(route);
+  const edition = useEdition();
+  // The personal edition has its agents only; the Lab leads with its places.
+  const places = edition ? placesOf(edition) : [];
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col gap-4 border-r border-line bg-ground px-3 pb-3.5">
@@ -81,25 +85,33 @@ export function Sidebar({ route }: { route: Route }) {
         )}
       >
         <LogoMark size={20} />
-        <span className="text-body font-semibold">Architect</span>
+        <span className="text-body font-semibold">{EDITIONS[edition ?? 'personal'].name}</span>
       </div>
 
-      <nav aria-label="Places" className="flex flex-col gap-0.5">
-        {PLACES.map(({ id, label, Icon, path }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => navigate(path)}
-            aria-current={place === id ? 'page' : undefined}
-            className={cn(navRow, place === id && selectedRow)}
-          >
-            <Icon size={17} strokeWidth={1.6} aria-hidden />
-            {label}
-          </button>
-        ))}
-      </nav>
+      {places.length > 0 && (
+        <nav aria-label="Places" className="flex flex-col gap-0.5">
+          {places.map(({ id, label, Icon, path }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => navigate(path)}
+              aria-current={place === id ? 'page' : undefined}
+              className={cn(navRow, place === id && selectedRow)}
+            >
+              <Icon size={17} strokeWidth={1.6} aria-hidden />
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
 
-      <nav aria-label="Agents" className="flex min-h-0 flex-col gap-4 border-t border-line pt-4">
+      <nav
+        aria-label="Agents"
+        className={cn(
+          'flex min-h-0 flex-col gap-4',
+          places.length > 0 && 'border-t border-line pt-4',
+        )}
+      >
         <div className="flex items-center gap-0.5">
           <button
             type="button"

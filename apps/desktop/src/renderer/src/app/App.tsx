@@ -14,6 +14,7 @@ import {
   NewExperimentScreen,
 } from '../screens/ExperimentsScreen';
 import { FieldScreen, FieldsScreen } from '../screens/FieldsScreen';
+import { HomeScreen } from '../screens/HomeScreen';
 import { ImprovementScreen } from '../screens/ImprovementScreen';
 import { LabScreen } from '../screens/LabScreen';
 import { ModelsScreen } from '../screens/ModelsScreen';
@@ -23,16 +24,21 @@ import { TrainScreen } from '../screens/TrainScreen';
 import { WelcomeScreen } from '../screens/WelcomeScreen';
 import { SettingsModal } from '../settings/SettingsModal';
 import { CommandMenu } from '../shell/CommandMenu';
+import { EDITIONS, isLabOnly, useEdition } from '../shell/edition';
 import { WorkspaceShell } from '../shell/WorkspaceShell';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
 
 function Screen({ route }: { route: Route }) {
+  const edition = useEdition();
+  // The personal edition has none of the Lab's places; it is sent home (useEditionShell).
+  if (edition === 'personal' && isLabOnly(route)) return null;
   switch (route.name) {
     case 'home':
       return (
         <WorkspaceShell route={route}>
-          <LabScreen />
+          {edition === 'lab' && <LabScreen />}
+          {edition === 'personal' && <HomeScreen />}
         </WorkspaceShell>
       );
     case 'fields':
@@ -111,11 +117,24 @@ function useFirstRunRedirect(route: Route): void {
   }, [needsSetup, route.name]);
 }
 
+/** Sends a Lab place home in the personal edition, which doesn't have it, and names the window. */
+function useEditionShell(route: Route): void {
+  const edition = useEdition();
+  const away = edition === 'personal' && isLabOnly(route);
+  useEffect(() => {
+    if (away) navigate(paths.home(), { replace: true });
+  }, [away]);
+  useEffect(() => {
+    if (edition) document.title = EDITIONS[edition].name;
+  }, [edition]);
+}
+
 export function App() {
   const route = useRoute();
   useGlobalShortcuts();
   useEngineUpdates();
   useFirstRunRedirect(route);
+  useEditionShell(route);
 
   return (
     <TooltipProvider>
