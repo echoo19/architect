@@ -171,7 +171,7 @@ test('leads to each place from the sidebar and the command palette', async () =>
   await capture('places-models-dark.png');
 
   await places().getByRole('button', { name: 'Compute' }).click();
-  await expect(page.getByRole('heading', { name: 'Training runs on this computer' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Training plan' })).toBeVisible();
   await capture('places-compute-dark.png');
 
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+k' : 'Control+k');
