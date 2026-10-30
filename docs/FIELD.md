@@ -12,7 +12,7 @@ Phil helps a student right after a wrong answer. It knows the academy's own curr
 
 **Organizations.**
 - Synthetic academies, generated from seeds (`examples/academy`): each has its own topic taxonomy and naming, question bank with full text (math generated with exact answers and the key intermediate value; grammar items generated from rules, each wrong choice tied to a named error), video catalog, students and attempt history, and a `policy.md` whose numbers differ (how many practice questions to assign, the difficulty band, when to escalate to staff, the hint rule). Public and committed.
-- CP Admissions, real, anonymized: pulled read-only through the Lectern connector, every name, email, id and free-text note replaced or dropped, video passcodes dropped, dates kept. Never committed; it lives in `C:/JakeOS/projects/architect-runs/academy-real/` and is used only as an organization the student never trained on. The connector gives labels, correct and chosen answers, difficulty and history, not question text, so on CP Phil is qualified only on the skills those records check (below), unless the owner exports the question text.
+- A real academy, anonymized (it uses the owner's Lectern platform; called "Real academy" everywhere in the repo): pulled read-only through the Lectern connector, every name, email, id and free-text note replaced or dropped, video passcodes dropped, dates kept. Never committed; it lives in `C:/JakeOS/projects/architect-runs/academy-real/` and is used only as an organization the student never trained on. The platform's read-only connector gives labels, correct and chosen answers, difficulty and history, not question text, so on the real academy Phil is qualified only on the skills those records check (below), unless the owner exports the question text.
 
 **Skills** (task types). Every one is checked by a deterministic checker; wording is never scored.
 | Type | The request | What is checked |
@@ -24,7 +24,7 @@ Phil helps a student right after a wrong answer. It knows the academy's own curr
 | `assign` | set the follow-up practice | rows written to `assignments.csv`: the policy's count of questions of the same topic, not yet attempted by the student, in the difficulty band; nothing else written |
 | `after_wrong` | the whole tutoring turn | diagnose, hint, assign and, when the policy says so, a staff note in `staff_notes.csv`; facts and end state together |
 
-On CP (no question text): `history` and `assign` fully, and `diagnose` for the topic and correct choice.
+On the real academy (no question text): `history` and `assign` fully, and `diagnose` for the topic and correct choice.
 
 ## The contract (frozen before branches diverge)
 
@@ -40,7 +40,7 @@ On CP (no question text): `history` and `assign` fully, and `diagnose` for the t
 - *Transfer organizations are sealed as snapshots, not just tasks.* Their files and tasks live in a runner-only transfer store outside the job folder the mentor reads (hashed at seal time), are removed before ordinary splitting, and are opened only after the candidate is frozen. Study, traces sent to Spark, lineage and exports never carry them.
 - *Binding is per attempt.* The student and the checker get the same scratch snapshot of the task's organization, replay included. Task ids are unique across organizations; families never cross organizations.
 - *A hint is chosen, not written.* Each topic has a small catalog of approved first hints (`hint_id`, text) in the academy's files; `hint` and `after_wrong` answer with `{ topic, hint_id }`, checked exactly. A keyword filter cannot prove a hint gives nothing away; a reviewed catalog can.
-- *`diagnose` names the distractor's constructed error*, from an evaluator-owned map (ambiguous distractors list a set). It is not a claim about what the student was thinking. On CP it is topic and correct choice only.
+- *`diagnose` names the distractor's constructed error*, from an evaluator-owned map (ambiguous distractors list a set). It is not a claim about what the student was thinking. On the real academy it is topic and correct choice only.
 - *`solve` asks about a question given in the request*, not one in the keyed bank, so the answer key can't be read off. `history` states its cutoff date, window, what counts (first attempts or every attempt) and the denominator; `assign` states what happens with too few eligible questions (assign all eligible and say how many) and allows no duplicates.
 - *Academy facts stay in the academy's files.* Study writes the shared procedure and the brief, never per-academy tables or per-topic files of one academy's facts. The lookup guard is a heuristic, not proof; transfer is shown by the measurements (dev tasks change labels and policy numbers while the harness stays fixed).
 - *Cut now:* weights, source-provenance machinery, automatic per-topic knowledge files, study-screen polish. Keep a small cited brief and the whole tutoring turn.
@@ -65,8 +65,8 @@ On CP (no question text): `history` and `assign` fully, and `diagnose` for the t
 | Report and workspace | `field/report` | the skill by organization grid, Phil in the workspace |
 | Real academy | outside the repo | the anonymized CP snapshot in the academy schema, and a check of the reference rules against Lectern's own computed reports |
 
-Integration branch: `field/main`, merged into `main` only when `pnpm check` passes and the app still runs the one-job sample. Runs (hosted, frugal, caps stated first): calibrate, teach on synthetic academies, freeze, qualify on the unseen synthetic academy and on CP.
+Integration branch: `field/main`, merged into `main` only when `pnpm check` passes and the app still runs the one-job sample. Runs (hosted, frugal, caps stated first): calibrate, teach on synthetic academies, freeze, qualify on the unseen synthetic academy and on the real academy.
 
 ## Cut lines
 
-Cut in this order if time runs short: weights, the study screen's polish, CP's `diagnose`, the unseen synthetic academy (never the real one). Never cut: the vault around transfer organizations, deterministic checks, the offline graduate.
+Cut in this order if time runs short: weights, the study screen's polish, the real academy's `diagnose`, the unseen synthetic academy (never the real one). Never cut: the vault around transfer organizations, deterministic checks, the offline graduate.
