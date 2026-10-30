@@ -33,7 +33,7 @@ Y Combinator's [Requests for Startups for Winter 2027](https://www.ycombinator.c
 
 Download it for Windows or macOS from the [latest release](https://github.com/echoo19/architect/releases/latest). You'll need [Ollama](https://ollama.com). The first screens download Glimmer (17 GB, or 14 GB for a 12 GB graphics card) and connect Spark with an API key from Meta. The app isn't signed yet: on Windows choose More info, then Run anyway; on a Mac, right-click it and choose Open.
 
-Then describe a job of your own, try the sample job, or open the returns desk agent from the results above.
+Then describe a job of your own, try the sample job, or open the returns desk agent from the results above. [The user guide](docs/Architect-Guide.pdf) walks through each step.
 
 ## More
 
