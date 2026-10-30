@@ -537,6 +537,7 @@ export async function installTeachingFake(
       'mentoring:lessons',
       'mentoring:interventions',
       'mentoring:experiments',
+      'mentoring:counterexamples',
     ]) {
       handle(channel, (runId: string) => {
         noRun(runId);

@@ -1,8 +1,14 @@
 import { useState, type ReactNode } from 'react';
-import type { FieldExportManifest } from '@architect/shared';
+import {
+  predicateSentence,
+  type Counterexample,
+  type FieldExportManifest,
+} from '@architect/shared';
 import { Button, Card, CardGrid, CardRow, Skeleton, toast } from '@architect/ui';
-import { FolderOutput, Gauge, Lock, MessagesSquare } from 'lucide-react';
+import { Bug, Check, FolderOutput, Gauge, Lock, MessagesSquare } from 'lucide-react';
 import { api, flowApi } from '../api/client';
+import { mentoringApi } from '../api/mentoring';
+import { reductionLine } from '../flow/train/Counterexamples';
 import { useQuery } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { shortPath } from '../lib/format';
@@ -24,21 +30,80 @@ function Figure({ children }: { children: ReactNode }) {
  */
 export function Assets({ jobId }: { jobId: string }) {
   const assets = useQuery(`fieldAssets:${jobId}`, () => api.fieldAssets(jobId));
-  if (!assets.data) {
-    return assets.status === 'error' ? (
+  const counterexamples = useQuery(`fieldCounterexamples:${jobId}`, () =>
+    mentoringApi.fieldCounterexamples(jobId),
+  );
+  const failed = assets.status === 'error' ? assets : counterexamples;
+  if (!assets.data || !counterexamples.data) {
+    return failed.status === 'error' ? (
       <ProblemState
-        error={assets.error}
+        error={failed.error}
         title="Couldn't count this field's assets"
-        onRetry={assets.reload}
+        onRetry={failed.reload}
       />
     ) : (
       <Skeleton aria-busy="true" className="h-48 rounded-card" />
     );
   }
-  return <AssetsView jobId={jobId} manifest={assets.data} />;
+  return <AssetsView jobId={jobId} manifest={assets.data} counterexamples={counterexamples.data} />;
 }
 
-function AssetsView({ jobId, manifest }: { jobId: string; manifest: FieldExportManifest }) {
+/**
+ * The field's counterexamples (decision 078): each failing helper call cut down to a few rows,
+ * kept as a regression test every later change to that helper must pass.
+ */
+function Counterexamples({ counterexamples }: { counterexamples: readonly Counterexample[] }) {
+  return (
+    <Card
+      title="Counterexamples"
+      icon={<Bug strokeWidth={1.8} aria-hidden />}
+      action={<Figure>{count(counterexamples.length)}</Figure>}
+      wide
+      flush
+    >
+      {counterexamples.length === 0 ? (
+        <Quiet>None yet</Quiet>
+      ) : (
+        counterexamples.map((counterexample) => (
+          <CardRow
+            key={counterexample.id}
+            icon={
+              <Tile>
+                {counterexample.repair?.passed ? (
+                  <Check
+                    strokeWidth={2}
+                    role="img"
+                    aria-label="Repaired"
+                    className="text-student"
+                  />
+                ) : (
+                  <Bug strokeWidth={1.8} role="img" aria-label="Not repaired yet" />
+                )}
+              </Tile>
+            }
+            title={`${predicateSentence(counterexample.helper.name, counterexample.predicate)}`}
+            detail={
+              <span className="font-mono">
+                {counterexample.taskId} · round {counterexample.round}
+              </span>
+            }
+            end={reductionLine(counterexample)}
+          />
+        ))
+      )}
+    </Card>
+  );
+}
+
+function AssetsView({
+  jobId,
+  manifest,
+  counterexamples,
+}: {
+  jobId: string;
+  manifest: FieldExportManifest;
+  counterexamples: readonly Counterexample[];
+}) {
   const [exporting, setExporting] = useState(false);
   const { counts } = manifest;
 
@@ -121,6 +186,7 @@ function AssetsView({ jobId, manifest }: { jobId: string; manifest: FieldExportM
             </ul>
           )}
         </Card>
+        <Counterexamples counterexamples={counterexamples} />
       </CardGrid>
     </div>
   );

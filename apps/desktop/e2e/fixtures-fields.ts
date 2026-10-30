@@ -8,6 +8,7 @@ import type {
   TaskPlan,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
+import { PHIL_COUNTEREXAMPLES } from './fixtures-counterexamples';
 import { FIELD_ORGS, FIELD_REPORT } from './fixtures-field';
 import { stubByKey, taskPlan } from './fixtures-flow';
 import { LAB, LAB_JOBS, PHIL_ID, stubLab } from './fixtures-lab';
@@ -239,6 +240,13 @@ export async function stubFields(app: ElectronApplication): Promise<void> {
     ),
   });
   await stubByKey(app, 'jobs:fieldAssets', { [LAB.philJob]: PHIL_ASSETS });
+  await stubByKey(
+    app,
+    'mentoring:fieldCounterexamples',
+    Object.fromEntries(
+      LAB_JOBS.map((job) => [job.id, job.id === LAB.philJob ? PHIL_COUNTEREXAMPLES : []]),
+    ),
+  );
 }
 
 export const FIELDS = { earlierRun: EARLIER_RUN };

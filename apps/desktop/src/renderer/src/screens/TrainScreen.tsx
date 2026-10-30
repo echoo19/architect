@@ -241,7 +241,7 @@ function roundEvidence(
       ? { status: 'error', error: records.error, reload: records.reload }
       : { status: 'loading' };
   }
-  const { experiments, interventions, lessons, categories } = records.data;
+  const { experiments, interventions, lessons, categories, counterexamples } = records.data;
   return {
     status: 'success',
     data: {
@@ -249,6 +249,11 @@ function roundEvidence(
       intervention: interventions.find((item) => item.round === index),
       lessons: lessons.filter((item) => item.round === index),
       categories,
+      counterexamples: counterexamples.filter(
+        (item) =>
+          item.round === index ||
+          (item.repair?.runId === item.runId && item.repair.round === index),
+      ),
     },
   };
 }

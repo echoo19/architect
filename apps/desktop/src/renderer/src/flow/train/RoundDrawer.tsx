@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type {
   Category,
+  Counterexample,
   Experiment,
   ExperimentDisposition,
   Finding,
@@ -46,6 +47,7 @@ import {
   RoundExamples,
 } from './ExperimentSections';
 import type { ModelNames } from './phase';
+import { RoundCounterexamples } from './Counterexamples';
 import { answerEffect } from './questions';
 
 const STATUS_TEXT: Record<Round['status'], string> = {
@@ -97,6 +99,8 @@ export interface RoundEvidence {
   intervention: Intervention | undefined;
   lessons: readonly ListedLesson[];
   categories: readonly Category[];
+  /** Found in the round, or repaired in it (decision 078). */
+  counterexamples: readonly Counterexample[];
 }
 
 /**
@@ -252,6 +256,7 @@ export function RoundDrawerContent({
             onOpenAttempt={onOpenFinding}
           />
         )}
+        {records && <RoundCounterexamples counterexamples={records.counterexamples} />}
         {records && (
           <RoundExamples
             lessons={records.lessons}
