@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { Finding, ListedAttempt, ListedLesson, Round, RunStatus } from '@architect/shared';
-import { cn, Drawer, DrawerContent, Skeleton } from '@architect/ui';
+import { Drawer, DrawerContent, Skeleton, Stagger, StaggerItem } from '@architect/ui';
 import { CircleAlert } from 'lucide-react';
 import {
   mentoringApi,
@@ -12,7 +12,7 @@ import { useQuery, type QueryState } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { rate } from '../flow/format';
 import { modelNames, typeLabel } from '../flow/names';
-import { Apprenticeship } from '../flow/train/Apprenticeship';
+import { Budget } from '../flow/train/Budget';
 import { CurrentRound } from '../flow/train/CurrentRound';
 import { draftRoundOf, setupOf } from '../flow/train/draft';
 import { Examples } from '../flow/train/Examples';
@@ -20,11 +20,11 @@ import { IdleNotice } from '../flow/train/IdleNotice';
 import { LatestAttempts } from '../flow/train/LatestAttempts';
 import { findingNotes, lessonNotes, type StepNote } from '../flow/train/lesson-steps';
 import { LessonDrawerContent } from '../flow/train/LessonView';
+import { LiveStatus } from '../flow/train/LiveStatus';
 import { PausedNotice } from '../flow/train/PausedNotice';
 import { phaseView } from '../flow/train/phase';
-import { Resources } from '../flow/train/Resources';
 import { RoundDrawerContent, type RoundEvidence } from '../flow/train/RoundDrawer';
-import { Rounds, type RoundsFooter } from '../flow/train/Rounds';
+import { Rounds } from '../flow/train/Rounds';
 import { RunControls, StopDialog } from '../flow/train/RunControls';
 import {
   activeProgress,
@@ -100,7 +100,7 @@ export function TrainScreen({ runId }: { runId: string }) {
     >
       <div
         ref={contentRef}
-        className="mx-auto box-content flex max-w-[1320px] flex-col gap-5 px-8 pb-12 pt-8"
+        className="mx-auto box-content flex max-w-[1120px] flex-col px-10 pb-16 pt-8"
       >
         {state.status === 'loading' && <TrainSkeleton />}
         {state.status === 'error' && (
@@ -340,72 +340,69 @@ function TrainBoard({
   const { run, job, improves } = live;
   const names = modelNames(job);
   const draft = draftRoundOf(live);
-  const drafting = draft !== null && currentRound(live)?.index === draft;
+  const round = currentRound(live);
+  const drafting = draft !== null && round?.index === draft;
   const view = phaseView(run, names, drafting, improves !== null);
   const score = run.devCurrent ?? run.devBaseline;
-  let footer: RoundsFooter | null = null;
-  if (run.status === 'finished') {
-    footer = improves
-      ? { label: 'See what changed', onClick: () => navigate(paths.improvement(run.id)) }
-      : { label: 'See the results', onClick: () => navigate(paths.report(run.id)) };
-  }
   const evidence = records.data ?? null;
   const failure =
     records.status === 'error' && evidence === null
       ? { error: records.error, reload: records.reload }
       : null;
-  const round = currentRound(live);
   const question = useQuestion(run.id, round, records);
   return (
-    <>
-      {improves && <TaughtLessons improves={improves} />}
+    <Stagger className="flex flex-col gap-10">
+      {improves && (
+        <StaggerItem>
+          <TaughtLessons improves={improves} />
+        </StaggerItem>
+      )}
       {run.status === 'failed' && (
-        <div role="alert" className="flex items-start gap-3 rounded-card bg-danger-soft px-5 py-4">
-          <CircleAlert size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
-          <div className="flex flex-col gap-0.5">
-            <span className="font-medium">
-              {improves ? 'Improving stopped on an error' : 'Training stopped on an error'}
-            </span>
-            <span className="text-fg text-pretty">
-              {run.error ?? 'It stopped without saying why.'}
-            </span>
+        <StaggerItem>
+          <div
+            role="alert"
+            className="flex items-start gap-3 rounded-card bg-danger-soft px-5 py-4"
+          >
+            <CircleAlert size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
+            <div className="flex flex-col gap-0.5">
+              <span className="font-medium">
+                {improves ? 'Improving stopped on an error' : 'Training stopped on an error'}
+              </span>
+              <span className="text-pretty">{run.error ?? 'It stopped without saying why.'}</span>
+            </div>
           </div>
-        </div>
+        </StaggerItem>
       )}
-      {run.status === 'paused' && run.error !== undefined && <PausedNotice live={live} />}
+      {run.status === 'paused' && run.error !== undefined && (
+        <StaggerItem>
+          <PausedNotice live={live} />
+        </StaggerItem>
+      )}
       {run.status === 'stopped' && run.stopReason === 'nothing_to_try' && (
-        <IdleNotice live={live} />
+        <StaggerItem>
+          <IdleNotice live={live} />
+        </StaggerItem>
       )}
-      <div className="flex flex-wrap gap-5">
-        <Apprenticeship
+      <StaggerItem>
+        <LiveStatus
           mentor={names.mentor}
           student={names.student}
           studentPlace={studentPlace(live)}
+          hosted={activeTarget(live) === 'hosted'}
+          status={run.status}
           view={view}
           drafting={drafting}
           passRate={score ? rate(score) / 100 : null}
           progress={activeProgress(live)}
         />
-        <CurrentRound
-          live={live}
-          round={round}
-          names={names}
-          experiment={evidence?.experiments.find((item) => item.round === round?.index)}
-          question={question}
-          recordsFailed={failure !== null}
-        />
-      </div>
-      <div className="flex flex-wrap gap-5">
+      </StaggerItem>
+      <StaggerItem>
         <TaskSuccess live={live} names={names} />
-        <Resources
-          live={live}
-          mentor={names.mentor}
-          records={evidence}
-          recordsFailed={failure !== null}
-        />
-      </div>
-      <div className="flex flex-wrap gap-5">
-        <Examples job={job} records={records} ended={hasEnded(run)} onOpen={onOpenLesson} />
+      </StaggerItem>
+      <StaggerItem>
+        <Budget live={live} mentor={names.mentor} />
+      </StaggerItem>
+      <StaggerItem>
         <Rounds
           job={job}
           rounds={live.rounds}
@@ -416,10 +413,15 @@ function TrainBoard({
           failure={failure}
           stopReason={run.stopReason}
           onOpen={onOpenRound}
-          footer={footer}
+          current={
+            round && <CurrentRound live={live} round={round} names={names} question={question} />
+          }
         />
-      </div>
-      <div className="flex flex-wrap gap-5">
+      </StaggerItem>
+      <StaggerItem className="empty:hidden">
+        <Examples job={job} records={records} onOpen={onOpenLesson} />
+      </StaggerItem>
+      <StaggerItem>
         <LatestAttempts
           job={job}
           attempts={live.attempts}
@@ -427,20 +429,21 @@ function TrainBoard({
           ended={hasEnded(run)}
           onOpen={onOpenAttempt}
         />
-      </div>
-    </>
+      </StaggerItem>
+    </Stagger>
   );
 }
 
 function TrainSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Loading the run" className="flex flex-col gap-5">
-      {['h-[378px]', 'h-[368px]', 'h-[330px]'].map((height) => (
-        <div key={height} className="flex flex-wrap gap-5">
-          <Skeleton className={cn('min-w-0 flex-[7_1_560px] rounded-card', height)} />
-          <Skeleton className={cn('min-w-0 flex-[5_1_360px] rounded-card', height)} />
-        </div>
-      ))}
+    <div aria-busy="true" aria-label="Loading the run" className="flex flex-col gap-10">
+      <Skeleton className="h-8 w-2/3" />
+      <div className="grid grid-cols-1 gap-x-12 gap-y-8 lg:grid-cols-[232px_minmax(0,1fr)]">
+        <Skeleton className="h-24 w-48" />
+        <Skeleton className="h-[240px] w-full rounded-card" />
+      </div>
+      <Skeleton className="h-16 w-full" />
+      <Skeleton className="h-[220px] w-full" />
     </div>
   );
 }

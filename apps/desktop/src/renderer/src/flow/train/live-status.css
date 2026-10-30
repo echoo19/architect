@@ -1,0 +1,62 @@
+/*
+ * The marks of whoever is working on the training screen. The mentor is a few dotted rings turning
+ * around a core, faster while it reads failures; the student is a grid of points that light up as
+ * it works. data-motion follows the run's phase and data-frozen holds everything where it is.
+ */
+
+.live-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: live-spin 40s linear infinite;
+}
+
+.live-ring-inner {
+  animation-duration: 28s;
+  animation-direction: reverse;
+}
+
+/* Reading failures: the mentor is the one working. */
+.live-status[data-motion='returning'] .live-ring-outer {
+  animation-duration: 9s;
+}
+
+.live-status[data-motion='returning'] .live-ring-inner {
+  animation-duration: 6s;
+}
+
+.live-cell {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--live-cell);
+  animation: live-ping 5.6s ease-out infinite;
+}
+
+.live-status[data-frozen] :is(.live-ring, .live-cell) {
+  animation-play-state: paused;
+}
+
+@keyframes live-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes live-ping {
+  0%,
+  18%,
+  100% {
+    background-color: var(--live-cell);
+  }
+  6% {
+    background-color: color-mix(in srgb, var(--ui-student) 35%, white);
+  }
+}
+
+/* Reduced motion: a still frame of the same marks. */
+@media (prefers-reduced-motion: reduce) {
+  .live-ring,
+  .live-cell {
+    animation: none;
+  }
+}

@@ -1,7 +1,9 @@
 import type { Job } from '@architect/shared';
-import { EvidenceMark, Panel, PanelHeader, PanelRow } from '@architect/ui';
+import { EvidenceMark, Stagger, StaggerItem } from '@architect/ui';
 import { Check, ChevronRight, X } from 'lucide-react';
+import { Appear, useFirstKeys } from '../appear';
 import { taskTitle } from '../format';
+import { ROW_CHEVRON, RowButton, Section } from '../ledger';
 import { typeLabel } from '../names';
 import type { RecentAttempt } from './run-state';
 
@@ -24,28 +26,30 @@ export function LatestAttempts({
   onOpen: (attempt: RecentAttempt) => void;
 }) {
   const shown = attempts.slice(0, SHOWN);
+  const first = useFirstKeys(shown.map((attempt) => attempt.id));
   return (
-    <Panel aria-label="Latest attempts" className="min-w-0 flex-[7_1_560px]">
-      <PanelHeader title="Latest attempts" />
+    <Section title="Latest attempts">
       {shown.length === 0 ? (
-        <PanelRow className="text-fg">{ended ? 'No attempts' : 'No attempts yet'}</PanelRow>
+        <p className="m-0 border-y border-line py-3.5">
+          {ended ? 'No attempts' : 'No attempts yet'}
+        </p>
       ) : (
-        <div className="overflow-x-auto">
-          <ul className="m-0 min-w-[560px] list-none p-0">
-            {shown.map((attempt) => (
-              <li key={attempt.id}>
+        <Stagger as="ul" className="m-0 list-none border-b border-line p-0">
+          {shown.map((attempt) => (
+            <StaggerItem as="li" key={attempt.id} className="border-t border-line">
+              <Appear added={!first.has(attempt.id)}>
                 <AttemptRow
                   attempt={attempt}
                   type={typeLabel(job, attempt.taskType)}
                   mentor={mentor}
                   onOpen={() => onOpen(attempt)}
                 />
-              </li>
-            ))}
-          </ul>
-        </div>
+              </Appear>
+            </StaggerItem>
+          ))}
+        </Stagger>
       )}
-    </Panel>
+    </Section>
   );
 }
 
@@ -63,12 +67,12 @@ function AttemptRow({
   const passed = attempt.check.pass;
   const check = attempt.split === 'dev';
   const kind = check ? 'Check task' : 'Practice task';
-  const set = attempt.round ? `${kind}, round ${attempt.round}` : kind;
+  // A check task's score is all the mentor ever sees of it.
+  const what = `${attempt.round ? `${kind}, round ${attempt.round}` : kind}${check ? `, ${mentor} sees only the score` : ''}`;
   return (
-    <button
-      type="button"
+    <RowButton
       onClick={onOpen}
-      className="group grid min-h-[54px] w-full grid-cols-[20px_minmax(0,1fr)_170px_14px] items-center gap-x-4 border-t border-line px-7 py-2 text-left text-small transition-colors duration-150 hover:bg-hover"
+      className="min-h-12 grid-cols-[16px_minmax(0,1fr)_auto_14px] py-2.5"
     >
       {passed ? (
         <Check
@@ -79,31 +83,25 @@ function AttemptRow({
           aria-label="Passed"
         />
       ) : (
-        <X size={15} strokeWidth={2.2} className="text-fg" role="img" aria-label="Failed" />
+        <X size={15} strokeWidth={2.2} className="text-danger" role="img" aria-label="Failed" />
       )}
-      <span className="flex min-w-0 flex-col gap-0.5">
+      <span className="flex min-w-0 flex-col">
         <span className="truncate">
           {attempt.prompt ? taskTitle(attempt.prompt) : attempt.taskId}
         </span>
         {!passed && (
-          <span className="truncate text-small text-fg" title={attempt.check.reason}>
+          <span className="truncate text-small" title={attempt.check.reason}>
             {attempt.check.reason}
           </span>
         )}
       </span>
-      <span className="flex min-w-0 flex-col">
-        <span className="truncate text-fg">{type}</span>
-        <EvidenceMark kind={check ? 'check' : 'practice'} className="min-w-0 text-small">
-          <span className="truncate">{set}</span>
-          {check && <span className="sr-only">, {mentor} sees only the score</span>}
+      <span className="flex min-w-0 items-center justify-end gap-2.5 text-small" title={what}>
+        <span className="truncate">{type}</span>
+        <EvidenceMark kind={check ? 'check' : 'practice'} iconOnly>
+          {what}
         </EvidenceMark>
       </span>
-      <ChevronRight
-        size={14}
-        strokeWidth={1.8}
-        aria-hidden
-        className="text-fg opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
-      />
-    </button>
+      <ChevronRight size={14} strokeWidth={1.8} aria-hidden className={ROW_CHEVRON} />
+    </RowButton>
   );
 }

@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
-import { cn, EvidenceMark, Panel, Tooltip } from '@architect/ui';
-import { formatRate } from '../format';
+import { cn, EvidenceMark, NumberTicker, Tooltip } from '@architect/ui';
+import { Counted } from '../counted';
+import { percent } from '../format';
 import {
   CURVE_BOX,
   curveGeometry,
@@ -13,7 +14,10 @@ import { draftRoundOf } from './draft';
 import type { ModelNames } from './phase';
 import { hasEnded, type LiveRun } from './run-state';
 
-/** The share of check tasks right, round by round. The student never practices on them. */
+/**
+ * The share of check tasks right, round by round, against the target: the number the run is
+ * working toward. The student never practices on these tasks.
+ */
 export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames }) {
   const { run, job, rounds } = live;
   const score = run.devCurrent ?? run.devBaseline;
@@ -28,69 +32,50 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
   };
   const geometry = curveGeometry(input);
   const ended = hasEnded(run);
+  const pass = score ? (runs > 1 ? Math.round((score.pass / runs) * 10) / 10 : score.pass) : null;
+  const total = runs > 1 ? job.splits.dev : (score?.total ?? 0);
   return (
-    <Panel
+    <section
       aria-label="Score on the check tasks"
-      className="min-w-0 flex-[7_1_560px] gap-2.5 px-8 pb-5 pt-7"
+      className="grid grid-cols-1 items-center gap-x-12 gap-y-8 lg:grid-cols-[minmax(0,1fr)_700px]"
     >
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <div className="flex flex-col gap-4">
         <span
           className={cn(
             'font-display text-hero font-semibold leading-none tabular-nums',
             !score && 'text-fg-dim',
           )}
         >
-          {score ? formatRate(score) : '–'}
+          {score ? (
+            <Counted said={`${percent(score)}%`}>
+              <NumberTicker value={percent(score)} kind="percent" />
+            </Counted>
+          ) : (
+            '–'
+          )}
         </span>
-        <Tooltip
-          content={`${names.mentor} never practices on these. It sees only the score, and a change stays only if the score goes up.`}
-        >
-          <span className="cursor-help">
-            <EvidenceMark kind="check" className="text-body text-fg">
-              on check tasks
-            </EvidenceMark>
-          </span>
-        </Tooltip>
-        {score && (
-          <span className="text-small tabular-nums text-fg">
-            {runs > 1
-              ? `${Math.round((score.pass / runs) * 10) / 10} of ${job.splits.dev}`
-              : `${score.pass} of ${score.total}`}
-          </span>
-        )}
-        {geometry.branches.length > 0 && <Legend />}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <Tooltip
+            content={`${names.mentor} never practices on these. It sees only the score, and a change stays only if the score goes up.`}
+          >
+            <span tabIndex={0} className="cursor-help rounded-mark">
+              <EvidenceMark kind="check" className="text-ui">
+                check tasks
+              </EvidenceMark>
+            </span>
+          </Tooltip>
+          {pass !== null && (
+            <span className="text-ui tabular-nums">
+              <Counted said={`${pass} of ${total}`}>
+                {Number.isInteger(pass) ? <NumberTicker value={pass} /> : pass} of{' '}
+                <NumberTicker value={total} />
+              </Counted>
+            </span>
+          )}
+        </div>
       </div>
       <CurveChart input={input} geometry={geometry} ended={ended} />
-    </Panel>
-  );
-}
-
-/** What the two kinds of point mean, once a change that wasn't kept has its own. */
-function Legend() {
-  return (
-    <span aria-hidden className="ml-auto flex items-center gap-4 text-small text-fg">
-      <span className="flex items-center gap-1.5">
-        <svg width={10} height={10} viewBox="0 0 10 10">
-          <circle cx={5} cy={5} r={4} className="fill-student" />
-        </svg>
-        Score now
-      </span>
-      <span className="flex items-center gap-1.5">
-        <svg width={26} height={10} viewBox="0 0 26 10">
-          <line
-            x1={1}
-            x2={17}
-            y1={5}
-            y2={5}
-            className="stroke-line-strong"
-            strokeWidth={1.5}
-            strokeDasharray="3 3"
-          />
-          <circle cx={21} cy={5} r={3.5} className="fill-card stroke-fg" strokeWidth={1.5} />
-        </svg>
-        Not kept
-      </span>
-    </span>
+    </section>
   );
 }
 
@@ -136,7 +121,12 @@ function CurveChart({
         className="stroke-fg/40"
         strokeDasharray="2 4"
       />
-      <text x={PLOT.right + 12} y={targetY + 4.4} className="fill-fg font-mono text-small">
+      <text
+        x={CURVE_BOX.width}
+        y={targetY + 4.4}
+        textAnchor="end"
+        className="fill-fg font-mono text-small"
+      >
         Target {target}%
       </text>
       <line

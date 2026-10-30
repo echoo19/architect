@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import type { Job, ListedLesson } from '@architect/shared';
-import { cn, Panel, PanelHeader, PanelRow, Skeleton } from '@architect/ui';
+import { Button, Collapse, NumberTicker, Skeleton, Stagger, StaggerItem } from '@architect/ui';
 import { Check, ChevronRight, X } from 'lucide-react';
 import type { QueryState } from '../../api/query';
 import type { MentoringRecords } from '../../api/mentoring';
 import { ProblemState } from '../../components/ProblemState';
+import { Appear, useFirstKeys } from '../appear';
+import { Counted } from '../counted';
 import { taskTitle } from '../format';
+import { ROOMY, ROW_CHEVRON, Row, RowButton, Section } from '../ledger';
 import { typeLabel } from '../names';
 import { lessonOrigin, lessonVerdict } from './evidence-words';
 
@@ -13,20 +16,18 @@ import { lessonOrigin, lessonVerdict } from './evidence-words';
 const SHOWN = 8;
 
 /**
- * The worked examples Spark wrote for the agent to learn from, newest first: what the checker
+ * The worked examples the mentor wrote for the agent to learn from, newest first: what the checker
  * said of each, whether it passed, the task it came from and how its answer was obtained. A row
- * opens it, step by step. The header counts the ones that passed, over every example listed.
+ * opens it, step by step. The header counts the ones that passed, over every example listed. It
+ * is there once there is an example to list, or a reason one can't be.
  */
 export function Examples({
   job,
   records,
-  ended,
   onOpen,
 }: {
   job: Job;
   records: QueryState<MentoringRecords>;
-  /** The run is over, so an empty list stays empty. */
-  ended: boolean;
   onOpen: (lesson: ListedLesson) => void;
 }) {
   const [all, setAll] = useState(false);
@@ -39,70 +40,91 @@ export function Examples({
       .map((experiment) => experiment.round),
   );
   const newest = [...lessons].reverse();
-  const shown = all ? newest : newest.slice(0, SHOWN);
+  const first = useFirstKeys(newest.slice(0, SHOWN).map((lesson) => lesson.id));
+  const failed = records.status === 'error' && lessons.length === 0;
+  const loading = records.status === 'loading' && records.data === undefined;
+  const open = (lesson: ListedLesson) => () => onOpen(lesson);
+  const kept = (lesson: ListedLesson) => lesson.round === null || !notKept.has(lesson.round);
   return (
-    // With no example to list it is only as tall as its one line, not as tall as the rounds beside it.
-    <Panel
-      aria-label="Worked examples"
-      className={cn('min-w-0 flex-[7_1_560px]', lessons.length === 0 && 'self-start')}
-    >
-      <PanelHeader
+    <Collapse open={lessons.length > 0 || failed || loading} className={ROOMY}>
+      <Section
         title="Worked examples"
         actions={
           lessons.length > 0 && (
-            <span className="text-small tabular-nums text-fg">
-              {passed} of {lessons.length} passed the checker
+            <span className="text-small tabular-nums">
+              <Counted said={`${passed} of ${lessons.length}`}>
+                <NumberTicker value={passed} /> of <NumberTicker value={lessons.length} />
+              </Counted>{' '}
+              passed
             </span>
           )
         }
-      />
-      {records.status === 'error' && lessons.length === 0 ? (
-        <PanelRow className="py-3">
-          <ProblemState
-            layout="inline"
-            error={records.error}
-            title="Couldn't load the worked examples"
-            onRetry={records.reload}
-          />
-        </PanelRow>
-      ) : records.status === 'loading' && records.data === undefined ? (
-        <div aria-busy="true" aria-label="Loading the worked examples" className="flex flex-col">
-          {[0, 1, 2].map((row) => (
-            <PanelRow key={row}>
-              <Skeleton className="h-4 w-full" />
-            </PanelRow>
-          ))}
-        </div>
-      ) : lessons.length === 0 ? (
-        <PanelRow className="text-fg">
-          {ended ? 'No worked examples' : 'No worked examples yet'}
-        </PanelRow>
-      ) : (
-        <div className="overflow-x-auto">
-          <ul className="m-0 min-w-[620px] list-none p-0">
-            {shown.map((lesson) => (
-              <li key={lesson.id}>
-                <ExampleRow
-                  lesson={lesson}
-                  type={typeLabel(job, lesson.taskType)}
-                  kept={lesson.round === null || !notKept.has(lesson.round)}
-                  onOpen={() => onOpen(lesson)}
-                />
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {lessons.length > SHOWN && (
-        <button
-          type="button"
-          onClick={() => setAll((open) => !open)}
-          className="mt-auto flex min-h-[54px] items-center justify-end border-t border-line px-7 text-fg transition-colors duration-150"
-        >
-          {all ? `Show the newest ${SHOWN}` : `Show all ${lessons.length}`}
-        </button>
-      )}
-    </Panel>
+      >
+        {failed ? (
+          <div className="border-y border-line py-3">
+            <ProblemState
+              layout="inline"
+              error={records.error}
+              title="Couldn't load the worked examples"
+              onRetry={records.reload}
+            />
+          </div>
+        ) : loading ? (
+          <div
+            aria-busy="true"
+            aria-label="Loading the worked examples"
+            className="flex flex-col gap-3 border-y border-line py-3.5"
+          >
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-4/5" />
+          </div>
+        ) : (
+          <>
+            <Stagger as="ul" className="m-0 list-none border-b border-line p-0">
+              {newest.slice(0, SHOWN).map((lesson) => (
+                <StaggerItem as="li" key={lesson.id} className="border-t border-line">
+                  <Appear added={!first.has(lesson.id)}>
+                    <ExampleRow
+                      lesson={lesson}
+                      type={typeLabel(job, lesson.taskType)}
+                      kept={kept(lesson)}
+                      onOpen={open(lesson)}
+                    />
+                  </Appear>
+                </StaggerItem>
+              ))}
+            </Stagger>
+            {lessons.length > SHOWN && (
+              <Collapse open={all} className={ROOMY}>
+                <ul className="m-0 list-none border-b border-line p-0">
+                  {newest.slice(SHOWN).map((lesson) => (
+                    <Row key={lesson.id}>
+                      <ExampleRow
+                        lesson={lesson}
+                        type={typeLabel(job, lesson.taskType)}
+                        kept={kept(lesson)}
+                        onOpen={open(lesson)}
+                      />
+                    </Row>
+                  ))}
+                </ul>
+              </Collapse>
+            )}
+          </>
+        )}
+        {lessons.length > SHOWN && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-3 self-start"
+            aria-expanded={all}
+            onClick={() => setAll((current) => !current)}
+          >
+            {all ? `Show the newest ${SHOWN}` : `Show all ${lessons.length}`}
+          </Button>
+        )}
+      </Section>
+    </Collapse>
   );
 }
 
@@ -120,10 +142,9 @@ function ExampleRow({
 }) {
   const passed = lesson.status === 'verified';
   return (
-    <button
-      type="button"
+    <RowButton
       onClick={onOpen}
-      className="group grid min-h-[62px] w-full grid-cols-[20px_minmax(0,1fr)_190px_120px_14px] items-center gap-x-4 border-t border-line px-7 py-2 text-left transition-colors duration-150 hover:bg-hover"
+      className="min-h-12 grid-cols-[16px_minmax(0,1fr)_176px_184px_14px] py-2.5"
     >
       {passed ? (
         <Check
@@ -137,41 +158,23 @@ function ExampleRow({
         <X
           size={15}
           strokeWidth={2.2}
-          className="text-fg"
+          className="text-danger"
           role="img"
           aria-label="Failed the checker"
         />
       )}
-      <span className="flex min-w-0 flex-col gap-1">
+      <span className="flex min-w-0 flex-col">
         <span className="truncate">{lessonVerdict(lesson)}</span>
-        <span className="truncate text-small text-fg">
+        <span className="truncate text-small">
           {lesson.prompt ? taskTitle(lesson.prompt) : lesson.taskType}
         </span>
       </span>
-      <span className="flex min-w-0 flex-col">
-        <span className="truncate">{lessonOrigin(lesson)}</span>
-        <span
-          className={passed ? 'truncate text-small text-student' : 'truncate text-small text-fg'}
-        >
-          {passed ? 'Checker passed it' : 'Checker failed it'}
-        </span>
+      <span className="truncate text-small">{lessonOrigin(lesson)}</span>
+      <span className="truncate text-right text-small">
+        {type}
+        {lesson.round !== null && ` · Round ${lesson.round}${kept ? '' : ', not kept'}`}
       </span>
-      <span className="flex min-w-0 flex-col">
-        <span className="truncate text-fg">{type}</span>
-        <span className="truncate text-small text-fg">
-          {lesson.round === null
-            ? 'Example'
-            : kept
-              ? `Round ${lesson.round}`
-              : `Round ${lesson.round}, not kept`}
-        </span>
-      </span>
-      <ChevronRight
-        size={14}
-        strokeWidth={1.8}
-        aria-hidden
-        className="text-fg opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
-      />
-    </button>
+      <ChevronRight size={14} strokeWidth={1.8} aria-hidden className={ROW_CHEVRON} />
+    </RowButton>
   );
 }

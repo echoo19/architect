@@ -1,79 +1,43 @@
-import type { Experiment, Round } from '@architect/shared';
-import { cn, Heading, Panel, Spinner } from '@architect/ui';
+import type { ReactNode } from 'react';
+import type { Round } from '@architect/shared';
+import { cn, StepTransition } from '@architect/ui';
 import { CircleAlert } from 'lucide-react';
 import { formatRange } from '../format';
-import { outcomeNote } from './decision';
 import { draftRoundOf } from './draft';
-import { DISPOSITIONS } from './evidence-words';
 import { failureLine } from './failure-line';
 import type { ModelNames } from './phase';
 import { Question } from './Question';
 import { answerEffect, isOpen, type QuestionView } from './questions';
 import {
   hasEnded,
+  isTesting,
   latestFailure,
   roundAttempts,
   type LiveRun,
   type RecentAttempt,
 } from './run-state';
 
-const ACTIVE = new Set(['running', 'testing', 'stopping']);
-
-/** The student met the target on its check tasks before any teaching, so no round ran. */
-function metUnaided(live: LiveRun, round: Round | null): boolean {
-  return round === null && hasEnded(live.run) && live.run.stopReason === 'target_met';
-}
-
-/** The run ended before its first round: the teacher had nothing it may change. */
-function idle(live: LiveRun, round: Round | null): boolean {
-  return round === null && live.run.stopReason === 'nothing_to_try';
-}
-
 function studentLine(
   live: LiveRun,
-  round: Round | null,
+  round: Round,
   failure: RecentAttempt | null,
   draft: boolean,
 ): string {
-  const { run, job } = live;
-  if (run.status === 'testing' || run.phase === 'testing') {
-    return live.improves
-      ? 'Done practising. What it kept becomes its new version.'
-      : `Taking the ${job.splits.test}-task final test on its own.`;
-  }
+  const { job } = live;
   if (draft) {
-    return round?.status === 'evaluating'
+    return round.status === 'evaluating'
       ? `Taking the ${job.splits.dev} check tasks with the first draft.`
       : 'No practice this round. It waits for its first setup.';
   }
-  const baseline = run.devBaseline;
-  if (metUnaided(live, round) && baseline !== null) {
-    return `Got ${baseline.pass} of ${baseline.total} check tasks right before any teaching, then took the final test.`;
-  }
-  if (idle(live, round)) return 'No practice ran.';
   if (failure) return failureLine(failure);
-  if (!round) {
-    return run.phase === 'baseline'
-      ? `Taking ${job.splits.dev} check tasks before any teaching.`
-      : 'Waiting for the first round.';
-  }
   const attempts = roundAttempts(live, round.index);
   if (attempts.length > 0 && attempts.every((attempt) => attempt.check.pass)) {
-    return `Got all ${attempts.length} practice tasks right so far this round.`;
+    return `Got all ${attempts.length} practice ${attempts.length === 1 ? 'task' : 'tasks'} right so far this round.`;
   }
   return `Working through ${job.evaluation.trainBatch} practice tasks.`;
 }
 
-function mentorLine(live: LiveRun, round: Round | null, names: ModelNames, draft: boolean): string {
-  const { run } = live;
-  if (run.status === 'testing' || run.phase === 'testing') {
-    return live.improves ? 'Finished teaching.' : 'Disconnected. The final test runs without help.';
-  }
-  if (metUnaided(live, round)) {
-    return `Had nothing to change: ${names.student} already met the target.`;
-  }
-  if (idle(live, round)) return "Couldn't change anything in this run.";
-  if (!round) return `Starts teaching once ${names.student} has taken the check tasks.`;
+function mentorLine(live: LiveRun, round: Round, names: ModelNames, draft: boolean): string {
   if (round.diagnosis) return round.diagnosis;
   if (draft) {
     return `Writing ${names.student}'s first full setup from the job and its example tasks.`;
@@ -87,153 +51,121 @@ function mentorLine(live: LiveRun, round: Round | null, names: ModelNames, draft
   return `Waits for ${names.student} to finish the practice tasks.`;
 }
 
-/** The round's number and, once the mentor has named it, the change it is trying. */
-function roundHeading(round: Round | null, draft: boolean, unaided: boolean): string {
-  if (unaided) return 'No teaching needed';
-  if (!round) return 'Before the first round';
-  if (draft) return `Round ${round.index}: first draft`;
-  return round.title ? `Round ${round.index}: ${round.title}` : `Round ${round.index}`;
-}
-
 /**
- * What the student just got wrong, what the mentor makes of it, and what it expects to gain;
- * once the round has ended, how its change ended too.
+ * The newest round, opened under its line in the list of rounds: what the student just got wrong
+ * and what the mentor makes of it, and what the mentor expects to gain. How the round ended is
+ * said once, in its line. A question the mentor put to the person is asked and answered here too.
  */
 export function CurrentRound({
   live,
   round,
   names,
-  experiment,
   question,
-  recordsFailed,
 }: {
   live: LiveRun;
-  round: Round | null;
+  round: Round;
   names: ModelNames;
-  /** The round's experiment record, once it has one. */
-  experiment: Experiment | undefined;
   /** The question the round put to the person, when it was one. */
   question: QuestionView | null;
-  /** The mentoring records couldn't be read, so an ended round's result is unknown here. */
-  recordsFailed: boolean;
 }) {
-  const draft = round !== null && round.index === draftRoundOf(live);
-  const failure = round && !draft ? latestFailure(live, round.index) : null;
-  const working = ACTIVE.has(live.run.status);
-  const predicted = round?.predicted;
-  const ended = experiment && !draft ? experiment : undefined;
-  const over = round !== null && (round.status === 'decided' || round.status === 'failed');
+  const draft = round.index === draftRoundOf(live);
+  const over = round.status === 'decided' || round.status === 'failed';
+  // Once the round is over, or the run has moved on to its test or its end, the student's last
+  // miss and the mentor's progress are history: what is left is the diagnosis and what it expected.
+  const active = !over && !hasEnded(live.run) && !isTesting(live.run);
+  const failure = active && !draft ? latestFailure(live, round.index) : null;
+  const predicted = round.predicted;
   // A run paused on an error says so, with what to do, in a notice of its own above.
   const pausedOnError = live.run.status === 'paused' && live.run.error !== undefined;
   // A question round waits for its answer here, then says what the mentor did with it. A run that
   // ended first can't take the answer any more, so it only says what was asked.
-  const runOver = hasEnded(live.run);
   const asking =
-    !runOver &&
-    round !== null &&
+    !hasEnded(live.run) &&
     question !== null &&
     (question.state !== 'ready' || isOpen(round, question.intervention));
   const answered = question?.state === 'ready' ? question.intervention : undefined;
-  const unanswered = runOver && answered?.answer === undefined ? answered : undefined;
+  const unanswered = hasEnded(live.run) && answered?.answer === undefined ? answered : undefined;
+  const showDiagnosis = question === null && (active || round.diagnosis !== undefined);
+
   return (
-    <Panel padded aria-label="Current round" className="min-w-0 flex-[5_1_360px]">
-      <div className="flex items-center justify-between gap-3">
-        <Heading>{roundHeading(round, draft, metUnaided(live, round))}</Heading>
-        {working && <Spinner tone="mentor" size={16} label="Working" />}
-      </div>
-      <div className="flex flex-col gap-2">
-        <span className="text-student">{names.student}</span>
-        <p className="m-0 text-body text-fg text-pretty">
+    <section aria-label="Current round" className="flex flex-col gap-5 pb-6 pl-11">
+      {active && (
+        <Line who={names.student} tone="student">
           {studentLine(live, round, failure, draft)}
-        </p>
-      </div>
-      {asking && round !== null && question !== null ? (
-        <Question runId={live.run.id} round={round} view={question} names={names} />
-      ) : (
-        <div className="flex flex-col gap-2">
-          <span className="text-mentor">{names.mentor}</span>
-          {answered?.answer ? (
-            <>
-              <p className="m-0 text-body text-fg text-pretty">
-                You answered: {answered.answer.text}
-              </p>
-              <p className="m-0 text-body text-fg text-pretty">{answerEffect(answered, names)}</p>
-            </>
-          ) : unanswered ? (
-            <>
-              <p className="m-0 text-body text-fg text-pretty">
-                {names.mentor} asked: {unanswered.question}
-              </p>
-              <p className="m-0 text-body text-fg text-pretty">
-                Training ended before you answered.
-              </p>
-            </>
-          ) : (
-            <p className="m-0 text-body text-fg text-pretty">
-              {mentorLine(live, round, names, draft)}
-            </p>
-          )}
-        </div>
+        </Line>
       )}
+      <StepTransition transitionKey={asking ? 'asking' : 'answered'} className="empty:hidden">
+        {asking && question !== null ? (
+          <Question runId={live.run.id} round={round} view={question} names={names} />
+        ) : answered?.answer ? (
+          <Line who={names.mentor} tone="mentor">
+            <p className="m-0 text-pretty">You answered: {answered.answer.text}</p>
+            <p className="m-0 text-pretty">{answerEffect(answered, names)}</p>
+          </Line>
+        ) : unanswered ? (
+          <Line who={names.mentor} tone="mentor">
+            <p className="m-0 text-pretty">
+              {names.mentor} asked: {unanswered.question}
+            </p>
+            <p className="m-0 text-pretty">Training ended before you answered.</p>
+          </Line>
+        ) : (
+          showDiagnosis && (
+            <Line who={names.mentor} tone="mentor">
+              {mentorLine(live, round, names, draft)}
+            </Line>
+          )
+        )}
+      </StepTransition>
       {live.notice && !pausedOnError && (
-        <p role="status" className="m-0 flex items-start gap-2 text-small text-fg">
+        <p role="status" className="m-0 flex items-start gap-2 text-small">
           <CircleAlert
             size={13}
-            className={
-              live.notice.level === 'error' ? 'mt-[3px] text-danger' : 'mt-[3px] text-mentor'
-            }
+            className={cn(
+              'mt-[3px]',
+              live.notice.level === 'error' ? 'text-danger' : 'text-mentor',
+            )}
             aria-hidden
           />
           {live.notice.message}
         </p>
       )}
-      {question === null && (
-        <div className="mt-auto flex flex-col gap-3 border-t border-line pt-[18px]">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-fg">
-              {names.mentor} {ended || over ? 'expected' : 'expects'}
+      {question === null && predicted && (
+        <dl className="m-0">
+          <Fact label={over ? 'Expected' : 'Expects'}>
+            <span className="tabular-nums">
+              {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)} check tasks
             </span>
-            {predicted ? (
-              <span>
-                <span className="font-mono tabular-nums">
-                  {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)}
-                </span>{' '}
-                <span className="text-fg">check tasks</span>
-              </span>
-            ) : (
-              <span className="text-fg">–</span>
-            )}
-          </div>
-          {ended ? (
-            <Outcome experiment={ended} live={live} />
-          ) : (
-            over &&
-            !draft &&
-            recordsFailed && (
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-fg">Result</span>
-                <span className="text-fg">–</span>
-              </div>
-            )
-          )}
-        </div>
+          </Fact>
+        </dl>
       )}
-    </Panel>
+    </section>
   );
 }
 
-/** How the round's change ended: its disposition, and in a few words why it isn't kept. */
-function Outcome({ experiment, live }: { experiment: Experiment; live: LiveRun }) {
-  const { label, icon: Icon, tone } = DISPOSITIONS[experiment.disposition];
-  const note = outcomeNote(experiment, live.job);
+/** A label in a model's color, and what that model has to say, side by side. */
+function Line({
+  who,
+  tone,
+  children,
+}: {
+  who: string;
+  tone: 'student' | 'mentor';
+  children: ReactNode;
+}) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="text-fg">Result</span>
-      <span className="flex min-w-0 items-center gap-2">
-        <Icon size={14} strokeWidth={2} aria-hidden className={cn('shrink-0', tone)} />
-        <span className={tone}>{label}</span>
-        {note && <span className="truncate text-fg">· {note}</span>}
-      </span>
+    <div className="grid grid-cols-[80px_minmax(0,1fr)] gap-x-4">
+      <span className={tone === 'student' ? 'text-student' : 'text-mentor'}>{who}</span>
+      <div className="flex min-w-0 flex-col gap-1.5 text-pretty">{children}</div>
+    </div>
+  );
+}
+
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-[80px_minmax(0,1fr)] items-baseline gap-x-4">
+      <dt>{label}</dt>
+      <dd className="m-0">{children}</dd>
     </div>
   );
 }
