@@ -42,7 +42,7 @@ test.beforeAll(async () => {
   }, SIZE);
   expect(visible).toBe(false);
   await mkdir(OUT_DIR, { recursive: true });
-  await updateSettings(page, { onboarded: true });
+  await updateSettings(page, { onboarded: true, edition: 'lab' });
 });
 
 test.afterAll(async () => {

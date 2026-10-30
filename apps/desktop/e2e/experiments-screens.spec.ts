@@ -76,7 +76,7 @@ test.beforeAll(async () => {
   }, SIZE);
   expect(visible).toBe(false);
   await mkdir(OUT_DIR, { recursive: true });
-  await updateSettings(page, { onboarded: true });
+  await updateSettings(page, { onboarded: true, edition: 'lab' });
   await stubEngine(launched.app, { ...EMPTY_ENGINE, 'files:pick': [FOLDER] });
   await installExperimentsFake(launched.app, asField(await recordedComparisonReport()));
 });

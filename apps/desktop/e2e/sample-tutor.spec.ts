@@ -83,7 +83,7 @@ test('starts Phil from a fresh install and reaches the brief to confirm', async 
     },
   });
   await stubRecorded(app, 'jobs:createSample', phil);
-  await updateSettings(page, { onboarded: true, comparisonMode: false });
+  await updateSettings(page, { onboarded: true, comparisonMode: false, edition: 'lab' });
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
   await goTo(page, '/');

@@ -73,6 +73,7 @@ test('walks through first-run setup while the model downloads', async () => {
     seed: engineSeed({ graduates: [], chats: [], messages: [] }),
   });
   await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue' }).click();
   // Ollama is running, so it isn't mentioned; the sizes are named by how they differ here.
   await expect(page.getByText(/Ollama/)).toHaveCount(0);
   const recommended = page.getByRole('radio', { name: /Recommended/ });
@@ -373,13 +374,8 @@ test('stops a reply and says so', async () => {
   await expect(page.getByRole('button', { name: 'Send' })).toBeVisible();
 });
 
-test('opens an agent from the Lab at the chat it was used in last', async () => {
+test('opens the chat used last when the workspace opens', async () => {
   await open('/');
-  await expect(page.getByRole('heading', { name: 'Lab', level: 1 })).toBeVisible();
-  await page
-    .getByRole('region', { name: 'Agents' })
-    .getByRole('button', { name: `Open ${AGENT.name}` })
-    .click();
   await expect(page).toHaveURL(new RegExp(`#${chatPath(CHATS.fresh.id)}$`));
   await expect(page.getByRole('navigation', { name: 'Agents' })).toContainText('Close out Tuesday');
 });
