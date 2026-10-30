@@ -31,17 +31,20 @@ export const STATUS_WORDS: Record<ExperimentStatus, string> = {
   failed: 'Failed',
 };
 
-/** The arm's state in a word; an unfinished arm of a running experiment is running. */
+/** An arm whose teaching ended and whose harness is frozen until results open, said plainly. */
+export const DONE_TEACHING = 'Done teaching';
+
+/** The arm's state in a few words; an unfinished arm of a running experiment is running. */
 export function armStatusWord(arm: ArmReport, experiment: ExperimentStatus): string {
   switch (arm.status) {
     case 'complete':
-      return arm.frozen === null ? 'Done' : 'Frozen';
+      return arm.frozen === null ? 'Done' : DONE_TEACHING;
     case 'stopped':
-      return arm.frozen === null ? 'Stopped' : 'Frozen';
+      return arm.frozen === null ? 'Stopped' : DONE_TEACHING;
     case 'not_run':
       return 'Not run';
     case 'incomplete':
-      if (arm.frozen !== null) return 'Frozen';
+      if (arm.frozen !== null) return DONE_TEACHING;
       return experiment === 'running' ? 'Running' : 'Unfinished';
   }
 }
@@ -57,6 +60,19 @@ export const ARM_NAMES: Record<ArmId, string> = {
   fixed: 'Fixed intervention',
   'weights-one-shot': 'One-shot adapter',
   'weights-targeted': 'Failure-specific adapter',
+};
+
+/** What each arm does, in one plain line under its name. */
+export const ARM_DESCRIPTIONS: Record<ArmId, string> = {
+  bare: 'Glimmer alone, with no teaching',
+  draft: 'Spark writes one harness before any practice',
+  targeted: "Spark edits the harness round by round from Glimmer's failures",
+  reference: 'Spark takes the test itself, with a blank harness',
+  'reference-targeted': 'Spark takes the test itself, with the taught harness',
+  repeat: 'The finished arms tested again on a new seed, to show the noise',
+  fixed: 'Spark may use one kind of change only',
+  'weights-one-shot': "Retrains Glimmer's weights once on verified examples",
+  'weights-targeted': "Retrains Glimmer's weights on the failures Spark found",
 };
 
 export const ARMS: readonly ArmId[] = ArmIdSchema.options;

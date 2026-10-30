@@ -132,7 +132,7 @@ test('designs an experiment and shows its estimate before anything spends', asyn
   await expect(
     page.getByRole('region', { name: 'Seeds and rounds' }).getByText('Repeat', { exact: true }),
   ).toBeVisible();
-  await settings.getByRole('tab', { name: 'Teacher' }).click();
+  await settings.getByRole('tab', { name: 'Spark' }).click();
   await settings.getByLabel('Targeted mentoring').fill('5');
   await expect
     .poll(() => page.evaluate(() => window.architect.experiments.get('cmp_1')))
@@ -154,7 +154,7 @@ test('preregisters, saying what freezes, then starts and runs without a locked r
   await expect(dialog().getByText(/frozen\. Nothing in the plan can change/)).toBeVisible();
   await dialog().getByRole('button', { name: 'Preregister' }).click();
   await expect(page.getByText('Preregistered', { exact: true })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Preregistration' })).toContainText('7777');
+  await expect(page.getByRole('region', { name: 'Preregistration' })).toContainText('3f9a1c07');
 
   await page.getByRole('button', { name: 'Start' }).click();
   await expect(dialog().getByText(/It may spend up to/)).toBeVisible();
@@ -162,7 +162,7 @@ test('preregisters, saying what freezes, then starts and runs without a locked r
   await expect(page.getByText('Running', { exact: true }).first()).toBeVisible();
   const arms = page.getByRole('table', { name: 'Arms' });
   await expect(arms.getByRole('row')).toHaveCount(6);
-  await expect(page.getByText('Results open here once every arm is frozen.')).toBeVisible();
+  await expect(page.getByText('Results open here once every arm is done teaching.')).toBeVisible();
 
   const text = await page.locator('main').innerText();
   for (const sealed of ['Ridgeline', 'Corner Bike', 'final test', 'Final test', 'locked']) {
