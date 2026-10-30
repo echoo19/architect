@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type {
@@ -41,11 +41,21 @@ export function planFromRequest(request: TrainingPlanRequest): TrainingPlan {
   return planTraining(config, { model, ...input });
 }
 
-/** A folder inside `parent` that doesn't exist yet or is empty: `<model>-<target>`, then `-2`. */
+/**
+ * A folder inside `parent` that doesn't exist yet or is empty: `<model>-<target>`, then `-2`.
+ * A link by that name (a symlink or junction, even a dangling one) is refused, because the bundle
+ * would be written where it points.
+ */
 function freshFolder(parent: string, base: string): string {
   for (let n = 1; ; n += 1) {
     const dir = join(parent, n === 1 ? base : `${base}-${n}`);
-    if (!existsSync(dir) || readdirSync(dir).length === 0) return dir;
+    const found = lstatSync(dir, { throwIfNoEntry: false });
+    if (found?.isSymbolicLink()) {
+      throw new BundleError(
+        `${dir} is a link, and a bundle isn't written through links. Remove it or choose another folder.`,
+      );
+    }
+    if (found === undefined || readdirSync(dir).length === 0) return dir;
   }
 }
 

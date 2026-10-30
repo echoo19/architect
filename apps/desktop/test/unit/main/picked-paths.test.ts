@@ -1,5 +1,7 @@
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { PickedPaths } from '../../../src/main/files/picked';
 
 const ROOT = resolve('/work');
@@ -50,5 +52,72 @@ describe('PickedPaths', () => {
     expect(() => picked.checkFile(join(folder, 'llama-server.exe'))).toThrow(refused);
     expect(() => picked.checkFile(folder)).toThrow(refused);
     expect(() => picked.checkFile(join(ROOT, 'llama.cpp', 'other.exe'))).toThrow(refused);
+  });
+});
+
+describe('PickedPaths and links', () => {
+  const dirs: string[] = [];
+  afterEach(() => {
+    for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  });
+  const LEAVES = 'leads out of the folder you chose';
+
+  /** A chosen folder and a sibling outside it, both real. */
+  function layout() {
+    const base = realpathSync(mkdtempSync(join(tmpdir(), 'architect-picked-')));
+    dirs.push(base);
+    const chosen = join(base, 'chosen');
+    const outside = join(base, 'outside');
+    mkdirSync(join(chosen, 'inner'), { recursive: true });
+    mkdirSync(outside);
+    writeFileSync(join(outside, 'secret.txt'), 'secret');
+    writeFileSync(join(chosen, 'inner', 'file.txt'), 'ok');
+    const picked = new PickedPaths();
+    picked.add([chosen], 'folders');
+    return { base, chosen, outside, picked };
+  }
+
+  /** A symlink, or on Windows a junction, which needs no privilege; false where neither works. */
+  function link(target: string, path: string, kind: 'dir' | 'file'): boolean {
+    try {
+      symlinkSync(target, path, kind === 'dir' ? 'junction' : 'file');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  it('allows real paths in a chosen folder, even ones not made yet', () => {
+    const { chosen, picked } = layout();
+    expect(picked.check(join(chosen, 'inner', 'file.txt'))).toBe(join(chosen, 'inner', 'file.txt'));
+    expect(picked.check(join(chosen, 'inner', 'new', 'out.json'))).toBe(
+      join(chosen, 'inner', 'new', 'out.json'),
+    );
+  });
+
+  it('allows a link that stays inside the chosen folder', (context) => {
+    const { chosen, picked } = layout();
+    if (!link(join(chosen, 'inner'), join(chosen, 'alias'), 'dir')) context.skip();
+    expect(picked.check(join(chosen, 'alias', 'file.txt'))).toBe(join(chosen, 'inner', 'file.txt'));
+  });
+
+  it('refuses a folder link that leads outside the chosen folder', (context) => {
+    const { chosen, outside, picked } = layout();
+    if (!link(outside, join(chosen, 'escape'), 'dir')) context.skip();
+    expect(() => picked.check(join(chosen, 'escape'))).toThrow(LEAVES);
+    expect(() => picked.check(join(chosen, 'escape', 'secret.txt'))).toThrow(LEAVES);
+    expect(() => picked.check(join(chosen, 'escape', 'new', 'out.json'))).toThrow(LEAVES);
+  });
+
+  it('refuses a file link that leads outside the chosen folder', (context) => {
+    const { chosen, outside, picked } = layout();
+    if (!link(join(outside, 'secret.txt'), join(chosen, 'secret.txt'), 'file')) context.skip();
+    expect(() => picked.check(join(chosen, 'secret.txt'))).toThrow(LEAVES);
+  });
+
+  it('refuses a link that points nowhere, since writing through it would create the target', (context) => {
+    const { base, chosen, picked } = layout();
+    if (!link(join(base, 'not-made-yet'), join(chosen, 'dangling'), 'dir')) context.skip();
+    expect(() => picked.check(join(chosen, 'dangling', 'out.json'))).toThrow(LEAVES);
   });
 });
