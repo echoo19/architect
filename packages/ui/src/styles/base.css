@@ -5,17 +5,28 @@
     height: 100%;
   }
 
+  html {
+    background: var(--color-ground);
+  }
+
   body {
     margin: 0;
     overflow: hidden;
     background: var(--color-ground);
     color: var(--color-fg);
     font-family: var(--font-sans);
-    font-size: var(--text-base);
-    line-height: var(--text-base--line-height);
+    font-size: var(--text-ui);
+    line-height: var(--text-ui--line-height);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+  }
+
+  /* Titles are set in the display face wherever they are, whatever else styles them. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
   }
 
   ::selection {
@@ -23,7 +34,7 @@
   }
 
   ::placeholder {
-    color: var(--color-fg-muted);
+    color: var(--color-fg-dim);
     opacity: 1;
   }
 
@@ -38,10 +49,6 @@
   :focus-visible {
     outline: 2px solid var(--color-ring);
     outline-offset: 2px;
-  }
-
-  :where(input, textarea, [contenteditable='true']):focus-visible {
-    outline-offset: -1px;
   }
 
   /* Controls inside a draggable title bar must still take clicks. */
