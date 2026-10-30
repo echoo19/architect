@@ -40,7 +40,12 @@ export function DownloadPage() {
       <Header page="download" />
       <main id="main" className="page flex flex-1 flex-col items-center py-16 sm:py-24">
         <h1 className="t-title text-center">Download Architect</h1>
-        <ul className="m-0 mt-10 grid w-full max-w-[640px] list-none gap-4 p-0 sm:mt-12 sm:grid-cols-2">
+        <p className="t-read m-0 mt-4 max-w-[46ch] text-center text-pretty">
+          One download includes both editions: Architect, which teaches an agent one job, and
+          Architect Lab, a workbench for building models for a field. You choose one on the first
+          run and can switch in Settings.
+        </p>
+        <ul className="m-0 mt-8 grid w-full max-w-[640px] list-none gap-4 p-0 sm:mt-12 sm:grid-cols-2">
           <System os="mac" name="macOS" mark={<AppleMark />} href={MAC_DMG}>
             For Macs with Apple silicon.{' '}
             <a className="link-quiet underline" href={MAC_INTEL_DMG}>

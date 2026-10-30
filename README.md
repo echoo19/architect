@@ -1,6 +1,6 @@
 # Architect
 
-Architect turns an organization's own material into a specialist that runs on its own computer. A large model studies the material and teaches a small one. The small model is then tested on organizations it never saw, one of them real. [See it on the website](https://echoo19.github.io/architect/).
+Architect turns an organization's own material into a specialist that runs on its own computer. A large model studies the material and teaches a small one. The small model is then tested on work it never saw; for a whole field, that means organizations it never saw, one of them real. [See it on the website](https://echoo19.github.io/architect/).
 
 The main example is Phil, a tutor for test-prep academies. A student misses a practice question and someone asks Phil what to do. Phil answers from that academy's own files: its topics, question bank, lessons, the student's history and its tutoring policy. Two academies with different policies get different correct actions from the same Phil.
 
