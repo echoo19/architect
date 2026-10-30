@@ -58,7 +58,7 @@ A person's own academy fits when it holds the required files with these columns.
 
 ## Tasks
 
-192 tasks: 48 per academy, eight of each skill. Ids carry the academy (`lakemont-hint-03`), and families never cross an academy. The tasks of the three train academies (144) split as usual; the transfer academy's 48 are for the locked test only. Each task names its academy in `org`, and its data folder is that academy's.
+300 tasks: 84 at each train academy, 14 of each skill, and 48 at the transfer academy, 8 of each. Ids carry the academy (`lakemont-hint-03`), and families never cross an academy. The 252 tasks of the three train academies split as usual and leave room for a certificate: 12 calibration, 84 train, 48 dev, 48 locked test and 60 sealed for calibrating when Phil answers (`evaluation.certify`: 5 attempts, a bound of 10% wrong with 95% confidence, calibration 60). The transfer academy's 48 are for the locked test only, which keeps its extra attempts cheap. Each task names its academy in `org`, and its data folder is that academy's.
 
 | Skill         | The request                                                                             | What is checked                                                                                                                          |
 | ------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -73,9 +73,9 @@ Half the requests read as a tutor writing, half as the student. Each starts with
 
 `diagnose` names the error the wrong choice was built from. It says nothing about what the student was actually thinking. When two errors give the same choice, either one passes; three diagnose tasks are like that (`copperfield-diagnose-01` and `-02`, `bramble-diagnose-01`).
 
-`history` follows the policy: attempts after the cutoff date are left out, retakes count or not as the academy says, and the latest attempts up to the window are taken in order of date, module and question number, whatever label each row writes. Right answers are the ones `result` marks right. Accuracy is right answers over those attempts, rounded half up. Escalation looks at time instead: the wrong answers among the attempts that count, taken in the policy's number of days up to the cutoff. Three of the eight per academy ask about an earlier date, and at every academy one asks about a window that holds a grid-in answer entered another way than the key.
+`history` follows the policy: attempts after the cutoff date are left out, retakes count or not as the academy says, and the latest attempts up to the window are taken in order of date, module and question number, whatever label each row writes. Right answers are the ones `result` marks right. Accuracy is right answers over those attempts, rounded half up. Escalation looks at time instead: the wrong answers among the attempts that count, taken in the policy's number of days up to the cutoff. At least three per academy ask about an earlier date, and at every academy one asks about a window that holds a grid-in answer entered another way than the key.
 
-`assign` accepts any questions that follow the rules: the same topic, never attempted by the student, not already assigned to them, inside the band, no question twice, the policy's count, ids numbered on from the file, the academy's date as `assigned_on`, and nothing else written. When fewer questions qualify than the policy asks for, all of them are assigned and the ANSWER says how many; seven tasks across the job are like that.
+`assign` accepts any questions that follow the rules: the same topic, never attempted by the student, not already assigned to them, inside the band, no question twice, the policy's count, ids numbered on from the file, the academy's date as `assigned_on`, and nothing else written. When fewer questions qualify than the policy asks for, all of them are assigned and the ANSWER says how many; nine tasks across the job are like that.
 
 The first tutoring turn at every academy is the same kind of wrong answer: a subject-verb question where the student picked the verb that agrees with the nearer noun. The policies make the right turn differ. At Thistlewood (`thistlewood-after_wrong-01`) Phil assigns 2 questions and leaves no note. At Copperfield (`copperfield-after_wrong-01`) he assigns 5 and leaves a note for the tutor.
 
@@ -106,6 +106,7 @@ Every task fits the agent's 16 turns and 24,000 characters of tool results, the 
 - For every wrong choice of every bank question, the reference finds the error from the question text alone, and it matches the error the choice was built from.
 - Every topic has one general hint, and the solve questions are not in the academy's bank.
 - The checker passes the ground truth, and any other choice the policy allows, labels written any other way included. It fails the common mistakes for the right reason: another error of the topic, the wrong hint for the policy, an attempted or out-of-band question, a question assigned twice, a row too few, an unasked staff note, a missing one, and a video from another folder.
+- The tasks split into the sizes the job asks for, the sealed calibration split of 60 among them, with every family in one split.
 - The reference solutions fit 16 turns and 24,000 characters. Their calls are replayed through the engine's own tools on each academy's files, the text they get back is compared, and every task passes the engine's checker. Until the engine binds a task to its academy by itself, the tests bind each task's data folder themselves.
 
 ## Known gaps

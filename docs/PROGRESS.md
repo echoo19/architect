@@ -17,6 +17,12 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Merge the running lanes (Sol's review of the centerpiece, more academy tasks so Phil can be certified, README and paper sections for the centerpiece), the full stand-in e2e suite, the PR to `main`, release 0.6.0.
 - Owner: raise the OpenRouter workspace budget (Phil 2, and a live certificate for Phil at about $5); confirm the real academy's drafted policy; new film narration for the Lab.
 
+## 2026-10-30 (Fri, night), academy job made certifiable (branch `academy/more-tasks`)
+
+**Done** (no model, no GPU, no spend)
+- The academy generator writes 14 tasks of each skill at each train academy (84) and 8 at the transfer academy (48): 300 tasks. The committed job splits the 252 taught tasks into 12 calibration, 84 train, 48 dev, 48 test and 60 sealed for the certificate (`evaluation.certify`: k 5, epsilon 0.10, delta 0.05, calibration 60). A test splits the committed job with the engine's splitter and checks the sizes and that families stay whole.
+- The academies' files and `record-tasks` are unchanged; the reference tutor passes all 300 tasks through the engine's tools and checker.
+
 ## 2026-10-30 (Fri, night), certify lane "Certified answers" (branch `certify/answers`)
 
 **Done** (no model was called, no GPU, no spend; decision 077)

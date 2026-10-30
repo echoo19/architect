@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
+import { splitTasks } from '@architect/engine';
 import { describe, expect, it } from 'vitest';
 import { ACADEMY_SEEDS, buildAcademy, buildJobFiles, generateJob, jobDir } from '../src';
 import { LETTERS, TODAY } from '../src/academy/build';
@@ -9,7 +10,7 @@ import { POLICY_STYLES, TEST_LAYOUTS } from '../src/academy/style';
 import { gridValue } from '../src/academy/topics';
 import { csvColumns, parseCsv } from '../src/lib/csv';
 import { errorsBehind, historyWindow, readPolicy, topicKey } from '../src/reference/rules';
-import { SKILLS } from '../src/tasks/build';
+import { SKILLS, TRAINED_PER_SKILL, TRANSFER_PER_SKILL } from '../src/tasks/build';
 import type { WrongAnswer } from '../src/tasks/build';
 import { job, paramsOf, todayOf } from './helpers';
 
@@ -20,6 +21,9 @@ async function filesUnder(dir: string): Promise<string[]> {
     .map((entry) => relative(dir, join(entry.parentPath, entry.name)).split(sep).join('/'))
     .sort();
 }
+
+/** The size of the sealed calibration split the job's certificate is computed on. */
+const CALIBRATION = 60;
 
 const generated = buildJobFiles();
 const academies = generated.academies;
@@ -48,7 +52,7 @@ describe('generating the job', () => {
 
   it('builds another academy from another seed', () => {
     const other = buildAcademy(7);
-    expect(other.tasks).toHaveLength(48);
+    expect(other.tasks).toHaveLength(6 * TRAINED_PER_SKILL);
     expect(other.files.get('questions.csv')).not.toBe(academies[0]!.files.get('questions.csv'));
   });
 });
@@ -322,13 +326,13 @@ describe('the tasks', () => {
     }
   });
 
-  it('give each academy eight tasks of each skill', () => {
-    for (const org of job.orgs()) {
+  it('give each academy 14 tasks of each skill, the transfer academy 8', () => {
+    for (const { id, role } of job.job().organizations ?? []) {
       for (const skill of SKILLS) {
         expect(
-          tasks.filter((t) => t.org === org && t.type === skill),
-          `${org} ${skill}`,
-        ).toHaveLength(8);
+          tasks.filter((t) => t.org === id && t.type === skill),
+          `${id} ${skill}`,
+        ).toHaveLength(role === 'transfer' ? TRANSFER_PER_SKILL : TRAINED_PER_SKILL);
       }
     }
   });
@@ -339,8 +343,40 @@ describe('the tasks', () => {
       (job.job().organizations ?? []).filter((o) => o.role === 'train').map((o) => o.id),
     );
     expect(tasks.filter((t) => train.has(t.org!))).toHaveLength(
-      splits.calibration + splits.train + splits.dev + splits.test,
+      splits.calibration + splits.train + splits.dev + splits.test + CALIBRATION,
     );
+  });
+
+  it('leave a sealed calibration split of 60, with families whole in every split', () => {
+    const { splits, evaluation, organizations } = job.job();
+    expect(evaluation.certify).toEqual({
+      k: 5,
+      epsilon: 0.1,
+      delta: 0.05,
+      calibration: CALIBRATION,
+    });
+    const transfer = new Set(
+      (organizations ?? []).filter((o) => o.role === 'transfer').map((o) => o.id),
+    );
+    const taught = tasks.filter((t) => !transfer.has(t.org!));
+    const split = splitTasks(taught, { ...splits, certify: CALIBRATION });
+    expect(split.certify).toHaveLength(CALIBRATION);
+    expect(split.unused).toHaveLength(0);
+    const size = (name: 'calibration' | 'train' | 'dev' | 'test') => split[name].length;
+    expect([size('calibration'), size('train'), size('dev'), size('test')]).toEqual([
+      splits.calibration,
+      splits.train,
+      splits.dev,
+      splits.test,
+    ]);
+    const where = new Map<string, string>();
+    for (const name of ['calibration', 'train', 'dev', 'test', 'certify'] as const) {
+      for (const task of split[name]) {
+        expect(where.get(task.family) ?? name, task.family).toBe(name);
+        where.set(task.family, name);
+      }
+    }
+    expect(where.size).toBe(new Set(taught.map((t) => t.family)).size);
   });
 
   it("ask solve about questions that are not in the academy's bank", () => {
@@ -384,7 +420,7 @@ describe('the tasks', () => {
       (t) => Number(paramsOf(t).expected_count) < Number(paramsOf(t).count),
     );
     expect(short.length).toBeGreaterThanOrEqual(2);
-    expect(short.length).toBeLessThanOrEqual(8);
+    expect(short.length).toBeLessThanOrEqual(12);
   });
 
   it('open the tutoring turns with the same wrong answer at every academy, acted on differently', () => {
