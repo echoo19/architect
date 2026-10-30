@@ -1,4 +1,5 @@
 import type { JsonValue } from '@architect/shared';
+import { moduleCell } from '../tasks/records';
 import type { AssignRequest, HistoryRequest, SolveRequest, WrongAnswer } from '../tasks/records';
 import {
   eligibleQuestions,
@@ -42,7 +43,7 @@ function locate(tools: AgentTools, w: WrongAnswer): Located {
   const code = [
     READ,
     `const student = read('students.csv').find((row) => row.name === ${text(w.student)});`,
-    `const slot = read('tests.csv').find((row) => row.test_name === ${text(w.test_name)} && row.section === ${text(w.section)} && row.module === ${text(w.module)} && row.number === ${text(w.number)});`,
+    `const slot = read('tests.csv').find((row) => row.test_name === ${text(w.test_name)} && row.section === ${text(w.section)} && row.module === ${text(moduleCell(w))} && row.number === ${text(w.number)});`,
     "const question = read('questions.csv').find((row) => row.question_id === slot.question_id);",
     '({',
     '  student,',
@@ -57,7 +58,7 @@ function locate(tools: AgentTools, w: WrongAnswer): Located {
       (row) =>
         row.test_name === w.test_name &&
         row.section === w.section &&
-        row.module === String(w.module) &&
+        row.module === moduleCell(w) &&
         row.number === String(w.number),
     );
     const question = t.one('questions.csv', (row) => row.question_id === slot.question_id);
@@ -90,7 +91,7 @@ export function diagnoseRecord(tools: AgentTools, w: WrongAnswer): JsonValue {
     READ,
     `const student = read('students.csv').find((row) => row.name === ${text(w.student)});`,
     `const test = read('tests.csv').find((row) => row.test_name === ${text(w.test_name)});`,
-    `read('attempts.csv').filter((row) => row.student_id === student.student_id && row.test_id === test.test_id && row.section === ${text(w.section)} && row.module === ${text(w.module)} && row.number === ${text(w.number)} && row.selected === ${text(w.chosen)})`,
+    `read('attempts.csv').filter((row) => row.student_id === student.student_id && row.test_id === test.test_id && row.section === ${text(w.section)} && row.module === ${text(moduleCell(w))} && row.number === ${text(w.number)} && row.selected === ${text(w.chosen)})`,
   ].join('\n');
   const [attempt] = tools.run(code, (t) => {
     const student = t.one('students.csv', (row) => row.name === w.student);
@@ -101,7 +102,7 @@ export function diagnoseRecord(tools: AgentTools, w: WrongAnswer): JsonValue {
         row.student_id === student.student_id &&
         row.test_id === test.test_id &&
         row.section === w.section &&
-        row.module === String(w.module) &&
+        row.module === moduleCell(w) &&
         row.number === String(w.number) &&
         row.selected === w.chosen,
     );
