@@ -2,6 +2,8 @@ import type {
   Guardrails,
   Job,
   LineageEntry,
+  Organization,
+  OrgTypeResult,
   ReportCard,
   Round,
   Run,
@@ -11,6 +13,8 @@ import type {
 
 export interface TestResult {
   taskType: string;
+  /** The organization the task was for, for a job with organizations. */
+  org?: string | undefined;
   pass: boolean;
   latencyMs: number;
   /** The graduate refused the task because a guardrail matched it. */
@@ -24,6 +28,8 @@ export interface ReportCardInput {
   lineage: LineageEntry[];
   /** Locked-test results of the frozen graduate, all from one student endpoint. */
   test: TestResult[];
+  /** Every organization the test covered, those it trained on and those it never saw. */
+  organizations?: Organization[];
   /** The frozen graduate's guardrails. */
   guardrails: Guardrails;
   student: ReportCard['student'];
@@ -96,6 +102,35 @@ function topInterventions(
     });
 }
 
+/**
+ * Each task type's result at each organization, in the job's type order and the organizations'
+ * order, for the pairs with tasks: seen when the agent trained on the organization (decision 068).
+ */
+function orgResults(
+  job: Job,
+  organizations: readonly Organization[],
+  test: readonly TestResult[],
+): OrgTypeResult[] {
+  return job.taskTypes.flatMap((type) =>
+    organizations.flatMap((org) => {
+      const here = test.filter((result) => result.taskType === type.id && result.org === org.id);
+      if (here.length === 0) return [];
+      return [
+        {
+          type: type.id,
+          label: type.label,
+          org: org.id,
+          orgName: org.name,
+          seen: org.role === 'train',
+          synthetic: org.synthetic,
+          pass: here.filter((result) => result.pass).length,
+          total: here.length,
+        },
+      ];
+    }),
+  );
+}
+
 /** Slack for comparing a pass rate computed from counts with a decimal target. */
 const RATE_EPSILON = 1e-9;
 
@@ -123,6 +158,7 @@ export function computeReportCard(input: ReportCardInput): ReportCard {
     })
     .filter((type) => type.total > 0);
 
+  const perOrg = orgResults(job, input.organizations ?? [], test);
   const score = { pass: test.filter((result) => result.pass).length, total: test.length };
   const latencies = test.map((result) => result.latencyMs);
   const p95 = percentile(latencies, 95);
@@ -154,6 +190,7 @@ export function computeReportCard(input: ReportCardInput): ReportCard {
       latencyMs: { p50: percentile(latencies, 50), p95 },
       refusals: test.filter((result) => result.refused && !refusedIds.has(result.taskType)).length,
       ranOffline: input.ranOffline,
+      ...(perOrg.length === 0 ? {} : { perOrg }),
     },
     dev: { baseline: run.devBaseline, final: run.devCurrent, curve: devCurve(run, input.rounds) },
     cost: {

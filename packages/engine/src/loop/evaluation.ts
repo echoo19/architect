@@ -46,6 +46,8 @@ export interface EvaluationSpec {
   config?: AttemptConfig;
   /** Replaces the harness's decoding, as a frozen graduate's recorded decoding does. */
   decoding?: Decoding;
+  /** The sealed organizations' folders, by id, which only a locked-test evaluation has. */
+  sealedData?: Readonly<Record<string, string>>;
 }
 
 /** The stored filter for one evaluation's attempts. */
@@ -300,6 +302,7 @@ async function evaluateNow(state: RunState, spec: EvaluationSpec): Promise<boole
     const context: EvaluationContext = {
       job: state.job,
       jobDir: state.jobDir,
+      ...(spec.sealedData === undefined ? {} : { sealedData: spec.sealedData }),
       harness: await resources.harness(spec.version),
       student,
       sandbox: await resources.sandbox(),

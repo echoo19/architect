@@ -1,4 +1,5 @@
 import { statSync } from 'node:fs';
+import { primaryDataDir } from '../loop/organizations';
 import type { WrittenPackage } from '@architect/harness';
 import type {
   Harness,
@@ -98,7 +99,7 @@ export async function graduationFacts(
     },
     report,
     lineage: input.lineage,
-    columns: await tableColumns(paths.dataDir(job.id), contract),
+    columns: await tableColumns(primaryDataDir(paths.jobDir(job.id), job), contract),
     rounds: report.cost.rounds,
     keptChanges: input.lineage.filter((entry) => entry.decision === 'kept').length,
     // The run that just took the locked test ran here.
@@ -122,7 +123,7 @@ export async function prepareGraduate(
   const written = await writeVersionFolder(store, paths, facts);
   const { job, freeze, contract, report } = input;
   const data = paths.workspaceDir(freeze.graduateId);
-  await seedDataFolder(data, paths.dataDir(job.id), contract.inputs.files);
+  await seedDataFolder(data, primaryDataDir(paths.jobDir(job.id), job), contract.inputs.files);
   const installation: StoredInstallation = {
     graduateId: freeze.graduateId,
     model: {

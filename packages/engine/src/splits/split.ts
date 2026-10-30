@@ -35,8 +35,8 @@ interface Family {
 /**
  * Splits tasks into calibration, train, dev and test. The result depends only on the task set and
  * the seed, never on input order or platform. Families never cross splits, each split gets
- * exactly the requested count, and task types are spread in proportion as closely as the family
- * sizes allow.
+ * exactly the requested count, and task types (at each organization, for a job with them) are
+ * spread in proportion as closely as the family sizes allow.
  */
 export function splitTasks(tasks: readonly Task[], config: SplitConfig): TaskSplits {
   const ids = tasks.map((task) => task.id);
@@ -53,7 +53,7 @@ export function splitTasks(tasks: readonly Task[], config: SplitConfig): TaskSpl
     );
   }
 
-  const types = [...new Set(tasks.map((task) => task.type))].sort(byCodeUnit);
+  const types = [...new Set(tasks.map(stratum))].sort(byCodeUnit);
   const families = groupFamilies(tasks, types);
   const totals: Record<Bucket, number> = {
     test: config.test,
@@ -84,7 +84,7 @@ function groupFamilies(tasks: readonly Task[], types: readonly string[]): Family
   for (const task of tasks) byName.set(task.family, [...(byName.get(task.family) ?? []), task]);
   return [...byName.keys()].sort(byCodeUnit).map((name) => {
     const members = (byName.get(name) ?? []).sort((a, b) => byCodeUnit(a.id, b.id));
-    const counts = types.map((type) => members.filter((task) => task.type === type).length);
+    const counts = types.map((type) => members.filter((task) => stratum(task) === type).length);
     return { name, tasks: members, counts, size: members.length };
   });
 }
@@ -210,6 +210,14 @@ function collect(families: readonly Family[], assignment: readonly number[]): Ta
 function describeCounts(config: SplitConfig): string {
   const names: SplitName[] = ['calibration', 'train', 'dev', 'test'];
   return names.map((name) => `${name} ${config[name]}`).join(', ');
+}
+
+/**
+ * What a split spreads in proportion: the task's type, and for a task of an organization the type
+ * at that organization, so every split holds each organization's share of each type.
+ */
+function stratum(task: Task): string {
+  return task.org === undefined ? task.type : `${task.type}@${task.org}`;
 }
 
 /** Code-unit order, not localeCompare, so sorting is the same on every machine. */

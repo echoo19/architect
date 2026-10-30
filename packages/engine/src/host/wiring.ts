@@ -151,6 +151,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
           {
             job: ctx.job,
             jobDir: ctx.jobDir,
+            ...(ctx.sealedData === undefined ? {} : { sealedData: ctx.sealedData }),
             harness: ctx.harness,
             student: ctx.student,
             sandbox: asSandbox(ctx.sandbox),
@@ -180,13 +181,15 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       releaseMentor: () => releaseMentor({ dispose: () => undefined }),
     },
     vault: {
-      seal: (jobId, tests, others, data) => vault.seal(jobId, tests, others, data),
+      seal: (jobId, tests, others, data, transfer) =>
+        vault.seal(jobId, tests, others, data, transfer),
       discard: (jobId) => vault.reset(jobId),
       isSealed: (jobId) => vault.isSealed(jobId),
       count: (jobId) => vault.count(jobId),
       typeCounts: (jobId) => vault.typeCounts(jobId),
       leakDetector: (jobId) => vault.leakDetector(jobId),
       openForLockedTest: (jobId, proof) => vault.openForLockedTest(jobId, proof as MentorReleased),
+      openTransfer: (jobId, proof) => vault.openTransfer(jobId, proof as MentorReleased),
     },
     harness: {
       versions: (dir) => new HarnessVersions(dir),

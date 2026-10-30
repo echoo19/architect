@@ -24,6 +24,7 @@ import type {
   TypeScore,
 } from '@architect/shared';
 import type { LeakDetector } from '../mentor/gate';
+import type { OpenedTransfer, TransferOrganization } from '../vault/vault';
 import type {
   CorrectionContext,
   CorrectionOptions,
@@ -59,6 +60,8 @@ export interface EvaluationContext {
   job: Job;
   /** The job folder: data files and any checker module live under it. */
   jobDir: string;
+  /** The sealed folders of organizations the job never trains on, for the locked test only. */
+  sealedData?: Readonly<Record<string, string>>;
   harness: Harness;
   student: StudentAdapter;
   sandbox: ToolSandbox;
@@ -150,9 +153,16 @@ export interface VaultDeps {
   /**
    * Seals the test tasks. `others` are every other task of the job and `data` the text of its
    * data files: wording and values they share with test tasks are left out of the leak
-   * fingerprint.
+   * fingerprint. `transfer` are the organizations the job never trains on, with their files,
+   * sealed with it (decision 068); their tasks are among `tests`.
    */
-  seal(jobId: string, tests: Task[], others: Task[], data: string[]): Awaitable<void>;
+  seal(
+    jobId: string,
+    tests: Task[],
+    others: Task[],
+    data: string[],
+    transfer?: TransferOrganization[],
+  ): Awaitable<void>;
   /**
    * Takes back a seal, for a job whose making failed or was interrupted before it was in the
    * library: nothing of it was ever read, and nothing is to be left that no job owns.
@@ -164,6 +174,8 @@ export interface VaultDeps {
   typeCounts(jobId: string): Awaitable<Record<string, number>>;
   leakDetector(jobId: string): Awaitable<LeakDetector>;
   openForLockedTest(jobId: string, proof: MentorReleased): Awaitable<Task[]>;
+  /** The sealed organizations and each one's folder, on the same proof as the locked test. */
+  openTransfer(jobId: string, proof: MentorReleased): Awaitable<OpenedTransfer>;
 }
 
 /** One run's harness versions (`new HarnessVersions(dir)`). */

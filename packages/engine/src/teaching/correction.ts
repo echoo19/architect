@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { taskDataDir } from '../loop/organizations';
 import { skillFiles } from '@architect/harness';
 import {
   DecodingSchema,
@@ -163,6 +163,7 @@ export async function runCorrection(
       trace: start.trace,
       job,
       jobDir: ctx.jobDir,
+      org: task.org,
       harness,
       sandbox,
       today: ctx.today,
@@ -200,7 +201,7 @@ export async function runCorrection(
     });
   } else {
     files = await openAgentFiles({
-      dataDir: join(ctx.jobDir, 'data'),
+      dataDir: taskDataDir(ctx.jobDir, task),
       files: job.data.files,
       ...(job.data.output === undefined ? {} : { output: job.data.output }),
       skills: skillFiles(harness),

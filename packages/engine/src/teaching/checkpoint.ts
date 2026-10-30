@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { taskDataDir } from '../loop/organizations';
 import { skillFiles } from '@architect/harness';
 import type {
   ChatMessage,
@@ -63,8 +63,10 @@ export type CheckpointResult = { ok: true; checkpoint: Checkpoint } | { ok: fals
 export interface CheckpointInput {
   trace: Trace;
   job: Job;
-  /** The job folder; its `data/` holds the original files. */
+  /** The job folder; its `data/`, or the organization's `orgs/<id>/data/`, holds the original files. */
   jobDir: string;
+  /** The organization the attempt's task was for, when the job has organizations. */
+  org?: string;
   /** The harness version the attempt ran with. */
   harness: Harness;
   sandbox: Sandbox;
@@ -143,7 +145,7 @@ export async function rebuildCheckpoint(input: CheckpointInput): Promise<Checkpo
   }
 
   const files = await openAgentFiles({
-    dataDir: join(input.jobDir, 'data'),
+    dataDir: taskDataDir(input.jobDir, input),
     files: job.data.files,
     ...(job.data.output === undefined ? {} : { output: job.data.output }),
     skills: skillFiles(harness),

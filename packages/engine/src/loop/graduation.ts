@@ -21,6 +21,7 @@ import type {
 } from '../store/records';
 import { scoreByType } from '../mentor/view';
 import { hashFile } from '../training/artifacts';
+import type { OpenedTransfer } from '../vault/vault';
 import type { EvaluationResult } from './attempts';
 import {
   configurationKey,
@@ -181,6 +182,11 @@ export async function freeze(state: RunState): Promise<void> {
 export interface LockedTest {
   target: StudentTarget;
   tasks: Task[];
+  /**
+   * The organizations the job never trained on, opened with the test (decision 068), and the
+   * folder of each one's files, by id. None for a job without them.
+   */
+  sealed: OpenedTransfer;
   harness: Harness;
   /** The student the test runs on, as its report card names it. */
   student: ReportCard['student'];
@@ -232,9 +238,11 @@ export async function openLockedTest(
     );
   }
   const build = target === 'local' ? frozen.student : described;
+  const { vault } = state.ctx.deps;
   return {
     target,
-    tasks: await state.ctx.deps.vault.openForLockedTest(state.run.jobId, proof),
+    tasks: await vault.openForLockedTest(state.run.jobId, proof),
+    sealed: await vault.openTransfer(state.run.jobId, proof),
     harness,
     student: {
       label: state.job.student.label,
@@ -271,6 +279,7 @@ export function runLockedTest(
     concurrency: 1,
     config,
     ...(frozen.configuration === undefined ? {} : { decoding: frozen.configuration.decoding }),
+    sealedData: test.sealed.dataDirs,
   });
 }
 
@@ -297,13 +306,15 @@ export function lockedTestAttempts(
  * repeat, so repeats never count as more scenarios. Its time is its slowest repeat's, and it
  * was refused when any repeat was.
  */
-function scenarios(attempts: readonly StoredAttempt[]): TestResult[] {
+function scenarios(attempts: readonly StoredAttempt[], tasks: readonly Task[] = []): TestResult[] {
   const byTask = new Map<string, StoredAttempt[]>();
   for (const attempt of attempts) {
     byTask.set(attempt.taskId, [...(byTask.get(attempt.taskId) ?? []), attempt]);
   }
+  const orgOf = new Map(tasks.map((task) => [task.id, task.org]));
   return [...byTask.values()].map((repeats) => ({
     taskType: must(repeats[0], 'A repeat').taskType,
+    org: orgOf.get(must(repeats[0], 'A repeat').taskId),
     pass: repeats.every((attempt) => attempt.check.pass),
     latencyMs: Math.max(...repeats.map((attempt) => attempt.latencyMs)),
     refused: repeats.some((attempt) => attempt.stopReason === 'refused'),
@@ -357,7 +368,8 @@ export async function lockedTestReport(
     run,
     rounds: rounds.map(({ round }) => round),
     lineage: await state.lineage.read(),
-    test: scenarios(attempts),
+    test: scenarios(attempts, test.tasks),
+    organizations: [...(state.job.organizations ?? []), ...test.sealed.organizations],
     guardrails: test.harness.guardrails,
     student: test.student,
     testedOn: test.target,
