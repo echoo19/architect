@@ -316,6 +316,24 @@ describe('end-state checks', () => {
     ).toBe('Expected one new invoice, but found 0.');
   });
 
+  it('fails a change to a table the task does not list, whatever the validator says', async () => {
+    const store = await appended('INV-4', '2500');
+    const listed = (writes: string[]) =>
+      task({
+        kind: 'end_state',
+        validator: 'invoice_created',
+        params: { total_cents: 2500 },
+        writes,
+      });
+    expect(await checker.check(listed(['invoices.csv']), outcome(), store)).toMatchObject({
+      pass: true,
+    });
+    expect(await checker.check(listed(['customers.csv']), outcome(), store)).toEqual({
+      pass: false,
+      reason: "invoices.csv changed, but the task doesn't ask for that.",
+    });
+  });
+
   it('gives the same result for the same inputs, every time', async () => {
     const store = await appended('INV-4', '2400');
     const results = await Promise.all(
