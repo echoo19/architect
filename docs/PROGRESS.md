@@ -2,6 +2,14 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri), scale lane "Training plan and targets" (branch `scale/targets`)
+
+**Done** (no model, GPU, cluster or cloud spend; schedulers are stand-ins)
+- `architect train plan` sizes a training job from a model's `config.json` (read from the Hub at a commit, or a file): every memory term with its arithmetic, every expert resident, FSDP's peak, activations, headroom, and the fewest GPUs and nodes; labeled an estimate. `architect train bundle --target slurm|kubernetes` writes a launch folder with the experimental `trainer/experimental/train_fsdp.py`, its FSDP config, the field export's `sft/` data, and the command to submit it with the user's own tools. Decision 072; `docs/CLI.md`.
+
+**Next**
+- The Scale page (`scale/ui`) on top of `@architect/engine/training-plan`. A real export from `scale/export` should be tried against `--export` once that lane lands (the bundle reads only `MANIFEST.json` and `sft/*.jsonl`).
+
 ## 2026-10-30 (Fri, evening), field specialists on main, Phil 2 waiting on budget (start the next session here)
 
 **Where things stand**

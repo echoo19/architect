@@ -63,12 +63,14 @@ extraResources:
   - from: ../../examples/gear-returns/graduate/data
     to: sample-agent/data
   # The pinned training recipe and the scripts a training job runs; the engine sends them with
-  # each job and reads the recipe to price it.
+  # each job and reads the recipe to price it. `architect train bundle` copies the experimental
+  # distributed trainer from experimental/.
   - from: ../../trainer
     to: trainer
     filter:
       - recipe.json
       - '*.py'
+      - experimental/*.py
 
 win:
   target: nsis

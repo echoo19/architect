@@ -1,0 +1,341 @@
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+  CLUSTER_TEMPLATE_WORDING,
+  TRAIN_BUNDLE_FORMAT,
+  TrainBundleSchema,
+  type ClusterTarget,
+  type TrainBundle,
+  type TrainingPlan,
+} from '@architect/shared';
+import { stringify } from 'yaml';
+import { loadRecipe } from '../training/recipe';
+import { describePlan } from './plan';
+
+/** A bundle that can't be written as asked. */
+export class BundleError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BundleError';
+  }
+}
+
+export const BUNDLE_FILE = 'bundle.json';
+export const TRAINER_SCRIPT = 'train_fsdp.py';
+export const SBATCH_FILE = 'submit.sbatch';
+export const PYTORCHJOB_FILE = 'pytorchjob.yaml';
+/** The PersistentVolumeClaim a PyTorchJob mounts the bundle from; the user makes it. */
+export const BUNDLE_CLAIM = 'architect-bundle';
+const RENDEZVOUS_PORT = 29500;
+
+/**
+ * Attention projections (grouped-query and latent attention) and every MLP or expert projection,
+ * by module name. The router (`gate`), embeddings and output head are never adapted.
+ */
+export const LORA_TARGETS =
+  '.*\\.(q_proj|k_proj|v_proj|o_proj|q_a_proj|q_b_proj|kv_a_proj_with_mqa|kv_b_proj|gate_proj|up_proj|down_proj|w1|w2|w3)$';
+
+export interface BundleInput {
+  target: ClusterTarget;
+  plan: TrainingPlan;
+  /** The repository's trainer folder: the pinned recipe's pins, and the experimental script. */
+  trainerDir: string;
+  /** A field export folder (`architect field export`); its sft/*.jsonl become the bundle's data. */
+  exportDir: string | null;
+  /** An empty or new folder the bundle is written to. */
+  outputDir: string;
+}
+
+export interface WrittenBundle {
+  bundle: TrainBundle;
+  dir: string;
+  files: string[];
+}
+
+const sha256 = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).digest('hex');
+
+function readExport(exportDir: string): {
+  manifestSha256: string | null;
+  declaredHash: string | null;
+  data: { name: string; bytes: Buffer }[];
+} {
+  const manifestPath = join(exportDir, 'MANIFEST.json');
+  let manifestSha256: string | null = null;
+  let declaredHash: string | null = null;
+  if (existsSync(manifestPath)) {
+    const bytes = readFileSync(manifestPath);
+    manifestSha256 = sha256(bytes);
+    try {
+      const manifest = JSON.parse(bytes.toString('utf8')) as Record<string, unknown>;
+      const declared = manifest['hash'] ?? manifest['sha256'] ?? manifest['export_sha256'];
+      declaredHash = typeof declared === 'string' ? declared : null;
+    } catch {
+      throw new BundleError(`${manifestPath} isn't JSON.`);
+    }
+  }
+  const sft = join(exportDir, 'sft');
+  const names = existsSync(sft)
+    ? readdirSync(sft)
+        .filter((name) => name.endsWith('.jsonl'))
+        .sort()
+    : [];
+  if (names.length === 0) {
+    throw new BundleError(
+      `${exportDir} has no sft/*.jsonl. Point --export at a folder written by \`architect field export\`.`,
+    );
+  }
+  return {
+    manifestSha256,
+    declaredHash,
+    data: names.map((name) => ({ name, bytes: readFileSync(join(sft, name)) })),
+  };
+}
+
+function sbatchScript(nodes: number, perNode: number, bundle: TrainBundle): string {
+  return `#!/bin/bash
+# EXPERIMENTAL, NOT RUN. Written by Architect; never submitted by it.
+# ${bundle.base_model.repo} at ${bundle.base_model.revision}, ${bundle.method}, ${nodes} node(s) x ${perNode} GPU(s).
+# Field export manifest: ${bundle.field_export?.manifest_sha256 ?? 'none'}. Recipe: ${bundle.recipe.sha256}.
+#SBATCH --job-name=architect-train
+#SBATCH --nodes=${nodes}
+#SBATCH --ntasks-per-node=1
+#SBATCH --gpus-per-node=${perNode}
+#SBATCH --exclusive
+#SBATCH --output=architect-train-%j.out
+
+set -euo pipefail
+cd "\${SLURM_SUBMIT_DIR}"
+
+PYTHON="\${PYTHON:-python3}"
+HEAD_NODE="$(scontrol show hostnames "\${SLURM_JOB_NODELIST}" | head -n 1)"
+RDZV_PORT="\${RDZV_PORT:-${RENDEZVOUS_PORT}}"
+
+# One torchrun per node; they meet at the first node of the allocation.
+srun --kill-on-bad-exit=1 "\${PYTHON}" -m torch.distributed.run \\
+  --nnodes="\${SLURM_NNODES}" \\
+  --nproc_per_node=${perNode} \\
+  --rdzv_id="\${SLURM_JOB_ID}" \\
+  --rdzv_backend=c10d \\
+  --rdzv_endpoint="\${HEAD_NODE}:\${RDZV_PORT}" \\
+  ${TRAINER_SCRIPT} --config train.json
+`;
+}
+
+function pytorchJob(nodes: number, perNode: number, image: string, bundle: TrainBundle): string {
+  const launch = [
+    'pip install --no-cache-dir -r /bundle/requirements.txt',
+    `torchrun --nnodes=${nodes} --nproc_per_node=${perNode} --node_rank="$RANK" --master_addr="$MASTER_ADDR" --master_port="$MASTER_PORT" /bundle/${TRAINER_SCRIPT} --config /bundle/train.json`,
+  ].join(' && ');
+  const replica = (replicas: number) => ({
+    replicas,
+    restartPolicy: 'Never',
+    template: {
+      spec: {
+        containers: [
+          {
+            name: 'pytorch',
+            image,
+            command: ['bash', '-c', launch],
+            workingDir: '/bundle',
+            resources: { limits: { 'nvidia.com/gpu': perNode } },
+            volumeMounts: [
+              { name: 'bundle', mountPath: '/bundle' },
+              { name: 'shm', mountPath: '/dev/shm' },
+            ],
+          },
+        ],
+        volumes: [
+          { name: 'bundle', persistentVolumeClaim: { claimName: BUNDLE_CLAIM } },
+          { name: 'shm', emptyDir: { medium: 'Memory' } },
+        ],
+      },
+    },
+  });
+  const manifest = {
+    apiVersion: 'kubeflow.org/v1',
+    kind: 'PyTorchJob',
+    metadata: {
+      name: `architect-train-${bundle.recipe.sha256.slice(0, 8)}`,
+      labels: { 'architect.experimental': 'true' },
+      annotations: {
+        'architect/base-model': `${bundle.base_model.repo}@${bundle.base_model.revision}`,
+        'architect/field-export-manifest': bundle.field_export?.manifest_sha256 ?? 'none',
+        'architect/recipe': bundle.recipe.sha256,
+        'architect/status': 'EXPERIMENTAL, NOT RUN',
+      },
+    },
+    spec: {
+      pytorchReplicaSpecs: {
+        Master: replica(1),
+        ...(nodes > 1 ? { Worker: replica(nodes - 1) } : {}),
+      },
+    },
+  };
+  return `# EXPERIMENTAL, NOT RUN. Written by Architect; never applied by it.\n${stringify(manifest)}`;
+}
+
+function readme(bundle: TrainBundle, plan: TrainingPlan, perNode: number): string {
+  const slurm = bundle.target === 'slurm';
+  const steps = slurm
+    ? [
+        '1. Copy this folder to a filesystem every node of your cluster can read.',
+        '2. In it, make a Python environment with the pinned packages:',
+        '     python3 -m venv .venv && .venv/bin/pip install -r requirements.txt',
+        '3. If the base model is gated, export HF_TOKEN in your shell first.',
+        '4. Submit it with your own Slurm (add --partition, --account or --time as your cluster asks):',
+        `     PYTHON="$PWD/.venv/bin/python" ${bundle.submit}`,
+      ]
+    : [
+        `1. Make a PersistentVolumeClaim named ${BUNDLE_CLAIM} in your namespace and copy this folder`,
+        '   to its root, so the pods see it at /bundle.',
+        '2. Install the Kubeflow training operator if your cluster lacks it (PyTorchJob, kubeflow.org/v1).',
+        '3. If the base model is gated, add HF_TOKEN to the container from your own secret.',
+        '4. Submit it with your own kubectl:',
+        `     ${bundle.submit}`,
+      ];
+  return [
+    'EXPERIMENTAL, NOT RUN',
+    '',
+    bundle.wording,
+    '',
+    'Architect wrote this bundle and never submitted it. It holds no credentials.',
+    '',
+    `Base model: ${bundle.base_model.repo} at ${bundle.base_model.revision}`,
+    `Method: ${bundle.method}, on ${bundle.nodes} node(s) x ${perNode} GPU(s) (${slurm ? 'Slurm' : 'Kubernetes'})`,
+    `Field export: ${bundle.field_export ? `MANIFEST.json sha256 ${bundle.field_export.manifest_sha256 ?? '(no manifest)'}, ${bundle.field_export.data.length} data file(s) in data/` : 'none; put chat examples in data/*.jsonl before submitting'}`,
+    `Recipe: sha256 ${bundle.recipe.sha256} (the trainer files, listed in bundle.json)`,
+    `Package pins: from ${bundle.recipe.pins.name}, sha256 ${bundle.recipe.pins.sha256}`,
+    '',
+    'To submit:',
+    ...steps,
+    '',
+    'Outputs go to outputs/model, with outputs/result.json beside it. To compare the model with',
+    "the field's other candidates, serve it on an OpenAI-compatible endpoint and add it in Architect.",
+    '',
+    'The plan it was sized from (estimates):',
+    ...describePlan(plan).map((line) => (line ? `  ${line}` : '')),
+    '',
+  ].join('\n');
+}
+
+/**
+ * Writes a launch bundle for a cluster: the experimental FSDP trainer, its settings and FSDP
+ * config, the field export's verified demonstrations, the pinned packages, and an sbatch script
+ * or a PyTorchJob manifest, with a README holding the command to submit it. Nothing is submitted
+ * and no credential is written.
+ */
+export function writeTrainBundle(input: BundleInput): WrittenBundle {
+  const { plan, target, outputDir } = input;
+  const { repo, revision } = plan.model;
+  if (repo === null || revision === null || !/^[0-9a-f]{40}$/.test(revision)) {
+    throw new BundleError(
+      'A bundle needs the model id and its revision as a 40-character commit, so the trained weights trace back to it.',
+    );
+  }
+  if (plan.fit === null) throw new BundleError(`The plan doesn't fit: ${plan.reason ?? ''}`);
+  if (existsSync(outputDir) && readdirSync(outputDir).length > 0) {
+    throw new BundleError(`${outputDir} isn't empty.`);
+  }
+  const { nodes, gpusPerNode } = plan.fit;
+  const pins = loadRecipe(input.trainerDir);
+  const exported = input.exportDir === null ? null : readExport(input.exportDir);
+
+  const lora = plan.input.method === 'full' ? null : pins.recipe.lora;
+  const settings = {
+    format: 'architect.fsdp-train/1',
+    experimental: true,
+    base_model: { repo, revision },
+    method: plan.input.method,
+    precision: plan.input.precision,
+    data: 'data/*.jsonl',
+    output_dir: 'outputs',
+    fsdp_config: 'fsdp_config.json',
+    field_export: exported?.manifestSha256 ?? null,
+    lora:
+      lora === null
+        ? null
+        : {
+            r: plan.input.loraRank,
+            alpha: plan.input.loraRank * (lora.alpha / lora.r),
+            dropout: lora.dropout,
+            target_modules: LORA_TARGETS,
+          },
+    training: {
+      epochs: pins.recipe.training.epochs,
+      learning_rate: plan.input.method === 'full' ? 1e-5 : pins.recipe.training.learning_rate,
+      lr_scheduler: pins.recipe.training.lr_scheduler,
+      warmup_steps: pins.recipe.training.warmup_steps,
+      per_device_batch_size: plan.input.microBatch,
+      gradient_accumulation_steps: pins.recipe.training.gradient_accumulation_steps,
+      max_seq_len: plan.input.seqLen,
+      seed: pins.recipe.training.seed,
+    },
+  };
+  const fsdpConfig = {
+    backward_prefetch: 'backward_pre',
+    forward_prefetch: false,
+    limit_all_gathers: true,
+    use_orig_params: true,
+    sync_module_states: true,
+    cpu_ram_efficient_loading: true,
+    activation_checkpointing: false,
+  };
+  const recipeFiles: { name: string; content: string | Buffer }[] = [
+    {
+      name: TRAINER_SCRIPT,
+      content: readFileSync(join(input.trainerDir, 'experimental', TRAINER_SCRIPT)),
+    },
+    { name: 'chat_spans.py', content: readFileSync(join(input.trainerDir, 'chat_spans.py')) },
+    { name: 'train.json', content: `${JSON.stringify(settings, null, 2)}\n` },
+    { name: 'fsdp_config.json', content: `${JSON.stringify(fsdpConfig, null, 2)}\n` },
+    { name: 'requirements.txt', content: `${pins.recipe.python_packages.join('\n')}\n` },
+  ];
+  const recipeHashes = recipeFiles
+    .map((file) => ({ name: file.name, sha256: sha256(file.content) }))
+    .sort((a, b) => (a.name < b.name ? -1 : 1));
+  const submitFile = target === 'slurm' ? SBATCH_FILE : PYTORCHJOB_FILE;
+  const bundle = TrainBundleSchema.parse({
+    format: TRAIN_BUNDLE_FORMAT,
+    experimental: true,
+    target,
+    base_model: { repo, revision },
+    method: plan.input.method,
+    nodes,
+    gpus_per_node: gpusPerNode,
+    field_export:
+      exported === null
+        ? null
+        : {
+            manifest_sha256: exported.manifestSha256,
+            declared_hash: exported.declaredHash,
+            data: exported.data.map((file) => ({ name: file.name, sha256: sha256(file.bytes) })),
+          },
+    recipe: {
+      sha256: sha256(recipeHashes.map((file) => `${file.name} ${file.sha256}\n`).join('')),
+      files: recipeHashes,
+      pins: { name: pins.recipe.name, sha256: pins.sha256 },
+    },
+    submit: target === 'slurm' ? `sbatch ${SBATCH_FILE}` : `kubectl apply -f ${PYTORCHJOB_FILE}`,
+    wording: CLUSTER_TEMPLATE_WORDING,
+  });
+
+  mkdirSync(join(outputDir, 'data'), { recursive: true });
+  const written: string[] = [];
+  const write = (name: string, content: string | Buffer) => {
+    writeFileSync(join(outputDir, name), content);
+    written.push(name);
+  };
+  for (const file of recipeFiles) write(file.name, file.content);
+  for (const file of exported?.data ?? []) write(`data/${file.name}`, file.bytes);
+  write(
+    submitFile,
+    target === 'slurm'
+      ? sbatchScript(nodes, gpusPerNode, bundle)
+      : pytorchJob(nodes, gpusPerNode, pins.recipe.image, bundle),
+  );
+  write('plan.json', `${JSON.stringify(plan, null, 2)}\n`);
+  write(BUNDLE_FILE, `${JSON.stringify(bundle, null, 2)}\n`);
+  write('README.txt', readme(bundle, plan, gpusPerNode));
+  return { bundle, dir: outputDir, files: written };
+}

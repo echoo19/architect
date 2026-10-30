@@ -15,6 +15,7 @@ import { list } from './commands/list';
 import { publish } from './commands/publish';
 import { reward } from './commands/reward';
 import { run } from './commands/run';
+import { train } from './commands/train';
 import { verify } from './commands/verify';
 import { CliContext } from './context';
 import { exitCodeOf, failureOf } from './exit';
@@ -34,6 +35,7 @@ const HANDLERS: Readonly<Record<CommandName, Command>> = {
   publish,
   field,
   reward,
+  train,
 };
 
 /**

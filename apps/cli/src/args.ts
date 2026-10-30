@@ -4,7 +4,16 @@ import { CliError } from './exit';
 type Options = NonNullable<ParseArgsConfig['options']>;
 
 export type CommandName =
-  'list' | 'install' | 'run' | 'inspect' | 'verify' | 'export' | 'publish' | 'field' | 'reward';
+  | 'list'
+  | 'install'
+  | 'run'
+  | 'inspect'
+  | 'verify'
+  | 'export'
+  | 'publish'
+  | 'field'
+  | 'reward'
+  | 'train';
 
 interface CommandSpec {
   usage: string;
@@ -146,6 +155,46 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
     args: 1,
     options: { env: { type: 'string' } },
     help: ["  --env <folder>          a field export's env folder; the current folder by default"],
+  },
+  train: {
+    usage:
+      'architect train plan --model owner/name [options] | architect train bundle --target slurm|kubernetes --model owner/name --output <folder> [options]',
+    summary: 'Size a training job for a cluster, or write its launch bundle (experimental).',
+    args: 1,
+    options: {
+      model: { type: 'string' },
+      revision: { type: 'string' },
+      config: { type: 'string' },
+      method: { type: 'string' },
+      precision: { type: 'string' },
+      gpu: { type: 'string' },
+      'gpu-memory': { type: 'string' },
+      'gpus-per-node': { type: 'string' },
+      'seq-len': { type: 'string' },
+      'micro-batch': { type: 'string' },
+      'lora-rank': { type: 'string' },
+      target: { type: 'string' },
+      export: { type: 'string' },
+      output: { type: 'string' },
+      ...json,
+    },
+    help: [
+      '  --model owner/name      the model on Hugging Face; its config.json is read once',
+      '  --revision <ref>        a branch, tag or commit (default main), resolved to a commit',
+      '  --config <file>         size from a config.json on this computer instead of the Hub',
+      '  --method <m>            lora (default), qlora or full',
+      '  --precision <p>         bf16 (default), fp16 or fp32',
+      '  --gpu <type>            h100-80gb (default), h200, a100-80gb, a100-40gb, l40s or b200',
+      '  --gpu-memory <GB>       any other GPU, by its memory',
+      '  --gpus-per-node <n>     GPUs in one node (default 8)',
+      '  --seq-len <n>           tokens per example (default 4096)',
+      '  --micro-batch <n>       examples per GPU per step (default 1)',
+      '  --lora-rank <n>         the adapter rank (default 16)',
+      '  --target <t>            bundle: slurm or kubernetes',
+      '  --export <folder>       bundle: a field export, whose sft/*.jsonl become the data',
+      '  --output <folder>       bundle: an empty or new folder to write it to',
+      JSON_HELP,
+    ],
   },
 };
 
