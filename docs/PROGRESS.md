@@ -2,19 +2,19 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
-## 2026-10-31 (Sat, morning), in flight: Phil 3, post-hoc certification, serve, runner fix, the Tutor rename, a platform audit (start the next session here)
+## 2026-10-31 (Sat, morning), in flight: the third tutor run, post-hoc certification, serve, runner fix, the Tutor rename, a platform audit (start the next session here)
 
 **Rules learned today**
-- *Public name.* The tutor agent is called "Tutor" in anything public (README, site, docs, demos, film, the app's sample). "Phil" stays private (the owner's own planned product). Run folders outside the repo may keep their old names. Do not rewrite git history.
+- *Public name.* The tutor agent is called "Tutor" in anything public (README, site, docs, demos, film, the app's sample), and in this repo. Run folders outside the repo may keep their old names. Do not rewrite git history.
 - *Runs use a pinned checkout*, `C:/JakeOS/projects/architect-runs/runtree` (detached at `9e35977d`, installed and built), so development can keep merging in the main checkout. Rebuild it at a new commit only between runs.
 - *Price margin.* Projections priced at the calibration estimate ran short twice; attempts cost about $0.0106 each (hosted Glimmer, tutor job). Cap at least 2x the measured price.
 
 **In flight** (each on its own branch, merge into `field/main` when green, then a PR to `main`)
-- `phil-3` run (agent, outside the repo: `architect-runs/phil-3`): a new preregistered comparison, bare vs the taught tutor, on phil-2's unopened tasks (Copperfield, Thistlewood, Bramble Hill taught; Juniper and the Real academy's second cohort never seen), caps $9 OpenRouter and $3 Spark. Phil-2 halted: the runner dropped its primary arm when attempts cost more than planned and released the other arms' tests (2 attempts each recorded, unopened); disclosed in phil-3's plan. Spend so far today: OpenRouter about $0.95.
+- The third tutor run (agent, outside the repo: `architect-runs/phil-3`): a new preregistered comparison, bare vs the taught tutor, on phil-2's unopened tasks (Copperfield, Thistlewood, Bramble Hill taught; Juniper and the Real academy's second cohort never seen), caps $9 OpenRouter and $3 Spark. The second run (`architect-runs/phil-2`) halted: the runner dropped its primary arm when attempts cost more than planned and released the other arms' tests (2 attempts each recorded, unopened); disclosed in the third run's plan. Spend so far today: OpenRouter about $0.95.
 - `certify/post-hoc` (decision 079): certify an existing version after the fact on tasks its own run never touched; the Certify action in Models. Used next for the tutor's first live certificate (about $5).
 - `cli/serve` (decision 080): `architect serve` exposes a graduate on loopback as an OpenAI-compatible endpoint with a bearer token, so another app on the same computer (for example a school's platform) can use it.
 - `runner/no-silent-drop` (decision 081): a comparison pauses instead of dropping an arm it can't fund, before any release.
-- `docs/rename-tutor`: Phil → Tutor in README, site and docs (comparisons renamed `tutor-1*.md`). The app's sample, fixtures, examples and screenshots get the same rename after the code lanes above merge.
+- `docs/rename-tutor`: the tutor's public name in README, site and docs (comparisons renamed `tutor-1*.md`). The app's sample, fixtures, examples and screenshots get the same rename after the code lanes above merge.
 - A read-only audit of Architect Lab as a development platform (a founder using it on their own field); its gaps become the next lanes, then a Hestia-inspired pass on one visual language and smooth motion that keeps the simple flow.
 
 ## 2026-10-31 (Sat), Sol's review of the centerpiece (branch `certify/sol-fixes`)
