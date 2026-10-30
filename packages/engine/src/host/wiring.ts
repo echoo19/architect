@@ -200,6 +200,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       openForLockedTest: (jobId, proof) => vault.openForLockedTest(jobId, proof as MentorReleased),
       openTransfer: (jobId, proof) => vault.openTransfer(jobId, proof as MentorReleased),
       openCalibration: (jobId, proof) => vault.openCalibration(jobId, proof as MentorReleased),
+      stageSealed: (jobId, dir) => vault.stageSealed(jobId, dir),
     },
     harness: {
       versions: (dir) => new HarnessVersions(dir),

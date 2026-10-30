@@ -1,9 +1,12 @@
+import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import {
   GuardError,
   type CheckResult,
   type Harness,
   type HarnessTool,
   type Job,
+  type Organization,
   type SuiteResult,
   type Task,
   type Trace,
@@ -339,6 +342,8 @@ export class FakeVault implements VaultDeps {
   /** Each certified job's calibration split, which only a proof opens. */
   readonly calibration = new Map<string, Task[]>();
   readonly opened: string[] = [];
+  /** The jobs whose sealed part was staged for a comparison, in order. */
+  readonly staged: string[] = [];
 
   constructor(private readonly runtime: FakeRuntime) {}
 
@@ -427,5 +432,30 @@ export class FakeVault implements VaultDeps {
         transfer.map(({ org }) => [org.id, `sealed:${jobId}/${org.id}`]),
       ),
     };
+  }
+
+  /** The sealed tasks appended to the folder's tasks.jsonl, each sealed organization's files. */
+  stageSealed(jobId: string, dir: string): Organization[] {
+    if (!this.sealed.has(jobId)) throw new GuardError('split', `${jobId} isn't sealed.`);
+    this.staged.push(jobId);
+    const tasks = [...(this.sealed.get(jobId) ?? []), ...(this.calibration.get(jobId) ?? [])];
+    appendFileSync(
+      join(dir, 'tasks.jsonl'),
+      tasks
+        .map(
+          (task) => `${JSON.stringify(task)}
+`,
+        )
+        .join(''),
+    );
+    const transfer = this.transfer.get(jobId) ?? [];
+    for (const { org, files } of transfer) {
+      for (const file of files) {
+        const target = join(dir, 'orgs', org.id, 'data', file.name);
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, file.content);
+      }
+    }
+    return transfer.map(({ org }) => org);
   }
 }

@@ -1,5 +1,12 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join } from 'node:path';
 import {
   GuardError,
@@ -301,6 +308,50 @@ export class Vault {
       dataDirs[org.id] = folder;
     }
     return { organizations: transfer.map(({ org }) => org), dataDirs };
+  }
+
+  /**
+   * Writes a job's sealed part into a job folder a comparison imports (decision 074, amended Oct
+   * 30): the locked test's tasks, the sealed organizations' among them, and a certified job's
+   * calibration split appended to `<dir>/tasks.jsonl`, and each sealed organization's files in
+   * `<dir>/orgs/<id>/data/`, as a job folder holds them before it is imported. Returns the sealed
+   * organizations, so the folder's job file lists them again. A file changed since it was sealed
+   * is refused. Only the comparisons runner's source is staged this way: it imports the folder,
+   * which seals it again in its own vault, and removes it; nothing of it goes to a mentor.
+   */
+  stageSealed(jobId: string, dir: string): Organization[] {
+    const fingerprint = this.fingerprint(jobId);
+    const tests = readFileSync(join(this.dir(jobId), TEST_FILE), 'utf8');
+    if (sha256(tests) !== fingerprint.testFileSha256) {
+      throw new GuardError('split', `The locked test of job ${jobId} changed after it was sealed.`);
+    }
+    let calibration = '';
+    if (fingerprint.certify !== undefined) {
+      calibration = readFileSync(join(this.dir(jobId), CERTIFY_FILE), 'utf8');
+      if (sha256(calibration) !== fingerprint.certify.fileSha256) {
+        throw new GuardError(
+          'split',
+          `The calibration split of job ${jobId} changed after it was sealed.`,
+        );
+      }
+    }
+    const transfer = fingerprint.transfer ?? [];
+    for (const { org, files } of transfer) {
+      const target = join(dir, 'orgs', org.id, 'data');
+      for (const file of files) {
+        const content = readFileSync(join(this.transferDir(jobId, org.id), file.name));
+        if (sha256(content) !== file.sha256) {
+          throw new GuardError(
+            'split',
+            `A sealed organization's file of job ${jobId} changed after it was sealed.`,
+          );
+        }
+        mkdirSync(dirname(join(target, file.name)), { recursive: true });
+        writeFileSync(join(target, file.name), content);
+      }
+    }
+    appendFileSync(join(dir, 'tasks.jsonl'), `${tests}${calibration}`);
+    return transfer.map(({ org }) => org);
   }
 
   private transferDir(jobId: string, orgId: string): string {
