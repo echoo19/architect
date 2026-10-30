@@ -2,6 +2,16 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri, night), certify an existing version (branch `certify/post-hoc`)
+
+**Done** (no model was called, no GPU, no spend; decision 079)
+- A frozen version can be certified after the fact: calibration tasks from a job's taught organizations that its run (and any run it was improved from) never saw or was tested on, by id, family name and request words, sealed in the vault with the check tasks; k attempts with no mentor under its own round of split `certify`; the certificate filed on a record that never changes. Caps on dollars and minutes, resumable like a re-test.
+- `architect certify <agent> --version N --job <job>` (docs/CLI.md); a Certify action and dialog on a version's panel in Models (Lab only). Screenshot `certify-version-dark.png`.
+
+**Next**
+- Certify Phil v2 for real on a newer import of the tutor's job (on this computer it costs nothing; the owner decides when the GPU may run it).
+- A cap that pauses a certification can't be raised on it; if that bites, let `startCertification` take new caps.
+
 ## 2026-10-31 (Sat), Sol's review of the centerpiece (branch `certify/sol-fixes`)
 
 **Done** (no model was called, no GPU, no spend)
