@@ -16,6 +16,13 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Positioning (README, the results paper, the site's claim) once phil-2 is in; the film needs the owner for new narration.
 - Owner: confirm or correct the real academy's drafted policy; say whether question text can be exported.
 
+## 2026-10-30 (Fri), field lane "Academy realism": generated academies that differ the way real exports do (branch `field/academy-realism`)
+
+**Done** (no model was called, no GPU, no spend)
+- Each generated academy now differs in the ways the first run's helper broke on the real academy: its own date, stated in every request (none is the header's Nov 16); tests laid out by module, as "Full" tests numbered per section (a place holds two questions) or numbered straight through; grid-in answers entered as 0.125, .125 or 2/16 for a key of 1/8, with `result` the academy's own mark and every policy saying so; topic labels in questions.csv and attempts.csv written with stray spaces, other capitals or other punctuation than topics.csv; policies written as prose with a table, prose alone, or a list of rules. About a fifth of those two tables' rows are written another way, never the first five, and every form reads back to one value.
+- The reference tutor finds a question from the student's own attempts row, matches labels with spaces, capitals and punctuation set aside, counts from `result`, takes the request's date and reads all three policy styles; it passes all 192 tasks through the engine's tools and checker. The checker matches labels and grid-in numbers the same way.
+- A fresh job: train Copperfield Learning, Thistlewood Learning, Bramble Hill Academy; transfer Juniper Study House. The first run's four academies are gone from the name list, so its unseen academy stays unseen. `buildRecordTasks` still works for stem-less folders, now tested on a "Full" export too.
+
 ## 2026-10-30 (Fri), field lane "Sample": Phil as a ready-made job (branch `field/sample`)
 
 **Done** (no model was called, no GPU, no spend)
