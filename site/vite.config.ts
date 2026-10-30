@@ -3,7 +3,12 @@ import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 
 /** The faces the first screen is set in, which the browser should fetch alongside the styles. */
-const FIRST_SCREEN_FONTS = [/heros-regular-latin/, /heros-bold-latin/, /geist-latin-wght-normal/];
+const FIRST_SCREEN_FONTS = [
+  /heros-regular-latin/,
+  /heros-bold-latin/,
+  /inter-latin-wght-normal/,
+  /inter-tight-latin-wght-normal/,
+];
 
 /**
  * Fonts named only inside the stylesheet are found late, after it has loaded, and the first screen
