@@ -68,6 +68,7 @@ import {
   TeachingOverviewSchema,
   TraceSchema,
   VersionEventSchema,
+  VersionPickSchema,
   type AdapterErrorCode,
   type ArchitectApi,
   type DraftTurn,
@@ -298,6 +299,11 @@ export const ENGINE_ROUTES = {
     z.tuple([id, versionNumber.nullable()]),
     ReportCardSchema,
     (api, [graduateId, version]) => api.graduates.report(graduateId, version ?? undefined),
+  ),
+  'graduates.harnessDiff': route(
+    z.tuple([VersionPickSchema, VersionPickSchema]),
+    z.array(FileDiffSchema),
+    (api, [from, to]) => api.graduates.harnessDiff(from, to),
   ),
   'graduates.acceptVersion': route(
     z.tuple([id, versionNumber]),

@@ -31,15 +31,15 @@ export interface InspectorProps<T extends string> {
   onTabChange?: (tab: T) => void;
   /** Whether the panel is shown. Closing slides it shut; it stays mounted, so it keeps its tab. */
   open?: boolean;
-  /** Its width open, for tabs whose names need more room than the usual 360. */
-  width?: number;
+  /** Above the tabs while the panel is open: what it is about, such as a model's name. */
+  header?: ReactNode;
   /** What the open tab shows. */
   children: (tab: T) => ReactNode;
   className?: string;
 }
 
-/** How wide the inspector is, open and folded. */
-export const INSPECTOR_WIDTH = { open: 360, folded: 56 } as const;
+/** How wide the inspector is, open and folded: open, five tabs fit side by side by name. */
+export const INSPECTOR_WIDTH = { open: 400, folded: 56 } as const;
 
 interface Remembered {
   tab?: string;
@@ -97,7 +97,7 @@ export function Inspector<T extends string>({
   tab: asked,
   onTabChange,
   open = true,
-  width: openWidth = INSPECTOR_WIDTH.open,
+  header,
   children,
   className,
   ...props
@@ -126,7 +126,7 @@ export function Inspector<T extends string>({
   }, [asked, rememberAs]);
   const tab = asked ?? state.tab ?? first;
   if (tab === undefined) return null;
-  const width = !open ? 0 : state.folded ? INSPECTOR_WIDTH.folded : openWidth;
+  const width = !open ? 0 : state.folded ? INSPECTOR_WIDTH.folded : INSPECTOR_WIDTH.open;
 
   return (
     <motion.aside
@@ -175,9 +175,10 @@ export function Inspector<T extends string>({
             const match = tabs.find((t) => t.value === next);
             if (match) update({ tab: match.value, folded: false });
           }}
-          style={{ width: openWidth }}
+          style={{ width: INSPECTOR_WIDTH.open }}
           className="flex min-h-0 flex-1 flex-col"
         >
+          {header}
           <div className="flex items-center gap-2 px-3 pb-2 pt-3">
             <Tabs.List
               aria-label={props['aria-label']}
@@ -188,7 +189,7 @@ export function Inspector<T extends string>({
                   key={t.value}
                   value={t.value}
                   className={cn(
-                    'relative h-8 min-w-0 flex-auto rounded-mark px-1.5 text-small font-medium',
+                    'relative h-8 min-w-0 flex-auto rounded-mark px-[5px] text-small font-medium',
                     'transition-colors duration-150 hover:bg-hover',
                   )}
                 >

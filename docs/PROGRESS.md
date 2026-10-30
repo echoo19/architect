@@ -9,10 +9,35 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Every control writes an existing field of the job schema through the same `jobs.save` path; problems are said under the field and nothing is saved until they are fixed; each saved change raises one Undo toast (`toast({ key })` replaces the last). There is no control for the sealed organizations, the checker's contents, permissions beyond what Define already had, or the student's weights.
 - The page lost its Spark cap slider (now in Spark and Budget) and the export button became an icon in the footer, so the page is the job, where it trains and the estimate.
 - No temperature control: the job schema has no decoding field, and no student dollar cap: the online copy's expected bill is shown alone.
-- `packages/ui`: the Inspector takes a tab from the screen, an `open` state that slides it shut, and a width; ChoiceTiles wrap a long name to two lines. Hidden e2e `define-inspector.spec.ts`; Define's existing specs follow the inspector. Screenshots `define-inspector-{teacher,student,teaching,evaluation,budget}-dark.png`.
+- `packages/ui`: the Inspector takes a tab from the screen and an `open` state that slides it shut; it is 400 wide everywhere, so up to five tabs show their names (the icon-only fallback from the experiments lane is gone), and Models' `header` stays. ChoiceTiles wrap a long name to two lines. Hidden e2e `define-inspector.spec.ts`; Define's existing specs follow the inspector. Screenshots `define-inspector-{teacher,student,teaching,evaluation,budget}-dark.png`.
 
 **Next**
 - The experiments design screen and the model page can reuse the tab components where their settings are the job's.
+
+## 2026-10-30 (Fri, night), platform lane "Experiments screens" (branch `platform/experiments`)
+
+**Done** (stand-in engine only: no model was called, no GPU, no spend)
+- `/experiments` lists every experiment in a sortable table: status, field, arms, Spark and student spent of their caps (absent before anything ran), created. One primary action, New experiment.
+- `/experiments/new` and a draft at `/experiments/:id` are one design page: the field's folder (planning spends nothing), the arms as tiles (the weights arms held, with the reason), seeds and rounds, and the estimate with each total against its cap, each arm's estimate and whether it is funded, labeled assumed or measured prices, and what calibration costs before it runs. The inspector holds what the engine takes: Spark's and the student's cap per arm, rounds and the teaching seed, the final-test seeds, and the total caps. Preregister confirms what freezes; Start confirms what it may spend and goes through Spark's brief when the runner waits for it.
+- A preregistered experiment shows its spend against the caps, each arm's status, rounds and spend, and pause, resume and stop. Before the release it says nothing about the final test or the organizations kept back. After it, the results read like a short paper: a summary, Figure 1 (each arm on each group: taught on, each never seen, real), Table 1 (pairs with Newcombe intervals and the gain rule's verdict), Table 2 (skill by organization per arm), Table 3 (spend and latency), the report's notes; a switch picks where the student ran.
+- `packages/ui` Inspector: with more than three tabs, the ones not open showed their icon alone (replaced since by a 400-wide inspector with every name, see the inspector lane above).
+- Hidden e2e `experiments-screens.spec.ts`; screenshots `experiments-list-dark.png`, `experiment-new-dark.png`, `experiment-new-estimate-dark.png`, `experiment-running-dark.png`, `experiment-results-dark.png`, `experiment-results-tables-dark.png`.
+
+**Open**
+- Self-reflection isn't an arm the runner takes, so it isn't offered. The report has no paired difference per organization, so Table 1 pairs over the whole final test.
+- The e2e splits the recorded comparison's counts over four made-up organizations to show the groups; a recorded field comparison would be a better stand-in.
+
+## 2026-10-30 (Fri), platform lane "Models" (branch `platform/models`)
+
+**Done** (stand-in engine only: no model was called, no GPU, no spend)
+- `/models` is a registry of every agent and version: agent and field, base model with its quantization and runtime, method (harness or adapter, with the adapter's hash), harness hash, the final test seen, unseen and real under one "Final test" heading, the check tasks apart, status (Active, Candidate, Imported, Experimental, Kept, Set aside) and created. Filters All, Active, Candidates, Imported; search; every column sorts, unmeasured last.
+- A row opens the model's panel (the Inspector, with a header): Report (final test figures, check tasks, model, harness, adapter, how it was tested) and Lineage (the version it was made from, what changed in the harness, its kept changes, its history). Promote and roll back go through the existing confirmation (`MoveDialog`); Export opens the agent's Export tab.
+- Compare: two versions of one agent, or two agents of one job, skill by organization in percentage points wherever both took the same tasks (otherwise it says they weren't measured on the same tasks), each version's facts and check tasks, and the harness diff. New engine call `graduates.harnessDiff(from, to)` reads each version's harness from its folder, held to its manifest's hash.
+- `packages/ui`: DataTable column groups, a selected row and slightly tighter cells; Inspector `header`. `FilePatch` moved to `components/` for reuse.
+- Tests: engine host test of the diff, unit tests of the registry logic, hidden e2e `models.spec.ts` against `fixtures-models.ts`. Screenshots `models-dark.png`, `model-panel-dark.png`, `models-compare-dark.png`.
+
+**Next**
+- A blind read of the three screens. Export from the panel exports the active version only, as the Export tab does.
 
 ## 2026-10-30 (Fri), scale lane "Training plan and targets" (branch `scale/targets`)
 

@@ -122,6 +122,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     versions: true,
     history: true,
     report: true,
+    harnessDiff: true,
     acceptVersion: true,
     rejectVersion: true,
     promote: true,

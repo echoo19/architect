@@ -63,8 +63,6 @@ export function DefineInspector({
       tab={tab}
       onTabChange={onTabChange}
       open={open}
-      // Room for the five tabs' names, the models' among them, without cutting any.
-      width={400}
     >
       {(shown) => {
         switch (shown) {

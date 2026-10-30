@@ -21,9 +21,15 @@ import type { InspectorTabProps } from './inspector-tabs';
 /** The teacher's models as tiles: open weights on a host you pick are marked as a server. */
 const OPEN_HOSTS: readonly MentorPreset['provider'][] = ['baseten', 'modal'];
 
-/** "Spark 1.3", "Claude Opus 5.5": a preset's name without the family it shares with the rest. */
+/**
+ * "Spark 1.3", "Spark 1.3 contributor", "Claude Opus 5.5": a preset's name short enough for a
+ * tile, without the family every Spark shares or the word "tier".
+ */
 function tileName(preset: MentorPreset): string {
-  return preset.label.replace(/^Muse\s+/, '').replace(/,\s*/, ' ');
+  return preset.label
+    .replace(/^Muse\s+/, '')
+    .replace(/,\s*/, ' ')
+    .replace(/\s+tier$/, '');
 }
 
 const TILES: readonly ChoiceTile<string>[] = MENTOR_PRESETS.map((preset) => ({

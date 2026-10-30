@@ -68,6 +68,12 @@ export const GraduateVersionSchema = z.object({
 });
 export type GraduateVersion = z.infer<typeof GraduateVersionSchema>;
 
+/** One version of one agent on this computer, as a comparison names it. */
+export const VersionPickSchema = z
+  .object({ graduateId: z.string().min(1), version: z.number().int().positive() })
+  .strict();
+export type VersionPick = z.infer<typeof VersionPickSchema>;
+
 /** A promotion, rollback, acceptance or rejection, in the order they happened. */
 export const VersionEventSchema = z.object({
   graduateId: z.string(),

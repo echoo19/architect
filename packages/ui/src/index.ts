@@ -71,6 +71,7 @@ export {
 } from './components/choice-tiles';
 export {
   DataTable,
+  columnGroups,
   sortRows,
   type DataColumn,
   type DataSort,

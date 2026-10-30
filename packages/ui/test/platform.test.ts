@@ -7,6 +7,7 @@ import {
   CardGrid,
   CardRow,
   ChoiceTiles,
+  columnGroups,
   DataTable,
   Inspector,
   IntervalPlot,
@@ -175,14 +176,13 @@ describe('Inspector', () => {
     expect(html).toContain('aria-label="Fold Settings"');
   });
 
-  it('opens on the tab the screen asks for, at the width it is given', () => {
+  it('opens on the tab the screen asks for, with room for five tabs by name', () => {
     const html = renderToStaticMarkup(
       createElement(TooltipProvider, {
         children: createElement(Inspector<'teacher' | 'budget'>, {
           'aria-label': 'Settings',
           tabs,
           tab: 'budget',
-          width: 400,
           children: (tab: string) => `content of ${tab}`,
         }),
       }),
@@ -190,6 +190,9 @@ describe('Inspector', () => {
     expect(html).toMatch(/aria-selected="true"[^>]*>.*?Budget/);
     expect(html).toContain('content of budget');
     expect(html).toContain('width:400px');
+    // Every tab shows its name; none is reduced to its icon.
+    expect(html).toContain('>Teacher</span>');
+    expect(html).not.toContain('data-icon');
   });
 
   it('holds nothing while closed, and is hidden from assistive tech', () => {
@@ -206,6 +209,20 @@ describe('Inspector', () => {
     expect(html).toContain('aria-hidden="true"');
     expect(html).not.toContain('role="tablist"');
     expect(html).not.toContain('content of');
+  });
+
+  it('shows what it is about above its tabs', () => {
+    const html = renderToStaticMarkup(
+      createElement(TooltipProvider, {
+        children: createElement(Inspector<'teacher' | 'budget'>, {
+          'aria-label': 'Model',
+          tabs,
+          header: createElement('h2', null, 'Phil v3'),
+          children: (tab: string) => `content of ${tab}`,
+        }),
+      }),
+    );
+    expect(html).toMatch(/<h2>Phil v3<\/h2>.*role="tablist"/);
   });
 
   it('reads back the tab and fold it kept, and ignores what no longer fits', () => {
@@ -325,6 +342,32 @@ describe('DataTable', () => {
     expect(html).not.toMatch(/>0%</);
     expect(html.match(/tabindex="0"/g)).toHaveLength(3);
     expect(html).toContain('sticky top-0');
+  });
+
+  it('heads side-by-side columns with their group, and keeps the open row selected', () => {
+    const grouped: DataColumn<Model>[] = [
+      columns[0] as DataColumn<Model>,
+      { key: 'seen', header: 'Seen', cell: () => '90%', group: 'Final test' },
+      { key: 'unseen', header: 'Unseen', cell: () => '83%', group: 'Final test' },
+      { key: 'check', header: 'Check tasks', cell: () => '88%' },
+    ];
+    expect(columnGroups(grouped)).toEqual([
+      { key: 'name', group: undefined, span: 1 },
+      { key: 'seen', group: 'Final test', span: 2 },
+      { key: 'check', group: undefined, span: 1 },
+    ]);
+    const html = renderToStaticMarkup(
+      createElement(DataTable<Model>, {
+        'aria-label': 'Models',
+        columns: grouped,
+        rows,
+        rowKey: (row) => row.name,
+        selectedKey: 'Phil',
+      }),
+    );
+    expect(html).toMatch(/scope="colgroup" colSpan="2"[^>]*><span[^>]*>Final test<\/span>/);
+    expect(html.match(/aria-current="true"/g)).toHaveLength(1);
+    expect(html).toMatch(/aria-current="true"[^>]*class="[^"]*bg-selected/);
   });
 
   it('says what it shows when there are no rows', () => {
