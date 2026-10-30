@@ -15,6 +15,7 @@ export const SOURCES = {
   second: { name: 'returns-desk-2.md', path: 'docs/comparisons/returns-desk-2.md' },
   plan: { name: 'returns-desk-2-plan.md', path: 'docs/comparisons/returns-desk-2-plan.md' },
   first: { name: 'returns-desk-1.md', path: 'docs/comparisons/returns-desk-1.md' },
+  certify: { name: 'CERTIFY.md', path: 'docs/CERTIFY.md' },
   readme: { name: 'README.md', path: 'README.md' },
   hackathon: { name: 'HACKATHON.md', path: 'docs/HACKATHON.md' },
 } as const;
