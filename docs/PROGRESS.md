@@ -2,6 +2,19 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri, night), platform lane "Experiments screens" (branch `platform/experiments`)
+
+**Done** (stand-in engine only: no model was called, no GPU, no spend)
+- `/experiments` lists every experiment in a sortable table: status, field, arms, Spark and student spent of their caps (absent before anything ran), created. One primary action, New experiment.
+- `/experiments/new` and a draft at `/experiments/:id` are one design page: the field's folder (planning spends nothing), the arms as tiles (the weights arms held, with the reason), seeds and rounds, and the estimate with each total against its cap, each arm's estimate and whether it is funded, labeled assumed or measured prices, and what calibration costs before it runs. The inspector holds what the engine takes: Spark's and the student's cap per arm, rounds and the teaching seed, the final-test seeds, and the total caps. Preregister confirms what freezes; Start confirms what it may spend and goes through Spark's brief when the runner waits for it.
+- A preregistered experiment shows its spend against the caps, each arm's status, rounds and spend, and pause, resume and stop. Before the release it says nothing about the final test or the organizations kept back. After it, the results read like a short paper: a summary, Figure 1 (each arm on each group: taught on, each never seen, real), Table 1 (pairs with Newcombe intervals and the gain rule's verdict), Table 2 (skill by organization per arm), Table 3 (spend and latency), the report's notes; a switch picks where the student ran.
+- `packages/ui` Inspector: with more than three tabs, the ones not open show their icon alone, so names are never cut.
+- Hidden e2e `experiments-screens.spec.ts`; screenshots `experiments-list-dark.png`, `experiment-new-dark.png`, `experiment-new-estimate-dark.png`, `experiment-running-dark.png`, `experiment-results-dark.png`, `experiment-results-tables-dark.png`.
+
+**Open**
+- Self-reflection isn't an arm the runner takes, so it isn't offered. The report has no paired difference per organization, so Table 1 pairs over the whole final test.
+- The e2e splits the recorded comparison's counts over four made-up organizations to show the groups; a recorded field comparison would be a better stand-in.
+
 ## 2026-10-30 (Fri), scale lane "Training plan and targets" (branch `scale/targets`)
 
 **Done** (no model, GPU, cluster or cloud spend; schedulers are stand-ins)
