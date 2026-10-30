@@ -122,7 +122,7 @@ async function readTransfer(job: Job, source: string): Promise<TransferOrganizat
           } catch (error) {
             if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
             throw new Error(
-              `The data file "${file.name}" of ${org.name} is missing; it belongs in orgs/${org.id}/data next to the job file.`,
+              `A data file of a sealed organization is missing; each organization the job never trains on needs the job's data files in its own orgs/<id>/data folder next to the job file.`,
               { cause: error },
             );
           }
