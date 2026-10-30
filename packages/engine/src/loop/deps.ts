@@ -341,6 +341,8 @@ export interface SampleAgentFiles {
 export interface EngineHostDeps extends LoopDeps {
   /** The sample job's `job.json`, shipped with the app, with `tasks.jsonl` and `data/` beside it. */
   sampleJobFile?: string;
+  /** The tutor's job, with its academies at `orgs/<id>/data/` beside it. */
+  academyJobFile?: string;
   /** Absent where the app ships no ready-made agent, which is then never offered. */
   sampleAgent?: SampleAgentFiles;
 }

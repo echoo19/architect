@@ -1,5 +1,6 @@
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseReportJson } from '@architect/harness';
 import {
   AdapterError,
@@ -132,6 +133,23 @@ describe('the engine host', () => {
     expect(events.every((event) => RunEventSchema.safeParse(event).success)).toBe(true);
     const types = events.map((event) => event.type);
     expect(types.indexOf('eval.finished')).toBeLessThan(types.indexOf('graduate.ready'));
+  });
+
+  it("makes the tutor's sample job with its train academies, and seals the one it never sees", async () => {
+    world.deps.academyJobFile = fileURLToPath(
+      new URL('../../../examples/academy/job/job.json', import.meta.url),
+    );
+    const { client } = await connect();
+    const job = await client.jobs.createSample('academy');
+    expect(job.name).toBe('Phil');
+    expect(job.organizations?.map((org) => org.id)).toEqual(['ridgeline', 'wrenfield', 'lakemont']);
+    expect(await client.jobs.createSample('academy')).toEqual(job);
+    const jobDir = new DataPaths(world.dataDir).jobDir(job.id);
+    expect(await readdir(join(jobDir, 'orgs'))).toEqual(['lakemont', 'ridgeline', 'wrenfield']);
+    // The job the library keeps doesn't name the academy kept for the final test.
+    expect(await readFile(join(jobDir, 'job.json'), 'utf8')).not.toMatch(/harborview/i);
+    // The service desk is still the sample job when none is named.
+    expect((await client.jobs.createSample()).name).toBe('Service desk');
   });
 
   it('says on the report card that the final test of a drafted job was generated, and what drafting cost', async () => {

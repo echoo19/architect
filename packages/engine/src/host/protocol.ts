@@ -55,6 +55,7 @@ import {
   RunStartOptionsSchema,
   RuntimeMeasurementSchema,
   SampleAgentSchema,
+  SampleJobSchema,
   StudentTargetSchema,
   StudyStateSchema,
   TaskPlanSchema,
@@ -108,7 +109,9 @@ export const ENGINE_ROUTES = {
   'jobs.list': route(z.tuple([]), z.array(JobSummarySchema), (api) => api.jobs.list()),
   'jobs.get': route(z.tuple([id]), JobSchema, (api, [jobId]) => api.jobs.get(jobId)),
   'jobs.save': route(z.tuple([JobSchema]), JobSchema, (api, [job]) => api.jobs.save(job)),
-  'jobs.createSample': route(z.tuple([]), JobSchema, (api) => api.jobs.createSample()),
+  'jobs.createSample': route(z.tuple([SampleJobSchema.optional()]), JobSchema, (api, [sample]) =>
+    api.jobs.createSample(sample),
+  ),
   'jobs.importFile': route(z.tuple([path]), JobSchema, (api, [file]) => api.jobs.importFile(file)),
   'jobs.exportFile': route(z.tuple([id, path]), z.void(), (api, [jobId, file]) =>
     api.jobs.exportFile(jobId, file),

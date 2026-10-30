@@ -13,7 +13,14 @@ import type { RuleConfirmationState } from './rules';
 import type { StudyState } from './study';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
-import type { Job, MentorConfig, PermissionMode, StudentEndpoint, StudentTarget } from './job';
+import type {
+  Job,
+  MentorConfig,
+  PermissionMode,
+  SampleJob,
+  StudentEndpoint,
+  StudentTarget,
+} from './job';
 import type { LineageEntry } from './lineage';
 import type {
   CapabilityBreakdown,
@@ -441,8 +448,11 @@ export interface ArchitectApi {
     list(): Promise<JobSummary[]>;
     get(jobId: string): Promise<Job>;
     save(job: Job): Promise<Job>;
-    /** Creates the sample job shipped with the app and returns it. */
-    createSample(): Promise<Job>;
+    /**
+     * Creates a sample job shipped with the app, the service desk unless another is named, and
+     * returns it; one made before is returned as it is.
+     */
+    createSample(sample?: SampleJob): Promise<Job>;
     /**
      * Imports a job file with its `tasks.jsonl` and `data/` folder beside it, as a new job that
      * starts from this person's teacher and model. A file that isn't a job file fails with the
