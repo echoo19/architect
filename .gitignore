@@ -41,3 +41,4 @@ pnpm-debug.log*
 
 # python
 __pycache__/
+dist-film/

@@ -9,6 +9,7 @@ export default tseslint.config(
       '.claude/**',
       '**/node_modules/**',
       '**/dist/**',
+      '**/dist-film/**',
       '**/out/**',
       '**/release/**',
       '**/coverage/**',

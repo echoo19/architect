@@ -1,6 +1,7 @@
 pnpm-lock.yaml
 .claude
 **/dist
+**/dist-film
 **/out
 **/release
 **/coverage
