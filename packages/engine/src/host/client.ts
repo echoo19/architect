@@ -106,6 +106,9 @@ export function connectEngine(
       confirmRules: (jobId, token) => request('jobs.confirmRules', [jobId, token]),
       study: (jobId) => request('jobs.study', [jobId]),
       confirmStudy: (jobId, token) => request('jobs.confirmStudy', [jobId, token]),
+      field: (jobId) => request('jobs.field', [jobId]),
+      fieldAssets: (jobId) => request('jobs.fieldAssets', [jobId]),
+      exportField: (jobId, directory) => request('jobs.exportField', [jobId, directory]),
     },
     runs: {
       start: (jobId, options) => request('runs.start', [jobId, options]),

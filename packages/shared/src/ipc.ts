@@ -11,6 +11,7 @@ import type {
 import type { TaskPlan } from './drafting';
 import type { RuleConfirmationState } from './rules';
 import type { StudyState } from './study';
+import type { FieldExportManifest, FieldView } from './field-export';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
 import type {
@@ -490,6 +491,18 @@ export interface ArchitectApi {
     study(jobId: string): Promise<StudyState>;
     /** Records that the person confirmed the brief. `token` is the one the brief came with. */
     confirmStudy(jobId: string, token: string): Promise<StudyState>;
+    /**
+     * What the job's field is made of, for the person's own page: the organizations it trains on
+     * with their files, and the sealed ones by name and kind only (decision 075).
+     */
+    field(jobId: string): Promise<FieldView>;
+    /**
+     * The field export as it would be written now (decision 071), built and checked in memory
+     * with nothing written: its counts and what it leaves out.
+     */
+    fieldAssets(jobId: string): Promise<FieldExportManifest>;
+    /** Writes the field export into an empty folder the person picked, and returns its manifest. */
+    exportField(jobId: string, directory: string): Promise<FieldExportManifest>;
   };
   runs: {
     start(jobId: string, options: RunStartOptions): Promise<Run>;

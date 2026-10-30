@@ -3,6 +3,8 @@ import {
   AppSettingsSchema,
   ConnectionTestSchema,
   DraftTurnSchema,
+  FieldExportManifestSchema,
+  FieldViewSchema,
   FileDiffSchema,
   GraduateSummarySchema,
   HubTokenStatusSchema,
@@ -80,6 +82,10 @@ export const api = {
   jobs: () => read('jobs.list', z.array(JobSummarySchema), bridge().jobs.list()),
   job: (jobId: string) => read('jobs.get', JobSchema, bridge().jobs.get(jobId)),
   taskPlan: (jobId: string) => read('jobs.taskPlan', TaskPlanSchema, bridge().jobs.taskPlan(jobId)),
+  field: (jobId: string) => read('jobs.field', FieldViewSchema, bridge().jobs.field(jobId)),
+  fieldAssets: (jobId: string) =>
+    read('jobs.fieldAssets', FieldExportManifestSchema, bridge().jobs.fieldAssets(jobId)),
+  runs: (jobId: string) => read('runs.list', z.array(RunSchema), bridge().runs.list(jobId)),
   run: (runId: string) => read('runs.get', RunDetailSchema, bridge().runs.get(runId)),
   /** The run's report card: from where its own final test ran, or from one endpoint when named. */
   report: (runId: string, target?: StudentTarget) =>
@@ -128,6 +134,13 @@ export const flowApi = {
   /** The system's save dialog: the file chosen, or null when the person cancels. */
   saveFile: (options: Parameters<ArchitectApi['files']['save']>[0]) =>
     read('files.save', z.string().nullable(), bridge().files.save(options)),
+  /** Writes the field export into a folder the person picked; it must be empty. */
+  exportField: (jobId: string, directory: string) =>
+    read(
+      'jobs.exportField',
+      FieldExportManifestSchema,
+      bridge().jobs.exportField(jobId, directory),
+    ),
   createSample: (sample?: SampleJob) =>
     read('jobs.createSample', JobSchema, bridge().jobs.createSample(sample)),
   /** Whether a model's server answers and has the model, without running it. */

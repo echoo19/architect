@@ -85,10 +85,17 @@ export function registerEngineHandlers(
       confirmRules: (jobId, token) => call((api) => api.jobs.confirmRules(jobId, token)),
       study: (jobId) => call((api) => api.jobs.study(jobId)),
       confirmStudy: (jobId, token) => call((api) => api.jobs.confirmStudy(jobId, token)),
+      field: (jobId) => call((api) => api.jobs.field(jobId)),
+      fieldAssets: (jobId) => call((api) => api.jobs.fieldAssets(jobId)),
+      exportField: (jobId, directory) => {
+        const chosen = picked.check(directory);
+        return call((api) => api.jobs.exportField(jobId, chosen));
+      },
     },
     {
       importFile: z.tuple([text]),
       exportFile: z.tuple([text, text]),
+      exportField: z.tuple([text, text]),
       draftStart: z.tuple([text, z.array(text)]),
     },
   );

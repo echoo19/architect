@@ -83,3 +83,43 @@ export const RewardScoreSchema = z.object({
     .optional(),
 });
 export type RewardScore = z.infer<typeof RewardScoreSchema>;
+
+/**
+ * One file of an organization the job trains on, as the field's page lists it: its name, its
+ * size, and for a table the rows under its header. Null rows: not a table.
+ */
+export const FieldFileSchema = z.object({
+  name: z.string().min(1),
+  bytes: z.number().int().nonnegative(),
+  rows: z.number().int().nonnegative().nullable(),
+});
+export type FieldFile = z.infer<typeof FieldFileSchema>;
+
+/**
+ * What a field is made of, for the person's own page (the app, never a mentor): the
+ * organizations it trains on with their files, and the sealed ones by name and kind with how
+ * many files each holds, never which. A job without organizations has one entry, its `data/`,
+ * with a null id and name.
+ */
+export const FieldViewSchema = z.object({
+  jobId: z.string(),
+  organizations: z.array(
+    z.object({
+      id: z.string().nullable(),
+      name: z.string().nullable(),
+      /** Generated from seeds or real; null where the job doesn't say. */
+      synthetic: z.boolean().nullable(),
+      files: z.array(FieldFileSchema),
+    }),
+  ),
+  sealed: z.array(
+    z.object({
+      name: z.string(),
+      synthetic: z.boolean(),
+      files: z.number().int().nonnegative(),
+    }),
+  ),
+  /** Tasks in the locked test; null before the job's test split is sealed. */
+  lockedTestTasks: z.number().int().nonnegative().nullable(),
+});
+export type FieldView = z.infer<typeof FieldViewSchema>;

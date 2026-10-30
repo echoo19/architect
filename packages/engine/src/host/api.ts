@@ -18,6 +18,7 @@ import {
   type Trace,
 } from '@architect/shared';
 import { reportBeside } from '../comparisons/records';
+import { buildFieldExport, exportField, fieldSource, fieldView } from '../field';
 import { exportPackage, exportPart, reviewExport } from '../graduates/exporter';
 import { installFromHub } from '../graduates/hub-install';
 import { importPackage, inspectPackage, previewImport } from '../graduates/importer';
@@ -288,6 +289,15 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       confirmRules: (jobId, token) => jobs.confirmRules(jobId, token),
       study: (jobId) => studying.study(jobId),
       confirmStudy: (jobId, token) => jobs.confirmStudy(jobId, token),
+      field: async (jobId) => fieldView(await jobs.get(jobId), paths),
+      fieldAssets: async (jobId) => {
+        await jobs.get(jobId);
+        return buildFieldExport(await fieldSource(store, paths, jobId)).manifest;
+      },
+      exportField: async (jobId, directory) => {
+        await jobs.get(jobId);
+        return exportField(await fieldSource(store, paths, jobId), directory);
+      },
     },
     runs: {
       start: (jobId, { method, seed, lockedTestOn, interactive }) =>

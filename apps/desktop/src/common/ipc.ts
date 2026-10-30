@@ -67,6 +67,9 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     confirmRules: true,
     study: true,
     confirmStudy: true,
+    field: true,
+    fieldAssets: true,
+    exportField: true,
   },
   runs: {
     start: true,
