@@ -323,9 +323,12 @@ test('describes a job, answers a question and trains on the tasks it made', asyn
   );
   await capture(page, 'drafting-define-dark');
 
-  await page.getByRole('button', { name: 'Advanced settings' }).click();
-  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-  await advanced.getByRole('tab', { name: 'Example tasks' }).click();
+  await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
+  const advanced = page.getByRole('complementary', { name: 'Advanced settings' });
+  await advanced.getByRole('tab', { name: 'Evaluation' }).click();
+  const examples = advanced.getByRole('button', { name: 'Example tasks' });
+  if ((await examples.getAttribute('aria-expanded')) !== 'true') await examples.click();
+  await examples.scrollIntoViewIfNeeded();
   await expect(
     advanced.getByText('Made by Architect from your files, following the job Spark drafted.'),
   ).toBeVisible();
@@ -388,7 +391,7 @@ test('describes a job, answers a question and trains on the tasks it made', asyn
       .first()
       .innerText(),
   ).toBe(`Expected answer: total: ${cents / 100}`);
-  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
   await expect(advanced).toBeHidden();
 
   // The final test is sealed apart: the teacher never saw any of it, and no example is from it.
@@ -459,9 +462,12 @@ test('drafts at once when asked to, and says what it left open', async () => {
   await review.click();
   await resize(DEFINE_HEIGHT);
   await expect(page.getByRole('heading', { name: 'Shop desk', level: 1 })).toBeVisible();
-  await page.getByRole('button', { name: 'Advanced settings' }).click();
-  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-  await advanced.getByRole('tab', { name: 'Example tasks' }).click();
+  await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
+  const advanced = page.getByRole('complementary', { name: 'Advanced settings' });
+  await advanced.getByRole('tab', { name: 'Evaluation' }).click();
+  const examples = advanced.getByRole('button', { name: 'Example tasks' });
+  if ((await examples.getAttribute('aria-expanded')) !== 'true') await examples.click();
+  await examples.scrollIntoViewIfNeeded();
   const open = advanced.getByRole('region', { name: 'Left open' });
   await expect(open).toContainText(OPEN_RULE);
   await expect(open).toContainText("Spark couldn't settle these from your files and answers.");

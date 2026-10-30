@@ -106,13 +106,14 @@ test('imports a job file as a new job that starts from the model the person chos
   await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
 
   // Its tasks were split when they were imported, so the sets are shown and say so.
-  await page.getByRole('button', { name: 'Advanced settings' }).click();
-  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-  await advanced.getByRole('tab', { name: 'Task sets' }).click();
+  await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
+  const advanced = page.getByRole('complementary', { name: 'Advanced settings' });
+  await advanced.getByRole('tab', { name: 'Evaluation' }).click();
   await expect(advanced).toContainText("the sets can't change now");
-  await expect(advanced.getByRole('textbox', { name: 'Practice tasks' })).toHaveCount(0);
-  await expect(advanced).toContainText(/Practice tasks[\s\S]*60 tasks/);
-  await page.keyboard.press('Escape');
+  const sets = advanced.getByRole('region', { name: 'Task sets' });
+  await expect(sets.getByRole('textbox')).toHaveCount(0);
+  await expect(sets).toContainText(/Practice\s*60 tasks/);
+  await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
   await expect(advanced).toBeHidden();
 });
 
@@ -121,14 +122,12 @@ test('exports the job file, and imports it again beside its tasks and data as an
   expect(original).toBeDefined();
   const id = original?.id ?? '';
   await goTo(page, `/jobs/${id}/define`);
-  await page.getByRole('button', { name: 'Advanced settings' }).click();
-  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
 
   const exported = join(work, 'exported', 'service-desk.job.json');
   await cp(jobFolder, join(work, 'exported'), { recursive: true });
   await rm(join(work, 'exported', 'job.json'));
   await saveTo(exported);
-  await advanced.getByRole('button', { name: 'Export the job file' }).click();
+  await page.getByRole('button', { name: 'Export the job file' }).click();
   await expect(
     page.getByText('service-desk.job.json. Its tasks and data files stay on this computer.'),
   ).toBeVisible();
@@ -139,7 +138,6 @@ test('exports the job file, and imports it again beside its tasks and data as an
   expect(written).not.toHaveProperty('tasks');
 
   // Beside its tasks and data, it imports as a job of its own.
-  await page.keyboard.press('Escape');
   await choose(exported);
   await goTo(page, '/new');
   await page.getByRole('button', { name: 'Import a job file' }).click();
@@ -172,9 +170,9 @@ test('copies a checker file chosen in Define into the job, and only one that was
   const checks = join(work, 'my-checks.js');
   await writeFile(checks, 'exports.checks = { total: () => ({ pass: true, reason: "Fine." }) };\n');
   await goTo(page, `/jobs/${id}/define`);
-  await page.getByRole('button', { name: 'Advanced settings' }).click();
-  const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
-  await advanced.getByRole('tab', { name: 'Grading' }).click();
+  await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
+  const advanced = page.getByRole('complementary', { name: 'Advanced settings' });
+  await advanced.getByRole('tab', { name: 'Evaluation' }).click();
   await expect(advanced.getByText('checker.js', { exact: true }).first()).toBeVisible();
 
   await choose(checks);
@@ -185,7 +183,7 @@ test('copies a checker file chosen in Define into the job, and only one that was
       return checker.kind === 'module' ? checker.path : '';
     }, id);
   await expect.poll(checkerOf).toMatch(/^my-checks-[0-9a-f]{12}\.js$/);
-  await expect(advanced.getByRole('status')).toContainText('Saved');
+  await expect(page.getByText('Checker file saved', { exact: true })).toBeVisible();
   const kept = await checkerOf();
   await expect(advanced.getByText(kept).first()).toBeVisible();
   const { dataPath } = await page.evaluate(() => window.architect.app.info());
