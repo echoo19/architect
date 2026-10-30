@@ -6,6 +6,7 @@
  */
 export { fetchModelConfig, parseModelConfig } from './config';
 export { SizingError, sizeModel } from './size';
+export { bundleFromRequest, planFromRequest, readModelConfig } from './requests';
 export {
   describePlan,
   gb,

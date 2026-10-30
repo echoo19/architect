@@ -148,3 +148,62 @@ export const TrainBundleSchema = z.strictObject({
   wording: z.literal(CLUSTER_TEMPLATE_WORDING),
 });
 export type TrainBundle = z.infer<typeof TrainBundleSchema>;
+
+/** GPU memory by type, in GB (10^9 bytes) as each is sold. A plan may name any other by its memory. */
+export const GPU_TYPES: Readonly<Record<string, number>> = {
+  'h100-80gb': 80,
+  h200: 141,
+  'a100-80gb': 80,
+  'a100-40gb': 40,
+  l40s: 48,
+  b200: 180,
+};
+
+/*
+ * The app's Compute place asks the engine for these: a model's config.json read from the Hub or
+ * from a file the person chose, a plan sized from it, and a bundle written from that plan.
+ */
+
+/** Where a model's config.json comes from: the Hub at a revision, or a file on this computer. */
+export const ModelConfigSourceSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('hub'), repo: repoId, revision: z.string().min(1) }),
+  z.strictObject({ kind: z.literal('file'), path: z.string().min(1) }),
+]);
+export type ModelConfigSource = z.infer<typeof ModelConfigSourceSchema>;
+
+/** A config.json as read, with the model it names: a Hub read resolves its revision to a commit. */
+export const ModelConfigReadSchema = z.strictObject({
+  config: ModelConfigSchema,
+  model: z.strictObject({ repo: repoId.nullable(), revision: z.string().nullable() }),
+});
+export type ModelConfigRead = z.infer<typeof ModelConfigReadSchema>;
+
+/** A plan's settings, beside the config they size. */
+export const TrainingPlanRequestSchema = z.strictObject({
+  ...ModelConfigReadSchema.shape,
+  method: TrainMethodSchema,
+  precision: TrainPrecisionSchema,
+  gpu: z.strictObject({ name: z.string().min(1), memoryGb: z.number().positive() }),
+  seqLen: z.number().int().positive(),
+  microBatch: z.number().int().positive(),
+  gpusPerNode: z.number().int().positive(),
+  loraRank: z.number().int().positive(),
+});
+export type TrainingPlanRequest = z.infer<typeof TrainingPlanRequestSchema>;
+
+/** A bundle to write: the plan, sized again, a field export's folder, and where to write it. */
+export const TrainBundleRequestSchema = z.strictObject({
+  plan: TrainingPlanRequestSchema,
+  target: ClusterTargetSchema,
+  exportDir: z.string().min(1),
+  /** The bundle goes in a new folder inside this one, named for the model and the target. */
+  parentDir: z.string().min(1),
+});
+export type TrainBundleRequest = z.infer<typeof TrainBundleRequestSchema>;
+
+export const WrittenTrainBundleSchema = z.strictObject({
+  bundle: TrainBundleSchema,
+  dir: z.string(),
+  files: z.array(z.string()),
+});
+export type WrittenTrainBundle = z.infer<typeof WrittenTrainBundleSchema>;

@@ -6,7 +6,7 @@ import type { HubClient } from '../hub';
 import { SizingError } from './size';
 
 /** A config.json is a few kilobytes; anything near this is not one. */
-const MAX_CONFIG_BYTES = 1024 * 1024;
+export const MAX_CONFIG_BYTES = 1024 * 1024;
 
 /** Parses a config.json's text, refusing what isn't a JSON object. */
 export function parseModelConfig(text: string, where: string): ModelConfig {

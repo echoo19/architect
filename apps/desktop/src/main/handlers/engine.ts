@@ -139,6 +139,25 @@ export function registerEngineHandlers(
     get: (experimentId) => call((api) => api.experiments.get(experimentId)),
   });
 
+  // A config.json, a field export and the folder a bundle goes in are ones the person chose.
+  router.registerHandlers('compute', {
+    readConfig: (source) =>
+      call((api) =>
+        api.compute.readConfig(
+          source.kind === 'file' ? { ...source, path: picked.check(source.path) } : source,
+        ),
+      ),
+    plan: (request) => call((api) => api.compute.plan(request)),
+    bundle: (request) =>
+      call((api) =>
+        api.compute.bundle({
+          ...request,
+          exportDir: picked.check(request.exportDir),
+          parentDir: picked.check(request.parentDir),
+        }),
+      ),
+  });
+
   router.registerHandlers('reports', {
     get: (runId, target) => call((api) => api.reports.get(runId, target)),
     list: (runId) => call((api) => api.reports.list(runId)),
