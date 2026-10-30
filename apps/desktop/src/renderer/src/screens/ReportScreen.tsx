@@ -63,7 +63,7 @@ export function ReportScreen({ runId }: { runId: string }) {
         )
       }
     >
-      <div className="mx-auto box-content flex max-w-[860px] flex-col gap-11 px-8 pb-8 pt-14">
+      <div className="mx-auto box-content flex max-w-[1120px] flex-col px-10 pb-12 pt-12">
         {report.status === 'loading' && <ReportSkeleton />}
         {report.status === 'error' && (
           <ProblemState
@@ -122,7 +122,7 @@ function ReportFooter({
   const { graduate, verdict } = useReportAgent(report);
   const showSettings = useAgentSettingsUi((state) => state.show);
   return (
-    <div className="mx-auto flex max-w-[860px] flex-wrap justify-end gap-2">
+    <div className="mx-auto flex max-w-[1120px] flex-wrap justify-end gap-2">
       <Button onClick={() => navigate(paths.train(report.runId))}>See all rounds</Button>
       {verdict.usable || !graduate ? (
         <Button variant="primary" loading={accepting} onClick={onAccept}>
@@ -176,17 +176,13 @@ function LoadedReport({ report }: { report: ReportCard }) {
 
 function ReportSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Loading the results" className="flex flex-col gap-11">
+    <div aria-busy="true" aria-label="Loading the results" className="flex flex-col gap-12">
       <div className="flex flex-col gap-3">
-        <Skeleton shape="pill" className="h-7 w-20" />
         <Skeleton className="h-10 w-80" />
-        <Skeleton className="h-4 w-72" />
+        <Skeleton className="h-4 w-[420px]" />
       </div>
-      <Skeleton className="h-[136px] w-full rounded-card" />
-      <div className="grid grid-cols-2 gap-14">
-        <Skeleton className="h-36 w-full" />
-        <Skeleton className="h-24 w-full" />
-      </div>
+      <Skeleton className="h-[136px] w-full" />
+      <Skeleton className="h-44 w-full" />
     </div>
   );
 }

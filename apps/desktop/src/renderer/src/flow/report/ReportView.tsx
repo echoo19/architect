@@ -7,14 +7,15 @@ import {
   type ReportCard,
   type Run,
 } from '@architect/shared';
-import { Badge, DetailList, Disclosure, Heading, Stat, type BadgeTone } from '@architect/ui';
-import { Check, CircleAlert, CircleMinus, CircleX, Cloud } from 'lucide-react';
+import { DetailList, Disclosure, Heading, Stagger, StaggerItem, Stat } from '@architect/ui';
+import { CircleMinus } from 'lucide-react';
 import type { QueryState } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
 import { formatBytes, formatDuration, formatUsd } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { formatAnswerTime, formatRate, percent, signed } from '../format';
+import { Section } from '../ledger';
 import type { ModelNames } from '../train/phase';
 import { comparisonArms } from './arms';
 import { Capabilities } from './Capabilities';
@@ -32,9 +33,9 @@ import { LocalTest } from './LocalTest';
 import { RuleNotes } from './RuleNotes';
 import { ScoreNotes } from './ScoreNotes';
 import { testSourceNote } from './test-source';
-import type { Verdict, VerdictState } from './verdict';
+import type { Verdict } from './verdict';
 
-/** How the report names the runtime the final test ran on, behind Details. */
+/** How the report names the runtime the final test ran on, in the run's details. */
 const RUNTIMES: Record<string, string> = {
   ollama: 'Ollama',
   openai_compatible: 'a hosted endpoint',
@@ -65,7 +66,7 @@ interface ReportViewProps {
   here: ReportCard | null;
 }
 
-/** The meter's memory figures, where a meter read the final test here, for Details. */
+/** The meter's memory figures, where a meter read the final test here, for the run's details. */
 function memoryFact(figures: RuntimeFigures | null): string | null {
   if (figures === null) return null;
   const parts = [
@@ -146,14 +147,6 @@ function trainingNote(report: ReportCard, job: Job | null): string {
   return `${count} · ${formatDuration(wallMs)}`;
 }
 
-const PILL: Record<VerdictState, { tone: BadgeTone; icon: ReactNode }> = {
-  ready: { tone: 'student', icon: <Check size={14} strokeWidth={2} aria-hidden /> },
-  tested_online: { tone: 'neutral', icon: <Cloud size={14} strokeWidth={1.8} aria-hidden /> },
-  below_target: { tone: 'alert', icon: <CircleAlert size={14} strokeWidth={2} aria-hidden /> },
-  needs_attention: { tone: 'alert', icon: <CircleAlert size={14} strokeWidth={2} aria-hidden /> },
-  blocked: { tone: 'alert', icon: <CircleX size={14} strokeWidth={2} aria-hidden /> },
-};
-
 export function ReportView({
   report,
   verdict,
@@ -185,60 +178,50 @@ export function ReportView({
   const before = beforeTraining(report, comparison, bare);
   const size = graduate?.manifest.student.sizeBytes;
   const memory = memoryFact(figures);
-  const pill = PILL[verdict.state];
   const source = testSourceNote(report.tasks, names.mentor);
 
   return (
-    <>
-      <div className="flex flex-col gap-3">
-        <Badge tone={pill.tone} icon={pill.icon} className="self-start">
-          {verdict.pill}
-        </Badge>
-        <Heading as="h1" size="display">
-          {verdict.title}
-        </Heading>
-        <p className="m-0 max-w-[660px] text-body text-fg text-pretty">
-          Tested on {test.score.total} tasks it had never seen, {where}, with {names.mentor}{' '}
-          disconnected.
-        </p>
-        {verdict.because.length > 0 && (
-          <p className="m-0 max-w-[620px] text-fg text-pretty">{verdict.because.join(' ')}</p>
-        )}
-      </div>
+    <Stagger className="flex flex-col gap-12">
+      <StaggerItem>
+        <header className="flex flex-col gap-3">
+          <Heading as="h1" size="display">
+            {verdict.title}
+          </Heading>
+          <p className="m-0 max-w-[660px] text-body text-pretty">
+            Tested on {test.score.total} tasks it had never seen, {where}, with {names.mentor}{' '}
+            disconnected.
+          </p>
+          {verdict.because.length > 0 && (
+            <p className="m-0 max-w-[620px] text-pretty">{verdict.because.join(' ')}</p>
+          )}
+        </header>
+      </StaggerItem>
 
-      {/* An agent tested online is offered the test on this computer where its badge says so. */}
-      {report.testedOn === 'hosted' && <LocalTest report={report} />}
+      {/* An agent tested online is offered the test on this computer where its verdict says so. */}
+      {report.testedOn === 'hosted' && (
+        <StaggerItem>
+          <LocalTest report={report} />
+        </StaggerItem>
+      )}
 
-      <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(180px,100%),1fr))] gap-px overflow-hidden rounded-card bg-line-strong shadow-edge">
+      <StaggerItem className="flex flex-col gap-6">
+        <div className="grid grid-cols-2 items-baseline gap-x-12 gap-y-8 border-y border-line py-8 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
           <Stat
-            className="bg-card p-[22px]"
+            size="xl"
             value={formatRate(test.score)}
             label="of new tasks right"
             note={<Lines lines={[`${test.score.pass} of ${test.score.total}`, before]} />}
             noteFont="text"
           />
           <Stat
-            className="bg-card p-[22px]"
             value={formatAnswerTime(test.latencyMs.p50)}
             label="Typical answer time"
-            note={<Lines lines={[`95% within ${formatAnswerTime(test.latencyMs.p95)}`]} />}
             noteFont="text"
           />
-          <Stat
-            className="bg-card p-[22px]"
-            value={names.student}
-            label="Model"
-            note={size ? `${formatBytes(size)} on disk` : undefined}
-            noteFont="text"
-          />
-          <Stat
-            className="bg-card p-[22px]"
-            value={cents(bill.total)}
-            label="Training cost"
-            note={<Lines lines={[...bill.parts, trainingNote(report, job)]} />}
-            noteFont="text"
-          />
+          {size ? (
+            <Stat value={names.student} label={`${formatBytes(size)} on disk`} noteFont="text" />
+          ) : null}
+          <Stat value={cents(bill.total)} label="Training cost" noteFont="text" />
         </div>
         <ScoreNotes rules={report.tasks?.rules} teacher={names.mentor} />
         {evidence.status === 'error' && evidence.data === undefined && (
@@ -251,13 +234,133 @@ export function ReportView({
             onRetry={evidence.reload}
           />
         )}
-        <Disclosure label="Details">
+      </StaggerItem>
+
+      <StaggerItem>
+        <Capabilities evidence={capabilities} installation={installation} names={names} />
+      </StaggerItem>
+
+      {((job && job.doesNot.length > 0) || report.refusedTypes.length > 0) && (
+        <StaggerItem>
+          <Section title="What it won't do" id="wont-do">
+            <ul className="m-0 list-none border-b border-line p-0">
+              {report.refusedTypes.map((type) => (
+                <Limit key={type.type} reason={type.reason}>
+                  {type.label}
+                </Limit>
+              ))}
+              {job?.doesNot.map((limit) => (
+                <Limit key={limit}>{limit}</Limit>
+              ))}
+            </ul>
+          </Section>
+        </StaggerItem>
+      )}
+
+      {/* A comparison's own report, when this run is one of its arms; else the run's records. */}
+      {comparisonReport.status === 'error' && comparisonReport.data === undefined && (
+        <StaggerItem>
+          <Section title="Comparisons" id="comparisons">
+            <ProblemState
+              layout="inline"
+              error={comparisonReport.error}
+              title="Couldn't read the comparisons"
+              onRetry={comparisonReport.reload}
+            />
+          </Section>
+        </StaggerItem>
+      )}
+      {comparisonReport.data && (
+        <StaggerItem>
+          <ComparisonArms
+            report={comparisonReport.data}
+            runId={report.runId}
+            names={names}
+            testedOn={report.testedOn}
+          />
+        </StaggerItem>
+      )}
+      {comparisonReport.data === null &&
+        evidence.status === 'error' &&
+        evidence.data === undefined && (
+          <StaggerItem>
+            <Section title="Comparisons" id="comparisons">
+              <ProblemState
+                layout="inline"
+                error={evidence.error}
+                title="Couldn't load the comparisons"
+                onRetry={evidence.reload}
+              />
+            </Section>
+          </StaggerItem>
+        )}
+      {comparisonReport.data === null && run && evidence.data && (
+        <StaggerItem>
+          <Comparisons
+            arms={comparisonArms({
+              run,
+              report,
+              progress: evidence.data.progress,
+              experiments: evidence.data.experiments,
+              references: evidence.data.references,
+              bare,
+              figures,
+            })}
+            names={names}
+            blankStart={job?.startingHarness.kind === 'blank'}
+            checkTasks={job?.splits.dev}
+          />
+        </StaggerItem>
+      )}
+
+      {report.topInterventions.length > 0 && (
+        <StaggerItem>
+          <Section title="What helped most" id="helped">
+            <div className="border-b border-line">
+              <table className="w-full border-collapse text-ui">
+                <thead>
+                  <tr className="text-small">
+                    <th className="w-24 pb-3" />
+                    <th className="pb-3" />
+                    <th className="pb-3 pl-6 text-right font-normal">Check tasks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {report.topInterventions.map((change) => (
+                    <tr key={change.round} className="border-t border-line">
+                      <th scope="row" className="py-3.5 pr-4 text-left font-normal">
+                        {change.round === 1 && startedBlank(report, job)
+                          ? 'First draft'
+                          : `Round ${change.round}`}
+                      </th>
+                      <td className="py-3.5 pr-4">{change.title}</td>
+                      <td className="py-3.5 pl-6 text-right font-mono tabular-nums">
+                        {signed(change.runs ? change.delta / change.runs : change.delta)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Section>
+        </StaggerItem>
+      )}
+
+      <StaggerItem className="empty:hidden">
+        <ComparisonTable rows={comparison} names={names} />
+      </StaggerItem>
+
+      <StaggerItem>
+        <Disclosure label="Run details">
           <DetailList
             items={[
               {
                 label: 'Model',
                 value: `${report.student.model} on ${RUNTIMES[report.student.runtime] ?? report.student.runtime}`,
               },
+              { label: 'Answer time', value: `95% within ${formatAnswerTime(test.latencyMs.p95)}` },
+              { label: 'Training', value: trainingNote(report, job) },
+              ...(bill.parts.length > 0 ? [{ label: 'Cost', value: bill.parts.join(' · ') }] : []),
               ...(memory ? [{ label: 'Memory in the final test', value: memory }] : []),
               ...(figures !== null && figures.coldStartMs !== null
                 ? [
@@ -277,121 +380,25 @@ export function ReportView({
                 : []),
             ]}
           />
-          {source && (
-            <p className="m-0 mt-3 max-w-[620px] text-small text-fg text-pretty">{source}</p>
-          )}
+          {source && <p className="m-0 mt-3 max-w-[620px] text-small text-pretty">{source}</p>}
           {report.tasks?.rules && (
             <RuleNotes rules={report.tasks.rules} rounds={report.cost.rounds} />
           )}
         </Disclosure>
-      </div>
-
-      <Capabilities evidence={capabilities} installation={installation} names={names} />
-
-      {((job && job.doesNot.length > 0) || report.refusedTypes.length > 0) && (
-        <section aria-labelledby="wont-do" className="flex flex-col gap-3.5">
-          <Heading id="wont-do">What it won&apos;t do</Heading>
-          <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-body text-fg">
-            {report.refusedTypes.map((type) => (
-              <Limit key={type.type}>
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-fg">{type.label}</span>
-                  <span className="text-small text-fg text-pretty">{type.reason}</span>
-                </span>
-              </Limit>
-            ))}
-            {job?.doesNot.map((limit) => (
-              <Limit key={limit}>{limit}</Limit>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* A comparison's own report, when this run is one of its arms; else the run's records. */}
-      {comparisonReport.status === 'error' && comparisonReport.data === undefined && (
-        <section aria-labelledby="comparisons" className="flex flex-col gap-3.5">
-          <Heading id="comparisons">Comparisons</Heading>
-          <ProblemState
-            layout="inline"
-            error={comparisonReport.error}
-            title="Couldn't read the comparisons"
-            onRetry={comparisonReport.reload}
-          />
-        </section>
-      )}
-      {comparisonReport.data && (
-        <ComparisonArms
-          report={comparisonReport.data}
-          runId={report.runId}
-          names={names}
-          testedOn={report.testedOn}
-        />
-      )}
-      {comparisonReport.data === null &&
-        evidence.status === 'error' &&
-        evidence.data === undefined && (
-          <section aria-labelledby="comparisons" className="flex flex-col gap-3.5">
-            <Heading id="comparisons">Comparisons</Heading>
-            <ProblemState
-              layout="inline"
-              error={evidence.error}
-              title="Couldn't load the comparisons"
-              onRetry={evidence.reload}
-            />
-          </section>
-        )}
-      {comparisonReport.data === null && run && evidence.data && (
-        <Comparisons
-          arms={comparisonArms({
-            run,
-            report,
-            progress: evidence.data.progress,
-            experiments: evidence.data.experiments,
-            references: evidence.data.references,
-            bare,
-            figures,
-          })}
-          names={names}
-          blankStart={job?.startingHarness.kind === 'blank'}
-          checkTasks={job?.splits.dev}
-        />
-      )}
-
-      {report.topInterventions.length > 0 && (
-        <section aria-labelledby="helped" className="flex flex-col gap-3">
-          <Heading id="helped">What helped most</Heading>
-          <ol className="m-0 flex list-none flex-col p-0">
-            {report.topInterventions.map((change) => (
-              <li
-                key={change.round}
-                className="grid min-h-12 grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-3.5 border-t border-line first:border-t-0"
-              >
-                <span className="text-fg">
-                  {change.round === 1 && startedBlank(report, job)
-                    ? 'First draft'
-                    : `Round ${change.round}`}
-                </span>
-                <span className="truncate">{change.title}</span>
-                <span className="font-mono text-small tabular-nums">
-                  {signed(change.runs ? change.delta / change.runs : change.delta)}{' '}
-                  <span className="font-sans text-fg">check tasks</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
-
-      <ComparisonTable rows={comparison} names={names} />
-    </>
+      </StaggerItem>
+    </Stagger>
   );
 }
 
-function Limit({ children }: { children: ReactNode }) {
+/** One thing the agent leaves to its person, and when the engine says why, why. */
+function Limit({ reason, children }: { reason?: string; children: ReactNode }) {
   return (
-    <li className="flex items-start gap-2.5">
-      <CircleMinus size={16} strokeWidth={1.8} className="mt-[3px] shrink-0 text-fg" aria-hidden />
-      {children}
+    <li className="grid min-h-12 grid-cols-[16px_minmax(0,1fr)] items-center gap-x-4 gap-y-1 border-t border-line py-3 sm:grid-cols-[16px_minmax(0,220px)_minmax(0,1fr)]">
+      <CircleMinus size={16} strokeWidth={1.8} className="shrink-0" aria-hidden />
+      <span className={reason === undefined ? 'sm:col-span-2' : undefined}>{children}</span>
+      {reason !== undefined && (
+        <span className="col-start-2 text-small text-pretty sm:col-start-3">{reason}</span>
+      )}
     </li>
   );
 }

@@ -1,18 +1,8 @@
 import type { ComparisonReport, Spend, StudentTarget } from '@architect/shared';
-import {
-  Badge,
-  Disclosure,
-  EvidenceMark,
-  Heading,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@architect/ui';
+import { Badge, Disclosure, EvidenceMark } from '@architect/ui';
 import { formatBytes } from '../../lib/format';
 import { formatCost, formatRate } from '../format';
+import { Section } from '../ledger';
 import type { ModelNames } from '../train/phase';
 import { reportArms, type ArmScore, type ReportArm } from './comparison-report';
 
@@ -86,71 +76,71 @@ function Rows({
   label: string;
 }) {
   return (
-    <div className="rounded-control bg-card">
-      <Table aria-label={label}>
-        <TableHeader>
-          <TableRow>
-            <TableHead />
-            <TableHead className="whitespace-nowrap text-right">
+    <div className="border-b border-line">
+      <table aria-label={label} className="w-full border-collapse text-ui">
+        <thead>
+          <tr className="text-small">
+            <th className="pb-3" />
+            <th className="whitespace-nowrap pb-3 pl-6 text-right font-normal">
               <EvidenceMark kind="final" className="justify-end">
                 Final test
               </EvidenceMark>
-            </TableHead>
-            <TableHead className="whitespace-nowrap text-right">Cost</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+            </th>
+            <th className="whitespace-nowrap pb-3 pl-6 text-right font-normal">Cost</th>
+          </tr>
+        </thead>
+        <tbody>
           {arms.map((arm) => {
             const shown = scoreOn(arm, testedOn);
             return (
-              <TableRow key={arm.arm} aria-current={arm.current ? 'true' : undefined}>
-                <TableCell className="align-top">
+              <tr
+                key={arm.arm}
+                aria-current={arm.current ? 'true' : undefined}
+                className="border-t border-line"
+              >
+                <th scope="row" className="py-3.5 pr-4 text-left align-top font-normal">
                   <span className="flex flex-col gap-0.5">
                     <span>
                       <span className={arm.current ? 'font-medium' : undefined}>{arm.label}</span>
-                      {arm.current && (
-                        <span className="whitespace-nowrap text-fg"> · this agent</span>
-                      )}
+                      {arm.current && <span className="whitespace-nowrap"> · this agent</span>}
                     </span>
                     {arm.status !== 'complete' && arm.status !== 'not_run' && (
-                      <span className="text-small text-fg text-pretty">
+                      <span className="text-small text-pretty">
                         {arm.status === 'stopped' ? 'Stopped' : 'Not finished'}
                         {arm.reason && `: ${arm.reason}`}
                       </span>
                     )}
                   </span>
-                </TableCell>
+                </th>
                 {arm.status === 'not_run' ? (
-                  <TableCell colSpan={2} className="align-top text-fg text-pretty">
+                  <td colSpan={2} className="py-3.5 pl-6 align-top text-pretty">
                     Not run{arm.reason && `: ${arm.reason}`}
-                  </TableCell>
+                  </td>
                 ) : (
                   <>
-                    <TableCell className="text-right align-top">
+                    <td className="py-3.5 pl-6 text-right align-top">
                       {shown === null ? (
-                        <span className="text-fg">Not run</span>
+                        <span>Not run</span>
                       ) : (
-                        <span className="flex flex-col items-end">
-                          <span className="font-mono tabular-nums text-fg">
-                            {formatRate(shown.score)}
-                          </span>
-                          <span className="whitespace-nowrap text-small tabular-nums text-fg">
+                        <span className="inline-flex items-baseline justify-end gap-3 whitespace-nowrap tabular-nums">
+                          <span className="font-mono font-medium">{formatRate(shown.score)}</span>
+                          <span className="text-small">
                             {counts(shown.score)}
                             {shown.where && `, ${shown.where}`}
                           </span>
                         </span>
                       )}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-right align-top font-mono tabular-nums">
+                    </td>
+                    <td className="whitespace-nowrap py-3.5 pl-6 text-right align-top font-mono tabular-nums">
                       {costOf(arm.spent)}
-                    </TableCell>
+                    </td>
                   </>
                 )}
-              </TableRow>
+              </tr>
             );
           })}
-        </TableBody>
-      </Table>
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -181,35 +171,36 @@ export function ComparisonArms({
     .map((arm) => ({ arm, facts: extras(arm, testedOn) }))
     .filter(({ facts }) => facts.length > 0);
   return (
-    <section aria-labelledby="comparisons" className="flex flex-col gap-[18px]">
-      <div className="flex flex-wrap items-center gap-3">
-        <Heading id="comparisons">Comparisons</Heading>
-        {report.dryRun && <Badge>Dry run on fakes, no model called</Badge>}
-      </div>
+    <Section
+      title="Comparisons"
+      id="comparisons"
+      actions={report.dryRun && <Badge>Dry run on fakes, no model called</Badge>}
+    >
       <Rows arms={main} testedOn={testedOn} label="Comparisons" />
       {more.length > 0 && (
         <Disclosure
+          className="pt-2"
           label={`${more.length} more ${more.length === 1 ? 'comparison' : 'comparisons'}`}
         >
           <Rows arms={more} testedOn={testedOn} label="More comparisons" />
         </Disclosure>
       )}
       {(notes.length > 0 || report.disclosures.length > 0) && (
-        <Disclosure label="Details">
-          <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small text-fg">
+        <Disclosure label="Details" className="pt-2">
+          <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small">
             {notes.map(({ arm, facts }) => (
               <li key={arm.arm} className="text-pretty">
                 {arm.label}: {facts.join(', ')}.
               </li>
             ))}
             {report.disclosures.map((line) => (
-              <li key={line} className="text-pretty text-fg">
+              <li key={line} className="text-pretty">
                 {line}
               </li>
             ))}
           </ul>
         </Disclosure>
       )}
-    </section>
+    </Section>
   );
 }
