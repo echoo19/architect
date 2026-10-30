@@ -352,8 +352,8 @@ export function Gates({ experiment }: { experiment: Experiment }) {
 
 function Figure({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-0.5 bg-raised px-4 py-3">
-      <dt className="text-small text-fg">{label}</dt>
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-small">{label}</dt>
       <dd className="m-0 font-mono text-body tabular-nums">{children}</dd>
     </div>
   );
@@ -364,7 +364,7 @@ export function RoundCost({ experiment, names }: { experiment: Experiment; names
   const { budget } = experiment;
   return (
     <DrawerSection title="What this round spent">
-      <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden rounded-control bg-line-strong sm:grid-cols-4 shadow-edge">
+      <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
         <Figure label={names.mentor}>{formatCost(budget.mentorUsd)}</Figure>
         <Figure label="Compute">
           {formatCost(budget.computeUsd)}

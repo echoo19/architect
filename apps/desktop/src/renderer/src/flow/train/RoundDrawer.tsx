@@ -189,42 +189,37 @@ export function RoundDrawerContent({
         )}
 
         {question === undefined && (
-          <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden rounded-control bg-line-strong shadow-edge">
-            <Effect
-              label={`${names.mentor} expected`}
-              note={
-                predicted && firstMeasured !== null && !unmeasured
-                  ? predictionCheck(predicted, firstMeasured)
-                  : undefined
-              }
-              /* Measured twice, the prediction heads both measurements on a row of its own. */
-              wide={second !== null}
-            >
-              {predicted ? (
-                <>
-                  {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)}
-                  <Unit>check tasks</Unit>
-                </>
-              ) : (
-                '–'
-              )}
-            </Effect>
-            <Effect
-              label={first ? 'First measurement' : 'Measured'}
-              note={rateChange(first ?? round)}
-            >
-              {unmeasured ? (
-                <span className="font-sans text-body text-fg">Not measured</span>
-              ) : (
-                <TaskCount delta={firstMeasured} />
-              )}
-            </Effect>
-            {second && (
-              <Effect label="Measured again" note={rateChange(second)}>
-                <TaskCount delta={second.devAfter.pass - second.devBefore.pass} />
+          <DrawerSection title="Gain on check tasks">
+            <dl className="m-0 grid grid-flow-col auto-cols-fr divide-x divide-line">
+              <Effect
+                label={`${names.mentor} expected`}
+                note={
+                  predicted && firstMeasured !== null && !unmeasured
+                    ? predictionCheck(predicted, firstMeasured)
+                    : undefined
+                }
+              >
+                {predicted ? formatRange(predicted.devDeltaMin, predicted.devDeltaMax) : '–'}
               </Effect>
-            )}
-          </dl>
+              <Effect
+                label={first ? 'First measurement' : 'Measured'}
+                note={rateChange(first ?? round)}
+              >
+                {unmeasured ? (
+                  <span className="font-sans text-body">Not measured</span>
+                ) : firstMeasured === null ? (
+                  '–'
+                ) : (
+                  signed(firstMeasured)
+                )}
+              </Effect>
+              {second && (
+                <Effect label="Measured again" note={rateChange(second)}>
+                  {signed(second.devAfter.pass - second.devBefore.pass)}
+                </Effect>
+              )}
+            </dl>
+          </DrawerSection>
         )}
 
         {(round.diagnosis || intervention) && (
@@ -487,10 +482,6 @@ function Decision({
   );
 }
 
-function Unit({ children }: { children: ReactNode }) {
-  return <span className="ml-2 font-sans text-body text-fg">{children}</span>;
-}
-
 /** The second measurement alone: both measurements added up, less the first. */
 function secondMeasurement(
   first: NonNullable<Round['firstMeasurement']>,
@@ -513,34 +504,20 @@ function rateChange({ devBefore, devAfter }: { devBefore?: Score; devAfter?: Sco
   return `${formatRate(devBefore)} → ${formatRate(devAfter)}`;
 }
 
-/** "+8 check tasks", or a dash before there is a measurement. */
-function TaskCount({ delta }: { delta: number | null }) {
-  if (delta === null) return <>–</>;
-  return (
-    <>
-      {signed(delta)}
-      <Unit>check {Math.abs(delta) === 1 ? 'task' : 'tasks'}</Unit>
-    </>
-  );
-}
-
 function Effect({
   label,
   note,
-  wide = false,
   children,
 }: {
   label: string;
   note?: string | undefined;
-  /** Spans the grid's row. */
-  wide?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className={cn('flex flex-col gap-1 bg-raised px-4 py-3.5', wide && 'col-span-2')}>
-      <dt className="text-fg">{label}</dt>
+    <div className="flex flex-col gap-1 px-4 first:pl-0">
+      <dt>{label}</dt>
       <dd className="m-0 font-display text-h2 font-semibold tabular-nums">{children}</dd>
-      {note && <dd className="m-0 text-small text-fg">{note}</dd>}
+      {note && <dd className="m-0 text-small">{note}</dd>}
     </div>
   );
 }
