@@ -1,7 +1,13 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { GuardError, TaskSchema, type Organization, type Task } from '@architect/shared';
+import {
+  GuardError,
+  TaskSchema,
+  type Organization,
+  type SealedHashes,
+  type Task,
+} from '@architect/shared';
 import { writeFileAtomic } from '../data/atomic-write';
 import {
   createLeakDetector,
@@ -152,6 +158,30 @@ export class Vault {
       id: org.id,
       name: org.name,
     }));
+  }
+
+  /**
+   * The sealed part of a job by hash only, for a field export's evaluation manifest: the locked
+   * test file with its task count, and each sealed organization hashed over its files' names and
+   * hashes, in no telling order. No id, name, file name or task leaves.
+   */
+  sealedHashes(jobId: string): SealedHashes {
+    const fingerprint = this.fingerprint(jobId);
+    const organizations = (fingerprint.transfer ?? [])
+      .map(({ files }) => ({
+        sha256: sha256(
+          [...files]
+            .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+            .map((file) => `${file.name}\t${file.sha256}\n`)
+            .join(''),
+        ),
+        files: files.length,
+      }))
+      .sort((a, b) => (a.sha256 < b.sha256 ? -1 : 1));
+    return {
+      lockedTest: { sha256: fingerprint.testFileSha256, tasks: fingerprint.tasks.length },
+      organizations,
+    };
   }
 
   /** The locked test tasks, for the one run that happens after the mentor is released. */
