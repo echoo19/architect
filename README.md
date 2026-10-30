@@ -146,6 +146,7 @@ Then describe a job of your own, try the sample job, or open the returns desk ag
 - If your files include a policy with prices, discounts or rounding, Architect shows you the rule it made from it, with worked examples, and trains only after you confirm it. On a repair shop's pricing, one round of teaching took Glimmer from 22 of 30 check tasks to 40 of 40 on its final test (a single run, not a planned comparison).
 - An agent exports as one file, or publishes to Hugging Face, private by default.
 - The `architect` command does the same from a terminal: [docs/CLI.md](docs/CLI.md).
+- A job you write yourself is a folder: a job file, its tasks, each organization's files and maybe a checker. The format, with a worked example: [docs/JOB_FORMAT.md](docs/JOB_FORMAT.md). In Architect Lab you can skip writing it: describe the job once and add each organization's folder.
 - How it fits together, and why: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Built during the Meta Global AI Developer Hackathon

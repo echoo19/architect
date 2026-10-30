@@ -74,9 +74,10 @@ test('says plainly that a file is not a job file, and imports nothing', async ()
   await expect(page.getByText("Couldn't import the job file")).toBeVisible();
   await expect(
     page.getByText(
-      "That isn't a job file. A job folder holds job.json, tasks.jsonl and a data folder with the files the job works on. Choose its job.json.",
+      "That isn't a job file. A job folder holds job.json, tasks.jsonl and the files the job works on, in a data folder or in each organization's orgs/<id>/data folder. Choose its job.json.",
     ),
   ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Job folder format' })).toBeVisible();
   await expect(page).toHaveURL(/#\/new$/);
   expect(await jobs()).toEqual([]);
 });
