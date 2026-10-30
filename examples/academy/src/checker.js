@@ -14,6 +14,10 @@
 // Where the policy allows more than one right action, any of them passes: any practice
 // questions that meet the policy's rules, any video in the topic's folder, any of the errors
 // that produce the same wrong choice, any of the hints the policy allows.
+//
+// An academy's exports write some values another way, and each of them reads back to one value:
+// a topic label matches with its spaces, capitals and punctuation set aside, and a grid-in answer
+// matches any way of writing the same number (1/8, 0.125, .125).
 
 var validators = {};
 
@@ -95,7 +99,7 @@ validators.tutoring_turn = (params, ctx) => {
 
 function topicProblem(answer, params) {
   if (!hasOwn(answer, 'topic')) return fail('topic is missing from the ANSWER line.');
-  if (!sameText(answer.topic, params.topic)) {
+  if (!sameTopic(answer.topic, params.topic)) {
     return fail(`topic is ${show(answer.topic)} but should be "${params.topic}".`);
   }
   return null;
@@ -103,7 +107,7 @@ function topicProblem(answer, params) {
 
 function correctProblem(answer, params) {
   if (!hasOwn(answer, 'correct')) return fail('correct is missing from the ANSWER line.');
-  if (!sameText(answer.correct, params.correct)) {
+  if (!sameText(answer.correct, params.correct) && !sameNumber(answer.correct, params.correct)) {
     return fail(`correct is ${show(answer.correct)} but should be ${params.correct}.`);
   }
   return null;
@@ -203,7 +207,7 @@ function practiceProblem(params, ctx) {
     const question = questions.find((q) => text(q.question_id) === questionId);
     if (!question)
       return `question_id ${show(row.question_id)} is not in questions.csv (row ${id}).`;
-    if (text(question.topic) !== params.topic) {
+    if (!sameTopic(text(question.topic), params.topic)) {
       return `question_id ${questionId} is on "${text(question.topic)}", not "${params.topic}".`;
     }
     if (attempted.includes(questionId)) {
@@ -243,9 +247,11 @@ function noteProblem(params, ctx) {
     student_id: params.student_id,
     staff_id: params.assigned_by,
     written_on: params.assigned_on,
-    topic: params.topic,
   });
   if (field) return `${field} (staff_notes.csv).`;
+  if (!sameTopic(text(row.topic), params.topic)) {
+    return `topic is ${show(row.topic)} but should be ${params.topic} (staff_notes.csv).`;
+  }
   if (text(row.note) === '') return 'note is empty (staff_notes.csv).';
   return null;
 }
@@ -298,6 +304,33 @@ function sameText(value, expected) {
   if (typeof value !== 'string' && typeof value !== 'number') return false;
   const normal = (s) => String(s).trim().replace(/\s+/g, ' ').toLowerCase();
   return normal(value) === normal(expected);
+}
+
+// The same topic label, with spaces, capitals and punctuation set aside.
+function sameTopic(value, expected) {
+  if (typeof value !== 'string') return false;
+  const key = (s) =>
+    String(s)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  return key(value) === key(expected);
+}
+
+// The same number written either way: a whole number, a decimal or a fraction.
+function sameNumber(value, expected) {
+  const a = gridValue(value);
+  const b = gridValue(expected);
+  return a !== null && b !== null && Math.abs(a - b) < 1e-9;
+}
+
+function gridValue(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value !== 'string') return null;
+  const s = value.trim();
+  const fraction = /^(\d+)\/(\d+)$/.exec(s);
+  if (fraction) return Number(fraction[2]) === 0 ? null : Number(fraction[1]) / Number(fraction[2]);
+  return /^\d*\.?\d+$/.test(s) ? Number(s) : null;
 }
 
 // A number, or text that is plainly one, as a number; anything else is null.

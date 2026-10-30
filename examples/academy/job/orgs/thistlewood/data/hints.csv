@@ -1,0 +1,44 @@
+hint_id,topic,error_id,text
+H-001,Rule 5A - Solving Linear Equations,E-13,The number in front of x multiplies it. Which operation undoes that?
+H-002,Rule 6A - Comparisons,E-20,Is the thing being compared one thing or several?
+H-003,Rule 1A - Subjects and Verbs,E-15,Look at the time words at the start of the sentence.
+H-004,Rule 3B - Verb Tenses,E-33,"Is the action happening now, or did it already happen?"
+H-005,Rule 5B - Percent Change,E-11,A sale makes the price go down. Does your answer?
+H-006,Rule 1A - Subjects and Verbs,E-37,Read the sentence with your choice. Is it a complete sentence?
+H-007,Rule 4B - Systems of Linear Equations,E-23,Check which variable the question asks for.
+H-008,Rule 2A - Logical Transitions,E-27,Does the second sentence go against the first?
+H-009,Rule 5A - Solving Linear Equations,,"Undo the operations one at a time, doing the same thing to both sides."
+H-010,Rule 2B - Ratios,,Add the parts of the ratio to see how many equal shares make the whole.
+H-011,Rule 5B - Percent Change,E-05,"A percent is a part of the price, not a number of dollars."
+H-012,Rule 1A - Subjects and Verbs,,"Cross out the phrase between the subject and the verb, then read them together."
+H-013,Rule 4B - Systems of Linear Equations,,Combine the two equations so that one of the variables disappears.
+H-014,Rule 1B - Area and Perimeter,,Use the perimeter to find the missing side before you find the area.
+H-015,Rule 4A - Linear Functions,E-02,Check that every term of the function made it into your work.
+H-016,Rule 3B - Verb Tenses,,Find the words that say when the action happened.
+H-017,Rule 1A - Subjects and Verbs,E-16,The noun right before the blank may not be the subject. Which noun is doing the action?
+H-018,Rule 5B - Percent Change,,"Find the percent of the original amount first, then decide what to do with it."
+H-019,Rule 3A - Sentence Boundaries,E-40,A comma alone is not strong enough to join two complete sentences.
+H-020,Rule 2B - Ratios,E-32,The total is already the whole group. Should it get bigger?
+H-021,Rule 1B - Area and Perimeter,E-29,Area counts the squares inside. Which operation does that?
+H-022,Rule 2A - Logical Transitions,E-26,Does the second sentence simply add another point?
+H-023,Rule 3A - Sentence Boundaries,,Check whether each side of the blank could stand alone as a sentence.
+H-024,Rule 5B - Percent Change,E-38,Count how many times the price is reduced.
+H-025,Rule 1B - Area and Perimeter,E-14,The perimeter goes around all four sides. How many lengths does it hold?
+H-026,Rule 6A - Comparisons,,Check that the sentence compares the same kind of thing on both sides.
+H-027,Rule 5B - Percent Change,E-01,Read the last sentence again: is it asking for the amount saved or the amount paid?
+H-028,Rule 6B - Pronoun-antecedent Agreement,E-07,Read the apostrophe out as two words. Does the sentence still make sense?
+H-029,Rule 2A - Logical Transitions,E-28,Is the second sentence caused by the first?
+H-030,Rule 6A - Comparisons,E-42,What exactly is being compared on the left side of than?
+H-031,Rule 2A - Logical Transitions,E-09,Is the second sentence one case of the first?
+H-032,Rule 4A - Linear Functions,E-19,A number written next to x multiplies it.
+H-033,Rule 4A - Linear Functions,,"Put the input in place of x, then follow the order of operations."
+H-034,Rule 2A - Logical Transitions,,Decide how the second sentence relates to the first before reading the choices.
+H-035,Rule 3B - Verb Tenses,E-25,Check the date in the sentence against today.
+H-036,Rule 5A - Solving Linear Equations,E-03,"When a number crosses to the other side, check whether you add it or take it away."
+H-037,Rule 6B - Pronoun-antecedent Agreement,E-43,"Is the noun a person, or a thing?"
+H-038,Rule 4B - Systems of Linear Equations,E-04,"After adding the equations, how many x are there?"
+H-039,Rule 3A - Sentence Boundaries,E-35,A semicolon already joins the sentences. Does it need help?
+H-040,Rule 6B - Pronoun-antecedent Agreement,,Find the noun the pronoun stands for and ask whether it is one thing or many.
+H-041,Rule 4B - Systems of Linear Equations,E-41,Which way of combining the equations leaves only x?
+H-042,Rule 1B - Area and Perimeter,E-12,"The perimeter is a distance around, not one side."
+H-043,Rule 5A - Solving Linear Equations,E-21,Dividing both sides means dividing every term on each side.

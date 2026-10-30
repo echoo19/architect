@@ -8,7 +8,7 @@ const DATA_FILES: readonly DataFile[] = [
     kind: 'text',
     access: 'read',
     description:
-      "The academy's tutoring policy: diagnosing a wrong answer, the first hint, history, follow-up practice and when to leave a staff note, with its numbers in a table at the end.",
+      "The academy's tutoring policy, in its own words: diagnosing a wrong answer, the first hint, history, follow-up practice and when to leave a staff note, with the academy's numbers.",
   },
   {
     name: 'students.csv',
@@ -65,7 +65,7 @@ const DATA_FILES: readonly DataFile[] = [
     kind: 'table',
     access: 'read',
     description:
-      'Every answer students gave on practice tests: the date, where in the test, the topic, the choice picked, the right choice and the result.',
+      "Every answer students gave on practice tests: the date, where in the test, the topic, the choice picked, the right choice and the result, the academy's own mark.",
   },
   {
     name: 'videos.csv',

@@ -1,0 +1,44 @@
+error_id,topic,name
+E-01,Rule 5B - Percent Change,"Gave the discount, not the price"
+E-02,Rule 4A - Linear Functions,Left out the constant
+E-03,Rule 5A - Solving Linear Equations,Moved the constant with the wrong sign
+E-04,Rule 4B - Systems of Linear Equations,Forgot to halve after adding
+E-05,Rule 5B - Percent Change,Took the percent off as dollars
+E-06,Rule 2B - Ratios,Stopped at one share
+E-07,Rule 6B - Pronoun-antecedent Agreement,Used a contraction where a possessive belongs
+E-08,Rule 4A - Linear Functions,Swapped the slope and the constant
+E-09,Rule 2A - Logical Transitions,Chose an example transition
+E-10,Rule 3A - Sentence Boundaries,Ran two sentences together with no punctuation
+E-11,Rule 5B - Percent Change,Added the discount instead of subtracting it
+E-12,Rule 1B - Area and Perimeter,Used the perimeter as a side
+E-13,Rule 5A - Solving Linear Equations,Subtracted the coefficient instead of dividing
+E-14,Rule 1B - Area and Perimeter,Forgot to halve the perimeter
+E-15,Rule 1A - Subjects and Verbs,Shifted the tense
+E-16,Rule 1A - Subjects and Verbs,Made the verb agree with the nearer noun
+E-17,Rule 3B - Verb Tenses,Used the present perfect with a finished time
+E-18,Rule 4A - Linear Functions,Added before multiplying
+E-19,Rule 4A - Linear Functions,Added the input instead of multiplying
+E-20,Rule 6A - Comparisons,Did not match one thing or many
+E-21,Rule 5A - Solving Linear Equations,Divided only the first term
+E-22,Rule 4B - Systems of Linear Equations,Took the sum as the value of x
+E-23,Rule 4B - Systems of Linear Equations,Solved for the other variable
+E-24,Rule 5A - Solving Linear Equations,Stopped before dividing by the coefficient
+E-25,Rule 3B - Verb Tenses,Used the future for a past event
+E-26,Rule 2A - Logical Transitions,Chose an adding-on transition
+E-27,Rule 2A - Logical Transitions,Chose a contrast transition
+E-28,Rule 2A - Logical Transitions,Chose a cause-and-effect transition
+E-29,Rule 1B - Area and Perimeter,Added the sides instead of multiplying
+E-30,Rule 1B - Area and Perimeter,Stopped at the width
+E-31,Rule 6A - Comparisons,Doubled the possessive
+E-32,Rule 2B - Ratios,Multiplied the total by the ratio
+E-33,Rule 3B - Verb Tenses,Used the present for a past event
+E-34,Rule 6B - Pronoun-antecedent Agreement,Used a plural pronoun for a singular group
+E-35,Rule 3A - Sentence Boundaries,Used a semicolon and a conjunction together
+E-36,Rule 2B - Ratios,Found the other group
+E-37,Rule 1A - Subjects and Verbs,Left the sentence without a main verb
+E-38,Rule 5B - Percent Change,Took the discount off twice
+E-39,Rule 2B - Ratios,Divided the total by one number of the ratio
+E-40,Rule 3A - Sentence Boundaries,Joined two sentences with only a comma
+E-41,Rule 4B - Systems of Linear Equations,Subtracted the equations and stopped
+E-42,Rule 6A - Comparisons,Compared a thing with a place
+E-43,Rule 6B - Pronoun-antecedent Agreement,Used a pronoun for a person to stand for a thing

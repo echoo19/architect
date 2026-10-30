@@ -1,0 +1,44 @@
+hint_id,topic,error_id,text
+H-001,Rule 2A - Systems of Equations,E-40,"The first equation gives x and y together, not x by itself."
+H-002,Rule 4B - Sentence Boundaries,E-13,Read the sentence aloud. Where would you pause?
+H-003,Rule 3B - Area and Perimeter,E-39,The perimeter goes around all four sides. How many lengths does it hold?
+H-004,Rule 5A - Part-to-part Ratios,E-18,The total is already the whole group. Should it get bigger?
+H-005,Rule 1B - Parallel Comparisons,E-07,What exactly is being compared on the left side of than?
+H-006,Rule 6B - Transition Words,E-41,Is the second sentence one case of the first?
+H-007,Rule 6A - Agreement,E-25,Look at the time words at the start of the sentence.
+H-008,Rule 4A - Solving Linear Equations,E-16,The number in front of x multiplies it. Which operation undoes that?
+H-009,Rule 5B - Function Notation,,"Put the input in place of x, then follow the order of operations."
+H-010,Rule 1B - Parallel Comparisons,E-09,Is the thing being compared one thing or several?
+H-011,Rule 5A - Part-to-part Ratios,E-12,A share comes from dividing by all the parts together.
+H-012,Rule 2B - Verb Tense,,Find the words that say when the action happened.
+H-013,Rule 2A - Systems of Equations,,Combine the two equations so that one of the variables disappears.
+H-014,Rule 3B - Area and Perimeter,E-02,"The perimeter is a distance around, not one side."
+H-015,Rule 6B - Transition Words,E-42,Does the second sentence simply add another point?
+H-016,Rule 3A - Percents and Discounts,E-06,Count how many times the price is reduced.
+H-017,Rule 5A - Part-to-part Ratios,E-20,Match each number in the ratio to the group it describes.
+H-018,Rule 3A - Percents and Discounts,,"Find the percent of the original amount first, then decide what to do with it."
+H-019,Rule 4A - Solving Linear Equations,,"Undo the operations one at a time, doing the same thing to both sides."
+H-020,Rule 4A - Solving Linear Equations,E-32,"Once the x term is alone, is x itself alone yet?"
+H-021,Rule 2B - Verb Tense,E-17,"Is the action happening now, or did it already happen?"
+H-022,Rule 3A - Percents and Discounts,E-15,Read the last sentence again: is it asking for the amount saved or the amount paid?
+H-023,Rule 1B - Parallel Comparisons,,Check that the sentence compares the same kind of thing on both sides.
+H-024,Rule 1A - Pronoun Agreement,E-27,A group acting together counts as one thing.
+H-025,Rule 3B - Area and Perimeter,,Use the perimeter to find the missing side before you find the area.
+H-026,Rule 1A - Pronoun Agreement,,Find the noun the pronoun stands for and ask whether it is one thing or many.
+H-027,Rule 6A - Agreement,,"Cross out the phrase between the subject and the verb, then read them together."
+H-028,Rule 6A - Agreement,E-14,Read the sentence with your choice. Is it a complete sentence?
+H-029,Rule 5B - Function Notation,E-37,Check that every term of the function made it into your work.
+H-030,Rule 1A - Pronoun Agreement,E-04,Read the apostrophe out as two words. Does the sentence still make sense?
+H-031,Rule 3A - Percents and Discounts,E-43,"A percent is a part of the price, not a number of dollars."
+H-032,Rule 5A - Part-to-part Ratios,,Add the parts of the ratio to see how many equal shares make the whole.
+H-033,Rule 2A - Systems of Equations,E-08,Which way of combining the equations leaves only x?
+H-034,Rule 4B - Sentence Boundaries,,Check whether each side of the blank could stand alone as a sentence.
+H-035,Rule 3A - Percents and Discounts,E-21,A sale makes the price go down. Does your answer?
+H-036,Rule 3B - Area and Perimeter,E-05,You have both sides now. What does the question ask for?
+H-037,Rule 6B - Transition Words,,Decide how the second sentence relates to the first before reading the choices.
+H-038,Rule 2A - Systems of Equations,E-24,"After adding the equations, how many x are there?"
+H-039,Rule 1A - Pronoun Agreement,E-11,"Is the noun a person, or a thing?"
+H-040,Rule 5B - Function Notation,E-31,"Which comes first, the multiplication or the addition?"
+H-041,Rule 6A - Agreement,E-36,The noun right before the blank may not be the subject. Which noun is doing the action?
+H-042,Rule 2B - Verb Tense,E-35,Check the date in the sentence against today.
+H-043,Rule 4B - Sentence Boundaries,E-10,A semicolon already joins the sentences. Does it need help?

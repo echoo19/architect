@@ -1,5 +1,5 @@
 import type { JsonValue, Task } from '@architect/shared';
-import { LETTERS, TODAY } from '../academy/build';
+import { LETTERS } from '../academy/build';
 import type { Academy, Question } from '../academy/build';
 import { MATH_KINDS, makeSolveItem } from '../academy/topics';
 import type { Random } from '../lib/random';
@@ -43,13 +43,15 @@ export function buildTasks(
   const context = new Synthetic(academy, files);
   const errorsOf = (attempt: CodeRow) => context.errorsBehind(attempt);
   const ambiguous = random.fork('ambiguous').sample(
-    context.rows('attempts.csv').filter((a) => a.result === 'wrong' && errorsOf(a).length > 1),
+    context
+      .rows('attempts.csv')
+      .filter((a) => a.result === 'wrong' && hasChoices(a) && errorsOf(a).length > 1),
     AMBIGUOUS_DIAGNOSES,
   );
   ambiguous.forEach((a) => context.taken.add(a));
   const wrong = [
     ...ambiguous,
-    ...pickWrong(random.fork('diagnose'), context, PER_SKILL - ambiguous.length),
+    ...pickWrong(random.fork('diagnose'), context, PER_SKILL - ambiguous.length, hasChoices),
   ];
   return [
     ...diagnoseTasks(random.fork('diagnose prompts'), context, wrong, errorsOf),
@@ -61,6 +63,12 @@ export function buildTasks(
   ];
 }
 
+/**
+ * Whether an answer was to a question with choices. A grid-in has no choices and no errors behind
+ * them, so diagnosing, hinting and tutoring ask only about questions with choices.
+ */
+const hasChoices = (attempt: CodeRow) => LETTERS.some((letter) => letter === attempt.correct);
+
 /** A synthetic academy's records, with what its construction knows about each question. */
 class Synthetic extends Records {
   private readonly questions: Map<string, Question>;
@@ -69,7 +77,7 @@ class Synthetic extends Records {
     readonly academy: Academy,
     files: JobFiles,
   ) {
-    super(files, academy.style.id, TODAY);
+    super(files, academy.style.id, academy.style.today);
     this.questions = new Map(academy.questions.map((q) => [q.question_id, q]));
   }
 
@@ -81,12 +89,12 @@ class Synthetic extends Records {
   }
 
   hintIds(attempt: CodeRow): string[] {
-    const rows = this.rows('hints.csv').filter((row) => row.topic === attempt.topic);
+    const rows = this.onTopic('hints.csv', cell(attempt, 'topic'));
     return firstHints(rows, this.errorsBehind(attempt), this.policy);
   }
 
   folder(topic: string): string {
-    return this.academy.topics.find((t) => t.label === topic)!.folder;
+    return this.academy.topics.find((t) => t.label === this.label(topic))!.folder;
   }
 }
 
@@ -123,17 +131,18 @@ function solveTasks(random: Random, context: Synthetic): Task[] {
 }
 
 function hintTasks(random: Random, context: Synthetic): Task[] {
-  return pickWrong(random, context, PER_SKILL).map((attempt, i) => {
+  return pickWrong(random, context, PER_SKILL, hasChoices).map((attempt, i) => {
     const w = context.wrongAnswer(attempt);
     const tutor = context.tutorName(context.student(cell(attempt, 'student_id')));
     const prompt = random.chance(0.5)
       ? `${tutor} here. ${w.student} just chose ${w.chosen} on ${where(w)}. Before they try it again, which approved first hint should they get?`
       : `This is ${w.student}. I chose ${w.chosen} on ${where(w)} and got it wrong. Can I have a hint before I try again? Don't tell me the answer.`;
-    return context.task('hint', i, `${attempt.student_id}:${attempt.topic}`, prompt, {
+    const topic = context.label(cell(attempt, 'topic'));
+    return context.task('hint', i, `${attempt.student_id}:${topic}`, prompt, {
       expected: {
         kind: 'end_state',
         validator: 'hint_chosen',
-        params: { topic: cell(attempt, 'topic'), hint_ids: context.hintIds(attempt) },
+        params: { topic, hint_ids: context.hintIds(attempt) },
       },
       meta: { request: w as unknown as JsonValue, summary: context.hintIds(attempt).join(' or ') },
     });
@@ -148,13 +157,14 @@ function afterWrongTasks(random: Random, context: Synthetic, options: TaskOption
   const fresh = attempts.filter(
     (a) =>
       a.result === 'wrong' &&
+      hasChoices(a) &&
       !context.taken.has(a) &&
       latest.get(cell(a, 'student_id')) === `${a.taken_on} ${a.test_id}`,
   );
   const escalates = (a: CodeRow) =>
-    context.history(cell(a, 'student_id'), cell(a, 'topic'), TODAY).escalate;
+    context.history(cell(a, 'student_id'), cell(a, 'topic'), context.today).escalate;
   const practiceOf = (a: CodeRow) =>
-    context.practice(context.student(cell(a, 'student_id')), cell(a, 'topic'));
+    context.practice(context.student(cell(a, 'student_id')), context.label(cell(a, 'topic')));
   // The first is the same kind of wrong answer at every academy: agreement with the nearer noun.
   // It assigns the policy's full count, and calls for a staff note or not as the options prefer.
   const nearer = context.academy.errors.find((e) => e.code === 'agreement-nearer-noun')!.error_id;
@@ -186,7 +196,8 @@ function afterWrongTasks(random: Random, context: Synthetic, options: TaskOption
     const prompt = random.chance(0.5)
       ? `${w.student} just missed ${where(w)}; they chose ${w.chosen}. Take the tutoring turn our policy describes.`
       : `I'm ${w.student}. I just got ${where(w)} wrong, I picked ${w.chosen}. What now?`;
-    return context.task('after_wrong', i, `${attempt.student_id}:${attempt.topic}`, prompt, {
+    const topic = context.label(cell(attempt, 'topic'));
+    return context.task('after_wrong', i, `${attempt.student_id}:${topic}`, prompt, {
       expected: {
         kind: 'end_state',
         validator: 'tutoring_turn',
@@ -194,7 +205,7 @@ function afterWrongTasks(random: Random, context: Synthetic, options: TaskOption
           correct: cell(attempt, 'correct'),
           errors: context.errorsBehind(attempt),
           hint_ids: context.hintIds(attempt),
-          folder: context.folder(cell(attempt, 'topic')),
+          folder: context.folder(topic),
           ...practice.params,
           escalate,
           note_id: escalate ? note : null,

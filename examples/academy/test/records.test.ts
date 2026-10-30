@@ -3,7 +3,7 @@ import { createChecker, createSandbox, createToolbox, openAgentFiles } from '@ar
 import { HarnessSchema } from '@architect/shared';
 import type { CheckOutcome, JsonValue, Task } from '@architect/shared';
 import { afterAll, describe, expect, it } from 'vitest';
-import { buildRecordTasks, readAcademyFolder } from '../src';
+import { buildAcademy, buildRecordTasks, readAcademyFolder } from '../src';
 import { parseCsv } from '../src/lib/csv';
 import type { CsvRow } from '../src/lib/csv';
 import { assign, diagnoseRecord, history } from '../src/reference/solver';
@@ -23,8 +23,8 @@ const AS_OF = '2026-10-31';
 const options = { org: 'fixture', seed: 7, asOf: AS_OF };
 const tasks = buildRecordTasks(files, options);
 
-function solve(task: Task) {
-  const tools = new AgentTools(new JobFiles(files), AS_OF);
+function solve(task: Task, folder: ReadonlyMap<string, string> = files, asOf = AS_OF) {
+  const tools = new AgentTools(new JobFiles(folder), asOf);
   const request = task.meta?.request as unknown;
   const answer =
     task.type === 'diagnose'
@@ -35,10 +35,14 @@ function solve(task: Task) {
   return { tools, answer };
 }
 
-/** A checker context on the fixture's tables; a table the folder lacks throws, as in the runner. */
-function context(appended: readonly CsvRow[], answer: JsonValue): CheckerContext {
+/** A checker context on a folder's tables; a table the folder lacks throws, as in the runner. */
+function context(
+  appended: readonly CsvRow[],
+  answer: JsonValue,
+  folder: ReadonlyMap<string, string> = files,
+): CheckerContext {
   const table = (name: string): CsvRow[] => {
-    const text = files.get(name);
+    const text = folder.get(name);
     if (text === undefined) throw new Error(`There is no table ${name}.`);
     return parseCsv(text);
   };
@@ -93,6 +97,47 @@ describe('tasks from an academy folder without question text', () => {
         const wrong = { ...(answer as Record<string, JsonValue>), correct: 'Z' };
         expect(job.check(task, context(rows, wrong)).reason).toMatch(/^correct is/);
       }
+    }
+  });
+});
+
+describe('tasks from an export with full tests, labels written several ways and grid-ins', () => {
+  // A generated academy laid out like a real one: tests listed as "Full", and only its records.
+  const { academy, files: all } = buildAcademy(2088);
+  const records = new Map(
+    [...all].filter(([name]) =>
+      [
+        'policy.md',
+        'students.csv',
+        'questions.csv',
+        'tests.csv',
+        'attempts.csv',
+        'assignments.csv',
+      ].includes(name),
+    ),
+  );
+  const asOf = academy.style.today;
+  const exported = buildRecordTasks(records, { org: 'export', seed: 3, asOf });
+
+  it('are built from its records alone, asking about questions on its "Full" tests', () => {
+    expect(academy.style.layout).toBe('full');
+    expect(exported).toHaveLength(24);
+    for (const task of exported) expect(task.prompt.startsWith(`It's `), task.id).toBe(true);
+  });
+
+  it('are passed by the reference', () => {
+    for (const task of exported) {
+      const { tools, answer } = solve(task, records, asOf);
+      if (task.expected.kind === 'facts') {
+        for (const fact of task.expected.facts) {
+          expect((answer as Record<string, unknown>)[fact.path], task.id).toEqual(fact.value);
+        }
+        continue;
+      }
+      const rows = [...tools.appendedTo('assignments.csv')];
+      expect(job.check(task, context(rows, answer, records)), task.id).toMatchObject({
+        pass: true,
+      });
     }
   });
 });

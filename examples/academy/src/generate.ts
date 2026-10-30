@@ -14,10 +14,10 @@ import { buildTasks } from './tasks/build';
 
 /** The academies of the committed job: three to train on and one kept for transfer. */
 export const ACADEMY_SEEDS: readonly { seed: number; role: Organization['role'] }[] = [
-  { seed: 1100, role: 'train' },
-  { seed: 1101, role: 'train' },
-  { seed: 1127, role: 'train' },
-  { seed: 1120, role: 'transfer' },
+  { seed: 2088, role: 'train' },
+  { seed: 2083, role: 'train' },
+  { seed: 2187, role: 'train' },
+  { seed: 2031, role: 'transfer' },
 ];
 
 const CHECKER_SOURCE = new URL('./checker.js', import.meta.url);
@@ -41,7 +41,7 @@ export interface BuildOptions {
 export function buildAcademy(seed: number, options: BuildOptions = {}): GeneratedAcademy {
   const random = new Random(seed);
   const academy = buildRecords(seed, random.fork('records'));
-  const files = academyFiles(academy);
+  const files = academyFiles(academy, random.fork('export'));
   const tasks = buildTasks(random.fork('tasks'), academy, new JobFiles(files), {
     demoEscalates: options.demoEscalates ?? false,
   }).map((task) => TaskSchema.parse(task));

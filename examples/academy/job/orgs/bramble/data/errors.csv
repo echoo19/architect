@@ -1,0 +1,44 @@
+error_id,topic,name
+ERR-101,Rule 6B - Rectangles,Used the perimeter as a side
+ERR-102,Rule 4A - Parallel Comparisons,Doubled the possessive
+ERR-103,Rule 2A - Sentence Boundaries,Used a semicolon and a conjunction together
+ERR-104,Rule 6A - Subject-Verb Agreement,Made the verb agree with the nearer noun
+ERR-105,Rule 4B - Verb Tense,Used the future for a past event
+ERR-106,Rule 5B - Percentages,Took the percent off as dollars
+ERR-107,Rule 4A - Parallel Comparisons,Did not match one thing or many
+ERR-108,Rule 3B - Two-equation Systems,Forgot to halve after adding
+ERR-109,Rule 2A - Sentence Boundaries,Joined two sentences with only a comma
+ERR-110,Rule 4B - Verb Tense,Used the present perfect with a finished time
+ERR-111,Rule 6B - Rectangles,Forgot to halve the perimeter
+ERR-112,Rule 6A - Subject-Verb Agreement,Left the sentence without a main verb
+ERR-113,Rule 2B - Pronoun-antecedent Agreement,Used a pronoun for a person to stand for a thing
+ERR-114,Rule 6B - Rectangles,Added the sides instead of multiplying
+ERR-115,Rule 4A - Parallel Comparisons,Compared a thing with a place
+ERR-116,Rule 3B - Two-equation Systems,Took the sum as the value of x
+ERR-117,Rule 3A - Part-to-part Ratios,Stopped at one share
+ERR-118,Rule 1B - Linear Equations,Stopped before dividing by the coefficient
+ERR-119,Rule 1B - Linear Equations,Divided only the first term
+ERR-120,Rule 5A - Transition Words,Chose an example transition
+ERR-121,Rule 2B - Pronoun-antecedent Agreement,Used a plural pronoun for a singular group
+ERR-122,Rule 1A - Evaluating Functions,Added before multiplying
+ERR-123,Rule 1A - Evaluating Functions,Swapped the slope and the constant
+ERR-124,Rule 1A - Evaluating Functions,Added the input instead of multiplying
+ERR-125,Rule 3A - Part-to-part Ratios,Found the other group
+ERR-126,Rule 5A - Transition Words,Chose an adding-on transition
+ERR-127,Rule 5B - Percentages,Took the discount off twice
+ERR-128,Rule 2B - Pronoun-antecedent Agreement,Used a contraction where a possessive belongs
+ERR-129,Rule 5A - Transition Words,Chose a cause-and-effect transition
+ERR-130,Rule 5B - Percentages,Added the discount instead of subtracting it
+ERR-131,Rule 6B - Rectangles,Stopped at the width
+ERR-132,Rule 4B - Verb Tense,Used the present for a past event
+ERR-133,Rule 5B - Percentages,"Gave the discount, not the price"
+ERR-134,Rule 1A - Evaluating Functions,Left out the constant
+ERR-135,Rule 3B - Two-equation Systems,Solved for the other variable
+ERR-136,Rule 6A - Subject-Verb Agreement,Shifted the tense
+ERR-137,Rule 1B - Linear Equations,Moved the constant with the wrong sign
+ERR-138,Rule 3A - Part-to-part Ratios,Multiplied the total by the ratio
+ERR-139,Rule 2A - Sentence Boundaries,Ran two sentences together with no punctuation
+ERR-140,Rule 3A - Part-to-part Ratios,Divided the total by one number of the ratio
+ERR-141,Rule 3B - Two-equation Systems,Subtracted the equations and stopped
+ERR-142,Rule 5A - Transition Words,Chose a contrast transition
+ERR-143,Rule 1B - Linear Equations,Subtracted the coefficient instead of dividing

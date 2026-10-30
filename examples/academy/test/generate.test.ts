@@ -3,12 +3,15 @@ import { tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ACADEMY_SEEDS, buildAcademy, buildJobFiles, generateJob, jobDir } from '../src';
-import { LETTERS } from '../src/academy/build';
-import { COLUMNS } from '../src/academy/files';
-import { csvColumns } from '../src/lib/csv';
-import { errorsBehind, readPolicy } from '../src/reference/rules';
+import { LETTERS, TODAY } from '../src/academy/build';
+import { COLUMNS, PLAIN_ROWS } from '../src/academy/files';
+import { POLICY_STYLES, TEST_LAYOUTS } from '../src/academy/style';
+import { gridValue } from '../src/academy/topics';
+import { csvColumns, parseCsv } from '../src/lib/csv';
+import { errorsBehind, historyWindow, readPolicy, topicKey } from '../src/reference/rules';
 import { SKILLS } from '../src/tasks/build';
-import { job, paramsOf } from './helpers';
+import type { WrongAnswer } from '../src/tasks/build';
+import { job, paramsOf, todayOf } from './helpers';
 
 async function filesUnder(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { recursive: true, withFileTypes: true });
@@ -151,13 +154,160 @@ describe('the academy files', () => {
     }
   });
 
-  it('give every question four different choices, one of them right', () => {
+  it('give every question four different choices, one of them right, or make it a grid-in', () => {
     for (const { academy } of academies) {
       for (const question of academy.questions) {
+        if (question.item.gridIn) {
+          expect(question.item.choices, question.question_id).toEqual([]);
+          expect(gridValue(question.item.gridIn.key)).toBe(question.item.answer);
+          continue;
+        }
         expect(new Set(question.item.choices).size, question.question_id).toBe(4);
         expect(question.item.errors.filter((e) => e.length === 0)).toHaveLength(1);
       }
     }
+  });
+});
+
+/** An academy's exported table beside the rows it was built from, in the same order. */
+function exportedBeside(index: number, name: 'questions.csv' | 'attempts.csv') {
+  const { academy, files } = academies[index]!;
+  const rows = parseCsv(files.get(name)!);
+  const truth = name === 'questions.csv' ? academy.questions : academy.attempts;
+  expect(rows).toHaveLength(truth.length);
+  return rows.map((row, i) => {
+    const built = truth[i]!;
+    const selected = 'selected' in built ? built.selected : null;
+    const otherLabel = row.topic !== built.topic;
+    const otherEntry = selected !== null && row.selected !== selected;
+    return { row, built, other: otherLabel || otherEntry, otherLabel, otherEntry };
+  });
+}
+
+describe('how each academy writes its files', () => {
+  it('gives each academy a date of its own, which its requests state and its records end on', () => {
+    expect(job.job().businessDate).toBe(TODAY);
+    expect(new Set(academies.map((a) => a.academy.style.today)).size).toBe(academies.length);
+    // None is the header's date, so a procedure that takes the header's date gets each one wrong.
+    expect(academies.some((a) => a.academy.style.today === TODAY)).toBe(false);
+    for (const { academy, tasks } of academies) {
+      const { today } = academy.style;
+      expect(
+        academy.attempts.every((a) => a.taken_on <= today),
+        academy.style.id,
+      ).toBe(true);
+      for (const task of tasks) expect(todayOf(task), task.id).toBe(today);
+      for (const task of tasks.filter((t) => t.type === 'assign' || t.type === 'after_wrong')) {
+        expect(paramsOf(task).assigned_on, task.id).toBe(today);
+      }
+    }
+  });
+
+  it('lays out practice tests three ways, every one of them among the train academies', () => {
+    const train = academies.filter((a) => a.organization.role === 'train');
+    expect(new Set(train.map((a) => a.academy.style.layout))).toEqual(new Set(TEST_LAYOUTS));
+    for (const { academy, files } of academies) {
+      const tests = parseCsv(files.get('tests.csv')!);
+      const places = new Set(tests.map((row) => `${row.test_id} ${row.module} ${row.number}`));
+      const numbers = new Set(tests.map((row) => `${row.test_id} ${row.number}`));
+      const id = academy.style.id;
+      if (academy.style.layout === 'full') {
+        expect(new Set(tests.map((row) => row.section)), id).toEqual(new Set(['Full']));
+        // Each place in a module holds a Reading and Writing question and a Math question.
+        expect(places.size * 2, id).toBe(tests.length);
+      } else if (academy.style.layout === 'continuous') {
+        expect(numbers.size, id).toBe(tests.length);
+      } else {
+        expect(new Set(tests.map((row) => row.section)), id).toEqual(
+          new Set(['Reading and Writing', 'Math']),
+        );
+        expect(numbers.size, id).toBeLessThan(tests.length);
+      }
+    }
+  });
+
+  it('names a question in a request the way the academy numbers its tests', () => {
+    for (const { academy, tasks } of academies) {
+      for (const task of tasks.filter((t) =>
+        ['diagnose', 'hint', 'after_wrong'].includes(t.type),
+      )) {
+        const w = task.meta?.request as unknown as WrongAnswer;
+        const through = academy.style.layout === 'continuous';
+        expect(w.section === null && w.module === null, task.id).toBe(through);
+      }
+    }
+  });
+
+  it('writes policies three ways among the train academies, each saying that result is final', () => {
+    const train = academies.filter((a) => a.organization.role === 'train');
+    expect(new Set(train.map((a) => a.academy.style.policyStyle))).toEqual(new Set(POLICY_STYLES));
+    for (const { academy, files } of academies) {
+      const policy = files.get('policy.md')!;
+      expect(policy, academy.style.id).toMatch(/`result`/);
+      expect(policy, academy.style.id).toMatch(/1\/8, 0\.125/);
+    }
+  });
+
+  it.each(['questions.csv', 'attempts.csv'] as const)(
+    'writes 15 to 25 percent of %s another way, none in the first rows, spread through the rest',
+    (name) => {
+      academies.forEach(({ academy }, index) => {
+        const rows = exportedBeside(index, name);
+        const id = `${academy.style.id} ${name}`;
+        expect(
+          rows.slice(0, PLAIN_ROWS).some((r) => r.other),
+          id,
+        ).toBe(false);
+        const share = rows.filter((r) => r.other).length / rows.length;
+        expect(share, id).toBeGreaterThanOrEqual(0.15);
+        expect(share, id).toBeLessThanOrEqual(0.25);
+        const rest = rows.slice(PLAIN_ROWS);
+        const quarter = Math.ceil(rest.length / 4);
+        for (let at = 0; at < rest.length; at += quarter) {
+          expect(
+            rest.slice(at, at + quarter).some((r) => r.other),
+            `${id} from ${at}`,
+          ).toBe(true);
+        }
+      });
+    },
+  );
+
+  it('writes every topic label so that it reads back to the one topic it was built with', () => {
+    academies.forEach(({ academy, files }, index) => {
+      const listed = parseCsv(files.get('topics.csv')!).map((row) => row.topic!);
+      const keys = listed.map(topicKey);
+      expect(new Set(keys).size, academy.style.id).toBe(listed.length);
+      for (const name of ['questions.csv', 'attempts.csv'] as const) {
+        const rows = exportedBeside(index, name);
+        expect(
+          rows.some((r) => r.otherLabel),
+          `${academy.style.id} ${name}`,
+        ).toBe(true);
+        for (const { row, built } of rows) {
+          const matches = listed.filter((label) => topicKey(label) === topicKey(row.topic!));
+          expect(matches, `${academy.style.id} ${row.topic}`).toEqual([built.topic]);
+        }
+      }
+    });
+  });
+
+  it('writes every grid-in answer so that it reads back to the value it was built with', () => {
+    academies.forEach(({ academy }, index) => {
+      const rows = exportedBeside(index, 'attempts.csv').filter((r) =>
+        r.row.correct!.includes('/'),
+      );
+      expect(
+        rows.some((r) => r.otherEntry),
+        academy.style.id,
+      ).toBe(true);
+      for (const { row } of rows) {
+        const same = gridValue(row.selected!) === gridValue(row.correct!);
+        expect(same, `${academy.style.id} ${row.selected} for ${row.correct}`).toBe(
+          row.result === 'right',
+        );
+      }
+    });
   });
 });
 
@@ -208,6 +358,27 @@ describe('the tasks', () => {
     expect(sets.length).toBeGreaterThanOrEqual(3);
   });
 
+  it('ask history, at every academy, about a window holding a grid-in answer entered another way', () => {
+    for (const org of job.orgs()) {
+      const data = job.data(org);
+      const policy = readPolicy(data.text('policy.md'));
+      const asked = job
+        .tasksOfType('history')
+        .filter((t) => t.org === org)
+        .some((t) => {
+          const { student, topic, as_of } = t.meta?.request as Record<string, string>;
+          const id = data.codeRows('students.csv').find((s) => s.name === student)!.student_id;
+          const rows = data
+            .codeRows('attempts.csv')
+            .filter((a) => a.student_id === id && topicKey(a.topic!) === topicKey(topic!));
+          return historyWindow(rows, policy, as_of!).latest.some(
+            (a) => a.result === 'right' && a.selected !== a.correct,
+          );
+        });
+      expect(asked, org).toBe(true);
+    }
+  });
+
   it('include a few assignments where fewer questions qualify than the policy asks for', () => {
     const short = [...job.tasksOfType('assign'), ...job.tasksOfType('after_wrong')].filter(
       (t) => Number(paramsOf(t).expected_count) < Number(paramsOf(t).count),
@@ -226,9 +397,9 @@ describe('the tasks', () => {
       const nearer = academy.errors.find((e) => e.code === 'agreement-nearer-noun')!.error_id;
       expect(paramsOf(task).errors, task.id).toEqual([nearer]);
     }
-    // The demo pair: Wrenfield assigns 2 and leaves no note; Lakemont assigns 5 and leaves one.
+    // The demo pair: Thistlewood assigns 2 and leaves no note; Copperfield assigns 5 and leaves one.
     const turn = (org: string) => paramsOf(first.find((t) => t.org === org)!);
-    expect([turn('wrenfield').expected_count, turn('wrenfield').escalate]).toEqual([2, false]);
-    expect([turn('lakemont').expected_count, turn('lakemont').escalate]).toEqual([5, true]);
+    expect([turn('thistlewood').expected_count, turn('thistlewood').escalate]).toEqual([2, false]);
+    expect([turn('copperfield').expected_count, turn('copperfield').escalate]).toEqual([5, true]);
   });
 });

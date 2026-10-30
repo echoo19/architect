@@ -20,10 +20,12 @@ export interface ErrorKind {
 export interface Item {
   kind: string;
   stem: string;
-  /** Four choices, A to D. */
+  /** Four choices, A to D; none for a grid-in. */
   choices: string[];
-  /** Index of the right choice. */
+  /** Index of the right choice; -1 for a grid-in. */
   correct: number;
+  /** A grid-in's key as the academy writes it, and the wrong values students enter. */
+  gridIn?: { key: string; wrong: number[] };
   /** For each choice, the codes of the constructed errors that give it (none for the right one). */
   errors: string[][];
   /** Math only: the answer and the key intermediate value. */
@@ -795,6 +797,52 @@ export function makeSolveItem(
 ): Item & { stepLabel: string } {
   const item = kindOf(kind).make(random, phrasing);
   return { ...item, stepLabel: mathSpecOf(kind).stepLabel(numbersIn(item.stem)) };
+}
+
+/**
+ * A grid-in linear equation: no choices, and an answer that is a fraction with a short decimal
+ * (a denominator of 2, 4, 5 or 8), keyed in lowest terms.
+ */
+export function makeGridIn(random: Random, phrasing: number): Item {
+  const spec = mathSpecOf('linear');
+  const q = random.pick([2, 4, 5, 8]);
+  let p = random.int(1, 3 * q);
+  while (gcd(p, q) !== 1) p = random.int(1, 3 * q);
+  const a = q * random.int(1, 2);
+  const b = random.int(1, 12);
+  const numbers = [a, b, (a * p) / q + b];
+  const wrong = [spec.step(numbers), spec.step(numbers) - a].filter((v) => v > 0);
+  return {
+    kind: spec.kind,
+    stem: spec.stems[phrasing % spec.stems.length]!(numbers, []),
+    choices: [],
+    correct: -1,
+    errors: [],
+    answer: p / q,
+    step: spec.step(numbers),
+    gridIn: { key: `${p}/${q}`, wrong },
+  };
+}
+
+/**
+ * The other ways a student may enter a grid-in answer that reads back to the key's value: a
+ * decimal, a decimal without its leading zero, and the fraction not in lowest terms.
+ */
+export function gridForms(key: string): string[] {
+  const [p, q] = key.split('/').map(Number) as [number, number];
+  const decimal = String(p / q);
+  return [decimal, ...(p < q ? [decimal.slice(1)] : []), `${2 * p}/${2 * q}`];
+}
+
+/** A grid-in entry's value: a whole number, a decimal or a fraction; null for anything else. */
+export function gridValue(text: string): number | null {
+  const fraction = /^(\d+)\/(\d+)$/.exec(text);
+  if (fraction) return Number(fraction[1]) / Number(fraction[2]);
+  return /^\d*\.?\d+$/.test(text) ? Number(text) : null;
+}
+
+function gcd(a: number, b: number): number {
+  return b === 0 ? a : gcd(b, a % b);
 }
 
 /** The numbers of a math question, in the order its text gives them. */

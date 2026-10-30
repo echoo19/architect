@@ -142,12 +142,16 @@ describe('the engine host', () => {
     const { client } = await connect();
     const job = await client.jobs.createSample('academy');
     expect(job.name).toBe('Phil');
-    expect(job.organizations?.map((org) => org.id)).toEqual(['ridgeline', 'wrenfield', 'lakemont']);
+    expect(job.organizations?.map((org) => org.id)).toEqual([
+      'copperfield',
+      'thistlewood',
+      'bramble',
+    ]);
     expect(await client.jobs.createSample('academy')).toEqual(job);
     const jobDir = new DataPaths(world.dataDir).jobDir(job.id);
-    expect(await readdir(join(jobDir, 'orgs'))).toEqual(['lakemont', 'ridgeline', 'wrenfield']);
+    expect(await readdir(join(jobDir, 'orgs'))).toEqual(['bramble', 'copperfield', 'thistlewood']);
     // The job the library keeps doesn't name the academy kept for the final test.
-    expect(await readFile(join(jobDir, 'job.json'), 'utf8')).not.toMatch(/harborview/i);
+    expect(await readFile(join(jobDir, 'job.json'), 'utf8')).not.toMatch(/juniper/i);
     // The service desk is still the sample job when none is named.
     expect((await client.jobs.createSample()).name).toBe('Service desk');
   });

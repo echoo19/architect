@@ -3,7 +3,7 @@ import { compareText } from '../lib/compare';
 import type { Random } from '../lib/random';
 import { academyStyle } from './style';
 import type { AcademyStyle } from './style';
-import { TOPIC_KINDS } from './topics';
+import { TOPIC_KINDS, makeGridIn } from './topics';
 import type { Item, Section, TopicKind } from './topics';
 
 /**
@@ -13,8 +13,13 @@ import type { Item, Section, TopicKind } from './topics';
  * have already written. Every name is made up.
  */
 
-/** The day every academy's records are current as of. */
+/**
+ * The job's date, the one the agent's header gives. Each academy has a date of its own, which its
+ * requests state, and its records end there.
+ */
 export const TODAY = '2026-11-16';
+/** The days of records an academy keeps before its date: its term so far. */
+const TERM_DAYS = 77;
 export const LETTERS = ['A', 'B', 'C', 'D'] as const;
 export const PROGRAM = 'SAT';
 const TESTS = 5;
@@ -59,6 +64,7 @@ export interface TestSlot {
   test_name: string;
   section: Section;
   module: number;
+  /** The question's number as the academy's layout numbers it. */
   number: number;
   question_id: string;
 }
@@ -202,7 +208,14 @@ export function buildAcademy(seed: number, random: Random): Academy {
   const names = uniqueNames(random.fork('names'), STUDENTS + 4);
   const staff = buildStaff(style, names.slice(STUDENTS));
   const students = buildStudents(random.fork('students'), style, names.slice(0, STUDENTS), staff);
-  const attempts = buildAttempts(random.fork('attempts'), students, tests, questions, topics);
+  const attempts = buildAttempts(
+    random.fork('attempts'),
+    style,
+    students,
+    tests,
+    questions,
+    topics,
+  );
   const videos = buildVideos(random.fork('videos'), style, topics);
   const assignments = buildAssignments(
     random.fork('assignments'),
@@ -265,7 +278,11 @@ function buildBank(random: Random, style: AcademyStyle, topics: Topic[]): Questi
     for (let tries = 0; stems.size < bankPerTopic(style); tries += 1) {
       if (tries > 5000)
         throw new Error(`${topic.kind.kind} can't write enough different questions`);
-      const item = topic.kind.make(random, style.phrasing);
+      // Some linear equations are grid-ins: no choices, and a fraction for an answer.
+      const item =
+        topic.kind.kind === 'linear' && random.chance(0.4)
+          ? makeGridIn(random, style.phrasing)
+          : topic.kind.make(random, style.phrasing);
       if (stems.has(item.stem)) continue;
       stems.add(item.stem);
       drafts.push({
@@ -282,7 +299,10 @@ function buildBank(random: Random, style: AcademyStyle, topics: Topic[]): Questi
     .sort((a, b) => compareText(a.question_id, b.question_id));
 }
 
-/** Each module holds one question of each of its section's topics, in a shuffled order. */
+/**
+ * Each module holds one question of each of its section's topics, in a shuffled order, numbered
+ * the way the academy's layout numbers them.
+ */
 function buildTests(
   random: Random,
   style: AcademyStyle,
@@ -300,6 +320,8 @@ function buildTests(
     for (const section of ['Reading and Writing', 'Math'] as const) {
       for (const module of [1, 2]) {
         const order = random.shuffle(topics.filter((topic) => topic.section === section));
+        // Continuous numbering runs through the test: the modules before this one come first.
+        const before = style.layout === 'continuous' ? slots.length % (4 * MODULE_QUESTIONS) : 0;
         order.forEach((topic, i) => {
           const question = pools.get(topic.label)!.pop()!;
           slots.push({
@@ -307,7 +329,7 @@ function buildTests(
             test_name: style.ids.testName(test),
             section,
             module,
-            number: i + 1,
+            number: before + i + 1,
             question_id: question.question_id,
           });
         });
@@ -352,6 +374,7 @@ function buildStudents(
  */
 function buildAttempts(
   random: Random,
+  style: AcademyStyle,
   students: Student[],
   tests: TestSlot[],
   questions: Question[],
@@ -371,14 +394,14 @@ function buildAttempts(
     const taken = random.sample(testIds, random.int(2, TESTS)).sort(compareText);
     const sittings = [...taken];
     if (random.chance(0.35)) sittings.push(random.pick(taken));
-    // Earlier sittings from September on; the latest in the last two weeks.
+    // Earlier sittings through the term; the latest in the two weeks before the academy's date.
     const days = [
       ...random.sample(range(0, 60), sittings.length - 1).sort((a, b) => a - b),
-      random.int(62, 76),
+      random.int(62, TERM_DAYS - 1),
     ];
     sittings.forEach((testId, s) => {
       const retake = sittings.indexOf(testId) !== s;
-      const day = addDays('2026-08-31', days[s]!);
+      const day = addDays(style.today, days[s]! - TERM_DAYS);
       for (const slot of tests.filter((t) => t.test_id === testId)) {
         const question = byId.get(slot.question_id)!;
         const chance = skill.get(question.topic)! + (retake ? 15 : 0);
@@ -388,6 +411,16 @@ function buildAttempts(
           slot.module === 1 &&
           question.item.kind === 'agreement';
         const right = !planted && random.int(1, 100) <= chance;
+        const grid = question.item.gridIn;
+        if (grid) {
+          attempts.push({
+            ...where(student, slot, day, question),
+            selected: right ? grid.key : String(random.pick(grid.wrong)),
+            correct: grid.key,
+            result: right ? 'right' : 'wrong',
+          });
+          continue;
+        }
         const wrong = question.item.choices
           .map((_, i) => i)
           .filter((i) => i !== question.item.correct);
@@ -397,14 +430,7 @@ function buildAttempts(
             ? question.item.errors.findIndex((codes) => codes.includes('agreement-nearer-noun'))
             : random.pick(wrong);
         attempts.push({
-          student_id: student.student_id,
-          test_id: testId,
-          taken_on: day,
-          section: slot.section,
-          module: slot.module,
-          number: slot.number,
-          question_id: slot.question_id,
-          topic: question.topic,
+          ...where(student, slot, day, question),
           selected: LETTERS[chosen]!,
           correct: LETTERS[question.item.correct]!,
           result: right ? 'right' : 'wrong',
@@ -421,6 +447,20 @@ function buildAttempts(
       a.module - b.module ||
       a.number - b.number,
   );
+}
+
+/** The columns of an attempt that say who answered which question, and when. */
+function where(student: Student, slot: TestSlot, day: string, question: Question) {
+  return {
+    student_id: student.student_id,
+    test_id: slot.test_id,
+    taken_on: day,
+    section: slot.section,
+    module: slot.module,
+    number: slot.number,
+    question_id: slot.question_id,
+    topic: question.topic,
+  };
 }
 
 function buildVideos(random: Random, style: AcademyStyle, topics: Topic[]): Video[] {
@@ -466,7 +506,7 @@ function buildAssignments(
     );
     const topic = random.pick(questions).topic;
     const open = questions.filter((q) => q.topic === topic && !seen.has(q.question_id));
-    const day = addDays('2026-09-14', random.int(0, 55));
+    const day = addDays(style.today, random.int(14, 69) - TERM_DAYS);
     for (const question of random.sample(open, Math.min(open.length, random.int(1, 2)))) {
       rows.push({
         assignment_id: '',
@@ -490,7 +530,7 @@ function buildNotes(
   const notes = random.sample(students, 3).map((student) => ({
     student_id: student.student_id,
     staff_id: student.tutor_id,
-    written_on: addDays('2026-09-21', random.int(0, 50)),
+    written_on: addDays(style.today, random.int(21, 71) - TERM_DAYS),
     topic: random.pick(topics).label,
     note: 'Several misses in a row on this topic. Please review it in the next session.',
   }));

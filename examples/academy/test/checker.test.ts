@@ -2,7 +2,7 @@ import vm from 'node:vm';
 import type { CheckResult, JsonValue, Task } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import type { CsvRow } from '../src/lib/csv';
-import { eligibleQuestions, readPolicy } from '../src/reference/rules';
+import { eligibleQuestions, readPolicy, topicKey } from '../src/reference/rules';
 import { solveTask } from './attempts';
 import { job, orgOf, paramsOf } from './helpers';
 
@@ -153,7 +153,7 @@ describe('practice_assigned', () => {
       const policy = readPolicy(job.file(`orgs/${org}/data/policy.md`));
       const data = job.data(org);
       const eligible = eligibleQuestions(
-        data.codeRows('questions.csv').filter((row) => row.topic === p.topic),
+        data.codeRows('questions.csv').filter((row) => topicKey(row.topic!) === topicKey(p.topic)),
         new Set(
           data
             .codeRows('attempts.csv')
@@ -191,7 +191,9 @@ describe('practice_assigned', () => {
   it('fails a question the student already attempted', () => {
     const attempted = job
       .table(org, 'attempts.csv')
-      .find((row) => row.student_id === p.student_id && row.topic === p.topic)!;
+      .find(
+        (row) => row.student_id === p.student_id && topicKey(row.topic!) === topicKey(p.topic),
+      )!;
     failsWith(
       endState(task, answer, swap(attempted.question_id)),
       `question_id ${attempted.question_id} was already attempted`,

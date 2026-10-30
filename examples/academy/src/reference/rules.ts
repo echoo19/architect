@@ -1,15 +1,31 @@
-import { POLICY_SETTINGS } from '../academy/files';
+import { NUMBER_WORDS, POLICY_SETTINGS } from '../academy/policy';
 import { MATH_SPECS, TOPIC_KINDS, numbersIn } from '../academy/topics';
 import { addDays } from '../lib/calendar';
 import type { CodeRow } from './tools';
 
 /**
  * The academy's rules as the reference applies them, to rows as the agent's code reads them
- * (every value text). Every fact comes from the academy's own files: the numbers from the table
- * in policy.md, the labels, error ids and hint ids from the tables. What the reference knows on
- * its own is only the subject matter: how each kind of question is worked and how each named
- * error turns a right answer into a wrong one.
+ * (every value text). Every fact comes from the academy's own files: the numbers from policy.md,
+ * the labels, error ids and hint ids from the tables. What the reference knows on its own is the
+ * subject matter (how each kind of question is worked and how each named error turns a right
+ * answer into a wrong one) and how exports differ: a topic label is matched with its spaces,
+ * capitals and punctuation set aside, and right or wrong is the academy's own `result`.
  */
+
+/**
+ * A topic label with its spaces, capitals and punctuation set aside, so the label an export
+ * wrote another way still finds its topic. The agent's code the reference sends uses the same.
+ */
+export function topicKey(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+/** topicKey as the code the reference sends to `run` writes it. */
+export const TOPIC_KEY_CODE =
+  "const key = (label) => label.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();";
 
 export interface Policy {
   practiceCount: number;
@@ -22,8 +38,62 @@ export interface Policy {
   hintRule: 'targeted' | 'general';
 }
 
-/** The policy's numbers, from the table at the end of policy.md. */
+/**
+ * The policy's numbers, however the academy wrote policy.md: from the table of numbers at its end
+ * when it has one, else from what its sentences or its list of rules say.
+ */
 export function readPolicy(text: string): Policy {
+  return text.includes(`| ${POLICY_SETTINGS.practiceCount} |`)
+    ? readPolicyTable(text)
+    : readPolicyText(text);
+}
+
+/** The first pattern that matches, and its groups. */
+function find(text: string, what: string, patterns: readonly RegExp[]): string[] {
+  for (const pattern of patterns) {
+    const match = pattern.exec(text);
+    if (match) return match.slice(1);
+  }
+  throw new Error(`policy.md doesn't say ${what}`);
+}
+
+function readPolicyText(text: string): Policy {
+  const number = (word: string) =>
+    NUMBER_WORDS.includes(word) ? NUMBER_WORDS.indexOf(word) : Number(word);
+  const [practice] = find(text, 'how many practice questions to set', [
+    /set follow-up practice: (\w+) questions/,
+    /Practice count: (\d+) questions/,
+  ]);
+  const [low, high] = find(text, 'the difficulty band', [
+    /difficulty_pct between (\d+) and (\d+)/,
+    /difficulty_pct (\d+)-(\d+)/,
+  ]);
+  const [window] = find(text, 'the history window', [
+    /Take the latest (\d+) of the answers/,
+    /the latest (\d+) answers on the topic/,
+  ]);
+  // The days come first in prose, the wrong answers first in a list.
+  const prose = /taken in the (\d+) days ending on that date .*?, include (\d+) or more/.exec(text);
+  const [wrong, days] = prose
+    ? [prose[2], prose[1]]
+    : find(text, 'when to escalate', [
+        /(\d+)\+ wrong answers among the counted answers in the (\d+) days/,
+      ]);
+  return {
+    practiceCount: number(practice!),
+    bandLow: Number(low),
+    bandHigh: Number(high),
+    window: Number(window),
+    escalateWrong: Number(wrong),
+    escalateDays: Number(days),
+    counts: /first answer to each question counts|first answers only/.test(text)
+      ? 'first'
+      : 'every',
+    hintRule: /approved hint (written )?for that error/.test(text) ? 'targeted' : 'general',
+  };
+}
+
+function readPolicyTable(text: string): Policy {
   const value = (setting: string): string => {
     const line = text.split('\n').find((row) => row.startsWith(`| ${setting} |`));
     if (!line) throw new Error(`policy.md has no row "${setting}"`);
@@ -51,6 +121,22 @@ export interface History {
 
 /** A student's history on one topic from their attempts on it, as of a date. */
 export function topicHistory(rows: readonly CodeRow[], policy: Policy, asOf: string): History {
+  const { latest, counted } = historyWindow(rows, policy, asOf);
+  const correct = latest.filter((row) => row.result === 'right').length;
+  const since = addDays(asOf, 1 - policy.escalateDays);
+  const recentWrong = counted.filter(
+    (row) => row.taken_on! >= since && row.result === 'wrong',
+  ).length;
+  return {
+    attempts: latest.length,
+    correct,
+    accuracy_pct: latest.length === 0 ? 0 : Math.floor((100 * correct) / latest.length + 0.5),
+    escalate: recentWrong >= policy.escalateWrong,
+  };
+}
+
+/** The attempts that count as of a date, in order, and the latest of them up to the window. */
+export function historyWindow(rows: readonly CodeRow[], policy: Policy, asOf: string) {
   const ordered = rows
     .filter((row) => row.taken_on! <= asOf)
     .sort(
@@ -65,18 +151,7 @@ export function topicHistory(rows: readonly CodeRow[], policy: Policy, asOf: str
           (row, i) => ordered.findIndex((other) => other.question_id === row.question_id) === i,
         )
       : ordered;
-  const latest = counted.slice(-policy.window);
-  const correct = latest.filter((row) => row.result === 'right').length;
-  const since = addDays(asOf, 1 - policy.escalateDays);
-  const recentWrong = counted.filter(
-    (row) => row.taken_on! >= since && row.result === 'wrong',
-  ).length;
-  return {
-    attempts: latest.length,
-    correct,
-    accuracy_pct: latest.length === 0 ? 0 : Math.floor((100 * correct) / latest.length + 0.5),
-    escalate: recentWrong >= policy.escalateWrong,
-  };
+  return { counted, latest: counted.slice(-policy.window) };
 }
 
 /**

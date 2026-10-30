@@ -1,0 +1,325 @@
+question_id,section,topic,difficulty_pct,stem,choice_a,choice_b,choice_c,choice_d,correct
+Q-0001,Math,Rule 5B - Function Notation,36,"If f(x) = 5x + 10, what is the value of f(3)?",35,25,18,15,B
+Q-0002,Reading and Writing,Rule 1B - Parallel Comparisons,82,Visitors often say that the museums of Harlow are more interesting than ___.,those of Marlow's,Marlow,that of Marlow,those of Marlow,D
+Q-0003,Reading and Writing,Rule 1B - Parallel Comparisons,21,Visitors often say that the rainfall of Harlow is more interesting than ___.,those of Kessington,that of Kessington's,Kessington,that of Kessington,D
+Q-0004,Math,Rule 4A - Solving Linear Equations,48,"If 2x + 10 = 28, what is the value of x?",19,18,9,16,C
+Q-0005,Reading and Writing,Rule 4B - Sentence Boundaries,15,"Late that week, the storm ___ damage was worse than expected.",passed its,passed; and its,"passed, its",passed; its,D
+Q-0006,Reading and Writing,Rule 1B - Parallel Comparisons,39,Visitors often say that the climate of Marlow is more interesting than ___.,those of Fenwick,that of Fenwick's,Fenwick,that of Fenwick,D
+Q-0007,Reading and Writing,Rule 2B - Verb Tense,82,"In 2017, the school band ___ the old record.",broke,will break,has broken,breaks,A
+Q-0008,Math,Rule 5A - Part-to-part Ratios,69,The ratio of red marbles to blue marbles in a group is 4 to 3. There are 42 in all. How many are blue marbles?,18,14,126,24,A
+Q-0009,Math,Rule 5B - Function Notation,67,"If f(x) = 5x + 11, what is the value of f(4)?",49,20,31,75,C
+Q-0010,Math,Rule 5B - Function Notation,41,"If f(x) = 9x + 11, what is the value of f(2)?",22,29,31,117,B
+Q-0011,Math,Rule 3B - Area and Perimeter,17,A rectangle has a perimeter of 64 and a length of 17. What is the area of the rectangle?,799,255,15,1088,B
+Q-0012,Reading and Writing,rule 6b - transition words,84,"Some birds use tools. ___, crows bend wire into hooks to reach food.",For example,Therefore,However,In addition,A
+Q-0013,Reading and Writing,Rule 6B - Transition Words,33,"Most critics praised the film. ___, it sold few tickets.",For example,In addition,Therefore,However,D
+Q-0014,Math,Rule 3B - Area and Perimeter,16,A rectangle has a perimeter of 22 and a length of 6. What is the area of the rectangle?,30,11,132,5,A
+Q-0015,Reading and Writing,rule 6a - agreement,21,"Right now, the stack of receipts ___ a torn cover.",has,had,having,have,A
+Q-0016,Math,Rule 2A - Systems of Equations,47,"If x + y = 17 and x - y = 1, what is the value of x?",18,9,17,8,B
+Q-0017,Reading and Writing,Rule 1A - Pronoun Agreement,63,"After a long meeting, the band changed ___ rules for new members.",its,it's,his or her,their,A
+Q-0018,Math,rule 5b - function notation,91,"If f(x) = 5x + 8, what is the value of f(9)?",85,53,77,22,B
+Q-0019,Reading and Writing,rule 1a - pronoun agreement,58,"After a long meeting, the company changed ___ rules for new members.",his or her,it's,their,its,D
+Q-0020,Math,Rule 2A - Systems of Equations,87,"If x + y = 30 and x - y = 2, what is the value of x?",16,14,32,30,A
+Q-0021,Reading and Writing,Rule 6A - Agreement,70,"Right now, the box of photos ___ near the window.",sit,sits,sitting,sat,B
+Q-0022,Math,rule 3a - percents and discounts,83,"A backpack costs $260. It is on sale for 30% off. What is the sale price, in dollars?",104,182,78,230,B
+Q-0023,Math,Rule 3B - Area and Perimeter,40,A rectangle has a perimeter of 50 and a length of 19. What is the area of the rectangle?,589,6,25,114,D
+Q-0024,Math,Rule 2A - Systems of Equations,78,"If x + y = 11 and x - y = 3, what is the value of x?",8,14,7,11,C
+Q-0025,Reading and Writing,Rule 1A - Pronoun Agreement,21,"After a long meeting, the band posted ___ schedule for the spring.",its,his or her,it's,their,A
+Q-0026,Reading and Writing,Rule 6A - Agreement,79,"Right now, the basket of receipts ___ in the main office.",staying,stays,stayed,stay,B
+Q-0027,Reading and Writing,Rule 2B - Verb Tense,34,"In 2009, the drama club ___ a new name.",has chosen,will choose,chose,chooses,C
+Q-0028,Math,Rule 3A - Percents and Discounts,64,"A jacket costs $40. It is on sale for 15% off. What is the sale price, in dollars?",34,28,46,25,A
+Q-0029,Reading and Writing,Rule 6B - Transition Words,49,"The first draft ran to ten pages. ___, the final essay fit on one.",Therefore,However,For example,In addition,B
+Q-0030,Reading and Writing,Rule  2B - Verb Tense,77,"In 2009, the drama club ___ the old record.",will break,has broken,broke,breaks,C
+Q-0031,Math,Rule 3B - Area and Perimeter,56,A rectangle has a perimeter of 54 and a length of 17. What is the area of the rectangle?,918,10,170,27,C
+Q-0032,Reading and Writing,Rule 1A - Pronoun Agreement,17,"After a long meeting, the council moved ___ office across town.",their,its,his or her,it's,B
+Q-0033,Reading and Writing,Rule 1B  - Parallel Comparisons,19,Visitors often say that the museums of Fenwick are more interesting than ___.,that of Kessington,those of Kessington's,those of Kessington,Kessington,C
+Q-0034,Math,Rule 3B - Area and Perimeter,73,A rectangle has a perimeter of 18 and a length of 7. What is the area of the rectangle?,9,14,126,2,B
+Q-0035,Reading and Writing,Rule 6B - Transition Words,26,"The roads iced over before dawn. ___, the schools opened two hours late.",However,Therefore,In addition,For example,B
+Q-0036,Reading and Writing,Rule 1B - Parallel Comparisons,16,Visitors often say that the parks of Ashby are more interesting than ___.,that of Delford,those of Delford,Delford,those of Delford's,B
+Q-0037,Reading and Writing,Rule 4B - Sentence Boundaries,36,"Late that week, the river ___ skater in town came out.",froze; every,froze every,"froze, every",froze; and every,A
+Q-0038,Reading and Writing,rule 1b - parallel comparisons,87,Visitors often say that the rainfall of Ashby is more interesting than ___.,that of Elmont's,Elmont,that of Elmont,those of Elmont,C
+Q-0039,Reading and Writing,Rule 6B - Transition Words,37,"The new park has a large playground. ___, it includes a quiet reading garden.",Therefore,For example,However,In addition,D
+Q-0040,Math,Rule 5B - Function Notation,68,"If f(x) = 7x + 11, what is the value of f(5)?",62,46,35,112,B
+Q-0041,Math,Rule 3B - Area and Perimeter,47,A rectangle has a perimeter of 56 and a length of 15. What is the area of the rectangle?,28,13,195,615,C
+Q-0042,Reading and Writing,Rule 6A - Agreement,91,"Right now, the folder of maps ___ a new label.",needed,needing,needs,need,C
+Q-0043,Math,Rule 2A - Systems of Equations,80,"If x + y = 7 and x - y = 3, what is the value of x?",5,7,10,2,A
+Q-0044,Reading and Writing,Rule 1A - Pronoun Agreement,68,"After a long meeting, the team changed ___ rules for new members.",their,his or her,its,it's,C
+Q-0045,Math,Rule 5A - Part-to-part Ratios,86,The ratio of cats to dogs in a group is 4 to 5. There are 81 in all. How many are dogs?,45,9,405,36,A
+Q-0046,Math,Rule 3B - Area and Perimeter,76,A rectangle has a perimeter of 38 and a length of 10. What is the area of the rectangle?,19,380,90,280,C
+Q-0047,Reading and Writing,Rule 6B - Transition Words,46,"The town repaved Main Street. ___, it planted trees along both sidewalks.",For example,Therefore,In addition,However,C
+Q-0048,Math,rule 2a - systems of equations,30,"If x + y = 22 and x - y = 8, what is the value of x?",7,15,22,30,B
+Q-0049,Math,Rule 3B - Area  and Perimeter,28,A rectangle has a perimeter of 16 and a length of 5. What is the area of the rectangle?,80,3,15,8,C
+Q-0050,Reading and Writing,Rule 1A - Pronoun Agreement,61,"After a long meeting, the team celebrated ___ tenth anniversary.",their,his or her,it's,its,D
+Q-0051,Math,Rule 5B - Function Notation,50,"If f(x) = 2x + 2, what is the value of f(3)?",8,10,7,6,A
+Q-0052,Reading and Writing,Rule 1B - Parallel Comparisons,63,Visitors often say that the rainfall of Corran is more interesting than ___.,that of Harlow's,that of Harlow,those of Harlow,Harlow,B
+Q-0053,Math,Rule 2A - Systems of Equations,17,"If x + y = 34 and x - y = 2, what is the value of x?",16,18,34,32,B
+Q-0054,Reading and Writing,Rule 1A - Pronoun Agreement,91,"After a long meeting, the council changed ___ rules for new members.",his or her,their,its,it's,C
+Q-0055,Reading and Writing,Rule 4B - Sentence Boundaries,60,"Late that week, the shop ___ second floor now sells books.","expanded, its",expanded; its,expanded its,expanded; and its,B
+Q-0056,Reading and Writing,Rule 6A -  Agreement,90,"Right now, the folder of photos ___ in the main office.",stays,staying,stayed,stay,A
+Q-0057,Math,Rule 5A - Part-to-part Ratios,71,The ratio of red marbles to blue marbles in a group is 6 to 2. There are 104 in all. How many are blue marbles?,13,52,78,26,D
+Q-0058,Reading and Writing,Rule 6B - Transition Words,91,"Many desert plants store water. ___, the barrel cactus can go months without rain.",However,In addition,For example,Therefore,C
+Q-0059,Reading and Writing,Rule 2B - Verb Tense,19,"In 1998, the robotics team ___ a record crowd.",has drawn,will draw,drew,draws,C
+Q-0060,Reading and Writing,Rule 1A - Pronoun Agreement,42,"After a long meeting, the committee announced ___ decision.",its,their,it's,his or her,A
+Q-0061,Reading and Writing,Rule 6B - Transition Words,88,"Several streets were renamed. ___, Mill Road is now Founders Way.",In addition,For example,However,Therefore,B
+Q-0062,Math,Rule 3A - Percents and Discounts,47,"A bike costs $200. It is on sale for 20% off. What is the sale price, in dollars?",160,240,180,120,A
+Q-0063,Reading and Writing,Rule 1B - Parallel Comparisons,52,Visitors often say that the climate of Delford is more interesting than ___.,that of Harlow,that of Harlow's,those of Harlow,Harlow,A
+Q-0064,Math,Rule 3A - Percents and Discounts,80,"A bike costs $380. It is on sale for 30% off. What is the sale price, in dollars?",114,494,152,266,D
+Q-0065,Reading and Writing,Rule 1B - Parallel Comparisons,39,Visitors often say that the rainfall of Elmont is more interesting than ___.,that of Corran's,those of Corran,Corran,that of Corran,D
+Q-0066,Reading and Writing,Rule 6B - Transition Words,55,"The well ran dry in August. ___, the farm bought water by the truckload.",Therefore,For example,However,In addition,A
+Q-0067,Math,Rule 3A - Percents and Discounts,44,"A bike costs $380. It is on sale for 20% off. What is the sale price, in dollars?",228,304,360,456,B
+Q-0068,Math,Rule 3A - Percents and Discounts,44,"A bike costs $160. It is on sale for 15% off. What is the sale price, in dollars?",145,24,184,136,D
+Q-0069,Reading and Writing,Rule 2B - Verb Tense,61,"In 1997, the school band ___ a weekly podcast.",begins,began,will begin,has begun,B
+Q-0070,Math,Rule 5B - Function Notation,88,"If f(x) = 9x + 6, what is the value of f(6)?",60,45,108,21,A
+Q-0071,Math,RULE 5A - PART-TO-PART RATIOS,87,The ratio of cats to dogs in a group is 1 to 2. There are 30 in all. How many are dogs?,20,15,10,60,A
+Q-0072,Math,Rule 5B - Function Notation,27,"If f(x) = 7x + 5, what is the value of f(8)?",56,91,61,20,C
+Q-0073,Math,Rule 3B - Area and Perimeter,53,A rectangle has a perimeter of 22 and a length of 8. What is the area of the rectangle?,24,112,11,176,A
+Q-0074,Reading and Writing,rule 6b - transition words,61,"The club raised money for the shelter. ___, its members spent weekends walking dogs.",However,In addition,Therefore,For example,B
+Q-0075,Reading and Writing,Rule 4B - Sentence Boundaries,68,The play ___ audience stood and cheered.,"ended, the",ended the,ended; and the,ended; the,D
+Q-0076,Math,rule 3b - area and perimeter,66,A rectangle has a perimeter of 58 and a length of 15. What is the area of the rectangle?,29,210,14,870,B
+Q-0077,Math,Rule 5A - Part-to-part Ratios,51,The ratio of juniors to seniors in a group is 2 to 7. There are 117 in all. How many are seniors?,819,13,91,26,C
+Q-0078,Math,Rule 2A - Systems of Equations,60,"If x + y = 21 and x - y = 1, what is the value of x?",10,22,11,20,C
+Q-0079,Reading and Writing,Rule 6B -  Transition Words,74,"The museum added evening hours. ___, it opened a cafe on the roof.",However,Therefore,In addition,For example,C
+Q-0080,Reading and Writing,Rule 1A - Pronoun Agreement,80,"After a long meeting, the committee moved ___ office across town.",their,his or her,its,it's,C
+Q-0081,Reading and Writing,RULE 6A - AGREEMENT,72,"Right now, the box of supplies ___ on the front desk.",is,being,was,are,A
+Q-0082,Math,Rule 5B -  Function Notation,33,"If f(x) = 3x + 12, what is the value of f(2)?",42,27,17,18,D
+Q-0083,Reading and Writing,RULE 1A - PRONOUN AGREEMENT,61,"After a long meeting, the band celebrated ___ tenth anniversary.",their,its,it's,his or her,B
+Q-0084,Math,Rule 2A - Systems of Equations,73,"If x + y = 23 and x - y = 3, what is the value of x?",26,20,23,13,D
+Q-0085,Reading and Writing,Rule 1B - Parallel Comparisons,21,Visitors often say that the parks of Kessington are more interesting than ___.,that of Fenwick,those of Fenwick's,Fenwick,those of Fenwick,D
+Q-0086,Reading and Writing,Rule 1A - Pronoun Agreement,25,"After a long meeting, the club moved ___ office across town.",their,it's,his or her,its,D
+Q-0087,Reading and Writing,Rule 2B - Verb Tense,86,"In 2016, the drama club ___ a weekly podcast.",will begin,begins,has begun,began,D
+Q-0088,Reading and Writing,Rule 6B - Transition Words,56,"The bridge was closed for repairs. ___, the bus took the long road around the lake.",In addition,For example,However,Therefore,D
+Q-0089,Reading and Writing,Rule 4B -  Sentence Boundaries,51,The class ___ trip will be to the science center.,"voted, the",voted; and the,voted the,voted; the,D
+Q-0090,Math,Rule 4A  - Solving Linear Equations,87,"If 8x + 12 = 13, what is the value of x?",,,,,1/8
+Q-0091,Reading and Writing,Rule 1A - Pronoun Agreement,40,"After a long meeting, the band moved ___ office across town.",it's,its,his or her,their,B
+Q-0092,Reading and Writing,Rule 4B - Sentence Boundaries,47,"By evening, the storm ___ damage was worse than expected.",passed; and its,"passed, its",passed; its,passed its,C
+Q-0093,Math,Rule 4A - Solving Linear Equations,18,"If 10x + 5 = 9, what is the value of x?",,,,,2/5
+Q-0094,Reading and Writing,Rule 2B - Verb Tense,44,"In 1998, the school band ___ a short history of the town.",has written,writes,wrote,will write,C
+Q-0095,Reading and Writing,Rule 6B - Transition Words,43,"The library extended its hours. ___, more students studied there in the evening.",For example,Therefore,However,In addition,B
+Q-0096,Math,Rule 3A - Percents and Discounts,76,"A jacket costs $400. It is on sale for 40% off. What is the sale price, in dollars?",160,360,240,560,C
+Q-0097,Math,Rule 2A - Systems of Equations,92,"If x + y = 11 and x - y = 5, what is the value of x?",8,3,16,6,A
+Q-0098,Reading and Writing,Rule 6B - Transition Words,84,"The trail looked short on the map. ___, it took us four hours to finish.",For example,In addition,However,Therefore,C
+Q-0099,Math,Rule 3A - Percents and Discounts,73,"A jacket costs $120. It is on sale for 10% off. What is the sale price, in dollars?",132,12,96,108,D
+Q-0100,Reading and Writing,Rule 6B - Transition Words,89,"The orchestra lost its conductor. ___, the spring concert was postponed.",However,For example,In addition,Therefore,D
+Q-0101,Math,Rule 3A - Percents and Discounts,65,"A jacket costs $260. It is on sale for 40% off. What is the sale price, in dollars?",364,156,220,52,B
+Q-0102,Reading and Writing,Rule 2B - Verb Tense,89,"In 2010, the drama club ___ a weekly podcast.",has begun,begins,began,will begin,C
+Q-0103,Reading and Writing,Rule 2B - Verb Tense,73,"In 2012, the school band ___ a new stage.",has built,builds,built,will build,C
+Q-0104,Math,Rule 5B - Function Notation,30,"If f(x) = 2x + 6, what is the value of f(5)?",13,16,32,22,B
+Q-0105,Reading and Writing,rule 6a - agreement,44,"Right now, the box of maps ___ a new label.",needed,needing,needs,need,C
+Q-0106,Reading and Writing,Rule 1A - Pronoun Agreement,92,"After a long meeting, the club changed ___ rules for new members.",their,its,his or her,it's,B
+Q-0107,Math,Rule 5A - Part-to-part Ratios,19,The ratio of juniors to seniors in a group is 3 to 7. There are 100 in all. How many are seniors?,10,30,700,70,D
+Q-0108,Math,Rule 5B - Function Notation,24,"If f(x) = 8x + 3, what is the value of f(8)?",32,88,19,67,D
+Q-0109,Reading and Writing,Rule 4B - Sentence Boundaries,68,The power ___ students kept reading by window light.,"failed, most",failed; and most,failed most,failed; most,D
+Q-0110,Reading and Writing,RULE 1A - PRONOUN AGREEMENT,18,"After a long meeting, the band announced ___ decision.",his or her,their,its,it's,C
+Q-0111,Math,Rule 3A - Percents and Discounts,53,"A bike costs $300. It is on sale for 35% off. What is the sale price, in dollars?",265,405,105,195,D
+Q-0112,Math,rule 4a - solving linear equations,79,"If 2x + 2 = 10, what is the value of x?",8,3,6,4,D
+Q-0113,Math,Rule 5B - Function Notation,28,"If f(x) = 9x + 10, what is the value of f(7)?",26,63,73,79,C
+Q-0114,Reading and Writing,Rule 6A - Agreement,27,"Right now, the folder of maps ___ a torn cover.",has,having,have,had,A
+Q-0115,Math,Rule 5A - Part-to-part Ratios,52,The ratio of fiction books to nonfiction books in a group is 5 to 7. There are 96 in all. How many are nonfiction books?,40,8,672,56,D
+Q-0116,Reading and Writing,Rule 1B - Parallel Comparisons,48,Visitors often say that the parks of Marlow are more interesting than ___.,that of Harlow,those of Harlow,Harlow,those of Harlow's,B
+Q-0117,Math,Rule 4A - Solving Linear Equations,23,"If 4x + 8 = 17, what is the value of x?",,,,,9/4
+Q-0118,Math,Rule 4A - Solving Linear Equations,89,"If 9x + 18 = 63, what is the value of x?",5,45,9,36,A
+Q-0119,Math,Rule 4A - Solving Linear Equations,89,"If 2x + 12 = 38, what is the value of x?",13,24,25,7,A
+Q-0120,Math,Rule 2A - Systems of Equations,46,"If x + y = 37 and x - y = 3, what is the value of x?",37,17,20,40,C
+Q-0121,Math,Rule 5A - Part-to-part Ratios,79,The ratio of cats to dogs in a group is 7 to 4. There are 55 in all. How many are dogs?,20,5,220,35,A
+Q-0122,Reading and Writing,Rule 1B - Parallel Comparisons,23,Visitors often say that the rainfall of Marlow is more interesting than ___.,Ashby,those of Ashby,that of Ashby,that of Ashby's,C
+Q-0123,Math,Rule 5B - Function Notation,40,"If f(x) = 4x + 5, what is the value of f(2)?",13,11,28,14,A
+Q-0124,Reading and Writing,Rule 6A - Agreement,79,"Right now, the basket of notes ___ on the front desk.",was,being,are,is,D
+Q-0125,Reading and Writing,Rule 6B - Transition Words,59,"The town keeps old traditions. ___, it still rings the noon bell by hand.",For example,In addition,However,Therefore,A
+Q-0126,Reading and Writing,Rule 4B - Sentence Boundaries,75,"By evening, the lights ___ speaker kept going anyway.","flickered, the",flickered; the,flickered the,flickered; and the,B
+Q-0127,Math,Rule 2A - Systems of Equations,70,"If x + y = 13 and x - y = 5, what is the value of x?",9,4,13,18,A
+Q-0128,Reading and Writing,Rule 2B - Verb Tense,39,"In 2010, the drama club ___ a record crowd.",draws,has drawn,drew,will draw,C
+Q-0129,Math,Rule 4A - Solving Linear Equations,79,"If 10x + 2 = 20, what is the value of x?",,,,,9/5
+Q-0130,Math,Rule 3A - Percents and Discounts,39,"A bike costs $300. It is on sale for 10% off. What is the sale price, in dollars?",330,290,240,270,D
+Q-0131,Reading and Writing,Rule 2B - Verb Tense,91,"In 2000, the robotics team ___ its first regional prize.",has won,wins,will win,won,D
+Q-0132,Reading and Writing,Rule 6B - Transition Words,20,"Our library lends more than books. ___, members can borrow telescopes and tools.",Therefore,For example,However,In addition,B
+Q-0133,Reading and Writing,Rule 4B  - Sentence Boundaries,68,"Late that week, the rain finally ___ crowd returned to the field.","stopped, the",stopped; and the,stopped; the,stopped the,C
+Q-0134,Math,Rule 3B - Area and Perimeter,19,A rectangle has a perimeter of 46 and a length of 15. What is the area of the rectangle?,465,23,690,120,D
+Q-0135,Math,Rule 3A - Percents and Discounts,35,"A jacket costs $100. It is on sale for 20% off. What is the sale price, in dollars?",120,20,80,60,C
+Q-0136,Math,Rule 4A - Solving Linear Equations,18,"If 7x + 28 = 133, what is the value of x?",23,98,105,15,D
+Q-0137,Math,Rule 4A - Solving Linear Equations,52,"If 4x + 16 = 48, what is the value of x?",16,8,32,28,B
+Q-0138,Math,Rule 3B - Area and Perimeter,25,A rectangle has a perimeter of 54 and a length of 16. What is the area of the rectangle?,11,608,864,176,D
+Q-0139,Math,Rule 5B - Function  Notation,24,"If f(x) = 6x + 4, what is the value of f(8)?",18,52,72,48,B
+Q-0140,Math,Rule 2A - Systems of Equations,39,"If x + y = 20 and x - y = 10, what is the value of x?",20,15,10,5,B
+Q-0141,Reading and Writing,Rule 4B - Sentence Boundaries,21,"Late that week, the snow ___ river rose by noon.",melted the,melted; the,"melted, the",melted; and the,B
+Q-0142,Math,rule 5a - part-to-part ratios,49,The ratio of red marbles to blue marbles in a group is 2 to 4. There are 66 in all. How many are blue marbles?,11,264,44,22,C
+Q-0143,Math,Rule 3A - Percents and Discounts,91,"A jacket costs $160. It is on sale for 35% off. What is the sale price, in dollars?",216,48,104,56,C
+Q-0144,Math,Rule 4A - Solving Linear Equations,48,"If 4x + 4 = 9, what is the value of x?",,,,,5/4
+Q-0145,Math,Rule 3B - Area and Perimeter,62,A rectangle has a perimeter of 20 and a length of 8. What is the area of the rectangle?,160,96,2,16,D
+Q-0146,Math,rule 5a - part-to-part ratios,23,The ratio of fiction books to nonfiction books in a group is 2 to 5. There are 56 in all. How many are nonfiction books?,40,280,8,16,A
+Q-0147,Math,Rule 5B - Function Notation,81,"If f(x) = 8x + 12, what is the value of f(7)?",92,152,27,68,D
+Q-0148,Math,Rule 2A - Systems of Equations,53,"If x + y = 11 and x - y = 7, what is the value of x?",11,2,9,18,C
+Q-0149,Reading and Writing,Rule 6B - Transition  Words,23,"The forecast promised sun. ___, we spent the afternoon under umbrellas.",However,For example,Therefore,In addition,A
+Q-0150,Reading and Writing,Rule 1B - Parallel Comparisons,85,Visitors often say that the parks of Corran are more interesting than ___.,those of Delford,Delford,that of Delford,those of Delford's,A
+Q-0151,Reading and Writing,Rule 4B - Sentence Boundaries,88,"By evening, the bakery ___ owners moved to the coast.",closed; and its,closed; its,"closed, its",closed its,B
+Q-0152,Reading and Writing,Rule 2B -  Verb Tense,78,"In 1998, the robotics team ___ a weekly podcast.",began,will begin,begins,has begun,A
+Q-0153,Math,Rule 5A - Part-to-part Ratios,67,The ratio of juniors to seniors in a group is 2 to 4. There are 36 in all. How many are seniors?,6,24,144,12,B
+Q-0154,Reading and Writing,rule 1a - pronoun agreement,45,"After a long meeting, the jury moved ___ office across town.",their,his or her,its,it's,C
+Q-0155,Reading and Writing,Rule 6A - Agreement,26,"Right now, the stack of maps ___ in the main office.",stay,stayed,stays,staying,C
+Q-0156,Reading and Writing,Rule 4B - Sentence Boundaries,87,The ferry ___ passengers hurried down the ramp.,arrived; and the,arrived the,arrived; the,"arrived, the",C
+Q-0157,Reading and Writing,Rule 6B - Transition Words,71,"The recipe called for an hour of baking. ___, the bread was done in forty minutes.",However,Therefore,In addition,For example,A
+Q-0158,Math,rule 3b - area and perimeter,89,A rectangle has a perimeter of 32 and a length of 14. What is the area of the rectangle?,28,252,2,16,A
+Q-0159,Math,Rule 2A - Systems of Equations,63,"If x + y = 29 and x - y = 1, what is the value of x?",15,29,30,28,A
+Q-0160,Math,Rule 4A - Solving Linear Equations,23,"If 4x + 4 = 7, what is the value of x?",,,,,3/4
+Q-0161,Reading and Writing,RULE 2B - VERB TENSE,38,"In 1997, the drama club ___ the old record.",has broken,breaks,will break,broke,D
+Q-0162,Math,Rule 2A - Systems of Equations,29,"If x + y = 8 and x - y = 2, what is the value of x?",8,5,6,10,B
+Q-0163,Math,Rule 5B - Function Notation,47,"If f(x) = 7x + 2, what is the value of f(4)?",28,13,15,30,D
+Q-0164,Reading and Writing,RULE 6A - AGREEMENT,89,"Right now, the folder of supplies ___ in the main office.",stayed,staying,stay,stays,D
+Q-0165,Math,Rule  4A - Solving Linear Equations,46,"If 7x + 21 = 77, what is the value of x?",8,56,49,14,A
+Q-0166,Reading and Writing,Rule 6B - Transition Words,25,"The old bridge seemed fragile. ___, it carried trucks for ninety years.",Therefore,For example,In addition,However,D
+Q-0167,Reading and Writing,Rule 6B - Transition Words,41,"The coach planned extra practices. ___, she arranged two games with nearby schools.",Therefore,However,In addition,For example,C
+Q-0168,Reading and Writing,Rule 4B - Sentence Boundaries,41,"By evening, the ferry ___ passengers hurried down the ramp.",arrived; and the,"arrived, the",arrived the,arrived; the,D
+Q-0169,Math,rule 2a - systems of equations,59,"If x + y = 36 and x - y = 4, what is the value of x?",36,40,16,20,D
+Q-0170,Math,RULE 3A - PERCENTS AND DISCOUNTS,22,"A bike costs $340. It is on sale for 10% off. What is the sale price, in dollars?",272,306,34,330,B
+Q-0171,Math,Rule 3A - Percents and Discounts,89,"A bike costs $120. It is on sale for 10% off. What is the sale price, in dollars?",110,108,132,12,B
+Q-0172,Math,Rule 5A -  Part-to-part Ratios,63,The ratio of juniors to seniors in a group is 5 to 4. There are 108 in all. How many are seniors?,48,60,432,27,A
+Q-0173,Reading and Writing,Rule 2B - Verb Tense,25,"In 1997, the drama club ___ its first regional prize.",wins,won,has won,will win,B
+Q-0174,Reading and Writing,Rule 2B - Verb Tense,90,"In 2003, the drama club ___ a short history of the town.",will write,has written,wrote,writes,C
+Q-0175,Reading and Writing,Rule 1B - Parallel Comparisons,90,Visitors often say that the streets of Corran are more interesting than ___.,those of Ashby's,those of Ashby,Ashby,that of Ashby,B
+Q-0176,Reading and Writing,Rule  1B - Parallel Comparisons,92,Visitors often say that the streets of Elmont are more interesting than ___.,those of Ashby's,Ashby,that of Ashby,those of Ashby,D
+Q-0177,Reading and Writing,Rule 6A - Agreement,51,"Right now, the stack of notes ___ a torn cover.",had,has,having,have,B
+Q-0178,Math,Rule 4A - Solving Linear Equations,23,"If 8x + 3 = 4, what is the value of x?",,,,,1/8
+Q-0179,Math,Rule 2A - Systems of Equations,68,"If x + y = 28 and x - y = 6, what is the value of x?",17,28,22,34,A
+Q-0180,Math,Rule 5B - Function Notation,48,"If f(x) = 3x + 11, what is the value of f(3)?",9,20,36,42,B
+Q-0181,Reading and Writing,Rule 4B - Sentence Boundaries,22,"By evening, the market ___ stalls sold out by ten.","opened, its",opened; its,opened; and its,opened its,B
+Q-0182,Math,Rule 4A - Solving Linear Equations,62,"If 9x + 9 = 117, what is the value of x?",14,4,12,99,C
+Q-0183,Math,Rule 5B - Function Notation,41,"If f(x) = 3x + 11, what is the value of f(4)?",45,47,18,23,D
+Q-0184,Math,Rule 5B - Function Notation,72,"If f(x) = 8x + 7, what is the value of f(3)?",24,80,31,18,C
+Q-0185,Reading and Writing,Rule 1A - Pronoun Agreement,68,"After a long meeting, the company posted ___ schedule for the spring.",it's,its,their,his or her,B
+Q-0186,Reading and Writing,Rule 1B - Parallel Comparisons,44,Visitors often say that the parks of Elmont are more interesting than ___.,those of Kessington,Kessington,those of Kessington's,that of Kessington,A
+Q-0187,Math,Rule 4A - Solving Linear Equations,64,"If 8x + 7 = 16, what is the value of x?",,,,,9/8
+Q-0188,Reading and Writing,rule 1b - parallel comparisons,80,Visitors often say that the parks of Harlow are more interesting than ___.,that of Marlow,Marlow,those of Marlow's,those of Marlow,D
+Q-0189,Math,Rule 5A - Part-to-part Ratios,30,The ratio of juniors to seniors in a group is 2 to 4. There are 42 in all. How many are seniors?,168,14,7,28,D
+Q-0190,Reading and Writing,Rule  6A - Agreement,32,"Right now, the box of receipts ___ on the front desk.",being,was,are,is,D
+Q-0191,Math,Rule 3A - Percents  and Discounts,60,"A backpack costs $140. It is on sale for 10% off. What is the sale price, in dollars?",130,126,154,112,B
+Q-0192,Reading and Writing,Rule 6B - Transition Words,67,"The new bus line runs every ten minutes. ___, it stops at both high schools.",For example,In addition,Therefore,However,B
+Q-0193,Reading and Writing,Rule 2B - Verb Tense,15,"In 2007, the drama club ___ the old record.",will break,breaks,broke,has broken,C
+Q-0194,Math,Rule 5A - Part-to-part Ratios,68,The ratio of juniors to seniors in a group is 7 to 5. There are 180 in all. How many are seniors?,36,105,900,75,D
+Q-0195,Reading and Writing,Rule  2B - Verb Tense,59,"In 2011, the robotics team ___ a short history of the town.",wrote,has written,will write,writes,A
+Q-0196,Reading and Writing,Rule 6A - Agreement,23,"Right now, the folder of photos ___ on the front desk.",is,was,are,being,A
+Q-0197,Math,Rule 5A - Part-to-part Ratios,89,The ratio of cats to dogs in a group is 6 to 5. There are 66 in all. How many are dogs?,36,6,330,30,D
+Q-0198,Math,Rule 4A - Solving Linear Equations,89,"If 4x + 10 = 20, what is the value of x?",,,,,5/2
+Q-0199,Math,Rule 5A - Part-to-part Ratios,51,The ratio of red marbles to blue marbles in a group is 7 to 3. There are 80 in all. How many are blue marbles?,8,240,56,24,D
+Q-0200,Math,Rule 2A - Systems of Equations,47,"If x + y = 14 and x - y = 6, what is the value of x?",4,10,14,8,B
+Q-0201,Reading and Writing,Rule 2B - Verb Tense,20,"In 2017, the town ___ a record crowd.",has drawn,draws,drew,will draw,C
+Q-0202,Reading and Writing,rule 6a - agreement,59,"Right now, the list of old letters ___ in the main office.",staying,stays,stay,stayed,B
+Q-0203,Math,Rule 5A - Part-to-part Ratios,25,The ratio of fiction books to nonfiction books in a group is 2 to 7. There are 27 in all. How many are nonfiction books?,189,3,21,6,C
+Q-0204,Reading and Writing,Rule 1A - Pronoun Agreement,33,"After a long meeting, the jury posted ___ schedule for the spring.",their,it's,its,his or her,C
+Q-0205,Math,Rule 4A - Solving Linear  Equations,18,"If 16x + 8 = 46, what is the value of x?",,,,,19/8
+Q-0206,Reading and Writing,Rule 4B - Sentence  Boundaries,30,The bakery ___ owners moved to the coast.,"closed, its",closed; and its,closed its,closed; its,D
+Q-0207,Math,Rule 4A - Solving Linear Equations,31,"If 6x + 6 = 90, what is the value of x?",16,84,14,78,C
+Q-0208,Reading and Writing,Rule 4B - Sentence Boundaries,28,The bell ___ hallway filled at once.,rang; every,rang; and every,"rang, every",rang every,A
+Q-0209,Math,Rule 4A - Solving Linear Equations,87,"If 8x + 8 = 10, what is the value of x?",,,,,1/4
+Q-0210,Math,Rule 5B - Function Notation,30,"If f(x) = 7x + 10, what is the value of f(8)?",66,25,87,126,A
+Q-0211,Math,Rule 3A - Percents and Discounts,86,"A bike costs $100. It is on sale for 20% off. What is the sale price, in dollars?",120,20,60,80,D
+Q-0212,Reading and Writing,Rule 1B - Parallel Comparisons,30,Visitors often say that the climate of Ashby is more interesting than ___.,that of Marlow's,Marlow,that of Marlow,those of Marlow,C
+Q-0213,Reading and Writing,Rule 6A - Agreement,84,"Right now, the box of old letters ___ near the window.",sits,sat,sitting,sit,A
+Q-0214,Reading and Writing,Rule 6A - Agreement,66,"Right now, the list of old letters ___ near the window.",sits,sitting,sat,sit,A
+Q-0215,Reading and Writing,Rule 6B - Transition Words,81,"The museum offers free programs. ___, it hosts a drawing class every Saturday.",However,In addition,For example,Therefore,C
+Q-0216,Reading and Writing,rule 4b - sentence boundaries,39,"Late that week, the bus ___ riders walked the last mile.",broke down most,broke down; and most,broke down; most,"broke down, most",C
+Q-0217,Math,Rule 3B - Area and Perimeter,83,A rectangle has a perimeter of 44 and a length of 12. What is the area of the rectangle?,120,528,22,384,A
+Q-0218,Math,Rule  5A - Part-to-part Ratios,71,The ratio of cats to dogs in a group is 4 to 6. There are 40 in all. How many are dogs?,24,240,16,4,A
+Q-0219,Reading and Writing,Rule 4B  - Sentence Boundaries,67,"By evening, the play ___ audience stood and cheered.",ended the,ended; and the,"ended, the",ended; the,D
+Q-0220,Reading and Writing,Rule 6A - Agreement,25,"Right now, the collection of maps ___ in the main office.",stays,stay,stayed,staying,A
+Q-0221,Reading and Writing,Rule 2B  - Verb Tense,64,"In 2014, the robotics team ___ a new stage.",built,builds,will build,has built,A
+Q-0222,Math,Rule 3A - Percents and Discounts,75,"A backpack costs $300. It is on sale for 40% off. What is the sale price, in dollars?",120,60,420,180,D
+Q-0223,Reading and Writing,Rule 1A - Pronoun Agreement,50,"After a long meeting, the council celebrated ___ tenth anniversary.",their,his or her,it's,its,D
+Q-0224,Math,Rule 3B - Area and Perimeter,51,A rectangle has a perimeter of 32 and a length of 10. What is the area of the rectangle?,16,6,60,320,C
+Q-0225,Math,Rule 4A - Solving Linear Equations,68,"If 10x + 1 = 15, what is the value of x?",,,,,7/5
+Q-0226,Reading and Writing,Rule 2B - Verb Tense,58,"In 1995, the drama club ___ its first regional prize.",will win,wins,won,has won,C
+Q-0227,Math,Rule 4A - Solving Linear Equations,82,"If 8x + 7 = 13, what is the value of x?",,,,,3/4
+Q-0228,Math,Rule 5A - Part-to-part Ratios,45,The ratio of cats to dogs in a group is 5 to 4. There are 81 in all. How many are dogs?,324,9,45,36,D
+Q-0229,Math,Rule 3B - Area and Perimeter,15,A rectangle has a perimeter of 26 and a length of 10. What is the area of the rectangle?,260,30,160,3,B
+Q-0230,Reading and Writing,Rule 6B - Transition  Words,28,"The puzzle looked easy at first. ___, nobody in the class could solve it.",Therefore,For example,However,In addition,C
+Q-0231,Reading and Writing,Rule 2B - Verb Tense,90,"In 2018, the drama club ___ a new stage.",built,builds,will build,has built,A
+Q-0232,Reading and Writing,Rule 4B - Sentence Boundaries,63,"By evening, the river ___ skater in town came out.","froze, every",froze every,froze; and every,froze; every,D
+Q-0233,Math,Rule 3A - Percents and Discounts,90,"A lamp costs $400. It is on sale for 40% off. What is the sale price, in dollars?",560,240,80,160,B
+Q-0234,Reading and Writing,Rule 4B - Sentence Boundaries,44,"By evening, the garden ___ tomatoes did not survive.",flooded; the,flooded; and the,"flooded, the",flooded the,A
+Q-0235,Reading and Writing,Rule 6A - Agreement,40,"Right now, the list of supplies ___ in the main office.",stay,staying,stayed,stays,D
+Q-0236,Reading and Writing,Rule 1B - Parallel Comparisons,23,Visitors often say that the streets of Ashby are more interesting than ___.,Elmont,those of Elmont's,those of Elmont,that of Elmont,C
+Q-0237,Math,Rule 5A - Part-to-part Ratios,34,The ratio of red marbles to blue marbles in a group is 4 to 3. There are 49 in all. How many are blue marbles?,7,28,21,147,C
+Q-0238,Math,Rule 4A - Solving Linear Equations,34,"If 8x + 1 = 11, what is the value of x?",,,,,5/4
+Q-0239,Reading and Writing,Rule 4B - Sentence Boundaries,44,The printer ___ flyers were late for the fair.,jammed the,"jammed, the",jammed; and the,jammed; the,D
+Q-0240,Math,Rule 5B - Function Notation,46,"If f(x) = 2x + 4, what is the value of f(8)?",16,24,20,34,C
+Q-0241,Math,Rule 2A - Systems of Equations,79,"If x + y = 9 and x - y = 1, what is the value of x?",5,10,9,8,A
+Q-0242,Reading and Writing,Rule 2B - Verb Tense,83,"In 1996, the town ___ a short history of the town.",writes,has written,wrote,will write,C
+Q-0243,Math,Rule 5A - Part-to-part Ratios,87,The ratio of cats to dogs in a group is 7 to 3. There are 80 in all. How many are dogs?,8,240,56,24,D
+Q-0244,Math,Rule 2A - Systems of Equations,68,"If x + y = 8 and x - y = 4, what is the value of x?",2,12,4,6,D
+Q-0245,Reading and Writing,Rule 1A - Pronoun Agreement,52,"After a long meeting, the company celebrated ___ tenth anniversary.",its,it's,their,his or her,A
+Q-0246,Math,Rule 3B - Area and Perimeter,33,A rectangle has a perimeter of 26 and a length of 7. What is the area of the rectangle?,133,182,6,42,D
+Q-0247,Reading and Writing,Rule 4B - Sentence Boundaries,36,"By evening, the snow ___ river rose by noon.",melted; the,melted the,melted; and the,"melted, the",A
+Q-0248,Reading and Writing,Rule 6B - Transition Words,41,"The tickets sold out in a day. ___, the theater added a second show.",However,For example,Therefore,In addition,C
+Q-0249,Math,Rule 4A - Solving Linear Equations,82,"If 4x + 16 = 64, what is the value of x?",12,44,48,20,A
+Q-0250,Math,Rule 2A - Systems of Equations,82,"If x + y = 9 and x - y = 5, what is the value of x?",7,2,14,4,A
+Q-0251,Math,Rule 2A - Systems of Equations,53,"If x + y = 29 and x - y = 7, what is the value of x?",36,22,18,29,C
+Q-0252,Reading and Writing,Rule 4B - Sentence Boundaries,16,The garden ___ tomatoes did not survive.,flooded; and the,flooded; the,"flooded, the",flooded the,B
+Q-0253,Math,Rule 2A - Systems of Equations,85,"If x + y = 19 and x - y = 1, what is the value of x?",9,18,20,10,D
+Q-0254,Reading and Writing,Rule 4B - Sentence Boundaries,54,"Late that week, the bell ___ hallway filled at once.","rang, every",rang; and every,rang every,rang; every,D
+Q-0255,Reading and Writing,Rule 6A - Agreement,40,"Right now, the folder of receipts ___ in the main office.",staying,stays,stay,stayed,B
+Q-0256,Reading and Writing,Rule 1B - Parallel Comparisons,39,Visitors often say that the rainfall of Kessington is more interesting than ___.,that of Corran's,that of Corran,those of Corran,Corran,B
+Q-0257,Math,Rule 3A - Percents and Discounts,16,"A lamp costs $140. It is on sale for 20% off. What is the sale price, in dollars?",120,168,112,84,C
+Q-0258,Math,Rule 5A - Part-to-part Ratios,92,The ratio of cats to dogs in a group is 2 to 6. There are 56 in all. How many are dogs?,14,336,42,7,C
+Q-0259,Reading and Writing,Rule 2B - Verb Tense,65,"In 2014, the drama club ___ a record crowd.",has drawn,draws,will draw,drew,D
+Q-0260,Math,Rule 5B - Function Notation,37,"If f(x) = 6x + 10, what is the value of f(8)?",24,58,48,86,B
+Q-0261,Reading and Writing,Rule 1B -  Parallel Comparisons,66,Visitors often say that the streets of Harlow are more interesting than ___.,Corran,that of Corran,those of Corran,those of Corran's,C
+Q-0262,Math,Rule 3A - Percents and Discounts,30,"A lamp costs $380. It is on sale for 35% off. What is the sale price, in dollars?",513,247,345,133,B
+Q-0263,Math,Rule 3A - Percents and Discounts,65,"A lamp costs $180. It is on sale for 40% off. What is the sale price, in dollars?",108,140,36,252,A
+Q-0264,Reading and Writing,Rule 1B - Parallel Comparisons,78,Visitors often say that the population of Delford is more interesting than ___.,that of Kessington,those of Kessington,Kessington,that of Kessington's,A
+Q-0265,Reading and Writing,Rule 1B - Parallel Comparisons,76,Visitors often say that the population of Ashby is more interesting than ___.,that of Marlow,those of Marlow,that of Marlow's,Marlow,A
+Q-0266,Reading and Writing,Rule 6B - Transition Words,79,"The bakery doubled its prices. ___, many regulars started baking at home.",However,For example,In addition,Therefore,D
+Q-0267,Math,Rule 5A - Part-to-part Ratios,41,The ratio of juniors to seniors in a group is 2 to 5. There are 77 in all. How many are seniors?,55,11,22,385,A
+Q-0268,Math,Rule 3B - Area and Perimeter,18,A rectangle has a perimeter of 32 and a length of 11. What is the area of the rectangle?,352,16,5,55,D
+Q-0269,Reading and Writing,Rule 1B - Parallel Comparisons,76,Visitors often say that the streets of Marlow are more interesting than ___.,that of Elmont,those of Elmont,Elmont,those of Elmont's,B
+Q-0270,Math,Rule 5B - Function Notation,42,"If f(x) = 9x + 10, what is the value of f(5)?",55,135,59,45,A
+Q-0271,Math,Rule 4A - Solving Linear Equations,39,"If 4x + 11 = 18, what is the value of x?",,,,,7/4
+Q-0272,Math,Rule 2A - Systems of Equations,65,"If x + y = 25 and x - y = 5, what is the value of x?",10,25,15,20,C
+Q-0273,Reading and Writing,Rule 1A - Pronoun Agreement,40,"After a long meeting, the committee celebrated ___ tenth anniversary.",its,their,it's,his or her,A
+Q-0274,Reading and Writing,Rule 4B - Sentence Boundaries,62,The bus ___ riders walked the last mile.,broke down; most,broke down; and most,"broke down, most",broke down most,A
+Q-0275,Math,Rule 3B - Area and  Perimeter,61,A rectangle has a perimeter of 36 and a length of 16. What is the area of the rectangle?,576,32,320,2,B
+Q-0276,Reading and Writing,Rule 4B -  Sentence Boundaries,88,"Late that week, the ferry ___ passengers hurried down the ramp.",arrived; and the,arrived; the,"arrived, the",arrived the,B
+Q-0277,Math,Rule 3B - Area and Perimeter,66,A rectangle has a perimeter of 36 and a length of 13. What is the area of the rectangle?,65,18,5,468,A
+Q-0278,Math,Rule 3B - Area and Perimeter,61,A rectangle has a perimeter of 36 and a length of 12. What is the area of the rectangle?,72,18,432,6,A
+Q-0279,Reading and Writing,Rule 1B - Parallel Comparisons,57,Visitors often say that the climate of Elmont is more interesting than ___.,those of Harlow,that of Harlow,that of Harlow's,Harlow,B
+Q-0280,Math,Rule 3A - Percents and Discounts,50,"A jacket costs $120. It is on sale for 35% off. What is the sale price, in dollars?",36,162,78,42,C
+Q-0281,Reading and Writing,Rule 6A - Agreement,55,"Right now, the list of maps ___ a torn cover.",has,had,have,having,A
+Q-0282,Math,Rule  3B - Area and Perimeter,44,A rectangle has a perimeter of 62 and a length of 19. What is the area of the rectangle?,228,31,12,817,A
+Q-0283,Reading and Writing,Rule 1A - Pronoun Agreement,36,"After a long meeting, the jury announced ___ decision.",their,his or her,it's,its,D
+Q-0284,Reading and Writing,Rule 6A - Agreement,79,"Right now, the folder of old letters ___ in the main office.",stay,staying,stays,stayed,C
+Q-0285,Reading and Writing,Rule 4B - Sentence Boundaries,65,"By evening, the museum ___ new wing drew long lines.",reopened; its,reopened its,"reopened, its",reopened; and its,A
+Q-0286,Math,Rule 5B - Function Notation,56,"If f(x) = 6x + 1, what is the value of f(2)?",13,12,18,9,A
+Q-0287,Reading and Writing,Rule 1A  - Pronoun Agreement,54,"After a long meeting, the team moved ___ office across town.",it's,his or her,its,their,C
+Q-0288,Math,Rule 3A - Percents and Discounts,19,"A jacket costs $80. It is on sale for 25% off. What is the sale price, in dollars?",100,55,60,40,C
+Q-0289,Math,rule 5a - part-to-part ratios,89,The ratio of juniors to seniors in a group is 5 to 3. There are 104 in all. How many are seniors?,13,312,39,65,C
+Q-0290,Math,Rule 5A - Part-to-part Ratios,66,The ratio of cats to dogs in a group is 5 to 6. There are 33 in all. How many are dogs?,198,15,18,3,C
+Q-0291,Reading and Writing,Rule 1A - Pronoun Agreement,46,"After a long meeting, the team posted ___ schedule for the spring.",its,his or her,it's,their,A
+Q-0292,Reading and Writing,Rule 2B - Verb Tense,41,"In 2009, the school band ___ a new name.",chose,chooses,will choose,has chosen,A
+Q-0293,Reading and Writing,Rule 1A - Pronoun Agreement,35,"After a long meeting, the jury celebrated ___ tenth anniversary.",his or her,it's,their,its,D
+Q-0294,Reading and Writing,Rule 1A - Pronoun Agreement,75,"After a long meeting, the club posted ___ schedule for the spring.",his or her,its,their,it's,B
+Q-0295,Reading and Writing,Rule 2B - Verb Tense,22,"In 2012, the robotics team ___ a record crowd.",will draw,drew,draws,has drawn,B
+Q-0296,Reading and Writing,RULE 1B - PARALLEL COMPARISONS,66,Visitors often say that the climate of Harlow is more interesting than ___.,Elmont,those of Elmont,that of Elmont's,that of Elmont,D
+Q-0297,Reading and Writing,Rule 1A - Pronoun Agreement,44,"After a long meeting, the council posted ___ schedule for the spring.",his or her,their,its,it's,C
+Q-0298,Reading and Writing,Rule 6A - Agreement,89,"Right now, the box of maps ___ near the window.",sat,sit,sits,sitting,C
+Q-0299,Math,Rule 3B - Area and Perimeter,39,A rectangle has a perimeter of 14 and a length of 4. What is the area of the rectangle?,7,12,3,40,B
+Q-0300,Math,Rule  2A - Systems of Equations,92,"If x + y = 21 and x - y = 9, what is the value of x?",21,12,15,30,C
+Q-0301,Math,RULE 4A - SOLVING LINEAR EQUATIONS,72,"If 8x + 32 = 88, what is the value of x?",56,7,48,15,B
+Q-0302,Math,Rule 5A - Part-to-part Ratios,73,The ratio of fiction books to nonfiction books in a group is 5 to 6. There are 132 in all. How many are nonfiction books?,22,12,72,60,C
+Q-0303,Math,Rule 3B - Area and Perimeter,26,A rectangle has a perimeter of 14 and a length of 5. What is the area of the rectangle?,2,10,70,45,B
+Q-0304,Math,Rule 2A - Systems of Equations,21,"If x + y = 19 and x - y = 11, what is the value of x?",8,4,19,15,D
+Q-0305,Reading and Writing,rule 1b - parallel comparisons,90,Visitors often say that the streets of Delford are more interesting than ___.,those of Marlow's,that of Marlow,those of Marlow,Marlow,C
+Q-0306,Reading and Writing,Rule 6A - Agreement,77,"Right now, the list of notes ___ a torn cover.",had,having,have,has,D
+Q-0307,Reading and Writing,Rule 2B - Verb Tense,85,"In 2013, the town ___ the old record.",has broken,will break,broke,breaks,C
+Q-0308,Math,Rule 5B - Function Notation,88,"If f(x) = 7x + 7, what is the value of f(2)?",21,16,14,63,A
+Q-0309,Math,Rule 4A - Solving Linear Equations,90,"If 10x + 8 = 22, what is the value of x?",,,,,7/5
+Q-0310,Math,Rule 5B - Function Notation,72,"If f(x) = 9x + 11, what is the value of f(4)?",36,47,24,53,B
+Q-0311,Math,Rule 3A - Percents and Discounts,60,"A bike costs $120. It is on sale for 15% off. What is the sale price, in dollars?",138,102,84,18,B
+Q-0312,Reading and Writing,Rule 6B - Transition Words,52,"Some metals resist rust. ___, stainless steel stays bright for decades.",For example,In addition,Therefore,However,A
+Q-0313,Reading and Writing,Rule 6A - Agreement,18,"Right now, the box of photos ___ on the front desk.",are,was,being,is,D
+Q-0314,Math,Rule 3A - Percents and Discounts,22,"A lamp costs $160. It is on sale for 25% off. What is the sale price, in dollars?",120,40,200,80,A
+Q-0315,Reading and Writing,Rule 1A  - Pronoun Agreement,27,"After a long meeting, the company announced ___ decision.",its,it's,their,his or her,A
+Q-0316,Math,Rule 2A - Systems of Equations,31,"If x + y = 11 and x - y = 1, what is the value of x?",6,10,11,12,A
+Q-0317,Math,Rule 5A - Part-to-part Ratios,60,The ratio of fiction books to nonfiction books in a group is 6 to 5. There are 88 in all. How many are nonfiction books?,440,48,8,40,D
+Q-0318,Math,Rule 3B - Area and Perimeter,50,A rectangle has a perimeter of 40 and a length of 16. What is the area of the rectangle?,384,640,4,64,D
+Q-0319,Math,Rule 3A  - Percents and Discounts,16,"A backpack costs $100. It is on sale for 25% off. What is the sale price, in dollars?",125,75,50,25,B
+Q-0320,Math,Rule  3B - Area and Perimeter,24,A rectangle has a perimeter of 44 and a length of 13. What is the area of the rectangle?,572,117,9,22,B
+Q-0321,Reading and Writing,Rule  6A - Agreement,54,"Right now, the list of photos ___ near the window.",sat,sits,sitting,sit,B
+Q-0322,Math,Rule 5B - Function Notation,83,"If f(x) = 8x + 10, what is the value of f(9)?",72,82,152,27,B
+Q-0323,Reading and Writing,Rule 2B - Verb Tense,34,"In 2003, the school band ___ a record crowd.",draws,has drawn,will draw,drew,D
+Q-0324,Reading and Writing,Rule 6A - Agreement,63,"Right now, the basket of old letters ___ a torn cover.",having,had,have,has,D

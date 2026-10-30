@@ -1,0 +1,17 @@
+student_id,name,grade,target_score,test_date,tutor_id
+S-1001,Yara Underhill,10,1520,2027-03-13,T-3
+S-1002,Celia Rookwood,10,1220,2026-12-05,T-3
+S-1003,Fenna Jessop,12,1340,2027-03-13,T-4
+S-1004,Pell Quarles,12,1330,2027-03-13,T-3
+S-1005,Odile Jessop,12,1420,2027-03-13,T-2
+S-1006,Zeno Greaves,11,1210,2026-12-05,T-3
+S-1007,Wren Rookwood,10,1220,2027-06-05,T-4
+S-1008,Niko Dunmore,10,1370,2027-03-13,T-2
+S-1009,Ada Marchetti,10,1500,2027-06-05,T-3
+S-1010,Ulla Thorne,11,1540,2026-12-05,T-4
+S-1011,Niko Brightwater,12,1250,2027-06-05,T-4
+S-1012,Lio Whitcombe,12,1510,2027-06-05,T-3
+S-1013,Zeno Vasquez,10,1310,2027-06-05,T-3
+S-1014,Niko Quarles,11,1250,2027-03-13,T-3
+S-1015,Ada Holloway,12,1410,2027-06-05,T-4
+S-1016,Ulla Kettering,11,1340,2027-06-05,T-2

@@ -1,0 +1,43 @@
+hint_id,topic,error_id,text
+HINT-01,Rule 5B - Pronoun Agreement,ERR-120,"Is the noun a person, or a thing?"
+HINT-02,Rule 4A - Perimeter and Area of Rectangles,ERR-105,"The perimeter is a distance around, not one side."
+HINT-03,Rule 6B - Subject-Verb Agreement,ERR-132,Read the sentence with your choice. Is it a complete sentence?
+HINT-04,Rule 3B - Percent Change,,"Find the percent of the original amount first, then decide what to do with it."
+HINT-05,Rule 2B - Sentence Boundaries,,Check whether each side of the blank could stand alone as a sentence.
+HINT-06,Rule 5A - Two-equation Systems,ERR-106,"After adding the equations, how many x are there?"
+HINT-07,Rule 6A - Part-to-part Ratios,ERR-121,You found one share. How many shares belong to the group asked about?
+HINT-08,Rule 1A - Function Notation,,"Put the input in place of x, then follow the order of operations."
+HINT-09,Rule 2A - Transitions,ERR-141,Does the second sentence go against the first?
+HINT-10,Rule 5B - Pronoun Agreement,,Find the noun the pronoun stands for and ask whether it is one thing or many.
+HINT-11,Rule 4A - Perimeter and Area of Rectangles,,Use the perimeter to find the missing side before you find the area.
+HINT-12,Rule 4A - Perimeter and Area of Rectangles,ERR-123,You have both sides now. What does the question ask for?
+HINT-13,Rule 1B - Parallel Comparisons,ERR-110,What exactly is being compared on the left side of than?
+HINT-14,Rule 2A - Transitions,ERR-114,Is the second sentence caused by the first?
+HINT-15,Rule 4B - Verb Tense,,Find the words that say when the action happened.
+HINT-16,Rule 3A - One-variable Equations,,"Undo the operations one at a time, doing the same thing to both sides."
+HINT-17,Rule 6A - Part-to-part Ratios,,Add the parts of the ratio to see how many equal shares make the whole.
+HINT-18,Rule 4B - Verb Tense,ERR-136,"Is the action happening now, or did it already happen?"
+HINT-19,Rule 1A - Function Notation,ERR-104,"Which comes first, the multiplication or the addition?"
+HINT-20,Rule 1B - Parallel Comparisons,ERR-142,Of already shows belonging. Does the name need more?
+HINT-21,Rule 2A - Transitions,ERR-127,Is the second sentence one case of the first?
+HINT-22,Rule 3A - One-variable Equations,ERR-140,"When a number crosses to the other side, check whether you add it or take it away."
+HINT-23,Rule 1A - Function Notation,ERR-126,Check that every term of the function made it into your work.
+HINT-24,Rule 2A - Transitions,ERR-133,Does the second sentence simply add another point?
+HINT-25,Rule 3B - Percent Change,ERR-102,"A percent is a part of the price, not a number of dollars."
+HINT-26,Rule 3A - One-variable Equations,ERR-122,Dividing both sides means dividing every term on each side.
+HINT-27,Rule 6B - Subject-Verb Agreement,ERR-125,The noun right before the blank may not be the subject. Which noun is doing the action?
+HINT-28,Rule 5A - Two-equation Systems,ERR-131,Which way of combining the equations leaves only x?
+HINT-29,Rule 3B - Percent Change,ERR-138,A sale makes the price go down. Does your answer?
+HINT-30,Rule 6B - Subject-Verb Agreement,ERR-130,Look at the time words at the start of the sentence.
+HINT-31,Rule 3A - One-variable Equations,ERR-143,"Once the x term is alone, is x itself alone yet?"
+HINT-32,Rule 5A - Two-equation Systems,ERR-112,"The first equation gives x and y together, not x by itself."
+HINT-33,Rule 4A - Perimeter and Area of Rectangles,ERR-137,The perimeter goes around all four sides. How many lengths does it hold?
+HINT-34,Rule 1B - Parallel Comparisons,,Check that the sentence compares the same kind of thing on both sides.
+HINT-35,Rule 5A - Two-equation Systems,,Combine the two equations so that one of the variables disappears.
+HINT-36,Rule 3B - Percent Change,ERR-118,Read the last sentence again: is it asking for the amount saved or the amount paid?
+HINT-37,Rule 4B - Verb Tense,ERR-108,A specific year in the past calls for a simple form of the verb.
+HINT-38,Rule 6A - Part-to-part Ratios,ERR-128,The total is already the whole group. Should it get bigger?
+HINT-39,Rule 5A - Two-equation Systems,ERR-101,Check which variable the question asks for.
+HINT-40,Rule 2A - Transitions,,Decide how the second sentence relates to the first before reading the choices.
+HINT-41,Rule 6B - Subject-Verb Agreement,,"Cross out the phrase between the subject and the verb, then read them together."
+HINT-42,Rule 3B - Percent Change,ERR-134,Count how many times the price is reduced.
