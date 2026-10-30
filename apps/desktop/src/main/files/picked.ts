@@ -69,7 +69,7 @@ function realPath(path: string): string {
   } catch (error) {
     const missing = (error as NodeJS.ErrnoException).code === 'ENOENT';
     if (!missing || lstatSync(path, { throwIfNoEntry: false }) !== undefined) {
-      throw new Error(LEAVES_FOLDER);
+      throw new Error(LEAVES_FOLDER, { cause: error });
     }
     const parent = dirname(path);
     return parent === path ? path : join(realPath(parent), basename(path));
