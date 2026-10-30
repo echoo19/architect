@@ -9,6 +9,7 @@ import { REPO } from './content';
 
 /** The documents the figures come from, by the short name used under each block. */
 export const SOURCES = {
+  phil: { name: 'phil-1.md', path: 'docs/comparisons/phil-1.md' },
   second: { name: 'returns-desk-2.md', path: 'docs/comparisons/returns-desk-2.md' },
   plan: { name: 'returns-desk-2-plan.md', path: 'docs/comparisons/returns-desk-2-plan.md' },
   first: { name: 'returns-desk-1.md', path: 'docs/comparisons/returns-desk-1.md' },
@@ -261,6 +262,9 @@ export interface Round {
   kept: boolean;
   /** Why a change was not kept, in the report's words. */
   why?: string;
+  /** Check tasks in one run, and in the two runs of a measurement made again. Default 45 and 90. */
+  total?: number;
+  againTotal?: number;
 }
 
 export const ROUNDS_SECOND: readonly Round[] = [
@@ -332,4 +336,281 @@ export const REPAIR = {
 export const MONEY = {
   spark: 0.4205,
   glimmer: 3.3796,
+} as const;
+
+/**
+ * The field run: Phil, a tutor for test-prep academies. Final-test tasks are counted per group of
+ * organizations, under seed 101, from `phil-1.md`. Intervals are the report's own: Wilson for a
+ * pass rate, Newcombe for a paired difference.
+ */
+export const GROUPS = [
+  { name: 'Taught academies', short: 'taught', n: 48 },
+  { name: 'Harborview Prep', short: 'harborview', n: 48 },
+  { name: 'Real academy', short: 'real', n: 24 },
+] as const;
+
+export type GroupKey = (typeof GROUPS)[number]['short'];
+
+export interface FieldArm {
+  name: string;
+  /** Passes in each group, in the order of GROUPS, with the Wilson interval in percent. */
+  groups: readonly { passed: number; low: number; high: number }[];
+  /** Passes out of all 120, with its interval. */
+  all: { passed: number; low: number; high: number };
+  tone: Tone;
+}
+
+export const FIELD_TEST_SIZE = 120;
+
+export const FIELD_ARMS: readonly FieldArm[] = [
+  {
+    name: 'Glimmer on a blank setup',
+    groups: [
+      { passed: 21, low: 30.7, high: 57.7 },
+      { passed: 24, low: 36.4, high: 63.6 },
+      { passed: 9, low: 21.2, high: 57.3 },
+    ],
+    all: { passed: 54, low: 36.4, high: 53.9 },
+    tone: 'plain',
+  },
+  {
+    name: "Spark's one-shot setup",
+    groups: [
+      { passed: 22, low: 32.6, high: 59.7 },
+      { passed: 22, low: 32.6, high: 59.7 },
+      { passed: 11, low: 27.9, high: 64.9 },
+    ],
+    all: { passed: 55, low: 37.2, high: 54.7 },
+    tone: 'plain',
+  },
+  {
+    name: 'Phil',
+    groups: [
+      { passed: 44, low: 80.4, high: 96.7 },
+      { passed: 43, low: 77.8, high: 95.5 },
+      { passed: 12, low: 31.4, high: 68.6 },
+    ],
+    all: { passed: 99, low: 74.7, high: 88.3 },
+    tone: 'student',
+  },
+];
+
+export const SKILLS = ['Diagnose', 'Solve', 'Hint', 'History', 'Assign', 'Tutoring turn'] as const;
+
+export interface SkillRow {
+  skill: (typeof SKILLS)[number];
+  group: GroupKey;
+  /** Tasks in the cell; passes for the blank setup, the one-shot setup and Phil. */
+  of: number;
+  bare: number;
+  draft: number;
+  phil: number;
+}
+
+/** Skill by organization. The Real academy had tasks for three skills only. */
+export const SKILL_ROWS: readonly SkillRow[] = [
+  { skill: 'Diagnose', group: 'taught', of: 9, bare: 6, draft: 6, phil: 8 },
+  { skill: 'Diagnose', group: 'harborview', of: 8, bare: 6, draft: 8, phil: 6 },
+  { skill: 'Diagnose', group: 'real', of: 8, bare: 4, draft: 4, phil: 2 },
+  { skill: 'Solve', group: 'taught', of: 6, bare: 6, draft: 6, phil: 6 },
+  { skill: 'Solve', group: 'harborview', of: 8, bare: 8, draft: 8, phil: 8 },
+  { skill: 'Hint', group: 'taught', of: 9, bare: 2, draft: 3, phil: 9 },
+  { skill: 'Hint', group: 'harborview', of: 8, bare: 4, draft: 1, phil: 7 },
+  { skill: 'History', group: 'taught', of: 6, bare: 5, draft: 4, phil: 6 },
+  { skill: 'History', group: 'harborview', of: 8, bare: 5, draft: 2, phil: 8 },
+  { skill: 'History', group: 'real', of: 8, bare: 5, draft: 6, phil: 3 },
+  { skill: 'Assign', group: 'taught', of: 9, bare: 2, draft: 3, phil: 8 },
+  { skill: 'Assign', group: 'harborview', of: 8, bare: 1, draft: 3, phil: 8 },
+  { skill: 'Assign', group: 'real', of: 8, bare: 0, draft: 1, phil: 7 },
+  { skill: 'Tutoring turn', group: 'taught', of: 9, bare: 0, draft: 0, phil: 7 },
+  { skill: 'Tutoring turn', group: 'harborview', of: 8, bare: 0, draft: 0, phil: 6 },
+];
+
+export interface FieldPair {
+  /** "A against B": the first arm less the second. */
+  label: string;
+  group: GroupKey | 'all';
+  n: number;
+  wins: number;
+  losses: number;
+  both: number;
+  neither: number;
+  /** The difference in pass rate in percentage points, with its 95% interval. */
+  diff: number;
+  low: number;
+  high: number;
+}
+
+export const FIELD_PAIRS: readonly FieldPair[] = [
+  {
+    label: 'Phil against a blank setup',
+    group: 'harborview',
+    n: 48,
+    wins: 20,
+    losses: 1,
+    both: 23,
+    neither: 4,
+    diff: 39.6,
+    low: 22.9,
+    high: 53.7,
+  },
+  {
+    label: 'Phil against a blank setup',
+    group: 'real',
+    n: 24,
+    wins: 9,
+    losses: 6,
+    both: 3,
+    neither: 6,
+    diff: 12.5,
+    low: -17.9,
+    high: 40.2,
+  },
+  {
+    label: 'Phil against a blank setup',
+    group: 'taught',
+    n: 48,
+    wins: 24,
+    losses: 1,
+    both: 20,
+    neither: 3,
+    diff: 47.9,
+    low: 30.3,
+    high: 61.7,
+  },
+  {
+    label: 'Phil against a blank setup',
+    group: 'all',
+    n: 120,
+    wins: 53,
+    losses: 8,
+    both: 46,
+    neither: 13,
+    diff: 37.5,
+    low: 25.9,
+    high: 47.7,
+  },
+  {
+    label: 'Phil against the one-shot setup',
+    group: 'harborview',
+    n: 48,
+    wins: 23,
+    losses: 2,
+    both: 20,
+    neither: 3,
+    diff: 43.8,
+    low: 25.6,
+    high: 58.3,
+  },
+  {
+    label: 'Phil against the one-shot setup',
+    group: 'real',
+    n: 24,
+    wins: 7,
+    losses: 6,
+    both: 5,
+    neither: 6,
+    diff: 4.2,
+    low: -23.6,
+    high: 31.0,
+  },
+  {
+    label: 'Phil against the one-shot setup',
+    group: 'taught',
+    n: 48,
+    wins: 23,
+    losses: 1,
+    both: 21,
+    neither: 3,
+    diff: 45.8,
+    low: 28.4,
+    high: 59.8,
+  },
+  {
+    label: 'The one-shot setup against a blank setup',
+    group: 'harborview',
+    n: 48,
+    wins: 6,
+    losses: 8,
+    both: 16,
+    neither: 18,
+    diff: -4.2,
+    low: -19.2,
+    high: 11.2,
+  },
+  {
+    label: 'The one-shot setup against a blank setup',
+    group: 'real',
+    n: 24,
+    wins: 6,
+    losses: 4,
+    both: 5,
+    neither: 9,
+    diff: 8.3,
+    low: -17.5,
+    high: 32.6,
+  },
+  {
+    label: 'The one-shot setup against a blank setup',
+    group: 'taught',
+    n: 48,
+    wins: 8,
+    losses: 7,
+    both: 14,
+    neither: 19,
+    diff: 2.1,
+    low: -13.7,
+    high: 17.7,
+  },
+  {
+    label: 'The one-shot setup against a blank setup',
+    group: 'all',
+    n: 120,
+    wins: 20,
+    losses: 19,
+    both: 35,
+    neither: 46,
+    diff: 0.8,
+    low: -9.4,
+    high: 11.0,
+  },
+];
+
+/** Phil's three rounds of teaching, on the 36 check tasks of the taught academies. */
+export const ROUNDS_FIELD: readonly Round[] = [
+  {
+    n: 1,
+    change: 'A question lookup tool, and a rule against reading the whole question files',
+    before: 17,
+    after: 25,
+    again: [36, 51],
+    kept: true,
+    total: 36,
+    againTotal: 72,
+  },
+  {
+    n: 2,
+    change: 'A practice pick that reads the count and difficulty from the academy policy',
+    before: 24,
+    after: 23,
+    kept: false,
+    why: 'Short of the +2 margin',
+    total: 36,
+  },
+  {
+    n: 3,
+    change: 'A policy lookup tool that returns the numbers every skill needs',
+    before: 24,
+    after: 35,
+    again: [46, 71],
+    kept: true,
+    total: 36,
+    againTotal: 72,
+  },
+];
+
+/** What the field run cost, from its report. Spark's share includes about $0.08 of estimates. */
+export const FIELD_MONEY = {
+  spark: 0.58,
+  glimmer: 4.26,
 } as const;

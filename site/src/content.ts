@@ -16,11 +16,11 @@ export const MAC_INTEL_DMG = `${RELEASES}/download/Architect-${APP_VERSION}-x64.
 export const REPORTS = `${REPO}/tree/main/docs/comparisons`;
 
 export const HERO = {
-  title: 'Describe a job. Get an agent that runs on your computer.',
+  title: "Turn your organization's files into a specialist that runs on your computer.",
   /** Two sentences, each on its own line where there is room. */
   line: [
-    'Spark, a large model, teaches your job to Glimmer, a small one.',
-    'Once Glimmer passes a test it has never seen, it runs offline on your files.',
+    'Spark, a large model, studies your files and teaches Glimmer, a small one.',
+    'Glimmer is tested on organizations it never saw, then runs offline on your files.',
   ],
 } as const;
 
@@ -39,5 +39,5 @@ export const FOOTER = {
   note: "Both shops are made up. The returns desk's training rounds, scores and final test are from a real run, and so are the repair shop's rule and its run. The chats, the correction and the Hugging Face page are written from the same records to show the screens.",
   /** The results page's note. */
   resultsNote:
-    'The returns desks and the repair shop are made up. The figures are from real runs, and the reports they come from are in docs/comparisons.',
+    'The generated academies, the returns desks and the repair shop are made up. The Real academy is a real one, anonymized, and its records are not published. The figures are from real runs, and the reports they come from are in docs/comparisons.',
 } as const;
