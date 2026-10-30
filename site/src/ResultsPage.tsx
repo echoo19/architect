@@ -40,11 +40,11 @@ const signed = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
 /** The documents cited, in the order the page first cites them, with what each one is. */
 type RefKey = SourceKey | 'gepa' | 'ace' | 'taubench';
 
-/** Published papers cited, by the address they are read at. */
-const PAPERS: Partial<Record<RefKey, { url: string; label: string }>> = {
-  gepa: { url: 'https://arxiv.org/abs/2507.19457', label: 'arXiv 2507.19457' },
-  ace: { url: 'https://arxiv.org/abs/2510.04618', label: 'arXiv 2510.04618' },
-  taubench: { url: 'https://arxiv.org/abs/2406.12045', label: 'arXiv 2406.12045' },
+/** Published papers cited, by their arXiv number; the page links to no address but the repository. */
+const PAPERS: Partial<Record<RefKey, string>> = {
+  gepa: 'arXiv 2507.19457',
+  ace: 'arXiv 2510.04618',
+  taubench: 'arXiv 2406.12045',
 };
 
 const REFERENCES: readonly { key: RefKey; what: string }[] = [
@@ -668,12 +668,16 @@ export function ResultsPage() {
                 <span className="tabular-nums">[{index + 1}]</span>
                 <span className="flex flex-col">
                   <span className="text-pretty">{reference.what}</span>
-                  <a
-                    className="link-quiet underline [overflow-wrap:anywhere]"
-                    href={PAPERS[reference.key]?.url ?? sourceUrl(reference.key as SourceKey)}
-                  >
-                    {PAPERS[reference.key]?.label ?? SOURCES[reference.key as SourceKey].path}
-                  </a>
+                  {PAPERS[reference.key] === undefined ? (
+                    <a
+                      className="link-quiet underline [overflow-wrap:anywhere]"
+                      href={sourceUrl(reference.key as SourceKey)}
+                    >
+                      {SOURCES[reference.key as SourceKey].path}
+                    </a>
+                  ) : (
+                    <span>{PAPERS[reference.key]}</span>
+                  )}
                 </span>
               </li>
             ))}
