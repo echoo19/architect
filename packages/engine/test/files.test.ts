@@ -409,6 +409,60 @@ describe('changing files', () => {
     expect(readdirSync(job?.dataDir ?? '').filter((name) => name.endsWith('.tmp'))).toEqual([]);
   });
 
+  it('refuses a live change when another program changed the file after it was planned', async () => {
+    const files = await open({
+      mode: 'live',
+      files: [
+        { name: 'invoices.csv', kind: 'table', access: 'write' },
+        { name: 'policy.md', kind: 'text', access: 'read' },
+      ],
+    });
+    const disk = join(job?.dataDir ?? '', 'invoices.csv');
+    const text = files.read('data/invoices.csv');
+    const plan = files.plan('edit', 'data/invoices.csv', `${text}INV-9,C-1,900,2026-12-01,false\n`);
+    const theirs =
+      'invoice_id,customer_id,total_cents,due_date,paid\nINV-1,C-1,5,2026-10-01,true\n';
+    writeFileSync(disk, theirs);
+    await expect(files.apply(plan)).rejects.toThrow(
+      'data/invoices.csv changed on disk since this change was proposed, so nothing was written.',
+    );
+    expect(readFileSync(disk, 'utf8')).toBe(theirs);
+    await expect(files.apply(plan)).rejects.toThrow('changed on disk');
+  });
+
+  it('applies a live change whose file is untouched since it was planned', async () => {
+    const files = await open({
+      mode: 'live',
+      files: [
+        { name: 'invoices.csv', kind: 'table', access: 'write' },
+        { name: 'policy.md', kind: 'text', access: 'read' },
+      ],
+    });
+    const text = files.read('data/invoices.csv');
+    await files.apply(
+      files.plan('edit', 'data/invoices.csv', `${text}INV-9,C-1,900,2026-12-01,false\n`),
+    );
+    expect(readFileSync(join(job?.dataDir ?? '', 'invoices.csv'), 'utf8')).toContain(
+      'INV-9,C-1,900',
+    );
+  });
+
+  it('refuses a created output file when one appeared on disk after it was planned', async () => {
+    job = makeJobDir(SAMPLE_CONTENT);
+    const dir = join(job.dir, 'output');
+    mkdirSync(dir, { recursive: true });
+    const files = await openAgentFiles({
+      dataDir: job.dataDir,
+      files: SAMPLE_FILES,
+      output: { dir },
+      mode: 'live',
+    });
+    const plan = files.plan('write', 'output/report.md', '# Mine\n');
+    writeFileSync(join(dir, 'report.md'), 'Theirs.\n');
+    await expect(files.apply(plan)).rejects.toThrow('changed on disk');
+    expect(readFileSync(join(dir, 'report.md'), 'utf8')).toBe('Theirs.\n');
+  });
+
   it('reads and saves a live output folder on disk', async () => {
     job = makeJobDir(SAMPLE_CONTENT);
     const dir = join(job.dir, 'output');
