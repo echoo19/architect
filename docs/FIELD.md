@@ -19,7 +19,7 @@ Phil helps a student right after a wrong answer. It knows the academy's own curr
 | --- | --- | --- |
 | `diagnose` | a student missed question N, chose X | the topic label, the correct choice, and (synthetic) the named error behind X |
 | `solve` | work the question | the answer and the key intermediate value |
-| `hint` | a first hint before the student tries again | a structured hint that names the topic's key idea and contains neither the answer nor the correct choice |
+| `hint` | a first hint before the student tries again | `{ topic, hint_id }` from the academy's approved hint catalog for that topic |
 | `history` | how is this student doing on this topic | accuracy on the topic over the policy's window, with counts; whether escalation is due |
 | `assign` | set the follow-up practice | rows written to `assignments.csv`: the policy's count of questions of the same topic, not yet attempted by the student, in the difficulty band; nothing else written |
 | `after_wrong` | the whole tutoring turn | diagnose, hint, assign and, when the policy says so, a staff note in `staff_notes.csv`; facts and end state together |
@@ -35,13 +35,25 @@ On CP (no question text): `history` and `assign` fully, and `diagnose` for the t
 5. **Qualification.** After freeze, the locked test runs on the train organizations' test split and on each transfer organization. Results are kept per skill and per organization, labeled seen or unseen and synthetic or real. Hard failures (a write the task didn't ask for, a hidden-test read, a non-local call from the graduate) fail the task whatever the average.
 6. **Installing for a new organization** is the existing rebinding: the graduate's `data/` points at that organization's folder. An install check is not a qualification.
 
+## Amendments after the second reading (Oct 30, GPT-6 Astra)
+
+- *Transfer organizations are sealed as snapshots, not just tasks.* Their files and tasks live in a runner-only transfer store outside the job folder the mentor reads (hashed at seal time), are removed before ordinary splitting, and are opened only after the candidate is frozen. Study, traces sent to Spark, lineage and exports never carry them.
+- *Binding is per attempt.* The student and the checker get the same scratch snapshot of the task's organization, replay included. Task ids are unique across organizations; families never cross organizations.
+- *A hint is chosen, not written.* Each topic has a small catalog of approved first hints (`hint_id`, text) in the academy's files; `hint` and `after_wrong` answer with `{ topic, hint_id }`, checked exactly. A keyword filter cannot prove a hint gives nothing away; a reviewed catalog can.
+- *`diagnose` names the distractor's constructed error*, from an evaluator-owned map (ambiguous distractors list a set). It is not a claim about what the student was thinking. On CP it is topic and correct choice only.
+- *`solve` asks about a question given in the request*, not one in the keyed bank, so the answer key can't be read off. `history` states its cutoff date, window, what counts (first attempts or every attempt) and the denominator; `assign` states what happens with too few eligible questions (assign all eligible and say how many) and allows no duplicates.
+- *Academy facts stay in the academy's files.* Study writes the shared procedure and the brief, never per-academy tables or per-topic files of one academy's facts. The lookup guard is a heuristic, not proof; transfer is shown by the measurements (dev tasks change labels and policy numbers while the harness stays fixed).
+- *Cut now:* weights, source-provenance machinery, automatic per-topic knowledge files, study-screen polish. Keep a small cited brief and the whole tutoring turn.
+- *Dates:* scope frozen Nov 1, candidates frozen Nov 2, Nov 3 for qualification and recording. Hosted results are hosted results; Phil's local qualification is marked unmeasured unless hardware is allowed.
+- *The demo:* the same wrong answer at two academies with different policies, the same frozen Phil, two different correct actions.
+
 ## Architect gains (generic, not tutor-specific)
 
 1. **Study** (the field spec's research stage, bounded to the organization's own material): on Define, Spark reads the material and proposes a study brief: the skills, how they connect, what each needs, the rules it found (each with its passage), what is unclear, and what is out of scope. The person confirms. Then Spark writes the specialist's knowledge: a `skills/<topic>/SKILL.md` per topic, an index from topic to lessons and questions, and the procedure. Uncited claims are marked as Spark's own.
 2. **Organizations** in the engine (the contract above).
 3. **The report** shows a skill by organization grid: seen academies, an unseen synthetic academy, the real academy, with counts; proposed, practiced and qualified kept apart.
 4. **Phil in the workspace**: a staff member or student asks after a wrong answer; writes to `assignments.csv` and `staff_notes.csv` ask for approval.
-5. **Weights** (the owner's call on compute): verified demonstrations from the tutor's lessons make the dataset; the adapter lane starts only with compute.
+5. **Weights**: cut for this delivery (see the amendments); the existing training worker stays as it is.
 
 ## Lanes
 
