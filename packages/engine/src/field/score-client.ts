@@ -12,7 +12,7 @@ This client starts it and exchanges lines with it. Standard library only.
     from score_client import Scorer
 
     with Scorer() as scorer:
-        score = scorer.score("copperfield-assign-01", final_text, changes=[
+        score = scorer.score("<task id>", final_text, changes=[
             {"path": "data/assignments.csv", "text": new_assignments_csv},
         ])
         if "error" not in score:
