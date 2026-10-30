@@ -1,0 +1,44 @@
+error_id,topic,name
+ERR-101,M-ALG-08 Solving Linear Equations,Moved the constant with the wrong sign
+ERR-102,W-GRA-06 Subjects and Verbs,Shifted the tense
+ERR-103,M-PRO-10 Ratios,Multiplied the total by the ratio
+ERR-104,W-EXP-02 Logical Transitions,Chose a cause-and-effect transition
+ERR-105,M-ALG-11 Function Notation,Added before multiplying
+ERR-106,W-GRA-07 Pronoun Agreement,Used a pronoun for a person to stand for a thing
+ERR-107,W-EXP-02 Logical Transitions,Chose a contrast transition
+ERR-108,M-ALG-08 Solving Linear Equations,Subtracted the coefficient instead of dividing
+ERR-109,W-GRA-07 Pronoun Agreement,Used a contraction where a possessive belongs
+ERR-110,W-GRA-12 Verb Tense,Used the present perfect with a finished time
+ERR-111,M-PRO-01 Percentages,Added the discount instead of subtracting it
+ERR-112,W-PUN-03 Run-ons and Comma Splices,Joined two sentences with only a comma
+ERR-113,M-GEO-05 Rectangles,Added the sides instead of multiplying
+ERR-114,M-ALG-04 Systems of Equations,Forgot to halve after adding
+ERR-115,W-EXP-02 Logical Transitions,Chose an adding-on transition
+ERR-116,W-PUN-03 Run-ons and Comma Splices,Used a semicolon and a conjunction together
+ERR-117,M-PRO-10 Ratios,Divided the total by one number of the ratio
+ERR-118,W-GRA-12 Verb Tense,Used the present for a past event
+ERR-119,M-PRO-01 Percentages,"Gave the discount, not the price"
+ERR-120,M-ALG-08 Solving Linear Equations,Stopped before dividing by the coefficient
+ERR-121,M-GEO-05 Rectangles,Stopped at the width
+ERR-122,W-GRA-09 Comparisons,Did not match one thing or many
+ERR-123,W-GRA-09 Comparisons,Doubled the possessive
+ERR-124,M-PRO-10 Ratios,Found the other group
+ERR-125,M-ALG-04 Systems of Equations,Took the sum as the value of x
+ERR-126,M-GEO-05 Rectangles,Forgot to halve the perimeter
+ERR-127,M-ALG-08 Solving Linear Equations,Divided only the first term
+ERR-128,M-PRO-01 Percentages,Took the discount off twice
+ERR-129,M-PRO-01 Percentages,Took the percent off as dollars
+ERR-130,W-GRA-07 Pronoun Agreement,Used a plural pronoun for a singular group
+ERR-131,W-EXP-02 Logical Transitions,Chose an example transition
+ERR-132,W-GRA-06 Subjects and Verbs,Left the sentence without a main verb
+ERR-133,W-PUN-03 Run-ons and Comma Splices,Ran two sentences together with no punctuation
+ERR-134,M-ALG-11 Function Notation,Added the input instead of multiplying
+ERR-135,M-ALG-11 Function Notation,Swapped the slope and the constant
+ERR-136,W-GRA-12 Verb Tense,Used the future for a past event
+ERR-137,W-GRA-09 Comparisons,Compared a thing with a place
+ERR-138,M-PRO-10 Ratios,Stopped at one share
+ERR-139,M-ALG-04 Systems of Equations,Subtracted the equations and stopped
+ERR-140,M-ALG-11 Function Notation,Left out the constant
+ERR-141,M-ALG-04 Systems of Equations,Solved for the other variable
+ERR-142,M-GEO-05 Rectangles,Used the perimeter as a side
+ERR-143,W-GRA-06 Subjects and Verbs,Made the verb agree with the nearer noun

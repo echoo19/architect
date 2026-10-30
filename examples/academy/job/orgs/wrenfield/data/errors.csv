@@ -1,0 +1,44 @@
+error_id,topic,name
+E-01,Rule 1A - Pronoun-antecedent Agreement,Used a pronoun for a person to stand for a thing
+E-02,Rule 5A - Subjects and Verbs,Left the sentence without a main verb
+E-03,Rule 5B - Systems of Equations,Forgot to halve after adding
+E-04,Rule 3B - Sentence Boundaries,Used a semicolon and a conjunction together
+E-05,Rule 6A - Ratios,Multiplied the total by the ratio
+E-06,Rule 4B - Logical Transitions,Chose a contrast transition
+E-07,Rule 1B - Evaluating Functions,Left out the constant
+E-08,Rule 3A - Percent Change,Added the discount instead of subtracting it
+E-09,Rule 2A - Verb Tense,Used the present for a past event
+E-10,Rule 2B - Comparisons,Did not match one thing or many
+E-11,Rule 5B - Systems of Equations,Solved for the other variable
+E-12,Rule 4A - Rectangles,Added the sides instead of multiplying
+E-13,Rule 1A - Pronoun-antecedent Agreement,Used a contraction where a possessive belongs
+E-14,Rule 6A - Ratios,Divided the total by one number of the ratio
+E-15,Rule 1B - Evaluating Functions,Added the input instead of multiplying
+E-16,Rule 2B - Comparisons,Doubled the possessive
+E-17,Rule 6A - Ratios,Found the other group
+E-18,Rule 1B - Evaluating Functions,Swapped the slope and the constant
+E-19,Rule 3B - Sentence Boundaries,Joined two sentences with only a comma
+E-20,Rule 6B - Solving Linear Equations,Stopped before dividing by the coefficient
+E-21,Rule 6A - Ratios,Stopped at one share
+E-22,Rule 4B - Logical Transitions,Chose an example transition
+E-23,Rule 5A - Subjects and Verbs,Shifted the tense
+E-24,Rule 4A - Rectangles,Stopped at the width
+E-25,Rule 2B - Comparisons,Compared a thing with a place
+E-26,Rule 3B - Sentence Boundaries,Ran two sentences together with no punctuation
+E-27,Rule 5A - Subjects and Verbs,Made the verb agree with the nearer noun
+E-28,Rule 6B - Solving Linear Equations,Subtracted the coefficient instead of dividing
+E-29,Rule 1B - Evaluating Functions,Added before multiplying
+E-30,Rule 6B - Solving Linear Equations,Moved the constant with the wrong sign
+E-31,Rule 1A - Pronoun-antecedent Agreement,Used a plural pronoun for a singular group
+E-32,Rule 3A - Percent Change,Took the discount off twice
+E-33,Rule 5B - Systems of Equations,Took the sum as the value of x
+E-34,Rule 6B - Solving Linear Equations,Divided only the first term
+E-35,Rule 4B - Logical Transitions,Chose a cause-and-effect transition
+E-36,Rule 4B - Logical Transitions,Chose an adding-on transition
+E-37,Rule 3A - Percent Change,"Gave the discount, not the price"
+E-38,Rule 2A - Verb Tense,Used the future for a past event
+E-39,Rule 2A - Verb Tense,Used the present perfect with a finished time
+E-40,Rule 5B - Systems of Equations,Subtracted the equations and stopped
+E-41,Rule 4A - Rectangles,Forgot to halve the perimeter
+E-42,Rule 3A - Percent Change,Took the percent off as dollars
+E-43,Rule 4A - Rectangles,Used the perimeter as a side

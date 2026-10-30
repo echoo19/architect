@@ -1,0 +1,217 @@
+question_id,section,topic,difficulty_pct,stem,choice_a,choice_b,choice_c,choice_d,correct
+M102,Math,Algebra: systems of linear equations,49,"If x + y = 13 and x - y = 5, what is the value of x?",4,13,9,8,C
+M104,Math,Algebra: function notation,74,"If f(x) = 9x + 7, what is the value of f(2)?",25,18,23,81,A
+M105,Math,Geometry: rectangles,87,A rectangle has a perimeter of 30 and a length of 9. What is the area of the rectangle?,189,54,15,270,B
+M108,Math,Problem solving: part-to-part ratios,16,The ratio of fiction books to nonfiction books in a group is 7 to 5. There are 60 in all. How many are nonfiction books?,300,35,25,12,C
+M110,Math,Algebra: systems of linear equations,86,"If x + y = 11 and x - y = 7, what is the value of x?",4,9,11,18,B
+M112,Math,Algebra: one-variable equations,64,"If 3x + 9 = 54, what is the value of x?",9,42,21,15,D
+M113,Math,Problem solving: percents and discounts,67,"A bike costs $360. It is on sale for 20% off. What is the sale price, in dollars?",340,72,216,288,D
+M115,Math,Problem solving: part-to-part ratios,85,The ratio of cats to dogs in a group is 5 to 2. There are 28 in all. How many are dogs?,8,56,4,14,A
+M117,Math,Algebra: systems of linear equations,46,"If x + y = 29 and x - y = 5, what is the value of x?",34,29,24,17,D
+M120,Math,Algebra: one-variable equations,62,"If 5x + 30 = 105, what is the value of x?",27,15,70,75,B
+M121,Math,Problem solving: part-to-part ratios,65,The ratio of cats to dogs in a group is 6 to 3. There are 63 in all. How many are dogs?,42,7,189,21,D
+M122,Math,Problem solving: percents and discounts,32,"A lamp costs $140. It is on sale for 10% off. What is the sale price, in dollars?",154,130,126,14,C
+M123,Math,Geometry: rectangles,64,A rectangle has a perimeter of 48 and a length of 18. What is the area of the rectangle?,24,6,108,540,C
+M124,Math,Algebra: function notation,90,"If f(x) = 2x + 4, what is the value of f(6)?",16,12,20,26,A
+M125,Math,Problem solving: percents and discounts,36,"A jacket costs $40. It is on sale for 20% off. What is the sale price, in dollars?",48,32,8,24,B
+M127,Math,Problem solving: percents and discounts,57,"A backpack costs $300. It is on sale for 40% off. What is the sale price, in dollars?",420,260,180,120,C
+M128,Math,Geometry: rectangles,84,A rectangle has a perimeter of 46 and a length of 14. What is the area of the rectangle?,126,448,23,644,A
+M129,Math,Algebra: function notation,39,"If f(x) = 7x + 1, what is the value of f(3)?",21,22,11,28,B
+M130,Math,Algebra: systems of linear equations,80,"If x + y = 14 and x - y = 2, what is the value of x?",12,8,16,14,B
+M131,Math,Algebra: function notation,24,"If f(x) = 9x + 6, what is the value of f(3)?",18,33,81,27,B
+M133,Math,Algebra: function notation,43,"If f(x) = 7x + 6, what is the value of f(3)?",63,27,25,21,B
+M136,Math,Problem solving: part-to-part ratios,25,The ratio of fiction books to nonfiction books in a group is 4 to 7. There are 143 in all. How many are nonfiction books?,1001,13,52,91,D
+M138,Math,Problem solving: percents and discounts,39,"A lamp costs $280. It is on sale for 15% off. What is the sale price, in dollars?",196,322,238,265,C
+M141,Math,Algebra: function notation,59,"If f(x) = 4x + 3, what is the value of f(3)?",13,15,24,12,B
+M142,Math,Problem solving: part-to-part ratios,68,The ratio of juniors to seniors in a group is 2 to 5. There are 91 in all. How many are seniors?,65,455,13,26,A
+M143,Math,Geometry: rectangles,51,A rectangle has a perimeter of 38 and a length of 10. What is the area of the rectangle?,19,380,90,280,C
+M149,Math,Geometry: rectangles,51,A rectangle has a perimeter of 34 and a length of 10. What is the area of the rectangle?,17,7,240,70,D
+M151,Math,Algebra: function notation,17,"If f(x) = 4x + 6, what is the value of f(6)?",48,16,30,24,C
+M153,Math,Algebra: systems of linear equations,47,"If x + y = 21 and x - y = 5, what is the value of x?",21,13,26,8,B
+M156,Math,Problem solving: percents and discounts,84,"A lamp costs $380. It is on sale for 10% off. What is the sale price, in dollars?",342,38,304,418,A
+M158,Math,Algebra: systems of linear equations,82,"If x + y = 12 and x - y = 2, what is the value of x?",14,7,5,10,B
+M160,Math,Geometry: rectangles,70,A rectangle has a perimeter of 28 and a length of 11. What is the area of the rectangle?,308,187,14,33,D
+M162,Math,Problem solving: percents and discounts,67,"A backpack costs $160. It is on sale for 40% off. What is the sale price, in dollars?",224,120,64,96,D
+M165,Math,Algebra: function notation,66,"If f(x) = 2x + 1, what is the value of f(6)?",12,13,14,8,B
+M166,Math,Problem solving: part-to-part ratios,73,The ratio of juniors to seniors in a group is 7 to 4. There are 33 in all. How many are seniors?,132,3,12,21,C
+M167,Math,Problem solving: percents and discounts,16,"A bike costs $340. It is on sale for 25% off. What is the sale price, in dollars?",85,170,425,255,D
+M169,Math,Problem solving: part-to-part ratios,47,The ratio of fiction books to nonfiction books in a group is 5 to 7. There are 108 in all. How many are nonfiction books?,756,9,45,63,D
+M170,Math,Algebra: systems of linear equations,35,"If x + y = 34 and x - y = 2, what is the value of x?",34,18,16,36,B
+M171,Math,Problem solving: percents and discounts,50,"A jacket costs $380. It is on sale for 10% off. What is the sale price, in dollars?",342,38,418,304,A
+M176,Math,Geometry: rectangles,45,A rectangle has a perimeter of 54 and a length of 15. What is the area of the rectangle?,180,585,12,810,A
+M178,Math,Algebra: one-variable equations,57,"If 8x + 40 = 64, what is the value of x?",24,16,3,13,C
+M179,Math,Algebra: one-variable equations,23,"If 7x + 35 = 91, what is the value of x?",8,56,18,49,A
+M180,Math,Algebra: systems of linear equations,47,"If x + y = 15 and x - y = 1, what is the value of x?",15,7,8,14,C
+M182,Math,Algebra: systems of linear equations,33,"If x + y = 16 and x - y = 6, what is the value of x?",11,16,5,22,A
+M184,Math,Algebra: function notation,53,"If f(x) = 8x + 10, what is the value of f(8)?",144,26,88,74,D
+M187,Math,Problem solving: percents and discounts,16,"A backpack costs $60. It is on sale for 10% off. What is the sale price, in dollars?",66,50,54,6,C
+M189,Math,Problem solving: percents and discounts,74,"A backpack costs $340. It is on sale for 35% off. What is the sale price, in dollars?",221,102,305,459,A
+M190,Math,Algebra: one-variable equations,18,"If 8x + 48 = 96, what is the value of x?",18,40,6,48,C
+M191,Math,Problem solving: percents and discounts,55,"A backpack costs $380. It is on sale for 35% off. What is the sale price, in dollars?",114,513,247,345,C
+M193,Math,Geometry: rectangles,30,A rectangle has a perimeter of 32 and a length of 14. What is the area of the rectangle?,16,448,252,28,D
+M194,Math,Algebra: one-variable equations,40,"If 9x + 45 = 90, what is the value of x?",5,15,36,45,A
+M202,Math,Geometry: rectangles,16,A rectangle has a perimeter of 16 and a length of 6. What is the area of the rectangle?,8,12,2,96,B
+M205,Math,Algebra: function notation,28,"If f(x) = 6x + 11, what is the value of f(2)?",12,78,28,23,D
+M206,Math,Algebra: function notation,22,"If f(x) = 5x + 10, what is the value of f(7)?",45,22,35,75,A
+M208,Math,Problem solving: part-to-part ratios,83,The ratio of fiction books to nonfiction books in a group is 5 to 4. There are 117 in all. How many are nonfiction books?,65,468,52,13,C
+M209,Math,Algebra: one-variable equations,88,"If 4x + 20 = 68, what is the value of x?",48,22,44,12,D
+M211,Math,Algebra: one-variable equations,77,"If 8x + 48 = 136, what is the value of x?",88,80,11,23,C
+M216,Math,Algebra: one-variable equations,47,"If 4x + 4 = 64, what is the value of x?",12,17,15,56,C
+M218,Math,Problem solving: percents and discounts,51,"A lamp costs $40. It is on sale for 20% off. What is the sale price, in dollars?",8,20,32,24,C
+M221,Math,Algebra: one-variable equations,41,"If 8x + 8 = 64, what is the value of x?",48,56,9,7,D
+M222,Math,Problem solving: percents and discounts,75,"A lamp costs $360. It is on sale for 15% off. What is the sale price, in dollars?",345,54,252,306,D
+M226,Math,Algebra: function notation,59,"If f(x) = 5x + 1, what is the value of f(4)?",20,10,21,9,C
+M227,Math,Algebra: function notation,42,"If f(x) = 9x + 5, what is the value of f(5)?",45,90,19,50,D
+M228,Math,Algebra: one-variable equations,59,"If 4x + 12 = 44, what is the value of x?",28,32,14,8,D
+M230,Math,Algebra: systems of linear equations,17,"If x + y = 31 and x - y = 1, what is the value of x?",15,16,30,32,B
+M233,Math,Problem solving: part-to-part ratios,37,The ratio of cats to dogs in a group is 4 to 5. There are 99 in all. How many are dogs?,44,495,55,11,C
+M238,Math,Problem solving: percents and discounts,42,"A backpack costs $340. It is on sale for 40% off. What is the sale price, in dollars?",300,204,68,136,B
+M241,Math,Geometry: rectangles,26,A rectangle has a perimeter of 26 and a length of 11. What is the area of the rectangle?,22,13,2,165,A
+M242,Math,Algebra: one-variable equations,72,"If 8x + 24 = 48, what is the value of x?",9,24,16,3,D
+M244,Math,Algebra: systems of linear equations,24,"If x + y = 10 and x - y = 6, what is the value of x?",8,4,2,16,A
+M245,Math,Geometry: rectangles,88,A rectangle has a perimeter of 40 and a length of 18. What is the area of the rectangle?,36,20,396,2,A
+M246,Math,Algebra: one-variable equations,79,"If 5x + 25 = 90, what is the value of x?",23,13,65,60,B
+M249,Math,Algebra: function notation,74,"If f(x) = 5x + 6, what is the value of f(5)?",35,55,16,31,D
+M251,Math,Geometry: rectangles,44,A rectangle has a perimeter of 48 and a length of 20. What is the area of the rectangle?,80,960,24,4,A
+M252,Math,Algebra: systems of linear equations,88,"If x + y = 27 and x - y = 3, what is the value of x?",30,12,27,15,D
+M256,Math,Problem solving: part-to-part ratios,27,The ratio of cats to dogs in a group is 5 to 2. There are 98 in all. How many are dogs?,14,196,70,28,D
+M258,Math,Problem solving: part-to-part ratios,36,The ratio of juniors to seniors in a group is 1 to 5. There are 30 in all. How many are seniors?,6,150,25,5,C
+M261,Math,Problem solving: part-to-part ratios,32,The ratio of cats to dogs in a group is 4 to 7. There are 99 in all. How many are dogs?,63,693,36,9,A
+M262,Math,Problem solving: part-to-part ratios,66,The ratio of juniors to seniors in a group is 5 to 7. There are 48 in all. How many are seniors?,336,4,28,20,C
+M263,Math,Geometry: rectangles,70,A rectangle has a perimeter of 50 and a length of 14. What is the area of the rectangle?,25,11,154,504,C
+M264,Math,Problem solving: part-to-part ratios,38,The ratio of fiction books to nonfiction books in a group is 4 to 6. There are 140 in all. How many are nonfiction books?,84,56,840,14,A
+M265,Math,Algebra: one-variable equations,61,"If 7x + 42 = 105, what is the value of x?",9,63,21,56,A
+M267,Math,Algebra: function notation,80,"If f(x) = 7x + 4, what is the value of f(4)?",32,15,28,23,A
+M268,Math,Algebra: function notation,73,"If f(x) = 2x + 11, what is the value of f(7)?",14,20,36,25,D
+M270,Math,Geometry: rectangles,84,A rectangle has a perimeter of 24 and a length of 7. What is the area of the rectangle?,168,119,12,35,D
+M272,Math,Problem solving: percents and discounts,30,"A lamp costs $100. It is on sale for 35% off. What is the sale price, in dollars?",35,30,65,135,C
+M275,Math,Geometry: rectangles,30,A rectangle has a perimeter of 20 and a length of 7. What is the area of the rectangle?,10,21,91,140,B
+M276,Math,Algebra: systems of linear equations,51,"If x + y = 29 and x - y = 11, what is the value of x?",9,18,40,20,D
+M279,Math,Problem solving: part-to-part ratios,26,The ratio of red marbles to blue marbles in a group is 4 to 3. There are 28 in all. How many are blue marbles?,4,16,84,12,D
+M280,Math,Problem solving: percents and discounts,92,"A lamp costs $320. It is on sale for 30% off. What is the sale price, in dollars?",96,290,224,128,C
+M282,Math,Algebra: systems of linear equations,55,"If x + y = 36 and x - y = 2, what is the value of x?",19,36,17,34,A
+M283,Math,Geometry: rectangles,51,A rectangle has a perimeter of 46 and a length of 15. What is the area of the rectangle?,120,465,8,23,A
+M284,Math,Geometry: rectangles,30,A rectangle has a perimeter of 56 and a length of 19. What is the area of the rectangle?,9,171,1064,703,B
+M286,Math,Problem solving: part-to-part ratios,34,The ratio of cats to dogs in a group is 3 to 2. There are 60 in all. How many are dogs?,24,36,12,120,A
+M287,Math,Algebra: function notation,62,"If f(x) = 9x + 9, what is the value of f(3)?",36,21,108,27,A
+M288,Math,Problem solving: part-to-part ratios,78,The ratio of juniors to seniors in a group is 3 to 5. There are 112 in all. How many are seniors?,14,560,70,42,C
+M295,Math,Algebra: one-variable equations,74,"If 4x + 8 = 68, what is the value of x?",56,19,9,15,D
+M296,Math,Geometry: rectangles,17,A rectangle has a perimeter of 40 and a length of 11. What is the area of the rectangle?,319,9,99,20,C
+M297,Math,Problem solving: part-to-part ratios,29,The ratio of red marbles to blue marbles in a group is 3 to 5. There are 120 in all. How many are blue marbles?,600,15,75,24,C
+M298,Math,Algebra: function notation,89,"If f(x) = 3x + 7, what is the value of f(3)?",30,16,9,13,B
+M302,Math,Algebra: systems of linear equations,42,"If x + y = 37 and x - y = 1, what is the value of x?",19,38,37,36,A
+M307,Math,Algebra: one-variable equations,30,"If 6x + 24 = 84, what is the value of x?",18,54,60,10,D
+M308,Math,Algebra: one-variable equations,16,"If 6x + 24 = 102, what is the value of x?",78,21,13,72,C
+M311,Math,Problem solving: percents and discounts,55,"A bike costs $180. It is on sale for 15% off. What is the sale price, in dollars?",153,165,126,27,A
+M312,Math,Algebra: systems of linear equations,29,"If x + y = 8 and x - y = 2, what is the value of x?",8,10,5,3,C
+M313,Math,Algebra: one-variable equations,87,"If 7x + 35 = 63, what is the value of x?",21,4,14,28,B
+M315,Math,Algebra: systems of linear equations,18,"If x + y = 20 and x - y = 8, what is the value of x?",20,14,12,6,B
+M316,Math,Algebra: systems of linear equations,16,"If x + y = 10 and x - y = 4, what is the value of x?",7,3,14,6,A
+RW101,Reading and Writing,Punctuation: sentence boundaries,68,The snow ___ river rose by noon.,melted the,melted; and the,"melted, the",melted; the,D
+RW103,Reading and Writing,Punctuation: sentence boundaries,16,The bakery ___ owners moved to the coast.,"closed, its",closed; and its,closed; its,closed its,C
+RW106,Reading and Writing,Grammar: verb tenses,54,"In 2006, the town ___ a weekly podcast.",began,has begun,begins,will begin,A
+RW107,Reading and Writing,Grammar: subjects and verbs,86,"Right now, the stack of old letters ___ in the main office.",stays,stay,stayed,staying,A
+RW109,Reading and Writing,Punctuation: sentence boundaries,78,The bus ___ riders walked the last mile.,broke down; most,broke down most,"broke down, most",broke down; and most,A
+RW111,Reading and Writing,Expression of ideas: logical transitions,24,"The town repaved Main Street. ___, it planted trees along both sidewalks.",In addition,Therefore,For example,However,A
+RW114,Reading and Writing,Grammar: subjects and verbs,52,"Right now, the basket of old letters ___ a torn cover.",has,had,having,have,A
+RW116,Reading and Writing,Grammar: verb tenses,31,"In 2001, the town ___ its first regional prize.",has won,will win,wins,won,D
+RW118,Reading and Writing,Expression of ideas: logical transitions,69,"The library extended its hours. ___, more students studied there in the evening.",For example,However,In addition,Therefore,D
+RW119,Reading and Writing,Grammar: pronoun agreement,43,"After a long meeting, the band changed ___ rules for new members.",his or her,its,it's,their,B
+RW126,Reading and Writing,Grammar: logical comparisons,87,Visitors often say that the streets of Harlow are more interesting than ___.,Ashby,those of Ashby's,those of Ashby,that of Ashby,C
+RW132,Reading and Writing,Grammar: logical comparisons,79,Visitors often say that the population of Elmont is more interesting than ___.,Harlow,that of Harlow's,that of Harlow,those of Harlow,C
+RW134,Reading and Writing,Grammar: verb tenses,63,"In 2019, the town ___ a record crowd.",draws,will draw,has drawn,drew,D
+RW135,Reading and Writing,Expression of ideas: logical transitions,65,"Some birds use tools. ___, crows bend wire into hooks to reach food.",For example,Therefore,In addition,However,A
+RW137,Reading and Writing,Punctuation: sentence boundaries,86,The rain finally ___ crowd returned to the field.,stopped; and the,stopped; the,stopped the,"stopped, the",B
+RW139,Reading and Writing,Grammar: pronoun agreement,87,"After a long meeting, the jury celebrated ___ tenth anniversary.",their,it's,its,his or her,C
+RW140,Reading and Writing,Grammar: logical comparisons,26,Visitors often say that the parks of Marlow are more interesting than ___.,those of Elmont,that of Elmont,Elmont,those of Elmont's,A
+RW144,Reading and Writing,Grammar: pronoun agreement,51,"After a long meeting, the company posted ___ schedule for the spring.",it's,their,his or her,its,D
+RW145,Reading and Writing,Grammar: logical comparisons,39,Visitors often say that the parks of Elmont are more interesting than ___.,those of Marlow's,those of Marlow,that of Marlow,Marlow,B
+RW146,Reading and Writing,Grammar: pronoun agreement,36,"After a long meeting, the committee announced ___ decision.",their,its,his or her,it's,B
+RW147,Reading and Writing,Punctuation: sentence boundaries,84,The museum ___ new wing drew long lines.,reopened; and its,"reopened, its",reopened; its,reopened its,C
+RW148,Reading and Writing,Punctuation: sentence boundaries,46,The market ___ stalls sold out by ten.,opened; and its,"opened, its",opened its,opened; its,D
+RW150,Reading and Writing,Grammar: pronoun agreement,33,"After a long meeting, the club changed ___ rules for new members.",it's,its,their,his or her,B
+RW152,Reading and Writing,Punctuation: sentence boundaries,59,The storm ___ damage was worse than expected.,passed its,"passed, its",passed; and its,passed; its,D
+RW154,Reading and Writing,Grammar: verb tenses,49,"In 2016, the school band ___ the old record.",broke,will break,has broken,breaks,A
+RW155,Reading and Writing,Expression of ideas: logical transitions,48,"The coach planned extra practices. ___, she arranged two games with nearby schools.",For example,In addition,Therefore,However,B
+RW157,Reading and Writing,Grammar: pronoun agreement,60,"After a long meeting, the team announced ___ decision.",his or her,its,their,it's,B
+RW159,Reading and Writing,Expression of ideas: logical transitions,44,"The museum offers free programs. ___, it hosts a drawing class every Saturday.",However,In addition,For example,Therefore,C
+RW161,Reading and Writing,Grammar: subjects and verbs,86,"Right now, the box of receipts ___ in the main office.",stays,stayed,staying,stay,A
+RW163,Reading and Writing,Grammar: logical comparisons,43,Visitors often say that the museums of Fenwick are more interesting than ___.,Corran,that of Corran,those of Corran's,those of Corran,D
+RW164,Reading and Writing,Expression of ideas: logical transitions,16,"The forecast promised sun. ___, we spent the afternoon under umbrellas.",In addition,For example,Therefore,However,D
+RW168,Reading and Writing,Grammar: subjects and verbs,25,"Right now, the collection of photos ___ on the front desk.",being,are,is,was,C
+RW172,Reading and Writing,Grammar: logical comparisons,63,Visitors often say that the museums of Ashby are more interesting than ___.,those of Elmont's,that of Elmont,those of Elmont,Elmont,C
+RW173,Reading and Writing,Expression of ideas: logical transitions,89,"The well ran dry in August. ___, the farm bought water by the truckload.",However,For example,In addition,Therefore,D
+RW174,Reading and Writing,Grammar: subjects and verbs,61,"Right now, the folder of supplies ___ in the main office.",stayed,staying,stay,stays,D
+RW175,Reading and Writing,Grammar: logical comparisons,87,Visitors often say that the streets of Ashby are more interesting than ___.,those of Marlow,Marlow,that of Marlow,those of Marlow's,A
+RW177,Reading and Writing,Punctuation: sentence boundaries,61,The class ___ trip will be to the science center.,voted the,"voted, the",voted; and the,voted; the,D
+RW181,Reading and Writing,Grammar: pronoun agreement,86,"After a long meeting, the company announced ___ decision.",his or her,its,their,it's,B
+RW183,Reading and Writing,Grammar: verb tenses,49,"In 2002, the town ___ a record crowd.",will draw,drew,has drawn,draws,B
+RW185,Reading and Writing,Grammar: pronoun agreement,46,"After a long meeting, the company changed ___ rules for new members.",their,it's,its,his or her,C
+RW186,Reading and Writing,Punctuation: sentence boundaries,63,The printer ___ flyers were late for the fair.,"jammed, the",jammed; the,jammed; and the,jammed the,B
+RW188,Reading and Writing,Grammar: verb tenses,22,"In 2003, the robotics team ___ a new stage.",built,has built,builds,will build,A
+RW192,Reading and Writing,Grammar: pronoun agreement,31,"After a long meeting, the council moved ___ office across town.",it's,his or her,its,their,C
+RW195,Reading and Writing,Grammar: pronoun agreement,24,"After a long meeting, the committee posted ___ schedule for the spring.",it's,his or her,its,their,C
+RW196,Reading and Writing,Grammar: pronoun agreement,27,"After a long meeting, the team changed ___ rules for new members.",it's,his or her,their,its,D
+RW197,Reading and Writing,Grammar: subjects and verbs,47,"Right now, the list of receipts ___ a new label.",needed,need,needing,needs,D
+RW198,Reading and Writing,Grammar: verb tenses,79,"In 1998, the robotics team ___ a record crowd.",drew,has drawn,will draw,draws,A
+RW199,Reading and Writing,Grammar: subjects and verbs,61,"Right now, the folder of notes ___ in the main office.",staying,stayed,stay,stays,D
+RW200,Reading and Writing,Grammar: subjects and verbs,33,"Right now, the basket of receipts ___ in the main office.",staying,stay,stays,stayed,C
+RW201,Reading and Writing,Grammar: logical comparisons,80,Visitors often say that the climate of Fenwick is more interesting than ___.,those of Kessington,that of Kessington's,that of Kessington,Kessington,C
+RW203,Reading and Writing,Expression of ideas: logical transitions,35,"The tickets sold out in a day. ___, the theater added a second show.",In addition,Therefore,However,For example,B
+RW204,Reading and Writing,Expression of ideas: logical transitions,41,"The new park has a large playground. ___, it includes a quiet reading garden.",However,Therefore,For example,In addition,D
+RW207,Reading and Writing,Grammar: subjects and verbs,81,"Right now, the folder of notes ___ a torn cover.",had,have,has,having,C
+RW210,Reading and Writing,Grammar: verb tenses,52,"In 2013, the robotics team ___ a new name.",will choose,chose,chooses,has chosen,B
+RW212,Reading and Writing,Grammar: logical comparisons,24,Visitors often say that the museums of Delford are more interesting than ___.,those of Corran,those of Corran's,Corran,that of Corran,A
+RW213,Reading and Writing,Expression of ideas: logical transitions,65,"Most critics praised the film. ___, it sold few tickets.",For example,Therefore,However,In addition,C
+RW214,Reading and Writing,Grammar: subjects and verbs,54,"Right now, the list of notes ___ a torn cover.",has,had,have,having,A
+RW215,Reading and Writing,Grammar: pronoun agreement,77,"After a long meeting, the band celebrated ___ tenth anniversary.",it's,his or her,its,their,C
+RW217,Reading and Writing,Grammar: subjects and verbs,64,"Right now, the box of receipts ___ near the window.",sitting,sat,sit,sits,D
+RW219,Reading and Writing,Grammar: logical comparisons,15,Visitors often say that the climate of Corran is more interesting than ___.,that of Marlow,that of Marlow's,Marlow,those of Marlow,A
+RW220,Reading and Writing,Grammar: verb tenses,67,"In 2015, the town ___ a weekly podcast.",has begun,begins,began,will begin,C
+RW223,Reading and Writing,Expression of ideas: logical transitions,61,"Several streets were renamed. ___, Mill Road is now Founders Way.",For example,In addition,Therefore,However,A
+RW224,Reading and Writing,Expression of ideas: logical transitions,83,"The recipe called for an hour of baking. ___, the bread was done in forty minutes.",However,In addition,Therefore,For example,A
+RW225,Reading and Writing,Grammar: verb tenses,47,"In 1997, the school band ___ a record crowd.",draws,drew,has drawn,will draw,B
+RW229,Reading and Writing,Expression of ideas: logical transitions,18,"Many desert plants store water. ___, the barrel cactus can go months without rain.",Therefore,For example,However,In addition,B
+RW231,Reading and Writing,Grammar: logical comparisons,52,Visitors often say that the streets of Elmont are more interesting than ___.,those of Kessington's,Kessington,those of Kessington,that of Kessington,C
+RW232,Reading and Writing,Grammar: verb tenses,77,"In 2000, the school band ___ a weekly podcast.",began,has begun,begins,will begin,A
+RW234,Reading and Writing,Grammar: subjects and verbs,70,"Right now, the basket of old letters ___ in the main office.",stayed,stays,stay,staying,B
+RW235,Reading and Writing,Grammar: logical comparisons,57,Visitors often say that the climate of Kessington is more interesting than ___.,those of Ashby,that of Ashby,Ashby,that of Ashby's,B
+RW236,Reading and Writing,Punctuation: sentence boundaries,72,The lights ___ speaker kept going anyway.,flickered; the,"flickered, the",flickered the,flickered; and the,A
+RW237,Reading and Writing,Grammar: verb tenses,59,"In 2005, the town ___ a new stage.",built,builds,has built,will build,A
+RW239,Reading and Writing,Grammar: pronoun agreement,18,"After a long meeting, the band announced ___ decision.",its,their,it's,his or her,A
+RW240,Reading and Writing,Grammar: verb tenses,80,"In 2004, the town ___ the old record.",has broken,breaks,will break,broke,D
+RW243,Reading and Writing,Grammar: logical comparisons,32,Visitors often say that the population of Marlow is more interesting than ___.,Delford,that of Delford,that of Delford's,those of Delford,B
+RW247,Reading and Writing,Grammar: logical comparisons,58,Visitors often say that the rainfall of Corran is more interesting than ___.,Kessington,those of Kessington,that of Kessington,that of Kessington's,C
+RW248,Reading and Writing,Expression of ideas: logical transitions,81,"The bridge was closed for repairs. ___, the bus took the long road around the lake.",In addition,For example,Therefore,However,C
+RW250,Reading and Writing,Grammar: verb tenses,84,"In 2007, the town ___ a record crowd.",drew,has drawn,will draw,draws,A
+RW253,Reading and Writing,Grammar: logical comparisons,31,Visitors often say that the population of Ashby is more interesting than ___.,that of Kessington's,that of Kessington,those of Kessington,Kessington,B
+RW254,Reading and Writing,Grammar: pronoun agreement,50,"After a long meeting, the company moved ___ office across town.",his or her,their,it's,its,D
+RW255,Reading and Writing,Punctuation: sentence boundaries,55,The play ___ audience stood and cheered.,ended the,ended; and the,ended; the,"ended, the",C
+RW257,Reading and Writing,Grammar: pronoun agreement,22,"After a long meeting, the jury announced ___ decision.",its,their,it's,his or her,A
+RW259,Reading and Writing,Grammar: pronoun agreement,17,"After a long meeting, the company celebrated ___ tenth anniversary.",its,it's,his or her,their,A
+RW260,Reading and Writing,Grammar: subjects and verbs,66,"Right now, the list of maps ___ in the main office.",stayed,stay,stays,staying,C
+RW266,Reading and Writing,Expression of ideas: logical transitions,29,"The trail looked short on the map. ___, it took us four hours to finish.",However,For example,In addition,Therefore,A
+RW269,Reading and Writing,Expression of ideas: logical transitions,68,"The orchestra lost its conductor. ___, the spring concert was postponed.",In addition,However,Therefore,For example,C
+RW271,Reading and Writing,Punctuation: sentence boundaries,35,The shop ___ second floor now sells books.,expanded; and its,expanded; its,expanded its,"expanded, its",B
+RW273,Reading and Writing,Expression of ideas: logical transitions,28,"The town keeps old traditions. ___, it still rings the noon bell by hand.",Therefore,However,In addition,For example,D
+RW274,Reading and Writing,Grammar: subjects and verbs,33,"Right now, the box of maps ___ a torn cover.",having,have,had,has,D
+RW277,Reading and Writing,Punctuation: sentence boundaries,17,The garden ___ tomatoes did not survive.,flooded; and the,flooded the,flooded; the,"flooded, the",C
+RW278,Reading and Writing,Grammar: pronoun agreement,19,"After a long meeting, the jury changed ___ rules for new members.",their,its,his or her,it's,B
+RW281,Reading and Writing,Grammar: subjects and verbs,49,"Right now, the basket of notes ___ near the window.",sat,sitting,sit,sits,D
+RW285,Reading and Writing,Grammar: pronoun agreement,25,"After a long meeting, the council posted ___ schedule for the spring.",his or her,their,its,it's,C
+RW289,Reading and Writing,Grammar: subjects and verbs,38,"Right now, the stack of maps ___ on the front desk.",are,is,was,being,B
+RW290,Reading and Writing,Punctuation: sentence boundaries,51,The bell ___ hallway filled at once.,rang; and every,rang; every,"rang, every",rang every,B
+RW291,Reading and Writing,Punctuation: sentence boundaries,65,The river ___ skater in town came out.,froze; and every,"froze, every",froze; every,froze every,C
+RW292,Reading and Writing,Grammar: verb tenses,17,"In 2018, the drama club ___ a weekly podcast.",has begun,begins,will begin,began,D
+RW293,Reading and Writing,Grammar: verb tenses,58,"In 2005, the town ___ a new name.",has chosen,chooses,chose,will choose,C
+RW294,Reading and Writing,Punctuation: sentence boundaries,31,The power ___ students kept reading by window light.,"failed, most",failed; and most,failed most,failed; most,D
+RW299,Reading and Writing,Grammar: logical comparisons,63,Visitors often say that the streets of Kessington are more interesting than ___.,Harlow,those of Harlow,those of Harlow's,that of Harlow,B
+RW300,Reading and Writing,Grammar: verb tenses,39,"In 1997, the school band ___ a new name.",chooses,will choose,has chosen,chose,D
+RW301,Reading and Writing,Grammar: subjects and verbs,90,"Right now, the basket of photos ___ near the window.",sits,sat,sit,sitting,A
+RW303,Reading and Writing,Grammar: verb tenses,46,"In 2002, the robotics team ___ a new stage.",builds,has built,built,will build,C
+RW304,Reading and Writing,Punctuation: sentence boundaries,49,Our team ___ drill took twice as long as planned.,practiced; every,practiced; and every,practiced every,"practiced, every",A
+RW305,Reading and Writing,Grammar: logical comparisons,50,Visitors often say that the population of Harlow is more interesting than ___.,Corran,that of Corran,that of Corran's,those of Corran,B
+RW306,Reading and Writing,Grammar: subjects and verbs,33,"Right now, the basket of notes ___ on the front desk.",are,is,was,being,B
+RW309,Reading and Writing,Grammar: logical comparisons,36,Visitors often say that the parks of Harlow are more interesting than ___.,Elmont,those of Elmont,those of Elmont's,that of Elmont,B
+RW310,Reading and Writing,Punctuation: sentence boundaries,79,The ferry ___ passengers hurried down the ramp.,arrived the,"arrived, the",arrived; and the,arrived; the,D
+RW314,Reading and Writing,Expression of ideas: logical transitions,20,"The new bus line runs every ten minutes. ___, it stops at both high schools.",Therefore,For example,In addition,However,C

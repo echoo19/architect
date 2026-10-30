@@ -1,0 +1,1393 @@
+student_id,test_id,taken_on,section,module,number,question_id,topic,selected,correct,result
+ST0001,BB3,2026-09-01,Reading and Writing,1,1,RW167,W-GRA-07 Pronoun Agreement,A,A,right
+ST0001,BB3,2026-09-01,Reading and Writing,1,2,RW128,W-PUN-03 Run-ons and Comma Splices,D,D,right
+ST0001,BB3,2026-09-01,Reading and Writing,1,3,RW213,W-GRA-12 Verb Tense,D,D,right
+ST0001,BB3,2026-09-01,Reading and Writing,1,4,RW147,W-GRA-09 Comparisons,D,D,right
+ST0001,BB3,2026-09-01,Reading and Writing,1,5,RW183,W-GRA-06 Subjects and Verbs,C,A,wrong
+ST0001,BB3,2026-09-01,Reading and Writing,1,6,RW227,W-EXP-02 Logical Transitions,D,A,wrong
+ST0001,BB3,2026-09-01,Reading and Writing,2,1,RW282,W-GRA-07 Pronoun Agreement,B,A,wrong
+ST0001,BB3,2026-09-01,Reading and Writing,2,2,RW154,W-GRA-09 Comparisons,B,B,right
+ST0001,BB3,2026-09-01,Reading and Writing,2,3,RW103,W-GRA-12 Verb Tense,A,D,wrong
+ST0001,BB3,2026-09-01,Reading and Writing,2,4,RW300,W-EXP-02 Logical Transitions,D,A,wrong
+ST0001,BB3,2026-09-01,Reading and Writing,2,5,RW290,W-PUN-03 Run-ons and Comma Splices,B,C,wrong
+ST0001,BB3,2026-09-01,Reading and Writing,2,6,RW278,W-GRA-06 Subjects and Verbs,D,D,right
+ST0001,BB3,2026-09-01,Math,1,1,M126,M-ALG-08 Solving Linear Equations,A,C,wrong
+ST0001,BB3,2026-09-01,Math,1,2,M280,M-ALG-04 Systems of Equations,B,B,right
+ST0001,BB3,2026-09-01,Math,1,3,M192,M-GEO-05 Rectangles,C,C,right
+ST0001,BB3,2026-09-01,Math,1,4,M258,M-ALG-11 Function Notation,D,D,right
+ST0001,BB3,2026-09-01,Math,1,5,M306,M-PRO-01 Percentages,B,C,wrong
+ST0001,BB3,2026-09-01,Math,1,6,M142,M-PRO-10 Ratios,D,D,right
+ST0001,BB3,2026-09-01,Math,2,1,M105,M-PRO-10 Ratios,D,D,right
+ST0001,BB3,2026-09-01,Math,2,2,M209,M-GEO-05 Rectangles,B,B,right
+ST0001,BB3,2026-09-01,Math,2,3,M194,M-PRO-01 Percentages,D,D,right
+ST0001,BB3,2026-09-01,Math,2,4,M120,M-ALG-04 Systems of Equations,D,D,right
+ST0001,BB3,2026-09-01,Math,2,5,M303,M-ALG-11 Function Notation,D,D,right
+ST0001,BB3,2026-09-01,Math,2,6,M309,M-ALG-08 Solving Linear Equations,B,A,wrong
+ST0005,BB1,2026-09-01,Reading and Writing,1,1,RW165,W-EXP-02 Logical Transitions,C,C,right
+ST0005,BB1,2026-09-01,Reading and Writing,1,2,RW255,W-PUN-03 Run-ons and Comma Splices,D,B,wrong
+ST0005,BB1,2026-09-01,Reading and Writing,1,3,RW233,W-GRA-12 Verb Tense,D,D,right
+ST0005,BB1,2026-09-01,Reading and Writing,1,4,RW122,W-GRA-09 Comparisons,A,A,right
+ST0005,BB1,2026-09-01,Reading and Writing,1,5,RW108,W-GRA-07 Pronoun Agreement,D,D,right
+ST0005,BB1,2026-09-01,Reading and Writing,1,6,RW240,W-GRA-06 Subjects and Verbs,C,C,right
+ST0005,BB1,2026-09-01,Reading and Writing,2,1,RW140,W-PUN-03 Run-ons and Comma Splices,C,D,wrong
+ST0005,BB1,2026-09-01,Reading and Writing,2,2,RW246,W-GRA-09 Comparisons,A,D,wrong
+ST0005,BB1,2026-09-01,Reading and Writing,2,3,RW168,W-GRA-07 Pronoun Agreement,A,A,right
+ST0005,BB1,2026-09-01,Reading and Writing,2,4,RW299,W-GRA-12 Verb Tense,A,C,wrong
+ST0005,BB1,2026-09-01,Reading and Writing,2,5,RW110,W-EXP-02 Logical Transitions,C,B,wrong
+ST0005,BB1,2026-09-01,Reading and Writing,2,6,RW193,W-GRA-06 Subjects and Verbs,C,D,wrong
+ST0005,BB1,2026-09-01,Math,1,1,M145,M-ALG-04 Systems of Equations,A,A,right
+ST0005,BB1,2026-09-01,Math,1,2,M118,M-ALG-11 Function Notation,C,C,right
+ST0005,BB1,2026-09-01,Math,1,3,M267,M-ALG-08 Solving Linear Equations,C,C,right
+ST0005,BB1,2026-09-01,Math,1,4,M257,M-PRO-01 Percentages,C,C,right
+ST0005,BB1,2026-09-01,Math,1,5,M132,M-GEO-05 Rectangles,B,A,wrong
+ST0005,BB1,2026-09-01,Math,1,6,M285,M-PRO-10 Ratios,A,A,right
+ST0005,BB1,2026-09-01,Math,2,1,M270,M-PRO-01 Percentages,A,A,right
+ST0005,BB1,2026-09-01,Math,2,2,M203,M-GEO-05 Rectangles,B,D,wrong
+ST0005,BB1,2026-09-01,Math,2,3,M135,M-ALG-08 Solving Linear Equations,B,B,right
+ST0005,BB1,2026-09-01,Math,2,4,M151,M-ALG-11 Function Notation,B,B,right
+ST0005,BB1,2026-09-01,Math,2,5,M252,M-PRO-10 Ratios,B,C,wrong
+ST0005,BB1,2026-09-01,Math,2,6,M155,M-ALG-04 Systems of Equations,B,B,right
+ST0010,BB1,2026-09-01,Reading and Writing,1,1,RW165,W-EXP-02 Logical Transitions,D,C,wrong
+ST0010,BB1,2026-09-01,Reading and Writing,1,2,RW255,W-PUN-03 Run-ons and Comma Splices,D,B,wrong
+ST0010,BB1,2026-09-01,Reading and Writing,1,3,RW233,W-GRA-12 Verb Tense,C,D,wrong
+ST0010,BB1,2026-09-01,Reading and Writing,1,4,RW122,W-GRA-09 Comparisons,A,A,right
+ST0010,BB1,2026-09-01,Reading and Writing,1,5,RW108,W-GRA-07 Pronoun Agreement,D,D,right
+ST0010,BB1,2026-09-01,Reading and Writing,1,6,RW240,W-GRA-06 Subjects and Verbs,D,C,wrong
+ST0010,BB1,2026-09-01,Reading and Writing,2,1,RW140,W-PUN-03 Run-ons and Comma Splices,B,D,wrong
+ST0010,BB1,2026-09-01,Reading and Writing,2,2,RW246,W-GRA-09 Comparisons,D,D,right
+ST0010,BB1,2026-09-01,Reading and Writing,2,3,RW168,W-GRA-07 Pronoun Agreement,A,A,right
+ST0010,BB1,2026-09-01,Reading and Writing,2,4,RW299,W-GRA-12 Verb Tense,C,C,right
+ST0010,BB1,2026-09-01,Reading and Writing,2,5,RW110,W-EXP-02 Logical Transitions,C,B,wrong
+ST0010,BB1,2026-09-01,Reading and Writing,2,6,RW193,W-GRA-06 Subjects and Verbs,D,D,right
+ST0010,BB1,2026-09-01,Math,1,1,M145,M-ALG-04 Systems of Equations,A,A,right
+ST0010,BB1,2026-09-01,Math,1,2,M118,M-ALG-11 Function Notation,C,C,right
+ST0010,BB1,2026-09-01,Math,1,3,M267,M-ALG-08 Solving Linear Equations,C,C,right
+ST0010,BB1,2026-09-01,Math,1,4,M257,M-PRO-01 Percentages,C,C,right
+ST0010,BB1,2026-09-01,Math,1,5,M132,M-GEO-05 Rectangles,A,A,right
+ST0010,BB1,2026-09-01,Math,1,6,M285,M-PRO-10 Ratios,B,A,wrong
+ST0010,BB1,2026-09-01,Math,2,1,M270,M-PRO-01 Percentages,A,A,right
+ST0010,BB1,2026-09-01,Math,2,2,M203,M-GEO-05 Rectangles,D,D,right
+ST0010,BB1,2026-09-01,Math,2,3,M135,M-ALG-08 Solving Linear Equations,B,B,right
+ST0010,BB1,2026-09-01,Math,2,4,M151,M-ALG-11 Function Notation,B,B,right
+ST0010,BB1,2026-09-01,Math,2,5,M252,M-PRO-10 Ratios,B,C,wrong
+ST0010,BB1,2026-09-01,Math,2,6,M155,M-ALG-04 Systems of Equations,D,B,wrong
+ST0008,BB2,2026-09-02,Reading and Writing,1,1,RW190,W-GRA-07 Pronoun Agreement,D,A,wrong
+ST0008,BB2,2026-09-02,Reading and Writing,1,2,RW218,W-GRA-06 Subjects and Verbs,D,B,wrong
+ST0008,BB2,2026-09-02,Reading and Writing,1,3,RW305,W-EXP-02 Logical Transitions,B,B,right
+ST0008,BB2,2026-09-02,Reading and Writing,1,4,RW208,W-GRA-12 Verb Tense,C,C,right
+ST0008,BB2,2026-09-02,Reading and Writing,1,5,RW201,W-GRA-09 Comparisons,A,C,wrong
+ST0008,BB2,2026-09-02,Reading and Writing,1,6,RW223,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0008,BB2,2026-09-02,Reading and Writing,2,1,RW234,W-GRA-09 Comparisons,C,A,wrong
+ST0008,BB2,2026-09-02,Reading and Writing,2,2,RW239,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0008,BB2,2026-09-02,Reading and Writing,2,3,RW254,W-GRA-06 Subjects and Verbs,C,D,wrong
+ST0008,BB2,2026-09-02,Reading and Writing,2,4,RW250,W-EXP-02 Logical Transitions,B,C,wrong
+ST0008,BB2,2026-09-02,Reading and Writing,2,5,RW112,W-GRA-12 Verb Tense,D,D,right
+ST0008,BB2,2026-09-02,Reading and Writing,2,6,RW291,W-GRA-07 Pronoun Agreement,B,B,right
+ST0008,BB2,2026-09-02,Math,1,1,M156,M-GEO-05 Rectangles,A,A,right
+ST0008,BB2,2026-09-02,Math,1,2,M159,M-ALG-11 Function Notation,C,B,wrong
+ST0008,BB2,2026-09-02,Math,1,3,M296,M-ALG-08 Solving Linear Equations,B,B,right
+ST0008,BB2,2026-09-02,Math,1,4,M314,M-PRO-01 Percentages,D,D,right
+ST0008,BB2,2026-09-02,Math,1,5,M134,M-ALG-04 Systems of Equations,B,B,right
+ST0008,BB2,2026-09-02,Math,1,6,M169,M-PRO-10 Ratios,B,C,wrong
+ST0008,BB2,2026-09-02,Math,2,1,M170,M-ALG-08 Solving Linear Equations,C,C,right
+ST0008,BB2,2026-09-02,Math,2,2,M181,M-ALG-04 Systems of Equations,C,C,right
+ST0008,BB2,2026-09-02,Math,2,3,M215,M-GEO-05 Rectangles,D,D,right
+ST0008,BB2,2026-09-02,Math,2,4,M153,M-PRO-10 Ratios,D,B,wrong
+ST0008,BB2,2026-09-02,Math,2,5,M202,M-ALG-11 Function Notation,A,B,wrong
+ST0008,BB2,2026-09-02,Math,2,6,M221,M-PRO-01 Percentages,B,B,right
+ST0002,BB1,2026-09-03,Reading and Writing,1,1,RW165,W-EXP-02 Logical Transitions,C,C,right
+ST0002,BB1,2026-09-03,Reading and Writing,1,2,RW255,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0002,BB1,2026-09-03,Reading and Writing,1,3,RW233,W-GRA-12 Verb Tense,A,D,wrong
+ST0002,BB1,2026-09-03,Reading and Writing,1,4,RW122,W-GRA-09 Comparisons,A,A,right
+ST0002,BB1,2026-09-03,Reading and Writing,1,5,RW108,W-GRA-07 Pronoun Agreement,D,D,right
+ST0002,BB1,2026-09-03,Reading and Writing,1,6,RW240,W-GRA-06 Subjects and Verbs,C,C,right
+ST0002,BB1,2026-09-03,Reading and Writing,2,1,RW140,W-PUN-03 Run-ons and Comma Splices,B,D,wrong
+ST0002,BB1,2026-09-03,Reading and Writing,2,2,RW246,W-GRA-09 Comparisons,D,D,right
+ST0002,BB1,2026-09-03,Reading and Writing,2,3,RW168,W-GRA-07 Pronoun Agreement,A,A,right
+ST0002,BB1,2026-09-03,Reading and Writing,2,4,RW299,W-GRA-12 Verb Tense,C,C,right
+ST0002,BB1,2026-09-03,Reading and Writing,2,5,RW110,W-EXP-02 Logical Transitions,B,B,right
+ST0002,BB1,2026-09-03,Reading and Writing,2,6,RW193,W-GRA-06 Subjects and Verbs,D,D,right
+ST0002,BB1,2026-09-03,Math,1,1,M145,M-ALG-04 Systems of Equations,A,A,right
+ST0002,BB1,2026-09-03,Math,1,2,M118,M-ALG-11 Function Notation,C,C,right
+ST0002,BB1,2026-09-03,Math,1,3,M267,M-ALG-08 Solving Linear Equations,C,C,right
+ST0002,BB1,2026-09-03,Math,1,4,M257,M-PRO-01 Percentages,C,C,right
+ST0002,BB1,2026-09-03,Math,1,5,M132,M-GEO-05 Rectangles,D,A,wrong
+ST0002,BB1,2026-09-03,Math,1,6,M285,M-PRO-10 Ratios,A,A,right
+ST0002,BB1,2026-09-03,Math,2,1,M270,M-PRO-01 Percentages,B,A,wrong
+ST0002,BB1,2026-09-03,Math,2,2,M203,M-GEO-05 Rectangles,A,D,wrong
+ST0002,BB1,2026-09-03,Math,2,3,M135,M-ALG-08 Solving Linear Equations,B,B,right
+ST0002,BB1,2026-09-03,Math,2,4,M151,M-ALG-11 Function Notation,B,B,right
+ST0002,BB1,2026-09-03,Math,2,5,M252,M-PRO-10 Ratios,C,C,right
+ST0002,BB1,2026-09-03,Math,2,6,M155,M-ALG-04 Systems of Equations,B,B,right
+ST0009,BB1,2026-09-03,Reading and Writing,1,1,RW165,W-EXP-02 Logical Transitions,A,C,wrong
+ST0009,BB1,2026-09-03,Reading and Writing,1,2,RW255,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0009,BB1,2026-09-03,Reading and Writing,1,3,RW233,W-GRA-12 Verb Tense,D,D,right
+ST0009,BB1,2026-09-03,Reading and Writing,1,4,RW122,W-GRA-09 Comparisons,A,A,right
+ST0009,BB1,2026-09-03,Reading and Writing,1,5,RW108,W-GRA-07 Pronoun Agreement,D,D,right
+ST0009,BB1,2026-09-03,Reading and Writing,1,6,RW240,W-GRA-06 Subjects and Verbs,D,C,wrong
+ST0009,BB1,2026-09-03,Reading and Writing,2,1,RW140,W-PUN-03 Run-ons and Comma Splices,D,D,right
+ST0009,BB1,2026-09-03,Reading and Writing,2,2,RW246,W-GRA-09 Comparisons,C,D,wrong
+ST0009,BB1,2026-09-03,Reading and Writing,2,3,RW168,W-GRA-07 Pronoun Agreement,D,A,wrong
+ST0009,BB1,2026-09-03,Reading and Writing,2,4,RW299,W-GRA-12 Verb Tense,C,C,right
+ST0009,BB1,2026-09-03,Reading and Writing,2,5,RW110,W-EXP-02 Logical Transitions,B,B,right
+ST0009,BB1,2026-09-03,Reading and Writing,2,6,RW193,W-GRA-06 Subjects and Verbs,A,D,wrong
+ST0009,BB1,2026-09-03,Math,1,1,M145,M-ALG-04 Systems of Equations,C,A,wrong
+ST0009,BB1,2026-09-03,Math,1,2,M118,M-ALG-11 Function Notation,C,C,right
+ST0009,BB1,2026-09-03,Math,1,3,M267,M-ALG-08 Solving Linear Equations,C,C,right
+ST0009,BB1,2026-09-03,Math,1,4,M257,M-PRO-01 Percentages,B,C,wrong
+ST0009,BB1,2026-09-03,Math,1,5,M132,M-GEO-05 Rectangles,A,A,right
+ST0009,BB1,2026-09-03,Math,1,6,M285,M-PRO-10 Ratios,A,A,right
+ST0009,BB1,2026-09-03,Math,2,1,M270,M-PRO-01 Percentages,C,A,wrong
+ST0009,BB1,2026-09-03,Math,2,2,M203,M-GEO-05 Rectangles,D,D,right
+ST0009,BB1,2026-09-03,Math,2,3,M135,M-ALG-08 Solving Linear Equations,C,B,wrong
+ST0009,BB1,2026-09-03,Math,2,4,M151,M-ALG-11 Function Notation,B,B,right
+ST0009,BB1,2026-09-03,Math,2,5,M252,M-PRO-10 Ratios,D,C,wrong
+ST0009,BB1,2026-09-03,Math,2,6,M155,M-ALG-04 Systems of Equations,D,B,wrong
+ST0015,BB1,2026-09-03,Reading and Writing,1,1,RW165,W-EXP-02 Logical Transitions,C,C,right
+ST0015,BB1,2026-09-03,Reading and Writing,1,2,RW255,W-PUN-03 Run-ons and Comma Splices,A,B,wrong
+ST0015,BB1,2026-09-03,Reading and Writing,1,3,RW233,W-GRA-12 Verb Tense,C,D,wrong
+ST0015,BB1,2026-09-03,Reading and Writing,1,4,RW122,W-GRA-09 Comparisons,A,A,right
+ST0015,BB1,2026-09-03,Reading and Writing,1,5,RW108,W-GRA-07 Pronoun Agreement,D,D,right
+ST0015,BB1,2026-09-03,Reading and Writing,1,6,RW240,W-GRA-06 Subjects and Verbs,C,C,right
+ST0015,BB1,2026-09-03,Reading and Writing,2,1,RW140,W-PUN-03 Run-ons and Comma Splices,C,D,wrong
+ST0015,BB1,2026-09-03,Reading and Writing,2,2,RW246,W-GRA-09 Comparisons,A,D,wrong
+ST0015,BB1,2026-09-03,Reading and Writing,2,3,RW168,W-GRA-07 Pronoun Agreement,A,A,right
+ST0015,BB1,2026-09-03,Reading and Writing,2,4,RW299,W-GRA-12 Verb Tense,A,C,wrong
+ST0015,BB1,2026-09-03,Reading and Writing,2,5,RW110,W-EXP-02 Logical Transitions,C,B,wrong
+ST0015,BB1,2026-09-03,Reading and Writing,2,6,RW193,W-GRA-06 Subjects and Verbs,B,D,wrong
+ST0015,BB1,2026-09-03,Math,1,1,M145,M-ALG-04 Systems of Equations,A,A,right
+ST0015,BB1,2026-09-03,Math,1,2,M118,M-ALG-11 Function Notation,D,C,wrong
+ST0015,BB1,2026-09-03,Math,1,3,M267,M-ALG-08 Solving Linear Equations,C,C,right
+ST0015,BB1,2026-09-03,Math,1,4,M257,M-PRO-01 Percentages,C,C,right
+ST0015,BB1,2026-09-03,Math,1,5,M132,M-GEO-05 Rectangles,A,A,right
+ST0015,BB1,2026-09-03,Math,1,6,M285,M-PRO-10 Ratios,A,A,right
+ST0015,BB1,2026-09-03,Math,2,1,M270,M-PRO-01 Percentages,C,A,wrong
+ST0015,BB1,2026-09-03,Math,2,2,M203,M-GEO-05 Rectangles,A,D,wrong
+ST0015,BB1,2026-09-03,Math,2,3,M135,M-ALG-08 Solving Linear Equations,B,B,right
+ST0015,BB1,2026-09-03,Math,2,4,M151,M-ALG-11 Function Notation,B,B,right
+ST0015,BB1,2026-09-03,Math,2,5,M252,M-PRO-10 Ratios,C,C,right
+ST0015,BB1,2026-09-03,Math,2,6,M155,M-ALG-04 Systems of Equations,B,B,right
+ST0003,BB2,2026-09-09,Reading and Writing,1,1,RW190,W-GRA-07 Pronoun Agreement,A,A,right
+ST0003,BB2,2026-09-09,Reading and Writing,1,2,RW218,W-GRA-06 Subjects and Verbs,D,B,wrong
+ST0003,BB2,2026-09-09,Reading and Writing,1,3,RW305,W-EXP-02 Logical Transitions,B,B,right
+ST0003,BB2,2026-09-09,Reading and Writing,1,4,RW208,W-GRA-12 Verb Tense,D,C,wrong
+ST0003,BB2,2026-09-09,Reading and Writing,1,5,RW201,W-GRA-09 Comparisons,C,C,right
+ST0003,BB2,2026-09-09,Reading and Writing,1,6,RW223,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0003,BB2,2026-09-09,Reading and Writing,2,1,RW234,W-GRA-09 Comparisons,A,A,right
+ST0003,BB2,2026-09-09,Reading and Writing,2,2,RW239,W-PUN-03 Run-ons and Comma Splices,A,B,wrong
+ST0003,BB2,2026-09-09,Reading and Writing,2,3,RW254,W-GRA-06 Subjects and Verbs,D,D,right
+ST0003,BB2,2026-09-09,Reading and Writing,2,4,RW250,W-EXP-02 Logical Transitions,C,C,right
+ST0003,BB2,2026-09-09,Reading and Writing,2,5,RW112,W-GRA-12 Verb Tense,C,D,wrong
+ST0003,BB2,2026-09-09,Reading and Writing,2,6,RW291,W-GRA-07 Pronoun Agreement,B,B,right
+ST0003,BB2,2026-09-09,Math,1,1,M156,M-GEO-05 Rectangles,B,A,wrong
+ST0003,BB2,2026-09-09,Math,1,2,M159,M-ALG-11 Function Notation,B,B,right
+ST0003,BB2,2026-09-09,Math,1,3,M296,M-ALG-08 Solving Linear Equations,A,B,wrong
+ST0003,BB2,2026-09-09,Math,1,4,M314,M-PRO-01 Percentages,D,D,right
+ST0003,BB2,2026-09-09,Math,1,5,M134,M-ALG-04 Systems of Equations,B,B,right
+ST0003,BB2,2026-09-09,Math,1,6,M169,M-PRO-10 Ratios,C,C,right
+ST0003,BB2,2026-09-09,Math,2,1,M170,M-ALG-08 Solving Linear Equations,A,C,wrong
+ST0003,BB2,2026-09-09,Math,2,2,M181,M-ALG-04 Systems of Equations,B,C,wrong
+ST0003,BB2,2026-09-09,Math,2,3,M215,M-GEO-05 Rectangles,D,D,right
+ST0003,BB2,2026-09-09,Math,2,4,M153,M-PRO-10 Ratios,B,B,right
+ST0003,BB2,2026-09-09,Math,2,5,M202,M-ALG-11 Function Notation,B,B,right
+ST0003,BB2,2026-09-09,Math,2,6,M221,M-PRO-01 Percentages,B,B,right
+ST0012,BB2,2026-09-09,Reading and Writing,1,1,RW190,W-GRA-07 Pronoun Agreement,A,A,right
+ST0012,BB2,2026-09-09,Reading and Writing,1,2,RW218,W-GRA-06 Subjects and Verbs,D,B,wrong
+ST0012,BB2,2026-09-09,Reading and Writing,1,3,RW305,W-EXP-02 Logical Transitions,B,B,right
+ST0012,BB2,2026-09-09,Reading and Writing,1,4,RW208,W-GRA-12 Verb Tense,C,C,right
+ST0012,BB2,2026-09-09,Reading and Writing,1,5,RW201,W-GRA-09 Comparisons,C,C,right
+ST0012,BB2,2026-09-09,Reading and Writing,1,6,RW223,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0012,BB2,2026-09-09,Reading and Writing,2,1,RW234,W-GRA-09 Comparisons,B,A,wrong
+ST0012,BB2,2026-09-09,Reading and Writing,2,2,RW239,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0012,BB2,2026-09-09,Reading and Writing,2,3,RW254,W-GRA-06 Subjects and Verbs,A,D,wrong
+ST0012,BB2,2026-09-09,Reading and Writing,2,4,RW250,W-EXP-02 Logical Transitions,C,C,right
+ST0012,BB2,2026-09-09,Reading and Writing,2,5,RW112,W-GRA-12 Verb Tense,B,D,wrong
+ST0012,BB2,2026-09-09,Reading and Writing,2,6,RW291,W-GRA-07 Pronoun Agreement,D,B,wrong
+ST0012,BB2,2026-09-09,Math,1,1,M156,M-GEO-05 Rectangles,D,A,wrong
+ST0012,BB2,2026-09-09,Math,1,2,M159,M-ALG-11 Function Notation,D,B,wrong
+ST0012,BB2,2026-09-09,Math,1,3,M296,M-ALG-08 Solving Linear Equations,A,B,wrong
+ST0012,BB2,2026-09-09,Math,1,4,M314,M-PRO-01 Percentages,B,D,wrong
+ST0012,BB2,2026-09-09,Math,1,5,M134,M-ALG-04 Systems of Equations,B,B,right
+ST0012,BB2,2026-09-09,Math,1,6,M169,M-PRO-10 Ratios,C,C,right
+ST0012,BB2,2026-09-09,Math,2,1,M170,M-ALG-08 Solving Linear Equations,D,C,wrong
+ST0012,BB2,2026-09-09,Math,2,2,M181,M-ALG-04 Systems of Equations,D,C,wrong
+ST0012,BB2,2026-09-09,Math,2,3,M215,M-GEO-05 Rectangles,D,D,right
+ST0012,BB2,2026-09-09,Math,2,4,M153,M-PRO-10 Ratios,C,B,wrong
+ST0012,BB2,2026-09-09,Math,2,5,M202,M-ALG-11 Function Notation,B,B,right
+ST0012,BB2,2026-09-09,Math,2,6,M221,M-PRO-01 Percentages,B,B,right
+ST0014,BB1,2026-09-11,Reading and Writing,1,1,RW165,W-EXP-02 Logical Transitions,A,C,wrong
+ST0014,BB1,2026-09-11,Reading and Writing,1,2,RW255,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0014,BB1,2026-09-11,Reading and Writing,1,3,RW233,W-GRA-12 Verb Tense,D,D,right
+ST0014,BB1,2026-09-11,Reading and Writing,1,4,RW122,W-GRA-09 Comparisons,A,A,right
+ST0014,BB1,2026-09-11,Reading and Writing,1,5,RW108,W-GRA-07 Pronoun Agreement,B,D,wrong
+ST0014,BB1,2026-09-11,Reading and Writing,1,6,RW240,W-GRA-06 Subjects and Verbs,C,C,right
+ST0014,BB1,2026-09-11,Reading and Writing,2,1,RW140,W-PUN-03 Run-ons and Comma Splices,D,D,right
+ST0014,BB1,2026-09-11,Reading and Writing,2,2,RW246,W-GRA-09 Comparisons,D,D,right
+ST0014,BB1,2026-09-11,Reading and Writing,2,3,RW168,W-GRA-07 Pronoun Agreement,A,A,right
+ST0014,BB1,2026-09-11,Reading and Writing,2,4,RW299,W-GRA-12 Verb Tense,D,C,wrong
+ST0014,BB1,2026-09-11,Reading and Writing,2,5,RW110,W-EXP-02 Logical Transitions,A,B,wrong
+ST0014,BB1,2026-09-11,Reading and Writing,2,6,RW193,W-GRA-06 Subjects and Verbs,A,D,wrong
+ST0014,BB1,2026-09-11,Math,1,1,M145,M-ALG-04 Systems of Equations,A,A,right
+ST0014,BB1,2026-09-11,Math,1,2,M118,M-ALG-11 Function Notation,D,C,wrong
+ST0014,BB1,2026-09-11,Math,1,3,M267,M-ALG-08 Solving Linear Equations,C,C,right
+ST0014,BB1,2026-09-11,Math,1,4,M257,M-PRO-01 Percentages,C,C,right
+ST0014,BB1,2026-09-11,Math,1,5,M132,M-GEO-05 Rectangles,A,A,right
+ST0014,BB1,2026-09-11,Math,1,6,M285,M-PRO-10 Ratios,D,A,wrong
+ST0014,BB1,2026-09-11,Math,2,1,M270,M-PRO-01 Percentages,A,A,right
+ST0014,BB1,2026-09-11,Math,2,2,M203,M-GEO-05 Rectangles,D,D,right
+ST0014,BB1,2026-09-11,Math,2,3,M135,M-ALG-08 Solving Linear Equations,B,B,right
+ST0014,BB1,2026-09-11,Math,2,4,M151,M-ALG-11 Function Notation,A,B,wrong
+ST0014,BB1,2026-09-11,Math,2,5,M252,M-PRO-10 Ratios,C,C,right
+ST0014,BB1,2026-09-11,Math,2,6,M155,M-ALG-04 Systems of Equations,D,B,wrong
+ST0014,BB2,2026-09-12,Reading and Writing,1,1,RW190,W-GRA-07 Pronoun Agreement,B,A,wrong
+ST0014,BB2,2026-09-12,Reading and Writing,1,2,RW218,W-GRA-06 Subjects and Verbs,B,B,right
+ST0014,BB2,2026-09-12,Reading and Writing,1,3,RW305,W-EXP-02 Logical Transitions,C,B,wrong
+ST0014,BB2,2026-09-12,Reading and Writing,1,4,RW208,W-GRA-12 Verb Tense,D,C,wrong
+ST0014,BB2,2026-09-12,Reading and Writing,1,5,RW201,W-GRA-09 Comparisons,C,C,right
+ST0014,BB2,2026-09-12,Reading and Writing,1,6,RW223,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0014,BB2,2026-09-12,Reading and Writing,2,1,RW234,W-GRA-09 Comparisons,A,A,right
+ST0014,BB2,2026-09-12,Reading and Writing,2,2,RW239,W-PUN-03 Run-ons and Comma Splices,A,B,wrong
+ST0014,BB2,2026-09-12,Reading and Writing,2,3,RW254,W-GRA-06 Subjects and Verbs,D,D,right
+ST0014,BB2,2026-09-12,Reading and Writing,2,4,RW250,W-EXP-02 Logical Transitions,C,C,right
+ST0014,BB2,2026-09-12,Reading and Writing,2,5,RW112,W-GRA-12 Verb Tense,B,D,wrong
+ST0014,BB2,2026-09-12,Reading and Writing,2,6,RW291,W-GRA-07 Pronoun Agreement,C,B,wrong
+ST0014,BB2,2026-09-12,Math,1,1,M156,M-GEO-05 Rectangles,C,A,wrong
+ST0014,BB2,2026-09-12,Math,1,2,M159,M-ALG-11 Function Notation,B,B,right
+ST0014,BB2,2026-09-12,Math,1,3,M296,M-ALG-08 Solving Linear Equations,B,B,right
+ST0014,BB2,2026-09-12,Math,1,4,M314,M-PRO-01 Percentages,D,D,right
+ST0014,BB2,2026-09-12,Math,1,5,M134,M-ALG-04 Systems of Equations,C,B,wrong
+ST0014,BB2,2026-09-12,Math,1,6,M169,M-PRO-10 Ratios,C,C,right
+ST0014,BB2,2026-09-12,Math,2,1,M170,M-ALG-08 Solving Linear Equations,C,C,right
+ST0014,BB2,2026-09-12,Math,2,2,M181,M-ALG-04 Systems of Equations,C,C,right
+ST0014,BB2,2026-09-12,Math,2,3,M215,M-GEO-05 Rectangles,D,D,right
+ST0014,BB2,2026-09-12,Math,2,4,M153,M-PRO-10 Ratios,B,B,right
+ST0014,BB2,2026-09-12,Math,2,5,M202,M-ALG-11 Function Notation,B,B,right
+ST0014,BB2,2026-09-12,Math,2,6,M221,M-PRO-01 Percentages,D,B,wrong
+ST0007,BB2,2026-09-14,Reading and Writing,1,1,RW190,W-GRA-07 Pronoun Agreement,A,A,right
+ST0007,BB2,2026-09-14,Reading and Writing,1,2,RW218,W-GRA-06 Subjects and Verbs,B,B,right
+ST0007,BB2,2026-09-14,Reading and Writing,1,3,RW305,W-EXP-02 Logical Transitions,B,B,right
+ST0007,BB2,2026-09-14,Reading and Writing,1,4,RW208,W-GRA-12 Verb Tense,C,C,right
+ST0007,BB2,2026-09-14,Reading and Writing,1,5,RW201,W-GRA-09 Comparisons,C,C,right
+ST0007,BB2,2026-09-14,Reading and Writing,1,6,RW223,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0007,BB2,2026-09-14,Reading and Writing,2,1,RW234,W-GRA-09 Comparisons,A,A,right
+ST0007,BB2,2026-09-14,Reading and Writing,2,2,RW239,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0007,BB2,2026-09-14,Reading and Writing,2,3,RW254,W-GRA-06 Subjects and Verbs,C,D,wrong
+ST0007,BB2,2026-09-14,Reading and Writing,2,4,RW250,W-EXP-02 Logical Transitions,D,C,wrong
+ST0007,BB2,2026-09-14,Reading and Writing,2,5,RW112,W-GRA-12 Verb Tense,B,D,wrong
+ST0007,BB2,2026-09-14,Reading and Writing,2,6,RW291,W-GRA-07 Pronoun Agreement,B,B,right
+ST0007,BB2,2026-09-14,Math,1,1,M156,M-GEO-05 Rectangles,A,A,right
+ST0007,BB2,2026-09-14,Math,1,2,M159,M-ALG-11 Function Notation,B,B,right
+ST0007,BB2,2026-09-14,Math,1,3,M296,M-ALG-08 Solving Linear Equations,B,B,right
+ST0007,BB2,2026-09-14,Math,1,4,M314,M-PRO-01 Percentages,A,D,wrong
+ST0007,BB2,2026-09-14,Math,1,5,M134,M-ALG-04 Systems of Equations,B,B,right
+ST0007,BB2,2026-09-14,Math,1,6,M169,M-PRO-10 Ratios,A,C,wrong
+ST0007,BB2,2026-09-14,Math,2,1,M170,M-ALG-08 Solving Linear Equations,C,C,right
+ST0007,BB2,2026-09-14,Math,2,2,M181,M-ALG-04 Systems of Equations,C,C,right
+ST0007,BB2,2026-09-14,Math,2,3,M215,M-GEO-05 Rectangles,D,D,right
+ST0007,BB2,2026-09-14,Math,2,4,M153,M-PRO-10 Ratios,B,B,right
+ST0007,BB2,2026-09-14,Math,2,5,M202,M-ALG-11 Function Notation,B,B,right
+ST0007,BB2,2026-09-14,Math,2,6,M221,M-PRO-01 Percentages,B,B,right
+ST0014,BB3,2026-09-15,Reading and Writing,1,1,RW167,W-GRA-07 Pronoun Agreement,A,A,right
+ST0014,BB3,2026-09-15,Reading and Writing,1,2,RW128,W-PUN-03 Run-ons and Comma Splices,D,D,right
+ST0014,BB3,2026-09-15,Reading and Writing,1,3,RW213,W-GRA-12 Verb Tense,D,D,right
+ST0014,BB3,2026-09-15,Reading and Writing,1,4,RW147,W-GRA-09 Comparisons,D,D,right
+ST0014,BB3,2026-09-15,Reading and Writing,1,5,RW183,W-GRA-06 Subjects and Verbs,D,A,wrong
+ST0014,BB3,2026-09-15,Reading and Writing,1,6,RW227,W-EXP-02 Logical Transitions,A,A,right
+ST0014,BB3,2026-09-15,Reading and Writing,2,1,RW282,W-GRA-07 Pronoun Agreement,A,A,right
+ST0014,BB3,2026-09-15,Reading and Writing,2,2,RW154,W-GRA-09 Comparisons,C,B,wrong
+ST0014,BB3,2026-09-15,Reading and Writing,2,3,RW103,W-GRA-12 Verb Tense,C,D,wrong
+ST0014,BB3,2026-09-15,Reading and Writing,2,4,RW300,W-EXP-02 Logical Transitions,B,A,wrong
+ST0014,BB3,2026-09-15,Reading and Writing,2,5,RW290,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0014,BB3,2026-09-15,Reading and Writing,2,6,RW278,W-GRA-06 Subjects and Verbs,B,D,wrong
+ST0014,BB3,2026-09-15,Math,1,1,M126,M-ALG-08 Solving Linear Equations,C,C,right
+ST0014,BB3,2026-09-15,Math,1,2,M280,M-ALG-04 Systems of Equations,B,B,right
+ST0014,BB3,2026-09-15,Math,1,3,M192,M-GEO-05 Rectangles,B,C,wrong
+ST0014,BB3,2026-09-15,Math,1,4,M258,M-ALG-11 Function Notation,D,D,right
+ST0014,BB3,2026-09-15,Math,1,5,M306,M-PRO-01 Percentages,C,C,right
+ST0014,BB3,2026-09-15,Math,1,6,M142,M-PRO-10 Ratios,D,D,right
+ST0014,BB3,2026-09-15,Math,2,1,M105,M-PRO-10 Ratios,D,D,right
+ST0014,BB3,2026-09-15,Math,2,2,M209,M-GEO-05 Rectangles,B,B,right
+ST0014,BB3,2026-09-15,Math,2,3,M194,M-PRO-01 Percentages,C,D,wrong
+ST0014,BB3,2026-09-15,Math,2,4,M120,M-ALG-04 Systems of Equations,D,D,right
+ST0014,BB3,2026-09-15,Math,2,5,M303,M-ALG-11 Function Notation,C,D,wrong
+ST0014,BB3,2026-09-15,Math,2,6,M309,M-ALG-08 Solving Linear Equations,B,A,wrong
+ST0015,BB2,2026-09-16,Reading and Writing,1,1,RW190,W-GRA-07 Pronoun Agreement,A,A,right
+ST0015,BB2,2026-09-16,Reading and Writing,1,2,RW218,W-GRA-06 Subjects and Verbs,C,B,wrong
+ST0015,BB2,2026-09-16,Reading and Writing,1,3,RW305,W-EXP-02 Logical Transitions,A,B,wrong
+ST0015,BB2,2026-09-16,Reading and Writing,1,4,RW208,W-GRA-12 Verb Tense,B,C,wrong
+ST0015,BB2,2026-09-16,Reading and Writing,1,5,RW201,W-GRA-09 Comparisons,C,C,right
+ST0015,BB2,2026-09-16,Reading and Writing,1,6,RW223,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0015,BB2,2026-09-16,Reading and Writing,2,1,RW234,W-GRA-09 Comparisons,C,A,wrong
+ST0015,BB2,2026-09-16,Reading and Writing,2,2,RW239,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0015,BB2,2026-09-16,Reading and Writing,2,3,RW254,W-GRA-06 Subjects and Verbs,C,D,wrong
+ST0015,BB2,2026-09-16,Reading and Writing,2,4,RW250,W-EXP-02 Logical Transitions,C,C,right
+ST0015,BB2,2026-09-16,Reading and Writing,2,5,RW112,W-GRA-12 Verb Tense,A,D,wrong
+ST0015,BB2,2026-09-16,Reading and Writing,2,6,RW291,W-GRA-07 Pronoun Agreement,B,B,right
+ST0015,BB2,2026-09-16,Math,1,1,M156,M-GEO-05 Rectangles,A,A,right
+ST0015,BB2,2026-09-16,Math,1,2,M159,M-ALG-11 Function Notation,B,B,right
+ST0015,BB2,2026-09-16,Math,1,3,M296,M-ALG-08 Solving Linear Equations,B,B,right
+ST0015,BB2,2026-09-16,Math,1,4,M314,M-PRO-01 Percentages,C,D,wrong
+ST0015,BB2,2026-09-16,Math,1,5,M134,M-ALG-04 Systems of Equations,B,B,right
+ST0015,BB2,2026-09-16,Math,1,6,M169,M-PRO-10 Ratios,C,C,right
+ST0015,BB2,2026-09-16,Math,2,1,M170,M-ALG-08 Solving Linear Equations,A,C,wrong
+ST0015,BB2,2026-09-16,Math,2,2,M181,M-ALG-04 Systems of Equations,C,C,right
+ST0015,BB2,2026-09-16,Math,2,3,M215,M-GEO-05 Rectangles,D,D,right
+ST0015,BB2,2026-09-16,Math,2,4,M153,M-PRO-10 Ratios,B,B,right
+ST0015,BB2,2026-09-16,Math,2,5,M202,M-ALG-11 Function Notation,C,B,wrong
+ST0015,BB2,2026-09-16,Math,2,6,M221,M-PRO-01 Percentages,B,B,right
+ST0014,BB4,2026-09-17,Reading and Writing,1,1,RW162,W-GRA-07 Pronoun Agreement,A,A,right
+ST0014,BB4,2026-09-17,Reading and Writing,1,2,RW125,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0014,BB4,2026-09-17,Reading and Writing,1,3,RW124,W-EXP-02 Logical Transitions,B,C,wrong
+ST0014,BB4,2026-09-17,Reading and Writing,1,4,RW316,W-GRA-12 Verb Tense,D,C,wrong
+ST0014,BB4,2026-09-17,Reading and Writing,1,5,RW131,W-GRA-09 Comparisons,A,A,right
+ST0014,BB4,2026-09-17,Reading and Writing,1,6,RW177,W-GRA-06 Subjects and Verbs,A,C,wrong
+ST0014,BB4,2026-09-17,Reading and Writing,2,1,RW224,W-EXP-02 Logical Transitions,B,B,right
+ST0014,BB4,2026-09-17,Reading and Writing,2,2,RW260,W-GRA-09 Comparisons,C,C,right
+ST0014,BB4,2026-09-17,Reading and Writing,2,3,RW272,W-GRA-06 Subjects and Verbs,B,D,wrong
+ST0014,BB4,2026-09-17,Reading and Writing,2,4,RW113,W-GRA-07 Pronoun Agreement,D,C,wrong
+ST0014,BB4,2026-09-17,Reading and Writing,2,5,RW244,W-PUN-03 Run-ons and Comma Splices,D,C,wrong
+ST0014,BB4,2026-09-17,Reading and Writing,2,6,RW150,W-GRA-12 Verb Tense,B,A,wrong
+ST0014,BB4,2026-09-17,Math,1,1,M148,M-GEO-05 Rectangles,B,B,right
+ST0014,BB4,2026-09-17,Math,1,2,M219,M-PRO-01 Percentages,B,C,wrong
+ST0014,BB4,2026-09-17,Math,1,3,M204,M-ALG-08 Solving Linear Equations,C,C,right
+ST0014,BB4,2026-09-17,Math,1,4,M274,M-ALG-11 Function Notation,B,B,right
+ST0014,BB4,2026-09-17,Math,1,5,M275,M-PRO-10 Ratios,B,D,wrong
+ST0014,BB4,2026-09-17,Math,1,6,M216,M-ALG-04 Systems of Equations,B,B,right
+ST0014,BB4,2026-09-17,Math,2,1,M197,M-PRO-10 Ratios,B,B,right
+ST0014,BB4,2026-09-17,Math,2,2,M245,M-ALG-11 Function Notation,D,D,right
+ST0014,BB4,2026-09-17,Math,2,3,M158,M-ALG-04 Systems of Equations,C,C,right
+ST0014,BB4,2026-09-17,Math,2,4,M288,M-GEO-05 Rectangles,A,A,right
+ST0014,BB4,2026-09-17,Math,2,5,M111,M-PRO-01 Percentages,C,C,right
+ST0014,BB4,2026-09-17,Math,2,6,M225,M-ALG-08 Solving Linear Equations,A,A,right
+ST0016,BB1,2026-09-18,Reading and Writing,1,1,RW165,W-EXP-02 Logical Transitions,C,C,right
+ST0016,BB1,2026-09-18,Reading and Writing,1,2,RW255,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0016,BB1,2026-09-18,Reading and Writing,1,3,RW233,W-GRA-12 Verb Tense,C,D,wrong
+ST0016,BB1,2026-09-18,Reading and Writing,1,4,RW122,W-GRA-09 Comparisons,A,A,right
+ST0016,BB1,2026-09-18,Reading and Writing,1,5,RW108,W-GRA-07 Pronoun Agreement,D,D,right
+ST0016,BB1,2026-09-18,Reading and Writing,1,6,RW240,W-GRA-06 Subjects and Verbs,C,C,right
+ST0016,BB1,2026-09-18,Reading and Writing,2,1,RW140,W-PUN-03 Run-ons and Comma Splices,C,D,wrong
+ST0016,BB1,2026-09-18,Reading and Writing,2,2,RW246,W-GRA-09 Comparisons,D,D,right
+ST0016,BB1,2026-09-18,Reading and Writing,2,3,RW168,W-GRA-07 Pronoun Agreement,C,A,wrong
+ST0016,BB1,2026-09-18,Reading and Writing,2,4,RW299,W-GRA-12 Verb Tense,C,C,right
+ST0016,BB1,2026-09-18,Reading and Writing,2,5,RW110,W-EXP-02 Logical Transitions,B,B,right
+ST0016,BB1,2026-09-18,Reading and Writing,2,6,RW193,W-GRA-06 Subjects and Verbs,B,D,wrong
+ST0016,BB1,2026-09-18,Math,1,1,M145,M-ALG-04 Systems of Equations,B,A,wrong
+ST0016,BB1,2026-09-18,Math,1,2,M118,M-ALG-11 Function Notation,C,C,right
+ST0016,BB1,2026-09-18,Math,1,3,M267,M-ALG-08 Solving Linear Equations,D,C,wrong
+ST0016,BB1,2026-09-18,Math,1,4,M257,M-PRO-01 Percentages,A,C,wrong
+ST0016,BB1,2026-09-18,Math,1,5,M132,M-GEO-05 Rectangles,A,A,right
+ST0016,BB1,2026-09-18,Math,1,6,M285,M-PRO-10 Ratios,B,A,wrong
+ST0016,BB1,2026-09-18,Math,2,1,M270,M-PRO-01 Percentages,B,A,wrong
+ST0016,BB1,2026-09-18,Math,2,2,M203,M-GEO-05 Rectangles,A,D,wrong
+ST0016,BB1,2026-09-18,Math,2,3,M135,M-ALG-08 Solving Linear Equations,A,B,wrong
+ST0016,BB1,2026-09-18,Math,2,4,M151,M-ALG-11 Function Notation,B,B,right
+ST0016,BB1,2026-09-18,Math,2,5,M252,M-PRO-10 Ratios,C,C,right
+ST0016,BB1,2026-09-18,Math,2,6,M155,M-ALG-04 Systems of Equations,D,B,wrong
+ST0013,BB2,2026-09-19,Reading and Writing,1,1,RW190,W-GRA-07 Pronoun Agreement,A,A,right
+ST0013,BB2,2026-09-19,Reading and Writing,1,2,RW218,W-GRA-06 Subjects and Verbs,B,B,right
+ST0013,BB2,2026-09-19,Reading and Writing,1,3,RW305,W-EXP-02 Logical Transitions,D,B,wrong
+ST0013,BB2,2026-09-19,Reading and Writing,1,4,RW208,W-GRA-12 Verb Tense,A,C,wrong
+ST0013,BB2,2026-09-19,Reading and Writing,1,5,RW201,W-GRA-09 Comparisons,C,C,right
+ST0013,BB2,2026-09-19,Reading and Writing,1,6,RW223,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0013,BB2,2026-09-19,Reading and Writing,2,1,RW234,W-GRA-09 Comparisons,D,A,wrong
+ST0013,BB2,2026-09-19,Reading and Writing,2,2,RW239,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0013,BB2,2026-09-19,Reading and Writing,2,3,RW254,W-GRA-06 Subjects and Verbs,D,D,right
+ST0013,BB2,2026-09-19,Reading and Writing,2,4,RW250,W-EXP-02 Logical Transitions,C,C,right
+ST0013,BB2,2026-09-19,Reading and Writing,2,5,RW112,W-GRA-12 Verb Tense,D,D,right
+ST0013,BB2,2026-09-19,Reading and Writing,2,6,RW291,W-GRA-07 Pronoun Agreement,B,B,right
+ST0013,BB2,2026-09-19,Math,1,1,M156,M-GEO-05 Rectangles,A,A,right
+ST0013,BB2,2026-09-19,Math,1,2,M159,M-ALG-11 Function Notation,B,B,right
+ST0013,BB2,2026-09-19,Math,1,3,M296,M-ALG-08 Solving Linear Equations,B,B,right
+ST0013,BB2,2026-09-19,Math,1,4,M314,M-PRO-01 Percentages,D,D,right
+ST0013,BB2,2026-09-19,Math,1,5,M134,M-ALG-04 Systems of Equations,B,B,right
+ST0013,BB2,2026-09-19,Math,1,6,M169,M-PRO-10 Ratios,B,C,wrong
+ST0013,BB2,2026-09-19,Math,2,1,M170,M-ALG-08 Solving Linear Equations,B,C,wrong
+ST0013,BB2,2026-09-19,Math,2,2,M181,M-ALG-04 Systems of Equations,C,C,right
+ST0013,BB2,2026-09-19,Math,2,3,M215,M-GEO-05 Rectangles,D,D,right
+ST0013,BB2,2026-09-19,Math,2,4,M153,M-PRO-10 Ratios,C,B,wrong
+ST0013,BB2,2026-09-19,Math,2,5,M202,M-ALG-11 Function Notation,B,B,right
+ST0013,BB2,2026-09-19,Math,2,6,M221,M-PRO-01 Percentages,B,B,right
+ST0011,BB1,2026-09-20,Reading and Writing,1,1,RW165,W-EXP-02 Logical Transitions,C,C,right
+ST0011,BB1,2026-09-20,Reading and Writing,1,2,RW255,W-PUN-03 Run-ons and Comma Splices,A,B,wrong
+ST0011,BB1,2026-09-20,Reading and Writing,1,3,RW233,W-GRA-12 Verb Tense,C,D,wrong
+ST0011,BB1,2026-09-20,Reading and Writing,1,4,RW122,W-GRA-09 Comparisons,A,A,right
+ST0011,BB1,2026-09-20,Reading and Writing,1,5,RW108,W-GRA-07 Pronoun Agreement,D,D,right
+ST0011,BB1,2026-09-20,Reading and Writing,1,6,RW240,W-GRA-06 Subjects and Verbs,A,C,wrong
+ST0011,BB1,2026-09-20,Reading and Writing,2,1,RW140,W-PUN-03 Run-ons and Comma Splices,D,D,right
+ST0011,BB1,2026-09-20,Reading and Writing,2,2,RW246,W-GRA-09 Comparisons,D,D,right
+ST0011,BB1,2026-09-20,Reading and Writing,2,3,RW168,W-GRA-07 Pronoun Agreement,A,A,right
+ST0011,BB1,2026-09-20,Reading and Writing,2,4,RW299,W-GRA-12 Verb Tense,D,C,wrong
+ST0011,BB1,2026-09-20,Reading and Writing,2,5,RW110,W-EXP-02 Logical Transitions,B,B,right
+ST0011,BB1,2026-09-20,Reading and Writing,2,6,RW193,W-GRA-06 Subjects and Verbs,D,D,right
+ST0011,BB1,2026-09-20,Math,1,1,M145,M-ALG-04 Systems of Equations,A,A,right
+ST0011,BB1,2026-09-20,Math,1,2,M118,M-ALG-11 Function Notation,C,C,right
+ST0011,BB1,2026-09-20,Math,1,3,M267,M-ALG-08 Solving Linear Equations,C,C,right
+ST0011,BB1,2026-09-20,Math,1,4,M257,M-PRO-01 Percentages,A,C,wrong
+ST0011,BB1,2026-09-20,Math,1,5,M132,M-GEO-05 Rectangles,C,A,wrong
+ST0011,BB1,2026-09-20,Math,1,6,M285,M-PRO-10 Ratios,A,A,right
+ST0011,BB1,2026-09-20,Math,2,1,M270,M-PRO-01 Percentages,A,A,right
+ST0011,BB1,2026-09-20,Math,2,2,M203,M-GEO-05 Rectangles,D,D,right
+ST0011,BB1,2026-09-20,Math,2,3,M135,M-ALG-08 Solving Linear Equations,B,B,right
+ST0011,BB1,2026-09-20,Math,2,4,M151,M-ALG-11 Function Notation,B,B,right
+ST0011,BB1,2026-09-20,Math,2,5,M252,M-PRO-10 Ratios,C,C,right
+ST0011,BB1,2026-09-20,Math,2,6,M155,M-ALG-04 Systems of Equations,B,B,right
+ST0013,BB3,2026-09-20,Reading and Writing,1,1,RW167,W-GRA-07 Pronoun Agreement,A,A,right
+ST0013,BB3,2026-09-20,Reading and Writing,1,2,RW128,W-PUN-03 Run-ons and Comma Splices,D,D,right
+ST0013,BB3,2026-09-20,Reading and Writing,1,3,RW213,W-GRA-12 Verb Tense,D,D,right
+ST0013,BB3,2026-09-20,Reading and Writing,1,4,RW147,W-GRA-09 Comparisons,D,D,right
+ST0013,BB3,2026-09-20,Reading and Writing,1,5,RW183,W-GRA-06 Subjects and Verbs,A,A,right
+ST0013,BB3,2026-09-20,Reading and Writing,1,6,RW227,W-EXP-02 Logical Transitions,B,A,wrong
+ST0013,BB3,2026-09-20,Reading and Writing,2,1,RW282,W-GRA-07 Pronoun Agreement,A,A,right
+ST0013,BB3,2026-09-20,Reading and Writing,2,2,RW154,W-GRA-09 Comparisons,B,B,right
+ST0013,BB3,2026-09-20,Reading and Writing,2,3,RW103,W-GRA-12 Verb Tense,A,D,wrong
+ST0013,BB3,2026-09-20,Reading and Writing,2,4,RW300,W-EXP-02 Logical Transitions,B,A,wrong
+ST0013,BB3,2026-09-20,Reading and Writing,2,5,RW290,W-PUN-03 Run-ons and Comma Splices,B,C,wrong
+ST0013,BB3,2026-09-20,Reading and Writing,2,6,RW278,W-GRA-06 Subjects and Verbs,D,D,right
+ST0013,BB3,2026-09-20,Math,1,1,M126,M-ALG-08 Solving Linear Equations,D,C,wrong
+ST0013,BB3,2026-09-20,Math,1,2,M280,M-ALG-04 Systems of Equations,A,B,wrong
+ST0013,BB3,2026-09-20,Math,1,3,M192,M-GEO-05 Rectangles,C,C,right
+ST0013,BB3,2026-09-20,Math,1,4,M258,M-ALG-11 Function Notation,A,D,wrong
+ST0013,BB3,2026-09-20,Math,1,5,M306,M-PRO-01 Percentages,C,C,right
+ST0013,BB3,2026-09-20,Math,1,6,M142,M-PRO-10 Ratios,D,D,right
+ST0013,BB3,2026-09-20,Math,2,1,M105,M-PRO-10 Ratios,D,D,right
+ST0013,BB3,2026-09-20,Math,2,2,M209,M-GEO-05 Rectangles,B,B,right
+ST0013,BB3,2026-09-20,Math,2,3,M194,M-PRO-01 Percentages,B,D,wrong
+ST0013,BB3,2026-09-20,Math,2,4,M120,M-ALG-04 Systems of Equations,D,D,right
+ST0013,BB3,2026-09-20,Math,2,5,M303,M-ALG-11 Function Notation,D,D,right
+ST0013,BB3,2026-09-20,Math,2,6,M309,M-ALG-08 Solving Linear Equations,A,A,right
+ST0005,BB3,2026-09-21,Reading and Writing,1,1,RW167,W-GRA-07 Pronoun Agreement,A,A,right
+ST0005,BB3,2026-09-21,Reading and Writing,1,2,RW128,W-PUN-03 Run-ons and Comma Splices,D,D,right
+ST0005,BB3,2026-09-21,Reading and Writing,1,3,RW213,W-GRA-12 Verb Tense,D,D,right
+ST0005,BB3,2026-09-21,Reading and Writing,1,4,RW147,W-GRA-09 Comparisons,D,D,right
+ST0005,BB3,2026-09-21,Reading and Writing,1,5,RW183,W-GRA-06 Subjects and Verbs,B,A,wrong
+ST0005,BB3,2026-09-21,Reading and Writing,1,6,RW227,W-EXP-02 Logical Transitions,A,A,right
+ST0005,BB3,2026-09-21,Reading and Writing,2,1,RW282,W-GRA-07 Pronoun Agreement,A,A,right
+ST0005,BB3,2026-09-21,Reading and Writing,2,2,RW154,W-GRA-09 Comparisons,B,B,right
+ST0005,BB3,2026-09-21,Reading and Writing,2,3,RW103,W-GRA-12 Verb Tense,B,D,wrong
+ST0005,BB3,2026-09-21,Reading and Writing,2,4,RW300,W-EXP-02 Logical Transitions,A,A,right
+ST0005,BB3,2026-09-21,Reading and Writing,2,5,RW290,W-PUN-03 Run-ons and Comma Splices,D,C,wrong
+ST0005,BB3,2026-09-21,Reading and Writing,2,6,RW278,W-GRA-06 Subjects and Verbs,B,D,wrong
+ST0005,BB3,2026-09-21,Math,1,1,M126,M-ALG-08 Solving Linear Equations,C,C,right
+ST0005,BB3,2026-09-21,Math,1,2,M280,M-ALG-04 Systems of Equations,B,B,right
+ST0005,BB3,2026-09-21,Math,1,3,M192,M-GEO-05 Rectangles,D,C,wrong
+ST0005,BB3,2026-09-21,Math,1,4,M258,M-ALG-11 Function Notation,D,D,right
+ST0005,BB3,2026-09-21,Math,1,5,M306,M-PRO-01 Percentages,B,C,wrong
+ST0005,BB3,2026-09-21,Math,1,6,M142,M-PRO-10 Ratios,D,D,right
+ST0005,BB3,2026-09-21,Math,2,1,M105,M-PRO-10 Ratios,D,D,right
+ST0005,BB3,2026-09-21,Math,2,2,M209,M-GEO-05 Rectangles,C,B,wrong
+ST0005,BB3,2026-09-21,Math,2,3,M194,M-PRO-01 Percentages,B,D,wrong
+ST0005,BB3,2026-09-21,Math,2,4,M120,M-ALG-04 Systems of Equations,D,D,right
+ST0005,BB3,2026-09-21,Math,2,5,M303,M-ALG-11 Function Notation,D,D,right
+ST0005,BB3,2026-09-21,Math,2,6,M309,M-ALG-08 Solving Linear Equations,B,A,wrong
+ST0012,BB3,2026-09-22,Reading and Writing,1,1,RW167,W-GRA-07 Pronoun Agreement,D,A,wrong
+ST0012,BB3,2026-09-22,Reading and Writing,1,2,RW128,W-PUN-03 Run-ons and Comma Splices,D,D,right
+ST0012,BB3,2026-09-22,Reading and Writing,1,3,RW213,W-GRA-12 Verb Tense,C,D,wrong
+ST0012,BB3,2026-09-22,Reading and Writing,1,4,RW147,W-GRA-09 Comparisons,D,D,right
+ST0012,BB3,2026-09-22,Reading and Writing,1,5,RW183,W-GRA-06 Subjects and Verbs,A,A,right
+ST0012,BB3,2026-09-22,Reading and Writing,1,6,RW227,W-EXP-02 Logical Transitions,A,A,right
+ST0012,BB3,2026-09-22,Reading and Writing,2,1,RW282,W-GRA-07 Pronoun Agreement,C,A,wrong
+ST0012,BB3,2026-09-22,Reading and Writing,2,2,RW154,W-GRA-09 Comparisons,D,B,wrong
+ST0012,BB3,2026-09-22,Reading and Writing,2,3,RW103,W-GRA-12 Verb Tense,D,D,right
+ST0012,BB3,2026-09-22,Reading and Writing,2,4,RW300,W-EXP-02 Logical Transitions,B,A,wrong
+ST0012,BB3,2026-09-22,Reading and Writing,2,5,RW290,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0012,BB3,2026-09-22,Reading and Writing,2,6,RW278,W-GRA-06 Subjects and Verbs,C,D,wrong
+ST0012,BB3,2026-09-22,Math,1,1,M126,M-ALG-08 Solving Linear Equations,C,C,right
+ST0012,BB3,2026-09-22,Math,1,2,M280,M-ALG-04 Systems of Equations,B,B,right
+ST0012,BB3,2026-09-22,Math,1,3,M192,M-GEO-05 Rectangles,C,C,right
+ST0012,BB3,2026-09-22,Math,1,4,M258,M-ALG-11 Function Notation,B,D,wrong
+ST0012,BB3,2026-09-22,Math,1,5,M306,M-PRO-01 Percentages,C,C,right
+ST0012,BB3,2026-09-22,Math,1,6,M142,M-PRO-10 Ratios,D,D,right
+ST0012,BB3,2026-09-22,Math,2,1,M105,M-PRO-10 Ratios,D,D,right
+ST0012,BB3,2026-09-22,Math,2,2,M209,M-GEO-05 Rectangles,D,B,wrong
+ST0012,BB3,2026-09-22,Math,2,3,M194,M-PRO-01 Percentages,C,D,wrong
+ST0012,BB3,2026-09-22,Math,2,4,M120,M-ALG-04 Systems of Equations,B,D,wrong
+ST0012,BB3,2026-09-22,Math,2,5,M303,M-ALG-11 Function Notation,A,D,wrong
+ST0012,BB3,2026-09-22,Math,2,6,M309,M-ALG-08 Solving Linear Equations,B,A,wrong
+ST0014,BB5,2026-09-24,Reading and Writing,1,1,RW116,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0014,BB5,2026-09-24,Reading and Writing,1,2,RW141,W-EXP-02 Logical Transitions,A,A,right
+ST0014,BB5,2026-09-24,Reading and Writing,1,3,RW261,W-GRA-06 Subjects and Verbs,C,C,right
+ST0014,BB5,2026-09-24,Reading and Writing,1,4,RW123,W-GRA-12 Verb Tense,D,D,right
+ST0014,BB5,2026-09-24,Reading and Writing,1,5,RW283,W-GRA-07 Pronoun Agreement,B,B,right
+ST0014,BB5,2026-09-24,Reading and Writing,1,6,RW231,W-GRA-09 Comparisons,D,C,wrong
+ST0014,BB5,2026-09-24,Reading and Writing,2,1,RW292,W-GRA-12 Verb Tense,A,D,wrong
+ST0014,BB5,2026-09-24,Reading and Writing,2,2,RW107,W-GRA-06 Subjects and Verbs,B,C,wrong
+ST0014,BB5,2026-09-24,Reading and Writing,2,3,RW315,W-GRA-07 Pronoun Agreement,D,A,wrong
+ST0014,BB5,2026-09-24,Reading and Writing,2,4,RW302,W-GRA-09 Comparisons,D,B,wrong
+ST0014,BB5,2026-09-24,Reading and Writing,2,5,RW136,W-EXP-02 Logical Transitions,B,A,wrong
+ST0014,BB5,2026-09-24,Reading and Writing,2,6,RW206,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0014,BB5,2026-09-24,Math,1,1,M253,M-ALG-11 Function Notation,A,A,right
+ST0014,BB5,2026-09-24,Math,1,2,M133,M-PRO-10 Ratios,C,C,right
+ST0014,BB5,2026-09-24,Math,1,3,M214,M-ALG-08 Solving Linear Equations,D,D,right
+ST0014,BB5,2026-09-24,Math,1,4,M277,M-PRO-01 Percentages,A,A,right
+ST0014,BB5,2026-09-24,Math,1,5,M293,M-ALG-04 Systems of Equations,D,D,right
+ST0014,BB5,2026-09-24,Math,1,6,M175,M-GEO-05 Rectangles,A,D,wrong
+ST0014,BB5,2026-09-24,Math,2,1,M249,M-ALG-08 Solving Linear Equations,C,C,right
+ST0014,BB5,2026-09-24,Math,2,2,M173,M-PRO-10 Ratios,A,A,right
+ST0014,BB5,2026-09-24,Math,2,3,M238,M-ALG-04 Systems of Equations,D,A,wrong
+ST0014,BB5,2026-09-24,Math,2,4,M284,M-ALG-11 Function Notation,A,B,wrong
+ST0014,BB5,2026-09-24,Math,2,5,M287,M-GEO-05 Rectangles,C,C,right
+ST0014,BB5,2026-09-24,Math,2,6,M199,M-PRO-01 Percentages,C,C,right
+ST0010,BB2,2026-09-25,Reading and Writing,1,1,RW190,W-GRA-07 Pronoun Agreement,A,A,right
+ST0010,BB2,2026-09-25,Reading and Writing,1,2,RW218,W-GRA-06 Subjects and Verbs,B,B,right
+ST0010,BB2,2026-09-25,Reading and Writing,1,3,RW305,W-EXP-02 Logical Transitions,A,B,wrong
+ST0010,BB2,2026-09-25,Reading and Writing,1,4,RW208,W-GRA-12 Verb Tense,D,C,wrong
+ST0010,BB2,2026-09-25,Reading and Writing,1,5,RW201,W-GRA-09 Comparisons,C,C,right
+ST0010,BB2,2026-09-25,Reading and Writing,1,6,RW223,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0010,BB2,2026-09-25,Reading and Writing,2,1,RW234,W-GRA-09 Comparisons,B,A,wrong
+ST0010,BB2,2026-09-25,Reading and Writing,2,2,RW239,W-PUN-03 Run-ons and Comma Splices,A,B,wrong
+ST0010,BB2,2026-09-25,Reading and Writing,2,3,RW254,W-GRA-06 Subjects and Verbs,D,D,right
+ST0010,BB2,2026-09-25,Reading and Writing,2,4,RW250,W-EXP-02 Logical Transitions,A,C,wrong
+ST0010,BB2,2026-09-25,Reading and Writing,2,5,RW112,W-GRA-12 Verb Tense,C,D,wrong
+ST0010,BB2,2026-09-25,Reading and Writing,2,6,RW291,W-GRA-07 Pronoun Agreement,B,B,right
+ST0010,BB2,2026-09-25,Math,1,1,M156,M-GEO-05 Rectangles,A,A,right
+ST0010,BB2,2026-09-25,Math,1,2,M159,M-ALG-11 Function Notation,D,B,wrong
+ST0010,BB2,2026-09-25,Math,1,3,M296,M-ALG-08 Solving Linear Equations,D,B,wrong
+ST0010,BB2,2026-09-25,Math,1,4,M314,M-PRO-01 Percentages,D,D,right
+ST0010,BB2,2026-09-25,Math,1,5,M134,M-ALG-04 Systems of Equations,B,B,right
+ST0010,BB2,2026-09-25,Math,1,6,M169,M-PRO-10 Ratios,A,C,wrong
+ST0010,BB2,2026-09-25,Math,2,1,M170,M-ALG-08 Solving Linear Equations,C,C,right
+ST0010,BB2,2026-09-25,Math,2,2,M181,M-ALG-04 Systems of Equations,B,C,wrong
+ST0010,BB2,2026-09-25,Math,2,3,M215,M-GEO-05 Rectangles,D,D,right
+ST0010,BB2,2026-09-25,Math,2,4,M153,M-PRO-10 Ratios,B,B,right
+ST0010,BB2,2026-09-25,Math,2,5,M202,M-ALG-11 Function Notation,C,B,wrong
+ST0010,BB2,2026-09-25,Math,2,6,M221,M-PRO-01 Percentages,D,B,wrong
+ST0012,BB5,2026-09-28,Reading and Writing,1,1,RW116,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0012,BB5,2026-09-28,Reading and Writing,1,2,RW141,W-EXP-02 Logical Transitions,A,A,right
+ST0012,BB5,2026-09-28,Reading and Writing,1,3,RW261,W-GRA-06 Subjects and Verbs,C,C,right
+ST0012,BB5,2026-09-28,Reading and Writing,1,4,RW123,W-GRA-12 Verb Tense,D,D,right
+ST0012,BB5,2026-09-28,Reading and Writing,1,5,RW283,W-GRA-07 Pronoun Agreement,B,B,right
+ST0012,BB5,2026-09-28,Reading and Writing,1,6,RW231,W-GRA-09 Comparisons,C,C,right
+ST0012,BB5,2026-09-28,Reading and Writing,2,1,RW292,W-GRA-12 Verb Tense,A,D,wrong
+ST0012,BB5,2026-09-28,Reading and Writing,2,2,RW107,W-GRA-06 Subjects and Verbs,A,C,wrong
+ST0012,BB5,2026-09-28,Reading and Writing,2,3,RW315,W-GRA-07 Pronoun Agreement,A,A,right
+ST0012,BB5,2026-09-28,Reading and Writing,2,4,RW302,W-GRA-09 Comparisons,B,B,right
+ST0012,BB5,2026-09-28,Reading and Writing,2,5,RW136,W-EXP-02 Logical Transitions,A,A,right
+ST0012,BB5,2026-09-28,Reading and Writing,2,6,RW206,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0012,BB5,2026-09-28,Math,1,1,M253,M-ALG-11 Function Notation,D,A,wrong
+ST0012,BB5,2026-09-28,Math,1,2,M133,M-PRO-10 Ratios,C,C,right
+ST0012,BB5,2026-09-28,Math,1,3,M214,M-ALG-08 Solving Linear Equations,D,D,right
+ST0012,BB5,2026-09-28,Math,1,4,M277,M-PRO-01 Percentages,C,A,wrong
+ST0012,BB5,2026-09-28,Math,1,5,M293,M-ALG-04 Systems of Equations,D,D,right
+ST0012,BB5,2026-09-28,Math,1,6,M175,M-GEO-05 Rectangles,C,D,wrong
+ST0012,BB5,2026-09-28,Math,2,1,M249,M-ALG-08 Solving Linear Equations,C,C,right
+ST0012,BB5,2026-09-28,Math,2,2,M173,M-PRO-10 Ratios,A,A,right
+ST0012,BB5,2026-09-28,Math,2,3,M238,M-ALG-04 Systems of Equations,A,A,right
+ST0012,BB5,2026-09-28,Math,2,4,M284,M-ALG-11 Function Notation,D,B,wrong
+ST0012,BB5,2026-09-28,Math,2,5,M287,M-GEO-05 Rectangles,C,C,right
+ST0012,BB5,2026-09-28,Math,2,6,M199,M-PRO-01 Percentages,A,C,wrong
+ST0004,BB1,2026-09-29,Reading and Writing,1,1,RW165,W-EXP-02 Logical Transitions,C,C,right
+ST0004,BB1,2026-09-29,Reading and Writing,1,2,RW255,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0004,BB1,2026-09-29,Reading and Writing,1,3,RW233,W-GRA-12 Verb Tense,D,D,right
+ST0004,BB1,2026-09-29,Reading and Writing,1,4,RW122,W-GRA-09 Comparisons,D,A,wrong
+ST0004,BB1,2026-09-29,Reading and Writing,1,5,RW108,W-GRA-07 Pronoun Agreement,A,D,wrong
+ST0004,BB1,2026-09-29,Reading and Writing,1,6,RW240,W-GRA-06 Subjects and Verbs,B,C,wrong
+ST0004,BB1,2026-09-29,Reading and Writing,2,1,RW140,W-PUN-03 Run-ons and Comma Splices,A,D,wrong
+ST0004,BB1,2026-09-29,Reading and Writing,2,2,RW246,W-GRA-09 Comparisons,A,D,wrong
+ST0004,BB1,2026-09-29,Reading and Writing,2,3,RW168,W-GRA-07 Pronoun Agreement,B,A,wrong
+ST0004,BB1,2026-09-29,Reading and Writing,2,4,RW299,W-GRA-12 Verb Tense,C,C,right
+ST0004,BB1,2026-09-29,Reading and Writing,2,5,RW110,W-EXP-02 Logical Transitions,B,B,right
+ST0004,BB1,2026-09-29,Reading and Writing,2,6,RW193,W-GRA-06 Subjects and Verbs,D,D,right
+ST0004,BB1,2026-09-29,Math,1,1,M145,M-ALG-04 Systems of Equations,A,A,right
+ST0004,BB1,2026-09-29,Math,1,2,M118,M-ALG-11 Function Notation,C,C,right
+ST0004,BB1,2026-09-29,Math,1,3,M267,M-ALG-08 Solving Linear Equations,A,C,wrong
+ST0004,BB1,2026-09-29,Math,1,4,M257,M-PRO-01 Percentages,C,C,right
+ST0004,BB1,2026-09-29,Math,1,5,M132,M-GEO-05 Rectangles,A,A,right
+ST0004,BB1,2026-09-29,Math,1,6,M285,M-PRO-10 Ratios,A,A,right
+ST0004,BB1,2026-09-29,Math,2,1,M270,M-PRO-01 Percentages,A,A,right
+ST0004,BB1,2026-09-29,Math,2,2,M203,M-GEO-05 Rectangles,D,D,right
+ST0004,BB1,2026-09-29,Math,2,3,M135,M-ALG-08 Solving Linear Equations,B,B,right
+ST0004,BB1,2026-09-29,Math,2,4,M151,M-ALG-11 Function Notation,B,B,right
+ST0004,BB1,2026-09-29,Math,2,5,M252,M-PRO-10 Ratios,C,C,right
+ST0004,BB1,2026-09-29,Math,2,6,M155,M-ALG-04 Systems of Equations,B,B,right
+ST0005,BB4,2026-09-29,Reading and Writing,1,1,RW162,W-GRA-07 Pronoun Agreement,A,A,right
+ST0005,BB4,2026-09-29,Reading and Writing,1,2,RW125,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0005,BB4,2026-09-29,Reading and Writing,1,3,RW124,W-EXP-02 Logical Transitions,C,C,right
+ST0005,BB4,2026-09-29,Reading and Writing,1,4,RW316,W-GRA-12 Verb Tense,D,C,wrong
+ST0005,BB4,2026-09-29,Reading and Writing,1,5,RW131,W-GRA-09 Comparisons,A,A,right
+ST0005,BB4,2026-09-29,Reading and Writing,1,6,RW177,W-GRA-06 Subjects and Verbs,B,C,wrong
+ST0005,BB4,2026-09-29,Reading and Writing,2,1,RW224,W-EXP-02 Logical Transitions,D,B,wrong
+ST0005,BB4,2026-09-29,Reading and Writing,2,2,RW260,W-GRA-09 Comparisons,C,C,right
+ST0005,BB4,2026-09-29,Reading and Writing,2,3,RW272,W-GRA-06 Subjects and Verbs,A,D,wrong
+ST0005,BB4,2026-09-29,Reading and Writing,2,4,RW113,W-GRA-07 Pronoun Agreement,C,C,right
+ST0005,BB4,2026-09-29,Reading and Writing,2,5,RW244,W-PUN-03 Run-ons and Comma Splices,B,C,wrong
+ST0005,BB4,2026-09-29,Reading and Writing,2,6,RW150,W-GRA-12 Verb Tense,A,A,right
+ST0005,BB4,2026-09-29,Math,1,1,M148,M-GEO-05 Rectangles,C,B,wrong
+ST0005,BB4,2026-09-29,Math,1,2,M219,M-PRO-01 Percentages,C,C,right
+ST0005,BB4,2026-09-29,Math,1,3,M204,M-ALG-08 Solving Linear Equations,C,C,right
+ST0005,BB4,2026-09-29,Math,1,4,M274,M-ALG-11 Function Notation,A,B,wrong
+ST0005,BB4,2026-09-29,Math,1,5,M275,M-PRO-10 Ratios,D,D,right
+ST0005,BB4,2026-09-29,Math,1,6,M216,M-ALG-04 Systems of Equations,A,B,wrong
+ST0005,BB4,2026-09-29,Math,2,1,M197,M-PRO-10 Ratios,C,B,wrong
+ST0005,BB4,2026-09-29,Math,2,2,M245,M-ALG-11 Function Notation,D,D,right
+ST0005,BB4,2026-09-29,Math,2,3,M158,M-ALG-04 Systems of Equations,D,C,wrong
+ST0005,BB4,2026-09-29,Math,2,4,M288,M-GEO-05 Rectangles,D,A,wrong
+ST0005,BB4,2026-09-29,Math,2,5,M111,M-PRO-01 Percentages,D,C,wrong
+ST0005,BB4,2026-09-29,Math,2,6,M225,M-ALG-08 Solving Linear Equations,A,A,right
+ST0015,BB3,2026-09-29,Reading and Writing,1,1,RW167,W-GRA-07 Pronoun Agreement,C,A,wrong
+ST0015,BB3,2026-09-29,Reading and Writing,1,2,RW128,W-PUN-03 Run-ons and Comma Splices,D,D,right
+ST0015,BB3,2026-09-29,Reading and Writing,1,3,RW213,W-GRA-12 Verb Tense,D,D,right
+ST0015,BB3,2026-09-29,Reading and Writing,1,4,RW147,W-GRA-09 Comparisons,B,D,wrong
+ST0015,BB3,2026-09-29,Reading and Writing,1,5,RW183,W-GRA-06 Subjects and Verbs,C,A,wrong
+ST0015,BB3,2026-09-29,Reading and Writing,1,6,RW227,W-EXP-02 Logical Transitions,A,A,right
+ST0015,BB3,2026-09-29,Reading and Writing,2,1,RW282,W-GRA-07 Pronoun Agreement,C,A,wrong
+ST0015,BB3,2026-09-29,Reading and Writing,2,2,RW154,W-GRA-09 Comparisons,D,B,wrong
+ST0015,BB3,2026-09-29,Reading and Writing,2,3,RW103,W-GRA-12 Verb Tense,D,D,right
+ST0015,BB3,2026-09-29,Reading and Writing,2,4,RW300,W-EXP-02 Logical Transitions,B,A,wrong
+ST0015,BB3,2026-09-29,Reading and Writing,2,5,RW290,W-PUN-03 Run-ons and Comma Splices,D,C,wrong
+ST0015,BB3,2026-09-29,Reading and Writing,2,6,RW278,W-GRA-06 Subjects and Verbs,D,D,right
+ST0015,BB3,2026-09-29,Math,1,1,M126,M-ALG-08 Solving Linear Equations,C,C,right
+ST0015,BB3,2026-09-29,Math,1,2,M280,M-ALG-04 Systems of Equations,C,B,wrong
+ST0015,BB3,2026-09-29,Math,1,3,M192,M-GEO-05 Rectangles,C,C,right
+ST0015,BB3,2026-09-29,Math,1,4,M258,M-ALG-11 Function Notation,D,D,right
+ST0015,BB3,2026-09-29,Math,1,5,M306,M-PRO-01 Percentages,D,C,wrong
+ST0015,BB3,2026-09-29,Math,1,6,M142,M-PRO-10 Ratios,D,D,right
+ST0015,BB3,2026-09-29,Math,2,1,M105,M-PRO-10 Ratios,D,D,right
+ST0015,BB3,2026-09-29,Math,2,2,M209,M-GEO-05 Rectangles,B,B,right
+ST0015,BB3,2026-09-29,Math,2,3,M194,M-PRO-01 Percentages,B,D,wrong
+ST0015,BB3,2026-09-29,Math,2,4,M120,M-ALG-04 Systems of Equations,D,D,right
+ST0015,BB3,2026-09-29,Math,2,5,M303,M-ALG-11 Function Notation,D,D,right
+ST0015,BB3,2026-09-29,Math,2,6,M309,M-ALG-08 Solving Linear Equations,A,A,right
+ST0013,BB4,2026-10-02,Reading and Writing,1,1,RW162,W-GRA-07 Pronoun Agreement,B,A,wrong
+ST0013,BB4,2026-10-02,Reading and Writing,1,2,RW125,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0013,BB4,2026-10-02,Reading and Writing,1,3,RW124,W-EXP-02 Logical Transitions,C,C,right
+ST0013,BB4,2026-10-02,Reading and Writing,1,4,RW316,W-GRA-12 Verb Tense,D,C,wrong
+ST0013,BB4,2026-10-02,Reading and Writing,1,5,RW131,W-GRA-09 Comparisons,A,A,right
+ST0013,BB4,2026-10-02,Reading and Writing,1,6,RW177,W-GRA-06 Subjects and Verbs,C,C,right
+ST0013,BB4,2026-10-02,Reading and Writing,2,1,RW224,W-EXP-02 Logical Transitions,A,B,wrong
+ST0013,BB4,2026-10-02,Reading and Writing,2,2,RW260,W-GRA-09 Comparisons,C,C,right
+ST0013,BB4,2026-10-02,Reading and Writing,2,3,RW272,W-GRA-06 Subjects and Verbs,D,D,right
+ST0013,BB4,2026-10-02,Reading and Writing,2,4,RW113,W-GRA-07 Pronoun Agreement,B,C,wrong
+ST0013,BB4,2026-10-02,Reading and Writing,2,5,RW244,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0013,BB4,2026-10-02,Reading and Writing,2,6,RW150,W-GRA-12 Verb Tense,A,A,right
+ST0013,BB4,2026-10-02,Math,1,1,M148,M-GEO-05 Rectangles,B,B,right
+ST0013,BB4,2026-10-02,Math,1,2,M219,M-PRO-01 Percentages,C,C,right
+ST0013,BB4,2026-10-02,Math,1,3,M204,M-ALG-08 Solving Linear Equations,C,C,right
+ST0013,BB4,2026-10-02,Math,1,4,M274,M-ALG-11 Function Notation,B,B,right
+ST0013,BB4,2026-10-02,Math,1,5,M275,M-PRO-10 Ratios,A,D,wrong
+ST0013,BB4,2026-10-02,Math,1,6,M216,M-ALG-04 Systems of Equations,A,B,wrong
+ST0013,BB4,2026-10-02,Math,2,1,M197,M-PRO-10 Ratios,A,B,wrong
+ST0013,BB4,2026-10-02,Math,2,2,M245,M-ALG-11 Function Notation,D,D,right
+ST0013,BB4,2026-10-02,Math,2,3,M158,M-ALG-04 Systems of Equations,A,C,wrong
+ST0013,BB4,2026-10-02,Math,2,4,M288,M-GEO-05 Rectangles,B,A,wrong
+ST0013,BB4,2026-10-02,Math,2,5,M111,M-PRO-01 Percentages,C,C,right
+ST0013,BB4,2026-10-02,Math,2,6,M225,M-ALG-08 Solving Linear Equations,A,A,right
+ST0004,BB4,2026-10-05,Reading and Writing,1,1,RW162,W-GRA-07 Pronoun Agreement,A,A,right
+ST0004,BB4,2026-10-05,Reading and Writing,1,2,RW125,W-PUN-03 Run-ons and Comma Splices,C,A,wrong
+ST0004,BB4,2026-10-05,Reading and Writing,1,3,RW124,W-EXP-02 Logical Transitions,C,C,right
+ST0004,BB4,2026-10-05,Reading and Writing,1,4,RW316,W-GRA-12 Verb Tense,A,C,wrong
+ST0004,BB4,2026-10-05,Reading and Writing,1,5,RW131,W-GRA-09 Comparisons,A,A,right
+ST0004,BB4,2026-10-05,Reading and Writing,1,6,RW177,W-GRA-06 Subjects and Verbs,C,C,right
+ST0004,BB4,2026-10-05,Reading and Writing,2,1,RW224,W-EXP-02 Logical Transitions,B,B,right
+ST0004,BB4,2026-10-05,Reading and Writing,2,2,RW260,W-GRA-09 Comparisons,D,C,wrong
+ST0004,BB4,2026-10-05,Reading and Writing,2,3,RW272,W-GRA-06 Subjects and Verbs,D,D,right
+ST0004,BB4,2026-10-05,Reading and Writing,2,4,RW113,W-GRA-07 Pronoun Agreement,B,C,wrong
+ST0004,BB4,2026-10-05,Reading and Writing,2,5,RW244,W-PUN-03 Run-ons and Comma Splices,B,C,wrong
+ST0004,BB4,2026-10-05,Reading and Writing,2,6,RW150,W-GRA-12 Verb Tense,A,A,right
+ST0004,BB4,2026-10-05,Math,1,1,M148,M-GEO-05 Rectangles,B,B,right
+ST0004,BB4,2026-10-05,Math,1,2,M219,M-PRO-01 Percentages,C,C,right
+ST0004,BB4,2026-10-05,Math,1,3,M204,M-ALG-08 Solving Linear Equations,C,C,right
+ST0004,BB4,2026-10-05,Math,1,4,M274,M-ALG-11 Function Notation,C,B,wrong
+ST0004,BB4,2026-10-05,Math,1,5,M275,M-PRO-10 Ratios,D,D,right
+ST0004,BB4,2026-10-05,Math,1,6,M216,M-ALG-04 Systems of Equations,B,B,right
+ST0004,BB4,2026-10-05,Math,2,1,M197,M-PRO-10 Ratios,B,B,right
+ST0004,BB4,2026-10-05,Math,2,2,M245,M-ALG-11 Function Notation,B,D,wrong
+ST0004,BB4,2026-10-05,Math,2,3,M158,M-ALG-04 Systems of Equations,D,C,wrong
+ST0004,BB4,2026-10-05,Math,2,4,M288,M-GEO-05 Rectangles,D,A,wrong
+ST0004,BB4,2026-10-05,Math,2,5,M111,M-PRO-01 Percentages,C,C,right
+ST0004,BB4,2026-10-05,Math,2,6,M225,M-ALG-08 Solving Linear Equations,A,A,right
+ST0002,BB2,2026-10-06,Reading and Writing,1,1,RW190,W-GRA-07 Pronoun Agreement,A,A,right
+ST0002,BB2,2026-10-06,Reading and Writing,1,2,RW218,W-GRA-06 Subjects and Verbs,B,B,right
+ST0002,BB2,2026-10-06,Reading and Writing,1,3,RW305,W-EXP-02 Logical Transitions,B,B,right
+ST0002,BB2,2026-10-06,Reading and Writing,1,4,RW208,W-GRA-12 Verb Tense,A,C,wrong
+ST0002,BB2,2026-10-06,Reading and Writing,1,5,RW201,W-GRA-09 Comparisons,C,C,right
+ST0002,BB2,2026-10-06,Reading and Writing,1,6,RW223,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0002,BB2,2026-10-06,Reading and Writing,2,1,RW234,W-GRA-09 Comparisons,A,A,right
+ST0002,BB2,2026-10-06,Reading and Writing,2,2,RW239,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0002,BB2,2026-10-06,Reading and Writing,2,3,RW254,W-GRA-06 Subjects and Verbs,D,D,right
+ST0002,BB2,2026-10-06,Reading and Writing,2,4,RW250,W-EXP-02 Logical Transitions,C,C,right
+ST0002,BB2,2026-10-06,Reading and Writing,2,5,RW112,W-GRA-12 Verb Tense,D,D,right
+ST0002,BB2,2026-10-06,Reading and Writing,2,6,RW291,W-GRA-07 Pronoun Agreement,B,B,right
+ST0002,BB2,2026-10-06,Math,1,1,M156,M-GEO-05 Rectangles,D,A,wrong
+ST0002,BB2,2026-10-06,Math,1,2,M159,M-ALG-11 Function Notation,B,B,right
+ST0002,BB2,2026-10-06,Math,1,3,M296,M-ALG-08 Solving Linear Equations,B,B,right
+ST0002,BB2,2026-10-06,Math,1,4,M314,M-PRO-01 Percentages,D,D,right
+ST0002,BB2,2026-10-06,Math,1,5,M134,M-ALG-04 Systems of Equations,D,B,wrong
+ST0002,BB2,2026-10-06,Math,1,6,M169,M-PRO-10 Ratios,C,C,right
+ST0002,BB2,2026-10-06,Math,2,1,M170,M-ALG-08 Solving Linear Equations,B,C,wrong
+ST0002,BB2,2026-10-06,Math,2,2,M181,M-ALG-04 Systems of Equations,C,C,right
+ST0002,BB2,2026-10-06,Math,2,3,M215,M-GEO-05 Rectangles,C,D,wrong
+ST0002,BB2,2026-10-06,Math,2,4,M153,M-PRO-10 Ratios,B,B,right
+ST0002,BB2,2026-10-06,Math,2,5,M202,M-ALG-11 Function Notation,B,B,right
+ST0002,BB2,2026-10-06,Math,2,6,M221,M-PRO-01 Percentages,B,B,right
+ST0008,BB3,2026-10-06,Reading and Writing,1,1,RW167,W-GRA-07 Pronoun Agreement,A,A,right
+ST0008,BB3,2026-10-06,Reading and Writing,1,2,RW128,W-PUN-03 Run-ons and Comma Splices,D,D,right
+ST0008,BB3,2026-10-06,Reading and Writing,1,3,RW213,W-GRA-12 Verb Tense,D,D,right
+ST0008,BB3,2026-10-06,Reading and Writing,1,4,RW147,W-GRA-09 Comparisons,D,D,right
+ST0008,BB3,2026-10-06,Reading and Writing,1,5,RW183,W-GRA-06 Subjects and Verbs,C,A,wrong
+ST0008,BB3,2026-10-06,Reading and Writing,1,6,RW227,W-EXP-02 Logical Transitions,A,A,right
+ST0008,BB3,2026-10-06,Reading and Writing,2,1,RW282,W-GRA-07 Pronoun Agreement,A,A,right
+ST0008,BB3,2026-10-06,Reading and Writing,2,2,RW154,W-GRA-09 Comparisons,D,B,wrong
+ST0008,BB3,2026-10-06,Reading and Writing,2,3,RW103,W-GRA-12 Verb Tense,D,D,right
+ST0008,BB3,2026-10-06,Reading and Writing,2,4,RW300,W-EXP-02 Logical Transitions,D,A,wrong
+ST0008,BB3,2026-10-06,Reading and Writing,2,5,RW290,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0008,BB3,2026-10-06,Reading and Writing,2,6,RW278,W-GRA-06 Subjects and Verbs,D,D,right
+ST0008,BB3,2026-10-06,Math,1,1,M126,M-ALG-08 Solving Linear Equations,C,C,right
+ST0008,BB3,2026-10-06,Math,1,2,M280,M-ALG-04 Systems of Equations,B,B,right
+ST0008,BB3,2026-10-06,Math,1,3,M192,M-GEO-05 Rectangles,B,C,wrong
+ST0008,BB3,2026-10-06,Math,1,4,M258,M-ALG-11 Function Notation,B,D,wrong
+ST0008,BB3,2026-10-06,Math,1,5,M306,M-PRO-01 Percentages,C,C,right
+ST0008,BB3,2026-10-06,Math,1,6,M142,M-PRO-10 Ratios,A,D,wrong
+ST0008,BB3,2026-10-06,Math,2,1,M105,M-PRO-10 Ratios,C,D,wrong
+ST0008,BB3,2026-10-06,Math,2,2,M209,M-GEO-05 Rectangles,B,B,right
+ST0008,BB3,2026-10-06,Math,2,3,M194,M-PRO-01 Percentages,D,D,right
+ST0008,BB3,2026-10-06,Math,2,4,M120,M-ALG-04 Systems of Equations,D,D,right
+ST0008,BB3,2026-10-06,Math,2,5,M303,M-ALG-11 Function Notation,A,D,wrong
+ST0008,BB3,2026-10-06,Math,2,6,M309,M-ALG-08 Solving Linear Equations,D,A,wrong
+ST0014,BB5,2026-10-07,Reading and Writing,1,1,RW116,W-PUN-03 Run-ons and Comma Splices,D,A,wrong
+ST0014,BB5,2026-10-07,Reading and Writing,1,2,RW141,W-EXP-02 Logical Transitions,A,A,right
+ST0014,BB5,2026-10-07,Reading and Writing,1,3,RW261,W-GRA-06 Subjects and Verbs,C,C,right
+ST0014,BB5,2026-10-07,Reading and Writing,1,4,RW123,W-GRA-12 Verb Tense,D,D,right
+ST0014,BB5,2026-10-07,Reading and Writing,1,5,RW283,W-GRA-07 Pronoun Agreement,B,B,right
+ST0014,BB5,2026-10-07,Reading and Writing,1,6,RW231,W-GRA-09 Comparisons,C,C,right
+ST0014,BB5,2026-10-07,Reading and Writing,2,1,RW292,W-GRA-12 Verb Tense,C,D,wrong
+ST0014,BB5,2026-10-07,Reading and Writing,2,2,RW107,W-GRA-06 Subjects and Verbs,A,C,wrong
+ST0014,BB5,2026-10-07,Reading and Writing,2,3,RW315,W-GRA-07 Pronoun Agreement,A,A,right
+ST0014,BB5,2026-10-07,Reading and Writing,2,4,RW302,W-GRA-09 Comparisons,B,B,right
+ST0014,BB5,2026-10-07,Reading and Writing,2,5,RW136,W-EXP-02 Logical Transitions,A,A,right
+ST0014,BB5,2026-10-07,Reading and Writing,2,6,RW206,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0014,BB5,2026-10-07,Math,1,1,M253,M-ALG-11 Function Notation,C,A,wrong
+ST0014,BB5,2026-10-07,Math,1,2,M133,M-PRO-10 Ratios,C,C,right
+ST0014,BB5,2026-10-07,Math,1,3,M214,M-ALG-08 Solving Linear Equations,D,D,right
+ST0014,BB5,2026-10-07,Math,1,4,M277,M-PRO-01 Percentages,A,A,right
+ST0014,BB5,2026-10-07,Math,1,5,M293,M-ALG-04 Systems of Equations,D,D,right
+ST0014,BB5,2026-10-07,Math,1,6,M175,M-GEO-05 Rectangles,D,D,right
+ST0014,BB5,2026-10-07,Math,2,1,M249,M-ALG-08 Solving Linear Equations,C,C,right
+ST0014,BB5,2026-10-07,Math,2,2,M173,M-PRO-10 Ratios,A,A,right
+ST0014,BB5,2026-10-07,Math,2,3,M238,M-ALG-04 Systems of Equations,C,A,wrong
+ST0014,BB5,2026-10-07,Math,2,4,M284,M-ALG-11 Function Notation,C,B,wrong
+ST0014,BB5,2026-10-07,Math,2,5,M287,M-GEO-05 Rectangles,C,C,right
+ST0014,BB5,2026-10-07,Math,2,6,M199,M-PRO-01 Percentages,C,C,right
+ST0008,BB4,2026-10-08,Reading and Writing,1,1,RW162,W-GRA-07 Pronoun Agreement,A,A,right
+ST0008,BB4,2026-10-08,Reading and Writing,1,2,RW125,W-PUN-03 Run-ons and Comma Splices,B,A,wrong
+ST0008,BB4,2026-10-08,Reading and Writing,1,3,RW124,W-EXP-02 Logical Transitions,C,C,right
+ST0008,BB4,2026-10-08,Reading and Writing,1,4,RW316,W-GRA-12 Verb Tense,C,C,right
+ST0008,BB4,2026-10-08,Reading and Writing,1,5,RW131,W-GRA-09 Comparisons,B,A,wrong
+ST0008,BB4,2026-10-08,Reading and Writing,1,6,RW177,W-GRA-06 Subjects and Verbs,C,C,right
+ST0008,BB4,2026-10-08,Reading and Writing,2,1,RW224,W-EXP-02 Logical Transitions,C,B,wrong
+ST0008,BB4,2026-10-08,Reading and Writing,2,2,RW260,W-GRA-09 Comparisons,B,C,wrong
+ST0008,BB4,2026-10-08,Reading and Writing,2,3,RW272,W-GRA-06 Subjects and Verbs,D,D,right
+ST0008,BB4,2026-10-08,Reading and Writing,2,4,RW113,W-GRA-07 Pronoun Agreement,C,C,right
+ST0008,BB4,2026-10-08,Reading and Writing,2,5,RW244,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0008,BB4,2026-10-08,Reading and Writing,2,6,RW150,W-GRA-12 Verb Tense,D,A,wrong
+ST0008,BB4,2026-10-08,Math,1,1,M148,M-GEO-05 Rectangles,D,B,wrong
+ST0008,BB4,2026-10-08,Math,1,2,M219,M-PRO-01 Percentages,C,C,right
+ST0008,BB4,2026-10-08,Math,1,3,M204,M-ALG-08 Solving Linear Equations,A,C,wrong
+ST0008,BB4,2026-10-08,Math,1,4,M274,M-ALG-11 Function Notation,D,B,wrong
+ST0008,BB4,2026-10-08,Math,1,5,M275,M-PRO-10 Ratios,C,D,wrong
+ST0008,BB4,2026-10-08,Math,1,6,M216,M-ALG-04 Systems of Equations,B,B,right
+ST0008,BB4,2026-10-08,Math,2,1,M197,M-PRO-10 Ratios,B,B,right
+ST0008,BB4,2026-10-08,Math,2,2,M245,M-ALG-11 Function Notation,C,D,wrong
+ST0008,BB4,2026-10-08,Math,2,3,M158,M-ALG-04 Systems of Equations,B,C,wrong
+ST0008,BB4,2026-10-08,Math,2,4,M288,M-GEO-05 Rectangles,A,A,right
+ST0008,BB4,2026-10-08,Math,2,5,M111,M-PRO-01 Percentages,C,C,right
+ST0008,BB4,2026-10-08,Math,2,6,M225,M-ALG-08 Solving Linear Equations,A,A,right
+ST0004,BB5,2026-10-10,Reading and Writing,1,1,RW116,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0004,BB5,2026-10-10,Reading and Writing,1,2,RW141,W-EXP-02 Logical Transitions,A,A,right
+ST0004,BB5,2026-10-10,Reading and Writing,1,3,RW261,W-GRA-06 Subjects and Verbs,C,C,right
+ST0004,BB5,2026-10-10,Reading and Writing,1,4,RW123,W-GRA-12 Verb Tense,D,D,right
+ST0004,BB5,2026-10-10,Reading and Writing,1,5,RW283,W-GRA-07 Pronoun Agreement,A,B,wrong
+ST0004,BB5,2026-10-10,Reading and Writing,1,6,RW231,W-GRA-09 Comparisons,C,C,right
+ST0004,BB5,2026-10-10,Reading and Writing,2,1,RW292,W-GRA-12 Verb Tense,D,D,right
+ST0004,BB5,2026-10-10,Reading and Writing,2,2,RW107,W-GRA-06 Subjects and Verbs,C,C,right
+ST0004,BB5,2026-10-10,Reading and Writing,2,3,RW315,W-GRA-07 Pronoun Agreement,D,A,wrong
+ST0004,BB5,2026-10-10,Reading and Writing,2,4,RW302,W-GRA-09 Comparisons,D,B,wrong
+ST0004,BB5,2026-10-10,Reading and Writing,2,5,RW136,W-EXP-02 Logical Transitions,A,A,right
+ST0004,BB5,2026-10-10,Reading and Writing,2,6,RW206,W-PUN-03 Run-ons and Comma Splices,B,C,wrong
+ST0004,BB5,2026-10-10,Math,1,1,M253,M-ALG-11 Function Notation,A,A,right
+ST0004,BB5,2026-10-10,Math,1,2,M133,M-PRO-10 Ratios,B,C,wrong
+ST0004,BB5,2026-10-10,Math,1,3,M214,M-ALG-08 Solving Linear Equations,D,D,right
+ST0004,BB5,2026-10-10,Math,1,4,M277,M-PRO-01 Percentages,C,A,wrong
+ST0004,BB5,2026-10-10,Math,1,5,M293,M-ALG-04 Systems of Equations,D,D,right
+ST0004,BB5,2026-10-10,Math,1,6,M175,M-GEO-05 Rectangles,D,D,right
+ST0004,BB5,2026-10-10,Math,2,1,M249,M-ALG-08 Solving Linear Equations,C,C,right
+ST0004,BB5,2026-10-10,Math,2,2,M173,M-PRO-10 Ratios,A,A,right
+ST0004,BB5,2026-10-10,Math,2,3,M238,M-ALG-04 Systems of Equations,A,A,right
+ST0004,BB5,2026-10-10,Math,2,4,M284,M-ALG-11 Function Notation,B,B,right
+ST0004,BB5,2026-10-10,Math,2,5,M287,M-GEO-05 Rectangles,C,C,right
+ST0004,BB5,2026-10-10,Math,2,6,M199,M-PRO-01 Percentages,C,C,right
+ST0001,BB4,2026-10-12,Reading and Writing,1,1,RW162,W-GRA-07 Pronoun Agreement,A,A,right
+ST0001,BB4,2026-10-12,Reading and Writing,1,2,RW125,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0001,BB4,2026-10-12,Reading and Writing,1,3,RW124,W-EXP-02 Logical Transitions,B,C,wrong
+ST0001,BB4,2026-10-12,Reading and Writing,1,4,RW316,W-GRA-12 Verb Tense,C,C,right
+ST0001,BB4,2026-10-12,Reading and Writing,1,5,RW131,W-GRA-09 Comparisons,A,A,right
+ST0001,BB4,2026-10-12,Reading and Writing,1,6,RW177,W-GRA-06 Subjects and Verbs,B,C,wrong
+ST0001,BB4,2026-10-12,Reading and Writing,2,1,RW224,W-EXP-02 Logical Transitions,B,B,right
+ST0001,BB4,2026-10-12,Reading and Writing,2,2,RW260,W-GRA-09 Comparisons,B,C,wrong
+ST0001,BB4,2026-10-12,Reading and Writing,2,3,RW272,W-GRA-06 Subjects and Verbs,D,D,right
+ST0001,BB4,2026-10-12,Reading and Writing,2,4,RW113,W-GRA-07 Pronoun Agreement,C,C,right
+ST0001,BB4,2026-10-12,Reading and Writing,2,5,RW244,W-PUN-03 Run-ons and Comma Splices,A,C,wrong
+ST0001,BB4,2026-10-12,Reading and Writing,2,6,RW150,W-GRA-12 Verb Tense,C,A,wrong
+ST0001,BB4,2026-10-12,Math,1,1,M148,M-GEO-05 Rectangles,B,B,right
+ST0001,BB4,2026-10-12,Math,1,2,M219,M-PRO-01 Percentages,C,C,right
+ST0001,BB4,2026-10-12,Math,1,3,M204,M-ALG-08 Solving Linear Equations,B,C,wrong
+ST0001,BB4,2026-10-12,Math,1,4,M274,M-ALG-11 Function Notation,B,B,right
+ST0001,BB4,2026-10-12,Math,1,5,M275,M-PRO-10 Ratios,D,D,right
+ST0001,BB4,2026-10-12,Math,1,6,M216,M-ALG-04 Systems of Equations,B,B,right
+ST0001,BB4,2026-10-12,Math,2,1,M197,M-PRO-10 Ratios,B,B,right
+ST0001,BB4,2026-10-12,Math,2,2,M245,M-ALG-11 Function Notation,B,D,wrong
+ST0001,BB4,2026-10-12,Math,2,3,M158,M-ALG-04 Systems of Equations,C,C,right
+ST0001,BB4,2026-10-12,Math,2,4,M288,M-GEO-05 Rectangles,A,A,right
+ST0001,BB4,2026-10-12,Math,2,5,M111,M-PRO-01 Percentages,D,C,wrong
+ST0001,BB4,2026-10-12,Math,2,6,M225,M-ALG-08 Solving Linear Equations,C,A,wrong
+ST0003,BB4,2026-10-13,Reading and Writing,1,1,RW162,W-GRA-07 Pronoun Agreement,A,A,right
+ST0003,BB4,2026-10-13,Reading and Writing,1,2,RW125,W-PUN-03 Run-ons and Comma Splices,D,A,wrong
+ST0003,BB4,2026-10-13,Reading and Writing,1,3,RW124,W-EXP-02 Logical Transitions,C,C,right
+ST0003,BB4,2026-10-13,Reading and Writing,1,4,RW316,W-GRA-12 Verb Tense,C,C,right
+ST0003,BB4,2026-10-13,Reading and Writing,1,5,RW131,W-GRA-09 Comparisons,A,A,right
+ST0003,BB4,2026-10-13,Reading and Writing,1,6,RW177,W-GRA-06 Subjects and Verbs,B,C,wrong
+ST0003,BB4,2026-10-13,Reading and Writing,2,1,RW224,W-EXP-02 Logical Transitions,B,B,right
+ST0003,BB4,2026-10-13,Reading and Writing,2,2,RW260,W-GRA-09 Comparisons,C,C,right
+ST0003,BB4,2026-10-13,Reading and Writing,2,3,RW272,W-GRA-06 Subjects and Verbs,C,D,wrong
+ST0003,BB4,2026-10-13,Reading and Writing,2,4,RW113,W-GRA-07 Pronoun Agreement,C,C,right
+ST0003,BB4,2026-10-13,Reading and Writing,2,5,RW244,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0003,BB4,2026-10-13,Reading and Writing,2,6,RW150,W-GRA-12 Verb Tense,B,A,wrong
+ST0003,BB4,2026-10-13,Math,1,1,M148,M-GEO-05 Rectangles,B,B,right
+ST0003,BB4,2026-10-13,Math,1,2,M219,M-PRO-01 Percentages,C,C,right
+ST0003,BB4,2026-10-13,Math,1,3,M204,M-ALG-08 Solving Linear Equations,D,C,wrong
+ST0003,BB4,2026-10-13,Math,1,4,M274,M-ALG-11 Function Notation,B,B,right
+ST0003,BB4,2026-10-13,Math,1,5,M275,M-PRO-10 Ratios,D,D,right
+ST0003,BB4,2026-10-13,Math,1,6,M216,M-ALG-04 Systems of Equations,B,B,right
+ST0003,BB4,2026-10-13,Math,2,1,M197,M-PRO-10 Ratios,B,B,right
+ST0003,BB4,2026-10-13,Math,2,2,M245,M-ALG-11 Function Notation,D,D,right
+ST0003,BB4,2026-10-13,Math,2,3,M158,M-ALG-04 Systems of Equations,C,C,right
+ST0003,BB4,2026-10-13,Math,2,4,M288,M-GEO-05 Rectangles,A,A,right
+ST0003,BB4,2026-10-13,Math,2,5,M111,M-PRO-01 Percentages,C,C,right
+ST0003,BB4,2026-10-13,Math,2,6,M225,M-ALG-08 Solving Linear Equations,A,A,right
+ST0008,BB5,2026-10-14,Reading and Writing,1,1,RW116,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0008,BB5,2026-10-14,Reading and Writing,1,2,RW141,W-EXP-02 Logical Transitions,C,A,wrong
+ST0008,BB5,2026-10-14,Reading and Writing,1,3,RW261,W-GRA-06 Subjects and Verbs,B,C,wrong
+ST0008,BB5,2026-10-14,Reading and Writing,1,4,RW123,W-GRA-12 Verb Tense,D,D,right
+ST0008,BB5,2026-10-14,Reading and Writing,1,5,RW283,W-GRA-07 Pronoun Agreement,B,B,right
+ST0008,BB5,2026-10-14,Reading and Writing,1,6,RW231,W-GRA-09 Comparisons,D,C,wrong
+ST0008,BB5,2026-10-14,Reading and Writing,2,1,RW292,W-GRA-12 Verb Tense,D,D,right
+ST0008,BB5,2026-10-14,Reading and Writing,2,2,RW107,W-GRA-06 Subjects and Verbs,A,C,wrong
+ST0008,BB5,2026-10-14,Reading and Writing,2,3,RW315,W-GRA-07 Pronoun Agreement,B,A,wrong
+ST0008,BB5,2026-10-14,Reading and Writing,2,4,RW302,W-GRA-09 Comparisons,C,B,wrong
+ST0008,BB5,2026-10-14,Reading and Writing,2,5,RW136,W-EXP-02 Logical Transitions,A,A,right
+ST0008,BB5,2026-10-14,Reading and Writing,2,6,RW206,W-PUN-03 Run-ons and Comma Splices,D,C,wrong
+ST0008,BB5,2026-10-14,Math,1,1,M253,M-ALG-11 Function Notation,C,A,wrong
+ST0008,BB5,2026-10-14,Math,1,2,M133,M-PRO-10 Ratios,C,C,right
+ST0008,BB5,2026-10-14,Math,1,3,M214,M-ALG-08 Solving Linear Equations,A,D,wrong
+ST0008,BB5,2026-10-14,Math,1,4,M277,M-PRO-01 Percentages,A,A,right
+ST0008,BB5,2026-10-14,Math,1,5,M293,M-ALG-04 Systems of Equations,D,D,right
+ST0008,BB5,2026-10-14,Math,1,6,M175,M-GEO-05 Rectangles,A,D,wrong
+ST0008,BB5,2026-10-14,Math,2,1,M249,M-ALG-08 Solving Linear Equations,D,C,wrong
+ST0008,BB5,2026-10-14,Math,2,2,M173,M-PRO-10 Ratios,B,A,wrong
+ST0008,BB5,2026-10-14,Math,2,3,M238,M-ALG-04 Systems of Equations,A,A,right
+ST0008,BB5,2026-10-14,Math,2,4,M284,M-ALG-11 Function Notation,B,B,right
+ST0008,BB5,2026-10-14,Math,2,5,M287,M-GEO-05 Rectangles,C,C,right
+ST0008,BB5,2026-10-14,Math,2,6,M199,M-PRO-01 Percentages,B,C,wrong
+ST0006,BB1,2026-10-16,Reading and Writing,1,1,RW165,W-EXP-02 Logical Transitions,C,C,right
+ST0006,BB1,2026-10-16,Reading and Writing,1,2,RW255,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0006,BB1,2026-10-16,Reading and Writing,1,3,RW233,W-GRA-12 Verb Tense,B,D,wrong
+ST0006,BB1,2026-10-16,Reading and Writing,1,4,RW122,W-GRA-09 Comparisons,C,A,wrong
+ST0006,BB1,2026-10-16,Reading and Writing,1,5,RW108,W-GRA-07 Pronoun Agreement,D,D,right
+ST0006,BB1,2026-10-16,Reading and Writing,1,6,RW240,W-GRA-06 Subjects and Verbs,C,C,right
+ST0006,BB1,2026-10-16,Reading and Writing,2,1,RW140,W-PUN-03 Run-ons and Comma Splices,D,D,right
+ST0006,BB1,2026-10-16,Reading and Writing,2,2,RW246,W-GRA-09 Comparisons,D,D,right
+ST0006,BB1,2026-10-16,Reading and Writing,2,3,RW168,W-GRA-07 Pronoun Agreement,A,A,right
+ST0006,BB1,2026-10-16,Reading and Writing,2,4,RW299,W-GRA-12 Verb Tense,C,C,right
+ST0006,BB1,2026-10-16,Reading and Writing,2,5,RW110,W-EXP-02 Logical Transitions,B,B,right
+ST0006,BB1,2026-10-16,Reading and Writing,2,6,RW193,W-GRA-06 Subjects and Verbs,D,D,right
+ST0006,BB1,2026-10-16,Math,1,1,M145,M-ALG-04 Systems of Equations,A,A,right
+ST0006,BB1,2026-10-16,Math,1,2,M118,M-ALG-11 Function Notation,D,C,wrong
+ST0006,BB1,2026-10-16,Math,1,3,M267,M-ALG-08 Solving Linear Equations,C,C,right
+ST0006,BB1,2026-10-16,Math,1,4,M257,M-PRO-01 Percentages,C,C,right
+ST0006,BB1,2026-10-16,Math,1,5,M132,M-GEO-05 Rectangles,D,A,wrong
+ST0006,BB1,2026-10-16,Math,1,6,M285,M-PRO-10 Ratios,A,A,right
+ST0006,BB1,2026-10-16,Math,2,1,M270,M-PRO-01 Percentages,A,A,right
+ST0006,BB1,2026-10-16,Math,2,2,M203,M-GEO-05 Rectangles,B,D,wrong
+ST0006,BB1,2026-10-16,Math,2,3,M135,M-ALG-08 Solving Linear Equations,B,B,right
+ST0006,BB1,2026-10-16,Math,2,4,M151,M-ALG-11 Function Notation,C,B,wrong
+ST0006,BB1,2026-10-16,Math,2,5,M252,M-PRO-10 Ratios,B,C,wrong
+ST0006,BB1,2026-10-16,Math,2,6,M155,M-ALG-04 Systems of Equations,B,B,right
+ST0002,BB3,2026-10-17,Reading and Writing,1,1,RW167,W-GRA-07 Pronoun Agreement,A,A,right
+ST0002,BB3,2026-10-17,Reading and Writing,1,2,RW128,W-PUN-03 Run-ons and Comma Splices,D,D,right
+ST0002,BB3,2026-10-17,Reading and Writing,1,3,RW213,W-GRA-12 Verb Tense,D,D,right
+ST0002,BB3,2026-10-17,Reading and Writing,1,4,RW147,W-GRA-09 Comparisons,D,D,right
+ST0002,BB3,2026-10-17,Reading and Writing,1,5,RW183,W-GRA-06 Subjects and Verbs,A,A,right
+ST0002,BB3,2026-10-17,Reading and Writing,1,6,RW227,W-EXP-02 Logical Transitions,A,A,right
+ST0002,BB3,2026-10-17,Reading and Writing,2,1,RW282,W-GRA-07 Pronoun Agreement,B,A,wrong
+ST0002,BB3,2026-10-17,Reading and Writing,2,2,RW154,W-GRA-09 Comparisons,A,B,wrong
+ST0002,BB3,2026-10-17,Reading and Writing,2,3,RW103,W-GRA-12 Verb Tense,D,D,right
+ST0002,BB3,2026-10-17,Reading and Writing,2,4,RW300,W-EXP-02 Logical Transitions,A,A,right
+ST0002,BB3,2026-10-17,Reading and Writing,2,5,RW290,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0002,BB3,2026-10-17,Reading and Writing,2,6,RW278,W-GRA-06 Subjects and Verbs,D,D,right
+ST0002,BB3,2026-10-17,Math,1,1,M126,M-ALG-08 Solving Linear Equations,C,C,right
+ST0002,BB3,2026-10-17,Math,1,2,M280,M-ALG-04 Systems of Equations,B,B,right
+ST0002,BB3,2026-10-17,Math,1,3,M192,M-GEO-05 Rectangles,C,C,right
+ST0002,BB3,2026-10-17,Math,1,4,M258,M-ALG-11 Function Notation,D,D,right
+ST0002,BB3,2026-10-17,Math,1,5,M306,M-PRO-01 Percentages,C,C,right
+ST0002,BB3,2026-10-17,Math,1,6,M142,M-PRO-10 Ratios,A,D,wrong
+ST0002,BB3,2026-10-17,Math,2,1,M105,M-PRO-10 Ratios,D,D,right
+ST0002,BB3,2026-10-17,Math,2,2,M209,M-GEO-05 Rectangles,D,B,wrong
+ST0002,BB3,2026-10-17,Math,2,3,M194,M-PRO-01 Percentages,D,D,right
+ST0002,BB3,2026-10-17,Math,2,4,M120,M-ALG-04 Systems of Equations,D,D,right
+ST0002,BB3,2026-10-17,Math,2,5,M303,M-ALG-11 Function Notation,D,D,right
+ST0002,BB3,2026-10-17,Math,2,6,M309,M-ALG-08 Solving Linear Equations,A,A,right
+ST0002,BB4,2026-10-19,Reading and Writing,1,1,RW162,W-GRA-07 Pronoun Agreement,A,A,right
+ST0002,BB4,2026-10-19,Reading and Writing,1,2,RW125,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0002,BB4,2026-10-19,Reading and Writing,1,3,RW124,W-EXP-02 Logical Transitions,D,C,wrong
+ST0002,BB4,2026-10-19,Reading and Writing,1,4,RW316,W-GRA-12 Verb Tense,C,C,right
+ST0002,BB4,2026-10-19,Reading and Writing,1,5,RW131,W-GRA-09 Comparisons,A,A,right
+ST0002,BB4,2026-10-19,Reading and Writing,1,6,RW177,W-GRA-06 Subjects and Verbs,C,C,right
+ST0002,BB4,2026-10-19,Reading and Writing,2,1,RW224,W-EXP-02 Logical Transitions,D,B,wrong
+ST0002,BB4,2026-10-19,Reading and Writing,2,2,RW260,W-GRA-09 Comparisons,B,C,wrong
+ST0002,BB4,2026-10-19,Reading and Writing,2,3,RW272,W-GRA-06 Subjects and Verbs,D,D,right
+ST0002,BB4,2026-10-19,Reading and Writing,2,4,RW113,W-GRA-07 Pronoun Agreement,D,C,wrong
+ST0002,BB4,2026-10-19,Reading and Writing,2,5,RW244,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0002,BB4,2026-10-19,Reading and Writing,2,6,RW150,W-GRA-12 Verb Tense,A,A,right
+ST0002,BB4,2026-10-19,Math,1,1,M148,M-GEO-05 Rectangles,D,B,wrong
+ST0002,BB4,2026-10-19,Math,1,2,M219,M-PRO-01 Percentages,C,C,right
+ST0002,BB4,2026-10-19,Math,1,3,M204,M-ALG-08 Solving Linear Equations,C,C,right
+ST0002,BB4,2026-10-19,Math,1,4,M274,M-ALG-11 Function Notation,B,B,right
+ST0002,BB4,2026-10-19,Math,1,5,M275,M-PRO-10 Ratios,D,D,right
+ST0002,BB4,2026-10-19,Math,1,6,M216,M-ALG-04 Systems of Equations,B,B,right
+ST0002,BB4,2026-10-19,Math,2,1,M197,M-PRO-10 Ratios,B,B,right
+ST0002,BB4,2026-10-19,Math,2,2,M245,M-ALG-11 Function Notation,D,D,right
+ST0002,BB4,2026-10-19,Math,2,3,M158,M-ALG-04 Systems of Equations,C,C,right
+ST0002,BB4,2026-10-19,Math,2,4,M288,M-GEO-05 Rectangles,C,A,wrong
+ST0002,BB4,2026-10-19,Math,2,5,M111,M-PRO-01 Percentages,C,C,right
+ST0002,BB4,2026-10-19,Math,2,6,M225,M-ALG-08 Solving Linear Equations,B,A,wrong
+ST0005,BB5,2026-10-21,Reading and Writing,1,1,RW116,W-PUN-03 Run-ons and Comma Splices,B,A,wrong
+ST0005,BB5,2026-10-21,Reading and Writing,1,2,RW141,W-EXP-02 Logical Transitions,D,A,wrong
+ST0005,BB5,2026-10-21,Reading and Writing,1,3,RW261,W-GRA-06 Subjects and Verbs,A,C,wrong
+ST0005,BB5,2026-10-21,Reading and Writing,1,4,RW123,W-GRA-12 Verb Tense,D,D,right
+ST0005,BB5,2026-10-21,Reading and Writing,1,5,RW283,W-GRA-07 Pronoun Agreement,B,B,right
+ST0005,BB5,2026-10-21,Reading and Writing,1,6,RW231,W-GRA-09 Comparisons,B,C,wrong
+ST0005,BB5,2026-10-21,Reading and Writing,2,1,RW292,W-GRA-12 Verb Tense,D,D,right
+ST0005,BB5,2026-10-21,Reading and Writing,2,2,RW107,W-GRA-06 Subjects and Verbs,D,C,wrong
+ST0005,BB5,2026-10-21,Reading and Writing,2,3,RW315,W-GRA-07 Pronoun Agreement,A,A,right
+ST0005,BB5,2026-10-21,Reading and Writing,2,4,RW302,W-GRA-09 Comparisons,B,B,right
+ST0005,BB5,2026-10-21,Reading and Writing,2,5,RW136,W-EXP-02 Logical Transitions,A,A,right
+ST0005,BB5,2026-10-21,Reading and Writing,2,6,RW206,W-PUN-03 Run-ons and Comma Splices,D,C,wrong
+ST0005,BB5,2026-10-21,Math,1,1,M253,M-ALG-11 Function Notation,A,A,right
+ST0005,BB5,2026-10-21,Math,1,2,M133,M-PRO-10 Ratios,A,C,wrong
+ST0005,BB5,2026-10-21,Math,1,3,M214,M-ALG-08 Solving Linear Equations,D,D,right
+ST0005,BB5,2026-10-21,Math,1,4,M277,M-PRO-01 Percentages,A,A,right
+ST0005,BB5,2026-10-21,Math,1,5,M293,M-ALG-04 Systems of Equations,D,D,right
+ST0005,BB5,2026-10-21,Math,1,6,M175,M-GEO-05 Rectangles,B,D,wrong
+ST0005,BB5,2026-10-21,Math,2,1,M249,M-ALG-08 Solving Linear Equations,C,C,right
+ST0005,BB5,2026-10-21,Math,2,2,M173,M-PRO-10 Ratios,A,A,right
+ST0005,BB5,2026-10-21,Math,2,3,M238,M-ALG-04 Systems of Equations,D,A,wrong
+ST0005,BB5,2026-10-21,Math,2,4,M284,M-ALG-11 Function Notation,C,B,wrong
+ST0005,BB5,2026-10-21,Math,2,5,M287,M-GEO-05 Rectangles,D,C,wrong
+ST0005,BB5,2026-10-21,Math,2,6,M199,M-PRO-01 Percentages,B,C,wrong
+ST0007,BB4,2026-10-21,Reading and Writing,1,1,RW162,W-GRA-07 Pronoun Agreement,A,A,right
+ST0007,BB4,2026-10-21,Reading and Writing,1,2,RW125,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0007,BB4,2026-10-21,Reading and Writing,1,3,RW124,W-EXP-02 Logical Transitions,D,C,wrong
+ST0007,BB4,2026-10-21,Reading and Writing,1,4,RW316,W-GRA-12 Verb Tense,C,C,right
+ST0007,BB4,2026-10-21,Reading and Writing,1,5,RW131,W-GRA-09 Comparisons,B,A,wrong
+ST0007,BB4,2026-10-21,Reading and Writing,1,6,RW177,W-GRA-06 Subjects and Verbs,C,C,right
+ST0007,BB4,2026-10-21,Reading and Writing,2,1,RW224,W-EXP-02 Logical Transitions,A,B,wrong
+ST0007,BB4,2026-10-21,Reading and Writing,2,2,RW260,W-GRA-09 Comparisons,C,C,right
+ST0007,BB4,2026-10-21,Reading and Writing,2,3,RW272,W-GRA-06 Subjects and Verbs,B,D,wrong
+ST0007,BB4,2026-10-21,Reading and Writing,2,4,RW113,W-GRA-07 Pronoun Agreement,A,C,wrong
+ST0007,BB4,2026-10-21,Reading and Writing,2,5,RW244,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0007,BB4,2026-10-21,Reading and Writing,2,6,RW150,W-GRA-12 Verb Tense,B,A,wrong
+ST0007,BB4,2026-10-21,Math,1,1,M148,M-GEO-05 Rectangles,B,B,right
+ST0007,BB4,2026-10-21,Math,1,2,M219,M-PRO-01 Percentages,C,C,right
+ST0007,BB4,2026-10-21,Math,1,3,M204,M-ALG-08 Solving Linear Equations,C,C,right
+ST0007,BB4,2026-10-21,Math,1,4,M274,M-ALG-11 Function Notation,B,B,right
+ST0007,BB4,2026-10-21,Math,1,5,M275,M-PRO-10 Ratios,D,D,right
+ST0007,BB4,2026-10-21,Math,1,6,M216,M-ALG-04 Systems of Equations,D,B,wrong
+ST0007,BB4,2026-10-21,Math,2,1,M197,M-PRO-10 Ratios,B,B,right
+ST0007,BB4,2026-10-21,Math,2,2,M245,M-ALG-11 Function Notation,D,D,right
+ST0007,BB4,2026-10-21,Math,2,3,M158,M-ALG-04 Systems of Equations,C,C,right
+ST0007,BB4,2026-10-21,Math,2,4,M288,M-GEO-05 Rectangles,A,A,right
+ST0007,BB4,2026-10-21,Math,2,5,M111,M-PRO-01 Percentages,C,C,right
+ST0007,BB4,2026-10-21,Math,2,6,M225,M-ALG-08 Solving Linear Equations,A,A,right
+ST0013,BB5,2026-10-21,Reading and Writing,1,1,RW116,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0013,BB5,2026-10-21,Reading and Writing,1,2,RW141,W-EXP-02 Logical Transitions,B,A,wrong
+ST0013,BB5,2026-10-21,Reading and Writing,1,3,RW261,W-GRA-06 Subjects and Verbs,C,C,right
+ST0013,BB5,2026-10-21,Reading and Writing,1,4,RW123,W-GRA-12 Verb Tense,D,D,right
+ST0013,BB5,2026-10-21,Reading and Writing,1,5,RW283,W-GRA-07 Pronoun Agreement,B,B,right
+ST0013,BB5,2026-10-21,Reading and Writing,1,6,RW231,W-GRA-09 Comparisons,C,C,right
+ST0013,BB5,2026-10-21,Reading and Writing,2,1,RW292,W-GRA-12 Verb Tense,D,D,right
+ST0013,BB5,2026-10-21,Reading and Writing,2,2,RW107,W-GRA-06 Subjects and Verbs,A,C,wrong
+ST0013,BB5,2026-10-21,Reading and Writing,2,3,RW315,W-GRA-07 Pronoun Agreement,A,A,right
+ST0013,BB5,2026-10-21,Reading and Writing,2,4,RW302,W-GRA-09 Comparisons,B,B,right
+ST0013,BB5,2026-10-21,Reading and Writing,2,5,RW136,W-EXP-02 Logical Transitions,D,A,wrong
+ST0013,BB5,2026-10-21,Reading and Writing,2,6,RW206,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0013,BB5,2026-10-21,Math,1,1,M253,M-ALG-11 Function Notation,A,A,right
+ST0013,BB5,2026-10-21,Math,1,2,M133,M-PRO-10 Ratios,C,C,right
+ST0013,BB5,2026-10-21,Math,1,3,M214,M-ALG-08 Solving Linear Equations,C,D,wrong
+ST0013,BB5,2026-10-21,Math,1,4,M277,M-PRO-01 Percentages,A,A,right
+ST0013,BB5,2026-10-21,Math,1,5,M293,M-ALG-04 Systems of Equations,C,D,wrong
+ST0013,BB5,2026-10-21,Math,1,6,M175,M-GEO-05 Rectangles,D,D,right
+ST0013,BB5,2026-10-21,Math,2,1,M249,M-ALG-08 Solving Linear Equations,A,C,wrong
+ST0013,BB5,2026-10-21,Math,2,2,M173,M-PRO-10 Ratios,B,A,wrong
+ST0013,BB5,2026-10-21,Math,2,3,M238,M-ALG-04 Systems of Equations,A,A,right
+ST0013,BB5,2026-10-21,Math,2,4,M284,M-ALG-11 Function Notation,B,B,right
+ST0013,BB5,2026-10-21,Math,2,5,M287,M-GEO-05 Rectangles,C,C,right
+ST0013,BB5,2026-10-21,Math,2,6,M199,M-PRO-01 Percentages,C,C,right
+ST0016,BB2,2026-10-21,Reading and Writing,1,1,RW190,W-GRA-07 Pronoun Agreement,A,A,right
+ST0016,BB2,2026-10-21,Reading and Writing,1,2,RW218,W-GRA-06 Subjects and Verbs,B,B,right
+ST0016,BB2,2026-10-21,Reading and Writing,1,3,RW305,W-EXP-02 Logical Transitions,D,B,wrong
+ST0016,BB2,2026-10-21,Reading and Writing,1,4,RW208,W-GRA-12 Verb Tense,C,C,right
+ST0016,BB2,2026-10-21,Reading and Writing,1,5,RW201,W-GRA-09 Comparisons,B,C,wrong
+ST0016,BB2,2026-10-21,Reading and Writing,1,6,RW223,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0016,BB2,2026-10-21,Reading and Writing,2,1,RW234,W-GRA-09 Comparisons,A,A,right
+ST0016,BB2,2026-10-21,Reading and Writing,2,2,RW239,W-PUN-03 Run-ons and Comma Splices,D,B,wrong
+ST0016,BB2,2026-10-21,Reading and Writing,2,3,RW254,W-GRA-06 Subjects and Verbs,A,D,wrong
+ST0016,BB2,2026-10-21,Reading and Writing,2,4,RW250,W-EXP-02 Logical Transitions,C,C,right
+ST0016,BB2,2026-10-21,Reading and Writing,2,5,RW112,W-GRA-12 Verb Tense,D,D,right
+ST0016,BB2,2026-10-21,Reading and Writing,2,6,RW291,W-GRA-07 Pronoun Agreement,C,B,wrong
+ST0016,BB2,2026-10-21,Math,1,1,M156,M-GEO-05 Rectangles,C,A,wrong
+ST0016,BB2,2026-10-21,Math,1,2,M159,M-ALG-11 Function Notation,B,B,right
+ST0016,BB2,2026-10-21,Math,1,3,M296,M-ALG-08 Solving Linear Equations,B,B,right
+ST0016,BB2,2026-10-21,Math,1,4,M314,M-PRO-01 Percentages,C,D,wrong
+ST0016,BB2,2026-10-21,Math,1,5,M134,M-ALG-04 Systems of Equations,B,B,right
+ST0016,BB2,2026-10-21,Math,1,6,M169,M-PRO-10 Ratios,C,C,right
+ST0016,BB2,2026-10-21,Math,2,1,M170,M-ALG-08 Solving Linear Equations,D,C,wrong
+ST0016,BB2,2026-10-21,Math,2,2,M181,M-ALG-04 Systems of Equations,C,C,right
+ST0016,BB2,2026-10-21,Math,2,3,M215,M-GEO-05 Rectangles,B,D,wrong
+ST0016,BB2,2026-10-21,Math,2,4,M153,M-PRO-10 Ratios,B,B,right
+ST0016,BB2,2026-10-21,Math,2,5,M202,M-ALG-11 Function Notation,B,B,right
+ST0016,BB2,2026-10-21,Math,2,6,M221,M-PRO-01 Percentages,B,B,right
+ST0009,BB2,2026-10-22,Reading and Writing,1,1,RW190,W-GRA-07 Pronoun Agreement,A,A,right
+ST0009,BB2,2026-10-22,Reading and Writing,1,2,RW218,W-GRA-06 Subjects and Verbs,B,B,right
+ST0009,BB2,2026-10-22,Reading and Writing,1,3,RW305,W-EXP-02 Logical Transitions,D,B,wrong
+ST0009,BB2,2026-10-22,Reading and Writing,1,4,RW208,W-GRA-12 Verb Tense,C,C,right
+ST0009,BB2,2026-10-22,Reading and Writing,1,5,RW201,W-GRA-09 Comparisons,C,C,right
+ST0009,BB2,2026-10-22,Reading and Writing,1,6,RW223,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0009,BB2,2026-10-22,Reading and Writing,2,1,RW234,W-GRA-09 Comparisons,C,A,wrong
+ST0009,BB2,2026-10-22,Reading and Writing,2,2,RW239,W-PUN-03 Run-ons and Comma Splices,A,B,wrong
+ST0009,BB2,2026-10-22,Reading and Writing,2,3,RW254,W-GRA-06 Subjects and Verbs,D,D,right
+ST0009,BB2,2026-10-22,Reading and Writing,2,4,RW250,W-EXP-02 Logical Transitions,D,C,wrong
+ST0009,BB2,2026-10-22,Reading and Writing,2,5,RW112,W-GRA-12 Verb Tense,D,D,right
+ST0009,BB2,2026-10-22,Reading and Writing,2,6,RW291,W-GRA-07 Pronoun Agreement,B,B,right
+ST0009,BB2,2026-10-22,Math,1,1,M156,M-GEO-05 Rectangles,A,A,right
+ST0009,BB2,2026-10-22,Math,1,2,M159,M-ALG-11 Function Notation,B,B,right
+ST0009,BB2,2026-10-22,Math,1,3,M296,M-ALG-08 Solving Linear Equations,A,B,wrong
+ST0009,BB2,2026-10-22,Math,1,4,M314,M-PRO-01 Percentages,C,D,wrong
+ST0009,BB2,2026-10-22,Math,1,5,M134,M-ALG-04 Systems of Equations,B,B,right
+ST0009,BB2,2026-10-22,Math,1,6,M169,M-PRO-10 Ratios,D,C,wrong
+ST0009,BB2,2026-10-22,Math,2,1,M170,M-ALG-08 Solving Linear Equations,C,C,right
+ST0009,BB2,2026-10-22,Math,2,2,M181,M-ALG-04 Systems of Equations,D,C,wrong
+ST0009,BB2,2026-10-22,Math,2,3,M215,M-GEO-05 Rectangles,D,D,right
+ST0009,BB2,2026-10-22,Math,2,4,M153,M-PRO-10 Ratios,B,B,right
+ST0009,BB2,2026-10-22,Math,2,5,M202,M-ALG-11 Function Notation,B,B,right
+ST0009,BB2,2026-10-22,Math,2,6,M221,M-PRO-01 Percentages,A,B,wrong
+ST0016,BB3,2026-10-23,Reading and Writing,1,1,RW167,W-GRA-07 Pronoun Agreement,C,A,wrong
+ST0016,BB3,2026-10-23,Reading and Writing,1,2,RW128,W-PUN-03 Run-ons and Comma Splices,A,D,wrong
+ST0016,BB3,2026-10-23,Reading and Writing,1,3,RW213,W-GRA-12 Verb Tense,D,D,right
+ST0016,BB3,2026-10-23,Reading and Writing,1,4,RW147,W-GRA-09 Comparisons,B,D,wrong
+ST0016,BB3,2026-10-23,Reading and Writing,1,5,RW183,W-GRA-06 Subjects and Verbs,A,A,right
+ST0016,BB3,2026-10-23,Reading and Writing,1,6,RW227,W-EXP-02 Logical Transitions,A,A,right
+ST0016,BB3,2026-10-23,Reading and Writing,2,1,RW282,W-GRA-07 Pronoun Agreement,A,A,right
+ST0016,BB3,2026-10-23,Reading and Writing,2,2,RW154,W-GRA-09 Comparisons,D,B,wrong
+ST0016,BB3,2026-10-23,Reading and Writing,2,3,RW103,W-GRA-12 Verb Tense,D,D,right
+ST0016,BB3,2026-10-23,Reading and Writing,2,4,RW300,W-EXP-02 Logical Transitions,A,A,right
+ST0016,BB3,2026-10-23,Reading and Writing,2,5,RW290,W-PUN-03 Run-ons and Comma Splices,B,C,wrong
+ST0016,BB3,2026-10-23,Reading and Writing,2,6,RW278,W-GRA-06 Subjects and Verbs,A,D,wrong
+ST0016,BB3,2026-10-23,Math,1,1,M126,M-ALG-08 Solving Linear Equations,D,C,wrong
+ST0016,BB3,2026-10-23,Math,1,2,M280,M-ALG-04 Systems of Equations,B,B,right
+ST0016,BB3,2026-10-23,Math,1,3,M192,M-GEO-05 Rectangles,C,C,right
+ST0016,BB3,2026-10-23,Math,1,4,M258,M-ALG-11 Function Notation,D,D,right
+ST0016,BB3,2026-10-23,Math,1,5,M306,M-PRO-01 Percentages,B,C,wrong
+ST0016,BB3,2026-10-23,Math,1,6,M142,M-PRO-10 Ratios,D,D,right
+ST0016,BB3,2026-10-23,Math,2,1,M105,M-PRO-10 Ratios,C,D,wrong
+ST0016,BB3,2026-10-23,Math,2,2,M209,M-GEO-05 Rectangles,D,B,wrong
+ST0016,BB3,2026-10-23,Math,2,3,M194,M-PRO-01 Percentages,D,D,right
+ST0016,BB3,2026-10-23,Math,2,4,M120,M-ALG-04 Systems of Equations,D,D,right
+ST0016,BB3,2026-10-23,Math,2,5,M303,M-ALG-11 Function Notation,D,D,right
+ST0016,BB3,2026-10-23,Math,2,6,M309,M-ALG-08 Solving Linear Equations,A,A,right
+ST0011,BB3,2026-10-24,Reading and Writing,1,1,RW167,W-GRA-07 Pronoun Agreement,A,A,right
+ST0011,BB3,2026-10-24,Reading and Writing,1,2,RW128,W-PUN-03 Run-ons and Comma Splices,C,D,wrong
+ST0011,BB3,2026-10-24,Reading and Writing,1,3,RW213,W-GRA-12 Verb Tense,D,D,right
+ST0011,BB3,2026-10-24,Reading and Writing,1,4,RW147,W-GRA-09 Comparisons,D,D,right
+ST0011,BB3,2026-10-24,Reading and Writing,1,5,RW183,W-GRA-06 Subjects and Verbs,A,A,right
+ST0011,BB3,2026-10-24,Reading and Writing,1,6,RW227,W-EXP-02 Logical Transitions,A,A,right
+ST0011,BB3,2026-10-24,Reading and Writing,2,1,RW282,W-GRA-07 Pronoun Agreement,A,A,right
+ST0011,BB3,2026-10-24,Reading and Writing,2,2,RW154,W-GRA-09 Comparisons,B,B,right
+ST0011,BB3,2026-10-24,Reading and Writing,2,3,RW103,W-GRA-12 Verb Tense,B,D,wrong
+ST0011,BB3,2026-10-24,Reading and Writing,2,4,RW300,W-EXP-02 Logical Transitions,A,A,right
+ST0011,BB3,2026-10-24,Reading and Writing,2,5,RW290,W-PUN-03 Run-ons and Comma Splices,A,C,wrong
+ST0011,BB3,2026-10-24,Reading and Writing,2,6,RW278,W-GRA-06 Subjects and Verbs,C,D,wrong
+ST0011,BB3,2026-10-24,Math,1,1,M126,M-ALG-08 Solving Linear Equations,B,C,wrong
+ST0011,BB3,2026-10-24,Math,1,2,M280,M-ALG-04 Systems of Equations,D,B,wrong
+ST0011,BB3,2026-10-24,Math,1,3,M192,M-GEO-05 Rectangles,A,C,wrong
+ST0011,BB3,2026-10-24,Math,1,4,M258,M-ALG-11 Function Notation,D,D,right
+ST0011,BB3,2026-10-24,Math,1,5,M306,M-PRO-01 Percentages,B,C,wrong
+ST0011,BB3,2026-10-24,Math,1,6,M142,M-PRO-10 Ratios,D,D,right
+ST0011,BB3,2026-10-24,Math,2,1,M105,M-PRO-10 Ratios,D,D,right
+ST0011,BB3,2026-10-24,Math,2,2,M209,M-GEO-05 Rectangles,C,B,wrong
+ST0011,BB3,2026-10-24,Math,2,3,M194,M-PRO-01 Percentages,D,D,right
+ST0011,BB3,2026-10-24,Math,2,4,M120,M-ALG-04 Systems of Equations,D,D,right
+ST0011,BB3,2026-10-24,Math,2,5,M303,M-ALG-11 Function Notation,D,D,right
+ST0011,BB3,2026-10-24,Math,2,6,M309,M-ALG-08 Solving Linear Equations,D,A,wrong
+ST0016,BB4,2026-10-25,Reading and Writing,1,1,RW162,W-GRA-07 Pronoun Agreement,D,A,wrong
+ST0016,BB4,2026-10-25,Reading and Writing,1,2,RW125,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0016,BB4,2026-10-25,Reading and Writing,1,3,RW124,W-EXP-02 Logical Transitions,C,C,right
+ST0016,BB4,2026-10-25,Reading and Writing,1,4,RW316,W-GRA-12 Verb Tense,C,C,right
+ST0016,BB4,2026-10-25,Reading and Writing,1,5,RW131,W-GRA-09 Comparisons,A,A,right
+ST0016,BB4,2026-10-25,Reading and Writing,1,6,RW177,W-GRA-06 Subjects and Verbs,C,C,right
+ST0016,BB4,2026-10-25,Reading and Writing,2,1,RW224,W-EXP-02 Logical Transitions,B,B,right
+ST0016,BB4,2026-10-25,Reading and Writing,2,2,RW260,W-GRA-09 Comparisons,C,C,right
+ST0016,BB4,2026-10-25,Reading and Writing,2,3,RW272,W-GRA-06 Subjects and Verbs,B,D,wrong
+ST0016,BB4,2026-10-25,Reading and Writing,2,4,RW113,W-GRA-07 Pronoun Agreement,C,C,right
+ST0016,BB4,2026-10-25,Reading and Writing,2,5,RW244,W-PUN-03 Run-ons and Comma Splices,B,C,wrong
+ST0016,BB4,2026-10-25,Reading and Writing,2,6,RW150,W-GRA-12 Verb Tense,A,A,right
+ST0016,BB4,2026-10-25,Math,1,1,M148,M-GEO-05 Rectangles,C,B,wrong
+ST0016,BB4,2026-10-25,Math,1,2,M219,M-PRO-01 Percentages,C,C,right
+ST0016,BB4,2026-10-25,Math,1,3,M204,M-ALG-08 Solving Linear Equations,B,C,wrong
+ST0016,BB4,2026-10-25,Math,1,4,M274,M-ALG-11 Function Notation,B,B,right
+ST0016,BB4,2026-10-25,Math,1,5,M275,M-PRO-10 Ratios,D,D,right
+ST0016,BB4,2026-10-25,Math,1,6,M216,M-ALG-04 Systems of Equations,B,B,right
+ST0016,BB4,2026-10-25,Math,2,1,M197,M-PRO-10 Ratios,B,B,right
+ST0016,BB4,2026-10-25,Math,2,2,M245,M-ALG-11 Function Notation,D,D,right
+ST0016,BB4,2026-10-25,Math,2,3,M158,M-ALG-04 Systems of Equations,B,C,wrong
+ST0016,BB4,2026-10-25,Math,2,4,M288,M-GEO-05 Rectangles,D,A,wrong
+ST0016,BB4,2026-10-25,Math,2,5,M111,M-PRO-01 Percentages,B,C,wrong
+ST0016,BB4,2026-10-25,Math,2,6,M225,M-ALG-08 Solving Linear Equations,C,A,wrong
+ST0006,BB2,2026-10-30,Reading and Writing,1,1,RW190,W-GRA-07 Pronoun Agreement,A,A,right
+ST0006,BB2,2026-10-30,Reading and Writing,1,2,RW218,W-GRA-06 Subjects and Verbs,A,B,wrong
+ST0006,BB2,2026-10-30,Reading and Writing,1,3,RW305,W-EXP-02 Logical Transitions,C,B,wrong
+ST0006,BB2,2026-10-30,Reading and Writing,1,4,RW208,W-GRA-12 Verb Tense,D,C,wrong
+ST0006,BB2,2026-10-30,Reading and Writing,1,5,RW201,W-GRA-09 Comparisons,C,C,right
+ST0006,BB2,2026-10-30,Reading and Writing,1,6,RW223,W-PUN-03 Run-ons and Comma Splices,B,B,right
+ST0006,BB2,2026-10-30,Reading and Writing,2,1,RW234,W-GRA-09 Comparisons,B,A,wrong
+ST0006,BB2,2026-10-30,Reading and Writing,2,2,RW239,W-PUN-03 Run-ons and Comma Splices,D,B,wrong
+ST0006,BB2,2026-10-30,Reading and Writing,2,3,RW254,W-GRA-06 Subjects and Verbs,D,D,right
+ST0006,BB2,2026-10-30,Reading and Writing,2,4,RW250,W-EXP-02 Logical Transitions,C,C,right
+ST0006,BB2,2026-10-30,Reading and Writing,2,5,RW112,W-GRA-12 Verb Tense,D,D,right
+ST0006,BB2,2026-10-30,Reading and Writing,2,6,RW291,W-GRA-07 Pronoun Agreement,D,B,wrong
+ST0006,BB2,2026-10-30,Math,1,1,M156,M-GEO-05 Rectangles,A,A,right
+ST0006,BB2,2026-10-30,Math,1,2,M159,M-ALG-11 Function Notation,C,B,wrong
+ST0006,BB2,2026-10-30,Math,1,3,M296,M-ALG-08 Solving Linear Equations,B,B,right
+ST0006,BB2,2026-10-30,Math,1,4,M314,M-PRO-01 Percentages,D,D,right
+ST0006,BB2,2026-10-30,Math,1,5,M134,M-ALG-04 Systems of Equations,B,B,right
+ST0006,BB2,2026-10-30,Math,1,6,M169,M-PRO-10 Ratios,C,C,right
+ST0006,BB2,2026-10-30,Math,2,1,M170,M-ALG-08 Solving Linear Equations,C,C,right
+ST0006,BB2,2026-10-30,Math,2,2,M181,M-ALG-04 Systems of Equations,C,C,right
+ST0006,BB2,2026-10-30,Math,2,3,M215,M-GEO-05 Rectangles,D,D,right
+ST0006,BB2,2026-10-30,Math,2,4,M153,M-PRO-10 Ratios,D,B,wrong
+ST0006,BB2,2026-10-30,Math,2,5,M202,M-ALG-11 Function Notation,B,B,right
+ST0006,BB2,2026-10-30,Math,2,6,M221,M-PRO-01 Percentages,B,B,right
+ST0009,BB3,2026-11-02,Reading and Writing,1,1,RW167,W-GRA-07 Pronoun Agreement,B,A,wrong
+ST0009,BB3,2026-11-02,Reading and Writing,1,2,RW128,W-PUN-03 Run-ons and Comma Splices,D,D,right
+ST0009,BB3,2026-11-02,Reading and Writing,1,3,RW213,W-GRA-12 Verb Tense,D,D,right
+ST0009,BB3,2026-11-02,Reading and Writing,1,4,RW147,W-GRA-09 Comparisons,D,D,right
+ST0009,BB3,2026-11-02,Reading and Writing,1,5,RW183,W-GRA-06 Subjects and Verbs,D,A,wrong
+ST0009,BB3,2026-11-02,Reading and Writing,1,6,RW227,W-EXP-02 Logical Transitions,B,A,wrong
+ST0009,BB3,2026-11-02,Reading and Writing,2,1,RW282,W-GRA-07 Pronoun Agreement,A,A,right
+ST0009,BB3,2026-11-02,Reading and Writing,2,2,RW154,W-GRA-09 Comparisons,B,B,right
+ST0009,BB3,2026-11-02,Reading and Writing,2,3,RW103,W-GRA-12 Verb Tense,D,D,right
+ST0009,BB3,2026-11-02,Reading and Writing,2,4,RW300,W-EXP-02 Logical Transitions,D,A,wrong
+ST0009,BB3,2026-11-02,Reading and Writing,2,5,RW290,W-PUN-03 Run-ons and Comma Splices,D,C,wrong
+ST0009,BB3,2026-11-02,Reading and Writing,2,6,RW278,W-GRA-06 Subjects and Verbs,D,D,right
+ST0009,BB3,2026-11-02,Math,1,1,M126,M-ALG-08 Solving Linear Equations,A,C,wrong
+ST0009,BB3,2026-11-02,Math,1,2,M280,M-ALG-04 Systems of Equations,B,B,right
+ST0009,BB3,2026-11-02,Math,1,3,M192,M-GEO-05 Rectangles,B,C,wrong
+ST0009,BB3,2026-11-02,Math,1,4,M258,M-ALG-11 Function Notation,D,D,right
+ST0009,BB3,2026-11-02,Math,1,5,M306,M-PRO-01 Percentages,B,C,wrong
+ST0009,BB3,2026-11-02,Math,1,6,M142,M-PRO-10 Ratios,D,D,right
+ST0009,BB3,2026-11-02,Math,2,1,M105,M-PRO-10 Ratios,D,D,right
+ST0009,BB3,2026-11-02,Math,2,2,M209,M-GEO-05 Rectangles,B,B,right
+ST0009,BB3,2026-11-02,Math,2,3,M194,M-PRO-01 Percentages,D,D,right
+ST0009,BB3,2026-11-02,Math,2,4,M120,M-ALG-04 Systems of Equations,B,D,wrong
+ST0009,BB3,2026-11-02,Math,2,5,M303,M-ALG-11 Function Notation,B,D,wrong
+ST0009,BB3,2026-11-02,Math,2,6,M309,M-ALG-08 Solving Linear Equations,B,A,wrong
+ST0015,BB5,2026-11-02,Reading and Writing,1,1,RW116,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0015,BB5,2026-11-02,Reading and Writing,1,2,RW141,W-EXP-02 Logical Transitions,B,A,wrong
+ST0015,BB5,2026-11-02,Reading and Writing,1,3,RW261,W-GRA-06 Subjects and Verbs,D,C,wrong
+ST0015,BB5,2026-11-02,Reading and Writing,1,4,RW123,W-GRA-12 Verb Tense,A,D,wrong
+ST0015,BB5,2026-11-02,Reading and Writing,1,5,RW283,W-GRA-07 Pronoun Agreement,B,B,right
+ST0015,BB5,2026-11-02,Reading and Writing,1,6,RW231,W-GRA-09 Comparisons,A,C,wrong
+ST0015,BB5,2026-11-02,Reading and Writing,2,1,RW292,W-GRA-12 Verb Tense,D,D,right
+ST0015,BB5,2026-11-02,Reading and Writing,2,2,RW107,W-GRA-06 Subjects and Verbs,C,C,right
+ST0015,BB5,2026-11-02,Reading and Writing,2,3,RW315,W-GRA-07 Pronoun Agreement,D,A,wrong
+ST0015,BB5,2026-11-02,Reading and Writing,2,4,RW302,W-GRA-09 Comparisons,A,B,wrong
+ST0015,BB5,2026-11-02,Reading and Writing,2,5,RW136,W-EXP-02 Logical Transitions,A,A,right
+ST0015,BB5,2026-11-02,Reading and Writing,2,6,RW206,W-PUN-03 Run-ons and Comma Splices,D,C,wrong
+ST0015,BB5,2026-11-02,Math,1,1,M253,M-ALG-11 Function Notation,A,A,right
+ST0015,BB5,2026-11-02,Math,1,2,M133,M-PRO-10 Ratios,C,C,right
+ST0015,BB5,2026-11-02,Math,1,3,M214,M-ALG-08 Solving Linear Equations,D,D,right
+ST0015,BB5,2026-11-02,Math,1,4,M277,M-PRO-01 Percentages,B,A,wrong
+ST0015,BB5,2026-11-02,Math,1,5,M293,M-ALG-04 Systems of Equations,D,D,right
+ST0015,BB5,2026-11-02,Math,1,6,M175,M-GEO-05 Rectangles,B,D,wrong
+ST0015,BB5,2026-11-02,Math,2,1,M249,M-ALG-08 Solving Linear Equations,C,C,right
+ST0015,BB5,2026-11-02,Math,2,2,M173,M-PRO-10 Ratios,A,A,right
+ST0015,BB5,2026-11-02,Math,2,3,M238,M-ALG-04 Systems of Equations,D,A,wrong
+ST0015,BB5,2026-11-02,Math,2,4,M284,M-ALG-11 Function Notation,B,B,right
+ST0015,BB5,2026-11-02,Math,2,5,M287,M-GEO-05 Rectangles,D,C,wrong
+ST0015,BB5,2026-11-02,Math,2,6,M199,M-PRO-01 Percentages,D,C,wrong
+ST0016,BB5,2026-11-02,Reading and Writing,1,1,RW116,W-PUN-03 Run-ons and Comma Splices,B,A,wrong
+ST0016,BB5,2026-11-02,Reading and Writing,1,2,RW141,W-EXP-02 Logical Transitions,C,A,wrong
+ST0016,BB5,2026-11-02,Reading and Writing,1,3,RW261,W-GRA-06 Subjects and Verbs,D,C,wrong
+ST0016,BB5,2026-11-02,Reading and Writing,1,4,RW123,W-GRA-12 Verb Tense,B,D,wrong
+ST0016,BB5,2026-11-02,Reading and Writing,1,5,RW283,W-GRA-07 Pronoun Agreement,D,B,wrong
+ST0016,BB5,2026-11-02,Reading and Writing,1,6,RW231,W-GRA-09 Comparisons,C,C,right
+ST0016,BB5,2026-11-02,Reading and Writing,2,1,RW292,W-GRA-12 Verb Tense,D,D,right
+ST0016,BB5,2026-11-02,Reading and Writing,2,2,RW107,W-GRA-06 Subjects and Verbs,C,C,right
+ST0016,BB5,2026-11-02,Reading and Writing,2,3,RW315,W-GRA-07 Pronoun Agreement,A,A,right
+ST0016,BB5,2026-11-02,Reading and Writing,2,4,RW302,W-GRA-09 Comparisons,A,B,wrong
+ST0016,BB5,2026-11-02,Reading and Writing,2,5,RW136,W-EXP-02 Logical Transitions,A,A,right
+ST0016,BB5,2026-11-02,Reading and Writing,2,6,RW206,W-PUN-03 Run-ons and Comma Splices,B,C,wrong
+ST0016,BB5,2026-11-02,Math,1,1,M253,M-ALG-11 Function Notation,A,A,right
+ST0016,BB5,2026-11-02,Math,1,2,M133,M-PRO-10 Ratios,C,C,right
+ST0016,BB5,2026-11-02,Math,1,3,M214,M-ALG-08 Solving Linear Equations,D,D,right
+ST0016,BB5,2026-11-02,Math,1,4,M277,M-PRO-01 Percentages,A,A,right
+ST0016,BB5,2026-11-02,Math,1,5,M293,M-ALG-04 Systems of Equations,D,D,right
+ST0016,BB5,2026-11-02,Math,1,6,M175,M-GEO-05 Rectangles,B,D,wrong
+ST0016,BB5,2026-11-02,Math,2,1,M249,M-ALG-08 Solving Linear Equations,D,C,wrong
+ST0016,BB5,2026-11-02,Math,2,2,M173,M-PRO-10 Ratios,A,A,right
+ST0016,BB5,2026-11-02,Math,2,3,M238,M-ALG-04 Systems of Equations,C,A,wrong
+ST0016,BB5,2026-11-02,Math,2,4,M284,M-ALG-11 Function Notation,B,B,right
+ST0016,BB5,2026-11-02,Math,2,5,M287,M-GEO-05 Rectangles,C,C,right
+ST0016,BB5,2026-11-02,Math,2,6,M199,M-PRO-01 Percentages,B,C,wrong
+ST0002,BB5,2026-11-03,Reading and Writing,1,1,RW116,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0002,BB5,2026-11-03,Reading and Writing,1,2,RW141,W-EXP-02 Logical Transitions,A,A,right
+ST0002,BB5,2026-11-03,Reading and Writing,1,3,RW261,W-GRA-06 Subjects and Verbs,C,C,right
+ST0002,BB5,2026-11-03,Reading and Writing,1,4,RW123,W-GRA-12 Verb Tense,D,D,right
+ST0002,BB5,2026-11-03,Reading and Writing,1,5,RW283,W-GRA-07 Pronoun Agreement,A,B,wrong
+ST0002,BB5,2026-11-03,Reading and Writing,1,6,RW231,W-GRA-09 Comparisons,C,C,right
+ST0002,BB5,2026-11-03,Reading and Writing,2,1,RW292,W-GRA-12 Verb Tense,D,D,right
+ST0002,BB5,2026-11-03,Reading and Writing,2,2,RW107,W-GRA-06 Subjects and Verbs,C,C,right
+ST0002,BB5,2026-11-03,Reading and Writing,2,3,RW315,W-GRA-07 Pronoun Agreement,B,A,wrong
+ST0002,BB5,2026-11-03,Reading and Writing,2,4,RW302,W-GRA-09 Comparisons,B,B,right
+ST0002,BB5,2026-11-03,Reading and Writing,2,5,RW136,W-EXP-02 Logical Transitions,A,A,right
+ST0002,BB5,2026-11-03,Reading and Writing,2,6,RW206,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0002,BB5,2026-11-03,Math,1,1,M253,M-ALG-11 Function Notation,A,A,right
+ST0002,BB5,2026-11-03,Math,1,2,M133,M-PRO-10 Ratios,A,C,wrong
+ST0002,BB5,2026-11-03,Math,1,3,M214,M-ALG-08 Solving Linear Equations,D,D,right
+ST0002,BB5,2026-11-03,Math,1,4,M277,M-PRO-01 Percentages,A,A,right
+ST0002,BB5,2026-11-03,Math,1,5,M293,M-ALG-04 Systems of Equations,B,D,wrong
+ST0002,BB5,2026-11-03,Math,1,6,M175,M-GEO-05 Rectangles,C,D,wrong
+ST0002,BB5,2026-11-03,Math,2,1,M249,M-ALG-08 Solving Linear Equations,C,C,right
+ST0002,BB5,2026-11-03,Math,2,2,M173,M-PRO-10 Ratios,A,A,right
+ST0002,BB5,2026-11-03,Math,2,3,M238,M-ALG-04 Systems of Equations,D,A,wrong
+ST0002,BB5,2026-11-03,Math,2,4,M284,M-ALG-11 Function Notation,B,B,right
+ST0002,BB5,2026-11-03,Math,2,5,M287,M-GEO-05 Rectangles,A,C,wrong
+ST0002,BB5,2026-11-03,Math,2,6,M199,M-PRO-01 Percentages,C,C,right
+ST0009,BB4,2026-11-06,Reading and Writing,1,1,RW162,W-GRA-07 Pronoun Agreement,B,A,wrong
+ST0009,BB4,2026-11-06,Reading and Writing,1,2,RW125,W-PUN-03 Run-ons and Comma Splices,D,A,wrong
+ST0009,BB4,2026-11-06,Reading and Writing,1,3,RW124,W-EXP-02 Logical Transitions,C,C,right
+ST0009,BB4,2026-11-06,Reading and Writing,1,4,RW316,W-GRA-12 Verb Tense,C,C,right
+ST0009,BB4,2026-11-06,Reading and Writing,1,5,RW131,W-GRA-09 Comparisons,A,A,right
+ST0009,BB4,2026-11-06,Reading and Writing,1,6,RW177,W-GRA-06 Subjects and Verbs,C,C,right
+ST0009,BB4,2026-11-06,Reading and Writing,2,1,RW224,W-EXP-02 Logical Transitions,C,B,wrong
+ST0009,BB4,2026-11-06,Reading and Writing,2,2,RW260,W-GRA-09 Comparisons,D,C,wrong
+ST0009,BB4,2026-11-06,Reading and Writing,2,3,RW272,W-GRA-06 Subjects and Verbs,D,D,right
+ST0009,BB4,2026-11-06,Reading and Writing,2,4,RW113,W-GRA-07 Pronoun Agreement,B,C,wrong
+ST0009,BB4,2026-11-06,Reading and Writing,2,5,RW244,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0009,BB4,2026-11-06,Reading and Writing,2,6,RW150,W-GRA-12 Verb Tense,A,A,right
+ST0009,BB4,2026-11-06,Math,1,1,M148,M-GEO-05 Rectangles,C,B,wrong
+ST0009,BB4,2026-11-06,Math,1,2,M219,M-PRO-01 Percentages,C,C,right
+ST0009,BB4,2026-11-06,Math,1,3,M204,M-ALG-08 Solving Linear Equations,B,C,wrong
+ST0009,BB4,2026-11-06,Math,1,4,M274,M-ALG-11 Function Notation,B,B,right
+ST0009,BB4,2026-11-06,Math,1,5,M275,M-PRO-10 Ratios,D,D,right
+ST0009,BB4,2026-11-06,Math,1,6,M216,M-ALG-04 Systems of Equations,B,B,right
+ST0009,BB4,2026-11-06,Math,2,1,M197,M-PRO-10 Ratios,A,B,wrong
+ST0009,BB4,2026-11-06,Math,2,2,M245,M-ALG-11 Function Notation,D,D,right
+ST0009,BB4,2026-11-06,Math,2,3,M158,M-ALG-04 Systems of Equations,D,C,wrong
+ST0009,BB4,2026-11-06,Math,2,4,M288,M-GEO-05 Rectangles,A,A,right
+ST0009,BB4,2026-11-06,Math,2,5,M111,M-PRO-01 Percentages,B,C,wrong
+ST0009,BB4,2026-11-06,Math,2,6,M225,M-ALG-08 Solving Linear Equations,B,A,wrong
+ST0010,BB5,2026-11-08,Reading and Writing,1,1,RW116,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0010,BB5,2026-11-08,Reading and Writing,1,2,RW141,W-EXP-02 Logical Transitions,B,A,wrong
+ST0010,BB5,2026-11-08,Reading and Writing,1,3,RW261,W-GRA-06 Subjects and Verbs,C,C,right
+ST0010,BB5,2026-11-08,Reading and Writing,1,4,RW123,W-GRA-12 Verb Tense,D,D,right
+ST0010,BB5,2026-11-08,Reading and Writing,1,5,RW283,W-GRA-07 Pronoun Agreement,C,B,wrong
+ST0010,BB5,2026-11-08,Reading and Writing,1,6,RW231,W-GRA-09 Comparisons,C,C,right
+ST0010,BB5,2026-11-08,Reading and Writing,2,1,RW292,W-GRA-12 Verb Tense,D,D,right
+ST0010,BB5,2026-11-08,Reading and Writing,2,2,RW107,W-GRA-06 Subjects and Verbs,C,C,right
+ST0010,BB5,2026-11-08,Reading and Writing,2,3,RW315,W-GRA-07 Pronoun Agreement,B,A,wrong
+ST0010,BB5,2026-11-08,Reading and Writing,2,4,RW302,W-GRA-09 Comparisons,B,B,right
+ST0010,BB5,2026-11-08,Reading and Writing,2,5,RW136,W-EXP-02 Logical Transitions,D,A,wrong
+ST0010,BB5,2026-11-08,Reading and Writing,2,6,RW206,W-PUN-03 Run-ons and Comma Splices,A,C,wrong
+ST0010,BB5,2026-11-08,Math,1,1,M253,M-ALG-11 Function Notation,A,A,right
+ST0010,BB5,2026-11-08,Math,1,2,M133,M-PRO-10 Ratios,D,C,wrong
+ST0010,BB5,2026-11-08,Math,1,3,M214,M-ALG-08 Solving Linear Equations,D,D,right
+ST0010,BB5,2026-11-08,Math,1,4,M277,M-PRO-01 Percentages,A,A,right
+ST0010,BB5,2026-11-08,Math,1,5,M293,M-ALG-04 Systems of Equations,D,D,right
+ST0010,BB5,2026-11-08,Math,1,6,M175,M-GEO-05 Rectangles,D,D,right
+ST0010,BB5,2026-11-08,Math,2,1,M249,M-ALG-08 Solving Linear Equations,C,C,right
+ST0010,BB5,2026-11-08,Math,2,2,M173,M-PRO-10 Ratios,A,A,right
+ST0010,BB5,2026-11-08,Math,2,3,M238,M-ALG-04 Systems of Equations,A,A,right
+ST0010,BB5,2026-11-08,Math,2,4,M284,M-ALG-11 Function Notation,C,B,wrong
+ST0010,BB5,2026-11-08,Math,2,5,M287,M-GEO-05 Rectangles,C,C,right
+ST0010,BB5,2026-11-08,Math,2,6,M199,M-PRO-01 Percentages,B,C,wrong
+ST0004,BB1,2026-11-09,Reading and Writing,1,1,RW165,W-EXP-02 Logical Transitions,C,C,right
+ST0004,BB1,2026-11-09,Reading and Writing,1,2,RW255,W-PUN-03 Run-ons and Comma Splices,C,B,wrong
+ST0004,BB1,2026-11-09,Reading and Writing,1,3,RW233,W-GRA-12 Verb Tense,D,D,right
+ST0004,BB1,2026-11-09,Reading and Writing,1,4,RW122,W-GRA-09 Comparisons,B,A,wrong
+ST0004,BB1,2026-11-09,Reading and Writing,1,5,RW108,W-GRA-07 Pronoun Agreement,C,D,wrong
+ST0004,BB1,2026-11-09,Reading and Writing,1,6,RW240,W-GRA-06 Subjects and Verbs,D,C,wrong
+ST0004,BB1,2026-11-09,Reading and Writing,2,1,RW140,W-PUN-03 Run-ons and Comma Splices,D,D,right
+ST0004,BB1,2026-11-09,Reading and Writing,2,2,RW246,W-GRA-09 Comparisons,D,D,right
+ST0004,BB1,2026-11-09,Reading and Writing,2,3,RW168,W-GRA-07 Pronoun Agreement,D,A,wrong
+ST0004,BB1,2026-11-09,Reading and Writing,2,4,RW299,W-GRA-12 Verb Tense,C,C,right
+ST0004,BB1,2026-11-09,Reading and Writing,2,5,RW110,W-EXP-02 Logical Transitions,B,B,right
+ST0004,BB1,2026-11-09,Reading and Writing,2,6,RW193,W-GRA-06 Subjects and Verbs,D,D,right
+ST0004,BB1,2026-11-09,Math,1,1,M145,M-ALG-04 Systems of Equations,A,A,right
+ST0004,BB1,2026-11-09,Math,1,2,M118,M-ALG-11 Function Notation,B,C,wrong
+ST0004,BB1,2026-11-09,Math,1,3,M267,M-ALG-08 Solving Linear Equations,A,C,wrong
+ST0004,BB1,2026-11-09,Math,1,4,M257,M-PRO-01 Percentages,C,C,right
+ST0004,BB1,2026-11-09,Math,1,5,M132,M-GEO-05 Rectangles,C,A,wrong
+ST0004,BB1,2026-11-09,Math,1,6,M285,M-PRO-10 Ratios,C,A,wrong
+ST0004,BB1,2026-11-09,Math,2,1,M270,M-PRO-01 Percentages,A,A,right
+ST0004,BB1,2026-11-09,Math,2,2,M203,M-GEO-05 Rectangles,D,D,right
+ST0004,BB1,2026-11-09,Math,2,3,M135,M-ALG-08 Solving Linear Equations,B,B,right
+ST0004,BB1,2026-11-09,Math,2,4,M151,M-ALG-11 Function Notation,B,B,right
+ST0004,BB1,2026-11-09,Math,2,5,M252,M-PRO-10 Ratios,B,C,wrong
+ST0004,BB1,2026-11-09,Math,2,6,M155,M-ALG-04 Systems of Equations,B,B,right
+ST0005,BB1,2026-11-13,Reading and Writing,1,1,RW165,W-EXP-02 Logical Transitions,C,C,right
+ST0005,BB1,2026-11-13,Reading and Writing,1,2,RW255,W-PUN-03 Run-ons and Comma Splices,A,B,wrong
+ST0005,BB1,2026-11-13,Reading and Writing,1,3,RW233,W-GRA-12 Verb Tense,D,D,right
+ST0005,BB1,2026-11-13,Reading and Writing,1,4,RW122,W-GRA-09 Comparisons,A,A,right
+ST0005,BB1,2026-11-13,Reading and Writing,1,5,RW108,W-GRA-07 Pronoun Agreement,D,D,right
+ST0005,BB1,2026-11-13,Reading and Writing,1,6,RW240,W-GRA-06 Subjects and Verbs,C,C,right
+ST0005,BB1,2026-11-13,Reading and Writing,2,1,RW140,W-PUN-03 Run-ons and Comma Splices,C,D,wrong
+ST0005,BB1,2026-11-13,Reading and Writing,2,2,RW246,W-GRA-09 Comparisons,D,D,right
+ST0005,BB1,2026-11-13,Reading and Writing,2,3,RW168,W-GRA-07 Pronoun Agreement,A,A,right
+ST0005,BB1,2026-11-13,Reading and Writing,2,4,RW299,W-GRA-12 Verb Tense,C,C,right
+ST0005,BB1,2026-11-13,Reading and Writing,2,5,RW110,W-EXP-02 Logical Transitions,B,B,right
+ST0005,BB1,2026-11-13,Reading and Writing,2,6,RW193,W-GRA-06 Subjects and Verbs,D,D,right
+ST0005,BB1,2026-11-13,Math,1,1,M145,M-ALG-04 Systems of Equations,A,A,right
+ST0005,BB1,2026-11-13,Math,1,2,M118,M-ALG-11 Function Notation,C,C,right
+ST0005,BB1,2026-11-13,Math,1,3,M267,M-ALG-08 Solving Linear Equations,C,C,right
+ST0005,BB1,2026-11-13,Math,1,4,M257,M-PRO-01 Percentages,C,C,right
+ST0005,BB1,2026-11-13,Math,1,5,M132,M-GEO-05 Rectangles,D,A,wrong
+ST0005,BB1,2026-11-13,Math,1,6,M285,M-PRO-10 Ratios,A,A,right
+ST0005,BB1,2026-11-13,Math,2,1,M270,M-PRO-01 Percentages,B,A,wrong
+ST0005,BB1,2026-11-13,Math,2,2,M203,M-GEO-05 Rectangles,D,D,right
+ST0005,BB1,2026-11-13,Math,2,3,M135,M-ALG-08 Solving Linear Equations,B,B,right
+ST0005,BB1,2026-11-13,Math,2,4,M151,M-ALG-11 Function Notation,B,B,right
+ST0005,BB1,2026-11-13,Math,2,5,M252,M-PRO-10 Ratios,C,C,right
+ST0005,BB1,2026-11-13,Math,2,6,M155,M-ALG-04 Systems of Equations,C,B,wrong
+ST0013,BB5,2026-11-14,Reading and Writing,1,1,RW116,W-PUN-03 Run-ons and Comma Splices,A,A,right
+ST0013,BB5,2026-11-14,Reading and Writing,1,2,RW141,W-EXP-02 Logical Transitions,B,A,wrong
+ST0013,BB5,2026-11-14,Reading and Writing,1,3,RW261,W-GRA-06 Subjects and Verbs,C,C,right
+ST0013,BB5,2026-11-14,Reading and Writing,1,4,RW123,W-GRA-12 Verb Tense,D,D,right
+ST0013,BB5,2026-11-14,Reading and Writing,1,5,RW283,W-GRA-07 Pronoun Agreement,B,B,right
+ST0013,BB5,2026-11-14,Reading and Writing,1,6,RW231,W-GRA-09 Comparisons,A,C,wrong
+ST0013,BB5,2026-11-14,Reading and Writing,2,1,RW292,W-GRA-12 Verb Tense,D,D,right
+ST0013,BB5,2026-11-14,Reading and Writing,2,2,RW107,W-GRA-06 Subjects and Verbs,C,C,right
+ST0013,BB5,2026-11-14,Reading and Writing,2,3,RW315,W-GRA-07 Pronoun Agreement,A,A,right
+ST0013,BB5,2026-11-14,Reading and Writing,2,4,RW302,W-GRA-09 Comparisons,B,B,right
+ST0013,BB5,2026-11-14,Reading and Writing,2,5,RW136,W-EXP-02 Logical Transitions,B,A,wrong
+ST0013,BB5,2026-11-14,Reading and Writing,2,6,RW206,W-PUN-03 Run-ons and Comma Splices,C,C,right
+ST0013,BB5,2026-11-14,Math,1,1,M253,M-ALG-11 Function Notation,A,A,right
+ST0013,BB5,2026-11-14,Math,1,2,M133,M-PRO-10 Ratios,C,C,right
+ST0013,BB5,2026-11-14,Math,1,3,M214,M-ALG-08 Solving Linear Equations,D,D,right
+ST0013,BB5,2026-11-14,Math,1,4,M277,M-PRO-01 Percentages,A,A,right
+ST0013,BB5,2026-11-14,Math,1,5,M293,M-ALG-04 Systems of Equations,A,D,wrong
+ST0013,BB5,2026-11-14,Math,1,6,M175,M-GEO-05 Rectangles,D,D,right
+ST0013,BB5,2026-11-14,Math,2,1,M249,M-ALG-08 Solving Linear Equations,C,C,right
+ST0013,BB5,2026-11-14,Math,2,2,M173,M-PRO-10 Ratios,A,A,right
+ST0013,BB5,2026-11-14,Math,2,3,M238,M-ALG-04 Systems of Equations,A,A,right
+ST0013,BB5,2026-11-14,Math,2,4,M284,M-ALG-11 Function Notation,B,B,right
+ST0013,BB5,2026-11-14,Math,2,5,M287,M-GEO-05 Rectangles,C,C,right
+ST0013,BB5,2026-11-14,Math,2,6,M199,M-PRO-01 Percentages,C,C,right

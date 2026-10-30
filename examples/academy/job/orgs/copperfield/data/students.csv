@@ -1,0 +1,17 @@
+student_id,name,grade,target_score,test_date,tutor_id
+L001,Quin Thorne,12,1440,2026-12-05,C2
+L002,Ada Calloway,11,1460,2027-06-05,C3
+L003,Ada Dunmore,12,1320,2027-06-05,C2
+L004,Quin Northcott,12,1320,2027-05-01,C2
+L005,Dario Sandoval,11,1510,2026-12-05,C4
+L006,Gideon Ellery,10,1350,2026-12-05,C2
+L007,Vito Calloway,12,1310,2026-12-05,C2
+L008,Fenna Holloway,10,1220,2027-03-13,C2
+L009,Soren Brightwater,11,1350,2027-06-05,C3
+L010,Vito Okafor,12,1240,2027-06-05,C3
+L011,Ilse Quarles,10,1270,2027-06-05,C3
+L012,Celia Ashdown,12,1360,2027-06-05,C3
+L013,Zeno Underhill,12,1410,2027-03-13,C3
+L014,Kaia Underhill,12,1470,2027-05-01,C2
+L015,Xavi Vasquez,10,1410,2027-05-01,C3
+L016,Yara Ingram,12,1320,2027-03-13,C4

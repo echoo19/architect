@@ -1,0 +1,17 @@
+student_id,name,grade,target_score,test_date,tutor_id
+S-1001,Joran Marchetti,11,1410,2027-03-13,T-3
+S-1002,Dario Okafor,10,1410,2027-05-01,T-2
+S-1003,Wren Calloway,11,1340,2027-05-01,T-3
+S-1004,Fenna Dunmore,11,1320,2026-12-05,T-4
+S-1005,Elin Vasquez,12,1510,2026-12-05,T-4
+S-1006,Kaia Okafor,12,1440,2027-06-05,T-4
+S-1007,Odile Calloway,10,1270,2027-05-01,T-4
+S-1008,Niko Kettering,12,1360,2027-06-05,T-3
+S-1009,Yara Jessop,11,1220,2026-12-05,T-4
+S-1010,Fenna Marchetti,12,1500,2027-03-13,T-4
+S-1011,Vito Ingram,12,1340,2027-03-13,T-2
+S-1012,Elin Dunmore,11,1480,2027-06-05,T-3
+S-1013,Niko Okafor,11,1490,2027-03-13,T-4
+S-1014,Wren Holloway,11,1410,2027-05-01,T-2
+S-1015,Odile Ashdown,11,1330,2027-06-05,T-4
+S-1016,Elin Lindqvist,11,1380,2026-12-05,T-2

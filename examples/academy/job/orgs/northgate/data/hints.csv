@@ -1,0 +1,44 @@
+hint_id,topic,error_id,text
+HINT-01,W-GRA-06 Subjects and Verbs,ERR-102,Look at the time words at the start of the sentence.
+HINT-02,W-GRA-12 Verb Tense,ERR-110,A specific year in the past calls for a simple form of the verb.
+HINT-03,W-GRA-09 Comparisons,ERR-122,Is the thing being compared one thing or several?
+HINT-04,W-EXP-02 Logical Transitions,,Decide how the second sentence relates to the first before reading the choices.
+HINT-05,M-ALG-11 Function Notation,ERR-135,"Which number multiplies x, and which is added on?"
+HINT-06,W-GRA-09 Comparisons,,Check that the sentence compares the same kind of thing on both sides.
+HINT-07,W-PUN-03 Run-ons and Comma Splices,ERR-116,A semicolon already joins the sentences. Does it need help?
+HINT-08,M-ALG-04 Systems of Equations,ERR-114,"After adding the equations, how many x are there?"
+HINT-09,W-PUN-03 Run-ons and Comma Splices,,Check whether each side of the blank could stand alone as a sentence.
+HINT-10,W-GRA-07 Pronoun Agreement,ERR-109,Read the apostrophe out as two words. Does the sentence still make sense?
+HINT-11,M-ALG-11 Function Notation,ERR-105,"Which comes first, the multiplication or the addition?"
+HINT-12,M-ALG-08 Solving Linear Equations,,"Undo the operations one at a time, doing the same thing to both sides."
+HINT-13,M-PRO-10 Ratios,ERR-124,Match each number in the ratio to the group it describes.
+HINT-14,M-GEO-05 Rectangles,ERR-113,Area counts the squares inside. Which operation does that?
+HINT-15,M-ALG-11 Function Notation,ERR-140,Check that every term of the function made it into your work.
+HINT-16,M-PRO-10 Ratios,ERR-103,The total is already the whole group. Should it get bigger?
+HINT-17,W-GRA-07 Pronoun Agreement,,Find the noun the pronoun stands for and ask whether it is one thing or many.
+HINT-18,W-GRA-12 Verb Tense,ERR-118,"Is the action happening now, or did it already happen?"
+HINT-19,M-ALG-04 Systems of Equations,ERR-141,Check which variable the question asks for.
+HINT-20,M-ALG-08 Solving Linear Equations,ERR-120,"Once the x term is alone, is x itself alone yet?"
+HINT-21,M-ALG-11 Function Notation,ERR-134,A number written next to x multiplies it.
+HINT-22,M-GEO-05 Rectangles,,Use the perimeter to find the missing side before you find the area.
+HINT-23,M-PRO-01 Percentages,ERR-129,"A percent is a part of the price, not a number of dollars."
+HINT-24,M-ALG-08 Solving Linear Equations,ERR-101,"When a number crosses to the other side, check whether you add it or take it away."
+HINT-25,M-ALG-04 Systems of Equations,ERR-125,"The first equation gives x and y together, not x by itself."
+HINT-26,M-ALG-08 Solving Linear Equations,ERR-108,The number in front of x multiplies it. Which operation undoes that?
+HINT-27,M-ALG-11 Function Notation,,"Put the input in place of x, then follow the order of operations."
+HINT-28,M-PRO-10 Ratios,,Add the parts of the ratio to see how many equal shares make the whole.
+HINT-29,W-GRA-09 Comparisons,ERR-123,Of already shows belonging. Does the name need more?
+HINT-30,W-GRA-06 Subjects and Verbs,ERR-132,Read the sentence with your choice. Is it a complete sentence?
+HINT-31,W-EXP-02 Logical Transitions,ERR-104,Is the second sentence caused by the first?
+HINT-32,M-PRO-01 Percentages,,"Find the percent of the original amount first, then decide what to do with it."
+HINT-33,M-ALG-08 Solving Linear Equations,ERR-127,Dividing both sides means dividing every term on each side.
+HINT-34,W-GRA-12 Verb Tense,,Find the words that say when the action happened.
+HINT-35,M-ALG-04 Systems of Equations,,Combine the two equations so that one of the variables disappears.
+HINT-36,M-GEO-05 Rectangles,ERR-142,"The perimeter is a distance around, not one side."
+HINT-37,W-GRA-07 Pronoun Agreement,ERR-130,A group acting together counts as one thing.
+HINT-38,W-GRA-12 Verb Tense,ERR-136,Check the date in the sentence against today.
+HINT-39,W-EXP-02 Logical Transitions,ERR-107,Does the second sentence go against the first?
+HINT-40,W-GRA-07 Pronoun Agreement,ERR-106,"Is the noun a person, or a thing?"
+HINT-41,W-GRA-06 Subjects and Verbs,,"Cross out the phrase between the subject and the verb, then read them together."
+HINT-42,M-PRO-01 Percentages,ERR-111,A sale makes the price go down. Does your answer?
+HINT-43,W-GRA-06 Subjects and Verbs,ERR-143,The noun right before the blank may not be the subject. Which noun is doing the action?
