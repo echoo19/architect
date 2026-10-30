@@ -109,7 +109,7 @@ async function openTeaching(name = 'Service desk'): Promise<Locator> {
 const WRONG = 'INV-3018 was paid on Oct 2, so Okafor owes nothing.';
 const WANTED = 'Only invoices still unpaid after their due date.';
 
-test('flags an answer, sends nothing until agreed, and queues, applies or discards its lesson', async () => {
+test('flags an answer, sends nothing until agreed, and queues or discards its lesson', async () => {
   const app = launched.app;
   await open(chatPath(AGENT.id, CHATS.closeout.id), EMPTY);
 
@@ -169,12 +169,11 @@ test('flags an answer, sends nothing until agreed, and queues, applies or discar
   ]);
   await capture('teach-proposal-dark.png');
 
-  // An instruction applies at once as version 3; version 2 keeps answering.
-  await sheet.getByRole('button', { name: 'Save as version 3' }).click();
-  await expect(sheet.getByText('Saved as version 3')).toBeVisible();
-  await expect(sheet).toContainText('Version 2 keeps answering until you use version 3.');
-  await capture('teach-applied-dark.png');
-  expect(await callsTo(app, 'teach:apply')).toEqual([['cor_new1']]);
+  // A rule is saved for Improve too: nothing makes a version until the agent shows it learned it.
+  await expect(sheet.getByRole('button', { name: /Save as/ })).toHaveCount(0);
+  await sheet.getByRole('button', { name: 'Save for Improve' }).click();
+  await expect(sheet.getByText('Saved for Improve')).toBeVisible();
+  await expect(sheet).toContainText('1 lesson saved. Improve teaches it when you run it.');
   await sheet.getByRole('button', { name: 'Done' }).click();
   await expect(sheet).toBeHidden();
 
@@ -190,9 +189,9 @@ test('flags an answer, sends nothing until agreed, and queues, applies or discar
   await capture('teach-proposal-weakness-dark.png');
   await second.getByRole('button', { name: 'Save for Improve' }).click();
   await expect(second.getByText('Saved for Improve')).toBeVisible();
-  await expect(second).toContainText('1 lesson saved. Improve teaches it when you run it.');
+  await expect(second).toContainText('2 lessons saved. Improve teaches them when you run it.');
   await capture('teach-queued-dark.png');
-  expect(await callsTo(app, 'teach:queue')).toEqual([['cor_new2']]);
+  expect(await callsTo(app, 'teach:queue')).toEqual([['cor_new1'], ['cor_new2']]);
   // The job already shares flagged answers, so it isn't asked again.
   expect(await callsTo(app, 'teach:shareCorrections')).toHaveLength(1);
 
@@ -203,13 +202,9 @@ test('flags an answer, sends nothing until agreed, and queues, applies or discar
     'aria-selected',
     'true',
   );
+  // Saving lessons made no version: version 2 is still the newest.
   const versions = teaching.getByRole('list', { name: 'Versions' });
-  await expect(versions.getByRole('listitem', { name: 'Version 3' })).toContainText(
-    'New, not in use yet',
-  );
-  await expect(versions.getByRole('listitem', { name: 'Version 3' })).toContainText(
-    'No final test yet',
-  );
+  await expect(versions.getByRole('listitem', { name: 'Version 3' })).toHaveCount(0);
   await expect(versions.getByRole('listitem', { name: 'Version 2' })).toContainText('In use');
   await page.keyboard.press('Escape');
   const third = await flagReply();
@@ -283,7 +278,7 @@ test('shows what is being taught above the versions, and the flagged answers to 
   await list.getByRole('button', { name: /Ask which day before booking/ }).click();
   const lesson = page.getByRole('dialog', { name: 'Flagged answer' });
   await expect(lesson).toContainText('Adds to its instructions');
-  await expect(lesson.getByRole('button', { name: 'Save as version 3' })).toBeVisible();
+  await expect(lesson.getByRole('button', { name: /Save as/ })).toHaveCount(0);
   await capture('teach-review-lesson-dark.png');
   await lesson.getByRole('button', { name: 'Save for Improve' }).click();
   await expect(page.getByRole('dialog', { name: 'Flagged answers' })).toBeVisible();
@@ -475,7 +470,21 @@ test('improves the agent into a new version while the active one keeps answering
     'Overdue balances',
   );
   await expect(page.getByRole('region', { name: 'Unchanged' })).toContainText('Invoices');
+  // Each lesson says whether the student learned it; one it didn't goes back to the queue.
+  const taughtLessons = page.getByRole('list', { name: 'Lessons' });
+  await expect(taughtLessons.getByRole('listitem', { name: /Match each payment/ })).toContainText(
+    'Learned',
+  );
+  await expect(taughtLessons.getByRole('listitem', { name: /Match each payment/ })).toContainText(
+    'Passed 2 of 2 Overdue balances tasks it had failed, in round 2, and the change was kept.',
+  );
+  await expect(taughtLessons.getByRole('listitem', { name: /What a customer owes/ })).toContainText(
+    'Not learned',
+  );
   await capture('improve-report-dark.png');
+  await taughtLessons.scrollIntoViewIfNeeded();
+  await capture('improve-report-lessons-dark.png');
+  await page.getByRole('heading', { level: 1 }).scrollIntoViewIfNeeded();
 
   await page.getByRole('button', { name: 'Use version 3' }).click();
   const promote = page.getByRole('dialog', { name: 'Use version 3?' });

@@ -32,8 +32,6 @@ export const teachApi = {
     read('teach.queue', CorrectionSchema, architect().teach.queue(correctionId)),
   discard: (correctionId: string) =>
     read('teach.discard', CorrectionSchema, architect().teach.discard(correctionId)),
-  apply: (correctionId: string) =>
-    read('teach.apply', CorrectionSchema, architect().teach.apply(correctionId)),
   improve: (graduateId: string, options: ImproveOptions) =>
     read('teach.improve', ImprovementStartSchema, architect().teach.improve(graduateId, options)),
   shareCorrections: (graduateId: string, allowed: boolean) =>

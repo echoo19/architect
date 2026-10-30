@@ -1,6 +1,3 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { currentDigest } from '@architect/harness';
 import type {
   Correction,
   CorrectionRequest,
@@ -8,10 +5,9 @@ import type {
   WorkspaceMessage,
 } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
-import { KeyedLock } from '../src/graduates/library';
 import { improvementsOf } from '../src/improve/improvement';
 import { NO_LOCKED_TEST } from '../src/loop/retest';
-import { LESSONS_HEADING, TeachThis } from '../src/improve/teach-this';
+import { TeachThis } from '../src/improve/teach-this';
 import { hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
 import { task } from './fakes/job';
@@ -35,11 +31,9 @@ afterEach(async () => {
 const teachThis = (engine: Engine) =>
   new TeachThis({
     store: engine.store,
-    paths: engine.paths,
     jobs: engine.jobs,
     deps: world.deps,
     clock: world.clock,
-    libraryLock: new KeyedLock(),
   });
 
 const AT = '2026-10-28T09:00:00.000Z';
@@ -231,35 +225,6 @@ describe('Teach this', () => {
     world.mentor.script = () => reading('weakness');
     const weakness = await teach.propose('cht_1', 'msg_2', correction);
     expect(teach.queue(weakness.id).status).toBe('queued');
-    await expect(teach.apply(weakness.id)).rejects.toThrow(
-      'Only a procedure or a source lesson can take effect as an instruction. Queue this one for Improve agent.',
-    );
-  });
-
-  it('applies an instruction as a candidate version, and the active version stays', async () => {
-    const { engine, graduateId } = await graduateWithChat();
-    const teach = teachThis(engine);
-    const lesson = await queued(engine);
-    const applied = await teach.apply(lesson.id);
-
-    expect(applied).toMatchObject({ status: 'applied', candidateVersion: 2 });
-    expect(engine.store.graduates.get(graduateId)?.activeVersion).toBe(1);
-    const version = engine.store.versions.get(graduateId, 2);
-    expect(version).toMatchObject({ state: 'candidate', parent: 1, evaluation: 'unevaluated' });
-    expect(version?.manifest.requirements.limitations).toContain(
-      'No locked test measured this version.',
-    );
-    const instructions = await readFile(
-      join(engine.paths.fromStored(version?.path ?? ''), 'harness', 'AGENTS.md'),
-      'utf8',
-    );
-    expect(instructions).toContain('fix:invoice');
-    expect(instructions).toContain(
-      `${LESSONS_HEADING}\n- Count an invoice as overdue only when it is unpaid and past due.`,
-    );
-    await expect(teach.apply(lesson.id)).rejects.toThrow(
-      "This lesson is applied, so it can't be applied again.",
-    );
   });
 
   it('says who reads a flagged answer, at what cap, and the budget Improve agent keeps to', async () => {
@@ -338,21 +303,6 @@ describe('Teach this', () => {
     await expect(teach.shareCorrections('grd_imported', true)).rejects.toThrow(
       'Returns desk came from a package, so this computer has no job to teach it with.',
     );
-  });
-
-  it('writes one version at a time when two lessons are applied at once', async () => {
-    const { engine, graduateId } = await graduateWithChat();
-    const teach = teachThis(engine);
-    const first = await teach.propose('cht_1', 'msg_2', correction);
-    const second = await teach.propose('cht_1', 'msg_2', correction);
-    const applied = await Promise.all([teach.apply(first.id), teach.apply(second.id)]);
-
-    expect(applied.map((item) => item.candidateVersion).sort()).toEqual([2, 3]);
-    for (const version of [2, 3]) {
-      const stored = engine.store.versions.get(graduateId, version);
-      expect(await currentDigest(engine.paths.fromStored(stored?.path ?? ''))).toBe(stored?.digest);
-    }
-    expect(engine.store.graduates.get(graduateId)?.activeVersion).toBe(1);
   });
 });
 

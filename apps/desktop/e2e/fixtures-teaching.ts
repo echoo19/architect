@@ -184,7 +184,7 @@ export const FLAGGED: Correction[] = [
       reason: 'You name the columns that hold the right amounts.',
       instruction:
         'Work out what a customer owes from data/invoices.csv as total_cents minus paid_cents, never from its status column.',
-      taskType: 'overdue',
+      taskType: 'invoice',
     },
     { status: 'queued', wrong: 'It used the wrong payment date for Okafor.', createdAt: at(430) },
   ),
@@ -233,42 +233,59 @@ const IMPROVING: RunDetail = RunDetailSchema.parse({
 
 /**
  * How an improvement ends in the engine's records: version 3, better on overdue balances and
- * the same elsewhere, within a fraction of its budget.
+ * the same elsewhere, within a fraction of its budget. The student learned the payments lesson;
+ * the invoices one it didn't, so that one goes back to the queue.
  */
-export const FINISHED: Pick<Improvement, 'status' | 'spentUsd' | 'dev' | 'perType' | 'promotion'> =
-  ImprovementSchema.pick({
-    status: true,
-    spentUsd: true,
-    dev: true,
-    perType: true,
-    promotion: true,
-  }).parse({
-    status: 'finished',
-    spentUsd: 0.62,
-    dev: { before: { pass: 37, total: 40 }, after: { pass: 39, total: 40 } },
-    perType: [
-      {
-        type: 'invoice',
-        before: { type: 'invoice', pass: 13, total: 14 },
-        after: { type: 'invoice', pass: 13, total: 14 },
-      },
-      {
-        type: 'overdue',
-        before: { type: 'overdue', pass: 11, total: 13 },
-        after: { type: 'overdue', pass: 13, total: 13 },
-      },
-      {
-        type: 'scheduling',
-        before: { type: 'scheduling', pass: 13, total: 13 },
-        after: { type: 'scheduling', pass: 13, total: 13 },
-      },
-    ],
-    promotion: {
-      allowed: true,
-      reason:
-        "Accept version 3, then promote it when you're ready. Its gain was measured on dev; no locked test measured it.",
+export const FINISHED: Pick<
+  Improvement,
+  'status' | 'spentUsd' | 'dev' | 'perType' | 'promotion' | 'lessons'
+> = ImprovementSchema.pick({
+  status: true,
+  spentUsd: true,
+  dev: true,
+  perType: true,
+  promotion: true,
+  lessons: true,
+}).parse({
+  status: 'finished',
+  spentUsd: 0.62,
+  dev: { before: { pass: 37, total: 40 }, after: { pass: 39, total: 40 } },
+  perType: [
+    {
+      type: 'invoice',
+      before: { type: 'invoice', pass: 13, total: 14 },
+      after: { type: 'invoice', pass: 13, total: 14 },
     },
-  });
+    {
+      type: 'overdue',
+      before: { type: 'overdue', pass: 11, total: 13 },
+      after: { type: 'overdue', pass: 13, total: 13 },
+    },
+    {
+      type: 'scheduling',
+      before: { type: 'scheduling', pass: 13, total: 13 },
+      after: { type: 'scheduling', pass: 13, total: 13 },
+    },
+  ],
+  promotion: {
+    allowed: true,
+    reason:
+      "Accept version 3, then promote it when you're ready. Its gain was measured on dev; no locked test measured it.",
+  },
+  lessons: [
+    {
+      correctionId: 'cor_payments',
+      verdict: 'learned',
+      reason:
+        'Passed 2 of 2 Overdue balances tasks it had failed, in round 2, and the change was kept.',
+    },
+    {
+      correctionId: 'cor_sources',
+      verdict: 'not_learned',
+      reason: 'Passed 1 of 2 Invoices tasks it had failed, in round 1.',
+    },
+  ],
+});
 
 export interface TeachingSeed {
   versions: GraduateVersion[];
@@ -321,6 +338,7 @@ export async function installTeachingFake(
       perType: unknown[];
       candidateVersion?: number;
       promotion: { allowed: boolean; reason: string };
+      lessons: { correctionId: string; verdict: string; reason: string }[];
     };
     const fake = (globalThis as unknown as { fakeEngine: Fake }).fakeEngine;
     const agents = data.agents.map((agent) => ({ ...agent }));
@@ -468,11 +486,6 @@ export async function installTeachingFake(
     handle('teach:discard', (id: string) =>
       Object.assign(correctionOf(id), { status: 'discarded' }),
     );
-    handle('teach:apply', (id: string) => {
-      const number = nextVersion();
-      addCandidate(number);
-      return Object.assign(correctionOf(id), { status: 'applied', candidateVersion: number });
-    });
     handle('teach:improvements', (graduateId: string) =>
       improvements.filter((item) => item.graduateId === graduateId).reverse(),
     );
@@ -500,6 +513,7 @@ export async function installTeachingFake(
           dev: { before: { pass: 37, total: 40 }, after: null },
           perType: [],
           promotion: { allowed: false, reason: 'It is still running.' },
+          lessons: [],
         });
         runEvent(runId, details[runId].run);
         return {
@@ -616,9 +630,15 @@ export async function installTeachingFake(
         const number = nextVersion();
         addCandidate(number);
         Object.assign(improvement, finished as object, { candidateVersion: number });
+        // Only a lesson the student learned goes into the version; the others go back, with why.
         for (const item of corrections) {
-          if ('runId' in item && item.runId === improvement.runId) {
+          if (!('runId' in item) || item.runId !== improvement.runId) continue;
+          const outcome = improvement.lessons.find((lesson) => lesson.correctionId === item.id);
+          if (outcome?.verdict === 'learned') {
             Object.assign(item, { status: 'used', candidateVersion: number });
+          } else {
+            delete item.runId;
+            Object.assign(item, { note: `Not learned: ${outcome?.reason ?? ''}` });
           }
         }
         detail.run = {

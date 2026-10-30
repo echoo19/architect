@@ -5,10 +5,10 @@ import { TypeScoreSchema } from './mentor';
 import { RunStatusSchema } from './run';
 
 /**
- * Teach this and Improve agent (spec section 8, decision 042). A person corrects one reply in
- * the workspace; the mentor reads that exchange, once they agree, and proposes a lesson; the
- * person queues it or discards it. A queued lesson becomes a candidate version, never the
- * active one: at once as an instruction, or through an improvement run.
+ * Teach this and Improve agent (spec section 8, decisions 042 and 066). A person corrects one
+ * reply in the workspace; the mentor reads that exchange, once they agree, and proposes a lesson;
+ * the person queues it or discards it. A queued lesson becomes part of a candidate version, never
+ * the active one, only through an improvement run that showed the student learned it.
  */
 
 /** What a correction asks of the agent, as the mentor reads it. */
@@ -70,7 +70,10 @@ export const CorrectionStatusSchema = z.enum([
   'proposed',
   /** In the teaching queue. */
   'queued',
-  /** Applied as an instruction: its candidate version exists. */
+  /**
+   * Applied as an instruction-only candidate version, which nothing measured. Only lessons from
+   * before decision 066 are; every lesson now goes through Improve agent.
+   */
   'applied',
   /** Taken by an improvement run that made a candidate version. */
   'used',

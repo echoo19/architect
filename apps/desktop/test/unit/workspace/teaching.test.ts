@@ -9,7 +9,6 @@ import { fromBefore, typeChanges } from '../../../src/renderer/src/flow/improve/
 import { phaseView } from '../../../src/renderer/src/flow/train/phase';
 import {
   budgetLine,
-  canApply,
   capsLine,
   canQueue,
   correctionStatus,
@@ -65,18 +64,16 @@ function improvement(patch: Partial<Improvement>): Improvement {
 }
 
 describe('a proposed lesson', () => {
-  it('says the change it would make for each kind, and whether it can be queued or applied', () => {
+  it('says the change it would make for each kind, and whether it can be queued', () => {
     const procedure = proposal({ instruction: 'Ask which day first.' });
     expect(lessonChange(procedure)).toEqual({
       title: 'Adds to its instructions',
       detail: 'Ask which day first.',
     });
-    expect(canApply(procedure)).toBe(true);
     expect(canQueue('procedure')).toBe(true);
 
     const weakness = proposal({ kind: 'weakness' });
     expect(lessonChange(weakness)).toEqual({ title: 'Practice on tasks like this one' });
-    expect(canApply(weakness)).toBe(false);
     expect(canQueue('weakness')).toBe(true);
 
     const ambiguous = proposal({ kind: 'ambiguous', question: 'Today, or month end?' });
@@ -86,8 +83,6 @@ describe('a proposed lesson', () => {
     });
     expect(canQueue('ambiguous')).toBe(false);
     expect(canQueue('invalid')).toBe(false);
-    // A source lesson the mentor gave no instruction can't be applied as one.
-    expect(canApply(proposal({ kind: 'source' }))).toBe(false);
   });
 
   it('carries the files and rows the person named as evidence, or nothing', () => {

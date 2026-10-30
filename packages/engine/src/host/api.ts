@@ -97,14 +97,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     await graduates.ensureChecked(graduateId);
     return graduates.summary(graduateId);
   };
-  const teachThis = new TeachThis({
-    store,
-    paths,
-    jobs,
-    deps,
-    clock: ctx.clock,
-    libraryLock: graduates.lock,
-  });
+  const teachThis = new TeachThis({ store, jobs, deps, clock: ctx.clock });
 
   /** The final tests the run has been put through again, local first. */
   function retestsOf(runId: string): Retest[] {
@@ -332,7 +325,6 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       propose: (chatId, messageId, request) => teachThis.propose(chatId, messageId, request),
       queue: async (correctionId) => teachThis.queue(correctionId),
       discard: async (correctionId) => teachThis.discard(correctionId),
-      apply: (correctionId) => teachThis.apply(correctionId),
       list: async (graduateId) => teachThis.list(graduateId),
       improve: (graduateId, options) => controller.improve(graduateId, options),
       improvements: (graduateId) => improvementsOf(store, jobs, graduateId),

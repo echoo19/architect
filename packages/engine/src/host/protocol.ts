@@ -200,9 +200,6 @@ export const ENGINE_ROUTES = {
   'teach.discard': route(z.tuple([id]), CorrectionSchema, (api, [correctionId]) =>
     api.teach.discard(correctionId),
   ),
-  'teach.apply': route(z.tuple([id]), CorrectionSchema, (api, [correctionId]) =>
-    api.teach.apply(correctionId),
-  ),
   'teach.list': route(z.tuple([id]), z.array(CorrectionSchema), (api, [graduateId]) =>
     api.teach.list(graduateId),
   ),

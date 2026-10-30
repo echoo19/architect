@@ -535,8 +535,6 @@ export interface ArchitectApi {
     propose(chatId: string, messageId: string, request: CorrectionRequest): Promise<Correction>;
     queue(correctionId: string): Promise<Correction>;
     discard(correctionId: string): Promise<Correction>;
-    /** A procedure or source lesson as an instruction-only candidate version, not yet evaluated. */
-    apply(correctionId: string): Promise<Correction>;
     list(graduateId: string): Promise<Correction[]>;
     /** Improve agent on every queued lesson, within the budget shown. */
     improve(graduateId: string, options: ImproveOptions): Promise<ImprovementStart>;

@@ -95,7 +95,6 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     propose: true,
     queue: true,
     discard: true,
-    apply: true,
     list: true,
     improve: true,
     improvements: true,
