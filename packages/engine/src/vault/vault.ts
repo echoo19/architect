@@ -52,8 +52,10 @@ export class Vault {
 
   /**
    * Seals a job's test tasks. `otherTasks` are every task outside the test split and `data` the
-   * text of the job's data files: wording and values they share with test tasks (templates,
-   * records every attempt reads) are left out of the fingerprint. `transfer` are organizations
+   * text of the job's data files, or of the organizations it trains on, with each table's rows as
+   * the mentor is shown them: wording and values they share with test tasks (templates, records
+   * every attempt reads, rows the mentor sees) are left out of the fingerprint (decision 082). A
+   * sealed organization's files are never `data`: they hold test content. `transfer` are organizations
    * the job never trains on: their files are kept here, hashed, and each one's name and id count
    * as test content in the fingerprint of its tasks. `certify` is a certified job's calibration
    * split (decision 077), sealed beside the test and held to the same leak detector.

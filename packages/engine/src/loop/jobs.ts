@@ -30,7 +30,7 @@ import { readInPlainerWords } from '../drafting/older-words';
 import { buildTaskPlan } from '../drafting/plan';
 import { isStudied, materialFiles, studyStateOf } from '../drafting/study';
 import { ContractBook } from '../graduates/contracts';
-import { readDataFile } from '../mentor/data-files';
+import { parseTable, readDataFile } from '../mentor/data-files';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun } from '../store/records';
 import type { TransferOrganization } from '../vault/vault';
@@ -789,11 +789,21 @@ export class JobLibrary {
       orgs.length === 0
         ? [this.paths.dataDir(job.id)]
         : orgs.map((org) => orgDataDir(this.paths.jobDir(job.id), org.id));
+    // Each file's text, and each table's rows as the mentor is shown them, so what the mentor may
+    // see of these files is left out of the fingerprint (decision 082). Only the organizations the
+    // job trains on are read here: a sealed one's files stay secret and count against a leak.
     const data = (
       await Promise.all(
-        folders.flatMap((folder) => job.data.files.map((file) => readDataFile(folder, file))),
+        folders.flatMap((folder) =>
+          job.data.files.map(async (file) => {
+            const text = await readDataFile(folder, file);
+            if (text === null) return [];
+            if (file.kind === 'text') return [text];
+            return [text, JSON.stringify(parseTable(text).rows)];
+          }),
+        ),
       )
-    ).filter((text) => text !== null);
+    ).flat();
     await this.deps.vault.seal(
       job.id,
       [...splits.test, ...sealed],

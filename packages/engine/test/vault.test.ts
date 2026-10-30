@@ -1,10 +1,14 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { GuardError, type Task } from '@architect/shared';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { GuardError, TaskSchema, type Job, type Task } from '@architect/shared';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DataPaths } from '../src/loop/paths';
+import { describeJobData, readDataFile } from '../src/mentor/data-files';
+import { buildOneShotView, oneShotViewParts } from '../src/mentor/view';
 import { isMentorReleased, releaseMentor, type MentorReleased } from '../src/vault/gate';
 import { Vault } from '../src/vault/vault';
+import { importJobInto } from './support/field';
 
 const INVOICE_FORMAT = 'End with: ANSWER: {"invoice_id": "<id>", "total_cents": <integer>}';
 const OVERDUE_FORMAT = 'End with: ANSWER: {"customer_id": "<id>", "overdue_cents": <integer>}';
@@ -193,6 +197,24 @@ describe('leak detection of ids and expected results', () => {
     }
   });
 
+  it('ignores an expected result the data shows, and still finds the task asking for it', () => {
+    const row = { topic: 'Rule 3B - Area and Perimeter', name: 'Used the perimeter as a side' };
+    const asking: Task = {
+      id: 'error-test-1',
+      type: 'error',
+      family: 'error-test-1',
+      prompt: 'Which error did student S-20417 make most on the March 3 quiz of Rule 3B?',
+      expected: { kind: 'answer', value: row, compare: { mode: 'exact' } },
+    };
+    vault.seal('job_rows', [asking], [], [JSON.stringify([row])]);
+    const scan = vault.leakDetector('job_rows');
+    expect(scan.scan(JSON.stringify({ sampleRows: [{ error_id: 'E-02', ...row }] })).leaked).toBe(
+      false,
+    );
+    expect(scan.scan(asking.prompt).matchedIds).toEqual(['error-test-1']);
+    expect(scan.scan('Attempt error-test-1 failed.').matchedIds).toEqual(['error-test-1']);
+  });
+
   it('still reads a fingerprint sealed before ids and values were fingerprinted', () => {
     const file = join(root, 'vault', 'job_sample', 'fingerprint.json');
     const stored = JSON.parse(readFileSync(file, 'utf8')) as { tasks: Record<string, unknown>[] };
@@ -289,5 +311,62 @@ describe('the calibration split of a certified job (decision 077)', () => {
     expect(() => vault.openCalibration('job_certified', proof)).toThrow(
       'The calibration split of job job_certified changed after it was sealed.',
     );
+  });
+});
+
+describe('the leak fingerprint of the academy job, with organizations (decision 082)', () => {
+  let academyRoot: string;
+  let paths: DataPaths;
+  let academy: Job;
+  let sealed: Vault;
+
+  beforeAll(async () => {
+    academyRoot = mkdtempSync(join(tmpdir(), 'architect-vault-academy-'));
+    academy = await importJobInto(academyRoot);
+    paths = new DataPaths(academyRoot);
+    sealed = new Vault(academyRoot);
+  });
+  afterAll(() => rmSync(academyRoot, { recursive: true, force: true }));
+
+  it("lets through the taught academies' sample rows, which the mentor may see", async () => {
+    const train = readFileSync(paths.tasksFile(academy.id, 'train'), 'utf8')
+      .split('\n')
+      .filter((line) => line !== '')
+      .map((line) => TaskSchema.parse(JSON.parse(line)));
+    const view = buildOneShotView({
+      job: academy,
+      dataFiles: await describeJobData(
+        academy,
+        paths.jobDir(academy.id),
+        paths.dataDir(academy.id),
+      ),
+      harnessFiles: { 'AGENTS.md': 'Blank.' },
+      budgetLeft: { rounds: 2, usd: 1, minutes: 60 },
+      train,
+      devTotal: 48,
+    });
+    const parts = oneShotViewParts(view);
+    expect(parts.map((part) => part.label)).toContain('data file errors.csv of copperfield');
+    const detector = sealed.leakDetector(academy.id);
+    const refused = parts.filter((part) => detector.scan(part.text).leaked);
+    expect(refused.map((part) => part.label)).toEqual([]);
+  });
+
+  it("still refuses each locked test task's own prompt", async () => {
+    const detector = sealed.leakDetector(academy.id);
+    const tests = sealed.openForLockedTest(academy.id, await releaseMentor(session()));
+    const missed = tests.filter((task) => !detector.scan(task.prompt).matchedIds.includes(task.id));
+    expect(missed.map((task) => task.id)).toEqual([]);
+  });
+
+  it("still refuses text taken only from the sealed academy's files", async () => {
+    const detector = sealed.leakDetector(academy.id);
+    const opened = sealed.openTransfer(academy.id, await releaseMentor(session()));
+    const [juniper] = opened.organizations;
+    if (juniper === undefined) throw new Error('The academy job has no sealed academy.');
+    const folder = opened.dataDirs[juniper.id] ?? '';
+    const texts = await Promise.all(academy.data.files.map((file) => readDataFile(folder, file)));
+    const refused = texts.filter((text) => text !== null && detector.scan(text).leaked);
+    expect(refused.length).toBeGreaterThan(0);
   });
 });
