@@ -283,16 +283,16 @@ function Organizations({ job }: { job: Job }) {
     <Group title="Organizations">
       {practiced.map((org) => (
         <InspectorRow key={org.id} label={org.name}>
-          <span className="text-ui">Practiced</span>
+          <span className="text-ui">Taught on</span>
         </InspectorRow>
       ))}
       <InspectorRow
         label={sealed === 0 ? 'Any it never trains on' : `${sealed} it never trains on`}
-        note={`Kept with the final test. ${mentor} never sees them.`}
+        note={`Sealed with the final test: ${mentor} never sees them.`}
       >
         <span className="flex items-center gap-1.5 text-ui">
           <Lock size={14} strokeWidth={1.8} aria-hidden />
-          Sealed
+          Never seen
         </span>
       </InspectorRow>
     </Group>

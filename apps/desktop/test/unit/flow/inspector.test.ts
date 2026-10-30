@@ -9,6 +9,7 @@ import {
   expectedMentorUsd,
 } from '../../../src/renderer/src/flow/define/estimates';
 import { parseSeeds } from '../../../src/renderer/src/flow/define/EvaluationTab';
+import { unitFor } from '../../../src/renderer/src/flow/define/fields';
 import { tabOfField, tabWithIssue } from '../../../src/renderer/src/flow/define/inspector-tabs';
 import { SpendingCap } from '../../../src/renderer/src/flow/define/TeacherTab';
 import type { JobEditor } from '../../../src/renderer/src/flow/define/use-job-editor';
@@ -108,5 +109,14 @@ describe("the teacher's spending cap", () => {
     const expected = expectedMentorUsd(job, estimateTime(job, job.student.trainOn)) ?? 0;
     expect(html).toContain(`${aboutUsd(expected)} expected`);
     expect(html).toContain(`aria-valuetext="$${job.budget.maxMentorUsd}"`);
+  });
+});
+
+describe('units beside a value', () => {
+  it('reads in the singular beside a 1', () => {
+    expect(unitFor('tasks', 1)).toBe('task');
+    expect(unitFor('times', 1)).toBe('time');
+    expect(unitFor('tasks', 2)).toBe('tasks');
+    expect(unitFor('%', 1)).toBe('%');
   });
 });

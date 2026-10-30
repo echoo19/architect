@@ -56,10 +56,10 @@ export function StudentTab({ editor, change }: InspectorTabProps) {
         <p className="m-0 break-all font-mono text-small">{local.model}</p>
         <Issue error={issues['student.local.model']} />
       </section>
-      <section aria-label="Practices on" className="flex flex-col gap-2">
-        <h3 className="m-0 text-small font-medium">Practices on</h3>
+      <section aria-label="Runs on" className="flex flex-col gap-2">
+        <h3 className="m-0 text-small font-medium">Runs on</h3>
         <ChoiceTiles
-          aria-label="Practices on"
+          aria-label="Runs on"
           columns={2}
           options={places}
           value={trainOn}
