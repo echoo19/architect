@@ -2,6 +2,8 @@ import { useId, useState } from 'react';
 import type { AgentStep, StepView, WorkspaceMessage } from '@architect/shared';
 import {
   cn,
+  Collapse,
+  Reveal,
   Spinner,
   Table,
   TableBody,
@@ -48,14 +50,11 @@ export function Steps({ message, startOpen, waiting, onOpenPanel }: StepsProps) 
   const open = choice ?? startOpen;
   const step = working ? currentStep(message.steps) : undefined;
 
-  // Closed, the header says what the work was, with how many steps it took. While a write waits
-  // for an answer, the line under the reply says so; this one just counts.
-  const count = stepCount(message.steps.length);
-  const several = message.steps.length > 1;
+  // The header says what the work is, then how long it took; the steps themselves are one click
+  // away. While a write waits for an answer, the line under the reply says so; this one counts.
   let header = workedLabel(message);
-  if (several && header !== count) header = `${header} · ${count}`;
-  if (working && waiting) header = `${count} so far`;
-  else if (step) header = several ? `${stepLine(step)} · ${count}` : stepLine(step);
+  if (working && waiting) header = `${stepCount(message.steps.length)} so far`;
+  else if (step) header = stepLine(step);
 
   return (
     <div className="flex flex-col gap-2">
@@ -75,9 +74,8 @@ export function Steps({ message, startOpen, waiting, onOpenPanel }: StepsProps) 
           className={cn('shrink-0 transition-transform duration-200', open && 'rotate-90')}
         />
       </button>
-      {open && (
+      <Collapse open={open} id={listId}>
         <ol
-          id={listId}
           aria-label="Steps"
           className="m-0 ml-1.5 flex min-w-0 list-none flex-col border-l border-line-strong py-0 pl-4 pr-0 text-small leading-normal"
         >
@@ -86,7 +84,7 @@ export function Steps({ message, startOpen, waiting, onOpenPanel }: StepsProps) 
             // Code shows its own output, so its one-line summary would only repeat it.
             const meta = item.view?.kind === 'code' ? undefined : item.meta;
             return (
-              <li key={item.id} className="flex min-w-0 animate-rise flex-col gap-2 py-[5px]">
+              <Reveal as="li" key={item.id} className="flex min-w-0 flex-col gap-2 py-[5px]">
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                   <span className={NAME_TONE[item.status]}>{action}</span>
                   {target !== '' && <span className="font-mono text-fg">{target}</span>}
@@ -106,7 +104,7 @@ export function Steps({ message, startOpen, waiting, onOpenPanel }: StepsProps) 
                     onOpenPanel={onOpenPanel}
                   />
                 )}
-              </li>
+              </Reveal>
             );
           })}
           {message.graduateVersion !== undefined && (
@@ -116,7 +114,7 @@ export function Steps({ message, startOpen, waiting, onOpenPanel }: StepsProps) 
             </li>
           )}
         </ol>
-      )}
+      </Collapse>
     </div>
   );
 }

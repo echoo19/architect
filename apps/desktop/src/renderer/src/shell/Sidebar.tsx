@@ -11,6 +11,7 @@ import {
   LogoMark,
   Skeleton,
   Spinner,
+  StaggerItem,
   Tooltip,
 } from '@architect/ui';
 import {
@@ -45,7 +46,10 @@ import {
 
 const navRow =
   'flex h-10 w-full items-center gap-2.5 rounded-control px-2.5 text-left text-fg ' +
-  'transition-colors duration-150 hover:bg-hover hover:text-fg';
+  'transition-colors duration-150 hover:bg-hover';
+
+/** The selected row: a clear surface of its own, one step above hover. */
+const selectedRow = 'bg-selected hover:bg-selected';
 
 /**
  * The list of runs is read again whenever the sidebar appears, since the screens without it, such
@@ -85,7 +89,7 @@ export function Sidebar({ route }: { route: Route }) {
           type="button"
           onClick={() => navigate(paths.newAgent())}
           aria-current={route.name === 'new' ? 'page' : undefined}
-          className={cn(navRow, 'min-w-0 flex-1', route.name === 'new' && 'bg-hover text-fg')}
+          className={cn(navRow, 'min-w-0 flex-1', route.name === 'new' && selectedRow)}
         >
           <Plus size={16} strokeWidth={1.8} aria-hidden />
           New agent
@@ -206,29 +210,32 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
   };
 
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="group/agent flex flex-col gap-0.5">
       <div className="flex h-9 items-center gap-2.5 pl-2.5 pr-0.5">
         <AgentAvatar name={graduate.name} />
         <span className="min-w-0 flex-1 truncate font-medium">{graduate.name}</span>
-        <Tooltip content="New chat" side="right">
-          <IconButton
-            label={`New chat with ${graduate.name}`}
-            size="xs"
-            disabled={creating}
-            onClick={() => void startChat()}
-          >
-            <Plus size={14} strokeWidth={1.8} aria-hidden />
-          </IconButton>
-        </Tooltip>
-        <Tooltip content="Agent settings" side="right">
-          <IconButton
-            label={`${graduate.name} settings`}
-            size="xs"
-            onClick={() => showSettings(graduate.id)}
-          >
-            <Ellipsis size={16} strokeWidth={1.8} aria-hidden />
-          </IconButton>
-        </Tooltip>
+        {/* Out of the way until the agent is pointed at or reached with the keyboard. */}
+        <div className="flex items-center opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/agent:opacity-100">
+          <Tooltip content="New chat" side="right">
+            <IconButton
+              label={`New chat with ${graduate.name}`}
+              size="xs"
+              disabled={creating}
+              onClick={() => void startChat()}
+            >
+              <Plus size={14} strokeWidth={1.8} aria-hidden />
+            </IconButton>
+          </Tooltip>
+          <Tooltip content="Agent settings" side="right">
+            <IconButton
+              label={`${graduate.name} settings`}
+              size="xs"
+              onClick={() => showSettings(graduate.id)}
+            >
+              <Ellipsis size={16} strokeWidth={1.8} aria-hidden />
+            </IconButton>
+          </Tooltip>
+        </div>
       </div>
       {!list && chats.entry.status === 'loading' && (
         <div className="flex flex-col gap-2.5 py-1.5 pl-[38px]" aria-busy="true">
@@ -245,30 +252,29 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
           className="py-1.5 pl-[38px] pr-2.5"
         />
       )}
-      {list?.map((chat) => {
+      {list?.map((chat, index) => {
         const current = route.name === 'chat' && route.chatId === chat.id;
         return (
-          <button
-            key={chat.id}
-            type="button"
-            onClick={() => navigate(paths.chat(graduate.id, chat.id))}
-            aria-current={current ? 'page' : undefined}
-            className={cn(
-              'flex h-[34px] w-full shrink-0 items-center justify-between gap-2 rounded-control pl-[38px] pr-2.5 text-left',
-              'transition-colors duration-150 hover:bg-hover',
-              current && 'bg-hover hover:bg-hover',
-            )}
-          >
-            <span className="truncate">{chat.title}</span>
-            {/* A chat waiting for an answer isn't working; the open one says so in the thread. */}
-            {chat.waiting ? (
-              !current && (
-                <span className="shrink-0 text-small font-medium text-student">Approve</span>
-              )
-            ) : chat.running ? (
-              <Spinner tone="student" label="Working" />
-            ) : null}
-          </button>
+          <StaggerItem key={chat.id} index={index}>
+            <button
+              type="button"
+              onClick={() => navigate(paths.chat(graduate.id, chat.id))}
+              aria-current={current ? 'page' : undefined}
+              className={cn(
+                'flex h-[34px] w-full shrink-0 items-center justify-between gap-2 rounded-control pl-[38px] pr-2.5 text-left',
+                'transition-colors duration-150 hover:bg-hover',
+                current && selectedRow,
+              )}
+            >
+              <span className="truncate">{chat.title}</span>
+              {/* A chat waiting for an answer isn't working; the open one says so in the thread. */}
+              {chat.waiting ? (
+                !current && <span className="shrink-0 text-small">Approve</span>
+              ) : chat.running ? (
+                <Spinner tone="student" label="Working" />
+              ) : null}
+            </button>
+          </StaggerItem>
         );
       })}
     </div>
@@ -307,7 +313,7 @@ function TrainingRowButton({ row, route }: { row: TrainingRow; route: Route }) {
       type="button"
       onClick={() => navigate(row.path)}
       aria-current={current ? 'page' : undefined}
-      className={cn(navRow, current && 'bg-hover text-fg')}
+      className={cn(navRow, current && selectedRow)}
     >
       <RowIcon kind={row.kind} />
       <span className="flex-1 truncate">{row.jobName}</span>

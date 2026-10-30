@@ -1,5 +1,5 @@
 import type { GraduateSummary } from '@architect/shared';
-import { AgentAvatar, Heading } from '@architect/ui';
+import { AgentAvatar, Heading, Reveal } from '@architect/ui';
 import { useJob } from '../api/hooks';
 import { suggestionsFor } from './labels';
 
@@ -16,7 +16,7 @@ export function EmptyChat({ agent, onPick }: EmptyChatProps) {
   const suggestions =
     job.status === 'loading' ? [] : suggestionsFor(agent.manifest, job.data?.taskTypes);
   return (
-    <div className="flex min-h-[52vh] animate-rise flex-col items-center justify-center gap-6">
+    <Reveal className="flex min-h-[52vh] flex-col items-center justify-center gap-6">
       <div className="flex flex-col items-center gap-3">
         <AgentAvatar name={agent.name} size="lg" />
         <Heading as="h2" size="title">
@@ -41,6 +41,6 @@ export function EmptyChat({ agent, onPick }: EmptyChatProps) {
           ))}
         </div>
       )}
-    </div>
+    </Reveal>
   );
 }

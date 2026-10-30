@@ -357,7 +357,7 @@ test('says why an install from Hugging Face failed, with a way back', async () =
 test("changes the agent's model, the fix for a base of another build", async () => {
   const app = launched.app;
   await open(chatPath(CHATS.closeout.id), { installation: otherBuildInstallation() });
-  // The chat's header says so too, rather than that it runs here.
+  // The chat's header says so too.
   await expect(page.getByText("Can't run on this computer")).toBeVisible();
   const dialog = await openSettingsTab('General');
   await expect(dialog.getByText("Can't run", { exact: true })).toBeVisible();
@@ -380,7 +380,7 @@ test("changes the agent's model, the fix for a base of another build", async () 
   // Exactly the toast's title: its live region announces the same words for a moment.
   await expect(page.getByText('Changed the model of Service desk', { exact: true })).toBeVisible();
   await expect(dialog.getByText('All checks passed')).toBeVisible();
-  await expect(page.getByText('Running on this computer')).toBeVisible();
+  await expect(page.getByText("Can't run on this computer")).toHaveCount(0);
   await capture('agent-model-changed-dark.png');
   expect(await callsTo(app, 'graduates:bind')).toEqual([
     [AGENT.id, { model: { runtime: 'ollama', baseUrl: OLLAMA_BASE_URL, model: EXACT_BUILD } }],
