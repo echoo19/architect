@@ -770,19 +770,18 @@
         <h2>What is on the screen</h2>
         <div class="body">
           <p>
-            Top to bottom: the job's name and summary, with a note that once trained it runs offline
-            on your computer. <b>What it does</b> and <b>What it won't do</b>.
-            <b>Check the rule</b>, if your files include a policy.
-            <b>Where should it train?</b> with its estimates and a spending cap.
-            <b>Ready when</b> and <b>Permissions</b>. At the bottom, <b>Advanced settings</b>,
-            <b>Back</b> and <b>Start training</b>. See <ref to="define-top" /> and
+            Top to bottom: the job's name and summary. Two lists, what it does (with ticks) and what
+            it won't do (with crosses). <b>Check the rule</b>, if your files include a policy. The
+            choice of where to train. <b>Estimate</b>, with its <b>Breakdown</b>, and the spending
+            cap. <b>Ready when</b> and <b>Saving files</b>. At the bottom, the Advanced settings
+            button, <b>Back</b> and <b>Start training</b>. See <ref to="define-top" /> and
             <ref to="define-bottom" />.
           </p>
           <fig
             id="define-top"
             src="flow-define-dark.png"
-            x="0.17 0.83"
-            y="0.19 0.52"
+            x="0.18 0.82"
+            y="0.07 0.5"
             alt="The Define screen: the job's summary, what it does and won't do, and the choice of where to train."
           />
         </div>
@@ -794,12 +793,12 @@
           <ol class="steps">
             <li>
               <p>
-                Read <b>What it does</b>. Each line should be something you want. If one is wrong,
+                Read the list with ticks. Each line should be something you want. If one is wrong,
                 press <b>Back</b> and describe the job again.
               </p>
             </li>
             <li>
-              <p>Read <b>What it won't do</b>. These are limits the agent keeps.</p>
+              <p>Read the list with crosses. These are limits the agent keeps.</p>
             </li>
             <li>
               <p>If the screen has <b>Check the rule</b>, do that next (below).</p>
@@ -839,7 +838,7 @@
             id="rule"
             src="rule-define-dark.png"
             x="0.17 0.83"
-            y="0.17 0.4"
+            y="0.105 0.4"
             alt="The Check the rule section: lines from the policy, the rule in numbered words, and the first worked example."
           />
           <ol class="steps">
@@ -851,8 +850,7 @@
             </li>
             <li>
               <p>
-                Under <b>The rule, in words</b>, read the numbered steps. Is that how your business
-                works?
+                Under <b>The rule</b>, read the numbered steps. Is that how your business works?
               </p>
             </li>
             <li>
@@ -920,22 +918,21 @@
             </tbody>
           </table>
           <p>
-            <b>Estimated time</b> and <b>Estimated cost</b> add up the training, the final test and
-            the bills. <b>How this is estimated</b> explains them. The
-            <b>Spark spending cap</b> slider sets the most Spark may cost, and training stops before
-            it goes over.
+            <b>Estimate</b> adds up the training, the final test and the bills as a time and a cost.
+            Open <b>Breakdown</b> to see how it is made. The <b>Spark spending cap</b> slider sets
+            the most Spark may cost, and training stops before it goes over.
           </p>
           <p>
             The final test runs on your computer unless you choose the online copy in
             <b>Advanced settings</b>, under <b>Ready when</b>. An agent tested online is marked
-            <b>Passed online</b> until you test it on your computer too (chapter 8).
+            <b>finished training</b>, not ready, until you test it on your computer too (chapter 8).
           </p>
           <fig
             id="define-bottom"
             src="flow-define-dark.png"
-            x="0.17 0.83"
-            y="0.545 1"
-            alt="The lower half of the Define screen: estimated time and cost, the spending cap, Ready when, Permissions, and the Start training button."
+            x="0.18 0.82"
+            y="0.52 1"
+            alt="The lower half of the Define screen: the estimate, the spending cap, Ready when, Saving files, and the Start training button."
           />
         </div>
       </div>
@@ -1006,8 +1003,9 @@
             </li>
             <li>
               <p>
-                Watch the Train screen. The large panel shows Spark and Glimmer and what each is
-                doing. See <ref to="train" />.
+                Watch the Train screen. The top shows what is happening now and the score. In the
+                Rounds list, the open round shows what Glimmer did and what Spark made of it. See
+                <ref to="train" />.
               </p>
             </li>
             <li><p>If Spark has a question, answer it in the round panel (below).</p></li>
@@ -1024,7 +1022,7 @@
             src="flow-train-dark.png"
             x="0.03 0.97"
             y="0.05 0.7"
-            alt="The Train screen: Spark and Glimmer, the current round, the score chart, and the time and cost meters."
+            alt="The Train screen: the current step, the score chart, the time, cost and round meters, and the rounds list with what Glimmer and Spark did."
           />
         </div>
       </div>
@@ -1109,7 +1107,7 @@
             src="flow-advanced-dark.png"
             span="text"
             x="0.222 0.778"
-            y="0.31 0.69"
+            y="0.27 0.73"
             alt="Advanced settings: a list of sections on the left, and the task sets on the right."
           />
         </div>
@@ -1267,8 +1265,8 @@
           <ol class="steps">
             <li>
               <p>
-                Read the pill and the title at the top, such as <b>Ready</b> and
-                <b>Service desk graduated</b>. The table below lists the pills.
+                Read the title at the top, such as <b>Service desk graduated</b>. The table below
+                lists what each title means.
               </p>
             </li>
             <li>
@@ -1299,46 +1297,47 @@
           <fig
             id="report-top"
             src="flow-report-dark.png"
-            x="0.17 0.83"
-            y="0.05 0.215"
-            alt="The top of the Results screen: Ready, the title, and four tiles for score, answer time, model and cost."
+            x="0.1 0.9"
+            y="0.045 0.21"
+            alt="The top of the Results screen: the title, and four tiles for score, answer time, model and cost."
           />
         </div>
       </div>
 
       <div class="part">
-        <h2>The pill</h2>
+        <h2>The title</h2>
         <div class="body">
           <table>
             <thead>
               <tr>
-                <th>Pill</th>
+                <th>Title</th>
                 <th>What it means</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <th>Ready</th>
+                <th>graduated</th>
                 <td>
-                  It passed its final test on your computer, and this computer's checks passed.
+                  It passed its final test on your computer, and this computer's checks passed. The
+                  agent is marked <b>Ready</b>.
                 </td>
               </tr>
               <tr>
-                <th>Passed online</th>
+                <th>finished training, with a score from online</th>
                 <td>
                   The final test ran on the online copy. Test it on your computer to mark it ready.
                 </td>
               </tr>
               <tr>
-                <th>Not ready</th>
+                <th>finished training, with a missed target</th>
                 <td>It missed the target. The screen says by how much. You can still use it.</td>
               </tr>
               <tr>
-                <th>Needs attention</th>
+                <th>needs one more step</th>
                 <td>One of this computer's checks needs something from you.</td>
               </tr>
               <tr>
-                <th>Can't run</th>
+                <th>can't run on this computer</th>
                 <td>A check on this computer failed. The button reads <b>See what's wrong</b>.</td>
               </tr>
             </tbody>
@@ -1443,8 +1442,8 @@
             id="report-body"
             src="flow-report-dark.png"
             span="text"
-            x="0.17 0.83"
-            y="0.25 0.68"
+            x="0.1 0.9"
+            y="0.22 0.76"
             alt="The middle of the Results screen: results by task type, what the agent won't do, comparisons and what helped most."
           />
         </div>
@@ -1536,7 +1535,7 @@
             src="workspace-chat-dark.png"
             x="0 1"
             y="0 0.98"
-            alt="A chat with an agent: a question, the reply with a table of totals, and the message box with Saving files: Ask first."
+            alt="A chat with an agent: a question, the reply with a table of totals, and the message box with the lock icon for Saving files."
           />
         </div>
       </div>
@@ -1557,7 +1556,9 @@
         <h2>Approving changes</h2>
         <div class="body">
           <p>
-            <b>Saving files</b> sits under the message box. A new agent starts on <b>Ask first</b>.
+            <b>Saving files</b> is the lock icon at the bottom left of the message box. Press it to
+            see and change the setting: a closed lock is <b>Ask first</b>, an open lock is
+            <b>Allow</b>, and a crossed pen is <b>Never</b>. A new agent starts on <b>Ask first</b>.
             When the agent wants to change a file, a card shows the file and the rows or lines it
             would write, and the reply waits: <b>Waiting for your approval</b>. In the sidebar, a
             chat that waits shows <b>Approve</b>. See <ref to="approval" />.
@@ -1592,9 +1593,9 @@
             id="approval"
             src="workspace-approval-dark.png"
             span="text"
-            x="0.32 0.85"
-            y="0.055 0.47"
-            alt="Two change cards waiting for approval, each showing the rows to add and the buttons Deny, Allow saving from now on, and Allow once."
+            x="0.31 0.85"
+            y="0.06 0.8"
+            alt="Three change cards waiting for approval, each showing what it would add or create and the buttons Deny, Allow saving from now on, and Allow once."
           />
         </div>
       </div>
@@ -1603,11 +1604,12 @@
         <h2>Working offline</h2>
         <div class="body">
           <p>
-            The pill at the top says <b>Running on this computer</b>. The agent talks only to the
-            model on your computer. You can turn off the internet and keep using it. The first reply
-            may be slow while the model loads. If another job is using the graphics card, the step
-            says <b>Waiting: your computer is busy with another job.</b> and goes on when the card
-            is free.
+            Point at the info icon at the top right of the chat. It names the version and model that
+            answer and says <b>Runs on this computer</b>. The agent talks only to the model on your
+            computer. You can turn off the internet and keep using it. The first reply may be slow
+            while the model loads. If another job is using the graphics card, the step says
+            <b>Waiting: your computer is busy with another job.</b> and goes on when the card is
+            free.
           </p>
         </div>
       </div>
@@ -2051,7 +2053,7 @@
             src="import-check-dark.png"
             span="text"
             x="0.17 0.83"
-            y="0 0.9"
+            y="0 0.8"
             alt="The Package step of an import: safe to open, this computer, the model, and the author's results."
           />
         </div>
