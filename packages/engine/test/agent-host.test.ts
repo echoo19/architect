@@ -725,6 +725,24 @@ describe('a certified version (decision 077)', () => {
     expect(reply.steps.map((step) => step.meta)).toEqual(['agrees', 'differs', 'differs']);
   });
 
+  it('hands off replies in words that say different things, and answers ones that say the same', async () => {
+    const differing = await setup(
+      [{ text: 'Ruiz owes 5000.' }, { text: 'Ruiz owes 4000.' }, { text: 'Nothing is owed.' }],
+      { certificate },
+    );
+    const handed = (await ask(differing, 'What does Ruiz, Ben owe?')).reply;
+    expect(handed.text).toContain("I'm not sure about this one");
+    expect(handed.steps.map((step) => step.meta)).toEqual(['agrees', 'differs', 'differs']);
+
+    const same = await setup(
+      [{ text: 'Ruiz owes 5,000.00' }, { text: 'ruiz owes  5000' }, { text: 'Ruiz owes 4000.' }],
+      { certificate },
+    );
+    const answered = (await ask(same, 'What does Ruiz, Ben owe?')).reply;
+    expect(answered.text).toBe('Ruiz owes 5,000.00');
+    expect(answered.steps.map((step) => step.meta)).toEqual(['agrees', 'agrees', 'differs']);
+  });
+
   it("proposes only the chosen answer's writes, after every attempt, for approval", async () => {
     const other = 'INV-5,C-2,9000,2026-12-05,false';
     const world = await setup(

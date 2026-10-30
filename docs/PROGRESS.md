@@ -2,6 +2,13 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-31 (Sat), Sol's review of the centerpiece (branch `certify/sol-fixes`)
+
+**Done** (no model was called, no GPU, no spend)
+- Chat agreement: replies with no ANSWER line and no change were all keyed alike, so five different replies in words agreed 5/5. They now vote on their normalized words; the certificate's assumption says the bound doesn't cover them (decision 077).
+- Comparison funding: the release reserve and the per-round cap check now count every certified test and calibration attempt (k seeds), not only the first seed's test.
+- Counterexamples: a reduced case passes only on a clean run (no error, no value contradicting the recorded expected one), so a crash repaired into another crash fails (decision 078).
+
 ## 2026-10-31 (Sat, early), Architect Lab, two editions, and the technical centerpiece (start the next session here)
 
 **Where things stand**
@@ -47,7 +54,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - A real run on the academy to see how often helpers fail on train and whether repairs against the cases carry to dev.
 
 **Open**
-- The anchors (rows the call points at) are a heuristic of the call's values; a call whose values don't appear in the data keeps none, and a crash can reduce to almost nothing. The reduced case's pass condition is weak by design; the original case is the strong one, available only in the round that found it.
+- The anchors (rows the call points at) are a heuristic of the call's values; a call whose values don't appear in the data keeps none, and a crash can reduce to almost nothing. The original case is the stronger check (every expected field), available only in the round that found it.
 
 ## 2026-10-30 (Fri, night), platform lane "Editions" (branch `platform/editions`)
 

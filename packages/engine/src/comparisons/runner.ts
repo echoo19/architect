@@ -30,7 +30,13 @@ import type { StoredRun } from '../store/records';
 import { armStart, comparisonJob, stageFolder, type ComparisonModels } from './arms';
 import { Credit } from './credit';
 import { openComparisonEngine, type ComparisonEngine } from './engine';
-import { fieldOf, lockedTestsOf, type Field } from './field';
+import {
+  fieldOf,
+  finalTestAttemptsLeft,
+  finalTestAttemptsOf,
+  lockedTestsOf,
+  type Field,
+} from './field';
 import { GpuWindow } from './gpu';
 import { guardAllows, guardedDeps, isGuardRefusal, type Guards } from './guards';
 import { inputsChanged, pinInputs } from './inputs';
@@ -807,20 +813,21 @@ async function holdBackAfterRelease(
   }
 }
 
-/** Locked-test attempts a released run still has to make under its first seed. */
+/**
+ * Attempts a released run's final test still has to make under its frozen configuration: the
+ * locked test's first seed and, for a certified job, every agreement attempt at each locked-test
+ * and calibration task.
+ */
 function testsLeft(
   engine: ComparisonEngine,
   run: StoredRun,
   base: Job,
   config: ComparisonConfig,
 ): number {
-  const first = run.freeze?.testSeeds?.[0];
-  const done = engine.store.attempts
-    .list({ runId: run.run.id, split: 'test' })
-    .filter(
-      (attempt) => attempt.seed === first && attempt.config?.startsWith('reference/') !== true,
-    );
-  return Math.max(0, lockedTestsOf(base, config) - done.length);
+  const made = engine.store.attempts
+    .list({ runId: run.run.id })
+    .filter((attempt) => attempt.config?.startsWith('reference/') !== true);
+  return finalTestAttemptsLeft(base, config, run.freeze?.testSeeds?.[0], made);
 }
 
 /** What each backend the plan uses is, read without loading a model. */
@@ -924,7 +931,7 @@ function watchRounds(
           ? base.evaluation.trainBatch
           : 0
         : base.evaluation.trainBatch + 4 * dev;
-    const test = record.lockedTestOn === 'hosted' ? lockedTestsOf(base, config) : 0;
+    const test = record.lockedTestOn === 'hosted' ? finalTestAttemptsOf(base, config) : 0;
     const spent = credit.development(record.run.id);
     const ahead = (hostedRound + test) * price;
     if (spent + ahead <= cap + 1e-9) return;

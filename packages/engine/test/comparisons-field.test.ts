@@ -9,12 +9,15 @@ import {
   type ComparisonConfig,
   type ComparisonRequest,
 } from '../src/comparisons';
+import { agreementSeeds } from '../src/certify/agreement';
+import { finalTestAttemptsLeft } from '../src/comparisons/field';
 import { armRun } from '../src/comparisons/report';
 import { PROCEDURE_PATH } from '../src/drafting/study';
 import { systemClock } from '../src/loop/deps';
 import { DataPaths } from '../src/loop/paths';
 import { openEngineStore } from '../src/store/engine-store';
 import { FileVersions, harnessToFiles } from './fakes/harness';
+import { orgJob } from './support/organizations';
 import { comparisonWorld, type ComparisonWorld } from './support/comparison-world';
 import { BRIEF, fieldJob } from './support/field-comparison';
 
@@ -147,4 +150,36 @@ describe('a comparison on a job with organizations', () => {
       store.close();
     }
   }, 300_000);
+});
+
+describe("a certified arm's final test, as the credit reserves it", () => {
+  const job = orgJob({
+    evaluation: {
+      ...orgJob().evaluation,
+      certify: { k: 5, epsilon: 0.1, delta: 0.05, calibration: 8 },
+    },
+  });
+  // 10 locked-test tasks; 4 more attempts at each and 5 at each of 8 calibration tasks.
+  const config = { lockedTests: 10, certifyAttempts: 4 * 10 + 5 * 8 };
+  const seeds = agreementSeeds(101, 5);
+
+  it('holds every test and calibration attempt under every agreement seed', () => {
+    expect(finalTestAttemptsLeft(job, config, 101, [])).toBe(90);
+    const firstSeedDone = Array.from({ length: 10 }, () => ({ split: 'test' as const, seed: 101 }));
+    expect(finalTestAttemptsLeft(job, config, 101, firstSeedDone)).toBe(80);
+  });
+
+  it('counts down as calibration and agreement attempts are made, and not for a repeat seed', () => {
+    const made = [
+      ...seeds.map((seed) => ({ split: 'certify' as const, seed })),
+      { split: 'test' as const, seed: seeds[3] as number },
+      { split: 'test' as const, seed: 102 },
+      { split: 'dev' as const, seed: 101 },
+    ];
+    expect(finalTestAttemptsLeft(job, config, 101, made)).toBe(84);
+  });
+
+  it('holds only the first seed for a job without a certificate', () => {
+    expect(finalTestAttemptsLeft(orgJob(), { lockedTests: 10 }, 101, [])).toBe(10);
+  });
 });

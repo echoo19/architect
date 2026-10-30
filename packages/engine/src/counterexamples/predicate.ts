@@ -94,6 +94,24 @@ export function detectFailure(
 }
 
 /**
+ * What a regression case still shows wrong, or null when the run is clean: any error, not only
+ * the recorded one, or, for a recorded wrong value, a value in that field that isn't the one the
+ * checker expects. A different failure is still a failure.
+ */
+export function regressionFailure(
+  predicate: CounterexamplePredicate,
+  outcome: SandboxOutcome,
+): CounterexamplePredicate | null {
+  if (!outcome.ok) return { kind: 'threw', message: errorText(outcome.failure.message) };
+  if (predicate.kind === 'threw') return null;
+  const given = valuesAt(outcome.value, predicate.field);
+  const got = given[0];
+  return got !== undefined && !given.some((one) => sameValue(one, predicate.expected))
+    ? { ...predicate, got }
+    : null;
+}
+
+/**
  * Whether a run shows the same failure: the same error message, or the same wrong value in the
  * same field with the expected value nowhere in it.
  */

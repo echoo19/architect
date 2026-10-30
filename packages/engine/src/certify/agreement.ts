@@ -37,17 +37,39 @@ function normalizedChange(change: FileChange): JsonValue {
   };
 }
 
-/** The attempt's answer as one text two agreeing attempts share: answer, refusal and changes. */
+/**
+ * A reply in words as two attempts that say the same thing share it: lowercase, each number
+ * written one way (1,000.50 and 1000.5 alike), punctuation and spacing dropped.
+ */
+export function normalizedReply(text: string): string {
+  const tokens = text.toLowerCase().match(/(?<![\p{L}\p{N}])-?\d[\d,]*(?:\.\d+)?|[\p{L}\p{N}]+/gu);
+  return (tokens ?? [])
+    .map((token) => {
+      if (!/^-?\d/.test(token)) return token;
+      const number = Number(token.replace(/,/g, ''));
+      return Number.isFinite(number) ? String(number) : token;
+    })
+    .join(' ');
+}
+
+/**
+ * The attempt's answer as one text two agreeing attempts share: answer, refusal and changes. A
+ * chat reply's `text` counts only when it gave neither a structured answer nor a change, so
+ * replies in words agree only when they say the same thing.
+ */
 export function canonicalAnswer(
   outcome: Pick<CheckOutcome, 'answer' | 'stopReason'>,
   changes: readonly FileChange[] = [],
+  text?: string,
 ): string {
   const answer: JsonValue =
     outcome.stopReason === 'refused'
       ? { refused: true }
-      : outcome.answer === null
-        ? { none: true }
-        : { answer: sorted(outcome.answer) };
+      : outcome.answer !== null
+        ? { answer: sorted(outcome.answer) }
+        : text !== undefined && changes.length === 0
+          ? { said: normalizedReply(text) }
+          : { none: true };
   const files = [...changes].sort((a, b) => byText(a.path, b.path)).map(normalizedChange);
   return JSON.stringify({ ...(answer as object), files });
 }
