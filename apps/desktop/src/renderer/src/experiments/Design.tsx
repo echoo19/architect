@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { ArmId, ExperimentDetail, ExperimentInput } from '@architect/shared';
+import type { ArmId, ExperimentDetail, ExperimentGroup, ExperimentInput } from '@architect/shared';
 import {
   Badge,
   Button,
@@ -10,22 +10,27 @@ import {
   ErrorState,
   Input,
   Inspector,
+  Select,
   Stat,
+  Textarea,
   Tooltip,
   type InspectorTab,
 } from '@architect/ui';
 import {
   ClipboardCheck,
   FileLock2,
+  FlaskConical,
   FolderOpen,
   GraduationCap,
   Hash,
+  Library,
   Lock,
   Repeat2,
   User,
   Wallet,
 } from 'lucide-react';
 import { flowApi } from '../api/client';
+import { useJobs } from '../api/hooks';
 import { experimentKeys, experimentsApi } from '../api/experiments';
 import { fetchQuery, setQueryData, toError } from '../api/query';
 import { fileName, formatCost } from '../flow/format';
@@ -43,8 +48,10 @@ import {
   STATUS_WORDS,
   STUDENT_ARMS,
   WEIGHT_ARMS,
+  GROUP_WORDS,
   defaultInput,
   inputProblem,
+  preregisterProblem,
   minutesText,
   withArmCap,
   withArms,
@@ -66,8 +73,17 @@ const TABS: readonly InspectorTab<Tab>[] = [
 /** How long the plan waits for typing to stop before the engine projects it again. */
 const REVISE_MS = 400;
 
-/** Designing an experiment: a new one until its field is chosen, then its draft. */
-export function ExperimentDesign({ detail }: { detail: ExperimentDetail | null }) {
+/**
+ * Designing an experiment: a new one until its field is chosen, from the library (`jobId`'s when
+ * one is named) or a folder, then its draft.
+ */
+export function ExperimentDesign({
+  detail,
+  jobId,
+}: {
+  detail: ExperimentDetail | null;
+  jobId?: string | undefined;
+}) {
   const [input, setInput] = useState<ExperimentInput | null>(detail?.experiment.input ?? null);
   const [problem, setProblem] = useState<Error | null>(null);
   const [choosing, setChoosing] = useState(false);
@@ -107,15 +123,12 @@ export function ExperimentDesign({ detail }: { detail: ExperimentDetail | null }
     await waiting.send();
   };
 
-  const chooseField = async () => {
-    const [folder] =
-      (await attempt("Couldn't open the folder", () =>
-        flowApi.pickFiles({ title: "Choose the field's folder", directory: true }),
-      )) ?? [];
-    if (folder === undefined) return;
+  /** Plans a draft on the field chosen, named after its job, and opens it. */
+  const planOn = async (source: { jobId: string } | { jobDir: string }, name: string) => {
     setChoosing(true);
-    const planned = await attempt("Couldn't plan an experiment on that folder", async () => {
-      const first = await experimentsApi.plan(defaultInput(folder, fileName(folder)));
+    const planned = await attempt("Couldn't plan an experiment on that field", async () => {
+      const first = await experimentsApi.plan(defaultInput(source, name));
+      if (first.experiment.job.name === name) return first;
       return experimentsApi.revise(first.experiment.id, {
         ...first.experiment.input,
         name: first.experiment.job.name,
@@ -125,6 +138,14 @@ export function ExperimentDesign({ detail }: { detail: ExperimentDetail | null }
     if (!planned) return;
     setQueryData(experimentKeys.detail(planned.experiment.id), planned);
     navigate(paths.experiment(planned.experiment.id), { replace: true });
+  };
+
+  const chooseFolder = async () => {
+    const [folder] =
+      (await attempt("Couldn't open the folder", () =>
+        flowApi.pickFiles({ title: "Choose the field's folder", directory: true }),
+      )) ?? [];
+    if (folder !== undefined) await planOn({ jobDir: folder }, fileName(folder));
   };
 
   const preregister = async () => {
@@ -145,7 +166,10 @@ export function ExperimentDesign({ detail }: { detail: ExperimentDetail | null }
     return true;
   };
 
-  const blocked = input === null ? null : inputProblem(input);
+  const blocked =
+    input === null || detail === null
+      ? null
+      : (inputProblem(input) ?? preregisterProblem(input, detail.groups));
   const calibrating = detail?.experiment.status === 'calibrating';
 
   return (
@@ -182,11 +206,16 @@ export function ExperimentDesign({ detail }: { detail: ExperimentDetail | null }
       }
     >
       <div className="flex max-w-[880px] flex-col gap-4">
+        {input && detail && (
+          <HypothesisCard input={input} groups={detail.groups} onChange={change} />
+        )}
         <FieldCard
           input={input}
           detail={detail}
+          jobId={jobId}
           choosing={choosing}
-          onChoose={() => void chooseField()}
+          onLibrary={(job) => void planOn({ jobId: job.id }, job.name)}
+          onFolder={() => void chooseFolder()}
           onName={(name) => input && change({ ...input, name })}
         />
         <Card title="Arms">
@@ -241,7 +270,7 @@ export function ExperimentDesign({ detail }: { detail: ExperimentDetail | null }
             lines={[
               {
                 icon: <FileLock2 aria-hidden />,
-                text: `Its ${input.arms.length} arms, seeds, ${input.rounds} rounds and caps are frozen. Nothing in the plan can change afterwards.`,
+                text: `Its hypothesis, its primary comparison, its ${input.arms.length} arms, seeds, ${input.rounds} rounds and caps are frozen. Nothing in the plan can change afterwards.`,
               },
               {
                 icon: <Hash aria-hidden />,
@@ -289,32 +318,158 @@ function calibrationLines(detail: ExperimentDetail) {
   ];
 }
 
+const rowIcon = (icon: ReactNode) => (
+  <span className="flex size-9 items-center justify-center rounded-control bg-selected">
+    {icon}
+  </span>
+);
+
+/**
+ * What the experiment is run to find out, first: the hypothesis in the person's words, and the
+ * one comparison it is about, arm A's pass rate less arm B's on a part of the final test.
+ */
+function HypothesisCard({
+  input,
+  groups,
+  onChange,
+}: {
+  input: ExperimentInput;
+  groups: readonly ExperimentGroup[];
+  onChange: (next: ExperimentInput) => void;
+}) {
+  const chosen = input.arms.map((item) => item.arm);
+  const primary = input.primaryComparison;
+  const armOptions = (other: ArmId | undefined) =>
+    chosen.map((arm) => ({ value: arm, label: ARM_NAMES[arm], disabled: arm === other }));
+  /** One side chosen: the other side kept where it can be, else the bare student or another arm. */
+  const compare = (side: 'a' | 'b', arm: ArmId) => {
+    const kept = side === 'a' ? primary?.b : primary?.a;
+    const other =
+      kept !== undefined && kept !== arm
+        ? kept
+        : (chosen.find((item) => item !== arm && item === 'bare') ??
+          chosen.find((item) => item !== arm));
+    if (other === undefined) return;
+    const group = primary?.group ?? 'all';
+    onChange({
+      ...input,
+      primaryComparison: side === 'a' ? { a: arm, b: other, group } : { a: other, b: arm, group },
+    });
+  };
+  return (
+    <Card title="Hypothesis" icon={<FlaskConical size={16} strokeWidth={1.7} aria-hidden />}>
+      <Textarea
+        aria-label="Hypothesis"
+        rows={3}
+        maxLength={2000}
+        placeholder="What you expect to find, and why"
+        value={input.hypothesis ?? ''}
+        onChange={(event) => onChange({ ...input, hypothesis: event.target.value })}
+      />
+      <h3 className="m-0 mb-2 mt-5 text-ui font-medium">Primary comparison</h3>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-ui">
+        <Select<ArmId>
+          aria-label="Arm A"
+          placeholder="Arm"
+          value={primary?.a}
+          options={armOptions(primary?.b)}
+          onValueChange={(arm) => compare('a', arm)}
+        />
+        <span className="flex items-center gap-3">
+          minus
+          <Select<ArmId>
+            aria-label="Arm B"
+            placeholder="Arm"
+            value={primary?.b}
+            options={armOptions(primary?.a)}
+            onValueChange={(arm) => compare('b', arm)}
+          />
+        </span>
+        <span className="flex items-center gap-3">
+          on
+          <Select<ExperimentGroup>
+            aria-label="Part of the final test"
+            placeholder="Part of the test"
+            disabled={primary === undefined}
+            value={primary?.group}
+            options={groups.map((group) => ({ value: group, label: GROUP_WORDS[group] }))}
+            onValueChange={(group) =>
+              primary && onChange({ ...input, primaryComparison: { ...primary, group } })
+            }
+          />
+        </span>
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * The field it runs on: before one is chosen, a field of the library (the one named, else the
+ * first) or, for a job that isn't in it, a folder; then the field chosen, and the name.
+ */
 function FieldCard({
   input,
   detail,
+  jobId,
   choosing,
-  onChoose,
+  onLibrary,
+  onFolder,
   onName,
 }: {
   input: ExperimentInput | null;
   detail: ExperimentDetail | null;
+  jobId: string | undefined;
   choosing: boolean;
-  onChoose: () => void;
+  onLibrary: (job: { id: string; name: string }) => void;
+  onFolder: () => void;
   onName: (name: string) => void;
 }) {
+  const jobs = useJobs();
+  // Only a job with tasks has a sealed final test to compare on.
+  const fields = (jobs.data ?? []).filter((job) => job.taskCount > 0);
+  const [picked, setPicked] = useState<string | undefined>(jobId);
+  const field = fields.find((job) => job.id === picked) ?? fields[0];
   if (input === null || detail === null) {
     return (
       <Card title="Field" flush>
         <CardRow
-          icon={
-            <span className="flex size-9 items-center justify-center rounded-control bg-selected">
-              <FolderOpen size={16} strokeWidth={1.7} aria-hidden />
-            </span>
+          icon={rowIcon(<Library size={16} strokeWidth={1.7} aria-hidden />)}
+          title="A field in your library"
+          detail={
+            jobs.status === 'error'
+              ? "Your fields couldn't be read"
+              : jobs.data && fields.length === 0
+                ? 'No field has tasks yet'
+                : 'Its tasks, its organizations and its sealed final test'
           }
-          title="Choose the field's folder"
-          detail="The job with its tasks and each organization's files"
           end={
-            <Button variant="primary" size="sm" loading={choosing} onClick={onChoose}>
+            <div className="flex items-center gap-2">
+              <Select<string>
+                aria-label="Field"
+                placeholder="Choose a field"
+                disabled={fields.length === 0}
+                value={field?.id}
+                options={fields.map((job) => ({ value: job.id, label: job.name }))}
+                onValueChange={setPicked}
+              />
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={field === undefined}
+                loading={choosing}
+                onClick={() => field && onLibrary(field)}
+              >
+                Use field
+              </Button>
+            </div>
+          }
+        />
+        <CardRow
+          icon={rowIcon(<FolderOpen size={16} strokeWidth={1.7} aria-hidden />)}
+          title="A job folder"
+          detail="For a job not in the library: its job.json, tasks and each organization's files"
+          end={
+            <Button size="sm" disabled={choosing} onClick={onFolder}>
               Choose folder
             </Button>
           }
@@ -322,20 +477,27 @@ function FieldCard({
       </Card>
     );
   }
+  const splits = ` · splits seed ${detail.experiment.job.splitsSeed}`;
   return (
     <Card title="Field" flush>
       <CardRow
-        icon={
-          <span className="flex size-9 items-center justify-center rounded-control bg-selected">
+        icon={rowIcon(
+          input.jobDir === undefined ? (
+            <Library size={16} strokeWidth={1.7} aria-hidden />
+          ) : (
             <FolderOpen size={16} strokeWidth={1.7} aria-hidden />
-          </span>
-        }
+          ),
+        )}
         title={detail.experiment.job.name}
         detail={
-          <>
-            <span className="font-mono">{shortPath(input.jobDir ?? "")}</span>
-            {` · splits seed ${detail.experiment.job.splitsSeed}`}
-          </>
+          input.jobDir === undefined ? (
+            `In your library${splits}`
+          ) : (
+            <>
+              <span className="font-mono">{shortPath(input.jobDir)}</span>
+              {splits}
+            </>
+          )
         }
       />
       <div className="flex items-center gap-4 border-t border-line px-6 py-3">

@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { ArmRow, ComparisonReport, ExperimentInput } from '@architect/shared';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { EMPTY_ENGINE, stubEngine } from './fixtures';
@@ -17,6 +17,23 @@ import { recordedComparisonReport } from './recorded';
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const SIZE = { width: 1440, height: 900 };
 const FOLDER = 'C:/fields/returns-desk';
+
+/** The library's fields: the returns desk after another, as a Field page names it. */
+const LIBRARY = [
+  {
+    id: 'home-services',
+    name: 'Home services',
+    createdAt: '2026-10-20T09:00:00.000Z',
+    taskCount: 96,
+  },
+  {
+    id: 'returns-desk',
+    name: 'Returns desk',
+    createdAt: '2026-10-22T09:00:00.000Z',
+    taskCount: 180,
+  },
+  { id: 'empty-draft', name: 'Empty draft', createdAt: '2026-10-29T09:00:00.000Z', taskCount: 0 },
+];
 
 /** Organizations the stand-in's results split into: two taught, one generated and one real never seen. */
 const ORGS = [
@@ -77,7 +94,7 @@ test.beforeAll(async () => {
   expect(visible).toBe(false);
   await mkdir(OUT_DIR, { recursive: true });
   await updateSettings(page, { onboarded: true, edition: 'lab' });
-  await stubEngine(launched.app, { ...EMPTY_ENGINE, 'files:pick': [FOLDER] });
+  await stubEngine(launched.app, { ...EMPTY_ENGINE, 'jobs:list': LIBRARY, 'files:pick': [FOLDER] });
   await installExperimentsFake(launched.app, asField(await recordedComparisonReport()));
 });
 
@@ -92,6 +109,12 @@ async function capture(file: string): Promise<void> {
 }
 
 const heading = (name: string) => page.getByRole('heading', { name, level: 1 });
+
+/** Whether `first` sits above `second` on the page. */
+async function above(first: Locator, second: Locator): Promise<boolean> {
+  const [top, bottom] = await Promise.all([first.boundingBox(), second.boundingBox()]);
+  return top !== null && bottom !== null && top.y < bottom.y;
+}
 const dialog = () => page.getByRole('dialog');
 
 test('starts empty with one way in', async () => {
@@ -101,13 +124,43 @@ test('starts empty with one way in', async () => {
   await expect(page).toHaveURL(/#\/experiments\/new$/);
   await expect(heading('New experiment')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Preregister' })).toBeDisabled();
+  // A field from the library by default, the first with tasks; a folder for a job not in it.
+  const field = page.getByRole('region', { name: 'Field' });
+  await expect(field.getByRole('combobox', { name: 'Field' })).toHaveText('Home services');
+  await expect(field.getByRole('button', { name: 'Choose folder' })).toBeVisible();
 });
 
-test('designs an experiment and shows its estimate before anything spends', async () => {
-  await page.getByRole('button', { name: 'Choose folder' }).click();
+test('designs an experiment on a field of the library and shows its estimate before anything spends', async () => {
+  // As "New experiment" on the returns desk's Field page opens it: that field chosen.
+  await goTo(page, '/experiments/new/returns-desk');
+  const field = page.getByRole('region', { name: 'Field' });
+  await expect(field.getByRole('combobox', { name: 'Field' })).toHaveText('Returns desk');
+  await field.getByRole('button', { name: 'Use field' }).click();
   await expect(page).toHaveURL(/#\/experiments\/cmp_1$/);
   await expect(heading('Returns desk')).toBeVisible();
   await expect(page.getByText('Draft', { exact: true })).toBeVisible();
+  await expect(field).toContainText('In your library');
+  expect(await page.evaluate(() => window.architect.experiments.get('cmp_1'))).toMatchObject({
+    experiment: { input: { jobId: 'returns-desk' } },
+  });
+
+  // The hypothesis comes first, and nothing is preregistered without it and its comparison.
+  const hypothesis = page.getByRole('region', { name: 'Hypothesis' });
+  expect(await above(hypothesis, field)).toBe(true);
+  await expect(page.getByText('State the hypothesis.')).toBeVisible();
+  await hypothesis
+    .getByRole('textbox', { name: 'Hypothesis' })
+    .fill(
+      "Targeted mentoring passes more of the desks Glimmer never sees than Glimmer alone, since Spark's fixes come from the failures it found.",
+    );
+  await expect(page.getByText('Choose the primary comparison.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Preregister' })).toBeDisabled();
+  await hypothesis.getByRole('combobox', { name: 'Arm A' }).click();
+  await page.getByRole('option', { name: 'Targeted mentoring' }).click();
+  await expect(hypothesis.getByRole('combobox', { name: 'Arm B' })).toHaveText('Bare student');
+  await hypothesis.getByRole('combobox', { name: 'Part of the final test' }).click();
+  await page.getByRole('option', { name: 'the organizations it never sees' }).click();
+  await expect(page.getByRole('button', { name: 'Preregister' })).toBeEnabled();
 
   const arms = page.getByRole('toolbar', { name: 'Arms' });
   await expect(arms.getByRole('button')).toHaveCount(9);
@@ -139,11 +192,13 @@ test('designs an experiment and shows its estimate before anything spends', asyn
     .toMatchObject({
       experiment: {
         input: {
+          primaryComparison: { a: 'targeted', b: 'bare', group: 'unseen' },
           seeds: { lockedTest: [101, 102] },
           arms: expect.arrayContaining([{ arm: 'targeted', sparkUsd: 5 }, { arm: 'repeat' }]),
         },
       },
     });
+  await heading('Returns desk').scrollIntoViewIfNeeded();
   await capture('experiment-new-dark.png');
   await estimate.scrollIntoViewIfNeeded();
   await capture('experiment-new-estimate-dark.png');
@@ -155,6 +210,12 @@ test('preregisters, saying what freezes, then starts and runs without a locked r
   await dialog().getByRole('button', { name: 'Preregister' }).click();
   await expect(page.getByText('Preregistered', { exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Preregistration' })).toContainText('3f9a1c07');
+  await expect(page.getByRole('region', { name: 'Preregistration' })).toContainText(
+    'Returns desk, in your library',
+  );
+  await expect(page.getByRole('region', { name: 'Hypothesis' })).toContainText(
+    'Targeted mentoring minus Bare student, on the organizations it never sees',
+  );
 
   await page.getByRole('button', { name: 'Start' }).click();
   await expect(dialog().getByText(/It may spend up to/)).toBeVisible();
@@ -198,6 +259,10 @@ test('lists every experiment with its status, field, arms, spend and caps', asyn
 test('reads the released results like a short paper', async () => {
   await expect(page.getByText('Finished', { exact: true })).toBeVisible();
   await expect(page.getByText(/Task by task, the difference is \+23\.3 points/)).toBeVisible();
+  // The hypothesis leads, with what was measured on the part of the test it named.
+  const hypothesis = page.getByRole('region', { name: 'Hypothesis' });
+  expect(await above(hypothesis, page.getByRole('figure').first())).toBe(true);
+  await expect(hypothesis).toContainText(/Targeted mentoring \d+\.\d% of \d+, bare student/);
   const plot = page.getByRole('figure', { name: /Final-test pass rate, Hosted/ });
   await expect(plot.getByRole('group', { name: 'Organizations it was taught on' })).toBeVisible();
   await expect(plot.getByRole('group', { name: 'Ridgeline Gear, never seen' })).toBeVisible();
