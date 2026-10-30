@@ -149,7 +149,7 @@ Install it with: architect install hf://jake/service-desk --revision 3f1c9e2a...
 ### field export
 
 ```bash
-architect field export Phil --out ./phil-field [--json]
+architect field export Tutor --out ./tutor-field [--json]
 ```
 
 Writes what a field job has taught so far into one new folder, for training a model elsewhere (`docs/SCALE.md`). The job is named by its id or its name.
@@ -164,7 +164,7 @@ Nothing of the locked test or of an organization the job never trains on goes in
 ### reward score
 
 ```bash
-architect reward score --env ./phil-field/env < attempts.jsonl > scores.jsonl
+architect reward score --env ./tutor-field/env < attempts.jsonl > scores.jsonl
 ```
 
 Scores attempts at the field's train tasks with the job's own checker, for a training framework that runs its own rollouts. It reads one JSON request per line on stdin and writes one score per line on stdout, in order, until stdin ends. It makes no network calls and starts no server.

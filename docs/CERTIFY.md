@@ -6,7 +6,7 @@ Adopted on Oct 31 after research (prior art below) and a GPT-6 Astra reading, at
 
 A specialist should know when not to answer. At qualification Architect calibrates when the graduate answers and when it hands the request to a person, and states a certificate a buyer can read:
 
-> When Phil answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to staff.
+> When Tutor answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to staff.
 
 **How.**
 - *Signal.* Agreement across k independent attempts at the same request (k = 5 by default): the share of attempts whose structured answer and file changes match the most common one. It works on every backend (hosted, Ollama, llama.cpp) and needs no log-probabilities. The graduate answers with the majority answer when agreement reaches its threshold and abstains otherwise.

@@ -6,13 +6,13 @@ Adopted on Oct 30 from `docs/SPEC_FIELD_SPECIALIZATION.md`, at the owner's word:
 
 Architect turns an organization's own material into a specialist that runs on its own computer. Spark studies the material (the question bank, the topics, the lessons, the records, the policy), writes the specialist's skills, tools and practice, teaches Glimmer, and qualifies it on organizations it never saw, one of them real. The bigger picture, stated as direction and not as a result: the same loop run across many organizations of one field yields verified curricula and checkable rewards, which is what field-specific models need.
 
-## The flagship: Phil, a tutor for a test-prep academy
+## The flagship: Tutor, a tutor for a test-prep academy
 
-Phil helps a student right after a wrong answer. It knows the academy's own curriculum: its topic labels and rule numbers, its question bank, its lesson videos, each student's history and the academy's tutoring policy.
+Tutor helps a student right after a wrong answer. It knows the academy's own curriculum: its topic labels and rule numbers, its question bank, its lesson videos, each student's history and the academy's tutoring policy.
 
 **Organizations.**
 - Synthetic academies, generated from seeds (`examples/academy`): each has its own topic taxonomy and naming, question bank with full text (math generated with exact answers and the key intermediate value; grammar items generated from rules, each wrong choice tied to a named error), video catalog, students and attempt history, and a `policy.md` whose numbers differ (how many practice questions to assign, the difficulty band, when to escalate to staff, the hint rule). Public and committed.
-- A real academy, anonymized (it uses the owner's Lectern platform; called "Real academy" everywhere in the repo): pulled read-only through the Lectern connector, every name, email, id and free-text note replaced or dropped, video passcodes dropped, dates kept. Never committed; it lives in `C:/JakeOS/projects/architect-runs/academy-real/` and is used only as an organization the student never trained on. The platform's read-only connector gives labels, correct and chosen answers, difficulty and history, not question text, so on the real academy Phil is qualified only on the skills those records check (below), unless the owner exports the question text.
+- A real academy, anonymized (it uses the owner's Lectern platform; called "Real academy" everywhere in the repo): pulled read-only through the Lectern connector, every name, email, id and free-text note replaced or dropped, video passcodes dropped, dates kept. Never committed; it lives in `C:/JakeOS/projects/architect-runs/academy-real/` and is used only as an organization the student never trained on. The platform's read-only connector gives labels, correct and chosen answers, difficulty and history, not question text, so on the real academy Tutor is qualified only on the skills those records check (below), unless the owner exports the question text.
 
 **Skills** (task types). Every one is checked by a deterministic checker; wording is never scored.
 | Type | The request | What is checked |
@@ -44,15 +44,15 @@ On the real academy (no question text): `history` and `assign` fully, and `diagn
 - *`solve` asks about a question given in the request*, not one in the keyed bank, so the answer key can't be read off. `history` states its cutoff date, window, what counts (first attempts or every attempt) and the denominator; `assign` states what happens with too few eligible questions (assign all eligible and say how many) and allows no duplicates.
 - *Academy facts stay in the academy's files.* Study writes the shared procedure and the brief, never per-academy tables or per-topic files of one academy's facts. The lookup guard is a heuristic, not proof; transfer is shown by the measurements (dev tasks change labels and policy numbers while the harness stays fixed).
 - *Cut now:* weights, source-provenance machinery, automatic per-topic knowledge files, study-screen polish. Keep a small cited brief and the whole tutoring turn.
-- *Dates:* scope frozen Nov 1, candidates frozen Nov 2, Nov 3 for qualification and recording. Hosted results are hosted results; Phil's local qualification is marked unmeasured unless hardware is allowed.
-- *The demo:* the same wrong answer at two academies with different policies, the same frozen Phil, two different correct actions.
+- *Dates:* scope frozen Nov 1, candidates frozen Nov 2, Nov 3 for qualification and recording. Hosted results are hosted results; Tutor's local qualification is marked unmeasured unless hardware is allowed.
+- *The demo:* the same wrong answer at two academies with different policies, the same frozen Tutor, two different correct actions.
 
 ## Architect gains (generic, not tutor-specific)
 
 1. **Study** (the field spec's research stage, bounded to the organization's own material): on Define, Spark reads the material and proposes a study brief: the skills, how they connect, what each needs, the rules it found (each with its passage), what is unclear, and what is out of scope. The person confirms. Then Spark writes the specialist's knowledge: a `skills/<topic>/SKILL.md` per topic, an index from topic to lessons and questions, and the procedure. Uncited claims are marked as Spark's own.
 2. **Organizations** in the engine (the contract above).
 3. **The report** shows a skill by organization grid: seen academies, an unseen synthetic academy, the real academy, with counts; proposed, practiced and qualified kept apart.
-4. **Phil in the workspace**: a staff member or student asks after a wrong answer; writes to `assignments.csv` and `staff_notes.csv` ask for approval.
+4. **Tutor in the workspace**: a staff member or student asks after a wrong answer; writes to `assignments.csv` and `staff_notes.csv` ask for approval.
 5. **Weights**: cut for this delivery (see the amendments); the existing training worker stays as it is.
 
 ## Lanes
@@ -62,7 +62,7 @@ On the real academy (no question text): `history` and `assign` fully, and `diagn
 | Academy field | `field/academy-example` | `examples/academy`: generator, policies, tasks, reference solver, checker, tests |
 | Organizations | `field/orgs-engine` | shared schemas, runner binding, splits, vault, transfer qualification, per-org scores |
 | Study | `field/study` | the study brief and knowledge writing in drafting, the Define screen |
-| Report and workspace | `field/report` | the skill by organization grid, Phil in the workspace |
+| Report and workspace | `field/report` | the skill by organization grid, Tutor in the workspace |
 | Real academy | outside the repo | the anonymized real academy snapshot in the academy schema, and a check of the reference rules against Lectern's own computed reports |
 
 Integration branch: `field/main`, merged into `main` only when `pnpm check` passes and the app still runs the one-job sample. Runs (hosted, frugal, caps stated first): calibrate, teach on synthetic academies, freeze, qualify on the unseen synthetic academy and on the real academy.
